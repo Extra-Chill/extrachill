@@ -22,14 +22,10 @@ if (is_user_logged_in()) {
     <div class="dashboard-container">
         <div class="user-profile-header">
             <h1>User Dashboard: <?php echo esc_html($current_user->display_name); ?></h1>
-            <p><?php // Custom function to get readable role echo wp_surgeon_get_readable_role($wp_role); ?></p>
+            <p><a href="<?php echo esc_url($forum_url); ?>">Community Home</a> | <a href="<?php echo esc_url($profile_url); ?>">Community Profile</a></li></p>
         </div>
 
         <?php
-        // Check if there's a valid HTTP_REFERER to link back to
-if (!empty($_SERVER['HTTP_REFERER']) && strpos($_SERVER['HTTP_REFERER'], get_home_url()) !== false) {
-    echo '<p id="back-to-profile"><a href="' . esc_url($_SERVER['HTTP_REFERER']) . '">Back to Previous Page</a></p>';
-}
 
 // Check for user's bbPress posts (topics or replies)
 $user_id = $current_user->ID;
@@ -53,19 +49,24 @@ if ($user_posts_query->have_posts()) {
             $topic_title = get_the_title($topic_id);
             $reply_anchor = '#post-' . get_the_ID(); // The anchor ID used by bbPress for replies
             $last_post_url = get_permalink($topic_id) . $reply_anchor;
-            $message = "Welcome back, " . esc_html($current_user->display_name) . "! Your last post was in <a href='" . esc_url($last_post_url) . "'>" . esc_html($topic_title) . "</a>.";
+            $post_date = get_the_date(); // Get the date of the post
+            $post_time = get_the_time(); // Get the time of the post
+            $message = "Welcome back, <b>" . esc_html($current_user->display_name) . "</b>! Your last post was in <a href='" . esc_url($last_post_url) . "'>" . esc_html($topic_title) . "</a> on " . esc_html($post_date) . " at " . esc_html($post_time) . ".";
         } else {
             // For topics, just link to the topic itself
             $last_post_title = get_the_title();
             $last_post_url = get_the_permalink();
-            $message = "Welcome back, " . esc_html($current_user->display_name) . "! Your last post was in <a href='" . esc_url($last_post_url) . "'>" . esc_html($last_post_title) . "</a>.";
+            $post_date = get_the_date(); // Get the date of the post
+            $post_time = get_the_time(); // Get the time of the post
+            $message = "Welcome back, <b>" . esc_html($current_user->display_name) . "</b>! Your last post was in <a href='" . esc_url($last_post_url) . "'>" . esc_html($last_post_title) . "</a> on " . esc_html($post_date) . " at " . esc_html($post_time) . ".";
         }
+        
 
         echo "<p>{$message}</p>";
     }
 } else {
     // User hasn't posted yet
-    echo "<p>Welcome, " . esc_html($current_user->display_name) . "! You haven't posted yet. Get started by sharing some of your favorite music in <a href='" . esc_url($forum_url) . "#TheRabbitHole'>The Rabbit Hole</a>!</p>";
+    echo "<p>Welcome, " . esc_html($current_user->display_name) . "! You haven't posted yet. Start by sharing some of your favorite music in <a href='" . esc_url($forum_url) . "#TheRabbitHole'>The Rabbit Hole</a>!</p>";
 }
 wp_reset_postdata(); // Reset the global post object
 
@@ -78,7 +79,7 @@ wp_reset_postdata(); // Reset the global post object
 
         <?php if ($is_professional_pending && !$is_professional): ?>
             <div class="status-notice">
-                <p>Industry Professional status pending admin verification.</p>
+                <p>Industry Professional status pending admin verification. Engage in the forum to speed up the process.</p>
             </div>
                     <!-- Gutenberg Editor Content -->
         <?php endif; ?>
@@ -96,12 +97,55 @@ wp_reset_postdata(); // Reset the global post object
     <div class="dashboard-content">
         <!-- Custom links content -->
 <nav class="dashboard-navigation">
-    <h3>Community Links</h3>
+<h3>Your Stats</h3>
+<div class="user-stats">
+    <?php
+    // Assuming $current_user is defined as the logged-in user
+    $user_id = $current_user->ID;
+
+    // Topics Started
+    $topics_count = bbp_get_user_topic_count_raw($user_id);
+    echo "<p><span>Topics Started: $topics_count <a href='" . bbp_get_user_topics_created_url($user_id) . "'>View All</a></span>";
+
+    // Replies Created
+    $replies_count = bbp_get_user_reply_count_raw($user_id);
+    echo "<span>Total Replies: $replies_count <a href='" . bbp_get_user_replies_created_url($user_id) . "'>View All</a></span>";
+
+    // Main Site Comments and Blog Articles
+    // The functions convert_community_user_id_to_author_id() and fetch_main_site_post_count_for_user() need to be defined accordingly
+    $author_id = convert_community_user_id_to_author_id($user_id);
+    if ($author_id !== null) {
+        $post_count = fetch_main_site_post_count_for_user($author_id);
+        $comment_count = display_main_site_comment_count_for_user($author_id); // Assume this function exists and works similarly
+        $author_slug = get_author_nicename_by_id($author_id);
+        $author_url = "https://extrachill.com/author/{$author_slug}/";
+
+        if ($post_count > 0) {
+            echo "<span>Extra Chill Articles: $post_count <a href='" . esc_url($author_url) . "'>View All</a></span>";
+        }
+            // Inside the dashboard template
+            $current_user_id = get_current_user_id();
+            echo "<span>" . display_main_site_comment_count_for_user($current_user_id) . "</span>";
+        
+    }
+
+    // Rank and Points
+    $rank = wp_surgeon_display_user_rank($user_id);
+    $points = wp_surgeon_display_user_points($user_id);
+    echo "<span>Rank: $rank<br></span>";
+    echo "<span>Points: $points<br></span>";
+    echo "<span><small><a href='/rank-system'>Learn About the Rank System</a></small></span></p>";
+
+    ?>
+</div>
+
+
+
+
+    <h3>Feeds</h3>
     <ul>
-        <li><a href="<?php echo esc_url($forum_url); ?>">Community Home</a></li>
-        <li><a href="<?php echo esc_url($profile_url); ?>">Community Profile</a></li>
-    </ul>
-    <ul>
+        <li><a href="/notificatons">Notifications</a></li>
+        <li><a href="/recent">Recent</a></li>
         <li><a href="/following">Following</a></li>
         <li><a href="/upvoted">Upvoted</a></li>
     </ul>
