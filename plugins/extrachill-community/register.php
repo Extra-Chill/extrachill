@@ -64,7 +64,7 @@ function wp_surgeon_registration_form_shortcode() {
 </div>
     <p>
         <input type="submit" name="wp_surgeon_register" value="Register">
-                   <div class="cf-turnstile" data-sitekey="0x4AAAAAAAPvQsUv5Z6QBB5n" data-callback="community_register"></div>
+                 <div class="cf-turnstile" data-sitekey="0x4AAAAAAAPvQsUv5Z6QBB5n" data-callback="community_register"></div>
     </p>
            <?php if (!empty($errors)): ?>
                 <div class="registration-errors">
@@ -93,53 +93,92 @@ function wp_surgeon_handle_registration() {
     global $wp_surgeon_registration_errors;
 
     if (isset($_POST['wp_surgeon_register']) && check_admin_referer('wp_surgeon_register_nonce', 'wp_surgeon_register_nonce_field')) {
-        // Capture and sanitize input
         $username = sanitize_user($_POST['wp_surgeon_username']);
         $email = sanitize_email($_POST['wp_surgeon_email']);
         $password = esc_attr($_POST['wp_surgeon_password']);
-        $password_confirm = esc_attr($_POST['wp_surgeon_password_confirm']);
         $email_confirm = sanitize_email($_POST['wp_surgeon_email_confirm']);
+        $password_confirm = esc_attr($_POST['wp_surgeon_password_confirm']);
 
-        // Add Turnstile verification
         $turnstile_response = $_POST['cf-turnstile-response'];
         $verify = wp_surgeon_verify_turnstile($turnstile_response);
 
         if (!$verify) {
             $wp_surgeon_registration_errors[] = 'Captcha verification failed. Please try again.';
-            return; // Stop execution if captcha fails
+            return;
         }
 
-        // Validate form input
         if ($email != $email_confirm) {
             $wp_surgeon_registration_errors[] = 'Error: Emails do not match.';
+            return;
         }
 
         if ($password != $password_confirm) {
             $wp_surgeon_registration_errors[] = 'Error: Passwords do not match.';
+            return;
         }
 
         if (username_exists($username) || email_exists($email)) {
             $wp_surgeon_registration_errors[] = 'Error: User already exists with this username/email.';
+            return;
         }
 
-        // Proceed with registration if no errors
-        if (empty($wp_surgeon_registration_errors)) {
-            $user_id = wp_create_user($username, $password, $email);
+        $user_id = wp_create_user($username, $password, $email);
+        if (!is_wp_error($user_id)) {
+            // Notify admin of new user registration
+            wp_surgeon_notify_admin_new_user($user_id, $username, $email);
 
-            if (!is_wp_error($user_id)) {
-                wp_surgeon_notify_admin_new_user($user_id, $username, $email);
-                set_transient('registration_success', 'Registration successful!', 60);
-                wp_redirect(esc_url($_SERVER['REQUEST_URI']));
-                exit;
-            } else {
-                $wp_surgeon_registration_errors[] = 'Error: ' . $user_id->get_error_message();
-            }
+            // Generate a session token for the new user
+            $token = generate_community_session_token();
+            store_user_session($token, $user_id);
+            
+            // Set the session token cookie
+            setcookie('ecc_user_session_token', $token, [
+                'expires' => time() + (6 * 30 * 24 * 60 * 60), // 6 months
+                'path' => '/',
+                'domain' => '.extrachill.com',
+                'secure' => is_ssl(),
+                'httponly' => false,
+                'samesite' => 'Lax'
+            ]);
+
+            // Log the user in
+            wp_set_current_user($user_id);
+            wp_set_auth_cookie($user_id, true);
+
+            // Redirect to the user dashboard or another desired page
+            wp_redirect(home_url('/user-dashboard'));
+            exit;
+        } else {
+            $wp_surgeon_registration_errors[] = 'Registration error: ' . $user_id->get_error_message();
         }
     }
 }
-
 add_action('init', 'wp_surgeon_handle_registration');
 
+
+function auto_login_new_user($user_id) {
+    // Assuming generate_community_session_token and store_user_session are defined and available
+    $token = generate_community_session_token();
+    store_user_session($token, $user_id);
+    
+    // Setting the ECC user session cookie
+    setcookie('ecc_user_session_token', $token, [
+        'expires' => time() + (6 * 30 * 24 * 60 * 60), // 6 months
+        'path' => '/',
+        'domain' => '.extrachill.com',
+        'secure' => is_ssl(),
+        'httponly' => false, // Adjust based on your security requirements
+        'samesite' => 'Lax' // Ensure compatibility with your site's cross-site request policy
+    ]);
+
+    // Now proceed with setting the WP auth cookie and logging the user in
+    wp_set_current_user($user_id);
+    wp_set_auth_cookie($user_id, true); // Ensure the login is persistent
+
+    // Redirect to the user dashboard or another desired page
+    wp_redirect(home_url('/user-dashboard'));
+    exit;
+}
 
 
 function save_user_iss_on_registration($user_id) {
@@ -160,8 +199,6 @@ function save_user_iss_on_registration($user_id) {
         // Set the initial professional role to 'pending'
         update_user_meta($user_id, 'user_is_professional_pending', '1');
     }
-    // Send an email notification to the admin
-    wp_surgeon_notify_admin_new_user($user_id, $username, $email);
 }
 add_action('user_register', 'save_user_iss_on_registration');
 
@@ -186,16 +223,6 @@ function wp_surgeon_get_registration_errors() {
     return $errors;
 }
 
-function auto_login_new_user( $user_id ) {
-    wp_set_current_user( $user_id );
-    wp_set_auth_cookie( $user_id );
-
-    // Send welcome email
-    send_welcome_email_to_new_user( $user_id );
-
-    wp_redirect( home_url( '/user-dashboard' ) ); // Adjust the URL to your user dashboard
-    exit;
-}
 
 function send_welcome_email_to_new_user( $user_id ) {
     $user_data = get_userdata($user_id);
@@ -208,16 +235,17 @@ function send_welcome_email_to_new_user( $user_id ) {
     $subject = "Welcome to the Extra Chill Community!";
     $message = "Hello " . $username . ",\n\n";
     $message .= "Welcome to the Extra Chill Community! We're excited to have you on board.\n\n";
-    $message .= "Here are some details to get you started:\n";
+    $message .= "You can now participate in the Community, including upvoting and commenting on blog articles on the main site. Get started by sharing some of your favorite music in The Rabbit Hole: " . esc_url( home_url( '#TheRabbitHole' ) ) . "\n\n";
+
+    $message .= "Account Details:\n";
     $message .= "Username: " . $username . "\n";
     $message .= "If you forget your password: " . $reset_pass_link . "\n\n";
-    $message .= "Here are some links you might find useful:\n";
+    $message .= "Other Useful Links:\n";
     $message .= "Your Dashboard: " . home_url( '/user-dashboard' ) . "\n";
     $message .= "Community Forums: " . home_url( '/' ) . "\n"; 
     $message .= "Main Blog: https://extrachill.com\n";
-    $message .= "Instagram: https://instagram.com/extrachill\n";
-    // Newly added content
-    $message .= "You can now participate in the Community, including upvoting and commenting on blog articles on the main site. Get started by sharing some of your favorite music in The Rabbit Hole: " . esc_url( home_url( '/community/#TheRabbitHole' ) ) . "\n";
+    $message .= "Instagram: https://instagram.com/extrachill\n\n";
+    // Newly added content    
     $message .= "Learn more about how the Extra Chill Community works: " . esc_url( home_url( '/community-info' ) ) . "\n";
     // End of newly added content
 
