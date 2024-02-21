@@ -258,8 +258,9 @@ function display_online_users_stats() {
     echo "<p><span class='label'>Total Members:</span> <span class='count'>" . $total_members . "</span></p>";
     echo "</div>";
 }
-function wp_surgeon_bbp_form_posting_tips() {
-    $posting_tips = "For YouTube, Spotify, etc, paste the link directly in the text box, without using the link button. <a href='/posting-guidelines'>See full posting guidelines</a>";
+
+/*function wp_surgeon_bbp_form_posting_tips() {
+    $posting_tips = "<a href='/posting-guidelines'>See posting guidelines</a>";
     echo "<div class='bbp-form-posting-tips'>{$posting_tips}</div>";
 }
 
@@ -268,6 +269,7 @@ add_action('bbp_theme_after_topic_form_content', 'wp_surgeon_bbp_form_posting_ti
 
 // Add the tips after the reply form content
 add_action('bbp_theme_after_reply_form_content', 'wp_surgeon_bbp_form_posting_tips');
+*/
 
 
 // Add a filter to display custom message below edit form in bbPress
