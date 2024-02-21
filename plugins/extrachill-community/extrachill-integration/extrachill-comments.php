@@ -47,11 +47,13 @@ function display_main_site_comments_for_user($community_user_id) {
 
 
 
- function display_main_site_comment_count_for_user() {
-    // Get the BBPress displayed user ID
-    $community_user_id = bbp_get_displayed_user_id();
+function display_main_site_comment_count_for_user($user_id = null) {
+    if (empty($user_id)) {
+        // Fallback to the BBPress displayed user ID if not provided
+        $user_id = bbp_get_displayed_user_id();
+    }
     
-    $response = wp_remote_get("https://extrachill.com/wp-json/extrachill/v1/user-comments-count/{$community_user_id}");
+    $response = wp_remote_get("https://extrachill.com/wp-json/extrachill/v1/user-comments-count/{$user_id}");
 
     if (is_wp_error($response)) {
         return 'Could not fetch comment count.';
@@ -62,12 +64,13 @@ function display_main_site_comments_for_user($community_user_id) {
 
     if ($comment_count > 0) {
         // Adjust the URL to where you list all comments by this user on the main site
-        $comments_url = "https://community.extrachill.com/blog-comments?user_id={$community_user_id}";
+        $comments_url = "https://community.extrachill.com/blog-comments?user_id={$user_id}";
         return "Main Site Comments: $comment_count <a href='{$comments_url}'>View All</a>";
     } else {
         return "Main Site Comments: $comment_count";
     }
 }
+
 
 
 function extrachill_add_query_vars_filter($vars){
