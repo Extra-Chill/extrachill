@@ -38,6 +38,8 @@ include_once get_stylesheet_directory() . '/quote.php';
 include_once get_stylesheet_directory() . '/tinymce-customization.php';  
 include_once get_stylesheet_directory() . '/moderation.php'; 
 include_once get_stylesheet_directory() . '/dynamic-menu.php';  
+include_once get_stylesheet_directory() . '/quick-post.php';  
+
 
 
 $folder_path = get_stylesheet_directory() . '/extrachill-integration/';
