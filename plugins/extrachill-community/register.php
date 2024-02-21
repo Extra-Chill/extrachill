@@ -210,15 +210,16 @@ function send_welcome_email_to_new_user( $user_id ) {
     $message .= "Welcome to the Extra Chill Community! We're excited to have you on board.\n\n";
     $message .= "Here are some details to get you started:\n";
     $message .= "Username: " . $username . "\n";
-    $message .= "Set your password: " . $reset_pass_link . "\n\n";
+    $message .= "If you forget your password: " . $reset_pass_link . "\n\n";
     $message .= "Here are some links you might find useful:\n";
     $message .= "Your Dashboard: " . home_url( '/user-dashboard' ) . "\n";
-    $message .= "Community Forums: " . home_url( '/' ) . "\n"; // Adjust with your forum URL
+    $message .= "Community Forums: " . home_url( '/' ) . "\n"; 
     $message .= "Main Blog: https://extrachill.com\n";
     $message .= "Instagram: https://instagram.com/extrachill\n";
-
-
-    // Add more links as needed
+    // Newly added content
+    $message .= "You can now participate in the Community, including upvoting and commenting on blog articles on the main site. Get started by sharing some of your favorite music in The Rabbit Hole: " . esc_url( home_url( '/community/#TheRabbitHole' ) ) . "\n";
+    $message .= "Learn more about how the Extra Chill Community works: " . esc_url( home_url( '/community-info' ) ) . "\n";
+    // End of newly added content
 
     $message .= "\nEnjoy your stay,\n";
     $message .= "The Extra Chill Team";
@@ -227,7 +228,8 @@ function send_welcome_email_to_new_user( $user_id ) {
     wp_mail($email, $subject, $message);
 }
 
-add_action( 'user_register', 'auto_login_new_user' );
+add_action( 'user_register', 'send_welcome_email_to_new_user' );
+
 
 function wp_surgeon_notify_admin_new_user($user_id, $username, $email) {
     $admin_email = get_option('admin_email');
