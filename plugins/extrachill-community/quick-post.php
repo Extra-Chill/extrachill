@@ -1,5 +1,8 @@
 <?php
 function huberpress_quick_post_form() {
+    if (!is_user_logged_in()) {
+        return;
+    }
     // Check for form submission
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Initialize an error array
@@ -65,48 +68,15 @@ function huberpress_quick_post_form() {
     echo '</p>';
 
     echo '<p><input type="submit" id="bbp_topic_submit" name="bbp_topic_submit" value="Submit"></p>';
+    echo '<div id="form-errors" class="error-messages" style="color: red;"></div>';
     echo '</form></div></div>';
-
-    // Inline JavaScript for toggling the form display
-    echo "<script>
-jQuery(document).ready(function($) {
-    $('#quick-post-topic').submit(function(e) {
-        var error = false;
-        var errorMessage = '';
-
-        // Check title
-        if ($('#bbp_topic_title').val().trim() === '') {
-            errorMessage += 'Title is required.\n';
-            error = true;
-        }
-
-        // Check content
-        if ($('#bbp_topic_content').val().trim() === '') {
-            errorMessage += 'Content is required.\n';
-            error = true;
-        }
-
-        // Check forum selection
-        if ($('#bbp_forum_id').val() === '') {
-            errorMessage += 'Please select a forum.\n';
-            error = true;
-        }
-
-        // If there are errors, prevent form submission and show alert
-        if (error) {
-            e.preventDefault(); // Prevent form submission
-            alert(errorMessage); // Show alert with error messages
-        }
-        // If no errors, form will submit normally
-    });
-
-    $('#quick-post-toggle').click(function() {
-        $('#quick-post-form').slideToggle('fast');
-    });
-});
-</script>
-";
 }
+
+function huberpress_force_enqueue_quick_post_script() {
+    wp_enqueue_script('huberpress-quick-post-js', get_stylesheet_directory_uri() . '/js/quick-post.js', array('jquery'), null, true);
+}
+add_action('wp_enqueue_scripts', 'huberpress_force_enqueue_quick_post_script');
+
 
 function huberpress_custom_forum_dropdown() {
     $sections = [
