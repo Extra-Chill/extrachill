@@ -66,7 +66,7 @@ if ($user_posts_query->have_posts()) {
     }
 } else {
     // User hasn't posted yet
-    echo "<p>Welcome, " . esc_html($current_user->display_name) . "! You haven't posted yet. Start by sharing some of your favorite music in <a href='" . esc_url($forum_url) . "#TheRabbitHole'>The Rabbit Hole</a>!</p>";
+    echo "<p>Welcome, <b>" . esc_html($current_user->display_name) . "</b>! You haven't posted yet. Start by sharing some of your favorite music in <a href='" . esc_url($forum_url) . "#TheRabbitHole'>The Rabbit Hole</a>!</p>";
 }
 wp_reset_postdata(); // Reset the global post object
 
@@ -95,6 +95,8 @@ wp_reset_postdata(); // Reset the global post object
         </div>
 
     <div class="dashboard-content">
+
+    <?php do_action( 'chill_before_user_dashboard' );?>
         <!-- Custom links content -->
 <nav class="dashboard-navigation">
 <h3>Your Stats</h3>
