@@ -155,38 +155,30 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // Adjusted to correctly handle tooltip visibility
     document.body.addEventListener('click', function(e) {
         const target = e.target.closest('[data-title]');
         if (target) {
-            // Prevent showing tooltip for elements within the follow button container
-            if (!target.closest('.author-follow-button')) {
-                showTooltip(target);
-                e.stopPropagation(); // Prevent immediate hide
-            }
+            showTooltip(target);
+            e.stopPropagation(); // Prevent immediate hide
         } else {
             hideTooltip();
         }
     });
 
+    // Adjust for touch devices
+    document.body.addEventListener('touchstart', function(e) {
+        const target = e.target.closest('[data-title]');
+        if (target) {
+            e.preventDefault(); // Prevent the browser's default touch action
+            showTooltip(target);
+            // Consider not hiding the tooltip immediately upon touch end to improve experience
+        }
+    }, {passive: false}); // Ensure we can call preventDefault
+
     document.querySelectorAll('[data-title]').forEach(element => {
         element.addEventListener('mouseenter', function() {
-            if (!this.closest('.author-follow-button')) {
-                showTooltip(this);
-            }
+            showTooltip(this);
         });
         element.addEventListener('mouseleave', hideTooltip);
     });
-
-    new MutationObserver(() => {
-        document.querySelectorAll('[data-title]:not([data-tooltip-initialized])').forEach(element => {
-            element.setAttribute('data-tooltip-initialized', 'true');
-            element.addEventListener('mouseenter', function() {
-                if (!this.closest('.author-follow-button')) {
-                    showTooltip(this);
-                }
-            });
-            element.addEventListener('mouseleave', hideTooltip);
-        });
-    }).observe(document.body, { childList: true, subtree: true });
 });
