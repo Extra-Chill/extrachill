@@ -1,4 +1,7 @@
 (function waitForTinyMCE() {
+    var maxRetries = 5; // Maximum number of retries
+    var retryCount = 0; // Current retry attempt
+
     function initPlugin() {
         console.log("Initializing TinyMCE plugin");
         if (window.tinymce) {
@@ -37,7 +40,7 @@
                         document.body.removeChild(input);
                     };
 
-                    input.click(); // This triggers the file input click event, which is sufficient for both click and touch events
+                    input.click();
                 }
 
                 function uploadImage(file, editor) {
@@ -68,13 +71,17 @@
                 }
             });
 
-            // Trigger the plugin
             tinymce.init({
-                selector: 'textarea', // Update this to target specific textareas if needed
+                selector: 'textarea',
             });
         } else {
             console.log("TinyMCE not detected, retrying...");
-            setTimeout(initPlugin, 1000); // Increased timeout for retry
+            retryCount++;
+            if (retryCount < maxRetries) {
+                setTimeout(initPlugin, 1000); // Retry with a delay
+            } else {
+                console.error("Failed to initialize TinyMCE after " + maxRetries + " retries.");
+            }
         }
     }
 
