@@ -99,8 +99,10 @@ function extrachill_enqueue_scripts() {
     wp_localize_script('extrachill-upvote', 'extrachill_ajax', array(
         'ajaxurl' => admin_url('admin-ajax.php'),
         'nonce' => wp_create_nonce('upvote_nonce'),
-        'is_user_logged_in' => is_user_logged_in()
+        'is_user_logged_in' => is_user_logged_in(),
+        'user_id' => get_current_user_id() // Add this line to make the user ID available
     ));
+    
 
     // Only enqueue sorting.js on the 'social' page
     if (is_page('social') || (function_exists('get_post') && get_post()->post_name == 'social')) {
