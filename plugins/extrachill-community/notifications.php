@@ -78,6 +78,9 @@ function extrachill_capture_reply_notifications($reply_id, $topic_id, $forum_id,
 
 add_action('bbp_new_reply', 'extrachill_capture_mention_notifications', 12, 5);
 add_action('bbp_new_topic', 'extrachill_capture_mention_notifications', 12, 4);
+add_action('bbp_edit_reply', 'extrachill_capture_mention_notifications', 12, 5);
+add_action('bbp_edit_topic', 'extrachill_capture_mention_notifications', 12, 4);
+
 
 function extrachill_capture_mention_notifications($post_id, $topic_id, $forum_id, $anonymous_data, $reply_author = 0) {
     // This function will be called for both topics and replies, so we need to handle both
