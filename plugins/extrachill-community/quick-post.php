@@ -101,6 +101,7 @@ function huberpress_custom_forum_dropdown() {
             ],
             'orderby' => 'menu_order', // Default ordering
             'order' => 'ASC',
+            'post__not_in' => [1494], // Exclude forum 1494
         ];
 
         // For the "Rabbit Hole" section, order by last active time dynamically
@@ -116,6 +117,8 @@ function huberpress_custom_forum_dropdown() {
             echo '<optgroup label="' . esc_attr($label) . '">';
             while ($forums_query->have_posts()) {
                 $forums_query->the_post();
+                // Skip forum 1494 just in case
+                if(get_the_ID() == 1494) continue;
                 echo '<option value="' . get_the_ID() . '">' . get_the_title() . '</option>';
             }
             echo '</optgroup>';
@@ -125,6 +128,7 @@ function huberpress_custom_forum_dropdown() {
     echo '</select>';
     wp_reset_postdata();
 }
+
 
 
 
