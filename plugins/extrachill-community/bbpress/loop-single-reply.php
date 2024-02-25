@@ -1,20 +1,39 @@
 <div id="post-<?php bbp_reply_id(); ?>" class="bbp-reply-header">
     <div class="bbp-meta">
-        <div class="upvote-date">
-<?php
+    <?php
 $user_id = get_current_user_id();
 $reply_id = bbp_get_reply_id();
-$upvoted_posts = get_user_meta($user_id, 'upvoted_posts', true);
-$icon_class = is_array($upvoted_posts) && in_array($reply_id, $upvoted_posts) ? 'fa-solid' : 'fa-regular';
-?>
-<div class="upvote">
-<span class="upvote-icon" data-post-id="<?php echo $reply_id; ?>" data-type="reply" data-nonce="<?php echo wp_create_nonce('upvote_nonce'); ?>">
-    <i class="<?php echo $icon_class; ?> fa-circle-up"></i>
-</span>
-<span class="upvote-count"><?php echo get_upvote_count($reply_id); ?></span></div>
+$main_site_post_id = get_post_meta($reply_id, 'main_site_post_id', true);
 
-            <span class="bbp-reply-post-date"> | <?php bbp_reply_post_date(); ?></span>
-        </div>
+if ($main_site_post_id) {
+    // Fetch the upvote counts for this post ID from the external system
+    $upvote_data = fetch_upvote_counts_from_extrachill([$main_site_post_id]);
+    $upvote_info = isset($upvote_data[$main_site_post_id]) ? $upvote_data[$main_site_post_id] : ['count' => 0, 'has_upvoted' => false];
+    $upvote_count = $upvote_info['count'];
+    $icon_class = $upvote_info['has_upvoted'] ? 'fa-solid' : 'fa-regular';
+} else {
+    // Fallback to current system if no main site post ID meta
+    $upvoted_posts = get_user_meta($user_id, 'upvoted_posts', true);
+    $upvote_count = get_upvote_count($reply_id); // Ensure this function exists or is adapted to your setup
+    $icon_class = is_array($upvoted_posts) && in_array($reply_id, $upvoted_posts) ? 'fa-solid' : 'fa-regular';
+}
+?>
+
+<div class="upvote-date">
+    <div class="upvote">
+        <span class="upvote-icon" 
+              data-post-id="<?php echo esc_attr($reply_id); ?>" 
+              data-type="reply" 
+              data-nonce="<?php echo esc_attr(wp_create_nonce('upvote_nonce')); ?>"
+              <?php if (!empty($main_site_post_id)) echo 'data-main-site-post-id="' . esc_attr($main_site_post_id) . '"'; ?>>
+            <i class="<?php echo esc_attr($icon_class); ?> fa-circle-up"></i>
+        </span>
+        <span class="upvote-count"><?php echo esc_html($upvote_count); ?></span>
+    </div>
+    <span class="bbp-reply-post-date"> | <?php bbp_reply_post_date(); ?></span>
+</div>
+
+
 
         <?php if ( bbp_is_single_user_replies() ) : ?>
 
