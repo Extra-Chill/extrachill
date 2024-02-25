@@ -139,3 +139,4 @@ function enqueue_sorting_script() {
 }
 add_action('wp_enqueue_scripts', 'enqueue_sorting_script');
 
+
