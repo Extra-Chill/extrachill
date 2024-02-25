@@ -148,7 +148,6 @@ function extrachill_unfollow_user($follower_id, $followed_id) {
         if (is_array($followers) && ($key = array_search($follower_id, $followers)) !== false) {
             unset($followers[$key]);
             update_user_meta($followed_id, 'extrachill_followers', array_values($followers));
-                    do_action('extrachill_unfollowed_user', $follower_id, $followed_id);
         }
 
         return true;
