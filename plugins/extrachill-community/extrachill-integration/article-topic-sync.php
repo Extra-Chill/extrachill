@@ -44,36 +44,39 @@ function extrachill_yoast_canonical_override($canonical) {
 add_filter('wpseo_canonical', 'extrachill_yoast_canonical_override');
 
 
-
 function clean_up_content($content) {
-    // Remove unnecessary classes including any with 'aligncenter'
+    // Remove unnecessary classes
     $content = preg_replace('/class="[^"]*aligncenter[^"]*"/i', '', $content);
-    
-    // Pattern to match figure blocks with iframes (handles YouTube, Spotify, Instagram, etc.)
-    $blockPattern = '/<figure class="[^"]*wp-block-embed[^"]*">.*?<iframe[^>]+src="([^"]+)"[^>]*><\/iframe>.*?<\/figure>/is';
-    
-    // Convert iframes to plain text URLs
+
+    // Extended pattern to match iframe embeds or direct URLs in the wp-block-embed wrapper
+    $blockPattern = '/<figure class="[^"]*wp-block-embed[^"]*">.*?<div class="wp-block-embed__wrapper">(.*?)<\/div>.*?<\/figure>/is';
+
+    // Replacement pattern to convert iframes or direct URLs to plain text URLs
     $content = preg_replace_callback($blockPattern, function ($matches) {
-        $url = html_entity_decode($matches[1]);
+        // Check if the matched content is a URL or an iframe
+        $innerContent = trim($matches[1]);
+
+        // If it's an iframe, extract the src attribute
+        if (preg_match('/<iframe[^>]+src="([^"]+)"[^>]*><\/iframe>/', $innerContent, $iframeMatch)) {
+            $url = html_entity_decode($iframeMatch[1]);
+        } else {
+            // Assume it's a direct URL
+            $url = html_entity_decode(strip_tags($innerContent));
+        }
+
+        // Extract the main URL before any parameters (for YouTube, Spotify, etc.)
         $parsedUrl = parse_url($url);
         $cleanUrl = $parsedUrl['scheme'] . '://' . $parsedUrl['host'] . $parsedUrl['path'];
-        
-        // Handle special cases for specific providers like Spotify
+
+        // Special handling for Spotify URLs to convert embed URLs to standard URLs
         if (strpos($cleanUrl, 'open.spotify.com/embed') !== false) {
             $cleanUrl = str_replace('/embed', '', $cleanUrl);
         }
-        
+
+        // Return the clean URL for insertion as plain text
         return $cleanUrl;
     }, $content);
-    
-    // Additional handling for Instagram profile and content embeds
-    $instagramPattern = '/<div class="Embed".*?data-permalink="([^"]+)".*?<\/div>/is';
-    
-    // Convert Instagram embeds to plain text URLs
-    $content = preg_replace_callback($instagramPattern, function ($matches) {
-        return html_entity_decode($matches[1]);
-    }, $content);
-    
+
     // Return the modified content
     return $content;
 }

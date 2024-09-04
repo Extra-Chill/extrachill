@@ -18,33 +18,40 @@ function custom_bbp_make_dofollow_links($content) {
 }
 
 
-function convertLinksToEmbeds($content) {
-    // Regex patterns for different Instagram URL types
-    $patterns = [
-        // Pattern for Instagram profiles
-        '/(https?:\/\/www\.instagram\.com\/[a-zA-Z0-9_.-]+\/?)\S*/i',
-        // Pattern for Instagram posts and reels
-        '/(https?:\/\/www\.instagram\.com\/(?:p|reel)\/[a-zA-Z0-9_-]+)\/?\S*/i',
-    ];
+function custom_instagram_embed_handler($matches, $attr, $url, $rawattr) {
+    // Check if the URL is an Instagram profile
+    if (preg_match('#https?://(www\.)?instagram\.com/[a-zA-Z0-9_.-]+/?$#i', $url)) {
+        $embed = sprintf(
+            '<blockquote class="instagram-media" data-instgrm-permalink="%s" data-instgrm-version="14" style=" background:#FFF; border:0; border-radius:3px; box-shadow:0 0 1px 0 rgba(0,0,0,0.5),0 1px 10px 0 rgba(0,0,0,0.15); margin: 1px; max-width:540px; min-width:326px; padding:0; width:99.375%%; width:-webkit-calc(100%% - 2px); width:calc(100%% - 2px);"><a href="%s" target="_blank"></a></blockquote><script async src="//www.instagram.com/embed.js"></script>',
+            esc_url($url),
+            esc_url($url)
+        );
+    } else {
+        // For posts or reels, use the existing embed format
+        $embed = sprintf(
+            '<iframe src="%s/embed" width="400" height="500" frameborder="0" scrolling="no" allowtransparency="true"></iframe>',
+            esc_url($matches[0])
+        );
+    }
 
-    // Replacements for each pattern
-    $replacements = [
-        // Replacement for profile embeds using blockquote
-        '<blockquote class="instagram-media" data-instgrm-permalink="$1" data-instgrm-version="14" style=" background:#FFF; border:0; border-radius:3px; box-shadow:0 0 1px 0 rgba(0,0,0,0.5),0 1px 10px 0 rgba(0,0,0,0.15); margin: 1px; max-width:540px; min-width:326px; padding:0; width:99.375%%; width:-webkit-calc(100%% - 2px); width:calc(100%% - 2px);"><a href="$1" target="_blank"></a></blockquote><script async src="//www.instagram.com/embed.js"></script>',
-        // Replacement for post/reel embeds using iframe
-        '<iframe src="$1/embed" width="400" height="500" frameborder="0" scrolling="no" allowtransparency="true"></iframe>',
-    ];
-
-    // Replace the matched URLs in content with the appropriate embed code
-    $convertedContent = preg_replace($patterns, $replacements, $content);
-
-    return $convertedContent;
+    return apply_filters('custom_instagram_embed', $embed, $matches, $attr, $url, $rawattr);
 }
 
-// Hook into the_content filters
-add_filter('the_content', 'convertLinksToEmbeds');
-add_filter('bbp_get_reply_content', 'convertLinksToEmbeds');
-add_filter('bbp_get_topic_content', 'convertLinksToEmbeds');
+function register_custom_instagram_embed_handler() {
+    wp_embed_register_handler(
+        'instagram',
+        '#https?://(www\.)?instagram\.com/(p|reel)/[a-zA-Z0-9_-]+#i',
+        'custom_instagram_embed_handler'
+    );
+
+    // Register the handler for Instagram profiles as well
+    wp_embed_register_handler(
+        'instagram_profile',
+        '#https?://(www\.)?instagram\.com/[a-zA-Z0-9_.-]+/?$#i',
+        'custom_instagram_embed_handler'
+    );
+}
+add_action('init', 'register_custom_instagram_embed_handler');
 
 
 
