@@ -8,14 +8,16 @@ function set_ecc_user_logged_in_token($user_login, $user) {
     // Store the token and user ID in the database
     store_user_session($token, $user->ID);
     
-    setcookie('ecc_user_session_token', $token, [
-        'expires' => time() + (6 * 30 * 24 * 60 * 60), // 6 months
+    setcookie('ecc_user_session_token', $token, [ // Change from $tokenValue to $token
+        'expires' => time() + (6 * 30 * 24 * 60 * 60), // For 6 months.
         'path' => '/',
-        'domain' => '.extrachill.com',
-        'secure' => is_ssl(),
-        'httponly' => false,
-        'samesite' => 'Lax'
-    ]); 
+        'domain' => '.extrachill.com', // Notice the dot prefix here.
+        'secure' => true, // Ensure your site is served over HTTPS.
+        'httponly' => false, // Set to true if you want to prohibit JavaScript access.
+        'samesite' => 'None' // Or 'Lax', depending on your cross-site request needs.
+    ]);
+    
+    
 
 
 }
@@ -27,26 +29,16 @@ function generate_community_session_token() {
     return $token_value;
 }
 
-function is_user_logged_in_via_token($user_id) {
-    global $wpdb;
-    $token = $_COOKIE['ecc_user_session_token'] ?? '';
-
-    // Assuming the presence of user_id in your request handling or another method to obtain it.
-    $table_name = $wpdb->prefix . 'user_session_tokens';
-    $sql = $wpdb->prepare("SELECT token FROM {$table_name} WHERE user_id = %d AND token = %s AND expiration > NOW()", $user_id, $token);
-    $valid_token = $wpdb->get_var($sql);
-
-    return $valid_token ? true : false; // Return true if a valid token exists, false otherwise
-}
-
 
 function store_user_session($token, $user_id) {
     global $wpdb;
     $table_name = $wpdb->prefix . 'user_session_tokens';
-    // Set to 6 months from now
+
+    // Set the expiration to 6 months from now
     $expiration_mysql = date('Y-m-d H:i:s', time() + (6 * 30 * 24 * 60 * 60));
 
-    $wpdb->replace(
+    // Store the new session token without deleting previous ones to allow multiple active sessions
+    $wpdb->insert(
         $table_name,
         [
             'token' => $token,
@@ -56,6 +48,8 @@ function store_user_session($token, $user_id) {
         ['%s', '%d', '%s']
     );
 }
+
+
 
 
 
@@ -81,24 +75,28 @@ add_action('wp_logout', function() {
     }
 });
 
-
 function create_session_tokens_table() {
     require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
     global $wpdb;
     $table_name = $wpdb->prefix . 'user_session_tokens';
     $charset_collate = $wpdb->get_charset_collate();
 
-    $sql = "CREATE TABLE $table_name (
-        token VARCHAR(128) NOT NULL,
-        user_id BIGINT(20) UNSIGNED NOT NULL,
-        expiration DATETIME NOT NULL,
-        PRIMARY KEY  (token),
-    ) $charset_collate;";
+    // Check if the table already exists
+    if($wpdb->get_var("SHOW TABLES LIKE '$table_name'") != $table_name) {
+        $sql = "CREATE TABLE $table_name (
+            token VARCHAR(128) NOT NULL,
+            user_id BIGINT(20) UNSIGNED NOT NULL,
+            expiration DATETIME NOT NULL,
+            PRIMARY KEY  (token)
+        ) $charset_collate;";
 
-    dbDelta($sql);
+        dbDelta($sql);
+    }
 }
 
-add_action('init', 'create_session_tokens_table');
+// Hook the function to the 'after_switch_theme' action
+add_action('after_switch_theme', 'create_session_tokens_table');
+
 
 add_action('init', function() {
     // Specify allowed origins
@@ -124,7 +122,19 @@ add_action('init', function() {
     }
 });
 
-add_action('init', 'auto_login_via_session_token');
+function is_user_logged_in_via_token($user_id) {
+    global $wpdb;
+    $token = $_COOKIE['ecc_user_session_token'] ?? '';
+
+    $table_name = $wpdb->prefix . 'user_session_tokens';
+    $sql = $wpdb->prepare("SELECT token FROM {$table_name} WHERE user_id = %d AND token = %s AND expiration > NOW()", $user_id, $token);
+    $valid_token = $wpdb->get_var($sql);
+
+    return $valid_token ? true : false; // Return true if a valid token exists, false otherwise
+}
+
+add_action('init', 'auto_login_via_session_token', 1); // Priority 1 to run early
+
 function auto_login_via_session_token() {
     if (is_user_logged_in()) {
         // User is already logged in, no need to check the session token.
@@ -144,30 +154,34 @@ function auto_login_via_session_token() {
     ));
 
     if ($user_id) {
-        // Check if the session token update flag is set for this user.
-        // Transient names should be unique per user, thus incorporating user_id.
-        $session_updated = get_transient('session_updated_for_user_' . $user_id);
-
-        if (!$session_updated) {
-            // Token is valid, and we haven't updated the session expiration yet.
-            wp_set_current_user($user_id);
-            wp_set_auth_cookie($user_id);
-
-            // Update the token expiration date in the database.
-            $newExpiration = date('Y-m-d H:i:s', time() + (6 * 30 * 24 * 60 * 60));
-            $wpdb->update(
-                "{$wpdb->prefix}user_session_tokens",
-                ['expiration' => $newExpiration],
-                ['token' => $token],
-                ['%s'], // Value format for 'expiration'
-                ['%s']  // Value format for 'token'
-            );
-
-            // Set a transient to avoid updating the session expiration on subsequent requests.
-            set_transient('session_updated_for_user_' . $user_id, true, DAY_IN_SECONDS);
-
-            do_action('wp_login', $user->user_login, $user);
+        $user = get_user_by('id', $user_id);
+        if (!$user) {
+            // User does not exist, return early.
+            return;
         }
+
+        wp_set_current_user($user_id);
+        wp_set_auth_cookie($user_id, true);
+
+        // Optionally, trigger the wp_login action to mimic the standard login process.
+        do_action('wp_login', $user->user_login, $user);
     }
 }
+
+
+
+function cleanup_expired_session_tokens() {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'user_session_tokens';
+    $wpdb->query(
+        "DELETE FROM $table_name WHERE expiration < NOW()"
+    );
+}
+
+// Schedule this cleanup to run periodically, e.g., via WP-Cron
+if (!wp_next_scheduled('cleanup_expired_session_tokens_hook')) {
+    wp_schedule_event(time(), 'daily', 'cleanup_expired_session_tokens_hook');
+}
+
+add_action('cleanup_expired_session_tokens_hook', 'cleanup_expired_session_tokens');
 

@@ -4,6 +4,12 @@ jQuery(document).ready(function($) {
         formData.append('custom_avatar', $(this)[0].files[0]);
         formData.append('action', 'custom_avatar_upload');
 
+        // Disable the input field to prevent navigation
+        $(this).prop('disabled', true);
+
+        // Add a loading indicator
+        $('#custom-avatar-upload-message').html('<p style="text-align: center;"><i class="fa fa-spinner fa-spin fa-2x"></i> Uploading avatar, please wait...</p>');
+
         $.ajax({
             url: extrachill_ajax.ajaxurl, // Ensure this is defined correctly
             type: 'POST',
@@ -19,11 +25,14 @@ jQuery(document).ready(function($) {
                 } else {
                     $('#custom-avatar-upload-message').html('<p>There was an error uploading the avatar.</p>');
                 }
+                // Re-enable the input field after upload
+                $('#custom-avatar-upload').prop('disabled', false);
             },
             error: function(response) {
                 $('#custom-avatar-upload-message').html('<p>There was an error uploading the avatar.</p>');
+                // Re-enable the input field after upload
+                $('#custom-avatar-upload').prop('disabled', false);
             }
         });
     });
 });
-

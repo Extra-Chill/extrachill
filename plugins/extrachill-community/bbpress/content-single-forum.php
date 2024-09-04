@@ -56,6 +56,8 @@ defined( 'ABSPATH' ) || exit;
             <?php bbp_get_template_part( 'feedback', 'no-topics' ); ?>
 
             <?php
+            // Get the current forum ID
+            $current_forum_id = bbp_get_forum_id();
             // Same check here to conditionally show the topic form if the forum is not 1494
             if ($current_forum_id != 1494) :
                 bbp_get_template_part( 'form', 'topic' );

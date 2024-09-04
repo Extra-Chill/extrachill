@@ -1,6 +1,6 @@
 jQuery(document).ready(function($) {
-    // Bind event listener to the sorting form
-    $('#sortingForm select').on('change', function(e) {
+    // Bind event listener to the sorting form and search form
+    $('#sortingForm select, #bbp-ajax-search-form').on('change submit', function(e) {
         e.preventDefault(); // Prevent the default form submission
         updateContent(); // Call the updateContent() function
     });
@@ -8,6 +8,7 @@ jQuery(document).ready(function($) {
     function updateContent() {
         var sort = $('select[name="sort"]').val();
         var time_range = $('select[name="time_range"]').val();
+        var search = $('input[name="bbp_search"]').val();
 
         $.ajax({
             url: window.location.href, // Use the current page URL
@@ -15,12 +16,15 @@ jQuery(document).ready(function($) {
             data: {
                 sort: sort,
                 time_range: time_range,
+                bbp_search: search
             },
             success: function(response) {
-                var updatedContent = $(response).find('.bbp-body').html();
-                $('.bbp-body').html(updatedContent);
-
-                // No need to rebind events if using event delegation as shown above
+                if ($(response).find('.bbp-body').children().length > 0) {
+                    var updatedContent = $(response).find('.bbp-body').html();
+                    $('.bbp-body').html(updatedContent);
+                } else {
+                    $('.bbp-body').html('<p>No posts found, try some different search terms.</p>');
+                }
             },
             error: function() {
                 alert('Failed to update content. Please try again.');

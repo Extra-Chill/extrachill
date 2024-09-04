@@ -19,7 +19,14 @@
     font-weight: normal;
     font-style: normal;
 }
-
+body,html{
+	height: 100%;
+}
+.site {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh; /* Ensures the container takes the full height of the viewport */
+}
 h1, h2, h3, h4, h5, h6 {
 	/* margin: 10px 0; */
 
@@ -85,31 +92,65 @@ a:hover{
 .copyright-bar a:hover{
 	color: #53950b;
 }
-
+.site-footer{
+	margin-top: 5px;
+}
 .user-profile-header h1, #chill-home-header h1{
 	margin-bottom:5px;
 	margin-right:5px;
 }
-
+.entry-header{
+	margin: 15px 0;
+}
 .user-profile-header p, #chill-home-header p{
 	margin-bottom:10px;
+	margin-top: 5px;
+	font-size: 15px;
 }
 .user-profile-header, #chill-home-header{
-	border-bottom: 4px double #ABB2B9;
-	margin-bottom: 25px;
-}
-#fan-profile-links {
-	border-bottom: 4px double #ABB2B9;
-	margin-bottom: 10px;
-	padding-bottom: 10px;
-}
-.site-content{
-	display: block;
+	border-bottom: 4px double #53940b;
+	margin: 15px 0 25px 0;
 }
 
-.one-container .site-content{
-padding:15px;
+.site-content{
+	display: block;
+		flex: 1;
 }
+.sorting-search {
+	display: flex;
+	line-height: 1.5;
+	width: 100%;
+	justify-content:space-between;
+	align-items: end;
+	padding: 5px 0;
+}
+.sorting-search div {
+	max-width: 50%;
+}
+#bbp-ajax-search-form{
+	display: flex;
+}
+#bbpress-forums .bbp-search-form{
+	padding:0px;
+margin: 0px;}
+.bbp-search-form, .bbp-sorting-form{
+	max-width: 30%;
+}
+.one-container .site-content{
+padding:0 15px;
+}
+
+#bbpress-forums div.bbp-reply-content ol, #bbpress-forums div.bbp-reply-content ul, #bbpress-forums div.bbp-topic-content ol, #bbpress-forums div.bbp-topic-content ul{
+	margin:0px 30px 15px;
+}
+button#jump-to-latest{
+	padding: 5px 10px;
+	font-size: 14px;
+}
+
+.rankpoints span{
+	font-weight:600;
+		}
 /* desktop */
 
 @media (min-width: 768px) {
@@ -122,18 +163,16 @@ padding:15px;
 		.rankpoints{
 		padding-top: 5px;
 	}
-.rankpoints span{
-font-weight:600;
-	}
 .bbp-author-role{
 	padding-bottom:5px;
 }
 	#bbpress-forums div.bbp-reply-author {
-		width: 125px;
+		width: 140px;
 	}
 	#bbpress-forums div.bbp-reply-content {
-		margin-left: 140px;
+		margin-left: 155px;
 	}
+	
 	#bbpress-forums div.bbp-reply-author .bbp-author-name{
 		font-size: 15px;
 	}
@@ -150,7 +189,7 @@ padding: 0 30px 0 20px;
 }
 /* mobile only */
 
-@media screen and (max-width: 425px) {
+@media screen and (max-width: 430px) {
 	h1 {
 	font-size: 33px;
 	}
@@ -174,6 +213,10 @@ h4 {
 }
 h5 {
 	font-size: 19px;
+}
+
+a.bbp-forum-title { 
+	font-size: 16px;
 }
 	
 .following-feed .bbp-reply-author, .upvote-feed .bbp-reply-author {  
@@ -202,7 +245,7 @@ div#upvote-feed.bbp-reply-author{
 	#bbpress-forums .bbp-body div.bbp-reply-author, #bbpress-forums .bbp-body div.bbp-topic-author {
 		padding-left:70px;
 }
-	.bbp-author-name{
+#bbpress-forums div.bbp-reply-author .bbp-author-name {
 		padding-right: 5px;
 	}
 	
@@ -217,8 +260,12 @@ div#upvote-feed.bbp-reply-author{
 	}
 	iframe{
 		max-width:100%;
-		max-height:40vh;
 	}
+	iframe[src*="youtube.com"],
+	iframe[src*="youtu.be"] {
+		max-height: 40vh;
+	}
+	
 	#bbpress-forums div.bbp-forum-author, #bbpress-forums div.bbp-reply-author, #bbpress-forums div.bbp-topic-author {
 	float:none;
 		width:auto;
@@ -228,6 +275,9 @@ div#upvote-feed.bbp-reply-author{
 }
 	.folowdetails{
 		display:flex;
+	}
+	#bbpress-forums .bbp-body div.bbp-reply-content, #bbpress-forums .bbp-body div.bbp-topic-content {
+		margin: 0 6px;
 	}
 
 }
@@ -248,7 +298,7 @@ div#upvote-feed.bbp-reply-author{
 	display: inline-flex;
 	flex-wrap: wrap;
 }
-}
+
 .extrachill-follow-button, .extrachill-edit-profile-button, .extrachill-view-profile-button, .extrachill-non-logged-in-follow-button {
 	margin-left:6px;
 	border-radius: 5px;
@@ -257,9 +307,10 @@ div#upvote-feed.bbp-reply-author{
 button:hover {
 	background-color:#53940b;
 }
-button{
+button, input[type=button], input[type=reset], input[type=submit]{
 	font-size:15px;
 	border-radius:5px;
+	background-color: #003466;
 }
 
 .bbp-reply-author .extrachill-follow-button, .bbp-reply-author .extrachill-edit-profile-button, .bbp-reply-author .extrachill-non-logged-in-follow-button {
@@ -268,6 +319,12 @@ button{
     padding: 5px 12px;
 	margin-left: 0px;
     /* other styling properties */
+}
+.bbp-custom-description{
+	display: block;
+}
+div.bbp-breadcrumb{
+	width: 100%;
 }
 .log-out{
 	color: red;
@@ -298,6 +355,11 @@ button{
 h2.forum-front-ec {
   border-bottom: 2px solid #53940b;
   width: max-content;
+  display: inline;
+}
+i#forum-collapse{
+margin-left:5px;
+font-size:27px;
 }
 .forum-titles li{
 	font-size:14px;
@@ -340,6 +402,7 @@ span.bbp-reply-post-date, span.bbp-topic-post-date{
 .bbp-meta {
   display: flex;
 	align-items: baseline;
+	line-height: 1.3;
 }
 
 a.bbp-reply-permalink {
@@ -359,6 +422,7 @@ span.bbp-admin-links{
 }
 .chill-profile-top{
 	display:flex;
+	margin-bottom:15px;
 }
 .following-feed-dropdowns{
 	display: flex;
@@ -391,9 +455,8 @@ div#following-feed #bbpress-forums div.bbp-reply-author .bbp-author-name{
 .bbp-topics #topics-ec {
 	display:grid;
 }
-.reply-author-rank, .reply-author-points {
-	font-size: 12px;
-	display:grid:
+.rankpoints {
+	font-size: 13px;
 }
 .upvote{
 	display: inline;
@@ -420,12 +483,6 @@ button{
  legend, label {
 	font-weight: 600;
 }
-.status-notice p {
-background-color: lightcoral;
-width: max-content;
-border-radius: 5px;  
-padding: 5px;
-}
 .bbp-pagination-count{
 	font-size: 14px;
 }
@@ -433,7 +490,10 @@ padding: 5px;
 	flex: 1;
 }
 blockquote {
-	font-size: .9em;
+	font-size: .95em;
+	border-left:4px solid #003466;
+	background-color: #f8f8f8;
+
 }
 .bbp-links-with-quote {
 	font-size:10px;
@@ -527,7 +587,7 @@ i.fa-solid.fa-bell:hover, span.gp-icon.icon-search:hover{
   display: none; /* Initially hidden */
 }
 #bbpress-forums .bbp-forum-info .bbp-forum-content, #bbpress-forums p.bbp-topic-meta {
-	font-size: 12px;
+	font-size: 13px;
 }
 a.bbp-forum-title { 
 	font-size: 18px;
@@ -562,11 +622,12 @@ small.register-form {
 .extrachill-notifications small{
 display:inline;
 }
+.extrachill-notifications strong {
+	display:inline;
+}
+
 .hideme{
 	display:none;
-}
-#bbpress-forums p.bbp-topic-meta span {
-	white-space:normal;
 }
 .comments-feed-user{
 	  border-bottom: 2px solid #53940b;
@@ -581,4 +642,204 @@ display:inline;
 }
 .wp-block-image img {
 	margin-bottom: 5px;
+}
+.user-stats p{
+	display: grid;
+}
+#quick-post-container{
+	margin-bottom:15px;
+}
+#quick-post-topic{
+	margin-top:10px;
+}
+.extrachill-recent-activity, div.bbp-template-notice.info, .status-notice p {
+  background-color: #c8e6c9;
+  width: max-content;
+  max-width: 100%;
+  border: 2px solid #003466;
+padding: 12px; 
+border-radius: 5px;
+font-size: 15px;
+	text-decoration:none;
+}
+.extrachill-recent-activity a{
+	text-decoration: none;
+}
+.extrachill-recent-activity a:hover, div.bbp-template-notice.info li a:hover {
+	text-decoration:underline;
+	text-decoration-color: #00349d;
+	color: #000;
+}
+.extrachill-recent-activity p{
+
+}
+
+div.bbp-template-notice.info li {
+	color: inherit;
+	font-size: 14px;
+}
+div.bbp-template-notice.info li a {
+color: var(--accent);
+}
+
+div.bbp-template-notice li{
+	margin:0 !important;
+	padding:0;
+}
+.rank-profile p, .user-profile-activity p, .profile-links p, .bbp-user-music-fan p, .bbp-user-local-scene p, .bbp-user-artist-details p, .bbp-user-professional-details p {
+  margin: 0;
+  font-size: 15px;
+}
+.user-profile-activity, .profile-links, .bbp-user-music-fan, .bbp-user-local-scene, .bbp-user-artist-details, .bbp-user-professional-details {
+	margin-bottom: 20px;
+}
+.user-profile-activity{
+}
+
+.bbp-user-artist-details, .bbp-user-professional-details {
+	border-top: 1px solid #d8d8d8;
+	padding-top: 20px;
+}
+.account-settings fieldset{
+	display:grid;
+}
+.account-settings input, .account-settings select{
+margin-bottom:10px;
+}
+.bbp-user-social-networking {
+	border-top: 1px solid #d8d8d8;
+	margin-top: 15px;
+	padding-top: 15px;
+}
+.bbp-user-local-scene{
+	border-top: 1px solid #d8d8d8;
+	padding-top: 15px;
+
+}
+.bbp-user-profile h3{
+	border-bottom: 2px solid #53940b;
+	width: max-content;
+}
+.top-container, .middle-container, .bottom-container {
+    transition: height 0.5s ease-out;
+    overflow: hidden;
+}
+.collapsed {
+    height: 0 !important; /* Ensure it stays collapsed */
+}
+.login-popup{
+	position: fixed; 
+	top: 50%; 
+	left: 50%; 
+	transform: translate(-50%, -50%); 
+	background-color: #fff; 
+	border-radius:10px; 
+	box-sizing: border-box;
+	border:5px solid #53940b; 
+	padding: 20px; 
+	z-index: 999999999999999999999;
+	display: flex;
+    flex-direction: column;
+	margin:5px;
+}
+.login-popup button{
+	background-color: #003466;
+	text-align: center;
+	padding: 10px 20px;
+	max-width: 300px;
+	margin:15px auto 0;
+	border: 3px dashed #53940b;
+}
+button.close-popup{
+	background-color: #555;
+	font-size: .7em;
+	border:none;
+	margin-top:30px;
+}
+@media screen and (max-width: 425px) {
+	.login-popup{
+		text-align: center;
+		width:90%;
+		padding:15px;
+	}
+	.login-popup p {
+		margin:15px 0;
+	}
+}
+
+.overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7); /* Black background with opacity */
+    z-index: 999; /* Ensures it's below the popup but above everything else */
+    display: none; /* Initially hidden */
+}
+
+
+/* Styles for the drag-and-drop overlay */
+.mce-drag-over {
+    border: 2px dashed #53940b; /* Border color and style */
+    position: relative;
+}
+
+.mce-drag-over .mce-drag-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    color: #fff;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 1.5em;
+    z-index: 1000;
+	pointer-events: none;
+}
+
+
+
+.login-register-buttons{
+	display:flex;
+	flex-direction: row;
+	justify-content: space-evenly;
+}
+.login-register-buttons button{
+	margin:0;
+width: 40%;
+}
+p.private-forums {
+	margin-top: 10px;
+}
+#bbpress-forums div.bbp-forum-author img.avatar, #bbpress-forums div.bbp-reply-author img.avatar, #bbpress-forums div.bbp-topic-author img.avatar{
+	max-height: 80px;
+	object-fit: cover;
+}
+
+.bbp-user-social-networking img.avatar, .list-social-network-page img.avatar{
+	max-height: 20px;
+	max-width: 20px;
+	object-fit: cover;
+}
+
+.before-main-widget-area .wp-block-image {
+    margin: 10px auto;
+    max-width: 93%;
+    display: flex;
+	justify-content: center;
+}
+
+.before-main-widget-area .wp-block-image img {
+    min-height: 0;
+}
+@media (min-width: 900px) {
+
+.before-main-widget-area .wp-block-image img {
+max-width: 768px;
+}
+
 }

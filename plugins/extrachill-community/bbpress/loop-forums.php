@@ -13,7 +13,10 @@ defined( 'ABSPATH' ) || exit;
 do_action( 'bbp_template_before_forums_loop' ); ?>
 
 <!-- Community Boards Section -->
-<h2 class="forum-front-ec">Community Boards</h2>
+<span class="forum-title-with-icon">
+<h2 class="forum-front-ec">Community Forums</h2>
+<i id="forum-collapse" class="fa-solid fa-square-minus" onclick="toggleForumCollapse(this, 'top-container')"></i></span>
+<p><?php echo fetch_latest_post_info_by_section('top'); ?></p>
 <div class="top-container">
     <ul id="forums-list-top-<?php bbp_forum_id(); ?>" class="bbp-forums">
         <li class="bbp-header">
@@ -24,7 +27,7 @@ do_action( 'bbp_template_before_forums_loop' ); ?>
                     ? esc_html_e( 'Replies', 'bbpress' )
                     : esc_html_e( 'Posts',   'bbpress' );
                 ?></li>
-                <li class="bbp-forum-freshness"><?php esc_html_e( 'Last Post', 'bbpress' ); ?></li>
+                <li class="bbp-forum-freshness"><?php esc_html_e( 'Latest', 'bbpress' ); ?></li>
             </ul>
         </li><!-- .bbp-header -->
         <li class="bbp-body">
@@ -41,7 +44,9 @@ do_action( 'bbp_template_before_forums_loop' ); ?>
 </div>
 
 <!-- The Rabbit Hole Section -->
-<h2 id="TheRabbitHole" class="forum-front-ec">The Rabbit Hole</h2>
+<span class="forum-title-with-icon"><h2 id="TheRabbitHole" class="forum-front-ec">Music Forums</h2>
+<i id="forum-collapse" class="fa-solid fa-square-minus" onclick="toggleForumCollapse(this, 'middle-container')"></i></span>
+<p><?php echo fetch_latest_post_info_by_section('middle'); ?></p>
 <div class="middle-container">
     <ul id="forums-list-middle-<?php bbp_forum_id(); ?>" class="bbp-forums">
         <li class="bbp-header">
@@ -52,7 +57,7 @@ do_action( 'bbp_template_before_forums_loop' ); ?>
                     ? esc_html_e( 'Replies', 'bbpress' )
                     : esc_html_e( 'Posts',   'bbpress' );
                 ?></li>
-                <li class="bbp-forum-freshness"><?php esc_html_e( 'Last Post', 'bbpress' ); ?></li>
+                <li class="bbp-forum-freshness"><?php esc_html_e( 'Latest', 'bbpress' ); ?></li>
             </ul>
         </li><!-- .bbp-header -->
         <li class="bbp-body">
@@ -81,33 +86,6 @@ do_action( 'bbp_template_before_forums_loop' ); ?>
 </div>
 
 
-<!-- Specialty Boards Section -->
-<h2 class="forum-front-ec">Specialty Boards</h2>
-<div class="bottom-container">
-    <ul id="forums-list-bottom-<?php bbp_forum_id(); ?>" class="bbp-forums">
-        <li class="bbp-header">
-            <ul class="forum-titles">
-                <li class="bbp-forum-info"><?php esc_html_e( 'Forum', 'bbpress' ); ?></li>
-                <li class="bbp-forum-topic-count"><?php esc_html_e( 'Topics', 'bbpress' ); ?></li>
-                <li class="bbp-forum-reply-count"><?php bbp_show_lead_topic()
-                    ? esc_html_e( 'Replies', 'bbpress' )
-                    : esc_html_e( 'Posts',   'bbpress' );
-                ?></li>
-                <li class="bbp-forum-freshness"><?php esc_html_e( 'Last Post', 'bbpress' ); ?></li>
-            </ul>
-        </li><!-- .bbp-header -->
-        <li class="bbp-body">
-            <?php while ( bbp_forums() ) : bbp_the_forum(); ?>
-                <?php 
-                $forum_section = get_post_meta(bbp_get_forum_id(), '_bbp_forum_section', true);
-                if ( 'bottom' === $forum_section ): 
-                    bbp_get_template_part( 'loop', 'single-forum' );
-                endif;
-                ?>
-            <?php endwhile; ?>
-        </li><!-- .bbp-body -->
-    </ul>
-</div>
 
 <?php
 // Check if the current user has the 'extrachill_team' meta
@@ -115,7 +93,7 @@ if ( is_user_logged_in() && get_user_meta( get_current_user_id(), 'extrachill_te
 
     <!-- Private Section -->
     <h2 class="forum-front-ec">Private</h2>
-    <p>If you can see this, you're part of the Extra Chill team.</p>
+    <p class="private-forums">If you can see this, you're part of the Extra Chill team.</p>
     <div class="private-container">
         <ul id="forums-list-private-<?php bbp_forum_id(); ?>" class="bbp-forums">
             <li class="bbp-header">
@@ -126,7 +104,7 @@ if ( is_user_logged_in() && get_user_meta( get_current_user_id(), 'extrachill_te
                         ? esc_html_e( 'Replies', 'bbpress' )
                         : esc_html_e( 'Posts',   'bbpress' );
                     ?></li>
-                    <li class="bbp-forum-freshness"><?php esc_html_e( 'Last Post', 'bbpress' ); ?></li>
+                    <li class="bbp-forum-freshness"><?php esc_html_e( 'Latest', 'bbpress' ); ?></li>
                 </ul>
             </li><!-- .bbp-header -->
             <li class="bbp-body">

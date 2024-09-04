@@ -50,48 +50,50 @@ defined( 'ABSPATH' ) || exit;
 $user_id = get_current_user_id();
 $topic_id = bbp_get_topic_id();
 $forum_id = bbp_get_topic_forum_id($topic_id);
-$upvoted_posts = get_user_meta($user_id, 'upvoted_posts', true);
-$icon_class = is_array($upvoted_posts) && in_array($topic_id, $upvoted_posts) ? 'fa-solid' : 'fa-regular';
+$icon_class = 'fa-regular'; // Default to "fa-regular" for all users initially
+
+// Logic to determine upvote icon status based on local user meta
+if ($user_id) {
+    $upvoted_posts = get_user_meta($user_id, 'upvoted_posts', true);
+    $icon_class = is_array($upvoted_posts) && in_array($topic_id, $upvoted_posts) ? 'fa-solid' : 'fa-regular';
+}
+
+// Fetch the upvote counts for this post ID
+// The logic for fetching upvote counts is applied to all forums, but special handling is done for forum 1494
+$upvote_count = get_upvote_count($topic_id); // Default logic for upvote count
 
 if ($forum_id == 1494) {
     // Assuming you have the main site post ID stored in a variable $main_site_post_id
     $main_site_post_id = get_post_meta($topic_id, 'main_site_post_id', true);
     
-    // Fetch the upvote counts for this post ID, including whether the user has already upvoted
-    $upvote_data = fetch_upvote_counts_from_extrachill([$main_site_post_id]);
-    
-    // Modified to handle new data structure
-    $upvote_info = isset($upvote_data[$main_site_post_id]) ? $upvote_data[$main_site_post_id] : ['count' => 0, 'has_upvoted' => false];
-    $upvote_count = $upvote_info['count'];
-    $icon_class = $upvote_info['has_upvoted'] ? 'fa-solid' : 'fa-regular'; // Update icon class based on whether the user has upvoted
-} else {
-    // Existing logic to determine upvote count for topics not in forum 1494
-    $upvote_count = get_upvote_count($topic_id); // Ensure this logic is defined according to your setup
+    if ($main_site_post_id) {
+        $upvote_data = fetch_upvote_counts_from_extrachill([$main_site_post_id]);
+        
+        // Only update the upvote count based on the external data
+        $upvote_info = isset($upvote_data[$main_site_post_id]) ? $upvote_data[$main_site_post_id] : ['count' => 0];
+        $upvote_count = $upvote_info['count'];
+    }
 }
+
+// Add 1 to the upvote count for display purposes
+$display_upvote_count = $upvote_count + 1;
 ?>
 
 <div class="upvote">
     <span class="upvote-icon" 
-          data-post-id="<?php echo $topic_id; ?>" 
+          data-post-id="<?php echo esc_attr($topic_id); ?>" 
           data-main-site-post-id="<?php echo isset($main_site_post_id) ? esc_attr($main_site_post_id) : ''; ?>" 
-          data-forum-id="<?php echo $forum_id; ?>" 
+          data-forum-id="<?php echo esc_attr($forum_id); ?>" 
           data-type="topic" 
-          data-nonce="<?php echo wp_create_nonce('upvote_nonce'); ?>" 
+          data-nonce="<?php echo esc_attr(wp_create_nonce('upvote_nonce')); ?>" 
           role="button" 
           aria-label="Upvote this topic">
-        <i class="<?php echo $icon_class; ?> fa-circle-up"></i>
+        <i class="<?php echo esc_attr($icon_class); ?> fa-circle-up"></i>
     </span>
-    <span class="upvote-count"><?php echo $upvote_count; ?></span> |
+    <span class="upvote-count"><?php echo esc_html($display_upvote_count); ?></span> |
 </div>
 
-
-
-
-
-
-
 <a class="bbp-topic-permalink" href="<?php bbp_topic_permalink(); ?>"><?php bbp_topic_title(); ?></a>
-
 
         <?php do_action( 'bbp_theme_after_topic_title' ); ?>
 

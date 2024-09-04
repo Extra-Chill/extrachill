@@ -36,7 +36,7 @@ function serve_login_form() {
                 <input type="submit" name="wp-submit" id="wp-submit" class="button button-primary" value="Log In" />
                 <input type="hidden" name="action" value="ecc_ajax_login">
             </p>
-            <p class="login-error" style="display:none;"></p>
+            <p class="login-error"></p>
         </form>
     </div>
     <?php

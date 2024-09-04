@@ -7,40 +7,7 @@
  */
 
 
-
-// Include login functionalities
-include_once get_stylesheet_directory() . '/login.php';
-
-// Include registration functionalities
-include_once get_stylesheet_directory() . '/register.php';
-
-// Include community profiles functionalities
-include_once get_stylesheet_directory() . '/profiles/register-profiles.php';
-
-// In your functions.php
-require_once get_stylesheet_directory() . '/profiles/fan-profile.php';
-require_once get_stylesheet_directory() . '/profiles/professional-profile.php';
-require_once get_stylesheet_directory() . '/profiles/artist-profile.php';
-include_once get_stylesheet_directory() . '/bbpress/bbpress-customization.php';
-require_once get_stylesheet_directory() . '/social-networking.php'; 
-include_once get_stylesheet_directory() . '/chill-forums-rank.php';
-include_once get_stylesheet_directory() . '/restricted-forums.php';
-include_once get_stylesheet_directory() . '/following-feed.php';
-include_once get_stylesheet_directory() . '/upvote.php'; 
-include_once get_stylesheet_directory() . '/team-members-mods.php'; 
-include_once get_stylesheet_directory() . '/custom-avatar.php'; 
-include_once get_stylesheet_directory() . '/verification.php'; 
-include_once get_stylesheet_directory() . '/recent-feed.php'; 
-include_once get_stylesheet_directory() . '/notifications.php'; 
-include_once get_stylesheet_directory() . '/forum-badges.php'; 
-include_once get_stylesheet_directory() . '/tinymce-image-uploads.php'; 
-include_once get_stylesheet_directory() . '/quote.php';  
-include_once get_stylesheet_directory() . '/tinymce-customization.php';  
-include_once get_stylesheet_directory() . '/moderation.php'; 
-include_once get_stylesheet_directory() . '/dynamic-menu.php';  
-include_once get_stylesheet_directory() . '/quick-post.php';  
-
-
+include_once get_stylesheet_directory() . '/bbpress-customization.php';
 
 $folder_path = get_stylesheet_directory() . '/extrachill-integration/';
 $files = scandir($folder_path);
@@ -53,64 +20,91 @@ foreach ($files as $file) {
         include_once $file_path;
     }
 }
+$folder_path = get_stylesheet_directory() . '/forum-features/';
+$files = scandir($folder_path);
 
+foreach ($files as $file) {
+    $file_path = $folder_path . $file;
+    
+    // Check if the file is a PHP file and not a directory
+    if (is_file($file_path) && pathinfo($file_path, PATHINFO_EXTENSION) === 'php') {
+        include_once $file_path;
+    }
+}
+
+// Enqueue sorting script
+function enqueue_sorting_script() {
+    wp_enqueue_script('sorting', get_stylesheet_directory_uri() . '/js/sorting.js', ['jquery'], null, true);
+
+    // Localize script to pass AJAX URL and nonce
+    wp_localize_script('sorting', 'wpSurgeonAjax', [
+        'ajax_url' => admin_url('admin-ajax.php'),
+        'nonce' => wp_create_nonce('wp_surgeon_sort_nonce')
+    ]);
+}
+add_action('wp_enqueue_scripts', 'enqueue_sorting_script');
 
 function extrachill_enqueue_scripts() {
-    // Enqueue the follow script
-    wp_enqueue_script('extrachill-follow', get_stylesheet_directory_uri() . '/js/extrachill-follow.js', array('jquery'), null, true);
+    $stylesheet_dir_uri = get_stylesheet_directory_uri();
+    $stylesheet_dir = get_stylesheet_directory();
+
+    // Dynamic versioning based on file modification times
+    $follow_script_version = filemtime( $stylesheet_dir . '/js/extrachill-follow.js' );
+    $custom_avatar_script_version = filemtime( $stylesheet_dir . '/js/custom-avatar.js' );
+    $upvote_script_version = filemtime( $stylesheet_dir . '/js/upvote.js' );
+
+    // Enqueue the follow script with dynamic versioning
+    wp_enqueue_script('extrachill-follow', $stylesheet_dir_uri . '/js/extrachill-follow.js', array('jquery'), $follow_script_version, true);
     wp_localize_script('extrachill-follow', 'extrachill_ajax', array(
         'ajaxurl' => admin_url('admin-ajax.php'),
-        'nonce' => wp_create_nonce('extrachill_follow_nonce'), // Nonce for follow/unfollow actions
+        'nonce' => wp_create_nonce('extrachill_follow_nonce'),
     ));
-
-    // Enqueue the quoting functionality script (utilities.js)
-    wp_enqueue_script('extrachill-utilities', get_stylesheet_directory_uri() . '/js/utilities.js', array('jquery'), null, true);
-    wp_localize_script('extrachill-utilities', 'extrachillQuote', array(
-        'ajaxurl' => admin_url('admin-ajax.php'),
-        'quote_nonce' => wp_create_nonce('quote_nonce'), // Nonce specifically for quote actions
-    ));
-
-    // Localize the 'extrachill-follow' script again with 'extrachillData'
     wp_localize_script('extrachill-follow', 'extrachillData', array(
         'apiRoute' => esc_url(rest_url('extrachill/v1/manage_fan_profile')),
-        'nonce' => wp_create_nonce('wp_rest') // Nonce for profile management
+        'nonce' => wp_create_nonce('wp_rest')
     ));
 
-    // Enqueue scripts for profile creation and editing pages
-    if (is_page_template('page-templates/create-profiles-template.php') || is_page_template('page-templates/edit-profiles-template.php')) {
-        wp_enqueue_script('extrachill-profile-management', get_stylesheet_directory_uri() . '/js/extrachill-profile-management.js', array('jquery'), '', true);
-        wp_localize_script('extrachill-profile-management', 'extrachillData', array(
-            'apiRoute' => esc_url(rest_url('extrachill/v1/manage_fan_profile')),
-            'nonce' => wp_create_nonce('wp_rest') // Nonce for profile management
-        ));
-    }
-
-    // Conditionally enqueue the custom avatar script only on bbPress user profile edit pages
+    // Conditionally enqueue the custom avatar script with dynamic versioning
     if (function_exists('bbp_is_single_user_edit') && bbp_is_single_user_edit()) {
-        wp_enqueue_script('extrachill-custom-avatar', get_stylesheet_directory_uri() . '/js/custom-avatar.js', array('jquery'), null, true);
+        wp_enqueue_script('extrachill-custom-avatar', $stylesheet_dir_uri . '/js/custom-avatar.js', array('jquery'), $custom_avatar_script_version, true);
         wp_localize_script('extrachill-custom-avatar', 'extrachillCustomAvatar', array(
             'ajaxurl' => admin_url('admin-ajax.php'),
-            'nonce' => wp_create_nonce('custom_avatar_upload_nonce') // Nonce for custom avatar upload
+            'nonce' => wp_create_nonce('custom_avatar_upload_nonce')
         ));
     }
 
-    // Enqueue the upvote script
-    wp_enqueue_script('extrachill-upvote', get_stylesheet_directory_uri() . '/js/upvote.js', array('jquery'), null, true);
-    wp_localize_script('extrachill-upvote', 'extrachill_ajax', array(
-        'ajaxurl' => admin_url('admin-ajax.php'),
-        'nonce' => wp_create_nonce('upvote_nonce'),
-        'is_user_logged_in' => is_user_logged_in(),
-        'user_id' => get_current_user_id() // Add this line to make the user ID available
-    ));
-    
-
-    // Only enqueue sorting.js on the 'social' page
-    if (is_page('social') || (function_exists('get_post') && get_post()->post_name == 'social')) {
-        wp_enqueue_script('extrachill-sorting', get_stylesheet_directory_uri() . '/js/sorting.js', array('jquery'), null, true);
-        // Assuming sorting.js might need some localized data, add wp_localize_script() here if needed
+    // Only enqueue upvote script if not in forum 1494
+    if (!function_exists('bbp_get_forum_id') || (function_exists('bbp_get_forum_id') && bbp_get_forum_id() != 1494)) {
+        wp_enqueue_script('extrachill-upvote', $stylesheet_dir_uri . '/js/upvote.js', array('jquery'), $upvote_script_version, true);
+        wp_localize_script('extrachill-upvote', 'extrachill_ajax', array(
+            'ajaxurl' => admin_url('admin-ajax.php'),
+            'nonce' => wp_create_nonce('upvote_nonce'),
+            'is_user_logged_in' => is_user_logged_in(),
+            'user_id' => get_current_user_id()
+        ));
     }
 }
 add_action('wp_enqueue_scripts', 'extrachill_enqueue_scripts');
+
+
+
+function enqueue_quote_script() {
+    // Check if bbPress is active and the current page is a bbPress page
+    if (function_exists('is_bbpress') && is_bbpress()) {
+        // Define the path to your script relative to the theme directory
+        $script_path = '/js/quote.js';
+        
+        // Get the absolute path to the script file
+        $script_file = get_stylesheet_directory() . $script_path;
+        
+        // Use filemtime() to get the file's last modified time for versioning
+        $version = filemtime($script_file);
+        
+        // Register and enqueue the script with dynamic versioning
+        wp_enqueue_script('custom-bbpress-quote', get_stylesheet_directory_uri() . $script_path, array('jquery'), $version, true);
+    }
+}
+add_action('wp_enqueue_scripts', 'enqueue_quote_script');
 
 
 function enqueue_profile_tab_script() {
@@ -120,6 +114,44 @@ function enqueue_profile_tab_script() {
 }
 add_action('wp_enqueue_scripts', 'enqueue_profile_tab_script');
 
+function enqueue_collapse_script() {
+    // Check if we're on the homepage or the forum front page
+    if ( is_front_page() || is_page('/') ) {
+        // Define the path to the script relative to the theme directory
+        $script_path = '/js/home-collapse.js';
+
+        // Get the full path to the script
+        $script_full_path = get_stylesheet_directory() . $script_path;
+
+        // Use file's last modified time as version to ensure fresh cache on updates
+        $version = filemtime($script_full_path);
+
+        // Enqueue the script with dynamic versioning
+        wp_enqueue_script( 'home-collapse', get_stylesheet_directory_uri() . $script_path, array('jquery'), $version, true );
+    }
+}
+
+add_action( 'wp_enqueue_scripts', 'enqueue_collapse_script' );
+
+
+function enqueue_utilities() {
+    // Get the file path
+    $script_path = get_stylesheet_directory() . '/js/utilities.js';
+    
+    // Fetch the last modified time of the file for versioning
+    $version = filemtime($script_path);
+    
+    // Enqueue the script with dynamic versioning
+    wp_enqueue_script('extrachill-utilities', get_stylesheet_directory_uri() . '/js/utilities.js', array('jquery'), $version, true);
+    
+    // Localize the script for AJAX functionality
+    wp_localize_script('extrachill-utilities', 'extrachillQuote', array(
+        'ajaxurl' => admin_url('admin-ajax.php'),
+        'quote_nonce' => wp_create_nonce('quote_nonce'), // Nonce specifically for quote actions
+    ));
+}
+
+add_action('wp_enqueue_scripts', 'enqueue_utilities');
 
 
 function enqueue_fontawesome() {
@@ -289,3 +321,11 @@ function custom_search_filter($query) {
     return $query;
 }
 add_filter('pre_get_posts', 'custom_search_filter');
+
+// Remove admin bar for all users except administrators
+function wp_surgeon_remove_admin_bar() {
+    if (!current_user_can('administrator')) {
+        show_admin_bar(false);
+    }
+}
+add_action('after_setup_theme', 'wp_surgeon_remove_admin_bar');

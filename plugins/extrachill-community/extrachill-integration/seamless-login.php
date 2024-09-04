@@ -25,40 +25,30 @@ function custom_ajax_login_handler(WP_REST_Request $request) {
         return new WP_REST_Response(['success' => false, 'message' => $user->get_error_message()], 401);
     }
 
+    // Check if a valid token already exists
     $existingToken = check_for_existing_valid_token($user->ID);
-    $table_name = $wpdb->prefix . 'user_session_tokens';
     
     if (!$existingToken) {
+        // Generate a new session token
         $token = generate_community_session_token();
-        // Adjusted for 6 months expiration
-        $expiration = date('Y-m-d H:i:s', time() + (6 * 30 * 24 * 60 * 60));
-        $wpdb->insert(
-            $table_name,
-            ['user_id' => $user->ID, 'token' => $token, 'expiration' => $expiration],
-            ['%d', '%s', '%s']
-        );
+        store_user_session($token, $user->ID);
     } else {
         $token = $existingToken;
-        // Update the expiration of the existing token
-        $newExpiration = date('Y-m-d H:i:s', time() + (6 * 30 * 24 * 60 * 60));
-        $wpdb->update(
-            $table_name,
-            ['expiration' => $newExpiration],
-            ['user_id' => $user->ID, 'token' => $token],
-            ['%s'],
-            ['%d', '%s']
-        );
+        // Optionally, refresh the expiration of the existing token here
     }
     
     $user_nicename = $user->user_nicename;
 
+    // No need to manually set the cookie here, as `store_user_session` should handle it
     return new WP_REST_Response([
         'success' => true,
         'message' => 'Login successful.',
-        'ecc_user_session_token' => $token,
+        'ecc_user_session_token' => $token, // You may decide not to send this back if not used
         'user_nicename' => $user_nicename
     ], 200);
 }
+
+
 
 
 

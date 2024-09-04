@@ -25,7 +25,33 @@ function serve_comment_form(WP_REST_Request $request) {
             <input type="hidden" name="comment_parent" id="comment_parent" value="0" />
             <p><input type="submit" value="Post Comment" /></p>
         </form>
+        <div class="comment-message"></div>
     </div>';
 
     exit; // Ensure no further processing or output occurs after this point
+}
+
+
+function get_main_site_comment_count_for_user($user_id) {
+    // Try to get the cached comment count
+    $cached_count = get_transient('main_site_comment_count_' . $user_id);
+    if ($cached_count !== false) {
+        // Cache hit, return the cached count
+        return $cached_count;
+    }
+
+    // If no cached value, fetch the count from the external source
+    $response = wp_remote_get("https://extrachill.com/wp-json/extrachill/v1/user-comments-count/{$user_id}");
+    if (is_wp_error($response)) {
+        // Default to 0 if unable to fetch
+        $comment_count = 0;
+    } else {
+        $data = json_decode(wp_remote_retrieve_body($response), true);
+        $comment_count = $data['comment_count'] ?? 0;
+    }
+
+    // Cache the count for 24 hours
+    set_transient('main_site_comment_count_' . $user_id, $comment_count, DAY_IN_SECONDS);
+
+    return $comment_count;
 }

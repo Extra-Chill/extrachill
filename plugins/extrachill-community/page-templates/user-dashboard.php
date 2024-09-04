@@ -22,7 +22,7 @@ if (is_user_logged_in()) {
     <div class="dashboard-container">
         <div class="user-profile-header">
             <h1>User Dashboard: <?php echo esc_html($current_user->display_name); ?></h1>
-            <p><a href="<?php echo esc_url($forum_url); ?>">Community Home</a> | <a href="<?php echo esc_url($profile_url); ?>">Community Profile</a></li></p>
+            <p><a href="<?php echo esc_url($forum_url); ?>">Community Home</a> | <a href="<?php echo esc_url($profile_url); ?>">Profile</a></li></p>
         </div>
 
         <?php
@@ -66,14 +66,13 @@ if ($user_posts_query->have_posts()) {
     }
 } else {
     // User hasn't posted yet
-    echo "<p>Welcome, <b>" . esc_html($current_user->display_name) . "</b>! You haven't posted yet. Start by sharing some of your favorite music in <a href='" . esc_url($forum_url) . "#TheRabbitHole'>The Rabbit Hole</a>!</p>";
+    echo "<p>Welcome, <b>" . esc_html($current_user->display_name) . "</b>! You haven't posted yet. Start by introducing yourself in <a href='/t/introductions-thread'>The Back Bar!</a></p>";
 }
 wp_reset_postdata(); // Reset the global post object
 
-
         if ($is_artist_pending && !$is_artist): ?>
             <div class="status-notice">
-                <p>Artist status pending admin verification. Introduce yourself in the Community to speed up the process.</p>
+                <p>Artist status pending admin verification. Create your space in the Independent Artists forum to speed up the process.</p>
             </div>
         <?php endif; ?>
 
@@ -93,10 +92,11 @@ wp_reset_postdata(); // Reset the global post object
             }
             ?>
         </div>
-
+</div>
     <div class="dashboard-content">
 
     <?php do_action( 'chill_before_user_dashboard' );?>
+
         <!-- Custom links content -->
 <nav class="dashboard-navigation">
 <h3>Your Stats</h3>
@@ -107,14 +107,14 @@ wp_reset_postdata(); // Reset the global post object
 
     // Topics Started
     $topics_count = bbp_get_user_topic_count_raw($user_id);
-    echo "<p><span>Topics Started: $topics_count <a href='" . bbp_get_user_topics_created_url($user_id) . "'>View All</a></span>";
+    echo "<p><span><b>Topics Started:</b> $topics_count <a href='" . bbp_get_user_topics_created_url($user_id) . "'>View All</a></span>";
 
     // Replies Created
     $replies_count = bbp_get_user_reply_count_raw($user_id);
-    echo "<span>Total Replies: $replies_count <a href='" . bbp_get_user_replies_created_url($user_id) . "'>View All</a></span>";
+    echo "<span><b>Total Replies:</b> $replies_count <a href='" . bbp_get_user_replies_created_url($user_id) . "'>View All</a></span>";
 
     // Main Site Comments and Blog Articles
-    // The functions convert_community_user_id_to_author_id() and fetch_main_site_post_count_for_user() need to be defined accordingly
+    // The functions convert_community_user_id_to_author_id() and fetch_main_site_post_count_for_user() are defined in the extra chill integration directory
     $author_id = convert_community_user_id_to_author_id($user_id);
     if ($author_id !== null) {
         $post_count = fetch_main_site_post_count_for_user($author_id);
@@ -123,7 +123,7 @@ wp_reset_postdata(); // Reset the global post object
         $author_url = "https://extrachill.com/author/{$author_slug}/";
 
         if ($post_count > 0) {
-            echo "<span>Extra Chill Articles: $post_count <a href='" . esc_url($author_url) . "'>View All</a></span>";
+            echo "<span><b>Extra Chill Articles:</b> $post_count <a href='" . esc_url($author_url) . "'>View All</a></span>";
         }
             // Inside the dashboard template
             $current_user_id = get_current_user_id();
@@ -134,108 +134,62 @@ wp_reset_postdata(); // Reset the global post object
     // Rank and Points
     $rank = wp_surgeon_display_user_rank($user_id);
     $points = wp_surgeon_display_user_points($user_id);
-    echo "<span>Rank: $rank<br></span>";
-    echo "<span>Points: $points<br></span>";
+    echo "<span><b>Rank:</b> $rank<br></span>";
+    echo "<span><b>Points:</b> $points<br></span>";
     echo "<span><small><a href='/rank-system'>Learn About the Rank System</a></small></span></p>";
 
     ?>
 </div>
 
+<div class="artist-topic-status">
+    <?php if ($is_artist): ?>
+        <?php if (has_independent_artist_boards($current_user->ID)): ?>
+            <p>View your independent artist spaces:</p>
+            <ul>
+                <?php foreach (get_independent_artist_boards($current_user->ID) as $board_id): ?>
+                    <li><a href="<?php echo esc_url(get_permalink($board_id)); ?>"><?php echo get_the_title($board_id); ?></a></li>
+                <?php endforeach; ?>
+            </ul>
+        <?php else: ?>
+            <p>You haven't created an independent artist space yet. <a href="<?php echo esc_url(home_url('/r/independent-artists')); ?>">Create your space now</a>.</p>
+        <?php endif; ?>
+    <?php endif; ?>
+</div>
 
 
+    <h3>Community Links</h3>
+<ul>
+    <li><a href="/community-info">Community Info</a></li>
+    <li><a href="/all-users">All Users</a></li>
+    <li><a href="https://extrachill.com">Main Blog</a></li>
+    <li><a href="/settings">Settings</a></li>
+</ul>
 
-    <h3>Feeds</h3>
-    <ul>
-        <li><a href="/notificatons">Notifications</a></li>
-        <li><a href="/recent">Recent</a></li>
-        <li><a href="/following">Following</a></li>
-        <li><a href="/upvoted">Upvoted</a></li>
-    </ul>
-    <?php 
-    // Fan links with added "View All Fans" link
-    if ($is_fan || current_user_can('administrator')) {
-        $post_type = 'fan_profile';
-        $post_id = wp_surgeon_has_profile_post($current_user->ID, $post_type);
+<ul>
+    <?php if ($is_artist): ?>
+        <li>Artist Status Verified</li>
+    <?php elseif ($is_artist_pending): ?>
+        <li>Artist Status Pending</li>
+    <?php else: ?>
+        <li><a href="#" onclick="requestStatusChange('artist'); return false;">Request Artist Status</a></li>
+    <?php endif; ?>
 
-        if ($post_id) {
-            $fan_link_text_view = 'View Fan Profile';
-            $fan_link_url_view = "?p={$post_id}";
-            $fan_link_text_edit = 'Edit Fan Profile';
-            $fan_link_url_edit = "/edit-profile?post_id={$post_id}";
-        } else {
-            $fan_link_text_view = '';
-            $fan_link_text_edit = 'Create Fan Profile';
-            $fan_link_url_edit = "/create-profile/?profile_type={$post_type}";
-        }
-        ?>
-        <h3>Fan Links</h3>
-        <ul>
-            <?php if ($fan_link_text_view) { ?>
-                <li><a href="<?php echo home_url($fan_link_url_view); ?>"><?php echo esc_html($fan_link_text_view); ?></a></li>
-            <?php } ?>
-            <li><a href="<?php echo home_url($fan_link_url_edit); ?>"><?php echo esc_html($fan_link_text_edit); ?></a></li>
-        </ul>
-    <?php }
+    <?php if ($is_professional): ?>
+        <li>Music Industry Professional Status Verified</li>
+    <?php elseif ($is_professional_pending): ?>
+        <li>Music Industry Professional Status Pending</li>
+    <?php else: ?>
+        <li><a href="#" onclick="requestStatusChange('professional'); return false;">Request Music Industry Professional Status</a></li>
+    <?php endif; ?>
+</ul>
 
-    // Artist links with added "View All Artists" link
-    if ($is_artist || current_user_can('administrator')) {
-        $post_type = 'artist_profile';
-        $post_id = wp_surgeon_has_profile_post($current_user->ID, $post_type);
-
-        if ($post_id) {
-            $artist_link_text_view = 'View Artist Profile';
-            $artist_link_url_view = "?p={$post_id}";
-            $artist_link_text_edit = 'Edit Artist Profile';
-            $artist_link_url_edit = "/edit-profile?post_id={$post_id}";
-        } else {
-            $artist_link_text_view = '';
-            $artist_link_text_edit = 'Create Artist Profile';
-            $artist_link_url_edit = "/create-profile/?profile_type={$post_type}";
-        }
-        ?>
-        <h3>Artist Links</h3>
-        <ul>
-            <?php if ($artist_link_text_view) { ?>
-                <li><a href="<?php echo home_url($artist_link_url_view); ?>"><?php echo esc_html($artist_link_text_view); ?></a></li>
-            <?php } ?>
-            <li><a href="<?php echo home_url($artist_link_url_edit); ?>"><?php echo esc_html($artist_link_text_edit); ?></a></li>
-        </ul>
-    <?php }
-
-    // Industry Pro links with added "View All Industry Pros" link
-    if ($is_professional || current_user_can('administrator')) {
-        $post_type = 'professional_profile';
-        $post_id = wp_surgeon_has_profile_post($current_user->ID, $post_type);
-
-        if ($post_id) {
-            $pro_link_text_view = 'View Industry Pro Profile';
-            $pro_link_url_view = "?p={$post_id}";
-            $pro_link_text_edit = 'Edit Industry Pro Profile';
-            $pro_link_url_edit = "/edit-profile?post_id={$post_id}";
-        } else {
-            $pro_link_text_view = '';
-            $pro_link_text_edit = 'Create Industry Pro Profile';
-            $pro_link_url_edit = "/create-profile/?profile_type={$post_type}";
-        }
-        ?>
-        <h3>Industry Pro Links</h3>
-        <ul>
-            <?php if ($pro_link_text_view) { ?>
-                <li><a href="<?php echo home_url($pro_link_url_view); ?>"><?php echo esc_html($pro_link_text_view); ?></a></li>
-            <?php } ?>
-            <li><a href="<?php echo home_url($pro_link_url_edit); ?>"><?php echo esc_html($pro_link_text_edit); ?></a></li>
-        </ul>
-    <?php }
-
-    // Logout button
-    ?>
     <ul>
         <li><a class="log-out" href="<?php echo wp_logout_url(home_url()); ?>">Log Out</a></li>
     </ul>
 </nav>
 
     </div>
-    </div>
+</div>
 
     <?php
 }

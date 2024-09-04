@@ -65,9 +65,9 @@ function display_main_site_comment_count_for_user($user_id = null) {
     if ($comment_count > 0) {
         // Adjust the URL to where you list all comments by this user on the main site
         $comments_url = "https://community.extrachill.com/blog-comments?user_id={$user_id}";
-        return "Main Site Comments: $comment_count <a href='{$comments_url}'>View All</a>";
+        return "<b>Main Site Comments:</b> $comment_count <a href='{$comments_url}'>(View All)</a>";
     } else {
-        return "Main Site Comments: $comment_count";
+        return "<b>Main Site Comments</b>: $comment_count";
     }
 }
 

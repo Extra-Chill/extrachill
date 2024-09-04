@@ -28,101 +28,6 @@ jQuery(document).ready(function($) {
     });
 });
 
-/* quotes */
-
-jQuery(document).ready(function($) {
-    var isQuoteInserted = false;
-    // Define variables at a higher scope
-    var nonce, postId, authorName, postPermalink, quotedUserId;
-    var currentUserId = extrachill_ajax.current_user_id; // Assuming 'current_user_id' is defined server-side
-
-    $('.bbp-quote-link').click(function(e) {
-        e.preventDefault();
-
-        function insertFormattedQuoteIntoEditor(formattedQuote) {
-            // Assuming tinyMCE is your editor for bbPress replies
-            if (typeof tinyMCE !== 'undefined' && tinyMCE.get('bbp_reply_content') && !tinyMCE.get('bbp_reply_content').hidden) {
-                tinyMCE.get('bbp_reply_content').execCommand('mceInsertContent', false, formattedQuote);
-            } else {
-                $('#bbp_reply_content').val(function(index, value) {
-                    return value + '\n' + formattedQuote;
-                });
-            }
-            isQuoteInserted = true; // Set the flag here after the quote has been successfully inserted
-        }
-
-        // Update variables with the current quote's data
-        postId = $(this).data('post-id');
-        authorName = $(this).data('author-name');
-        postPermalink = $(this).data('post-permalink');
-        nonce = $(this).data('nonce'); // Ensure nonce is passed correctly
-        quotedUserId = $(this).data('quoted-user-id'); // Extract the quoted user ID from the clicked link
-
-        // Target both replies and topics
-        var $postContent = $('.bbp-reply-content[data-reply-id="' + postId + '"]').clone(); // Targeting replies
-
-        // Remove elements that should not be cloned into the quote
-        $postContent.find('.bbp-reply-ip, .bbp-topic-revision-log, .bbp-reply-revision-log').remove(); // Added .bbp-topic-revision-log to the selector
-
-        var postContentHtml = $postContent.html();
-
-        if ($postContent.length === 0 || typeof postContentHtml === 'undefined') {
-            console.error('Post content not found for ID:', postId);
-            return; // Exit if no content found
-        }
-
-        var cleanContent = postContentHtml.trim();
-
-        var formattedQuote = '<blockquote>' +
-            '<p><strong>' + authorName + ' <a href="' + postPermalink + '">said:</a></strong></p>' +
-            '<p>' + cleanContent + '</p>' +
-            '</blockquote><br>';
-
-        // Insert the formatted quote into the editor
-        insertFormattedQuoteIntoEditor(formattedQuote);
-        // AJAX call to send the quote notification
-        // Your existing code to handle the quote insertion...
-        isQuoteInserted = true;
-    });
-
-    // Move the form submit handler outside the click event
-    $('form#new-post').submit(function(event) {
-        // Check if a quote was inserted
-        if (isQuoteInserted) {
-            event.preventDefault(); // Prevent form from submitting immediately
-
-            // AJAX call to send the quote notification
-            $.ajax({
-                url: extrachill_ajax.ajaxurl, // Make sure this variable is correctly defined
-                type: 'POST',
-                dataType: 'json',
-                data: {
-                    action: 'notify_quoted_user',
-                    nonce: nonce, // Use the nonce from the higher scope
-                    quoting_user_id: currentUserId, // Use the ID of the quoting user
-                    quoted_user_id: quotedUserId, // Pass the quoted user ID
-                    post_id: postId,
-                    author_name: authorName,
-                    post_permalink: postPermalink,
-                },
-                success: function(response) {
-                    if (response.success) {
-                        console.log('Quote notification sent successfully.');
-                        isQuoteInserted = false; // Reset the flag
-                        // Submit the form programmatically
-                        $('form#new-post').off('submit').submit();
-                    } else {
-                        console.error('Failed to send quote notification.');
-                    }
-                },
-                error: function(xhr, status, error) {
-                    console.error('AJAX error:', status, error);
-                }
-            });
-        }
-    });
-});
-
 
 
 
@@ -182,3 +87,35 @@ document.addEventListener('DOMContentLoaded', function() {
         element.addEventListener('mouseleave', hideTooltip);
     });
 });
+
+
+
+// keep long usernames in view on mobile
+
+document.addEventListener("DOMContentLoaded", function() {
+    // Function to dynamically adjust margin for usernames based on their length
+    function adjustUsernameMargin() {
+        // Ensuring we only tweak this for the mobile homies
+        if (window.innerWidth <= 425) { 
+            var usernames = document.querySelectorAll('.bbp-topic-freshness-author');
+
+            usernames.forEach(function(username) {
+                var usernameLength = username.textContent.trim().length;
+
+                // Check if username length is over 11 chars
+                if (usernameLength > 11) {
+                    // Calculate margin adjustment based on character count over 11, starting at -20px
+                    var extraChars = usernameLength - 11;
+                    var marginLeft = -6 - (extraChars * 4); // Decrease margin by 2px for each extra character
+                    username.style.marginLeft = marginLeft + 'px';
+                }
+                // If username length is 11 or less, we don't mess with the style
+            });
+        }
+    }
+
+    // Spark it up initially and on window resize
+    adjustUsernameMargin();
+    window.addEventListener('resize', adjustUsernameMargin);
+});
+
