@@ -1,0 +1,73 @@
+{
+    "packages": [
+        {
+            "name": "johngrogg/ics-parser",
+            "version": "v3.4.0",
+            "version_normalized": "3.4.0.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/u01jmg3/ics-parser.git",
+                "reference": "de0c3a426bd5b7d6aae2d9f7367410672e633108"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/u01jmg3/ics-parser/zipball/de0c3a426bd5b7d6aae2d9f7367410672e633108",
+                "reference": "de0c3a426bd5b7d6aae2d9f7367410672e633108",
+                "shasum": ""
+            },
+            "require": {
+                "ext-mbstring": "*",
+                "php": ">=5.6.40"
+            },
+            "require-dev": {
+                "phpunit/phpunit": "^5|^9|^10"
+            },
+            "time": "2024-03-08T16:01:26+00:00",
+            "type": "library",
+            "installation-source": "dist",
+            "autoload": {
+                "psr-0": {
+                    "ICal": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Jonathan Goode",
+                    "role": "Developer/Owner"
+                },
+                {
+                    "name": "John Grogg",
+                    "email": "john.grogg@gmail.com",
+                    "role": "Developer/Prior Owner"
+                }
+            ],
+            "description": "ICS Parser",
+            "homepage": "https://github.com/u01jmg3/ics-parser",
+            "keywords": [
+                "iCalendar",
+                "ical",
+                "ical-parser",
+                "ics",
+                "ics-parser",
+                "ifb"
+            ],
+            "support": {
+                "issues": "https://github.com/u01jmg3/ics-parser/issues",
+                "source": "https://github.com/u01jmg3/ics-parser/tree/v3.4.0"
+            },
+            "funding": [
+                {
+                    "url": "https://github.com/sponsors/u01jmg3",
+                    "type": "github"
+                }
+            ],
+            "install-path": "../johngrogg/ics-parser"
+        }
+    ],
+    "dev": true,
+    "dev-package-names": []
+}
