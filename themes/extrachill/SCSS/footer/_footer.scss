@@ -1,0 +1,127 @@
+/*--------------------------------------------------------------
+Classic Layout
+--------------------------------------------------------------*/
+.colormag-footer--classic {
+	.footer-widgets-area {
+		.widget-title {
+			border-bottom: 0 none;
+			
+			span {
+				background-color: transparent !important;
+				padding: 0 0 6px;
+				position: relative;
+				
+				&::before {
+					position: absolute;
+					display: block;
+					bottom: -1px;
+					content: ' ';
+					left: 0;
+					width: 25px;
+					height: 2px;
+					background-color: $primary;
+				}
+			}
+		}
+	}
+	.footer-socket-wrapper {
+		background-color: $footer-socket;
+		padding: 20px 0;
+	}
+}
+
+/*--------------------------------------------------------------
+Classic Bordered Layout
+--------------------------------------------------------------*/
+.colormag-footer--classic-bordered {
+	.footer-widgets-area {
+		.widget-title {
+			border-bottom: 0 none;
+			
+			span {
+				background-color: transparent !important;
+				padding: 0 0 6px;
+				position: relative;
+				border-bottom: 1px solid $title-border;
+				
+				&::before {
+					position: absolute;
+					display: block;
+					bottom: -1px;
+					content: ' ';
+					left: 0;
+					width: 25px;
+					height: 2px;
+					background-color: $primary;
+				}
+			}
+		}
+		
+	}
+	.footer-socket-wrapper {
+		padding-top: 0;
+		.footer-socket-area {
+			padding-top: 20px;
+			border-top: 1px solid $footer-border;
+		}
+	}
+	
+}
+
+#colophon {
+	&.colormag-footer--classic,
+	&.colormag-footer--classic-bordered {
+		.tg-upper-footer-widgets {
+			.widget {
+				background-color: transparent;
+				border-radius: 0;
+				border: 0 none;
+				padding: 0;
+				
+				.widget-title {
+					margin-bottom: 30px;
+				}
+			}
+		}
+		
+		.random_posts_widget_inner_wrap {
+			box-shadow: 0 0 0 0 rgba(0, 0, 0, 0);
+			.single-article {
+				border-bottom: 1px solid $footer-border;
+				margin-bottom: 15px;
+				
+				&:last-child {
+					border-bottom: none;
+					margin-bottom: 0;
+				}
+			}
+		}
+		
+		.widget_featured_posts {
+			.single-article {
+				box-shadow: 0 0 0 0 rgba(0, 0, 0, 0);
+			}
+		}
+		
+		.following-post {
+			.single-article {
+				border-bottom: 1px solid $footer-border;
+				padding-bottom: 15px;
+				
+				&:last-child {
+					border-bottom: none;
+					padding-bottom: 0;
+				}
+			}
+		}
+		
+		.first-post {
+			border-bottom: 1px solid $footer-border;
+			
+			.article-content {
+				padding: 0 0 5px;
+			}
+		}
+	}
+	
+}
