@@ -1,92 +1,132 @@
 <?php
+/**
+ * event scraper admin page (admin-page.php)
+ */
 
+/**
+ * Register a custom admin menu page.
+ */
 add_action('admin_menu', 'register_custom_menu_page');
-
 function register_custom_menu_page() {
     add_menu_page(
-        'Post Events', // Page title
-        'Post Events', // Menu title
-        'manage_options', // Capability
-        'post-events', // Menu slug
+        'Post Events',        // Page title
+        'Post Events',        // Menu title
+        'manage_options',     // Capability
+        'post-events',        // Menu slug
         'post_events_admin_page', // Function to display the page
-        '', // Icon URL
-        6 // Position
+        'dashicons-calendar-alt', // Icon (changed for better visibility)
+        6                     // Position
     );
 }
 
+/**
+ * Display the admin page content.
+ */
 function post_events_admin_page() {
     echo '<div class="wrap"><h1>Post Events to Calendar</h1>';
+
+    // Handle form submissions securely
+    if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['action'])) {
+        // For enhanced security, consider switching to POST and using nonces in the future
+        if ($_GET['action'] === 'post_scraped_events') {
+            $maxEvents = isset($_GET['max_events']) ? intval($_GET['max_events']) : 5; // Default to 5 if not specified
+            // Post scraped events
+            $results = post_aggregated_events_to_calendar($maxEvents, 'manual scraping');
+            echo get_posting_results($results);
+        } elseif ($_GET['action'] === 'post_tm_events') {
+            $maxEvents = isset($_GET['max_tm_events']) ? intval($_GET['max_tm_events']) : 5; // Default to 5 if not specified
+            // Post Ticketmaster events
+            $results = post_ticketmaster_events_to_calendar($maxEvents, 'manual ticketmaster');
+            echo get_posting_results($results);
+        }
+    }
 
     // Form for specifying max events to post for scraped events
     echo '<form method="get" style="margin-bottom: 20px;">';
     echo '<input type="hidden" name="page" value="post-events" />';
     echo '<label for="max_events">Maximum number of events to post (Scraped Events): </label>';
     echo '<input type="number" id="max_events" name="max_events" min="1" style="width: 80px;" value="5">';  // Default to 5
-    echo '<input type="submit" name="action" value="post_scraped_events" class="button button-primary" />';
+    echo '<input type="hidden" name="action" value="post_scraped_events" />';
+    echo '<input type="submit" value="Post Scraped Events" class="button button-primary" />';
     echo '</form>';
 
-    // New form for specifying max events to post for Ticketmaster events
-    echo '<form method="get">';
+    // Form for specifying max events to post for Ticketmaster events
+    echo '<form method="get" style="margin-bottom: 20px;">';
     echo '<input type="hidden" name="page" value="post-events" />';
     echo '<label for="max_tm_events">Maximum number of events to post (Ticketmaster Events): </label>';
     echo '<input type="number" id="max_tm_events" name="max_tm_events" min="1" style="width: 80px;" value="5">'; // Default to 5
-    echo '<input type="submit" name="action" value="post_tm_events" class="button button-primary" />';
+    echo '<input type="hidden" name="action" value="post_tm_events" />';
+    echo '<input type="submit" value="Post Ticketmaster Events" class="button button-primary" />';
     echo '</form>';
 
-    // Handle posting scraped events
-    if (isset($_GET['action']) && $_GET['action'] == 'post_scraped_events') {
-        $maxEvents = isset($_GET['max_events']) ? intval($_GET['max_events']) : 5; // Default to 5 if not specified
-        // Replace with your function to post scraped events
-        $results = post_aggregated_events_to_calendar($maxEvents);
-        echo get_posting_results($results);
-    }
-    // Handle posting Ticketmaster events
-    elseif (isset($_GET['action']) && $_GET['action'] == 'post_tm_events') {
-        $maxEvents = isset($_GET['max_tm_events']) ? intval($_GET['max_tm_events']) : 5; // Default to 5 if not specified
-        // Replace with your function to fetch and post Ticketmaster events
-        $results = post_ticketmaster_events_to_calendar($maxEvents);
-        echo get_posting_results($results);
-    } else {
-        echo '<p>Enter the maximum number of events you wish to post and click the appropriate "Post Events" button.</p>';
-    }
+    // Informational text
+    echo '<p>Enter the maximum number of events you wish to post and click the appropriate "Post Events" button.</p>';
 
     // Display the last 5 import logs
     echo '<h2>Last 5 Imports</h2>';
     $logs = get_option('event_import_logs', []);
     if (!empty($logs)) {
-        echo '<ul>';
+        echo '<table class="widefat fixed" cellspacing="0">';
+        echo '<thead><tr><th>Timestamp</th><th>Source</th><th>Number of Events</th></tr></thead>';
+        echo '<tbody>';
         foreach (array_reverse($logs) as $log) {
-            echo '<li>' . esc_html($log['timestamp']) . ' - ' . esc_html($log['source']) . ' - ' . esc_html($log['num_events']) . ' events</li>';
+            // Sanitize log data for safe output
+            $timestamp   = isset($log['timestamp']) ? esc_html($log['timestamp']) : 'N/A';
+            $source      = isset($log['source']) ? esc_html(ucfirst($log['source'])) : 'N/A';
+            $num_events  = isset($log['num_events']) ? esc_html($log['num_events']) : 'N/A';
+
+            echo '<tr>';
+            echo '<td>' . $timestamp . '</td>';
+            echo '<td>' . $source . '</td>';
+            echo '<td>' . $num_events . '</td>';
+            echo '</tr>';
         }
-        echo '</ul>';
+        echo '</tbody>';
+        echo '</table>';
     } else {
         echo '<p>No import logs available.</p>';
     }
+
+    echo '</div>';
 }
 
-
+/**
+ * Format and return posting results for display.
+ *
+ * @param array $results The results from the posting function.
+ * @return string HTML content.
+ */
 function get_posting_results($results) {
     if (is_wp_error($results)) {
-        return '<p>Error: ' . $results->get_error_message() . '</p>';
-    } else if (empty($results)) {
+        return '<p style="color:red;">Error: ' . esc_html($results->get_error_message()) . '</p>';
+    } elseif (empty($results)) {
         return '<p>No new, non-duplicate events found.</p>';
     } else {
         $output = '<div>';
         foreach ($results as $result) {
             if (isset($result['error'])) {
-                $eventName = $result['title'] ?? 'Unknown Event';
-                $errorDescription = $result['error'] ?? 'No specific error message provided';
-                $output .= '<p>Error posting event: <strong>' . htmlspecialchars($eventName) . '</strong> - ' . htmlspecialchars($errorDescription) . '</p>';
+                $eventName        = isset($result['title']) ? $result['title'] : 'Unknown Event';
+                $errorDescription = isset($result['error']) ? $result['error'] : 'No specific error message provided';
+                $output           .= '<p style="color:red;">Error posting event: <strong>' . esc_html($eventName) . '</strong> - ' . esc_html($errorDescription) . '</p>';
             } else {
-                $title = $result['title'] ?? 'N/A';
-                $venueName = is_array($result['venue']) ? $result['venue']['venue'] ?? 'N/A' : 'N/A';
-                $startDate = $result['start_date'] ?? 'N/A';
+                $title      = isset($result['title']) ? $result['title'] : 'N/A';
+                $venueName  = 'N/A';
+                if (isset($result['venue'])) {
+                    if (is_array($result['venue']) && isset($result['venue']['venue'])) {
+                        // Extract the venue name from the array
+                        $venueName = $result['venue']['venue'];
+                    } elseif (is_string($result['venue'])) {
+                        // If venue is already a string
+                        $venueName = $result['venue'];
+                    }
+                }
+                $startDate  = isset($result['start_date']) ? $result['start_date'] : 'N/A';
 
-                $output .= '<p>Event posted successfully:</p>';
+                $output .= '<p style="color:green;">Event posted successfully:</p>';
                 $output .= '<ul>';
-                $output .= '<li>Title: ' . htmlspecialchars($title) . '</li>';
-                $output .= '<li>Venue: ' . htmlspecialchars($venueName) . '</li>';
-                $output .= '<li>Date: ' . htmlspecialchars($startDate) . '</li>';
+                $output .= '<li><strong>Title:</strong> ' . esc_html($title) . '</li>';
+                $output .= '<li><strong>Venue:</strong> ' . esc_html($venueName) . '</li>';
+                $output .= '<li><strong>Date:</strong> ' . esc_html($startDate) . '</li>';
                 $output .= '</ul>';
             }
         }
@@ -94,29 +134,4 @@ function get_posting_results($results) {
         return $output;
     }
 }
-
-
-
-
-function log_import_event($source, $num_events) {
-    $logs = get_option('event_import_logs', []);
-
-    // Add new log entry
-    $logs[] = [
-        'source' => $source,
-        'num_events' => $num_events,
-        'timestamp' => current_time('mysql')
-    ];
-
-    // Keep only the last 5 logs
-    if (count($logs) > 5) {
-        $logs = array_slice($logs, -5);
-    }
-
-    update_option('event_import_logs', $logs);
-}
-
-
-
-
 
