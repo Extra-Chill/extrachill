@@ -302,12 +302,10 @@ function exclude_from_search($query) {
 add_filter('pre_get_posts', 'exclude_from_search');
 
 
-require_once(get_template_directory() . '/extrachill-custom/ticketmaster-event-imports.php');
 require_once(get_template_directory() . '/extrachill-custom/contact-form.php');
 require_once(get_template_directory() . '/extrachill-custom/newsletter.php');
 require_once(get_template_directory() . '/extrachill-custom/lofi-open-mic.php');
 require_once(get_template_directory() . '/extrachill-custom/recent-posts-in-sidebar.php');
-require_once(get_template_directory() . '/extrachill-custom/event-import-cron.php');
 require_once(get_template_directory() . '/extrachill-custom/before-main-widget.php');
 require_once(get_template_directory() . '/extrachill-custom/custom-permalinks-removal.php');
 require_once(get_template_directory() . '/extrachill-custom/yoast-stuff.php');
@@ -710,6 +708,8 @@ function remove_jquery() {
     }
 }
 add_action('wp_enqueue_scripts', 'remove_jquery');
+
+
 
 // Add favicon to the head section
 function add_custom_favicon() {
