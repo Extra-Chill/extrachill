@@ -55,7 +55,6 @@ function custom_permalinks_redirect() {
                 error_log('Failed to get permalink for post ID: ' . $post_id);
             }
         } else {
-            error_log('No matching custom permalink for ' . $request_uri);
         }
     } else {
         error_log('Failed to open CSV file: ' . $csv_file_path);
