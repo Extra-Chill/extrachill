@@ -6,6 +6,7 @@ document.addEventListener("DOMContentLoaded", function() {
     function createPopup(headerText, inputPlaceholder, buttonText, popupClass, replaceExisting = false) {
         let popup;
         let closeButtonText = localStorage.getItem('subscribed') === 'true' ? "Close" : "Sorry, I'm Not That Chill";
+
         if (replaceExisting) {
             popup = document.querySelector('.' + popupClass);
             if (popup) {
@@ -17,15 +18,12 @@ document.addEventListener("DOMContentLoaded", function() {
         } else {
             popup = document.createElement('div');
             popup.className = popupClass;
-            let linkHTML;
+            let linkHTML = ''; // Removed community popup links
+            
             if (popupClass === 'subscribe-popup') {
                 linkHTML = `<p style="text-align:center;"><a href="/newsletters" target="_blank">See past Newsletters</a></p>`;
-            } else if (popupClass === 'community-popup') {
-                linkHTML = `<p>Join our community for in-depth music discussion, playlists, and direct interaction with independent artists. Register now:</p>
-                            <a href="http://community.extrachill.com/register" target="_blank" class="join-now-button">Join Now</a>
-                            <p style="text-align:center;">See latest community activity at <a href="http://community.extrachill.com/recent" target="_blank">community.extrachill.com/recent</a></p>`;
             }
-    
+
             popup.innerHTML = `
                 <p>${headerText}</p>
                 <form>
@@ -62,9 +60,7 @@ document.addEventListener("DOMContentLoaded", function() {
                     observer.unobserve(entry.target); // Stop observing once triggered
 
                     // Check subscription status and decide which popup to show
-                    if (subscribed === 'true' && lastSubscribedTime && (currentTime - parseInt(lastSubscribedTime) >= 259200000)) {
-                        createPopup('Thanks for being a subscriber! Join our Community for in-depth music discussion, playlists, and direct interaction with independent artists.', 'Your username', 'Join Now', 'community-popup');
-                    } else if (subscribed !== 'true') {
+                    if (subscribed !== 'true') {
                         createPopup('Independent music journalism with personality! Enter your email for a good time.', 'Enter your email', 'Subscribe', 'subscribe-popup');
                     }
                 }
@@ -79,7 +75,7 @@ document.addEventListener("DOMContentLoaded", function() {
     
         if (event.target.classList.contains('close-popup')) {
             event.stopPropagation();
-            const popup = event.target.closest('.subscribe-popup, .community-popup');
+            const popup = event.target.closest('.subscribe-popup');
             if (popup) {
                 popup.remove();
                 overlay.style.display = 'none';
