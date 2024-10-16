@@ -2809,6 +2809,9 @@ color: #fff;
 .tribe-common--breakpoint-medium.tribe-common .tribe-common-l-container {
 	padding:10px;
 }
+.tribe-events-c-search__input.tribe-events-c-search__input--location{
+width: max-content;
+}
 .comments svg {
 height: 1em;
 width: 1em;
