@@ -51,7 +51,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Close menu if click outside of menu, specifically within the header, without affecting the location filter
     document.addEventListener('click', function(e) {
         // Check if the click is inside the header container or location filter
-        if (!headerContainer.contains(e.target) && !locationFilters.contains(e.target)) {
+        if (!headerContainer.contains(e.target) && (!locationFilters || !locationFilters.contains(e.target))) {
             if (primaryMenu.style.display === 'block') {
                 primaryMenu.style.display = 'none';
             }
