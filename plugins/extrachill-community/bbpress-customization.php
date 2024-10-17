@@ -45,60 +45,6 @@ function remove_bbpress_topic_tags() {
 add_filter('bbp_allow_topic_tags', 'remove_bbpress_topic_tags');
 
 
-function bbp_add_custom_forum_description_meta_box() {
-    add_meta_box(
-        'bbp_custom_description',            // ID of the meta box
-        'Custom Forum Description',          // Title of the meta box
-        'bbp_custom_forum_description_callback', // Callback function
-        'forum',                             // Post type
-        'normal',                            // Context
-        'high'                               // Priority
-    );
-}
-add_action('add_meta_boxes', 'bbp_add_custom_forum_description_meta_box');
-
-function bbp_custom_forum_description_callback($post) {
-    // Add a nonce field for security
-    wp_nonce_field('bbp_save_custom_description', 'bbp_custom_description_nonce');
-
-    // Get existing value
-    $value = get_post_meta($post->ID, '_bbp_custom_description', true);
-
-    // Display the form, using the current value.
-    echo '<textarea style="width:100%;" rows="5" name="bbp_custom_description">' . esc_textarea($value) . '</textarea>';
-}
-
-function bbp_save_custom_forum_description($post_id) {
-    // Check for nonce for security
-    if (!isset($_POST['bbp_custom_description_nonce']) || !wp_verify_nonce($_POST['bbp_custom_description_nonce'], 'bbp_save_custom_description')) {
-        return;
-    }
-
-    // Check if the current user has permission to edit the post
-    if (!current_user_can('edit_post', $post_id)) {
-        return;
-    }
-
-    // Update the meta field in the database.
-    if (isset($_POST['bbp_custom_description'])) {
-        update_post_meta($post_id, '_bbp_custom_description', wp_kses_post($_POST['bbp_custom_description']));
-    }
-}
-add_action('save_post', 'bbp_save_custom_forum_description');
-
-function custom_bbp_single_forum_description($description, $args, $unused) {
-    // Get the custom description
-    $custom_description = get_post_meta(bbp_get_forum_id(), '_bbp_custom_description', true);
-
-    // Prepend the custom description to the existing one
-    if (!empty($custom_description)) {
-        $description = "<div class='bbp-custom-description'>" . wpautop(wp_kses_post($custom_description)) . "</div>" . $description;
-    }
-
-    return $description;
-}
-add_filter('bbp_get_single_forum_description', 'custom_bbp_single_forum_description', 10, 3);
-
 function override_bbp_user_forum_role( $role, $user_id ) {
     // Get the custom title if it exists
     $custom_title = get_user_meta( $user_id, 'ec_custom_title', true );
@@ -202,3 +148,10 @@ function custom_message_below_edit_form() {
     }
 }
 
+function remove_counts() {
+    $args['show_topic_count'] = false;
+    $args['show_reply_count'] = false;
+    $args['count_sep'] = '';
+return $args;
+}
+add_filter('bbp_before_list_forums_parse_args', 'remove_counts' );
