@@ -67,6 +67,7 @@ function prepare_email_content($post) {
     <div style="background: #fff; border: 1px solid #000; max-width: 600px; margin: 20px auto; padding: 0 20px; box-sizing: border-box;">
         {$content}
         <footer style="text-align: center; padding-top: 20px; font-size: 16px; line-height: 1.5em;">
+            <p>Read this newsletter & all others on the web at <a href="https://extrachill.com/newsletters">exrachill.com/newsletters"</a></p>
             <p>You received this email because you've connected with Extra Chill in some way over the years. Thanks for supporting independent music.</p>
             {$unsubscribe_link}
         </footer>
@@ -246,7 +247,6 @@ function sync_newsletter_to_sendy($post_id, $post, $update) {
     send_campaign_to_sendy($post_id, $email_data);
 }
 
-
 function extrachill_submit_newsletter_form() {
     check_ajax_referer('newsletter_nonce', 'nonce');
 
@@ -315,9 +315,6 @@ function enqueue_newsletter_popup_scripts() {
     }
 }
 add_action('wp_enqueue_scripts', 'enqueue_newsletter_popup_scripts');
-
-
-
 
 function submit_newsletter_popup_form() {
     check_ajax_referer('newsletter_popup_nonce', 'nonce');
