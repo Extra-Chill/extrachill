@@ -21,13 +21,9 @@
 
         <div class="tribe-events-c-search__input-group">
             <?php $this->template( 'components/events-bar/search/keyword' ); ?>
+            <?php $this->template( 'components/events-bar/location-filter' ); ?>
         </div>
 
         <?php $this->template( 'components/events-bar/search/submit' ); ?>
-
-        <!-- Location filter after the submit button -->
-        <div class="tribe-events-c-search__input-group">
-            <?php $this->template( 'components/events-bar/location-filter' ); ?>
-        </div>
     </form>
 </div>
