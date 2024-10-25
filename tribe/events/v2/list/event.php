@@ -27,7 +27,6 @@ $event_classes = tribe_get_post_class( [ 'tribe-events-calendar-list__event', 't
 			<?php $this->template( 'list/event/featured-image', [ 'event' => $event ] ); ?>
 
 			<div class="tribe-events-calendar-list__event-details tribe-common-g-col">
-<p>TEST THIS IS THE TEMPLATE</p>
 				<header class="tribe-events-calendar-list__event-header">
 					<?php $this->template( 'list/event/date', [ 'event' => $event ] ); ?>
 					<?php $this->template( 'list/event/title', [ 'event' => $event ] ); ?>
