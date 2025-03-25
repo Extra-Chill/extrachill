@@ -1,25 +1,22 @@
 <?php
 /**
- * Theme Footer Section for our theme.
+ * footer.php
  *
- * Displays all of the footer section and closing of the #main div.
+ * 
  *
- * @package    ThemeGrill
- * @subpackage ColorMag
- * @since      ColorMag 1.0
  */
 ?>
 
 </main><!-- #main -->
 
-<?php do_action( 'colormag_before_footer' ); ?>
+<?php do_action( 'extrachill_before_footer' ); ?>
 
-<footer id="extra-footer" class="clearfix" <?php echo colormag_schema_markup( 'footer' ); ?>>
+<footer id="extra-footer" >
     <!-- Social Media Links -->
-    <?php colormag_social_links(); ?>
+    <?php include get_template_directory() . '/social-links.php'; ?>
     <!-- Widget Areas -->
     <div class="footer-widget-areas">
-        <?php for ( $i = 1; $i <= 4; $i++ ) : ?>
+        <?php for ( $i = 1; $i <= 5; $i++ ) : ?>
             <?php if ( is_active_sidebar( 'footer-' . $i ) ) {
                 dynamic_sidebar( 'footer-' . $i );
             } ?>

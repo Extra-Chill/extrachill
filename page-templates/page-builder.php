@@ -12,7 +12,7 @@
 
 get_header(); ?>
 
-<?php do_action( 'colormag_before_body_content' ); ?>
+<?php do_action( 'extrachill_before_body_content' ); ?>
 
 <section id="primary">
 	<div id="content" class="pagebuilder-content clearfix">
@@ -27,6 +27,6 @@ get_header(); ?>
 	</div><!-- #content -->
 </div><!-- #primary -->
 
-<?php do_action( 'colormag_after_body_content' ); ?>
+<?php do_action( 'extrachill_after_body_content' ); ?>
 
 <?php get_footer(); ?>

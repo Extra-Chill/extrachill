@@ -1,4 +1,6 @@
 <?php
+
+// this code is used to add upvoting functionality to the site with AJAX via custom REST API endpoints
 function handle_upvote_action() {
     check_ajax_referer('upvote_nonce', 'nonce');
 
@@ -81,8 +83,8 @@ function get_user_total_upvotes($user_id) {
 // Enqueue necessary JavaScript for upvoting functionality
 function enqueue_upvote_script() {
     // Use get_template_directory_uri() for parent theme or get_stylesheet_directory_uri() for child theme
-    $script_path = get_template_directory() . '/extrachill-custom/js/extrachill-upvotes.js';
-    $script_url = get_template_directory_uri() . '/extrachill-custom/js/extrachill-upvotes.js';
+    $script_path = get_template_directory() . '/js/extrachill-upvotes.js';
+    $script_url = get_template_directory_uri() . '/js/extrachill-upvotes.js';
 
     // Enqueue the script with the file's last modified time for versioning
     wp_enqueue_script('upvote-script', $script_url, [], filemtime($script_path), true);

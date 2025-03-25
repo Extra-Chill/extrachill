@@ -16,6 +16,10 @@ add_theme_support( "responsive-embeds" );
 add_theme_support( "wp-block-styles" );
 add_theme_support( "align-wide" );
 add_action('after_switch_theme', 'colormag_options_migrate');
+add_action( 'after_setup_theme', function() {
+    add_theme_support( 'woocommerce' );
+} );
+
 
 // chill generators
 
@@ -63,51 +67,9 @@ if (!function_exists('colormag_options_migrate')): /**
     }
 endif;
 
-/**
- * Set the content width based on the theme's design and stylesheet.
- */
-if (!isset($content_width)) {
-    $content_width = 800;
-}
-
-/**
- * $content_width global variable adjustment as per layout option.
- */
-function colormag_content_width()
-{
-    global $post;
-    global $content_width;
-    
-    if ($post) {
-        $layout_meta = get_post_meta($post->ID, 'colormag_page_layout', true);
-    }
-    if (empty($layout_meta) || is_archive() || is_search()) {
-        $layout_meta = 'default_layout';
-    }
-    $colormag_default_layout = get_theme_mod('colormag_default_layout', 'right_sidebar');
-    
-    if ($layout_meta == 'default_layout') {
-        if ($colormag_default_layout == 'no_sidebar_full_width') {
-            $content_width = 1140;
-            /* pixels */
-        } else {
-            $content_width = 800;
-            /* pixels */
-        }
-    } else {
-        if ($layout_meta == 'no_sidebar_full_width') {
-            $content_width = 1140;
-            /* pixels */
-        } else {
-            $content_width = 800;
-            /* pixels */
-        }
-    }
-}
-
-add_action('template_redirect', 'colormag_content_width');
 
 add_action('after_setup_theme', 'colormag_setup');
+
 /**
  * All setup functionalities.
  *
@@ -132,7 +94,6 @@ if (!function_exists('colormag_setup')):
         // Registering navigation menu.
         register_nav_menus(array(
             'primary' => __('Primary Menu', 'colormag-pro'),
-            'footer' => __('Footer Menu', 'colormag-pro')
         ));
         
         /*
@@ -143,21 +104,11 @@ if (!function_exists('colormag_setup')):
          */
         add_theme_support('title-tag');
         
-        // Enable support for Post Formats.
-        add_theme_support('post-formats', array(
-            'aside',
-            'image',
-            'video',
-            'quote',
-            'link',
-            'gallery',
-            'chat',
-            'audio',
-            'status'
-        ));
         
         // Adding excerpt option box for pages as well
         add_post_type_support('page', 'excerpt');
+        add_theme_support( 'editor-styles' );
+        add_editor_style( 'style.css' ); 
         
         /*
          * Switch default core markup for search form, comment form, and comments
@@ -199,8 +150,6 @@ define('COLORMAG_LANGUAGES_DIR', COLORMAG_PARENT_DIR . '/languages');
 
 define('COLORMAG_ADMIN_DIR', COLORMAG_INCLUDES_DIR . '/admin');
 define('COLORMAG_WIDGETS_DIR', COLORMAG_INCLUDES_DIR . '/widgets');
-define('COLORMAG_ELEMENTOR_DIR', COLORMAG_INCLUDES_DIR . '/elementor');
-define('COLORMAG_ELEMENTOR_WIDGETS_DIR', COLORMAG_ELEMENTOR_DIR . '/widgets');
 
 define('COLORMAG_ADMIN_IMAGES_DIR', COLORMAG_ADMIN_DIR . '/images');
 
@@ -217,8 +166,6 @@ define('COLORMAG_LANGUAGES_URL', COLORMAG_PARENT_URL . '/languages');
 
 define('COLORMAG_ADMIN_URL', COLORMAG_INCLUDES_URL . '/admin');
 define('COLORMAG_WIDGETS_URL', COLORMAG_INCLUDES_URL . '/widgets');
-define('COLORMAG_ELEMENTOR_URL', COLORMAG_INCLUDES_URL . '/elementor');
-define('COLORMAG_ELEMENTOR_WIDGETS_URL', COLORMAG_ELEMENTOR_URL . '/widgets');
 
 define('COLORMAG_ADMIN_IMAGES_URL', COLORMAG_ADMIN_URL . '/images');
 
@@ -227,18 +174,8 @@ require_once(COLORMAG_INCLUDES_DIR . '/functions.php');
 require_once(COLORMAG_INCLUDES_DIR . '/header-functions.php');
 require_once(COLORMAG_INCLUDES_DIR . '/customizer.php');
 require_once(COLORMAG_INCLUDES_DIR . '/ajax.php');
-require_once(COLORMAG_INCLUDES_DIR . '/schema-markup.php');
-/** Add the JetPack plugin support */
-require_once(COLORMAG_INCLUDES_DIR . '/jetpack.php');
-
-/** Add the Elementor compatibility file */
-if (defined('ELEMENTOR_VERSION')) {
-    require_once(COLORMAG_ELEMENTOR_DIR . '/elementor.php');
-    require_once(COLORMAG_ELEMENTOR_DIR . '/elementor-functions.php');
-}
 
 require_once(COLORMAG_ADMIN_DIR . '/meta-boxes.php');
-require get_template_directory() . '/license.php';
 
 /** Load Widgets and Widgetized Area */
 require_once(COLORMAG_WIDGETS_DIR . '/widgets.php');
@@ -293,8 +230,9 @@ function exclude_from_search($query) {
     // Check if the query is the main query, a search query, and not in the admin area.
     if ($query->is_main_query() && $query->is_search && !is_admin()) {
         $query->set('post_type', array(
-            'post', // Include standard posts in search results.
-            'page'  // Include pages in search results.
+            'post',    // Include standard posts in search results.
+            'page',    // Include pages in search results.
+            'product', // Include WooCommerce products in search results.
         ));
     }
     return $query;
@@ -302,21 +240,23 @@ function exclude_from_search($query) {
 add_filter('pre_get_posts', 'exclude_from_search');
 
 
-require_once(get_template_directory() . '/extrachill-custom/contact-form.php');
-require_once(get_template_directory() . '/extrachill-custom/newsletter.php');
-require_once(get_template_directory() . '/extrachill-custom/lofi-open-mic.php');
-require_once(get_template_directory() . '/extrachill-custom/recent-posts-in-sidebar.php');
-require_once(get_template_directory() . '/extrachill-custom/before-main-widget.php');
-require_once(get_template_directory() . '/extrachill-custom/custom-permalinks-removal.php');
-require_once(get_template_directory() . '/extrachill-custom/yoast-stuff.php');
-require_once(get_template_directory() . '/extrachill-custom/log-404-errors.php');
-require_once(get_template_directory() . '/extrachill-custom/rewrite-rules.php');
-require_once(get_template_directory() . '/extrachill-custom/breadcrumbs.php');
-require_once(get_template_directory() . '/extrachill-custom/quizzes/charleston-venue-quiz.php');
-require_once(get_template_directory() . '/extrachill-custom/bandcamp-embeds.php');
-require_once(get_template_directory() . '/extrachill-custom/city-state-taxonomy.php');
-require_once(get_template_directory() . '/extrachill-custom/location-filter.php');
-require_once(get_template_directory() . '/extrachill-custom/reading-progress.php');
+
+// include all PHP files in the 'extrachill-custom' directory
+
+function extrachill_include_custom_files() {
+    $custom_dir = get_template_directory() . '/extrachill-custom';
+
+    // Check if directory exists
+    if (is_dir($custom_dir)) {
+        // Get all PHP files in the directory
+        foreach (glob($custom_dir . '/*.php') as $file) {
+            require_once $file;
+        }
+    }
+}
+add_action('after_setup_theme', 'extrachill_include_custom_files');
+
+// include all PHP files in the 'community-integration' directory
 
 function include_community_integration_files() {
     $directory = get_template_directory() . '/extrachill-custom/community-integration/';
@@ -330,7 +270,6 @@ function include_community_integration_files() {
     }
 }
 add_action('after_setup_theme', 'include_community_integration_files');
-
 
 
 /**
@@ -415,7 +354,6 @@ function wp_innovator_get_tags_in_category($category_name) {
         'category_name' => $category_name,
         'posts_per_page' => -1  // Retrieve all posts
     );
-
     $posts = get_posts($args);
     $tags = array();
 
@@ -455,11 +393,15 @@ function wp_innovator_dropdown_menu($category_name, $filter_heading) {
 }
 
 
-
-
-function wp_innovator_enqueue_scripts() {
+function wp_innovator_enqueue_scripts() { // Modified to enqueue community-comments.js
     if (is_archive()) {  // Enqueue the script for all archive pages
-        wp_enqueue_script('wp-innovator-custom-script', get_template_directory_uri() . '/extrachill-custom/js/chill-custom.js', array(), '1.0.0', true);
+        wp_enqueue_script('wp-innovator-custom-script', get_template_directory_uri() . '/js/chill-custom.js', array(), '1.0.0', true);
+    }
+    if (is_singular('post')) { // Enqueue community-comments.js for single posts
+        $js_path = get_template_directory() . '/js/community-comments.js';
+        $js_url = get_template_directory_uri() . '/js/community-comments.js';
+        $js_version = file_exists( $js_path ) ? filemtime( $js_path ) : '1.0.0'; // Dynamic versioning
+        wp_enqueue_script('community-comments-js', $js_url, array(), $js_version, true);
     }
 }
 
@@ -472,6 +414,7 @@ function extrachill_register_menus() {
             'footer-2' => __( 'Footer 2' ),
             'footer-3' => __( 'Footer 3' ),
             'footer-4' => __( 'Footer 4' ),
+            'footer-5' => __( 'Footer 5' ),
             'footer-extra' => __( 'Footer Extra' ), // New menu location
         )
     );
@@ -566,7 +509,6 @@ add_filter( 'tribe_aggregator_import_event_image', function ( $import_event_imag
                 'event'   => $event,
             ]
         );
-
         // Return false to stop the image import process for this event.
         return false;
     }
@@ -602,18 +544,6 @@ function add_skip_lazy_to_first_image($content) {
     return $content;
 }
 add_filter('the_content', 'add_skip_lazy_to_first_image', 1);
-
-
-function extrachill_enqueue_scripts() {
-    $script_path = '/extrachill-custom/js/nav-menu.js';
-    $version = filemtime(get_template_directory() . $script_path); // Dynamic versioning based on file modification
-
-    // Ensure that the script version is correctly passed as the 4th argument,
-    // and the boolean for loading in the footer is the 5th.
-    wp_enqueue_script('extrachill-nav-menu', get_template_directory_uri() . $script_path, array(), $version, true);
-}
-
-add_action('wp_enqueue_scripts', 'extrachill_enqueue_scripts');
 
 
 
@@ -689,27 +619,6 @@ class Custom_Walker_Nav_Menu extends Walker_Nav_Menu {
     }
 }
 
-function remove_jquery() {
-    if (!is_admin()) {
-
-        // Alternatively, check for a custom post type archive (adjust 'tribe_events' if needed based on your setup)
-        if (is_post_type_archive('tribe_events')) {
-            // Do not deregister jQuery for the Events Calendar archive page
-            return;
-        }
-
-        // List of page slugs that require jQuery
-        $pages_require_jquery = array('contact-us'); // Add any additional slugs as needed
-
-        // Check against the list of slugs
-        if (!is_page($pages_require_jquery)) {
-            wp_deregister_script('jquery');
-        }
-    }
-}
-add_action('wp_enqueue_scripts', 'remove_jquery');
-
-
 
 // Add favicon to the head section
 function add_custom_favicon() {
@@ -748,7 +657,7 @@ function custom_instagram_embed_handler($matches, $attr, $url, $rawattr) {
         );
     }
 
-    return apply_filters('custom_instagram_embed', $embed, $matches, $attr, $url, $rawattr);
+    return apply_filters('custom_instagram_embed', $embed, $embed, $matches, $attr, $url, $rawattr);
 }
 
 function register_custom_instagram_embed_handler() {
@@ -766,3 +675,49 @@ function register_custom_instagram_embed_handler() {
     );
 }
 add_action('init', 'register_custom_instagram_embed_handler');
+
+function inject_mediavine_settings() {
+    echo '<div id="mediavine-settings" data-blocklist-all="1"></div>';
+}
+add_action( 'woocommerce_before_main_content', 'inject_mediavine_settings' );
+
+
+
+function enqueue_custom_lightbox_script() {
+    if ( is_singular() ) {
+        $post_id = get_queried_object_id();
+        $content = get_post_field( 'post_content', $post_id );
+
+        if ( $content && (
+            has_block( 'core/gallery', $content ) ||
+            has_block( 'gallery', $content ) ||
+            strpos( $content, 'wp:gallery' ) !== false
+        ) ) {
+            // Define paths for the JS and CSS files.
+            $js_path  = get_stylesheet_directory() . '/js/custom-lightbox.js';
+            $css_path = get_stylesheet_directory() . '/extrachill-custom/css/custom-lightbox.css';
+
+            // Use filemtime() for dynamic versioning if the file exists.
+            $js_version  = file_exists( $js_path )  ? filemtime( $js_path )  : null;
+            $css_version = file_exists( $css_path ) ? filemtime( $css_path ) : null;
+
+            // Enqueue the lightbox JS.
+            wp_enqueue_script(
+                'custom-lightbox',
+                get_stylesheet_directory_uri() . '/js/custom-lightbox.js',
+                array( 'jquery' ),
+                $js_version,
+                true
+            );
+
+            // Enqueue the lightbox CSS.
+            wp_enqueue_style(
+                'custom-lightbox-style',
+                get_stylesheet_directory_uri() . '/extrachill-custom/css/custom-lightbox.css',
+                array(),
+                $css_version
+            );
+        }
+    }
+}
+add_action( 'wp_enqueue_scripts', 'enqueue_custom_lightbox_script' );

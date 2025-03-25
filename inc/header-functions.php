@@ -143,16 +143,16 @@ if ( ! function_exists( 'colormag_below_header_bar_display' ) ) :
         <?php
     } else {
         ?>
-        <nav id="site-navigation" class="main-navigation" <?php echo colormag_schema_markup( 'nav' ); ?>>
+        <nav id="site-navigation" class="main-navigation">
             <div id="header-text" class="<?php echo $screen_reader; ?>">
                 <?php
                 // Check if it is the front page or home, then display the site title accordingly
                 if ( is_front_page() || is_home() ) : ?>
-                    <h1 id="site-title" <?php echo colormag_schema_markup( 'site-title' ); ?>>
+                    <h1 id="site-title" >
                         <a href="<?php echo esc_url( home_url( '/' ) ); ?>" title="<?php echo esc_attr( get_bloginfo( 'name', 'display' ) ); ?>" rel="home"><?php bloginfo( 'name' ); ?></a>
                     </h1>
                 <?php else : ?>
-                    <div id="site-title" <?php echo colormag_schema_markup( 'site-title' ); ?>>
+                    <div id="site-title">
                         <a href="<?php echo esc_url( home_url( '/' ) ); ?>" title="<?php echo esc_attr( get_bloginfo( 'name', 'display' ) ); ?>" rel="home"><?php bloginfo( 'name' ); ?></a>
                     </div>
                 <?php endif; ?>

@@ -1,4 +1,7 @@
 <?php
+
+// this code is used to add custom rewrite rules to the site
+
 // Remove the tag base for the 'Grateful Dead' tag
 function remove_tag_base_for_grateful_dead() {
     add_rewrite_rule(

@@ -8,7 +8,7 @@
 
 get_header(); ?>
 <div id="mediavine-settings" data-blocklist-all="1"></div>
-<?php do_action('colormag_before_body_content'); ?>
+<?php do_action('extrachill_before_body_content'); ?>
 
 <section id="primary">
 <?php
@@ -46,7 +46,7 @@ if (have_posts()) : ?>
         <div class="sub-location-dropdown">
             <h2>Select a Sub-Location:</h2>
             <select id="sub-location-select" onchange="if (this.value) window.location.href=this.value;">
-                <option value=""><?php _e('Choose a Sub-Location', 'your-textdomain'); ?></option>
+                <option value=""><?php _e('Choose a Sub-Location', 'extrachill'); ?></option>
                 <?php foreach ($child_locations as $child_location) : ?>
                     <option value="<?php echo esc_url(get_term_link($child_location)); ?>">
                         <?php echo esc_html($child_location->name); ?>
@@ -69,8 +69,8 @@ if (have_posts()) : ?>
 <?php endif; ?>
 </section><!-- #primary -->
 
-<?php colormag_sidebar_select(); ?>
+<?php get_sidebar(); ?>
 
-<?php do_action('colormag_after_body_content'); ?>
+<?php do_action('extrachill_after_body_content'); ?>
 
 <?php get_footer(); ?>

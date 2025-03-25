@@ -8,8 +8,8 @@
  */
 ?>
 
-<article id="post-<?php the_ID(); ?>" <?php post_class(); ?><?php echo colormag_schema_markup( 'entry' ); ?>>
-	<?php do_action( 'colormag_before_post_content' ); ?>
+<article id="post-<?php the_ID(); ?>" <?php post_class(); ?>>
+	<?php do_action( 'extrachill_before_post_content' ); ?>
 
 	<?php if ( ( get_theme_mod( 'colormag_featured_image_single_page_show', 1 ) == 1 ) && ( has_post_thumbnail() ) ) { ?>
 		<!-- Removed the featured image code -->
@@ -24,17 +24,17 @@
 		?>
 
 		<?php if ( is_front_page() ) : ?>
-			<h2 class="entry-title"<?php echo colormag_schema_markup( 'entry_title' ); ?>>
+			<h2 class="entry-title">
 				<?php the_title(); ?>
 			</h2>
 		<?php else : ?>
-			<h1 class="entry-title"<?php echo colormag_schema_markup( 'entry_title' ); ?>>
+			<h1 class="entry-title">
 				<?php the_title(); ?>
 			</h1>
 		<?php endif; ?>
 	</header>
 
-	<div class="entry-content clearfix"<?php echo colormag_schema_markup( 'entry_content' ); ?>>
+	<div class="entry-content">
 		<?php
 		the_content();
 
@@ -56,5 +56,5 @@
 		?>
 	</div>
 
-	<?php do_action( 'colormag_after_post_content' ); ?>
+	<?php do_action( 'extrachill_after_post_content' ); ?>
 </article>

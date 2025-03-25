@@ -4,9 +4,9 @@ function add_reading_progress_bar() {
     // Enqueue the JavaScript file with dynamic versioning
     wp_enqueue_script(
         'reading-progress-script',
-        get_template_directory_uri() . '/extrachill-custom/js/reading-progress.js',
+        get_template_directory_uri() . '/js/reading-progress.js',
         array(),
-        filemtime(get_template_directory() . '/extrachill-custom/js/reading-progress.js'),
+        filemtime(get_template_directory() . '/js/reading-progress.js'),
         true // Load the script in the footer
     );
 }

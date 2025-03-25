@@ -1,4 +1,6 @@
 <?php
+
+// this code is used to add a custom taxonomy for city and state locations
 /**
  * Register the 'location' taxonomy for posts and events.
  */

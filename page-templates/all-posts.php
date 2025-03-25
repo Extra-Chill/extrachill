@@ -10,7 +10,7 @@
 get_header(); ?>
 <div id="mediavine-settings" data-blocklist-all="1"></div>
 
-<?php do_action('colormag_before_body_content'); ?>
+<?php do_action('extrachill_before_body_content'); ?>
 
 <section id="primary" class="content-area">
     <main id="main" class="site-main" role="main">
@@ -81,14 +81,12 @@ if (isset($_GET['randomize'])) {
 // Execute the query
 $all_posts_query = new WP_Query($args);
 
-// DEBUGGING: Log the SQL query that WP_Query generates
 global $wpdb;
-error_log('Generated SQL Query: ' . $all_posts_query->request);
 
 // Check if there are posts
 if ($all_posts_query->have_posts()) :
-?>
-
+    ?>
+    
 <div id="extrachill-custom-sorting">
     <button id="randomize-posts">Randomize Posts</button>
     <div id="custom-sorting-dropdown">
@@ -125,21 +123,21 @@ if ($all_posts_query->have_posts()) :
     <?php
     // DEBUGGING: Log that no posts were found
     error_log('No posts found for upvotes sorting.');
+    ?>
 
-endif;
+<?php endif;
 
 wp_reset_postdata();
 ?>
 
 
 
-
     </main><!-- #main -->
 </section><!-- #primary -->
 
-<?php colormag_sidebar_select(); ?>
+<?php get_sidebar(); ?>
 
-<?php do_action('colormag_after_body_content'); ?>
+<?php do_action('extrachill_after_body_content'); ?>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {

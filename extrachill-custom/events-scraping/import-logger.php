@@ -28,4 +28,5 @@ function log_import_event($source, $num_events) {
 
     update_option('event_import_logs', $logs);
 }
-?>
+
+

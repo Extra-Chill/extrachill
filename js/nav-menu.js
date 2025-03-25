@@ -1,52 +1,155 @@
 document.addEventListener('DOMContentLoaded', function() {
     const menuToggle = document.querySelector('.menu-toggle-container');
-    const searchToggle = document.querySelector('.header-search-icon');
+    const searchToggle = document.querySelector('.search-icon');
     const primaryMenu = document.querySelector('#primary-menu');
-    const searchForm = document.querySelector('.header-search');
-    const headerContainer = document.querySelector('.header-container');
+    const searchSection = primaryMenu.querySelector('.search-section');
+    const menuItems = primaryMenu.querySelector('.menu-items');
+    const body = document.body;
 
-    if (!menuToggle || !searchToggle || !primaryMenu || !searchForm || !headerContainer) {
+    let scrollPosition = 0;
+
+    if (!menuToggle) console.error('menuToggle not found');
+    if (!searchToggle) console.error('searchToggle not found');
+    if (!primaryMenu) console.error('primaryMenu not found');
+    if (!searchSection) console.error('searchSection not found');
+    if (!menuItems) console.error('menuItems not found');
+
+    if (!menuToggle || !searchToggle || !primaryMenu || !searchSection || !menuItems) {
         console.error('One or more essential elements are missing.');
-        return; // Exit if essential elements are missing.
+        return;
     }
 
     menuToggle.addEventListener('click', function(e) {
-        e.preventDefault(); // Prevent default action.
-        const isSearchOpen = searchForm.style.display === 'block';
-        if (isSearchOpen) searchForm.style.display = 'none'; // Close search form if open.
-        primaryMenu.style.display = primaryMenu.style.display === 'block' ? 'none' : 'block'; // Toggle primary menu.
+        e.preventDefault();
+        if (primaryMenu.classList.contains('search-open')) {
+            primaryMenu.classList.remove('search-open');
+            openMenu();
+        } else if (primaryMenu.classList.contains('menu-open')) {
+            resetMenu();
+        } else {
+            openMenu();
+        }
     });
 
     searchToggle.addEventListener('click', function(e) {
-        e.preventDefault(); // Prevent default action.
-        const isMenuOpen = primaryMenu.style.display === 'block';
-        if (isMenuOpen) primaryMenu.style.display = 'none'; // Close menu if open.
-        searchForm.style.display = searchForm.style.display === 'block' ? 'none' : 'block'; // Toggle search form.
+        e.preventDefault();
+        if (primaryMenu.classList.contains('menu-open') && menuItems.classList.contains('menu-open')) {
+            resetMenu();
+        } else if (primaryMenu.classList.contains('search-open')) {
+            resetMenu();
+        } else {
+            primaryMenu.classList.add('search-open', 'menu-open', 'menu-opened');
+            searchSection.classList.add('menu-open');
+            searchToggle.classList.add('menu-open');
+            body.classList.add('menu-open');
+            lockBodyScroll();
+        }
     });
 
-    // Handle submenu toggles without altering the structure significantly
-    headerContainer.querySelectorAll('.menu-item-has-children').forEach(item => {
-        const toggle = item.querySelector('a');
-        const submenu = item.querySelector('.sub-menu');
-        const indicator = item.querySelector('.submenu-indicator use');
+    // Add click event for submenu toggling
+    menuItems.querySelectorAll('.menu-item-has-children > a').forEach(item => {
+        item.addEventListener('click', function(e) {
+            e.preventDefault();
+            const parentItem = item.parentElement;
+            const submenu = parentItem.querySelector('.sub-menu');
 
-        toggle.addEventListener('click', function(e) {
-            e.preventDefault(); // Prevent navigating away.
-            submenu.style.display = submenu.style.display === 'block' ? 'none' : 'block'; // Toggle submenu visibility.
-            
-            // Adjust the submenu indicator icon based on visibility
-            let iconHref = submenu.style.display === 'block' ? '#angle-up-solid' : '#angle-down-solid';
-            indicator.setAttribute('href', `/wp-content/themes/colormag-pro/fonts/fontawesome.svg?v1.7${iconHref}`); // Adjust path as needed, with dynamic versioning.
+            // Toggle the submenu-open class
+            if (submenu) {
+                submenu.classList.toggle('submenu-open');
+                parentItem.classList.toggle('submenu-open');
+            }
         });
     });
 
-    // Close menu if click outside of menu
-    document.addEventListener('click', function(e) {
-        if (!headerContainer.contains(e.target) && primaryMenu.style.display === 'block') {
-            primaryMenu.style.display = 'none';
-        }
-        if (!headerContainer.contains(e.target) && searchForm.style.display === 'block') {
-            searchForm.style.display = 'none';
-        }
+    function openMenu() {
+        primaryMenu.classList.add('menu-open', 'menu-opened');
+        searchSection.classList.add('menu-open');
+        menuItems.classList.add('menu-open');
+        menuToggle.classList.add('menu-open');
+        body.classList.add('menu-open');
+        lockBodyScroll();
+    }
+
+    function resetMenu() {
+        primaryMenu.classList.remove('menu-open', 'search-open', 'menu-opened');
+        searchSection.classList.remove('menu-open');
+        menuItems.classList.remove('menu-open');
+        menuToggle.classList.remove('menu-open');
+        searchToggle.classList.remove('menu-open');
+        body.classList.remove('menu-open');
+
+        // Remove submenu-open class from all submenus and their parent items
+        menuItems.querySelectorAll('.submenu-open').forEach(submenu => {
+            submenu.classList.remove('submenu-open');
+        });
+
+        unlockBodyScroll();
+    }
+
+    function lockBodyScroll() {
+        scrollPosition = window.pageYOffset || document.documentElement.scrollTop;
+        body.classList.add('body-fixed');
+        body.style.top = `-${scrollPosition}px`;
+    }
+
+    function unlockBodyScroll() {
+        body.classList.remove('body-fixed');
+        body.style.top = '';
+        window.scrollTo(0, scrollPosition);
+    }
+});
+
+
+
+
+
+
+
+
+
+
+
+document.addEventListener('DOMContentLoaded', function () {
+    const newsletterForm = document.querySelector('.newsletter-form');
+    const emailInput = document.querySelector('#newsletter-email');
+    const submitButton = newsletterForm.querySelector('button[type="submit"]');
+    const feedback = document.createElement('p'); // Feedback message element
+    feedback.classList.add('newsletter-feedback');
+    newsletterForm.appendChild(feedback); // Append feedback message
+
+    newsletterForm.addEventListener('submit', function (e) {
+        e.preventDefault();
+
+        // Disable submit button to prevent multiple submissions
+        submitButton.disabled = true;
+
+        // Prepare data for AJAX
+        const formData = new FormData(newsletterForm);
+        formData.append('action', 'subscribe_to_sendy');
+        formData.append('subscribe_nonce', ajax_object.subscribe_nonce); // Add nonce dynamically
+
+        // Send AJAX request
+        fetch(ajax_object.ajax_url, {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                feedback.textContent = data.data.message; // Success message
+                feedback.style.color = 'green';
+                emailInput.value = ''; // Clear the email input
+            } else {
+                feedback.textContent = data.data.message; // Error message
+                feedback.style.color = 'red';
+            }
+            submitButton.disabled = false; // Re-enable submit button
+        })
+        .catch(error => {
+            feedback.textContent = 'An error occurred. Please try again.';
+            feedback.style.color = 'red';
+            submitButton.disabled = false;
+        });
     });
 });
+

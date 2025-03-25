@@ -1,14 +1,23 @@
 <?php
-// Function to display breadcrumbs
 function display_breadcrumbs() {
     if (is_tax('location')) {
         display_location_breadcrumbs(); // Call the custom location breadcrumb function
         return;
     }
 
+    if (is_woocommerce() && function_exists('woocommerce_breadcrumb')) {
+        woocommerce_breadcrumb();
+        return;
+    }
+
     if (!is_front_page()) {
         echo '<nav class="breadcrumbs" itemprop="breadcrumb">';
         echo '<a href="' . home_url() . '">Home</a> › ';
+
+        // Add Merch Store link for WooCommerce cart and checkout pages
+        if (is_cart() || is_checkout()) {
+            echo '<a href="' . home_url('/shop') . '">Merch Store</a> › ';
+        }
 
         if (is_page()) {
             // Get parent pages if they exist
@@ -29,7 +38,7 @@ function display_breadcrumbs() {
         } elseif (is_tag()) {
             echo '<a href="' . home_url('/all-tags') . '">Tags</a> › ';
             echo '<span>' . single_tag_title('', false) . '</span>';
-        } elseif (is_single()) {
+        } elseif (is_single() && !is_product()) {
             display_post_breadcrumbs(); // Use the existing function for posts
         } else {
             echo 'Archives';
@@ -37,6 +46,9 @@ function display_breadcrumbs() {
         echo '</nav>';
     }
 }
+
+
+
 
 // Function to display breadcrumbs for post pages
 function display_post_breadcrumbs() {
@@ -105,4 +117,26 @@ function display_location_breadcrumbs() {
         echo '<span>' . esc_html($term->name) . '</span>';
         echo '</nav>';
     }
+}
+
+add_filter('woocommerce_get_breadcrumb', 'add_merch_store_to_breadcrumb', 10, 2);
+function add_merch_store_to_breadcrumb($crumbs, $breadcrumb) {
+    // Construct the Merch Store breadcrumb
+    $shop_crumb = ['Merch Store', home_url('/shop')];
+
+    // Insert "Merch Store" directly after "Home" for relevant WooCommerce pages
+    if (is_product_category() || is_product_tag() || is_product() || is_cart() || is_checkout()) {
+        array_splice($crumbs, 1, 0, [$shop_crumb]);
+    }
+
+    return $crumbs;
+}
+
+
+
+
+add_filter( 'woocommerce_breadcrumb_defaults', 'wps_breadcrumb_delimiter' );
+function wps_breadcrumb_delimiter( $defaults ) {
+  $defaults['delimiter'] = ' › ';
+  return $defaults;
 }

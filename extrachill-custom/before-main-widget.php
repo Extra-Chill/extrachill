@@ -1,5 +1,7 @@
 <?php
 
+// this code is used to display custom banners at th top of every page
+
 /**
  * Register the widget area before the main content.
  */
@@ -26,4 +28,4 @@ function extrachill_display_before_main_widget_area() {
         echo '</div>';
     }
 }
-add_action( 'colormag_before_main', 'extrachill_display_before_main_widget_area' );
+add_action( 'extrachill_before_main', 'extrachill_display_before_main_widget_area' );

@@ -18,6 +18,14 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="profile" href="http://gmpg.org/xfn/11" />
   <?php wp_head(); ?>
+  <?php
+  // Conditionally include Mediavine ad blocklist based on ad-free status
+  if ( is_user_ad_free() ) {
+      ?>
+      <div id="mediavine-settings" data-blocklist-all="1"></div>
+      <?php
+  }
+  ?>
 </head>
 <body <?php body_class(); ?>>
 <!-- Google Tag Manager (noscript) -->
@@ -35,28 +43,9 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         <?php endif; ?>
     </div><!-- .site-branding -->
 
-    <nav id="site-navigation" class="main-navigation" role="navigation" aria-label="Main Navigation">
-        <button class="menu-toggle-container" role="button" aria-expanded="false" tabindex="0" aria-label="Toggle Menu">
-            <svg class="menu-toggle" xmlns="http://www.w3.org/2000/svg">
-                <use href="/wp-content/themes/colormag-pro/fonts/fontawesome.svg?v1.3#bars-solid"></use>
-            </svg>
-        </button>
-        <?php
-            wp_nav_menu(array(
-                'theme_location' => 'primary',
-                'menu_id' => 'primary-menu',
-                'walker' => new Custom_Walker_Nav_Menu(), // Ensure this line matches your theme's code
-            ));
-        ?>
-    </nav><!-- #site-navigation -->
-
-    <svg class="search-top">
-        <use href="/wp-content/themes/colormag-pro/fonts/fontawesome.svg#magnifying-glass-solid"></use>
-    </svg>
-    <div class="header-search">
-        <?php get_search_form(); ?>
-    </div><!-- .header-search -->
+    <?php get_template_part('navigation-menu'); ?> <!-- Include the navigation here -->
 </header><!-- #masthead -->
+
 
 <?php
 // Fetch user details and output them for JavaScript usage
@@ -81,7 +70,7 @@ if ((get_theme_mod('colormag_header_image_position', 'position_two') == 'positio
 }
 ?>
 
-<?php do_action('colormag_after_header'); ?>
-<?php do_action('colormag_before_main'); ?>
+<?php do_action('extrachill_after_header'); ?>
+<?php do_action('extrachill_before_main'); ?>
 
-<main class="inner-wrap" <?php echo colormag_schema_markup('content'); ?>>
+<main class="inner-wrap">
