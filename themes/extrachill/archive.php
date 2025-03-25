@@ -2,14 +2,11 @@
 /**
  * The template for displaying Archive page.
  *
- * @package ThemeGrill
- * @subpackage ColorMag
- * @since ColorMag 1.0
  */
 
 get_header(); ?>
 <div id="mediavine-settings" data-blocklist-all="1"></div>
-<?php do_action('colormag_before_body_content'); ?>
+<?php do_action('extrachill_before_body_content'); ?>
 
 <section id="primary">
 <?php
@@ -124,7 +121,7 @@ if (is_category()) {
     <div class="article-container">
         <?php global $post_i; $post_i = 1; ?>
         <?php while (have_posts()) : the_post(); ?>
-            <?php get_template_part('content', 'archive'); ?>
+            <?php get_template_part('content', ''); ?>
         <?php endwhile; ?>
     </div>
 
@@ -135,9 +132,9 @@ if (is_category()) {
 <?php endif; ?>
 </section><!-- #primary -->
 
-<?php colormag_sidebar_select(); ?>
+<?php get_sidebar(); ?>
 
-<?php do_action('colormag_after_body_content'); ?>
+<?php do_action('extrachill_after_body_content'); ?>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {

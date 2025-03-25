@@ -1,4 +1,7 @@
 <?php
+
+// this code is used to collect scraped events from various venues and prepare them for posting
+
 /**
  * collect-scraped-events.php
  * 
@@ -44,15 +47,14 @@ function get_event_location_venues() {
                 'royal_american'    => 'get_royal_american_events',
                 'commodore'         => 'get_commodore_events',
                 'burgundy_lounge'   => 'get_burgundy_lounge_events',
-                'tin_roof'          => 'get_tin_roof_events',
-                'forte_jazz_lounge' => 'get_forte_jazz_lounge_events',
+               'tin_roof'          => 'get_tin_roof_events',
+               'forte_jazz_lounge' => 'get_forte_jazz_lounge_events',
                 // Add more venues as needed
             ],
         ],
         'austin' => [
             'term_id' => 2691, // location term ID for Austin
             'venues'  => [
-                'some_austin_venue' => 'get_some_austin_venue_events',
                 // Add more venues as needed
             ],
         ],

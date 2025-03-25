@@ -1,5 +1,9 @@
 <?php
 
+// was never implemented, was testing an idea
+
+// this code is used to display a Charlston music venue quiz on the site
+
 function enqueue_quiz_ajax_script() {
     if (is_page() || is_single()) {
         global $post;

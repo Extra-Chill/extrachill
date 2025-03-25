@@ -1,7 +1,16 @@
 <?php
-add_action('wp_insert_post', 'sync_article_to_community_forum', 10, 3);
+
+// DEPRECATED - This code is no longer in use but it works by syncing articles to a community forum
+
+// add_action('wp_insert_post', 'sync_article_to_community_forum', 10, 3);
 
 function sync_article_to_community_forum($post_id, $post, $update) {
+    // Check if the site is extrachill.com
+    if (home_url() !== 'https://extrachill.com') {
+        error_log('Sync skipped: not on extrachill.com');
+        return; // Exit early if not on the live site
+    }
+
     if (!should_sync_article($post_id, $post)) {
         return;
     }
@@ -25,6 +34,7 @@ function sync_article_to_community_forum($post_id, $post, $update) {
 
     handle_sync_response($response, $post_id);
 }
+
 
 function should_sync_article($post_id, $post) {
     if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE || wp_is_post_revision($post_id) || 'post' !== $post->post_type || $post->post_status !== 'publish') {

@@ -7,8 +7,8 @@
  */
 
 ?>
-<article id="post-<?php the_ID(); ?>" <?php echo colormag_schema_markup('entry'); ?>>
-    <?php do_action('colormag_before_post_content'); ?>
+<article id="post-<?php the_ID(); ?>">
+    <?php do_action('extrachill_before_post_content'); ?>
 
     <?php if (get_theme_mod('colormag_single_post_title_position', 'below') == 'above') { ?>
         <div class="single-title-above">
@@ -17,12 +17,12 @@
             <?php endif; ?>
 
             <header class="entry-header">
-                <h1 class="entry-title" <?php echo colormag_schema_markup('entry_title'); ?>>
+                <h1 class="entry-title">
                     <?php the_title(); ?>
                 </h1>
             </header>
 
-            <?php colormag_entry_meta(); ?>
+            <?php extrachill_entry_meta(); ?>
         </div>
     <?php } ?>
 
@@ -47,15 +47,15 @@
                     </span>
                     <span class="upvote-count"><?php echo get_upvote_count(get_the_ID()); ?></span> |
                 </div>
-                <h1 class="entry-title" <?php echo colormag_schema_markup('entry_title'); ?>>
+                <h1 class="entry-title">
                     <?php the_title(); ?>
                 </h1>
-                <?php colormag_entry_meta(); ?>
+                <?php extrachill_entry_meta(); ?>
             </header>
         <?php endif; ?>
     <?php } ?>
 
-    <div class="entry-content" <?php echo colormag_schema_markup('entry_content'); ?>>
+    <div class="entry-content">
         <?php
         the_content();
 
@@ -68,5 +68,5 @@
         ?>
     </div>
 
-    <?php do_action('colormag_after_post_content'); ?>
+    <?php do_action('extrachill_after_post_content'); ?>
 </article>

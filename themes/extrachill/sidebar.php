@@ -8,8 +8,8 @@
  */
 ?>
 
-<aside id="secondary"<?php echo colormag_schema_markup( 'sidebar' ); ?>>
-	<?php do_action( 'colormag_before_sidebar' ); ?>
+<aside id="secondary">
+	<?php do_action( 'extrachill_before_sidebar' ); ?>
 		<?php
 			if( is_page_template( 'page-templates/contact.php' ) ) {
 				$sidebar = 'colormag_contact_page_sidebar';
@@ -38,7 +38,11 @@
 					'after_title'   => '</span></h3>'
 				)
 			);
-		endif; ?>
+			?>
+			<aside class="widget widget_recent_posts clearfix">
+				<?php echo my_recent_posts_shortcode(); ?>
+			</aside>
+		<?php endif; ?>
 
-	<?php do_action( 'colormag_after_sidebar' ); ?>
-	</aside>
+	<?php do_action( 'extrachill_after_sidebar' ); ?>
+</aside>

@@ -60,4 +60,4 @@ function custom_permalinks_redirect() {
         error_log('Failed to open CSV file: ' . $csv_file_path);
     }
 }
-add_action('template_redirect', 'custom_permalinks_redirect');
+// add_action('template_redirect', 'custom_permalinks_redirect');

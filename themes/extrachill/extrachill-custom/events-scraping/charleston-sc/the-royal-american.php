@@ -12,6 +12,7 @@ function get_royal_american_events() {
     curl_close($ch);
 
     if (!$htmlContent) {
+        error_log("Failed to fetch Royal American events.");
         return [];
     }
 
@@ -24,31 +25,50 @@ function get_royal_american_events() {
     $eventsNodes = $xpath->query("//article[contains(@class, 'eventlist-event')]");
 
     $events = [];
-    $currentYear = date('Y'); // Assuming events are for the current year, adjust as needed
+    $currentYear = date('Y');
 
     foreach ($eventsNodes as $node) {
         $eventUrl = $xpath->evaluate("string(.//a[@class='eventlist-title-link']/@href)", $node);
         $title = $xpath->evaluate("string(.//h1[@class='eventlist-title']/a)", $node);
-        $startDateText = $xpath->evaluate("string(.//div[@class='eventlist-datetag-startdate eventlist-datetag-startdate--month'])", $node) . " " .
-                         $xpath->evaluate("string(.//div[@class='eventlist-datetag-startdate eventlist-datetag-startdate--day'])", $node) . " " .
-                         $currentYear;
-        $startTimeText = $xpath->evaluate("string(.//time[@class='event-time-12hr'][1])", $node);
+        
+        // Extract the month and day, fallback to empty if missing
+        $month = trim($xpath->evaluate("string(.//div[@class='eventlist-datetag-startdate eventlist-datetag-startdate--month'])", $node));
+        $day = trim($xpath->evaluate("string(.//div[@class='eventlist-datetag-startdate eventlist-datetag-startdate--day'])", $node));
 
-        $startDate = date('Y-m-d H:i:s', strtotime($startDateText . ' ' . $startTimeText));
-        $endDate = date('Y-m-d H:i:s', strtotime($startDate) + 3600 * 5); // Assuming the event ends the same day, adjust as needed
-
-        $descriptionHtml = $xpath->evaluate("string(.//div[@class='eventlist-description'])", $node);
-        $description = html_entity_decode(strip_tags($descriptionHtml, '<a><br>')); // Allow only links and line breaks
-
-        // Skip events that have already occurred
-        if (new DateTime($startDate) < new DateTime()) {
+        // Check if the date components are valid
+        if (empty($month) || empty($day)) {
+            error_log("Skipping event due to missing date: " . $title);
             continue;
         }
 
-        // Venue details properly structured for the API's expected format
+        // Extract and format start date
+        $startDateText = "$month $day $currentYear";
+        $startTimeText = trim($xpath->evaluate("string(.//time[@class='event-time-12hr'][1])", $node));
+
+        // Set a default time if missing
+        if (empty($startTimeText)) {
+            error_log("Missing event time for: $title. Assigning default 8:00 PM.");
+            $startTimeText = "8:00 PM";
+        }
+
+        // Convert to datetime format
+        $startDate = date('Y-m-d H:i:s', strtotime("$startDateText $startTimeText"));
+        $endDate = date('Y-m-d H:i:s', strtotime($startDate) + 3600 * 5);
+
+        // Extract and clean description
+        $descriptionHtml = $xpath->evaluate("string(.//div[@class='eventlist-description'])", $node);
+        $description = html_entity_decode(strip_tags($descriptionHtml, '<a><br>'));
+
+        // Skip past events
+        if (new DateTime($startDate) < new DateTime()) {
+            error_log("Skipping past event: $title on $startDate");
+            continue;
+        }
+
+        // Define venue details
         $venueDetails = [
             'venue' => [
-                'id' => 'the-royal-american', // Example ID, replace with actual ID if available
+                'id' => 'the-royal-american',
                 'name' => 'The Royal American',
                 'address' => '970 Morrison Drive',
                 'city' => 'Charleston',
@@ -57,21 +77,25 @@ function get_royal_american_events() {
                 'zip' => '29403',
                 'website' => 'http://www.theroyalamerican.com',
                 'phone' => '(843) 817-6925',
-                // Add or adjust fields to match your API's expected venue structure
             ]
         ];
 
+        // Build the event array
         $event = [
             'title' => trim($title),
             'start_date' => $startDate,
             'end_date' => $endDate,
             'description' => trim($description),
             'url' => 'http://www.theroyalamerican.com' . $eventUrl,
-            'venue' => $venueDetails['venue'] // Assigning the structured venue details here
+            'venue' => $venueDetails['venue']
         ];
+
+        // Log for debugging
+        error_log("Scraped event: " . print_r($event, true));
 
         $events[] = $event;
     }
 
     return $events;
 }
+

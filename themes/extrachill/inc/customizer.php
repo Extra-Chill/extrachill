@@ -310,7 +310,7 @@ function colormag_customize_register( $wp_customize ) {
 		'type'    => 'radio',
 		'label'   => esc_html__( 'Select the option you want:', 'colormag-pro' ),
 		'choices' => array(
-			'sticky'           => esc_html__( 'Make the menu sticky', 'colormag-pro' ),
+			'sticky'           => esc_html__( 'Make the menu sticky', 'extrachill' ),
 			'reveal_on_scroll' => esc_html__( 'Reveal the menu on scroll up', 'colormag-pro' ),
 		),
 		'section' => 'colormag_primary_sticky_menu_section',
@@ -1748,7 +1748,7 @@ function colormag_customize_register( $wp_customize ) {
 	) );
 
 	// entry meta remove
-	$wp_customize->add_section( 'colormag_entry_meta_section', array(
+	$wp_customize->add_section( 'extrachill_entry_meta_section', array(
 		'priority' => 4,
 		'title'    => esc_html__( 'Post Meta Display', 'colormag-pro' ),
 		'panel'    => 'colormag_additional_options',
@@ -1765,7 +1765,7 @@ function colormag_customize_register( $wp_customize ) {
 	$wp_customize->add_control( 'colormag_all_entry_meta_remove', array(
 		'type'     => 'checkbox',
 		'label'    => esc_html__( 'Disable the post meta for the post totally, ie, remove all of the meta data.', 'colormag-pro' ),
-		'section'  => 'colormag_entry_meta_section',
+		'section'  => 'extrachill_entry_meta_section',
 		'settings' => 'colormag_all_entry_meta_remove',
 	) );
 
@@ -1780,7 +1780,7 @@ function colormag_customize_register( $wp_customize ) {
 	$wp_customize->add_control( 'colormag_author_entry_meta_remove', array(
 		'type'     => 'checkbox',
 		'label'    => esc_html__( 'Disable the author only in post meta section.', 'colormag-pro' ),
-		'section'  => 'colormag_entry_meta_section',
+		'section'  => 'extrachill_entry_meta_section',
 		'settings' => 'colormag_author_entry_meta_remove',
 	) );
 
@@ -1795,7 +1795,7 @@ function colormag_customize_register( $wp_customize ) {
 	$wp_customize->add_control( 'colormag_date_entry_meta_remove', array(
 		'type'     => 'checkbox',
 		'label'    => esc_html__( 'Disable the date only in post meta section.', 'colormag-pro' ),
-		'section'  => 'colormag_entry_meta_section',
+		'section'  => 'extrachill_entry_meta_section',
 		'settings' => 'colormag_date_entry_meta_remove',
 	) );
 
@@ -1810,7 +1810,7 @@ function colormag_customize_register( $wp_customize ) {
 	$wp_customize->add_control( 'colormag_category_entry_meta_remove', array(
 		'type'     => 'checkbox',
 		'label'    => esc_html__( 'Disable the category only in post meta section.', 'colormag-pro' ),
-		'section'  => 'colormag_entry_meta_section',
+		'section'  => 'extrachill_entry_meta_section',
 		'settings' => 'colormag_category_entry_meta_remove',
 	) );
 
@@ -1825,7 +1825,7 @@ function colormag_customize_register( $wp_customize ) {
 	$wp_customize->add_control( 'colormag_comments_entry_meta_remove', array(
 		'type'     => 'checkbox',
 		'label'    => esc_html__( 'Disable the comments only in post meta section.', 'colormag-pro' ),
-		'section'  => 'colormag_entry_meta_section',
+		'section'  => 'extrachill_entry_meta_section',
 		'settings' => 'colormag_comments_entry_meta_remove',
 	) );
 
@@ -1840,7 +1840,7 @@ function colormag_customize_register( $wp_customize ) {
 	$wp_customize->add_control( 'colormag_tags_entry_meta_remove', array(
 		'type'     => 'checkbox',
 		'label'    => esc_html__( 'Disable the tags only in post meta section.', 'colormag-pro' ),
-		'section'  => 'colormag_entry_meta_section',
+		'section'  => 'extrachill_entry_meta_section',
 		'settings' => 'colormag_tags_entry_meta_remove',
 	) );
 
@@ -1854,7 +1854,7 @@ function colormag_customize_register( $wp_customize ) {
 	$wp_customize->add_control( 'colormag_post_view_entry_meta_remove', array(
 		'type'     => 'checkbox',
 		'label'    => esc_html__( 'Disable the post view only in post meta section.', 'colormag-pro' ),
-		'section'  => 'colormag_entry_meta_section',
+		'section'  => 'extrachill_entry_meta_section',
 		'settings' => 'colormag_post_view_entry_meta_remove',
 	) );
 
@@ -1868,7 +1868,7 @@ function colormag_customize_register( $wp_customize ) {
 	$wp_customize->add_control( 'colormag_edit_button_entry_meta_remove', array(
 		'type'     => 'checkbox',
 		'label'    => esc_html__( 'Disable the edit button only in post meta section.', 'colormag-pro' ),
-		'section'  => 'colormag_entry_meta_section',
+		'section'  => 'extrachill_entry_meta_section',
 		'settings' => 'colormag_edit_button_entry_meta_remove',
 	) );
 
@@ -2147,96 +2147,7 @@ function colormag_customize_register( $wp_customize ) {
 	) );
 	// End of the Additional Options
 
-	// Start of Woocommerce options.
-	if ( class_exists( 'WooCommerce' ) ) {
-		$wp_customize->add_panel( 'colormag_woocommerce_options', array(
-			'priority'    => 535,
-			'title'       => esc_html__( 'WooCommerce Options', 'colormag-pro' ),
-			'capability'  => 'edit_theme_options',
-			'description' => esc_html__( 'Change the WooCommerce Settings from here as you want', 'colormag-pro' ),
-		) );
 
-		$wp_customize->add_section( 'colormag_woocommerce_setting', array(
-			'priority' => 1,
-			'title'    => esc_html__( 'Woocommerce Settings', 'colormag-pro' ),
-			'panel'    => 'colormag_woocommerce_options',
-		) );
-
-		// Add additional sidebar area for WooCommerce pages.
-		$wp_customize->add_setting( 'colormag_woocommerce_sidebar_register_setting', array(
-			'default'           => 0,
-			'capability'        => 'edit_theme_options',
-			'sanitize_callback' => 'colormag_checkbox_sanitize',
-		) );
-
-		$wp_customize->add_control( 'colormag_woocommerce_sidebar_register_setting', array(
-			'type'     => 'checkbox',
-			'label'    => esc_html__( 'Check to register different sidebar areas to be used for WooCommerce pages.', 'colormag-pro' ),
-			'section'  => 'colormag_woocommerce_setting',
-			'settings' => 'colormag_woocommerce_sidebar_register_setting',
-		) );
-
-		// WooCommerce Shop Page Layout.
-		$wp_customize->add_setting( 'colormag_woocmmerce_shop_page_layout', array(
-			'default'           => 'right_sidebar',
-			'capability'        => 'edit_theme_options',
-			'sanitize_callback' => 'colormag_radio_select_sanitize',
-		) );
-
-		$wp_customize->add_control( new COLORMAG_Image_Radio_Control( $wp_customize, 'colormag_woocmmerce_shop_page_layout', array(
-			'type'     => 'radio',
-			'label'    => esc_html__( 'WooCommerce Shop Page Layout', 'colormag-pro' ),
-			'section'  => 'colormag_woocommerce_setting',
-			'settings' => 'colormag_woocmmerce_shop_page_layout',
-			'choices'  => array(
-				'right_sidebar'               => COLORMAG_ADMIN_IMAGES_URL . '/right-sidebar.png',
-				'left_sidebar'                => COLORMAG_ADMIN_IMAGES_URL . '/left-sidebar.png',
-				'no_sidebar_full_width'       => COLORMAG_ADMIN_IMAGES_URL . '/no-sidebar-full-width-layout.png',
-				'no_sidebar_content_centered' => COLORMAG_ADMIN_IMAGES_URL . '/no-sidebar-content-centered-layout.png',
-			),
-		) ) );
-
-		// WooCommerce Archive Page Layout.
-		$wp_customize->add_setting( 'colormag_woocmmerce_archive_page_layout', array(
-			'default'           => 'right_sidebar',
-			'capability'        => 'edit_theme_options',
-			'sanitize_callback' => 'colormag_radio_select_sanitize',
-		) );
-
-		$wp_customize->add_control( new COLORMAG_Image_Radio_Control( $wp_customize, 'colormag_woocmmerce_archive_page_layout', array(
-			'type'     => 'radio',
-			'label'    => esc_html__( 'WooCommerce Archive Page Layout', 'colormag-pro' ),
-			'section'  => 'colormag_woocommerce_setting',
-			'settings' => 'colormag_woocmmerce_archive_page_layout',
-			'choices'  => array(
-				'right_sidebar'               => COLORMAG_ADMIN_IMAGES_URL . '/right-sidebar.png',
-				'left_sidebar'                => COLORMAG_ADMIN_IMAGES_URL . '/left-sidebar.png',
-				'no_sidebar_full_width'       => COLORMAG_ADMIN_IMAGES_URL . '/no-sidebar-full-width-layout.png',
-				'no_sidebar_content_centered' => COLORMAG_ADMIN_IMAGES_URL . '/no-sidebar-content-centered-layout.png',
-			),
-		) ) );
-
-		// WooCommerce Single Product Page Layout.
-		$wp_customize->add_setting( 'colormag_woocmmerce_single_product_page_layout', array(
-			'default'           => 'right_sidebar',
-			'capability'        => 'edit_theme_options',
-			'sanitize_callback' => 'colormag_radio_select_sanitize',
-		) );
-
-		$wp_customize->add_control( new COLORMAG_Image_Radio_Control( $wp_customize, 'colormag_woocmmerce_single_product_page_layout', array(
-			'type'     => 'radio',
-			'label'    => esc_html__( 'WooCommerce Single Product Page Layout', 'colormag-pro' ),
-			'section'  => 'colormag_woocommerce_setting',
-			'settings' => 'colormag_woocmmerce_single_product_page_layout',
-			'choices'  => array(
-				'right_sidebar'               => COLORMAG_ADMIN_IMAGES_URL . '/right-sidebar.png',
-				'left_sidebar'                => COLORMAG_ADMIN_IMAGES_URL . '/left-sidebar.png',
-				'no_sidebar_full_width'       => COLORMAG_ADMIN_IMAGES_URL . '/no-sidebar-full-width-layout.png',
-				'no_sidebar_content_centered' => COLORMAG_ADMIN_IMAGES_URL . '/no-sidebar-content-centered-layout.png',
-			),
-		) ) );
-	}
-	// End of WooCommerce options.
 
 	// Category Color Options
 	$wp_customize->add_panel( 'colormag_category_color_panel', array(

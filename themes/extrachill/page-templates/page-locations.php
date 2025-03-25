@@ -6,7 +6,7 @@
 
 get_header(); ?>
 <div id="mediavine-settings" data-blocklist-all="1"></div>
-<?php do_action('colormag_before_body_content'); ?>
+<?php do_action('extrachill_before_body_content'); ?>
 
 <section id="primary">
     <!-- Breadcrumbs for Home > Locations -->
@@ -43,8 +43,8 @@ get_header(); ?>
     ?>
 </section><!-- #primary -->
 
-<?php colormag_sidebar_select(); ?>
+<?php get_sidebar(); ?>
 
-<?php do_action('colormag_after_body_content'); ?>
+<?php do_action('extrachill_after_body_content'); ?>
 
 <?php get_footer(); ?>

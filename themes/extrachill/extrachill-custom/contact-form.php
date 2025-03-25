@@ -14,11 +14,12 @@ function custom_contact_form_shortcode() {
             <div class="form-group">
                 <label for="subject">What\'s up? <abbr class="required" title="Required">*</abbr></label>
                 <select id="subject" name="subject" required class="input-text">
-                    <option value="Just sharing music.">Just sharing music.</option>
-                    <option value="There\'s a cool show coming up.">There\'s a cool show coming up.</option>
-                    <option value="I want to work for Extra Chill.">I want to work for Extra Chill.</option>
-                    <option value="I\'m interested in advertising.">I\'m interested in advertising.</option>
-                    <option value="It\'s something else.">It\'s something else.</option>
+                    <option value="Just sharing music.">Just sharing music</option>
+                    <option value="There\'s a cool show coming up.">There\'s a cool show coming up</option>
+                    <option value="Online order question.">Online order question</option>
+                    <option value="I want to work for Extra Chill.">I want to work for Extra Chill</option>
+                    <option value="I\'m interested in advertising.">I\'m interested in advertising</option>
+                    <option value="It\'s something else.">It\'s something else</option>
                 </select>
             </div>
             <div class="form-group">
@@ -79,7 +80,7 @@ function handle_ec_contact_form_submission() {
 
     // Send emails
     send_email_to_admin($name, $email, $subject, $message);
-    send_confirmation_email_to_user($name, $email, $message);
+    send_confirmation_email_to_user($name, $email, $subject, $message);
 
     // Redirect to avoid form resubmission
     wp_redirect(home_url('/thank-you/'));
@@ -141,73 +142,68 @@ function send_email_to_admin($name, $email, $subject, $message) {
     $admin_email = get_option('admin_email');
     $admin_headers = array(
         'Content-Type: text/html; charset=UTF-8',
-        'Reply-To: ' . $email // Set reply-to to the user's email
+        'Reply-To: ' . $email
     );
 
-    // Escape message content to ensure proper HTML formatting
-    $escaped_message = nl2br(htmlspecialchars($message, ENT_HTML5, 'UTF-8'));
+    // Fix: Remove backslashes from subject
+    $subject = stripslashes(htmlspecialchars_decode($subject, ENT_QUOTES));
 
-    // Updated admin body to use enhanced HTML formatting
+    // Ensure the message is safe and properly formatted
+    $escaped_message = nl2br(stripslashes(htmlspecialchars($message, ENT_HTML5, 'UTF-8')));
+
     $admin_body = <<<HTML
 <html>
 <head>
   <title>New Contact Form Submission</title>
-  <style>
-    body { font-family: Arial, sans-serif; }
-    p { margin-bottom: 10px; }
-    .info-label { font-weight: bold; }
-  </style>
 </head>
 <body>
-  <p><span class="info-label">Name:</span> $name</p>
-  <p><span class="info-label">Email:</span> $email</p>
-  <p><span class="info-label">Subject:</span> $subject</p>
-  <p><span class="info-label">Message:</span></p>
+  <p><strong>Name:</strong> $name</p>
+  <p><strong>Email:</strong> $email</p>
+  <p><strong>Subject:</strong> $subject</p>
+  <p><strong>Message:</strong></p>
   <div>$escaped_message</div>
 </body>
 </html>
 HTML;
 
-    // Send the email to the admin
     wp_mail($admin_email, "New submission: $subject", $admin_body, $admin_headers);
 }
 
-function send_confirmation_email_to_user($name, $email, $message) {
+function send_confirmation_email_to_user($name, $email, $subject, $message) {
     $admin_email = get_option('admin_email');
     $user_subject = "Extra Chill Got Your Message";
     $user_headers = array(
         'Content-Type: text/html; charset=UTF-8',
-        'From: Extra Chill <' . $admin_email . '>' // Customize the sender
+        'From: Extra Chill <' . $admin_email . '>'
     );
 
-    // Escape message content to ensure proper HTML formatting
-    $escaped_message = nl2br(htmlspecialchars($message, ENT_HTML5, 'UTF-8'));
+    // Fix: Remove backslashes from subject
+    $subject = stripslashes(htmlspecialchars_decode($subject, ENT_QUOTES));
 
-    // Improved HTML formatting for user confirmation email
+    // Ensure the message is safe and properly formatted
+    $escaped_message = nl2br(stripslashes(htmlspecialchars($message, ENT_HTML5, 'UTF-8')));
+
     $user_body = <<<HTML
 <html>
 <head>
   <title>Extra Chill Got Your Message</title>
-  <style>
-    body { font-family: Arial, sans-serif; }
-    p { margin-bottom: 10px; }
-    blockquote { background: #f9f9f9; border-left: 10px solid #ccc; margin: 1.5em 10px; padding: 0.5em 10px; }
-  </style>
 </head>
 <body>
   <p>Hey $name,</p>
-  <p>Thanks for reaching out to Extra Chill. Here's a summary of your message:</p>
+  <p>Thank you for reaching out to Extra Chill!</p>
+  <p>We prioritize responses for members of the <a href="https://community.extrachill.com">Extra Chill Community</a>, our free-to-join forum where you can connect with other music lovers, share ideas, and get exclusive insights.</p>
+  <p>If you're already a member and haven't heard back within two weeks, feel free to follow up.</p>
+  <p>Not a member yet? <a href="https://community.extrachill.com">Join here</a> and post your message—this is the best way to get a response from us.</p>
+  <p>Here's a summary of your message:</p>
   <blockquote>$escaped_message</blockquote>
-  <p>We prioritize responses to members of the <a href='https://community.extrachill.com'>Extra Chill Community</a>. If you are a community member and have not heard back in two weeks, feel free to reach out again.</p>
-  <p>Best,<br>Extra Chill</p>
+  <p>We truly appreciate & support those who support us and look forward to seeing you in the community!</p>
+  <p>Best regards,<br>Extra Chill</p>
 </body>
 </html>
 HTML;
 
-    // Send the confirmation email to the user
     wp_mail($email, $user_subject, $user_body, $user_headers);
 }
-
 
 
 

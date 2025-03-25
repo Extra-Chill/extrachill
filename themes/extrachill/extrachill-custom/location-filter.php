@@ -1,15 +1,18 @@
 <?php
+
+// this code is used to display a location filter on the homepage and handle AJAX request
+
 /**
  * Location Filter Functions
  */
 
 // Enqueue the script and styles for the location filter
-function enqueue_location_filter_scripts() {
+/* function enqueue_location_filter_scripts() {
     if ( is_front_page() ) {
-        $script_path = get_template_directory() . '/extrachill-custom/js/location-filter.js';
+        $script_path = get_template_directory() . '/js/location-filter.js';
         $script_version = filemtime( $script_path ); // Dynamic versioning based on file modification time
 
-        wp_enqueue_script( 'location-filter-js', get_template_directory_uri() . '/extrachill-custom/js/location-filter.js', array(), $script_version, true );
+        wp_enqueue_script( 'location-filter-js', get_template_directory_uri() . '/js/location-filter.js', array(), $script_version, true );
         
         // Pass AJAX URL and other localized data to the script
         wp_localize_script( 'location-filter-js', 'locationFilterData', array(
@@ -19,7 +22,7 @@ function enqueue_location_filter_scripts() {
     }
 }
 add_action( 'wp_enqueue_scripts', 'enqueue_location_filter_scripts' );
-
+*/
 
 // Handle AJAX request for filtering posts by location
 function ajax_filter_posts_by_location() {

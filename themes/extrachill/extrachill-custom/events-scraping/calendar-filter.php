@@ -1,4 +1,7 @@
 <?php
+
+// this code is used to filter events by location in the calendar view
+
 // calendar-filter.php
 
 // Force 'tribe-bar-location' into URLs for all views if set in context.

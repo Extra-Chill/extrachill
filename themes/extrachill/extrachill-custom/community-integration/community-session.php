@@ -1,4 +1,6 @@
 <?php 
+
+// this code is used to preload user session details for the community site
 function preload_user_details() {
     if (isset($_COOKIE['ecc_user_session_token'])) {
         $sessionToken = $_COOKIE['ecc_user_session_token'];
@@ -70,4 +72,27 @@ function get_user_details_directly($sessionToken) {
     }
 
     return false;
+}
+
+/**
+ * Returns true if the current logged‑in user (via ecc_user_session_token cookie)
+ * has purchased ad‑free access.
+ */
+function is_user_ad_free() {
+    if ( empty($_COOKIE['ecc_user_session_token']) ) {
+        return false;
+    }
+
+    $details = get_user_details_directly( sanitize_text_field($_COOKIE['ecc_user_session_token']) );
+    if ( empty($details['username']) ) {
+        return false;
+    }
+
+    global $wpdb;
+    $username = sanitize_text_field( $details['username'] );
+    $table    = $wpdb->prefix . 'extrachill_ad_free';
+
+    return (bool) $wpdb->get_var(
+        $wpdb->prepare("SELECT COUNT(*) FROM {$table} WHERE username = %s", $username)
+    );
 }

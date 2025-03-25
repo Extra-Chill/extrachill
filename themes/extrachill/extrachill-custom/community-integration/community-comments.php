@@ -1,5 +1,7 @@
 <?php 
 
+// this code is used to display community comments on extrachill.com and handle comment submission and retrieval
+
 // comment submission logic on extrachill.com plugin
 
 // Updated REST API endpoint registration to include a reply_to parameter

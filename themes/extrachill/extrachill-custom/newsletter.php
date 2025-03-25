@@ -1,4 +1,6 @@
 <?php
+
+// this code is used to create a custom post type for newsletters and send them to Sendy
 function create_newsletter_post_type() {
     register_post_type('newsletter', array(
         'labels' => array(
@@ -67,7 +69,7 @@ function prepare_email_content($post) {
     <div style="background: #fff; border: 1px solid #000; max-width: 600px; margin: 20px auto; padding: 0 20px; box-sizing: border-box;">
         {$content}
         <footer style="text-align: center; padding-top: 20px; font-size: 16px; line-height: 1.5em;">
-            <p>Read this newsletter & all others on the web at <a href="https://extrachill.com/newsletters">exrachill.com/newsletters"</a></p>
+            <p>Read this newsletter & all others on the web at <a href="https://extrachill.com/newsletters">extrachill.com/newsletters</a></p>
             <p>You received this email because you've connected with Extra Chill in some way over the years. Thanks for supporting independent music.</p>
             {$unsubscribe_link}
         </footer>
@@ -294,18 +296,19 @@ add_action('wp_ajax_nopriv_submit_newsletter_form', 'extrachill_submit_newslette
 
 function enqueue_newsletter_popup_scripts() {
     // Define pages where the script should not be loaded
-    $excluded_pages = ['contact-us', 'open-mic-signup', 'thank-you'];
+    $excluded_pages = ['contact-us', 'open-mic-signup', 'thank-you', 'cart', 'checkout'];
 
-    // Check if the current page is one of the excluded pages
-    if (is_page($excluded_pages)) {
-        return; // Do not enqueue the script on these pages
+    // Check if the current page is one of the excluded pages or contains the image voting block (excluding the homepage)
+    if ((is_page($excluded_pages) || (is_singular() && has_block('chill-generators/image-voting'))) && !is_front_page()) {
+        return; // Do not enqueue the script on excluded pages or pages with the image voting block, unless it's the homepage
     }
 
+    // Only enqueue if the session token is empty
     if (empty($_COOKIE['ecc_user_session_token'])) {
         // Define a version number for the script based on file modification time for cache busting
-        $script_version = filemtime(get_template_directory() . '/extrachill-custom/js/subscribe.js');
+        $script_version = filemtime(get_template_directory() . '/js/subscribe.js');
 
-        wp_enqueue_script('custom-popup', get_template_directory_uri() . '/extrachill-custom/js/subscribe.js', array(), $script_version, true);
+        wp_enqueue_script('custom-popup', get_template_directory_uri() . '/js/subscribe.js', array(), $script_version, true);
 
         wp_localize_script('custom-popup', 'newsletter_vars', array(
             'ajaxurl' => admin_url('admin-ajax.php'),
@@ -358,8 +361,8 @@ function recent_newsletters_shortcode() {
     ob_start();
 
     if ($newsletter_query->have_posts()) {
-        echo '<div class="recent-newsletters-widget">';
         echo '<h2 class="widget-title"><span>Recent Newsletters</span></h2>';
+        echo '<div class="recent-newsletters-widget">';
         echo '<ul>';
 
         while ($newsletter_query->have_posts()) {

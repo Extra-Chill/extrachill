@@ -43,16 +43,15 @@ if ( get_theme_mod( 'colormag_archive_search_layout', 'double_column_layout' ) =
     <?php if ( get_post_format() ) {
         get_template_part( 'inc/post-formats' );
     } ?>
-    <div class="newsletter-archive">
         <header class="entry-header">
             <?php if ( is_single() ) : ?>
                 <div class="breadcrumbs">
                     <a href="<?php echo esc_url( home_url( '/newsletters' ) ); ?>">Newsletters</a>
                 </div>
             <?php endif; ?>
-            <h2 class="entry-title">
+            <h1 class="entry-title">
                 <?php the_title(); ?>
-            </h2><br>
+            </h1><br>
             <span class="below-entry-meta">Sent on <?php echo get_the_date(); ?></span>
         </header>
         
@@ -61,7 +60,7 @@ if ( get_theme_mod( 'colormag_archive_search_layout', 'double_column_layout' ) =
                 <?php
                 the_content();
                 wp_link_pages( array(
-                    'before' => '<div class="page-links">' . __( 'Pages:', 'colormag' ),
+                    'before' => '<div class="page-links">' . __( 'Pages:', 'extrachill' ),
                     'after'  => '</div>',
                 ) );
                 ?>
@@ -69,13 +68,9 @@ if ( get_theme_mod( 'colormag_archive_search_layout', 'double_column_layout' ) =
         <?php endif; ?>
 
         <footer class="entry-footer">
-            <?php colormag_entry_meta(); ?>
-            <?php edit_post_link( __( 'Edit', 'colormag' ), '<span class="edit-link">', '</span>' ); ?>
+            <?php extrachill_entry_meta(); ?>
+            <?php edit_post_link( __( 'Edit', 'extrachill' ), '<span class="edit-link">', '</span>' ); ?>
         </footer><!-- .entry-footer -->
-    </div>
 </article>
 
-<?php do_action( 'colormag_after_post_content' ); ?>
-
-
-<?php do_action( 'colormag_after_post_content' ); ?>
+<?php do_action( 'extrachill_after_post_content' ); ?>

@@ -1,4 +1,7 @@
 <?php
+
+// this code is used to remove duplicate images from the Yoast sitemap
+
 /**
  * Remove duplicate images from Yoast sitemap.
  *

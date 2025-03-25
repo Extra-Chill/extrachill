@@ -2,16 +2,13 @@
 /**
  * The template for displaying Newsletter archive.
  *
- * @package ThemeGrill
- * @subpackage ColorMag
- * @since ColorMag 1.0
  */
 
 get_header(); ?>
 
 <div id="mediavine-settings" data-blocklist-all="1"></div>
 
-<?php do_action( 'colormag_before_body_content' ); ?>
+<?php do_action( 'extrachill_before_body_content' ); ?>
 
 <section id="primary">
     <?php if ( have_posts() ) : ?>
@@ -80,7 +77,7 @@ get_header(); ?>
         <div class="article-container">
             <?php global $post_i; $post_i = 1; ?>
             <?php while ( have_posts() ) : the_post(); ?>
-                <article id="post-<?php the_ID(); ?>" <?php post_class(); ?> <?php echo colormag_schema_markup( 'entry' ); ?>>
+                <article id="post-<?php the_ID(); ?>" <?php post_class(); ?>>
                     <?php if ( has_post_thumbnail() ) { ?>
                         <div class="featured-image">
                             <a href="<?php the_permalink(); ?>" title="<?php the_title_attribute(); ?>"><?php the_post_thumbnail( 'colormag-featured-post-medium' ); ?></a>
@@ -88,11 +85,13 @@ get_header(); ?>
                     <?php } ?>
 
                     <header class="entry-header">
-                        <h2 class="entry-title" <?php echo colormag_schema_markup( 'entry_title' ); ?>>
-                            <a href="<?php the_permalink(); ?>" title="<?php the_title_attribute(); ?>"><?php the_title(); ?></a>
-                        </h2>
-                        <span class="below-entry-meta">Sent on <?php echo get_the_date(); ?></span>
-                    </header><!-- .entry-header -->
+    <?php if ( is_single() ) : ?>
+        <h1 class="entry-title"><?php the_title(); ?></h1>
+    <?php else : ?>
+        <h2 class="entry-title"><a href="<?php the_permalink(); ?>" title="<?php the_title_attribute(); ?>"><?php the_title(); ?></a></h2>
+    <?php endif; ?>
+    <span class="below-entry-meta">Sent on <?php echo get_the_date(); ?></span>
+</header>
                 </article>
             <?php endwhile; ?>
         </div>
@@ -104,8 +103,8 @@ get_header(); ?>
     <?php endif; ?>
 </section><!-- #primary -->
 
-<?php colormag_sidebar_select(); ?>
+<?php get_sidebar(); ?>
 
-<?php do_action( 'colormag_after_body_content' ); ?>
+<?php do_action( 'extrachill_after_body_content' ); ?>
 
 <?php get_footer(); ?>

@@ -1,4 +1,6 @@
 <?php
+
+// this code is used to display recent activity from the community site
 function custom_human_time_diff($from, $to = '') {
     if (empty($to)) {
         $to = time();

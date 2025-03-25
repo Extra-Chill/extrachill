@@ -9,7 +9,7 @@
 
 get_header(); ?>
 
-    <?php do_action( 'colormag_before_body_content' ); ?>
+    <?php do_action( 'extrachill_before_body_content' ); ?>
 
     <section id="primary">
         <section class="error-404 not-found">
@@ -25,8 +25,8 @@ get_header(); ?>
         </section><!-- .error-404 -->
     </section><!-- #primary -->
 
-    <?php colormag_sidebar_select(); ?>
+    <?php get_sidebar(); ?>
 
-    <?php do_action( 'colormag_after_body_content' ); ?>
+    <?php do_action( 'extrachill_after_body_content' ); ?>
 
 <?php get_footer(); ?>

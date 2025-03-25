@@ -1,58 +1,84 @@
 <?php
-/**
- * Template to show the front page.
- *
- * @package    ThemeGrill
- * @subpackage ColorMag
- * @since      ColorMag 1.0
- */
+get_header();
 
-get_header(); ?>
+$current_user = wp_get_current_user();
+$is_logged_in = is_user_logged_in();
+$page_title = ( get_query_var('paged', 1 ) > 1 ) 
+    ? sprintf( __( 'The Latest – Page %d', 'colormag' ), get_query_var('paged') ) 
+    : __( 'The Latest', 'colormag' );
+?>
 <div id="mediavine-settings" data-blocklist-all="1"></div>
+<section id="hero-section">
+    <?php
+    $username = '';
+    if ( ! empty( $_COOKIE['ecc_user_session_token'] ) ) {
+        $session_token = sanitize_text_field( wp_unslash( $_COOKIE['ecc_user_session_token'] ) );
+        $user_details  = get_user_details_directly( $session_token );
 
-<div class="front-page-top-section clearfix">
-    <!-- Location Filter Button and Popup -->
-    <div class="filter-by-location-container">
-        <button id="filter-location-btn" class="filter-btn">Filter by Location</button>
-        <div id="location-filters" class="location-filters">
-            <div class="location-filters-content">
-                <span id="close-filter">&times;</span>
-                <h3>Select Locations</h3>
-                <p>Showing locations with 5 or more posts. <a href="/locations">View all.</a></p>
-                <button class="save-filters-btn">Save Filters</button>
-                <div class="location-grid">
-                    <?php
-                    // Start the display from top-level locations
-                    display_location_hierarchy_homepage();
-                    ?>
-                </div>
-                <button class="save-filters-btn">Save Filters</button>
-            </div>
-        </div>
+        if ( is_array( $user_details ) && ! empty( $user_details['username'] ) ) {
+            $username = sanitize_text_field( $user_details['username'] );
+        }
+    }
+    ?>
+
+    <h2>
+        <?php
+        if ( $username ) {
+            printf(
+                esc_html__( 'Welcome back, %s 🥶', 'colormag' ),
+                esc_html( $username )
+            );
+        } else {
+            esc_html_e( 'Welcome to the Online Music Scene 🥶', 'colormag' );
+        }
+        ?>
+    </h2>
+
+    <h3>
+        <?php
+        echo $username
+            ? esc_html__( 'Thanks for being part of the scene', 'colormag' )
+            : esc_html__( 'A melting pot for independent music', 'colormag' );
+        ?>
+    </h3>
+
+    <div class="hero-buttons-container">
+        <a href="<?php echo esc_url( $username ? 'https://community.extrachill.com' : 'https://community.extrachill.com/register' ); ?>"
+           class="hero-button community-button">
+            <?php echo $username
+                ? esc_html__( 'Visit Community', 'colormag' )
+                : esc_html__( 'Join the Community', 'colormag' ); ?>
+        </a>
+        <a href="<?php echo esc_url( home_url( '/newsletters/' ) ); ?>"
+           class="hero-button newsletter-button">
+            <?php esc_html_e( 'Newsletter', 'colormag' ); ?>
+        </a>
     </div>
-</div>
-
-<!-- Main Content Section -->
-<section id="primary" class="content-area">
-    <span class="home-header">
-<h2>Latest Posts</h2>
-    <a href="/all" class="view-all-button">View All</a></span>
-    <main id="main" class="site-main archive" role="main">
-        <?php if (have_posts()) : ?>
-            <?php while (have_posts()) : the_post(); ?>
-                <!-- Display each post in the loop using the content template -->
-                <?php get_template_part('content', ''); ?>
-            <?php endwhile; ?>
-    </main>
-                <!-- Pagination -->
-                <?php get_template_part('navigation', 'none'); ?>
-        <?php else : ?>
-            <!-- No posts found -->
-            <?php get_template_part('no-results', 'none'); ?>
-        <?php endif; ?>
 </section>
 
-<!-- Sidebar -->
-<?php get_sidebar(); ?>
 
-<?php get_footer(); ?>
+
+<section id="primary" class="content-area">
+    <header class="front-page-top-section">
+        <h2><?php echo esc_html( $page_title ); ?></h2>
+        <a href="<?php echo esc_url( home_url( '/all/' ) ); ?>" class="view-all-button">
+            <?php esc_html_e( 'Explore', 'colormag' ); ?>
+        </a>
+    </header>
+
+    <main id="main" class="site-main archive" role="main">
+        <?php if ( have_posts() ) : ?>
+            <?php while ( have_posts() ) : the_post(); ?>
+                <?php get_template_part( 'content' ); ?>
+            <?php endwhile; ?>
+            <?php get_template_part( 'navigation', 'none' ); ?>
+        <?php else : ?>
+            <?php get_template_part( 'no-results', 'none' ); ?>
+        <?php endif; ?>
+    </main>
+</section>
+
+<?php
+get_sidebar();
+get_footer();
+?>
