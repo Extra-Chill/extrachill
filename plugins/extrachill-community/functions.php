@@ -87,6 +87,54 @@ function extrachill_enqueue_scripts() {
 add_action('wp_enqueue_scripts', 'extrachill_enqueue_scripts');
 
 
+add_action('wp_enqueue_scripts', 'modular_bbpress_styles');
+
+function modular_bbpress_styles() {
+    // Forums Loop - Load only on forum listing/single forum
+    if (bbp_is_forum_archive()) {
+        wp_enqueue_style(
+            'forums-loop',
+            get_stylesheet_directory_uri() . '/bbpress/forums-loop.css',
+            array(),
+            filemtime(get_stylesheet_directory() . '/bbpress/forums-loop.css')
+        );
+    }
+
+    // Topics Loop - Load only on topic archives/single topic
+    if (bbp_is_topic_archive() || bbp_is_single_forum() ) {
+        wp_enqueue_style(
+            'topics-loop', 
+            get_stylesheet_directory_uri() . '/bbpress/topics-loop.css',
+            array(),
+            filemtime(get_stylesheet_directory() . '/bbpress/topics-loop.css')
+        );
+    }
+
+    // Replies Loop - Load only when replies are displayed
+    if (bbp_is_single_reply() || (bbp_is_single_topic() && bbp_show_lead_topic())) {
+        wp_enqueue_style(
+            'replies-loop',
+            get_stylesheet_directory_uri() . '/bbpress/replies-loop.css',
+            array(),
+            filemtime(get_stylesheet_directory() . '/bbpress/replies-loop.css')
+        );
+    }
+}
+
+
+add_action('wp_enqueue_scripts', 'enqueue_user_profile_styles');
+
+function enqueue_user_profile_styles() {
+    // User Profile styles - Load only on user profile pages
+    if (bbp_is_single_user() || bbp_is_single_user_edit() || bbp_is_user_home()) {
+        wp_enqueue_style(
+            'user-profile',
+            get_stylesheet_directory_uri() . '/bbpress/user-profile.css',
+            array(),
+            filemtime(get_stylesheet_directory() . '/bbpress/user-profile.css')
+        );
+    }
+}
 
 function enqueue_quote_script() {
     // Check if bbPress is active and the current page is a bbPress page
@@ -116,9 +164,9 @@ add_action('wp_enqueue_scripts', 'enqueue_profile_tab_script');
 
 function enqueue_collapse_script() {
     // Check if we're on the homepage or the forum front page
-    if ( is_front_page() || is_page('/') ) {
+    if ( is_front_page() || is_home() ) {
         // Define the path to the script relative to the theme directory
-        $script_path = '/js/home-collapse.js';
+                        $script_path = '/js/home-collapse.js';
 
         // Get the full path to the script
         $script_full_path = get_stylesheet_directory() . $script_path;
@@ -150,7 +198,6 @@ function enqueue_utilities() {
         'quote_nonce' => wp_create_nonce('quote_nonce'), // Nonce specifically for quote actions
     ));
 }
-
 add_action('wp_enqueue_scripts', 'enqueue_utilities');
 
 
@@ -162,9 +209,8 @@ add_action('wp_enqueue_scripts', 'enqueue_fontawesome');
 
 // Redirect non-admin users attempting to access the backend
 function wp_surgeon_redirect_admin() {
-    if (!current_user_can('administrator') && !(defined('DOING_AJAX') && DOING_AJAX)) {
-        wp_redirect(home_url('/user-dashboard/'));
-        exit;
+    if (!current_user_can('administrator')) {
+        show_admin_bar(false);
     }
 }
 add_action('admin_init', 'wp_surgeon_redirect_admin');
@@ -259,17 +305,6 @@ function extrachill_custom_template_include($template) {
  * 
  * */ 
 
-function homepage_custom_header_message() {
-    if (is_front_page()) { // Check if this is the homepage
-        echo '<h1>' . get_the_title() . '</h1>'; // Display the default homepage title
-        if (is_user_logged_in()) {
-            echo '<p>Welcome ' . esc_html(wp_get_current_user()->display_name) . ', <a href="/user-dashboard">View Dashboard</a></p>';
-        } else {
-            echo '<p>You are not signed in. <a href="' . wp_login_url() . '">Login</a>/<a href="' . wp_registration_url() . '">Register</a></p>';
-        }
-    }
-}
-add_action('generate_inside_site_header', 'homepage_custom_header_message');
 
 add_action( 'wp', function() {
     remove_action( 'generate_before_content', 'generate_featured_page_header_inside_single', 10 );
@@ -329,3 +364,85 @@ function wp_surgeon_remove_admin_bar() {
     }
 }
 add_action('after_setup_theme', 'wp_surgeon_remove_admin_bar');
+
+class Custom_Walker_Nav_Menu extends Walker_Nav_Menu {
+    function start_lvl( &$output, $depth = 0, $args = null ) {
+        if ( isset( $args->item_spacing ) && 'discard' === $args->item_spacing ) {
+            $t = '';
+            $n = '';
+        } else {
+            $t = "\t";
+            $n = "\n";
+        }
+        $indent = str_repeat( $t, $depth );
+        $classes = array( 'sub-menu' );
+        $class_names = join( ' ', apply_filters( 'nav_menu_submenu_css_class', $classes, $args, $depth ) );
+        $class_names = $class_names ? ' class="' . esc_attr( $class_names ) . '"' : '';
+        
+        $output .= "{$n}{$indent}<ul$class_names>{$n}";
+    }
+    
+    function start_el( &$output, $item, $depth = 0, $args = null, $id = 0 ) {
+        if ( isset( $args->item_spacing ) && 'discard' === $args->item_spacing ) {
+            $t = '';
+            $n = '';
+        } else {
+            $t = "\t";
+            $n = "\n";
+        }
+        $indent = ( $depth ) ? str_repeat( $t, $depth ) : '';
+
+        $classes = empty( $item->classes ) ? array() : (array) $item->classes;
+        $classes[] = 'menu-item-' . $item->ID;
+
+        $args = (object) $args;
+        $class_names = join( ' ', apply_filters( 'nav_menu_css_class', array_filter( $classes ), $item, $args, $depth ) );
+        $class_names = $class_names ? ' class="' . esc_attr( $class_names ) . '"' : '';
+
+        $id = apply_filters( 'nav_menu_item_id', 'menu-item-'. $item->ID, $item, $args, $depth );
+        $id = $id ? ' id="' . esc_attr( $id ) . '"' : '';
+
+        $output .= $indent . '<li' . $id . $class_names .'>';
+
+        $atts = array();
+        $atts['title']  = ! empty( $item->attr_title ) ? $item->attr_title : '';
+        $atts['target'] = ! empty( $item->target )     ? $item->target     : '';
+        $atts['rel']    = ! empty( $item->xfn )        ? $item->xfn        : '';
+        $atts['href']   = ! empty( $item->url )        ? $item->url        : '';
+
+        $atts = apply_filters( 'nav_menu_link_attributes', $atts, $item, $args, $depth );
+
+        $attributes = '';
+        foreach ( $atts as $attr => $value ) {
+            if ( ! empty( $value ) ) {
+                $value = ( 'href' === $attr ) ? esc_url( $value ) : esc_attr( $value );
+                $attributes .= ' ' . $attr . '="' . $value . '"';
+            }
+        }
+
+        $item_output = $args->before;
+        $item_output .= '<a'. $attributes .'>';
+        $item_output .= $args->link_before . apply_filters( 'the_title', $item->title, $item->ID ) . $args->link_after;
+
+        // Add SVG if menu item has children
+        if ( in_array( 'menu-item-has-children', $item->classes ) ) {
+            $item_output .= ' <svg class="submenu-indicator"><use href="/wp-content/themes/generatepress_child/fonts/extrachill.svg?v=1.5#angle-down-solid"></use></svg>';
+        }
+
+        $item_output .= '</a>';
+        $item_output .= $args->after;
+
+        $output .= apply_filters( 'walker_nav_menu_start_el', $item_output, $item, $depth, $args );
+    }
+}
+
+function extrachill_enqueue_nav_scripts() {
+    $script_path = '/js/nav-menu.js';
+    $version = filemtime(get_stylesheet_directory() . $script_path);
+    
+    wp_enqueue_script('extrachill-nav-menu', get_stylesheet_directory_uri() . $script_path, array(), $version, true);
+
+}
+add_action('wp_enqueue_scripts', 'extrachill_enqueue_nav_scripts');
+
+include_once get_stylesheet_directory() . '/forum-features/forum-1494-redirects.php';
