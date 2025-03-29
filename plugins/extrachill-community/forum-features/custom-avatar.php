@@ -1,13 +1,16 @@
 <?php
 
+/**
+ * AJAX handler for custom avatar upload (no custom image sizes)
+ */
 add_action('wp_ajax_custom_avatar_upload', 'wp_surgeon_custom_avatar_upload');
-
-
 function wp_surgeon_custom_avatar_upload() {
+    // Ensure file-handling functions exist
     if (!function_exists('wp_handle_upload')) {
         require_once(ABSPATH . 'wp-admin/includes/file.php');
     }
 
+    // Validate file type
     $uploadedfile = $_FILES['custom_avatar'];
     $allowed_types = array('image/jpeg', 'image/png', 'image/gif', 'image/webp');
     $file_type = wp_check_filetype_and_ext($uploadedfile['tmp_name'], $uploadedfile['name']);
@@ -16,10 +19,12 @@ function wp_surgeon_custom_avatar_upload() {
         return;
     }
 
+    // Handle the file upload
     $upload_overrides = array('test_form' => false);
     $movefile = wp_handle_upload($uploadedfile, $upload_overrides);
 
     if ($movefile && !isset($movefile['error'])) {
+        // Create the attachment post
         $attachment = array(
             'guid'           => $movefile['url'],
             'post_mime_type' => $movefile['type'],
@@ -28,57 +33,71 @@ function wp_surgeon_custom_avatar_upload() {
             'post_status'    => 'inherit'
         );
 
+        // Insert attachment in the DB
         $attach_id = wp_insert_attachment($attachment, $movefile['file']);
+
+        // Generate metadata using WordPress defaults (thumbnail, medium, large, etc.)
         require_once(ABSPATH . 'wp-admin/includes/image.php');
         $attach_data = wp_generate_attachment_metadata($attach_id, $movefile['file']);
         wp_update_attachment_metadata($attach_id, $attach_data);
 
-        update_user_meta(get_current_user_id(), 'custom_avatar_id', $attach_id); // Save attachment ID instead of URL
+        // Save the attachment ID to user meta
+        update_user_meta(get_current_user_id(), 'custom_avatar_id', $attach_id);
 
+        // Return success + full URL
         wp_send_json_success(array('url' => wp_get_attachment_url($attach_id)));
     } else {
         wp_send_json_error(array('message' => isset($movefile['error']) ? $movefile['error'] : 'Unknown error'));
     }
 }
 
+/**
+ * Override get_avatar to use the "thumbnail" size for the image,
+ * then manually set HTML width/height to $size (like Gravatar does).
+ */
 function wp_surgeon_custom_avatar($avatar, $id_or_email, $size, $default, $alt) {
     $user = false;
 
-    // Identifying the user
+    // Identify the user
     if (is_numeric($id_or_email)) {
-        $user = get_user_by('id', (int)$id_or_email);
+        $user = get_user_by('id', (int) $id_or_email);
     } elseif (is_object($id_or_email) && !empty($id_or_email->user_id)) {
-        $user = get_user_by('id', (int)$id_or_email->user_id);
+        $user = get_user_by('id', (int) $id_or_email->user_id);
     } elseif (is_object($id_or_email)) {
-        $user = $id_or_email;
+        $user = $id_or_email; // Potentially user object
     } else {
         $user = get_user_by('email', $id_or_email);
     }
 
     if ($user && is_object($user)) {
         $custom_avatar_id = get_user_meta($user->ID, 'custom_avatar_id', true);
-        
-        // If a custom avatar ID exists and is valid
+
         if ($custom_avatar_id && wp_attachment_is_image($custom_avatar_id)) {
-            // Get the thumbnail size URL of the custom avatar
+            // We'll get the WordPress "thumbnail" size as the base URL
             $thumbnail_src = wp_get_attachment_image_url($custom_avatar_id, 'thumbnail');
 
             if ($thumbnail_src) {
-                // Construct the image tag with the thumbnail size URL
-                $avatar_html = '<img src="' . esc_url($thumbnail_src) . '" alt="' . esc_attr($alt) . '" class="avatar avatar-' . esc_attr($size) . ' photo">';
-
+                // Let’s echo a numeric size for HTML attributes
+                // (like Gravatar does with <img width="64" height="64">).
+                $avatar_html = sprintf(
+                    '<img src="%1$s" alt="%2$s" width="%3$d" height="%3$d" class="avatar avatar-%3$d photo" />',
+                    esc_url($thumbnail_src),
+                    esc_attr($alt),
+                    (int) $size
+                );
                 return $avatar_html;
             }
         }
     }
 
-    // Fallback to Gravatar if no custom avatar is set or found
+    // Fallback to Gravatar if no custom avatar is found
     return $avatar;
 }
 add_filter('get_avatar', 'wp_surgeon_custom_avatar', 10, 5);
 
-
-// Define a function to generate and add custom avatar IDs
+/**
+ * (Optional) Generate custom avatar IDs for existing user meta
+ */
 function generate_custom_avatar_ids() {
     // Query all users who have a custom avatar URL but missing custom_avatar_id in meta
     $users_with_custom_avatars = get_users(array(
@@ -86,23 +105,19 @@ function generate_custom_avatar_ids() {
             'relation' => 'AND',
             array(
                 'key'     => 'custom_avatar_id',
-                'compare' => 'NOT EXISTS', // Ensure the meta key does not exist
+                'compare' => 'NOT EXISTS',
             ),
             array(
                 'key'     => 'custom_avatar',
-                'compare' => 'EXISTS', // Ensure the meta key exists for custom avatar
+                'compare' => 'EXISTS',
             ),
         ),
     ));
 
     foreach ($users_with_custom_avatars as $user) {
-        // Get the user's custom avatar URL
         $custom_avatar_url = get_user_meta($user->ID, 'custom_avatar', true);
-
-        // Get the attachment ID corresponding to the custom avatar URL
         $attachment_id = attachment_url_to_postid($custom_avatar_url);
 
-        // Add the custom_avatar_id meta for the user
         if ($attachment_id && wp_attachment_is_image($attachment_id)) {
             add_user_meta($user->ID, 'custom_avatar_id', $attachment_id, true);
             echo "User {$user->ID}: Added custom avatar ID.\n";
@@ -114,12 +129,10 @@ function generate_custom_avatar_ids() {
     echo "Custom avatar ID generation completed.\n";
 }
 
-// Add a custom action to trigger the function via admin URL parameter
 add_action('admin_init', 'handle_custom_avatar_id_generation');
 function handle_custom_avatar_id_generation() {
     if (isset($_GET['generate_custom_avatar_ids']) && current_user_can('administrator')) {
         generate_custom_avatar_ids();
-        exit; // Prevent any further execution after generating custom avatar IDs
+        exit;
     }
 }
-
