@@ -4,6 +4,14 @@
  *
  * @package ExtraChill
  */
+
+global $header_user_details; // Declare as global
+// Fetch user details and output them for JavaScript usage - Moved to top for scope
+if (isset($_COOKIE['ecc_user_session_token'])) {
+    $header_user_details = get_user_details_directly($_COOKIE['ecc_user_session_token']); // Fetch user details once
+} else {
+    $header_user_details = false; // Set to false if no session token
+}
 ?><!DOCTYPE html>
 <html <?php language_attributes(); ?>>
 <head>
@@ -19,8 +27,8 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   <link rel="profile" href="http://gmpg.org/xfn/11" />
   <?php wp_head(); ?>
   <?php
-  // Conditionally include Mediavine ad blocklist based on ad-free status
-  if ( is_user_ad_free() ) {
+  // Conditionally include Mediavine ad blocklist based on ad-free status, passing pre-fetched user details
+  if ( is_user_ad_free( $header_user_details ) ) {
       ?>
       <div id="mediavine-settings" data-blocklist-all="1"></div>
       <?php
@@ -47,19 +55,9 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 </header><!-- #masthead -->
 
 
-<?php
-// Fetch user details and output them for JavaScript usage
-if (isset($_COOKIE['ecc_user_session_token'])) {
-    $sessionToken = $_COOKIE['ecc_user_session_token'];
-    $userDetails = get_user_details_directly($sessionToken);
-} else {
-    $userDetails = false;
-}
-?>
-
 <script>
 // Embed user details into a JavaScript variable for global access
-window.userDetails = <?php echo json_encode($userDetails); ?>;
+window.userDetails = <?php echo json_encode($header_user_details); ?>;
 </script>
 
 <?php

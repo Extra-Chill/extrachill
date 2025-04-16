@@ -81,17 +81,6 @@ function colormag_body_class( $classes ) {
 	if ( empty( $layout_meta ) || is_archive() || is_search() ) {
 		$layout_meta = 'default_layout';
 	}
-	$colormag_default_layout = get_theme_mod( 'colormag_default_layout', 'right_sidebar' );
-
-	$colormag_default_page_layout = get_theme_mod( 'colormag_default_page_layout', 'right_sidebar' );
-	$colormag_default_post_layout = get_theme_mod( 'colormag_default_single_posts_layout', 'right_sidebar' );
-
-
-	if ( get_theme_mod( 'colormag_site_layout', 'wide_layout' ) == 'wide_layout' ) {
-		$classes[] = 'wide';
-	} elseif ( get_theme_mod( 'colormag_site_layout', 'wide_layout' ) == 'boxed_layout' ) {
-		$classes[] = '';
-	}
 
 	// Add body class for header display type
 	if ( get_theme_mod( 'colormag_header_display_type', 'type_one' ) == 'type_two' ) {

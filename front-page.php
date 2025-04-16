@@ -11,13 +11,9 @@ $page_title = ( get_query_var('paged', 1 ) > 1 )
 <section id="hero-section">
     <?php
     $username = '';
-    if ( ! empty( $_COOKIE['ecc_user_session_token'] ) ) {
-        $session_token = sanitize_text_field( wp_unslash( $_COOKIE['ecc_user_session_token'] ) );
-        $user_details  = get_user_details_directly( $session_token );
-
-        if ( is_array( $user_details ) && ! empty( $user_details['username'] ) ) {
-            $username = sanitize_text_field( $user_details['username'] );
-        }
+    global $header_user_details; // Access global user details
+    if ( is_array( $header_user_details ) && ! empty( $header_user_details['username'] ) ) {
+        $username = sanitize_text_field( $header_user_details['username'] );
     }
     ?>
 

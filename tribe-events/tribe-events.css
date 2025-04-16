@@ -1,0 +1,277 @@
+/* The Events Calendar dark mode color variable overrides mapped to Extra Chill theme variables */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --tec-color-background: var(--background-color) !important;
+    --tec-color-background-secondary: var(--card-background) !important;
+    --tec-color-background-messages: var(--card-background) !important;
+    --tec-color-background-secondary-hover: #23272a !important;
+    --tec-color-background-error: #1e1e1e !important;
+    --tec-color-background-events: transparent !important;
+    --tec-color-background-transparent: rgba(26,26,26,0.6) !important;
+
+    --tec-color-text-primary: var(--text-color) !important;
+    --tec-color-text-primary-light: rgba(229,229,229,0.62) !important;
+    --tec-color-text-secondary: var(--muted-text) !important;
+    --tec-color-text-disabled: #555 !important;
+    --tec-color-link-primary: var(--link-color) !important;
+    --tec-color-link-accent: var(--accent) !important;
+    --tec-color-link-accent-hover: #a8c0d0 !important;
+
+    --tec-color-accent-primary: var(--accent) !important;
+    --tec-color-accent-primary-hover: #a8c0d0 !important;
+    --tec-color-accent-primary-active: #53940b !important;
+    --tec-color-accent-primary-background: rgba(83,148,11,0.07) !important;
+    --tec-color-accent-secondary: var(--accent-2) !important;
+    --tec-color-accent-secondary-hover: #a8c0d0 !important;
+    --tec-color-accent-secondary-active: #a8c0d0 !important;
+    --tec-color-accent-secondary-background: rgba(168,192,208,0.07) !important;
+
+    --tec-color-button-primary: var(--button-bg) !important;
+    --tec-color-button-primary-hover: var(--button-hover-bg) !important;
+    --tec-color-button-primary-active: var(--button-hover-bg) !important;
+    --tec-color-button-primary-background: var(--button-bg) !important;
+    --tec-color-button-secondary: var(--accent-2) !important;
+    --tec-color-button-secondary-hover: #a8c0d0 !important;
+    --tec-color-button-secondary-active: #a8c0d0 !important;
+    --tec-color-button-secondary-background: var(--card-background) !important;
+
+    --tec-color-border-default: var(--border-color) !important;
+    --tec-color-border-secondary: #444 !important;
+    --tec-color-border-tertiary: #333 !important;
+    --tec-color-border-hover: var(--focus-border-color) !important;
+    --tec-color-border-active: var(--focus-border-color) !important;
+
+    --tec-color-icon-primary: var(--muted-text) !important;
+    --tec-color-icon-primary-alt: #a8c0d0 !important;
+    --tec-color-icon-secondary: #555 !important;
+    --tec-color-icon-active: var(--accent) !important;
+    --tec-color-icon-disabled: #444 !important;
+    --tec-color-icon-focus: var(--accent) !important;
+    --tec-color-icon-error: #ff5555 !important;
+    --tec-color-event-icon: var(--accent) !important;
+    --tec-color-event-icon-hover: #a8c0d0 !important;
+
+    --tec-color-box-shadow: var(--card-shadow) !important;
+    --tec-color-box-shadow-secondary: var(--card-hover-shadow) !important;
+    --tec-color-scroll-track: #23272a !important;
+    --tec-color-scroll-bar: #444 !important;
+
+    --tec-color-background-primary-multiday: rgba(83,148,11,0.24) !important;
+    --tec-color-background-primary-multiday-hover: rgba(83,148,11,0.34) !important;
+    --tec-color-background-secondary-multiday: rgba(26,26,26,0.24) !important;
+    --tec-color-background-secondary-multiday-hover: rgba(26,26,26,0.34) !important;
+    --tec-color-accent-primary-week-event: rgba(83,148,11,0.1) !important;
+    --tec-color-accent-primary-week-event-hover: rgba(83,148,11,0.2) !important;
+    --tec-color-accent-primary-week-event-featured: rgba(83,148,11,0.04) !important;
+    --tec-color-accent-primary-week-event-featured-hover: rgba(83,148,11,0.14) !important;
+    --tec-color-background-secondary-datepicker: var(--card-background) !important;
+    --tec-color-accent-primary-background-datepicker: rgba(83,148,11,0.07) !important;
+  }
+}
+
+/* Tribe Events CSS */
+.form-field input, .form-field textarea{
+    background-color: var(--background-color);
+    color: var(--text-color);
+}
+input[type="text"], input[type="email"], input[type="password"]{
+    background-color: var(--background-color) !important;
+    color: var(--text-color);
+
+}
+.tribe-events-calendar-list__event-location{
+	font-size:14px;
+	background-color: var(--button-bg);
+	border-radius: 5px;
+	white-space: nowrap;
+    line-height: 1.8;
+	}
+
+.tribe-events-header__events-bar{
+    align-items: baseline;
+    gap: 5px;
+}
+
+div.tribe-events-list-description {
+    margin: 20px auto;
+    max-width: 850px;
+}
+
+div.tribe-events-list-description p{
+    margin: 15px 0;
+}
+
+/* Modal container styling */
+.event-submission-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex; /* Flex will center the modal content */
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent background */
+    z-index: 1000;
+}
+
+/* Modal inner container styling */
+.event-submission-modal > div {
+    background-color: var(--card-background);
+    border: var(--border-color) solid 1px;
+    padding: 20px;
+    border-radius: 5px;
+    width: 90%;
+    max-width: 500px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+    position: relative;
+}
+
+/* Close button styling */
+.close-modal {
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    font-size: 30px;
+    cursor: pointer;
+}
+
+/* Form field styling */
+.form-field {
+    margin-bottom: 15px;
+}
+.form-field label {
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+.form-field input,
+.form-field textarea {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+}
+
+/* Button styling */
+button.submit-event-btn,
+button.cancel-event-btn {
+    padding: 10px 15px;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+    margin-right: 10px;
+}
+button.submit-event-btn {
+    background-color: #4CAF50;
+    color: white;
+}
+button.cancel-event-btn {
+    background-color: #f44336;
+    color: white;
+}
+
+button.submit-event-btn:hover {
+background-color: #45a049;
+}
+
+button.cancel-event-btn:hover{
+background-color: #da190b;
+}
+#add-event-btn{
+    background-color: #53940b;
+    margin-right: 5px;
+}
+
+#add-event-btn:hover{
+    background-color: #4a8a0a;
+}
+/* Share button styling */
+.share-button-container {
+    position: relative; /* Required for positioning dropdown */
+    display: inline-block; /* Adjust as needed (inline-block, block, flex) */
+}
+
+.share-button {
+    background-color: #f0f0f0; /* Example button background color */
+    color: #333;
+    border: 1px solid #ccc;
+    padding: 8px 12px;
+    border-radius: 3px;
+    cursor: pointer;
+    display: flex;
+    align-items: center; /* Vertically align icon and text */
+    gap: 5px; /* Spacing between icon and text */
+    margin: 20px 0;
+}
+
+.share-button svg {
+    width: 1em; /* Adjust icon size as needed */
+    height: 1em;
+    fill: #333; /* Icon color */
+}
+
+.share-button:hover,
+.share-button:focus {
+    background-color: #e0e0e0; /* Example hover/focus background color */
+}
+
+/* Share options dropdown styling */
+.share-options {
+    display: none; /* Hidden by default */
+    position: absolute;
+    top: 100%; /* Position below the button */
+    left: 0;
+    background-color: #fff;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    box-shadow: 2px 2px 5px rgba(0,0,0,0.2);
+    padding: 10px 0;
+    z-index: 9999; /* Ensure it's above other content */
+    min-width: 150px; /* Adjust as needed */
+}
+
+.share-options-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.share-options-list li {
+    padding: 0;
+    margin: 0;
+}
+
+.share-options-list li a {
+    display: block;
+    padding: 8px 15px;
+    text-decoration: none;
+    color: #333;
+}
+
+.share-options-list li a:hover,
+.share-options-list li a:focus {
+    background-color: #f0f0f0; /* Example hover/focus background color for options */
+}
+
+.share-option-icon {
+    width: 1em; /* Adjust icon size in dropdown as needed */
+    height: 1em;
+    margin-right: 8px;
+    fill: #555; /* Icon color in dropdown */
+    vertical-align: middle;
+}
+
+.tribe-events-pg-template a{
+    color: var(--link-color) !important;
+}
+
+
+.tribe-common--breakpoint-medium.tribe-events .tribe-events-header--has-event-search .tribe-events-c-events-bar, 
+.tribe-common--breakpoint-medium.tribe-events .tribe-events-c-search  {
+    background-color: var(--card-background);
+}
+
+svg.tribe-common-c-svgicon{
+    fill: var(--link-color);
+    height: 18px;
+}

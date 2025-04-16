@@ -5,7 +5,7 @@ $locations = get_the_terms( $event->ID, 'location' );
 if ( ! empty( $locations ) && ! is_wp_error( $locations ) ) :
     foreach ( $locations as $location ) :
         // Define the base URL for the events list view
-        $base_url = home_url( '/events/list/' );
+        $base_url = home_url( '/calendar/list/' );
 
         // Add 'tribe-bar-location' parameter to the URL while preserving existing parameters
         $location_url = add_query_arg( array_merge( $_GET, [ 'tribe-bar-location' => $location->slug ] ), $base_url );

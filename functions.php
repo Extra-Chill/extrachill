@@ -114,7 +114,7 @@ if (!function_exists('colormag_setup')):
          * Switch default core markup for search form, comment form, and comments
          * to output valid HTML5.
          */
-add_theme_support('html5', array(
+    add_theme_support('html5', array(
     'search-form',
     'comment-form',
     'comment-list',
@@ -459,7 +459,7 @@ if ( function_exists('get_coauthors') ) {
  
     function custom_get_coauthors( $object, $field_name, $request ) {
         $coauthors = get_coauthors($object['id']);
- 
+        
         $authors = array();
         foreach ($coauthors as $author) {
             $authors[] = array(
@@ -682,7 +682,6 @@ function inject_mediavine_settings() {
 add_action( 'woocommerce_before_main_content', 'inject_mediavine_settings' );
 
 
-
 function enqueue_custom_lightbox_script() {
     if ( is_singular() ) {
         $post_id = get_queried_object_id();
@@ -721,3 +720,55 @@ function enqueue_custom_lightbox_script() {
     }
 }
 add_action( 'wp_enqueue_scripts', 'enqueue_custom_lightbox_script' );
+
+/**
+ * Include Festival Wire functionality.
+ */
+require_once get_stylesheet_directory() . '/festival-wire/festival-wire.php';
+
+/**
+ * Conditionally Dequeue WooCommerce Scripts and Styles.
+ *
+ * Removes WooCommerce assets from pages where they are not needed,
+ * improving performance, but keeps essential scripts like wc-cart-fragments for header cart functionality.
+ */
+function extrachill_conditionally_dequeue_woocommerce_assets() {
+    // Only run on the frontend and if WooCommerce is active
+    if ( is_admin() || ! class_exists( 'woocommerce' ) ) {
+        return;
+    }
+
+    // Keep assets on WooCommerce pages, product pages, cart, checkout, and account pages
+    if ( is_woocommerce() || is_cart() || is_checkout() || is_account_page() || is_product() ) {
+        return;
+    }
+
+    // Get queued scripts and styles
+    global $wp_scripts, $wp_styles;
+
+    // List of scripts to keep (essential for cart fragments)
+    $scripts_to_keep = array( 'wc-cart-fragments' ); 
+    // You might need to add more scripts here if you find other essential functionalities breaking.
+    // Consider dependencies of wc-cart-fragments if issues arise, e.g., 'jquery', 'js-cookie'. 
+    // WordPress usually handles dependencies well, but keep an eye out.
+
+    // Dequeue WooCommerce scripts
+    foreach ( $wp_scripts->queue as $handle ) {
+        if ( strpos( $handle, 'wc-' ) === 0 || strpos( $handle, 'woocommerce-' ) === 0 ) {
+            if ( ! in_array( $handle, $scripts_to_keep ) ) {
+                wp_dequeue_script( $handle );
+            }
+        }
+    }
+
+    // Dequeue WooCommerce styles
+    foreach ( $wp_styles->queue as $handle ) {
+        if ( strpos( $handle, 'wc-' ) === 0 || strpos( $handle, 'woocommerce-' ) === 0 || strpos( $handle, 'woocommerce_frontend_styles' ) === 0 ) {
+             wp_dequeue_style( $handle );
+        }
+    }
+}
+add_action( 'wp_enqueue_scripts', 'extrachill_conditionally_dequeue_woocommerce_assets', 99 );
+
+
+

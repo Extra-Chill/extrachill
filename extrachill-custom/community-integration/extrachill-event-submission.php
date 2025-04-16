@@ -67,7 +67,7 @@ function get_location_suggestions() {
             'name' => $location->name,
             'slug' => $location->slug,
         );
-    }, $locations );
+    } , $locations );
 
     wp_send_json_success( array( 'locations' => $location_data ) );
 }
@@ -126,7 +126,7 @@ function process_event_submission_ajax() {
     $submitted_venue_id = sanitize_text_field( $_POST['event-venue-id'] ?? '' );
     $venue_name    = sanitize_text_field( $_POST['event-venue'] ?? '' );
     $venue_address = sanitize_text_field( $_POST['venue-address'] ?? '' );
-    $venue_link    = esc_url_raw( $_POST['venue-link'] ?? '' );
+    $ticket_link    = esc_url_raw( $_POST['ticket-link'] ?? '' );
 
     if ( empty( $title ) || empty( $date ) ) {
         wp_send_json_error( array( 'message' => 'Title and Date are required.' ) );
@@ -163,6 +163,7 @@ function process_event_submission_ajax() {
         'start_date'  => $start_datetime,
         'end_date'    => $end_datetime,
         'status'      => 'pending',
+        'website'    => $ticket_link, // Use ticket-link as website for event
     );
 
     // --- New Venue Creation ---
@@ -171,12 +172,10 @@ function process_event_submission_ajax() {
         error_log( 'process_event_submission_ajax: $_POST data: ' . print_r( $_POST, true ) );
         error_log( 'process_event_submission_ajax: Venue Name (sanitized): ' . $venue_name );
         error_log( 'process_event_submission_ajax: Venue Address (sanitized): ' . $venue_address );
-        error_log( 'process_event_submission_ajax: Venue Link (sanitized): ' . $venue_link );
 
         $body = wp_json_encode( array(
             'venue'   => $venue_name,
             'address' => $venue_address,
-            'website' => $venue_link,
         ) );
         error_log( 'process_event_submission_ajax: REST API request body (venue creation): ' . print_r( $body, true ) );
 
@@ -235,7 +234,7 @@ function process_event_submission_ajax() {
             send_event_submission_admin_email(
                 $event_id, $title, $description, $date, $start_time, $end_time, $location, $venue_id, $venue_name
             );
-            wp_send_json_success( array( 'message' => 'Event submitted successfully!', 'event_id' => $event_id ) );
+            wp_send_json_success( array( 'message' => 'Event submitted successfully! Please allow 24-48 hours to see your event on the calendar.', 'event_id' => $event_id ) );
             return;
         }
     } elseif ( ! empty( $submitted_venue_id ) ) {

@@ -1,5 +1,10 @@
 <?php
 function display_breadcrumbs() {
+    // Allow for overriding the breadcrumbs for custom post types
+    if (function_exists('override_display_breadcrumbs') && override_display_breadcrumbs()) {
+        return;
+    }
+    
     if (is_tax('location')) {
         display_location_breadcrumbs(); // Call the custom location breadcrumb function
         return;
@@ -19,7 +24,27 @@ function display_breadcrumbs() {
             echo '<a href="' . home_url('/shop') . '">Merch Store</a> › ';
         }
 
-        if (is_page()) {
+        // Check for custom post types - added support for festival_wire
+        if (is_singular() && !is_singular(array('post', 'page', 'product'))) {
+            $post_type = get_post_type();
+            $post_type_obj = get_post_type_object($post_type);
+            $archive_link = get_post_type_archive_link($post_type);
+            
+            if ($archive_link && $post_type_obj) {
+                echo '<a href="' . $archive_link . '">' . $post_type_obj->labels->name . '</a> › ';
+            }
+            
+            echo '<span>' . get_the_title() . '</span>';
+        }
+        elseif (is_post_type_archive()) {
+            $post_type = get_post_type();
+            $post_type_obj = get_post_type_object($post_type);
+            
+            if ($post_type_obj) {
+                echo '<span>' . $post_type_obj->labels->name . '</span>';
+            }
+        }
+        elseif (is_page()) {
             // Get parent pages if they exist
             $parent_id = wp_get_post_parent_id(get_the_ID());
             if ($parent_id) {

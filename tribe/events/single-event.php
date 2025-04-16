@@ -107,12 +107,11 @@ $cost  = tribe_get_formatted_cost( $event_id );
 
     <!-- Share button -->
     <?php 
-        get_template_part( 'inc/share', null, array(
-			'share_url'   => esc_url( tribe_get_event_link() ),
-			'share_title' => esc_attr( get_the_title() ),
-			'share_description' => '',
-		) );
-		
+        get_template_part( 'inc/share', array(
+            'share_url'   => esc_url( tribe_get_event_link() ), // Use tribe_get_event_link() for single event URL
+            'share_title' => esc_attr( get_the_title() ), // Use get_the_title() for single event title
+            'share_description' => '', // Optional description - empty for single event view for now
+        ) ); 
     ?>
 
 	<div class="tribe-events-schedule tribe-clearfix">
@@ -121,27 +120,6 @@ $cost  = tribe_get_formatted_cost( $event_id );
 			<span class="tribe-events-cost"><?php echo esc_html( $cost ) ?></span>
 		<?php endif; ?>
 	</div>
-
-	<?php while ( have_posts() ) :  the_post(); ?>
-		<div id="post-<?php the_ID(); ?>" <?php post_class(); ?>>
-			<!-- Event featured image, but exclude link -->
-			<?php echo tribe_event_featured_image( $event_id, 'event-featured', false ); ?>
-
-			<!-- Event content -->
-			<?php do_action( 'tribe_events_single_event_before_the_content' ) ?>
-			<div class="tribe-events-single-event-description tribe-events-content">
-				<?php the_content(); ?>
-			</div>
-			<!-- .tribe-events-single-event-description -->
-			<?php do_action( 'tribe_events_single_event_after_the_content' ) ?>
-
-			<!-- Event meta -->
-			<?php do_action( 'tribe_events_single_event_before_the_meta' ) ?>
-			<?php tribe_get_template_part( 'modules/meta' ); ?>
-			<?php do_action( 'tribe_events_single_event_after_the_meta' ) ?>
-		</div> <!-- #post-x -->
-		<?php if ( get_post_type() == Tribe__Events__Main::POSTTYPE && tribe_get_option( 'showComments', false ) ) comments_template() ?>
-	<?php endwhile; ?>
 
 	<?php
 	// Get location terms for the current event

@@ -43,48 +43,83 @@ function my_recent_posts_shortcode() {
 
     $use_tag_query = false;
     if (is_single()) {
-        $tags = get_the_tags();
-        if ($tags) {
-            foreach ($tags as $tag) {
-                $tag_post_count = get_term($tag->term_id, 'post_tag')->count;
-                if ($tag_post_count > 3) {
-                    $args['tag__in'] = array($tag->term_id);
-                    unset($args['category__in']); // Remove category filter
-                    $title = sprintf(
-                        'More from <a href="%1$s" title="View all posts in %2$s" aria-label="View all posts in %2$s">%2$s</a>',
-                        esc_url(get_tag_link($tag->term_id)),
-                        esc_html($tag->name)
+        // Determine post type of current single post
+        $current_post_type = get_post_type(get_the_ID());
+
+        // Only attempt tag/category filtering if the current post is a standard 'post'
+        if ($current_post_type === 'post') {
+            $tags = get_the_tags();
+            if ($tags) {
+                foreach ($tags as $tag) {
+                    $tag_post_count = get_term($tag->term_id, 'post_tag')->count;
+                    // Check count of *standard posts* with this tag
+                    $tag_post_query_args = array(
+                        'post_type' => 'post',
+                        'tag__in' => array($tag->term_id),
+                        'posts_per_page' => 1, // We only need to know if at least one exists
+                        'fields' => 'ids' // More efficient
                     );
-                    $use_tag_query = true;
-                    break; // Stop after finding the first qualifying tag
+                    $tag_posts_check = new WP_Query($tag_post_query_args);
+
+                    if ($tag_posts_check->have_posts() && $tag_post_count > 3) { // Ensure tag has enough posts *and* some are standard posts
+                        $args['tag__in'] = array($tag->term_id);
+                        unset($args['category__in']); // Remove category filter
+                        $title = sprintf(
+                            'More from <a href="%1$s" title="View all posts in %2$s" aria-label="View all posts in %2$s">%2$s</a>',
+                            esc_url(get_tag_link($tag->term_id)),
+                            esc_html($tag->name)
+                        );
+                        $use_tag_query = true;
+                        break; // Stop after finding the first qualifying tag
+                    }
                 }
             }
-        }
-        if (!$use_tag_query) {
-            $categories = get_the_category();
-            if ($categories) {
-                $category = $categories[0]; // Use the first category
-                $args['category__in'] = array($category->term_id); // Set the category filter for the query
-                $title = sprintf(
-                    'More from <a href="%1$s" title="View all posts in %2$s" aria-label="View all posts in %2$s">%2$s</a>',
-                    esc_url(get_category_link($category->term_id)),
-                    esc_html($category->name)
-                );
-            } else {
-                $title = 'Recent Posts'; // Default title if no category or tag
+            if (!$use_tag_query) {
+                $categories = get_the_category();
+                if ($categories) {
+                    $category = $categories[0]; // Use the first category
+                    // Check count of *standard posts* in this category
+                     $cat_post_query_args = array(
+                        'post_type' => 'post',
+                        'category__in' => array($category->term_id),
+                        'posts_per_page' => 1, // We only need to know if at least one exists
+                        'fields' => 'ids' // More efficient
+                    );
+                    $cat_posts_check = new WP_Query($cat_post_query_args);
+
+                    if ($cat_posts_check->have_posts()) { // Ensure category has at least one standard post
+                        $args['category__in'] = array($category->term_id); // Set the category filter for the query
+                        $title = sprintf(
+                            'More from <a href="%1$s" title="View all posts in %2$s" aria-label="View all posts in %2$s">%2$s</a>',
+                            esc_url(get_category_link($category->term_id)),
+                            esc_html($category->name)
+                        );
+                    } else {
+                        $title = 'Recent Posts'; // Default title if category has no standard posts
+                    }
+                } else {
+                    $title = 'Recent Posts'; // Default title if no category or tag
+                }
             }
+        } else {
+             // It's a CPT like 'festival_wire', set default title and don't filter by its tags/cats
+             $title = 'Recent Posts';
+             unset($args['category__in']); // Ensure no category filter is applied based on CPT
         }
-        
+
     } else {
         $title = 'Recent Posts'; // Default title for non-single pages
     }
 
     $query = new WP_Query($args);
-    $output = '<div class="my-recent-posts">';
-    $output .= '<h3 class="widget-title"><span>' . $title . '</span></h3>'; // Add title to output
+    $output = ''; // Initialize output as empty string
     $counter = 0;
 
     if ($query->have_posts()) :
+        // Only start output if there are posts
+        $output = '<div class="my-recent-posts">';
+        $output .= '<h3 class="widget-title"><span>' . $title . '</span></h3>'; // Add title to output
+
         while ($query->have_posts()) : $query->the_post();
             $post_id = get_the_ID();
             $counter++;
@@ -101,11 +136,11 @@ function my_recent_posts_shortcode() {
             $output .= '</div>';
         endwhile;
         wp_reset_postdata();
-    endif;
 
-    $output .= '</div>';
+        $output .= '</div>'; // Close the main div only if posts were found
+    endif; // End if ($query->have_posts())
 
-    return $output;
+    return $output; // Return the built output (or empty string if no posts)
 }
 
 add_shortcode('my_recent_posts', 'my_recent_posts_shortcode');
