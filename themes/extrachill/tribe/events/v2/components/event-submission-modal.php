@@ -10,7 +10,17 @@
     if ( isset($_COOKIE['ecc_user_session_token']) ) :
   ?>
     <div id="event-submission-form-container">
-      <h2>Add New Event</h2>
+      <h2>
+        <?php
+          $userDetails = preload_user_details(); // Use preload_user_details to get user details
+          if ($userDetails && isset($userDetails['username'])) {
+            echo 'Sup, <span id="modal-username">' . esc_html($userDetails['username']) . '</span>?';
+          } else {
+            echo esc_html__('Add New Event', 'colormag-pro');
+          }
+        ?>
+      </h2>
+      <p><?php esc_html_e('Tell us about your event.', 'colormag-pro'); ?></p>
       <form id="event-submission-form">
         <div class="form-field">
           <label for="event-title">Event Title:</label>
@@ -19,6 +29,10 @@
         <div class="form-field">
           <label for="event-description">Description:</label>
           <textarea id="event-description" name="event-description"></textarea>
+        </div>
+        <div class="form-field">
+            <label for="ticket-link">Ticket Link (optional):</label>
+            <input type="url" id="ticket-link" name="ticket-link">
         </div>
         <div class="form-field">
           <label for="event-date">Date:</label>
@@ -50,10 +64,6 @@
           <div class="form-field">
             <label for="venue-address">Venue Address:</label>
             <input type="text" id="venue-address" name="venue-address">
-          </div>
-          <div class="form-field">
-            <label for="venue-link">Venue Link (optional):</label>
-            <input type="url" id="venue-link" name="venue-link">
           </div>
         </div>
         <!-- Hidden fields for AJAX -->

@@ -10,39 +10,39 @@
 
 <aside id="secondary">
 	<?php do_action( 'extrachill_before_sidebar' ); ?>
-		<?php
-			if( is_page_template( 'page-templates/contact.php' ) ) {
-				$sidebar = 'colormag_contact_page_sidebar';
-			}
-			else {
-				$sidebar = 'colormag_right_sidebar';
-			}
-		?>
 
-		<?php if ( ! dynamic_sidebar( $sidebar ) ) :
-			if ( $sidebar == 'colormag_contact_page_sidebar' ) {
-				$sidebar_display = __('Contact Page', 'colormag-pro');
-			} else {
-				$sidebar_display = __('Right', 'colormag-pro');
-			}
-			the_widget( 'WP_Widget_Text',
-				array(
-					'title'  => __( 'Example Widget', 'colormag-pro' ),
-					'text'   => sprintf( __( 'This is an example widget to show how the %s Sidebar looks by default. You can add custom widgets from the %swidgets screen%s in the admin. If custom widgets is added than this will be replaced by those widgets.', 'colormag-pro' ), $sidebar_display, current_user_can( 'edit_theme_options' ) ? '<a href="' . admin_url( 'widgets.php' ) . '">' : '', current_user_can( 'edit_theme_options' ) ? '</a>' : '' ),
-					'filter' => true,
-				),
-				array(
-					'before_widget' => '<aside class="widget widget_text clearfix">',
-					'after_widget'  => '</aside>',
-					'before_title'  => '<h3 class="widget-title"><span>',
-					'after_title'   => '</span></h3>'
-				)
-			);
-			?>
-			<aside class="widget widget_recent_posts clearfix">
-				<?php echo my_recent_posts_shortcode(); ?>
-			</aside>
-		<?php endif; ?>
+		<?php
+		// Display Recent Posts directly
+		echo '<div class="widget my-recent-posts-widget">'; // Added a specific class
+		if ( function_exists( 'my_recent_posts_shortcode' ) ) {
+			echo my_recent_posts_shortcode();
+		} else {
+			// Optional: Add a fallback message or error handling
+			echo '<p>Recent posts are currently unavailable.</p>';
+		}
+		echo '</div>';
+
+		// Display Community Activity Feed directly
+		echo '<div class="widget extrachill-recent-activity-widget">'; // Added a specific class
+		echo '<h3 class="widget-title"><span>Community Activity</span></h3>'; // Add the title here
+		if ( function_exists( 'extrachill_recent_activity_shortcode' ) ) {
+			echo extrachill_recent_activity_shortcode();
+		} else {
+			// Optional: Add a fallback message or error handling
+			echo '<p>Community activity feed is currently unavailable.</p>';
+		}
+		echo '</div>';
+
+		// Display Recent Newsletters directly
+		echo '<div class="widget recent-newsletters-widget">'; // Added a specific class
+		if ( function_exists( 'recent_newsletters_shortcode' ) ) {
+			echo recent_newsletters_shortcode();
+		} else {
+			// Optional: Add a fallback message or error handling
+			echo '<p>Recent newsletters are currently unavailable.</p>';
+		}
+		echo '</div>';
+		?>
 
 	<?php do_action( 'extrachill_after_sidebar' ); ?>
 </aside>

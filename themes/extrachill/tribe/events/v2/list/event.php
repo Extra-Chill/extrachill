@@ -1,7 +1,7 @@
 <?php
 /**
  * View: List Event
-
+ *
  * See more documentation about our views templating system.
  *
  * @link http://evnt.is/1aiy

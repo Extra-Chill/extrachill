@@ -37,21 +37,21 @@
 
     <?php if (get_theme_mod('colormag_single_post_title_position', 'below') == 'below') { ?>
         <?php if (is_singular('post')) : ?>
+            <?php display_post_breadcrumbs(); ?>
             <header class="entry-header" id="postvote">
-                <?php display_post_breadcrumbs(); ?>
                 <div class="upvote">
                     <span class="upvote-icon" data-post-id="<?php the_ID(); ?>" data-nonce="<?php echo wp_create_nonce('upvote_nonce'); ?>" data-community-user-id="">
                         <svg>
                             <use href="/wp-content/themes/colormag-pro/fonts/fontawesome.svg?v1.3#circle-up-regular"></use>
                         </svg>
                     </span>
-                    <span class="upvote-count"><?php echo get_upvote_count(get_the_ID()); ?></span> |
+                    <span class="upvote-count"><?php echo get_upvote_count(get_the_ID()); ?></span>
                 </div>
                 <h1 class="entry-title">
                     <?php the_title(); ?>
                 </h1>
-                <?php extrachill_entry_meta(); ?>
             </header>
+            <?php extrachill_entry_meta(); ?>
         <?php endif; ?>
     <?php } ?>
 

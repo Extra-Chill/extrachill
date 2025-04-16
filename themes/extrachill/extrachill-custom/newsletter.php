@@ -361,7 +361,7 @@ function recent_newsletters_shortcode() {
     ob_start();
 
     if ($newsletter_query->have_posts()) {
-        echo '<h2 class="widget-title"><span>Recent Newsletters</span></h2>';
+        echo '<h3 class="widget-title"><span>Recent Newsletters</span></h3>';
         echo '<div class="recent-newsletters-widget">';
         echo '<ul>';
 

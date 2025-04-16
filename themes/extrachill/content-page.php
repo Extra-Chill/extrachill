@@ -13,16 +13,13 @@
 
 	<?php if ( ( get_theme_mod( 'colormag_featured_image_single_page_show', 1 ) == 1 ) && ( has_post_thumbnail() ) ) { ?>
 		<!-- Removed the featured image code -->
-	<?php } ?>
-
-	<header class="entry-header">
-		<?php 
-		// Display the breadcrumbs above the title
-		if (function_exists('display_breadcrumbs')) {
+	<?php } 
+	if (function_exists('display_breadcrumbs')) {
 			display_breadcrumbs(); 
 		} 
-		?>
 
+		?>
+	<header class="entry-header">
 		<?php if ( is_front_page() ) : ?>
 			<h2 class="entry-title">
 				<?php the_title(); ?>

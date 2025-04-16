@@ -42,14 +42,14 @@ $featured_image_size = 'medium_large'; // Using WordPress' medium_large size for
                             $forum_upvotes = isset( $post->_upvotes ) ? intval( $post->_upvotes ) : 0; 
                             echo $forum_upvotes + 1; 
                             ?>
-                        </span> | 
+                        </span>
                     <?php else : ?>
                         <span class="upvote-icon" data-post-id="<?php the_ID(); ?>" data-nonce="<?php echo wp_create_nonce('upvote_nonce'); ?>" data-community-user-id="">
                             <svg>
                                 <use href="/wp-content/themes/colormag-pro/fonts/fontawesome.svg?v1.3#circle-up-regular"></use>
                             </svg>
                         </span>
-                        <span class="upvote-count"><?php echo get_upvote_count( get_the_ID() ); ?></span> | 
+                        <span class="upvote-count"><?php echo get_upvote_count( get_the_ID() ); ?></span>
                     <?php endif; ?>
                 </div>
             <?php endif; ?>

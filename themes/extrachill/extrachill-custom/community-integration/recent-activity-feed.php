@@ -56,6 +56,9 @@ function extrachill_recent_activity_shortcode() {
         $output .= '<ul>';
         $counter = 0; // Initialize counter for unique ID
         foreach ($activities as $activity) {
+            if (!is_array($activity)) {
+                continue;
+            }
             $dateFormatted = custom_human_time_diff(strtotime($activity['date_time']));
             $counter++; // Increment counter for each activity
             if ($activity['type'] === 'Reply') {

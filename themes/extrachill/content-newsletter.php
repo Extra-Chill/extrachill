@@ -43,11 +43,11 @@ if ( get_theme_mod( 'colormag_archive_search_layout', 'double_column_layout' ) =
     <?php if ( get_post_format() ) {
         get_template_part( 'inc/post-formats' );
     } ?>
-        <header class="entry-header">
-            <?php if ( is_single() ) : ?>
                 <div class="breadcrumbs">
                     <a href="<?php echo esc_url( home_url( '/newsletters' ) ); ?>">Newsletters</a>
                 </div>
+        <header class="entry-header">
+            <?php if ( is_single() ) : ?>
             <?php endif; ?>
             <h1 class="entry-title">
                 <?php the_title(); ?>

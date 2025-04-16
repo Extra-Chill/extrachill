@@ -5,7 +5,12 @@
  */
 
 get_header(); ?>
-<div id="mediavine-settings" data-blocklist-all="1"></div>
+<?php
+// Block ads on all archives except 'festival-wire' category or post type archives
+if ( ! is_category( 'festival-wire' ) && ! is_post_type_archive( 'festival-wire' ) ) {
+	echo '<div id="mediavine-settings" data-blocklist-all="1"></div>';
+}
+?>
 <?php do_action('extrachill_before_body_content'); ?>
 
 <section id="primary">
@@ -30,9 +35,9 @@ if (is_category()) {
 }
 ?>
 <?php if (have_posts()) : ?>
+    <?php display_breadcrumbs(); ?>
 
     <header class="page-header">
-        <?php display_breadcrumbs(); ?>
         <h1 class="page-title">
             <a href="<?php echo esc_url($archive_link); ?>">
                 <span>

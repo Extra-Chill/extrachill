@@ -78,23 +78,42 @@ $cost  = tribe_get_formatted_cost( $event_id );
 		<a href="<?php echo esc_url( tribe_get_events_link() ); ?>"> <?php printf( '&laquo; ' . esc_html_x( 'All %s', '%s Events plural label', 'the-events-calendar' ), $events_label_plural ); ?></a>
 	</p>
 	<?php
-		    $locations = get_the_terms( get_the_ID(), 'location' );
-		    if ( ! is_wp_error( $locations ) && ! empty( $locations ) ) {
-		        foreach ( $locations as $location ) {
-		            // Create a unique CSS class based on location slug
-		            $location_class = 'location-' . sanitize_html_class( $location->slug );
-		            echo '<div class="tribe-events-single-event-location ' . esc_attr( $location_class ) . '">'; // Added dynamic class
-		            echo '<a class="location-link" href="' . esc_url( get_term_link( $location ) ) . '">' . esc_html( $location->name ) . '</a>';
-		            echo '</div>'; // Close the container div
-		            break; // Display only the first location, like in content.php
-		        }
-		    }
-		?>
+	    // Get the location terms for the event
+	    $locations = get_the_terms( get_the_ID(), 'location' );
+
+	    if ( ! empty( $locations ) && ! is_wp_error( $locations ) ) :
+	        foreach ( $locations as $location ) :
+	            // Define the base URL for the events list view
+	            $base_url = home_url( '/calendar/list/' );
+
+	            // Add 'tribe-bar-location' parameter to the URL while preserving existing parameters
+	            $location_url = add_query_arg( array_merge( $_GET, [ 'tribe-bar-location' => $location->slug ] ), $base_url );
+
+	            // Create a unique CSS class based on location slug
+	            $location_class = 'location-' . sanitize_html_class( $location->slug );
+	            ?>
+	            <div class="tribe-events-single-event-location <?php echo esc_attr( $location_class ); ?>">
+	                <a class="location-link" href="<?php echo esc_url( $location_url ); ?>">
+	                    <?php echo esc_html( $location->name ); ?>
+	                </a>
+	            </div>
+	        <?php endforeach; ?>
+	    <?php endif; ?>
 
 	<!-- Notices -->
 	<?php tribe_the_notices() ?>
 
 	<?php echo $title; ?>
+
+    <!-- Share button -->
+    <?php 
+        get_template_part( 'inc/share', null, array(
+			'share_url'   => esc_url( tribe_get_event_link() ),
+			'share_title' => esc_attr( get_the_title() ),
+			'share_description' => '',
+		) );
+		
+    ?>
 
 	<div class="tribe-events-schedule tribe-clearfix">
 		<?php echo tribe_events_event_schedule_details( $event_id, '<h2>', '</h2>' ); ?>
@@ -102,6 +121,27 @@ $cost  = tribe_get_formatted_cost( $event_id );
 			<span class="tribe-events-cost"><?php echo esc_html( $cost ) ?></span>
 		<?php endif; ?>
 	</div>
+
+	<?php while ( have_posts() ) :  the_post(); ?>
+		<div id="post-<?php the_ID(); ?>" <?php post_class(); ?>>
+			<!-- Event featured image, but exclude link -->
+			<?php echo tribe_event_featured_image( $event_id, 'event-featured', false ); ?>
+
+			<!-- Event content -->
+			<?php do_action( 'tribe_events_single_event_before_the_content' ) ?>
+			<div class="tribe-events-single-event-description tribe-events-content">
+				<?php the_content(); ?>
+			</div>
+			<!-- .tribe-events-single-event-description -->
+			<?php do_action( 'tribe_events_single_event_after_the_content' ) ?>
+
+			<!-- Event meta -->
+			<?php do_action( 'tribe_events_single_event_before_the_meta' ) ?>
+			<?php tribe_get_template_part( 'modules/meta' ); ?>
+			<?php do_action( 'tribe_events_single_event_after_the_meta' ) ?>
+		</div> <!-- #post-x -->
+		<?php if ( get_post_type() == Tribe__Events__Main::POSTTYPE && tribe_get_option( 'showComments', false ) ) comments_template() ?>
+	<?php endwhile; ?>
 
 	<?php
 	// Get location terms for the current event
@@ -189,52 +229,6 @@ $cost  = tribe_get_formatted_cost( $event_id );
 		<!-- Navigation -->
 		<nav class="tribe-events-nav-pagination" aria-label="<?php printf( esc_html__( '%s Navigation', 'the-events-calendar' ), $events_label_singular ); ?>">
 			<ul class="tribe-events-sub-nav">
-				<li class="tribe-events-nav-previous">
-					<?php if ($previous_event_link) : ?>
-						<a href="<?php echo esc_url( $previous_event_link ); ?>">
-							<span>&laquo;</span> <?php echo esc_html( $previous_event_title ) ?>
-						</a>
-					<?php endif; ?>
-				</li>
-				<li class="tribe-events-nav-next">
-					<?php if ($next_event_link) : ?>
-						<a href="<?php echo esc_url( $next_event_link ); ?>">
-							<?php echo esc_html( $next_event_title ) ?> <span>&raquo;</span>
-						</a>
-					<?php endif; ?>
-				</li>
-			</ul>
-			<!-- .tribe-events-sub-nav -->
-		</nav>
-	</div>
-	<!-- #tribe-events-header -->
-
-	<?php while ( have_posts() ) :  the_post(); ?>
-		<div id="post-<?php the_ID(); ?>" <?php post_class(); ?>>
-			<!-- Event featured image, but exclude link -->
-			<?php echo tribe_event_featured_image( $event_id, 'full', false ); ?>
-
-			<!-- Event content -->
-			<?php do_action( 'tribe_events_single_event_before_the_content' ) ?>
-			<div class="tribe-events-single-event-description tribe-events-content">
-				<?php the_content(); ?>
-			</div>
-			<!-- .tribe-events-single-event-description -->
-			<?php do_action( 'tribe_events_single_event_after_the_content' ) ?>
-
-			<!-- Event meta -->
-			<?php do_action( 'tribe_events_single_event_before_the_meta' ) ?>
-			<?php tribe_get_template_part( 'modules/meta' ); ?>
-			<?php do_action( 'tribe_events_single_event_after_the_meta' ) ?>
-		</div> <!-- #post-x -->
-		<?php if ( get_post_type() == Tribe__Events__Main::POSTTYPE && tribe_get_option( 'showComments', false ) ) comments_template() ?>
-	<?php endwhile; ?>
-
-	<!-- Event footer -->
-	<div id="tribe-events-footer">
-		<!-- Navigation -->
-		<nav class="tribe-events-nav-pagination" aria-label="<?php printf( esc_html__( '%s Navigation', 'the-events-calendar' ), $events_label_singular ); ?>">
-			<ul class="tribe-events-sub-nav">
 				 <li class="tribe-events-nav-previous">
 					<?php if ($previous_event_link) : ?>
 						<a href="<?php echo esc_url( $previous_event_link ); ?>">
@@ -253,6 +247,6 @@ $cost  = tribe_get_formatted_cost( $event_id );
 			<!-- .tribe-events-sub-nav -->
 		</nav>
 	</div>
-	<!-- #tribe-events-footer -->
+	<!-- #tribe-events-header -->
 
 </div><!-- #tribe-events-content -->

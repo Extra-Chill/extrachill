@@ -78,18 +78,20 @@ function get_user_details_directly($sessionToken) {
  * Returns true if the current logged‑in user (via ecc_user_session_token cookie)
  * has purchased ad‑free access.
  */
-function is_user_ad_free() {
+// Modified to accept optional userDetails parameter
+function is_user_ad_free($userDetails = null) {
     if ( empty($_COOKIE['ecc_user_session_token']) ) {
         return false;
     }
 
-    $details = get_user_details_directly( sanitize_text_field($_COOKIE['ecc_user_session_token']) );
-    if ( empty($details['username']) ) {
+    // Use provided userDetails or fetch directly if not provided
+    $userDetails = $userDetails ?: get_user_details_directly( sanitize_text_field($_COOKIE['ecc_user_session_token']) );
+    if ( empty($userDetails['username']) ) {
         return false;
     }
 
     global $wpdb;
-    $username = sanitize_text_field( $details['username'] );
+    $username = sanitize_text_field( $userDetails['username'] );
     $table    = $wpdb->prefix . 'extrachill_ad_free';
 
     return (bool) $wpdb->get_var(
