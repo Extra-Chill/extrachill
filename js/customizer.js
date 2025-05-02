@@ -106,6 +106,7 @@
 				'.elementor .tg-trending-news .swiper-controls .swiper-button-next:hover, .elementor .tg-trending-news .swiper-controls .swiper-button-prev:hover{border-color:' + primaryColor + '}' +
 				'.related-posts-wrapper-flyout .entry-title a:hover{color:' + primaryColor + '}' +
 				'.related-posts-wrapper.style-three .article-content .entry-title a:hover:before{background:' + primaryColor + '}' +
+				'.related-posts-main-title,.single-related-posts,.related-posts-wrapper,.related-posts-wrapper-flyout{display:none}' +
 				'</style>';
 
 			// Remove previously create internal style and add new one.

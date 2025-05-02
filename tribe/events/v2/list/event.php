@@ -16,6 +16,13 @@
 $container_classes = [ 'tribe-common-g-row', 'tribe-events-calendar-list__event-row' ];
 $container_classes['tribe-events-calendar-list__event-row--featured'] = $event->featured;
 
+// Add location slug class to container classes
+$locations = get_the_terms( $event->ID, 'location' );
+if ( ! empty( $locations ) && ! is_wp_error( $locations ) ) {
+	$first_location = reset( $locations );
+	$container_classes[] = 'location-' . sanitize_html_class( $first_location->slug );
+}
+
 $event_classes = tribe_get_post_class( [ 'tribe-events-calendar-list__event', 'tribe-common-g-row', 'tribe-common-g-row--gutters' ], $event->ID );
 ?>
 <div <?php tribe_classes( $container_classes ); ?>>

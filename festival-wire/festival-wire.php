@@ -107,6 +107,106 @@ function enqueue_festival_wire_assets() {
 }
 add_action( 'wp_enqueue_scripts', 'enqueue_festival_wire_assets' );
 
+// --- Festival Wire Tag to Festival Migration Tool (One-Time Admin Button) ---
+add_action('admin_menu', function() {
+	add_management_page(
+		'Festival Wire Migration',
+		'Festival Wire Migration',
+		'manage_options',
+		'festival-wire-migration',
+		'festival_wire_migration_admin_page'
+	);
+});
+
+function festival_wire_migration_admin_page() {
+	if (!current_user_can('manage_options')) {
+		wp_die('You do not have sufficient permissions to access this page.');
+	}
+	$done = get_option('festival_wire_migration_done');
+	if ($done) {
+		echo '<div class="notice notice-success"><p><strong>Migration already completed.</strong></p></div>';
+		return;
+	}
+	if (isset($_POST['festival_wire_migrate']) && check_admin_referer('festival_wire_migrate_action')) {
+		$report = festival_wire_perform_tag_to_festival_migration();
+		update_option('festival_wire_migration_done', 1);
+		echo '<div class="notice notice-success"><p><strong>Migration complete!</strong></p>';
+		if (!empty($report)) {
+			echo '<ul>';
+			foreach ($report as $line) {
+				echo '<li>' . esc_html($line) . '</li>';
+			}
+			echo '</ul>';
+		}
+		echo '</div>';
+		return;
+	}
+	?>
+	<div class="wrap">
+		<h1>Festival Wire Tag to Festival Migration</h1>
+		<p>This will migrate all tags currently attached to any Festival Wire post to the new <strong>festival</strong> taxonomy. The tags will be removed from all posts and deleted if unused. This action is one-time and cannot be undone.</p>
+		<form method="post">
+			<?php wp_nonce_field('festival_wire_migrate_action'); ?>
+			<input type="submit" name="festival_wire_migrate" class="button button-primary" value="Migrate Festival Wire Tags to Festivals" onclick="return confirm('Are you sure? This cannot be undone.');">
+		</form>
+	</div>
+	<?php
+}
+
+function festival_wire_perform_tag_to_festival_migration() {
+	global $wpdb;
+	$report = array();
+	// 1. Get all tag IDs attached to any festival_wire post
+	$tag_ids = $wpdb->get_col("
+		SELECT DISTINCT tr.term_taxonomy_id
+		FROM {$wpdb->term_relationships} tr
+		JOIN {$wpdb->term_taxonomy} tt ON tr.term_taxonomy_id = tt.term_taxonomy_id
+		JOIN {$wpdb->posts} p ON tr.object_id = p.ID
+		WHERE p.post_type = 'festival_wire' AND tt.taxonomy = 'post_tag'
+	");
+	if (empty($tag_ids)) {
+		$report[] = 'No tags found attached to festival_wire posts.';
+		return $report;
+	}
+	foreach ($tag_ids as $tt_id) {
+		$tag = $wpdb->get_row($wpdb->prepare(
+			"SELECT t.term_id, t.name, t.slug FROM {$wpdb->terms} t JOIN {$wpdb->term_taxonomy} tt ON t.term_id = tt.term_id WHERE tt.term_taxonomy_id = %d",
+			$tt_id
+		));
+		if (!$tag) continue;
+		// Create festival term if not exists
+		$festival_term = term_exists($tag->slug, 'festival');
+		if (!$festival_term) {
+			$festival_term = wp_insert_term($tag->name, 'festival', array('slug' => $tag->slug));
+		}
+		$festival_term_id = is_array($festival_term) ? $festival_term['term_id'] : $festival_term;
+		// Get all posts (any type) with this tag
+		$post_ids = $wpdb->get_col($wpdb->prepare(
+			"SELECT tr.object_id FROM {$wpdb->term_relationships} tr WHERE tr.term_taxonomy_id = %d",
+			$tt_id
+		));
+		if (empty($post_ids)) continue;
+		// Attach festival term to all these posts
+		foreach ($post_ids as $post_id) {
+			wp_set_object_terms($post_id, intval($festival_term_id), 'festival', true);
+			wp_remove_object_terms($post_id, intval($tag->term_id), 'post_tag');
+		}
+		// Optionally, delete tag if no longer used
+		$count = (int) $wpdb->get_var($wpdb->prepare(
+			"SELECT COUNT(*) FROM {$wpdb->term_relationships} WHERE term_taxonomy_id = %d",
+			$tt_id
+		));
+		if ($count === 0) {
+			wp_delete_term($tag->term_id, 'post_tag');
+			$report[] = sprintf('Migrated and deleted tag "%s" (slug: %s).', $tag->name, $tag->slug);
+		} else {
+			$report[] = sprintf('Migrated tag "%s" (slug: %s), but it is still used elsewhere.', $tag->name, $tag->slug);
+		}
+	}
+	return $report;
+}
+// --- End Migration Tool ---
+
 // ... existing code ... 
 // The following functions and their hooks have been moved to separate files:
 // register_festival_wire_cpt() -> festival-wire-post-type.php

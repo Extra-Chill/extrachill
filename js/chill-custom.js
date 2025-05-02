@@ -23,13 +23,13 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-function filterPostsByTag(tagSlug) {
+function filterPostsByArtist(artistSlug) {
     var baseUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
     baseUrl = baseUrl.replace(/\/page\/\d+/, ''); // Remove pagination from the base URL
 
-    if (tagSlug === 'all') {
+    if (artistSlug === 'all') {
         window.location.href = baseUrl;
     } else {
-        window.location.href = baseUrl + '?tag=' + tagSlug;
+        window.location.href = baseUrl + '?artist=' + artistSlug;
     }
 }

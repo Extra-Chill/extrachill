@@ -12,7 +12,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Add custom query vars for festival filtering.
  */
 function festival_wire_add_query_vars( $query_vars ) {
-	$query_vars[] = 'festival_tag';
+	$query_vars[] = 'festival';
 	$query_vars[] = 'location';
 	$query_vars[] = 'data_source';
 	return $query_vars;
@@ -32,14 +32,14 @@ function festival_wire_modify_archive_query( $query ) {
 		// Initialize tax_query array
 		$tax_query_clauses = array();
 
-		// Check if we have a festival tag filter
-		$festival_tag = get_query_var( 'festival_tag' );
-		if ( ! empty( $festival_tag ) ) {
-			// Add the post_tag taxonomy query clause
+		// Check if we have a festival filter
+		$festival = get_query_var( 'festival' );
+		if ( ! empty( $festival ) ) {
+			// Add the festival taxonomy query clause
 			$tax_query_clauses[] = array(
-				'taxonomy' => 'post_tag', // Correct taxonomy for tags
+				'taxonomy' => 'festival',
 				'field'    => 'slug',
-				'terms'    => $festival_tag,
+				'terms'    => $festival,
 			);
 		}
 

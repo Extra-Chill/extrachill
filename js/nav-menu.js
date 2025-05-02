@@ -99,16 +99,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-
-
-
-
-
-
-
-
-
-
+// Removing the JavaScript block for the newsletter form submission
 document.addEventListener('DOMContentLoaded', function () {
     const newsletterForm = document.querySelector('.newsletter-form');
     const emailInput = document.querySelector('#newsletter-email');

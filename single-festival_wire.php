@@ -31,20 +31,19 @@ get_header(); ?>
 					if (!empty($categories)) {
 						echo '<div class="festival-tags">';
 						foreach ($categories as $category) {
-							echo '<a href="' . esc_url(get_category_link($category->term_id)) . '" class="festival-tag category-tag">' . esc_html($category->name) . '</a>';
+							$cat_slug = sanitize_html_class($category->slug);
+							echo '<a href="' . esc_url(get_category_link($category->term_id)) . '" class="taxonomy-badge category-badge category-' . $cat_slug . '-badge">' . esc_html($category->name) . '</a>';
 						}
 						echo '</div>';
 					}
 
-					// Display tags if available
-					$tags = get_the_tags();
-					if ($tags) {
-						// Restore the original parent div class
-						echo '<div class="post-tags">';
-						foreach ($tags as $tag) {
-							// Add festival-specific class to the anchor tag
-							$tag_link_classes = 'festival-tag tag-tag festival-' . esc_attr($tag->slug);
-							echo '<a href="' . esc_url(get_tag_link($tag->term_id)) . '" class="' . $tag_link_classes . '">' . esc_html($tag->name) . '</a>';
+					// Display festivals if available
+					$festivals = get_the_terms( get_the_ID(), 'festival' );
+					if ($festivals && !is_wp_error($festivals)) {
+						echo '<div class="post-festivals">';
+						foreach ($festivals as $festival) {
+							$festival_link_classes = 'taxonomy-badge festival-' . esc_attr($festival->slug);
+							echo '<a href="' . esc_url(get_term_link($festival)) . '" class="' . $festival_link_classes . '">' . esc_html($festival->name) . '</a>';
 						}
 						echo '</div>';
 					}
@@ -56,8 +55,8 @@ get_header(); ?>
 						foreach ( $locations as $location ) :
 							$location_link = get_term_link( $location );
 							if ( ! is_wp_error( $location_link ) ) :
-								// Wrap the link in a span with the location slug class and use festival-tag class
-								echo '<span class="location-' . esc_attr( $location->slug ) . '"><a href="' . esc_url( $location_link ) . '" class="festival-tag location-link" rel="tag">' . esc_html( $location->name ) . '</a></span>';
+								$loc_slug = sanitize_html_class( $location->slug );
+								echo '<a href="' . esc_url( $location_link ) . '" class="taxonomy-badge location-badge location-' . $loc_slug . '-badge" rel="tag">' . esc_html( $location->name ) . '</a>';
 							endif;
 						endforeach;
 						echo '</div>'; // Close .location-badges
@@ -70,7 +69,7 @@ get_header(); ?>
 					?>
 
 					<div class="entry-meta">
-						<span class="posted-on"><?php echo esc_html( get_the_date() ); ?></span>
+						<span class="posted-on"><?php echo esc_html( get_the_date('F j, Y \a\t g:ia') ); ?></span>
 						<?php // Location is now displayed in the badges section above ?>
 					</div><!-- .entry-meta -->
 				</header><!-- .entry-header -->
@@ -122,14 +121,20 @@ get_header(); ?>
 			<?php
 			// Related festival wire posts
 			$current_post_id = get_the_ID();
-			$current_tags = wp_get_post_tags($current_post_id);
+			$current_festivals = get_the_terms($current_post_id, 'festival');
 			
-			if (!empty($current_tags)) {
+			if (!empty($current_festivals) && !is_wp_error($current_festivals)) {
 				$related_args = array(
 					'post_type' => 'festival_wire',
 					'posts_per_page' => 4,
 					'post__not_in' => array($current_post_id),
-					'tag__in' => array($current_tags[0]->term_id),
+					'tax_query' => array(
+						array(
+							'taxonomy' => 'festival',
+							'field' => 'term_id',
+							'terms' => array($current_festivals[0]->term_id),
+						),
+					),
 					'orderby' => 'date',
 					'order' => 'DESC',
 				);
@@ -138,79 +143,23 @@ get_header(); ?>
 				
 				if ($related_query->have_posts()) {
 					echo '<div class="related-festival-wire">';
-					$tag_name = $current_tags[0]->name;
-					echo '<h2 class="related-wire-title">' . sprintf(esc_html__('Related %s News', 'colormag-pro'), $tag_name) . '</h2>';
+					$festival_name = $current_festivals[0]->name;
+					echo '<h2 class="related-wire-title">' . sprintf(esc_html__('Related %s News', 'colormag-pro'), $festival_name) . '</h2>';
 					echo '<div class="festival-wire-grid">';
 					
 					while ($related_query->have_posts()) {
 						$related_query->the_post();
-						?>
-						<article id="post-<?php the_ID(); ?>" <?php post_class('festival-wire-card'); ?>>
-							<?php if (has_post_thumbnail()): ?>
-							<div class="festival-wire-card-image">
-								<a href="<?php the_permalink(); ?>" title="<?php the_title_attribute(); ?>">
-									<?php the_post_thumbnail('medium'); ?>
-								</a>
-							</div>
-							<?php endif; ?>
-							
-							<div class="festival-wire-card-content">
-								<?php
-								// Start badges container
-								echo '<div class="festival-badges">';
+						$related_post_id = get_the_ID();
+						// Collect related post IDs for sidebar exclusion
+						if (!isset($GLOBALS['displayed_posts']) || !is_array($GLOBALS['displayed_posts'])) {
+							$GLOBALS['displayed_posts'] = array();
+						}
+						if (!in_array($related_post_id, $GLOBALS['displayed_posts'])) {
+							$GLOBALS['displayed_posts'][] = $related_post_id;
+						}
 
-								// Display categories as tags
-								$categories = get_the_category();
-								if (!empty($categories)) {
-									echo '<div class="festival-tags">';
-									foreach ($categories as $category) {
-										echo '<a href="' . esc_url(get_category_link($category->term_id)) . '" class="festival-tag category-tag">' . esc_html($category->name) . '</a>';
-									}
-									echo '</div>';
-								}
-
-								// Display tags if available
-								$tags = get_the_tags();
-								if ($tags) {
-									echo '<div class="post-tags">';
-									foreach ($tags as $tag) {
-										$tag_link_classes = 'festival-tag tag-tag festival-' . esc_attr($tag->slug);
-										echo '<a href="' . esc_url(get_tag_link($tag->term_id)) . '" class="' . $tag_link_classes . '">' . esc_html($tag->name) . '</a>';
-									}
-									echo '</div>';
-								}
-
-								// Display Location Terms here
-								$locations = get_the_terms( get_the_ID(), 'location' );
-								if ( $locations && ! is_wp_error( $locations ) ) :
-									echo '<div class="location-badges">'; // Container for locations
-									foreach ( $locations as $location ) :
-										$location_link = get_term_link( $location );
-										if ( ! is_wp_error( $location_link ) ) :
-											// Wrap the link in a span with the location slug class and use festival-tag class
-											echo '<span class="location-' . esc_attr( $location->slug ) . '"><a href="' . esc_url( $location_link ) . '" class="festival-tag location-link" rel="tag">' . esc_html( $location->name ) . '</a></span>';
-										endif;
-									endforeach;
-									echo '</div>'; // Close .location-badges
-								endif;
-
-								echo '</div>'; // .festival-badges
-								?>
-								
-								<header class="entry-header">
-									<?php the_title( sprintf( '<h2 class="entry-title"><a href="%s" rel="bookmark">', esc_url( get_permalink() ) ), '</a></h2>' ); ?>
-								</header><!-- .entry-header -->
-
-								<div class="entry-meta">
-									<span class="posted-on"><?php echo esc_html( get_the_date() ); ?></span>
-								</div><!-- .entry-meta -->
-
-								<div class="entry-summary">
-									<?php the_excerpt(); ?>
-								</div><!-- .entry-summary -->
-							</div>
-						</article>
-						<?php
+						// Replace the entire <article> block with get_template_part(), using the correct path
+						get_template_part( 'festival-wire/content', 'card' );
 					}
 					
 					echo '</div>'; // .festival-wire-grid

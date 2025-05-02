@@ -41,37 +41,51 @@ function extra_chill_register_daily_event_import() {
 add_action('import_daily_events_hook', 'extra_chill_automated_event_import');
 
 function extra_chill_automated_event_import() {
-    error_log('automated_event_import triggered at ' . date('Y-m-d H:i:s'));
+    error_log('[CRON START] automated_event_import triggered at ' . date('Y-m-d H:i:s'));
 
     // Post locally scraped events
+    error_log('[CRON STEP] Starting local scraping import...');
     $maxEvents = 100; // Adjust based on expected volume for local events
     $localEvents = post_aggregated_events_to_calendar($maxEvents);
     if (is_wp_error($localEvents)) {
-        error_log('Error posting local events: ' . $localEvents->get_error_message());
+        error_log('[CRON ERROR] Error posting local events: ' . $localEvents->get_error_message());
+        // Optionally log a 0 count or just skip logging for errors
+        log_import_event('cron scraping error', 0); 
     } else {
-        $addedCount = count($localEvents);
+        $addedCount = is_array($localEvents) ? count($localEvents) : 0; // Ensure count is applied to an array
+        error_log('[CRON SUCCESS] Local scraping finished. Added ' . $addedCount . ' events.');
         log_import_event('cron scraping', $addedCount);
     }
 
     // Post Ticketmaster events
+    error_log('[CRON STEP] Starting Ticketmaster import...');
     $maxTicketmasterEvents = 50; // Adjust based on how many Ticketmaster events you want to handle
     $ticketmasterEvents = post_ticketmaster_events_to_calendar($maxTicketmasterEvents, 'cron ticketmaster');
     if (is_wp_error($ticketmasterEvents)) {
-        error_log('Error posting Ticketmaster events: ' . $ticketmasterEvents->get_error_message());
+        error_log('[CRON ERROR] Error posting Ticketmaster events: ' . $ticketmasterEvents->get_error_message());
+        // Optionally log a 0 count or just skip logging for errors
+        log_import_event('cron ticketmaster error', 0);
     } else {
-        $totalPosted = count($ticketmasterEvents);
+        $totalPosted = is_array($ticketmasterEvents) ? count($ticketmasterEvents) : 0; // Ensure count is applied to an array
+        error_log('[CRON SUCCESS] Ticketmaster finished. Added ' . $totalPosted . ' events.');
         log_import_event('cron ticketmaster', $totalPosted);
     }
 
     // **Post DICE.FM events (for Austin)**
+    error_log('[CRON STEP] Starting DICE.FM import...');
     $maxDiceEvents = 50; // Adjust as needed based on your expected volume
     $diceEvents = post_dice_fm_events_to_calendar($maxDiceEvents);
     if (is_wp_error($diceEvents)) {
-        error_log('Error posting DICE.FM events: ' . $diceEvents->get_error_message());
+        error_log('[CRON ERROR] Error posting DICE.FM events: ' . $diceEvents->get_error_message());
+        // Optionally log a 0 count or just skip logging for errors
+        log_import_event('cron dice error', 0);
     } else {
-        $diceCount = count($diceEvents);
+        // Ensure $diceEvents is an array before counting
+        $diceCount = is_array($diceEvents) ? count($diceEvents) : 0;
+        error_log('[CRON SUCCESS] DICE.FM finished. Added ' . $diceCount . ' events.');
         log_import_event('cron dice', $diceCount);
     }
+    error_log('[CRON END] automated_event_import finished at ' . date('Y-m-d H:i:s'));
 }
 
 

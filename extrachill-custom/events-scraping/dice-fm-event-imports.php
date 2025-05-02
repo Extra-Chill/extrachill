@@ -307,7 +307,7 @@ function post_dice_fm_events_to_calendar( $maxEvents = 5 ) {
     }
 
     // Log the import event (assuming log_import_event() is defined elsewhere).
-    log_import_event( 'dice', $total_posted );
+    // log_import_event( 'dice', $total_posted ); // Removed redundant logging
 
     return new WP_REST_Response( $posted_events, 200 );
 }

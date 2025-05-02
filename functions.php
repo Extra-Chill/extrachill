@@ -349,43 +349,43 @@ function add_target_blank_to_external_links($content) {
 add_filter('the_content', 'add_target_blank_to_external_links');
 
 
-function wp_innovator_get_tags_in_category($category_name) {
+function wp_innovator_get_artists_in_category($category_name) {
     $args = array(
         'category_name' => $category_name,
         'posts_per_page' => -1  // Retrieve all posts
     );
     $posts = get_posts($args);
-    $tags = array();
+    $artists = array();
 
     foreach ($posts as $post) {
-        $post_tags = get_the_tags($post->ID);
-        if ($post_tags) {
-            foreach ($post_tags as $tag) {
-                $tags[$tag->term_id] = $tag->name;
+        $post_artists = get_the_terms($post->ID, 'artist');
+        if ($post_artists && !is_wp_error($post_artists)) {
+            foreach ($post_artists as $artist) {
+                $artists[$artist->term_id] = $artist->name;
             }
         }
     }
 
-    asort($tags); // Sort tags alphabetically
-    return $tags;
+    asort($artists); // Sort artists alphabetically
+    return $artists;
 }
 
 function wp_innovator_dropdown_menu($category_name, $filter_heading) {
-    $current_tag = get_query_var('tag'); 
-    $tags = wp_innovator_get_tags_in_category($category_name);
+    $current_artist = get_query_var('artist');
+    $artists = wp_innovator_get_artists_in_category($category_name);
     
     // Add H2 tag above the dropdown with dynamic heading text
-    echo '<div id="tag-filters"><h2 class="filter-head">' . esc_html($filter_heading) . '</h2>';
+    echo '<div id="artist-filters"><h2 class="filter-head">' . esc_html($filter_heading) . '</h2>';
 
-    echo '<select id="tag-filter-dropdown" onchange="filterPostsByTag(this.value)">';
+    echo '<select id="artist-filter-dropdown" onchange="filterPostsByArtist(this.value)">';
 
     // Set 'View All' option
-    $selected = empty($current_tag) ? ' selected' : '';
+    $selected = empty($current_artist) ? ' selected' : '';
     echo "<option value='all'{$selected}>View All</option>";
 
-    foreach ($tags as $id => $name) {
-        $slug = get_tag($id)->slug;
-        $selected = ($slug == $current_tag) ? ' selected' : '';
+    foreach ($artists as $id => $name) {
+        $slug = get_term($id, 'artist')->slug;
+        $selected = ($slug == $current_artist) ? ' selected' : '';
         echo "<option value='{$slug}'{$selected}>{$name}</option>";
     }
 
@@ -393,15 +393,29 @@ function wp_innovator_dropdown_menu($category_name, $filter_heading) {
 }
 
 
-function wp_innovator_enqueue_scripts() { // Modified to enqueue community-comments.js
+function wp_innovator_enqueue_scripts() {
     if (is_archive()) {  // Enqueue the script for all archive pages
-        wp_enqueue_script('wp-innovator-custom-script', get_template_directory_uri() . '/js/chill-custom.js', array(), '1.0.0', true);
+        $js_path = get_template_directory() . '/js/chill-custom.js';
+        $js_url = get_template_directory_uri() . '/js/chill-custom.js';
+        $js_version = file_exists($js_path) ? filemtime($js_path) : '1.0.0';
+        wp_enqueue_script('wp-innovator-custom-script', $js_url, array(), $js_version, true);
     }
     if (is_singular('post')) { // Enqueue community-comments.js for single posts
         $js_path = get_template_directory() . '/js/community-comments.js';
         $js_url = get_template_directory_uri() . '/js/community-comments.js';
         $js_version = file_exists( $js_path ) ? filemtime( $js_path ) : '1.0.0'; // Dynamic versioning
         wp_enqueue_script('community-comments-js', $js_url, array(), $js_version, true);
+    }
+    // Enqueue the new nav.css file
+    $nav_css_path = get_theme_file_path('/css/nav.css');
+    if ( file_exists( $nav_css_path ) ) {
+        wp_enqueue_style(
+            'extrachill-nav-styles',
+            get_theme_file_uri('/css/nav.css'),
+            array(), // No dependencies
+            filemtime( $nav_css_path ), // Dynamic versioning
+            'all' // Media type
+        );
     }
 }
 
@@ -694,7 +708,7 @@ function enqueue_custom_lightbox_script() {
         ) ) {
             // Define paths for the JS and CSS files.
             $js_path  = get_stylesheet_directory() . '/js/custom-lightbox.js';
-            $css_path = get_stylesheet_directory() . '/extrachill-custom/css/custom-lightbox.css';
+            $css_path = get_stylesheet_directory() . '/css/custom-lightbox.css';
 
             // Use filemtime() for dynamic versioning if the file exists.
             $js_version  = file_exists( $js_path )  ? filemtime( $js_path )  : null;
@@ -712,7 +726,7 @@ function enqueue_custom_lightbox_script() {
             // Enqueue the lightbox CSS.
             wp_enqueue_style(
                 'custom-lightbox-style',
-                get_stylesheet_directory_uri() . '/extrachill-custom/css/custom-lightbox.css',
+                get_stylesheet_directory_uri() . '/css/custom-lightbox.css',
                 array(),
                 $css_version
             );
@@ -770,5 +784,175 @@ function extrachill_conditionally_dequeue_woocommerce_assets() {
 }
 add_action( 'wp_enqueue_scripts', 'extrachill_conditionally_dequeue_woocommerce_assets', 99 );
 
+// --- Custom Taxonomies: Festival, Artist, Venue ---
+add_action('init', function() {
+    // Festival taxonomy (for both post and festival_wire)
+    if (!taxonomy_exists('festival')) {
+        register_taxonomy('festival', array('post', 'festival_wire'), array(
+            'hierarchical' => false,
+            'labels' => array(
+                'name' => _x('Festivals', 'taxonomy general name', 'extrachill'),
+                'singular_name' => _x('Festival', 'taxonomy singular name', 'extrachill'),
+                'search_items' => __('Search Festivals', 'extrachill'),
+                'all_items' => __('All Festivals', 'extrachill'),
+                'edit_item' => __('Edit Festival', 'extrachill'),
+                'update_item' => __('Update Festival', 'extrachill'),
+                'add_new_item' => __('Add New Festival', 'extrachill'),
+                'new_item_name' => __('New Festival Name', 'extrachill'),
+                'menu_name' => __('Festivals', 'extrachill'),
+            ),
+            'show_ui' => true,
+            'show_admin_column' => true,
+            'query_var' => true,
+            'rewrite' => array('slug' => 'festival'),
+            'show_in_rest' => true,
+        ));
+    }
+    // Artist taxonomy (for post only)
+    if (!taxonomy_exists('artist')) {
+        register_taxonomy('artist', array('post'), array(
+            'hierarchical' => false,
+            'labels' => array(
+                'name' => _x('Artists', 'taxonomy general name', 'extrachill'),
+                'singular_name' => _x('Artist', 'taxonomy singular name', 'extrachill'),
+                'search_items' => __('Search Artists', 'extrachill'),
+                'all_items' => __('All Artists', 'extrachill'),
+                'edit_item' => __('Edit Artist', 'extrachill'),
+                'update_item' => __('Update Artist', 'extrachill'),
+                'add_new_item' => __('Add New Artist', 'extrachill'),
+                'new_item_name' => __('New Artist Name', 'extrachill'),
+                'menu_name' => __('Artists', 'extrachill'),
+            ),
+            'show_ui' => true,
+            'show_admin_column' => true,
+            'query_var' => true,
+            'rewrite' => array('slug' => 'artist'),
+            'show_in_rest' => true,
+        ));
+    }
+    // Venue taxonomy (for post only)
+    if (!taxonomy_exists('venue')) {
+        register_taxonomy('venue', array('post'), array(
+            'hierarchical' => false,
+            'labels' => array(
+                'name' => _x('Venues', 'taxonomy general name', 'extrachill'),
+                'singular_name' => _x('Venue', 'taxonomy singular name', 'extrachill'),
+                'search_items' => __('Search Venues', 'extrachill'),
+                'all_items' => __('All Venues', 'extrachill'),
+                'edit_item' => __('Edit Venue', 'extrachill'),
+                'update_item' => __('Update Venue', 'extrachill'),
+                'add_new_item' => __('Add New Venue', 'extrachill'),
+                'new_item_name' => __('New Venue Name', 'extrachill'),
+                'menu_name' => __('Venues', 'extrachill'),
+            ),
+            'show_ui' => true,
+            'show_admin_column' => true,
+            'query_var' => true,
+            'rewrite' => array('slug' => 'venue'),
+            'show_in_rest' => true,
+        ));
+    }
+}, 0);
+// --- End Custom Taxonomies ---
 
 
+
+require_once get_stylesheet_directory() . '/tag-migration-admin.php';
+
+function extrachill_enqueue_home_styles() {
+    if ( is_front_page() ) {
+        $css_path = get_stylesheet_directory() . '/css/home.css';
+        if ( file_exists( $css_path ) ) {
+            wp_enqueue_style(
+                'extrachill-home',
+                get_stylesheet_directory_uri() . '/css/home.css',
+                array(),
+                filemtime( $css_path )
+            );
+        }
+    }
+}
+add_action( 'wp_enqueue_scripts', 'extrachill_enqueue_home_styles' );
+
+function extrachill_enqueue_root_styles() {
+    $css_path = get_stylesheet_directory() . '/css/root.css';
+    if ( file_exists( $css_path ) ) {
+        wp_enqueue_style(
+            'extrachill-root',
+            get_stylesheet_directory_uri() . '/css/root.css',
+            array(),
+            filemtime( $css_path )
+        );
+    }
+}
+add_action( 'wp_enqueue_scripts', 'extrachill_enqueue_root_styles', 5 ); // Priority 5: before other styles
+
+// Ensure root.css is loaded before style.css by making it a dependency
+function extrachill_enqueue_main_styles() {
+    $main_style_path = get_stylesheet_directory() . '/style.css';
+    if ( file_exists( $main_style_path ) ) {
+        wp_enqueue_style(
+            'extrachill-style',
+            get_stylesheet_directory_uri() . '/style.css',
+            array('extrachill-root'), // root.css as dependency
+            filemtime( $main_style_path )
+        );
+    }
+
+    // Enqueue badge colors style
+    $badge_colors_path = get_stylesheet_directory() . '/css/badge-colors.css';
+    if ( file_exists( $badge_colors_path ) ) {
+        wp_enqueue_style(
+            'badge-colors',
+            get_stylesheet_directory_uri() . '/css/badge-colors.css',
+            array('extrachill-style'), // Make it dependent on main style if needed, or leave empty array()
+            filemtime( $badge_colors_path )
+        );
+    }
+}
+add_action( 'wp_enqueue_scripts', 'extrachill_enqueue_main_styles', 10 );
+
+// Optionally dequeue the default theme style if needed (update handle if different)
+function extrachill_dequeue_parent_style() {
+    wp_dequeue_style('colormag-style'); // Replace with actual handle if needed
+}
+add_action('wp_enqueue_scripts', 'extrachill_dequeue_parent_style', 1);
+
+function enqueue_homepage_js() {
+    if (is_front_page()) {
+        $js_path = '/js/home.js';
+        wp_enqueue_script('extrachill-home', get_template_directory_uri() . $js_path, array('jquery'), filemtime(get_stylesheet_directory() . $js_path), true);
+        wp_localize_script('extrachill-home', 'ajaxurl', admin_url('admin-ajax.php'));
+    }
+}
+add_action('wp_enqueue_scripts', 'enqueue_homepage_js');
+
+function extrachill_enqueue_single_post_styles() {
+    if ( is_singular('post') ) {
+        $css_path = get_stylesheet_directory() . '/css/single-post.css';
+        if ( file_exists( $css_path ) ) {
+            wp_enqueue_style(
+                'extrachill-single-post',
+                get_stylesheet_directory_uri() . '/css/single-post.css',
+                array('extrachill-root', 'extrachill-style'),
+                filemtime( $css_path )
+            );
+        }
+    }
+}
+add_action('wp_enqueue_scripts', 'extrachill_enqueue_single_post_styles', 20);
+
+function extrachill_enqueue_archive_styles() {
+    if ( is_archive() || is_search() ) {
+        $css_path = get_stylesheet_directory() . '/css/archive.css';
+        if ( file_exists( $css_path ) ) {
+            wp_enqueue_style(
+                'extrachill-archive',
+                get_stylesheet_directory_uri() . '/css/archive.css',
+                array('extrachill-root', 'extrachill-style'),
+                filemtime( $css_path )
+            );
+        }
+    }
+}
+add_action('wp_enqueue_scripts', 'extrachill_enqueue_archive_styles', 20);

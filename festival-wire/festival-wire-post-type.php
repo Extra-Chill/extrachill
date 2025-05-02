@@ -47,7 +47,7 @@ function register_festival_wire_cpt() {
 		'description'           => __( 'News feed for music festivals', 'colormag-pro' ),
 		'labels'                => $labels,
 		'supports'              => array( 'title', 'editor', 'excerpt', 'author', 'thumbnail', 'revisions', 'custom-fields' ), // Added excerpt support
-		'taxonomies'            => array( 'category', 'post_tag', 'data_source' ), // Updated to include data_source taxonomy
+		'taxonomies'            => array( 'category', 'festival', 'data_source' ), // Updated to include festival taxonomy
 		'hierarchical'          => false,
 		'public'                => true,
 		'show_ui'               => true,

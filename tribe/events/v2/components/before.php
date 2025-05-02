@@ -23,18 +23,6 @@ if ( $selected_location_slug ) {
     <?php echo esc_html( $selected_location_name ? "$selected_location_name Live Music Calendar" : "Live Music Calendar" ); ?>
 </h1>
 
-<div class="tribe-events-list-description">
-<p>
-  Explore the Extra Chill Live Music Calendar for Charleston and Austin to find upcoming live music events, from concerts to DIY shows and more.</p> 
-  
-<p>
-    Easily filter events by location using the "Find Events" button to discover local live music near you in Charleston, SC or Austin, TX. 
-</p>
-
-<p>
-  Pulled from various resources plus community submissions, our calendar is both comprehensive and community-driven.
-</p>
-</div>
 
 <?php if ( ! empty( $before_events ) ) : ?>
     <div class="tribe-events-before-html">

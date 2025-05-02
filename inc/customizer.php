@@ -1586,43 +1586,6 @@ function colormag_customize_register( $wp_customize ) {
 		),
 	) );
 
-	// Related post flyout option.
-	$wp_customize->add_section( 'colormag_related_post_flyout_section', array(
-		'priority' => 4,
-		'title'    => esc_html__( 'Flyout Related Post', 'colormag-pro' ),
-		'panel'    => 'colormag_additional_options',
-	) );
-
-	$wp_customize->add_setting( 'colormag_related_post_flyout_setting', array(
-		'default'           => 0,
-		'capability'        => 'edit_theme_options',
-		'sanitize_callback' => 'colormag_checkbox_sanitize',
-	) );
-
-	$wp_customize->add_control( 'colormag_related_post_flyout_setting', array(
-		'type'     => 'checkbox',
-		'label'    => esc_html__( 'Check to display the related post when browser scrolls at end.', 'colormag-pro' ),
-		'section'  => 'colormag_related_post_flyout_section',
-		'settings' => 'colormag_related_post_flyout_setting',
-	) );
-
-	$wp_customize->add_setting( 'colormag_related_posts_flyout_type', array(
-		'default'           => 'categories',
-		'capability'        => 'edit_theme_options',
-		'sanitize_callback' => 'colormag_radio_select_sanitize',
-	) );
-
-	$wp_customize->add_control( 'colormag_related_posts_flyout_type', array(
-		'type'     => 'radio',
-		'label'    => esc_html__( 'Related Posts Must Be Shown As:', 'colormag-pro' ),
-		'section'  => 'colormag_related_post_flyout_section',
-		'settings' => 'colormag_related_posts_flyout_type',
-		'choices'  => array(
-			'categories' => esc_html__( 'Related Posts By Categories', 'colormag-pro' ),
-			'tags'       => esc_html__( 'Related Posts By Tags', 'colormag-pro' ),
-		),
-	) );
-
 	// Option to display reading time.
 	$wp_customize->add_section( 'colormag_reading_time_section', array(
 		'priority' => 4,
