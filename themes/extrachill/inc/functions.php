@@ -193,20 +193,6 @@ if ( ! function_exists( 'extrachill_entry_meta' ) ) :
 
             echo '</div>'; // Close below-entry-meta-left div
 
-            // Right-side location link
-            if ( is_singular( 'post' ) && !$is_forum_post ) {
-                $locations = get_the_terms( get_the_ID(), 'location' );
-                if ( $locations && !is_wp_error( $locations ) ) {
-                    foreach ( $locations as $location ) {
-                        // Create a unique class based on location slug
-                        $location_class = 'location-' . sanitize_html_class( $location->slug );
-
-                        echo '<div class="post-location-meta ' . esc_attr( $location_class ) . '">';
-                        echo '<a href="' . esc_url( get_term_link( $location ) ) . '" class="location-link">' . esc_html( $location->name ) . '</a>';
-                        echo '</div>';
-                    }
-                }
-            }
 
             echo '</div>'; // Close below-entry-meta div
         }

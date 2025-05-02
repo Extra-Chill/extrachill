@@ -70,18 +70,27 @@ $after = apply_filters( 'tribe_events_single_event_title_html_after', '</h1>', $
 $title = apply_filters( 'tribe_events_single_event_title_html', the_title( $before, $after, false ), $event_id );
 $cost  = tribe_get_formatted_cost( $event_id );
 
+// Get the first location slug for the main container class
+$locations = get_the_terms( $event_id, 'location' );
+$main_container_location_class = '';
+if ( ! empty( $locations ) && ! is_wp_error( $locations ) ) {
+	$first_location = reset($locations); // Get the first location term
+	$main_container_location_class = ' location-' . sanitize_html_class( $first_location->slug );
+}
+
 ?>
 
-<div id="tribe-events-content" class="tribe-events-single">
+<div id="tribe-events-content" class="tribe-events-single<?php echo esc_attr( $main_container_location_class ); ?>">
 
 	<p class="tribe-events-back">
 		<a href="<?php echo esc_url( tribe_get_events_link() ); ?>"> <?php printf( '&laquo; ' . esc_html_x( 'All %s', '%s Events plural label', 'the-events-calendar' ), $events_label_plural ); ?></a>
 	</p>
 	<?php
-	    // Get the location terms for the event
-	    $locations = get_the_terms( get_the_ID(), 'location' );
+	    // Display location badges (re-fetch or use $locations variable)
+	    // $locations = get_the_terms( get_the_ID(), 'location' ); // No need to re-fetch if $locations is already populated above
 
 	    if ( ! empty( $locations ) && ! is_wp_error( $locations ) ) :
+	        echo '<div class="taxonomy-badges">'; // Add container
 	        foreach ( $locations as $location ) :
 	            // Define the base URL for the events list view
 	            $base_url = home_url( '/calendar/list/' );
@@ -89,16 +98,15 @@ $cost  = tribe_get_formatted_cost( $event_id );
 	            // Add 'tribe-bar-location' parameter to the URL while preserving existing parameters
 	            $location_url = add_query_arg( array_merge( $_GET, [ 'tribe-bar-location' => $location->slug ] ), $base_url );
 
-	            // Create a unique CSS class based on location slug
-	            $location_class = 'location-' . sanitize_html_class( $location->slug );
+	            // No slug class needed on the link itself anymore
 	            ?>
-	            <div class="tribe-events-single-event-location <?php echo esc_attr( $location_class ); ?>">
-	                <a class="location-link" href="<?php echo esc_url( $location_url ); ?>">
+					<a class="taxonomy-badge location-badge" href="<?php echo esc_url( $location_url ); ?>">
 	                    <?php echo esc_html( $location->name ); ?>
 	                </a>
-	            </div>
-	        <?php endforeach; ?>
-	    <?php endif; ?>
+	            <?php
+	        endforeach;
+	        echo '</div>'; // Close container
+	    endif; ?>
 
 	<!-- Notices -->
 	<?php tribe_the_notices() ?>

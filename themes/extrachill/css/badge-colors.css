@@ -1,0 +1,192 @@
+/*
+ * Badge Colors
+ * Organized by: Festivals, Locations, Categories
+ *
+ * Move all badge color rules here for maintainability and modularity.
+ */
+
+/* === Festival Badges === */
+
+.festival-badges a.festival-bonnaroo  {
+	background-color: #000000;
+	color: #79c031;
+}
+.festival-badges a.festival-coachella {
+	background-color: #EFC93D;
+	color: #000;
+}
+.festival-badges a.festival-acl-festival {
+	background-color: #f56423;
+	color: #192819;
+}
+.festival-badges a.festival-sxsw {
+	background-color: #000000;
+	color: #ffffff;
+}
+.festival-badges a.festival-electric-forest {
+	background-color: #228B22;
+	color: #fff;
+}
+.festival-badges a.festival-hulaween {
+	background-color: #7E57C2;
+	color: #fff;
+}
+.festival-badges a.festival-shaky-knees {
+	background-color: #C62828;
+	color: #fff;
+}
+.festival-badges a.festival-governors-ball {
+	background-color: #1E90FF;
+	color: #fff;
+}
+.festival-badges a.festival-all-things-go-festival {
+	background-color: #A6D6D6;
+	color: #000;
+}
+.festival-badges a.festival-lollapalooza {
+	background-color: #ff3366;
+	color: #ffffff;
+}
+.festival-badges a.festival-ultra-music-festival {
+	background-color: #005eff;
+	color: #ffffff;
+}
+.festival-badges a.festival-glastonbury-festival {
+	background-color: #7d0068;
+	color: #ffffff;
+}
+.festival-badges a.festival-lost-lands {
+	background-color: #228B22;
+	color: #FFA500;
+}
+.festival-badges a.festival-riot-fest {
+	background-color: #d72631;
+	color: #fff;
+}
+
+/* === Location Badges === */
+.location-charleston  .taxonomy-badge.location-badge {
+	background-color: #660000;
+	color: #e5e5e5;
+}
+.location-austin .taxonomy-badge.location-badge{
+	background-color: #bf5700;
+	color: #e5e5e5;
+}
+.location-asheville .taxonomy-badge.location-badge{
+	background-color:#122518;
+}
+.location-columbia .taxonomy-badge.location-badge{
+	background-color:#73000a;
+}
+.location-boston .taxonomy-badge.location-badge{
+	background-color:#BD3039;
+}
+.location-jamaica .taxonomy-badge.location-badge{
+}
+.location-usa .taxonomy-badge.location-badge{
+}
+.location-chicago .taxonomy-badge.location-badge{
+	background-color:#41B6E6;
+	color: #fff;
+}
+.location-nashville .taxonomy-badge.location-badge {
+	background-color: #3c2f2f;
+	color: #ffffff;
+}
+.location-new-orleans .taxonomy-badge.location-badge {
+	background-color: #4b0082;
+	color: #FFD700;
+}
+.location-philadelphia .taxonomy-badge.location-badge {
+	background-color: #004C54;
+	color: #fff;
+}
+.location-atlanta .taxonomy-badge.location-badge {
+	background-color: #A71930;
+	color: #fff;
+}
+.location-europe .taxonomy-badge.location-badge {
+	background-color: #003399;
+	color: #fff;
+}
+.location-california .taxonomy-badge.location-badge {
+	background-color: #003262;
+	color: #F2A206;
+}
+.location-tennessee .taxonomy-badge.location-badge {
+	background-color: #FF8200;
+	color: #e5e5e5;
+}
+.location-florida .taxonomy-badge.location-badge {
+	background-color: #FFA500;
+	color: #000;
+}
+.location-maryland .taxonomy-badge.location-badge {
+	background-color: #D72631;
+	color: #fff;
+}
+.location-michigan .taxonomy-badge.location-badge {
+	background-color: #00274C;
+	color: #fff;
+}
+.location-nevada .taxonomy-badge.location-badge {
+	background-color: #DAA520;
+	color: #000;
+}
+.location-new-jersey .taxonomy-badge.location-badge {
+	background-color: #FFD700;
+	color: #000;
+}
+.location-washington .taxonomy-badge.location-badge {
+	background-color: #14532d;
+	color: #fff;
+}
+.location-raleigh .taxonomy-badge.location-badge {
+	background-color: #a3342e;
+	color: #fff;
+}
+.location-peru .taxonomy-badge.location-badge {
+	background-color: #b0002b;
+	color: #f7e17b;
+}
+.location-ohio .taxonomy-badge.location-badge {
+	background-color: #BB0000;
+	color: #fff;
+}
+.location-texas .taxonomy-badge.location-badge {
+	background-color: #c2402b;
+	color: #fff;
+}
+.location-north-carolina .taxonomy-badge.location-badge {
+	background-color: #21468B;
+	color: #fff;
+}
+
+/* === Category Badges === */
+.taxonomy-badge.category-festival-news-badge {
+    background-color: #44D62C;
+    color: #000;
+    border: 1px solid var(--border-color);
+}
+.taxonomy-badge.category-interviews-badge {
+	background-color: #3b5998;
+	color: #fff;
+}
+.taxonomy-badge.category-concert-reviews-badge {
+	background-color: #e67e22;
+	color: #fff;
+}
+.taxonomy-badge.category-festival-reviews-badge {
+	background-color: #16a085;
+	color: #fff;
+}
+.taxonomy-badge.category-music-news-badge {
+	background-color: #8e44ad;
+	color: #fff;
+}
+.taxonomy-badge.category-song-meanings-badge {
+	background-color: #f39c12;
+	color: #fff;
+}
+

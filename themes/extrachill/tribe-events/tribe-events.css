@@ -79,6 +79,9 @@ input[type="text"], input[type="email"], input[type="password"]{
     color: var(--text-color);
 
 }
+
+/* Removing redundant rule block below as badges are now handled by standard theme styles */
+/*
 .tribe-events-calendar-list__event-location{
 	font-size:14px;
 	background-color: var(--button-bg);
@@ -86,6 +89,7 @@ input[type="text"], input[type="email"], input[type="password"]{
 	white-space: nowrap;
     line-height: 1.8;
 	}
+*/
 
 .tribe-events-header__events-bar{
     align-items: baseline;
@@ -274,4 +278,108 @@ background-color: #da190b;
 svg.tribe-common-c-svgicon{
     fill: var(--link-color);
     height: 18px;
+}
+#selected-location-title{
+    margin-bottom: 20px;
+    margin-top: 10px;
+    text-align: center;
+    font-size: 26px;
+}
+
+.tribe-common div .taxonomy-badge{
+    border: 1px solid var(--border-color);
+}
+select#tribe-bar-location {
+    width: min-content;
+}
+
+/* Styles moved from style.css */
+.tribe-common--breakpoint-medium.tribe-events .tribe-events-c-search__input-control:last-child{
+	flex:0;
+	margin:auto;
+}
+.tribe-events .tribe-events-c-events-bar .tribe-common-form-control-text__input{
+	margin-right: 5px;
+}
+
+/* Only show the location icon on mobile */
+.tribe-events-c-events-bar__location-icon {
+	display: none;
+	cursor: pointer;
+	font-size: 24px;
+	padding: 10px;
+}
+@media (max-width: 768px) {
+	.tribe-events-c-events-bar__location-icon {
+		display: inline-block;
+	}
+	.tribe-events .tribe-events-c-events-bar .tribe-common-form-control-text__input{
+		width: 100%;
+	}
+	.tribe-events .tribe-events-c-events-bar__location-icon, .tribe-events button.tribe-events-c-events-bar__location-icon{
+		background-color: transparent;
+		background-image: none;
+		border: none;
+		border-radius: 0;
+		box-shadow: none;
+		display: flex;
+		font-size: var(--tec-font-size-3);
+		font-style: normal;
+		outline: none;
+		padding: 0 15px;
+		text-decoration: none;
+		text-shadow: none;
+	}
+}
+
+.tribe-common .tribe-common-c-svgicon--location{
+	width: 12px;
+}
+
+.date-location{
+	display: flex;
+	gap: 5px;
+	align-items: center;
+}
+.tribe-events .tribe-events-calendar-list__event-title{
+	margin-top: 10px;
+}
+
+div.tribe-events-before-html p {
+	margin-bottom: 18px;
+	margin-top: 10px;
+}
+div.tribe-events-before-html h1{
+	font-weight: 700;
+	font-size: 33px;
+}
+div.tribe-events-before-html a, div.tribe-events-after-html a {
+	color: #53940b;
+}
+div.tribe-events-before-html a:visited, div.tribe-events-after-html a:visited {
+	color: #53940b;
+}
+div.tribe-events-before-html a:hover, div.tribe-events-after-html a:hover {
+	color: #53940b;
+	text-decoration:underline;
+}
+
+.tribe-common--breakpoint-medium.tribe-events .tribe-events-l-container {
+	padding-top:5px;
+	padding-bottom: 0;
+}
+.tribe-events .tribe-events-l-container{
+	padding-top:5px;
+	padding-bottom: 35px;
+	padding: 0 25px;
+}
+div.tribe-events-before-html {
+	padding-bottom:10px;
+}
+div.tribe-events-after-html {
+	padding-top:25px;
+}
+
+.tribe-common .tribe-common-b2--bold{
+	display: block;
 }

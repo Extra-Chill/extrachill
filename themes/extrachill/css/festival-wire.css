@@ -11,17 +11,21 @@
 }
 
 /* Header and Filter Styles */
-.page-header {
+.festival-wire-page .page-header {
     margin-bottom: 2rem;
     text-align: center;
 }
 
-.page-header .page-title {
+.festival-wire-page .page-header .page-title {
     font-size: 2.5rem;
-    margin-bottom: 0.5rem;
-    border-bottom: none;
-    width: 100%;
+    margin-bottom: 1rem;
+    margin-left: auto;
+    margin-right: auto;
+    width: max-content;
     color: var(--text-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .archive-description {
@@ -224,27 +228,7 @@
     padding: 0.25rem 0.75rem;
 }
 
-.festival-tag.tag-tag {
-    background-color: rgba(var(--link-color-rgb), 0.1);
-    color: var(--link-color);
-    border-radius: 50px;
-    border: 1px solid var(--border-color);
-    font-weight: 500;
-    line-height: 1;
-    font-size: 0.75rem;
-    padding: 0.25rem 0.75rem;
-}
 
-.festival-tag {
-    font-size: 0.75rem;
-    padding: 0.25rem 0.75rem;
-    background-color: var(--card-background);
-    color: var(--link-color);
-    border-radius: 50px;
-    border: 1px solid var(--border-color);
-    font-weight: 500;
-    line-height: 1;
-}
 
 .festival-wire-card .entry-title {
     font-size: 1.3rem;
@@ -357,7 +341,6 @@
 }
 
 .festival-wire-single-post .entry-content {
-    font-size: 1.1rem;
     line-height: 1.7;
     color: var(--text-color);
     margin-bottom: 1.5rem;
@@ -567,6 +550,56 @@
     border: 1px solid rgba(220, 53, 69, 0.2);
 }
 
+/* Forum CTA Section */
+.forum-cta-container {
+    /* Use the main background color instead of card background for subtle difference */
+    background-color: var(--background-color);
+    border: 1px solid var(--border-color); /* Keep border consistent */
+    border-radius: 10px;
+    padding: 2rem;
+    margin: 3rem auto 2rem;
+    max-width: 800px;
+    text-align: center;
+    box-shadow: var(--card-shadow); /* Keep shadow for consistency */
+}
+
+.forum-cta-title {
+    font-size: 1.6rem;
+    margin-bottom: 0.75rem;
+    color: var(--text-color);
+}
+
+.forum-cta-description {
+    font-size: 1rem;
+    color: var(--muted-text);
+    margin-bottom: 1.5rem;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.forum-cta-link.button {
+    display: inline-block;
+    background-color: var(--button-bg); /* Keep solid button */
+    color: #fff;
+    padding: 0.75rem 1.5rem;
+    border-radius: 5px;
+    text-decoration: none;
+    font-size: 1rem;
+    font-weight: 500;
+    transition: background-color 0.2s ease, color 0.2s ease; /* Added color transition */
+    cursor: pointer;
+    border: 1px solid var(--button-bg); /* Ensure border matches background */
+    margin-top: 0.5rem;
+}
+
+.forum-cta-link.button:hover {
+    background-color: var(--button-hover-bg);
+    border-color: var(--button-hover-bg); /* Match border color on hover */
+    color: #fff;
+    text-decoration: none;
+}
+
 /* Pagination styling */
 .wp-pagenavi {
     text-align: center;
@@ -697,9 +730,7 @@
         font-size: 1.6rem;
     }
     
-    .festival-wire-single-post .entry-content {
-        font-size: 1rem;
-    }
+
     
     .related-wire-title {
         font-size: 1.5rem;

@@ -67,12 +67,12 @@
             const filterUrl = new URL(window.location.href);
             
             // Clear existing parameters
-            filterUrl.searchParams.delete('festival_tag');
+            filterUrl.searchParams.delete('festival');
             filterUrl.searchParams.delete('location');
             
             // Add parameters if not "all"
             if (selectedFestival !== 'all') {
-                filterUrl.searchParams.set('festival_tag', selectedFestival);
+                filterUrl.searchParams.set('festival', selectedFestival);
             }
             
             if (selectedLocation !== 'all') {
@@ -87,8 +87,8 @@
         function preSelectCurrentFilters() {
             const urlParams = new URLSearchParams(window.location.search);
             
-            // Check festival tag parameter
-            const currentFestival = urlParams.get('festival_tag');
+            // Check festival parameter
+            const currentFestival = urlParams.get('festival');
             if (currentFestival) {
                 festivalSelect.val(currentFestival);
             }

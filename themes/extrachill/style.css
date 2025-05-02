@@ -5,92 +5,10 @@ Version: 69.57
 Text Domain: extrachill
 */
 
-
-/* --- Color Variables & Dark Mode Overrides --- */
-:root {
-    /* Base Colors (Light Mode) */
-    --background-color: #fff;
-    --text-color: #000;
-    
-    /* Main brand/link color: "blue version" of #53940b */
-    --link-color: #0b5394;
-    
-    /* Slightly lighter gray for borders so they’re less prominent */
-    --border-color: #ddd;
-    
-    /* Buttons in light mode: deep blue, with a slightly darker hover */
-    --button-bg: #0b5394;
-    --button-hover-bg: #083b6c;
-
-    /* Component-Specific Variables */
-    --header-bg: #fff;
-    --header-text: #000;
-    
-    /* Accent & Secondary Accent */
-    /* Keep a green accent for special highlights, or unify if you want everything consistent */
-    --accent: #53940b;
-    --accent-2: #36454F;
-    
-    /* Notices */
-    --notice-bg: #c8e6c9;
-    --notice-border: #0b5394; /* Same as link-color for consistency */
-    
-    /* Card & Form Backgrounds */
-    --card-background: #f8fafc;
-    --muted-text: #6b7280;
-    
-    /* Shadows */
-    --card-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
-    --card-hover-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    
-    /* Focus/Outline States */
-    --focus-border-color: #53940b;
-    --focus-box-shadow: 0 0 0 3px rgba(83, 148, 11, 0.2);
-}
-
-/* --- Dark Mode Overrides --- */
-@media (prefers-color-scheme: dark) {
-    :root {
-        /* Base Colors (Dark Mode) */
-        --background-color: #1a1a1a;
-        --text-color: #e5e5e5;
-        
-        /* Green Link Color in Dark Mode for contrast */
-        --link-color: #53940b;
-        
-        /* Darker border for separation */
-        --border-color: #555;
-        
-        /* Keep the button as green, with a slightly darker hover for subtle transitions */
-		--button-bg: #0b5394;
-		--button-hover-bg: #083b6c;
-
-        /* Component-Specific Variables */
-        --header-bg: #000;
-        --header-text: #fff;
-        
-        /* Accent & Secondary Accent */
-        --accent: #53940b; /* Keep the green accent in dark mode */
-        --accent-2: #a8c0d0; /* Softer bluish accent */
-        
-        /* Notices */
-        --notice-bg: #1e1e1e;
-        --notice-border: #444;
-        
-        /* Card & Form Backgrounds */
-        --card-background: #2a2a2a;
-        --muted-text: #b0b0b0;
-        
-        /* Softer Shadows for Dark Mode */
-        --card-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
-        --card-hover-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-        
-        /* Focus/Outline States */
-        --focus-border-color: #8aa6bf;
-        --focus-box-shadow: 0 0 0 3px rgba(138, 166, 191, 0.2);
-    }
-}
-
+/*
+ * Color variables and dark mode overrides have been moved to css/root.css
+ * All theme variables are now globally available from that file.
+ */
 
 html, body, div, span, applet, object, iframe,
 h1, h2, h3, h4, h5, h6, p, blockquote, pre, a,
@@ -137,10 +55,6 @@ a:focus {
 	outline: none;
 }
 
-a:hover, a:active {
-	/* Improves readability when focused and also mouse hovered in all browsers people.opera.com/patrickl/experiments/keyboard/test */
-	outline: 0;
-}
 
 embed, iframe, object {
 	max-width: 100%;
@@ -178,9 +92,9 @@ h1 a, h2 a, h3 a, h4 a, h5 a, h6 a, .entry-title a{
 	color: var(--header-text);
 }
 
-h1, #postvote {
+h1.entry-title, #postvote {
 	font-size: 32px;
-	line-height: 1.4;
+	line-height: 1.6;
 }
 .breadcrumbs, .woocommerce:where(body:not(.woocommerce-uses-block-theme)) .woocommerce-breadcrumb {
 	font-size: 13px;
@@ -196,9 +110,6 @@ h1, #postvote {
 
 .breadcrumb-title{
 	display: none;
-}
-h1#site-title{
-	margin:0;
 }
 
 h2 {
@@ -311,16 +222,13 @@ ol {
 	list-style: decimal;
 }
 
-li > ul, li > ol {
-	margin: 0 0 0 10px;
-}
 
 /*
 ====> 3.4 Blockquote
 --------------------------------------------------------------*/
 .wp-block-quote {
 	padding: 5px 10px 10px 15px;	
-	background-color: var(--card-background);
+	background-color: var(--background-color);
 	border-left: 5px solid;
 	border-color:var(--accent-2);
 	overflow:auto;
@@ -426,7 +334,7 @@ textarea {
 	appearance: none !important;
 }
 
-input[type="text"], input[type="email"], input[type="password"] {
+input[type="text"], input[type="email"], input[type="password"], select {
 	padding: 1%;
 	border: 1px solid var(--border-color);
 	line-height: 20px;
@@ -435,6 +343,10 @@ input[type="text"], input[type="email"], input[type="password"] {
 	background-color: var(--card-background);
 	border-radius: 3px;
 	font-size: 14px;
+}
+select{
+	padding: 1%;
+	width: max-content;
 }
 
 textarea {
@@ -447,7 +359,7 @@ textarea {
 	border-radius: 3px;
 }
 
-input[type="text"]:focus, input[type="email"]:focus, input[type="search"]:focus, input[type="password"]:focus {
+input[type="text"]:focus, input[type="email"]:focus, input[type="search"]:focus, input[type="password"]:focus, select:focus {
 	border: 1px solid var(--focus-border-color);
 }
 
@@ -496,13 +408,6 @@ button {
 	background-color: var(--button-hover-bg);
 }
 
-#search-form input[type="submit"] {
-	border-radius: 0;
-	margin-left: -8px;
-	margin-bottom: 0;
-	padding: 6px 10px 5px;
-	font-size: 18px;
-}
 
 .one-big-vote-button {
   width: 100%;
@@ -537,37 +442,12 @@ p a {
   text-decoration: underline;
 }
 
-a:focus, a:active, a:hover {
-	color:inherit;
-	text-decoration: underline;
-	text-decoration-color: #53940b;
-
-}
-
 
 /*
 ====> 5.2 Primary Menu
 --------------------------------------------------------------*/
-nav li > ul, nav li > ol {
-	margin: 0;
-	list-style: none;
-}
 
-#site-title {
-	padding-bottom: 0;
-	line-height: .5;
-	padding-top: 0px;
-}
 
-.site-title a {
-	text-transform:none;
-	font-family: "Lobster", sans-serif;
-	float:left;
-	font-weight: 100;
-	color: #fff;
-	text-decoration: none;
-	font-size: 36px;
-}
 /*--------------------------------------------------------------
 6.0 Images
 --------------------------------------------------------------*/
@@ -588,7 +468,7 @@ img {
 	object-fit: cover;
 }
 .widget img, .single-related-posts img {
-	height: 300px;
+	height: 200px;
 	object-fit: cover;
 	width: 100%;
 }
@@ -745,37 +625,9 @@ background-color: #000;
 ====> 10.1 Search Design
 --------------------------------------------------------------*/
 
-.search-form-top {
-	border: 1px solid #eaeaea;
-	display: none;
-	padding: 10px;
-	position: absolute;
-	right: 0;
-	top: 60px;
-	z-index: 9999;
-	background-color: #fff;
-		width: 320px;
-}
 
 
-.not-found .search-wrap button {
-	right: 175px;
-}
 
-#secondary .search-wrap button {
-	right: 26px;
-}
-
-.search div.search-header h2 {
-  font-weight: 700;
-  border-bottom: 2px solid #53940b;
-  font-size: 24px;
-}
-.search div.search-header h2 span.search-query {
-  font-weight: 400;
-Font-family: "Helvetica";
-  background: none;
-}
 /*
 ====> 10.3 Social Links
 --------------------------------------------------------------*/
@@ -869,6 +721,7 @@ text-decoration: none;
 }
 .single .post-location-meta {
     align-self: flex-end;
+	line-height: 1.3;
 }
 .single .below-entry-meta{
 	margin: 15px auto;
@@ -931,8 +784,6 @@ text-decoration: none;
     color: #fff;
     padding: 5px 10px;
     text-decoration: none;
-    border-radius: 4px;
-	font-weight: 600;
 }
 .post-location-meta a.location-link{
 	color: #fff;
@@ -969,10 +820,10 @@ span.comments .fa {
 	margin-right: 12px;
 	background-color: var(--card-background); /* Subtle dark grey badge background */
     color: var(--header-text); /* White text for contrast */
-    padding: 5px 7px; /* Padding to make it look like a badge */
+    padding: 7px 9px; /* Padding to make it look like a badge */
     border-radius: 5px; /* Rounded corners for modern look */
     font-size: 0.8em; /* Slightly smaller font size for badge */
-	border: .5px solid var(--border-color);
+	border: 1px solid var(--border-color);
 }
 
 .upvote svg{
@@ -988,10 +839,6 @@ span.comments .fa {
 /*
 ====> 11.4 Highlighted posts widget
 --------------------------------------------------------------*/
-
-.single article{
-	border-bottom:3px solid #000 ;
-}
 
 
 .single .related-posts div.below-entry-meta {
@@ -1046,10 +893,6 @@ line-height:1.4;
 #secondary .widget ul ul,
 #colophon .widget ul ul {
 	padding-left: 10px;
-}
-
-#secondary .widget-title {
-	text-align: left;
 }
 #secondary .widget-title a{
 	color: var(--header-text);
@@ -1296,9 +1139,6 @@ padding-right: 0px;
 
 }
 
-.site-title a {
-	font-size: 27px;
-}
 
 }
 
@@ -1312,6 +1152,7 @@ padding-right: 0px;
 	padding-bottom: 0;
 	border-bottom: 1px solid var(--accent);
 	width: max-content;
+	font-size: 28px;
 }
 
 .archive div.entry-content.clearfix {
@@ -1320,20 +1161,7 @@ padding-right: 0px;
 
 .archive article, .search article, .home article {
 	margin-bottom: 25px;
-	border-top: .5px dotted var(--border-color);
-	padding-top:25px;
-}
-
-#extrachill-custom-sorting{
-margin: 20px 0;
-display: flex;
-gap: 10px;
-align-items: center;
-justify-content: space-between;
-background-color: var(--card-background);
-padding: 15px;
-border-radius: 10px;
-border: 1px solid var(--border-color);
+	padding-top:10px;
 }
 
 .archive .post .img {
@@ -1373,13 +1201,8 @@ border: 1px solid var(--border-color);
 .entry-content li {
 	line-height: inherit;
 	font-size: inherit;
+	margin:10px 0;
 }
-
-.entry-content li > ul, .entry-content li > ol {
-	margin-bottom: 0;
-}
-
-
 
 
 .single #content .tags a {
@@ -1413,161 +1236,14 @@ border: 1px solid var(--border-color);
 }
 
 
-/* =Search Pages
------------------------------------------------ */
-
-.search .status-publish .article-content {
-	padding: 15px;
-}
-
-
-.search .status-publish:first-child {
-	float: none;
-	width: 100%;
-}
-
-.search .archive-layout-two.status-publish {
-	width: 100%;
-}
-
-.search .archive-layout-two.status-publish img {
-	float: left;
-	margin-bottom: 0;
-	margin-right: 20px;
-}
-
-#content .post.archive-layout-two img, .search .post.archive-layout-two img {
-	float: left;
-	margin-bottom: 0;
-	margin-right: 20px;
-    padding-top: 20px;
-    padding-bottom: 20px;
-}
-
-.archive #content .archive-layout-full-width.post:nth-child(2n), .archive #content .archive-layout-full-width.post:nth-child(2n+1),
-.archive #content .archive-layout-two.post:nth-child(2n),
-.archive #content .archive-layout-two.post:nth-child(2n+1),
-.blog #content .archive-layout-full-width.post:nth-child(2n),
-.blog #content .archive-layout-full-width.post:nth-child(2n+1),
-.blog #content .archive-layout-two.post:nth-child(2n),
-.blog #content .archive-layout-two.post:nth-child(2n+1),
-.search .archive-layout-full-width.post:nth-child(2n),
-.search .archive-layout-full-width.post:nth-child(2n+1),
-.search .archive-layout-two.post:nth-child(2n),
-.search .archive-layout-two.post:nth-child(2n+1) {
-	clear: both;
-	float: none;
-	width: 100%;
-}
-
-.archive #content .archive-layout-grid.post:first-child,
-.blog #content .archive-layout-grid.post:first-child,
-.search #content .archive-layout-grid.post:first-child {
-	width: 48.7013%;
-}
-
-.archive #content .archive-layout-grid.post:nth-child(odd),
-.blog #content .archive-layout-grid.post:nth-child(odd),
-.search #content .archive-layout-grid.post:nth-child(odd) {
-	float: left;
-	clear: both;
-}
-
-.archive #content .archive-layout-grid.post:nth-child(2n),
-.blog #content .archive-layout-grid.post:nth-child(2n),
-.search #content .archive-layout-grid.post:nth-child(2n) {
-	float: right;
-	clear: none;
-}
-
-.archive #content .archive-layout-full-width .post:first-child .article-content .entry-title,
-.archive #content .archive-layout-grid .post:first-child .article-content .entry-title,
-.blog #content .archive-layout-full-width .post:first-child .article-content .entry-title,
-.blog #content .archive-layout-grid .post:first-child .article-content .entry-title,
-.search #content .archive-layout-full-width .post:first-child .article-content .entry-title,
-.search #content .archive-layout-grid .post:first-child .article-content .entry-title 
-{
-	font-size: 22px;
-}
-
 /* =Related Posts
 ----------------------------------------------- */
-
-.related-posts-main-title span {
-font-size: 24px;
-    font-weight: 700;
-    color: #000;
-    padding: 5px 5px 5px 0px;
-    border-bottom: 2px solid #53940b;
-    line-height: 1.6;
-}
 
 #tag-list {
 	font-family: "Helvetica";
 	border: none;
 }
-.single-related-posts {
-	width: 32%;
-	margin-right: 1%;
-	margin-bottom: 5px;
-	margin-top: 10px;
-    position: relative;
-    display: inline-block;
-	vertical-align:top;
 
-}
-
-.single-related-posts img {
-	margin-bottom: 0;
-}
-.single-related-posts .article-content {
-	padding: 0 5px;
-}
-.single-related-posts:nth-child(3){
-margin-right:0;
-}
-.single-related-posts:nth-child(6){
-margin-right:0;
-}
-.single-related-posts .article-content .entry-title a:hover {
-	color: #53940b;
-}
-
-.single-related-posts .article-content .below-entry-meta .byline .fa, .single-related-posts .article-content .below-entry-meta .comments .fa {
-	color: #888888;
-	padding-right: 5px;
-	font-size: 11px;
-}
-
-.single-related-posts .article-content .below-entry-meta .posted-on a, .single-related-posts .article-content .below-entry-meta .byline a, .single-related-posts .article-content .below-entry-meta .comments {
-	font-size: 12px;
-}
-
-.related-posts-wrapper {
-	position: relative;
-	padding-top:15px;
-	border-top: .5px solid #d3d3d3
-}
-
-.related-posts-wrapper .related-post-carousel {
-	visibility: hidden;
-	height: 0;
-}
-
-.related-posts-wrapper.style-two .single-related-posts {
-	width: 100%;
-}
-
-.related-posts-wrapper.style-two .related-posts-thumbnail {
-	float: left;
-	margin-right: 20px;
-}
-
-.related-posts-wrapper.style-three .single-related-posts {
-	width: 100%;
-	box-shadow: none;
-	margin-bottom: 12px;
-}
 
 /*
 ====> 13.6 Pagination
@@ -1736,8 +1412,8 @@ input[type="reset"]:active, input[type="button"]:active, input[type="submit"]:ac
 
 .comment-content {
 	padding: 15px 15px 30px;
-	background-color: #F8F8F8;
-	border: 1px solid #EAEAEA;
+	background-color: var(--card-background);
+	border: 1px solid var(--border-color);
 	border-radius: 2px;
 }
 
@@ -1899,6 +1575,7 @@ padding:3px;
     }
 }
 
+
 #extra-footer .menu-item a{
   border-bottom: 1px solid #53940b;
   width: max-content;
@@ -1990,6 +1667,8 @@ padding:3px;
 
 }
 
+
+
 @media screen and (max-width: 1190px) {
 	#page {
 		width: 97%;
@@ -2001,7 +1680,7 @@ padding:3px;
 	.community-cta, 
 	.related-posts-main-title, .single-related-posts .article-content, 
 	.extrachill-recent-activity, 
-	.recent-newsletters-widget, .comments-title, 
+	.comments-title, 
 	.taxonomy-description, 
 	.archive .page-header, .search-header, .category-dropdown, #extrachill-custom-sorting, .page-template-contact .entry-header, .newsletter-subscribe-form, .article-container .newsletter, .recent-title, .wp-block-image figcaption,
 	.woocommerce #main,
@@ -2010,7 +1689,12 @@ padding:3px;
 	.subcategory-dropdown,
 	.breadcrumbs,
 	.single .below-entry-meta,
-	h3.widget-title {
+	.related-wire-title,
+	.recent-newsletters-widget li,
+	.view-all-newsletters,
+	h3.widget-title,
+	.comments-area,
+	.related-tax-section {
 	max-width: 92%; 
 	margin-left: auto;
 	margin-right: auto;
@@ -2024,6 +1708,9 @@ padding:3px;
 	margin-left: auto;
 	margin-right: auto;
 	}
+	.recent-newsletters-widget{
+		width: 100%;
+	}
 }
 
 
@@ -2036,27 +1723,13 @@ padding:3px;
 		padding-right: 0;
 		text-align: center;
 	}
-	.breaking-news {
-		height: 36px;
-		text-align: center;
-		width: 72%;
-	}
 	.social-links {
 		text-align: center;
-	}
-	.breaking-news-latest {
-		float: none;
-	}
-	.related-posts-wrapper.style-two .related-posts-thumbnail {
-		width: 50%;
 	}
 	
 }
 
 @media screen and (max-width: 800px) {
-	#header-text-nav-wrap {
-		padding: 10px 0;
-	}
 	#header-left-section, .header_display_type_one #header-left-section {
 		float: none;
 		margin-bottom: 10px;
@@ -2082,41 +1755,6 @@ padding:3px;
 		padding-bottom: 0px !important;
 	}
 
-}
-@media screen and (min-width: 768px) {
- .wp-block-image img {
-    width: 100%;
-	 max-height: 90vh;
-    object-fit: contain;
-    min-height: 435px;
-}
-	.widget_highlighted_posts .article-content .entry-title a{
-		font-size:20px;
-	}
-	.image-voting-block-image img, .image-voting-block-image{
-		width: 80%;
-	}
-	.one-big-vote-button{
-		width:80%;
-	}
- #masthead.colormag-header-classic #site-navigation #site-title {
-margin-left: 2%;  }
-	.archive article, .search article, .home-article{
-		display: flex;
-		width: 100%;
-		gap: 20px;
-	}
-	.archive .featured-image, .search .featured-image{
-		width: 100%;
-	}
-	.archive-post{
-		display: flex;
-		flex-direction: column;
-		width: 100%;
-	}
-	.search .archive-post {
-		margin-top:15px;
-	}
 }
 
 @media screen and (max-width: 768px) {
@@ -2205,17 +1843,15 @@ h5 {
 		font-size:12px;
 		margin-right:5px;
 	}
-	#masthead .social-links i.fa {
-    font-size: 15px;
-    padding: 0 4px;
-	}
 
 }
 
 .archive .post h2{
 		padding-bottom: 5px;
 	}
-
+	.search h2, .archive h2, #wild-vote{
+		font-size: 24px;
+	}
 /*--------------------------------------------------------------
 18.0 single post pagination
 --------------------------------------------------------------*/
@@ -2274,109 +1910,13 @@ div.article-container :before {
 
 /* tribe events calendar */
 
-.tribe-common--breakpoint-medium.tribe-events .tribe-events-c-search__input-control:last-child{
-	flex:0;
-	margin:auto;
-}
-.tribe-events .tribe-events-c-events-bar .tribe-common-form-control-text__input{
-	margin-right: 5px;
-}
+/* Rules moved to tribe-events/tribe-events.css or removed */
 
-    /* Only show the location icon on mobile */
-    .tribe-events-c-events-bar__location-icon {
-        display: none;
-        cursor: pointer;
-        font-size: 24px;
-        padding: 10px;
-    }
-    @media (max-width: 768px) {
-        .tribe-events-c-events-bar__location-icon {
-            display: inline-block;
-        }
-		.tribe-events .tribe-events-c-events-bar .tribe-common-form-control-text__input{
-			width: 100%;
-		}
-		.tribe-events .tribe-events-c-events-bar__location-icon, .tribe-events button.tribe-events-c-events-bar__location-icon{
-			background-color: transparent;
-			background-image: none;
-			border: none;
-			border-radius: 0;
-			box-shadow: none;
-			display: flex;
-			font-size: var(--tec-font-size-3);
-			font-style: normal;
-			outline: none;
-			padding: 0 15px;
-			text-decoration: none;
-			text-shadow: none;
-			}
-    }
-
-	.tribe-common .tribe-common-c-svgicon--location{
-		width: 12px;
-	}
-
-	.date-location{
-		display: flex;
-		gap: 5px;
-		align-items: center;
-	}
-	.tribe-events .tribe-events-calendar-list__event-title{
-		margin-top: 10px;
-	}
-	.tribe-common .tribe-events-calendar-list__event-location a{
-		color: #fff;
-		padding: 5px;
-
-	}
-	.tribe-common .tribe-events-calendar-list__event-location a:not(.tribe-common-anchor--unstyle):visited{
-		color: #fff;
-
-	}
-	#selected-location-title{
-		margin-bottom: 5px;
-		text-align: center;
-	}
-div.tribe-events-before-html p {
-	margin-bottom: 18px;
-	margin-top: 10px;
-}
-div.tribe-events-before-html h1{
-	font-weight: 700;
-	font-size: 33px;
-}
-div.tribe-events-before-html a, div.tribe-events-after-html a {
-	color: #53940b;
-}
-div.tribe-events-before-html a:visited, div.tribe-events-after-html a:visited {
-	color: #53940b;
-}
-div.tribe-events-before-html a:hover, div.tribe-events-after-html a:hover {
-	color: #53940b;
-	text-decoration:underline;
-}
-
-.tribe-common--breakpoint-medium.tribe-events .tribe-events-l-container {
-	padding-top:5px;
-	padding-bottom: 0;
-}
-.tribe-events .tribe-events-l-container{
-padding-top:5px;
-	padding-bottom: 35px;
-	padding: 0 25px;
-}
-div.tribe-events-before-html {
-	padding-bottom:10px;
-}
-div.tribe-events-after-html {
-padding-top:25px;
-}
-.hide-level-2 .toc-level-2 {
+.hide-level-2 .toc-level-2 { /* Kept */
   display: none;
 }
-.tribe-common .tribe-common-b2--bold{
-	display: block;
-}
+
+/* Removed .related-posts-thumbnail for legacy related posts cleanup */
 
 .related-posts-thumbnail{
 	margin-bottom: 5px;
@@ -2386,9 +1926,7 @@ padding-top:25px;
 .tribe-common--breakpoint-medium.tribe-common .tribe-common-l-container {
 	padding:10px;
 }
-.tribe-events-c-search__input.tribe-events-c-search__input--location{
-width: max-content;
-}
+
 .comments svg {
 height: 1em;
 width: 1em;
@@ -2427,6 +1965,9 @@ border-top: 1px solid #d4d4d4;
 .my-recent-posts{
 	text-align: center;
 }
+h2.recent-title{
+	font-size: 22px;
+}
 .extrachill-recent-activity ul {
   margin: inherit;
   max-width: 100%;
@@ -2449,413 +1990,147 @@ margin-bottom: 10px;
 border-bottom:1px solid #53940b;
 }
 
-#masthead {
-    position: sticky;
-    top: 0; /* Stick to the top of the viewport */
-    z-index: 1000; /* Ensure it stays on top of other content */
-    background-color: #000; /* Optional: Ensure the background is not transparent */
-}
-
-#masthead #reading-progress {
-    position: absolute;
-    bottom: -1px; /* Align the progress bar at the bottom of the header */
-    left: 0;
-    width: 0;
-    height: 5px;
-    background-color: #53940b; /* The green fill color */
-    z-index: 9999; /* Ensure it appears above other elements within the header */
-    transition: width 0.25s ease-out;
-}
-
-/* Main menu hidden by default */
-#primary-menu {
-    position: absolute;
-    top: 100%; /* Positioned off-screen initially */
-    left: 0;
-    width: 100%;
-    z-index: 999999;
-    overflow-y: auto;
-    transform: translateX(-100%);
-    transition: transform 0.6s ease-in-out;
-}
-
-/* Only show primary menu when .menu-open is applied */
-#primary-menu.menu-open {
-    transform: translateX(0);
-    overflow-y: auto;
-}
-/* Hidden by default */
-.search-section, .menu-items {
-    transform: translateX(-100%);
-    transition: transform 0.6s ease-in-out;
-	background-color: #000;
-
-}
-.menu-items{
-	height: 100vh;
-}
-
-/* Prevent background scrolling when menu is open */
-body.menu-open {
-    overflow: clip;
-}
-
-/* Class to make the primary menu cover the entire viewport */
-.menu-opened {
-    width: 100%;
-    height: 100vh;
-    overflow-y: auto;
-    z-index: 1000; /* Ensure the menu appears above other elements */
-}
-
-.search-section{
-	border-bottom: 0 solid #53940b; /* Start with border-width of 0 */
-}
-/* Show search section only when search icon is clicked */
-.search-section.menu-open {
-    transform: translateX(0);
-	overflow-y: auto; /* Enable internal scrolling */
-}
-.search-open .search-section{
-	border-bottom-width: 6px; /* Animate the border*/
-	transition: border-width 0.6s ease-in-out; /* Transition both in and out */
-
-}
-/* Show menu items when full menu is toggled */
-.menu-items.menu-open {
-    transform: translateX(0);
-	overflow-y: auto;
-    max-height: 100vh; /* Ensure menu occupies the full viewport height */
-}
-
-/* Transform search icon to "X" when search is open */
-.search-top.menu-open {
-    transform: rotate(45deg);
-    transition: transform 0.3s ease;
-}
-
-/* Transform menu icon to "X" when menu is open */
-.menu-toggle-container.menu-open .top {
-    transform: translateY(8px) rotate(45deg);
-}
-
-.menu-toggle-container.menu-open .middle {
-    opacity: 0;
-}
-
-.menu-toggle-container.menu-open .bottom {
-    transform: translateY(-8px) rotate(-45deg);
-}
-
-.menu-newsletter .newsletter-form{
-	max-width: 55%;
-	margin: 25px auto;
-	border: 1px dashed var(--border-color);
-	border-radius: 10px;
-	padding: 20px 15px;
-	background-color: var(--card-background);
-	font-size: 15px;
-}
-.menu-newsletter .newsletter-form input{
-	margin-bottom: 20px;
-}
-
-.menu-newsletter .newsletter-form button{
-	margin-bottom: 10px;
-}
-.menu-newsletter .newsletter-form button:hover{
-}
-.menu-newsletter .newsletter-form p{
-	margin: 0;
-}
-#primary-menu .newsletter-form p a {
-	line-height: 1em;
-	text-transform: none;
-}
-
-/* menu item styling */
-
-#primary-menu li {
-    background-color: #000;
-    border-top: 1px solid #888;
-    text-align: center;
-	color: #fff;
-}
-.menu-footer-links{
-	min-height: 40px;
-}
-.menu-footer-links a{
-	margin: 0 10px;
-}
-
-#primary-menu .social-links li, #primary-menu li.menu-social-links {
-	border: none;
-}
-
-#primary-menu a {
-    color: #fff;
-    text-transform: uppercase;
-    line-height: 2.5em;
-	font-size: 19px;
-}
 
 
-#primary-menu .sub-menu {
-    border-left: 3px solid #53940b;
-}
-
-#primary-menu .sub-menu li {
-    padding: 0;
-    background-color: #111;
-}
-
-.menu-toggle-container:hover {
-    background-color: #53940b;
-    transition: background-color 0.1s;
-}
-
-#primary-menu .sub-menu {
-    border-left: 3px solid #53940b;
-}
-
-#primary-menu .sub-menu li {
-    padding: 0;
-    background-color: #111;
-}
-
-#primary-menu .sub-menu ul li {
-    background-color: #222;
-}
-
-/* Menu toggle icon styling */
-.menu-toggle-container {
-    width: 35px;
-    height: 30px;
-    cursor: pointer;
-    position: relative;
-}
-
-/* Hamburger lines */
-.menu-line {
-    display: block;
-    width: 80%;
-    height: 3px;
-    background-color: #fff;
-    margin: 5px auto;
-    transition: transform 0.3s ease;
-    text-align: center;
-	border-radius: 5px;
-}
-
-
-.site-branding {
-    flex: 1; /* Ensures it takes up the space on the left */
-	margin: 0 20px;
-}
-
-.main-navigation, .search-top, .cart-top {
-    display: flex;
-    align-items: center;
-}
-.search-top{
-	cursor: pointer;
-	pointer-events: auto; /* Ensure the icon can be clicked */
-}
-.search-cart{
-	display: flex;
-}
-svg.menu-toggle, svg.search-top, svg.submenu-indicator {
-    fill: #fff;
-    transition: fill 0.3s;
-	margin: 0 20px;
-	vertical-align: middle;
-}
-svg.cart-top{
-    fill: #fff;
-    transition: fill 0.3s;
-	vertical-align: middle;
-	margin-right: 20px;
-}
-.cart-icon .cart-count {
-    position: absolute;
-    top: 12px;
-    right: 7px;
-    background-color: red;
-    color: white;
-    font-size: 11px;
-    font-weight: bold;
-    line-height: 1;
-    text-align: center;
-    border-radius: 50%;
-    width: 17px;
-    height: 17px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 0 3px rgba(0, 0, 0, 0.3);
-    pointer-events: none; /* Prevents click interference */
-}
-svg.search-top, svg.cart-top{
-	height: 1.15em; /* Adjust based on actual size requirement */
-    width: 1.15em;
-}
-svg.submenu-indicator{
-	margin: 0 -20px;
-	height: 1em; /* Adjust based on actual size requirement */
-    width: 1em;
-}
-svg.menu-toggle{
-	margin: 15px;
-}
-
-.search-top:hover, .search-top:hover {    
-	fill: #53940b;
-}
-button.search svg:hover{
-	fill:#fff;
-}
-h1.site-title, p.site-title {
-display: flex;
-line-height: 1.25;
-align-content: center;
-margin: 10px 0;
-}
-button.search{
-	padding:8px;
-	margin-left:3px;
-}
-.search-wrap{
-	padding: 15px;
-	text-align: center;
-	display: flex;
-}
-input.s {
-	width: 100%;
-	padding: 4px 54px 4px 10px;
-	height: 45px;
-	margin: 0;
-}
-
-input.s:focus {
-	padding-left: 10px;
-	text-indent: 0;
-}
-#primary-menu .sub-menu {
-    max-height: 0;
-    overflow: hidden;
-    transition: max-height 0.3s ease, padding 0.3s ease;
-}
-.menu-item-has-children > a {
-    position: relative; /* Ensures submenu indicator is positioned relative to this link */
-}
-#primary-menu .sub-menu.submenu-open {
-    display: block;
-    max-height: 500px; /* Set a reasonable max height for open submenus */
-    padding-top: 10px; /* Adjust padding if needed */
-}
-.submenu-indicator {
-    position: absolute;
-    top: 50%; /* Center vertically */
-    right: 0; /* Align to the far right within the link area */
-    transform: translateY(-50%);
-}
-.search h2, #wild-vote, .archive h2 {
-	font-size:24px;
-}
-#secondary h2.recent-title{
-	font-size: 20px;
-}
-header#masthead.site-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    width: 100%;
-}
-button.menu-toggle-container{
-	background: #000;
-	border: none;
-	border-radius: 0;
-	padding: 0;
-}
-.author-bio{
-	border-bottom: 2px solid #53940b;
-	font-size: 16px;
-}
-
-/* Mediavine CSS */
-@media only screen and (min-width: 1200px) {
-	#secondary {
-		min-width: 306px;
-	}
-	}
-	
-	@media only screen and (max-width: 430px) {
-	.footer-widget-areas {
-		flex-wrap: wrap;
-	}
-	}
-	/* End Mediavine CSS */
-
-.newsletter-subscribe-form {
-	margin-bottom: 10px;
-}
-.single-newsletter #comments{
-	border-top: 2px solid #53940b;
-}
 .subscribe-popup, .community-popup{
-	position: fixed; 
-	top: 50%; 
-	left: 50%; 
-	transform: translate(-50%, -50%); 
-	background-color: var(--card-background); 
-	border-radius:10px; 
+	position: fixed;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+	background-color: var(--card-background);
+	border-radius: 8px;
 	box-sizing: border-box;
-	border:5px solid #53940b; 
-	padding: 20px; 
+	border: 1px solid var(--border-color);
+	padding: 30px 25px 25px 25px;
 	z-index: 999999999999999999999;
 	display: flex;
     flex-direction: column;
 	margin:auto;
+	max-width: 450px;
+	width: 90%;
+    box-shadow: var(--card-shadow);
 }
-.subscribe-popup input, .community-popup input {
-	margin:5px 0 0 0;
-	padding:10px;
-	border:1px solid;
-}
-.subscribe-popup button, .community-popup button{
-	background-color: var(--button-bg);
+
+/* --- Popup Text Styling --- */
+.subscribe-popup p:first-of-type { /* Target the main description text */
+	font-size: 1.2em; /* Slightly increased size for more emphasis */
+	margin-top: 0;
+	margin-bottom: 20px; /* Increased space before input */
 	text-align: center;
-	padding: 10px 20px;
-	max-width: 300px;
-	margin:15px auto 0;
-	border: 3px dashed #53940b;
+	color: var(--text-color);
+	line-height: 1.5; /* Slightly tighter line height */
+    font-family: "Loft Sans", sans-serif; /* Use theme font */
+    font-weight: 500; /* Medium weight */
 }
-.subscribe-popup form, .community-popup form{
+
+/* --- Form Styling --- */
+.subscribe-popup form {
+    display: flex;
+    flex-direction: column; /* Stack input and button vertically */
+    width: 100%;
+    margin-bottom: 10px; /* Add small space below form */
+}
+
+.subscribe-popup input[type="text"] { /* More specific selector */
+	margin: 0 0 10px 0; /* Adjusted margin: only bottom */
+	padding: 12px 10px;
+	border: 1px solid var(--border-color);
+    background-color: var(--background-color);
+    width: 100%;
+    border-radius: 3px;
+	box-sizing: border-box;
+    color: var(--text-color); /* Ensure input text uses theme color */
+}
+/* Placeholder specific styling */
+.subscribe-popup input[type="text"]::placeholder {
+    color: var(--muted-text); /* Use muted text color for placeholder */
+    opacity: 0.8; /* Make placeholder slightly less prominent */
+}
+
+.subscribe-popup input[type="text"]:focus {
+    border-color: var(--focus-border-color);
+    box-shadow: var(--focus-box-shadow);
+    outline: none;
+}
+
+/* --- Primary Subscribe Button (inside form) --- */
+.subscribe-popup form button.subscribe-button {
+    background-color: var(--button-bg);
+    text-align: center;
+	padding: 12px 25px;
+	border: none;
+    border-radius: 5px;
+    color: #fff; /* Explicitly white text */
+    font-weight: bold;
+    transition: background-color 0.3s ease;
+    width: 100%;
+    cursor: pointer;
+	margin-top: 0; /* No top margin needed if input has bottom margin */
+	box-sizing: border-box;
+}
+.subscribe-popup form button.subscribe-button:hover {
+    background-color: var(--button-hover-bg);
+}
+
+/* --- "See Past Newsletters" Link Styling --- */
+.subscribe-popup p:has(> a[href="/newsletters"]) { /* Target the P containing the specific link */
+	margin: 20px 0 15px 0; /* Increased top margin */
+	text-align: center; /* Already has inline style, but good to have */
+}
+.subscribe-popup p a[href="/newsletters"] { /* Target the specific link */
+	color: var(--link-color); /* Use theme link color */
+	font-size: 0.9em;
+	text-decoration: underline;
+	font-weight: 500; /* Give link medium weight */
+}
+.subscribe-popup p a[href="/newsletters"]:hover {
+	opacity: 0.8; /* Slight fade on hover */
+}
+
+/* --- Container for Secondary Buttons --- */
+.subscribe-popup .popup-buttons {
+	margin-top: 5px; /* Reduced top margin slightly */
 	display: flex;
 	flex-direction: column;
-	align-items: center;
+	gap: 10px; /* Space between buttons in the group */
+	width: 100%;
 }
-button.close-popup{
+
+/* --- General Styling for Secondary Buttons --- */
+.subscribe-popup .popup-buttons button {
+	text-align: center;
+	padding: 12px 25px;
+	border: none;
+    border-radius: 5px;
+    font-weight: bold;
+    transition: background-color 0.3s ease, opacity 0.3s ease; /* Added opacity transition */
+    width: 100%;
+    cursor: pointer;
+	box-sizing: border-box;
+}
+
+/* --- Follow Instagram Button --- */
+.subscribe-popup .popup-buttons button.follow-instagram {
+	background-color: var(--accent); /* Use accent green */
+	color: #000; /* Black text for better contrast on bright green */
+	font-size: 1em;
+}
+.subscribe-popup .popup-buttons button.follow-instagram:hover {
+	opacity: 0.85;
+}
+
+/* --- Close/Dismiss Button --- */
+.subscribe-popup .popup-buttons button.close-popup {
 	background-color: var(--muted-text);
-	font-size: .7em;
-	border:none;
+	color: var(--text-color); /* Use standard text color for contrast */
+	font-size: 0.9em;
+	font-weight: normal;
 }
-button.follow-instagram{
-	background-color: var(--accent);
-	font-size: .7em;
-	border:none;
+.subscribe-popup .popup-buttons button.close-popup:hover {
+	opacity: 0.8;
 }
-#menu-footer-bottom{
-	display: flex;
-	margin: auto;
-	font-size: .9em;
-	justify-content: center;
-	border: none;
-}
-#menu-footer-bottom .menu-item a{
-	border: none;
-	padding: 5px;
-}
+
+
 .popup-buttons{
 	margin: auto;
 	text-align: center;
@@ -2897,128 +2172,12 @@ button.follow-instagram{
 a.location-link{
 	overflow: hidden;
 }
-.location-charleston  a.location-link {
-	background-color: #660000;
-	color: #e5e5e5;
-}
-.location-austin a.location-link{
-	background-color: #bf5700;
-	color: #e5e5e5;
-}
-
-.location-asheville a.location-link{
-	background-color:#122518;
-}
-
-.location-columbia a.location-link{
-	background-color:#73000a;
-}
-
-.location-boston a.location-link{
-	background-color:#BD3039;
-}
-.location-jamaica a.location-link{
-}
-.location-usa a.location-link{
-}
-.location-chicago a.location-link{
-	background-color:#41B6E6;
-}
-.location-philadelphia a.location-link {
-	background-color: #004C54; /* Eagles green */
-}
-.location-atlanta a.location-link {
-	background-color: #A71930; /* Falcons red */
-}
-.location-europe a.location-link {
-	background-color: #003399; /* EU flag blue */
-}
-.location-california a.location-link {
-	background-color: #003262;
-	color: #F2A206; /* Golden yellow — UCLA/California sunshine */
-}
-
-.location-tennessee a.location-link {
-	background-color: #FF8200; /* University of Tennessee Vols orange */
-	color: #e5e5e5;
-}
-
-.location-florida a.location-link {
-	background-color: #FFA500;
-	color: #000;
-}
-.location-maryland a.location-link {
-	background-color: #D72631; /* Maryland flag red */
-	color: #fff;
-}
-.location-michigan a.location-link {
-	background-color: #00274C;
-	color: #fff;
-}
-.location-nevada a.location-link {
-	background-color: #DAA520;
-	color: #000;
-}
-.location-new-jersey a.location-link {
-	background-color: #FFD700;
-	color: #000;
-}
-
-
-.tag-festival-news a.festival-tag {
-	background-color: #44D62C; /* Vibrant lime green */
-	color: #000000;            /* Black text for contrast */
-}
-
-
-/* Festival Badges */
-.festival-badges a.festival-bonnaroo  {
-	background-color: #000000; /* black background */
-	color: #79c031;            /* Bonnaroo green text */
-}
-.festival-badges a.festival-coachella {
-	background-color: #EFC93D; /* Desert sunshine yellow */
-	color: #000; /* readable on light background */
-}
-
-.festival-badges a.festival-acl-festival {
-	background-color: #f56423; /* Vibrant ACL orange */
-	color: #192819;            /* Earthy green-black */
-}
-
-.festival-badges a.festival-sxsw {
-	background-color: #000000;
-	color: #ffffff;
-}
-.festival-badges a.festival-electric-forest {
-	background-color: #228B22; /* Forest green */
-	color: #fff;
-}
-.festival-badges a.festival-hulaween {
-	background-color: #7E57C2; /* Haunted purple */
-	color: #fff;
-}
-.festival-badges a.festival-shaky-knees {
-	background-color: #C62828; /* Deep red */
-	color: #fff;
-}
-.festival-badges a.festival-governors-ball {
-	background-color: #1E90FF; /* NYC street blue */
-	color: #fff;
-}
-
-.festival-badges a.festival-all-things-go-festival {
-	background-color: #A6D6D6;
-	color: #000;
-}
-
-
-
 
 .archive-excerpt{
 font-size: 16px;
 margin: 5px 0;
 }
+
 #forum-post, .read-more-button{
 	background:var(--button-bg);
 	font-size: 13px;
@@ -3029,76 +2188,182 @@ margin: 5px 0;
 	color: #fff;
 }
 
-#hero-section {
-    padding: 40px 0;
-    background-color: var(--background-color); /* Fallback for browsers that don't support gradients */
-    background-image: linear-gradient(to bottom, var(--card-background), var(--background-color)); /* Slightly stronger light gray to white gradient */
-    text-align: center;
-	margin-top: 10px;
+/* Sidebar Card Layout */
+.sidebar-card {
+  background: var(--card-background, #181818);
+  border-radius: 14px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.10);
+  margin-bottom: 2em;
+  padding: 1.5em 1.2em 1.2em 1.2em;
+  transition: box-shadow 0.18s;
+  border: 1px solid var(--border-color, #333);
+}
+@media (max-width: 700px) {
+  .sidebar-card {
+    padding: 1em 0.7em;
+    margin-bottom: 1.2em;
+  }
 }
 
-#hero-section h2 {
-    font-size: 2.5em;
-    margin-bottom: 20px;
-    font-family: "Loft Sans", sans-serif;
+/* Sidebar Recent Posts Title Margin for Desktop */
+@media (min-width: 900px) {
+  #secondary {
+    margin-top: 32px;
+  }
+  .sidebar-recent-title-margin {
+    margin-top: 0;
+  }
+}
+.sidebar-tax-link {
+  color: var(--accent, #79c031);
+  text-decoration: underline;
+  font-weight: 700;
+}
+.sidebar-tax-link:hover {
+  color: var(--button-hover-bg, #003466);
+  text-decoration: underline;
 }
 
-#hero-section h3 {
-    font-size: 1.5em;
-    margin-bottom: 30px;
-    color: var(--muted-text);
-    font-weight: normal;
-    font-family: "Loft Sans", sans-serif;
+/* Related taxonomies CSS moved to css/single-post.css for modularization and maintainability. */
+
+.my-recent-posts .post:not(:last-child) {
+  margin-bottom: 1.3em;
+  padding-bottom: 1.1em;
+  border-bottom: 1px solid var(--border-color, #333);
 }
 
-.hero-buttons-container {
-    display: flex;
-    justify-content: center;
-    gap: 20px;
+/* === Taxonomy Badges (Standardized) === */
+.taxonomy-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+  align-items: center;
+  position: relative;
+  z-index: 2;
+}
+.taxonomy-badge {
+  font-size: 0.75rem;
+  padding: 0.25rem 0.75rem;
+  background-color: var(--card-background);
+  color: var(--link-color);
+  border-radius: 50px;
+  border: 1px solid var(--border-color);
+  font-weight: 500;
+  line-height: 1;
+  text-decoration: none;
+  display: inline-block;
+  transition: background 0.18s, color 0.18s;
+}
+.taxonomy-badge:hover {
+  background-color: var(--button-hover-bg);
+  color: #fff;
+  text-decoration: none;
 }
 
-.hero-button {
-    display: inline-block;
-    padding: 12px 25px;
-    font-size: 1.1em;
-    text-decoration: none;
-    border-radius: 5px;
-    transition: background-color 0.3s ease;
+.tag-badge {
+  background-color: rgba(var(--link-color-rgb), 0.1);
+  color: var(--link-color);
+  border: 1px solid var(--border-color);
+}
+.location-badge {
+  background-color: var(--button-bg);
+  color: #fff;
+  border: 1px solid var(--border-color);
 }
 
-.community-button {
-    background-color: var(--button-bg);
-    color: white;
+@media (max-width: 600px) {
+  .taxonomy-badges {
+    gap: 0.3rem;
+    margin-bottom: 0.7rem;
+  }
 }
 
-.community-button:hover {
-    background-color: var(--button-hover-bg);
+.title-upvote-row {
+  display: flex;
+  align-items: center;
+  gap: 0.7em;
+  margin-bottom: 0.2em;
+  padding-top: 15px;
+}
+.title-upvote-row .upvote {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 5px 7px;
+}
+.title-upvote-row .entry-title {
+  margin: 0;
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+@media (max-width: 600px) {
+  .title-upvote-row .entry-title {
+    font-size: 1.1rem;
+  }
 }
 
-.newsletter-button {
-    background-color: var(--card-background);;
-    border: .3px solid var(--border-color);
-	color: var(--muted-text);
+/* Sidebar Mini Card Styles for Festival Wire */
+.my-recent-posts .mini-card {
+  background: var(--card-background, #191d1a);
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(83,148,11,0.07);
+  border: 1.5px solid var(--border-color, #333);
+  padding: 1.1em 1em 0.7em 1em;
+  margin-bottom: 1.1em;
+  transition: box-shadow 0.18s, background 0.18s;
+  text-align: left;
+  color: var(--header-text, #fff);
+}
+.my-recent-posts .mini-card:hover {
+  background: var(--button-hover-bg, #232323);
+  box-shadow: 0 4px 16px rgba(83,148,11,0.13);
+}
+.my-recent-posts .mini-card .recent-title {
+  font-size: 1.08em;
+  font-weight: 700;
+  margin: 0.2em 0 0.1em 0;
+  color: var(--link-color, #79c031);
+  letter-spacing: 0.01em;
+}
+.my-recent-posts .mini-card .recent-title a {
+  color: var(--link-color, #79c031);
+  text-decoration: none;
+  transition: color 0.18s;
+}
+.my-recent-posts .mini-card .recent-title a:hover {
+  color: var(--button-bg, #53940b);
+  text-decoration: underline;
+}
+.my-recent-posts .mini-card .post-thumbnail {
+  margin-bottom: 0.5em;
+  border-radius: 7px;
+  overflow: hidden;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.07);
 }
 
-.newsletter-button:hover {
-    background-color: var(--border-color);
+/* Sidebar Widget Title Contrast - Toned Down */
+.my-recent-posts .widget-title.sidebar-recent-title-margin {
+  background: var(--card-background, #191d1a);
+  color: #fff;
+  border-radius: 8px 8px 0 0;
+  font-family: 'Loft Sans', 'Montserrat', 'Arial', sans-serif;
+  font-size: 1.08em;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+  padding: 0.6em 0.7em 0.4em 0.7em;
+  margin-bottom: 0.7em;
+  border-bottom: 2px solid #79c031;
+  box-shadow: none;
+  text-align: left;
 }
 
-/* Media query for screens smaller than 450px */
-@media (max-width: 450px) {
-    #hero-section h2 {
-        font-size: 1.5em; /* Reduced font size for mobile */
-    }
-
-    #hero-section h3 {
-        font-size: 1em; /* Reduced font size for mobile */
-    }
-
-    .hero-button {
-        padding: 8px 15px; /* Reduced padding for mobile */
-        font-size: 0.9em; /* Reduced font size for mobile */
-    }
+/* Ensure badges within TEC list view header match standard size */
+.tribe-events .tribe-events-calendar-list__event-header .taxonomy-badge {
+	font-size: 0.75rem; /* Match standard badge size */
+	padding: 0.25rem 0.75rem; /* Match standard badge padding */
+	line-height: 1; /* Match standard badge line-height */
 }
-
-

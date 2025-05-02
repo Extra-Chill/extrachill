@@ -70,9 +70,16 @@ $after = apply_filters( 'tribe_events_single_event_title_html_after', '</h1>', $
 $title = apply_filters( 'tribe_events_single_event_title_html', the_title( $before, $after, false ), $event_id );
 $cost  = tribe_get_formatted_cost( $event_id );
 
+$locations = get_the_terms( get_the_ID(), 'location' );
+$location_classes = '';
+if ( ! is_wp_error( $locations ) && ! empty( $locations ) ) {
+    foreach ( $locations as $location ) {
+        $location_classes .= ' location-' . sanitize_html_class( $location->slug );
+    }
+}
 ?>
 
-<div id="tribe-events-content" class="tribe-events-single">
+<div id="tribe-events-content" class="tribe-events-single<?php echo esc_attr( $location_classes ); ?>">
 
 	<p class="tribe-events-back">
 		<a href="<?php echo esc_url( tribe_get_events_link() ); ?>"> <?php printf( '&laquo; ' . esc_html_x( 'All %s', '%s Events plural label', 'the-events-calendar' ), $events_label_plural ); ?></a>
@@ -81,24 +88,13 @@ $cost  = tribe_get_formatted_cost( $event_id );
 	    // Get the location terms for the event
 	    $locations = get_the_terms( get_the_ID(), 'location' );
 
-	    if ( ! empty( $locations ) && ! is_wp_error( $locations ) ) :
-	        foreach ( $locations as $location ) :
-	            // Define the base URL for the events list view
-	            $base_url = home_url( '/calendar/list/' );
-
-	            // Add 'tribe-bar-location' parameter to the URL while preserving existing parameters
-	            $location_url = add_query_arg( array_merge( $_GET, [ 'tribe-bar-location' => $location->slug ] ), $base_url );
-
-	            // Create a unique CSS class based on location slug
-	            $location_class = 'location-' . sanitize_html_class( $location->slug );
-	            ?>
-	            <div class="tribe-events-single-event-location <?php echo esc_attr( $location_class ); ?>">
-	                <a class="location-link" href="<?php echo esc_url( $location_url ); ?>">
-	                    <?php echo esc_html( $location->name ); ?>
-	                </a>
-	            </div>
+	    if ( ! empty( $locations ) && ! is_wp_error( $locations ) ) : ?>
+	    <div class="taxonomy-badges">
+	        <?php foreach ( $locations as $location ) : ?>
+	            <a href="<?php echo esc_url( get_term_link( $location ) ); ?>" class="taxonomy-badge location-badge"><?php echo esc_html( $location->name ); ?></a>
 	        <?php endforeach; ?>
-	    <?php endif; ?>
+	    </div>
+	<?php endif; ?>
 
 	<!-- Notices -->
 	<?php tribe_the_notices() ?>
