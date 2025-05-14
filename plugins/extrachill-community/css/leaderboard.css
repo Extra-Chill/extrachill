@@ -1,0 +1,93 @@
+/* Leaderboard Styles */
+
+.leaderboard-container {
+    background-color: var(--card-background);
+    padding: 20px;
+    margin: 20px auto;
+    max-width: 960px; /* Adjust as needed */
+    box-shadow: var(--card-shadow);
+    border-radius: 10px;
+}
+
+.leaderboard-header {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.leaderboard-title {
+    font-family: "WilcoLoftSans", sans-serif;
+    font-size: 2.5em; /* Adjust as needed */
+    color: var(--text-color);
+    margin-bottom: 10px;
+}
+
+.leaderboard-description {
+    color: var(--muted-text);
+    font-size: 1em;
+}
+
+.leaderboard-table-container {
+    overflow-x: auto; /* Enable horizontal scrolling for small screens */
+}
+
+.leaderboard-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+}
+
+.leaderboard-table th,
+.leaderboard-table td {
+    padding: 12px 15px;
+    text-align: left;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.leaderboard-table th {
+    background-color: var(--accent-2); /* Use accent-2 for header background */
+    font-weight: bold;
+}
+
+.leaderboard-table tbody tr:nth-child(even) {
+    background-color: color-mix(in lch, var(--card-background) 90%, white); /* Lighter card background for even rows */
+}
+
+.leaderboard-table tbody tr:hover {
+    background-color: color-mix(in lch, var(--card-background) 80%, white); /* Lighter hover effect */
+}
+
+.leaderboard-table td a {
+    color: var(--link-color);
+    text-decoration: none;
+}
+
+.leaderboard-table td a:hover {
+    text-decoration: underline;
+}
+
+.leaderboard-pagination {
+    text-align: center;
+}
+
+/* Responsive adjustments (example for mobile) */
+@media (max-width: 768px) {
+    .leaderboard-container {
+        padding: 15px;
+        margin: 15px auto;
+    }
+
+    .leaderboard-title {
+        font-size: 2em;
+    }
+
+    .leaderboard-table th,
+    .leaderboard-table td {
+        padding: 8px 10px;
+        font-size: 0.9em;
+    }
+
+    .leaderboard-table th,
+    .leaderboard-table td {
+        font-size: 0.85em; /* Further reduce font size on mobile */
+    }
+}

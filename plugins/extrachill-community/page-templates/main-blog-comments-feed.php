@@ -6,6 +6,24 @@
  */
 
 get_header();
+?>
+<div <?php generate_do_attr( 'page' ); ?>>
+    <?php
+    /**
+     * generate_inside_site_container hook.
+     */
+    do_action( 'generate_inside_site_container' );
+    ?>
+    <div <?php generate_do_attr( 'site-content' ); ?>>
+        <?php
+        /**
+         * generate_inside_container hook.
+         */
+        do_action( 'generate_inside_container' );
+        ?>
+        <?php extrachill_breadcrumbs(); ?>
+
+<?php
 
 echo '<div id="chill-home">';
 echo '<div id="chill-home-header"><span>';
@@ -18,9 +36,12 @@ if ($isUserProfile) {
     echo '<h1 class="profile-title-inline">' . $title . '</h1>';
 
     // Display the follow button only on user profile pages
+    // -- REMOVED Follow Button Call --
+    /*
     if (function_exists('extrachill_follow_button')) {
         extrachill_follow_button(bbp_get_displayed_user_id());
     }
+    */
 } else {
     // Display the title for non-profile pages
     echo '<h1>' . get_the_title() . '</h1>';
@@ -29,26 +50,12 @@ if ($isUserProfile) {
 echo '</span>';
 
 if (is_user_logged_in()) :
-    echo '<p>Logged in as <a href="/user-dashboard">' . esc_html(wp_get_current_user()->display_name) . '.</a></p>';
+    echo '<p>Logged in as <a href="<?php echo bbp_get_user_profile_url(wp_get_current_user()->ID); ?>">' . esc_html(wp_get_current_user()->display_name) . '.</a></p>';
 else :
     echo '<p>You are not signed in. <a href="/login">Login</a> or <a href="/register">Register</a></p>';
 endif;
 
 echo '</div>'; // End of chill-home-header
-
-// Retrieve the user_id query variable value from the URL
-$community_user_id = get_query_var('user_id', 0); // Default to 0 if not set
-// Fetch user data based on the community_user_id
-$user_info = get_userdata($community_user_id);
-$user_nicename = $user_info ? $user_info->user_nicename : null;
-
-// Check if a valid user ID is present
-if ($user_nicename) {
-    // Construct the link back to the user's bbPress profile
-    $profile_link = '/u/' . $user_nicename;
-    echo '<p><a href="' . esc_url($profile_link) . '">Back to Profile</a></p>'; // Display the link
-}
-
 
 ?>
 
@@ -68,6 +75,8 @@ if ($user_nicename) {
 
     ?>
 
+        </div><!-- .site-content -->
+    </div><!-- .page -->
 <?php
 get_sidebar();
 get_footer();

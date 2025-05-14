@@ -14,8 +14,6 @@ if ( ! bbp_is_single_forum() ) : ?>
 
 <div id="bbpress-forums" class="bbpress-wrapper">
 
-	<?php bbp_breadcrumb(); ?>
-
 <?php endif; ?>
 
 <?php if ( bbp_is_topic_edit() ) : ?>
@@ -58,16 +56,6 @@ if ( ! bbp_is_single_forum() ) : ?>
 					<div class="bbp-template-notice">
 						<ul>
 							<li><?php esc_html_e( 'This forum is marked as closed to new topics, however your posting capabilities still allow you to create a topic.', 'bbpress' ); ?></li>
-						</ul>
-					</div>
-
-				<?php endif; ?>
-
-				<?php if ( current_user_can( 'unfiltered_html' ) ) : ?>
-
-					<div class="bbp-template-notice">
-						<ul>
-							<li><?php esc_html_e( 'Your account has the ability to post unrestricted HTML content.', 'bbpress' ); ?></li>
 						</ul>
 					</div>
 
@@ -122,7 +110,8 @@ if ( ! bbp_is_single_forum() ) : ?>
 
 					<?php endif; ?>
 
-					<?php if ( ! bbp_is_single_forum() ) : ?>
+					<?php // Only show forum dropdown if NOT on a single forum AND NOT on a single band profile page
+                    if ( ! bbp_is_single_forum() && ! is_singular('band_profile') ) : ?>
 
 						<?php do_action( 'bbp_theme_before_topic_form_forum' ); ?>
 

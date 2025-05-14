@@ -45,14 +45,30 @@ function remove_bbpress_topic_tags() {
 add_filter('bbp_allow_topic_tags', 'remove_bbpress_topic_tags');
 
 
-function override_bbp_user_forum_role( $role, $user_id ) {
-    // Get the custom title if it exists
-    $custom_title = get_user_meta( $user_id, 'ec_custom_title', true );
+// Load the function after bbPress is fully loaded
+add_action( 'after_setup_theme', 'override_bbp_user_role_after_bbp_load' );
 
-    // Return custom title if it's set, otherwise return the default role
-    return !empty( $custom_title ) ? $custom_title : $role;
+function override_bbp_user_role_after_bbp_load() {
+    // Hook into bbPress filter after it's available
+    add_filter( 'bbp_get_user_display_role', 'override_bbp_user_forum_role', 10, 2 );
 }
-add_filter( 'bbp_get_user_display_role', 'override_bbp_user_forum_role', 10, 2 );
+
+function override_bbp_user_forum_role( $role, $user_id ) {
+    // Ensure bbPress functions are available
+    if ( function_exists( 'bbp_is_user_keymaster' ) && function_exists( 'bbp_get_user_display_role' ) ) {
+
+        // Get the custom title if it exists
+        $custom_title = get_user_meta( $user_id, 'ec_custom_title', true );
+
+        // Return custom title if set, otherwise return "Extra Chillian" for regular users
+        return ! empty( $custom_title ) ? $custom_title : 'Extra Chillian';
+    }
+
+    // Fallback if bbPress is not loaded properly
+    return $role;
+}
+
+
 
 function save_ec_custom_title( $user_id ) {
     if ( isset( $_POST['ec_custom_title'] ) ) {
@@ -155,3 +171,36 @@ function remove_counts() {
 return $args;
 }
 add_filter('bbp_before_list_forums_parse_args', 'remove_counts' );
+
+
+// Remove reply and edit links from admin links
+function ec_remove_reply_and_edit_from_admin_links( $links, $reply_id ) {
+    if ( isset( $links['reply'] ) ) {
+        unset( $links['reply'] ); // Remove Reply
+    }
+    if ( isset( $links['edit'] ) ) {
+        unset( $links['edit'] ); // Remove Edit
+    }
+    return $links;
+}
+add_filter( 'bbp_reply_admin_links', 'ec_remove_reply_and_edit_from_admin_links', 10, 2 );
+add_filter( 'bbp_topic_admin_links', 'ec_remove_reply_and_edit_from_admin_links', 10, 2 );
+
+
+/**
+ * Get a human-readable timestamp for a topic's last active time.
+ *
+ * @param int $topic_id The topic ID.
+ * @return string Human-readable time difference (e.g., "5 minutes ago").
+ */
+function ec_get_topic_last_active_diff( $topic_id ) {
+    // Get the last active time as stored by bbPress.
+    $last_active_time = bbp_get_topic_last_active_time( $topic_id );
+    if ( ! empty( $last_active_time ) ) {
+        // Convert it to a timestamp.
+        $timestamp = strtotime( $last_active_time );
+        // Calculate the time difference from now.
+        return human_time_diff( $timestamp, current_time( 'timestamp' ) ) . ' ago';
+    }
+    return '';
+}

@@ -1,16 +1,16 @@
 function toggleForumCollapse(icon, containerClass) {
     const container = document.querySelector('.' + containerClass);
-
+ 
     // Immediately remove any existing transitionend event listener to prevent stacking
     container.removeEventListener('transitionend', handleTransitionEnd);
-
+ 
     function handleTransitionEnd() {
         // If expanded, remove fixed height to allow for dynamic content resizing
         if (!container.classList.contains('collapsed')) {
             container.style.height = null;
         }
     }
-
+ 
     // Determine action based on collapsed state
     if (container.classList.contains('collapsed')) {
         // Preparing to expand
@@ -32,8 +32,8 @@ function toggleForumCollapse(icon, containerClass) {
         container.classList.add('collapsed');
         icon.className = "fa-solid fa-square-plus"; // 'Plus' icon for collapsed state
     }
-
+ 
     // Listen for the end of the transition to remove fixed height or handle rapid toggles
     container.addEventListener('transitionend', handleTransitionEnd, { once: true });
 }
-
+window.toggleForumCollapse = toggleForumCollapse;

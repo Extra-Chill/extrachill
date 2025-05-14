@@ -1,0 +1,17 @@
+{
+    "name": "chubes/extrachill",
+    "description": "packages for commmunity theme",
+    "autoload": {
+        "psr-4": {
+            "Chubes\\Extrachill\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Chris Huber"
+        }
+    ],
+    "require": {
+        "endroid/qr-code": "^6.0"
+    }
+}

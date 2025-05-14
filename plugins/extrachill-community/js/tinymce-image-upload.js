@@ -63,11 +63,16 @@
                         contentType: false,
                         success: function(response) {
                             if (response.success) {
-                                console.log("Image uploaded successfully:", response.data.url);
-                                editor.insertContent('<img src="' + response.data.url + '" style="max-width:100%;" />');
+                                // Insert the image wrapped in a paragraph, then add an extra blank paragraph.
+                                var content = '<p><img src="' + response.data.url + '" style="max-width:50%;" class="uploaded-image" /></p><p><br /></p>';
+                                editor.insertContent(content);
+                                editor.focus();
+                                // Collapse the selection to the end of the content so the cursor is in the new blank paragraph.
+                                editor.selection.collapse(false);
                             } else {
                                 console.error("Upload failed:", response.data.message);
                             }
+                            
                             // Remove loading indicator
                             loader.parentNode.removeChild(loader);
                         },

@@ -1,105 +1,82 @@
 <?php
-function wp_surgeon_sort_topics_by_upvotes($args) {
-    // Check if sorting by upvotes is selected
-    if (isset($_GET['sort']) && $_GET['sort'] == 'upvotes') {
-        $args['meta_key'] = 'upvote_count'; // Assuming 'upvote_count' is stored as post meta
-        $args['orderby'] = 'meta_value_num';
-        $args['order'] = 'DESC';
-    }
 
-    return $args;
+// Enqueue sorting script
+function enqueue_sorting_script() {
+    wp_enqueue_script('sorting', get_stylesheet_directory_uri() . '/js/sorting.js', ['jquery'], null, true);
+
+    // Localize script to pass AJAX URL and nonce
+    wp_localize_script('sorting', 'wpSurgeonAjax', [
+        'ajax_url' => admin_url('admin-ajax.php'),
+        'nonce' => wp_create_nonce('wp_surgeon_sort_nonce')
+    ]);
 }
-add_filter('bbp_before_has_topics_parse_args', 'wp_surgeon_sort_topics_by_upvotes');
-
-// Function to filter topics by time range
-function wp_surgeon_filter_topics_by_time_range($args) {
-    // Limiting posts by time range
-    if (isset($_GET['time_range']) && in_array($_GET['time_range'], ['7', '30', '90'])) {
-        $days = (int) $_GET['time_range'];
-        $date = date('Y-m-d H:i:s', strtotime("-{$days} days"));
-
-        // Ensure meta_query is an array and initialize if empty
-        if (!isset($args['meta_query'])) {
-            $args['meta_query'] = array();
-        }
-
-        $args['meta_query'][] = array(
-            'key' => '_bbp_last_active_time',
-            'value' => $date,
-            'compare' => '>=',
-            'type' => 'DATETIME'
-        );
-    }
-
-    // Log the query arguments for debugging
-    error_log(print_r($args, true));
-
-    return $args;
-}
-add_filter('bbp_after_has_topics_parse_args', 'wp_surgeon_filter_topics_by_time_range');
-
-// Function to search topics and replies
-function wp_surgeon_search_topics_and_replies($args) {
-    // Handle searching for topics and replies
-    if (isset($_GET['bbp_search']) && !empty($_GET['bbp_search'])) {
-        $search_term = sanitize_text_field($_GET['bbp_search']);
-        $args['s'] = $search_term;
-    }
-
-    return $args;
-}
-add_filter('bbp_after_has_topics_parse_args', 'wp_surgeon_search_topics_and_replies');
-
-// AJAX handler for the search
+// add_action('wp_enqueue_scripts', 'enqueue_sorting_script');
+// AJAX handler for sorting and searching topics
 function wp_surgeon_ajax_search() {
-    $args = array(
-        'post_type' => 'topic',
-        'posts_per_page' => 15,
-        'paged' => 1
-    );
+    check_ajax_referer('wp_surgeon_sort_nonce', 'nonce');
 
-    // Handle sorting by upvotes
-    if (isset($_GET['sort']) && $_GET['sort'] == 'upvotes') {
-        $args['meta_key'] = 'upvote_count';
-        $args['orderby'] = 'meta_value_num';
-        $args['order'] = 'DESC';
-    }
+    $forum_id = isset($_GET['forum_id']) ? absint($_GET['forum_id']) : 0;
 
-    // Handle filtering by time range
-    if (isset($_GET['time_range']) && in_array($_GET['time_range'], ['7', '30', '90'])) {
-        $days = (int) $_GET['time_range'];
-        $date = date('Y-m-d H:i:s', strtotime("-{$days} days"));
-
-        $args['meta_query'][] = array(
-            'key' => '_bbp_last_active_time',
-            'value' => $date,
-            'compare' => '>=',
-            'type' => 'DATETIME'
-        );
-    }
-
-    // Handle searching for topics and replies
-    if (isset($_GET['bbp_search']) && !empty($_GET['bbp_search'])) {
-        $search_term = sanitize_text_field($_GET['bbp_search']);
-        $args['s'] = $search_term;
-    }
+    $args = [
+        'post_type'      => 'topic',
+        'posts_per_page' => -1,
+        'post_status'    => 'publish',
+        'post_parent'    => $forum_id,
+    ];
 
     $query = new WP_Query($args);
 
+    ob_start();
+
     if ($query->have_posts()) {
-        ob_start();
+        echo '<div class="bbp-body">';
         while ($query->have_posts()) {
             $query->the_post();
-            bbp_get_template_part('loop', 'single-topic');
+            
+            // Set up bbPress global context for template tags
+            bbpress()->current_topic_id = get_the_ID();
+
+            // Load your exact topic card template part:
+            bbp_get_template_part('loop', 'single-topic-card');
         }
-        $content = ob_get_clean();
-        echo $content;
+        echo '</div>';
     } else {
-        echo ''; // No posts found
+        echo '<div class="bbp-body"><p>No topics found.</p></div>';
     }
 
     wp_reset_postdata();
+    echo ob_get_clean();
     wp_die();
 }
-add_action('wp_ajax_wp_surgeon_ajax_search', 'wp_surgeon_ajax_search');
-add_action('wp_ajax_nopriv_wp_surgeon_ajax_search', 'wp_surgeon_ajax_search');
+
+
+
+// add_action('wp_ajax_wp_surgeon_ajax_search', 'wp_surgeon_ajax_search');
+// add_action('wp_ajax_nopriv_wp_surgeon_ajax_search', 'wp_surgeon_ajax_search');
+
+// Explicit sorting functions (no filters)
+function wp_surgeon_sort_topics_by_upvotes($args) {
+    $args['meta_key'] = 'upvote_count';
+    $args['orderby'] = 'meta_value_num';
+    $args['order'] = 'DESC';
+    return $args;
+}
+
+function wp_surgeon_sort_topics_by_popular($args) {
+    global $wpdb;
+    $popular_ids = $wpdb->get_col($wpdb->prepare(
+        "SELECT p.post_parent FROM $wpdb->posts p
+         INNER JOIN $wpdb->posts t ON p.post_parent = t.ID
+         WHERE p.post_type = %s AND t.post_type = %s AND p.post_date >= %s
+         GROUP BY p.post_parent ORDER BY COUNT(p.ID) DESC LIMIT 15",
+        bbp_get_reply_post_type(), bbp_get_topic_post_type(), date('Y-m-d H:i:s', strtotime('-90 days'))
+    ));
+    $args['post__in'] = !empty($popular_ids) ? $popular_ids : [0];
+    $args['orderby'] = 'post__in';
+    return $args;
+}
+
+function wp_surgeon_search_topics_and_replies($args, $search_term) {
+    $args['s'] = $search_term;
+    return $args;
+}

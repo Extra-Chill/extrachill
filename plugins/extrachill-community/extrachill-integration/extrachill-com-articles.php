@@ -44,6 +44,12 @@ function get_author_slug_by_id($author_id) {
 }
 
 function fetch_main_site_post_count_for_user($author_id) {
+    // Check if post count is already cached in a transient
+    $cached_post_count = get_transient('main_site_post_count_' . $author_id);
+    if (false !== $cached_post_count) {
+        return $cached_post_count; // Return cached post count if available
+    }
+
     $request_url = "https://extrachill.com/wp-json/extrachill/v1/author-posts-count/{$author_id}";
     $response = wp_remote_get($request_url);
 
@@ -62,12 +68,18 @@ function fetch_main_site_post_count_for_user($author_id) {
     $data = json_decode($body, true);
 
     if (isset($data['post_count'])) {
-        return (int) $data['post_count'];
+        $post_count = (int) $data['post_count'];
+        // Cache the successful response for 7 days (604800 seconds)
+        set_transient('main_site_post_count_' . $author_id, $post_count, 604800);
+        return $post_count;
     } else {
+        // Cache a value of 0 for 7 days on error to avoid repeated API calls
+        set_transient('main_site_post_count_' . $author_id, 0, 604800);
         error_log("fetch_main_site_post_count_for_user: Invalid response format for author ID $author_id: " . $body);
         return 0;
     }
 }
+
 
 
 function should_sync_article($post_id, $post) {

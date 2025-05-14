@@ -5,6 +5,7 @@
  *
  * @package bbPress
  * @subpackage Theme
+ *
  */
 
 // Exit if accessed directly
@@ -12,258 +13,188 @@ defined( 'ABSPATH' ) || exit;
 
 ?>
 
+<div class="bbp-user-profile-edit-container">
 <form id="ec-your-profile" method="post" enctype="multipart/form-data">  
- <!-- Custom Title Field -->
-    <fieldset class="bbp-form">
-        <legend><?php esc_html_e( 'Avatar/Title', 'bbpress' ); ?></legend>
-        <div class="form-group">
-            <?php
-            $current_avatar_url = get_user_meta(get_current_user_id(), 'custom_avatar', true);
-            ?>
-            <div id="avatar-thumbnail">
-                <?php if ($current_avatar_url): ?>
-                    <img src="<?php echo esc_url($current_avatar_url); ?>" alt="Current Avatar" style="max-width: 100px; max-height: 100px;" />
-                <?php endif; ?>
-            </div>
-            <label for="custom-avatar-upload"><?php esc_html_e( 'Upload New Avatar', 'bbpress' ); ?></label>
-<input type='file' id='custom-avatar-upload' name='custom_avatar' accept='image/*'>
-            <div id="custom-avatar-upload-message"></div>
-            <label for="ec_custom_title"><?php esc_html_e( 'Custom Title', 'bbpress' ); ?></label>
-            <input type="text" name="ec_custom_title" id="ec_custom_title" value="<?php echo esc_attr( get_user_meta( bbp_get_displayed_user_id(), 'ec_custom_title', true ) ); ?>" class="regular-text" />
-            <p class="description"><?php esc_html_e( 'Enter a custom title, or leave blank for default.', 'bbpress' ); ?></p>
-        </div>
-    </fieldset>
 
- <!-- bio section -->
+	<!-- Avatar/Title Section (Consider using bbp-user-header-card if desired) -->
+	<div class="bbp-user-profile-card"> 
+		<fieldset class="bbp-form">
+			<div class="form-group">
+				<?php
+				$custom_avatar_id = get_user_meta(get_current_user_id(), 'custom_avatar_id', true);
+				?>
+				<div id="avatar-thumbnail">
+					<h4>Current Avatar</h4>
+					<p>This is the avatar you currently have set. Upload a new image to change it.</p>
+					<?php if ($custom_avatar_id && wp_attachment_is_image($custom_avatar_id)): ?>
+						<?php 
+							$thumbnail_src = wp_get_attachment_image_url($custom_avatar_id, 'thumbnail');
+							if($thumbnail_src): ?>
+						<img src="<?php echo esc_url($thumbnail_src); ?>" alt="Current Avatar" style="max-width: 100px; max-height: 100px;" />
+							<?php endif; ?>
+					<?php endif; ?>
+				</div>
+				<label for="custom-avatar-upload"><?php esc_html_e( 'Upload New Avatar', 'bbpress' ); ?></label>
+				<input type='file' id='custom-avatar-upload' name='custom_avatar' accept='image/*'>
+				<div id="custom-avatar-upload-message"></div>
+				<label for="ec_custom_title"><?php 
+						$current_custom_title = get_user_meta( bbp_get_displayed_user_id(), 'ec_custom_title', true );
+						$label_text = !empty( $current_custom_title ) ? sprintf( esc_html__( 'Custom Title (Current: %s)', 'bbpress' ), $current_custom_title ) : esc_html__( 'Custom Title', 'bbpress' );
+						esc_html_e( $label_text ); 
+					?></label>
+				<input type="text" name="ec_custom_title" id="ec_custom_title" value="<?php echo esc_attr( get_user_meta( bbp_get_displayed_user_id(), 'ec_custom_title', true ) ); ?>" class="regular-text" placeholder="Extra Chillian" />
+				<p class="description"><?php esc_html_e( 'Enter a custom title, or leave blank for default.', 'bbpress' ); ?></p>
+			</div>
+		</fieldset>
+	</div>
 
-	<h2 class="entry-title"><?php bbp_is_user_home_edit()
-		? esc_html_e( 'About', 'bbpress' )
-		: esc_html_e( 'About the user', 'bbpress' );
-	?></h2>
-
-	<fieldset class="bbp-form">
-		<legend><?php bbp_is_user_home_edit()
+	<!-- About Section -->
+	<div class="bbp-user-profile-card">
+		<h2 class="entry-title"><?php bbp_is_user_home_edit()
 			? esc_html_e( 'About', 'bbpress' )
 			: esc_html_e( 'About the user', 'bbpress' );
-		?></legend>
+		?></h2>
 
-		<?php do_action( 'bbp_user_edit_before_about' ); ?>
+		<fieldset class="bbp-form">
 
-		<div class="form-group">
-			<label for="description"><?php esc_html_e( 'Bio', 'bbpress' ); ?></label>
-			<textarea name="description" id="description" rows="5" cols="30"><?php bbp_displayed_user_field( 'description', 'edit' ); ?></textarea>
-		</div>
+			<?php do_action( 'bbp_user_edit_before_about' ); ?>
 
-		<?php do_action( 'bbp_user_edit_after_about' ); ?>
+			<div class="form-group">
+				<label for="description"><?php esc_html_e( 'Bio', 'bbpress' ); ?></label>
+				<textarea name="description" id="description" rows="5" cols="30"><?php bbp_displayed_user_field( 'description', 'edit' ); ?></textarea>
+			</div>
 
-	</fieldset>
+			<?php // Moved Local Scene (City) Field Here ?>
+			<div class="form-group">
+				<label for="local_city"><?php esc_html_e('Local Scene (City/Region)', 'generatepress_child'); ?></label>
+				<input type="text" name="local_city" id="local_city" value="<?php echo esc_attr(get_user_meta(bbp_get_displayed_user_id(), 'local_city', true)); ?>" class="regular-text" placeholder="<?php esc_attr_e('Your local city/region...', 'generatepress_child'); ?>"/>
+			</div>
 
-	<h2 class="entry-title"><?php esc_html_e( 'Your Links', 'bbpress' ); ?></h2>
+			<?php do_action( 'bbp_user_edit_after_about' ); ?>
 
-
-	 <!-- links section -->
-	 <div class="user-profile-links">
-<fieldset class="bbp-form">
-    <legend><?php esc_html_e( 'Your Links', 'bbpress' ); ?></legend>
-    <?php do_action( 'bbp_user_edit_before_your_links' ); ?>
-
-    <!-- Instagram -->
-    <div class="form-group">
-        <label for="instagram"><?php esc_html_e( 'Instagram', 'bbpress' ); ?></label>
-        <input type="text" name="instagram" id="instagram" value="<?php echo esc_attr( get_user_meta( bbp_get_displayed_user_id(), 'instagram', true ) ); ?>" class="regular-text" placeholder="https://instagram.com/yourusername"/>
-    </div>
-
-	    <!-- Twitter -->
-		<div class="form-group">
-        <label for="twitter"><?php esc_html_e( 'Twitter', 'bbpress' ); ?></label>
-        <input type="text" name="twitter" id="twitter" value="<?php echo esc_attr( get_user_meta( bbp_get_displayed_user_id(), 'twitter', true ) ); ?>" class="regular-text" placeholder="https://twitter.com/yourusername"/>
-    </div>
-
-    <!-- Facebook -->
-    <div class="form-group">
-        <label for="facebook"><?php esc_html_e( 'Facebook', 'bbpress' ); ?></label>
-        <input type="text" name="facebook" id="facebook" value="<?php echo esc_attr( get_user_meta( bbp_get_displayed_user_id(), 'facebook', true ) ); ?>" class="regular-text" placeholder="https://facebook.com/yourusername"/>
-    </div>
-
-    <!-- Spotify -->
-    <div class="form-group">
-        <label for="spotify"><?php esc_html_e( 'Spotify', 'bbpress' ); ?></label>
-        <input type="text" name="spotify" id="spotify" value="<?php echo esc_attr( get_user_meta( bbp_get_displayed_user_id(), 'spotify', true ) ); ?>" class="regular-text" placeholder="https://open.spotify.com/user/yourusername"/>
-    </div>
-
-    <!-- SoundCloud -->
-    <div class="form-group">
-        <label for="soundcloud"><?php esc_html_e( 'SoundCloud', 'bbpress' ); ?></label>
-        <input type="text" name="soundcloud" id="soundcloud" value="<?php echo esc_attr( get_user_meta( bbp_get_displayed_user_id(), 'soundcloud', true ) ); ?>" class="regular-text" placeholder="https://soundcloud.com/yourusername"/>
-    </div>
-
-    <!-- Bandcamp -->
-    <div class="form-group">
-        <label for="bandcamp"><?php esc_html_e( 'Bandcamp', 'bbpress' ); ?></label>
-        <input type="text" name="bandcamp" id="bandcamp" value="<?php echo esc_attr( get_user_meta( bbp_get_displayed_user_id(), 'bandcamp', true ) ); ?>" class="regular-text" placeholder="https://yourusername.bandcamp.com"/>
-    </div>
-
-	    <!-- Existing Website Field -->
-		<div class="form-group">
-        <label for="url"><?php esc_html_e( 'Website', 'bbpress' ) ?></label>
-        <input type="text" name="url" id="url" value="<?php bbp_displayed_user_field( 'user_url', 'edit' ); ?>" maxlength="200" class="regular-text code" />
-    </div>
-
-    <!-- Additional Links -->
-
-	
-    <?php
-	/*
-	
-	for ($i = 1; $i <= 3; $i++): ?>
-    <div class="form-group">
-        <label for="utility_link_<?php echo $i; ?>"><?php echo esc_html__( 'Extra Link ', 'bbpress' ) . $i; ?></label>
-        <input type="text" name="utility_link_<?php echo $i; ?>" id="utility_link_<?php echo $i; ?>" value="<?php echo esc_attr( get_user_meta( bbp_get_displayed_user_id(), 'utility_link_' . $i, true ) ); ?>" class="regular-text" placeholder="https://"/>
-    </div>
-    <?php endfor; 
-*/
-?>
-    <?php do_action( 'bbp_user_edit_after_your_links' ); ?>
-
-</fieldset>
+		</fieldset>
 	</div>
 
 	<?php
-// ARTIST Fieldset
-?>
+	// --- MIGRATION: Convert old static link fields to dynamic array if needed ---
+	$user_id = bbp_get_displayed_user_id();
+	$dynamic_links = get_user_meta($user_id, '_user_profile_dynamic_links', true);
+	if (!is_array($dynamic_links) || empty($dynamic_links)) {
+		$dynamic_links = array();
+		$static_fields = array(
+			'user_url'   => array('type_key' => 'website'),
+			'instagram'  => array('type_key' => 'instagram'),
+			'twitter'    => array('type_key' => 'twitter'),
+			'facebook'   => array('type_key' => 'facebook'),
+			'spotify'    => array('type_key' => 'spotify'),
+			'soundcloud' => array('type_key' => 'soundcloud'),
+			'bandcamp'   => array('type_key' => 'bandcamp'),
+		);
+		foreach ($static_fields as $meta_key => $link_info) {
+			$url = get_user_meta($user_id, $meta_key, true);
+			if (!empty($url)) {
+				$dynamic_links[] = array('type_key' => $link_info['type_key'], 'url' => $url);
+			}
+		}
+		if (!empty($dynamic_links)) {
+			update_user_meta($user_id, '_user_profile_dynamic_links', $dynamic_links);
+		}
+	}
+	?>
 
-<?php if (get_user_meta(bbp_get_displayed_user_id(), 'user_is_artist', true)) : ?>
-<h2 class="entry-title"><?php esc_html_e('Artist Details', 'bbpress'); ?></h2>
-<fieldset class="bbp-form">
-    <legend><?php esc_html_e('Artist Details', 'bbpress'); ?></legend>
+	<!-- Your Links Section (Dynamic) -->
+	<div class="bbp-user-profile-card">
+		<h2 class="entry-title"><?php esc_html_e( 'Your Links', 'bbpress' ); ?></h2>
+		<div id="user-dynamic-links-container" data-nonce="<?php echo esc_attr( wp_create_nonce( 'user_dynamic_link_nonce' ) ); ?>">
+			<p class="description"><?php esc_html_e( 'Add links to your website, social media, streaming, etc.', 'bbpress' ); ?></p>
+			<div id="user-links-list"></div>
+			<button type="button" id="user-add-link-button" class="button button-secondary"><i class="fas fa-plus"></i> <?php esc_html_e( 'Add Link', 'bbpress' ); ?></button>
+		</div>
+	</div>
 
-    <!-- Artist Name Field -->
-    <div class="form-group">
-        <label for="artist_name"><?php esc_html_e('Artist Name', 'bbpress'); ?></label>
-        <input type="text" name="artist_name" id="artist_name" value="<?php echo esc_attr(get_user_meta(bbp_get_displayed_user_id(), 'artist_name', true)); ?>" class="regular-text" placeholder="<?php esc_attr_e('Your artist name...', 'bbpress'); ?>"/>
-    </div>
-<!-- Band Name Field -->
-<div class="form-group">
-    <label for="band_name"><?php esc_html_e('Band Name', 'bbpress'); ?></label>
-    <input type="text" name="band_name" id="band_name" value="<?php echo esc_attr(get_user_meta(bbp_get_displayed_user_id(), 'band_name', true)); ?>" class="regular-text" placeholder="<?php esc_attr_e('Your band name...', 'bbpress'); ?>"/>
-</div>
+	<?php // ARTIST Fieldset ?>
+	<?php if (get_user_meta(bbp_get_displayed_user_id(), 'user_is_artist', true)) : ?>
+	<div class="bbp-user-profile-card">
+		<h2 class="entry-title"><?php esc_html_e('Artist Details', 'bbpress'); ?></h2>
+		<fieldset class="bbp-form">
 
-<!-- Instruments Played Field -->
-<div class="form-group">
-    <label for="instruments_played"><?php esc_html_e('Instruments Played', 'bbpress'); ?></label>
-    <input type="text" name="instruments_played" id="instruments_played" value="<?php echo esc_attr(get_user_meta(bbp_get_displayed_user_id(), 'instruments_played', true)); ?>" class="regular-text" placeholder="<?php esc_attr_e('Instruments you play...', 'bbpress'); ?>"/>
-</div>
+			<?php /* Artist Name, Band Name, Genre, Influences are now part of the Band Profile CPT, not the user profile */ ?>
+			<!--
+			<div class="form-group">
+				<label for="artist_name"><?php esc_html_e('Artist Name', 'bbpress'); ?></label>
+				<input type="text" name="artist_name" id="artist_name" value="<?php echo esc_attr(get_user_meta(bbp_get_displayed_user_id(), 'artist_name', true)); ?>" class="regular-text" placeholder="<?php esc_attr_e('Your artist name...', 'bbpress'); ?>"/>
+			</div>
 
+			<div class="form-group">
+				<label for="band_name"><?php esc_html_e('Band Name(s)', 'bbpress'); ?></label>
+				<input type="text" name="band_name" id="band_name" value="<?php echo esc_attr(get_user_meta(bbp_get_displayed_user_id(), 'band_name', true)); ?>" class="regular-text" placeholder="<?php esc_attr_e('Your band names...', 'bbpress'); ?>"/>
+			</div>
+			-->
 
-    <!-- Genre Field -->
-    <div class="form-group">
-        <label for="artist_genre"><?php esc_html_e('Genre', 'bbpress'); ?></label>
-        <input type="text" name="artist_genre" id="artist_genre" value="<?php echo esc_attr(get_user_meta(bbp_get_displayed_user_id(), 'artist_genre', true)); ?>" class="regular-text" placeholder="<?php esc_attr_e('Your musical genre...', 'bbpress'); ?>"/>
-    </div>
+			<!-- Your Band Profiles Section -->
+			<div class="form-group your-bands-section">
+				<h4 class="entry-title"><?php esc_html_e( 'Your Band Profiles', 'generatepress_child' ); ?></h4>
+				<p><?php esc_html_e( 'Manage your band\'s presence, showcase music, share stories, and connect with fans.', 'generatepress_child'); ?></p>
+				<?php
+				$user_id = bbp_get_displayed_user_id();
+				$band_profile_ids = get_user_meta( $user_id, '_band_profile_ids', true );
+				$manage_page_url = get_permalink( get_page_by_path( 'manage-band-profile' ) ); // Assuming page slug is 'manage-band-profile'
 
-    <!-- Influences Field -->
-    <div class="form-group">
-        <label for="artist_influences"><?php esc_html_e('Influences', 'bbpress'); ?></label>
-        <textarea name="artist_influences" id="artist_influences" rows="3" class="regular-text" placeholder="<?php esc_attr_e('Your musical influences...', 'bbpress'); ?>"><?php echo esc_textarea(get_user_meta(bbp_get_displayed_user_id(), 'artist_influences', true)); ?></textarea>
-    </div>
+				if ( ! empty( $band_profile_ids ) && is_array( $band_profile_ids ) ) :
+					?>
+					<ul class="user-band-list">
+						<?php
+						foreach ( $band_profile_ids as $band_id ) :
+							$band_title = get_the_title( $band_id );
+							$profile_link = get_permalink( $band_id );
+							// $edit_link = $manage_page_url ? add_query_arg( 'band_id', $band_id, $manage_page_url ) : '#'; // Keep edit link logic if needed later
+							?>
+							<li>
+								<?php if ( $profile_link ) : ?>
+									<a href="<?php echo esc_url( $profile_link ); ?>"><?php echo esc_html( $band_title ); ?></a>
+								<?php else: ?>
+									<?php echo esc_html( $band_title ); ?> (Link unavailable)
+								<?php endif; ?>
+								<?php /* Remove redundant view/edit links for now
+								(<a href="<?php echo esc_url( get_permalink( $band_id ) ); ?>" target="_blank">View</a>)
+								*/ ?>
+							</li>
+						<?php endforeach; ?>
+					</ul>
+                    <?php
+					// Re-check manage_page_url before creating the link
+					$manage_page_check = get_page_by_path( 'manage-band-profiles' );
+					$create_url = $manage_page_check ? get_permalink( $manage_page_check->ID ) : '#';
 
-    <!-- Featured Embed URL Field -->
-    <div class="form-group">
-        <label for="featured_embed"><?php esc_html_e('Featured Embed URL', 'bbpress'); ?></label>
-        <input type="text" name="featured_embed" id="featured_embed" value="<?php echo esc_attr(get_user_meta(bbp_get_displayed_user_id(), 'featured_embed', true)); ?>" class="regular-text" placeholder="<?php esc_attr_e('Paste the embed URL here...', 'bbpress'); ?>"/>
-        <p class="description"><?php esc_html_e('Paste the URL for the embed (e.g., YouTube, SoundCloud). We will automatically generate the embed code.', 'bbpress'); ?></p>
-    </div>
-</fieldset>
-<?php endif; ?>
-
-<?php if (get_user_meta(bbp_get_displayed_user_id(), 'user_is_professional', true)) : ?>
-<h2 class="entry-title"><?php esc_html_e('Music Industry Professional Details', 'bbpress'); ?></h2>
-<fieldset class="bbp-form">
-    <legend><?php esc_html_e('Professional Details', 'bbpress'); ?></legend>
-
-    <!-- Role Field -->
-    <div class="form-group">
-        <label for="professional_role"><?php esc_html_e('Role', 'bbpress'); ?></label>
-        <input type="text" name="professional_role" id="professional_role" value="<?php echo esc_attr(get_user_meta(bbp_get_displayed_user_id(), 'professional_role', true)); ?>" class="regular-text" placeholder="<?php esc_attr_e('Your role...', 'bbpress'); ?>"/>
-    </div>
-
-    <!-- Company Field -->
-    <div class="form-group">
-        <label for="professional_company"><?php esc_html_e('Company', 'bbpress'); ?></label>
-        <input type="text" name="professional_company" id="professional_company" value="<?php echo esc_attr(get_user_meta(bbp_get_displayed_user_id(), 'professional_company', true)); ?>" class="regular-text" placeholder="<?php esc_attr_e('Your company...', 'bbpress'); ?>"/>
-    </div>
-
-<!-- Skills Field -->
-<div class="form-group">
-    <label for="professional_skills"><?php esc_html_e('Skills', 'bbpress'); ?></label>
-    <textarea name="professional_skills" id="professional_skills" rows="3" class="regular-text" placeholder="<?php esc_attr_e('Your skills...', 'bbpress'); ?>"><?php echo esc_textarea(get_user_meta(bbp_get_displayed_user_id(), 'professional_skills', true)); ?></textarea>
-</div>
-
-<!-- Goals Field -->
-<div class="form-group">
-    <label for="professional_goals"><?php esc_html_e('Goals', 'bbpress'); ?></label>
-    <textarea name="professional_goals" id="professional_goals" rows="3" class="regular-text" placeholder="<?php esc_attr_e('Your professional goals...', 'bbpress'); ?>"><?php echo esc_textarea(get_user_meta(bbp_get_displayed_user_id(), 'professional_goals', true)); ?></textarea>
-</div>
-
-</fieldset>
-<?php endif; ?>
-
-
-
-
-	<?php
-// Local Scene Fieldset
-?>
-	<h2 class="entry-title"><?php esc_html_e( 'Local Scene', 'bbpress' ); ?></h2>
-
-<fieldset class="bbp-form">
-    <legend><?php esc_html_e('Local Scene', 'bbpress'); ?></legend>
-    <div class="form-group">
-        <label for="local_city"><?php esc_html_e('City', 'bbpress'); ?></label>
-        <input type="text" name="local_city" id="local_city" value="<?php echo esc_attr(get_user_meta(bbp_get_displayed_user_id(), 'local_city', true)); ?>" class="regular-text" placeholder="<?php esc_attr_e('Your local city...', 'bbpress'); ?>"/>
-    </div>
-    <div class="form-group">
-        <label for="top_local_venues"><?php esc_html_e('Top Local Venues', 'bbpress'); ?></label>
-        <textarea name="top_local_venues" id="top_local_venues" rows="2" cols="20" placeholder="<?php esc_attr_e('Your top local venues...', 'bbpress'); ?>"><?php echo esc_textarea(get_user_meta(bbp_get_displayed_user_id(), 'top_local_venues', true)); ?></textarea>
-    </div>
-    <div class="form-group">
-        <label for="top_local_artists"><?php esc_html_e('Top Local Artists', 'bbpress'); ?></label>
-        <textarea name="top_local_artists" id="top_local_artists" rows="2" cols="20" placeholder="<?php esc_attr_e('Top local artists...', 'bbpress'); ?>"><?php echo esc_textarea(get_user_meta(bbp_get_displayed_user_id(), 'top_local_artists', true)); ?></textarea>
-    </div>
-</fieldset>
-
-	<?php
-// Music Fan Fieldset
-?>
-	<h2 class="entry-title"><?php esc_html_e( 'Music Fan', 'bbpress' ); ?></h2>
-
-<fieldset class="bbp-form">
-    <legend><?php esc_html_e('Music Fan Details', 'bbpress'); ?></legend>
-    <div class="form-group">
-        <label for="favorite_artists"><?php esc_html_e('Favorite Artists', 'bbpress'); ?></label>
-        <textarea name="favorite_artists" id="favorite_artists" rows="3" cols="20" placeholder="<?php esc_attr_e('Top 5 favorite artists...', 'bbpress'); ?>"><?php echo esc_textarea(get_user_meta(bbp_get_displayed_user_id(), 'favorite_artists', true)); ?></textarea>
-    </div>
-    <div class="form-group">
-        <label for="top_concerts"><?php esc_html_e('Top Concerts', 'bbpress'); ?></label>
-        <textarea name="top_concerts" id="top_concerts" rows="3" cols="20" placeholder="<?php esc_attr_e('The best live music experiences you\'ve ever seen...', 'bbpress'); ?>"><?php echo esc_textarea(get_user_meta(bbp_get_displayed_user_id(), 'top_concerts', true)); ?></textarea>
-    </div>
-    <div class="form-group">
-        <label for="top_festivals"><?php esc_html_e('Music Festivals', 'bbpress'); ?></label>
-        <textarea name="top_festivals" id="top_festivals" rows="3" cols="20" placeholder="<?php esc_attr_e('Your favorite music festivals...', 'bbpress'); ?>"><?php echo esc_textarea(get_user_meta(bbp_get_displayed_user_id(), 'top_festivals', true)); ?></textarea>
-    </div>
-    <div class="form-group">
-        <label for="desert_island_albums"><?php esc_html_e('Desert Island Albums', 'bbpress'); ?></label>
-        <textarea name="desert_island_albums" id="desert_island_albums" rows="3" cols="20" placeholder="<?php esc_attr_e('Five albums you\'d take on a desert island...', 'bbpress'); ?>"><?php echo esc_textarea(get_user_meta(bbp_get_displayed_user_id(), 'desert_island_albums', true)); ?></textarea>
-    </div>
-</fieldset>
+                    // Link to create *another* profile
+                    if ( $create_url !== '#' ) { // Only show if the manage page exists
+						printf( '<p><a href="%s" class="button">%s</a></p>', esc_url( $create_url ), esc_html__( 'Create Another Band Profile', 'generatepress_child' ) );
+					}
+                    ?>
+				<?php else : ?>
+					<p><?php esc_html_e( "You haven't created or joined any band profiles yet.", 'generatepress_child' ); ?></p>
+                    <?php
+                    // Link to create the first profile
+					$manage_page_check = get_page_by_path( 'manage-band-profiles' );
+					$create_url = $manage_page_check ? get_permalink( $manage_page_check->ID ) : '#';
+                    if ( $create_url !== '#' ) { // Only show if the manage page exists
+						printf( '<p><a href="%s" class="button">%s</a></p>', esc_url( $create_url ), esc_html__( 'Create Band Profile', 'generatepress_child' ) );
+					}
+                    ?>
+				<?php endif; ?>
+			</div>
 
 
+		</fieldset>
+	</div>
+	<?php endif; ?>
+
+	<?php // User Role Section ?>
 	<?php if ( ! bbp_is_user_home_edit() && current_user_can( 'promote_user', bbp_get_displayed_user_id() ) ) : ?>
-
+	<div class="bbp-user-profile-card">
 		<h2 class="entry-title"><?php esc_html_e( 'User Role', 'bbpress' ) ?></h2>
 
 		<fieldset class="bbp-form">
-			<legend><?php esc_html_e( 'User Role', 'bbpress' ); ?></legend>
 
 			<?php do_action( 'bbp_user_edit_before_role' ); ?>
 
@@ -284,20 +215,24 @@ defined( 'ABSPATH' ) || exit;
 			<?php do_action( 'bbp_user_edit_after_role' ); ?>
 
 		</fieldset>
-
+	</div>
 	<?php endif; ?>
 
-    <?php do_action( 'bbp_user_edit_after' ); ?>
-    <input type="hidden" name="email" value="<?php echo esc_attr(wp_get_current_user()->user_email); ?>">
-    <input type="hidden" name="nickname" value="<?php echo esc_attr(wp_get_current_user()->nickname); ?>">
+	<?php do_action( 'bbp_user_edit_after' ); ?>
+	<input type="hidden" name="email" value="<?php echo esc_attr(wp_get_current_user()->user_email); ?>">
+	<input type="hidden" name="nickname" value="<?php echo esc_attr(wp_get_current_user()->nickname); ?>">
 
-    <fieldset class="submit">
-        <legend><?php esc_html_e( 'Save Changes', 'bbpress' ); ?></legend>
-        <div class="form-group">
-            <?php bbp_edit_user_form_fields(); ?>
-            <button type="submit" id="bbp_user_edit_submit" name="bbp_user_edit_submit" class="button submit user-submit">
-                <?php bbp_is_user_home_edit() ? esc_html_e( 'Update Profile', 'bbpress' ) : esc_html_e( 'Update User', 'bbpress' ); ?>
-            </button>
-        </div>
-    </fieldset>
+	<!-- Save Changes Section -->
+	<div class="bbp-user-profile-card">
+		<fieldset class="submit">
+			<div class="form-group">
+				<?php bbp_edit_user_form_fields(); ?>
+				<button type="submit" id="bbp_user_edit_submit" name="bbp_user_edit_submit" class="button submit user-submit">
+					<?php bbp_is_user_home_edit() ? esc_html_e( 'Update Profile', 'bbpress' ) : esc_html_e( 'Update User', 'bbpress' ); ?>
+				</button>
+			</div>
+		</fieldset>
+	</div>
+
 </form>
+</div>

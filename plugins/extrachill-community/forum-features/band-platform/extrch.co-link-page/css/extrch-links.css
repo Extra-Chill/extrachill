@@ -1,0 +1,259 @@
+@font-face {
+    font-family: 'WilcoLoftSans';
+    src: url('../../../../fonts/WilcoLoftSans/WilcoLoftSans-Treble.woff2') format('woff2'),
+         url('../../../../fonts/WilcoLoftSans/WilcoLoftSans-Treble.woff') format('woff');
+    font-weight: 700; /* Changed from normal, assuming Treble is the bold/title font */
+    font-style: normal;
+    font-display: swap; /* Removed extraneous URL */
+}
+
+/* extrch-links.css: Essential styles for extrch.co Link Page */
+
+/* @font-face for WilcoLoftSans removed as it should be globally defined in theme's style.css -- This comment is now outdated. */
+
+:root {
+  --link-page-button-color: var(--button-bg, #0b5394);
+  --link-page-text-color: var(--text-color, #e5e5e5);
+  --link-page-link-text-color: var(--link-color, #e5e5e5);
+  --link-page-hover-color: var(--accent, #53940b);
+  --card-background-color: rgba(0,0,0,0.35);
+  --muted-text: #aaa;
+  --link-page-title-font-family: 'WilcoLoftSans', Helvetica, Arial, sans-serif;
+}
+
+body.extrch-link-page {
+    margin: 0;
+    padding: 0;
+    font-family: Helvetica, Arial, sans-serif;
+}
+
+.extrch-link-page-container {
+  color: var(--link-page-text-color);
+  font-family: inherit;
+  width: 100%;
+  padding: 25px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+.extrch-link-page-content-wrapper {
+  background-color: var(--card-background-color);
+  color: inherit;
+  width: 100%;
+  max-width: 680px;
+  padding: 2.5em;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.extrch-link-page-content-wrapper.no-overlay {
+  background: none !important;
+  box-shadow: none !important;
+}
+
+.extrch-link-page-profile-img {
+  margin: 0 auto 15px auto;
+  max-width: 150px;
+  overflow: hidden;
+  width: var(--link-page-profile-img-size, 30%);
+  height: var(--link-page-profile-img-size, 30%);
+  min-width: 60px;
+  min-height: 60px;
+  max-width: 100%;
+  max-height: 100%;
+  aspect-ratio: 1 / 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.extrch-link-page-profile-img img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: var(--link-page-profile-image-border-radius, 8px);
+  object-fit: cover;
+}
+
+.extrch-link-page-profile-img.shape-circle,
+.extrch-link-page-profile-img.shape-square {
+
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+}
+
+.extrch-link-page-profile-img.shape-circle img,
+.extrch-link-page-profile-img.shape-square img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.extrch-link-page-profile-img.shape-circle {
+  border-radius: 50%;
+}
+
+.extrch-link-page-profile-img.shape-circle img {
+  border-radius: 50%;
+}
+
+.extrch-link-page-profile-img.shape-square {
+  border-radius: 8px;
+}
+
+.extrch-link-page-profile-img.shape-square img {
+  border-radius: 8px;
+}
+
+.extrch-link-page-title {
+  font-family: var(--link-page-title-font-family);
+  font-size: var(--link-page-title-font-size, 2.1em);
+  font-weight: 700;
+  text-align: center;
+  margin: 0 0 0.3em 0;
+  letter-spacing: 0.01em;
+  color: var(--link-page-text-color);
+}
+
+.extrch-link-page-bio {
+  color: var(--link-page-text-color);
+  font-size: 1.08em;
+  text-align: center;
+  margin-bottom: 1.2em;
+  margin-top: 0.2em;
+}
+
+.extrch-link-page-socials {
+  display: flex;
+  gap: 1.1em;
+  justify-content: center;
+  margin-bottom: 1.5em;
+}
+.extrch-social-icon {
+  font-size: 1.5em;
+  color: var(--link-page-link-text-color);
+  transition: color 0.18s;
+}
+.extrch-social-icon:hover {
+  color: var(--link-page-hover-color);
+}
+
+.extrch-link-page-links {
+  display: flex;
+  flex-direction: column;
+  gap: 1em;
+  width: 100%;
+  margin-bottom: 1.5em;
+}
+.extrch-link-page-link {
+  background: var(--link-page-button-color);
+  color: var(--link-page-link-text-color);
+  padding: 0.95em 1.2em;
+  border-radius: 8px;
+  text-align: center;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 1.08em;
+  transition: background 0.18s, color 0.18s;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+}
+.extrch-link-page-link:hover {
+  background: var(--link-page-hover-color);
+  color: var(--link-page-link-text-color);
+}
+
+.extrch-link-page-powered {
+  margin-top: 2em;
+  font-size: 0.98em;
+  color: var(--muted-text);
+  text-align: center;
+}
+.extrch-link-page-powered a {
+  color: var(--link-page-link-text-color);
+  text-decoration: underline;
+}
+
+.extrch-link-page-powered a:hover {
+  color: var(--link-page-hover-color);
+}
+
+.extrch-link-page-preview-indicator {
+  display: inline-block;
+  margin-bottom: 0.7em;
+  padding: 0.18em 0.7em;
+  font-size: 0.98em;
+  font-weight: 600;
+  color: var(--accent);
+  background: rgba(83,148,11,0.08);
+  border-radius: 8px;
+  letter-spacing: 0.01em;
+  text-align: center;
+}
+
+.extrch-link-page-section-title {
+  font-size: 1.15em;
+  font-weight: 700;
+  margin: 1em 0 0.7em 0;
+  color: var(--link-page-text-color);
+  letter-spacing: 0.01em;
+  text-align: center;
+}
+
+/* Edit button styles for public link page */
+.extrch-link-page-edit-btn {
+  position: fixed;
+  /* top: 18px; */ /* Removed */
+  bottom: 18px; /* Added */
+  right: 18px;
+  z-index: 1000;
+  background: transparent;
+  border: none;
+  padding: 0.5em; /* Adjust for touch target size */
+  color: var(--link-page-link-text-color);
+  font-size: 1.5em; /* Adjust icon size */
+  opacity: 0.7;
+  text-decoration: none;
+  box-shadow: none;
+  transition: color 0.2s ease-in-out, opacity 0.2s ease-in-out;
+}
+
+.extrch-link-page-edit-btn:hover {
+  color: var(--link-page-hover-color);
+  opacity: 1;
+}
+
+@media (max-width: 768px) {
+  .extrch-link-page-content-wrapper {
+    padding: 2em;
+  }
+}
+
+@media (max-width: 600px) {
+  .extrch-link-page-container {
+    padding: 15px;
+  }
+  .extrch-link-page-content-wrapper {
+    max-width: 95vw;
+    padding: 1.5em;
+  }
+  .extrch-link-page-profile-img img {
+    max-width: 100%;
+  }
+  .extrch-link-page-title {
+    font-size: 1.8em;
+  }
+  .extrch-link-page-bio {
+    font-size: 1em;
+  }
+  .extrch-link-page-link {
+    font-size: 1em;
+    padding: 0.85em 1em;
+  }
+} 

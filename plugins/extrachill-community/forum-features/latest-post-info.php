@@ -36,7 +36,8 @@ function fetch_latest_post_info_by_section($forum_section) {
         return "<div class=\"extrachill-recent-activity\"><p>No forums found in this section.</p></div>";
     }
 
-    $recent_activity_query = extrachill_customize_query_for_forum($forum_ids);
+     $recent_activity_query = extrachill_customize_query_for_forum($forum_ids);
+
     $current_post_id = extrachill_fetch_latest_activity($recent_activity_query, $forum_ids);
     return extrachill_construct_activity_output($current_post_id);
 }
@@ -64,7 +65,7 @@ function extrachill_customize_query_for_forum($forum_ids, $posts_per_page = 5) {
     // Arguments for the WP_Query
     $recent_activity_args = array(
         'post_type' => $post_types,
-        'posts_per_page' => $posts_per_page,
+        'posts_per_page' => 1,
         'meta_query' => array(
             array(
                 'key' => '_bbp_last_active_time',
@@ -87,7 +88,6 @@ function extrachill_customize_query_for_forum($forum_ids, $posts_per_page = 5) {
 
     return $query;
 }
-
 
 
 function extrachill_fetch_latest_activity($recent_activity_query, $forum_ids) {
@@ -124,8 +124,6 @@ function extrachill_fetch_latest_activity($recent_activity_query, $forum_ids) {
 
     return false;  // Return false if no posts were found
 }
-
-
 
 
 function extrachill_construct_activity_output($current_post_id) {

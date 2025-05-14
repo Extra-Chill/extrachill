@@ -1,69 +1,74 @@
 <?php
 /* following-feed.php 
-*/
+ * Handles fetching posts relevant to bands followed by the current user.
+ */
 
-function extrachill_get_following_posts($post_type, $user_id = null) {
+/**
+ * Get topics or replies from forums associated with bands followed by the current user.
+ *
+ * @param string $post_type 'topic' or 'reply'.
+ * @param int $user_id Deprecated (no longer used, determined automatically). Default null.
+ * @return WP_Query WP_Query object containing the relevant posts.
+ */
+function extrachill_get_following_posts($post_type = 'topic', $user_id = null) { // Default to topic
     $current_user_id = get_current_user_id();
-    $following = $user_id ? [$user_id] : get_user_meta($current_user_id, 'extrachill_following', true);
-
-    if (empty($following) || !is_array($following)) {
-        return new WP_Query(); // Return an empty WP_Query object if no following
+    if ( !$current_user_id ) {
+        return new WP_Query(); // Return empty if user not logged in
     }
 
-    $paged = get_query_var('paged') ? get_query_var('paged') : 1; // Pagination
+    // Use the new function to get followed band IDs
+    $followed_band_ids = function_exists('bp_get_user_followed_bands') ? 
+                             array_map('get_post_field', array_fill(0, count(get_user_meta($current_user_id, '_followed_band_profile_ids', true) ?: []), 'ID'), get_user_meta($current_user_id, '_followed_band_profile_ids', true) ?: [])
+                             : array();
 
-    // Get IDs of private forums
-    $private_forum_ids = extrachill_get_private_forum_ids();
+    if ( empty( $followed_band_ids ) ) {
+        return new WP_Query(); // Return empty if no bands followed
+    }
 
-    // Initialize array to hold IDs to exclude
-    $exclude_ids = array();
-
-    // If there are private forums, exclude topics and replies within them
-    if (!empty($private_forum_ids)) {
-        // Exclude topics in private forums directly
-        $topics_in_private_forums = get_posts(array(
-            'post_type' => 'topic',
-            'post_parent__in' => $private_forum_ids,
-            'fields' => 'ids',
-            'posts_per_page' => -1, // Get all topics
-            'no_found_rows' => true, // Skip pagination for performance
-        ));
-
-        // Combine topic IDs to exclude
-        $exclude_ids = array_merge($exclude_ids, $topics_in_private_forums);
-
-        // For replies, we need to further exclude based on their associated topic's forum being private
-        if ($post_type === 'reply') {
-            $replies_in_private_topics = get_posts(array(
-                'post_type' => 'reply',
-                'fields' => 'ids',
-                'posts_per_page' => -1, // Get all replies
-                'no_found_rows' => true, // Skip pagination for performance
-                'post_parent__in' => $topics_in_private_forums, // Only get replies to topics that are already excluded
-            ));
-
-            // Combine topic and reply IDs to exclude
-            $exclude_ids = array_merge($exclude_ids, $replies_in_private_topics);
+    // Get the forum IDs associated with these bands
+    $band_forum_ids = array();
+    foreach ( $followed_band_ids as $band_id ) {
+        $forum_id = get_post_meta( $band_id, '_band_forum_id', true );
+        if ( !empty( $forum_id ) && is_numeric($forum_id) ) {
+            $band_forum_ids[] = absint( $forum_id );
         }
     }
 
-    // Arguments for fetching following posts, excluding those under private topics if necessary
+    if ( empty( $band_forum_ids ) ) {
+        return new WP_Query(); // Return empty if no associated forums found
+    }
+    $band_forum_ids = array_unique( $band_forum_ids );
+
+    $paged = get_query_var('paged') ? get_query_var('paged') : 1; // Pagination
+
+    // --- Construct Query Args --- 
     $args = array(
-        'post_type' => $post_type,
-        'post_status' => 'publish',
-        'author__in' => $following,
-        'posts_per_page' => get_option('posts_per_page'), // Adjust for pagination
-        'paged' => $paged, // Pagination
-        'post__not_in' => $exclude_ids, // Exclude posts in private forums
+        'post_type' => $post_type, // 'topic' or 'reply'
+        'post_parent__in' => $band_forum_ids, // Only posts whose parent is one of the followed band forums
+        'post_status' => 'publish', // Consider 'closed' for topics? bbPress handles visibility.
+        'posts_per_page' => get_option('_bbp_topics_per_page', 15), // Use bbPress setting for topics/page
+        'paged' => $paged,
+        'orderby' => 'date', // Or potentially 'meta_value' for last active time if querying topics
+        'order' => 'DESC',
+        'ignore_sticky_posts' => 1,
     );
 
-    $posts = new WP_Query($args);
-    return $posts; // Return WP_Query object for pagination
+    // If querying topics, it might be better to order by last activity
+    if ($post_type === 'topic' || $post_type === bbp_get_topic_post_type()) {
+        $args['meta_key'] = '_bbp_last_active_time';
+        $args['orderby']  = 'meta_value';
+        $args['order'] = 'DESC';
+    }
+
+    // Note: We are not excluding private forums here, assuming band forums are meant
+    // to be accessible if the band profile is public. Add exclusion if needed.
+
+    $posts_query = new WP_Query($args);
+    return $posts_query; // Return WP_Query object for pagination
 }
 
 
-
-
+/* -- REMOVED: Old function to get followed users --
 function extrachill_get_followed_users() {
     $current_user_id = get_current_user_id();
     $following = get_user_meta($current_user_id, 'extrachill_following', true);
@@ -79,5 +84,6 @@ function extrachill_get_followed_users() {
 
     return $user_query->get_results();
 }
+*/
 
 ?>

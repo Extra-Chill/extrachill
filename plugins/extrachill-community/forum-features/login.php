@@ -3,7 +3,7 @@ function wp_surgeon_login_form() {
     ob_start(); // Start output buffering
 
     if (is_user_logged_in()) {
-        wp_surgeon_handle_logged_in_user();
+        echo '<div class="login-already-logged-in">You are already logged in.</div>';
     } else {
         wp_surgeon_display_login_form();
         wp_surgeon_display_error_messages(); // Display error messages
@@ -12,6 +12,19 @@ function wp_surgeon_login_form() {
     return ob_get_clean(); // Clean (erase) the output buffer and turn off output buffering
 }
 add_shortcode('wp_surgeon_login', 'wp_surgeon_login_form');
+
+// Move redirect logic to template_redirect
+add_action('template_redirect', 'wp_surgeon_login_page_redirect');
+function wp_surgeon_login_page_redirect() {
+    if (is_user_logged_in()) {
+        // Only run on the login page
+        if (is_page('login')) {
+            $redirect_url = isset($_REQUEST['redirect_to']) ? esc_url_raw($_REQUEST['redirect_to']) : home_url();
+            wp_redirect($redirect_url);
+            exit;
+        }
+    }
+}
 
 function wp_surgeon_handle_logged_in_user() {
     if (is_admin()) {
@@ -61,18 +74,31 @@ function wp_surgeon_display_login_form() {
     $is_login_page = ($_SERVER['REQUEST_URI'] == '/login/' || strpos($_SERVER['REQUEST_URI'], '/login') !== false);
     $action_url = $is_login_page ? site_url('wp-login.php', 'login_post') : admin_url('admin-ajax.php');
 
-    echo '<form id="loginform" action="' . esc_url($action_url) . '" method="post">';
-    echo '<input type="hidden" name="action" value="handle_login">';
-    echo '<div id="login-error-message" style="color: red; margin-bottom: 10px;"></div>'; // Error message container
-    echo '<p><label for="user_login">Username<br /><input type="text" name="log" id="user_login" class="input" /></label></p>';
-    echo '<p><label for="user_pass">Password<br /><input type="password" name="pwd" id="user_pass" class="input" /></label></p>';
-    echo '<p class="submit">';
-    echo '<input type="submit" id="wp-submit" class="button button-primary" value="Log In" />';
-    echo '<input type="hidden" name="redirect_to" value="' . esc_attr(wp_surgeon_get_redirect_url()) . '" />';
-    echo '</p>';
-    echo '</form>';
-    echo '<p>Not a member? <a href="' . esc_url(home_url('/register/')) . '">Sign up here</a></p>';
+    ?>
+    <div class="login-register-form">
+        <h2>Login to Extra Chill</h2>
+        <p>Welcome back! Log in to your account.</p>
+
+        <form id="loginform" action="<?php echo esc_url($action_url); ?>" method="post">
+            <div id="login-error-message" class="login-register-errors" style="display: none;"></div>
+
+            <label for="user_login">Username</label>
+            <input type="text" name="log" id="user_login" class="input" placeholder="Your username" required>
+
+            <label for="user_pass">Password</label>
+            <input type="password" name="pwd" id="user_pass" class="input" placeholder="Your password" required>
+
+            <input type="hidden" name="action" value="handle_login">
+            <input type="hidden" name="redirect_to" value="<?php echo esc_attr(wp_surgeon_get_redirect_url()); ?>">
+
+            <input type="submit" id="wp-submit" class="button button-primary" value="Log In">
+        </form>
+
+        <p style="margin-top: 15px;">Not a member? <a href="<?php echo esc_url(home_url('/register/')); ?>">Sign up here</a></p>
+    </div>
+    <?php
 }
+
 
 function wp_surgeon_display_error_messages() {
     if (isset($_GET['login']) && $_GET['login'] == 'failed') {

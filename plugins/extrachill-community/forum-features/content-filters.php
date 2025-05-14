@@ -56,7 +56,7 @@ add_action('init', 'register_custom_instagram_embed_handler');
 
 
 // fix extra space in mentions
-
+/*
 function fix_bbp_mentions_after_wpautop($content) {
     // Define the pattern to find <a> tags with <br> directly inside them, within bbPress content
     $pattern = '/<a href="([^"]+)" class="bbp-user-mention[^"]*">\s*<br\s*\/?>\s*(.*?)<\/a>/i';
@@ -73,7 +73,7 @@ function fix_bbp_mentions_after_wpautop($content) {
 add_filter('bbp_get_reply_content', 'fix_bbp_mentions_after_wpautop', 70);
 add_filter('bbp_get_topic_content', 'fix_bbp_mentions_after_wpautop', 70);
 
-
+*/
 function embed_tweets($content) {
     // Adjusted the regex to be more selective, specifically targeting tweet status URLs
     $pattern = '/https?:\/\/(?:www\.)?(twitter\.com|x\.com)\/(?:#!\/)?(\w+)\/status(?:es)?\/(\d+)/i';

@@ -5,45 +5,32 @@
 
 get_header();
 
-echo '<div id="chill-home">';
-echo '<div id="chill-home-header"><span>';
+echo '<div id="chill-home">'; 
+if (!bbp_is_single_user()) : // Only show header on non-profile pages
+    echo '<div id="chill-home-header"><span>';
+endif;
+bbp_breadcrumb();
 
 // Check if we are on a user profile page
 $isUserProfile = bbp_is_single_user();
 
-if ($isUserProfile) {
-    $title = '@' . bbp_get_displayed_user_field('user_nicename');
-    echo '<h1 class="profile-title-inline">' . $title . '</h1>';
+if (!$isUserProfile) {
+    echo '<h1>' . esc_html(get_the_title()) . '</h1>';
 
-    // Display the follow button only on user profile pages
-    if (function_exists('extrachill_follow_button')) {
-        extrachill_follow_button(bbp_get_displayed_user_id());
-    }
-} else {
-    // Display the title for non-profile pages
-    echo '<h1>' . get_the_title() . '</h1>';
+    // ✅ Check if we are on a single topic page
+    if (bbp_is_single_topic()) {
+        $views = get_post_meta(get_the_ID(), 'bbp_topic_views', true);
+        ?><div class="views-container"><?php
+        bbp_get_template_part( 'share' );
+        echo '<p class="topic-views">' . esc_html($views) . ' views</p>';
+        ?></div><?php
+    }   
 }
 
-echo '</span>';
-
-if (is_user_logged_in()) {
-    echo '<p>Logged in as <a href="/user-dashboard">' . esc_html(wp_get_current_user()->display_name) . '</a>';
-    if ($isUserProfile) {
-        // Only add "Go Back" on user profile pages
-        echo ' | <a href="javascript:history.back()">Go Back</a>';
-    }
-    echo '</p>';
-} else {
-    echo '<p>You are not signed in. <a href="/login">Login</a> or <a href="/register">Register</a>';
-    if ($isUserProfile) {
-        // Only add "Go Back" on user profile pages
-        echo ' | <a href="javascript:history.back()">Go Back</a>';
-    }
-    echo '</p>';
-}
-
+if (!bbp_is_single_user()) : // Close header div if opened
+    
 echo '</div>'; // End of chill-home-header
-
+endif;
 
 // Output the standard WordPress content within the div
 if (have_posts()) :
@@ -52,10 +39,7 @@ if (have_posts()) :
     endwhile;
 endif;
 
-// Here, we call the function to display online user stats
-if (function_exists('display_online_users_stats')) {
-    display_online_users_stats();
-}
 echo '</div>'; // End of chill-home
 ?>
+
 <?php get_footer(); ?>

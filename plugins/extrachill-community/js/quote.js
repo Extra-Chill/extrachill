@@ -141,38 +141,82 @@ jQuery(document).ready(function($) {
         e.preventDefault();  // Prevent the default behavior of the link.
 
         var href = $(this).attr('href');
-        var replyToId = new URL(href, window.location.origin).searchParams.get('bbp_reply_to');
+
+        // Extract the 'bbp_reply_to' parameter from the href
+        var replyToIdMatch = href.match(/bbp_reply_to=(\d+)/);
+        var replyToId = replyToIdMatch ? replyToIdMatch[1] : null;
 
         if (!replyToId) {
             console.error('Failed to extract replyToId.');
             return false; // Stop further execution.
         }
 
-        // Using a slight delay to allow other handlers (if any) to process.
-        setTimeout(() => {
-            // Retrieve the author name using the data-author-name attribute from the quote link associated with the reply
-            var replyAuthor = $('[data-post-id="' + replyToId + '"][data-author-name]').data('author-name');
+        // Find the reply content div using data-reply-id
+        var replyElement = $('.bbp-reply-content[data-reply-id="' + replyToId + '"]');
+        if (replyElement.length === 0) {
+            console.error('Reply element not found for replyToId:', replyToId);
+            return false;
+        }
 
-            if (!replyAuthor) {
-                console.error('Failed to retrieve author name.');
-                return false;
-            }
+        // Since bbp-reply-author and bbp-reply-content are siblings, find the bbp-reply-author sibling
+        var authorDiv = replyElement.siblings('.bbp-reply-author');
+        if (authorDiv.length === 0) {
+            console.error('Author div not found among siblings of replyElement.');
+            return false;
+        }
 
-            var replyContent = $('#bbp_reply_content');
-            if (replyContent.length) {
-                var mentionText = '@' + replyAuthor + ' ';
-                if (typeof tinyMCE !== 'undefined' && tinyMCE.get('bbp_reply_content') && !tinyMCE.get('bbp_reply_content').isHidden()) {
-                    tinyMCE.get('bbp_reply_content').execCommand('mceInsertContent', false, mentionText);
-                } else {
-                    replyContent.val(mentionText + replyContent.val());
-                }
+        // Find the author link within the authorDiv
+        var authorLink = authorDiv.find('.bbp-author-link');
+        if (authorLink.length === 0) {
+            console.error('Author link not found in author div.');
+            return false;
+        }
+
+        // Get the href attribute of the author link
+        var authorHref = authorLink.attr('href');
+
+        // Extract the username slug from the href
+        var slugMatch = authorHref.match(/\/u\/([^\/]+)/);
+        if (slugMatch && slugMatch[1]) {
+            var replyAuthor = slugMatch[1];
+        } else {
+            console.error('Failed to extract author slug from URL.');
+            return false;
+        }
+
+        // Insert the mention into the reply content editor
+        var replyContent = $('#bbp_reply_content');
+        if (replyContent.length) {
+            // add a non-breaking space
+            var mentionHtml = '@' + replyAuthor + '&nbsp;';
+
+            if (typeof tinyMCE !== 'undefined' && tinyMCE.get('bbp_reply_content') && !tinyMCE.get('bbp_reply_content').isHidden()) {
+                var editor = tinyMCE.get('bbp_reply_content');
+                editor.focus();
+
+                // Use insertContent to add the mention directly and position the cursor after it
+                editor.execCommand('mceInsertContent', false, mentionHtml);
+
+                // Move cursor to the end after the mention
+                editor.selection.collapse(editor.getBody(), editor.getBody().childNodes.length);
+            } else {
                 replyContent.focus();
+                // Insert the mention at the end of the textarea
+                replyContent.val(replyContent.val() + '@' + replyAuthor + ' ');
             }
-        }, 100);  // Adjust the delay as needed based on your setup.
+        }
 
         return false;  // Ensure that the link does not trigger navigation.
     });
 });
+
+
+
+
+
+
+
+
 
 
 

@@ -18,9 +18,6 @@ function save_bbp_user_music_fan_fields($user_id) {
         update_user_meta($user_id, 'music_interests', sanitize_textarea_field($_POST['music_interests']));
     }
 }
-add_action('personal_options_update', 'save_bbp_user_music_fan_fields');
-add_action('edit_user_profile_update', 'save_bbp_user_music_fan_fields');
-
 
 add_action( 'personal_options_update', 'save_extra_user_profile_fields' );
 add_action( 'edit_user_profile_update', 'save_extra_user_profile_fields' );
@@ -36,9 +33,6 @@ function save_extra_user_profile_fields( $user_id ) {
     update_user_meta( $user_id, 'twitter', $_POST['twitter'] );
     update_user_meta( $user_id, 'facebook', $_POST['facebook'] );
     update_user_meta( $user_id, 'bandcamp', $_POST['bandcamp'] );
-    for ($i = 1; $i <= 3; $i++) {
-        update_user_meta( $user_id, 'utility_link_' . $i, $_POST['utility_link_' . $i] );
-    }
 }
 
 function save_bbp_user_music_fan_details($user_id) {
@@ -57,18 +51,11 @@ function save_bbp_user_music_fan_details($user_id) {
         update_user_meta($user_id, 'top_concerts', sanitize_textarea_field($_POST['top_concerts']));
     }
 
-    // Save Musical Memories
-    if (isset($_POST['top_festivals'])) {
-        update_user_meta($user_id, 'top_festivals', sanitize_textarea_field($_POST['top_festivals']));
-    }
-
-    // Save Desert Island Albums
-    if (isset($_POST['desert_island_albums'])) {
-        update_user_meta($user_id, 'desert_island_albums', sanitize_textarea_field($_POST['desert_island_albums']));
+    // Save Top Venues (New)
+    if (isset($_POST['top_venues'])) {
+        update_user_meta($user_id, 'top_venues', sanitize_textarea_field($_POST['top_venues']));
     }
 }
-add_action('personal_options_update', 'save_bbp_user_music_fan_details');
-add_action('edit_user_profile_update', 'save_bbp_user_music_fan_details');
 
 function save_bbp_user_local_scene_details($user_id) {
     // Ensure the current user has permission to edit the user.
@@ -82,17 +69,15 @@ function save_bbp_user_local_scene_details($user_id) {
     }
 
     // Save Top Local Venues
-    if (isset($_POST['top_local_venues'])) {
-        update_user_meta($user_id, 'top_local_venues', sanitize_textarea_field($_POST['top_local_venues']));
-    }
+    // if (isset($_POST['top_local_venues'])) {
+    //	update_user_meta($user_id, 'top_local_venues', sanitize_textarea_field($_POST['top_local_venues']));
+    // }
 
     // Save Top Local Artists
-    if (isset($_POST['top_local_artists'])) {
-        update_user_meta($user_id, 'top_local_artists', sanitize_textarea_field($_POST['top_local_artists']));
-    }
+    // if (isset($_POST['top_local_artists'])) {
+    //	update_user_meta($user_id, 'top_local_artists', sanitize_textarea_field($_POST['top_local_artists']));
+    // }
 }
-add_action('personal_options_update', 'save_bbp_user_local_scene_details');
-add_action('edit_user_profile_update', 'save_bbp_user_local_scene_details');
 
 function save_bbp_user_artist_fields($user_id) {
     // Check for permissions
@@ -100,37 +85,12 @@ function save_bbp_user_artist_fields($user_id) {
         return false;
     }
 
-    // Save Artist Name
-    if (isset($_POST['artist_name'])) {
-        update_user_meta($user_id, 'artist_name', sanitize_text_field($_POST['artist_name']));
-    }
 
-    // Save Genre
-    if (isset($_POST['artist_genre'])) {
-        update_user_meta($user_id, 'artist_genre', sanitize_text_field($_POST['artist_genre']));
-    }
-
-    // Save Influences
-    if (isset($_POST['artist_influences'])) {
-        update_user_meta($user_id, 'artist_influences', sanitize_textarea_field($_POST['artist_influences']));
-    }
-
-    // Save Featured Embed URL
-    if (isset($_POST['featured_embed'])) {
-        update_user_meta($user_id, 'featured_embed', esc_url_raw($_POST['featured_embed']));
-    }
-     // Save Band Name
-     if (isset($_POST['band_name'])) {
-            update_user_meta($user_id, 'band_name', sanitize_text_field($_POST['band_name']));
-     }
-    
     // Save Instruments Played
      if (isset($_POST['instruments_played'])) {
             update_user_meta($user_id, 'instruments_played', sanitize_text_field($_POST['instruments_played']));
     }
 }
-add_action('personal_options_update', 'save_bbp_user_artist_fields');
-add_action('edit_user_profile_update', 'save_bbp_user_artist_fields');
 
 function save_bbp_user_professional_fields($user_id) {
     // Check for permissions
@@ -158,8 +118,6 @@ function save_bbp_user_professional_fields($user_id) {
         update_user_meta($user_id, 'professional_goals', sanitize_textarea_field($_POST['professional_goals']));
     }
 }
-add_action('personal_options_update', 'save_bbp_user_professional_fields');
-add_action('edit_user_profile_update', 'save_bbp_user_professional_fields');
 
 function display_main_site_post_count_on_profile() {
     $community_user_id = bbp_get_displayed_user_id();
@@ -177,3 +135,31 @@ function display_main_site_post_count_on_profile() {
         }
     }
 }
+
+// Music Fan Section variables
+$favorite_artists = get_user_meta(bbp_get_displayed_user_id(), 'favorite_artists', true);
+$top_concerts = get_user_meta(bbp_get_displayed_user_id(), 'top_concerts', true);
+$top_venues = get_user_meta(bbp_get_displayed_user_id(), 'top_venues', true);
+
+// Wrap the existing conditional block in a card
+if ($favorite_artists || $top_concerts || $top_venues ) :
+    ?>
+    <div class="card">
+        <div class="card-header">
+            <h3><?php esc_html_e('Music Fan Details', 'generatepress_child'); ?></h3>
+        </div>
+        <div class="card-body">
+            <?php if ($favorite_artists) : ?>
+                <p><strong><?php esc_html_e('Favorite Artists:', 'generatepress_child'); ?></strong> <?php echo nl2br(esc_html($favorite_artists)); ?></p>
+            <?php endif; ?>
+
+            <?php if ($top_concerts) : ?>
+                <p><strong><?php esc_html_e('Top Concerts:', 'generatepress_child'); ?></strong> <?php echo nl2br(esc_html($top_concerts)); ?></p>
+            <?php endif; ?>
+
+            <?php if ($top_venues) : ?>
+                <p><strong><?php esc_html_e('Top Venues:', 'generatepress_child'); ?></strong> <?php echo nl2br(esc_html($top_venues)); ?></p>
+            <?php endif; ?>
+        </div>
+    </div>
+<?php endif; ?>

@@ -1,0 +1,150 @@
+/**
+ * CSS for Band Profile Cards displayed in the Band Directory (Forum 5432).
+ */
+
+.band-cards-container {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); /* Responsive grid */
+    gap: 20px;
+}
+
+.bbp-band-item {
+    margin-bottom: 0; /* Remove default list item margin if any */
+    padding: 0; /* Remove default list item padding */
+    border: 1px solid var(--border-color, #ddd); 
+    background-color: var(--content-bg, #fff);
+    border-radius: 5px;
+    overflow: hidden; /* Ensure content respects border-radius */
+    transition: box-shadow 0.3s ease, transform 0.3s ease;
+}
+
+.bbp-band-item:hover {
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    transform: translateY(-3px);
+}
+
+.band-card {
+    display: flex;
+    flex-direction: column; /* Stack image, details */
+    height: 100%; /* Make cards in a row equal height implicitly */
+}
+
+/* New Header container */
+.band-card-header {
+    position: relative; /* Crucial for absolute positioning of title */
+    line-height: 0; /* Remove extra space */
+}
+
+/* Add a gradient overlay to the image */
+.band-card-header::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 70%; /* Adjust height of gradient */
+    background: linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0) 100%);
+    pointer-events: none; /* Allow clicking through */
+    border-radius: 0 0 5px 5px; /* Match bottom corners if needed, though overflow hidden on parent might suffice */
+}
+
+.band-card-image {
+    line-height: 0; /* Remove extra space below image */
+}
+
+.band-card-image a {
+    display: block;
+}
+
+.band-card-image img {
+    max-width: 100%;
+    height: auto;
+    aspect-ratio: 16 / 9; /* Maintain a consistent aspect ratio */
+    object-fit: cover; /* Cover the area, cropping if needed */
+    border-bottom: 1px solid var(--border-color, #ddd);
+}
+
+.band-card-details {
+    padding: 15px;
+    flex-grow: 1; /* Allow details to fill remaining card space */
+    display: flex;
+    flex-direction: column;
+}
+
+.band-card-title {
+    /* Moved from details to header */
+    position: absolute;
+    bottom: 10px; /* Position title at the bottom */
+    left: 15px;
+    right: 15px;
+    margin: 0;
+    font-size: 1.4em; /* Slightly larger */
+    line-height: 1.3;
+    z-index: 2; /* Ensure title is above the gradient overlay */
+    color: #fff; /* White text for contrast */
+    text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.7); /* Add shadow for readability */
+}
+
+.band-card-title a {
+    text-decoration: none;
+    color: #fff; /* Ensure link is white */
+}
+
+.band-card-title a:hover {
+    color: var(--accent, #53940b);
+}
+
+/* Styles for title when no image is present */
+.band-title-no-image {
+    position: static !important; /* Override absolute positioning */
+    color: var(--text-color, #333) !important; /* Use standard text color */
+    text-shadow: none !important; /* Remove text shadow meant for overlays */
+    padding: 15px 15px 0 15px; /* Add some padding */
+    margin: 0 0 10px 0; /* Add some bottom margin */
+    /* Ensure it takes full width of its container if needed, though block level should do it */
+}
+
+.band-title-no-image a {
+    color: var(--text-color, #333) !important; /* Ensure link color matches */
+    text-decoration: none; /* Or inherit from theme */
+}
+
+.band-title-no-image a:hover {
+    color: var(--accent, #53940b) !important; /* Standard accent hover */
+    text-decoration: underline; /* Or inherit */
+}
+
+.band-card-details p {
+    font-size: 0.9em;
+    color: var(--muted-text, #555);
+    margin: 0 0 0.4em 0;
+    line-height: 1.5;
+}
+
+/* Push activity/latest topic towards the bottom */
+.band-card-activity,
+.band-card-latest-topic {
+    margin-top: auto; /* Pushes this down */
+    padding-top: 0.5em; /* Add some space above */
+    border-top: 1px dashed var(--separator-color, #eee);
+}
+
+.band-card-latest-topic a {
+     color: var(--text-color, #333);
+     text-decoration: none;
+}
+
+.band-card-latest-topic a:hover {
+    color: var(--accent, #53940b);
+    text-decoration: underline;
+}
+
+/* Responsive adjustments if needed */
+@media (max-width: 600px) {
+    .band-cards-container {
+        grid-template-columns: 1fr; /* Single column on small screens */
+    }
+} 

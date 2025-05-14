@@ -55,3 +55,20 @@ function get_main_site_comment_count_for_user($user_id) {
 
     return $comment_count;
 }
+
+
+function my_bbpress_rest_support() {
+   // Make sure 'topic' and 'reply' are registered with 'show_in_rest' => true
+   global $wp_post_types;
+
+   if ( isset( $wp_post_types['topic'] ) ) {
+       $wp_post_types['topic']->show_in_rest = true;
+       $wp_post_types['topic']->rest_base    = 'topic'; // optional, but clarifies the rest base
+   }
+
+   if ( isset( $wp_post_types['reply'] ) ) {
+       $wp_post_types['reply']->show_in_rest = true;
+       $wp_post_types['reply']->rest_base    = 'reply'; // same note as above
+   }
+}
+add_action( 'init', 'my_bbpress_rest_support', 25 );

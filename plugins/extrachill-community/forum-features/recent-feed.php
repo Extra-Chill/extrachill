@@ -53,12 +53,35 @@ function extrachill_get_recent_forum_replies($paged = 1) {
 
 // Function to get IDs of private forums
 function extrachill_get_private_forum_ids() {
-    // If the user is part of the Extra Chill team, return an empty array (no exclusion needed)
+    // Check if the user is part of the Extra Chill team
     if (is_user_logged_in() && get_user_meta(get_current_user_id(), 'extrachill_team', true) == '1') {
-        return array();
+        return array(); // No exclusion needed for team members
     }
 
-    // Find forums that require the Extra Chill team
+    // Check if private forum IDs are already stored in an option
+    $private_forum_ids = get_option('extrachill_private_forum_ids');
+
+    // If private forums have not been stored or empty, fetch and update
+    if ($private_forum_ids === false || empty($private_forum_ids)) {
+        $private_forum_ids_query = array(
+            'post_type' => bbp_get_forum_post_type(),
+            'meta_key'   => '_require_extrachill_team',
+            'meta_value' => '1',
+            'fields' => 'ids',
+            'posts_per_page' => -1,
+        );
+
+        // Get the private forum IDs
+        $private_forum_ids = get_posts($private_forum_ids_query);
+
+        // Store them permanently using update_option()
+        update_option('extrachill_private_forum_ids', $private_forum_ids);
+    }
+
+    return $private_forum_ids;
+}
+
+function extrachill_refresh_private_forum_ids() {
     $private_forum_ids_query = array(
         'post_type' => bbp_get_forum_post_type(),
         'meta_key'   => '_require_extrachill_team',
@@ -66,8 +89,17 @@ function extrachill_get_private_forum_ids() {
         'fields' => 'ids',
         'posts_per_page' => -1,
     );
-    return get_posts($private_forum_ids_query);
+
+    // Get and update the option with new private forum IDs
+    $private_forum_ids = get_posts($private_forum_ids_query);
+    update_option('extrachill_private_forum_ids', $private_forum_ids);
+
+    return $private_forum_ids;
 }
+
+// extrachill_refresh_private_forum_ids();
+
+
 
 function extrachill_get_recent_forum_posts_combined($paged = 1) {
     // Fetch topics and replies separately

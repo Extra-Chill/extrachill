@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Template Name: ExtraChill Notifications
  *
@@ -6,8 +7,24 @@
  */
 
 get_header(); ?>
+<div <?php generate_do_attr( 'page' ); ?>>
+    <?php
+    /**
+     * generate_inside_site_container hook.
+     */
+    do_action( 'generate_inside_site_container' );
+    ?>
+    <div <?php generate_do_attr( 'site-content' ); ?>>
+        <?php
+        /**
+         * generate_inside_container hook.
+         */
+        do_action( 'generate_inside_container' );
+        ?>
+        <?php extrachill_breadcrumbs(); ?>
 
 <div id="primary" class="content-area">
+    
     <main id="main" class="site-main">
 
         <article id="post-<?php the_ID(); ?>" <?php post_class(); ?>>
@@ -26,5 +43,7 @@ get_header(); ?>
     </main><!-- #main -->
 </div><!-- #primary -->
 
+        </div><!-- .site-content -->
+    </div><!-- .page -->
 <?php
 get_footer();

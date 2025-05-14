@@ -1,9 +1,46 @@
 <?php
 
+// Include Band Platform dependencies if not already loaded globally
+// Ideally, these should be loaded by a central plugin/theme loader.
+$bp_roster_data_functions = dirname(__FILE__) . '/band-platform/roster/roster-data-functions.php';
+$bp_user_linking_functions = dirname(__FILE__) . '/band-platform/user-linking.php';
+if (file_exists($bp_roster_data_functions)) {
+    require_once $bp_roster_data_functions;
+}
+if (file_exists($bp_user_linking_functions)) {
+    require_once $bp_user_linking_functions;
+}
+
 function wp_surgeon_registration_form_shortcode() {
     global $wp_surgeon_registration_errors;
 
     ob_start(); // Start output buffering
+
+    $invite_token = null;
+    $invite_band_id = null;
+    $invited_email = '';
+    $band_name_for_invite_message = '';
+
+    if (isset($_GET['action']) && $_GET['action'] === 'bp_accept_invite' && isset($_GET['token']) && isset($_GET['band_id'])) {
+        $token_from_url = sanitize_text_field($_GET['token']);
+        $band_id_from_url = absint($_GET['band_id']);
+
+        if (function_exists('bp_get_pending_invitations')) {
+            $pending_invitations = bp_get_pending_invitations($band_id_from_url);
+            foreach ($pending_invitations as $invite) {
+                if (isset($invite['token']) && $invite['token'] === $token_from_url && isset($invite['status']) && $invite['status'] === 'invited_new_user') {
+                    $invite_token = $token_from_url;
+                    $invite_band_id = $band_id_from_url;
+                    $invited_email = isset($invite['email']) ? sanitize_email($invite['email']) : '';
+                    $band_post_for_invite = get_post($invite_band_id);
+                    if ($band_post_for_invite) {
+                        $band_name_for_invite_message = $band_post_for_invite->post_title;
+                    }
+                    break;
+                }
+            }
+        }
+    }
 
     if (is_user_logged_in()) {
         $current_user = wp_get_current_user();
@@ -12,40 +49,64 @@ function wp_surgeon_registration_form_shortcode() {
     } else {
         $errors = wp_surgeon_get_registration_errors();
         ?>
-        <div class="register-form">
-            <form action="<?php echo esc_url($_SERVER['REQUEST_URI']); ?>" method="post">
-                <p>
-                    <label for="wp_surgeon_username">Username</label>
-                    <input type="text" name="wp_surgeon_username" id="wp_surgeon_username" required>
-                    <br>
-                    <small>This is what you will be known as in the forum. Usernames cannot be changed.</small>
-                </p>
-                <p>
-                    <label for="wp_surgeon_email">Email</label>
-                    <input type="email" name="wp_surgeon_email" id="wp_surgeon_email" required>
-                </p>
-                <p>
-                    <label for="wp_surgeon_password">Password</label>
-                    <input type="password" name="wp_surgeon_password" id="wp_surgeon_password" required>
-                </p>
-                <p>
-                    <label for="wp_surgeon_password_confirm">Confirm Password</label>
-                    <input type="password" name="wp_surgeon_password_confirm" id="wp_surgeon_password_confirm" required>
-                </p>
-                <p>
-                    <input type="submit" name="wp_surgeon_register" value="Register">
-                    <div class="cf-turnstile" data-sitekey="0x4AAAAAAAPvQsUv5Z6QBB5n" data-callback="community_register"></div>
-                </p>
-                <?php if (!empty($errors)): ?>
-                    <div class="registration-errors">
-                        <?php foreach ($errors as $error): ?>
-                            <p class="error"><?php echo $error; ?></p>
-                        <?php endforeach; ?>
-                    </div>
-                <?php endif; 
-                wp_nonce_field('wp_surgeon_register_nonce', 'wp_surgeon_register_nonce_field'); ?>
-            </form>
+        <div class="login-register-form">
+    <h2>Join the Extra Chill Community</h2>
+    <p>Sign up to connect with music lovers, artists, and professionals in the online music scene! It's free and easy.</p>
+
+    <?php if (!empty($band_name_for_invite_message) && !empty($invite_token)) : ?>
+        <div class="bp-notice bp-notice-info" style="border-left: 4px solid #17a2b8; padding: 12px; margin-bottom: 20px; background-color: #e6f7ff;">
+            <p style="margin:0;"><?php echo sprintf(esc_html__('You have been invited to join the band \'%s\'! Please complete your registration below to accept.', 'generatepress_child'), esc_html($band_name_for_invite_message)); ?></p>
         </div>
+    <?php endif; ?>
+
+    <?php if (!empty($errors)): ?>
+        <div class="login-register-errors">
+            <?php foreach ($errors as $error): ?>
+                <p class="error"><?php echo esc_html($error); ?></p>
+            <?php endforeach; ?>
+        </div>
+    <?php endif; ?>
+
+    <form action="<?php echo esc_url($_SERVER['REQUEST_URI']); ?>" method="post">
+        <label for="wp_surgeon_username">Username <small>(required)</small></label>
+        <input type="text" name="wp_surgeon_username" id="wp_surgeon_username" placeholder="Choose a username" required value="<?php echo isset($_POST['wp_surgeon_username']) ? esc_attr($_POST['wp_surgeon_username']) : ''; ?>">
+        
+        <label for="wp_surgeon_email">Email</label>
+        <input type="email" name="wp_surgeon_email" id="wp_surgeon_email" placeholder="you@example.com" required value="<?php echo !empty($invited_email) ? esc_attr($invited_email) : (isset($_POST['wp_surgeon_email']) ? esc_attr($_POST['wp_surgeon_email']) : ''); ?>">
+
+        <label for="wp_surgeon_password">Password</label>
+        <input type="password" name="wp_surgeon_password" id="wp_surgeon_password" placeholder="Create a password" required>
+
+        <label for="wp_surgeon_password_confirm">Confirm Password</label>
+        <input type="password" name="wp_surgeon_password_confirm" id="wp_surgeon_password_confirm" placeholder="Repeat your password" required>
+
+        <div style="margin-top: 15px;">
+            <label style="display:block; margin-bottom: 5px;">
+                <input type="checkbox" id="user_is_fan" checked disabled> I love music
+            </label>
+            <label style="display:block; margin-bottom: 5px;">
+                <input type="checkbox" name="user_is_artist" id="user_is_artist" value="1"> I am a musician
+            </label>
+            <label style="display:block; margin-bottom: 5px;">
+                <input type="checkbox" name="user_is_professional" id="user_is_professional" value="1"> I work in the music industry
+            </label>
+        </div>
+
+        <div style="margin-top: 15px;">
+            <input type="submit" name="wp_surgeon_register" value="Join Now">
+        </div>
+
+        <div class="cf-turnstile" data-sitekey="0x4AAAAAAAPvQsUv5Z6QBB5n" data-callback="community_register" style="margin-top: 20px;"></div>
+
+        <?php wp_nonce_field('wp_surgeon_register_nonce', 'wp_surgeon_register_nonce_field'); ?>
+        <?php if ($invite_token && $invite_band_id) : ?>
+            <input type="hidden" name="invite_token" value="<?php echo esc_attr($invite_token); ?>">
+            <input type="hidden" name="invite_band_id" value="<?php echo esc_attr($invite_band_id); ?>">
+        <?php endif; ?>
+    </form>
+</div>
+
+
         <?php
     }
 
@@ -57,6 +118,7 @@ add_shortcode('wp_surgeon_registration_form', 'wp_surgeon_registration_form_shor
 $GLOBALS['wp_surgeon_registration_errors'] = array();
 function wp_surgeon_handle_registration() {
     global $wp_surgeon_registration_errors;
+    $processed_invite_band_id = null; // Variable to store band_id if invite is processed
 
     if (isset($_POST['wp_surgeon_register']) && check_admin_referer('wp_surgeon_register_nonce', 'wp_surgeon_register_nonce_field')) {
         // Collect and sanitize form data
@@ -101,10 +163,71 @@ function wp_surgeon_handle_registration() {
             // Consider whether you want to roll back user creation here or just leave the user registered without Sendy sync
         }
 
-        // Other post-registration processes like auto-login
-        auto_login_new_user($user_id);
+        // Check for and process band invitation
+        $invite_token_posted = isset($_POST['invite_token']) ? sanitize_text_field($_POST['invite_token']) : null;
+        $invite_band_id_posted = isset($_POST['invite_band_id']) ? absint($_POST['invite_band_id']) : null;
+
+        if ($invite_token_posted && $invite_band_id_posted && function_exists('bp_get_pending_invitations') && function_exists('bp_add_band_membership') && function_exists('bp_remove_pending_invitation')) {
+            $pending_invitations = bp_get_pending_invitations($invite_band_id_posted);
+            $valid_invite_data = null;
+            $valid_invite_id_for_removal = null;
+
+            foreach ($pending_invitations as $invite) {
+                if (isset($invite['token']) && $invite['token'] === $invite_token_posted && 
+                    isset($invite['email']) && strtolower($invite['email']) === strtolower($email) &&
+                    isset($invite['status']) && $invite['status'] === 'invited_new_user') {
+                    $valid_invite_data = $invite;
+                    $valid_invite_id_for_removal = $invite['id']; // Assuming 'id' is the key for the invitation unique ID
+                    break;
+                }
+            }
+
+            if ($valid_invite_data) {
+                // Force user_is_artist meta to true as they are joining via a band invite
+                update_user_meta($user_id, 'user_is_artist', '1');
+                error_log("Band Invite Registration: Forcing user_is_artist for user ID $user_id for band $invite_band_id_posted.");
+
+                if (bp_add_band_membership($user_id, $invite_band_id_posted)) {
+                    if (bp_remove_pending_invitation($invite_band_id_posted, $valid_invite_id_for_removal)) {
+                        error_log("Band Invite Registration: User $user_id successfully added to band $invite_band_id_posted and invite removed.");
+                        $processed_invite_band_id = $invite_band_id_posted; // Store for redirect
+                    } else {
+                        error_log("Band Invite Registration: User $user_id added to band $invite_band_id_posted, but FAILED to remove pending invite ID $valid_invite_id_for_removal.");
+                        // Still treat as success for user, but log the cleanup issue
+                        $processed_invite_band_id = $invite_band_id_posted;
+                    }
+                } else {
+                    error_log("Band Invite Registration: FAILED to add user $user_id to band $invite_band_id_posted.");
+                    $wp_surgeon_registration_errors[] = 'Your account was created, but there was an issue joining the invited band. Please contact support.';
+                }
+            } else {
+                 error_log("Band Invite Registration: Invalid or mismatched token/email for invite. Token: $invite_token_posted, Band ID: $invite_band_id_posted, New User Email: $email");
+                // Don't add an error to $wp_surgeon_registration_errors here, as registration itself might be fine, just invite part failed.
+                // User gets registered as normal without joining band.
+            }
+        } elseif ($invite_token_posted || $invite_band_id_posted) {
+            // Log if token/band_id was posted but functions were missing (should not happen with require_once at top)
+            error_log("Band Invite Registration: Invite token/band_id posted, but required band platform functions are missing.");
+        }
+
+          // Save user statuses after successful registration (DIRECTLY IN THIS FUNCTION)
+    if (isset($_POST['user_is_artist']) && !$processed_invite_band_id) { // Only use form value if not processed via invite
+        update_user_meta($user_id, 'user_is_artist', isset($_POST['user_is_artist']) ? '1' : '0');
+   } else {
+       update_user_meta( $user_id, 'user_is_artist', '0' );
     }
-}
+
+    if (isset($_POST['user_is_professional'])) {
+       update_user_meta($user_id, 'user_is_professional', isset($_POST['user_is_professional']) ? '1' : '0');
+   } else {
+       update_user_meta( $user_id, 'user_is_professional', '0' );
+   }
+        // Other post-registration processes like auto-login
+        auto_login_new_user($user_id, $processed_invite_band_id);
+
+
+     }
+ }
 
 add_action('init', 'wp_surgeon_handle_registration');
 
@@ -136,9 +259,8 @@ function sync_to_sendy($email, $name) {
     }
 }
 
-    
 
-function auto_login_new_user($user_id) {
+function auto_login_new_user($user_id, $redirect_band_id = null) {
     // Assuming generate_community_session_token and store_user_session are defined and available
     $token = generate_community_session_token();
     store_user_session($token, $user_id);
@@ -158,31 +280,16 @@ function auto_login_new_user($user_id) {
     wp_set_auth_cookie($user_id, true); // Ensure the login is persistent
 
     // Redirect to the user dashboard or another desired page
-    wp_redirect(home_url('/user-dashboard'));
+    $redirect_url = bbp_get_user_profile_url($user_id); // Default redirect
+    if ($redirect_band_id && get_post_type($redirect_band_id) === 'band_profile') {
+        $band_profile_url = get_permalink($redirect_band_id);
+        if ($band_profile_url) {
+            $redirect_url = add_query_arg('invite_accepted', '1', $band_profile_url);
+        }
+    }
+    wp_redirect($redirect_url);
     exit;
 }
-
-
-function save_user_iss_on_registration($user_id) {
-    // Retrieve user data
-    $user_data = get_userdata($user_id);
-    $username = $user_data->user_login;
-    $email = $user_data->user_email;
-
-    // Assign the 'Fan' role by default to every user
-    update_user_meta($user_id, 'user_is_fan', '1');
-
-    if (isset($_POST['user_is_artist'])) {
-        // Set the initial artist role to 'pending'
-        update_user_meta($user_id, 'user_is_artist_pending', '1');
-    }
-
-    if (isset($_POST['user_is_professional'])) {
-        // Set the initial professional role to 'pending'
-        update_user_meta($user_id, 'user_is_professional_pending', '1');
-    }
-}
-add_action('user_register', 'save_user_iss_on_registration');
 
 
 function wp_surgeon_get_registration_errors() {
@@ -198,70 +305,13 @@ function wp_surgeon_get_registration_errors() {
     return $errors;
 }
 
-
-function send_welcome_email_to_new_user($user_id) {
-    $user_data = get_userdata($user_id);
-    $username = $user_data->user_login;
-    $email = $user_data->user_email;
-    // Set the password reset link
-    $reset_pass_link = wp_lostpassword_url();
-
-    // Email subject
-    $subject = "Welcome to the Extra Chill Community!";
-
-    // Email body with HTML formatting
-    $message = "<html><body>";
-    $message .= "<p>Hello <strong>" . $username . "</strong>,</p>";
-    $message .= "<p>Welcome to the <strong>Extra Chill Community</strong>! We're excited to have you on board.</p>";
-    $message .= "<p>You can now participate in the Community, including upvoting and commenting on blog articles on the main site.</p>";
-    $message .= "<p>If you are an artist or music industry professional, don't forget to request verification in your <a href='" . esc_url(home_url('/user-dashboard')) . "'>User Dashboard</a>.</p>";
-    $message .= "<p><strong>Account Details:</strong><br>";
-    $message .= "Username: <strong>" . $username . "</strong><br>";
-    $message .= "If you forget your password, you can reset it <a href='" . esc_url($reset_pass_link) . "'>here</a>.</p>";
-    $message .= "<p><strong>Other Useful Links:</strong><br>";
-    $message .= "<a href='" . esc_url(home_url('/')) . "'>Community Forums</a><br>";
-    $message .= "<a href='https://extrachill.com'>Main Blog</a><br>";
-    $message .= "<a href='https://instagram.com/extrachill'>Instagram</a></p>";
-    $message .= "<p>Learn more about how the Extra Chill Community works: <a href='" . esc_url(home_url('/community-info')) . "'>Community Info</a>.</p>";
-    $message .= "<p>Enjoy your stay,<br>";
-    $message .= "The Extra Chill Team</p>";
-    $message .= "</body></html>";
-
-    // Headers for HTML content and custom From
-    $headers = array('Content-Type: text/html; charset=UTF-8', 'From: Extra Chill <chubes@extrachill.com>');
-
-    // Send the email
-    wp_mail($email, $subject, $message, $headers);
-}
-
-add_action( 'user_register', 'send_welcome_email_to_new_user' );
-
-
-add_action( 'user_register', 'wp_surgeon_notify_admin_new_user', 10, 1 );
-
-function wp_surgeon_notify_admin_new_user($user_id) {
-    $user_data = get_userdata($user_id);
-    $username = $user_data->user_login;
-    $email = $user_data->user_email;
-
-    $admin_email = get_option('admin_email');
-    $subject = "New User Registration Notification";
-
-    $is_fan = get_user_meta($user_id, 'user_is_fan', true) ? 'Yes' : 'No';
-    $is_artist_pending = get_user_meta($user_id, 'user_is_artist_pending', true) ? 'Yes' : 'No';
-    $is_professional_pending = get_user_meta($user_id, 'user_is_professional_pending', true) ? 'Yes' : 'No';
-
-    $message = "A new user has registered on your site.\n\n";
-    $message .= "Username: $username\n";
-    $message .= "Email: $email\n";
-    $message .= "User ID: $user_id\n";
-    $message .= "Fan: $is_fan\n";
-    $message .= "You can view the user profile here: " . get_edit_user_link($user_id);
-
-    wp_mail($admin_email, $subject, $message);
-}
-
 function wp_surgeon_verify_turnstile($response) {
+
+    if ( defined('WP_ENV') && WP_ENV === 'development' ) {
+        return true;
+    }
+    
+
     $secret_key = '0x4AAAAAAAPvQp7DbBfqJD7LW-gbrAkiAb0'; // Ensure this is the correct key
     $verify_url = 'https://challenges.cloudflare.com/turnstile/v0/siteverify';
 

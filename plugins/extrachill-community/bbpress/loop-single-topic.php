@@ -15,6 +15,8 @@ defined( 'ABSPATH' ) || exit;
 <ul id="bbp-topic-<?php bbp_topic_id(); ?>" <?php bbp_topic_class(); ?>>
     <li class="bbp-topic-title">
 
+    
+
         <?php if ( bbp_is_user_home() ) : ?>
 
             <?php if ( bbp_is_favorites() ) : ?>
@@ -149,3 +151,4 @@ $display_upvote_count = $upvote_count + 1;
         </p>
     </li>
 </ul><!-- #bbp-topic-<?php bbp_topic_id(); ?> -->
+

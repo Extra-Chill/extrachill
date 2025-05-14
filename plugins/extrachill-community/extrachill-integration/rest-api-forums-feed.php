@@ -12,14 +12,20 @@ function get_recent_community_activity($request) {
     $args = array(
         'post_type' => array('topic', 'reply'), // Assuming 'topic' and 'reply' are the post types
         'post_status' => 'publish',
-        'posts_per_page' => 5,
+        'posts_per_page' => 3,
         'orderby' => 'date',
         'order' => 'DESC',
         'meta_query' => array(
+            'relation' => 'AND', // Combine multiple conditions
             array(
                 'key'     => '_bbp_forum_id', // Adjust if necessary
                 'value'   => extrachill_get_private_forum_ids(), // Assuming this function returns IDs of private forums
                 'compare' => 'NOT IN',
+            ),
+            array(
+                'key'     => '_bbp_forum_id',
+                'value'   => '1494', // The specific forum ID to exclude
+                'compare' => '!=', // Exclude this specific forum
             ),
         ),
     );
@@ -60,5 +66,6 @@ function get_recent_community_activity($request) {
 
     return new WP_REST_Response($activities, 200);
 }
+
 
 

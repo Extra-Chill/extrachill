@@ -14,60 +14,73 @@ defined( 'ABSPATH' ) || exit;
 
 <div id="bbpress-forums" class="bbpress-wrapper">
 
-    <?php bbp_breadcrumb(); ?>
 
-    <?php bbp_forum_subscription_link(); ?>
+	<?php bbp_forum_subscription_link(); ?>
 
-    <?php do_action( 'bbp_template_before_single_forum' ); ?>
+	<?php do_action( 'bbp_template_before_single_forum' ); ?>
 
-    <?php if ( post_password_required() ) : ?>
+	<?php if ( post_password_required() ) : ?>
 
-        <?php bbp_get_template_part( 'form', 'protected' ); ?>
+		<?php bbp_get_template_part( 'form', 'protected' ); ?>
 
-    <?php else : ?>
+	<?php else : ?>
 
-        <?php bbp_single_forum_description(); ?>
+		<?php bbp_single_forum_description(); ?>
 
-        <?php if ( bbp_has_forums() ) : ?>
+		<?php if ( bbp_has_forums() ) : ?>
 
-            <?php bbp_get_template_part( 'loop', 'forums' ); ?>
+			<?php bbp_get_template_part( 'loop', 'forums' ); ?>
 
-        <?php endif; ?>
+		<?php endif; ?>
 
-        <?php if ( ! bbp_is_forum_category() && bbp_has_topics() ) : ?>
+		<?php
+		// --- START Custom Logic for Forum 5432 / Standard Forums ---
+		$band_directory_forum_id = 5432;
+		$current_forum_id = bbp_get_forum_id();
 
-            <?php bbp_get_template_part( 'pagination', 'topics' ); ?>
+		if ( $current_forum_id === $band_directory_forum_id ) {
 
-            <?php bbp_get_template_part( 'loop', 'topics' ); ?>
+			// --- Display for Band Directory Forum (ID: 5432) ---
+			// Load our custom template part for band profiles, bypassing bbp_has_topics()
+			bbp_get_template_part( 'loop', 'band-profiles' );
+			
+			// Do NOT display the standard "Create New Topic" form here by default
+			// It could be added back conditionally if needed: 
+			// bbp_get_template_part( 'form', 'topic' );
+			// --- End Display for Band Directory Forum ---
 
-            <?php bbp_get_template_part( 'pagination', 'topics' ); ?>
+		} elseif ( ! bbp_is_forum_category() ) {
 
-            <?php
-            // Get the current forum ID
-            $current_forum_id = bbp_get_forum_id();
-            // Check if the current forum is NOT 1494 before showing the topic form
-            if ($current_forum_id != 1494) :
-                bbp_get_template_part( 'form', 'topic' );
-            endif;
-            ?>
+			// --- Standard Display for Other Forums ---
+			if ( bbp_has_topics() ) :
+				
+				// Forum has standard topics
+				bbp_get_template_part( 'pagination', 'topics' );
+				bbp_get_template_part( 'loop', 'topics' );
 
-        <?php elseif ( ! bbp_is_forum_category() ) : ?>
+				// Show topic form (excluding forum 1494)
+			if ($current_forum_id != 1494) :
+				bbp_get_template_part( 'form', 'topic' );
+			endif;
 
-            <?php bbp_get_template_part( 'feedback', 'no-topics' ); ?>
+			else :
 
-            <?php
-            // Get the current forum ID
-            $current_forum_id = bbp_get_forum_id();
-            // Same check here to conditionally show the topic form if the forum is not 1494
-            if ($current_forum_id != 1494) :
-                bbp_get_template_part( 'form', 'topic' );
-            endif;
-            ?>
+				// Forum has no standard topics
+				bbp_get_template_part( 'feedback', 'no-topics' );
 
-        <?php endif; ?>
+				// Show topic form (excluding forum 1494)
+			if ($current_forum_id != 1494) :
+				bbp_get_template_part( 'form', 'topic' );
+			endif;
 
-    <?php endif; ?>
+			endif; // End bbp_has_topics() check
+			// --- End Standard Display for Other Forums ---
+			
+		} // --- END Custom Logic ---
+			?>
 
-    <?php do_action( 'bbp_template_after_single_forum' ); ?>
+	<?php endif; ?>
+
+	<?php do_action( 'bbp_template_after_single_forum' ); ?>
 
 </div>

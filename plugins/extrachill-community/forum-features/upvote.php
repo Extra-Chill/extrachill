@@ -16,6 +16,8 @@ function handle_upvote_action() {
             $upvoted_posts = [];
         }
 
+        $post_author_id = get_post_field('post_author', $post_id);
+
         if (in_array($post_id, $upvoted_posts)) {
             // User has already upvoted, remove the upvote
             $upvoted_posts = array_diff($upvoted_posts, [$post_id]);
@@ -25,9 +27,12 @@ function handle_upvote_action() {
             $upvote_count = max(get_post_meta($post_id, 'upvote_count', true) - 1, 0);
             update_post_meta($post_id, 'upvote_count', $upvote_count);
 
+            $upvoted = false;
+
+            // Trigger the action
+            do_action('custom_upvote_action', $post_id, $post_author_id, $upvoted);
+
             wp_send_json_success(['message' => 'Upvote removed', 'new_count' => $upvote_count, 'upvoted' => false]);
-            // In your upvote handling script, after successfully processing an upvote/downvote:
-do_action('custom_upvote_action', $post_id, $user_id);
         } else {
             // Add the upvote
             $upvoted_posts[] = $post_id;
@@ -38,9 +43,12 @@ do_action('custom_upvote_action', $post_id, $user_id);
             $upvote_count = empty($upvote_count) ? 1 : intval($upvote_count) + 1;
             update_post_meta($post_id, 'upvote_count', $upvote_count);
 
+            $upvoted = true;
+
+            // Trigger the action
+            do_action('custom_upvote_action', $post_id, $post_author_id, $upvoted);
+
             wp_send_json_success(['message' => 'Upvote recorded', 'new_count' => $upvote_count, 'upvoted' => true]);
-            // In your upvote handling script, after successfully processing an upvote/downvote:
-do_action('custom_upvote_action', $post_id, $user_id);
         }
     } else {
         wp_send_json_error(['message' => 'Invalid request']);
@@ -48,6 +56,8 @@ do_action('custom_upvote_action', $post_id, $user_id);
 
     wp_die();
 }
+
+
 add_action('wp_ajax_handle_upvote', 'handle_upvote_action');
 add_action('wp_ajax_nopriv_handle_upvote', 'handle_upvote_action'); // If you want to allow non-logged in users to view upvote counts
 
@@ -64,7 +74,8 @@ function extrachill_get_upvoted_posts($post_type, $user_id = null) {
         return new WP_Query(); // Return an empty WP_Query object if no upvoted posts
     }
 
-    $paged = get_query_var('paged') ? get_query_var('paged') : 1;
+    // Support both 'paged' (archives) and 'page' (static page) pagination vars
+    $paged = max( 1, get_query_var('paged'), get_query_var('page') );
     $private_forum_ids = extrachill_get_private_forum_ids();
     $is_user_extrachill_team = is_user_logged_in() && get_user_meta($current_user_id, 'extrachill_team', true) == '1';
 
@@ -86,22 +97,23 @@ function extrachill_get_upvoted_posts($post_type, $user_id = null) {
 
 
 function wp_surgeon_get_user_total_upvotes($user_id) {
-    $args = [
-        'author' => $user_id,
-        'post_type' => ['post', 'reply', 'topic'], // Include any post types that can receive upvotes
-        'posts_per_page' => -1, // Retrieve all posts
-        'fields' => 'ids', // Retrieve only post IDs for performance
-    ];
+    $args = array(
+        'author'         => $user_id,
+        'post_type'      => array('post', 'reply', 'topic'), // Include relevant post types
+        'posts_per_page' => -1,
+        'fields'         => 'ids', // Only get post IDs for efficiency
+    );
 
-    $user_posts = get_posts($args);
+    $user_posts_query = new WP_Query( $args );
+    $user_posts_ids = $user_posts_query->posts; // Get array of post IDs
+
     $total_upvotes = 0;
-
-    foreach ($user_posts as $post_id) {
-        $upvotes = get_post_meta($post_id, 'upvote_count', true);
-        $total_upvotes += (int) $upvotes;
+    if ( is_array( $user_posts_ids ) && !empty( $user_posts_ids ) ) {
+        foreach ( $user_posts_ids as $post_id ) {
+            $upvote = get_post_meta( $post_id, 'upvote_count', true );
+            $total_upvotes += intval( $upvote );
+        }
     }
-
     return $total_upvotes;
 }
-
 

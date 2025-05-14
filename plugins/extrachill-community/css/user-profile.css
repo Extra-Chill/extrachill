@@ -1,0 +1,323 @@
+/* --- Profile Styles Updated to Use Global Variables --- */
+
+/* User Profile Header */
+.user-profile-header h1, 
+#chill-home-header h1 {
+    margin-bottom: 10px;
+    margin-right: 5px;
+}
+
+.user-profile-header p, 
+#chill-home-header p, 
+.forum-title-with-icon {
+    margin-bottom: 10px;
+    margin-top: 5px;
+    font-size: 15px;
+}
+
+.user-profile-header {
+    margin: 15px 0 20px 0;
+}
+
+.bbp-user-profile {
+    overflow: scroll;
+}
+
+.rank-profile p, 
+.user-profile-activity p, 
+.profile-links p, 
+.bbp-user-music-fan p, 
+.bbp-user-local-scene p, 
+.bbp-user-artist-details p, 
+.bbp-user-professional-details p {
+    margin: 0;
+    font-size: 15px;
+}
+
+.user-profile-activity, 
+.profile-links, 
+.bbp-user-music-fan, 
+.bbp-user-local-scene, 
+.bbp-user-artist-details, 
+.bbp-user-professional-details {
+    margin-bottom: 20px;
+}
+
+
+
+/* Spacing for artist/professional details */
+.bbp-user-artist-details, 
+.bbp-user-professional-details {
+    padding-top: 20px;
+}
+
+/* Local Scene Section */
+.bbp-user-local-scene {
+    padding-top: 15px;
+    margin-bottom: 20px;
+}
+
+
+/* --- Profile Header Card (Hero Section) --- */
+.bbp-user-profile .bbp-user-header-card {
+    background-color: var(--card-background);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    box-shadow: var(--card-shadow);
+    padding: 2rem;
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    position: relative;
+    padding-bottom: 4rem; /* Added space for bottom links */
+}
+
+.bbp-user-profile .bbp-user-avatar-area {
+    margin-right: 2rem;
+}
+
+.bbp-user-profile .bbp-user-avatar-area img.avatar {
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    object-fit: cover;
+    display: block;
+}
+
+.bbp-user-profile .bbp-user-header-text-area {
+    flex: 1;
+}
+
+/* Profile Display Name */
+.bbp-user-profile .bbp-user-display-name {
+    font-size: 2.5rem;
+    font-weight: bold;
+    color: var(--text-color);
+    margin-bottom: 0.5rem;
+    line-height: 1.1;
+    display: flex;
+    gap: 0.6rem;
+}
+
+/* Profile Title/Rank and Follower Count */
+.bbp-user-profile .bbp-user-title-rank {
+    font-size: 1rem;
+    color: var(--muted-text);
+    margin-bottom: 0.25rem;
+}
+
+.bbp-user-profile .bbp-user-follower-count {
+    font-size: 1rem;
+    color: var(--muted-text);
+}
+
+/* Follow Button */
+.bbp-user-profile .bbp-user-follow-button-area {
+    position: absolute;
+    top: 2rem;
+    right: 2rem;
+}
+
+.bbp-user-profile .bbp-user-follow-button-area button.extrachill-follow-button {
+    background-color: var(--button-bg);
+    color: #fff;
+    border-radius: 5px;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.2s ease-in-out;
+    padding: 5px 10px;
+    font-size: 14px;
+}
+
+.bbp-user-profile .bbp-user-follow-button-area button.extrachill-follow-button:hover {
+    background-color: var(--button-hover-bg);
+}
+
+/* New Social Links Styles */
+.bbp-user-links-inline {
+    position: absolute;
+    bottom: 1rem;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: center;
+    gap: 1.5rem;
+    padding: 0 2rem;
+}
+
+.social-link {
+    color: var(--accent-2);
+    font-size: 1.5rem;
+    transition: color 0.2s ease;
+    text-decoration: none;
+}
+
+.social-link:hover {
+    color: var(--button-hover-bg);
+}
+
+.social-link.website:hover {
+    color: var(--accent);
+}
+
+.social-link.utility:hover {
+    color: var(--muted-text);
+}
+
+a.settings-button {
+    background-color: var(--accent-2);
+    text-decoration: none;
+}
+
+/* Adjust forum badges font size */
+.bbp-user-display-name .forum-badges {
+    font-size: 0.7em;
+}
+
+/* --- Mini Card Base Styles --- */
+.user-mini-card {
+    background: var(--background-color);
+    border-radius: 6px;
+    padding: 12px;
+    box-shadow: var(--card-shadow);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.user-mini-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--card-hover-shadow);
+}
+
+.user-mini-avatar img {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+}
+
+.user-mini-details {
+    flex: 1;
+    min-width: 0;
+}
+
+.user-mini-name a {
+    color: var(--accent-2);
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 14px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: block;
+}
+
+.user-mini-role,
+.user-mini-rank {
+    font-size: 11px;
+    color: var(--muted-text);
+    line-height: 1.3;
+}
+
+/* --- User Profile Section Cards --- */
+.bbp-user-profile-card {
+    background-color: var(--card-background);
+    border: 1px solid var(--border-color);
+    border-radius: 5px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: var(--card-shadow);
+    box-sizing: border-box;
+    width: 100%;
+}
+
+/* Container for the profile cards to enable flex grid */
+.bbp-user-profile-cards-container {
+    display: flex;
+    flex-wrap: wrap;
+    max-width: 100%;
+}
+
+/* Desktop styles for user profile cards (2 columns) */
+@media (min-width: 768px) {
+    .bbp-user-profile-card {
+        width: calc(50% - 20px);
+        margin-left: 10px;
+        margin-right: 10px;
+    }
+    /* Ensure header card remains full width */
+    .bbp-user-header-card {
+        width: 100%;
+        margin-left: 0;
+        margin-right: 0;
+    }
+}
+
+/* Style headings within the profile cards */
+.bbp-user-profile-card h2 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    border-bottom: 2px solid var(--accent);
+    width: max-content;
+}
+
+#ec-your-profile{
+    display: flex;
+    flex-wrap: wrap;
+}
+
+/* ------------------------------------------------------
+   MOBILE-FRIENDLY FIXES
+   Keep your existing CSS above or as-is, and then
+   append these overrides BELOW that for final control.
+   ------------------------------------------------------ */
+
+/* Wrap flex items on small screens */
+@media (max-width: 768px) {
+    .bbp-user-profile .bbp-user-header-card {
+        /* Instead of a single row, let elements stack */
+        flex-direction: column;
+        align-items: center;
+        padding-bottom: 3rem; /* Some bottom space for social links */
+        position: relative;   /* Keep for any absolutely-positioned children */
+    }
+
+    .bbp-user-profile .bbp-user-avatar-area {
+        margin-right: 0;
+        margin-bottom: 1rem; /* Space between avatar and text */
+    }
+
+    /* Let the username & badges center-align on mobile */
+    .bbp-user-profile .bbp-user-display-name {
+        font-size: 1.8rem; /* Slightly smaller for mobile */
+        justify-content: center;
+        flex-wrap: wrap;   /* If text/badges are wide, allow wrap */
+        text-align: center;
+    }
+
+    /* Follow button shouldn't be absolute in narrow view:
+       move it under the name area to prevent overlap */
+    .bbp-user-profile .bbp-user-follow-button-area {
+        position: static;
+        margin-top: 1rem;
+        margin-bottom: 1rem;
+        display: flex;
+        gap: 1rem;
+        justify-content: center;
+    }
+
+    /* Social links on mobile: also drop absolute,
+       place them naturally after the text area. */
+    .bbp-user-links-inline {
+        position: static;
+        margin-top: 1.5rem;
+        bottom: auto;
+        left: auto;
+        right: auto;
+    }
+}
+
+.bbp-user-profile-card.user-band-cards-fullwidth{
+    width: 100%;
+}

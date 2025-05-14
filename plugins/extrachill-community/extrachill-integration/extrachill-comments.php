@@ -47,7 +47,17 @@ function display_main_site_comments_for_user($community_user_id) {
 
 
 
+
 function display_main_site_comment_count_for_user($user_id = null) {
+    // Use current user ID if none is passed
+    $user_id = $user_id ?: get_current_user_id();
+
+    // Check if comment count is already cached in a transient
+    $cached_comment_count = get_transient('main_site_comment_count_' . $user_id);
+    if (false !== $cached_comment_count) {
+        return $cached_comment_count; // Return cached comment count if available
+    }
+
     if (empty($user_id)) {
         // Fallback to the BBPress displayed user ID if not provided
         $user_id = bbp_get_displayed_user_id();
@@ -65,11 +75,17 @@ function display_main_site_comment_count_for_user($user_id = null) {
     if ($comment_count > 0) {
         // Adjust the URL to where you list all comments by this user on the main site
         $comments_url = "https://community.extrachill.com/blog-comments?user_id={$user_id}";
-        return "<b>Main Site Comments:</b> $comment_count <a href='{$comments_url}'>(View All)</a>";
+        $result = "<b>Main Site Comments:</b> $comment_count <a href='" . esc_url($comments_url) . "'>(View All)</a>";
     } else {
-        return "<b>Main Site Comments</b>: $comment_count";
+        $result = "<b>Main Site Comments</b>: $comment_count";
     }
+    
+    // Cache the result for 7 days to avoid repeated API calls
+    set_transient('main_site_comment_count_' . $user_id, $result, 604800);
+
+    return $result;
 }
+
 
 
 

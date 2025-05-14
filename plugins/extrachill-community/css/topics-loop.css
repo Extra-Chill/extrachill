@@ -1,0 +1,241 @@
+/* --- Topics Loop Styles – Using Centralized Color Variables --- */
+
+/* Base Layout */
+.bbp-body {
+    display: flex;
+    flex-wrap: wrap; /* To maintain vertical stacking within bbp-body by default */
+    width: 100%;
+    margin: auto;
+    justify-content: space-around;
+    border: none;
+}
+
+/* Topic Card Styles */
+.bbp-topics-grid {
+    display: flex;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+}
+
+.bbp-topic-card {
+    background-color: var(--card-background);
+    border: 1px solid var(--border-color);
+    border-radius: 5px;
+    padding: 20px;
+    margin-bottom: 20px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.topic-card-header-area a{
+    font-size: 18px;
+}
+
+.bbp-topic-content {
+    font-size: 15px;
+    color: var(--muted-text);
+}
+
+.bbp-author-link {
+    display: flex;
+    align-items: center;
+    margin-top: 5px;
+}
+
+.bbp-topic-stats,
+.bbp-topic-freshness {
+    font-size: 14px;
+    color: var(--muted-text);
+}
+
+.bbp-topic-stats {
+    display: flex;
+    margin-bottom: 10px;
+    gap: 10px;
+}
+
+.bbp-topic-meta {
+    display: flex;
+    align-items: center;
+    font-size: 13px;
+}
+
+.bbp-topic-freshness-author {
+    margin-left: 5px;
+}
+
+/* Desktop Styles (3 columns) */
+@media (min-width: 768px) {
+    .bbp-topics-grid {
+        flex-direction: row;
+    }
+    .bbp-topic-card {
+        width: calc(33.33% - 10px);
+        margin-right: 10px;
+    }
+    /* Remove margin from the last card in each row */
+    .bbp-topic-card:nth-child(3n) {
+        margin-right: 0;
+    }
+}
+
+/* Mobile Styles (1 column) */
+@media (max-width: 767px) {
+    .bbp-topics-grid {
+        flex-direction: column;
+    }
+    .bbp-topic-card {
+        width: 100%;
+        margin-right: 0;
+    }
+}
+
+/* Link Styling Within Topic Cards */
+.bbp-topic-card a {
+    color: var(--link-color);
+    text-decoration: none;
+}
+
+.bbp-topic-card h3 a {
+    text-decoration: underline;
+}
+
+.bbp-topic-card h3 a:hover {
+    color: inherit;
+    text-decoration: underline;
+    text-decoration-color: var(--accent-2);
+}
+
+/* Topic Header Inner Layout */
+.bbp-topic-header-inner {
+    display: flex;
+    gap: 10px;
+    align-items: baseline;
+}
+
+/* Sorting & Search Container */
+.sorting-search {
+    display: flex;
+    line-height: 1.5;
+    justify-content: space-between;
+    align-items: flex-end;
+    padding: 5px 0;
+    margin: auto;
+    width: 100%;
+}
+
+.bbp-search-form form {
+    display: flex;
+}
+
+/* Sorting & Search Container (Detailed Styling) */
+.sorting-search {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: var(--card-background);
+    border: 1px solid var(--border-color);
+    border-radius: 5px;
+    padding: 12px 20px;
+    margin-bottom: 20px;
+    box-shadow: none;
+    flex-wrap: wrap;
+}
+
+/* Forms Styling */
+.bbp-sorting-form form,
+.bbp-search-form form {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+/* Dropdown and Search Input Styling */
+.bbp-sorting-form select,
+.bbp-search-form input[type="text"] {
+    padding: 6px 12px;
+    border-radius: 5px;
+    border: 1px solid var(--border-color);
+    background-color: var(--background-color);
+    font-size: 15px;
+    color: var(--text-color);
+}
+
+/* Dropdown Cursor Pointer */
+.bbp-sorting-form select {
+    cursor: pointer;
+}
+
+/* Search Button Styling */
+.bbp-search-form button {
+    color: #ffffff;
+    padding: 6px 14px;
+    border: none;
+    border-radius: 5px;
+    font-size: 15px;
+    cursor: pointer;
+    transition: background-color 0.2s ease-in-out;
+}
+
+/* Hover for Search Button */
+.bbp-search-form button:hover {
+    background-color: var(--accent-2);
+}
+
+/* Focus States for Inputs */
+.bbp-search-form input[type="text"]:focus,
+.bbp-sorting-form select:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(83, 148, 11, 0.2);
+}
+
+/* Improved Responsive Adjustments for Mobile */
+@media (max-width: 767px) {
+    .sorting-search {
+        flex-direction: row;
+        flex-wrap: nowrap;
+        justify-content: space-between;
+        gap: 8px;
+        padding: 10px;
+    }
+    .bbp-sorting-form,
+    .bbp-search-form {
+        flex: 1;
+        display: flex;
+    }
+    .bbp-sorting-form select,
+    .bbp-search-form input[type="text"] {
+        width: 100%;
+        padding: 6px 8px;
+        font-size: 14px;
+    }
+    .bbp-search-form button,
+    .bbp-search-form input {
+        padding: 6px 8px;
+        font-size: 14px;
+        white-space: nowrap;
+    }
+}
+
+/* Styling for sticky topic cards */
+.bbp-topic-card.bbp-topic-card-sticky {
+    border-top: 3px solid var(--accent-2); /* Accent-2 border */
+}
+
+.bbp-topic-card.bbp-topic-card-sticky .bbp-topic-header-inner:before {
+    content: "\f08d"; /* Font Awesome pin icon */
+    font-family: "Font Awesome 6 Free"; /* Or your Font Awesome font family */
+    font-weight: 900; /* Solid style for Font Awesome */
+    color: var(--accent-2); /* Use accent-2 color for the icon */
+    margin-right: 5px;
+    font-size: 0.8em;
+    vertical-align: middle;
+}
+
+div.bbp-template-notice.error, div.bbp-template-notice.warning {
+    background-color: var(--background-color);
+    border: 1px solid red;
+    border-radius: 5px;
+    padding: 10px;
+}

@@ -2,39 +2,79 @@
 
 // Function to calculate total points for a user, including main site comment points + articles
 function wp_surgeon_get_user_total_points($user_id) {
-    // Get the user's topic count from bbPress
-    $topic_count = intval(bbp_get_user_topic_count($user_id)); // Assumed to return raw count
+    // Check if total points are cached
+    $cached_total_points = get_transient('user_points_' . $user_id);
+    if (false !== $cached_total_points) {
+        // Update user meta just in case it was missed, but return cached value
+        update_user_meta($user_id, 'wp_surgeon_total_points', $cached_total_points);
+        return $cached_total_points;
+    }
 
-    // Get the user's reply count from bbPress
-    $reply_count = intval(bbp_get_user_reply_count($user_id)); // Assumed to return raw count
-    
-    // Calculate points for topics and replies (2 points each)
+    // --- Calculate points if not cached ---
+
+    // Get topic count (cached)
+    $topic_count = false; // Initialize
+    $topic_count = get_transient('user_topic_count_' . $user_id);
+    if (false === $topic_count) {
+        $topic_count = intval(bbp_get_user_topic_count($user_id) ?? 0);
+        set_transient('user_topic_count_' . $user_id, $topic_count, HOUR_IN_SECONDS); // Cache for 1 hour
+    }
+
+    // Get reply count (cached)
+    $reply_count = false; // Initialize
+    $reply_count = get_transient('user_reply_count_' . $user_id);
+    if (false === $reply_count) {
+        $reply_count = intval(bbp_get_user_reply_count($user_id) ?? 0);
+        set_transient('user_reply_count_' . $user_id, $reply_count, HOUR_IN_SECONDS); // Cache for 1 hour
+    }
+
     $bbpress_points = ($topic_count + $reply_count) * 2;
 
-    // Get the total upvotes for the user's posts
-    $total_upvotes = wp_surgeon_get_user_total_upvotes($user_id); // This function needs to be defined
-    $upvote_points = $total_upvotes * 0.5;
+    // Get total upvotes (assuming wp_surgeon_get_user_total_upvotes handles its own caching or is fast)
+    // If wp_surgeon_get_user_total_upvotes is slow, it should also be cached similarly.
+    $total_upvotes = wp_surgeon_get_user_total_upvotes($user_id) ?? 0;
+    $upvote_points = floatval($total_upvotes) * 0.5;
 
-    // Retrieve the follower count
+    // Get follower count (user meta is generally fast, but could be cached if needed)
+    // -- REMOVED FOLLOWER POINTS --
+    /*
     $followers = get_user_meta($user_id, 'extrachill_followers', true);
     $follower_count = is_array($followers) ? count($followers) : 0;
     $follower_points = $follower_count * 3;
+    */
+    $follower_points = 0; // Ensure variable exists, set to 0
 
-    // Convert community user ID to author ID for fetching main site post count
-    $author_id = convert_community_user_id_to_author_id($user_id);
-    $main_site_post_count = $author_id !== null ? fetch_main_site_post_count_for_user($author_id) : 0;
+    // Get main site post count (cached)
+    $author_id = false; // Initialize
+    $author_id = get_transient('user_author_id_' . $user_id);
+    if (false === $author_id) {
+        $author_id = convert_community_user_id_to_author_id($user_id);
+        // Cache even if null to avoid repeated checks
+        set_transient('user_author_id_' . $user_id, $author_id, HOUR_IN_SECONDS); // Cache for 1 hour
+    }
 
-    // Main site posts are worth 10 points each
+    $main_site_post_count = 0; // Initialize default value
+    if ($author_id !== null) {
+        $main_site_post_count = false; // Initialize before transient check
+        $main_site_post_count = get_transient('user_main_site_post_count_' . $user_id);
+        if (false === $main_site_post_count) {
+            $main_site_post_count = intval(fetch_main_site_post_count_for_user($author_id) ?? 0);
+            set_transient('user_main_site_post_count_' . $user_id, $main_site_post_count, HOUR_IN_SECONDS); // Cache for 1 hour
+        }
+    }
     $main_site_post_points = $main_site_post_count * 10;
 
     // Calculate total points
     $total_points = $bbpress_points + $upvote_points + $follower_points + $main_site_post_points;
 
-    // Store the total points as user meta for future retrieval
+    // Cache the total points in a transient for 1 hour
+    set_transient('user_points_' . $user_id, $total_points, HOUR_IN_SECONDS);
+    // Store the total points as user meta for leaderboard sorting / persistent storage
     update_user_meta($user_id, 'wp_surgeon_total_points', $total_points);
 
     return $total_points;
 }
+
 
 // Queue user points recalculation on new replies and topics
 function wp_surgeon_queue_points_recalculation($post_id) {
@@ -71,23 +111,41 @@ add_action('bbp_new_topic', 'wp_surgeon_queue_points_recalculation');
 add_action('bbp_new_reply', 'wp_surgeon_queue_points_recalculation');
 
 // Handle upvotes action
-add_action('custom_upvote_action', function($post_id, $user_id, $upvoted) {
-    wp_surgeon_queue_points_recalculation($post_id);
+add_action('custom_upvote_action', function($post_id, $post_author_id, $upvoted) {
+    if ($upvoted) {
+        // Upvote added, increment points
+        wp_surgeon_increment_user_points($post_author_id, 0.5);
+    } else {
+        // Upvote removed, decrement points
+        wp_surgeon_increment_user_points($post_author_id, -0.5);
+    }
 }, 10, 3);
 
+
+
 // Handle follow and unfollow actions
+// -- REMOVED FOLLOW/UNFOLLOW HOOKS --
+/*
 add_action('extrachill_followed_user', function($follower_id, $followed_id) {
-    wp_surgeon_queue_points_recalculation($follower_id);
-    wp_surgeon_queue_points_recalculation($followed_id);
+    wp_surgeon_get_user_total_points($follower_id);
+    wp_surgeon_get_user_total_points($followed_id);
 }, 10, 2);
 
 add_action('extrachill_unfollowed_user', function($follower_id, $followed_id) {
-    wp_surgeon_queue_points_recalculation($follower_id);
-    wp_surgeon_queue_points_recalculation($followed_id);
+    wp_surgeon_get_user_total_points($follower_id);
+    wp_surgeon_get_user_total_points($followed_id);
 }, 10, 2);
+*/
 
 // Display user points
 function wp_surgeon_display_user_points($user_id) {
+    // Check if user points are already cached in a transient
+    $cached_points = get_transient('user_points_' . $user_id);
+
+    if (false !== $cached_points) {
+        return $cached_points; // Return cached points if available
+    }
+
     // Retrieve the total points from user meta
     $total_points = get_user_meta($user_id, 'wp_surgeon_total_points', true);
 
@@ -100,7 +158,7 @@ function wp_surgeon_display_user_points($user_id) {
     return $total_points;
 }
 
-add_action('bbp_theme_after_reply_author_details', 'wp_surgeon_add_rank_and_points_to_reply');
+// add_action('bbp_theme_after_reply_author_details', 'wp_surgeon_add_rank_and_points_to_reply');
 
 // Enqueue admin scripts for AJAX functionality
 function wp_surgeon_admin_enqueue_scripts($hook) {
@@ -153,3 +211,12 @@ function wp_surgeon_add_recalculate_points_button($user) {
 }
 add_action('show_user_profile', 'wp_surgeon_add_recalculate_points_button');
 add_action('edit_user_profile', 'wp_surgeon_add_recalculate_points_button');
+
+function wp_surgeon_increment_user_points($user_id, $points) {
+    // Retrieve current points and ensure it's treated as a float
+    $current_points = floatval(get_user_meta($user_id, 'wp_surgeon_total_points', true) ?? 0);
+    $total_points = $current_points + $points;
+    update_user_meta($user_id, 'wp_surgeon_total_points', $total_points);
+}
+
+

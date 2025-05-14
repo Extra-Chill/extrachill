@@ -52,7 +52,8 @@ if ( bbp_is_reply_edit() ) : ?>
 
 				<?php endif; ?>
 
-				<?php if ( current_user_can( 'unfiltered_html' ) ) : ?>
+				<?php // Carefully comment out only the unfiltered_html notice block ?>
+				<?php /* if ( current_user_can( 'unfiltered_html' ) ) : ?>
 
 					<div class="bbp-template-notice">
 						<ul>
@@ -60,7 +61,7 @@ if ( bbp_is_reply_edit() ) : ?>
 						</ul>
 					</div>
 
-				<?php endif; ?>
+				<?php endif; */ ?>
 
 				<?php do_action( 'bbp_template_notices' ); ?>
 

@@ -13,7 +13,7 @@ function handle_quote_notification() {
     // Correctly fetch the current user's display name and username (nicename)
     $current_user_display_name = get_the_author_meta('display_name', $current_user_id); // Now correctly defined
     $current_user_username = get_the_author_meta('user_nicename', $current_user_id); // Correctly fetch the user's nicename/slug.
-    $current_user_profile_link = site_url('/u/' . $current_user_username); // Construct the profile link.
+    $current_user_profile_link = bbp_get_user_profile_url( $current_user_id );
     
     $post_permalink = isset($_POST['post_permalink']) ? esc_url_raw($_POST['post_permalink']) : '';
     $topic_name = get_the_title($post_id); // Assumes $post_id is the ID of the reply or topic being quoted.
@@ -44,8 +44,8 @@ function handle_quote_notification() {
 
 
 // Add custom "Quote" link to replies and topics
-add_filter('bbp_reply_admin_links', 'wp_surgeon_add_custom_quote_link_to_replies_and_topics', 10, 2);
-add_filter('bbp_topic_admin_links', 'wp_surgeon_add_custom_quote_link_to_replies_and_topics', 10, 2);
+// add_filter('bbp_reply_admin_links', 'wp_surgeon_add_custom_quote_link_to_replies_and_topics', 10, 2);
+//add_filter('bbp_topic_admin_links', 'wp_surgeon_add_custom_quote_link_to_replies_and_topics', 10, 2);
 
 
 function wp_surgeon_add_custom_quote_link_to_replies_and_topics($links, $args) {

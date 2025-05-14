@@ -8,8 +8,12 @@
 ?>
 
 </div></div>
-<?php do_action( 'extrachill_before_footer' ); ?>
+<?php do_action( 'extrachill_before_footer' );
 
+if (function_exists('display_online_users_stats')) {
+    display_online_users_stats();
+}
+?>
 <footer id="extra-footer" >
     <!-- Social Media Links -->
     <?php include get_stylesheet_directory() . '/social-links.php'; ?>

@@ -1,29 +1,40 @@
 jQuery(document).ready(function($) {
-    // Bind event listener to the sorting form and search form
     $('#sortingForm select, #bbp-ajax-search-form').on('change submit', function(e) {
-        e.preventDefault(); // Prevent the default form submission
-        updateContent(); // Call the updateContent() function
+        e.preventDefault();
+        updateContent();
     });
 
     function updateContent() {
         var sort = $('select[name="sort"]').val();
-        var time_range = $('select[name="time_range"]').val();
         var search = $('input[name="bbp_search"]').val();
+        var forum_id = $('.bbp-sorting-form').data('forum-id');
 
         $.ajax({
-            url: window.location.href, // Use the current page URL
+            url: wpSurgeonAjax.ajax_url,
             type: 'GET',
             data: {
+                action: 'wp_surgeon_ajax_search',
                 sort: sort,
-                time_range: time_range,
-                bbp_search: search
+                bbp_search: search,
+                forum_id: forum_id,
+                nonce: wpSurgeonAjax.nonce
             },
             success: function(response) {
-                if ($(response).find('.bbp-body').children().length > 0) {
-                    var updatedContent = $(response).find('.bbp-body').html();
-                    $('.bbp-body').html(updatedContent);
+                var $responseHtml = $(response);
+                var $newBody = $responseHtml.find('.bbp-body');
+
+                if ($newBody.length > 0 && $newBody.html().trim().length > 0) {
+                    $('.bbp-body').html($newBody.html());
                 } else {
                     $('.bbp-body').html('<p>No posts found, try some different search terms.</p>');
+                }
+
+                // Update pagination if present
+                var $newPagination = $responseHtml.find('.bbp-pagination');
+                if ($newPagination.length > 0) {
+                    $('.bbp-pagination').html($newPagination.html());
+                } else {
+                    $('.bbp-pagination').empty();
                 }
             },
             error: function() {

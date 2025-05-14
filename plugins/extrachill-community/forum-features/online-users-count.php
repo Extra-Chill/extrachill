@@ -4,28 +4,28 @@
 global $online_users_count;
 
 function record_user_activity() {
-    global $online_users_count;
-
     $user_id = get_current_user_id();
     if ($user_id) {
-        // Update last_active for logged-in users using prepared statements
         $current_time = current_time('timestamp');
-        update_user_meta_prepared($user_id, 'last_active', $current_time);
+        $last_active = get_user_meta($user_id, 'last_active', true);
+
+        // Only update if 5 minutes have passed (300 seconds)
+        if (empty($last_active) || ($current_time - intval($last_active)) > 300) {
+            update_user_meta_prepared($user_id, 'last_active', $current_time);
+        }
     }
 
-    // Fetch the current online user count
+    // Fetch the current online user count using our cached function
+    global $online_users_count;
     if (!isset($online_users_count)) {
         $online_users_count = get_online_users_count();
     }
 
-    // Retrieve or initialize the most ever online record
+    // Update most ever online if needed
     $most_ever_online = get_option('most_ever_online', ['count' => 0, 'date' => '']);
-
-    // Correcting type casting to ensure proper comparison
     $most_ever_online_count = intval($most_ever_online['count']);
 
     if ($online_users_count > $most_ever_online_count) {
-        // Update only if the current online count exceeds the "Most Ever Online"
         $most_ever_online = [
             'count' => $online_users_count,
             'date' => current_time('m/d/Y')
@@ -83,9 +83,15 @@ function display_online_users_stats() {
     $most_ever_online_count = isset($most_ever_online['count']) ? (int)$most_ever_online['count'] : 0;
     $most_ever_online_date = isset($most_ever_online['date']) ? date('m/d/Y', strtotime($most_ever_online['date'])) : 'N/A';
 
-    // Use WP_User_Query to get a total count of users
-    $user_query = new WP_User_Query(['count_total' => true, 'fields' => 'ID']);
-    $total_members = $user_query->get_total();
+    // Use transient to cache the total members count
+    $transient_key_total_members = 'total_members_count';
+    $total_members = get_transient($transient_key_total_members);
+
+    if ($total_members === false) {
+        $user_count_data = count_users();
+        $total_members = $user_count_data['total_users'];
+        set_transient($transient_key_total_members, $total_members, 24 * HOUR_IN_SECONDS); // Cache for 24 hours
+    }
 
     echo "<div class='online-stats'>";
     echo "<p><span class='label'>Users Currently Online:</span> <span class='count'>" . $online_users_count . "</span></p>";

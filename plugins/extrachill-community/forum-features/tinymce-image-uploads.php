@@ -111,4 +111,5 @@ function handle_tinymce_image_upload() {
 }
 
 add_action('wp_ajax_handle_tinymce_image_upload', 'handle_tinymce_image_upload');
-// Removed the wp_ajax_nopriv_handle_tinymce_image_upload action to restrict the functionality to logged-in users only
+
+

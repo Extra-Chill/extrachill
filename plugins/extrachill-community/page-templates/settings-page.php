@@ -2,6 +2,24 @@
 /* Template Name: Account Settings */
 
 get_header();
+?>
+<div <?php generate_do_attr( 'page' ); ?>>
+    <?php
+    /**
+     * generate_inside_site_container hook.
+     */
+    do_action( 'generate_inside_site_container' );
+    ?>
+    <div <?php generate_do_attr( 'site-content' ); ?>>
+        <?php
+        /**
+         * generate_inside_container hook.
+         */
+        do_action( 'generate_inside_container' );
+        ?>
+        <?php extrachill_breadcrumbs(); ?>
+
+<?php
 
 // Ensure only logged-in users can access this page
 if (!is_user_logged_in()) {
@@ -16,7 +34,6 @@ $current_user = wp_get_current_user();
 
 <div class="account-settings">
     <h1>Settings</h1>
-    <p><a href="/user-dashboard">Back to Dashboard</a></p>
 
     <!-- Personal Information Form -->
     <form method="post" enctype="multipart/form-data">
@@ -100,6 +117,8 @@ $current_user = wp_get_current_user();
     </form>
 </div>
 
+        </div><!-- .site-content -->
+    </div><!-- .page -->
 <?php
 get_footer();
 ?>

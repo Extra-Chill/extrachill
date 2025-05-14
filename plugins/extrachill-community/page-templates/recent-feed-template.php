@@ -5,6 +5,24 @@
  */
 
 get_header();
+?>
+<div <?php generate_do_attr( 'page' ); ?>>
+    <?php
+    /**
+     * generate_inside_site_container hook.
+     */
+    do_action( 'generate_inside_site_container' );
+    ?>
+    <div <?php generate_do_attr( 'site-content' ); ?>>
+        <?php
+        /**
+         * generate_inside_container hook.
+         */
+        do_action( 'generate_inside_container' );
+        ?>
+        <?php extrachill_breadcrumbs(); ?>
+
+<?php
 
 echo '<div id="chill-home">';
 echo '<div id="chill-home-header"><span>';
@@ -16,18 +34,10 @@ if ($isUserProfile) {
     $title = '@' . bbp_get_displayed_user_field('user_nicename');
     echo '<h1 class="profile-title-inline">' . $title . '</h1>';
 } else {
-    echo '<h1>Recent Topics</h1>';
+    echo '<h1>Recently Active Topics</h1>';
 }
 
 echo '</span>';
-
-if (is_user_logged_in()) :
-    echo '<p>Logged in as <a href="/user-dashboard">' . esc_html(wp_get_current_user()->display_name) . '.</a></p>';
-else :
-    echo '<p>You are not signed in. <a href="/login">Login</a> or <a href="/register">Register</a></p>';
-endif;
-
-echo '</div>'; // End of chill-home-header
 
 // Output the standard WordPress content within the div
 if (have_posts()) :
@@ -72,5 +82,11 @@ if (bbp_has_topics($args)) {
 } else {
     echo '<div class="bbp-template-notice"><p>No recent topics found.</p></div>';
 }
+echo '</div>'; // End of site-main
 
+?>
+        </div><!-- .site-content -->
+    </div><!-- .page -->
+<?php
 get_footer();
+?>

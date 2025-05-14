@@ -1,0 +1,542 @@
+/**
+ * CSS for the Manage Band Profile page template (page-templates/manage-band-profile.php)
+ */
+
+#bp-manage-members-section {
+    /* Add some separation if needed */
+    margin-top: 1.5em;
+    padding-top: 1.5em;
+    border-top: 1px solid var(--border-color, #ddd);
+}
+
+#bp-manage-members-section h4 {
+    margin-bottom: 0.5em;
+}
+
+ul.bp-members-list {
+    list-style: none;
+    margin: 0 0 1em 0;
+    padding: 0;
+}
+
+ul.bp-members-list li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--separator-color, #eee);
+}
+
+ul.bp-members-list li:last-child {
+    border-bottom: none;
+}
+
+ul.bp-members-list li.no-members {
+    font-style: italic;
+    color: var(--muted-text, #777);
+}
+
+ul.bp-members-list li img.avatar {
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+ul.bp-members-list li span.member-name {
+    flex-grow: 1;
+}
+
+ul.bp-members-list li button.bp-remove-member-button,
+ul.bp-members-list li button.bp-cancel-add-button {
+    padding: 2px 6px;
+    line-height: 1;
+    min-height: unset;
+    background-color: var(--button-secondary-bg, #f0f0f0);
+    color: var(--button-secondary-text, #555);
+    border: 1px solid var(--border-color, #ccc);
+    border-radius: 3px;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+ul.bp-members-list li button.bp-remove-member-button:hover,
+ul.bp-members-list li button.bp-cancel-add-button:hover {
+    background-color: var(--accent-hover, #e04040);
+    color: #fff;
+    border-color: var(--accent-hover, #e04040);
+}
+
+/* Style for members marked for removal */
+ul.bp-members-list li.marked-for-removal {
+    opacity: 0.5;
+    text-decoration: line-through;
+}
+
+/* Search Results Styling */
+.bp-search-results {
+    margin-top: 5px;
+    border: 1px solid var(--border-color, #ccc);
+    max-height: 200px;
+    overflow-y: auto;
+    background-color: #fff;
+    position: relative; /* Or absolute depending on context */
+    z-index: 10; /* Ensure it overlaps other content */
+}
+
+.bp-search-results ul.bp-search-results-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.bp-search-results li {
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--separator-color, #eee);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+}
+
+.bp-search-results li:last-child {
+    border-bottom: none;
+}
+
+.bp-search-results button.bp-select-artist-button {
+     flex-shrink: 0;
+}
+
+.bp-search-results p {
+    padding: 8px 12px;
+    margin: 0;
+    color: var(--muted-text, #777);
+}
+
+/* Pending Add List */
+#bp-pending-add-list {
+    margin-top: 1em;
+}
+#bp-pending-add-list p strong {
+    display: block;
+    margin-bottom: 0.5em;
+}
+ul.bp-pending-list li {
+     background-color: #f9fff0; /* Slight highlight for pending adds */
+}
+
+/* Form Group Adjustments if needed */
+#bp-manage-members-section .form-group {
+    margin-bottom: 1em;
+}
+
+/* Hide nonce field visually */
+input[name="bp_member_search_security_frontend"] {
+    display: none;
+}
+
+/* Dark Mode specific styles for AJAX search results */
+@media (prefers-color-scheme: dark) {
+    .bp-search-results {
+        background-color: var(--card-background, #2a2a2a); /* Dark card background */
+        border-color: var(--border-color, #555); /* Dark border */
+    }
+
+    .bp-search-results ul.bp-search-results-list li {
+        border-bottom-color: var(--border-color, #444); /* Darker separator */
+        color: var(--text-color, #e5e5e5); /* Light text */
+    }
+
+    .bp-search-results ul.bp-search-results-list li:hover {
+        background-color: var(--button-hover-bg, #083b6c); /* Use a hover color, adjust if needed */
+        color: #fff; /* Ensure text is readable on hover */
+    }
+
+    .bp-search-results button.bp-select-artist-button {
+        /* Ensure button is styled for dark mode if it isn't already inheriting well */
+        /* Example: 
+        background-color: var(--button-bg, #0b5394);
+        color: #fff;
+        border-color: var(--button-bg, #0b5394); 
+        */
+    }
+
+    .bp-search-results p {
+        color: var(--muted-text, #b0b0b0); /* Muted text for messages like "No results" */
+    }
+}
+
+.bp-add-member-form {
+    padding: 15px;
+    border: 1px solid var(--border-color, #ccc); /* Use --border-color */
+    background-color: var(--card-background, #f9f9f9); /* Use --card-background */
+    border-radius: 4px;
+    max-width: 450px;
+}
+
+.bp-add-member-form h4 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    font-size: 1.1em;
+}
+
+.bp-add-member-form .form-group {
+    margin-bottom: 15px;
+}
+
+.bp-add-member-form label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+
+.bp-add-member-form input[type=\"text\"] {
+    width: 100%;
+    max-width: 300px; /* Kept from inline */
+    padding: 8px;
+    border: 1px solid var(--gp-border-color-2, #bbb);
+    border-radius: 3px;
+    background-color: var(--gp-input-background-color, #fff);
+    color: var(--gp-input-text-color, #333);
+}
+
+.bp-add-member-form #bp-ajax-add-roster-member-button {
+    margin-right: 10px;
+}
+
+/* Styling for the member avatar placeholder in the roster */
+.member-avatar-placeholder {
+    display: inline-block;
+    width: 32px; /* Match avatar size */
+    height: 32px;
+    /* background-color: #eee; Optional: to make it visible */
+    /* border: 1px dashed #ccc; Optional */
+    vertical-align: middle;
+    margin-right: 8px;
+}
+
+/* General styling for items in the unified roster for alignment */
+#bp-unified-roster-list li {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+    padding: 5px 0;
+    border-bottom: 1px solid var(--gp-border-color-1, #eee);
+}
+#bp-unified-roster-list li:last-child {
+    border-bottom: none;
+}
+
+#bp-unified-roster-list .member-name {
+    flex-grow: 1;
+    margin-right: 10px;
+}
+
+#bp-unified-roster-list .member-status-label {
+    font-size: 0.9em;
+    color: var(--gp-gray-text-color, #777);
+    margin-right: 10px;
+}
+
+#bp-unified-roster-list .member-actions a,
+#bp-unified-roster-list .member-actions button {
+    margin-left: 5px;
+    font-size: 0.9em;
+    text-decoration: none;
+}
+
+#bp-unified-roster-list .member-actions .bp-remove-member-button,
+#bp-unified-roster-list .member-actions .bp-ajax-remove-plaintext-member {
+    color: var(--gp-error-color, #d9534f); /* Example error/remove color */
+}
+#bp-unified-roster-list .member-actions .bp-remove-member-button:hover,
+#bp-unified-roster-list .member-actions .bp-ajax-remove-plaintext-member:hover {
+    color: var(--gp-error-hover-color, #c9302c);
+}
+
+#bp-unified-roster-list .bp-member-linked .member-name {
+    font-weight: bold;
+}
+
+/* Basic Modal Styles */
+body.bp-modal-open::after { /* Using ::after for backdrop to simplify JS */
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.5); /* Or a new --backdrop-color variable */
+    z-index: 1040;
+    display: block;
+}
+
+body.bp-modal-open {
+    overflow: hidden; /* Prevent scrolling when modal is open */
+}
+
+#bp-invite-member-modal.bp-modal {
+    display: none; /* Hidden by default */
+    position: fixed;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1050;
+    background-color: var(--card-background); /* Use variable from root.css */
+    padding: 25px; /* Increased padding a bit */
+    border-radius: 8px; /* Slightly more pronounced radius */
+    box-shadow: var(--card-shadow); /* Use variable from root.css */
+    min-width: 320px; /* Ensure a minimum width */
+    max-width: 500px; /* Max width */
+}
+
+#bp-invite-member-modal.bp-modal.bp-modal-active {
+    display: block; /* Show when active class is present */
+}
+
+#bp-invite-member-modal .bp-modal-content {
+    /* Styles for this can be added if more complex inner structure is needed */
+}
+
+#bp-invite-member-modal .bp-modal-close {
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    font-size: 1.8em; /* Made slightly larger */
+    font-weight: bold;
+    line-height: 1;
+    color: var(--text-color); /* Use text color variable */
+    text-shadow: 0 1px 0 var(--background-color); /* Shadow to contrast with background */
+    opacity: 0.6;
+    cursor: pointer;
+    background: none;
+    border: none;
+    padding: 0;
+}
+#bp-invite-member-modal .bp-modal-close:hover {
+    opacity: 1;
+    color: var(--link-color); /* Use link color on hover */
+}
+
+#bp-invite-member-modal h3 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    color: var(--text-color);
+}
+
+#bp-invite-member-modal p {
+    margin-bottom: 15px;
+    font-size: 0.95em;
+    line-height: 1.5;
+    color: var(--muted-text);
+}
+
+#bp-invite-member-modal .form-group {
+    margin-bottom: 15px;
+}
+
+#bp-invite-member-modal label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+    color: var(--text-color);
+}
+
+#bp-invite-member-modal input[type="email"] {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background-color: var(--background-color);
+    color: var(--text-color);
+}
+
+#bp-invite-member-modal input[type="email"]:focus {
+    border-color: var(--focus-border-color);
+    box-shadow: var(--focus-box-shadow);
+}
+
+#bp-invite-member-modal #bp-invite-modal-send-button {
+    /* Utilizes default button styles from style.css which use variables */
+    /* Add any specific overrides here if needed */
+    padding: 10px 15px;
+    font-size: 1em;
+}
+
+/* Dark Mode Specifics for Modal if needed, but variables should handle most */
+@media (prefers-color-scheme: dark) {
+    #bp-invite-member-modal.bp-modal {
+        /* border: 1px solid var(--border-color); */ /* Example: if a border is desired in dark mode */
+    }
+    #bp-invite-member-modal .bp-modal-close {
+        /* color: var(--text-color); */ /* Already set, but shows where to override if needed */
+        /* text-shadow: 0 1px 0 var(--background-color); */
+    }
+}
+
+/** General Form Element Styling from Inline PHP **/
+
+/* Notices */
+.bp-notice p {
+    margin: 0;
+}
+
+/* Form Groups & Image Previews/Uploads */
+.form-group .current-image-preview {
+    margin-bottom: 10px;
+}
+
+.form-group > label.image-upload-label {
+    display: block;
+    margin-top: 10px;
+}
+
+/* Textareas */
+#band_bio {
+    width: 100%;
+    box-sizing: border-box; /* Ensure padding/border don't make it overflow */
+}
+
+/* Link Page Button Notice */
+.bp-notice.bp-notice-info.link-page-manage-button-container {
+    margin: 2em 0;
+}
+
+/* Submit Button Group */
+.form-group.submit-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.form-group.submit-group a.button,
+.form-group.submit-group input[type="submit"].button + a.button {
+    margin-left: 10px;
+}
+
+/** Band Switcher Styles **/
+.band-switcher-container {
+    margin-bottom: 25px;
+    padding: 15px;
+    background-color: #f7f7f7; /* Consider using CSS variables if available e.g. var(--light-grey-bg) */
+    border: 1px solid #e0e0e0;   /* Consider var(--border-color) */
+    border-radius: 4px;
+}
+
+.band-switcher-container label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: bold;
+}
+
+.band-switcher-container select#band-switcher-select {
+    width: 100%;
+    padding: 8px;
+    box-sizing: border-box;
+}
+
+/* Dark Mode specific styles for Band Switcher if variables are not inherited */
+@media (prefers-color-scheme: dark) {
+    .band-switcher-container {
+        background-color: var(--dark-mode-widget-bg, #2c2c2c); /* Example dark mode variable */
+        border-color: var(--dark-mode-border-color, #444); /* Example dark mode variable */
+    }
+
+    .band-switcher-container label {
+        color: var(--dark-mode-text-color, #e0e0e0); /* Example dark mode variable */
+    }
+
+    .band-switcher-container select#band-switcher-select {
+        background-color: var(--dark-mode-input-bg, #333);
+        color: var(--dark-mode-input-text-color, #fff);
+        border-color: var(--dark-mode-border-color, #555);
+    }
+}
+
+/** Social Icon Link Management Styles **/
+.bp-social-row {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    gap: 10px;
+}
+
+.bp-social-type-icon {
+    width: 20px; /* Fixed width for icon container */
+    text-align: center;
+    font-size: 1.2em;
+    color: #555;
+}
+
+.bp-social-type-select {
+    /* flex-basis: 150px; */ /* Adjust as needed */
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    background-color: #fff;
+    min-width: 150px; /* Ensure dropdown is wide enough */
+}
+
+.bp-social-url-input {
+    flex-grow: 1;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+}
+
+.bp-social-actions {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.bp-social-actions .button {
+    padding: 5px 8px;
+    font-size: 1em;
+    line-height: 1;
+    min-width: auto;
+    border-radius: 3px;
+    text-decoration: none;
+}
+
+.bp-social-actions .bp-remove-social-btn {
+    color: #fff;
+    background-color: #dc3232; /* WordPress red */
+    border-color: #dc3232;
+}
+.bp-social-actions .bp-remove-social-btn:hover,
+.bp-social-actions .bp-remove-social-btn:focus {
+    background-color: #c02424;
+    border-color: #c02424;
+    color: #fff;
+}
+
+.bp-social-actions .bp-move-social-up-btn,
+.bp-social-actions .bp-move-social-down-btn {
+    background-color: #f0f0f0;
+    border: 1px solid #ccc;
+    color: #333;
+}
+
+.bp-social-actions .bp-move-social-up-btn:hover,
+.bp-social-actions .bp-move-social-down-btn:hover,
+.bp-social-actions .bp-move-social-up-btn:focus,
+.bp-social-actions .bp-move-social-down-btn:focus {
+    background-color: #e0e0e0;
+    border-color: #bbb;
+    color: #222;
+}
+
+#bp-add-social-icon-btn {
+    margin-top: 15px;
+    margin-bottom: 15px;
+}
+
+/* Ensure Font Awesome icons are displayed if theme doesn't load them globally or specifically for this page */
+/* This is a general fallback; ideally, ensure FA is enqueued properly if these icons don't show */
+.bp-social-type-icon .fab,
+.bp-social-type-icon .fas {
+    font-family: "Font Awesome 5 Brands", "Font Awesome 5 Free"; /* Adjust if using FA4 or different version */
+    font-weight: 900; /* For solid icons, Brands are usually 400 */
+} 

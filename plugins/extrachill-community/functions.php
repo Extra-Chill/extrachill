@@ -1,10 +1,41 @@
 <?php
+// Include Composer's autoloader.
+require_once get_stylesheet_directory() . '/vendor/autoload.php';
 /**
  * GeneratePress child theme functions and definitions.
  *
  * Add your custom PHP in this file.
  * Only edit this file if you have direct access to it on your server (to fix errors if they happen).
  */
+/**
+ * Enqueue notifications styles only on notifications page
+ */
+function extrachill_enqueue_notification_styles() {
+    if (is_page_template('page-templates/notifications-feed.php')) {
+        wp_enqueue_style(
+            'extrachill-notifications', 
+            get_stylesheet_directory_uri() . '/css/notifications.css', 
+            array('generatepress-child-style'), 
+            filemtime(get_stylesheet_directory() . '/css/notifications.css')
+        );
+    }
+}
+add_action('wp_enqueue_scripts', 'extrachill_enqueue_notification_styles');
+
+/**
+ * Enqueue leaderboard styles only on leaderboard template
+ */
+function extrachill_enqueue_leaderboard_styles() {
+    if (is_page_template('page-templates/leaderboard-template.php')) {
+        wp_enqueue_style(
+            'extrachill-leaderboard', 
+            get_stylesheet_directory_uri() . '/css/leaderboard.css', 
+            array('generatepress-child-style'), 
+            filemtime(get_stylesheet_directory() . '/css/leaderboard.css')
+        );
+    }
+}
+add_action('wp_enqueue_scripts', 'extrachill_enqueue_leaderboard_styles');
 
 
 include_once get_stylesheet_directory() . '/bbpress-customization.php';
@@ -14,7 +45,7 @@ $files = scandir($folder_path);
 
 foreach ($files as $file) {
     $file_path = $folder_path . $file;
-    
+
     // Check if the file is a PHP file and not a directory
     if (is_file($file_path) && pathinfo($file_path, PATHINFO_EXTENSION) === 'php') {
         include_once $file_path;
@@ -25,24 +56,13 @@ $files = scandir($folder_path);
 
 foreach ($files as $file) {
     $file_path = $folder_path . $file;
-    
+
     // Check if the file is a PHP file and not a directory
     if (is_file($file_path) && pathinfo($file_path, PATHINFO_EXTENSION) === 'php') {
         include_once $file_path;
     }
 }
 
-// Enqueue sorting script
-function enqueue_sorting_script() {
-    wp_enqueue_script('sorting', get_stylesheet_directory_uri() . '/js/sorting.js', ['jquery'], null, true);
-
-    // Localize script to pass AJAX URL and nonce
-    wp_localize_script('sorting', 'wpSurgeonAjax', [
-        'ajax_url' => admin_url('admin-ajax.php'),
-        'nonce' => wp_create_nonce('wp_surgeon_sort_nonce')
-    ]);
-}
-add_action('wp_enqueue_scripts', 'enqueue_sorting_script');
 
 function extrachill_enqueue_scripts() {
     $stylesheet_dir_uri = get_stylesheet_directory_uri();
@@ -52,17 +72,7 @@ function extrachill_enqueue_scripts() {
     $follow_script_version = filemtime( $stylesheet_dir . '/js/extrachill-follow.js' );
     $custom_avatar_script_version = filemtime( $stylesheet_dir . '/js/custom-avatar.js' );
     $upvote_script_version = filemtime( $stylesheet_dir . '/js/upvote.js' );
-
-    // Enqueue the follow script with dynamic versioning
-    wp_enqueue_script('extrachill-follow', $stylesheet_dir_uri . '/js/extrachill-follow.js', array('jquery'), $follow_script_version, true);
-    wp_localize_script('extrachill-follow', 'extrachill_ajax', array(
-        'ajaxurl' => admin_url('admin-ajax.php'),
-        'nonce' => wp_create_nonce('extrachill_follow_nonce'),
-    ));
-    wp_localize_script('extrachill-follow', 'extrachillData', array(
-        'apiRoute' => esc_url(rest_url('extrachill/v1/manage_fan_profile')),
-        'nonce' => wp_create_nonce('wp_rest')
-    ));
+    $mentions_script_version = filemtime( $stylesheet_dir . '/js/extrachill-mentions.js' );
 
     // Conditionally enqueue the custom avatar script with dynamic versioning
     if (function_exists('bbp_is_single_user_edit') && bbp_is_single_user_edit()) {
@@ -70,6 +80,33 @@ function extrachill_enqueue_scripts() {
         wp_localize_script('extrachill-custom-avatar', 'extrachillCustomAvatar', array(
             'ajaxurl' => admin_url('admin-ajax.php'),
             'nonce' => wp_create_nonce('custom_avatar_upload_nonce')
+        ));
+
+        // Enqueue dynamic user profile links script
+        $script_path = '/js/manage-user-profile-links.js';
+        $script_url = $stylesheet_dir_uri . $script_path;
+        $script_version = filemtime($stylesheet_dir . $script_path);
+        wp_enqueue_script('manage-user-profile-links', $script_url, array('jquery'), $script_version, true);
+        // Prepare link types (reuse band profile types if available)
+        $link_types = function_exists('bp_get_supported_social_link_types') ? bp_get_supported_social_link_types() : array(
+            'website' => array('label' => 'Website'),
+            'instagram' => array('label' => 'Instagram'),
+            'twitter' => array('label' => 'Twitter'),
+            'facebook' => array('label' => 'Facebook'),
+            'spotify' => array('label' => 'Spotify'),
+            'soundcloud' => array('label' => 'SoundCloud'),
+            'bandcamp' => array('label' => 'Bandcamp'),
+            'custom' => array('label' => 'Custom', 'has_custom_label' => true),
+        );
+        $existing_links = get_user_meta(bbp_get_displayed_user_id(), '_user_profile_dynamic_links', true);
+        if (!is_array($existing_links)) $existing_links = array();
+        wp_localize_script('manage-user-profile-links', 'userProfileLinksData', array(
+            'existingLinks' => $existing_links,
+            'linkTypes' => $link_types,
+            'text' => array(
+                'removeLink' => __('Remove Link', 'bbpress'),
+                'customLinkLabel' => __('Custom Link Label', 'bbpress'),
+            ),
         ));
     }
 
@@ -83,6 +120,12 @@ function extrachill_enqueue_scripts() {
             'user_id' => get_current_user_id()
         ));
     }
+
+    // Conditionally enqueue the mentions script with dynamic versioning for bbPress
+   if (function_exists('is_bbpress') && is_bbpress()) {
+       wp_enqueue_script('extrachill-mentions', $stylesheet_dir_uri . '/js/extrachill-mentions.js', array('jquery'), $mentions_script_version, true);
+   }
+
 }
 add_action('wp_enqueue_scripts', 'extrachill_enqueue_scripts');
 
@@ -91,32 +134,42 @@ add_action('wp_enqueue_scripts', 'modular_bbpress_styles');
 
 function modular_bbpress_styles() {
     // Forums Loop - Load only on forum listing/single forum
-    if (bbp_is_forum_archive()) {
+    if (bbp_is_forum_archive() || is_front_page() || bbp_is_single_forum()) {
         wp_enqueue_style(
             'forums-loop',
-            get_stylesheet_directory_uri() . '/bbpress/forums-loop.css',
-            array(),
-            filemtime(get_stylesheet_directory() . '/bbpress/forums-loop.css')
+            get_stylesheet_directory_uri() . '/css/forums-loop.css',
+            array('generatepress-child-style'),
+            filemtime(get_stylesheet_directory() . '/css/forums-loop.css')
         );
     }
 
-    // Topics Loop - Load only on topic archives/single topic
-    if (bbp_is_topic_archive() || bbp_is_single_forum() ) {
+    // Topics Loop - Load only on topic archives/single topic/search results (WP & bbP)/relevant pages
+    if ( bbp_is_topic_archive() || bbp_is_single_forum() || is_page('recent') || is_page('following') || bbp_is_single_user() || bbp_is_search_results() || is_search() ) {
         wp_enqueue_style(
-            'topics-loop', 
-            get_stylesheet_directory_uri() . '/bbpress/topics-loop.css',
-            array(),
-            filemtime(get_stylesheet_directory() . '/bbpress/topics-loop.css')
+            'topics-loop',
+            get_stylesheet_directory_uri() . '/css/topics-loop.css',
+            array('generatepress-child-style'),
+            filemtime(get_stylesheet_directory() . '/css/topics-loop.css')
         );
     }
+
 
     // Replies Loop - Load only when replies are displayed
-    if (bbp_is_single_reply() || (bbp_is_single_topic() && bbp_show_lead_topic())) {
+    if (bbp_is_single_reply() || bbp_is_single_topic() || bbp_is_single_user()) {
         wp_enqueue_style(
             'replies-loop',
-            get_stylesheet_directory_uri() . '/bbpress/replies-loop.css',
-            array(),
-            filemtime(get_stylesheet_directory() . '/bbpress/replies-loop.css')
+            get_stylesheet_directory_uri() . '/css/replies-loop.css',
+            array('generatepress-child-style'),
+            filemtime(get_stylesheet_directory() . '/css/replies-loop.css')
+        );
+    }
+
+    if (is_page('register') || is_page('login')) {
+        wp_enqueue_style(
+            'register',
+            get_stylesheet_directory_uri() . '/css/login-register.css',
+            array('generatepress-child-style'),
+            filemtime(get_stylesheet_directory() . '/css/login-register.css')
         );
     }
 }
@@ -129,9 +182,16 @@ function enqueue_user_profile_styles() {
     if (bbp_is_single_user() || bbp_is_single_user_edit() || bbp_is_user_home()) {
         wp_enqueue_style(
             'user-profile',
-            get_stylesheet_directory_uri() . '/bbpress/user-profile.css',
-            array(),
-            filemtime(get_stylesheet_directory() . '/bbpress/user-profile.css')
+            get_stylesheet_directory_uri() . '/css/user-profile.css',
+            array('generatepress-child-style'),
+            filemtime(get_stylesheet_directory() . '/css/user-profile.css')
+        );
+        // Enqueue band card styles for user profile band grid
+        wp_enqueue_style(
+            'band-profile-cards',
+            get_stylesheet_directory_uri() . '/css/band-profile-cards.css',
+            array('generatepress-child-style'),
+            filemtime(get_stylesheet_directory() . '/css/band-profile-cards.css')
         );
     }
 }
@@ -141,32 +201,25 @@ function enqueue_quote_script() {
     if (function_exists('is_bbpress') && is_bbpress()) {
         // Define the path to your script relative to the theme directory
         $script_path = '/js/quote.js';
-        
+
         // Get the absolute path to the script file
         $script_file = get_stylesheet_directory() . $script_path;
-        
+
         // Use filemtime() to get the file's last modified time for versioning
         $version = filemtime($script_file);
-        
+
         // Register and enqueue the script with dynamic versioning
         wp_enqueue_script('custom-bbpress-quote', get_stylesheet_directory_uri() . $script_path, array('jquery'), $version, true);
     }
 }
-add_action('wp_enqueue_scripts', 'enqueue_quote_script');
+// add_action('wp_enqueue_scripts', 'enqueue_quote_script');
 
-
-function enqueue_profile_tab_script() {
-    if (bbp_is_single_user()) { // Assuming bbPress user profile condition
-        wp_enqueue_script('profile-tab-script', get_stylesheet_directory_uri() . '/js/user-profile-tabs.js', array('jquery'), null, true);
-    }
-}
-add_action('wp_enqueue_scripts', 'enqueue_profile_tab_script');
 
 function enqueue_collapse_script() {
     // Check if we're on the homepage or the forum front page
     if ( is_front_page() || is_home() ) {
         // Define the path to the script relative to the theme directory
-                        $script_path = '/js/home-collapse.js';
+        $script_path = '/js/home-collapse.js';
 
         // Get the full path to the script
         $script_full_path = get_stylesheet_directory() . $script_path;
@@ -185,13 +238,13 @@ add_action( 'wp_enqueue_scripts', 'enqueue_collapse_script' );
 function enqueue_utilities() {
     // Get the file path
     $script_path = get_stylesheet_directory() . '/js/utilities.js';
-    
+
     // Fetch the last modified time of the file for versioning
     $version = filemtime($script_path);
-    
+
     // Enqueue the script with dynamic versioning
     wp_enqueue_script('extrachill-utilities', get_stylesheet_directory_uri() . '/js/utilities.js', array('jquery'), $version, true);
-    
+
     // Localize the script for AJAX functionality
     wp_localize_script('extrachill-utilities', 'extrachillQuote', array(
         'ajaxurl' => admin_url('admin-ajax.php'),
@@ -225,33 +278,9 @@ function wp_surgeon_create_forum_user_role() {
                 'edit_others_posts' => false,
 
     ));
-} 
+}
 
 add_action('init', 'wp_surgeon_create_forum_user_role');
-
-function wp_surgeon_custom_logout_url($logout_url, $redirect) {
-    // Nonce for security
-    $action = 'custom-logout-action';
-    // Current URL for staying on the same page
-    $current_url = (is_ssl() ? 'https://' : 'http://') . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
-    $logout_url = add_query_arg('custom_logout', '1', $current_url);
-    $logout_url = wp_nonce_url($logout_url, $action, 'logout_nonce');
-    return $logout_url;
-}
-add_filter('logout_url', 'wp_surgeon_custom_logout_url', 10, 2);
-
-function wp_surgeon_handle_custom_logout() {
-    if (isset($_GET['custom_logout']) && $_GET['custom_logout'] == '1') {
-        // Verify the nonce for security
-        $nonce = $_GET['logout_nonce'] ?? '';
-        if (wp_verify_nonce($nonce, 'custom-logout-action')) {
-            wp_logout();
-            wp_safe_redirect(remove_query_arg(['custom_logout', 'logout_nonce']));
-            exit;
-        }
-    }
-}
-add_action('init', 'wp_surgeon_handle_custom_logout');
 
 function wp_surgeon_get_readable_role($role) {
     $roles = array(
@@ -263,47 +292,13 @@ function wp_surgeon_get_readable_role($role) {
 }
 
 
-function wp_surgeon_has_profile_post($user_id, $profile_type) {
-    // Define the custom query arguments to retrieve the fan profile post
-    $args = array(
-        'post_type' => $profile_type,
-        'author' => $user_id,
-        'posts_per_page' => 1, // Limit to 1 post per user
-    );
 
-    // Query the posts
-    $profile_query = new WP_Query($args);
 
-    if ($profile_query->have_posts()) {
-        // Return the post ID of the first found fan profile
-        return $profile_query->posts[0]->ID;
-    }
-
-    // If no fan profile is found, return false
-    return false;
-}
-
-// Custom template include for profiles
-add_filter('template_include', 'extrachill_custom_template_include');
-
-function extrachill_custom_template_include($template) {
-    $profile_types = ['fan', 'professional', 'artist'];
-    foreach ($profile_types as $type) {
-        if (is_singular($type . '_profile')) {
-            $custom_template = locate_template('page-templates/' . $type . '-profile-template.php');
-            if (!empty($custom_template)) {
-                return $custom_template;
-            }
-        }
-    }
-    return $template;
-}
-
-/* 
- * 
- * ALL THE BASIC SHIT AT THE BOTTOM 
- * 
- * */ 
+/*
+ *
+ * ALL THE BASIC SHIT AT THE BOTTOM
+ *
+ * */
 
 
 add_action( 'wp', function() {
@@ -347,11 +342,9 @@ function add_target_blank_to_external_links($content) {
 add_filter('the_content', 'add_target_blank_to_external_links');
 
 function custom_search_filter($query) {
-    if (!is_admin() && $query->is_main_query()) {
-        if ($query->is_search) {
-            // Define which post types to include in search results
-            $query->set('post_type', array('post', 'page', 'forum', 'topic', 'reply'));
-        }
+    if (!is_admin() && $query->is_main_query() && function_exists('bbp_is_search') && bbp_is_search()) {
+        // Include forum and bbPress post types only on bbPress search contexts
+        $query->set('post_type', array('post', 'page', 'forum', 'topic', 'reply'));
     }
     return $query;
 }
@@ -378,10 +371,10 @@ class Custom_Walker_Nav_Menu extends Walker_Nav_Menu {
         $classes = array( 'sub-menu' );
         $class_names = join( ' ', apply_filters( 'nav_menu_submenu_css_class', $classes, $args, $depth ) );
         $class_names = $class_names ? ' class="' . esc_attr( $class_names ) . '"' : '';
-        
+
         $output .= "{$n}{$indent}<ul$class_names>{$n}";
     }
-    
+
     function start_el( &$output, $item, $depth = 0, $args = null, $id = 0 ) {
         if ( isset( $args->item_spacing ) && 'discard' === $args->item_spacing ) {
             $t = '';
@@ -398,10 +391,8 @@ class Custom_Walker_Nav_Menu extends Walker_Nav_Menu {
         $args = (object) $args;
         $class_names = join( ' ', apply_filters( 'nav_menu_css_class', array_filter( $classes ), $item, $args, $depth ) );
         $class_names = $class_names ? ' class="' . esc_attr( $class_names ) . '"' : '';
-
         $id = apply_filters( 'nav_menu_item_id', 'menu-item-'. $item->ID, $item, $args, $depth );
         $id = $id ? ' id="' . esc_attr( $id ) . '"' : '';
-
         $output .= $indent . '<li' . $id . $class_names .'>';
 
         $atts = array();
@@ -409,9 +400,7 @@ class Custom_Walker_Nav_Menu extends Walker_Nav_Menu {
         $atts['target'] = ! empty( $item->target )     ? $item->target     : '';
         $atts['rel']    = ! empty( $item->xfn )        ? $item->xfn        : '';
         $atts['href']   = ! empty( $item->url )        ? $item->url        : '';
-
         $atts = apply_filters( 'nav_menu_link_attributes', $atts, $item, $args, $depth );
-
         $attributes = '';
         foreach ( $atts as $attr => $value ) {
             if ( ! empty( $value ) ) {
@@ -419,7 +408,6 @@ class Custom_Walker_Nav_Menu extends Walker_Nav_Menu {
                 $attributes .= ' ' . $attr . '="' . $value . '"';
             }
         }
-
         $item_output = $args->before;
         $item_output .= '<a'. $attributes .'>';
         $item_output .= $args->link_before . apply_filters( 'the_title', $item->title, $item->ID ) . $args->link_after;
@@ -428,10 +416,8 @@ class Custom_Walker_Nav_Menu extends Walker_Nav_Menu {
         if ( in_array( 'menu-item-has-children', $item->classes ) ) {
             $item_output .= ' <svg class="submenu-indicator"><use href="/wp-content/themes/generatepress_child/fonts/extrachill.svg?v=1.5#angle-down-solid"></use></svg>';
         }
-
         $item_output .= '</a>';
         $item_output .= $args->after;
-
         $output .= apply_filters( 'walker_nav_menu_start_el', $item_output, $item, $depth, $args );
     }
 }
@@ -439,10 +425,159 @@ class Custom_Walker_Nav_Menu extends Walker_Nav_Menu {
 function extrachill_enqueue_nav_scripts() {
     $script_path = '/js/nav-menu.js';
     $version = filemtime(get_stylesheet_directory() . $script_path);
-    
+
     wp_enqueue_script('extrachill-nav-menu', get_stylesheet_directory_uri() . $script_path, array(), $version, true);
 
 }
 add_action('wp_enqueue_scripts', 'extrachill_enqueue_nav_scripts');
 
 include_once get_stylesheet_directory() . '/forum-features/forum-1494-redirects.php';
+
+function set_default_ec_custom_title( $user_id ) {
+    update_user_meta( $user_id, 'ec_custom_title', 'Extra Chillian' );
+}
+add_action( 'user_register', 'set_default_ec_custom_title' );
+
+
+function extrachill_update_user_profile_meta( $user_id ) {
+    if ( isset( $_POST['user_is_artist'] ) ) {
+        update_user_meta( $user_id, 'user_is_artist', 1 );
+    } else {
+        delete_user_meta( $user_id, 'user_is_artist' );
+    }
+
+    if ( isset( $_POST['user_is_professional'] ) ) {
+        update_user_meta( $user_id, 'user_is_professional', 1 );
+    } else {
+        delete_user_meta( $user_id, 'user_is_professional' );
+    }
+}
+add_action( 'personal_options_update', 'extrachill_update_user_profile_meta' );
+add_action( 'edit_user_profile_update', 'extrachill_update_user_profile_meta' );
+
+/**
+ * Corrects the reply position calculation for permalinks by using date order.
+ *
+ * Overrides the default bbPress behavior which may rely on menu_order or an ID-ordered query,
+ * ensuring the position used in bbp_get_reply_url() matches the display order.
+ *
+ * @param int $reply_position The potentially incorrect position calculated by bbPress.
+ * @param int $reply_id       The ID of the reply being processed.
+ * @param int $topic_id       The ID of the topic the reply belongs to.
+ * @return int The correctly calculated reply position based on date order.
+ */
+function extrachill_correct_reply_position_by_date( $reply_position, $reply_id, $topic_id ) {
+
+    // Ensure we have a valid topic ID.
+    $topic_id = bbp_get_topic_id( $topic_id );
+    if ( empty( $topic_id ) ) {
+        $topic_id = bbp_get_reply_topic_id( $reply_id );
+    }
+    if ( empty( $topic_id ) || empty( $reply_id ) ) {
+        // Cannot calculate without IDs, return original (though likely wrong).
+        return $reply_position; 
+    }
+    // Check cache first
+    $cache_key = 'bbp_reply_ids_date_order_' . $topic_id;
+    $date_ordered_reply_ids = wp_cache_get( $cache_key, 'bbpress' );
+
+    if ( false === $date_ordered_reply_ids ) {
+        // Cache miss, query the database
+        $query_args = array(
+            'post_type'      => bbp_get_reply_post_type(), // ONLY replies
+            'post_parent'    => $topic_id,
+            'posts_per_page' => -1, // Get all replies
+            'orderby'        => 'date',
+            'order'          => 'ASC',
+            'fields'         => 'ids', // Only fetch IDs for performance
+            'post_status'    => 'publish,closed', // Consider statuses relevant for position
+            'perm'           => 'readable',       // Use bbPress standard permissions check
+						'update_post_meta_cache' => false, // Performance optimization
+						'update_post_term_cache' => false, // Performance optimization
+						'no_found_rows'          => true,  // Performance optimization
+        );
+
+        // Filter args like bbPress does
+        $query_args = apply_filters( 'bbp_get_reply_position_query_args', $query_args );
+
+        $reply_query = new WP_Query( $query_args );
+        $date_ordered_reply_ids = $reply_query->posts;
+
+        // Cache the result - cache for 1 hour, adjust if needed
+        wp_cache_set( $cache_key, $date_ordered_reply_ids, 'bbpress', HOUR_IN_SECONDS );
+    }
+
+    if ( empty( $date_ordered_reply_ids ) || ! is_array( $date_ordered_reply_ids ) ) {
+        // Query failed or no replies found, cannot calculate.
+        return $reply_position; 
+    }
+
+    // Find the 0-based index of the current reply in the date-ordered list.
+    $date_ordered_key = array_search( $reply_id, $date_ordered_reply_ids );
+
+    if ( false === $date_ordered_key ) {
+        // Reply ID not found in the list (shouldn't happen if query is correct).
+        return $reply_position;
+    }
+
+    // Calculate the 1-based position.
+    $correct_position = $date_ordered_key + 1;
+
+    // Return the date-based position.
+    return $correct_position;
+}
+add_filter( 'bbp_get_reply_position', 'extrachill_correct_reply_position_by_date', 99, 3 ); // High priority to override others
+
+require_once( get_stylesheet_directory() . '/extrachill-image-uploads.php' );
+
+// Load Band Platform files if the directory exists
+$band_platform_dir = get_stylesheet_directory() . '/forum-features/band-platform';
+if ( is_dir( $band_platform_dir ) ) {
+    // Centralized include for all band platform PHP files
+    require_once( $band_platform_dir . '/band-platform-includes.php' ); 
+}
+
+// --- Admin Script for Band Members Meta Box ---
+function bp_enqueue_admin_scripts( $hook ) {
+    global $post;
+    // Only load on the edit screen for the 'band_profile' CPT
+    if ( 'post.php' == $hook || 'post-new.php' == $hook ) { 
+        if ( isset($post->post_type) && 'band_profile' === $post->post_type ) {
+
+            wp_enqueue_script( 
+                'band-members-admin', 
+                get_stylesheet_directory_uri() . '/js/band-members-admin.js', 
+                array( 'jquery' ), 
+                filemtime( get_stylesheet_directory() . '/js/band-members-admin.js' ), // Dynamic versioning
+                true // Load in footer
+            );
+
+            // Localize script to pass data
+            wp_localize_script( 'band-members-admin', 'bpMemberArgs', array(
+                'ajaxUrl' => admin_url( 'admin-ajax.php' ),
+                'searchNonce' => wp_create_nonce( 'bp_member_search_nonce' ), // Generate the nonce here
+                'postId' => isset($post->ID) ? $post->ID : 0,
+                'noMembersText' => __( 'No members linked yet.', 'generatepress_child' ) // Pass translatable string
+            ));
+        }
+    }
+}
+add_action( 'admin_enqueue_scripts', 'bp_enqueue_admin_scripts' );
+
+// --- End Admin Script --- 
+
+/**
+ * Enqueue child theme stylesheet and other scripts.
+ */
+function generatepress_child_enqueue_scripts() {
+    // Enqueue child theme stylesheet
+    // WordPress should automatically load the parent theme (GeneratePress) style.css first
+    // when get_stylesheet_uri() is used in a child theme.
+    // The late priority (99) further helps ensure this loads after other theme/plugin styles.
+    wp_enqueue_style( 'generatepress-child-style', 
+        get_stylesheet_uri(), 
+        array(), // Remove explicit parent handle dependency for now
+        filemtime(get_stylesheet_directory() . '/style.css') 
+    );
+}
+add_action( 'wp_enqueue_scripts', 'generatepress_child_enqueue_scripts', 99 ); // Load child style.css late
