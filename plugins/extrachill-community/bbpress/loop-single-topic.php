@@ -61,21 +61,8 @@ if ($user_id) {
 }
 
 // Fetch the upvote counts for this post ID
-// The logic for fetching upvote counts is applied to all forums, but special handling is done for forum 1494
+// The logic for fetching upvote counts is applied to all forums
 $upvote_count = get_upvote_count($topic_id); // Default logic for upvote count
-
-if ($forum_id == 1494) {
-    // Assuming you have the main site post ID stored in a variable $main_site_post_id
-    $main_site_post_id = get_post_meta($topic_id, 'main_site_post_id', true);
-    
-    if ($main_site_post_id) {
-        $upvote_data = fetch_upvote_counts_from_extrachill([$main_site_post_id]);
-        
-        // Only update the upvote count based on the external data
-        $upvote_info = isset($upvote_data[$main_site_post_id]) ? $upvote_data[$main_site_post_id] : ['count' => 0];
-        $upvote_count = $upvote_info['count'];
-    }
-}
 
 // Add 1 to the upvote count for display purposes
 $display_upvote_count = $upvote_count + 1;
@@ -111,14 +98,13 @@ $display_upvote_count = $upvote_count + 1;
 
             <?php do_action( 'bbp_theme_after_topic_started_by' ); ?>
 
-            <?php if ( ! bbp_is_single_forum() || ( bbp_get_topic_forum_id() !== bbp_get_forum_id() ) ) : ?>
-
-                <?php do_action( 'bbp_theme_before_topic_started_in' ); ?>
-
-                <span class="bbp-topic-started-in"><?php printf( esc_html__( 'in: %1$s', 'bbpress' ), '<a href="' . bbp_get_forum_permalink( bbp_get_topic_forum_id() ) . '">' . bbp_get_forum_title( bbp_get_topic_forum_id() ) . '</a>' ); ?></span>
-                <?php do_action( 'bbp_theme_after_topic_started_in' ); ?>
-
-            <?php endif; ?>
+            <?php
+            // Display forum name if topic has one
+            if ( !empty($forum_id) ) :
+                do_action( 'bbp_theme_before_topic_started_in' ); ?>
+                <span class="bbp-topic-started-in"><?php printf( esc_html__( 'in: %1$s', 'bbpress' ), '<a href="' . esc_url( bbp_get_forum_permalink( $forum_id ) ) . '">' . esc_html( bbp_get_forum_title( $forum_id ) ) . '</a>' ); ?></span>
+                <?php do_action( 'bbp_theme_after_topic_started_in' );
+            endif; ?>
 
         </p>
 

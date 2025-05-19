@@ -6,7 +6,6 @@
 /* Split layout for manage link page */
 .manage-link-page-title {
   color: var(--text-color);
-  font-size: 2rem;
   font-weight: 700;
   margin-bottom: 1.5em;
   text-align: center;
@@ -44,13 +43,17 @@
   padding: 0 !important;
   border-radius: 0 !important;
   width: 100%;
-  max-width: 420px;
+  max-width: 450px; /* Default desktop constraint for mobile simulation */
   display: flex;
   align-items: center;
   justify-content: center;
+  visibility: hidden; /* JS controls this */
+  /* position: sticky; // Removed from global */
 }
+/* This rule was for the container *inside* the iframe, uncomment if it was providing a useful visual border for the preview content itself */
 .manage-link-page-preview-live .extrch-link-page-container {
-  border: 1.5px solid var(--border-color, #e0e4ea);
+  /* border: 1.5px solid var(--border-color, #e0e4ea); */
+  width: 100%; /* Ensure preview content fills its parent */
 }
 @media (max-width: 900px) {
   .manage-link-page-flex {
@@ -64,168 +67,20 @@
     padding: 1.2em 0.5em;
     width: 100%;
   }
-}
-
-/* Responsive Tabs/Accordion for manage link page */
-/* Mobile-first: Accordion styles */
-/* .manage-link-page-tabs { */ /* This class is no longer used for a dedicated button container */
-  /* border: 1px solid var(--border-color); */ /* Moved to manage-link-page-item for accordion */
-  /* border-radius: 8px; */
-  /* overflow: hidden; */
-/* } */
-
-.manage-link-page-item {
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  margin-bottom: 1em; /* Spacing between accordion items */
-  overflow: hidden; /* Clip content for rounded corners */
-}
-
-.manage-link-page-item:last-of-type {
-  margin-bottom: 0;
-}
-
-.manage-link-page-tab {
-  background: var(--card-background);
-  color: var(--text-color);
-  border: none; /* Remove individual borders for accordion items */
-  border-bottom: 1px solid var(--border-color); /* Separator between header and content if content is visible, or between items */
-  padding: 0.9em 1.2em;
-  font-size: 1.05em;
-  font-weight: 600;
-  cursor: pointer;
-  outline: none;
-  transition: background 0.15s, color 0.15s;
-  display: flex; /* Use flex to align title and arrow */
-  justify-content: space-between; /* Push arrow to the right */
-  align-items: center;
-  width: 100%;
-  text-align: left;
-}
-
-.manage-link-page-item:last-of-type .manage-link-page-tab {
-  /* If it's the last item and content is hidden, it might not need a bottom border if a general container border exists */
-  /* This depends on whether the item itself has a border that makes this redundant */
-}
-
-.manage-link-page-tab .accordion-arrow {
-  transition: transform 0.2s ease-in-out;
-  font-size: 0.8em; /* Adjust size as needed */
-  margin-left: 10px;
-}
-
-.manage-link-page-tab .accordion-arrow::before {
-  content: '▼'; /* Down arrow for closed accordion */
-}
-
-.manage-link-page-tab.active .accordion-arrow::before {
-  content: '▲'; /* Up arrow for open accordion */
-}
-
-/* If an item is the last one, and its tab is not active (content hidden), remove its bottom border */
-.manage-link-page-item:last-of-type .manage-link-page-tab:not(.active) {
-    border-bottom: none;
-}
-
-.manage-link-page-tab.active {
-  background: var(--background-color); 
-  color: var(--link-color); 
-  /* border-bottom-color: transparent; */ /* Hide border when content is shown directly below */
-}
-
-.manage-link-page-tab:not(.active):hover {
-  background: var(--muted-text); 
-  color: var(--background-color); 
-}
-
-.manage-link-page-tab-content {
-  background: var(--background-color);
-  box-shadow: none; 
-  padding: .75em;
-  margin-bottom: 0; 
-  /* border-top: 1px solid var(--border-color); */ /* Add a top border to separate from header if needed visually */
-}
-
-/* Desktop: Tab styles */
-@media (min-width: 769px) {
-  /* The container for all items becomes a flex container for the tab buttons (via their items) */
-  .manage-link-page-items-container {
-    display: flex;
-    flex-wrap: wrap; /* Allow tabs to wrap if too many */
-    margin-bottom: -1px; /* Helps active tab border merge with content area below */
-    position: relative; 
+  .manage-link-page-preview-live {
+    max-width: 100%; /* Overrides the 450px desktop default for tablet/mobile */
+    position: static; /* Ensure not sticky when stacked */
   }
-
-  /* Individual items in tab mode are now flex items, primarily holding the button */
-  .manage-link-page-item {
-    /* display: inline-block; */ /* No longer needed, parent is flex */
-    /* vertical-align: top;   */ /* No longer needed */
-    border: none;
-    border-radius: 0;
-    margin-bottom: 0;
-    overflow: visible; 
-  }
-  
-  .manage-link-page-tab {
-    border: 1px solid var(--border-color);
-    border-bottom: none;
-    border-radius: 8px 8px 0 0;
-    padding: 0.7em 1.4em; 
-    font-size: 1em; 
-    position: relative;
-    top: 1px; 
-    /* display: inline-block; */ /* No longer needed as parent item is a flex item or button itself is styled */
-    width: auto; 
-    text-align: center;
-    margin-right: 0.4em; 
-    /* margin-bottom: -1px; */ /* Moved to container or handled by active tab style */
-    background: var(--card-background); 
-    color: var(--text-color); 
-    z-index: 2; /* Ensure tabs are above the content area border */
-  }
-
-  .manage-link-page-tab .accordion-arrow {
-    display: none; /* Hide accordion arrow in tab mode */
-  }
-
-  
-  .manage-link-page-tab:not(.active):hover {
-    background: var(--muted-text);
-    color: var(--background-color);
-  }
-
-  /* Styling for the dedicated desktop content area */
-  #desktop-tab-content-area {
-    background: var(--background-color); 
-    border: 1px solid var(--border-color); 
-    border-radius: 0 0 10px 10px; /* Default, can be adjusted if first/last tab is active */
-    box-shadow: var(--card-shadow); 
-    padding: 1.5em 1em 1em 1em; 
-    margin-bottom: 0.5em; 
-    position: relative; /* For stacking context if needed */
-    z-index: 1; /* Below the tabs */
-    clear: both; /* Ensure it clears any floated elements if tabs were floated (not current case) */
-    width: 100%; /* Take full available width */
-    box-sizing: border-box;
-  }
-
-  /* Content panels themselves inside the desktop area don't need individual borders or excessive margins */
-  .manage-link-page-tab-content {
-    border: none; 
-    box-shadow: none;
-    padding: 0; /* Padding will be on #desktop-tab-content-area */
-    margin-bottom: 0; 
-    /* clear: both; */ /* No longer needed here, parent has it */
+  /* Make the actual previewed content (.extrch-link-page-container) wider on tablets */
+  .manage-link-page-preview-live .extrch-link-page-container {
+    max-width: 100%; /* Or a specific value like 700px if 100% is too wide */
+    margin-left: auto;
+    margin-right: auto;
   }
 }
-
-/* General rules for tab content visibility, JS will toggle display */
-.manage-link-page-tab-content {
-  display: none; /* Default for all content sections */
+.extrch-link-page-preview-container {
+  border: 1.5px solid var(--border-color, #e0e4ea);
 }
-/* .manage-link-page-tab-content.active-content { */
-  /* display: block; */ /* JS will add this class to the active content */
-/* } */
 
 .bp-link-page-url {
   margin-bottom: 1.5em;
@@ -237,6 +92,7 @@
 .bp-link-page-url-text {
   font-size: 1.1em;
   word-break: break-all;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol"; /* Explicitly set to a common sans-serif stack */
 }
 .bp-link-page-url-copy {
   font-size: 0.95em;
@@ -293,8 +149,6 @@
 }
 .manage-link-page-preview {
   flex: 1;
-  min-width: 320px;
-  max-width: 420px;
   background: #fafbfc;
   border-radius: 12px;
   box-shadow: 0 2px 12px rgba(0,0,0,0.06);
@@ -315,19 +169,13 @@
 
 /* Expiration Modal Styles */
 .bp-link-expiration-modal {
-  display: none;
-  position: fixed;
-  left: 0;
-  top: 0;
-  width: 100vw;
-  height: 100vh;
-  background: rgba(0,0,0,0.3);
-  z-index: 9999;
-  align-items: center;
-  justify-content: center;
+  display: none; /* Hidden by default, shown by .is-active */
+  position: fixed; left: 0; top: 0; width: 100%; height: 100%;
+  background-color: rgba(0,0,0,0.5); z-index: 1001;
+  justify-content: center; align-items: center;
 }
-.bp-link-expiration-modal[style*="display: block"] {
-  display: flex !important;
+.bp-link-expiration-modal.is-active {
+  display: flex !important; /* Use flex to center the inner modal, override default none */
 }
 .bp-link-expiration-modal-inner {
   background: var(--background-color);
@@ -413,6 +261,9 @@
     color: black;
     text-decoration: none;
     cursor: pointer;
+}
+.bp-link-section{
+  background-color: var(--background-color);
 }
 
 #bp-qr-code-modal-image-container img {
@@ -554,22 +405,6 @@ i.fa-solid.fa-qrcode:hover {
     gap: 5px;
 }
 
-/* Ensure buttons within cards don't cause overflow if they have fixed widths */
-.link-page-content-card .button,
-.link-page-content-card button {
-    /* max-width: 100%; */ /* Potentially too aggressive, let flexbox handle it mostly */
-    /* white-space: nowrap; */ /* Default for buttons, but consider if text is too long */
-}
-
-
-/* Address the specific overflow in the screenshot for the link items */
-/* This assumes the structure generated by manage-link-page-links.js is something like:
-   .bp-link-section {
-     .bp-link-section-header { input.section-title, .bp-section-actions > button }
-     .bp-link-item { input.link-text, input.link-url, .bp-link-actions > button }
-   }
-*/
-
 /* Ensure that the container for links (if any) within a section also respects boundaries */
 .link-page-content-card #bp-link-sections-list .links-list-container { /* Hypothetical class for list of links within a section */
     display: flex;
@@ -648,3 +483,251 @@ i.fa-solid.fa-qrcode:hover {
         line-height: 1 !important;
     }
 } 
+
+@media (min-width: 1024px) {
+  .manage-link-page-preview {
+    position: sticky;
+    top: 32px;
+    align-self: flex-start;
+    height: fit-content;
+    z-index: 10;
+  }
+}
+
+/* Utility Classes */
+.ml-auto {
+  margin-left: auto !important;
+}
+
+.flex-grow-1 {
+  flex: 1 1 0 !important;
+}
+
+.flex-grow-2 {
+  flex: 2 1 0 !important;
+}
+
+.flex-grow-3 {
+  flex: 3 1 0 !important;
+}
+
+/* Enhancements for Social Icons Section */
+/* .bp-social-row is already partially styled, ensure these are covered or added */
+.link-page-content-card #bp-social-icons-section .bp-social-row {
+  /* display: flex; (already there implicitly or explicitly) */
+  /* align-items: center; (already there implicitly or explicitly) */
+  gap: 10px; /* Add if not present */
+  margin-bottom: 10px; /* Standardize margin */
+}
+
+.link-page-content-card #bp-social-icons-section .bp-social-url-input {
+  flex: 3; /* Ensure this rule is present for the input specifically */
+}
+
+/* Enhancements for Link Sections */
+.link-page-content-card .bp-link-section {
+  /* margin-bottom: 2em; (already there) */
+}
+
+.link-page-content-card .bp-link-section-header {
+  /* display: flex; (already there) */
+  /* align-items: center; (already there) */
+  gap: 8px; /* Add if not present */
+  margin-bottom: 0.7em; /* Ensure consistency */
+}
+
+/* .bp-link-section-title is targeted by input[type="text"], ensure these are covered */
+.link-page-content-card .bp-link-section-header input.bp-link-section-title {
+  font-weight: 700;
+  font-size: 1.08em;
+  flex: 1;
+  min-width: 0;
+}
+
+.link-page-content-card .bp-add-link-btn { /* This targets the button for adding links to a section */
+  margin-top: 1em;
+}
+
+/* .bp-link-item is already styled, ensure these are covered or added */
+.link-page-content-card .bp-link-item {
+  /* display: flex; (already there) */
+  /* align-items: center; (already there) */
+  gap: 8px; /* Add if not present */
+  margin-bottom: 8px; /* Add some spacing between link items */
+}
+
+.bp-link-text-input { /* New class for link text input */
+  flex: 2;
+}
+
+.bp-link-url-input { /* New class for link URL input */
+  flex: 3;
+}
+
+.bp-link-expiration-icon {
+  cursor: pointer;
+  font-size: 1.2em;
+  color: #b48a00; /* Consider using a CSS variable if this color is part of a theme */
+  user-select: none;
+}
+
+/* Common remove link style */
+.bp-remove-item-link {
+  color: #dc3545 !important; /* A common red color for deletion, !important to override potential specificity issues if needed */
+  text-decoration: none !important;
+  font-weight: bold;
+  font-size: 1.2em; /* Make it a bit larger for easier clicking */
+}
+.bp-remove-item-link:hover {
+  color: #a71d2a !important;
+}
+
+/* Modal Styles - bp-link-expiration-modal is already styled (line 317+) */
+/* Add a class for hidden state for clarity if not already universally handled */
+.bp-modal-hidden {
+  display: none !important;
+}
+
+/* Make sure the buttons inside flex containers don't shrink */
+.link-page-content-card .bp-social-row button,
+.link-page-content-card .bp-link-item button,
+.link-page-content-card .bp-link-section-header .bp-section-actions-group button {
+    flex-shrink: 0;
+}
+
+/* Drag and Drop Styles */
+.drag-handle {
+  cursor: grab;
+  color: #757575; /* A neutral color */
+  padding: 0 8px; /* Some padding around the icon */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  touch-action: manipulation; /* Recommended for SortableJS */
+}
+
+.drag-handle:hover {
+  color: #333;
+}
+
+.drag-handle i {
+  font-size: 1.1em; /* Adjust icon size as needed */
+}
+
+/* Specific alignment for handles within flex rows */
+.bp-social-row .drag-handle,
+.bp-link-item .drag-handle {
+  margin-right: 8px; /* Space between handle and next element */
+  order: -1; /* Place handle at the beginning of the flex row */
+}
+
+.bp-link-section-header .drag-handle {
+    margin-right: 10px;
+    padding: 5px; /* Ensure clickable area */
+    /* order: -1; /* If section header elements are reordered for this */
+}
+
+/* SortableJS Helper Classes */
+.sortable-ghost {
+  opacity: 0.4;
+  background-color: #e0e0e0;
+}
+
+.sortable-chosen {
+  /* Styles for the item when it's picked up, if needed */
+  /* For example, slightly larger or different shadow */
+}
+
+.sortable-drag {
+  /* Styles for the actual element being dragged, often not needed if ghost is styled well */
+}
+
+/* Jump to Preview Button */
+.extrch-jump-to-preview-btn {
+    display: none; /* Hidden by default, shown by JS via 'visible' class */
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 1000;
+    padding: 0; 
+    background-color: var(--accent, #53940b); 
+    color: #fff;
+    border: none;
+    border-radius: 50%; 
+    cursor: pointer;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    width: 50px; 
+    height: 50px; 
+    text-align: center; /* Fallback if flex fails, but primarily for inline content */
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+    opacity: 0;
+    visibility: hidden;
+    display: flex; 
+    align-items: center;
+    justify-content: center;
+}
+.extrch-jump-to-preview-btn:focus{
+    background-color: var(--button-bg, #53940b);
+}
+
+.extrch-jump-to-preview-btn .main-icon-wrapper {
+    display: inline-flex; 
+    align-items: center;
+    justify-content: center;
+    font-size: 1.3em; 
+}
+
+.extrch-jump-to-preview-btn .directional-arrow {
+    font-size: 0.7em; 
+    color: #fff; 
+    position: absolute; 
+}
+
+/* Positioning for arrow when main icon is magnifying glass (arrow points down) */
+.extrch-jump-to-preview-btn .directional-arrow.fa-arrow-down,
+.extrch-jump-to-preview-btn .directional-arrow.fa-chevron-down {
+    bottom: 5px; 
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.extrch-jump-to-preview-btn .directional-arrow.fa-arrow-up,
+.extrch-jump-to-preview-btn .directional-arrow.fa-chevron-up {
+    top: 5px; 
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+  i.fa-solid.fa-magnifying-glass, i.fa-solid.fa-cog{
+    color: #fff;
+  }
+  i.fa-solid.fa-magnifying-glass:hover, i.fa-solid.fa-cog:hover{
+    color: #fff; /* Keep color change if desired, remove flex properties */
+  }
+
+.extrch-jump-to-preview-btn.visible {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* Only make it potentially visible on smaller screens */
+@media (max-width: 768px) { /* Adjust breakpoint as needed */
+    /* The button's default 'display: none' is overridden by JS adding 'visible' class,
+       so we don't need to set 'display: block' or 'flex' here directly in the media query.
+       The JS will control its actual appearance based on viewport and scroll. */
+}
+
+.grid-container{
+  max-width: 1350px !important;
+}
+
+/* Desktop Sticky Preview */
+@media (min-width: 901px) {
+  .manage-link-page-preview-live {
+    position: sticky;
+    top: 32px; /* Adjust based on admin bar or other fixed headers */
+    align-self: flex-start; /* If its parent .manage-link-page-preview is a flex container */
+    height: fit-content; /* Crucial for sticky to work correctly with content height */
+    z-index: 10; /* Ensure it's above other content if necessary */
+  }
+}

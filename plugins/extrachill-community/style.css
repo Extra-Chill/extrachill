@@ -80,6 +80,9 @@ h5 {
 h6 {
 	font-size: 17px;
 }
+table, td, th{
+	border: 1px solid var(--border-color);
+}
 
 a:focus, a:active, a:hover {
 	color: inherit;
@@ -184,6 +187,7 @@ a:focus, a:active, a:hover {
 	border-radius: 5px;
 	font-size: 15px;
 	text-decoration: none;
+	margin-bottom: 15px;
 }
 
 /* desktop */
@@ -233,7 +237,7 @@ a:focus, a:active, a:hover {
 	}
  
 	h1 {
-		font-size: 33px;
+		font-size: 28px;
 	}
  
 	.bbp-reply-author {
@@ -243,17 +247,7 @@ a:focus, a:active, a:hover {
 	}
  
 	.extrachill-recent-activity, div.bbp-template-notice.info, .status-notice p {
-		background-color: var(--notice-bg);
-		width: max-content;
-		max-width: 100%;
-		border-top: 2px solid var(--notice-border);
-		border-bottom: 2px solid var(--notice-border);
-		border-left: none;
-		border-right: none;
-		padding: 12px;
-		border-radius: 0;
-		font-size: 15px;
-		text-decoration: none;
+		width: 100%;
 	}
  
 	h2 {
@@ -369,11 +363,11 @@ a:focus, a:active, a:hover {
 	margin-bottom: 20px;
 }
 
-button:hover {
+button:hover, a.button:hover {
 	background-color: var(--button-hover-bg);
 }
 
-button,
+button, a.button,
 input[type=button],
 input[type=reset],
 input[type=submit],
@@ -409,9 +403,12 @@ a.settings-button {
 div.bbp-breadcrumb {
 	width: 100%;
 	font-size: 14px;
-	margin: 15px 0;
+	padding: 15px 0;
+    background: var(--background-color);
+    box-sizing: border-box;
+    display: block;
+	margin-bottom: 15px;
 }
- 
  
  
 div.bbp-breadcrumb a:hover {
@@ -548,7 +545,8 @@ span.bbp-admin-links {
 .bbp-header,
 .bbp-forum-freshness,
 .bbp-forum-topic-count,
-.bbp-forum-reply-count {
+.bbp-forum-reply-count,
+.bbp-forum-band-count {
 	font-size: 15px;
 }
  
@@ -963,6 +961,9 @@ p.private-forums {
 	width: max-content;
 	margin: auto;
 }
+#extra-footer .social-links ul{
+	margin: 0;
+}
  
 .main-navigation a {
 	display: inline;
@@ -1098,22 +1099,10 @@ h1.site-title, p.site-title {
 /* Stick the header to the top, with a dark background */
 #masthead {
 	position: -webkit-sticky; /* For Safari */
-	position: sticky;
+	/* position: sticky; */ 
 	top: 0;
 	z-index: 1000;
 	background-color: var(--header-bg);
-}
- 
-/* Optional reading progress bar in header */
-#masthead #reading-progress {
-	position: absolute;
-	bottom: -1px;
-	left: 0;
-	width: 0;
-	height: 5px;
-	background-color: var(--accent);
-	z-index: 9999;
-	transition: width 0.25s ease-out;
 }
  
 /* Header container: use Flexbox to space out branding and navigation */
@@ -1183,9 +1172,11 @@ h1.site-title, p.site-title {
     .site-title a {
         font-size: 34px;
     }
-	.site-content{
-		margin: 0 15px;
-	}
+}
+@media (max-width: 1024px) {
+.site-content{
+	margin: 0 15px;
+}
 }
 /* ========= Menu Toggle (Hamburger Icon) ========= */
  
@@ -1467,10 +1458,7 @@ body.menu-open {
 }
  
 
- 
-.bbp-topic-freshness-author {
-    margin-left: 5px;
-}
+
  
 .bbp-body {
     display: flex;
@@ -1509,10 +1497,7 @@ body.menu-open {
     display: flex;
     align-items: center;
 }
- 
-.bbp-topic-freshness-author {
-    margin-left: 5px;
-}
+
  
 @media (min-width: 768px) {
     .bbp-topics-grid {
@@ -1740,6 +1725,7 @@ input[type="text"], input[type="email"], input[type="url"], input[type="password
     background-color: var(--card-background);
     border-color: var(--border-color);
 	width: max-content;
+	font-size:.8em;
 }
 
 #bbpress-forums fieldset.bbp-form{

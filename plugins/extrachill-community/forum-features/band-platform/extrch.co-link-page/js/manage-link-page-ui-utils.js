@@ -84,24 +84,73 @@
                     contentToActivate.style.display = 'block';
                     try { localStorage.setItem(activeTabStorageKey, tabId); } catch (e) { /* console.warn("Could not save active tab", e); */ }
                     
-                    // If analytics tab became active, notify its script
+                    // --- Scroll active tab into view on mobile/accordion ---
+                    if (window.innerWidth < desktopBreakpoint) { // Re-check, though currentLayoutMode should be 'accordion'
+                        let fixedHeaderHeight = 0;
+                        const adminBar = document.getElementById('wpadminbar');
+                        if (adminBar && window.getComputedStyle(adminBar).position === 'fixed') {
+                            fixedHeaderHeight += adminBar.offsetHeight;
+                        }
+                        // Assuming tabToActivate is the button itself
+                        const elementPosition = tabToActivate.getBoundingClientRect().top;
+                        const offsetPosition = elementPosition + window.pageYOffset - fixedHeaderHeight;
+                        window.scrollTo({
+                            top: offsetPosition,
+                            behavior: 'smooth'
+                        });
+                    }
+                    // --- End scroll active tab ---
+
+                    // --- Initialize tab-specific JS ---
                     if (tabId === 'analytics' && window.ExtrchLinkPageAnalytics && typeof window.ExtrchLinkPageAnalytics.handleTabBecameVisible === 'function') {
-                        console.log('UI Utils: Analytics tab activated, calling its handler.');
+                        // console.log('UI Utils: Analytics tab activated, calling its handler.');
                         window.ExtrchLinkPageAnalytics.handleTabBecameVisible();
                     }
+                    if (tabId === 'customize' && window.ExtrchLinkPageManager && window.ExtrchLinkPageManager.customization && typeof window.ExtrchLinkPageManager.customization.init === 'function' && !window.ExtrchLinkPageManager.customization.isInitialized) {
+                        // console.log('UI Utils: Customize tab activated, calling its init().');
+                        window.ExtrchLinkPageManager.customization.init();
+                    }
+                    // Add more tab-specific initializations here if needed
+                    // --- End Initialize tab-specific JS ---
                 }
-            } else if (tabs.length > 0 && isInitialization) {
-                tabs[0].classList.add('active');
-                if (tabContents.length > 0 && document.getElementById(tabs[0].getAttribute('data-tab'))) { // Check content exists
-                     document.getElementById('manage-link-page-tab-' + tabs[0].getAttribute('data-tab')).style.display = 'block';
+            } else if (tabs.length > 0 && isInitialization) { // Default to first tab if none explicitly active
+                const firstTabToActivate = tabs[0];
+                const firstTabId = firstTabToActivate.getAttribute('data-tab');
+                const firstContentToActivate = document.getElementById('manage-link-page-tab-' + firstTabId);
+
+                firstTabToActivate.classList.add('active');
+                if (firstContentToActivate) { 
+                     firstContentToActivate.style.display = 'block';
                 }
-                try { localStorage.setItem(activeTabStorageKey, tabs[0].getAttribute('data-tab')); } catch (e) { /* console.warn("Could not save active tab", e); */ }
+                try { localStorage.setItem(activeTabStorageKey, firstTabId); } catch (e) { /* console.warn("Could not save active tab", e); */ }
                 
-                // If analytics tab became active (as the default first tab), notify its script
-                if (tabs[0].getAttribute('data-tab') === 'analytics' && window.ExtrchLinkPageAnalytics && typeof window.ExtrchLinkPageAnalytics.handleTabBecameVisible === 'function') {
-                    console.log('UI Utils: Analytics tab (default) activated, calling its handler.');
+                // --- Scroll active tab into view on mobile/accordion (for default first tab) ---
+                if (window.innerWidth < desktopBreakpoint) { // Re-check
+                    let fixedHeaderHeight = 0;
+                    const adminBar = document.getElementById('wpadminbar');
+                    if (adminBar && window.getComputedStyle(adminBar).position === 'fixed') {
+                        fixedHeaderHeight += adminBar.offsetHeight;
+                    }
+                    const elementPosition = firstTabToActivate.getBoundingClientRect().top;
+                    const offsetPosition = elementPosition + window.pageYOffset - fixedHeaderHeight;
+                    window.scrollTo({
+                        top: offsetPosition,
+                        behavior: 'smooth'
+                    });
+                }
+                // --- End scroll active tab ---
+                
+                // --- Initialize tab-specific JS for default first tab ---
+                if (firstTabId === 'analytics' && window.ExtrchLinkPageAnalytics && typeof window.ExtrchLinkPageAnalytics.handleTabBecameVisible === 'function') {
+                    // console.log('UI Utils: Analytics tab (default) activated, calling its handler.');
                     window.ExtrchLinkPageAnalytics.handleTabBecameVisible();
                 }
+                if (firstTabId === 'customize' && window.ExtrchLinkPageManager && window.ExtrchLinkPageManager.customization && typeof window.ExtrchLinkPageManager.customization.init === 'function' && !window.ExtrchLinkPageManager.customization.isInitialized) {
+                    // console.log('UI Utils: Customize tab (default) activated, calling its init().');
+                    window.ExtrchLinkPageManager.customization.init();
+                }
+                // Add more tab-specific initializations here if needed
+                // --- End Initialize tab-specific JS for default first tab ---
             }
         } else { // Tabs mode (desktop)
             tabs.forEach(t => t.classList.remove('active'));
@@ -115,25 +164,73 @@
                 contentToActivate.style.display = 'block'; // Show the target one
                 try { localStorage.setItem(activeTabStorageKey, tabId); } catch (e) { /* console.warn("Could not save active tab", e); */ }
                 
-                // If analytics tab became active, notify its script
+                // --- Scroll active tab into view on mobile/accordion (Desktop tabs, but still check width for safety) ---
+                // This case might be less relevant if layout is strictly 'tabs' on desktop, but good for consistency
+                // if (window.innerWidth < desktopBreakpoint) { 
+                //     let fixedHeaderHeight = 0;
+                //     const adminBar = document.getElementById('wpadminbar');
+                //     if (adminBar && window.getComputedStyle(adminBar).position === 'fixed') {
+                //         fixedHeaderHeight += adminBar.offsetHeight;
+                //     }
+                //     const elementPosition = tabToActivate.getBoundingClientRect().top;
+                //     const offsetPosition = elementPosition + window.pageYOffset - fixedHeaderHeight;
+                //     window.scrollTo({
+                //         top: offsetPosition,
+                //         behavior: 'smooth'
+                //     });
+                // }
+                // --- End scroll active tab ---
+                
+                // --- Initialize tab-specific JS ---
                 if (tabId === 'analytics' && window.ExtrchLinkPageAnalytics && typeof window.ExtrchLinkPageAnalytics.handleTabBecameVisible === 'function') {
-                    console.log('UI Utils: Analytics tab activated, calling its handler.');
+                    // console.log('UI Utils: Analytics tab activated, calling its handler.');
                     window.ExtrchLinkPageAnalytics.handleTabBecameVisible();
                 }
-            } else if (tabs.length > 0) {
-                tabs[0].classList.add('active');
-                const firstTabId = tabs[0].getAttribute('data-tab');
+                 if (tabId === 'customize' && window.ExtrchLinkPageManager && window.ExtrchLinkPageManager.customization && typeof window.ExtrchLinkPageManager.customization.init === 'function' && !window.ExtrchLinkPageManager.customization.isInitialized) {
+                    // console.log('UI Utils: Customize tab activated, calling its init().');
+                    window.ExtrchLinkPageManager.customization.init();
+                }
+                // Add more tab-specific initializations here if needed
+                // --- End Initialize tab-specific JS ---
+
+            } else if (tabs.length > 0) { // Default to first tab
+                const firstTabToActivate = tabs[0];
+                const firstTabId = firstTabToActivate.getAttribute('data-tab');
                 const firstTabContent = document.getElementById('manage-link-page-tab-' + firstTabId);
+
+                firstTabToActivate.classList.add('active');
                 if (firstTabContent) { 
                     firstTabContent.style.display = 'block';
                 }
                 try { localStorage.setItem(activeTabStorageKey, firstTabId); } catch (e) { /* console.warn("Could not save active tab", e); */ }
                 
-                // If analytics tab became active (as the default first tab), notify its script
+                // --- Scroll active tab into view on mobile/accordion (Desktop tabs, default first tab) ---
+                // if (window.innerWidth < desktopBreakpoint) {
+                //     let fixedHeaderHeight = 0;
+                //     const adminBar = document.getElementById('wpadminbar');
+                //     if (adminBar && window.getComputedStyle(adminBar).position === 'fixed') {
+                //         fixedHeaderHeight += adminBar.offsetHeight;
+                //     }
+                //     const elementPosition = firstTabToActivate.getBoundingClientRect().top;
+                //     const offsetPosition = elementPosition + window.pageYOffset - fixedHeaderHeight;
+                //     window.scrollTo({
+                //         top: offsetPosition,
+                //         behavior: 'smooth'
+                //     });
+                // }
+                // --- End scroll active tab ---
+                
+                // --- Initialize tab-specific JS for default first tab ---
                 if (firstTabId === 'analytics' && window.ExtrchLinkPageAnalytics && typeof window.ExtrchLinkPageAnalytics.handleTabBecameVisible === 'function') {
-                    console.log('UI Utils: Analytics tab (default) activated, calling its handler.');
+                    // console.log('UI Utils: Analytics tab (default) activated, calling its handler.');
                     window.ExtrchLinkPageAnalytics.handleTabBecameVisible();
                 }
+                if (firstTabId === 'customize' && window.ExtrchLinkPageManager && window.ExtrchLinkPageManager.customization && typeof window.ExtrchLinkPageManager.customization.init === 'function' && !window.ExtrchLinkPageManager.customization.isInitialized) {
+                    // console.log('UI Utils: Customize tab (default) activated, calling its init().');
+                    window.ExtrchLinkPageManager.customization.init();
+                }
+                // Add more tab-specific initializations here if needed
+                // --- End Initialize tab-specific JS for default first tab ---
             }
         }
     }
@@ -144,13 +241,30 @@
 
     function activateInitialTab(isResizing = false) {
         currentLayoutMode = getLayoutMode(); // Determine current mode first
+        
+        const urlParams = new URLSearchParams(window.location.search);
+        const tabFromUrl = urlParams.get('tab');
         let savedTabId = null;
         try { savedTabId = localStorage.getItem(activeTabStorageKey); } catch (e) { /* console.warn("Could not retrieve active tab", e); */ }
         
-        if (savedTabId) {
-            setActiveTab(savedTabId, true);
+        let tabToActivateId = null;
+
+        if (tabFromUrl && document.querySelector(`.manage-link-page-tab[data-tab="${tabFromUrl}"]`)) {
+            tabToActivateId = tabFromUrl;
+            // If tab is activated from URL, also update localStorage to reflect this as the new "active" tab.
+            try { localStorage.setItem(activeTabStorageKey, tabFromUrl); } catch (e) { /* console.warn("Could not save active tab from URL", e); */ }
+        } else if (savedTabId && document.querySelector(`.manage-link-page-tab[data-tab="${savedTabId}"]`)) {
+            tabToActivateId = savedTabId;
         } else if (tabs.length > 0) {
-            setActiveTab(tabs[0].getAttribute('data-tab'), true);
+            tabToActivateId = tabs[0].getAttribute('data-tab');
+            // If defaulting to the first tab, also set it in localStorage.
+            if (tabToActivateId) {
+                try { localStorage.setItem(activeTabStorageKey, tabToActivateId); } catch (e) { /* console.warn("Could not save default active tab", e); */ }
+            }
+        }
+
+        if (tabToActivateId) {
+            setActiveTab(tabToActivateId, true);
         }
     }
     

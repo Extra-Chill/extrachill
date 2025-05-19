@@ -191,7 +191,7 @@
     display: block; /* Removes potential extra space below the image */
     border-radius: 15px; /* Apply rounded corners */
     /* Optional: Add a border if desired */
-    /* border: 2px solid var(--header-text, #fff); */
+    border: 2px solid #fff; 
     max-width: 100%; /* Ensure image is responsive within its container */
     height: auto;   /* Maintain aspect ratio */
     /* If you need to force a square aspect ratio for non-square thumbnail images: */
@@ -405,4 +405,103 @@
         gap: 20px;
     }
     /* Columns will take full width naturally when flex-direction is column */
+} 
+
+/* --- Follow Consent Modal Styles --- */
+.bp-follow-modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.6);
+    z-index: 1040; /* Ensure it's above other content but below .bp-modal if it has higher */
+}
+
+#bp-follow-consent-modal.bp-modal {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: var(--card-background, #fff);
+    padding: 25px;
+    border-radius: 8px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    z-index: 1050;
+    width: 90%;
+    max-width: 450px;
+    border: 1px solid var(--border-color, #ddd);
+}
+
+#bp-follow-consent-modal .bp-modal-content {
+    /* Styles for the content area within the modal */
+}
+
+#bp-follow-consent-modal .bp-modal-title {
+    margin-top: 0;
+    margin-bottom: 15px;
+    font-size: 1.5em;
+    color: var(--text-color, #333);
+}
+
+#bp-follow-consent-modal p {
+    margin-bottom: 15px;
+    font-size: 1em;
+    line-height: 1.5;
+    color: var(--text-color, #555);
+}
+
+#bp-follow-consent-modal .bp-modal-consent-option {
+    margin-bottom: 20px;
+    padding: 10px;
+    background-color: var(--background-color, #f9f9f9);
+    border-radius: 4px;
+    border: 1px solid var(--border-color, #eee);
+}
+
+#bp-follow-consent-modal .bp-modal-consent-option label {
+    display: flex; /* Changed to flex for better alignment */
+    align-items: flex-start; /* Align items to the start of the flex container */
+    font-size: 0.95em;
+    color: var(--text-color, #444);
+    cursor: pointer;
+}
+
+#bp-follow-consent-modal .bp-modal-consent-option input[type="checkbox"] {
+    margin-right: 10px;
+    margin-top: 3px; /* Adjust to align checkbox with text */
+    flex-shrink: 0; /* Prevent checkbox from shrinking */
+}
+
+#bp-follow-consent-modal .bp-modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+#bp-follow-consent-modal .bp-modal-actions .button {
+    padding: 10px 15px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+#bp-follow-consent-modal .bp-modal-actions .bp-modal-confirm {
+    background-color: var(--accent, #0073aa); /* Using var(--accent) if available, else WordPress blue */
+    color: #fff;
+}
+
+#bp-follow-consent-modal .bp-modal-actions .bp-modal-confirm:hover {
+    background-color: var(--accent-dark, #005a87); /* Darker shade for hover */
+}
+
+#bp-follow-consent-modal .bp-modal-actions .bp-modal-cancel {
+    background-color: var(--button-secondary-bg, #f0f0f0); /* Light gray for cancel */
+    color: var(--button-secondary-text, #333);
+    border: 1px solid var(--border-color, #ccc);
+}
+
+#bp-follow-consent-modal .bp-modal-actions .bp-modal-cancel:hover {
+    background-color: var(--button-secondary-hover-bg, #e0e0e0);
 } 

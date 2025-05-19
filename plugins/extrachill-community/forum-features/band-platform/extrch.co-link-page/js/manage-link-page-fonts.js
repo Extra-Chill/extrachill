@@ -44,15 +44,21 @@
      * @param {function} onFontLoaded - Callback function to execute after font is loaded.
      */
     function loadGoogleFont(fontParam, fontFamilyValue, onFontLoaded) {
-        // console.log('[Font Module DEBUG] loadGoogleFont called with:', { fontParam, fontFamilyValue }); // Removed
+        const effectiveFontStack = getFontStackByValue(fontFamilyValue) || fontFamilyValue; // Ensure we have a value to pass
+
         if (!fontParam || fontParam === 'inherit' || fontParam === 'local_default' || fontParam === '' || !fontFamilyValue) {
-            // console.log('[Font Module DEBUG] No fontParam or fontFamilyValue, or local_default/inherit. Calling onFontLoaded immediately.'); // Removed
-            if (typeof onFontLoaded === 'function') onFontLoaded();
+            if (typeof onFontLoaded === 'function') onFontLoaded(effectiveFontStack); // Pass the stack/value
             return;
         }
 
-        const fontUrl = `https://fonts.googleapis.com/css2?family=${fontParam.replace(/ /g, '+')}:wght@400;700&display=swap`;
-        // console.log('[Font Module DEBUG] Constructed fontUrl:', fontUrl); // Removed
+        // Construct the font URL carefully to avoid duplicating weight parameters
+        let fontSpecForUrl = fontParam.replace(/ /g, '+');
+        if (!fontSpecForUrl.includes(':wght@')) {
+            // Only append default weights if :wght@ is not already present in fontParam.
+            // Note: PHP config now provides weights, so this is more of a fallback.
+            fontSpecForUrl += ':wght@400;600;700'; // Consistent with PHP desired weights
+        }
+        const fontUrl = `https://fonts.googleapis.com/css2?family=${fontSpecForUrl}&display=swap`;
 
         if (!loadedFontUrls.has(fontUrl)) {
             // console.log('[Font Module DEBUG] Font URL not in loadedFontUrls. Creating link element.'); // Removed
@@ -66,19 +72,19 @@
                     // console.log(`[Font Module DEBUG] Waiting for document.fonts.load('700 2em "${fontFamilyValue}"')`); // Removed
                     document.fonts.load(`1em '${fontFamilyValue}'`).then(() => {
                         // console.log(`[Font Module DEBUG] Font "${fontFamilyValue}" is ready (document.fonts.load resolved). Calling onFontLoaded.`); // Removed
-                        if (typeof onFontLoaded === 'function') onFontLoaded();
+                        if (typeof onFontLoaded === 'function') onFontLoaded(effectiveFontStack); // Pass the stack/value
                     }).catch(err => {
-                         // console.error(`[Font Module DEBUG] Error waiting for font "${fontFamilyValue}" to be available after CSS load:`, err); // Keep error logs
-                         if (typeof onFontLoaded === 'function') onFontLoaded();
+                         console.error(`[Font Module DEBUG] Error waiting for font "${fontFamilyValue}" to be available after CSS load:`, err);
+                         if (typeof onFontLoaded === 'function') onFontLoaded(effectiveFontStack); // Pass stack/value even on error
                     });
                 } else {
                     // console.log('[Font Module DEBUG] fontFamilyValue is not a string after CSS load. Calling onFontLoaded.'); // Removed
-                    if (typeof onFontLoaded === 'function') onFontLoaded();
+                    if (typeof onFontLoaded === 'function') onFontLoaded(effectiveFontStack); // Pass the stack/value
                 }
             };
             linkElement.onerror = () => {
-                console.error('[Font Module DEBUG] Error loading Google Font CSS (onerror event):', fontUrl); // Keep error logs
-                if (typeof onFontLoaded === 'function') onFontLoaded();
+                console.error('[Font Module DEBUG] Error loading Google Font CSS (onerror event):', fontUrl);
+                if (typeof onFontLoaded === 'function') onFontLoaded(effectiveFontStack); // Pass stack/value even on error
             };
             document.head.appendChild(linkElement);
         } else {
@@ -87,14 +93,14 @@
                 // console.log(`[Font Module DEBUG] Waiting for document.fonts.load('1em "${fontFamilyValue}"') for already processed URL.`); // Removed
                 document.fonts.load(`1em '${fontFamilyValue}'`).then(() => {
                     // console.log(`[Font Module DEBUG] Font "${fontFamilyValue}" (already processed URL) is ready. Calling onFontLoaded.`); // Removed
-                    if (typeof onFontLoaded === 'function') onFontLoaded();
+                    if (typeof onFontLoaded === 'function') onFontLoaded(effectiveFontStack); // Pass the stack/value
                 }).catch(err => {
-                     console.error(`[Font Module DEBUG] Error waiting for already loaded font "${fontFamilyValue}" (already processed URL):`, err); // Keep error logs
-                     if (typeof onFontLoaded === 'function') onFontLoaded();
+                     console.error(`[Font Module DEBUG] Error waiting for already loaded font "${fontFamilyValue}" (already processed URL):`, err);
+                     if (typeof onFontLoaded === 'function') onFontLoaded(effectiveFontStack); // Pass stack/value even on error
                 });
             } else {
                 // console.log('[Font Module DEBUG] fontFamilyValue is not a string (already processed URL). Calling onFontLoaded.'); // Removed
-                if (typeof onFontLoaded === 'function') onFontLoaded();
+                if (typeof onFontLoaded === 'function') onFontLoaded(effectiveFontStack); // Pass the stack/value
             }
         }
     }

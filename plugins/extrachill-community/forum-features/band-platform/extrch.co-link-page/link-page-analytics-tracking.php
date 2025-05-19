@@ -135,25 +135,45 @@ add_action('extrch_link_page_minimal_head', 'extrch_enqueue_public_tracking_scri
  * Hooked to wp_ajax_extrch_fetch_link_page_analytics (only for logged-in users).
  */
 function extrch_fetch_link_page_analytics_ajax() {
-    // Verify nonce
-    check_ajax_referer('bp_save_link_page_action', 'security_nonce'); // Reuse nonce from manage page form
+    error_log('[EXTRCH_ANALYTICS_AJAX] Request received. POST data: ' . print_r($_POST, true));
+    error_log('[EXTRCH_ANALYTICS_AJAX] Current user ID: ' . get_current_user_id());
 
-    // --- Input Sanitization ---
-    $link_page_id = isset($_POST['link_page_id']) ? absint($_POST['link_page_id']) : 0;
-    $date_range_days = isset($_POST['date_range']) ? absint($_POST['date_range']) : 30; // Default 30 days
-
-    if (!$link_page_id) {
-        wp_send_json_error(['message' => 'Invalid link page ID.'], 400);
+    if ( !isset( $_POST['link_page_id'], $_POST['security_nonce'] ) ) {
+        error_log('[EXTRCH_ANALYTICS_AJAX] Error: Missing link_page_id or security_nonce.');
+        wp_send_json_error(['message' => 'Missing required parameters.'], 400);
         return;
     }
 
-    // --- Permission Check ---
-    // We need the associated band_id to check permission
-    $band_id = get_post_meta($link_page_id, '_associated_band_profile_id', true);
-    if (!$band_id || !current_user_can('edit_post', $band_id)) {
-        wp_send_json_error(['message' => 'Permission denied.'], 403);
+    $link_page_id = (int) $_POST['link_page_id'];
+    $nonce = sanitize_text_field( $_POST['security_nonce'] );
+    $date_range_days = isset($_POST['date_range']) ? (int) $_POST['date_range'] : 30;
+
+    error_log('[EXTRCH_ANALYTICS_AJAX] Link Page ID: ' . $link_page_id . ', Nonce: ' . $nonce . ', Date Range: ' . $date_range_days);
+
+    // Verify Nonce
+    if ( ! wp_verify_nonce( $nonce, 'extrch_link_page_ajax_nonce' ) ) {
+        error_log('[EXTRCH_ANALYTICS_AJAX] Nonce verification failed. Received Nonce: ' . $nonce . ' for action: extrch_link_page_ajax_nonce');
+        wp_send_json_error(['message' => 'Nonce verification failed.'], 403);
         return;
     }
+    error_log('[EXTRCH_ANALYTICS_AJAX] Nonce verification PASSED.');
+    
+    // Permission Check:
+    // Verify that the current user has the specific capability 'view_band_link_page_analytics' 
+    // for the given $link_page_id. This capability is dynamically granted in 
+    // 'forum-features/band-platform/band-permissions.php' based on band membership 
+    // and association with the link page.
+    // This is preferred over direct 'edit_post' checks on the link page or associated band profile
+    // to ensure the permission logic is centralized and specific to this feature.
+    $can_view_analytics = current_user_can( 'view_band_link_page_analytics', $link_page_id );
+    error_log('[EXTRCH_ANALYTICS_AJAX] User can view_band_link_page_analytics for link_page_id (' . $link_page_id . '): ' . ($can_view_analytics ? 'YES' : 'NO'));
+
+    if ( ! $can_view_analytics ) {
+        error_log('[EXTRCH_ANALYTICS_AJAX] User permission check failed for view_band_link_page_analytics.');
+        wp_send_json_error(['message' => 'You do not have permission to view these analytics.'], 403);
+        return;
+    }
+    error_log('[EXTRCH_ANALYTICS_AJAX] User permission check PASSED for view_band_link_page_analytics.');
 
     // --- Date Calculation ---
     $end_date = current_time('Y-m-d');

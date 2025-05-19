@@ -156,16 +156,6 @@ function bp_handle_invitation_acceptance() {
             exit;
         }
 
-        // 3. Add 'user_is_artist' meta if not present
-        if ( ! get_user_meta( $user_id, 'user_is_artist', true ) ) {
-            if ( update_user_meta( $user_id, 'user_is_artist', true ) ) {
-                error_log("Band Invite: Added 'user_is_artist' meta to user ID $user_id during invitation acceptance for band ID $band_id.");
-            } else {
-                // Log if meta update failed, but proceed with membership attempt anayway as it's not critical to block.
-                error_log("Band Invite: FAILED to add 'user_is_artist' meta to user ID $user_id for band ID $band_id. Attempting to add to band anyway.");
-            }
-        }
-
         // 4. Link User to Band & Remove Pending Invite
         if ( bp_add_band_membership( $user_id, $band_id ) ) {
             // Use the specific ID of the invitation for removal

@@ -69,7 +69,7 @@ function extrch_create_link_page_for_band_profile( $post_id, $post, $update ) {
                 'links' => array( // Array of links within this section
                     array( // The actual link item
                         'link_url'       => esc_url( $band_profile_url ),
-                        'link_text'      => esc_html( $band_title ) . ' Profile',
+                        'link_text'      => esc_html( $band_title ) . ' Forum',
                         'link_is_active' => true,
                         'expires_at'     => '', // Ensure expires_at is present even if empty
                     ),
@@ -92,7 +92,7 @@ function extrch_create_link_page_for_band_profile( $post_id, $post, $update ) {
         // For now, solid color is the default.
     }
 }
-add_action( 'save_post_band_profile', 'extrch_create_link_page_for_band_profile', 10, 3 );
+add_action( 'save_post_band_profile', 'extrch_create_link_page_for_band_profile', 9, 3 );
 
 /**
  * Gets the default styles for a new link page.
@@ -102,29 +102,68 @@ add_action( 'save_post_band_profile', 'extrch_create_link_page_for_band_profile'
  * @return array Default CSS variables for the link page.
  */
 function extrch_get_default_link_page_styles() {
-    // Default to a dark theme based on css/root.css dark mode values
-    $default_page_bg_color     = '#1a1a1a'; // --background-color from dark mode
-    $default_page_text_color   = '#e5e5e5'; // --text-color from dark mode
-    $default_button_bg_color   = '#0b5394'; // --button-bg (blue, contrasts well with dark bg)
-    $default_button_text_color = '#ffffff'; // Ensure button text is light
-    $default_button_hover_bg   = '#083b6c'; // --button-hover-bg
+    // Default color palette (dark theme inspired)
+    $default_page_bg_color           = '#121212'; // Matches extrch-links.css :root
+    $default_card_bg_color           = 'rgba(0, 0, 0, 0.4)'; // Matches extrch-links.css :root
+    $default_page_text_color         = '#e5e5e5'; // Matches extrch-links.css :root
+    $default_link_text_color         = '#ffffff'; // Matches extrch-links.css :root (for button/link text)
+    $default_button_bg_color         = '#0b5394'; // Matches extrch-links.css :root
+    $default_button_border_color     = '#0b5394'; // Matches extrch-links.css :root
+    $default_button_hover_bg_color   = '#53940b'; // Matches extrch-links.css :root
+    $default_button_hover_text_color = '#ffffff'; // Matches extrch-links.css :root
+    $default_muted_text_color        = '#aaa';    // Matches extrch-links.css :root
+    $default_overlay_color           = 'rgba(0, 0, 0, 0.5)'; // Renamed for clarity, matches CSS var --link-page-overlay-color
 
-    $default_font_family_value = 'WilcoLoftSans'; // Default font identifier
+    // Default font identifiers and sizes
+    $default_title_font_family = 'WilcoLoftSans'; 
+    $default_title_font_size   = '2.1em'; // Matches extrch-links.css :root
+    $default_body_font_family  = 'Helvetica'; 
+    $default_body_font_size    = '1em';   
+
+    // Default Profile Image settings
+    $default_profile_img_size        = '30%'; 
+    $default_profile_img_shape       = 'circle'; 
+    $default_profile_img_aspect_ratio = '1/1'; 
+    $default_profile_img_border_radius= '50%';
+
+    // Default Button settings
+    $default_button_radius = '8px';
 
     return array(
-        // Page specific styles
-        '--link-page-background-color'    => $default_page_bg_color, // For solid background type
-        '--link-page-text-color'          => $default_page_text_color,   // General page text
+        // Background & Page Styles
+        '--link-page-bg-color'                      => $default_page_bg_color,
+        '--link-page-background-type'               => 'color', 
+        '--link-page-background-gradient-start'       => $default_button_bg_color, 
+        '--link-page-background-gradient-end'         => $default_button_hover_bg_color, 
+        '--link-page-background-gradient-direction'   => 'to right',
+        '--link-page-card-bg-color'                 => $default_card_bg_color,
+        
+        // Text & Overlay Styles
+        '--link-page-text-color'                    => $default_page_text_color,
+        '--link-page-muted-text-color'              => $default_muted_text_color,
+        '--link-page-overlay-color'                 => $default_overlay_color, 
+        'overlay'                                   => '1', 
 
-        // Button specific styles
-        '--link-page-button-color'        => $default_button_bg_color,   // Button background
-        '--link-page-link-text-color'     => $default_button_text_color, // Text on buttons
-        '--link-page-hover-color'         => $default_button_hover_bg,   // Button hover background
+        // Button & Link Styles
+        '--link-page-button-bg-color'               => $default_button_bg_color,
+        '--link-page-link-text-color'               => $default_link_text_color, 
+        '--link-page-button-hover-bg-color'         => $default_button_hover_bg_color,
+        '--link-page-button-hover-text-color'       => $default_button_hover_text_color,
+        '--link-page-button-radius'                 => $default_button_radius,
+        '--link-page-button-border-width'           => '0px', 
+        '--link-page-button-border-color'           => $default_button_border_color, 
 
-        // Other non-color defaults
-        '--link-page-profile-img-radius'  => '12px', // Default to rectangle
-        '--link-page-title-font-family'   => $default_font_family_value,
-        // Font size will default via CSS or JS if not set here
+        // Font Styles
+        '--link-page-title-font-family'             => $default_title_font_family,
+        '--link-page-title-font-size'               => $default_title_font_size,
+        '--link-page-body-font-family'              => $default_body_font_family,
+        '--link-page-body-font-size'                => $default_body_font_size,
+
+        // Profile Image Styles
+        '--link-page-profile-img-size'              => $default_profile_img_size,
+        '--link-page-profile-img-border-radius'     => $default_profile_img_border_radius,
+        '--link-page-profile-img-aspect-ratio'      => $default_profile_img_aspect_ratio,
+        '_link_page_profile_img_shape'              => $default_profile_img_shape, 
     );
 }
 

@@ -55,14 +55,14 @@ function bp_render_band_members_meta_box( $post ) {
     // Add nonce field for the AJAX search functionality
     wp_nonce_field( 'bp_member_search_nonce', 'bp_member_search_security', false ); // Add nonce field directly here for JS access
 
-    echo '<h4>' . __( 'Add Member (Artist):', 'generatepress_child' ) . '</h4>';
+    echo '<h4>' . __( 'Add Member:', 'generatepress_child' ) . '</h4>';
     echo '<p>';
-    echo '<label for="bp-search-artist">' . __( 'Search Artist:', 'generatepress_child' ) . '</label>';
+    echo '<label for="bp-search-user">' . __( 'Search User:', 'generatepress_child' ) . '</label>';
     // We'll need an input field and potentially AJAX for user search
-    echo '<input type="text" id="bp-search-artist" name="bp_search_artist" placeholder="' . __( 'Username or Email', 'generatepress_child' ) . '" style="width: 100%;">';
-    echo '<div id="bp-artist-search-results"></div>'; // Results container
-    echo '<input type="hidden" name="bp_add_user_id" id="bp-add-user-id">'; // Hidden field to store selected user ID
-    echo '<button type="button" id="bp-add-member-button" class="button">' . __( 'Add Selected Artist', 'generatepress_child' ) . '</button>'; // Add button - needs JS
+    echo '<input type="text" id="bp-search-user" name="bp_search_user" placeholder="' . __( 'Username or Email', 'generatepress_child' ) . '" style="width: 100%;">';
+    echo '<div id="bp-user-search-results"></div>';
+    echo '<input type="hidden" name="bp_add_user_id" id="bp-add-user-id">';
+    echo '<button type="button" id="bp-add-member-button" class="button">' . __( 'Add Selected Member', 'generatepress_child' ) . '</button>';
     echo '</p>';
 
     // Hidden fields populated by JS for saving
@@ -307,62 +307,28 @@ function bp_ajax_search_artists() {
     $linked_member_objects = bp_get_linked_members( $band_profile_id );
     $linked_member_ids = wp_list_pluck( $linked_member_objects, 'ID' );
 
-    $args = array(
+    $user_query_args = array(
         'search'         => '*' . esc_attr( $search_term ) . '*',
         'search_columns' => array( 'user_login', 'user_email', 'display_name' ),
-        'exclude'        => $linked_member_ids, // Exclude already linked members
-        'number'         => 10, // Limit results
-        'fields'         => array('ID', 'display_name', 'user_login'), // Fields to return
+        'fields'         => array( 'ID', 'display_name', 'user_email', 'user_login' ),
         'meta_query'     => array(
-            'relation' => 'OR', // User must be an artist OR an administrator
+            'relation' => 'OR',
             array(
-                'key'     => 'user_is_artist', // Your meta key for artists
-                'value'   => '1', // Assuming '1' or true indicates an artist
+                'key'     => 'user_is_artist',
+                'value'   => '1',
                 'compare' => '=',
             ),
             array(
-                 // Check if the user has the administrator role (WordPress handles this internally)
-                 // Note: WP_User_Query doesn't directly query by role combined with meta query easily in 'OR'.
-                 // A simpler approach might be two queries or filtering after.
-                 // Let's stick to the meta key for now and refine if needed.
-                 // If admins *also* have user_is_artist meta, this works.
-                 // If not, we might need a second query or post-processing.
-                 // For now, assuming admins might need linking but focusing on 'user_is_artist'.
-                 // Let's refine this query logic based on how admins are identified if needed.
-                 // --- TEMPORARILY REMOVING ROLE CHECK FOR SIMPLICITY ---
-                 // Consider adding Admins back if they don't have the meta key
+                'key'     => 'user_is_professional',
+                'value'   => '1',
+                'compare' => '=',
             ),
         ),
     );
 
-     // If the goal is specifically user_is_artist OR Administrator role:
-     $artist_args = array(
-        'search'         => '*' . esc_attr( $search_term ) . '*',
-        'search_columns' => array( 'user_login', 'user_email', 'display_name' ),
-        'exclude'        => $linked_member_ids,
-        'number'         => 10,
-        'fields'         => array('ID', 'display_name', 'user_login'),
-        'meta_query'     => array(
-             array(
-                 'key'     => 'user_is_artist',
-                 'value'   => '1', // Adjust if your value is different
-                 'compare' => '=',
-             )
-         )
-    );
-    $admin_args = array(
-        'search'         => '*' . esc_attr( $search_term ) . '*',
-        'search_columns' => array( 'user_login', 'user_email', 'display_name' ),
-        'exclude'        => $linked_member_ids,
-        'number'         => 10,
-        'fields'         => array('ID', 'display_name', 'user_login'),
-        'role'           => 'Administrator', // Query by role directly
-    );
+    $user_query = new WP_User_Query( $user_query_args );
 
-    $artist_query = new WP_User_Query( $artist_args );
-    $admin_query = new WP_User_Query( $admin_args );
-
-    $results = array_merge( $artist_query->get_results(), $admin_query->get_results() );
+    $results = $user_query->get_results();
 
     // Remove duplicates if an admin is also an artist
     $unique_results = array();

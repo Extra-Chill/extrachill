@@ -1,6 +1,8 @@
 <?php
 /**
- * LivePreviewManager: Centralized data prep for link page live preview.
+ * LivePreviewManager: Always uses the provided link_page_custom_css_vars_json (JSON blob)
+ * as the canonical source for all customization state during preview. No merging or
+ * rehydration with server-side defaults except on full page reload.
  *
  * Usage: $preview_data = LivePreviewManager::get_preview_data($link_page_id, $band_id, $overrides);
  */
@@ -92,20 +94,26 @@ class LivePreviewManager {
         // Customization meta
         $data['custom_css_vars_json'] = $get_val('custom_css_vars_json', null, '_link_page_custom_css_vars');
 
-        // Profile image shape
-        // Ensure 'rectangle' (old value) defaults to 'square'
-        $profile_img_shape_meta_key = '_link_page_profile_img_shape';
-        $current_shape = $get_val('profile_img_shape', 'square', $profile_img_shape_meta_key);
-        if ($current_shape === 'rectangle') {
-            $current_shape = 'square'; // Convert old value
+        // Profile image shape: Use JSON blob as canonical source
+        $css_vars_for_shape = array();
+        if (!empty($data['custom_css_vars_json'])) {
+            $css_vars_for_shape = json_decode($data['custom_css_vars_json'], true);
         }
-        $data['profile_img_shape'] = $current_shape;
+        if (is_array($css_vars_for_shape) && isset($css_vars_for_shape['_link_page_profile_img_shape'])) {
+            $data['profile_img_shape'] = $css_vars_for_shape['_link_page_profile_img_shape'];
+        } else {
+            $data['profile_img_shape'] = 'circle';
+        }
 
         // --- CSS Vars Normalization ---
         $css_vars = array();
         $overlay_val = null;
-        if ( !empty($data['custom_css_vars_json']) ) {
-            $decoded_json = json_decode($data['custom_css_vars_json'], true);
+
+        // PRIORITIZE override from AJAX POST data
+        $current_css_vars_json = isset($overrides['link_page_custom_css_vars_json']) && !empty($overrides['link_page_custom_css_vars_json']) ? $overrides['link_page_custom_css_vars_json'] : $data['custom_css_vars_json'];
+
+        if ( !empty($current_css_vars_json) ) {
+            $decoded_json = json_decode($current_css_vars_json, true);
             if (is_array($decoded_json)) {
                 $css_vars = $decoded_json;
                 if (isset($decoded_json['overlay'])) {
@@ -113,12 +121,10 @@ class LivePreviewManager {
                 }
             }
         } else {
-            // If no saved CSS vars, load defaults from our centralized function.
-            // extrch_get_default_link_page_styles() now returns only non-color-scheme-dependent defaults.
+            // Only use defaults if no custom_css_vars_json is provided (first load)
             if (function_exists('extrch_get_default_link_page_styles')) {
                 $css_vars = extrch_get_default_link_page_styles();
             } else {
-                // Minimal fallback if the function isn't available for some reason.
                 $css_vars = array(
                     '--link-page-profile-img-radius' => '12px',
                     '--link-page-title-font-family' => 'WilcoLoftSans',
@@ -159,13 +165,51 @@ class LivePreviewManager {
             }
             $css_vars['--link-page-title-font-family'] = $final_font_stack;
         }
+
+        // Ensure body font stack is correctly derived
+        if (isset($css_vars['--link-page-body-font-family'])) {
+            if (!isset($extrch_link_page_fonts)) { // Ensure font config is loaded if not already
+                require_once dirname(__DIR__, 2) . '/config/link-page-font-config.php';
+                global $extrch_link_page_fonts;
+            }
+            $default_body_font_value = 'Helvetica'; // Default if lookup fails
+            $default_body_font_stack = "'Helvetica', Arial, sans-serif";
+
+            $current_body_font_setting = $css_vars['--link-page-body-font-family'];
+            $final_body_font_stack = $default_body_font_stack;
+            $body_font_config_found = false;
+
+            if (is_array($extrch_link_page_fonts)) {
+                foreach ($extrch_link_page_fonts as $font) {
+                    if ($font['value'] === $current_body_font_setting || $font['stack'] === $current_body_font_setting) {
+                        $final_body_font_stack = $font['stack'];
+                        $body_font_config_found = true;
+                        break;
+                    }
+                }
+            }
+
+            if (!$body_font_config_found && strpos($current_body_font_setting, ',') === false && strpos($current_body_font_setting, "'") === false && strpos($current_body_font_setting, '"') === false) {
+                // If it's a simple word (identifier) and not found, prepend it to the default stack
+                $final_body_font_stack = "'" . $current_body_font_setting . "', " . $default_body_font_stack;
+            } elseif (!$body_font_config_found) {
+                // If it looks like a stack already or some other complex value, use it or fall back
+                $final_body_font_stack = $current_body_font_setting ?: $default_body_font_stack;
+            }
+            $css_vars['--link-page-body-font-family'] = $final_body_font_stack;
+        }
+
         // Removed hardcoded color fallbacks. If colors are not in $css_vars (i.e., not user-customized),
         // they should not be added here, allowing theme CSS to control them.
         // The $css_vars array will now only contain user-defined values or structural defaults like font-family and radius.
         $data['css_vars'] = $css_vars;
+        // Extract background keys from $css_vars with defaults to prevent PHP warnings
+        $data['background_type'] = isset($css_vars['--link-page-background-type']) ? $css_vars['--link-page-background-type'] : 'color';
+        $data['background_color'] = isset($css_vars['--link-page-background-color']) ? $css_vars['--link-page-background-color'] : '#1a1a1a';
+        $data['background_gradient_start'] = isset($css_vars['--link-page-background-gradient-start']) ? $css_vars['--link-page-background-gradient-start'] : '#0b5394';
+        $data['background_gradient_end'] = isset($css_vars['--link-page-background-gradient-end']) ? $css_vars['--link-page-background-gradient-end'] : '#53940b';
+        $data['background_gradient_direction'] = isset($css_vars['--link-page-background-gradient-direction']) ? $css_vars['--link-page-background-gradient-direction'] : 'to right';
         // Background data
-        $data['background_type'] = $get_val('link_page_background_type', 'color', '_link_page_background_type');
-        $data['background_color'] = $get_val('link_page_background_color', '#1a1a1a', '_link_page_background_color');
         if (isset($overrides['background_image_url']) && $data['background_type'] === 'image') {
             $data['background_image_url'] = $overrides['background_image_url'];
             $data['background_image_id'] = 'temp_preview_image';
@@ -174,11 +218,6 @@ class LivePreviewManager {
             $data['background_image_id'] = $bg_image_id;
             $data['background_image_url'] = $bg_image_id ? wp_get_attachment_image_url($bg_image_id, 'large') : '';
         }
-        // Align with keys saved by form-handler.php
-        $data['background_gradient_start'] = $get_val('background_gradient_start_color', '#0b5394', '_link_page_background_gradient_start_color');
-        $data['background_gradient_end'] = $get_val('background_gradient_end_color', '#53940b', '_link_page_background_gradient_end_color');
-        $data['background_gradient_direction'] = $get_val('background_gradient_direction', 'to right', '_link_page_background_gradient_direction'); // This key was already correct in form handler if it used 'link_page_background_gradient_direction'
-
         if ($data['background_type'] === 'image' && !empty($data['background_image_url'])) {
             $data['background_style'] = 'background-image: url(' . esc_url($data['background_image_url']) . '); background-size: cover; background-position: center; background-repeat: no-repeat;';
         } elseif ($data['background_type'] === 'gradient') {

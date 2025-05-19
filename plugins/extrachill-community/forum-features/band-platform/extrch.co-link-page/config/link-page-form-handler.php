@@ -159,53 +159,26 @@ function extrch_handle_save_link_page_data() {
 
     // --- Save customization meta for link page ---
     if (isset($_POST['link_page_custom_css_vars_json'])) {
-        $css_vars_json = sanitize_text_field(wp_unslash($_POST['link_page_custom_css_vars_json']));
-        update_post_meta($link_page_id, '_link_page_custom_css_vars', $css_vars_json);
-        // Also update overlay meta for backward compatibility
-        $css_vars_arr = json_decode($css_vars_json, true);
-        if (is_array($css_vars_arr) && isset($css_vars_arr['overlay'])) {
-            update_post_meta($link_page_id, '_link_page_overlay_toggle', $css_vars_arr['overlay'] === '1' ? '1' : '0');
+        $css_vars_json_string = wp_unslash($_POST['link_page_custom_css_vars_json']);
+        // Attempt to decode to ensure it's valid JSON. If not, don't save it or save an empty JSON object.
+        $decoded_vars = json_decode($css_vars_json_string, true);
+        
+        if (json_last_error() === JSON_ERROR_NONE && is_array($decoded_vars)) {
+            // Optionally, you could iterate here and sanitize individual known keys if necessary.
+            // For now, we'll save the validated (because it decoded) and unslashed JSON string.
+            update_post_meta($link_page_id, '_link_page_custom_css_vars', $css_vars_json_string); 
+
+            // Also update overlay meta for backward compatibility or direct access
+            if (isset($decoded_vars['overlay'])) {
+                update_post_meta($link_page_id, '_link_page_overlay_toggle', $decoded_vars['overlay'] === '1' ? '1' : '0');
+            }
+        } else {
+            // Handle invalid JSON - e.g., log an error, or save an empty JSON object as a default state.
+            // For now, we'll not update if JSON is invalid to prevent saving corrupted data.
+            // error_log('Invalid JSON received for link_page_custom_css_vars_json: ' . json_last_error_msg());
+            // update_post_meta($link_page_id, '_link_page_custom_css_vars', '{}'); // Optionally save empty JSON
         }
     }
-    // These individual color fields might be deprecated if fully handled by link_page_custom_css_vars_json
-    // For now, we keep them for backward compatibility or specific use cases.
-    if (isset($_POST['link_page_button_color'])) {
-        update_post_meta($link_page_id, '_link_page_button_color', sanitize_hex_color($_POST['link_page_button_color']));
-    }
-    if (isset($_POST['link_page_background_color'])) {
-        update_post_meta($link_page_id, '_link_page_background_color', sanitize_hex_color($_POST['link_page_background_color']));
-    }
-    if (isset($_POST['link_page_text_color'])) {
-        update_post_meta($link_page_id, '_link_page_text_color', sanitize_hex_color($_POST['link_page_text_color']));
-    }
-    if (isset($_POST['link_page_link_text_color'])) {
-        update_post_meta($link_page_id, '_link_page_link_text_color', sanitize_hex_color($_POST['link_page_link_text_color']));
-    }
-    if (isset($_POST['link_page_hover_color'])) {
-        update_post_meta($link_page_id, '_link_page_hover_color', sanitize_hex_color($_POST['link_page_hover_color']));
-    }
-    // End of potentially deprecated individual color fields
-
-    if (isset($_POST['link_page_profile_img_size'])) {
-        update_post_meta($link_page_id, '_link_page_profile_img_size', absint($_POST['link_page_profile_img_size']));
-    }
-    if (isset($_POST['link_page_profile_img_shape'])) {
-        $shape = sanitize_text_field($_POST['link_page_profile_img_shape']) === 'circle' ? 'circle' : 'rectangle';
-        update_post_meta($link_page_id, '_link_page_profile_img_shape', $shape);
-    }
-    if (isset($_POST['link_page_background_type'])) {
-        update_post_meta($link_page_id, '_link_page_background_type', sanitize_text_field($_POST['link_page_background_type']));
-    }
-     if (isset($_POST['link_page_background_gradient_start'])) {
-        update_post_meta($link_page_id, '_link_page_background_gradient_start', sanitize_hex_color($_POST['link_page_background_gradient_start']));
-    }
-    if (isset($_POST['link_page_background_gradient_end'])) {
-        update_post_meta($link_page_id, '_link_page_background_gradient_end', sanitize_hex_color($_POST['link_page_background_gradient_end']));
-    }
-    if (isset($_POST['link_page_background_gradient_direction'])) {
-        update_post_meta($link_page_id, '_link_page_background_gradient_direction', sanitize_text_field($_POST['link_page_background_gradient_direction']));
-    }
-
 
     // --- Handle File Uploads ---
     // Background Image for Link Page

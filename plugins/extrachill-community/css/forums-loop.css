@@ -253,3 +253,22 @@
 #bbpress-forums .bbp-forums-list .bbp-forum{
     font-size: .9rem;
 }
+
+.bbp-forum-last-active-time {
+    margin: 0;
+}
+
+#bbpress-forums p.bbp-topic-meta img.avatar{
+    border:none;
+    height: 20px;
+    width: 20px;
+}
+.bbp-forum-band-directory{
+    border: 1px solid var(--accent-2);
+    /* Subtle glow using the accent-2 color. Adjust spread and opacity as needed. */
+    /* Parameters: offset-x | offset-y | blur-radius | spread-radius | color */
+    box-shadow: 0 0 8px 0px rgba(var(--accent-2-rgb), 0.4); /* Softer, less spread */
+    /* Add a slight margin if cards are very close, so shadows don't overlap harshly */
+    /* For example, if cards are in a grid, you might add margin to all sides */
+    /* margin: 2px; */ 
+}

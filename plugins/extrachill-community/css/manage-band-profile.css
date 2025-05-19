@@ -1,0 +1,675 @@
+/* Styles for Manage Band Profile Page Tabs */
+
+/* Basic structure - similar to manage-link-page but simpler */
+.manage-band-profile-flex {
+  display: flex;
+  flex-direction: column; /* Stack tabs above content on mobile, or side-by-side on desktop */
+  gap: 1.5em;
+  margin: 2em auto;
+}
+
+/* Old tab structural CSS removed - handled by shared-tabs.css */
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Content Card Styling (similar to .link-page-content-card) */
+/* These apply within .shared-tab-pane now */
+.shared-tab-pane .band-profile-content-card, /* Adjusted selector */
+.band-profile-content-card /* Keep for backward compatibility or other instances */ {
+    background-color: var(--card-background); 
+    border: 1px solid var(--border-color); 
+    border-radius: 8px;
+    padding: 1.2em 1.5em;
+    margin-bottom: 1.5em;
+    /* box-shadow: 0 1px 3px rgba(0,0,0,0.04); var(--card-shadow); */
+    overflow: hidden;
+}
+
+.shared-tab-pane .band-profile-content-card:last-child, /* Adjusted selector */
+.band-profile-content-card:last-child {
+    margin-bottom: 0.5em;
+}
+
+.shared-tab-pane .band-profile-content-card h2, /* Adjusted selector */
+.band-profile-content-card h2 {
+    margin-top: 0;
+    margin-bottom: 1em;
+    font-size: 1.4em;
+    color: var(--text-color); 
+    border-bottom: 1px solid var(--border-color); 
+    padding-bottom: 0.6em;
+}
+
+/* Form group styling - applies within .shared-tab-pane .band-profile-content-card */
+.shared-tab-pane .form-group, /* Adjusted selector */
+.form-group {
+    margin-bottom: 1.5em;
+}
+
+.shared-tab-pane .form-group label, /* Adjusted selector */
+.form-group label {
+    display: block;
+    margin-bottom: .5em;
+    font-weight: bold;
+}
+
+.shared-tab-pane .form-group input[type="text"],
+.shared-tab-pane .form-group input[type="file"],
+.shared-tab-pane .form-group textarea, /* Adjusted selectors */
+.form-group input[type="text"],
+.form-group input[type="file"],
+.form-group textarea {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    box-sizing: border-box;
+}
+
+.shared-tab-pane .form-group textarea, /* Adjusted selector */
+.form-group textarea {
+    min-height: 120px;
+    resize: vertical;
+}
+
+.shared-tab-pane .form-group .description, /* Adjusted selector */
+.form-group .description {
+    font-size: 0.9em;
+    color: var(--muted-text);
+    margin-top: .5em;
+}
+
+.shared-tab-pane .current-image-preview img, /* Adjusted selector */
+.current-image-preview img {
+    max-width: 150px;
+    height: auto;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    margin-bottom: 0.5em;
+}
+
+/* Styles for Band Header Image Preview in Manage Form - applies within .shared-tab-pane */
+.shared-tab-pane .band-header-image-preview, /* Adjusted selector */
+.band-header-image-preview {
+    width: 100%; 
+    max-width: 400px; 
+    aspect-ratio: 16 / 9;
+    background-color: var(--card-background); 
+    border: 1px dashed var(--border-color);
+    border-radius: 4px;
+    margin-bottom: 0.75em;
+    display: flex; 
+    align-items: center;
+    justify-content: center;
+    overflow: hidden; 
+}
+
+.shared-tab-pane .band-header-image-preview img#band-header-image-preview-img, /* Adjusted selector */
+.band-header-image-preview img#band-header-image-preview-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover; 
+    border-radius: 0; 
+    border: none; 
+    margin-bottom: 0; 
+    max-width: none; 
+}
+
+.shared-tab-pane .band-header-image-preview p.no-image-notice, /* Adjusted selector */
+.band-header-image-preview p.no-image-notice {
+    color: var(--muted-text);
+    font-style: italic;
+    margin: 0; 
+}
+
+/* Styles for Featured Image (Profile Picture) Preview in Manage Form - applies within .shared-tab-pane */
+.shared-tab-pane .featured-image-preview, /* Adjusted selector */
+.featured-image-preview {
+    width: 100%;
+    max-width: 150px; 
+    aspect-ratio: 1 / 1;
+    background-color: var(--card-background);
+    border: 1px dashed var(--border-color);
+    border-radius: 8px; 
+    margin-bottom: 0.75em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.shared-tab-pane .featured-image-preview img#featured-image-preview-img, /* Adjusted selector */
+.featured-image-preview img#featured-image-preview-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 0; 
+    border: none;
+    margin-bottom: 0;
+    max-width: none;
+}
+
+.shared-tab-pane .featured-image-preview p.no-image-notice, /* Adjusted selector */
+.featured-image-preview p.no-image-notice {
+    color: var(--muted-text);
+    font-style: italic;
+    margin: 0;
+    text-align: center;
+}
+
+/* Social Icons specific adjustments within the card - applies within .shared-tab-pane .band-profile-content-card */
+.shared-tab-pane .band-profile-content-card #bp-social-icons-section .bp-social-row, /* Adjusted selector */
+.band-profile-content-card #bp-social-icons-section .bp-social-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 0;
+    border: none;
+    margin-bottom: 10px;
+}
+
+.shared-tab-pane .band-profile-content-card #bp-social-icons-section .bp-social-type-icon, /* Adjusted selector */
+.band-profile-content-card #bp-social-icons-section .bp-social-type-icon {
+    flex-shrink: 0;
+}
+
+.shared-tab-pane .band-profile-content-card #bp-social-icons-section .bp-social-type-select, /* Adjusted selector */
+.band-profile-content-card #bp-social-icons-section .bp-social-type-select {
+    flex: 1 1 150px;
+    min-width: 120px;
+    background-color: var(--background-color);
+}
+
+.shared-tab-pane .band-profile-content-card #bp-social-icons-section .bp-social-url-input, /* Adjusted selector */
+.band-profile-content-card #bp-social-icons-section .bp-social-url-input {
+    flex: 2 1 200px;
+    min-width: 150px;
+    background-color: var(--background-color);
+}
+
+.shared-tab-pane .band-profile-content-card #bp-social-icons-section .bp-social-actions, /* Adjusted selector */
+.band-profile-content-card #bp-social-icons-section .bp-social-actions {
+    flex-shrink: 0;
+}
+
+.shared-tab-pane .band-profile-content-card #bp-add-social-icon-btn, /* Adjusted selector */
+.band-profile-content-card #bp-add-social-icon-btn {
+    margin-top: 1em;
+}
+
+
+/* Roster specific - if bp_display_manage_members_section outputs its own distinct structure, style it here */
+/* Example: applies within .shared-tab-pane */
+.shared-tab-pane .band-members-management-area, /* Adjusted selector */
+.band-members-management-area {
+    /* Styles for the roster area if needed */
+}
+
+.shared-tab-pane .band-members-management-area h3, /* Adjusted selector */
+.band-members-management-area h3 {
+    font-size: 1.2em;
+    margin-top: 0.5em;
+    margin-bottom: 0.8em;
+}
+
+/* Old desktop tab CSS removed - handled by shared-tabs.css */
+
+/* Link Page Management Button Container */
+.link-page-manage-button-container {
+    margin-top: 1em; 
+    padding: 1em; 
+    background-color: var(--background-color); 
+    border: 1px solid var(--border-color);   
+    border-radius: 6px; 
+}
+
+.link-page-manage-button-container .button-primary {
+    /* Add any specific styling if defaults aren't enough */
+}
+
+/* Submit group */
+.submit-group {
+    margin-top: 2em;
+    padding-top: 1.5em;
+    border-top: 1px solid var(--border-color);
+} 
+
+.entry-content:not(:first-child), .entry-summary:not(:first-child), .page-content:not(:first-child){
+    margin-top: 0 !important;
+}
+.entry-header{
+    margin: 0 !important;
+}
+
+.form-group input[type="text"], .form-group input[type="email"], .form-group input[type="url"], .form-group input[type="password"], .form-group input[type="search"], .form-group input[type="tel"], .form-group input[type="number"], .form-group textarea, .form-group select{
+    background-color: var(--background-color);
+}
+.form-group input[type="text"]:focus, input[type="email"]:focus, input[type="url"]:focus, input[type="password"]:focus, input[type="search"]:focus, input[type="tel"]:focus, input[type="number"]:focus, textarea:focus, select:focus {
+
+    background-color: var(--background-color) !important;
+}
+
+/* === Appended Roster Management Styles === */
+
+#bp-manage-members-section h4 {
+    margin-bottom: 0.5em;
+}
+
+ul.bp-members-list {
+    list-style: none;
+    margin: 0 0 1em 0;
+    padding: 0;
+}
+
+ul.bp-members-list li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border-color, #eee);
+}
+
+ul.bp-members-list li:last-child {
+    border-bottom: none;
+}
+
+ul.bp-members-list li.no-members {
+    font-style: italic;
+    color: var(--muted-text, #777);
+}
+
+ul.bp-members-list li img.avatar {
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+ul.bp-members-list li span.member-name {
+    flex-grow: 1;
+}
+
+ul.bp-members-list li button.bp-remove-member-button,
+ul.bp-members-list li button.bp-cancel-add-button {
+    padding: 2px 6px;
+    line-height: 1;
+    min-height: unset;
+    background-color: var(--button-secondary-bg, #f0f0f0);
+    color: var(--button-secondary-text, #555);
+    border: 1px solid var(--border-color, #ccc);
+    border-radius: 3px;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+ul.bp-members-list li button.bp-remove-member-button:hover,
+ul.bp-members-list li button.bp-cancel-add-button:hover {
+    background-color: var(--accent-hover, #e04040);
+    color: #fff;
+    border-color: var(--accent-hover, #e04040);
+}
+
+/* Style for members marked for removal */
+ul.bp-members-list li.marked-for-removal {
+    opacity: 0.5;
+    text-decoration: line-through;
+}
+
+/* Search Results Styling */
+.bp-search-results {
+    margin-top: 5px;
+    border: 1px solid var(--border-color, #ccc);
+    max-height: 200px;
+    overflow-y: auto;
+    background-color: #fff; /* Will be overridden by dark mode if applicable */
+    position: relative; 
+    z-index: 10; 
+}
+
+.bp-search-results ul.bp-search-results-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.bp-search-results li {
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--separator-color, #eee);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+}
+
+.bp-search-results li:last-child {
+    border-bottom: none;
+}
+
+.bp-search-results button.bp-select-artist-button {
+     flex-shrink: 0;
+}
+
+.bp-search-results p {
+    padding: 8px 12px;
+    margin: 0;
+    color: var(--muted-text, #777);
+}
+
+/* Pending Add List */
+#bp-pending-add-list {
+    margin-top: 1em;
+}
+#bp-pending-add-list p strong {
+    display: block;
+    margin-bottom: 0.5em;
+}
+ul.bp-pending-list li {
+     background-color: #f9fff0; /* Slight highlight for pending adds */
+}
+
+/* Form Group Adjustments if needed */
+#bp-manage-members-section .form-group {
+    margin-bottom: 1em;
+}
+
+/* Hide nonce field visually */
+input[name="bp_member_search_security_frontend"] {
+    display: none;
+}
+
+@media (max-width: 768px) {
+    .band-profile-content-card a.button{
+        font-size: 14px;
+    }
+}
+
+/* Dark Mode specific styles for AJAX search results */
+@media (prefers-color-scheme: dark) {
+    .bp-search-results {
+        background-color: var(--card-background, #2a2a2a); 
+        border-color: var(--border-color, #555); 
+    }
+
+    .bp-search-results ul.bp-search-results-list li {
+        border-bottom-color: var(--border-color, #444); 
+        color: var(--text-color, #e5e5e5); 
+    }
+
+    .bp-search-results ul.bp-search-results-list li:hover {
+        background-color: var(--button-hover-bg, #083b6c); 
+        color: #fff; 
+    }
+
+    /* .bp-search-results button.bp-select-artist-button is expected to inherit button styles */
+
+    .bp-search-results p {
+        color: var(--muted-text, #b0b0b0); 
+    }
+}
+
+.bp-add-member-form {
+    padding: 15px;
+    border: 1px solid var(--border-color, #ccc); 
+    background-color: var(--background-color, #f9f9f9); 
+    border-radius: 4px;
+    max-width: 450px;
+}
+
+.bp-add-member-form h4 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    font-size: 1.1em;
+}
+
+.bp-add-member-form .form-group {
+    margin-bottom: 15px;
+}
+
+.bp-add-member-form label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+
+.bp-add-member-form input[type="text"] { /* Note: was input[type=\\"text\\"] - corrected */
+    width: 100%;
+    max-width: 300px; 
+    padding: 8px;
+    border: 1px solid var(--gp-border-color-2, #bbb);
+    border-radius: 3px;
+    background-color: var(--gp-input-background-color, #fff);
+    color: var(--gp-input-text-color, #333);
+}
+
+.bp-add-member-form #bp-ajax-add-roster-member-button {
+    margin-right: 10px;
+}
+
+/* Styling for the member avatar placeholder in the roster */
+.member-avatar-placeholder {
+    display: inline-block;
+    width: 32px; 
+    height: 32px;
+    vertical-align: middle;
+    margin-right: 8px;
+}
+
+/* General styling for items in the unified roster for alignment */
+#bp-unified-roster-list li {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+    padding: 5px 0;
+    border-bottom: 1px solid var(--gp-border-color-1, #eee);
+}
+#bp-unified-roster-list li:last-child {
+    border-bottom: none;
+}
+
+#bp-unified-roster-list .member-name {
+    flex-grow: 1;
+    margin-right: 10px;
+}
+
+#bp-unified-roster-list .member-status-label {
+    font-size: 0.9em;
+    color: var(--gp-gray-text-color, #777);
+    margin-right: 10px;
+}
+
+#bp-unified-roster-list .member-actions a,
+#bp-unified-roster-list .member-actions button {
+    margin-left: 5px;
+    font-size: 0.9em;
+    text-decoration: none;
+}
+
+#bp-unified-roster-list .member-actions .bp-remove-member-button,
+#bp-unified-roster-list .member-actions .bp-ajax-remove-plaintext-member {
+    color: var(--gp-error-color, #d9534f); 
+}
+#bp-unified-roster-list .member-actions .bp-remove-member-button:hover,
+#bp-unified-roster-list .member-actions .bp-ajax-remove-plaintext-member:hover {
+    color: var(--gp-error-hover-color, #c9302c);
+}
+
+#bp-unified-roster-list .bp-member-linked .member-name {
+    font-weight: bold;
+}
+
+/* Basic Modal Styles */
+body.bp-modal-open::after { 
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.5); 
+    z-index: 1040;
+    display: block;
+}
+
+body.bp-modal-open {
+    overflow: hidden; 
+}
+
+#bp-invite-member-modal.bp-modal {
+    display: none; 
+    position: fixed;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1050;
+    background-color: var(--card-background); 
+    padding: 25px; 
+    border-radius: 8px; 
+    box-shadow: var(--card-shadow); 
+    min-width: 320px; 
+    max-width: 500px; 
+}
+
+#bp-invite-member-modal.bp-modal.bp-modal-active {
+    display: block; 
+}
+
+/* #bp-invite-member-modal .bp-modal-content {} */ /* No specific styles, can be removed */
+
+#bp-invite-member-modal .bp-modal-close {
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    font-size: 1.8em; 
+    font-weight: bold;
+    line-height: 1;
+    color: var(--text-color); 
+    text-shadow: 0 1px 0 var(--background-color); 
+    opacity: 0.6;
+    cursor: pointer;
+    background: none;
+    border: none;
+    padding: 0;
+}
+#bp-invite-member-modal .bp-modal-close:hover {
+    opacity: 1;
+    color: var(--link-color); 
+}
+
+#bp-invite-member-modal h3 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    color: var(--text-color);
+}
+
+#bp-invite-member-modal p {
+    margin-bottom: 15px;
+    font-size: 0.95em;
+    line-height: 1.5;
+    color: var(--muted-text);
+}
+
+#bp-invite-member-modal .form-group {
+    margin-bottom: 15px;
+}
+
+#bp-invite-member-modal label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+    color: var(--text-color);
+}
+
+#bp-invite-member-modal input[type="email"] {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background-color: var(--background-color);
+    color: var(--text-color);
+}
+
+#bp-invite-member-modal input[type="email"]:focus {
+    border-color: var(--focus-border-color); /* Ensure these vars are defined in root.css */
+    box-shadow: var(--focus-box-shadow);   /* Ensure these vars are defined in root.css */
+}
+
+#bp-invite-member-modal #bp-invite-modal-send-button {
+    padding: 10px 15px;
+    font-size: 1em;
+}
+
+/* Dark Mode Specifics for Modal if needed */
+@media (prefers-color-scheme: dark) {
+    /* #bp-invite-member-modal.bp-modal {} */ /* Most styling handled by vars */
+    /* #bp-invite-member-modal .bp-modal-close {} */
+}
+
+/*--------------------------------------------------------------
+# Notices / Feedback Messages
+--------------------------------------------------------------*/
+.bp-notice {
+    padding: 1em 1.5em;
+    margin-bottom: 1.5em;
+    margin-top: 15px !important; /* Increased specificity and value to ensure separation */
+    border-left-width: 4px;
+    border-left-style: solid;
+    border-radius: 4px;
+    background-color: var(--card-background); /* Default background */
+    box-sizing: border-box; /* Added for robustness */
+}
+
+.bp-notice p {
+    margin: 0.5em 0;
+}
+
+.bp-notice p:first-child {
+    margin-top: 0;
+}
+
+.bp-notice p:last-child {
+    margin-bottom: 0;
+}
+
+.bp-notice-success {
+    border-left-color: var(--accent, #53940b); /* Green accent for success */
+    /* background-color: lime !important; DEBUG: Force obvious background */
+    /* color: black !important; DEBUG: Ensure text is readable on lime background */
+}
+
+.bp-notice-error {
+    border-left-color: #dc3232; /* WordPress error red */
+    background-color: #fef2f2; /* Light red background */
+    color: var(--text-color); /* Ensure text is readable */
+}
+
+.bp-notice .button,
+.bp-notice a.button {
+    background-color: var(--button-bg, #0b5394);
+    color: var(--header-text, #fff); /* Assuming button text is light on dark bg */
+    padding: 0.5em 1em;
+    text-decoration: none;
+    border-radius: 3px;
+    font-size: 0.9em;
+    margin-right: 0.5em;
+    border: 1px solid transparent;
+    display: inline-block; /* Align buttons properly */
+    line-height: normal; /* Ensure consistent height */
+}
+
+.bp-notice .button:hover,
+.bp-notice a.button:hover {
+    background-color: var(--button-hover-bg, #083b6c);
+    color: var(--header-text, #fff);
+}
+
+.bp-notice .button-secondary,
+.bp-notice a.button-secondary {
+    background-color: var(--button-secondary-bg, #53940b);
+}
+
+.bp-notice .button-secondary:hover,
+.bp-notice a.button-secondary:hover {
+    background-color: var(--button-secondary-hover-bg, #3f7208); /* Darken secondary on hover */
+}

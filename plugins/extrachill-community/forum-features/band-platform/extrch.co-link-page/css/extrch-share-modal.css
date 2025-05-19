@@ -1,0 +1,296 @@
+/* extrch-share-modal.css */
+
+/* --- Base Share Trigger Styles --- */
+.extrch-share-trigger {
+    border: none;
+    background-color: transparent; /* All triggers transparent by default */
+    color: var(--link-page-text-color, #e5e5e5);
+    cursor: pointer;
+    padding: 0; /* Remove default padding, specific triggers will add their own */
+    font-size: 1em; /* Base size, can be overridden */
+    line-height: 1;
+    opacity: 0.7;
+    transition: opacity 0.2s ease-in-out, background-color 0.2s ease-in-out; /* Add background-color transition here too */
+    -webkit-appearance: none; /* Remove default button styling on iOS */
+    appearance: none; /* Remove default button styling */
+}
+
+.extrch-share-trigger:hover,
+.extrch-share-trigger:focus {
+    opacity: 1; /* Base hover/focus is just opacity, specifics below */
+}
+
+/* --- Page Share Trigger (Top Right of Header) --- */
+/* This is for the button that shares the entire page */
+.extrch-link-page-header-content {
+    position: relative; /* Context for positioning the page share trigger */
+    /* Other layout properties for header content are in extrch-links.css */
+}
+
+.extrch-share-page-trigger {
+    /* Specific styles for the page share button. It should also have .extrch-share-trigger class. */
+    position: absolute;
+    top: 0.25em; /* Small offset from the very top */
+    right: 0.25em; /* Small offset from the very right */
+    background-color: var(--link-page-card-bg-color); /* Overlay effect */
+    padding: 0.6em; /* Uniform padding for a circle */
+    border-radius: 50%;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    opacity: 0.85; /* Slightly more visible by default */
+    /* transition properties inherited from .extrch-share-trigger, plus background-color */
+    transition-property: opacity, background-color;
+}
+
+/* Specific hover for page trigger - ensuring high specificity */
+.extrch-link-page-container .extrch-share-page-trigger:hover,
+body .extrch-share-page-trigger:hover { /* Adding body prefix for more general override if needed */
+    background-color: rgba(0,0,0,0.55) !important; /* Darken, try !important for live page */
+    color: var(--link-page-text-color) !important; /* Ensure text color isn't lost */
+    opacity: 1 !important;
+}
+
+/* Specific active state for page trigger - ensuring high specificity */
+.extrch-link-page-container .extrch-share-page-trigger:active,
+body .extrch-share-page-trigger:active {
+    background-color: rgba(0,0,0,0.7) !important; /* Even darker, try !important for live page */
+    color: var(--link-page-text-color) !important;
+    transform: translateY(1px);
+    opacity: 1 !important;
+}
+
+.extrch-share-page-trigger i {
+    font-size: 0.9em;
+    display: block; /* Helps with precise centering if line-height issues */
+    line-height: 1;
+}
+
+/* --- Item Share Trigger (Inside Individual Links) --- */
+.extrch-link-page-link {
+    /* position: relative; already defined in extrch-links.css if needed */
+    /* display: flex; etc. are in extrch-links.css */
+}
+
+.extrch-share-item-trigger {
+    padding: 0.3em 0.6em;
+    font-size: 1em;
+    border-radius: 4px;
+    margin-left: 5px;
+    /* Ensure no unwanted button styles bleed through */
+    border: none; 
+    box-shadow: none;
+    text-decoration: none;
+    line-height: 1; /* from base .extrch-share-trigger is good */
+}
+
+/* Hover for item trigger: subtle background - specific for preview and general contexts */
+.manage-link-page-preview-live button.extrch-share-item-trigger:hover, /* Preview context */
+.extrch-link-page-container button.extrch-share-item-trigger:hover, /* General link page container */
+body button.extrch-share-item-trigger:hover { /* Fallback with body prefix */
+    color: var(--link-page-text-color) !important; /* Ensure text color consistency */
+    opacity: 1 !important;
+    box-shadow: none !important; /* Ensure no unwanted shadows appear on hover */
+    background-color:transparent !important;
+
+}
+
+/* Active for item trigger: slightly more pronounced - specific for preview and general contexts */
+.manage-link-page-preview-live button.extrch-share-item-trigger:active,
+.extrch-link-page-container button.extrch-share-item-trigger:active,
+body button.extrch-share-item-trigger:active {
+    color: var(--link-page-text-color) !important; /* Ensure text color consistency */
+    opacity: 1 !important;
+    transform: scale(0.95);
+    box-shadow: none !important; /* Ensure no unwanted shadows appear on active */
+    background-color:transparent !important;
+}
+/* Active for item trigger: slightly more pronounced - specific for preview and general contexts */
+.manage-link-page-preview-live button.extrch-share-item-trigger:focus,
+.extrch-link-page-container button.extrch-share-item-trigger:focus,
+body button.extrch-share-item-trigger:active {
+    color: var(--link-page-text-color) !important; /* Ensure text color consistency */
+    opacity: 1 !important;
+    transform: scale(0.95);
+    box-shadow: none !important; /* Ensure no unwanted shadows appear on active */
+    background-color:transparent !important;
+}
+
+.extrch-share-item-trigger i {
+    /* FontAwesome icons usually center well with line-height from parent */
+    /* If specific sizing needed, add here */
+    color: inherit; /* Ensure icon inherits the button's color */
+}
+
+/* (The empty button rule below was likely a placeholder or mistake, removing it) */
+/* button.extrch-share-trigger:hover, button.extrch-share-trigger:active{ 
+
+} */
+
+/* --- Share Modal Base --- */
+.extrch-share-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex; /* This is the default state when JS makes it visible */
+    align-items: center;
+    justify-content: center;
+    z-index: 10000; /* High z-index to be on top */
+    /* The inline style="display: none;" is controlled by JS */
+}
+
+.extrch-share-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: var(--link-page-overlay-color, rgba(0, 0, 0, 0.6)); /* Use theme variable */
+    z-index: 1000;
+    opacity: 0;
+    transition: opacity 0.3s ease-in-out;
+}
+
+.extrch-share-modal.active .extrch-share-modal-overlay {
+    opacity: 1;
+}
+
+.extrch-share-modal-content {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0.95);
+    background-color: var(--link-page-card-bg-color, #222); /* Use theme card background */
+    color: var(--link-page-text-color, #fff); /* Use theme text color */
+    padding: 25px;
+    border-radius: 16px; /* Rounded corners like Linktree */
+    z-index: 1001;
+    width: 90%;
+    max-width: 400px; /* Similar to Linktree width */
+    box-shadow: 0 5px 25px rgba(0,0,0,0.3);
+    text-align: center;
+    opacity: 0;
+    transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
+}
+
+.extrch-share-modal.active .extrch-share-modal-content {
+    opacity: 1; /* Make content visible when active */
+    transform: translate(-50%, -50%) scale(1);
+}
+
+.extrch-share-modal-close {
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    background: none;
+    border: none;
+    font-size: 2em;
+    color: var(--link-page-muted-text-color, #aaa); /* Use theme muted text color, or consider --link-page-text-color with lower opacity */
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
+}
+
+.extrch-share-modal-close:hover {
+    color: var(--link-page-text-color, #fff); /* Hover to main text color */
+}
+
+/* Modal Header */
+.extrch-share-modal-header {
+    margin-bottom: 20px;
+}
+
+.extrch-share-modal-profile-img {
+    width: 80px; /* Size like Linktree */
+    height: 80px;
+    border-radius: 50%; /* Circular image */
+    object-fit: cover;
+    margin: 0 auto 10px auto;
+    display: block;
+    border: 2px solid var(--link-page-button-bg-color, #fff); /* Optional border using button color */
+}
+
+.extrch-share-modal-main-title {
+    font-family: var(--link-page-title-font-family, 'WilcoLoftSans', sans-serif);
+    font-size: 1.6em;
+    font-weight: 700;
+    margin: 0 0 5px 0;
+    color: var(--link-page-text-color, #fff);
+}
+
+.extrch-share-modal-subtitle {
+    font-family: var(--link-page-body-font-family, 'Helvetica', sans-serif);
+    font-size: 0.95em;
+    color: var(--link-page-muted-text-color, #aaa);
+    margin: 0;
+    word-break: break-all;
+}
+
+/* Share Options Grid */
+.extrch-share-modal-options-grid {
+    display: flex;
+    flex-wrap: wrap; /* Allow wrapping if too many items */
+    justify-content: center; /* Center items */
+    gap: 15px; /* Space between items */
+    margin-bottom: 25px;
+}
+
+.extrch-share-option-button {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: none;
+    border: none;
+    padding: 0;
+    color: var(--link-page-text-color, #fff);
+    font-family: var(--link-page-body-font-family, 'Helvetica', sans-serif);
+    cursor: pointer;
+    text-decoration: none; /* For <a> tags */
+    width: 70px; /* Width for each item */
+}
+
+.extrch-share-option-icon {
+    width: 50px; /* Circular icon size */
+    height: 50px;
+    border-radius: 50%;
+    background-color: var(--link-page-card-bg-color, #333); /* Darker circle background */
+    border: 1px solid var(--link-page-button-border-color, #444); /* Subtle border */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 8px;
+    font-size: 1.5em; /* Icon size */
+    transition: background-color 0.2s, border-color 0.2s;
+}
+
+.extrch-share-option-button:hover .extrch-share-option-icon {
+    background-color: var(--link-page-button-bg-color, #007bff); /* Use button color for hover */
+    border-color: var(--link-page-button-hover-bg-color, #0056b3);
+}
+
+.extrch-share-option-label {
+    font-size: 0.8em;
+    color: var(--link-page-muted-text-color, #ccc);
+    text-align: center;
+}
+
+/* Specific styles for Copy Link feedback */
+.extrch-share-option-copy-link .fa-check {
+    color: var(--link-page-button-hover-bg-color); /* Green check, using hover color variable */
+}
+
+/* Responsive adjustments */
+@media (max-width: 480px) {
+    .extrch-share-modal-content {
+        padding: 15px;
+        min-width: calc(100% - 30px);
+    }
+    .extrch-share-modal-title {
+        font-size: 1.2em;
+    }
+    .extrch-share-modal-options button,
+    .extrch-share-modal-options a {
+        padding: 8px 12px;
+        font-size: 0.9em;
+    }
+} 

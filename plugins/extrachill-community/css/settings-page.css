@@ -1,0 +1,172 @@
+/**
+ * CSS for the User Settings Page (page-templates/settings-page.php)
+ * Aims to match the tab styling of manage-band-profile.css
+ */
+
+/* Add styles here as the settings page is refactored */
+
+.account-settings-page h1 {
+    margin-bottom: 20px;
+}
+
+/* Old tab structural CSS removed - handled by shared-tabs.css */
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Form specific styling - these apply within .shared-tab-pane now */
+.shared-tab-pane h2, /* Adjusted selector */
+.settings-tab-pane h2 /* Keep for backward compatibility or other instances if any */ {
+    margin-top: 0;
+    margin-bottom: 1em;
+    font-size: 1.4em;
+    color: var(--text-color, #333);
+    border-bottom: 1px solid var(--border-color, #eee);
+    padding-bottom: 0.6em;
+}
+
+.shared-tab-pane form fieldset, /* Adjusted selector */
+.settings-tab-pane form fieldset /* Keep for backward compatibility */ {
+    border: 1px solid var(--border-color, #eee);
+    padding: 15px;
+    margin-bottom: 20px;
+    border-radius: 3px;
+    background-color: var(--card-background, #fcfcfc); /* Slight distinction for fieldset */
+}
+
+.shared-tab-pane form fieldset p, /* Adjusted selector */
+.settings-tab-pane form fieldset p {
+    margin-bottom: 10px;
+}
+
+.shared-tab-pane form label, /* Adjusted selector */
+.settings-tab-pane form label {
+    display: block;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.shared-tab-pane form input[type="text"],
+.shared-tab-pane form input[type="email"],
+.shared-tab-pane form input[type="password"],
+.shared-tab-pane form select, /* Adjusted selectors */
+.settings-tab-pane form input[type="text"],
+.settings-tab-pane form input[type="email"],
+.settings-tab-pane form input[type="password"],
+.settings-tab-pane form select {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid var(--border-color, #ccc);
+    border-radius: 3px;
+    box-sizing: border-box; 
+    max-width: 400px; 
+    background-color: var(--background-color, #fff);
+    color: var(--text-color, #333);
+}
+
+.shared-tab-pane form input[type="email"][disabled], /* Adjusted selector */
+.settings-tab-pane form input[type="email"][disabled] {
+    background-color: var(--background-color, #f0f0f0);
+    cursor: not-allowed;
+}
+
+.shared-tab-pane form input[type="submit"], /* Adjusted selector */
+.settings-tab-pane form input[type="submit"] {
+    padding: 10px 15px;
+    background-color: var(--button-primary-bg, #0073aa); /* Use more specific vars if available */
+    color: var(--button-primary-text, white);
+    border: 1px solid var(--button-primary-border, transparent);
+    border-radius: 3px;
+    cursor: pointer;
+    transition: background-color 0.2s ease-in-out;
+    font-weight: bold;
+}
+
+.shared-tab-pane form input[type="submit"]:hover, /* Adjusted selector */
+.settings-tab-pane form input[type="submit"]:hover {
+    background-color: var(--button-primary-hover-bg, #005a87);
+}
+
+/* Error and Success messages - using .bp-notice structure if possible, or keep custom */
+/* These selectors should work fine if .settings-errors is inside a .shared-tab-pane */
+.settings-errors .error, .settings-success .message { 
+    padding: 12px;
+    margin-bottom: 20px;
+    border-left-width: 4px;
+    border-left-style: solid;
+    border-radius: 4px;
+    background-color: var(--card-background, #fff);
+}
+.settings-errors .error p, .settings-success .message p {
+    margin:0;
+}
+
+.settings-errors .error {
+    border-left-color: var(--notice-error-border, #dc3232);
+    background-color: var(--notice-error-bg, #fef7f7);
+    color: var(--notice-error-text, #721c24);
+}
+
+.settings-success .message {
+    border-left-color: var(--notice-success-border, #46b450);
+    background-color: var(--notice-success-bg, #e6ffed);
+    color: var(--notice-success-text, #155724);
+}
+
+/* Subscriptions Tab Specifics - apply within .shared-tab-pane */
+.shared-tab-pane .followed-bands-settings, /* Adjusted selector */
+.settings-tab-pane .followed-bands-settings {
+    list-style: none;
+    padding: 0;
+    margin-bottom: 20px;
+}
+
+.shared-tab-pane .followed-bands-settings li, /* Adjusted selector */
+.settings-tab-pane .followed-bands-settings li {
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border-color-light, #eee);
+    display: flex; /* For aligning checkbox and label */
+    align-items: center;
+}
+
+.shared-tab-pane .followed-bands-settings li:last-child, /* Adjusted selector */
+.settings-tab-pane .followed-bands-settings li:last-child {
+    border-bottom: none;
+}
+
+.shared-tab-pane .followed-bands-settings li input[type="checkbox"], /* Adjusted selector */
+.settings-tab-pane .followed-bands-settings li input[type="checkbox"] {
+    margin-right: 10px; /* Increased margin */
+    flex-shrink: 0;
+}
+
+.shared-tab-pane .followed-bands-settings li label, /* Adjusted selector */
+.settings-tab-pane .followed-bands-settings li label {
+    font-weight: normal;
+    margin-bottom: 0; /* Override p > label margin if any */
+    line-height: 1.4;
+}
+
+.shared-tab-pane .followed-bands-settings li a, /* Adjusted selector */
+.settings-tab-pane .followed-bands-settings li a {
+    text-decoration: none;
+    color: var(--link-color, #0073aa);
+}
+
+.shared-tab-pane .followed-bands-settings li a:hover, /* Adjusted selector */
+.settings-tab-pane .followed-bands-settings li a:hover {
+    text-decoration: underline;
+    color: var(--link-hover-color, #005a87);
+}
+
+.shared-tab-pane .description, /* Adjusted selector */
+.settings-tab-pane .description {
+    font-size: 0.9em;
+    color: var(--text-muted, #777);
+    margin-top: 5px;
+    display: block; /* Ensure it takes full width below input */
+}
+
+/* Old responsive CSS for tabs removed - handled by shared-tabs.css */ 

@@ -81,6 +81,19 @@ function extrch_sync_band_profile_to_link_page( int $post_id, WP_Post $post, boo
         delete_post_meta( $link_page_id, '_link_page_profile_image_id' );
     }
 
+    // Sync Profile Picture (Link Page -> Band Profile)
+    // This is less common as the primary source is the band profile, but if link page image changes independently.
+    $link_page_profile_image_id = get_post_meta( $link_page_id, '_link_page_profile_image_id', true );
+    $current_band_thumbnail_id = get_post_thumbnail_id( $post_id );
+
+    // Only update the band profile's thumbnail if the link page has a valid, different image ID.
+    // If link_page_profile_image_id is empty, we don't want to clear the band's thumbnail.
+    if ( ! empty( $link_page_profile_image_id ) && absint( $link_page_profile_image_id ) > 0 ) {
+        if ( absint( $current_band_thumbnail_id ) !== absint( $link_page_profile_image_id ) ) {
+            set_post_thumbnail( $post_id, absint( $link_page_profile_image_id ) );
+        }
+    }
+
     BandDataSyncManager::stop_sync();
 }
 add_action( 'save_post_band_profile', 'extrch_sync_band_profile_to_link_page', 10, 3 );

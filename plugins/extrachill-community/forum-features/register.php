@@ -183,9 +183,8 @@ function wp_surgeon_handle_registration() {
             }
 
             if ($valid_invite_data) {
-                // Force user_is_artist meta to true as they are joining via a band invite
-                update_user_meta($user_id, 'user_is_artist', '1');
-                error_log("Band Invite Registration: Forcing user_is_artist for user ID $user_id for band $invite_band_id_posted.");
+                // USER_IS_ARTIST META IS NO LONGER FORCED HERE. USER CHOICE FROM CHECKBOX WILL BE USED.
+                // error_log("Band Invite Registration: Forcing user_is_artist for user ID $user_id for band $invite_band_id_posted."); // This line is removed
 
                 if (bp_add_band_membership($user_id, $invite_band_id_posted)) {
                     if (bp_remove_pending_invitation($invite_band_id_posted, $valid_invite_id_for_removal)) {
@@ -211,14 +210,16 @@ function wp_surgeon_handle_registration() {
         }
 
           // Save user statuses after successful registration (DIRECTLY IN THIS FUNCTION)
-    if (isset($_POST['user_is_artist']) && !$processed_invite_band_id) { // Only use form value if not processed via invite
-        update_user_meta($user_id, 'user_is_artist', isset($_POST['user_is_artist']) ? '1' : '0');
+    // Respect the checkbox for user_is_artist regardless of invite status
+    if (isset($_POST['user_is_artist'])) {
+        update_user_meta($user_id, 'user_is_artist', '1');
    } else {
-       update_user_meta( $user_id, 'user_is_artist', '0' );
+        update_user_meta($user_id, 'user_is_artist', '0');
     }
 
+    // Respect the checkbox for user_is_professional
     if (isset($_POST['user_is_professional'])) {
-       update_user_meta($user_id, 'user_is_professional', isset($_POST['user_is_professional']) ? '1' : '0');
+       update_user_meta($user_id, 'user_is_professional', '1');
    } else {
        update_user_meta( $user_id, 'user_is_professional', '0' );
    }

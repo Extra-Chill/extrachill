@@ -45,6 +45,9 @@ defined( 'ABSPATH' ) || exit;
                     </div> 
                 </div><!-- .bbp-meta-upvote -->
                 <a class="bbp-topic-title" href="<?php bbp_topic_permalink(); ?>"><?php bbp_topic_title(); ?></a>
+                <?php
+                // Forum name display REMOVED from here
+                ?>
             </div><!-- bbp-topic-header-inner -->
         </div><!-- topic-card-header-area -->
         <?php do_action( 'bbp_theme_after_topic_title' ); ?>
@@ -71,5 +74,31 @@ echo '<span class="topic-views">' . (int) $views . ' Views</span>';
             <span class="bbp-topic-freshness-author"><?php bbp_author_link( array( 'post_id' => bbp_get_topic_last_active_id(), 'size' => 24 ) ); ?></span>
             <?php do_action( 'bbp_theme_after_topic_author' ); ?>
         </div>
+        <?php
+        // Display forum name if topic has one AND it's a relevant page context
+        $topic_id_for_forum = bbp_get_topic_id(); 
+        $forum_id_for_topic = bbp_get_topic_forum_id($topic_id_for_forum);
+
+        $show_forum_name_on_card = false;
+        if ( is_page_template('page-templates/recent-feed-template.php') ||
+             is_page_template('page-templates/following-feed-template.php') ||
+             is_search() || 
+             (function_exists('bbp_is_search') && bbp_is_search()) ) {
+            $show_forum_name_on_card = true;
+        }
+
+        if ( $show_forum_name_on_card && !empty($forum_id_for_topic) ) :
+            ?>
+            <div class="bbp-topic-forum-origin"> 
+                <span class="bbp-topic-started-in">
+                    <?php printf(
+                        esc_html__( 'in %1$s', 'bbpress' ), 
+                        '<a href="' . esc_url( bbp_get_forum_permalink( $forum_id_for_topic ) ) . '">' . esc_html( bbp_get_forum_title( $forum_id_for_topic ) ) . '</a>' 
+                    ); ?>
+                </span>
+            </div>
+        <?php
+        endif;
+        ?>
     </div>
 </div><!-- #bbp-topic-card-<?php bbp_topic_id(); ?> -->

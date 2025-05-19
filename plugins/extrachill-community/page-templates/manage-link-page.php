@@ -110,19 +110,59 @@ echo '</div>';
     <?php echo esc_html__('Manage Link Page for ', 'generatepress_child') . esc_html(get_the_title($band_id)); ?>
 </h1>
 <?php
+// --- Band Switcher Dropdown (for Link Pages) ---
+$current_user_id_for_switcher = get_current_user_id();
+// Fetch all band profiles associated with the user
+$user_band_ids_for_switcher = get_user_meta( $current_user_id_for_switcher, '_band_profile_ids', true );
+
+// Create a new array to hold only bands that have a valid, existing link page
+$valid_bands_for_link_page_switcher = array();
+if ( is_array( $user_band_ids_for_switcher ) && ! empty( $user_band_ids_for_switcher ) ) {
+    foreach ( $user_band_ids_for_switcher as $user_band_id_item_check ) {
+        $band_id_check = absint($user_band_id_item_check);
+        if ( $band_id_check > 0 && get_post_status( $band_id_check ) === 'publish' ) {
+            $link_page_id_check = get_post_meta( $band_id_check, '_extrch_link_page_id', true );
+            if ( $link_page_id_check &&
+                 get_post_status( $link_page_id_check ) === 'publish' &&
+                 get_post_type( $link_page_id_check ) === 'band_link_page' ) {
+                $valid_bands_for_link_page_switcher[] = $band_id_check;
+            }
+        }
+    }
+}
+
+// Only show switcher if the user is associated with more than one band profile *that has a link page*
+if ( count( $valid_bands_for_link_page_switcher ) > 1 ) :
+    $current_page_url_for_switcher = get_permalink(); // Base URL for the manage-link-page
+    $current_selected_band_id_for_switcher = isset( $_GET['band_id'] ) ? absint( $_GET['band_id'] ) : 0;
+?>
+    <div class="band-switcher-container">
+        <select name="link-page-band-switcher-select" id="link-page-band-switcher-select">
+            <option value=""><?php esc_html_e( '-- Select a Band --', 'generatepress_child'); ?></option>
+            <?php
+            foreach ( $valid_bands_for_link_page_switcher as $user_band_id_item ) { // Iterate over the filtered list
+                $band_title_for_switcher = get_the_title( $user_band_id_item );
+                // The previous checks ensure title and publish status are fine for the band profile itself
+                // and that a valid link page exists.
+                echo '<option value="' . esc_attr( $user_band_id_item ) . '" ' . selected( $current_selected_band_id_for_switcher, $user_band_id_item, false ) . '>' . esc_html( $band_title_for_switcher ) . '</option>';
+            }
+            ?>
+        </select>
+    </div>
+<?php
+endif; // End Band Switcher Dropdown for Link Pages
+// --- End Band Switcher ---
+
 // Display the public link page URL as plain text with a small copy link
 if ($link_page_id && get_post_type($link_page_id) === 'band_link_page') {
     $band_slug = $band_post->post_name;
-    if ( defined('EXTRCH_LINKPAGE_DEV') && EXTRCH_LINKPAGE_DEV ) {
-        // Use the standard CPT permalink for local/dev
-        $public_url = get_permalink($link_page_id);
-    } else {
-        // Use the extrch.co URL for production
-        $public_url = 'https://extrch.co/' . $band_slug;
-    }
+    // Always show the extrachill.link URL as the public URL
+    $public_url = 'https://extrachill.link/' . $band_slug;
+    
     echo '<div class="bp-notice bp-notice-info bp-link-page-url">';
-    // Make the URL clickable and remove the separate "View Link Page" button
-    echo '<a href="' . esc_url($public_url ?? '') . '" class="bp-link-page-url-text" target="_blank" rel="noopener">' . esc_html($public_url ?? '') . '</a>';
+    // Make the URL clickable
+    $display_url = str_replace(array('https://', 'http://'), '', $public_url ?? '');
+    echo '<a href="' . esc_url($public_url ?? '') . '" class="bp-link-page-url-text" target="_blank" rel="noopener">' . esc_html($display_url) . '</a>';
     // Change button to display Font Awesome QR code icon
     echo '<button type="button" id="bp-get-qr-code-btn" class="button button-secondary" title="' . esc_attr__("Get QR Code", "generatepress_child") . '" style="margin-left: 0.5em;"><i class="fa-solid fa-qrcode"></i></button>';
     echo '</div>';
@@ -143,21 +183,21 @@ if ($link_page_id && get_post_type($link_page_id) === 'band_link_page') {
 }
 ?>
 <div class="manage-link-page-flex">
-    <div class="manage-link-page-edit">
+    <div class="manage-link-page-edit shared-tabs-component">
         <form method="post" id="bp-manage-link-page-form" enctype="multipart/form-data">
             <?php wp_nonce_field('bp_save_link_page_action', 'bp_save_link_page_nonce'); ?>
             <input type="hidden" name="band_profile_social_links_json" id="band_profile_social_links_json" value="<?php echo esc_attr(json_encode($data['social_links'] ?? [])); ?>">
             <input type="hidden" name="link_page_links_json" id="link_page_links_json" value="<?php echo esc_attr(json_encode($data['link_sections'] ?? [])); ?>">
             <input type="hidden" name="link_expiration_enabled" id="link_expiration_enabled" value="<?php echo esc_attr((get_post_meta($link_page_id, '_link_expiration_enabled', true) === '1' ? '1' : '0') ?? '0'); ?>">
             
-            <div class="manage-link-page-items-container">
+            <div class="shared-tabs-buttons-container">
                 <!-- Item 1: Info -->
-                <div class="manage-link-page-item">
-                    <button type="button" class="manage-link-page-tab active" data-tab="info">
+                <div class="shared-tab-item">
+                    <button type="button" class="shared-tab-button active" data-tab="manage-link-page-tab-info">
                         Info
-                        <span class="accordion-arrow"></span>
+                        <span class="shared-tab-arrow open"></span>
                     </button>
-                    <div class="manage-link-page-tab-content" id="manage-link-page-tab-info">
+                    <div class="shared-tab-pane" id="manage-link-page-tab-info">
                         <?php
                         // Set up variables for tab-info.php from $data
                         // $display_title = $data['display_title'] ?? ''; // $display_title is not directly used by tab-info.php itself
@@ -175,12 +215,12 @@ if ($link_page_id && get_post_type($link_page_id) === 'band_link_page') {
                 <!-- End Item 1: Info -->
 
                 <!-- Item 2: Links -->
-                <div class="manage-link-page-item">
-                    <button type="button" class="manage-link-page-tab" data-tab="links">
+                <div class="shared-tab-item">
+                    <button type="button" class="shared-tab-button" data-tab="manage-link-page-tab-links">
                         Links
-                        <span class="accordion-arrow"></span>
+                        <span class="shared-tab-arrow"></span>
                     </button>
-                    <div class="manage-link-page-tab-content" id="manage-link-page-tab-links" style="display:none;">
+                    <div class="shared-tab-pane" id="manage-link-page-tab-links">
                         <?php
                         // $data['link_sections'] is used by JS, tab-links.php might not need direct PHP vars for links now
                         get_template_part('forum-features/band-platform/extrch.co-link-page/manage-link-page-tabs/tab-links');
@@ -190,12 +230,12 @@ if ($link_page_id && get_post_type($link_page_id) === 'band_link_page') {
                 <!-- End Item 2: Links -->
 
                 <!-- Item 3: Customize -->
-                <div class="manage-link-page-item">
-                    <button type="button" class="manage-link-page-tab" data-tab="customize">
+                <div class="shared-tab-item">
+                    <button type="button" class="shared-tab-button" data-tab="manage-link-page-tab-customize">
                         Customize
-                        <span class="accordion-arrow"></span>
+                        <span class="shared-tab-arrow"></span>
                     </button>
-                    <div class="manage-link-page-tab-content" id="manage-link-page-tab-customize" style="display:none;">
+                    <div class="shared-tab-pane" id="manage-link-page-tab-customize">
                         <?php
                         // Set up variables for tab-customize.php from $data
                         // These are for the initial HTML 'value' attributes of the form inputs
@@ -223,12 +263,12 @@ if ($link_page_id && get_post_type($link_page_id) === 'band_link_page') {
                 <!-- End Item 3: Customize -->
 
                 <!-- Item 4: Advanced -->
-                <div class="manage-link-page-item">
-                    <button type="button" class="manage-link-page-tab" data-tab="advanced">
+                <div class="shared-tab-item">
+                    <button type="button" class="shared-tab-button" data-tab="manage-link-page-tab-advanced">
                         Advanced
-                        <span class="accordion-arrow"></span>
+                        <span class="shared-tab-arrow"></span>
                     </button>
-                    <div class="manage-link-page-tab-content" id="manage-link-page-tab-advanced" style="display:none;"> <?php // New Tab Content ?>
+                    <div class="shared-tab-pane" id="manage-link-page-tab-advanced">
                         <?php
                         // Pass $link_page_id to the advanced tab template if needed
                         set_query_var('link_page_id', $link_page_id);
@@ -239,12 +279,12 @@ if ($link_page_id && get_post_type($link_page_id) === 'band_link_page') {
                 <!-- End Item 4: Advanced -->
 
                 <!-- Item 5: Analytics -->
-                <div class="manage-link-page-item">
-                    <button type="button" class="manage-link-page-tab" data-tab="analytics">
+                <div class="shared-tab-item">
+                    <button type="button" class="shared-tab-button" data-tab="manage-link-page-tab-analytics">
                         Analytics
-                        <span class="accordion-arrow"></span>
+                        <span class="shared-tab-arrow"></span>
                     </button>
-                    <div class="manage-link-page-tab-content" id="manage-link-page-tab-analytics" style="display:none;"> <?php // New Tab Content ?>
+                    <div class="shared-tab-pane" id="manage-link-page-tab-analytics">
                         <?php
                         // Pass $link_page_id to the analytics tab template if needed
                         set_query_var('link_page_id', $link_page_id);
@@ -254,8 +294,7 @@ if ($link_page_id && get_post_type($link_page_id) === 'band_link_page') {
                 </div>
                 <!-- End Item 5: Analytics -->
             </div>
-
-            <div id="desktop-tab-content-area" style="display: none;"></div>
+            <div id="desktop-tab-content-area" class="shared-desktop-tab-content-area" style="display: none;"></div>
 
             <div class="bp-link-page-save-btn-wrap" style="margin-top:2em;">
                 <button type="submit" name="bp_save_link_page" class="button button-primary bp-link-page-save-btn"><?php esc_html_e('Save Link Page', 'generatepress_child'); ?></button>
@@ -294,7 +333,24 @@ if ($link_page_id && get_post_type($link_page_id) === 'band_link_page') {
         </div>
     </div>
 </div>
-            </div>
+
+<div class="bp-link-page-manage-band-btn-wrap" style="margin-top:2em; margin-bottom: 2em; text-align: center;">
+    <a href="<?php echo esc_url(site_url('/manage-band-profile/?band_id=' . $band_id)); ?>" class="button button-secondary"><?php esc_html_e('Manage Band', 'generatepress_child'); ?></a>
+</div>
+
+<button id="extrch-jump-to-preview-btn" class="extrch-jump-to-preview-btn" aria-label="<?php esc_attr_e('Scroll to Preview / Settings', 'generatepress_child'); ?>" title="<?php esc_attr_e('Scroll to Preview', 'generatepress_child'); ?>">
+    <span class="main-icon-wrapper">
+        <i class="fas fa-magnifying-glass"></i> <!-- Default/initial main icon -->
+    </span>
+    <i class="directional-arrow fas fa-arrow-down"></i> <!-- Default/initial directional arrow -->
+</button>
+
+        <?php do_action( 'generate_after_main_content' ); ?>
+    </main><!-- #main -->
+</div><!-- #primary -->
+
+<?php get_footer(); ?>
+
 <script type="text/javascript">
     window.extrchInitialLinkPageData = <?php echo json_encode($data); ?>;
     window.bpLinkPageLinks = <?php echo json_encode($data['link_sections'] ?? []); // Use the processed 'link_sections' ?>;
@@ -305,11 +361,27 @@ if ($link_page_id && get_post_type($link_page_id) === 'band_link_page') {
         band_id: <?php echo absint( $band_id ); ?>,
         initial_profile_img_url: <?php echo json_encode(isset($data['profile_img_url']) ? $data['profile_img_url'] : ''); ?>,
         initial_background_img_url: <?php echo json_encode(isset($data['background_image_url']) ? $data['background_image_url'] : ''); ?>,
-        initial_redirect_target_url: <?php echo json_encode(get_post_meta($link_page_id, '_link_page_redirect_target_url', true) ?: ''); ?> <?php // Add initial redirect target ?>
+        initial_redirect_target_url: <?php echo json_encode(get_post_meta($link_page_id, '_link_page_redirect_target_url', true) ?: ''); ?>
     };
 </script>
 <?php // QR Code JS removed as per user feedback to skip AJAX generation for now ?>
+
+<script type="text/javascript">
+document.addEventListener('DOMContentLoaded', function() {
+    const linkPageBandSwitcher = document.getElementById('link-page-band-switcher-select');
+    if (linkPageBandSwitcher) {
+        linkPageBandSwitcher.addEventListener('change', function() {
+            if (this.value) {
+                const baseUrl = "<?php echo esc_url(get_permalink(get_the_ID())); ?>";
+                // Check if baseUrl already has query parameters
+                const separator = baseUrl.includes('?') ? '&' : '?';
+                window.location.href = baseUrl + separator + 'band_id=' + this.value;
+            }
+        });
+    }
+});
+</script>
+
 <?php
 do_action( 'generate_after_primary_content_area' );
 generate_construct_sidebars();
-get_footer();

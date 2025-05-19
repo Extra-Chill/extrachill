@@ -8,6 +8,74 @@
 
 defined( 'ABSPATH' ) || exit;
 
+if ( is_user_logged_in() ) {
+    $current_user_id = get_current_user_id();
+    $user_band_ids = get_user_meta( $current_user_id, '_band_profile_ids', true );
+    $user_band_ids = !empty($user_band_ids) && is_array($user_band_ids) ? $user_band_ids : array();
+
+    $is_artist_or_pro = ( get_user_meta( $current_user_id, 'user_is_artist', true ) === '1' || 
+                          get_user_meta( $current_user_id, 'user_is_professional', true ) === '1' );
+
+    $latest_band_id = 0;
+    if ( !empty($user_band_ids) ) {
+        $latest_modified_timestamp = 0;
+        foreach ( $user_band_ids as $band_id ) {
+            $band_id_int = absint($band_id);
+            if ( $band_id_int > 0 ) {
+                $post_modified_gmt = get_post_field( 'post_modified_gmt', $band_id_int, 'raw' );
+                if ( $post_modified_gmt ) {
+                    $current_timestamp = strtotime( $post_modified_gmt );
+                    if ( $current_timestamp > $latest_modified_timestamp ) {
+                        $latest_modified_timestamp = $current_timestamp;
+                        $latest_band_id = $band_id_int;
+                    }
+                }
+            }
+        }
+    }
+
+    $show_manage_bands_button = false;
+    $manage_bands_url = '';
+    $manage_bands_text = '';
+
+    if ( !empty($user_band_ids) ) {
+        $show_manage_bands_button = true;
+        $manage_bands_url = home_url( '/manage-band-profiles/' );
+        if ( $latest_band_id > 0 ) {
+            $manage_bands_url = add_query_arg( 'band_id', $latest_band_id, $manage_bands_url );
+        }
+        $manage_bands_text = __( 'Manage Band(s)', 'generatepress_child' );
+    } elseif ( $is_artist_or_pro ) {
+        $show_manage_bands_button = true;
+        $manage_bands_url = home_url( '/manage-band-profiles/' );
+        $manage_bands_text = __( 'Create Band Profile', 'generatepress_child' );
+    }
+
+    $show_manage_links_button = false;
+    $manage_links_url = '';
+    $manage_links_text = '';
+
+    if ( !empty($user_band_ids) ) { // Only show if user has bands
+        $show_manage_links_button = true;
+        $manage_links_url = home_url( '/manage-link-page/' );
+        if ( $latest_band_id > 0 ) {
+            $manage_links_url = add_query_arg( 'band_id', $latest_band_id, $manage_links_url );
+        }
+        $manage_links_text = __( 'Manage Link Page(s)', 'generatepress_child' );
+    }
+
+    if ( $show_manage_bands_button || $show_manage_links_button ) {
+        echo '<div class="band-directory-manage-buttons">';
+        if ( $show_manage_bands_button ) {
+            echo '<a href="' . esc_url( $manage_bands_url ) . '" class="button">' . esc_html( $manage_bands_text ) . '</a>';
+        }
+        if ( $show_manage_links_button ) {
+            echo '<a href="' . esc_url( $manage_links_url ) . '" class="button">' . esc_html( $manage_links_text ) . '</a>';
+        }
+        echo '</div>';
+    }
+}
+
 // Helper function to get current URL for form actions
 if (!function_exists('getCurrentUrl')) {
     function getCurrentUrl() {

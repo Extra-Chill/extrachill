@@ -1,7 +1,7 @@
 <?php
 function custom_bbp_make_dofollow_links($content) {
     $dom = new DOMDocument();
-    @$dom->loadHTML(mb_convert_encoding($content, 'HTML-ENTITIES', 'UTF-8'), LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
+    @$dom->loadHTML('<?xml encoding="UTF-8">' . $content, LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
 
     $links = $dom->getElementsByTagName('a');
     foreach ($links as $link) {
@@ -117,4 +117,26 @@ function embed_tweets($content) {
 add_filter('the_content', 'embed_tweets', 9); // Priority set to 9 to run before wpautop at priority 10
 add_filter('bbp_get_reply_content', 'embed_tweets', 9);
 add_filter('bbp_get_topic_content', 'embed_tweets', 9);
+
+// Remove inline style attributes from <img> tags in post/bbPress content
+function strip_img_inline_styles($content) {
+    if (stripos($content, '<img') === false) {
+        return $content;
+    }
+    $dom = new DOMDocument();
+    libxml_use_internal_errors(true);
+    @$dom->loadHTML('<?xml encoding="UTF-8">' . $content, LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
+    libxml_clear_errors();
+    $imgs = $dom->getElementsByTagName('img');
+    foreach ($imgs as $img) {
+        $img->removeAttribute('style');
+    }
+    $html = $dom->saveHTML();
+    // Remove doctype/html/body wrappers
+    $html = preg_replace(array('/^<!DOCTYPE.+?>/', '/<html>/i', '/<\/html>/i', '/<body>/i', '/<\/body>/i'), array('', '', '', '', ''), $html);
+    return trim($html);
+}
+add_filter('the_content', 'strip_img_inline_styles', 20);
+add_filter('bbp_get_reply_content', 'strip_img_inline_styles', 20);
+add_filter('bbp_get_topic_content', 'strip_img_inline_styles', 20);
 

@@ -60,10 +60,6 @@
     font-size: 13px;
 }
 
-.bbp-topic-freshness-author {
-    margin-left: 5px;
-}
-
 /* Desktop Styles (3 columns) */
 @media (min-width: 768px) {
     .bbp-topics-grid {
@@ -238,4 +234,7 @@ div.bbp-template-notice.error, div.bbp-template-notice.warning {
     border: 1px solid red;
     border-radius: 5px;
     padding: 10px;
+}
+.band-forum-topics ol, .band-forum-topics ul {
+	margin: 0;
 }

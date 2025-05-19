@@ -75,14 +75,15 @@ $is_artist         = get_user_meta( $displayed_user_id, 'user_is_artist', true )
 // Check if the user is marked as an artist
 if (get_user_meta(bbp_get_displayed_user_id(), 'user_is_artist', true)) :
     $user_band_ids = get_user_meta( bbp_get_displayed_user_id(), '_band_profile_ids', true );
-    if ( !empty($user_band_ids) && is_array($user_band_ids) ) : ?>
-        <div class="bbp-user-profile-card user-band-cards-fullwidth">
-            <h2>
-                <?php
-                $display_name = bbp_get_displayed_user_field('display_name');
-                printf( esc_html__( "%s's Bands", 'generatepress_child' ), esc_html($display_name) );
-                ?>
-            </h2>
+    ?>
+    <div class="bbp-user-profile-card user-band-cards-fullwidth">
+        <h2>
+            <?php
+            $display_name = bbp_get_displayed_user_field('display_name');
+            printf( esc_html__( "%s's Bands", 'generatepress_child' ), esc_html($display_name) );
+            ?>
+        </h2>
+        <?php if ( !empty($user_band_ids) && is_array($user_band_ids) ) : ?>
             <ul class="user-band-cards band-cards-container">
                 <?php foreach ( $user_band_ids as $user_band_id ) : ?>
                     <?php 
@@ -92,19 +93,52 @@ if (get_user_meta(bbp_get_displayed_user_id(), 'user_is_artist', true)) :
                     endif; ?>
                 <?php endforeach; ?>
             </ul>
-        </div>
-    <?php else : ?>
-        <div class="bbp-user-profile-card user-band-cards-fullwidth">
-            <h2>
-                <?php
-                $display_name = bbp_get_displayed_user_field('display_name');
-                printf( esc_html__( "%s's Bands", 'generatepress_child' ), esc_html($display_name) );
-                ?>
-            </h2>
+        <?php else : ?>
             <p><?php esc_html_e( 'No band memberships yet.', 'generatepress_child' ); ?></p>
-        </div>
-    <?php endif; ?>
-<?php endif; ?>
+        <?php endif; ?>
+
+        <?php 
+        // --- Conditional Management Buttons for Own Profile --- 
+        if ( bbp_get_displayed_user_id() == get_current_user_id() ) : // Check if it's the logged-in user's own profile
+            // $is_artist is already confirmed by the outer conditional
+            $current_user_id_for_card_buttons = get_current_user_id();
+            $base_manage_bands_url_card = home_url( '/manage-band-profiles/' );
+            $base_manage_link_page_url_card = home_url( '/manage-link-page/' );
+
+            echo '<div class="user-band-management-actions" style="text-align: right; margin-top: 15px;">'; // Basic styling for bottom-right
+
+            if ( !empty($user_band_ids) && is_array($user_band_ids) ) : // Already have $user_band_ids from above
+                $latest_band_id_card = 0;
+                $latest_modified_timestamp_card = 0;
+                foreach ( $user_band_ids as $band_id_item_card ) {
+                    $band_id_int_card = absint($band_id_item_card);
+                    if ( $band_id_int_card > 0 ) {
+                        $post_modified_gmt_card = get_post_field( 'post_modified_gmt', $band_id_int_card, 'raw' );
+                        if ( $post_modified_gmt_card ) {
+                            $current_timestamp_card = strtotime( $post_modified_gmt_card );
+                            if ( $current_timestamp_card > $latest_modified_timestamp_card ) {
+                                $latest_modified_timestamp_card = $current_timestamp_card;
+                                $latest_band_id_card = $band_id_int_card;
+                            }
+                        }
+                    }
+                }
+                $final_manage_bands_url_card = $base_manage_bands_url_card;
+                $final_manage_link_page_url_card = $base_manage_link_page_url_card;
+                if ( $latest_band_id_card > 0 ) {
+                    $final_manage_bands_url_card = add_query_arg( 'band_id', $latest_band_id_card, $base_manage_bands_url_card );
+                    $final_manage_link_page_url_card = add_query_arg( 'band_id', $latest_band_id_card, $base_manage_link_page_url_card );
+                }
+            ?>
+                <a href="<?php echo esc_url( $final_manage_bands_url_card ); ?>" class="button button-small extrachill-manage-profile-button"><?php esc_html_e( 'Manage Band(s)', 'generatepress_child' ); ?></a>
+            <?php else : // No band profiles, but is an artist, viewing own profile ?>
+                <a href="<?php echo esc_url( $base_manage_bands_url_card ); ?>" class="button button-small extrachill-manage-profile-button"><?php esc_html_e( 'Create Band Profile', 'generatepress_child' ); ?></a>
+            <?php endif; // End if has band_ids (for buttons)
+            echo '</div>'; // End .user-band-management-actions
+        endif; // End if viewing own profile
+        ?>
+    </div>
+<?php endif; // End if user_is_artist ?>
 
 </div>
 

@@ -59,23 +59,6 @@ get_header(); ?>
 				<article id="post-<?php the_ID(); ?>" <?php post_class(); ?> <?php generate_do_microdata( 'article' ); ?>>
 					<div class="inside-article">
 						<?php
-                        // --- Display Success Message (if any) from profile creation/update ---
-                        $success_message = '';
-                        if ( isset( $_GET['bp_success'] ) ) {
-                            $success_code = sanitize_key( $_GET['bp_success'] );
-                            if ( $success_code === 'created' ) {
-                                $success_message = __( 'Band profile created successfully!', 'generatepress_child' );
-                            } elseif ( $success_code === 'updated' ) {
-                                $success_message = __( 'Band profile updated successfully!', 'generatepress_child' );
-                            }
-                        }
-
-                        if ( ! empty( $success_message ) ) {
-                            echo '<div class="bp-notice bp-notice-success">';
-                            echo '<p>' . esc_html( $success_message ) . '</p>';
-                            echo '</div>';
-                        }
-
                         // --- Display Invitation Acceptance/Error Messages ---
                         if ( isset( $_GET['invite_accepted'] ) && $_GET['invite_accepted'] === '1' ) {
                             $invite_success_message = __( 'Invitation accepted! You are now a member of this band.', 'generatepress_child' );
@@ -130,6 +113,23 @@ get_header(); ?>
 						<div class="band-profile-header band-hero" <?php echo $hero_background_style; ?>>
                             <div class="band-hero-overlay"></div>
                             <div class="band-hero-content">
+                                <?php
+                                // --- Manage Band Button (Moved to top of hero content) ---
+                                if ( is_user_logged_in() ) :
+                                    // Display "Manage Band Profile" button if the current user can manage members for this band profile.
+                                    // This uses the custom capability 'manage_band_members'.
+                                    if ( current_user_can( 'manage_band_members', $band_profile_id ) ) :
+                                        $manage_band_url = get_permalink( get_page_by_path( 'manage-band-profiles' ) );
+                                        if ( $manage_band_url ) {
+                                            $manage_band_url_with_id = add_query_arg( 'band_id', $band_profile_id, $manage_band_url );
+                                            echo '<div class="band-profile-actions" style="margin-bottom: 1em;">'; // Kept original class, added margin
+                                            echo '<a href="' . esc_url( $manage_band_url_with_id ) . '" class="button band-manage-button">Manage Band</a>';
+                                            echo '</div>';
+                                        }
+                                    endif;
+                                endif;
+                                // --- End Manage Band Button (Moved) ---
+                                ?>
                                 <?php // Display Profile Picture and then Title/Meta in a flex row
                                 // The band-hero-top-row container helps to align the image and the text content side-by-side.
                                 ?>
@@ -158,49 +158,7 @@ get_header(); ?>
                                     </div>
                                 </div>
 
-                                <div class="band-hero-actions-flex-container" style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 1em;">
-                                <?php // Edit Button Container ?>
-                                <div class="band-profile-actions">
-                                    <?php if ( is_user_logged_in() ) : ?>
-                                        <?php 
-                                        // Display "Manage Band Profile" button if the current user can manage members for this band profile.
-                                        // This uses the custom capability 'manage_band_members'.
-                                        if ( current_user_can( 'manage_band_members', $band_profile_id ) ) :
-                                            $manage_band_url = get_permalink( get_page_by_path( 'manage-band-profiles' ) );
-                                            if ( $manage_band_url ) {
-                                                $manage_band_url_with_id = add_query_arg( 'band_id', $band_profile_id, $manage_band_url );
-                                                echo '<a href="' . esc_url( $manage_band_url_with_id ) . '" class="button band-manage-button">Manage Band</a>';
-                                            }
-                                        endif; 
-                                        ?>
-                                    <?php endif; ?>
-                                </div>
-
-                                    <?php
-                                    // --- Band Links Button ---
-                                    $link_page_id = get_post_meta( $band_profile_id, '_extrch_link_page_id', true );
-                                    if ( $link_page_id && get_post_type( $link_page_id ) === 'band_link_page' ) {
-                                        if ( isset( $post ) && $post->post_type === 'band_profile' ) {
-                                            $band_slug = $post->post_name;
-                                            $public_url = '';
-                                            if ( defined('EXTRCH_LINKPAGE_DEV') && EXTRCH_LINKPAGE_DEV ) {
-                                                $public_url = get_permalink( $link_page_id );
-                                            } else {
-                                                $public_url = 'https://extrch.co/' . $band_slug;
-                                            }
-                                            if ( ! empty( $public_url ) ) {
-                                                // Removed individual margin style from band-page-links-button-container, handled by flex gap
-                                                echo '<div class="band-page-links-button-container">';
-                                                echo '<a href="' . esc_url( $public_url ) . '" class="button band-links-public-button" target="_blank" rel="noopener">' . esc_html__( 'Band Links', 'generatepress_child' ) . '</a>';
-                                                echo '</div>';
-                                            }
-                                        }
-                                    }
-                                    // --- End Band Links Button ---
-                                    ?>
-                                </div> <?php // END .band-hero-actions-flex-container ?>
-
-								<?php if ( ! empty( $band_profile_social_links ) ) : ?>
+                                <?php if ( ! empty( $band_profile_social_links ) ) : ?>
 									<div class="band-social-links">
 										<?php foreach ( $band_profile_social_links as $icon ) :
 											if ( empty( $icon['url'] ) ) continue;
@@ -255,6 +213,35 @@ get_header(); ?>
                                 <?php endif; // End check for functions exist ?>
                                 <?php // --- End Band Follow Button --- ?>
 
+                                <?php
+                                // --- Display Band Link Page URL (New) ---
+                                $link_page_id_for_url_display = get_post_meta( $band_profile_id, '_extrch_link_page_id', true );
+                                if ( $link_page_id_for_url_display && get_post_type( $link_page_id_for_url_display ) === 'band_link_page' ) {
+                                    global $post; // Ensure $post is the band_profile CPT object
+                                    if ( isset( $post ) && $post->post_type === 'band_profile' ) {
+                                        $band_slug_for_url = $post->post_name;
+                                        $public_url_href = ''; 
+                                        $public_url_display_text = '';
+
+                                        if ( defined('EXTRCH_LINKPAGE_DEV') && EXTRCH_LINKPAGE_DEV ) {
+                                            $public_url_href = get_permalink( $link_page_id_for_url_display );
+                                        } else {
+                                            // Use canonical extrachill.link URL
+                                            $public_url_href = 'https://extrachill.link/' . $band_slug_for_url;
+                                        }
+
+                                        if ( ! empty( $public_url_href ) ) {
+                                            $public_url_display_text = preg_replace( '#^https?://#', '', $public_url_href );
+                                            
+                                            echo '<div class="band-public-link-display" style="margin-top: 1em; /* text-align: left; (Adjust as needed for alignment with follower count) */">';
+                                            echo '<a href="' . esc_url( $public_url_href ) . '" target="_blank" rel="noopener" style="text-decoration: none; color: inherit;">' . esc_html( $public_url_display_text ) . '</a>';
+                                            echo '</div>';
+                                        }
+                                    }
+                                }
+                                // --- End Display Band Link Page URL (New) ---
+                                ?>
+
                                 <?php /* Moved edit button container 
 								<?php if ( current_user_can( 'edit_post', $band_profile_id ) ) : ?>
 									<?php 
@@ -299,7 +286,16 @@ get_header(); ?>
 
                             // Column 2: Band Members
                             echo '<div class="band-members-column">';
+                            // Add a wrapper for the title and icon for flex layout if needed, and the icon itself
+                            echo '<div class="band-roster-header" style="display: flex; align-items: center; justify-content: space-between;">';
                             echo '<h2 class="section-title">' . __( 'Band Roster', 'generatepress_child' ) . '</h2>';
+                            // Icon for collapsing - starts with 'plus' as it's collapsed by default
+                            echo '<i class="fa-solid fa-square-plus band-roster-toggle" onclick="toggleForumCollapse(this, \'band-roster-list-container\')" style="cursor: pointer; font-size: 27px; margin-left: 10px;"></i>';
+                            echo '</div>'; // .band-roster-header
+
+                            // Add a container div for the list that will be collapsed/expanded
+                            // Add 'collapsed' class to make it collapsed by default and styles for transition
+                            echo '<div id="band-roster-list-container" class="band-roster-list-container collapsed" style="overflow: hidden; transition: height 0.5s ease-out;">';
 
                             $roster_items_html = [];
                             $displayed_names_for_roster = []; // To track names already added to the roster list
@@ -376,6 +372,7 @@ get_header(); ?>
                             } else {
                                 echo '<p>' . __( 'No band members listed yet.', 'generatepress_child' ) . '</p>';
                             }
+                            echo '</div>'; // #band-roster-list-container (new wrapper for collapse)
                             echo '</div>'; // .band-members-column
 
                             echo '</div>'; // .band-details-columns
@@ -522,8 +519,13 @@ get_header(); ?>
 
 								else : 
 									error_log('bbp_has_topics returned FALSE.');
-									// No topics found
-									 bbp_get_template_part( 'feedback', 'no-topics' );
+									// No topics found - Custom message
+									$band_name = esc_html( get_the_title( $band_profile_id ) );
+									$custom_no_topics_message = sprintf(
+										esc_html__( 'This space is for %s to connect with their community! If you\'re part of the band, why not start a new topic? Share your latest news, upcoming gigs, or just say hello to your fans.', 'generatepress_child' ),
+										$band_name
+									);
+									echo '<div class="bbp-template-notice info"><p>' . $custom_no_topics_message . '</p></div>';
 								endif; // end bbp_has_topics()
 								echo '</div>'; // .band-forum-topics
 								// --- End Display Topic List ---

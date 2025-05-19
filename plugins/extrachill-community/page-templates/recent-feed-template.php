@@ -6,17 +6,17 @@
 
 get_header();
 ?>
-<div <?php generate_do_attr( 'page' ); ?>>
     <?php
     /**
      * generate_inside_site_container hook.
+     * This hook is inside the #page div element, handled by GeneratePress.
      */
     do_action( 'generate_inside_site_container' );
     ?>
-    <div <?php generate_do_attr( 'site-content' ); ?>>
         <?php
         /**
          * generate_inside_container hook.
+         * This hook is inside the .container div element (itself inside #content), handled by GeneratePress.
          */
         do_action( 'generate_inside_container' );
         ?>
@@ -46,7 +46,7 @@ if (have_posts()) :
     endwhile;
 endif;
 
-echo '</div>'; // End of chill-home
+echo '</div>'; // End of chill-home-header
 
 // Set up the query to fetch the most recent topics
 $args = array(
@@ -82,11 +82,10 @@ if (bbp_has_topics($args)) {
 } else {
     echo '<div class="bbp-template-notice"><p>No recent topics found.</p></div>';
 }
-echo '</div>'; // End of site-main
+echo '</div>'; // End of chill-home
 
 ?>
-        </div><!-- .site-content -->
-    </div><!-- .page -->
+    <?php // The closing divs for .site-content and .page have been removed. ?>
 <?php
 get_footer();
 ?>

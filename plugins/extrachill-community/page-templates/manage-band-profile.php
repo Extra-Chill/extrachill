@@ -10,6 +10,48 @@ get_header(); ?>
 		<main id="main" <?php generate_do_element_classes( 'main' ); ?>>
 			<?php do_action( 'generate_before_main_content' ); ?>
 
+            <div class="breadcrumb-notice-container">
+                <?php
+                // Add breadcrumbs here
+                if ( function_exists( 'extrachill_breadcrumbs' ) ) {
+                    extrachill_breadcrumbs();
+                }
+                ?>
+
+                <?php
+                // --- Success Message Check (after creation redirect) ---
+                if ( isset( $_GET['bp_success'] ) && $_GET['bp_success'] === 'created' && isset( $_GET['new_band_id'] ) ) {
+                    $created_band_id = absint( $_GET['new_band_id'] );
+                    $created_band_profile_url = get_permalink( $created_band_id );
+                    $created_link_page_id = isset( $_GET['new_link_page_id'] ) ? absint( $_GET['new_link_page_id'] ) : 0;
+                    $manage_link_page_url_base = home_url('/manage-link-page/');
+
+                    if ( $created_band_profile_url ) {
+                        echo '<div class="bp-notice bp-notice-success">';
+                        echo '<p>' . esc_html__( 'Band profile created successfully!', 'generatepress_child' ) . '</p>';
+                        echo '<p>';
+                        echo '<a href="' . esc_url( $created_band_profile_url ) . '" class="button">' . esc_html__( 'View Band Profile', 'generatepress_child' ) . '</a>';
+                        if ( $created_link_page_id && $manage_link_page_url_base ) {
+                            $manage_link_page_url = add_query_arg( 'band_id', $created_band_id, $manage_link_page_url_base );
+                            echo ' ' . '<a href="' . esc_url( $manage_link_page_url ) . '" class="button">' . esc_html__( 'Manage extrachill.link Page', 'generatepress_child' ) . '</a>';
+                        }
+                        echo '</p>';
+                        echo '</div>';
+                    }
+                }
+
+                // --- Display Error Message (if any) ---
+                // This error message block combines $_GET['bp_error'] parsing (done earlier in the script)
+                // with other programmatically set $error_message values.
+                if ( ! empty( $error_message ) ) {
+                    // Add a simple CSS class for styling potential errors
+                    echo '<div class="bp-notice bp-notice-error">';
+                    echo '<p>' . esc_html( $error_message ) . '</p>';
+                    echo '</div>';
+                }
+                ?>
+            </div>
+
             <article id="post-<?php the_ID(); ?>" <?php post_class(); ?>>
                 <div class="inside-article">
                     <header class="entry-header">
@@ -19,6 +61,16 @@ get_header(); ?>
                     <div class="entry-content" itemprop="text">
                         <?php 
                         // --- Band Profile Management Form --- 
+
+                        // Initialize variables that will be used in tab-info.php and elsewhere
+                        $band_post_title = '';
+                        $band_post_content = '';
+                        $current_local_city = '';
+                        $current_genre = '';
+                        $prefill_user_avatar_id = null;
+                        $prefill_user_avatar_thumbnail_url = '';
+                        $prefill_band_name = ''; // For create mode prefill
+                        $prefill_band_bio = '';  // For create mode prefill
 
                         $edit_mode = false;
                         $target_band_id = 0;
@@ -115,7 +167,12 @@ get_header(); ?>
                                 $submit_name = 'submit_create_band_profile'; // Match create handler check if needed
 
                                 // Pre-fill from user meta
-                                $current_local_city = get_user_meta( get_current_user_id(), 'local_city', true );
+                                $current_user_id = get_current_user_id(); // Get current user ID once
+                                $current_local_city = get_user_meta( $current_user_id, 'local_city', true );
+                                $prefill_user_display_name = wp_get_current_user()->display_name; // Pre-fill with display name
+                                $prefill_user_bio = get_user_meta( $current_user_id, 'description', true ); // Pre-fill with user bio
+                                $prefill_user_avatar_id = get_user_meta( $current_user_id, 'custom_avatar_id', true );
+
                                 // Set others to empty for create mode
                                 $current_genre = '';
                                 $current_website_url = '';
@@ -130,13 +187,46 @@ get_header(); ?>
                             }
                         }
 
-                        // --- Display Error Message (if any) ---
-                        if ( ! empty( $error_message ) ) {
-                            // Add a simple CSS class for styling potential errors
-                            echo '<div class="bp-notice bp-notice-error">';
-                            echo '<p>' . esc_html( $error_message ) . '</p>';
-                            echo '</div>';
+                        // Prepare variables for pre-filling in create mode
+                        $prefill_band_name = '';
+                        $prefill_band_bio = '';
+                        $prefill_user_avatar_id = null;
+                        $prefill_user_avatar_thumbnail_url = '';
+
+                        if ( ! $edit_mode ) {
+                            $current_user_for_prefill = wp_get_current_user();
+                            if ( $current_user_for_prefill && $current_user_for_prefill->ID > 0 ) {
+                                $prefill_band_name = $current_user_for_prefill->display_name;
+                                $prefill_band_bio = get_user_meta( $current_user_for_prefill->ID, 'description', true );
+                                $prefill_user_avatar_id = get_user_meta( $current_user_for_prefill->ID, 'custom_avatar_id', true );
+                                if ( $prefill_user_avatar_id ) {
+                                    $prefill_user_avatar_thumbnail_url = wp_get_attachment_image_url( $prefill_user_avatar_id, 'thumbnail' );
+                                }
+                            }
                         }
+
+                        // Consolidate values for title and content
+                        if ($edit_mode) {
+                            if ($band_post && property_exists($band_post, 'post_title')) {
+                                $band_post_title = $band_post->post_title;
+                            }
+                            if ($band_post && property_exists($band_post, 'post_content')) {
+                                $band_post_content = $band_post->post_content;
+                            }
+                            // $current_local_city and $current_genre are already set from get_post_meta in the $edit_mode block earlier
+                        } else { // Create mode
+                            $band_post_title = $prefill_band_name; // $prefill_band_name is from user data or empty string
+                            $band_post_content = $prefill_band_bio; // $prefill_band_bio is from user data or empty string
+                            // $current_local_city and $current_genre are already set for create mode earlier
+                        }
+
+                        // Final casting to string to prevent issues with esc_attr/esc_textarea
+                        $band_post_title = strval($band_post_title);
+                        $band_post_content = strval($band_post_content);
+                        $current_local_city = strval($current_local_city); // Already initialized to '', then populated
+                        $current_genre = strval($current_genre);       // Already initialized to '', then populated
+
+                        // For featured image, tab-info.php will handle display logic based on edit_mode and prefill vars.
 
                         // --- Display Form if User Can Proceed --- 
                         if ( $can_proceed ) :
@@ -158,9 +248,8 @@ get_header(); ?>
                                 $current_selected_band_id_for_switcher = isset( $_GET['band_id'] ) ? absint( $_GET['band_id'] ) : 0;
                             ?>
                                 <div class="band-switcher-container">
-                                    <label for="band-switcher-select"><?php esc_html_e( 'Switch to Manage Another Band:', 'generatepress_child' ); ?></label>
                                     <select name="band-switcher-select" id="band-switcher-select">
-                                        <option value=""><?php esc_html_e( '-- Select a Band --', 'generatepress_child'); ?></option>
+                                        <option value=""><?php esc_html_e( '-- Create New Band --', 'generatepress_child'); ?></option>
                                         <?php
                                         foreach ( $user_band_ids_for_switcher as $user_band_id_item ) {
                                             $band_title_for_switcher = get_the_title( $user_band_id_item );
@@ -183,112 +272,54 @@ get_header(); ?>
                                     <input type="hidden" name="band_id" value="<?php echo esc_attr( $target_band_id ); ?>">
                                 <?php endif; ?>
 
-                                <!-- Basic Info -->
-                                <h2><?php esc_html_e( 'Basic Info', 'generatepress_child' ); ?></h2>
+                                <!-- Accordion Items Container -->
+                                <div class="shared-tabs-component">
+                                    <div class="shared-tabs-buttons-container">
+                                        <!-- Item 1: Band Info -->
+                                        <div class="shared-tab-item">
+                                            <button type="button" class="shared-tab-button active" data-tab="manage-band-profile-info-content">
+                                                <?php esc_html_e( 'Band Info', 'generatepress_child' ); ?>
+                                                <span class="shared-tab-arrow open"></span>
+                                            </button>
+                                            <div id="manage-band-profile-info-content" class="shared-tab-pane">
+                                                <?php
+                                                get_template_part('forum-features/band-platform/manage-band-profile-tabs/tab', 'info');
+                                                ?>
+                                            </div>
+                                        </div>
 
-                                <!-- Featured Image / Profile Picture -->
-                                <div class="form-group">
-                                    <label><?php echo $edit_mode ? esc_html__( 'Current Profile Picture', 'generatepress_child' ) : esc_html__( 'Profile Picture (Featured Image)', 'generatepress_child' ); ?></label>
-                                    <?php if ( $edit_mode && has_post_thumbnail( $target_band_id ) ) : ?>
-                                        <div class="current-image-preview"><?php echo get_the_post_thumbnail( $target_band_id, 'thumbnail' ); ?></div>
-                                    <?php elseif ( $edit_mode ) : ?>
-                                         <p><?php esc_html_e( 'No current image set.', 'generatepress_child' ); ?></p>
-                                    <?php endif; ?>
-                                    <label for="featured_image" class="image-upload-label"><?php echo $edit_mode ? esc_html__( 'Upload New Profile Picture (Optional)', 'generatepress_child' ) : esc_html__( 'Upload Profile Picture', 'generatepress_child' ); ?></label>
-                                    <input type="file" id="featured_image" name="featured_image" accept="image/*">
-                                    <p class="description"><?php echo $edit_mode ? esc_html__( 'Upload a new image to replace the current one.', 'generatepress_child' ) : esc_html__( 'Upload an image for your band profile (e.g., logo, band photo).', 'generatepress_child' ); ?></p>
-                                </div>
+                                        <?php if ( $edit_mode ) : ?>
+                                        <!-- Item 2: Roster -->
+                                        <div class="shared-tab-item">
+                                            <button type="button" class="shared-tab-button" data-tab="manage-band-profile-roster-content">
+                                                <?php esc_html_e( 'Roster', 'generatepress_child' ); ?>
+                                                <span class="shared-tab-arrow"></span>
+                                            </button>
+                                            <div id="manage-band-profile-roster-content" class="shared-tab-pane">
+                                                <?php
+                                                get_template_part('forum-features/band-platform/manage-band-profile-tabs/tab', 'roster');
+                                                ?>
+                                            </div>
+                                        </div>
 
-                                <!-- Band Header Image -->
-                                <div class="form-group">
-                                    <label><?php esc_html_e( 'Current Band Header Image', 'generatepress_child' ); ?></label>
-                                    <?php 
-                                    $current_header_image_id = $edit_mode ? get_post_meta( $target_band_id, '_band_profile_header_image_id', true ) : null;
-                                    if ( $edit_mode && $current_header_image_id ) : ?>
-                                        <div class="current-image-preview"><?php echo wp_get_attachment_image( $current_header_image_id, 'medium' ); ?></div>
-                                    <?php elseif ( $edit_mode ) : ?>
-                                        <p><?php esc_html_e( 'No current header image set.', 'generatepress_child' ); ?></p>
-                                    <?php endif; ?>
-                                    <label for="band_header_image" class="image-upload-label"><?php echo $edit_mode ? esc_html__( 'Upload New Band Header Image (Optional)', 'generatepress_child' ) : esc_html__( 'Upload Band Header Image', 'generatepress_child' ); ?></label>
-                                    <input type="file" id="band_header_image" name="band_header_image" accept="image/*">
-                                    <p class="description"><?php echo $edit_mode ? esc_html__( 'Upload a new image to replace the current band header.', 'generatepress_child' ) : esc_html__( 'Upload a wide image to be used as the header/banner for your band profile.', 'generatepress_child' ); ?></p>
-                                </div>
-
-                                <!-- Band Name -->
-                                <div class="form-group">
-                                    <label for="band_title"><?php esc_html_e( 'Band Name *', 'generatepress_child' ); ?></label>
-                                    <input type="text" id="band_title" name="band_title" required value="<?php echo esc_attr( $band_post->post_title ); ?>">
-                                </div>
-
-                                <!-- City / Region (Moved Up) -->
-                                <div class="form-group">
-                                    <label for="local_city"><?php esc_html_e( 'City / Region', 'generatepress_child' ); ?></label>
-                                    <input type="text" id="local_city" name="local_city" value="<?php echo esc_attr( $current_local_city ); ?>" placeholder="e.g., Austin, TX">
-                                </div>
-
-                                <div class="form-group">
-                                    <label for="genre"><?php esc_html_e( 'Genre', 'generatepress_child' ); ?></label>
-                                    <input type="text" id="genre" name="genre" value="<?php echo esc_attr( $current_genre ); ?>" placeholder="e.g., Indie Rock, Electronic, Folk">
-                                </div>
-                                <div class="form-group">
-                                    <label for="band_bio"><?php esc_html_e( 'Band Bio', 'generatepress_child' ); ?></label>
-                                    <textarea id="band_bio" name="band_bio" rows="10"><?php echo esc_textarea( $edit_mode ? $band_post->post_content : '' ); ?></textarea>
-                                    <?php // wp_editor( $edit_mode ? $band_post->post_content : '', 'band_bio', array('textarea_name' => 'band_bio', 'media_buttons' => false, 'teeny' => true, 'textarea_rows' => 10) ); ?>
-                                </div>
-
-                                <!-- Social Links Section (Matching tab-links.php structure) -->
-                                <div id="bp-social-icons-section">
-                                    <h2><?php esc_html_e( 'Social Links', 'generatepress_child' ); ?></h2>
-                                    <?php 
-                                    $band_profile_social_links_data = array(); // Renamed to avoid conflict if var is used elsewhere
-                                    if ( $edit_mode && $target_band_id > 0 ) {
-                                        $band_profile_social_links_data = get_post_meta( $target_band_id, '_band_profile_social_links', true );
-                                        if ( ! is_array( $band_profile_social_links_data ) ) {
-                                            $band_profile_social_links_data = array();
-                                        }
-                                    }
-                                    ?>
-                                    <input type="hidden" name="band_profile_social_links_json" id="band_profile_social_links_json" value="<?php echo esc_attr(json_encode($band_profile_social_links_data)); ?>">
-                                    
-                                    <div id="bp-social-icons-list">
-                                        <!-- JS will render the list of social icons here -->
+                                        <!-- Item 3: Followers -->
+                                        <div class="shared-tab-item">
+                                            <button type="button" class="shared-tab-button" data-tab="manage-band-profile-followers-content">
+                                                <?php esc_html_e( 'Followers', 'generatepress_child' ); ?>
+                                                <span class="shared-tab-arrow"></span>
+                                            </button>
+                                            <div id="manage-band-profile-followers-content" class="shared-tab-pane">
+                                                <?php 
+                                                include( get_stylesheet_directory() . '/forum-features/band-platform/manage-band-profile-tabs/tab-followers.php' );
+                                                ?>
+                                            </div>
+                                        </div>
+                                        <?php endif; ?>
                                     </div>
-                                    <button type="button" id="bp-add-social-icon-btn" class="button button-secondary bp-add-social-icon-btn">
-                                        <i class="fas fa-plus"></i> <?php esc_html_e('Add Social Icon', 'generatepress_child'); ?>
-                                    </button>
+
+                                    <div class="shared-desktop-tab-content-area" style="display: none;"></div>
                                 </div>
-                                <!-- End Social Links Section -->
-
-                                <?php // --- MANAGE MEMBERS SECTION (Edit Mode Only) ---
-                                if ( $edit_mode && $target_band_id > 0 ) : 
-                                    $current_user_id = get_current_user_id(); 
-                                    // $linked_members = bp_get_linked_members( $target_band_id ); // Moved to new function
-
-                                    // --- Call the dedicated function to display the members section ---
-                                    if ( function_exists( 'bp_display_manage_members_section' ) ) {
-                                        bp_display_manage_members_section( $target_band_id, $current_user_id );
-                                    } else {
-                                        echo '<p>' . esc_html__('Error: Member management UI could not be loaded.', 'generatepress_child') . '</p>';
-                                    }
-                                    // --- END MANAGE MEMBERS SECTION ---
-                                else : // Not in edit mode, or no target_band_id ?>
-                                    <?php // Optionally display a message or nothing if not in edit mode ?>
-                                <?php endif; // end if $edit_mode ?>
                                 
-                                <hr style="margin: 2em 0;">
-
-                                <?php
-                                // After permission checks and before or after the form, in edit mode:
-                                if ( $edit_mode && $target_band_id > 0 ) {
-                                    $link_page_id = get_post_meta( $target_band_id, '_extrch_link_page_id', true );
-                                    $manage_url = add_query_arg( array( 'band_id' => $target_band_id ), site_url( '/manage-link-page/' ) );
-                                    $label = empty( $link_page_id ) ? __( 'Create Link Page', 'generatepress_child' ) : __( 'Manage Link Page', 'generatepress_child' );
-                                    echo '<div class="bp-notice bp-notice-info link-page-manage-button-container">';
-                                    echo '<a href="' . esc_url( $manage_url ) . '" class="button button-primary">' . esc_html( $label ) . '</a>';
-                                    echo '</div>';
-                                }
-                                ?>
-
                                 <!-- Submission -->
                                 <div class="form-group submit-group">
                                     <input type="submit" name="<?php echo esc_attr( $submit_name ); ?>" class="button button-primary" value="<?php echo esc_attr( $submit_value ); ?>" />
@@ -318,6 +349,25 @@ get_header(); ?>
 			<?php do_action( 'generate_after_main_content' ); ?>
 		</main><!-- #main -->
 	</div><!-- #primary -->
+
+<?php // Script for tab functionality removed, will be handled by shared-tabs.js ?>
+
+<script type="text/javascript">
+document.addEventListener('DOMContentLoaded', function() {
+    // Logic for Band Switcher Dropdown - KEEP THIS SEPARATE SCRIPT
+    const bandSwitcher = document.getElementById('band-switcher-select');
+    if (bandSwitcher) {
+        bandSwitcher.addEventListener('change', function() {
+            const baseUrl = "<?php echo esc_url(get_permalink(get_the_ID())); ?>"; // Get current page's URL
+            if (this.value) { // If a band ID is selected
+                window.location.href = baseUrl + '?band_id=' + this.value;
+            } else { // If '-- Create New Band --' (empty value) is selected
+                window.location.href = baseUrl;
+            }
+        });
+    }
+});
+</script>
 
 <?php 
 do_action( 'generate_after_primary_content_area' );

@@ -112,10 +112,15 @@ defined( 'ABSPATH' ) || exit;
 		</div>
 	</div>
 
-	<?php // ARTIST Fieldset ?>
-	<?php if (get_user_meta(bbp_get_displayed_user_id(), 'user_is_artist', true)) : ?>
+	<?php // ARTIST/PROFESSIONAL Fieldset ?>
+	<?php 
+	$displayed_user_id = bbp_get_displayed_user_id();
+	$is_artist_profile = get_user_meta($displayed_user_id, 'user_is_artist', true) === '1';
+	$is_professional_profile = get_user_meta($displayed_user_id, 'user_is_professional', true) === '1';
+	if ($is_artist_profile || $is_professional_profile) : 
+	?>
 	<div class="bbp-user-profile-card">
-		<h2 class="entry-title"><?php esc_html_e('Artist Details', 'bbpress'); ?></h2>
+		<h2 class="entry-title"><?php esc_html_e('Band Platform', 'bbpress'); ?></h2>
 		<fieldset class="bbp-form">
 
 			<?php /* Artist Name, Band Name, Genre, Influences are now part of the Band Profile CPT, not the user profile */ ?>

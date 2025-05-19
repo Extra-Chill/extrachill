@@ -32,14 +32,6 @@ defined( 'ABSPATH' ) || exit;
                 // Local upvote count function
                 $upvote_count = get_upvote_count($reply_id); // Ensure this function is adapted to your setup
 
-                // Check if reply links to a main site post
-                $main_site_post_id = get_post_meta($reply_id, 'main_site_post_id', true);
-                if ($main_site_post_id) {
-                    $upvote_data = fetch_upvote_counts_from_extrachill([$main_site_post_id]);
-                    $upvote_info = isset($upvote_data[$main_site_post_id]) ? $upvote_data[$main_site_post_id] : ['count' => 0];
-                    $upvote_count = $upvote_info['count'];
-                }
-
                 // Example offset for display
                 $display_upvote_count = $upvote_count + 1;
                 ?>

@@ -76,8 +76,6 @@ function extrachill_get_upvoted_posts($post_type, $user_id = null) {
 
     // Support both 'paged' (archives) and 'page' (static page) pagination vars
     $paged = max( 1, get_query_var('paged'), get_query_var('page') );
-    $private_forum_ids = extrachill_get_private_forum_ids();
-    $is_user_extrachill_team = is_user_logged_in() && get_user_meta($current_user_id, 'extrachill_team', true) == '1';
 
     $args = array(
         'post_type' => $post_type,
@@ -86,10 +84,6 @@ function extrachill_get_upvoted_posts($post_type, $user_id = null) {
         'posts_per_page' => get_option('posts_per_page'),
         'paged' => $paged,
     );
-
-    if (!$is_user_extrachill_team) {
-        $args['post_parent__not_in'] = $private_forum_ids;
-    }
 
     $posts_query = new WP_Query($args);
     return $posts_query;

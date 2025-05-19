@@ -6,21 +6,82 @@
     }
     manager.linkSections = manager.linkSections || {};
 
+    // Utility function to escape HTML entities
+    function escapeHTML(str) {
+        if (typeof str !== 'string') return '';
+        return str.replace(/[&<>"'`]/g, function (match) {
+            switch (match) {
+                case '&': return '&amp;';
+                case '<': return '&lt;';
+                case '>': return '&gt;';
+                case '"': return '&quot;';
+                case "'": return '&#39;'; // &apos; is not recommended by HTML5/XHTML1; &#39; is better.
+                case '`': return '&#96;'; // Grave accent
+                default: return match;
+            }
+        });
+    }
+
+    const TEMPORARY_REDIRECT_CODE = '302';
+    const PERMANENT_REDIRECT_CODE = '301';
+
+    let isInitialized = false;
+    let isInitialLinkRender = true; // To prevent console warnings on first load if previewEl is not yet ready
+
+    let sectionsSortableInstance = null; // For the main sections list
+    // For links within sections, instances will be attached to their respective DOM elements.
+
     manager.linkSections.init = function() {
-        let sections = JSON.parse(JSON.stringify(manager.initialLinkSectionsData || []));
-        if (sections.length && sections[0] && !sections[0].links) { // Backward compatibility for old flat link structure
-            sections = [{ section_title: '', links: sections }];
-        }
-        const sectionsListEl = document.getElementById('bp-link-sections-list');
         const inputEl = document.getElementById('link_page_links_json');
-        let isInitialLinkRender = true;
+        let initialSectionsDataString = '[]'; // Default to an empty array string
+        if (inputEl && inputEl.value) {
+            initialSectionsDataString = inputEl.value;
+        } else if (manager.initialLinkSectionsData) { // Fallback to the manager's property if input is missing
+            try {
+                initialSectionsDataString = JSON.stringify(manager.initialLinkSectionsData);
+            } catch (e) {
+                console.error('[LinksBrain] Error stringifying manager.initialLinkSectionsData:', e);
+                initialSectionsDataString = '[]';
+            }
+        }
+        
+        let sections = [];
+        try {
+            sections = JSON.parse(initialSectionsDataString);
+            // Ensure it's an array after parsing
+            if (!Array.isArray(sections)) {
+                console.warn('[LinksBrain] Parsed initial links data is not an array. Defaulting to empty array. Data:', sections);
+                sections = [];
+            }
+        } catch (e) {
+            console.error('[LinksBrain] Error parsing initial links JSON from input/manager. Defaulting to empty array. Error:', e, 'Data string:', initialSectionsDataString);
+            sections = [];
+        }
+
+        // Backward compatibility for old flat link structure OR ensure sections.links is an array
+        if (sections.length > 0) {
+            if (sections[0] && typeof sections[0].links === 'undefined' && typeof sections[0].section_title === 'undefined') {
+                // This condition suggests it's an old flat array of links, not sections. Wrap it in a default section.
+                console.warn('[LinksBrain] Detected old flat link structure. Wrapping in a default section.');
+                sections = [{ section_title: '', links: sections }];
+            } else {
+                // Ensure all sections have a `links` array
+                sections.forEach(section => {
+                    if (!section || !Array.isArray(section.links)) {
+                        if (section) section.links = []; // Initialize as empty array if not already an array
+                        else section = { section_title: '', links: [] }; // Should not happen if initial parsing is robust
+                    }
+                });
+            }
+        }
+
+        const sectionsListEl = document.getElementById('bp-link-sections-list');
 
         let expirationModal = document.getElementById('bp-link-expiration-modal');
         if (!expirationModal) {
             expirationModal = document.createElement('div');
             expirationModal.id = 'bp-link-expiration-modal';
             expirationModal.className = 'bp-link-expiration-modal';
-            expirationModal.style.display = 'none';
             expirationModal.innerHTML = `
                 <div class="bp-link-expiration-modal-inner">
                     <h3 class="bp-link-expiration-modal-title">Set Link Expiration</h3>
@@ -41,7 +102,7 @@
         let expirationModalLinkIdx = null;
 
         function openExpirationModal(sectionIdx, linkIdx, currentValue) {
-            expirationModal.style.display = 'block';
+            expirationModal.classList.add('is-active');
             expirationModalSectionIdx = sectionIdx;
             expirationModalLinkIdx = linkIdx;
             const dtInput = document.getElementById('bp-link-expiration-datetime');
@@ -49,7 +110,7 @@
             dtInput.focus();
         }
         function closeExpirationModal() {
-            expirationModal.style.display = 'none';
+            expirationModal.classList.remove('is-active');
             expirationModalSectionIdx = null;
             expirationModalLinkIdx = null;
         }
@@ -60,7 +121,7 @@
         document.getElementById('bp-clear-link-expiration').onclick = function() {
             if (expirationModalSectionIdx !== null && expirationModalLinkIdx !== null) {
                 sections[expirationModalSectionIdx].links[expirationModalLinkIdx].expires_at = '';
-                updateInput();
+                updateInput(); // This will call renderSections and re-init sortables
             }
             closeExpirationModal();
         };
@@ -68,7 +129,7 @@
             const dtInput = document.getElementById('bp-link-expiration-datetime');
             if (expirationModalSectionIdx !== null && expirationModalLinkIdx !== null) {
                 sections[expirationModalSectionIdx].links[expirationModalLinkIdx].expires_at = dtInput.value;
-                updateInput();
+                updateInput(); // This will call renderSections and re-init sortables
             }
             closeExpirationModal();
         };
@@ -90,7 +151,6 @@
                     expirationHiddenInput.value = expirationEnabled ? '1' : '0';
                 }
                 renderSections(); // Re-render to show/hide expiration icons
-                if (manager.updatePreviewViaAJAX) manager.updatePreviewViaAJAX(); // Update preview as this affects display
             });
             if (expirationHiddenInput && expirationToggle.checked !== (expirationHiddenInput.value === '1')) {
                  expirationHiddenInput.value = expirationToggle.checked ? '1' : '0';
@@ -103,68 +163,139 @@
                 if (expirationHiddenInput && expirationToggle) {
                     expirationHiddenInput.value = expirationToggle.checked ? '1' : '0';
                 }
+                // Ensure the final state of sections is in the input before submit
+                if (inputEl) {
+                    inputEl.value = JSON.stringify(sections);
+                }
+            });
+        }
+
+        function initializeSortableForSections() {
+            if (sectionsSortableInstance) {
+                sectionsSortableInstance.destroy();
+                sectionsSortableInstance = null;
+            }
+            if (sectionsListEl && typeof Sortable !== 'undefined') {
+                sectionsSortableInstance = new Sortable(sectionsListEl, {
+                    animation: 150,
+                    handle: '.bp-section-drag-handle',
+                    onEnd: function (evt) {
+                        if (evt.oldIndex === evt.newIndex) return;
+                        const item = sections.splice(evt.oldIndex, 1)[0];
+                        sections.splice(evt.newIndex, 0, item);
+                        renderSections(); // Re-render to fix indices, which calls updateInput()
+                    }
+                });
+            }
+        }
+
+        function initializeSortableForLinksInSections() {
+            if (typeof Sortable === 'undefined') return;
+            document.querySelectorAll('.bp-link-list').forEach((listEl) => {
+                if (listEl.sortableLinkInstance) { // Check for instance attached to the element
+                    listEl.sortableLinkInstance.destroy();
+                    listEl.sortableLinkInstance = null;
+                }
+                listEl.sortableLinkInstance = new Sortable(listEl, {
+                    animation: 150,
+                    handle: '.bp-link-drag-handle', 
+                    group: 'linksGroup',
+                    onEnd: function(evt) {
+                        const fromSectionEl = evt.from.closest('.bp-link-section');
+                        const toSectionEl = evt.to.closest('.bp-link-section');
+                        if (!fromSectionEl || !toSectionEl) return; // Should not happen
+
+                        const fromSectionIdx = parseInt(fromSectionEl.dataset.sidx);
+                        const toSectionIdx = parseInt(toSectionEl.dataset.sidx);
+                        const oldLinkIndex = evt.oldDraggableIndex;
+                        const newLinkIndex = evt.newDraggableIndex;
+
+                        if (isNaN(fromSectionIdx) || isNaN(toSectionIdx)) return;
+
+                        if (fromSectionIdx === toSectionIdx) {
+                            if (sections[fromSectionIdx] && sections[fromSectionIdx].links) {
+                                const item = sections[fromSectionIdx].links.splice(oldLinkIndex, 1)[0];
+                                sections[fromSectionIdx].links.splice(newLinkIndex, 0, item);
+                            }
+                        } else {
+                            if (sections[fromSectionIdx] && sections[fromSectionIdx].links && sections[toSectionIdx] && sections[toSectionIdx].links) {
+                                const linkToMove = sections[fromSectionIdx].links.splice(oldLinkIndex, 1)[0];
+                                sections[toSectionIdx].links.splice(newLinkIndex, 0, linkToMove);
+                            }
+                        }
+                        renderSections(); // Re-render to fix indices, which calls updateInput()
+                    }
+                });
             });
         }
 
         function renderSections() {
             if (!sectionsListEl) return;
+
+            if (sectionsSortableInstance) { // Destroy sortable for main sections list
+                sectionsSortableInstance.destroy();
+                sectionsSortableInstance = null;
+            }
+            // Destroy sortable for individual link lists before clearing their parent container
+            document.querySelectorAll('.bp-link-list').forEach(listEl => {
+                if (listEl.sortableLinkInstance) {
+                    listEl.sortableLinkInstance.destroy();
+                    listEl.sortableLinkInstance = null;
+                }
+            });
+
             sectionsListEl.innerHTML = '';
             const showSectionMoveButtons = sections.length > 1;
 
             sections.forEach((section, sidx) => {
                 const sectionDiv = document.createElement('div');
                 sectionDiv.className = 'bp-link-section';
-                sectionDiv.style.marginBottom = '2em';
+                sectionDiv.dataset.sidx = sidx; // Add section index for SortableJS reference
 
-                const moveUpButtonHtml = showSectionMoveButtons ? `<button type="button" class="button bp-move-section-up-btn" data-sidx="${sidx}" title="Move Section Up" ${sidx === 0 ? 'disabled' : ''}>&#8593;</button>` : '';
-                const moveDownButtonHtml = showSectionMoveButtons ? `<button type="button" class="button bp-move-section-down-btn" data-sidx="${sidx}" title="Move Section Down" ${sidx === sections.length - 1 ? 'disabled' : ''}>&#8595;</button>` : '';
+                const sectionHeaderDiv = document.createElement('div');
+                sectionHeaderDiv.className = 'bp-link-section-header';
 
-                sectionDiv.innerHTML = `
-                    <div class="bp-link-section-header" style="display:flex;align-items:center;gap:8px;margin-bottom:0.7em;">
-                        <input type="text" class="bp-link-section-title" placeholder="Section Title (optional)" value="${section.section_title||''}" data-sidx="${sidx}" style="font-weight:700;font-size:1.08em;flex:1;min-width:0;">
-                        <div class="bp-section-actions-group">
-                            ${moveUpButtonHtml}
-                            ${moveDownButtonHtml}
-                            <a href="#" class="bp-remove-link-section-btn bp-remove-item-link" data-sidx="${sidx}" title="Remove Section" style="color:red;text-decoration:none;">&times;</a>
-                        </div>
+                // Add drag handle for the section, ensure .bp-section-drag-handle class is used.
+                sectionHeaderDiv.innerHTML = `
+                    <span class="bp-section-drag-handle drag-handle"><i class="fas fa-grip-vertical"></i></span>
+                    <input type="text" class="bp-link-section-title" placeholder="Section Title (optional)" value="${escapeHTML(section.section_title || '')}" data-sidx="${sidx}">
+                    <div class="bp-section-actions-group ml-auto">
+                        <a href="#" class="bp-remove-link-section-btn bp-remove-item-link" data-sidx="${sidx}" title="Remove Section">&times;</a>
                     </div>
-                    <div class="bp-link-list"></div>
-                    <button type="button" class="button button-secondary bp-add-link-btn" data-sidx="${sidx}" style="margin-top:1em;"><i class="fas fa-plus"></i> Add Link</button>
                 `;
-                sectionDiv.querySelector('.bp-link-section-title').addEventListener('input', function() {
+
+                sectionDiv.appendChild(sectionHeaderDiv);
+
+                const sectionTitleInput = sectionHeaderDiv.querySelector('.bp-link-section-title');
+                sectionTitleInput.addEventListener('input', function() {
                     sections[sidx].section_title = this.value;
                     updateInput();
                 });
-                sectionDiv.querySelector('.bp-remove-link-section-btn').addEventListener('click', function(e) {
+
+                const removeSectionBtn = sectionHeaderDiv.querySelector('.bp-remove-link-section-btn');
+                removeSectionBtn.addEventListener('click', function(e) {
                     e.preventDefault();
                     sections.splice(sidx, 1);
                     renderSections(); // This will call updateInput() at the end
                 });
 
-                if (showSectionMoveButtons) {
-                    const moveUpBtn = sectionDiv.querySelector('.bp-move-section-up-btn');
-                    if (moveUpBtn) {
-                        moveUpBtn.addEventListener('click', function() {
-                            if (sidx === 0) return;
-                            [sections[sidx-1], sections[sidx]] = [sections[sidx], sections[sidx-1]];
-                            renderSections();
-                        });
-                    }
-                    const moveDownBtn = sectionDiv.querySelector('.bp-move-section-down-btn');
-                    if (moveDownBtn) {
-                        moveDownBtn.addEventListener('click', function() {
-                            if (sidx === sections.length-1) return;
-                            [sections[sidx+1], sections[sidx]] = [sections[sidx], sections[sidx+1]];
-                            renderSections();
-                        });
-                    }
-                }
+                const linksListDiv = document.createElement('div');
+                linksListDiv.className = 'bp-link-list';
+                sectionDiv.appendChild(linksListDiv);
 
-                sectionDiv.querySelector('.bp-add-link-btn').addEventListener('click', function() {
+                const addLinkBtn = document.createElement('button');
+                addLinkBtn.type = 'button';
+                addLinkBtn.className = 'button button-secondary bp-add-link-btn';
+                addLinkBtn.innerHTML = '<i class="fas fa-plus"></i> Add Link';
+                addLinkBtn.dataset.sidx = sidx;
+                sectionDiv.appendChild(addLinkBtn);
+
+                addLinkBtn.addEventListener('click', function() {
                     sections[sidx].links.push({link_text:'',link_url:'', link_is_active: true, expires_at: ''});
                     renderSections();
                 });
-                const listEl = sectionDiv.querySelector('.bp-link-list');
+                
+                const listEl = linksListDiv;
                 if (!listEl) return; // Should not happen
                 listEl.innerHTML = '';
                 
@@ -172,87 +303,70 @@
                 section.links.forEach((link, lidx) => {
                     const row = document.createElement('div');
                     row.className = 'bp-link-item';
-                    row.style.display = 'flex';
-                    row.style.alignItems = 'center';
-                    row.style.gap = '8px';
+
                     let expirationIconHtml = '';
                     if (expirationEnabled) {
-                        expirationIconHtml = `<span class="bp-link-expiration-icon" title="Set expiration date" style="cursor:pointer;font-size:1.2em;color:#b48a00;user-select:none;" data-sidx="${sidx}" data-lidx="${lidx}">&#x23F3;</span>`;
+                        expirationIconHtml = `<span class="bp-link-expiration-icon" title="Set expiration date" data-sidx="${sidx}" data-lidx="${lidx}">&#x23F3;</span>`;
                     }
                     row.innerHTML = `
-                        <input type="text" placeholder="Link Text" value="${link.link_text||''}" style="flex:2;">
-                        <input type="url" placeholder="URL" value="${link.link_url||''}" style="flex:3;">
+                        <span class="bp-link-drag-handle drag-handle"><i class="fas fa-grip-vertical"></i></span>
+                        <input type="text" class="bp-link-text-input" placeholder="Link Text" value="${escapeHTML(link.link_text || '')}">
+                        <input type="url" class="bp-link-url-input" placeholder="URL" value="${escapeHTML(link.link_url || '')}">
                         ${expirationIconHtml}
-                        <button type="button" class="button bp-move-link-up-btn" title="Move Up" ${lidx === 0 ? 'disabled' : ''}>&#8593;</button>
-                        <button type="button" class="button bp-move-link-down-btn" title="Move Down" ${lidx === numLinks - 1 ? 'disabled' : ''}>&#8595;</button>
-                        <a href="#" class="bp-remove-link-btn bp-remove-item-link" title="Remove Link" style="color:red;text-decoration:none;margin-left:auto;">&times;</a>
+                        <a href="#" class="bp-remove-link-btn bp-remove-item-link ml-auto" title="Remove Link">&times;</a>
                     `;
-                    row.querySelector('input[placeholder="Link Text"]').addEventListener('input', function() {
+
+                    row.querySelector('.bp-link-text-input').addEventListener('input', function() {
                         sections[sidx].links[lidx].link_text = this.value;
                         updateInput();
                     });
-                    row.querySelector('input[placeholder="URL"]').addEventListener('input', function() {
+                    row.querySelector('.bp-link-url-input').addEventListener('input', function() {
                         sections[sidx].links[lidx].link_url = this.value;
                         updateInput();
                     });
-                    row.querySelector('.bp-remove-link-btn').addEventListener('click', function(e) {
+                    const removeLinkBtn = row.querySelector('.bp-remove-link-btn');
+                    removeLinkBtn.addEventListener('click', function(e) {
                         e.preventDefault();
                         sections[sidx].links.splice(lidx, 1);
                         renderSections();
                     });
                     
-                    const moveUpBtn = row.querySelector('.bp-move-link-up-btn');
-                    if (moveUpBtn) {
-                        moveUpBtn.addEventListener('click', function() {
-                            if (lidx === 0) return;
-                            [sections[sidx].links[lidx-1], sections[sidx].links[lidx]] = [sections[sidx].links[lidx], sections[sidx].links[lidx-1]];
-                            renderSections();
-                        });
-                    }
-                    const moveDownBtn = row.querySelector('.bp-move-link-down-btn');
-                    if (moveDownBtn) {
-                        moveDownBtn.addEventListener('click', function() {
-                            if (lidx === sections[sidx].links.length-1) return;
-                            [sections[sidx].links[lidx+1], sections[sidx].links[lidx]] = [sections[sidx].links[lidx], sections[sidx].links[lidx+1]];
-                            renderSections();
-                        });
-                    }
                     if (expirationEnabled) {
-                        const icon = row.querySelector('.bp-link-expiration-icon');
-                        if (icon) {
-                            icon.addEventListener('click', function() {
-                                openExpirationModal(sidx, lidx, link.expires_at || '');
+                        const expIcon = row.querySelector('.bp-link-expiration-icon');
+                        if (expIcon) {
+                            expIcon.addEventListener('click', function() {
+                                const currentExpiration = sections[sidx].links[lidx].expires_at || '';
+                                openExpirationModal(sidx, lidx, currentExpiration);
                             });
-                            if (link.expires_at) {
-                                icon.style.color = '#e74c3c'; // Red if expiration is set
-                                icon.title = 'Expires: ' + new Date(link.expires_at).toLocaleString();
-                            } else {
-                                icon.style.color = '#b48a00'; // Default gold/yellow
-                                icon.title = 'Set expiration date';
-                            }
                         }
                     }
                     listEl.appendChild(row);
                 });
                 sectionsListEl.appendChild(sectionDiv);
             });
-            updateInput(); // Final update after rendering all sections
-            isInitialLinkRender = false;
+            updateInput(); // Call updateInput after rendering admin UI to also update preview
+            
+            // Re-initialize SortableJS for sections and for links within sections
+            initializeSortableForSections();
+            initializeSortableForLinksInSections();
         }
 
         function updateInput() {
-            if (!inputEl) return;
-            inputEl.value = JSON.stringify(sections);
-            // Dispatch input event for other scripts (like main AJAX updater) to listen to
-            const event = new Event('input', { bubbles: true, cancelable: true });
-            inputEl.dispatchEvent(event);
+            if (inputEl) {
+                inputEl.value = JSON.stringify(sections);
+            }
 
-            // Call the main AJAX preview update function if it exists and not initial render
-            if (!isInitialLinkRender && manager.updatePreviewViaAJAX) {
-                 if (!manager.debouncedUpdatePreviewLinks) {
-                    manager.debouncedUpdatePreviewLinks = debounce(manager.updatePreviewViaAJAX, 350);
+            // Update the live preview
+            if (manager.contentPreview && typeof manager.contentPreview.renderLinkSections === 'function') {
+                const { previewEl, contentWrapperEl } = getPreviewElements();
+
+                if (previewEl && contentWrapperEl) {
+                    manager.contentPreview.renderLinkSections(sections, previewEl, contentWrapperEl);
+                } else {
+                    // console.warn('[LinksBrain] Cannot render link sections to preview: previewEl or contentWrapperEl not found.');
                 }
-                manager.debouncedUpdatePreviewLinks();
+            } else {
+                // console.warn('[LinksBrain] manager.contentPreview.renderLinkSections is not available.');
             }
         }
 
@@ -271,11 +385,142 @@
         }
     };
 
-    // Initialize when the DOM is ready
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', manager.linkSections.init);
-    } else {
-        manager.linkSections.init();
+    function getPreviewElements() {
+        let previewElInsideIframe = null;
+        if (typeof manager.getPreviewEl === 'function') {
+            previewElInsideIframe = manager.getPreviewEl();
+        } else {
+            if (!isInitialLinkRender) console.warn('[LinksBrain] manager.getPreviewEl is not available.');
+            return { previewEl: null, contentWrapperEl: null };
+        }
+
+        let contentWrapperEl = null;
+        if (previewElInsideIframe) {
+            contentWrapperEl = previewElInsideIframe.querySelector('.extrch-link-page-content-wrapper');
+        } else {
+            // REMOVE: if (!isInitialLinkRender) console.warn('[LinksBrain] previewElInsideIframe is null, cannot find .extrch-link-page-content-wrapper');
+        }
+        
+        if (!contentWrapperEl && previewElInsideIframe) {
+            // REMOVE: // console.warn('[LinksBrain] .extrch-link-page-content-wrapper not found directly under previewEl. Searching deeper.');
+        }
+        
+        isInitialLinkRender = false; // Subsequent calls are not initial
+        return { previewEl: previewElInsideIframe, contentWrapperEl: contentWrapperEl };
     }
 
-})(window.ExtrchLinkPageManager);
+    function initializeLinksTab() {
+        if (isInitialized) return;
+
+        mainContainerEl = document.getElementById('bp-manage-link-page-links-container');
+        if (!mainContainerEl) {
+            // console.log("Links tab container not found. Skipping links initialization.");
+            return;
+        }
+
+        inputEl = document.getElementById('link_page_links_json');
+        addSectionBtn = document.getElementById('bp-links-add-section-btn');
+        sectionsContainerEl = document.getElementById('bp-links-sections-list');
+        
+        // Modals
+        expirationModal = document.getElementById('bp-link-expiration-modal');
+        const expirationCloseBtn = document.querySelector('#bp-link-expiration-modal .bp-modal-close');
+        const expirationSaveBtn = document.getElementById('bp-save-link-expiration');
+        const expirationClearBtn = document.getElementById('bp-clear-link-expiration');
+        const expirationCancelBtn = document.getElementById('bp-cancel-link-expiration');
+
+        if (!inputEl || !addSectionBtn || !sectionsContainerEl || !expirationModal || !expirationCloseBtn || !expirationSaveBtn || !expirationClearBtn || !expirationCancelBtn) {
+            console.error('One or more required elements for the links tab are missing from the DOM.');
+            return;
+        }
+
+        // Load initial sections from the hidden input
+        try {
+            const initialData = JSON.parse(inputEl.value || '[]');
+            if (Array.isArray(initialData)) {
+                sections = initialData;
+            }
+        } catch (e) {
+            console.error("Error parsing initial links JSON:", e);
+            sections = [];
+        }
+
+        renderSections();
+        updateInput(); // Initial render for preview if possible
+
+        addSectionBtn.addEventListener('click', handleAddSection);
+        sectionsContainerEl.addEventListener('click', handleSectionAction); // Delegated event listener
+
+        // Expiration Modal Listeners
+        expirationCloseBtn.addEventListener('click', closeExpirationModal);
+        expirationSaveBtn.addEventListener('click', saveExpirationDateTime);
+        expirationClearBtn.addEventListener('click', clearExpirationDateTime);
+        expirationCancelBtn.addEventListener('click', closeExpirationModal);
+        expirationModal.addEventListener('click', function(e) {
+            if (e.target === expirationModal) closeExpirationModal();
+        });
+        
+        // Initialize SortableJS for sections and links
+        if (typeof Sortable !== 'undefined') {
+            new Sortable(sectionsContainerEl, {
+                animation: 150,
+                handle: '.bp-section-drag-handle',
+                onEnd: function (evt) {
+                    if (evt.oldIndex === evt.newIndex) return;
+                    const item = sections.splice(evt.oldIndex, 1)[0];
+                    sections.splice(evt.newIndex, 0, item);
+                    renderSections(); // Re-render to fix indices, which calls updateInput()
+                }
+            });
+
+            // Initialize sortable for links within each section after sections are rendered
+            document.querySelectorAll('.bp-link-list').forEach((listEl) => {
+                if (!listEl.classList.contains('sortable-initialized')) {
+                    new Sortable(listEl, {
+                        animation: 150,
+                        handle: '.bp-link-drag-handle',
+                        group: 'linksGroup',
+                        onEnd: function(evt) {
+                            const fromSectionIdx = parseInt(evt.from.closest('.bp-link-section').dataset.sidx);
+                            const toSectionIdx = parseInt(evt.to.closest('.bp-link-section').dataset.sidx);
+                            const oldLinkIndex = evt.oldDraggableIndex;
+                            const newLinkIndex = evt.newDraggableIndex;
+
+                            if (fromSectionIdx === toSectionIdx) {
+                                if (sections[fromSectionIdx] && sections[fromSectionIdx].links) {
+                                    const item = sections[fromSectionIdx].links.splice(oldLinkIndex, 1)[0];
+                                    sections[fromSectionIdx].links.splice(newLinkIndex, 0, item);
+                                }
+                            } else {
+                                if (sections[fromSectionIdx] && sections[fromSectionIdx].links && sections[toSectionIdx] && sections[toSectionIdx].links) {
+                                    const linkToMove = sections[fromSectionIdx].links.splice(oldLinkIndex, 1)[0];
+                                    sections[toSectionIdx].links.splice(newLinkIndex, 0, linkToMove);
+                                }
+                            }
+                            renderSections();
+                        }
+                    });
+                    listEl.classList.add('sortable-initialized');
+                }
+            });
+        } else {
+            console.warn('SortableJS is not loaded. Drag and drop reordering for sections will not be available.');
+        }
+
+        isInitialized = true;
+        // console.log("Links Tab Initialized.");
+    }
+
+    // Wait for the main manager to be ready before initializing
+    document.addEventListener('ExtrchLinkPageManagerInitialized', function() {
+        // console.log('[LinksBrain] ExtrchLinkPageManagerInitialized event received. Initializing Links Tab.');
+        initializeLinksTab();
+    });
+
+    // Expose a re-init function on the correct namespace
+    manager.linkSections.reInitialize = initializeLinksTab; 
+
+    // Redundant DOMContentLoaded and duplicate ExtrchLinkPageManagerReady listeners should be removed if present.
+    // The primary initialization is now handled by the ExtrchLinkPageManagerReady listener above.
+
+})(window.ExtrchLinkPageManager = window.ExtrchLinkPageManager || {});

@@ -10,15 +10,6 @@
         // Fetch the upvote count. Start with the local system as default.
         $upvote_count = get_upvote_count($reply_id); // Ensure this function is adapted to your setup
         
-        // Special handling for replies linked to main site posts
-        $main_site_post_id = get_post_meta($reply_id, 'main_site_post_id', true);
-        if ($main_site_post_id) {
-            $upvote_data = fetch_upvote_counts_from_extrachill([$main_site_post_id]);
-            $upvote_info = isset($upvote_data[$main_site_post_id]) ? $upvote_data[$main_site_post_id] : ['count' => 0];
-            $upvote_count = $upvote_info['count'];
-            // The icon class remains determined by the user's upvoted_posts meta, not affected by main site linkage
-        }
-
         // Add 1 to the upvote count for display purposes
         $display_upvote_count = $upvote_count + 1;
         ?>

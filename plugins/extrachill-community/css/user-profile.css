@@ -133,6 +133,29 @@
     background-color: var(--button-hover-bg);
 }
 
+/* Styling for <a> tags as buttons within the follow button area */
+.bbp-user-profile .bbp-user-follow-button-area a.settings-button,
+.bbp-user-profile .bbp-user-follow-button-area a.extrachill-edit-profile-button {
+    background-color: var(--button-bg);
+    color: #fff;
+    border-radius: 5px;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.2s ease-in-out;
+    padding: 5px 10px;
+    font-size: 14px;
+    text-decoration: none;
+    display: inline-block;
+    line-height: normal;
+    vertical-align: middle;
+}
+
+.bbp-user-profile .bbp-user-follow-button-area a.settings-button:hover,
+.bbp-user-profile .bbp-user-follow-button-area a.extrachill-edit-profile-button:hover {
+    background-color: var(--button-hover-bg);
+    color: #fff;
+}
+
 /* New Social Links Styles */
 .bbp-user-links-inline {
     position: absolute;
@@ -162,11 +185,6 @@
 
 .social-link.utility:hover {
     color: var(--muted-text);
-}
-
-a.settings-button {
-    background-color: var(--accent-2);
-    text-decoration: none;
 }
 
 /* Adjust forum badges font size */

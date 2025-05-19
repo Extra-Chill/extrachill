@@ -23,6 +23,7 @@ require_once $link_page_dir . 'config/link-page-font-config.php';
 require_once $link_page_dir . 'config/link-page-form-handler.php';
 require_once $link_page_dir . 'config/live-preview/LivePreviewManager.php';
 require_once $link_page_dir . 'config/live-preview/live-preview-ajax.php';
+require_once $link_page_dir . 'link-page-weekly-email.php'; // Include weekly email handler
 
 
 
@@ -39,13 +40,34 @@ function extrch_link_page_enqueue_assets() {
         $js_dir = $feature_dir . '/js';
         $css_dir = $feature_dir . '/css';
 
-        // UI Utilities JS (Tabs, Copy URL, etc.)
+        // Core Manager Object Initialization (MUST be first of these JS files)
+        $core_js_path = $js_dir . '/manage-link-page-core.js';
+        if ( file_exists( $theme_dir . $core_js_path ) ) {
+            wp_enqueue_script(
+                'extrch-manage-link-page-core',
+                $theme_uri . $core_js_path,
+                array('jquery'), // Minimal dependency, jQuery usually available early.
+                filemtime( $theme_dir . $core_js_path ),
+                true
+            );
+        }
+
+        // Enqueue SortableJS library (from CDN)
+        wp_enqueue_script(
+            'sortable-js',
+            'https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js', // Specify a version
+            array(), // No WP dependencies
+            '1.15.0', // Version number
+            true // Load in footer
+        );
+
+        // UI Utilities JS (Tabs, Copy URL, etc.) - IIFE based
         $utils_js = $js_dir . '/manage-link-page-ui-utils.js';
         if ( file_exists( $theme_dir . $utils_js ) ) {
             wp_enqueue_script(
                 'extrch-manage-link-page-ui-utils',
                 $theme_uri . $utils_js,
-                array('jquery'), // 'jquery' might not be strictly needed by these utils, but often a safe default
+                array('jquery', 'extrch-manage-link-page-core'),
                 filemtime( $theme_dir . $utils_js ),
                 true
             );
@@ -57,19 +79,74 @@ function extrch_link_page_enqueue_assets() {
             wp_enqueue_script(
                 'extrch-manage-link-page',
                 $theme_uri . $main_js,
-                array('jquery'),
+                array(
+                    'jquery', 
+                    'sortable-js', 
+                    'extrch-manage-link-page-core', 
+                    'extrch-manage-link-page-ui-utils',
+                    'extrch-manage-link-page-fonts',
+                    'extrch-manage-link-page-preview-updater',
+                    'extrch-manage-link-page-customization',
+                    'extrch-manage-link-page-colors',
+                    'extrch-manage-link-page-sizing',
+                    'extrch-manage-link-page-content-renderer',
+                    'extrch-manage-link-page-info', 
+                    'extrch-manage-link-page-links', 
+                    'extrch-manage-link-page-socials', 
+                    'extrch-manage-link-page-background',
+                    'extrch-manage-link-page-advanced'
+                ),
                 filemtime( $theme_dir . $main_js ),
                 true
             );
+
+            // Localize essential data for the main management script
+            $current_band_id = isset( $_GET['band_id'] ) ? (int) $_GET['band_id'] : 0;
+            $link_page_id = 0;
+            if ( $current_band_id > 0 && class_exists('LivePreviewManager') ) {
+                // Attempt to get the link page ID associated with the band profile.
+                // This assumes LivePreviewManager has a method or we use a helper.
+                // For now, let's assume a direct meta field on band_profile or a helper:
+                // Option 1: Direct meta field (if it exists and is reliable)
+                // $link_page_id = (int) get_post_meta( $current_band_id, '_extrch_link_page_id', true );
+
+                // Option 2: Using a function similar to how page template gets it (more robust)
+                // This logic should ideally be centralized if used in multiple places.
+                $associated_link_pages = get_posts(array(
+                    'post_type' => 'band_link_page',
+                    'posts_per_page' => 1,
+                    'meta_key' => '_associated_band_profile_id',
+                    'meta_value' => $current_band_id,
+                    'fields' => 'ids',
+                ));
+                if ( !empty( $associated_link_pages ) ) {
+                    $link_page_id = $associated_link_pages[0];
+                }
+            }
+            
+            // Fallback if link_page_id is still 0 (e.g. creating new link page from band profile)
+            // The JavaScript should handle cases where link_page_id might initially be 0 if that's a valid state.
+            // However, for analytics, a valid link_page_id is crucial.
+
+            wp_localize_script(
+                'extrch-manage-link-page',
+                'extrchLinkPageConfig', // JavaScript object name
+                array(
+                    'ajax_url' => admin_url( 'admin-ajax.php' ),
+                    'nonce'    => wp_create_nonce( 'extrch_link_page_ajax_nonce' ), // More specific nonce
+                    'link_page_id' => $link_page_id, // Pass the determined link page ID
+                    'band_id' => $current_band_id, // Also pass band_id if useful for other JS modules
+                )
+            );
         }
 
-        // Font Management JS (NEW) - Must be enqueued before customization.js
+        // Font Management JS (NEW) - IIFE based
         $fonts_js_path = $js_dir . '/manage-link-page-fonts.js';
         if ( file_exists( $theme_dir . $fonts_js_path ) ) {
             wp_enqueue_script(
                 'extrch-manage-link-page-fonts',
                 $theme_uri . $fonts_js_path,
-                array('extrch-manage-link-page'), // Depends on the main manager script
+                array('jquery', 'extrch-manage-link-page-core'),
                 filemtime( $theme_dir . $fonts_js_path ),
                 true
             );
@@ -90,71 +167,127 @@ function extrch_link_page_enqueue_assets() {
             }
         }
 
-        // Customization JS
+        // Preview Updater JS (NEW - "Preview Engine") - IIFE based
+        $preview_updater_js_path = $js_dir . '/manage-link-page-preview-updater.js';
+        if ( file_exists( $theme_dir . $preview_updater_js_path ) ) {
+            wp_enqueue_script(
+                'extrch-manage-link-page-preview-updater',
+                $theme_uri . $preview_updater_js_path,
+                array('jquery', 'extrch-manage-link-page-core'),
+                filemtime( $theme_dir . $preview_updater_js_path ),
+                true
+            );
+        }
+
+        // Customization JS ("The Brain") - IIFE based
         $custom_js = $js_dir . '/manage-link-page-customization.js';
         if ( file_exists( $theme_dir . $custom_js ) ) {
             wp_enqueue_script(
                 'extrch-manage-link-page-customization',
                 $theme_uri . $custom_js,
-                array('extrch-manage-link-page', 'extrch-manage-link-page-fonts'), // Now depends on the fonts script
+                array('jquery', 'extrch-manage-link-page-core', 'extrch-manage-link-page-fonts', 'extrch-manage-link-page-preview-updater'), 
                 filemtime( $theme_dir . $custom_js ),
                 true
             );
-            // DO NOT Pass the font config to customization.js again, it's handled by the fonts module
-            // if ( isset( $extrch_link_page_fonts ) ) {
-            //     wp_localize_script( 'extrch-manage-link-page-customization', 'extrchLinkPageFonts', array_values( $extrch_link_page_fonts ) );
-            // }
         }
 
-        // Link Sections JS
+        // Colors Management JS (NEW) - IIFE based
+        $colors_js_path = $js_dir . '/manage-link-page-colors.js';
+        if ( file_exists( $theme_dir . $colors_js_path ) ) {
+            wp_enqueue_script(
+                'extrch-manage-link-page-colors',
+                $theme_uri . $colors_js_path,
+                array('jquery', 'extrch-manage-link-page-core', 'extrch-manage-link-page-customization'), 
+                filemtime( $theme_dir . $colors_js_path ),
+                true
+            );
+        }
+
+        // Sizing Management JS (NEW) - IIFE based
+        $sizing_js_path = $js_dir . '/manage-link-page-sizing.js';
+        if ( file_exists( $theme_dir . $sizing_js_path ) ) {
+            wp_enqueue_script(
+                'extrch-manage-link-page-sizing',
+                $theme_uri . $sizing_js_path,
+                array('jquery', 'extrch-manage-link-page-core', 'extrch-manage-link-page-customization'), 
+                filemtime( $theme_dir . $sizing_js_path ),
+                true
+            );
+        }
+
+        // Link Page Content Renderer JS (NEW - "Content Engine") - IIFE based
+        $content_renderer_js_path = $js_dir . '/manage-link-page-content-renderer.js';
+        if ( file_exists( $theme_dir . $content_renderer_js_path ) ) {
+            wp_enqueue_script(
+                'extrch-manage-link-page-content-renderer',
+                $theme_uri . $content_renderer_js_path,
+                array('jquery', 'extrch-manage-link-page-core'), 
+                filemtime( $theme_dir . $content_renderer_js_path ),
+                true
+            );
+        }
+
+        // Info Tab Management JS (NEW - "Info Brain") - Global Object
+        $info_js_path = $js_dir . '/manage-link-page-info.js';
+        if ( file_exists( $theme_dir . $info_js_path ) ) {
+            wp_enqueue_script(
+                'extrch-manage-link-page-info',
+                $theme_uri . $info_js_path,
+                array('jquery', 'extrch-manage-link-page-core', 'extrch-manage-link-page-content-renderer'), // Depends on core for global ExtrchLinkPageManager to exist when its init is called
+                filemtime( $theme_dir . $info_js_path ),
+                true
+            );
+        }
+
+        // Link Sections JS ("Links Brain") - Global Object
         $links_module_js = $js_dir . '/manage-link-page-links.js';
         if ( file_exists( $theme_dir . $links_module_js ) ) {
             wp_enqueue_script(
                 'extrch-manage-link-page-links',
                 $theme_uri . $links_module_js,
-                array('extrch-manage-link-page'), // Depends on the main manager script
+                array('jquery', 'extrch-manage-link-page-core', 'extrch-manage-link-page-content-renderer', 'sortable-js'), 
                 filemtime( $theme_dir . $links_module_js ),
                 true
             );
         }
 
-        // Social Icons JS
+        // Social Icons JS - Global Object
         $socials_module_js = $js_dir . '/manage-link-page-socials.js';
         if ( file_exists( $theme_dir . $socials_module_js ) ) {
             wp_enqueue_script(
                 'extrch-manage-link-page-socials',
                 $theme_uri . $socials_module_js,
-                array('extrch-manage-link-page'), // Depends on the main manager script
+                array('jquery', 'extrch-manage-link-page-core', 'extrch-manage-link-page-content-renderer', 'sortable-js'), 
                 filemtime( $theme_dir . $socials_module_js ),
                 true
             );
         }
 
-        // Background Management JS (NEW)
+        // Background Management JS (NEW) - IIFE based
         $background_js_path = $js_dir . '/manage-link-page-background.js';
         if ( file_exists( $theme_dir . $background_js_path ) ) {
             wp_enqueue_script(
                 'extrch-manage-link-page-background',
                 $theme_uri . $background_js_path,
-                array('extrch-manage-link-page'), // Depends on the main manager script
+                array('jquery', 'extrch-manage-link-page-core'), 
                 filemtime( $theme_dir . $background_js_path ),
                 true
             );
         }
 
-        // Advanced Tab JS (NEW)
+        // Advanced Tab JS (NEW) - IIFE or Global Object as needed
         $advanced_js_path = $js_dir . '/manage-link-page-advanced.js';
         if ( file_exists( $theme_dir . $advanced_js_path ) ) {
             wp_enqueue_script(
                 'extrch-manage-link-page-advanced',
                 $theme_uri . $advanced_js_path,
-                array('extrch-manage-link-page'), // Depends on the main manager script
+                array('jquery', 'extrch-manage-link-page-core'), // Depends on core if it uses ExtrchLinkPageManager
                 filemtime( $theme_dir . $advanced_js_path ),
                 true
             );
         }
 
-        // Analytics Tab JS (NEW)
+        // Analytics Tab JS (NEW) - Global Object
         $analytics_js_path = $js_dir . '/manage-link-page-analytics.js';
         if ( file_exists( $theme_dir . $analytics_js_path ) ) {
             // Enqueue Chart.js library (from CDN) - make sure handle is unique
@@ -169,26 +302,14 @@ function extrch_link_page_enqueue_assets() {
             wp_enqueue_script(
                 'extrch-manage-link-page-analytics',
                 $theme_uri . $analytics_js_path,
-                array('extrch-manage-link-page', 'chart-js'), // Depends on main manager and Chart.js
+                array('jquery', 'extrch-manage-link-page-core', 'chart-js', 'extrch-manage-link-page'), // Added 'extrch-manage-link-page' as a dependency
                 filemtime( $theme_dir . $analytics_js_path ),
                 true
             );
             // We might need to localize data here later, like AJAX nonces specific to analytics actions
+            // No longer needed here, main script provides ajaxConfig
         }
 
-        // Preview JS - DEPRECATED, logic moved to AJAX
-        /*
-        $preview_js = $js_dir . '/manage-link-page-preview.js';
-        if ( file_exists( $theme_dir . $preview_js ) ) {
-            wp_enqueue_script(
-                'extrch-manage-link-page-preview',
-                $theme_uri . $preview_js,
-                array('extrch-manage-link-page','extrch-manage-link-page-customization'),
-                filemtime( $theme_dir . $preview_js ),
-                true
-            );
-        }
-        */
         // Management UI CSS
         $manage_css = $css_dir . '/manage-link-page.css';
         if ( file_exists( $theme_dir . $manage_css ) ) {
@@ -264,35 +385,47 @@ function extrch_link_page_enqueue_assets() {
                         );
                     }
                 }
+
+                // --- Enqueue Body Font for AJAX Preview ---
+                if (is_array($custom_vars) && !empty($custom_vars['--link-page-body-font-family'])) {
+                    $stored_body_font_setting = $custom_vars['--link-page-body-font-family'];
+                    $body_font_value_for_google_lookup = null;
+
+                    foreach ($extrch_link_page_fonts as $font_entry) {
+                        if ($font_entry['value'] === $stored_body_font_setting || $font_entry['stack'] === $stored_body_font_setting) {
+                            $body_font_value_for_google_lookup = $font_entry['value'];
+                            break;
+                        }
+                    }
+                    if (!$body_font_value_for_google_lookup && strpos($stored_body_font_setting, ',') === false && strpos($stored_body_font_setting, "'") === false && strpos($stored_body_font_setting, '"') === false) {
+                        $body_font_value_for_google_lookup = $stored_body_font_setting;
+                    }
+
+                    $google_body_font_param_to_enqueue = null;
+                    if ($body_font_value_for_google_lookup) {
+                        foreach ($extrch_link_page_fonts as $font_entry) {
+                            if ($font_entry['value'] === $body_font_value_for_google_lookup) {
+                                $google_body_font_param_to_enqueue = $font_entry['google_font_param'];
+                                break;
+                            }
+                        }
+                    }
+
+                    if ($google_body_font_param_to_enqueue && $google_body_font_param_to_enqueue !== 'local_default' && $google_body_font_param_to_enqueue !== 'inherit') {
+                        $font_url = 'https://fonts.googleapis.com/css2?family=' . urlencode($google_body_font_param_to_enqueue) . '&display=swap';
+                        wp_enqueue_style(
+                            'extrch-link-page-body-google-font-' . sanitize_key($google_body_font_param_to_enqueue),
+                            $font_url,
+                            array(),
+                            null
+                        );
+                    }
+                }
             }
         }
     }
 }
 add_action( 'wp_enqueue_scripts', 'extrch_link_page_enqueue_assets' );
-
-// --- Remove wp_head action for custom CSS vars ---
-// The single-band_link_page.php template now handles this directly.
-/*
-add_action('wp_head', function() {
-    if (is_singular('band_link_page')) {
-        global $post;
-        $custom_vars = get_post_meta($post->ID, '_link_page_custom_css_vars', true);
-        if ($custom_vars) {
-            $vars = json_decode($custom_vars, true);
-            if (is_array($vars) && count($vars)) {
-                echo '<style id="extrch-link-page-custom-vars">:root {';
-                foreach ($vars as $k => $v) {
-                    if ($v) echo esc_html($k) . ':' . esc_html($v) . ';';
-                }
-                echo '}</style>';
-            }
-        }
-    }
-});
-*/
-
-// --- Future includes (e.g., AJAX handlers, frontend display, etc.) ---
-// require_once( __DIR__ . '/some-other-file.php' );
 
 /**
  * Outputs the custom <head> content for the isolated extrachill.link page.
@@ -318,16 +451,22 @@ function extrch_link_page_custom_head( $band_id, $link_page_id ) {
     $theme_uri = get_stylesheet_directory_uri();
     $theme_dir = get_stylesheet_directory();
 
-    // $root_css_path = '/css/root.css'; // No longer needed for the isolated link page
     $extrch_links_css_path = '/forum-features/band-platform/extrch.co-link-page/css/extrch-links.css';
+    $share_modal_css_path = '/forum-features/band-platform/extrch.co-link-page/css/extrch-share-modal.css';
 
-    // if ( file_exists( $theme_dir . $root_css_path ) ) { // Do not include global root.css
-    //     echo '<link rel="stylesheet" href="' . esc_url( $theme_uri . $root_css_path ) . '?ver=' . esc_attr( filemtime( $theme_dir . $root_css_path ) ) . '">';
-    // }
     if ( file_exists( $theme_dir . $extrch_links_css_path ) ) {
         echo '<link rel="stylesheet" href="' . esc_url( $theme_uri . $extrch_links_css_path ) . '?ver=' . esc_attr( filemtime( $theme_dir . $extrch_links_css_path ) ) . '">';
     }
-    echo '<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">'; // Consider self-hosting or a more privacy-friendly CDN
+    if ( file_exists( $theme_dir . $share_modal_css_path ) ) { // Enqueue Share Modal CSS
+        echo '<link rel="stylesheet" href="' . esc_url( $theme_uri . $share_modal_css_path ) . '?ver=' . esc_attr( filemtime( $theme_dir . $share_modal_css_path ) ) . '">';
+    }
+    echo '<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">';
+
+    // Share Modal Script
+    $share_modal_js_path = '/forum-features/band-platform/extrch.co-link-page/js/extrch-share-modal.js';
+    if (file_exists($theme_dir . $share_modal_js_path)) {
+        echo '<script src="' . esc_url($theme_uri . $share_modal_js_path) . '?ver=' . esc_attr(filemtime($theme_dir . $share_modal_js_path)) . '" defer></script>';
+    }
 
     // Inline body margin reset (from single-band_link_page.php)
     echo '<style>body{margin:0;padding:0;}</style>';
@@ -340,6 +479,12 @@ function extrch_link_page_custom_head( $band_id, $link_page_id ) {
     $default_title_font_stack = "'WilcoLoftSans', Helvetica, Arial, sans-serif"; // From font config
     $selected_title_font_value = $default_title_font_value;
     $selected_title_font_stack = $default_title_font_stack;
+
+    // Defaults for body font
+    $default_body_font_value = 'OpenSans'; // Example from font config, adjust if different
+    $default_body_font_stack = "'Open Sans', Helvetica, Arial, sans-serif"; // Example from font config
+    $selected_body_font_value = $default_body_font_value;
+    $selected_body_font_stack = $default_body_font_stack;
 
     if ( !empty( $custom_vars_json ) ) {
         $custom_vars = json_decode( $custom_vars_json, true );
@@ -372,6 +517,31 @@ function extrch_link_page_custom_head( $band_id, $link_page_id ) {
                             $selected_title_font_stack = $v;
                         }
                     }
+                } elseif ( $k === '--link-page-body-font-family' ) {
+                    $font_found_in_config = false;
+                    if (is_array($extrch_link_page_fonts)) {
+                        foreach ( $extrch_link_page_fonts as $font ) {
+                            if ( $font['value'] === $v || $font['stack'] === $v ) {
+                                $selected_body_font_value = $font['value'];
+                                $selected_body_font_stack = $font['stack'];
+                                $processed_vars[$k] = $font['stack'];
+                                $font_found_in_config = true;
+                                break;
+                            }
+                        }
+                    }
+                    if (!$font_found_in_config) {
+                        if (strpos($v, ',') === false && strpos($v, "'") === false && strpos($v, '"') === false) {
+                            $processed_vars[$k] = "'" . $v . "', " . $default_body_font_stack;
+                            $selected_body_font_value = $v;
+                            $selected_body_font_stack = $processed_vars[$k];
+                        } else {
+                            $processed_vars[$k] = $v ?: $default_body_font_stack;
+                            $first_font_in_stack = explode(',', $v)[0];
+                            $selected_body_font_value = trim($first_font_in_stack, " '\"");
+                            $selected_body_font_stack = $v;
+                        }
+                    }
                 } else {
                     $processed_vars[$k] = $v;
                 }
@@ -384,6 +554,11 @@ function extrch_link_page_custom_head( $band_id, $link_page_id ) {
         $processed_vars['--link-page-title-font-family'] = $default_title_font_stack;
         $selected_title_font_value = $default_title_font_value; // Ensure this is set for Google Font check
     }
+    // Fallback for body font
+    if ( !isset( $processed_vars['--link-page-body-font-family'] ) ) {
+        $processed_vars['--link-page-body-font-family'] = $default_body_font_stack;
+        $selected_body_font_value = $default_body_font_value;
+    }
     
     // Construct the :root CSS variables style tag
     if ( !empty( $processed_vars ) ) {
@@ -394,26 +569,41 @@ function extrch_link_page_custom_head( $band_id, $link_page_id ) {
                 $value_trimmed = trim( $v );
                 // Font family stack might contain unescaped characters if not from config, but should be safe if from config.
                 // Other values are typically colors or simple strings.
-                $final_custom_vars_style .= $key_sanitized . ':' . ( $k === '--link-page-title-font-family' ? $value_trimmed : esc_html( $value_trimmed ) ) . ';';
+                $is_font_family_var = ( $k === '--link-page-title-font-family' || $k === '--link-page-body-font-family' );
+                $final_custom_vars_style .= $key_sanitized . ':' . ( $is_font_family_var ? $value_trimmed : esc_html( $value_trimmed ) ) . ';';
             }
         }
         $final_custom_vars_style .= '}</style>';
         echo $final_custom_vars_style;
     }
 
-    // Google Font Link (based on the determined $selected_title_font_value)
-    $google_font_param_to_enqueue = null;
+    // Google Font Link (based on the determined $selected_title_font_value and $selected_body_font_value)
+    $google_font_params_to_enqueue = [];
+
     if (is_array($extrch_link_page_fonts)) {
+        // Check title font
         foreach ( $extrch_link_page_fonts as $font_entry ) {
-            if ( $font_entry['value'] === $selected_title_font_value ) {
-                $google_font_param_to_enqueue = $font_entry['google_font_param'];
+            if ( $font_entry['value'] === $selected_title_font_value && !empty($font_entry['google_font_param']) && $font_entry['google_font_param'] !== 'local_default' && $font_entry['google_font_param'] !== 'inherit') {
+                if (!in_array($font_entry['google_font_param'], $google_font_params_to_enqueue)) {
+                    $google_font_params_to_enqueue[] = $font_entry['google_font_param'];
+                }
+                break;
+            }
+        }
+        // Check body font
+        foreach ( $extrch_link_page_fonts as $font_entry ) {
+            if ( $font_entry['value'] === $selected_body_font_value && !empty($font_entry['google_font_param']) && $font_entry['google_font_param'] !== 'local_default' && $font_entry['google_font_param'] !== 'inherit') {
+                if (!in_array($font_entry['google_font_param'], $google_font_params_to_enqueue)) {
+                    $google_font_params_to_enqueue[] = $font_entry['google_font_param'];
+                }
                 break;
             }
         }
     }
 
-    if ( $google_font_param_to_enqueue && $google_font_param_to_enqueue !== 'local_default' && $google_font_param_to_enqueue !== 'inherit' ) {
-        $font_url = 'https://fonts.googleapis.com/css2?family=' . urlencode( $google_font_param_to_enqueue ) . '&display=swap';
+    if ( !empty($google_font_params_to_enqueue) ) {
+        $font_families_string = implode('&family=', array_map('urlencode', $google_font_params_to_enqueue));
+        $font_url = 'https://fonts.googleapis.com/css2?family=' . $font_families_string . '&display=swap';
         echo '<link rel="stylesheet" href="' . esc_url( $font_url ) . '" media="print" onload="this.media=\'all\'">';
         echo '<noscript><link rel="stylesheet" href="' . esc_url( $font_url ) . '"></noscript>';
     }

@@ -27,11 +27,34 @@ function bp_filter_user_capabilities( $allcaps, $caps, $args, $user ) {
 
     // Grant 'create_band_profiles' capability if user is an artist or can edit pages
     if ( $cap === 'create_band_profiles' ) {
-        if ( user_can( $user_id, 'edit_pages' ) || get_user_meta( $user_id, 'user_is_artist', true ) === '1' ) {
+        if ( user_can( $user_id, 'edit_pages' ) || ( get_user_meta( $user_id, 'user_is_artist', true ) === '1' || get_user_meta( $user_id, 'user_is_professional', true ) === '1' ) ) {
             $allcaps[$cap] = true;
             // error_log(sprintf("[Band Permissions] Granted create_band_profiles for user %d", $user_id));
             return $allcaps;
         }
+    }
+
+    // --- Capability for viewing band_link_page analytics ---
+    if ( $cap === 'view_band_link_page_analytics' && $post_id ) {
+        if ( get_post_type( $post_id ) === 'band_link_page' ) {
+            error_log(sprintf("[Band Permissions DEBUG] Cap check for 'view_band_link_page_analytics'. User: %d, Link Page ID: %d", $user_id, $post_id));
+            $associated_band_id = get_post_meta( $post_id, '_associated_band_profile_id', true );
+            if ( $associated_band_id ) {
+                $linked_band_ids_for_user = get_user_meta( $user_id, '_band_profile_ids', true );
+                if ( ! is_array( $linked_band_ids_for_user ) ) {
+                    $linked_band_ids_for_user = array();
+                }
+                if ( in_array( $associated_band_id, $linked_band_ids_for_user ) ) {
+                    $allcaps[$cap] = true;
+                    error_log(sprintf("[Band Permissions DEBUG] Granted 'view_band_link_page_analytics' to user %d for link page %d (via band %d)", $user_id, $post_id, $associated_band_id));
+                } else {
+                    error_log(sprintf("[Band Permissions DEBUG] Denied 'view_band_link_page_analytics' to user %d for link page %d (not member of band %d)", $user_id, $post_id, $associated_band_id));
+                }
+            } else {
+                error_log(sprintf("[Band Permissions DEBUG] Denied 'view_band_link_page_analytics' for link page %d (no associated band_id found)", $post_id));
+            }
+        }
+        return $allcaps; // Return early after handling this specific cap for a band_link_page
     }
 
     // Check for band-specific capabilities

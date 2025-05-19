@@ -79,6 +79,15 @@ if ( bbp_is_single_forum() && bbp_has_forums( array( 'post_parent' => bbp_get_fo
                     'posts_per_page' => -1, // Adjust if you need pagination or limited number of forums
                 );
 
+                // DEBUG OUTPUT
+                $forums_query = new WP_Query($args);
+                error_log('Music Forums Query Args: ' . print_r($args, true));
+                error_log('Music Forums Found: ' . print_r($forums_query->posts, true));
+                foreach ($forums_query->posts as $forum) {
+                    error_log('Forum ID: ' . $forum->ID . ' | Title: ' . $forum->post_title . ' | Section: ' . get_post_meta($forum->ID, '_bbp_forum_section', true));
+                }
+                // END DEBUG OUTPUT
+
                 // The query
                 if (bbp_has_forums($args)) : while (bbp_forums()) : bbp_the_forum(); ?>
                     <?php
@@ -91,31 +100,6 @@ if ( bbp_is_single_forum() && bbp_has_forums( array( 'post_parent' => bbp_get_fo
             </li><!-- .bbp-body -->
         </ul>
     </div>
-
-	<?php
-	// Check if the current user has the 'extrachill_team' meta
-	if ( is_user_logged_in() && get_user_meta( get_current_user_id(), 'extrachill_team', true ) == '1' ) : ?>
-
-		<!-- Private Section -->
-        <h2 id="private-forums" class="forum-front-ec">Private</h2>
-        <p id="private-forums">If you can see this, you're part of the Extra Chill team.</p>
-        <div class="private-container">
-            <ul id="forums-list-private-<?php bbp_forum_id(); ?>" class="bbp-forums">
-
-                <li class="bbp-body">
-                    <?php while ( bbp_forums() ) : bbp_the_forum(); ?>
-                        <?php
-                        $forum_section = get_post_meta(bbp_get_forum_id(), '_bbp_forum_section', true);
-                        if ( 'private' === $forum_section ):
-                            bbp_get_template_part( 'loop', 'single-forum-card' );
-                        endif;
-                        ?>
-                    <?php endwhile; ?>
-                </li><!-- .bbp-body -->
-            </ul>
-        </div>
-
-	<?php endif; ?>
 
 <?php endif; ?>
 

@@ -80,19 +80,35 @@ function bp_enqueue_band_platform_assets() {
                 true // Load in footer
             );
             // Localize nonce for the follow script
+            $current_user = wp_get_current_user();
+            $user_email = $current_user->user_email ? $current_user->user_email : '';
+
             wp_localize_script( 'bp-band-following', 'bpFollowData', array(
                 'ajaxUrl' => admin_url( 'admin-ajax.php' ),
-                'nonce'   => wp_create_nonce( 'bp_follow_nonce' )
+                'nonce'   => wp_create_nonce( 'bp_follow_nonce' ),
+                'currentUserEmail' => $user_email,
+                'i18n' => array(
+                    'confirmFollow' => __( 'Confirm Follow', 'generatepress_child' ),
+                    'cancel' => __( 'Cancel', 'generatepress_child' ),
+                    'processing' => __( 'Processing...', 'generatepress_child' ),
+                    'following' => __( 'Following', 'generatepress_child' ),
+                    'follow' => __( 'Follow', 'generatepress_child' ),
+                    'errorMessage' => __( 'Could not update follow status. Please try again.', 'generatepress_child' ),
+                    'ajaxRequestFailed' => __( 'AJAX request failed', 'generatepress_child' ),
+                )
             ));
             }
         }
     }
 
     // --- Styles/Scripts for Manage Band Profile Page Template --- 
+    /* This block is being removed because extrachill_enqueue_manage_band_profile_assets in functions.php
+       already handles enqueuing css/manage-band-profile.css (singular) and js/manage-band-profiles.js
+       for the page-templates/manage-band-profile.php template.
     if ( is_page_template( 'page-templates/manage-band-profile.php' ) ) {
         
         // Enqueue CSS for manage page
-        $manage_css_path = '/css/manage-band-profiles.css';
+        $manage_css_path = '/css/manage-band-profiles.css'; // This was pointing to the plural version
         if ( file_exists( $theme_dir . $manage_css_path ) ) {
             wp_enqueue_style(
                 'bp-manage-band-profiles', 
@@ -160,7 +176,7 @@ function bp_enqueue_band_platform_assets() {
         }
     }
     
-    // --- Social Links JS for the band profile management page ONLY ---
+    /* --- Social Links JS for the band profile management page ONLY (REMOVED - Legacy) ---
     if ( is_page_template( 'page-templates/manage-band-profile.php' ) ) {
         $social_js_path = '/js/band-social-links.js';
         if ( file_exists( $theme_dir . $social_js_path ) ) {
@@ -173,26 +189,10 @@ function bp_enqueue_band_platform_assets() {
             );
         }
     }
+    */
 }
 add_action( 'wp_enqueue_scripts', 'bp_enqueue_band_platform_assets' ); 
 
-// --- Breadcrumb display for single band profiles is now handled directly in single-band_profile.php ---
-/*
-function bp_display_single_band_profile_breadcrumbs() {
-    // TEMPORARY DEBUG: Check if hook fires
-    echo '<div style="border: 2px solid red; padding: 10px; margin: 10px 0; background: yellow; color: black; font-weight: bold; text-align: center;">HOOK TEST: generate_before_content</div>';
-
-    if ( is_singular( 'band_profile' ) && function_exists( 'bbp_breadcrumb' ) ) {
-        bbp_breadcrumb( array( 
-            'before' => '<div class="bbp-breadcrumb-container"><div class="bbp-breadcrumb"><p>', 
-            'after'  => '</p></div></div>',
-            'sep_before' => '<span class="bbp-breadcrumb-sep">', 
-            'sep_after'  => '</span>'
-        ) );
-    }
-}
-add_action( 'generate_before_content', 'bp_display_single_band_profile_breadcrumbs', 15 );
-*/ 
 
 // --- End Script/Style Enqueue ---
 

@@ -79,14 +79,15 @@ $link_sections = isset($data['link_sections']) && is_array($data['link_sections'
 // We only apply the direct $data['background_style'] here if it's the preview iframe.
 
 $initial_container_style_attr = '';
+$container_classes = 'extrch-link-page-container'; // Base class
 $is_preview_iframe_context = (bool) get_query_var('is_extrch_preview_iframe', false); // This query var should be set in config/live-preview/preview.php
 
 if ( $is_preview_iframe_context ) {
-    // For the preview iframe in manage-link-page.php
-    $preview_specific_style = get_query_var('initial_container_style_for_php_preview', '');
-    if ( !empty($preview_specific_style) ) {
-        $initial_container_style_attr = ' style="' . esc_attr($preview_specific_style) . '"';
-    }
+    $container_classes .= ' extrch-link-page-preview-container'; // Add preview-specific class
+    // For the preview iframe, ensure it behaves as a flex container filling height.
+    // All other styles (background, colors, fonts) are applied via CSS variables injected
+    // into the iframe's :root by preview.php.
+    $initial_container_style_attr = ' style="display:flex; flex-direction:column; height:100%; min-height:100%; box-sizing:border-box;"';
 } else {
     // For the public page (single-band_link_page.php)
     // The .extrch-link-page-container's background should be handled by css/extrch-links.css.
@@ -103,15 +104,16 @@ if ( $is_preview_iframe_context ) {
 
 // Determine profile image shape class
 $profile_img_shape_class = 'shape-square'; // Default to square
-if ( isset( $data['profile_img_shape'] ) && $data['profile_img_shape'] === 'circle' ) {
-    $profile_img_shape_class = 'shape-circle';
-}
-// Ensure that if the value is 'rectangle' (old system), it still maps to 'shape-square'
-// The LivePreviewManager already handles converting 'rectangle' to 'square' when fetching the data,
-// so $data['profile_img_shape'] should ideally only be 'circle' or 'square' here.
-// However, an explicit check for robustness doesn't hurt.
-if ( isset( $data['profile_img_shape'] ) && $data['profile_img_shape'] === 'rectangle' ) {
-    $profile_img_shape_class = 'shape-square';
+if (isset($data['profile_img_shape'])) {
+    if ($data['profile_img_shape'] === 'circle') {
+        $profile_img_shape_class = 'shape-circle';
+    } elseif ($data['profile_img_shape'] === 'rectangle') {
+        $profile_img_shape_class = 'shape-rectangle';
+    } elseif ($data['profile_img_shape'] === 'square') {
+        $profile_img_shape_class = 'shape-square';
+    } else {
+        $profile_img_shape_class = 'shape-square'; // fallback for unknown values
+    }
 }
 
 $overlay_enabled = true;
@@ -121,16 +123,23 @@ if (isset($data['overlay'])) {
 $wrapper_class = 'extrch-link-page-content-wrapper' . ($overlay_enabled ? '' : ' no-overlay');
 
 ?>
-<div class="extrch-link-page-container"<?php echo $initial_container_style_attr; // This will typically only have a style for the preview iframe ?>>
-    <div class="<?php echo esc_attr($wrapper_class); ?>">
-        <?php if (!empty($data['profile_img_url'])):
-            // Add the dynamic shape class to the profile image container
-            $img_container_classes = "extrch-link-page-profile-img " . $profile_img_shape_class;
-        ?>
-            <div class="<?php echo esc_attr($img_container_classes); ?>"><img src="<?php echo esc_url($data['profile_img_url']); ?>" alt="<?php echo esc_attr($data['display_title']); ?>"></div>
-        <?php endif; ?>
-        <h1 class="extrch-link-page-title"><?php echo esc_html($data['display_title']); ?></h1>
-        <?php if (!empty($data['bio'])): ?><div class="extrch-link-page-bio"><?php echo esc_html($data['bio']); ?></div><?php endif; ?>
+<div class="<?php echo esc_attr($container_classes); ?>"<?php echo $initial_container_style_attr; ?>>
+    <div class="<?php echo esc_attr($wrapper_class); ?>" style="flex-grow:1;">
+        <div class="extrch-link-page-header-content">
+            <?php if (!empty($data['profile_img_url'])):
+                // Add the dynamic shape class to the profile image container
+                $img_container_classes = "extrch-link-page-profile-img " . $profile_img_shape_class;
+            ?>
+                <div class="<?php echo esc_attr($img_container_classes); ?>"><img src="<?php echo esc_url($data['profile_img_url']); ?>" alt="<?php echo esc_attr($data['display_title']); ?>"></div>
+            <?php endif; ?>
+            <h1 class="extrch-link-page-title"><?php echo esc_html($data['display_title']); ?></h1>
+            <?php if (!empty($data['bio'])): ?><div class="extrch-link-page-bio"><?php echo esc_html($data['bio']); ?></div><?php endif; ?>
+            
+            <button class="extrch-share-trigger extrch-share-page-trigger" aria-label="Share this page" data-share-type="page" data-share-url="<?php echo esc_url(get_permalink(isset($link_page_id) ? $link_page_id : 0)); ?>" data-share-title="<?php echo esc_attr($data['display_title']); ?>">
+                <i class="fas fa-ellipsis-h"></i>
+            </button>
+        </div>
+
         <?php if (!empty($data['social_links']) && is_array($data['social_links'])): ?>
             <div class="extrch-link-page-socials">
                 <?php foreach ($data['social_links'] as $icon):
@@ -146,29 +155,88 @@ $wrapper_class = 'extrch-link-page-content-wrapper' . ($overlay_enabled ? '' : '
                 <?php endforeach; ?>
             </div>
         <?php endif; ?>
-        <?php foreach ($link_sections as $section): ?>
+        <?php foreach ($link_sections as $section_key => $section): ?>
             <?php if (!empty($section['section_title'])): ?>
                 <div class="extrch-link-page-section-title"><?php echo esc_html($section['section_title']); ?></div>
             <?php endif; ?>
             <div class="extrch-link-page-links">
                 <?php if (!empty($section['links']) && is_array($section['links'])):
-                    foreach ($section['links'] as $link):
+                    foreach ($section['links'] as $link_key => $link):
                         if (empty($link['link_url']) || empty($link['link_text'])) continue;
-                        $url = esc_url($link['link_url']);
-                        $text = esc_html($link['link_text']);
+                        $url = $link['link_url'];
+                        $text = $link['link_text'];
                         $is_active = isset($link['link_is_active']) ? (bool)$link['link_is_active'] : true;
                         if (!$is_active) continue;
+                        $link_url_attr = esc_url($url);
+                        $link_title_attr = esc_attr($text);
                 ?>
-                    <a href="<?php echo $url; ?>" class="extrch-link-page-link" target="_blank" rel="noopener">
-                        <?php echo $text; ?>
+                    <a href="<?php echo $link_url_attr; ?>" class="extrch-link-page-link" target="_blank" rel="noopener">
+                        <span class="extrch-link-page-link-text"><?php echo esc_html($text); ?></span>
+                        <span class="extrch-link-page-link-icon">
+                            <button class="extrch-share-trigger extrch-share-item-trigger" 
+                                    aria-label="Share this link" 
+                                    data-share-type="link"
+                                    data-share-url="<?php echo $link_url_attr; ?>" 
+                                    data-share-title="<?php echo $link_title_attr; ?>">
+                                <i class="fas fa-ellipsis-v"></i>
+                            </button>
+                        </span>
                     </a>
                 <?php endforeach; endif; ?>
             </div>
         <?php endforeach; ?>
         <?php if ($data['powered_by']): ?>
-        <div class="extrch-link-page-powered">
+        <div class="extrch-link-page-powered" style="margin-top:auto; padding-top:1em; padding-bottom:1em;">
             <a href="https://extrch.co/extrachill" target="_blank" rel="noopener">Powered by Extra Chill</a>
         </div>
         <?php endif; ?>
     </div>
-</div> 
+
+    <div id="extrch-share-modal" class="extrch-share-modal" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="extrch-share-modal-main-title">
+        <div class="extrch-share-modal-overlay"></div>
+        <div class="extrch-share-modal-content">
+            <button class="extrch-share-modal-close" aria-label="Close share modal">&times;</button>
+            
+            <div class="extrch-share-modal-header">
+                <img src="" alt="Profile" class="extrch-share-modal-profile-img" style="display:none;">
+                <h3 id="extrch-share-modal-main-title" class="extrch-share-modal-main-title">Share Page</h3>
+                <p class="extrch-share-modal-subtitle"></p>
+            </div>
+
+            <div class="extrch-share-modal-options-grid">
+                <button class="extrch-share-option-button extrch-share-option-copy-link" aria-label="Copy Link">
+                    <span class="extrch-share-option-icon"><i class="fas fa-copy"></i></span>
+                    <span class="extrch-share-option-label">Copy Link</span>
+                </button>
+                <button class="extrch-share-option-button extrch-share-option-native" aria-label="More sharing options">
+                    <span class="extrch-share-option-icon"><i class="fas fa-ellipsis-h"></i></span>
+                    <span class="extrch-share-option-label">More</span>
+                </button>
+                <a href="#" class="extrch-share-option-button extrch-share-option-facebook" target="_blank" rel="noopener" aria-label="Share on Facebook">
+                    <span class="extrch-share-option-icon"><i class="fab fa-facebook-f"></i></span>
+                    <span class="extrch-share-option-label">Facebook</span>
+                </a>
+                <a href="#" class="extrch-share-option-button extrch-share-option-twitter" target="_blank" rel="noopener" aria-label="Share on Twitter">
+                    <span class="extrch-share-option-icon"><i class="fab fa-twitter"></i></span>
+                    <span class="extrch-share-option-label">Twitter</span>
+                </a>
+                 <a href="#" class="extrch-share-option-button extrch-share-option-linkedin" target="_blank" rel="noopener" aria-label="Share on LinkedIn">
+                    <span class="extrch-share-option-icon"><i class="fab fa-linkedin-in"></i></span>
+                    <span class="extrch-share-option-label">LinkedIn</span>
+                </a>
+                <a href="#" class="extrch-share-option-button extrch-share-option-email" aria-label="Share via Email">
+                    <span class="extrch-share-option-icon"><i class="fas fa-envelope"></i></span>
+                    <span class="extrch-share-option-label">Email</span>
+                </a>
+                <!-- Add other social media buttons here if needed, following the same structure -->
+            </div>
+        </div>
+    </div>
+</div>
+<?php
+// Ensure all variables used in data attributes are defined in the scope
+// For the page share button:
+$link_page_id_for_permalink = isset($link_page_id) ? $link_page_id : (isset($post) ? $post->ID : 0);
+// For social links, we already have $data['social_links']
+// For link sections, we already have $link_sections and iterate through $section['links'] as $link
+?> 

@@ -71,7 +71,7 @@ function bp_create_band_forum_on_save( $post_id, $post, $update ) {
     }
 
     // Make the forum hidden.
-    // bbp_hide_forum( $forum_id ); // <-- RE-COMMENT THIS LINE
+    bbp_hide_forum( $forum_id );
 
     // Add meta to the new forum to identify it and link back.
     update_post_meta( $forum_id, '_is_band_profile_forum', true );
@@ -79,6 +79,9 @@ function bp_create_band_forum_on_save( $post_id, $post, $update ) {
 
     // Store the new forum ID in the band profile CPT meta.
     $meta_update_result = update_post_meta( $post_id, '_band_forum_id', $forum_id );
+
+    // Default to allowing public topic creation for new band forums.
+    update_post_meta( $forum_id, '_allow_public_topic_creation', '1' );
 
     // Optional: Set initial forum settings (e.g., allow topic creation?)
     // update_post_meta( $forum_id, '_bbp_allow_topic_creaton', true ); // Example
@@ -161,6 +164,11 @@ function bp_hide_band_forums_from_admin_list( $query ) {
     // Check if we are in the admin area, on the main query for the 'edit-forum' screen.
     if ( is_admin() && $query->is_main_query() && function_exists('bbp_get_forum_post_type') ) {
         
+        // If a specific query parameter is set to show band forums, bail out early.
+        if ( isset( $_GET['show_band_forums'] ) && $_GET['show_band_forums'] === '1' ) {
+            return;
+        }
+
         // Get current screen information
         $screen = get_current_screen();
 
@@ -189,6 +197,30 @@ function bp_hide_band_forums_from_admin_list( $query ) {
     }
 }
 add_action( 'pre_get_posts', 'bp_hide_band_forums_from_admin_list' ); 
+
+/**
+ * Adds a toggle link to the "All Forums" admin page to show/hide band-specific forums.
+ */
+function bp_add_toggle_band_forums_link_admin( $post_type ) {
+    // Only add to the 'edit-forum' screen and for the forum post type
+    if ( isset($_GET['post_type']) && $_GET['post_type'] === 'forum' ) {
+        $show_band_forums = isset( $_GET['show_band_forums'] ) && $_GET['show_band_forums'] === '1';
+
+        if ( $show_band_forums ) {
+            $url = remove_query_arg( 'show_band_forums' );
+            $link_text = __( 'Hide Band Forums', 'generatepress_child' );
+        } else {
+            $url = add_query_arg( 'show_band_forums', '1' );
+            $link_text = __( 'Show Band Forums', 'generatepress_child' );
+        }
+
+        echo '<div class="alignleft actions extrachill-forum-toggle">';
+        echo '<a href="' . esc_url( $url ) . '" class="button">' . esc_html( $link_text ) . '</a>';
+        echo '</div>';
+    }
+}
+
+add_action( 'restrict_manage_posts', 'bp_add_toggle_band_forums_link_admin', 20, 1 );
 
 /**
  * Ensures bbPress core template functions are loaded for single band profile views.

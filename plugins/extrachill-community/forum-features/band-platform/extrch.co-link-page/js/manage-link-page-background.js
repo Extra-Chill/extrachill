@@ -1,12 +1,12 @@
 // Link Page Background Customization Module
 (function(manager) {
-    if (!manager) {
-        console.error('ExtrchLinkPageManager is not defined. Background script cannot run.');
+    if (!manager || !manager.customization) {
+        console.error('ExtrchLinkPageManager or its customization module is not defined. Background script cannot run.');
         return;
     }
     manager.background = manager.background || {};
 
-    // --- DOM Elements ---
+    // --- DOM Elements (Inputs that are stable) ---
     const typeSelectInput = document.getElementById('link_page_background_type');
     const bgColorInput = document.getElementById('link_page_background_color');
     const gradStartInput = document.getElementById('link_page_background_gradient_start');
@@ -18,229 +18,321 @@
     const imageControls = document.getElementById('background-image-controls');
     
     const bgImageUploadInput = document.getElementById('link_page_background_image_upload');
-    const bgImagePreview = document.getElementById('background-image-preview-img');
-    const removeBgImageButton = document.getElementById('remove-background-image-button');
-    const bgImageIdInput = document.getElementById('link_page_background_image_id');
+    // Removed module-scoped bgImagePreviewContainer, bgImagePreviewImg, localRemoveBgImageButton
 
-    // --- Initialization ---
-    function initializeBackgroundControls() {
-        if (!manager.initialData) {
-            console.error('Initial data not available for background controls.');
+    // Helper to get the central customVars; ensures customization module is ready
+    // function getCentralCustomVars() { // REMOVE THIS FUNCTION DEFINITION
+    //     if (manager.customization && manager.customization.customVars) {
+    //         return manager.customization.customVars;
+    //     }
+    //     if (manager.customization && typeof manager.customization.getCustomVarsJson === 'function') {
+    //         try {
+    //             return JSON.parse(manager.customization.getCustomVarsJson());
+    //         } catch (e) {
+    //             console.error("Error parsing customVars JSON:", e);
+    //             return {};
+    //         }
+    //     }
+    //     console.warn('getCentralCustomVars: customVars not found on manager.customization.');
+    //     return {};
+    // }
+    
+    // Function to update the visibility of background type controls
+    function updateBackgroundTypeUI(currentType) {
+        const typeToShow = currentType || (typeSelectInput ? typeSelectInput.value : 'color');
+        if(colorControls) colorControls.style.display = (typeToShow === 'color') ? '' : 'none';
+        if(gradientControls) gradientControls.style.display = (typeToShow === 'gradient') ? '' : 'none';
+        if(imageControls) imageControls.style.display = (typeToShow === 'image') ? '' : 'none';
+    }
+
+    // Function to update the background image preview element in the control panel
+    function updateAdminImagePreview() {
+        const currentContainer = document.getElementById('background-image-preview');
+        if (!currentContainer) {
+            // console.warn('updateAdminImagePreview: background-image-preview container not found in DOM.');
             return;
         }
 
-        // 1. Determine initial values from manager.initialData to set form inputs
-        const initialType = manager.initialData.background_type || 'color';
-        const initialColor = (typeof manager.initialData.background_color !== 'undefined') 
-                               ? manager.initialData.background_color 
-                               : '#1a1a1a'; 
-        const initialGradStart = (typeof manager.initialData.background_gradient_start !== 'undefined') 
-                                 ? manager.initialData.background_gradient_start 
-                                 : '#0b5394';
-        const initialGradEnd = (typeof manager.initialData.background_gradient_end !== 'undefined') 
-                               ? manager.initialData.background_gradient_end 
-                               : '#53940b';
-        const initialGradDir = manager.initialData.background_gradient_direction || 'to right';
-        const initialImgId = manager.initialData.background_image_id || '';
-        const initialImgUrl = manager.initialData.background_image_url || '';
+        // Critical check: If currentContainer is detached or has no parent, operations like insertBefore will fail.
+        if (!currentContainer.parentNode || !currentContainer.isConnected) {
+            // console.error('updateAdminImagePreview: background-image-preview container is detached from DOM or has no parent. Cannot update admin preview.');
+            return; 
+        }
 
-        // 2. Set DOM input elements
-        if (typeSelectInput) typeSelectInput.value = initialType;
-        if (bgColorInput) bgColorInput.value = initialColor;
-        if (gradStartInput) gradStartInput.value = initialGradStart;
-        if (gradEndInput) gradEndInput.value = initialGradEnd;
-        if (gradDirInput) gradDirInput.value = initialGradDir;
-        if (bgImageIdInput) bgImageIdInput.value = initialImgId;
+        // --- Logic for admin preview image and remove button is now removed/commented out ---
+        // Ensure the container is empty if it previously held these elements
+        currentContainer.innerHTML = ''; 
+        const dynamicRemoveButton = currentContainer.parentNode.querySelector('button#dynamic-remove-bg-image-btn');
+        if (dynamicRemoveButton) {
+            dynamicRemoveButton.remove();
+        }
 
-        if (bgImagePreview) {
-            if (initialImgUrl) {
-                bgImagePreview.src = initialImgUrl;
-                bgImagePreview.style.display = 'block';
-                if (removeBgImageButton) removeBgImageButton.style.display = 'inline-block';
-            } else {
-                bgImagePreview.src = '#';
-                bgImagePreview.style.display = 'none';
-                if (removeBgImageButton) removeBgImageButton.style.display = 'none';
-            }
+        /*
+        if (!manager.customization || typeof manager.customization.getCustomVars !== 'function') {
+            console.warn('updateAdminImagePreview: manager.customization.getCustomVars is not available.');
+            return;
+        }
+        const centralCustomVars = manager.customization.getCustomVars();
+        const imgUrl = centralCustomVars['--link-page-background-image-url'] || '';
+
+        // Manage the image element inside the container
+        let previewImg = currentContainer.querySelector('img.dynamic-preview-img');
+        if (!previewImg) {
+            currentContainer.innerHTML = ''; // Clear potentially old/stale content if we're creating a new img
+            previewImg = document.createElement('img');
+            previewImg.className = 'dynamic-preview-img'; // Add a class for easier querying
+            previewImg.style.maxWidth = '100%';
+            previewImg.style.maxHeight = '150px';
+            currentContainer.appendChild(previewImg);
         }
         
-        // 3. Update UI visibility for controls
-        updateBackgroundTypeUI(initialType);
-
-        // 4. Apply the EXACT server-rendered style string for the initial preview state.
-        // This ensures JS initialization matches the server-rendered preview exactly.
-        // The key 'container_style_for_preview' should hold the complete 'background-color: ...;' or 'background-image: ...;' string.
-        const previewContainer = document.querySelector('.extrch-link-page-preview-container');
-        if (previewContainer) {
-            const styleStringFromServer = manager.initialData.container_style_for_preview || manager.initialData.background_style; // Check both possible keys
-            if (typeof styleStringFromServer === 'string' && styleStringFromServer.trim() !== '') {
-                previewContainer.style.cssText = styleStringFromServer;
-            } else {
-                // Fallback if background_style string is missing from initialData
-                previewContainer.style.backgroundColor = initialColor; // Use the determined initial color
-                previewContainer.style.backgroundImage = 'none';
-                if(initialType === 'gradient') {
-                     const gradient = `linear-gradient(${initialGradDir}, ${initialGradStart}, ${initialGradEnd})`;
-                     previewContainer.style.backgroundImage = gradient;
-                     previewContainer.style.backgroundColor = 'transparent';
-                } else if (initialType === 'image' && initialImgUrl) {
-                    previewContainer.style.backgroundImage = `url('${initialImgUrl}')`;
-                    container.style.backgroundSize = 'cover';
-                    container.style.backgroundPosition = 'center';
-                    container.style.backgroundRepeat = 'no-repeat';
-                    previewContainer.style.backgroundColor = 'transparent';
+        // Manage the remove button element, which is a sibling to the container
+        let removeButton = currentContainer.parentNode.querySelector('button#dynamic-remove-bg-image-btn');
+        if (!removeButton) {
+            removeButton = document.createElement('button');
+            removeButton.id = 'dynamic-remove-bg-image-btn';
+            removeButton.type = 'button';
+            removeButton.className = 'button button-link extrch-remove-image-btn';
+            removeButton.textContent = 'Remove Image';
+            removeButton.style.marginTop = '5px';
+            
+            removeButton.addEventListener('click', function() {
+                const uploadInput = document.getElementById('link_page_background_image_upload'); 
+                if (uploadInput) {
+                    uploadInput.value = null; // Clear file input
                 }
-            }
-        }
-    }
-
-    // --- UI Update Functions ---
-    function updateBackgroundTypeUI(currentType) {
-        const val = currentType || (typeSelectInput ? typeSelectInput.value : 'color');
-        if(colorControls) colorControls.style.display = (val === 'color') ? '' : 'none';
-        if(gradientControls) gradientControls.style.display = (val === 'gradient') ? '' : 'none';
-        if(imageControls) imageControls.style.display = (val === 'image') ? '' : 'none';
-    }
-
-    // This function is ONLY called by event handlers after user interaction.
-    // It reads current values from DOM inputs and updates the preview.
-    // It is NO LONGER called by initializeBackgroundControls.
-    function updatePreviewFromDOMInputs() {
-        const container = document.querySelector('.extrch-link-page-preview-container');
-        if (!container) return;
-
-        const bgType = typeSelectInput ? typeSelectInput.value : 'color';
-        const colorValue = bgColorInput ? bgColorInput.value : '#1a1a1a';
-        const gradStartValue = gradStartInput ? gradStartInput.value : '#0b5394';
-        const gradEndValue = gradEndInput ? gradEndInput.value : '#53940b';
-        const gradDirValue = gradDirInput ? gradDirInput.value : 'to right';
-        
-        let imageUrlToUse = null;
-        if (manager.liveState && manager.liveState.bgImgUrl && manager.liveState.bgImgUrl.startsWith('data:image')) {
-            imageUrlToUse = manager.liveState.bgImgUrl; 
-        } else if (bgImagePreview && bgImagePreview.src && bgImagePreview.src !== window.location.href && !bgImagePreview.src.endsWith('#') && bgImagePreview.style.display !== 'none') {
-            imageUrlToUse = bgImagePreview.src; 
-        }
-
-        if (bgType === 'color') {
-            container.style.backgroundColor = (colorValue === '') ? 'transparent' : colorValue;
-            container.style.backgroundImage = 'none';
-        } else if (bgType === 'gradient') {
-            const gradient = `linear-gradient(${gradDirValue}, ${gradStartValue}, ${gradEndValue})`;
-            container.style.backgroundImage = gradient;
-            container.style.backgroundColor = 'transparent';
-        } else if (bgType === 'image') {
-            if (imageUrlToUse) {
-                container.style.backgroundImage = `url('${imageUrlToUse}')`;
-                container.style.backgroundSize = 'cover';
-                container.style.backgroundPosition = 'center';
-                container.style.backgroundRepeat = 'no-repeat';
-                container.style.backgroundColor = 'transparent';
-            } else {
-                container.style.backgroundImage = 'none';
-                container.style.backgroundColor = 'transparent'; 
-            }
-        } else { 
-            container.style.backgroundImage = 'none';
-            container.style.backgroundColor = 'transparent';
-        }
-    }
-    
-    // --- Event Handlers ---
-    function handleBackgroundInputChange(event) {
-        const target = event.target;
-
-        if (target === typeSelectInput) {
-            updateBackgroundTypeUI(typeSelectInput.value);
+                manager.customization.updateSetting('--link-page-background-image-url', '');
+            });
+            currentContainer.parentNode.insertBefore(removeButton, currentContainer.nextSibling);
         }
         
-        // Always update the preview locally from DOM inputs first for instant visual feedback
-        updatePreviewFromDOMInputs();
+        if (imgUrl) {
+            previewImg.src = imgUrl;
+            previewImg.style.display = 'block';
+            if (removeButton) removeButton.style.display = 'inline-block';
+        } else {
+            previewImg.src = '#'; // Placeholder for no image
+            previewImg.style.display = 'none';
+            if (removeButton) removeButton.style.display = 'none';
+        }
+        */
+    }
 
-        // Trigger AJAX update ONLY for specific controls that require server-side processing
-        // or represent a more significant state change for the preview.
-        // Color adjustments (bgColorInput, gradStartInput, gradEndInput) will NOT trigger AJAX here.
-        // Their new values will be picked up by the next AJAX call triggered by another control or by form save.
-        if (manager.updatePreviewViaAJAX) {
-            if (target === typeSelectInput || target === gradDirInput) {
-                // Changing type or gradient direction might benefit from server recalculating the style string
-                manager.updatePreviewViaAJAX();
-            }
-            // Image uploads/removals are handled by their own event listeners below,
-            // which DO trigger manager.updatePreviewViaAJAX() as they are discrete, significant actions.
+    // New function to sync all background input fields from customVars
+    function syncBackgroundInputValues() {
+        // const centralCustomVars = getCentralCustomVars(); // OLD
+        if (!manager || !manager.customization || typeof manager.customization.getCustomVars !== 'function') {
+            console.warn('syncBackgroundInputValues: manager.customization.getCustomVars is not available.');
+            return;
+        }
+        const centralCustomVars = manager.customization.getCustomVars();
+
+        if (typeSelectInput) {
+            typeSelectInput.value = centralCustomVars['--link-page-background-type'] || 'color';
+        }
+        if (bgColorInput) {
+            bgColorInput.value = centralCustomVars['--link-page-background-color'] || '#1a1a1a';
+        }
+        if (gradStartInput) {
+            gradStartInput.value = centralCustomVars['--link-page-background-gradient-start'] || '#0b5394';
+        }
+        if (gradEndInput) {
+            gradEndInput.value = centralCustomVars['--link-page-background-gradient-end'] || '#53940b';
+        }
+        if (gradDirInput) {
+            gradDirInput.value = centralCustomVars['--link-page-background-gradient-direction'] || 'to right';
+        }
+        updateAdminImagePreview(); // Syncs the admin image preview element
+    }
+
+    function initializeBackgroundControls() {
+        // 1. Populate all input fields from customVars
+        syncBackgroundInputValues(); 
+        // 2. NOW, use the value that syncBackgroundInputValues just set in the typeSelectInput
+        // to determine which sections to show.
+        if (typeSelectInput) {
+            updateBackgroundTypeUI(typeSelectInput.value); 
+        } else {
+            updateBackgroundTypeUI('color'); // Fallback
         }
     }
 
-    // Image Upload Specific Handling
+    // --- Event Listeners ---
+    if (typeSelectInput) {
+        typeSelectInput.addEventListener('change', function() {
+            try {
+                const newType = this.value;
+                // 1. Update customVars with the new type. This also triggers reapplyStyles for the live preview.
+                // manager.customization.handleControlChange('--link-page-background-type', newType, false, true); // OLD
+                manager.customization.updateSetting('--link-page-background-type', newType);
+                
+                // 2. syncBackgroundInputValues() will re-populate ALL background inputs based on the
+                //    updated customVars (including the new type in typeSelectInput).
+                // syncBackgroundInputValues(); // <-- POTENTIALLY PROBLEMATIC - Commented out for testing
+
+                // 3. Update visibility of control sections based on the now definitive newType from the input.
+                updateBackgroundTypeUI(newType); 
+            } catch (e) {
+                console.error("Error during background type change:", e);
+            }
+        });
+    }
+
+    if (bgColorInput) {
+        bgColorInput.addEventListener('input', function() {
+            // Update customVars immediately for smoother live preview
+            // const centralCustomVars = getCentralCustomVars(); // OLD
+            // const currentCV = (manager.customization && typeof manager.customization.getCustomVars === 'function') ? manager.customization.getCustomVars() : null; // NEW
+            // if (currentCV) { // UPDATED CHECK
+                // currentCV['--link-page-background-color'] = this.value;
+                // currentCV.backgroundColorValue = this.value; // Ensure this is also set for reapplyStyles
+                // if (livePreviewContainer) {
+                    // livePreviewContainer.style.backgroundColor = this.value || 'transparent';
+                    // livePreviewContainer.style.backgroundImage = 'none'; 
+                // }
+            // }
+            // With the new model, 'input' events should also go through updateSetting
+            // to ensure the central state is always up-to-date and specific updaters are called.
+            if (manager.customization && typeof manager.customization.updateSetting === 'function') {
+                manager.customization.updateSetting('--link-page-background-color', this.value);
+            }
+        });
+        bgColorInput.addEventListener('change', function() {
+            // Final update on change, ensures handleControlChange is called
+            // No need to fetch customVars here as handleControlChange will use the central one
+            // manager.customization.handleControlChange('backgroundColorValue', this.value, false, true); // OLD - backgroundColorValue is not a direct customVar
+            // manager.customization.handleControlChange('--link-page-background-color', this.value, false, true); // OLD
+            if (manager.customization && typeof manager.customization.updateSetting === 'function') {
+                manager.customization.updateSetting('--link-page-background-color', this.value);
+            }
+        });
+    }
+
+    if (gradStartInput) {
+        gradStartInput.addEventListener('input', function() {
+            // const centralCustomVars = getCentralCustomVars(); // OLD
+            // const currentCV = (manager.customization && typeof manager.customization.getCustomVars === 'function') ? manager.customization.getCustomVars() : null; // NEW
+            // if (currentCV) { // UPDATED CHECK
+                // currentCV['--link-page-background-gradient-start'] = this.value;
+                // if (currentCV['--link-page-background-type'] === 'gradient' && typeof manager.customization.updatePreviewBackground === 'function') {
+                    // manager.customization.updatePreviewBackground(); // Call central background update
+                // }
+                // if (typeof manager.customization.updateCustomVarsAndHiddenInput === 'function') {
+                    // manager.customization.updateCustomVarsAndHiddenInput();
+                // }
+            // }
+            if (manager.customization && typeof manager.customization.updateSetting === 'function') {
+                manager.customization.updateSetting('--link-page-background-gradient-start', this.value);
+            }
+        });
+        gradStartInput.addEventListener('change', function() {
+            // const centralCustomVars = getCentralCustomVars(); // OLD
+            // const centralCustomVars = (manager.customization && typeof manager.customization.getCustomVars === 'function') ? manager.customization.getCustomVars() : {}; // NEW
+            // const gradEnd = centralCustomVars.backgroundGradientEnd || '#ffffff';
+            // const gradientValue = `linear-gradient(to bottom right, ${this.value}, ${gradEnd})`;
+            // manager.customization.handleControlChange('--link-page-background-gradient-start', this.value, false, true); // OLD
+            if (manager.customization && typeof manager.customization.updateSetting === 'function') {
+                manager.customization.updateSetting('--link-page-background-gradient-start', this.value);
+            }
+        });
+    }
+
+    if (gradEndInput) {
+        gradEndInput.addEventListener('input', function() {
+            // const centralCustomVars = getCentralCustomVars(); // OLD
+            // const currentCV = (manager.customization && typeof manager.customization.getCustomVars === 'function') ? manager.customization.getCustomVars() : null; // NEW
+            // if (currentCV) { // UPDATED CHECK
+                // currentCV['--link-page-background-gradient-end'] = this.value;
+                // const gradStart = currentCV.backgroundGradientStart || '#000000'; // Use existing or default
+                // if (currentCV['--link-page-background-type'] === 'gradient' && typeof manager.customization.updatePreviewBackground === 'function') {
+                    // manager.customization.updatePreviewBackground(); 
+                // }
+                // if (typeof manager.customization.updateCustomVarsAndHiddenInput === 'function') {
+                    // manager.customization.updateCustomVarsAndHiddenInput();
+                // }
+            // }
+            if (manager.customization && typeof manager.customization.updateSetting === 'function') {
+                manager.customization.updateSetting('--link-page-background-gradient-end', this.value);
+            }
+        });
+        gradEndInput.addEventListener('change', function() {
+            // const centralCustomVars = getCentralCustomVars(); // OLD
+            // const centralCustomVars = (manager.customization && typeof manager.customization.getCustomVars === 'function') ? manager.customization.getCustomVars() : {}; // NEW
+            // const gradStart = centralCustomVars.backgroundGradientStart || '#000000';
+            // const gradientValue = `linear-gradient(to bottom right, ${gradStart}, ${this.value})`;
+            // manager.customization.handleControlChange('--link-page-background-gradient-end', this.value, false, true); // OLD
+            if (manager.customization && typeof manager.customization.updateSetting === 'function') {
+                manager.customization.updateSetting('--link-page-background-gradient-end', this.value);
+            }
+        });
+    }
+
+    if (gradDirInput) {
+        gradDirInput.addEventListener('change', function() {
+            // manager.customization.handleControlChange('--link-page-background-gradient-direction', this.value, false, true); // OLD
+            if (manager.customization && typeof manager.customization.updateSetting === 'function') {
+                manager.customization.updateSetting('--link-page-background-gradient-direction', this.value);
+            }
+        });
+    }
+
     if (bgImageUploadInput) {
         bgImageUploadInput.addEventListener('change', function(event) {
             const file = event.target.files[0];
             if (file) {
                 const reader = new FileReader();
                 reader.onload = function(e) {
-                    if (bgImagePreview) {
-                        bgImagePreview.src = e.target.result;
-                        bgImagePreview.style.display = 'block';
+                    const dataUrl = e.target.result;
+                    if (manager.customization && typeof manager.customization.updateSetting === 'function') {
+                        manager.customization.updateSetting('--link-page-background-image-url', dataUrl);
+                        
+                        if (manager.customization.getCustomVars) {
+                            const currentCV = manager.customization.getCustomVars();
+                            if (currentCV['--link-page-background-type'] !== 'image') {
+                                manager.customization.updateSetting('--link-page-background-type', 'image');
+                            }
+                        }
                     }
-                    if (removeBgImageButton) removeBgImageButton.style.display = 'inline-block';
-                    if (bgImageIdInput) bgImageIdInput.value = ''; 
-
-                    manager.liveState = manager.liveState || {};
-                    manager.liveState.bgImgUrl = e.target.result; 
-                    
-                    updatePreviewFromDOMInputs(); // This updates the client-side preview style
-                    // if (manager.updatePreviewViaAJAX) manager.updatePreviewViaAJAX(); // Removed AJAX call
-                }
+                    updateAdminImagePreview(); 
+                };
                 reader.readAsDataURL(file);
+            } else { // File input cleared
+                // manager.customization.handleControlChange('--link-page-background-image-url', '', false, true); // OLD
+                if (manager.customization && typeof manager.customization.updateSetting === 'function') {
+                    manager.customization.updateSetting('--link-page-background-image-url', '');
+                }
+                updateAdminImagePreview();
+                // Optionally switch type back to 'color' if desired:
+                // manager.customization.handleControlChange('--link-page-background-type', 'color', false, true);
             }
         });
     }
-
-    if (removeBgImageButton) {
-        removeBgImageButton.addEventListener('click', function() {
-            if (bgImageUploadInput) bgImageUploadInput.value = ''; 
-            if (bgImagePreview) {
-                bgImagePreview.src = '#';
-                bgImagePreview.style.display = 'none';
-            }
-            if (bgImageIdInput) bgImageIdInput.value = ''; 
-            this.style.display = 'none';
-
-            manager.liveState = manager.liveState || {};
-            manager.liveState.bgImgUrl = null; 
-
-            updatePreviewFromDOMInputs(); // Update client-side preview to remove image
-            // If removing an image should also trigger a full AJAX update to ensure server state consistency:
-            // if (manager.updatePreviewViaAJAX) manager.updatePreviewViaAJAX(); // Consider if needed for removal
-        });
-    }
-
-    // --- Attach Event Listeners ---
-    const backgroundInputsToListen = [
-        {el: typeSelectInput, event: 'change'},
-        {el: bgColorInput, event: 'input'},
-        {el: gradStartInput, event: 'input'},
-        {el: gradEndInput, event: 'input'},
-        {el: gradDirInput, event: 'change'}
-    ];
-    backgroundInputsToListen.forEach(item => {
-        if (item.el) {
-            item.el.addEventListener(item.event, handleBackgroundInputChange);
-        }
-    });
-
-    // --- Public Methods / API for this module ---
-    manager.background.init = initializeBackgroundControls;
-    // Expose updatePreviewFromDOMInputs if other modules need to trigger a background refresh based on DOM
-    manager.background.updatePreview = updatePreviewFromDOMInputs; 
-
-    // --- Initial Call ---
-    document.addEventListener('DOMContentLoaded', function() {
-        if (manager.isInitialized) { 
+    
+    // Public methods
+    manager.background.init = function() {
+        if (manager.customization && 
+            typeof manager.customization.handleControlChange === 'function' && // This check is no longer relevant
+            typeof manager.customization.getCustomVars === 'function' && 
+            typeof manager.customization.updateSetting === 'function') { 
             initializeBackgroundControls();
         } else {
-            document.addEventListener('extrchLinkPageManagerInitialized', initializeBackgroundControls);
+            document.addEventListener('extrchLinkPageManagerInitialized', function initBackgroundOnceReady() {
+                if (manager.customization && 
+                    typeof manager.customization.getCustomVars === 'function' && 
+                    typeof manager.customization.updateSetting === 'function') { 
+                    initializeBackgroundControls();
+                    document.removeEventListener('extrchLinkPageManagerInitialized', initBackgroundOnceReady);
+                } else {
+                    console.error('Background.js: extrchLinkPageManagerInitialized event fired, but critical customization functions are still missing.');
+                }
+            });
         }
-    });
+    };
+    manager.background.updateAdminImagePreview = updateAdminImagePreview; // Expose if needed elsewhere
+    manager.background.updateBackgroundTypeUI = updateBackgroundTypeUI; // Expose for customization.js if it needs to call this
+    manager.background.syncBackgroundInputValues = syncBackgroundInputValues; // Expose for customization.js if it needs to call this
+
+    // --- Initial Call to arm the init logic ---
+    manager.background.init();
 
 })(window.ExtrchLinkPageManager);

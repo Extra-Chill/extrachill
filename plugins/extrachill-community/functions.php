@@ -178,19 +178,21 @@ function modular_bbpress_styles() {
 add_action('wp_enqueue_scripts', 'enqueue_user_profile_styles');
 
 function enqueue_user_profile_styles() {
-    // User Profile styles - Load only on user profile pages
-    if (bbp_is_single_user() || bbp_is_single_user_edit() || bbp_is_user_home()) {
+    // User Profile styles - Load only on user profile pages OR the band directory forum
+    if ( (function_exists('bbp_is_single_user') && (bbp_is_single_user() || bbp_is_single_user_edit() || bbp_is_user_home())) || 
+         (function_exists('bbp_is_single_forum') && bbp_is_single_forum(5432)) // Band Directory Forum ID
+       ) {
         wp_enqueue_style(
-            'user-profile',
+            'user-profile', // This handle might be slightly misleading now, but keep for consistency unless a rename is preferred.
             get_stylesheet_directory_uri() . '/css/user-profile.css',
             array('generatepress-child-style'),
             filemtime(get_stylesheet_directory() . '/css/user-profile.css')
         );
-        // Enqueue band card styles for user profile band grid
+        // Enqueue band card styles for user profile band grid AND band directory
         wp_enqueue_style(
             'band-profile-cards',
             get_stylesheet_directory_uri() . '/css/band-profile-cards.css',
-            array('generatepress-child-style'),
+            array('generatepress-child-style'), // Or 'user-profile' if it should load after it
             filemtime(get_stylesheet_directory() . '/css/band-profile-cards.css')
         );
     }
@@ -212,12 +214,12 @@ function enqueue_quote_script() {
         wp_enqueue_script('custom-bbpress-quote', get_stylesheet_directory_uri() . $script_path, array('jquery'), $version, true);
     }
 }
-// add_action('wp_enqueue_scripts', 'enqueue_quote_script');
+add_action('wp_enqueue_scripts', 'enqueue_quote_script');
 
 
 function enqueue_collapse_script() {
     // Check if we're on the homepage or the forum front page
-    if ( is_front_page() || is_home() ) {
+    if ( is_front_page() || is_home() || is_singular('band_profile') ) {
         // Define the path to the script relative to the theme directory
         $script_path = '/js/home-collapse.js';
 
@@ -412,9 +414,14 @@ class Custom_Walker_Nav_Menu extends Walker_Nav_Menu {
         $item_output .= '<a'. $attributes .'>';
         $item_output .= $args->link_before . apply_filters( 'the_title', $item->title, $item->ID ) . $args->link_after;
 
-        // Add SVG if menu item has children
+        // Add a submenu indicator if the item has children
         if ( in_array( 'menu-item-has-children', $item->classes ) ) {
-            $item_output .= ' <svg class="submenu-indicator"><use href="/wp-content/themes/generatepress_child/fonts/extrachill.svg?v=1.5#angle-down-solid"></use></svg>';
+            // Check if it's a top-level item by looking for menu-item-depth-0 class
+            $is_top_level = in_array('menu-item-depth-0', $item->classes);
+            if ( $is_top_level ) {
+                // Replace SVG with Font Awesome icon
+                $item_output .= ' <i class="submenu-indicator fas fa-angle-down"></i>';
+            }
         }
         $item_output .= '</a>';
         $item_output .= $args->after;
@@ -581,3 +588,181 @@ function generatepress_child_enqueue_scripts() {
     );
 }
 add_action( 'wp_enqueue_scripts', 'generatepress_child_enqueue_scripts', 99 ); // Load child style.css late
+
+// Function to enqueue assets for the Manage Band Profile page
+function extrachill_enqueue_manage_band_profile_assets() {
+    if (is_page_template('page-templates/manage-band-profile.php')) {
+        // Enqueue specific CSS for manage band profile page
+        wp_enqueue_style(
+            'manage-band-profile-style',
+            get_stylesheet_directory_uri() . '/css/manage-band-profile.css',
+            array('shared-tabs'), // Add shared-tabs as a dependency
+            filemtime(get_stylesheet_directory() . '/css/manage-band-profile.css')
+        );
+
+        // Enqueue specific JS for manage band profile page
+        $manage_js_path = get_stylesheet_directory() . '/js/manage-band-profiles.js';
+        if ( file_exists( $manage_js_path ) ) {
+            wp_enqueue_script(
+                'manage-band-profile-script', // Consistent handle
+                get_stylesheet_directory_uri() . '/js/manage-band-profiles.js',
+                array('jquery', 'shared-tabs'), // Add shared-tabs as a dependency
+                filemtime( $manage_js_path ),
+                true
+            );
+
+            // Localize script to pass data, similar to what was in band-platform-includes.php
+            $band_id = isset( $_GET['band_id'] ) ? absint( $_GET['band_id'] ) : 0;
+            // If creating a new band, a temporary ID or a signal might be passed, or rely on create_band_profile AJAX to return it.
+            // For now, assume 0 if not set for existing band context.
+            
+            $current_user_id = get_current_user_id();
+            $band_profile_id_from_user = 0;
+
+            if ( $band_id === 0 && $current_user_id > 0 ) {
+                // Attempt to get the band_id from user meta if not in URL (e.g., user's own default band page)
+                $user_band_profiles = get_user_meta( $current_user_id, 'band_profile_ids', true );
+                if ( ! empty( $user_band_profiles ) && is_array( $user_band_profiles ) ) {
+                    // For simplicity, take the first one. Or, implement logic to select a primary/default.
+                    $band_profile_id_from_user = reset( $user_band_profiles ); 
+                }
+            }
+            // Prioritize URL param, then user meta, then 0.
+            $final_band_id = $band_id ?: $band_profile_id_from_user;
+
+            $data_to_pass = array(
+                'ajaxUrl'       => admin_url( 'admin-ajax.php' ),
+                'bandProfileId' => $final_band_id, 
+                'ajaxAddNonce'  => wp_create_nonce( 'bp_ajax_add_roster_member_nonce' ), // Ensure this nonce is verified in the AJAX handler
+                'ajaxRemovePlaintextNonce' => wp_create_nonce( 'bp_ajax_remove_plaintext_member_nonce' ),
+                'ajaxInviteMemberByEmailNonce' => wp_create_nonce( 'bp_ajax_invite_member_by_email_nonce' ),
+                // Nonce for image uploads if handled by this script, or ensure custom-avatar.js handles it with its own nonce
+                'i18n' => array( // For any translatable strings used in manage-band-profiles.js
+                    'confirmRemoveMember' => __('Are you sure you want to remove "%s" from the roster listing?', 'generatepress_child'),
+                    'enterEmail' => __('Please enter an email address.', 'generatepress_child'),
+                    'sendingInvitation' => __('Sending...', 'generatepress_child'),
+                    'sendInvitation' => __('Send Invitation', 'generatepress_child'),
+                    'errorSendingInvitation' => __('Error: Could not send invitation.', 'generatepress_child'),
+                    'errorAjax' => __('An error occurred. Please try again.', 'generatepress_child'),
+                    'errorRemoveListing' => __('Error: Could not remove listing.', 'generatepress_child')
+                )
+            );
+            wp_localize_script( 'manage-band-profile-script', 'bpManageMembersData', $data_to_pass );
+        }
+    }
+}
+add_action('wp_enqueue_scripts', 'extrachill_enqueue_manage_band_profile_assets');
+
+/**
+ * Remove private forum IDs option on theme deactivation.
+ */
+function extrachill_remove_private_forum_ids_option() {
+    delete_option( 'extrachill_private_forum_ids' );
+}
+add_action( 'switch_theme', 'extrachill_remove_private_forum_ids_option' );
+
+/**
+ * Enqueue assets for the User Settings page.
+ */
+function extrachill_enqueue_settings_page_assets() {
+    if (is_page_template('page-templates/settings-page.php')) {
+        wp_enqueue_style(
+            'settings-page-style',
+            get_stylesheet_directory_uri() . '/css/settings-page.css',
+            array('shared-tabs'), // Add shared-tabs as a dependency
+            filemtime(get_stylesheet_directory() . '/css/settings-page.css')
+        );
+        // No specific JS for settings page anymore as tabs are shared.
+    }
+}
+add_action('wp_enqueue_scripts', 'extrachill_enqueue_settings_page_assets');
+
+// Function to enqueue shared tab assets
+function extrachill_enqueue_shared_tabs_assets() {
+    // Define page templates that use the shared tabs
+    $shared_tabs_templates = array(
+        'page-templates/settings-page.php',
+        'page-templates/manage-band-profile.php',
+        'page-templates/manage-link-page.php'
+    );
+
+    if (is_page_template($shared_tabs_templates)) {
+        wp_enqueue_style(
+            'shared-tabs',
+            get_stylesheet_directory_uri() . '/css/shared-tabs.css',
+            array(), // Add dependencies like 'generatepress-child-style' if needed
+            filemtime(get_stylesheet_directory() . '/css/shared-tabs.css')
+        );
+
+        wp_enqueue_script(
+            'shared-tabs',
+            get_stylesheet_directory_uri() . '/js/shared-tabs.js',
+            array('jquery'), // jQuery is not strictly needed by the current shared-tabs.js, can be removed if confirmed
+            filemtime(get_stylesheet_directory() . '/js/shared-tabs.js'),
+            true // Load in footer
+        );
+    }
+}
+add_action('wp_enqueue_scripts', 'extrachill_enqueue_shared_tabs_assets');
+
+// Enqueue assets for the extrch.co Link Page management
+function extrachill_enqueue_manage_link_page_assets() {
+    if (is_page_template('page-templates/manage-link-page.php')) {
+        // Original CSS for manage-link-page (for non-tab elements)
+        wp_enqueue_style(
+            'manage-link-page-style',
+            get_stylesheet_directory_uri() . '/forum-features/band-platform/extrch.co-link-page/css/manage-link-page.css',
+            array('shared-tabs'), // Add shared-tabs as a dependency
+            filemtime(get_stylesheet_directory() . '/forum-features/band-platform/extrch.co-link-page/css/manage-link-page.css')
+        );
+        
+        // Original JS for manage-link-page (for non-tab functionalities)
+        // Ensure extrchLinkPageConfig is localized if manage-link-page.js needs it.
+        wp_enqueue_script(
+            'manage-link-page-main-script', // Renamed handle to avoid conflict if an old one existed
+            get_stylesheet_directory_uri() . '/forum-features/band-platform/extrch.co-link-page/js/manage-link-page.js',
+            array('jquery', 'shared-tabs'), // Add shared-tabs as a dependency
+            filemtime(get_stylesheet_directory() . '/forum-features/band-platform/extrch.co-link-page/js/manage-link-page.js'),
+            true
+        );
+        
+        // Localize data for manage-link-page.js if it's still needed and separate from tab logic
+        // This part should be reviewed based on what manage-link-page.js still does.
+        global $extrch_link_page_fonts;
+        $link_page_id = get_query_var('link_page_id_for_script', 0); // Requires set_query_var elsewhere
+        $band_id = get_query_var('band_id_for_script', 0);      // Requires set_query_var elsewhere
+
+        wp_localize_script('manage-link-page-main-script', 'extrchLinkPageConfig', array(
+            'ajax_url' => admin_url('admin-ajax.php'),
+            'nonce' => wp_create_nonce('bp_save_link_page_action'), // Make sure this nonce is correct
+            'link_page_id' => $link_page_id,
+            'band_id' => $band_id,
+            'initial_profile_img_url' => get_post_meta($link_page_id, '_profile_image_url', true) ?: '',
+            'initial_background_img_url' => get_post_meta($link_page_id, '_background_image_url', true) ?: '',
+            'text' => array(
+                'confirmRemoveLink' => __('Are you sure you want to remove this link?', 'generatepress_child'),
+                // Add other translatable strings if needed by manage-link-page.js
+            ),
+            'fonts' => $extrch_link_page_fonts ?? array(),
+        ));
+    }
+}
+add_action('wp_enqueue_scripts', 'extrachill_enqueue_manage_link_page_assets');
+
+// Function to enqueue Band Switcher component styles
+function extrachill_enqueue_band_switcher_styles() {
+    $band_switcher_templates = array(
+        'page-templates/manage-band-profile.php',
+        'page-templates/manage-link-page.php'
+    );
+
+    if (is_page_template($band_switcher_templates)) {
+        wp_enqueue_style(
+            'band-switcher-styles',
+            get_stylesheet_directory_uri() . '/css/components/band-switcher.css',
+            array(), // No specific dependencies, or perhaps 'shared-tabs' if always used together
+            filemtime(get_stylesheet_directory() . '/css/components/band-switcher.css')
+        );
+    }
+}
+add_action('wp_enqueue_scripts', 'extrachill_enqueue_band_switcher_styles');

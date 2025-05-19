@@ -34,7 +34,7 @@ function send_welcome_email_to_new_user($user_id) {
     $message = "<html><body>";
     $message .= "<p>Hello <strong>" . $username . "</strong>,</p>";
     $message .= "<p>Welcome to the <strong>Extra Chill Community</strong>! Now that you're here, this place is a lot more chill!</p>";
-    $message .= "<p>You can now participate in the forum, upvote & comment on the blog, and submit events to <a href='https://extrachill.com/calendar'>our calendar</a>.</p>";
+    $message .= "<p>You can now participate in the forum, comment on the blog, and submit events to <a href='https://extrachill.com/calendar'>our calendar</a>.</p>";
     $message .= "<p>Get started by <a href='https://community.extrachill.com/t/introductions-thread'>introducing yourself in The Back Bar</a>!</p>";
     $message .= "<p>You can also <a href='https://extrachill.com/product/ad-free-license'>purchase a $10 ad-free license</a> to remove ads from extrachill.com forever.</p>";
     $message .= "<p><strong>Account Details:</strong><br>";

@@ -32,7 +32,6 @@ function bp_display_manage_members_section( $band_id, $current_user_id ) {
     $has_any_members = false;
 
     ?>
-    <hr style="margin: 2em 0;">
     <h2><?php esc_html_e( 'Band Roster', 'generatepress_child' ); ?></h2>
     
     <div id="bp-manage-members-section">
@@ -102,8 +101,6 @@ function bp_display_manage_members_section( $band_id, $current_user_id ) {
                 <li class="no-members"><?php esc_html_e( 'No members listed for this band yet.', 'generatepress_child' ); ?></li>
             <?php endif; ?>
         </ul>
-
-        <hr style="margin-top: 20px; margin-bottom:20px;">
 
         <div id="bp-add-member-controls" style="margin-bottom: 20px;">
             <a href="#" id="bp-show-add-member-form-link" class="button"><?php esc_html_e('[+] Add Member', 'generatepress_child'); ?></a>

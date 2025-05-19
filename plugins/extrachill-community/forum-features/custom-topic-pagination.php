@@ -71,4 +71,4 @@ function extrachill_custom_forum_pagination_count( $retstr ) {
 }
 
 // Hook for customizing forum pagination count
-add_filter( 'bbp_get_forum_pagination_count', 'extrachill_custom_forum_pagination_count' );
+// add_filter( 'bbp_get_forum_pagination_count', 'extrachill_custom_forum_pagination_count' );

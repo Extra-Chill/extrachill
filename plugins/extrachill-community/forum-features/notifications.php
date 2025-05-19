@@ -56,6 +56,63 @@ function wp_surgeon_add_notification_bell_icon() {
         echo '<ul>';
         echo '<li><a href="' . bbp_get_user_profile_url(get_current_user_id()) . '">View Profile</a></li>';
         echo '<li><a href="' . bbp_get_user_profile_edit_url(get_current_user_id()) . '">Edit Profile</a></li>';
+
+        // Conditional Band Management Link
+        $user_band_ids = get_user_meta( $current_user_id, '_band_profile_ids', true );
+        $base_manage_url = home_url( '/manage-band-profiles/' ); 
+        $final_manage_url = $base_manage_url; // Default to base URL
+
+        if ( ! empty( $user_band_ids ) && is_array( $user_band_ids ) ) {
+            // User has one or more band profiles - find the most recently updated one
+            $latest_band_id = 0;
+            $latest_modified_timestamp = 0;
+
+            foreach ( $user_band_ids as $band_id ) {
+                $band_id_int = absint($band_id);
+                if ( $band_id_int > 0 ) {
+                    $post_modified_gmt = get_post_field( 'post_modified_gmt', $band_id_int, 'raw' );
+                    if ( $post_modified_gmt ) {
+                        $current_timestamp = strtotime( $post_modified_gmt );
+                        if ( $current_timestamp > $latest_modified_timestamp ) {
+                            $latest_modified_timestamp = $current_timestamp;
+                            $latest_band_id = $band_id_int;
+                        }
+                    }
+                }
+            }
+
+            if ( $latest_band_id > 0 ) {
+                $final_manage_url = add_query_arg( 'band_id', $latest_band_id, $base_manage_url );
+            }
+            echo '<li><a href="' . esc_url( $final_manage_url ) . '">' . esc_html__( 'Manage Band(s)', 'generatepress_child' ) . '</a></li>';
+        } else {
+            // User has no band profiles - Link to Create, if they are an artist OR professional.
+            $is_artist = get_user_meta( $current_user_id, 'user_is_artist', true );
+            $is_professional = get_user_meta( $current_user_id, 'user_is_professional', true );
+            if ( $is_artist === '1' || $is_professional === '1' ) {
+                // The manage-band-profiles page handles creation if no band_id is passed.
+                echo '<li><a href="' . esc_url( $base_manage_url ) . '">' . esc_html__( 'Create Band Profile', 'generatepress_child' ) . '</a></li>';
+            }
+        }
+
+        // Conditional Link Page Management Link
+        if ( ! empty( $user_band_ids ) && is_array( $user_band_ids ) ) {
+            // User has one or more band profiles, so they *could* have a link page.
+            // We use the same $latest_band_id logic as above for consistency,
+            // as /manage-link-page/ takes a band_id.
+            $base_link_page_manage_url = home_url( '/manage-link-page/' );
+            $final_link_page_manage_url = $base_link_page_manage_url;
+
+            if ( $latest_band_id > 0 ) { // $latest_band_id was determined in the block above
+                $final_link_page_manage_url = add_query_arg( 'band_id', $latest_band_id, $base_link_page_manage_url );
+            }
+            // If $latest_band_id is 0 (e.g., bands exist but no valid modified date found), it links to /manage-link-page/ without band_id.
+            // The /manage-link-page/ template will need to handle this (e.g., prompt to select a band or show a message).
+            echo '<li><a href="' . esc_url( $final_link_page_manage_url ) . '">' . esc_html__( 'Manage Link Page(s)', 'generatepress_child' ) . '</a></li>';
+        } 
+        // If no band_ids, this link is not shown, as link pages depend on band profiles.
+
+        echo '<li><a href="' . esc_url( home_url('/settings/') ) . '">' . esc_html__( 'Settings', 'generatepress_child' ) . '</a></li>';
         echo '<li><a href="' . wp_logout_url( home_url() ) . '">Log Out</a></li>';
         echo '</ul>';
         echo '</div>';

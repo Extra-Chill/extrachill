@@ -63,85 +63,22 @@ function bp_handle_create_band_profile_submission() {
     // Local Scene (using _local_city for consistency)
     $meta_data['_local_city'] = isset( $_POST['local_city'] ) ? sanitize_text_field( $_POST['local_city'] ) : '';
 
-    // Process Dynamic Links
-    $sanitized_links = array();
-    if ( isset( $_POST['band_links'] ) && is_array( $_POST['band_links'] ) ) {
-        $supported_link_types = function_exists('bp_get_supported_social_link_types') ? array_keys(bp_get_supported_social_link_types()) : array('website', 'custom'); // Fallback if function missing
-
-        foreach ( $_POST['band_links'] as $link_item ) {
-            if ( ! empty( $link_item['url'] ) && ! empty( $link_item['type_key'] ) ) {
-                $type_key = sanitize_key( $link_item['type_key'] );
-                $url = esc_url_raw( trim( $link_item['url'] ) );
-                $custom_label = isset( $link_item['custom_label'] ) ? sanitize_text_field( $link_item['custom_label'] ) : '';
-
-                // Validate type key and URL
-                if ( in_array( $type_key, $supported_link_types ) && ! empty( $url ) ) {
-                    $link_entry = array(
-                        'type_key' => $type_key,
-                        'url' => $url,
-                    );
-                    // Only include custom label if the type is custom and label is not empty
-                    if ( $type_key === 'custom' && ! empty( $custom_label ) ) {
-                        $link_entry['custom_label'] = $custom_label;
-                    }
-                    $sanitized_links[] = $link_entry;
-                }
-            }
-        }
-    }
-    // Store the sanitized links array in the single meta field
-    $meta_data['_band_profile_dynamic_links'] = $sanitized_links;
-
     // Default forum setting: Allow public topic creation
     $meta_data['_allow_public_topic_creation'] = '1';
 
-    // --- Handle Featured Image Upload ---
-    $featured_image_id = 0; // Initialize
-    if ( isset( $_FILES['featured_image'] ) && $_FILES['featured_image']['error'] == UPLOAD_ERR_OK ) {
-        // Check file type and size if needed here before processing
-
-        // WordPress environment is required for media_handle_upload
-        if ( ! function_exists( 'media_handle_upload' ) ) {
-            require_once( ABSPATH . 'wp-admin/includes/image.php' );
-            require_once( ABSPATH . 'wp-admin/includes/file.php' );
-            require_once( ABSPATH . 'wp-admin/includes/media.php' );
-        }
-
-        // The second parameter (0) indicates that the attachment is not attached to any post yet.
-        // media_handle_upload will move the file and create an attachment post.
-        $featured_image_id = media_handle_upload( 'featured_image', 0 ); 
-
-        if ( is_wp_error( $featured_image_id ) ) {
-            // Handle upload error - Redirect back with a generic upload error
-            // For more specific errors, you could pass $featured_image_id->get_error_code()
-            wp_safe_redirect( add_query_arg( 'bp_error', 'image_upload_failed', $redirect_base_url ) );
-            exit;
-        }
+    // Store file data temporarily if it exists, to process after post creation
+    $temp_featured_image_file = null;
+    if ( isset( $_FILES['featured_image'] ) && !empty( $_FILES['featured_image']['tmp_name'] ) && $_FILES['featured_image']['error'] === UPLOAD_ERR_OK ) {
+        $temp_featured_image_file = $_FILES['featured_image'];
     }
-
-    // --- Handle Band Header Image Upload ---
-    $band_header_image_id = 0; // Initialize
+    $temp_prefill_avatar_id = null;
+    if ( !$temp_featured_image_file && !isset( $_POST['band_id'] ) && isset( $_POST['prefill_user_avatar_id'] ) && !empty( $_POST['prefill_user_avatar_id'] ) ) {
+        $temp_prefill_avatar_id = absint( $_POST['prefill_user_avatar_id'] );
+    }
+    $temp_header_image_file = null;
     if ( isset( $_FILES['band_header_image'] ) && $_FILES['band_header_image']['error'] == UPLOAD_ERR_OK ) {
-        if ( ! function_exists( 'media_handle_upload' ) ) { // Redundant check if already included for featured_image, but safe.
-            require_once( ABSPATH . 'wp-admin/includes/image.php' );
-            require_once( ABSPATH . 'wp-admin/includes/file.php' );
-            require_once( ABSPATH . 'wp-admin/includes/media.php' );
-        }
-        $band_header_image_id = media_handle_upload( 'band_header_image', 0 );
-        if ( is_wp_error( $band_header_image_id ) ) {
-            // Using a more specific error code for header image failure
-            wp_safe_redirect( add_query_arg( 'bp_error', 'header_image_upload_failed', $redirect_base_url ) );
-            exit;
-        }
+        $temp_header_image_file = $_FILES['band_header_image'];
     }
-
-    // If errors were collected previously (though we're redirecting on first error now)
-    // This block is currently unreachable but kept for structure if needed later
-    // if ( ! empty( $errors ) ) {
-    //     // Example redirect (needs session/transient handling for $errors):
-    //     // wp_redirect( add_query_arg( 'bp_errors', urlencode( json_encode( $errors ) ), $redirect_base_url ) );
-    //     // exit;
-    // }
 
     // --- Create the Post ---
     $band_data['post_type']   = 'band_profile';
@@ -164,14 +101,46 @@ function bp_handle_create_band_profile_submission() {
         }
     }
     
-    // --- Set Featured Image (if uploaded) --- 
-    if ( $featured_image_id > 0 ) {
-        set_post_thumbnail( $new_band_id, $featured_image_id );
+    // --- Handle Featured Image Upload (after post creation) ---
+    if ( $temp_featured_image_file ) {
+        // Sideload the image and set as featured image
+        if ( ! function_exists( 'media_handle_sideload' ) ) {
+            require_once ABSPATH . 'wp-admin/includes/file.php';
+            require_once ABSPATH . 'wp-admin/includes/media.php';
+            require_once ABSPATH . 'wp-admin/includes/image.php';
+        }
+        // media_handle_sideload() expects an array like a $_FILES element
+        // Pass $new_band_id so the attachment is associated with the post
+        $featured_image_attach_id = media_handle_sideload( $temp_featured_image_file, $new_band_id );
+
+        if ( ! is_wp_error( $featured_image_attach_id ) ) {
+            set_post_thumbnail( $new_band_id, $featured_image_attach_id );
+        } else {
+            // error_log("Error sideloading featured image for new band $new_band_id: " . $featured_image_attach_id->get_error_message());
+        }
+    } elseif ( $temp_prefill_avatar_id && wp_attachment_is_image( $temp_prefill_avatar_id ) ) {
+        set_post_thumbnail( $new_band_id, $temp_prefill_avatar_id );
     }
 
-    // --- Set Band Header Image (if uploaded) ---
-    if ( $band_header_image_id > 0 ) {
-        update_post_meta( $new_band_id, '_band_profile_header_image_id', $band_header_image_id );
+    // --- Handle Band Header Image Upload (after post creation) ---
+    if ( $temp_header_image_file ) {
+        if ( ! function_exists( 'media_handle_sideload' ) ) { // media_handle_upload also works and is common
+            require_once( ABSPATH . 'wp-admin/includes/image.php' );
+            require_once( ABSPATH . 'wp-admin/includes/file.php' );
+            require_once( ABSPATH . 'wp-admin/includes/media.php' );
+        }
+        // Using media_handle_sideload for consistency, though media_handle_upload could be used if passing the file key 'band_header_image'
+        // For media_handle_sideload, we pass the actual file array.
+        $band_header_image_attach_id = media_handle_sideload( $temp_header_image_file, $new_band_id ); 
+
+        if ( ! is_wp_error( $band_header_image_attach_id ) ) {
+            update_post_meta( $new_band_id, '_band_profile_header_image_id', $band_header_image_attach_id );
+        } else {
+            // error_log("Error sideloading band header image for new band $new_band_id: " . $band_header_image_attach_id->get_error_message());
+            // Optionally, redirect with a specific error for header image if critical
+            // wp_safe_redirect( add_query_arg( 'bp_error', 'header_image_upload_failed', $redirect_base_url ) );
+            // exit;
+        }
     }
 
     // --- Link Creator as Member --- 
@@ -181,10 +150,23 @@ function bp_handle_create_band_profile_submission() {
     // The save_post_band_profile hook should fire automatically after wp_insert_post 
     // if the status is publish, creating the forum.
 
-    // --- Redirect to the new profile with success flag ---
-    $redirect_url = get_permalink( $new_band_id );
-    // Add success query arg
-    wp_safe_redirect( add_query_arg( 'bp_success', 'created', $redirect_url ) );
+    // --- Get the ID of the link page that should have been created by the save_post_band_profile hook ---
+    $new_link_page_id = get_post_meta( $new_band_id, '_extrch_link_page_id', true );
+
+    // --- Redirect to the manage band profile page with success flags ---
+    $manage_page_url = bp_get_manage_band_page_url();
+    $query_args = array(
+        'bp_success' => 'created',
+        'new_band_id' => $new_band_id
+    );
+    if ( $new_link_page_id ) {
+        $query_args['new_link_page_id'] = $new_link_page_id;
+    }
+    // Ensure the user is redirected to the newly created band's edit view within the manage page
+    $redirect_url = add_query_arg( 'band_id', $new_band_id, $manage_page_url ); 
+    $redirect_url = add_query_arg( $query_args, $redirect_url );
+
+    wp_safe_redirect( $redirect_url );
     exit;
 
 }
@@ -223,7 +205,7 @@ function bp_handle_edit_band_profile_submission() {
     }
 
     // Check user permission to edit *this specific post*
-    if ( ! current_user_can( 'edit_post', $band_id ) ) {
+    if ( ! current_user_can( 'manage_band_members', $band_id ) ) {
         wp_safe_redirect( add_query_arg( 'bp_error', 'permission_denied_edit', $error_redirect_url ) );
         exit;
     }
@@ -256,72 +238,11 @@ function bp_handle_edit_band_profile_submission() {
     // Bio (Content)
     $update_band_data['post_content'] = isset( $_POST['band_bio'] ) ? wp_kses_post( wp_unslash( $_POST['band_bio'] ) ) : ''; // Use wp_kses_post for content
 
-    // --- Process SOCIAL LINKS ---
-    if ( isset( $_POST['band_profile_social_links_json'] ) ) {
-        $social_links_json = wp_unslash( $_POST['band_profile_social_links_json'] );
-        $social_links_array = json_decode( $social_links_json, true );
-        $sanitized_social_links = array();
-
-        if ( is_array( $social_links_array ) ) {
-            // Define expected social types, can be fetched dynamically or defined here
-            // For simplicity, we'll assume a function bp_get_valid_social_link_types() might exist or use a basic check.
-            // $valid_social_types = function_exists('bp_get_valid_social_link_types') ? bp_get_valid_social_link_types() : ['instagram', 'twitter', 'facebook', 'youtube', 'tiktok', 'soundcloud', 'bandcamp', 'spotify', 'applemusic', 'website', 'email'];
-
-            foreach ( $social_links_array as $link_item ) {
-                if ( ! empty( $link_item['type'] ) && isset( $link_item['url'] ) ) { // URL can be empty if user is typing
-                    $type = sanitize_key( $link_item['type'] );
-                    $url = ($type === 'email') ? sanitize_email( trim( $link_item['url'] ) ) : esc_url_raw( trim( $link_item['url'] ) );
-                    
-                    // Basic validation: type should be somewhat reasonable, URL might be empty if user cleared it
-                    // if (in_array($type, $valid_social_types)) { // More robust validation if needed
-                    if (!empty($type)) { // Simpler check for now
-                        $sanitized_social_links[] = array(
-                            'type' => $type,
-                            'url'  => $url,
-                        );
-                    }
-                }
-            }
-        }
-        // Always update, even if empty, to allow clearing all social links.
-        update_post_meta( $band_id, '_band_profile_social_links', $sanitized_social_links );
-    }
-    // --- End SOCIAL LINKS ---
-
     // Genre
     $update_meta_data['_genre'] = isset( $_POST['genre'] ) ? sanitize_text_field( $_POST['genre'] ) : '';
 
     // Local Scene (City)
     $update_meta_data['_local_city'] = isset( $_POST['local_city'] ) ? sanitize_text_field( $_POST['local_city'] ) : '';
-
-    // Process Dynamic Links
-    $sanitized_links = array(); // Re-initialize for edit handler
-    if ( isset( $_POST['band_links'] ) && is_array( $_POST['band_links'] ) ) {
-        $supported_link_types = function_exists('bp_get_supported_social_link_types') ? array_keys(bp_get_supported_social_link_types()) : array('website', 'custom'); // Fallback
-
-        foreach ( $_POST['band_links'] as $link_item ) {
-            if ( ! empty( $link_item['url'] ) && ! empty( $link_item['type_key'] ) ) {
-                $type_key = sanitize_key( $link_item['type_key'] );
-                $url = esc_url_raw( trim( $link_item['url'] ) );
-                $custom_label = isset( $link_item['custom_label'] ) ? sanitize_text_field( $link_item['custom_label'] ) : '';
-
-                // Validate type key and URL
-                if ( in_array( $type_key, $supported_link_types ) && ! empty( $url ) ) {
-                    $link_entry = array(
-                        'type_key' => $type_key,
-                        'url' => $url,
-                    );
-                    // Only include custom label if the type is custom and label is not empty
-                    if ( $type_key === 'custom' && ! empty( $custom_label ) ) {
-                        $link_entry['custom_label'] = $custom_label;
-                    }
-                    $sanitized_links[] = $link_entry;
-                }
-            }
-        }
-    }
-    // Store the sanitized links array in the single meta field
-    $update_meta_data['_band_profile_dynamic_links'] = $sanitized_links;
 
     // Forum Settings - Restrict Public Topic Creation
     // If the 'restrict_public_topics' checkbox is checked (value '1'), it means we should restrict public creation,
@@ -385,12 +306,7 @@ function bp_handle_edit_band_profile_submission() {
             update_post_meta( $band_id, $key, $value );
         } else {
             // Delete meta if the field was submitted empty
-            // Important: Check if the key is the dynamic links key; empty array should be saved, not deleted.
-            if ($key === '_band_profile_dynamic_links') {
-                update_post_meta( $band_id, $key, array() ); // Save empty array if submitted empty
-            } else {
-                delete_post_meta( $band_id, $key );
-            }
+            delete_post_meta( $band_id, $key );
         }
     }
     

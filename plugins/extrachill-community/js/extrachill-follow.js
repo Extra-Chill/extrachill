@@ -7,63 +7,127 @@ jQuery(document).ready(function($) {
         // Instead, just don't attach the handler.
     } else {
         // Band Follow Button Click Handler
-        $(document).on('click', '.bp-follow-band-button', function() {
+        $(document).on('click', '.bp-follow-band-button', function(e) {
+            e.preventDefault(); // Prevent default button action, we'll handle it
+
             var button = $(this);
             var bandId = button.data('band-id');
-            var action = button.data('action'); // 'follow' or 'unfollow'
+            var currentAction = button.data('action'); // 'follow' or 'unfollow'
             var nonce = bpFollowData.nonce; // Use nonce from localized data
             var ajaxUrl = bpFollowData.ajaxUrl; // Use AJAX URL from localized data
+            var bandName = button.closest('.band-profile-details, .band-hero-content, .band-card-content').find('.entry-title, .band-hero-title, .band-card-title a').first().text().trim();
+            if (!bandName) {
+                bandName = "this band"; // Fallback band name
+            }
 
-            if (!bandId || !action || !nonce || !ajaxUrl) {
-                console.error('Missing data for follow action', { bandId, action, nonce, ajaxUrl });
+
+            if (!bandId || !currentAction || !nonce || !ajaxUrl) {
+                console.error('Missing data for follow action', { bandId, currentAction, nonce, ajaxUrl });
                 alert('Could not perform action due to missing data.');
                 return;
             }
 
-            // Optimistic UI update
-            var originalText = button.text();
-            var newText = action === 'follow' ? 'Following' : 'Follow';
-            var newAction = action === 'follow' ? 'unfollow' : 'follow';
-            button.text('Processing...').prop('disabled', true);
+            function performAjaxRequest(shareConsent) {
+                // Optimistic UI update
+                var originalText = button.text();
+                // For 'follow' action, text changes to 'Following' if successful. For 'unfollow', to 'Follow'.
+                var newText = currentAction === 'follow' ? bpFollowData.i18n.following : bpFollowData.i18n.follow;
+                var newAction = currentAction === 'follow' ? 'unfollow' : 'follow';
+                
+                button.text(bpFollowData.i18n.processing).prop('disabled', true);
 
-            $.ajax({
-                url: ajaxUrl,
-                type: 'post',
-                data: {
-                    action: 'bp_toggle_follow_band', // New AJAX action
+                var ajaxData = {
+                    action: 'bp_toggle_follow_band', // AJAX action
                     band_id: bandId,
-                    nonce: nonce
-                },
-                success: function(response) {
-                    if (response.success && response.data) {
-                        // Update button state based on response
-                        button.text(response.data.new_state === 'following' ? 'Following' : 'Follow');
-                        button.data('action', response.data.new_state === 'following' ? 'unfollow' : 'follow');
-                        
-                        // Update follower count
-                        var $count = $('#band-follower-count-' + bandId);
-                        if ($count.length && response.data.new_count_formatted) {
-                            $count.text(response.data.new_count_formatted);
-                        }
-                        
-                        console.log('Follow status updated:', response.data.new_state);
-                    } else {
-                        // Revert optimistic update on failure
-                        button.text(originalText);
-                        alert('Error: ' + (response.data && response.data.message ? response.data.message : 'Could not update follow status.'));
-                    }
-                },
-                error: function(jqXHR, textStatus, errorThrown) {
-                    // Revert optimistic update on AJAX error
-                    button.text(originalText);
-                    console.error('AJAX Error:', textStatus, errorThrown);
-                    alert('AJAX request failed: ' + textStatus);
-                },
-                complete: function() {
-                    // Re-enable button
-                    button.prop('disabled', false);
+                    nonce: nonce,
+                    // current_action: currentAction // Let backend derive from is_following for robustness
+                };
+
+                if (currentAction === 'follow') {
+                    ajaxData.share_email_consent = shareConsent;
                 }
-            });
+
+                $.ajax({
+                    url: ajaxUrl,
+                    type: 'post',
+                    data: ajaxData,
+                    success: function(response) {
+                        if (response.success && response.data) {
+                            // Update button state based on response
+                            button.text(response.data.new_state === 'following' ? bpFollowData.i18n.following : bpFollowData.i18n.follow);
+                            button.data('action', response.data.new_state === 'following' ? 'unfollow' : 'follow');
+                            
+                            // Update follower count
+                            var $count = $('#band-follower-count-' + bandId + ', .band-follower-count[data-band-id=\"' + bandId + '\"]');
+                            if ($count.length && typeof response.data.new_count_formatted !== 'undefined') {
+                                $count.text(response.data.new_count_formatted);
+                            }
+                            
+                            console.log('Follow status updated:', response.data.new_state);
+                        } else {
+                            // Revert optimistic update on failure
+                            button.text(originalText);
+                            // Restore original action
+                            button.data('action', currentAction); 
+                            alert('Error: ' + (response.data && response.data.message ? response.data.message : bpFollowData.i18n.errorMessage));
+                        }
+                    },
+                    error: function(jqXHR, textStatus, errorThrown) {
+                        // Revert optimistic update on AJAX error
+                        button.text(originalText);
+                        button.data('action', currentAction);
+                        console.error('AJAX Error:', textStatus, errorThrown);
+                        alert(bpFollowData.i18n.ajaxRequestFailed + ': ' + textStatus);
+                    },
+                    complete: function() {
+                        // Re-enable button
+                        button.prop('disabled', false);
+                        // Remove any existing modal
+                        $('#bp-follow-consent-modal').remove();
+                        $('.bp-follow-modal-backdrop').remove();
+                    }
+                });
+            }
+
+            if (currentAction === 'follow') {
+                // Remove any existing modal first
+                $('#bp-follow-consent-modal').remove();
+                $('.bp-follow-modal-backdrop').remove();
+
+                // Create and show modal for 'follow' action
+                var modalHTML = 
+                    '<div class="bp-follow-modal-backdrop"></div>' +
+                    '<div id="bp-follow-consent-modal" class="bp-modal">' +
+                        '<div class="bp-modal-content">' +
+                            '<h3 class="bp-modal-title">Follow ' + bandName + '?</h3>' +
+                            '<p>Following adds this band\'s forum activity to your \'Following Feed\'. Manage all followed bands in your account settings.</p>' +
+                            '<div class="bp-modal-consent-option">' +
+                                '<label for="bp_share_email_consent">' +
+                                    '<input type="checkbox" id="bp_share_email_consent" name="bp_share_email_consent" checked>' +
+                                    ' Share my email with ' + bandName + ' for their direct updates.' +
+                                '</label>' +
+                            '</div>' +
+                            '<div class="bp-modal-actions">' +
+                                '<button type="button" class="button bp-modal-confirm" id="bp_confirm_follow_btn">' + (bpFollowData.i18n.confirmFollow || 'Confirm Follow') + '</button>' +
+                                '<button type="button" class="button bp-modal-cancel" id="bp_cancel_follow_btn">' + (bpFollowData.i18n.cancel || 'Cancel') + '</button>' +
+                            '</div>' +
+                        '</div>' +
+                    '</div>';
+                $('body').append(modalHTML);
+
+                $('#bp_confirm_follow_btn').on('click', function() {
+                    var shareConsent = $('#bp_share_email_consent').is(':checked');
+                    performAjaxRequest(shareConsent);
+                });
+
+                $('#bp_cancel_follow_btn, .bp-follow-modal-backdrop').on('click', function() {
+                    $('#bp-follow-consent-modal').remove();
+                    $('.bp-follow-modal-backdrop').remove();
+                });
+
+            } else { // 'unfollow' action
+                performAjaxRequest(null); // No consent needed for unfollow
+            }
         });
     }
 

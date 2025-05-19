@@ -98,22 +98,84 @@ function extrachill_breadcrumbs() {
     }
     
     $separator  = '<span class="breadcrumb-sep"> › </span>';
-    $home_text  = 'Community';
+    $home_text  = 'Home';
     $home_url   = home_url( '/' );
     
-    // 2) Start building the breadcrumb output.
     $breadcrumb  = '<div class="bbp-breadcrumb">';
-    $breadcrumb .= '<a href="' . esc_url( $home_url ) . '">' . esc_html( $home_text ) . '</a>' . $separator;
     
-    if ( is_singular() ) {
+    if ( is_page_template('page-templates/manage-band-profile.php') ) {
+        $breadcrumb .= '<a href="' . esc_url( $home_url ) . '">' . esc_html( $home_text ) . '</a>';
+
+        $target_band_id = isset( $_GET['band_id'] ) ? absint( $_GET['band_id'] ) : 0;
+        $band_post_for_breadcrumb = null;
+        if ( $target_band_id > 0 ) {
+            $current_post_candidate = get_post( $target_band_id );
+            if ( $current_post_candidate && 'band_profile' === $current_post_candidate->post_type && 'publish' === $current_post_candidate->post_status ) {
+                $band_post_for_breadcrumb = $current_post_candidate;
+            }
+        }
+
+        // "Manage Bands" is the conceptual current page or parent context here.
+        $breadcrumb .= $separator . '<span class="breadcrumb-current">' . esc_html__( 'Manage Bands', 'generatepress_child' ) . '</span>';
+
+        if ( $band_post_for_breadcrumb ) {
+            // If editing a specific band, add its name as a link after "Manage Bands"
+            $band_title = get_the_title( $band_post_for_breadcrumb );
+            $band_permalink = get_permalink( $band_post_for_breadcrumb );
+            $breadcrumb .= $separator . '<a href="' . esc_url( $band_permalink ) . '">' . esc_html( $band_title ) . '</a>';
+        }
+        // If not editing a specific band (create mode or invalid band_id), "Manage Bands" as current is already set.
+
+    } elseif ( is_singular() ) {
+        $breadcrumb .= '<a href="' . esc_url( $home_url ) . '">' . esc_html( $home_text ) . '</a>' . $separator;
         $breadcrumb .= '<span class="breadcrumb-current">' . esc_html( get_the_title() ) . '</span>';
     } elseif ( is_search() ) {
-        $breadcrumb .= '<span class="breadcrumb-current">Search results for: ' . esc_html( get_search_query() ) . '</span>';
+        $breadcrumb .= '<a href="' . esc_url( $home_url ) . '">' . esc_html( $home_text ) . '</a>' . $separator;
+        $breadcrumb .= '<span class="breadcrumb-current">' . sprintf( esc_html__( 'Search results for: %s', 'generatepress_child' ), esc_html( get_search_query() ) ) . '</span>';
     } elseif ( is_archive() ) {
-        $breadcrumb .= '<span class="breadcrumb-current">' . esc_html( post_type_archive_title( '', false ) ) . '</span>';
+        $breadcrumb .= '<a href="' . esc_url( $home_url ) . '">' . esc_html( $home_text ) . '</a>' . $separator;
+        $archive_title = '';
+        if ( is_category() ) {
+            $archive_title = single_cat_title( '', false );
+        } elseif ( is_tag() ) {
+            $archive_title = single_tag_title( '', false );
+        } elseif ( is_author() ) {
+            $archive_title = get_the_author();
+        } elseif ( is_date() ) {
+            if (is_day()) {
+                $archive_title = get_the_date();
+            } elseif (is_month()) {
+                $archive_title = get_the_date(_x('F Y', 'monthly archives date format', 'generatepress_child'));
+            } elseif (is_year()) {
+                $archive_title = get_the_date(_x('Y', 'yearly archives date format', 'generatepress_child'));
+            }
+        } elseif ( is_post_type_archive() ) {
+            $archive_title = post_type_archive_title( '', false );
+        } elseif ( is_tax() ) { // For custom taxonomies
+            $archive_title = single_term_title( '', false );
+        }
+        
+        if ( empty( $archive_title ) ) { // A general fallback
+            $queried_object = get_queried_object();
+            if ( $queried_object && isset( $queried_object->label ) ) {
+                $archive_title = $queried_object->label;
+            } elseif ( $queried_object && isset( $queried_object->name ) ) {
+                $archive_title = $queried_object->name;
+            } else {
+                $archive_title = __( 'Archives', 'generatepress_child' );
+            }
+        }
+        $breadcrumb .= '<span class="breadcrumb-current">' . esc_html( $archive_title ) . '</span>';
     } else {
-        // Fallback for other pages.
-        $breadcrumb .= '<span class="breadcrumb-current">' . esc_html( get_the_title() ) . '</span>';
+        // Fallback for any other type of page that might not have been caught.
+        $current_title_fallback = get_the_title();
+        if ($current_title_fallback) {
+            $breadcrumb .= '<a href="' . esc_url( $home_url ) . '">' . esc_html( $home_text ) . '</a>' . $separator;
+            $breadcrumb .= '<span class="breadcrumb-current">' . esc_html( $current_title_fallback ) . '</span>';
+        } else {
+            // If no title, just show home as the current item (should be rare as front_page is handled).
+             $breadcrumb .= '<span class="breadcrumb-current">' . esc_html( $home_text ) . '</span>';
+        }
     }
     
     $breadcrumb .= '</div>';
