@@ -7,15 +7,25 @@
  */
 
 defined( 'ABSPATH' ) || exit;
-
-require_once( __DIR__ . '/forum-features/band-platform/extrch.co-link-page/config/link-page-font-config.php' );
+require_once( __DIR__ . '/band-platform/extrch.co-link-page/config/link-page-font-config.php' );
 global $extrch_link_page_fonts;
 
+global $wp_query; // Make sure $wp_query is available
+
 // Use the current post as the link page
-global $post;
-$link_page = $post;
-$link_page_id = $post->ID;
+$link_page = $wp_query->get_queried_object(); // Get the post object from the main query
+
+if ( !$link_page || !isset($link_page->ID) || $link_page->post_type !== 'band_link_page' ) {
+    // If the queried object isn't what we expect, then it's a genuine issue.
+    http_response_code(404);
+    echo '<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><title>Not Found</title></head><body><h1>Link Page Not Found (Invalid Query)</h1></body></html>';
+    exit;
+}
+
+$link_page_id = $link_page->ID;
+
 $band_id = get_post_meta($link_page_id, '_associated_band_profile_id', true);
+
 $band_profile = $band_id ? get_post($band_id) : null;
 
 if ( !$band_profile ) {
@@ -27,7 +37,7 @@ if ( !$band_profile ) {
 // Ensure LivePreviewManager class is available.
 // It should be included by link-page-includes.php.
 if ( ! class_exists( 'LivePreviewManager' ) ) {
-    $live_preview_manager_path = dirname( __FILE__ ) . '/forum-features/band-platform/extrch.co-link-page/config/live-preview/LivePreviewManager.php';
+    $live_preview_manager_path = dirname( __FILE__ ) . '/band-platform/extrch.co-link-page/config/live-preview/LivePreviewManager.php';
     if ( file_exists( $live_preview_manager_path ) ) {
         require_once $live_preview_manager_path;
     }
@@ -35,6 +45,7 @@ if ( ! class_exists( 'LivePreviewManager' ) ) {
 
 if ( class_exists( 'LivePreviewManager' ) ) {
     $data = LivePreviewManager::get_preview_data( $link_page_id, $band_id, array() ); // No overrides for public page
+    $data['original_link_page_id'] = $link_page_id; // Add the actual link page ID to $data
 } else {
     // Fallback if LivePreviewManager somehow isn't loaded
     $data = array(
@@ -49,6 +60,12 @@ if ( class_exists( 'LivePreviewManager' ) ) {
         'background_color' => '#1a1a1a',
         // Add other necessary defaults to prevent errors in the template
     );
+    $data['original_link_page_id'] = $link_page_id; // Add the actual link page ID to $data
+}
+
+// Also ensure it's added if LivePreviewManager provides the data
+if (isset($data) && is_array($data)) {
+    $data['original_link_page_id'] = $link_page_id; 
 }
 
 $body_bg_style = '';
@@ -86,17 +103,31 @@ $body_bg_style .= 'min-height:100vh;';
     ?>
 </head>
 <body class="extrch-link-page"<?php if ($body_bg_style) echo ' style="' . esc_attr( $body_bg_style ) . '"'; ?>>
-<?php if (is_user_logged_in() && current_user_can('manage_band_members', $band_id)) :
-    $manage_url = site_url('/manage-link-page/?band_id=' . $band_id);
+<?php
+// Google Tag Manager (noscript)
 ?>
+<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-NXKDLFD"
+            height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+<?php
+// Display the edit button only if the user can manage the band.
+// This logic is now handled by JavaScript after an AJAX check.
+// if ( $can_manage_band ) {
+    $manage_url = 'https://community.extrachill.com/manage-link-page/?band_id=' . $band_id; // Link directly to the main site for session recognition
+    ?>
     <a href="<?php echo esc_url($manage_url); ?>" class="extrch-link-page-edit-btn">
         <i class="fas fa-pencil-alt"></i>
     </a>
-<?php endif; ?>
+    <?php
+// }
+?>
     <?php
     // Pass $data explicitly to the template so overlay and all settings are available
     $extrch_link_page_template_data = $data;
-    require locate_template('forum-features/band-platform/extrch.co-link-page/extrch-link-page-template.php');
+    // Add the link_page_id to the $extrch_link_page_template_data array as well for good measure
+    // though the template now tries to get it from $data['original_link_page_id'] first.
+    $extrch_link_page_template_data['original_link_page_id'] = $link_page_id;
+
+    require locate_template('band-platform/extrch.co-link-page/extrch-link-page-template.php');
     ?>
     <?php wp_print_footer_scripts(); // Output scripts enqueued for footer ?>
 </body>

@@ -63,6 +63,8 @@ foreach ($files as $file) {
     }
 }
 
+// Include the new login module includes file
+require_once get_stylesheet_directory() . '/login/login-includes.php';
 
 function extrachill_enqueue_scripts() {
     $stylesheet_dir_uri = get_stylesheet_directory_uri();
@@ -164,7 +166,7 @@ function modular_bbpress_styles() {
         );
     }
 
-    if (is_page('register') || is_page('login')) {
+    if (is_page('register') || is_page('login') || is_page_template('page-templates/login-register-template.php')) {
         wp_enqueue_style(
             'register',
             get_stylesheet_directory_uri() . '/css/login-register.css',
@@ -538,7 +540,7 @@ add_filter( 'bbp_get_reply_position', 'extrachill_correct_reply_position_by_date
 require_once( get_stylesheet_directory() . '/extrachill-image-uploads.php' );
 
 // Load Band Platform files if the directory exists
-$band_platform_dir = get_stylesheet_directory() . '/forum-features/band-platform';
+$band_platform_dir = get_stylesheet_directory() . '/band-platform';
 if ( is_dir( $band_platform_dir ) ) {
     // Centralized include for all band platform PHP files
     require_once( $band_platform_dir . '/band-platform-includes.php' ); 
@@ -683,7 +685,8 @@ function extrachill_enqueue_shared_tabs_assets() {
     $shared_tabs_templates = array(
         'page-templates/settings-page.php',
         'page-templates/manage-band-profile.php',
-        'page-templates/manage-link-page.php'
+        'page-templates/manage-link-page.php',
+        'page-templates/login-register-template.php'
     );
 
     if (is_page_template($shared_tabs_templates)) {
@@ -705,49 +708,6 @@ function extrachill_enqueue_shared_tabs_assets() {
 }
 add_action('wp_enqueue_scripts', 'extrachill_enqueue_shared_tabs_assets');
 
-// Enqueue assets for the extrch.co Link Page management
-function extrachill_enqueue_manage_link_page_assets() {
-    if (is_page_template('page-templates/manage-link-page.php')) {
-        // Original CSS for manage-link-page (for non-tab elements)
-        wp_enqueue_style(
-            'manage-link-page-style',
-            get_stylesheet_directory_uri() . '/forum-features/band-platform/extrch.co-link-page/css/manage-link-page.css',
-            array('shared-tabs'), // Add shared-tabs as a dependency
-            filemtime(get_stylesheet_directory() . '/forum-features/band-platform/extrch.co-link-page/css/manage-link-page.css')
-        );
-        
-        // Original JS for manage-link-page (for non-tab functionalities)
-        // Ensure extrchLinkPageConfig is localized if manage-link-page.js needs it.
-        wp_enqueue_script(
-            'manage-link-page-main-script', // Renamed handle to avoid conflict if an old one existed
-            get_stylesheet_directory_uri() . '/forum-features/band-platform/extrch.co-link-page/js/manage-link-page.js',
-            array('jquery', 'shared-tabs'), // Add shared-tabs as a dependency
-            filemtime(get_stylesheet_directory() . '/forum-features/band-platform/extrch.co-link-page/js/manage-link-page.js'),
-            true
-        );
-        
-        // Localize data for manage-link-page.js if it's still needed and separate from tab logic
-        // This part should be reviewed based on what manage-link-page.js still does.
-        global $extrch_link_page_fonts;
-        $link_page_id = get_query_var('link_page_id_for_script', 0); // Requires set_query_var elsewhere
-        $band_id = get_query_var('band_id_for_script', 0);      // Requires set_query_var elsewhere
-
-        wp_localize_script('manage-link-page-main-script', 'extrchLinkPageConfig', array(
-            'ajax_url' => admin_url('admin-ajax.php'),
-            'nonce' => wp_create_nonce('bp_save_link_page_action'), // Make sure this nonce is correct
-            'link_page_id' => $link_page_id,
-            'band_id' => $band_id,
-            'initial_profile_img_url' => get_post_meta($link_page_id, '_profile_image_url', true) ?: '',
-            'initial_background_img_url' => get_post_meta($link_page_id, '_background_image_url', true) ?: '',
-            'text' => array(
-                'confirmRemoveLink' => __('Are you sure you want to remove this link?', 'generatepress_child'),
-                // Add other translatable strings if needed by manage-link-page.js
-            ),
-            'fonts' => $extrch_link_page_fonts ?? array(),
-        ));
-    }
-}
-add_action('wp_enqueue_scripts', 'extrachill_enqueue_manage_link_page_assets');
 
 // Function to enqueue Band Switcher component styles
 function extrachill_enqueue_band_switcher_styles() {
@@ -766,3 +726,133 @@ function extrachill_enqueue_band_switcher_styles() {
     }
 }
 add_action('wp_enqueue_scripts', 'extrachill_enqueue_band_switcher_styles');
+
+/**
+ * Add custom rewrite rules for extrachill.link domain.
+ */
+function extrch_add_link_page_rewrites() {
+    // Only apply these rules if the current host is extrachill.link
+    $current_host = strtolower( $_SERVER['HTTP_HOST'] ?? '' );
+    if ( stripos( $current_host, 'extrachill.link' ) !== false ) {
+        // Rewrite rule for the root extrachill.link URL to load the default 'extrachill' link page
+        add_rewrite_rule(
+            '^$',
+            'index.php?post_type=band_link_page&name=extrachill',
+            'top'
+        );
+
+        // Rewrite rule for extrachill.link/bandname/ to load the corresponding band_link_page
+        add_rewrite_rule(
+            '^([^/]+)/?$',
+            'index.php?post_type=band_link_page&name=$matches[1]',
+            'top'
+        );
+    }
+}
+add_action('init', 'extrch_add_link_page_rewrites');
+
+/**
+ * Redirects users from the default WordPress login page to the custom login page.
+ */
+function wp_surgeon_redirect_wp_login() {
+    $current_page = basename($_SERVER['REQUEST_URI']);
+
+    // Check if the user is trying to access wp-login.php directly
+    if ($current_page === 'wp-login.php' && $_SERVER['REQUEST_METHOD'] === 'GET') {
+        // Allow specific actions like logout, lostpassword, resetpass
+        $allowed_actions = ['logout', 'lostpassword', 'resetpass', 'rp', 'activate'];
+        $action = isset($_GET['action']) ? $_GET['action'] : '';
+
+        if (!in_array($action, $allowed_actions) && !is_user_logged_in()) {
+            wp_redirect(home_url('/login'));
+            exit();
+        }
+    }
+}
+add_action('template_redirect', 'wp_surgeon_redirect_wp_login');
+
+/**
+ * Filters the login URL to use the custom login page.
+ */
+function wp_surgeon_custom_login_url($login_url, $redirect) {
+    // Use the custom login page URL
+    $custom_login_url = home_url('/login');
+
+    // Append redirect_to parameter if it exists
+    if (!empty($redirect)) {
+        $custom_login_url = add_query_arg('redirect_to', urlencode($redirect), $custom_login_url);
+    }
+
+    return $custom_login_url;
+}
+add_filter('login_url', 'wp_surgeon_custom_login_url', 10, 2);
+
+// Filter bbPress forum queries to order 'top' forums by last active time
+function ec_filter_top_forums_by_last_active( $query_args ) {
+    // Check if this is the main bbPress forums query in the loop
+    // This filter runs for various queries, so be specific.
+    // We only want to apply this on the main forum archive or potentially front page where the loop-forums.php is used.
+    // Checking for 'post_type' => bbp_get_forum_post_type() is a good start.
+    // Also check if 'paged' is set or 'p' (single post) or 'name' are NOT set to avoid altering single forum queries etc.
+
+    // Check if post_type is forum and we are NOT on a single forum or topic page
+    if (
+        isset($query_args['post_type']) && $query_args['post_type'] === bbp_get_forum_post_type() &&
+        ! bbp_is_single_forum() &&
+        ! bbp_is_single_topic() &&
+        ! bbp_is_single_reply()
+    ) {
+
+        // Check if the forums loop is intended for the main list (e.g., on forum archive or front page)
+        // This is a heuristic check based on common arguments for the main loop.
+        $is_main_forum_list_query = (
+            ! isset($query_args['post__in']) &&
+            ! isset($query_args['post__not_in']) &&
+            ! isset($query_args['s']) // Not a search query
+            // Add other checks as needed to narrow down to the specific loop in loop-forums.php
+        );
+
+        // Further refine the check to ensure we are in the context where loop-forums.php is used for the main list.
+        // This is difficult to do perfectly with just query args. A simpler, potentially less safe check:
+        // Just check if post_type is forum and it's not a specific single item view.
+
+         // Re-evaluating the condition: The goal is to target the specific loop in loop-forums.php.
+         // This template is used on the forum archive and the front page.
+         // The query inside loop-forums.php *doesn't* have a post_parent set typically for the top level.
+
+        if ( isset($query_args['post_type']) && $query_args['post_type'] === bbp_get_forum_post_type() ) {
+            // Check if this query is likely the one in loop-forums.php displaying top/middle sections.
+            // These queries fetch top-level forums (post_parent typically 0 or not set) and have -1 posts_per_page.
+            // This is still a heuristic, but better.
+            $is_targeted_loop = (
+                (! isset($query_args['post_parent']) || $query_args['post_parent'] == 0) &&
+                (isset($query_args['posts_per_page']) && $query_args['posts_per_page'] == -1)
+            );
+
+            if ( $is_targeted_loop ) {
+                // Apply meta query for the 'top' section
+                $meta_query = isset($query_args['meta_query']) ? (array) $query_args['meta_query'] : array();
+
+                $meta_query[] = array(
+                    'key'     => '_bbp_forum_section',
+                    'value'   => 'top',
+                    'compare' => '=',
+                );
+
+                $query_args['meta_query'] = $meta_query;
+
+                // Apply ordering by last active time
+                $query_args['orderby'] = 'meta_value';
+                $query_args['meta_key'] = '_bbp_last_active_time';
+                $query_args['order'] = 'DESC';
+
+                // We might need to ensure the meta_key exists for ordering to work correctly.
+                // Add a clause to the meta_query if the meta_key isn't guaranteed to exist for all 'top' forums.
+                // However, _bbp_last_active_time should exist for any forum with activity.
+                // Let's stick to the simpler orderby meta_value for now.
+            }
+        }
+    }
+    return $query_args;
+}
+add_filter( 'bbp_pre_query_forums', 'ec_filter_top_forums_by_last_active' );

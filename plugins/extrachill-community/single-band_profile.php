@@ -205,7 +205,7 @@ get_header(); ?>
                                             <span class="bp-own-band-indicator">(<?php esc_html_e('Your Band', 'generatepress_child'); ?>)</span>
                                         <?php endif; ?>
                                     <?php else : // User not logged in ?>
-                                        <a href="<?php echo esc_url( wp_login_url( get_permalink() ) ); ?>" class="button button-small bp-follow-login-button">
+                                        <a href="<?php echo esc_url( site_url('/login') ); ?>" class="button button-small bp-follow-login-button">
                                             <?php esc_html_e( 'Follow', 'generatepress_child' ); ?>
                                         </a>
                                     <?php endif; ?>
@@ -234,7 +234,7 @@ get_header(); ?>
                                             $public_url_display_text = preg_replace( '#^https?://#', '', $public_url_href );
                                             
                                             echo '<div class="band-public-link-display" style="margin-top: 1em; /* text-align: left; (Adjust as needed for alignment with follower count) */">';
-                                            echo '<a href="' . esc_url( $public_url_href ) . '" target="_blank" rel="noopener" style="text-decoration: none; color: inherit;">' . esc_html( $public_url_display_text ) . '</a>';
+                                            echo '<a href="' . esc_url( $public_url_href ) . '" rel="noopener" style="text-decoration: none; color: inherit;">' . esc_html( $public_url_display_text ) . '</a>';
                                             echo '</div>';
                                         }
                                     }
@@ -274,12 +274,12 @@ get_header(); ?>
                             // Column 1: Band Bio
                             echo '<div class="band-bio-column">';
                             if ( get_the_content() ) {
-                                echo '<h2 class="section-title">' . __( 'About the Band', 'generatepress_child' ) . '</h2>';
+                                echo '<h2 class="section-title">' . sprintf( esc_html__( 'About %s', 'generatepress_child' ), esc_html( get_the_title( $band_profile_id ) ) ) . '</h2>';
                                 echo '<div class="band-bio">';
                                 echo wpautop( get_the_content() ); 
                                 echo '</div>';
                             } else {
-                                echo '<h2 class="section-title">' . __( 'About the Band', 'generatepress_child' ) . '</h2>';
+                                echo '<h2 class="section-title">' . sprintf( esc_html__( 'About %s', 'generatepress_child' ), esc_html( get_the_title( $band_profile_id ) ) ) . '</h2>';
                                 echo '<p>' . __( 'No biography available yet.', 'generatepress_child' ) . '</p>';
                             }
                             echo '</div>'; // .band-bio-column
@@ -318,7 +318,7 @@ get_header(); ?>
                                     }
                                 }
                             } else {
-                                 error_log('bp_get_linked_members function does not exist when trying to display members on band profile.');
+                               //  error_log('bp_get_linked_members function does not exist when trying to display members on band profile.');
                             }
 
                             // 2. Process Pending Invitations

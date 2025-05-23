@@ -89,7 +89,6 @@
 
 .band-social-links a {
     color: var(--text-color, #333);
-    font-size: 1.6em; /* Larger icons */
     text-decoration: none;
     transition: color 0.2s ease;
 }
@@ -231,7 +230,7 @@
 
 .band-social-links {
     margin-top: 20px; /* Adjust spacing */
-    font-size: 1.5em; /* Adjusted from inline style */
+    font-size: 1.2em; /* Adjusted from inline style */
     display: flex; /* Ensure flex is still applied if overridden */
     gap: 15px; /* Space between icons, replaces inline margin on <a> */
 }

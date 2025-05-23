@@ -3,7 +3,7 @@
  * Band Profile Loop - Custom template for displaying band profiles in Forum 5432.
  *
  * This template is loaded via the bp_custom_band_directory_loop_template filter
- * in forum-features/band-platform/band-directory.php
+ * in band-platform/band-directory.php
  */
 
 defined( 'ABSPATH' ) || exit;

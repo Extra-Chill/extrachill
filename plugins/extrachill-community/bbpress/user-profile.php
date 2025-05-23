@@ -19,6 +19,7 @@ do_action('bbp_template_before_user_profile');
 $displayed_user_id = bbp_get_displayed_user_id();
 $current_user_id   = get_current_user_id();
 $is_artist         = get_user_meta( $displayed_user_id, 'user_is_artist', true );
+$is_professional   = get_user_meta( $displayed_user_id, 'user_is_professional', true );
 ?>
 
 <div class="bbp-user-profile-cards-container"> <?php // Start Flex Grid Container ?>
@@ -72,15 +73,21 @@ $is_artist         = get_user_meta( $displayed_user_id, 'user_is_artist', true )
                     
 <?php
 // Wrap the entire conditional artist section in a card
-// Check if the user is marked as an artist
-if (get_user_meta(bbp_get_displayed_user_id(), 'user_is_artist', true)) :
+// Check if the user is marked as an artist or professional
+if ( $is_artist || $is_professional ) :
     $user_band_ids = get_user_meta( bbp_get_displayed_user_id(), '_band_profile_ids', true );
     ?>
     <div class="bbp-user-profile-card user-band-cards-fullwidth">
         <h2>
             <?php
             $display_name = bbp_get_displayed_user_field('display_name');
-            printf( esc_html__( "%s's Bands", 'generatepress_child' ), esc_html($display_name) );
+            // Adjust title based on whether they have bands or not
+            if ( !empty($user_band_ids) && is_array($user_band_ids) ) {
+                 printf( esc_html__( "%s's Bands", 'generatepress_child' ), esc_html($display_name) );
+            } else if ( bbp_get_displayed_user_id() == get_current_user_id() ) {
+                 // Title for own profile with no bands
+                 esc_html_e( 'Your Band Profile & Link Page', 'generatepress_child' );
+            }
             ?>
         </h2>
         <?php if ( !empty($user_band_ids) && is_array($user_band_ids) ) : ?>
@@ -138,7 +145,7 @@ if (get_user_meta(bbp_get_displayed_user_id(), 'user_is_artist', true)) :
         endif; // End if viewing own profile
         ?>
     </div>
-<?php endif; // End if user_is_artist ?>
+<?php endif; // End if user_is_artist or user_is_professional ?>
 
 </div>
 

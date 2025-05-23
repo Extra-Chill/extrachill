@@ -8,18 +8,31 @@ function set_ecc_user_logged_in_token($user_login, $user) {
     // Store the token and user ID in the database
     store_user_session($token, $user->ID);
     
-    setcookie('ecc_user_session_token', $token, [ // Change from $tokenValue to $token
+    // Set cookie for the base domain and subdomains
+    $cookie_params = [
         'expires' => time() + (6 * 30 * 24 * 60 * 60), // For 6 months.
         'path' => '/',
-        'domain' => '.extrachill.com', // Notice the dot prefix here.
+        'domain' => '.extrachill.com', // Set for base domain and subdomains
         'secure' => true, // Ensure your site is served over HTTPS.
         'httponly' => false, // Set to true if you want to prohibit JavaScript access.
         'samesite' => 'None' // Or 'Lax', depending on your cross-site request needs.
-    ]);
+    ];
+    setcookie('ecc_user_session_token', $token, $cookie_params);
     
-    
-
-
+    // Also set the cookie specifically for the alias domain if the login happened there
+    $current_host = strtolower( $_SERVER['HTTP_HOST'] ?? '' );
+    if ( $current_host === 'community.extrachill.com' || $current_host === 'extrachill.link' ) {
+         $alias_cookie_params = [
+             'expires' => time() + (6 * 30 * 24 * 60 * 60), // For 6 months.
+             'path' => '/',
+             'domain' => 'extrachill.link', // Explicitly set for the alias domain
+             'secure' => true, // Ensure your site is served over HTTPS.
+             'httponly' => false, // Set to true if you want to prohibit JavaScript access.
+             'samesite' => 'None' // Or 'Lax', depending on your cross-site request needs.
+         ];
+         setcookie('ecc_user_session_token', $token, $alias_cookie_params);
+         error_log('[DEBUG SESSION TOKEN] Set ecc_user_session_token cookie for extrachill.link');
+    }
 }
 
 function generate_community_session_token() {
@@ -136,15 +149,17 @@ function is_user_logged_in_via_token($user_id) {
 add_action('init', 'auto_login_via_session_token', 1); // Priority 1 to run early
 
 function auto_login_via_session_token() {
+    error_log(message: '[DEBUG SESSION TOKEN] auto_login_via_session_token fired on host: ' . ($_SERVER['HTTP_HOST'] ?? 'N/A'));
     if (is_user_logged_in()) {
-        // User is already logged in, no need to check the session token.
+        error_log('[DEBUG SESSION TOKEN] User already logged in via WordPress standard session.');
         return;
     }
 
     if (empty($_COOKIE['ecc_user_session_token'])) {
-        // No session token present.
+        error_log('[DEBUG SESSION TOKEN] ecc_user_session_token cookie NOT found.');
         return;
     }
+    error_log('[DEBUG SESSION TOKEN] ecc_user_session_token cookie FOUND: ' . $_COOKIE['ecc_user_session_token']);
 
     global $wpdb;
     $token = $_COOKIE['ecc_user_session_token'];
@@ -156,15 +171,18 @@ function auto_login_via_session_token() {
     if ($user_id) {
         $user = get_user_by('id', $user_id);
         if (!$user) {
-            // User does not exist, return early.
+            error_log('[DEBUG SESSION TOKEN] User ID ' . $user_id . ' found from token, but get_user_by(\'id\') failed.');
             return;
         }
-
+        error_log('[DEBUG SESSION TOKEN] Token valid for User ID: ' . $user_id . '. Attempting to set current user and auth cookie.');
         wp_set_current_user($user_id);
         wp_set_auth_cookie($user_id, true);
 
         // Optionally, trigger the wp_login action to mimic the standard login process.
         do_action('wp_login', $user->user_login, $user);
+        error_log('[DEBUG SESSION TOKEN] wp_set_current_user and wp_set_auth_cookie CALLED for User ID: ' . $user_id);
+    } else {
+        error_log('[DEBUG SESSION TOKEN] Token found in cookie, but no valid User ID found in database or token expired.');
     }
 }
 

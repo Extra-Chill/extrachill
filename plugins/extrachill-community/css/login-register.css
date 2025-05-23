@@ -84,6 +84,42 @@
     margin: 0;
 }
 
+/* --- Join Flow Modal Styles --- */
+.join-flow-modal-overlay {
+    display: none; /* Initially hidden */
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    z-index: 1000;
+}
+
+.join-flow-modal-content {
+    display: none; /* Initially hidden */
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    background: var(--card-background);
+    padding: 25px;
+    z-index: 1001;
+    text-align: center;
+    max-width: 90%; /* Make it responsive */
+    width: 400px; /* Preferred width on larger screens */
+    box-sizing: border-box; /* Include padding and border in element's total width and height */
+}
+
+@media (max-width: 600px) {
+    .join-flow-modal-content {
+        width: 95%; /* Take more width on smaller screens */
+        padding: 20px; /* Adjust padding */
+    }
+}
+
 /* --- Dark Mode Overrides --- */
 @media (prefers-color-scheme: dark) {
     .login-register-form {
@@ -109,4 +145,11 @@
         border-left: 4px solid #f44336;
         color: #ffcccc;
     }
+}
+
+.join-flow-buttons {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    flex-direction: column;
 }

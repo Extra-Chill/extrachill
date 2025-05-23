@@ -52,6 +52,8 @@ get_header(); ?>
                 ?>
             </div>
 
+            <?php // Removed Redundant Join Flow Guidance Notice ?>
+
             <article id="post-<?php the_ID(); ?>" <?php post_class(); ?>>
                 <div class="inside-article">
                     <header class="entry-header">
@@ -59,10 +61,8 @@ get_header(); ?>
                     </header><!-- .entry-header -->
 
                     <div class="entry-content" itemprop="text">
-                        <?php 
-                        // --- Band Profile Management Form --- 
-
-                        // Initialize variables that will be used in tab-info.php and elsewhere
+                        <?php
+                        // Initialize variables
                         $band_post_title = '';
                         $band_post_content = '';
                         $current_local_city = '';
@@ -81,7 +81,7 @@ get_header(); ?>
                         $nonce_name = '';
                         $submit_value = '';
                         $submit_name = '';
-                        $error_message = ''; // Variable to hold potential error message
+                        $error_message = ''; // Variable to hold potential error message for this page, distinct from redirect errors
 
                         // --- Check for Error Messages from Redirect ---
                         if ( isset( $_GET['bp_error'] ) ) {
@@ -102,23 +102,10 @@ get_header(); ?>
                                 case 'duplicate_title':
                                     $error_message = __( 'A band profile with this name already exists. Please choose a different name.', 'generatepress_child' );
                                     break;
-                                case 'image_upload_failed':
-                                    $error_message = __( 'There was an error uploading the profile picture. Please check the file and try again.', 'generatepress_child' );
-                                    break;
-                                case 'header_image_upload_failed':
-                                    $error_message = __( 'There was an error uploading the band header image. Please check the file and try again.', 'generatepress_child' );
-                                    break;
-                                case 'creation_failed':
-                                    $error_message = __( 'Could not create the band profile due to an unexpected error. Please try again later.', 'generatepress_child' );
-                                    break;
-                                case 'update_failed':
-                                    $error_message = __( 'Could not update the band profile due to an unexpected error. Please try again later.', 'generatepress_child' );
-                                    break;
                                 case 'invalid_band_id':
-                                     $error_message = __( 'Invalid band profile selected for editing.', 'generatepress_child' );
-                                     break;
-                                default:
-                                    $error_message = __( 'An unknown error occurred. Please try again.', 'generatepress_child' );
+                                    $error_message = __( 'Invalid band profile ID provided.', 'generatepress_child' );
+                                    break;
+                                // Add other potential error codes here
                             }
                         }
 
@@ -153,28 +140,32 @@ get_header(); ?>
                                 $current_bandcamp_url = get_post_meta( $target_band_id, '_bandcamp_url', true );
                                 $current_allow_public_topics = get_post_meta( $target_band_id, '_allow_public_topic_creation', true );
 
+                                // Populate form fields from existing post
+                                $band_post_title = $band_post->post_title;
+                                $band_post_content = $band_post->post_content;
+                                $current_profile_image_id = get_post_meta( $target_band_id, '_band_profile_image_id', true );
+                                $current_profile_image_url = $current_profile_image_id ? wp_get_attachment_image_url( $current_profile_image_id, 'thumbnail' ) : '';
+                                $current_header_image_id = get_post_meta( $target_band_id, '_band_header_image_id', true );
+                                $current_header_image_url = $current_header_image_id ? wp_get_attachment_image_url( $current_header_image_id, 'large' ) : '';
+
                             } else {
                                 echo '<p>' . __( 'You do not have permission to edit this band profile.', 'generatepress_child' ) . '</p>';
                             }
                         } else {
                             // CREATE MODE
+                            // Check if user has permission to create band profiles (e.g., is an artist or pro)
+                            // The capability 'create_band_profiles' is handled via user_has_cap filter.
                             if ( current_user_can( 'create_band_profiles' ) ) {
                                 $can_proceed = true;
-                                $form_title = __( 'Create Your Band Profile', 'generatepress_child' );
+                                $form_title = __( 'Create Band Profile', 'generatepress_child' );
                                 $nonce_action = 'bp_create_band_profile_action';
                                 $nonce_name = 'bp_create_band_profile_nonce';
                                 $submit_value = __( 'Create Band Profile', 'generatepress_child' );
-                                $submit_name = 'submit_create_band_profile'; // Match create handler check if needed
+                                $submit_name = 'submit_create_band_profile';
 
-                                // Pre-fill from user meta
-                                $current_user_id = get_current_user_id(); // Get current user ID once
-                                $current_local_city = get_user_meta( $current_user_id, 'local_city', true );
-                                $prefill_user_display_name = wp_get_current_user()->display_name; // Pre-fill with display name
-                                $prefill_user_bio = get_user_meta( $current_user_id, 'description', true ); // Pre-fill with user bio
-                                $prefill_user_avatar_id = get_user_meta( $current_user_id, 'custom_avatar_id', true );
-
-                                // Set others to empty for create mode
+                                // Initialize variables for create mode (will be pre-filled with user data below)
                                 $current_genre = '';
+                                $current_local_city = '';
                                 $current_website_url = '';
                                 $current_spotify_url = '';
                                 $current_apple_music_url = '';
@@ -206,29 +197,11 @@ get_header(); ?>
                         }
 
                         // Consolidate values for title and content
-                        if ($edit_mode) {
-                            if ($band_post && property_exists($band_post, 'post_title')) {
-                                $band_post_title = $band_post->post_title;
-                            }
-                            if ($band_post && property_exists($band_post, 'post_content')) {
-                                $band_post_content = $band_post->post_content;
-                            }
-                            // $current_local_city and $current_genre are already set from get_post_meta in the $edit_mode block earlier
-                        } else { // Create mode
-                            $band_post_title = $prefill_band_name; // $prefill_band_name is from user data or empty string
-                            $band_post_content = $prefill_band_bio; // $prefill_band_bio is from user data or empty string
-                            // $current_local_city and $current_genre are already set for create mode earlier
-                        }
+                        $display_band_name = $edit_mode ? $band_post_title : $prefill_band_name;
+                        $display_band_bio = $edit_mode ? $band_post_content : $prefill_band_bio;
+                        $display_profile_image_url = $edit_mode ? $current_profile_image_url : $prefill_user_avatar_thumbnail_url;
+                        $display_header_image_url = $edit_mode ? $current_header_image_url : ''; // Header image not prefilled
 
-                        // Final casting to string to prevent issues with esc_attr/esc_textarea
-                        $band_post_title = strval($band_post_title);
-                        $band_post_content = strval($band_post_content);
-                        $current_local_city = strval($current_local_city); // Already initialized to '', then populated
-                        $current_genre = strval($current_genre);       // Already initialized to '', then populated
-
-                        // For featured image, tab-info.php will handle display logic based on edit_mode and prefill vars.
-
-                        // --- Display Form if User Can Proceed --- 
                         if ( $can_proceed ) :
                             ?>
                             
@@ -249,14 +222,11 @@ get_header(); ?>
                             ?>
                                 <div class="band-switcher-container">
                                     <select name="band-switcher-select" id="band-switcher-select">
-                                        <option value=""><?php esc_html_e( '-- Create New Band --', 'generatepress_child'); ?></option>
+                                        <option value=""><?php esc_html_e( '-- Select a Band --', 'generatepress_child'); ?></option>
                                         <?php
                                         foreach ( $user_band_ids_for_switcher as $user_band_id_item ) {
                                             $band_title_for_switcher = get_the_title( $user_band_id_item );
-                                            // Only list bands that still exist and have a title
-                                            if ( $band_title_for_switcher && get_post_status( $user_band_id_item ) === 'publish' ) {
-                                                echo '<option value="' . esc_attr( $user_band_id_item ) . '" ' . selected( $current_selected_band_id_for_switcher, $user_band_id_item, false ) . '>' . esc_html( $band_title_for_switcher ) . '</option>';
-                                            }
+                                            echo '<option value="' . esc_attr( $user_band_id_item ) . '" ' . selected( $current_selected_band_id_for_switcher, $user_band_id_item, false ) . '>' . esc_html( $band_title_for_switcher ) . '</option>';
                                         }
                                         ?>
                                     </select>
@@ -272,6 +242,11 @@ get_header(); ?>
                                     <input type="hidden" name="band_id" value="<?php echo esc_attr( $target_band_id ); ?>">
                                 <?php endif; ?>
 
+                                <!-- Add hidden input for join flow tracking if present in URL -->
+                                <?php if ( isset($_GET['from_join']) && $_GET['from_join'] === 'true' ) : ?>
+                                    <input type="hidden" name="from_join" value="true">
+                                <?php endif; ?>
+
                                 <!-- Accordion Items Container -->
                                 <div class="shared-tabs-component">
                                     <div class="shared-tabs-buttons-container">
@@ -283,7 +258,36 @@ get_header(); ?>
                                             </button>
                                             <div id="manage-band-profile-info-content" class="shared-tab-pane">
                                                 <?php
-                                                get_template_part('forum-features/band-platform/manage-band-profile-tabs/tab', 'info');
+                                                // --- START Join Flow Guidance Notice (Create Band Profile) ---
+                                                // Display this notice if the user arrived from the join flow and is in create mode
+                                                if ( isset($_GET['from_join']) && $_GET['from_join'] === 'true' && ! $edit_mode ) {
+                                                    echo '<div class="bp-notice bp-notice-info" style="margin-top: 15px; margin-bottom: 15px;">'; // Added margin-top and margin-bottom for spacing
+                                                    echo '<p>' . esc_html__( 'Welcome to the Extra Chill link page setup! To create your link page, you first need to create a Band Profile. Fill out the details below to get started.', 'generatepress_child' ) . '</p>';
+                                                    echo '</div>';
+                                                }
+                                                // --- END Join Flow Guidance Notice ---
+
+                                                // Pass variables to the template part
+                                                set_query_var('edit_mode', $edit_mode);
+                                                set_query_var('target_band_id', $target_band_id);
+                                                set_query_var('band_post', $band_post);
+                                                set_query_var('current_genre', $current_genre);
+                                                set_query_var('current_local_city', $current_local_city);
+                                                set_query_var('current_website_url', $current_website_url);
+                                                set_query_var('current_spotify_url', $current_spotify_url);
+                                                set_query_var('current_apple_music_url', $current_apple_music_url);
+                                                set_query_var('current_bandcamp_url', $current_bandcamp_url);
+                                                set_query_var('current_allow_public_topics', $current_allow_public_topics);
+
+                                                // Pass variables for pre-filling/display
+                                                set_query_var('display_band_name', $display_band_name);
+                                                set_query_var('display_band_bio', $display_band_bio);
+                                                set_query_var('display_profile_image_url', $display_profile_image_url);
+                                                set_query_var('display_header_image_url', $display_header_image_url);
+                                                set_query_var('current_profile_image_id', $edit_mode ? $current_profile_image_id : null);
+                                                set_query_var('current_header_image_id', $edit_mode ? $current_header_image_id : null);
+
+                                                get_template_part('band-platform/manage-band-profile-tabs/tab', 'info');
                                                 ?>
                                             </div>
                                         </div>
@@ -297,7 +301,10 @@ get_header(); ?>
                                             </button>
                                             <div id="manage-band-profile-roster-content" class="shared-tab-pane">
                                                 <?php
-                                                get_template_part('forum-features/band-platform/manage-band-profile-tabs/tab', 'roster');
+                                                // Pass variables to the template part
+                                                set_query_var('target_band_id', $target_band_id);
+                                                set_query_var('band_post_title', $band_post_title); // Pass band name for emails
+                                                get_template_part('band-platform/roster/manage-roster-ui');
                                                 ?>
                                             </div>
                                         </div>
@@ -310,7 +317,7 @@ get_header(); ?>
                                             </button>
                                             <div id="manage-band-profile-followers-content" class="shared-tab-pane">
                                                 <?php 
-                                                include( get_stylesheet_directory() . '/forum-features/band-platform/manage-band-profile-tabs/tab-followers.php' );
+                                                include( get_stylesheet_directory() . '/band-platform/manage-band-profile-tabs/tab-followers.php' );
                                                 ?>
                                             </div>
                                         </div>
@@ -361,11 +368,50 @@ document.addEventListener('DOMContentLoaded', function() {
             const baseUrl = "<?php echo esc_url(get_permalink(get_the_ID())); ?>"; // Get current page's URL
             if (this.value) { // If a band ID is selected
                 window.location.href = baseUrl + '?band_id=' + this.value;
-            } else { // If '-- Create New Band --' (empty value) is selected
+            } else { // If '-- Select a Band --' (empty value) is selected
                 window.location.href = baseUrl;
             }
         });
     }
+});
+</script>
+
+<script type="text/javascript">
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('bp-manage-band-form');
+    if (!form) return;
+
+    const submitButton = form.querySelector('input[type="submit"].button-primary');
+    const profileImageInput = document.getElementById('featured_image');
+    const headerImageInput = document.getElementById('band_header_image');
+    
+    let feedbackDiv = null; // To store the feedback message div
+
+    form.addEventListener('submit', function(event) {
+        let newProfileImageSelected = profileImageInput && profileImageInput.files && profileImageInput.files.length > 0;
+        let newHeaderImageSelected = headerImageInput && headerImageInput.files && headerImageInput.files.length > 0;
+
+        if (submitButton && (newProfileImageSelected || newHeaderImageSelected)) {
+            if (!feedbackDiv) {
+                feedbackDiv = document.createElement('div');
+                feedbackDiv.className = 'bp-save-feedback'; // You can style this class
+                feedbackDiv.style.marginTop = '10px';
+                feedbackDiv.style.fontSize = '0.9em';
+                feedbackDiv.style.color = '#555'; // Example style
+                // Insert after the submit button, or its container
+                if (submitButton.parentNode.classList.contains('submit-group')) {
+                    submitButton.parentNode.appendChild(feedbackDiv);
+                } else {
+                    submitButton.insertAdjacentElement('afterend', feedbackDiv);
+                }
+            }
+            feedbackDiv.textContent = 'Saving, please wait... Image processing may take a moment.';
+            
+            // Optionally disable the submit button to prevent multiple submissions
+            // submitButton.disabled = true; 
+            // submitButton.style.opacity = '0.7';
+        }
+    });
 });
 </script>
 

@@ -1,0 +1,108 @@
+<?php
+/**
+ * Main include file for the Band Platform feature.
+ * This file loads all necessary PHP files for the feature and enqueues assets.
+ */
+
+// Exit if accessed directly
+defined( 'ABSPATH' ) || exit;
+
+// --- Load Core Band Platform PHP Files ---
+$bp_dir = dirname( __FILE__ ); // Gets the directory of the current file
+
+require_once( $bp_dir . '/cpt-band-profile.php' );
+require_once( $bp_dir . '/user-linking.php' );
+require_once( $bp_dir . '/band-forums.php' );
+require_once( $bp_dir . '/band-permissions.php' );
+require_once( $bp_dir . '/frontend-forms.php' );
+require_once( $bp_dir . '/band-directory.php' );
+require_once( $bp_dir . '/extrch.co-link-page/link-page-includes.php' );
+// require_once( $bp_dir . '/cpt-band-link-page.php' );
+
+// Data Synchronization
+require_once( $bp_dir . '/data-sync.php' );
+
+// Roster specific files
+require_once( $bp_dir . '/roster/manage-roster-ui.php' ); 
+require_once( $bp_dir . '/roster/roster-ajax-handlers.php' );
+
+// Following feature
+require_once( $bp_dir . '/band-following.php' );
+
+// Add other band platform PHP files here as they are created
+
+// New file
+require_once( $bp_dir . '/default-band-page-link-profiles.php' );
+
+// --- Asset Enqueueing --- 
+
+/**
+ * Enqueues scripts and styles for single band profiles and the manage band profile page.
+ */
+function bp_enqueue_band_platform_assets() {
+    $theme_dir = get_stylesheet_directory();
+    $theme_uri = get_stylesheet_directory_uri();
+
+    // --- Styles/Scripts for Single Band Profile View --- 
+    if ( is_singular( 'band_profile' ) ) {
+        
+        // Enqueue topics loop styles (used for the forum section)
+        $topics_loop_css = $theme_dir . '/css/topics-loop.css';
+        if ( file_exists( $topics_loop_css ) ) {
+             wp_enqueue_style( 
+                'topics-loop', 
+                $theme_uri . '/css/topics-loop.css', 
+                array('generatepress-child-style'), // Dependency
+                filemtime( $topics_loop_css ) // Version
+            );
+        }
+
+        // Enqueue specific band profile styles
+        $band_profile_css = $theme_dir . '/css/band-profile.css';
+        if ( file_exists( $band_profile_css ) ) {
+            wp_enqueue_style( 
+                'band-profile', 
+                $theme_uri . '/css/band-profile.css', 
+                array('generatepress-child-style'), // Dependency
+                filemtime( $band_profile_css ) // Version
+            );
+        }
+
+        // Enqueue follow button script only on single band profile
+        if ( is_singular('band_profile') ) {
+        $follow_js_path = '/js/extrachill-follow.js'; // Still using old name for now
+        if ( file_exists( $theme_dir . $follow_js_path ) ) {
+             wp_enqueue_script(
+                'bp-band-following', // New handle for clarity
+                $theme_uri . $follow_js_path,
+                array( 'jquery' ), // Dependencies
+                filemtime( $theme_dir . $follow_js_path ),
+                true // Load in footer
+            );
+            // Localize nonce for the follow script
+            $current_user = wp_get_current_user();
+            $user_email = $current_user->user_email ? $current_user->user_email : '';
+
+            wp_localize_script( 'bp-band-following', 'bpFollowData', array(
+                'ajaxUrl' => admin_url( 'admin-ajax.php' ),
+                'nonce'   => wp_create_nonce( 'bp_follow_nonce' ),
+                'currentUserEmail' => $user_email,
+                'i18n' => array(
+                    'confirmFollow' => __( 'Confirm Follow', 'generatepress_child' ),
+                    'cancel' => __( 'Cancel', 'generatepress_child' ),
+                    'processing' => __( 'Processing...', 'generatepress_child' ),
+                    'following' => __( 'Following', 'generatepress_child' ),
+                    'follow' => __( 'Follow', 'generatepress_child' ),
+                    'errorMessage' => __( 'Could not update follow status. Please try again.', 'generatepress_child' ),
+                    'ajaxRequestFailed' => __( 'AJAX request failed', 'generatepress_child' ),
+                )
+            ));
+            }
+        }
+    }
+
+}
+add_action( 'wp_enqueue_scripts', 'bp_enqueue_band_platform_assets' ); 
+
+
+// --- End Script/Style Enqueue ---

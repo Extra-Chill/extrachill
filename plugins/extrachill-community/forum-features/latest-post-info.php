@@ -21,25 +21,98 @@ function custom_human_time_diff($from, $to = '') {
         $weeks = floor($diff / WEEK_IN_SECONDS);
         $since = sprintf(_n('%sw', '%sw', $weeks), $weeks);
     } elseif ($diff < YEAR_IN_SECONDS) {
-        $months = floor($diff / MONTH_IN_SECONDS);
-        $since = sprintf(_n('%smon', '%smon', $months), $months);
-    } else {
         $years = floor($diff / YEAR_IN_SECONDS);
         $since = sprintf(_n('%syr', '%syr', $years), $years);
     }
     return $since . __(' ago');
 }
 
+/**
+ * Fetches all band forum IDs from band_profile CPTs.
+ *
+ * @return array An array of band forum IDs.
+ */
+function extrachill_fetch_all_band_forum_ids() {
+    $all_band_profiles_query = new WP_Query(array(
+        'post_type' => 'band_profile',
+        'post_status' => 'publish',
+        'posts_per_page' => -1,
+        'fields' => 'ids',
+        'no_found_rows' => true,
+        'update_post_meta_cache' => false,
+        'update_post_term_cache' => false,
+    ));
+
+    $band_forum_ids = array();
+    if ($all_band_profiles_query->have_posts()) {
+        foreach ($all_band_profiles_query->posts as $band_profile_cpt_id) {
+            $forum_id = get_post_meta($band_profile_cpt_id, '_band_forum_id', true);
+            if (!empty($forum_id) && is_numeric($forum_id)) {
+                $band_forum_ids[] = absint($forum_id);
+            }
+        }
+    }
+    wp_reset_postdata();
+    return array_unique(array_filter($band_forum_ids));
+}
+
+
 function fetch_latest_post_info_by_section($forum_section) {
-    $forum_ids = extrachill_fetch_forums_by_section($forum_section);
-    if (empty($forum_ids)) {
-        return "<div class=\"extrachill-recent-activity\"><p>No forums found in this section.</p></div>";
+    // For the 'top' section, we need to consider both standard forums and band forums.
+    if ($forum_section === 'top') {
+        $standard_forum_ids = extrachill_fetch_forums_by_section($forum_section); // Gets forums by section meta
+        $band_forum_ids = extrachill_fetch_all_band_forum_ids(); // Gets all band forum IDs
+        
+        // Combine forum IDs, removing duplicates
+        $all_forum_ids = array_merge($standard_forum_ids, $band_forum_ids);
+        $all_forum_ids = array_unique(array_filter($all_forum_ids));
+
+        if (empty($all_forum_ids)) {
+            return "<div class=\"extrachill-recent-activity\"><p>No forums found in this section.</p></div>";
+        }
+        
+        // Query for the single latest post across all these forums
+        $recent_activity_args = array(
+            'post_type' => array(bbp_get_topic_post_type(), bbp_get_reply_post_type()),
+            'posts_per_page' => 1,
+            'post_status' => array('publish', 'closed'),
+            'orderby' => 'date', // Order by post_date (latest first)
+            'order' => 'DESC',
+            'meta_query' => array(
+                array(
+                    'key' => '_bbp_forum_id',
+                    'value' => $all_forum_ids,
+                    'compare' => 'IN',
+                ),
+            ),
+            'no_found_rows' => true,
+            'update_post_term_cache' => false,
+            'update_post_meta_cache' => false,
+        );
+        
+        $latest_post_query = new WP_Query($recent_activity_args);
+        $current_post_id = false;
+        if ($latest_post_query->have_posts()) {
+            $latest_post_query->the_post();
+            $current_post_id = get_the_ID();
+            wp_reset_postdata();
+        }
+
+        return extrachill_construct_activity_output($current_post_id);
+
+    } else {
+        // Existing logic for other sections remains the same
+        $forum_ids = extrachill_fetch_forums_by_section($forum_section);
+        if (empty($forum_ids)) {
+            return "<div class=\"extrachill-recent-activity\"><p>No forums found in this section.</p></div>";
+        }
+
+        $recent_activity_query = extrachill_customize_query_for_forum($forum_ids);
+        $current_post_id = extrachill_fetch_latest_activity($recent_activity_query, $forum_ids);
+
+        return extrachill_construct_activity_output($current_post_id);
     }
 
-     $recent_activity_query = extrachill_customize_query_for_forum($forum_ids);
-
-    $current_post_id = extrachill_fetch_latest_activity($recent_activity_query, $forum_ids);
-    return extrachill_construct_activity_output($current_post_id);
 }
 
 function extrachill_fetch_forums_by_section($forum_section) {
@@ -55,10 +128,14 @@ function extrachill_fetch_forums_by_section($forum_section) {
             ),
         ),
     );
+    // Do NOT explicitly include 5432 here anymore, it's handled in fetch_latest_post_info_by_section
     return get_posts($forums_args);
 }
 
 function extrachill_customize_query_for_forum($forum_ids, $posts_per_page = 5) {
+    // This function is now only used for sections other than 'top'.
+    // The logic for 'top' is handled directly in fetch_latest_post_info_by_section.
+
     // Include replies in the post types for all forums
     $post_types = array(bbp_get_topic_post_type(), bbp_get_reply_post_type());
 
@@ -91,6 +168,9 @@ function extrachill_customize_query_for_forum($forum_ids, $posts_per_page = 5) {
 
 
 function extrachill_fetch_latest_activity($recent_activity_query, $forum_ids) {
+    // This function is now only used for sections other than 'top'.
+    // The logic for 'top' is handled directly in fetch_latest_post_info_by_section.
+    
     if ($recent_activity_query->have_posts()) {
         $recent_activity_query->the_post();
         $latest_post_id = get_the_ID();
@@ -140,7 +220,8 @@ function extrachill_construct_activity_output($current_post_id) {
     $topic_id = $post_type === bbp_get_reply_post_type() ? bbp_get_reply_topic_id($current_post_id) : $current_post_id;
     $forum_id = bbp_get_topic_forum_id($topic_id);
     $forum_title = get_the_title($forum_id);
-    $time_diff = custom_human_time_diff(get_post_time('U', true, $current_post_id));
+    // Use human_time_diff for verbose output
+    $time_diff = human_time_diff( get_post_time('U', true, $current_post_id), current_time('timestamp', true) ) . ' ago';
     
     $reply_url = $post_type === bbp_get_reply_post_type() ? bbp_get_reply_url($current_post_id) : get_permalink($topic_id);
     $type_label = $post_type === bbp_get_reply_post_type() ? 'replied to' : 'posted';

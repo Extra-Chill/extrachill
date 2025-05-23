@@ -45,7 +45,7 @@ if ( bbp_is_single_forum() && bbp_has_forums( array( 'post_parent' => bbp_get_fo
     <i id="forum-collapse" class="fa-solid fa-square-minus" onclick="toggleForumCollapse(this, 'top-container')"></i></span>
     <p><?php echo fetch_latest_post_info_by_section('top'); ?></p>
     <div class="top-container">
-        <ul id="forums-list-top-<?php bbp_forum_id(); ?>" class="bbp-forums">
+        <ul id="forums-list-top-<?php //bbp_forum_id(); ?>" class="bbp-forums">
 
             <li class="bbp-body">
                 <?php while ( bbp_forums() ) : bbp_the_forum(); ?>
@@ -81,10 +81,7 @@ if ( bbp_is_single_forum() && bbp_has_forums( array( 'post_parent' => bbp_get_fo
 
                 // DEBUG OUTPUT
                 $forums_query = new WP_Query($args);
-                error_log('Music Forums Query Args: ' . print_r($args, true));
-                error_log('Music Forums Found: ' . print_r($forums_query->posts, true));
                 foreach ($forums_query->posts as $forum) {
-                    error_log('Forum ID: ' . $forum->ID . ' | Title: ' . $forum->post_title . ' | Section: ' . get_post_meta($forum->ID, '_bbp_forum_section', true));
                 }
                 // END DEBUG OUTPUT
 

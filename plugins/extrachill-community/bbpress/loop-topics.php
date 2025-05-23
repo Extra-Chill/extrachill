@@ -17,14 +17,6 @@ global $bbp;
 $current_sort = $_GET['sort'] ?? 'default';
 $current_search = $_GET['bbp_search'] ?? '';
 
-error_log('[DEBUG] loop-topics.php - Top of file. Checking for $bbp->extrachill_passthrough_args.');
-if (isset($bbp->extrachill_passthrough_args) && !empty($bbp->extrachill_passthrough_args)) {
-    error_log('[DEBUG] loop-topics.php - Property $bbp->extrachill_passthrough_args IS SET and NOT EMPTY. Content: ' . print_r($bbp->extrachill_passthrough_args, true));
-} elseif (isset($bbp->extrachill_passthrough_args)) {
-    error_log('[DEBUG] loop-topics.php - Property $bbp->extrachill_passthrough_args IS SET but IS EMPTY.');
-} else {
-    error_log('[DEBUG] loop-topics.php - Property $bbp->extrachill_passthrough_args IS NOT SET.');
-}
 
 // --- Determine Base Query Arguments --- 
 // Priority: 1. Arguments passed directly to this template part (e.g., from a custom feed).
@@ -34,19 +26,15 @@ if (isset($bbp->extrachill_passthrough_args) && !empty($bbp->extrachill_passthro
 $base_args = array();
 
 if (isset($bbp->extrachill_passthrough_args) && !empty($bbp->extrachill_passthrough_args)) {
-    error_log('[DEBUG] loop-topics.php - Using $bbp->extrachill_passthrough_args directly.');
     $base_args = $bbp->extrachill_passthrough_args;
     unset($bbp->extrachill_passthrough_args); // Clean up to prevent interference elsewhere
 } else {
-    error_log('[DEBUG] loop-topics.php - $bbp->extrachill_passthrough_args not found or empty. Fallback logic initiated.');
     // Fallback: Try $bbp->topic_query or build defaults
     // (Original logic for $extrachill_query_args or $bbp->topic_query->query_vars would go here if this global method also fails)
     // For now, let's be explicit about the fallback to $bbp->topic_query->query_vars directly
     if (!empty($bbp->topic_query->query_vars)) {
-        error_log('[DEBUG] loop-topics.php - Fallback: Using $bbp->topic_query->query_vars. Content: ' . print_r($bbp->topic_query->query_vars, true));
         $base_args = $bbp->topic_query->query_vars;
     } else {
-        error_log('[DEBUG] loop-topics.php - Fallback: $bbp->topic_query->query_vars also empty. Building default args.');
         // Default args from your original loop-topics if query_vars also empty
         $base_args['post_type'] = bbp_get_topic_post_type();
         $base_args['posts_per_page'] = get_option('_bbp_topics_per_page', 15);
@@ -99,7 +87,6 @@ if (!empty($current_search)) {
     $loop_args['s'] = sanitize_text_field($current_search);
 }
 
-error_log('[DEBUG] loop-topics.php - Final Args for its bbp_has_topics: ' . print_r($loop_args, true));
 
 ?>
 

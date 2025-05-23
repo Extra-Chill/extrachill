@@ -1,1 +1,0 @@
-window.ExtrchLinkPageManager = window.ExtrchLinkPageManager || {}; 

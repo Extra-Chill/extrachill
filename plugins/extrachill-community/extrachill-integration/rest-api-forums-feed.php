@@ -19,7 +19,7 @@ function get_recent_community_activity($request) {
             'relation' => 'AND', // Combine multiple conditions
             array(
                 'key'     => '_bbp_forum_id', // Adjust if necessary
-                'value'   => extrachill_get_private_forum_ids(), // Assuming this function returns IDs of private forums
+                'value'   => array(), // Formerly extrachill_get_private_forum_ids() - private forums deprecated
                 'compare' => 'NOT IN',
             ),
             array(

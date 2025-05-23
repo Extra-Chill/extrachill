@@ -14,8 +14,8 @@ jQuery(document).ready(function($) {
 
     // --- User Search Functionality --- 
     let searchTimeout;
-    const searchInput = $('#bp-search-artist');
-    const searchResultsContainer = $('#bp-artist-search-results');
+    const searchInput = $('#bp-search-user');
+    const searchResultsContainer = $('#bp-user-search-results');
 
     searchInput.on('keyup', function() {
         clearTimeout(searchTimeout);
@@ -45,9 +45,10 @@ jQuery(document).ready(function($) {
                         const resultList = $('<ul></ul>');
                         response.data.forEach(function(user) {
                             // Prevent adding already listed members or those pending removal/addition
-                            if ($(`#bp-current-members-list li[data-user-id="${user.ID}"]`).length === 0 &&
-                                !membersToAdd.includes(user.ID) &&
-                                !membersToRemove.includes(user.ID)) {
+                            // Removed frontend check as exclusion is now handled in backend
+                            // if ($(`#bp-current-members-list li[data-user-id="${user.ID}"]`).length === 0 &&
+                            //     !membersToAdd.includes(user.ID) &&
+                            //     !membersToRemove.includes(user.ID)) {
                                 resultList.append(
                                     $('<li>')
                                         .text(`${user.display_name} (${user.user_login})`)
@@ -58,7 +59,7 @@ jQuery(document).ready(function($) {
                                                 .data('user-name', `${user.display_name} (${user.user_login})`)
                                         )
                                 );
-                            }
+                            // }
                         });
                         if(resultList.children().length > 0) {
                              searchResultsContainer.append(resultList);
@@ -178,7 +179,7 @@ jQuery(document).ready(function($) {
 
      // Clear search results if clicking outside
      $(document).on('click', function(event) {
-         if (!$(event.target).closest('#bp-artist-search-results, #bp-search-artist').length) {
+         if (!$(event.target).closest('#bp-user-search-results, #bp-search-user').length) {
              searchResultsContainer.hide();
          }
      });

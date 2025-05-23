@@ -6,9 +6,9 @@
 
 defined( 'ABSPATH' ) || exit;
 
-require_once get_stylesheet_directory() . '/forum-features/band-platform/extrch.co-link-page/link-page-includes.php';
-// require_once get_stylesheet_directory() . '/forum-features/band-platform/extrch.co-link-page/link-page-data.php'; // Deprecated
-require_once get_stylesheet_directory() . '/forum-features/band-platform/extrch.co-link-page/config/live-preview/LivePreviewManager.php';
+require_once get_stylesheet_directory() . '/band-platform/extrch.co-link-page/link-page-includes.php';
+// require_once get_stylesheet_directory() . '/band-platform/extrch.co-link-page/link-page-data.php'; // Deprecated
+require_once get_stylesheet_directory() . '/band-platform/extrch.co-link-page/config/live-preview/LivePreviewManager.php';
 
 get_header(); ?>
 
@@ -17,6 +17,17 @@ get_header(); ?>
         <?php do_action( 'generate_before_main_content' ); ?>
 
 <?php
+// --- Display Error Notices ---
+if (isset($_GET['bp_link_page_error'])) {
+    $error_type = sanitize_key($_GET['bp_link_page_error']);
+    if ($error_type === 'background_image_size') {
+        echo '<div class="bp-notice bp-notice-error"><p>' . esc_html__('Error: Background image file size exceeds the 5MB limit.', 'generatepress_child') . '</p></div>';
+    } elseif ($error_type === 'profile_image_size') {
+        echo '<div class="bp-notice bp-notice-error"><p>' . esc_html__('Error: Profile image file size exceeds the 5MB limit.', 'generatepress_child') . '</p></div>';
+    }
+    // Add other error types here if needed in the future
+}
+
 // --- Permission and Band ID Check ---
 $current_user_id = get_current_user_id();
 $band_id = isset($_GET['band_id']) ? absint($_GET['band_id']) : 0;
@@ -199,6 +210,24 @@ if ($link_page_id && get_post_type($link_page_id) === 'band_link_page') {
                     </button>
                     <div class="shared-tab-pane" id="manage-link-page-tab-info">
                         <?php
+                        // --- START Join Flow Guidance Notice (New User) ---
+                        // Display this notice if the user just completed the new user join flow (registered + created band)
+                        // Assumes from_join=true is passed after successful band creation redirect
+                        if ( isset( $_GET['from_join'] ) && $_GET['from_join'] === 'true' ) {
+                            echo '<div class="bp-notice bp-notice-info" style="margin-top: 15px; margin-bottom: 15px;">';
+                            echo '<p>' . esc_html__( 'Welcome to your new Extrachill.link! Your Band Profile info (Name, Bio, Picture) is synced here. Use the tabs to add links and customize your page appearance.', 'generatepress_child' ) . '</p>';
+                            echo '</div>';
+                        }
+                        // --- END Join Flow Guidance Notice (New User) ---
+
+                        // --- START Join Flow Success Notice (Existing User Redirect - Moved) ---
+                        if ( isset( $_GET['from_join_success'] ) && $_GET['from_join_success'] === 'existing_user_link_page' ) {
+                            echo '<div class="bp-notice bp-notice-success" style="margin-top: 15px; margin-bottom: 15px;">';
+                            echo '<p>' . esc_html__( 'Welcome back! You\'ve been redirected to manage your extrachill.link page.', 'generatepress_child' ) . '</p>';
+                            echo '</div>';
+                        }
+                        // --- END Join Flow Success Notice (Existing User Redirect - Moved) ---
+
                         // Set up variables for tab-info.php from $data
                         // $display_title = $data['display_title'] ?? ''; // $display_title is not directly used by tab-info.php itself
                         // $bio_text = $data['bio'] ?? ''; // This was previously declared but not passed
@@ -208,7 +237,7 @@ if ($link_page_id && get_post_type($link_page_id) === 'band_link_page') {
                         set_query_var('tab_info_bio_text', $data['bio'] ?? '');
 
                         // Potentially other variables if tab-info.php uses them directly
-                        get_template_part('forum-features/band-platform/extrch.co-link-page/manage-link-page-tabs/tab-info');
+                        get_template_part('band-platform/extrch.co-link-page/manage-link-page-tabs/tab-info');
                         ?>
                     </div>
                 </div>
@@ -223,7 +252,7 @@ if ($link_page_id && get_post_type($link_page_id) === 'band_link_page') {
                     <div class="shared-tab-pane" id="manage-link-page-tab-links">
                         <?php
                         // $data['link_sections'] is used by JS, tab-links.php might not need direct PHP vars for links now
-                        get_template_part('forum-features/band-platform/extrch.co-link-page/manage-link-page-tabs/tab-links');
+                        get_template_part('band-platform/extrch.co-link-page/manage-link-page-tabs/tab-links');
                         ?>
                     </div>
                 </div>
@@ -256,7 +285,7 @@ if ($link_page_id && get_post_type($link_page_id) === 'band_link_page') {
                         $custom_css_vars = $data['css_vars'] ?? [];
 
 
-                        get_template_part('forum-features/band-platform/extrch.co-link-page/manage-link-page-tabs/tab-customize');
+                        get_template_part('band-platform/extrch.co-link-page/manage-link-page-tabs/tab-customize');
                         ?>
                     </div>
                 </div>
@@ -272,7 +301,7 @@ if ($link_page_id && get_post_type($link_page_id) === 'band_link_page') {
                         <?php
                         // Pass $link_page_id to the advanced tab template if needed
                         set_query_var('link_page_id', $link_page_id);
-                        get_template_part('forum-features/band-platform/extrch.co-link-page/manage-link-page-tabs/tab-advanced');
+                        get_template_part('band-platform/extrch.co-link-page/manage-link-page-tabs/tab-advanced');
                         ?>
                     </div>
                 </div>
@@ -288,17 +317,13 @@ if ($link_page_id && get_post_type($link_page_id) === 'band_link_page') {
                         <?php
                         // Pass $link_page_id to the analytics tab template if needed
                         set_query_var('link_page_id', $link_page_id);
-                        get_template_part('forum-features/band-platform/extrch.co-link-page/manage-link-page-tabs/tab-analytics');
+                        get_template_part('band-platform/extrch.co-link-page/manage-link-page-tabs/tab-analytics');
                         ?>
                     </div>
                 </div>
                 <!-- End Item 5: Analytics -->
             </div>
             <div id="desktop-tab-content-area" class="shared-desktop-tab-content-area" style="display: none;"></div>
-
-            <div class="bp-link-page-save-btn-wrap" style="margin-top:2em;">
-                <button type="submit" name="bp_save_link_page" class="button button-primary bp-link-page-save-btn"><?php esc_html_e('Save Link Page', 'generatepress_child'); ?></button>
-            </div>
         </form>
     </div>
     <div class="manage-link-page-preview">
@@ -327,14 +352,16 @@ if ($link_page_id && get_post_type($link_page_id) === 'band_link_page') {
                 // 4. Prepare preview data for the new modular preview partial
                 $preview_template_data_for_php = LivePreviewManager::get_preview_data($link_page_id, $band_id);
                 set_query_var('preview_template_data', $preview_template_data_for_php);
-                require locate_template('forum-features/band-platform/extrch.co-link-page/config/live-preview/preview.php');
+                require locate_template('band-platform/extrch.co-link-page/config/live-preview/preview.php');
                 ?>
             </div>
         </div>
     </div>
 </div>
 
-<div class="bp-link-page-manage-band-btn-wrap" style="margin-top:2em; margin-bottom: 2em; text-align: center;">
+<div class="link-page-footer-actions" style="display: flex; justify-content: center; align-items: center; gap: 20px; width: 100%; margin-top: 2em; margin-bottom: 2em;">
+    <button type="submit" form="bp-manage-link-page-form" name="bp_save_link_page" class="button button-primary bp-link-page-save-btn"><?php esc_html_e('Save Link Page', 'generatepress_child'); ?></button>
+    <div id="link-page-loading-message" style="display: none; margin-left: 1em; font-weight: bold;"><?php esc_html_e('Please wait...', 'generatepress_child'); ?></div>
     <a href="<?php echo esc_url(site_url('/manage-band-profile/?band_id=' . $band_id)); ?>" class="button button-secondary"><?php esc_html_e('Manage Band', 'generatepress_child'); ?></a>
 </div>
 
@@ -356,7 +383,7 @@ if ($link_page_id && get_post_type($link_page_id) === 'band_link_page') {
     window.bpLinkPageLinks = <?php echo json_encode($data['link_sections'] ?? []); // Use the processed 'link_sections' ?>;
     window.extrchLinkPagePreviewAJAX = {
         ajax_url: "<?php echo esc_url( admin_url( 'admin-ajax.php' ) ); ?>",
-        nonce: "<?php echo esc_js( wp_create_nonce( 'bp_save_link_page_action' ) ); ?>",
+        nonce: "<?php echo esc_js( wp_create_nonce( 'extrch_link_page_ajax_nonce' ) ); ?>",
         link_page_id: <?php echo absint( $link_page_id ); ?>,
         band_id: <?php echo absint( $band_id ); ?>,
         initial_profile_img_url: <?php echo json_encode(isset($data['profile_img_url']) ? $data['profile_img_url'] : ''); ?>,

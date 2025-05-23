@@ -673,3 +673,8 @@ body.bp-modal-open {
 .bp-notice a.button-secondary:hover {
     background-color: var(--button-secondary-hover-bg, #3f7208); /* Darken secondary on hover */
 }
+
+/* Shared Tabs Component - Desktop Pane Display */
+.shared-desktop-tab-content-area .shared-tab-pane:not(.is-active-pane) {
+    display: none !important; /* Use !important to ensure this overrides any other potential display rules */
+}

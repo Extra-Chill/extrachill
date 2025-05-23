@@ -1,0 +1,754 @@
+.manage-link-page-container { font-family: inherit; }
+#bp-link-list-section { margin-bottom: 2em; }
+.bp-link-row input[type="text"], .bp-link-row input[type="url"] { padding: 6px; border: 1px solid #ccc; border-radius: 3px; }
+.bp-link-row button { padding: 4px 8px; }
+
+/* Split layout for manage link page */
+.manage-link-page-title {
+  color: var(--text-color);
+  font-weight: 700;
+  margin-bottom: 1.5em;
+  text-align: center;
+}
+.manage-link-page-flex {
+  display: flex;
+  flex-direction: row;
+  gap: 2.5em;
+  align-items: flex-start;
+  justify-content: center;
+  margin: 2em auto;
+}
+.manage-link-page-edit {
+  background: var(--card-background);
+  border-radius: 10px;
+  box-shadow: var(--card-shadow);
+  padding: 2em 1.5em;
+  min-width: 340px;
+  max-width: 720px;
+  flex: 1 1 0;
+  color: var(--text-color);
+}
+.manage-link-page-preview {
+  background: transparent !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.manage-link-page-preview-live {
+  background: transparent !important;
+  color: inherit !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+  width: 100%;
+  max-width: 450px; /* Default desktop constraint for mobile simulation */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  visibility: hidden; /* JS controls this */
+  /* position: sticky; // Removed from global */
+}
+/* This rule was for the container *inside* the iframe, uncomment if it was providing a useful visual border for the preview content itself */
+.manage-link-page-preview-live .extrch-link-page-container {
+  /* border: 1.5px solid var(--border-color, #e0e4ea); */
+  width: 100%; /* Ensure preview content fills its parent */
+}
+@media (max-width: 900px) {
+  .manage-link-page-flex {
+    flex-direction: column;
+    gap: 1.5em;
+    max-width: 98vw;
+  }
+  .manage-link-page-edit, .manage-link-page-preview {
+    max-width: 100%;
+    min-width: 0;
+    padding: 1.2em 0.5em;
+    width: 100%;
+  }
+  .manage-link-page-preview-live {
+    max-width: 100%; /* Overrides the 450px desktop default for tablet/mobile */
+    position: static; /* Ensure not sticky when stacked */
+  }
+  /* Make the actual previewed content (.extrch-link-page-container) wider on tablets */
+  .manage-link-page-preview-live .extrch-link-page-container {
+    max-width: 100%; /* Or a specific value like 700px if 100% is too wide */
+    margin-left: auto;
+    margin-right: auto;
+  }
+}
+.extrch-link-page-preview-container {
+  border: 1.5px solid var(--border-color, #e0e4ea);
+}
+
+.bp-link-page-url {
+  margin-bottom: 1.5em;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  justify-content: center;
+}
+.bp-link-page-url-text {
+  font-size: 1.1em;
+  word-break: break-all;
+  overflow-wrap: break-word;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol"; /* Explicitly set to a common sans-serif stack */
+}
+.bp-link-page-url-copy {
+  font-size: 0.95em;
+  text-decoration: underline;
+  cursor: pointer;
+  color: var(--link-color);
+}
+.bp-link-page-url-confirm {
+  display: none;
+  margin-left: 8px;
+  color: var(--accent);
+  font-size: 0.95em;
+}
+.bp-profile-image-preview {
+  margin-bottom: 10px;
+}
+.bp-profile-image-preview-img {
+  max-width: 120px;
+  max-height: 120px;
+  border-radius: 50%;
+  background: #eee;
+}
+.bp-profile-image-preview-none {
+  color: var(--muted-text);
+}
+.bp-link-page-bio-text {
+  width: 100%;
+  resize: vertical;
+}
+.bp-link-page-bio-desc {
+  margin: 0.5em 0 0 0;
+  color: var(--muted-text);
+  font-size: 0.95em;
+}
+.bp-add-social-icon-btn,
+.bp-add-link-btn {
+  margin-top: 1em;
+}
+.bp-social-icons-desc {
+  margin: 0;
+}
+.bp-link-page-save-btn-wrap {
+  margin: 2em 0;
+}
+.bp-link-page-save-btn {
+  /* No extra styles needed, but class for future-proofing */
+}
+
+*/
+.customize-placeholder {
+  color: var(--muted-text);
+  text-align: center;
+  padding: 2em 0;
+}
+.manage-link-page-preview {
+  flex: 1;
+  background: #fafbfc;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+  padding: 2em 1em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.manage-link-page-preview-inner {
+  width: 100%;
+}
+.manage-link-page-preview-placeholder {
+  text-align: center;
+  color: #bbb;
+  font-size: 1.2em;
+  padding: 2em 0;
+}
+
+/* Expiration Modal Styles */
+.bp-link-expiration-modal {
+  display: none; /* Hidden by default, shown by .is-active */
+  position: fixed; left: 0; top: 0; width: 100%; height: 100%;
+  background-color: rgba(0,0,0,0.5); z-index: 1001;
+  justify-content: center; align-items: center;
+}
+.bp-link-expiration-modal.is-active {
+  display: flex !important; /* Use flex to center the inner modal, override default none */
+}
+.bp-link-expiration-modal-inner {
+  background: var(--background-color);
+  color: var(--text-color);
+  padding: 2em 1.5em 1.5em 1.5em;
+  max-width: 350px;
+  width: 96vw;
+  margin: 10vh auto;
+  border-radius: 8px;
+  box-shadow: var(--card-hover-shadow, 0 4px 24px rgba(0,0,0,0.18));
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 1em;
+}
+.bp-link-expiration-modal-title {
+  margin-top: 0;
+  margin-bottom: 0.5em;
+  font-size: 1.2em;
+  font-weight: 700;
+  color: var(--text-color);
+}
+.bp-link-expiration-modal-label {
+  display: block;
+  margin-bottom: 1em;
+  font-weight: 500;
+}
+.bp-link-expiration-datetime {
+  margin-top: 0.5em;
+  width: 100%;
+  padding: 0.5em;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background: var(--card-background);
+  color: var(--text-color);
+  font-size: 1em;
+}
+.bp-link-expiration-modal-actions {
+  display: flex;
+  gap: 1em;
+  justify-content: flex-end;
+}
+
+/* QR Code Modal Styles */
+.bp-modal {
+    display: none; /* Hidden by default */
+    position: fixed; /* Stay in place */
+    z-index: 1001; /* Sit on top - higher than preview, less than admin bar if present */
+    left: 0;
+    top: 0;
+    width: 100%; /* Full width */
+    height: 100%; /* Full height */
+    overflow: auto; /* Enable scroll if needed */
+    background-color: rgba(0,0,0,0.6); /* Black w/ opacity for overlay */
+}
+
+.bp-modal-content {
+    background-color: var(--card-background);
+    color: var(--text-color);
+    margin: 15% auto; /* 15% from the top and centered */
+    padding: 25px;
+    border: 1px solid var(--border-color);
+    width: 80%; /* Could be more specific e.g. 500px */
+    max-width: 500px;
+    box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2),0 6px 20px 0 rgba(0,0,0,0.19);
+    border-radius: 8px;
+    text-align: center;
+    position: relative;
+}
+
+.bp-modal-close {
+    color: #aaa;
+    position: absolute;
+    top: 10px;
+    right: 20px;
+    font-size: 28px;
+    font-weight: bold;
+    line-height: 1;
+}
+
+.bp-modal-close:hover,
+.bp-modal-close:focus {
+    color: black;
+    text-decoration: none;
+    cursor: pointer;
+}
+.bp-link-section{
+  background-color: var(--background-color);
+}
+
+#bp-qr-code-modal-image-container img {
+    display: block; /* Initially none, set by JS */
+    margin: 1em auto;
+    max-width: 90%; /* Ensure it fits within modal padding */
+    height: auto;
+    border: 1px solid #eee;
+}
+
+#bp-qr-code-modal-image-container .loading-message,
+#bp-qr-code-modal-image-container .bp-notice-error {
+    margin: 1em 0;
+    padding: 0.5em;
+}
+i.fa-solid.fa-qrcode {
+  color: #fff;
+}
+i.fa-solid.fa-qrcode:hover {
+  color: #fff;
+}
+.bp-modal-instructions {
+    font-size: 0.9em;
+    color: var(--muted-text);
+    margin-top: 1em;
+}
+
+/* Styles for Content Cards within Tabs */
+.link-page-content-card {
+    background-color: var(--card-background);
+    border: 1px solid var(--border-color);
+    border-radius: 8px; /* Consistent with tab structure */
+    padding: 1em 1.2em; /* Consistent with tab content padding */
+    margin-bottom: 1.5em; /* Space between cards */
+    box-shadow: var(--card-shadow);
+    overflow: hidden; /* Important for containing flowing children */
+}
+
+.link-page-content-card:last-child {
+    margin-bottom: 0.5em; /* Reduce margin for the last card in a tab */
+}
+
+.link-page-content-card h2 {
+    margin-top: 0;
+    margin-bottom: 0.8em;
+    font-size: 1.3em; /* Slightly larger than tab buttons */
+    color: var(--text-color);
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 0.5em;
+}
+
+/* Responsive Inputs and Selects within Cards */
+.link-page-content-card select,
+.link-page-content-card input[type="text"],
+.link-page-content-card input[type="url"],
+.link-page-content-card input[type="email"] {
+    width: 100%;
+    max-width: 100%; /* Prevent inputs from exceeding their container's width */
+    box-sizing: border-box; /* Include padding and border in the element's total width and height */
+    margin-bottom: 0.5em; /* Add some space below inputs if they stack */
+}
+
+/* --- Social Icon Row Adjustments within Cards --- */
+.link-page-content-card #bp-social-icons-section .bp-social-row {
+    display: flex;
+    flex-wrap: wrap; /* Allow items to wrap on smaller card widths */
+    align-items: center;
+    gap: 10px;
+    padding: 10px 0; /* Reduced padding as card has its own */
+    border: none; /* Remove individual row border, card has one */
+    margin-bottom: 10px;
+}
+
+.link-page-content-card #bp-social-icons-section .bp-social-type-icon {
+    flex-shrink: 0;
+}
+
+.link-page-content-card #bp-social-icons-section .bp-social-type-select {
+    flex: 1 1 150px; /* Allow shrinking but prefer 150px */
+    min-width: 120px; /* Ensure it doesn't get too small */
+}
+
+.link-page-content-card #bp-social-icons-section .bp-social-url-input {
+    flex: 2 1 200px; /* Allow more space for URL, can shrink */
+    min-width: 150px;
+}
+
+.link-page-content-card #bp-social-icons-section .bp-social-actions {
+    flex-shrink: 0;
+}
+
+/* --- Link Sections & Items Adjustments (General for elements created by manage-link-page-links.js) --- */
+
+/* Assuming .bp-link-section for each section wrapper */
+.link-page-content-card .bp-link-section {
+    margin-bottom: 1.5em;
+    padding: 1em;
+    border: 1px dashed var(--border-color); /* Light border for visual separation of sections */
+    border-radius: 6px;
+}
+
+/* Assuming .bp-link-section-header for section titles + actions */
+.link-page-content-card .bp-link-section-header {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 0.8em;
+}
+
+.link-page-content-card .bp-link-section-header input[type="text"] { /* Section Title Input */
+    flex: 1 1 auto; /* Default for larger screens */
+    min-width: 180px; /* Slightly reduced min-width */
+}
+
+/* Assuming .bp-link-item for each individual link row */
+.link-page-content-card .bp-link-item {
+    display: flex;
+    flex-wrap: wrap; /* Allow wrapping for link item contents */
+    align-items: center;
+    gap: 10px;
+    padding: 10px 0; /* Similar to social rows */
+    /* border-bottom: 1px solid #eee; */ /* Optional: if individual links need separators inside a section card */
+}
+
+/* Inputs within .bp-link-item */
+.link-page-content-card .bp-link-item input[type="text"], 
+.link-page-content-card .bp-link-item input[type="url"] {
+    flex: 1 1 150px; /* Allow shrinking, prefer 150px */
+    min-width: 120px; /* Avoid getting too small */
+}
+
+.link-page-content-card .bp-link-item .bp-link-actions, /* Assuming a container for link actions */
+.link-page-content-card .bp-link-section-header .bp-section-actions /* Assuming container for section actions */
+{
+    flex-shrink: 0; /* Prevent action buttons from shrinking */
+    display: flex; /* Align buttons nicely if there are multiple */
+    gap: 5px;
+}
+
+/* Ensure that the container for links (if any) within a section also respects boundaries */
+.link-page-content-card #bp-link-sections-list .links-list-container { /* Hypothetical class for list of links within a section */
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+/* Final Add Section/Social Icon buttons at the bottom of cards */
+.link-page-content-card > #bp-social-icons-section > #bp-add-social-icon-btn,
+.link-page-content-card > #bp-link-list-section > #bp-add-link-section-btn {
+    margin-top: 1em; 
+    display: block; /* Make them block to take available width or center them */
+    /* width: fit-content; */ /* If you want them to be only as wide as their content */
+    /* margin-left: auto; */ /* To center if width is fit-content */
+    /* margin-right: auto; */ /* To center if width is fit-content */
+}
+
+/* Responsive adjustments for link section headers */
+@media (max-width: 768px) { 
+    .link-page-content-card .bp-link-section-header {
+        display: flex !important; 
+        flex-direction: column !important; 
+        align-items: flex-start !important; 
+        gap: 10px !important; 
+    }
+
+    .link-page-content-card .bp-link-section-header input[type="text"].bp-link-section-title {
+        width: 100% !important; 
+        /* order: 1; No longer needed if it's the first natural child */
+        margin-bottom: 0 !important; 
+        min-width: 0 !important; 
+    }
+
+    /* NEW: Styles for the actions group wrapper */
+    .link-page-content-card .bp-link-section-header .bp-section-actions-group {
+        display: flex !important;
+        flex-direction: row !important;
+        justify-content: flex-end !important; /* Align the whole group of actions to the right */
+        align-items: center !important;
+        width: 100% !important; /* Make the group take full width to allow right alignment */
+        gap: 5px !important; /* Space between buttons/link within the group */
+        flex-wrap: nowrap !important; /* Ensure actions stay in one line */
+    }
+
+    /* Styles for individual buttons and the remove link within the new group */
+    .link-page-content-card .bp-link-section-header .bp-section-actions-group > .button,
+    .link-page-content-card .bp-link-section-header .bp-section-actions-group > .bp-remove-link-section-btn {
+        width: auto !important;
+        flex: 0 0 auto !important;
+        min-width: 0 !important;
+        padding: 5px 8px !important;
+        margin: 0 !important; 
+        line-height: 1 !important;
+        display: inline-flex !important; /* for button content alignment */
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .link-page-content-card .bp-link-section-header .bp-section-actions-group > .bp-remove-link-section-btn {
+        text-decoration: none !important;
+        color: red !important;
+        /* margin-left: auto; /* No longer needed here, parent group handles alignment */
+    }
+
+    .link-page-content-card .bp-link-section-header .bp-section-actions-group > .button {
+         background-color: var(--button-bg, #0b5394) !important;
+         color: var(--header-text, #fff) !important; 
+         border: 1px solid transparent !important;
+    }
+
+    /* If icons are <i> tags */
+    .link-page-content-card .bp-link-section-header .bp-section-actions-group .button i {
+        margin: 0 !important; 
+        padding: 0 !important; 
+        font-size: 1em !important; 
+        line-height: 1 !important;
+    }
+} 
+
+@media (min-width: 1024px) {
+  .manage-link-page-preview {
+    position: sticky;
+    top: 32px;
+    align-self: flex-start;
+    height: fit-content;
+    z-index: 10;
+  }
+}
+
+/* Utility Classes */
+.ml-auto {
+  margin-left: auto !important;
+}
+
+.flex-grow-1 {
+  flex: 1 1 0 !important;
+}
+
+.flex-grow-2 {
+  flex: 2 1 0 !important;
+}
+
+.flex-grow-3 {
+  flex: 3 1 0 !important;
+}
+
+/* Enhancements for Social Icons Section */
+/* .bp-social-row is already partially styled, ensure these are covered or added */
+.link-page-content-card #bp-social-icons-section .bp-social-row {
+  /* display: flex; (already there implicitly or explicitly) */
+  /* align-items: center; (already there implicitly or explicitly) */
+  gap: 10px; /* Add if not present */
+  margin-bottom: 10px; /* Standardize margin */
+}
+
+.link-page-content-card #bp-social-icons-section .bp-social-url-input {
+  flex: 3; /* Ensure this rule is present for the input specifically */
+}
+
+/* Enhancements for Link Sections */
+.link-page-content-card .bp-link-section {
+  /* margin-bottom: 2em; (already there) */
+}
+
+.link-page-content-card .bp-link-section-header {
+  /* display: flex; (already there) */
+  /* align-items: center; (already there) */
+  gap: 8px; /* Add if not present */
+  margin-bottom: 0.7em; /* Ensure consistency */
+}
+
+/* .bp-link-section-title is targeted by input[type="text"], ensure these are covered */
+.link-page-content-card .bp-link-section-header input.bp-link-section-title {
+  font-weight: 700;
+  font-size: 1.08em;
+  flex: 1;
+  min-width: 0;
+}
+
+.link-page-content-card .bp-add-link-btn { /* This targets the button for adding links to a section */
+  margin-top: 1em;
+}
+
+/* .bp-link-item is already styled, ensure these are covered or added */
+.link-page-content-card .bp-link-item {
+  /* display: flex; (already there) */
+  /* align-items: center; (already there) */
+  gap: 8px; /* Add if not present */
+  margin-bottom: 8px; /* Add some spacing between link items */
+}
+
+.bp-link-text-input { /* New class for link text input */
+  flex: 2;
+}
+
+.bp-link-url-input { /* New class for link URL input */
+  flex: 3;
+}
+
+.bp-link-expiration-icon {
+  cursor: pointer;
+  font-size: 1.2em;
+  color: #b48a00; /* Consider using a CSS variable if this color is part of a theme */
+  user-select: none;
+}
+
+/* Common remove link style */
+.bp-remove-item-link {
+  color: #dc3545 !important; /* A common red color for deletion, !important to override potential specificity issues if needed */
+  text-decoration: none !important;
+  font-weight: bold;
+  font-size: 1.2em; /* Make it a bit larger for easier clicking */
+}
+.bp-remove-item-link:hover {
+  color: #a71d2a !important;
+}
+
+/* Modal Styles - bp-link-expiration-modal is already styled (line 317+) */
+/* Add a class for hidden state for clarity if not already universally handled */
+.bp-modal-hidden {
+  display: none !important;
+}
+
+/* Make sure the buttons inside flex containers don't shrink */
+.link-page-content-card .bp-social-row button,
+.link-page-content-card .bp-link-item button,
+.link-page-content-card .bp-link-section-header .bp-section-actions-group button {
+    flex-shrink: 0;
+}
+
+/* Drag and Drop Styles */
+.drag-handle {
+  cursor: grab;
+  color: #757575; /* A neutral color */
+  padding: 0 8px; /* Some padding around the icon */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  touch-action: manipulation; /* Recommended for SortableJS */
+}
+
+.drag-handle:hover {
+  color: #333;
+}
+
+.drag-handle i {
+  font-size: 1.1em; /* Adjust icon size as needed */
+}
+
+/* Specific alignment for handles within flex rows */
+.bp-social-row .drag-handle,
+.bp-link-item .drag-handle {
+  margin-right: 8px; /* Space between handle and next element */
+  order: -1; /* Place handle at the beginning of the flex row */
+}
+
+.bp-link-section-header .drag-handle {
+    margin-right: 10px;
+    padding: 5px; /* Ensure clickable area */
+    /* order: -1; /* If section header elements are reordered for this */
+}
+
+/* SortableJS Helper Classes */
+.sortable-ghost {
+  opacity: 0.4;
+  background-color: #e0e0e0;
+}
+
+.sortable-chosen {
+  /* Styles for the item when it's picked up, if needed */
+  /* For example, slightly larger or different shadow */
+}
+
+.sortable-drag {
+  /* Styles for the actual element being dragged, often not needed if ghost is styled well */
+}
+
+/* Jump to Preview Button */
+.extrch-jump-to-preview-btn {
+    display: none; /* Hidden by default, shown by JS via 'visible' class */
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 1000;
+    padding: 0; 
+    background-color: var(--accent, #53940b); 
+    color: #fff;
+    border: none;
+    border-radius: 50%; 
+    cursor: pointer;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    width: 50px; 
+    height: 50px; 
+    text-align: center; /* Fallback if flex fails, but primarily for inline content */
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+    opacity: 0;
+    visibility: hidden;
+    display: flex; 
+    align-items: center;
+    justify-content: center;
+}
+.extrch-jump-to-preview-btn:focus{
+    background-color: var(--button-bg, #53940b);
+}
+
+.extrch-jump-to-preview-btn .main-icon-wrapper {
+    display: inline-flex; 
+    align-items: center;
+    justify-content: center;
+    font-size: 1.3em; 
+}
+
+.extrch-jump-to-preview-btn .directional-arrow {
+    font-size: 0.7em; 
+    color: #fff; 
+    position: absolute; 
+}
+
+/* Positioning for arrow when main icon is magnifying glass (arrow points down) */
+.extrch-jump-to-preview-btn .directional-arrow.fa-arrow-down,
+.extrch-jump-to-preview-btn .directional-arrow.fa-chevron-down {
+    bottom: 5px; 
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.extrch-jump-to-preview-btn .directional-arrow.fa-arrow-up,
+.extrch-jump-to-preview-btn .directional-arrow.fa-chevron-up {
+    top: 5px; 
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+  i.fa-solid.fa-magnifying-glass, i.fa-solid.fa-cog{
+    color: #fff;
+  }
+  i.fa-solid.fa-magnifying-glass:hover, i.fa-solid.fa-cog:hover{
+    color: #fff; /* Keep color change if desired, remove flex properties */
+  }
+
+.extrch-jump-to-preview-btn.visible {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* Only make it potentially visible on smaller screens */
+@media (max-width: 768px) { /* Adjust breakpoint as needed */
+    /* The button's default 'display: none' is overridden by JS adding 'visible' class,
+       so we don't need to set 'display: block' or 'flex' here directly in the media query.
+       The JS will control its actual appearance based on viewport and scroll. */
+}
+
+.grid-container{
+  max-width: 1350px !important;
+}
+
+/* Desktop Sticky Preview */
+@media (min-width: 901px) {
+  .manage-link-page-preview-live {
+    position: sticky;
+    top: 32px; /* Adjust based on admin bar or other fixed headers */
+    align-self: flex-start; /* If its parent .manage-link-page-preview is a flex container */
+    height: fit-content; /* Crucial for sticky to work correctly with content height */
+    z-index: 10; /* Ensure it's above other content if necessary */
+  }
+}
+
+.extrch-link-page-profile-img.no-image {
+  display: none !important;
+}
+
+
+
+/* Ensure responsive behavior for analytics table */
+#manage-link-page-tab-analytics table {
+  width: 100%; /* Ensure table takes full width of its container */
+  table-layout: fixed; /* Helps in controlling column widths */
+}
+
+#manage-link-page-tab-analytics th,
+#manage-link-page-tab-analytics td {
+  padding: 8px; /* Add some padding for readability */
+  border: 1px solid var(--border-color); /* Add borders for clarity */
+  word-break: break-word; /* Break long words (like URLs) */
+  overflow-wrap: break-word; /* Alternative/standard property */
+}

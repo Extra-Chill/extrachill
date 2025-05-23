@@ -1,0 +1,41 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+## Project Plan
+
+This document outlines the forward-looking development plan and tasks for the Band Platform and Extrch.co Link Page features.
+
+### High Priority (MVP Critical):
+
+-   **Social Login (Google/Apple):** Implement OAuth-based login options for "Log in with Google" and "Log in with Apple". *Requires integrating with OAuth APIs and WordPress login flow, ensuring that successful social logins trigger the standard WordPress `wp_login` hook to maintain compatibility with existing session and token logic (including the custom `ecc_user_session_token`).* (Implementation pending).
+-   **Data Migration from Legacy 'Independent Artist' Forum:** Migrate relevant posts/data from the old "Independent Artist" forum into the new `band_profile` and associated band forum structure for existing artists. This will require manual effort. *Consider existing data structures and potential mapping.*
+-   **Final UX/UI Review & Code Optimization:** Conduct a final sweep of the user interface across devices, focusing on button styling, mobile-friendliness, and overall user experience. Clean up and optimize any redundant or confusing code. *Review key frontend files like `single-band_profile.php`, `page-templates/manage-band-profile.php`, `page-templates/manage-link-page.php`, and associated CSS/JS.*
+-   **Fix Link Page Share URL:** The share URL displayed in the modal on the live link page is incorrect, pointing to the WordPress URL instead of the `extrachill.link` URL. This needs to be corrected.
+
+### Medium Priority:
+
+-   **Extrachill.link/join Setup Wizard:** Implement a guided setup flow for new or existing users arriving from `extrachill.link/join`. This wizard will facilitate the creation of a band profile and associated link page.
+    *   **Stage 1: User Authentication:** Present the user with a choice to either log in (for existing users) or register (for new users), conditionally displaying the relevant form. Upon successful authentication, the flow branches based on the user's existing band profiles.
+    *   **Stage 2 (Conditional): Create Band Profile:** *For new users or existing users without an existing band profile.* Redirect the user to the Band Profile Management page (`page-templates/manage-band-profile.php`). Display a custom notice explaining the connection between bands and link pages and guiding the user to create and save their band profile.
+        *   *If existing user has a band profile:* Redirect them directly to the Manage Link Page interface (`page-templates/manage-link-page.php`) for their most recently updated band profile.
+    *   **Stage 3 (Conditional): Manage Link Page:** *For users who completed Stage 2 (created a new band profile).* After the band profile is successfully created/saved, automatically redirect the user to the Link Page Management interface (`page-templates/manage-link-page.php`) for their newly created band, providing brief follow-up information.
+-   **Forum Settings Tab (DEFERRED):** Implement a "Forum Settings" tab in [`page-templates/manage-band-profile.php`](mdc:page-templates/manage-band-profile.php) to allow band administrators to toggle the `_allow_public_topic_creation` setting for their band's forum. (Deferred due to resource constraints; revisit in a future development cycle). *This will involve modifying the management page template and adding a setting field.*
+-   **"Post As Band":** Implement mechanism for members to post as the band entity in the band forum. (Implementation pending). *This will likely involve changes to bbPress posting forms and permission checks.*
+-   **Integrations Tab:** Consider adding an "integrations" tab or similar feature to allow users to sync external services (e.g., Substack) with the platform. (Exploration pending). *This is a research and design task initially.*
+-   **Spotify Integration:** Explore integrating with the Spotify API (Spotify for Artists or standard) for features like displaying artist discography, automating playlist additions, and potentially supporting pre-save campaigns. (Implementation pending).
+-   **Band Messaging to Followers:** Implement a feature within the Band Profile Management page allowing band members to send direct messages or updates to users who have consented to share their email address with that specific band. (Future idea/Implementation pending).
+-   **YouTube Previews:** Implement functionality to detect YouTube links and allow embedding the video directly within the link page when the button is clicked.
+-   **Suggested Link Titles:** Add functionality to suggest a link title based on the meta title of the pasted URL in the link editing interface.
+
+### Low Priority:
+
+-   **Synced Customization:** Investigate syncing visual styles between `band_link_page` and `band_profile` display. (Exploration pending). *Assess feasibility and design implications.*
+-   **Advanced Customization:** Allow customization of band forum fonts/colors. (Implementation pending). *This would extend the existing customization logic.*
+-   **Event Integration:** Link band profiles to events. (Exploration pending). *Determine how event data will be stored and linked.*
+-   **EPK (Electronic Press Kit) Builder:** Allow bands to easily create a professional EPK page directly from their band profile data, including bio, press photos, music links, contact info, and press mentions. (Exploration pending). *This will involve adding new meta fields, a management interface tab, a public display template, and custom routing.*
+-   **Columns option for buttons:** Allow users to display their link page in a grid layout instead of the typical vertical list on the customize tab. (Implementation pending). *Requires significant frontend work for responsive grid layout.*
+-   **Review and Optimize Rank System:** Investigate why programmatic posts are not triggering point calculations and ensure the rank system is robust and correctly handles all post types. (Implementation pending). *This will involve reviewing the point calculation logic and potentially hooks.*
+-   **Social Icons Position:** Add an option to move the social icons section to the bottom of the link page.
+-   **Limit Bio Character Count:** Implement a character limit for the bio section on the link page manager interface.

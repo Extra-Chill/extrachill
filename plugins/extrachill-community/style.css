@@ -1098,8 +1098,6 @@ h1.site-title, p.site-title {
  
 /* Stick the header to the top, with a dark background */
 #masthead {
-	position: -webkit-sticky; /* For Safari */
-	/* position: sticky; */ 
 	top: 0;
 	z-index: 1000;
 	background-color: var(--header-bg);

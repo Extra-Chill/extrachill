@@ -124,13 +124,9 @@
       // Logged-in: output notification bell and user avatar.
       wp_surgeon_add_notification_bell_icon();
     } else {
-      // Not logged in: output login and join buttons.
+      // Not logged in: output login button.
       echo '<div class="auth-buttons">';
       echo '<a href="/login" class="login-button">Login</a>';
-      // If your site supports registration, you can use wp_registration_url()
-      // Otherwise, link to your custom registration page.
-      echo '<span style="color: #fff;"> / </span>';
-      echo '<a href="/register" class="join-button">Join</a>';
       echo '</div>';
     }
   ?>

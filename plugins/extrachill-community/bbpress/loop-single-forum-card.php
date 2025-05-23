@@ -169,7 +169,7 @@ $is_band_directory_card = ( bbp_get_forum_id() == 5432 );
                 
                 // Time since last active (as a link)
                 echo '<p class="bbp-forum-last-active-time">';
-                echo '<a href="' . esc_url( $activity_link_url ) . '" title="' . esc_attr( sprintf( __( 'View %s', 'generatepress_child' ), $activity_link_title_text ) ) . '">' . esc_html( bbp_get_time_since( strtotime( $latest_band_activity_post->post_date_gmt ) ) ) . '</a>';
+                echo '<a href="' . esc_url( $activity_link_url ) . '" title="' . esc_attr( sprintf( __( 'View %s', 'generatepress_child' ), $activity_link_title_text ) ) . '">' . esc_html( human_time_diff( strtotime( $latest_band_activity_post->post_date_gmt ), current_time('timestamp', true) ) ) . ' ago</a>';
                 echo '</p>';
                 ?>
                 <p class="bbp-topic-meta">
