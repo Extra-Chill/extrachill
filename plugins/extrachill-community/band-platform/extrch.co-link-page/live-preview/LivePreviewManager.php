@@ -8,6 +8,12 @@
  */
 class LivePreviewManager {
     public static function get_preview_data($link_page_id, $band_id, $overrides = array()) {
+        // --- START Supported Link Types ---
+        // Get supported link types from the dedicated config file
+        require_once dirname(__FILE__) . '/../link-page-social-types.php';
+        $supported_link_types = function_exists('bp_get_supported_social_link_types') ? bp_get_supported_social_link_types() : [];
+        // --- END Supported Link Types ---
+
         // --- Data Fetching Logic (from link-page-data.php, refactored) ---
         $data = [];
         // Helper function to get value: override > post_meta > default
@@ -102,7 +108,9 @@ class LivePreviewManager {
         if (is_array($css_vars_for_shape) && isset($css_vars_for_shape['_link_page_profile_img_shape'])) {
             $data['profile_img_shape'] = $css_vars_for_shape['_link_page_profile_img_shape'];
         } else {
-            $data['profile_img_shape'] = 'circle';
+            // Backwards compatibility: fall back to legacy meta if not present in JSON
+            $legacy_shape = get_post_meta($link_page_id, '_link_page_profile_img_shape', true);
+            $data['profile_img_shape'] = $legacy_shape ? $legacy_shape : 'circle';
         }
 
         // --- CSS Vars Normalization ---
@@ -139,7 +147,7 @@ class LivePreviewManager {
         // Ensure font stack is correctly derived if a 'value' is stored or defaulted.
         // This logic should only apply if '--link-page-title-font-family' is set in $css_vars.
         if (isset($css_vars['--link-page-title-font-family'])) {
-            require_once dirname(__DIR__, 2) . '/config/link-page-font-config.php';
+            require_once dirname(__DIR__, 1) . '/link-page-font-config.php';
             global $extrch_link_page_fonts;
             $default_font_value = 'WilcoLoftSans';
             $default_font_stack = "'WilcoLoftSans', Helvetica, Arial, sans-serif";
@@ -169,7 +177,7 @@ class LivePreviewManager {
         // Ensure body font stack is correctly derived
         if (isset($css_vars['--link-page-body-font-family'])) {
             if (!isset($extrch_link_page_fonts)) { // Ensure font config is loaded if not already
-                require_once dirname(__DIR__, 2) . '/config/link-page-font-config.php';
+                require_once dirname(__DIR__, 1) . '/link-page-font-config.php';
                 global $extrch_link_page_fonts;
             }
             $default_body_font_value = 'Helvetica'; // Default if lookup fails
@@ -257,6 +265,13 @@ class LivePreviewManager {
             // Profile Image Shape
             'profile_img_shape' => $data['profile_img_shape'],
             'overlay' => $overlay_val,
+
+            // Add band_id and link_page_id to the returned data
+            'band_id'           => $band_id,
+            'link_page_id'      => $link_page_id,
+
+            // Add supported link types for JS Social Icons module
+            'supportedLinkTypes' => $supported_link_types,
         );
         return $return_data;
     }

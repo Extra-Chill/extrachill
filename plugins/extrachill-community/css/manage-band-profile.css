@@ -640,7 +640,6 @@ body.bp-modal-open {
 
 .bp-notice-error {
     border-left-color: #dc3232; /* WordPress error red */
-    background-color: #fef2f2; /* Light red background */
     color: var(--text-color); /* Ensure text is readable */
 }
 

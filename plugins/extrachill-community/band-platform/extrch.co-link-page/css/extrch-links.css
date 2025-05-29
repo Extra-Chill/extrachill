@@ -11,27 +11,7 @@
 
 /* @font-face for WilcoLoftSans removed as it should be globally defined in theme's style.css -- This comment is now outdated. */
 
-/* Default values for CSS variables. These will be overridden by PHP/JS if custom values are set. */
-:root {
-  /* These are critical defaults if not provided by the backend/JS */
-  --link-page-bg-color: #121212; /* Example default background */
-  --link-page-text-color: #e5e5e5;
-  --link-page-link-text-color: #ffffff; /* Text color for links/buttons */
-  --link-page-button-bg-color: #0b5394; /* Background for links/buttons */
-  --link-page-button-border-color: #0b5394; /* Border for links/buttons */
-  --link-page-button-hover-bg-color: #53940b; /* Hover background for links/buttons */
-  --link-page-button-hover-text-color: #ffffff; /* Hover text for links/buttons */
-  --link-page-card-bg-color: rgba(0,0,0,0.4);
-  --link-page-muted-text-color: #aaa;
-  --link-page-title-font-family: 'WilcoLoftSans', Helvetica, Arial, sans-serif;
-  --link-page-title-font-size: 2.1em;
-  --link-page-body-font-family: 'WilcoLoftSans', Helvetica, Arial, sans-serif;
-  --link-page-profile-img-size: 30%;
-  --link-page-profile-img-aspect-ratio: 1 / 1;
-  --link-page-profile-img-border-radius: 8px;
-  --link-page-button-radius: 8px;
-  --link-page-overlay-color: rgba(0,0,0,0.5);
-}
+/* Default values for CSS variables REMOVED. All variables are now set by PHP in the <head>. */
 
 body {
     margin: 0;
@@ -41,7 +21,7 @@ body {
 
 .extrch-link-page-container {
   font-family: var(--link-page-body-font-family); /* Moved from body */
-  /* background-color: var(--link-page-bg-color); */ /* Removed: Body now handles the main page background */
+  /* background: var(--link-page-background-color, #1a1a1a); */ /* REMOVED background shorthand */
   color: var(--link-page-text-color); /* Moved from body - default text color for the page */
   width: 100%;
   min-height: 100vh; /* Ensure container takes full viewport height */
@@ -58,6 +38,32 @@ body {
   align-items: center;
   /* Ensure card text color inherits from body by default, or can be specifically set if needed */
   color: inherit; 
+}
+
+.extrch-link-page-container[data-bg-type="color"] {
+  background-color: var(--link-page-background-color, #1a1a1a);
+  background-image: none; /* Explicitly remove image/gradient */
+}
+
+.extrch-link-page-container[data-bg-type="gradient"] {
+  background: linear-gradient(
+    var(--link-page-background-gradient-direction, to right),
+    var(--link-page-background-gradient-start, #0b5394),
+    var(--link-page-background-gradient-end, #53940b)
+  );
+  background-image: linear-gradient(
+    var(--link-page-background-gradient-direction, to right),
+    var(--link-page-background-gradient-start, #0b5394),
+    var(--link-page-background-gradient-end, #53940b)
+  );
+  background-color: transparent; /* Ensure no base color shows through */
+}
+.extrch-link-page-container[data-bg-type="image"] {
+  background-image: var(--link-page-background-image-url);
+  background-size: var(--link-page-image-size, cover); /* Use variable */
+  background-position: var(--link-page-image-position, center center); /* Use variable */
+  background-repeat: var(--link-page-image-repeat, no-repeat); /* Use variable */
+  background-color: transparent; /* Ensure no base color shows through */
 }
 
 .extrch-link-page-content-wrapper {
@@ -318,4 +324,42 @@ body {
   flex-direction: column;
   align-items: center;
   width: 100%;
-} 
+}
+
+/* YouTube Inline Embed Styles */
+.extrch-youtube-video-placeholder {
+    margin-top: 10px; /* Space between button and video */
+    margin-bottom: 10px; /* Space below video */
+    max-width: 100%;
+    overflow: hidden; /* Crucial for the slide effect */
+    max-height: 0; /* Initially collapsed */
+    transition: max-height 0.4s ease-in-out, margin-top 0.4s ease-in-out, margin-bottom 0.4s ease-in-out, padding-top 0.4s ease-in-out, padding-bottom 0.4s ease-in-out; /* Smooth transition for height and spacing */
+    /* Add padding to the transition if you want space inside the placeholder when it opens */
+    /* padding-top: 0; */
+    /* padding-bottom: 0; */
+}
+
+.extrch-youtube-video-placeholder.video-visible {
+    max-height: 56.25vw; /* Max height based on 16:9 aspect ratio relative to viewport width (adjust as needed, or use a fixed px value like 500px) */
+    /* Alternatively, a large enough fixed pixel value if vw is problematic:
+    max-height: 500px; 
+    */
+    /* If you added padding to the transition, define the open state padding here */
+    /* padding-top: 10px; */
+    /* padding-bottom: 10px; */
+}
+
+.extrch-youtube-video-placeholder iframe {
+    display: block; /* Removes extra space below iframe */
+    width: 100%;
+    aspect-ratio: 16/9; /* Maintain 16:9 aspect ratio */
+    border: none; /* Ensure no iframe border */
+    max-width: 100%; /* Ensure iframe doesn't overflow its container */
+}
+
+/* Optional: Style for the button when video is active */
+.extrch-link-button.video-active {
+    /* Example: change background or add an icon */
+    /* background-color: #ffdddd; */ 
+}
+

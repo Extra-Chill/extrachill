@@ -62,20 +62,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Profile image logic
         if (modalProfileImg) {
+            let imgUrl = '';
             if (mainPageProfileImgUrl) { // Use cached main page profile image
-                modalProfileImg.src = mainPageProfileImgUrl;
-                modalProfileImg.style.display = 'block';
+                imgUrl = mainPageProfileImgUrl;
             } else {
                 // Try to find the main page profile image if not cached
-                // This assumes the main page profile image is consistently available in the DOM
                 const mainProfileImgElement = document.querySelector('.extrch-link-page-profile-img img');
                 if (mainProfileImgElement && mainProfileImgElement.src) {
-                    mainPageProfileImgUrl = mainProfileImgElement.src;
-                    modalProfileImg.src = mainPageProfileImgUrl;
-                    modalProfileImg.style.display = 'block';
-                } else {
-                    modalProfileImg.style.display = 'none'; // Hide if no image found
+                    imgUrl = mainProfileImgElement.src;
+                    mainPageProfileImgUrl = imgUrl;
                 }
+            }
+            if (imgUrl && imgUrl.trim() !== '' && !imgUrl.match(/\/default\.(png|jpg|jpeg|gif)$/i)) {
+                modalProfileImg.src = imgUrl;
+                modalProfileImg.style.display = 'block';
+            } else {
+                modalProfileImg.src = '';
+                modalProfileImg.style.display = 'none';
             }
         }
 

@@ -79,6 +79,9 @@ function save_bbp_user_local_scene_details($user_id) {
     // }
 }
 
+add_action( 'personal_options_update', 'save_bbp_user_local_scene_details' );
+add_action( 'edit_user_profile_update', 'save_bbp_user_local_scene_details' );
+
 function save_bbp_user_artist_fields($user_id) {
     // Check for permissions
     if (!current_user_can('edit_user', $user_id)) {

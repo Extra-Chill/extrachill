@@ -363,6 +363,23 @@ function bp_handle_edit_band_profile_submission() {
         }
     }
     
+    // --- Save Forum Section Override Fields (Forum Tab) ---
+    // These fields allow you to override the forum section title and bio on the public band profile page only.
+    // If set, they will be used instead of the default "About BandName" and band bio in the forum section.
+    // They do NOT affect your Extrachill.link page or its bio.
+    $forum_section_title_override = isset( $_POST['forum_section_title_override'] ) ? sanitize_text_field( $_POST['forum_section_title_override'] ) : '';
+    $forum_section_bio_override = isset( $_POST['forum_section_bio_override'] ) ? wp_kses_post( wp_unslash( $_POST['forum_section_bio_override'] ) ) : '';
+    if ( ! empty( $forum_section_title_override ) ) {
+        update_post_meta( $band_id, '_forum_section_title_override', $forum_section_title_override );
+    } else {
+        delete_post_meta( $band_id, '_forum_section_title_override' );
+    }
+    if ( ! empty( $forum_section_bio_override ) ) {
+        update_post_meta( $band_id, '_forum_section_bio_override', $forum_section_bio_override );
+    } else {
+        delete_post_meta( $band_id, '_forum_section_bio_override' );
+    }
+
     // --- Set/Remove Featured Image ---
     if ( $new_featured_image_id > 0 ) {
         // New image was uploaded. Get the ID of the old thumbnail before setting the new one.

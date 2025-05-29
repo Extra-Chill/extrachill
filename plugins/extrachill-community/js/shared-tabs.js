@@ -11,6 +11,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const originalPaneInfo = new Map(); // Stores { parent: originalParent, nextSibling: originalNextSibling }
 
+        let isInitialLoad = true; // Track if this is the first tab activation
+
         function storeInitialPaneStructure() {
             if (originalPaneInfo.size > 0) { // Basic check to see if it's already populated for this component
                 // A more robust check might involve verifying if keys still match current panes
@@ -149,12 +151,14 @@ document.addEventListener('DOMContentLoaded', function() {
                  }
             }
 
-            // Update URL hash
+            // Update URL hash (but NOT on initial load)
             if (targetPane && targetPane.id && activeButton.classList.contains('active')) {
-                if (history.pushState) {
-                    history.pushState(null, null, window.location.pathname + window.location.search.split('#')[0] + '#' + targetPane.id);
-                } else {
-                    window.location.hash = '#' + targetPane.id;
+                if (!isInitialLoad) {
+                    if (history.pushState) {
+                        history.pushState(null, null, window.location.pathname + window.location.search.split('#')[0] + '#' + targetPane.id);
+                    } else {
+                        window.location.hash = '#' + targetPane.id;
+                    }
                 }
             }
 
@@ -195,10 +199,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (targetPaneByHash) {
                     const correspondingButton = component.querySelector('.shared-tab-button[data-tab="' + hash.substring(1) + '"]');
                     if (correspondingButton) {
-                        // Call updateTabs with shouldScroll based on initial load state
-                         // Determine if initial load is mobile or desktop for scrolling
-                         const isInitialLoadMobile = window.innerWidth < mobileBreakpoint;
-                        updateTabs(correspondingButton, isInitialLoadMobile, false, false); // Args: activeButton, shouldScroll, forceOpen, isButtonClick
+                        // On initial load, do NOT scroll
+                        updateTabs(correspondingButton, false, false, false); // shouldScroll = false
                         activatedByHash = true;
                     }
                 }
@@ -210,6 +212,7 @@ document.addEventListener('DOMContentLoaded', function() {
             storeInitialPaneStructure(); // Ensure structure is stored before any tab activation
 
             if (activateTabFromHash()) {
+                isInitialLoad = false; // After initial activation, set to false
                 return; // Hash determined the active tab, updateTabs was called
             }
 
@@ -227,13 +230,12 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             if (activeButton) {
-                // Call updateTabs with shouldScroll based on initial load state
-                // Determine if initial load is mobile or desktop for scrolling
-                const isInitialLoadMobile = window.innerWidth < mobileBreakpoint;
-                updateTabs(activeButton, isInitialLoadMobile, false, false); // Args: activeButton, shouldScroll, forceOpen, isButtonClick
+                // On initial load, do NOT scroll
+                updateTabs(activeButton, false, false, false); // shouldScroll = false
             } else if (tabButtons.length === 0 && desktopContentArea) {
                 desktopContentArea.style.display = 'none';
             }
+            isInitialLoad = false; // After initial activation, set to false
         }
         
         initializeDefaultOrActiveTab();

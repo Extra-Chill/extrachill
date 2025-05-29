@@ -1,9 +1,11 @@
 <?php
 /**
- * Returns an array of supported social/external link types for band profiles and link pages.
+ * Returns an array of supported social/external link types for band profiles and link pages in ABC order.
  *
  * Each type has a key, a translatable label, a Font Awesome icon class,
  * and an optional 'has_custom_label' boolean.
+ * 
+ * Currently based on FontAwesome icons. May transition to custom icons for greater flexibility and less dependency in the future.
  *
  * @return array Array of link type definitions.
  */

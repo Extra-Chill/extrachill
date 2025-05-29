@@ -84,11 +84,12 @@
             profileImgShapeRectangleRadio.checked = (savedShape === 'rectangle');
         }
 
+        // --- Button Radius Slider ---
         if (buttonRadiusSlider && buttonRadiusOutput) {
             let savedRadiusPx = 8; // Default radius
             if (typeof currentCV['--link-page-button-radius'] !== 'undefined') {
                 savedRadiusPx = parseInt(currentCV['--link-page-button-radius'].toString().replace('px',''), 10);
-                if (isNaN(savedRadiusPx) || savedRadiusPx < 0 || savedRadiusPx > 50) { // Range for radius slider
+                if (isNaN(savedRadiusPx) || savedRadiusPx < 0 || savedRadiusPx > 50) {
                     savedRadiusPx = 8;
                 }
             }
@@ -121,12 +122,18 @@
             );
         }
         
+        // --- Button Radius Slider Listener ---
         if (buttonRadiusSlider && buttonRadiusOutput && manager.customization.attachControlListener) {
             manager.customization.attachControlListener(buttonRadiusSlider, '--link-page-button-radius', 'input',
-                (value) => { buttonRadiusOutput.textContent = value + 'px'; return value + 'px'; }
+                (value) => {
+                    // Always show px for clarity
+                    buttonRadiusOutput.textContent = value + 'px';
+                    return value + 'px';
+                }
             );
         }
 
+        // --- Profile Image Shape Radios ---
         function handleProfileShapeChange(event) {
             if (event.target.checked && profileImgShapeHiddenInput) {
                  profileImgShapeHiddenInput.value = event.target.value; // Update hidden input for form
@@ -139,7 +146,6 @@
         
         syncSizingInputValues(); // Sync UI on init
         isSizingInitialized = true;
-        // console.log('Sizing controls initialized.');
     }
     manager.sizing.init = initializeSizingControls;
 

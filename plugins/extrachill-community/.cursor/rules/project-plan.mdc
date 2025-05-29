@@ -9,25 +9,18 @@ This document outlines the forward-looking development plan and tasks for the Ba
 
 ### High Priority (MVP Critical):
 
+-   **Link Page Preview Refactor:** Complete the refactor of the link page live preview and JavaScript logic to resolve persistent preview issues, ensure a single source of truth, and stabilize dynamic features (QR code, analytics, etc.). See [refactor-link-page-preview.mdc](mdc:.cursor/rules/refactor-link-page-preview.mdc) for the detailed step-by-step plan and microsteps.
 -   **Social Login (Google/Apple):** Implement OAuth-based login options for "Log in with Google" and "Log in with Apple". *Requires integrating with OAuth APIs and WordPress login flow, ensuring that successful social logins trigger the standard WordPress `wp_login` hook to maintain compatibility with existing session and token logic (including the custom `ecc_user_session_token`).* (Implementation pending).
 -   **Data Migration from Legacy 'Independent Artist' Forum:** Migrate relevant posts/data from the old "Independent Artist" forum into the new `band_profile` and associated band forum structure for existing artists. This will require manual effort. *Consider existing data structures and potential mapping.*
 -   **Final UX/UI Review & Code Optimization:** Conduct a final sweep of the user interface across devices, focusing on button styling, mobile-friendliness, and overall user experience. Clean up and optimize any redundant or confusing code. *Review key frontend files like `single-band_profile.php`, `page-templates/manage-band-profile.php`, `page-templates/manage-link-page.php`, and associated CSS/JS.*
--   **Fix Link Page Share URL:** The share URL displayed in the modal on the live link page is incorrect, pointing to the WordPress URL instead of the `extrachill.link` URL. This needs to be corrected.
+-   **Fix the link page manager save flow:** Ensure the hidden input 'link_page_custom_css_vars_json' is always updated on every user change and that the PHP handler reliably saves this data to post meta. Test thoroughly to confirm changes persist after reload.
 
 ### Medium Priority:
-
--   **Extrachill.link/join Setup Wizard:** Implement a guided setup flow for new or existing users arriving from `extrachill.link/join`. This wizard will facilitate the creation of a band profile and associated link page.
-    *   **Stage 1: User Authentication:** Present the user with a choice to either log in (for existing users) or register (for new users), conditionally displaying the relevant form. Upon successful authentication, the flow branches based on the user's existing band profiles.
-    *   **Stage 2 (Conditional): Create Band Profile:** *For new users or existing users without an existing band profile.* Redirect the user to the Band Profile Management page (`page-templates/manage-band-profile.php`). Display a custom notice explaining the connection between bands and link pages and guiding the user to create and save their band profile.
-        *   *If existing user has a band profile:* Redirect them directly to the Manage Link Page interface (`page-templates/manage-link-page.php`) for their most recently updated band profile.
-    *   **Stage 3 (Conditional): Manage Link Page:** *For users who completed Stage 2 (created a new band profile).* After the band profile is successfully created/saved, automatically redirect the user to the Link Page Management interface (`page-templates/manage-link-page.php`) for their newly created band, providing brief follow-up information.
--   **Forum Settings Tab (DEFERRED):** Implement a "Forum Settings" tab in [`page-templates/manage-band-profile.php`](mdc:page-templates/manage-band-profile.php) to allow band administrators to toggle the `_allow_public_topic_creation` setting for their band's forum. (Deferred due to resource constraints; revisit in a future development cycle). *This will involve modifying the management page template and adding a setting field.*
+-   **Forum Settings Tab (DEFERRED):** Implement a "Forums" tab in @`page-templates/manage-band-profile.php` to allow band administrators to toggle the `_allow_public_topic_creation` setting for their band's forum. (Deferred due to resource constraints; revisit in a future development cycle). They can also hide the entire forum here if desired (disable forum option). *This will involve modifying the management page template and adding a setting field.*
 -   **"Post As Band":** Implement mechanism for members to post as the band entity in the band forum. (Implementation pending). *This will likely involve changes to bbPress posting forms and permission checks.*
 -   **Integrations Tab:** Consider adding an "integrations" tab or similar feature to allow users to sync external services (e.g., Substack) with the platform. (Exploration pending). *This is a research and design task initially.*
 -   **Spotify Integration:** Explore integrating with the Spotify API (Spotify for Artists or standard) for features like displaying artist discography, automating playlist additions, and potentially supporting pre-save campaigns. (Implementation pending).
 -   **Band Messaging to Followers:** Implement a feature within the Band Profile Management page allowing band members to send direct messages or updates to users who have consented to share their email address with that specific band. (Future idea/Implementation pending).
--   **YouTube Previews:** Implement functionality to detect YouTube links and allow embedding the video directly within the link page when the button is clicked.
--   **Suggested Link Titles:** Add functionality to suggest a link title based on the meta title of the pasted URL in the link editing interface.
 
 ### Low Priority:
 
@@ -38,4 +31,15 @@ This document outlines the forward-looking development plan and tasks for the Ba
 -   **Columns option for buttons:** Allow users to display their link page in a grid layout instead of the typical vertical list on the customize tab. (Implementation pending). *Requires significant frontend work for responsive grid layout.*
 -   **Review and Optimize Rank System:** Investigate why programmatic posts are not triggering point calculations and ensure the rank system is robust and correctly handles all post types. (Implementation pending). *This will involve reviewing the point calculation logic and potentially hooks.*
 -   **Social Icons Position:** Add an option to move the social icons section to the bottom of the link page.
--   **Limit Bio Character Count:** Implement a character limit for the bio section on the link page manager interface.
+-   **Limit Bio Character Count:** Implement a character limit for the bio section on the link page / band profile manager interface.
+-   **Conditionally Hide Profile Image Card:** Hide the Profile Image customization card in the Link Page Manager if no profile image is uploaded by the user. (Low Priority UX improvement).
+-   **Bluesky Icon Inconsistency:** Note that the Bluesky icon currently appears on the live link page but not in the live preview on the management page. This needs investigation and fixing to ensure consistency.
+- **Optimize buttons on the Manage Band Profiles page** Change link text from "Update Band Profile" to simply, "Save". Add another save button at the very top of the form. Add a special note that appears during the join folow that simply reads "you can do this later. Save to move on to the link page." 
+
+### Known Issues / Bugs:
+
+- **Forum Search Pagination Broken:** Pagination on forum search does not work as expected.
+- **Search Bar 404 in Topics Loop:** The search bar within the topics loop on the search page returns a 404. This needs review on other pages as well.
+- **User Profile Location Not Saving:** Saving the location on the user profile does not work.
+- **Color Picker Swatch Confusion:** The color picker on the customize tab loads with the default values on the swatches no matter what color is chosen. This causes user confusion.
+- **YouTube Embed Review & Thumbnail:** The YouTube embed feature needs review and should display a thumbnail for embeds.

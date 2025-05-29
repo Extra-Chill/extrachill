@@ -50,7 +50,7 @@ global $prefill_user_avatar_id, $prefill_user_avatar_thumbnail_url;
 
     <!-- Featured Image / Profile Picture -->
     <div class="form-group">
-        <label><?php echo $edit_mode ? esc_html__( 'Profile Picture', 'generatepress_child' ) : esc_html__( 'Profile Picture (Featured Image)', 'generatepress_child' ); ?></label>
+        <label><?php echo $edit_mode ? esc_html__( 'Profile Picture', 'generatepress_child' ) : esc_html__( 'Profile Picture (Optional)', 'generatepress_child' ); ?></label>
         
         <div id="featured-image-preview-container" class="current-image-preview featured-image-preview">
             <?php

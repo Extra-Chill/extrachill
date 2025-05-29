@@ -6,43 +6,14 @@
 
 defined( 'ABSPATH' ) || exit;
 
-require_once get_stylesheet_directory() . '/band-platform/extrch.co-link-page/link-page-includes.php';
-// require_once get_stylesheet_directory() . '/band-platform/extrch.co-link-page/link-page-data.php'; // Deprecated
-require_once get_stylesheet_directory() . '/band-platform/extrch.co-link-page/config/live-preview/LivePreviewManager.php';
-
-get_header(); ?>
-
-<div id="primary" <?php generate_do_element_classes( 'content' ); ?>>
-    <main id="main" <?php generate_do_element_classes( 'main' ); ?>>
-        <?php do_action( 'generate_before_main_content' ); ?>
-
-<?php
-// --- Display Error Notices ---
-if (isset($_GET['bp_link_page_error'])) {
-    $error_type = sanitize_key($_GET['bp_link_page_error']);
-    if ($error_type === 'background_image_size') {
-        echo '<div class="bp-notice bp-notice-error"><p>' . esc_html__('Error: Background image file size exceeds the 5MB limit.', 'generatepress_child') . '</p></div>';
-    } elseif ($error_type === 'profile_image_size') {
-        echo '<div class="bp-notice bp-notice-error"><p>' . esc_html__('Error: Profile image file size exceeds the 5MB limit.', 'generatepress_child') . '</p></div>';
-    }
-    // Add other error types here if needed in the future
-}
-
-// --- Permission and Band ID Check ---
+// --- Permission and Band ID Check (MOVED TO TOP) ---
 $current_user_id = get_current_user_id();
 $band_id = isset($_GET['band_id']) ? absint($_GET['band_id']) : 0;
 $band_post = $band_id ? get_post($band_id) : null;
 
-if (!$band_post || $band_post->post_type !== 'band_profile') {
-    echo '<div class="bp-notice bp-notice-error"><p>' . esc_html__('Invalid band profile.', 'generatepress_child') . '</p></div>';
-    get_footer();
-    return;
-}
-if (!current_user_can('manage_band_members', $band_id)) {
-    echo '<div class="bp-notice bp-notice-error"><p>' . esc_html__('You do not have permission to manage this band link page.', 'generatepress_child') . '</p></div>';
-    get_footer();
-    return;
-}
+require_once get_stylesheet_directory() . '/band-platform/extrch.co-link-page/link-page-includes.php';
+// require_once get_stylesheet_directory() . '/band-platform/extrch.co-link-page/link-page-data.php'; // Deprecated
+require_once get_stylesheet_directory() . '/band-platform/extrch.co-link-page/live-preview/LivePreviewManager.php';
 
 // --- Fetch or Create Associated Link Page ---
 $link_page_id = get_post_meta($band_id, '_extrch_link_page_id', true);
@@ -77,6 +48,65 @@ if (!$link_page_id || get_post_type($link_page_id) !== 'band_link_page') {
         get_footer();
         return;
     }
+}
+
+// --- Google Font Preload for Live Preview (Initial Page Load) ---
+require_once get_stylesheet_directory() . '/band-platform/extrch.co-link-page/link-page-font-config.php';
+global $extrch_link_page_fonts;
+$custom_vars_json = get_post_meta($link_page_id, '_link_page_custom_css_vars', true);
+$custom_vars = $custom_vars_json ? json_decode($custom_vars_json, true) : array();
+if (!function_exists('extrch_output_google_font_link')) {
+    function extrch_output_google_font_link($font_value, $font_config) {
+        foreach ($font_config as $font) {
+            if ($font['value'] === $font_value && $font['google_font_param'] !== 'local_default') {
+                echo '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=' . esc_attr($font['google_font_param']) . '&display=swap">' . PHP_EOL;
+            }
+        }
+    }
+}
+if (!empty($custom_vars['--link-page-title-font-family'])) {
+    $title_font_stack = $custom_vars['--link-page-title-font-family'];
+    $title_font_value = trim(explode(',', trim($title_font_stack), 2)[0], " '");
+    extrch_output_google_font_link($title_font_value, $extrch_link_page_fonts);
+}
+if (!empty($custom_vars['--link-page-body-font-family'])) {
+    $body_font_stack = $custom_vars['--link-page-body-font-family'];
+    $body_font_value = trim(explode(',', trim($body_font_stack), 2)[0], " '");
+    extrch_output_google_font_link($body_font_value, $extrch_link_page_fonts);
+}
+
+get_header(); ?>
+
+<div id="primary" <?php generate_do_element_classes( 'content' ); ?>>
+    <main id="main" <?php generate_do_element_classes( 'main' ); ?>>
+        <?php do_action( 'generate_before_main_content' ); ?>
+
+<?php
+// --- Display Error Notices ---
+if (isset($_GET['bp_link_page_error'])) {
+    $error_type = sanitize_key($_GET['bp_link_page_error']);
+    if ($error_type === 'background_image_size') {
+        echo '<div class="bp-notice bp-notice-error"><p>' . esc_html__('Error: Background image file size exceeds the 5MB limit.', 'generatepress_child') . '</p></div>';
+    } elseif ($error_type === 'profile_image_size') {
+        echo '<div class="bp-notice bp-notice-error"><p>' . esc_html__('Error: Profile image file size exceeds the 5MB limit.', 'generatepress_child') . '</p></div>';
+    }
+    // Add other error types here if needed in the future
+}
+
+// --- Permission and Band ID Check ---
+$current_user_id = get_current_user_id();
+$band_id = isset($_GET['band_id']) ? absint($_GET['band_id']) : 0;
+$band_post = $band_id ? get_post($band_id) : null;
+
+if (!$band_post || $band_post->post_type !== 'band_profile') {
+    echo '<div class="bp-notice bp-notice-error"><p>' . esc_html__('Invalid band profile.', 'generatepress_child') . '</p></div>';
+    get_footer();
+    return;
+}
+if (!current_user_can('manage_band_members', $band_id)) {
+    echo '<div class="bp-notice bp-notice-error"><p>' . esc_html__('You do not have permission to manage this band link page.', 'generatepress_child') . '</p></div>';
+    get_footer();
+    return;
 }
 
 // --- Canonical Data Fetch ---
@@ -195,10 +225,11 @@ if ($link_page_id && get_post_type($link_page_id) === 'band_link_page') {
 ?>
 <div class="manage-link-page-flex">
     <div class="manage-link-page-edit shared-tabs-component">
-        <form method="post" id="bp-manage-link-page-form" enctype="multipart/form-data">
+        <form method="post" id="bp-manage-link-page-form" enctype="multipart/form-data" action="<?php echo esc_url( admin_url('admin-post.php') ); ?>">
             <?php wp_nonce_field('bp_save_link_page_action', 'bp_save_link_page_nonce'); ?>
-            <input type="hidden" name="band_profile_social_links_json" id="band_profile_social_links_json" value="<?php echo esc_attr(json_encode($data['social_links'] ?? [])); ?>">
-            <input type="hidden" name="link_page_links_json" id="link_page_links_json" value="<?php echo esc_attr(json_encode($data['link_sections'] ?? [])); ?>">
+            <input type="hidden" name="action" value="extrch_handle_save_link_page_data">
+            <input type="hidden" name="band_id" value="<?php echo esc_attr($band_id); ?>">
+            <input type="hidden" name="link_page_id" value="<?php echo esc_attr($link_page_id); ?>">
             <input type="hidden" name="link_expiration_enabled" id="link_expiration_enabled" value="<?php echo esc_attr((get_post_meta($link_page_id, '_link_expiration_enabled', true) === '1' ? '1' : '0') ?? '0'); ?>">
             
             <div class="shared-tabs-buttons-container">
@@ -237,6 +268,7 @@ if ($link_page_id && get_post_type($link_page_id) === 'band_link_page') {
                         set_query_var('tab_info_bio_text', $data['bio'] ?? '');
 
                         // Potentially other variables if tab-info.php uses them directly
+                        set_query_var('data', $data);
                         get_template_part('band-platform/extrch.co-link-page/manage-link-page-tabs/tab-info');
                         ?>
                     </div>
@@ -252,6 +284,7 @@ if ($link_page_id && get_post_type($link_page_id) === 'band_link_page') {
                     <div class="shared-tab-pane" id="manage-link-page-tab-links">
                         <?php
                         // $data['link_sections'] is used by JS, tab-links.php might not need direct PHP vars for links now
+                        set_query_var('data', $data);
                         get_template_part('band-platform/extrch.co-link-page/manage-link-page-tabs/tab-links');
                         ?>
                     </div>
@@ -284,7 +317,7 @@ if ($link_page_id && get_post_type($link_page_id) === 'band_link_page') {
                         // $custom_css_vars is used for the font family select, $link_page_id for profile image shape meta
                         $custom_css_vars = $data['css_vars'] ?? [];
 
-
+                        set_query_var('data', $data);
                         get_template_part('band-platform/extrch.co-link-page/manage-link-page-tabs/tab-customize');
                         ?>
                     </div>
@@ -301,6 +334,7 @@ if ($link_page_id && get_post_type($link_page_id) === 'band_link_page') {
                         <?php
                         // Pass $link_page_id to the advanced tab template if needed
                         set_query_var('link_page_id', $link_page_id);
+                        set_query_var('data', $data);
                         get_template_part('band-platform/extrch.co-link-page/manage-link-page-tabs/tab-advanced');
                         ?>
                     </div>
@@ -317,6 +351,7 @@ if ($link_page_id && get_post_type($link_page_id) === 'band_link_page') {
                         <?php
                         // Pass $link_page_id to the analytics tab template if needed
                         set_query_var('link_page_id', $link_page_id);
+                        set_query_var('data', $data);
                         get_template_part('band-platform/extrch.co-link-page/manage-link-page-tabs/tab-analytics');
                         ?>
                     </div>
@@ -331,28 +366,16 @@ if ($link_page_id && get_post_type($link_page_id) === 'band_link_page') {
             <div class="extrch-link-page-preview-indicator">Live Preview</div>
             <div class="manage-link-page-preview-live">
                 <?php
-                // 1. Output the INITIAL CSS Variables Style Block (for first load, server-rendered)
-                // Use $data['css_vars'] which is the processed array from LivePreviewManager,
-                // ensuring consistency with what JS will use.
-                if ( !empty($data['css_vars']) && is_array($data['css_vars']) ) {
-                    echo '<style id="extrch-link-page-initial-custom-vars">:root {';
-                    foreach ($data['css_vars'] as $k => $v) {
-                        // Ensure $k is a valid CSS variable name (starts with --)
-                        if (is_string($k) && strpos($k, '--') === 0 && !empty($v) && is_scalar($v)) {
-                            echo esc_html($k) . ':' . esc_html($v) . ';';
-                        }
-                    }
-                    echo '}</style>';
-                }
-                // 2. Add a DEDICATED style tag for LIVE JS-driven CSS variable updates for the preview.
-                echo '<style id="extrch-link-page-live-preview-custom-vars"></style>';
-                // 3. Prepare and set the initial container style for the template
+                // 2. Prepare and set the initial container style for the template
                 $initial_container_style_for_php_preview = isset($data['background_style']) ? $data['background_style'] : '';
                 set_query_var('initial_container_style_for_php_preview', $initial_container_style_for_php_preview);
                 // 4. Prepare preview data for the new modular preview partial
                 $preview_template_data_for_php = LivePreviewManager::get_preview_data($link_page_id, $band_id);
+                // Add the link_page_id to the data array before passing it to the preview iframe
+                $preview_template_data_for_php['link_page_id'] = $link_page_id;
                 set_query_var('preview_template_data', $preview_template_data_for_php);
-                require locate_template('band-platform/extrch.co-link-page/config/live-preview/preview.php');
+                set_query_var('data', $data);
+                require locate_template('band-platform/extrch.co-link-page/live-preview/preview.php');
                 ?>
             </div>
         </div>
@@ -379,21 +402,6 @@ if ($link_page_id && get_post_type($link_page_id) === 'band_link_page') {
 <?php get_footer(); ?>
 
 <script type="text/javascript">
-    window.extrchInitialLinkPageData = <?php echo json_encode($data); ?>;
-    window.bpLinkPageLinks = <?php echo json_encode($data['link_sections'] ?? []); // Use the processed 'link_sections' ?>;
-    window.extrchLinkPagePreviewAJAX = {
-        ajax_url: "<?php echo esc_url( admin_url( 'admin-ajax.php' ) ); ?>",
-        nonce: "<?php echo esc_js( wp_create_nonce( 'extrch_link_page_ajax_nonce' ) ); ?>",
-        link_page_id: <?php echo absint( $link_page_id ); ?>,
-        band_id: <?php echo absint( $band_id ); ?>,
-        initial_profile_img_url: <?php echo json_encode(isset($data['profile_img_url']) ? $data['profile_img_url'] : ''); ?>,
-        initial_background_img_url: <?php echo json_encode(isset($data['background_image_url']) ? $data['background_image_url'] : ''); ?>,
-        initial_redirect_target_url: <?php echo json_encode(get_post_meta($link_page_id, '_link_page_redirect_target_url', true) ?: ''); ?>
-    };
-</script>
-<?php // QR Code JS removed as per user feedback to skip AJAX generation for now ?>
-
-<script type="text/javascript">
 document.addEventListener('DOMContentLoaded', function() {
     const linkPageBandSwitcher = document.getElementById('link-page-band-switcher-select');
     if (linkPageBandSwitcher) {
@@ -412,3 +420,27 @@ document.addEventListener('DOMContentLoaded', function() {
 <?php
 do_action( 'generate_after_primary_content_area' );
 generate_construct_sidebars();
+
+/**
+ * Debug: Check initial value of hidden social links input in the DOM on page load.
+ * This script runs *after* the form HTML is rendered, but *before* most external JS executes.
+ */
+?>
+<script type="text/javascript">
+    document.addEventListener('DOMContentLoaded', function() {
+        const initialSocialInput = document.getElementById('band_profile_social_links_json');
+        if (initialSocialInput) {
+            console.log('[LinkPageLoad - Initial DOM Check] #band_profile_social_links_json value:', initialSocialInput.value);
+            console.log('[LinkPageLoad - Initial DOM Check] #band_profile_social_links_json typeof value:', typeof initialSocialInput.value);
+            try {
+                 const parsedValue = JSON.parse(initialSocialInput.value);
+                 console.log('[LinkPageLoad - Initial DOM Check] #band_profile_social_links_json parsed JSON:', parsedValue);
+                 console.log('[LinkPageLoad - Initial DOM Check] #band_profile_social_links_json typeof parsed JSON:', typeof parsedValue);
+            } catch (e) {
+                 console.error('[LinkPageLoad - Initial DOM Check] Failed to parse JSON from #band_profile_social_links_json', e);
+            }
+        } else {
+            console.warn('[LinkPageLoad - Initial DOM Check] #band_profile_social_links_json element not found.');
+        }
+    });
+</script>

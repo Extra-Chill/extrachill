@@ -11,11 +11,11 @@ defined( 'ABSPATH' ) || exit;
 $link_page_dir = get_stylesheet_directory() . '/band-platform/extrch.co-link-page/';
 
 // Configuration & Handlers
-require_once $link_page_dir . 'config/link-page-font-config.php';
-require_once $link_page_dir . 'config/link-page-form-handler.php';
-require_once $link_page_dir . 'config/live-preview/LivePreviewManager.php';
+require_once $link_page_dir . 'link-page-font-config.php';
+require_once $link_page_dir . 'link-page-form-handler.php';
+require_once $link_page_dir . 'live-preview/LivePreviewManager.php';
 require_once $link_page_dir . 'link-page-weekly-email.php'; // Include weekly email handler
-require_once $link_page_dir . 'config/link-page-social-types.php';
+require_once $link_page_dir . 'link-page-social-types.php';
 
 // Include the QR code generation library classes
 // require_once get_stylesheet_directory() . '/vendor/autoload.php'; // Assuming composer autoloader is used -- MOVED TO dedicated AJAX file
@@ -30,6 +30,8 @@ require_once $link_page_dir . 'link-page-analytics-tracking.php'; // Include ana
 require_once $link_page_dir . 'link-page-session-validation.php'; // Include the session validation file
 require_once $link_page_dir . 'link-page-head.php'; // Include the custom head logic for the public link page
 require_once $link_page_dir . 'link-page-qrcode-ajax.php'; // Include the QR code AJAX handlers
+require_once $link_page_dir . 'ajax-handlers.php'; // Include the new AJAX handlers for link title fetching
+require_once __DIR__ . '/link-page-custom-vars-and-fonts-head.php';
 
 global $extrch_link_page_fonts;
 
@@ -38,7 +40,6 @@ function extrch_link_page_enqueue_assets() {
     global $extrch_link_page_fonts; // Make the global variable available within this function's scope
 
     $current_band_id = isset( $_GET['band_id'] ) ? (int) $_GET['band_id'] : 0;
-    error_log('[PHP Debug] Value of $current_band_id after checking $_GET:' . $current_band_id);
     $link_page_id = 0;
 
     if ( is_page_template( 'page-templates/manage-link-page.php' ) ) {
@@ -110,14 +111,13 @@ function extrch_link_page_enqueue_assets() {
                 array(
                     'ajax_url' => admin_url( 'admin-ajax.php' ),
                     'nonce'    => wp_create_nonce( 'extrch_link_page_ajax_nonce' ),
+                    'fetch_link_title_nonce' => wp_create_nonce( 'fetch_link_meta_title_nonce' ),
                     'link_page_id' => $link_page_id,
                     'band_id' => $current_band_id,
                     'supportedLinkTypes' => $fixed_supported_social_types,
                 )
             );
-            // *** ADDED PHP DEBUG LOG HERE ***
-            error_log('[PHP Debug] extrchLinkPageConfig localized with supportedLinkTypes:' . print_r($fixed_supported_social_types, true));
-            // *** END ADDED PHP DEBUG LOG ***
+
         }
 
         // Enqueue SortableJS library (from CDN)
@@ -247,7 +247,7 @@ function extrch_link_page_enqueue_assets() {
             wp_enqueue_script(
                 'extrch-manage-link-page-links',
                 $theme_uri . $links_module_js,
-                array('jquery', 'extrch-manage-link-page-core', 'extrch-manage-link-page-content-renderer', 'sortable-js'), 
+                array('jquery', 'extrch-manage-link-page-core', 'extrch-manage-link-page-content-renderer', 'sortable-js'),
                 filemtime( $theme_dir . $links_module_js ),
                 true
             );
@@ -299,6 +299,28 @@ function extrch_link_page_enqueue_assets() {
                 filemtime( $theme_dir . $qrcode_js_path ),
                 true
             );
+            // Localize AJAX config for QR code modal
+            wp_localize_script(
+                'extrch-manage-link-page-qrcode',
+                'extrchLinkPagePreviewAJAX',
+                array(
+                    'nonce' => wp_create_nonce('extrch_link_page_ajax_nonce'),
+                    'link_page_id' => $link_page_id,
+                    'ajax_url' => admin_url('admin-ajax.php'),
+                )
+            );
+        }
+
+        // Save Handler JS (NEW) - IIFE based
+        $save_js_path = $js_dir . '/manage-link-page-save.js';
+        if ( file_exists( $theme_dir . $save_js_path ) ) {
+            wp_enqueue_script(
+                'extrch-manage-link-page-save',
+                $theme_uri . $save_js_path,
+                array('jquery', 'extrch-manage-link-page-core'), // Depends on core for global ExtrchLinkPageManager
+                filemtime( $theme_dir . $save_js_path ),
+                true
+            );
         }
 
         // Analytics Tab JS (NEW) - Global Object
@@ -333,28 +355,45 @@ function extrch_link_page_enqueue_assets() {
         }
 
         // Main management JS (should be enqueued LAST)
+        $main_js_deps = array(
+            'jquery', 
+            'sortable-js', 
+            'extrch-manage-link-page-core', 
+            'extrch-manage-link-page-ui-utils',
+            'extrch-manage-link-page-fonts',
+            'extrch-manage-link-page-preview-updater',
+            'extrch-manage-link-page-customization',
+            'extrch-manage-link-page-colors',
+            'extrch-manage-link-page-sizing',
+            'extrch-manage-link-page-content-renderer',
+            'extrch-manage-link-page-info', 
+            'extrch-manage-link-page-links', 
+            'extrch-manage-link-page-background',
+            'extrch-manage-link-page-advanced',
+            'extrch-manage-link-page-qrcode',
+            'extrch-manage-link-page-save'
+        );
+
+        // Conditionally enqueue YouTube embed script for admin preview
+        $youtube_embed_enabled_admin = $link_page_id ? (get_post_meta($link_page_id, '_enable_youtube_inline_embed', true) !== '0') : true; // Default true if no ID or meta not '0'
+        $youtube_embed_js_path = $js_dir . '/link-page-youtube-embed.js';
+        if ($youtube_embed_enabled_admin && file_exists( $theme_dir . $youtube_embed_js_path ) ) {
+            wp_enqueue_script(
+                'extrch-link-page-youtube-embed',
+                $theme_uri . $youtube_embed_js_path,
+                array('extrch-manage-link-page-core'), // Depends on core if it needs config or uses manager events
+                filemtime( $theme_dir . $youtube_embed_js_path ),
+                true
+            );
+            $main_js_deps[] = 'extrch-link-page-youtube-embed'; // Add as dependency for main manager if needed
+        }
+
         $main_js = $js_dir . '/manage-link-page.js';
         if ( file_exists( $theme_dir . $main_js ) ) {
             wp_enqueue_script(
                 'extrch-manage-link-page',
                 $theme_uri . $main_js,
-                array(
-                    'jquery', 
-                    'sortable-js', 
-                    'extrch-manage-link-page-core', 
-                    'extrch-manage-link-page-ui-utils',
-                    'extrch-manage-link-page-fonts',
-                    'extrch-manage-link-page-preview-updater',
-                    'extrch-manage-link-page-customization',
-                    'extrch-manage-link-page-colors',
-                    'extrch-manage-link-page-sizing',
-                    'extrch-manage-link-page-content-renderer',
-                    'extrch-manage-link-page-info', 
-                    'extrch-manage-link-page-links', 
-                    'extrch-manage-link-page-background',
-                    'extrch-manage-link-page-advanced',
-                    'extrch-manage-link-page-qrcode'
-                ),
+                $main_js_deps,
                 filemtime( $theme_dir . $main_js ),
                 true
             );
@@ -378,6 +417,28 @@ function extrch_link_page_enqueue_assets() {
                 $theme_uri . $public_css,
                 array('extrch-manage-link-page'),
                 filemtime( $theme_dir . $public_css )
+            );
+        }
+
+        // Share Modal CSS (needed for preview parity)
+        $share_modal_css = $css_dir . '/extrch-share-modal.css';
+        if ( file_exists( $theme_dir . $share_modal_css ) ) {
+            wp_enqueue_style(
+                'extrch-share-modal',
+                $theme_uri . $share_modal_css,
+                array('extrch-link-page-public'),
+                filemtime( $theme_dir . $share_modal_css )
+            );
+        }
+        // Share Modal JS (needed for preview parity)
+        $share_modal_js = $js_dir . '/extrch-share-modal.js';
+        if ( file_exists( $theme_dir . $share_modal_js ) ) {
+            wp_enqueue_script(
+                'extrch-share-modal',
+                $theme_uri . $share_modal_js,
+                array('jquery'),
+                filemtime( $theme_dir . $share_modal_js ),
+                true
             );
         }
     }
@@ -485,6 +546,9 @@ function extrch_enqueue_public_link_page_assets() {
 
     // Only enqueue on the single band link page template
     if ( is_singular( 'band_link_page' ) ) {
+        global $post;
+        $link_page_id_public = $post ? $post->ID : 0;
+
         error_log('[DEBUG ENQUEUE] is_singular(\'band_link_page\') is true. Proceeding with enqueuing scripts.');
         // Enqueue Font Awesome if not already enqueued by the theme
         // Check if a Font Awesome script handle is already registered or enqueued
@@ -502,7 +566,6 @@ function extrch_enqueue_public_link_page_assets() {
         if ( file_exists( $tracking_js_file ) ) {
             wp_enqueue_script( 'extrch-link-page-public-tracking', get_stylesheet_directory_uri() . '/band-platform/extrch.co-link-page/js/link-page-public-tracking.js', array( 'jquery' ), filemtime( $tracking_js_file ), true );
             // Localize tracking data
-            global $post;
             if ( $post && $post->ID ) {
                 wp_localize_script( 'extrch-link-page-public-tracking', 'extrchTrackingData', array(
                     'ajax_url'     => admin_url( 'admin-ajax.php' ),
@@ -512,6 +575,60 @@ function extrch_enqueue_public_link_page_assets() {
             }
         }
         
+        // Conditionally enqueue YouTube embed script for public page
+        $youtube_embed_enabled_public = $link_page_id_public ? (get_post_meta($link_page_id_public, '_enable_youtube_inline_embed', true) !== '0') : true; // Default true if no ID or meta not '0'
+        $theme_dir_public = get_stylesheet_directory();
+        $theme_uri_public = get_stylesheet_directory_uri();
+        $youtube_embed_js_path_public = '/band-platform/extrch.co-link-page/js/link-page-youtube-embed.js';
+
+        if ($youtube_embed_enabled_public && file_exists( $theme_dir_public . $youtube_embed_js_path_public ) ) {
+            wp_enqueue_script( 
+                'extrch-link-page-youtube-embed',
+                $theme_uri_public . $youtube_embed_js_path_public,
+                array(), // No specific dependencies for public page, runs standalone
+                filemtime( $theme_dir_public . $youtube_embed_js_path_public ),
+                true 
+            );
+        }
+
         // ... other assets ...
     }
 }
+
+// Enqueue public YouTube embed script for the isolated public link page (single-band_link_page.php)
+function extrch_enqueue_public_youtube_embed_script($link_page_id, $band_id) {
+    $theme_dir = get_stylesheet_directory();
+    $theme_uri = get_stylesheet_directory_uri();
+    $youtube_embed_js_path = '/band-platform/extrch.co-link-page/js/link-page-youtube-embed.js';
+
+    // Only output if enabled for this link page (default: enabled)
+    $enabled = $link_page_id ? (get_post_meta($link_page_id, '_enable_youtube_inline_embed', true) !== '0') : true;
+    if ($enabled && file_exists($theme_dir . $youtube_embed_js_path)) {
+        echo '<script src="' . esc_url($theme_uri . $youtube_embed_js_path) . '?ver=' . esc_attr(filemtime($theme_dir . $youtube_embed_js_path)) . '" defer></script>';
+    }
+}
+add_action('extrch_link_page_minimal_head', 'extrch_enqueue_public_youtube_embed_script', 10, 2);
+
+add_action('wp_head', function() {
+    if (is_page_template('page-templates/manage-link-page.php')) {
+        $band_id = isset($_GET['band_id']) ? absint($_GET['band_id']) : 0;
+        if ($band_id) {
+            // Find the associated link page using the canonical method (checking meta on the link page post)
+            $associated_link_pages = get_posts(array(
+                'post_type' => 'band_link_page',
+                'posts_per_page' => 1,
+                'meta_key' => '_associated_band_profile_id',
+                'meta_value' => $band_id,
+                'fields' => 'ids',
+                'post_status' => 'publish', // Only get published link pages
+            ));
+
+            $link_page_id = !empty($associated_link_pages) ? $associated_link_pages[0] : 0;
+
+            global $extrch_link_page_fonts;
+            if ($link_page_id && function_exists('extrch_link_page_custom_vars_and_fonts_head')) {
+                extrch_link_page_custom_vars_and_fonts_head($link_page_id, $extrch_link_page_fonts);
+            }
+        }
+    }
+}, 20);

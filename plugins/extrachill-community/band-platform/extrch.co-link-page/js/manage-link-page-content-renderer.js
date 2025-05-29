@@ -1,4 +1,8 @@
 // Link Page Content Renderer Module (The "Content Engine")
+//
+// ARCHITECTURE: On initial page load, the preview DOM is rendered by PHP and should NOT be wiped out or re-rendered by JS.
+// JS should only update/add/remove the specific link or section that was changed by the user, in response to user actions.
+// Never clear or re-render the entire links DOM on initialization.
 (function(manager) {
     if (!manager) {
         console.error('ExtrchLinkPageManager is not defined. Content Renderer script cannot run.');
@@ -31,15 +35,15 @@
      * @param {HTMLElement} previewEl The main preview container element.
      * @param {HTMLElement} contentWrapperEl The content wrapper within the preview.
      */
-    manager.contentPreview.renderLinkSections = function(sectionsArray, previewEl, contentWrapperEl) { // Renamed from renderSections
+    manager.contentPreview.renderLinkSections = function(sectionsArray, previewEl, contentWrapperEl) {
         if (!previewEl || !contentWrapperEl) {
             console.error('[ContentRenderer-Links] renderLinkSections called without previewEl or contentWrapperEl.');
             return;
         }
 
+        // Remove only the existing section titles and links containers (not the entire content wrapper)
         const existingSectionTitles = contentWrapperEl.querySelectorAll('.extrch-link-page-section-title');
         const existingLinkContainers = contentWrapperEl.querySelectorAll(PREVIEW_LINKS_CONTAINER_SELECTOR);
-        
         existingSectionTitles.forEach(el => el.remove());
         existingLinkContainers.forEach(el => el.remove());
 

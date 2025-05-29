@@ -30,7 +30,7 @@ if ( ! isset( $data ) || ! is_array( $data ) ) {
     // Ensure LivePreviewManager class is available.
     // It should be included by link-page-includes.php or the AJAX handler.
     if ( ! class_exists( 'LivePreviewManager' ) ) {
-        $live_preview_manager_path = dirname( __FILE__ ) . '/config/live-preview/LivePreviewManager.php';
+        $live_preview_manager_path = dirname( __FILE__ ) . '/live-preview/LivePreviewManager.php';
         if ( file_exists( $live_preview_manager_path ) ) {
             require_once $live_preview_manager_path;
         } else {
@@ -83,7 +83,7 @@ $link_sections = isset($data['link_sections']) && is_array($data['link_sections'
 
 $initial_container_style_attr = '';
 $container_classes = 'extrch-link-page-container'; // Base class
-$is_preview_iframe_context = (bool) get_query_var('is_extrch_preview_iframe', false); // This query var should be set in config/live-preview/preview.php
+$is_preview_iframe_context = (bool) get_query_var('is_extrch_preview_iframe', false); // This query var should be set in live-preview/preview.php
 
 if ( $is_preview_iframe_context ) {
     $container_classes .= ' extrch-link-page-preview-container'; // Add preview-specific class
@@ -140,8 +140,12 @@ $band_slug = isset($data['band_profile']->post_name) ? $data['band_profile']->po
 $share_page_url = !empty($band_slug) ? 'https://extrachill.link/' . $band_slug : home_url('/'); // Fallback to home_url if slug is empty
 error_log('[DEBUG TEMPLATE] Share Page URL determined as: ' . $share_page_url . ' based on band slug: ' . $band_slug);
 
+$bg_type = isset($data['css_vars']['--link-page-background-type']) ? $data['css_vars']['--link-page-background-type'] : 'color';
+
 ?>
-<div class="<?php echo esc_attr($container_classes); ?>"<?php echo $initial_container_style_attr; ?>>
+<div class="<?php echo esc_attr($container_classes); ?>"
+     data-bg-type="<?php echo esc_attr($bg_type); ?>"
+     <?php echo $initial_container_style_attr; ?>>
     <div class="<?php echo esc_attr($wrapper_class); ?>" style="flex-grow:1;">
         <div class="extrch-link-page-header-content">
             <?php 
@@ -168,7 +172,7 @@ error_log('[DEBUG TEMPLATE] Share Page URL determined as: ' . $share_page_url . 
                 <?php 
                 // Ensure the social types config file is included
                 if ( ! function_exists( 'bp_get_supported_social_link_types' ) ) {
-                     $social_types_path = dirname( __FILE__ ) . '/config/link-page-social-types.php';
+                     $social_types_path = dirname( __FILE__ ) . '/link-page-social-types.php';
                      if ( file_exists( $social_types_path ) ) {
                          require_once $social_types_path;
                      }

@@ -128,7 +128,7 @@ get_header(); ?>
                                 $form_title = sprintf(__( 'Edit Band Profile: %s', 'generatepress_child' ), esc_html($band_post->post_title));
                                 $nonce_action = 'bp_edit_band_profile_action';
                                 $nonce_name = 'bp_edit_band_profile_nonce';
-                                $submit_value = __( 'Update Band Profile', 'generatepress_child' );
+                                $submit_value = __( 'Save', 'generatepress_child' );
                                 $submit_name = 'submit_edit_band_profile';
 
                                 // Fetch existing meta for pre-filling
@@ -160,7 +160,7 @@ get_header(); ?>
                                 $form_title = __( 'Create Band Profile', 'generatepress_child' );
                                 $nonce_action = 'bp_create_band_profile_action';
                                 $nonce_name = 'bp_create_band_profile_nonce';
-                                $submit_value = __( 'Create Band Profile', 'generatepress_child' );
+                                $submit_value = __( 'Save', 'generatepress_child' );
                                 $submit_name = 'submit_create_band_profile';
 
                                 // Initialize variables for create mode (will be pre-filled with user data below)
@@ -241,10 +241,25 @@ get_header(); ?>
                                 <?php if ($edit_mode) : ?>
                                     <input type="hidden" name="band_id" value="<?php echo esc_attr( $target_band_id ); ?>">
                                 <?php endif; ?>
-
-                                <!-- Add hidden input for join flow tracking if present in URL -->
                                 <?php if ( isset($_GET['from_join']) && $_GET['from_join'] === 'true' ) : ?>
                                     <input type="hidden" name="from_join" value="true">
+                                <?php endif; ?>
+
+                                <!-- ERROR MESSAGE INSIDE FORM -->
+                                <?php if ( ! empty( $error_message ) ) : ?>
+                                    <div class="bp-notice bp-notice-error" style="margin-bottom: 15px;">
+                                        <p><?php echo esc_html( $error_message ); ?></p>
+                                    </div>
+                                <?php endif; ?>
+
+                                <!-- TOP SUBMIT BUTTON AND INTRO -->
+                                <?php if ( ! $edit_mode ) : ?>
+                                    <div class="bp-intro bp-notice bp-notice-info" style="margin-bottom: 15px;">
+                                        <p><?php esc_html_e( 'You can fill this out now, or just press Save to skip and go straight to customizing your link page. You can always come back and update your band profile later.', 'generatepress_child' ); ?></p>
+                                    </div>
+                                    <div class="form-group submit-group" style="margin-bottom: 20px;">
+                                        <input type="submit" name="<?php echo esc_attr( $submit_name ); ?>" class="button button-primary" value="<?php echo esc_attr( $submit_value ); ?>" />
+                                    </div>
                                 <?php endif; ?>
 
                                 <!-- Accordion Items Container -->
@@ -304,7 +319,7 @@ get_header(); ?>
                                                 // Pass variables to the template part
                                                 set_query_var('target_band_id', $target_band_id);
                                                 set_query_var('band_post_title', $band_post_title); // Pass band name for emails
-                                                get_template_part('band-platform/roster/manage-roster-ui');
+                                                get_template_part('band-platform/manage-band-profile-tabs/tab', 'roster');
                                                 ?>
                                             </div>
                                         </div>
@@ -318,6 +333,19 @@ get_header(); ?>
                                             <div id="manage-band-profile-followers-content" class="shared-tab-pane">
                                                 <?php 
                                                 include( get_stylesheet_directory() . '/band-platform/manage-band-profile-tabs/tab-followers.php' );
+                                                ?>
+                                            </div>
+                                        </div>
+
+                                        <!-- Item 4: Forum -->
+                                        <div class="shared-tab-item">
+                                            <button type="button" class="shared-tab-button" data-tab="manage-band-profile-forum-content">
+                                                <?php esc_html_e( 'Forum', 'generatepress_child' ); ?>
+                                                <span class="shared-tab-arrow"></span>
+                                            </button>
+                                            <div id="manage-band-profile-forum-content" class="shared-tab-pane">
+                                                <?php 
+                                                include( get_stylesheet_directory() . '/band-platform/manage-band-profile-tabs/tab-forum.php' );
                                                 ?>
                                             </div>
                                         </div>

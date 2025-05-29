@@ -74,43 +74,51 @@ function bp_render_band_members_meta_box( $post ) {
 
 // Function to save the meta box data
 function bp_save_band_members_meta( $post_id ) {
-    // Check if nonce is set and valid.
     if ( ! isset( $_POST['bp_band_members_nonce'] ) || ! wp_verify_nonce( $_POST['bp_band_members_nonce'], 'bp_save_band_members_meta' ) ) {
         return;
     }
-
-    // Check if the current user has permission to edit the post.
     if ( ! current_user_can( 'edit_post', $post_id ) ) {
         return;
     }
-
-    // Check if it's an autosave.
     if ( wp_is_post_autosave( $post_id ) ) {
         return;
     }
-
-    // Check if it's a revision.
     if ( wp_is_post_revision( $post_id ) ) {
         return;
     }
-
+    // Get current band members before changes
+    $old_member_ids = get_post_meta( $post_id, '_band_member_ids', true );
+    if ( ! is_array( $old_member_ids ) ) {
+        $old_member_ids = array();
+    }
     // Sanitize and process users to add
     $users_to_add_str = isset( $_POST['bp_members_to_add'] ) ? sanitize_text_field( $_POST['bp_members_to_add'] ) : '';
     $user_ids_to_add = ! empty( $users_to_add_str ) ? array_map( 'intval', explode( ',', $users_to_add_str ) ) : array();
-
     foreach ( $user_ids_to_add as $user_id ) {
         if ( $user_id > 0 ) {
             bp_add_band_membership( $user_id, $post_id );
         }
     }
-
     // Sanitize and process users to remove
     $users_to_remove_str = isset( $_POST['bp_members_to_remove'] ) ? sanitize_text_field( $_POST['bp_members_to_remove'] ) : '';
     $user_ids_to_remove = ! empty( $users_to_remove_str ) ? array_map( 'intval', explode( ',', $users_to_remove_str ) ) : array();
-
     foreach ( $user_ids_to_remove as $user_id ) {
         if ( $user_id > 0 ) {
             bp_remove_band_membership( $user_id, $post_id );
+        }
+    }
+    // Fetch updated member list after all changes
+    $new_member_ids = get_post_meta( $post_id, '_band_member_ids', true );
+    if ( ! is_array( $new_member_ids ) ) {
+        $new_member_ids = array();
+    }
+    // Detect truly new members
+    $actually_new_user_ids = array_diff( $new_member_ids, $old_member_ids );
+    if ( ! empty( $actually_new_user_ids ) ) {
+        foreach ( $actually_new_user_ids as $user_id ) {
+            if ( function_exists( 'bp_send_admin_band_membership_notification' ) ) {
+                bp_send_admin_band_membership_notification( $user_id, $post_id );
+            }
         }
     }
 }
@@ -505,33 +513,28 @@ add_action( 'edit_user_profile', 'bp_show_band_membership_fields' );
  * @param int $user_id The ID of the user being updated.
  */
 function bp_save_user_band_memberships( $user_id ) {
-    // Check if the current user has permission to edit this user.
     if ( ! current_user_can( 'edit_user', $user_id ) ) {
         return;
     }
-
-    // Verify nonce.
     if ( ! isset( $_POST['bp_user_band_nonce'] ) || ! wp_verify_nonce( $_POST['bp_user_band_nonce'], 'bp_save_user_band_memberships' ) ) {
         return;
     }
-
-    // Get the submitted band IDs.
     $submitted_band_ids = isset( $_POST['bp_band_memberships'] ) ? array_map( 'intval', (array) $_POST['bp_band_memberships'] ) : array();
-
-    // Get the user's current band IDs.
     $current_band_ids = get_user_meta( $user_id, '_band_profile_ids', true );
     if ( ! is_array( $current_band_ids ) ) {
         $current_band_ids = array();
     }
-
-    // No change detection needed here, just update with the submitted set.
-    // If submitted array is empty, it will effectively remove all memberships.
+    // Detect newly added bands
+    $new_band_ids = array_diff( $submitted_band_ids, $current_band_ids );
     update_user_meta( $user_id, '_band_profile_ids', $submitted_band_ids );
-
-    // Note: This directly overwrites the meta. If we needed to sync *from* the band profile side
-    // (e.g., removing a user from the Band Profile meta box should reflect here),
-    // this simple approach works. If managing from both sides needs complex sync, 
-    // helper functions might be better, but this covers saving *from* the user profile.
+    // Send admin notification for each new band
+    if ( ! empty( $new_band_ids ) ) {
+        foreach ( $new_band_ids as $band_id ) {
+            if ( function_exists( 'bp_send_admin_band_membership_notification' ) ) {
+                bp_send_admin_band_membership_notification( $user_id, $band_id );
+            }
+        }
+    }
 }
 add_action( 'personal_options_update', 'bp_save_user_band_memberships' ); // Saving own profile (if shown)
 add_action( 'edit_user_profile_update', 'bp_save_user_band_memberships' ); // Saving others' profiles

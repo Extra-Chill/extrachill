@@ -2,7 +2,7 @@
  * Manage Link Page - Info Tab (Title, Bio, Profile Image)
  * Handles UI and calls the content engine for live preview updates.
  */
-const ExtrchLinkPageInfoManager = {
+window.ExtrchLinkPageInfoManager = {
     manager: null,
     fields: {
         titleInput: null,

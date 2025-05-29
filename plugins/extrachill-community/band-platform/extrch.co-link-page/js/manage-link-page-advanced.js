@@ -49,46 +49,56 @@ const redirectEnabledCheckbox = document.getElementById('bp-enable-temporary-red
 const redirectTargetContainer = document.getElementById('bp-temporary-redirect-target-container');
 const redirectTargetSelect = document.getElementById('bp-temporary-redirect-target');
 
+function getCurrentLinksData() {
+    if (window.ExtrchLinkPageManager &&
+        window.ExtrchLinkPageManager.linkSections &&
+        typeof window.ExtrchLinkPageManager.linkSections.getLinksDataFromDOM === 'function') {
+        return window.ExtrchLinkPageManager.linkSections.getLinksDataFromDOM();
+    }
+    // Fallback: read from DOM directly
+    const sectionsListEl = document.getElementById('bp-link-sections-list');
+    if (!sectionsListEl) return [];
+    const sectionsData = [];
+    sectionsListEl.querySelectorAll('.bp-link-section').forEach(sectionEl => {
+        const sectionTitle = sectionEl.querySelector('.bp-link-section-title')?.value || '';
+        const linksData = [];
+        sectionEl.querySelectorAll('.bp-link-item').forEach(linkEl => {
+            linksData.push({
+                link_text: linkEl.querySelector('.bp-link-text-input')?.value || '',
+                link_url: linkEl.querySelector('.bp-link-url-input')?.value || '',
+                expires_at: linkEl.dataset.expiresAt || '',
+            });
+        });
+        sectionsData.push({ section_title: sectionTitle, links: linksData });
+    });
+    return sectionsData;
+}
+
 function populateRedirectTargetDropdownIfNeeded() {
     if (!redirectTargetSelect) {
         console.debug('[populateRedirectTargetDropdownIfNeeded] Redirect select element not found.');
         return;
     }
-
-    // Only populate if the checkbox is checked OR if we are explicitly told to refresh (e.g. from links update)
-    // For initial load, the DOMContentLoaded listener will call this, and it should respect the checkbox state.
-    // The event listener on checkbox change will also call this.
-
     if (!redirectEnabledCheckbox || !redirectEnabledCheckbox.checked) {
-        // console.debug('[populateRedirectTargetDropdownIfNeeded] Redirect checkbox not checked. Not populating.');
-        // We might still want to clear it if it was previously populated and now checkbox is unchecked.
-        // However, the main use case is to populate when checked.
-        // If checkbox is unchecked, the select is disabled and hidden, so content doesn't strictly matter until re-enabled.
-        return; 
-    }
-
-    if (!window.bpLinkPageLinks || !Array.isArray(window.bpLinkPageLinks) || window.bpLinkPageLinks.length === 0) {
-        console.warn('[populateRedirectTargetDropdownIfNeeded] bpLinkPageLinks data not available or empty.');
-        // Clear existing options except the first placeholder, then add a disabled message
-        selectElement.innerHTML = '<option value="">-- No Links Available --</option>';
         return;
     }
-    
-    console.debug('[populateRedirectTargetDropdownIfNeeded] Populating redirect dropdown.');
-
+    const linksSections = getCurrentLinksData();
+    if (!Array.isArray(linksSections) || linksSections.length === 0) {
+        redirectTargetSelect.innerHTML = '<option value="">-- No Links Available --</option>';
+        return;
+    }
     // Clear existing options except the first placeholder
     const firstOption = redirectTargetSelect.options[0];
-    redirectTargetSelect.innerHTML = ''; // Clear all
+    redirectTargetSelect.innerHTML = '';
     if (firstOption && firstOption.value === '') {
-        redirectTargetSelect.appendChild(firstOption); // Re-add placeholder if it was standard
+        redirectTargetSelect.appendChild(firstOption);
     } else {
-        redirectTargetSelect.innerHTML = '<option value="">-- Select a Link --</option>'; // Default placeholder
+        redirectTargetSelect.innerHTML = '<option value="">-- Select a Link --</option>';
     }
-
-    window.bpLinkPageLinks.forEach(section => {
+    linksSections.forEach(section => {
         if (section.links && Array.isArray(section.links)) {
             section.links.forEach(link => {
-                if (link.link_url && link.link_text && (link.link_is_active === undefined || link.link_is_active === true || link.link_is_active === '1')) {
+                if (link.link_url && link.link_text) {
                     const option = document.createElement('option');
                     option.value = link.link_url;
                     option.textContent = link.link_text + ' (' + link.link_url + ')';
@@ -97,7 +107,6 @@ function populateRedirectTargetDropdownIfNeeded() {
             });
         }
     });
-
     // Set the selected option based on initial data (if available)
     const initialUrl = window.ExtrchLinkPageManager?.ajaxConfig?.initial_redirect_target_url || window.extrchLinkPagePreviewAJAX?.initial_redirect_target_url;
     if (initialUrl) {

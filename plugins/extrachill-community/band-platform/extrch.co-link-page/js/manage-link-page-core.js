@@ -4,10 +4,8 @@ window.ExtrchLinkPageManager = window.ExtrchLinkPageManager || {};
 (function() {
     const checkConfig = () => {
         if (window.extrchLinkPageConfig && window.extrchLinkPageConfig.supportedLinkTypes && Object.keys(window.extrchLinkPageConfig.supportedLinkTypes).length > 0) {
-            console.log('[Core] extrchLinkPageConfig is ready.');
             // Dispatch a custom event indicating the config is ready
             document.dispatchEvent(new CustomEvent('extrchLinkPageConfigReady', { detail: window.extrchLinkPageConfig }));
-            console.log('[Core] extrchLinkPageConfigReady event dispatched after DOMContentLoaded.');
         } else {
             // Re-check after a short delay if config isn't ready
             setTimeout(checkConfig, 10); // Check more frequently
@@ -24,8 +22,6 @@ if (typeof window.extrchLinkPageConfig === 'undefined') {
 } else {
     console.log('[Core] extrchLinkPageConfig is ready.');
     // Dispatch a custom event indicating the config is ready
-
-    // ... existing code ...
 
     // Dispatch the event after DOMContentLoaded to ensure listeners are ready
     document.addEventListener('DOMContentLoaded', function() {

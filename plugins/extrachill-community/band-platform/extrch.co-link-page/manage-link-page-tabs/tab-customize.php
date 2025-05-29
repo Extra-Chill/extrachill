@@ -2,6 +2,9 @@
 /**
  * Template Part: Customize Tab for Manage Link Page
  *
+ * Hydrates all custom vars exclusively from canonical $data['css_vars'] (set by LivePreviewManager).
+ * Do not hydrate from post meta here. This enforces a single source of truth.
+ *
  * Loaded from manage-link-page.php
  */
 
@@ -15,48 +18,10 @@ global $background_type, $background_color, $background_image_url, $button_color
 // $extrch_link_page_fonts is provided by link-page-includes.php, which should be included by the parent template.
 $extrch_link_page_fonts = get_query_var('extrch_link_page_fonts', array());
 
-$custom_vars_json = get_post_meta($link_page_id, '_link_page_custom_css_vars', true);
-$custom_vars = array();
-if ($custom_vars_json) {
-    $custom_vars = json_decode($custom_vars_json, true);
-    if (!is_array($custom_vars)) $custom_vars = array();
-}
-// Ensure profile image URL is present
-if (empty($custom_vars['--link-page-profile-img-url'])) {
-    $profile_img_id = get_post_meta($link_page_id, '_link_page_profile_image_id', true);
-    if ($profile_img_id) {
-        $custom_vars['--link-page-profile-img-url'] = wp_get_attachment_image_url($profile_img_id, 'large');
-    } else {
-        $custom_vars['--link-page-profile-img-url'] = '';
-    }
-}
-// Ensure background image URL is present
-if (empty($custom_vars['--link-page-background-image-url'])) {
-    $bg_img_id = get_post_meta($link_page_id, '_link_page_background_image_id', true);
-    if ($bg_img_id) {
-        $custom_vars['--link-page-background-image-url'] = wp_get_attachment_image_url($bg_img_id, 'large');
-    } else {
-        $custom_vars['--link-page-background-image-url'] = '';
-    }
-}
-// Ensure background type is present
-if (empty($custom_vars['--link-page-background-type'])) {
-    $custom_vars['--link-page-background-type'] = $background_type ?: 'color';
-}
-// Ensure background color is present
-if (empty($custom_vars['--link-page-background-color'])) {
-    $custom_vars['--link-page-background-color'] = $background_color ?: '#1a1a1a';
-}
-// Optionally ensure gradient settings are present
-if (empty($custom_vars['--link-page-background-gradient-start'])) {
-    $custom_vars['--link-page-background-gradient-start'] = isset($background_gradient_start) ? $background_gradient_start : '#0b5394';
-}
-if (empty($custom_vars['--link-page-background-gradient-end'])) {
-    $custom_vars['--link-page-background-gradient-end'] = isset($background_gradient_end) ? $background_gradient_end : '#53940b';
-}
-if (empty($custom_vars['--link-page-background-gradient-direction'])) {
-    $custom_vars['--link-page-background-gradient-direction'] = isset($background_gradient_direction) ? $background_gradient_direction : 'to right';
-}
+// Hydrate from canonical $data['css_vars'] only
+$data = get_query_var('data', array());
+$custom_vars = isset($data['css_vars']) && is_array($data['css_vars']) ? $data['css_vars'] : array();
+
 ?>
 
 <!-- Fonts Card -->
@@ -66,7 +31,11 @@ if (empty($custom_vars['--link-page-background-gradient-direction'])) {
         <label for="link_page_title_font_family"><strong><?php esc_html_e('Title Font', 'generatepress_child'); ?></strong></label><br>
         <select id="link_page_title_font_family" name="link_page_title_font_family" style="max-width:200px;">
             <?php
-            $current_font_family = isset($custom_css_vars['--link-page-title-font-family']) ? $custom_css_vars['--link-page-title-font-family'] : 'WilcoLoftSans';
+            $current_font_family = isset($custom_vars['--link-page-title-font-family']) ? $custom_vars['--link-page-title-font-family'] : 'WilcoLoftSans';
+            if (strpos($current_font_family, ',') !== false) {
+                $parts = explode(',', $current_font_family);
+                $current_font_family = trim($parts[0], " '");
+            }
             foreach ($extrch_link_page_fonts as $font) {
                 echo '<option value="' . esc_attr($font['value']) . '" data-googlefontparam="' . esc_attr($font['google_font_param']) . '"' . ($current_font_family === $font['value'] ? ' selected' : '') . '>' . esc_html($font['label']) . '</option>';
             }
@@ -81,31 +50,13 @@ if (empty($custom_vars['--link-page-background-gradient-direction'])) {
             <label for="link_page_body_font_family"><strong><?php esc_html_e('Body Font', 'generatepress_child'); ?></strong></label><br>
             <select id="link_page_body_font_family" name="link_page_body_font_family" style="max-width:200px;">
                 <?php
-                // Default to 'Helvetica' if not set in custom_vars, otherwise use the stored value.
                 $current_body_font_value = isset($custom_vars['--link-page-body-font-family']) 
                                             ? $custom_vars['--link-page-body-font-family'] 
                                             : 'Helvetica';
-                // If the stored value is a font stack, try to find the base value (e.g., 'Helvetica' from "'Helvetica', Arial, sans-serif")
-                // This is a simplified approach; a more robust solution might involve parsing the stack or ensuring custom_vars stores the simple value.
                 if (strpos($current_body_font_value, ',') !== false) {
                     $parts = explode(',', $current_body_font_value);
-                    $first_font = trim($parts[0], " \'\"");
-                    // Check if this first font exists as a value in our list
-                    $font_exists_in_list = false;
-                    foreach ($extrch_link_page_fonts as $font_item) {
-                        if ($font_item['value'] === $first_font) {
-                            $font_exists_in_list = true;
-                            break;
-                        }
-                    }
-                    if ($font_exists_in_list) {
-                        $current_body_font_value = $first_font;
-                    } else {
-                        // If stack's first font isn't a direct value, fallback to default for selection purposes
-                        $current_body_font_value = 'Helvetica'; 
-                    }
+                    $current_body_font_value = trim($parts[0], " '");
                 }
-
                 foreach ($extrch_link_page_fonts as $font) {
                     echo '<option value="' . esc_attr($font['value']) . '" data-googlefontparam="' . esc_attr($font['google_font_param']) . '"' . selected($current_body_font_value, $font['value'], false) . '>' . esc_html($font['label']) . '</option>';
                 }
@@ -153,6 +104,13 @@ if (empty($custom_vars['--link-page-background-gradient-direction'])) {
     <h4 class="customize-card-title"><?php esc_html_e('Background', 'generatepress_child'); ?></h4>
     <div class="customize-section customize-background-section">
         <label for="link_page_background_type"><strong><?php esc_html_e('Background Type', 'generatepress_child'); ?></strong></label><br>
+        <?php
+        $background_type = isset($custom_vars['--link-page-background-type']) ? $custom_vars['--link-page-background-type'] : 'color';
+        $background_color = isset($custom_vars['--link-page-background-color']) ? $custom_vars['--link-page-background-color'] : '#1a1a1a';
+        $background_gradient_start = isset($custom_vars['--link-page-background-gradient-start']) ? $custom_vars['--link-page-background-gradient-start'] : '#0b5394';
+        $background_gradient_end = isset($custom_vars['--link-page-background-gradient-end']) ? $custom_vars['--link-page-background-gradient-end'] : '#53940b';
+        $background_gradient_direction = isset($custom_vars['--link-page-background-gradient-direction']) ? $custom_vars['--link-page-background-gradient-direction'] : 'to right';
+        ?>
         <select id="link_page_background_type" name="link_page_background_type" style="max-width:200px;">
             <option value="color"<?php selected($background_type, 'color'); ?>><?php esc_html_e('Solid Color', 'generatepress_child'); ?></option>
             <option value="gradient"<?php selected($background_type, 'gradient'); ?>><?php esc_html_e('Gradient', 'generatepress_child'); ?></option>
@@ -164,12 +122,12 @@ if (empty($custom_vars['--link-page-background-gradient-direction'])) {
         </div>
         <div id="background-gradient-controls" class="background-type-controls" style="display:none;">
             <label><strong><?php esc_html_e('Gradient Colors', 'generatepress_child'); ?></strong></label><br>
-            <input type="color" id="link_page_background_gradient_start" name="link_page_background_gradient_start" value="#0b5394">
-            <input type="color" id="link_page_background_gradient_end" name="link_page_background_gradient_end" value="#53940b">
+            <input type="color" id="link_page_background_gradient_start" name="link_page_background_gradient_start" value="<?php echo esc_attr($background_gradient_start); ?>">
+            <input type="color" id="link_page_background_gradient_end" name="link_page_background_gradient_end" value="<?php echo esc_attr($background_gradient_end); ?>">
             <select id="link_page_background_gradient_direction" name="link_page_background_gradient_direction" style="margin-left:10px;">
-                <option value="to right">→ <?php esc_html_e('Left to Right', 'generatepress_child'); ?></option>
-                <option value="to bottom">↓ <?php esc_html_e('Top to Bottom', 'generatepress_child'); ?></option>
-                <option value="135deg">↘ <?php esc_html_e('Diagonal', 'generatepress_child'); ?></option>
+                <option value="to right"<?php selected($background_gradient_direction, 'to right'); ?>>→ <?php esc_html_e('Left to Right', 'generatepress_child'); ?></option>
+                <option value="to bottom"<?php selected($background_gradient_direction, 'to bottom'); ?>>↓ <?php esc_html_e('Top to Bottom', 'generatepress_child'); ?></option>
+                <option value="135deg"<?php selected($background_gradient_direction, '135deg'); ?>>↘ <?php esc_html_e('Diagonal', 'generatepress_child'); ?></option>
             </select>
         </div>
         <div id="background-image-controls" class="background-type-controls" style="display:none;">
@@ -194,23 +152,23 @@ if (empty($custom_vars['--link-page-background-gradient-direction'])) {
     <h4 class="customize-card-title"><?php esc_html_e('Colors', 'generatepress_child'); ?></h4>
     <div class="customize-section">
         <label for="link_page_button_color"><strong><?php esc_html_e('Button Color', 'generatepress_child'); ?></strong></label><br>
-        <input type="color" id="link_page_button_color" name="link_page_button_color" value="<?php echo esc_attr($button_color); ?>">
+        <input type="color" id="link_page_button_color" name="link_page_button_color" value="<?php echo esc_attr($custom_vars['--link-page-button-bg-color'] ?? '#0b5394'); ?>">
     </div>
     <div class="customize-section">
         <label for="link_page_text_color"><strong><?php esc_html_e('Text Color', 'generatepress_child'); ?></strong></label><br>
-        <input type="color" id="link_page_text_color" name="link_page_text_color" value="<?php echo esc_attr($text_color); ?>">
+        <input type="color" id="link_page_text_color" name="link_page_text_color" value="<?php echo esc_attr($custom_vars['--link-page-text-color'] ?? '#e5e5e5'); ?>">
     </div>
     <div class="customize-section">
         <label for="link_page_link_text_color"><strong><?php esc_html_e('Link Text Color', 'generatepress_child'); ?></strong></label><br>
-        <input type="color" id="link_page_link_text_color" name="link_page_link_text_color" value="<?php echo esc_attr($link_text_color); ?>">
+        <input type="color" id="link_page_link_text_color" name="link_page_link_text_color" value="<?php echo esc_attr($custom_vars['--link-page-link-text-color'] ?? '#ffffff'); ?>">
     </div>
     <div class="customize-section">
         <label for="link_page_hover_color"><strong><?php esc_html_e('Hover Color', 'generatepress_child'); ?></strong></label><br>
-        <input type="color" id="link_page_hover_color" name="link_page_hover_color" value="<?php echo esc_attr($hover_color); ?>">
+        <input type="color" id="link_page_hover_color" name="link_page_hover_color" value="<?php echo esc_attr($custom_vars['--link-page-button-hover-bg-color'] ?? '#53940b'); ?>">
     </div>
     <div class="customize-section">
         <label for="link_page_button_border_color"><strong><?php esc_html_e('Button Border Color', 'generatepress_child'); ?></strong></label><br>
-        <input type="color" id="link_page_button_border_color" name="link_page_button_border_color" value="<?php echo esc_attr($button_color); ?>">
+        <input type="color" id="link_page_button_border_color" name="link_page_button_border_color" value="<?php echo esc_attr($custom_vars['--link-page-button-border-color'] ?? '#0b5394'); ?>">
     </div>
 </div>
 
@@ -227,5 +185,5 @@ if (empty($custom_vars['--link-page-background-gradient-direction'])) {
     </div>
 </div>
 
-<!-- Moved switch CSS to main stylesheet -->
-<input type="hidden" name="link_page_custom_css_vars_json" id="link_page_custom_css_vars_json" value="<?php echo esc_attr(json_encode($custom_vars)); ?>"> 
+<!-- Add the hidden input for custom CSS vars JSON -->
+<input type="hidden" id="link_page_custom_css_vars_json" name="link_page_custom_css_vars_json" value="<?php echo esc_attr(json_encode($custom_vars)); ?>">

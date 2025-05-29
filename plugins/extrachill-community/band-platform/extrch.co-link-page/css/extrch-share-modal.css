@@ -27,7 +27,7 @@
     /* Other layout properties for header content are in extrch-links.css */
 }
 
-.extrch-share-page-trigger {
+.extrch-share-page-trigger{
     /* Specific styles for the page share button. It should also have .extrch-share-trigger class. */
     position: absolute;
     top: 0.25em; /* Small offset from the very top */
@@ -81,10 +81,10 @@ body .extrch-share-page-trigger:active {
     line-height: 1; /* from base .extrch-share-trigger is good */
 }
 
+
 /* Hover for item trigger: subtle background - specific for preview and general contexts */
-.manage-link-page-preview-live button.extrch-share-item-trigger:hover, /* Preview context */
-.extrch-link-page-container button.extrch-share-item-trigger:hover, /* General link page container */
-body button.extrch-share-item-trigger:hover { /* Fallback with body prefix */
+.manage-link-page-preview-live .extrch-share-item-trigger:hover, /* Preview context */
+.extrch-link-page-container .extrch-share-item-trigger:hover, /* General link page container */ button.extrch-share-item-trigger:hover, div.extrch-link-page-header-content > button:hover { /* Fallback with body prefix */
     color: var(--link-page-text-color) !important; /* Ensure text color consistency */
     opacity: 1 !important;
     box-shadow: none !important; /* Ensure no unwanted shadows appear on hover */
@@ -159,7 +159,7 @@ body button.extrch-share-item-trigger:active {
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%) scale(0.95);
-    background-color: var(--link-page-bg-color); /* Use theme background */
+    background-color: var(--link-page-background-color); /* Use theme background */
     border: 1px solid var(--link-page-button-border-color);
     color: var(--link-page-text-color, #fff); /* Use theme text color */
     padding: 25px;

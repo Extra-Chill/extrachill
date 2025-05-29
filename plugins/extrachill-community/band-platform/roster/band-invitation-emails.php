@@ -175,4 +175,61 @@ function bp_handle_invitation_acceptance() {
         }
     }
 }
-add_action( 'init', 'bp_handle_invitation_acceptance' ); 
+add_action( 'init', 'bp_handle_invitation_acceptance' );
+
+/**
+ * Sends a notification email to an existing user when an admin adds them to a band profile.
+ * This is NOT the invitation system and is only for admin-triggered migrations or manual adds.
+ *
+ * @param int $user_id The user ID being added.
+ * @param int $band_id The band_profile post ID.
+ * @return bool True if sent, false otherwise.
+ */
+function bp_send_admin_band_membership_notification( $user_id, $band_id ) {
+    $user = get_userdata( $user_id );
+    if ( ! $user || ! is_email( $user->user_email ) ) {
+        return false;
+    }
+    $band_post = get_post( $band_id );
+    if ( ! $band_post || $band_post->post_type !== 'band_profile' ) {
+        return false;
+    }
+    $band_name = $band_post->post_title;
+    $band_profile_url = get_permalink( $band_id );
+    $link_page_url = 'https://extrachill.link/join';
+
+    $subject = sprintf( __( 'Welcome to your new band space on Extra Chill!', 'generatepress_child' ), $band_name );
+
+    $message_lines = array();
+    $message_lines[] = sprintf( __( 'Hi %s,', 'generatepress_child' ), $user->display_name );
+    $message_lines[] = '';
+    $message_lines[] = sprintf( __( 'Your band "%s" has been migrated to the new Band Platform on Extra Chill! 🎉', 'generatepress_child' ), $band_name );
+    $message_lines[] = '';
+    $message_lines[] = __( 'You now have a dedicated band profile (where your old band topic now lives) and a FREE extrachill.link page to promote your music and connect with fans.', 'generatepress_child' );
+    $message_lines[] = '';
+    $message_lines[] = __( 'To get started, log in at the link below. You\'ll be guided through the process of creating your free extrachill.link page:', 'generatepress_child' );
+    $message_lines[] = $link_page_url;
+    $message_lines[] = '';
+    $message_lines[] = sprintf( __( 'You can also view and update your band profile here: %s', 'generatepress_child' ), $band_profile_url );
+    $message_lines[] = '';
+    $message_lines[] = __( 'This is 100% free and gives you powerful tools to grow your audience, manage your band, and keep your fans engaged—all in one place.', 'generatepress_child' );
+    $message_lines[] = '';
+    $message_lines[] = __( 'You have full moderation powers in your band forum (edit, split, and manage all topics and replies—no admin panel needed).', 'generatepress_child' );
+    $message_lines[] = '';
+    $message_lines[] = __( 'Ready to get started? Click the links above or reply to this email if you have any questions. Welcome to the future of your band on Extra Chill!', 'generatepress_child' );
+    $message_lines[] = '';
+    $message_lines[] = __( '— The Extra Chill Team', 'generatepress_child' );
+
+    $message = implode( "\r\n", $message_lines );
+    $message = stripslashes($message); // Unescape single quotes for email output
+    $headers = array(
+        'Content-Type: text/plain; charset=UTF-8',
+        'Reply-To: chubes@extrachill.com'
+    );
+    add_filter('wp_mail_from_name', function() { return 'Extra Chill Community'; });
+    add_filter('wp_mail_from', function() { return 'bands@community.extrachill.com'; });
+    $sent = wp_mail( $user->user_email, $subject, $message, $headers );
+    remove_all_filters('wp_mail_from_name');
+    remove_all_filters('wp_mail_from');
+    return $sent;
+} 

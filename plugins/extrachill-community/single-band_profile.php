@@ -272,14 +272,15 @@ get_header(); ?>
                             echo '<div class="band-details-columns">';
 
                             // Column 1: Band Bio
+                            // Use forum section override logic
+                            $forum_section = bp_get_forum_section_title_and_bio( $band_profile_id );
                             echo '<div class="band-bio-column">';
-                            if ( get_the_content() ) {
-                                echo '<h2 class="section-title">' . sprintf( esc_html__( 'About %s', 'generatepress_child' ), esc_html( get_the_title( $band_profile_id ) ) ) . '</h2>';
+                            echo '<h2 class="section-title">' . esc_html( $forum_section['title'] ) . '</h2>';
+                            if ( ! empty( $forum_section['bio'] ) ) {
                                 echo '<div class="band-bio">';
-                                echo wpautop( get_the_content() ); 
+                                echo wpautop( $forum_section['bio'] );
                                 echo '</div>';
                             } else {
-                                echo '<h2 class="section-title">' . sprintf( esc_html__( 'About %s', 'generatepress_child' ), esc_html( get_the_title( $band_profile_id ) ) ) . '</h2>';
                                 echo '<p>' . __( 'No biography available yet.', 'generatepress_child' ) . '</p>';
                             }
                             echo '</div>'; // .band-bio-column

@@ -17,6 +17,7 @@ require_once( $bp_dir . '/band-permissions.php' );
 require_once( $bp_dir . '/frontend-forms.php' );
 require_once( $bp_dir . '/band-directory.php' );
 require_once( $bp_dir . '/extrch.co-link-page/link-page-includes.php' );
+require_once( $bp_dir . '/band-forum-section-overrides.php' ); // Include forum section overrides
 // require_once( $bp_dir . '/cpt-band-link-page.php' );
 
 // Data Synchronization

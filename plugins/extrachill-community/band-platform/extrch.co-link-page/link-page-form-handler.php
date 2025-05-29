@@ -74,6 +74,19 @@ function extrch_handle_save_link_page_data() {
     $highlighting_enabled = isset($_POST['link_page_enable_highlighting']) && $_POST['link_page_enable_highlighting'] == '1' ? '1' : '0';
     update_post_meta($link_page_id, '_link_page_enable_highlighting', $highlighting_enabled);
 
+    // --- YouTube Inline Embed Setting ---
+    // The checkbox is named 'disable_youtube_inline_embed'.
+    // If it's checked (present in POST and value '1'), the feature should be DISABLED (_enable_youtube_inline_embed = '0').
+    // If it's unchecked (not present in POST), the feature should be ENABLED (_enable_youtube_inline_embed = '1').
+    if (isset($_POST['disable_youtube_inline_embed']) && $_POST['disable_youtube_inline_embed'] == '1') {
+        // "Disable" checkbox is checked, so set the feature to OFF.
+        update_post_meta($link_page_id, '_enable_youtube_inline_embed', '0');
+    } else {
+        // "Disable" checkbox is NOT checked (or not present), so set the feature to ON.
+        update_post_meta($link_page_id, '_enable_youtube_inline_embed', '1');
+    }
+    // --- End YouTube Inline Embed Setting ---
+
     // --- Meta Pixel ID ---
     if (isset($_POST['link_page_meta_pixel_id'])) {
         $meta_pixel_id_raw = trim(wp_unslash($_POST['link_page_meta_pixel_id']));
@@ -113,6 +126,14 @@ function extrch_handle_save_link_page_data() {
         update_post_meta($link_page_id, '_link_page_overlay_toggle', $overlay);
     }
 
+    // --- Save Profile Image Shape ---
+    if (isset($_POST['link_page_profile_img_shape'])) {
+        $profile_img_shape = sanitize_text_field($_POST['link_page_profile_img_shape']);
+        if (in_array($profile_img_shape, array('circle', 'square', 'rectangle'), true)) {
+            update_post_meta($link_page_id, '_link_page_profile_img_shape', $profile_img_shape);
+        }
+    }
+
     // --- End Advanced Tab Settings ---
 
     // Process link expiration based on the (potentially updated) setting
@@ -150,10 +171,20 @@ function extrch_handle_save_link_page_data() {
 
     // --- Save social links (to band_profile) ---
     if ($band_id) { // Ensure band_id is valid
+        error_log('[LinkPageSave PHP] Processing social links for band ID: ' . $band_id); // DEBUG
         $social_links_json = isset($_POST['band_profile_social_links_json']) ? wp_unslash($_POST['band_profile_social_links_json']) : '[]';
+        error_log('[LinkPageSave PHP] Received social links JSON string: ' . $social_links_json); // DEBUG
         $social_links_array = json_decode($social_links_json, true);
+        error_log('[LinkPageSave PHP] json_decode result: ' . print_r($social_links_array, true)); // DEBUG
+        
         if (is_array($social_links_array)) {
+            // --- DEBUG: Output social links array immediately before saving ---
+            error_log('[LinkPageSave PHP] Social links array BEFORE update_post_meta: ' . print_r($social_links_array, true)); // DEBUG
+            // --- END DEBUG ---
             update_post_meta($band_id, '_band_profile_social_links', $social_links_array);
+            error_log('[LinkPageSave PHP] Social links updated for band ID: ' . $band_id); // DEBUG
+        } else {
+            error_log('[LinkPageSave PHP] Decoded social links is NOT an array. Not saving.'); // DEBUG
         }
     }
 
@@ -258,10 +289,19 @@ function extrch_handle_save_link_page_data() {
     }
 
     // --- Redirect back with success ---
-    $redirect_url = add_query_arg(array('band_id' => $band_id, 'bp_link_page_updated' => '1'), wp_get_referer() ?: site_url('/manage-link-page/'));
+    $redirect_args = array('band_id' => $band_id, 'bp_link_page_updated' => '1');
+    $base_url = site_url('/manage-link-page/');
+    $redirect_url = add_query_arg($redirect_args, $base_url);
+    if (!empty($_POST['tab'])) {
+        $tab = sanitize_key($_POST['tab']);
+        $redirect_url .= '#' . $tab;
+    } elseif (!empty($_GET['tab'])) {
+        $tab = sanitize_key($_GET['tab']);
+        $redirect_url .= '#' . $tab;
+    }
     wp_safe_redirect($redirect_url);
     exit;
 }
-add_action('template_redirect', 'extrch_handle_save_link_page_data');
+add_action('admin_post_extrch_handle_save_link_page_data', 'extrch_handle_save_link_page_data');
 
 // The redundant init hook and its logic are now removed.

@@ -83,7 +83,7 @@
     }
 }
 /* General content styling */
-body {
+body.mce-content-body {
     background-color: var(--background-color);
     font-family: sans-serif;
     color: var(--text-color);
@@ -160,3 +160,40 @@ input[type="reset"]:hover {
 
 /* Optionally define a specific hover color if needed */
 /* body.editor-dark-mode a:hover { ... } */
+
+/* Style the formatselect dropdown menu */
+.mce-listbox .mce-listbox-item {
+    color: var(--text-color);
+    background-color: var(--background-color);
+}
+
+/* Override default TinyMCE styles */
+.mce-menu .mce-menu-item:hover,
+.mce-menu .mce-menu-item.mce-active,
+.mce-listbox,
+.mce-listbox button {
+    background-color: var(--background-color) !important;
+    color: var(--text-color) !important;
+}
+
+.mce-listbox .mce-listbox-item.mce-active,
+.mce-listbox .mce-listbox-item:hover {
+    background-color: var(--accent-2) !important;
+    color: var(--header-text);
+}
+
+/* Style the formatselect dropdown menu */
+.mce-menu,
+.mce-listbox .mce-listbox-item {
+    color: var(--text-color);
+    background-color: var(--background-color);
+}
+
+.mce-listbox .mce-listbox-item.mce-active,
+.mce-listbox .mce-listbox-item:hover {
+    background-color: var(--accent-2);
+    color: var(--header-text);
+}
+.wp-editor-container{
+    border: 1px solid var(--border-color);
+}

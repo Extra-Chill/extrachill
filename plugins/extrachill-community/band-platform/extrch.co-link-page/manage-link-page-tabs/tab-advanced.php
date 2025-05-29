@@ -18,6 +18,13 @@ $weekly_notifications_enabled = $current_link_page_id ? (get_post_meta($current_
 $redirect_enabled = $current_link_page_id ? (get_post_meta($current_link_page_id, '_link_page_redirect_enabled', true) === '1') : false; // Placeholder meta key
 $redirect_target_url = $current_link_page_id ? get_post_meta($current_link_page_id, '_link_page_redirect_target_url', true) : ''; // Placeholder meta key
 
+// Fetch current value for YouTube inline embed setting
+// _enable_youtube_inline_embed = '1' (feature ON), '0' (feature OFF/disabled)
+// Default for the feature is ON. So if meta is not set, or is '1', the feature is ON.
+// The checkbox is to "Disable", so it should be checked if the feature is OFF ('0').
+$is_youtube_embed_actually_enabled = $current_link_page_id ? (get_post_meta($current_link_page_id, '_enable_youtube_inline_embed', true) !== '0') : true; // Default true (feature ON)
+$should_disable_checkbox_be_checked = !$is_youtube_embed_actually_enabled; // Checked if feature is OFF
+
 // Fetch current value for Meta Pixel ID
 $meta_pixel_id = $current_link_page_id ? get_post_meta($current_link_page_id, '_link_page_meta_pixel_id', true) : '';
 
@@ -52,7 +59,13 @@ $meta_pixel_id = $current_link_page_id ? get_post_meta($current_link_page_id, '_
                 ?>
             </select>
             <p class="description" style="margin-top: 0.3em; color:#aaa; font-size:0.97em;"><?php esc_html_e('Select one of your existing links to redirect visitors to.', 'generatepress_child'); ?></p>
-            </div>
+        </div>
+
+        <label style="display:flex;align-items:center;gap:0.5em;font-weight:600; margin-top: 1.5em;">
+            <input type="checkbox" name="disable_youtube_inline_embed" id="bp-disable-youtube-inline-embed" value="1" <?php checked($should_disable_checkbox_be_checked); ?> />
+            <?php esc_html_e('Disable Inline YouTube Video Player', 'generatepress_child'); ?>
+        </label>
+        <p class="description" style="margin:0.5em 0 1.5em 1.8em; color:#aaa; font-size:0.97em;"><?php esc_html_e('By default, YouTube links play directly on the page. Check this box if you prefer YouTube links to navigate to YouTube.com instead.', 'generatepress_child'); ?></p>
         
             <?php
         // Add other advanced settings here as needed

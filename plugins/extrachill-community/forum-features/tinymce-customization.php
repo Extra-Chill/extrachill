@@ -1,11 +1,20 @@
 <?php
 // Enable visual editor specifically for bbPress
 function bbp_enable_visual_editor($args = array()) {
-    $args['tinymce'] = array(  'content_css' => '/wp-content/themes/generatepress_child/css/tinymce-editor.css',   );    $args['quicktags'] = false;
+    $args['tinymce'] = array();
+    $args['quicktags'] = false;
     $args['teeny'] = false;
     return $args;
 }
 add_filter('bbp_after_get_the_content_parse_args', 'bbp_enable_visual_editor', 999);
+
+// Add custom stylesheet to TinyMCE
+function bbp_add_tinymce_stylesheet($mce_css) {
+    $version = filemtime(get_stylesheet_directory() . '/css/tinymce-editor.css');
+    $mce_css .= ', ' . get_stylesheet_directory_uri() . '/css/tinymce-editor.css?ver=' . $version;
+    return $mce_css;
+}
+add_filter('mce_css', 'bbp_add_tinymce_stylesheet');
 
 // Add 'paste' plugin to TinyMCE (bbPress context only)
 function bbp_tinymce_paste_plugin($plugins = array()) {
@@ -36,6 +45,7 @@ function bbp_customize_tinymce_buttons($buttons) {
             // 'pastetext', // Add paste as text?
             'undo',
             'redo',
+            'formatselect'
         );
         return $desired_buttons;
     }

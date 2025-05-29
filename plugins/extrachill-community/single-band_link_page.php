@@ -7,7 +7,7 @@
  */
 
 defined( 'ABSPATH' ) || exit;
-require_once( __DIR__ . '/band-platform/extrch.co-link-page/config/link-page-font-config.php' );
+require_once( __DIR__ . '/band-platform/extrch.co-link-page/link-page-font-config.php' );
 global $extrch_link_page_fonts;
 
 global $wp_query; // Make sure $wp_query is available
@@ -37,7 +37,7 @@ if ( !$band_profile ) {
 // Ensure LivePreviewManager class is available.
 // It should be included by link-page-includes.php.
 if ( ! class_exists( 'LivePreviewManager' ) ) {
-    $live_preview_manager_path = dirname( __FILE__ ) . '/band-platform/extrch.co-link-page/config/live-preview/LivePreviewManager.php';
+    $live_preview_manager_path = dirname( __FILE__ ) . '/band-platform/extrch.co-link-page/live-preview/LivePreviewManager.php';
     if ( file_exists( $live_preview_manager_path ) ) {
         require_once $live_preview_manager_path;
     }

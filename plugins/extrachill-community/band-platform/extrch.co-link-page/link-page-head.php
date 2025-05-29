@@ -10,6 +10,8 @@
  * @param int $band_id The ID of the associated band_profile post.
  * @param int $link_page_id The ID of the band_link_page post.
  */
+require_once __DIR__ . '/link-page-custom-vars-and-fonts-head.php';
+
 function extrch_link_page_custom_head( $band_id, $link_page_id ) {
     global $extrch_link_page_fonts; // Ensure font config is available
 
@@ -62,142 +64,8 @@ function extrch_link_page_custom_head( $band_id, $link_page_id ) {
     );
     echo '<script>window.extrchSessionData = ' . wp_json_encode( $session_data ) . ';</script>';
 
-    // Custom CSS Variables and Google Font
-    $custom_vars_json = get_post_meta( $link_page_id, '_link_page_custom_css_vars', true );
-    $final_custom_vars_style = '';
-    $processed_vars = array();
-    $default_title_font_value = 'WilcoLoftSans'; // From font config
-    $default_title_font_stack = "'WilcoLoftSans', Helvetica, Arial, sans-serif"; // From font config
-    $selected_title_font_value = $default_title_font_value;
-    $selected_title_font_stack = $default_title_font_stack;
-
-    // Defaults for body font
-    $default_body_font_value = 'OpenSans'; // Example from font config, adjust if different
-    $default_body_font_stack = "'Open Sans', Helvetica, Arial, sans-serif"; // Example from font config
-    $selected_body_font_value = $default_body_font_value;
-    $selected_body_font_stack = $default_body_font_stack;
-
-    if ( !empty( $custom_vars_json ) ) {
-        $custom_vars = json_decode( $custom_vars_json, true );
-        if ( is_array( $custom_vars ) ) {
-            foreach ( $custom_vars as $k => $v ) {
-                if ( $k === '--link-page-title-font-family' ) {
-                    $font_found_in_config = false;
-                    if (is_array($extrch_link_page_fonts)) {
-                        foreach ( $extrch_link_page_fonts as $font ) {
-                            if ( $font['value'] === $v || $font['stack'] === $v ) {
-                                $selected_title_font_value = $font['value'];
-                                $selected_title_font_stack = $font['stack'];
-                                $processed_vars[$k] = $font['stack'];
-                                $font_found_in_config = true;
-                                break;
-                            }
-                        }
-                    }
-                    if (!$font_found_in_config) {
-                         // Handle cases where the stored value might be a direct font name not in simple config
-                        if (strpos($v, ',') === false && strpos($v, "'") === false && strpos($v, '"') === false) { // Likely a single font name
-                            $processed_vars[$k] = "'" . $v . "', " . $default_title_font_stack; // Build a stack
-                            $selected_title_font_value = $v; // Assume this is the value to check for Google Font
-                            $selected_title_font_stack = $processed_vars[$k];
-                        } else {
-                            $processed_vars[$k] = $v ?: $default_title_font_stack;
-                            // Attempt to parse the first font from the stack for Google Font check
-                            $first_font_in_stack = explode(',', $v)[0];
-                            $selected_title_font_value = trim($first_font_in_stack, " '\"");
-                            $selected_title_font_stack = $v;
-                        }
-                    }
-                } elseif ( $k === '--link-page-body-font-family' ) {
-                    $font_found_in_config = false;
-                    if (is_array($extrch_link_page_fonts)) {
-                        foreach ( $extrch_link_page_fonts as $font ) {
-                            if ( $font['value'] === $v || $font['stack'] === $v ) {
-                                $selected_body_font_value = $font['value'];
-                                $selected_body_font_stack = $font['stack'];
-                                $processed_vars[$k] = $font['stack'];
-                                $font_found_in_config = true;
-                                break;
-                            }
-                        }
-                    }
-                    if (!$font_found_in_config) {
-                        if (strpos($v, ',') === false && strpos($v, "'") === false && strpos($v, '"') === false) {
-                            $processed_vars[$k] = "'" . $v . "', " . $default_body_font_stack;
-                            $selected_body_font_value = $v;
-                            $selected_body_font_stack = $processed_vars[$k];
-                        } else {
-                            $processed_vars[$k] = $v ?: $default_body_font_stack;
-                            $first_font_in_stack = explode(',', $v)[0];
-                            $selected_body_font_value = trim($first_font_in_stack, " '\"");
-                            $selected_body_font_stack = $v;
-                        }
-                    }
-                } else {
-                    $processed_vars[$k] = $v;
-                }
-            }
-        }
-    }
-
-    // Fallback: if no font-family set in custom_vars, ensure default is processed
-    if ( !isset( $processed_vars['--link-page-title-font-family'] ) ) {
-        $processed_vars['--link-page-title-font-family'] = $default_title_font_stack;
-        $selected_title_font_value = $default_title_font_value; // Ensure this is set for Google Font check
-    }
-    // Fallback for body font
-    if ( !isset( $processed_vars['--link-page-body-font-family'] ) ) {
-        $processed_vars['--link-page-body-font-family'] = $default_body_font_stack;
-        $selected_body_font_value = $default_body_font_value;
-    }
-    
-    // Construct the :root CSS variables style tag
-    if ( !empty( $processed_vars ) ) {
-        $final_custom_vars_style .= '<style id="extrch-link-page-custom-vars">:root {';
-        foreach ( $processed_vars as $k => $v ) {
-            if ( isset( $v ) && $v !== '' ) {
-                $key_sanitized = esc_html( $k );
-                $value_trimmed = trim( $v );
-                // Font family stack might contain unescaped characters if not from config, but should be safe if from config.
-                // Other values are typically colors or simple strings.
-                $is_font_family_var = ( $k === '--link-page-title-font-family' || $k === '--link-page-body-font-family' );
-                $final_custom_vars_style .= $key_sanitized . ':' . ( $is_font_family_var ? $value_trimmed : esc_html( $value_trimmed ) ) . ';';
-            }
-        }
-        $final_custom_vars_style .= '}</style>';
-        echo $final_custom_vars_style;
-    }
-
-    // Google Font Link (based on the determined $selected_title_font_value and $selected_body_font_value)
-    $google_font_params_to_enqueue = [];
-
-    if (is_array($extrch_link_page_fonts)) {
-        // Check title font
-        foreach ( $extrch_link_page_fonts as $font_entry ) {
-            if ( $font_entry['value'] === $selected_title_font_value && !empty($font_entry['google_font_param']) && $font_entry['google_font_param'] !== 'local_default' && $font_entry['google_font_param'] !== 'inherit') {
-                if (!in_array($font_entry['google_font_param'], $google_font_params_to_enqueue)) {
-                    $google_font_params_to_enqueue[] = $font_entry['google_font_param'];
-                }
-                break;
-            }
-        }
-        // Check body font
-        foreach ( $extrch_link_page_fonts as $font_entry ) {
-            if ( $font_entry['value'] === $selected_body_font_value && !empty($font_entry['google_font_param']) && $font_entry['google_font_param'] !== 'local_default' && $font_entry['google_font_param'] !== 'inherit') {
-                if (!in_array($font_entry['google_font_param'], $google_font_params_to_enqueue)) {
-                    $google_font_params_to_enqueue[] = $font_entry['google_font_param'];
-                }
-                break;
-            }
-        }
-    }
-
-    if ( !empty($google_font_params_to_enqueue) ) {
-        $font_families_string = implode('&family=', array_map('urlencode', $google_font_params_to_enqueue));
-        $font_url = 'https://fonts.googleapis.com/css2?family=' . $font_families_string . '&display=swap';
-        echo '<link rel="stylesheet" href="' . esc_url( $font_url ) . '" media="print" onload="this.media=\'all\'">';
-        echo '<noscript><link rel="stylesheet" href="' . esc_url( $font_url ) . '"></noscript>';
-    }
+    // Output custom CSS vars and Google Fonts
+    extrch_link_page_custom_vars_and_fonts_head($link_page_id, $extrch_link_page_fonts);
 
     // Action hook for any other critical head items (use sparingly)
     do_action('extrch_link_page_minimal_head', $link_page_id, $band_id);

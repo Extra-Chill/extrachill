@@ -47,7 +47,6 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  visibility: hidden; /* JS controls this */
   /* position: sticky; // Removed from global */
 }
 /* This rule was for the container *inside* the iframe, uncomment if it was providing a useful visual border for the preview content itself */
@@ -751,4 +750,12 @@ i.fa-solid.fa-qrcode:hover {
   border: 1px solid var(--border-color); /* Add borders for clarity */
   word-break: break-word; /* Break long words (like URLs) */
   overflow-wrap: break-word; /* Alternative/standard property */
+}
+
+/* Live Preview: Background Image Support */
+.manage-link-page-preview-live .extrch-link-page-container {
+  background-image: var(--link-page-background-image-url, none);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
 }
