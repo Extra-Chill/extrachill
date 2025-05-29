@@ -70,7 +70,7 @@ function extrch_generate_qrcode_ajax() {
 
     } catch (Exception $e) {
         // Log the error and return a JSON error response
-        error_log('QR Code Generation Error: ' . $e->getMessage());
+        // error_log('QR Code Generation Error: ' . $e->getMessage());
         wp_send_json_error(['message' => 'Failed to generate QR code: ' . $e->getMessage()], 500);
     }
 }

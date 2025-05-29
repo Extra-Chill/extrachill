@@ -1,5 +1,5 @@
 window.ExtrchLinkPageManager = window.ExtrchLinkPageManager || {};
-console.log('[Manager - Top Level] window.extrchLinkPageConfig state:', window.extrchLinkPageConfig);
+// console.log('[Manager - Top Level] window.extrchLinkPageConfig state:', window.extrchLinkPageConfig);
 
 // --- Function to get the preview container element ---
 ExtrchLinkPageManager.getPreviewEl = function() {
@@ -9,10 +9,8 @@ ExtrchLinkPageManager.getPreviewEl = function() {
         if (previewContainer) {
             return previewContainer;
         }
-        // console.warn('[Manager] .extrch-link-page-preview-container not found within .manage-link-page-preview-live.');
         return null;
     }
-    // console.warn('[Manager] .manage-link-page-preview-live not found.');
     return null;
 };
 
@@ -175,7 +173,7 @@ ExtrchLinkPageManager.isInitialized = false;
 
 // --- Main Initialization Orchestrator ---
 ExtrchLinkPageManager.init = function() {
-    console.log('[ExtrchLinkPageManager] Initializing...');
+    // console.log('[ExtrchLinkPageManager] Initializing...');
 
     // Initialize Jump to Preview functionality
     if (typeof ExtrchLinkPageManager.initializeJumpToPreview === 'function') {
@@ -184,7 +182,7 @@ ExtrchLinkPageManager.init = function() {
 
     // Initialize Customization Module
     if (ExtrchLinkPageManager.customization && typeof ExtrchLinkPageManager.customization.init === 'function') {
-        console.log('[ExtrchLinkPageManager] Calling customization.init()...');
+        // console.log('[ExtrchLinkPageManager] Calling customization.init()...');
         ExtrchLinkPageManager.customization.init();
     } else {
         console.warn('[ExtrchLinkPageManager] Customization module or its init function not found.');
@@ -192,7 +190,7 @@ ExtrchLinkPageManager.init = function() {
 
     // Initialize Sizing Module (must come after customization for correct hydration)
     if (ExtrchLinkPageManager.sizing && typeof ExtrchLinkPageManager.sizing.init === 'function') {
-        console.log('[ExtrchLinkPageManager] Calling sizing.init()...');
+        // console.log('[ExtrchLinkPageManager] Calling sizing.init()...');
         ExtrchLinkPageManager.sizing.init();
     }
 
@@ -203,7 +201,7 @@ ExtrchLinkPageManager.init = function() {
     
     // Initialize Links Module (Example - to be created/refactored)
     if (ExtrchLinkPageManager.links && typeof ExtrchLinkPageManager.links.init === 'function') {
-        console.log('[ExtrchLinkPageManager] Calling links.init()...');
+        // console.log('[ExtrchLinkPageManager] Calling links.init()...');
         ExtrchLinkPageManager.links.init();
     } else {
         console.warn('[ExtrchLinkPageManager] Links module or its init function not found.');
@@ -211,9 +209,9 @@ ExtrchLinkPageManager.init = function() {
 
     // Initialize Social Icons Module (Example)
     if (ExtrchLinkPageManager.socialIcons && typeof ExtrchLinkPageManager.socialIcons.init === 'function') {
-        console.log('[ExtrchLinkPageManager] Calling socialIcons.init()...');
+        // console.log('[ExtrchLinkPageManager] Calling socialIcons.init()...');
         ExtrchLinkPageManager.socialIcons.init(window.extrchLinkPageConfig);
-        console.log('[ExtrchLinkPageManager] socialIcons.init() called.');
+        // console.log('[ExtrchLinkPageManager] socialIcons.init() called.');
     } else {
         console.warn('[ExtrchLinkPageManager] SocialIcons module or its init function not found.');
     }
@@ -231,7 +229,7 @@ ExtrchLinkPageManager.init = function() {
     // Initialize Info Tab Manager (Info Card)
     if (window.ExtrchLinkPageInfoManager && typeof window.ExtrchLinkPageInfoManager.init === 'function') {
         window.ExtrchLinkPageInfoManager.init(ExtrchLinkPageManager);
-        console.log('[ExtrchLinkPageManager] Info Card manager initialized.');
+        // console.log('[ExtrchLinkPageManager] Info Card manager initialized.');
     } else {
         console.warn('[ExtrchLinkPageManager] Info Card manager not found.');
     }
@@ -248,7 +246,7 @@ ExtrchLinkPageManager.init = function() {
 
     // --- Initialize Save Handler ---
     if (ExtrchLinkPageManager.save && typeof ExtrchLinkPageManager.save.attachSaveHandlerToForm === 'function') {
-        console.log('[ExtrchLinkPageManager] Attaching save handler...');
+        // console.log('[ExtrchLinkPageManager] Attaching save handler...');
         ExtrchLinkPageManager.save.attachSaveHandlerToForm();
     } else {
         console.warn('[ExtrchLinkPageManager] Save module or its attachSaveHandlerToForm function not found.');
@@ -267,7 +265,7 @@ ExtrchLinkPageManager.init = function() {
 
     // Other initializations can go here...
 
-    console.log('[ExtrchLinkPageManager] Initialization complete.');
+    // console.log('[ExtrchLinkPageManager] Initialization complete.');
 };
 
 // --- DOMContentLoaded Listener --- 

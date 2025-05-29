@@ -160,7 +160,6 @@ function wp_surgeon_handle_registration() {
             // Convert WP_Error to string and add to errors array
             $error_messages = implode(", ", $user_id->get_error_messages());
             $wp_surgeon_registration_errors[] = 'Registration error: ' . $error_messages;
-            error_log("Registration failed for $email: " . $error_messages); // Optionally log this error
             return; // Early return to prevent further processing
         }
 
@@ -208,25 +207,25 @@ function wp_surgeon_handle_registration() {
 
                 if (bp_add_band_membership($user_id, $invite_band_id_posted)) {
                     if (bp_remove_pending_invitation($invite_band_id_posted, $valid_invite_id_for_removal)) {
-                        error_log("Band Invite Registration: User $user_id successfully added to band $invite_band_id_posted and invite removed.");
+                        // error_log("Band Invite Registration: User $user_id successfully added to band $invite_band_id_posted and invite removed.");
                         $processed_invite_band_id = $invite_band_id_posted; // Store for redirect
                     } else {
-                        error_log("Band Invite Registration: User $user_id added to band $invite_band_id_posted, but FAILED to remove pending invite ID $valid_invite_id_for_removal.");
+                        // error_log("Band Invite Registration: User $user_id added to band $invite_band_id_posted, but FAILED to remove pending invite ID $valid_invite_id_for_removal.");
                         // Still treat as success for user, but log the cleanup issue
                         $processed_invite_band_id = $invite_band_id_posted;
                     }
                 } else {
-                    error_log("Band Invite Registration: FAILED to add user $user_id to band $invite_band_id_posted.");
+                    // error_log("Band Invite Registration: FAILED to add user $user_id to band $invite_band_id_posted.");
                     $wp_surgeon_registration_errors[] = 'Your account was created, but there was an issue joining the invited band. Please contact support.';
                 }
             } else {
-                 error_log("Band Invite Registration: Invalid or mismatched token/email for invite. Token: $invite_token_posted, Band ID: $invite_band_id_posted, New User Email: $email");
+                 // error_log("Band Invite Registration: Invalid or mismatched token/email for invite. Token: $invite_token_posted, Band ID: $invite_band_id_posted, New User Email: $email");
                 // Don't add an error to $wp_surgeon_registration_errors here, as registration itself might be fine, just invite part failed.
                 // User gets registered as normal without joining band.
             }
         } elseif ($invite_token_posted || $invite_band_id_posted) {
             // Log if token/band_id was posted but functions were missing (should not happen with require_once at top)
-            error_log("Band Invite Registration: Invite token/band_id posted, but required band platform functions are missing.");
+            // error_log("Band Invite Registration: Invite token/band_id posted, but required band platform functions are missing.");
         }
 
           // Save user statuses after successful registration (DIRECTLY IN THIS FUNCTION)
@@ -278,7 +277,7 @@ function sync_to_sendy($email, $name) {
     curl_close($ch);
 
     if (strpos($response, '1') === false) {
-        error_log('Failed to sync email to Sendy: ' . $response);
+        // error_log('Failed to sync email to Sendy: ' . $response);
     }
 }
 
@@ -298,9 +297,9 @@ function auto_login_new_user($user_id, $redirect_band_id = null, $from_join_flow
              $manage_band_page = get_page_by_path('manage-band-profiles');
               if ($manage_band_page) {
                   $redirect_url = add_query_arg('from_join', 'true', get_permalink($manage_band_page));
-                  error_log('[Join Flow] New user registered, redirected to Create Band Profile: ' . $redirect_url);
+                  // error_log('[Join Flow] New user registered, redirected to Create Band Profile: ' . $redirect_url);
               } else {
-                  error_log('[Join Flow] New user registered: Manage Band Profile page not found.');
+                  // error_log('[Join Flow] New user registered: Manage Band Profile page not found.');
                   // Fallback if manage page not found
                  $redirect_url = home_url();
               }
@@ -319,7 +318,7 @@ function auto_login_new_user($user_id, $redirect_band_id = null, $from_join_flow
              $band_post = get_post($redirect_band_id);
              if ($band_post && $band_post->post_type === 'band_profile') {
                  $redirect_url = get_permalink($band_post);
-                 error_log('[Band Invite] New user registered and added to band, redirected to Band Profile: ' . $redirect_url);
+                 // error_log('[Band Invite] New user registered and added to band, redirected to Band Profile: ' . $redirect_url);
              } else {
                  // Fallback if band post not found
                  $redirect_url = home_url();
@@ -329,7 +328,7 @@ function auto_login_new_user($user_id, $redirect_band_id = null, $from_join_flow
         // Default redirect after registration if not from join flow or band invite
         else {
             $redirect_url = apply_filters('registration_redirect', home_url());
-             error_log('[Registration] New user registered, redirected to default: ' . $redirect_url);
+             // error_log('[Registration] New user registered, redirected to default: ' . $redirect_url);
         }
 
 
@@ -354,7 +353,7 @@ function wp_surgeon_get_registration_errors() {
 
 // Function to verify Turnstile response
 function wp_surgeon_verify_turnstile($response) {
-    error_log('[Turnstile Debug] WP_ENV: ' . (defined('WP_ENV') ? WP_ENV : 'Not Defined'));
+    // error_log('[Turnstile Debug] WP_ENV: ' . (defined('WP_ENV') ? WP_ENV : 'Not Defined'));
     if ( defined('WP_ENV') && WP_ENV === 'development' ) {
         return true;
     }
@@ -371,7 +370,7 @@ function wp_surgeon_verify_turnstile($response) {
     ]);
 
     if (is_wp_error($verify_response)) {
-        error_log('Turnstile verification request failed: ' . $verify_response->get_error_message());
+        // error_log('Turnstile verification request failed: ' . $verify_response->get_error_message());
         return false;
     }
 
@@ -379,7 +378,7 @@ function wp_surgeon_verify_turnstile($response) {
     $result = json_decode($body);
 
     if (!$result || empty($result->success)) {
-        error_log('Turnstile verification failed. Result: ' . print_r($result, true));
+        // error_log('Turnstile verification failed. Result: ' . print_r($result, true));
         return false;
     }
 

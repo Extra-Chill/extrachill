@@ -31,14 +31,14 @@ function extrch_fetch_link_meta_title_ajax_handler() {
     $response = wp_safe_remote_get( $url, array( 'timeout' => 10, 'user-agent' => 'Mozilla/5.0 (compatible; ExtrchBot/1.0; +https://extrachill.com/)' ) ); // 10 second timeout with custom UA
 
     if ( is_wp_error( $response ) ) {
-        error_log( '[extrch_fetch_link_meta_title_ajax_handler] wp_safe_remote_get error: ' . $response->get_error_message() . ' for URL: ' . $url );
+        // error_log( '[extrch_fetch_link_meta_title_ajax_handler] wp_safe_remote_get error: ' . $response->get_error_message() . ' for URL: ' . $url );
         wp_send_json_error( [ 'message' => 'Failed to retrieve URL: ' . $response->get_error_message() ] );
         return;
     }
 
     $body = wp_remote_retrieve_body( $response );
     if ( empty( $body ) ) {
-        error_log( '[extrch_fetch_link_meta_title_ajax_handler] Empty body for URL: ' . $url );
+        // error_log( '[extrch_fetch_link_meta_title_ajax_handler] Empty body for URL: ' . $url );
         wp_send_json_error( [ 'message' => 'Retrieved empty content from URL.' ] );
         return;
     }

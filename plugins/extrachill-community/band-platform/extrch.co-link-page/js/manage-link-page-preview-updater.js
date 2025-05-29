@@ -22,12 +22,12 @@
     function updateRootCssVariable(key, value) {
         const { styleTag } = getLivePreviewContent();
         if (!styleTag) {
-            console.error('[PreviewUpdater] Cannot update CSS variable: Style tag not found.');
+            // console.error('[PreviewUpdater] Cannot update CSS variable: Style tag not found.');
             return;
         }
         let sheet = styleTag.sheet;
         if (!sheet) {
-            console.error('[PreviewUpdater] No sheet found on style tag.');
+            // console.error('[PreviewUpdater] No sheet found on style tag.');
             return;
         }
         let rootRule = null;
@@ -43,7 +43,7 @@
                 sheet.insertRule(':root {}', sheet.cssRules.length);
                 rootRule = sheet.cssRules[sheet.cssRules.length - 1];
             } catch (e) {
-                console.error('[PreviewUpdater] Failed to insert :root rule:', e);
+                // console.error('[PreviewUpdater] Failed to insert :root rule:', e);
                 return;
             }
         }
@@ -105,7 +105,7 @@
                 imgTag.style.borderRadius = 'inherit';
             }
         } else {
-            console.warn('[PreviewUpdater] previewProfileImageDiv NOT FOUND for shape update.');
+            // console.warn('[PreviewUpdater] previewProfileImageDiv NOT FOUND for shape update.');
         }
     };
     PREVIEW_UPDATERS['--link-page-profile-img-url'] = function(imgUrl) {
@@ -151,7 +151,7 @@
             try {
                 PREVIEW_UPDATERS[key](value, null, allCustomVars);
             } catch (e) {
-                console.error(`Error in PreviewUpdater.update for key ${key}:`, e);
+                // console.error(`Error in PreviewUpdater.update for key ${key}:`, e);
             }
         } else if (key && value) {
             updateRootCssVariable(key, value);
@@ -160,37 +160,38 @@
 
     manager.previewUpdater.refreshFullPreview = function(hydratedState) {
         if (!hydratedState || !hydratedState.customVars) {
-            console.warn('[PreviewUpdater] refreshFullPreview: No hydrated state or customVars provided.');
+            // console.warn('[PreviewUpdater] refreshFullPreview: No hydrated state or customVars provided.');
             return;
         }
         const allCustomVars = hydratedState.customVars;
+        // Removed potentially problematic filtering loop and unnecessary variable
+        // Just iterate directly over the customVars object keys
         for (const key in allCustomVars) {
-             if (allCustomVars.hasOwnProperty(key) && !['_link_page_profile_img_shape', '--link-page-profile-img-url', 'overlay', '--link-page-background-type'].includes(key)) {
-                  relevantKeys.push(key);
-             }
-         }
-        for (const key of relevantKeys) {
-            const value = allCustomVars[key];
-                    if (typeof PREVIEW_UPDATERS[key] === 'function') {
-                        try {
-                    PREVIEW_UPDATERS[key](value, null, allCustomVars);
-                        } catch (e) {
-                            console.error(`Error in preview updater during refreshFullPreview for key ${key}:`, e);
-                }
+            if (allCustomVars.hasOwnProperty(key)) {
+                const value = allCustomVars[key];
+                 // Only call specific updaters if they exist, otherwise just update the CSS var via the generic fallback
+                 if (typeof PREVIEW_UPDATERS[key] === 'function') {
+                      try {
+                          PREVIEW_UPDATERS[key](value, null, allCustomVars);
+                      } catch (e) {
+                          // console.error(`Error in preview updater during refreshFullPreview for key ${key}:`, e);
+                      }
+                  } else if (key && value && key.startsWith('--')) {
+                      // If no specific updater, and it's a CSS var, update it generically
+                      updateRootCssVariable(key, value);
+                  }
             }
         }
         const refreshedEvent = new CustomEvent('extrchLinkPagePreviewRefreshed', { detail: { hydratedState } });
         document.dispatchEvent(refreshedEvent);
-         console.log('[PreviewUpdater] Full preview refreshed.');
     };
 
     manager.previewUpdater.initPreview = function(hydratedState) {
         if (!hydratedState || !hydratedState.customVars) {
-            console.warn('[PreviewUpdater] No hydrated state or customVars provided to initPreview.');
+            // console.warn('[PreviewUpdater] No hydrated state or customVars provided to initPreview.');
         }
         manager.setHydratedState(hydratedState);
         manager.previewUpdater.refreshFullPreview(hydratedState);
-        console.log('[PreviewUpdater] initPreview called. PreviewUpdater ready for dynamic updates.');
     };
 
     // No iframe/DOM ready logic needed; everything is in the main document

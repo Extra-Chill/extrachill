@@ -59,7 +59,6 @@ function extrch_create_link_page_for_band_profile( $post_id, $post ) {
     // This is important because the $post object passed to the hook might reflect a state before final title/slug save in admin.
     $latest_band_profile_post = get_post( $post_id );
     if ( ! $latest_band_profile_post ) {
-        error_log( 'Cannot create link page: Could not retrieve latest band profile post object for ID ' . $post_id );
         return;
     }
 
@@ -68,7 +67,6 @@ function extrch_create_link_page_for_band_profile( $post_id, $post ) {
 
     // Ensure title and slug are not empty before creating
     if ( empty( $link_page_title ) || empty( $band_profile_slug ) ) {
-        error_log( 'Cannot create link page: Band profile title (' . $link_page_title . ') or slug (' . $band_profile_slug . ') is empty for post ID ' . $post_id );
         return;
     }
 
@@ -86,7 +84,6 @@ function extrch_create_link_page_for_band_profile( $post_id, $post ) {
 
     if ( is_wp_error( $new_link_page_id ) ) {
         // Handle error, e.g., log it.
-        error_log( 'Error creating link page for band profile ' . $post_id . ': ' . $new_link_page_id->get_error_message() );
         return;
     }
 
@@ -230,7 +227,6 @@ function extrch_get_or_create_default_admin_link_page( $create_if_missing = true
         ) );
 
         if ( is_wp_error( $new_band_id ) || ! $new_band_id ) {
-            error_log( 'Error creating default band profile: ' . ( is_wp_error( $new_band_id ) ? $new_band_id->get_error_message() : 'Unknown error' ) );
             return null;
         }
         $band_id = $new_band_id;
@@ -254,7 +250,6 @@ function extrch_get_or_create_default_admin_link_page( $create_if_missing = true
 
         $band_profile_post_obj = get_post( $band_id );
         if ( ! $band_profile_post_obj ) {
-             error_log( 'Error retrieving default band profile object for ID: ' . $band_id );
             return null;
         }
         // Create the link page if it doesn't exist AND $create_if_missing is true.
@@ -262,7 +257,6 @@ function extrch_get_or_create_default_admin_link_page( $create_if_missing = true
         $link_page_id = get_post_meta( $band_id, '_extrch_link_page_id', true );
 
         if ( ! $link_page_id || !get_post_status($link_page_id) ) { // Check if it was actually created
-            error_log( 'Error creating or retrieving link page for default band profile ID: ' . $band_id );
             return array('band_id' => $band_id, 'link_page_id' => null);
         }
     }

@@ -16,7 +16,7 @@
      * Falls back to fetch for page view tracking.
      */
     function sendTrackingEvent(eventType, eventIdentifier) {
-        console.log(`Tracking event: ${eventType}, Identifier: ${eventIdentifier}`); // For debugging
+        // console.log(`Tracking event: ${eventType}, Identifier: ${eventIdentifier}`); // For debugging
 
         const formData = new FormData();
         formData.append('action', 'extrch_record_link_event');
@@ -31,9 +31,9 @@
         if (eventType === 'link_click' && navigator.sendBeacon) {
             try {
                 if (navigator.sendBeacon(ajax_url, formData)) {
-                    console.log('Beacon sent successfully.');
+                    // console.log('Beacon sent successfully.');
                 } else {
-                    console.warn('Beacon failed to queue.');
+                    // console.warn('Beacon failed to queue.');
                      // Fallback or just log? sendBeacon failure is hard to handle reliably.
                 }
             } catch (e) {
@@ -54,7 +54,7 @@
             })
             .then(data => {
                 if (data && data.success) {
-                    console.log('Tracking success:', data.data?.message);
+                    // console.log('Tracking success:', data.data?.message);
                 } else {
                     console.warn('Tracking failed:', data?.data?.message || 'Unknown error');
                 }

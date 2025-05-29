@@ -3,7 +3,7 @@
 (function() { // Wrap in IIFE to avoid polluting global scope
 
     function initializeAdvancedTab() {
-        console.log('Advanced tab JS initializing.');
+        // console.log('Advanced tab JS initializing.');
 
         const redirectToggle = document.getElementById('bp-enable-temporary-redirect');
         const redirectTargetContainer = document.getElementById('bp-temporary-redirect-target-container');
@@ -27,12 +27,12 @@
             });
 
         } else {
-            console.warn('Redirect toggle/container/select elements not found in Advanced tab during init.');
+            // console.warn('Redirect toggle/container/select elements not found in Advanced tab during init.');
         }
 
         const highlightingToggle = document.getElementById('bp-enable-link-highlighting');
         if (highlightingToggle) {
-             console.log('Highlighting toggle found.');
+             // console.log('Highlighting toggle found.');
         }
     }
 
@@ -76,7 +76,7 @@ function getCurrentLinksData() {
 
 function populateRedirectTargetDropdownIfNeeded() {
     if (!redirectTargetSelect) {
-        console.debug('[populateRedirectTargetDropdownIfNeeded] Redirect select element not found.');
+        // console.debug('[populateRedirectTargetDropdownIfNeeded] Redirect select element not found.');
         return;
     }
     if (!redirectEnabledCheckbox || !redirectEnabledCheckbox.checked) {
@@ -129,12 +129,12 @@ document.addEventListener('DOMContentLoaded', function() {
         redirectEnabledCheckbox.addEventListener('change', updateDisplay);
         updateDisplay(); // Call once on load
     } else {
-        console.warn('Redirect checkbox or container not found on DOMContentLoaded for initial setup.');
+        // console.warn('Redirect checkbox or container not found on DOMContentLoaded for initial setup.');
     }
 
     // Listen for custom event that indicates links have been updated by manage-link-page-links.js
     document.addEventListener('ExtrchLinkPageLinksUpdated', function() {
-        console.debug('ExtrchLinkPageLinksUpdated event received, repopulating redirect dropdown.');
+        // console.debug('ExtrchLinkPageLinksUpdated event received, repopulating redirect dropdown.');
         populateRedirectTargetDropdownIfNeeded(); // This will respect the checkbox state
     });
 });

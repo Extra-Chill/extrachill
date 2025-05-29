@@ -41,7 +41,7 @@ document.addEventListener('DOMContentLoaded', function() {
                  // Call updateTabs, forcing it to open/activate regardless of current state or device size
                  updateTabs(targetButton, true, true, false); // Args: activeButton, shouldScroll, forceOpen, isButtonClick
              } else {
-                 console.warn('Attempted to activate non-existent tab:', tabId);
+                 // console.warn('Attempted to activate non-existent tab:', tabId);
              }
         }
 
@@ -89,7 +89,7 @@ document.addEventListener('DOMContentLoaded', function() {
             allPanes.forEach(pane => {
                 const info = originalPaneInfo.get(pane.id);
                 if (!info) {
-                     console.warn('Pane not found in originalPaneInfo during layout update:', pane.id);
+                     // console.warn('Pane not found in originalPaneInfo during layout update:', pane.id);
                     return; // Skip this pane if its original info is missing
                 }
 

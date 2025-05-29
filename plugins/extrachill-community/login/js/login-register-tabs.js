@@ -30,7 +30,7 @@ document.addEventListener('DOMContentLoaded', function() {
 // Cloudflare Turnstile callback function for registration form
 // This function is called by Turnstile when the challenge is successfully solved.
 function community_register(token) {
-    console.log('Turnstile callback fired with token:', token);
+    // console.log('Turnstile callback fired with token:', token);
     // Find the registration form
     const registerForm = document.querySelector('.login-register-form form'); // Assuming the form is within .login-register-form
 

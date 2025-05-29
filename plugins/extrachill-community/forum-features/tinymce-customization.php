@@ -1,7 +1,7 @@
 <?php
 // Enable visual editor specifically for bbPress
 function bbp_enable_visual_editor($args = array()) {
-    $args['tinymce'] = array();
+    $args['tinymce'] = array('content_css' => '/wp-content/themes/generatepress_child/css/tinymce-editor.css');
     $args['quicktags'] = false;
     $args['teeny'] = false;
     return $args;
@@ -115,6 +115,8 @@ function extrachill_output_tinymce_setup_script() {
                         } catch (saveError) {
                              console.error('[SAVE] Error during storeDraft call:', saveError);
                         }
+                    } else {
+                         console.warn('[SAVE] Editor was removed before storeDraft could be called:', editor.id);
                     }
                 }, saveDelay);
             } else {
@@ -140,6 +142,8 @@ function extrachill_output_tinymce_setup_script() {
                          } catch (clearError) {
                               console.error('[CLEAR] Error during removeDraft call:', clearError);
                          }
+                    } else {
+                        console.warn('[CLEAR] Editor was removed before removeDraft could be called:', editor.id);
                     }
                 } else {
                      console.error('[CLEAR] TinyMCE autosave plugin or removeDraft method not found for editor:', editor.id);

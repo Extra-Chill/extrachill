@@ -138,8 +138,6 @@ function bp_handle_create_band_profile_submission() {
 
         if ( ! is_wp_error( $featured_image_attach_id ) ) {
             set_post_thumbnail( $new_band_id, $featured_image_attach_id );
-        } else {
-            // error_log("Error sideloading featured image for new band $new_band_id: " . $featured_image_attach_id->get_error_message());
         }
     } elseif ( $temp_prefill_avatar_id && wp_attachment_is_image( $temp_prefill_avatar_id ) ) {
         set_post_thumbnail( $new_band_id, $temp_prefill_avatar_id );
@@ -158,11 +156,6 @@ function bp_handle_create_band_profile_submission() {
 
         if ( ! is_wp_error( $band_header_image_attach_id ) ) {
             update_post_meta( $new_band_id, '_band_profile_header_image_id', $band_header_image_attach_id );
-        } else {
-            // error_log("Error sideloading band header image for new band $new_band_id: " . $band_header_image_attach_id->get_error_message());
-            // Optionally, redirect with a specific error for header image if critical
-            // wp_safe_redirect( add_query_arg( 'bp_error', 'header_image_upload_failed', $redirect_base_url ) );
-            // exit;
         }
     }
 
@@ -191,7 +184,6 @@ function bp_handle_create_band_profile_submission() {
             'band_id' => $new_band_id,
             'from_join' => 'true' // Pass the flag to trigger the notice on the link page
         ), $manage_link_page_url );
-        error_log('[Join Flow] New band created, redirecting to Manage Link Page for Band ID ' . $new_band_id . ': ' . $redirect_url);
 
         wp_safe_redirect( $redirect_url );
         exit;
@@ -209,7 +201,6 @@ function bp_handle_create_band_profile_submission() {
         // Ensure the user is redirected to the newly created band's edit view within the manage page
         $redirect_url = add_query_arg( 'band_id', $new_band_id, $manage_page_url ); 
         $redirect_url = add_query_arg( $query_args, $redirect_url );
-        error_log('[Standard Flow] New band created, redirecting to Manage Band Profile for Band ID ' . $new_band_id . ': ' . $redirect_url);
 
         wp_safe_redirect( $redirect_url );
         exit;

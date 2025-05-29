@@ -5,7 +5,7 @@
 // Never clear or re-render the entire links DOM on initialization.
 (function(manager) {
     if (!manager) {
-        console.error('ExtrchLinkPageManager is not defined. Content Renderer script cannot run.');
+        // console.error('ExtrchLinkPageManager is not defined. Content Renderer script cannot run.');
         return;
     }
     manager.contentPreview = manager.contentPreview || {}; // Changed from linksPreview
@@ -19,12 +19,12 @@
 
     function getPreviewContainer(previewEl, selector, type) {
         if (!previewEl) {
-            console.error(`[ContentRenderer-${type}] Preview element not provided.`);
+            // console.error(`[ContentRenderer-${type}] Preview element not provided.`);
             return null;
         }
         const container = previewEl.querySelector(selector);
         if (!container) {
-            console.error(`[ContentRenderer-${type}] Container ('${selector}') not found in preview DOM.`);
+            // console.error(`[ContentRenderer-${type}] Container ('${selector}') not found in preview DOM.`);
         }
         return container;
     }
@@ -37,7 +37,7 @@
      */
     manager.contentPreview.renderLinkSections = function(sectionsArray, previewEl, contentWrapperEl) {
         if (!previewEl || !contentWrapperEl) {
-            console.error('[ContentRenderer-Links] renderLinkSections called without previewEl or contentWrapperEl.');
+            // console.error('[ContentRenderer-Links] renderLinkSections called without previewEl or contentWrapperEl.');
             return;
         }
 
@@ -63,7 +63,7 @@
 
         sectionsArray.forEach(sectionData => {
             if (!sectionData || !Array.isArray(sectionData.links)) {
-                console.warn('[ContentRenderer-Links] Skipping section due to invalid format:', sectionData);
+                // console.warn('[ContentRenderer-Links] Skipping section due to invalid format:', sectionData);
                 return;
             }
 
@@ -90,7 +90,7 @@
             if (sectionData.links.length > 0) {
                 sectionData.links.forEach(linkData => {
                     if (!linkData || !linkData.link_url || !linkData.link_text) {
-                        console.warn('[ContentRenderer-Links] Skipping link due to missing data:', linkData);
+                        // console.warn('[ContentRenderer-Links] Skipping link due to missing data:', linkData);
                         return;
                     }
                     const isActive = (typeof linkData.link_is_active !== 'undefined') ? Boolean(linkData.link_is_active) : true;
@@ -147,7 +147,7 @@
      */
     manager.contentPreview.renderSocials = function(socialsArray, previewEl, contentWrapperEl) {
         if (!previewEl || !contentWrapperEl) {
-            console.error('[ContentRenderer-Socials] renderSocials called without previewEl or contentWrapperEl.');
+            // console.error('[ContentRenderer-Socials] renderSocials called without previewEl or contentWrapperEl.');
             return;
         }
 
@@ -189,7 +189,7 @@
 
         socialsArray.forEach(socialData => {
             if (!socialData || !socialData.url || !socialData.type) {
-                console.warn('[ContentRenderer-Socials] Skipping social icon due to missing data (url or type):', socialData);
+                // console.warn('[ContentRenderer-Socials] Skipping social icon due to missing data (url or type):', socialData);
                 return;
             }
 
@@ -210,7 +210,7 @@
                 iconClass = window.extrchLinkPageConfig.supportedLinkTypes[typeLower].icon;
             } else {
                 // Fallback or warning if type is not found in the centralized list
-                console.warn(`[ContentRenderer-Socials] Icon class not found for social type: ${socialData.type}. Using a default.`);
+                // console.warn(`[ContentRenderer-Socials] Icon class not found for social type: ${socialData.type}. Using a default.`);
                 iconClass = 'fas fa-globe'; // Generic default icon
             }
             
@@ -229,14 +229,14 @@
      */
     manager.contentPreview.updatePreviewTitle = function(newTitle, previewEl) {
         if (!previewEl) {
-            console.error('[ContentRenderer-Info] updatePreviewTitle called without previewEl.');
+            // console.error('[ContentRenderer-Info] updatePreviewTitle called without previewEl.');
             return;
         }
         const titleElement = previewEl.querySelector(PREVIEW_TITLE_SELECTOR);
         if (titleElement) {
             titleElement.textContent = newTitle;
         } else {
-            console.warn('[ContentRenderer-Info] Title element (' + PREVIEW_TITLE_SELECTOR + ') not found in preview DOM.');
+            // console.warn('[ContentRenderer-Info] Title element (' + PREVIEW_TITLE_SELECTOR + ') not found in preview DOM.');
         }
     };
 
@@ -247,97 +247,90 @@
      */
     manager.contentPreview.updatePreviewBio = function(newBio, previewEl) {
         if (!previewEl) {
-            console.error('[ContentRenderer-Info] updatePreviewBio called without previewEl.');
+            // console.error('[ContentRenderer-Info] updatePreviewBio called without previewEl.');
             return;
         }
         const bioElement = previewEl.querySelector(PREVIEW_BIO_SELECTOR);
         if (bioElement) {
-            bioElement.textContent = newBio; // Using textContent to prevent HTML injection if bio contains it
+             // Use innerHTML to allow basic HTML tags (like line breaks) if needed from wp_kses_post
+            bioElement.innerHTML = newBio;
         } else {
-            console.warn('[ContentRenderer-Info] Bio element (' + PREVIEW_BIO_SELECTOR + ') not found in preview DOM.');
+             // console.warn('[ContentRenderer-Info] Bio element (' + PREVIEW_BIO_SELECTOR + ') not found in preview DOM.');
         }
     };
 
-    /**
-     * Ensures the profile image container and <img> exist in the preview DOM, creating them if missing.
-     * Returns the <img> element.
-     */
-    function ensureProfileImageContainer(previewEl) {
-        if (!previewEl) return null;
-        let container = previewEl.querySelector(PROFILE_IMAGE_CONTAINER_SELECTOR);
-        if (!container) {
-            container = document.createElement('div');
-            container.className = 'extrch-link-page-profile-img';
-            // Insert at the top of the preview, or after the title if present
-            const title = previewEl.querySelector('.extrch-link-page-title');
-            if (title && title.nextSibling) {
-                previewEl.insertBefore(container, title.nextSibling);
-            } else {
-                previewEl.insertBefore(container, previewEl.firstChild);
-            }
-        }
-        let img = container.querySelector('img');
-        if (!img) {
-            img = document.createElement('img');
-            img.alt = 'Profile Image';
-            img.style.display = 'none';
-            container.appendChild(img);
-        }
-        return img;
-    }
+
 
     /**
      * Updates the profile image in the live preview.
-     * @param {string} newImageUrl The new image URL (can be a data URL).
+     * @param {string} imgUrl The new image URL.
      * @param {HTMLElement} previewEl The main preview container element.
      */
-    manager.contentPreview.updatePreviewProfileImage = function(newImageUrl, previewEl) {
+    manager.contentPreview.updateProfileImage = function(imgUrl, previewEl) {
         if (!previewEl) {
-            console.error('[ContentRenderer-Info] updatePreviewProfileImage called without previewEl.');
+            // console.error('[ContentRenderer-Info] updateProfileImage called without previewEl.');
             return;
         }
-        // Ensure container and img exist
-        const imageElement = ensureProfileImageContainer(previewEl);
-        const imageContainer = imageElement ? imageElement.parentElement : null;
-        if (imageElement) {
-            imageElement.src = newImageUrl;
-            imageElement.style.display = newImageUrl ? 'block' : 'none';
-            if (imageContainer) {
-                if (newImageUrl) {
-                    imageContainer.classList.remove('no-image');
-                    imageContainer.style.display = 'block';
-                } else {
-                    imageContainer.classList.add('no-image');
-                    imageContainer.style.display = '';
-                }
+        const imgElement = previewEl.querySelector(PREVIEW_PROFILE_IMAGE_SELECTOR);
+        const imgContainer = previewEl.querySelector(PROFILE_IMAGE_CONTAINER_SELECTOR);
+
+        if (imgElement && imgContainer) {
+            if (imgUrl) {
+                imgElement.src = imgUrl;
+                imgContainer.style.display = 'block'; // Ensure container is visible
+            } else {
+                imgElement.src = ''; // Clear source
+                imgContainer.style.display = 'none'; // Hide container if no image
             }
         } else {
-            console.warn('[ContentRenderer-Info] Could not ensure profile image element in preview DOM.');
+             // console.warn('[ContentRenderer-Info] Profile image element (' + PREVIEW_PROFILE_IMAGE_SELECTOR + ') or container (' + PROFILE_IMAGE_CONTAINER_SELECTOR + ') not found in preview DOM.');
         }
     };
 
-    /**
-     * Removes the profile image from the live preview (or sets to a default/placeholder if applicable).
-     * @param {HTMLElement} previewEl The main preview container element.
-     */
-    manager.contentPreview.removePreviewProfileImage = function(previewEl) {
-        if (!previewEl) {
-            console.error('[ContentRenderer-Info] removePreviewProfileImage called without previewEl.');
-            return;
-        }
-        // Ensure container and img exist
-        const imageElement = ensureProfileImageContainer(previewEl);
-        const imageContainer = imageElement ? imageElement.parentElement : null;
-        if (imageElement) {
-            imageElement.src = '';
-            imageElement.style.display = 'none';
-            if (imageContainer) {
-                imageContainer.classList.add('no-image');
-                imageContainer.style.display = '';
-            }
-        } else {
-            console.warn('[ContentRenderer-Info] Could not ensure profile image element in preview DOM for removal.');
-        }
-    };
+     /**
+      * Ensures the profile image container exists in the preview DOM and has basic structure.
+      * Useful for initial rendering or if the element might be conditionally present.
+      * @param {HTMLElement} previewEl The main preview container element.
+      * @returns {HTMLElement|null} The profile image container element, or null if previewEl is missing.
+      */
+    function ensureProfileImageContainer(previewEl) {
+        if (!previewEl) return null;
 
-})(window.ExtrchLinkPageManager = window.ExtrchLinkPageManager || {}); 
+        let imgContainer = previewEl.querySelector(PROFILE_IMAGE_CONTAINER_SELECTOR);
+
+        if (!imgContainer) {
+            imgContainer = document.createElement('div');
+            imgContainer.className = PROFILE_IMAGE_CONTAINER_SELECTOR.substring(1);
+            imgContainer.classList.add('extrch-link-page-info-section'); // Add info section class for spacing
+
+            const imgElement = document.createElement('img');
+            imgElement.className = PREVIEW_PROFILE_IMAGE_SELECTOR.split(' ').pop(); // Get only the img class
+            imgElement.alt = 'Profile Image'; // Add alt text
+            imgElement.style.display = 'none'; // Hide by default until image is set
+
+            imgContainer.appendChild(imgElement);
+
+            // Find where to insert it - typically after bio, before socials/links
+            const bioElement = previewEl.querySelector(PREVIEW_BIO_SELECTOR);
+            let insertBeforeTarget = previewEl.querySelector(PREVIEW_SOCIALS_CONTAINER_SELECTOR);
+            if (!insertBeforeTarget) {
+                insertBeforeTarget = previewEl.querySelector(PREVIEW_LINKS_CONTAINER_SELECTOR);
+            }
+            if (!insertBeforeTarget) {
+                 insertBeforeTarget = previewEl.querySelector('.extrch-link-page-powered');
+            }
+            
+            if (bioElement) {
+                 bioElement.parentNode.insertBefore(imgContainer, insertBeforeTarget || bioElement.nextSibling);
+            } else if (insertBeforeTarget) {
+                 previewEl.querySelector('.extrch-link-page-content-wrapper').insertBefore(imgContainer, insertBeforeTarget);
+            } else { // Fallback - append to content wrapper
+                previewEl.querySelector('.extrch-link-page-content-wrapper').appendChild(imgContainer);
+            }
+
+            // console.log('[ContentRenderer-Info] Created profile image container.'); // Optional log
+        }
+        return imgContainer;
+    }
+
+})(window.ExtrchLinkPageManager); 

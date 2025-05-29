@@ -155,7 +155,7 @@ function bp_add_band_membership( $user_id, $band_id ) {
         $current_band_ids_on_user[] = $band_id;
         $current_band_ids_on_user = array_unique( $current_band_ids_on_user );
         if ( ! update_user_meta( $user_id, '_band_profile_ids', $current_band_ids_on_user ) ) {
-            error_log("[Band Platform] Failed to update _band_profile_ids user meta for user $user_id, band $band_id");
+            // error_log("[Band Platform] Failed to update _band_profile_ids user meta for user $user_id, band $band_id");
             return false; 
         }
     }
@@ -172,7 +172,7 @@ function bp_add_band_membership( $user_id, $band_id ) {
         // Filter out any 0 values that might result from absint if non-numeric was present before unique
         $current_member_ids_on_band = array_filter( $current_member_ids_on_band, function($id) { return $id > 0; } );
         if ( ! update_post_meta( $band_id, '_band_member_ids', $current_member_ids_on_band ) ) {
-            error_log("[Band Platform] Failed to update _band_member_ids post meta for band $band_id after adding user $user_id");
+            // error_log("[Band Platform] Failed to update _band_member_ids post meta for band $band_id after adding user $user_id");
             // Optionally, consider if we should revert the user meta update here, though it's tricky.
             // For now, we'll report the error and proceed, as user meta is correct.
         }
@@ -208,7 +208,7 @@ function bp_remove_band_membership( $user_id, $band_id ) {
             // Re-index to ensure clean array for user meta
             $current_band_ids_on_user = array_values($current_band_ids_on_user);
             if ( ! update_user_meta( $user_id, '_band_profile_ids', $current_band_ids_on_user ) ) {
-                error_log("[Band Platform] Failed to update _band_profile_ids user meta for user $user_id, band $band_id during removal");
+                // error_log("[Band Platform] Failed to update _band_profile_ids user meta for user $user_id, band $band_id during removal");
                 $user_meta_updated_successfully = false; 
                 // Do not return false yet, still attempt to clean up band post meta if possible
             }
@@ -233,7 +233,7 @@ function bp_remove_band_membership( $user_id, $band_id ) {
         // Filter out any 0 values
         $current_member_ids_on_band = array_filter( $current_member_ids_on_band, function($id) { return $id > 0; } );
         if ( ! update_post_meta( $band_id, '_band_member_ids', $current_member_ids_on_band ) ){
-            error_log("[Band Platform] Failed to update _band_member_ids post meta for band $band_id after removing user $user_id");
+            // error_log("[Band Platform] Failed to update _band_member_ids post meta for band $band_id after removing user $user_id");
             // If user meta was successfully updated but this failed, we have a partial inconsistency.
             // For now, return based on user_meta_updated_successfully as primary success criteria for this function call.
             return $user_meta_updated_successfully ? false : false; // essentially false if this step fails
@@ -338,15 +338,15 @@ function bp_ajax_search_artists() {
     $user_query = new WP_User_Query( $user_query_args );
 
     // --- DEBUGGING for bp_ajax_search_artists ---
-    error_log('[bp_ajax_search_artists] Search Term: ' . $search_term);
-    error_log('[bp_ajax_search_artists] Band Profile ID: ' . $band_profile_id);
-    error_log('[bp_ajax_search_artists] Linked Member IDs to Exclude: ' . implode(',', $linked_member_ids));
-    error_log('[bp_ajax_search_artists] User Query Args: ' . print_r($user_query_args, true));
+    // error_log('[bp_ajax_search_artists] Search Term: ' . $search_term);
+    // error_log('[bp_ajax_search_artists] Band Profile ID: ' . $band_profile_id);
+    // error_log('[bp_ajax_search_artists] Linked Member IDs to Exclude: ' . implode(',', $linked_member_ids));
+    // error_log('[bp_ajax_search_artists] User Query Args: ' . print_r($user_query_args, true));
     // Accessing the SQL request before get_results might not be accurate for all cases, 
     // but can give insight. get_results runs the query.
     $results = $user_query->get_results();
-    error_log('[bp_ajax_search_artists] Raw Results Count: ' . count($results));
-    error_log('[bp_ajax_search_artists] Raw Results (first 5): ' . print_r(array_slice($results, 0, 5), true));
+    // error_log('[bp_ajax_search_artists] Raw Results Count: ' . count($results));
+    // error_log('[bp_ajax_search_artists] Raw Results (first 5): ' . print_r(array_slice($results, 0, 5), true));
     // --- END DEBUGGING ---
 
     $results = $user_query->get_results();

@@ -11,7 +11,6 @@
 (function(manager){
     // Ensure the manager and its necessary properties exist
     if (!manager) {
-        console.error('ExtrchLinkPageManager is not defined. Customization script cannot run.');
         return;
     }
     manager.customization = manager.customization || {};
@@ -72,18 +71,15 @@
     manager.customization.updateSetting = function(key, value) {
         const styleTag = document.getElementById('extrch-link-page-custom-vars');
         if (!styleTag) {
-            console.error('[Customization] Style tag #extrch-link-page-custom-vars not found in <head>.');
             return;
         }
         // Validate value
         if (typeof value === 'undefined' || value === null || value === '') {
-            console.warn(`[Customization] Not updating ${key} because value is empty or invalid:`, value);
             return;
         }
         // Use CSSOM to update only the specific variable in the :root rule
         let sheet = styleTag.sheet;
         if (!sheet) {
-            console.error('[Customization] No sheet found on style tag.');
             return;
         }
         let rootRule = null;
@@ -99,7 +95,6 @@
                 sheet.insertRule(':root {}', sheet.cssRules.length);
                 rootRule = sheet.cssRules[sheet.cssRules.length - 1];
             } catch (e) {
-                console.error('[Customization] Failed to insert :root rule:', e);
                 return;
             }
         }
@@ -113,10 +108,9 @@
     // --- Generic Event Listener Attachment Function (for controls managed by this file) ---
     function attachControlListener(element, customVarKey, eventType = 'change', valueTransform = null, isCheckbox = false) {
         if (!element) {
-             console.warn(`[Customization] Element for ${customVarKey} not found, cannot attach listener.`); // DEBUG
-             return;
+            return;
         }
-         console.log(`[Customization] Attaching listener to ${element.id || element.name} for key ${customVarKey}`); // DEBUG
+        console.log(`[Customization] Attaching listener to ${element.id || element.name} for key ${customVarKey}`);
         // Special handling for font pickers to ensure Google Font is loaded before updating CSS var
         if (customVarKey === '--link-page-title-font-family' || customVarKey === '--link-page-body-font-family') {
             element.addEventListener(eventType, function(event) {
@@ -182,10 +176,9 @@
         // This function should only read from the style tag (via getCustomVars)
         const currentCV = manager.customization.getCustomVars();
         if (!currentCV) {
-            console.error('syncControlsFromCustomVars: customVars not found from getter.');
             return;
         }
-        console.log('[Customization] Syncing controls from customVars:', currentCV); // DEBUG
+        console.log('[Customization] Syncing controls from customVars:', currentCV);
 
         if (titleFontFamilySelect) {
             const storedFontFamily = currentCV['--link-page-title-font-family'] || '';
@@ -307,9 +300,9 @@
 
     // --- Function to attach event listeners to controls ---
     function initializeCustomizeTabEventListeners() {
-         console.log('[Customization] Initializing Customize Tab event listeners.');
-         console.log('Attempting to find titleFontFamilySelect:', document.getElementById('link_page_title_font_family')); // DEBUG
-         console.log('Attempting to find bodyFontFamilySelect:', document.getElementById('link_page_body_font_family')); // DEBUG
+        console.log('[Customization] Initializing Customize Tab event listeners.');
+        console.log('Attempting to find titleFontFamilySelect:', document.getElementById('link_page_title_font_family'));
+        console.log('Attempting to find bodyFontFamilySelect:', document.getElementById('link_page_body_font_family'));
 
         // Attach listeners for controls managed by this file
         // Ensure elements are defined before attaching listeners
@@ -320,7 +313,7 @@
         // Color Pickers
         if (buttonBgColorPicker) attachControlListener(buttonBgColorPicker, '--link-page-button-bg-color', 'input');
         if (textColorPicker) attachControlListener(textColorPicker, '--link-page-text-color', 'input');
-        if (linkTextColorPicker) attachControlListener(linkTextColorPicker, '--link-page-link-text-color', 'input'); // Corrected key
+        if (linkTextColorPicker) attachControlListener(linkTextColorPicker, '--link-page-link-text-color', 'input');
         if (buttonHoverBgColorPicker) attachControlListener(buttonHoverBgColorPicker, '--link-page-button-hover-bg-color', 'input');
         if (buttonBorderColorPicker) attachControlListener(buttonBorderColorPicker, '--link-page-button-border-color', 'input');
         

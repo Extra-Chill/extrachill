@@ -189,7 +189,7 @@ function bp_ajax_toggle_follow_band_handler() {
 
     // Check user logged in
     if ( ! is_user_logged_in() ) {
-        error_log('Follow AJAX: User not logged in');
+        // error_log('Follow AJAX: User not logged in');
         wp_send_json_error( array( 'message' => __( 'Please log in to follow bands.', 'generatepress_child' ) ) );
     }
 
@@ -197,29 +197,29 @@ function bp_ajax_toggle_follow_band_handler() {
     $user_id = get_current_user_id();
     $band_id = isset( $_POST['band_id'] ) ? absint( $_POST['band_id'] ) : 0;
 
-    error_log("Follow AJAX: user_id={$user_id}, band_id={$band_id}");
+    // error_log("Follow AJAX: user_id={$user_id}, band_id={$band_id}");
 
     if ( ! $band_id || get_post_type( $band_id ) !== 'band_profile' ) {
-        error_log('Follow AJAX: Invalid band specified');
+        // error_log('Follow AJAX: Invalid band specified');
         wp_send_json_error( array( 'message' => __( 'Invalid band specified.', 'generatepress_child' ) ) );
     }
 
     // Determine action
     $is_currently_following = bp_is_user_following_band( $user_id, $band_id );
-    error_log("Follow AJAX: is_currently_following=" . ($is_currently_following ? 'true' : 'false'));
+    // error_log("Follow AJAX: is_currently_following=" . ($is_currently_following ? 'true' : 'false'));
     $action_success = false;
     $share_email_consent = false; // Default for unfollow or if not provided
 
     if ( ! $is_currently_following ) { // Action is to follow
         // Only look for consent if the action is to follow
         $share_email_consent = isset( $_POST['share_email_consent'] ) && $_POST['share_email_consent'] === 'true';
-        error_log("Follow AJAX: Attempting to follow. Share email consent: " . ($share_email_consent ? 'true' : 'false'));
+        // error_log("Follow AJAX: Attempting to follow. Share email consent: " . ($share_email_consent ? 'true' : 'false'));
         $action_success = bp_follow_band( $user_id, $band_id, $share_email_consent );
-        error_log("Follow AJAX: Called bp_follow_band, result=" . ($action_success ? 'true' : 'false'));
+        // error_log("Follow AJAX: Called bp_follow_band, result=" . ($action_success ? 'true' : 'false'));
     } else { // Action is to unfollow
-        error_log("Follow AJAX: Attempting to unfollow.");
+        // error_log("Follow AJAX: Attempting to unfollow.");
         $action_success = bp_unfollow_band( $user_id, $band_id );
-        error_log("Follow AJAX: Called bp_unfollow_band, result=" . ($action_success ? 'true' : 'false'));
+        // error_log("Follow AJAX: Called bp_unfollow_band, result=" . ($action_success ? 'true' : 'false'));
     }
 
     if ( $action_success ) {
@@ -227,14 +227,14 @@ function bp_ajax_toggle_follow_band_handler() {
         bp_maybe_update_band_follower_count( $band_id, true );
         $new_follow_status = bp_is_user_following_band( $user_id, $band_id ); // Re-check status after action
         $new_count = bp_get_band_follower_count( $band_id );
-        error_log("Follow AJAX: Success. new_follow_status=" . ($new_follow_status ? 'following' : 'not_following') . ", new_count={$new_count}");
+        // error_log("Follow AJAX: Success. new_follow_status=" . ($new_follow_status ? 'following' : 'not_following') . ", new_count={$new_count}");
         wp_send_json_success( array(
             'new_state' => $new_follow_status ? 'following' : 'not_following',
             'new_count' => $new_count,
             'new_count_formatted' => sprintf( _n( '%s follower', '%s followers', $new_count, 'generatepress_child' ), number_format_i18n( $new_count ) )
         ) );
     } else {
-        error_log('Follow AJAX: Could not update follow status.');
+        // error_log('Follow AJAX: Could not update follow status.');
         wp_send_json_error( array( 'message' => __( 'Could not update follow status. Please try again.', 'generatepress_child' ) ) );
     }
 }

@@ -54,9 +54,6 @@ add_filter( 'template_include', function( $template ) {
         if (!headers_sent()) {
             wp_redirect(esc_url_raw($redirect_url), 301); // 301 for permanent redirect
             exit(); // Exit to prevent further WordPress loading
-        } else {
-            error_log('[ERROR] template_include: Headers already sent, cannot redirect /join.');
-            return $template;
         }
         $handled = true; // Mark as handled
     }
@@ -96,8 +93,6 @@ add_filter( 'template_include', function( $template ) {
             if (!headers_sent()) {
                 wp_redirect(esc_url_raw($redirect_url), 301); // 301 for permanent redirect
                 exit(); // Exit to prevent further WordPress loading
-            } else {
-                error_log('[ERROR] template_include: Headers already sent, cannot redirect /extra-chill/ to root.');
             }
          }
 
@@ -170,9 +165,6 @@ add_filter( 'template_include', function( $template ) {
             if (!headers_sent()) {
                 wp_redirect(esc_url_raw($redirect_url), 301); // 301 for permanent redirect
                 exit(); // Exit to prevent further WordPress loading
-            } else {
-                error_log('[ERROR] template_include: Headers already sent, cannot redirect 404 to root.');
-                return $template; 
             }
             $handled = true; // Mark as handled even if redirect failed
         }
@@ -211,8 +203,6 @@ function extrch_redirect_band_link_page_cpt_to_custom_domain() {
                     if (!headers_sent()) {
                         wp_redirect(esc_url_raw($target_redirect_url), 302); // 302 for temporary
                         exit;
-                    } else {
-                        error_log('Extrch Link Page Temporary Redirect Error: Headers already sent for link page ID ' . $link_page_id);
                     }
                 }
             }
@@ -230,19 +220,12 @@ function extrch_redirect_band_link_page_cpt_to_custom_domain() {
                         if (!headers_sent()) {
                             wp_safe_redirect(esc_url_raw($target_url), 301);
                             exit;
-                        } else {
-                            error_log('Extrch Link Page CPT Redirect Error: Headers already sent for link page ID ' . $link_page_id);
                         }
-                    } else {
-                        error_log('Extrch Link Page CPT Redirect Error: Could not find band_profile post or post_name for band_profile ID ' . $associated_band_profile_id);
                     }
-                } else {
-                    error_log('Extrch Link Page CPT Redirect Error: _associated_band_profile_id not found for link page ID ' . $link_page_id);
                 }
             }
         }
     }
-    error_log('[DEBUG] template_redirect action (extrch_redirect_band_link_page_cpt_to_custom_domain) processed. Host: ' . ($_SERVER['HTTP_HOST'] ?? '') . ' is_singular(band_link_page): ' . (is_singular('band_link_page') ? 'true' : 'false'));
 }
 // --- END: Redirect direct CPT access to extrachill.link domain ---
 

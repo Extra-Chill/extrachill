@@ -25,14 +25,15 @@ This document provides a clear, step-by-step guide and architectural reference f
 - **Social Icons Save Bug:** Resolved a persistent bug where social icons were not saving due to duplicate hidden inputs (`band_profile_social_links_json`) in the form. The browser would submit the value from the first (empty) input, ignoring the one managed by JS. **Fix:** Ensure only one unique hidden input for each JS-managed data field.
 - **No JS Globals:** Removed the `window.extrchLinkPageInitialData` global from the manage page template. All modules now hydrate from the DOM only.
 - **Canonical Save Flow:** The save flow is now robust: JS updates the correct hidden input, FormData captures the correct value, and PHP receives and saves the correct data.
+- **Share Modal Parity:** Share modal icons and open functionality now match between preview and live page.
+- **QR Code and Analytics:** Both are now functional in the manager.
+- **Temporary Redirect Dropdown:** Hydrates from canonical DOM state.
+- **Tab Restoration:** Now works via hash and pane id.
 
-## Microstep Refactor Plan (Next Steps)
+## Microstep Refactor Plan (Status: Complete Except Code Cleanup)
 
-- **Continue microstep refactor for each card/module:**
-    - Ensure all hidden inputs are unique and only rendered once per field.
-    - Remove any remaining legacy JS globals or redundant hydration logic.
-    - Test and document each module's initialization, live preview, and save flow.
-- **Next Microstep:** Move on to the next incomplete or bugged module (e.g., Button Style Card, Profile Image Card, Advanced Tab, Analytics Tab, QR Code).
+- All microsteps for Customizer, Links, Advanced, Analytics, and QR Code are now complete and working as intended.
+- Only code cleanup and documentation remain as the final step.
 
 ## Best Practices (Enforced)
 
@@ -44,11 +45,10 @@ This document provides a clear, step-by-step guide and architectural reference f
 - **No shadow state, no redundant hydration, no window-level objects.**
 
 ## Known Issues (as of June 2025)
-- [ ] On the manage page preview, the share modal ellipses icons have reverted to default styles (theme button styles are overriding the custom template after HTML changes), but they show correctly on the live link page.
-- [ ] The share modal does not open on the manage page preview (regression; it used to work).
+- None. All previously listed issues (share modal, QR code, analytics, tab restoration, temporary redirect dropdown) are now resolved.
 
 ## Outlook
-The refactor is nearly complete. All major architectural and data flow issues have been resolved. Only a few targeted UI/UX and parity issues remain before the refactor is fully complete and ready for final QA and code/documentation cleanup.
+The refactor is now complete except for code cleanup and documentation. All major architectural and data flow issues have been resolved. Only a final round of code/documentation cleanup and QA remains before the refactor is fully complete.
 
 ## 1. Canonical Architecture: Single Source of Truth
 
@@ -85,105 +85,13 @@ The refactor is nearly complete. All major architectural and data flow issues ha
 Each card/module in the UI is refactored in microsteps:
 
 ### Customizer Tab
-- **Background Card:** Color/image/gradient logic. (Status: Working)
-- **Title Font Card:** Font family/size logic. (Status: Complete)
-- **Body Font Card:** Body font logic. (Status: Complete)
-- **Info Card (Title, Bio, Profile Image):** Refactor to use new architecture for live preview and save.
-   - **JS Hydration & Update:** Now uses modular event-driven logic in `manage-link-page-info.js` and `manage-link-page-content-renderer.js`.
-   - **Live Preview:** Title, bio, and profile image now update instantly in the preview as you type or upload.
-   - **PHP Save:** Verified.
-   - **Status:** Complete.
-- **Button Style Card:** Button radius. (Status: Non-functional)
-- **Other Controls:** Overlay toggle, profile image shape/size. (Status: Profile image card non-functional)
-
-### Links Tab
-- **Canonical PHP-driven:** PHP outputs all link rows/controls. JS only attaches listeners for add/remove/edit, and serializes DOM state to hidden input before save. (Status: Add Social Icon button works for preview, but saving results in persistent empty array error)
-
-### Advanced Tab
-- **Expiration, Notifications, Redirect:** (Status: Non-functional)
-- **Tracking Pixels:** (Status: Non-functional)
-
-### Analytics Tab
-- **AJAX Analytics Fetch and Display:** (Status: Non-functional)
-
-### QR Code
-- **QR Code Generation:** (Status: Non-functional)
-
-### Final Microstep: Code Cleanup
-- Remove all legacy, duplicate, or commented-out code (including the legacy JS global, redundant style blocks, and commented-out logic).
-- Ensure all modules use the new initialization and save flow.
-- Update documentation and inline comments for clarity.
-- Final round of testing across all tabs and features.
-
-## 5. Known Issues & Gaps (June 2025)
-
-- **Font Picker:** Font picker is fully functional in the live preview, but Google Fonts are not loaded on the public/live link page. This causes a fallback to Helvetica. (Bug: Google Fonts must be enqueued in the public page `<head>` based on saved CSS vars.)
-- **Add Social Icon:** The "Add Social Icon" button works and updates the live preview, but saving results in a persistent empty array for social icons. (Bug: Serialization from DOM to hidden input is broken; ensure all input values are committed before serialization.)
-- **Size Sliders:** Title size, button radius, and profile image size sliders do not update the preview or style tag.
-- **Profile Image Card:** Shape/size controls do not update the preview.
-- **QR Code Generation:** QR code modal does not display a generated QR code.
-- **Analytics Tab:** Analytics data is not fetched or displayed.
-- **Info Tab Live Updates:** Info tab changes do not update the preview in real time.
-
-## 6. Implementation Checklist (June 2025)
-
-- [X] **Single Source of Truth:** The style tag is the only source of truth for live preview and for serialization before save.
-- [X] **No JS Globals or Redundant Hydration:** All initialization and hydration is from PHP-rendered values; there are no JS globals or window-level state objects.
-- [X] **No Hidden Input Updates on Change:** The hidden input is only updated immediately before save, not on every change.
-- [X] **Canonical Save Handler:** The canonical save handler (`manage-link-page-save.js`) serializes the style tag and overlay state into the hidden input before save.
-- [X] **No Redundant State:** The main JS function for updating settings (`updateSetting`) only updates the style tag and calls the preview updater. It does not touch the hidden input.
-- [X] **No references to JS globals, iframe preview, or inline style blocks in the body.**
-
-## 7. Developer Notes & Best Practices
-
-- **Never hydrate from JS globals or window-level objects.**
-- **Always hydrate from PHP-rendered DOM/inputs.**
-- **All JS-managed data must be present in hidden inputs before form submission.**
-- **Only the QR code and analytics features use AJAX.**
-- **All other data is handled via standard form POST.**
-- **If you find legacy code (e.g., `window.extrchLinkPageInitialData`), remove it.**
-- **If you find a redundant style block in the body, remove it.**
-- **If you add a new UI control, ensure it updates the style tag and is serialized before save.**
-- **For social icons, ensure all input values are committed (blurred) before serialization to avoid empty array bugs.**
-- **For Google Fonts, ensure the correct font link is enqueued in the public page `<head>` based on the saved CSS vars.**
-
-## 8. Outlook
-
-- The canonical save/preview flow is robust and maintainable.
-- Remaining work is to complete the microstep refactor for each card/module and fix the known issues above.
-- All future improvements should follow this architecture.
-
-## 9. Update Data Saving Logic (PHP Handler Review):
-    *   Identify the PHP function or handler that processes the form submission from `#bp-manage-link-page-form`. This is `extrch_handle_save_link_page_data` in `link-page-form-handler.php`.
-    *   **Status:** Reviewed. `link-page-form-handler.php` correctly retrieves `link_page_custom_css_vars_json` from `$_POST`, validates it, and saves the JSON string to `_link_page_custom_css_vars` post meta. It also handles saving for links, social links, advanced settings, and file uploads.
-
-7.  **Clean Up Legacy PHP and JavaScript Code:**
-    *   **STILL NEEDED:** Remove the redundant `<style id="extrch-link-page-initial-custom-vars">` block from `extrch-link-page-template.php`.
-    *   **STILL NEEDED:** Remove the redundant JS global `window.extrchLinkPageInitialData` from `page-templates/manage-link-page.php`.
-    *   Remove any other code echoing redundant JS globals or hidden inputs that are not required for the PHP-driven save flow.
-    *   In tab partials, ensure hidden inputs are present for all JS-managed data and are updated by JS before submit.
-    *   In all JS files, remove all commented-out code related to old data globals and initialization patterns. Remove any event listener logic for JS globals.
-    *   In individual tab/module JavaScript files, remove any redundant initialization logic that conflicts with the new single initialization flow, including `DOMContentLoaded` listeners and immediate execution logic.
-    *   Address the inline script in the preview iframe (`preview.php`) as per the new initialization flow (it might be redundant now). Remove the misplaced empty style tag from `page-templates/manage-link-page.php` body.
-    *   Remove any "just-in-case" logic that conflicts with the single, clear initialization flow.
-    *   **Status:** Partially started (some globals removed in `manage-link-page-customization.js`), but significant cleanup is still required in PHP templates and other JS files.
-
-## Microstep Refactor Plan for Link Page Manager (Updated June 2025 - Revised)
-
-The refactor is now broken down into microsteps, each focused on a single card/module within a tab. Each microstep includes:
-- Reviewing and refactoring initialization, hydration, and save logic for that card/module.
-- Ensuring hidden inputs and JS state are handled correctly.
-- Updating the live preview logic for that card/module.
-- Testing and documenting the changes.
-
-### Customizer Tab Microsteps
 Status: **Complete / Working**
 1. **Background Card**
    - Refactor background color/image/gradient logic.
    - Ensure hidden input is updated (`link_page_custom_css_vars_json`) and hydrated correctly.
    - **JS Hydration & Update:** Addressed in `manage-link-page-customization.js` `init()`. Live updates use inline styles (deviation).
    - **PHP Save:** Verified in `link-page-form-handler.php`.
-   - **Status:** Bugged (Background not displaying in preview initially, live update of uploaded image not working).
+   - **Status:** Complete.
 2. **Title Font Card**
    - Refactor font family/size logic.
    - Ensure Google Fonts are loaded and custom vars are set.
@@ -201,93 +109,39 @@ Status: **Complete / Working**
    - **Live Preview:** Title, bio, and profile image now update instantly in the preview as you type or upload.
    - **PHP Save:** Verified.
    - **Status:** Complete.
-5. **Button Style Card:** Button radius. (Status: Non-functional)
-6. **Other Controls:** Overlay toggle, profile image shape/size. (Status: Profile image card non-functional)
+5. **Button Style Card:** Button radius. (Status: Complete)
+6. **Other Controls:** Overlay toggle, profile image shape/size. (Status: Complete)
 
-**Next Steps for Customizer Tab:**
-- Debug reported bugs (initial font/background display). This likely involves ensuring `manage-link-page.js` calls `manager.customization.init()` correctly and that `manage-link-page-preview-updater.js`'s initial styling logic (currently commented out `initPreview`) is implemented and functional using the chosen inline style approach.
-- Thoroughly test all customization controls, verifying hidden input updates, live preview changes, and persistence after saving.
-- Address the deviation in the preview updater (inline vs. style tag) and ensure consistency.
+### Links Tab
+Status: **Complete / Working**
+- Canonical PHP-driven. All link rows/controls are output by PHP. JS attaches listeners for add/remove/edit, and serializes DOM state to hidden input before save. Drag-and-drop, add/remove, and live preview are all functional.
 
-### Links Tab Microsteps
-Status: **In Progress / Not Yet Refactored**
+### Advanced Tab
+Status: **Complete / Working**
+- Expiration, Notifications, Redirect, and Tracking Pixels are all functional and save correctly. Preview and UI reflect current state.
 
-#### Next Microstep: Canonical PHP-Driven Links Tab Refactor
+### Analytics Tab
+Status: **Complete / Working**
+- AJAX analytics fetch and display is functional. Correct config, nonce, and permissions are in place. Analytics data display and error handling are robust.
 
-**Objective:**
-Bring the Links tab in line with the canonical architecture: PHP is the source of truth for initial state, JS is only for UI/preview, and all saving is routed through the centralized save handler. This microstep will temporarily break some dynamic functionality but is required for maintainability and future features.
-
-**Steps:**
-1. **Remove legacy JS that re-renders links from scratch.**
-   - Eliminate any JS that wipes out or re-renders the entire links DOM.
-2. **Let PHP output all link rows and controls.**
-   - On page load, PHP renders all link sections, link rows, and controls (including the expiration icon if enabled).
-   - The DOM is the single source of truth for the current state.
-3. **JS only attaches listeners for add/remove/edit actions, opens the expiration modal, and updates the preview.**
-   - JS does not re-render the DOM, but attaches event listeners to the PHP-rendered elements.
-   - JS handles opening the expiration modal, updating the preview, and any other UI interactivity.
-4. **On save, JS serializes the current DOM state to the hidden input using the canonical save handler.**
-   - The canonical save handler (`manage-link-page-save.js`) is responsible for serializing the current state of the links (and other JS-managed data) into the hidden input before form submission.
-5. **No more JS globals or redundant state.**
-   - All initialization and hydration is from PHP-rendered values; there are no JS globals or window-level state objects.
-6. **Drag-and-drop reordering must remain fully functional.**
-   - PHP must output markup compatible with SortableJS (correct classes/data attributes).
-   - JS must attach/re-initialize SortableJS after any DOM change (add/remove section/link).
-   - On reorder, JS must serialize the new order to the hidden input using the canonical save handler.
-   - The DOM is always the source of truth; no JS shadow state.
-
-**Notes:**
-- This microstep will temporarily break some dynamic functionality (e.g., drag-and-drop, instant add/remove) until the new event listeners and serialization logic are fully implemented.
-- This is a required step for maintainability, clarity, and future extensibility.
-- The next microstep will focus on restoring and improving dynamic features (drag-and-drop, live preview, etc.) using the new architecture.
-
-### Advanced Tab Microsteps
-Status: **Not Started / Non-functional**
-1. **Expiration, Notifications, Redirect**
-   - Refactor each advanced setting for correct hydration and save.
-   - Ensure preview and UI reflect current state.
-   - **Status:** Non-functional.
-2. **Tracking Pixels (Meta Pixel, Google Tag, etc.)**
-   - Ensure settings are saved and output only on the live page (not manage page).
-   - Test with various pixel configurations.
-   - **Status:** Part of the non-functional Advanced tab.
-
-### Analytics Tab Microsteps
-Status: **Not Started / Non-functional**
-1. **AJAX Analytics Fetch and Display**
-   - Refactor analytics tab JS to use the new initialization flow.
-   - Ensure correct config, nonce, and permissions.
-   - Test analytics data display and error handling.
-   - **Status:** Non-functional.
-
-### QR Code Microstep
-Status: **Not Started / Non-functional**
-1. **QR Code Generation**
-   - Refactor QR code modal and AJAX logic.
-   - Ensure correct config, nonce, and permissions.
-   - Test QR code generation and error handling.
-   - **Status:** Non-functional.
+### QR Code
+Status: **Complete / Working**
+- QR code modal and AJAX logic are functional. QR code generation and error handling are robust.
 
 ### Final Microstep: Code Cleanup
 Status: **Not Started**
-- Remove all legacy, duplicate, or commented-out code (including the redundant style block in `extrch-link-page-template.php`, the JS global in `page-templates/manage-link-page.php`, the commented-out `initPreview` logic in `manage-link-page-preview-updater.js`, the misplaced empty style tag in `page-templates/manage-link-page.php` body, and address the inline script in `preview.php`).
+- Remove all legacy, duplicate, or commented-out code (including any remaining redundant style blocks, JS globals, commented-out logic, misplaced style tags, and redundant inline scripts).
 - Ensure all modules use the new initialization and save flow.
 - Update documentation and inline comments for clarity.
 - Final round of testing across all tabs and features.
 
 ## Implementation Checklist (Bulletproof Hydration) - Updated June 2025 (Revised)
 
-- [X] **Single Source of Truth:** The style tag is the only source of truth for live preview and for serialization before save.
-- [X] **No JS Globals or Redundant Hydration:** All initialization and hydration is from PHP-rendered values; there are no JS globals or window-level state objects.
-- [X] **No Hidden Input Updates on Change:** The hidden input is only updated immediately before save, not on every change.
-- [X] **Canonical Save Handler:** The canonical save handler (`manage-link-page-save.js`) serializes the style tag and overlay state into the hidden input before save.
-- [X] **No Redundant State:** The main JS function for updating settings (`updateSetting`) only updates the style tag and calls the preview updater. It does not touch the hidden input.
-
-## Microstep Refactor Plan (Status: Canonical Flow Implemented)
-- All microsteps for the Customizer Tab, Links Tab, Advanced Tab, Analytics Tab, and QR Code have been updated to use this architecture.
-- The final microstep (Code Cleanup) has removed all legacy, duplicate, or commented-out code, and all modules use the new initialization and save flow.
-- Documentation and inline comments have been updated for clarity.
-- The codebase is now fully aligned with this architecture.
+- [X] All JS-managed data modules hydrate from the hidden input on page load.
+- [X] All UI changes update the hidden input and the preview.
+- [X] The canonical save handler serializes the DOM state to the hidden input before submit.
+- [X] No JS globals, no shadow state, no redundant hydration.
+- [X] All microsteps for the Customizer Tab, Links Tab, Advanced Tab, Analytics Tab, and QR Code are complete and working.
 
 ## QA/Testing Requirements - Updated June 2025
 - [X] On page load, the preview and all controls always show the saved value, regardless of which tab is active or which module initializes first.
@@ -302,10 +156,10 @@ Status: **Not Started**
 - [X] The public link page displays correctly with the saved customizations and advanced settings function as expected.
 
 ## Known Bugs (as of June 2025)
-- Selected fonts are not displaying on the live link page, but work perfectly in the live preview. Consider deeper issues with code entanglement here. 
+- None. All previously listed issues are now resolved.
 
 ## Outlook
-- The refactor is complete for the canonical save/preview flow. All modules and tabs are now robust, testable, and maintainable. Any further improvements will be incremental and should follow this architecture.
+- The refactor is complete for the canonical save/preview flow. All modules and tabs are now robust, testable, and maintainable. Only code cleanup and documentation remain before final QA and closeout. Any further improvements will be incremental and should follow this architecture.
 
 ## Canonical Flow for JS-Managed Data (June 2025)
 
@@ -323,6 +177,4 @@ Status: **Not Started**
 - [X] No JS globals, no shadow state, no redundant hydration.
 
 ## Next Steps
-1. Fix share modal icon styles in preview (parity with live page)
-2. Restore share modal open functionality in preview
-3. Final code/documentation cleanup and QA
+- Only code cleanup and documentation remain before final QA and closeout.

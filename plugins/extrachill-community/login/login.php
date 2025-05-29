@@ -21,18 +21,13 @@ function wp_surgeon_login_form() {
 // Move redirect logic to template_redirect
 add_action('template_redirect', 'wp_surgeon_login_page_redirect');
 function wp_surgeon_login_page_redirect() {
-    error_log('[DEBUG] wp_surgeon_login_page_redirect triggered.');
     if (is_user_logged_in()) {
-        error_log('[DEBUG] User is logged in.');
         // Only run on the login page
         if (is_page('login')) {
-            error_log('[DEBUG] On login page, user is logged in.');
-
             // --- START Join Flow Redirect for Logged-in Users ---
             $from_join = isset($_GET['from_join']) && $_GET['from_join'] === 'true';
 
             if ($from_join) {
-                error_log('[Join Flow] Logged-in user on login page with from_join=true.');
                 $user_id = get_current_user_id();
 
                 // Get the user's band profile IDs directly from user meta.
@@ -61,15 +56,12 @@ function wp_surgeon_login_page_redirect() {
                                 ),
                                 get_permalink($link_page_manage_page)
                             );
-                            error_log('[Join Flow] Logged-in user with bands redirected to Manage Link Page: ' . $target_url);
                             wp_redirect($target_url);
                             exit;
                         } else {
-                            error_log('[Join Flow] Logged-in user with bands: Manage Link Page not found for redirect.');
                             // Fallback to default login redirect
                         }
                     } else {
-                         error_log('[Join Flow] Logged-in user with bands: Could not retrieve most recent band profile.');
                          // Fallback to default login redirect
                     }
                     wp_reset_postdata(); // Restore original Post Data
@@ -83,11 +75,9 @@ function wp_surgeon_login_page_redirect() {
                             ),
                             get_permalink($manage_band_page)
                         );
-                        error_log('[Join Flow] Logged-in user without bands redirected to Create Band Profile: ' . $target_url);
                         wp_redirect($target_url);
                         exit;
                     } else {
-                        error_log('[Join Flow] Logged-in user without bands: Manage Band Profile page not found for redirect.');
                         // Fallback to default login redirect
                     }
                 }
@@ -96,12 +86,9 @@ function wp_surgeon_login_page_redirect() {
 
             // Default redirect for logged-in users on the login page if not from join flow
             $redirect_url = isset($_REQUEST['redirect_to']) ? esc_url_raw($_REQUEST['redirect_to']) : home_url();
-            error_log('[DEBUG] Logged-in user on login page, performing default redirect to: ' . $redirect_url);
             wp_redirect($redirect_url);
             exit;
         }
-    } else {
-        error_log('[DEBUG] User is not logged in.');
     }
 }
 
@@ -254,7 +241,6 @@ function bp_join_flow_login_redirect($redirect_to, $requested_redirect_to, $user
 
 
         if ($from_join) {
-            error_log('[Join Flow] Login redirect triggered for user ID: ' . $user->ID);
             $user_id = $user->ID;
 
             // Get the user's band profile IDs directly from user meta.
@@ -283,14 +269,11 @@ function bp_join_flow_login_redirect($redirect_to, $requested_redirect_to, $user
                             ),
                             get_permalink($link_page_manage_page)
                         );
-                        error_log('[Join Flow] Logged-in user with bands redirected to Manage Link Page: ' . $target_url);
                         return $target_url;
                     } else {
-                        error_log('[Join Flow] Logged-in user with bands: Manage Link Page not found.');
                         return $redirect_to; // Fallback
                     }
                 } else {
-                     error_log('[Join Flow] Logged-in user with bands: Could not retrieve most recent band profile.');
                      return $redirect_to; // Fallback
                 }
                  wp_reset_postdata(); // Restore original Post Data
@@ -304,10 +287,8 @@ function bp_join_flow_login_redirect($redirect_to, $requested_redirect_to, $user
                         ),
                         get_permalink($manage_band_page)
                     );
-                    error_log('[Join Flow] Logged-in user without bands redirected to Create Band Profile: ' . $target_url);
                     return $target_url;
                 } else {
-                    error_log('[Join Flow] Logged-in user without bands: Manage Band Profile page not found.');
                     return $redirect_to; // Fallback
                 }
             }

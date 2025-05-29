@@ -82,43 +82,49 @@
         --focus-box-shadow: 0 0 0 3px rgba(138, 166, 191, 0.2);
     }
 }
+
 /* General content styling */
 body.mce-content-body {
     background-color: var(--background-color);
-    font-family: sans-serif;
+    font-family: Helvetica;
     color: var(--text-color);
 }
 
 /* Headings */
-h1, h2, h3, h4, h5, h6 {
+body.mce-content-body h1,
+body.mce-content-body h2,
+body.mce-content-body h3,
+body.mce-content-body h4,
+body.mce-content-body h5,
+body.mce-content-body h6 {
     font-family: "WilcoLoftSans", sans-serif;
     color: var(--header-text);
     margin-bottom: 10px;
 }
 
 /* Paragraphs and form text */
-p {
+body.mce-content-body p {
     font-size: 16px;
     line-height: 1.5;
     margin-bottom: 15px;
 }
 
 /* Links */
-a {
+body.mce-content-body a {
     color: var(--link-color);
     text-decoration: none;
 }
-a:hover {
+body.mce-content-body a:hover {
     text-decoration: underline;
 }
 
 /* Form elements */
-input[type="text"],
-input[type="email"],
-input[type="url"],
-input[type="password"],
-textarea,
-select {
+body.mce-content-body input[type="text"],
+body.mce-content-body input[type="email"],
+body.mce-content-body input[type="url"],
+body.mce-content-body input[type="password"],
+body.mce-content-body textarea,
+body.mce-content-body select {
     width: 100%;
     padding: 10px;
     font-size: 15px;
@@ -130,19 +136,19 @@ select {
     box-sizing: border-box;
 }
 
-input:focus,
-textarea:focus,
-select:focus {
+body.mce-content-body input:focus,
+body.mce-content-body textarea:focus,
+body.mce-content-body select:focus {
     border-color: var(--focus-border-color);
     box-shadow: var(--focus-box-shadow);
     outline: none;
 }
 
 /* Buttons */
-button,
-input[type="button"],
-input[type="submit"],
-input[type="reset"] {
+body.mce-content-body button,
+body.mce-content-body input[type="button"],
+body.mce-content-body input[type="submit"],
+body.mce-content-body input[type="reset"] {
     background-color: var(--button-bg);
     color: #fff;
     padding: 10px 20px;
@@ -151,17 +157,15 @@ input[type="reset"] {
     cursor: pointer;
     font-size: 16px;
 }
-button:hover,
-input[type="button"]:hover,
-input[type="submit"]:hover,
-input[type="reset"]:hover {
+body.mce-content-body button:hover,
+body.mce-content-body input[type="button"]:hover,
+body.mce-content-body input[type="submit"]:hover,
+body.mce-content-body input[type="reset"]:hover {
     background-color: var(--button-hover-bg);
 }
 
-/* Optionally define a specific hover color if needed */
-/* body.editor-dark-mode a:hover { ... } */
-
 /* Style the formatselect dropdown menu */
+/* Note: These selectors target elements OUTSIDE the editor body but part of the TinyMCE UI */
 .mce-listbox .mce-listbox-item {
     color: var(--text-color);
     background-color: var(--background-color);
@@ -179,7 +183,7 @@ input[type="reset"]:hover {
 .mce-listbox .mce-listbox-item.mce-active,
 .mce-listbox .mce-listbox-item:hover {
     background-color: var(--accent-2) !important;
-    color: var(--header-text);
+    color: var(--header-text) !important;
 }
 
 /* Style the formatselect dropdown menu */
@@ -196,4 +200,12 @@ input[type="reset"]:hover {
 }
 .wp-editor-container{
     border: 1px solid var(--border-color);
+}body.mce-container, .wp-editor-container .mce-container *, .wp-editor-container .mce-widget, .wp-editor-container .mce-widget * {
+    color: inherit;
+    font-family: inherit;
+    background: var(--card-background);
 }
+.mce-container-body {
+    background: var(--background-color);
+}
+

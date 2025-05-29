@@ -58,7 +58,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Handler for "Yes, I have an account" button
     function handleExistingAccountClick() {
-        console.log('Existing account clicked. Dispatching activateJoinFlowTab event for login.');
+        // console.log('Existing account clicked. Dispatching activateJoinFlowTab event for login.');
         hideJoinFlowModal();
         // displayJoinFlowNotices('existing'); // No longer needed
 
@@ -71,7 +71,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Handler for "No, I need to create an account" button
     function handleNewAccountClick() {
-        console.log('New account clicked. Dispatching activateJoinFlowTab event for register.');
+        // console.log('New account clicked. Dispatching activateJoinFlowTab event for register.');
         hideJoinFlowModal();
         // displayJoinFlowNotices('new'); // No longer needed
 

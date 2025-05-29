@@ -5,7 +5,7 @@ alwaysApply: true
 ---
 # Project Architecture & Technical Overview
 
-**Date:** May 20, 2025
+**Date:** June 2025 (Updated)
 
 This document provides a technical overview of the Band Platform and Extrch.co Link Page features within the `generatepress_child` theme, outlining architecture, implemented components, and a high-level overview.
 
@@ -59,14 +59,34 @@ The [`page-templates/manage-band-profile.php`](mdc:page-templates/manage-band-pr
 - **Styling:** New styles for the tabbed interface are in [`css/manage-band-profile.css`](mdc:css/manage-band-profile.css), aiming for a "content card" appearance.
 - **Assets:** Necessary CSS and JavaScript (e.g., [`js/manage-band-profiles.js`](mdc:js/manage-band-profiles.js) for tab switching and member management) are enqueued via `extrachill_enqueue_manage_band_profile_assets` in [`functions.php`](mdc:functions.php). Legacy files and features have been removed or centralized.
 
-## II. `extrachill.link` Page Feature
+## II. `extrachill.link` Page Feature (Canonical, June 2025)
 
 **Objective:** Provide a free, customizable "link in bio" service (`band_link_page` CPT) integrated with the Band Platform, hosted on `extrachill.link` (and `extrch.co`), driving traffic to the main platform.
-**Core Principles:**
-- **Free "Premium" Features:** Offer advanced customization and basic analytics.
-- **Seamless Integration:** Managed via the band's frontend dashboard.
-- **Community Driven:** Gateway to the main platform.
-- **Simplicity:** Built within WordPress.
+
+### Canonical Architecture (as of June 2025)
+
+- **Single Source of Truth:**
+  - The `<style id="extrch-link-page-custom-vars">` tag inside the preview container is the *sole* source of truth for all live preview CSS variables. All JS-driven changes (color, font, etc.) update this style tag directly and immediately reflect in the preview.
+  - The hidden input (`#link_page_custom_css_vars_json`) is *only* used for saving, not for live preview or intermediate state. It is populated/serialized immediately before form submission by reading/parsing the current state from the style tag (and overlay toggle, etc).
+  - There are *no* JS globals or window-level state objects for canonical data. All initialization and hydration is from PHP-rendered values.
+
+- **Live Preview & Save Flow:**
+  - On initial page load, PHP outputs a `<style>` block in the `<head>` with all saved custom CSS variables (from the canonical JSON in post meta). This ensures the preview and controls are immediately styled with the correct, saved values—no FOUC, no JS intervention needed for initial state.
+  - JavaScript attaches event listeners to controls. On user change, JS updates only the relevant CSS variable (using `style.setProperty` or by updating the style tag), and the affected preview element. No global re-render, no re-initialization, no fallback to defaults after page load.
+  - The main JS function for updating settings (`updateSetting`) only updates the style tag and calls the preview updater. It does not touch the hidden input.
+  - The canonical save handler (`manage-link-page-save.js`) is responsible for serializing the style tag and overlay state into the hidden input before save.
+
+- **Hidden Inputs for JS-Managed Data:**
+  - For any data managed or edited via JavaScript (e.g., links, social icons, custom CSS vars, advanced settings), a hidden input must be present in the form. JavaScript must update these hidden inputs *only before form submission*, ensuring that PHP receives the correct, current data. This is required for robust, reliable saving in a PHP-driven architecture.
+
+- **AJAX-Only Features:**
+  - Only the QR code generation and analytics tab use AJAX for fetching/generating data. All other data is handled via standard form POST.
+
+- **Recent Fixes (June 2025):**
+  - Share modal, QR code modal, analytics tab, tab restoration after save, and temporary redirect dropdown are all now fully functional and hydrated from canonical DOM state. All legacy or duplicate style blocks have been removed.
+
+- **Redundant/Outdated Logic:**
+  - All references to JS globals, redundant hydration, or hidden input being updated on every change have been removed. The documentation and codebase now reflect the canonical, DRY, and KISS-compliant architecture.
 
 ### Implemented Components:
 
@@ -88,41 +108,26 @@ The [`page-templates/manage-band-profile.php`](mdc:page-templates/manage-band-pr
 - **Conditional "Manage Link Page(s)" User Menu Item:** Added to the user avatar dropdown in [`forum-features/notifications.php`](mdc:forum-features/notifications.php). If the user has associated band profiles, this links to the manage link page for the most recently updated band profile.
 - **Band Switcher for Link Page Management:** A dropdown has been added to [`page-templates/manage-link-page.php`](mdc:page-templates/manage-link-page.php) allowing users with multiple band profiles to switch which band's link page they are managing, mirroring the functionality on the "Manage Band Profile" page.
 
-## III. Customization & Live Preview Logic (as of May 2025)
+## III. Customization & Live Preview JavaScript Architecture (Canonical, June 2025)
 
-**Canonical Data Flow and Save Architecture:**
+This section outlines the structure and responsibilities of the core JavaScript modules governing the link page manager's live preview and UI interactions. The architecture adheres to the principle of the DOM (specifically PHP-rendered values and the style tag) as the primary source of truth, with no persistent JavaScript state or global objects for canonical data. Hidden inputs are used solely for transmitting data to the PHP save handler on form submission.
 
-- **PHP-Driven Save Flow:** All data saving is handled by standard WordPress form POSTs. The form is submitted to PHP, which processes and saves the data. JavaScript does not handle saving (except for QR code and analytics, which use AJAX for their specific features).
-- **Hidden Inputs for JS-Managed Data:** For any data managed or edited via JavaScript (e.g., links, social icons, custom CSS vars, advanced settings), a hidden input must be present in the form. JavaScript must update these hidden inputs before form submission, ensuring that PHP receives the correct, current data. This is required for robust, reliable saving in a PHP-driven architecture.
-- **Initialization from PHP:** On page load, all form fields and CSS custom vars are populated by PHP from the saved values. JavaScript must hydrate its internal state from the DOM/form fields, not from JS globals or window-level objects. The live preview and all form fields must always reflect the saved state on initial load.
-- **JavaScript is Cosmetic Only:** JavaScript is used exclusively for real-time visual updates (live preview, UI interactivity, drag-and-drop, etc.). It does not handle saving, except for QR code and analytics AJAX features. All other data must be present in the form at submit time.
-- **AJAX-Only Features:** Only the QR code generation and analytics tab use AJAX for fetching/generating data. All other data is handled via standard form POST.
+**Key Modules and Responsibilities:**
 
-**Developer Note:**
-- Removing hidden inputs is only valid if the entire save flow is refactored to be fully AJAX/JS-driven, which is not the current architecture. If the save flow remains PHP-driven, hidden inputs are required for all JS-managed data.
-- The canonical source of truth for initialization is always the PHP-rendered form fields and CSS vars, not any JS global or window object.
-
-**Relevant Files:**
-*   [`band-platform/extrch.co-link-page/js/manage-link-page.js`](mdc:band-platform/extrch.co-link-page/js/manage-link-page.js): Main manager script. Responsible for overall coordination and initializing other modules.
-*   [`band-platform/extrch.co-link-page/js/manage-link-page-preview-updater.js`](mdc:band-platform/extrch.co-link-page/js/manage-link-page-preview-updater.js): The "Styles Engine" (handles CSS custom properties for the live preview).
-*   [`band-platform/extrch.co-link-page/js/manage-link-page-content-renderer.js`](mdc:band-platform/extrch.co-link-page/js/manage-link-page-content-renderer.js): The "Content Engine" (handles rendering of list-based content like link sections and social icons into the live preview).
-*   [`band-platform/extrch.co-link-page/js/manage-link-page-customization.js`](mdc:band-platform/extrch.co-link-page/js/manage-link-page-customization.js): The "Styles Brain" (manages `customVars` for styling).
-*   [`band-platform/extrch.co-link-page/js/manage-link-page-links.js`](mdc:band-platform/extrch.co-link-page/js/manage-link-page-links.js): The "Links Brain" (manages link data).
-*   [`band-platform/extrch.co-link-page/js/manage-link-page-socials.js`](mdc:band-platform/extrch.co-link-page/js/manage-link-page-socials.js): The "Socials Brain" (manages social icon data).
-*   ... (other relevant JS files like colors, fonts, sizing etc. - these are typically "Brains" for their specific domain)
-
-**Architecture Overview:**
-
-The refactored JavaScript architecture aims to centralize state management and decouple UI control logic from preview update logic, improving maintainability and enabling real-time updates.
-
-- **Main Manager (`manage-link-page.js`):** Initializes and coordinates all other JavaScript modules. Provides utility functions and handles AJAX-based preview updates for certain changes.
-- **"Brain" Modules:** Modules responsible for managing the UI controls and data for their specific domain (e.g., styles, links, social icons, background settings). The "Styles Brain" (`manage-link-page-customization.js`) manages the central `customVars` object for styling and notifies the "Styles Engine" of updates. The "Links Brain" and "Socials Brain" manage their data arrays and call the "Content Engine" to update the live preview.
-    *Note: "Brains" refer to logic controllers managing specific domains (e.g., styles, links), while "Engines" handle rendering or preview updates.*
-- **`manage-link-page-preview-updater.js` ("The Styles Engine"):** Responsible for all live preview DOM manipulations related to CSS custom properties (styles). Applies specific CSS custom properties to the preview element.
-- **`manage-link-page-content-renderer.js` ("The Content Engine"):** Responsible for rendering list-based content like link sections and social icons into the live preview DOM. Handles clearing previous content and dynamically creating/updating HTML elements.
-- **`manage-link-page-qrcode.js` ("QR Code Handler"):** Dedicated module for managing the QR code modal and triggering the AJAX request to generate and display the link page QR code. It listens for clicks on the QR code button, controls the visibility of the modal, and handles the AJAX response to display the generated QR code image or an error message.
-- **AJAX Handler for Link Titles (`ajax-handlers.php`):** A PHP file containing the `extrch_fetch_link_meta_title_ajax_handler` function. This WordPress AJAX action (`wp_ajax_fetch_link_meta_title`) is responsible for receiving a URL, fetching its content server-side using `wp_safe_remote_get`, parsing the HTML for `<title>` or `og:title` tags, and returning the found title. This is triggered by `manage-link-page-links.js` when a user inputs a URL and the title field is blank.
-- **Inline YouTube Embeds (`link-page-youtube-embed.js`):** A dedicated JavaScript module that detects YouTube links on the public link page and in the admin preview. When a YouTube link button is clicked, it prevents default navigation and instead dynamically embeds a YouTube iframe player below the button. This feature can be toggled globally via a setting in the "Advanced" tab of the link page manager, which controls the conditional enqueueing of this script. Associated CSS is in `extrch-links.css`.
+*   **Main Manager (`manage-link-page.js`):** The central orchestrator. Initializes other JavaScript modules upon `DOMContentLoaded`. Handles overall coordination, shared utility functions, and may trigger updates based on broader page events. It does NOT maintain canonical data state; modules it initializes hydrate from the DOM.
+*   **"Brain" Modules:** These modules manage the user interface controls and interactions for specific domains within the manager (e.g., styles, links, social icons, advanced settings). They read the initial state from the DOM/hidden inputs and update the relevant DOM elements (including the style tag or hidden inputs before save) in response to user actions. Examples include:
+    *   [`manage-link-page-customization.js`](mdc:band-platform/extrch.co-link-page/js/manage-link-page-customization.js): Manages UI for style-related settings (colors, fonts, etc.) and updates the `#extrch-link-page-custom-vars` style tag.
+    *   [`manage-link-page-links.js`](mdc:band-platform/extrch.co-link-page/js/manage-link-page-links.js): Manages the links list UI (add, remove, reorder, edit) and updates the hidden input storing link data (`#link_page_links_json`) before save, and updates the preview via the "Content Engine".
+    *   [`manage-link-page-socials.js`](mdc:band-platform/extrch.co-link-page/js/manage-link-page-socials.js): Manages the social icons UI and updates the hidden input storing social icon data (`#band_profile_social_links_json`) before save, and updates the preview via the "Content Engine".
+    *   ... (other relevant JS files like colors, fonts, sizing, info, etc., act as "Brains" for their specific UI domains, hydrating from and writing to the DOM/hidden inputs)
+    *Note: "Brains" refer to logic controllers managing specific domains (e.g., styles, links) by interacting with their UI controls and the DOM, while "Engines" handle rendering or preview updates based on DOM state.*
+*   **"Engine" Modules:** These modules are responsible for rendering or updating the live preview based on the current state of the DOM (style tag, content elements).
+    *   [`manage-link-page-preview-updater.js`](mdc:band-platform/extrch.co-link-page/js/manage-link-page-preview-updater.js): The "Styles Engine". Responsible for applying CSS custom properties from the `#extrch-link-page-custom-vars` style tag to the preview elements.
+    *   [`manage-link-page-content-renderer.js`](mdc:band-platform/extrch.co-link-page/js/manage-link-page-content-renderer.js): The "Content Engine". Responsible for rendering list-based content like link sections and social icons into the live preview DOM based on the data in the relevant hidden inputs. Handles clearing previous content and dynamically creating/updating HTML elements.
+*   **Save Handler (`manage-link-page-save.js`):** This dedicated module is responsible for the final step before form submission. It serializes the current state from the DOM (reading the `#extrch-link-page-custom-vars` style tag, the overlay toggle, etc.) into the hidden input (`#link_page_custom_css_vars_json`) to ensure the PHP save handler receives the most up-to-date customization data. It also ensures the `tab` hidden input is set correctly for post-save redirection.
+*   **AJAX Handler for Link Titles (`ajax-handlers.php`):** A PHP file containing the `extrch_fetch_link_meta_title_ajax_handler` function. This WordPress AJAX action (`wp_ajax_fetch_link_meta_title`) is responsible for receiving a URL, fetching its content server-side using `wp_safe_remote_get`, parsing the HTML for `<title>` or `og:title` tags, and returning the found title. This is triggered by `manage-link-page-links.js` when a user inputs a URL and the title field is blank.
+*   **Inline YouTube Embeds (`link-page-youtube-embed.js`):** A dedicated JavaScript module that detects YouTube links on the public link page and in the admin preview. When a YouTube link button is clicked, it prevents default navigation and instead dynamically embeds a YouTube iframe player below the button. This feature can be toggled globally via a setting in the "Advanced" tab of the link page manager, which controls the conditional enqueueing of this script. Associated CSS is in `extrch-links.css`.
+*   **QR Code Handler (`manage-link-page-qrcode.js`):** Dedicated module for managing the QR code modal and triggering the AJAX request to generate and display the link page QR code. It listens for clicks on the QR code button, controls the visibility of the modal, and handles the AJAX response to display the generated QR code image or an error message.
 
 ## IV. Band Directory Enhancements
 
@@ -181,7 +186,7 @@ This logic ensures that the bare `extrachill.link/` serves as the primary landin
 
 **3. Redirecting Direct CPT Access (`template_redirect`):**
 
-The `template_redirect` action hook is used to redirect users accessing `band_link_page` posts directly via their default WordPress permalink structure (e.g., `https://community-stage.local/band-link-page/band-slug/`) to their canonical URL on the `extrachill.link` domain (`https://extrachill.link/band-slug/`
+The `template_redirect` action hook is used to redirect users accessing `band_link_page` posts directly via their default WordPress permalink structure (e.g., `https://community-stage.local/band-link-page/band-slug/`) to their canonical URL on the `extrachill.link` domain (`https://extrachill.link/band-slug/`)
 
 ## Login and Registration Module
 
@@ -311,10 +316,13 @@ The link page manager refactor will proceed in microsteps, each focused on a sin
 
 ## VI. TinyMCE Customization
 
-The TinyMCE editor used in bbPress has been customized to add the "formatselect" button, which allows users to select header elements (H1, H2, H3, etc.). Additionally, the editor's styles have been updated to properly align with the dark mode styles defined in `css/root.css`.
+The TinyMCE editor used in bbPress has been customized for enhanced functionality and consistent styling. These customizations are primarily handled in [`forum-features/tinymce-customization.php`](mdc:forum-features/tinymce-customization.php) and [`css/tinymce-editor.css`](mdc:css/tinymce-editor.css).
 
-- The `bbp_customize_tinymce_buttons` function in [`forum-features/tinymce-customization.php`](mdc:forum-features/tinymce-customization.php) has been modified to include 'formatselect' in the list of buttons.
-- The `body` style in `css/tinymce-editor.css` has been updated to use a more specific selector (`body.mce-content-body`) to ensure it is applied to the TinyMCE editor's body.
-- Styles have been added to `css/tinymce-editor.css` to target the formatselect dropdown menu and ensure it inherits the correct CSS variables from `css/root.css` in both light and dark modes. More specific styles have been added to override the default TinyMCE styles defined in `wp-includes/css/editor.min.css`.
-- The `content_css` argument has been removed from the `bbp_enable_visual_editor` function in [`forum-features/tinymce-customization.php`](mdc:forum-features/tinymce-customization.php).
-- The `mce_css` filter has been added to `forum-features/tinymce-customization.php` to load the custom stylesheet.
+- The `bbp_customize_tinymce_buttons` function in [`forum-features/tinymce-customization.php`](mdc:forum-features/tinymce-customization.php) has been modified to include 'formatselect' in the list of buttons, allowing users to select header elements.
+- The custom stylesheet [`css/tinymce-editor.css`](mdc:css/tinymce-editor.css) is loaded into the TinyMCE editor's content iframe using the `mce_css` filter via the `bbp_add_tinymce_stylesheet` function. This stylesheet is specifically for styling the *content* displayed within the editor iframe, not the editor UI itself.
+- To ensure styles apply within the iframe and override default TinyMCE styles, many CSS declarations in `css/tinymce-editor.css` utilize `!important` flags.
+- Color variables defined in the main theme's `:root` are made available within the TinyMCE iframe by including a duplicate set of these definitions at the beginning of `css/tinymce-editor.css`, scoped to the iframe's `:root`.
+- The `extrachillTinymceSetup` JavaScript function, added via the `tiny_mce_before_init` filter and output in the footer, handles custom TinyMCE initialization logic, including integrating the autosave plugin.
+- The function finds the closest parent form to the editor instance and attaches a submit event listener to it to clear autosave drafts on submission. This approach, by not checking for specific form IDs (`new-post`, `new-post-quick`), was found to resolve a conflict where the presence of the quick reply form interfered with the loading of other forms on the page.
+- Styling the TinyMCE editor toolbar and other UI elements outside the content iframe requires targeting them with CSS rules in stylesheets loaded on the main page (e.g., `style.css`) or other relevant theme stylesheets, as `tinymce-editor.css` only affects the iframe content.
+- The `content_css` argument is no longer used for loading `tinymce-editor.css`; the `mce_css` filter is the current method.

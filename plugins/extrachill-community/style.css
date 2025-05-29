@@ -1729,3 +1729,47 @@ input[type="text"], input[type="email"], input[type="url"], input[type="password
 #bbpress-forums fieldset.bbp-form{
 	border: none;
 }
+
+.wp-editor-container .mce-container{
+	color: var(--text-color);
+	background-color: var(--background-color);
+	border-color: var(--border-color);
+}
+
+.wp-editor-container .mce-toolbar .mce-ico{
+	color: var(--muted-text);
+}
+
+.wp-editor-container .mce-toolbar .mce-ico:hover{
+	color: var(--link-color);
+}
+.wp-editor-container{
+	border: 1px solid var(--border-color) !important;
+}
+
+.wp-editor-container .div.mce-toolbar-grp{
+	border-bottom: 1px solid var(--border-color) !important;
+}
+
+.wp-editor-container .mce-toolbar .mce-btn-group .mce-btn.mce-listbox{
+	border-color: var(--border-color);
+	background-color: var(--background-color);
+}
+.mce-panel.mce-menu{
+	background: var(--card-background) !important;
+	color: var(--muted-text)!important;
+	border-color: var(--border-color) !important;
+}
+.wp-editor-container .mce-panel .mce-btn i.mce-caret{
+	color: var(--muted-text);
+	border-top:6px solid var(--muted-text);
+}
+.wp-editor-container .mce-panel .mce-btn i.mce-caret:hover{
+	color: var(--link-color);
+}
+.wp-editor-container .mce-btn .mce-txt{
+	color: var(--muted-text);
+}
+.wp-editor-container .mce-btn .mce-txt:hover{
+	color: var(--link-color);
+}
