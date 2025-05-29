@@ -286,6 +286,11 @@ add_action('wp_ajax_submit_newsletter_form', 'extrachill_submit_newsletter_form'
 add_action('wp_ajax_nopriv_submit_newsletter_form', 'extrachill_submit_newsletter_form');
 
 function enqueue_newsletter_popup_scripts() {
+	// If ecc_user_session_token cookie is set, do not load the script.
+	if (isset($_COOKIE['ecc_user_session_token'])) {
+		return; // Exit the function early, script will not be enqueued.
+	}
+
 	// Only load on pages where popup is needed
 	$load_script = true;
 	if (is_front_page()) {
@@ -295,6 +300,19 @@ function enqueue_newsletter_popup_scripts() {
 	if ( $load_script && is_page('contact-us') ) {
 		$load_script = false;
 	}
+	// <<-- ADDED: Exclude Festival Wire archive >>
+	if ( $load_script && is_post_type_archive('festival_wire') ) {
+		$load_script = false;
+	}
+	// <<-- END ADDITION >>
+
+	// <<-- ADDED: Exclude The Events Calendar pages >>
+	// Use tribe_is_event_query() for broader TEC page detection
+	if ( $load_script && function_exists('tribe_is_event_query') && tribe_is_event_query() ) {
+		$load_script = false;
+	}
+	// <<-- END ADDITION >>
+
 	if ( $load_script ) {
 		$script_path = get_template_directory() . '/js/subscribe.js';
 		$script_uri = get_template_directory_uri() . '/js/subscribe.js';

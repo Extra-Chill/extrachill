@@ -24,11 +24,6 @@ function ec_fetch_forum_results( $search_term, $limit = 10 ) {
         return array();
     }
 
-    // Ensure upvote count is numeric and set default to 1 if missing
-    foreach ( $data as &$item ) {
-        $item['upvotes'] = isset( $item['upvotes'] ) && is_numeric( $item['upvotes'] ) ? (int) $item['upvotes'] : 1;
-    }
-
     return $data;
 }
 
@@ -86,7 +81,6 @@ function ec_merge_remote_forum_into_search( $posts, $query ) {
     foreach ( $topics as $item ) {
         $forum_title = isset( $item['forum']['title'] ) ? $item['forum']['title'] : 'Unknown Forum';
         $forum_link = isset( $item['forum']['link'] ) ? $item['forum']['link'] : '#';
-        $upvotes = isset( $item['upvotes'] ) ? (int) $item['upvotes'] : 1;
 
         $post_obj = (object) array(
             'ID'             => 900000000 + (int) $item['id'],
@@ -106,7 +100,6 @@ function ec_merge_remote_forum_into_search( $posts, $query ) {
                 'title' => $forum_title,
                 'link'  => $forum_link,
             ),
-            '_upvotes'       => $upvotes,
         );
 
         $fake_posts[] = new WP_Post( $post_obj );

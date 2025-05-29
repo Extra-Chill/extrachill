@@ -110,7 +110,7 @@ function fetch_ticketmaster_events($location) {
  * @param string|null $location_slug Specific location slug to import (optional).
  * @return array|WP_Error
  */
-function post_ticketmaster_events_to_calendar($maxEvents = 5, $source = 'ticketmaster', $location_slug = null) {
+function post_ticketmaster_events_to_calendar($maxEvents = 10, $source = 'ticketmaster', $location_slug = null) {
     $locations = get_event_locations();
 
     // Filter locations if a specific location slug is provided

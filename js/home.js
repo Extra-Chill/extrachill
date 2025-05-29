@@ -10,7 +10,7 @@ document.addEventListener('DOMContentLoaded', function() {
             feedback.style.display = 'none';
             var formData = new FormData(form);
             formData.append('nonce', document.getElementById('subscribe_to_sendy_home_nonce_field').value);
-            fetch(ajaxurl, {
+            fetch(extrachill_ajax_object.ajax_url, {
                 method: 'POST',
                 body: formData
             })
@@ -21,6 +21,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     feedback.textContent = data.data;
                     feedback.style.color = 'green';
                     emailInput.value = '';
+                    localStorage.setItem('subscribed', 'true');
                 } else {
                     feedback.textContent = data.data || 'An error occurred. Please try again.';
                     feedback.style.color = 'red';

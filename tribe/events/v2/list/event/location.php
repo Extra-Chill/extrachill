@@ -5,9 +5,11 @@ $locations = get_the_terms( $event->ID, 'location' );
 if ( ! empty( $locations ) && ! is_wp_error( $locations ) ) : ?>
     <div class="taxonomy-badges">
         <?php foreach ( $locations as $location ) : 
-			// $location_slug_class = 'location-' . sanitize_html_class( $location->slug ); // No longer needed here
+			$location_slug_class = 'location-' . sanitize_html_class( $location->slug );
+			// Build the correct filter URL based on the current URL
+			$location_filter_url = add_query_arg( 'tribe-bar-location', $location->slug ); // Adds/updates the query arg to the current URL
 		?>
-            <a href="<?php echo esc_url( get_term_link( $location ) ); ?>" class="taxonomy-badge location-badge"><?php echo esc_html( $location->name ); ?></a>
+            <a href="<?php echo esc_url( $location_filter_url ); ?>" class="taxonomy-badge location-badge <?php echo $location_slug_class; ?> location-link"><?php echo esc_html( $location->name ); ?></a>
         <?php endforeach; ?>
     </div>
 <?php endif; ?>

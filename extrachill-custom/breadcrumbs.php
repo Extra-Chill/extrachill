@@ -5,7 +5,7 @@ function display_breadcrumbs() {
         return;
     }
     
-    if (is_tax('location')) {
+    if (is_tax('location') && !is_post_type_archive('festival_wire')) {
         display_location_breadcrumbs(); // Call the custom location breadcrumb function
         return;
     }

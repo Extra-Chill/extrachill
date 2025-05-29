@@ -456,7 +456,7 @@ body.menu-open {
 	border: none;
     background-color: #000; /* Match menu background */
 }
-#menu-footer-bottom .menu-item a{
+#extra-footer #menu-footer-bottom .menu-item a{
 	border: none;
 	padding: 5px;
     color: #fff;

@@ -50,7 +50,7 @@ get_header(); ?>
 
         <?php
 $paged = (get_query_var('paged')) ? get_query_var('paged') : 1;
-$sort = (isset($_GET['sort']) && in_array($_GET['sort'], array('recent', 'upvotes', 'oldest'))) ? $_GET['sort'] : 'recent';
+$sort = (isset($_GET['sort']) && in_array($_GET['sort'], array('recent', 'oldest'))) ? $_GET['sort'] : 'recent';
 
 $args = array(
     'post_type'      => 'post',
@@ -58,14 +58,7 @@ $args = array(
     'paged'          => $paged,
 );
 
-if ($sort == 'upvotes') {
-    // Simplified meta query to avoid conflicting joins
-    $args['meta_key'] = 'upvote_count';
-    $args['orderby'] = array(
-        'meta_value_num' => 'DESC',
-        'date' => 'DESC', // Secondary sort by date if upvotes are equal
-    );
-} elseif ($sort == 'oldest') {
+if ($sort == 'oldest') {
     $args['orderby'] = 'date';
     $args['order'] = 'ASC';
 } else {
@@ -92,7 +85,6 @@ if ($all_posts_query->have_posts()) :
     <div id="custom-sorting-dropdown">
         <select id="post-sorting" name="post_sorting" onchange="window.location.href='<?php echo esc_url(get_permalink()); ?>?sort='+this.value;">
             <option value="recent" <?php selected($sort, 'recent'); ?>>Sort by Recent</option>
-            <option value="upvotes" <?php selected($sort, 'upvotes'); ?>>Sort by Upvotes</option>
             <option value="oldest" <?php selected($sort, 'oldest'); ?>>Sort by Oldest</option>
         </select>
     </div>
@@ -119,11 +111,6 @@ if ($all_posts_query->have_posts()) :
 
     <p>No posts found for this sorting option.</p>
     <?php get_template_part('no-results', 'none'); ?>
-
-    <?php
-    // DEBUGGING: Log that no posts were found
-    error_log('No posts found for upvotes sorting.');
-    ?>
 
 <?php endif;
 

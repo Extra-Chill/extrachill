@@ -813,24 +813,6 @@ span.comments .fa {
         display: block; 
     }
 
-.upvote {
-    pointer-events: auto;
-	display: inline;
-	vertical-align: baseline;
-	margin-right: 12px;
-	background-color: var(--card-background); /* Subtle dark grey badge background */
-    color: var(--header-text); /* White text for contrast */
-    padding: 7px 9px; /* Padding to make it look like a badge */
-    border-radius: 5px; /* Rounded corners for modern look */
-    font-size: 0.8em; /* Slightly smaller font size for badge */
-	border: 1px solid var(--border-color);
-}
-
-.upvote svg{
-	height: .9em;
-	width: .9em;
-}
-
 .single .article-content .below-entry-meta {
 	border-bottom: 2px solid #53940b;
   margin-bottom: 10px;
@@ -1394,10 +1376,6 @@ input[type="reset"]:active, input[type="button"]:active, input[type="submit"]:ac
 	overflow: hidden;
 	position: relative;
 }
-.comment-meta {
-	color:#36454F;
-
-}
 
 .comments-area .comment-author-link span {
 	margin-left: 10px;
@@ -1544,13 +1522,14 @@ padding:3px;
 .social-links{
 	padding: 25px;
 }
+.archive .entry-header, .search .entry-header{
+	margin-top: 10px;
+}
 @media (max-width: 768px) {
 	.site-title a {
 		font-size: 34px;
 	}
-	.archive .entry-header, .search .entry-header{
-		margin-top: 10px;
-	}
+
 	.wp-block-embed{
 		text-align: center;
 	}
@@ -1694,7 +1673,8 @@ padding:3px;
 	.view-all-newsletters,
 	h3.widget-title,
 	.comments-area,
-	.related-tax-section {
+	.related-tax-section,
+	.newsletter .entry-header {
 	max-width: 92%; 
 	margin-left: auto;
 	margin-right: auto;
@@ -1712,7 +1692,9 @@ padding:3px;
 		width: 100%;
 	}
 }
-
+.newsletter .below-entry-meta {
+	max-width: 100%;
+}
 
 @media (min-width: 601px) and (max-width: 800px) {
 	.date-in-header {
@@ -1817,7 +1799,7 @@ font-size: 20px;
 	.related-posts-wrapper-flyout .related-posts-flyout {
 		padding: 20px;
 	}
-h1, #postvote {
+h1.entry-title, #postvote {
 	font-size: 26px;
 	line-height: 1.6;
 }
@@ -1934,27 +1916,6 @@ fill: #36454f;
 }
 .entry-title {
     display: inline; /* This makes the title inline with the preceding elements */
-}
-
-
-.tooltip-overlay {
-    position: absolute;
-    background-color: var(--card-background);
-    border: 1px solid var(--border-color);
-    padding: 10px;
-    border-radius: 5px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-    z-index: 100;
-    display: none; /* Initially hidden */
-    font-size: 16px;
-}
-
-.upvote-icon svg {
-  fill: #53940b;
-  vertical-align: -.1em; /* Ensure it aligns in the middle vertically with adjacent text */
-}
-.upvote svg:hover {
-  fill: #003466;
 }
 
 .extrachill-recent-activity{
@@ -2279,32 +2240,6 @@ margin: 5px 0;
   }
 }
 
-.title-upvote-row {
-  display: flex;
-  align-items: center;
-  gap: 0.7em;
-  margin-bottom: 0.2em;
-  padding-top: 15px;
-}
-.title-upvote-row .upvote {
-  margin: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 5px 7px;
-}
-.title-upvote-row .entry-title {
-  margin: 0;
-  font-size: 1.3rem;
-  font-weight: 700;
-}
-@media (max-width: 600px) {
-  .title-upvote-row .entry-title {
-    font-size: 1.1rem;
-  }
-}
-
 /* Sidebar Mini Card Styles for Festival Wire */
 .my-recent-posts .mini-card {
   background: var(--card-background, #191d1a);
@@ -2347,7 +2282,7 @@ margin: 5px 0;
 /* Sidebar Widget Title Contrast - Toned Down */
 .my-recent-posts .widget-title.sidebar-recent-title-margin {
   background: var(--card-background, #191d1a);
-  color: #fff;
+  color: var(--text-color);
   border-radius: 8px 8px 0 0;
   font-family: 'Loft Sans', 'Montserrat', 'Arial', sans-serif;
   font-size: 1.08em;

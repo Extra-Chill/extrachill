@@ -72,7 +72,30 @@
 		</header><!-- .entry-header -->
 
 		<div class="entry-meta">
-			<span class="posted-on"><?php echo esc_html( get_the_date('F j, Y \a\t g:ia') ); ?></span>
+			<?php
+			$post_time_u = get_the_time('U'); // Get post time as Unix timestamp
+			$current_time_u = current_time('timestamp'); // Get current time as Unix timestamp
+			$time_diff_seconds = $current_time_u - $post_time_u;
+
+			// Define threshold (e.g., 24 hours)
+			$threshold_seconds = 24 * HOUR_IN_SECONDS; // Use WordPress constant
+
+			if ($time_diff_seconds < $threshold_seconds && $time_diff_seconds > 0) {
+			    // Within threshold: Show relative time
+			    printf(
+			        '<span class="posted-on"><time class="entry-date published updated" datetime="%1$s">%2$s ago</time></span>',
+			        esc_attr(get_the_date(DATE_W3C)), // Use ISO 8601 format for datetime attribute
+			        esc_html(human_time_diff($post_time_u, $current_time_u))
+			    );
+			} else {
+			    // Older than threshold: Show standard date format (matching previous format)
+			     printf(
+			        '<span class="posted-on"><time class="entry-date published updated" datetime="%1$s">%2$s</time></span>',
+			        esc_attr(get_the_date(DATE_W3C)),
+			        esc_html(get_the_date('F j, Y \a\t g:ia')) // Use original format for older posts
+			    );
+			}
+			?>
             <?php // Meta details like author/location removed as per archive structure ?>
 		</div><!-- .entry-meta -->
 

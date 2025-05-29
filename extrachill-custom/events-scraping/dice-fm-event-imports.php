@@ -201,7 +201,7 @@ function fetch_dice_fm_events( $location ) {
  * @param int $maxEvents Maximum number of events to post.
  * @return array|WP_Error Array of posted events or WP_Error on failure.
  */
-function post_dice_fm_events_to_calendar( $maxEvents = 5 ) {
+function post_dice_fm_events_to_calendar( $maxEvents = 10 ) {
     // Retrieve the list of locations and select Austin.
     $locations = get_event_locations();
     $austin_location = null;

@@ -8,11 +8,8 @@
  * @param int $maxEvents Maximum number of events to post.
  * @return array|WP_Error Array of posted events or WP_Error on failure.
  */
-function post_aggregated_events_to_calendar($maxEvents = 5) {
-    // Ensure the user has the necessary permissions
-    if (!current_user_can('manage_options')) {
-        wp_die('Unauthorized user');
-    }
+function post_aggregated_events_to_calendar($maxEvents = 10) {
+    // Permission check removed - not suitable for cron execution
 
     // Aggregate events from all venues across all cities
     $events = aggregate_venue_events();
