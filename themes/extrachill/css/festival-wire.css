@@ -228,8 +228,6 @@
     padding: 0.25rem 0.75rem;
 }
 
-
-
 .festival-wire-card .entry-title {
     font-size: 1.3rem;
     margin-top: 0;
@@ -730,8 +728,6 @@
         font-size: 1.6rem;
     }
     
-
-    
     .related-wire-title {
         font-size: 1.5rem;
     }
@@ -771,4 +767,125 @@
 .festival-wire-card .festival-badges a {
     position: relative;
     z-index: 2;
+}
+
+/* ==========================================================================
+   Festival Wire FAQ Section
+   ========================================================================== */
+.festival-wire-faq-container {
+    background-color: var(--card-background); /* Match Forum CTA */
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 2rem;
+    margin: 3rem auto 2rem;
+    max-width: 800px; /* Match Forum CTA */
+    box-shadow: var(--card-shadow);
+}
+
+.faq-section-title {
+    font-size: 1.6rem; /* Match Forum CTA */
+    margin-bottom: 1.5rem;
+    color: var(--text-color);
+    text-align: center;
+}
+
+.faq-accordion {
+    border-top: 1px solid var(--border-color);
+}
+
+.faq-item {
+    border-bottom: 1px solid var(--border-color);
+}
+
+.faq-question {
+    background-color: transparent;
+    border: none;
+    padding: 1rem 0;
+    width: 100%;
+    text-align: left;
+    font-size: 1.1rem;
+    font-weight: 500;
+    color: var(--text-color);
+    cursor: pointer;
+    position: relative;
+    padding-right: 2rem; /* Space for indicator */
+    transition: color 0.2s ease;
+}
+
+.faq-question:hover,
+.faq-question:focus {
+    color: var(--link-color);
+    outline: none;
+}
+
+.faq-question::after {
+    content: '+'; /* Plus sign for collapsed */
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 1.4rem;
+    font-weight: bold;
+    color: var(--muted-text);
+    transition: transform 0.3s ease, color 0.2s ease;
+}
+
+.faq-question[aria-expanded="true"]::after {
+    content: '−'; /* Minus sign for expanded */
+    transform: translateY(-50%); /* Rotate can be jarring */
+    color: var(--link-color);
+}
+
+.faq-answer {
+    padding: 0 0 1rem 0; /* Padding bottom only when open */
+    font-size: 1rem; /* Increased font size */
+    line-height: 1.6;
+    color: var(--text-color);
+    overflow: hidden;
+    max-height: 0;
+    /* Removed transition from base state, handled in hidden/:not([hidden]) */
+}
+
+.faq-answer[hidden] {
+    display: block; 
+    visibility: hidden; 
+    max-height: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+    margin-top: 0; /* Ensure no margin when hidden */
+    opacity: 0;
+    transition: max-height 0.25s ease-in, /* Faster collapse */
+                opacity 0.15s ease-in, /* Faster fade out */
+                padding 0.25s ease-in,
+                margin 0.25s ease-in;
+}
+
+.faq-answer:not([hidden]) {
+    visibility: visible;
+    max-height: 1000px; /* Adjust if needed for very long answers */
+    padding-top: 0.5rem; 
+    padding-bottom: 1rem;
+    margin-top: 0.5rem; /* Add slight margin when open */
+    opacity: 1;
+    transition: max-height 0.35s ease-out, /* Smoother, slightly faster expand */
+                opacity 0.25s ease-out 0.1s, /* Fade in during expand */
+                padding 0.35s ease-out,
+                margin 0.35s ease-out;
+}
+
+.faq-answer p {
+    margin: 0;
+}
+
+.faq-answer p:last-child {
+    margin-bottom: 0;
+}
+
+/* Last Updated Timestamp */
+.festival-wire-last-updated {
+    text-align: center;
+    font-size: 0.85rem;
+    color: var(--muted-text);
+    margin-top: -1rem; /* Adjust spacing relative to header */
+    margin-bottom: 2rem;
 }

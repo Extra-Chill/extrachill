@@ -90,8 +90,9 @@ if ( ! is_wp_error( $locations ) && ! empty( $locations ) ) {
 
 	    if ( ! empty( $locations ) && ! is_wp_error( $locations ) ) : ?>
 	    <div class="taxonomy-badges">
-	        <?php foreach ( $locations as $location ) : ?>
-	            <a href="<?php echo esc_url( get_term_link( $location ) ); ?>" class="taxonomy-badge location-badge"><?php echo esc_html( $location->name ); ?></a>
+	        <?php foreach ( $locations as $location ) : 
+	            $loc_slug = sanitize_html_class( $location->slug ); ?>
+	            <a href="<?php echo esc_url( get_term_link( $location ) ); ?>" class="taxonomy-badge location-badge location-<?php echo $loc_slug; ?>"><?php echo esc_html( $location->name ); ?></a>
 	        <?php endforeach; ?>
 	    </div>
 	<?php endif; ?>

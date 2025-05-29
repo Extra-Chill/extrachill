@@ -64,101 +64,130 @@
 	color: #fff;
 }
 
+/* Added Festival Badges */
+.festival-badges a.festival-outside-lands {
+	background-color: #C84B31; /* Golden Gate Orange/Red */
+	color: #fff;
+}
+
+.festival-badges a.festival-shambhala {
+	background-color: #9B59B6; /* Vibrant Purple */
+	color: #fff;
+}
+
+.festival-badges a.festival-new-orleans-jazz-heritage-festival {
+	background-color: #DAA520; /* Mardi Gras Gold */
+	color: #3A1F3F; /* Dark Purple Text */
+}
+
+.festival-badges a.festival-electric-daisy-carnival {
+	background-color: #FF00FF; /* Vibrant Electric Pink */
+	color: #ffffff;
+}
+
 /* === Location Badges === */
-.location-charleston  .taxonomy-badge.location-badge {
+ .taxonomy-badges .location-charleston    {
 	background-color: #660000;
 	color: #e5e5e5;
 }
-.location-austin .taxonomy-badge.location-badge{
+ .taxonomy-badges .location-austin  {
 	background-color: #bf5700;
 	color: #e5e5e5;
 }
-.location-asheville .taxonomy-badge.location-badge{
+ .taxonomy-badges .location-asheville  {
 	background-color:#122518;
 }
-.location-columbia .taxonomy-badge.location-badge{
+ .taxonomy-badges .location-columbia  {
 	background-color:#73000a;
 }
-.location-boston .taxonomy-badge.location-badge{
+ .taxonomy-badges .location-boston  {
 	background-color:#BD3039;
 }
-.location-jamaica .taxonomy-badge.location-badge{
+ .taxonomy-badges .location-jamaica  {
 }
-.location-usa .taxonomy-badge.location-badge{
+ .taxonomy-badges .location-usa  {
 }
-.location-chicago .taxonomy-badge.location-badge{
+ .taxonomy-badges .location-charlotte   {
+	background-color: #1D1160; /* Hornets Purple */
+	color: #00B6B1; /* Hornets Teal */
+}
+ .taxonomy-badges .location-chicago  {
 	background-color:#41B6E6;
 	color: #fff;
 }
-.location-nashville .taxonomy-badge.location-badge {
+ .taxonomy-badges .location-nashville   {
 	background-color: #3c2f2f;
 	color: #ffffff;
 }
-.location-new-orleans .taxonomy-badge.location-badge {
+ .taxonomy-badges .location-new-orleans   {
 	background-color: #4b0082;
 	color: #FFD700;
 }
-.location-philadelphia .taxonomy-badge.location-badge {
+ .taxonomy-badges .location-philadelphia   {
 	background-color: #004C54;
 	color: #fff;
 }
-.location-atlanta .taxonomy-badge.location-badge {
+ .taxonomy-badges .location-atlanta   {
 	background-color: #A71930;
 	color: #fff;
 }
-.location-europe .taxonomy-badge.location-badge {
+ .taxonomy-badges .location-europe   {
 	background-color: #003399;
 	color: #fff;
 }
-.location-california .taxonomy-badge.location-badge {
+ .taxonomy-badges .location-california   {
 	background-color: #003262;
 	color: #F2A206;
 }
-.location-tennessee .taxonomy-badge.location-badge {
+ .taxonomy-badges .location-tennessee   {
 	background-color: #FF8200;
 	color: #e5e5e5;
 }
-.location-florida .taxonomy-badge.location-badge {
+ .taxonomy-badges .location-florida   {
 	background-color: #FFA500;
 	color: #000;
 }
-.location-maryland .taxonomy-badge.location-badge {
+ .taxonomy-badges .location-maryland   {
 	background-color: #D72631;
 	color: #fff;
 }
-.location-michigan .taxonomy-badge.location-badge {
+ .taxonomy-badges .location-michigan   {
 	background-color: #00274C;
 	color: #fff;
 }
-.location-nevada .taxonomy-badge.location-badge {
+ .taxonomy-badges .location-nevada   {
 	background-color: #DAA520;
 	color: #000;
 }
-.location-new-jersey .taxonomy-badge.location-badge {
+ .taxonomy-badges .location-las-vegas   {
+	background-color: #FFBF00; /* Vegas Gold */
+	color: #000000;
+}
+ .taxonomy-badges .location-new-jersey   {
 	background-color: #FFD700;
 	color: #000;
 }
-.location-washington .taxonomy-badge.location-badge {
+ .taxonomy-badges .location-washington   {
 	background-color: #14532d;
 	color: #fff;
 }
-.location-raleigh .taxonomy-badge.location-badge {
+ .taxonomy-badges .location-raleigh   {
 	background-color: #a3342e;
 	color: #fff;
 }
-.location-peru .taxonomy-badge.location-badge {
+ .taxonomy-badges .location-peru   {
 	background-color: #b0002b;
 	color: #f7e17b;
 }
-.location-ohio .taxonomy-badge.location-badge {
+ .taxonomy-badges .location-ohio   {
 	background-color: #BB0000;
 	color: #fff;
 }
-.location-texas .taxonomy-badge.location-badge {
+ .taxonomy-badges .location-texas   {
 	background-color: #c2402b;
 	color: #fff;
 }
-.location-north-carolina .taxonomy-badge.location-badge {
+ .taxonomy-badges .location-north-carolina   {
 	background-color: #21468B;
 	color: #fff;
 }

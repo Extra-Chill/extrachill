@@ -118,7 +118,6 @@ if (is_category()) {
         <div id="custom-sorting-dropdown">
             <select id="post-sorting" name="post_sorting" onchange="window.location.href='<?php echo esc_url($archive_link); ?>?sort='+this.value;">
                 <option value="recent">Sort by Recent</option>
-                <option value="upvotes">Sort by Upvotes</option>
                 <option value="oldest">Sort by Oldest</option>
             </select>
         </div>

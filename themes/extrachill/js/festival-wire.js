@@ -19,6 +19,9 @@
 
         // Load more posts functionality
         initLoadMore(); 
+
+        // Initialize FAQ Accordion
+        initFaqAccordion();
     });
 
     /**
@@ -293,6 +296,36 @@
                     }
                 }
             });
+        });
+    }
+
+    /**
+     * Initialize FAQ Accordion functionality
+     */
+    function initFaqAccordion() {
+        const accordionContainer = $('.faq-accordion');
+        console.log('initFaqAccordion called. Found container:', accordionContainer.length);
+        if (accordionContainer.length === 0) {
+            return; // Exit if FAQ section not found
+        }
+
+        accordionContainer.find('.faq-question').on('click', function() {
+            console.log('FAQ question clicked:', this);
+            const $button = $(this);
+            const $answer = $('#' + $button.attr('aria-controls'));
+            console.log('Target answer element:', $answer.length > 0 ? $answer[0] : 'Not found');
+            const isExpanded = $button.attr('aria-expanded') === 'true';
+            console.log('Current expanded state:', isExpanded);
+
+            // Toggle the current item
+            $button.attr('aria-expanded', !isExpanded);
+            $answer.prop('hidden', isExpanded);
+            console.log('Toggled state. New expanded:', !isExpanded, 'New hidden prop:', isExpanded);
+
+            // Optional: Close other items when one is opened (uncomment if desired)
+            /*
+            // ... existing code ...
+            */
         });
     }
 

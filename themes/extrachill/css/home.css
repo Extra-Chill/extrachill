@@ -95,7 +95,7 @@ body.home {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0.5em 1.5em 0.2em 1.5em;
+    padding: .5em 1em;
     background: none;
     border-bottom: 1px solid var(--border-color);
 }
@@ -105,7 +105,7 @@ body.home {
     align-items: center;
     gap: 0.6em;
     background: var(--card-background);
-    color: var(--accent);
+    color: var(--accent-3);
     font-family: 'Loft Sans', sans-serif;
     font-size: 1.18em;
     font-weight: 800;
@@ -113,7 +113,7 @@ body.home {
     padding: 0.45em 1.7em 0.45em 1.2em;
     box-shadow: 0 4px 16px rgba(0,0,0,0.08);
     letter-spacing: 0.04em;
-    border: 2px solid var(--accent);
+    border: 2px solid var(--accent-3);
     position: relative;
     margin-top: 0.1em;
     margin-bottom: 0.1em;
@@ -210,7 +210,7 @@ body.home {
 
 @media (max-width: 600px) {
     .festival-wire-ticker-header {
-        padding: 0.4em 0.7em 0.1em 0.7em;
+        padding: 0.2em .5em;
     }
     .festival-wire-ticker-label {
         font-size: 0.92em;
@@ -336,6 +336,7 @@ body.home {
     color: var(--muted-text);
     margin-top: 0.1em;
 }
+
 .home-3x3-empty {
     color: var(--muted-text);
     font-style: italic;
@@ -344,7 +345,6 @@ body.home {
     text-align: center;
 }
 .home-3x3-community-list .home-3x3-card {
-    background: var(--card-background);
     font-size: 0.98em;
     padding: 0.7em 0.7em 0.7em 0.7em;
 }
@@ -527,6 +527,7 @@ body.home {
     display: flex;
     flex-direction: column;
     gap: 1.2em;
+    align-items: center;
 }
 .home-newsletter-signup label {
     font-size: 1.08em;
@@ -634,7 +635,6 @@ body.home {
     background: var(--card-background);
     border-radius: 18px;
     box-shadow: 0 2px 12px rgba(0,0,0,0.07);
-    padding: 1.5em 1.2em 1.2em 1.2em;
     margin-bottom: 2.2em;
     display: flex;
     flex-direction: column;
@@ -742,3 +742,8 @@ body.home {
         padding: 2em 1em;
     }
 } 
+
+.home-more-recent-meta, .home-3x3-meta {
+    display: block;
+    font-size: 0.85em;
+}

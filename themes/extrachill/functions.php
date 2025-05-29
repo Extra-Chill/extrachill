@@ -108,7 +108,9 @@ if (!function_exists('colormag_setup')):
         // Adding excerpt option box for pages as well
         add_post_type_support('page', 'excerpt');
         add_theme_support( 'editor-styles' );
-        add_editor_style( 'style.css' ); 
+        add_editor_style( 'css/root.css' );
+        add_editor_style( 'style.css' );
+        add_editor_style( 'css/single-post.css' );
         
         /*
          * Switch default core markup for search form, comment form, and comments
@@ -922,7 +924,11 @@ function enqueue_homepage_js() {
     if (is_front_page()) {
         $js_path = '/js/home.js';
         wp_enqueue_script('extrachill-home', get_template_directory_uri() . $js_path, array('jquery'), filemtime(get_stylesheet_directory() . $js_path), true);
-        wp_localize_script('extrachill-home', 'ajaxurl', admin_url('admin-ajax.php'));
+        // Pass AJAX URL correctly as an array
+        wp_localize_script('extrachill-home', 'extrachill_ajax_object', array(
+            'ajax_url' => admin_url('admin-ajax.php')
+            // Add other data like nonces here if needed
+        ));
     }
 }
 add_action('wp_enqueue_scripts', 'enqueue_homepage_js');

@@ -130,6 +130,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 feedback.textContent = data.data.message; // Success message
                 feedback.style.color = 'green';
                 emailInput.value = ''; // Clear the email input
+                localStorage.setItem('subscribed', 'true');
             } else {
                 feedback.textContent = data.data.message; // Error message
                 feedback.style.color = 'red';

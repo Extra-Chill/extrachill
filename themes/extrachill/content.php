@@ -19,7 +19,7 @@ if ( ! is_wp_error( $locations ) && ! empty( $locations ) ) {
 ?>
 
 <?php if ( is_archive() || is_search() ) : ?>
-<div class="archive-card<?php echo esc_attr( $location_classes ); ?>">
+<div class="archive-card">
 <?php endif; ?>
 
 <article id="post-<?php the_ID(); ?>" <?php post_class(); ?>>
@@ -36,7 +36,8 @@ if ( ! is_wp_error( $locations ) && ! empty( $locations ) ) {
         $locations = get_the_terms( get_the_ID(), 'location' );
         if ( ! is_wp_error( $locations ) && ! empty( $locations ) ) {
             foreach ( $locations as $location ) {
-                echo '<a href="' . esc_url( get_term_link( $location ) ) . '" class="taxonomy-badge location-badge">' . esc_html( $location->name ) . '</a>';
+                $loc_slug = sanitize_html_class( $location->slug );
+                echo '<a href="' . esc_url( get_term_link( $location ) ) . '" class="taxonomy-badge location-badge location-' . $loc_slug . '">' . esc_html( $location->name ) . '</a>';
             }
         }
         ?>
@@ -59,37 +60,10 @@ if ( ! is_wp_error( $locations ) && ! empty( $locations ) ) {
     <?php endif; ?>
 
     <div class="archive-post">
-        <header class="entry-header" id="wild-vote">
-
-            <div class="title-upvote-row">
-                <?php if ( get_post_type() === 'post' ) : ?>
-                    <div class="upvote">
-                        <?php if ( isset( $post->_is_forum_post ) && $post->_is_forum_post ) : ?>
-                            <span class="upvote-icon" data-post-id="<?php echo esc_attr( $post->ID ); ?>" data-nonce="<?php echo wp_create_nonce('upvote_nonce'); ?>" data-community-user-id="">
-                                <svg>
-                                    <use href="/wp-content/themes/colormag-pro/fonts/fontawesome.svg?v1.3#circle-up-regular"></use>
-                                </svg>
-                            </span>
-                            <span class="upvote-count">
-                                <?php 
-                                $forum_upvotes = isset( $post->_upvotes ) ? intval( $post->_upvotes ) : 0; 
-                                echo $forum_upvotes + 1; 
-                                ?>
-                            </span>
-                        <?php else : ?>
-                            <span class="upvote-icon" data-post-id="<?php the_ID(); ?>" data-nonce="<?php echo wp_create_nonce('upvote_nonce'); ?>" data-community-user-id="">
-                                <svg>
-                                    <use href="/wp-content/themes/colormag-pro/fonts/fontawesome.svg?v1.3#circle-up-regular"></use>
-                                </svg>
-                            </span>
-                            <span class="upvote-count"><?php echo get_upvote_count( get_the_ID() ); ?></span>
-                        <?php endif; ?>
-                    </div>
-                <?php endif; ?>
-                <h2 class="entry-title" style="margin: 0; position: relative;">
-                    <a href="<?php the_permalink(); ?>" class="card-link-target" title="<?php the_title_attribute(); ?>"><?php the_title(); ?></a>
-                </h2>
-            </div>
+        <header class="entry-header">
+            <h2 class="entry-title" style="margin: 0; position: relative;">
+                <a href="<?php the_permalink(); ?>" class="card-link-target" title="<?php the_title_attribute(); ?>"><?php the_title(); ?></a>
+            </h2>
         </header>
 
         <?php if ( get_post_type() === 'product' ) : ?>

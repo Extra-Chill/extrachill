@@ -45,8 +45,8 @@ function extra_chill_automated_event_import() {
 
     // Post locally scraped events
     error_log('[CRON STEP] Starting local scraping import...');
-    $maxEvents = 100; // Adjust based on expected volume for local events
-    $localEvents = post_aggregated_events_to_calendar($maxEvents);
+    // Let the function use its default maxEvents value (10)
+    $localEvents = post_aggregated_events_to_calendar();
     if (is_wp_error($localEvents)) {
         error_log('[CRON ERROR] Error posting local events: ' . $localEvents->get_error_message());
         // Optionally log a 0 count or just skip logging for errors
@@ -59,8 +59,8 @@ function extra_chill_automated_event_import() {
 
     // Post Ticketmaster events
     error_log('[CRON STEP] Starting Ticketmaster import...');
-    $maxTicketmasterEvents = 50; // Adjust based on how many Ticketmaster events you want to handle
-    $ticketmasterEvents = post_ticketmaster_events_to_calendar($maxTicketmasterEvents, 'cron ticketmaster');
+    // Let the function use its default maxEvents value (10)
+    $ticketmasterEvents = post_ticketmaster_events_to_calendar(null, 'cron ticketmaster'); // Pass null for maxEvents to use default
     if (is_wp_error($ticketmasterEvents)) {
         error_log('[CRON ERROR] Error posting Ticketmaster events: ' . $ticketmasterEvents->get_error_message());
         // Optionally log a 0 count or just skip logging for errors
@@ -73,8 +73,8 @@ function extra_chill_automated_event_import() {
 
     // **Post DICE.FM events (for Austin)**
     error_log('[CRON STEP] Starting DICE.FM import...');
-    $maxDiceEvents = 50; // Adjust as needed based on your expected volume
-    $diceEvents = post_dice_fm_events_to_calendar($maxDiceEvents);
+    // Let the function use its default maxEvents value (10)
+    $diceEvents = post_dice_fm_events_to_calendar();
     if (is_wp_error($diceEvents)) {
         error_log('[CRON ERROR] Error posting DICE.FM events: ' . $diceEvents->get_error_message());
         // Optionally log a 0 count or just skip logging for errors

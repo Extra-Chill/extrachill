@@ -37,8 +37,7 @@
 
 .archive-card .archive-post,
 .archive-card .entry-title,
-.archive-card .featured-image,
-.archive-card .upvote {
+.archive-card .featured-image {
   position: relative;
   z-index: 1;
 }
@@ -54,6 +53,7 @@
   text-decoration: none;
   transition: color 0.18s, text-decoration 0.18s;
   position: relative;
+  font-size: 24px;
   z-index: 1;
 }
 
