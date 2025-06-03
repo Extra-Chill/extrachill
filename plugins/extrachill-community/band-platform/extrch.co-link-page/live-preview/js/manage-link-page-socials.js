@@ -4,15 +4,21 @@
 // - Do NOT update the hidden input on every UI change.
 // - Only serialize the DOM to the hidden input when explicitly called (by the save handler before submit).
 // - The live preview can be updated on UI change, but should read directly from the DOM.
-(function(manager) {
+(function(manager, config) {
     if (!manager) {
-        console.error('ExtrchLinkPageManager is not defined. Social icons script cannot run.');
+        // console.error('[SocialIcons] ExtrchLinkPageManager not found.'); // Keep
         return;
     }
     manager.socialIcons = manager.socialIcons || {};
+    manager.socialIcons.allowPreviewUpdate = false; // Initialize the flag
 
     let socialsSortableInstance = null;
     let isInitialSocialRender = true;
+    let isInitialSortableSocialsEnd = true; // Flag for Sortable's first onEnd
+
+    const hiddenInputId = 'band_profile_social_links_json';
+    let socialListEl, addSocialBtn, hiddenInput, supportedTypes = {};
+    let socialIconsPositionRadios = [];
 
     function debounce(func, delay) {
         let timeout;
@@ -35,84 +41,100 @@
 
     // Reads the DOM and returns the current socials array
     function getSocialsDataFromDOM() {
-        console.log('[SocialIcons] getSocialsDataFromDOM called.');
-        const socialListEl = document.getElementById('bp-social-icons-list');
-        console.log('[SocialIcons] socialListEl:', socialListEl);
-        const rows = socialListEl ? socialListEl.querySelectorAll('.bp-social-row') : [];
-        console.log('[SocialIcons] Number of .bp-social-row elements found:', rows.length);
-        const socials = [];
+        if (!socialListEl) {
+            // console.warn('[SocialIcons] Social list element not found in DOM for getSocialsDataFromDOM.'); // Comment out
+            return [];
+        }
+        const rows = socialListEl.querySelectorAll('.bp-social-row');
+        // console.log(`[SocialIcons] Number of .bp-social-row elements found: ${rows.length}`); // Comment out
+        const data = [];
         rows.forEach((row, index) => {
             const typeSelect = row.querySelector('.bp-social-type-select');
             const urlInput = row.querySelector('.bp-social-url-input');
-            const type = typeSelect ? typeSelect.value : '';
-            const url = urlInput ? urlInput.value.trim() : '';
-            console.log('[SocialIcons] Reading row ', index, ': Type=', type, ', URL=', url);
-            if (type && url) {
-                socials.push({ type, url });
+            if (typeSelect && urlInput && typeSelect.value) {
+                // console.log(`[SocialIcons] Reading row  ${index}: Type= ${typeSelect.value}, URL= ${urlInput.value}`); // Comment out
+                data.push({ type: typeSelect.value, url: urlInput.value });
             }
         });
-        console.log('[SocialIcons] Final socials data from DOM:', socials);
-        return socials;
+        // console.log('[SocialIcons] Final socials data from DOM:', data); // Comment out
+        return data;
     }
     manager.socialIcons.getSocialsDataFromDOM = getSocialsDataFromDOM;
 
     // --- New function to update the hidden input ---
     function updateSocialsHiddenInput() {
-        const socialInputEl = document.getElementById('band_profile_social_links_json');
-        if (!socialInputEl) {
-            console.error('[SocialIcons] Hidden input #band_profile_social_links_json not found.');
+        if (!hiddenInput) {
+            // console.warn('[SocialIcons] Hidden input not found for updating.'); // Comment out
             return;
         }
-        const socialsData = getSocialsDataFromDOM();
-        socialInputEl.value = JSON.stringify(socialsData);
-        console.log('[SocialIcons] Hidden input value updated:', socialInputEl.value);
+        const currentData = getSocialsDataFromDOM();
+        const jsonValue = JSON.stringify(currentData);
+        if (hiddenInput.value !== jsonValue) {
+            hiddenInput.value = jsonValue;
+            // console.log('[SocialIcons] Hidden input value updated:', jsonValue); // Comment out
+        }
     }
     // --- End New function ---
 
     // Live preview update logic (reads directly from DOM)
     function updateSocialsPreview() {
+        if (!manager.isInitialized || !manager.socialIcons.allowPreviewUpdate) { // Check the new flag
+            // console.log('[SocialIcons] Manager not initialized or preview update not allowed, skipping preview update.');
+            return;
+        }
         if (manager.contentPreview && typeof manager.contentPreview.renderSocials === 'function') {
             let previewElInsideIframe = manager.getPreviewEl ? manager.getPreviewEl() : null;
             let contentWrapperEl = previewElInsideIframe ? previewElInsideIframe.querySelector('.extrch-link-page-content-wrapper') : null;
             if (previewElInsideIframe && contentWrapperEl) {
                 const socials = getSocialsDataFromDOM();
-                manager.contentPreview.renderSocials(socials, previewElInsideIframe, contentWrapperEl);
+                const position = getSocialIconsPositionFromDOM(); // Get current position from radio buttons
+                manager.contentPreview.renderSocials(socials, previewElInsideIframe, contentWrapperEl, position);
                 // --- Call the new function to update the hidden input after preview updates ---
-                updateSocialsHiddenInput();
+                updateSocialsHiddenInput(); // This updates the main social links JSON, not the position
                 // --- End Call ---
             }
         }
     }
     const debouncedSocialPreviewUpdate = debounce(updateSocialsPreview, 300);
 
-    manager.socialIcons.init = function(configData) {
-        console.log('[SocialIcons] init called with configData:', configData);
-        const socialListEl = document.getElementById('bp-social-icons-list');
-        const socialInputEl = document.getElementById('band_profile_social_links_json');
-        const addSocialBtn = document.getElementById('bp-add-social-icon-btn');
-        if (!socialListEl || !socialInputEl) {
-            console.error("Social icons list or JSON input element not found. Cannot initialize social icons UI.");
+    // Observer for the hidden input (primarily for debugging or external changes)
+    let hiddenInputObserver;
+    function observeHiddenInput() {
+        if (!hiddenInput || typeof MutationObserver === 'undefined') return;
+        if (hiddenInputObserver) hiddenInputObserver.disconnect(); // Disconnect previous if any
+
+        let previousValue = hiddenInput.value;
+        hiddenInputObserver = new MutationObserver(mutations => {
+            mutations.forEach(mutation => {
+                if (mutation.type === 'attributes' && mutation.attributeName === 'value') {
+                    const newValue = hiddenInput.value;
+                    if (newValue !== previousValue) {
+                        // console.log(`[SocialIcons - Observer] Hidden input value changed! Old value: ${previousValue} New value: ${newValue}`); // Comment out
+                        previousValue = newValue;
+                        // Potentially trigger a preview update if the change wasn't from this module
+                    }
+                }
+            });
+        });
+        hiddenInputObserver.observe(hiddenInput, { attributes: true });
+        // console.log(`[SocialIcons - Observer] Started observing hidden input #${hiddenInputId}.`); // Comment out
+    }
+
+    function initModule(configData) {
+        // console.log('[SocialIcons] init called with configData:', configData); // Comment out
+        supportedTypes = (configData && configData.social_types) ? configData.social_types : {};
+        socialListEl = document.getElementById('bp-social-icons-list');
+        addSocialBtn = document.getElementById('bp-add-social-icon-btn');
+        hiddenInput = document.getElementById(hiddenInputId);
+        socialIconsPositionRadios = document.querySelectorAll('input[name="link_page_social_icons_position"]');
+
+        if (!socialListEl || !addSocialBtn || !hiddenInput) {
+            // console.warn('[SocialIcons] Essential DOM elements (list, add button, or hidden input) not found. Module will not function.'); // Keep
             return;
         }
 
-        // --- MutationObserver for Debugging ---
-        const observer = new MutationObserver(function(mutationsList) {
-            for(const mutation of mutationsList) {
-                if (mutation.type === 'attributes' && mutation.attributeName === 'value') {
-                    console.log('[SocialIcons - Observer] Hidden input value changed!', 'Old value:', mutation.oldValue, 'New value:', socialInputEl.value);
-                } else if (mutation.type === 'childList') {
-                     console.log('[SocialIcons - Observer] Hidden input child list changed. This is unexpected.', mutation);
-                } else if (mutation.type === 'attributes') {
-                     console.log('[SocialIcons - Observer] Hidden input attribute changed (' + mutation.attributeName + ').', mutation);
-                }
-            }
-        });
-
-        // Start observing the target node for configured mutations
-        observer.observe(socialInputEl, { attributes: true, childList: true, subtree: false, attributeOldValue: true });
-        console.log('[SocialIcons - Observer] Started observing hidden input #band_profile_social_links_json.');
-        // --- End MutationObserver ---
-
+        observeHiddenInput(); // Start observing the hidden input
+        // updateSocialsHiddenInput(); // Initial sync of hidden input from DOM state
 
         // Supported social types from configData
         const allSocialTypes = configData?.supportedLinkTypes || {};
@@ -125,6 +147,7 @@
         const repeatableTypes = socialTypesArray.filter(type => type.value === 'website' || type.value === 'email').map(type => type);
 
         isInitialSocialRender = true;
+        isInitialSortableSocialsEnd = true; // Reset flag on each init
 
         function initializeSortableForSocials() {
             if (socialsSortableInstance) {
@@ -136,7 +159,12 @@
                     animation: 150,
                     handle: '.bp-social-drag-handle',
                     onEnd: function () {
-                        updateSocialsPreview();
+                        if (isInitialSortableSocialsEnd) {
+                            isInitialSortableSocialsEnd = false; // Consume the flag
+                            updateSocialsHiddenInput(); // Sync hidden input without triggering full preview update
+                            return;
+                        }
+                        updateSocialsPreview(); // For actual user drags
                     }
                 });
             }
@@ -166,7 +194,7 @@
                     row.remove();
                     updateSocialsPreview();
                 } else {
-                    console.warn('[SocialIcons] Could not find .bp-social-row to remove.', e.target);
+                    // console.warn('[SocialIcons] Could not find .bp-social-row to remove.', e.target); // Comment out
                 }
             }
         });
@@ -198,22 +226,40 @@
                         <a href="#" class="bp-remove-social-btn bp-remove-item-link ml-auto" title="Remove Social Icon">&times;</a>
                     `;
                     socialListEl.appendChild(row);
-                    initializeSortableForSocials();
+                    // initializeSortableForSocials(); // This call was problematic here, should only be called once in initModule
                     // No preview update here; will happen on blur/change
                 } else {
-                    console.warn('[SocialIcons] No available social types to add.');
+                    // console.warn('[SocialIcons] No available social types to add.'); // Comment out
                 }
             });
         }
 
         initializeSortableForSocials(); // Only needed once on init
 
+        socialIconsPositionRadios.forEach(radio => {
+            radio.addEventListener('change', updateSocialsPreview);
+        });
+
         // --- Initial hydration/preview update on page load ---
         // This ensures the preview and hidden input reflect the PHP-rendered state
         // on initial load, aligning with the canonical architecture.
-        updateSocialsHiddenInput(); // Directly update the hidden input on init as well
-        updateSocialsPreview(); // Also update preview
+        // updateSocialsHiddenInput(); // Directly update the hidden input on init as well to match controls for social links data
+        // updateSocialsPreview(); // REMOVED - PHP handles initial preview render. JS only updates on user interaction.
         // --- End initial update ---
-    };
 
-})(window.ExtrchLinkPageManager = window.ExtrchLinkPageManager || {});
+        // Make sure attachEventListeners, addSocialRow, populateTypeSelect are defined and called
+        // attachEventListeners(); // This line is causing a ReferenceError and seems redundant
+    }
+
+    // Ensure this is exposed correctly for the main manager
+    manager.socialIcons.init = initModule;
+
+    // Helper to get the currently selected social icons position from the radio buttons
+    function getSocialIconsPositionFromDOM() {
+        const checkedRadio = document.querySelector('input[name="link_page_social_icons_position"]:checked');
+        return checkedRadio ? checkedRadio.value : 'above'; // Default to 'above' if nothing is checked (shouldn't happen with defaults)
+    }
+
+    // ... (other functions like addSocialRow, populateTypeSelect, attachEventListeners) ...
+
+})(window.ExtrchLinkPageManager = window.ExtrchLinkPageManager || {}, window.extrchLinkPageConfig);

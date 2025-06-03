@@ -13,7 +13,7 @@ $band_post = $band_id ? get_post($band_id) : null;
 
 require_once get_stylesheet_directory() . '/band-platform/extrch.co-link-page/link-page-includes.php';
 // require_once get_stylesheet_directory() . '/band-platform/extrch.co-link-page/link-page-data.php'; // Deprecated
-require_once get_stylesheet_directory() . '/band-platform/extrch.co-link-page/live-preview/LivePreviewManager.php';
+require_once get_stylesheet_directory() . '/band-platform/extrch.co-link-page/data/LinkPageDataProvider.php';
 
 // --- Fetch or Create Associated Link Page ---
 $link_page_id = get_post_meta($band_id, '_extrch_link_page_id', true);
@@ -110,10 +110,10 @@ if (!current_user_can('manage_band_members', $band_id)) {
 }
 
 // --- Canonical Data Fetch ---
-if ( class_exists( 'LivePreviewManager' ) ) {
-    $data = LivePreviewManager::get_preview_data( $link_page_id, $band_id, array() ); // No overrides for initial page load
+if ( class_exists( 'LinkPageDataProvider' ) ) {
+    $data = LinkPageDataProvider::get_data( $link_page_id, $band_id, array() ); // No overrides for initial page load
 } else {
-    // Fallback if LivePreviewManager somehow isn't loaded
+    // Fallback if LinkPageDataProvider somehow isn't loaded
     // This should ideally not happen if includes are correct.
     $data = array(
         'display_title' => get_the_title($band_id) ?: 'Link Page',
@@ -126,7 +126,7 @@ if ( class_exists( 'LivePreviewManager' ) ) {
         'background_image_url' => '',
         // Add other necessary defaults to prevent errors
     );
-     echo '<div class="bp-notice bp-notice-error"><p>' . esc_html__('Error: LivePreviewManager class not found. Link page data may be incomplete.', 'generatepress_child') . '</p></div>';
+     echo '<div class="bp-notice bp-notice-error"><p>' . esc_html__('Error: LinkPageDataProvider class not found. Link page data may be incomplete.', 'generatepress_child') . '</p></div>';
 }
 
 // Set global font config for JS hydration
@@ -370,7 +370,7 @@ if ($link_page_id && get_post_type($link_page_id) === 'band_link_page') {
                 $initial_container_style_for_php_preview = isset($data['background_style']) ? $data['background_style'] : '';
                 set_query_var('initial_container_style_for_php_preview', $initial_container_style_for_php_preview);
                 // 4. Prepare preview data for the new modular preview partial
-                $preview_template_data_for_php = LivePreviewManager::get_preview_data($link_page_id, $band_id);
+                $preview_template_data_for_php = LinkPageDataProvider::get_data($link_page_id, $band_id);
                 // Add the link_page_id to the data array before passing it to the preview iframe
                 $preview_template_data_for_php['link_page_id'] = $link_page_id;
                 set_query_var('preview_template_data', $preview_template_data_for_php);
@@ -381,6 +381,11 @@ if ($link_page_id && get_post_type($link_page_id) === 'band_link_page') {
         </div>
     </div>
 </div>
+
+<?php
+// Output the expiration modal markup (hidden by default)
+extrch_render_link_expiration_modal();
+?>
 
 <div class="link-page-footer-actions" style="display: flex; justify-content: center; align-items: center; gap: 20px; width: 100%; margin-top: 2em; margin-bottom: 2em;">
     <button type="submit" form="bp-manage-link-page-form" name="bp_save_link_page" class="button button-primary bp-link-page-save-btn"><?php esc_html_e('Save Link Page', 'generatepress_child'); ?></button>

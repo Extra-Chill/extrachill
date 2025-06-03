@@ -1,0 +1,188 @@
+# Feature Plan: Featured Link for Link Pages
+
+**Status: Complete (June 2025)**
+
+**Date:** June 7, 2024
+
+## I. Introduction & Goal
+
+This document outlines the implementation plan for the "Featured Link" functionality on the Extrch.co Link Page feature. This will allow users to select one of their existing links to be displayed prominently at the top of their public link page. This featured section will include a custom-uploaded thumbnail, a customizable title, and a custom description, offering a more engaging way to highlight a key link.
+
+**Goal:** To enhance the customization options and promotional capabilities of the link pages by providing a visually distinct and prioritized section for a single, important link.
+
+## II. Data Storage (Post Meta for `band_link_page` CPT)
+
+The following post meta keys will be used on the `band_link_page` CPT:
+
+1.  `_enable_featured_link` (String: '1' or '0'): Toggles the entire feature on or off.
+2.  `_featured_link_original_id` (String): Stores the unique `id` of the link chosen from the `link_page_links_json` array to be featured.
+3.  `_featured_link_custom_title` (String): The user-defined title that will be displayed for the featured link. Defaults to the original link's title if empty.
+4.  `_featured_link_custom_description` (String): The user-defined description text for the featured link.
+5.  `_featured_link_thumbnail_id` (Integer): The WordPress attachment ID for the uploaded thumbnail image.
+
+## III. Advanced Tab Implementation
+
+**File:** `band-platform/extrch.co-link-page/manage-link-page-tabs/tab-advanced.php`
+
+### A. UI Elements (within "General Settings" card or a new card)
+
+1.  **Checkbox:**
+    *   `name="enable_featured_link"`
+    *   `id="bp-enable-featured-link"`
+    *   Value: '1'
+    *   Label: "Enable Featured Link"
+    *   Checked state determined by `get_post_meta($current_link_page_id, '_enable_featured_link', true) === '1'`.
+2.  **Container for Dropdown (conditionally visible):**
+    *   `id="bp-featured-link-select-container"`
+    *   Style: `display: none;` initially if feature is disabled.
+3.  **Label for Dropdown:** "Select Link to Feature:"
+4.  **Select Dropdown:**
+    *   `name="featured_link_original_id"`
+    *   `id="bp-featured-link-original-id"`
+    *   Default option: "-- Select a Link --" (value="")
+    *   Options populated by JavaScript.
+    *   Selected option determined by `get_post_meta($current_link_page_id, '_featured_link_original_id', true)`.
+
+### B. JavaScript Logic
+
+**File:** A new `manage-link-page-feature-link.js` or integrated into `manage-link-page.js`.
+
+1.  **Event Listener for Checkbox:**
+    *   On change of `#bp-enable-featured-link`:
+        *   Toggle visibility of `#bp-featured-link-select-container`.
+        *   If unchecked, also consider if the Customize tab's "Featured Link Settings" card should be hidden (though this might be better handled on tab switch or full page init).
+2.  **Populate Link Dropdown:**
+    *   On page load (or when the Advanced tab is shown), if `window.bpLinkPageLinks` (from `manage-link-page-links.js`) is available:
+        *   Clear existing options (except default).
+        *   Iterate through `window.bpLinkPageLinks` and create `<option>` elements (value = link `id`, text = link `title`).
+        *   Set the selected option based on the current value of the hidden input or PHP-set value for `_featured_link_original_id`.
+3.  **Initialization:**
+    *   Set initial visibility of dropdown based on checkbox state.
+    *   Ensure dropdown is correctly populated and selected.
+
+## IV. Customize Tab Implementation
+
+**File:** `band-platform/extrch.co-link-page/manage-link-page-tabs/tab-customize.php`
+
+### A. UI Elements (New Card: "Featured Link Settings")
+
+This card will be conditionally displayed (via PHP check or JS on load) only if `_enable_featured_link` is '1' AND `_featured_link_original_id` has a value.
+
+1.  **Card Title:** "Featured Link Settings"
+2.  **Thumbnail Upload Section:**
+    *   Label: "Featured Link Thumbnail"
+    *   Input (File): `<input type="file" id="featured_link_thumbnail_upload" name="featured_link_thumbnail_upload" accept="image/*">`
+    *   Image Preview: `<div id="featured-link-thumbnail-preview"><img src="[PHP: current thumbnail URL or placeholder]" alt="Thumbnail preview"></div>`
+    *   (Optional) Remove Thumbnail Button.
+3.  **Custom Title Section:**
+    *   Label: "Featured Link Title"
+    *   Input (Text): `<input type="text" id="featured_link_custom_title" name="featured_link_custom_title" value="[PHP: current custom title]">`
+    *   Description: "Leave blank to use the original link title."
+4.  **Custom Description Section:**
+    *   Label: "Featured Link Description"
+    *   Textarea: `<textarea id="featured_link_custom_description" name="featured_link_custom_description">[PHP: current custom description]</textarea>`
+5.  **Hidden Input for Thumbnail ID (primarily for server-side reference on reload, not direct JS manipulation for save):**
+    *   `<input type="hidden" name="featured_link_thumbnail_id_display" id="featured_link_thumbnail_id_display_hidden" value="[PHP: current thumbnail attachment ID]">` (Note: the actual `_featured_link_thumbnail_id` saved will come from `media_handle_upload`).
+
+### B. JavaScript Logic
+
+**File:** New dedicated module `manage-link-page-featured-link-customizer.js` (or similar). This module will be initialized by `manage-link-page.js`.
+
+1.  **Initialization (`initFeaturedLinkCustomizerControls`):**
+    *   Get references to all new DOM elements in the "Featured Link Settings" card.
+    *   Attach event listeners.
+    *   Conditionally show/hide the card based on `_enable_featured_link` and presence of `_featured_link_original_id` (this might involve checking a global JS var set by PHP or a hidden input).
+2.  **Thumbnail Upload Listener (`#featured_link_thumbnail_upload`):**
+    *   On `change` event:
+        *   Use `FileReader` to read the selected file as a `dataURL`.
+        *   Update the `src` of the `<img>` tag in `#featured-link-thumbnail-preview` to show the local preview.
+        *   Call a method in `ExtrchLinkPageManager.contentPreview` (the content renderer) to update the live preview iframe with the `dataURL` for the thumbnail.
+3.  **Custom Title Listener (`#featured_link_custom_title`):**
+    *   On `input` event:
+        *   Get the current value.
+        *   Call a method in `ExtrchLinkPageManager.contentPreview` to update the featured link's title in the live preview.
+4.  **Custom Description Listener (`#featured_link_custom_description`):**
+    *   On `input` event:
+        *   Get the current value.
+        *   Call a method in `ExtrchLinkPageManager.contentPreview` to update the featured link's description in the live preview.
+
+## V. Live Preview Updates
+
+**File:** `band-platform/extrch.co-link-page/js/manage-link-page-content-renderer.js` (part of `ExtrchLinkPageManager.contentPreview`)
+
+1.  **New Function: `updatePreviewFeaturedLink(data)`**
+    *   `data` object: `{ originalLinkUrl: string, thumbnailUrl: string (dataURL or actual URL), title: string, description: string }`
+    *   Locate or create the featured link container element at the top of the preview DOM.
+    *   Populate its content:
+        *   Set thumbnail `src` to `data.thumbnailUrl`.
+        *   Set title text (use `data.title` or fallback to original link title if `data.title` is empty).
+        *   Set description text to `data.description`.
+        *   Ensure the entire featured link is a clickable `<a>` tag pointing to `data.originalLinkUrl`.
+2.  **Modify Main Link Rendering Logic (`renderLinksAndSections` or similar):**
+    *   Before rendering standard link sections:
+        *   Check if the featured link is enabled (via a global flag or by checking the necessary input values from the Advanced tab).
+        *   If enabled, get the `_featured_link_original_id`.
+        *   Find the corresponding link data from `window.bpLinkPageLinks`.
+        *   Retrieve current custom title, description from their input fields in the Customize tab (or from initial data).
+        *   Retrieve current thumbnail `dataURL` (if just selected) or existing URL for the preview.
+        *   Call `updatePreviewFeaturedLink()` with the combined data.
+    *   When looping through `window.bpLinkPageLinks` to render standard links:
+        *   If a link's `id` matches `_featured_link_original_id`, **skip** rendering it in its normal section.
+
+## VI. Server-Side Form Handling
+
+**File:** `band-platform/extrch.co-link-page/link-page-form-handler.php` (action: `extrch_handle_save_link_page_data`)
+
+1.  **Process and Save Meta Fields:**
+    *   After existing data saving and before redirect.
+    *   `_enable_featured_link`: Sanitize `$_POST['enable_featured_link']`. If '1', save '1', else save '0'.
+    *   `_featured_link_original_id`: Sanitize `$_POST['featured_link_original_id']`. Save if `_enable_featured_link` is '1', otherwise consider deleting/clearing this meta.
+    *   `_featured_link_custom_title`: Sanitize `$_POST['featured_link_custom_title']`. Save.
+    *   `_featured_link_custom_description`: `wp_kses_post(wp_unslash($_POST['featured_link_custom_description']))`. Save.
+2.  **Handle Thumbnail File Upload:**
+    *   If `!empty($_FILES['featured_link_thumbnail_upload']['tmp_name'])` AND `_enable_featured_link` is '1':
+        *   Include WordPress media files: `wp-admin/includes/image.php`, `file.php`, `media.php`.
+        *   Perform file size validation (e.g., max 5MB).
+        *   Get `_featured_link_thumbnail_id` (old value) from post meta.
+        *   `$new_thumb_id = media_handle_upload('featured_link_thumbnail_upload', $link_page_id);` (associates attachment with the link page).
+        *   If `$new_thumb_id` is not an error and is numeric:
+            *   `update_post_meta($link_page_id, '_featured_link_thumbnail_id', $new_thumb_id);`
+            *   If `$old_featured_thumb_id` exists and is different from `$new_thumb_id`, call `wp_delete_attachment($old_featured_thumb_id, true);`.
+        *   Else (if upload error): Potentially set an admin notice.
+    *   If `_enable_featured_link` is '0' or no file is uploaded but was previously set: Consider logic for removing/disconnecting `_featured_link_thumbnail_id` if desired (e.g., if user unchecks "Enable Featured Link" or removes the thumbnail via a button - removal button not yet planned in detail).
+
+## VII. Public Page Rendering
+
+**File:** `single-band_link_page.php` (or the template part it uses, likely `band-platform/extrch.co-link-page/extrch-link-page-template.php`)
+
+1.  **Fetch Data (before the main links loop):**
+    *   `$is_featured_enabled = get_post_meta($link_page_id, '_enable_featured_link', true) === '1';`
+    *   If `$is_featured_enabled`:
+        *   `$featured_original_id = get_post_meta($link_page_id, '_featured_link_original_id', true);`
+        *   If `$featured_original_id`:
+            *   `$custom_title = get_post_meta($link_page_id, '_featured_link_custom_title', true);`
+            *   `$custom_desc = get_post_meta($link_page_id, '_featured_link_custom_description', true);` // Already kses'd on save
+            *   `$thumbnail_id = get_post_meta($link_page_id, '_featured_link_thumbnail_id', true);`
+            *   `$thumbnail_url = $thumbnail_id ? wp_get_attachment_image_url($thumbnail_id, 'large') : '';` // Choose appropriate image size.
+            *   Fetch the actual link data (URL, original title) from the saved `link_page_links_json` meta by matching `$featured_original_id`.
+            *   `$link_url = $original_link_data['url'];`
+            *   `$display_title = !empty($custom_title) ? $custom_title : $original_link_data['title'];`
+2.  **Render HTML (if enabled and data exists):**
+    *   Create a dedicated section (e.g., `<div class="featured-link-section">`) at the top of the link page content area.
+    *   Inside, structure the `<a>` tag wrapping the thumbnail, display title, and description.
+3.  **Modify Links Loop:**
+    *   When iterating through the `link_page_links_json` to display regular links, if `$is_featured_enabled` and a link's `id` matches `$featured_original_id`, skip rendering it in the loop.
+
+## VIII. Styling
+
+1.  **Admin UI:**
+    *   Add styles to `css/manage-link-page.css` for the new card and form elements in both Advanced and Customize tabs for consistent appearance.
+2.  **Public Page:**
+    *   Add styles to `band-platform/extrch.co-link-page/css/extrch-links.css` for the `.featured-link-section` and its contents (thumbnail, title, description, layout). Ensure responsiveness.
+
+## IX. Considerations & Open Points
+
+*   **Fallback for Original Link Title:** If custom title is empty, should it automatically use the original link's title? (Plan says yes).
+*   **Image Sizes:** Decide on appropriate WordPress image sizes for the thumbnail (`wp_get_attachment_image_url`).
+*   **Removal of Thumbnail:** How does a user remove/reset a thumbnail once set, without uploading a new one? (A "Remove Thumbnail" button might be needed in the Customize tab, which would clear `_featured_link_thumbnail_id` via AJAX or on form save with an additional hidden field). For now, uploading a new one replaces it. If the feature is disabled, the thumbnail effectively becomes unused.
+*   **Interaction with "Temporary Redirect":** Ensure no conflicts if both are active. A temporary redirect would likely take precedence over the entire page display, including the featured link. (This is likely fine, standard WordPress redirect behavior).

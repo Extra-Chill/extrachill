@@ -289,7 +289,7 @@ get_header(); ?>
                             echo '<div class="band-members-column">';
                             // Add a wrapper for the title and icon for flex layout if needed, and the icon itself
                             echo '<div class="band-roster-header" style="display: flex; align-items: center; justify-content: space-between;">';
-                            echo '<h2 class="section-title">' . __( 'Band Roster', 'generatepress_child' ) . '</h2>';
+                            echo '<h2 class="section-title">' . __( 'Roster', 'generatepress_child' ) . '</h2>';
                             // Icon for collapsing - starts with 'plus' as it's collapsed by default
                             echo '<i class="fa-solid fa-square-plus band-roster-toggle" onclick="toggleForumCollapse(this, \'band-roster-list-container\')" style="cursor: pointer; font-size: 27px; margin-left: 10px;"></i>';
                             echo '</div>'; // .band-roster-header
@@ -391,7 +391,6 @@ get_header(); ?>
 
 								echo '<div class="band-forum-section">';
 								// Update Forum Title to include Band Name
-								echo '<h2 class="band-forum-title">' . sprintf( esc_html__( '%s Forum', 'generatepress_child' ), get_the_title() ) . '</h2>'; 
 
 								// --- Sorting & Search UI (Adapted from loop-topics.php) ---
 								$current_sort = $_GET['sort'] ?? 'default';
@@ -451,14 +450,14 @@ get_header(); ?>
 								// echo '<h3 class="band-topics-title">' . __( 'Recent Topics', 'generatepress_child' ) . '</h3>'; // Title might be redundant now
 								
 								// Prepare topic query args
-								$topic_args = array( 
-									'post_parent' => $forum_id, 
-									'show_stickies' => false,
+								$topic_args = array(
+									'post_parent' => $forum_id,
+									'show_stickies' => true, // Changed to show sticky posts
 									// Add sorting/search parameters
 									'posts_per_page' => get_option('_bbp_topics_per_page', 15), // Use bbPress setting
 									'paged'          => bbp_get_paged(),
 									// 'post_status' => array('publish', 'closed'), // Let bbp_has_topics handle status based on user caps
-								); 
+								);
 
 								// Apply sorting logic 
 								if ($current_sort === 'upvotes') {

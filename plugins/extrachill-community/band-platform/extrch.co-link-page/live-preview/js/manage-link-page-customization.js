@@ -110,7 +110,6 @@
         if (!element) {
             return;
         }
-        console.log(`[Customization] Attaching listener to ${element.id || element.name} for key ${customVarKey}`);
         // Special handling for font pickers to ensure Google Font is loaded before updating CSS var
         if (customVarKey === '--link-page-title-font-family' || customVarKey === '--link-page-body-font-family') {
             element.addEventListener(eventType, function(event) {
@@ -178,7 +177,6 @@
         if (!currentCV) {
             return;
         }
-        console.log('[Customization] Syncing controls from customVars:', currentCV);
 
         if (titleFontFamilySelect) {
             const storedFontFamily = currentCV['--link-page-title-font-family'] || '';
@@ -248,114 +246,83 @@
     }
 
     // --- Initialization logic for this customization module ("The Brain") ---
-    // This function will be called by the main manager on DOMContentLoaded
     manager.customization.init = function() {
         if (manager.customization.isInitialized) {
             return;
         }
-        console.log('[Customization] Initializing Customization Module...');
+
         customVarsInput = document.getElementById('link_page_custom_css_vars_json');
 
-        let phpHydratedVars = {};
-        if (customVarsInput && customVarsInput.value) {
-            try {
-                phpHydratedVars = JSON.parse(customVarsInput.value);
-                 // Migrate old keys if needed (but do not overwrite any present value)
-                if (phpHydratedVars.hasOwnProperty('--link-page-button-color') && !phpHydratedVars.hasOwnProperty('--link-page-button-bg-color')) {
-                    phpHydratedVars['--link-page-button-bg-color'] = phpHydratedVars['--link-page-button-color'];
-                    delete phpHydratedVars['--link-page-button-color'];
-                }
-                if (phpHydratedVars.hasOwnProperty('--link-page-hover-color') && !phpHydratedVars.hasOwnProperty('--link-page-button-hover-bg-color')) {
-                    phpHydratedVars['--link-page-button-hover-bg-color'] = phpHydratedVars['--link-page-hover-color'];
-                    delete phpHydratedVars['--link-page-hover-color'];
-                }
-            } catch (e) {
-                console.error('Error parsing custom CSS vars JSON from hidden input, using defaults:', e, customVarsInput.value);
-                phpHydratedVars = {};
-            }
-        } else {
-            console.warn('Custom CSS vars hidden input not found or empty, using defaults.');
-            phpHydratedVars = {};
-        }
-        
-        // Merge defaults < phpHydratedVars
-        customVars = { ...phpHydratedVars };
-        manager.customization.customVars = customVars; // Expose the populated customVars
+        // Event Listeners for Controls:
+        // Background color - Handled in manage-link-page-background.js
+        // Background image - Handled in manage-link-page-background.js
 
-        // Now that customVars is properly hydrated, sync controls.
-        // DO NOT call refreshFullPreview here. Initial styling is handled by PHP.
-        if (typeof syncControlsFromCustomVars === 'function') {
+        // Sizing controls - Handled in manage-link-page-sizing.js
+
+        // Profile Image Shape - Handled in manage-link-page-sizing.js
+
+        // Text Color
+        attachControlListener(textColorPicker, '--link-page-text-color');
+        // Link Text Color
+        attachControlListener(linkTextColorPicker, '--link-page-link-text-color');
+
+        // Font Family - Title
+        attachControlListener(titleFontFamilySelect, '--link-page-title-font-family');
+        // Font Size - Title - Handled in manage-link-page-sizing.js
+
+        // Font Family - Body
+        attachControlListener(bodyFontFamilySelect, '--link-page-body-font-family');
+
+        // Button Color (maps to background color)
+        attachControlListener(buttonBgColorPicker, '--link-page-button-bg-color');
+        // Button Hover Color (maps to hover background color)
+        attachControlListener(buttonHoverBgColorPicker, '--link-page-button-hover-bg-color');
+        // Button Border Color
+        attachControlListener(buttonBorderColorPicker, '--link-page-button-border-color');
+        // Button Radius - Handled in manage-link-page-sizing.js
+        // Button Border Width - Handled in manage-link-page-sizing.js
+
+        // Overlay Toggle
+        attachControlListener(overlayToggle, 'overlay', 'change', null, true); // isCheckbox = true
+
+        // Sync UI controls with initial PHP-rendered values (read from style tag)
+        // Use a small timeout to ensure the style tag is populated by PHP first
+        setTimeout(() => {
             syncControlsFromCustomVars();
-        }
+            controlsInitialized = true; // Mark controls as synced
+        }, 50); // Small delay
 
-        // Initialize event listeners for customization controls
-        initializeCustomizeTabEventListeners(); // Separate function for attaching listeners
 
-        // Proactively load initial Google Fonts
-        loadInitialFonts();
+        // Listen for the sharedTabActivated event and re-sync if this tab becomes active
+        document.addEventListener('sharedTabActivated', function(event) {
+            if (event.detail.tabId === 'manage-link-page-tab-customize') {
+                syncControlsFromCustomVars(); // Re-sync controls when tab is activated
+            }
+        });
 
         manager.customization.isInitialized = true;
-        console.log('[Customization] Customization Module Initialized with vars:', customVars);
     };
 
-    // --- Function to attach event listeners to controls ---
-    function initializeCustomizeTabEventListeners() {
-        console.log('[Customization] Initializing Customize Tab event listeners.');
-        console.log('Attempting to find titleFontFamilySelect:', document.getElementById('link_page_title_font_family'));
-        console.log('Attempting to find bodyFontFamilySelect:', document.getElementById('link_page_body_font_family'));
-
-        // Attach listeners for controls managed by this file
-        // Ensure elements are defined before attaching listeners
-        if (titleFontFamilySelect) attachControlListener(titleFontFamilySelect, '--link-page-title-font-family');
-        if (bodyFontFamilySelect) attachControlListener(bodyFontFamilySelect, '--link-page-body-font-family');
-        if (overlayToggle) attachControlListener(overlayToggle, 'overlay', 'change', val => val ? '1' : '0', true);
-
-        // Color Pickers
-        if (buttonBgColorPicker) attachControlListener(buttonBgColorPicker, '--link-page-button-bg-color', 'input');
-        if (textColorPicker) attachControlListener(textColorPicker, '--link-page-text-color', 'input');
-        if (linkTextColorPicker) attachControlListener(linkTextColorPicker, '--link-page-link-text-color', 'input');
-        if (buttonHoverBgColorPicker) attachControlListener(buttonHoverBgColorPicker, '--link-page-button-hover-bg-color', 'input');
-        if (buttonBorderColorPicker) attachControlListener(buttonBorderColorPicker, '--link-page-button-border-color', 'input');
-        
-        // Note: Listeners for background, colors, sizing, etc. should be in their respective modules.
-        // This function only attaches listeners for controls handled *within* this customization module file.
-    }
+    // --- Initial call to init() handled by the main manager (manage-link-page.js) ---
 
 
-    // --- Function to proactively load initial fonts ---
-     function loadInitialFonts() {
-        if (manager.fonts && typeof manager.fonts.loadGoogleFont === 'function' && typeof manager.fonts.getGoogleFontParamByValue === 'function') {
-            const initialTitleFontValue = titleFontFamilySelect ? titleFontFamilySelect.value : manager.customization.customVars['--link-page-title-font-family'];
-            const initialTitleFontParam = manager.fonts.getGoogleFontParamByValue(initialTitleFontValue);
-            if (initialTitleFontParam) {
-                manager.fonts.loadGoogleFont(initialTitleFontParam, initialTitleFontValue, function(){ /* console.log('Initial title font loaded or load attempted.'); */ });
-            }
+    // --- Function to load Google Fonts (can be moved to a dedicated fonts module) ---
+    // MOVED to manage-link-page-fonts.js
+    // function loadGoogleFont(fontFamily) {
+    //     if (!fontFamily || fontFamily.trim() === '') return;
+    //     // Remove quotes from font family name for URL
+    //     const fontNameForUrl = fontFamily.replace(/['"]/g, '').replace(/\s/g, '+');
+    //     const link = document.createElement('link');
+    //     link.href = `https://fonts.googleapis.com/css2?family=${fontNameForUrl}:wght@400;700&display=swap`;
+    //     link.rel = 'stylesheet';
+    //     document.head.appendChild(link);
+    // }
 
-            const initialBodyFontValue = bodyFontFamilySelect ? bodyFontFamilySelect.value : (manager.customization.customVars['--link-page-body-font-family'] || 'Helvetica');
-            // For getGoogleFontParamByValue, we need the simple value (e.g., 'Helvetica') not the stack
-            let simpleInitialBodyFontValue = initialBodyFontValue;
-            if (initialBodyFontValue.includes(',')) {
-                simpleInitialBodyFontValue = initialBodyFontValue.split(',')[0].trim().replace(/['"]/g, '');
-            }
-            const initialBodyFontParam = manager.fonts.getGoogleFontParamByValue(simpleInitialBodyFontValue);
-            if (initialBodyFontParam && initialBodyFontParam !== 'local_default') {
-                manager.fonts.loadGoogleFont(initialBodyFontParam, simpleInitialBodyFontValue, function(){ /* console.log('Initial body font loaded or load attempted.'); */ });
-            }
-        }
-    }
-    
-
-    // Removed: This module will be initialized by the main ExtrchLinkPageManager on its DOMContentLoaded.
-    // document.addEventListener('DOMContentLoaded', function() { ... });
-
-    function reapplyStyles() {
-        const currentCustomVars = manager.customization.getCustomVars(); 
-
-        if (manager.previewUpdater && typeof manager.previewUpdater.refreshFullPreview === 'function') {
-            manager.previewUpdater.refreshFullPreview(currentCustomVars);
-        } else {
-            // Fallback or error
-        }
-    }
+    // --- Function to reapply styles after a potential preview refresh (e.g., image upload) ---
+    // This function is less necessary with the new architecture where styles are in the main document's head
+    // but keeping a placeholder in case complex preview re-rendering logic is added later.
+    // manager.customization.reapplyStyles = function() {
+    //     syncControlsFromCustomVars(); // Re-sync controls from the style tag
+    // };
 
 })(window.ExtrchLinkPageManager = window.ExtrchLinkPageManager || {});

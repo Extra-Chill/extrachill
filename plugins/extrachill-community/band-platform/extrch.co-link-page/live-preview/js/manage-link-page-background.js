@@ -2,13 +2,13 @@
 (function(manager) {
     // Ensure the manager exists first.
     if (!manager) {
-        console.error('ExtrchLinkPageManager is not defined. Background script cannot run.');
+        // console.error('ExtrchLinkPageManager is not defined. Background script cannot run.');
         return; // Cannot proceed without the manager
     }
 
     // Define the core background module functionality
     const defineBackgroundModule = () => {
-        console.log('[Background] defineBackgroundModule called.'); // Log DFM
+        // console.log('[Background] defineBackgroundModule called.'); // Comment out
         if (manager.background) { // Avoid double definition
             return;
         }
@@ -30,24 +30,16 @@
 
         // Function to update the visibility of background type controls
         const updateBackgroundTypeUI = (currentType) => {
-            console.log('[Background] updateBackgroundTypeUI received type:', currentType); // Log inside function
             const typeToShow = currentType || (typeSelectInput ? typeSelectInput.value : 'color');
-            console.log('[Background] Determined typeToShow:', typeToShow); // Log determined type
 
-            if(colorControls) {
-                const display = (typeToShow === 'color') ? '' : 'none';
-                colorControls.style.display = display;
-                console.log('[Background] Setting colorControls display to:', display); // Log color display
+            if (colorControls) {
+                colorControls.style.display = (typeToShow === 'color') ? '' : 'none';
             }
-            if(gradientControls) {
-                const display = (typeToShow === 'gradient') ? '' : 'none';
-                gradientControls.style.display = display;
-                console.log('[Background] Setting gradientControls display to:', display); // Log gradient display
+            if (gradientControls) {
+                gradientControls.style.display = (typeToShow === 'gradient') ? '' : 'none';
             }
-            if(imageControls) {
-                const display = (typeToShow === 'image') ? '' : 'none';
-                imageControls.style.display = display;
-                console.log('[Background] Setting imageControls display to:', display); // Log image display
+            if (imageControls) {
+                imageControls.style.display = (typeToShow === 'image') ? '' : 'none';
             }
         };
 
@@ -72,7 +64,7 @@
         // New function to sync all background input fields from customVars
         const syncBackgroundInputValues = () => {
             if (!manager || !manager.customization || typeof manager.customization.getCustomVars !== 'function') {
-                console.warn('syncBackgroundInputValues: manager.customization.getCustomVars is not available. Cannot sync background input values.');
+                // console.warn('syncBackgroundInputValues: manager.customization.getCustomVars is not available. Cannot sync background input values.');
                 return; // Exit if dependency not met
             }
             const centralCustomVars = manager.customization.getCustomVars();
@@ -96,15 +88,15 @@
         };
 
         const initializeBackgroundControls = () => {
-            console.log('[Background] initializeBackgroundControls called.'); // Log 1
+            // console.log('[Background] initializeBackgroundControls called.'); // Comment out
             syncBackgroundInputValues();
 
             const centralCustomVars = manager.customization.getCustomVars ? manager.customization.getCustomVars() : {};
             const bgType = centralCustomVars['--link-page-background-type'] || 'color';
-            console.log('[Background] Initial bgType from customVars:', bgType); // Log 2
+            // console.log('[Background] Initial bgType from customVars:', bgType); // Comment out
 
             updateBackgroundTypeUI(bgType);
-            console.log('[Background] updateBackgroundTypeUI called with:', bgType); // Log 3 (immediately after the call)
+            // console.log('[Background] updateBackgroundTypeUI called with:', bgType); // Comment out (immediately after the call)
         };
 
         // --- Event Listeners ---
@@ -117,7 +109,7 @@
                     }
                     updateBackgroundTypeUI(newType);
                 } catch (e) {
-                    console.error("Error during background type change:", e);
+                    // console.error("Error during background type change:", e);
                 }
             });
         }
@@ -203,16 +195,8 @@
 
         // Public methods
         manager.background.init = function() {
-            console.log('[Background] Public init called. Dependencies should be met now.'); // Log 4
-            // Ensure customVars is ready before initializing controls
-            if (manager.customization && typeof manager.customization.getCustomVars === 'function' && manager.customization.isInitialized) {
-                 initializeBackgroundControls();
-            } else {
-                 console.warn('[Background] Customization module not fully initialized when background.init was called.');
-                 // Fallback: Wait for customization to signal readiness or for manager initialization to complete
-                 document.addEventListener('extrchCustomizationInitialized', initializeBackgroundControls, { once: true });
-                 document.addEventListener('extrchLinkPageManagerInitialized', initializeBackgroundControls, { once: true });
-            }
+            // console.log('[Background] Public init called. Dependencies should be met now.'); // Comment out
+            syncBackgroundInputValues();
         };
 
         manager.background.updateAdminImagePreview = updateAdminImagePreview; // Expose if needed elsewhere
@@ -221,7 +205,7 @@
 
         // Add a public method to sync and update UI (for tab activation)
         manager.background.syncAndUpdateUI = function() {
-            console.log('[Background] syncAndUpdateUI called (e.g., on tab switch).'); // Log 5
+            // console.log('[Background] syncAndUpdateUI called (e.g., on tab switch).'); // Comment out
             syncBackgroundInputValues(); // Syncs values from customVars
             const centralCustomVars = manager.customization.getCustomVars ? manager.customization.getCustomVars() : {};
             const bgType = centralCustomVars['--link-page-background-type'] || 'color';
@@ -232,29 +216,29 @@
     // Check if customization is already ready when this script executes. If so, define the module.
     // Otherwise, wait for the customization module to signal readiness.
     if (manager.customization && typeof manager.customization.getCustomVars === 'function') {
-        console.log('[Background] Customization module found on script execution. Defining background module.'); // Log A
+        // console.log('[Background] Customization module found on script execution. Defining background module.'); // Comment out
         defineBackgroundModule();
         // Call public init via the main manager's DOMContentLoaded listener if it was defined
     } else {
-        console.log('[Background] Customization module not found on script execution. Waiting for extrchCustomizationInitialized event.'); // Log B
+        // console.log('[Background] Customization module not found on script execution. Waiting for extrchCustomizationInitialized event.'); // Comment out
         // Wait for a signal from the customization module
         document.addEventListener('extrchCustomizationInitialized', () => {
-            console.log('[Background] extrchCustomizationInitialized event received. Defining background module.'); // Log C
+            // console.log('[Background] extrchCustomizationInitialized event received. Defining background module.'); // Comment out
             if (manager.customization && typeof manager.customization.getCustomVars === 'function') {
                  defineBackgroundModule();
                  // Call public init via the main manager's DOMContentLoaded listener if it was defined
             } else {
-                 console.error('[Background] extrchCustomizationInitialized event received, but customization module still not found.');
+                 // console.error('[Background] extrchCustomizationInitialized event received, but customization module still not found.');
             }
         }, { once: true });
          // Fallback listener in case the customization module doesn't fire its specific event
         document.addEventListener('extrchLinkPageManagerInitialized', () => {
-             console.log('[Background] extrchLinkPageManagerInitialized event received. Checking customization again.'); // Log D
+             // console.log('[Background] extrchLinkPageManagerInitialized event received. Checking customization again.'); // Comment out
              if (!manager.background && manager.customization && typeof manager.customization.getCustomVars === 'function') {
                   defineBackgroundModule();
                   // Call public init via the main manager's DOMContentLoaded listener if it was defined
              } else if (!manager.background) {
-                  console.warn('[Background] extrchLinkPageManagerInitialized event received, but customization module still not found. Background module not defined.');
+                  // console.warn('[Background] extrchLinkPageManagerInitialized event received, but customization module still not found. Background module not defined.');
              }
         }, { once: true });
     }

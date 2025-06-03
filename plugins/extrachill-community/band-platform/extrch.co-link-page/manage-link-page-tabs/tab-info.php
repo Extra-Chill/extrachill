@@ -7,6 +7,8 @@
 
 defined( 'ABSPATH' ) || exit;
 
+// All info tab data should be hydrated from $data provided by LinkPageDataProvider.
+
 // Retrieve data passed from manage-link-page.php
 $current_band_id = get_query_var('tab_info_band_id');
 $current_bio_text = get_query_var('tab_info_bio_text', '');

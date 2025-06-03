@@ -1,10 +1,11 @@
 // Link Sections Management Module
 (function(manager) {
     if (!manager) {
-        console.error('ExtrchLinkPageManager is not defined. Link sections script cannot run.');
+        // console.error('ExtrchLinkPageManager is not defined. Link sections script cannot run.'); // Keep critical errors
         return;
     }
-    manager.linkSections = manager.linkSections || {};
+    manager.links = manager.links || {};
+    manager.links.allowPreviewUpdate = false; // Initialize the flag
 
     const sectionsListEl = document.getElementById('bp-link-sections-list');
     const addSectionBtn = document.getElementById('bp-add-link-section-btn');
@@ -26,7 +27,7 @@
         cancelExpirationBtn = document.getElementById('bp-cancel-link-expiration');
 
         if (!expirationDatetimeInput || !saveExpirationBtn || !clearExpirationBtn || !cancelExpirationBtn) {
-            console.error('One or more expiration modal controls not found.');
+            console.error('One or more expiration modal controls not found.'); // Keep critical errors
             return false;
         }
         return true;
@@ -71,18 +72,24 @@
         return sectionsListEl && sectionsListEl.dataset.expirationEnabled === 'true';
     }
 
-    function createLinkItemHTML(sidx, lidx, linkData = {}) {
+    function createLinkItemHTML(sidx, lidx, linkData = {}, initialFeaturedUrl = null) {
         const linkText = linkData.link_text || '';
         const linkUrl = linkData.link_url || '';
         const expiresAt = linkData.expires_at || '';
+        const linkId = linkData.id || 'link_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9); // Generate unique ID if not present
         const isExpirationEnabled = getLinkExpirationEnabled();
         let expirationIconHTML = '';
         if (isExpirationEnabled) {
             expirationIconHTML = `<span class="bp-link-expiration-icon" title="Set expiration date" data-sidx="${sidx}" data-lidx="${lidx}">&#x23F3;</span>`;
         }
 
+        let itemClasses = 'bp-link-item';
+        if (initialFeaturedUrl && linkUrl && linkUrl.replace(/\/$/, '') === initialFeaturedUrl.replace(/\/$/, '')) {
+            itemClasses += ' bp-editor-featured-link';
+        }
+
         return `
-            <div class="bp-link-item" data-sidx="${sidx}" data-lidx="${lidx}" data-expires-at="${escapeHTML(expiresAt)}">
+            <div class="${itemClasses}" data-sidx="${sidx}" data-lidx="${lidx}" data-expires-at="${escapeHTML(expiresAt)}" data-link-id="${escapeHTML(linkId)}">
                         <span class="bp-link-drag-handle drag-handle"><i class="fas fa-grip-vertical"></i></span>
                 <input type="text" class="bp-link-text-input" placeholder="Link Text" value="${escapeHTML(linkText)}">
                 <input type="url" class="bp-link-url-input" placeholder="URL" value="${escapeHTML(linkUrl)}">
@@ -92,12 +99,12 @@
         `;
     }
     
-    function createSectionItemHTML(sidx, sectionData = {}) {
+    function createSectionItemHTML(sidx, sectionData = {}, initialFeaturedUrl = null) {
         const sectionTitle = sectionData.section_title || '';
         let linksHTML = '';
         if (sectionData.links && Array.isArray(sectionData.links)) {
             sectionData.links.forEach((link, lidx) => {
-                linksHTML += createLinkItemHTML(sidx, lidx, link);
+                linksHTML += createLinkItemHTML(sidx, lidx, link, initialFeaturedUrl);
             });
         }
 
@@ -175,6 +182,30 @@
                 target.classList.contains('bp-link-text-input') ||
                 (target.classList.contains('bp-link-url-input') && !target.dataset.isFetchingTitle)) {
                 debouncedUpdateLinksPreview();
+
+                // --- Real-time featured link title update ---
+                if (target.classList.contains('bp-link-text-input')) {
+                    // Find the URL input in the same .bp-link-item
+                    const linkItem = target.closest('.bp-link-item');
+                    if (linkItem) {
+                        const urlInput = linkItem.querySelector('.bp-link-url-input');
+                        if (urlInput) {
+                            // Get the current featured link URL from the featured link select (if present)
+                            const featuredLinkSelect = document.getElementById('bp-featured-link-original-id');
+                            if (featuredLinkSelect && featuredLinkSelect.value) {
+                                const featuredUrl = featuredLinkSelect.value.replace(/\/$/, '');
+                                const thisUrl = urlInput.value.replace(/\/$/, '');
+                                if (thisUrl === featuredUrl) {
+                                    // Call the featured link preview update with the new title
+                                    if (window.ExtrchLinkPageManager && window.ExtrchLinkPageManager.featuredLink && typeof window.ExtrchLinkPageManager.featuredLink.triggerFeaturedLinkPreviewUpdate === 'function') {
+                                        window.ExtrchLinkPageManager.featuredLink.triggerFeaturedLinkPreviewUpdate({ title: target.value });
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                // --- End real-time featured link title update ---
             }
         });
 
@@ -223,7 +254,7 @@
 
     async function fetchAndSetLinkTitle(urlInputElement, textInputElement) {
         if (!window.extrchLinkPageConfig || !window.extrchLinkPageConfig.ajax_url || !window.extrchLinkPageConfig.fetch_link_title_nonce) {
-            console.error('AJAX config for fetching link title not available.');
+            console.error('AJAX config for fetching link title not available.'); // Keep critical errors
             return;
         }
 
@@ -249,7 +280,7 @@
             });
 
             if (!response.ok) {
-                console.error('Network response was not ok for fetching title.', response);
+                console.error('Network response was not ok for fetching title.', response); // Keep critical errors
                 textInputElement.placeholder = 'Link Text'; // Reset placeholder
                 return;
             }
@@ -260,11 +291,10 @@
                 textInputElement.value = result.data.title;
                 debouncedUpdateLinksPreview(); // Update preview as text has changed
             } else {
-                console.warn('Failed to fetch title or title not found:', result.data ? result.data.message : 'No message');
-                // textInputElement.placeholder = 'Link Text'; // Reset placeholder - or leave "fetching" if desired on fail
+                // console.warn('Failed to fetch title or title not found:', result.data ? result.data.message : 'No message'); // Comment out non-critical warning
             }
         } catch (error) {
-            console.error('Error fetching link title:', error);
+            console.error('Error fetching link title:', error); // Keep critical errors
         } finally {
             textInputElement.placeholder = 'Link Text'; // Always reset placeholder
             delete urlInputElement.dataset.isFetchingTitle; // Remove flag
@@ -342,6 +372,7 @@
             const linksData = [];
             sectionEl.querySelectorAll('.bp-link-item').forEach(linkEl => {
                 linksData.push({
+                    id: linkEl.dataset.linkId || ('link_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)), // Include id, generate if missing
                     link_text: linkEl.querySelector('.bp-link-text-input')?.value || '',
                     link_url: linkEl.querySelector('.bp-link-url-input')?.value || '',
                     expires_at: linkEl.dataset.expiresAt || '',
@@ -353,24 +384,30 @@
         return sectionsData;
     }
 
+    // REVISED updateLinksPreview: Always attempts to update when called.
     function updateLinksPreview() {
-        if (!manager.contentPreview || typeof manager.contentPreview.renderLinkSections !== 'function') {
-            // console.warn('[Links Mod] renderLinkSections function not found on contentPreview.');
-            return;
+        const sectionsData = getLinksDataFromDOM(); // Get current links from the editor UI
+        
+        // The contentPreview.setFeaturedLinkUrlToSkipForPreview() should have been called *before* this
+        // by the featured link module, so the renderer knows which link to omit.
+
+        if (manager.contentPreview && typeof manager.contentPreview.renderLinkSections === 'function') {
+            const previewEl = manager.getPreviewEl();
+            const contentWrapperEl = manager.getPreviewContentWrapperEl();
+            if (previewEl && contentWrapperEl) {
+                manager.contentPreview.renderLinkSections(sectionsData, previewEl, contentWrapperEl);
+            }
         }
-        const linksData = getLinksDataFromDOM();
-        const previewEl = manager.getPreviewEl ? manager.getPreviewEl() : null;
-        if (!previewEl) {
-            // console.warn('[Links Mod] Preview element not found for updating links preview.');
-            return;
+        
+        // Update hidden input for saving (important for form submission)
+        const hiddenInput = document.getElementById('link_page_links_json');
+        if (hiddenInput) {
+            hiddenInput.value = JSON.stringify(sectionsData);
+        } else {
+            // console.warn('Hidden input for link_page_links_json not found for saving.');
         }
-        const contentWrapperEl = previewEl.querySelector('.extrch-link-page-content-wrapper');
-        if (!contentWrapperEl) {
-            // console.warn('[Links Mod] Content wrapper element not found in preview for links.');
-            return;
-        }
-        manager.contentPreview.renderLinkSections(linksData, previewEl, contentWrapperEl);
     }
+    manager.links.updateLinksPreview = updateLinksPreview; // Expose it on manager.links
 
     // Utility function to escape HTML entities for use in HTML attributes or content
     function escapeHTML(str) {
@@ -398,32 +435,107 @@
         };
     }
 
-    manager.linkSections.init = function() {
+    // --- Initialize the Links Manager ---
+    function initLinksManager() {
         if (!sectionsListEl) {
-            console.log("Links tab sections list DOM element not found. Skipping links initialization.");
             return;
         }
-        if (!initializeExpirationModalDOM()) {
-            // console.warn("Expiration Modal could not be initialized. Expiration features might not work."); // Less noisy
+
+        const initialData = manager.getInitialData(); // Get data passed from PHP
+        let initialLinksToRender = [];
+        let initialFeaturedUrlForDomClass = null;
+
+        if (initialData) {
+            if (initialData.links && Array.isArray(initialData.links)) {
+                initialLinksToRender = initialData.links;
+            }
+            if (initialData.featuredLinkUrlToSkip) { // This comes from PHP via LivePreviewManager
+                initialFeaturedUrlForDomClass = initialData.featuredLinkUrlToSkip;
+            }
+        }
+        
+        // Override with data from hidden input if it exists and is primary for link structure
+        // This ensures the editor UI matches exactly what would be saved if no changes are made.
+        const linksJsonInput = document.getElementById('link_page_links_json');
+        if (linksJsonInput && linksJsonInput.value) {
+            try {
+                const parsedLinks = JSON.parse(linksJsonInput.value);
+                if (Array.isArray(parsedLinks)) {
+                    initialLinksToRender = parsedLinks; 
+                }
+            } catch (e) {
+                console.error('[LinksManager] Error parsing initial links JSON from hidden input:', e);
+            }
+        }
+        
+        window.bpLinkPageLinks = JSON.parse(JSON.stringify(initialLinksToRender)); // Deep clone for global
+
+        // populateInitialLinks(initialLinksToRender, initialFeaturedUrlForDomClass);
+
+        if (initializeExpirationModalDOM()) {
+            // console.log("Expiration modal initialized."); 
         }
         attachEventListeners();
         initializeSortableForSections();
-        initializeSortableForLinksInSections();
-        updateLinksPreview(); // Initial preview render based on PHP-generated DOM
-        console.log("Links Tab Initialized (New Architecture with Preview Update).");
-    };
+        initializeSortableForLinksInSections(); 
 
-    // Expose getLinksDataFromDOM for the save handler
-    manager.linkSections.getLinksDataFromDOM = getLinksDataFromDOM;
+        // 5. Set allowPreviewUpdate to true now that initial setup is done
+        manager.links.allowPreviewUpdate = true;
+        updateLinksPreview(); // Initial preview render based on the canonical data
 
-    // Initialize when the main manager is ready
-    // This assumes ExtrchLinkPageManager.init() calls this module's init.
-    // Or, if you prefer direct DOMContentLoaded:
-    // document.addEventListener('DOMContentLoaded', manager.linkSections.init);
+        // 6. Dispatch event indicating links are ready and window.bpLinkPageLinks is populated
+        dispatchLinksUpdatedEvent(); 
+        console.log('[LinksManager] Initialized, window.bpLinkPageLinks populated, event dispatched.');
+    }
+
+    manager.links.init = initLinksManager; 
+
+    // Remove automatic DOMContentLoaded initialization
+    /*
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initLinksManager);
+    } else {
+        initLinksManager();
+    }
+    */
 
     // After updateLinksPreview, dispatch the custom event for Advanced tab hydration
     function dispatchLinksUpdatedEvent() {
         document.dispatchEvent(new CustomEvent('ExtrchLinkPageLinksUpdated'));
+        document.dispatchEvent(new CustomEvent('bpLinkPageLinksRefreshed')); // Fire both for now
     }
+
+    manager.links.getLinksData = getLinksDataFromDOM; // Expose the function
+
+    function populateInitialLinks(initialLinkSectionsData, initialFeaturedUrl = null) {
+        if (!sectionsListEl) return;
+        sectionsListEl.innerHTML = ''; // Clear existing sections
+        if (initialLinkSectionsData && Array.isArray(initialLinkSectionsData)) {
+            initialLinkSectionsData.forEach((sectionData, sidx) => {
+                const sectionHTML = createSectionItemHTML(sidx, sectionData, initialFeaturedUrl);
+                sectionsListEl.insertAdjacentHTML('beforeend', sectionHTML);
+            });
+        }
+        initializeSortableForSections();
+    }
+
+    // Listen for featured link changes and update the highlighted class in the editor UI
+    document.addEventListener('featuredLinkOriginalUrlChanged', function(e) {
+        const newFeaturedUrl = (e.detail && e.detail.newUrl) ? e.detail.newUrl.replace(/\/$/, '') : null;
+        if (!sectionsListEl) return;
+        // Remove the class from all link items
+        sectionsListEl.querySelectorAll('.bp-link-item').forEach(item => {
+            item.classList.remove('bp-editor-featured-link');
+        });
+        if (newFeaturedUrl) {
+            // Find the link item whose URL input matches the new featured URL
+            sectionsListEl.querySelectorAll('.bp-link-item').forEach(item => {
+                const urlInput = item.querySelector('.bp-link-url-input');
+                if (urlInput && urlInput.value.replace(/\/$/, '') === newFeaturedUrl) {
+                    item.classList.add('bp-editor-featured-link');
+                }
+            });
+        }
+    });
 
 })(window.ExtrchLinkPageManager = window.ExtrchLinkPageManager || {});

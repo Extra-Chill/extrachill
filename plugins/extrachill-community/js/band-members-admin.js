@@ -27,7 +27,6 @@ jQuery(document).ready(function($) {
         }
 
         searchTimeout = setTimeout(function() {
-            console.log(`Searching for: ${searchTerm}`);
             searchResultsContainer.html('<p>Searching...</p>').show();
 
             $.ajax({
@@ -44,22 +43,16 @@ jQuery(document).ready(function($) {
                     if (response.success && response.data.length > 0) {
                         const resultList = $('<ul></ul>');
                         response.data.forEach(function(user) {
-                            // Prevent adding already listed members or those pending removal/addition
-                            // Removed frontend check as exclusion is now handled in backend
-                            // if ($(`#bp-current-members-list li[data-user-id="${user.ID}"]`).length === 0 &&
-                            //     !membersToAdd.includes(user.ID) &&
-                            //     !membersToRemove.includes(user.ID)) {
-                                resultList.append(
-                                    $('<li>')
-                                        .text(`${user.display_name} (${user.user_login})`)
-                                        .append(' ')
-                                        .append(
-                                            $('<button type="button" class="button button-small bp-select-artist-button">Select</button>')
-                                                .data('user-id', user.ID)
-                                                .data('user-name', `${user.display_name} (${user.user_login})`)
-                                        )
-                                );
-                            // }
+                            resultList.append(
+                                $('<li>')
+                                    .text(`${user.display_name} (${user.user_login})`)
+                                    .append(' ')
+                                    .append(
+                                        $('<button type="button" class="button button-small bp-select-artist-button">Select</button>')
+                                            .data('user-id', user.ID)
+                                            .data('user-name', `${user.display_name} (${user.user_login})`)
+                                    )
+                            );
                         });
                         if(resultList.children().length > 0) {
                              searchResultsContainer.append(resultList);
@@ -73,7 +66,6 @@ jQuery(document).ready(function($) {
                     searchResultsContainer.show();
                 },
                 error: function(xhr, status, error) {
-                    console.error("Search AJAX error:", status, error);
                     searchResultsContainer.html('<p>Error performing search.</p>').show();
                 }
             });
@@ -132,7 +124,6 @@ jQuery(document).ready(function($) {
 
          // Check if already in the list visually
          if ($(`#bp-current-members-list li[data-user-id="${userId}"]`).length > 0) {
-             console.log("User already in list.");
              return;
          }
 
@@ -170,8 +161,6 @@ jQuery(document).ready(function($) {
     function updateHiddenFields() {
         $('#bp-members-to-add').val(membersToAdd.join(','));
         $('#bp-members-to-remove').val(membersToRemove.join(','));
-        console.log("To Add:", membersToAdd); // Debugging
-        console.log("To Remove:", membersToRemove); // Debugging
     }
 
     // Initial population of remove list if needed (e.g., if JS loads after initial render)

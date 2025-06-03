@@ -13,7 +13,6 @@ jQuery(document).ready(function($) {
     function displayCommentForm() {
         var token = getCookie('ecc_user_session_token');
         if (!token) {
-            console.log('Session token not found, halting script.');
             return;
         }
 
@@ -29,7 +28,6 @@ jQuery(document).ready(function($) {
                 }
             },
             error: function() {
-                console.error('Failed to fetch the comment form.');
             }
         });
     }
@@ -51,7 +49,6 @@ jQuery(document).ready(function($) {
                 applyUserDetailsToForm(userDetails);
             },
             error: function(xhr, status, error) {
-                console.error('Failed to fetch user details or token invalid:', error);
             }
         });
     }

@@ -9,18 +9,23 @@ This document outlines the forward-looking development plan and tasks for the Ba
 
 ### High Priority (MVP Critical):
 
--   **Link Page Preview Refactor:** Complete the refactor of the link page live preview and JavaScript logic to resolve persistent preview issues, ensure a single source of truth, and stabilize dynamic features (QR code, analytics, etc.). See [refactor-link-page-preview.mdc](mdc:.cursor/rules/refactor-link-page-preview.mdc) for the detailed step-by-step plan and microsteps.
 -   **Social Login (Google/Apple):** Implement OAuth-based login options for "Log in with Google" and "Log in with Apple". *Requires integrating with OAuth APIs and WordPress login flow, ensuring that successful social logins trigger the standard WordPress `wp_login` hook to maintain compatibility with existing session and token logic (including the custom `ecc_user_session_token`).* (Implementation pending).
+-   **Unified Band Email Subscribers System:** The unified system for managing email subscribers (from link page forms and platform follow consent) is now implemented. This involved changes to frontend management tabs, backend handling (`bp_follow_band`, `bp_unfollow_band`, user settings AJAX), and data storage in `wp_band_subscribers`. The old method of displaying general followers in the "Subscribers" tab and managing consent via `_band_follow_email_permissions` user meta has been removed. (Core implementation complete; further refinements or related features like link page subscribe form customization are separate items).
 -   **Data Migration from Legacy 'Independent Artist' Forum:** Migrate relevant posts/data from the old "Independent Artist" forum into the new `band_profile` and associated band forum structure for existing artists. This will require manual effort. *Consider existing data structures and potential mapping.*
 -   **Final UX/UI Review & Code Optimization:** Conduct a final sweep of the user interface across devices, focusing on button styling, mobile-friendliness, and overall user experience. Clean up and optimize any redundant or confusing code. *Review key frontend files like `single-band_profile.php`, `page-templates/manage-band-profile.php`, `page-templates/manage-link-page.php`, and associated CSS/JS.*
--   **Fix the link page manager save flow:** Ensure the hidden input 'link_page_custom_css_vars_json' is always updated on every user change and that the PHP handler reliably saves this data to post meta. Test thoroughly to confirm changes persist after reload.
 
 ### Medium Priority:
--   **Forum Settings Tab (DEFERRED):** Implement a "Forums" tab in @`page-templates/manage-band-profile.php` to allow band administrators to toggle the `_allow_public_topic_creation` setting for their band's forum. (Deferred due to resource constraints; revisit in a future development cycle). They can also hide the entire forum here if desired (disable forum option). *This will involve modifying the management page template and adding a setting field.*
+
+-   **Refactor User ID Mapping System:** Replace the legacy, hardcoded user ID mapping system (currently in `extrachill-integration/extrachill-com-articles.php`) with a modern, REST API-driven, admin-manageable mapping system. The new system should:
+    - Fetch users from extrachill.com via the REST API.
+    - Allow the admin to map extrachill.com users to forum users who have the appropriate team member meta.
+    - Provide a clear, maintainable UI for managing these mappings.
+    - Remove all hardcoded mapping arrays from the codebase.
+    - Ensure all features that depend on user mapping are updated to use the new system.
+    - Document the new architecture in `project-architecture.mdc` after implementation.
 -   **"Post As Band":** Implement mechanism for members to post as the band entity in the band forum. (Implementation pending). *This will likely involve changes to bbPress posting forms and permission checks.*
 -   **Integrations Tab:** Consider adding an "integrations" tab or similar feature to allow users to sync external services (e.g., Substack) with the platform. (Exploration pending). *This is a research and design task initially.*
 -   **Spotify Integration:** Explore integrating with the Spotify API (Spotify for Artists or standard) for features like displaying artist discography, automating playlist additions, and potentially supporting pre-save campaigns. (Implementation pending).
--   **Band Messaging to Followers:** Implement a feature within the Band Profile Management page allowing band members to send direct messages or updates to users who have consented to share their email address with that specific band. (Future idea/Implementation pending).
 
 ### Low Priority:
 
@@ -30,7 +35,6 @@ This document outlines the forward-looking development plan and tasks for the Ba
 -   **EPK (Electronic Press Kit) Builder:** Allow bands to easily create a professional EPK page directly from their band profile data, including bio, press photos, music links, contact info, and press mentions. (Exploration pending). *This will involve adding new meta fields, a management interface tab, a public display template, and custom routing.*
 -   **Columns option for buttons:** Allow users to display their link page in a grid layout instead of the typical vertical list on the customize tab. (Implementation pending). *Requires significant frontend work for responsive grid layout.*
 -   **Review and Optimize Rank System:** Investigate why programmatic posts are not triggering point calculations and ensure the rank system is robust and correctly handles all post types. (Implementation pending). *This will involve reviewing the point calculation logic and potentially hooks.*
--   **Social Icons Position:** Add an option to move the social icons section to the bottom of the link page.
 -   **Limit Bio Character Count:** Implement a character limit for the bio section on the link page / band profile manager interface.
 -   **Conditionally Hide Profile Image Card:** Hide the Profile Image customization card in the Link Page Manager if no profile image is uploaded by the user. (Low Priority UX improvement).
 -   **Bluesky Icon Inconsistency:** Note that the Bluesky icon currently appears on the live link page but not in the live preview on the management page. This needs investigation and fixing to ensure consistency.
@@ -40,6 +44,41 @@ This document outlines the forward-looking development plan and tasks for the Ba
 
 - **Forum Search Pagination Broken:** Pagination on forum search does not work as expected.
 - **Search Bar 404 in Topics Loop:** The search bar within the topics loop on the search page returns a 404. This needs review on other pages as well.
-- **User Profile Location Not Saving:** Saving the location on the user profile does not work.
-- **Color Picker Swatch Confusion:** The color picker on the customize tab loads with the default values on the swatches no matter what color is chosen. This causes user confusion.
 - **YouTube Embed Review & Thumbnail:** The YouTube embed feature needs review and should display a thumbnail for embeds.
+-- **Subscribe Button on live preview:** The subscribe button on the live preview is not properly inheriting the styles from the customizer. It is being overriden by default theme button styles. Additionally, we need to ensure the button border is implemented on this button. On the live link page, we have the button radius and colors, but not the proper border. 
+- **Sticky topics in band forums not working:** Setting a topic to sticky in the band forum is not properly pinning it to the top of the band profile forum display. 
+
+## Pre-Launch High Priority Bugs & Improvements (June 2025)
+
+- **Featured Link Card Style:** Update the featured link to use a rectangular blog-card style image and layout, not a round thumbnail.  
+  _Affected files: link-page-featured-link-handler.php, extrch-link-page-template.php, extrch-links.css, manage-link-page-content-renderer.js_
+
+- **Socials + Inline Subscribe Form Order:** When socials are set to 'bottom' and subscribe form is 'inline', the form should appear above the socials in both live and preview.  
+  _Affected files: extrch-link-page-template.php, manage-link-page-content-renderer.js_
+
+- **Remove Featured Link Title Override:** Eliminate the custom title override for the featured link; always use the link's title.  
+  _Affected files: tab-customize.php, link-page-featured-link-handler.php, manage-link-page-featured-link.js_
+
+- **Custom CSS Class for Featured Link:** Ensure a custom class is applied to the featured link in the links tab and preview for targeted styling.  
+  _Affected files: manage-link-page-links.js, manage-link-page-content-renderer.js, extrch-links.css, manage-link-page.css_
+
+- **Subscribe Form Theme Style Override in Preview:** Fix the subscribe form in the preview so it is not overridden by the main theme's CSS.  
+  _Affected files: extrch-links.css, extrch-link-page-template.php, subscribe-inline-form.php_
+
+- **Button Border on Subscribe Form:** Add a border to the subscribe form button, matching the link button style.  
+  _Affected files: extrch-links.css, subscribe-inline-form.php_
+
+- **Featured Link Thumbnail Flash:** Prevent the featured link thumbnail from flashing when editing the text; only refresh on link selection.  
+  _Affected files: manage-link-page-featured-link.js, manage-link-page-content-renderer.js_
+
+- **Real-time featured link title update:** (Complete)
+- **JS no longer overwrites PHP-rendered links on load:** (Complete)
+
+_All of the above are observable, confirmed issues in the codebase and are required for launch._
+
+### Other Observations
+- There is some necessary duplication between PHP and JS for live preview, but markup and class changes must be kept in sync.
+- The insertion logic for socials/subscribe form is duplicated in PHP and JS and should be kept DRY if possible.
+- Button border logic is inconsistent between subscribe and link buttons.
+- Vestigial meta keys/settings should be removed as features are refactored.
+- Inline comments could be improved for clarity in tricky logic areas.

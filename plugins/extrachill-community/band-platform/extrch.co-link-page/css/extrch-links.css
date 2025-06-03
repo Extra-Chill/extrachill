@@ -363,3 +363,344 @@ body {
     /* background-color: #ffdddd; */ 
 }
 
+/* --- Subscribe Modal Styles --- */
+.extrch-subscribe-modal {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.extrch-subscribe-modal-overlay {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.45);
+  z-index: 1;
+}
+.extrch-subscribe-modal-content {
+  position: relative;
+  z-index: 2;
+  background: var(--link-page-card-bg-color, #232323);
+  color: var(--link-page-text-color, #fff);
+  border-radius: 16px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.18);
+  padding: 2em 2em 1.5em 2em;
+  max-width: 95vw;
+  width: 350px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  animation: extrch-modal-fadein 0.2s;
+  border: 1px solid var(--link-page-button-border-color, #444);
+}
+@keyframes extrch-modal-fadein {
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.extrch-subscribe-modal-close {
+  position: absolute;
+  top: 0.7em;
+  right: 0.7em;
+  background: none;
+  border: none;
+  color: var(--link-page-text-color, #fff);
+  font-size: 1.5em;
+  cursor: pointer;
+  opacity: 0.7;
+  transition: opacity 0.15s;
+}
+.extrch-subscribe-modal-close:hover {
+  opacity: 1;
+}
+.extrch-subscribe-modal-header {
+  text-align: center;
+  margin-bottom: 1.2em;
+}
+.extrch-subscribe-modal-header h3 {
+  margin: 0 0 0.3em 0;
+  font-size: 1.25em;
+  font-family: var(--link-page-title-font-family);
+  color: var(--link-page-text-color);
+}
+.extrch-subscribe-modal-header p {
+  margin: 0;
+  color: var(--link-page-muted-text-color, #aaa);
+  font-size: 1em;
+}
+
+/* --- Subscribe Inline Form Styles --- */
+.extrch-link-page-subscribe-inline-form-container {
+  background: var(--link-page-card-bg-color, #232323);
+  color: var(--link-page-text-color, #fff);
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.13);
+  padding: 1.5em 1.5em 1.2em 1.5em;
+  margin: 1.5em 0 1.5em 0;
+  max-width: 420px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  border: 1px solid var(--link-page-button-border-color, #444);
+}
+.extrch-link-page-subscribe-inline-form-container h3 {
+  margin: 0 0 0.3em 0;
+  font-size: 1.15em;
+  font-family: var(--link-page-title-font-family);
+  color: var(--link-page-text-color);
+}
+.extrch-link-page-subscribe-inline-form-container p {
+  margin: 0 0 1em 0;
+  color: var(--link-page-muted-text-color, #aaa);
+  font-size: 1em;
+  text-align: center;
+}
+
+/* --- Shared Subscribe Form Styles --- */
+.extrch-subscribe-form {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 1em;
+}
+.extrch-subscribe-form .form-group {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+.extrch-subscribe-form input[type="email"] {
+  width: 100%;
+  padding: 0.7em 1em;
+  border-radius: 8px;
+  border: 1.5px solid var(--link-page-button-border-color, #444);
+  background: var(--link-page-input-bg, #181818);
+  color: var(--link-page-text-color, #fff);
+  font-size: 1em;
+  font-family: var(--link-page-body-font-family);
+  margin-bottom: 0.2em;
+  box-sizing: border-box;
+  transition: border-color 0.18s;
+}
+.extrch-subscribe-form input[type="email"]:focus {
+  border-color: var(--link-page-button-hover-bg-color, #53940b);
+  outline: none;
+}
+.extrch-subscribe-form button[type="submit"] {
+  background: var(--link-page-button-bg-color, #53940b);
+  color: var(--link-page-link-text-color, #fff);
+  border: none;
+  border-radius: var(--link-page-button-radius, 8px);
+  padding: 0.7em 1em;
+  font-size: 1.08em;
+  font-family: var(--link-page-body-font-family);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.18s, color 0.18s;
+}
+.extrch-subscribe-form button[type="submit"]:hover {
+  background: var(--link-page-button-hover-bg-color, #3a6b0b);
+  color: var(--link-page-button-bg-color, #fff);
+}
+.extrch-form-message {
+  min-height: 1.2em;
+  font-size: 0.98em;
+  margin-top: 0.2em;
+  text-align: center;
+  color: var(--link-page-muted-text-color, #aaa);
+}
+@media (max-width: 600px) {
+  .extrch-link-page-subscribe-inline-form-container {
+    padding: 1em 0.7em 1em 0.7em;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box;
+    margin-left: 0;
+    margin-right: 0;
+  }
+  .extrch-link-page-subscribe-inline-form-container * {
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow-wrap: break-word;
+  }
+}
+
+/* --- Bulletproof subscribe form input and button override for manager and live page (restored) --- */
+.extrch-link-page-subscribe-inline-form-container form.extrch-subscribe-form button[type="submit"],
+.extrch-link-page-subscribe-inline-form-container .button.button-primary,
+.extrch-link-page-subscribe-inline-form-container .extrch-subscribe-btn,
+.extrch-subscribe-modal form.extrch-subscribe-form button[type="submit"],
+.extrch-subscribe-modal .button.button-primary,
+.extrch-subscribe-modal .extrch-subscribe-btn {
+  background: var(--link-page-button-bg-color, #53940b) !important;
+  color: var(--link-page-link-text-color, #fff) !important;
+  border: 1.2px solid var(--link-page-button-border-color, var(--link-page-button-bg-color)) !important;
+  border-radius: var(--link-page-button-radius, 8px) !important;
+  padding: 0.7em 1em !important;
+  font-size: 1.08em !important;
+  font-family: var(--link-page-body-font-family) !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  transition: background 0.18s, color 0.18s, border-color 0.18s !important;
+  box-shadow: none !important;
+  z-index: 3;
+  outline: none !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  margin: 0.5em 0 0 0 !important;
+  display: block !important;
+}
+.extrch-link-page-subscribe-inline-form-container form.extrch-subscribe-form button[type="submit"]:hover:not(:disabled),
+.extrch-link-page-subscribe-inline-form-container .button.button-primary:hover:not(:disabled),
+.extrch-link-page-subscribe-inline-form-container .extrch-subscribe-btn:hover:not(:disabled),
+.extrch-subscribe-modal form.extrch-subscribe-form button[type="submit"]:hover:not(:disabled),
+.extrch-subscribe-modal .button.button-primary:hover:not(:disabled),
+.extrch-subscribe-modal .extrch-subscribe-btn:hover:not(:disabled) {
+  background: var(--link-page-button-hover-bg-color) !important;
+  color: var(--link-page-button-bg-color) !important;
+  border-color: var(--link-page-button-border-color, var(--link-page-button-bg-color)) !important;
+}
+
+/* --- Featured Link Section --- */
+.link-page-featured-link-section {
+  display: block;
+  background-color: var(--link-page-card-bg-color, #fff);
+  color: var(--link-page-text-color, #222);
+  padding: 0;
+  border-radius: 16px;
+  margin-bottom: 1em;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.10);
+  border: 1.5px solid var(--link-page-button-border-color, #eee);
+  max-width: 100%;
+  width: 100%;
+  overflow: hidden;
+  position: relative;
+}
+.link-page-featured-link-section .featured-link-anchor {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+}
+.link-page-featured-link-section .featured-link-thumbnail {
+  width: 100%;
+  aspect-ratio: 16/9;
+  height: auto;
+  object-fit: cover;
+  border-top-left-radius: 16px;
+  border-top-right-radius: 16px;
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+  display: block;
+}
+.link-page-featured-link-section .featured-link-content {
+  padding: 1.2em 1.5em 0.5em 1.5em;
+  text-align: left;
+}
+.link-page-featured-link-section .featured-link-title {
+  font-size: 1.35em;
+  font-weight: bold;
+  margin: 0 0 0.4em 0;
+  line-height: 1.2;
+  color: var(--link-page-text-color, #222);
+}
+.link-page-featured-link-section .featured-link-description {
+  font-size: 1em;
+  opacity: 0.88;
+  margin: 0 0 1.1em 0;
+  line-height: 1.5;
+  color: var(--link-page-text-color, #222);
+}
+.link-page-featured-link-section .featured-link-share-row {
+  width: 100%;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  padding: 0 1.5em 1em 1.5em;
+  box-sizing: border-box;
+}
+.link-page-featured-link-section .extrch-share-featured-trigger {
+  background: transparent;
+  border: none;
+  color: var(--link-page-link-text-color, #888);
+  font-size: 1.3em;
+  cursor: pointer;
+  padding: 0.3em 0.5em;
+  opacity: 0.7;
+  transition: opacity 0.2s, color 0.2s;
+}
+.link-page-featured-link-section .extrch-share-featured-trigger:hover {
+  opacity: 1;
+  color: var(--link-page-button-hover-bg-color, #53940b);
+}
+@media (max-width: 600px) {
+  .link-page-featured-link-section {
+    border-radius: 10px;
+    margin-bottom: 1em;
+  }
+  .link-page-featured-link-section .featured-link-thumbnail {
+    border-top-left-radius: 10px;
+    border-top-right-radius: 10px;
+  }
+  .link-page-featured-link-section .featured-link-content {
+    padding: 0.9em 0.8em 0.4em 0.8em;
+  }
+  .link-page-featured-link-section .featured-link-share-row {
+    padding: 0 0.8em 0.7em 0.8em;
+  }
+}
+
+.extrch-featured-item-highlight{
+  background-color: var(--link-page-card-bg-color, #333);
+}
+
+.featured-link-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.25em;
+}
+
+.featured-link-title {
+  font-size: 1.25rem;
+  font-weight: bold;
+  margin: 0;
+  flex: 1 1 auto;
+  line-height: 1.2;
+  color: var(--link-page-text-color, #222);
+}
+
+.extrch-share-featured-trigger {
+  background: none;
+  border: none;
+  color: var(--link-page-accent, #888);
+  font-size: 1.2em;
+  cursor: pointer;
+  padding: 0.25em 0.5em;
+  margin-left: 0.5em;
+  align-self: flex-start;
+  transition: color 0.2s;
+}
+.extrch-share-featured-trigger:hover,
+.extrch-share-featured-trigger:focus {
+  color: var(--link-page-accent-hover, #222);
+}
+
+/* Remove old share row styles if present */
+.featured-link-share-row { display: none !important; }
+
+/* --- Ensure subscribe button hover works in live preview (iframe) --- */
+.extrch-link-page-preview-container .extrch-link-page-subscribe-inline-form-container form.extrch-subscribe-form button[type="submit"]:hover:not(:disabled),
+.extrch-link-page-preview-container .extrch-link-page-subscribe-inline-form-container .button.button-primary:hover:not(:disabled),
+.extrch-link-page-preview-container .extrch-link-page-subscribe-inline-form-container .extrch-subscribe-btn:hover:not(:disabled) {
+  background: var(--link-page-button-hover-bg-color) !important;
+  color: var(--link-page-button-bg-color) !important;
+  border-color: var(--link-page-button-border-color, var(--link-page-button-bg-color)) !important;
+}
+
+.link-page-featured-link-section .featured-link-title:hover,
+.link-page-featured-link-section .featured-link-description:hover {
+  color: var(--link-page-button-hover-bg-color, #53940b);
+  cursor: pointer;
+}

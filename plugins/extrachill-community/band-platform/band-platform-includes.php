@@ -35,6 +35,20 @@ require_once( $bp_dir . '/band-following.php' );
 // New file
 require_once( $bp_dir . '/default-band-page-link-profiles.php' );
 
+// Database setup for subscribers
+require_once( $bp_dir . '/subscribe/subscriber-db.php' );
+// Use after_switch_theme for table creation, as register_activation_hook does not work for themes in this context
+add_action('after_switch_theme', 'extrch_create_subscribers_table');
+
+// Include subscriber AJAX handler and data functions
+// require_once( $bp_dir . '/subscribe/subscribe-handler.php' );
+require_once( $bp_dir . '/subscribe/subscribe-data-functions.php' );
+
+// Register activation hook to create the subscribers table
+// register_activation_hook( get_stylesheet_directory() . '/functions.php', 'extrch_create_subscribers_table' );
+
+// Data Synchronization
+
 // --- Asset Enqueueing --- 
 
 /**
@@ -102,6 +116,21 @@ function bp_enqueue_band_platform_assets() {
         }
     }
 
+    // --- Scripts for Manage Band Profile Page ---
+    if ( is_page_template( 'page-templates/manage-band-profile.php' ) ) {
+        $subs_js_path = '/band-platform/js/manage-band-subscribers.js';
+        if ( file_exists( $theme_dir . $subs_js_path ) ) {
+            wp_enqueue_script(
+                'bp-manage-band-subscribers',
+                $theme_uri . $subs_js_path,
+                array('jquery'),
+                filemtime( $theme_dir . $subs_js_path ),
+                true
+            );
+            // Localize ajaxurl for non-admin
+            wp_localize_script( 'bp-manage-band-subscribers', 'bpManageSubscribersData', array('ajaxurl' => admin_url( 'admin-ajax.php' )) );
+        }
+    }
 }
 add_action( 'wp_enqueue_scripts', 'bp_enqueue_band_platform_assets' ); 
 

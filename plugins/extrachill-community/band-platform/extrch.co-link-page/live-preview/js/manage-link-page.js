@@ -1,5 +1,4 @@
 window.ExtrchLinkPageManager = window.ExtrchLinkPageManager || {};
-// console.log('[Manager - Top Level] window.extrchLinkPageConfig state:', window.extrchLinkPageConfig);
 
 // --- Function to get the preview container element ---
 ExtrchLinkPageManager.getPreviewEl = function() {
@@ -11,6 +10,21 @@ ExtrchLinkPageManager.getPreviewEl = function() {
         }
         return null;
     }
+    return null;
+};
+
+// --- Function to get the preview content wrapper element ---
+ExtrchLinkPageManager.getPreviewContentWrapperEl = function() {
+    const previewEl = ExtrchLinkPageManager.getPreviewEl();
+    if (previewEl) {
+        const contentWrapper = previewEl.querySelector('.extrch-link-page-content-wrapper');
+        if (contentWrapper) {
+            return contentWrapper;
+        }
+        // console.warn('[ExtrchLinkPageManager] Preview content wrapper element not found.');
+        return null;
+    }
+    // console.warn('[ExtrchLinkPageManager] Preview element not found when trying to get content wrapper.');
     return null;
 };
 
@@ -159,11 +173,6 @@ ExtrchLinkPageManager.initializeJumpToPreview = function() {
     // Listen for tab changes to potentially update button state if needed,
     // though viewport check should be primary driver.
     // Example: if a tab change might affect which element is "active settings" when preview is visible.
-    // document.addEventListener('ExtrchLinkPageTabChanged', toggleButtonState); // REMOVED - Assuming such an event is dispatched
-    // --- Note: 'ExtrchLinkPageTabChanged' is a custom event. If shared-tabs.js doesn't dispatch this,
-    // this listener might not fire. However, shared-tabs.js *does* handle active states which should
-    // make getActiveSettingsElement work correctly when called.
-    // Consider dispatching a generic 'sharedTabChanged' event from shared-tabs.js if needed by other scripts.
 
     toggleButtonState(); // Initial check
 };
@@ -173,8 +182,6 @@ ExtrchLinkPageManager.isInitialized = false;
 
 // --- Main Initialization Orchestrator ---
 ExtrchLinkPageManager.init = function() {
-    // console.log('[ExtrchLinkPageManager] Initializing...');
-
     // Initialize Jump to Preview functionality
     if (typeof ExtrchLinkPageManager.initializeJumpToPreview === 'function') {
         ExtrchLinkPageManager.initializeJumpToPreview();
@@ -182,15 +189,13 @@ ExtrchLinkPageManager.init = function() {
 
     // Initialize Customization Module
     if (ExtrchLinkPageManager.customization && typeof ExtrchLinkPageManager.customization.init === 'function') {
-        // console.log('[ExtrchLinkPageManager] Calling customization.init()...');
         ExtrchLinkPageManager.customization.init();
     } else {
-        console.warn('[ExtrchLinkPageManager] Customization module or its init function not found.');
+        // console.warn('[ExtrchLinkPageManager] Customization module or its init function not found.'); // Keep for now if critical
     }
 
     // Initialize Sizing Module (must come after customization for correct hydration)
     if (ExtrchLinkPageManager.sizing && typeof ExtrchLinkPageManager.sizing.init === 'function') {
-        // console.log('[ExtrchLinkPageManager] Calling sizing.init()...');
         ExtrchLinkPageManager.sizing.init();
     }
 
@@ -201,19 +206,16 @@ ExtrchLinkPageManager.init = function() {
     
     // Initialize Links Module (Example - to be created/refactored)
     if (ExtrchLinkPageManager.links && typeof ExtrchLinkPageManager.links.init === 'function') {
-        // console.log('[ExtrchLinkPageManager] Calling links.init()...');
         ExtrchLinkPageManager.links.init();
     } else {
-        console.warn('[ExtrchLinkPageManager] Links module or its init function not found.');
+        // console.warn('[ExtrchLinkPageManager] Links module or its init function not found.');
     }
 
     // Initialize Social Icons Module (Example)
     if (ExtrchLinkPageManager.socialIcons && typeof ExtrchLinkPageManager.socialIcons.init === 'function') {
-        // console.log('[ExtrchLinkPageManager] Calling socialIcons.init()...');
         ExtrchLinkPageManager.socialIcons.init(window.extrchLinkPageConfig);
-        // console.log('[ExtrchLinkPageManager] socialIcons.init() called.');
     } else {
-        console.warn('[ExtrchLinkPageManager] SocialIcons module or its init function not found.');
+        // console.warn('[ExtrchLinkPageManager] SocialIcons module or its init function not found.');
     }
 
     // Initialize Advanced Settings Module (Example)
@@ -229,9 +231,8 @@ ExtrchLinkPageManager.init = function() {
     // Initialize Info Tab Manager (Info Card)
     if (window.ExtrchLinkPageInfoManager && typeof window.ExtrchLinkPageInfoManager.init === 'function') {
         window.ExtrchLinkPageInfoManager.init(ExtrchLinkPageManager);
-        // console.log('[ExtrchLinkPageManager] Info Card manager initialized.');
     } else {
-        console.warn('[ExtrchLinkPageManager] Info Card manager not found.');
+        // console.warn('[ExtrchLinkPageManager] Info Card manager not found.');
     }
 
     // Initialize QR Code Module
@@ -246,10 +247,7 @@ ExtrchLinkPageManager.init = function() {
 
     // --- Initialize Save Handler ---
     if (ExtrchLinkPageManager.save && typeof ExtrchLinkPageManager.save.attachSaveHandlerToForm === 'function') {
-        // console.log('[ExtrchLinkPageManager] Attaching save handler...');
         ExtrchLinkPageManager.save.attachSaveHandlerToForm();
-    } else {
-        console.warn('[ExtrchLinkPageManager] Save module or its attachSaveHandlerToForm function not found.');
     }
 
     // --- Listen for tab activation to re-run background control visibility ---
@@ -265,7 +263,26 @@ ExtrchLinkPageManager.init = function() {
 
     // Other initializations can go here...
 
-    // console.log('[ExtrchLinkPageManager] Initialization complete.');
+    ExtrchLinkPageManager.isInitialized = true;
+    if (ExtrchLinkPageManager.socialIcons) {
+        ExtrchLinkPageManager.socialIcons.allowPreviewUpdate = true;
+    }
+    if (ExtrchLinkPageManager.links) {
+        ExtrchLinkPageManager.links.allowPreviewUpdate = true;
+    }
+
+    if (ExtrchLinkPageManager.socials && typeof ExtrchLinkPageManager.socials.init === 'function') {
+        ExtrchLinkPageManager.socials.init();
+    }
+    if (ExtrchLinkPageManager.subscribe && typeof ExtrchLinkPageManager.subscribe.init === 'function') {
+        ExtrchLinkPageManager.subscribe.init();
+    }
+    if (ExtrchLinkPageManager.featuredLink && typeof ExtrchLinkPageManager.featuredLink.init === 'function') {
+        ExtrchLinkPageManager.featuredLink.init();
+    }
+    if (ExtrchLinkPageManager.advanced && typeof ExtrchLinkPageManager.advanced.init === 'function') {
+        ExtrchLinkPageManager.advanced.init();
+    }
 };
 
 // --- DOMContentLoaded Listener --- 
@@ -273,7 +290,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (typeof ExtrchLinkPageManager.init === 'function') {
         ExtrchLinkPageManager.init();
     } else {
-        console.error('[ExtrchLinkPageManager] Main init function not found on DOMContentLoaded.');
+        console.error('[ExtrchLinkPageManager] Main init function not found on DOMContentLoaded.'); // Keep
     }
 });
 

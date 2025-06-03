@@ -34,20 +34,19 @@ if ( !$band_profile ) {
     exit;
 }
 
-// Ensure LivePreviewManager class is available.
-// It should be included by link-page-includes.php.
-if ( ! class_exists( 'LivePreviewManager' ) ) {
-    $live_preview_manager_path = dirname( __FILE__ ) . '/band-platform/extrch.co-link-page/live-preview/LivePreviewManager.php';
-    if ( file_exists( $live_preview_manager_path ) ) {
-        require_once $live_preview_manager_path;
+// Ensure LinkPageDataProvider class is available.
+if ( ! class_exists( 'LinkPageDataProvider' ) ) {
+    $data_provider_path = dirname( __FILE__ ) . '/band-platform/extrch.co-link-page/data/LinkPageDataProvider.php';
+    if ( file_exists( $data_provider_path ) ) {
+        require_once $data_provider_path;
     }
 }
 
-if ( class_exists( 'LivePreviewManager' ) ) {
-    $data = LivePreviewManager::get_preview_data( $link_page_id, $band_id, array() ); // No overrides for public page
+if ( class_exists( 'LinkPageDataProvider' ) ) {
+    $data = LinkPageDataProvider::get_data( $link_page_id, $band_id, array() ); // No overrides for public page
     $data['original_link_page_id'] = $link_page_id; // Add the actual link page ID to $data
 } else {
-    // Fallback if LivePreviewManager somehow isn't loaded
+    // Fallback if LinkPageDataProvider somehow isn't loaded
     $data = array(
         'display_title' => get_the_title($band_id) ?: 'Link Page',
         'bio' => '',
@@ -63,7 +62,7 @@ if ( class_exists( 'LivePreviewManager' ) ) {
     $data['original_link_page_id'] = $link_page_id; // Add the actual link page ID to $data
 }
 
-// Also ensure it's added if LivePreviewManager provides the data
+// Also ensure it's added if LinkPageDataProvider provides the data
 if (isset($data) && is_array($data)) {
     $data['original_link_page_id'] = $link_page_id; 
 }

@@ -13,7 +13,7 @@ $link_page_dir = get_stylesheet_directory() . '/band-platform/extrch.co-link-pag
 // Configuration & Handlers
 require_once $link_page_dir . 'link-page-font-config.php';
 require_once $link_page_dir . 'link-page-form-handler.php';
-require_once $link_page_dir . 'live-preview/LivePreviewManager.php';
+require_once $link_page_dir . 'data/LinkPageDataProvider.php';
 require_once $link_page_dir . 'link-page-weekly-email.php'; // Include weekly email handler
 require_once $link_page_dir . 'link-page-social-types.php';
 
@@ -32,6 +32,7 @@ require_once $link_page_dir . 'link-page-head.php'; // Include the custom head l
 require_once $link_page_dir . 'link-page-qrcode-ajax.php'; // Include the QR code AJAX handlers
 require_once $link_page_dir . 'ajax-handlers.php'; // Include the new AJAX handlers for link title fetching
 require_once __DIR__ . '/link-page-custom-vars-and-fonts-head.php';
+require_once $link_page_dir . 'link-page-featured-link-handler.php'; // Corrected path
 
 global $extrch_link_page_fonts;
 
@@ -46,7 +47,7 @@ function extrch_link_page_enqueue_assets() {
         $theme_dir = get_stylesheet_directory();
         $theme_uri = get_stylesheet_directory_uri();
         $feature_dir = '/band-platform/extrch.co-link-page';
-        $js_dir = $feature_dir . '/js';
+        $js_dir = $feature_dir . '/live-preview/js';
         $css_dir = $feature_dir . '/css';
 
         // Core Manager Object Initialization (MUST be first of these JS files)
@@ -64,9 +65,9 @@ function extrch_link_page_enqueue_assets() {
             // The localized script will define window.extrchLinkPageConfig
             // supportedLinkTypes is now included here again.
             
-            if ( $current_band_id > 0 && class_exists('LivePreviewManager') ) {
+            if ( $current_band_id > 0 && class_exists('LinkPageDataProvider') ) {
                 // Attempt to get the link page ID associated with the band profile.
-                // This assumes LivePreviewManager has a method or we use a helper.
+                // This assumes LinkPageDataProvider has a method or we use a helper.
                 // For now, let's assume a direct meta field on band_profile or a helper:
                 // Option 1: Direct meta field (if it exists and is reliable)
                 // $link_page_id = (int) get_post_meta( $current_band_id, '_extrch_link_page_id', true );
@@ -103,8 +104,19 @@ function extrch_link_page_enqueue_assets() {
                 }
                 $fixed_supported_social_types[(string)$key] = $fixed_type;
             }
-            // No longer need to error_log here, can rely on browser console.
-            // error_log('SUPPORTED SOCIAL TYPES: ' . print_r($fixed_supported_social_types, true));
+
+            // Fetch the raw, unfiltered links to pass to JS for its own source of truth
+            $initial_link_sections_raw = [];
+            if ($link_page_id) {
+                $links_json = get_post_meta($link_page_id, '_link_page_links', true);
+                if (is_string($links_json)) {
+                    $decoded_links = json_decode($links_json, true);
+                    if (is_array($decoded_links)) {
+                        $initial_link_sections_raw = $decoded_links;
+                    }
+                }
+            }
+
             wp_localize_script(
                 'extrch-manage-link-page-core',
                 'extrchLinkPageConfig',
@@ -112,9 +124,13 @@ function extrch_link_page_enqueue_assets() {
                     'ajax_url' => admin_url( 'admin-ajax.php' ),
                     'nonce'    => wp_create_nonce( 'extrch_link_page_ajax_nonce' ),
                     'fetch_link_title_nonce' => wp_create_nonce( 'fetch_link_meta_title_nonce' ),
+                    'nonces'   => array(
+                        'featured_link_nonce' => wp_create_nonce( 'extrch_link_page_featured_link_nonce' )
+                    ),
                     'link_page_id' => $link_page_id,
                     'band_id' => $current_band_id,
                     'supportedLinkTypes' => $fixed_supported_social_types,
+                    'initialLinkSections' => $initial_link_sections_raw, // Add the raw links here
                 )
             );
 
@@ -354,6 +370,18 @@ function extrch_link_page_enqueue_assets() {
             );
         }
 
+        // Subscribe Management JS (NEW) - IIFE based
+        $subscribe_js_path = $js_dir . '/manage-link-page-subscribe.js';
+        if ( file_exists( $theme_dir . $subscribe_js_path ) ) {
+            wp_enqueue_script(
+                'extrch-manage-link-page-subscribe',
+                $theme_uri . $subscribe_js_path,
+                array('jquery', 'extrch-manage-link-page-core', 'extrch-manage-link-page-preview-updater'),
+                filemtime( $theme_dir . $subscribe_js_path ),
+                true
+            );
+        }
+
         // Main management JS (should be enqueued LAST)
         $main_js_deps = array(
             'jquery', 
@@ -371,7 +399,8 @@ function extrch_link_page_enqueue_assets() {
             'extrch-manage-link-page-background',
             'extrch-manage-link-page-advanced',
             'extrch-manage-link-page-qrcode',
-            'extrch-manage-link-page-save'
+            'extrch-manage-link-page-save',
+            'extrch-manage-link-page-subscribe'
         );
 
         // Conditionally enqueue YouTube embed script for admin preview
@@ -441,6 +470,15 @@ function extrch_link_page_enqueue_assets() {
                 true
             );
         }
+
+        // Enqueue new manage-link-page-featured-link.js script
+        wp_enqueue_script(
+            'extrch-manage-link-page-featured-link',
+            get_stylesheet_directory_uri() . '/band-platform/extrch.co-link-page/live-preview/js/manage-link-page-featured-link.js',
+            array('jquery', 'extrch-manage-link-page'), // Depends on the main manager
+            filemtime(get_stylesheet_directory() . '/band-platform/extrch.co-link-page/live-preview/js/manage-link-page-featured-link.js'),
+            true
+        );
     }
 
     // Enqueue Google Font if needed for AJAX previews.
@@ -575,6 +613,23 @@ function extrch_enqueue_public_link_page_assets() {
             }
         }
         
+        // Enqueue subscribe JS for the public link page
+        $subscribe_js_file = get_stylesheet_directory() . '/band-platform/extrch.co-link-page/js/link-page-subscribe.js';
+        if ( file_exists( $subscribe_js_file ) ) {
+            wp_enqueue_script(
+                'extrch-link-page-subscribe',
+                get_stylesheet_directory_uri() . '/band-platform/extrch.co-link-page/js/link-page-subscribe.js',
+                array('jquery'),
+                filemtime($subscribe_js_file),
+                true
+            );
+            // Localize ajaxurl for the subscribe JS
+            wp_localize_script('extrch-link-page-subscribe', 'ajaxurl', admin_url('admin-ajax.php'));
+        }
+
+        // Enqueue subscribe CSS if it exists (reuse extrch-links.css for now)
+        // If you create a dedicated subscribe CSS, enqueue it here.
+        
         // Conditionally enqueue YouTube embed script for public page
         $youtube_embed_enabled_public = $link_page_id_public ? (get_post_meta($link_page_id_public, '_enable_youtube_inline_embed', true) !== '0') : true; // Default true if no ID or meta not '0'
         $theme_dir_public = get_stylesheet_directory();
@@ -632,3 +687,6 @@ add_action('wp_head', function() {
         }
     }
 }, 20);
+
+// Function to get the current link page ID from query vars or post object
+// ... existing code ...

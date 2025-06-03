@@ -5,6 +5,8 @@
  * Loaded from manage-link-page.php
  */
 
+// All links tab data should be hydrated from $data provided by LinkPageDataProvider.
+
 defined( 'ABSPATH' ) || exit;
 
 // Ensure variables from parent scope are available if needed.
@@ -65,6 +67,28 @@ require_once dirname(__DIR__) . '/link-expiration.php';
         </div>
         <input type="hidden" name="band_profile_social_links_json" id="band_profile_social_links_json" value="<?php echo esc_attr(json_encode($social_links)); ?>">
         <button type="button" id="bp-add-social-icon-btn" class="button button-secondary bp-add-social-icon-btn"><i class="fas fa-plus"></i> <?php esc_html_e('Add Social Icon', 'generatepress_child'); ?></button>
+
+        <div class="bp-social-icons-position-setting" style="margin-top: 15px;">
+            <h4><?php esc_html_e('Social Icons Position', 'generatepress_child'); ?></h4>
+            <?php
+            $current_position = 'above'; // Default
+            if ($current_link_page_id) {
+                $saved_position = get_post_meta($current_link_page_id, '_link_page_social_icons_position', true);
+                if (!empty($saved_position)) {
+                    $current_position = $saved_position;
+                }
+            }
+            ?>
+            <label style="margin-right: 10px;">
+                <input type="radio" name="link_page_social_icons_position" value="above" <?php checked($current_position, 'above'); ?>>
+                <?php esc_html_e('Above Links', 'generatepress_child'); ?>
+            </label>
+            <label>
+                <input type="radio" name="link_page_social_icons_position" value="below" <?php checked($current_position, 'below'); ?>>
+                <?php esc_html_e('Below Links', 'generatepress_child'); ?>
+            </label>
+            <input type="hidden" id="initial_social_icons_position" name="initial_social_icons_position" value="<?php echo esc_attr($current_position); ?>">
+        </div>
     </div>
 </div> 
 
@@ -83,7 +107,24 @@ require_once dirname(__DIR__) . '/link-expiration.php';
                     </div>
                     <div class="bp-link-list">
                         <?php foreach (($section['links'] ?? []) as $lidx => $link): ?>
-                            <div class="bp-link-item" data-sidx="<?php echo esc_attr($sidx); ?>" data-lidx="<?php echo esc_attr($lidx); ?>" data-expires-at="<?php echo esc_attr($link['expires_at'] ?? ''); ?>">
+                            <?php
+                            // Determine if this link is the featured link (to be highlighted)
+                            $is_featured_link = false;
+                            $debug_link_url = !empty($link['link_url']) ? $link['link_url'] : '';
+                            $debug_featured_url = !empty($data['featuredLinkUrlToSkip']) ? $data['featuredLinkUrlToSkip'] : '';
+                            if (!empty($debug_featured_url) && !empty($debug_link_url)) {
+                                $is_featured_link = (trailingslashit($debug_link_url) === trailingslashit($debug_featured_url));
+                                error_log('[tab-links.php] Comparing link: ' . $debug_link_url . ' to featured: ' . $debug_featured_url . ' | Result: ' . ($is_featured_link ? 'MATCH' : 'NO MATCH'));
+                            } else {
+                                error_log('[tab-links.php] Skipping compare: link_url=' . $debug_link_url . ' featuredLinkUrlToSkip=' . $debug_featured_url);
+                            }
+                            $link_item_classes = 'bp-link-item';
+                            if ($is_featured_link) {
+                                $link_item_classes .= ' bp-editor-featured-link';
+                            }
+                            error_log('[tab-links.php] link_item_classes for link: ' . $debug_link_url . ' = ' . $link_item_classes);
+                            ?>
+                            <div class="<?php echo esc_attr($link_item_classes); ?>" data-sidx="<?php echo esc_attr($sidx); ?>" data-lidx="<?php echo esc_attr($lidx); ?>" data-expires-at="<?php echo esc_attr($link['expires_at'] ?? ''); ?>" data-link-id="<?php echo esc_attr($link['id'] ?? ''); ?>">
                                 <span class="bp-link-drag-handle drag-handle"><i class="fas fa-grip-vertical"></i></span>
                                 <input type="text" class="bp-link-text-input" placeholder="Link Text" value="<?php echo esc_attr($link['link_text'] ?? ''); ?>">
                                 <input type="url" class="bp-link-url-input" placeholder="URL" value="<?php echo esc_attr($link['link_url'] ?? ''); ?>">
@@ -110,12 +151,16 @@ require_once dirname(__DIR__) . '/link-expiration.php';
 // This helps JS know whether to render expiration icons for dynamically added links
 ?>
 <script type="text/javascript">
+    // Make supported link types available to JavaScript
     window.extrchLinkPageConfig = window.extrchLinkPageConfig || {};
     window.extrchLinkPageConfig.linkExpirationEnabled = <?php echo $link_expiration_enabled ? 'true' : 'false'; ?>;
     window.extrchLinkPageConfig.supportedLinkTypes = <?php echo json_encode($data['supportedLinkTypes'] ?? []); ?>;
+    // The featured_link_nonce is now localized globally in link-page-includes.php
+    // Ensuring other nonces are initialized if not already present by the global localization.
+    window.extrchLinkPageConfig.nonces = window.extrchLinkPageConfig.nonces || {}; 
 </script>
 
 <?php
 // Output the expiration modal markup (hidden by default)
-extrch_render_link_expiration_modal();
+// ... existing code ...
 ?>

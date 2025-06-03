@@ -120,6 +120,37 @@ function extrch_handle_save_link_page_data() {
     }
     // --- End Google Tag ID ---
 
+    // --- Featured Link Settings (Advanced Tab) ---
+    $enable_featured_link_val = isset($_POST['enable_featured_link']) && $_POST['enable_featured_link'] == '1' ? '1' : '0';
+    update_post_meta($link_page_id, '_enable_featured_link', $enable_featured_link_val);
+
+    if ($enable_featured_link_val === '1' && isset($_POST['featured_link_original_id'])) {
+        // The 'featured_link_original_id' field from POST now contains the URL of the link to feature.
+        $featured_link_url = esc_url_raw(wp_unslash($_POST['featured_link_original_id']));
+        update_post_meta($link_page_id, '_featured_link_original_id', $featured_link_url);
+    } else {
+        // If the feature is disabled, or no URL is selected, clear the meta.
+        delete_post_meta($link_page_id, '_featured_link_original_id');
+    }
+    // Note: The custom title, description, and thumbnail for the featured link are handled by extrch_save_featured_link_settings()
+    // which is called after this main handler, using $link_page_id, $_POST, and $_FILES.
+    // --- End Featured Link Settings ---
+
+    // --- Save Social Icons Position ---
+    if (isset($_POST['link_page_social_icons_position'])) {
+        $social_icons_position = sanitize_text_field($_POST['link_page_social_icons_position']);
+        if (in_array($social_icons_position, array('above', 'below'), true)) {
+            update_post_meta($link_page_id, '_link_page_social_icons_position', $social_icons_position);
+        } else {
+            // Default to 'above' if an invalid value is submitted
+            update_post_meta($link_page_id, '_link_page_social_icons_position', 'above');
+        }
+    } else {
+        // Default to 'above' if the setting is not present in POST (e.g. if user clears cookies or something)
+        update_post_meta($link_page_id, '_link_page_social_icons_position', 'above');
+    }
+    // --- End Social Icons Position ---
+
     // --- Save Overlay Toggle ---
     if (isset($_POST['link_page_overlay_toggle_present'])) {
         $overlay = isset($_POST['link_page_overlay_toggle']) && $_POST['link_page_overlay_toggle'] === '1' ? '1' : '0';
@@ -131,6 +162,24 @@ function extrch_handle_save_link_page_data() {
         $profile_img_shape = sanitize_text_field($_POST['link_page_profile_img_shape']);
         if (in_array($profile_img_shape, array('circle', 'square', 'rectangle'), true)) {
             update_post_meta($link_page_id, '_link_page_profile_img_shape', $profile_img_shape);
+        }
+    }
+
+    // --- Save Subscribe Display Mode and Description ---
+    if (isset($_POST['link_page_subscribe_display_mode'])) {
+        $subscribe_display_mode = sanitize_text_field($_POST['link_page_subscribe_display_mode']);
+        if (in_array($subscribe_display_mode, array('icon_modal', 'inline_form', 'disabled'), true)) {
+            update_post_meta($link_page_id, '_link_page_subscribe_display_mode', $subscribe_display_mode);
+        } else {
+            delete_post_meta($link_page_id, '_link_page_subscribe_display_mode');
+        }
+    }
+    if (isset($_POST['link_page_subscribe_description'])) {
+        $subscribe_description = trim(wp_unslash($_POST['link_page_subscribe_description']));
+        if ($subscribe_description !== '') {
+            update_post_meta($link_page_id, '_link_page_subscribe_description', $subscribe_description);
+        } else {
+            delete_post_meta($link_page_id, '_link_page_subscribe_description');
         }
     }
 
@@ -286,6 +335,30 @@ function extrch_handle_save_link_page_data() {
                 wp_update_post(array('ID' => $band_id, 'post_title' => $new_title));
             }
         }
+    }
+
+    // Sync social links to band_profile CPT if they exist in POST data
+    if ($band_id && isset($_POST['band_profile_social_links_json'])) {
+        $social_links_json = wp_unslash($_POST['band_profile_social_links_json']);
+        // Basic validation: Ensure it's a string and can be decoded as JSON array/object.
+        if (is_string($social_links_json)) {
+            $decoded_socials = json_decode($social_links_json, true);
+            if (json_last_error() === JSON_ERROR_NONE) {
+                 // At this point, $social_links_json is a valid JSON string.
+                 // The actual structure of the JSON (array of objects with specific keys) should ideally be validated further
+                 // if strict adherence is required, but for now, saving the valid JSON string is the main goal.
+                update_post_meta($band_id, '_band_social_links_json', $social_links_json);
+            } else {
+                // Log error or handle invalid JSON if necessary
+                // error_log('Invalid JSON for social links: ' . $social_links_json);
+            }
+        }
+    }
+
+    // --- Featured Link Customization (Title, Desc, Thumbnail) --- 
+    // This will now primarily handle the thumbnail and text fields.
+    if (function_exists('extrch_save_featured_link_settings')) {
+        extrch_save_featured_link_settings($link_page_id, $_POST, $_FILES);
     }
 
     // --- Redirect back with success ---

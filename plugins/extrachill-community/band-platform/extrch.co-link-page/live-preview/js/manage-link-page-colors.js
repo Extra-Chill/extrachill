@@ -1,6 +1,6 @@
 (function(manager) {
-    if (!manager) {
-        console.error('ExtrchLinkPageManager is not defined. Colors script cannot run.');
+    if (!manager || !manager.customization) {
+        // console.error("ExtrchLinkPageManager or its customization module not found. Colors script cannot run."); // Keep
         return;
     }
     manager.colors = manager.colors || {};
@@ -25,7 +25,7 @@
         if (!manager.customization || 
             !manager.customization.attachControlListener || 
             !manager.customization.updateSetting) { // updateSetting is the key function we now call
-            console.error('Core customization functions (attachControlListener or updateSetting) not available for Colors module.');
+            // console.error('Core customization functions (attachControlListener or updateSetting) not available for Colors module.'); // Comment out
             return;
         }
 
@@ -37,7 +37,7 @@
         // Button Color
         if (buttonColorInput) {
             manager.customization.attachControlListener(buttonColorInput, '--link-page-button-bg-color', 'input', function(val) {
-                console.log('[Colors] Button Color Input Event:', val); // Add this log
+                // console.log('[Colors] Button Color Input Event:', val); // Comment out
                 return val;
             });
         }
@@ -45,7 +45,7 @@
         // Text Color
         if (textColorInput) {
             manager.customization.attachControlListener(textColorInput, '--link-page-text-color', 'input', function(val) {
-                console.log('[Colors] Text Color Input Event:', val); // Add this log
+                // console.log('[Colors] Text Color Input Event:', val); // Comment out
                 return val;
             });
         }
@@ -53,7 +53,7 @@
         // Link Text Color
         if (linkTextColorInput) {
             manager.customization.attachControlListener(linkTextColorInput, '--link-page-link-text-color', 'input', function(val) {
-                console.log('[Colors] Link Text Color Input Event:', val); // Add this log
+                // console.log('[Colors] Link Text Color Input Event:', val); // Comment out
                 return val;
             });
         }
@@ -61,7 +61,7 @@
         // Hover Color
         if (hoverColorInput) {
             manager.customization.attachControlListener(hoverColorInput, '--link-page-button-hover-bg-color', 'input', function(val) {
-                console.log('[Colors] Hover Color Input Event:', val); // Add this log
+                // console.log('[Colors] Hover Color Input Event:', val); // Comment out
                 return val;
             });
         }
@@ -69,12 +69,12 @@
         // Button Border Color
         if (buttonBorderColorInput) {
             manager.customization.attachControlListener(buttonBorderColorInput, '--link-page-button-border-color', 'input', function(val) {
-                console.log('[Colors] Button Border Color Input Event:', val); // Add this log
+                // console.log('[Colors] Button Border Color Input Event:', val); // Comment out
                 return val;
             });
         }
         
-        console.log('ExtrchLinkPageManager Colors module initialized and listeners attached.'); // Adjusted log
+        // console.log('ExtrchLinkPageManager Colors module initialized and listeners attached.'); // Comment out
     }
 
     // Public init function for the colors module
@@ -94,4 +94,4 @@
         manager.colors.init();
     }
 
-})(window.ExtrchLinkPageManager); 
+})(window.ExtrchLinkPageManager = window.ExtrchLinkPageManager || {}); 

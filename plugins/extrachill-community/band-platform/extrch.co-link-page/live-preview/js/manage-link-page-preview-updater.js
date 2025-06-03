@@ -22,12 +22,10 @@
     function updateRootCssVariable(key, value) {
         const { styleTag } = getLivePreviewContent();
         if (!styleTag) {
-            // console.error('[PreviewUpdater] Cannot update CSS variable: Style tag not found.');
             return;
         }
         let sheet = styleTag.sheet;
         if (!sheet) {
-            // console.error('[PreviewUpdater] No sheet found on style tag.');
             return;
         }
         let rootRule = null;
@@ -43,7 +41,6 @@
                 sheet.insertRule(':root {}', sheet.cssRules.length);
                 rootRule = sheet.cssRules[sheet.cssRules.length - 1];
             } catch (e) {
-                // console.error('[PreviewUpdater] Failed to insert :root rule:', e);
                 return;
             }
         }
@@ -105,7 +102,6 @@
                 imgTag.style.borderRadius = 'inherit';
             }
         } else {
-            // console.warn('[PreviewUpdater] previewProfileImageDiv NOT FOUND for shape update.');
         }
     };
     PREVIEW_UPDATERS['--link-page-profile-img-url'] = function(imgUrl) {
@@ -151,7 +147,6 @@
             try {
                 PREVIEW_UPDATERS[key](value, null, allCustomVars);
             } catch (e) {
-                // console.error(`Error in PreviewUpdater.update for key ${key}:`, e);
             }
         } else if (key && value) {
             updateRootCssVariable(key, value);
@@ -160,7 +155,6 @@
 
     manager.previewUpdater.refreshFullPreview = function(hydratedState) {
         if (!hydratedState || !hydratedState.customVars) {
-            // console.warn('[PreviewUpdater] refreshFullPreview: No hydrated state or customVars provided.');
             return;
         }
         const allCustomVars = hydratedState.customVars;
@@ -174,7 +168,6 @@
                       try {
                           PREVIEW_UPDATERS[key](value, null, allCustomVars);
                       } catch (e) {
-                          // console.error(`Error in preview updater during refreshFullPreview for key ${key}:`, e);
                       }
                   } else if (key && value && key.startsWith('--')) {
                       // If no specific updater, and it's a CSS var, update it generically
@@ -188,7 +181,6 @@
 
     manager.previewUpdater.initPreview = function(hydratedState) {
         if (!hydratedState || !hydratedState.customVars) {
-            // console.warn('[PreviewUpdater] No hydrated state or customVars provided to initPreview.');
         }
         manager.setHydratedState(hydratedState);
         manager.previewUpdater.refreshFullPreview(hydratedState);

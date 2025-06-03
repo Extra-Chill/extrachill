@@ -126,7 +126,6 @@ li.bbp-body div.hentry {
 /* Reply Content Section */
 .bbp-reply-content-area { /* Used in loop-single-reply-card.php */
     border-top: 1px solid var(--border-color);
-    padding-top: 1rem;
     gap: 1rem;
     align-items: flex-start;
     background-color: var(--card-background);

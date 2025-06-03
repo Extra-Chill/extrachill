@@ -1727,24 +1727,24 @@ input[type="text"], input[type="email"], input[type="url"], input[type="password
 }
 
 #bbpress-forums fieldset.bbp-form{
-	border: none;
+	padding:0 20px 20px;
 }
 
 .wp-editor-container .mce-container{
-	color: var(--text-color);
-	background-color: var(--background-color);
-	border-color: var(--border-color);
+	border:none !important;
+	box-shadow:none !important;
 }
 
 .wp-editor-container .mce-toolbar .mce-ico{
-	color: var(--muted-text);
+	color: var(--text-color) !important;
 }
 
 .wp-editor-container .mce-toolbar .mce-ico:hover{
-	color: var(--link-color);
+	background:var(--button-hover-bg) !important;
 }
 .wp-editor-container{
 	border: 1px solid var(--border-color) !important;
+	border-radius:5px !important;
 }
 
 .wp-editor-container .div.mce-toolbar-grp{
@@ -1752,24 +1752,30 @@ input[type="text"], input[type="email"], input[type="url"], input[type="password
 }
 
 .wp-editor-container .mce-toolbar .mce-btn-group .mce-btn.mce-listbox{
-	border-color: var(--border-color);
-	background-color: var(--background-color);
+	border: 1px solid var(--border-color) !important;
 }
 .mce-panel.mce-menu{
-	background: var(--card-background) !important;
-	color: var(--muted-text)!important;
-	border-color: var(--border-color) !important;
+	border:1px solid var(--border-color) !important;
+	border-radius:5px !important;
+	background:var(--background-color) !important;
 }
 .wp-editor-container .mce-panel .mce-btn i.mce-caret{
-	color: var(--muted-text);
-	border-top:6px solid var(--muted-text);
+	border-top-color: var(--text-color) !important;
 }
 .wp-editor-container .mce-panel .mce-btn i.mce-caret:hover{
-	color: var(--link-color);
+	border-top-color: var(--button-hover-bg) !important;
 }
 .wp-editor-container .mce-btn .mce-txt{
-	color: var(--muted-text);
+	color:var(--text-color) !important;
 }
 .wp-editor-container .mce-btn .mce-txt:hover{
-	color: var(--link-color);
+	color:var(--button-hover-bg) !important;
+}
+
+/* Style for the featured link item in the editor's Links Tab */
+.bp-editor-featured-link {
+    outline: 1px solid var(--accent);
+    box-shadow: 0 0 8px 2px var(--accent);
+    border-radius: 4px; /* Optional: if your items have rounded corners */
+    transition: box-shadow 0.3s ease-in-out, outline 0.3s ease-in-out;
 }

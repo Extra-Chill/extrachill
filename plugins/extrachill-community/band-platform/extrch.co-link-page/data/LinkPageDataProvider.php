@@ -1,13 +1,13 @@
 <?php
 /**
- * LivePreviewManager: Always uses the provided link_page_custom_css_vars_json (JSON blob)
- * as the canonical source for all customization state during preview. No merging or
- * rehydration with server-side defaults except on full page reload.
+ * LinkPageDataProvider: Canonical provider for all link page data (live and preview).
  *
- * Usage: $preview_data = LivePreviewManager::get_preview_data($link_page_id, $band_id, $overrides);
+ * This class is the single source of truth for all data used to render a link page, whether for the public/live page or the management/preview interface. It normalizes, merges, and returns all relevant meta, post, and override data for a given link page and band profile.
+ *
+ * Usage: $data = LinkPageDataProvider::get_data($link_page_id, $band_id, $overrides);
  */
-class LivePreviewManager {
-    public static function get_preview_data($link_page_id, $band_id, $overrides = array()) {
+class LinkPageDataProvider {
+    public static function get_data($link_page_id, $band_id, $overrides = array()) {
         // --- START Supported Link Types ---
         // Get supported link types from the dedicated config file
         require_once dirname(__FILE__) . '/../link-page-social-types.php';
@@ -233,6 +233,57 @@ class LivePreviewManager {
         } else {
             $data['background_style'] = 'background-color: ' . esc_attr($data['background_color']) . ';';
         }
+        // --- Subscribe Display Mode and Description ---
+        $subscribe_display_mode = get_post_meta($link_page_id, '_link_page_subscribe_display_mode', true);
+        if ($subscribe_display_mode === '' || !in_array($subscribe_display_mode, array('icon_modal', 'inline_form', 'disabled'), true)) {
+            $subscribe_display_mode = 'icon_modal';
+        }
+        $subscribe_description = get_post_meta($link_page_id, '_link_page_subscribe_description', true);
+        if (!is_string($subscribe_description)) {
+            $subscribe_description = '';
+        }
+
+        // --- Social Icons Position ---
+        $social_icons_position = get_post_meta($link_page_id, '_link_page_social_icons_position', true);
+        if ($social_icons_position === '' || !in_array($social_icons_position, array('above', 'below'), true)) {
+            $social_icons_position = 'above'; // Default to 'above'
+        }
+
+        // --- Powered By (not a CSS var, direct meta) ---
+        $data['powered_by'] = ($get_val('powered_by', '1', '_link_page_powered_by') === '1');
+
+        // --- Background image URL (used by preview.php for wrapper) ---
+        $data['background_image_url'] = '';
+        if ($data['css_vars']['--link-page-background-type'] === 'image' && !empty($data['css_vars']['--link-page-background-image'])) {
+            // Extract URL from 'url(...)'
+            preg_match('/url\(([^)]+)\)/i', $data['css_vars']['--link-page-background-image'], $matches);
+            if (isset($matches[1])) {
+                $data['background_image_url'] = trim($matches[1], " '\"");
+            }
+        }
+
+        // --- Actual Link Page ID for template (used for share permalink) ---
+        $data['_actual_link_page_id_for_template'] = $link_page_id;
+        $data['band_profile'] = $band_id ? get_post($band_id) : null;
+
+        // --- Social Icons Position (direct meta) ---
+        $data['_link_page_social_icons_position'] = get_post_meta($link_page_id, '_link_page_social_icons_position', true) ?: 'above';
+
+        // --- Subscribe Display Mode & Description (direct meta) ---
+        $data['_link_page_subscribe_display_mode'] = get_post_meta($link_page_id, '_link_page_subscribe_display_mode', true) ?: 'icon_modal';
+        $data['_link_page_subscribe_description'] = get_post_meta($link_page_id, '_link_page_subscribe_description', true);
+
+        // --- Featured Link Data ---
+        $data['featured_link_html'] = '';
+        $data['featured_link_url_to_skip'] = null;
+        if (function_exists('extrch_render_featured_link_section_html') && function_exists('extrch_get_featured_link_url_to_skip')) {
+            // Use the processed $data['links'] (which are link_sections) and $data['css_vars']
+            $link_sections_for_featured = isset($data['links']) && is_array($data['links']) ? $data['links'] : [];
+            $css_vars_for_featured = isset($data['css_vars']) && is_array($data['css_vars']) ? $data['css_vars'] : [];
+            $data['featured_link_html'] = extrch_render_featured_link_section_html($link_page_id, $link_sections_for_featured, $css_vars_for_featured);
+            $data['featured_link_url_to_skip'] = extrch_get_featured_link_url_to_skip($link_page_id);
+        }
+
         // Final preview_data array, ensuring all necessary keys are explicitly returned
         $return_data = array(
             'display_title'     => $data['display_title'],
@@ -240,7 +291,7 @@ class LivePreviewManager {
             'profile_img_url'   => $data['profile_img_url'],
             'social_links'      => $data['social_links'],
             'link_sections'     => (isset($data['links'][0]['links']) || empty($data['links'])) ? $data['links'] : array(array('section_title' => '', 'links' => $data['links'])),
-            'powered_by'        => isset($data['powered_by']) ? (bool)$data['powered_by'] : true,
+            'powered_by'        => $data['powered_by'],
             
             // CSS Variables
             'css_vars' => $data['css_vars'], // For JS initialData and PHP initial style tag
@@ -272,6 +323,23 @@ class LivePreviewManager {
 
             // Add supported link types for JS Social Icons module
             'supportedLinkTypes' => $supported_link_types,
+
+            // Add subscribe display mode and description for template logic
+            '_link_page_subscribe_display_mode' => $data['_link_page_subscribe_display_mode'],
+            '_link_page_subscribe_description' => $data['_link_page_subscribe_description'],
+
+            // Add social icons position for template logic
+            '_link_page_social_icons_position' => $data['_link_page_social_icons_position'],
+
+            // Add actual link page ID for template logic
+            '_actual_link_page_id_for_template' => $data['_actual_link_page_id_for_template'],
+
+            // Pass the band profile object
+            'band_profile' => $data['band_profile'],
+
+            // Add featured link data
+            'featured_link_html' => $data['featured_link_html'],
+            'featuredLinkUrlToSkip' => $data['featured_link_url_to_skip'],
         );
         return $return_data;
     }
@@ -281,4 +349,4 @@ class LivePreviewManager {
 // - All manual $preview_data array building
 // - Any direct use of custom_css_vars_json for the preview
 // - Any scattered normalization of CSS vars or config for the preview
-// Use LivePreviewManager::get_preview_data() everywhere instead. 
+// Use LinkPageDataProvider::get_data() everywhere instead. 

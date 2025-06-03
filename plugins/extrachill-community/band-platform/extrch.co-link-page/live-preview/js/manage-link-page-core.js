@@ -1,5 +1,10 @@
 window.ExtrchLinkPageManager = window.ExtrchLinkPageManager || {}; 
 
+// Provide a canonical method for all modules to get initial data from PHP
+ExtrchLinkPageManager.getInitialData = function() {
+    return window.extrchLinkPageConfig || {};
+};
+
 // Check for the localized config and dispatch an event when ready
 (function() {
     const checkConfig = () => {
@@ -18,9 +23,7 @@ window.ExtrchLinkPageManager = window.ExtrchLinkPageManager || {};
 // Ensure window.extrchLinkPageConfig is set before dispatching the event
 if (typeof window.extrchLinkPageConfig === 'undefined') {
     // This indicates an issue with how the config is being passed from PHP
-    console.error('[Core] window.extrchLinkPageConfig is not defined.');
 } else {
-    console.log('[Core] extrchLinkPageConfig is ready.');
     // Dispatch a custom event indicating the config is ready
 
     // Dispatch the event after DOMContentLoaded to ensure listeners are ready
@@ -28,7 +31,6 @@ if (typeof window.extrchLinkPageConfig === 'undefined') {
         // Use a small timeout to ensure manage-link-page.js's DOMContentLoaded listener runs first
         setTimeout(() => {
             document.dispatchEvent(new CustomEvent('extrchLinkPageConfigReady', { detail: window.extrchLinkPageConfig }));
-            console.log('[Core] extrchLinkPageConfigReady event dispatched after DOMContentLoaded (async).');
         }, 0); // Use 0 for microtask timing after DOMContentLoaded listeners
     });
 } 

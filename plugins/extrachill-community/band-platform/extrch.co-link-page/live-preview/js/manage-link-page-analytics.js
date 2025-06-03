@@ -20,7 +20,6 @@
     function fetchAnalyticsData() {
         // Use the explicitly localized data from the PHP template
         if (typeof window.extrchLinkPagePreviewAJAX === 'undefined' || !window.extrchLinkPagePreviewAJAX.link_page_id || !window.extrchLinkPagePreviewAJAX.nonce || !window.extrchLinkPagePreviewAJAX.ajax_url) {
-            // console.error('Localized AJAX config (extrchLinkPagePreviewAJAX) not available or incomplete.');
             showError('Configuration error. Cannot fetch analytics.');
             return;
         }
@@ -35,7 +34,7 @@
             date_range: dateRangeSelect ? dateRangeSelect.value : '30', // Default to 30 days
         };
 
-        // --- Real AJAX Call --- //
+        // --- Real AJAX Call ---
         jQuery.post(window.extrchLinkPagePreviewAJAX.ajax_url, data, function(response) {
             if (response && response.success && response.data) {
                 updateUI(response.data);
@@ -43,7 +42,6 @@
                 showError(response?.data?.message || 'Failed to load analytics data.');
             }
         }).fail(function(jqXHR, textStatus, errorThrown) {
-            // console.error('AJAX Error:', textStatus, errorThrown, jqXHR.responseText);
             showError('Error communicating with server. See console for details.');
         }).always(function() {
             showLoading(false);

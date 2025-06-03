@@ -3,7 +3,6 @@
 (function() {
     // Check if tracking data is available from wp_localize_script
     if (typeof extrchTrackingData === 'undefined' || !extrchTrackingData.ajax_url || !extrchTrackingData.link_page_id) {
-        console.warn('Extrch Tracking Error: Missing required data (ajax_url or link_page_id).');
         return;
     }
 

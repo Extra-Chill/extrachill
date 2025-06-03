@@ -174,34 +174,40 @@ if ($settings_success) {
                         <?php // Removed individual form tag and nonce ?>
                         <div id="followed-bands-list">
             <?php
-                            $followed_bands = function_exists('bp_get_user_followed_bands') ? bp_get_user_followed_bands( $user_id, array('posts_per_page' => -1) ) : array();
-                            $email_permissions = get_user_meta( $user_id, '_band_follow_email_permissions', true );
-                            if ( ! is_array( $email_permissions ) ) {
-                                $email_permissions = array();
-                            }
+                            global $wpdb;
+                            $table_name = $wpdb->prefix . 'band_subscribers';
+                            $current_user_id = get_current_user_id();
 
-                            if ( ! empty( $followed_bands ) ) :
+                            // Get all band_profile_ids for which the current user has a 'platform_follow_consent'
+                            $consented_band_ids_results = $wpdb->get_results( $wpdb->prepare(
+                                "SELECT band_profile_id FROM {$table_name} WHERE user_id = %d AND source = 'platform_follow_consent'",
+                                $current_user_id
+                            ), ARRAY_A );
+                            $consented_band_ids = !empty($consented_band_ids_results) ? wp_list_pluck( $consented_band_ids_results, 'band_profile_id' ) : array();
+
+                            $followed_bands_posts = function_exists('bp_get_user_followed_bands') ? bp_get_user_followed_bands( $current_user_id, array('posts_per_page' => -1) ) : array();
+                            
+                            if ( ! empty( $followed_bands_posts ) ) :
                             ?>
                                 <ul class="followed-bands-settings">
-                                    <?php foreach ( $followed_bands as $band_post ) :
+                                    <?php foreach ( $followed_bands_posts as $band_post ) :
                                         $band_id = $band_post->ID;
-                                        // Add a hidden field for each band ID displayed on the page
-                                        echo '<input type="hidden" name="followed_bands_on_page[]" value="' . esc_attr( $band_id ) . '">';
                                         $band_name = get_the_title( $band_id );
                                         $band_url = get_permalink( $band_id );
-                                        $can_share_email = isset( $email_permissions[ $band_id ] ) ? (bool) $email_permissions[ $band_id ] : false; // Default to false if not set for safety
+                                        // Determine if user has consented for this specific band via platform follow
+                                        $has_platform_consent = in_array( $band_id, $consented_band_ids );
                                     ?>
                                     <li>
                                         <input type="checkbox"
                                                id="band_consent_<?php echo esc_attr( $band_id ); ?>"
-                                               name="band_email_consent[<?php echo esc_attr( $band_id ); ?>]"
-                                               value="1"
-                                               <?php checked( $can_share_email, true ); ?>>
+                                               name="bands_consented[]" // Ensure this is the correct name for the AJAX handler
+                                               value="<?php echo esc_attr( $band_id ); ?>"
+                                               <?php checked( $has_platform_consent, true ); ?>>
                                         <label for="band_consent_<?php echo esc_attr( $band_id ); ?>">
                                             <?php
                                             printf(
                                                 esc_html__( 'Share my email with %s', 'generatepress_child' ),
-                                                '<a href="' . esc_url( get_permalink( $band_id ) ) . '" target="_blank">' . esc_html( get_the_title( $band_id ) ) . '</a>'
+                                                '<a href="' . esc_url( $band_url ) . '" target="_blank">' . esc_html( $band_name ) . '</a>'
                                             );
                                             ?>
                                         </label>

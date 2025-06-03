@@ -264,36 +264,3 @@ function get_main_site_post_ids_for_forum($forum_id = 1494) {
 
     return $post_ids;
 }
-
-
-// function fetch_upvote_counts_and_modify_loop() {
-//     // Get main site post IDs for topics in forum 1494
-//     $topic_ids = get_main_site_post_ids_for_forum();
-//     $main_site_post_ids = array_map(function($id) {
-//         return get_post_meta($id, 'main_site_post_id', true);
-//     }, $topic_ids);
-
-//     // Fetch upvote counts from external API
-//     // $upvote_counts = fetch_upvote_counts_from_extrachill($main_site_post_ids);
-//     // Since fetch_upvote_counts_from_extrachill now returns [], this function does nothing.
-// }
-
-// function clear_upvote_count_cache() {
-//     $post_id = isset($_POST['post_id']) ? sanitize_text_field($_POST['post_id']) : null;
-
-//     if (!$post_id) {
-//         wp_send_json_error(['message' => 'Post ID is missing.']);
-//     }
-
-//     // Generate the cache key based on the post ID
-//     $cache_key = 'upvote_counts_' . $post_id;
-
-//     // Clear the cache
-//     delete_transient($cache_key);
-
-//     wp_send_json_success(['message' => 'Cache cleared successfully.']);
-// }
-
-// // Hook the above function to WordPress AJAX actions for logged-in and logged-out users.
-// add_action('wp_ajax_clear_upvote_cache', 'clear_upvote_count_cache');
-// add_action('wp_ajax_nopriv_clear_upvote_cache', 'clear_upvote_count_cache');

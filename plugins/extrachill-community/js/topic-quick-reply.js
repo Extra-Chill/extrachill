@@ -1,21 +1,14 @@
 jQuery(document).ready(function($) {
-    console.log('Topic Quick Reply JS: Document Ready'); // Log: Script start
-
     // --- Config --- 
     const ajaxUrl = typeof quickReplyAjax !== 'undefined' ? quickReplyAjax.ajaxUrl : '';
     const loadingMsg = typeof quickReplyAjax !== 'undefined' ? quickReplyAjax.loadingMessage : '<p>Loading...</p>';
     const errorMsg = typeof quickReplyAjax !== 'undefined' ? quickReplyAjax.errorMessage : '<p>Error loading form.</p>';
     
-    console.log('Topic Quick Reply JS: AJAX URL:', ajaxUrl); // Log: AJAX URL
-
     // --- Desktop Quick Reply --- 
     const $desktopButton = $('#quick-reply-button-desktop');
     const $desktopFormContainer = $('#quick-reply-form-placeholder-desktop');
     
-    console.log('Topic Quick Reply JS: Desktop Button Found:', $desktopButton.length); // Log: Button selected?
-
     if ($desktopButton.length && $desktopFormContainer.length) {
-        console.log('Topic Quick Reply JS: Attaching Desktop Click Handler'); // Log: Handler attachment
         $desktopButton.on('click', function() {
                 const $button = $(this);
             const topicId = $button.data('topic-id'); // Keep topic ID if needed for future form interaction
@@ -69,8 +62,6 @@ jQuery(document).ready(function($) {
                     }
                 }, 150); // Adjust delay if needed 
             }
-
-            // REMOVED AJAX CALL LOGIC
         });
     }
 
@@ -79,19 +70,13 @@ jQuery(document).ready(function($) {
     const $mobileFlyout = $('#quick-reply-form-mobile'); // The whole flyout container
     const $mobileCloseButton = $mobileFlyout.find('.close-flyout-button');
     
-    console.log('Topic Quick Reply JS: Mobile Button Found:', $mobileButton.length); // Log: Button selected?
-
     if ($mobileButton.length && $mobileFlyout.length) {
-        
-        console.log('Topic Quick Reply JS: Attaching Mobile Click Handlers'); // Log: Handler attachment
         $mobileButton.on('click', function() {
             // Toggle the flyout visibility
             $mobileFlyout.toggleClass('is-visible');
             // Optional: Add a class to body to prevent scrolling when flyout is open
             $('body').toggleClass('quick-reply-flyout-open'); 
 
-            // REMOVED AJAX CALL LOGIC
-            
             // Optional: Focus editor when opened
             if ($mobileFlyout.hasClass('is-visible')) {
                         const quickEditorId = 'bbp_reply_content_quick'; 
@@ -141,7 +126,5 @@ jQuery(document).ready(function($) {
             $mobileFlyout.removeClass('is-visible');
             $('body').removeClass('quick-reply-flyout-open');
         }); // End $mobileCloseButton.on('click')
-
-    } // End if ($mobileButton.length && $mobileFlyout.length)
-
-}); // End jQuery(document).ready
+    }
+});

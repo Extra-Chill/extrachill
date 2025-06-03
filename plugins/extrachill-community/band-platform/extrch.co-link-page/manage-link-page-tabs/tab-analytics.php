@@ -12,6 +12,8 @@ defined( 'ABSPATH' ) || exit;
 global $post; // The main post object for the page template
 $current_link_page_id = isset($link_page_id) ? $link_page_id : 0; // Get from parent scope if set
 
+// All analytics tab data should be hydrated from $data provided by LinkPageDataProvider.
+
 ?>
 <div class="link-page-content-card">
     <div class="bp-analytics-controls">

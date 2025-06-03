@@ -54,6 +54,14 @@ function extrch_link_page_custom_head( $band_id, $link_page_id ) {
         echo '<script src="' . esc_url($theme_uri . $share_modal_js_path) . '?ver=' . esc_attr(filemtime($theme_dir . $share_modal_js_path)) . '" defer></script>';
     }
 
+    // Subscribe Feature Script (corrected path)
+    $subscribe_js_path = '/band-platform/extrch.co-link-page/js/link-page-subscribe.js';
+    if (file_exists($theme_dir . $subscribe_js_path)) {
+        echo '<script src="' . esc_url($theme_uri . $subscribe_js_path) . '?ver=' . esc_attr(filemtime($theme_dir . $subscribe_js_path)) . '" defer></script>';
+        // Localize ajaxurl for the subscribe JS
+        echo '<script>var ajaxurl = "' . esc_url(admin_url('admin-ajax.php')) . '";</script>';
+    }
+
     // Inline body margin reset (from single-band_link_page.php)
     echo '<style>body{margin:0;padding:0;}</style>';
 

@@ -27,24 +27,20 @@ if ( ! isset( $data ) || ! is_array( $data ) ) {
         if ( ! isset( $band_id ) && isset( $post->ID ) ) $band_id = get_post_meta( $post->ID, '_associated_band_profile_id', true );
     }
 
-    // Ensure LivePreviewManager class is available.
-    // It should be included by link-page-includes.php or the AJAX handler.
-    if ( ! class_exists( 'LivePreviewManager' ) ) {
-        $live_preview_manager_path = dirname( __FILE__ ) . '/live-preview/LivePreviewManager.php';
-        if ( file_exists( $live_preview_manager_path ) ) {
-            require_once $live_preview_manager_path;
-        } else {
-            // Fallback or error if LivePreviewManager is critical and not found
-            // For now, we'll let it potentially fail if not loaded by the caller.
+    // Ensure LinkPageDataProvider class is available.
+    if ( ! class_exists( 'LinkPageDataProvider' ) ) {
+        $data_provider_path = dirname( __FILE__ ) . '/data/LinkPageDataProvider.php';
+        if ( file_exists( $data_provider_path ) ) {
+            require_once $data_provider_path;
         }
     }
 
-    if ( class_exists( 'LivePreviewManager' ) && isset($link_page_id) && isset($band_id) ) {
+    if ( class_exists( 'LinkPageDataProvider' ) && isset($link_page_id) && isset($band_id) ) {
         // When this template is included directly (e.g., by single-band_link_page.php or initial preview render),
         // there are no $preview_data_overrides.
-        $data = LivePreviewManager::get_preview_data( $link_page_id, $band_id, array() );
+        $data = LinkPageDataProvider::get_data( $link_page_id, $band_id, array() );
     } else {
-        // Fallback if LivePreviewManager isn't available or IDs are missing.
+        // Fallback if LinkPageDataProvider isn't available or IDs are missing.
         // This might indicate an issue with how the template is being included.
         $data = array( // Provide minimal default structure to avoid errors
             'display_title' => 'Error: Link Page Data Unavailable',
@@ -65,14 +61,14 @@ if (isset($extrch_link_page_template_data) && is_array($extrch_link_page_templat
 }
 
 // Ensure essential keys exist in $data to prevent undefined index errors,
-// especially if LivePreviewManager::get_preview_data() might not return them all in some edge case.
+// especially if LinkPageDataProvider::get_data() might not return them all in some edge case.
 $data['powered_by'] = isset($data['powered_by']) ? $data['powered_by'] : true;
 $data['display_title'] = isset($data['display_title']) ? $data['display_title'] : '';
 $data['bio'] = isset($data['bio']) ? $data['bio'] : '';
 $data['profile_img_url'] = isset($data['profile_img_url']) ? $data['profile_img_url'] : '';
 $data['social_links'] = isset($data['social_links']) && is_array($data['social_links']) ? $data['social_links'] : [];
 
-// LivePreviewManager::get_preview_data() now returns 'link_sections' directly.
+// LinkPageDataProvider::get_data() now returns 'link_sections' directly.
 $link_sections = isset($data['link_sections']) && is_array($data['link_sections']) ? $data['link_sections'] : [];
 
 // Determine the inline style for the container.
@@ -142,6 +138,32 @@ error_log('[DEBUG TEMPLATE] Share Page URL determined as: ' . $share_page_url . 
 
 $bg_type = isset($data['css_vars']['--link-page-background-type']) ? $data['css_vars']['--link-page-background-type'] : 'color';
 
+if (isset($data) && is_array($data)) {
+    $data['original_link_page_id'] = $link_page_id; 
+}
+
+// Fetch subscribe display mode setting
+$subscribe_display_mode = $data['_link_page_subscribe_display_mode'] ?? 'icon_modal'; // Default to icon/modal if not set
+
+// Fetch social icons position setting
+$social_icons_position = $data['_link_page_social_icons_position'] ?? 'above'; // Default to above if not set
+
+$body_bg_style = '';
+
+// Fetch Featured Link Data (moved up to be available for the main structure)
+$featured_link_html = '';
+$featured_link_original_url_to_skip = null;
+
+if (isset($link_page_id) && function_exists('extrch_render_featured_link_section_html') && function_exists('extrch_get_featured_link_url_to_skip')) {
+    // $link_sections should be available from $data['link_sections'] as populated earlier
+    // $data['css_vars'] should also be available
+    $current_link_sections = isset($data['link_sections']) && is_array($data['link_sections']) ? $data['link_sections'] : [];
+    $current_css_vars = isset($data['css_vars']) && is_array($data['css_vars']) ? $data['css_vars'] : [];
+
+    $featured_link_html = extrch_render_featured_link_section_html($link_page_id, $current_link_sections, $current_css_vars);
+    $featured_link_original_url_to_skip = extrch_get_featured_link_url_to_skip($link_page_id);
+}
+
 ?>
 <div class="<?php echo esc_attr($container_classes); ?>"
      data-bg-type="<?php echo esc_attr($bg_type); ?>"
@@ -149,7 +171,17 @@ $bg_type = isset($data['css_vars']['--link-page-background-type']) ? $data['css_
     <div class="<?php echo esc_attr($wrapper_class); ?>" style="flex-grow:1;">
         <div class="extrch-link-page-header-content">
             <?php 
-            // Always output the profile image container and <img> in preview context for robust JS updates
+            // Absolutely positioned bell (subscribe) and ellipses (share) triggers in top left/right
+            if ($subscribe_display_mode === 'icon_modal') : ?>
+                <button class="extrch-share-trigger extrch-subscribe-icon-trigger extrch-bell-page-trigger" aria-label="Subscribe to this band">
+                    <i class="fas fa-bell"></i>
+                </button>
+            <?php endif; ?>
+            <button class="extrch-share-trigger extrch-share-page-trigger" aria-label="Share this page" data-share-type="page" data-share-url="<?php echo esc_url($share_page_url); ?>" data-share-title="<?php echo esc_attr($data['display_title']); ?>">
+                <i class="fas fa-ellipsis-h"></i>
+            </button>
+            <!-- Main flex content below -->
+            <?php 
             $img_container_classes = "extrch-link-page-profile-img " . $profile_img_shape_class;
             $no_image_class = empty($data['profile_img_url']) ? ' no-image' : '';
             if ($is_preview_iframe_context) : ?>
@@ -161,16 +193,13 @@ $bg_type = isset($data['css_vars']['--link-page-background-type']) ? $data['css_
             <?php endif; ?>
             <h1 class="extrch-link-page-title"><?php echo esc_html($data['display_title']); ?></h1>
             <?php if (!empty($data['bio'])): ?><div class="extrch-link-page-bio"><?php echo esc_html($data['bio']); ?></div><?php endif; ?>
-            
-            <button class="extrch-share-trigger extrch-share-page-trigger" aria-label="Share this page" data-share-type="page" data-share-url="<?php echo esc_url($share_page_url); ?>" data-share-title="<?php echo esc_attr($data['display_title']); ?>">
-                <i class="fas fa-ellipsis-h"></i>
-            </button>
         </div>
 
-        <?php if (!empty($data['social_links']) && is_array($data['social_links'])): ?>
-            <div class="extrch-link-page-socials">
-                <?php 
-                // Ensure the social types config file is included
+        <?php 
+        // Conditionally render social icons ABOVE featured link and regular links
+        if ($social_icons_position === 'above') {
+            if (!empty($data['social_links']) && is_array($data['social_links'])){
+                 // Ensure the social types config file is included
                 if ( ! function_exists( 'bp_get_supported_social_link_types' ) ) {
                      $social_types_path = dirname( __FILE__ ) . '/link-page-social-types.php';
                      if ( file_exists( $social_types_path ) ) {
@@ -179,65 +208,155 @@ $bg_type = isset($data['css_vars']['--link-page-background-type']) ? $data['css_
                  }
                 
                  $supported_social_types = function_exists( 'bp_get_supported_social_link_types' ) ? bp_get_supported_social_link_types() : array();
-
-                foreach ($data['social_links'] as $icon):
-                    if (empty($icon['url']) || empty($icon['type'])) continue; // Ensure type is also present
-                    
-                    $social_type = strtolower($icon['type']);
-                    $icon_class = '';
-
-                    // Look up icon class from the supported types config
-                    if (isset($supported_social_types[$social_type]['icon'])) {
-                        $icon_class = $supported_social_types[$social_type]['icon'];
-                    } elseif (!empty($icon['icon'])) {
-                        // Fallback to stored icon class if type lookup fails but icon is present
-                        $icon_class = $icon['icon'];
-                    } else {
-                        // Final fallback: attempt to construct based on type (less preferred)
-                        $icon_class = 'fab fa-' . preg_replace('/[^a-z0-9_-]/', '', $social_type);
-                    }
-
-                    if (empty($icon_class)) continue; // Skip if no icon class could be determined
-
-                    $icon_class = esc_attr($icon_class);
-                    $url = esc_url($icon['url']);
                 ?>
-                    <a href="<?php echo $url; ?>" class="extrch-social-icon" rel="noopener">
-                        <i class="<?php echo $icon_class; ?>" aria-hidden="true"></i>
-                    </a>
-                <?php endforeach; ?>
-            </div>
-        <?php endif; ?>
-        <?php foreach ($link_sections as $section_key => $section): ?>
-            <?php if (!empty($section['section_title'])): ?>
-                <div class="extrch-link-page-section-title"><?php echo esc_html($section['section_title']); ?></div>
-            <?php endif; ?>
-            <div class="extrch-link-page-links">
+                <div class="extrch-link-page-socials">
+                    <?php
+                    foreach ($data['social_links'] as $icon):
+                        if (empty($icon['url']) || empty($icon['type'])) continue;
+                        
+                        $social_type = strtolower($icon['type']);
+                        $icon_class = '';
+
+                        if (isset($supported_social_types[$social_type]['icon'])) {
+                            $icon_class = $supported_social_types[$social_type]['icon'];
+                        } elseif (!empty($icon['icon'])) {
+                            $icon_class = $icon['icon'];
+                        } else {
+                            $icon_class = 'fab fa-' . preg_replace('/[^a-z0-9_-]/', '', $social_type);
+                        }
+
+                        if (empty($icon_class)) continue;
+
+                        $icon_class = esc_attr($icon_class);
+                        $url = esc_url($icon['url']);
+                    ?>
+                        <a href="<?php echo $url; ?>" class="extrch-social-icon" rel="noopener">
+                            <i class="<?php echo $icon_class; ?>" aria-hidden="true"></i>
+                        </a>
+                    <?php endforeach; ?>
+                </div>
+            <?php 
+            } // end if !empty($data['social_links'])
+        } // end if $social_icons_position === 'above'
+
+        // Output Featured Link HTML if generated
+        // This will now be after "above" socials and before regular links
+        if (!empty($featured_link_html)) {
+            echo $featured_link_html;
+        }
+
+        // Prepare for rendering actual link sections
+        // ...
+        ?>
+        <?php if (!empty($link_sections)): ?>
+            <?php foreach ($link_sections as $section): ?>
+                <?php if (!empty($section['section_title'])): ?>
+                    <div class="extrch-link-page-section-title"><?php echo esc_html($section['section_title']); ?></div>
+                <?php endif; ?>
+
                 <?php if (!empty($section['links']) && is_array($section['links'])):
-                    foreach ($section['links'] as $link_key => $link):
-                        if (empty($link['link_url']) || empty($link['link_text'])) continue;
-                        $url = $link['link_url'];
-                        $text = $link['link_text'];
-                        $is_active = isset($link['link_is_active']) ? (bool)$link['link_is_active'] : true;
-                        if (!$is_active) continue;
-                        $link_url_attr = esc_url($url);
-                        $link_title_attr = esc_attr($text);
+                    // Initialize here for each section, in case a section is empty
+                    $has_links_in_section_after_filter = false;
                 ?>
-                    <a href="<?php echo $link_url_attr; ?>" class="extrch-link-page-link" rel="noopener">
-                        <span class="extrch-link-page-link-text"><?php echo esc_html($text); ?></span>
-                        <span class="extrch-link-page-link-icon">
-                            <button class="extrch-share-trigger extrch-share-item-trigger" 
-                                    aria-label="Share this link" 
-                                    data-share-type="link"
-                                    data-share-url="<?php echo $link_url_attr; ?>" 
-                                    data-share-title="<?php echo $link_title_attr; ?>">
-                                <i class="fas fa-ellipsis-v"></i>
-                            </button>
-                        </span>
-                    </a>
-                <?php endforeach; endif; ?>
-            </div>
-        <?php endforeach; ?>
+                    <div class="extrch-link-page-links">
+                        <?php 
+                        $normalized_url_to_skip_for_public_page = $featured_link_original_url_to_skip ? trailingslashit($featured_link_original_url_to_skip) : null;
+                        foreach ($section['links'] as $link_item):
+                            if (empty($link_item['link_url']) || empty($link_item['link_text'])) continue;
+
+                            // Skip if this link is the featured link
+                            $current_link_url_normalized_for_public_page = trailingslashit($link_item['link_url']);
+                            if ($normalized_url_to_skip_for_public_page && $current_link_url_normalized_for_public_page === $normalized_url_to_skip_for_public_page) {
+                                continue;
+                            }
+                            $has_links_in_section_after_filter = true; // Mark that we found at least one link to render in this section
+                            
+                            // --- Inline YouTube Embed logic ---
+                            $link_classes = "extrch-link-page-link";
+                            $is_youtube_link = false;
+                            if (isset($link_page_id) && function_exists('extrch_is_youtube_embed_enabled') && extrch_is_youtube_embed_enabled($link_page_id)) {
+                                if (preg_match('/(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/', $link_item['link_url'], $matches)) {
+                                    $link_classes .= " extrch-youtube-embed-trigger";
+                                    $is_youtube_link = true;
+                                }
+                            }
+                            // --- End Inline YouTube Embed logic ---
+                            ?>
+                            <a href="<?php echo esc_url($link_item['link_url']); ?>" class="<?php echo esc_attr($link_classes); ?>" rel="noopener">
+                                <span class="extrch-link-page-link-text"><?php echo esc_html($link_item['link_text']); ?></span>
+                                <span class="extrch-link-page-link-icon">
+                                    <button class="extrch-share-trigger extrch-share-item-trigger" 
+                                            aria-label="Share this link" 
+                                            data-share-type="link"
+                                            data-share-url="<?php echo esc_url($link_item['link_url']); ?>" 
+                                            data-share-title="<?php echo esc_attr($link_item['link_text']); ?>">
+                                        <i class="fas fa-ellipsis-v"></i>
+                                    </button>
+                                </span>
+                            </a>
+                        <?php endforeach; ?>
+                    </div>
+                <?php endif; ?>
+            <?php endforeach; ?>
+        <?php endif; ?>
+        <?php
+        // Output the inline subscribe form below all links if in inline_form mode
+        if ($subscribe_display_mode === 'inline_form') {
+            $band_name = $data['display_title'];
+            require locate_template('band-platform/subscribe/subscribe-inline-form.php');
+        }
+        // Output the modal partial (but not the bell icon) if in icon_modal mode
+        if ($subscribe_display_mode === 'icon_modal') {
+            $band_name = $data['display_title'];
+            require locate_template('band-platform/subscribe/subscribe-modal.php');
+        }
+
+        // Conditionally render social icons below links (and below subscribe form if present)
+        if ($social_icons_position === 'below') {
+            if (!empty($data['social_links']) && is_array($data['social_links'])):
+                 // Ensure the social types config file is included
+                if ( ! function_exists( 'bp_get_supported_social_link_types' ) ) {
+                     $social_types_path = dirname( __FILE__ ) . '/link-page-social-types.php';
+                     if ( file_exists( $social_types_path ) ) {
+                         require_once $social_types_path;
+                     }
+                 }
+                
+                 $supported_social_types = function_exists( 'bp_get_supported_social_link_types' ) ? bp_get_supported_social_link_types() : array();
+                ?>
+                <div class="extrch-link-page-socials extrch-socials-below">
+                    <?php
+                    foreach ($data['social_links'] as $icon):
+                        if (empty($icon['url']) || empty($icon['type'])) continue; // Ensure type is also present
+                        
+                        $social_type = strtolower($icon['type']);
+                        $icon_class = '';
+
+                        // Look up icon class from the supported types config
+                        if (isset($supported_social_types[$social_type]['icon'])) {
+                            $icon_class = $supported_social_types[$social_type]['icon'];
+                        } elseif (!empty($icon['icon'])) {
+                            // Fallback to stored icon class if type lookup fails but icon is present
+                            $icon_class = $icon['icon'];
+                        } else {
+                            // Final fallback: attempt to construct based on type (less preferred)
+                            $icon_class = 'fab fa-' . preg_replace('/[^a-z0-9_-]/', '', $social_type);
+                        }
+
+                        if (empty($icon_class)) continue; // Skip if no icon class could be determined
+
+                        $icon_class = esc_attr($icon_class);
+                        $url = esc_url($icon['url']);
+                    ?>
+                        <a href="<?php echo $url; ?>" class="extrch-social-icon" rel="noopener">
+                            <i class="<?php echo $icon_class; ?>" aria-hidden="true"></i>
+                        </a>
+                    <?php endforeach; ?>
+                </div>
+            <?php endif; 
+        }
+        ?>
+
         <?php if ($data['powered_by']): ?>
         <div class="extrch-link-page-powered" style="margin-top:auto; padding-top:1em; padding-bottom:1em;">
             <a href="https://extrachill.link" rel="noopener">Powered by Extra Chill</a>
@@ -286,10 +405,3 @@ $bg_type = isset($data['css_vars']['--link-page-background-type']) ? $data['css_
         </div>
     </div>
 </div>
-<?php
-// Ensure all variables used in data attributes are defined in the scope
-// For the page share button:
-// $link_page_id_for_permalink = isset($link_page_id) ? $link_page_id : (isset($post) ? $post->ID : 0);
-// For social links, we already have $data['social_links']
-// For link sections, we already have $link_sections and iterate through $section['links'] as $link
-?> 

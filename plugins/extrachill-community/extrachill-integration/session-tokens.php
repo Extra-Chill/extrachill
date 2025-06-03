@@ -174,7 +174,6 @@ function auto_login_via_session_token() {
             error_log('[DEBUG SESSION TOKEN] User ID ' . $user_id . ' found from token, but get_user_by(\'id\') failed.');
             return;
         }
-        error_log('[DEBUG SESSION TOKEN] Token valid for User ID: ' . $user_id . '. Attempting to set current user and auth cookie.');
         wp_set_current_user($user_id);
         wp_set_auth_cookie($user_id, true);
 

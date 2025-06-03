@@ -116,7 +116,7 @@ body button.extrch-share-item-trigger:active {
 .extrch-share-item-trigger i {
     /* FontAwesome icons usually center well with line-height from parent */
     /* If specific sizing needed, add here */
-    color: inherit; /* Ensure icon inherits the button's color */
+    color: var(--link-page-text-color); /* Ensure icon inherits the button's color */
 }
 
 /* (The empty button rule below was likely a placeholder or mistake, removing it) */
@@ -159,7 +159,7 @@ body button.extrch-share-item-trigger:active {
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%) scale(0.95);
-    background-color: var(--link-page-background-color); /* Use theme background */
+    background-color: var(--link-page-card-bg-color); /* Use theme background */
     border: 1px solid var(--link-page-button-border-color);
     color: var(--link-page-text-color, #fff); /* Use theme text color */
     padding: 25px;
@@ -284,6 +284,7 @@ body button.extrch-share-item-trigger:active {
     .extrch-share-modal-content {
         padding: 15px;
         min-width: calc(100% - 30px);
+        max-width: 95%;
     }
     .extrch-share-modal-title {
         font-size: 1.2em;
@@ -293,4 +294,37 @@ body button.extrch-share-item-trigger:active {
         padding: 8px 12px;
         font-size: 0.9em;
     }
+} 
+
+.extrch-bell-page-trigger {
+    position: absolute;
+    top: 0.25em;
+    left: 0.25em;
+    background-color: var(--link-page-card-bg-color);
+    padding: 0.6em;
+    border-radius: 50%;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    opacity: 0.85;
+    transition-property: opacity, background-color;
+    color: var(--link-page-text-color, #e5e5e5);
+    border: none;
+    z-index: 2;
+}
+.extrch-link-page-container .extrch-bell-page-trigger:hover,
+body .extrch-bell-page-trigger:hover {
+    background-color: rgba(0,0,0,0.55) !important;
+    color: var(--link-page-text-color) !important;
+    opacity: 1 !important;
+}
+.extrch-link-page-container .extrch-bell-page-trigger:active,
+body .extrch-bell-page-trigger:active {
+    background-color: rgba(0,0,0,0.7) !important;
+    color: var(--link-page-text-color) !important;
+    transform: translateY(1px);
+    opacity: 1 !important;
+}
+.extrch-bell-page-trigger i {
+    font-size: 0.9em;
+    display: block;
+    line-height: 1;
 } 

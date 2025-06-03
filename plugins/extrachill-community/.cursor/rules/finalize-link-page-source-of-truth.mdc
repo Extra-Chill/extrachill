@@ -1,0 +1,115 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+## Step-by-Step Plan
+
+### 1. **Clarify and Document the Canonical Data Flow**
+
+- **Document in code and docs:**  
+  - The *only* source of truth for all link page content and customization is the data returned by `LivePreviewManager::get_preview_data($link_page_id, $band_id, $overrides)`.
+  - Both the live public page (`single-band_link_page.php`) and the preview (`preview.php`) must always pass their data to `extrch-link-page-template.php` via this method.
+  - No other file or function should build or merge preview data arrays independently.
+
+### 2. **Audit and Refactor `LivePreviewManager.php`**
+
+- **Responsibility split:**  
+  - Audit all logic in `LivePreviewManager.php`.  
+  - If any logic is *only* relevant to the live public page (e.g., analytics, tracking, or public-only meta), move it to a new class/file (e.g., `LinkPagePublicDataProvider.php`) in the `live-preview/` directory or a new `data/` directory.
+  - If any logic is *only* relevant to the preview (e.g., preview-specific overrides, temporary image uploads), move it to a new `LinkPagePreviewDataProvider.php`.
+  - Keep all shared, canonical data normalization and merging logic in a new, clearly named class (e.g., `LinkPageDataProvider.php`), and have both the public and preview providers call into this.
+
+- **Rename or re-document:**  
+  - If splitting is not warranted, at minimum, update the class name and docblock to reflect its dual role as the *canonical data provider* for both live and preview contexts.
+
+### 3. **Centralize All Data Fetching and Normalization**
+
+- **No more scattered logic:**  
+  - Remove any manual `$preview_data` array building or direct meta fetching from `single-band_link_page.php`, `preview.php`, or any AJAX handler.  
+  - All such logic must be routed through the canonical provider.
+
+- **Ensure all meta keys, defaults, and normalization are handled in one place.**
+
+### 4. **File and Directory Organization**
+
+- **Move files as needed:**  
+  - Any file that is *only* used for preview (e.g., `preview.php`, preview-specific helpers) should be in the `live-preview/` directory.
+  - Any file that is *only* used for the live public page should be in a new `public/` or `data/` directory, or clearly named.
+  - Shared data providers and normalization logic should be in a top-level `data/` or `providers/` directory within `extrch.co-link-page/`.
+
+- **Update all includes and requires accordingly.**
+
+### 5. **Template Usage and Arguments**
+
+- **Enforce canonical template usage:**  
+  - `extrch-link-page-template.php` should *never* fetch its own data except as a last-resort fallback.  
+  - All callers (public and preview) must pass a fully prepared `$data` array, built via the canonical provider.
+
+- **Update template docblocks and comments to clarify this contract.**
+
+### 6. **Documentation and Developer Guide**
+
+- **Update `.mdc` files:**  
+  - Add a new section to `project-architecture.mdc` and/or create a new `.mdc` file documenting:
+    - The canonical data flow.
+    - The role of each provider class/file.
+    - The contract for template usage.
+    - The directory structure and file responsibilities.
+    - How to extend the system for new data fields or features.
+
+- **Update all inline code comments and docblocks for clarity.**
+
+### 7. **Testing and QA**
+
+- **Test all flows:**  
+  - Ensure both the live public page and the preview render *identically* for the same data.
+  - Test all edge cases (missing meta, legacy data, new fields).
+  - Ensure no JS globals, no duplicate hydration, and no shadow state.
+
+### 8. **Extensibility and Future-Proofing**
+
+- **Make it easy to add new fields:**  
+  - Document and enforce a pattern for adding new data fields or meta:  
+    - Add to the canonical provider.
+    - Update the template and JS as needed.
+    - Update documentation.
+
+---
+
+## Notes on Previous Attempt (`@refactor-link-page-preview.mdc`)
+
+- The previous refactor established the style tag and hidden input as the source of truth for customization, and removed JS globals and redundant hydration.
+- However, some data normalization and fetching logic remains scattered, and the role of `LivePreviewManager` is ambiguous.
+- This plan finalizes the architecture by centralizing all data logic and clarifying file responsibilities.
+
+---
+
+## Immediate Action Items
+
+1. **Audit and refactor `LivePreviewManager.php` as described.**
+2. **Move or split files as needed for modularity.**
+3. **Update all template usage to enforce the canonical data flow.**
+4. **Update documentation and code comments.**
+5. **Test all flows for consistency and robustness.**
+
+---
+
+## Outcome
+
+- A single, canonical source of truth for all link page data and rendering.
+- Clear, modular file and directory structure.
+- Extensible, DRY, and maintainable architecture.
+- Up-to-date, developer-friendly documentation.
+
+---
+
+## Canonical Source of Truth for Link Page Rendering
+
+The canonical source of truth for all link page rendering logic is the `band-platform/extrch.co-link-page/extrch-link-page-template.php` file. This template is used by both the public/live page (`single-band_link_page.php`) and the management preview (`band-platform/extrch.co-link-page/live-preview/preview.php`) via direct PHP include, with all necessary data passed as an array. 
+
+- **Context-specific logic** (such as preview-only wrappers, live-only analytics, or the edit button) is handled by the respective wrapper files or via context flags/variables passed to the template (e.g., `is_extrch_preview_iframe`).
+- **All changes to the link page's structure, classes, or logic should be made in `extrch-link-page-template.php` only.**
+- This architecture is now fully DRY and modularized, with no duplication of the main link page structure or logic.
+
+---

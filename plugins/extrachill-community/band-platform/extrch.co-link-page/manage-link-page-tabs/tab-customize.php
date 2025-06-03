@@ -2,11 +2,13 @@
 /**
  * Template Part: Customize Tab for Manage Link Page
  *
- * Hydrates all custom vars exclusively from canonical $data['css_vars'] (set by LivePreviewManager).
+ * Hydrates all custom vars exclusively from canonical $data['css_vars'] (set by LinkPageDataProvider).
  * Do not hydrate from post meta here. This enforces a single source of truth.
  *
  * Loaded from manage-link-page.php
  */
+
+// All customize tab data should be hydrated from $data provided by LinkPageDataProvider.
 
 defined( 'ABSPATH' ) || exit;
 
@@ -23,6 +25,40 @@ $data = get_query_var('data', array());
 $custom_vars = isset($data['css_vars']) && is_array($data['css_vars']) ? $data['css_vars'] : array();
 
 ?>
+
+<!-- Featured Link Settings Card -->
+<?php
+$is_featured_link_enabled = get_post_meta($link_page_id, '_enable_featured_link', true) === '1';
+$featured_link_original_id_val = get_post_meta($link_page_id, '_featured_link_original_id', true);
+$show_featured_link_card = $is_featured_link_enabled && !empty($featured_link_original_id_val);
+
+$featured_custom_description = $show_featured_link_card ? get_post_meta($link_page_id, '_featured_link_custom_description', true) : '';
+$featured_thumbnail_id = $show_featured_link_card ? get_post_meta($link_page_id, '_featured_link_thumbnail_id', true) : '';
+$featured_thumbnail_url = $featured_thumbnail_id ? wp_get_attachment_image_url($featured_thumbnail_id, 'medium') : '#'; // Use '#' or a placeholder if no image
+$initial_thumbnail_display = ($featured_thumbnail_id && $featured_thumbnail_url !== '#') ? 'block' : 'none';
+?>
+<div class="link-page-content-card" id="featured-link-settings-card" style="<?php echo $show_featured_link_card ? '' : 'display:none;'; ?>">
+    <h4 class="customize-card-title"><?php esc_html_e('Featured Link Settings', 'generatepress_child'); ?></h4>
+    
+    <div class="customize-section featured-link-thumbnail-section">
+        <label for="featured_link_thumbnail_upload"><strong><?php esc_html_e('Featured Link Thumbnail', 'generatepress_child'); ?></strong></label><br>
+        <button type="button" class="button" id="featured-link-choose-file-btn" onclick="document.getElementById('featured_link_thumbnail_upload').click();" style="margin-bottom: 10px;">Choose File</button>
+        <input type="file" id="featured_link_thumbnail_upload" name="featured_link_thumbnail_upload" accept="image/*" style="display:none;">
+        <?php if ($featured_thumbnail_id && $featured_thumbnail_url !== '#') : ?>
+            <button type="button" class="button button-secondary" id="remove_featured_link_thumbnail_btn" style="margin-left: 8px; margin-bottom: 10px;">Remove Thumbnail</button>
+        <?php endif; ?>
+        <p class="description" style="font-size: 0.9em; margin-top: -5px; margin-bottom: 10px;">
+            <?php esc_html_e('Upload an image (e.g., 1200x630px). If not provided, the system will attempt to fetch a preview image from the link source.', 'generatepress_child'); ?>
+        </p>
+    </div>
+
+    <!-- The featured link title is always the link's title. No override input. -->
+
+    <div class="customize-section featured-link-description-section" style="margin-top: 15px;">
+        <label for="featured_link_custom_description"><strong><?php esc_html_e('Featured Link Description', 'generatepress_child'); ?></strong></label><br>
+        <textarea id="featured_link_custom_description" name="featured_link_custom_description" rows="3" class="regular-text" style="width:100%; max-width:400px;"><?php echo esc_textarea($featured_custom_description); ?></textarea>
+    </div>
+</div>
 
 <!-- Fonts Card -->
 <div class="link-page-content-card">
@@ -73,8 +109,7 @@ $custom_vars = isset($data['css_vars']) && is_array($data['css_vars']) ? $data['
     <div class="customize-section">
         <label for="link_page_profile_img_shape"><strong><?php esc_html_e('Profile Image Shape', 'generatepress_child'); ?></strong></label><br>
         <?php
-        $current_shape = get_post_meta($link_page_id, '_link_page_profile_img_shape', true);
-        if (empty($current_shape)) $current_shape = 'circle';
+        $current_shape = isset($data['profile_img_shape']) ? $data['profile_img_shape'] : 'circle';
         ?>
         <label>
             <input type="radio" name="link_page_profile_img_shape_radio" id="profile-img-shape-circle" value="circle" <?php checked($current_shape, 'circle'); ?>>
@@ -116,11 +151,11 @@ $custom_vars = isset($data['css_vars']) && is_array($data['css_vars']) ? $data['
             <option value="gradient"<?php selected($background_type, 'gradient'); ?>><?php esc_html_e('Gradient', 'generatepress_child'); ?></option>
             <option value="image"<?php selected($background_type, 'image'); ?>><?php esc_html_e('Image', 'generatepress_child'); ?></option>
         </select>
-        <div id="background-color-controls" class="background-type-controls">
+        <div id="background-color-controls" class="background-type-controls" style="<?php echo ($background_type === 'color') ? '' : 'display:none;'; ?>">
             <label for="link_page_background_color"><strong><?php esc_html_e('Background Color', 'generatepress_child'); ?></strong></label><br>
             <input type="color" id="link_page_background_color" name="link_page_background_color" value="<?php echo esc_attr($background_color); ?>">
         </div>
-        <div id="background-gradient-controls" class="background-type-controls" style="display:none;">
+        <div id="background-gradient-controls" class="background-type-controls" style="<?php echo ($background_type === 'gradient') ? '' : 'display:none;'; ?>">
             <label><strong><?php esc_html_e('Gradient Colors', 'generatepress_child'); ?></strong></label><br>
             <input type="color" id="link_page_background_gradient_start" name="link_page_background_gradient_start" value="<?php echo esc_attr($background_gradient_start); ?>">
             <input type="color" id="link_page_background_gradient_end" name="link_page_background_gradient_end" value="<?php echo esc_attr($background_gradient_end); ?>">
@@ -130,7 +165,7 @@ $custom_vars = isset($data['css_vars']) && is_array($data['css_vars']) ? $data['
                 <option value="135deg"<?php selected($background_gradient_direction, '135deg'); ?>>↘ <?php esc_html_e('Diagonal', 'generatepress_child'); ?></option>
             </select>
         </div>
-        <div id="background-image-controls" class="background-type-controls" style="display:none;">
+        <div id="background-image-controls" class="background-type-controls" style="<?php echo ($background_type === 'image') ? '' : 'display:none;'; ?>">
             <label for="link_page_background_image_upload"><strong><?php esc_html_e('Background Image', 'generatepress_child'); ?></strong></label><br>
             <input type="file" id="link_page_background_image_upload" name="link_page_background_image_upload" accept="image/*">
             <p class="description" style="margin-top: 0.5em; font-size: 0.9em;">

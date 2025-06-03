@@ -77,11 +77,11 @@
         }
 
         if (profileImgShapeHiddenInput && profileImgShapeCircleRadio && profileImgShapeSquareRadio && profileImgShapeRectangleRadio) { 
-            const savedShape = currentCV['_link_page_profile_img_shape'] || 'circle';
-            profileImgShapeHiddenInput.value = savedShape; // Keep hidden input for form submission
-            profileImgShapeCircleRadio.checked = (savedShape === 'circle');
-            profileImgShapeSquareRadio.checked = (savedShape === 'square');
-            profileImgShapeRectangleRadio.checked = (savedShape === 'rectangle');
+            // Do NOT set .checked here; let PHP handle initial checked state.
+            // Only set the hidden input value to match the checked radio.
+            if (profileImgShapeCircleRadio.checked) profileImgShapeHiddenInput.value = 'circle';
+            else if (profileImgShapeSquareRadio.checked) profileImgShapeHiddenInput.value = 'square';
+            else if (profileImgShapeRectangleRadio.checked) profileImgShapeHiddenInput.value = 'rectangle';
         }
 
         // --- Button Radius Slider ---

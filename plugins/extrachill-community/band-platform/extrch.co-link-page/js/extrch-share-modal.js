@@ -116,6 +116,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (shareTriggers.length > 0) {
         shareTriggers.forEach(trigger => {
+            // Only open the share modal for share-page or share-item triggers, not the bell/subscribe trigger
+            if (trigger.classList.contains('extrch-bell-page-trigger')) return;
             trigger.addEventListener('click', (e) => {
                 e.preventDefault();
                 e.stopPropagation(); // Prevent link navigation if button is inside <a>

@@ -324,15 +324,15 @@ get_header(); ?>
                                             </div>
                                         </div>
 
-                                        <!-- Item 3: Followers -->
+                                        <!-- Item 3: Subscribers -->
                                         <div class="shared-tab-item">
                                             <button type="button" class="shared-tab-button" data-tab="manage-band-profile-followers-content">
-                                                <?php esc_html_e( 'Followers', 'generatepress_child' ); ?>
+                                                <?php esc_html_e( 'Subscribers', 'generatepress_child' ); ?>
                                                 <span class="shared-tab-arrow"></span>
                                             </button>
                                             <div id="manage-band-profile-followers-content" class="shared-tab-pane">
                                                 <?php 
-                                                include( get_stylesheet_directory() . '/band-platform/manage-band-profile-tabs/tab-followers.php' );
+                                                include( get_stylesheet_directory() . '/band-platform/manage-band-profile-tabs/tab-subscribers.php' );
                                                 ?>
                                             </div>
                                         </div>

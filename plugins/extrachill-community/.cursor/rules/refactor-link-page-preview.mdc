@@ -30,10 +30,10 @@ This document provides a clear, step-by-step guide and architectural reference f
 - **Temporary Redirect Dropdown:** Hydrates from canonical DOM state.
 - **Tab Restoration:** Now works via hash and pane id.
 
-## Microstep Refactor Plan (Status: Complete Except Code Cleanup)
+## Microstep Refactor Plan (Status: Code Cleanup In Progress)
 
 - All microsteps for Customizer, Links, Advanced, Analytics, and QR Code are now complete and working as intended.
-- Only code cleanup and documentation remain as the final step.
+- Code cleanup and documentation are the final steps.
 
 ## Best Practices (Enforced)
 
@@ -48,7 +48,7 @@ This document provides a clear, step-by-step guide and architectural reference f
 - None. All previously listed issues (share modal, QR code, analytics, tab restoration, temporary redirect dropdown) are now resolved.
 
 ## Outlook
-The refactor is now complete except for code cleanup and documentation. All major architectural and data flow issues have been resolved. Only a final round of code/documentation cleanup and QA remains before the refactor is fully complete.
+- The refactor is complete for the canonical save/preview flow. All modules and tabs are now robust, testable, and maintainable. Code cleanup and documentation updates are in progress. Any further improvements will be incremental and should follow this architecture.
 
 ## 1. Canonical Architecture: Single Source of Truth
 
@@ -129,8 +129,9 @@ Status: **Complete / Working**
 - QR code modal and AJAX logic are functional. QR code generation and error handling are robust.
 
 ### Final Microstep: Code Cleanup
-Status: **Not Started**
+Status: **In Progress**
 - Remove all legacy, duplicate, or commented-out code (including any remaining redundant style blocks, JS globals, commented-out logic, misplaced style tags, and redundant inline scripts).
+    - Non-critical `console.log` and `console.warn` statements removed from key Link Page Manager JS files. (Completed)
 - Ensure all modules use the new initialization and save flow.
 - Update documentation and inline comments for clarity.
 - Final round of testing across all tabs and features.
@@ -159,7 +160,7 @@ Status: **Not Started**
 - None. All previously listed issues are now resolved.
 
 ## Outlook
-- The refactor is complete for the canonical save/preview flow. All modules and tabs are now robust, testable, and maintainable. Only code cleanup and documentation remain before final QA and closeout. Any further improvements will be incremental and should follow this architecture.
+- The refactor is complete for the canonical save/preview flow. All modules and tabs are now robust, testable, and maintainable. Code cleanup and documentation are in progress. Any further improvements will be incremental and should follow this architecture.
 
 ## Canonical Flow for JS-Managed Data (June 2025)
 
@@ -177,4 +178,9 @@ Status: **Not Started**
 - [X] No JS globals, no shadow state, no redundant hydration.
 
 ## Next Steps
-- Only code cleanup and documentation remain before final QA and closeout.
+- Continue with code cleanup and documentation updates before final QA and closeout.
+
+## Featured Link Logic (Status: Complete)
+- The featured link's class is set server-side on initial render, and only moved by JS on user action.
+- Real-time featured link title/description update and thumbnail fetch-once logic are now canonical and implemented.
+- For further details, see [finalize-link-page-source-of-truth.mdc](mdc:.cursor/rules/finalize-link-page-source-of-truth.mdc) and [feature-featured-link.mdc](mdc:.cursor/rules/feature-featured-link.mdc).

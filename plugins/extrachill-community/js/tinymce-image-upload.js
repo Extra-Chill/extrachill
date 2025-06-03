@@ -3,11 +3,8 @@
     var retryCount = 0; // Current retry attempt
 
     function initPlugin() {
-        console.log("Initializing TinyMCE plugin");
         if (window.tinymce && typeof customTinymcePlugin !== 'undefined') {
             tinymce.PluginManager.add('local_upload_plugin', function(editor) {
-                console.log("Replacing default image button in TinyMCE");
-
                 editor.addButton('image', {
                     title: 'Upload Image',
                     icon: 'image',
@@ -23,7 +20,6 @@
                 });
 
                 function triggerFileInput() {
-                    console.log("Custom image upload button triggered");
                     let input = document.createElement('input');
                     input.setAttribute('type', 'file');
                     input.setAttribute('accept', 'image/*');
@@ -34,7 +30,6 @@
                     input.onchange = function(e) {
                         var file = e.target.files[0];
                         if (file) {
-                            console.log("File selected:", file.name);
                             uploadImage(file, editor);
                         }
                         document.body.removeChild(input);
@@ -44,7 +39,6 @@
                 }
 
                 function uploadImage(file, editor) {
-                    console.log("Preparing to upload");
                     var formData = new FormData();
                     formData.append('image', file);
                     formData.append('nonce', customTinymcePlugin.nonce);

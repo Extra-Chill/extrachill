@@ -16,6 +16,7 @@ defined( 'ABSPATH' ) || exit;
  * @return bool True on success, false on failure.
  */
 function bp_follow_band( $user_id, $band_id, $share_email_consent = false ) {
+    global $wpdb;
     $user_id = absint( $user_id );
     $band_id = absint( $band_id );
 
@@ -23,36 +24,66 @@ function bp_follow_band( $user_id, $band_id, $share_email_consent = false ) {
         return false;
     }
 
+    $user_data = get_userdata( $user_id );
+    if ( ! $user_data ) {
+        return false; // User not found
+    }
+
     $followed_bands = get_user_meta( $user_id, '_followed_band_profile_ids', true );
     if ( ! is_array( $followed_bands ) ) {
         $followed_bands = array();
     }
 
-    // Already following
-    if ( in_array( $band_id, $followed_bands ) ) {
+    $was_already_following = in_array( $band_id, $followed_bands );
+
+    if ( ! $was_already_following ) {
+        $followed_bands[] = $band_id;
+        $followed_bands = array_unique( $followed_bands );
+        update_user_meta( $user_id, '_followed_band_profile_ids', $followed_bands );
+    }
+    
+    if ( $share_email_consent ) {
+        $table_name = $wpdb->prefix . 'band_subscribers';
+        $data = array(
+            'band_profile_id' => $band_id,
+            'user_id' => $user_id,
+            'subscriber_email' => $user_data->user_email,
+            'username' => $user_data->user_login,
+            'subscribed_at' => current_time( 'mysql', 1 ),
+            'source' => 'platform_follow_consent'
+        );
+        $format = array( '%d', '%d', '%s', '%s', '%s', '%s' );
+        
+        // Use $wpdb->replace which handles INSERT or UPDATE on duplicate key
+        $wpdb->replace( $table_name, $data, $format );
+
+    } else {
+        // If consent is NOT given (e.g. during initial follow without checkbox, or a direct call with false)
+        // ensure no 'platform_follow_consent' record exists for this user/band.
+        // This is important if a user previously consented and then re-follows without consent.
+        $table_name = $wpdb->prefix . 'band_subscribers';
+        $wpdb->delete(
+            $table_name,
+            array(
+                'user_id' => $user_id,
+                'band_profile_id' => $band_id,
+                'source' => 'platform_follow_consent'
+            ),
+            array( '%d', '%d', '%s' )
+        );
+    }
+
+    if ( ! $was_already_following ) {
+        clean_user_cache($user_id);
         bp_maybe_update_band_follower_count( $band_id, true );
         do_action('bp_user_followed_band', $user_id, $band_id);
-        return true;
+    } else {
+        // If already following, but consent might have changed, still trigger action
+        // This allows an update to consent status for an existing follower
+        do_action('bp_user_follow_consent_updated', $user_id, $band_id, $share_email_consent);
     }
 
-    $followed_bands[] = $band_id;
-    $followed_bands = array_unique( $followed_bands );
-
-    update_user_meta( $user_id, '_followed_band_profile_ids', $followed_bands );
-    
-    // Store email sharing consent
-    $email_permissions = get_user_meta( $user_id, '_band_follow_email_permissions', true );
-    if ( ! is_array( $email_permissions ) ) {
-        $email_permissions = array();
-    }
-    $email_permissions[ $band_id ] = (bool) $share_email_consent;
-    update_user_meta( $user_id, '_band_follow_email_permissions', $email_permissions );
-
-    clean_user_cache($user_id);
-    bp_maybe_update_band_follower_count( $band_id, true );
-    do_action('bp_user_followed_band', $user_id, $band_id);
-
-    // Double-check: is the user now following?
+    // Check if the user is generally following the band (regardless of email consent)
     return in_array( $band_id, get_user_meta( $user_id, '_followed_band_profile_ids', true ) );
 }
 
@@ -64,6 +95,7 @@ function bp_follow_band( $user_id, $band_id, $share_email_consent = false ) {
  * @return bool True on success, false on failure.
  */
 function bp_unfollow_band( $user_id, $band_id ) {
+    global $wpdb;
     $user_id = absint( $user_id );
     $band_id = absint( $band_id );
 
@@ -78,28 +110,31 @@ function bp_unfollow_band( $user_id, $band_id ) {
 
     // Not following
     if ( ! in_array( $band_id, $followed_bands ) ) {
+        // Though not strictly necessary to update count if not following,
+        // it's harmless and ensures consistency if somehow out of sync.
         bp_maybe_update_band_follower_count( $band_id, true );
-        do_action('bp_user_unfollowed_band', $user_id, $band_id);
+        do_action('bp_user_unfollowed_band', $user_id, $band_id, false); // false indicates no longer following
         return true;
     }
 
     $followed_bands = array_diff( $followed_bands, array( $band_id ) );
     update_user_meta( $user_id, '_followed_band_profile_ids', $followed_bands );
 
-    // Remove email sharing consent for this band
-    $email_permissions = get_user_meta( $user_id, '_band_follow_email_permissions', true );
-    if ( is_array( $email_permissions ) && isset( $email_permissions[ $band_id ] ) ) {
-        unset( $email_permissions[ $band_id ] );
-        if ( empty( $email_permissions ) ) {
-            delete_user_meta( $user_id, '_band_follow_email_permissions' );
-        } else {
-            update_user_meta( $user_id, '_band_follow_email_permissions', $email_permissions );
-        }
-    }
+    // Remove from wp_band_subscribers if source is 'platform_follow_consent'
+    $table_name = $wpdb->prefix . 'band_subscribers';
+    $wpdb->delete(
+        $table_name,
+        array(
+            'user_id' => $user_id,
+            'band_profile_id' => $band_id,
+            'source' => 'platform_follow_consent'
+        ),
+        array( '%d', '%d', '%s' )
+    );
 
     clean_user_cache($user_id);
     bp_maybe_update_band_follower_count( $band_id, true );
-    do_action('bp_user_unfollowed_band', $user_id, $band_id);
+    do_action('bp_user_unfollowed_band', $user_id, $band_id, true); // true indicates unfollow was successful
 
     // Double-check: is the user now NOT following?
     return ! in_array( $band_id, get_user_meta( $user_id, '_followed_band_profile_ids', true ) );
@@ -311,137 +346,102 @@ function bp_get_user_followed_bands( $user_id, $args = array() ) {
     return $query->get_posts();
 }
 
-// --- CSV Export Handler ---
-
-add_action( 'admin_post_export_band_followers_csv', 'bp_handle_export_band_followers_csv' );
-
-function bp_handle_export_band_followers_csv() {
-    // Verify nonce
-    $band_id = isset( $_POST['band_id'] ) ? absint( $_POST['band_id'] ) : 0;
-    if ( ! isset( $_POST['_wpnonce'] ) || ! wp_verify_nonce( sanitize_key($_POST['_wpnonce']), 'export_band_followers_csv_' . $band_id ) ) {
-        wp_die( esc_html__( 'Security check failed.', 'generatepress_child' ) );
-    }
-
-    // Check permissions: user must be able to manage this specific band's members/followers
-    if ( ! current_user_can( 'manage_band_members', $band_id ) ) {
-        wp_die( esc_html__( 'You do not have permission to export followers for this band.', 'generatepress_child' ) );
-    }
-
-    // Get band details (for filename)
-    $band_post = get_post( $band_id );
-    if ( ! $band_post || $band_post->post_type !== 'band_profile' ) {
-        wp_die( esc_html__( 'Invalid band profile.', 'generatepress_child' ) );
-    }
-    $band_name_slug = sanitize_title( $band_post->post_title );
-
-    // Fetch all followers for the band
-    $followers_query = bp_get_band_followers( $band_id, array( 'number' => -1 ) ); // -1 to get all followers
-    $followers = $followers_query->get_results();
-
-    if ( empty( $followers ) ) {
-        // Optionally, you could still download an empty CSV or show a message.
-        // For now, let's redirect back with a notice, or just die.
-        wp_die( esc_html__( 'This band has no followers to export.', 'generatepress_child' ) );
-    }
-
-    $filename = 'band-followers-' . $band_name_slug . '-' . date('Y-m-d') . '.csv';
-
-    header( 'Content-Type: text/csv; charset=utf-8' );
-    header( 'Content-Disposition: attachment; filename="' . $filename . '"' );
-
-    $output = fopen( 'php://output', 'w' );
-
-    // Add BOM to fix UTF-8 in Excel
-    fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF)); 
-
-    // Add headers to CSV
-    fputcsv( $output, array( 
-        esc_html__( 'Username', 'generatepress_child' ), 
-        esc_html__( 'Display Name', 'generatepress_child' ), 
-        esc_html__( 'Email Address', 'generatepress_child' ),
-        esc_html__( 'Email Contact Consent', 'generatepress_child' )
-    ) );
-
-    // Add data rows
-    foreach ( $followers as $follower_user ) {
-        $email_permissions = get_user_meta( $follower_user->ID, '_band_follow_email_permissions', true );
-        $has_consented_for_this_band = is_array( $email_permissions ) && isset( $email_permissions[ $band_id ] ) && $email_permissions[ $band_id ] === true;
-        
-        $email_to_export = $has_consented_for_this_band ? $follower_user->user_email : esc_html__( 'Not Shared', 'generatepress_child' );
-        $consent_status_text = $has_consented_for_this_band ? esc_html__( 'Yes', 'generatepress_child' ) : esc_html__( 'No', 'generatepress_child' );
-
-        fputcsv( $output, array(
-            $follower_user->user_login,
-            $follower_user->display_name,
-            $email_to_export,
-            $consent_status_text
-        ) );
-    }
-
-    fclose( $output );
-    exit;
-}
-
 // --- AJAX Handler for User Band Subscription Settings ---
 
 add_action( 'wp_ajax_update_user_band_subscriptions', 'bp_ajax_update_user_band_subscriptions_handler' );
 
 function bp_ajax_update_user_band_subscriptions_handler() {
-    // Check nonce: The nonce field in the form is named '_wpnonce_update_user_band_subscriptions'
-    // and its value should be wp_create_nonce( 'update_user_band_subscriptions_' . $user_id );
-    $user_id = isset( $_POST['user_id'] ) ? absint( $_POST['user_id'] ) : 0;
-    if ( ! $user_id || $user_id !== get_current_user_id() ) {
-        wp_send_json_error( array( 'message' => __( 'Invalid user specified.', 'generatepress_child' ) ) );
-        return;
-    }
-    check_ajax_referer( 'update_user_band_subscriptions_' . $user_id, '_wpnonce_update_user_band_subscriptions' );
+    global $wpdb;
+    check_ajax_referer( 'bp_user_band_subscriptions_nonce', 'nonce' );
 
     if ( ! is_user_logged_in() ) {
-        wp_send_json_error( array( 'message' => __( 'You must be logged in to update settings.', 'generatepress_child' ) ) );
-        return;
+        wp_send_json_error( array( 'message' => __( 'You must be logged in to update your subscriptions.', 'generatepress_child' ) ) );
     }
 
-    $band_email_consents = isset( $_POST['band_email_consent'] ) && is_array( $_POST['band_email_consent'] ) 
-                             ? $_POST['band_email_consent'] 
-                             : array();
+    $user_id = get_current_user_id();
+    $user_data = get_userdata( $user_id );
 
-    // Get all bands the user is currently following to ensure we only update permissions for those.
-    $followed_bands_posts = bp_get_user_followed_bands( $user_id, array('posts_per_page' => -1, 'fields' => 'ids') ); // Get IDs only
-    
-    $current_email_permissions = get_user_meta( $user_id, '_band_follow_email_permissions', true );
-    if ( ! is_array( $current_email_permissions ) ) {
-        $current_email_permissions = array();
+    if ( ! $user_data ) {
+        wp_send_json_error( array( 'message' => __( 'User not found.', 'generatepress_child' ) ) );
     }
 
-    $updated_permissions = $current_email_permissions; // Start with existing permissions
+    // bands_consented will be an array of band_ids the user has consented to
+    $bands_consented = isset( $_POST['bands_consented'] ) && is_array( $_POST['bands_consented'] ) ? array_map( 'absint', $_POST['bands_consented'] ) : array();
+    // bands_unconsented will be an array of band_ids the user has specifically unconsented from (previously consented)
+    $bands_unconsented = isset( $_POST['bands_unconsented'] ) && is_array( $_POST['bands_unconsented'] ) ? array_map( 'absint', $_POST['bands_unconsented'] ) : array();
 
-    foreach ( $followed_bands_posts as $followed_band_id ) {
-        // If the band is in the submitted form data, the user checked the box (consent given)
-        if ( isset( $band_email_consents[ $followed_band_id ] ) && $band_email_consents[ $followed_band_id ] == '1' ) {
-            $updated_permissions[ $followed_band_id ] = true;
-        } else {
-            // If the band is followed but not in the submitted consent data (or value isn't '1'), it means checkbox was unchecked (consent revoked)
-            $updated_permissions[ $followed_band_id ] = false;
+    $table_name = $wpdb->prefix . 'band_subscribers';
+    $processed_bands = array();
+
+    // Add/Update consent for selected bands
+    if ( ! empty( $bands_consented ) ) {
+        foreach ( $bands_consented as $band_id ) {
+            if ( $band_id > 0 && get_post_type( $band_id ) === 'band_profile' ) {
+                $data = array(
+                    'band_profile_id' => $band_id,
+                    'user_id' => $user_id,
+                    'subscriber_email' => $user_data->user_email,
+                    'username' => $user_data->user_login,
+                    'subscribed_at' => current_time( 'mysql', 1 ),
+                    'source' => 'platform_follow_consent'
+                );
+                $format = array( '%d', '%d', '%s', '%s', '%s', '%s' );
+                $wpdb->replace( $table_name, $data, $format );
+                $processed_bands[] = $band_id;
+            }
+        }
+    }
+
+    // Remove consent for unselected or explicitly unconsented bands
+    // This includes any bands the user is following but did not have in the $bands_consented list for this submission.
+    // Fetch all current 'platform_follow_consent' subscriptions for the user
+    $current_consented_subscriptions = $wpdb->get_results( $wpdb->prepare(
+        "SELECT band_profile_id FROM {$table_name} WHERE user_id = %d AND source = 'platform_follow_consent'",
+        $user_id
+    ), ARRAY_A );
+
+    $currently_subscribed_band_ids = wp_list_pluck( $current_consented_subscriptions, 'band_profile_id' );
+
+    foreach ( $currently_subscribed_band_ids as $subscribed_band_id ) {
+        if ( ! in_array( $subscribed_band_id, $bands_consented ) ) {
+            // If a currently subscribed band is not in the new list of consented bands, remove it.
+            $wpdb->delete(
+                $table_name,
+                array(
+                    'user_id' => $user_id,
+                    'band_profile_id' => $subscribed_band_id,
+                    'source' => 'platform_follow_consent'
+                ),
+                array( '%d', '%d', '%s' )
+            );
+            $processed_bands[] = $subscribed_band_id; // Also mark as processed
         }
     }
     
-    // Clean up permissions for bands no longer followed (should be handled by unfollow logic, but good for robustness)
-    foreach ( array_keys( $updated_permissions ) as $band_id_in_meta ) {
-        if ( ! in_array( $band_id_in_meta, $followed_bands_posts ) ) {
-            unset( $updated_permissions[ $band_id_in_meta ] );
+    // Also handle any explicitly unconsented bands passed (e.g. if UI sends a separate list)
+    if ( ! empty( $bands_unconsented ) ) {
+        foreach ( $bands_unconsented as $band_id ) {
+             if ( $band_id > 0 && get_post_type( $band_id ) === 'band_profile' ) {
+                $wpdb->delete(
+                    $table_name,
+                    array(
+                        'user_id' => $user_id,
+                        'band_profile_id' => $band_id,
+                        'source' => 'platform_follow_consent'
+                    ),
+                    array( '%d', '%d', '%s' )
+                );
+                $processed_bands[] = $band_id;
         }
     }
+    }
 
-    if ( update_user_meta( $user_id, '_band_follow_email_permissions', $updated_permissions ) ) {
-        wp_send_json_success( array( 'message' => __( 'Subscription settings saved successfully.', 'generatepress_child' ) ) );
+
+    if ( ! empty( $processed_bands ) ) {
+        clean_user_cache( $user_id );
+        wp_send_json_success( array( 'message' => __( 'Subscription preferences updated.', 'generatepress_child' ), 'processed_bands' => array_unique($processed_bands) ) );
     } else {
-        // This can also mean the data was the same and no update was needed.
-        // For a better user experience, check if $updated_permissions is actually different from $current_email_permissions
-        if ($updated_permissions === $current_email_permissions) {
-             wp_send_json_success( array( 'message' => __( 'Subscription settings are already up to date.', 'generatepress_child' ) ) );
-        } else {
-             wp_send_json_error( array( 'message' => __( 'Could not save subscription settings. Please try again.', 'generatepress_child' ) ) );
-        }
+        wp_send_json_success( array( 'message' => __( 'No changes to subscription preferences were made.', 'generatepress_child' ) ) );
     }
 }
 
