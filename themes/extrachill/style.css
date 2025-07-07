@@ -600,27 +600,6 @@ background-color: #000;
 	height: 300px;
 }
 
-/*--------------------------------------------------------------
-10.0 Quizzes
---------------------------------------------------------------*/
-
-#quiz-container p{
-	font-weight:700;
-	padding: 0 5px;
-}
-.quiz-question{
-	border: 2px solid;
-	margin: 5px 0;
-	padding: 10px;
-	border-radius: 10px;
-}
-.quiz-question input{
-	font-size: 1.2em;
-}
-
-.quiz-question button{
-	margin: 15px auto 0;
-}
 /*
 ====> 10.1 Search Design
 --------------------------------------------------------------*/

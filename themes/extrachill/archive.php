@@ -131,12 +131,16 @@ if (is_category()) {
 
     <?php get_template_part('navigation', 'archive'); ?>
 
+    <div class="back-home-link-container">
+        <a href="<?php echo esc_url(home_url('/')); ?>" class="back-home-link">← Back Home</a>
+    </div>
+
 <?php else : ?>
     <?php get_template_part('no-results', 'archive'); ?>
 <?php endif; ?>
 </section><!-- #primary -->
 
-<?php get_sidebar(); ?>
+<?php // get_sidebar(); ?>
 
 <?php do_action('extrachill_after_body_content'); ?>
 

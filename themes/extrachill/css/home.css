@@ -747,3 +747,97 @@ body.home {
     display: block;
     font-size: 0.85em;
 }
+
+.home-extrachill-link-container {
+    width: 100%;
+    max-width: 700px;
+    margin: 3em auto 3em auto;
+    padding: 0 1em;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.home-extrachill-link-card {
+    background: var(--card-background);
+    border-radius: 22px;
+    box-shadow: 0 6px 32px rgba(83,148,11,0.07), 0 1.5px 8px rgba(0,0,0,0.04);
+    padding: 2.5em 2em 2.5em 2em;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+
+.home-extrachill-link-header {
+    font-family: 'Loft Sans', sans-serif;
+    font-size: 1.7em;
+    font-weight: 800;
+    color: var(--accent);
+    margin-bottom: 0.7em;
+    margin-top: 0;
+    letter-spacing: 0.01em;
+}
+
+.home-extrachill-link-subhead {
+    font-size: 1.08em;
+    color: var(--muted-text);
+    margin-bottom: 1.5em;
+    font-weight: 500;
+    line-height: 1.7;
+    max-width: 90%;
+}
+
+.home-extrachill-link-features {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 1.7em 0;
+    color: var(--muted-text);
+    font-size: 1.08em;
+    text-align: left;
+    max-width: 420px;
+}
+.home-extrachill-link-features li {
+    margin-bottom: 0.5em;
+    padding-left: 1.2em;
+    position: relative;
+}
+.home-extrachill-link-features li:before {
+    content: "✓";
+    color: var(--accent);
+    position: absolute;
+    left: 0;
+    font-weight: bold;
+}
+
+.home-extrachill-link-cta {
+    display: inline-block;
+    background: var(--button-bg);
+    color: #fff;
+    border-radius: 8px;
+    padding: 0.9em 2.2em;
+    font-size: 1.13em;
+    font-weight: 700;
+    text-decoration: none;
+    box-shadow: 0 2px 8px rgba(83,148,11,0.07);
+    transition: background 0.2s, transform 0.2s;
+    margin-top: 1.2em;
+    letter-spacing: 0.01em;
+}
+.home-extrachill-link-cta:hover,
+.home-extrachill-link-cta:focus {
+    background: var(--button-hover-bg);
+    color: #fff;
+    outline: none;
+    transform: scale(1.03);
+}
+
+@media (max-width: 900px) {
+    .home-extrachill-link-container {
+        max-width: 100%;
+        padding: 0 0.5em;
+    }
+    .home-extrachill-link-card {
+        padding: 2em 1em;
+    }
+}
