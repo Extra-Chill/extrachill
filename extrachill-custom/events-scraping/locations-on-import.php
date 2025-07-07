@@ -71,4 +71,7 @@ function assign_location_taxonomy_based_on_source( $event, $item, $data ) {
         }
     }
 }
-add_action( 'tribe_aggregator_after_insert_post', 'assign_location_taxonomy_based_on_source', 10, 3 );
+// Only add the action if Tribe Events is active
+if (function_exists('tribe_is_event_query')) {
+    add_action( 'tribe_aggregator_after_insert_post', 'assign_location_taxonomy_based_on_source', 10, 3 );
+}

@@ -81,3 +81,78 @@ a.card-link-target:hover,
   border-radius: 10px;
   border: 1px solid var(--border-color);
   }
+
+/*
+ * Archive & Search Page Styles
+ */
+
+/* Grid layout for full-width archives and search results */
+.full-width-content #primary {
+    width: 100%;
+    padding: 0; /* Remove padding if any exists */
+}
+
+.full-width-content .article-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 2em;
+    width: 100%;
+    max-width: 1600px; /* Optional: Constrain max width for very large screens */
+    margin: 0 auto;
+}
+
+/* Ensure individual articles fill the grid cell */
+.full-width-content .article-container .post {
+    width: 100%;
+    margin-bottom: 0; /* Remove bottom margin as gap is now handled by grid */
+    display: flex;
+    flex-direction: column;
+}
+
+/* Adjust card styles for grid */
+.full-width-content .post .article-content {
+    flex-grow: 1; /* Allows content to fill available space, aligning footers */
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .full-width-content .article-container {
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 1.5em;
+    }
+}
+
+@media (max-width: 480px) {
+    .full-width-content .article-container {
+        grid-template-columns: 1fr; /* Single column on mobile */
+        gap: 1em;
+    }
+}
+
+/* Back Home Button Styles */
+.back-home-link-container {
+    text-align: center;
+    margin-top: 2.5em;
+    margin-bottom: 1.5em;
+}
+
+.back-home-link {
+    display: inline-block;
+    padding: 0.8em 2em;
+    font-size: 1.05em;
+    font-weight: 700;
+    color: #fff;
+    background-color: var(--button-bg);
+    border-radius: 8px;
+    text-decoration: none;
+    transition: background-color 0.2s, transform 0.2s;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+.back-home-link:hover,
+.back-home-link:focus {
+    background-color: var(--button-hover-bg);
+    transform: translateY(-2px);
+    color: #fff;
+    outline: none;
+}

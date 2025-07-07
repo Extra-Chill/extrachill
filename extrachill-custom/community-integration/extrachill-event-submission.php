@@ -6,7 +6,7 @@
  * Enqueue scripts for event submission modal.
  */
 function extrachill_enqueue_event_submission_scripts() {
-    if ( tribe_is_event_query() ) { // Conditionally enqueue only on event calendar pages
+    if ( function_exists('tribe_is_event_query') && tribe_is_event_query() ) { // Conditionally enqueue only on event calendar pages
 
         // Determine which script to enqueue based on login status (session token cookie)
         if ( isset( $_COOKIE['ecc_user_session_token'] ) ) {

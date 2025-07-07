@@ -109,6 +109,7 @@ if (!function_exists('colormag_setup')):
         add_post_type_support('page', 'excerpt');
         add_theme_support( 'editor-styles' );
         add_editor_style( 'css/root.css' );
+        add_editor_style( 'css/editor-style.css' );
         add_editor_style( 'style.css' );
         add_editor_style( 'css/single-post.css' );
         
@@ -512,26 +513,31 @@ $scrapersDirPath = get_template_directory() . '/extrachill-custom/events-scrapin
 // Call the function to include all PHP files from the directory and its subdirectories
 include_event_scrapers_recursively($scrapersDirPath);
 
-add_filter( 'tribe_aggregator_import_event_image', function ( $import_event_image, $event, $activity ) {
-    // Check if the event has an EventBriteID.
-    if ( ! empty( $event['EventBriteID'] ) ) {
-        // Log or perform actions if needed, indicating image processing is being skipped.
-        do_action(
-            'tribe_log',
-            'debug',
-            'Skipping image import',
-            [
-                'message' => 'Image import skipped for Eventbrite event.',
-                'event'   => $event,
-            ]
-        );
-        // Return false to stop the image import process for this event.
-        return false;
-    }
+// Only add Tribe Events filters if the plugin is active
+if (function_exists('tribe_is_event_query')) {
+    add_filter( 'tribe_aggregator_import_event_image', function ( $import_event_image, $event, $activity ) {
+        // Check if the event has an EventBriteID.
+        if ( ! empty( $event['EventBriteID'] ) ) {
+            // Log or perform actions if needed, indicating image processing is being skipped.
+            if (function_exists('do_action')) {
+                do_action(
+                    'tribe_log',
+                    'debug',
+                    'Skipping image import',
+                    [
+                        'message' => 'Image import skipped for Eventbrite event.',
+                        'event'   => $event,
+                    ]
+                );
+            }
+            // Return false to stop the image import process for this event.
+            return false;
+        }
 
-    // If not an Eventbrite event or if images should be imported, return the original value.
-    return $import_event_image;
-}, 10, 3 );
+        // If not an Eventbrite event or if images should be imported, return the original value.
+        return $import_event_image;
+    }, 10, 3 );
+}
 
 
 function disable_lazy_load_for_first_image($excluded_attributes) {
@@ -962,3 +968,30 @@ function extrachill_enqueue_archive_styles() {
     }
 }
 add_action('wp_enqueue_scripts', 'extrachill_enqueue_archive_styles', 20);
+
+function extrachill_add_full_width_body_class($classes) {
+    if (is_archive() || is_search()) {
+        $classes[] = 'full-width-content';
+    }
+    return $classes;
+}
+add_filter('body_class', 'extrachill_add_full_width_body_class');
+
+/**
+ * Enqueue admin styles to fix editor styling issues
+ */
+function extrachill_enqueue_admin_styles($hook) {
+    // Only load on post edit screens
+    if ($hook == 'post.php' || $hook == 'post-new.php') {
+        $admin_css_path = get_stylesheet_directory() . '/css/editor-style.css';
+        if (file_exists($admin_css_path)) {
+            wp_enqueue_style(
+                'extrachill-admin-editor',
+                get_stylesheet_directory_uri() . '/css/editor-style.css',
+                array(),
+                filemtime($admin_css_path)
+            );
+        }
+    }
+}
+add_action('admin_enqueue_scripts', 'extrachill_enqueue_admin_styles');

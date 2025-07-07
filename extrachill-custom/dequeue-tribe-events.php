@@ -4,7 +4,12 @@
  * @link https://wordpress.stackexchange.com/questions/340515/writing-a-function-to-detect-an-event
  */
 function is_tribe_calendar() {
-	if (tribe_is_event() || tribe_is_event_category() || tribe_is_in_main_loop() || tec_is_view() || 'tribe_events' == get_post_type() || is_singular( 'tribe_events' )) {
+	if ((function_exists('tribe_is_event') && tribe_is_event()) || 
+	    (function_exists('tribe_is_event_category') && tribe_is_event_category()) || 
+	    (function_exists('tribe_is_in_main_loop') && tribe_is_in_main_loop()) || 
+	    (function_exists('tec_is_view') && tec_is_view()) || 
+	    'tribe_events' == get_post_type() || 
+	    is_singular( 'tribe_events' )) {
 		
 		return true;
 		

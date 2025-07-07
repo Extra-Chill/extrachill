@@ -41,6 +41,7 @@ if ($interviews->have_posts()) {
 <?php include get_template_directory() . '/home/festival-wire-ticker.php'; ?>
 <?php include get_template_directory() . '/home/section-3x3-grid.php'; ?>
 <?php include get_template_directory() . '/home/section-more-recent-posts.php'; ?>
+<?php include get_template_directory() . '/home/section-extrachill-link.php'; ?>
 <?php include get_template_directory() . '/home/section-newsletter-and-about.php'; ?>
 
 <?php

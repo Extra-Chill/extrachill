@@ -13,7 +13,8 @@ get_header(); ?>
 <div id="mediavine-settings" data-blocklist-all="1" ></div>
 	<section id="primary">
 		<div id="content" class="clearfix">
-						<!-- Display the Search Query -->
+			<?php display_breadcrumbs(); ?>
+			<!-- Display the Search Query -->
 			<div class="search-header"><h2>Search Results for: <span class="search-query"><?php echo esc_html( get_search_query() ); ?></span></h2></div>
 			<?php if ( have_posts() ) : ?>
 
@@ -31,6 +32,10 @@ get_header(); ?>
 
 				<?php get_template_part( 'navigation', 'archive' ); ?>
 
+				<div class="back-home-link-container">
+					<a href="<?php echo esc_url( home_url( '/' ) ); ?>" class="back-home-link">← Back Home</a>
+				</div>
+
 			<?php else : ?>
 
 				<?php get_template_part( 'no-results', 'archive' ); ?>
@@ -40,7 +45,7 @@ get_header(); ?>
 		</div><!-- #content -->
 			</section><!-- #primary -->
 
-	<?php get_sidebar(); ?>
+	<?php // get_sidebar(); ?>
 
 	<?php do_action( 'extrachill_after_body_content' ); ?>
 
