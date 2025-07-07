@@ -51,11 +51,7 @@ if ( ! is_wp_error( $locations ) && ! empty( $locations ) ) {
                 </a>
             </div>
 
-            <?php if ( ( get_theme_mod( 'colormag_featured_image_caption_show', 0 ) == 1 ) && ( get_post( get_post_thumbnail_id() ) -> post_excerpt ) ) { ?>
-                <span class="featured-image-caption">
-                    <?php echo wp_kses_post( get_post( get_post_thumbnail_id() ) -> post_excerpt ); ?>
-                </span>
-            <?php } ?>
+            <?php /* Featured image caption functionality removed - not used */ ?>
         <?php } ?>
     <?php endif; ?>
 

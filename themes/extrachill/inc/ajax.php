@@ -70,13 +70,7 @@ function colormag_get_ajax_results() {
 						<h3 class="entry-title">
 							<a href="<?php the_permalink(); ?>" title="<?php the_title_attribute(); ?>"><?php the_title(); ?></a>
 						</h3>
-						<?php
-						$human_diff_time = '';
-						if ( get_theme_mod( 'colormag_post_meta_date_setting', 'post_date' ) == 'post_human_readable_date' ) {
-							$human_diff_time = 'human-diff-time';
-						}
-						?>
-						<div class="below-entry-meta <?php echo esc_attr( $human_diff_time ); ?>">
+						<div class="below-entry-meta">
 							<?php
 							$time_string = '<time class="entry-date published" datetime="%1$s">%2$s</time>';
 							$time_string = sprintf( $time_string,
@@ -88,12 +82,6 @@ function colormag_get_ajax_results() {
 								esc_attr( get_the_time() ),
 								$time_string
 							);
-							?>
-
-							<?php
-							if ( get_theme_mod( 'colormag_post_meta_date_setting', 'post_date' ) == 'post_human_readable_date' ) {
-								printf( _x( '<span class="posted-on human-diff-time-display">%s ago</span>', '%s = human-readable time difference', 'colormag-pro' ), human_time_diff( get_the_time( 'U' ), current_time( 'timestamp' ) ) );
-							}
 							?>
 
 							<span class="byline"><span class="author vcard"><a class="url fn n" href="<?php echo esc_url( get_author_posts_url( get_the_author_meta( 'ID' ) ) ); ?>" title="<?php echo get_the_author(); ?>"><?php echo esc_html( get_the_author() ); ?></a></span></span>

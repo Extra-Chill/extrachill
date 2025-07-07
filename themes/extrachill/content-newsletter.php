@@ -10,17 +10,9 @@
 // Initialize the variables with an empty string as a default value.
 $reading_time = '';
 
-$featured_image_size = 'colormag-featured-image';
+$featured_image_size = 'full';
 $class_name_layout_two = '';
-if ( get_theme_mod( 'colormag_archive_search_layout', 'double_column_layout' ) == 'single_column_layout' ) {
-    $featured_image_size = 'colormag-featured-post-medium';
-    $class_name_layout_two = 'archive-layout-two';
-} elseif ( get_theme_mod( 'colormag_archive_search_layout', 'double_column_layout' ) == 'full_width_layout' ) {
-    $class_name_layout_two = 'archive-layout-full-width';
-} elseif ( get_theme_mod( 'colormag_archive_search_layout', 'double_column_layout' ) == 'grid_layout' ) {
-    $featured_image_size = 'colormag-featured-post-medium';
-    $class_name_layout_two = 'archive-layout-grid';
-}
+// Archive layout options removed - not used in current theme
 ?>
 
 <article id="post-<?php the_ID(); ?>" <?php post_class( array( $class_name_layout_two ) ); ?>>
@@ -29,14 +21,10 @@ if ( get_theme_mod( 'colormag_archive_search_layout', 'double_column_layout' ) =
         <?php if ( has_post_thumbnail() ) { ?>
             <div class="featured-image">
                 <a href="<?php the_permalink(); ?>" title="<?php the_title_attribute(); ?>">
-                    <?php the_post_thumbnail( $featured_image_size ); ?>
+                    <?php the_post_thumbnail( 'large' ); ?>
                 </a>
             </div>
-            <?php if ( get_theme_mod( 'colormag_featured_image_caption_show', 0 ) == 1 && get_post( get_post_thumbnail_id() )->post_excerpt ) { ?>
-                <span class="featured-image-caption">
-                    <?php echo wp_kses_post( get_post( get_post_thumbnail_id() )->post_excerpt ); ?>
-                </span>
-            <?php } ?>
+            <?php /* Featured image caption functionality removed - not used */ ?>
         <?php } ?>
     <?php endif; ?>
 

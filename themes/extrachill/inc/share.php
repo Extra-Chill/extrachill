@@ -13,12 +13,12 @@ if ( is_array( $args ) ) {
     extract( $args );
 }
 
-// Ensure $share_url is a string (use the first element if it’s an array)
+// Ensure $share_url is a string (use the first element if it's an array)
 if ( isset( $share_url ) && is_array( $share_url ) ) {
     $share_url = reset( $share_url );
 }
 
-// Ensure $share_title is a string (use the first element if it’s an array)
+// Ensure $share_title is a string (use the first element if it's an array)
 if ( isset( $share_title ) && is_array( $share_title ) ) {
     $share_title = reset( $share_title );
 }
@@ -36,7 +36,7 @@ $svg_version   = file_exists( $svg_file_path ) ? filemtime( $svg_file_path ) : t
     <!-- Main Share Button (Icon) -->
     <button class="share-button">
         <svg>
-            <use href="<?php echo esc_attr( COLORMAG_PARENT_URL . '/fonts/fontawesome.svg?v=' . $svg_version ); ?>#share"></use>
+            <use href="<?php echo esc_attr( get_template_directory_uri() . '/fonts/fontawesome.svg?v=' . $svg_version ); ?>#share"></use>
         </svg> Share
     </button>
 

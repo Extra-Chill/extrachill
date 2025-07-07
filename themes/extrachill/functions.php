@@ -15,7 +15,7 @@
 add_theme_support( "responsive-embeds" );
 add_theme_support( "wp-block-styles" );
 add_theme_support( "align-wide" );
-add_action('after_switch_theme', 'colormag_options_migrate');
+// colormag_options_migrate removed - not needed for custom theme
 add_action( 'after_setup_theme', function() {
     add_theme_support( 'woocommerce' );
 } );
@@ -29,43 +29,7 @@ add_action( 'wp_ajax_nopriv_rapper_name_generator', 'rapper_name_generator_ajax_
 add_action( 'wp_ajax_band_name_generator', 'band_name_generator_ajax_handler' );
 add_action( 'wp_ajax_nopriv_band_name_generator', 'band_name_generator_ajax_handler' );
 
-if (!function_exists('colormag_options_migrate')): /**
- * Migrate customizer options from free to Pro
- *
- * @since 1.0
- */ 
-    function colormag_options_migrate()
-    {
-        
-        // Bail out if ColorMag Pro theme is already activated.
-        if (get_option('colormag_pro_active')) {
-            return;
-        }
-        
-        // Add option to check if pro theme is already activated or not.
-        update_option('colormag_pro_active', 1);
-        
-        // Bail out if `theme_mods_colormag` does not exists
-        if (false === ($mods = get_option("theme_mods_colormag"))) {
-            return;
-        }
-        
-        // Bail out if `colormag_transfer` already exists,
-        // which refers that the database is already migrated.
-        if (get_option('colormag_transfer')) {
-            return;
-        }
-        
-        // Migrate the free theme mods data to pro,
-        // ie, from `theme_mods_colormag` to `theme_mods_colormag-pro`
-        update_option('colormag_check', 'changed');
-        $free = get_option("theme_mods_colormag");
-        update_option("theme_mods_colormag-pro", $free);
-        
-        // Set transfer as complete
-        update_option('colormag_transfer', 1);
-    }
-endif;
+// colormag_options_migrate function removed - not needed for custom theme
 
 
 add_action('after_setup_theme', 'colormag_setup');
@@ -147,41 +111,30 @@ define('COLORMAG_PARENT_DIR', get_template_directory());
 define('COLORMAG_CHILD_DIR', get_stylesheet_directory());
 
 define('COLORMAG_INCLUDES_DIR', COLORMAG_PARENT_DIR . '/inc');
-define('COLORMAG_CSS_DIR', COLORMAG_PARENT_DIR . '/css');
-define('COLORMAG_JS_DIR', COLORMAG_PARENT_DIR . '/js');
-define('COLORMAG_LANGUAGES_DIR', COLORMAG_PARENT_DIR . '/languages');
+// Unused ColorMag directory constants removed
 
-define('COLORMAG_ADMIN_DIR', COLORMAG_INCLUDES_DIR . '/admin');
-define('COLORMAG_WIDGETS_DIR', COLORMAG_INCLUDES_DIR . '/widgets');
-
-define('COLORMAG_ADMIN_IMAGES_DIR', COLORMAG_ADMIN_DIR . '/images');
+// COLORMAG_ADMIN_DIR and COLORMAG_ADMIN_IMAGES_DIR removed - admin directory deleted as unused
+// COLORMAG_WIDGETS_DIR removed - widgets directory deleted as unused
 
 /**
  * Define URL Location Constants
  */
-define('COLORMAG_PARENT_URL', get_template_directory_uri());
-define('COLORMAG_CHILD_URL', get_stylesheet_directory_uri());
+// COLORMAG_PARENT_URL removed - replaced with get_template_directory_uri() where needed
+// COLORMAG_CHILD_URL removed - not used
 
-define('COLORMAG_INCLUDES_URL', COLORMAG_PARENT_URL . '/inc');
-define('COLORMAG_CSS_URL', COLORMAG_PARENT_URL . '/css');
-define('COLORMAG_JS_URL', COLORMAG_PARENT_URL . '/js');
-define('COLORMAG_LANGUAGES_URL', COLORMAG_PARENT_URL . '/languages');
+// Unused ColorMag URL constants removed
 
-define('COLORMAG_ADMIN_URL', COLORMAG_INCLUDES_URL . '/admin');
-define('COLORMAG_WIDGETS_URL', COLORMAG_INCLUDES_URL . '/widgets');
-
-define('COLORMAG_ADMIN_IMAGES_URL', COLORMAG_ADMIN_URL . '/images');
+// COLORMAG_ADMIN_URL, COLORMAG_WIDGETS_URL, and COLORMAG_ADMIN_IMAGES_URL removed - directories deleted as unused
 
 /** Load functions */
 require_once(COLORMAG_INCLUDES_DIR . '/functions.php');
-require_once(COLORMAG_INCLUDES_DIR . '/header-functions.php');
-require_once(COLORMAG_INCLUDES_DIR . '/customizer.php');
+// require_once(COLORMAG_INCLUDES_DIR . '/header-functions.php'); // DEPRECATED - File deleted, functionality replaced by modern templates
+// require_once(COLORMAG_INCLUDES_DIR . '/customizer.php'); // DEPRECATED - Replaced with extrachill-customizer.php
 require_once(COLORMAG_INCLUDES_DIR . '/ajax.php');
 
-require_once(COLORMAG_ADMIN_DIR . '/meta-boxes.php');
+// require_once(COLORMAG_ADMIN_DIR . '/meta-boxes.php'); // DEPRECATED - All layout options are handled by templates.
 
-/** Load Widgets and Widgetized Area */
-require_once(COLORMAG_WIDGETS_DIR . '/widgets.php');
+// require_once(COLORMAG_WIDGETS_DIR . '/widgets.php'); // DEPRECATED - File deleted, sidebar now uses hardcoded widgets
 
 /**
  * Detect plugin. For use on Front End only.
@@ -248,6 +201,12 @@ add_filter('pre_get_posts', 'exclude_from_search');
 
 function extrachill_include_custom_files() {
     $custom_dir = get_template_directory() . '/extrachill-custom';
+
+    // Include the new customizer first
+    $customizer_file = $custom_dir . '/extrachill-customizer.php';
+    if ( file_exists( $customizer_file ) ) {
+        require_once $customizer_file;
+    }
 
     // Check if directory exists
     if (is_dir($custom_dir)) {
@@ -489,55 +448,9 @@ if ( function_exists('get_coauthors') ) {
     }
 }
 
-function include_event_scrapers_recursively($directory) {
-    // Get all files and directories in the specified directory
-    $items = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($directory), RecursiveIteratorIterator::SELF_FIRST);
 
-    // Iterate through items
-    foreach ($items as $item) {
-        // Check if the item is a file
-        if ($item->isFile()) {
-            // Check if the file has a '.php' extension
-            $fileExtension = pathinfo($item->getFilename(), PATHINFO_EXTENSION);
-            if ($fileExtension === 'php') {
-                // Include the PHP file
-                require_once $item->getRealPath();
-            }
-        }
-    }
-}
 
-// Define the path to the directory containing your scraping functions
-$scrapersDirPath = get_template_directory() . '/extrachill-custom/events-scraping';
 
-// Call the function to include all PHP files from the directory and its subdirectories
-include_event_scrapers_recursively($scrapersDirPath);
-
-// Only add Tribe Events filters if the plugin is active
-if (function_exists('tribe_is_event_query')) {
-    add_filter( 'tribe_aggregator_import_event_image', function ( $import_event_image, $event, $activity ) {
-        // Check if the event has an EventBriteID.
-        if ( ! empty( $event['EventBriteID'] ) ) {
-            // Log or perform actions if needed, indicating image processing is being skipped.
-            if (function_exists('do_action')) {
-                do_action(
-                    'tribe_log',
-                    'debug',
-                    'Skipping image import',
-                    [
-                        'message' => 'Image import skipped for Eventbrite event.',
-                        'event'   => $event,
-                    ]
-                );
-            }
-            // Return false to stop the image import process for this event.
-            return false;
-        }
-
-        // If not an Eventbrite event or if images should be imported, return the original value.
-        return $import_event_image;
-    }, 10, 3 );
-}
 
 
 function disable_lazy_load_for_first_image($excluded_attributes) {
@@ -897,6 +810,15 @@ add_action( 'wp_enqueue_scripts', 'extrachill_enqueue_root_styles', 5 ); // Prio
 
 // Ensure root.css is loaded before style.css by making it a dependency
 function extrachill_enqueue_main_styles() {
+    // Enqueue main stylesheet
+    wp_enqueue_style(
+        'extrachill-main-style',
+        get_stylesheet_uri(),
+        array(),
+        filemtime(get_template_directory() . '/style.css')
+    );
+
+    // Enqueue other essential stylesheets
     $main_style_path = get_stylesheet_directory() . '/style.css';
     if ( file_exists( $main_style_path ) ) {
         wp_enqueue_style(

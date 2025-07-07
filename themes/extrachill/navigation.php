@@ -38,77 +38,14 @@ if ( is_single() ) {
 		</ul>
 		<?php
 	} else {
-		if ( get_theme_mod( 'colormag_post_navigation', 'default' ) == 'small_featured_image' ) {
-			$prev_post = get_previous_post();
-			if ( $prev_post ) {
-				$prev_thumb_image = get_the_post_thumbnail( $prev_post->ID, 'colormag-featured-post-small' );
-			} else {
-				$prev_thumb_image = '';
-			}
-
-			// function to retrieve next post
-			$next_post = get_next_post();
-			if ( $next_post ) {
-				$next_thumb_image = get_the_post_thumbnail( $next_post->ID, 'colormag-featured-post-small' );
-			} else {
-				$next_thumb_image = '';
-			}
-			?>
-
-			<ul class="default-wp-page clearfix thumbnail-pagination">
-				<?php if ( get_previous_post_link() ) { ?>
-					<li class="previous">
-						<?php previous_post_link( $prev_thumb_image . '%link', '<span class="meta-nav">' . _x( '&larr; Previous', 'Previous post link', 'colormag-pro' ) . '</span> %title' ); ?>
-					</li>
-				<?php } ?>
-
-				<?php if ( get_next_post_link() ) { ?>
-					<li class="next">
-						<?php next_post_link( '%link' . $next_thumb_image, '%title <span class="meta-nav">' . _x( 'Next &rarr;', 'Next post link', 'colormag-pro' ) . '</span>' ); ?>
-					</li>
-				<?php } ?>
-			</ul>
-
-		<?php } elseif ( get_theme_mod( 'colormag_post_navigation', 'default' ) == 'medium_featured_image' ) {
-			$prev_post = get_previous_post();
-			if ( $prev_post ) {
-				$prev_thumb_image = get_the_post_thumbnail( $prev_post->ID, 'colormag-featured-post-medium' );
-			} else {
-				$prev_thumb_image = '';
-			}
-
-			// function to retrieve next post
-			$next_post = get_next_post();
-			if ( $next_post ) {
-				$next_thumb_image = get_the_post_thumbnail( $next_post->ID, 'colormag-featured-post-medium' );
-			} else {
-				$next_thumb_image = '';
-			}
-			?>
-
-			<ul class="default-wp-page clearfix thumbnail-background-pagination">
-				<?php if ( get_previous_post_link() ) { ?>
-					<li class="previous">
-						<?php previous_post_link( $prev_thumb_image . '%link', '<span class="meta-nav">' . _x( '&larr; Previous', 'Previous post link', 'colormag-pro' ) . '</span> %title' ); ?>
-					</li>
-				<?php } ?>
-
-				<?php if ( get_next_post_link() ) { ?>
-					<li class="next">
-						<?php next_post_link( '%link' . $next_thumb_image, '<span class="meta-nav">' . _x( 'Next &rarr;', 'Next post link', 'colormag-pro' ) . '</span> %title' ); ?>
-					</li>
-				<?php } ?>
-			</ul>
-
-		<?php } else { ?>
-
-			<ul class="default-wp-page clearfix">
-				<li class="previous"><?php previous_post_link( '%link', '<span class="meta-nav">' . _x( '&larr;', 'Previous post link', 'colormag-pro' ) . '</span> %title' ); ?></li>
-				<li class="next"><?php next_post_link( '%link', '%title <span class="meta-nav">' . _x( '&rarr;', 'Next post link', 'colormag-pro' ) . '</span>' ); ?></li>
-			</ul>
-			<?php
-		}
+		// Post navigation options simplified - always show default navigation (no thumbnails)
+		echo '<ul class="default-wp-page clearfix">';
+		echo '<li class="previous">';
+		previous_post_link( '%link', '<span class="meta-nav">' . _x( '&larr;', 'Previous post link', 'colormag-pro' ) . '</span> %title' );
+		echo '</li>';
+		echo '<li class="next">';
+		next_post_link( '%link', '%title <span class="meta-nav">' . _x( '&rarr;', 'Next post link', 'colormag-pro' ) . '</span>' );
+		echo '</li>';
+		echo '</ul>';
 	}
 }
-
-?>
