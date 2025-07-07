@@ -306,12 +306,7 @@ function enqueue_newsletter_popup_scripts() {
 	}
 	// <<-- END ADDITION >>
 
-	// <<-- ADDED: Exclude The Events Calendar pages >>
-	// Use tribe_is_event_query() for broader TEC page detection
-	if ( $load_script && function_exists('tribe_is_event_query') && tribe_is_event_query() ) {
-		$load_script = false;
-	}
-	// <<-- END ADDITION >>
+
 
 	if ( $load_script ) {
 		$script_path = get_template_directory() . '/js/subscribe.js';

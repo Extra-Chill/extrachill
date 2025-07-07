@@ -148,25 +148,7 @@
     }
 }
 
-/* Specific fixes for The Events Calendar post type editor */
-.post-type-tribe_events .edit-post-visual-editor .wp-block-post-title,
-.post-type-tribe_events .edit-post-visual-editor .editor-post-title__input,
-.post-type-tribe_events .wp-block-post-title {
-    font-size: 32px !important;
-    color: var(--text-color, #000000) !important;
-    background: transparent !important;
-    font-family: "Loft Sans", sans-serif !important;
-    font-weight: 700 !important;
-}
 
-/* Override any tribe events form styling in editor */
-.post-type-tribe_events .edit-post-visual-editor input[type="text"],
-.post-type-tribe_events .edit-post-visual-editor input[type="email"],
-.post-type-tribe_events .edit-post-visual-editor input[type="password"],
-.post-type-tribe_events .edit-post-visual-editor textarea {
-    background-color: var(--background-color, #ffffff) !important;
-    color: var(--text-color, #000000) !important;
-}
 
 /* General paragraph and content styling */
 .edit-post-visual-editor .wp-block-paragraph,

@@ -36,27 +36,9 @@ function extra_chill_register_location_taxonomy() {
         // 'meta_box_cb' is omitted to use the default meta box
     );
 
-    // Associate the taxonomy with 'post', 'tribe_events', and 'festival_wire' post types
-    register_taxonomy( 'location', array( 'post', 'tribe_events', 'festival_wire' ), $args );
+    // Associate the taxonomy with 'post' and 'festival_wire' post types
+    register_taxonomy( 'location', array( 'post', 'festival_wire' ), $args );
 }
 add_action( 'init', 'extra_chill_register_location_taxonomy', 0 );
 
-/**
- * Exclude 'tribe_events' from Location taxonomy archive pages.
- *
- * @param WP_Query $query The WP_Query instance (passed by reference).
- */
-function exclude_tribe_events_from_location_archive( $query ) {
-    // Ensure we're modifying the main query on the frontend,
-    // specifically on a 'location' taxonomy archive,
-    // AND NOT on a 'festival_wire' post type archive page.
-    if ( ! is_admin() && $query->is_main_query() && is_tax( 'location' ) && ! is_post_type_archive( 'festival_wire' ) ) {
-        // Set the post types to include both 'post' and 'festival_wire'.
-        // This ensures standard posts and festival wire posts appear on the location archive page (e.g., /location/austin/)
-        // while still excluding tribe_events (since it's not listed here).
-        // It will not affect /festival-wire/?location=austin because is_post_type_archive('festival_wire') will be true.
-        $query->set( 'post_type', array( 'post', 'festival_wire' ) );
 
-    }
-}
-add_action( 'pre_get_posts', 'exclude_tribe_events_from_location_archive' ); // Re-enable the action

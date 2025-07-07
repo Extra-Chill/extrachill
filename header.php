@@ -61,11 +61,7 @@ window.userDetails = <?php echo json_encode($header_user_details); ?>;
 </script>
 
 <?php
-// Render header image if necessary
-if ((get_theme_mod('colormag_header_image_position', 'position_two') == 'position_three') &&
-    (in_array($main_total_header_option_layout_class, ['type_one', 'type_two', 'type_three']))) {
-    colormag_render_header_image();
-}
+// Header image functionality removed - not used in current theme
 ?>
 
 <?php do_action('extrachill_after_header'); ?>

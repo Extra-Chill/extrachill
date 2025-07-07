@@ -11,9 +11,7 @@
 <article id="post-<?php the_ID(); ?>" <?php post_class(); ?>>
 	<?php do_action( 'extrachill_before_post_content' ); ?>
 
-	<?php if ( ( get_theme_mod( 'colormag_featured_image_single_page_show', 1 ) == 1 ) && ( has_post_thumbnail() ) ) { ?>
-		<!-- Removed the featured image code -->
-	<?php } 
+	<?php /* Page featured image option removed - not used */ ?>
 	if (function_exists('display_breadcrumbs')) {
 			display_breadcrumbs(); 
 		} 
@@ -46,10 +44,8 @@
 
 	<div class="entry-footer">
 		<?php
-		// Edit button remove option add
-		if ( get_theme_mod( 'colormag_edit_button_entry_meta_remove', 0 ) == 0 ) {
-			edit_post_link( __( 'Edit', 'colormag-pro' ), '<span class="edit-link">', '</span>' );
-		}
+		// Edit button always shown - option removed
+		edit_post_link( __( 'Edit', 'colormag-pro' ), '<span class="edit-link">', '</span>' );
 		?>
 	</div>
 
