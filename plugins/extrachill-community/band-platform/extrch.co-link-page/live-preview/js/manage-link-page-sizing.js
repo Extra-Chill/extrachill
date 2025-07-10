@@ -78,10 +78,7 @@
 
         if (profileImgShapeHiddenInput && profileImgShapeCircleRadio && profileImgShapeSquareRadio && profileImgShapeRectangleRadio) { 
             // Do NOT set .checked here; let PHP handle initial checked state.
-            // Only set the hidden input value to match the checked radio.
-            if (profileImgShapeCircleRadio.checked) profileImgShapeHiddenInput.value = 'circle';
-            else if (profileImgShapeSquareRadio.checked) profileImgShapeHiddenInput.value = 'square';
-            else if (profileImgShapeRectangleRadio.checked) profileImgShapeHiddenInput.value = 'rectangle';
+            // Hidden input will be updated at save time, not during initialization
         }
 
         // --- Button Radius Slider ---
@@ -134,15 +131,8 @@
         }
 
         // --- Profile Image Shape Radios ---
-        function handleProfileShapeChange(event) {
-            if (event.target.checked && profileImgShapeHiddenInput) {
-                 profileImgShapeHiddenInput.value = event.target.value; // Update hidden input for form
-                 manager.customization.updateSetting('_link_page_profile_img_shape', event.target.value);
-            }
-        }
-        if (profileImgShapeCircleRadio) profileImgShapeCircleRadio.addEventListener('change', handleProfileShapeChange);
-        if (profileImgShapeSquareRadio) profileImgShapeSquareRadio.addEventListener('change', handleProfileShapeChange);
-        if (profileImgShapeRectangleRadio) profileImgShapeRectangleRadio.addEventListener('change', handleProfileShapeChange);
+        // Event listeners are attached separately to avoid immediate hidden input updates
+        attachShapeEventListeners();
         
         syncSizingInputValues(); // Sync UI on init
         isSizingInitialized = true;
@@ -155,5 +145,52 @@
     } else {
         document.addEventListener('extrchLinkPageCustomizeTabInitialized', initializeSizingControls, { once: true });
     }
+
+    // Event listener for profile image shape radio buttons (attached after initialization)
+    function attachShapeEventListeners() {
+        const radios = [profileImgShapeCircleRadio, profileImgShapeSquareRadio, profileImgShapeRectangleRadio];
+        radios.forEach(radio => {
+            if (radio) {
+                radio.addEventListener('change', function(event) {
+                    // Update CSS custom property for immediate visual feedback
+                    if (manager.customization && typeof manager.customization.updateSetting === 'function') {
+                        manager.customization.updateSetting('_link_page_profile_img_shape', event.target.value);
+                    }
+                    
+                    // NO hidden input update during user interaction - wait for save time
+                    // This prevents scattered save logic and race conditions
+                });
+            }
+        });
+    }
+
+    /**
+     * Serializes current sizing settings into hidden inputs for form submission.
+     * This method should ONLY be called by the save handler, not during user interactions.
+     */
+    function serializeSizingForSave() {
+        let success = true;
+        
+        // Serialize profile image shape
+        const profileImgShapeHiddenInput = document.getElementById('link_page_profile_img_shape_hidden');
+        if (profileImgShapeHiddenInput) {
+            const checkedRadio = document.querySelector('input[name="link_page_profile_img_shape"]:checked');
+            if (checkedRadio) {
+                profileImgShapeHiddenInput.value = checkedRadio.value;
+                console.log('[SizingManager] Serialized profile image shape:', checkedRadio.value);
+            } else {
+                console.warn('[SizingManager] No profile image shape radio button checked');
+                success = false;
+            }
+        } else {
+            console.warn('[SizingManager] Profile image shape hidden input not found');
+            success = false;
+        }
+        
+        return success;
+    }
+    
+    // Expose the serialize method for the save handler
+    manager.sizing.serializeForSave = serializeSizingForSave;
 
 })(window.ExtrchLinkPageManager); 

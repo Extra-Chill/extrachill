@@ -139,6 +139,8 @@ li.bbp-body div.hentry {
     min-width: 0;
     padding: 20px 20px;
     margin: 0;
+    word-break: break-word;
+    overflow-wrap: anywhere;
 }
 
 /* Rank & Points */

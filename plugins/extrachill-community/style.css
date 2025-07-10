@@ -472,7 +472,10 @@ h2.forum-front-ec {
 	display: inline;
 }
  
-i#forum-collapse {
+i#forum-collapse,
+#community-forums-collapse,
+#music-forums-collapse,
+#band-platform-collapse {
 	margin-left: 5px;
 	font-size: 27px;
 }
@@ -1728,15 +1731,18 @@ input[type="text"], input[type="email"], input[type="url"], input[type="password
 
 #bbpress-forums fieldset.bbp-form{
 	padding:0 20px 20px;
+	border-color: var(--border-color);
+
 }
 
 .wp-editor-container .mce-container{
-	border:none !important;
 	box-shadow:none !important;
+	background-color: var(--background-color);
+	border-color: var(--border-color);
 }
 
 .wp-editor-container .mce-toolbar .mce-ico{
-	color: var(--text-color) !important;
+	color: var(--muted-text) !important;
 }
 
 .wp-editor-container .mce-toolbar .mce-ico:hover{
@@ -1753,6 +1759,7 @@ input[type="text"], input[type="email"], input[type="url"], input[type="password
 
 .wp-editor-container .mce-toolbar .mce-btn-group .mce-btn.mce-listbox{
 	border: 1px solid var(--border-color) !important;
+	background-color: var(--background-color);
 }
 .mce-panel.mce-menu{
 	border:1px solid var(--border-color) !important;

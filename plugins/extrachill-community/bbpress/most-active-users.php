@@ -2,6 +2,7 @@
 
 /**
  * Most Active Users Section - Sorted by 30-day activity, with Custom Title (as Role) and Points
+ * Optimized with caching to improve performance
  *
  * @package bbPress
  * @subpackage Theme
@@ -10,28 +11,45 @@
 // Exit if accessed directly
 defined( 'ABSPATH' ) || exit;
 
-global $wpdb;
+// Cache key and duration
+$cache_key = 'most_active_users_30_days';
+$cache_duration = 6 * HOUR_IN_SECONDS; // Cache for 6 hours
 
-$query = "
-    SELECT u.ID, COUNT(p.ID) as activity_count 
-    FROM {$wpdb->users} u
-    LEFT JOIN {$wpdb->posts} p 
-        ON u.ID = p.post_author 
-        AND p.post_type IN ('topic', 'reply')
-        AND p.post_date >= DATE_SUB(NOW(), INTERVAL 30 DAY)
-        AND p.post_status = 'publish'
-    GROUP BY u.ID
-    ORDER BY activity_count DESC
-    LIMIT 5
-";
+// Try to get cached data first
+$user_ids = get_transient( $cache_key );
 
+// If no cached data, run the query and cache the results
+if ( false === $user_ids ) {
+    global $wpdb;
+    
+    $query = "
+        SELECT u.ID, COUNT(p.ID) as activity_count 
+        FROM {$wpdb->users} u
+        LEFT JOIN {$wpdb->posts} p 
+            ON u.ID = p.post_author 
+            AND p.post_type IN ('topic', 'reply')
+            AND p.post_date >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+            AND p.post_status = 'publish'
+        GROUP BY u.ID
+        ORDER BY activity_count DESC
+        LIMIT 5
+    ";
 
-$user_ids = $wpdb->get_col($query);
+    $user_ids = $wpdb->get_col( $query );
+    
+    // Cache the results for 6 hours
+    set_transient( $cache_key, $user_ids, $cache_duration );
+}
 
 // Get complete user objects
 $users = array();
-foreach ($user_ids as $user_id) {
-    $users[] = get_userdata($user_id);
+if ( !empty( $user_ids ) ) {
+    foreach ( $user_ids as $user_id ) {
+        $user_data = get_userdata( $user_id );
+        if ( $user_data ) {
+            $users[] = $user_data;
+        }
+    }
 }
 
 ?>

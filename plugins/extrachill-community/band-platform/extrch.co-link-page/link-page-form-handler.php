@@ -11,13 +11,18 @@ defined( 'ABSPATH' ) || exit;
  * Handles the saving of all link page data from the frontend management form.
  */
 function extrch_handle_save_link_page_data() {
+    error_log('[LinkPageSave] === SAVE HANDLER STARTED ===');
+    
     if (
         !isset($_POST['bp_save_link_page']) ||
         !isset($_POST['bp_save_link_page_nonce']) ||
         !wp_verify_nonce($_POST['bp_save_link_page_nonce'], 'bp_save_link_page_action')
     ) {
+        error_log('[LinkPageSave] Nonce verification failed - exiting early');
         return; // Nonce check failed or form not submitted.
     }
+
+    error_log('[LinkPageSave] Nonce verification passed');
 
     $link_page_id = 0;
     $band_id = 0; // Initialize band_id
@@ -25,6 +30,7 @@ function extrch_handle_save_link_page_data() {
     if (isset($_GET['band_id'])) {
         $band_id = absint($_GET['band_id']);
         $link_page_id = get_post_meta($band_id, '_extrch_link_page_id', true);
+        error_log('[LinkPageSave] Got band_id from GET: ' . $band_id . ', link_page_id: ' . $link_page_id);
     }
 
     if (!$link_page_id || get_post_type($link_page_id) !== 'band_link_page') {
@@ -38,12 +44,16 @@ function extrch_handle_save_link_page_data() {
                     $band_id = absint($associated_band_id);
                 }
             }
+            error_log('[LinkPageSave] Got link_page_id from POST: ' . $link_page_id . ', band_id: ' . $band_id);
         }
     }
 
     if (!$link_page_id) {
+        error_log('[LinkPageSave] FATAL: Could not determine Link Page ID');
         wp_die(__('Could not determine Link Page ID.', 'generatepress_child'));
     }
+
+    error_log('[LinkPageSave] Processing link_page_id: ' . $link_page_id . ', band_id: ' . $band_id);
 
     // --- Save regular links ---
     $links_json = isset($_POST['link_page_links_json']) ? wp_unslash($_POST['link_page_links_json']) : '[]';
@@ -219,69 +229,101 @@ function extrch_handle_save_link_page_data() {
     update_post_meta($link_page_id, '_link_page_links', $links_array);
 
     // --- Save social links (to band_profile) ---
-    if ($band_id) { // Ensure band_id is valid
-        error_log('[LinkPageSave PHP] Processing social links for band ID: ' . $band_id); // DEBUG
-        $social_links_json = isset($_POST['band_profile_social_links_json']) ? wp_unslash($_POST['band_profile_social_links_json']) : '[]';
-        error_log('[LinkPageSave PHP] Received social links JSON string: ' . $social_links_json); // DEBUG
+    if (isset($_POST['band_profile_social_links_json']) && !empty($band_id)) {
+        $social_links_json = wp_unslash($_POST['band_profile_social_links_json']);
         $social_links_array = json_decode($social_links_json, true);
-        error_log('[LinkPageSave PHP] json_decode result: ' . print_r($social_links_array, true)); // DEBUG
+        $json_error = json_last_error();
         
-        if (is_array($social_links_array)) {
-            // --- DEBUG: Output social links array immediately before saving ---
-            error_log('[LinkPageSave PHP] Social links array BEFORE update_post_meta: ' . print_r($social_links_array, true)); // DEBUG
-            // --- END DEBUG ---
+        if ($json_error === JSON_ERROR_NONE && is_array($social_links_array)) {
             update_post_meta($band_id, '_band_profile_social_links', $social_links_array);
-            error_log('[LinkPageSave PHP] Social links updated for band ID: ' . $band_id); // DEBUG
+            
+            // Verify the save worked (for critical debugging only)
+            $saved_links = get_post_meta($band_id, '_band_profile_social_links', true);
         } else {
-            error_log('[LinkPageSave PHP] Decoded social links is NOT an array. Not saving.'); // DEBUG
+            // Log only critical errors
+            error_log('[LinkPageSave PHP] Failed to decode social links JSON. Error: ' . json_last_error_msg());
         }
+    } else if (empty($band_id)) {
+        error_log('[LinkPageSave PHP] No valid band_id found for saving social links');
     }
 
     // --- Save customization meta for link page ---
     if (isset($_POST['link_page_custom_css_vars_json'])) {
+        error_log('[LinkPageSave] Processing CSS variables...');
         $css_vars_json_string = wp_unslash($_POST['link_page_custom_css_vars_json']);
-        // Attempt to decode to ensure it's valid JSON. If not, don't save it or save an empty JSON object.
+        
+        // Attempt to decode to ensure it's valid JSON
         $decoded_vars = json_decode($css_vars_json_string, true);
         
         if (json_last_error() === JSON_ERROR_NONE && is_array($decoded_vars)) {
-            // Optionally, you could iterate here and sanitize individual known keys if necessary.
-            // For now, we'll save the validated (because it decoded) and unslashed JSON string.
-            update_post_meta($link_page_id, '_link_page_custom_css_vars', $css_vars_json_string); 
-
+            error_log('[LinkPageSave] CSS variables JSON decoded successfully, saving ' . count($decoded_vars) . ' variables...');
+            
+            // Save the decoded array (WordPress will serialize it properly)
+            $save_result = update_post_meta($link_page_id, '_link_page_custom_css_vars', $decoded_vars);
+            
+            // Note: update_post_meta returns false if value unchanged (optimization)
+            if ($save_result) {
+                error_log('[LinkPageSave] CSS variables save result: SUCCESS (data updated)');
+            } else {
+                // Verify data exists to distinguish between failure vs. no-change
+                $existing_data = get_post_meta($link_page_id, '_link_page_custom_css_vars', true);
+                if (is_array($existing_data) && count($existing_data) === count($decoded_vars)) {
+                    error_log('[LinkPageSave] CSS variables save result: SUCCESS (no changes detected)');
+                } else {
+                    error_log('[LinkPageSave] CSS variables save result: FAILED (actual error)');
+                }
+            }
+            
             // Also update overlay meta for backward compatibility or direct access
             if (isset($decoded_vars['overlay'])) {
                 update_post_meta($link_page_id, '_link_page_overlay_toggle', $decoded_vars['overlay'] === '1' ? '1' : '0');
             }
         } else {
-            // Handle invalid JSON - e.g., log an error, or save an empty JSON object as a default state.
-            // For now, we'll not update if JSON is invalid to prevent saving corrupted data.
-            // error_log('Invalid JSON received for link_page_custom_css_vars_json: ' . json_last_error_msg());
-            // update_post_meta($link_page_id, '_link_page_custom_css_vars', '{}'); // Optionally save empty JSON
+            // Handle invalid JSON
+            $error_msg = 'Invalid JSON received for link_page_custom_css_vars_json: ' . json_last_error_msg();
+            error_log('[LinkPageSave] ' . $error_msg);
         }
     }
+
+    error_log('[LinkPageSave] CSS variables processing completed, continuing with file uploads...');
 
     // --- Handle File Uploads ---
     // Background Image for Link Page
     if (!empty($_FILES['link_page_background_image_upload']['tmp_name'])) {
-        $max_file_size = 5 * 1024 * 1024; // 5MB in bytes
-        if ($_FILES['link_page_background_image_upload']['size'] > $max_file_size) {
-            // Redirect back with an error message
-            $redirect_url = add_query_arg(array('band_id' => $band_id, 'bp_link_page_error' => 'background_image_size'), wp_get_referer() ?: site_url('/manage-link-page/'));
-            wp_safe_redirect($redirect_url);
-            exit;
-        }
+        // Check if image was already uploaded via AJAX by checking CSS variables
+        $css_vars_json = isset($_POST['link_page_custom_css_vars_json']) ? wp_unslash($_POST['link_page_custom_css_vars_json']) : '{}';
+        $css_vars = json_decode($css_vars_json, true);
+        $current_bg_image_url = isset($css_vars['--link-page-background-image-url']) ? $css_vars['--link-page-background-image-url'] : '';
+        
+        // If the CSS variable contains a server URL (not a data URL), skip upload as it was handled via AJAX
+        $is_server_url = !empty($current_bg_image_url) && 
+                        strpos($current_bg_image_url, 'url(') === 0 && 
+                        strpos($current_bg_image_url, 'data:') === false &&
+                        (strpos($current_bg_image_url, site_url()) !== false || strpos($current_bg_image_url, wp_upload_dir()['baseurl']) !== false);
+        
+        if (!$is_server_url) {
+            // Only upload if it wasn't already uploaded via AJAX
+            $max_file_size = 5 * 1024 * 1024; // 5MB in bytes
+            if ($_FILES['link_page_background_image_upload']['size'] > $max_file_size) {
+                // Redirect back with an error message
+                $redirect_url = add_query_arg(array('band_id' => $band_id, 'bp_link_page_error' => 'background_image_size'), wp_get_referer() ?: (function_exists('bp_get_manage_link_page_url') ? bp_get_manage_link_page_url() : home_url('/manage-link-page/')));
+                wp_safe_redirect($redirect_url);
+                exit;
+            }
 
-        require_once(ABSPATH . 'wp-admin/includes/image.php');
-        require_once(ABSPATH . 'wp-admin/includes/file.php');
-        require_once(ABSPATH . 'wp-admin/includes/media.php');
-        $old_bg_image_id = get_post_meta($link_page_id, '_link_page_background_image_id', true);
-        $new_bg_image_id = media_handle_upload('link_page_background_image_upload', $link_page_id);
-        if (is_numeric($new_bg_image_id)) {
-            update_post_meta($link_page_id, '_link_page_background_image_id', $new_bg_image_id);
-            if ($old_bg_image_id && $old_bg_image_id != $new_bg_image_id) {
-                wp_delete_attachment($old_bg_image_id, true);
+            require_once(ABSPATH . 'wp-admin/includes/image.php');
+            require_once(ABSPATH . 'wp-admin/includes/file.php');
+            require_once(ABSPATH . 'wp-admin/includes/media.php');
+            $old_bg_image_id = get_post_meta($link_page_id, '_link_page_background_image_id', true);
+            $new_bg_image_id = media_handle_upload('link_page_background_image_upload', $link_page_id);
+            if (is_numeric($new_bg_image_id)) {
+                update_post_meta($link_page_id, '_link_page_background_image_id', $new_bg_image_id);
+                if ($old_bg_image_id && $old_bg_image_id != $new_bg_image_id) {
+                    wp_delete_attachment($old_bg_image_id, true);
+                }
             }
         }
+        // If $is_server_url is true, skip upload as it was already handled via AJAX
     }
 
     // Profile Image (syncs to band_profile CPT and _link_page_profile_image_id on link_page CPT)
@@ -289,7 +331,7 @@ function extrch_handle_save_link_page_data() {
         $max_file_size = 5 * 1024 * 1024; // 5MB in bytes
         if ($_FILES['link_page_profile_image_upload']['size'] > $max_file_size) {
             // Redirect back with an error message
-            $redirect_url = add_query_arg(array('band_id' => $band_id, 'bp_link_page_error' => 'profile_image_size'), wp_get_referer() ?: site_url('/manage-link-page/'));
+            $redirect_url = add_query_arg(array('band_id' => $band_id, 'bp_link_page_error' => 'profile_image_size'), wp_get_referer() ?: (function_exists('bp_get_manage_link_page_url') ? bp_get_manage_link_page_url() : home_url('/manage-link-page/')));
             wp_safe_redirect($redirect_url);
             exit;
         }
@@ -319,41 +361,28 @@ function extrch_handle_save_link_page_data() {
     }
 
 
-    // --- Sync other data to band_profile CPT ---
+    // --- Sync other data to band_profile CPT (MOVED TO END FOR ATOMIC OPERATION) ---
+    // Collect sync data first, but don't execute wp_update_post until the very end
+    $band_profile_sync_data = array();
     if ($band_id && get_post_type($band_id) === 'band_profile') {
-        // Sync bio (content)
+        // Prepare bio sync (content)
         if (isset($_POST['link_page_bio_text'])) {
             $bio = wp_kses_post(wp_unslash($_POST['link_page_bio_text']));
             if (get_post_field('post_content', $band_id) !== $bio) {
-                 wp_update_post(array('ID' => $band_id, 'post_content' => $bio));
+                $band_profile_sync_data['post_content'] = $bio;
             }
         }
-        // Sync band name (title)
+        // Prepare band name sync (title)
         if (isset($_POST['band_profile_title'])) {
             $new_title = sanitize_text_field(wp_unslash($_POST['band_profile_title']));
             if ($new_title && get_the_title($band_id) !== $new_title) {
-                wp_update_post(array('ID' => $band_id, 'post_title' => $new_title));
+                $band_profile_sync_data['post_title'] = $new_title;
             }
         }
     }
 
-    // Sync social links to band_profile CPT if they exist in POST data
-    if ($band_id && isset($_POST['band_profile_social_links_json'])) {
-        $social_links_json = wp_unslash($_POST['band_profile_social_links_json']);
-        // Basic validation: Ensure it's a string and can be decoded as JSON array/object.
-        if (is_string($social_links_json)) {
-            $decoded_socials = json_decode($social_links_json, true);
-            if (json_last_error() === JSON_ERROR_NONE) {
-                 // At this point, $social_links_json is a valid JSON string.
-                 // The actual structure of the JSON (array of objects with specific keys) should ideally be validated further
-                 // if strict adherence is required, but for now, saving the valid JSON string is the main goal.
-                update_post_meta($band_id, '_band_social_links_json', $social_links_json);
-            } else {
-                // Log error or handle invalid JSON if necessary
-                // error_log('Invalid JSON for social links: ' . $social_links_json);
-            }
-        }
-    }
+    // NOTE: Social links are already saved above in the main social links section using _band_profile_social_links
+    // No need for duplicate save logic here
 
     // --- Featured Link Customization (Title, Desc, Thumbnail) --- 
     // This will now primarily handle the thumbnail and text fields.
@@ -361,9 +390,58 @@ function extrch_handle_save_link_page_data() {
         extrch_save_featured_link_settings($link_page_id, $_POST, $_FILES);
     }
 
+    // --- ATOMIC BAND PROFILE SYNC (FINAL STEP) ---
+    // Execute band profile sync at the very end to avoid triggering cascading hooks during save
+    if (!empty($band_profile_sync_data) && $band_id) {
+        error_log('[LinkPageSave] Starting atomic band profile sync for band_id: ' . $band_id);
+        
+        // Temporarily disable data sync to prevent recursive hooks DURING the update
+        if (class_exists('BandDataSyncManager')) {
+            error_log('[LinkPageSave] BandDataSyncManager class exists - starting sync protection');
+            BandDataSyncManager::start_sync();
+        } else {
+            error_log('[LinkPageSave] BandDataSyncManager class NOT found - proceeding without sync protection');
+        }
+        
+        // Perform the band profile update atomically
+        $band_profile_sync_data['ID'] = $band_id;
+        error_log('[LinkPageSave] Updating band profile with data: ' . print_r($band_profile_sync_data, true));
+        $update_result = wp_update_post($band_profile_sync_data);
+        
+        // Re-enable sync protection and manually trigger sync from band profile to link page
+        if (class_exists('BandDataSyncManager')) {
+            BandDataSyncManager::stop_sync();
+            error_log('[LinkPageSave] BandDataSyncManager sync protection stopped');
+            
+            // Now manually trigger the sync from band profile to link page
+            if (function_exists('extrch_sync_band_profile_to_link_page')) {
+                error_log('[LinkPageSave] Manually triggering band profile to link page sync');
+                $band_post = get_post($band_id);
+                if ($band_post) {
+                    extrch_sync_band_profile_to_link_page($band_id, $band_post, true);
+                    error_log('[LinkPageSave] Manual sync completed');
+                } else {
+                    error_log('[LinkPageSave] Could not retrieve band post for manual sync');
+                }
+            } else {
+                error_log('[LinkPageSave] Sync function not available for manual trigger');
+            }
+        }
+        
+        if (is_wp_error($update_result)) {
+            error_log('[LinkPageSave] Band profile sync failed: ' . $update_result->get_error_message());
+        } else {
+            error_log('[LinkPageSave] Band profile sync successful, result: ' . $update_result);
+        }
+    } else {
+        error_log('[LinkPageSave] No band profile sync needed (empty data or no band_id)');
+    }
+
+    error_log('[LinkPageSave] === PREPARING REDIRECT ===');
+    
     // --- Redirect back with success ---
     $redirect_args = array('band_id' => $band_id, 'bp_link_page_updated' => '1');
-    $base_url = site_url('/manage-link-page/');
+    $base_url = function_exists('bp_get_manage_link_page_url') ? bp_get_manage_link_page_url() : home_url('/manage-link-page/');
     $redirect_url = add_query_arg($redirect_args, $base_url);
     if (!empty($_POST['tab'])) {
         $tab = sanitize_key($_POST['tab']);
@@ -372,9 +450,110 @@ function extrch_handle_save_link_page_data() {
         $tab = sanitize_key($_GET['tab']);
         $redirect_url .= '#' . $tab;
     }
+    
+    error_log('[LinkPageSave] Redirecting to: ' . $redirect_url);
     wp_safe_redirect($redirect_url);
     exit;
 }
 add_action('admin_post_extrch_handle_save_link_page_data', 'extrch_handle_save_link_page_data');
+
+// Add AJAX handler for background image uploads (for large files)
+function extrch_upload_background_image_ajax() {
+    // Check nonce - use the same nonce as the main form
+    if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'bp_save_link_page_action')) {
+        wp_send_json_error('Invalid nonce');
+        return;
+    }
+    
+    // Check if user is logged in
+    if (!is_user_logged_in()) {
+        wp_send_json_error('User not logged in');
+        return;
+    }
+    
+    // Check if file was uploaded
+    if (empty($_FILES['link_page_background_image_upload']['tmp_name'])) {
+        wp_send_json_error('No file uploaded');
+        return;
+    }
+    
+    $link_page_id = isset($_POST['link_page_id']) ? absint($_POST['link_page_id']) : 0;
+    
+    // If no link page ID provided, try to get it from user's bands
+    if (!$link_page_id) {
+        $current_user_id = get_current_user_id();
+        $user_band_ids = get_user_meta($current_user_id, '_band_profile_ids', true);
+        if (is_array($user_band_ids) && !empty($user_band_ids)) {
+            // Get the most recent band's link page
+            $band_id = $user_band_ids[0];
+            $link_page_id = get_post_meta($band_id, '_extrch_link_page_id', true);
+        }
+    }
+    
+    if (!$link_page_id || get_post_type($link_page_id) !== 'band_link_page') {
+        wp_send_json_error('Invalid link page ID');
+        return;
+    }
+    
+    // Check if user can edit this link page
+    $associated_band_id = get_post_meta($link_page_id, '_associated_band_profile_id', true);
+    if ($associated_band_id) {
+        $current_user_id = get_current_user_id();
+        $user_band_ids = get_user_meta($current_user_id, '_band_profile_ids', true);
+        if (!is_array($user_band_ids) || !in_array($associated_band_id, $user_band_ids)) {
+            wp_send_json_error('Permission denied');
+            return;
+        }
+    }
+    
+    // Check file size (5MB limit)
+    $max_file_size = 5 * 1024 * 1024; // 5MB in bytes
+    if ($_FILES['link_page_background_image_upload']['size'] > $max_file_size) {
+        wp_send_json_error('File is too large. Maximum size is 5MB.');
+        return;
+    }
+    
+    // Include required WordPress functions
+    require_once(ABSPATH . 'wp-admin/includes/image.php');
+    require_once(ABSPATH . 'wp-admin/includes/file.php');
+    require_once(ABSPATH . 'wp-admin/includes/media.php');
+    
+    // Get old background image ID to delete it later
+    $old_bg_image_id = get_post_meta($link_page_id, '_link_page_background_image_id', true);
+    
+    // Upload the file
+    $new_bg_image_id = media_handle_upload('link_page_background_image_upload', $link_page_id);
+    
+    if (is_wp_error($new_bg_image_id)) {
+        wp_send_json_error('Upload failed: ' . $new_bg_image_id->get_error_message());
+        return;
+    }
+    
+    if (is_numeric($new_bg_image_id)) {
+        // Update the meta with new image ID
+        update_post_meta($link_page_id, '_link_page_background_image_id', $new_bg_image_id);
+        
+        // Delete old image if it exists and is different
+        if ($old_bg_image_id && $old_bg_image_id != $new_bg_image_id) {
+            wp_delete_attachment($old_bg_image_id, true);
+        }
+        
+        // Get the image URL
+        $image_url = wp_get_attachment_url($new_bg_image_id);
+        
+        if ($image_url) {
+            wp_send_json_success(array(
+                'url' => $image_url,
+                'attachment_id' => $new_bg_image_id
+            ));
+        } else {
+            wp_send_json_error('Failed to get image URL');
+        }
+    } else {
+        wp_send_json_error('Upload failed');
+    }
+}
+add_action('wp_ajax_extrch_upload_background_image_ajax', 'extrch_upload_background_image_ajax');
+add_action('wp_ajax_nopriv_extrch_upload_background_image_ajax', 'extrch_upload_background_image_ajax');
 
 // The redundant init hook and its logic are now removed.

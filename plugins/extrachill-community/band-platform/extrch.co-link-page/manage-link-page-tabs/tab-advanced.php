@@ -156,13 +156,15 @@ if ($current_link_page_id) {
         <?php
         // Fetch current value for the subscribe form description
         $subscribe_description = $current_link_page_id ? get_post_meta($current_link_page_id, '_link_page_subscribe_description', true) : '';
-        $subscribe_description_default = __( 'Enter your email address to receive occasional news and updates from this band.', 'generatepress_child' );
+        $band_name = isset($data['display_title']) && $data['display_title'] ? $data['display_title'] : __('this band', 'generatepress_child');
+        $subscribe_description_default = sprintf( __( 'Enter your email address to receive occasional news and updates from %s.', 'generatepress_child' ), $band_name );
+        $subscribe_description_to_show = $subscribe_description !== '' ? $subscribe_description : $subscribe_description_default;
         ?>
         <div class="bp-link-setting-item" style="margin-top:1.5em;">
             <label for="link_page_subscribe_description" style="display:block; font-weight:600; margin-bottom:0.3em;">
                 <?php esc_html_e('Subscribe Form Description', 'generatepress_child'); ?>
             </label>
-            <textarea name="link_page_subscribe_description" id="link_page_subscribe_description" rows="2" class="regular-text" style="width:100%;max-width:500px;min-height:48px;resize:vertical;" placeholder="<?php echo esc_attr($subscribe_description_default); ?>"><?php echo esc_textarea($subscribe_description); ?></textarea>
+            <textarea name="link_page_subscribe_description" id="link_page_subscribe_description" rows="2" class="regular-text" style="width:100%;max-width:500px;min-height:80px;resize:vertical;"><?php echo esc_textarea($subscribe_description_to_show); ?></textarea>
             <p class="description" style="color:#888; font-size:0.97em; margin-top:0.5em;">
                 <?php esc_html_e('This text appears in the subscribe modal or inline form on your public link page.', 'generatepress_child'); ?>
             </p>

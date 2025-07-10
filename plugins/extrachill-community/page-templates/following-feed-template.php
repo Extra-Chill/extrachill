@@ -49,16 +49,17 @@ if ( is_user_logged_in() ) {
     if ( function_exists('extrachill_get_following_posts_args') ) {
         
         $args_for_feed = extrachill_get_following_posts_args('topic');
-        error_log('[DEBUG] page-template - $args_for_feed prepared: ' . print_r($args_for_feed, true)); // Log before bbp_has_topics
 
-        // Pass arguments via a global $bbp property
-        global $bbp;
-        if ( !isset($bbp) || !is_object($bbp) ) { // Ensure $bbp is initialized
-            $bbp = bbpress();
-            error_log('[DEBUG] page-template - $bbp was not set, initialized via bbpress().');
+        // Set query context for following feed
+        set_query_var( 'extrachill_is_following_feed_context', 'true' );
+        
+        // Set up bbPress global for our custom query
+        if ( ! isset( $GLOBALS['bbpress'] ) ) {
+            $GLOBALS['bbpress'] = bbpress();
         }
+        $bbp = $GLOBALS['bbpress'];
+        
         $bbp->extrachill_passthrough_args = $args_for_feed;
-        error_log('[DEBUG] page-template - $bbp->extrachill_passthrough_args SET: ' . print_r($bbp->extrachill_passthrough_args, true));
 
         // Pass $args_for_feed directly to the template part
         // Note: bbp_has_topics() here is mainly to check if there *could* be posts 

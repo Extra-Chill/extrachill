@@ -384,12 +384,19 @@
         return sectionsData;
     }
 
-    // REVISED updateLinksPreview: Always attempts to update when called.
+    // REVISED updateLinksPreview: Only updates preview, NO hidden input updates during user interactions
     function updateLinksPreview() {
         const sectionsData = getLinksDataFromDOM(); // Get current links from the editor UI
-        
-        // The contentPreview.setFeaturedLinkUrlToSkipForPreview() should have been called *before* this
-        // by the featured link module, so the renderer knows which link to omit.
+
+        // Always set the skip URL for the featured link before rendering
+        if (
+            manager.featuredLink &&
+            typeof manager.featuredLink.getCurrentFeaturedUrlToSkip === 'function'
+        ) {
+            manager.contentPreview.setFeaturedLinkUrlToSkipForPreview(
+                manager.featuredLink.getCurrentFeaturedUrlToSkip()
+            );
+        }
 
         if (manager.contentPreview && typeof manager.contentPreview.renderLinkSections === 'function') {
             const previewEl = manager.getPreviewEl();
@@ -399,15 +406,30 @@
             }
         }
         
-        // Update hidden input for saving (important for form submission)
+        // NO HIDDEN INPUT UPDATES during user interactions - wait for save time
+        // This prevents scattered save logic and race conditions
+    }
+    manager.links.updateLinksPreview = updateLinksPreview; // Expose it on manager.links
+
+    /**
+     * Serializes current links data into the hidden input for form submission.
+     * This method should ONLY be called by the save handler, not during user interactions.
+     */
+    function serializeLinksForSave() {
+        const sectionsData = getLinksDataFromDOM();
         const hiddenInput = document.getElementById('link_page_links_json');
         if (hiddenInput) {
             hiddenInput.value = JSON.stringify(sectionsData);
+            console.log('[LinksManager] Serialized links for save:', sectionsData.length, 'sections');
+            return true;
         } else {
-            // console.warn('Hidden input for link_page_links_json not found for saving.');
+            console.warn('[LinksManager] Hidden input link_page_links_json not found for saving');
+            return false;
         }
     }
-    manager.links.updateLinksPreview = updateLinksPreview; // Expose it on manager.links
+    
+    // Expose the serialize method for the save handler
+    manager.links.serializeForSave = serializeLinksForSave;
 
     // Utility function to escape HTML entities for use in HTML attributes or content
     function escapeHTML(str) {
@@ -481,7 +503,7 @@
 
         // 5. Set allowPreviewUpdate to true now that initial setup is done
         manager.links.allowPreviewUpdate = true;
-        updateLinksPreview(); // Initial preview render based on the canonical data
+        // updateLinksPreview(); // REMOVE this call to prevent JS from re-rendering the preview on initial load
 
         // 6. Dispatch event indicating links are ready and window.bpLinkPageLinks is populated
         dispatchLinksUpdatedEvent(); 

@@ -1,101 +1,87 @@
 <?php
-/* following-feed.php 
- * Handles fetching posts relevant to bands followed by the current user.
+/**
+ * Following Feed Template Tag and Query Functions
+ * 
+ * Handles displaying topics from band forums that the current user follows.
  */
 
 /**
- * Get query arguments for topics from forums associated with bands followed by the current user.
- *
- * @param string $post_type 'topic' or 'reply'.
- * @return array WP_Query arguments array, or an empty array if no topics to display.
+ * Modify the bbp_has_topics query to show only topics from band forums that the user follows.
  */
-function extrachill_get_following_posts_args($post_type = 'topic') {
-    $current_user_id = get_current_user_id();
-    if ( !$current_user_id ) {
-        return array('post__in' => array(0)); // Return args that will result in no posts
+function modify_following_feed_query( $args ) {
+    if ( ! isset( $GLOBALS['bbpress'] ) ) {
+        $GLOBALS['bbpress'] = bbpress();
+    }
+    $bbp = $GLOBALS['bbpress'];
+
+    // Check if this is a following feed page query and modify accordingly
+    $is_following_feed_context = false;
+
+    // Check query_var flag
+    if ( get_query_var( 'extrachill_is_following_feed_context' ) === 'true' ) {
+        $is_following_feed_context = true;
     }
 
-    // Get followed band profile IDs
-    $followed_band_profile_ids = get_user_meta($current_user_id, '_followed_band_profile_ids', true);
-
-    if ( empty($followed_band_profile_ids) || !is_array($followed_band_profile_ids) ) {
-        return array('post__in' => array(0));
+    // Check if the query was initiated from our template context and modify
+    if ( isset( $bbp->extrachill_passthrough_args ) && is_array( $bbp->extrachill_passthrough_args ) ) {
+        $is_following_feed_context = true;
+        $args = array_merge( $args, $bbp->extrachill_passthrough_args );
+        unset( $bbp->extrachill_passthrough_args );
     }
 
-    // Sanitize to ensure they are integers
-    $followed_band_profile_ids = array_map('absint', $followed_band_profile_ids);
-    $followed_band_profile_ids = array_filter($followed_band_profile_ids); // Remove any zeros from invalid IDs
+    if ( $is_following_feed_context ) {
+        $current_user_id = get_current_user_id();
+        if ( ! $current_user_id ) {
+            // User not logged in, show no results
+            $args['post__in'] = array( 0 );
+            return $args;
+        }
 
-    if ( empty( $followed_band_profile_ids ) ) {
-        return array('post__in' => array(0));
-    }
+        // Get followed band profile IDs from user meta
+        $followed_band_profile_ids = get_user_meta( $current_user_id, '_followed_band_profile_ids', true );
+        if ( ! is_array( $followed_band_profile_ids ) || empty( $followed_band_profile_ids ) ) {
+            // User not following any bands, show no results
+            $args['post__in'] = array( 0 );
+            return $args;
+        }
 
-    // Get the forum IDs associated with these band profiles
+        // Convert band profile IDs to their corresponding forum IDs
     $band_forum_ids = array();
     foreach ( $followed_band_profile_ids as $band_profile_id ) {
         $forum_id = get_post_meta( $band_profile_id, '_band_forum_id', true );
-        if ( !empty( $forum_id ) && is_numeric( $forum_id ) ) {
-            $band_forum_ids[] = absint( $forum_id );
+            if ( $forum_id ) {
+                $band_forum_ids[] = (int) $forum_id;
+            }
         }
+
+        if ( empty( $band_forum_ids ) ) {
+            // No valid band forums found, show no results
+            $args['post__in'] = array( 0 );
+            return $args;
+        }
+
+        // Set the query to only show topics from these forums
+        $args['meta_query'] = array(
+            array(
+                'key'     => '_bbp_forum_id',
+                'value'   => $band_forum_ids,
+                'compare' => 'IN',
+                'type'    => 'NUMERIC'
+            )
+        );
+
+        // Ensure we're getting a reasonable number of posts
+        $actual_posts_per_page = bbp_get_topics_per_page();
+        if ( $actual_posts_per_page && is_numeric( $actual_posts_per_page ) ) {
+            $args['posts_per_page'] = $actual_posts_per_page;
+        }
+
+        // Ensure proper ordering
+        $args['orderby'] = 'date';
+        $args['order'] = 'DESC';
     }
-
-    $band_forum_ids = array_unique( $band_forum_ids );
-
-    // --- TEMPORARY DEBUGGING --- 
-    error_log('[DEBUG] Following Feed - User: ' . $current_user_id . ', Followed Band Profile IDs: ' . print_r($followed_band_profile_ids, true));
-    error_log('[DEBUG] Following Feed - Calculated Band Forum IDs: ' . print_r($band_forum_ids, true));
-    // --- END TEMPORARY DEBUGGING ---
-
-    // If band_forum_ids is empty after all checks, ensure no posts are returned.
-    if (empty($band_forum_ids)) {
-        error_log('[DEBUG] Following Feed - No valid band_forum_ids found, returning post__in => 0 args.');
-        return array('post__in' => array(0)); 
-    }
-
-    $actual_posts_per_page = bbp_get_topics_per_page();
-    error_log('[DEBUG] Following Feed - bbp_get_topics_per_page() returned: ' . $actual_posts_per_page);
-
-    // --- Construct Query Args (Simplified for debugging) --- 
-    $args = array(
-        'post_type'         => bbp_get_topic_post_type(), // Ensure correct post type
-        'post_parent__in'   => $band_forum_ids,
-        'posts_per_page'    => $actual_posts_per_page, 
-        'paged'             => bbp_get_paged(),
-        'orderby'           => 'meta_value',
-        'meta_key'          => '_bbp_last_active_time',
-        'order'             => 'DESC',
-        'ignore_sticky_posts' => 1, // Standard for bbPress topic lists
-        // 'suppress_filters' => true, // Uncomment to test if filters are interfering - USE WITH CAUTION
-    );
-
-    // If band_forum_ids is empty, ensure no posts are returned.
-    if (empty($band_forum_ids)) {
-        $args['post__in'] = array(0); // WP_Query trick to return no posts
-        unset($args['post_parent__in']); // Avoid issues with empty post_parent__in
-    }
-
-    error_log('[DEBUG] Following Feed - Final Query Args: ' . print_r($args, true)); // Log the final args
 
     return $args;
 }
-
-
-/* -- REMOVED: Old function to get followed users --
-function extrachill_get_followed_users() {
-    $current_user_id = get_current_user_id();
-    $following = get_user_meta($current_user_id, 'extrachill_following', true);
-
-    if (empty($following) || !is_array($following)) {
-        return [];
-    }
-
-    $user_query = new WP_User_Query(array(
-        'include' => $following,
-        'fields' => array('ID', 'display_name')
-    ));
-
-    return $user_query->get_results();
-}
-*/
 
 ?>

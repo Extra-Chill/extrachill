@@ -80,7 +80,9 @@ ExtrchLinkPageManager.initializeJumpToPreview = function() {
     }
 
     function toggleButtonState() {
-        const isMobile = window.innerWidth <= mobileBreakpoint;
+        // Use CSS media query instead of JavaScript mobile detection
+        const mediaQuery = window.matchMedia('(max-width: 768px)');
+        const isMobile = mediaQuery.matches;
         
         if (isMobile) {
             jumpButton.style.display = 'flex'; // Always show on mobile, icons change

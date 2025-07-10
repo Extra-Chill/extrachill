@@ -263,8 +263,7 @@ if (isset($link_page_id) && function_exists('extrch_render_featured_link_section
                         $normalized_url_to_skip_for_public_page = $featured_link_original_url_to_skip ? trailingslashit($featured_link_original_url_to_skip) : null;
                         foreach ($section['links'] as $link_item):
                             if (empty($link_item['link_url']) || empty($link_item['link_text'])) continue;
-
-                            // Skip if this link is the featured link
+                            // Skip if this link is the featured link (always use normalized URL)
                             $current_link_url_normalized_for_public_page = trailingslashit($link_item['link_url']);
                             if ($normalized_url_to_skip_for_public_page && $current_link_url_normalized_for_public_page === $normalized_url_to_skip_for_public_page) {
                                 continue;

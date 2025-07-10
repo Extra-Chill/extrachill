@@ -34,8 +34,10 @@ $show_featured_link_card = $is_featured_link_enabled && !empty($featured_link_or
 
 $featured_custom_description = $show_featured_link_card ? get_post_meta($link_page_id, '_featured_link_custom_description', true) : '';
 $featured_thumbnail_id = $show_featured_link_card ? get_post_meta($link_page_id, '_featured_link_thumbnail_id', true) : '';
-$featured_thumbnail_url = $featured_thumbnail_id ? wp_get_attachment_image_url($featured_thumbnail_id, 'medium') : '#'; // Use '#' or a placeholder if no image
-$initial_thumbnail_display = ($featured_thumbnail_id && $featured_thumbnail_url !== '#') ? 'block' : 'none';
+$fetched_og_image_url = $show_featured_link_card ? get_post_meta($link_page_id, '_featured_link_fetched_thumbnail_url', true) : '';
+$featured_thumbnail_url = $featured_thumbnail_id ? wp_get_attachment_image_url($featured_thumbnail_id, 'medium') : ($fetched_og_image_url ? esc_url($fetched_og_image_url) : '#');
+$initial_thumbnail_display = ($featured_thumbnail_url && $featured_thumbnail_url !== '#') ? 'block' : 'none';
+$has_any_thumbnail = ($featured_thumbnail_url && $featured_thumbnail_url !== '#');
 ?>
 <div class="link-page-content-card" id="featured-link-settings-card" style="<?php echo $show_featured_link_card ? '' : 'display:none;'; ?>">
     <h4 class="customize-card-title"><?php esc_html_e('Featured Link Settings', 'generatepress_child'); ?></h4>
@@ -44,7 +46,7 @@ $initial_thumbnail_display = ($featured_thumbnail_id && $featured_thumbnail_url 
         <label for="featured_link_thumbnail_upload"><strong><?php esc_html_e('Featured Link Thumbnail', 'generatepress_child'); ?></strong></label><br>
         <button type="button" class="button" id="featured-link-choose-file-btn" onclick="document.getElementById('featured_link_thumbnail_upload').click();" style="margin-bottom: 10px;">Choose File</button>
         <input type="file" id="featured_link_thumbnail_upload" name="featured_link_thumbnail_upload" accept="image/*" style="display:none;">
-        <?php if ($featured_thumbnail_id && $featured_thumbnail_url !== '#') : ?>
+        <?php if ($has_any_thumbnail) : ?>
             <button type="button" class="button button-secondary" id="remove_featured_link_thumbnail_btn" style="margin-left: 8px; margin-bottom: 10px;">Remove Thumbnail</button>
         <?php endif; ?>
         <p class="description" style="font-size: 0.9em; margin-top: -5px; margin-bottom: 10px;">
@@ -59,6 +61,8 @@ $initial_thumbnail_display = ($featured_thumbnail_id && $featured_thumbnail_url 
         <textarea id="featured_link_custom_description" name="featured_link_custom_description" rows="3" class="regular-text" style="width:100%; max-width:400px;"><?php echo esc_textarea($featured_custom_description); ?></textarea>
     </div>
 </div>
+
+<input type="hidden" name="featured_link_thumbnail_id_action" id="featured_link_thumbnail_id_action" value="<?php echo ($show_featured_link_card && $featured_thumbnail_id && $featured_link_original_id_val) ? 'remove' : ''; ?>">
 
 <!-- Fonts Card -->
 <div class="link-page-content-card">
@@ -175,7 +179,7 @@ $initial_thumbnail_display = ($featured_thumbnail_id && $featured_thumbnail_url 
         </div>
         <div class="customize-section">
             <label>
-                <input type="checkbox" id="link_page_overlay_toggle" name="link_page_overlay_toggle" value="1" <?php checked(get_post_meta($link_page_id, '_link_page_overlay_toggle', true), '1'); ?>>
+                <input type="checkbox" id="link_page_overlay_toggle" name="link_page_overlay_toggle" value="1" <?php checked(isset($custom_vars['overlay']) ? $custom_vars['overlay'] : '1', '1'); ?>>
                 <?php esc_html_e('Overlay (Card Background & Shadow)', 'generatepress_child'); ?>
             </label>
             <input type="hidden" name="link_page_overlay_toggle_present" value="1">
@@ -221,4 +225,10 @@ $initial_thumbnail_display = ($featured_thumbnail_id && $featured_thumbnail_url 
 </div>
 
 <!-- Add the hidden input for custom CSS vars JSON -->
-<input type="hidden" id="link_page_custom_css_vars_json" name="link_page_custom_css_vars_json" value="<?php echo esc_attr(json_encode($custom_vars)); ?>">
+<input type="hidden" id="link_page_custom_css_vars_json" name="link_page_custom_css_vars_json" value="<?php echo esc_attr(json_encode($custom_vars)); ?>" data-initial-value="<?php echo esc_attr(json_encode($custom_vars)); ?>">
+
+<input type="hidden" name="featured_link_og_image_removed" id="featured_link_og_image_removed" value="<?php echo get_post_meta(
+    $link_page_id,
+    '_featured_link_og_image_removed',
+    true
+) === '1' ? '1' : ''; ?>">

@@ -123,7 +123,10 @@
         const { previewContainer } = getLivePreviewContent();
         const wrapper = previewContainer ? previewContainer.querySelector('.extrch-link-page-content-wrapper') : null;
         if (wrapper) {
-            if (overlayVal === '1') {
+            // Handle both boolean and string values
+            const isOverlayEnabled = overlayVal === true || overlayVal === '1' || overlayVal === 1;
+            
+            if (isOverlayEnabled) {
                 wrapper.classList.remove('no-overlay');
             } else {
                 wrapper.classList.add('no-overlay');

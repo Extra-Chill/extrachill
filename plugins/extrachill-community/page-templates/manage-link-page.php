@@ -53,8 +53,16 @@ if (!$link_page_id || get_post_type($link_page_id) !== 'band_link_page') {
 // --- Google Font Preload for Live Preview (Initial Page Load) ---
 require_once get_stylesheet_directory() . '/band-platform/extrch.co-link-page/link-page-font-config.php';
 global $extrch_link_page_fonts;
-$custom_vars_json = get_post_meta($link_page_id, '_link_page_custom_css_vars', true);
-$custom_vars = $custom_vars_json ? json_decode($custom_vars_json, true) : array();
+$custom_vars_data = get_post_meta($link_page_id, '_link_page_custom_css_vars', true);
+
+// Handle both array (new format) and JSON string (legacy) formats
+if (is_array($custom_vars_data)) {
+    $custom_vars = $custom_vars_data;
+} elseif (is_string($custom_vars_data)) {
+    $custom_vars = json_decode($custom_vars_data, true);
+} else {
+    $custom_vars = array();
+}
 if (!function_exists('extrch_output_google_font_link')) {
     function extrch_output_google_font_link($font_value, $font_config) {
         foreach ($font_config as $font) {

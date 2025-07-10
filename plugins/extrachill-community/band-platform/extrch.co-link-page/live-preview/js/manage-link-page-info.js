@@ -21,13 +21,15 @@ window.ExtrchLinkPageInfoManager = {
         this.fields.profileImageUpload = document.getElementById('link_page_profile_image_upload');
         this.fields.removeProfileImageBtn = document.getElementById('bp-remove-profile-image-btn');
         this.fields.removeProfileImageHidden = document.getElementById('remove_link_page_profile_image_hidden');
-
+        
+        // Get the preview image element for live updates
         if (this.manager && this.manager.getPreviewEl) {
             const previewEl = this.manager.getPreviewEl();
             if (previewEl) {
                 const imgEl = previewEl.querySelector('.link-page-profile-image');
                 if (imgEl) {
                     this.originalImageSrc = imgEl.src;
+                    this.fields.profileImagePreview = imgEl; // Reference to the preview image
                 }
             }
         }
@@ -43,9 +45,12 @@ window.ExtrchLinkPageInfoManager = {
         if (this.fields.bioTextarea) {
             this.fields.bioTextarea.addEventListener('input', this._handleBioChange.bind(this));
         }
+        // Handle profile image upload with proper method
         if (this.fields.profileImageUpload) {
             this.fields.profileImageUpload.addEventListener('change', this._handleProfileImageChange.bind(this));
         }
+
+        // Handle profile image removal with proper method
         if (this.fields.removeProfileImageBtn) {
             this.fields.removeProfileImageBtn.addEventListener('click', this._handleRemoveProfileImage.bind(this));
         }
@@ -90,7 +95,11 @@ window.ExtrchLinkPageInfoManager = {
         }
     },
 
-    _handleRemoveProfileImage: function() {
+    _handleRemoveProfileImage: function(event) {
+        if (event) {
+            event.preventDefault();
+        }
+        
         if (this.manager && this.manager.contentPreview && this.manager.contentPreview.removePreviewProfileImage) {
             this.manager.contentPreview.removePreviewProfileImage(this.manager.getPreviewEl());
             this.fields.profileImageUpload.value = ''; // Clear the file input
@@ -150,3 +159,36 @@ window.ExtrchLinkPageInfoManager = {
         }
     }
 }; 
+
+/**
+ * Serializes current info settings into hidden inputs for form submission.
+ * This method should ONLY be called by the save handler, not during user interactions.
+ */
+function serializeInfoForSave() {
+    let success = true;
+    
+    // Serialize profile image removal flag
+    const removeProfileImageHidden = document.getElementById('remove_link_page_profile_image_hidden');
+    if (removeProfileImageHidden) {
+        // Check if image was removed (no file selected and preview is hidden)
+        const profileImageUpload = document.getElementById('link_page_profile_image_upload');
+        const profileImagePreview = document.querySelector('.profile-image-preview');
+        
+        if (profileImageUpload && (!profileImageUpload.files || profileImageUpload.files.length === 0) && 
+            profileImagePreview && profileImagePreview.style.display === 'none') {
+            removeProfileImageHidden.value = '1'; // Mark for removal
+            console.log('[InfoManager] Marked profile image for removal');
+        } else {
+            removeProfileImageHidden.value = '0'; // Keep image
+            console.log('[InfoManager] Profile image will be kept');
+        }
+    } else {
+        console.warn('[InfoManager] Remove profile image hidden input not found');
+        success = false;
+    }
+    
+    return success;
+}
+
+// Expose the serialize method for the save handler
+window.ExtrchLinkPageInfoManager.serializeForSave = serializeInfoForSave; 

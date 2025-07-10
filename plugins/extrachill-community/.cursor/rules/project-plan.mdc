@@ -47,6 +47,10 @@ This document outlines the forward-looking development plan and tasks for the Ba
 - **YouTube Embed Review & Thumbnail:** The YouTube embed feature needs review and should display a thumbnail for embeds.
 -- **Subscribe Button on live preview:** The subscribe button on the live preview is not properly inheriting the styles from the customizer. It is being overriden by default theme button styles. Additionally, we need to ensure the button border is implemented on this button. On the live link page, we have the button radius and colors, but not the proper border. 
 - **Sticky topics in band forums not working:** Setting a topic to sticky in the band forum is not properly pinning it to the top of the band profile forum display. 
+- On mobile, the featured link and temporary redirect dropdown selection forms are not properly contained inside their cards.
+- The title font must apply to the featured link section on the live preview.
+- Removing the featured link thumbnail is not fully reliable; it is sometimes added back to the page after removing it.
+- Popup modal colors need to be rethought: using the semi-transparent card background often makes text illegible. We need to standardize modal colors for legibility.
 
 ## Pre-Launch High Priority Bugs & Improvements (June 2025)
 

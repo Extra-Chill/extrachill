@@ -62,21 +62,9 @@
     manager.socialIcons.getSocialsDataFromDOM = getSocialsDataFromDOM;
 
     // --- New function to update the hidden input ---
-    function updateSocialsHiddenInput() {
-        if (!hiddenInput) {
-            // console.warn('[SocialIcons] Hidden input not found for updating.'); // Comment out
-            return;
-        }
-        const currentData = getSocialsDataFromDOM();
-        const jsonValue = JSON.stringify(currentData);
-        if (hiddenInput.value !== jsonValue) {
-            hiddenInput.value = jsonValue;
-            // console.log('[SocialIcons] Hidden input value updated:', jsonValue); // Comment out
-        }
-    }
-    // --- End New function ---
+    // Legacy updateSocialsHiddenInput function removed - now handled by serializeForSave at save time
 
-    // Live preview update logic (reads directly from DOM)
+    // Live preview update logic (reads directly from DOM) - NO hidden input updates during user interactions
     function updateSocialsPreview() {
         if (!manager.isInitialized || !manager.socialIcons.allowPreviewUpdate) { // Check the new flag
             // console.log('[SocialIcons] Manager not initialized or preview update not allowed, skipping preview update.');
@@ -89,12 +77,33 @@
                 const socials = getSocialsDataFromDOM();
                 const position = getSocialIconsPositionFromDOM(); // Get current position from radio buttons
                 manager.contentPreview.renderSocials(socials, previewElInsideIframe, contentWrapperEl, position);
-                // --- Call the new function to update the hidden input after preview updates ---
-                updateSocialsHiddenInput(); // This updates the main social links JSON, not the position
-                // --- End Call ---
+                
+                // NO HIDDEN INPUT UPDATES during user interactions - wait for save time
+                // This prevents scattered save logic and race conditions
             }
         }
     }
+    
+    /**
+     * Serializes current socials data into the hidden input for form submission.
+     * This method should ONLY be called by the save handler, not during user interactions.
+     */
+    function serializeSocialsForSave() {
+        if (!hiddenInput) {
+            console.warn('[SocialIcons] Hidden input not found for serialization');
+            return false;
+        }
+        const currentData = getSocialsDataFromDOM();
+        const jsonValue = JSON.stringify(currentData);
+        hiddenInput.value = jsonValue;
+        console.log('[SocialIcons] Serialized socials for save:', currentData.length, 'items');
+        return true;
+    }
+    
+    // Expose the serialize method for the save handler
+    manager.socialIcons.serializeForSave = serializeSocialsForSave;
+
+    // Remove tab change listener - no longer needed since we serialize at save time
     const debouncedSocialPreviewUpdate = debounce(updateSocialsPreview, 300);
 
     // Observer for the hidden input (primarily for debugging or external changes)
@@ -129,12 +138,15 @@
         socialIconsPositionRadios = document.querySelectorAll('input[name="link_page_social_icons_position"]');
 
         if (!socialListEl || !addSocialBtn || !hiddenInput) {
-            // console.warn('[SocialIcons] Essential DOM elements (list, add button, or hidden input) not found. Module will not function.'); // Keep
+            console.warn('[SocialIcons] Essential DOM elements (list, add button, or hidden input) not found. Module will not function.');
             return;
         }
 
         observeHiddenInput(); // Start observing the hidden input
-        // updateSocialsHiddenInput(); // Initial sync of hidden input from DOM state
+        
+        // Enable preview updates after initialization
+        manager.socialIcons.allowPreviewUpdate = true;
+        console.log('[SocialIcons] Module initialized successfully, preview updates enabled');
 
         // Supported social types from configData
         const allSocialTypes = configData?.supportedLinkTypes || {};
@@ -161,7 +173,7 @@
                     onEnd: function () {
                         if (isInitialSortableSocialsEnd) {
                             isInitialSortableSocialsEnd = false; // Consume the flag
-                            updateSocialsHiddenInput(); // Sync hidden input without triggering full preview update
+                            // No hidden input update during initialization - wait for save time
                             return;
                         }
                         updateSocialsPreview(); // For actual user drags

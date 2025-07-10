@@ -27,6 +27,7 @@ function extrch_save_featured_link_settings($link_page_id, $post_data, $files_da
     $current_link_url_from_meta = get_post_meta($link_page_id, '_featured_link_original_id', true);
     $was_thumbnail_explicitly_removed = isset($post_data['featured_link_thumbnail_id_action']) && $post_data['featured_link_thumbnail_id_action'] === 'remove';
     $is_new_thumbnail_uploaded = !empty($files_data['featured_link_thumbnail_upload']['tmp_name']);
+    $og_image_removed = isset($post_data['featured_link_og_image_removed']) && $post_data['featured_link_og_image_removed'] === '1';
 
     if ($is_feature_enabled_globally) {
         if (isset($post_data['featured_link_custom_description'])) {
@@ -53,6 +54,7 @@ function extrch_save_featured_link_settings($link_page_id, $post_data, $files_da
                         wp_delete_attachment($old_custom_thumb_id, true);
                     }
                     delete_post_meta($link_page_id, '_featured_link_fetched_thumbnail_url');
+                    delete_post_meta($link_page_id, '_featured_link_og_image_removed');
                 } else {
                     if (is_wp_error($new_custom_thumb_id)) {
                         error_log('[Featured Link Handler] Thumbnail upload error: ' . $new_custom_thumb_id->get_error_message());
@@ -66,9 +68,8 @@ function extrch_save_featured_link_settings($link_page_id, $post_data, $files_da
             if ($url_has_changed || $was_thumbnail_explicitly_removed) {
                 $old_custom_thumb_id_to_clear = get_post_meta($link_page_id, '_featured_link_thumbnail_id', true);
                 if ($old_custom_thumb_id_to_clear) {
-                    if ($was_thumbnail_explicitly_removed) { 
-                        wp_delete_attachment($old_custom_thumb_id_to_clear, true);
-                    }
+                    // Always delete the old custom thumbnail if the link changes or is removed
+                    wp_delete_attachment($old_custom_thumb_id_to_clear, true);
                     delete_post_meta($link_page_id, '_featured_link_thumbnail_id');
                 }
                 delete_post_meta($link_page_id, '_featured_link_fetched_thumbnail_url');
@@ -86,6 +87,13 @@ function extrch_save_featured_link_settings($link_page_id, $post_data, $files_da
                     delete_post_meta($link_page_id, '_featured_link_fetched_thumbnail_url');
                 }
             }
+
+            if ($og_image_removed) {
+                delete_post_meta($link_page_id, '_featured_link_fetched_thumbnail_url');
+                update_post_meta($link_page_id, '_featured_link_og_image_removed', '1');
+            } else {
+                delete_post_meta($link_page_id, '_featured_link_og_image_removed');
+            }
         }
     } else {
         delete_post_meta($link_page_id, '_featured_link_custom_description');
@@ -95,6 +103,7 @@ function extrch_save_featured_link_settings($link_page_id, $post_data, $files_da
             delete_post_meta($link_page_id, '_featured_link_thumbnail_id');
         }
         delete_post_meta($link_page_id, '_featured_link_fetched_thumbnail_url');
+        delete_post_meta($link_page_id, '_featured_link_og_image_removed');
     }
 }
 
@@ -120,12 +129,13 @@ function extrch_render_featured_link_section_html($link_page_id, $link_sections,
     $custom_desc = get_post_meta($link_page_id, '_featured_link_custom_description', true);
     $thumbnail_id = get_post_meta($link_page_id, '_featured_link_thumbnail_id', true);
     $fetched_thumbnail_url = get_post_meta($link_page_id, '_featured_link_fetched_thumbnail_url', true);
+    $og_image_removed = get_post_meta($link_page_id, '_featured_link_og_image_removed', true) === '1';
     $title_font_family = isset($css_vars['--link-page-title-font-family']) ? $css_vars['--link-page-title-font-family'] : "'WilcoLoftSans', sans-serif";
     $thumbnail_url_to_display = '';
 
     if ($thumbnail_id) {
         $thumbnail_url_to_display = wp_get_attachment_image_url($thumbnail_id, 'large');
-    } elseif (!empty($fetched_thumbnail_url) && wp_http_validate_url($fetched_thumbnail_url)) {
+    } elseif (!$og_image_removed && !empty($fetched_thumbnail_url) && wp_http_validate_url($fetched_thumbnail_url)) {
         $thumbnail_url_to_display = esc_url($fetched_thumbnail_url);
     }
 

@@ -264,13 +264,38 @@ function enqueue_fontawesome() {
 add_action('wp_enqueue_scripts', 'enqueue_fontawesome');
 
 
-// Redirect non-admin users attempting to access the backend
+// Redirect non-admin users attempting to access the backend and hide admin bar for non-admins
 function wp_surgeon_redirect_admin() {
+    // If user is not an administrator
     if (!current_user_can('administrator')) {
+        // Hide admin bar for non-admins
         show_admin_bar(false);
+        
+        // If trying to access wp-admin, redirect to homepage
+        // Allow admin-ajax.php for AJAX requests
+        if (is_admin() && !wp_doing_ajax()) {
+            wp_safe_redirect(home_url('/'));
+            exit();
+        }
     }
+    // Administrators get full access to wp-admin and keep admin bar
 }
 add_action('admin_init', 'wp_surgeon_redirect_admin');
+
+// Prevent WordPress core from redirecting logged-in administrators
+function wp_surgeon_prevent_admin_auth_redirect($redirect_to, $requested_redirect_to, $user) {
+    // If user is administrator and trying to access wp-admin, ensure they get there
+    if (isset($user->ID) && current_user_can('administrator', $user->ID)) {
+        if (!empty($requested_redirect_to) && strpos($requested_redirect_to, '/wp-admin') !== false) {
+            return $requested_redirect_to; // Send admin directly to wp-admin
+        }
+        if (!empty($redirect_to) && strpos($redirect_to, '/wp-admin') !== false) {
+            return $redirect_to; // Send admin directly to wp-admin
+        }
+    }
+    return $redirect_to;
+}
+add_filter('login_redirect', 'wp_surgeon_prevent_admin_auth_redirect', 5, 3); // High priority
 
 // Function to create 'forum_user' role
 
@@ -355,12 +380,13 @@ function custom_search_filter($query) {
 add_filter('pre_get_posts', 'custom_search_filter');
 
 // Remove admin bar for all users except administrators
-function wp_surgeon_remove_admin_bar() {
-    if (!current_user_can('administrator')) {
-        show_admin_bar(false);
-    }
-}
-add_action('after_setup_theme', 'wp_surgeon_remove_admin_bar');
+// REMOVED: This functionality is now handled in wp_surgeon_redirect_admin()
+// function wp_surgeon_remove_admin_bar() {
+//     if (!current_user_can('administrator')) {
+//         show_admin_bar(false);
+//     }
+// }
+// add_action('after_setup_theme', 'wp_surgeon_remove_admin_bar');
 
 class Custom_Walker_Nav_Menu extends Walker_Nav_Menu {
     function start_lvl( &$output, $depth = 0, $args = null ) {
@@ -755,16 +781,30 @@ add_action('init', 'extrch_add_link_page_rewrites');
  * Redirects users from the default WordPress login page to the custom login page.
  */
 function wp_surgeon_redirect_wp_login() {
-    $current_page = basename($_SERVER['REQUEST_URI']);
-
-    // Check if the user is trying to access wp-login.php directly
-    if ($current_page === 'wp-login.php' && $_SERVER['REQUEST_METHOD'] === 'GET') {
+    // Get the full REQUEST_URI to catch all wp-login.php access patterns
+    $request_uri = $_SERVER['REQUEST_URI'];
+    
+    // Check if the user is trying to access wp-login.php
+    if (strpos($request_uri, 'wp-login.php') !== false && $_SERVER['REQUEST_METHOD'] === 'GET') {
         // Allow specific actions like logout, lostpassword, resetpass
         $allowed_actions = ['logout', 'lostpassword', 'resetpass', 'rp', 'activate'];
         $action = isset($_GET['action']) ? $_GET['action'] : '';
 
+        // If user is already logged in and is an administrator, allow access to wp-login.php
+        // This prevents redirect loops when admins try to access wp-admin
+        if (is_user_logged_in() && current_user_can('administrator')) {
+            return; // Allow administrators full access to wp-login.php
+        }
+
+        // For non-logged-in users or non-admins, redirect to custom login page
         if (!in_array($action, $allowed_actions) && !is_user_logged_in()) {
-            wp_redirect(home_url('/login'));
+            // Preserve any redirect_to parameter
+            $redirect_to = isset($_GET['redirect_to']) ? $_GET['redirect_to'] : '';
+            $login_url = home_url('/login');
+            if (!empty($redirect_to)) {
+                $login_url = add_query_arg('redirect_to', urlencode($redirect_to), $login_url);
+            }
+            wp_redirect($login_url);
             exit();
         }
     }
@@ -775,7 +815,13 @@ add_action('template_redirect', 'wp_surgeon_redirect_wp_login');
  * Filters the login URL to use the custom login page.
  */
 function wp_surgeon_custom_login_url($login_url, $redirect) {
-    // Use the custom login page URL
+    // If user is already logged in and is an administrator, don't modify the login URL
+    // This prevents redirect loops when admins try to access wp-admin
+    if (is_user_logged_in() && current_user_can('administrator')) {
+        return $login_url; // Return the original wp-login.php URL for admins
+    }
+    
+    // Use the custom login page URL for non-admins or non-logged-in users
     $custom_login_url = home_url('/login');
 
     // Append redirect_to parameter if it exists
@@ -787,8 +833,8 @@ function wp_surgeon_custom_login_url($login_url, $redirect) {
 }
 add_filter('login_url', 'wp_surgeon_custom_login_url', 10, 2);
 
-// Filter bbPress forum queries to order 'top' forums by last active time
-function ec_filter_top_forums_by_last_active( $query_args ) {
+// Filter bbPress forum queries to order forums by last active time for homepage
+function ec_filter_homepage_forums_by_last_active( $query_args ) {
     // Check if this is the main bbPress forums query in the loop
     // This filter runs for various queries, so be specific.
     // We only want to apply this on the main forum archive or potentially front page where the loop-forums.php is used.
@@ -821,7 +867,7 @@ function ec_filter_top_forums_by_last_active( $query_args ) {
          // The query inside loop-forums.php *doesn't* have a post_parent set typically for the top level.
 
         if ( isset($query_args['post_type']) && $query_args['post_type'] === bbp_get_forum_post_type() ) {
-            // Check if this query is likely the one in loop-forums.php displaying top/middle sections.
+            // Check if this query is likely the one in loop-forums.php displaying homepage forums.
             // These queries fetch top-level forums (post_parent typically 0 or not set) and have -1 posts_per_page.
             // This is still a heuristic, but better.
             $is_targeted_loop = (
@@ -830,12 +876,12 @@ function ec_filter_top_forums_by_last_active( $query_args ) {
             );
 
             if ( $is_targeted_loop ) {
-                // Apply meta query for the 'top' section
+                // Apply meta query for forums marked to show on homepage
                 $meta_query = isset($query_args['meta_query']) ? (array) $query_args['meta_query'] : array();
 
                 $meta_query[] = array(
-                    'key'     => '_bbp_forum_section',
-                    'value'   => 'top',
+                    'key'     => '_show_on_homepage',
+                    'value'   => '1',
                     'compare' => '=',
                 );
 
@@ -847,7 +893,7 @@ function ec_filter_top_forums_by_last_active( $query_args ) {
                 $query_args['order'] = 'DESC';
 
                 // We might need to ensure the meta_key exists for ordering to work correctly.
-                // Add a clause to the meta_query if the meta_key isn't guaranteed to exist for all 'top' forums.
+                // Add a clause to the meta_query if the meta_key isn't guaranteed to exist for all homepage forums.
                 // However, _bbp_last_active_time should exist for any forum with activity.
                 // Let's stick to the simpler orderby meta_value for now.
             }
@@ -855,4 +901,85 @@ function ec_filter_top_forums_by_last_active( $query_args ) {
     }
     return $query_args;
 }
-add_filter( 'bbp_pre_query_forums', 'ec_filter_top_forums_by_last_active' );
+add_filter( 'bbp_pre_query_forums', 'ec_filter_homepage_forums_by_last_active' );
+
+/**
+ * Clear most active users cache when new topics or replies are created
+ * This ensures the cached data stays fresh when new activity occurs
+ */
+function clear_most_active_users_cache( $post_id, $post, $update ) {
+    // Only clear cache for new posts, not updates
+    if ( $update ) {
+        return;
+    }
+    
+    // Only clear cache for topics and replies
+    if ( in_array( $post->post_type, array( 'topic', 'reply' ) ) ) {
+        delete_transient( 'most_active_users_30_days' );
+    }
+}
+add_action( 'wp_insert_post', 'clear_most_active_users_cache', 10, 3 );
+
+/**
+ * Manual function to clear most active users cache
+ * Can be called from admin or via AJAX if needed
+ */
+function clear_most_active_users_cache_manual() {
+    $deleted = delete_transient( 'most_active_users_30_days' );
+    return $deleted;
+}
+
+/**
+ * AJAX handler for manually clearing most active users cache
+ * Only accessible to administrators
+ */
+function ajax_clear_most_active_users_cache() {
+    // Check nonce for security
+    if ( ! wp_verify_nonce( $_POST['nonce'], 'clear_most_active_users_cache' ) ) {
+        wp_die( 'Security check failed' );
+    }
+    
+    // Check user permissions
+    if ( ! current_user_can( 'administrator' ) ) {
+        wp_die( 'Insufficient permissions' );
+    }
+    
+    $result = clear_most_active_users_cache_manual();
+    
+    wp_send_json_success( array(
+        'cleared' => $result,
+        'message' => $result ? 'Cache cleared successfully' : 'Cache was already empty or expired'
+    ) );
+}
+add_action( 'wp_ajax_clear_most_active_users_cache', 'ajax_clear_most_active_users_cache' );
+
+/**
+ * Clear online users related caches when needed
+ * This ensures the online users count stays accurate
+ */
+function clear_online_users_cache() {
+    delete_transient( 'online_users_count' );
+    delete_transient( 'most_ever_online_check' );
+}
+
+/**
+ * Clear user activity cache when user logs out
+ * This ensures accurate online user counts
+ */
+function clear_user_activity_cache_on_logout( $user_id ) {
+    $user_activity_cache_key = 'user_activity_' . $user_id;
+    delete_transient( $user_activity_cache_key );
+}
+add_action( 'wp_logout', 'clear_user_activity_cache_on_logout' );
+
+/**
+ * Clear user activity cache when user logs in
+ * This ensures fresh activity tracking
+ */
+function clear_user_activity_cache_on_login( $user_login, $user ) {
+    if ( $user && isset( $user->ID ) ) {
+        $user_activity_cache_key = 'user_activity_' . $user->ID;
+        delete_transient( $user_activity_cache_key );
+    }
+}
+add_action( 'wp_login', 'clear_user_activity_cache_on_login', 10, 2 );

@@ -22,14 +22,10 @@ function bp_filter_user_capabilities( $allcaps, $caps, $args, $user ) {
     $cap     = $args[0]; // The capability being checked
     $post_id = isset( $args[2] ) ? $args[2] : null; // Post ID, if applicable
 
-    // Log every capability check that goes through this filter for a specific user or cap if needed for debugging
-    // error_log(sprintf("[Band Permissions] Checking cap: %s for user: %d, post_id: %s", $cap, $user_id, is_null($post_id) ? 'N/A' : $post_id));
-
     // Grant 'create_band_profiles' capability if user is an artist or can edit pages
     if ( $cap === 'create_band_profiles' ) {
         if ( user_can( $user_id, 'edit_pages' ) || ( get_user_meta( $user_id, 'user_is_artist', true ) === '1' || get_user_meta( $user_id, 'user_is_professional', true ) === '1' ) ) {
             $allcaps[$cap] = true;
-            // error_log(sprintf("[Band Permissions] Granted create_band_profiles for user %d", $user_id));
             return $allcaps;
         }
     }
@@ -37,8 +33,6 @@ function bp_filter_user_capabilities( $allcaps, $caps, $args, $user ) {
     // --- Capability for viewing band_link_page analytics ---
     if ( $cap === 'view_band_link_page_analytics' && $post_id ) {
         if ( get_post_type( $post_id ) === 'band_link_page' ) {
-            error_log(sprintf("[Band Permissions DEBUG] Cap check for 'view_band_link_page_analytics'. User: %d, Link Page ID: %d", $user_id, $post_id));
-
             $associated_band_id = get_post_meta( $post_id, '_associated_band_profile_id', true );
             if ( $associated_band_id ) {
                 $linked_band_ids_for_user = get_user_meta( $user_id, '_band_profile_ids', true );
@@ -47,12 +41,7 @@ function bp_filter_user_capabilities( $allcaps, $caps, $args, $user ) {
                 }
                 if ( in_array( (int) $associated_band_id, array_map('intval', $linked_band_ids_for_user) ) ) { // Cast to int for comparison
                     $allcaps[$cap] = true;
-                    error_log(sprintf("[Band Permissions DEBUG] Granted 'view_band_link_page_analytics' to user %d for link page %d (via band %d)", $user_id, $post_id, $associated_band_id));
-                } else {
-                    error_log(sprintf("[Band Permissions DEBUG] Denied 'view_band_link_page_analytics' to user %d for link page %d (not member of band %d)", $user_id, $post_id, $associated_band_id));
                 }
-            } else {
-                error_log(sprintf("[Band Permissions DEBUG] Denied 'view_band_link_page_analytics' for link page %d (no associated band_id found)", $post_id));
             }
         }
         return $allcaps; // Return early after handling this specific cap for a band_link_page
@@ -60,8 +49,6 @@ function bp_filter_user_capabilities( $allcaps, $caps, $args, $user ) {
 
     // Check for band-specific capabilities
     if ( $post_id && get_post_type( $post_id ) === 'band_profile' ) {
-        error_log(sprintf("[Band Permissions DEBUG] Cap check on band_profile. User: %d, Cap: %s, Band Profile ID: %d", $user_id, $cap, $post_id));
-
         // Get linked band IDs for the user
         $linked_band_ids = get_user_meta( $user_id, '_band_profile_ids', true );
         if ( ! is_array( $linked_band_ids ) ) {
@@ -70,13 +57,11 @@ function bp_filter_user_capabilities( $allcaps, $caps, $args, $user ) {
 
         // Is the user a member of this specific band profile?
         $is_member_of_this_band = in_array( $post_id, $linked_band_ids );
-        error_log(sprintf("[Band Permissions DEBUG] User %d is member of band %d: %s", $user_id, $post_id, $is_member_of_this_band ? 'Yes' : 'No'));
 
         if ( $is_member_of_this_band ) {
             // Capabilities for linked band members for THEIR OWN band profile
             if ( in_array( $cap, array( 'edit_post', 'delete_post', 'read_post', 'publish_post', 'manage_band_members' ) ) ) {
                 $allcaps[$cap] = true;
-                error_log(sprintf("[Band Permissions DEBUG] Granted cap '%s' to user %d for their band %d", $cap, $user_id, $post_id));
             }
         }
 
@@ -84,7 +69,6 @@ function bp_filter_user_capabilities( $allcaps, $caps, $args, $user ) {
         $band_forum_id = get_post_meta( $post_id, '_band_forum_id', true );
         if ( $band_forum_id && isset($args[2]) && $args[2] == $band_forum_id ) {
             // This condition means the capability check is for the associated band forum ID
-            error_log(sprintf("[Band Permissions DEBUG] Cap check on band_forum. User: %d, Cap: %s, Forum ID: %d (linked to Band %d)", $user_id, $cap, $band_forum_id, $post_id));
             if ( $is_member_of_this_band ) {
                 // Grant broad forum moderation capabilities to band members for their own band's forum
                 $member_forum_caps = [
@@ -98,14 +82,12 @@ function bp_filter_user_capabilities( $allcaps, $caps, $args, $user ) {
                 ];
                 if ( in_array( $cap, $member_forum_caps ) ) {
                     $allcaps[$cap] = true;
-                    error_log(sprintf("[Band Permissions DEBUG] Granted forum cap '%s' to band member %d for their band forum %d", $cap, $user_id, $band_forum_id));
                 }
             }
             
             // Public topic creation logic for the band's forum
             if ( $cap === 'publish_topics' ) {
                 $allow_public_creation = get_post_meta( $post_id, '_allow_public_topic_creation', true );
-                error_log(sprintf("[Band Permissions DEBUG] Forum cap 'publish_topics' check. Allow public for band %d: %s", $post_id, $allow_public_creation === '1' ? 'Yes' : 'No'));
                 if ( $allow_public_creation === '1' ) {
                     // If public creation is allowed, anyone with the site-wide bbp_topic_creatable can post.
                     // We don't explicitly grant publish_topics here based on this setting alone if they don't have bbp_topic_creatable.
@@ -122,7 +104,6 @@ function bp_filter_user_capabilities( $allcaps, $caps, $args, $user ) {
                         // $allcaps[$cap] = false; // CAREFUL: This can be too broad. bbPress handles this by default if it can't find a grant.
                         // For now, we rely on the fact that if they are not a member, they won't get the grant from $member_forum_caps.
                         // And if public is off, bbPress default permission checks for publish_topics in this specific forum_id should fail for non-members.
-                        error_log(sprintf("[Band Permissions DEBUG] Public topics OFF for band %d. User %d is NOT a member. publish_topics will rely on other grants or lack thereof.", $post_id, $user_id));
                     }
                 }
             }

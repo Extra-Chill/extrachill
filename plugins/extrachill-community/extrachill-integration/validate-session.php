@@ -12,7 +12,7 @@ add_action('rest_api_init', function () {
     register_rest_route('extrachill/v1', '/check-band-manage-access/(?P<band_id>\d+)', array(
         'methods' => 'GET',
         'callback' => 'extrch_check_band_manage_access_standard_auth',
-        'permission_callback' => function() { return is_user_logged_in(); }, // Requires user to be logged in via standard WP auth
+        'permission_callback' => '__return_true', // Public endpoint, checks auth internally to handle cross-domain cases
         'args' => array(
             'band_id' => array(
                 'validate_callback' => function($param, $request, $key) {
@@ -66,27 +66,53 @@ function validate_session_token(WP_REST_Request $request) {
  * REST API callback to check if the current user can manage a specific band
  * using standard WordPress authentication.
  *
- * This endpoint should be called from a domain where the user is logged in,
- * like community.extrachill.com.
+ * This endpoint handles cross-domain requests from extrachill.link to community.extrachill.com
+ * and provides detailed debugging for authentication issues.
  *
  * @param WP_REST_Request $request Full details about the request.
  * @return WP_REST_Response|WP_Error Response object or Error object.
  */
 function extrch_check_band_manage_access_standard_auth( $request ) {
     $band_id = (int) $request['band_id'];
-
     $can_manage = false;
-
-    // is_user_logged_in() check is handled by permission_callback, but adding here for clarity and safety
+    $debug_info = array();
+    
+    // Collect debug information
+    $debug_info['band_id'] = $band_id;
+    $debug_info['is_user_logged_in'] = is_user_logged_in();
+    $debug_info['current_user_id'] = get_current_user_id();
+    $debug_info['request_origin'] = $request->get_header('origin') ?: 'unknown';
+    $debug_info['request_referer'] = $request->get_header('referer') ?: 'unknown';
+    $debug_info['has_auth_cookies'] = !empty($_COOKIE['wordpress_logged_in_' . COOKIEHASH]);
+    
     if ( is_user_logged_in() ) {
-         if ( ! empty( $band_id ) && current_user_can( 'manage_band_members', $band_id ) ) {
-            $can_manage = true;
+        $current_user_id = get_current_user_id();
+        $debug_info['current_user_id'] = $current_user_id;
+        
+        if ( ! empty( $band_id ) ) {
+            $can_manage = current_user_can( 'manage_band_members', $band_id );
+            
+            // Additional debug: check if user is linked to this band
+            $user_band_ids = get_user_meta( $current_user_id, '_band_profile_ids', true );
+            $debug_info['user_band_ids'] = $user_band_ids;
+            $debug_info['is_band_member'] = is_array($user_band_ids) && in_array($band_id, $user_band_ids);
+            $debug_info['band_exists'] = get_post_status($band_id) === 'publish';
         }
+    } else {
+        // Additional debug for non-logged-in users
+        $debug_info['cookie_names'] = array_keys($_COOKIE);
+        $debug_info['wp_cookie_check'] = isset($_COOKIE['wordpress_' . COOKIEHASH]);
     }
+    
+    $debug_info['can_manage'] = $can_manage;
 
-    error_log('[DEBUG] extrch_check_band_manage_access_standard_auth API: band_id=' . $band_id . ', is_user_logged_in()=' . (is_user_logged_in() ? 'true' : 'false') . ', can_manage=' . ($can_manage ? 'true' : 'false'));
+    // Log comprehensive debug info
+    error_log('[Edit Button Debug] Band management check: ' . json_encode($debug_info));
 
-    return new WP_REST_Response( array( 'canManage' => $can_manage ), 200 );
+    return new WP_REST_Response( array( 
+        'canManage' => $can_manage,
+        'debug' => $debug_info  // Include debug info in response for troubleshooting
+    ), 200 );
 }
 
 

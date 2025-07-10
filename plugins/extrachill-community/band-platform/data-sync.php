@@ -12,17 +12,17 @@ defined( 'ABSPATH' ) || exit;
  * Manages a flag to prevent recursive synchronization.
  */
 class BandDataSyncManager {
-    private static bool $is_syncing = false;
+    private static $is_syncing = false;
 
-    public static function is_syncing(): bool {
+    public static function is_syncing() {
         return self::$is_syncing;
     }
 
-    public static function start_sync(): void {
+    public static function start_sync() {
         self::$is_syncing = true;
     }
 
-    public static function stop_sync(): void {
+    public static function stop_sync() {
         self::$is_syncing = false;
     }
 }
@@ -36,7 +36,7 @@ class BandDataSyncManager {
  * @param WP_Post $post    The post object.
  * @param bool    $update  Whether this is an existing post being updated or not.
  */
-function extrch_sync_band_profile_to_link_page( int $post_id, WP_Post $post, bool $update ): void {
+function extrch_sync_band_profile_to_link_page( $post_id, $post, $update ) {
     if ( BandDataSyncManager::is_syncing() ) {
         return;
     }
@@ -107,7 +107,7 @@ add_action( 'save_post_band_profile', 'extrch_sync_band_profile_to_link_page', 1
  * @param string $meta_key    Meta key being updated.
  * @param mixed  $_meta_value New meta value.
  */
-function extrch_sync_link_page_meta_to_band_profile( int $meta_id, int $object_id, string $meta_key, mixed $_meta_value ): void {
+function extrch_sync_link_page_meta_to_band_profile( $meta_id, $object_id, $meta_key, $_meta_value ) {
     if ( BandDataSyncManager::is_syncing() ) {
         return;
     }
@@ -179,7 +179,7 @@ add_action( 'added_post_meta', 'extrch_sync_link_page_meta_to_band_profile', 10,
  * @param string $meta_key    Meta key that was deleted.
  * @param mixed  $_meta_value Value of the meta key that was deleted.
  */
-function extrch_sync_link_page_deleted_image_meta_to_band_profile( array $meta_ids, int $object_id, string $meta_key, mixed $_meta_value ): void {
+function extrch_sync_link_page_deleted_image_meta_to_band_profile( $meta_ids, $object_id, $meta_key, $_meta_value ) {
     if ( BandDataSyncManager::is_syncing() ) {
         return;
     }

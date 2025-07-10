@@ -7,11 +7,21 @@ function record_user_activity() {
     $user_id = get_current_user_id();
     if ($user_id) {
         $current_time = current_time('timestamp');
-        $last_active = get_user_meta($user_id, 'last_active', true);
-
-        // Only update if 5 minutes have passed (300 seconds)
-        if (empty($last_active) || ($current_time - intval($last_active)) > 300) {
-            update_user_meta_prepared($user_id, 'last_active', $current_time);
+        
+        // Use a more efficient approach with transient caching
+        $user_activity_cache_key = 'user_activity_' . $user_id;
+        $last_update = get_transient($user_activity_cache_key);
+        
+        // Only update if 15 minutes have passed (900 seconds) - increased from 5 minutes
+        if (false === $last_update || ($current_time - intval($last_update)) > 900) {
+            // Update the last_active meta
+            update_user_meta($user_id, 'last_active', $current_time);
+            
+            // Set a transient to track when we last updated for this user
+            set_transient($user_activity_cache_key, $current_time, 900); // 15 minutes
+            
+            // Clear the online users count cache since we updated activity
+            delete_transient('online_users_count');
         }
     }
 
@@ -21,31 +31,27 @@ function record_user_activity() {
         $online_users_count = get_online_users_count();
     }
 
-    // Update most ever online if needed
-    $most_ever_online = get_option('most_ever_online', ['count' => 0, 'date' => '']);
-    $most_ever_online_count = intval($most_ever_online['count']);
+    // Update most ever online if needed (but cache this check too)
+    $most_ever_cache_key = 'most_ever_online_check';
+    $last_most_ever_check = get_transient($most_ever_cache_key);
+    
+    if (false === $last_most_ever_check) {
+        $most_ever_online = get_option('most_ever_online', ['count' => 0, 'date' => '']);
+        $most_ever_online_count = intval($most_ever_online['count']);
 
-    if ($online_users_count > $most_ever_online_count) {
-        $most_ever_online = [
-            'count' => $online_users_count,
-            'date' => current_time('m/d/Y')
-        ];
-        update_option('most_ever_online', $most_ever_online);
+        if ($online_users_count > $most_ever_online_count) {
+            $most_ever_online = [
+                'count' => $online_users_count,
+                'date' => current_time('m/d/Y')
+            ];
+            update_option('most_ever_online', $most_ever_online);
+        }
+        
+        // Cache this check for 5 minutes to avoid frequent option updates
+        set_transient($most_ever_cache_key, current_time('timestamp'), 300);
     }
 }
 add_action('wp', 'record_user_activity');
-
-function update_user_meta_prepared($user_id, $meta_key, $meta_value) {
-    global $wpdb;
-    $table = $wpdb->usermeta;
-
-    $query = $wpdb->prepare(
-        "UPDATE $table SET meta_value = %s WHERE user_id = %d AND meta_key = %s",
-        $meta_value, $user_id, $meta_key
-    );
-
-    $wpdb->query($query);
-}
 
 function get_online_users_count() {
     global $wpdb;

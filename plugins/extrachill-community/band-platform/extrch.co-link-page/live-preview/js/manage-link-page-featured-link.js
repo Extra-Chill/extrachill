@@ -134,76 +134,72 @@
             currentAjaxRequest.abort();
         }
 
+        // Always clear any previously uploaded custom image when changing the link
+        if (thumbnailUploadInput) {
+            thumbnailUploadInput.value = '';
+        }
+        if (thumbnailPreviewImg) {
+            thumbnailPreviewImg.src = '#';
+            thumbnailPreviewImg.style.display = 'none';
+            delete thumbnailPreviewImg.dataset.lastUserUpload;
+        }
+        clearOgImageRemovedFlag();
+        const hiddenThumbIdInput = document.getElementById('featured_link_thumbnail_id_action');
+        if (hiddenThumbIdInput) hiddenThumbIdInput.value = 'remove';
+
         if (selectedValue) {
             const linkData = getLinkByUrl(selectedValue);
             let originalTitle = linkData ? (linkData.link_text || linkData.title || '') : '';
 
-            // Clear previous user-uploaded thumbnail from Customize tab preview if selection changes
-            if (thumbnailPreviewImg) {
-                const initialThumbSrc = thumbnailPreviewImg.dataset.initialSrc;
-                if (initialThumbSrc && initialThumbSrc !== '#') {
-                    thumbnailPreviewImg.src = initialThumbSrc;
-                    thumbnailPreviewImg.style.display = 'block';
-                } else {
-                    thumbnailPreviewImg.src = '#';
-                    thumbnailPreviewImg.style.display = 'none';
-                }
-            }
-            if (thumbnailUploadInput) {
-                thumbnailUploadInput.value = ''; // Clear file input
-            }
-
             // Update live preview (title from input, clear thumbnail for AJAX)
             triggerFeaturedLinkPreviewUpdate({
                 title: originalTitle,
-                // Only clear thumbnail if this is an initial selection
-                ...(isInitialSelection ? { thumbnailUrl: '' } : {})
+                // Always clear thumbnail so OG image is fetched for new link
+                thumbnailUrl: ''
             });
 
-            if (isInitialSelection) {
-                const nonce = window.extrchLinkPageConfig?.nonces?.featured_link_nonce;
-                if (!nonce) {
-                    console.error('Featured link nonce not found.');
-                    triggerFeaturedLinkPreviewUpdate({ thumbnailUrl: '' });
-                    return;
-                }
+            const nonce = window.extrchLinkPageConfig?.nonces?.featured_link_nonce;
+            if (!nonce) {
+                console.error('Featured link nonce not found.');
+                triggerFeaturedLinkPreviewUpdate({ thumbnailUrl: '' });
+                return;
+            }
 
-                currentAjaxRequest = new XMLHttpRequest();
-                currentAjaxRequest.open('POST', window.ajaxurl, true);
-                currentAjaxRequest.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded; charset=UTF-8');
-                currentAjaxRequest.onload = function() {
-                    if (currentAjaxRequest.status >= 200 && currentAjaxRequest.status < 400) {
-                        try {
-                            const response = JSON.parse(currentAjaxRequest.responseText);
-                            if (response.success && response.data && typeof response.data.og_image_url !== 'undefined') {
-                                triggerFeaturedLinkPreviewUpdate({ thumbnailUrl: response.data.og_image_url });
-                            } else {
-                                triggerFeaturedLinkPreviewUpdate({ thumbnailUrl: '' }); // Clear if not found or error
-                            }
-                        } catch (e) {
-                            console.error('Error parsing OG image fetch response:', e);
-                            triggerFeaturedLinkPreviewUpdate({ isActive: true, thumbnailUrl: '' });
+            currentAjaxRequest = new XMLHttpRequest();
+            currentAjaxRequest.open('POST', window.ajaxurl, true);
+            currentAjaxRequest.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded; charset=UTF-8');
+            currentAjaxRequest.onload = function() {
+                if (currentAjaxRequest.status >= 200 && currentAjaxRequest.status < 400) {
+                    try {
+                        const response = JSON.parse(currentAjaxRequest.responseText);
+                        if (response.success && response.data && typeof response.data.og_image_url !== 'undefined') {
+                            triggerFeaturedLinkPreviewUpdate({ thumbnailUrl: response.data.og_image_url });
+                        } else {
+                            triggerFeaturedLinkPreviewUpdate({ thumbnailUrl: '' });
                         }
-                    } else {
-                        console.error('Error fetching OG image:', currentAjaxRequest.statusText);
+                    } catch (e) {
+                        console.error('Error parsing OG image fetch response:', e);
                         triggerFeaturedLinkPreviewUpdate({ isActive: true, thumbnailUrl: '' });
                     }
-                    currentAjaxRequest = null;
-                };
-                currentAjaxRequest.onerror = function() {
-                    console.error('Network error while fetching OG image.');
+                } else {
+                    console.error('Error fetching OG image:', currentAjaxRequest.statusText);
                     triggerFeaturedLinkPreviewUpdate({ isActive: true, thumbnailUrl: '' });
-                    currentAjaxRequest = null;
-                };
-                currentAjaxRequest.send(
-                    'action=extrch_fetch_og_image_for_preview' +
-                    '&security=' + encodeURIComponent(nonce) +
-                    '&url_to_fetch=' + encodeURIComponent(selectedValue)
-                );
-            }
-            // Dispatch event to update/clear highlight in links tab
+                }
+                currentAjaxRequest = null;
+            };
+            currentAjaxRequest.onerror = function() {
+                console.error('Network error while fetching OG image.');
+                triggerFeaturedLinkPreviewUpdate({ isActive: true, thumbnailUrl: '' });
+                currentAjaxRequest = null;
+            };
+            currentAjaxRequest.send(
+                'action=extrch_fetch_og_image_for_preview' +
+                '&security=' + encodeURIComponent(nonce) +
+                '&url_to_fetch=' + encodeURIComponent(selectedValue)
+            );
+
             document.dispatchEvent(new CustomEvent('featuredLinkOriginalUrlChanged', { detail: { newUrl: selectedValue || null } }));
-        } else { // No link selected (dropdown cleared)
+        } else {
             if (manager.contentPreview && typeof manager.contentPreview.updatePreviewFeaturedLink === 'function') {
                 manager.contentPreview.updatePreviewFeaturedLink(
                     { isActive: false }, 
@@ -212,9 +208,8 @@
                 );
             }
             if (manager.links && typeof manager.links.updateLinksPreview === 'function') {
-                manager.links.updateLinksPreview(); // Re-render links list
+                manager.links.updateLinksPreview();
             }
-            // Dispatch event to clear highlight in links tab
             document.dispatchEvent(new CustomEvent('featuredLinkOriginalUrlChanged', { detail: { newUrl: null } }));
         }
     }
@@ -325,8 +320,29 @@
         if (manager.featuredLink.isInitialized && enableFeaturedLinkCheckbox && enableFeaturedLinkCheckbox.checked && featuredLinkOriginalUrlSelect) {
             populateLinksDropdown(true);
             // After repopulating, if a value is selected, ensure its preview logic runs
+            // BUT only if no custom thumbnail already exists and user hasn't explicitly removed the OG image
             if (featuredLinkOriginalUrlSelect.value) {
-                handleFeaturedLinkSelectionChange(featuredLinkOriginalUrlSelect.value);
+                // Check if there's a custom thumbnail ID set (indicates user uploaded thumbnail)
+                // When value is "remove", it means there IS a custom thumbnail (PHP sets this when thumbnail exists)
+                const hiddenThumbIdInput = document.getElementById('featured_link_thumbnail_id_action');
+                const hasCustomThumbnail = hiddenThumbIdInput && hiddenThumbIdInput.value === 'remove';
+                
+                // Check if user has explicitly removed the OG image
+                const ogImageRemovedInput = document.getElementById('featured_link_og_image_removed');
+                const hasRemovedOgImage = ogImageRemovedInput && ogImageRemovedInput.value === '1';
+                
+                if (!hasCustomThumbnail && !hasRemovedOgImage) {
+                    // Only fetch OG image if no custom thumbnail exists AND user hasn't removed the OG image
+                    handleFeaturedLinkSelectionChange(featuredLinkOriginalUrlSelect.value);
+                } else {
+                    // Just update the preview with existing data without fetching new OG image
+                    const linkData = getLinkByUrl(featuredLinkOriginalUrlSelect.value);
+                    let originalTitle = linkData ? (linkData.link_text || linkData.title || '') : '';
+                    triggerFeaturedLinkPreviewUpdate({
+                        title: originalTitle
+                        // Don't specify thumbnailUrl - let it keep whatever is currently displayed
+                    });
+                }
             }
         }
     });
@@ -344,6 +360,7 @@
         }
 
         thumbnailUploadInput.addEventListener('change', function(event) {
+            clearOgImageRemovedFlag();
             const file = event.target.files[0];
             if (file) {
                 const reader = new FileReader();
@@ -397,17 +414,32 @@
                 const hiddenThumbIdInput = document.getElementById('featured_link_thumbnail_id_action');
                 if(hiddenThumbIdInput) hiddenThumbIdInput.value = 'remove';
 
-                // Re-trigger preview. If an OG image was fetched for the *current selected link*, it should show.
-                // Otherwise, it should be blank.
-                const currentSelectedUrl = featuredLinkOriginalUrlSelect ? featuredLinkOriginalUrlSelect.value : null;
-                if (currentSelectedUrl) {
-                    // Faking a selection change to re-trigger OG fetch or use existing latestPreviewDataState
-                    handleFeaturedLinkSelectionChange(currentSelectedUrl); // Treat as a new action, not initial load
-                } else {
-                    triggerFeaturedLinkPreviewUpdate({ thumbnailUrl: '' }); // No link, so definitely clear
-                }
+                // If the OG image is being shown (no custom upload), set the OG image removed flag
+                const ogImageRemovedInput = document.getElementById('featured_link_og_image_removed');
+                if (ogImageRemovedInput) ogImageRemovedInput.value = '1';
+
+                // Do NOT re-fetch OG image here. Just clear the preview.
+                triggerFeaturedLinkPreviewUpdate({ thumbnailUrl: '' });
+
+                // Hide the remove button after removal
+                removeThumbnailButton.style.display = 'none';
             });
         }
+
+        // Update the remove button visibility whenever the preview is updated
+        function updateRemoveButtonVisibility() {
+            if (!removeThumbnailButton) return;
+            // Show if there is a thumbnail in the preview or saved
+            const hasThumbnail = (thumbnailPreviewImg && thumbnailPreviewImg.src && thumbnailPreviewImg.src !== '#' && thumbnailPreviewImg.style.display !== 'none');
+            removeThumbnailButton.style.display = hasThumbnail ? '' : 'none';
+        }
+
+        // Patch triggerFeaturedLinkPreviewUpdate to call updateRemoveButtonVisibility
+        const originalTriggerFeaturedLinkPreviewUpdate = triggerFeaturedLinkPreviewUpdate;
+        triggerFeaturedLinkPreviewUpdate = function(updatedPortion = {}) {
+            originalTriggerFeaturedLinkPreviewUpdate(updatedPortion);
+            updateRemoveButtonVisibility();
+        };
 
         // Update title in preview in real time, surgical update
         const featuredLinkTitleInput = document.getElementById('featured_link_custom_title'); // If you ever add a title input
@@ -629,6 +661,17 @@
         manager.featuredLink.isPerformingInitialSetup = false; // End of initial setup phase
         manager.featuredLink.isInitialized = true;
         manager.featuredLink.customizeTabInitialized = customizeTabReady; 
+    };
+
+    // When a new link is selected or a new image is uploaded, clear the OG image removed flag
+    function clearOgImageRemovedFlag() {
+        const ogImageRemovedInput = document.getElementById('featured_link_og_image_removed');
+        if (ogImageRemovedInput) ogImageRemovedInput.value = '';
+    }
+
+    manager.featuredLink.getCurrentFeaturedUrlToSkip = function() {
+        const select = document.getElementById('bp-featured-link-original-id');
+        return select && select.value ? select.value.replace(/\/$/, '') : null;
     };
 
 })(window.ExtrchLinkPageManager); 

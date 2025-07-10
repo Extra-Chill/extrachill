@@ -493,10 +493,17 @@ function extrch_link_page_enqueue_assets() {
         }
 
         if ($current_post_id && !empty($extrch_link_page_fonts)) { // Ensure $extrch_link_page_fonts is available
-            $custom_vars_json = get_post_meta($current_post_id, '_link_page_custom_css_vars', true);
-            if ($custom_vars_json) {
-                $custom_vars = json_decode($custom_vars_json, true);
-                if (is_array($custom_vars) && !empty($custom_vars['--link-page-title-font-family'])) {
+            $custom_vars_data = get_post_meta($current_post_id, '_link_page_custom_css_vars', true);
+            $custom_vars = null;
+            
+            // Handle both array (new format) and JSON string (legacy) formats
+            if (is_array($custom_vars_data)) {
+                $custom_vars = $custom_vars_data;
+            } elseif (is_string($custom_vars_data)) {
+                $custom_vars = json_decode($custom_vars_data, true);
+            }
+            
+            if (is_array($custom_vars) && !empty($custom_vars['--link-page-title-font-family'])) {
                     
                     // Determine the 'value' of the font, which might be a direct value or derived from a stack
                     $stored_font_setting = $custom_vars['--link-page-title-font-family'];
@@ -573,7 +580,6 @@ function extrch_link_page_enqueue_assets() {
             }
         }
     }
-}
 add_action( 'wp_enqueue_scripts', 'extrch_link_page_enqueue_assets' );
 
 

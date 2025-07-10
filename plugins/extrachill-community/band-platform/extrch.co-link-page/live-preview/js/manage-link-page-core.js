@@ -20,6 +20,25 @@ ExtrchLinkPageManager.getInitialData = function() {
     checkConfig();
 })(); 
 
+// Track management activity for edit button fallback logic
+function trackManagementActivity() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const bandId = urlParams.get('band_id');
+    
+    if (bandId && window.location.pathname.includes('/manage-link-page')) {
+        try {
+            localStorage.setItem('extrch_recent_band_management', JSON.stringify({
+                band_id: bandId,
+                timestamp: Date.now(),
+                action: 'manage_link_page'
+            }));
+            console.log('[Management Track] Stored recent management activity for band:', bandId);
+        } catch (e) {
+            console.warn('[Management Track] Could not store management activity:', e);
+        }
+    }
+}
+
 // Ensure window.extrchLinkPageConfig is set before dispatching the event
 if (typeof window.extrchLinkPageConfig === 'undefined') {
     // This indicates an issue with how the config is being passed from PHP
@@ -28,6 +47,9 @@ if (typeof window.extrchLinkPageConfig === 'undefined') {
 
     // Dispatch the event after DOMContentLoaded to ensure listeners are ready
     document.addEventListener('DOMContentLoaded', function() {
+        // Track management activity for edit button fallback
+        trackManagementActivity();
+        
         // Use a small timeout to ensure manage-link-page.js's DOMContentLoaded listener runs first
         setTimeout(() => {
             document.dispatchEvent(new CustomEvent('extrchLinkPageConfigReady', { detail: window.extrchLinkPageConfig }));

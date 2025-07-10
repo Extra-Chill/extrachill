@@ -62,7 +62,7 @@
             formContainer.innerHTML =
                 `<h3 style=\"margin-bottom:0.5em;\">${subscribeHeader}</h3>` +
                 '<p style="margin-bottom:1em; color:#888; font-size:0.97em;">' +
-                (description && description.trim() !== '' ? manager.escapeHTML(description) : 'Enter your email address to receive occasional news and updates.') +
+                (description && description.trim() !== '' ? manager.escapeHTML(description) : `Enter your email address to receive occasional news and updates from ${manager.escapeHTML(bandName)}`) +
                 '</p>' +
                 '<form class="extrch-subscribe-form" onsubmit="return false;">' +
                 '<input type="email" placeholder="Your email address" style="width:100%;max-width:250px;">' +

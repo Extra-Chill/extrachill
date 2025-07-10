@@ -86,6 +86,17 @@ function wp_surgeon_login_page_redirect() {
 
             // Default redirect for logged-in users on the login page if not from join flow
             $redirect_url = isset($_REQUEST['redirect_to']) ? esc_url_raw($_REQUEST['redirect_to']) : home_url();
+            
+            // Special handling for administrators to prevent redirect loops
+            if (current_user_can('administrator') && isset($_REQUEST['redirect_to'])) {
+                $redirect_to = $_REQUEST['redirect_to'];
+                // If admin is being redirected to wp-admin, allow direct access
+                if (strpos($redirect_to, '/wp-admin') !== false) {
+                    wp_redirect($redirect_to);
+                    exit;
+                }
+            }
+            
             wp_redirect($redirect_url);
             exit;
         }
@@ -199,10 +210,15 @@ function wp_surgeon_redirect_login_errors_to_custom_page($redirect_to, $request,
 add_action('template_redirect', 'wp_surgeon_redirect_wp_login_access');
 function wp_surgeon_redirect_wp_login_access() {
     if ( strpos( strtolower($_SERVER['REQUEST_URI']), '/wp-login.php' ) !== false ) {
-        if ( ! is_user_logged_in() || ! current_user_can( 'administrator' ) ) {
+        // Only redirect if user is NOT logged in AND NOT an administrator
+        // Allow administrators full access to wp-login.php
+        if ( ! is_user_logged_in() ) {
+            // Redirect non-logged-in users to custom login page
             wp_redirect( home_url( '/login/' ) );
             exit;
         }
+        // If user is logged in, allow access (administrators and other users)
+        // wp-login.php will handle its own internal logic for what to show
     }
 }
 

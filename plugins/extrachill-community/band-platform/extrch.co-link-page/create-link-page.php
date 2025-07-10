@@ -113,7 +113,7 @@ function extrch_create_link_page_for_band_profile( $post_id, $post ) {
 
         // Apply default styles.
         $default_styles_array = extrch_get_default_link_page_styles();
-        update_post_meta( $new_link_page_id, '_link_page_custom_css_vars', wp_json_encode( $default_styles_array ) );
+        update_post_meta( $new_link_page_id, '_link_page_custom_css_vars', $default_styles_array );
 
         // Also save individual meta fields for background type and color for easier initial JS hydration
         // and consistency, as the JS for background controls might look for these specific meta.
@@ -164,7 +164,7 @@ function extrch_get_default_link_page_styles() {
 
     return array(
         // Background & Page Styles
-        '--link-page-bg-color'                      => $default_page_bg_color,
+                    '--link-page-background-color'              => $default_page_bg_color,
         '--link-page-background-type'               => 'color', 
         '--link-page-background-gradient-start'       => $default_button_bg_color, 
         '--link-page-background-gradient-end'         => $default_button_hover_bg_color, 

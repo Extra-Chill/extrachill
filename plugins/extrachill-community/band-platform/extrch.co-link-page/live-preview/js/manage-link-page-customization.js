@@ -69,6 +69,14 @@
     // Canonical: Only update the relevant CSS variable in the <style id="extrch-link-page-custom-vars"> tag in <head>.
     // This ensures a single source of truth for both live preview and save.
     manager.customization.updateSetting = function(key, value) {
+        // Special handling for overlay (not a CSS variable - it's a class toggle)
+        if (key === 'overlay') {
+            if (manager.previewUpdater && typeof manager.previewUpdater.update === 'function') {
+                manager.previewUpdater.update(key, value, manager.customization.getCustomVars());
+            }
+            return;
+        }
+        
         const styleTag = document.getElementById('extrch-link-page-custom-vars');
         if (!styleTag) {
             return;
@@ -99,6 +107,7 @@
             }
         }
         rootRule.style.setProperty(key, value);
+        
         // Call previewUpdater for any additional JS-driven preview logic
         if (manager.previewUpdater && typeof manager.previewUpdater.update === 'function') {
             manager.previewUpdater.update(key, value, manager.customization.getCustomVars());
@@ -110,6 +119,7 @@
         if (!element) {
             return;
         }
+        
         // Special handling for font pickers to ensure Google Font is loaded before updating CSS var
         if (customVarKey === '--link-page-title-font-family' || customVarKey === '--link-page-body-font-family') {
             element.addEventListener(eventType, function(event) {
@@ -141,6 +151,12 @@
                 if (valueTransform) {
                     val = valueTransform(val, event.target);
                 }
+                
+                // Convert boolean to string for overlay consistency
+                if (isCheckbox && customVarKey === 'overlay') {
+                    val = val ? '1' : '0';
+                }
+                
                 manager.customization.updateSetting(customVarKey, val);
             });
         }
@@ -149,24 +165,52 @@
     
     // --- Getter for customVars (for serialization before save) ---
     manager.customization.getCustomVars = function() {
-        // Parse the style tag for all CSS vars
+        // Parse the style tag for all CSS vars - READ FROM CSSOM, NOT textContent
         const styleTag = document.getElementById('extrch-link-page-custom-vars');
         if (!styleTag) return {};
-        let cssText = styleTag.textContent;
-        let match = cssText.match(/:root\s*{([^}]*)}/);
-        let varsBlock = match ? match[1] : '';
+        
         let vars = {};
-        varsBlock.split(';').forEach(pair => {
-            const [k, v] = pair.split(':').map(s => s && s.trim());
-            if (k && v && k.startsWith('--')) {
-                vars[k] = v;
+        
+        // Use CSSOM to read current CSS variables (including dynamic updates)
+        let sheet = styleTag.sheet;
+        if (sheet && sheet.cssRules) {
+            for (let i = 0; i < sheet.cssRules.length; i++) {
+                if (sheet.cssRules[i].selectorText === ':root') {
+                    const rootRule = sheet.cssRules[i];
+                    // Read all CSS custom properties from the :root rule
+                    for (let j = 0; j < rootRule.style.length; j++) {
+                        const property = rootRule.style[j];
+                        if (property.startsWith('--')) {
+                            const value = rootRule.style.getPropertyValue(property);
+                            if (value) {
+                                vars[property] = value.trim();
+                            }
+                        }
+                    }
+                    break;
+                }
             }
-        });
-        // Add overlay if present
+        }
+        
+        // If no CSSOM data found, fall back to textContent parsing (for initial load)
+        if (Object.keys(vars).length === 0) {
+            let cssText = styleTag.textContent;
+            let match = cssText.match(/:root\s*{([^}]*)}/);
+            let varsBlock = match ? match[1] : '';
+            varsBlock.split(';').forEach(pair => {
+                const [k, v] = pair.split(':').map(s => s && s.trim());
+                if (k && v && k.startsWith('--')) {
+                    vars[k] = v;
+                }
+            });
+        }
+        
+        // Handle overlay: always read from current checkbox state (overlay is not a CSS variable)
         const overlayToggle = document.getElementById('link_page_overlay_toggle');
         if (overlayToggle) {
             vars.overlay = overlayToggle.checked ? '1' : '0';
         }
+        
         return vars;
     };
 
@@ -212,8 +256,25 @@
             bodyFontFamilySelect.value = bodyFontValueForSelect;
         }
 
+        // Handle overlay toggle sync - simple conflict prevention
         if (overlayToggle) {
-            overlayToggle.checked = (typeof currentCV.overlay === 'undefined') ? true : currentCV.overlay === '1';
+            // Only sync if the user is not currently interacting with the toggle
+            const isUserActivelyInteracting = document.activeElement === overlayToggle;
+            
+            if (!isUserActivelyInteracting) {
+                let targetState;
+                if (typeof currentCV.overlay !== 'undefined') {
+                    targetState = currentCV.overlay === '1';
+                } else {
+                    // Default to enabled if no state found
+                    targetState = true;
+                }
+                
+                // Only update if there's actually a difference
+                if (overlayToggle.checked !== targetState) {
+                    overlayToggle.checked = targetState;
+                }
+            }
         }
 
         // Sync Color Pickers (use a safe fallback if not present)

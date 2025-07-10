@@ -21,12 +21,12 @@ $band_id = $data['band_id'] ?? 0;
 if (!$band_id && isset($data['band_profile']) && isset($data['band_profile']->ID)) {
     $band_id = $data['band_profile']->ID;
 }
-$social_links = $band_id ? get_post_meta($band_id, '_band_profile_social_links', true) : [];
-if (!is_array($social_links)) $social_links = [];
-
-// --- DEBUG: Output social links data on page load ---
-error_log('[LinkPageLinksTab PHP] Social links fetched from meta (\'_band_profile_social_links\') for band ID ' . $band_id . ': ' . print_r($social_links, true));
-// --- END DEBUG ---
+if (!empty($band_id)) {
+    $social_links = get_post_meta($band_id, '_band_profile_social_links', true);
+    if (!is_array($social_links)) {
+        $social_links = array();
+    }
+}
 
 // Fetch supported social link types
 require_once dirname(__DIR__) . '/link-page-social-types.php';
@@ -111,18 +111,14 @@ require_once dirname(__DIR__) . '/link-expiration.php';
                             // Determine if this link is the featured link (to be highlighted)
                             $is_featured_link = false;
                             $debug_link_url = !empty($link['link_url']) ? $link['link_url'] : '';
-                            $debug_featured_url = !empty($data['featuredLinkUrlToSkip']) ? $data['featuredLinkUrlToSkip'] : '';
+                            $debug_featured_url = !empty($data['featured_link_url_to_skip']) ? $data['featured_link_url_to_skip'] : '';
                             if (!empty($debug_featured_url) && !empty($debug_link_url)) {
                                 $is_featured_link = (trailingslashit($debug_link_url) === trailingslashit($debug_featured_url));
-                                error_log('[tab-links.php] Comparing link: ' . $debug_link_url . ' to featured: ' . $debug_featured_url . ' | Result: ' . ($is_featured_link ? 'MATCH' : 'NO MATCH'));
-                            } else {
-                                error_log('[tab-links.php] Skipping compare: link_url=' . $debug_link_url . ' featuredLinkUrlToSkip=' . $debug_featured_url);
                             }
                             $link_item_classes = 'bp-link-item';
                             if ($is_featured_link) {
                                 $link_item_classes .= ' bp-editor-featured-link';
                             }
-                            error_log('[tab-links.php] link_item_classes for link: ' . $debug_link_url . ' = ' . $link_item_classes);
                             ?>
                             <div class="<?php echo esc_attr($link_item_classes); ?>" data-sidx="<?php echo esc_attr($sidx); ?>" data-lidx="<?php echo esc_attr($lidx); ?>" data-expires-at="<?php echo esc_attr($link['expires_at'] ?? ''); ?>" data-link-id="<?php echo esc_attr($link['id'] ?? ''); ?>">
                                 <span class="bp-link-drag-handle drag-handle"><i class="fas fa-grip-vertical"></i></span>

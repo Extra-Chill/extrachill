@@ -137,7 +137,7 @@ $featured_link_url_to_skip_preview = isset($preview_template_data['featured_link
                         $normalized_url_to_skip_for_php_preview = $featured_link_url_to_skip_preview ? trailingslashit($featured_link_url_to_skip_preview) : null;
                         foreach ($section['links'] as $link):
                             if (empty($link['link_url']) || empty($link['link_text'])) continue;
-                            // Skip if this link is the featured link (PHP-side filtering for initial preview render)
+                            // Skip if this link is the featured link (always use normalized URL)
                             $current_link_url_normalized_for_php_preview = trailingslashit($link['link_url']);
                             if ($normalized_url_to_skip_for_php_preview && $current_link_url_normalized_for_php_preview === $normalized_url_to_skip_for_php_preview) {
                                 continue;
@@ -172,7 +172,12 @@ $featured_link_url_to_skip_preview = isset($preview_template_data['featured_link
                     ?>
                 </h3>
                 <p style="margin-bottom:1em; color:#888; font-size:0.97em;">
-                    <?php echo esc_html(isset($preview_template_data['_link_page_subscribe_description']) && $preview_template_data['_link_page_subscribe_description'] !== '' ? $preview_template_data['_link_page_subscribe_description'] : 'Enter your email address to receive occasional news and updates from this band.'); ?>
+                    <?php 
+                    $subscribe_description = isset($preview_template_data['_link_page_subscribe_description']) && $preview_template_data['_link_page_subscribe_description'] !== ''
+                        ? $preview_template_data['_link_page_subscribe_description']
+                        : sprintf(__('Enter your email address to receive occasional news and updates from %s.', 'generatepress_child'), $display_title);
+                    echo esc_html($subscribe_description);
+                    ?>
                 </p>
                 <form class="extrch-subscribe-form" onsubmit="return false;">
                     <input type="email" placeholder="Your email address" style="width:100%;max-width:250px;">

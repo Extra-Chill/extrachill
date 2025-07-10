@@ -33,7 +33,10 @@ $band_name = isset($band_name) ? $band_name : (isset($data['display_title']) ? $
             <h3 id="extrch-subscribe-modal-title" class="extrch-subscribe-header">
                 Subscribe<?php if (!empty($band_name)) echo ' to ' . esc_html($band_name); ?>
             </h3>
-            <p><?php esc_html_e('Enter your email address to receive occasional news and updates from this band.', 'generatepress_child'); ?></p>
+            <p><?php 
+            $subscribe_description = isset($data['_link_page_subscribe_description']) && $data['_link_page_subscribe_description'] !== '' ? $data['_link_page_subscribe_description'] : sprintf(__('Enter your email address to receive occasional news and updates from %s.', 'generatepress_child'), $band_name);
+            echo esc_html($subscribe_description);
+            ?></p>
         </div>
 
         <form id="extrch-subscribe-form-modal" class="extrch-subscribe-form">

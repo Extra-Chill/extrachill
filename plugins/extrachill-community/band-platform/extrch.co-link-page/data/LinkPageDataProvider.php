@@ -98,7 +98,16 @@ class LinkPageDataProvider {
             }));
         }
         // Customization meta
-        $data['custom_css_vars_json'] = $get_val('custom_css_vars_json', null, '_link_page_custom_css_vars');
+        $raw_css_vars = $get_val('custom_css_vars_json', null, '_link_page_custom_css_vars');
+        
+        // Handle both array (new format) and JSON string (legacy) formats
+        if (is_array($raw_css_vars)) {
+            // New format: stored as array, convert to JSON for compatibility
+            $data['custom_css_vars_json'] = json_encode($raw_css_vars);
+        } else {
+            // Legacy format: stored as JSON string
+            $data['custom_css_vars_json'] = $raw_css_vars;
+        }
 
         // Profile image shape: Use JSON blob as canonical source
         $css_vars_for_shape = array();
@@ -207,6 +216,9 @@ class LinkPageDataProvider {
             $css_vars['--link-page-body-font-family'] = $final_body_font_stack;
         }
 
+        // Ensure all expected CSS variables are present to prevent undefined array key errors
+        $css_vars = self::ensureExpectedCssVariables($css_vars);
+
         // Removed hardcoded color fallbacks. If colors are not in $css_vars (i.e., not user-customized),
         // they should not be added here, allowing theme CSS to control them.
         // The $css_vars array will now only contain user-defined values or structural defaults like font-family and radius.
@@ -281,7 +293,8 @@ class LinkPageDataProvider {
             $link_sections_for_featured = isset($data['links']) && is_array($data['links']) ? $data['links'] : [];
             $css_vars_for_featured = isset($data['css_vars']) && is_array($data['css_vars']) ? $data['css_vars'] : [];
             $data['featured_link_html'] = extrch_render_featured_link_section_html($link_page_id, $link_sections_for_featured, $css_vars_for_featured);
-            $data['featured_link_url_to_skip'] = extrch_get_featured_link_url_to_skip($link_page_id);
+            $featured_url = extrch_get_featured_link_url_to_skip($link_page_id);
+            $data['featured_link_url_to_skip'] = $featured_url ? trailingslashit($featured_url) : null; // Always normalized
         }
 
         // Final preview_data array, ensuring all necessary keys are explicitly returned
@@ -339,9 +352,62 @@ class LinkPageDataProvider {
 
             // Add featured link data
             'featured_link_html' => $data['featured_link_html'],
-            'featuredLinkUrlToSkip' => $data['featured_link_url_to_skip'],
+            'featured_link_url_to_skip' => $data['featured_link_url_to_skip'],
         );
         return $return_data;
+    }
+
+    private static function ensureExpectedCssVariables($css_vars) {
+        // Ensure all expected CSS variables are present with meaningful defaults
+        $expected_vars = [
+            // Background & Page Styles
+            '--link-page-background-color' => '#121212',
+            '--link-page-background-type' => 'color',
+            '--link-page-background-gradient-start' => '#0b5394',
+            '--link-page-background-gradient-end' => '#53940b',
+            '--link-page-background-gradient-direction' => 'to right',
+            '--link-page-card-bg-color' => 'rgba(0, 0, 0, 0.4)',
+            '--link-page-background-image' => '',
+            '--link-page-background-image-url' => '',
+            
+            // Text & Overlay Styles
+            '--link-page-text-color' => '#e5e5e5',
+            '--link-page-muted-text-color' => '#aaa',
+            '--link-page-overlay-color' => 'rgba(0, 0, 0, 0.5)',
+            
+            // Button & Link Styles
+            '--link-page-button-bg-color' => '#0b5394',
+            '--link-page-link-text-color' => '#ffffff',
+            '--link-page-button-hover-bg-color' => '#53940b',
+            '--link-page-button-hover-text-color' => '#ffffff',
+            '--link-page-button-radius' => '8px',
+            '--link-page-button-border-width' => '0px',
+            '--link-page-button-border-color' => '#0b5394',
+            
+            // Font Styles
+            '--link-page-title-font-family' => 'WilcoLoftSans',
+            '--link-page-title-font-size' => '2.1em',
+            '--link-page-body-font-family' => 'Helvetica',
+            '--link-page-body-font-size' => '1em',
+            
+            // Profile Image Styles
+            '--link-page-profile-img-size' => '30%',
+            '--link-page-profile-img-border-radius' => '50%',
+            '--link-page-profile-img-aspect-ratio' => '1/1',
+            '--link-page-profile-img-radius' => '12px',
+            
+            // Non-CSS special keys that might be accessed
+            '_link_page_profile_img_shape' => 'circle',
+            'overlay' => '1'
+        ];
+
+        foreach ($expected_vars as $var => $default_value) {
+            if (!isset($css_vars[$var])) {
+                $css_vars[$var] = $default_value;
+            }
+        }
+
+        return $css_vars;
     }
 }
 

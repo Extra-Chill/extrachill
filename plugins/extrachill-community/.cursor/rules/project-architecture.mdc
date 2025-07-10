@@ -1,8 +1,3 @@
----
-description: 
-globs: 
-alwaysApply: false
----
 # Project Architecture & Technical Overview
 
 **Date:** June 2025 (Updated)
@@ -128,6 +123,56 @@ This section outlines the structure and responsibilities of the core JavaScript 
 *   **AJAX Handler for Link Titles (`ajax-handlers.php`):** A PHP file containing the `extrch_fetch_link_meta_title_ajax_handler` function. This WordPress AJAX action (`wp_ajax_fetch_link_meta_title`) is responsible for receiving a URL, fetching its content server-side using `wp_safe_remote_get`, parsing the HTML for `<title>` or `og:title` tags, and returning the found title. This is triggered by `manage-link-page-links.js` when a user inputs a URL and the title field is blank.
 *   **Inline YouTube Embeds (`link-page-youtube-embed.js`):** A dedicated JavaScript module that detects YouTube links on the public link page and in the admin preview. When a YouTube link button is clicked, it prevents default navigation and instead dynamically embeds a YouTube iframe player below the button. This feature can be toggled globally via a setting in the "Advanced" tab of the link page manager, which controls the conditional enqueueing of this script. Associated CSS is in `extrch-links.css`.
 *   **QR Code Handler (`manage-link-page-qrcode.js`):** Dedicated module for managing the QR code modal and triggering the AJAX request to generate and display the link page QR code. It listens for clicks on the QR code button, controls the visibility of the modal, and handles the AJAX response to display the generated QR code image or an error message.
+
+## VII. Consolidated Save Architecture (Mobile-Robust, June 2025)
+
+A comprehensive save architecture was implemented to resolve mobile-specific race conditions and scattered save logic:
+
+### Problem Solved
+- **Mobile Race Conditions:** Saving without changes on mobile would reset background, title font, and body font due to timing issues
+- **Scattered JavaScript Save Logic:** Multiple modules were updating hidden inputs immediately on user changes, creating race conditions
+- **PHP Hook Cascades:** Data sync between band profile and link page was creating infinite loops during saves
+
+### Solution Architecture
+
+**Centralized JavaScript Save Handler:**
+- **Single Entry Point:** `handleFormSubmitWithSaveUI()` in `manage-link-page-save.js` coordinates all save operations
+- **Module Serialization:** Each module exposes a `serializeForSave()` method called only at save time
+- **No Immediate Updates:** User interactions only update live preview, not hidden inputs
+- **Mobile-Robust:** Includes intelligent fallback for mobile browsers with CSSOM issues
+
+**Atomic PHP Save Process:**
+- **Sequential Processing:** All link page data saved first, then band profile sync
+- **Sync Protection:** `BandDataSyncManager` prevents recursive hooks during updates  
+- **Manual Sync Trigger:** After band profile update, manually triggers sync back to link page
+
+**Console Debug Flow:**
+```
+[Save Debug] === STARTING CONSOLIDATED SAVE PROCESS ===
+[Save Debug] Step 1: Serializing CSS variables...
+[Save Debug] Step 2: Serializing other settings...
+[Save Debug] Step 3: Serializing socials data...
+[Save Debug] Step 4: Serializing info data...
+[Save Debug] Step 5: Calling module serialize methods...
+[Save Debug] === ALL SERIALIZATION COMPLETE ===
+```
+
+**Module Serialize Methods:**
+- `ExtrchLinkPageInfoManager.serializeForSave()` - Profile image removal state
+- `manager.links.serializeForSave()` - Links data to hidden input
+- `manager.socialIcons.serializeForSave()` - Social icons data
+- `manager.sizing.serializeForSave()` - Profile image shape and sizing options
+
+### Mobile-Specific Fixes
+- **Intelligent CSS Variable Fallback:** When CSSOM fails on mobile, falls back to current saved values + form control overrides
+- **Enhanced Debugging:** Mobile saves include extensive logging for troubleshooting
+- **Race Condition Prevention:** All modules wait until save time to serialize data
+
+### PHP Type Declaration Compatibility
+Removed PHP 8.0+ type declarations from `BandDataSyncManager` to maintain compatibility:
+- `bool`, `int`, `string`, `mixed`, `: void` declarations removed
+- Functions now use standard PHP parameter/return declarations
+- Maintains functionality while supporting older PHP versions
 
 ## IV. Band Directory Enhancements
 
@@ -346,4 +391,5 @@ The TinyMCE editor used in bbPress has been customized for enhanced functionalit
 - The preview and all controls must always reflect the value of the canonical key.
 - JavaScript never sets initial values; it only listens for changes and updates the preview and hidden input before save.
 - There must never be a mismatch between the style tag and the form controls, as both are hydrated from the same source.
+- Legacy meta is only used as a fallback for old data, never as a primary source.
 - Legacy meta is only used as a fallback for old data, never as a primary source.

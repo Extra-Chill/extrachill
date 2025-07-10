@@ -188,9 +188,34 @@ $band_profiles_query = new WP_Query( $band_profiles_args );
             <?php endwhile; ?>
         </ul>
         <?php 
-        global $wp_query; $temp_query = $wp_query; $wp_query = $band_profiles_query;
-        bbp_get_template_part( 'pagination', 'topics' );
-        $wp_query = $temp_query; wp_reset_postdata();
+        // Debug pagination
+        echo '<!-- DEBUG: max_num_pages = ' . $band_profiles_query->max_num_pages . ', paged = ' . $paged . ', posts_per_page = ' . $posts_per_page . ', found_posts = ' . $band_profiles_query->found_posts . ' -->';
+        
+        // Use WordPress native pagination instead of bbPress pagination
+        if ( $band_profiles_query->max_num_pages > 1 ) {
+            $current_url = getCurrentUrl();
+            $pagination_args = array(
+                'base'      => add_query_arg( 'paged', '%#%', $current_url ),
+                'format'    => '',
+                'total'     => $band_profiles_query->max_num_pages,
+                'current'   => $paged,
+                'mid_size'  => 2,
+                'prev_text' => __('« Previous', 'generatepress_child'),
+                'next_text' => __('Next »', 'generatepress_child'),
+                'type'      => 'plain',
+                'add_args'  => false,
+            );
+            
+            $pagination_links = paginate_links( $pagination_args );
+            
+            if ( $pagination_links ) {
+                echo '<div class="bbp-pagination">';
+                echo '<div class="bbp-pagination-links">' . $pagination_links . '</div>';
+                echo '</div>';
+            }
+        }
+        
+        wp_reset_postdata();
         ?>
     <?php else : ?>
         <ul class="bbp-bands"><li class="bbp-body"><div class="bbp-band-content"><?php esc_html_e( 'Oh bother! No bands found here yet.', 'generatepress_child' ); ?></div></li></ul>

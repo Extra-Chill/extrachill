@@ -123,6 +123,11 @@ function save_bbp_user_professional_fields($user_id) {
 }
 
 function display_main_site_post_count_on_profile() {
+    // Only proceed if bbPress functions are available
+    if (!function_exists('bbp_get_displayed_user_id')) {
+        return;
+    }
+    
     $community_user_id = bbp_get_displayed_user_id();
     $author_id = convert_community_user_id_to_author_id($community_user_id);
 
@@ -139,30 +144,41 @@ function display_main_site_post_count_on_profile() {
     }
 }
 
-// Music Fan Section variables
-$favorite_artists = get_user_meta(bbp_get_displayed_user_id(), 'favorite_artists', true);
-$top_concerts = get_user_meta(bbp_get_displayed_user_id(), 'top_concerts', true);
-$top_venues = get_user_meta(bbp_get_displayed_user_id(), 'top_venues', true);
+// Function to display music fan details - only when bbPress is available
+function display_music_fan_details() {
+    // Only proceed if bbPress functions are available
+    if (!function_exists('bbp_get_displayed_user_id')) {
+        return;
+    }
 
-// Wrap the existing conditional block in a card
-if ($favorite_artists || $top_concerts || $top_venues ) :
-    ?>
-    <div class="card">
-        <div class="card-header">
-            <h3><?php esc_html_e('Music Fan Details', 'generatepress_child'); ?></h3>
+    // Music Fan Section variables
+    $favorite_artists = get_user_meta(bbp_get_displayed_user_id(), 'favorite_artists', true);
+    $top_concerts = get_user_meta(bbp_get_displayed_user_id(), 'top_concerts', true);
+    $top_venues = get_user_meta(bbp_get_displayed_user_id(), 'top_venues', true);
+
+    // Wrap the existing conditional block in a card
+    if ($favorite_artists || $top_concerts || $top_venues ) :
+        ?>
+        <div class="card">
+            <div class="card-header">
+                <h3><?php esc_html_e('Music Fan Details', 'generatepress_child'); ?></h3>
+            </div>
+            <div class="card-body">
+                <?php if ($favorite_artists) : ?>
+                    <p><strong><?php esc_html_e('Favorite Artists:', 'generatepress_child'); ?></strong> <?php echo nl2br(esc_html($favorite_artists)); ?></p>
+                <?php endif; ?>
+
+                <?php if ($top_concerts) : ?>
+                    <p><strong><?php esc_html_e('Top Concerts:', 'generatepress_child'); ?></strong> <?php echo nl2br(esc_html($top_concerts)); ?></p>
+                <?php endif; ?>
+
+                <?php if ($top_venues) : ?>
+                    <p><strong><?php esc_html_e('Top Venues:', 'generatepress_child'); ?></strong> <?php echo nl2br(esc_html($top_venues)); ?></p>
+                <?php endif; ?>
+            </div>
         </div>
-        <div class="card-body">
-            <?php if ($favorite_artists) : ?>
-                <p><strong><?php esc_html_e('Favorite Artists:', 'generatepress_child'); ?></strong> <?php echo nl2br(esc_html($favorite_artists)); ?></p>
-            <?php endif; ?>
+    <?php endif;
+}
 
-            <?php if ($top_concerts) : ?>
-                <p><strong><?php esc_html_e('Top Concerts:', 'generatepress_child'); ?></strong> <?php echo nl2br(esc_html($top_concerts)); ?></p>
-            <?php endif; ?>
-
-            <?php if ($top_venues) : ?>
-                <p><strong><?php esc_html_e('Top Venues:', 'generatepress_child'); ?></strong> <?php echo nl2br(esc_html($top_venues)); ?></p>
-            <?php endif; ?>
-        </div>
-    </div>
-<?php endif; ?>
+// Hook the display functions to run after bbPress is loaded
+add_action('bbp_init', 'display_music_fan_details');
