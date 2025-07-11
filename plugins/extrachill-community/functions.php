@@ -569,7 +569,9 @@ require_once( get_stylesheet_directory() . '/extrachill-image-uploads.php' );
 $band_platform_dir = get_stylesheet_directory() . '/band-platform';
 if ( is_dir( $band_platform_dir ) ) {
     // Centralized include for all band platform PHP files
-    require_once( $band_platform_dir . '/band-platform-includes.php' ); 
+    require_once( $band_platform_dir . '/band-platform-includes.php' );
+
+// Removed temporary test file 
 }
 
 // --- Admin Script for Band Members Meta Box ---

@@ -11,6 +11,11 @@ defined( 'ABSPATH' ) || exit;
  * Handles the saving of all link page data from the frontend management form.
  */
 function extrch_handle_save_link_page_data() {
+    $start_time = microtime(true);
+    
+    // CRITICAL DEBUG: First thing - log that handler was called
+    error_log('[FORM HANDLER] *** HANDLER REACHED *** User: ' . get_current_user_id() . ', Logged in: ' . (is_user_logged_in() ? 'YES' : 'NO') . ', Request URI: ' . $_SERVER['REQUEST_URI']);
+    
     error_log('[LinkPageSave] === SAVE HANDLER STARTED ===');
     
     if (
@@ -31,20 +36,39 @@ function extrch_handle_save_link_page_data() {
         $band_id = absint($_GET['band_id']);
         $link_page_id = get_post_meta($band_id, '_extrch_link_page_id', true);
         error_log('[LinkPageSave] Got band_id from GET: ' . $band_id . ', link_page_id: ' . $link_page_id);
+        
+        // Additional debugging for new link pages
+        if (!$link_page_id) {
+            error_log('[LinkPageSave] WARNING: No link page found for band_id ' . $band_id . ' (this might be a new band without link page)');
+        } else {
+            $link_page_post_type = get_post_type($link_page_id);
+            $link_page_status = get_post_status($link_page_id);
+            error_log('[LinkPageSave] Link page details - Type: ' . $link_page_post_type . ', Status: ' . $link_page_status);
+        }
+    } else {
+        error_log('[LinkPageSave] No band_id in GET parameters');
     }
 
     if (!$link_page_id || get_post_type($link_page_id) !== 'band_link_page') {
+        error_log('[LinkPageSave] Link page validation failed - trying fallback from POST data');
         // Fallback: try to get from hidden field or bail
         if (isset($_POST['link_page_id'])) {
             $link_page_id = absint($_POST['link_page_id']);
+            error_log('[LinkPageSave] Found link_page_id in POST: ' . $link_page_id);
+            
             // If we got link_page_id from POST, try to get associated band_id if not already set
             if ( !$band_id && $link_page_id ) {
                 $associated_band_id = get_post_meta($link_page_id, '_associated_band_profile_id', true);
                 if ($associated_band_id) {
                     $band_id = absint($associated_band_id);
+                    error_log('[LinkPageSave] Retrieved associated band_id from link page meta: ' . $band_id);
+                } else {
+                    error_log('[LinkPageSave] WARNING: No associated band_id found in link page meta');
                 }
             }
-            error_log('[LinkPageSave] Got link_page_id from POST: ' . $link_page_id . ', band_id: ' . $band_id);
+            error_log('[LinkPageSave] Final values from POST fallback - link_page_id: ' . $link_page_id . ', band_id: ' . $band_id);
+        } else {
+            error_log('[LinkPageSave] No link_page_id found in POST data either');
         }
     }
 
@@ -53,11 +77,36 @@ function extrch_handle_save_link_page_data() {
         wp_die(__('Could not determine Link Page ID.', 'generatepress_child'));
     }
 
+    // CRITICAL SECURITY: Validate user permissions for this band
+    if (!empty($band_id) && !current_user_can('manage_band_members', $band_id)) {
+        error_log('[LinkPageSave] PERMISSION DENIED: User ' . get_current_user_id() . ' cannot manage band ' . $band_id);
+        wp_die(__('Permission denied: You do not have access to manage this band.', 'generatepress_child'));
+    }
+
+    // Additional validation: ensure user is logged in for any save operation
+    if (!is_user_logged_in()) {
+        error_log('[LinkPageSave] PERMISSION DENIED: User not logged in');
+        wp_die(__('Permission denied: You must be logged in to save changes.', 'generatepress_child'));
+    }
+
+    error_log('[LinkPageSave] Permission validation passed for user ' . get_current_user_id() . ' and band ' . $band_id);
     error_log('[LinkPageSave] Processing link_page_id: ' . $link_page_id . ', band_id: ' . $band_id);
+    
+    // Debug the incoming data
+    error_log('[LinkPageSave] === DEBUGGING FORM DATA ===');
+    error_log('[LinkPageSave] Links JSON received: ' . (isset($_POST['link_page_links_json']) ? $_POST['link_page_links_json'] : 'NOT SET'));
+    error_log('[LinkPageSave] Socials JSON received: ' . (isset($_POST['band_profile_social_links_json']) ? $_POST['band_profile_social_links_json'] : 'NOT SET'));
 
     // --- Save regular links ---
     $links_json = isset($_POST['link_page_links_json']) ? wp_unslash($_POST['link_page_links_json']) : '[]';
+    error_log('[LinkPageSave] Links JSON after unslash: ' . $links_json);
+    
     $links_array = json_decode($links_json, true);
+    error_log('[LinkPageSave] Links array after decode: ' . print_r($links_array, true));
+    
+    if (json_last_error() !== JSON_ERROR_NONE) {
+        error_log('[LinkPageSave] JSON decode error for links: ' . json_last_error_msg());
+    }
 
     // --- Save Advanced Tab Settings ---
     // Link Expiration (Moved from Links tab)
@@ -226,19 +275,51 @@ function extrch_handle_save_link_page_data() {
         }
         unset($section, $link); // break reference
     }
-    update_post_meta($link_page_id, '_link_page_links', $links_array);
+    
+    error_log('[LinkPageSave] Saving links array to link_page_id ' . $link_page_id . ': ' . print_r($links_array, true));
+    $links_save_result = update_post_meta($link_page_id, '_link_page_links', $links_array);
+    error_log('[LinkPageSave] Links save result: ' . ($links_save_result ? 'SUCCESS' : 'FAILED OR NO CHANGE'));
+    
+    // Verify the save worked
+    $saved_links = get_post_meta($link_page_id, '_link_page_links', true);
+    error_log('[LinkPageSave] Verified saved links: ' . print_r($saved_links, true));
+    
+    $current_time = microtime(true);
+    error_log('[LinkPageSave] TIMING: Links processing completed at ' . round($current_time * 1000, 2) . 'ms');
 
     // --- Save social links (to band_profile) ---
     if (isset($_POST['band_profile_social_links_json']) && !empty($band_id)) {
+        error_log('[LinkPageSave PHP] Processing social links for band ID: ' . $band_id);
+        error_log('[LinkPageSave PHP] Raw POST data for social links: ' . print_r($_POST, true));
+        
         $social_links_json = wp_unslash($_POST['band_profile_social_links_json']);
+        error_log('[LinkPageSave PHP] Received social links JSON string: ' . $social_links_json);
+        error_log('[LinkPageSave PHP] JSON string length: ' . strlen($social_links_json));
+        
         $social_links_array = json_decode($social_links_json, true);
         $json_error = json_last_error();
+        error_log('[LinkPageSave PHP] JSON decode error code: ' . $json_error);
+        error_log('[LinkPageSave PHP] json_decode result: ' . print_r($social_links_array, true));
         
-        if ($json_error === JSON_ERROR_NONE && is_array($social_links_array)) {
-            update_post_meta($band_id, '_band_profile_social_links', $social_links_array);
+        // Handle both valid arrays AND null (which happens when band has no existing social links)
+        if ($json_error === JSON_ERROR_NONE) {
+            // Convert null to empty array for bands with no existing social links
+            if (is_null($social_links_array)) {
+                $social_links_array = array();
+                error_log('[LinkPageSave PHP] Converted null to empty array for new social links');
+            }
             
-            // Verify the save worked (for critical debugging only)
-            $saved_links = get_post_meta($band_id, '_band_profile_social_links', true);
+            if (is_array($social_links_array)) {
+                error_log('[LinkPageSave PHP] Social links array BEFORE update_post_meta: ' . print_r($social_links_array, true));
+                update_post_meta($band_id, '_band_profile_social_links', $social_links_array);
+                error_log('[LinkPageSave PHP] Social links updated for band ID: ' . $band_id);
+                
+                // Verify the save worked (for critical debugging only)
+                $saved_links = get_post_meta($band_id, '_band_profile_social_links', true);
+                error_log('[LinkPageSave PHP] Verified saved social links: ' . print_r($saved_links, true));
+            } else {
+                error_log('[LinkPageSave PHP] Social links data is not an array after null conversion');
+            }
         } else {
             // Log only critical errors
             error_log('[LinkPageSave PHP] Failed to decode social links JSON. Error: ' . json_last_error_msg());
@@ -286,6 +367,7 @@ function extrch_handle_save_link_page_data() {
     }
 
     error_log('[LinkPageSave] CSS variables processing completed, continuing with file uploads...');
+    error_log('[LinkPageSave] TIMING: CSS variables completed at ' . round(microtime(true) * 1000, 2) . 'ms');
 
     // --- Handle File Uploads ---
     // Background Image for Link Page
@@ -438,24 +520,63 @@ function extrch_handle_save_link_page_data() {
     }
 
     error_log('[LinkPageSave] === PREPARING REDIRECT ===');
+    error_log('[LinkPageSave] TIMING: Total processing time ' . round((microtime(true) - $start_time) * 1000, 2) . 'ms');
     
     // --- Redirect back with success ---
     $redirect_args = array('band_id' => $band_id, 'bp_link_page_updated' => '1');
-    $base_url = function_exists('bp_get_manage_link_page_url') ? bp_get_manage_link_page_url() : home_url('/manage-link-page/');
+    
+    // Debug the URL generation process
+    $base_url_function_exists = function_exists('bp_get_manage_link_page_url');
+    error_log('[LinkPageSave] bp_get_manage_link_page_url function exists: ' . ($base_url_function_exists ? 'YES' : 'NO'));
+    
+    if ($base_url_function_exists) {
+        $base_url = bp_get_manage_link_page_url();
+        error_log('[LinkPageSave] bp_get_manage_link_page_url() returned: ' . $base_url);
+    } else {
+        $base_url = home_url('/manage-link-page/');
+        error_log('[LinkPageSave] Using fallback URL: ' . $base_url);
+    }
+    
     $redirect_url = add_query_arg($redirect_args, $base_url);
+    error_log('[LinkPageSave] Redirect URL with args: ' . $redirect_url);
+    
     if (!empty($_POST['tab'])) {
         $tab = sanitize_key($_POST['tab']);
         $redirect_url .= '#' . $tab;
+        error_log('[LinkPageSave] Added tab from POST: ' . $tab);
     } elseif (!empty($_GET['tab'])) {
         $tab = sanitize_key($_GET['tab']);
         $redirect_url .= '#' . $tab;
+        error_log('[LinkPageSave] Added tab from GET: ' . $tab);
     }
     
-    error_log('[LinkPageSave] Redirecting to: ' . $redirect_url);
+    error_log('[LinkPageSave] FINAL REDIRECT URL: ' . $redirect_url);
+    
+    // Check if the manage page actually exists
+    $manage_page = get_page_by_path('manage-link-page');
+    error_log('[LinkPageSave] Manage link page exists: ' . ($manage_page ? 'YES (ID: ' . $manage_page->ID . ')' : 'NO'));
+    
     wp_safe_redirect($redirect_url);
     exit;
 }
 add_action('admin_post_extrch_handle_save_link_page_data', 'extrch_handle_save_link_page_data');
+add_action('admin_post_nopriv_extrch_handle_save_link_page_data', 'extrch_handle_save_link_page_data');
+
+// NEW: Handle form submission on init hook for current page submissions (no wp-admin access needed)
+function extrch_handle_link_page_form_init() {
+    // Only process if this is a POST request with our specific action
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && 
+        isset($_POST['extrch_action']) && 
+        $_POST['extrch_action'] === 'save_link_page_data' &&
+        isset($_POST['bp_save_link_page_nonce'])) {
+        
+        error_log('[LinkPageSave INIT] Form submission detected via init hook');
+        
+        // Call the same handler function 
+        extrch_handle_save_link_page_data();
+    }
+}
+add_action('init', 'extrch_handle_link_page_form_init');
 
 // Add AJAX handler for background image uploads (for large files)
 function extrch_upload_background_image_ajax() {

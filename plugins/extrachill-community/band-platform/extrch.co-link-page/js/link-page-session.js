@@ -15,7 +15,7 @@
     function checkManageAccess(retryCount = 0) {
         const editButton = document.querySelector('.extrch-link-page-edit-btn');
         const maxRetries = 2;
-        const timeoutMs = 8000; // Unified timeout for all devices
+        const timeoutMs = 3000; // Reduced timeout for faster response
         
         console.log('[Edit Button Debug] Starting access check for band_id:', band_id, 'retry:', retryCount);
         
@@ -77,7 +77,7 @@
                     // Apply fallback logic for certain error conditions
                     if (retryCount === 0 && shouldRetryRequest(data)) {
                         console.log('[Edit Button Debug] Applying retry logic due to potential network/auth issue');
-                        setTimeout(() => checkManageAccess(retryCount + 1), 2000);
+                        setTimeout(() => checkManageAccess(retryCount + 1), 1000);
                     }
                 }
             })
@@ -99,7 +99,7 @@
                 // Retry logic for certain types of failures
                 if (retryCount < maxRetries && shouldRetryOnError(error)) {
                     console.log('[Edit Button Debug] Retrying request due to network error, attempt:', retryCount + 1);
-                    setTimeout(() => checkManageAccess(retryCount + 1), 3000);
+                    setTimeout(() => checkManageAccess(retryCount + 1), 1500);
                     return;
                 }
                 
@@ -152,6 +152,45 @@
     }
 
     /**
+     * Attempts cross-domain session synchronization when user lacks session token
+     */
+    function attemptCrossDomainSessionSync() {
+        console.log('[Edit Button Debug] Attempting cross-domain session synchronization');
+        
+        // Create hidden iframe to trigger session check on community.extrachill.com
+        const iframe = document.createElement('iframe');
+        iframe.style.display = 'none';
+        iframe.style.width = '1px';
+        iframe.style.height = '1px';
+        
+        // URL that will trigger session token auto-login on community domain
+        const syncUrl = 'https://community.extrachill.com/wp-admin/admin-ajax.php?action=sync_session_token&band_id=' + band_id;
+        
+        iframe.onload = function() {
+            console.log('[Edit Button Debug] Cross-domain session sync iframe loaded');
+            // Give it a moment then retry the access check
+            setTimeout(() => {
+                console.log('[Edit Button Debug] Retrying access check after session sync');
+                checkManageAccess(0); // Retry with fresh session
+            }, 500);
+            
+            // Clean up iframe after delay
+            setTimeout(() => {
+                if (iframe.parentNode) {
+                    iframe.parentNode.removeChild(iframe);
+                }
+            }, 2000);
+        };
+        
+        iframe.onerror = function() {
+            console.warn('[Edit Button Debug] Cross-domain session sync iframe failed to load');
+        };
+        
+        iframe.src = syncUrl;
+        document.body.appendChild(iframe);
+    }
+
+    /**
      * Fallback logic to determine if edit button should be shown when AJAX fails
      */
     function shouldShowButtonAsFallback() {
@@ -164,16 +203,18 @@
             return true;
         }
         
-        // Check if user came from management interface
-        if (referrer && referrer.includes('/manage-link-page')) {
-            console.log('[Edit Button Debug] User came from management interface');
-            return true;
+        // Check if user came from management interface - trigger session sync
+        if (referrer && (referrer.includes('/manage-link-page') || referrer.includes('/manage-band-profile'))) {
+            console.log('[Edit Button Debug] User came from management interface - attempting session sync');
+            attemptCrossDomainSessionSync();
+            return false; // Don't show button immediately, wait for sync
         }
         
         // Check if URL has edit parameter (could be set by management interface)
         if (url.searchParams.has('edit') || url.searchParams.has('manage')) {
             console.log('[Edit Button Debug] Edit/manage parameter found in URL');
-            return true;
+            attemptCrossDomainSessionSync();
+            return false; // Don't show button immediately, wait for sync
         }
         
         // Check localStorage for recent management activity
@@ -184,8 +225,9 @@
                 const timeDiff = Date.now() - data.timestamp;
                 // If managed this band within the last 10 minutes
                 if (data.band_id == band_id && timeDiff < 600000) {
-                    console.log('[Edit Button Debug] Recent management activity found in localStorage');
-                    return true;
+                    console.log('[Edit Button Debug] Recent management activity found - attempting session sync');
+                    attemptCrossDomainSessionSync();
+                    return false; // Don't show button immediately, wait for sync
                 }
             } catch (e) {
                 console.warn('[Edit Button Debug] Error parsing localStorage data:', e);

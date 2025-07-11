@@ -4,9 +4,16 @@
 
 add_action('wp_login', 'set_ecc_user_logged_in_token', 10, 2);
 function set_ecc_user_logged_in_token($user_login, $user) {
+    error_log('[SESSION TOKEN CREATION] wp_login hook fired for user: ' . $user->user_login . ' (ID: ' . $user->ID . ')');
+    
     $token = generate_community_session_token();
+    error_log('[SESSION TOKEN CREATION] Generated token: ' . $token);
+    
     // Store the token and user ID in the database
-    store_user_session($token, $user->ID);
+    $store_result = store_user_session($token, $user->ID);
+    error_log('[SESSION TOKEN CREATION] store_user_session result: ' . ($store_result ? 'SUCCESS' : 'FAILED'));
+    
+    error_log('[DEBUG SESSION TOKEN] Setting session token for user: ' . $user->user_login . ' (ID: ' . $user->ID . '), token: ' . $token);
     
     // Set cookie for the base domain and subdomains
     $cookie_params = [
@@ -17,21 +24,32 @@ function set_ecc_user_logged_in_token($user_login, $user) {
         'httponly' => false, // Set to true if you want to prohibit JavaScript access.
         'samesite' => 'None' // Or 'Lax', depending on your cross-site request needs.
     ];
-    setcookie('ecc_user_session_token', $token, $cookie_params);
+    $cookie_result1 = setcookie('ecc_user_session_token', $token, $cookie_params);
+    error_log('[DEBUG SESSION TOKEN] Set cookie for .extrachill.com domain - result: ' . ($cookie_result1 ? 'SUCCESS' : 'FAILED'));
     
-    // Also set the cookie specifically for the alias domain if the login happened there
-    $current_host = strtolower( $_SERVER['HTTP_HOST'] ?? '' );
-    if ( $current_host === 'community.extrachill.com' || $current_host === 'extrachill.link' ) {
-         $alias_cookie_params = [
-             'expires' => time() + (6 * 30 * 24 * 60 * 60), // For 6 months.
-             'path' => '/',
-             'domain' => 'extrachill.link', // Explicitly set for the alias domain
-             'secure' => true, // Ensure your site is served over HTTPS.
-             'httponly' => false, // Set to true if you want to prohibit JavaScript access.
-             'samesite' => 'None' // Or 'Lax', depending on your cross-site request needs.
-         ];
-         setcookie('ecc_user_session_token', $token, $alias_cookie_params);
-    }
+    // ALWAYS set the cookie for extrachill.link domain (not just conditionally)
+    $alias_cookie_params = [
+        'expires' => time() + (6 * 30 * 24 * 60 * 60), // For 6 months.
+        'path' => '/',
+        'domain' => '.extrachill.link', // Use dot prefix to include all subdomains
+        'secure' => true, // Ensure your site is served over HTTPS.
+        'httponly' => false, // Set to true if you want to prohibit JavaScript access.
+        'samesite' => 'None' // Or 'Lax', depending on your cross-site request needs.
+    ];
+    $cookie_result2 = setcookie('ecc_user_session_token', $token, $alias_cookie_params);
+    error_log('[DEBUG SESSION TOKEN] Set cookie for .extrachill.link domain - result: ' . ($cookie_result2 ? 'SUCCESS' : 'FAILED'));
+    
+    // Also set without dot prefix as fallback for root domain
+    $root_cookie_params = [
+        'expires' => time() + (6 * 30 * 24 * 60 * 60), // For 6 months.
+        'path' => '/',
+        'domain' => 'extrachill.link', // Root domain without dot
+        'secure' => true, // Ensure your site is served over HTTPS.
+        'httponly' => false, // Set to true if you want to prohibit JavaScript access.
+        'samesite' => 'None' // Or 'Lax', depending on your cross-site request needs.
+    ];
+    $cookie_result3 = setcookie('ecc_user_session_token', $token, $root_cookie_params);
+    error_log('[DEBUG SESSION TOKEN] Set cookie for extrachill.link root domain - result: ' . ($cookie_result3 ? 'SUCCESS' : 'FAILED'));
 }
 
 function generate_community_session_token() {
@@ -50,7 +68,7 @@ function store_user_session($token, $user_id) {
     $expiration_mysql = date('Y-m-d H:i:s', time() + (6 * 30 * 24 * 60 * 60));
 
     // Store the new session token without deleting previous ones to allow multiple active sessions
-    $wpdb->insert(
+    $result = $wpdb->insert(
         $table_name,
         [
             'token' => $token,
@@ -59,6 +77,10 @@ function store_user_session($token, $user_id) {
         ],
         ['%s', '%d', '%s']
     );
+    
+    error_log('[SESSION TOKEN STORAGE] Database insert result: ' . ($result !== false ? 'SUCCESS' : 'FAILED') . ', wpdb error: ' . $wpdb->last_error);
+    
+    return $result !== false;
 }
 
 
@@ -112,7 +134,7 @@ add_action('after_switch_theme', 'create_session_tokens_table');
 
 add_action('init', function() {
     // Specify allowed origins
-    $allowed_origins = ['https://staging.extrachill.com', 'https://extrachill.com'];
+    $allowed_origins = ['https://staging.extrachill.com', 'https://extrachill.com', 'https://extrachill.link'];
     $http_origin = $_SERVER['HTTP_ORIGIN'] ?? '';
 
     if (in_array($http_origin, $allowed_origins)) {
@@ -148,28 +170,85 @@ function is_user_logged_in_via_token($user_id) {
 add_action('init', 'auto_login_via_session_token', 1); // Priority 1 to run early
 
 function auto_login_via_session_token() {
+    $current_host = strtolower( $_SERVER['HTTP_HOST'] ?? '' );
+    error_log('[DEBUG SESSION TOKEN] auto_login_via_session_token fired on host: ' . $current_host);
+    
     if (is_user_logged_in()) {
+        error_log('[DEBUG SESSION TOKEN] User already logged in via WordPress standard session.');
         return;
     }
 
     if (empty($_COOKIE['ecc_user_session_token'])) {
+        error_log('[DEBUG SESSION TOKEN] ecc_user_session_token cookie NOT found.');
         return;
     }
 
     global $wpdb;
     $token = $_COOKIE['ecc_user_session_token'];
-    $user_id = $wpdb->get_var($wpdb->prepare(
-        "SELECT user_id FROM {$wpdb->prefix}user_session_tokens WHERE token = %s AND expiration > NOW()",
+    error_log('[DEBUG SESSION TOKEN] ecc_user_session_token cookie FOUND: ' . $token);
+    
+    // Add detailed debugging for the database lookup
+    $table_name = $wpdb->prefix . 'user_session_tokens';
+    $query = $wpdb->prepare(
+        "SELECT user_id FROM {$table_name} WHERE token = %s AND expiration > NOW()",
         $token
-    ));
-
+    );
+    
+    error_log('[DEBUG SESSION TOKEN] Executing query: ' . $query);
+    
+    $user_id = $wpdb->get_var($query);
+    
+    error_log('[DEBUG SESSION TOKEN] Database lookup returned user_id: ' . ($user_id ? $user_id : 'NULL'));
+    
+    if (!$user_id) {
+        // Additional debugging: check if token exists at all (ignoring expiration)
+        $token_exists = $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM {$table_name} WHERE token = %s",
+            $token
+        ));
+        error_log('[DEBUG SESSION TOKEN] Token exists in DB (ignoring expiration): ' . $token_exists);
+        
+        if ($token_exists) {
+            // Check the expiration date of this token
+            $expiration = $wpdb->get_var($wpdb->prepare(
+                "SELECT expiration FROM {$table_name} WHERE token = %s",
+                $token
+            ));
+            error_log('[DEBUG SESSION TOKEN] Token expiration: ' . $expiration . ' (current time: ' . date('Y-m-d H:i:s') . ')');
+        }
+        
+        // Check wpdb errors
+        if ($wpdb->last_error) {
+            error_log('[DEBUG SESSION TOKEN] Database error: ' . $wpdb->last_error);
+        }
+    }
+    
     if ($user_id) {
         $user = get_user_by('id', $user_id);
         if (!$user) {
+            error_log('[DEBUG SESSION TOKEN] User with ID ' . $user_id . ' not found in WordPress users table');
             return;
         }
+        
+        error_log('[DEBUG SESSION TOKEN] Found user: ' . $user->user_login . ' (ID: ' . $user_id . ')');
+        
+        // Set cookie for extrachill.link domain to ensure cross-domain auth works
+        if ( $current_host === 'community.extrachill.com' ) {
+            error_log('[DEBUG SESSION TOKEN] Set ecc_user_session_token cookie for extrachill.link');
+            $alias_cookie_params = [
+                'expires' => time() + (6 * 30 * 24 * 60 * 60), // For 6 months.
+                'path' => '/',
+                'domain' => 'extrachill.link', // Explicitly set for the alias domain
+                'secure' => true, // Ensure your site is served over HTTPS.
+                'httponly' => false, // Set to true if you want to prohibit JavaScript access.
+                'samesite' => 'None' // Or 'Lax', depending on your cross-site request needs.
+            ];
+            setcookie('ecc_user_session_token', $token, $alias_cookie_params);
+        }
+        
         wp_set_current_user($user_id);
         wp_set_auth_cookie($user_id, true);
+        error_log('[DEBUG SESSION TOKEN] wp_set_current_user and wp_set_auth_cookie CALLED for User ID: ' . $user_id);
 
         // Optionally, trigger the wp_login action to mimic the standard login process.
         do_action('wp_login', $user->user_login, $user);
@@ -192,4 +271,73 @@ if (!wp_next_scheduled('cleanup_expired_session_tokens_hook')) {
 }
 
 add_action('cleanup_expired_session_tokens_hook', 'cleanup_expired_session_tokens');
+
+// AJAX handler for cross-domain session synchronization
+add_action('wp_ajax_sync_session_token', 'handle_sync_session_token');
+add_action('wp_ajax_nopriv_sync_session_token', 'handle_sync_session_token');
+
+function handle_sync_session_token() {
+    error_log('[DEBUG SESSION SYNC] Session sync AJAX handler called');
+    
+    // Set CORS headers for extrachill.link
+    header('Access-Control-Allow-Origin: https://extrachill.link');
+    header('Access-Control-Allow-Credentials: true');
+    header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
+    header('Access-Control-Allow-Headers: Content-Type');
+    
+    $band_id = isset($_GET['band_id']) ? intval($_GET['band_id']) : 0;
+    error_log('[DEBUG SESSION SYNC] Band ID: ' . $band_id);
+    
+    // Check if user is logged in on community domain
+    if (is_user_logged_in()) {
+        $current_user_id = get_current_user_id();
+        error_log('[DEBUG SESSION SYNC] User logged in: ' . $current_user_id);
+        
+        // Check if user can manage this band
+        if ($band_id && current_user_can('manage_band_members', $band_id)) {
+            error_log('[DEBUG SESSION SYNC] User can manage band ' . $band_id);
+            
+            // Force session token creation/refresh for cross-domain access
+            if (isset($_COOKIE['ecc_user_session_token'])) {
+                $existing_token = $_COOKIE['ecc_user_session_token'];
+                error_log('[DEBUG SESSION SYNC] Existing token found: ' . $existing_token);
+                
+                // Refresh cookies for extrachill.link domain
+                $alias_cookie_params = [
+                    'expires' => time() + (6 * 30 * 24 * 60 * 60),
+                    'path' => '/',
+                    'domain' => '.extrachill.link',
+                    'secure' => true,
+                    'httponly' => false,
+                    'samesite' => 'None'
+                ];
+                setcookie('ecc_user_session_token', $existing_token, $alias_cookie_params);
+                
+                $root_cookie_params = [
+                    'expires' => time() + (6 * 30 * 24 * 60 * 60),
+                    'path' => '/',
+                    'domain' => 'extrachill.link',
+                    'secure' => true,
+                    'httponly' => false,
+                    'samesite' => 'None'
+                ];
+                setcookie('ecc_user_session_token', $existing_token, $root_cookie_params);
+                
+                error_log('[DEBUG SESSION SYNC] Refreshed extrachill.link cookies');
+            }
+            
+            wp_send_json_success(array(
+                'message' => 'Session synchronized',
+                'user_id' => $current_user_id,
+                'can_manage' => true
+            ));
+        } else {
+            error_log('[DEBUG SESSION SYNC] User cannot manage band ' . $band_id);
+            wp_send_json_error(array('message' => 'No permission for this band'));
+        }
+    } else {
+        error_log('[DEBUG SESSION SYNC] User not logged in on community domain');
+        wp_send_json_error(array('message' => 'Not logged in'));
+    }
+}
 

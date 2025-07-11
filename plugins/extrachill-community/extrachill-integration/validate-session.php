@@ -85,9 +85,11 @@ function extrch_check_band_manage_access_standard_auth( $request ) {
     $debug_info['request_referer'] = $request->get_header('referer') ?: 'unknown';
     $debug_info['has_auth_cookies'] = !empty($_COOKIE['wordpress_logged_in_' . COOKIEHASH]);
     
+    // Try standard WordPress authentication first
     if ( is_user_logged_in() ) {
         $current_user_id = get_current_user_id();
         $debug_info['current_user_id'] = $current_user_id;
+        $debug_info['auth_method'] = 'wordpress_standard';
         
         if ( ! empty( $band_id ) ) {
             $can_manage = current_user_can( 'manage_band_members', $band_id );
@@ -99,15 +101,52 @@ function extrch_check_band_manage_access_standard_auth( $request ) {
             $debug_info['band_exists'] = get_post_status($band_id) === 'publish';
         }
     } else {
-        // Additional debug for non-logged-in users
+        // Fallback: Try session token authentication for cross-domain cases
+        $debug_info['auth_method'] = 'session_token_fallback';
         $debug_info['cookie_names'] = array_keys($_COOKIE);
         $debug_info['wp_cookie_check'] = isset($_COOKIE['wordpress_' . COOKIEHASH]);
+        
+        // Check for session token in cookies
+        $session_token = isset($_COOKIE['ecc_user_session_token']) ? $_COOKIE['ecc_user_session_token'] : null;
+        $debug_info['has_session_token'] = !empty($session_token);
+        
+        if ($session_token) {
+            global $wpdb;
+            $table_name = $wpdb->prefix . 'user_session_tokens';
+            
+            // Get user ID from valid session token
+            $user_id = $wpdb->get_var($wpdb->prepare(
+                "SELECT user_id FROM {$table_name} WHERE token = %s AND expiration > NOW()",
+                $session_token
+            ));
+            
+            $debug_info['session_token_user_id'] = $user_id;
+            
+            if ($user_id) {
+                // Temporarily set current user for permission checking
+                wp_set_current_user($user_id);
+                $debug_info['session_token_valid'] = true;
+                $debug_info['current_user_id'] = $user_id;
+                
+                if ( ! empty( $band_id ) ) {
+                    $can_manage = current_user_can( 'manage_band_members', $band_id );
+                    
+                    // Additional debug: check if user is linked to this band
+                    $user_band_ids = get_user_meta( $user_id, '_band_profile_ids', true );
+                    $debug_info['user_band_ids'] = $user_band_ids;
+                    $debug_info['is_band_member'] = is_array($user_band_ids) && in_array($band_id, $user_band_ids);
+                    $debug_info['band_exists'] = get_post_status($band_id) === 'publish';
+                }
+            } else {
+                $debug_info['session_token_valid'] = false;
+            }
+        }
     }
     
     $debug_info['can_manage'] = $can_manage;
 
     // Log comprehensive debug info
-    error_log('[Edit Button Debug] Band management check: ' . json_encode($debug_info));
+    error_log('[DEBUG extrch_check_band_manage_access_standard_auth API] ' . json_encode($debug_info));
 
     return new WP_REST_Response( array( 
         'canManage' => $can_manage,

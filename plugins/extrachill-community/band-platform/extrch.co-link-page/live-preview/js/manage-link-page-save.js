@@ -301,30 +301,15 @@
             return;
         }
 
-        console.log('[Save Debug] Social links serialization starting...');
-        console.log('[Save Debug] Current hidden input value:', hiddenSocialsInput.value);
-        
         // Explicitly get current socials data from DOM and update hidden input
         // This ensures we capture the latest state even if the module didn't update it
         if (manager.socialIcons && typeof manager.socialIcons.getSocialsDataFromDOM === 'function') {
             const currentSocialsData = manager.socialIcons.getSocialsDataFromDOM();
             const jsonValue = JSON.stringify(currentSocialsData);
-            const previousValue = hiddenSocialsInput.value;
-            
-            console.log('[Save Debug] Social icons data from DOM:', currentSocialsData);
-            console.log('[Save Debug] Previous hidden input value:', previousValue);
-            console.log('[Save Debug] New JSON value:', jsonValue);
-            console.log('[Save Debug] Values match:', previousValue === jsonValue);
             
             hiddenSocialsInput.value = jsonValue;
-            console.log('[Save Debug] Hidden input updated successfully');
         } else {
             console.warn('[Save] Social icons manager or getSocialsDataFromDOM function not available');
-            console.log('[Save Debug] Manager state:', {
-                hasSocialIcons: !!manager.socialIcons,
-                hasGetSocialsMethod: manager.socialIcons && typeof manager.socialIcons.getSocialsDataFromDOM === 'function',
-                managerKeys: manager ? Object.keys(manager) : 'no manager'
-            });
         }
     }
 
@@ -334,45 +319,39 @@
         const loadingMessageElement = document.getElementById('link-page-loading-message');
 
         if (form.checkValidity()) {
-            console.log('[Save Debug] === STARTING CONSOLIDATED SAVE PROCESS ===');
-            
-            // Serialize all JS-managed data to their respective hidden inputs
-            console.log('[Save Debug] Step 1: Serializing CSS variables...');
+            // Step 1: Serialize CSS variables
             serializeCssVarsToHiddenInput();
-            
-            console.log('[Save Debug] Step 2: Serializing other settings...');
+
+            // Step 2: Serialize other settings (like font family)
             serializeOtherLinkPageSettingsToHiddenInputs();
-            
-            console.log('[Save Debug] Step 3: Serializing socials data...');
+
+            // Step 3: Serialize socials data
             serializeSocialsDataToHiddenInput();
-            
-            console.log('[Save Debug] Step 4: Serializing info data (profile image state)...');
-            // Serialize info module data (profile image removal state)
-            if (window.ExtrchLinkPageInfoManager && typeof window.ExtrchLinkPageInfoManager.serializeForSave === 'function') {
-                const infoSuccess = window.ExtrchLinkPageInfoManager.serializeForSave();
-                console.log('[Save Debug] Info serialization result:', infoSuccess);
+
+            // Step 4: Serialize info data (profile image state)
+            if (typeof serializeInfoForSave === 'function') {
+                serializeInfoForSave();
+            }
+
+            // Step 5: Call module serialize methods (use manager instances)
+            if (typeof manager !== 'undefined') {
+                if (manager.links && typeof manager.links.serializeForSave === 'function') {
+                    manager.links.serializeForSave();
+                }
+
+                if (manager.socialIcons && typeof manager.socialIcons.serializeForSave === 'function') {
+                    manager.socialIcons.serializeForSave();
+                }
+
+                if (manager.sizing && typeof manager.sizing.serializeForSave === 'function') {
+                    manager.sizing.serializeForSave();
+                }
             } else {
-                console.warn('[Save Debug] Info manager serialize method not available');
+                // Fallback to global functions if manager isn't available
+                if (typeof serializeSizingForSave === 'function') {
+                    serializeSizingForSave();
+                }
             }
-            
-            console.log('[Save Debug] Step 5: Calling module serialize methods...');
-            // Call other module serialize methods if available
-            if (manager.links && typeof manager.links.serializeForSave === 'function') {
-                const linksSuccess = manager.links.serializeForSave();
-                console.log('[Save Debug] Links serialization result:', linksSuccess);
-            }
-            
-            if (manager.socialIcons && typeof manager.socialIcons.serializeForSave === 'function') {
-                const socialsSuccess = manager.socialIcons.serializeForSave();
-                console.log('[Save Debug] Socials module serialization result:', socialsSuccess);
-            }
-            
-            if (manager.sizing && typeof manager.sizing.serializeForSave === 'function') {
-                const sizingSuccess = manager.sizing.serializeForSave();
-                console.log('[Save Debug] Sizing serialization result:', sizingSuccess);
-            }
-            
-            console.log('[Save Debug] === ALL SERIALIZATION COMPLETE - PROCEEDING WITH SAVE ===');
 
             if (loadingMessageElement) loadingMessageElement.style.display = 'flex';
             if (saveButton) saveButton.style.display = 'none';
@@ -392,9 +371,10 @@
             }
             tabInput.value = activeTab || '';
 
+            // Form should now submit normally to PHP handler
+
         } else {
-            // Prevent default submission if checkValidity returns false, as we want to rely on native UI
-            // event.preventDefault(); // This might be redundant as browser might stop anyway
+            event.preventDefault(); // Explicitly prevent submission on validation failure
         }
     }
 

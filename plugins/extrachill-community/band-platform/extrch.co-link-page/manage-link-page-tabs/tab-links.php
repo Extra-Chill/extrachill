@@ -21,11 +21,16 @@ $band_id = $data['band_id'] ?? 0;
 if (!$band_id && isset($data['band_profile']) && isset($data['band_profile']->ID)) {
     $band_id = $data['band_profile']->ID;
 }
+
+// Initialize social_links as empty array by default
+$social_links = array();
+
 if (!empty($band_id)) {
-    $social_links = get_post_meta($band_id, '_band_profile_social_links', true);
-    if (!is_array($social_links)) {
-        $social_links = array();
+    $social_links_meta = get_post_meta($band_id, '_band_profile_social_links', true);
+    if (is_array($social_links_meta)) {
+        $social_links = $social_links_meta;
     }
+    // If meta doesn't exist or isn't an array, $social_links remains empty array
 }
 
 // Fetch supported social link types

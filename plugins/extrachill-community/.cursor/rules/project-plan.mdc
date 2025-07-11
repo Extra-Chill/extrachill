@@ -10,7 +10,6 @@ This document outlines the forward-looking development plan and tasks for the Ba
 ### High Priority (MVP Critical):
 
 -   **Social Login (Google/Apple):** Implement OAuth-based login options for "Log in with Google" and "Log in with Apple". *Requires integrating with OAuth APIs and WordPress login flow, ensuring that successful social logins trigger the standard WordPress `wp_login` hook to maintain compatibility with existing session and token logic (including the custom `ecc_user_session_token`).* (Implementation pending).
--   **Unified Band Email Subscribers System:** The unified system for managing email subscribers (from link page forms and platform follow consent) is now implemented. This involved changes to frontend management tabs, backend handling (`bp_follow_band`, `bp_unfollow_band`, user settings AJAX), and data storage in `wp_band_subscribers`. The old method of displaying general followers in the "Subscribers" tab and managing consent via `_band_follow_email_permissions` user meta has been removed. (Core implementation complete; further refinements or related features like link page subscribe form customization are separate items).
 -   **Data Migration from Legacy 'Independent Artist' Forum:** Migrate relevant posts/data from the old "Independent Artist" forum into the new `band_profile` and associated band forum structure for existing artists. This will require manual effort. *Consider existing data structures and potential mapping.*
 -   **Final UX/UI Review & Code Optimization:** Conduct a final sweep of the user interface across devices, focusing on button styling, mobile-friendliness, and overall user experience. Clean up and optimize any redundant or confusing code. *Review key frontend files like `single-band_profile.php`, `page-templates/manage-band-profile.php`, `page-templates/manage-link-page.php`, and associated CSS/JS.*
 
@@ -38,19 +37,19 @@ This document outlines the forward-looking development plan and tasks for the Ba
 -   **Limit Bio Character Count:** Implement a character limit for the bio section on the link page / band profile manager interface.
 -   **Conditionally Hide Profile Image Card:** Hide the Profile Image customization card in the Link Page Manager if no profile image is uploaded by the user. (Low Priority UX improvement).
 -   **Bluesky Icon Inconsistency:** Note that the Bluesky icon currently appears on the live link page but not in the live preview on the management page. This needs investigation and fixing to ensure consistency.
-- **Optimize buttons on the Manage Band Profiles page** Change link text from "Update Band Profile" to simply, "Save". Add another save button at the very top of the form. Add a special note that appears during the join folow that simply reads "you can do this later. Save to move on to the link page." 
+-   **Optimize buttons on the Manage Band Profiles page** Change link text from "Update Band Profile" to simply, "Save". Add another save button at the very top of the form. Add a special note that appears during the join flow that simply reads "you can do this later. Save to move on to the link page." 
 
 ### Known Issues / Bugs:
 
 - **Forum Search Pagination Broken:** Pagination on forum search does not work as expected.
 - **Search Bar 404 in Topics Loop:** The search bar within the topics loop on the search page returns a 404. This needs review on other pages as well.
 - **YouTube Embed Review & Thumbnail:** The YouTube embed feature needs review and should display a thumbnail for embeds.
--- **Subscribe Button on live preview:** The subscribe button on the live preview is not properly inheriting the styles from the customizer. It is being overriden by default theme button styles. Additionally, we need to ensure the button border is implemented on this button. On the live link page, we have the button radius and colors, but not the proper border. 
+- **Subscribe Button on live preview:** The subscribe button on the live preview is not properly inheriting the styles from the customizer. It is being overriden by default theme button styles. Additionally, we need to ensure the button border is implemented on this button. On the live link page, we have the button radius and colors, but not the proper border. 
 - **Sticky topics in band forums not working:** Setting a topic to sticky in the band forum is not properly pinning it to the top of the band profile forum display. 
-- On mobile, the featured link and temporary redirect dropdown selection forms are not properly contained inside their cards.
-- The title font must apply to the featured link section on the live preview.
-- Removing the featured link thumbnail is not fully reliable; it is sometimes added back to the page after removing it.
-- Popup modal colors need to be rethought: using the semi-transparent card background often makes text illegible. We need to standardize modal colors for legibility.
+- **On mobile, the featured link and temporary redirect dropdown selection forms are not properly contained inside their cards.**
+- **The title font must apply to the featured link section on the live preview.**
+- **Removing the featured link thumbnail is not fully reliable; it is sometimes added back to the page after removing it.**
+- **Popup modal colors need to be rethought:** using the semi-transparent card background often makes text illegible. We need to standardize modal colors for legibility.
 
 ## Pre-Launch High Priority Bugs & Improvements (June 2025)
 
@@ -75,10 +74,27 @@ This document outlines the forward-looking development plan and tasks for the Ba
 - **Featured Link Thumbnail Flash:** Prevent the featured link thumbnail from flashing when editing the text; only refresh on link selection.  
   _Affected files: manage-link-page-featured-link.js, manage-link-page-content-renderer.js_
 
-- **Real-time featured link title update:** (Complete)
-- **JS no longer overwrites PHP-rendered links on load:** (Complete)
-
 _All of the above are observable, confirmed issues in the codebase and are required for launch._
+
+## Recently Completed (June/July 2025)
+
+### ✅ **Mobile Save Corruption Issue (RESOLVED - July 2025)**
+**Problem:** Mobile users (Chrome, Firefox, Safari) experienced save corruption where making any changes would reset background image to default, title font field to blank, and body font to "WilcoLoftSans" - but only on mobile devices, not desktop Chrome DevTools emulation.
+
+**Root Cause:** WordPress `wp_slash()` function was corrupting JSON strings containing quotes and special characters during meta saves. Mobile browsers were more susceptible to the timing issues this created.
+
+**Solution:** 
+- Changed from saving JSON strings to saving decoded arrays: `update_post_meta($id, '_link_page_custom_css_vars', $decoded_vars)`
+- Updated all retrieval logic to handle both array (new) and JSON string (legacy) formats for backward compatibility
+- Files updated: `link-page-form-handler.php`, `LinkPageDataProvider.php`, `create-link-page.php`, `link-page-includes.php`, `manage-link-page.php`, `link-page-custom-vars-and-fonts-head.php`
+
+**Architecture Improvement:** Eliminated scattered mobile/desktop branching logic and created unified save system for all devices. Removed 50+ lines of mobile-specific debugging code and different timeout logic.
+
+### ✅ **Unified Band Email Subscribers System (COMPLETED)**
+The unified system for managing email subscribers (from link page forms and platform follow consent) is implemented. This involved changes to frontend management tabs, backend handling (`bp_follow_band`, `bp_unfollow_band`, user settings AJAX), and data storage in `wp_band_subscribers`. The old method of displaying general followers in the "Subscribers" tab and managing consent via `_band_follow_email_permissions` user meta has been removed.
+
+### ✅ **Real-time featured link title update (COMPLETED)**
+### ✅ **JS no longer overwrites PHP-rendered links on load (COMPLETED)**
 
 ### Other Observations
 - There is some necessary duplication between PHP and JS for live preview, but markup and class changes must be kept in sync.

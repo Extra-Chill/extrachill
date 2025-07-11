@@ -233,9 +233,9 @@ if ($link_page_id && get_post_type($link_page_id) === 'band_link_page') {
 ?>
 <div class="manage-link-page-flex">
     <div class="manage-link-page-edit shared-tabs-component">
-        <form method="post" id="bp-manage-link-page-form" enctype="multipart/form-data" action="<?php echo esc_url( admin_url('admin-post.php') ); ?>">
+        <form method="post" id="bp-manage-link-page-form" enctype="multipart/form-data" action="">
             <?php wp_nonce_field('bp_save_link_page_action', 'bp_save_link_page_nonce'); ?>
-            <input type="hidden" name="action" value="extrch_handle_save_link_page_data">
+            <input type="hidden" name="extrch_action" value="save_link_page_data">
             <input type="hidden" name="band_id" value="<?php echo esc_attr($band_id); ?>">
             <input type="hidden" name="link_page_id" value="<?php echo esc_attr($link_page_id); ?>">
             <input type="hidden" name="link_expiration_enabled" id="link_expiration_enabled" value="<?php echo esc_attr((get_post_meta($link_page_id, '_link_expiration_enabled', true) === '1' ? '1' : '0') ?? '0'); ?>">

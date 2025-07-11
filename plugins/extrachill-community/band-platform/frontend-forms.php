@@ -171,8 +171,17 @@ function bp_handle_create_band_profile_submission() {
         bp_create_band_forum_on_save( $new_band_id, $new_band_post, false );
     }
 
-    // --- Get the ID of the link page that should have been created by the save_post_band_profile hook ---
+    // --- Trigger Link Page Creation ---
+    // Explicitly call the link page creation function to ensure it runs immediately
+    // after the band profile is created and before redirection.
+    if ($new_band_post && function_exists('extrch_create_link_page_for_band_profile')) {
+        extrch_create_link_page_for_band_profile( $new_band_id, $new_band_post );
+        error_log('[Band Profile Creation] Manually triggered link page creation for band ID: ' . $new_band_id);
+    }
+
+    // --- Get the ID of the link page that should have been created ---
     $new_link_page_id = get_post_meta( $new_band_id, '_extrch_link_page_id', true );
+    error_log('[Band Profile Creation] Retrieved link page ID: ' . ($new_link_page_id ? $new_link_page_id : 'NULL'));
 
     // --- Redirect after successful creation ---
 

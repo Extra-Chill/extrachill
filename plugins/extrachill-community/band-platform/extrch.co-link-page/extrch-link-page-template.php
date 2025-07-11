@@ -136,6 +136,18 @@ $band_slug = isset($data['band_profile']->post_name) ? $data['band_profile']->po
 $share_page_url = !empty($band_slug) ? 'https://extrachill.link/' . $band_slug : home_url('/'); // Fallback to home_url if slug is empty
 error_log('[DEBUG TEMPLATE] Share Page URL determined as: ' . $share_page_url . ' based on band slug: ' . $band_slug);
 
+// If we're on extrachill.link and no session token exists, check if user came from management interface
+$current_host = strtolower($_SERVER['HTTP_HOST'] ?? '');
+if ($current_host === 'extrachill.link' && empty($_COOKIE['ecc_user_session_token'])) {
+    $referer = $_SERVER['HTTP_REFERER'] ?? '';
+    if (strpos($referer, 'community.extrachill.com/manage-link-page') !== false || 
+        strpos($referer, 'community.extrachill.com/manage-band-profile') !== false) {
+        // User came from management interface but has no session token on extrachill.link
+        // This suggests they need cross-domain session synchronization
+        error_log('[DEBUG TEMPLATE] User on extrachill.link with no session token, came from management interface: ' . $referer);
+    }
+}
+
 $bg_type = isset($data['css_vars']['--link-page-background-type']) ? $data['css_vars']['--link-page-background-type'] : 'color';
 
 if (isset($data) && is_array($data)) {
