@@ -15,7 +15,7 @@
     function serializeCssVarsToHiddenInput() {
         const hiddenInput = document.getElementById('link_page_custom_css_vars_json');
         const styleTag = document.getElementById('extrch-link-page-custom-vars');
-        
+
         if (!hiddenInput) {
             console.warn('[Save] CSS variables hidden input not found');
             return;
@@ -300,7 +300,7 @@
             }
             return;
         }
-
+        
         // Explicitly get current socials data from DOM and update hidden input
         // This ensures we capture the latest state even if the module didn't update it
         if (manager.socialIcons && typeof manager.socialIcons.getSocialsDataFromDOM === 'function') {

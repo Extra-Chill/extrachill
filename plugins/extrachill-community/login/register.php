@@ -137,15 +137,11 @@ function wp_surgeon_handle_registration() {
 
         // Captcha verification
         $turnstile_response = $_POST['cf-turnstile-response'];
-        error_log('[TURNSTILE DEBUG] Turnstile response received: ' . (empty($turnstile_response) ? 'EMPTY' : 'Present'));
         
         if (!wp_surgeon_verify_turnstile($turnstile_response)) {
-            error_log('[TURNSTILE DEBUG] Turnstile verification FAILED - blocking registration');
             $wp_surgeon_registration_errors[] = 'Captcha verification failed. Please try again.';
             return; // Early return to prevent further processing
         }
-        
-        error_log('[TURNSTILE DEBUG] Turnstile verification PASSED - proceeding with registration');
 
         // Password confirmation
         if ($password !== $password_confirm) {
@@ -291,28 +287,9 @@ function auto_login_new_user($user_id, $redirect_band_id = null, $from_join_flow
     $user = get_user_by('id', $user_id);
 
     if ($user) {
-        error_log('[REGISTRATION DEBUG] Starting auto-login for user: ' . $user->user_login . ' (ID: ' . $user_id . ')');
-        
         wp_set_current_user($user_id, $user->user_login);
-        error_log('[REGISTRATION DEBUG] wp_set_current_user called');
-        
         wp_set_auth_cookie($user_id, true);
-        error_log('[REGISTRATION DEBUG] wp_set_auth_cookie called');
-        
         do_action('wp_login', $user->user_login, $user); // Fire the wp_login action
-        error_log('[REGISTRATION DEBUG] wp_login action fired - should trigger session token creation');
-        
-        // Check if session token was actually created
-        if (isset($_COOKIE['ecc_user_session_token'])) {
-            error_log('[REGISTRATION DEBUG] Session token cookie was set: ' . $_COOKIE['ecc_user_session_token']);
-        } else {
-            error_log('[REGISTRATION DEBUG] Session token cookie was NOT set after wp_login action');
-        }
-        
-        // Verify user is actually logged in after the process
-        $is_logged_in = is_user_logged_in();
-        $current_user_id = get_current_user_id();
-        error_log('[REGISTRATION DEBUG] After auto-login: is_user_logged_in=' . ($is_logged_in ? 'YES' : 'NO') . ', current_user_id=' . $current_user_id);
 
         // Determine the redirect URL
 
@@ -377,20 +354,13 @@ function wp_surgeon_get_registration_errors() {
 
 // Function to verify Turnstile response
 function wp_surgeon_verify_turnstile($response) {
-    error_log('[TURNSTILE VERIFY] Starting verification. WP_ENV: ' . (defined('WP_ENV') ? WP_ENV : 'Not Defined'));
-    error_log('[TURNSTILE VERIFY] Response received: ' . (empty($response) ? 'EMPTY' : 'Present (' . strlen($response) . ' chars)'));
-    
     if ( defined('WP_ENV') && WP_ENV === 'development' ) {
-        error_log('[TURNSTILE VERIFY] Development mode - bypassing verification');
         return true;
     }
     
-
     $secret_key = '0x4AAAAAAAPvQp7DbBfqJD7LW-gbrAkiAb0'; // Ensure this is the correct key
     $verify_url = 'https://challenges.cloudflare.com/turnstile/v0/siteverify';
 
-    error_log('[TURNSTILE VERIFY] Making request to Cloudflare API');
-    
     $verify_response = wp_remote_post($verify_url, [
         'body' => [
             'secret' => $secret_key,
@@ -399,23 +369,15 @@ function wp_surgeon_verify_turnstile($response) {
     ]);
 
     if (is_wp_error($verify_response)) {
-        error_log('[TURNSTILE VERIFY] Request FAILED: ' . $verify_response->get_error_message());
         return false;
     }
 
     $body = wp_remote_retrieve_body($verify_response);
     $result = json_decode($body);
-    
-    error_log('[TURNSTILE VERIFY] Cloudflare response: ' . print_r($result, true));
 
     if (!$result || empty($result->success)) {
-        error_log('[TURNSTILE VERIFY] Verification FAILED. Success: ' . (isset($result->success) ? ($result->success ? 'true' : 'false') : 'missing'));
-        if (isset($result->{'error-codes'})) {
-            error_log('[TURNSTILE VERIFY] Error codes: ' . print_r($result->{'error-codes'}, true));
-        }
         return false;
     }
 
-    error_log('[TURNSTILE VERIFY] Verification SUCCESS');
     return true;
 }

@@ -54,59 +54,59 @@ function extrch_link_page_custom_vars_and_fonts_head( $link_page_id, $extrch_lin
     $selected_body_font_value = $default_body_font_value;
     $selected_body_font_stack = $default_body_font_stack;
     if ( !empty( $custom_vars ) ) {
-        foreach ( $custom_vars as $k => $v ) {
-            if ($k === '--link-page-title-font-family') {
-                $font_found_in_config = false;
-                if (is_array($extrch_link_page_fonts)) {
-                    foreach ($extrch_link_page_fonts as $font) {
-                        if ($font['value'] === $v || $font['stack'] === $v) {
-                            $selected_title_font_value = $font['value'];
-                            $selected_title_font_stack = $font['stack'];
-                            $processed_vars[$k] = $font['stack'];
-                            $font_found_in_config = true;
-                            break;
+            foreach ( $custom_vars as $k => $v ) {
+                if ($k === '--link-page-title-font-family') {
+                    $font_found_in_config = false;
+                    if (is_array($extrch_link_page_fonts)) {
+                        foreach ($extrch_link_page_fonts as $font) {
+                            if ($font['value'] === $v || $font['stack'] === $v) {
+                                $selected_title_font_value = $font['value'];
+                                $selected_title_font_stack = $font['stack'];
+                                $processed_vars[$k] = $font['stack'];
+                                $font_found_in_config = true;
+                                break;
+                            }
                         }
                     }
-                }
-                if (!$font_found_in_config) {
-                    if (strpos($v, ',') === false && strpos($v, "'") === false && strpos($v, '"') === false) {
-                        $processed_vars[$k] = "'" . $v . "', " . $default_title_font_stack;
-                        $selected_title_font_value = $v;
-                        $selected_title_font_stack = $processed_vars[$k];
-                    } else {
-                        $processed_vars[$k] = $v ?: $default_title_font_stack;
-                        $first_font_in_stack = explode(',', $v)[0];
-                        $selected_title_font_value = trim($first_font_in_stack, " '");
-                        $selected_title_font_stack = $v;
-                    }
-                }
-            } elseif ($k === '--link-page-body-font-family') {
-                $font_found_in_config = false;
-                if (is_array($extrch_link_page_fonts)) {
-                    foreach ($extrch_link_page_fonts as $font) {
-                        if ($font['value'] === $v || $font['stack'] === $v) {
-                            $selected_body_font_value = $font['value'];
-                            $selected_body_font_stack = $font['stack'];
-                            $processed_vars[$k] = $font['stack'];
-                            $font_found_in_config = true;
-                            break;
+                    if (!$font_found_in_config) {
+                        if (strpos($v, ',') === false && strpos($v, "'") === false && strpos($v, '"') === false) {
+                            $processed_vars[$k] = "'" . $v . "', " . $default_title_font_stack;
+                            $selected_title_font_value = $v;
+                            $selected_title_font_stack = $processed_vars[$k];
+                        } else {
+                            $processed_vars[$k] = $v ?: $default_title_font_stack;
+                            $first_font_in_stack = explode(',', $v)[0];
+                            $selected_title_font_value = trim($first_font_in_stack, " '");
+                            $selected_title_font_stack = $v;
                         }
                     }
-                }
-                if (!$font_found_in_config) {
-                    if (strpos($v, ',') === false && strpos($v, "'") === false && strpos($v, '"') === false) {
-                        $processed_vars[$k] = "'" . $v . "', " . $default_body_font_stack;
-                        $selected_body_font_value = $v;
-                        $selected_body_font_stack = $processed_vars[$k];
-                    } else {
-                        $processed_vars[$k] = $v ?: $default_body_font_stack;
-                        $first_font_in_stack = explode(',', $v)[0];
-                        $selected_body_font_value = trim($first_font_in_stack, " '");
-                        $selected_body_font_stack = $v;
+                } elseif ($k === '--link-page-body-font-family') {
+                    $font_found_in_config = false;
+                    if (is_array($extrch_link_page_fonts)) {
+                        foreach ($extrch_link_page_fonts as $font) {
+                            if ($font['value'] === $v || $font['stack'] === $v) {
+                                $selected_body_font_value = $font['value'];
+                                $selected_body_font_stack = $font['stack'];
+                                $processed_vars[$k] = $font['stack'];
+                                $font_found_in_config = true;
+                                break;
+                            }
+                        }
                     }
-                }
-            } else {
-                $processed_vars[$k] = $v;
+                    if (!$font_found_in_config) {
+                        if (strpos($v, ',') === false && strpos($v, "'") === false && strpos($v, '"') === false) {
+                            $processed_vars[$k] = "'" . $v . "', " . $default_body_font_stack;
+                            $selected_body_font_value = $v;
+                            $selected_body_font_stack = $processed_vars[$k];
+                        } else {
+                            $processed_vars[$k] = $v ?: $default_body_font_stack;
+                            $first_font_in_stack = explode(',', $v)[0];
+                            $selected_body_font_value = trim($first_font_in_stack, " '");
+                            $selected_body_font_stack = $v;
+                        }
+                    }
+                } else {
+                    $processed_vars[$k] = $v;
             }
         }
     }

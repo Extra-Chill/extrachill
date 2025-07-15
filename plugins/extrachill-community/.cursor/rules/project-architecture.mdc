@@ -1,12 +1,14 @@
 # Project Architecture & Technical Overview
 
-**Date:** June 2025 (Updated)
+**Date:** July 2025 (Updated - Current State)
 
 This document provides a technical overview of the Band Platform and Extrch.co Link Page features within the `generatepress_child` theme, outlining architecture, implemented components, and a high-level overview.
 
 ## Overview
 
-The Band Platform and Extrch.co Link Page features create a WordPress-based ecosystem for bands, offering customizable profiles and link pages with integrated forums and analytics, designed for shared control and community engagement.
+The Band Platform and Extrch.co Link Page features create a comprehensive WordPress-based ecosystem for bands, offering customizable profiles, link pages, forums, analytics, and cross-domain authentication (see dedicated section below for details). The system spans multiple domains (community.extrachill.com, extrachill.link, extrachill.com) with seamless user experience and shared control for community engagement.
+
+**Current Status:** The platform is feature-complete with all core functionality implemented. Recent focus has been on bug fixes and performance optimizations.
 
 ## I. Band Platform
 
@@ -23,44 +25,39 @@ The Band Platform and Extrch.co Link Page features create a WordPress-based ecos
 ### Implemented Components:
 
 - **`band_profile` CPT:** Registered in [`band-platform/cpt-band-profile.php`](mdc:band-platform/cpt-band-profile.php). Supports standard fields and custom meta for forum linking, link page association, and header images.
-- **User-to-Band Linking (Membership):** Manages user associations with band profiles via user meta. Includes Admin UI in User Profile Edit screen and `band_profile` admin meta box, and frontend management interfaces.
-- **Hidden Band Forums:** Created automatically for new `band_profile` posts via a `save_post_band_profile` hook in [`band-platform/band-forums.php`](mdc:band-platform/band-forums.php). Forums are linked via meta and hidden from admin lists. Permalinks redirect to the band profile page.
-- **Band Member Permissions:** Implemented via [`user_has_cap`](mdc:https:/developer.wordpress.org/reference/hooks/user_has_cap) filter in [`band-platform/band-permissions.php`](mdc:band-platform/band-permissions.php), granting CPT and bbPress capabilities based on band membership and public topic creation settings. The `_allow_public_topic_creation` meta on the *band_profile CPT* controls whether non-members can create topics in the band's forum, defaulting to true.
-- **Frontend Band Profile Display:** [`single-band_profile.php`](mdc:single-band_profile.php) displays profile data, images, associated forum topics, and the new topic form.
-- **Frontend Band Management:** Consolidated Create/Edit functionality in [`page-templates/manage-band-profile.php`](mdc:page-templates/manage-band-profile.php). Handles profile data, links, image uploads, and member management. Frontend form processing is handled in [`band-platform/frontend-forms.php`](mdc:band-platform/frontend-forms.php), while the member management UI is located in [`band-platform/roster/manage-roster-ui.php`](mdc:band-platform/roster/manage-roster-ui.php).
-- **Band Member Management (Roster):** Frontend UI in [`band-platform/roster/manage-roster-ui.php`](mdc:band-platform/roster/manage-roster-ui.php) handles removing existing members. An invitation system via email is implemented with AJAX handlers ([`band-platform/roster/roster-ajax-handlers.php`](mdc:band-platform/roster/roster-ajax-handlers.php)), data functions ([`band-platform/roster/roster-data-functions.php`](mdc:band-platform/roster/roster-data-functions.php)), and email logic ([`band-platform/roster/band-invitation-emails.php`](mdc:band-platform/roster/band-invitation-emails.php)). Invitation acceptance is handled on the `init` hook.
-- **Bi-directional Data Synchronization:** Logic in [`band-platform/data-sync.php`](mdc:band-platform/data-sync.php) synchronizes Band Name, Bio, and Profile Picture between `band_profile` and `band_link_page` CPTs.
-- **Conditional User Avatar Menu Item:** Added to the user avatar dropdown in the header via `wp_surgeon_add_notification_bell_icon` in [`forum-features/notifications.php`](mdc:forum-features/notifications.php). This item conditionally displays "Manage Band(s)" (linking to the most recently updated band profile) or "Create Band Profile" based on the user's band associations.
-- **User Search for Linking:** AJAX search functionality in [`band-platform/user-linking.php`](mdc:band-platform/user-linking.php) used for linking users to a band profile (admin meta box) now includes users with either `user_is_artist` or `user_is_professional` meta. UI labels have been updated.
-- **User Profile Edit Fieldset:** The fieldset on the user edit form in [`bbpress/form-user-edit.php`](mdc:bbpress/form-user-edit.php), titled "Band Platform", now displays if the user has either `user_is_artist` or `user_is_professional` meta.
-- **Registration Logic:** The registration logic in [`forum-features/register.php`](mdc:forum-features/register.php) includes a checkbox for "I am a musician" which sets `user_is_artist`. The forced setting of `user_is_artist` on band invite acceptance/registration has been removed, respecting user choice via checkboxes. The checkbox logic may require further review depending on the desired relationship between "artist" status and band management capability.
-- **User Profile Meta Update:** The `extrachill_update_user_profile_meta` function in [`functions.php`](mdc:functions.php) updates `user_is_artist` and `user_is_professional` based on POST values from the user profile edit form. Its current implementation is appropriate and does not conflict with recent changes regarding band management capabilities or user choice.
-- **Login/Register Page Consolidation:** The separate login and registration pages (`forum-features/login.php`, `forum-features/register.php`, `forum-features/logout.php`, `forum-features/registration-emails.php`) have been consolidated into a single page using the new `page-templates/login-register-template.php`. The core logic and forms have been refactored to work within a tabbed interface managed by `js/shared-tabs.js`. Includes were updated, vestigial AJAX handlers removed, and redirects modified to maintain state with URL hashes. Cloudflare Turnstile integration was updated to work with the new template.
-- **Unified Band Email Subscriber System (Replaces "Band Follower Contact & Privacy"):**
-    - **Single Source of Truth for Email Consent:** The `wp_band_subscribers` custom database table ([`band-platform/subscribe/subscriber-db.php`](mdc:band-platform/subscribe/subscriber-db.php)) is the sole repository for all consented email addresses for each band, whether from link page subscriptions or platform user follow consent.
-    - **Platform Follow Consent:** When a user follows a `band_profile` and gives email consent (typically via a modal or checkbox during the follow action), their `user_id`, email, and username are added/updated in `wp_band_subscribers` with `source = 'platform_follow_consent'`. This logic is handled in `bp_follow_band()` within [`band-platform/band-following.php`](mdc:band-platform/band-following.php).
-    - **Unfollowing:** When a user unfollows a band, their corresponding `platform_follow_consent` record in `wp_band_subscribers` is removed. This is handled by `bp_unfollow_band()` in [`band-platform/band-following.php`](mdc:band-platform/band-following.php).
-    - **Deprecated Meta:** The `_band_follow_email_permissions` user meta is deprecated and no longer used for managing email consent.
-    - **"Subscribers" Tab in Band Management:** The "Subscribers" tab in [`page-templates/manage-band-profile.php`](mdc:page-templates/manage-band-profile.php) (content from [`band-platform/manage-band-profile-tabs/tab-subscribers.php`](mdc:band-platform/manage-band-profile-tabs/tab-subscribers.php)) now *exclusively* lists subscribers from the `wp_band_subscribers` table for the current band. The previous display of general followers has been removed from this tab. Data is fetched via the `extrch_fetch_band_subscribers_ajax` AJAX handler (in [`band-platform/subscribe/subscribe-data-functions.php`](mdc:band-platform/subscribe/subscribe-data-functions.php)) and managed by [`band-platform/js/manage-band-subscribers.js`](mdc:band-platform/js/manage-band-subscribers.js). The tab includes functionality to export subscribers (CSV) via `extrch_export_subscribers_csv`.
-    - **User Control via "Subscriptions" Tab (Settings Page):** Users manage their email sharing preferences per band they follow via the "Subscriptions" tab in their main account settings ([`page-templates/settings-page.php`](mdc:page-templates/settings-page.php)). This interface interacts with `wp_band_subscribers` (for `source = 'platform_follow_consent'`) via the `bp_ajax_update_user_band_subscriptions_handler` in [`band-platform/band-following.php`](mdc:band-platform/band-following.php).
-    - **Follower Tracking:** General band following (without necessary email consent) is still tracked via the `_followed_band_profile_ids` user meta. The `_band_follower_count` post meta on `band_profile` reflects this general follower count.
+- **User-to-Band Linking:** Manages user associations via user meta. Includes Admin UI and frontend management interfaces.
+- **Hidden Band Forums:** Created automatically for new `band_profile` posts via `save_post_band_profile` hook in [`band-platform/band-forums.php`](mdc:band-platform/band-forums.php). Forums are linked via meta and hidden from admin lists.
+- **Band Member Permissions:** Implemented via `user_has_cap` filter in [`band-platform/band-permissions.php`](mdc:band-platform/band-permissions.php). The `_allow_public_topic_creation` meta controls whether non-members can create topics, defaulting to true.
+- **Frontend Band Profile Display:** [`single-band_profile.php`](mdc:single-band_profile.php) displays profile data, images, associated forum topics, and new topic form.
+- **Frontend Band Management:** Consolidated Create/Edit functionality in [`page-templates/manage-band-profile.php`](mdc:page-templates/manage-band-profile.php). Form processing in [`band-platform/frontend-forms.php`](mdc:band-platform/frontend-forms.php), member management UI in [`band-platform/roster/manage-roster-ui.php`](mdc:band-platform/roster/manage-roster-ui.php).
+- **Band Member Management (Roster):** Frontend UI handles member removal. Email invitation system with AJAX handlers, data functions, and email logic. Invitation acceptance handled on `init` hook.
+- **Bi-directional Data Sync:** Logic in [`band-platform/data-sync.php`](mdc:band-platform/data-sync.php) synchronizes Band Name, Bio, and Profile Picture between `band_profile` and `band_link_page` CPTs.
+- **Conditional User Menu Item:** Added to user avatar dropdown via `wp_surgeon_add_notification_bell_icon` in [`forum-features/notifications.php`](mdc:forum-features/notifications.php). Displays "Manage Band(s)" or "Create Band Profile" based on user associations.
+- **User Search for Linking:** AJAX search in [`band-platform/user-linking.php`](mdc:band-platform/user-linking.php) includes users with `user_is_artist` or `user_is_professional` meta.
+- **User Profile Edit Fieldset:** Fieldset in [`bbpress/form-user-edit.php`](mdc:bbpress/form-user-edit.php) displays for users with artist/professional meta.
+- **Registration Logic:** Checkbox for "I am a musician" sets `user_is_artist`. Forced setting on band invite acceptance removed.
+- **User Profile Meta Update:** `extrachill_update_user_profile_meta` function in [`functions.php`](mdc:functions.php) updates `user_is_artist` and `user_is_professional` from POST values.
+- **Login/Register Consolidation:** Separate pages consolidated into single tabbed interface using `page-templates/login-register-template.php`. Managed by `js/shared-tabs.js`.
+- **Unified Band Email Subscriber System:**
+    - **Email Consent Management:** `wp_band_subscribers` table is sole repository for all consented email addresses.
+    - **Platform Follow Consent:** When user follows band with email consent, record added with `source = 'platform_follow_consent'`.
+    - **Unfollowing:** Removes corresponding `platform_follow_consent` record.
+    - **Deprecated Meta:** `_band_follow_email_permissions` user meta deprecated.
+    - **"Subscribers" Tab:** Lists subscribers from `wp_band_subscribers` table. Data fetched via AJAX handler, managed by JS. Includes CSV export.
+    - **User Control via "Subscriptions" Tab:** Users manage email sharing preferences per band via settings page.
+    - **Follower Tracking:** General following tracked via `_followed_band_profile_ids` user meta. `_band_follower_count` post meta reflects general follower count.
 
 ### Frontend Band Management UI Update:
 
-The [`page-templates/manage-band-profile.php`](mdc:page-templates/manage-band-profile.php) page has been refactored to use a tabbed interface for better organization.
-- **Tabs:** Includes "Band Info" (for profile data, images, and link page management), "Roster" (for member management, visible only in edit mode), and "Subscribers" (to view and manage band email subscribers from `wp_band_subscribers`, visible only in edit mode).
-    - **Image Previews:** Upload fields for Profile Picture and Band Forum Header Image feature live JavaScript-powered previews. The header image preview maintains a 16:9 aspect ratio.
-    - **Pre-fill for New Bands:** When creating a new band profile, fields like Band Name and Bio are pre-filled with the user's display name and biographical information. If a custom avatar exists, it is used as the initial preview for the Profile Picture.
-- **Styling:** New styles for the tabbed interface are in [`css/manage-band-profile.css`](mdc:css/manage-band-profile.css), aiming for a "content card" appearance.
-- **Assets:** Necessary CSS and JavaScript (e.g., [`js/manage-band-profiles.js`](mdc:js/manage-band-profiles.js) for tab switching and member management, and [`band-platform/js/manage-band-subscribers.js`](mdc:band-platform/js/manage-band-subscribers.js) for the subscribers tab) are enqueued via `extrachill_enqueue_manage_band_profile_assets` in [`functions.php`](mdc:functions.php). Legacy files and features have been removed or centralized.
+The [`page-templates/manage-band-profile.php`](mdc:page-templates/manage-band-profile.php) page uses a tabbed interface with "Band Info", "Roster", and "Subscribers" tabs. Features live JavaScript-powered image previews and pre-fill for new bands. Styling in [`css/manage-band-profile.css`](mdc:css/manage-band-profile.css). Assets enqueued via `extrachill_enqueue_manage_band_profile_assets` in [`functions.php`](mdc:functions.php).
 
-## II. `extrachill.link` Page Feature (Canonical, June 2025)
+## II. `extrachill.link` Page Feature (Canonical, July 2025)
 
 **Objective:** Provide a free, customizable "link in bio" service (`band_link_page` CPT) integrated with the Band Platform, hosted on `extrachill.link` (and `extrch.co`), driving traffic to the main platform.
 
-### Canonical Architecture (as of June 2025)
+### Canonical Architecture (as of July 2025)
 
-- **Single Source of Truth:**
+- **CSS Variables Management:**
   - The `<style id="extrch-link-page-custom-vars">` tag inside the preview container is the *sole* source of truth for all live preview CSS variables. All JS-driven changes (color, font, etc.) update this style tag directly and immediately reflect in the preview.
   - The hidden input (`#link_page_custom_css_vars_json`) is *only* used for saving, not for live preview or intermediate state. It is populated/serialized immediately before form submission by reading/parsing the current state from the style tag (and overlay toggle, etc).
   - There are *no* JS globals or window-level state objects for canonical data. All initialization and hydration is from PHP-rendered values.
@@ -77,7 +74,7 @@ The [`page-templates/manage-band-profile.php`](mdc:page-templates/manage-band-pr
 - **AJAX-Only Features:**
   - Only the QR code generation and analytics tab use AJAX for fetching/generating data. All other data is handled via standard form POST.
 
-- **Recent Fixes (June 2025):**
+- **Recent Fixes (July 2025):**
   - Share modal, QR code modal, analytics tab, tab restoration after save, and temporary redirect dropdown are all now fully functional and hydrated from canonical DOM state. All legacy or duplicate style blocks have been removed.
 
 - **Redundant/Outdated Logic:**
@@ -85,172 +82,115 @@ The [`page-templates/manage-band-profile.php`](mdc:page-templates/manage-band-pr
 
 ### Implemented Components:
 
-- **`band_link_page` CPT:** Registered in [`band-platform/extrch.co-link-page/cpt-band-link-page.php`](mdc:band-platform/extrch.co-link-page/cpt-band-link-page.php). Stores link page data and customization settings, with a one-to-one relationship with `band_profile`.
-- **Automatic Creation:** Logic in [`band-platform/extrch.co-link-page/create-link-page.php`](mdc:band-platform/extrch.co-link-page/create-link-page.php) creates a link page for new band profiles and manages the default site link page.
-- **Data Storage:** Meta fields on `band_link_page` CPT store page identity, appearance customization (including CSS variables), and links data. Data saving is centralized in [`link-page-form-handler.php`](mdc:band-platform/extrch.co-link-page/link-page-form-handler.php). Social icons are managed on this interface and synced to the `band_profile` CPT.
-- **Frontend Management Interface:** [`page-templates/manage-link-page.php`](mdc:page-templates/manage-link-page.php) provides a tabbed UI ([`manage-link-page-tabs/tab-*.php`](mdc:band-platform/extrch.co-link-page/manage-link-page-tabs)) for all `band_link_page` settings. Data is fetched via [`LivePreviewManager::get_preview_data()`](mdc:band-platform/extrch.co-link-page/live-preview/LivePreviewManager.php:1). Modular JavaScript handles UI and live preview updates, including URL parameter-based tab activation. The public URL displayed shows the clean `extrachill.link/bandname` format, while the underlying `href` attribute contains the full HTTPS URL. The edit button on the live link page is now conditionally displayed for logged-in band members by including the button HTML in `single-band_link_page.php` and using JavaScript (`link-page-session.js`) to control its visibility based on an AJAX call to the main site (`community.extrachill.com`) that checks band management capability via standard WordPress authentication cookies.
-- **Routing and Display:** [`link-page-rewrites.php`](mdc:band-platform/extrch.co-link-page/link-page-rewrites.php) handles routing for the `extrachill.link` domain, ensuring canonical public URLs and permanent redirects from `extrch.co` and the CPT permalink.
-- **Asset Management (Link Page):** Public CSS is in [`css/extrch-links.css`](mdc:band-platform/extrch.co-link-page/css/extrch-links.css), admin CSS for the manager is in [`css/manage-link-page.css`](mdc:css/manage-link-page.css). Modular JavaScript is located in the [`js/`](mdc:band-platform/extrch.co-link-page/js) directory. Assets are enqueued via [`link-page-includes.php`](mdc:band-platform/extrch.co-link-page/link-page-includes.php). The public page uses a minimal head to isolate assets, with the custom head logic now modularized into [`link-page-head.php`](mdc:band-platform/extrch.co-link-page/link-page-head.php).
-    - **Google Analytics Integration:** The main site's Google Analytics tracking script will be added to the `<head>` of the live link page template (`extrch-link-page-template.php`) to collect administrative analytics data for all link page views.
-    - **Favicon:** An explicit favicon link using `get_site_icon_url()` is included in the `<head>` via `link-page-head.php` to resolve redirect issues.
-- **Key Features:** Unlimited Links, Social Icons, Basic Analytics, Customization (Background, Title Font, Body Font, Text Color, Button Style/Colors), Responsive Design, Link Expiration, Temporary Redirect, QR Code & Share Menu, **Suggested Link Titles** (automatic title fetching for new links), **Inline YouTube Video Previews** (click a YouTube link button to play the video directly on the page, controlled by a global setting), **Social Icons Position** (allows users to place social icons above or below links) are implemented.
-- **Share Modal:** Implemented with share icons on the main link page and individual links. Uses Web Share API where available, with fallbacks. Modal HTML is in [`extrch-link-page-template.php`](mdc:band-platform/extrch.co-link-page/extrch-link-page-template.php), CSS in [`css/extrch-share-modal.css`](mdc:band-platform/extrch.co-link-page/css/extrch-share-modal.css), and JS in [`js/extrch-share-modal.js`](mdc:band-platform/extrch.co-link-page/js/extrch-share-modal.js), enqueued via [`link-page-includes.php`](mdc:band-platform/extrch.co-link-page/link-page-includes.php).
-- **Analytics & Tracking:** Implemented with custom DB tables managed by [`link-page-analytics-db.php`](mdc:band-platform/extrch.co-link-page/link-page-analytics-db.php). Tracking via client-side JS ([`js/link-page-public-tracking.js`](mdc:band-platform/extrch.co-link-page/js/link-page-public-tracking.js)) and AJAX endpoint ([`link-page-analytics-tracking.php`](mdc:band-platform/extrch.co-link-page/link-page-analytics-tracking.php)). Data retrieval is available via AJAX. Permissions for viewing analytics are controlled by the `view_band_link_page_analytics` capability, dynamically granted to band members via the `user_has_cap` filter. Data pruning is implemented via WP Cron. Includes support for Google and Meta pixels.
-- **Weekly Performance Email:** Implemented via WP Cron in [`band-platform/extrch.co-link-page/link-page-weekly-email.php`](mdc:band-platform/extrch.co-link-page/link-page-weekly-email.php). Sends a consolidated weekly email to each user summarizing performance for their opted-in link pages and associated band forum activity.
+- **`band_link_page` CPT:** Registered in [`band-platform/extrch.co-link-page/cpt-band-link-page.php`](mdc:band-platform/extrch.co-link-page/cpt-band-link-page.php). One-to-one relationship with `band_profile`.
+- **Automatic Creation:** Logic in [`band-platform/extrch.co-link-page/create-link-page.php`](mdc:band-platform/extrch.co-link-page/create-link-page.php) creates link pages for new band profiles.
+- **Data Storage:** Meta fields store page identity, appearance customization, and links data. Data saving centralized in [`link-page-form-handler.php`](mdc:band-platform/extrch.co-link-page/link-page-form-handler.php).
+- **Frontend Management Interface:** [`page-templates/manage-link-page.php`](mdc:page-templates/manage-link-page.php) provides tabbed UI for all settings. Modular JavaScript handles UI and live preview updates.
+- **Routing and Display:** [`link-page-rewrites.php`](mdc:band-platform/extrch.co-link-page/link-page-rewrites.php) handles routing for `extrachill.link` domain.
+- **Asset Management:** See "Head Output and Tracking Pixel Logic" section below.
+- **Key Features:** Unlimited links, social icons, analytics, customization, responsive design, expiration, QR code, share menu, suggested link titles, YouTube previews, social icons position.
+- **Share Modal:** Web Share API with fallbacks. HTML in template, CSS in `extrch-share-modal.css`, JS in `extrch-share-modal.js`.
+- **Analytics & Tracking:** Custom DB tables with client-side tracking and AJAX endpoints. Permissions via `view_band_link_page_analytics` capability. Includes Google and Meta pixels.
+- **Weekly Performance Email:** WP Cron implementation sends consolidated weekly performance summaries.
 
 ### User Navigation Enhancements:
 
-- **Conditional "Manage Link Page(s)" User Menu Item:** Added to the user avatar dropdown in [`forum-features/notifications.php`](mdc:forum-features/notifications.php). If the user has associated band profiles, this links to the manage link page for the most recently updated band profile.
-- **Band Switcher for Link Page Management:** A dropdown has been added to [`page-templates/manage-link-page.php`](mdc:page-templates/manage-link-page.php) allowing users with multiple band profiles to switch which band's link page they are managing, mirroring the functionality on the "Manage Band Profile" page.
+- **Conditional "Manage Link Page(s)" Menu Item:** Added to user avatar dropdown in [`forum-features/notifications.php`](mdc:forum-features/notifications.php). Links to most recently updated band profile.
+- **Band Switcher:** Dropdown in [`page-templates/manage-link-page.php`](mdc:page-templates/manage-link-page.php) allows switching between band profiles.
 
-## III. Customization & Live Preview JavaScript Architecture (Canonical, June 2025)
+## III. Customization & Live Preview JavaScript Architecture
 
-This section outlines the structure and responsibilities of the core JavaScript modules governing the link page manager's live preview and UI interactions. The architecture adheres to the principle of the DOM (specifically PHP-rendered values and the style tag) as the primary source of truth, with no persistent JavaScript state or global objects for canonical data. Hidden inputs are used solely for transmitting data to the PHP save handler on form submission.
+**Note:** For the canonical source of truth and template responsibilities, see the 'Link Page Rendering Architecture (Canonical Source of Truth)' section below. This section focuses on JavaScript module responsibilities only.
 
-**Key Modules and Responsibilities:**
+**Core Principle:** DOM (PHP-rendered values and style tag) as single source of truth, no persistent JavaScript state.
 
-*   **Main Manager (`manage-link-page.js`):** The central orchestrator. Initializes other JavaScript modules upon `DOMContentLoaded`. Handles overall coordination, shared utility functions, and may trigger updates based on broader page events. It does NOT maintain canonical data state; modules it initializes hydrate from the DOM. Non-critical console logs have been removed from this file to improve debugging clarity.
-*   **"Brain" Modules:** These modules manage the user interface controls and interactions for specific domains within the manager (e.g., styles, links, social icons, advanced settings). They read the initial state from the DOM/hidden inputs and update the relevant DOM elements (including the style tag or hidden inputs before save) in response to user actions. Examples include:
-    *   [`manage-link-page-customization.js`](mdc:band-platform/extrch.co-link-page/js/manage-link-page-customization.js): Manages UI for style-related settings (colors, fonts, etc.) and updates the `#extrch-link-page-custom-vars` style tag.
-    *   [`manage-link-page-links.js`](mdc:band-platform/extrch.co-link-page/js/manage-link-page-links.js): Manages the links list UI (add, remove, reorder, edit) and updates the hidden input storing link data (`#link_page_links_json`) before save, and updates the preview via the "Content Engine".
-    *   [`manage-link-page-socials.js`](mdc:band-platform/extrch.co-link-page/js/manage-link-page-socials.js): Manages the social icons UI and updates the hidden input storing social icon data (`#band_profile_social_links_json`) before save, and updates the preview via the "Content Engine". Also handles the new social icons position setting, triggering preview updates.
-    *   ... (other relevant JS files like colors, fonts, sizing, info, etc., act as "Brains" for their specific UI domains, hydrating from and writing to the DOM/hidden inputs)
-    *Note: "Brains" refer to logic controllers managing specific domains (e.g., styles, links) by interacting with their UI controls and the DOM, while "Engines" handle rendering or preview updates based on DOM state.*
-*   **"Engine" Modules:** These modules are responsible for rendering or updating the live preview based on the current state of the DOM (style tag, content elements).
-    *   [`manage-link-page-preview-updater.js`](mdc:band-platform/extrch.co-link-page/js/manage-link-page-preview-updater.js): The "Styles Engine". Responsible for applying CSS custom properties from the `#extrch-link-page-custom-vars` style tag to the preview elements.
-    *   [`manage-link-page-content-renderer.js`](mdc:band-platform/extrch.co-link-page/js/manage-link-page-content-renderer.js): The "Content Engine". Responsible for rendering list-based content like link sections and social icons into the live preview DOM based on the data in the relevant hidden inputs or UI controls (like the social icons position radio). Handles clearing previous content and dynamically creating/updating HTML elements, including managing the display of social icon containers based on the chosen position.
-*   **Save Handler (`manage-link-page-save.js`):** This dedicated module is responsible for the final step before form submission. It serializes the current state from the DOM (reading the `#extrch-link-page-custom-vars` style tag, the overlay toggle, etc.) into the hidden input (`#link_page_custom_css_vars_json`) to ensure the PHP save handler receives the most up-to-date customization data. It also ensures the `tab` hidden input is set correctly for post-save redirection.
-*   **AJAX Handler for Link Titles (`ajax-handlers.php`):** A PHP file containing the `extrch_fetch_link_meta_title_ajax_handler` function. This WordPress AJAX action (`wp_ajax_fetch_link_meta_title`) is responsible for receiving a URL, fetching its content server-side using `wp_safe_remote_get`, parsing the HTML for `<title>` or `og:title` tags, and returning the found title. This is triggered by `manage-link-page-links.js` when a user inputs a URL and the title field is blank.
-*   **Inline YouTube Embeds (`link-page-youtube-embed.js`):** A dedicated JavaScript module that detects YouTube links on the public link page and in the admin preview. When a YouTube link button is clicked, it prevents default navigation and instead dynamically embeds a YouTube iframe player below the button. This feature can be toggled globally via a setting in the "Advanced" tab of the link page manager, which controls the conditional enqueueing of this script. Associated CSS is in `extrch-links.css`.
-*   **QR Code Handler (`manage-link-page-qrcode.js`):** Dedicated module for managing the QR code modal and triggering the AJAX request to generate and display the link page QR code. It listens for clicks on the QR code button, controls the visibility of the modal, and handles the AJAX response to display the generated QR code image or an error message.
+**Key Modules:**
+- **Main Manager (`manage-link-page.js`):** Central orchestrator, initializes modules
+- **"Brain" Modules:** Manage UI controls for specific domains (styles, links, social icons)
+  - `manage-link-page-customization.js` - Style settings and CSS variable updates
+  - `manage-link-page-links.js` - Links list UI and data management
+  - `manage-link-page-socials.js` - Social icons UI and position settings
+- **"Engine" Modules:** Render live preview based on DOM state
+  - `manage-link-page-preview-updater.js` - Styles engine (CSS variables)
+  - `manage-link-page-content-renderer.js` - Content engine (links, social icons)
+- **Save Handler (`manage-link-page-save.js`):** Serializes DOM state to hidden inputs before form submission
+- **AJAX Handlers:** Link title fetching, QR code generation, YouTube embeds
 
 ## VII. Mobile Save Corruption Resolution (July 2025)
 
-### Critical Bug Solved
-A major mobile-specific save corruption issue was discovered and resolved that affected all mobile browsers (Chrome, Firefox, Safari) but not desktop Chrome DevTools emulation.
+**Issue:** Mobile browsers experienced save corruption where changes would reset customization to defaults.
 
-**Symptoms:**
-- Saving without changes on mobile would reset background image to default
-- Title font field would become blank  
-- Body font would revert to "WilcoLoftSans"
-- Social links would disappear and revert to defaults
-- Issue only occurred on actual mobile devices, not desktop browser emulation
+**Root Cause:** WordPress `wp_slash()` function corrupted JSON strings containing quotes during meta saves.
 
-**Root Cause Analysis:**
-Through error log investigation, the issue was traced to WordPress's `wp_slash()` function corrupting JSON strings containing quotes and special characters during meta saves:
-```
-Failed saves: 1170 characters with quoted font values "WilcoLoftSans", Helvetica, Arial, sans-serif
-Successful saves: 1113 characters with unquoted values WilcoLoftSans  
-Error: [Mobile Save Debug] Verification FAILED: Could not decode saved JSON
-```
+**Solution:** 
+- Changed from saving JSON strings to saving decoded arrays
+- Updated all retrieval logic for backward compatibility
+- Unified mobile/desktop code paths
 
-**Solution Architecture:**
-1. **Changed Storage Format:** Switched from saving JSON strings to saving decoded arrays:
-   ```php
-   // Before (vulnerable to wp_slash corruption)
-   update_post_meta($id, '_link_page_custom_css_vars', $json_string);
-   
-   // After (WordPress handles serialization safely)  
-   update_post_meta($id, '_link_page_custom_css_vars', $decoded_vars);
-   ```
+**Files Updated:** `link-page-form-handler.php`, `LinkPageDataProvider.php`, `create-link-page.php`, `link-page-includes.php`, `manage-link-page.php`, `link-page-custom-vars-and-fonts-head.php`
 
-2. **Backward Compatibility:** Updated all retrieval logic to handle both array (new) and JSON string (legacy) formats
-
-3. **Files Updated:**
-   - `link-page-form-handler.php` - Save arrays instead of JSON, updated verification
-   - `LinkPageDataProvider.php` - Handle both array/JSON formats  
-   - `create-link-page.php` - Save default styles as array
-   - `link-page-includes.php` - Handle both formats + fixed syntax error
-   - `manage-link-page.php` - Handle both formats
-   - `link-page-custom-vars-and-fonts-head.php` - Handle both formats
-
-### Architectural Unification
-The investigation revealed scattered mobile/desktop branching logic that was eliminated:
-
-**Before:** Separate code paths for mobile vs desktop
-```javascript
-const isMobile = /Mobi|Android/i.test(navigator.userAgent) || window.innerWidth <= 768;
-if (isMobile) {
-    // 50+ lines of mobile-specific debugging and different logic paths
-}
-const timeoutMs = isMobileDevice() ? 8000 : 5000; // Different timeouts
-```
-
-**After:** Unified system for all devices
-```javascript  
-// Universal save logic - same for all devices
-console.log('[Save] CSS vars serialized using:', successMethod, 'with', Object.keys(vars).length, 'variables');
-const timeoutMs = 8000; // Unified timeout for all devices
-const mediaQuery = window.matchMedia('(max-width: 768px)'); // CSS media queries instead of JS detection
-```
-
-**Benefits:**
-- ✅ Single save path eliminates mobile/desktop complexity
-- ✅ Device-agnostic logging reduces noise  
-- ✅ CSS media queries replace JavaScript device detection
-- ✅ Backward compatibility maintains old data support
-- ✅ Much cleaner, maintainable unified architecture
-
-**Result:** Mobile save corruption completely resolved while significantly improving code quality and maintainability.
+**Result:** Mobile save corruption resolved while improving code quality and maintainability.
 
 ## IV. Band Directory Enhancements
 
 ### Implemented:
 
-Updated the visual presentation of band cards in the custom band directory ([`band-platform/band-directory.php`](mdc:band-platform/band-directory.php) and [`bbpress/loop-single-band-card.php`](mdc:bbpress/loop-single-band-card.php)) to be more attractive and consistent with the main band profile page design.
-- The band's profile picture is displayed as a square overlaid on top of the band's header image.
-- The `bbpress/loop-single-band-card.php` template was updated to fetch and display the header image with a 16/9 aspect ratio, display the profile picture as an 80x80px square overlaid on the header image area, conditionally output a placeholder if images are missing, and ensure elements are linked to the band's profile page.
-- CSS in [`css/band-profile-cards.css`](mdc:css/band-profile-cards.css) was enhanced to style the overlaid profile picture and band title, handle title color and positioning for various image scenarios, style the placeholder, and ensure the visual container has a minimum height.
-- The `enqueue_user_profile_styles` function in [`functions.php`](mdc:functions.php) was updated to ensure [`css/band-profile-cards.css`](mdc:css/band-profile-cards.css) is loaded on relevant pages.
+Updated band cards in custom directory ([`band-platform/band-directory.php`](mdc:band-platform/band-directory.php) and [`bbpress/loop-single-band-card.php`](mdc:bbpress/loop-single-band-card.php)) for better visual presentation. Profile picture displayed as square overlay on header image. CSS in [`css/band-profile-cards.css`](mdc:css/band-profile-cards.css).
 
 ### Band Directory (Forum 5432)
 
-The bbPress forum with ID 5432 is specifically designated as the "Band Directory". This forum provides a unique view that lists `band_profile` Custom Post Type entries instead of standard bbPress topics.
+The bbPress forum with ID 5432 is designated as the "Band Directory", listing `band_profile` CPT entries instead of standard bbPress topics.
 
-**Key Features & Implementation:**
-
-*   **Custom Loop Template:** The standard topic loop for forum 5432 is replaced by a custom template located at [`bbpress/loop-band-profiles.php`](mdc:bbpress/loop-band-profiles.php), loaded via a filter function defined in [`band-platform/band-directory.php`](mdc:band-platform/band-directory.php).
-*   **Content Display:** The `loop-band-profiles.php` template queries and displays `band_profile` CPT entries, rendering each as a card using the template part [`bbpress/loop-single-band-card.php`](mdc:bbpress/loop-single-band-card.php).
-*   **Functionality:** Includes sorting options (Recent Activity, Alphabetical, Popular), search by name, standard bbPress pagination, and conditional "Manage Band(s)" and "Manage Link Page(s)" buttons displayed at the top for eligible logged-in users.
-*   **Integrated Activity Display:** The "Latest:" activity display for the 'top' forum section now correctly includes the latest activity from all band forums associated with `band_profile` CPTs by combining standard and band forum queries within `fetch_latest_post_info_by_section` in [`forum-features/latest-post-info.php`](mdc:forum-features/latest-post-info.php).
-*   **Accurate Freshness Time:** The freshness time displayed on the Band Directory card ([`bbpress/loop-single-forum-card.php`](mdc:bbpress/loop-single-forum-card.php)) now accurately shows the verbose time difference (e.g., "19 minutes ago") by utilizing `human_time_diff` with GMT timestamp comparisons.
+**Key Features:**
+- **Custom Loop Template:** [`bbpress/loop-band-profiles.php`](mdc:bbpress/loop-band-profiles.php) replaces standard topic loop
+- **Content Display:** Queries and displays `band_profile` CPT entries as cards
+- **Functionality:** Sorting options, search, pagination, conditional management buttons
+- **Integrated Activity Display:** Latest activity from all band forums included in 'top' section
+- **Accurate Freshness Time:** Verbose time difference displayed using `human_time_diff`
 
 ## V. Canonical Redirect Prevention and Custom Routing for extrachill.link
 
-**Date Added:** May 2025
-**Last Updated:** May 21, 2025
-
-To ensure that public link pages on extrachill.link (e.g., extrachill.link/band-slug) are always routed correctly and that the root domain and non-existent slugs provide a clean URL experience, we implement custom routing logic in [`link-page-rewrites.php`](mdc:band-platform/extrch.co-link-page/link-page-rewrites.php).
+Custom routing logic in [`link-page-rewrites.php`](mdc:band-platform/extrch.co-link-page/link-page-rewrites.php) ensures proper routing for `extrachill.link` domain.
 
 **1. Preventing Canonical Redirects:**
+Custom filter `extrch_prevent_canonical_redirect_for_link_domain` prevents WordPress canonical redirects when host is `extrachill.link`.
 
-A custom filter on `redirect_canonical`, `extrch_prevent_canonical_redirect_for_link_domain`, is used to prevent WordPress's default canonical redirects when the host is `extrachill.link`. This is crucial for our custom routing system to take precedence.
-
-```php
-add_filter( 'redirect_canonical', 'extrch_prevent_canonical_redirect_for_link_domain', 10, 2 );
-function extrch_prevent_canonical_redirect_for_link_domain( $redirect_url, $requested_url ) {
-    $current_host = strtolower( $_SERVER['SERVER_NAME'] ?? '' );
-    if ( $current_host === 'extrachill.link' ) {
-        error_log('[DEBUG] extrch_prevent_canonical_redirect_for_link_domain: Preventing redirect for host ' . $current_host);
-        return false; // Prevent WordPress canonical redirect
-    }
-    return $redirect_url;
-}
-```
-
-**2. Custom Template Inclusion and Routing (`template_include`):**
-
-The `template_include` filter is used to intercept requests on the `extrachill.link` domain and load the appropriate template or perform redirects based on the requested path:
-
-*   **Root Path (`/`), Default Slug (`/extra-chill/`), and Non-Existent Slugs:** Requests to the root (`/`), the default 'extra-chill' slug (`/extra-chill/`), or any path that does not correspond to a valid `band_link_page` slug (other than 'extra-chill') or the `/manage-link-page/` path will display the content of the 'extra-chill' link page. Requests for the `/extra-chill/` slug and non-existent slugs will be permanently redirected (301) to the root domain (`https://extrachill.link/`) for a clean URL in the browser address bar.
-*   **Valid Band Slugs (Other than `/extra-chill/`):** If the requested path matches the `post_name` of a published `band_link_page` post (and the slug is not 'extra-chill'), the main WordPress query is modified to load that specific `band_link_page` post, and the `single-band_link_page.php` template is loaded.
-*   **Manage Link Page Path (`/manage-link-page/`):** If the requested path is exactly `/manage-link-page/`, the main WordPress query is modified to load the standard WordPress page with the slug 'manage-link-page', and the `page-templates/manage-link-page.php` template is loaded.
-
-This logic ensures that the bare `extrachill.link/` serves as the primary landing page for the default content, while valid band slugs are displayed at their respective URLs and the management interface is accessible.
+**2. Custom Template Inclusion (`template_include`):**
+- **Root Path (`/`), Default Slug (`/extra-chill/`), Non-Existent Slugs:** Display 'extra-chill' link page content. Redirects to root domain.
+- **Valid Band Slugs:** Load specific `band_link_page` post and `single-band_link_page.php` template.
+- **Manage Link Page Path (`/manage-link-page/`):** Load standard WordPress page with 'manage-link-page' slug.
 
 **3. Redirecting Direct CPT Access (`template_redirect`):**
+Redirects direct `band_link_page` access to canonical URL on `extrachill.link` domain.
 
-The `template_redirect` action hook is used to redirect users accessing `band_link_page` posts directly via their default WordPress permalink structure (e.g., `https://community-stage.local/band-link-page/band-slug/`) to their canonical URL on the `extrachill.link` domain (`https://extrachill.link/band-slug/`)
+## Cross-Domain Authentication System
+
+The platform implements a sophisticated cross-domain authentication system that allows seamless user experience across multiple domains:
+
+**Domains Involved:**
+- `community.extrachill.com` - Main community platform
+- `extrachill.link` - Public link pages
+- `extrachill.com` - Main site (future WooCommerce integration)
+
+**Session Token System:**
+- Custom session tokens stored in `wp_user_session_tokens` table
+- 6-month expiration with automatic cleanup
+- Cross-domain cookie sharing via `.extrachill.com` domain
+- REST API endpoints for external authentication
+
+**Key Files:**
+- `extrachill-integration/session-tokens.php` - Core session management
+- `extrachill-integration/seamless-login.php` - External login handling
+- `extrachill-integration/get-user-details.php` - User data retrieval
+- `extrachill-integration/validate-session.php` - Session validation
+- `js/seamless-login.js` - Client-side authentication
+
+**Authentication Flow:**
+1. User logs in on any domain via REST API
+2. Session token generated and stored in database
+3. Cookie set for `.extrachill.com` domain (covers all subdomains)
+4. Auto-login triggered on subsequent visits via `auto_login_via_session_token()`
+5. Cross-domain requests validated using token in Authorization header
 
 ## Login and Registration Module
 
@@ -309,56 +249,18 @@ This flow ensures a seamless onboarding experience, guiding users from authentic
 
 ## Head Output and Tracking Pixel Logic
 
-The `extrch_link_page_custom_head` function is used ONLY for the public/live link page and outputs meta, favicon, CSS, Google Fonts, custom CSS vars, session JS, analytics, and all tracking pixels (including user-level pixels from the advanced tab and site-level Google Tag Manager).
+The `extrch_link_page_custom_head` function is used ONLY for the public/live link page (`single-band_link_page.php`) and outputs meta, favicon, CSS, Google Fonts, custom CSS vars, session JS, analytics, and all tracking pixels (including user-level pixels from the advanced tab and site-level Google Tag Manager).
 
-A new function/file, `extrch_link_page_custom_vars_and_fonts_head`, is now used for outputting ONLY the custom CSS variables and Google Fonts, and is used in both the public/live page (via the custom head) and the manage page (via a `wp_head` action).
+A separate function, `extrch_link_page_custom_vars_and_fonts_head`, is used for outputting ONLY the custom CSS variables and Google Fonts. This function is used in:
+- **Public/Live Page:** Called by `extrch_link_page_custom_head` 
+- **Manage Page:** Called via `wp_head` action hook in `link-page-includes.php`
 
-The manage page now uses only the new function for CSS vars and fonts, and does NOT output any tracking pixels, analytics, or session JS in its head.
+The manage page (`page-templates/manage-link-page.php`) uses only the `extrch_link_page_custom_vars_and_fonts_head` function for CSS vars and fonts, and does NOT output any tracking pixels, analytics, or session JS in its head.
 
-Remove or update any previous references that implied the custom head was used for the manage page.
-
-Ensure the documentation for the advanced tab and tracking settings is accurate and clear about where and how these are output.
-
-Integrate these updates into the existing structure, refactoring as needed for clarity and accuracy.
-
-## Refactor Plan: Microstep Approach
-
-The link page manager refactor will proceed in microsteps, each focused on a single card/module within a tab. Each microstep includes:
-- Reviewing and refactoring initialization, hydration, and save logic for that card/module.
-- Ensuring hidden inputs and JS state are handled correctly.
-- Updating the live preview logic for that card/module.
-- Testing and documenting the changes.
-
-### Customizer Tab Microsteps
-1. Background Card
-2. Title Font Card
-3. Body Font Card
-4. Button Style Card
-5. Other Customizer Controls
-
-### Links Tab Microsteps
-1. Link Sections and Links
-2. Social Icons
-
-### Advanced Tab Microsteps
-1. Expiration, Notifications, Redirect
-2. Tracking Pixels (Meta Pixel, Google Tag, etc.)
-
-### Analytics Tab Microsteps
-1. AJAX Analytics Fetch and Display
-
-### QR Code Microstep
-1. QR Code Generation
-
-### Final Microstep: Code Cleanup
-- Remove all legacy, duplicate, or commented-out code.
-- Ensure all modules use the new initialization and save flow.
-- Update documentation and inline comments for clarity.
-- Final round of testing across all tabs and features.
-
-## Outlook
-- This microstep approach ensures each part of the UI and save flow is robust, testable, and maintainable.
-- The plan is now actionable, clear, and up-to-date, and aligns with the current state of the codebase and the new head output separation.
+**Key Files:**
+- `band-platform/extrch.co-link-page/link-page-head.php` - Custom head for public pages
+- `band-platform/extrch.co-link-page/link-page-custom-vars-and-fonts-head.php` - Shared CSS vars and fonts
+- `band-platform/extrch.co-link-page/link-page-includes.php` - Manage page head setup
 
 ## Link Page Rendering Architecture (Canonical Source of Truth)
 
@@ -369,6 +271,12 @@ The canonical, single source of truth for all link page rendering logic is the `
 - **Context Handling:** The canonical template uses context flags (such as `is_extrch_preview_iframe`) to conditionally render preview- or live-only elements. All context-specific logic (wrappers, analytics, edit button, etc.) is handled by the respective wrapper files or via these flags.
 
 **All changes to the link page's structure, classes, or logic should be made in `extrch-link-page-template.php` only.** The preview and live page will always be in sync, as they use the same template. There is no duplication of the main link page structure or logic.
+
+**Key Files:**
+- `band-platform/extrch.co-link-page/extrch-link-page-template.php` - Canonical template
+- `band-platform/extrch.co-link-page/data/LinkPageDataProvider.php` - Canonical data provider
+- `single-band_link_page.php` - Public page wrapper
+- `band-platform/extrch.co-link-page/live-preview/preview.php` - Preview wrapper
 
 ## VI. TinyMCE Customization
 
@@ -383,7 +291,7 @@ The TinyMCE editor used in bbPress has been customized for enhanced functionalit
 - Styling the TinyMCE editor toolbar and other UI elements outside the content iframe requires targeting them with CSS rules in stylesheets loaded on the main page (e.g., `style.css`) or other relevant theme stylesheets, as `tinymce-editor.css` only affects the iframe content.
 - The `content_css` argument is no longer used for loading `tinymce-editor.css`; the `mce_css` filter is the current method.
 
-## Current State & Pre-Launch Technical Debt (June 2025)
+## Current State & Pre-Launch Technical Debt (July 2025)
 
 - **PHP/JS Sync:** Featured link rendering, socials/subscribe form order, and class application logic exist in both PHP and JS. These must be kept in sync to avoid UI drift between live and preview.
 - **Vestigial Settings/Meta:** Some settings and meta keys (e.g., featured link custom title) are now obsolete and should be removed as features are refactored.
@@ -410,5 +318,4 @@ The TinyMCE editor used in bbPress has been customized for enhanced functionalit
 - The preview and all controls must always reflect the value of the canonical key.
 - JavaScript never sets initial values; it only listens for changes and updates the preview and hidden input before save.
 - There must never be a mismatch between the style tag and the form controls, as both are hydrated from the same source.
-- Legacy meta is only used as a fallback for old data, never as a primary source.
 - Legacy meta is only used as a fallback for old data, never as a primary source.

@@ -21,7 +21,7 @@ window.ExtrchLinkPageInfoManager = {
         this.fields.profileImageUpload = document.getElementById('link_page_profile_image_upload');
         this.fields.removeProfileImageBtn = document.getElementById('bp-remove-profile-image-btn');
         this.fields.removeProfileImageHidden = document.getElementById('remove_link_page_profile_image_hidden');
-        
+
         // Get the preview image element for live updates
         if (this.manager && this.manager.getPreviewEl) {
             const previewEl = this.manager.getPreviewEl();

@@ -134,7 +134,6 @@ if (empty($single_band_link_page_id) && isset($extrch_link_page_template_data['o
 // Manually construct the extrachill.link URL using the band slug
 $band_slug = isset($data['band_profile']->post_name) ? $data['band_profile']->post_name : '';
 $share_page_url = !empty($band_slug) ? 'https://extrachill.link/' . $band_slug : home_url('/'); // Fallback to home_url if slug is empty
-error_log('[DEBUG TEMPLATE] Share Page URL determined as: ' . $share_page_url . ' based on band slug: ' . $band_slug);
 
 // If we're on extrachill.link and no session token exists, check if user came from management interface
 $current_host = strtolower($_SERVER['HTTP_HOST'] ?? '');
@@ -144,7 +143,6 @@ if ($current_host === 'extrachill.link' && empty($_COOKIE['ecc_user_session_toke
         strpos($referer, 'community.extrachill.com/manage-band-profile') !== false) {
         // User came from management interface but has no session token on extrachill.link
         // This suggests they need cross-domain session synchronization
-        error_log('[DEBUG TEMPLATE] User on extrachill.link with no session token, came from management interface: ' . $referer);
     }
 }
 

@@ -503,7 +503,7 @@ function extrch_link_page_enqueue_assets() {
                 $custom_vars = json_decode($custom_vars_data, true);
             }
             
-            if (is_array($custom_vars) && !empty($custom_vars['--link-page-title-font-family'])) {
+                if (is_array($custom_vars) && !empty($custom_vars['--link-page-title-font-family'])) {
                     
                     // Determine the 'value' of the font, which might be a direct value or derived from a stack
                     $stored_font_setting = $custom_vars['--link-page-title-font-family'];
@@ -575,11 +575,11 @@ function extrch_link_page_enqueue_assets() {
                             array(),
                             null
                         );
-                    }
                 }
             }
         }
     }
+}
 add_action( 'wp_enqueue_scripts', 'extrch_link_page_enqueue_assets' );
 
 

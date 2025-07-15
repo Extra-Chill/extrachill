@@ -145,9 +145,6 @@ function extrch_check_band_manage_access_standard_auth( $request ) {
     
     $debug_info['can_manage'] = $can_manage;
 
-    // Log comprehensive debug info
-    error_log('[DEBUG extrch_check_band_manage_access_standard_auth API] ' . json_encode($debug_info));
-
     return new WP_REST_Response( array( 
         'canManage' => $can_manage,
         'debug' => $debug_info  // Include debug info in response for troubleshooting

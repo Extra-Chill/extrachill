@@ -311,11 +311,11 @@ function extrch_handle_save_link_page_data() {
             
             if (is_array($social_links_array)) {
                 error_log('[LinkPageSave PHP] Social links array BEFORE update_post_meta: ' . print_r($social_links_array, true));
-                update_post_meta($band_id, '_band_profile_social_links', $social_links_array);
+            update_post_meta($band_id, '_band_profile_social_links', $social_links_array);
                 error_log('[LinkPageSave PHP] Social links updated for band ID: ' . $band_id);
-                
+            
                 // Verify the save worked (for critical debugging only)
-                $saved_links = get_post_meta($band_id, '_band_profile_social_links', true);
+            $saved_links = get_post_meta($band_id, '_band_profile_social_links', true);
                 error_log('[LinkPageSave PHP] Verified saved social links: ' . print_r($saved_links, true));
             } else {
                 error_log('[LinkPageSave PHP] Social links data is not an array after null conversion');
@@ -354,7 +354,7 @@ function extrch_handle_save_link_page_data() {
                     error_log('[LinkPageSave] CSS variables save result: FAILED (actual error)');
                 }
             }
-            
+
             // Also update overlay meta for backward compatibility or direct access
             if (isset($decoded_vars['overlay'])) {
                 update_post_meta($link_page_id, '_link_page_overlay_toggle', $decoded_vars['overlay'] === '1' ? '1' : '0');
@@ -521,7 +521,7 @@ function extrch_handle_save_link_page_data() {
 
     error_log('[LinkPageSave] === PREPARING REDIRECT ===');
     error_log('[LinkPageSave] TIMING: Total processing time ' . round((microtime(true) - $start_time) * 1000, 2) . 'ms');
-    
+
     // --- Redirect back with success ---
     $redirect_args = array('band_id' => $band_id, 'bp_link_page_updated' => '1');
     

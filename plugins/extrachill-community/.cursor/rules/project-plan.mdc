@@ -1,8 +1,3 @@
----
-description: 
-globs: 
-alwaysApply: false
----
 ## Project Plan
 
 This document outlines the forward-looking development plan and tasks for the Band Platform and Extrch.co Link Page features.
@@ -31,27 +26,29 @@ This document outlines the forward-looking development plan and tasks for the Ba
 -   **Synced Customization:** Investigate syncing visual styles between `band_link_page` and `band_profile` display. (Exploration pending). *Assess feasibility and design implications.*
 -   **Advanced Customization:** Allow customization of band forum fonts/colors. (Implementation pending). *This would extend the existing customization logic.*
 -   **Event Integration:** Link band profiles to events. (Exploration pending). *Determine how event data will be stored and linked.*
--   **EPK (Electronic Press Kit) Builder:** Allow bands to easily create a professional EPK page directly from their band profile data, including bio, press photos, music links, contact info, and press mentions. (Exploration pending). *This will involve adding new meta fields, a management interface tab, a public display template, and custom routing.*
+-   **Merch Store Tab Integration:** Add a "Merch" tab to band profiles allowing artists to sell physical and digital products through a seamless WooCommerce marketplace integration. (Implementation pending). *Revenue model: 3-5% transaction fee. Technical architecture: WooCommerce store hosted on main domain (extrachill.com), band platform on subdomain (community.extrachill.com), connected via WooCommerce REST API and existing session token system. Users create/manage products from their band profile tabs, products automatically added to main store with vendor metadata. Payment splitting configured through WooCommerce (Stripe Connect or similar) to automatically distribute revenue. Extrachill.com becomes the marketplace while maintaining seamless UX from band profiles. Leverages existing band profile tab architecture and cross-domain authentication. Competes with Bandcamp (10-15% fees) while keeping artists in ecosystem.*
+-   **Enhanced EPK (Electronic Press Kit) Builder on extrch.co:** Allow bands to create professional EPK pages on the extrch.co domain using their band profile data, including bio, press photos, music links, contact info, and press mentions. (Exploration pending). *Revenue model: Premium templates, advanced analytics, PDF export functionality. Technical integration: Leverage existing live preview system architecture, cross-domain authentication already solved, integrate with existing band profile data structure. This would use the purchased extrch.co domain effectively while driving traffic back to the main community platform. Requires new templates, routing system, and potentially premium tier management.*
 -   **Columns option for buttons:** Allow users to display their link page in a grid layout instead of the typical vertical list on the customize tab. (Implementation pending). *Requires significant frontend work for responsive grid layout.*
 -   **Review and Optimize Rank System:** Investigate why programmatic posts are not triggering point calculations and ensure the rank system is robust and correctly handles all post types. (Implementation pending). *This will involve reviewing the point calculation logic and potentially hooks.*
 -   **Limit Bio Character Count:** Implement a character limit for the bio section on the link page / band profile manager interface.
 -   **Conditionally Hide Profile Image Card:** Hide the Profile Image customization card in the Link Page Manager if no profile image is uploaded by the user. (Low Priority UX improvement).
 -   **Bluesky Icon Inconsistency:** Note that the Bluesky icon currently appears on the live link page but not in the live preview on the management page. This needs investigation and fixing to ensure consistency.
--   **Optimize buttons on the Manage Band Profiles page** Change link text from "Update Band Profile" to simply, "Save". Add another save button at the very top of the form. Add a special note that appears during the join flow that simply reads "you can do this later. Save to move on to the link page." 
+-   **Optimize buttons on the Manage Band Profiles page** Change link text from "Update Band Profile" to simply, "Save". Add another save button at the very top of the form. Add a special note that appears during the join flow that simply reads "you can do this later. Save to move on to the link page."
+
+### Ideas / Future Exploration:
+
+-   **"Indie Tour" Management System:** Web-based DIY alternative to Master Tour, allowing independent artists to manage tours, book venues, and coordinate logistics directly through the platform. (Exploration pending). *Revenue model: 5-10% booking fees, venue listing fees. Market gap: Master Tour serves enterprise only, indies are underserved. Technical requirements: venue database, booking management system, calendar integration, payment processing for deposits. Leverage existing community for venue recommendations and artist networking.*
+-   **Social Media Content Templates:** Provide copy/paste social media templates for common announcements (new releases, tour dates, etc.) rather than full scheduling system to avoid high server costs and API maintenance. (Exploration pending). *Alternative to expensive social scheduling services, focuses on content creation rather than automated posting.*
 
 ### Known Issues / Bugs:
 
 - **Forum Search Pagination Broken:** Pagination on forum search does not work as expected.
 - **Search Bar 404 in Topics Loop:** The search bar within the topics loop on the search page returns a 404. This needs review on other pages as well.
 - **YouTube Embed Review & Thumbnail:** The YouTube embed feature needs review and should display a thumbnail for embeds.
-- **Subscribe Button on live preview:** The subscribe button on the live preview is not properly inheriting the styles from the customizer. It is being overriden by default theme button styles. Additionally, we need to ensure the button border is implemented on this button. On the live link page, we have the button radius and colors, but not the proper border. 
-- **Sticky topics in band forums not working:** Setting a topic to sticky in the band forum is not properly pinning it to the top of the band profile forum display. 
 - **On mobile, the featured link and temporary redirect dropdown selection forms are not properly contained inside their cards.**
-- **The title font must apply to the featured link section on the live preview.**
-- **Removing the featured link thumbnail is not fully reliable; it is sometimes added back to the page after removing it.**
 - **Popup modal colors need to be rethought:** using the semi-transparent card background often makes text illegible. We need to standardize modal colors for legibility.
 
-## Pre-Launch High Priority Bugs & Improvements (June 2025)
+## Pre-Launch High Priority Bugs & Improvements (July 2025)
 
 - **Featured Link Card Style:** Update the featured link to use a rectangular blog-card style image and layout, not a round thumbnail.  
   _Affected files: link-page-featured-link-handler.php, extrch-link-page-template.php, extrch-links.css, manage-link-page-content-renderer.js_
@@ -64,12 +61,6 @@ This document outlines the forward-looking development plan and tasks for the Ba
 
 - **Custom CSS Class for Featured Link:** Ensure a custom class is applied to the featured link in the links tab and preview for targeted styling.  
   _Affected files: manage-link-page-links.js, manage-link-page-content-renderer.js, extrch-links.css, manage-link-page.css_
-
-- **Subscribe Form Theme Style Override in Preview:** Fix the subscribe form in the preview so it is not overridden by the main theme's CSS.  
-  _Affected files: extrch-links.css, extrch-link-page-template.php, subscribe-inline-form.php_
-
-- **Button Border on Subscribe Form:** Add a border to the subscribe form button, matching the link button style.  
-  _Affected files: extrch-links.css, subscribe-inline-form.php_
 
 - **Featured Link Thumbnail Flash:** Prevent the featured link thumbnail from flashing when editing the text; only refresh on link selection.  
   _Affected files: manage-link-page-featured-link.js, manage-link-page-content-renderer.js_
