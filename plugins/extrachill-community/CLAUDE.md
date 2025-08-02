@@ -4,7 +4,30 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a **WordPress Child Theme** for GeneratePress hosting the **ExtraChill** community platform - a comprehensive band platform and link page management system for musicians. The project serves a music community across multiple domains with seamless cross-domain authentication.
+This is a **standalone WordPress theme** called "Extra Chill Community" hosting the **ExtraChill** community platform - a comprehensive band platform and link page management system for musicians. The project serves a music community across multiple domains with seamless cross-domain authentication.
+
+**Theme Information:**
+- **Name**: Extra Chill Community
+- **Version**: 1.0.0
+- **Text Domain**: `extra-chill-community`
+- **Author**: Chris Huber
+- **Author URI**: https://chubes.net
+- **License**: GPL v2 or later
+- **License URI**: https://www.gnu.org/licenses/gpl-2.0.html
+- **Requires at least**: 5.0
+- **Tested up to**: 6.4
+
+## KNOWN ISSUES
+
+*Currently no known critical issues. Theme is production-ready and actively serving the ExtraChill community.*
+
+**Legacy References**: Some files contain outdated `generatepress_child` text domain references that should be updated to `extra-chill-community` in future maintenance cycles.
+
+## FUTURE PLANS
+
+*Theme architecture is stable. Future development focused on feature enhancements and community growth tools.*
+
+**Text Domain Cleanup**: Complete migration of all remaining `generatepress_child` text domain references to `extra-chill-community` across all theme files.
 
 ## Key Domains & Architecture
 
@@ -44,13 +67,21 @@ npx wp-scripts start
 - **No webpack.config.js** - Uses WordPress Scripts defaults
 - **No traditional test framework** - WordPress-based testing
 - **Custom autoloading** - PSR-4 namespace: `Chubes\Extrachill\`
+- **Asset Versioning** - Dynamic versioning using `filemtime()` for cache busting
+- **Modular CSS/JS** - Conditional loading based on page templates and contexts
 
 ## Architecture Principles
 
-### 1. Modular Structure
-- **Code Location**: Features organized in `band-platform/` directory
+### 1. Standalone Theme Structure
+- **Theme Setup**: Full WordPress theme with `extra_chill_community_setup()` function
+- **WordPress Features**: Supports automatic-feed-links, title-tag, post-thumbnails, custom-logo, HTML5 markup, customize-selective-refresh-widgets
+- **Navigation Menus**: Primary ('primary') and Footer ('footer') menus registered with proper text domain
+- **Widget Areas**: Custom sidebar ('sidebar-1') registration with proper escaping and structure
+- **Asset Management**: Conditional CSS/JS loading with dynamic versioning using `filemtime()`
+- **Template Hierarchy**: Includes required `index.php` template file as fallback
+- **Code Organization**: Features organized in `band-platform/` directory with centralized includes
 - **DRY Principle**: Consolidated forms and shared logic
-- **WordPress Integration**: Extends existing WordPress/bbPress systems
+- **WordPress Integration**: Extends existing WordPress/bbPress systems without parent theme dependencies
 
 ### 2. Single Source of Truth
 - **Link Page Rendering**: `band-platform/extrch.co-link-page/extrch-link-page-template.php` is canonical template
@@ -65,9 +96,10 @@ npx wp-scripts start
 ## Critical File Locations
 
 ### Core Theme Files
-- `functions.php` - Main theme functions and includes
+- `functions.php` - Main theme functions, WordPress feature support, and includes
+- `index.php` - Main template file (required WordPress theme file)
+- `style.css` - Main theme stylesheet with theme header information
 - `bbpress-customization.php` - bbPress modifications
-- `style.css` - Child theme stylesheet
 
 ### Band Platform
 - `band-platform/cpt-band-profile.php` - Band profile custom post type
@@ -92,7 +124,27 @@ npx wp-scripts start
 - **Preview Engines**: Render live preview from DOM state
 - **Save Handler**: `manage-link-page-save.js` - Serializes before submission
 
+### Asset Enqueuing System
+- **Main Stylesheet**: `extra-chill-community-style` - Primary theme styles enqueued via `extra_chill_community_enqueue_scripts()`
+- **Modular CSS**: Context-specific loading (forums-loop, topics-loop, replies-loop, user-profile, notifications, leaderboard)
+- **Page-Specific Assets**: Conditional loading for manage-band-profile, manage-link-page, settings-page, login-register
+- **Component Styles**: Shared-tabs, band-switcher with dependency management
+- **JavaScript Assets**: extrachill-utilities, extrachill-follow, custom-avatar, upvote, extrachill-mentions with conditional loading
+- **External Dependencies**: FontAwesome 6.5.1 via CDN
+- **Dynamic Versioning**: All assets use `filemtime()` for cache busting and fresh cache on updates
+- **Script Dependencies**: Proper dependency management with jQuery and custom scripts
+- **Asset Handles**: All handles prefixed with theme-specific naming (extrachill-, extra-chill-community-)
+
 ## Development Guidelines
+
+### Theme Development Principles
+1. **Standalone Architecture** - Complete WordPress theme with no parent theme dependencies
+2. **WordPress Standards** - Full compliance with WordPress theme development guidelines and coding standards
+3. **Theme Setup Hook** - Uses `after_setup_theme` action for proper theme initialization
+4. **Modular Asset Loading** - Context-aware CSS/JS enqueuing for optimal performance
+5. **Template Hierarchy** - Proper WordPress template structure with required `index.php` as fallback
+6. **Widget System** - Custom widget area registration via `widgets_init` action
+7. **Navigation System** - Registered navigation menus with proper escaping and text domain support
 
 ### Data Flow Principles
 1. **PHP renders initial state** from database
@@ -101,28 +153,37 @@ npx wp-scripts start
 4. **Hidden inputs updated only before save** for PHP processing
 
 ### Code Patterns
-- **Follow WordPress coding standards**
-- **Use existing GeneratePress patterns**
-- **Leverage bbPress hooks and filters**
-- **Maintain PSR-4 autoloading structure**
+- **Follow WordPress coding standards** and theme development best practices
+- **Implement proper theme setup** with `after_setup_theme` hook and `extra_chill_community_setup()` function
+- **WordPress Feature Support** - Proper `add_theme_support()` calls for core features
+- **Navigation Menus** - `register_nav_menus()` with translatable labels and text domain
+- **Widget Areas** - `register_sidebar()` with proper structure and escaping
+- **Asset Enqueuing** - `wp_enqueue_style()` and `wp_enqueue_script()` with dependencies and versioning
+- **Leverage bbPress hooks and filters** for forum integration
+- **Maintain PSR-4 autoloading structure** via Composer
+- **Use proper escaping** for all output (`esc_html()`, `esc_attr()`, `esc_url()`)
+- **Implement nonce verification** for form processing and AJAX handlers
+- **Conditional Loading** - Context-aware asset loading for performance optimization
 
 ### JavaScript Best Practices
 - **No persistent JS state** - Always read from DOM
 - **Module-based architecture** - Separate concerns clearly
 - **AJAX only for** QR codes and analytics
 - **Form submission for** all other data
+- **Dynamic versioning** - Use `filemtime()` for script/style versions
 
 ## Dependencies
 
 ### PHP
 - **WordPress** (with bbPress)
 - **QR Code Generation**: `endroid/qr-code` ^6.0
-- **Custom Classes**: Autoloaded via Composer
+- **Custom Classes**: Autoloaded via Composer PSR-4
 
 ### JavaScript
 - **Webpack 5** for bundling
 - **Babel** for transpilation
 - **@wordpress/scripts** for WordPress tooling
+- **FontAwesome** 6.5.1 via CDN
 
 ## Database Tables
 

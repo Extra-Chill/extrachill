@@ -434,7 +434,7 @@ function extrch_link_page_enqueue_assets() {
             wp_enqueue_style(
                 'extrch-manage-link-page',
                 $theme_uri . $manage_css,
-                array('generatepress-child-style'),
+                array('extra-chill-community-style'),
                 filemtime( $theme_dir . $manage_css )
             );
         }

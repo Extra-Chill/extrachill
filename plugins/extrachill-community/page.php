@@ -7,7 +7,7 @@
  * and that other 'pages' on your WordPress site will use a
  * different template.
  *
- * @package GeneratePress
+ * @package ExtraChillCommunity
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -22,45 +22,50 @@ if ( function_exists( 'extrachill_breadcrumbs' ) ) {
 }
 ?>
 
-	<div <?php generate_do_attr( 'content' ); ?>>
-		<main <?php generate_do_attr( 'main' ); ?>>
+	<div class="content-area">
+		<main class="main-content">
 			<?php
 			/**
-			 * generate_before_main_content hook.
-			 *
-			 * @since 0.1
+			 * Custom hook before main content.
 			 */
-			do_action( 'generate_before_main_content' );
+			do_action( 'extra_chill_before_main_content' );
 
-			if ( generate_has_default_loop() ) {
+			if ( have_posts() ) {
 				while ( have_posts() ) :
-
 					the_post();
+					?>
+					<article id="post-<?php the_ID(); ?>" <?php post_class(); ?>>
+						<header class="entry-header">
+							<?php the_title( '<h1 class="entry-title">', '</h1>' ); ?>
+						</header>
 
-					generate_do_template_part( 'page' );
-
+						<div class="entry-content">
+							<?php
+							the_content();
+							wp_link_pages( array(
+								'before' => '<div class="page-links">' . esc_html__( 'Pages:', 'extra-chill-community' ),
+								'after'  => '</div>',
+							) );
+							?>
+						</div>
+					</article>
+					<?php
 				endwhile;
 			}
 
 			/**
-			 * generate_after_main_content hook.
-			 *
-			 * @since 0.1
+			 * Custom hook after main content.
 			 */
-			do_action( 'generate_after_main_content' );
+			do_action( 'extra_chill_after_main_content' );
 			?>
 		</main>
 	</div>
 
 	<?php
 	/**
-	 * generate_after_primary_content_area hook.
-	 *
-	 * @since 2.0
+	 * Custom hook after primary content area.
 	 */
-	do_action( 'generate_after_primary_content_area' );
-
-	generate_construct_sidebars();
+	do_action( 'extra_chill_after_primary_content_area' );
 
 	get_footer();
 ?>

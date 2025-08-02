@@ -76,9 +76,9 @@
         <div class="search-section">
         <form action="<?php echo esc_url( home_url( '/' ) ); ?>" class="search-form searchform clearfix" method="get">
 	<div class="search-wrap">
-		<input type="text" placeholder="<?php esc_attr_e( 'Enter search terms...', 'generatepress_child' ); ?>" class="s field" name="s">
+		<input type="text" placeholder="<?php esc_attr_e( 'Enter search terms...', 'extra-chill-community' ); ?>" class="s field" name="s">
 		<button class="search" type="submit"><svg class="search-top">
-    <use href="/wp-content/themes/generatepress_child/fonts/fontawesome.svg#magnifying-glass-solid"></use>
+    <use href="<?php echo get_stylesheet_directory_uri(); ?>/fonts/fontawesome.svg#magnifying-glass-solid"></use>
 </svg></button>
 	</div>
 </form><!-- .searchform -->        </div>
@@ -116,7 +116,7 @@
 <div class="search-user">
   <div class="search-icon">
     <svg class="search-top">
-      <use href="/wp-content/themes/generatepress_child/fonts/fontawesome.svg<?php echo $svg_version ? '?v=' . $svg_version : ''; ?>#magnifying-glass-solid"></use>
+      <use href="<?php echo get_stylesheet_directory_uri(); ?>/fonts/fontawesome.svg<?php echo $svg_version ? '?v=' . $svg_version : ''; ?>#magnifying-glass-solid"></use>
     </svg>
   </div>
   <?php
@@ -134,16 +134,14 @@
 
   </header><!-- #masthead -->
 
-  <div <?php generate_do_attr( 'page' ); ?>>
+  <div class="site-page">
     <?php
     /**
-     * generate_inside_site_container hook.
-     *
-     * @since 2.4
+     * Custom hook for inside site container
      */
-    do_action( 'generate_inside_site_container' );
+    do_action( 'extra_chill_inside_site_container' );
     ?>
-    <div <?php generate_do_attr( 'site-content' ); ?>>
+    <div class="site-content">
       <?php
       /**
        * generate_inside_container hook.

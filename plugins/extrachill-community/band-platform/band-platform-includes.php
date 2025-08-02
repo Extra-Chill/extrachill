@@ -67,7 +67,7 @@ function bp_enqueue_band_platform_assets() {
              wp_enqueue_style( 
                 'topics-loop', 
                 $theme_uri . '/css/topics-loop.css', 
-                array('generatepress-child-style'), // Dependency
+                array('extra-chill-community-style'), // Dependency
                 filemtime( $topics_loop_css ) // Version
             );
         }
@@ -78,7 +78,7 @@ function bp_enqueue_band_platform_assets() {
             wp_enqueue_style( 
                 'band-profile', 
                 $theme_uri . '/css/band-profile.css', 
-                array('generatepress-child-style'), // Dependency
+                array('extra-chill-community-style'), // Dependency
                 filemtime( $band_profile_css ) // Version
             );
         }

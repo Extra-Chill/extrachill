@@ -444,7 +444,7 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 
 <?php 
-do_action( 'generate_after_primary_content_area' );
-generate_construct_sidebars();
+do_action( 'extra_chill_after_primary_content_area' );
+// Sidebar removed for standalone theme
 get_footer(); 
 ?> 

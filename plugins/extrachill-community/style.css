@@ -1,13 +1,17 @@
 @import url("css/root.css");
 
 /*
- Theme Name:   GeneratePress Child
- Theme URI:    https://generatepress.com
- Theme Description:  Default GeneratePress child theme
- Theme Author:       Tom Usborne
- Theme Author URI:   https://tomusborne.com
- Template:     generatepress
- Version:      0.1
+ Theme Name:   Extra Chill Community
+ Theme URI:    https://community.extrachill.com
+ Description:  ExtraChill community platform - a comprehensive band platform and link page management system for musicians
+ Author:       Chris Huber
+ Author URI:   https://chubes.net
+ Version:      1.0.0
+ License:      GPL v2 or later
+ License URI:  https://www.gnu.org/licenses/gpl-2.0.html
+ Text Domain:  extra-chill-community
+ Requires at least: 5.0
+ Tested up to: 6.4
 */
 
 @font-face {

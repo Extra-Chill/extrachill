@@ -1,12 +1,71 @@
 <?php
+/**
+ * Extra Chill Community Theme functions and definitions
+ *
+ * @package ExtraChillCommunity
+ */
+
 // Include Composer's autoloader.
 require_once get_stylesheet_directory() . '/vendor/autoload.php';
+
 /**
- * GeneratePress child theme functions and definitions.
- *
- * Add your custom PHP in this file.
- * Only edit this file if you have direct access to it on your server (to fix errors if they happen).
+ * Theme setup and WordPress feature support
  */
+function extra_chill_community_setup() {
+    // Add default posts and comments RSS feed links to head.
+    add_theme_support('automatic-feed-links');
+
+    // Let WordPress manage the document title.
+    add_theme_support('title-tag');
+
+    // Enable support for Post Thumbnails on posts and pages.
+    add_theme_support('post-thumbnails');
+
+    // Enable support for custom logo.
+    add_theme_support('custom-logo', array(
+        'height'      => 250,
+        'width'       => 250,
+        'flex-width'  => true,
+        'flex-height' => true,
+    ));
+
+    // Enable support for HTML5 markup.
+    add_theme_support('html5', array(
+        'search-form',
+        'comment-form',
+        'comment-list',
+        'gallery',
+        'caption',
+        'style',
+        'script',
+    ));
+
+    // Add theme support for selective refresh for widgets.
+    add_theme_support('customize-selective-refresh-widgets');
+
+    // Register navigation menus.
+    register_nav_menus(array(
+        'primary' => esc_html__('Primary Menu', 'extra-chill-community'),
+        'footer'  => esc_html__('Footer Menu', 'extra-chill-community'),
+    ));
+}
+add_action('after_setup_theme', 'extra_chill_community_setup');
+
+/**
+ * Register widget areas.
+ */
+function extra_chill_community_widgets_init() {
+    register_sidebar(array(
+        'name'          => esc_html__('Sidebar', 'extra-chill-community'),
+        'id'            => 'sidebar-1',
+        'description'   => esc_html__('Add widgets here.', 'extra-chill-community'),
+        'before_widget' => '<section id="%1$s" class="widget %2$s">',
+        'after_widget'  => '</section>',
+        'before_title'  => '<h2 class="widget-title">',
+        'after_title'   => '</h2>',
+    ));
+}
+add_action('widgets_init', 'extra_chill_community_widgets_init');
 /**
  * Enqueue notifications styles only on notifications page
  */
@@ -15,7 +74,7 @@ function extrachill_enqueue_notification_styles() {
         wp_enqueue_style(
             'extrachill-notifications', 
             get_stylesheet_directory_uri() . '/css/notifications.css', 
-            array('generatepress-child-style'), 
+            array('extra-chill-community-style'), 
             filemtime(get_stylesheet_directory() . '/css/notifications.css')
         );
     }
@@ -30,7 +89,7 @@ function extrachill_enqueue_leaderboard_styles() {
         wp_enqueue_style(
             'extrachill-leaderboard', 
             get_stylesheet_directory_uri() . '/css/leaderboard.css', 
-            array('generatepress-child-style'), 
+            array('extra-chill-community-style'), 
             filemtime(get_stylesheet_directory() . '/css/leaderboard.css')
         );
     }
@@ -140,7 +199,7 @@ function modular_bbpress_styles() {
         wp_enqueue_style(
             'forums-loop',
             get_stylesheet_directory_uri() . '/css/forums-loop.css',
-            array('generatepress-child-style'),
+            array('extra-chill-community-style'),
             filemtime(get_stylesheet_directory() . '/css/forums-loop.css')
         );
     }
@@ -150,7 +209,7 @@ function modular_bbpress_styles() {
         wp_enqueue_style(
             'topics-loop',
             get_stylesheet_directory_uri() . '/css/topics-loop.css',
-            array('generatepress-child-style'),
+            array('extra-chill-community-style'),
             filemtime(get_stylesheet_directory() . '/css/topics-loop.css')
         );
     }
@@ -161,7 +220,7 @@ function modular_bbpress_styles() {
         wp_enqueue_style(
             'replies-loop',
             get_stylesheet_directory_uri() . '/css/replies-loop.css',
-            array('generatepress-child-style'),
+            array('extra-chill-community-style'),
             filemtime(get_stylesheet_directory() . '/css/replies-loop.css')
         );
     }
@@ -170,7 +229,7 @@ function modular_bbpress_styles() {
         wp_enqueue_style(
             'register',
             get_stylesheet_directory_uri() . '/css/login-register.css',
-            array('generatepress-child-style'),
+            array('extra-chill-community-style'),
             filemtime(get_stylesheet_directory() . '/css/login-register.css')
         );
     }
@@ -187,14 +246,14 @@ function enqueue_user_profile_styles() {
         wp_enqueue_style(
             'user-profile', // This handle might be slightly misleading now, but keep for consistency unless a rename is preferred.
             get_stylesheet_directory_uri() . '/css/user-profile.css',
-            array('generatepress-child-style'),
+            array('extra-chill-community-style'),
             filemtime(get_stylesheet_directory() . '/css/user-profile.css')
         );
         // Enqueue band card styles for user profile band grid AND band directory
         wp_enqueue_style(
             'band-profile-cards',
             get_stylesheet_directory_uri() . '/css/band-profile-cards.css',
-            array('generatepress-child-style'), // Or 'user-profile' if it should load after it
+            array('extra-chill-community-style'), // Or 'user-profile' if it should load after it
             filemtime(get_stylesheet_directory() . '/css/band-profile-cards.css')
         );
     }
@@ -594,7 +653,7 @@ function bp_enqueue_admin_scripts( $hook ) {
                 'ajaxUrl' => admin_url( 'admin-ajax.php' ),
                 'searchNonce' => wp_create_nonce( 'bp_member_search_nonce' ), // Generate the nonce here
                 'postId' => isset($post->ID) ? $post->ID : 0,
-                'noMembersText' => __( 'No members linked yet.', 'generatepress_child' ) // Pass translatable string
+                'noMembersText' => __( 'No members linked yet.', 'extra-chill-community' ) // Pass translatable string
             ));
         }
     }
@@ -604,20 +663,17 @@ add_action( 'admin_enqueue_scripts', 'bp_enqueue_admin_scripts' );
 // --- End Admin Script --- 
 
 /**
- * Enqueue child theme stylesheet and other scripts.
+ * Enqueue theme stylesheet and scripts.
  */
-function generatepress_child_enqueue_scripts() {
-    // Enqueue child theme stylesheet
-    // WordPress should automatically load the parent theme (GeneratePress) style.css first
-    // when get_stylesheet_uri() is used in a child theme.
-    // The late priority (99) further helps ensure this loads after other theme/plugin styles.
-    wp_enqueue_style( 'generatepress-child-style', 
+function extra_chill_community_enqueue_scripts() {
+    // Enqueue main theme stylesheet
+    wp_enqueue_style( 'extra-chill-community-style', 
         get_stylesheet_uri(), 
-        array(), // Remove explicit parent handle dependency for now
+        array(), 
         filemtime(get_stylesheet_directory() . '/style.css') 
     );
 }
-add_action( 'wp_enqueue_scripts', 'generatepress_child_enqueue_scripts', 99 ); // Load child style.css late
+add_action( 'wp_enqueue_scripts', 'extra_chill_community_enqueue_scripts', 10 );
 
 // Function to enqueue assets for the Manage Band Profile page
 function extrachill_enqueue_manage_band_profile_assets() {
@@ -668,13 +724,13 @@ function extrachill_enqueue_manage_band_profile_assets() {
                 'ajaxInviteMemberByEmailNonce' => wp_create_nonce( 'bp_ajax_invite_member_by_email_nonce' ),
                 // Nonce for image uploads if handled by this script, or ensure custom-avatar.js handles it with its own nonce
                 'i18n' => array( // For any translatable strings used in manage-band-profiles.js
-                    'confirmRemoveMember' => __('Are you sure you want to remove "%s" from the roster listing?', 'generatepress_child'),
-                    'enterEmail' => __('Please enter an email address.', 'generatepress_child'),
-                    'sendingInvitation' => __('Sending...', 'generatepress_child'),
-                    'sendInvitation' => __('Send Invitation', 'generatepress_child'),
-                    'errorSendingInvitation' => __('Error: Could not send invitation.', 'generatepress_child'),
-                    'errorAjax' => __('An error occurred. Please try again.', 'generatepress_child'),
-                    'errorRemoveListing' => __('Error: Could not remove listing.', 'generatepress_child')
+                    'confirmRemoveMember' => __('Are you sure you want to remove "%s" from the roster listing?', 'extra-chill-community'),
+                    'enterEmail' => __('Please enter an email address.', 'extra-chill-community'),
+                    'sendingInvitation' => __('Sending...', 'extra-chill-community'),
+                    'sendInvitation' => __('Send Invitation', 'extra-chill-community'),
+                    'errorSendingInvitation' => __('Error: Could not send invitation.', 'extra-chill-community'),
+                    'errorAjax' => __('An error occurred. Please try again.', 'extra-chill-community'),
+                    'errorRemoveListing' => __('Error: Could not remove listing.', 'extra-chill-community')
                 )
             );
             wp_localize_script( 'manage-band-profile-script', 'bpManageMembersData', $data_to_pass );
@@ -721,7 +777,7 @@ function extrachill_enqueue_shared_tabs_assets() {
         wp_enqueue_style(
             'shared-tabs',
             get_stylesheet_directory_uri() . '/css/shared-tabs.css',
-            array(), // Add dependencies like 'generatepress-child-style' if needed
+            array(), // Add dependencies like 'extra-chill-community-style' if needed
             filemtime(get_stylesheet_directory() . '/css/shared-tabs.css')
         );
 
