@@ -8,20 +8,21 @@
 
 get_header();
 ?>
-<div <?php generate_do_attr( 'page' ); ?>>
+<div class="page-content">
     <?php
     /**
-     * generate_inside_site_container hook.
+     * Custom hook for inside site container.
      */
-    do_action( 'generate_inside_site_container' );
+    do_action( 'extra_chill_inside_site_container' );
     ?>
-    <div <?php generate_do_attr( 'site-content' ); ?>>
-        <?php
-        /**
-         * generate_inside_container hook.
-         */
-        do_action( 'generate_inside_container' );
-        ?>
+    <div class="site-content">
+        <div class="container">
+            <?php
+            /**
+             * Custom hook for inside container.
+             */
+            do_action( 'extra_chill_inside_container' );
+            ?>
         <?php extrachill_breadcrumbs(); ?>
 
 <?php
@@ -119,8 +120,9 @@ if ($total_pages > 1) {
 }
 
 ?>
-        </div><!-- .site-content -->
-    </div><!-- .page -->
+        </div><!-- .container -->
+    </div><!-- .site-content -->
+</div><!-- .page-content -->
 <?php
 get_footer();
 ?>

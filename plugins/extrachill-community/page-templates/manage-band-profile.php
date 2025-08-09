@@ -6,9 +6,9 @@
 
 get_header(); ?>
 
-	<div id="primary" <?php generate_do_element_classes( 'content' ); ?>>
-		<main id="main" <?php generate_do_element_classes( 'main' ); ?>>
-			<?php do_action( 'generate_before_main_content' ); ?>
+	<div id="primary" class="content-area">
+		<main id="main" class="main-content">
+			<?php do_action( 'extra_chill_before_main_content' ); ?>
 
             <div class="breadcrumb-notice-container">
                 <?php
@@ -28,12 +28,12 @@ get_header(); ?>
 
                     if ( $created_band_profile_url ) {
                         echo '<div class="bp-notice bp-notice-success">';
-                        echo '<p>' . esc_html__( 'Band profile created successfully!', 'generatepress_child' ) . '</p>';
+                        echo '<p>' . esc_html__( 'Band profile created successfully!', 'extra-chill-community' ) . '</p>';
                         echo '<p>';
-                        echo '<a href="' . esc_url( $created_band_profile_url ) . '" class="button">' . esc_html__( 'View Band Profile', 'generatepress_child' ) . '</a>';
+                        echo '<a href="' . esc_url( $created_band_profile_url ) . '" class="button">' . esc_html__( 'View Band Profile', 'extra-chill-community' ) . '</a>';
                         if ( $created_link_page_id && $manage_link_page_url_base ) {
                             $manage_link_page_url = add_query_arg( 'band_id', $created_band_id, $manage_link_page_url_base );
-                            echo ' ' . '<a href="' . esc_url( $manage_link_page_url ) . '" class="button">' . esc_html__( 'Manage extrachill.link Page', 'generatepress_child' ) . '</a>';
+                            echo ' ' . '<a href="' . esc_url( $manage_link_page_url ) . '" class="button">' . esc_html__( 'Manage extrachill.link Page', 'extra-chill-community' ) . '</a>';
                         }
                         echo '</p>';
                         echo '</div>';
@@ -88,22 +88,22 @@ get_header(); ?>
                             $error_code = sanitize_key( $_GET['bp_error'] );
                             switch ( $error_code ) {
                                 case 'nonce_failure':
-                                    $error_message = __( 'Security check failed. Please try again.', 'generatepress_child' );
+                                    $error_message = __( 'Security check failed. Please try again.', 'extra-chill-community' );
                                     break;
                                 case 'permission_denied_create':
-                                    $error_message = __( 'You do not have permission to create a band profile.', 'generatepress_child' );
+                                    $error_message = __( 'You do not have permission to create a band profile.', 'extra-chill-community' );
                                     break;
                                 case 'permission_denied_edit':
-                                    $error_message = __( 'You do not have permission to edit this band profile.', 'generatepress_child' );
+                                    $error_message = __( 'You do not have permission to edit this band profile.', 'extra-chill-community' );
                                     break;
                                 case 'title_required':
-                                    $error_message = __( 'Band Name (Title) is required.', 'generatepress_child' );
+                                    $error_message = __( 'Band Name (Title) is required.', 'extra-chill-community' );
                                     break;
                                 case 'duplicate_title':
-                                    $error_message = __( 'A band profile with this name already exists. Please choose a different name.', 'generatepress_child' );
+                                    $error_message = __( 'A band profile with this name already exists. Please choose a different name.', 'extra-chill-community' );
                                     break;
                                 case 'invalid_band_id':
-                                    $error_message = __( 'Invalid band profile ID provided.', 'generatepress_child' );
+                                    $error_message = __( 'Invalid band profile ID provided.', 'extra-chill-community' );
                                     break;
                                 // Add other potential error codes here
                             }
@@ -125,10 +125,10 @@ get_header(); ?>
                             // EDIT MODE
                             if ( current_user_can( 'manage_band_members', $target_band_id ) ) {
                                 $can_proceed = true;
-                                $form_title = sprintf(__( 'Edit Band Profile: %s', 'generatepress_child' ), esc_html($band_post->post_title));
+                                $form_title = sprintf(__( 'Edit Band Profile: %s', 'extra-chill-community' ), esc_html($band_post->post_title));
                                 $nonce_action = 'bp_edit_band_profile_action';
                                 $nonce_name = 'bp_edit_band_profile_nonce';
-                                $submit_value = __( 'Save', 'generatepress_child' );
+                                $submit_value = __( 'Save', 'extra-chill-community' );
                                 $submit_name = 'submit_edit_band_profile';
 
                                 // Fetch existing meta for pre-filling
@@ -149,7 +149,7 @@ get_header(); ?>
                                 $current_header_image_url = $current_header_image_id ? wp_get_attachment_image_url( $current_header_image_id, 'large' ) : '';
 
                             } else {
-                                echo '<p>' . __( 'You do not have permission to edit this band profile.', 'generatepress_child' ) . '</p>';
+                                echo '<p>' . __( 'You do not have permission to edit this band profile.', 'extra-chill-community' ) . '</p>';
                             }
                         } else {
                             // CREATE MODE
@@ -157,10 +157,10 @@ get_header(); ?>
                             // The capability 'create_band_profiles' is handled via user_has_cap filter.
                             if ( current_user_can( 'create_band_profiles' ) ) {
                                 $can_proceed = true;
-                                $form_title = __( 'Create Band Profile', 'generatepress_child' );
+                                $form_title = __( 'Create Band Profile', 'extra-chill-community' );
                                 $nonce_action = 'bp_create_band_profile_action';
                                 $nonce_name = 'bp_create_band_profile_nonce';
-                                $submit_value = __( 'Save', 'generatepress_child' );
+                                $submit_value = __( 'Save', 'extra-chill-community' );
                                 $submit_name = 'submit_create_band_profile';
 
                                 // Initialize variables for create mode (will be pre-filled with user data below)
@@ -174,7 +174,7 @@ get_header(); ?>
                                 $band_post = (object) ['post_title' => '', 'post_content' => '']; // Mock post object for value fields
 
                             } else {
-                                echo '<p>' . __( 'You do not have permission to create a band profile.', 'generatepress_child' ) . '</p>';
+                                echo '<p>' . __( 'You do not have permission to create a band profile.', 'extra-chill-community' ) . '</p>';
                             }
                         }
 
@@ -222,7 +222,7 @@ get_header(); ?>
                             ?>
                                 <div class="band-switcher-container">
                                     <select name="band-switcher-select" id="band-switcher-select">
-                                        <option value=""><?php esc_html_e( '-- Select a Band --', 'generatepress_child'); ?></option>
+                                        <option value=""><?php esc_html_e( '-- Select a Band --', 'extra-chill-community'); ?></option>
                                         <?php
                                         foreach ( $user_band_ids_for_switcher as $user_band_id_item ) {
                                             $band_title_for_switcher = get_the_title( $user_band_id_item );
@@ -255,7 +255,7 @@ get_header(); ?>
                                 <!-- TOP SUBMIT BUTTON AND INTRO -->
                                 <?php if ( ! $edit_mode ) : ?>
                                     <div class="bp-intro bp-notice bp-notice-info" style="margin-bottom: 15px;">
-                                        <p><?php esc_html_e( 'You can fill this out now, or just press Save to skip and go straight to customizing your link page. You can always come back and update your band profile later.', 'generatepress_child' ); ?></p>
+                                        <p><?php esc_html_e( 'You can fill this out now, or just press Save to skip and go straight to customizing your link page. You can always come back and update your band profile later.', 'extra-chill-community' ); ?></p>
                                     </div>
                                     <div class="form-group submit-group" style="margin-bottom: 20px;">
                                         <input type="submit" name="<?php echo esc_attr( $submit_name ); ?>" class="button button-primary" value="<?php echo esc_attr( $submit_value ); ?>" />
@@ -268,7 +268,7 @@ get_header(); ?>
                                         <!-- Item 1: Band Info -->
                                         <div class="shared-tab-item">
                                             <button type="button" class="shared-tab-button active" data-tab="manage-band-profile-info-content">
-                                                <?php esc_html_e( 'Band Info', 'generatepress_child' ); ?>
+                                                <?php esc_html_e( 'Band Info', 'extra-chill-community' ); ?>
                                                 <span class="shared-tab-arrow open"></span>
                                             </button>
                                             <div id="manage-band-profile-info-content" class="shared-tab-pane">
@@ -277,7 +277,7 @@ get_header(); ?>
                                                 // Display this notice if the user arrived from the join flow and is in create mode
                                                 if ( isset($_GET['from_join']) && $_GET['from_join'] === 'true' && ! $edit_mode ) {
                                                     echo '<div class="bp-notice bp-notice-info" style="margin-top: 15px; margin-bottom: 15px;">'; // Added margin-top and margin-bottom for spacing
-                                                    echo '<p>' . esc_html__( 'Welcome to the Extra Chill link page setup! To create your link page, you first need to create a Band Profile. Fill out the details below to get started.', 'generatepress_child' ) . '</p>';
+                                                    echo '<p>' . esc_html__( 'Welcome to the Extra Chill link page setup! To create your link page, you first need to create a Band Profile. Fill out the details below to get started.', 'extra-chill-community' ) . '</p>';
                                                     echo '</div>';
                                                 }
                                                 // --- END Join Flow Guidance Notice ---
@@ -311,7 +311,7 @@ get_header(); ?>
                                         <!-- Item 2: Roster -->
                                         <div class="shared-tab-item">
                                             <button type="button" class="shared-tab-button" data-tab="manage-band-profile-roster-content">
-                                                <?php esc_html_e( 'Roster', 'generatepress_child' ); ?>
+                                                <?php esc_html_e( 'Roster', 'extra-chill-community' ); ?>
                                                 <span class="shared-tab-arrow"></span>
                                             </button>
                                             <div id="manage-band-profile-roster-content" class="shared-tab-pane">
@@ -327,7 +327,7 @@ get_header(); ?>
                                         <!-- Item 3: Subscribers -->
                                         <div class="shared-tab-item">
                                             <button type="button" class="shared-tab-button" data-tab="manage-band-profile-followers-content">
-                                                <?php esc_html_e( 'Subscribers', 'generatepress_child' ); ?>
+                                                <?php esc_html_e( 'Subscribers', 'extra-chill-community' ); ?>
                                                 <span class="shared-tab-arrow"></span>
                                             </button>
                                             <div id="manage-band-profile-followers-content" class="shared-tab-pane">
@@ -340,7 +340,7 @@ get_header(); ?>
                                         <!-- Item 4: Forum -->
                                         <div class="shared-tab-item">
                                             <button type="button" class="shared-tab-button" data-tab="manage-band-profile-forum-content">
-                                                <?php esc_html_e( 'Forum', 'generatepress_child' ); ?>
+                                                <?php esc_html_e( 'Forum', 'extra-chill-community' ); ?>
                                                 <span class="shared-tab-arrow"></span>
                                             </button>
                                             <div id="manage-band-profile-forum-content" class="shared-tab-pane">
@@ -359,7 +359,7 @@ get_header(); ?>
                                 <div class="form-group submit-group">
                                     <input type="submit" name="<?php echo esc_attr( $submit_name ); ?>" class="button button-primary" value="<?php echo esc_attr( $submit_value ); ?>" />
                                     <?php if ( $edit_mode && isset($target_band_id) && $target_band_id > 0 ) : ?>
-                                        <a href="<?php echo esc_url( get_permalink( $target_band_id ) ); ?>" class="button button-secondary" target="_blank"><?php esc_html_e( 'View Band Profile', 'generatepress_child' ); ?></a>
+                                        <a href="<?php echo esc_url( get_permalink( $target_band_id ) ); ?>" class="button button-secondary" target="_blank"><?php esc_html_e( 'View Band Profile', 'extra-chill-community' ); ?></a>
                                     <?php endif; ?>
                                 </div>
                             </form>
@@ -373,7 +373,7 @@ get_header(); ?>
                              // Check if the specific error was 'invalid_band_id' which we already handled
                              $specific_error = isset($_GET['bp_error']) && sanitize_key($_GET['bp_error']) === 'invalid_band_id';
                              if (!$specific_error) {
-                                echo '<p>' . __( 'Band profile not found or you do not have permission to view it here.', 'generatepress_child' ) . '</p>';
+                                echo '<p>' . __( 'Band profile not found or you do not have permission to view it here.', 'extra-chill-community' ) . '</p>';
                              }
                         }
                         ?>
@@ -381,7 +381,7 @@ get_header(); ?>
                 </div><!-- .inside-article -->
             </article><!-- #post-## -->
 
-			<?php do_action( 'generate_after_main_content' ); ?>
+			<?php do_action( 'extra_chill_after_main_content' ); ?>
 		</main><!-- #main -->
 	</div><!-- #primary -->
 

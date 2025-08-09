@@ -19,7 +19,7 @@ if (function_exists('bp_get_band_profile_last_activity_timestamp')) {
 }
 
 // Latest topic
-$latest_topic_title = __('No topics yet', 'generatepress_child');
+$latest_topic_title = __('No topics yet', 'extra-chill-community');
 $latest_topic_url = '#';
 if ($band_forum_id) {
     $latest_topic_args = array(
@@ -40,10 +40,10 @@ if ($band_forum_id) {
         $latest_topic_url = get_the_permalink();
         wp_reset_postdata();
     } else {
-        $latest_topic_title = __('No topics yet', 'generatepress_child');
+        $latest_topic_title = __('No topics yet', 'extra-chill-community');
     }
 } else {
-    $latest_topic_title = __('Forum not linked', 'generatepress_child');
+    $latest_topic_title = __('Forum not linked', 'extra-chill-community');
 }
 
 // Fetch band header image ID
@@ -97,10 +97,10 @@ if (has_post_thumbnail($band_id)) {
         </div>
 
         <div class="band-card-details">
-            <?php if ($genre) : ?><p class="band-card-genre"><?php esc_html_e('Genre:', 'generatepress_child'); ?> <?php echo esc_html($genre); ?></p><?php endif; ?>
-            <?php if ($city) : ?><p class="band-card-location"><?php esc_html_e('Location:', 'generatepress_child'); ?> <?php echo esc_html($city); ?></p><?php endif; ?>
-            <p class="band-card-activity"><?php esc_html_e('Last Activity:', 'generatepress_child'); ?> <?php echo $last_activity ? esc_html(human_time_diff($last_activity)) . ' ago' : 'N/A'; ?></p>
-            <p class="band-card-latest-topic"><?php esc_html_e('Latest Topic:', 'generatepress_child'); ?> <a href="<?php echo esc_url($latest_topic_url); ?>"><?php echo esc_html($latest_topic_title); ?></a></p>
+            <?php if ($genre) : ?><p class="band-card-genre"><?php esc_html_e('Genre:', 'extra-chill-community'); ?> <?php echo esc_html($genre); ?></p><?php endif; ?>
+            <?php if ($city) : ?><p class="band-card-location"><?php esc_html_e('Location:', 'extra-chill-community'); ?> <?php echo esc_html($city); ?></p><?php endif; ?>
+            <p class="band-card-activity"><?php esc_html_e('Last Activity:', 'extra-chill-community'); ?> <?php echo $last_activity ? esc_html(human_time_diff($last_activity)) . ' ago' : 'N/A'; ?></p>
+            <p class="band-card-latest-topic"><?php esc_html_e('Latest Topic:', 'extra-chill-community'); ?> <a href="<?php echo esc_url($latest_topic_url); ?>"><?php echo esc_html($latest_topic_title); ?></a></p>
         </div>
     </div>
 </li> 

@@ -44,7 +44,7 @@ if (!$link_page_id || get_post_type($link_page_id) !== 'band_link_page') {
         );
         update_post_meta($link_page_id, '_link_page_links', $default_link_section);
     } else {
-        echo '<div class="bp-notice bp-notice-error"><p>' . esc_html__('Could not create link page.', 'generatepress_child') . '</p></div>';
+        echo '<div class="bp-notice bp-notice-error"><p>' . esc_html__('Could not create link page.', 'extra-chill-community') . '</p></div>';
         get_footer();
         return;
     }
@@ -85,18 +85,18 @@ if (!empty($custom_vars['--link-page-body-font-family'])) {
 
 get_header(); ?>
 
-<div id="primary" <?php generate_do_element_classes( 'content' ); ?>>
-    <main id="main" <?php generate_do_element_classes( 'main' ); ?>>
-        <?php do_action( 'generate_before_main_content' ); ?>
+<div id="primary" class="content-area">
+    <main id="main" class="main-content">
+        <?php do_action( 'extra_chill_before_main_content' ); ?>
 
 <?php
 // --- Display Error Notices ---
 if (isset($_GET['bp_link_page_error'])) {
     $error_type = sanitize_key($_GET['bp_link_page_error']);
     if ($error_type === 'background_image_size') {
-        echo '<div class="bp-notice bp-notice-error"><p>' . esc_html__('Error: Background image file size exceeds the 5MB limit.', 'generatepress_child') . '</p></div>';
+        echo '<div class="bp-notice bp-notice-error"><p>' . esc_html__('Error: Background image file size exceeds the 5MB limit.', 'extra-chill-community') . '</p></div>';
     } elseif ($error_type === 'profile_image_size') {
-        echo '<div class="bp-notice bp-notice-error"><p>' . esc_html__('Error: Profile image file size exceeds the 5MB limit.', 'generatepress_child') . '</p></div>';
+        echo '<div class="bp-notice bp-notice-error"><p>' . esc_html__('Error: Profile image file size exceeds the 5MB limit.', 'extra-chill-community') . '</p></div>';
     }
     // Add other error types here if needed in the future
 }
@@ -107,12 +107,12 @@ $band_id = isset($_GET['band_id']) ? absint($_GET['band_id']) : 0;
 $band_post = $band_id ? get_post($band_id) : null;
 
 if (!$band_post || $band_post->post_type !== 'band_profile') {
-    echo '<div class="bp-notice bp-notice-error"><p>' . esc_html__('Invalid band profile.', 'generatepress_child') . '</p></div>';
+    echo '<div class="bp-notice bp-notice-error"><p>' . esc_html__('Invalid band profile.', 'extra-chill-community') . '</p></div>';
     get_footer();
     return;
 }
 if (!current_user_can('manage_band_members', $band_id)) {
-    echo '<div class="bp-notice bp-notice-error"><p>' . esc_html__('You do not have permission to manage this band link page.', 'generatepress_child') . '</p></div>';
+    echo '<div class="bp-notice bp-notice-error"><p>' . esc_html__('You do not have permission to manage this band link page.', 'extra-chill-community') . '</p></div>';
     get_footer();
     return;
 }
@@ -134,7 +134,7 @@ if ( class_exists( 'LinkPageDataProvider' ) ) {
         'background_image_url' => '',
         // Add other necessary defaults to prevent errors
     );
-     echo '<div class="bp-notice bp-notice-error"><p>' . esc_html__('Error: LinkPageDataProvider class not found. Link page data may be incomplete.', 'generatepress_child') . '</p></div>';
+     echo '<div class="bp-notice bp-notice-error"><p>' . esc_html__('Error: LinkPageDataProvider class not found. Link page data may be incomplete.', 'extra-chill-community') . '</p></div>';
 }
 
 // Set global font config for JS hydration
@@ -152,11 +152,11 @@ $breadcrumb_separator = '<span class="bbp-breadcrumb-sep"> › </span>';
 echo '<div class="bbp-breadcrumb">';
 echo '<a href="' . esc_url(home_url('/')) . '">Home</a>' . $breadcrumb_separator;
 echo '<a href="' . esc_url($manage_band_profile_url) . '">' . esc_html($band_profile_title) . '</a>' . $breadcrumb_separator;
-echo '<span class="bbp-breadcrumb-current">' . esc_html__('Manage Link Page', 'generatepress_child') . '</span>';
+echo '<span class="bbp-breadcrumb-current">' . esc_html__('Manage Link Page', 'extra-chill-community') . '</span>';
 echo '</div>';
 ?>
 <h1 class="manage-link-page-title">
-    <?php echo esc_html__('Manage Link Page for ', 'generatepress_child') . esc_html(get_the_title($band_id)); ?>
+    <?php echo esc_html__('Manage Link Page for ', 'extra-chill-community') . esc_html(get_the_title($band_id)); ?>
 </h1>
 <?php
 // --- Band Switcher Dropdown (for Link Pages) ---
@@ -187,7 +187,7 @@ if ( count( $valid_bands_for_link_page_switcher ) > 1 ) :
 ?>
     <div class="band-switcher-container">
         <select name="link-page-band-switcher-select" id="link-page-band-switcher-select">
-            <option value=""><?php esc_html_e( '-- Select a Band --', 'generatepress_child'); ?></option>
+            <option value=""><?php esc_html_e( '-- Select a Band --', 'extra-chill-community'); ?></option>
             <?php
             foreach ( $valid_bands_for_link_page_switcher as $user_band_id_item ) { // Iterate over the filtered list
                 $band_title_for_switcher = get_the_title( $user_band_id_item );
@@ -254,7 +254,7 @@ if ($link_page_id && get_post_type($link_page_id) === 'band_link_page') {
                         // Assumes from_join=true is passed after successful band creation redirect
                         if ( isset( $_GET['from_join'] ) && $_GET['from_join'] === 'true' ) {
                             echo '<div class="bp-notice bp-notice-info" style="margin-top: 15px; margin-bottom: 15px;">';
-                            echo '<p>' . esc_html__( 'Welcome to your new Extrachill.link! Your Band Profile info (Name, Bio, Picture) is synced here. Use the tabs to add links and customize your page appearance.', 'generatepress_child' ) . '</p>';
+                            echo '<p>' . esc_html__( 'Welcome to your new Extrachill.link! Your Band Profile info (Name, Bio, Picture) is synced here. Use the tabs to add links and customize your page appearance.', 'extra-chill-community' ) . '</p>';
                             echo '</div>';
                         }
                         // --- END Join Flow Guidance Notice (New User) ---
@@ -262,7 +262,7 @@ if ($link_page_id && get_post_type($link_page_id) === 'band_link_page') {
                         // --- START Join Flow Success Notice (Existing User Redirect - Moved) ---
                         if ( isset( $_GET['from_join_success'] ) && $_GET['from_join_success'] === 'existing_user_link_page' ) {
                             echo '<div class="bp-notice bp-notice-success" style="margin-top: 15px; margin-bottom: 15px;">';
-                            echo '<p>' . esc_html__( 'Welcome back! You\'ve been redirected to manage your extrachill.link page.', 'generatepress_child' ) . '</p>';
+                            echo '<p>' . esc_html__( 'Welcome back! You\'ve been redirected to manage your extrachill.link page.', 'extra-chill-community' ) . '</p>';
                             echo '</div>';
                         }
                         // --- END Join Flow Success Notice (Existing User Redirect - Moved) ---
@@ -396,19 +396,19 @@ extrch_render_link_expiration_modal();
 ?>
 
 <div class="link-page-footer-actions" style="display: flex; justify-content: center; align-items: center; gap: 20px; width: 100%; margin-top: 2em; margin-bottom: 2em;">
-    <button type="submit" form="bp-manage-link-page-form" name="bp_save_link_page" class="button button-primary bp-link-page-save-btn"><?php esc_html_e('Save Link Page', 'generatepress_child'); ?></button>
-    <div id="link-page-loading-message" style="display: none; margin-left: 1em; font-weight: bold;"><?php esc_html_e('Please wait...', 'generatepress_child'); ?></div>
-    <a href="<?php echo esc_url(site_url('/manage-band-profile/?band_id=' . $band_id)); ?>" class="button button-secondary"><?php esc_html_e('Manage Band', 'generatepress_child'); ?></a>
+    <button type="submit" form="bp-manage-link-page-form" name="bp_save_link_page" class="button button-primary bp-link-page-save-btn"><?php esc_html_e('Save Link Page', 'extra-chill-community'); ?></button>
+    <div id="link-page-loading-message" style="display: none; margin-left: 1em; font-weight: bold;"><?php esc_html_e('Please wait...', 'extra-chill-community'); ?></div>
+    <a href="<?php echo esc_url(site_url('/manage-band-profile/?band_id=' . $band_id)); ?>" class="button button-secondary"><?php esc_html_e('Manage Band', 'extra-chill-community'); ?></a>
 </div>
 
-<button id="extrch-jump-to-preview-btn" class="extrch-jump-to-preview-btn" aria-label="<?php esc_attr_e('Scroll to Preview / Settings', 'generatepress_child'); ?>" title="<?php esc_attr_e('Scroll to Preview', 'generatepress_child'); ?>">
+<button id="extrch-jump-to-preview-btn" class="extrch-jump-to-preview-btn" aria-label="<?php esc_attr_e('Scroll to Preview / Settings', 'extra-chill-community'); ?>" title="<?php esc_attr_e('Scroll to Preview', 'extra-chill-community'); ?>">
     <span class="main-icon-wrapper">
         <i class="fas fa-magnifying-glass"></i> <!-- Default/initial main icon -->
     </span>
     <i class="directional-arrow fas fa-arrow-down"></i> <!-- Default/initial directional arrow -->
 </button>
 
-        <?php do_action( 'generate_after_main_content' ); ?>
+        <?php do_action( 'extra_chill_after_main_content' ); ?>
     </main><!-- #main -->
 </div><!-- #primary -->
 
@@ -431,8 +431,7 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 
 <?php
-do_action( 'generate_after_primary_content_area' );
-generate_construct_sidebars();
+do_action( 'extra_chill_after_primary_content_area' );
 
 /**
  * Debug: Check initial value of hidden social links input in the DOM on page load.

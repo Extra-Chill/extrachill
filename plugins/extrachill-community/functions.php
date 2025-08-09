@@ -1,8 +1,14 @@
 <?php
 /**
  * Extra Chill Community Theme functions and definitions
+ * 
+ * Hybrid WordPress theme with PSR-4 autoloading, modular asset management,
+ * bbPress integration, and cross-domain authentication support.
  *
  * @package ExtraChillCommunity
+ * @version 1.0.0
+ * @author Chris Huber
+ * @link https://community.extrachill.com
  */
 
 // Include Composer's autoloader.
@@ -45,9 +51,17 @@ function extra_chill_community_setup() {
 
     // Register navigation menus.
     register_nav_menus(array(
-        'primary' => esc_html__('Primary Menu', 'extra-chill-community'),
-        'footer'  => esc_html__('Footer Menu', 'extra-chill-community'),
+        'primary'      => esc_html__('Primary Menu', 'extra-chill-community'),
+        'footer'       => esc_html__('Footer Menu', 'extra-chill-community'),
+        'footer-extra' => esc_html__('Footer Extra Menu', 'extra-chill-community'),
     ));
+    
+    // Register additional footer menus
+    for ( $i = 1; $i <= 5; $i++ ) {
+        register_nav_menus(array(
+            'footer-' . $i => sprintf(esc_html__('Footer Menu %d', 'extra-chill-community'), $i),
+        ));
+    }
 }
 add_action('after_setup_theme', 'extra_chill_community_setup');
 
@@ -64,6 +78,19 @@ function extra_chill_community_widgets_init() {
         'before_title'  => '<h2 class="widget-title">',
         'after_title'   => '</h2>',
     ));
+    
+    // Register footer widget areas
+    for ( $i = 1; $i <= 5; $i++ ) {
+        register_sidebar(array(
+            'name'          => sprintf(esc_html__('Footer Widget Area %d', 'extra-chill-community'), $i),
+            'id'            => 'footer-' . $i,
+            'description'   => sprintf(esc_html__('Footer widget area %d.', 'extra-chill-community'), $i),
+            'before_widget' => '<section id="%1$s" class="widget %2$s">',
+            'after_widget'  => '</section>',
+            'before_title'  => '<h3 class="widget-title">',
+            'after_title'   => '</h3>',
+        ));
+    }
 }
 add_action('widgets_init', 'extra_chill_community_widgets_init');
 /**
@@ -389,12 +416,11 @@ function wp_surgeon_get_readable_role($role) {
  * */
 
 
-add_action( 'wp', function() {
-    remove_action( 'generate_before_content', 'generate_featured_page_header_inside_single', 10 );
-	remove_action( 'generate_after_header', 'generate_featured_page_header',10 );
-} );
+// Remove GeneratePress actions - no longer needed with standalone theme
 
-add_filter( 'generate_copyright', 'extrachill_footer_text' );
+/**
+ * Footer copyright text
+ */
 function extrachill_footer_text() {
     ?>
     &copy; <?php echo date( 'Y' ); ?> <a href="https://www.extrachill.com" target="_blank" rel="noopener noreferrer"><?php bloginfo( 'name' ); ?></a>
@@ -526,6 +552,7 @@ function extrachill_enqueue_nav_scripts() {
 add_action('wp_enqueue_scripts', 'extrachill_enqueue_nav_scripts');
 
 include_once get_stylesheet_directory() . '/forum-features/forum-1494-redirects.php';
+include_once get_stylesheet_directory() . '/forum-features/bbpress-spam-adjustments.php';
 
 function set_default_ec_custom_title( $user_id ) {
     update_user_meta( $user_id, 'ec_custom_title', 'Extra Chillian' );
@@ -674,6 +701,15 @@ function extra_chill_community_enqueue_scripts() {
     );
 }
 add_action( 'wp_enqueue_scripts', 'extra_chill_community_enqueue_scripts', 10 );
+
+/**
+ * Dequeue bbPress default stylesheet to prevent conflicts with custom styling
+ */
+function extrachill_dequeue_bbpress_default_styles() {
+    wp_dequeue_style('bbp-default');
+    wp_deregister_style('bbp-default');
+}
+add_action('wp_enqueue_scripts', 'extrachill_dequeue_bbpress_default_styles', 15);
 
 // Function to enqueue assets for the Manage Band Profile page
 function extrachill_enqueue_manage_band_profile_assets() {

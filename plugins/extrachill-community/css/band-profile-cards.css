@@ -152,6 +152,7 @@
     flex-grow: 1; /* Allow details to fill remaining card space */
     display: flex;
     flex-direction: column;
+    background: var(--background-color);
 }
 
 .band-card-title {
@@ -194,10 +195,11 @@
     position: static !important; /* Override absolute positioning */
     color: var(--text-color) !important; /* Ensure standard text color */
     text-shadow: none !important; /* Ensure no text shadow */
-    padding: 15px 15px 0 15px; /* Add some padding */
-    margin: 0 0 10px 0; /* Add some bottom margin */
+    padding: 15px; /* Add some padding */
     left: auto !important; /* Reset any left positioning from .has-profile-picture rule */
     right: auto !important; /* Reset any right positioning */
+    background:var(--background-color);
+    border-bottom:1px solid var(--border-color);
 }
 
 .band-card-title.band-title-no-image a {

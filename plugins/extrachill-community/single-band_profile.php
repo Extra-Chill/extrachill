@@ -5,15 +5,13 @@
 
 get_header(); ?>
 
-	<div id="primary" <?php generate_do_element_classes( 'content' ); ?>>
-		<main id="main" <?php generate_do_element_classes( 'main' ); ?>>
+	<div id="primary" class="content-area">
+		<main id="main" class="main-content">
 			<?php
 			/**
-			 * generate_before_main_content hook.
-			 *
-			 * @since 0.1
+			 * Custom hook for before main content.
 			 */
-			do_action( 'generate_before_main_content' );
+			do_action( 'extra_chill_before_main_content' );
 
 			// --- Display Breadcrumbs ---
 			// Moved to be a direct child of <main>, before the while loop and <article>
@@ -56,7 +54,7 @@ get_header(); ?>
 
             ?>
 
-				<article id="post-<?php the_ID(); ?>" <?php post_class(); ?> <?php generate_do_microdata( 'article' ); ?>>
+				<article id="post-<?php the_ID(); ?>" <?php post_class(); ?> >
 					<div class="inside-article">
 						<?php
                         // --- Display Invitation Acceptance/Error Messages ---
@@ -133,13 +131,13 @@ get_header(); ?>
                                 <?php // Display Profile Picture and then Title/Meta in a flex row
                                 // The band-hero-top-row container helps to align the image and the text content side-by-side.
                                 ?>
-                                <div class="band-hero-top-row" style="display: flex; align-items: flex-start; /* gap: 20px; */ margin-bottom: 1em;">
+                                <div class="band-hero-top-row">
                                     <?php if ( has_post_thumbnail( $band_profile_id ) ) : ?>
-                                        <div class="band-profile-featured-image" /* style="flex-shrink: 0;" */ >
+                                        <div class="band-profile-featured-image">
                                             <?php echo get_the_post_thumbnail( $band_profile_id, 'thumbnail' ); // This is the actual profile picture ?>
                                         </div>
                                     <?php endif; ?>
-                                    <div class="band-hero-text-content" style="flex-grow: 1;">
+                                    <div class="band-hero-text-content">
                                         <h1 class="band-hero-title entry-title" itemprop="headline"><?php echo esc_html( get_the_title( $band_profile_id ) ); ?></h1>
 
                                         <?php if ( ! empty( $genre ) || ! empty( $local_city ) ) : ?>
@@ -390,6 +388,7 @@ get_header(); ?>
 								error_log('Forum section condition met (only checking for non-empty forum_id).'); // Updated log
 
 								echo '<div class="band-forum-section">';
+								echo '<div id="bbpress-forums" class="bbpress-wrapper">';
 								// Update Forum Title to include Band Name
 
 								// --- Sorting & Search UI (Adapted from loop-topics.php) ---
@@ -539,6 +538,7 @@ get_header(); ?>
 								}
 								// --- End New Topic Form --- 
 
+								echo '</div>'; // #bbpress-forums
 								echo '</div>'; // .band-forum-section
 							} else {
 								error_log('Forum section condition NOT met. Forum ID: ' . $forum_id . ', Function Exists: ' . (function_exists('bbp_topic_index') ? 'Yes' : 'No'));
@@ -553,7 +553,7 @@ get_header(); ?>
 						 *
 						 * @since 0.1
 						 */
-						do_action( 'generate_after_content' );
+						do_action( 'extra_chill_after_content' );
 						?>
 					</div><!-- .inside-article -->
 				</article><!-- #post-## -->
@@ -566,7 +566,7 @@ get_header(); ?>
 			 *
 			 * @since 0.1
 			 */
-			do_action( 'generate_after_main_content' );
+			do_action( 'extra_chill_after_main_content' );
 			?>
 		</main><!-- #main -->
 	</div><!-- #primary -->
@@ -577,8 +577,6 @@ get_header(); ?>
  *
  * @since 2.0
  */
-do_action( 'generate_after_primary_content_area' );
-
-generate_construct_sidebars();
+do_action( 'extra_chill_after_primary_content_area' );
 
 get_footer(); 

@@ -2,25 +2,26 @@
 /**
  * Template Name: Main Blog Comments Feed
  *
- * @package YourThemeName
+ * @package ExtraChillCommunity
  */
 
 get_header();
 ?>
-<div <?php generate_do_attr( 'page' ); ?>>
+<div class="page-content">
     <?php
     /**
-     * generate_inside_site_container hook.
+     * Custom hook for inside site container.
      */
-    do_action( 'generate_inside_site_container' );
+    do_action( 'extra_chill_inside_site_container' );
     ?>
-    <div <?php generate_do_attr( 'site-content' ); ?>>
-        <?php
-        /**
-         * generate_inside_container hook.
-         */
-        do_action( 'generate_inside_container' );
-        ?>
+    <div class="site-content">
+        <div class="container">
+            <?php
+            /**
+             * Custom hook for inside container.
+             */
+            do_action( 'extra_chill_inside_container' );
+            ?>
         <?php extrachill_breadcrumbs(); ?>
 
 <?php
@@ -63,6 +64,9 @@ echo '</div>'; // End of chill-home-header
     <?php
     while ( have_posts() ) : the_post();
 
+        // Get user ID from URL parameter
+        $community_user_id = get_query_var('user_id', 0);
+        
         // Display comments for the user ID obtained from the URL
         if ($community_user_id) {
             echo display_main_site_comments_for_user($community_user_id);
@@ -75,9 +79,9 @@ echo '</div>'; // End of chill-home-header
 
     ?>
 
-        </div><!-- .site-content -->
-    </div><!-- .page -->
+        </div><!-- .container -->
+    </div><!-- .site-content -->
+</div><!-- .page-content -->
 <?php
-get_sidebar();
 get_footer();
 ?>

@@ -1,7 +1,12 @@
 <?php
 /**
- * Main include file for the Band Platform feature.
- * This file loads all necessary PHP files for the feature and enqueues assets.
+ * Band Platform Feature Includes
+ * 
+ * Centralized loading for band platform functionality including CPTs,
+ * forum integration, user linking, and link page system.
+ *
+ * @package ExtraChillCommunity
+ * @since 1.0.0
  */
 
 // Exit if accessed directly

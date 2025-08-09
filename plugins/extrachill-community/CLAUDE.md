@@ -19,15 +19,17 @@ This is a **standalone WordPress theme** called "Extra Chill Community" hosting 
 
 ## KNOWN ISSUES
 
-*Currently no known critical issues. Theme is production-ready and actively serving the ExtraChill community.*
+**Text Domain Migration**: 497 `generatepress_child` text domain references exist across 54 files requiring systematic update to `extra-chill-community`.
 
-**Legacy References**: Some files contain outdated `generatepress_child` text domain references that should be updated to `extra-chill-community` in future maintenance cycles.
+**Mixed Architecture**: Theme contains GeneratePress template dependencies in `page-templates/login-register-template.php` and `page-templates/settings-page.php` using `generate_content_class()` function calls.
 
 ## FUTURE PLANS
 
-*Theme architecture is stable. Future development focused on feature enhancements and community growth tools.*
+**Text Domain Migration**: Systematic replacement of 497 `generatepress_child` references across 54 files with `extra-chill-community`.
 
-**Text Domain Cleanup**: Complete migration of all remaining `generatepress_child` text domain references to `extra-chill-community` across all theme files.
+**Template Independence**: Remove GeneratePress function dependencies in login-register and settings page templates.
+
+**Performance Optimization**: Continue modular CSS/JS loading refinements and font system improvements.
 
 ## Key Domains & Architecture
 
@@ -45,43 +47,39 @@ This is a **standalone WordPress theme** called "Extra Chill Community" hosting 
 5. **Analytics & Tracking** - Custom analytics for link pages
 6. **Email Subscriber Management** - Unified consent system
 
-## Essential Commands
+## Development Setup
 
-### Dependency Management
+### Dependencies Installation
 ```bash
+# Navigate to theme directory
+cd /Users/chubes/Local\ Sites/community-stage/app/public/wp-content/themes/extrachill-community
+
 # Install PHP dependencies
 composer install
 
-# Install JavaScript dependencies (in /public directory)
-cd /Users/chubes/Local\ Sites/community-stage/app/public
-npm install
-
-# Build assets (WordPress Scripts)
-npx wp-scripts build
-
-# Development with watch
-npx wp-scripts start
+# Note: No npm build system - uses direct file inclusion
 ```
 
-### Important Development Notes
-- **No webpack.config.js** - Uses WordPress Scripts defaults
-- **No traditional test framework** - WordPress-based testing
-- **Custom autoloading** - PSR-4 namespace: `Chubes\Extrachill\`
-- **Asset Versioning** - Dynamic versioning using `filemtime()` for cache busting
-- **Modular CSS/JS** - Conditional loading based on page templates and contexts
+### Development Notes
+- **No Build System** - Direct file inclusion without webpack or compilation
+- **PSR-4 Autoloading** - Composer autoloader with `Chubes\Extrachill\` namespace
+- **Asset Versioning** - Dynamic `filemtime()` versioning for cache management
+- **Modular Architecture** - 19 JavaScript files, conditional CSS loading
+- **Font System** - Custom font-face declarations with inheritance optimization
+- **bbPress Optimization** - Default stylesheet dequeuing with custom styling
 
 ## Architecture Principles
 
-### 1. Standalone Theme Structure
+### 1. Hybrid Theme Structure
 - **Theme Setup**: Full WordPress theme with `extra_chill_community_setup()` function
 - **WordPress Features**: Supports automatic-feed-links, title-tag, post-thumbnails, custom-logo, HTML5 markup, customize-selective-refresh-widgets
-- **Navigation Menus**: Primary ('primary') and Footer ('footer') menus registered with proper text domain
-- **Widget Areas**: Custom sidebar ('sidebar-1') registration with proper escaping and structure
+- **Navigation Menus**: Primary, Footer, and Footer Extra menus plus 5 additional footer menu areas registered with proper text domain
+- **Widget Areas**: Custom sidebar plus 5 footer widget areas with proper escaping and structure
 - **Asset Management**: Conditional CSS/JS loading with dynamic versioning using `filemtime()`
 - **Template Hierarchy**: Includes required `index.php` template file as fallback
 - **Code Organization**: Features organized in `band-platform/` directory with centralized includes
-- **DRY Principle**: Consolidated forms and shared logic
-- **WordPress Integration**: Extends existing WordPress/bbPress systems without parent theme dependencies
+- **bbPress Integration**: Custom bbPress stylesheet dequeuing (`wp_dequeue_style('bbp-default')`) to prevent conflicts
+- **Mixed Dependencies**: Some templates retain GeneratePress function calls for layout compatibility
 
 ### 2. Single Source of Truth
 - **Link Page Rendering**: `band-platform/extrch.co-link-page/extrch-link-page-template.php` is canonical template
@@ -96,55 +94,72 @@ npx wp-scripts start
 ## Critical File Locations
 
 ### Core Theme Files
-- `functions.php` - Main theme functions, WordPress feature support, and includes
-- `index.php` - Main template file (required WordPress theme file)
-- `style.css` - Main theme stylesheet with theme header information
-- `bbpress-customization.php` - bbPress modifications
+- `functions.php` - Main theme functions, WordPress feature support, and modular asset loading
+- `index.php` - Required WordPress template file (fallback)
+- `style.css` - Main theme stylesheet with header information and font-face declarations
+- `bbpress-customization.php` - bbPress modifications and custom hooks
 
-### Band Platform
-- `band-platform/cpt-band-profile.php` - Band profile custom post type
-- `band-platform/band-forums.php` - Automatic forum creation
-- `band-platform/frontend-forms.php` - Band management forms
+### Band Platform Core
+- `band-platform/cpt-band-profile.php` - Band profile custom post type registration
+- `band-platform/band-forums.php` - Automatic forum creation and management
+- `band-platform/band-platform-includes.php` - Centralized feature includes
 - `page-templates/manage-band-profile.php` - Band management interface
 
-### Link Page System
-- `band-platform/extrch.co-link-page/` - Complete link page system
-- `single-band_link_page.php` - Public link page display
-- `page-templates/manage-link-page.php` - Link page management
+### Link Page System (18 files)
+- `band-platform/extrch.co-link-page/extrch-link-page-template.php` - Canonical template
+- `band-platform/extrch.co-link-page/cpt-band-link-page.php` - Custom post type
 - `band-platform/extrch.co-link-page/link-page-form-handler.php` - Save processing
+- `band-platform/extrch.co-link-page/ajax-handlers.php` - AJAX functionality
+- `single-band_link_page.php` - Public link page display
+- `page-templates/manage-link-page.php` - Link page management interface
 
-### Authentication
-- `extrachill-integration/session-tokens.php` - Session management
+### Page Templates (10 files)
+- `page-templates/login-register-template.php` - Authentication interface (uses GeneratePress functions)
+- `page-templates/settings-page.php` - User settings (uses GeneratePress functions)
+- `page-templates/notifications-feed.php` - Notifications system
+- `page-templates/band-directory.php` - Band listings
+- `page-templates/leaderboard-template.php` - Community leaderboard
+
+### Authentication & Integration
+- `extrachill-integration/session-tokens.php` - Cross-domain session management
 - `extrachill-integration/validate-session.php` - Token validation
-- `login/` - Login/registration system
+- `extrachill-integration/seamless-comments.php` - Cross-domain commenting
+- `login/register.php` - Registration system
 
 ### JavaScript Architecture
-- **Main Manager**: `manage-link-page.js` - Central orchestrator
-- **UI Modules**: Handle specific domains (styles, links, social icons)
-- **Preview Engines**: Render live preview from DOM state
-- **Save Handler**: `manage-link-page-save.js` - Serializes before submission
+- **Core Utilities**: `utilities.js` - Shared functionality across components
+- **Social Features**: `extrachill-follow.js`, `extrachill-mentions.js` - User interaction systems
+- **Forum Enhancements**: `upvote.js`, `quote.js`, `topic-quick-reply.js` - bbPress extensions
+- **UI Components**: `shared-tabs.js`, `custom-avatar.js`, `nav-menu.js` - Interface elements
+- **Form Management**: `manage-band-profiles.js`, `manage-user-profile-links.js` - Data handling
+- **Content Systems**: `sorting.js`, `home-collapse.js` - Dynamic content management
+- **Media Upload**: `extrachill-image-upload.js`, `tinymce-image-upload.js` - File handling
+- **Cross-Domain**: `seamless-login.js`, `seamless-comments.js` - Authentication integration
+- **Legacy Scripts**: `upvote-1494.js`, `wp_surgeon_admin.js` - Deprecated functionality
 
 ### Asset Enqueuing System
-- **Main Stylesheet**: `extra-chill-community-style` - Primary theme styles enqueued via `extra_chill_community_enqueue_scripts()`
-- **Modular CSS**: Context-specific loading (forums-loop, topics-loop, replies-loop, user-profile, notifications, leaderboard)
-- **Page-Specific Assets**: Conditional loading for manage-band-profile, manage-link-page, settings-page, login-register
-- **Component Styles**: Shared-tabs, band-switcher with dependency management
-- **JavaScript Assets**: extrachill-utilities, extrachill-follow, custom-avatar, upvote, extrachill-mentions with conditional loading
+- **Main Stylesheet**: `extra-chill-community-style` - Primary theme styles with root CSS import system
+- **bbPress Optimization**: `extrachill_dequeue_bbpress_default_styles()` removes default bbPress styles at priority 15
+- **Modular CSS**: Context-specific loading via `modular_bbpress_styles()` function
+- **Font System**: Custom WilcoLoftSans and Lobster font-face declarations with inheritance optimization
+- **Content Width**: Responsive overrides with flex-wrap patterns for mobile optimization
+- **JavaScript Assets**: 19 specialized JS files including utilities, social features, forum enhancements, and media upload
 - **External Dependencies**: FontAwesome 6.5.1 via CDN
-- **Dynamic Versioning**: All assets use `filemtime()` for cache busting and fresh cache on updates
-- **Script Dependencies**: Proper dependency management with jQuery and custom scripts
-- **Asset Handles**: All handles prefixed with theme-specific naming (extrachill-, extra-chill-community-)
+- **Dynamic Versioning**: All assets use `filemtime()` for cache busting
+- **Conditional Loading**: Context-aware asset loading for optimal performance
+- **Script Dependencies**: Proper jQuery dependency management across all custom scripts
 
 ## Development Guidelines
 
 ### Theme Development Principles
-1. **Standalone Architecture** - Complete WordPress theme with no parent theme dependencies
+1. **Hybrid Architecture** - WordPress theme with mixed independence and selective legacy dependencies
 2. **WordPress Standards** - Full compliance with WordPress theme development guidelines and coding standards
 3. **Theme Setup Hook** - Uses `after_setup_theme` action for proper theme initialization
-4. **Modular Asset Loading** - Context-aware CSS/JS enqueuing for optimal performance
-5. **Template Hierarchy** - Proper WordPress template structure with required `index.php` as fallback
-6. **Widget System** - Custom widget area registration via `widgets_init` action
-7. **Navigation System** - Registered navigation menus with proper escaping and text domain support
+4. **Modular Asset Loading** - Context-aware CSS/JS enqueuing with bbPress stylesheet conflict prevention
+5. **Template Hierarchy** - WordPress template structure with required `index.php` as fallback
+6. **Widget System** - Custom sidebar plus 5 footer widget areas via `widgets_init` action
+7. **Navigation System** - 7 registered navigation menu areas with proper escaping and text domain support
+8. **Performance Optimization** - Font inheritance system, responsive overrides, and selective script loading
 
 ### Data Flow Principles
 1. **PHP renders initial state** from database
@@ -153,24 +168,25 @@ npx wp-scripts start
 4. **Hidden inputs updated only before save** for PHP processing
 
 ### Code Patterns
-- **Follow WordPress coding standards** and theme development best practices
-- **Implement proper theme setup** with `after_setup_theme` hook and `extra_chill_community_setup()` function
-- **WordPress Feature Support** - Proper `add_theme_support()` calls for core features
-- **Navigation Menus** - `register_nav_menus()` with translatable labels and text domain
-- **Widget Areas** - `register_sidebar()` with proper structure and escaping
-- **Asset Enqueuing** - `wp_enqueue_style()` and `wp_enqueue_script()` with dependencies and versioning
-- **Leverage bbPress hooks and filters** for forum integration
-- **Maintain PSR-4 autoloading structure** via Composer
-- **Use proper escaping** for all output (`esc_html()`, `esc_attr()`, `esc_url()`)
-- **Implement nonce verification** for form processing and AJAX handlers
-- **Conditional Loading** - Context-aware asset loading for performance optimization
+- **WordPress Coding Standards** - Full compliance with theme development best practices
+- **Theme Setup Function** - `extra_chill_community_setup()` with comprehensive feature support
+- **WordPress Feature Support** - Complete `add_theme_support()` implementation for core features
+- **Navigation System** - Multiple menu areas via `register_nav_menus()` with proper text domain
+- **Widget Areas** - Multiple footer and sidebar areas via `register_sidebar()` with proper escaping
+- **Asset Management** - Dynamic versioning with `filemtime()`, selective loading, and conflict prevention
+- **bbPress Integration** - Custom hooks, filters, and stylesheet dequeuing for seamless integration
+- **PSR-4 Autoloading** - Composer-managed class autoloading with `Chubes\Extrachill\` namespace
+- **Security Implementation** - Proper escaping, nonce verification, and input sanitization
+- **Performance Focus** - Modular CSS/JS loading, font optimization, and responsive design patterns
 
-### JavaScript Best Practices
-- **No persistent JS state** - Always read from DOM
-- **Module-based architecture** - Separate concerns clearly
-- **AJAX only for** QR codes and analytics
-- **Form submission for** all other data
-- **Dynamic versioning** - Use `filemtime()` for script/style versions
+### JavaScript Architecture Principles
+- **Modular Design** - 19 specialized JS files for specific functionality domains
+- **jQuery Dependencies** - Proper dependency management across all custom scripts
+- **DOM-Based State** - No persistent JavaScript state, always read from DOM
+- **Conditional Loading** - Context-aware script enqueuing for performance
+- **Legacy Management** - Deprecated scripts maintained for backward compatibility
+- **Cross-Domain Integration** - Seamless login and comment systems across domains
+- **Dynamic Versioning** - `filemtime()` versioning for cache busting
 
 ## Dependencies
 
@@ -180,10 +196,11 @@ npx wp-scripts start
 - **Custom Classes**: Autoloaded via Composer PSR-4
 
 ### JavaScript
-- **Webpack 5** for bundling
-- **Babel** for transpilation
-- **@wordpress/scripts** for WordPress tooling
+- **Direct File Inclusion** - No build system, direct file loading
+- **jQuery Dependencies** - All custom scripts depend on jQuery
+- **19 Specialized Files** - Modular architecture with specific functionality domains
 - **FontAwesome** 6.5.1 via CDN
+- **Dynamic Versioning** - `filemtime()` cache busting
 
 ## Database Tables
 
@@ -194,12 +211,13 @@ npx wp-scripts start
 
 ### Key Meta Fields
 - `_band_profile_ids` - User to band associations
-- `_link_page_custom_css_vars` - Link page customizations
-- `_bbp_forum_section` - Forum categorization
+- `_link_page_custom_css_vars` - Link page customizations and styling
+- `_bbp_forum_section` - Forum categorization (top/middle/bottom)
+- `_band_subscribers` - Email subscriber consent tracking
 
 ## Current Status
 
-The platform is **feature-complete** with all core functionality implemented. Recent focus has been on bug fixes and performance optimizations. The codebase is production-ready and serves an active music community.
+The platform operates as a production WordPress theme serving the ExtraChill community. Core functionality includes band platforms, link page management, cross-domain authentication, and forum integration. Current technical debt includes 497 text domain references requiring migration and selective GeneratePress template dependencies.
 
 ## Cross-Domain Authentication Flow
 

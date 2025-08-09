@@ -44,11 +44,11 @@ if ( is_user_logged_in() ) {
         if ( $latest_band_id > 0 ) {
             $manage_bands_url = add_query_arg( 'band_id', $latest_band_id, $manage_bands_url );
         }
-        $manage_bands_text = __( 'Manage Band(s)', 'generatepress_child' );
+        $manage_bands_text = __( 'Manage Band(s)', 'extra-chill-community' );
     } elseif ( $is_artist_or_pro ) {
         $show_manage_bands_button = true;
         $manage_bands_url = home_url( '/manage-band-profiles/' );
-        $manage_bands_text = __( 'Create Band Profile', 'generatepress_child' );
+        $manage_bands_text = __( 'Create Band Profile', 'extra-chill-community' );
     }
 
     $show_manage_links_button = false;
@@ -61,7 +61,7 @@ if ( is_user_logged_in() ) {
         if ( $latest_band_id > 0 ) {
             $manage_links_url = add_query_arg( 'band_id', $latest_band_id, $manage_links_url );
         }
-        $manage_links_text = __( 'Manage Link Page(s)', 'generatepress_child' );
+        $manage_links_text = __( 'Manage Link Page(s)', 'extra-chill-community' );
     }
 
     if ( $show_manage_bands_button || $show_manage_links_button ) {
@@ -156,10 +156,10 @@ $band_profiles_query = new WP_Query( $band_profiles_args );
 <div class="sorting-search bbp-band-profile-sorting-search">
     <div class="bbp-sorting-form">
         <form id="bandSortingForm" method="get" action="<?php echo esc_url( getCurrentUrl() ); ?>">
-            <label for="sortBandsSelect" class="screen-reader-text"><?php esc_html_e( 'Sort Bands By:', 'generatepress_child' ); ?></label>
+            <label for="sortBandsSelect" class="screen-reader-text"><?php esc_html_e( 'Sort Bands By:', 'extra-chill-community' ); ?></label>
             <select name="sort_bands" id="sortBandsSelect">
-                <option value="default" <?php selected($current_sort, 'default'); ?>><?php esc_html_e( 'Sort by Recent', 'generatepress_child' ); ?></option>
-                <option value="alphabetical" <?php selected($current_sort, 'alphabetical'); ?>><?php esc_html_e( 'Sort by A-Z', 'generatepress_child' ); ?></option>
+                <option value="default" <?php selected($current_sort, 'default'); ?>><?php esc_html_e( 'Sort by Recent', 'extra-chill-community' ); ?></option>
+                <option value="alphabetical" <?php selected($current_sort, 'alphabetical'); ?>><?php esc_html_e( 'Sort by A-Z', 'extra-chill-community' ); ?></option>
                 <option value="views" <?php selected($current_sort, 'views'); ?>><?php esc_html_e( 'Sort by Popular', 'generatepress_child' ); ?></option>
             </select>
             <?php if (!empty($current_search)): ?><input type="hidden" name="band_search" value="<?php echo esc_attr($current_search); ?>"><?php endif; ?>

@@ -80,6 +80,9 @@ li.bbp-body div.hentry {
     height: 40px;
     object-fit: cover;
 }
+.bbp-reply-card .bbp-author-avatar img{ /* Keep original for topic pages */
+    width: 40px;
+    height: 40px;}
 
 .author-name-badges {
     display: flex;
@@ -137,7 +140,7 @@ li.bbp-body div.hentry {
 {
     flex: 1;
     min-width: 0;
-    padding: 20px 20px;
+    padding: 15px 20px;
     margin: 0;
     word-break: break-word;
     overflow-wrap: anywhere;
@@ -259,6 +262,13 @@ span.bbp-topic-post-date {
 /* ==================================================
    Sidebar Topic Card Styles
 ================================================== */
+
+/* Remove bullet points from sidebar lists */
+.topic-sidebar ul {
+    list-style: none;
+    padding-left: 0;
+    margin-left: 0;
+}
 #bbpress-forums .topic-card-sidebar {
     background-color: var(--card-background);
     border-radius: 4px;
@@ -397,4 +407,61 @@ button#jump-to-latest {
     margin-right: 8px;
     fill: #555; /* Icon color in dropdown */
     vertical-align: middle;
+}
+
+
+span.bbp-admin-links {
+    float: right;
+    color: #ddd;
+}
+span.bbp-admin-links a {
+    color: #707070;
+    font-weight: 400;
+    font-size: 10px;
+    text-transform: uppercase;
+    text-decoration: none;
+}
+span.bbp-author-ip {
+    font-size: 11px;
+    font-weight: 700;
+    word-wrap: break-word;
+    color: #747474;
+}
+
+#bbpress-forums .bbp-reply-content ul.bbp-reply-revision-log, #bbpress-forums .bbp-reply-content ul.bbp-topic-revision-log, #bbpress-forums .bbp-topic-content ul.bbp-topic-revision-log {
+    border-top: 1px dotted #ddd;
+    width: 100%;
+    margin: 0;
+    padding: 8px 0 0;
+    font-size: 11px;
+    color: #aaa;
+}
+#bbpress-forums div.bbp-reply-content ul li, #bbpress-forums div.bbp-topic-content ul li {
+    list-style-type: disc;
+}
+#bbpress-forums div.bbp-reply-content ol, #bbpress-forums div.bbp-reply-content ul, #bbpress-forums div.bbp-topic-content ol, #bbpress-forums div.bbp-topic-content ul {
+    margin: 0 15px 15px;
+    padding: 0;
+}
+.bbp-pagination-links {
+    float: right;
+    list-style: none;
+    display: inline;
+}
+#bbpress-forums .bbp-pagination-links a, #bbpress-forums .bbp-pagination-links span.current {
+    display: block;
+    float: left;
+    font-size: 12px;
+    line-height: 18px;
+    padding: 0 5px;
+    margin-left: 5px;
+    border: 1px solid #efefef;
+    border-radius: 0;
+    background: 0 0;
+    color: inherit;
+    text-decoration: none;
+}
+
+#bbpress-forums .bbp-reply-content ul.bbp-reply-revision-log li, #bbpress-forums .bbp-reply-content ul.bbp-topic-revision-log li, #bbpress-forums .bbp-topic-content ul.bbp-topic-revision-log li {
+    list-style-type: none;
 }

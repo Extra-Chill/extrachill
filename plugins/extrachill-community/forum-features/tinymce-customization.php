@@ -64,7 +64,7 @@ function bbp_load_custom_autosave_plugin($plugins) {
 }
 add_filter('mce_external_plugins', 'bbp_load_custom_autosave_plugin');
 
-// Configure autosave specifically for bbPress editors
+// Configure autosave and paste handling specifically for bbPress editors
 function bbp_autosave_tinymce_settings($init) {
     if (function_exists('is_bbpress') && is_bbpress()) {
         $init['autosave_ask_before_unload'] = false;
@@ -74,6 +74,14 @@ function bbp_autosave_tinymce_settings($init) {
         $init['autosave_prefix'] = 'bbp-tinymce-autosave-{path}{query}-{id}-';
         $init['autosave_restore_when_empty'] = true;
         $init['autosave_retention'] = '43200m'; // 30 days
+
+        // Paste handling configuration
+        $init['paste_as_text'] = false; // Allow formatted paste but clean it
+        $init['paste_auto_cleanup_on_paste'] = true;
+        $init['paste_remove_styles'] = true;
+        $init['paste_remove_styles_if_webkit'] = true;
+        $init['paste_strip_class_attributes'] = 'all'; // Remove all class attributes
+        $init['paste_retain_style_properties'] = ''; // Don't retain any inline styles
 
         // Reference a globally defined JavaScript function for the setup callback
         $init['setup'] = 'extrachillTinymceSetup';

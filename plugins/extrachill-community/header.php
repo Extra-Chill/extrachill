@@ -134,7 +134,7 @@
 
   </header><!-- #masthead -->
 
-  <div class="site-page">
+  <div class="site">
     <?php
     /**
      * Custom hook for inside site container
@@ -142,11 +142,10 @@
     do_action( 'extra_chill_inside_site_container' );
     ?>
     <div class="site-content">
-      <?php
-      /**
-       * generate_inside_container hook.
-       *
-       * @since 0.1
-       */
-      do_action( 'generate_inside_container' );
-      ?>
+      <div class="container">
+        <?php
+        /**
+         * Custom hook for inside container content
+         */
+        do_action( 'extra_chill_inside_container' );
+        ?>

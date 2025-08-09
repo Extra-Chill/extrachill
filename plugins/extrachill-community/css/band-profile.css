@@ -178,6 +178,19 @@
     padding: 10px; /* Optional padding within content area */
 }
 
+/* Band Hero Top Row - Override inline styles and add flex-wrap */
+.band-hero-top-row {
+    display: flex;
+    align-items: flex-start;
+    margin-bottom: 1em;
+    flex-wrap: wrap; /* Allow wrapping on mobile */
+}
+
+/* Band Hero Text Content - Allow it to grow and take remaining space */
+.band-hero-text-content {
+    flex-grow: 1;
+}
+
 /* Profile Picture specific styles within the Hero section */
 .band-profile-featured-image {
     flex-shrink: 0; /* Ensures the image container doesn't shrink */
@@ -503,4 +516,16 @@
 
 #bp-follow-consent-modal .bp-modal-actions .bp-modal-cancel:hover {
     background-color: var(--button-secondary-hover-bg, #e0e0e0);
+}
+
+/* Mobile Responsive Styles */
+@media (max-width: 768px) {
+    .band-hero-top-row {
+        justify-content: center; /* Center justify content on mobile */
+    }
+    
+    .band-profile-featured-image {
+        margin-right: 0; /* Remove margin on mobile */
+        margin-bottom: 15px; /* Add bottom margin when wrapped */
+    }
 } 

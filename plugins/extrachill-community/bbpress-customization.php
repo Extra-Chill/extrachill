@@ -1,5 +1,13 @@
 <?php
-// assorted customization functions for bbpress
+/**
+ * bbPress Customization Functions
+ * 
+ * Custom hooks, filters, and modifications for bbPress forum integration.
+ * Includes search disable, forum section management, and topic tag removal.
+ *
+ * @package ExtraChillCommunity
+ * @since 1.0.0
+ */
 
 /*Disable bbPress default search bar */
 add_filter('bbp_allow_search', '__return_false');

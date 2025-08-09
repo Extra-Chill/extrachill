@@ -7,7 +7,8 @@
  */
 ?>
 
-</div></div>
+      </div><!-- .container -->
+    </div><!-- .site-content -->
 <?php do_action( 'extrachill_before_footer' );
 
 if (function_exists('display_online_users_stats')) {
@@ -42,7 +43,7 @@ if (function_exists('display_online_users_stats')) {
 
 
 
-</div><!-- #page -->
+  </div><!-- .site -->
 <?php wp_footer(); ?>
 </body>
 </html>

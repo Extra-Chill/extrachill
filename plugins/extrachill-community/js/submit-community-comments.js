@@ -6,7 +6,8 @@ jQuery(document).ready(function($) {
             'post_id': $('#community-comment-form').data('post-id'), // Assuming post ID is stored in data attribute
             'author': $('#community-comment-form').data('username'), // Assuming username is stored in data attribute
             'email': $('#community-comment-form').data('email'), // Assuming email is stored in data attribute
-            'comment': $('#comment').val() // The actual comment text
+            'comment': $('#comment').val(), // The actual comment text
+            'comment_nonce': $('#comment_nonce').val() // Security nonce
         };
 
         // AJAX request to submit the comment

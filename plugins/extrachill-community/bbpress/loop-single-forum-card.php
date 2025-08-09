@@ -140,13 +140,13 @@ $is_band_directory_card = ( bbp_get_forum_id() == 5432 );
         ?>
         <div class="bbp-forum-stats bbp-band-directory-stats">
             <div class="bbp-forum-band-count">
-                <?php echo esc_html( number_format_i18n( $number_of_bands ) ); ?> <?php echo esc_html( _n( 'Band', 'Bands', $number_of_bands, 'generatepress_child' ) ); ?>
+                <?php echo esc_html( number_format_i18n( $number_of_bands ) ); ?> <?php echo esc_html( _n( 'Band', 'Bands', $number_of_bands, 'extra-chill-community' ) ); ?>
             </div>
             <div class="bbp-forum-topic-count">
-                <?php echo esc_html( number_format_i18n( $total_topics_in_bands ) ); ?> <?php echo esc_html( _n( 'Total Topic', 'Topics', $total_topics_in_bands, 'generatepress_child' ) ); ?>
+                <?php echo esc_html( number_format_i18n( $total_topics_in_bands ) ); ?> <?php echo esc_html( _n( 'Total Topic', 'Topics', $total_topics_in_bands, 'extra-chill-community' ) ); ?>
             </div>
             <div class="bbp-forum-reply-count">
-                <?php echo esc_html( number_format_i18n( $total_replies_in_bands ) ); ?> <?php echo esc_html( _n( 'Total Reply', 'Replies', $total_replies_in_bands, 'generatepress_child' ) ); ?>
+                <?php echo esc_html( number_format_i18n( $total_replies_in_bands ) ); ?> <?php echo esc_html( _n( 'Total Reply', 'Replies', $total_replies_in_bands, 'extra-chill-community' ) ); ?>
             </div>
         </div>
 
@@ -169,14 +169,14 @@ $is_band_directory_card = ( bbp_get_forum_id() == 5432 );
                 
                 // Time since last active (as a link)
                 echo '<p class="bbp-forum-last-active-time">';
-                echo '<a href="' . esc_url( $activity_link_url ) . '" title="' . esc_attr( sprintf( __( 'View %s', 'generatepress_child' ), $activity_link_title_text ) ) . '">' . esc_html( human_time_diff( strtotime( $latest_band_activity_post->post_date_gmt ), current_time('timestamp', true) ) ) . ' ago</a>';
+                echo '<a href="' . esc_url( $activity_link_url ) . '" title="' . esc_attr( sprintf( __( 'View %s', 'extra-chill-community' ), $activity_link_title_text ) ) . '">' . esc_html( human_time_diff( strtotime( $latest_band_activity_post->post_date_gmt ), current_time('timestamp', true) ) ) . ' ago</a>';
                 echo '</p>';
                 ?>
                 <p class="bbp-topic-meta">
                     <?php echo bbp_get_author_link( array( 'post_id' => $activity_post_id, 'type' => 'both', 'size' => 14 ) ); // Display avatar and name ?>
                 </p>
             <?php else : ?>
-                <p><?php _e( 'No activity in any band forum yet.', 'generatepress_child' ); ?></p>
+                <p><?php _e( 'No activity in any band forum yet.', 'extra-chill-community' ); ?></p>
             <?php endif; ?>
         </div>
 
