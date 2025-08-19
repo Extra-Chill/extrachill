@@ -187,7 +187,7 @@ function bp_get_band_follower_count( $band_id ) {
  * @return bool True if count was updated, false otherwise.
  */
 function bp_maybe_update_band_follower_count( $band_id, $force = false ) {
-    // TODO: Add throttling later if needed (e.g., using transients)
+    // Future: Add throttling if needed (e.g., using transients)
     // For now, always update when called with $force = true
     if ( ! $force ) {
         // return false; // Example: Don't update unless forced
@@ -225,7 +225,7 @@ function bp_ajax_toggle_follow_band_handler() {
     // Check user logged in
     if ( ! is_user_logged_in() ) {
         // error_log('Follow AJAX: User not logged in');
-        wp_send_json_error( array( 'message' => __( 'Please log in to follow bands.', 'generatepress_child' ) ) );
+        wp_send_json_error( array( 'message' => __( 'Please log in to follow bands.', 'extra-chill-community' ) ) );
     }
 
     // Get data
@@ -236,7 +236,7 @@ function bp_ajax_toggle_follow_band_handler() {
 
     if ( ! $band_id || get_post_type( $band_id ) !== 'band_profile' ) {
         // error_log('Follow AJAX: Invalid band specified');
-        wp_send_json_error( array( 'message' => __( 'Invalid band specified.', 'generatepress_child' ) ) );
+        wp_send_json_error( array( 'message' => __( 'Invalid band specified.', 'extra-chill-community' ) ) );
     }
 
     // Determine action
@@ -266,11 +266,11 @@ function bp_ajax_toggle_follow_band_handler() {
         wp_send_json_success( array(
             'new_state' => $new_follow_status ? 'following' : 'not_following',
             'new_count' => $new_count,
-            'new_count_formatted' => sprintf( _n( '%s follower', '%s followers', $new_count, 'generatepress_child' ), number_format_i18n( $new_count ) )
+            'new_count_formatted' => sprintf( _n( '%s follower', '%s followers', $new_count, 'extra-chill-community' ), number_format_i18n( $new_count ) )
         ) );
     } else {
         // error_log('Follow AJAX: Could not update follow status.');
-        wp_send_json_error( array( 'message' => __( 'Could not update follow status. Please try again.', 'generatepress_child' ) ) );
+        wp_send_json_error( array( 'message' => __( 'Could not update follow status. Please try again.', 'extra-chill-community' ) ) );
     }
 }
 
@@ -355,14 +355,14 @@ function bp_ajax_update_user_band_subscriptions_handler() {
     check_ajax_referer( 'bp_user_band_subscriptions_nonce', 'nonce' );
 
     if ( ! is_user_logged_in() ) {
-        wp_send_json_error( array( 'message' => __( 'You must be logged in to update your subscriptions.', 'generatepress_child' ) ) );
+        wp_send_json_error( array( 'message' => __( 'You must be logged in to update your subscriptions.', 'extra-chill-community' ) ) );
     }
 
     $user_id = get_current_user_id();
     $user_data = get_userdata( $user_id );
 
     if ( ! $user_data ) {
-        wp_send_json_error( array( 'message' => __( 'User not found.', 'generatepress_child' ) ) );
+        wp_send_json_error( array( 'message' => __( 'User not found.', 'extra-chill-community' ) ) );
     }
 
     // bands_consented will be an array of band_ids the user has consented to
@@ -439,9 +439,9 @@ function bp_ajax_update_user_band_subscriptions_handler() {
 
     if ( ! empty( $processed_bands ) ) {
         clean_user_cache( $user_id );
-        wp_send_json_success( array( 'message' => __( 'Subscription preferences updated.', 'generatepress_child' ), 'processed_bands' => array_unique($processed_bands) ) );
+        wp_send_json_success( array( 'message' => __( 'Subscription preferences updated.', 'extra-chill-community' ), 'processed_bands' => array_unique($processed_bands) ) );
     } else {
-        wp_send_json_success( array( 'message' => __( 'No changes to subscription preferences were made.', 'generatepress_child' ) ) );
+        wp_send_json_success( array( 'message' => __( 'No changes to subscription preferences were made.', 'extra-chill-community' ) ) );
     }
 }
 

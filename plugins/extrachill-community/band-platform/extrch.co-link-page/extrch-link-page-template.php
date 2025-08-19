@@ -122,10 +122,6 @@ if (isset($data['overlay'])) {
 $wrapper_class = 'extrch-link-page-content-wrapper' . ($overlay_enabled ? '' : ' no-overlay');
 
 // Ensure all variables used in data attributes are defined in the scope
-// For the page share button:
-// $link_page_id_for_permalink = isset($link_page_id) ? $link_page_id : (isset($post) ? $post->ID : 0);
-// Let's ensure we use the ID from the $data array if possible, or what single-band_link_page.php would have set.
-// $single_band_link_page_id is the ID of the actual link page CPT entry. This is what we should use.
 $single_band_link_page_id = isset($data['_actual_link_page_id_for_template']) ? $data['_actual_link_page_id_for_template'] : (isset($link_page_id) ? $link_page_id : 0);
 if (empty($single_band_link_page_id) && isset($extrch_link_page_template_data['original_link_page_id'])) {
     $single_band_link_page_id = $extrch_link_page_template_data['original_link_page_id'];

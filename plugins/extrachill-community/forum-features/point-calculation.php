@@ -35,14 +35,7 @@ function wp_surgeon_get_user_total_points($user_id) {
     $total_upvotes = wp_surgeon_get_user_total_upvotes($user_id) ?? 0;
     $upvote_points = floatval($total_upvotes) * 0.5;
 
-    // Get follower count (user meta is generally fast, but could be cached if needed)
-    // -- REMOVED FOLLOWER POINTS --
-    /*
-    $followers = get_user_meta($user_id, 'extrachill_followers', true);
-    $follower_count = is_array($followers) ? count($followers) : 0;
-    $follower_points = $follower_count * 3;
-    */
-    $follower_points = 0; // Ensure variable exists, set to 0
+    $follower_points = 0;
 
     // Get main site post count (cached)
     $author_id = false; // Initialize
@@ -123,19 +116,6 @@ add_action('custom_upvote_action', function($post_id, $post_author_id, $upvoted)
 
 
 
-// Handle follow and unfollow actions
-// -- REMOVED FOLLOW/UNFOLLOW HOOKS --
-/*
-add_action('extrachill_followed_user', function($follower_id, $followed_id) {
-    wp_surgeon_get_user_total_points($follower_id);
-    wp_surgeon_get_user_total_points($followed_id);
-}, 10, 2);
-
-add_action('extrachill_unfollowed_user', function($follower_id, $followed_id) {
-    wp_surgeon_get_user_total_points($follower_id);
-    wp_surgeon_get_user_total_points($followed_id);
-}, 10, 2);
-*/
 
 // Display user points
 function wp_surgeon_display_user_points($user_id) {

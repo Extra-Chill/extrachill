@@ -6,20 +6,6 @@
 
 get_header();
 ?>
-    <?php
-    /**
-     * generate_inside_site_container hook.
-     * This hook is inside the #page div element, handled by GeneratePress.
-     */
-    do_action( 'generate_inside_site_container' );
-    ?>
-        <?php
-        /**
-         * generate_inside_container hook.
-         * This hook is inside the .container div element (itself inside #content), handled by GeneratePress.
-         */
-        do_action( 'generate_inside_container' );
-        ?>
         <?php extrachill_breadcrumbs(); ?>
 
 <?php

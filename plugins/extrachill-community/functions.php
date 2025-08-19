@@ -416,7 +416,6 @@ function wp_surgeon_get_readable_role($role) {
  * */
 
 
-// Remove GeneratePress actions - no longer needed with standalone theme
 
 /**
  * Footer copyright text
@@ -464,14 +463,6 @@ function custom_search_filter($query) {
 }
 add_filter('pre_get_posts', 'custom_search_filter');
 
-// Remove admin bar for all users except administrators
-// REMOVED: This functionality is now handled in wp_surgeon_redirect_admin()
-// function wp_surgeon_remove_admin_bar() {
-//     if (!current_user_can('administrator')) {
-//         show_admin_bar(false);
-//     }
-// }
-// add_action('after_setup_theme', 'wp_surgeon_remove_admin_bar');
 
 class Custom_Walker_Nav_Menu extends Walker_Nav_Menu {
     function start_lvl( &$output, $depth = 0, $args = null ) {

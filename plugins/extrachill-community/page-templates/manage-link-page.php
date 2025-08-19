@@ -12,7 +12,6 @@ $band_id = isset($_GET['band_id']) ? absint($_GET['band_id']) : 0;
 $band_post = $band_id ? get_post($band_id) : null;
 
 require_once get_stylesheet_directory() . '/band-platform/extrch.co-link-page/link-page-includes.php';
-// require_once get_stylesheet_directory() . '/band-platform/extrch.co-link-page/link-page-data.php'; // Deprecated
 require_once get_stylesheet_directory() . '/band-platform/extrch.co-link-page/data/LinkPageDataProvider.php';
 
 // --- Fetch or Create Associated Link Page ---
@@ -138,7 +137,6 @@ if ( class_exists( 'LinkPageDataProvider' ) ) {
 }
 
 // Set global font config for JS hydration
-// (kept for legacy JS, but can be removed if not needed)
 global $extrch_link_page_fonts;
 set_query_var('extrch_link_page_fonts', $extrch_link_page_fonts);
 ?>
@@ -213,19 +211,19 @@ if ($link_page_id && get_post_type($link_page_id) === 'band_link_page') {
     $display_url = str_replace(array('https://', 'http://'), '', $public_url ?? '');
     echo '<a href="' . esc_url($public_url ?? '') . '" class="bp-link-page-url-text" target="_blank" rel="noopener">' . esc_html($display_url) . '</a>';
     // Change button to display Font Awesome QR code icon
-    echo '<button type="button" id="bp-get-qr-code-btn" class="button button-secondary" title="' . esc_attr__("Get QR Code", "generatepress_child") . '" style="margin-left: 0.5em;"><i class="fa-solid fa-qrcode"></i></button>';
+    echo '<button type="button" id="bp-get-qr-code-btn" class="button button-secondary" title="' . esc_attr__("Get QR Code", "extra-chill-community") . '" style="margin-left: 0.5em;"><i class="fa-solid fa-qrcode"></i></button>';
     echo '</div>';
     echo '<div id="bp-qr-code-container" style="margin-top: 1em; text-align: left;"></div>'; // Existing Container for QR code (can be repurposed or removed if modal is sufficient)
     // --- QR Code Modal ---
     echo '<div id="bp-qr-code-modal" class="bp-modal" style="display:none;">';
     echo '  <div class="bp-modal-content">';
     echo '    <span class="bp-modal-close">&times;</span>';
-    echo '    <h2>' . esc_html__("Your Link Page QR Code", "generatepress_child") . '</h2>';
+    echo '    <h2>' . esc_html__("Your Link Page QR Code", "extra-chill-community") . '</h2>';
     echo '    <div id="bp-qr-code-modal-image-container">';
-    echo '      <p class="loading-message">' . esc_html__("Loading QR Code...", "generatepress_child") . '</p>';
-    echo '      <img src="" alt="' . esc_attr__("Link Page QR Code", "generatepress_child") . '" style="display:none; max-width: 100%; height: auto;" />';
+    echo '      <p class="loading-message">' . esc_html__("Loading QR Code...", "extra-chill-community") . '</p>';
+    echo '      <img src="" alt="' . esc_attr__("Link Page QR Code", "extra-chill-community") . '" style="display:none; max-width: 100%; height: auto;" />';
     echo '    </div>';
-    echo '    <p class="bp-modal-instructions">' . esc_html__("Right-click or long-press the image to save it.", "generatepress_child") . '</p>';
+    echo '    <p class="bp-modal-instructions">' . esc_html__("Right-click or long-press the image to save it.", "extra-chill-community") . '</p>';
     echo '  </div>';
     echo '</div>';
     // --- End QR Code Modal ---

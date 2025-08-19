@@ -61,7 +61,7 @@ function wp_surgeon_registration_form_shortcode() {
 
     <?php if (!empty($band_name_for_invite_message) && !empty($invite_token)) : ?>
         <div class="bp-notice bp-notice-info" style="border-left: 4px solid #17a2b8; padding: 12px; margin-bottom: 20px; background-color: #e6f7ff;">
-            <p style="margin:0;"><?php echo sprintf(esc_html__('You have been invited to join the band \'%s\'! Please complete your registration below to accept.', 'generatepress_child'), esc_html($band_name_for_invite_message)); ?></p>
+            <p style="margin:0;"><?php echo sprintf(esc_html__('You have been invited to join the band \'%s\'! Please complete your registration below to accept.', 'extra-chill-community'), esc_html($band_name_for_invite_message)); ?></p>
         </div>
     <?php endif; ?>
 

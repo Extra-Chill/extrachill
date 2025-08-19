@@ -28,7 +28,7 @@ $band_name = isset($band_name) ? $band_name : (isset($data['display_title']) ? $
         Subscribe<?php if (!empty($band_name)) echo ' to ' . esc_html($band_name); ?>
     </h3>
     <p><?php 
-    $subscribe_description = isset($data['_link_page_subscribe_description']) && $data['_link_page_subscribe_description'] !== '' ? $data['_link_page_subscribe_description'] : sprintf(__('Enter your email address to receive occasional news and updates from %s.', 'generatepress_child'), $band_name);
+    $subscribe_description = isset($data['_link_page_subscribe_description']) && $data['_link_page_subscribe_description'] !== '' ? $data['_link_page_subscribe_description'] : sprintf(__('Enter your email address to receive occasional news and updates from %s.', 'extra-chill-community'), $band_name);
     echo esc_html($subscribe_description);
     ?></p>
 
@@ -38,11 +38,11 @@ $band_name = isset($band_name) ? $band_name : (isset($data['display_title']) ? $
         <input type="hidden" name="_ajax_nonce" value="<?php echo esc_attr($subscribe_nonce); ?>">
 
         <div class="form-group">
-            <label for="subscriber_email_inline" class="screen-reader-text"><?php esc_html_e('Email Address', 'generatepress_child'); ?></label>
-            <input type="email" name="subscriber_email" id="subscriber_email_inline" placeholder="<?php esc_attr_e('Your email address', 'generatepress_child'); ?>" required>
+            <label for="subscriber_email_inline" class="screen-reader-text"><?php esc_html_e('Email Address', 'extra-chill-community'); ?></label>
+            <input type="email" name="subscriber_email" id="subscriber_email_inline" placeholder="<?php esc_attr_e('Your email address', 'extra-chill-community'); ?>" required>
         </div>
 
-        <button type="submit" class="button button-primary"><?php esc_html_e('Subscribe', 'generatepress_child'); ?></button>
+        <button type="submit" class="button button-primary"><?php esc_html_e('Subscribe', 'extra-chill-community'); ?></button>
 
         <div class="extrch-form-message" aria-live="polite"></div> <?php // For success/error messages ?>
     </form>

@@ -1604,6 +1604,8 @@ body.menu-open {
     background-color: var(--accent);  /* Uses global variable from your root styles */
     color: #ffffff;
     padding: 12px 25px;
+	margin: 15px 0;
+	float: right;
     border: none;
     border-radius: 8px;
     cursor: pointer;
@@ -1745,10 +1747,15 @@ input[type="text"]:focus, input[type="email"]:focus, input[type="url"]:focus, in
 
 input[type="text"], input[type="email"], input[type="url"], input[type="password"], input[type="search"], input[type="tel"], input[type="number"], textarea, select{
 	color: var(--text-color);
-    background-color: var(--card-background);
+    background-color: var(--background-color);
     border-color: var(--border-color);
 	width: max-content;
 	font-size:.8em;
+	padding: 10px 5px;
+	width: 100%;
+    border-radius: 5px;
+    margin: 5px 0;
+	border: .3px solid;
 }
 
 #bbpress-forums fieldset.bbp-form{
@@ -1813,6 +1820,10 @@ input[type="text"], input[type="email"], input[type="url"], input[type="password
     background: 0 0;
     margin: 0;
     list-style: none;
+}
+
+#bbpress-forums .bbp-reply-content li{
+	list-style: disc;
 }
 
 #bbpress-forums ul, #bbpress-forums.bbpress-wrapper ul {

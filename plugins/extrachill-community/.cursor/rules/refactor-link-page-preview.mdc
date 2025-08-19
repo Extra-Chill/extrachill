@@ -5,11 +5,11 @@ alwaysApply: false
 ---
 # Developer Guide: Refactoring Link Page Live Preview and JavaScript Logic
 
-This document provides a clear, step-by-step guide and architectural reference for the Extrch.co Link Page live preview and management interface refactor. It is intended for developers working on the `generatepress_child` theme, ensuring a robust, maintainable, and predictable system for all link page customization, preview, and save flows.
+This document provides a clear, step-by-step guide and architectural reference for the Extrch.co Link Page live preview and management interface refactor. It is intended for developers working on the `extra-chill-community` theme, ensuring a robust, maintainable, and predictable system for all link page customization, preview, and save flows.
 
 ## Purpose
 
-This document provides a clear, step-by-step guide and architectural reference for the Extrch.co Link Page live preview and management interface refactor. It is intended for developers working on the `generatepress_child` theme, ensuring a robust, maintainable, and predictable system for all link page customization, preview, and save flows.
+This document provides a clear, step-by-step guide and architectural reference for the Extrch.co Link Page live preview and management interface refactor. It is intended for developers working on the `extra-chill-community` theme, ensuring a robust, maintainable, and predictable system for all link page customization, preview, and save flows.
 
 ## Canonical Architecture & Data Flow (Current State: June 2025)
 

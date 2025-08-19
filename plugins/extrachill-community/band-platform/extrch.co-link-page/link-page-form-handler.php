@@ -74,19 +74,19 @@ function extrch_handle_save_link_page_data() {
 
     if (!$link_page_id) {
         error_log('[LinkPageSave] FATAL: Could not determine Link Page ID');
-        wp_die(__('Could not determine Link Page ID.', 'generatepress_child'));
+        wp_die(__('Could not determine Link Page ID.', 'extra-chill-community'));
     }
 
     // CRITICAL SECURITY: Validate user permissions for this band
     if (!empty($band_id) && !current_user_can('manage_band_members', $band_id)) {
         error_log('[LinkPageSave] PERMISSION DENIED: User ' . get_current_user_id() . ' cannot manage band ' . $band_id);
-        wp_die(__('Permission denied: You do not have access to manage this band.', 'generatepress_child'));
+        wp_die(__('Permission denied: You do not have access to manage this band.', 'extra-chill-community'));
     }
 
     // Additional validation: ensure user is logged in for any save operation
     if (!is_user_logged_in()) {
         error_log('[LinkPageSave] PERMISSION DENIED: User not logged in');
-        wp_die(__('Permission denied: You must be logged in to save changes.', 'generatepress_child'));
+        wp_die(__('Permission denied: You must be logged in to save changes.', 'extra-chill-community'));
     }
 
     error_log('[LinkPageSave] Permission validation passed for user ' . get_current_user_id() . ' and band ' . $band_id);

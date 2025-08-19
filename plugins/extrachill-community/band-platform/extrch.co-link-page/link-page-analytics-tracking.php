@@ -310,7 +310,7 @@ function extrch_fetch_link_page_analytics_ajax() {
         foreach ($social_links as $social) {
              if (!empty($social['url'])) {
                  // Check if 'network' key exists and is not empty
-                 $network_text = !empty($social['network']) ? ucfirst($social['network']) : __('Social Link', 'generatepress_child');
+                 $network_text = !empty($social['network']) ? ucfirst($social['network']) : __('Social Link', 'extra-chill-community');
                  $url_to_text_map[$social['url']] = $network_text; 
              }
         }

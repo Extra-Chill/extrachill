@@ -9,7 +9,7 @@ add_action('wp_dashboard_setup', function() {
     if (!current_user_can('manage_options')) return;
     wp_add_dashboard_widget(
         'extrch_default_band_profile_widget',
-        __('Extra Chill: Default Band Profile/Link Page', 'generatepress_child'),
+        __('Extra Chill: Default Band Profile/Link Page', 'extra-chill-community'),
         'extrch_render_default_band_profile_widget'
     );
 });

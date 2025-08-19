@@ -160,20 +160,20 @@ $band_profiles_query = new WP_Query( $band_profiles_args );
             <select name="sort_bands" id="sortBandsSelect">
                 <option value="default" <?php selected($current_sort, 'default'); ?>><?php esc_html_e( 'Sort by Recent', 'extra-chill-community' ); ?></option>
                 <option value="alphabetical" <?php selected($current_sort, 'alphabetical'); ?>><?php esc_html_e( 'Sort by A-Z', 'extra-chill-community' ); ?></option>
-                <option value="views" <?php selected($current_sort, 'views'); ?>><?php esc_html_e( 'Sort by Popular', 'generatepress_child' ); ?></option>
+                <option value="views" <?php selected($current_sort, 'views'); ?>><?php esc_html_e( 'Sort by Popular', 'extra-chill-community' ); ?></option>
             </select>
             <?php if (!empty($current_search)): ?><input type="hidden" name="band_search" value="<?php echo esc_attr($current_search); ?>"><?php endif; ?>
             <?php foreach ($_GET as $key => $value) { if ($key !== 'sort_bands' && $key !== 'band_search' && $key !== 'paged') { echo '<input type="hidden" name="' . esc_attr($key) . '" value="' . esc_attr(stripslashes_deep($value)) . '">'; } } ?>
-            <noscript><button type="submit" class="button"><?php esc_html_e( 'Sort', 'generatepress_child' ); ?></button></noscript>
+            <noscript><button type="submit" class="button"><?php esc_html_e( 'Sort', 'extra-chill-community' ); ?></button></noscript>
         </form>
     </div>
     <div class="bbp-search-form">
         <form method="get" id="bandSearchForm" action="<?php echo esc_url( getCurrentUrl() ); ?>">
-            <label for="bandSearchInput" class="screen-reader-text"><?php esc_html_e( 'Search Bands:', 'generatepress_child' ); ?></label>
-            <input type="text" name="band_search" id="bandSearchInput" placeholder="<?php esc_attr_e( 'Search Bands...', 'generatepress_child' ); ?>" value="<?php echo esc_attr($current_search); ?>">
+            <label for="bandSearchInput" class="screen-reader-text"><?php esc_html_e( 'Search Bands:', 'extra-chill-community' ); ?></label>
+            <input type="text" name="band_search" id="bandSearchInput" placeholder="<?php esc_attr_e( 'Search Bands...', 'extra-chill-community' ); ?>" value="<?php echo esc_attr($current_search); ?>">
             <?php if (!empty($current_sort) && $current_sort !== 'default'): ?><input type="hidden" name="sort_bands" value="<?php echo esc_attr($current_sort); ?>"><?php endif; ?>
             <?php foreach ($_GET as $key => $value) { if ($key !== 'sort_bands' && $key !== 'band_search' && $key !== 'paged') { echo '<input type="hidden" name="' . esc_attr($key) . '" value="' . esc_attr(stripslashes_deep($value)) . '">'; } } ?>
-            <button type="submit" class="button"><?php esc_html_e( 'Search', 'generatepress_child' ); ?></button>
+            <button type="submit" class="button"><?php esc_html_e( 'Search', 'extra-chill-community' ); ?></button>
         </form>
     </div>
 </div>
@@ -200,8 +200,8 @@ $band_profiles_query = new WP_Query( $band_profiles_args );
                 'total'     => $band_profiles_query->max_num_pages,
                 'current'   => $paged,
                 'mid_size'  => 2,
-                'prev_text' => __('« Previous', 'generatepress_child'),
-                'next_text' => __('Next »', 'generatepress_child'),
+                'prev_text' => __('« Previous', 'extra-chill-community'),
+                'next_text' => __('Next »', 'extra-chill-community'),
                 'type'      => 'plain',
                 'add_args'  => false,
             );
@@ -218,7 +218,7 @@ $band_profiles_query = new WP_Query( $band_profiles_args );
         wp_reset_postdata();
         ?>
     <?php else : ?>
-        <ul class="bbp-bands"><li class="bbp-body"><div class="bbp-band-content"><?php esc_html_e( 'Oh bother! No bands found here yet.', 'generatepress_child' ); ?></div></li></ul>
+        <ul class="bbp-bands"><li class="bbp-body"><div class="bbp-band-content"><?php esc_html_e( 'Oh bother! No bands found here yet.', 'extra-chill-community' ); ?></div></li></ul>
     <?php endif; ?>
 </div>
 

@@ -6,21 +6,7 @@
 
 get_header();
 ?>
-    <?php
-    /**
-     * generate_inside_site_container hook.
-     * This hook is inside the #page div element, handled by GeneratePress.
-     */
-    do_action( 'generate_inside_site_container' );
-    ?>
     <?php // The site-content div wrapper previously here has been removed. ?>
-        <?php
-        /**
-         * generate_inside_container hook.
-         * This hook is inside the .container div element (itself inside #content), handled by GeneratePress.
-         */
-        do_action( 'generate_inside_container' );
-        ?>
         <?php extrachill_breadcrumbs(); ?>
 
 <?php
@@ -28,7 +14,7 @@ get_header();
 echo '<div id="chill-home">';
 echo '<div id="chill-home-header"><span>';
 
-echo '<h1>' . __( 'Followed Band Topics', 'generatepress_child' ) . '</h1>'; // Updated Title
+echo '<h1>' . __( 'Followed Band Topics', 'extra-chill-community' ) . '</h1>'; // Updated Title
 
 echo '</span>';
 
@@ -77,20 +63,20 @@ if ( is_user_logged_in() ) {
             <?php
         else :
             if (isset($args_for_feed['post__in']) && $args_for_feed['post__in'] === array(0)) {
-                echo '<div class="bbp-template-notice info"><p>' . __( 'You are not following any bands, or the bands you follow do not have forums.', 'generatepress_child' ) . '</p></div>';
+                echo '<div class="bbp-template-notice info"><p>' . __( 'You are not following any bands, or the bands you follow do not have forums.', 'extra-chill-community' ) . '</p></div>';
             } else {
-                echo '<div class="bbp-template-notice info"><p>' . __( 'No topics found from the bands you follow.', 'generatepress_child' ) . '</p></div>';
+                echo '<div class="bbp-template-notice info"><p>' . __( 'No topics found from the bands you follow.', 'extra-chill-community' ) . '</p></div>';
             }
         endif;
         
         // wp_reset_postdata(); // bbp_has_topics and its loop should handle this.
         
     } else {
-         echo '<div class="bbp-template-notice error"><p>' . __( 'Error: Following feed function not available.', 'generatepress_child' ) . '</p></div>';
+         echo '<div class="bbp-template-notice error"><p>' . __( 'Error: Following feed function not available.', 'extra-chill-community' ) . '</p></div>';
     }
 
 } else {
-    echo '<div class="bbp-template-notice info"><p>' . __( 'Please log in to see topics from bands you follow.', 'generatepress_child' ) . '</p></div>';
+    echo '<div class="bbp-template-notice info"><p>' . __( 'Please log in to see topics from bands you follow.', 'extra-chill-community' ) . '</p></div>';
 }
 
 ?>

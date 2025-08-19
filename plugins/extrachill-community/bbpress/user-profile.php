@@ -33,7 +33,7 @@ $is_professional   = get_user_meta( $displayed_user_id, 'user_is_professional', 
             $local_city = get_user_meta(bbp_get_displayed_user_id(), 'local_city', true);
             if ( $local_city ) :
             ?>
-                <p class="bbp-user-local-scene-inline"><strong><?php esc_html_e('Local Scene:', 'generatepress_child'); ?></strong> <?php echo esc_html($local_city); ?></p>
+                <p class="bbp-user-local-scene-inline"><strong><?php esc_html_e('Local Scene:', 'extra-chill-community'); ?></strong> <?php echo esc_html($local_city); ?></p>
             <?php 
             endif; // End local_city check
             // --- End Local Scene --- 
@@ -83,10 +83,10 @@ if ( $is_artist || $is_professional ) :
             $display_name = bbp_get_displayed_user_field('display_name');
             // Adjust title based on whether they have bands or not
             if ( !empty($user_band_ids) && is_array($user_band_ids) ) {
-                 printf( esc_html__( "%s's Bands", 'generatepress_child' ), esc_html($display_name) );
+                 printf( esc_html__( "%s's Bands", 'extra-chill-community' ), esc_html($display_name) );
             } else if ( bbp_get_displayed_user_id() == get_current_user_id() ) {
                  // Title for own profile with no bands
-                 esc_html_e( 'Your Band Profile & Link Page', 'generatepress_child' );
+                 esc_html_e( 'Your Band Profile & Link Page', 'extra-chill-community' );
             }
             ?>
         </h2>
@@ -101,7 +101,7 @@ if ( $is_artist || $is_professional ) :
                 <?php endforeach; ?>
             </ul>
         <?php else : ?>
-            <p><?php esc_html_e( 'No band memberships yet.', 'generatepress_child' ); ?></p>
+            <p><?php esc_html_e( 'No band memberships yet.', 'extra-chill-community' ); ?></p>
         <?php endif; ?>
 
         <?php 
@@ -137,9 +137,9 @@ if ( $is_artist || $is_professional ) :
                     $final_manage_link_page_url_card = add_query_arg( 'band_id', $latest_band_id_card, $base_manage_link_page_url_card );
                 }
             ?>
-                <a href="<?php echo esc_url( $final_manage_bands_url_card ); ?>" class="button button-small extrachill-manage-profile-button"><?php esc_html_e( 'Manage Band(s)', 'generatepress_child' ); ?></a>
+                <a href="<?php echo esc_url( $final_manage_bands_url_card ); ?>" class="button button-small extrachill-manage-profile-button"><?php esc_html_e( 'Manage Band(s)', 'extra-chill-community' ); ?></a>
             <?php else : // No band profiles, but is an artist, viewing own profile ?>
-                <a href="<?php echo esc_url( $base_manage_bands_url_card ); ?>" class="button button-small extrachill-manage-profile-button"><?php esc_html_e( 'Create Band Profile', 'generatepress_child' ); ?></a>
+                <a href="<?php echo esc_url( $base_manage_bands_url_card ); ?>" class="button button-small extrachill-manage-profile-button"><?php esc_html_e( 'Create Band Profile', 'extra-chill-community' ); ?></a>
             <?php endif; // End if has band_ids (for buttons)
             echo '</div>'; // End .user-band-management-actions
         endif; // End if viewing own profile

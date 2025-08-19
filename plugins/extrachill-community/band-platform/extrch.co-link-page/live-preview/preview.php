@@ -175,7 +175,7 @@ $featured_link_url_to_skip_preview = isset($preview_template_data['featured_link
                     <?php 
                     $subscribe_description = isset($preview_template_data['_link_page_subscribe_description']) && $preview_template_data['_link_page_subscribe_description'] !== ''
                         ? $preview_template_data['_link_page_subscribe_description']
-                        : sprintf(__('Enter your email address to receive occasional news and updates from %s.', 'generatepress_child'), $display_title);
+                        : sprintf(__('Enter your email address to receive occasional news and updates from %s.', 'extra-chill-community'), $display_title);
                     echo esc_html($subscribe_description);
                     ?>
                 </p>

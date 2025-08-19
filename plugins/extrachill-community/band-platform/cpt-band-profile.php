@@ -7,37 +7,37 @@
 function bp_register_band_profile_cpt() {
 
 	$labels = array(
-		'name'                  => _x( 'Band Profiles', 'Post Type General Name', 'generatepress_child' ),
-		'singular_name'         => _x( 'Band Profile', 'Post Type Singular Name', 'generatepress_child' ),
-		'menu_name'             => __( 'Band Profiles', 'generatepress_child' ),
-		'name_admin_bar'        => __( 'Band Profile', 'generatepress_child' ),
-		'archives'              => __( 'Band Profile Archives', 'generatepress_child' ),
-		'attributes'            => __( 'Band Profile Attributes', 'generatepress_child' ),
-		'parent_item_colon'     => __( 'Parent Band Profile:', 'generatepress_child' ),
-		'all_items'             => __( 'All Band Profiles', 'generatepress_child' ),
-		'add_new_item'          => __( 'Add New Band Profile', 'generatepress_child' ),
-		'add_new'               => __( 'Add New', 'generatepress_child' ),
-		'new_item'              => __( 'New Band Profile', 'generatepress_child' ),
-		'edit_item'             => __( 'Edit Band Profile', 'generatepress_child' ),
-		'update_item'           => __( 'Update Band Profile', 'generatepress_child' ),
-		'view_item'             => __( 'View Band Profile', 'generatepress_child' ),
-		'view_items'            => __( 'View Band Profiles', 'generatepress_child' ),
-		'search_items'          => __( 'Search Band Profile', 'generatepress_child' ),
-		'not_found'             => __( 'Not found', 'generatepress_child' ),
-		'not_found_in_trash'    => __( 'Not found in Trash', 'generatepress_child' ),
-		'featured_image'        => __( 'Featured Image', 'generatepress_child' ),
-		'set_featured_image'    => __( 'Set featured image', 'generatepress_child' ),
-		'remove_featured_image' => __( 'Remove featured image', 'generatepress_child' ),
-		'use_featured_image'    => __( 'Use as featured image', 'generatepress_child' ),
-		'insert_into_item'      => __( 'Insert into band profile', 'generatepress_child' ),
-		'uploaded_to_this_item' => __( 'Uploaded to this band profile', 'generatepress_child' ),
-		'items_list'            => __( 'Band Profiles list', 'generatepress_child' ),
-		'items_list_navigation' => __( 'Band Profiles list navigation', 'generatepress_child' ),
-		'filter_items_list'     => __( 'Filter band profiles list', 'generatepress_child' ),
+		'name'                  => _x( 'Band Profiles', 'Post Type General Name', 'extra-chill-community' ),
+		'singular_name'         => _x( 'Band Profile', 'Post Type Singular Name', 'extra-chill-community' ),
+		'menu_name'             => __( 'Band Profiles', 'extra-chill-community' ),
+		'name_admin_bar'        => __( 'Band Profile', 'extra-chill-community' ),
+		'archives'              => __( 'Band Profile Archives', 'extra-chill-community' ),
+		'attributes'            => __( 'Band Profile Attributes', 'extra-chill-community' ),
+		'parent_item_colon'     => __( 'Parent Band Profile:', 'extra-chill-community' ),
+		'all_items'             => __( 'All Band Profiles', 'extra-chill-community' ),
+		'add_new_item'          => __( 'Add New Band Profile', 'extra-chill-community' ),
+		'add_new'               => __( 'Add New', 'extra-chill-community' ),
+		'new_item'              => __( 'New Band Profile', 'extra-chill-community' ),
+		'edit_item'             => __( 'Edit Band Profile', 'extra-chill-community' ),
+		'update_item'           => __( 'Update Band Profile', 'extra-chill-community' ),
+		'view_item'             => __( 'View Band Profile', 'extra-chill-community' ),
+		'view_items'            => __( 'View Band Profiles', 'extra-chill-community' ),
+		'search_items'          => __( 'Search Band Profile', 'extra-chill-community' ),
+		'not_found'             => __( 'Not found', 'extra-chill-community' ),
+		'not_found_in_trash'    => __( 'Not found in Trash', 'extra-chill-community' ),
+		'featured_image'        => __( 'Featured Image', 'extra-chill-community' ),
+		'set_featured_image'    => __( 'Set featured image', 'extra-chill-community' ),
+		'remove_featured_image' => __( 'Remove featured image', 'extra-chill-community' ),
+		'use_featured_image'    => __( 'Use as featured image', 'extra-chill-community' ),
+		'insert_into_item'      => __( 'Insert into band profile', 'extra-chill-community' ),
+		'uploaded_to_this_item' => __( 'Uploaded to this band profile', 'extra-chill-community' ),
+		'items_list'            => __( 'Band Profiles list', 'extra-chill-community' ),
+		'items_list_navigation' => __( 'Band Profiles list navigation', 'extra-chill-community' ),
+		'filter_items_list'     => __( 'Filter band profiles list', 'extra-chill-community' ),
 	);
 	$args = array(
-		'label'                 => __( 'Band Profile', 'generatepress_child' ),
-		'description'           => __( 'Custom Post Type for Band Profiles', 'generatepress_child' ),
+		'label'                 => __( 'Band Profile', 'extra-chill-community' ),
+		'description'           => __( 'Custom Post Type for Band Profiles', 'extra-chill-community' ),
 		'labels'                => $labels,
 		'supports'              => array( 'title', 'editor', 'thumbnail', 'custom-fields' ),
 		'hierarchical'          => false,
@@ -78,7 +78,7 @@ add_action( 'init', 'bp_register_band_profile_cpt', 10 );
 function bp_add_band_settings_meta_box() {
     add_meta_box(
         'bp_band_settings',                     // Unique ID
-        __( 'Band Forum Settings', 'generatepress_child' ), // Box title
+        __( 'Band Forum Settings', 'extra-chill-community' ), // Box title
         'bp_render_band_settings_meta_box',   // Content callback function
         'band_profile',                    // Post type
         'side',                          // Context (normal, side, advanced)
@@ -103,11 +103,11 @@ function bp_render_band_settings_meta_box( $post ) {
     echo '<p>';
     echo '<label for="bp_allow_public_topic_creation">';
     echo '<input type="checkbox" id="bp_allow_public_topic_creation" name="bp_allow_public_topic_creation" value="1" ' . checked( $allow_public, '1', false ) . ' /> ';
-    echo __( 'Allow non-members to create topics in this band\'s forum?', 'generatepress_child' );
+    echo __( 'Allow non-members to create topics in this band\'s forum?', 'extra-chill-community' );
     echo '</label>';
     echo '</p>';
     echo '<p class="description">';
-    echo __( 'If checked, any logged-in user with permission to create topics site-wide can post in this band\'s forum. If unchecked, only linked band members can create new topics.', 'generatepress_child' );
+    echo __( 'If checked, any logged-in user with permission to create topics site-wide can post in this band\'s forum. If unchecked, only linked band members can create new topics.', 'extra-chill-community' );
     echo '</p>';
 }
 

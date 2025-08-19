@@ -124,7 +124,7 @@ function extrch_process_weekly_performance_emails( $debug_target_user_id = null 
             continue;
         }
         
-        $email_subject = sprintf( esc_html__( 'Your Weekly extrachill.link Performance Summary', 'generatepress_child' ) );
+        $email_subject = sprintf( esc_html__( 'Your Weekly extrachill.link Performance Summary', 'extra-chill-community' ) );
         $email_body    = extrch_generate_consolidated_performance_email_html( $user_data['display_name'], $user_data['link_pages_data'] );
 
         $headers = array( 'Content-Type: text/html; charset=UTF-8' );
@@ -211,7 +211,7 @@ function extrch_send_single_link_page_performance_email( $link_page_id ) {
     $analytics_data = extrch_fetch_link_page_analytics_for_email( $link_page_id, $start_date, $end_date );
 
     // 3. Generate HTML Email Content
-    $email_subject = sprintf( esc_html__( 'Your Weekly extrachill.link Performance: %s', 'generatepress_child' ), $band_name );
+    $email_subject = sprintf( esc_html__( 'Your Weekly extrachill.link Performance: %s', 'extra-chill-community' ), $band_name );
     $email_body    = extrch_generate_performance_email_html( $band_name, $link_page_public_url, $analytics_data, $link_page_id, $band_profile_id );
 
     // 4. Send Email
@@ -397,53 +397,53 @@ function extrch_generate_performance_email_html( $band_name, $link_page_public_u
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title><?php printf( esc_html__( 'Weekly Performance: %s', 'generatepress_child' ), esc_html( $band_name ) ); ?></title>
+        <title><?php printf( esc_html__( 'Weekly Performance: %s', 'extra-chill-community' ), esc_html( $band_name ) ); ?></title>
         <style type="text/css"><?php echo $styles; // Inline styles for email clients ?></style>
     </head>
     <body>
         <div class="email-container">
             <div class="header">
-                <h1><?php esc_html_e( 'Weekly Link Page Summary', 'generatepress_child' ); ?></h1>
+                <h1><?php esc_html_e( 'Weekly Link Page Summary', 'extra-chill-community' ); ?></h1>
             </div>
             <div class="content">
-                <p><?php printf( esc_html__( 'Hi %s,', 'generatepress_child' ), esc_html( $band_name ) ); ?></p>
-                <p><?php printf( esc_html__( 'Here is the performance summary for your extrachill.link page (%1$s) for the week of %2$s - %3$s:', 'generatepress_child' ), '<a href="' . esc_url( $link_page_public_url ) . '">' . esc_html( $link_page_public_url ) . '</a>', esc_html( $formatted_start_date ), esc_html( $formatted_end_date ) ); ?></p>
+                <p><?php printf( esc_html__( 'Hi %s,', 'extra-chill-community' ), esc_html( $band_name ) ); ?></p>
+                <p><?php printf( esc_html__( 'Here is the performance summary for your extrachill.link page (%1$s) for the week of %2$s - %3$s:', 'extra-chill-community' ), '<a href="' . esc_url( $link_page_public_url ) . '">' . esc_html( $link_page_public_url ) . '</a>', esc_html( $formatted_start_date ), esc_html( $formatted_end_date ) ); ?></p>
 
                 <div class="stat-item">
-                    <?php esc_html_e( 'Total Page Views:', 'generatepress_child' ); ?>
+                    <?php esc_html_e( 'Total Page Views:', 'extra-chill-community' ); ?>
                     <strong><?php echo number_format_i18n( $analytics_data['total_views'] ); ?></strong>
                 </div>
 
                 <div class="stat-item">
-                    <?php esc_html_e( 'Total Link Clicks:', 'generatepress_child' ); ?>
+                    <?php esc_html_e( 'Total Link Clicks:', 'extra-chill-community' ); ?>
                     <strong><?php echo number_format_i18n( $analytics_data['total_clicks'] ); ?></strong>
                 </div>
 
                 <?php if ( ! empty( $analytics_data['top_links'] ) ) : ?>
-                    <h2><?php esc_html_e( 'Top Clicked Links This Week:', 'generatepress_child' ); ?></h2>
+                    <h2><?php esc_html_e( 'Top Clicked Links This Week:', 'extra-chill-community' ); ?></h2>
                     <div class="top-links">
                         <ul>
                             <?php foreach ( $analytics_data['top_links'] as $link ) : ?>
                                 <li>
                                     <?php echo esc_html( $link['link_url'] ); ?>: 
-                                    <strong><?php echo number_format_i18n( $link['total_clicks'] ); ?> <?php esc_html_e( 'clicks', 'generatepress_child' ); ?></strong>
+                                    <strong><?php echo number_format_i18n( $link['total_clicks'] ); ?> <?php esc_html_e( 'clicks', 'extra-chill-community' ); ?></strong>
                                 </li>
                             <?php endforeach; ?>
                         </ul>
                     </div>
                 <?php endif; ?>
 
-                <h2><?php esc_html_e( 'Your Band Forum Activity This Week:', 'generatepress_child' ); ?></h2>
+                <h2><?php esc_html_e( 'Your Band Forum Activity This Week:', 'extra-chill-community' ); ?></h2>
                 <div class="stat-item">
-                    <?php esc_html_e( 'New Topics Started:', 'generatepress_child' ); ?>
+                    <?php esc_html_e( 'New Topics Started:', 'extra-chill-community' ); ?>
                     <strong><?php echo number_format_i18n( $analytics_data['new_topics_count'] ); ?></strong>
                 </div>
                 <div class="stat-item">
-                    <?php esc_html_e( 'New Replies Posted:', 'generatepress_child' ); ?>
+                    <?php esc_html_e( 'New Replies Posted:', 'extra-chill-community' ); ?>
                     <strong><?php echo number_format_i18n( $analytics_data['new_replies_count'] ); ?></strong>
                 </div>
                 <?php if ( ! empty( $analytics_data['recent_topic_titles'] ) ) : ?>
-                    <p><strong><?php esc_html_e( 'Recent discussions:', 'generatepress_child' ); ?></strong></p>
+                    <p><strong><?php esc_html_e( 'Recent discussions:', 'extra-chill-community' ); ?></strong></p>
                     <div class="top-links">
                         <ul>
                             <?php foreach ( $analytics_data['recent_topic_titles'] as $topic_title ) : ?>
@@ -452,17 +452,17 @@ function extrch_generate_performance_email_html( $band_name, $link_page_public_u
                         </ul>
                     </div>
                 <?php elseif ($analytics_data['new_topics_count'] > 0 || $analytics_data['new_replies_count'] > 0) : ?>
-                     <p><?php esc_html_e( 'Check out your band forum to see the latest posts!', 'generatepress_child' ); ?></p>
+                     <p><?php esc_html_e( 'Check out your band forum to see the latest posts!', 'extra-chill-community' ); ?></p>
                 <?php else : ?>
-                    <p><?php esc_html_e( 'No new topics or replies in your band forum this week. Time to start a conversation!', 'generatepress_child' ); ?></p>
+                    <p><?php esc_html_e( 'No new topics or replies in your band forum this week. Time to start a conversation!', 'extra-chill-community' ); ?></p>
                 <?php endif; ?>
 
                 <p style="text-align:center;">
-                    <a href="<?php echo esc_url( $analytics_tab_url ); ?>" class="cta-button"><?php esc_html_e( 'View Full Analytics', 'generatepress_child' ); ?></a>
+                    <a href="<?php echo esc_url( $analytics_tab_url ); ?>" class="cta-button"><?php esc_html_e( 'View Full Analytics', 'extra-chill-community' ); ?></a>
                 </p>
             </div>
             <div class="footer">
-                <p><?php printf( esc_html__( 'To change your email preferences, visit your %s.', 'generatepress_child' ), '<a href="' . esc_url( $settings_tab_url ) . '">Link Page Settings</a>' ); ?></p>
+                <p><?php printf( esc_html__( 'To change your email preferences, visit your %s.', 'extra-chill-community' ), '<a href="' . esc_url( $settings_tab_url ) . '">Link Page Settings</a>' ); ?></p>
                 <p>&copy; <?php echo date('Y'); ?> <?php bloginfo('name'); ?></p>
             </div>
         </div>
@@ -513,56 +513,56 @@ function extrch_generate_consolidated_performance_email_html( $user_display_name
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title><?php esc_html_e( 'Your Weekly extrachill.link Performance Summary', 'generatepress_child' ); ?></title>
+        <title><?php esc_html_e( 'Your Weekly extrachill.link Performance Summary', 'extra-chill-community' ); ?></title>
         <style type="text/css"><?php echo $styles; ?></style>
     </head>
     <body>
         <div class="email-container">
             <div class="header">
-                <h1><?php esc_html_e( 'Weekly Performance Summary', 'generatepress_child' ); ?></h1>
+                <h1><?php esc_html_e( 'Weekly Performance Summary', 'extra-chill-community' ); ?></h1>
             </div>
             <div class="content">
-                <p><?php printf( esc_html__( 'Hi %s,', 'generatepress_child' ), esc_html( $user_display_name ) ); ?></p>
-                <p><?php esc_html_e( 'Here is your performance summary for your extrachill.link pages and associated band forums for the past week:', 'generatepress_child' ); ?></p>
+                <p><?php printf( esc_html__( 'Hi %s,', 'extra-chill-community' ), esc_html( $user_display_name ) ); ?></p>
+                <p><?php esc_html_e( 'Here is your performance summary for your extrachill.link pages and associated band forums for the past week:', 'extra-chill-community' ); ?></p>
 
                 <?php foreach ( $all_link_pages_data as $data ) : ?>
                     <div class="band-section">
                         <h2><?php echo esc_html( $data['band_name'] ); ?></h2>
                         
-                        <h3><?php printf( esc_html__( 'Link Page: %s', 'generatepress_child' ), '<a href="' . esc_url( $data['link_page_public_url'] ) . '">' . esc_html( str_replace("https://", "", $data['link_page_public_url'])) . '</a>' ); ?></h3>
+                        <h3><?php printf( esc_html__( 'Link Page: %s', 'extra-chill-community' ), '<a href="' . esc_url( $data['link_page_public_url'] ) . '">' . esc_html( str_replace("https://", "", $data['link_page_public_url'])) . '</a>' ); ?></h3>
                         <div class="stat-item">
-                            <?php esc_html_e( 'Total Page Views:', 'generatepress_child' ); ?>
+                            <?php esc_html_e( 'Total Page Views:', 'extra-chill-community' ); ?>
                             <strong><?php echo number_format_i18n( $data['total_views'] ); ?></strong>
                         </div>
                         <div class="stat-item">
-                            <?php esc_html_e( 'Total Link Clicks:', 'generatepress_child' ); ?>
+                            <?php esc_html_e( 'Total Link Clicks:', 'extra-chill-community' ); ?>
                             <strong><?php echo number_format_i18n( $data['total_clicks'] ); ?></strong>
                         </div>
                         <?php if ( ! empty( $data['top_links'] ) ) : ?>
-                            <p><strong><?php esc_html_e( 'Top Clicked Links:', 'generatepress_child' ); ?></strong></p>
+                            <p><strong><?php esc_html_e( 'Top Clicked Links:', 'extra-chill-community' ); ?></strong></p>
                             <div class="top-links">
                                 <ul>
                                     <?php foreach ( $data['top_links'] as $link ) : ?>
                                         <li>
                                             <?php echo esc_html( $link['link_url'] ); ?>: 
-                                            <strong><?php echo number_format_i18n( $link['total_clicks'] ); ?> <?php esc_html_e( 'clicks', 'generatepress_child' ); ?></strong>
+                                            <strong><?php echo number_format_i18n( $link['total_clicks'] ); ?> <?php esc_html_e( 'clicks', 'extra-chill-community' ); ?></strong>
                                         </li>
                                     <?php endforeach; ?>
                                 </ul>
                             </div>
                         <?php endif; ?>
 
-                        <h3><?php esc_html_e( 'Band Forum Activity:', 'generatepress_child' ); ?></h3>
+                        <h3><?php esc_html_e( 'Band Forum Activity:', 'extra-chill-community' ); ?></h3>
                         <div class="stat-item">
-                            <?php esc_html_e( 'New Topics Started:', 'generatepress_child' ); ?>
+                            <?php esc_html_e( 'New Topics Started:', 'extra-chill-community' ); ?>
                             <strong><?php echo number_format_i18n( $data['new_topics_count'] ); ?></strong>
                         </div>
                         <div class="stat-item">
-                            <?php esc_html_e( 'New Replies Posted:', 'generatepress_child' ); ?>
+                            <?php esc_html_e( 'New Replies Posted:', 'extra-chill-community' ); ?>
                             <strong><?php echo number_format_i18n( $data['new_replies_count'] ); ?></strong>
                         </div>
                         <?php if ( ! empty( $data['recent_topic_titles'] ) ) : ?>
-                            <p><strong><?php esc_html_e( 'Recent discussions:', 'generatepress_child' ); ?></strong></p>
+                            <p><strong><?php esc_html_e( 'Recent discussions:', 'extra-chill-community' ); ?></strong></p>
                             <div class="top-links">
                                 <ul>
                                     <?php foreach ( $data['recent_topic_titles'] as $topic_title ) : ?>
@@ -571,20 +571,20 @@ function extrch_generate_consolidated_performance_email_html( $user_display_name
                                 </ul>
                             </div>
                         <?php elseif ($data['new_topics_count'] > 0 || $data['new_replies_count'] > 0) : ?>
-                            <p><?php esc_html_e( 'Check out your band forum to see the latest posts!', 'generatepress_child' ); ?></p>
+                            <p><?php esc_html_e( 'Check out your band forum to see the latest posts!', 'extra-chill-community' ); ?></p>
                         <?php else : ?>
-                            <p><?php esc_html_e( 'No new activity in this band forum this week.', 'generatepress_child' ); ?></p>
+                            <p><?php esc_html_e( 'No new activity in this band forum this week.', 'extra-chill-community' ); ?></p>
                         <?php endif; ?>
                         <p style="margin-top:15px;">
-                            <a href="<?php echo esc_url( $data['analytics_tab_url'] ); ?>" class="cta-button"><?php esc_html_e( 'View Full Analytics', 'generatepress_child' ); ?></a>
-                            <a href="<?php echo esc_url( $data['settings_tab_url'] ); ?>" class="cta-button" style="background-color:#6c757d;"><?php esc_html_e( 'Manage Settings', 'generatepress_child' ); ?></a>
+                            <a href="<?php echo esc_url( $data['analytics_tab_url'] ); ?>" class="cta-button"><?php esc_html_e( 'View Full Analytics', 'extra-chill-community' ); ?></a>
+                            <a href="<?php echo esc_url( $data['settings_tab_url'] ); ?>" class="cta-button" style="background-color:#6c757d;"><?php esc_html_e( 'Manage Settings', 'extra-chill-community' ); ?></a>
                         </p>
                     </div> <!-- .band-section -->
                 <?php endforeach; ?>
             </div>
             <div class="footer">
-                <p><?php esc_html_e( 'You are receiving this email because you opted in for weekly performance summaries for one or more of your extrachill.link pages.', 'generatepress_child' ); ?></p>
-                <p><?php printf( esc_html__( 'To change email preferences for a specific link page, please visit its settings page via the "Manage Settings" button above or by managing your bands on %s.', 'generatepress_child' ), '<a href="' . esc_url(site_url()) . '">' . esc_html(get_bloginfo('name')) . '</a>' ); ?></p>
+                <p><?php esc_html_e( 'You are receiving this email because you opted in for weekly performance summaries for one or more of your extrachill.link pages.', 'extra-chill-community' ); ?></p>
+                <p><?php printf( esc_html__( 'To change email preferences for a specific link page, please visit its settings page via the "Manage Settings" button above or by managing your bands on %s.', 'extra-chill-community' ), '<a href="' . esc_url(site_url()) . '">' . esc_html(get_bloginfo('name')) . '</a>' ); ?></p>
                 <p>&copy; <?php echo date('Y'); ?> <?php bloginfo('name'); ?></p>
             </div>
         </div>

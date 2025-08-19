@@ -161,19 +161,19 @@ function display_music_fan_details() {
         ?>
         <div class="card">
             <div class="card-header">
-                <h3><?php esc_html_e('Music Fan Details', 'generatepress_child'); ?></h3>
+                <h3><?php esc_html_e('Music Fan Details', 'extra-chill-community'); ?></h3>
             </div>
             <div class="card-body">
                 <?php if ($favorite_artists) : ?>
-                    <p><strong><?php esc_html_e('Favorite Artists:', 'generatepress_child'); ?></strong> <?php echo nl2br(esc_html($favorite_artists)); ?></p>
+                    <p><strong><?php esc_html_e('Favorite Artists:', 'extra-chill-community'); ?></strong> <?php echo nl2br(esc_html($favorite_artists)); ?></p>
                 <?php endif; ?>
 
                 <?php if ($top_concerts) : ?>
-                    <p><strong><?php esc_html_e('Top Concerts:', 'generatepress_child'); ?></strong> <?php echo nl2br(esc_html($top_concerts)); ?></p>
+                    <p><strong><?php esc_html_e('Top Concerts:', 'extra-chill-community'); ?></strong> <?php echo nl2br(esc_html($top_concerts)); ?></p>
                 <?php endif; ?>
 
                 <?php if ($top_venues) : ?>
-                    <p><strong><?php esc_html_e('Top Venues:', 'generatepress_child'); ?></strong> <?php echo nl2br(esc_html($top_venues)); ?></p>
+                    <p><strong><?php esc_html_e('Top Venues:', 'extra-chill-community'); ?></strong> <?php echo nl2br(esc_html($top_venues)); ?></p>
                 <?php endif; ?>
             </div>
         </div>

@@ -74,7 +74,7 @@ function extrch_get_band_subscribers( $band_id, $args = array() ) {
 function extrch_fetch_band_subscribers_ajax() {
     // Check for required parameters
     if ( ! isset( $_POST['band_id'], $_POST['_ajax_nonce'] ) ) {
-        wp_send_json_error( array( 'message' => __( 'Missing required parameters.', 'generatepress_child' ) ) );
+        wp_send_json_error( array( 'message' => __( 'Missing required parameters.', 'extra-chill-community' ) ) );
     }
 
     $band_id = absint( $_POST['band_id'] );
@@ -82,12 +82,12 @@ function extrch_fetch_band_subscribers_ajax() {
 
     // Verify nonce
     if ( ! wp_verify_nonce( $nonce, 'extrch_fetch_subscribers_nonce' ) ) { // Use a new nonce action for fetching
-        wp_send_json_error( array( 'message' => __( 'Security check failed.', 'generatepress_child' ) ) );
+        wp_send_json_error( array( 'message' => __( 'Security check failed.', 'extra-chill-community' ) ) );
     }
 
     // Basic permission check: Does the current user have the capability to manage this band's members?
     if ( ! current_user_can( 'manage_band_members', $band_id ) ) {
-         wp_send_json_error( array( 'message' => __( 'You do not have permission to view subscribers for this band.', 'generatepress_child' ) ) );
+         wp_send_json_error( array( 'message' => __( 'You do not have permission to view subscribers for this band.', 'extra-chill-community' ) ) );
     }
 
     // Pagination support
@@ -115,7 +115,7 @@ function extrch_fetch_band_subscribers_ajax() {
         ) );
     }
 
-        wp_send_json_error( array( 'message' => __( 'Could not fetch subscriber data.', 'generatepress_child' ) ) );
+        wp_send_json_error( array( 'message' => __( 'Could not fetch subscriber data.', 'extra-chill-community' ) ) );
     wp_die(); // Always include wp_die() at the end of AJAX handlers
 }
 
@@ -190,7 +190,7 @@ function extrch_export_band_subscribers_csv() {
     fputs( $output, chr(0xEF) . chr(0xBB) . chr(0xBF) );
 
     // Add CSV headers
-    fputcsv( $output, array( __( 'Email', 'generatepress_child' ), __( 'Username', 'generatepress_child' ), __( 'Subscribed At (UTC)', 'generatepress_child' ), __( 'Exported', 'generatepress_child' ) ) );
+    fputcsv( $output, array( __( 'Email', 'extra-chill-community' ), __( 'Username', 'extra-chill-community' ), __( 'Subscribed At (UTC)', 'extra-chill-community' ), __( 'Exported', 'extra-chill-community' ) ) );
     error_log('extrch_export_band_subscribers_csv: CSV headers written.');
 
     // Add data rows and collect IDs to mark as exported if needed
@@ -201,7 +201,7 @@ function extrch_export_band_subscribers_csv() {
             $subscriber->subscriber_email,
             $subscriber->username,
             $subscriber->subscribed_at,
-            $is_exported ? __( 'Yes', 'generatepress_child' ) : __( 'No', 'generatepress_child' )
+            $is_exported ? __( 'Yes', 'extra-chill-community' ) : __( 'No', 'extra-chill-community' )
         ) );
         // Only mark as exported if not already exported and not including all
         if (!$is_exported && !$include_exported) {
@@ -239,7 +239,7 @@ add_action( 'wp_ajax_nopriv_extrch_export_subscribers_csv', 'extrch_export_band_
 function extrch_link_page_subscribe_ajax_handler() {
     // Validate required fields
     if ( ! isset( $_POST['band_id'], $_POST['subscriber_email'], $_POST['_ajax_nonce'] ) ) {
-        wp_send_json_error( array( 'message' => __( 'Missing required fields.', 'generatepress_child' ) ), 400 );
+        wp_send_json_error( array( 'message' => __( 'Missing required fields.', 'extra-chill-community' ) ), 400 );
     }
     $band_id = absint( $_POST['band_id'] );
     $email = sanitize_email( $_POST['subscriber_email'] );
@@ -247,22 +247,22 @@ function extrch_link_page_subscribe_ajax_handler() {
 
     // Verify nonce
     if ( ! wp_verify_nonce( $nonce, 'extrch_subscribe_nonce' ) ) {
-        wp_send_json_error( array( 'message' => __( 'Security check failed. Please refresh and try again.', 'generatepress_child' ) ), 403 );
+        wp_send_json_error( array( 'message' => __( 'Security check failed. Please refresh and try again.', 'extra-chill-community' ) ), 403 );
     }
     // Validate band_id
     if ( ! $band_id || get_post_type( $band_id ) !== 'band_profile' ) {
-        wp_send_json_error( array( 'message' => __( 'Invalid band specified.', 'generatepress_child' ) ), 400 );
+        wp_send_json_error( array( 'message' => __( 'Invalid band specified.', 'extra-chill-community' ) ), 400 );
     }
     // Validate email
     if ( ! is_email( $email ) ) {
-        wp_send_json_error( array( 'message' => __( 'Please enter a valid email address.', 'generatepress_child' ) ), 400 );
+        wp_send_json_error( array( 'message' => __( 'Please enter a valid email address.', 'extra-chill-community' ) ), 400 );
     }
     global $wpdb;
     $table = $wpdb->prefix . 'band_subscribers';
     // Check for existing subscription
     $exists = $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM $table WHERE band_profile_id = %d AND subscriber_email = %s", $band_id, $email ) );
     if ( $exists ) {
-        wp_send_json_error( array( 'message' => __( 'You are already subscribed to this band.', 'generatepress_child' ) ), 409 );
+        wp_send_json_error( array( 'message' => __( 'You are already subscribed to this band.', 'extra-chill-community' ) ), 409 );
     }
     // Insert new subscriber
     $result = $wpdb->insert( $table, array(
@@ -273,9 +273,9 @@ function extrch_link_page_subscribe_ajax_handler() {
         'exported'          => 0,
     ), array( '%d', '%s', '%s', '%s', '%d' ) );
     if ( $result ) {
-        wp_send_json_success( array( 'message' => __( 'Thank you for subscribing!', 'generatepress_child' ) ) );
+        wp_send_json_success( array( 'message' => __( 'Thank you for subscribing!', 'extra-chill-community' ) ) );
     } else {
-        wp_send_json_error( array( 'message' => __( 'Could not save your subscription. Please try again later.', 'generatepress_child' ) ), 500 );
+        wp_send_json_error( array( 'message' => __( 'Could not save your subscription. Please try again later.', 'extra-chill-community' ) ), 500 );
     }
     wp_die();
 }

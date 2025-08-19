@@ -4,7 +4,7 @@
  *
  * Provides functions to fetch override values for the forum section title and bio on the band profile page.
  *
- * @package generatepress_child
+ * @package extra-chill-community
  */
 
 if ( ! function_exists( 'bp_get_forum_section_title_and_bio' ) ) {
@@ -20,7 +20,7 @@ if ( ! function_exists( 'bp_get_forum_section_title_and_bio' ) ) {
         $bio_override   = get_post_meta( $band_profile_id, '_forum_section_bio_override', true );
 
         // Fallbacks
-        $default_title = sprintf( __( 'About %s', 'generatepress_child' ), get_the_title( $band_profile_id ) );
+        $default_title = sprintf( __( 'About %s', 'extra-chill-community' ), get_the_title( $band_profile_id ) );
         $default_bio   = get_post_field( 'post_content', $band_profile_id );
 
         // Use override if set, else fallback

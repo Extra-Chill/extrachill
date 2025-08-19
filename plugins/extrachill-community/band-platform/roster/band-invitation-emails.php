@@ -46,7 +46,7 @@ function bp_send_band_invitation_email( $recipient_email, $band_name, $member_di
         ), get_permalink( $band_id ) );
     }
 
-    $subject_template = __( 'You\'re invited to join %1$s on %2$s!', 'generatepress_child' );
+    $subject_template = __( 'You\'re invited to join %1$s on %2$s!', 'extra-chill-community' );
     $subject = sprintf( $subject_template, esc_html( $band_name ), get_bloginfo( 'name' ) );
 
     $message_lines = array();
@@ -54,25 +54,25 @@ function bp_send_band_invitation_email( $recipient_email, $band_name, $member_di
     $recipient_user = get_user_by('email', $recipient_email);
     if ( $recipient_user ) {
         $recipient_name = $recipient_user->display_name ? $recipient_user->display_name : $recipient_user->user_login;
-        $message_lines[] = sprintf( __( 'Hello %s,', 'generatepress_child' ), esc_html( $recipient_name ) );
+        $message_lines[] = sprintf( __( 'Hello %s,', 'extra-chill-community' ), esc_html( $recipient_name ) );
     } elseif ( !empty($member_display_name) ) {
-        $message_lines[] = sprintf( __( 'Hello %s,', 'generatepress_child' ), esc_html( $member_display_name ) );
+        $message_lines[] = sprintf( __( 'Hello %s,', 'extra-chill-community' ), esc_html( $member_display_name ) );
     } else {
-        $message_lines[] = __( 'Hello,', 'generatepress_child' );
+        $message_lines[] = __( 'Hello,', 'extra-chill-community' );
     }
     $message_lines[] = '';
     // Main invitation line
-    $message_lines[] = sprintf( __( '%1$s has invited you to join the band \'%2$s\' on %3$s.', 'generatepress_child' ), esc_html($inviter_display), esc_html( $band_name ), get_bloginfo( 'name' ) );
+    $message_lines[] = sprintf( __( '%1$s has invited you to join the band \'%2$s\' on %3$s.', 'extra-chill-community' ), esc_html($inviter_display), esc_html( $band_name ), get_bloginfo( 'name' ) );
     if ( $invitation_status === 'invited_new_user' ) {
-        $message_lines[] = __( 'To accept this invitation and create your account, please click the link below:', 'generatepress_child' );
+        $message_lines[] = __( 'To accept this invitation and create your account, please click the link below:', 'extra-chill-community' );
     } else {
-        $message_lines[] = __( 'To accept this invitation and join the band, please click the link below:', 'generatepress_child' );
+        $message_lines[] = __( 'To accept this invitation and join the band, please click the link below:', 'extra-chill-community' );
     }
     $message_lines[] = $invitation_link;
     $message_lines[] = '';
-    $message_lines[] = sprintf( __( 'If you were not expecting this invitation, please ignore this email.', 'generatepress_child' ) );
+    $message_lines[] = sprintf( __( 'If you were not expecting this invitation, please ignore this email.', 'extra-chill-community' ) );
     $message_lines[] = '';
-    $message_lines[] = sprintf( __( 'Regards,', 'generatepress_child' ) );
+    $message_lines[] = sprintf( __( 'Regards,', 'extra-chill-community' ) );
     $message_lines[] = get_bloginfo( 'name' );
 
     $message = implode( "\r\n", $message_lines );
@@ -198,27 +198,27 @@ function bp_send_admin_band_membership_notification( $user_id, $band_id ) {
     $band_profile_url = get_permalink( $band_id );
     $link_page_url = 'https://extrachill.link/join';
 
-    $subject = sprintf( __( 'Welcome to your new band space on Extra Chill!', 'generatepress_child' ), $band_name );
+    $subject = sprintf( __( 'Welcome to your new band space on Extra Chill!', 'extra-chill-community' ), $band_name );
 
     $message_lines = array();
-    $message_lines[] = sprintf( __( 'Hi %s,', 'generatepress_child' ), $user->display_name );
+    $message_lines[] = sprintf( __( 'Hi %s,', 'extra-chill-community' ), $user->display_name );
     $message_lines[] = '';
-    $message_lines[] = sprintf( __( 'Your band "%s" has been migrated to the new Band Platform on Extra Chill! 🎉', 'generatepress_child' ), $band_name );
+    $message_lines[] = sprintf( __( 'Your band "%s" has been migrated to the new Band Platform on Extra Chill! 🎉', 'extra-chill-community' ), $band_name );
     $message_lines[] = '';
-    $message_lines[] = __( 'You now have a dedicated band profile (where your old band topic now lives) and a FREE extrachill.link page to promote your music and connect with fans.', 'generatepress_child' );
+    $message_lines[] = __( 'You now have a dedicated band profile (where your old band topic now lives) and a FREE extrachill.link page to promote your music and connect with fans.', 'extra-chill-community' );
     $message_lines[] = '';
-    $message_lines[] = __( 'To get started, log in at the link below. You\'ll be guided through the process of creating your free extrachill.link page:', 'generatepress_child' );
+    $message_lines[] = __( 'To get started, log in at the link below. You\'ll be guided through the process of creating your free extrachill.link page:', 'extra-chill-community' );
     $message_lines[] = $link_page_url;
     $message_lines[] = '';
-    $message_lines[] = sprintf( __( 'You can also view and update your band profile here: %s', 'generatepress_child' ), $band_profile_url );
+    $message_lines[] = sprintf( __( 'You can also view and update your band profile here: %s', 'extra-chill-community' ), $band_profile_url );
     $message_lines[] = '';
-    $message_lines[] = __( 'This is 100% free and gives you powerful tools to grow your audience, manage your band, and keep your fans engaged—all in one place.', 'generatepress_child' );
+    $message_lines[] = __( 'This is 100% free and gives you powerful tools to grow your audience, manage your band, and keep your fans engaged—all in one place.', 'extra-chill-community' );
     $message_lines[] = '';
-    $message_lines[] = __( 'You have full moderation powers in your band forum (edit, split, and manage all topics and replies—no admin panel needed).', 'generatepress_child' );
+    $message_lines[] = __( 'You have full moderation powers in your band forum (edit, split, and manage all topics and replies—no admin panel needed).', 'extra-chill-community' );
     $message_lines[] = '';
-    $message_lines[] = __( 'Ready to get started? Click the links above or reply to this email if you have any questions. Welcome to the future of your band on Extra Chill!', 'generatepress_child' );
+    $message_lines[] = __( 'Ready to get started? Click the links above or reply to this email if you have any questions. Welcome to the future of your band on Extra Chill!', 'extra-chill-community' );
     $message_lines[] = '';
-    $message_lines[] = __( '— The Extra Chill Team', 'generatepress_child' );
+    $message_lines[] = __( '— The Extra Chill Team', 'extra-chill-community' );
 
     $message = implode( "\r\n", $message_lines );
     $message = stripslashes($message); // Unescape single quotes for email output

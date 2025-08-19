@@ -55,7 +55,7 @@ require_once dirname(__DIR__) . '/link-expiration.php';
 ?>
 <div class="link-page-content-card">
     <div id="bp-social-icons-section">
-        <h2><?php esc_html_e('Social Icons', 'generatepress_child'); ?></h2>
+        <h2><?php esc_html_e('Social Icons', 'extra-chill-community'); ?></h2>
         <div id="bp-social-icons-list">
             <?php foreach ($social_links as $idx => $social): ?>
                 <div class="bp-social-row" data-idx="<?php echo esc_attr($idx); ?>">
@@ -71,10 +71,10 @@ require_once dirname(__DIR__) . '/link-expiration.php';
             <?php endforeach; ?>
         </div>
         <input type="hidden" name="band_profile_social_links_json" id="band_profile_social_links_json" value="<?php echo esc_attr(json_encode($social_links)); ?>">
-        <button type="button" id="bp-add-social-icon-btn" class="button button-secondary bp-add-social-icon-btn"><i class="fas fa-plus"></i> <?php esc_html_e('Add Social Icon', 'generatepress_child'); ?></button>
+        <button type="button" id="bp-add-social-icon-btn" class="button button-secondary bp-add-social-icon-btn"><i class="fas fa-plus"></i> <?php esc_html_e('Add Social Icon', 'extra-chill-community'); ?></button>
 
         <div class="bp-social-icons-position-setting" style="margin-top: 15px;">
-            <h4><?php esc_html_e('Social Icons Position', 'generatepress_child'); ?></h4>
+            <h4><?php esc_html_e('Social Icons Position', 'extra-chill-community'); ?></h4>
             <?php
             $current_position = 'above'; // Default
             if ($current_link_page_id) {
@@ -86,11 +86,11 @@ require_once dirname(__DIR__) . '/link-expiration.php';
             ?>
             <label style="margin-right: 10px;">
                 <input type="radio" name="link_page_social_icons_position" value="above" <?php checked($current_position, 'above'); ?>>
-                <?php esc_html_e('Above Links', 'generatepress_child'); ?>
+                <?php esc_html_e('Above Links', 'extra-chill-community'); ?>
             </label>
             <label>
                 <input type="radio" name="link_page_social_icons_position" value="below" <?php checked($current_position, 'below'); ?>>
-                <?php esc_html_e('Below Links', 'generatepress_child'); ?>
+                <?php esc_html_e('Below Links', 'extra-chill-community'); ?>
             </label>
             <input type="hidden" id="initial_social_icons_position" name="initial_social_icons_position" value="<?php echo esc_attr($current_position); ?>">
         </div>
@@ -99,7 +99,7 @@ require_once dirname(__DIR__) . '/link-expiration.php';
 
 <div class="link-page-content-card">
     <div id="bp-link-list-section">
-        <h2><?php esc_html_e('Link Sections', 'generatepress_child'); ?></h2>
+        <h2><?php esc_html_e('Link Sections', 'extra-chill-community'); ?></h2>
         <div id="bp-link-sections-list" data-expiration-enabled="<?php echo $link_expiration_enabled ? 'true' : 'false'; ?>">
             <?php foreach ($link_sections as $sidx => $section): ?>
                 <div class="bp-link-section" data-sidx="<?php echo esc_attr($sidx); ?>">

@@ -52,15 +52,15 @@ function extrch_render_link_expiration_modal() {
     ?>
     <div id="bp-link-expiration-modal" class="bp-link-expiration-modal" style="display:none;">
         <div class="bp-link-expiration-modal-inner">
-            <h3 class="bp-link-expiration-modal-title"><?php esc_html_e('Set Link Expiration', 'generatepress_child'); ?></h3>
+            <h3 class="bp-link-expiration-modal-title"><?php esc_html_e('Set Link Expiration', 'extra-chill-community'); ?></h3>
             <label class="bp-link-expiration-modal-label">
-                <?php esc_html_e('Expiration Date/Time:', 'generatepress_child'); ?><br>
+                <?php esc_html_e('Expiration Date/Time:', 'extra-chill-community'); ?><br>
                 <input type="datetime-local" id="bp-link-expiration-datetime" class="bp-link-expiration-datetime">
             </label>
             <div class="bp-link-expiration-modal-actions">
-                <button type="button" class="button button-primary" id="bp-save-link-expiration"><?php esc_html_e('Save', 'generatepress_child'); ?></button>
-                <button type="button" class="button" id="bp-clear-link-expiration"><?php esc_html_e('Clear', 'generatepress_child'); ?></button>
-                <button type="button" class="button" id="bp-cancel-link-expiration"><?php esc_html_e('Cancel', 'generatepress_child'); ?></button>
+                <button type="button" class="button button-primary" id="bp-save-link-expiration"><?php esc_html_e('Save', 'extra-chill-community'); ?></button>
+                <button type="button" class="button" id="bp-clear-link-expiration"><?php esc_html_e('Clear', 'extra-chill-community'); ?></button>
+                <button type="button" class="button" id="bp-cancel-link-expiration"><?php esc_html_e('Cancel', 'extra-chill-community'); ?></button>
             </div>
         </div>
     </div>

@@ -41,7 +41,7 @@ function bp_create_band_forum_on_save( $post_id, $post, $update ) {
         error_log('[DEBUG] bp_create_band_forum_on_save: Forum already exists (' . $existing_forum_id . '). Updating title if needed and returning.');
         // Forum already exists, maybe update its title if band name changed?
         $forum = get_post( $existing_forum_id );
-        $new_title = sprintf( __( '%s Forum', 'generatepress_child' ), $post->post_title );
+        $new_title = sprintf( __( '%s Forum', 'extra-chill-community' ), $post->post_title );
         if ( $forum && $forum->post_title !== $new_title ) {
             wp_update_post( array( 'ID' => $existing_forum_id, 'post_title' => $new_title ) );
         }
@@ -60,8 +60,8 @@ function bp_create_band_forum_on_save( $post_id, $post, $update ) {
     }
 
     $forum_data = array(
-        'post_title'  => sprintf( __( '%s Forum', 'generatepress_child' ), $post->post_title ),
-        'post_content'=> sprintf( __( 'Discussion forum for the band %s.', 'generatepress_child' ), $post->post_title ),
+        'post_title'  => sprintf( __( '%s Forum', 'extra-chill-community' ), $post->post_title ),
+        'post_content'=> sprintf( __( 'Discussion forum for the band %s.', 'extra-chill-community' ), $post->post_title ),
         'post_status' => 'publish', // Create forum as public
         // 'post_parent' => 0, // Optional: Assign a parent forum if desired
     );
@@ -218,10 +218,10 @@ function bp_add_toggle_band_forums_link_admin( $post_type ) {
 
         if ( $show_band_forums ) {
             $url = remove_query_arg( 'show_band_forums' );
-            $link_text = __( 'Hide Band Forums', 'generatepress_child' );
+            $link_text = __( 'Hide Band Forums', 'extra-chill-community' );
         } else {
             $url = add_query_arg( 'show_band_forums', '1' );
-            $link_text = __( 'Show Band Forums', 'generatepress_child' );
+            $link_text = __( 'Show Band Forums', 'extra-chill-community' );
         }
 
         echo '<div class="alignleft actions extrachill-forum-toggle">';

@@ -32,14 +32,6 @@ defined( 'ABSPATH' ) || exit;
 
             <?php // Removed closed topic/forum notices as the button shouldn't show if closed ?>
 
-            <?php // REMOVED Unfiltered HTML notice
-            /* if ( current_user_can( 'unfiltered_html' ) ) : ?>
-                <div class="bbp-template-notice">
-                    <ul>
-                        <li><?php esc_html_e( 'Your account has the ability to post unrestricted HTML content.', 'bbpress' ); ?></li>
-                    </ul>
-                </div>
-            <?php endif; */ ?>
 
             <?php do_action( 'bbp_template_notices' ); ?>
 
@@ -68,7 +60,7 @@ defined( 'ABSPATH' ) || exit;
                     // Match settings from bbp_enable_visual_editor filter:
                     'teeny'         => false,
                     'quicktags'     => false, 
-                    'content_css'   => '/wp-content/themes/generatepress_child/css/tinymce-editor.css',
+                    'content_css'   => '/wp-content/themes/extra-chill-community/css/tinymce-editor.css',
                     // Original settings:
                     'dfw'           => false,
                     'tinymce'       => true,  // Use TinyMCE

@@ -4,17 +4,14 @@
  *
  * A custom page template for the consolidated Login and Registration page.
  *
- * @package generatepress_child
+ * @package extra-chill-community
  */
 
 get_header();
-
-// Assuming the shared tabs structure looks something like this based on typical patterns:
-// You may need to adjust this structure based on the actual implementation of js/shared-tabs.js
 ?>
 
-<div id="primary" <?php generate_content_class(); ?> >
-    <main id="main" <?php generate_main_class(); ?> >
+<div id="primary" class="content-area">
+    <main id="main" class="site-main">
 
         <?php
         while ( have_posts() ) : the_post();

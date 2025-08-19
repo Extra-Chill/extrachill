@@ -84,14 +84,14 @@ function wp_surgeon_add_notification_bell_icon() {
             if ( $latest_band_id > 0 ) {
                 $final_manage_url = add_query_arg( 'band_id', $latest_band_id, $base_manage_url );
             }
-            echo '<li><a href="' . esc_url( $final_manage_url ) . '">' . esc_html__( 'Manage Band(s)', 'generatepress_child' ) . '</a></li>';
+            echo '<li><a href="' . esc_url( $final_manage_url ) . '">' . esc_html__( 'Manage Band(s)', 'extra-chill-community' ) . '</a></li>';
         } else {
             // User has no band profiles - Link to Create, if they are an artist OR professional.
             $is_artist = get_user_meta( $current_user_id, 'user_is_artist', true );
             $is_professional = get_user_meta( $current_user_id, 'user_is_professional', true );
             if ( $is_artist === '1' || $is_professional === '1' ) {
                 // The manage-band-profiles page handles creation if no band_id is passed.
-                echo '<li><a href="' . esc_url( $base_manage_url ) . '">' . esc_html__( 'Create Band Profile', 'generatepress_child' ) . '</a></li>';
+                echo '<li><a href="' . esc_url( $base_manage_url ) . '">' . esc_html__( 'Create Band Profile', 'extra-chill-community' ) . '</a></li>';
             }
         }
 
@@ -108,11 +108,11 @@ function wp_surgeon_add_notification_bell_icon() {
             }
             // If $latest_band_id is 0 (e.g., bands exist but no valid modified date found), it links to /manage-link-page/ without band_id.
             // The /manage-link-page/ template will need to handle this (e.g., prompt to select a band or show a message).
-            echo '<li><a href="' . esc_url( $final_link_page_manage_url ) . '">' . esc_html__( 'Manage Link Page(s)', 'generatepress_child' ) . '</a></li>';
+            echo '<li><a href="' . esc_url( $final_link_page_manage_url ) . '">' . esc_html__( 'Manage Link Page(s)', 'extra-chill-community' ) . '</a></li>';
         } 
         // If no band_ids, this link is not shown, as link pages depend on band profiles.
 
-        echo '<li><a href="' . esc_url( home_url('/settings/') ) . '">' . esc_html__( 'Settings', 'generatepress_child' ) . '</a></li>';
+        echo '<li><a href="' . esc_url( home_url('/settings/') ) . '">' . esc_html__( 'Settings', 'extra-chill-community' ) . '</a></li>';
         echo '<li><a href="' . wp_logout_url( home_url() ) . '">Log Out</a></li>';
         echo '</ul>';
         echo '</div>';

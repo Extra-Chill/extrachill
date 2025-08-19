@@ -118,12 +118,7 @@ function extrch_link_page_custom_head( $band_id, $link_page_id ) {
     }
     // End Google Tag
 
-    // Placeholder for Google Tag Manager / GA4 gtag.js in the future
-    // $google_tag_id = get_post_meta($link_page_id, '_link_page_google_tag_id', true);
-    // if (!empty($google_tag_id)) { ... }
-
     // Google Tag Manager
-    echo '<meta name="description" content="' . esc_attr( wp_strip_all_tags( $band_excerpt ) ) . '">';
 
     echo '<!-- Google Tag Manager -->';
     echo '<script>';

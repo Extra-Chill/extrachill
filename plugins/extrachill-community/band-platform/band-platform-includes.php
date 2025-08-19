@@ -108,13 +108,13 @@ function bp_enqueue_band_platform_assets() {
                 'nonce'   => wp_create_nonce( 'bp_follow_nonce' ),
                 'currentUserEmail' => $user_email,
                 'i18n' => array(
-                    'confirmFollow' => __( 'Confirm Follow', 'generatepress_child' ),
-                    'cancel' => __( 'Cancel', 'generatepress_child' ),
-                    'processing' => __( 'Processing...', 'generatepress_child' ),
-                    'following' => __( 'Following', 'generatepress_child' ),
-                    'follow' => __( 'Follow', 'generatepress_child' ),
-                    'errorMessage' => __( 'Could not update follow status. Please try again.', 'generatepress_child' ),
-                    'ajaxRequestFailed' => __( 'AJAX request failed', 'generatepress_child' ),
+                    'confirmFollow' => __( 'Confirm Follow', 'extra-chill-community' ),
+                    'cancel' => __( 'Cancel', 'extra-chill-community' ),
+                    'processing' => __( 'Processing...', 'extra-chill-community' ),
+                    'following' => __( 'Following', 'extra-chill-community' ),
+                    'follow' => __( 'Follow', 'extra-chill-community' ),
+                    'errorMessage' => __( 'Could not update follow status. Please try again.', 'extra-chill-community' ),
+                    'ajaxRequestFailed' => __( 'AJAX request failed', 'extra-chill-community' ),
                 )
             ));
             }

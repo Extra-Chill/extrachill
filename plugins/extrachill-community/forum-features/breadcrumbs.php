@@ -116,7 +116,7 @@ function extrachill_breadcrumbs() {
         }
 
         // "Manage Bands" is the conceptual current page or parent context here.
-        $breadcrumb .= $separator . '<span class="breadcrumb-current">' . esc_html__( 'Manage Bands', 'generatepress_child' ) . '</span>';
+        $breadcrumb .= $separator . '<span class="breadcrumb-current">' . esc_html__( 'Manage Bands', 'extra-chill-community' ) . '</span>';
 
         if ( $band_post_for_breadcrumb ) {
             // If editing a specific band, add its name as a link after "Manage Bands"
@@ -131,7 +131,7 @@ function extrachill_breadcrumbs() {
         $breadcrumb .= '<span class="breadcrumb-current">' . esc_html( get_the_title() ) . '</span>';
     } elseif ( is_search() ) {
         $breadcrumb .= '<a href="' . esc_url( $home_url ) . '">' . esc_html( $home_text ) . '</a>' . $separator;
-        $breadcrumb .= '<span class="breadcrumb-current">' . sprintf( esc_html__( 'Search results for: %s', 'generatepress_child' ), esc_html( get_search_query() ) ) . '</span>';
+        $breadcrumb .= '<span class="breadcrumb-current">' . sprintf( esc_html__( 'Search results for: %s', 'extra-chill-community' ), esc_html( get_search_query() ) ) . '</span>';
     } elseif ( is_archive() ) {
         $breadcrumb .= '<a href="' . esc_url( $home_url ) . '">' . esc_html( $home_text ) . '</a>' . $separator;
         $archive_title = '';
@@ -145,9 +145,9 @@ function extrachill_breadcrumbs() {
             if (is_day()) {
                 $archive_title = get_the_date();
             } elseif (is_month()) {
-                $archive_title = get_the_date(_x('F Y', 'monthly archives date format', 'generatepress_child'));
+                $archive_title = get_the_date(_x('F Y', 'monthly archives date format', 'extra-chill-community'));
             } elseif (is_year()) {
-                $archive_title = get_the_date(_x('Y', 'yearly archives date format', 'generatepress_child'));
+                $archive_title = get_the_date(_x('Y', 'yearly archives date format', 'extra-chill-community'));
             }
         } elseif ( is_post_type_archive() ) {
             $archive_title = post_type_archive_title( '', false );
@@ -162,7 +162,7 @@ function extrachill_breadcrumbs() {
             } elseif ( $queried_object && isset( $queried_object->name ) ) {
                 $archive_title = $queried_object->name;
             } else {
-                $archive_title = __( 'Archives', 'generatepress_child' );
+                $archive_title = __( 'Archives', 'extra-chill-community' );
             }
         }
         $breadcrumb .= '<span class="breadcrumb-current">' . esc_html( $archive_title ) . '</span>';

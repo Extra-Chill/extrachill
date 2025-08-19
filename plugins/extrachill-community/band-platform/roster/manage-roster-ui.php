@@ -18,7 +18,7 @@ require_once dirname( __FILE__ ) . '/roster-data-functions.php'; // Include the 
 if (!function_exists('bp_display_manage_members_section')) {
 function bp_display_manage_members_section( $band_id, $current_user_id ) {
     if ( ! $band_id || ! $current_user_id ) {
-        echo '<p>' . esc_html__( 'Cannot display member management: Missing band or user information.', 'generatepress_child' ) . '</p>';
+        echo '<p>' . esc_html__( 'Cannot display member management: Missing band or user information.', 'extra-chill-community' ) . '</p>';
         return;
     }
 
@@ -33,7 +33,7 @@ function bp_display_manage_members_section( $band_id, $current_user_id ) {
     $has_any_members = false;
 
     ?>
-    <h2><?php esc_html_e( 'Band Roster', 'generatepress_child' ); ?></h2>
+    <h2><?php esc_html_e( 'Band Roster', 'extra-chill-community' ); ?></h2>
     
     <div id="bp-manage-members-section">
         
@@ -53,9 +53,9 @@ function bp_display_manage_members_section( $band_id, $current_user_id ) {
                             <span class="member-name"><?php echo esc_html( $user_info->display_name ); ?> (<?php echo esc_html( $user_info->user_login ); ?>)</span>
                             <span class="member-status-label">(Linked Account)</span>
                             <?php if ( $user_info->ID !== $current_user_id ) : ?>
-                                <button type="button" class="button button-small bp-remove-member-button" data-user-id="<?php echo esc_attr( $user_info->ID ); ?>" title="<?php esc_attr_e( 'Remove this member from band', 'generatepress_child' ); ?>">&times; <?php esc_html_e('Remove', 'generatepress_child'); ?></button>
+                                <button type="button" class="button button-small bp-remove-member-button" data-user-id="<?php echo esc_attr( $user_info->ID ); ?>" title="<?php esc_attr_e( 'Remove this member from band', 'extra-chill-community' ); ?>">&times; <?php esc_html_e('Remove', 'extra-chill-community'); ?></button>
                             <?php else: ?>
-                                <span class="is-current-user"><?php esc_html_e('You', 'generatepress_child'); ?></span>
+                                <span class="is-current-user"><?php esc_html_e('You', 'extra-chill-community'); ?></span>
                             <?php endif; ?>
                         </li>
             <?php 
@@ -76,13 +76,13 @@ function bp_display_manage_members_section( $band_id, $current_user_id ) {
                     $status_text = '';
                     switch ( $invite['status'] ) {
                         case 'invited_existing_artist':
-                            $status_text = __( 'Invited (Existing User)', 'generatepress_child' );
+                            $status_text = __( 'Invited (Existing User)', 'extra-chill-community' );
                             break;
                         case 'invited_new_user':
-                            $status_text = __( 'Invited (New User)', 'generatepress_child' );
+                            $status_text = __( 'Invited (New User)', 'extra-chill-community' );
                             break;
                         default:
-                            $status_text = __( 'Invited (Status: ', 'generatepress_child' ) . esc_html( $invite['status'] ) . ')';
+                            $status_text = __( 'Invited (Status: ', 'extra-chill-community' ) . esc_html( $invite['status'] ) . ')';
                     }
             ?>
                     <li data-invite-id="<?php echo esc_attr( $invite['id'] ); ?>" class="bp-member-pending-invite">
@@ -90,7 +90,7 @@ function bp_display_manage_members_section( $band_id, $current_user_id ) {
                         <span class="member-email"><?php echo esc_html( $invite['email'] ); ?></span>
                         <span class="member-status-label">(<?php echo esc_html( $status_text ); ?>: <?php echo esc_html( $invited_on_formatted ); ?>)</span>
                         <span class="member-actions">
-                            <?php // TODO: Add Cancel Invite action ?>
+                            <?php /* Future: Add Cancel Invite action */ ?>
                         </span>
                     </li>
             <?php 
@@ -99,23 +99,23 @@ function bp_display_manage_members_section( $band_id, $current_user_id ) {
 
             if ( ! $has_any_members ) :
             ?>
-                <li class="no-members"><?php esc_html_e( 'No members listed for this band yet.', 'generatepress_child' ); ?></li>
+                <li class="no-members"><?php esc_html_e( 'No members listed for this band yet.', 'extra-chill-community' ); ?></li>
             <?php endif; ?>
         </ul>
 
         <div id="bp-add-member-controls" style="margin-bottom: 20px;">
-            <a href="#" id="bp-show-add-member-form-link" class="button"><?php esc_html_e('[+] Add Member', 'generatepress_child'); ?></a>
+            <a href="#" id="bp-show-add-member-form-link" class="button"><?php esc_html_e('[+] Add Member', 'extra-chill-community'); ?></a>
             <div id="bp-add-member-form-area" class="bp-add-member-form" style="display: none; margin-top: 15px;">
-                <h4><?php esc_html_e('Invite New Member by Email', 'generatepress_child'); ?></h4>
+                <h4><?php esc_html_e('Invite New Member by Email', 'extra-chill-community'); ?></h4>
                 <div class="form-group">
                     <label for="bp-new-member-email-input" style="display:block; margin-bottom: 5px;">
-                        <?php esc_html_e( 'Email Address:', 'generatepress_child' ); ?>
+                        <?php esc_html_e( 'Email Address:', 'extra-chill-community' ); ?>
                     </label>
                     <input type="email" id="bp-new-member-email-input" name="bp_new_member_email" style="width: 100%; max-width: 300px; margin-bottom:10px;">
                 </div>
-                <button type="button" id="bp-ajax-invite-member-button" class="button button-primary"><?php esc_html_e('Send Invitation', 'generatepress_child'); ?></button>
+                <button type="button" id="bp-ajax-invite-member-button" class="button button-primary"><?php esc_html_e('Send Invitation', 'extra-chill-community'); ?></button>
                 <a href="#" id="bp-cancel-add-member-form-link" style="margin-left: 10px; display: inline-block; vertical-align: middle;">
-                    <?php esc_html_e('Cancel', 'generatepress_child'); ?>
+                    <?php esc_html_e('Cancel', 'extra-chill-community'); ?>
                 </a>
             </div>
         </div>

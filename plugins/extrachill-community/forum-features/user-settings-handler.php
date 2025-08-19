@@ -10,7 +10,7 @@ if ( ! function_exists( 'extrachill_handle_settings_page_forms' ) ) {
         // Unified Settings Form Processing
         if ( isset( $_POST['submit_user_settings'] ) && isset( $_POST['_wpnonce_update_user_settings'] ) ) {
             if ( ! wp_verify_nonce( sanitize_key($_POST['_wpnonce_update_user_settings']), 'update-user-settings_' . $user_id ) ) {
-                wp_die( esc_html__( 'Security check failed for user settings.', 'generatepress_child' ) );
+                wp_die( esc_html__( 'Security check failed for user settings.', 'extra-chill-community' ) );
             }
 
             $errors = array();
@@ -46,20 +46,20 @@ if ( ! function_exists( 'extrachill_handle_settings_page_forms' ) ) {
                 if ( is_wp_error( $user_updated_personal ) ) {
                     $errors = array_merge($errors, $user_updated_personal->get_error_messages());
                 } else {
-                    $success_messages[] = __( 'Account details updated successfully.', 'generatepress_child' );
+                    $success_messages[] = __( 'Account details updated successfully.', 'extra-chill-community' );
                 }
             }
 
             // --- Account Security (Password Change) --- 
             if ( ! empty( $_POST['pass1'] ) ) {
                 if ( $_POST['pass1'] !== $_POST['pass2'] ) {
-                    $errors[] = __( 'The new passwords do not match.', 'generatepress_child' );
+                    $errors[] = __( 'The new passwords do not match.', 'extra-chill-community' );
                 } else {
                     $user_updated_password = wp_update_user( array( 'ID' => $user_id, 'user_pass' => sanitize_text_field($_POST['pass1']) ) );
                     if ( is_wp_error( $user_updated_password ) ) {
                         $errors = array_merge($errors, $user_updated_password->get_error_messages());
                     } else {
-                        $success_messages[] = __( 'Password changed successfully.', 'generatepress_child' );
+                        $success_messages[] = __( 'Password changed successfully.', 'extra-chill-community' );
                     }
                 }
             }
@@ -92,7 +92,7 @@ if ( ! function_exists( 'extrachill_handle_settings_page_forms' ) ) {
                 }
 
                 update_user_meta( $user_id, '_band_follow_email_permissions', $final_permissions );
-                $success_messages[] = __( 'Subscription preferences updated.', 'generatepress_child' );
+                $success_messages[] = __( 'Subscription preferences updated.', 'extra-chill-community' );
             }
 
             // --- Feedback & Redirect --- 

@@ -66,8 +66,8 @@ defined( 'ABSPATH' ) || exit;
 
 			<?php // Moved Local Scene (City) Field Here ?>
 			<div class="form-group">
-				<label for="local_city"><?php esc_html_e('Local Scene (City/Region)', 'generatepress_child'); ?></label>
-				<input type="text" name="local_city" id="local_city" value="<?php echo esc_attr(get_user_meta(bbp_get_displayed_user_id(), 'local_city', true)); ?>" class="regular-text" placeholder="<?php esc_attr_e('Your local city/region...', 'generatepress_child'); ?>"/>
+				<label for="local_city"><?php esc_html_e('Local Scene (City/Region)', 'extra-chill-community'); ?></label>
+				<input type="text" name="local_city" id="local_city" value="<?php echo esc_attr(get_user_meta(bbp_get_displayed_user_id(), 'local_city', true)); ?>" class="regular-text" placeholder="<?php esc_attr_e('Your local city/region...', 'extra-chill-community'); ?>"/>
 			</div>
 
 			<?php do_action( 'bbp_user_edit_after_about' ); ?>
@@ -138,8 +138,8 @@ defined( 'ABSPATH' ) || exit;
 
 			<!-- Your Band Profiles Section -->
 			<div class="form-group your-bands-section">
-				<h4 class="entry-title"><?php esc_html_e( 'Your Band Profiles', 'generatepress_child' ); ?></h4>
-				<p><?php esc_html_e( 'Manage your band\'s presence, showcase music, share stories, and connect with fans.', 'generatepress_child'); ?></p>
+				<h4 class="entry-title"><?php esc_html_e( 'Your Band Profiles', 'extra-chill-community' ); ?></h4>
+				<p><?php esc_html_e( 'Manage your band\'s presence, showcase music, share stories, and connect with fans.', 'extra-chill-community'); ?></p>
 				<?php
 				$user_id = bbp_get_displayed_user_id();
 				$band_profile_ids = get_user_meta( $user_id, '_band_profile_ids', true );
@@ -173,17 +173,17 @@ defined( 'ABSPATH' ) || exit;
 
                     // Link to create *another* profile
                     if ( $create_url !== '#' ) { // Only show if the manage page exists
-						printf( '<p><a href="%s" class="button">%s</a></p>', esc_url( $create_url ), esc_html__( 'Create Another Band Profile', 'generatepress_child' ) );
+						printf( '<p><a href="%s" class="button">%s</a></p>', esc_url( $create_url ), esc_html__( 'Create Another Band Profile', 'extra-chill-community' ) );
 					}
                     ?>
 				<?php else : ?>
-					<p><?php esc_html_e( "You haven't created or joined any band profiles yet.", 'generatepress_child' ); ?></p>
+					<p><?php esc_html_e( "You haven't created or joined any band profiles yet.", 'extra-chill-community' ); ?></p>
                     <?php
                     // Link to create the first profile
 					$manage_page_check = get_page_by_path( 'manage-band-profiles' );
 					$create_url = $manage_page_check ? get_permalink( $manage_page_check->ID ) : '#';
                     if ( $create_url !== '#' ) { // Only show if the manage page exists
-						printf( '<p><a href="%s" class="button">%s</a></p>', esc_url( $create_url ), esc_html__( 'Create Band Profile', 'generatepress_child' ) );
+						printf( '<p><a href="%s" class="button">%s</a></p>', esc_url( $create_url ), esc_html__( 'Create Band Profile', 'extra-chill-community' ) );
 					}
                     ?>
 				<?php endif; ?>

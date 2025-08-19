@@ -47,13 +47,13 @@ function bp_ajax_invite_member_by_email() {
         $status_text = '';
         switch ( $invite['status'] ) {
             case 'invited_existing_artist':
-                $status_text = __( 'Invited (Existing User)', 'generatepress_child' );
+                $status_text = __( 'Invited (Existing User)', 'extra-chill-community' );
                 break;
             case 'invited_new_user':
-                $status_text = __( 'Invited (New User)', 'generatepress_child' );
+                $status_text = __( 'Invited (New User)', 'extra-chill-community' );
                 break;
             default:
-                $status_text = __( 'Invited (Status: ', 'generatepress_child' ) . esc_html( $invite['status'] ) . ')';
+                $status_text = __( 'Invited (Status: ', 'extra-chill-community' ) . esc_html( $invite['status'] ) . ')';
         }
         ob_start();
         $existing_user_id = email_exists( $invite['email'] );
@@ -89,16 +89,16 @@ function bp_ajax_invite_member_by_email() {
         }
         $updated_roster_item_html = ob_get_clean();
         wp_send_json_success( array( 
-            'message' => __( 'Invitation successfully processed.', 'generatepress_child' ),
+            'message' => __( 'Invitation successfully processed.', 'extra-chill-community' ),
             'updated_roster_item_html' => $updated_roster_item_html,
             'invitation_data' => $invite 
         ) );
     } else {
-        $error_message = __( 'Could not create a pending invitation. An unknown error occurred.', 'generatepress_child' );
+        $error_message = __( 'Could not create a pending invitation. An unknown error occurred.', 'extra-chill-community' );
         if ( is_string( $new_invitation_result ) ) {
             switch ( $new_invitation_result ) {
                 case 'error_already_pending':
-                    $error_message = __( 'An invitation has already been sent to this email address for this band.', 'generatepress_child' );
+                    $error_message = __( 'An invitation has already been sent to this email address for this band.', 'extra-chill-community' );
                     break;
             }
         }

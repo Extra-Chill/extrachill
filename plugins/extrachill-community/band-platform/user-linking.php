@@ -10,7 +10,7 @@ defined( 'ABSPATH' ) || exit;
 function bp_add_band_members_meta_box() {
     add_meta_box(
         'bp_band_members',                    // Unique ID
-        __( 'Band Members', 'generatepress_child' ), // Box title
+        __( 'Band Members', 'extra-chill-community' ), // Box title
         'bp_render_band_members_meta_box',  // Content callback function
         'band_profile',                   // Post type
         'side',                         // Context (normal, side, advanced)
@@ -28,7 +28,7 @@ function bp_render_band_members_meta_box( $post ) {
     $band_profile_id = $post->ID;
 
     // --- Display Linked Members --- 
-    echo '<h4>' . __( 'Current Members:', 'generatepress_child' ) . '</h4>';
+    echo '<h4>' . __( 'Current Members:', 'extra-chill-community' ) . '</h4>';
     echo '<div id="bp-current-members-list">';
 
     $linked_members = bp_get_linked_members( $band_profile_id );
@@ -41,13 +41,13 @@ function bp_render_band_members_meta_box( $post ) {
                 echo '<li data-user-id="' . esc_attr( $user_info->ID ) . '">';
                 echo esc_html( $user_info->display_name ) . ' (' . esc_html( $user_info->user_login ) . ')';
                 // The remove link/button needs JS to function properly by populating bp_members_to_remove
-                echo ' <a href="#" class="bp-remove-member-link" style="color: red; text-decoration: none;" title="' . esc_attr__( 'Remove this member', 'generatepress_child' ) . '">[x]</a>';
+                echo ' <a href="#" class="bp-remove-member-link" style="color: red; text-decoration: none;" title="' . esc_attr__( 'Remove this member', 'extra-chill-community' ) . '">[x]</a>';
                 echo '</li>';
             }
         }
         echo '</ul>';
     } else {
-        echo '<p>' . __( 'No members linked yet.', 'generatepress_child' ) . '</p>';
+        echo '<p>' . __( 'No members linked yet.', 'extra-chill-community' ) . '</p>';
     }
     echo '</div>';
 
@@ -55,21 +55,20 @@ function bp_render_band_members_meta_box( $post ) {
     // Add nonce field for the AJAX search functionality
     wp_nonce_field( 'bp_member_search_nonce', 'bp_member_search_security', false ); // Add nonce field directly here for JS access
 
-    echo '<h4>' . __( 'Add Member:', 'generatepress_child' ) . '</h4>';
+    echo '<h4>' . __( 'Add Member:', 'extra-chill-community' ) . '</h4>';
     echo '<p>';
-    echo '<label for="bp-search-user">' . __( 'Search User:', 'generatepress_child' ) . '</label>';
+    echo '<label for="bp-search-user">' . __( 'Search User:', 'extra-chill-community' ) . '</label>';
     // We'll need an input field and potentially AJAX for user search
-    echo '<input type="text" id="bp-search-user" name="bp_search_user" placeholder="' . __( 'Username or Email', 'generatepress_child' ) . '" style="width: 100%;">';
+    echo '<input type="text" id="bp-search-user" name="bp_search_user" placeholder="' . __( 'Username or Email', 'extra-chill-community' ) . '" style="width: 100%;">';
     echo '<div id="bp-user-search-results"></div>';
     echo '<input type="hidden" name="bp_add_user_id" id="bp-add-user-id">';
-    echo '<button type="button" id="bp-add-member-button" class="button">' . __( 'Add Selected Member', 'generatepress_child' ) . '</button>';
+    echo '<button type="button" id="bp-add-member-button" class="button">' . __( 'Add Selected Member', 'extra-chill-community' ) . '</button>';
     echo '</p>';
 
     // Hidden fields populated by JS for saving
     echo '<input type="hidden" name="bp_members_to_add" id="bp-members-to-add" value="">';
     echo '<input type="hidden" name="bp_members_to_remove" id="bp-members-to-remove" value="">';
 
-    // --- TODO: Add JavaScript for search, selection, adding/removing members visually ---
 }
 
 // Function to save the meta box data
@@ -305,10 +304,10 @@ function bp_ajax_search_artists() {
     $band_profile_id = isset( $_POST['band_profile_id'] ) ? absint( $_POST['band_profile_id'] ) : 0;
 
     if ( empty( $search_term ) ) {
-        wp_send_json_error( __( 'Search term cannot be empty.', 'generatepress_child' ) );
+        wp_send_json_error( __( 'Search term cannot be empty.', 'extra-chill-community' ) );
     }
      if ( ! $band_profile_id ) {
-        wp_send_json_error( __( 'Band Profile ID not provided.', 'generatepress_child' ) );
+        wp_send_json_error( __( 'Band Profile ID not provided.', 'extra-chill-community' ) );
     }
 
     // Get IDs of already linked members to exclude them
@@ -367,7 +366,7 @@ function bp_ajax_search_artists() {
     if ( ! empty( $unique_results ) ) {
         wp_send_json_success( $unique_results );
     } else {
-        wp_send_json_error( __( 'No matching artists found.', 'generatepress_child' ) );
+        wp_send_json_error( __( 'No matching artists found.', 'extra-chill-community' ) );
     }
 
     wp_die(); // this is required to terminate immediately and return a proper response
@@ -386,8 +385,6 @@ function bp_add_member_search_nonce() {
  // Let's modify the render function to include the nonce directly for now:
  // Need to re-apply edit to bp_render_band_members_meta_box to add the nonce field there.
 
- // --- TODO: Add JavaScript for search, selection, adding/removing members visually ---
- // --- TODO: Properly localize script and pass nonce via wp_localize_script ---
 
 // --- User List Admin Column --- 
 
@@ -398,7 +395,7 @@ function bp_add_member_search_nonce() {
  * @return array Modified columns.
  */
 function bp_add_user_band_memberships_column( $columns ) {
-    $columns['band_memberships'] = __( 'Band Memberships', 'generatepress_child' );
+    $columns['band_memberships'] = __( 'Band Memberships', 'extra-chill-community' );
     return $columns;
 }
 add_filter( 'manage_users_columns', 'bp_add_user_band_memberships_column' );
@@ -458,10 +455,10 @@ function bp_show_band_membership_fields( $user ) {
         return;
     }
 
-    echo '<h2>' . __( 'Band Memberships', 'generatepress_child' ) . '</h2>';
+    echo '<h2>' . __( 'Band Memberships', 'extra-chill-community' ) . '</h2>';
     echo '<table class="form-table"><tbody>';
     echo '<tr>';
-    echo '<th scope="row">' . __( 'Member Of', 'generatepress_child' ) . '</th>';
+    echo '<th scope="row">' . __( 'Member Of', 'extra-chill-community' ) . '</th>';
     echo '<td>';
 
     // Add nonce for security
@@ -484,7 +481,7 @@ function bp_show_band_membership_fields( $user ) {
 
     if ( ! empty( $all_bands ) ) {
         echo '<fieldset style="max-height: 200px; overflow-y: auto; border: 1px solid #ccd0d4; padding: 10px;">';
-        echo '<legend class="screen-reader-text"><span>' . __( 'Select bands', 'generatepress_child' ) . '</span></legend>';
+        echo '<legend class="screen-reader-text"><span>' . __( 'Select bands', 'extra-chill-community' ) . '</span></legend>';
         foreach ( $all_bands as $band ) {
             $is_member = in_array( $band->ID, $current_band_ids );
             echo '<label for="band_member_' . esc_attr( $band->ID ) . '">';
@@ -493,9 +490,9 @@ function bp_show_band_membership_fields( $user ) {
             echo '</label><br />';
         }
          echo '</fieldset>';
-         echo '<p class="description">'.__( 'Select the bands this user is a member of.', 'generatepress_child' ).'</p>';
+         echo '<p class="description">'.__( 'Select the bands this user is a member of.', 'extra-chill-community' ).'</p>';
     } else {
-        echo '<p>' . __( 'No band profiles found.', 'generatepress_child' ) . '</p>';
+        echo '<p>' . __( 'No band profiles found.', 'extra-chill-community' ) . '</p>';
     }
 
     echo '</td>';
@@ -541,5 +538,3 @@ add_action( 'edit_user_profile_update', 'bp_save_user_band_memberships' ); // Sa
 
 // --- End User Profile Edit Screen Management ---
 
-// --- TODO: Add JavaScript for search, selection, adding/removing members visually ---
-// --- TODO: Properly localize script and pass nonce via wp_localize_script --- 

@@ -465,3 +465,7 @@ span.bbp-author-ip {
 #bbpress-forums .bbp-reply-content ul.bbp-reply-revision-log li, #bbpress-forums .bbp-reply-content ul.bbp-topic-revision-log li, #bbpress-forums .bbp-topic-content ul.bbp-topic-revision-log li {
     list-style-type: none;
 }
+
+blockquote p{
+    padding: 15px;
+}

@@ -4,7 +4,7 @@
  *
  * This template mimics the BBPress native structure like the recent topics template.
  *
- * @package GeneratePress Child Theme
+ * @package Extra Chill Community
  */
 
 if ( ! defined( 'ABSPATH' ) ) {

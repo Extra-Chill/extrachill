@@ -10,17 +10,17 @@ defined( 'ABSPATH' ) || exit;
 
 function bp_register_band_link_page_cpt() {
     $labels = array(
-        'name'               => __( 'Band Link Pages', 'generatepress_child' ),
-        'singular_name'      => __( 'Band Link Page', 'generatepress_child' ),
-        'add_new'            => __( 'Add New', 'generatepress_child' ),
-        'add_new_item'       => __( 'Add New Band Link Page', 'generatepress_child' ),
-        'edit_item'          => __( 'Edit Band Link Page', 'generatepress_child' ),
-        'new_item'           => __( 'New Band Link Page', 'generatepress_child' ),
-        'view_item'          => __( 'View Band Link Page', 'generatepress_child' ),
-        'search_items'       => __( 'Search Band Link Pages', 'generatepress_child' ),
-        'not_found'          => __( 'No Band Link Pages found', 'generatepress_child' ),
-        'not_found_in_trash' => __( 'No Band Link Pages found in Trash', 'generatepress_child' ),
-        'menu_name'          => __( 'Band Link Pages', 'generatepress_child' ),
+        'name'               => __( 'Band Link Pages', 'extra-chill-community' ),
+        'singular_name'      => __( 'Band Link Page', 'extra-chill-community' ),
+        'add_new'            => __( 'Add New', 'extra-chill-community' ),
+        'add_new_item'       => __( 'Add New Band Link Page', 'extra-chill-community' ),
+        'edit_item'          => __( 'Edit Band Link Page', 'extra-chill-community' ),
+        'new_item'           => __( 'New Band Link Page', 'extra-chill-community' ),
+        'view_item'          => __( 'View Band Link Page', 'extra-chill-community' ),
+        'search_items'       => __( 'Search Band Link Pages', 'extra-chill-community' ),
+        'not_found'          => __( 'No Band Link Pages found', 'extra-chill-community' ),
+        'not_found_in_trash' => __( 'No Band Link Pages found in Trash', 'extra-chill-community' ),
+        'menu_name'          => __( 'Band Link Pages', 'extra-chill-community' ),
     );
 
     $args = array(

@@ -59,9 +59,9 @@ get_header(); ?>
 						<?php
                         // --- Display Invitation Acceptance/Error Messages ---
                         if ( isset( $_GET['invite_accepted'] ) && $_GET['invite_accepted'] === '1' ) {
-                            $invite_success_message = __( 'Invitation accepted! You are now a member of this band.', 'generatepress_child' );
+                            $invite_success_message = __( 'Invitation accepted! You are now a member of this band.', 'extra-chill-community' );
                             if ( isset( $_GET['invite_warning'] ) && $_GET['invite_warning'] === 'cleanup_failed' ) {
-                                $invite_success_message .= ' ' . __( '(A small cleanup task for the invitation record encountered an issue, but your membership is confirmed. Please contact an admin if you notice any problems.)', 'generatepress_child' );
+                                $invite_success_message .= ' ' . __( '(A small cleanup task for the invitation record encountered an issue, but your membership is confirmed. Please contact an admin if you notice any problems.)', 'extra-chill-community' );
                             }
                             echo '<div class="bp-notice bp-notice-success">';
                             echo '<p>' . esc_html( $invite_success_message ) . '</p>';
@@ -71,16 +71,16 @@ get_header(); ?>
                             $invite_error_message = '';
                             switch ( $error_code ) {
                                 case 'invalid_token':
-                                    $invite_error_message = __( 'The invitation link is invalid or has expired. Please request a new invitation.', 'generatepress_child' );
+                                    $invite_error_message = __( 'The invitation link is invalid or has expired. Please request a new invitation.', 'extra-chill-community' );
                                     break;
                                 case 'not_artist':
-                                    $invite_error_message = __( 'Your account is not recognized as an artist account. Please contact support if you believe this is an error.', 'generatepress_child' );
+                                    $invite_error_message = __( 'Your account is not recognized as an artist account. Please contact support if you believe this is an error.', 'extra-chill-community' );
                                     break;
                                 case 'membership_failed':
-                                    $invite_error_message = __( 'There was an error adding you to the band. Please try again or contact support.', 'generatepress_child' );
+                                    $invite_error_message = __( 'There was an error adding you to the band. Please try again or contact support.', 'extra-chill-community' );
                                     break;
                                 default:
-                                    $invite_error_message = __( 'An unknown error occurred while processing your invitation.', 'generatepress_child' );
+                                    $invite_error_message = __( 'An unknown error occurred while processing your invitation.', 'extra-chill-community' );
                             }
                             if ( ! empty( $invite_error_message ) ) {
                                 echo '<div class="bp-notice bp-notice-error">';
@@ -143,13 +143,13 @@ get_header(); ?>
                                         <?php if ( ! empty( $genre ) || ! empty( $local_city ) ) : ?>
                                             <p class="band-meta-info">
                                                 <?php if ( ! empty( $genre ) ) : ?>
-                                                    <span class="band-genre"><strong><?php esc_html_e( 'Genre:', 'generatepress_child' ); ?></strong> <?php echo esc_html( $genre ); ?></span>
+                                                    <span class="band-genre"><strong><?php esc_html_e( 'Genre:', 'extra-chill-community' ); ?></strong> <?php echo esc_html( $genre ); ?></span>
                                                 <?php endif; ?>
                                                 <?php if ( ! empty( $genre ) && ! empty( $local_city ) ) : ?>
                                                     <span class="band-meta-separator">|</span>
                                                 <?php endif; ?>
                                                 <?php if ( ! empty( $local_city ) ) : ?>
-                                                    <span class="band-local-scene"><strong><?php esc_html_e( 'Local Scene:', 'generatepress_child' ); ?></strong> <?php echo esc_html( $local_city ); ?></span>
+                                                    <span class="band-local-scene"><strong><?php esc_html_e( 'Local Scene:', 'extra-chill-community' ); ?></strong> <?php echo esc_html( $local_city ); ?></span>
                                                 <?php endif; ?>
                                             </p>
                                         <?php endif; ?>
@@ -176,12 +176,12 @@ get_header(); ?>
                                 if ( function_exists('bp_get_band_follower_count') && function_exists('bp_is_user_following_band') ) : 
                                     $follower_count = bp_get_band_follower_count( $band_profile_id );
                                     $is_following = is_user_logged_in() ? bp_is_user_following_band( get_current_user_id(), $band_profile_id ) : false;
-                                    $follow_button_text = $is_following ? __( 'Following', 'generatepress_child' ) : __( 'Follow', 'generatepress_child' );
+                                    $follow_button_text = $is_following ? __( 'Following', 'extra-chill-community' ) : __( 'Follow', 'extra-chill-community' );
                                     $follow_button_action = $is_following ? 'unfollow' : 'follow';
                                 ?>
                                 <div class="band-follow-section">
                                     <span class="band-follower-count" id="band-follower-count-<?php echo esc_attr($band_profile_id); ?>">
-                                        <?php echo sprintf( _n( '%s follower', '%s followers', $follower_count, 'generatepress_child' ), number_format_i18n( $follower_count ) ); ?>
+                                        <?php echo sprintf( _n( '%s follower', '%s followers', $follower_count, 'extra-chill-community' ), number_format_i18n( $follower_count ) ); ?>
                                     </span>
                                     <?php if ( is_user_logged_in() ) : ?>
                                         <?php 
@@ -200,11 +200,11 @@ get_header(); ?>
                                             </button>
                                         <?php else: ?>
                                             <?php // Optionally show a disabled button or nothing if it's their own band ?>
-                                            <span class="bp-own-band-indicator">(<?php esc_html_e('Your Band', 'generatepress_child'); ?>)</span>
+                                            <span class="bp-own-band-indicator">(<?php esc_html_e('Your Band', 'extra-chill-community'); ?>)</span>
                                         <?php endif; ?>
                                     <?php else : // User not logged in ?>
                                         <a href="<?php echo esc_url( site_url('/login') ); ?>" class="button button-small bp-follow-login-button">
-                                            <?php esc_html_e( 'Follow', 'generatepress_child' ); ?>
+                                            <?php esc_html_e( 'Follow', 'extra-chill-community' ); ?>
                                         </a>
                                     <?php endif; ?>
                                 </div>
@@ -246,7 +246,7 @@ get_header(); ?>
 									$manage_page = get_page_by_path( 'manage-band-profiles' ); // Corrected slug
 									if ( $manage_page ) { // Check if page exists before using its ID
 										$edit_url = add_query_arg( 'band_id', $band_profile_id, get_permalink( $manage_page->ID ) );
-										echo '<p class="band-edit-link"><a href="' . esc_url( $edit_url ) . '" class="button button-small">' . __( 'Edit Band Profile', 'generatepress_child' ) . '</a></p>';
+										echo '<p class="band-edit-link"><a href="' . esc_url( $edit_url ) . '" class="button button-small">' . __( 'Edit Band Profile', 'extra-chill-community' ) . '</a></p>';
 									}
 									?>
 								<?php endif; ?>
@@ -279,7 +279,7 @@ get_header(); ?>
                                 echo wpautop( $forum_section['bio'] );
                                 echo '</div>';
                             } else {
-                                echo '<p>' . __( 'No biography available yet.', 'generatepress_child' ) . '</p>';
+                                echo '<p>' . __( 'No biography available yet.', 'extra-chill-community' ) . '</p>';
                             }
                             echo '</div>'; // .band-bio-column
 
@@ -287,7 +287,7 @@ get_header(); ?>
                             echo '<div class="band-members-column">';
                             // Add a wrapper for the title and icon for flex layout if needed, and the icon itself
                             echo '<div class="band-roster-header" style="display: flex; align-items: center; justify-content: space-between;">';
-                            echo '<h2 class="section-title">' . __( 'Roster', 'generatepress_child' ) . '</h2>';
+                            echo '<h2 class="section-title">' . __( 'Roster', 'extra-chill-community' ) . '</h2>';
                             // Icon for collapsing - starts with 'plus' as it's collapsed by default
                             echo '<i class="fa-solid fa-square-plus band-roster-toggle" onclick="toggleForumCollapse(this, \'band-roster-list-container\')" style="cursor: pointer; font-size: 27px; margin-left: 10px;"></i>';
                             echo '</div>'; // .band-roster-header
@@ -316,8 +316,6 @@ get_header(); ?>
                                         }
                                     }
                                 }
-                            } else {
-                               //  error_log('bp_get_linked_members function does not exist when trying to display members on band profile.');
                             }
 
                             // 2. Process Pending Invitations
@@ -369,7 +367,7 @@ get_header(); ?>
                                 }
                                 echo '</ul>';
                             } else {
-                                echo '<p>' . __( 'No band members listed yet.', 'generatepress_child' ) . '</p>';
+                                echo '<p>' . __( 'No band members listed yet.', 'extra-chill-community' ) . '</p>';
                             }
                             echo '</div>'; // #band-roster-list-container (new wrapper for collapse)
                             echo '</div>'; // .band-members-column
@@ -381,9 +379,7 @@ get_header(); ?>
 							error_log('Band Profile ID: ' . $band_profile_id);
 							error_log('Forum ID from Meta: ' . $forum_id);
 							error_log('Allow Public Topics: ' . $allow_public_topics);
-							// error_log('Function bbp_topic_index exists: ' . (function_exists('bbp_topic_index') ? 'Yes' : 'No')); // Restore check
-
-							// if ( ! empty( $forum_id ) && function_exists('bbp_topic_index') ) { // Restore original check
+							// Removed function_exists check for bbp_topic_index
 							if ( ! empty( $forum_id ) ) { // <<< REMOVED function_exists CHECK
 								error_log('Forum section condition met (only checking for non-empty forum_id).'); // Updated log
 
@@ -441,12 +437,9 @@ get_header(); ?>
 								// Check permissions for creating topics (needed later for the form)
 								$can_create_topics = current_user_can( 'publish_topics', $forum_id );
 								$public_can_post = ( $allow_public_topics === '1' && current_user_can('bbp_topic_creatable') );
-								// error_log('Current User Can Publish Topics in Forum ' . $forum_id . ': ' . ($can_create_topics ? 'Yes' : 'No'));
-								// error_log('Public Can Post (Allowed=' . $allow_public_topics . ', Site Cap=' . (current_user_can('bbp_topic_creatable') ? 'Yes' : 'No') . '): ' . ($public_can_post ? 'Yes' : 'No'));
 
 								// --- Display Topic List ---
 								echo '<div class="band-forum-topics">';
-								// echo '<h3 class="band-topics-title">' . __( 'Recent Topics', 'generatepress_child' ) . '</h3>'; // Title might be redundant now
 								
 								// Prepare topic query args
 								$topic_args = array(
@@ -521,7 +514,7 @@ get_header(); ?>
 									// No topics found - Custom message
 									$band_name = esc_html( get_the_title( $band_profile_id ) );
 									$custom_no_topics_message = sprintf(
-										esc_html__( 'This space is for %s to connect with their community! If you\'re part of the band, why not start a new topic? Share your latest news, upcoming gigs, or just say hello to your fans.', 'generatepress_child' ),
+										esc_html__( 'This space is for %s to connect with their community! If you\'re part of the band, why not start a new topic? Share your latest news, upcoming gigs, or just say hello to your fans.', 'extra-chill-community' ),
 										$band_name
 									);
 									echo '<div class="bbp-template-notice info"><p>' . $custom_no_topics_message . '</p></div>';

@@ -121,12 +121,11 @@ function extrch_create_link_page_for_band_profile( $post_id, $post ) {
         );
         update_post_meta( $new_link_page_id, '_link_page_links', $default_links );
 
-        // Apply default styles.
-        // TODO: Fix linter error and restore default styles application
-        // if ( function_exists( 'extrch_get_default_link_page_styles' ) ) {
-        //     $default_styles_array = extrch_get_default_link_page_styles();
-        //     update_post_meta( $new_link_page_id, '_link_page_custom_css_vars', $default_styles_array );
-        // }
+        // Apply default styles if function exists
+        if ( function_exists( 'extrch_get_default_link_page_styles' ) ) {
+            $default_styles_array = extrch_get_default_link_page_styles();
+            update_post_meta( $new_link_page_id, '_link_page_custom_css_vars', $default_styles_array );
+        }
         
         error_log('[Link Page Creation] Link page setup completed successfully for band ID: ' . $post_id);
     } else {
@@ -135,7 +134,7 @@ function extrch_create_link_page_for_band_profile( $post_id, $post ) {
         // Also save individual meta fields for background type and color for easier initial JS hydration
         // and consistency, as the JS for background controls might look for these specific meta.
         // Note: This code runs in the FAILED case, so we don't have access to default styles
-        // TODO: Fix this logic - it doesn't make sense to set meta on a failed link page creation
+        // Set failed creation flag for band profile
         // update_post_meta( $new_link_page_id, '_link_page_background_type', 'color' );
         // if (isset($default_styles_array['--link-page-background-color'])) {
         //     update_post_meta( $new_link_page_id, '_link_page_background_color', $default_styles_array['--link-page-background-color'] );

@@ -36,13 +36,6 @@ if ($isUserProfile) {
     $title = '@' . bbp_get_displayed_user_field('user_nicename');
     echo '<h1 class="profile-title-inline">' . $title . '</h1>';
 
-    // Display the follow button only on user profile pages
-    // -- REMOVED Follow Button Call --
-    /*
-    if (function_exists('extrachill_follow_button')) {
-        extrachill_follow_button(bbp_get_displayed_user_id());
-    }
-    */
 } else {
     // Display the title for non-profile pages
     echo '<h1>' . get_the_title() . '</h1>';

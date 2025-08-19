@@ -367,23 +367,5 @@
     // --- Initial call to init() handled by the main manager (manage-link-page.js) ---
 
 
-    // --- Function to load Google Fonts (can be moved to a dedicated fonts module) ---
-    // MOVED to manage-link-page-fonts.js
-    // function loadGoogleFont(fontFamily) {
-    //     if (!fontFamily || fontFamily.trim() === '') return;
-    //     // Remove quotes from font family name for URL
-    //     const fontNameForUrl = fontFamily.replace(/['"]/g, '').replace(/\s/g, '+');
-    //     const link = document.createElement('link');
-    //     link.href = `https://fonts.googleapis.com/css2?family=${fontNameForUrl}:wght@400;700&display=swap`;
-    //     link.rel = 'stylesheet';
-    //     document.head.appendChild(link);
-    // }
-
-    // --- Function to reapply styles after a potential preview refresh (e.g., image upload) ---
-    // This function is less necessary with the new architecture where styles are in the main document's head
-    // but keeping a placeholder in case complex preview re-rendering logic is added later.
-    // manager.customization.reapplyStyles = function() {
-    //     syncControlsFromCustomVars(); // Re-sync controls from the style tag
-    // };
 
 })(window.ExtrchLinkPageManager = window.ExtrchLinkPageManager || {});

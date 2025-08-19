@@ -1,7 +1,7 @@
 <?php
 // Enable visual editor specifically for bbPress
 function bbp_enable_visual_editor($args = array()) {
-    $args['tinymce'] = array('content_css' => '/wp-content/themes/generatepress_child/css/tinymce-editor.css');
+    $args['tinymce'] = array('content_css' => '/wp-content/themes/extra-chill-community/css/tinymce-editor.css');
     $args['quicktags'] = false;
     $args['teeny'] = false;
     return $args;

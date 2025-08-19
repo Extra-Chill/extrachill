@@ -42,19 +42,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // Function to display the relevant custom notice (No longer needed)
-    // function displayJoinFlowNotices(accountType) {
-    //     // Hide both notices first
-    //     if (noticeLogin) noticeLogin.style.display = 'none';
-    //     if (noticeRegister) noticeRegister.style.display = 'none';
-
-    //     // Display the appropriate notice
-    //     if (accountType === 'existing' && noticeLogin) {
-    //         noticeLogin.style.display = 'block';
-    //     } else if (accountType === 'new' && noticeRegister) {
-    //         noticeRegister.style.display = 'block';
-    //     }
-    // }
 
     // Handler for "Yes, I have an account" button
     function handleExistingAccountClick() {
