@@ -3,7 +3,7 @@
  * Custom Logout Functionality
  */
 
-function wp_surgeon_custom_logout_url($logout_url, $redirect) {
+function extrachill_custom_logout_url($logout_url, $redirect) {
     // Nonce for security
     $action = 'custom-logout-action';
     // Current URL for staying on the same page
@@ -12,9 +12,9 @@ function wp_surgeon_custom_logout_url($logout_url, $redirect) {
     $logout_url = wp_nonce_url($logout_url, $action, 'logout_nonce');
     return $logout_url;
 }
-add_filter('logout_url', 'wp_surgeon_custom_logout_url', 10, 2);
+add_filter('logout_url', 'extrachill_custom_logout_url', 10, 2);
 
-function wp_surgeon_handle_custom_logout() {
+function extrachill_handle_custom_logout() {
     if (isset($_GET['custom_logout']) && $_GET['custom_logout'] == '1') {
         // Verify the nonce for security
         $nonce = $_GET['logout_nonce'] ?? '';
@@ -26,4 +26,4 @@ function wp_surgeon_handle_custom_logout() {
         }
     }
 }
-add_action('init', 'wp_surgeon_handle_custom_logout');
+add_action('init', 'extrachill_handle_custom_logout');

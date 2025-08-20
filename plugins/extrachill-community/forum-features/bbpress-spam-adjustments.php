@@ -88,17 +88,12 @@ function ec_user_exempt_from_spam_detection($user_id = 0) {
         return true;
     }
     
-    // Exempt established community members (users with 10+ approved posts)
-    $user_post_count = 0;
-    if (function_exists('bbp_get_user_reply_count')) {
-        $user_post_count += (int) bbp_get_user_reply_count($user_id);
-    }
-    if (function_exists('bbp_get_user_topic_count')) {
-        $user_post_count += (int) bbp_get_user_topic_count($user_id);
-    }
-    
-    if ($user_post_count >= 10) {
-        return true;
+    // Exempt established community members (users with 10+ points)
+    if (function_exists('wp_surgeon_get_user_total_points')) {
+        $user_points = wp_surgeon_get_user_total_points($user_id);
+        if ($user_points >= 10) {
+            return true;
+        }
     }
     
     return apply_filters('ec_user_exempt_from_spam_detection', false, $user_id);

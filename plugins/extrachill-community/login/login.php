@@ -5,22 +5,22 @@ if (file_exists($bp_user_linking_functions)) {
     require_once $bp_user_linking_functions;
 }
 
-function wp_surgeon_login_form() {
+function extrachill_login_form() {
     ob_start(); // Start output buffering
 
     if (is_user_logged_in()) {
         echo '<div class="login-already-logged-in">You are already logged in.</div>';
     } else {
-        wp_surgeon_display_login_form();
-        wp_surgeon_display_error_messages(); // Display error messages
+        extrachill_display_login_form();
+        extrachill_display_error_messages(); // Display error messages
     }
 
     return ob_get_clean(); // Clean (erase) the output buffer and turn off output buffering
 }
 
 // Move redirect logic to template_redirect
-add_action('template_redirect', 'wp_surgeon_login_page_redirect');
-function wp_surgeon_login_page_redirect() {
+add_action('template_redirect', 'extrachill_login_page_redirect');
+function extrachill_login_page_redirect() {
     if (is_user_logged_in()) {
         // Only run on the login page
         if (is_page('login')) {
@@ -103,7 +103,7 @@ function wp_surgeon_login_page_redirect() {
     }
 }
 
-function wp_surgeon_handle_logged_in_user() {
+function extrachill_handle_logged_in_user() {
     if (is_admin()) {
         return;
     }
@@ -120,7 +120,7 @@ function wp_surgeon_handle_logged_in_user() {
     exit;
 }
 
-function wp_surgeon_display_login_form() {
+function extrachill_display_login_form() {
     $is_login_page = ($_SERVER['REQUEST_URI'] == '/login/' || strpos($_SERVER['REQUEST_URI'], '/login') !== false);
     $action_url = $is_login_page ? site_url('wp-login.php', 'login_post') : admin_url('admin-ajax.php');
 
@@ -145,7 +145,7 @@ function wp_surgeon_display_login_form() {
             <input type="password" name="pwd" id="user_pass" class="input" placeholder="Your password" required>
 
             <input type="hidden" name="action" value="handle_login">
-            <input type="hidden" name="redirect_to" value="<?php echo esc_attr(wp_surgeon_get_redirect_url()); ?>">
+            <input type="hidden" name="redirect_to" value="<?php echo esc_attr(extrachill_get_redirect_url()); ?>">
 
             <input type="submit" id="wp-submit" class="button button-primary" value="Log In">
         </form>
@@ -156,14 +156,14 @@ function wp_surgeon_display_login_form() {
 }
 
 
-function wp_surgeon_display_error_messages() {
+function extrachill_display_error_messages() {
     if (isset($_GET['login']) && $_GET['login'] == 'failed') {
         $reset_password_link = wp_lostpassword_url();
         echo '<div class="error-message">Error: Invalid username or password. Please try again. <a href="' . esc_url($reset_password_link) . '">Forgot your password?</a></div>';
     }
 }
 
-function wp_surgeon_get_redirect_url() {
+function extrachill_get_redirect_url() {
     $login_page_url = home_url('/login/');
     $current_url = (is_ssl() ? 'https://' : 'http://' ) . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
     return isset($_GET['redirect_to']) ? esc_url($_GET['redirect_to']) : ($current_url == $login_page_url ? home_url() : $current_url);
@@ -192,8 +192,8 @@ function login_error_message() {
     }
 }
 
-add_filter('login_redirect', 'wp_surgeon_redirect_login_errors_to_custom_page', 99, 3);
-function wp_surgeon_redirect_login_errors_to_custom_page($redirect_to, $request, $user) {
+add_filter('login_redirect', 'extrachill_redirect_login_errors_to_custom_page', 99, 3);
+function extrachill_redirect_login_errors_to_custom_page($redirect_to, $request, $user) {
     if (is_wp_error($user)) {
         $login_url = home_url('/login/');
         $redirect_url_with_hash = add_query_arg('login', 'failed', $login_url) . '#tab-login';
@@ -207,8 +207,8 @@ function wp_surgeon_redirect_login_errors_to_custom_page($redirect_to, $request,
     return $redirect_to;
 }
 
-add_action('template_redirect', 'wp_surgeon_redirect_wp_login_access');
-function wp_surgeon_redirect_wp_login_access() {
+add_action('template_redirect', 'extrachill_redirect_wp_login_access');
+function extrachill_redirect_wp_login_access() {
     if ( strpos( strtolower($_SERVER['REQUEST_URI']), '/wp-login.php' ) !== false ) {
         // Only redirect if user is NOT logged in AND NOT an administrator
         // Allow administrators full access to wp-login.php
@@ -222,8 +222,8 @@ function wp_surgeon_redirect_wp_login_access() {
     }
 }
 
-add_filter('authenticate', 'wp_surgeon_force_custom_login_redirect_on_error', 99, 3);
-function wp_surgeon_force_custom_login_redirect_on_error($user, $username, $password) {
+add_filter('authenticate', 'extrachill_force_custom_login_redirect_on_error', 99, 3);
+function extrachill_force_custom_login_redirect_on_error($user, $username, $password) {
     if (is_wp_error($user) && $_SERVER['REQUEST_METHOD'] === 'POST') {
         if (isset($_POST['log']) && isset($_POST['pwd'])) {
             $login_url = home_url('/login/');

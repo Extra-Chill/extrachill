@@ -54,7 +54,7 @@ $offset = ($current_page - 1) * $items_per_page;
 // Adjust the user query to fetch users ordered by points
 $args = [
     'orderby' => 'meta_value_num',
-    'meta_key' => 'wp_surgeon_total_points',
+    'meta_key' => 'extrachill_total_points',
     'order' => 'DESC',
     'number' => $items_per_page,
     'offset' => $offset, 
@@ -84,8 +84,8 @@ echo '<tbody>';
 foreach ($users as $user) {
     $user_profile_url = bbp_get_user_profile_url($user->ID);
     $join_date = date("Y-m-d", strtotime($user->user_registered));
-    $points = wp_surgeon_display_user_points($user->ID); 
-    $rank = wp_surgeon_display_user_rank($user->ID); 
+    $points = extrachill_display_user_points($user->ID); 
+    $rank = extrachill_display_user_rank($user->ID); 
 
     echo '<tr>';
     echo '<td><a href="' . esc_url($user_profile_url) . '">' . esc_html($user->display_name) . '</a></td>';

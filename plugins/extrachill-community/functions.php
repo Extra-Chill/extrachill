@@ -11,10 +11,7 @@
  * @link https://community.extrachill.com
  */
 
-// Include Composer's autoloader.
-require_once get_stylesheet_directory() . '/vendor/autoload.php';
-
-/**
+  /**
  * Theme setup and WordPress feature support
  */
 function extra_chill_community_setup() {
@@ -100,9 +97,9 @@ function extrachill_enqueue_notification_styles() {
     if (is_page_template('page-templates/notifications-feed.php')) {
         wp_enqueue_style(
             'extrachill-notifications', 
-            get_stylesheet_directory_uri() . '/css/notifications.css', 
+            get_stylesheet_directory_uri() . '/forum-features/social/css/notifications.css', 
             array('extra-chill-community-style'), 
-            filemtime(get_stylesheet_directory() . '/css/notifications.css')
+            filemtime(get_stylesheet_directory() . '/forum-features/social/css/notifications.css')
         );
     }
 }
@@ -157,10 +154,10 @@ function extrachill_enqueue_scripts() {
     $stylesheet_dir = get_stylesheet_directory();
 
     // Dynamic versioning based on file modification times
-    $follow_script_version = filemtime( $stylesheet_dir . '/js/extrachill-follow.js' );
+    $follow_script_version = filemtime( $stylesheet_dir . '/forum-features/social/js/extrachill-follow.js' );
     $custom_avatar_script_version = filemtime( $stylesheet_dir . '/js/custom-avatar.js' );
-    $upvote_script_version = filemtime( $stylesheet_dir . '/js/upvote.js' );
-    $mentions_script_version = filemtime( $stylesheet_dir . '/js/extrachill-mentions.js' );
+    $upvote_script_version = filemtime( $stylesheet_dir . '/forum-features/social/js/upvote.js' );
+    $mentions_script_version = filemtime( $stylesheet_dir . '/forum-features/social/js/extrachill-mentions.js' );
 
     // Conditionally enqueue the custom avatar script with dynamic versioning
     if (function_exists('bbp_is_single_user_edit') && bbp_is_single_user_edit()) {
@@ -200,7 +197,7 @@ function extrachill_enqueue_scripts() {
 
     // Only enqueue upvote script if not in forum 1494
     if (!function_exists('bbp_get_forum_id') || (function_exists('bbp_get_forum_id') && bbp_get_forum_id() != 1494)) {
-        wp_enqueue_script('extrachill-upvote', $stylesheet_dir_uri . '/js/upvote.js', array('jquery'), $upvote_script_version, true);
+        wp_enqueue_script('extrachill-upvote', $stylesheet_dir_uri . '/forum-features/social/js/upvote.js', array('jquery'), $upvote_script_version, true);
         wp_localize_script('extrachill-upvote', 'extrachill_ajax', array(
             'ajaxurl' => admin_url('admin-ajax.php'),
             'nonce' => wp_create_nonce('upvote_nonce'),
@@ -211,7 +208,7 @@ function extrachill_enqueue_scripts() {
 
     // Conditionally enqueue the mentions script with dynamic versioning for bbPress
    if (function_exists('is_bbpress') && is_bbpress()) {
-       wp_enqueue_script('extrachill-mentions', $stylesheet_dir_uri . '/js/extrachill-mentions.js', array('jquery'), $mentions_script_version, true);
+       wp_enqueue_script('extrachill-mentions', $stylesheet_dir_uri . '/forum-features/social/js/extrachill-mentions.js', array('jquery'), $mentions_script_version, true);
    }
 
 }
@@ -519,9 +516,9 @@ class Custom_Walker_Nav_Menu extends Walker_Nav_Menu {
         $item_output .= $args->link_before . apply_filters( 'the_title', $item->title, $item->ID ) . $args->link_after;
 
         // Add a submenu indicator if the item has children
-        if ( in_array( 'menu-item-has-children', $item->classes ) ) {
+        if ( in_array( 'menu-item-has-children', $classes ) ) {
             // Check if it's a top-level item by looking for menu-item-depth-0 class
-            $is_top_level = in_array('menu-item-depth-0', $item->classes);
+            $is_top_level = in_array('menu-item-depth-0', $classes);
             if ( $is_top_level ) {
                 // Replace SVG with Font Awesome icon
                 $item_output .= ' <i class="submenu-indicator fas fa-angle-down"></i>';
@@ -544,6 +541,10 @@ add_action('wp_enqueue_scripts', 'extrachill_enqueue_nav_scripts');
 
 include_once get_stylesheet_directory() . '/forum-features/forum-1494-redirects.php';
 include_once get_stylesheet_directory() . '/forum-features/bbpress-spam-adjustments.php';
+include_once get_stylesheet_directory() . '/forum-features/online-users-count.php';
+
+// Load all social features (upvote, mentions, notifications, following, points, ranks, badges)
+include_once get_stylesheet_directory() . '/forum-features/social/social-includes.php';
 
 function set_default_ec_custom_title( $user_id ) {
     update_user_meta( $user_id, 'ec_custom_title', 'Extra Chillian' );

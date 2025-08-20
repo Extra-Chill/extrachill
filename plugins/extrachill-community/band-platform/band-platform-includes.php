@@ -32,8 +32,8 @@ require_once( $bp_dir . '/data-sync.php' );
 require_once( $bp_dir . '/roster/manage-roster-ui.php' ); 
 require_once( $bp_dir . '/roster/roster-ajax-handlers.php' );
 
-// Following feature
-require_once( $bp_dir . '/band-following.php' );
+// Following feature (moved to social directory)
+require_once( get_stylesheet_directory() . '/forum-features/social/following/band-following.php' );
 
 // Add other band platform PHP files here as they are created
 
@@ -90,7 +90,7 @@ function bp_enqueue_band_platform_assets() {
 
         // Enqueue follow button script only on single band profile
         if ( is_singular('band_profile') ) {
-        $follow_js_path = '/js/extrachill-follow.js'; // Still using old name for now
+        $follow_js_path = '/forum-features/social/js/extrachill-follow.js'; // Updated path for reorganized social features
         if ( file_exists( $theme_dir . $follow_js_path ) ) {
              wp_enqueue_script(
                 'bp-band-following', // New handle for clarity

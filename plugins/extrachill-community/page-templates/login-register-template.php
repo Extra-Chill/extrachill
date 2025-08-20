@@ -46,8 +46,8 @@ get_header();
                                 // Include the login form file
                                 require_once get_stylesheet_directory() . '/login/login.php';
                                 // Call the function that displays the login form if it's not automatically displayed by the include
-                                if (function_exists('wp_surgeon_login_form')) {
-                                     echo wp_surgeon_login_form();
+                                if (function_exists('extrachill_login_form')) {
+                                     echo extrachill_login_form();
                                 }
                             ?>
                         </div>
@@ -64,8 +64,8 @@ get_header();
                                 // Include the registration form file
                                  require_once get_stylesheet_directory() . '/login/register.php';
                                  // Call the function that displays the registration form if it's not automatically displayed by the include
-                                 if (function_exists('wp_surgeon_registration_form_shortcode')) {
-                                      echo wp_surgeon_registration_form_shortcode();
+                                 if (function_exists('extrachill_registration_form_shortcode')) {
+                                      echo extrachill_registration_form_shortcode();
                                  }
                               ?>
                          </div>

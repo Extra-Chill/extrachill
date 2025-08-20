@@ -11,8 +11,8 @@ if (file_exists($bp_user_linking_functions)) {
     require_once $bp_user_linking_functions;
 }
 
-function wp_surgeon_registration_form_shortcode() {
-    global $wp_surgeon_registration_errors;
+function extrachill_registration_form_shortcode() {
+    global $extrachill_registration_errors;
 
     ob_start(); // Start output buffering
 
@@ -47,7 +47,7 @@ function wp_surgeon_registration_form_shortcode() {
         $profile_url = bbp_get_user_profile_url($current_user->ID);
         echo '<p>You are already registered and logged in! <a href="' . esc_url($profile_url) . '">View Profile</a></p>';
     } else {
-        $errors = wp_surgeon_get_registration_errors();
+        $errors = extrachill_get_registration_errors();
         ?>
         <div class="login-register-form">
     <h2>Join the Extra Chill Community</h2>
@@ -74,17 +74,17 @@ function wp_surgeon_registration_form_shortcode() {
     <?php endif; ?>
 
     <form action="<?php echo esc_url($_SERVER['REQUEST_URI']); ?>" method="post">
-        <label for="wp_surgeon_username">Username <small>(required)</small></label>
-        <input type="text" name="wp_surgeon_username" id="wp_surgeon_username" placeholder="Choose a username" required value="<?php echo isset($_POST['wp_surgeon_username']) ? esc_attr($_POST['wp_surgeon_username']) : ''; ?>">
+        <label for="extrachill_username">Username <small>(required)</small></label>
+        <input type="text" name="extrachill_username" id="extrachill_username" placeholder="Choose a username" required value="<?php echo isset($_POST['extrachill_username']) ? esc_attr($_POST['extrachill_username']) : ''; ?>">
         
-        <label for="wp_surgeon_email">Email</label>
-        <input type="email" name="wp_surgeon_email" id="wp_surgeon_email" placeholder="you@example.com" required value="<?php echo !empty($invited_email) ? esc_attr($invited_email) : (isset($_POST['wp_surgeon_email']) ? esc_attr($_POST['wp_surgeon_email']) : ''); ?>">
+        <label for="extrachill_email">Email</label>
+        <input type="email" name="extrachill_email" id="extrachill_email" placeholder="you@example.com" required value="<?php echo !empty($invited_email) ? esc_attr($invited_email) : (isset($_POST['extrachill_email']) ? esc_attr($_POST['extrachill_email']) : ''); ?>">
 
-        <label for="wp_surgeon_password">Password</label>
-        <input type="password" name="wp_surgeon_password" id="wp_surgeon_password" placeholder="Create a password" required>
+        <label for="extrachill_password">Password</label>
+        <input type="password" name="extrachill_password" id="extrachill_password" placeholder="Create a password" required>
 
-        <label for="wp_surgeon_password_confirm">Confirm Password</label>
-        <input type="password" name="wp_surgeon_password_confirm" id="wp_surgeon_password_confirm" placeholder="Repeat your password" required>
+        <label for="extrachill_password_confirm">Confirm Password</label>
+        <input type="password" name="extrachill_password_confirm" id="extrachill_password_confirm" placeholder="Repeat your password" required>
 
         <div style="margin-top: 15px;">
             <label style="display:block; margin-bottom: 5px;">
@@ -99,12 +99,12 @@ function wp_surgeon_registration_form_shortcode() {
         </div>
 
         <div style="margin-top: 15px;">
-            <input type="submit" name="wp_surgeon_register" value="Join Now">
+            <input type="submit" name="extrachill_register" value="Join Now">
         </div>
 
         <div class="cf-turnstile" data-sitekey="0x4AAAAAAAPvQsUv5Z6QBB5n" data-callback="community_register" style="margin-top: 20px;"></div>
 
-        <?php wp_nonce_field('wp_surgeon_register_nonce', 'wp_surgeon_register_nonce_field'); ?>
+        <?php wp_nonce_field('extrachill_register_nonce', 'extrachill_register_nonce_field'); ?>
         <?php if ( isset($_GET['from_join']) && $_GET['from_join'] === 'true' ) : ?>
             <input type="hidden" name="from_join" value="true">
         <?php endif; ?>
@@ -123,35 +123,35 @@ function wp_surgeon_registration_form_shortcode() {
 }
 
 
-$GLOBALS['wp_surgeon_registration_errors'] = array();
-function wp_surgeon_handle_registration() {
-    global $wp_surgeon_registration_errors;
+$GLOBALS['extrachill_registration_errors'] = array();
+function extrachill_handle_registration() {
+    global $extrachill_registration_errors;
     $processed_invite_band_id = null; // Variable to store band_id if invite is processed
 
-    if (isset($_POST['wp_surgeon_register']) && check_admin_referer('wp_surgeon_register_nonce', 'wp_surgeon_register_nonce_field')) {
+    if (isset($_POST['extrachill_register']) && check_admin_referer('extrachill_register_nonce', 'extrachill_register_nonce_field')) {
         // Collect and sanitize form data
-        $username = sanitize_user($_POST['wp_surgeon_username']);
-        $email = sanitize_email($_POST['wp_surgeon_email']);
-        $password = esc_attr($_POST['wp_surgeon_password']);
-        $password_confirm = esc_attr($_POST['wp_surgeon_password_confirm']);
+        $username = sanitize_user($_POST['extrachill_username']);
+        $email = sanitize_email($_POST['extrachill_email']);
+        $password = esc_attr($_POST['extrachill_password']);
+        $password_confirm = esc_attr($_POST['extrachill_password_confirm']);
 
         // Captcha verification
         $turnstile_response = $_POST['cf-turnstile-response'];
         
-        if (!wp_surgeon_verify_turnstile($turnstile_response)) {
-            $wp_surgeon_registration_errors[] = 'Captcha verification failed. Please try again.';
+        if (!extrachill_verify_turnstile($turnstile_response)) {
+            $extrachill_registration_errors[] = 'Captcha verification failed. Please try again.';
             return; // Early return to prevent further processing
         }
 
         // Password confirmation
         if ($password !== $password_confirm) {
-            $wp_surgeon_registration_errors[] = 'Error: Passwords do not match.';
+            $extrachill_registration_errors[] = 'Error: Passwords do not match.';
             return; // Early return to prevent further processing
         }
 
         // Check for existing username or email
         if (username_exists($username) || email_exists($email)) {
-            $wp_surgeon_registration_errors[] = 'Error: User already exists with this username/email.';
+            $extrachill_registration_errors[] = 'Error: User already exists with this username/email.';
             return; // Early return to prevent further processing
         }
 
@@ -160,12 +160,12 @@ function wp_surgeon_handle_registration() {
         if (is_wp_error($user_id)) {
             // Convert WP_Error to string and add to errors array
             $error_messages = implode(", ", $user_id->get_error_messages());
-            $wp_surgeon_registration_errors[] = 'Registration error: ' . $error_messages;
+            $extrachill_registration_errors[] = 'Registration error: ' . $error_messages;
             return; // Early return to prevent further processing
         }
 
         // If there are errors, redirect back to the registration form with errors
-        if (!empty($wp_surgeon_registration_errors)) {
+        if (!empty($extrachill_registration_errors)) {
              // Store errors temporarily if needed across the redirect, though current setup uses a global.
              // If using a global, make sure the global persists across the redirect or use transients.
              // For now, assuming global is sufficient or errors are handled on reload.
@@ -179,7 +179,7 @@ function wp_surgeon_handle_registration() {
         // If the user is created successfully, continue to sync with Sendy and log in the user
         $sync_success = sync_to_sendy($email, $username);
         if (!$sync_success) {
-            $wp_surgeon_registration_errors[] = 'Failed to synchronize with Sendy. Please contact support or try again later.';
+            $extrachill_registration_errors[] = 'Failed to synchronize with Sendy. Please contact support or try again later.';
             // Consider whether you want to roll back user creation here or just leave the user registered without Sendy sync
         }
 
@@ -217,7 +217,7 @@ function wp_surgeon_handle_registration() {
                     }
                 } else {
                     // error_log("Band Invite Registration: FAILED to add user $user_id to band $invite_band_id_posted.");
-                    $wp_surgeon_registration_errors[] = 'Your account was created, but there was an issue joining the invited band. Please contact support.';
+                    $extrachill_registration_errors[] = 'Your account was created, but there was an issue joining the invited band. Please contact support.';
                 }
             } else {
                  // error_log("Band Invite Registration: Invalid or mismatched token/email for invite. Token: $invite_token_posted, Band ID: $invite_band_id_posted, New User Email: $email");
@@ -252,7 +252,7 @@ function wp_surgeon_handle_registration() {
      }
  }
 
-add_action('init', 'wp_surgeon_handle_registration');
+add_action('init', 'extrachill_handle_registration');
 
 
 // Function to sync user data to Sendy
@@ -339,13 +339,13 @@ function auto_login_new_user($user_id, $redirect_band_id = null, $from_join_flow
 }
 
 
-function wp_surgeon_get_registration_errors() {
+function extrachill_get_registration_errors() {
     // Initialize an empty array to store errors
     $errors = [];
 
     // Check if there are any stored errors in a global variable or a session
-    if (isset($GLOBALS['wp_surgeon_registration_errors'])) {
-        $errors = $GLOBALS['wp_surgeon_registration_errors'];
+    if (isset($GLOBALS['extrachill_registration_errors'])) {
+        $errors = $GLOBALS['extrachill_registration_errors'];
     }
 
     // Return the errors
@@ -353,7 +353,7 @@ function wp_surgeon_get_registration_errors() {
 }
 
 // Function to verify Turnstile response
-function wp_surgeon_verify_turnstile($response) {
+function extrachill_verify_turnstile($response) {
     if ( defined('WP_ENV') && WP_ENV === 'development' ) {
         return true;
     }

@@ -13,26 +13,34 @@ $band_args = array(
     'post_type'      => 'band_profile',
     'post_status'    => 'publish',
     'posts_per_page' => 8, // Show 8 bands on homepage
-    'meta_key'       => '_band_profile_view_count',
-    'orderby'        => array(
-        'meta_value_num' => 'DESC', // Popular bands first
-        'date' => 'DESC'             // Then by recency
-    ),
-    'meta_query'     => array(
-        'relation' => 'OR',
-        array(
-            'key'     => '_band_profile_view_count',
-            'value'   => 0,
-            'compare' => '>'
-        ),
-        array(
-            'key'     => '_band_profile_view_count',
-            'compare' => 'NOT EXISTS'
-        )
-    )
+    'orderby'        => 'date', // Most recent bands first
+    'order'          => 'DESC'
 );
 
 $bands_query = new WP_Query( $band_args );
+
+// Sort bands by forum activity using existing function
+if ( $bands_query->have_posts() ) {
+    $bands = $bands_query->posts;
+    
+    // Sort by forum activity timestamp (most recent first)
+    usort( $bands, function( $a, $b ) {
+        $activity_a = function_exists('bp_get_band_profile_last_activity_timestamp') 
+                     ? bp_get_band_profile_last_activity_timestamp( $a->ID ) 
+                     : get_post_modified_time('U', false, $a->ID);
+        $activity_b = function_exists('bp_get_band_profile_last_activity_timestamp') 
+                     ? bp_get_band_profile_last_activity_timestamp( $b->ID ) 
+                     : get_post_modified_time('U', false, $b->ID);
+        
+        $activity_a = $activity_a ?: 0;
+        $activity_b = $activity_b ?: 0;
+        
+        return $activity_b - $activity_a; // Descending order (most recent first)
+    });
+    
+    // Update the query's posts with sorted array
+    $bands_query->posts = $bands;
+}
 
 if ( $bands_query->have_posts() ) : ?>
 
@@ -61,10 +69,6 @@ if ( $bands_query->have_posts() ) : ?>
                 $genre = get_post_meta( $band_id, '_genre', true );
                 $city = get_post_meta( $band_id, '_local_city', true );
                 
-                // Get recent activity
-                $last_activity = function_exists('bp_get_band_profile_last_activity_timestamp') 
-                                 ? bp_get_band_profile_last_activity_timestamp( $band_id ) 
-                                 : get_post_modified_time('U', false, $band_id);
                 
                 // Get latest forum topic
                 $latest_topic_title = '';
@@ -114,12 +118,6 @@ if ( $bands_query->have_posts() ) : ?>
                                 <p class="band-homepage-genre"><?php echo esc_html( $genre ); ?></p>
                             <?php endif; ?>
                             
-                            <?php if ( $last_activity ) : ?>
-                                <p class="band-homepage-activity">
-                                    <i class="fa-regular fa-clock"></i>
-                                    <?php echo esc_html( human_time_diff( $last_activity ) ); ?> ago
-                                </p>
-                            <?php endif; ?>
                             
                             <?php if ( $view_count > 0 ) : ?>
                                 <p class="band-homepage-views">

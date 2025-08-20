@@ -1,6 +1,6 @@
 <?php
 //emails for registratiion to admin and new users
-function wp_surgeon_notify_admin_new_user($user_id) {
+function extrachill_notify_admin_new_user($user_id) {
     $user_data = get_userdata($user_id);
     $username = $user_data->user_login;
     $email = $user_data->user_email;
@@ -18,7 +18,7 @@ function wp_surgeon_notify_admin_new_user($user_id) {
     wp_mail($admin_email, $subject, $message);
 }
 
-add_action( 'user_register', 'wp_surgeon_notify_admin_new_user', 10, 1 );
+add_action( 'user_register', 'extrachill_notify_admin_new_user', 10, 1 );
 
 function send_welcome_email_to_new_user($user_id) {
     $user_data = get_userdata($user_id);

@@ -405,7 +405,6 @@ input[type=submit],
 	background-color: var(--button-bg);
 }
 
-.bbp-reply-author .extrachill-follow-button,
 .bbp-reply-author .extrachill-edit-profile-button,
 .bbp-reply-author .extrachill-non-logged-in-follow-button,
 .settings-button {
@@ -419,7 +418,6 @@ a.settings-button {
 	background-color: var(--button-bg);
 }
 
-.extrachill-follow-button,
 .extrachill-edit-profile-button {
 	background-color: var(--button-bg);
 }
@@ -627,6 +625,12 @@ span.bbp-admin-links {
  
 ol, ul {
 	margin: 0 0 1.5em 1em;
+}
+
+/* Override list margins in navigation menu */
+.main-navigation #primary-menu ol,
+.main-navigation #primary-menu ul {
+	margin: 0;
 }
  
 .settings-button:hover {
@@ -1117,8 +1121,9 @@ h1.site-title, p.site-title {
  
 /* Stick the header to the top, with a dark background */
 #masthead {
+	position: relative;
 	top: 0;
-	z-index: 1000;
+	z-index: 1001;
 	background-color: var(--header-bg);
 }
  
@@ -1371,16 +1376,29 @@ svg.menu-toggle {
 }
  
 /* === Flyout Menu: Hidden by Default === */
+
+/* Ensure main-navigation has positioning context */
+.main-navigation {
+	position: relative;
+}
  
 .main-navigation #primary-menu {
-	position: absolute;
-	top: 100%; /* Directly below the header */
+	position: fixed;
+	top: 60px; /* Start below header */
 	left: 0;
 	width: 100%;
-	z-index: 999999;
+	height: calc(100vh - 60px); /* Subtract header height */
+	z-index: 1000;
 	overflow-y: auto;
 	transform: translateX(-100%);
 	transition: transform 0.6s ease-in-out;
+	padding-top: 0; /* Remove padding since we're starting below header */
+}
+
+/* Account for admin bar when present */
+.admin-bar .main-navigation #primary-menu {
+	top: 92px; /* Header + admin bar height */
+	height: calc(100vh - 92px);
 }
  
 #primary-menu.menu-open {
@@ -1398,9 +1416,15 @@ svg.menu-toggle {
 	transition: transform 0.6s ease-in-out;
 	background-color: var(--header-bg);
 }
+
+.search-section.menu-open,
+.menu-items.menu-open {
+	transform: translateX(0);
+}
  
 .menu-items {
-	height: 100vh;
+	height: calc(100vh - 60px); /* Subtract header height */
+	overflow-y: auto;
 }
  
 body.menu-open {
@@ -1647,7 +1671,6 @@ body.menu-open {
 }
  
 /* Profile & Follow Buttons */
-.extrachill-follow-button,
 .extrachill-edit-profile-button,
 .extrachill-view-profile-button,
 .extrachill-non-logged-in-follow-button,

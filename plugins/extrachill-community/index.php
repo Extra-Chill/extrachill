@@ -11,8 +11,6 @@
 
 get_header(); ?>
 
-<div class="site-content">
-	<div class="container">
 		<main class="main-content">
 			<?php if (have_posts()) : ?>
 				<?php while (have_posts()) : the_post(); ?>
@@ -96,7 +94,5 @@ get_header(); ?>
 		</main>
 
 		<?php get_sidebar(); ?>
-	</div>
-</div>
 
 <?php get_footer(); ?>

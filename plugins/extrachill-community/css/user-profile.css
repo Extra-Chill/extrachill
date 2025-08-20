@@ -111,31 +111,17 @@
     color: var(--muted-text);
 }
 
-/* Follow Button */
-.bbp-user-profile .bbp-user-follow-button-area {
+/* User Actions Area */
+.bbp-user-profile .bbp-user-actions-area {
     position: absolute;
     top: 2rem;
     right: 2rem;
 }
 
-.bbp-user-profile .bbp-user-follow-button-area button.extrachill-follow-button {
-    background-color: var(--button-bg);
-    color: #fff;
-    border-radius: 5px;
-    border: none;
-    cursor: pointer;
-    transition: background-color 0.2s ease-in-out;
-    padding: 5px 10px;
-    font-size: 14px;
-}
 
-.bbp-user-profile .bbp-user-follow-button-area button.extrachill-follow-button:hover {
-    background-color: var(--button-hover-bg);
-}
-
-/* Styling for <a> tags as buttons within the follow button area */
-.bbp-user-profile .bbp-user-follow-button-area a.settings-button,
-.bbp-user-profile .bbp-user-follow-button-area a.extrachill-edit-profile-button {
+/* Styling for <a> tags as buttons within the user actions area */
+.bbp-user-profile .bbp-user-actions-area a.settings-button,
+.bbp-user-profile .bbp-user-actions-area a.extrachill-edit-profile-button {
     background-color: var(--button-bg);
     color: #fff;
     border-radius: 5px;
@@ -150,8 +136,8 @@
     vertical-align: middle;
 }
 
-.bbp-user-profile .bbp-user-follow-button-area a.settings-button:hover,
-.bbp-user-profile .bbp-user-follow-button-area a.extrachill-edit-profile-button:hover {
+.bbp-user-profile .bbp-user-actions-area a.settings-button:hover,
+.bbp-user-profile .bbp-user-actions-area a.extrachill-edit-profile-button:hover {
     background-color: var(--button-hover-bg);
     color: #fff;
 }
@@ -314,9 +300,9 @@
         text-align: center;
     }
 
-    /* Follow button shouldn't be absolute in narrow view:
+    /* User actions button shouldn't be absolute in narrow view:
        move it under the name area to prevent overlap */
-    .bbp-user-profile .bbp-user-follow-button-area {
+    .bbp-user-profile .bbp-user-actions-area {
         position: static;
         margin-top: 1rem;
         margin-bottom: 1rem;

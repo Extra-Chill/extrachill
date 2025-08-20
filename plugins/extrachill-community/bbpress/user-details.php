@@ -101,7 +101,7 @@ wp_reset_postdata(); // Reset the global post object
             <b>Rank:</b> <?php printf(esc_html__('%s', 'bbpress'), wp_surgeon_display_user_rank(bbp_get_displayed_user_id())); ?>
             | <b>Points:</b> <?php printf(esc_html__('%s', 'bbpress'), wp_surgeon_display_user_points(bbp_get_displayed_user_id())); ?>
         </p>
-        <div class="bbp-user-follow-button-area">
+        <div class="bbp-user-actions-area">
                 <?php if ( bbp_get_displayed_user_id() == get_current_user_id() ) : ?>
                     <a href="/settings" class="settings-button"><?php esc_html_e('Settings', 'bbpress'); ?></a>
                 <a href="<?php echo esc_url( bbp_get_user_profile_edit_url( bbp_get_displayed_user_id() ) ); ?>" class="extrachill-edit-profile-button" style="margin-left: 10px;"><?php esc_html_e('Edit Profile', 'extra-chill-community'); ?></a>

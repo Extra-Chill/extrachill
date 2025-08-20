@@ -1,12 +1,12 @@
 <?php
 
 // Function to calculate total points for a user, including main site comment points + articles
-function wp_surgeon_get_user_total_points($user_id) {
+function extrachill_get_user_total_points($user_id) {
     // Check if total points are cached
     $cached_total_points = get_transient('user_points_' . $user_id);
     if (false !== $cached_total_points) {
         // Update user meta just in case it was missed, but return cached value
-        update_user_meta($user_id, 'wp_surgeon_total_points', $cached_total_points);
+        update_user_meta($user_id, 'extrachill_total_points', $cached_total_points);
         return $cached_total_points;
     }
 
@@ -32,7 +32,7 @@ function wp_surgeon_get_user_total_points($user_id) {
 
     // Get total upvotes (assuming wp_surgeon_get_user_total_upvotes handles its own caching or is fast)
     // If wp_surgeon_get_user_total_upvotes is slow, it should also be cached similarly.
-    $total_upvotes = wp_surgeon_get_user_total_upvotes($user_id) ?? 0;
+    $total_upvotes = extrachill_get_user_total_upvotes($user_id) ?? 0;
     $upvote_points = floatval($total_upvotes) * 0.5;
 
     $follower_points = 0;

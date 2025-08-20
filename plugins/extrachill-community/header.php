@@ -122,7 +122,8 @@
   <?php
     if ( is_user_logged_in() ) {
       // Logged-in: output notification bell and user avatar.
-      wp_surgeon_add_notification_bell_icon();
+      // Call the function with dummy parameters since it echoes directly
+      wp_surgeon_add_notification_bell_icon('', (object)array());
     } else {
       // Not logged in: output login button.
       echo '<div class="auth-buttons">';
