@@ -4,10 +4,10 @@
 $GLOBALS['extrachill_notifications_cache'] = null;
 
 /**
- * Add notification bell icon and user avatar
+ * Add notification bell icon and user avatar to navigation menu
  */
-add_action('generate_menu_bar_items', 'wp_surgeon_add_notification_bell_icon');
-function wp_surgeon_add_notification_bell_icon() {
+add_filter('wp_nav_menu_items', 'wp_surgeon_add_notification_bell_icon', 10, 2);
+function wp_surgeon_add_notification_bell_icon( $items, $args ) {
     global $extrachill_notifications_cache; // Access global cache
 
     if (is_user_logged_in()) {
