@@ -2,9 +2,8 @@
 /**
  * Template for displaying single newsletter posts.
  *
- * @package ThemeGrill
- * @subpackage ColorMag
- * @since ColorMag 1.0
+ * @package ExtraChill
+ * @since 1.0
  */
 
 get_header(); ?>

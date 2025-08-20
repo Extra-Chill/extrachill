@@ -1,259 +1,172 @@
----
-description: 
-globs: 
-alwaysApply: false
----
-# Project Architecture
+# ExtraChill Theme - ColorMag Pro Conversion Analysis
 
-**Last Updated:** {current_date}
+## Current Theme Status
 
-## Introduction
+The ExtraChill theme has been significantly converted from ColorMag Pro, but substantial vestiges remain. This document provides a detailed breakdown of what has been converted and what still needs to be addressed.
 
-This project is a custom WordPress theme, originally based on ColorMag Pro but has since been heavily customized and is undergoing a transition to a fully bespoke theme. The primary goal is to provide a unique and feature-rich experience for the Extra Chill community, including content display, event management, and community engagement.
+## Theme Identity & Branding
 
-## Custom Code Loading
+### ✅ COMPLETED
+- **Theme Name**: Changed from "ColorMag Pro" to "ExtraChill" in `style.css`
+- **Author**: Updated to "Chubes" 
+- **Text Domain**: Changed from "colormag" to "extrachill"
+- **Version**: Updated to 69.57 (custom versioning)
 
-The theme employs a structured approach to loading custom PHP code:
+### 🔄 PARTIALLY COMPLETED
+- **Theme Documentation**: Most files still contain ColorMag Pro references in headers
+- **Customizer**: Replaced with `extrachill-customizer.php` but some ColorMag options remain
 
-1.  **`extrachill-custom/` Directory:**
-    *   The `functions.php` file includes a function `extrachill_include_custom_files()` (hooked to `after_setup_theme`) that iterates through the `wp-content/themes/colormag-pro/extrachill-custom/` directory and uses `require_once` for all `.php` files found directly within it.
-    *   Files: `functions.php` (lines ~248-259)
+## Core Functionality Analysis
 
-2.  **`extrachill-custom/community-integration/` Subdirectory:**
-    *   A dedicated function `include_community_integration_files()` (hooked to `after_setup_theme`) specifically includes all `.php` files from `wp-content/themes/colormag-pro/extrachill-custom/community-integration/` using `include_once`.
-    *   Files: `functions.php` (lines ~262-275)
+### ✅ MAJOR CONVERSIONS COMPLETED
 
-3.  **`extrachill-custom/events-scraping/` Subdirectory (Recursive):**
-    *   A function `include_event_scrapers_recursively($directory)` is defined in `functions.php`.
-    *   This function is called with `$scrapersDirPath = get_template_directory() . '/extrachill-custom/events-scraping';`.
-    *   It recursively iterates through the `extrachill-custom/events-scraping/` directory and its subdirectories, using `require_once` for all `.php` files.
-    *   Files: `functions.php` (lines ~490-513)
+#### 1. **Custom Features Added**
+- **Community Integration**: Complete forum/community integration system
+- **Festival Wire**: Custom post type and functionality
+- **Custom Taxonomies**: Artist, Venue, Festival, Location taxonomies
+- **Newsletter System**: Custom newsletter functionality
+- **Custom CSS Architecture**: Modular CSS with `root.css`, `home.css`, `archive.css`, etc.
+- **Custom JavaScript**: Modern JS architecture with dynamic loading
 
-## Major Features
+#### 2. **ColorMag Dependencies Removed**
+- **Admin Directory**: Completely removed (`COLORMAG_ADMIN_DIR`)
+- **Widgets Directory**: Completely removed (`COLORMAG_WIDGETS_DIR`) 
+- **Meta Boxes**: Removed in favor of template-based layouts
+- **Header Functions**: Replaced with modern templates
+- **Options Migration**: Removed `colormag_options_migrate` function
 
-### 1. Community (bbPress) Integration
+#### 3. **Modern WordPress Integration**
+- **Gutenberg Support**: Full block editor support
+- **WooCommerce Integration**: Custom WooCommerce styling
+- **REST API Support**: Custom taxonomies support REST API
+- **Modern Enqueuing**: Dynamic versioning with `filemtime()`
 
-This feature connects the main WordPress site with a bbPress forum presumably hosted at `community.extrachill.com`. The integration focuses on shared user sessions and linking WordPress comments to forum profiles.
+### 🔄 PARTIALLY CONVERTED
 
-*   **Shared User Session & Details:**
-    *   The `community-session.php` file handles recognizing users logged into the community forum.
-    *   It checks for a cookie named `ecc_user_session_token`.
-    *   If the token exists, it calls `get_user_details_directly()` which makes an API request to `https://community.extrachill.com/wp-json/extrachill/v1/user_details` (authenticated with the token as a Bearer token) to fetch user details (username, email, userID).
-    *   User details are cached as a WordPress transient (`user_details_` + md5 of token) for 180 days to minimize API calls.
-    *   Preloaded user details are made available to the frontend via `window.preloadedUserDetails` JavaScript variable (output in `wp_footer`).
-    *   Key Files: `extrachill-custom/community-integration/community-session.php`
+#### 1. **Core Functions (`functions.php`)**
+**Remaining ColorMag Elements:**
+- Function name: `colormag_setup()` (line 41) - should be `extrachill_setup()`
+- Constants: `COLORMAG_PARENT_DIR`, `COLORMAG_CHILD_DIR`, `COLORMAG_INCLUDES_DIR` (lines 108-111)
+- Function calls: `colormag_setup()` (line 33)
 
-*   **WordPress Comments Linked to Forum Users:**
-    *   The `community-comments.php` file enhances the WordPress commenting system.
-    *   **Comment Submission:** A REST API endpoint `wp-json/extrachill/v1/community-comment` (POST) allows submitting comments.
-        *   It accepts `post_id`, `comment`, `community_user_id`, `author` (user_nicename from community), `email` (from community), and `comment_parent`.
-        *   Standard WordPress comments are created, with additional comment meta: `community_user_id`, `user_nicename`, `user_email`.
-    *   **Comment Author Link:** The `get_comment_author_link` filter is modified by `custom_comment_author_link_with_preg_replace()`. For comments posted after February 9, 2024, the author's link points to their profile on the community forum: `https://community.extrachill.com/u/{username}`.
-    *   **Fetching User Comments:**
-        *   REST API endpoint `wp-json/extrachill/v1/user-comments/{community_user_id}` (GET) fetches all comments by a given community user ID.
-        *   REST API endpoint `wp-json/extrachill/v1/user-comments-count/{community_user_id}` (GET) fetches the count of comments by a given community user ID.
-    *   Key Files: `extrachill-custom/community-integration/community-comments.php`, `js/community-comments.js` (enqueued in `functions.php` for single posts, line ~408)
+**Status**: Medium priority - these are core function names that should be updated
 
-*   **Ad-Free Purchase Check:**
-    *   The `community-session.php` file contains `is_user_ad_free()`.
-    *   This function checks if a user (identified by their community username, fetched via the session token) has an entry in a custom database table `{$wpdb->prefix}extrachill_ad_free`. This indicates they have purchased ad-free access.
-    *   Key Files: `extrachill-custom/community-integration/community-session.php`, `extrachill-custom/ad-free-purchase.php` (likely handles the purchase/table update logic - TBC).
+#### 2. **AJAX System (`inc/ajax.php`)**
+**Current State**: Fully functional but uses ColorMag naming
+- Function: `extrachill_get_ajax_results()` ✅ (correctly named)
+- Action hooks: `get_ajax_results` ✅ (generic, not ColorMag-specific)
 
-*   **Deprecated Article Sync to Forum:**
-    *   The file `extrachill-custom/community-integration/sync-articles-to-forum.php` contains logic to sync new WordPress posts to the community forum by calling an API endpoint (`https://community.extrachill.com/wp-json/extrachill/v1/sync-article`) with hardcoded credentials.
-    *   **This functionality is marked as DEPRECATED at the top of the file, and the `wp_insert_post` hook that triggers it is commented out.**
-    *   It included a hardcoded author ID mapping (`map_author_id_to_community_id()`).
-    *   It also had a function `insert_forum_link_into_post` (hooked to `extrachill_insert_forum_link`) to display a CTA box on posts, linking to the forum topic. This hook is only added within the deprecated file, suggesting this CTA is also inactive.
-    *   Key Files: `extrachill-custom/community-integration/sync-articles-to-forum.php`
+**Status**: Low priority - working correctly, just needs cleanup
 
-*   **Other Community Integration Files (To Be Investigated):**
-    *   `extrachill-custom/community-integration/forum-search.php`
-    *   `extrachill-custom/community-integration/extrachill-upvotes.php`
-    *   `extrachill-custom/community-integration/recent-activity-feed.php`
-    *   `extrachill-custom/community-integration/extrachill-event-submission.php` (Possibly related to The Events Calendar)
+#### 3. **Load More JavaScript (`js/loadmore.js`)**
+**Remaining ColorMag Elements:**
+- Global variables: `colormag_script_vars`, `colormag_load_more`
+- References to ColorMag-specific variables
 
-### 2. Event Importing & Management
+**Status**: High priority - these are broken references that need fixing
 
-This system handles importing events from various sources (local venue scrapers, Ticketmaster, DICE.FM) and posting them into The Events Calendar plugin.
+#### 4. **Customizer JavaScript (`js/customizer.js`)**
+**Remaining ColorMag Elements:**
+- 50+ ColorMag customizer options (lines 25-608)
+- All `colormag_*` customizer settings
+- ColorMag-specific styling and layout options
 
-*   **Current Automated Import Process (via WP-Cron):**
-    *   A daily WP-Cron job (`import_daily_events_hook`) triggers `extra_chill_automated_event_import()`.
-    *   This function sequentially calls:
-        *   `post_aggregated_events_to_calendar()`: For events scraped from local venue websites (details likely in `extrachill-custom/events-scraping/charleston-sc/` and `extrachill-custom/events-scraping/collect-scraped-events.php`).
-        *   `post_ticketmaster_events_to_calendar()`: For events from Ticketmaster API.
-        *   `post_dice_fm_events_to_calendar()`: For events from DICE.FM API (specifically noted for Austin).
-    *   Imports are logged to a WordPress option (`event_import_logs`) via `log_import_event()`.
-    *   Key Files: `extrachill-custom/events-scraping/event-import-cron.php`, `extrachill-custom/events-scraping/ticketmaster-event-imports.php`, `extrachill-custom/events-scraping/dice-fm-event-imports.php`, `extrachill-custom/events-scraping/post-scraped-events.php`, `extrachill-custom/events-scraping/import-logger.php`.
+**Status**: High priority - this file is almost entirely ColorMag-specific
 
-*   **Manual Import Admin Page:**
-    *   An admin page ("Post Events", slug: `post-events`) allows manual triggering of the same import functions (`post_aggregated_events_to_calendar`, `post_ticketmaster_events_to_calendar`, `post_dice_fm_events_to_calendar`).
-    *   It allows specifying the maximum number of events to import and, for Ticketmaster, selecting a location.
-    *   Displays the last 5 import logs from the `event_import_logs` option.
-    *   Key Files: `extrachill-custom/events-scraping/admin-page.php`.
+### ❌ NOT CONVERTED
 
-*   **Event Data Handling (Current):**
-    *   Events are posted to The Events Calendar, likely using its API or functions.
-    *   Helper files like `extrachill-custom/events-scraping/helpers.php`, `extrachill-custom/events-scraping/locations-on-import.php`, and `extrachill-custom/events-scraping/calendar-filter.php` likely assist in data processing and display.
+#### 1. **Template Files**
+**Files with ColorMag Headers:**
+- `navigation.php` (line 5-6)
+- `sidebar.php` (line 5-6) 
+- `page.php` (line 5-6)
+- `single.php` (line 5-6)
+- `taxonomy-*.php` files (line 5)
+- `content.php` (line 5-6)
+- `content-newsletter.php` (line 5-6)
+- `content-page.php` (line 5-6)
+- `comments.php` (line 6, 10-11)
+- `404.php` (line 5-6)
+- `search.php` (line 5-6)
+- `index.php` (line 5-6)
+- `archive-festival_wire.php` (line 6)
+- `single-festival_wire.php` (line 6)
+- `single-newsletter.php` (line 5-6)
 
-*   **Planned Refactor (`event-import-refactor-plan.md`):**
-    *   An extensive refactoring plan exists in `extrachill-custom/events-scraping/event-import-refactor-plan.md` (dated May 2, 2025, currently unstarted).
-    *   **Goals:** Improve reliability, maintainability, scalability, error reporting, and move towards potentially replacing The Events Calendar.
-    *   **Key Changes Proposed:**
-        *   Replace WP-Cron with Action Scheduler for background processing.
-        *   Implement detailed logging to a custom database table (`extrachill_import_logs`).
-        *   Create an admin log viewer for these detailed logs.
-        *   Define a standardized event data structure (`Extrachill_Event_Data`).
-        *   Implement dynamic Location and Venue management (likely CPTs).
-        *   Refactor individual scraping/fetching modules to use dynamic data and return standardized event objects.
-        *   Create a central `Extrachill_Event_Poster` service to handle posting to The Events Calendar (or a future system).
-        *   Develop an Import Orchestrator to manage the overall process.
-        *   Implement an admin settings page for API keys and import configurations.
-        *   Improve duplicate checking logic.
-    *   This refactor is a significant undertaking aimed at modernizing the event import system.
+**Status**: Low priority - these are just documentation headers
 
-### 3. WooCommerce Customizations
+#### 2. **Language Files**
+**All `.po` files contain ColorMag references:**
+- Project-Id-Version: "Themes - ColorMag Pro"
+- All 15+ language files need updating
 
-The theme integrates with WooCommerce and applies several customizations for display and performance.
+**Status**: Low priority - translation files only
 
-*   **Theme Support:**
-    *   `add_theme_support( 'woocommerce' );` is declared in `functions.php` (line ~17).
+#### 3. **Configuration Files**
+**`wpml-config.xml`:**
+- Contains ColorMag-specific theme mods (lines 2-9)
+- `colormag_logo`, `colormag_favicon_upload`, etc.
 
-*   **Template Overrides:**
-    *   The `woocommerce/` directory in the theme root contains custom templates to modify the appearance of WooCommerce pages:
-        *   `woocommerce/archive-product.php`
-        *   `woocommerce/single-product.php`
-        *   `woocommerce/content-single-product.php`
+**Status**: Medium priority - may affect WPML functionality
 
-*   **Secondary Header with Product Categories:**
-    *   The file `extrachill-custom/woocommerce-second-header.php` adds a secondary header navigation menu below the main header on WooCommerce pages (shop, cart, checkout, product, category, tag pages).
-    *   This menu displays links to product categories, ordered by the number of products in each category.
-    *   This functionality is hooked into a custom action hook: `extrachill_after_header`.
-    *   Key Files: `extrachill-custom/woocommerce-second-header.php`
+#### 4. **Readme Files**
+**`readme.txt`:**
+- Still contains ColorMag Pro branding (lines 1-2, 31-32, 39, 79)
 
-*   **Conditional Asset Loading:**
-    *   The function `extrachill_conditionally_dequeue_woocommerce_assets()` in `functions.php` (lines ~751-780) optimizes asset loading.
-    *   On non-WooCommerce pages (i.e., pages that are not `is_woocommerce()`, `is_cart()`, `is_checkout()`, `is_account_page()`, or `is_product()`), it dequeues most WooCommerce CSS and JavaScript files.
-    *   It specifically preserves the `wc-cart-fragments` script to ensure the mini-cart in the header functions correctly site-wide.
-    *   This is hooked to `wp_enqueue_scripts` with priority 99.
-    *   Key Files: `functions.php`
+**Status**: Low priority - documentation only
 
-*   **Ad-Free Purchase Integration:**
-    *   This feature allows users to purchase an "Ad-Free License" (a specific WooCommerce product, ID `90123`) to hide advertisements on the site.
-    *   **Frontend (Product & Cart):**
-        *   When viewing product ID `90123`, a "Community Username" input field is displayed (`ecc_add_community_username_field`). If the user is recognized via the `ecc_user_session_token` cookie (see Community Integration), this field is pre-filled.
-        *   The entered username is saved as cart item data (`ecc_save_username_to_cart`) and order item meta (`ecc_add_username_to_order_item`).
-        *   The username is displayed in the cart and can be edited there (`ecc_display_username_cart`, `ecc_cart_username_input`, `ecc_save_username_cart_on_cart`).
-        *   Validation ensures the username is provided before checkout for this product (`ecc_validate_username_cart`).
-    *   **Order Processing:**
-        *   When an order containing product ID `90123` is marked as `completed` (`woocommerce_order_status_completed` hook), the `ecc_handle_ad_free_purchase` function is triggered.
-        *   This function retrieves the `community_username` from the order item meta.
-        *   It then inserts or updates a record in the custom database table `{$wpdb->prefix}extrachill_ad_free` with the community username, purchase date, and order ID.
-    *   **Order Auto-Completion:**
-        *   If an order contains *only* the ad-free product and payment is complete (`woocommerce_payment_complete` hook, status `processing`), the `ecc_auto_complete_ad_free_order` function automatically changes the order status to `completed`.
-    *   **Ad Display Logic:**
-        *   The `is_user_ad_free()` function (in `extrachill-custom/community-integration/community-session.php`) checks this `extrachill_ad_free` table (using the username obtained via the community session token) to determine if ads should be hidden for the current user.
-    *   Key Files: `extrachill-custom/ad-free-purchase.php`, `extrachill-custom/community-integration/community-session.php` (for `is_user_ad_free()` and `get_user_details_directly()`).
+## Priority Assessment
 
-### 4. Newsletter System (with Sendy Integration)
+### 🔥 HIGH PRIORITY (Critical Functionality)
+1. **Load More JavaScript** - Broken references to `colormag_script_vars`
+2. **Customizer JavaScript** - 50+ ColorMag options that don't exist
+3. **Core Function Names** - `colormag_setup()` should be `extrachill_setup()`
 
-This feature provides a custom post type for newsletters and integrates with a self-hosted Sendy instance (at `mail.extrachill.com/sendy/`) for email campaign management.
+### 🟡 MEDIUM PRIORITY (Functionality Impact)
+1. **WPML Configuration** - May affect multilingual functionality
+2. **Constants Cleanup** - `COLORMAG_*` constants should be `EXTRACHILL_*`
 
-*   **Custom Post Type `newsletter`:**
-    *   Registered via `create_newsletter_post_type()`.
-    *   Public, with archive at `/newsletters`.
-    *   Supports standard post features (title, editor, author, thumbnail, excerpt, comments).
-    *   Key Files: `extrachill-custom/newsletter.php` (lines ~2-17)
+### 🟢 LOW PRIORITY (Cosmetic/Documentation)
+1. **Template File Headers** - Just documentation comments
+2. **Language Files** - Translation metadata only
+3. **Readme Files** - Documentation only
 
-*   **Sendy Campaign Management:**
-    *   **Email Content Preparation (`prepare_email_content`):**
-        *   Takes the newsletter post content.
-        *   Applies `the_content` filter.
-        *   Performs several `preg_replace` operations to:
-            *   Make images responsive (`max-width:100%`).
-            *   Replace YouTube iframe embeds with linked thumbnail images.
-            *   Add inline styles for various HTML elements (figures, captions, paragraphs, headings, lists) to improve email client compatibility.
-        *   Prepends an Extra Chill logo.
-        *   Wraps the content in a basic HTML email template, including an unsubscribe link.
-    *   **Manual Push to Sendy (Meta Box):**
-        *   An "Sendy Integration" meta box is added to the `newsletter` CPT edit screen (`add_sendy_meta_box`).
-        *   A "Push to Sendy" button triggers an AJAX call (`push_to_sendy_ajax`).
-        *   The AJAX handler prepares the email content and calls `send_campaign_to_sendy()`.
-    *   **Sendy API Interaction (`send_campaign_to_sendy`):**
-        *   Uses cURL to interact with the Sendy API (endpoints: `/api/campaigns/status.php`, `/api/campaigns/update.php`, `/api/campaigns/create.php`).
-        *   **A hardcoded API key (`z7RZLH84oEKNzMvFZhdt`) is used.**
-        *   Hardcoded Sendy list IDs are also used (e.g., `L3SqZJUj8NY892RnvQOvMzLA,...`).
-        *   Checks if a campaign exists (based on `_sendy_campaign_id` post meta) and either updates it or creates a new one.
-        *   Saves the Sendy campaign ID to `_sendy_campaign_id` post meta if a new campaign is created.
-    *   An automatic sync function `sync_newsletter_to_sendy` exists but does not appear to be hooked to any action like `save_post` in the provided file.
-    *   Key Files: `extrachill-custom/newsletter.php` (lines ~19-255)
+## Recommended Action Plan
 
-*   **Frontend Subscription Forms:**
-    *   The file contains multiple AJAX handlers for different newsletter signup forms:
-        *   `extrachill_submit_newsletter_form()` (general form, nonce: `newsletter_nonce`, Sendy list ID: `D763iZceU7My0uwjlBwsTC8A`).
-        *   `submit_newsletter_popup_form()` (for a popup, enqueues `newsletter-popup.js`).
-        *   `extrachill_subscribe_to_sendy_home()` (for a homepage form).
-    *   These handlers also use the hardcoded Sendy API key.
-    *   Key Files: `extrachill-custom/newsletter.php` (lines ~257-end), `js/newsletter-popup.js` (TBC).
+### Phase 1: Critical Fixes (Immediate)
+1. **Fix Load More JavaScript** - Replace `colormag_script_vars` with proper variables
+2. **Update Customizer JS** - Remove all ColorMag customizer options
+3. **Rename Core Functions** - `colormag_setup()` → `extrachill_setup()`
 
-*   **Shortcode `[recent_newsletters]`:**
-    *   Displays a list of recent newsletter posts.
-    *   Key Files: `extrachill-custom/newsletter.php` (lines ~357-400)
+### Phase 2: Core Cleanup (Next)
+1. **Update Constants** - `COLORMAG_*` → `EXTRACHILL_*`
+2. **Fix WPML Config** - Update theme mod references
+3. **Clean AJAX System** - Remove any remaining ColorMag references
 
-### 5. General Theme Customizations & Utilities (Primarily in `functions.php`)
+### Phase 3: Documentation (Final)
+1. **Update Template Headers** - Remove ColorMag references
+2. **Update Language Files** - Fix translation metadata
+3. **Update Readme** - Complete branding conversion
 
-The main `functions.php` file, along with files in `inc/`, contains numerous smaller customizations, helper functions, and integrations:
+## Estimated Work Remaining
 
-*   **Core Functionality & Setup:**
-    *   Standard theme supports (post thumbnails, nav menus, custom logo, etc.).
-    *   Constants for theme directories and URLs.
-    *   Loading of include files: `inc/functions.php`, `inc/header-functions.php`, `inc/customizer.php`, `inc/ajax.php`, `inc/admin/meta-boxes.php`, `inc/widgets/widgets.php`.
-    *   AJAX handlers for "Rapper Name Generator" and "Band Name Generator" (`rapper_name_generator_ajax_handler`, `band_name_generator_ajax_handler`).
+**High Priority Items**: 3 files, ~2-3 hours
+**Medium Priority Items**: 2-3 files, ~1-2 hours  
+**Low Priority Items**: 20+ files, ~2-3 hours
 
-*   **Content & Display:**
-    *   Modifying `the_content` to remove specific margins and add `target="_blank"` to external links.
-    *   Custom Instagram embed handler supporting profile embeds.
-    *   Functionality to add `data-skip-lazy="true"` to the first image in post content (WP Rocket compatibility).
-    *   Custom Walker Nav Menu (`Custom_Walker_Nav_Menu`) to add SVG submenu indicators.
-    *   Custom favicon function.
-    *   Adding specific body classes to certain templates.
-    *   Custom shortcodes or functions for displaying specific content (e.g., artist dropdowns - `wp_innovator_dropdown_menu`).
+**Total Estimated Time**: 5-8 hours to complete full conversion
 
-*   **Scripts & Styles:**
-    *   Numerous `wp_enqueue_style` calls for various CSS files (`css/nav.css`, `css/home.css`, `css/root.css`, `css/single-post.css`, `css/archive.css`, `style.css`) with dynamic versioning (`filemtime`).
-    *   Dequeueing of the parent theme's main stylesheet (`colormag-style`).
-    *   Enqueueing of custom JavaScript files: `js/chill-custom.js` (for archives), `js/community-comments.js` (for single posts), `js/lightbox.js` (with CSS and AJAX localization), `js/home.js` (for front page with AJAX localization).
-    *   Conditional dequeueing of Dashicons for non-logged-in users.
+## Current Theme Health
 
-*   **Performance & SEO:**
-    *   Disabling WP Emojis.
-    *   Adding SVG to allowed upload types.
-    *   Filtering search results to include specific post types (post, page, product).
-    *   Noindexing tag archives with few posts.
-    *   Removing Spotify embed aspect ratio class.
+**Overall Status**: 75% converted
+- ✅ Core functionality is custom and working
+- ✅ Major ColorMag dependencies removed
+- ✅ Modern WordPress features implemented
+- 🔄 Some vestigial ColorMag code remains
+- ❌ A few broken references need fixing
 
-*   **Plugin & Third-Party Related:**
-    *   Co-Authors Plus: REST API field registration.
-    *   Tribe Events Aggregator: Skipping image import for Eventbrite events.
-    *   Mediavine: `inject_mediavine_settings()` function (outputs JavaScript).
+The theme is fully functional but would benefit from completing the conversion to remove confusion and potential conflicts.
 
-*   **Admin & Backend:**
-    *   Custom taxonomies registration: `festival`, `artist`, `venue` (lines ~783-862 in `functions.php`).
-    *   `tag-migration-admin.php` is required (functionality TBD).
-    *   Reading progress bar functionality (likely from `extrachill-custom/reading-progress.php` and `js/prognroll/prognroll.js` or `js/readingtime/jquery.readingtime.js`).
-
-*   **Other Files in `extrachill-custom/` (Functionality to be detailed if significant):**
-    *   `lofi-open-mic.php`
-    *   `breadcrumbs.php`
-    *   `recent-posts-in-sidebar.php`
-    *   `city-state-taxonomy.php` (likely part of the CPT/taxonomy setup)
-    *   `dequeue-tribe-events.php` (optimizing The Events Calendar assets)
-    *   `yoast-stuff.php` (customizations for Yoast SEO)
-    *   `location-filter.php` (likely related to event or post filtering by location)
-    *   `contextual-search-excerpt.php`
-    *   `rewrite-rules.php`
-    *   `navigation-functions.php`
-    *   `custom-permalinks-removal.php` (related to a `custom-permalinks.csv` file in root)
-    *   `contact-form.php` (custom contact form logic, possibly replacing a plugin)
     *   `bandcamp-embeds.php`
     *   `log-404-errors.php`
 

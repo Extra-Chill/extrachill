@@ -4,7 +4,8 @@
  *
  * @link https://developer.wordpress.org/themes/basics/template-hierarchy/#single-post
  *
- * @package ColorMag Pro
+ * @package ExtraChill
+ * @since 1.0
  */
 
 get_header(); ?>
@@ -23,46 +24,40 @@ get_header(); ?>
 			<article id="post-<?php the_ID(); ?>" <?php post_class( array( 'festival-wire-single-post', 'single-post' ) ); ?>>
 				<header class="entry-header">
 					<?php
-					// Display categories and tags in a flex container
-					echo '<div class="festival-badges">';
+					// Display all taxonomies in a unified container
+					echo '<div class="taxonomy-badges">';
 					
 					// Display categories as tags
 					$categories = get_the_category();
 					if (!empty($categories)) {
-						echo '<div class="festival-tags">';
 						foreach ($categories as $category) {
 							$cat_slug = sanitize_html_class($category->slug);
 							echo '<a href="' . esc_url(get_category_link($category->term_id)) . '" class="taxonomy-badge category-badge category-' . $cat_slug . '-badge">' . esc_html($category->name) . '</a>';
 						}
-						echo '</div>';
 					}
 
-					// Display festivals if available
-					$festivals = get_the_terms( get_the_ID(), 'festival' );
+					// Get festival taxonomy terms
+					$festivals = get_the_terms(get_the_ID(), 'festival');
 					if ($festivals && !is_wp_error($festivals)) {
-						echo '<div class="post-festivals">';
 						foreach ($festivals as $festival) {
-							$festival_link_classes = 'taxonomy-badge festival-' . esc_attr($festival->slug);
-							echo '<a href="' . esc_url(get_term_link($festival)) . '" class="' . $festival_link_classes . '">' . esc_html($festival->name) . '</a>';
+							$festival_slug = sanitize_html_class($festival->slug);
+							echo '<a href="' . esc_url(get_term_link($festival)) . '" class="taxonomy-badge festival-badge festival-' . $festival_slug . '">' . esc_html($festival->name) . '</a>';
 						}
-						echo '</div>';
 					}
 
-					// Display Location Terms here
-					$locations = get_the_terms( get_the_ID(), 'location' );
+					// Display Location Terms
+					$locations = get_the_terms(get_the_ID(), 'location');
 					if ( $locations && ! is_wp_error( $locations ) ) :
-						echo '<div class="location-badges">'; // Container for locations
 						foreach ( $locations as $location ) :
 							$location_link = get_term_link( $location );
 							if ( ! is_wp_error( $location_link ) ) :
 								$loc_slug = sanitize_html_class( $location->slug );
-								echo '<a href="' . esc_url( $location_link ) . '" class="taxonomy-badge location-badge location-' . $loc_slug . '-badge" rel="tag">' . esc_html( $location->name ) . '</a>';
+								echo '<a href="' . esc_url( $location_link ) . '" class="taxonomy-badge location-badge location-' . $loc_slug . '" rel="tag">' . esc_html( $location->name ) . '</a>';
 							endif;
 						endforeach;
-						echo '</div>'; // Close .location-badges
 					endif;
 
-					echo '</div>'; // .festival-badges
+					echo '</div>'; // .taxonomy-badges
 					
 					// Display the title
 					the_title( '<h1 class="entry-title">', '</h1>' ); 
@@ -95,7 +90,7 @@ get_header(); ?>
 					the_content();
 
 					wp_link_pages( array(
-						'before' => '<div class="page-links">' . esc_html__( 'Pages:', 'colormag-pro' ),
+						'before' => '<div class="page-links">' . esc_html__( 'Pages:', 'extrachill' ),
 						'after'  => '</div>',
 					) );
 					?>
@@ -108,7 +103,7 @@ get_header(); ?>
 					edit_post_link(
 						sprintf(
 							/* translators: %s: Name of current post. Only visible to screen readers. */
-							esc_html__( 'Edit %s', 'colormag-pro' ),
+							esc_html__( 'Edit %s', 'extrachill' ),
 							'<span class="screen-reader-text">' . get_the_title() . '</span>'
 						),
 						'<span class="edit-link">',
@@ -119,36 +114,39 @@ get_header(); ?>
 			</article><!-- #post-<?php the_ID(); ?> -->
 
 			<?php
-			// Related festival wire posts
+			// Related festival wire posts (Cached)
 			$current_post_id = get_the_ID();
-			$current_festivals = get_the_terms($current_post_id, 'festival');
+			$current_festivals = get_the_terms(get_the_ID(), 'festival');
 			
 			if (!empty($current_festivals) && !is_wp_error($current_festivals)) {
-				$related_args = array(
+				$festival_term_id = $current_festivals[0]->term_id;
+				$festival_name = $current_festivals[0]->name;
+				
+				// Get related posts directly
+				$related_posts = get_posts(array(
 					'post_type' => 'festival_wire',
-					'posts_per_page' => 4,
+					'numberposts' => 6,
 					'post__not_in' => array($current_post_id),
 					'tax_query' => array(
 						array(
 							'taxonomy' => 'festival',
 							'field' => 'term_id',
-							'terms' => array($current_festivals[0]->term_id),
-						),
-					),
-					'orderby' => 'date',
-					'order' => 'DESC',
-				);
+							'terms' => $festival_term_id
+						)
+					)
+				));
 				
-				$related_query = new WP_Query($related_args);
-				
-				if ($related_query->have_posts()) {
+				if (!empty($related_posts)) {
 					echo '<div class="related-festival-wire">';
-					$festival_name = $current_festivals[0]->name;
-					echo '<h2 class="related-wire-title">' . sprintf(esc_html__('Related %s News', 'colormag-pro'), $festival_name) . '</h2>';
+					echo '<h2 class="related-wire-title">' . sprintf(esc_html__('Related %s News', 'extrachill'), esc_html($festival_name)) . '</h2>';
 					echo '<div class="festival-wire-grid">';
-					
-					while ($related_query->have_posts()) {
-						$related_query->the_post();
+
+					// Set up global post data for template parts
+					global $post;
+					foreach ($related_posts as $related_post) {
+						$post = $related_post;
+						setup_postdata($post);
+						
 						$related_post_id = get_the_ID();
 						// Collect related post IDs for sidebar exclusion
 						if (!isset($GLOBALS['displayed_posts']) || !is_array($GLOBALS['displayed_posts'])) {
@@ -158,8 +156,8 @@ get_header(); ?>
 							$GLOBALS['displayed_posts'][] = $related_post_id;
 						}
 
-						// Replace the entire <article> block with get_template_part(), using the correct path
-						get_template_part( 'festival-wire/content', 'card' );
+						// Use get_template_part() with correct path
+						get_template_part( 'inc/festival-wire/content', 'card' );
 					}
 					
 					echo '</div>'; // .festival-wire-grid
@@ -176,7 +174,7 @@ get_header(); ?>
 		<div class="festival-wire-tip-form-container">
 			<h2 class="tip-form-title">Have a Festival News Tip?</h2>
 			<p class="tip-form-description">Heard something exciting about an upcoming festival? Drop us a tip, and we'll check it out!</p>
-			<?php require get_template_directory() . '/festival-wire/festival-tip-form.php'; ?>
+			<?php require get_template_directory() . '/inc/festival-wire/festival-tip-form.php'; ?>
 		</div>
 
 		<!-- Back to Archive Button -->

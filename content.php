@@ -2,14 +2,14 @@
 /**
  * The template used for displaying post content in archives
  *
- * @package ThemeGrill
- * @subpackage ColorMag
- * @since ColorMag 1.0
+ * @package ExtraChill
+ * @since 1.0
  */
 
 $featured_image_size = 'medium_large'; // Using WordPress' medium_large size for better image quality.
 
-$locations = get_the_terms( get_the_ID(), 'location' );
+// Get location taxonomy terms
+$locations = get_the_terms(get_the_ID(), 'location');
 $location_classes = '';
 if ( ! is_wp_error( $locations ) && ! empty( $locations ) ) {
     foreach ( $locations as $location ) {
@@ -33,11 +33,20 @@ if ( ! is_wp_error( $locations ) && ! empty( $locations ) ) {
                 echo '<a href="' . esc_url( get_category_link( $cat->term_id ) ) . '" class="taxonomy-badge category-badge category-' . $cat_slug . '-badge">' . esc_html( $cat->name ) . '</a>';
             }
         }
-        $locations = get_the_terms( get_the_ID(), 'location' );
+        // Use cached locations from above
         if ( ! is_wp_error( $locations ) && ! empty( $locations ) ) {
             foreach ( $locations as $location ) {
                 $loc_slug = sanitize_html_class( $location->slug );
                 echo '<a href="' . esc_url( get_term_link( $location ) ) . '" class="taxonomy-badge location-badge location-' . $loc_slug . '">' . esc_html( $location->name ) . '</a>';
+            }
+        }
+        
+        // Get festival taxonomy terms
+        $festivals = get_the_terms(get_the_ID(), 'festival');
+        if ($festivals && !is_wp_error($festivals)) {
+            foreach ($festivals as $festival) {
+                $festival_slug = sanitize_html_class($festival->slug);
+                echo '<a href="' . esc_url(get_term_link($festival)) . '" class="taxonomy-badge festival-badge festival-' . $festival_slug . '">' . esc_html($festival->name) . '</a>';
             }
         }
         ?>
@@ -76,7 +85,10 @@ if ( ! is_wp_error( $locations ) && ! empty( $locations ) ) {
                         ?>
                     </div>
                     <div class="product-price">
-                        <?php echo wc_get_product( get_the_ID() )->get_price_html(); ?>
+                        <?php 
+                        // Use the helper function for safe WooCommerce loading
+                        echo extrachill_get_product_price_html( get_the_ID() );
+                        ?>
                     </div>
                 </span>
             </div>
@@ -105,13 +117,15 @@ if ( ! is_wp_error( $locations ) && ! empty( $locations ) ) {
                 ?>
             </div>
             <div class="woocommerce add-to-cart-button">
-                <?php woocommerce_template_loop_add_to_cart(); ?>
+                <?php 
+                // Use the helper function for safe WooCommerce loading
+                extrachill_render_add_to_cart_button();
+                ?>
             </div>
         <?php else : ?>
             <div class="archive-excerpt">
     <?php
-    $content = get_the_content(); // Use full post content
-    $content = preg_replace('/<figcaption\b[^>]*>(.*?)<\/figcaption>/i', '', $content); // Remove <figcaption> elements
+    $content = get_the_excerpt(); // Use excerpt for performance - no need to load full post content
     $search_term = get_query_var('s');
 
     // Use the contextual excerpt for regular posts on search pages

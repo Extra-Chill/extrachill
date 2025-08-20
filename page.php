@@ -2,9 +2,8 @@
 /**
  * Theme Page Section for our theme.
  *
- * @package ThemeGrill
- * @subpackage ColorMag
- * @since ColorMag 1.0
+ * @package ExtraChill
+ * @since 1.0
  */
 
 get_header(); ?>

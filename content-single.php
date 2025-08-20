@@ -1,9 +1,9 @@
 <?php
 /**
+ * Template for displaying single post content
  *
- * @package    ThemeGrill
- * @subpackage ColorMag
- * @since      ColorMag 1.0
+ * @package    ExtraChill
+ * @since      1.0
  */
 
 ?>
@@ -13,7 +13,8 @@
     display_post_breadcrumbs();
     ?>
     <?php
-    $locations = get_the_terms( get_the_ID(), 'location' );
+    // Get location taxonomy terms
+    $locations = get_the_terms(get_the_ID(), 'location');
     $location_classes = '';
     if ( ! is_wp_error( $locations ) && ! empty( $locations ) ) {
         foreach ( $locations as $location ) {
@@ -49,7 +50,7 @@
                         echo '<a href="' . esc_url( get_category_link( $cat->term_id ) ) . '" class="taxonomy-badge category-badge category-' . $cat_slug . '-badge">' . esc_html( $cat->name ) . '</a>';
                     }
                 }
-                $locations = get_the_terms( get_the_ID(), 'location' );
+                // Use cached location data from above - no need for duplicate query
                 if ( ! is_wp_error( $locations ) && ! empty( $locations ) ) {
                     foreach ( $locations as $location ) {
                         $loc_slug = sanitize_html_class( $location->slug );
@@ -70,7 +71,7 @@
         the_content();
 
         wp_link_pages(array(
-            'before'      => '<div style="clear: both;"></div><div class="pagination clearfix">' . __('Pages:', 'colormag-pro'),
+            'before'      => '<div style="clear: both;"></div><div class="pagination clearfix">' . __('Pages:', 'extrachill'),
             'after'       => '</div>',
             'link_before' => '<span>',
             'link_after'  => '</span>',

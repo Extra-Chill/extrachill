@@ -26,13 +26,15 @@ $svg_version = file_exists($svg_path) ? filemtime($svg_path) : '';
                     'theme_location' => 'primary',
                     'menu_id' => 'primary-menu-items',
                     'walker' => new Custom_Walker_Nav_Menu(),
+                    'container' => false,
+                    'items_wrap' => '%3$s'
                 ));
             ?>
             <!-- Newsletter Subscription Form -->
             <li class="menu-newsletter">
                 <form class="newsletter-form">
-                    <label for="newsletter-email" class="sr-only">Get our Newsletter</label>
-                    <input type="email" id="newsletter-email" name="email" placeholder="Enter your email" required>
+                    <label for="newsletter-email-nav" class="sr-only">Get our Newsletter</label>
+                    <input type="email" id="newsletter-email-nav" name="email" placeholder="Enter your email" required>
                     <button type="submit">Subscribe</button>
                     <p><a href="/newsletters">See past newsletters</a></p>
                 </form>
@@ -50,35 +52,7 @@ $svg_version = file_exists($svg_path) ? filemtime($svg_path) : '';
 <span class="search-cart">
     <div class="search-icon">
         <svg class="search-top">
-            <use href="/wp-content/themes/colormag-pro/fonts/fontawesome.svg<?php echo $svg_version ? '?v=' . $svg_version : ''; ?>#magnifying-glass-solid"></use>
+            <use href="<?php echo get_template_directory_uri(); ?>/fonts/fontawesome.svg<?php echo $svg_version ? '?v=' . $svg_version : ''; ?>#magnifying-glass-solid"></use>
         </svg>
-    </div>
-    <div class="cart-icon">
-        <?php if (function_exists('WC')): ?>
-            <?php
-            // WooCommerce is active; check cart contents
-            $cart_count = WC()->cart->get_cart_contents_count();
-            if ($cart_count > 0): ?>
-                <a href="<?php echo esc_url(wc_get_cart_url()); ?>" class="cart-link">
-                    <svg class="cart-top">
-                        <use href="/wp-content/themes/colormag-pro/fonts/fontawesome.svg<?php echo $svg_version ? '?v=' . $svg_version : ''; ?>#cart-shopping"></use>
-                    </svg>
-                    <span class="cart-count"><?php echo esc_html($cart_count); ?></span>
-                </a>
-            <?php else: ?>
-                <a href="<?php echo esc_url(home_url('/shop')); ?>" class="cart-link">
-                    <svg class="cart-top">
-                        <use href="/wp-content/themes/colormag-pro/fonts/fontawesome.svg<?php echo $svg_version ? '?v=' . $svg_version : ''; ?>#cart-shopping"></use>
-                    </svg>
-                </a>
-            <?php endif; ?>
-        <?php else: ?>
-            <!-- WooCommerce is not active; link to the shop page -->
-            <a href="<?php echo esc_url(home_url('/shop')); ?>" class="cart-link">
-                <svg class="cart-top">
-                    <use href="/wp-content/themes/colormag-pro/fonts/fontawesome.svg<?php echo $svg_version ? '?v=' . $svg_version : ''; ?>#cart-shopping"></use>
-                </svg>
-            </a>
-        <?php endif; ?>
     </div>
 </span>

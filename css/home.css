@@ -32,6 +32,15 @@ body.home {
     font-family: "Loft Sans", sans-serif;
 }
 
+#hero-section .emoji {
+    display: inline;
+    width: 1em;
+    height: 1em;
+    vertical-align: baseline;
+    margin: 0;
+    border: none;
+}
+
 .hero-buttons-container {
     display: flex;
     justify-content: center;
@@ -308,7 +317,7 @@ body.home {
     border-radius: 10px;
     box-shadow: 0 1px 4px rgba(0,0,0,0.04);
     padding: 1em 1em 0.7em 1em;
-    display: flex;
+    display: inline;
     flex-direction: column;
     min-width: 0;
     transition: box-shadow 0.2s;

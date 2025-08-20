@@ -2,9 +2,8 @@
 /**
  * Template Name: All Posts
  *
- * @package ThemeGrill
- * @subpackage ColorMag
- * @since ColorMag 1.0
+ * @package ExtraChill
+ * @since 1.0
  */
 
 get_header(); ?>
@@ -19,7 +18,7 @@ get_header(); ?>
         </nav>
         <header class="page-header">
             <h1 class="page-title">
-                <span><?php _e('The Latest', 'colormag-pro'); ?></span>
+                <span><?php _e('The Latest', 'extrachill'); ?></span>
             </h1>
             <a class="locations-link" href="/locations">Browse Locations</a>
         </header><!-- .page-header -->
@@ -34,9 +33,9 @@ get_header(); ?>
         </div>
 
         <div class="category-dropdown">
-            <h2 class="filter-head"><?php _e('Select Category:', 'colormag-pro'); ?></h2>
+            <h2 class="filter-head"><?php _e('Select Category:', 'extrachill'); ?></h2>
             <select id="category" name="category" onchange="if (this.value) window.location.href=this.value;">
-                <option value=""><?php _e('Select Category', 'colormag-pro'); ?></option>
+                <option value=""><?php _e('Select Category', 'extrachill'); ?></option>
                 <?php
                 $categories = get_categories(array(
                     'hide_empty' => false,

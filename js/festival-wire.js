@@ -114,9 +114,67 @@
         const form = $('#festival-wire-tip-form');
         const messageDiv = form.find('.festival-wire-tip-message');
         const submitButton = form.find('.festival-wire-tip-submit');
+        const textarea = $('#festival-wire-tip-content');
+        const charCount = $('#char-count');
 
         if (form.length === 0) {
             return; // Form not found, exit
+        }
+
+        // Character counter functionality
+        if (textarea.length && charCount.length) {
+            textarea.on('input', function() {
+                const currentLength = $(this).val().length;
+                charCount.text(currentLength);
+                
+                // Change color when approaching limit
+                const parent = charCount.parent();
+                if (currentLength > 900) {
+                    parent.css('color', '#d32f2f');
+                } else if (currentLength > 800) {
+                    parent.css('color', '#f57c00');
+                } else {
+                    parent.css('color', '#666');
+                }
+            });
+        }
+
+        // Dynamic email field visibility (in case cookie state changes)
+        function updateEmailFieldVisibility() {
+            const hasCommunityToken = getCookie('ecc_user_session_token');
+            const emailContainer = form.find('.email-field-container');
+            const communityNote = form.find('.community-member-note');
+            const emailField = form.find('#festival-wire-tip-email');
+            
+            if (hasCommunityToken) {
+                emailContainer.hide();
+                emailField.prop('required', false);
+                communityNote.show();
+                form.data('community-member', true);
+            } else {
+                emailContainer.show();
+                emailField.prop('required', true);
+                communityNote.hide();
+                form.data('community-member', false);
+            }
+        }
+
+        // Check for cookie changes periodically
+        let lastCommunityTokenState = getCookie('ecc_user_session_token') ? true : false;
+        setInterval(function() {
+            const currentState = getCookie('ecc_user_session_token') ? true : false;
+            if (currentState !== lastCommunityTokenState) {
+                updateEmailFieldVisibility();
+                lastCommunityTokenState = currentState;
+            }
+        }, 1000);
+
+        // Helper function to get cookie value
+        function getCookie(name) {
+            const value = "; " + document.cookie;
+            const parts = value.split("; " + name + "=");
+            if (parts.length === 2) return parts.pop().split(";").shift();
+            return null;
         }
 
         form.on('submit', function(e) {
@@ -127,11 +185,27 @@
 
             // Get form data
             const content = $('#festival-wire-tip-content').val();
+            const email = $('#festival-wire-tip-email').val();
+            const isCommunityMember = form.data('community-member') === true;
 
             // Basic validation
             if (!content) {
                 messageDiv.addClass('error').text('Please enter your tip.');
                 return;
+            }
+
+            // Email validation for non-community members
+            if (!isCommunityMember) {
+                if (!email) {
+                    messageDiv.addClass('error').text('Email address is required.');
+                    return;
+                }
+                // Basic email validation
+                const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (!emailPattern.test(email)) {
+                    messageDiv.addClass('error').text('Please enter a valid email address.');
+                    return;
+                }
             }
 
             // Show loading state
@@ -157,6 +231,17 @@
                 'cf-turnstile-response': turnstileResponse
             };
 
+            // Add email if not community member
+            if (!isCommunityMember && email) {
+                data.email = email;
+            }
+
+            // Add honeypot field
+            const websiteField = $('input[name="website"]');
+            if (websiteField.length) {
+                data.website = websiteField.val();
+            }
+
             // Add nonce if present
             const nonceField = form.find('input[name="festival_wire_tip_nonce_field"]');
             if (nonceField.length) {
@@ -174,6 +259,11 @@
                         messageDiv.addClass('success').text(response.data.message || 'Thank you for your tip!');
                         // Reset form
                         form[0].reset();
+                        // Reset character counter
+                        if (charCount.length) {
+                            charCount.text('0');
+                            charCount.parent().css('color', '#666');
+                        }
                         // Reset turnstile if it exists
                         if (typeof turnstile !== 'undefined') {
                             turnstile.reset();

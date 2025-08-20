@@ -4,7 +4,8 @@
  *
  * @link https://developer.wordpress.org/themes/basics/template-hierarchy/
  *
- * @package ColorMag Pro
+ * @package ExtraChill
+ * @since 1.0
  */
 
 get_header(); ?>
@@ -32,32 +33,18 @@ get_header(); ?>
 										<select id="festival-filter" class="festival-dropdown">
 											<option value="all">All Festivals</option>
 											<?php
-											// Get only festivals that are used by festival_wire posts
-											global $wpdb;
-											$festivals_with_festival_wire = $wpdb->get_col(
-												"SELECT DISTINCT terms.term_id
-												FROM {$wpdb->posts} posts
-												JOIN {$wpdb->term_relationships} rel ON posts.ID = rel.object_id
-												JOIN {$wpdb->term_taxonomy} tax ON rel.term_taxonomy_id = tax.term_taxonomy_id
-												JOIN {$wpdb->terms} terms ON tax.term_id = terms.term_id
-												WHERE posts.post_type = 'festival_wire'
-												AND posts.post_status = 'publish'
-												AND tax.taxonomy = 'festival'"
-											);
+											// Get festival filter options
+											$festivals = get_terms(array('taxonomy' => 'festival', 'hide_empty' => true));
+											$festival_data = array();
+											if (!is_wp_error($festivals)) {
+												foreach ($festivals as $festival) {
+													$festival_data[] = array('slug' => $festival->slug, 'name' => $festival->name);
+												}
+											}
 											
-											if (!empty($festivals_with_festival_wire)) {
-												$festival_args = array(
-													'taxonomy' => 'festival',
-													'include' => $festivals_with_festival_wire,
-													'hide_empty' => true,
-													'orderby' => 'name',
-													'order' => 'ASC',
-												);
-												
-												$festival_terms = get_terms($festival_args);
-												
-												foreach ($festival_terms as $festival) {
-													echo '<option value="' . esc_attr($festival->slug) . '">' . esc_html($festival->name) . '</option>';
+											if (!empty($festival_data)) {
+												foreach ($festival_data as $festival) {
+													echo '<option value="' . esc_attr($festival['slug']) . '">' . esc_html($festival['name']) . '</option>';
 												}
 											}
 											?>
@@ -68,101 +55,16 @@ get_header(); ?>
 								<div class="filter-group">
 									<div class="filter-input">
 										<?php
-										// Get only location term IDs that are used by festival_wire posts
-										global $wpdb;
-										$locations_with_festival_wire_ids = $wpdb->get_col(
-											$wpdb->prepare(
-												"SELECT DISTINCT terms.term_id
-												FROM {$wpdb->posts} posts
-												JOIN {$wpdb->term_relationships} rel ON posts.ID = rel.object_id
-												JOIN {$wpdb->term_taxonomy} tax ON rel.term_taxonomy_id = tax.term_taxonomy_id
-												JOIN {$wpdb->terms} terms ON tax.term_id = terms.term_id
-												WHERE posts.post_type = %s
-												AND posts.post_status = %s
-												AND tax.taxonomy = %s",
-												'festival_wire',
-												'publish',
-												'location'
-											)
-										);
-
-										$all_location_ids_to_include = array();
-										$earth_term_id = null; // Initialize earth term ID
-
-										// --- Get Earth Term ID ---
-										$earth_term = get_term_by('slug', 'earth', 'location'); // Assuming slug is 'earth'
-										if ($earth_term && is_object($earth_term)) {
-											$earth_term_id = $earth_term->term_id;
-										}
-										// --- End Get Earth Term ID ---
-
-										if (!empty($locations_with_festival_wire_ids)) {
-											$all_location_ids_to_include = $locations_with_festival_wire_ids; // Start with locations having posts
-
-											// Find ancestors for each location that has posts
-											foreach ($locations_with_festival_wire_ids as $term_id) {
-												$ancestors = get_ancestors($term_id, 'location', 'taxonomy');
-												if (!empty($ancestors)) {
-													$all_location_ids_to_include = array_merge($all_location_ids_to_include, $ancestors);
-												}
+										// Get location filter options
+										$locations = get_terms(array('taxonomy' => 'location', 'hide_empty' => true));
+										if (!is_wp_error($locations) && !empty($locations)) {
+											echo '<select id="location-filter" class="location-dropdown">';
+											echo '<option value="all">All Locations</option>';
+											foreach ($locations as $location) {
+												echo '<option value="' . esc_attr($location->slug) . '">' . esc_html($location->name) . '</option>';
 											}
-											// Ensure unique IDs
-											$all_location_ids_to_include = array_unique($all_location_ids_to_include);
-										}
-
-										// Prepare arguments for wp_dropdown_categories
-										$dropdown_args = array(
-											'taxonomy'         => 'location',
-											'name'             => 'location-filter',
-											'id'               => 'location-filter',
-											'class'            => 'location-dropdown',
-											'show_option_all'  => 'All Locations',
-											'orderby'          => 'name',
-											'order'            => 'ASC',
-											'hierarchical'     => true,
-											'value_field'      => 'slug',
-											'echo'             => true,
-											'hide_empty'       => false, // Allow parents to show
-											'selected'         => get_query_var('location'),
-											// We still might need 'include' to limit to relevant branches initially
-											'include'          => !empty($all_location_ids_to_include) ? $all_location_ids_to_include : array(),
-										);
-
-										// --- Add exclude argument if earth term exists ---
-										if ($earth_term_id !== null) {
-											$dropdown_args['exclude'] = $earth_term_id; // Use exclude parameter
-										}
-										// --- End Add exclude ---
-
-										// Only generate dropdown if we have locations to include (even if only earth was included initially)
-										// Or if earth was excluded, check if anything remains in include list
-										$should_display = false;
-										if (!empty($all_location_ids_to_include)) {
-											if ($earth_term_id !== null) {
-												// If earth exists, check if there are other IDs besides earth
-												 $temp_ids = array_diff($all_location_ids_to_include, [$earth_term_id]);
-												 $should_display = !empty($temp_ids);
-											} else {
-												// If earth doesn't exist, just check if the include list is populated
-												$should_display = true;
-											}
-										}
-
-
-										if ($should_display) {
-											 // It's generally safer to let wp_dropdown_categories handle filtering with include/exclude
-											 // rather than pre-filtering the include array ourselves when using exclude.
-											 // Let's remove the explicit include if we are excluding earth, unless it's empty.
-											 if ($earth_term_id !== null && !empty($dropdown_args['include'])) {
-												 // If excluding earth, let 'exclude' do the work on the full hierarchy,
-												 // unless the include list was empty to begin with.
-												 // This might be optional, let's test with include first.
-												 // unset($dropdown_args['include']);
-											 }
-											 wp_dropdown_categories($dropdown_args);
-
+											echo '</select>';
 										} else {
-											// Fallback: If NO relevant locations found (after excluding earth)
 											echo '<select id="location-filter" class="location-dropdown" disabled><option value="all">No Locations Found</option></select>';
 										}
 										?>
@@ -179,28 +81,12 @@ get_header(); ?>
 
 				<?php
 				// --- Display Last Updated Time ---
+				$latest_post = get_posts(array('numberposts' => 1, 'post_type' => 'festival_wire', 'orderby' => 'modified', 'order' => 'DESC'));
 				$last_updated_string = '';
-				$latest_post_args = array(
-				    'post_type'      => 'festival_wire',
-				    'post_status'    => 'publish',
-				    'posts_per_page' => 1,
-				    'orderby'        => 'modified_gmt', // Order by last modified date (GMT)
-				    'order'          => 'DESC',
-				    'fields'         => 'ids', // Only need the ID to get the modified time
-				);
-				$latest_post_query = new WP_Query($latest_post_args);
-
-				if ($latest_post_query->have_posts()) {
-				    $latest_post_id = $latest_post_query->posts[0];
-				    // Get the GMT modification time as a Unix timestamp
-				    $last_modified_gmt_timestamp = get_post_modified_time('U', true, $latest_post_id);
-				    if ($last_modified_gmt_timestamp) {
-				         // Compare with current GMT time
-				        $time_diff = human_time_diff($last_modified_gmt_timestamp, current_time('timestamp', true));
-				        $last_updated_string = sprintf('Feed last updated %s ago', $time_diff);
-				    }
+				
+				if (!empty($latest_post)) {
+					$last_updated_string = 'Last updated: ' . get_the_modified_date('F j, Y \a\t g:i A', $latest_post[0]->ID);
 				}
-				wp_reset_postdata(); // Reset post data after custom query
 
 				// Output the string if it was generated
 				if (!empty($last_updated_string)) : ?>
@@ -221,7 +107,7 @@ get_header(); ?>
 						 * called content-___.php (where ___ is the Post Format name) and that will be used instead.
 						 */
 						// Replace the entire <article> block with get_template_part(), using the correct path
-						get_template_part( 'festival-wire/content', 'card' );
+						get_template_part( 'inc/festival-wire/content', 'card' );
 					endwhile;
 					?>
 					</div><!-- #festival-wire-posts-container.festival-wire-grid -->
@@ -248,7 +134,7 @@ get_header(); ?>
 				<div class="festival-wire-tip-form-container">
 					<h2 class="tip-form-title">Have a Festival News Tip?</h2>
 					<p class="tip-form-description">Heard something exciting about an upcoming festival? Drop us a tip, and we'll check it out!</p>
-					<?php require get_template_directory() . '/festival-wire/festival-tip-form.php'; ?>
+					<?php require get_template_directory() . '/inc/festival-wire/festival-tip-form.php'; ?>
 				</div>
 
 				<!-- Music Festivals Forum CTA -->

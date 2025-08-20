@@ -2,8 +2,8 @@
 /**
  * The template for displaying Festival taxonomy archive pages.
  *
- * @package ThemeGrill
- * @subpackage ColorMag
+ * @package ExtraChill
+ * @since 1.0
  */
 
 get_header(); ?>
@@ -38,6 +38,6 @@ if (have_posts()) : ?>
     <?php get_template_part('no-results', 'archive'); ?>
 <?php endif; ?>
 </section><!-- #primary -->
-<?php get_sidebar(); ?>
+<?php // get_sidebar(); ?>
 <?php do_action('extrachill_after_body_content'); ?>
 <?php get_footer(); ?> 

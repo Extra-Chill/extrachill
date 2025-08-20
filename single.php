@@ -2,9 +2,8 @@
 /**
  * Theme Single Post Section for our theme.
  *
- * @package    ThemeGrill
- * @subpackage ColorMag
- * @since      ColorMag 1.0
+ * @package    ExtraChill
+ * @since      1.0
  */
 
 get_header(); ?>
@@ -42,6 +41,8 @@ get_header(); ?>
     // Add related artist and venue sections below comments
     global $post;
     $post_id = get_the_ID();
+    
+    // Get taxonomy terms directly
     $artist_terms = get_the_terms($post_id, 'artist');
     $venue_terms = get_the_terms($post_id, 'venue');
     if ($artist_terms && !is_wp_error($artist_terms)) {

@@ -4,8 +4,7 @@
  * Ensures proper text contrast and title sizing
  */
 
-/* Import root variables for consistency */
-@import url('root.css');
+/* Root variables are loaded separately via functions.php */
 
 /* Ensure proper text contrast in the editor */
 .edit-post-visual-editor,

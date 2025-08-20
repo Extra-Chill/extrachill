@@ -10,7 +10,7 @@ get_header(); ?>
 
 <?php do_action( 'extrachill_before_body_content' ); ?>
 
-<section id="primary">
+<section id="primary" class="newsletter-archive">
     <?php if ( have_posts() ) : ?>
 
         <header class="page-header">
@@ -77,10 +77,10 @@ get_header(); ?>
         <div class="article-container">
             <?php global $post_i; $post_i = 1; ?>
             <?php while ( have_posts() ) : the_post(); ?>
-                <article id="post-<?php the_ID(); ?>" <?php post_class(); ?>>
+                <article id="post-<?php the_ID(); ?>" <?php post_class('newsletter-card'); ?>>
                     <?php if ( has_post_thumbnail() ) { ?>
                         <div class="featured-image">
-                            <a href="<?php the_permalink(); ?>" title="<?php the_title_attribute(); ?>"><?php the_post_thumbnail( 'colormag-featured-post-medium' ); ?></a>
+                            <a href="<?php the_permalink(); ?>" title="<?php the_title_attribute(); ?>"><?php the_post_thumbnail( 'large' ); ?></a>
                         </div>
                     <?php } ?>
 

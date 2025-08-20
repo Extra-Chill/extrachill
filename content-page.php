@@ -2,21 +2,20 @@
 /**
  * The template used for displaying page content in page.php
  *
- * @package    ThemeGrill
- * @subpackage ColorMag
- * @since      ColorMag 1.0
+ * @package    ExtraChill
+ * @since      1.0
  */
 ?>
 
 <article id="post-<?php the_ID(); ?>" <?php post_class(); ?>>
 	<?php do_action( 'extrachill_before_post_content' ); ?>
 
-	<?php /* Page featured image option removed - not used */ ?>
+	<?php 
+	/* Page featured image option removed - not used */
 	if (function_exists('display_breadcrumbs')) {
-			display_breadcrumbs(); 
-		} 
-
-		?>
+		display_breadcrumbs(); 
+	} 
+	?>
 	<header class="entry-header">
 		<?php if ( is_front_page() ) : ?>
 			<h2 class="entry-title">
@@ -34,7 +33,7 @@
 		the_content();
 
 		wp_link_pages( array(
-			'before'      => '<div style="clear: both;"></div><div class="pagination clearfix">' . __( 'Pages:', 'colormag-pro' ),
+			            'before'      => '<div style="clear: both;"></div><div class="pagination clearfix">' . __( 'Pages:', 'extrachill' ),
 			'after'       => '</div>',
 			'link_before' => '<span>',
 			'link_after'  => '</span>',
@@ -45,7 +44,7 @@
 	<div class="entry-footer">
 		<?php
 		// Edit button always shown - option removed
-		edit_post_link( __( 'Edit', 'colormag-pro' ), '<span class="edit-link">', '</span>' );
+		edit_post_link( __( 'Edit', 'extrachill' ), '<span class="edit-link">', '</span>' );
 		?>
 	</div>
 

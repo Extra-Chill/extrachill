@@ -2,9 +2,8 @@
 /**
  * The template for displaying Search Results pages.
  *
- * @package ThemeGrill
- * @subpackage ColorMag
- * @since ColorMag 1.0
+ * @package ExtraChill
+ * @since 1.0
  */
 
 get_header(); ?>

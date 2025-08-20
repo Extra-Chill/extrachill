@@ -207,7 +207,7 @@
     gap: 0.5rem;
 }
 
-.festival-badges {
+.taxonomy-badges {
     display: flex;
     flex-wrap: wrap;
     gap: 0.5rem;
@@ -336,12 +336,6 @@
     color: var(--muted-text);
     text-align: center;
     font-style: italic;
-}
-
-.festival-wire-single-post .entry-content {
-    line-height: 1.7;
-    color: var(--text-color);
-    margin-bottom: 1.5rem;
 }
 
 .festival-wire-single-post .entry-content p {
@@ -764,7 +758,8 @@
 }
 
 /* Ensure individual badge links are also positioned correctly */
-.festival-wire-card .festival-badges a {
+.festival-wire-card .taxonomy-badges a,
+.festival-wire-single-post .taxonomy-badges a {
     position: relative;
     z-index: 2;
 }
