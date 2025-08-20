@@ -102,7 +102,7 @@ document.addEventListener('DOMContentLoaded', function() {
 // Removing the JavaScript block for the newsletter form submission
 document.addEventListener('DOMContentLoaded', function () {
     const newsletterForm = document.querySelector('.newsletter-form');
-    const emailInput = document.querySelector('#newsletter-email');
+    const emailInput = document.querySelector('#newsletter-email-nav');
     const submitButton = newsletterForm.querySelector('button[type="submit"]');
     const feedback = document.createElement('p'); // Feedback message element
     feedback.classList.add('newsletter-feedback');

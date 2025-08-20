@@ -2,9 +2,8 @@
 /**
  * The template used for displaying post content in newsletters archive
  *
- * @package ThemeGrill
- * @subpackage ColorMag
- * @since ColorMag 1.0
+ * @package ExtraChill
+ * @since 1.0
  */
 
 // Initialize the variables with an empty string as a default value.

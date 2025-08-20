@@ -2,9 +2,8 @@
 /**
  * Template Name: All Tags
  *
- * @package ThemeGrill
- * @subpackage ColorMag
- * @since ColorMag 1.0
+ * @package ExtraChill
+ * @since 1.0
  */
 
 get_header(); ?>
@@ -24,7 +23,7 @@ get_header(); ?>
     <main id="main" class="site-main" role="main">
         <header class="page-header">
             <h1 class="page-title">
-                <span><?php _e('All Tags', 'colormag-pro'); ?></span>
+                <span><?php _e('All Tags', 'extrachill'); ?></span>
             </h1>
         </header><!-- .page-header -->
 
@@ -39,11 +38,11 @@ get_header(); ?>
         </div><!-- .entry-content -->
 
         <div class="tag-sorting">
-            <label for="tag-sorting"><?php _e('<b>Sort by:</b>', 'colormag-pro'); ?></label>
+            <label for="tag-sorting"><?php _e('<b>Sort by:</b>', 'extrachill'); ?></label>
             <select id="tag-sorting" name="tag_sorting">
-                <option value="count_desc"><?php _e('Most Posts', 'colormag-pro'); ?></option>
-                <option value="name_asc"><?php _e('A-Z', 'colormag-pro'); ?></option>
-                <option value="name_desc"><?php _e('Z-A', 'colormag-pro'); ?></option>
+                <option value="count_desc"><?php _e('Most Posts', 'extrachill'); ?></option>
+<option value="name_asc"><?php _e('A-Z', 'extrachill'); ?></option>
+<option value="name_desc"><?php _e('Z-A', 'extrachill'); ?></option>
             </select>
         </div>
 

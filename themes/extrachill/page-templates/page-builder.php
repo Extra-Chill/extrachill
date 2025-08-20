@@ -5,9 +5,8 @@
  * Displays the Page Builder Template provided via the theme.
  * Suitable for page builder plugins
  *
- * @package    ThemeGrill
- * @subpackage ColorMag
- * @since      ColorMag 2.2.3
+ * @package    ExtraChill
+ * @since      1.0
  */
 
 get_header(); ?>

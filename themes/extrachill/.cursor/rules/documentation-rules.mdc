@@ -21,7 +21,7 @@ When updating .mdc files, ALWAYS make sure that the flow is clear. You should NE
 
 Always clearly specify the required naming convention for data keys passed from PHP to JS.
 
-Do NOT change the definition and frequency block at the very top of the file between the three dashes (---).
+The definition and frequency block at the very top of the file between the three dashes (---) should be set to alwaysApply:true for the plan, architecture, and documentation rules. All other cursor rules are set to manual
 
 You MUST note any contradictions or redundancies you discover and note them and make plans to repair them. 
 

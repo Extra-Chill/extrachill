@@ -2,9 +2,8 @@
 /**
  * The Sidebar containing the main widget areas.
  *
- * @package ThemeGrill
- * @subpackage ColorMag
- * @since ColorMag 1.0
+ * @package ExtraChill
+ * @since 1.0
  */
 ?>
 

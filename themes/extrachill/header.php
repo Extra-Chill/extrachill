@@ -6,7 +6,7 @@
  */
 
 global $header_user_details; // Declare as global
-// Fetch user details and output them for JavaScript usage - Moved to top for scope
+// Fetch user details for hero greeting and ad-free detection
 if (isset($_COOKIE['ecc_user_session_token'])) {
     $header_user_details = get_user_details_directly($_COOKIE['ecc_user_session_token']); // Fetch user details once
 } else {
@@ -25,6 +25,15 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   <meta charset="<?php bloginfo('charset'); ?>" />
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="profile" href="http://gmpg.org/xfn/11" />
+  
+  <!-- Preload critical fonts for faster LCP performance -->
+  <link rel="preload" href="<?php echo get_template_directory_uri(); ?>/fonts/WilcoLoftSans-Treble.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="<?php echo get_template_directory_uri(); ?>/fonts/Lobster2.woff2" as="font" type="font/woff2" crossorigin>
+  
+  <!-- DNS prefetch for external domains to reduce latency -->
+  <link rel="dns-prefetch" href="//scripts.mediavine.com">
+  <link rel="dns-prefetch" href="//www.googletagmanager.com">
+  
   <?php wp_head(); ?>
   <?php
   // Conditionally include Mediavine ad blocklist based on ad-free status, passing pre-fetched user details
@@ -55,16 +64,11 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 </header><!-- #masthead -->
 
 
-<script>
-// Embed user details into a JavaScript variable for global access
-window.userDetails = <?php echo json_encode($header_user_details); ?>;
-</script>
 
 <?php
 // Header image functionality removed - not used in current theme
 ?>
 
 <?php do_action('extrachill_after_header'); ?>
-<?php do_action('extrachill_before_main'); ?>
 
 <main class="inner-wrap">

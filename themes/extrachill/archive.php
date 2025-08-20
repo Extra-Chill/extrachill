@@ -2,6 +2,8 @@
 /**
  * The template for displaying Archive page.
  *
+ * @package ExtraChill
+ * @since 1.0
  */
 
 get_header(); ?>
@@ -48,16 +50,16 @@ if (is_category()) {
                         single_tag_title();
                     } elseif (is_author()) {
                         the_post();
-                        printf(__('Author: %s', 'colormag-pro'), '<class="vcard">' . get_the_author() . '</>');
+                        printf(__('Author: %s', 'extrachill'), '<class="vcard">' . get_the_author() . '</>');
                         rewind_posts();
                     } elseif (is_day()) {
-                        printf(__('Day: %s', 'colormag-pro'), get_the_date());
+                        printf(__('Day: %s', 'extrachill'), get_the_date());
                     } elseif (is_month()) {
-                        printf(__('Month: %s', 'colormag-pro'), get_the_date('F Y'));
+                        printf(__('Month: %s', 'extrachill'), get_the_date('F Y'));
                     } elseif (is_year()) {
-                        printf(__('Year: %s', 'colormag-pro'), get_the_date('Y'));
+                        printf(__('Year: %s', 'extrachill'), get_the_date('Y'));
                     } else {
-                        _e('Archives', 'colormag-pro');
+                        _e('Archives', 'extrachill');
                     }
                     ?>
                 </span>
@@ -92,9 +94,9 @@ if (is_category()) {
 
         if ($subcategories) {
             echo '<div class="subcategory-dropdown">';
-            echo '<h2 class="filter-head">' . __('Select Subcategory:', 'colormag-pro') . '</h2>';
+            echo '<h2 class="filter-head">' . __('Select Subcategory:', 'extrachill') . '</h2>';
             echo '<select id="subcategory" name="subcategory" onchange="if (this.value) window.location.href=this.value;">';
-            echo '<option value="">' . __('Select Subcategory', 'colormag-pro') . '</option>';
+            echo '<option value="">' . __('Select Subcategory', 'extrachill') . '</option>';
             foreach ($subcategories as $subcategory) {
                 echo '<option value="' . get_category_link($subcategory->term_id) . '">' . $subcategory->name . '</option>';
             }

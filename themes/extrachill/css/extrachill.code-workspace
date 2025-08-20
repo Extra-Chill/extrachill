@@ -1,0 +1,17 @@
+{
+	"folders": [
+		{
+			"path": ".."
+		},
+		{
+			"path": "../../extrachill-shop"
+		},
+		{
+			"path": "../../extrachill-community"
+		},
+		{
+			"path": "../../../../../../../../Sites/extrachill-app"
+		}
+	],
+	"settings": {}
+}

@@ -1,6 +1,6 @@
 <?php
 /**
- * ColorMag functions related to defining constants, adding files and WordPress core functionality.
+ * ExtraChill functions related to defining constants, adding files and WordPress core functionality.
  *
  * Defining some constants, loading all the required files and Adding some core functionality.
  *
@@ -8,17 +8,18 @@
  * @uses       register_nav_menu() To add support for navigation menu.
  * @uses       set_post_thumbnail_size() To set a custom post thumbnail size.
  *
- * @package    ThemeGrill
- * @subpackage ColorMag
- * @since      ColorMag 1.0
+ * @package    ExtraChill
+ * @since      ExtraChill 1.0
  */
+
+// Memory debugging - track memory usage at key points
+('MEMORY DEBUG - Start of functions.php: ' . round(memory_get_peak_usage(true) / 1024 / 1024, 2) . ' MB');
+
 add_theme_support( "responsive-embeds" );
 add_theme_support( "wp-block-styles" );
 add_theme_support( "align-wide" );
-// colormag_options_migrate removed - not needed for custom theme
-add_action( 'after_setup_theme', function() {
-    add_theme_support( 'woocommerce' );
-} );
+
+/* WooCommerce functionality moved to /inc/woocommerce.php */
 
 
 // chill generators
@@ -29,25 +30,24 @@ add_action( 'wp_ajax_nopriv_rapper_name_generator', 'rapper_name_generator_ajax_
 add_action( 'wp_ajax_band_name_generator', 'band_name_generator_ajax_handler' );
 add_action( 'wp_ajax_nopriv_band_name_generator', 'band_name_generator_ajax_handler' );
 
-// colormag_options_migrate function removed - not needed for custom theme
 
 
-add_action('after_setup_theme', 'colormag_setup');
+add_action('after_setup_theme', 'extrachill_setup');
 
 /**
  * All setup functionalities.
  *
  * @since 1.0
  */
-if (!function_exists('colormag_setup')):
-    function colormag_setup()
+if (!function_exists('extrachill_setup')):
+    function extrachill_setup()
     {
         
         /*
          * Make theme available for translation.
          * Translations can be filed in the /languages/ directory.
          */
-        load_theme_textdomain('colormag-pro', get_template_directory() . '/languages');
+        load_theme_textdomain('extrachill', get_template_directory() . '/languages');
         
         // Add default posts and comments RSS feed links to head
         add_theme_support('automatic-feed-links');
@@ -57,7 +57,7 @@ if (!function_exists('colormag_setup')):
         
         // Registering navigation menu.
         register_nav_menus(array(
-            'primary' => __('Primary Menu', 'colormag-pro'),
+            'primary' => __('Primary Menu', 'extrachill'),
         ));
         
         /*
@@ -96,45 +96,79 @@ if (!function_exists('colormag_setup')):
             'flex-height' => true
         ));
         
-        // Support Auto Load Next Post plugin
-        add_theme_support('auto-load-next-post');
         
-        // Support for selective refresh widgets in Customizer
-        add_theme_support('customize-selective-refresh-widgets');
+
     }
 endif;
 
 /**
- * Define Directory Location Constants
+ * Image Size Optimization - Remove unnecessary WordPress bloat sizes
+ * Removes excessive image sizes from WordPress registry to prevent generation
+ * and clean up media library interface. Keeps essential sizes for theme:
+ * - medium (300x300) - Content images, grids, festival wire
+ * - medium_large (768x0) - Featured images in content.php and sidebar
+ * - large (1024x1024) - Featured images, full-width content
+ * - 1536x1536 - Concert photography galleries and high-res displays
  */
-define('COLORMAG_PARENT_DIR', get_template_directory());
-define('COLORMAG_CHILD_DIR', get_stylesheet_directory());
+function extrachill_unregister_image_sizes() {
+    // Remove WordPress core bloat sizes
+    remove_image_size('thumbnail');     // 150x150 - not used in templates
+    remove_image_size('2048x2048');     // Excessive for most use cases, removes storage bloat
+    
+    // Keep 1536x1536 - Essential for concert photography galleries and high-res displays
+    
+    // Remove ALL WooCommerce image sizes - not used in templates
+    remove_image_size('woocommerce_thumbnail');         // 300x300 - product thumbnails
+    remove_image_size('woocommerce_single');            // 600px - single product images
+    remove_image_size('woocommerce_gallery_thumbnail'); // 100px - product gallery thumbnails
+}
+add_action('init', 'extrachill_unregister_image_sizes', 99);
 
-define('COLORMAG_INCLUDES_DIR', COLORMAG_PARENT_DIR . '/inc');
-// Unused ColorMag directory constants removed
+// WordPress 5.3+ automatically scales down large images for performance
+// This default behavior helps prevent serving massive unoptimized images
+// Large uploads (typically 2560px+) will be automatically scaled to reasonable sizes
 
-// COLORMAG_ADMIN_DIR and COLORMAG_ADMIN_IMAGES_DIR removed - admin directory deleted as unused
-// COLORMAG_WIDGETS_DIR removed - widgets directory deleted as unused
+/* WooCommerce context detection moved to /inc/woocommerce.php */
 
 /**
- * Define URL Location Constants
+ * Define Directory Location Constants
  */
-// COLORMAG_PARENT_URL removed - replaced with get_template_directory_uri() where needed
-// COLORMAG_CHILD_URL removed - not used
-
-// Unused ColorMag URL constants removed
-
-// COLORMAG_ADMIN_URL, COLORMAG_WIDGETS_URL, and COLORMAG_ADMIN_IMAGES_URL removed - directories deleted as unused
+define('EXTRACHILL_PARENT_DIR', get_template_directory());
+define('EXTRACHILL_INCLUDES_DIR', EXTRACHILL_PARENT_DIR . '/inc');
 
 /** Load functions */
-require_once(COLORMAG_INCLUDES_DIR . '/functions.php');
-// require_once(COLORMAG_INCLUDES_DIR . '/header-functions.php'); // DEPRECATED - File deleted, functionality replaced by modern templates
-// require_once(COLORMAG_INCLUDES_DIR . '/customizer.php'); // DEPRECATED - Replaced with extrachill-customizer.php
-require_once(COLORMAG_INCLUDES_DIR . '/ajax.php');
+require_once(EXTRACHILL_INCLUDES_DIR . '/functions.php');
 
-// require_once(COLORMAG_ADMIN_DIR . '/meta-boxes.php'); // DEPRECATED - All layout options are handled by templates.
+/** Load core breadcrumb system */
+require_once(EXTRACHILL_INCLUDES_DIR . '/core/breadcrumbs.php');
 
-// require_once(COLORMAG_WIDGETS_DIR . '/widgets.php'); // DEPRECATED - File deleted, sidebar now uses hardcoded widgets
+/** Load WooCommerce functionality - Modular approach */
+require_once(EXTRACHILL_INCLUDES_DIR . '/woocommerce/core.php');
+require_once(EXTRACHILL_INCLUDES_DIR . '/woocommerce/cart-widget.php');
+require_once(EXTRACHILL_INCLUDES_DIR . '/woocommerce/breadcrumb-integration.php');
+require_once(EXTRACHILL_INCLUDES_DIR . '/woocommerce/secondary-header.php');
+require_once(EXTRACHILL_INCLUDES_DIR . '/woocommerce/ad-free-license.php');
+require_once(EXTRACHILL_INCLUDES_DIR . '/woocommerce/product-helpers.php');
+
+/** Load core functionality - Always required */
+require_once(EXTRACHILL_INCLUDES_DIR . '/core/city-state-taxonomy.php');
+require_once(EXTRACHILL_INCLUDES_DIR . '/core/reading-progress.php');
+require_once(EXTRACHILL_INCLUDES_DIR . '/core/rewrite-rules.php');
+require_once(EXTRACHILL_INCLUDES_DIR . '/core/yoast-stuff.php');
+require_once(EXTRACHILL_INCLUDES_DIR . '/core/recent-posts-in-sidebar.php');
+
+/** Load admin functionality - Admin only files (conditional loading could be added later) */
+require_once(EXTRACHILL_INCLUDES_DIR . '/admin/log-404-errors.php');
+require_once(EXTRACHILL_INCLUDES_DIR . '/admin/contact-form.php');
+
+/** Load conditional functionality - These files could be conditionally loaded in future optimization */
+require_once(EXTRACHILL_INCLUDES_DIR . '/bandcamp-embeds.php');
+require_once(EXTRACHILL_INCLUDES_DIR . '/contextual-search-excerpt.php');
+require_once(EXTRACHILL_INCLUDES_DIR . '/location-filter.php');
+require_once(EXTRACHILL_INCLUDES_DIR . '/navigation-functions.php');
+require_once(EXTRACHILL_INCLUDES_DIR . '/newsletter.php');
+('MEMORY DEBUG - After main includes: ' . round(memory_get_peak_usage(true) / 1024 / 1024, 2) . ' MB');
+
 
 /**
  * Detect plugin. For use on Front End only.
@@ -158,6 +192,7 @@ function disable_wp_emojicons()
     remove_filter('wp_mail', 'wp_staticize_emoji_for_email');
     remove_filter('the_content_feed', 'wp_staticize_emoji');
     remove_filter('comment_text_rss', 'wp_staticize_emoji');
+    remove_filter('the_content', 'wp_staticize_emoji');
 }
 
 function disable_emojicons_tinymce($plugins)
@@ -197,31 +232,11 @@ add_filter('pre_get_posts', 'exclude_from_search');
 
 
 
-// include all PHP files in the 'extrachill-custom' directory
-
-function extrachill_include_custom_files() {
-    $custom_dir = get_template_directory() . '/extrachill-custom';
-
-    // Include the new customizer first
-    $customizer_file = $custom_dir . '/extrachill-customizer.php';
-    if ( file_exists( $customizer_file ) ) {
-        require_once $customizer_file;
-    }
-
-    // Check if directory exists
-    if (is_dir($custom_dir)) {
-        // Get all PHP files in the directory
-        foreach (glob($custom_dir . '/*.php') as $file) {
-            require_once $file;
-        }
-    }
-}
-add_action('after_setup_theme', 'extrachill_include_custom_files');
 
 // include all PHP files in the 'community-integration' directory
 
 function include_community_integration_files() {
-    $directory = get_template_directory() . '/extrachill-custom/community-integration/';
+    $directory = get_template_directory() . '/inc/community/';
     
     // Get all PHP files in the directory
     $php_files = glob($directory . '*.php');
@@ -232,6 +247,7 @@ function include_community_integration_files() {
     }
 }
 add_action('after_setup_theme', 'include_community_integration_files');
+('MEMORY DEBUG - After community integration files: ' . round(memory_get_peak_usage(true) / 1024 / 1024, 2) . ' MB');
 
 
 /**
@@ -312,23 +328,21 @@ add_filter('the_content', 'add_target_blank_to_external_links');
 
 
 function wp_innovator_get_artists_in_category($category_name) {
-    $args = array(
-        'category_name' => $category_name,
-        'posts_per_page' => -1  // Retrieve all posts
-    );
-    $posts = get_posts($args);
+    // Query the artist taxonomy directly instead of loading all posts
+    $artists_terms = get_terms(array(
+        'taxonomy' => 'artist',
+        'hide_empty' => true,
+        'orderby' => 'name',
+        'order' => 'ASC'
+    ));
+    
     $artists = array();
-
-    foreach ($posts as $post) {
-        $post_artists = get_the_terms($post->ID, 'artist');
-        if ($post_artists && !is_wp_error($post_artists)) {
-            foreach ($post_artists as $artist) {
-                $artists[$artist->term_id] = $artist->name;
-            }
+    if (!is_wp_error($artists_terms) && !empty($artists_terms)) {
+        foreach ($artists_terms as $artist) {
+            $artists[$artist->term_id] = $artist->name;
         }
     }
-
-    asort($artists); // Sort artists alphabetically
+    
     return $artists;
 }
 
@@ -397,20 +411,7 @@ function extrachill_register_menus() {
 }
 add_action( 'init', 'extrachill_register_menus' );
 
-function extrachill_register_widget_areas() {
-    for ( $i = 1; $i <= 4; $i++ ) {
-        register_sidebar( array(
-            'name'          => sprintf( __( 'Footer Widget Area %d', 'colormag-pro' ), $i ),
-            'id'            => 'footer-' . $i,
-            'description'   => sprintf( __( 'Widgets added here will appear in footer column %d.', 'colormag-pro' ), $i ),
-            'before_widget' => '<aside id="%1$s" class="widget %2$s">',
-            'after_widget'  => '</aside>',
-            'before_title'  => '<h3 class="widget-title">',
-            'after_title'   => '</h3>',
-        ) );
-    }
-}
-add_action( 'widgets_init', 'extrachill_register_widget_areas' );
+
 
 function wp_innovator_randomize_posts( $query ) {
     if ( $query->is_main_query() && !is_admin() && is_archive() && isset($_GET['randomize']) ) {
@@ -447,39 +448,6 @@ if ( function_exists('get_coauthors') ) {
         return $authors;
     }
 }
-
-
-
-
-
-
-function disable_lazy_load_for_first_image($excluded_attributes) {
-    $excluded_attributes[] = 'data-skip-lazy';
-    return $excluded_attributes;
-}
-add_filter('rocket_lazyload_excluded_attributes', 'disable_lazy_load_for_first_image');
-
-function add_skip_lazy_to_first_image($content) {
-    if (is_singular() && strpos($content, '<img') !== false) { // Check if it's a singular page and contains at least one <img> tag
-        $content = preg_replace_callback(
-            '/<img\s[^>]+>/',
-            function($matches) {
-                $imgTag = $matches[0];
-                // Check if 'data-skip-lazy' is already set
-                if (strpos($imgTag, 'data-skip-lazy') === false) {
-                    // Insert 'data-skip-lazy="true"' into the first <img> tag
-                    $imgTag = str_replace('<img', '<img data-skip-lazy="true"', $imgTag);
-                }
-                return $imgTag;
-            },
-            $content,
-            1 // Limit the replacement to the first occurrence
-        );
-    }
-    return $content;
-}
-add_filter('the_content', 'add_skip_lazy_to_first_image', 1);
-
 
 
 
@@ -544,7 +512,7 @@ class Custom_Walker_Nav_Menu extends Walker_Nav_Menu {
 
         // Add SVG if menu item has children
         if ( in_array( 'menu-item-has-children', $item->classes ) ) {
-            $item_output .= ' <svg class="submenu-indicator"><use href="/wp-content/themes/colormag-pro/fonts/extrachill.svg?v=1.5#angle-down-solid"></use></svg>';
+            $item_output .= ' <svg class="submenu-indicator"><use href="' . get_template_directory_uri() . '/fonts/extrachill.svg?v=1.5#angle-down-solid"></use></svg>';
         }
 
         $item_output .= '</a>';
@@ -611,10 +579,9 @@ function register_custom_instagram_embed_handler() {
 }
 add_action('init', 'register_custom_instagram_embed_handler');
 
-function inject_mediavine_settings() {
-    echo '<div id="mediavine-settings" data-blocklist-all="1"></div>';
-}
-add_action( 'woocommerce_before_main_content', 'inject_mediavine_settings' );
+/* inject_mediavine_settings moved to /inc/woocommerce.php */
+
+/* WooCommerce wrappers and CSS enqueuing moved to /inc/woocommerce.php */
 
 
 function enqueue_custom_lightbox_script() {
@@ -659,51 +626,46 @@ add_action( 'wp_enqueue_scripts', 'enqueue_custom_lightbox_script' );
 /**
  * Include Festival Wire functionality.
  */
-require_once get_stylesheet_directory() . '/festival-wire/festival-wire.php';
+require_once get_stylesheet_directory() . '/inc/festival-wire/festival-wire.php';
+
+/* WooCommerce asset dequeuing moved to /inc/woocommerce.php */
 
 /**
- * Conditionally Dequeue WooCommerce Scripts and Styles.
- *
- * Removes WooCommerce assets from pages where they are not needed,
- * improving performance, but keeps essential scripts like wc-cart-fragments for header cart functionality.
+ * Prevent admin styles from loading on frontend
+ * This removes unnecessary admin bar and plugin admin styles from frontend pages
  */
-function extrachill_conditionally_dequeue_woocommerce_assets() {
-    // Only run on the frontend and if WooCommerce is active
-    if ( is_admin() || ! class_exists( 'woocommerce' ) ) {
+function extrachill_prevent_admin_styles_on_frontend() {
+    // Only run on frontend
+    if ( is_admin() ) {
         return;
     }
-
-    // Keep assets on WooCommerce pages, product pages, cart, checkout, and account pages
-    if ( is_woocommerce() || is_cart() || is_checkout() || is_account_page() || is_product() ) {
-        return;
+    
+    // Remove admin bar styles on frontend (unless user is logged in and admin bar is enabled)
+    if ( ! is_user_logged_in() || ! is_admin_bar_showing() ) {
+        wp_dequeue_style( 'admin-bar' );
+        wp_dequeue_style( 'dashicons' );
     }
-
-    // Get queued scripts and styles
-    global $wp_scripts, $wp_styles;
-
-    // List of scripts to keep (essential for cart fragments)
-    $scripts_to_keep = array( 'wc-cart-fragments' ); 
-    // You might need to add more scripts here if you find other essential functionalities breaking.
-    // Consider dependencies of wc-cart-fragments if issues arise, e.g., 'jquery', 'js-cookie'. 
-    // WordPress usually handles dependencies well, but keep an eye out.
-
-    // Dequeue WooCommerce scripts
-    foreach ( $wp_scripts->queue as $handle ) {
-        if ( strpos( $handle, 'wc-' ) === 0 || strpos( $handle, 'woocommerce-' ) === 0 ) {
-            if ( ! in_array( $handle, $scripts_to_keep ) ) {
-                wp_dequeue_script( $handle );
-            }
-        }
+    
+    // Remove plugin admin styles that shouldn't be on frontend
+    wp_dequeue_style( 'tribe-events-admin-menu' );
+    wp_dequeue_style( 'imagify-admin-bar' );
+    
+    // Remove co-authors-plus styles unless we're on a post with co-authors
+    if ( ! is_single() || ! function_exists( 'get_coauthors' ) ) {
+        wp_dequeue_style( 'co-authors-plus-coauthors-style' );
+        wp_dequeue_style( 'co-authors-plus-avatar-style' );
+        wp_dequeue_style( 'co-authors-plus-name-style' );
+        wp_dequeue_style( 'co-authors-plus-image-style' );
     }
-
-    // Dequeue WooCommerce styles
-    foreach ( $wp_styles->queue as $handle ) {
-        if ( strpos( $handle, 'wc-' ) === 0 || strpos( $handle, 'woocommerce-' ) === 0 || strpos( $handle, 'woocommerce_frontend_styles' ) === 0 ) {
-             wp_dequeue_style( $handle );
-        }
+    
+    // Remove trivia block styles unless we're on a page with trivia blocks
+    if ( ! is_single() && ! is_page() ) {
+        wp_dequeue_style( 'trivia-block-trivia-style' );
     }
 }
-add_action( 'wp_enqueue_scripts', 'extrachill_conditionally_dequeue_woocommerce_assets', 99 );
+add_action( 'wp_enqueue_scripts', 'extrachill_prevent_admin_styles_on_frontend', 100 );
+
+/* WooCommerce blocks CSS loading moved to /inc/woocommerce.php */
 
 // --- Custom Taxonomies: Festival, Artist, Venue ---
 add_action('init', function() {
@@ -810,43 +772,38 @@ add_action( 'wp_enqueue_scripts', 'extrachill_enqueue_root_styles', 5 ); // Prio
 
 // Ensure root.css is loaded before style.css by making it a dependency
 function extrachill_enqueue_main_styles() {
-    // Enqueue main stylesheet
-    wp_enqueue_style(
-        'extrachill-main-style',
-        get_stylesheet_uri(),
-        array(),
-        filemtime(get_template_directory() . '/style.css')
-    );
-
-    // Enqueue other essential stylesheets
-    $main_style_path = get_stylesheet_directory() . '/style.css';
-    if ( file_exists( $main_style_path ) ) {
-        wp_enqueue_style(
-            'extrachill-style',
-            get_stylesheet_directory_uri() . '/style.css',
-            array('extrachill-root'), // root.css as dependency
-            filemtime( $main_style_path )
-        );
-    }
-
+    // WordPress automatically loads style.css, so we just need to add root.css as a dependency
+    // and enqueue additional stylesheets
+    
     // Enqueue badge colors style
     $badge_colors_path = get_stylesheet_directory() . '/css/badge-colors.css';
     if ( file_exists( $badge_colors_path ) ) {
         wp_enqueue_style(
             'badge-colors',
             get_stylesheet_directory_uri() . '/css/badge-colors.css',
-            array('extrachill-style'), // Make it dependent on main style if needed, or leave empty array()
+            array('extrachill-root'), // Make it dependent on root.css
             filemtime( $badge_colors_path )
         );
     }
 }
 add_action( 'wp_enqueue_scripts', 'extrachill_enqueue_main_styles', 10 );
 
-// Optionally dequeue the default theme style if needed (update handle if different)
-function extrachill_dequeue_parent_style() {
-    wp_dequeue_style('colormag-style'); // Replace with actual handle if needed
+// Ensure root.css is loaded before the default WordPress style.css
+function extrachill_modify_default_style() {
+    // WordPress automatically loads style.css with handle 'extrachill-style'
+    // We need to ensure root.css is loaded first
+    wp_dequeue_style('extrachill-style');
+    wp_deregister_style('extrachill-style');
+    
+    // Re-enqueue with root.css as dependency
+    wp_enqueue_style(
+        'extrachill-style',
+        get_stylesheet_uri(),
+        array('extrachill-root'),
+        filemtime(get_template_directory() . '/style.css')
+    );
 }
-add_action('wp_enqueue_scripts', 'extrachill_dequeue_parent_style', 1);
+add_action('wp_enqueue_scripts', 'extrachill_modify_default_style', 20);
 
 function enqueue_homepage_js() {
     if (is_front_page()) {
@@ -892,7 +849,8 @@ function extrachill_enqueue_archive_styles() {
 add_action('wp_enqueue_scripts', 'extrachill_enqueue_archive_styles', 20);
 
 function extrachill_add_full_width_body_class($classes) {
-    if (is_archive() || is_search()) {
+    // Prevent full-width on newsletter archive
+    if ((is_archive() || is_search()) && !is_page_template('archive-newsletter.php')) {
         $classes[] = 'full-width-content';
     }
     return $classes;
@@ -905,15 +863,52 @@ add_filter('body_class', 'extrachill_add_full_width_body_class');
 function extrachill_enqueue_admin_styles($hook) {
     // Only load on post edit screens
     if ($hook == 'post.php' || $hook == 'post-new.php') {
+        // First enqueue root.css
+        $root_css_path = get_stylesheet_directory() . '/css/root.css';
+        if (file_exists($root_css_path)) {
+            wp_enqueue_style(
+                'extrachill-admin-root',
+                get_stylesheet_directory_uri() . '/css/root.css',
+                array(),
+                filemtime($root_css_path)
+            );
+        }
+        
+        // Then enqueue editor-style.css with root.css as dependency
         $admin_css_path = get_stylesheet_directory() . '/css/editor-style.css';
         if (file_exists($admin_css_path)) {
             wp_enqueue_style(
                 'extrachill-admin-editor',
                 get_stylesheet_directory_uri() . '/css/editor-style.css',
-                array(),
+                array('extrachill-admin-root'),
                 filemtime($admin_css_path)
             );
         }
     }
 }
 add_action('admin_enqueue_scripts', 'extrachill_enqueue_admin_styles');
+
+/* WooCommerce safe wrapper functions moved to /inc/woocommerce.php */
+
+/* WooCommerce prevention function moved to /inc/woocommerce.php */
+
+function extrachill_enqueue_newsletter_archive_styles() {
+    // Check for the newsletter post type archive or single newsletter
+    if ( is_post_type_archive('newsletter') || is_singular('newsletter') ) {
+        // Dequeue the regular archive.css if enqueued
+        wp_dequeue_style('extrachill-archive');
+        // Enqueue the newsletter-specific stylesheet from the css directory
+        $css_path = get_stylesheet_directory() . '/css/archive-newsletter.css';
+        if ( file_exists( $css_path ) ) {
+            wp_enqueue_style(
+                'extrachill-archive-newsletter',
+                get_stylesheet_directory_uri() . '/css/archive-newsletter.css',
+                array('extrachill-root', 'extrachill-style'),
+                filemtime( $css_path )
+            );
+        }
+    }
+}
+add_action('wp_enqueue_scripts', 'extrachill_enqueue_newsletter_archive_styles', 22);
+
+// CSS optimization code removed - was causing memory bloat by using file_get_contents() on every page load

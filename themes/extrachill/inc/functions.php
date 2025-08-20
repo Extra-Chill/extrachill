@@ -1,13 +1,12 @@
 <?php
 /**
- * ColorMag functions and definitions
+ * ExtraChill functions and definitions
  *
  * This file contains all the functions and it's defination that particularly can't be
  * in other files.
  *
- * @package    ThemeGrill
- * @subpackage ColorMag
- * @since      ColorMag 1.0
+ * @package    ExtraChill
+ * @since      1.0
  */
 /* * ************************************************************************************* */
 
@@ -50,7 +49,7 @@ if ( ! function_exists( 'extrachill_entry_meta' ) ) :
 
                 echo '<div class="meta-top-row">';
                 printf(
-                    __( '<time class="entry-date published">%s</time> by <a href="%s" target="_blank" rel="noopener noreferrer">%s</a> in <a href="%s" target="_blank" rel="noopener noreferrer">%s</a>', 'colormag-pro' ),
+                    __( '<time class="entry-date published">%s</time> by <a href="%s" target="_blank" rel="noopener noreferrer">%s</a> in <a href="%s" target="_blank" rel="noopener noreferrer">%s</a>', 'extrachill' ),
                     esc_html( $date ),
                     esc_url( $author_url ),
                     $author,
@@ -87,7 +86,7 @@ if ( ! function_exists( 'extrachill_entry_meta' ) ) :
                 // Display date and author on the same line
                 echo '<div class="meta-top-row">';
                 printf(
-                    __( '%s by ', 'colormag-pro' ),
+                    __( '%s by ', 'extrachill' ),
                     $published_time_string
                 );
                 coauthors_posts_links();
@@ -131,19 +130,7 @@ endif;
 
 /*	 * *********************************************************************************** */
 
-if ( ! function_exists( 'colormag_footer_copyright' ) ) :
-	/**
-	 * Footer Copyright
-	 */
-	function colormag_footer_copyright() {
-		// We are now using a dedicated function in extrachill-customizer.php
-		// This function is being kept for now to avoid breaking anything that might still be calling it.
-		// It will be removed in a future cleanup.
-		if ( function_exists( 'extrachill_footer_copyright' ) ) {
-			extrachill_footer_copyright();
-		}
-	}
-endif;
+// extrachill_footer_copyright function moved to extrachill-custom/extrachill-customizer.php
 
 
 /*
@@ -153,20 +140,21 @@ endif;
 
 /*	 * *********************************************************************************** */
 
-// colormag_the_custom_logo function removed - not used in current theme
+
+
 
 
 
 /* * *********************************************************************************** */
 
-if ( ! function_exists( 'colormag_comment' ) ) :
+if ( ! function_exists( 'extrachill_comment' ) ) :
 
 /**
  * Template for comments and pingbacks.
  *
  * Used as a callback by wp_list_comments() for displaying the comments.
  */
-function colormag_comment( $comment, $args, $depth ) {
+function extrachill_comment( $comment, $args, $depth ) {
     $GLOBALS['comment'] = $comment;
     switch ( $comment->comment_type ) :
         case 'trackback' :
@@ -205,22 +193,22 @@ function colormag_comment( $comment, $args, $depth ) {
 
                         // If current post author is also comment author, make it known visually.
                         if ( $comment->user_id === $post->post_author ) {
-                            echo '<span>' . __( 'Post author', 'colormag-pro' ) . '</span>';
+                            echo '<span>' . __( 'Post author', 'extrachill' ) . '</span>';
                         }
 
-                        printf( '<div class="comment-date-time">%1$s</div>', sprintf( __( '%1$s at %2$s', 'colormag-pro' ), get_comment_date(), get_comment_time() ) );
+                        printf( '<div class="comment-date-time">%1$s</div>', sprintf( __( '%1$s at %2$s', 'extrachill' ), get_comment_date(), get_comment_time() ) );
                         edit_comment_link();
                         ?>
                     </header><!-- .comment-meta -->
 
                     <?php if ( '0' == $comment->comment_approved ) : ?>
-                        <p class="comment-awaiting-moderation"><?php _e( 'Your comment is awaiting moderation.', 'colormag-pro' ); ?></p>
+                        <p class="comment-awaiting-moderation"><?php _e( 'Your comment is awaiting moderation.', 'extrachill' ); ?></p>
                     <?php endif; ?>
 
                     <section class="comment-content comment">
                         <?php comment_text(); ?>
                         <?php comment_reply_link( array_merge( $args, array(
-                            'reply_text' => __( 'Reply', 'colormag-pro' ),
+                            'reply_text' => __( 'Reply', 'extrachill' ),
                             'after'      => '',
                             'depth'      => $depth,
                             'max_depth'  => $args['max_depth'],
@@ -235,13 +223,5 @@ function colormag_comment( $comment, $args, $depth ) {
 
 	endif;
 
-	
-/*	 * *********************************************************************************** */
 
-/*
- * Post format video functionality has been removed as it was unused.
- * The theme now uses modern embed handling for video content.
- */
-
-/*	 * *********************************************************************************** */
 	

@@ -1,18 +1,17 @@
 <?php
 /**
- * Implements a custom header for ColorMag.
+ * Implements a custom header for ExtraChill.
  * See http://codex.wordpress.org/Custom_Headers
  *
- * @package    ThemeGrill
- * @subpackage ColorMag
- * @since      ColorMag 1.0
+ * @package    ExtraChill
+ * @since      1.0
  */
 
 /**
  * Setup the WordPress core custom header feature.
  */
-function colormag_custom_header_setup() {
-	add_theme_support( 'custom-header', apply_filters( 'colormag_custom_header_args', array(
+function extrachill_custom_header_setup() {
+	add_theme_support( 'custom-header', apply_filters( 'extrachill_custom_header_args', array(
 		'default-image'          => '',
 		'header-text'            => '',
 		'default-text-color'     => '',
@@ -23,17 +22,17 @@ function colormag_custom_header_setup() {
 		'wp-head-callback'       => '',
 		'admin-head-callback'    => '',
 		'video'                  => true,
-		'admin-preview-callback' => 'colormag_admin_header_image',
+		'admin-preview-callback' => 'extrachill_admin_header_image',
 	) ) );
 }
 
-add_action( 'after_setup_theme', 'colormag_custom_header_setup' );
+add_action( 'after_setup_theme', 'extrachill_custom_header_setup' );
 
-if ( ! function_exists( 'colormag_admin_header_image' ) ) :
+if ( ! function_exists( 'extrachill_admin_header_image' ) ) :
 	/**
 	 * Custom header image markup displayed on the Appearance > Header admin panel.
 	 */
-	function colormag_admin_header_image() {
+	function extrachill_admin_header_image() {
 		?>
 		<div id="headimg">
 			<?php if ( function_exists( 'the_custom_header_markup' ) ) {
@@ -46,4 +45,4 @@ if ( ! function_exists( 'colormag_admin_header_image' ) ) :
 		</div>
 		<?php
 	}
-endif; // colormag_admin_header_image
+endif; // extrachill_admin_header_image

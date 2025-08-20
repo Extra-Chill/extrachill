@@ -1,48 +1,37 @@
 <?php
 get_header();
 
-$current_user = wp_get_current_user();
-$is_logged_in = is_user_logged_in();
-$page_title = ( get_query_var('paged', 1 ) > 1 ) 
-    ? sprintf( __( 'The Latest – Page %d', 'colormag' ), get_query_var('paged') ) 
-    : __( 'The Latest', 'colormag' );
+// =================================================================================
+// Homepage Content Query & Processing
+// =================================================================================
 
-// Collect IDs for exclusion in more recent posts
-$homepage_exclude_ids = [];
-// Live Reviews
-$live_reviews = new WP_Query([
-  'cat' => 2608, // Use actual Live Reviews category ID
-  'posts_per_page' => 3,
-  'post_status' => 'publish',
-]);
-if ($live_reviews->have_posts()) {
-  while ($live_reviews->have_posts()) {
-    $live_reviews->the_post();
-    $homepage_exclude_ids[] = get_the_ID();
-  }
-  wp_reset_postdata();
+// Direct queries for homepage content
+$live_reviews_posts = get_posts(array('numberposts' => 3, 'category_name' => 'live-music-reviews'));
+$interviews_posts = get_posts(array('numberposts' => 3, 'category_name' => 'interviews'));
+$newsletter_posts = get_posts(array('numberposts' => 3, 'post_type' => 'newsletter'));
+$more_recent_posts = get_posts(array('numberposts' => 4, 'category_name' => 'music-history/song-meanings'));
+$festival_wire_posts = get_posts(array('numberposts' => 5, 'post_type' => 'festival_wire'));
+$festival_wire_ticker_items = array();
+foreach ($festival_wire_posts as $post) {
+    $festival_wire_ticker_items[] = array(
+        'permalink' => get_permalink($post->ID),
+        'title' => $post->post_title,
+        'title_attr' => esc_attr($post->post_title)
+    );
 }
-// Interviews
-$interviews = new WP_Query([
-  'cat' => 723, // Use actual Interviews category ID
-  'posts_per_page' => 3,
-  'post_status' => 'publish',
-]);
-if ($interviews->have_posts()) {
-  while ($interviews->have_posts()) {
-    $interviews->the_post();
-    $homepage_exclude_ids[] = get_the_ID();
-  }
-  wp_reset_postdata();
-}
+$exclude_ids = array();
+
 ?>
 <div id="mediavine-settings" data-blocklist-all="1"></div>
-<?php include get_template_directory() . '/home/hero.php'; ?>
-<?php include get_template_directory() . '/home/festival-wire-ticker.php'; ?>
-<?php include get_template_directory() . '/home/section-3x3-grid.php'; ?>
-<?php include get_template_directory() . '/home/section-more-recent-posts.php'; ?>
-<?php include get_template_directory() . '/home/section-extrachill-link.php'; ?>
-<?php include get_template_directory() . '/home/section-newsletter-and-about.php'; ?>
+<?php include get_template_directory() . '/inc/home/hero.php'; ?>
+<?php include get_template_directory() . '/inc/home/festival-wire-ticker.php'; ?>
+<?php 
+// Pass the pre-fetched data to the section templates.
+include get_template_directory() . '/inc/home/section-3x3-grid.php'; 
+?>
+<?php include get_template_directory() . '/inc/home/section-more-recent-posts.php'; ?>
+<?php include get_template_directory() . '/inc/home/section-extrachill-link.php'; ?>
+<?php include get_template_directory() . '/inc/home/section-newsletter-and-about.php'; ?>
 
 <?php
 // get_sidebar();

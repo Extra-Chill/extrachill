@@ -14,14 +14,22 @@ class BurgundyLoungeScraper extends BaseDataSource {
 
     public function get_events($settings = array()) {
         $url = 'https://www.starlightchs.com/events';
-        $ch = curl_init($url);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_HEADER, false);
-        curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0');
-        $htmlContent = curl_exec($ch);
-        curl_close($ch);
+        // Fetch page content using WordPress HTTP API
+        $response = wp_remote_get($url, array(
+            'headers' => array(
+                'User-Agent' => 'Mozilla/5.0'
+            ),
+            'timeout' => 30
+        ));
+        
+        if (is_wp_error($response)) {
+            $this->log_error('Failed to retrieve HTML content: ' . $response->get_error_message());
+            return [];
+        }
+        
+        $htmlContent = wp_remote_retrieve_body($response);
         if (!$htmlContent) {
-            $this->log_error('Failed to retrieve HTML content.');
+            $this->log_error('Failed to retrieve HTML content - empty response.');
             return [];
         }
         libxml_use_internal_errors(true);

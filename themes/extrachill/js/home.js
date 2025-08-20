@@ -1,7 +1,7 @@
 document.addEventListener('DOMContentLoaded', function() {
     var form = document.getElementById('homepageNewsletterForm');
     if (form) {
-        var emailInput = document.getElementById('newsletter-email');
+        var emailInput = document.getElementById('newsletter-email-home');
         var feedback = document.querySelector('.newsletter-feedback');
         var submitButton = form.querySelector('button[type="submit"]');
         form.addEventListener('submit', function (e) {
