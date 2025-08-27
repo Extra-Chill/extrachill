@@ -49,21 +49,7 @@ if ( bbp_is_single_forum() && bbp_has_forums( array( 'post_parent' => bbp_get_fo
     <p><?php echo fetch_latest_post_info_for_homepage(); ?></p>
     <div class="community-forums-container">
         <?php
-        $meta_query = array(
-            array(
-                'key' => '_show_on_homepage',
-                'value' => '1',
-                'compare' => '='
-            ),
-        );
-        $args = array(
-            'post_parent' => 0,
-            'meta_query' => $meta_query,
-            'orderby' => 'meta_value',
-            'meta_key' => '_bbp_last_active_time',
-            'order' => 'DESC',
-            'posts_per_page' => -1,
-        );
+        $args = extrachill_get_homepage_forums_args();
         if ( bbp_has_forums( $args ) ) : ?>
             <ul id="forums-list-homepage" class="bbp-forums">
                 <li class="bbp-body">

@@ -1,7 +1,7 @@
 <?php
 
 
-function wp_surgeon_determine_rank_by_points($points) {
+function extrachill_determine_rank_by_points($points) {
     if ($points >= 516246) return 'Frozen Deep Space';
     if ($points >= 344164) return 'Upper Atmosphere';
     if ($points >= 229442) return 'Ice Age';
@@ -30,18 +30,18 @@ function wp_surgeon_determine_rank_by_points($points) {
     return 'Dew';
 }
 
-function wp_surgeon_display_user_rank($user_id) {
+function extrachill_display_user_rank($user_id) {
     // Fetch the stored total points from user meta
-    $total_points = get_user_meta($user_id, 'wp_surgeon_total_points', true);
+    $total_points = get_user_meta($user_id, 'extrachill_total_points', true);
     
     // Determine the user's rank based on the total points
-    $rank = wp_surgeon_determine_rank_by_points($total_points);
+    $rank = extrachill_determine_rank_by_points($total_points);
     
     // Return the calculated rank
     return $rank;
 }
 
-function wp_surgeon_add_rank_and_points_to_reply() {
+function extrachill_add_rank_and_points_to_reply() {
     $reply_author_id = bbp_get_reply_author_id();
 
     echo '<div class="rankpoints">';
@@ -56,12 +56,12 @@ function wp_surgeon_add_rank_and_points_to_reply() {
 
     // Display Rank
     echo '<div class="reply-author-rank">';
-    echo '<span>Rank:</span> ' . wp_surgeon_display_user_rank($reply_author_id);
+    echo '<span>Rank:</span> ' . extrachill_display_user_rank($reply_author_id);
     echo '</div>';
 
     // Display Points
     echo '<div class="reply-author-points">';
-    echo '<span>Points:</span> ' . wp_surgeon_display_user_points($reply_author_id);
+    echo '<span>Points:</span> ' . extrachill_display_user_points($reply_author_id);
     echo '</div>';
 
     echo '</div>'; // Close rankpoints div

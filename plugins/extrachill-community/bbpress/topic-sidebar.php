@@ -50,10 +50,6 @@ if ( $recent_topics_query_for_exclusion->have_posts() ) {
                     $recent_topics_query->the_post();
                     $topic_id = get_the_ID();
 
-                    // Skip if topic should be excluded for the current user
-                    if ( function_exists('wp_surgeon_is_private_topic_excluded') && wp_surgeon_is_private_topic_excluded( $topic_id ) ) {
-                        continue;
-                    }
 
                     // Stop if we have already displayed 3 topics
                     if ( $displayed_count >= 3 ) {

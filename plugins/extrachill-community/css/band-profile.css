@@ -519,6 +519,44 @@
 }
 
 /* Mobile Responsive Styles */
+/* --- Band Profile Actions (Manage Button) --- */
+.band-profile-actions {
+    margin-bottom: 1em;
+}
+
+/* --- Band Public Link Display --- */
+.band-public-link-display {
+    margin-top: 1em;
+}
+
+.band-public-link-display a {
+    text-decoration: none;
+    color: inherit;
+}
+
+/* --- Band Roster Styles --- */
+.band-roster-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.band-roster-toggle {
+    cursor: pointer;
+    font-size: 27px;
+    margin-left: 10px;
+    transition: transform 0.3s ease;
+}
+
+.band-roster-list-container {
+    overflow: hidden;
+    transition: height 0.5s ease-out;
+}
+
+.band-roster-list-container.collapsed {
+    height: 0;
+}
+
 @media (max-width: 768px) {
     .band-hero-top-row {
         justify-content: center; /* Center justify content on mobile */

@@ -120,7 +120,7 @@ get_header(); ?>
                                         $manage_band_url = get_permalink( get_page_by_path( 'manage-band-profiles' ) );
                                         if ( $manage_band_url ) {
                                             $manage_band_url_with_id = add_query_arg( 'band_id', $band_profile_id, $manage_band_url );
-                                            echo '<div class="band-profile-actions" style="margin-bottom: 1em;">'; // Kept original class, added margin
+                                            echo '<div class="band-profile-actions">';
                                             echo '<a href="' . esc_url( $manage_band_url_with_id ) . '" class="button band-manage-button">Manage Band</a>';
                                             echo '</div>';
                                         }
@@ -231,8 +231,8 @@ get_header(); ?>
                                         if ( ! empty( $public_url_href ) ) {
                                             $public_url_display_text = preg_replace( '#^https?://#', '', $public_url_href );
                                             
-                                            echo '<div class="band-public-link-display" style="margin-top: 1em; /* text-align: left; (Adjust as needed for alignment with follower count) */">';
-                                            echo '<a href="' . esc_url( $public_url_href ) . '" rel="noopener" style="text-decoration: none; color: inherit;">' . esc_html( $public_url_display_text ) . '</a>';
+                                            echo '<div class="band-public-link-display">';
+                                            echo '<a href="' . esc_url( $public_url_href ) . '" rel="noopener">' . esc_html( $public_url_display_text ) . '</a>';
                                             echo '</div>';
                                         }
                                     }
@@ -286,15 +286,15 @@ get_header(); ?>
                             // Column 2: Band Members
                             echo '<div class="band-members-column">';
                             // Add a wrapper for the title and icon for flex layout if needed, and the icon itself
-                            echo '<div class="band-roster-header" style="display: flex; align-items: center; justify-content: space-between;">';
+                            echo '<div class="band-roster-header">';
                             echo '<h2 class="section-title">' . __( 'Roster', 'extra-chill-community' ) . '</h2>';
                             // Icon for collapsing - starts with 'plus' as it's collapsed by default
-                            echo '<i class="fa-solid fa-square-plus band-roster-toggle" onclick="toggleForumCollapse(this, \'band-roster-list-container\')" style="cursor: pointer; font-size: 27px; margin-left: 10px;"></i>';
+                            echo '<i class="fa-solid fa-square-plus band-roster-toggle" onclick="toggleForumCollapse(this, \'band-roster-list-container\')" aria-label="' . __('Toggle roster visibility', 'extra-chill-community') . '"></i>';
                             echo '</div>'; // .band-roster-header
 
                             // Add a container div for the list that will be collapsed/expanded
                             // Add 'collapsed' class to make it collapsed by default and styles for transition
-                            echo '<div id="band-roster-list-container" class="band-roster-list-container collapsed" style="overflow: hidden; transition: height 0.5s ease-out;">';
+                            echo '<div id="band-roster-list-container" class="band-roster-list-container collapsed">';
 
                             $roster_items_html = [];
                             $displayed_names_for_roster = []; // To track names already added to the roster list

@@ -10,14 +10,14 @@ jQuery(document).ready(function($) {
         var forum_id = $('.bbp-sorting-form').data('forum-id');
 
         $.ajax({
-            url: wpSurgeonAjax.ajax_url,
+            url: extraChillAjax.ajax_url,
             type: 'GET',
             data: {
-                action: 'wp_surgeon_ajax_search',
+                action: 'extrachill_ajax_search',
                 sort: sort,
                 bbp_search: search,
                 forum_id: forum_id,
-                nonce: wpSurgeonAjax.nonce
+                nonce: extraChillAjax.nonce
             },
             success: function(response) {
                 var $responseHtml = $(response);

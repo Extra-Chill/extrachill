@@ -129,9 +129,15 @@ function modular_bbpress_styles() {
 
 **JavaScript Architecture**:
 ```php
-// Specialized scripts with jQuery dependencies
+// Core utilities
 wp_enqueue_script('extrachill-utilities', get_template_directory_uri() . '/js/utilities.js', ['jquery']);
-wp_enqueue_script('manage-link-page', $js_path . '/manage-link-page.js', ['jquery']);
+
+// Social features (organized in forum-features/social/js/)
+wp_enqueue_script('extrachill-follow', get_template_directory_uri() . '/forum-features/social/js/extrachill-follow.js', ['jquery']);
+wp_enqueue_script('upvote', get_template_directory_uri() . '/forum-features/social/js/upvote.js', ['jquery']);
+
+// Link page management
+wp_enqueue_script('manage-link-page', get_template_directory_uri() . '/band-platform/extrch.co-link-page/live-preview/js/manage-link-page-customization.js', ['jquery']);
 ```
 
 ### Database Schema
@@ -284,12 +290,12 @@ define('EXTRACHILL_API_URL', 'https://community.extrachill.com');
 
 ## Architecture Notes
 
-- **No Build System**: Direct file inclusion, no webpack/compilation
-- **PSR-4 Ready**: Composer autoloader configured (requires implementing `src/` structure)  
-- **Modular Design**: Features isolated in subdirectories with 45+ JavaScript files
-- **WordPress Native**: Uses core WordPress patterns and conventions
-- **Performance Focused**: Conditional asset loading, optimized queries, and font inheritance system
-- **Text Domain Complete**: All legacy `generatepress_child` references successfully migrated to `extra-chill-community`
+- **No Build System**: Direct file inclusion, no compilation required
+- **PSR-4 Ready**: Composer autoloader configured (`Chubes\Extrachill\` namespace)
+- **Organized Structure**: Forum features in structured subdirectories with master loader
+- **WordPress Native**: Full compliance with WordPress coding standards
+- **Performance Focused**: Conditional asset loading, optimized queries, font inheritance
+- **Text Domain Migration**: Complete migration from `generatepress_child` to `extra-chill-community`
 
 ## License
 

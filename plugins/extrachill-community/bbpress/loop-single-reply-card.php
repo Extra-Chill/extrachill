@@ -174,7 +174,7 @@ if ( $is_lead_topic ) {
 
                         <?php
                         // This calls your custom function to display rank &amp; points
-                        wp_surgeon_add_rank_and_points_to_reply();
+                        extrachill_add_rank_and_points_to_reply();
                         ?>
                     </div>
                 </div><!-- .author-header-column -->

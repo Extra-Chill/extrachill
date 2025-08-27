@@ -17,7 +17,7 @@ if (function_exists('display_online_users_stats')) {
 ?>
 <footer id="extra-footer" >
     <!-- Social Media Links -->
-    <?php include get_stylesheet_directory() . '/social-links.php'; ?>
+    <?php include get_stylesheet_directory() . '/forum-features/content/social-links.php'; ?>
     <!-- Widget Areas -->
     <div class="footer-widget-areas">
         <?php for ( $i = 1; $i <= 5; $i++ ) : ?>

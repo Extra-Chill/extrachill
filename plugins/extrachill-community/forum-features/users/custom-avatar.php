@@ -3,8 +3,8 @@
 /**
  * AJAX handler for custom avatar upload (no custom image sizes)
  */
-add_action('wp_ajax_custom_avatar_upload', 'wp_surgeon_custom_avatar_upload');
-function wp_surgeon_custom_avatar_upload() {
+add_action('wp_ajax_custom_avatar_upload', 'extrachill_custom_avatar_upload');
+function extrachill_custom_avatar_upload() {
     // Ensure file-handling functions exist
     if (!function_exists('wp_handle_upload')) {
         require_once(ABSPATH . 'wp-admin/includes/file.php');
@@ -55,7 +55,7 @@ function wp_surgeon_custom_avatar_upload() {
  * Override get_avatar to use the "thumbnail" size for the image,
  * then manually set HTML width/height to $size (like Gravatar does).
  */
-function wp_surgeon_custom_avatar($avatar, $id_or_email, $size, $default, $alt) {
+function extrachill_custom_avatar($avatar, $id_or_email, $size, $default, $alt) {
     $user = false;
 
     // Identify the user
@@ -93,7 +93,7 @@ function wp_surgeon_custom_avatar($avatar, $id_or_email, $size, $default, $alt) 
     // Fallback to Gravatar if no custom avatar is found
     return $avatar;
 }
-add_filter('get_avatar', 'wp_surgeon_custom_avatar', 10, 5);
+add_filter('get_avatar', 'extrachill_custom_avatar', 10, 5);
 
 /**
  * (Optional) Generate custom avatar IDs for existing user meta

@@ -201,12 +201,117 @@ a:focus, a:active, a:hover {
 .one-container .container{
 	background-color: var(--background-color);
 }
+/* =============================================================================
+   Pagination Styles - Unified Design System Implementation
+   ============================================================================= */
+
 .bbp-pagination {
 	display: flex;
 	justify-content: space-between;
-	margin-bottom: 20px;
 	align-items: center;
-	width: max-content;
+	margin: 20px 0;
+	padding: 0;
+	width: 100%;
+}
+
+.bbp-pagination-count {
+	color: var(--muted-text, #6b7280);
+	font-size: 14px;
+	margin-right: 15px;
+}
+
+.bbp-pagination-links {
+	display: flex;
+	align-items: center;
+	gap: 5px;
+}
+
+/* Pagination Link Buttons */
+#bbpress-forums .bbp-pagination-links a,
+#bbpress-forums .bbp-pagination-links span {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 36px;
+	height: 36px;
+	padding: 8px 12px;
+	border: 1px solid var(--border-color, #ddd);
+	border-radius: 3px;
+	color: var(--text-color, #333);
+	background-color: var(--background-color, #fff);
+	text-decoration: none;
+	font-size: 14px;
+	line-height: 1;
+	transition: all 0.2s ease;
+	margin: 0;
+	box-sizing: border-box;
+}
+
+/* Current Page (Active State) */
+#bbpress-forums .bbp-pagination-links span.current {
+	background-color: var(--button-bg, #0b5394);
+	color: white;
+	border-color: var(--button-bg, #0b5394);
+	font-weight: 600;
+}
+
+/* Link Hover States */
+#bbpress-forums .bbp-pagination-links a:hover {
+	background-color: var(--button-hover-bg, #083b6c);
+	color: white;
+	border-color: var(--button-hover-bg, #083b6c);
+	transform: translateY(-1px);
+	box-shadow: var(--card-shadow, 0 2px 6px rgba(0, 0, 0, 0.08));
+}
+
+/* Focus States for Accessibility */
+#bbpress-forums .bbp-pagination-links a:focus {
+	outline: none;
+	border-color: var(--focus-border-color, #53940b);
+	box-shadow: var(--focus-box-shadow, 0 0 0 3px rgba(83, 148, 11, 0.2));
+}
+
+/* Disabled/Inactive Links */
+#bbpress-forums .bbp-pagination-links span.dots {
+	background: transparent;
+	border-color: transparent;
+	color: var(--muted-text, #6b7280);
+	cursor: default;
+}
+
+#bbpress-forums .bbp-pagination-links span.dots:hover {
+	background: transparent;
+	border-color: transparent;
+	transform: none;
+	box-shadow: none;
+}
+
+/* Responsive Design */
+@media (max-width: 480px) {
+	.bbp-pagination {
+		flex-direction: column;
+		gap: 10px;
+		align-items: stretch;
+	}
+	
+	.bbp-pagination-count {
+		text-align: center;
+		margin-right: 0;
+		margin-bottom: 5px;
+	}
+	
+	.bbp-pagination-links {
+		justify-content: center;
+		flex-wrap: wrap;
+	}
+	
+	#bbpress-forums .bbp-pagination-links a,
+	#bbpress-forums .bbp-pagination-links span {
+		min-width: 32px;
+		height: 32px;
+		padding: 6px 10px;
+		font-size: 13px;
+	}
 }
 
 #bbpress-forums ul .bbp-forums-list {
@@ -959,22 +1064,11 @@ p.private-forums {
 }
  
 
-.band-profile-content,
-.before-main-widget-area .wp-block-image {
+.band-profile-content {
     margin: 10px auto;
     max-width: 93%;
     display: flex;
 	justify-content: center;
-}
- 
-.before-main-widget-area .wp-block-image img {
-    min-height: 0;
-}
- 
-@media (min-width: 900px) {
-	.before-main-widget-area .wp-block-image img {
-		max-width: 768px;
-	}
 }
  
 .social-links {

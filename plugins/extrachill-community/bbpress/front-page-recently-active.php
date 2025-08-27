@@ -14,34 +14,7 @@ defined( 'ABSPATH' ) || exit;
     <h2 class="forum-front-ec">Recently Active Topics</h2>
     <ul class="recently-active-topic-row">
         <?php
-        $target_count = 3;
-        $recently_active_topic_ids = array();
-
-        $args = array(
-            'post_type'      => bbp_get_topic_post_type(),
-            'posts_per_page' => 10, // Fetch more to allow for exclusions
-            'post_status'    => 'publish',
-            'orderby'        => 'meta_value',
-            'meta_key'       => '_bbp_last_active_time',
-            'meta_type'      => 'DATETIME',
-            'order'          => 'DESC',
-            'fields'         => 'ids',
-        );
-        $query = new WP_Query($args);
-
-        if ( $query->have_posts() ) {
-            foreach ( $query->posts as $topic_id ) {
-                // Skip if topic should be excluded for the current user
-                if (function_exists('wp_surgeon_is_private_topic_excluded') && wp_surgeon_is_private_topic_excluded($topic_id)) {
-                    continue;
-                }
-                $recently_active_topic_ids[] = $topic_id;
-                if (count($recently_active_topic_ids) >= $target_count) {
-                    break;
-                }
-            }
-        }
-        wp_reset_postdata();
+        $recently_active_topic_ids = extrachill_get_recent_topics_for_homepage(3);
 
         // Display the topics
         if ( ! empty( $recently_active_topic_ids ) ) :

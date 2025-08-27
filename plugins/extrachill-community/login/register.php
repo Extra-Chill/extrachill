@@ -54,14 +54,14 @@ function extrachill_registration_form_shortcode() {
     <p>Sign up to connect with music lovers, artists, and professionals in the online music scene! It's free and easy.</p>
 
     <?php if (isset($_GET['from_join']) && $_GET['from_join'] === 'true') : ?>
-        <div class="bp-notice bp-notice-info" style="background-color: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; padding: 10px; margin-bottom: 15px;">
+        <div class="bp-notice bp-notice-info">
             Welcome! Create a new account to get started with your extrachill.link page.
         </div>
     <?php endif; ?>
 
     <?php if (!empty($band_name_for_invite_message) && !empty($invite_token)) : ?>
-        <div class="bp-notice bp-notice-info" style="border-left: 4px solid #17a2b8; padding: 12px; margin-bottom: 20px; background-color: #e6f7ff;">
-            <p style="margin:0;"><?php echo sprintf(esc_html__('You have been invited to join the band \'%s\'! Please complete your registration below to accept.', 'extra-chill-community'), esc_html($band_name_for_invite_message)); ?></p>
+        <div class="bp-notice bp-notice-invite">
+            <p><?php echo sprintf(esc_html__('You have been invited to join the band \'%s\'! Please complete your registration below to accept.', 'extra-chill-community'), esc_html($band_name_for_invite_message)); ?></p>
         </div>
     <?php endif; ?>
 
@@ -86,23 +86,31 @@ function extrachill_registration_form_shortcode() {
         <label for="extrachill_password_confirm">Confirm Password</label>
         <input type="password" name="extrachill_password_confirm" id="extrachill_password_confirm" placeholder="Repeat your password" required>
 
-        <div style="margin-top: 15px;">
-            <label style="display:block; margin-bottom: 5px;">
+        <div class="registration-user-types">
+            <label>
                 <input type="checkbox" id="user_is_fan" checked disabled> I love music
             </label>
-            <label style="display:block; margin-bottom: 5px;">
+            <label>
                 <input type="checkbox" name="user_is_artist" id="user_is_artist" value="1"> I am a musician
+                <small>(required for band profiles and link pages)</small>
             </label>
-            <label style="display:block; margin-bottom: 5px;">
+            <label>
                 <input type="checkbox" name="user_is_professional" id="user_is_professional" value="1"> I work in the music industry
+                <small>(required for band profiles and link pages)</small>
             </label>
         </div>
 
-        <div style="margin-top: 15px;">
+        <?php if (isset($_GET['from_join']) && $_GET['from_join'] === 'true') : ?>
+            <div class="bp-notice bp-notice-info join-flow-requirement">
+                <p><strong>Note:</strong> To create your extrachill.link page, you must select either "I am a musician" or "I work in the music industry".</p>
+            </div>
+        <?php endif; ?>
+
+        <div class="registration-submit-section">
             <input type="submit" name="extrachill_register" value="Join Now">
         </div>
 
-        <div class="cf-turnstile" data-sitekey="0x4AAAAAAAPvQsUv5Z6QBB5n" data-callback="community_register" style="margin-top: 20px;"></div>
+        <div class="cf-turnstile" data-sitekey="0x4AAAAAAAPvQsUv5Z6QBB5n" data-callback="community_register"></div>
 
         <?php wp_nonce_field('extrachill_register_nonce', 'extrachill_register_nonce_field'); ?>
         <?php if ( isset($_GET['from_join']) && $_GET['from_join'] === 'true' ) : ?>
@@ -147,6 +155,18 @@ function extrachill_handle_registration() {
         if ($password !== $password_confirm) {
             $extrachill_registration_errors[] = 'Error: Passwords do not match.';
             return; // Early return to prevent further processing
+        }
+
+        // Join flow validation - require artist or professional status
+        $from_join_flag = isset($_POST['from_join']) && $_POST['from_join'] === 'true';
+        if ($from_join_flag) {
+            $user_is_artist = isset($_POST['user_is_artist']) && $_POST['user_is_artist'] === '1';
+            $user_is_professional = isset($_POST['user_is_professional']) && $_POST['user_is_professional'] === '1';
+            
+            if (!$user_is_artist && !$user_is_professional) {
+                $extrachill_registration_errors[] = 'To create your extrachill.link page, please select either "I am a musician" or "I work in the music industry".';
+                return; // Early return to prevent further processing
+            }
         }
 
         // Check for existing username or email
@@ -204,29 +224,23 @@ function extrachill_handle_registration() {
 
             if ($valid_invite_data) {
                 // USER_IS_ARTIST META IS NO LONGER FORCED HERE. USER CHOICE FROM CHECKBOX WILL BE USED.
-                // error_log("Band Invite Registration: Forcing user_is_artist for user ID $user_id for band $invite_band_id_posted."); // This line is removed
 
                 if (bp_add_band_membership($user_id, $invite_band_id_posted)) {
                     if (bp_remove_pending_invitation($invite_band_id_posted, $valid_invite_id_for_removal)) {
-                        // error_log("Band Invite Registration: User $user_id successfully added to band $invite_band_id_posted and invite removed.");
                         $processed_invite_band_id = $invite_band_id_posted; // Store for redirect
                     } else {
-                        // error_log("Band Invite Registration: User $user_id added to band $invite_band_id_posted, but FAILED to remove pending invite ID $valid_invite_id_for_removal.");
                         // Still treat as success for user, but log the cleanup issue
                         $processed_invite_band_id = $invite_band_id_posted;
                     }
                 } else {
-                    // error_log("Band Invite Registration: FAILED to add user $user_id to band $invite_band_id_posted.");
                     $extrachill_registration_errors[] = 'Your account was created, but there was an issue joining the invited band. Please contact support.';
                 }
             } else {
-                 // error_log("Band Invite Registration: Invalid or mismatched token/email for invite. Token: $invite_token_posted, Band ID: $invite_band_id_posted, New User Email: $email");
-                // Don't add an error to $wp_surgeon_registration_errors here, as registration itself might be fine, just invite part failed.
+                // Don't add an error to $extrachill_registration_errors here, as registration itself might be fine, just invite part failed.
                 // User gets registered as normal without joining band.
             }
         } elseif ($invite_token_posted || $invite_band_id_posted) {
             // Log if token/band_id was posted but functions were missing (should not happen with require_once at top)
-            // error_log("Band Invite Registration: Invite token/band_id posted, but required band platform functions are missing.");
         }
 
           // Save user statuses after successful registration (DIRECTLY IN THIS FUNCTION)
@@ -278,7 +292,6 @@ function sync_to_sendy($email, $name) {
     curl_close($ch);
 
     if (strpos($response, '1') === false) {
-        // error_log('Failed to sync email to Sendy: ' . $response);
     }
 }
 
@@ -298,9 +311,7 @@ function auto_login_new_user($user_id, $redirect_band_id = null, $from_join_flow
              $manage_band_page = get_page_by_path('manage-band-profiles');
               if ($manage_band_page) {
                   $redirect_url = add_query_arg('from_join', 'true', get_permalink($manage_band_page));
-                  // error_log('[Join Flow] New user registered, redirected to Create Band Profile: ' . $redirect_url);
               } else {
-                  // error_log('[Join Flow] New user registered: Manage Band Profile page not found.');
                   // Fallback if manage page not found
                  $redirect_url = home_url();
               }
@@ -319,7 +330,6 @@ function auto_login_new_user($user_id, $redirect_band_id = null, $from_join_flow
              $band_post = get_post($redirect_band_id);
              if ($band_post && $band_post->post_type === 'band_profile') {
                  $redirect_url = get_permalink($band_post);
-                 // error_log('[Band Invite] New user registered and added to band, redirected to Band Profile: ' . $redirect_url);
              } else {
                  // Fallback if band post not found
                  $redirect_url = home_url();
@@ -329,7 +339,6 @@ function auto_login_new_user($user_id, $redirect_band_id = null, $from_join_flow
         // Default redirect after registration if not from join flow or band invite
         else {
             $redirect_url = apply_filters('registration_redirect', home_url());
-             // error_log('[Registration] New user registered, redirected to default: ' . $redirect_url);
         }
 
 

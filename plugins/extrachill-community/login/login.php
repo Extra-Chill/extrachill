@@ -130,13 +130,13 @@ function extrachill_display_login_form() {
         <p>Welcome back! Log in to your account.</p>
 
         <?php if (isset($_GET['from_join']) && $_GET['from_join'] === 'true') : ?>
-            <div class="bp-notice bp-notice-info" style="background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; padding: 10px; margin-bottom: 15px;">
+            <div class="bp-notice bp-notice-info">
                 Welcome back! Please log in to connect your account and continue setting up your link page.
             </div>
         <?php endif; ?>
 
         <form id="loginform" action="<?php echo esc_url($action_url); ?>" method="post">
-            <div id="login-error-message" class="login-register-errors" style="display: none;"></div>
+            <div id="login-error-message" class="login-register-errors hidden"></div>
 
             <label for="user_login">Username</label>
             <input type="text" name="log" id="user_login" class="input" placeholder="Your username" required>
@@ -150,7 +150,7 @@ function extrachill_display_login_form() {
             <input type="submit" id="wp-submit" class="button button-primary" value="Log In">
         </form>
 
-        <p style="margin-top: 15px;">Not a member? <a href="<?php echo esc_url(home_url('/login/#tab-register')); ?>" class="js-switch-to-register">Sign up here</a></p>
+        <p class="login-signup-link">Not a member? <a href="<?php echo esc_url(home_url('/login/#tab-register')); ?>" class="js-switch-to-register">Sign up here</a></p>
     </div>
     <?php
 }

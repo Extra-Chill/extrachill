@@ -1,12 +1,12 @@
 <?php
-function wp_surgeon_add_user_role_fields($user) {
+function extrachill_add_user_role_fields($user) {
     $is_admin = current_user_can('administrator');
     $artist = get_user_meta($user->ID, 'user_is_artist', true) == '1';
     $professional = get_user_meta($user->ID, 'user_is_professional', true) == '1';
 
     ?>
     <div class="hideme">
-        <h3><?php _e("Extra User Information", "wp_surgeon"); ?></h3>
+        <h3><?php _e("Extra User Information", "extra-chill-community"); ?></h3>
         <table class="form-table">
             <tr>
                 <th><label for="user_is_artist"><?php _e("Artist Status"); ?></label></th>
@@ -25,10 +25,10 @@ function wp_surgeon_add_user_role_fields($user) {
     <?php
 }
 
-add_action('show_user_profile', 'wp_surgeon_add_user_role_fields');
-add_action('edit_user_profile', 'wp_surgeon_add_user_role_fields');
+add_action('show_user_profile', 'extrachill_add_user_role_fields');
+add_action('edit_user_profile', 'extrachill_add_user_role_fields');
 
-function wp_surgeon_save_user_meta($user_id) {
+function extrachill_save_user_meta($user_id) {
     if (!current_user_can('edit_user', $user_id)) {
         return false;
     }
@@ -40,6 +40,6 @@ function wp_surgeon_save_user_meta($user_id) {
     update_user_meta($user_id, 'user_is_professional', isset($_POST['user_is_professional']) ? '1' : '0');
 }
 
-add_action('personal_options_update', 'wp_surgeon_save_user_meta');
-add_action('edit_user_profile_update', 'wp_surgeon_save_user_meta');
+add_action('personal_options_update', 'extrachill_save_user_meta');
+add_action('edit_user_profile_update', 'extrachill_save_user_meta');
 

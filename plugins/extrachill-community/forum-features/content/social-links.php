@@ -27,13 +27,6 @@ $social_links = [
         'icon'  => 'pinterest',
         'label' => 'Pinterest',
     ],
-    /***** 
-    [
-        'url'   => 'https://community.extrachill.com',
-        'icon'  => 'igloo-solid',
-        'label' => 'Community Platform',
-    ],
-    *******/
 ];
 
 $svg_file_path = get_stylesheet_directory() . '/fonts/fontawesome.svg';

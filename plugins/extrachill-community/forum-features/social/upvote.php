@@ -90,7 +90,7 @@ function extrachill_get_upvoted_posts($post_type, $user_id = null) {
 }
 
 
-function wp_surgeon_get_user_total_upvotes($user_id) {
+function extrachill_get_user_total_upvotes($user_id) {
     $args = array(
         'author'         => $user_id,
         'post_type'      => array('post', 'reply', 'topic'), // Include relevant post types

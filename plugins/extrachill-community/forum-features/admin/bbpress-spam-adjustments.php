@@ -89,8 +89,8 @@ function ec_user_exempt_from_spam_detection($user_id = 0) {
     }
     
     // Exempt established community members (users with 10+ points)
-    if (function_exists('wp_surgeon_get_user_total_points')) {
-        $user_points = wp_surgeon_get_user_total_points($user_id);
+    if (function_exists('extrachill_get_user_total_points')) {
+        $user_points = extrachill_get_user_total_points($user_id);
         if ($user_points >= 10) {
             return true;
         }

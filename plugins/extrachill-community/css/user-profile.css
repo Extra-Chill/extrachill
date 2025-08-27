@@ -1,5 +1,16 @@
 /* --- Profile Styles Updated to Use Global Variables --- */
 
+/* --- User Band Management Actions --- */
+.user-band-management-actions {
+    text-align: right;
+    margin-top: 15px;
+}
+
+/* --- User Profile Edit Button --- */
+.extrachill-edit-profile-button {
+    margin-left: 10px;
+}
+
 /* User Profile Header */
 .user-profile-header h1, 
 #chill-home-header h1 {

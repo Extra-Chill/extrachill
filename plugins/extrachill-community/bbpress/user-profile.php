@@ -112,7 +112,7 @@ if ( $is_artist || $is_professional ) :
             $base_manage_bands_url_card = home_url( '/manage-band-profiles/' );
             $base_manage_link_page_url_card = home_url( '/manage-link-page/' );
 
-            echo '<div class="user-band-management-actions" style="text-align: right; margin-top: 15px;">'; // Basic styling for bottom-right
+            echo '<div class="user-band-management-actions">';
 
             if ( !empty($user_band_ids) && is_array($user_band_ids) ) : // Already have $user_band_ids from above
                 $latest_band_id_card = 0;

@@ -101,7 +101,7 @@
           <!-- Note: Newsletter Subscription Form omitted for the forum -->
 
           <li class="menu-social-links">
-          <?php include get_stylesheet_directory() . '/social-links.php'; ?>
+          <?php include get_stylesheet_directory() . '/forum-features/content/social-links.php'; ?>
           </li>
           <li class="menu-footer-links">
             <a href="https://extrachill.com/about">About</a>
@@ -123,7 +123,7 @@
     if ( is_user_logged_in() ) {
       // Logged-in: output notification bell and user avatar.
       // Call the function with dummy parameters since it echoes directly
-      wp_surgeon_add_notification_bell_icon('', (object)array());
+      extrachill_add_notification_bell_icon('', (object)array());
     } else {
       // Not logged in: output login button.
       echo '<div class="auth-buttons">';

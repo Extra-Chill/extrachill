@@ -36,12 +36,12 @@ This is a **standalone WordPress theme** called "Extra Chill Community" hosting 
 
 ## Core Features
 
-1. **Band Platform** - Custom `band_profile` CPT with associated hidden bbPress forums
-2. **Link Page System** - Customizable "link in bio" service (`band_link_page` CPT)
-3. **Cross-Domain Authentication** - Seamless login across all domains
-4. **Forum Integration** - bbPress-based community forums
-5. **Analytics & Tracking** - Custom analytics for link pages
-6. **Email Subscriber Management** - Unified consent system
+1. **Band Platform** - Custom `band_profile` CPT with automatic bbPress forum creation
+2. **Link Page System** - Customizable "link in bio" service (`band_link_page` CPT) with live preview
+3. **Cross-Domain Authentication** - Session token system across all ExtraChill domains
+4. **Forum Features** - Comprehensive bbPress extensions (45+ organized features)
+5. **Analytics & Tracking** - Link page analytics with click tracking and QR codes
+6. **Social Features** - User interactions, following system, reputation system
 
 ## Development Setup
 
@@ -57,12 +57,12 @@ composer install
 ```
 
 ### Development Notes
-- **No Build System** - Direct file inclusion without webpack or compilation
-- **PSR-4 Autoloading** - Composer autoloader with `Chubes\Extrachill\` namespace
+- **No Build System** - Direct file inclusion without compilation
+- **PSR-4 Ready** - Composer autoloader configured (no `src/` directory implemented)
 - **Asset Versioning** - Dynamic `filemtime()` versioning for cache management
-- **Modular Architecture** - 45+ JavaScript files across multiple feature domains, conditional CSS loading
+- **Organized Architecture** - Forum features in structured subdirectories with master loader
 - **Font System** - Custom font-face declarations with inheritance optimization
-- **bbPress Optimization** - Default stylesheet dequeuing with custom styling
+- **bbPress Integration** - Default stylesheet dequeuing, custom templates, enhanced functionality
 
 ## Architecture Principles
 
@@ -90,48 +90,57 @@ composer install
 ## Critical File Locations
 
 ### Core Theme Files
-- `functions.php` - Main theme functions, WordPress feature support, and modular asset loading
+- `functions.php` - Theme setup, WordPress features, asset loading
 - `index.php` - Required WordPress template file (fallback)
-- `style.css` - Main theme stylesheet with header information and font-face declarations
-- `bbpress-customization.php` - bbPress modifications and custom hooks
+- `style.css` - Main theme stylesheet with header and font declarations
+
+### Forum Features System
+- `forum-features/forum-features.php` - Master loader for all forum functionality
+- `forum-features/admin/` - Moderation, management, notifications (9 features)
+- `forum-features/content/` - Embeds, editor, queries, processing (13 features)
+- `forum-features/social/` - Interactions, following, reputation (7 features)
+- `forum-features/users/` - Profiles, settings, verification (5 features)
 
 ### Band Platform Core
-- `band-platform/cpt-band-profile.php` - Band profile custom post type registration
+- `band-platform/cpt-band-profile.php` - Band profile custom post type
 - `band-platform/band-forums.php` - Automatic forum creation and management
 - `band-platform/band-platform-includes.php` - Centralized feature includes
-- `page-templates/manage-band-profile.php` - Band management interface
 
-### Link Page System (18 files)
+### Link Page System
 - `band-platform/extrch.co-link-page/extrch-link-page-template.php` - Canonical template
-- `band-platform/extrch.co-link-page/cpt-band-link-page.php` - Custom post type
-- `band-platform/extrch.co-link-page/link-page-form-handler.php` - Save processing
-- `band-platform/extrch.co-link-page/ajax-handlers.php` - AJAX functionality
+- `band-platform/extrch.co-link-page/data/LinkPageDataProvider.php` - Single source of truth
+- `band-platform/extrch.co-link-page/live-preview/` - Real-time preview system
 - `single-band_link_page.php` - Public link page display
-- `page-templates/manage-link-page.php` - Link page management interface
 
-### Page Templates (10 files)
-- `page-templates/login-register-template.php` - Authentication interface with join flow modal
+### Page Templates
+- `page-templates/login-register-template.php` - Authentication with join flow modal
+- `page-templates/manage-band-profile.php` - Band management interface
+- `page-templates/manage-link-page.php` - Link page management
 - `page-templates/settings-page.php` - User settings management
 - `page-templates/notifications-feed.php` - Notifications system
-- `page-templates/band-directory.php` - Band listings
-- `page-templates/leaderboard-template.php` - Community leaderboard
 
 ### Authentication & Integration
 - `extrachill-integration/session-tokens.php` - Cross-domain session management
 - `extrachill-integration/validate-session.php` - Token validation
 - `extrachill-integration/seamless-comments.php` - Cross-domain commenting
-- `login/register.php` - Registration system
+- `login/register.php` - Registration system with email verification
+
+### Forum Features Architecture
+- **Organized Structure**: All forum functionality in `forum-features/` with logical subdirectories
+- **Admin Features**: Moderation, forum management, email notifications (`admin/`)
+- **Content Features**: Embeds, editor customization, queries, processing (`content/`)
+- **Social Features**: Interactions, following system, reputation (`social/`)
+- **User Features**: Profiles, settings, verification (`users/`)
+- **Asset Organization**: JavaScript and CSS organized within feature subdirectories
 
 ### JavaScript Architecture
-- **Core Utilities**: `utilities.js` - Shared functionality across components
-- **Social Features**: `extrachill-follow.js`, `extrachill-mentions.js` - User interaction systems
-- **Forum Enhancements**: `upvote.js`, `quote.js`, `topic-quick-reply.js` - bbPress extensions
-- **UI Components**: `shared-tabs.js`, `custom-avatar.js`, `nav-menu.js` - Interface elements
-- **Form Management**: `manage-band-profiles.js`, `manage-user-profile-links.js` - Data handling
-- **Content Systems**: `sorting.js`, `home-collapse.js` - Dynamic content management
-- **Media Upload**: `extrachill-image-upload.js`, `tinymce-image-upload.js` - File handling
-- **Cross-Domain**: `seamless-login.js`, `seamless-comments.js` - Authentication integration
-- **Legacy Scripts**: `upvote-1494.js`, `wp_surgeon_admin.js` - Deprecated functionality
+- **Core Utilities**: `js/utilities.js` - Shared functionality across components
+- **Social Features**: `forum-features/social/js/extrachill-follow.js`, `extrachill-mentions.js` - User interaction systems
+- **Forum Enhancements**: `forum-features/social/js/upvote.js` - bbPress extensions
+- **UI Components**: `js/shared-tabs.js`, `nav-menu.js` - Interface elements
+- **Form Management**: `js/manage-band-profiles.js`, `manage-user-profile-links.js` - Data handling
+- **Content Systems**: `js/sorting.js`, `home-collapse.js` - Dynamic content management
+- **Cross-Domain**: `js/seamless-login.js`, `seamless-comments.js` - Authentication integration
 
 ### Asset Enqueuing System
 - **Main Stylesheet**: `extra-chill-community-style` - Primary theme styles with root CSS import system

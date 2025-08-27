@@ -1,16 +1,16 @@
 jQuery(document).ready(function($) {
-    $('#wp_surgeon_recalculate_points').on('click', function() {
+    $('#extrachill_recalculate_points').on('click', function() {
         var userId = $(this).data('user-id');
-        var nonce = wpSurgeonAdmin.nonce;
-        var resultElement = $('#wp_surgeon_recalculate_points_result');
+        var nonce = extraChillAdmin.nonce;
+        var resultElement = $('#extrachill_recalculate_points_result');
 
         resultElement.text('Recalculating...');
 
         $.ajax({
             type: 'POST',
-            url: wpSurgeonAdmin.ajaxUrl,
+            url: extraChillAdmin.ajaxUrl,
             data: {
-                action: 'wp_surgeon_recalculate_points',
+                action: 'extrachill_recalculate_points',
                 user_id: userId,
                 nonce: nonce
             },

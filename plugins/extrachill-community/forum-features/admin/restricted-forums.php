@@ -1,6 +1,6 @@
 <?php
 // Add custom meta boxes to forum edit screen
-function wp_surgeon_add_requirement_boxes() {
+function extrachill_add_requirement_boxes() {
     $requirements = [
         '_require_artist'          => 'Require Artist to Post',
         '_require_professional'    => 'Require Industry Professional to Post',
@@ -23,11 +23,11 @@ function wp_surgeon_add_requirement_boxes() {
         );
     }
 }
-add_action('add_meta_boxes', 'wp_surgeon_add_requirement_boxes');
+add_action('add_meta_boxes', 'extrachill_add_requirement_boxes');
 
 
 // Save the states of the checkboxes
-function wp_surgeon_save_postdata($post_id) {
+function extrachill_save_postdata($post_id) {
     $meta_keys = ['_require_artist', '_require_professional'];
 
     foreach ($meta_keys as $meta_key) {
@@ -38,11 +38,11 @@ function wp_surgeon_save_postdata($post_id) {
         }
     }
 }
-add_action('save_post', 'wp_surgeon_save_postdata');
+add_action('save_post', 'extrachill_save_postdata');
 
 
 // Restrict forum posting based on user meta
-function wp_surgeon_restrict_forum_posting($can_post, $forum_id = null) {
+function extrachill_restrict_forum_posting($can_post, $forum_id = null) {
     if (null === $forum_id) {
         $forum_id = bbp_get_forum_id();
     }
@@ -66,8 +66,8 @@ function wp_surgeon_restrict_forum_posting($can_post, $forum_id = null) {
 
     return $can_post;
 }
-add_filter('bbp_current_user_can_publish_topics', 'wp_surgeon_restrict_forum_posting', 10, 2);
-add_filter('bbp_current_user_can_publish_replies', 'wp_surgeon_restrict_forum_posting', 10, 2);
+add_filter('bbp_current_user_can_publish_topics', 'extrachill_restrict_forum_posting', 10, 2);
+add_filter('bbp_current_user_can_publish_replies', 'extrachill_restrict_forum_posting', 10, 2);
 
 
 // Optionally, you could remove redundant main query exclusions if the consolidated function covers all cases.

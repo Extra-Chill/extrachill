@@ -182,3 +182,44 @@ function display_music_fan_details() {
 
 // Hook the display functions to run after bbPress is loaded
 add_action('bbp_init', 'display_music_fan_details');
+
+// =============================================================================
+// bbPress User Role & Title Customization (moved from bbpress-customization.php)
+// =============================================================================
+
+// Utility function to get the edit profile URL
+function extrachill_get_edit_profile_url($user_id, $profile_type) {
+    // This function should return the URL for editing the specified profile type.
+    return home_url("/edit-profile/?profile_type={$profile_type}&user_id={$user_id}");
+}
+
+// Load the function after bbPress is fully loaded
+add_action( 'after_setup_theme', 'override_bbp_user_role_after_bbp_load' );
+
+function override_bbp_user_role_after_bbp_load() {
+    // Hook into bbPress filter after it's available
+    add_filter( 'bbp_get_user_display_role', 'override_bbp_user_forum_role', 10, 2 );
+}
+
+function override_bbp_user_forum_role( $role, $user_id ) {
+    // Ensure bbPress functions are available
+    if ( function_exists( 'bbp_is_user_keymaster' ) && function_exists( 'bbp_get_user_display_role' ) ) {
+
+        // Get the custom title if it exists
+        $custom_title = get_user_meta( $user_id, 'ec_custom_title', true );
+
+        // Return custom title if set, otherwise return "Extra Chillian" for regular users
+        return ! empty( $custom_title ) ? $custom_title : 'Extra Chillian';
+    }
+
+    // Fallback if bbPress is not loaded properly
+    return $role;
+}
+
+function save_ec_custom_title( $user_id ) {
+    if ( isset( $_POST['ec_custom_title'] ) ) {
+        update_user_meta( $user_id, 'ec_custom_title', sanitize_text_field( wp_unslash( $_POST['ec_custom_title'] ) ) );
+    }
+}
+add_action( 'personal_options_update', 'save_ec_custom_title' );
+add_action( 'edit_user_profile_update', 'save_ec_custom_title' );

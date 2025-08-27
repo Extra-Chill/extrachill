@@ -121,30 +121,22 @@ function extrachill_enqueue_leaderboard_styles() {
 add_action('wp_enqueue_scripts', 'extrachill_enqueue_leaderboard_styles');
 
 
-include_once get_stylesheet_directory() . '/bbpress-customization.php';
 
-$folder_path = get_stylesheet_directory() . '/extrachill-integration/';
-$files = scandir($folder_path);
+// ExtraChill Integration Files
+require_once get_stylesheet_directory() . '/extrachill-integration/article-topic-sync.php';
+require_once get_stylesheet_directory() . '/extrachill-integration/blog-searching-forum.php';
+require_once get_stylesheet_directory() . '/extrachill-integration/extrachill-com-articles.php';
+require_once get_stylesheet_directory() . '/extrachill-integration/extrachill-comments.php';
+require_once get_stylesheet_directory() . '/extrachill-integration/get-user-details.php';
+require_once get_stylesheet_directory() . '/extrachill-integration/rest-api-forums-feed.php';
+require_once get_stylesheet_directory() . '/extrachill-integration/seamless-comments.php';
+require_once get_stylesheet_directory() . '/extrachill-integration/seamless-login.php';
+require_once get_stylesheet_directory() . '/extrachill-integration/serve-login-form.php';
+require_once get_stylesheet_directory() . '/extrachill-integration/session-tokens.php';
+require_once get_stylesheet_directory() . '/extrachill-integration/validate-session.php';
 
-foreach ($files as $file) {
-    $file_path = $folder_path . $file;
-
-    // Check if the file is a PHP file and not a directory
-    if (is_file($file_path) && pathinfo($file_path, PATHINFO_EXTENSION) === 'php') {
-        include_once $file_path;
-    }
-}
-$folder_path = get_stylesheet_directory() . '/forum-features/';
-$files = scandir($folder_path);
-
-foreach ($files as $file) {
-    $file_path = $folder_path . $file;
-
-    // Check if the file is a PHP file and not a directory
-    if (is_file($file_path) && pathinfo($file_path, PATHINFO_EXTENSION) === 'php') {
-        include_once $file_path;
-    }
-}
+// Forum Features - Master loader for all forum functionality
+require_once get_stylesheet_directory() . '/forum-features/forum-features.php';
 
 // Include the new login module includes file
 require_once get_stylesheet_directory() . '/login/login-includes.php';
@@ -348,7 +340,7 @@ add_action('wp_enqueue_scripts', 'enqueue_fontawesome');
 
 
 // Redirect non-admin users attempting to access the backend and hide admin bar for non-admins
-function wp_surgeon_redirect_admin() {
+function extrachill_redirect_admin() {
     // If user is not an administrator
     if (!current_user_can('administrator')) {
         // Hide admin bar for non-admins
@@ -363,10 +355,10 @@ function wp_surgeon_redirect_admin() {
     }
     // Administrators get full access to wp-admin and keep admin bar
 }
-add_action('admin_init', 'wp_surgeon_redirect_admin');
+add_action('admin_init', 'extrachill_redirect_admin');
 
 // Prevent WordPress core from redirecting logged-in administrators
-function wp_surgeon_prevent_admin_auth_redirect($redirect_to, $requested_redirect_to, $user) {
+function extrachill_prevent_admin_auth_redirect($redirect_to, $requested_redirect_to, $user) {
     // If user is administrator and trying to access wp-admin, ensure they get there
     if (isset($user->ID) && current_user_can('administrator', $user->ID)) {
         if (!empty($requested_redirect_to) && strpos($requested_redirect_to, '/wp-admin') !== false) {
@@ -378,11 +370,11 @@ function wp_surgeon_prevent_admin_auth_redirect($redirect_to, $requested_redirec
     }
     return $redirect_to;
 }
-add_filter('login_redirect', 'wp_surgeon_prevent_admin_auth_redirect', 5, 3); // High priority
+add_filter('login_redirect', 'extrachill_prevent_admin_auth_redirect', 5, 3); // High priority
 
 // Function to create 'forum_user' role
 
-function wp_surgeon_create_forum_user_role() {
+function extrachill_create_forum_user_role() {
     add_role('forum_user', 'Forum User', array(
         'read' => true, // Allows a user to read
         'level_0' => true, // Equivalent to subscriber
@@ -392,9 +384,9 @@ function wp_surgeon_create_forum_user_role() {
     ));
 }
 
-add_action('init', 'wp_surgeon_create_forum_user_role');
+add_action('init', 'extrachill_create_forum_user_role');
 
-function wp_surgeon_get_readable_role($role) {
+function extrachill_get_readable_role($role) {
     $roles = array(
         'forum_user' => 'Community Member',
         // Add other roles here if needed
@@ -539,12 +531,7 @@ function extrachill_enqueue_nav_scripts() {
 }
 add_action('wp_enqueue_scripts', 'extrachill_enqueue_nav_scripts');
 
-include_once get_stylesheet_directory() . '/forum-features/forum-1494-redirects.php';
-include_once get_stylesheet_directory() . '/forum-features/bbpress-spam-adjustments.php';
-include_once get_stylesheet_directory() . '/forum-features/online-users-count.php';
-
-// Load all social features (upvote, mentions, notifications, following, points, ranks, badges)
-include_once get_stylesheet_directory() . '/forum-features/social/social-includes.php';
+// Forum features are now loaded via the master forum-features.php file above
 
 function set_default_ec_custom_title( $user_id ) {
     update_user_meta( $user_id, 'ec_custom_title', 'Extra Chillian' );
@@ -552,96 +539,7 @@ function set_default_ec_custom_title( $user_id ) {
 add_action( 'user_register', 'set_default_ec_custom_title' );
 
 
-function extrachill_update_user_profile_meta( $user_id ) {
-    if ( isset( $_POST['user_is_artist'] ) ) {
-        update_user_meta( $user_id, 'user_is_artist', 1 );
-    } else {
-        delete_user_meta( $user_id, 'user_is_artist' );
-    }
 
-    if ( isset( $_POST['user_is_professional'] ) ) {
-        update_user_meta( $user_id, 'user_is_professional', 1 );
-    } else {
-        delete_user_meta( $user_id, 'user_is_professional' );
-    }
-}
-add_action( 'personal_options_update', 'extrachill_update_user_profile_meta' );
-add_action( 'edit_user_profile_update', 'extrachill_update_user_profile_meta' );
-
-/**
- * Corrects the reply position calculation for permalinks by using date order.
- *
- * Overrides the default bbPress behavior which may rely on menu_order or an ID-ordered query,
- * ensuring the position used in bbp_get_reply_url() matches the display order.
- *
- * @param int $reply_position The potentially incorrect position calculated by bbPress.
- * @param int $reply_id       The ID of the reply being processed.
- * @param int $topic_id       The ID of the topic the reply belongs to.
- * @return int The correctly calculated reply position based on date order.
- */
-function extrachill_correct_reply_position_by_date( $reply_position, $reply_id, $topic_id ) {
-
-    // Ensure we have a valid topic ID.
-    $topic_id = bbp_get_topic_id( $topic_id );
-    if ( empty( $topic_id ) ) {
-        $topic_id = bbp_get_reply_topic_id( $reply_id );
-    }
-    if ( empty( $topic_id ) || empty( $reply_id ) ) {
-        // Cannot calculate without IDs, return original (though likely wrong).
-        return $reply_position; 
-    }
-    // Check cache first
-    $cache_key = 'bbp_reply_ids_date_order_' . $topic_id;
-    $date_ordered_reply_ids = wp_cache_get( $cache_key, 'bbpress' );
-
-    if ( false === $date_ordered_reply_ids ) {
-        // Cache miss, query the database
-        $query_args = array(
-            'post_type'      => bbp_get_reply_post_type(), // ONLY replies
-            'post_parent'    => $topic_id,
-            'posts_per_page' => -1, // Get all replies
-            'orderby'        => 'date',
-            'order'          => 'ASC',
-            'fields'         => 'ids', // Only fetch IDs for performance
-            'post_status'    => 'publish,closed', // Consider statuses relevant for position
-            'perm'           => 'readable',       // Use bbPress standard permissions check
-						'update_post_meta_cache' => false, // Performance optimization
-						'update_post_term_cache' => false, // Performance optimization
-						'no_found_rows'          => true,  // Performance optimization
-        );
-
-        // Filter args like bbPress does
-        $query_args = apply_filters( 'bbp_get_reply_position_query_args', $query_args );
-
-        $reply_query = new WP_Query( $query_args );
-        $date_ordered_reply_ids = $reply_query->posts;
-
-        // Cache the result - cache for 1 hour, adjust if needed
-        wp_cache_set( $cache_key, $date_ordered_reply_ids, 'bbpress', HOUR_IN_SECONDS );
-    }
-
-    if ( empty( $date_ordered_reply_ids ) || ! is_array( $date_ordered_reply_ids ) ) {
-        // Query failed or no replies found, cannot calculate.
-        return $reply_position; 
-    }
-
-    // Find the 0-based index of the current reply in the date-ordered list.
-    $date_ordered_key = array_search( $reply_id, $date_ordered_reply_ids );
-
-    if ( false === $date_ordered_key ) {
-        // Reply ID not found in the list (shouldn't happen if query is correct).
-        return $reply_position;
-    }
-
-    // Calculate the 1-based position.
-    $correct_position = $date_ordered_key + 1;
-
-    // Return the date-based position.
-    return $correct_position;
-}
-add_filter( 'bbp_get_reply_position', 'extrachill_correct_reply_position_by_date', 99, 3 ); // High priority to override others
-
-require_once( get_stylesheet_directory() . '/extrachill-image-uploads.php' );
 
 // Load Band Platform files if the directory exists
 $band_platform_dir = get_stylesheet_directory() . '/band-platform';
@@ -702,6 +600,74 @@ function extrachill_dequeue_bbpress_default_styles() {
     wp_deregister_style('bbp-default');
 }
 add_action('wp_enqueue_scripts', 'extrachill_dequeue_bbpress_default_styles', 15);
+
+/**
+ * bbPress Customizations
+ * Custom hooks, filters, and modifications for bbPress forum integration.
+ */
+
+// Disable bbPress default search - using custom search implementation
+add_filter('bbp_allow_search', '__return_false');
+
+// Remove topic tags in bbPress
+function remove_bbpress_topic_tags() {
+    return false;
+}
+add_filter('bbp_allow_topic_tags', 'remove_bbpress_topic_tags');
+
+// Add a filter to display custom message below edit form in bbPress
+add_action('bbp_theme_after_topic_form', 'custom_message_below_edit_form');
+
+function custom_message_below_edit_form() {
+    // Get the current post ID
+    $post_id = get_the_ID();
+    
+    // Check if this is the designated music submission forum (configurable via option)
+    $music_submission_forum_id = get_option('extrachill_music_submission_forum_id', 138);
+    if (is_bbpress() && $post_id == $music_submission_forum_id) {
+        // Display the conditional message below the edit form
+        echo '<p>Are you an artist submitting your own music? See our <a href="/new-music-submission-guidelines">Music Submission Guidelines</a>.</p>';
+    }
+}
+
+function remove_counts() {
+    $args['show_topic_count'] = false;
+    $args['show_reply_count'] = false;
+    $args['count_sep'] = '';
+return $args;
+}
+add_filter('bbp_before_list_forums_parse_args', 'remove_counts' );
+
+// Remove reply and edit links from admin links
+function ec_remove_reply_and_edit_from_admin_links( $links, $reply_id ) {
+    if ( isset( $links['reply'] ) ) {
+        unset( $links['reply'] ); // Remove Reply
+    }
+    if ( isset( $links['edit'] ) ) {
+        unset( $links['edit'] ); // Remove Edit
+    }
+    return $links;
+}
+add_filter( 'bbp_reply_admin_links', 'ec_remove_reply_and_edit_from_admin_links', 10, 2 );
+add_filter( 'bbp_topic_admin_links', 'ec_remove_reply_and_edit_from_admin_links', 10, 2 );
+
+/**
+ * Get a human-readable timestamp for a topic's last active time.
+ *
+ * @param int $topic_id The topic ID.
+ * @return string Human-readable time difference (e.g., "5 minutes ago").
+ */
+function ec_get_topic_last_active_diff( $topic_id ) {
+    // Get the last active time as stored by bbPress.
+    $last_active_time = bbp_get_topic_last_active_time( $topic_id );
+    if ( ! empty( $last_active_time ) ) {
+        // Convert it to a timestamp.
+        $timestamp = strtotime( $last_active_time );
+        // Calculate the time difference from now.
+        return human_time_diff( $timestamp, current_time( 'timestamp' ) ) . ' ago';
+    }
+    return '';
+}
 
 // Function to enqueue assets for the Manage Band Profile page
 function extrachill_enqueue_manage_band_profile_assets() {
@@ -866,7 +832,7 @@ add_action('init', 'extrch_add_link_page_rewrites');
 /**
  * Redirects users from the default WordPress login page to the custom login page.
  */
-function wp_surgeon_redirect_wp_login() {
+function extrachill_redirect_wp_login() {
     // Get the full REQUEST_URI to catch all wp-login.php access patterns
     $request_uri = $_SERVER['REQUEST_URI'];
     
@@ -895,12 +861,12 @@ function wp_surgeon_redirect_wp_login() {
         }
     }
 }
-add_action('template_redirect', 'wp_surgeon_redirect_wp_login');
+add_action('template_redirect', 'extrachill_redirect_wp_login');
 
 /**
  * Filters the login URL to use the custom login page.
  */
-function wp_surgeon_custom_login_url($login_url, $redirect) {
+function extrachill_custom_login_url($login_url, $redirect) {
     // If user is already logged in and is an administrator, don't modify the login URL
     // This prevents redirect loops when admins try to access wp-admin
     if (is_user_logged_in() && current_user_can('administrator')) {
@@ -917,77 +883,8 @@ function wp_surgeon_custom_login_url($login_url, $redirect) {
 
     return $custom_login_url;
 }
-add_filter('login_url', 'wp_surgeon_custom_login_url', 10, 2);
+add_filter('login_url', 'extrachill_custom_login_url', 10, 2);
 
-// Filter bbPress forum queries to order forums by last active time for homepage
-function ec_filter_homepage_forums_by_last_active( $query_args ) {
-    // Check if this is the main bbPress forums query in the loop
-    // This filter runs for various queries, so be specific.
-    // We only want to apply this on the main forum archive or potentially front page where the loop-forums.php is used.
-    // Checking for 'post_type' => bbp_get_forum_post_type() is a good start.
-    // Also check if 'paged' is set or 'p' (single post) or 'name' are NOT set to avoid altering single forum queries etc.
-
-    // Check if post_type is forum and we are NOT on a single forum or topic page
-    if (
-        isset($query_args['post_type']) && $query_args['post_type'] === bbp_get_forum_post_type() &&
-        ! bbp_is_single_forum() &&
-        ! bbp_is_single_topic() &&
-        ! bbp_is_single_reply()
-    ) {
-
-        // Check if the forums loop is intended for the main list (e.g., on forum archive or front page)
-        // This is a heuristic check based on common arguments for the main loop.
-        $is_main_forum_list_query = (
-            ! isset($query_args['post__in']) &&
-            ! isset($query_args['post__not_in']) &&
-            ! isset($query_args['s']) // Not a search query
-            // Add other checks as needed to narrow down to the specific loop in loop-forums.php
-        );
-
-        // Further refine the check to ensure we are in the context where loop-forums.php is used for the main list.
-        // This is difficult to do perfectly with just query args. A simpler, potentially less safe check:
-        // Just check if post_type is forum and it's not a specific single item view.
-
-         // Re-evaluating the condition: The goal is to target the specific loop in loop-forums.php.
-         // This template is used on the forum archive and the front page.
-         // The query inside loop-forums.php *doesn't* have a post_parent set typically for the top level.
-
-        if ( isset($query_args['post_type']) && $query_args['post_type'] === bbp_get_forum_post_type() ) {
-            // Check if this query is likely the one in loop-forums.php displaying homepage forums.
-            // These queries fetch top-level forums (post_parent typically 0 or not set) and have -1 posts_per_page.
-            // This is still a heuristic, but better.
-            $is_targeted_loop = (
-                (! isset($query_args['post_parent']) || $query_args['post_parent'] == 0) &&
-                (isset($query_args['posts_per_page']) && $query_args['posts_per_page'] == -1)
-            );
-
-            if ( $is_targeted_loop ) {
-                // Apply meta query for forums marked to show on homepage
-                $meta_query = isset($query_args['meta_query']) ? (array) $query_args['meta_query'] : array();
-
-                $meta_query[] = array(
-                    'key'     => '_show_on_homepage',
-                    'value'   => '1',
-                    'compare' => '=',
-                );
-
-                $query_args['meta_query'] = $meta_query;
-
-                // Apply ordering by last active time
-                $query_args['orderby'] = 'meta_value';
-                $query_args['meta_key'] = '_bbp_last_active_time';
-                $query_args['order'] = 'DESC';
-
-                // We might need to ensure the meta_key exists for ordering to work correctly.
-                // Add a clause to the meta_query if the meta_key isn't guaranteed to exist for all homepage forums.
-                // However, _bbp_last_active_time should exist for any forum with activity.
-                // Let's stick to the simpler orderby meta_value for now.
-            }
-        }
-    }
-    return $query_args;
-}
-add_filter( 'bbp_pre_query_forums', 'ec_filter_homepage_forums_by_last_active' );
 
 /**
  * Clear most active users cache when new topics or replies are created

@@ -5,15 +5,15 @@ function enqueue_sorting_script() {
     wp_enqueue_script('sorting', get_stylesheet_directory_uri() . '/js/sorting.js', ['jquery'], null, true);
 
     // Localize script to pass AJAX URL and nonce
-    wp_localize_script('sorting', 'wpSurgeonAjax', [
+    wp_localize_script('sorting', 'extraChillAjax', [
         'ajax_url' => admin_url('admin-ajax.php'),
-        'nonce' => wp_create_nonce('wp_surgeon_sort_nonce')
+        'nonce' => wp_create_nonce('extrachill_sort_nonce')
     ]);
 }
 // add_action('wp_enqueue_scripts', 'enqueue_sorting_script');
 // AJAX handler for sorting and searching topics
-function wp_surgeon_ajax_search() {
-    check_ajax_referer('wp_surgeon_sort_nonce', 'nonce');
+function extrachill_ajax_search() {
+    check_ajax_referer('extrachill_sort_nonce', 'nonce');
 
     $forum_id = isset($_GET['forum_id']) ? absint($_GET['forum_id']) : 0;
 
@@ -51,18 +51,18 @@ function wp_surgeon_ajax_search() {
 
 
 
-// add_action('wp_ajax_wp_surgeon_ajax_search', 'wp_surgeon_ajax_search');
-// add_action('wp_ajax_nopriv_wp_surgeon_ajax_search', 'wp_surgeon_ajax_search');
+// add_action('wp_ajax_extrachill_ajax_search', 'extrachill_ajax_search');
+// add_action('wp_ajax_nopriv_extrachill_ajax_search', 'extrachill_ajax_search');
 
 // Explicit sorting functions (no filters)
-function wp_surgeon_sort_topics_by_upvotes($args) {
+function extrachill_sort_topics_by_upvotes($args) {
     $args['meta_key'] = 'upvote_count';
     $args['orderby'] = 'meta_value_num';
     $args['order'] = 'DESC';
     return $args;
 }
 
-function wp_surgeon_sort_topics_by_popular($args) {
+function extrachill_sort_topics_by_popular($args) {
     global $wpdb;
     $popular_ids = $wpdb->get_col($wpdb->prepare(
         "SELECT p.post_parent FROM $wpdb->posts p
@@ -76,7 +76,7 @@ function wp_surgeon_sort_topics_by_popular($args) {
     return $args;
 }
 
-function wp_surgeon_search_topics_and_replies($args, $search_term) {
+function extrachill_search_topics_and_replies($args, $search_term) {
     $args['s'] = $search_term;
     return $args;
 }

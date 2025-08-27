@@ -61,7 +61,7 @@ if ( !empty( $user_ids ) ) {
             <?php foreach ($users as $user): ?>
                 <?php 
                     $profile_url = bbp_get_user_profile_url($user->ID);
-                    $points = get_user_meta($user->ID, 'wp_surgeon_total_points', true);
+                    $points = get_user_meta($user->ID, 'extrachill_total_points', true);
                 ?>
                 <div class="user-card">
                     <div class="user-avatar">
@@ -82,7 +82,7 @@ if ( !empty( $user_ids ) ) {
                             <?php echo esc_html(bbp_get_user_display_role( $user->ID )); ?>
                         </div>
                         <div class="bbp-author-role">
-                            <?php echo esc_html(wp_surgeon_display_user_rank($user->ID)); ?>
+                            <?php echo esc_html(extrachill_display_user_rank($user->ID)); ?>
                         </div>
                         <div class="user-stats">
                             <span class="post-count">

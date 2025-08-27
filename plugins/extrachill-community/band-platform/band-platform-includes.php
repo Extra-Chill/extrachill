@@ -33,7 +33,7 @@ require_once( $bp_dir . '/roster/manage-roster-ui.php' );
 require_once( $bp_dir . '/roster/roster-ajax-handlers.php' );
 
 // Following feature (moved to social directory)
-require_once( get_stylesheet_directory() . '/forum-features/social/following/band-following.php' );
+require_once( get_stylesheet_directory() . '/forum-features/social/band-following.php' );
 
 // Add other band platform PHP files here as they are created
 

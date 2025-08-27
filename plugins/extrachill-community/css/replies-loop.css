@@ -443,24 +443,6 @@ span.bbp-author-ip {
     margin: 0 15px 15px;
     padding: 0;
 }
-.bbp-pagination-links {
-    float: right;
-    list-style: none;
-    display: inline;
-}
-#bbpress-forums .bbp-pagination-links a, #bbpress-forums .bbp-pagination-links span.current {
-    display: block;
-    float: left;
-    font-size: 12px;
-    line-height: 18px;
-    padding: 0 5px;
-    margin-left: 5px;
-    border: 1px solid #efefef;
-    border-radius: 0;
-    background: 0 0;
-    color: inherit;
-    text-decoration: none;
-}
 
 #bbpress-forums .bbp-reply-content ul.bbp-reply-revision-log li, #bbpress-forums .bbp-reply-content ul.bbp-topic-revision-log li, #bbpress-forums .bbp-topic-content ul.bbp-topic-revision-log li {
     list-style-type: none;

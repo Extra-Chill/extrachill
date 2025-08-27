@@ -53,10 +53,3 @@ function extrachill_enqueue_login_register_assets() {
 add_action('wp_enqueue_scripts', 'extrachill_enqueue_login_register_assets');
 
 
-// If using admin-ajax for login (not currently in use for this template, but kept for reference/future use)
-// add_action( 'wp_ajax_nopriv_handle_login', 'extrachill_handle_login' );
-// add_action( 'wp_ajax_handle_login', 'extrachill_handle_login' ); // For logged in users attempting login again?
-
-
-// If using admin-ajax for registration (not currently in use for this template)
-// add_action( 'wp_ajax_nopriv_handle_registration', 'extrachill_handle_registration' );

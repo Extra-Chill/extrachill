@@ -44,11 +44,11 @@ function handle_quote_notification() {
 
 
 // Add custom "Quote" link to replies and topics
-// add_filter('bbp_reply_admin_links', 'wp_surgeon_add_custom_quote_link_to_replies_and_topics', 10, 2);
-//add_filter('bbp_topic_admin_links', 'wp_surgeon_add_custom_quote_link_to_replies_and_topics', 10, 2);
+// add_filter('bbp_reply_admin_links', 'extrachill_add_custom_quote_link_to_replies_and_topics', 10, 2);
+//add_filter('bbp_topic_admin_links', 'extrachill_add_custom_quote_link_to_replies_and_topics', 10, 2);
 
 
-function wp_surgeon_add_custom_quote_link_to_replies_and_topics($links, $args) {
+function extrachill_add_custom_quote_link_to_replies_and_topics($links, $args) {
     if (is_user_logged_in()) {
 
 

@@ -1,6 +1,6 @@
 <?php
 
-function wp_surgeon_dynamic_menu_items($items, $args) {
+function extrachill_dynamic_menu_items($items, $args) {
     if ( $args->theme_location === 'primary' ) {
         // Always define the "Recent" menu item.
         $recent_url  = home_url('/recent/');
@@ -22,4 +22,4 @@ function wp_surgeon_dynamic_menu_items($items, $args) {
     }
     return $items;
 }
-add_filter('wp_nav_menu_items', 'wp_surgeon_dynamic_menu_items', 10, 2);
+add_filter('wp_nav_menu_items', 'extrachill_dynamic_menu_items', 10, 2);

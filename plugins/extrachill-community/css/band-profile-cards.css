@@ -250,45 +250,5 @@
     margin: 15px 0;
 }
 
-/* ===============================================
-   Pagination Fixes for Band Directory 
-   =============================================== */
-
-/* Standard bbPress pagination styling */
-#bbp-band-profiles .bbp-pagination {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 20px;
-    align-items: center;
-    width: max-content;
-}
-
-#bbp-band-profiles .bbp-pagination-links {
-    display: block;
-}
-
-#bbp-band-profiles .bbp-pagination-links a,
-#bbp-band-profiles .bbp-pagination-links span.current {
-    display: inline-block;
-    padding: 5px 8px;
-    margin: 0 2px;
-    text-decoration: none;
-    border: 1px solid var(--border-color, #ddd);
-    border-radius: 3px;
-    color: var(--text-color, #333);
-    background: var(--card-background, #fff);
-}
-
-#bbp-band-profiles .bbp-pagination-links a:hover {
-    background: var(--accent-color, #007cba);
-    color: white;
-    border-color: var(--accent-color, #007cba);
-}
-
-#bbp-band-profiles .bbp-pagination-links span.current {
-    background: var(--accent-color, #007cba);
-    color: white;
-    border-color: var(--accent-color, #007cba);
-    font-weight: bold;
-}
+/* Pagination styles removed - now using unified styles from main stylesheet */
 

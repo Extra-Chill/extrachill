@@ -16,6 +16,9 @@ document.addEventListener('DOMContentLoaded', function() {
     if (fromJoinFlow === 'true') {
         // If arriving from the join flow, show the modal
         showJoinFlowModal();
+        
+        // Also set up validation in case user bypasses modal (direct tab access)
+        setupJoinFlowValidation();
     }
 
     // Add event listeners to the modal buttons
@@ -67,5 +70,51 @@ document.addEventListener('DOMContentLoaded', function() {
             detail: { targetTab: 'tab-register' }
         });
         document.dispatchEvent(activateEvent);
+
+        // Add join flow validation for registration form
+        setupJoinFlowValidation();
+    }
+
+    // Function to add validation for join flow registration
+    function setupJoinFlowValidation() {
+        const registrationForm = document.querySelector('form[action*="register"]');
+        if (!registrationForm) return;
+
+        // Add validation on form submit
+        registrationForm.addEventListener('submit', function(e) {
+            if (fromJoinFlow === 'true') {
+                const artistCheckbox = document.getElementById('user_is_artist');
+                const professionalCheckbox = document.getElementById('user_is_professional');
+                
+                if (!artistCheckbox.checked && !professionalCheckbox.checked) {
+                    e.preventDefault();
+                    showJoinFlowValidationError();
+                    return false;
+                }
+            }
+        });
+    }
+
+    // Function to show validation error for join flow
+    function showJoinFlowValidationError() {
+        // Remove any existing error messages
+        const existingError = document.querySelector('.join-flow-validation-error');
+        if (existingError) {
+            existingError.remove();
+        }
+
+        // Create and insert error message
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'login-register-errors join-flow-validation-error';
+        errorDiv.innerHTML = '<p class="error">To create your extrachill.link page, please select either "I am a musician" or "I work in the music industry".</p>';
+        
+        // Insert error before the form
+        const form = document.querySelector('form[action*="register"]');
+        if (form && form.parentNode) {
+            form.parentNode.insertBefore(errorDiv, form);
+        }
+
+        // Scroll to error message
+        errorDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
 }); 

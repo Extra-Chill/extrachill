@@ -1,7 +1,7 @@
 <?php
 /*
- * Template Name: Recent Topics Feed
- * Description: A page template to show the most recently updated topics in the forum.
+ * Template Name: Recent Activity Feed
+ * Description: A page template to show the most recent replies across all forums in a Twitter-like stream.
  */
 
 get_header();
@@ -20,7 +20,7 @@ if ($isUserProfile) {
     $title = '@' . bbp_get_displayed_user_field('user_nicename');
     echo '<h1 class="profile-title-inline">' . $title . '</h1>';
 } else {
-    echo '<h1>Recently Active Topics</h1>';
+    echo '<h1>Recent Activity</h1>';
 }
 
 echo '</span>';
@@ -34,39 +34,17 @@ endif;
 
 echo '</div>'; // End of chill-home-header
 
-// Set up the query to fetch the most recent topics
-$args = array(
-    'post_type' => bbp_get_topic_post_type(),
-    'posts_per_page' => 15,
-    'paged' => bbp_get_paged(),  // use bbp_get_paged() to get the correct page number
-    'meta_key' => '_bbp_last_active_time',
-    'orderby' => 'meta_value',
-    'order' => 'DESC',
-    'meta_query' => array(
-        'relation' => 'AND',
-        array(
-            'key' => '_bbp_last_active_time',
-            'compare' => 'EXISTS'
-        ),
-        array(
-            'key' => '_bbp_forum_id',
-            'value' => '1494',
-            'compare' => '!='
-        )
-    ),
-    'post_status' => array('publish', 'closed', 'acf-disabled', 'private', 'hidden')
-);
-
-if (bbp_has_topics($args)) {
+// Set up the query to fetch the most recent replies
+if (extrachill_get_recent_feed_query(15)) {
 ?>
     <div id="bbpress-forums" class="bbpress-wrapper">
-        <?php bbp_get_template_part('pagination', 'topics'); // Pagination above the topics ?>
-        <?php bbp_get_template_part('loop', 'topics'); // The loop that displays topics ?>
-        <?php bbp_get_template_part('pagination', 'topics'); // Pagination below the topics ?>
+        <?php bbp_get_template_part('pagination', 'replies'); // Pagination above the replies ?>
+        <?php bbp_get_template_part('loop', 'replies'); // The loop that displays replies ?>
+        <?php bbp_get_template_part('pagination', 'replies'); // Pagination below the replies ?>
     </div>
 <?php
 } else {
-    echo '<div class="bbp-template-notice"><p>No recent topics found.</p></div>';
+    echo '<div class="bbp-template-notice"><p>No recent activity found.</p></div>';
 }
 echo '</div>'; // End of chill-home
 
