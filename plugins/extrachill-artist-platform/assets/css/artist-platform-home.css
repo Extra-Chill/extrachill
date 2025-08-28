@@ -1,0 +1,488 @@
+/* Artist Platform Home Page Styles */
+
+/* Welcome and Hero Sections */
+.artist-platform-welcome {
+  color: var(--text-color);
+}
+
+.welcome-hero {
+  text-align: center;
+  margin-bottom: 3em;
+}
+
+.welcome-hero h2 {
+  font-size: 2.2em;
+  font-weight: 700;
+  margin-bottom: 0.8em;
+  color: var(--text-color);
+}
+
+.welcome-hero p {
+  font-size: 1.1em;
+  line-height: 1.6;
+  margin-bottom: 2em;
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+  color: var(--text-color);
+}
+
+.welcome-actions {
+  display: flex;
+  gap: 1em;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+/* Featured Artists Section */
+.featured-artists-section {
+  margin-top: 3em;
+}
+
+.featured-artists-section h3 {
+  text-align: center;
+  font-size: 1.8em;
+  font-weight: 600;
+  margin-bottom: 2em;
+  color: var(--text-color);
+}
+
+.view-all-artists {
+  text-align: center;
+  margin-top: 2em;
+}
+
+.bbpress-wrapper.artist-directory-wrapper {
+  margin-bottom: 2em;
+}
+
+/* Public Artist Card Styles */
+.public-artist-card .artist-card-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.public-artist-card .artist-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  font-size: 0.9em;
+  color: var(--text-color);
+  opacity: 0.8;
+  flex-wrap: wrap;
+  margin-top: 0.3em;
+}
+
+.public-artist-card .meta-separator {
+  opacity: 0.5;
+}
+
+.public-artist-card .artist-card-bio {
+  margin: 1em 0;
+}
+
+.public-artist-card .artist-card-bio p {
+  margin: 0;
+  font-size: 0.95em;
+  line-height: 1.5;
+  color: var(--text-color);
+  opacity: 0.9;
+}
+
+/* Artist Directory Pagination */
+.artist-directory-pagination {
+  text-align: center;
+  margin-top: 2em;
+  padding-top: 1em;
+}
+
+.artist-directory-pagination .page-numbers {
+  display: inline-block;
+  padding: 0.5em 0.8em;
+  margin: 0 0.2em;
+  text-decoration: none;
+  border: 1px solid var(--border-color, #e0e4ea);
+  border-radius: 4px;
+  color: var(--text-color);
+}
+
+.artist-directory-pagination .page-numbers.current {
+  background: var(--primary-color, #007cba);
+  color: white;
+  border-color: var(--primary-color, #007cba);
+}
+
+.artist-directory-pagination .page-numbers:hover {
+  background: var(--border-color, #e0e4ea);
+}
+
+.no-artists-found {
+  text-align: center;
+  padding: 3em 1em;
+  color: var(--text-color);
+}
+
+.no-artists-found p {
+  margin-bottom: 1.5em;
+}
+
+/* Getting Started Section */
+.artist-platform-getting-started {
+  color: var(--text-color);
+}
+
+.welcome-user {
+  text-align: center;
+  margin-bottom: 3em;
+}
+
+.welcome-user h2 {
+  font-size: 2em;
+  font-weight: 700;
+  margin-bottom: 0.8em;
+  color: var(--text-color);
+}
+
+.welcome-user p {
+  font-size: 1.1em;
+  line-height: 1.6;
+  margin-bottom: 1.5em;
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.getting-started-actions {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 3em;
+}
+
+.primary-action-card {
+  background: var(--card-background, #fff);
+  border: 1px solid var(--border-color, #e0e4ea);
+  border-radius: 10px;
+  padding: 2.5em 2em;
+  text-align: center;
+  box-shadow: var(--card-shadow, 0 2px 8px rgba(0,0,0,0.1));
+  max-width: 400px;
+  width: 100%;
+}
+
+.primary-action-card h3 {
+  font-size: 1.4em;
+  font-weight: 600;
+  margin-bottom: 1em;
+  color: var(--text-color);
+}
+
+.primary-action-card p {
+  margin-bottom: 2em;
+  line-height: 1.5;
+  color: var(--text-color);
+}
+
+.discover-section {
+  text-align: center;
+}
+
+.discover-section h3 {
+  font-size: 1.6em;
+  font-weight: 600;
+  margin-bottom: 1.5em;
+  color: var(--text-color);
+}
+
+.discover-actions {
+  display: flex;
+  justify-content: center;
+  gap: 1em;
+  flex-wrap: wrap;
+}
+
+/* Dashboard Section */
+.artist-platform-dashboard {
+  color: var(--text-color);
+}
+
+.dashboard-welcome {
+  text-align: center;
+  margin-bottom: 3em;
+}
+
+.dashboard-welcome h2 {
+  font-size: 2em;
+  font-weight: 700;
+  margin-bottom: 0.8em;
+  color: var(--text-color);
+}
+
+.dashboard-welcome p {
+  font-size: 1.1em;
+  line-height: 1.6;
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Quick Actions Section */
+.quick-actions-section {
+  margin-bottom: 3em;
+}
+
+.quick-actions-section h3 {
+  font-size: 1.6em;
+  font-weight: 600;
+  margin-bottom: 1.5em;
+  color: var(--text-color);
+}
+
+.quick-actions-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5em;
+  margin-bottom: 2em;
+}
+
+.action-card {
+  background: var(--card-background, #fff);
+  border: 1px solid var(--border-color, #e0e4ea);
+  border-radius: 10px;
+  padding: 1.5em;
+  text-align: center;
+  box-shadow: var(--card-shadow, 0 2px 8px rgba(0,0,0,0.1));
+  transition: box-shadow 0.3s ease, transform 0.2s ease;
+}
+
+.action-card:hover {
+  box-shadow: var(--card-hover-shadow, 0 4px 16px rgba(0,0,0,0.15));
+  transform: translateY(-2px);
+}
+
+.action-card h4 {
+  font-size: 1.2em;
+  font-weight: 600;
+  margin-bottom: 0.8em;
+  color: var(--text-color);
+}
+
+.action-card p {
+  margin-bottom: 1.5em;
+  line-height: 1.5;
+  color: var(--text-color);
+}
+
+/* Artist Profiles Section */
+.artist-profiles-section {
+  margin-bottom: 2em;
+}
+
+.artist-profiles-section h3 {
+  font-size: 1.6em;
+  font-weight: 600;
+  margin-bottom: 1.5em;
+  color: var(--text-color);
+}
+
+.artist-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  gap: 1.5em;
+}
+
+.artist-profile-card {
+  background: var(--card-background, #fff);
+  border: 1px solid var(--border-color, #e0e4ea);
+  border-radius: 10px;
+  padding: 1.5em;
+  box-shadow: var(--card-shadow, 0 2px 8px rgba(0,0,0,0.1));
+  transition: box-shadow 0.3s ease;
+}
+
+.artist-profile-card:hover {
+  box-shadow: var(--card-hover-shadow, 0 4px 16px rgba(0,0,0,0.15));
+}
+
+.artist-card-header {
+  display: flex;
+  align-items: center;
+  gap: 1em;
+  margin-bottom: 1em;
+}
+
+.artist-profile-image {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.artist-profile-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.artist-name {
+  margin: 0;
+  flex: 1;
+}
+
+.artist-name a {
+  color: var(--text-color);
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 1.2em;
+}
+
+.artist-name a:hover {
+  color: var(--link-hover-color, #333);
+}
+
+.artist-card-stats {
+  display: flex;
+  gap: 1.5em;
+  margin-bottom: 1.5em;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.2em;
+}
+
+.stat-item strong {
+  font-size: 1.1em;
+  font-weight: 700;
+  color: var(--text-color);
+}
+
+.stat-item span {
+  font-size: 0.9em;
+  color: var(--text-color);
+  opacity: 0.8;
+}
+
+.status-indicator {
+  padding: 0.3em 0.8em;
+  border-radius: 20px;
+  font-size: 0.85em;
+  font-weight: 600;
+  text-align: center;
+}
+
+.status-indicator.active {
+  background: #e8f5e8;
+  color: #2e7d2e;
+}
+
+.status-indicator.inactive {
+  background: #f5f5f5;
+  color: #666;
+}
+
+.artist-card-actions {
+  display: flex;
+  gap: 0.8em;
+  flex-wrap: wrap;
+}
+
+.artist-card-actions .button {
+  font-size: 0.9em;
+  padding: 0.6em 1em;
+}
+
+/* Notice Styles (ensure consistency with existing notices) */
+.bp-notice {
+  padding: 1em 1.5em;
+  margin-bottom: 1.5em;
+  border-radius: 8px;
+  border-left: 4px solid;
+}
+
+.bp-notice-info {
+  background: #f0f8ff;
+  border-left-color: #2196f3;
+  color: #1976d2;
+}
+
+.bp-notice-success {
+  background: #f0fff4;
+  border-left-color: #4caf50;
+  color: #2e7d2e;
+}
+
+.bp-notice-error {
+  background: #fff5f5;
+  border-left-color: #f44336;
+  color: #c62828;
+}
+
+/* Button Styles */
+.button-large {
+  font-size: 1.1em;
+  padding: 0.8em 2em;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .welcome-hero h2 {
+    font-size: 1.8em;
+  }
+  
+  .dashboard-welcome h2 {
+    font-size: 1.6em;
+  }
+
+  .quick-actions-grid,
+  .artist-cards-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .welcome-actions,
+  .discover-actions {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .artist-card-actions {
+    flex-direction: column;
+  }
+
+  .artist-card-actions .button {
+    width: 100%;
+    text-align: center;
+  }
+
+  .artist-card-stats {
+    justify-content: space-between;
+  }
+
+}
+
+@media (max-width: 480px) {
+  .primary-action-card,
+  .action-card,
+  .artist-profile-card {
+    padding: 1.2em;
+  }
+
+  .welcome-hero p,
+  .welcome-user p,
+  .dashboard-welcome p {
+    font-size: 1em;
+  }
+
+  .artist-profile-image {
+    width: 50px;
+    height: 50px;
+  }
+
+  .artist-name a {
+    font-size: 1.1em;
+  }
+}

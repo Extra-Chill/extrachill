@@ -1,0 +1,56 @@
+# WordPress
+wp-config.php
+.htaccess
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Node modules (if any)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Logs
+*.log
+error_log
+access_log
+
+# Temporary files
+*.tmp
+*.temp
+
+# Backup files
+*.backup
+*.bak
+*~
+
+# Cache directories
+.cache/
+
+# Environment files
+.env
+.env.local
+.env.production
+.env.staging
+
+# Composer (if using)
+/vendor/
+composer.lock
+
+# Plugin specific
+/uploads/
+/cache/
