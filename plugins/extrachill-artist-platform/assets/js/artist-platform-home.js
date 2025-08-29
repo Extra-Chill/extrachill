@@ -199,7 +199,7 @@ document.addEventListener('DOMContentLoaded', function() {
 // Utility function to show toast notifications (if needed in the future)
 window.showToast = function(message, type = 'info') {
     const toast = document.createElement('div');
-    toast.className = `artist-platform-toast toast-${type}`;
+    toast.className = `inc-toast toast-${type}`;
     toast.textContent = message;
     toast.style.cssText = `
         position: fixed;

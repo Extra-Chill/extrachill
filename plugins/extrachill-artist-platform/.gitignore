@@ -54,3 +54,9 @@ composer.lock
 # Plugin specific
 /uploads/
 /cache/
+
+# Build output
+dist/
+build/
+*.zip
+*.tar.gz

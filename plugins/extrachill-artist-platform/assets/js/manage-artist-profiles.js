@@ -133,7 +133,7 @@ jQuery(document).ready(function($) {
                 listItem.css('opacity', '0.5').addClass('marked-for-removal'); button.hide(); 
                 let statusLabel = listItem.find('.member-status-label');
                 if(!statusLabel.length) statusLabel = $('<span class="member-status-label"></span>').appendTo(listItem.find('.member-name').parent()); // Ensure it appends within the li structure correctly
-                statusLabel.append(' <em class="temp-removal-text" style="color:red;">(Marked for removal)</em>');
+                statusLabel.append(' <em class="temp-removal-text">(Marked for removal)</em>');
             }
             if ($hiddenRemoveUserIdsInput.length) updateHiddenFormFields();
         });

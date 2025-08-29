@@ -318,17 +318,17 @@ class ExtraChillArtistPlatform_Assets {
         // Management interface styles
         wp_enqueue_style( 
             'extrachill-manage-link-page', 
-            $plugin_url . 'assets/css/manage-link-page.css', 
+            $plugin_url . 'inc/link-pages/management/assets/css/management.css', 
             array( 'extrachill-shared-tabs' ), 
-            $this->get_asset_version( 'assets/css/manage-link-page.css' )
+            $this->get_asset_version( 'inc/link-pages/management/assets/css/management.css' )
         );
 
         // Live preview CSS - public link page styles
         wp_enqueue_style( 
             'extrachill-link-page-public', 
-            $plugin_url . 'assets/css/extrch-links.css', 
+            $plugin_url . 'inc/link-pages/management/live-preview/assets/css/preview.css', 
             array( 'extrachill-manage-link-page' ), 
-            $this->get_asset_version( 'assets/css/extrch-links.css' )
+            $this->get_asset_version( 'inc/link-pages/management/live-preview/assets/css/preview.css' )
         );
 
         // Share modal CSS - needed for preview parity
@@ -357,14 +357,6 @@ class ExtraChillArtistPlatform_Assets {
             true 
         );
 
-        // Core management script
-        wp_enqueue_script( 
-            'extrachill-manage-link-page-core', 
-            $plugin_url . 'assets/js/manage-link-page/manage-link-page-core.js', 
-            array( 'jquery', 'sortable-js', 'extrachill-shared-tabs-js' ), 
-            $this->get_asset_version( 'assets/js/manage-link-page/manage-link-page-core.js' ), 
-            true 
-        );
 
         // Get current artist and link page IDs for JavaScript configuration
         $current_artist_id = isset( $_GET['artist_id'] ) ? absint( $_GET['artist_id'] ) : 0;
@@ -376,7 +368,7 @@ class ExtraChillArtistPlatform_Assets {
 
         // Localize JavaScript configuration for live preview functionality
         wp_localize_script( 
-            'extrachill-manage-link-page-core', 
+            'extrachill-manage-link-page-shared-utils', 
             'extrchLinkPageConfig', 
             array(
                 'ajax_url' => admin_url( 'admin-ajax.php' ),
@@ -388,35 +380,36 @@ class ExtraChillArtistPlatform_Assets {
             )
         );
 
-        // Main management script (loads after core)
-        wp_enqueue_script( 
-            'extrachill-manage-link-page', 
-            $plugin_url . 'assets/js/manage-link-page/manage-link-page.js', 
-            array( 'jquery', 'sortable-js', 'extrachill-shared-tabs-js', 'extrachill-manage-link-page-core' ), 
-            $this->get_asset_version( 'assets/js/manage-link-page/manage-link-page.js' ), 
-            true 
-        );
-
-        // Individual management modules
+        // Individual management modules (self-contained, no orchestrator needed)
         $management_scripts = array(
-            'core', 'colors', 'fonts', 'links', 'analytics', 
-            'background', 'customization', 'featured-link', 
-            'info', 'qrcode', 'save', 'sizing', 'socials', 
-            'subscribe', 'ui-utils', 'preview-updater', 
-            'content-renderer', 'advanced'
+            'shared-utils', 'css-variables', 'colors', 'fonts', 'links', 'analytics', 
+            'background', 'featured-link', 'info', 'qrcode', 'save', 'sizing', 
+            'socials', 'subscribe', 'ui-utils', 'advanced'
         );
 
         foreach ( $management_scripts as $script ) {
-            // Skip core since it's already enqueued above
-            if ( $script === 'core' ) {
-                continue;
-            }
-            
             wp_enqueue_script( 
                 "extrachill-manage-link-page-{$script}", 
-                $plugin_url . "assets/js/manage-link-page/manage-link-page-{$script}.js", 
-                array( 'jquery', 'sortable-js', 'extrachill-shared-tabs-js', 'extrachill-manage-link-page-core' ), 
-                $this->get_asset_version( "assets/js/manage-link-page/manage-link-page-{$script}.js" ), 
+                $plugin_url . "inc/link-pages/management/assets/js/{$script}.js", 
+                array( 'jquery', 'sortable-js', 'extrachill-shared-tabs-js' ), 
+                $this->get_asset_version( "inc/link-pages/management/assets/js/{$script}.js" ), 
+                true 
+            );
+        }
+
+        // Load preview modules separately
+        $preview_scripts = array(
+            'links-preview', 'info-preview', 'socials-preview', 
+            'background-preview', 'fonts-preview',
+            'sizing-preview', 'overlay-preview', 'featured-link-preview'
+        );
+
+        foreach ( $preview_scripts as $script ) {
+            wp_enqueue_script( 
+                "extrachill-link-page-{$script}", 
+                $plugin_url . "inc/link-pages/management/live-preview/assets/js/{$script}.js", 
+                array( 'jquery', 'extrachill-manage-link-page-shared-utils' ), 
+                $this->get_asset_version( "inc/link-pages/management/live-preview/assets/js/{$script}.js" ), 
                 true 
             );
         }

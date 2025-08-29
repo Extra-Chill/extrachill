@@ -1,7 +1,7 @@
 /* Artist Platform Home Page Styles */
 
 /* Welcome and Hero Sections */
-.artist-platform-welcome {
+.inc-welcome {
   color: var(--text-color);
 }
 
@@ -127,7 +127,7 @@
 }
 
 /* Getting Started Section */
-.artist-platform-getting-started {
+.inc-getting-started {
   color: var(--text-color);
 }
 
@@ -201,7 +201,7 @@
 }
 
 /* Dashboard Section */
-.artist-platform-dashboard {
+.inc-dashboard {
   color: var(--text-color);
 }
 
@@ -290,55 +290,134 @@
   gap: 1.5em;
 }
 
+/* Hero Style Artist Profile Cards */
 .artist-profile-card {
   background: var(--card-background, #fff);
   border: 1px solid var(--border-color, #e0e4ea);
-  border-radius: 10px;
-  padding: 1.5em;
-  box-shadow: var(--card-shadow, 0 2px 8px rgba(0,0,0,0.1));
-  transition: box-shadow 0.3s ease;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: var(--card-shadow, 0 4px 12px rgba(0,0,0,0.1));
+  transition: transform 0.2s ease, box-shadow 0.3s ease;
 }
 
 .artist-profile-card:hover {
-  box-shadow: var(--card-hover-shadow, 0 4px 16px rgba(0,0,0,0.15));
+  transform: translateY(-2px);
+  box-shadow: var(--card-hover-shadow, 0 8px 24px rgba(0,0,0,0.15));
 }
 
-.artist-card-header {
+/* Hero Section with Background Image */
+.artist-hero-section {
+  position: relative;
+  height: 140px;
+  background-size: cover;
+  background-position: center center;
+  background-repeat: no-repeat;
+  background-color: var(--accent, #53940b);
   display: flex;
-  align-items: center;
-  gap: 1em;
-  margin-bottom: 1em;
+  align-items: flex-end;
+  padding: 0;
 }
 
-.artist-profile-image {
+/* Fallback gradient when no background image */
+.artist-hero-section:not([style*='background-image']) {
+  background: linear-gradient(135deg, var(--accent, #53940b) 0%, var(--accent-dark, #46800a) 100%);
+}
+
+/* Dark overlay for text readability */
+.artist-hero-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.5) 100%);
+  z-index: 1;
+}
+
+/* Hero content container */
+.artist-hero-content {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: flex-end;
+  gap: 1em;
+  padding: 1em 1.2em;
+  width: 100%;
+}
+
+/* Profile Picture Overlay - Rounded Corner Square */
+.artist-profile-image-overlay {
   width: 60px;
   height: 60px;
-  border-radius: 50%;
+  border-radius: 8px;
   overflow: hidden;
+  border: 3px solid rgba(255,255,255,0.9);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
   flex-shrink: 0;
+  background: var(--card-background, #fff);
 }
 
-.artist-profile-image img {
+.artist-profile-image-overlay img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  display: block;
 }
 
-.artist-name {
-  margin: 0;
+
+/* Artist Info Overlay */
+.artist-info-overlay {
   flex: 1;
+  min-width: 0;
 }
 
-.artist-name a {
-  color: var(--text-color);
-  text-decoration: none;
+.artist-info-overlay .artist-name {
+  margin: 0 0 0.2em 0;
+  font-size: 1.1em;
   font-weight: 600;
-  font-size: 1.2em;
 }
 
-.artist-name a:hover {
-  color: var(--link-hover-color, #333);
+.artist-info-overlay .artist-name a {
+  color: #fff;
+  text-decoration: none;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.4);
 }
+
+.artist-info-overlay .artist-name a:hover {
+  color: rgba(255,255,255,0.9);
+}
+
+.artist-info-overlay .artist-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  font-size: 0.85em;
+  color: rgba(255,255,255,0.9);
+  text-shadow: 0 1px 2px rgba(0,0,0,0.4);
+  flex-wrap: wrap;
+}
+
+.artist-info-overlay .meta-separator {
+  opacity: 0.7;
+}
+
+/* Card Content Section (below hero) */
+.artist-card-content {
+  padding: 1.2em;
+}
+
+.artist-card-bio {
+  margin-bottom: 1em;
+}
+
+.artist-card-bio p {
+  margin: 0;
+  font-size: 0.95em;
+  line-height: 1.5;
+  color: var(--text-color);
+  opacity: 0.9;
+}
+
 
 .artist-card-stats {
   display: flex;
@@ -466,9 +545,12 @@
 
 @media (max-width: 480px) {
   .primary-action-card,
-  .action-card,
-  .artist-profile-card {
+  .action-card {
     padding: 1.2em;
+  }
+
+  .artist-card-content {
+    padding: 1em;
   }
 
   .welcome-hero p,
@@ -477,9 +559,27 @@
     font-size: 1em;
   }
 
+  /* Hero card mobile adjustments */
+  .artist-hero-section {
+    height: 120px;
+  }
+
+  .artist-profile-image-overlay,
   .artist-profile-image {
     width: 50px;
     height: 50px;
+  }
+
+  .artist-hero-content {
+    padding: 0.8em 1em;
+  }
+
+  .artist-info-overlay .artist-name {
+    font-size: 1em;
+  }
+
+  .artist-info-overlay .artist-meta {
+    font-size: 0.8em;
   }
 
   .artist-name a {

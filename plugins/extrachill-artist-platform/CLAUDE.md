@@ -5,124 +5,152 @@ WordPress plugin providing comprehensive artist platform functionality for the E
 ## Architecture
 
 ### Core Classes
-- **ExtraChillArtistPlatform**: Main plugin class (singleton), theme compatibility checks
-- **ExtraChillArtistPlatform_Core**: Core functionality, CPTs, session management, platform includes
-- **ExtraChillArtistPlatform_Templates**: Template handling and routing
-- **ExtraChillArtistPlatform_Assets**: Asset management and conditional enqueuing
-- **ExtraChillArtistPlatform_Migration**: Database and data migration system
+- **ExtraChillArtistPlatform**: Main plugin class (singleton), theme compatibility checks, initialization (`extrachill-artist-platform.php`)
+- **ExtraChillArtistPlatform_Templates**: Template handling, routing, custom template loading (`inc/core/class-templates.php`)
+- **ExtraChillArtistPlatform_Assets**: Asset management and conditional enqueuing (`inc/core/artist-platform-assets.php`)
+- **ExtraChillArtistPlatform_Migration**: Database migration from band to artist terminology (`inc/core/artist-platform-migration.php`)
+- **ExtraChillArtistPlatform_SocialLinks**: Social link type management and configuration (`inc/core/filters/social-icons.php`)
+
+### File Organization
+- **Core Directory**: `inc/core/` - Post types, rewrite rules, asset management, templates, data providers
+- **Artist Profiles**: `inc/artist-profiles/` - Admin, frontend, roster management, forum integration
+- **Link Pages**: `inc/link-pages/` - Live pages, management interface, subscription system
+- **Database**: `inc/database/` - Analytics and subscriber database functions
+- **Assets**: `assets/` - Consolidated CSS/JS, organized by functionality
 
 ### Custom Post Types
-- **artist_profile**: Artist band profiles (slug: `/band/{slug}`)
+- **artist_profile**: Artist/band profiles (archive: `/artists/`, single: `/artists/{slug}`)  
 - **artist_link_page**: Link pages (slug: `/{slug}` - top-level rewrite)
 
 ### Key Features
 
 #### Link Page System
-**Location**: `artist-platform/extrch.co-link-page/`
-- Live preview management interface with modular JavaScript architecture
-- Custom CSS variables and Google Fonts integration
-- Click analytics with database tracking
-- QR code generation for link sharing
-- YouTube embed support with toggle control
-- Featured link highlighting system
+**Location**: `inc/link-pages/`
+- **Live Pages**: `inc/link-pages/live/` - Public templates, analytics, session validation
+- **Management Interface**: `inc/link-pages/management/` - Admin interface with modular JS/CSS
+- **Live Preview**: `inc/link-pages/management/live-preview/` - Real-time preview functionality
+- **Advanced Features**: `inc/link-pages/management/advanced-tab/` - Tracking, redirects, expiration
+- **Subscription System**: `inc/link-pages/subscription/` - Email collection forms and modals
 
 #### Cross-Domain Authentication  
-**Files**: `includes/class-core.php` (integrated session management)
+**File**: `inc/link-pages/live/link-page-session-validation.php`
 - Session token system for `.extrachill.com` domain
 - Auto-login across subdomains using secure cookies
-- 6-month token expiration with automatic cleanup
+- Token validation for link page access
+- 6-month token expiration with cleanup
 
 #### Forum Integration
-**Files**: `artist-platform/artist-forums.php`, `artist-platform/artist-forum-section-overrides.php`
+**Files**: `inc/artist-profiles/artist-forums.php`, `inc/artist-profiles/artist-forum-section-overrides.php`
 - bbPress integration with artist-specific forum sections
 - Custom forum permissions and artist-linked discussions
+- Centralized permission system (`inc/core/filters/permissions.php`)
 
 #### Subscription System
-**Location**: `artist-platform/subscribe/`
-- Email collection with artist association
-- Database table: `{prefix}_artist_subscribers`
+**Locations**: `inc/artist-profiles/`, `inc/link-pages/subscription/`, `inc/database/`
+- Email collection with artist association (`inc/artist-profiles/subscribe-data-functions.php`)
+- Database table: `{prefix}_artist_subscribers` (`inc/database/subscriber-db.php`)
 - AJAX-driven subscription forms with modal support
+- Inline and modal subscription interfaces (`inc/link-pages/subscription/`)
+- Link page subscription functions (`inc/link-pages/subscribe-functions.php`)
+- Export tracking and management capabilities
 
 #### Analytics System
-**Files**: `artist-platform/extrch.co-link-page/link-page-analytics-*.php`
-- Click tracking for all link page interactions
-- Database table: `{prefix}_link_page_analytics`
-- Chart.js-powered analytics dashboard
+**Files**: `inc/database/link-page-analytics-db.php`, `inc/link-pages/live/link-page-analytics-tracking.php`
+- Daily aggregation of page views and link clicks
+- Database tables: `{prefix}_extrch_link_page_daily_views`, `{prefix}_extrch_link_page_daily_link_clicks`
+- Chart.js-powered analytics dashboard with date filtering
+- Management interface: `inc/link-pages/management/assets/js/analytics.js`
 
 #### Roster Management System
-**Location**: `artist-platform/roster/`
-- Band member invitation system with email notifications
-- Pending invitation tracking and management
-- AJAX-powered roster UI with role assignment
+**Location**: `inc/artist-profiles/roster/`
+- Band member invitation system with email notifications (`inc/artist-profiles/roster/artist-invitation-emails.php`)
+- Pending invitation tracking and management (`inc/artist-profiles/roster/manage-roster-ui.php`)
+- AJAX-powered roster UI with role assignment (`inc/artist-profiles/roster/roster-ajax-handlers.php`)
 - Token-based invitation acceptance system
+- Data functions and validation (`inc/artist-profiles/roster/roster-data-functions.php`)
 
-### JavaScript Architecture
+### Asset Management
+**Class**: `ExtraChillArtistPlatform_Assets` in `inc/core/artist-platform-assets.php`
+- File existence checks before enqueuing
+- Timestamp-based cache busting via `filemtime()`
+- Conditional loading based on template context
+- Theme compatibility checks for CSS files
+- Context-aware asset loading for different page types
 
-#### Management Interface
-**Locations**: `assets/js/manage-link-page/` and `artist-platform/extrch.co-link-page/live-preview/js/`
-- **Core**: `manage-link-page-core.js` - Central manager object (ExtrchLinkPageManager)
-- **Modules**: Modular IIFE-based components for fonts, colors, sizing, customization, save functionality
-- **Content**: `manage-link-page-content-renderer.js` - Live preview engine
-- **Social Links**: `manage-link-page-socials.js` - Social platform management
-- **QR Code**: `manage-link-page-qrcode.js` - QR code generation and display
-- **Dependencies**: SortableJS for drag-and-drop, Chart.js for analytics
+#### JavaScript Files
+**Management Interface**: `inc/link-pages/management/assets/js/`
+- Core modules: `info.js`, `links.js`, `colors.js`, `fonts.js`, `sizing.js`
+- Advanced features: `analytics.js`, `qrcode.js`, `socials.js`, `subscribe.js`
+- UI utilities: `ui-utils.js`, `save.js`, `advanced.js`
+- Live preview: `inc/link-pages/management/live-preview/assets/js/`
 
-#### Public Interface  
-**Location**: `assets/js/`
+**Public Interface**: `inc/link-pages/live/assets/js/`
 - `link-page-public-tracking.js` - Click tracking
-- `link-page-subscribe.js` - Subscription functionality  
-- `link-page-youtube-embed.js` - YouTube video handling
+- `link-page-subscribe.js` - Subscription functionality
+- `link-page-youtube-embed.js` - YouTube video handling  
 - `link-page-session.js` - Cross-domain session management
-- `extrch-share-modal.js` - Link sharing modal functionality
+- `extrch-share-modal.js` - Link sharing modal
+
+**Global Assets**: `assets/js/`
 - `shared-tabs.js` - Tabbed interface component
+- `artist-platform.js` - Core functionality
+- `artist-platform-home.js` - Homepage features
 
 ### Database Tables
-- `{prefix}_user_session_tokens` - Cross-domain authentication (integrated in Core class)
-- `{prefix}_link_page_analytics` - Click tracking data with referrer and timestamp info
-- `{prefix}_artist_subscribers` - Artist subscription data with export tracking
+- `{prefix}_extrch_link_page_daily_views` - Daily page view aggregates
+- `{prefix}_extrch_link_page_daily_link_clicks` - Daily click aggregates  
+- `{prefix}_artist_subscribers` - Subscription data with export tracking
 
 ### Dependencies
 - **WordPress**: 5.0+ (tested up to 6.4)
 - **PHP**: 7.4+
 - **Theme**: Extra Chill Community theme (compatibility check enforced)
-- **External**: bbPress (for forum features), Font Awesome, Google Fonts
+- **External**: bbPress, Font Awesome, Google Fonts
 
-### Asset Management
-- File existence checks before enqueuing
-- Timestamp-based cache busting
-- Conditional loading based on template context
-- Google Fonts integration with custom CSS variables
+### Additional Features
+
+#### Artist Following System
+**File**: `inc/artist-profiles/artist-following.php`
+- Follow/unfollow functionality with database integration
+
+#### Frontend Forms & Permissions  
+**Files**: `inc/artist-profiles/frontend/frontend-forms.php`, `inc/core/filters/permissions.php`
+- Public form handling and validation
+- Centralized permission system with role-based access
+- Profile editing and management interfaces
+- Artist directory and search functionality (`inc/artist-profiles/frontend/artist-directory.php`)
+
+#### Data Synchronization
+**Files**: `inc/core/actions/sync.php`, `inc/core/filters/data.php`
+- Cross-system data consistency and component synchronization
+- Centralized data filtering and validation
+- AJAX action handling (`inc/core/actions/ajax.php`)
+- Save operation coordination (`inc/core/actions/save.php`)
+
+#### Template System
+**Files**: `inc/core/class-templates.php`, feature-specific template directories
+- Custom template overrides with routing and conditional loading
+- **Artist Profile Templates**: `inc/artist-profiles/frontend/templates/`
+- **Link Page Templates**: `inc/link-pages/live/templates/` (public), `inc/link-pages/management/templates/` (admin)
+- **Component Templates**: Modular tab interfaces and shared components
+
+#### Admin Interface
+**Files**: `inc/artist-profiles/admin/meta-boxes.php`, `inc/artist-profiles/admin/user-linking.php`
+- Custom meta boxes for artist profile management
+- User account linking and validation
+- Administrative assets: `inc/artist-profiles/assets/js/`
+
+### Migration System  
+**File**: `inc/core/artist-platform-migration.php`
+- Band-to-artist terminology migration with transaction safety and rollback
+
+## Development Standards
 
 ### Security Practices
 - Nonce verification for all AJAX requests
 - Input sanitization with `wp_unslash()` and `sanitize_text_field()`
 - Output escaping with `esc_html()`, `esc_attr()`, `esc_url()`
 - Capability checks for admin functions
-
-### Migration System  
-**File**: `includes/class-migration.php`
-- Handles data migration from theme to plugin
-- Version-based migration tracking
-- Automatic execution on plugin initialization
-
-### Additional Features
-
-#### Artist Following System
-**File**: `includes/artist-following.php`
-- User follow/unfollow functionality for artists
-- Database integration for follower tracking
-
-#### Frontend Forms & Permissions
-**Files**: `artist-platform/frontend-forms.php`, `artist-platform/artist-permissions.php`
-- Public-facing form handling and validation
-- Role-based artist profile access control
-
-#### Data Synchronization
-**File**: `artist-platform/data-sync.php`
-- Cross-system data consistency management
-- Automated synchronization between platform components
-
-## Development Standards
 
 ### WordPress Patterns
 - Uses WordPress native hooks and filters extensively
@@ -131,7 +159,8 @@ WordPress plugin providing comprehensive artist platform functionality for the E
 - Uses WordPress HTTP API with custom timeout handling
 
 ### Code Organization
-- Singleton pattern for core classes
-- Modular JavaScript with clear dependencies
-- Centralized asset enqueuing with conditional loading
-- Template-based page routing system
+- Singleton pattern for core classes (`ExtraChillArtistPlatform`, `ExtraChillArtistPlatform_Templates`, `ExtraChillArtistPlatform_Assets`, `ExtraChillArtistPlatform_Migration`)
+- Modular JavaScript organization by feature and functionality
+- Centralized asset enqueuing with context-aware loading
+- Template-based page routing system with nested organization
+- Feature-based CSS organization with consolidated assets

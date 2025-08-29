@@ -38,9 +38,9 @@ A comprehensive WordPress plugin that provides artist profile management, link p
 
 ## Requirements
 
-- **WordPress**: 5.0 or higher
+- **WordPress**: 5.0 or higher (tested up to 6.4)
 - **PHP**: 7.4 or higher  
-- **Theme**: Extra Chill Community theme
+- **Theme**: Extra Chill Community theme (compatibility enforced)
 - **Optional**: bbPress (for forum features)
 
 ## Installation
@@ -86,20 +86,25 @@ A comprehensive WordPress plugin that provides artist profile management, link p
 
 ## Development
 
-### Core Classes
+### Core Architecture
 
 ```php
 // Main plugin initialization with theme compatibility check
 ExtraChillArtistPlatform::instance();
 
-// Access core functionality
-$core = ExtraChillArtistPlatform_Core::instance();
-
-// Template handling
-$templates = ExtraChillArtistPlatform_Templates::instance();
+// Template handling and routing
+ExtraChillArtistPlatform_Templates::instance();
 
 // Asset management
-$assets = ExtraChillArtistPlatform_Assets::instance();
+ExtraChillArtistPlatform_Assets::instance();
+
+// Social link management
+ExtraChillArtistPlatform_SocialLinks::instance();
+
+// Migration system (band -> artist terminology)  
+ExtraChillArtistPlatform_Migration::instance();
+
+// Features loaded via core class initialization
 ```
 
 ### Adding Custom Features
@@ -119,29 +124,52 @@ add_action('extrachill_link_clicked', function($link_url, $link_page_id) {
 }, 10, 2);
 ```
 
-### JavaScript Development
+### Asset Management
 
-The management interface uses a modular JavaScript architecture with dual asset locations:
+Assets are managed via `ExtraChillArtistPlatform_Assets` class in `inc/core/artist-platform-assets.php`:
 
-```javascript
-// Access the main manager (loaded in manage-link-page-core.js)
-if (window.ExtrchLinkPageManager) {
-    ExtrchLinkPageManager.addCustomFeature(myCustomFeature);
+```php
+class ExtraChillArtistPlatform_Assets {
+    // Context-aware asset loading with organized structure
+    public function enqueue_frontend_assets() {
+        if ( $this->is_link_page_context() ) {
+            $this->enqueue_link_page_assets();
+            // Loads from inc/link-pages/live/assets/
+        }
+        
+        if ( $this->is_manage_artist_profile_page() ) {
+            $this->enqueue_artist_profile_management_assets();
+            // Loads from inc/artist-profiles/assets/
+        }
+        
+        if ( $this->is_manage_link_page_page() ) {
+            $this->enqueue_link_page_management_assets();
+            // Loads from inc/link-pages/management/assets/
+        }
+        
+        // File existence checks and cache busting via filemtime()
+        // Global assets loaded from assets/ directory
+    }
 }
 
-// Listen for preview events
+// Asset management handled by core class
+```
+
+### JavaScript Development
+
+```javascript
+// Access management interface data (loaded in inc/link-pages/management/assets/js/)
+if (window.ExtrchLinkPageManager) {
+    ExtrchLinkPageManager.getInitialData(); // Access PHP config data
+}
+
+// Custom events for modular components
 $(document).on('extrch:preview:updated', function(e, data) {
     // Handle preview updates
 });
 
-// Social link management
-$(document).on('extrch:social:added', function(e, socialData) {
-    // Handle new social links
-});
-
-// QR code generation events
-$(document).on('extrch:qr:generated', function(e, qrData) {
-    // Handle QR code creation
+$(document).on('extrch:subscribe:success', function(e, data) {
+    // Handle successful subscription
 });
 ```
 
@@ -149,15 +177,22 @@ $(document).on('extrch:qr:generated', function(e, qrData) {
 
 The plugin creates several custom tables:
 
-- `wp_user_session_tokens` - Cross-domain authentication (integrated in Core class)
-- `wp_link_page_analytics` - Click tracking with referrer data and timestamps
+- `wp_extrch_link_page_daily_views` - Daily page view aggregates by link page  
+- `wp_extrch_link_page_daily_link_clicks` - Daily click aggregates by individual links
 - `wp_artist_subscribers` - Artist subscription data with export status tracking
 
 ### Roster Data Storage
 
-Band roster data is stored using WordPress post meta:
+Artist roster data is stored using WordPress post meta:
 - `_pending_invitations` - Array of pending roster invitations with tokens
-- `_roster_members` - Confirmed band member data with roles
+- `_roster_members` - Confirmed band/artist member data with roles
+
+### Link Page Data Storage
+
+Link page configuration stored as post meta:
+- `_link_page_data` - JSON configuration for links, styling, and settings
+- `_featured_link_id` - ID of the currently featured link
+- `_youtube_embed_url` - YouTube video URL for embedded content
 
 ## Customization
 
@@ -177,10 +212,20 @@ Override plugin styles in your theme:
 }
 ```
 
-### Hooks & Filters
+### Available Hooks
 
 ```php
-// Modify supported social link types
+// Modify link page data before rendering
+add_filter('extrachill_link_page_data', function($data, $link_page_id) {
+    return $data;
+}, 10, 2);
+
+// Hook into link click tracking
+add_action('extrachill_link_clicked', function($link_url, $link_page_id) {
+    // Custom tracking logic
+}, 10, 2);
+
+// Customize social link types
 add_filter('bp_supported_social_link_types', function($types) {
     $types['custom_platform'] = [
         'label' => 'Custom Platform',
@@ -189,21 +234,6 @@ add_filter('bp_supported_social_link_types', function($types) {
     ];
     return $types;
 });
-
-// Customize roster invitation emails
-add_filter('bp_roster_invitation_email_subject', function($subject, $artist_name) {
-    return "Join {$artist_name} on ExtraChill";
-}, 10, 2);
-
-// Modify artist following functionality
-add_action('bp_artist_followed', function($user_id, $artist_id) {
-    // Custom follow actions
-}, 10, 2);
-
-// Customize subscription email templates
-add_filter('extrachill_subscription_email_template', function($template, $data) {
-    return $custom_template;
-}, 10, 2);
 ```
 
 ## Troubleshooting
@@ -223,8 +253,76 @@ Clear cookies for the `.extrachill.com` domain and try logging in again.
 ### Roster Invitations Not Sending
 Check that WordPress can send emails and verify SMTP configuration. Review invitation tokens in database if needed.
 
-### Duplicate JavaScript Assets
-The plugin maintains JavaScript files in both `assets/js/` and `artist-platform/extrch.co-link-page/` directories for compatibility. This is intentional.
+### File Structure
+```
+inc/
+├── core/                             # Core plugin functionality
+│   ├── artist-platform-assets.php       # Asset management class  
+│   ├── class-templates.php              # Template handling
+│   ├── artist-platform-post-types.php   # CPT registration
+│   ├── artist-platform-migration.php    # Migration system
+│   ├── artist-platform-rewrite-rules.php # URL routing
+│   ├── filters/
+│   │   ├── social-icons.php             # Social link management
+│   │   └── fonts.php                    # Font configuration
+│   ├── data-sync.php                    # Data synchronization
+│   └── default-artist-page-link-profiles.php # Default configurations
+├── artist-profiles/                  # Profile management
+│   ├── admin/                       # Admin meta boxes, user linking
+│   ├── frontend/                    # Public forms, directory
+│   │   └── templates/              # Artist profile templates
+│   │       ├── archive-artist_profile.php
+│   │       ├── single-artist_profile.php
+│   │       ├── artist-directory.php
+│   │       ├── artist-platform-home.php
+│   │       ├── manage-artist-profiles.php
+│   │       ├── artist-profile-card.php
+│   │       └── manage-artist-profile-tabs/
+│   ├── roster/                      # Band member management
+│   │   ├── artist-invitation-emails.php
+│   │   ├── manage-roster-ui.php
+│   │   ├── roster-ajax-handlers.php
+│   │   └── roster-data-functions.php
+│   ├── artist-forums.php            # Forum integration
+│   ├── [MOVED TO inc/core/filters/permissions.php] # Centralized permission system
+│   ├── artist-following.php         # Follow system
+│   └── subscribe-data-functions.php # Artist subscription data
+├── link-pages/                      # Link page system
+│   ├── management/                  # Management interface
+│   │   ├── advanced-tab/           # Advanced features (tracking, redirects)
+│   │   ├── live-preview/           # Live preview functionality
+│   │   └── templates/              # Management templates
+│   │       ├── manage-link-page.php
+│   │       └── manage-link-page-tabs/
+│   ├── live/                       # Live page functionality
+│   │   └── templates/              # Public link page templates
+│   │       ├── single-artist_link_page.php
+│   │       └── extrch-link-page-template.php
+│   ├── subscription/               # Subscription forms
+│   │   ├── subscribe-inline-form.php
+│   │   └── subscribe-modal.php
+│   ├── data/                       # Data providers
+│   ├── create-link-page.php        # Link page creation
+│   ├── subscribe-functions.php     # Subscription functionality
+│   └── link-page-*.php             # Core link page functionality
+└── database/                        # Database functionality
+    ├── link-page-analytics-db.php   # Analytics database
+    └── subscriber-db.php            # Subscriber database
+
+assets/
+├── css/                             # Stylesheets
+│   ├── components/                  # Component-specific styles
+│   ├── artist-platform.css         # Global styles
+│   ├── manage-link-page.css         # Management interface
+│   └── extrch-links.css            # Public link page styles
+└── js/
+    ├── manage-link-page/            # Modular management interface
+    │   ├── manage-link-page-core.js # Core management functionality
+    │   ├── manage-link-page-*.js    # Feature-specific modules
+    │   └── ...
+    ├── shared-tabs.js               # Shared tabbed interface
+    └── [feature-specific].js       # Public functionality
+```
 
 ## Support
 

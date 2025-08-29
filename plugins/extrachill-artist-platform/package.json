@@ -1,0 +1,36 @@
+{
+  "name": "extrachill-artist-platform",
+  "version": "1.0.0",
+  "description": "WordPress plugin providing comprehensive artist platform functionality for the ExtraChill community",
+  "main": "extrachill-artist-platform.php",
+  "scripts": {
+    "build": "./build.sh",
+    "build:clean": "rm -rf dist/ && npm run build",
+    "version": "grep -i 'Version:' extrachill-artist-platform.php | head -1 | sed 's/.*Version:\\s*\\([0-9\\.]*\\).*/\\1/'"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/chubes4/extrachill-artist-platform.git"
+  },
+  "keywords": [
+    "wordpress",
+    "plugin",
+    "artist",
+    "platform",
+    "music",
+    "link-page",
+    "analytics",
+    "extrachill"
+  ],
+  "author": "Chris Huber <hello@chubes.net> (https://chubes.net)",
+  "license": "GPL-2.0+",
+  "bugs": {
+    "url": "https://github.com/chubes4/extrachill-artist-platform/issues"
+  },
+  "homepage": "https://extrachill.com",
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "devDependencies": {},
+  "private": true
+}

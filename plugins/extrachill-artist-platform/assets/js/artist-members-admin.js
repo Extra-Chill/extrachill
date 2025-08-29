@@ -151,7 +151,7 @@ jQuery(document).ready(function($) {
                 .text(userName)
                 .append(' ')
                 .append(
-                    $('<a href="#" class="bp-remove-member-link" style="color: red; text-decoration: none;" title="Remove this member">[x]</a>')
+                    $('<a href="#" class="bp-remove-member-link" title="Remove this member">[x]</a>')
                 )
         );
         updateHiddenFields();

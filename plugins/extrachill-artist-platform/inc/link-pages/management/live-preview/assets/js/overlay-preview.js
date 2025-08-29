@@ -1,0 +1,39 @@
+// Overlay Preview Module - Handles live preview updates for overlay toggle
+(function(manager) {
+    if (!manager) return;
+    
+    manager.overlayPreview = manager.overlayPreview || {};
+    
+    // Main overlay preview update function - Direct DOM manipulation
+    function updateOverlayPreview(overlayEnabled) {
+        const previewEl = manager.getPreviewEl ? manager.getPreviewEl() : null;
+        if (!previewEl) return;
+
+        // Find the content wrapper that receives overlay styling
+        const wrapper = previewEl.querySelector('.extrch-link-page-content-wrapper');
+        if (!wrapper) return;
+
+        // Handle both boolean and string values
+        const isOverlayEnabled = overlayEnabled === true || 
+                                overlayEnabled === '1' || 
+                                overlayEnabled === 1 || 
+                                overlayEnabled === 'true';
+        
+        if (isOverlayEnabled) {
+            wrapper.classList.remove('no-overlay');
+        } else {
+            wrapper.classList.add('no-overlay');
+        }
+    }
+
+    // Event listener for overlay changes
+    document.addEventListener('overlayChanged', function(e) {
+        if (e.detail && e.detail.overlay !== undefined) {
+            updateOverlayPreview(e.detail.overlay);
+        }
+    });
+
+    // Expose functions on manager
+    manager.overlayPreview.update = updateOverlayPreview;
+
+})(window.ExtrchLinkPageManager = window.ExtrchLinkPageManager || {});

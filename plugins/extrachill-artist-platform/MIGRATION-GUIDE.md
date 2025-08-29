@@ -1,21 +1,21 @@
 # ExtraChill Artist Platform - Migration Guide
 
-## ⚠️ CRITICAL: Data Migration Required
+## Migration Overview
 
-When you upload this updated plugin, you **MUST** run the database migration to avoid data loss. The plugin has been transformed from "Band Platform" to "Artist Platform" and requires database updates.
+The ExtraChill Artist Platform includes a comprehensive migration system for transitioning from "Band Platform" to "Artist Platform" terminology. Migration is only required if you're upgrading from a previous version that used "band" terminology.
 
 ## How Migration Works
 
 ### 1. **Automatic Detection**
-- Plugin automatically detects if old "band" data exists
+- Detects existing "band" terminology in database
 - Shows admin notice only when migration is needed
-- No notice appears if no old data is found
+- No action required for new installations
 
-### 2. **Admin Notice**
-When you access the WordPress admin after uploading the plugin, you'll see:
-- **Warning notice** with migration button
-- **Backup reminder** (CRITICAL - always backup first!)
-- **One-click migration** button to run the process
+### 2. **Admin Interface**
+When migration is needed:
+- Admin notice with migration button
+- Database backup reminder  
+- One-click migration process
 
 ### 3. **What Gets Migrated**
 
@@ -67,23 +67,22 @@ When you access the WordPress admin after uploading the plugin, you'll see:
 
 ## Important Instructions
 
-### ⚠️ **BEFORE UPLOAD**
-1. **BACKUP YOUR DATABASE** - This is critical!
-2. **Test on staging site first** if possible
-3. **Note current data counts** (posts, users, etc.)
+### **Before Migration**
+1. **Backup your database** - Essential safety measure
+2. **Test on staging site** if available  
+3. **Note current data counts** for verification
 
-### 📱 **AFTER UPLOAD**
-1. **Access WordPress Admin** - You'll see the migration notice
-2. **Click "Run Migration Now"** - One-click process
-3. **Wait for completion** - Can take several minutes for large datasets
-4. **Verify data** - Check that all your profiles/pages are still there
+### **Migration Process**
+1. **Access WordPress Admin** - Migration notice will appear
+2. **Click migration button** - Automated one-click process
+3. **Wait for completion** - Processing time varies by dataset size
+4. **Verify data integrity** - Confirm all profiles and pages are intact
 
-### ✅ **VERIFICATION**
-After migration:
-- All your band profiles become artist profiles
-- All URLs still work (artist/profile-name instead of band/profile-name)
-- All data preserved (images, content, settings, etc.)
-- All functionality works exactly the same
+### **Post-Migration**
+- Band profiles become artist profiles
+- URLs automatically updated (`/artist/profile-name`)
+- All data preserved (images, content, settings)
+- Full functionality maintained
 
 ## Troubleshooting
 
@@ -101,7 +100,7 @@ The migration class includes a rollback function that can be called if needed:
 ## Technical Details
 
 ### Migration Class Location
-`/includes/class-migration.php`
+`/inc/core/artist-platform-migration.php`
 
 ### Database Tables Affected
 - `wp_posts` (post_type column)
@@ -113,15 +112,13 @@ The migration class includes a rollback function that can be called if needed:
 ### Logs Location
 WordPress error logs - check for entries starting with `[Artist Platform Migration]`
 
----
-
 ## Summary
 
-This migration is **safe and reversible** thanks to:
-- Database transactions
-- Automatic rollback on failure
-- Comprehensive logging
-- Data verification
-- Multiple safety checks
+The migration system provides:
+- **Database transaction safety** with automatic rollback
+- **Comprehensive logging** for troubleshooting  
+- **Data verification** before and after migration
+- **One-click interface** for easy execution
+- **Version tracking** to prevent duplicate migrations
 
-**The most important thing**: Always backup your database before running the migration!
+**Important**: Always backup your database before running any migration.

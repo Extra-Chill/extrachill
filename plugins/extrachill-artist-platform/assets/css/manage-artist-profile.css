@@ -1,5 +1,15 @@
 /* Styles for Manage Artist Profile Page Tabs */
 
+/* Utility classes for JavaScript interactions */
+.bp-remove-member-link {
+  color: red !important;
+  text-decoration: none !important;
+}
+
+.temp-removal-text {
+  color: red;
+}
+
 /* Basic structure - similar to manage-link-page but simpler */
 .manage-artist-profile-flex {
   display: flex;

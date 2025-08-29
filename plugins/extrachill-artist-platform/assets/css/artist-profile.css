@@ -1,0 +1,579 @@
+/**
+ * CSS for Single Artist Profiles (single-artist_profile.php) and related notices.
+ */
+
+/* Base notice styling */
+.artist-notice {
+    padding: 12px; /* Consolidated from inline styles */
+    margin-bottom: 20px;
+    border-left-width: 4px;
+    border-left-style: solid;
+    border-radius: 4px; /* Optional: add a little rounding */
+    background-color: var(--card-background); /* Use a general card/notice background */
+    color: var(--text-color);
+}
+
+.artist-notice p {
+    margin: 0;
+    padding: 0;
+}
+
+/* Success notice specific styling */
+.artist-notice-success {
+    border-left-color: #46b450; /* From single-artist_profile.php inline style */
+    /* Specific background for success if needed, or rely on .artist-notice for general background */
+    /* background-color: var(--notice-bg-success, #e6ffed); */ /* Example if you define --notice-bg-success */
+}
+
+/* Error notice specific styling (already used on manage page, good to define here too) */
+.artist-notice-error {
+    border-left-color: #dc3232; /* Standard error red */
+    background-color: #fef7f7; /* From manage-artist-profile.php inline style */
+    /* background-color: var(--notice-bg-error, #ffebee); */ /* Example if you define --notice-bg-error */
+}
+
+:root {
+    /* Define any specific variables if needed, or rely on GeneratePress/global variables */
+}
+
+.artist-profile-header {
+    display: flex;
+    flex-wrap: wrap; /* Allow wrapping on smaller screens if needed */
+    align-items: flex-start; /* Align items to the top */
+    gap: 20px; /* Space between image and details */
+    margin-bottom: 1.5em; /* Space below the header */
+    padding-bottom: 1.5em;
+    border-bottom: 1px solid var(--border-color, #ddd); /* Separator */
+}
+
+.artist-profile-image {
+    flex: 0 0 150px; /* Fixed width for the image container */
+    max-width: 150px;
+}
+
+.artist-profile-image img {
+    max-width: 100%;
+    height: auto;
+    display: block; /* Remove extra space below image */
+    border-radius: 5px; /* Optional rounded corners */
+    border: 1px solid var(--border-color, #ddd);
+}
+
+.artist-profile-details {
+    flex: 1; /* Allow details to take remaining space */
+    min-width: 200px; /* Prevent excessive squishing */
+}
+
+.artist-profile-details .entry-title {
+    margin-top: 0; /* Remove default top margin if needed */
+    margin-bottom: 0.3em;
+}
+
+.artist-profile-details p {
+    margin-bottom: 0.5em; /* Consistent spacing for meta details */
+    font-size: 0.95em;
+    color: var(--muted-text, #555);
+}
+
+.artist-profile-details p strong {
+    color: var(--text-color, #333);
+    margin-right: 5px;
+}
+
+.artist-social-links {
+    margin-top: 1em;
+    display: flex;
+    gap: 15px; /* Space between icons */
+    flex-wrap: wrap;
+}
+
+.artist-social-links a {
+    color: var(--text-color, #333);
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+.artist-social-links a:hover {
+    color: var(--accent, #53940b); /* Use theme accent color */
+}
+
+/* Artist Forum Section Styling (Basic Wrapper) */
+.artist-forum-section {
+    margin-top: 2em;
+    padding-top: 1.5em;
+    border-top: 1px solid var(--border-color, #ddd); /* Separator */
+}
+
+.artist-forum-title,
+.artist-topics-title {
+    margin-bottom: 1em;
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 600px) {
+    .artist-profile-header {
+        flex-direction: column; /* Stack vertically */
+        align-items: center; /* Center items */
+        text-align: center;
+    }
+
+    .artist-profile-image {
+        flex-basis: auto; /* Allow image container to resize */
+        width: 120px; /* Slightly smaller image centered */
+        max-width: 100%;
+        margin-bottom: 15px;
+    }
+
+    .artist-profile-details {
+        width: 100%;
+    }
+
+    .artist-social-links {
+        justify-content: center; /* Center icons */
+        gap: 20px;
+    }
+}
+
+/* --- Artist Hero Section Styles --- */
+
+/* Override previous header styles for the new hero layout */
+.artist-hero {
+    display: block; /* Reset flex */
+    flex-wrap: nowrap; /* Reset flex-wrap */
+    align-items: initial; /* Reset align-items */
+    gap: 0; /* Reset gap */
+    padding: 80px 20px; /* Adjusted from inline style */
+    margin-bottom: 30px; /* Space below hero */
+    position: relative; /* For overlay and button positioning */
+    background-size: cover;
+    background-position: center center;
+    color: var(--header-text, #fff); /* Use header text color (often white/light) */
+    border-radius: 5px; /* Optional: subtle rounding */
+    overflow: hidden; /* Ensure overlay respects border-radius */
+    border-bottom: none; /* Remove previous border */
+}
+
+/* Default background if no image */
+.artist-hero:not([style*='background-image']) {
+    /* Use a dark background, similar to dark mode header or a general dark shade */
+    background-color: var(--header-bg, #333); 
+    /* Ensure text contrast on default background */
+    color: var(--header-text, #fff);
+}
+
+.artist-hero-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent dark overlay */
+    z-index: 1;
+    pointer-events: none; /* Allows clicking through overlay if needed */
+}
+
+.artist-hero-content {
+    position: relative;
+    z-index: 2; /* Content above overlay */
+    padding: 10px; /* Optional padding within content area */
+}
+
+/* Artist Hero Top Row - Override inline styles and add flex-wrap */
+.artist-hero-top-row {
+    display: flex;
+    align-items: flex-start;
+    margin-bottom: 1em;
+    flex-wrap: wrap; /* Allow wrapping on mobile */
+}
+
+/* Artist Hero Text Content - Allow it to grow and take remaining space */
+.artist-hero-text-content {
+    flex-grow: 1;
+}
+
+/* Profile Picture specific styles within the Hero section */
+.artist-profile-featured-image {
+    flex-shrink: 0; /* Ensures the image container doesn't shrink */
+    /* You can define a specific size here if the 'thumbnail' size isn't consistently square,
+       e.g., width: 100px; height: 100px; then use object-fit on the img */
+    margin-right: 20px; /* Replaces the gap from the parent flex container for consistency if gap is removed */
+}
+
+.artist-profile-featured-image img {
+    display: block; /* Removes potential extra space below the image */
+    border-radius: 15px; /* Apply rounded corners */
+    /* Optional: Add a border if desired */
+    border: 2px solid #fff; 
+    max-width: 100%; /* Ensure image is responsive within its container */
+    height: auto;   /* Maintain aspect ratio */
+    /* If you need to force a square aspect ratio for non-square thumbnail images: */
+    /* width: 100px; /* Or desired size */
+    /* height: 100px; /* Or desired size */
+    /* object-fit: cover; */
+}
+
+.artist-hero-title {
+    color: var(--header-text, #fff) !important; /* Ensure contrast with overlay/image */
+    margin-bottom: 15px;
+    font-size: 2.5em; /* Larger title */
+}
+
+.artist-meta-info {
+    color: var(--header-text, #eee); /* Light color for meta, adjust if needed */
+    opacity: 0.9; /* Slightly less prominent than title */
+    margin-bottom: 15px;
+}
+
+.artist-meta-info strong {
+    color: var(--header-text, #fff); /* Ensure contrast */
+    opacity: 1;
+}
+
+.artist-meta-info .artist-genre,
+.artist-meta-info .artist-local-scene {
+    display: inline-block; /* Keep on same line if possible */
+}
+
+/* Replace attribute selector with a dedicated class for the separator */
+.artist-meta-info .artist-meta-separator {
+    margin: 0 10px;
+    color: var(--header-text, #ccc);
+    opacity: 0.7;
+}
+
+.artist-social-links {
+    margin-top: 20px; /* Adjust spacing */
+    font-size: 1.2em; /* Adjusted from inline style */
+    display: flex; /* Ensure flex is still applied if overridden */
+    gap: 15px; /* Space between icons, replaces inline margin on <a> */
+}
+
+.artist-social-links a {
+    color: var(--header-text, #fff) !important; /* Ensure contrast */
+    text-decoration: none;
+    transition: opacity 0.2s ease;
+}
+
+.artist-social-links a:hover {
+    opacity: 0.8;
+    color: var(--header-text, #fff) !important; /* Keep color, change opacity */
+}
+
+/* Edit Button Styling */
+.artist-edit-button-container {
+    position: absolute;
+    top: 15px; /* Adjusted from inline style */
+    right: 15px; /* Adjusted from inline style */
+    z-index: 3; /* Above content */
+}
+
+.artist-edit-button-container .button {
+    /* Inherit theme button styles, maybe add specifics */
+    padding: 8px 15px; 
+    font-size: 0.9em;
+    border-radius: 4px; /* Add rounded corners - adjust if needed for theme consistency */
+    /* Use button variables for consistency */
+    background-color: var(--button-bg, #0b5394);
+    color: #fff; /* Assuming button text is usually white */
+    border: none; /* Assuming no border based on style.css */
+}
+
+.artist-edit-button-container .button:hover {
+    background-color: var(--button-hover-bg, #083b6c);
+    color: #fff;
+}
+
+/* --- End Artist Hero Section Styles --- */ 
+
+/* --- Mobile Adjustments for Hero --- */
+@media (max-width: 768px) {
+    .artist-hero {
+        padding: 40px 15px; /* Adjust mobile padding too */
+    }
+    .artist-hero-title {
+        font-size: 2em; /* Reduce title size */
+    }
+    .artist-edit-button-container {
+        top: 10px; /* Move closer to top */
+        right: 10px; /* Move closer to right */
+    }
+    .artist-edit-button-container .button {
+        padding: 6px 10px; /* Make button smaller */
+        font-size: 0.8em;
+    }
+    .artist-social-links {
+        font-size: 1.4em; /* Slightly smaller icons */
+        gap: 10px;
+    }
+}
+
+@media (max-width: 480px) { /* Further adjustments for very small screens */
+     .artist-hero-title {
+        font-size: 1.6em; /* Even smaller title */
+        margin-bottom: 10px;
+    }
+     .artist-edit-button-container {
+        /* Example: Stack button below title on very small screens */
+        /* position: relative; 
+        top: auto;
+        right: auto;
+        margin-top: 15px;
+        text-align: center; */
+        /* Or just keep it top right but ensure enough space */
+    }
+     .artist-meta-info {
+        font-size: 0.9em;
+    }
+} 
+
+/* --- Sorting & Search UI specific to Artist Profile Page --- */
+.sorting-search {
+    display: flex;
+    justify-content: space-between;
+    align-items: center; /* Vertically align items if they have different heights */
+    margin-bottom: 20px;
+}
+
+/* Style form elements within sorting-search if needed, or rely on global/bbPress styles */
+.sorting-search .bbp-sorting-form,
+.sorting-search .bbp-search-form {
+    /* Example: add some spacing if they wrap on small screens */
+    /* margin-bottom: 10px; */
+}
+
+.sorting-search select,
+.sorting-search input[type="text"],
+.sorting-search button {
+    /* Example: ensure consistent sizing or padding if default styles are problematic */
+    /* padding: 8px; */
+    /* font-size: 0.9em; */
+}
+
+/* --- Artist Details Columns (Bio & Members) --- */
+.artist-details-columns {
+    display: flex;
+    flex-wrap: wrap; /* Allow wrapping on smaller screens */
+    gap: 30px; /* Space between columns */
+    margin-top: 2em;
+    margin-bottom: 2em;
+}
+
+.artist-bio-section {
+    margin-bottom: 2em;
+}
+
+.artist-details-columns .section-title {
+    margin-top: 0; /* Remove top margin if it's the first element in the column */
+    margin-bottom: 0.75em;
+    font-size: 1.4em;
+    /* border-bottom: 1px solid var(--border-color, #ddd); */ /* Optional separator for titles */
+    /* padding-bottom: 0.3em; */
+}
+
+.artist-bio {
+    /* Specific styling for bio content if needed */
+}
+
+
+/* Responsive adjustments for the two-column layout */
+@media (max-width: 768px) {
+    .artist-details-columns {
+        flex-direction: column; /* Stack columns */
+        gap: 20px;
+    }
+    /* Columns will take full width naturally when flex-direction is column */
+} 
+
+/* --- Follow Consent Modal Styles --- */
+.artist-follow-modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.6);
+    z-index: 1040; /* Ensure it's above other content but below .artist-modal if it has higher */
+}
+
+#artist-follow-consent-modal.artist-modal {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: var(--card-background, #fff);
+    padding: 25px;
+    border-radius: 8px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    z-index: 1050;
+    width: 90%;
+    max-width: 450px;
+    border: 1px solid var(--border-color, #ddd);
+}
+
+#artist-follow-consent-modal .artist-modal-content {
+    /* Styles for the content area within the modal */
+}
+
+#artist-follow-consent-modal .artist-modal-title {
+    margin-top: 0;
+    margin-bottom: 15px;
+    font-size: 1.5em;
+    color: var(--text-color, #333);
+}
+
+#artist-follow-consent-modal p {
+    margin-bottom: 15px;
+    font-size: 1em;
+    line-height: 1.5;
+    color: var(--text-color, #555);
+}
+
+#artist-follow-consent-modal .artist-modal-consent-option {
+    margin-bottom: 20px;
+    padding: 10px;
+    background-color: var(--background-color, #f9f9f9);
+    border-radius: 4px;
+    border: 1px solid var(--border-color, #eee);
+}
+
+#artist-follow-consent-modal .artist-modal-consent-option label {
+    display: flex; /* Changed to flex for better alignment */
+    align-items: flex-start; /* Align items to the start of the flex container */
+    font-size: 0.95em;
+    color: var(--text-color, #444);
+    cursor: pointer;
+}
+
+#artist-follow-consent-modal .artist-modal-consent-option input[type="checkbox"] {
+    margin-right: 10px;
+    margin-top: 3px; /* Adjust to align checkbox with text */
+    flex-shrink: 0; /* Prevent checkbox from shrinking */
+}
+
+#artist-follow-consent-modal .artist-modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+#artist-follow-consent-modal .artist-modal-actions .button {
+    padding: 10px 15px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+#artist-follow-consent-modal .artist-modal-actions .artist-modal-confirm {
+    background-color: var(--accent, #0073aa); /* Using var(--accent) if available, else WordPress blue */
+    color: #fff;
+}
+
+#artist-follow-consent-modal .artist-modal-actions .artist-modal-confirm:hover {
+    background-color: var(--accent-dark, #005a87); /* Darker shade for hover */
+}
+
+#artist-follow-consent-modal .artist-modal-actions .artist-modal-cancel {
+    background-color: var(--button-secondary-bg, #f0f0f0); /* Light gray for cancel */
+    color: var(--button-secondary-text, #333);
+    border: 1px solid var(--border-color, #ccc);
+}
+
+#artist-follow-consent-modal .artist-modal-actions .artist-modal-cancel:hover {
+    background-color: var(--button-secondary-hover-bg, #e0e0e0);
+}
+
+/* Mobile Responsive Styles */
+@media (max-width: 768px) {
+    .artist-hero-top-row {
+        justify-content: center; /* Center justify content on mobile */
+    }
+    
+    .artist-profile-featured-image {
+        margin-right: 0; /* Remove margin on mobile */
+        margin-bottom: 15px; /* Add bottom margin when wrapped */
+    }
+}
+
+
+/* --- Artist Forum Topics --- */
+.artist-forum-topics {
+    margin-top: 1.5em;
+}
+
+/* --- Artist Profile Actions --- */
+.artist-profile-actions {
+    margin-bottom: 1em;
+}
+
+.artist-manage-button {
+    background-color: var(--accent, #53940b);
+    color: #fff;
+    padding: 8px 15px;
+    border-radius: 4px;
+    text-decoration: none;
+    font-size: 0.9em;
+    transition: background-color 0.2s ease;
+}
+
+.artist-manage-button:hover {
+    background-color: var(--accent-dark, #46800a);
+    color: #fff;
+}
+
+/* --- Artist Follow Section --- */
+.artist-follow-section {
+    margin-top: 1.5em;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+.artist-follower-count {
+    font-size: 0.95em;
+    color: var(--header-text, #eee);
+}
+
+.artist-follow-button,
+.artist-follow-login-button {
+    padding: 8px 15px;
+    border-radius: 4px;
+    text-decoration: none;
+    font-size: 0.9em;
+    transition: all 0.2s ease;
+}
+
+.artist-follow-button {
+    background-color: var(--accent, #53940b);
+    color: #fff;
+    border: none;
+    cursor: pointer;
+}
+
+.artist-follow-button:hover {
+    background-color: var(--accent-dark, #46800a);
+}
+
+.artist-own-indicator {
+    font-style: italic;
+    color: var(--header-text, #ccc);
+    font-size: 0.9em;
+}
+
+/* --- Artist Public Link Display --- */
+.artist-public-link-display {
+    margin-top: 1em;
+}
+
+.artist-public-link-display a {
+    color: var(--header-text, #fff);
+    text-decoration: none;
+    font-size: 1.1em;
+    opacity: 0.9;
+    transition: opacity 0.2s ease;
+}
+
+.artist-public-link-display a:hover {
+    opacity: 1;
+}
