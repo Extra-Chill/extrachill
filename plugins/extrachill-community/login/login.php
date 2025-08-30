@@ -1,9 +1,12 @@
 <?php
-// Ensure Band Platform user linking functions are available for join flow logic
-$bp_user_linking_functions = dirname(__FILE__) . '/../band-platform/user-linking.php';
-if (file_exists($bp_user_linking_functions)) {
-    require_once $bp_user_linking_functions;
-}
+/**
+ * Custom Login System
+ * 
+ * Handles login form display, redirect logic, and artist platform
+ * integration for new user onboarding flow.
+ * 
+ * @package ExtraChillCommunity
+ */
 
 function extrachill_login_form() {
     ob_start(); // Start output buffering
@@ -30,28 +33,28 @@ function extrachill_login_page_redirect() {
             if ($from_join) {
                 $user_id = get_current_user_id();
 
-                // Get the user's band profile IDs directly from user meta.
-                $user_band_ids = get_user_meta( $user_id, '_band_profile_ids', true );
+                // Get the user's artist profile IDs directly from user meta.
+                $user_artist_ids = get_user_meta( $user_id, '_artist_profile_ids', true );
 
-                if ( ! empty( $user_band_ids ) && is_array( $user_band_ids ) ) {
-                    // User has one or more band profiles.
-                    // Find the most recently updated band profile to redirect to its link page manager.
-                    $most_recent_band_query = new WP_Query( array(
-                        'post_type'      => 'band_profile',
-                        'post__in'       => $user_band_ids,
+                if ( ! empty( $user_artist_ids ) && is_array( $user_artist_ids ) ) {
+                    // User has one or more artist profiles.
+                    // Find the most recently updated artist profile to redirect to its link page manager.
+                    $most_recent_artist_query = new WP_Query( array(
+                        'post_type'      => 'artist_profile',
+                        'post__in'       => $user_artist_ids,
                         'posts_per_page' => 1,
                         'orderby'        => 'modified',
                         'order'          => 'DESC',
                         'fields'         => 'ids', // Only need the ID
                     ) );
 
-                    if ( $most_recent_band_query->have_posts() ) {
-                         $most_recent_band_id = $most_recent_band_query->posts[0];
+                    if ( $most_recent_artist_query->have_posts() ) {
+                         $most_recent_artist_id = $most_recent_artist_query->posts[0];
                         $link_page_manage_page = get_page_by_path('manage-link-page');
                         if ($link_page_manage_page) {
                             $target_url = add_query_arg(
                                 array(
-                                    'band_id' => $most_recent_band_id,
+                                    'artist_id' => $most_recent_artist_id,
                                     'from_join_success' => 'existing_user_link_page'
                                 ),
                                 get_permalink($link_page_manage_page)
@@ -66,14 +69,14 @@ function extrachill_login_page_redirect() {
                     }
                     wp_reset_postdata(); // Restore original Post Data
                 } else {
-                    // User does not have any band profiles, redirect to create one.
-                    $manage_band_page = get_page_by_path('manage-band-profiles');
-                    if ($manage_band_page) {
+                    // User does not have any artist profiles, redirect to create one.
+                    $manage_artist_page = get_page_by_path('manage-artist-profiles');
+                    if ($manage_artist_page) {
                         $target_url = add_query_arg(
                             array(
                                 'from_join' => 'true'
                             ),
-                            get_permalink($manage_band_page)
+                            get_permalink($manage_artist_page)
                         );
                         wp_redirect($target_url);
                         exit;
@@ -259,28 +262,28 @@ function bp_join_flow_login_redirect($redirect_to, $requested_redirect_to, $user
         if ($from_join) {
             $user_id = $user->ID;
 
-            // Get the user's band profile IDs directly from user meta.
-            $user_band_ids = get_user_meta( $user_id, '_band_profile_ids', true );
+            // Get the user's artist profile IDs directly from user meta.
+            $user_artist_ids = get_user_meta( $user_id, '_artist_profile_ids', true );
 
-            if ( ! empty( $user_band_ids ) && is_array( $user_band_ids ) ) {
-                // User has one or more band profiles.
-                // Find the most recently updated band profile to redirect to its link page manager.
-                $most_recent_band_query = new WP_Query( array(
-                    'post_type'      => 'band_profile',
-                    'post__in'       => $user_band_ids,
+            if ( ! empty( $user_artist_ids ) && is_array( $user_artist_ids ) ) {
+                // User has one or more artist profiles.
+                // Find the most recently updated artist profile to redirect to its link page manager.
+                $most_recent_artist_query = new WP_Query( array(
+                    'post_type'      => 'artist_profile',
+                    'post__in'       => $user_artist_ids,
                     'posts_per_page' => 1,
                     'orderby'        => 'modified',
                     'order'          => 'DESC',
                     'fields'         => 'ids', // Only need the ID
                 ) );
 
-                if ( $most_recent_band_query->have_posts() ) {
-                     $most_recent_band_id = $most_recent_band_query->posts[0];
+                if ( $most_recent_artist_query->have_posts() ) {
+                     $most_recent_artist_id = $most_recent_artist_query->posts[0];
                     $link_page_manage_page = get_page_by_path('manage-link-page');
                     if ($link_page_manage_page) {
                         $target_url = add_query_arg(
                             array(
-                                'band_id' => $most_recent_band_id,
+                                'artist_id' => $most_recent_artist_id,
                                 'from_join_success' => 'existing_user_link_page'
                             ),
                             get_permalink($link_page_manage_page)
@@ -294,14 +297,14 @@ function bp_join_flow_login_redirect($redirect_to, $requested_redirect_to, $user
                 }
                  wp_reset_postdata(); // Restore original Post Data
             } else {
-                // User does not have any band profiles, redirect to create one.
-                $manage_band_page = get_page_by_path('manage-band-profiles');
-                if ($manage_band_page) {
+                // User does not have any artist profiles, redirect to create one.
+                $manage_artist_page = get_page_by_path('manage-artist-profiles');
+                if ($manage_artist_page) {
                     $target_url = add_query_arg(
                         array(
                             'from_join' => 'true'
                         ),
-                        get_permalink($manage_band_page)
+                        get_permalink($manage_artist_page)
                     );
                     return $target_url;
                 } else {

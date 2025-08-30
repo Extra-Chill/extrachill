@@ -1,7 +1,11 @@
 <?php
-
 /**
- * AJAX handler for custom avatar upload (no custom image sizes)
+ * Custom Avatar Upload System
+ * 
+ * AJAX-powered avatar upload and management for user profiles.
+ * Handles file validation, upload processing, and avatar deletion.
+ * 
+ * @package ExtraChillCommunity
  */
 add_action('wp_ajax_custom_avatar_upload', 'extrachill_custom_avatar_upload');
 function extrachill_custom_avatar_upload() {

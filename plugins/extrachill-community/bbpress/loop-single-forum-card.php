@@ -10,11 +10,11 @@
 // Exit if accessed directly
 defined( 'ABSPATH' ) || exit;
 
-$is_band_directory_card = ( bbp_get_forum_id() == 5432 );
+$is_artist_directory_card = ( bbp_get_forum_id() == 5432 );
 
 ?>
 
-<div id="bbp-forum-card-<?php bbp_forum_id(); ?>" class="bbp-forum-card<?php echo $is_band_directory_card ? ' bbp-forum-band-directory' : ''; ?>">
+<div id="bbp-forum-card-<?php bbp_forum_id(); ?>" class="bbp-forum-card<?php echo $is_artist_directory_card ? ' bbp-forum-artist-directory' : ''; ?>">
     <div class="bbp-forum-info">
         <?php do_action( 'bbp_theme_before_forum_title' ); ?>
         <a class="bbp-forum-title" href="<?php bbp_forum_permalink(); ?>"><?php bbp_forum_title(); ?></a>
@@ -24,20 +24,20 @@ $is_band_directory_card = ( bbp_get_forum_id() == 5432 );
         <div class="bbp-forum-content"><?php bbp_forum_content(); ?></div>
         <?php do_action( 'bbp_theme_after_forum_description' ); ?>
 
-        <?php if ( ! $is_band_directory_card ) : ?>
+        <?php if ( ! $is_artist_directory_card ) : ?>
             <?php do_action( 'bbp_theme_before_forum_sub_forums' ); ?>
             <?php bbp_list_forums(); ?>
             <?php do_action( 'bbp_theme_after_forum_sub_forums' ); ?>
         <?php endif; ?>
     </div>
 
-    <?php if ( $is_band_directory_card ) : ?>
+    <?php if ( $is_artist_directory_card ) : ?>
         <?php
         // Custom Stats & Freshness for Band Directory (Forum 5432)
 
         // 1. Number of Bands
-        $band_count_query = new WP_Query(array(
-            'post_type' => 'band_profile',
+        $artist_count_query = new WP_Query(array(
+            'post_type' => 'artist_profile',
             'post_status' => 'publish',
             'posts_per_page' => -1,
             'fields' => 'ids',
@@ -45,11 +45,11 @@ $is_band_directory_card = ( bbp_get_forum_id() == 5432 );
             'update_post_meta_cache' => false,
             'update_post_term_cache' => false,
         ));
-        $number_of_bands = $band_count_query->post_count;
+        $number_of_bands = $artist_count_query->post_count;
 
         // 2. Get all associated band forum IDs
-        $all_band_profiles_query = new WP_Query(array(
-            'post_type' => 'band_profile',
+        $all_artist_profiles_query = new WP_Query(array(
+            'post_type' => 'artist_profile',
             'post_status' => 'publish',
             'posts_per_page' => -1,
             'fields' => 'ids',
@@ -57,23 +57,23 @@ $is_band_directory_card = ( bbp_get_forum_id() == 5432 );
             'update_post_meta_cache' => false,
             'update_post_term_cache' => false,
         ));
-        $band_forum_ids = array();
-        if ($all_band_profiles_query->have_posts()) {
-            foreach ($all_band_profiles_query->posts as $band_profile_cpt_id) {
-                $forum_id = get_post_meta($band_profile_cpt_id, '_band_forum_id', true);
+        $artist_forum_ids = array();
+        if ($all_artist_profiles_query->have_posts()) {
+            foreach ($all_artist_profiles_query->posts as $artist_profile_cpt_id) {
+                $forum_id = get_post_meta($artist_profile_cpt_id, '_artist_forum_id', true);
                 if (!empty($forum_id) && is_numeric($forum_id)) {
-                    $band_forum_ids[] = absint($forum_id);
+                    $artist_forum_ids[] = absint($forum_id);
                 }
             }
         }
-        $band_forum_ids = array_unique(array_filter($band_forum_ids));
-        wp_reset_postdata(); // Reset after $all_band_profiles_query
+        $artist_forum_ids = array_unique(array_filter($artist_forum_ids));
+        wp_reset_postdata(); // Reset after $all_artist_profiles_query
 
         $total_topics_in_bands = 0;
         $total_replies_in_bands = 0;
-        $latest_band_activity_post = null;
+        $latest_artist_activity_post = null;
 
-        if (!empty($band_forum_ids)) {
+        if (!empty($artist_forum_ids)) {
             // 3. Total Topics in Band Forums
             $topic_query_args = array(
                 'post_type' => bbp_get_topic_post_type(),
@@ -86,13 +86,13 @@ $is_band_directory_card = ( bbp_get_forum_id() == 5432 );
                 'meta_query' => array(
                     array(
                         'key' => '_bbp_forum_id',
-                        'value' => $band_forum_ids,
+                        'value' => $artist_forum_ids,
                         'compare' => 'IN',
                     ),
                 ),
             );
-            $topics_in_band_forums_query = new WP_Query($topic_query_args);
-            $total_topics_in_bands = $topics_in_band_forums_query->post_count;
+            $topics_in_artist_forums_query = new WP_Query($topic_query_args);
+            $total_topics_in_bands = $topics_in_artist_forums_query->post_count;
             wp_reset_postdata();
 
             // 4. Total Replies in Band Forums
@@ -107,13 +107,13 @@ $is_band_directory_card = ( bbp_get_forum_id() == 5432 );
                 'meta_query' => array(
                     array(
                         'key' => '_bbp_forum_id',
-                        'value' => $band_forum_ids,
+                        'value' => $artist_forum_ids,
                         'compare' => 'IN',
                     ),
                 ),
             );
-            $replies_in_band_forums_query = new WP_Query($reply_query_args);
-            $total_replies_in_bands = $replies_in_band_forums_query->post_count;
+            $replies_in_artist_forums_query = new WP_Query($reply_query_args);
+            $total_replies_in_bands = $replies_in_artist_forums_query->post_count;
             wp_reset_postdata();
 
             // 5. Latest Activity Post from Band Forums
@@ -126,20 +126,20 @@ $is_band_directory_card = ( bbp_get_forum_id() == 5432 );
                 'meta_query' => array(
                     array(
                         'key' => '_bbp_forum_id',
-                        'value' => $band_forum_ids,
+                        'value' => $artist_forum_ids,
                         'compare' => 'IN',
                     ),
                 ),
             );
             $latest_post_query = new WP_Query($latest_post_query_args);
             if ($latest_post_query->have_posts()) {
-                $latest_band_activity_post = $latest_post_query->posts[0];
+                $latest_artist_activity_post = $latest_post_query->posts[0];
             }
             wp_reset_postdata();
         }
         ?>
-        <div class="bbp-forum-stats bbp-band-directory-stats">
-            <div class="bbp-forum-band-count">
+        <div class="bbp-forum-stats bbp-artist-directory-stats">
+            <div class="bbp-forum-artist-count">
                 <?php echo esc_html( number_format_i18n( $number_of_bands ) ); ?> <?php echo esc_html( _n( 'Band', 'Bands', $number_of_bands, 'extra-chill-community' ) ); ?>
             </div>
             <div class="bbp-forum-topic-count">
@@ -150,10 +150,10 @@ $is_band_directory_card = ( bbp_get_forum_id() == 5432 );
             </div>
         </div>
 
-        <div class="bbp-forum-freshness bbp-band-directory-freshness">
-            <?php if ( $latest_band_activity_post ) : ?>
+        <div class="bbp-forum-freshness bbp-artist-directory-freshness">
+            <?php if ( $latest_artist_activity_post ) : ?>
                 <?php
-                $activity_post_id = $latest_band_activity_post->ID;
+                $activity_post_id = $latest_artist_activity_post->ID;
                 $activity_post_type = get_post_type( $activity_post_id );
                 $activity_link_url = '';
                 $activity_link_title_text = '';
@@ -169,7 +169,7 @@ $is_band_directory_card = ( bbp_get_forum_id() == 5432 );
                 
                 // Time since last active (as a link)
                 echo '<p class="bbp-forum-last-active-time">';
-                echo '<a href="' . esc_url( $activity_link_url ) . '" title="' . esc_attr( sprintf( __( 'View %s', 'extra-chill-community' ), $activity_link_title_text ) ) . '">' . esc_html( human_time_diff( strtotime( $latest_band_activity_post->post_date_gmt ), current_time('timestamp', true) ) ) . ' ago</a>';
+                echo '<a href="' . esc_url( $activity_link_url ) . '" title="' . esc_attr( sprintf( __( 'View %s', 'extra-chill-community' ), $activity_link_title_text ) ) . '">' . esc_html( human_time_diff( strtotime( $latest_artist_activity_post->post_date_gmt ), current_time('timestamp', true) ) ) . ' ago</a>';
                 echo '</p>';
                 ?>
                 <p class="bbp-topic-meta">

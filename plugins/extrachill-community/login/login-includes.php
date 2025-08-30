@@ -15,7 +15,7 @@ function extrachill_enqueue_login_register_assets() {
     // Check if we are on the consolidated login/register page template
     if (is_page_template('page-templates/login-register-template.php')) {
         // Enqueue Cloudflare Turnstile API only if not in development environment
-        if ( function_exists( 'wp_get_environment_type' ) && 'development' !== wp_get_environment_type() ) {
+        if ( 'development' !== wp_get_environment_type() ) {
              wp_enqueue_script('cloudflare-turnstile', 'https://challenges.cloudflare.com/turnstile/v0/api.js', array(), null, true);
         }
 

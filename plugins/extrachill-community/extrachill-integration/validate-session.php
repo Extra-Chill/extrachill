@@ -9,12 +9,12 @@ add_action('rest_api_init', function () {
     ));
 
     // New endpoint to check band management access using standard WP auth
-    register_rest_route('extrachill/v1', '/check-band-manage-access/(?P<band_id>\d+)', array(
+    register_rest_route('extrachill/v1', '/check-artist-manage-access/(?P<artist_id>\d+)', array(
         'methods' => 'GET',
-        'callback' => 'extrch_check_band_manage_access_standard_auth',
+        'callback' => 'extrch_check_artist_manage_access_standard_auth',
         'permission_callback' => '__return_true', // Public endpoint, checks auth internally to handle cross-domain cases
         'args' => array(
-            'band_id' => array(
+            'artist_id' => array(
                 'validate_callback' => function($param, $request, $key) {
                     return is_numeric($param);
                 }
@@ -72,13 +72,13 @@ function validate_session_token(WP_REST_Request $request) {
  * @param WP_REST_Request $request Full details about the request.
  * @return WP_REST_Response|WP_Error Response object or Error object.
  */
-function extrch_check_band_manage_access_standard_auth( $request ) {
-    $band_id = (int) $request['band_id'];
+function extrch_check_artist_manage_access_standard_auth( $request ) {
+    $artist_id = (int) $request['artist_id'];
     $can_manage = false;
     $debug_info = array();
     
     // Collect debug information
-    $debug_info['band_id'] = $band_id;
+    $debug_info['artist_id'] = $artist_id;
     $debug_info['is_user_logged_in'] = is_user_logged_in();
     $debug_info['current_user_id'] = get_current_user_id();
     $debug_info['request_origin'] = $request->get_header('origin') ?: 'unknown';
@@ -91,14 +91,14 @@ function extrch_check_band_manage_access_standard_auth( $request ) {
         $debug_info['current_user_id'] = $current_user_id;
         $debug_info['auth_method'] = 'wordpress_standard';
         
-        if ( ! empty( $band_id ) ) {
-            $can_manage = current_user_can( 'manage_band_members', $band_id );
+        if ( ! empty( $artist_id ) ) {
+            $can_manage = current_user_can( 'manage_artist_members', $artist_id );
             
-            // Additional debug: check if user is linked to this band
-            $user_band_ids = get_user_meta( $current_user_id, '_band_profile_ids', true );
-            $debug_info['user_band_ids'] = $user_band_ids;
-            $debug_info['is_band_member'] = is_array($user_band_ids) && in_array($band_id, $user_band_ids);
-            $debug_info['band_exists'] = get_post_status($band_id) === 'publish';
+            // Additional debug: check if user is linked to this artist
+            $user_artist_ids = get_user_meta( $current_user_id, '_artist_profile_ids', true );
+            $debug_info['user_artist_ids'] = $user_artist_ids;
+            $debug_info['is_artist_member'] = is_array($user_artist_ids) && in_array($artist_id, $user_artist_ids);
+            $debug_info['artist_exists'] = get_post_status($artist_id) === 'publish';
         }
     } else {
         // Fallback: Try session token authentication for cross-domain cases
@@ -128,14 +128,14 @@ function extrch_check_band_manage_access_standard_auth( $request ) {
                 $debug_info['session_token_valid'] = true;
                 $debug_info['current_user_id'] = $user_id;
                 
-                if ( ! empty( $band_id ) ) {
-                    $can_manage = current_user_can( 'manage_band_members', $band_id );
+                if ( ! empty( $artist_id ) ) {
+                    $can_manage = current_user_can( 'manage_artist_members', $artist_id );
                     
-                    // Additional debug: check if user is linked to this band
-                    $user_band_ids = get_user_meta( $user_id, '_band_profile_ids', true );
-                    $debug_info['user_band_ids'] = $user_band_ids;
-                    $debug_info['is_band_member'] = is_array($user_band_ids) && in_array($band_id, $user_band_ids);
-                    $debug_info['band_exists'] = get_post_status($band_id) === 'publish';
+                    // Additional debug: check if user is linked to this artist
+                    $user_artist_ids = get_user_meta( $user_id, '_artist_profile_ids', true );
+                    $debug_info['user_artist_ids'] = $user_artist_ids;
+                    $debug_info['is_artist_member'] = is_array($user_artist_ids) && in_array($artist_id, $user_artist_ids);
+                    $debug_info['artist_exists'] = get_post_status($artist_id) === 'publish';
                 }
             } else {
                 $debug_info['session_token_valid'] = false;

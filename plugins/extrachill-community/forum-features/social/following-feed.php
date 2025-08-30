@@ -37,24 +37,24 @@ function modify_following_feed_query( $args ) {
             return $args;
         }
 
-        // Get followed band profile IDs from user meta
-        $followed_band_profile_ids = get_user_meta( $current_user_id, '_followed_band_profile_ids', true );
-        if ( ! is_array( $followed_band_profile_ids ) || empty( $followed_band_profile_ids ) ) {
+        // Get followed artist profile IDs from user meta
+        $followed_artist_profile_ids = get_user_meta( $current_user_id, '_followed_artist_profile_ids', true );
+        if ( ! is_array( $followed_artist_profile_ids ) || empty( $followed_artist_profile_ids ) ) {
             // User not following any bands, show no results
             $args['post__in'] = array( 0 );
             return $args;
         }
 
         // Convert band profile IDs to their corresponding forum IDs
-    $band_forum_ids = array();
-    foreach ( $followed_band_profile_ids as $band_profile_id ) {
-        $forum_id = get_post_meta( $band_profile_id, '_band_forum_id', true );
+    $artist_forum_ids = array();
+    foreach ( $followed_artist_profile_ids as $artist_profile_id ) {
+        $forum_id = get_post_meta( $artist_profile_id, '_artist_forum_id', true );
             if ( $forum_id ) {
-                $band_forum_ids[] = (int) $forum_id;
+                $artist_forum_ids[] = (int) $forum_id;
             }
         }
 
-        if ( empty( $band_forum_ids ) ) {
+        if ( empty( $artist_forum_ids ) ) {
             // No valid band forums found, show no results
             $args['post__in'] = array( 0 );
             return $args;
@@ -64,7 +64,7 @@ function modify_following_feed_query( $args ) {
         $args['meta_query'] = array(
             array(
                 'key'     => '_bbp_forum_id',
-                'value'   => $band_forum_ids,
+                'value'   => $artist_forum_ids,
                 'compare' => 'IN',
                 'type'    => 'NUMERIC'
             )

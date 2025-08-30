@@ -55,17 +55,15 @@ function mycustom_breadcrumb_output( $crumbs, $r = array(), $args = array() ) {
         return array_values( $crumbs );
     }
 
-    // For single band profiles
-    // Home -> Forum ID (5432) -> Band Profile Title
-    elseif ( is_singular( 'band_profile' ) ) {
-        $band_directory_forum_id = 5432;
-        $forum_url  = function_exists('bbp_get_forum_permalink') ? bbp_get_forum_permalink( $band_directory_forum_id ) : '#';
-        $forum_title = function_exists('bbp_get_forum_title') ? bbp_get_forum_title( $band_directory_forum_id ) : 'Bands'; // Fallback title
+    // For single artist profiles
+    // Home -> Artists Archive -> Band Profile Title
+    elseif ( is_singular( 'artist_profile' ) ) {
+        $artists_url = site_url( '/artists/' );
         $current_title = get_the_title(); // Get current band profile title
 
         return array(
-            '<a href="' . esc_url( home_url( '/' ) ) . '">Home</a>', // Assuming 'Home' is desired, based on other conditions
-            '<a href="' . esc_url( $forum_url ) . '">' . esc_html( $forum_title ) . '</a>',
+            '<a href="' . esc_url( home_url( '/' ) ) . '">Home</a>',
+            '<a href="' . esc_url( $artists_url ) . '">Artists</a>',
             '<span class="bbp-breadcrumb-current">' . esc_html( $current_title ) . '</span>',
         );
     }
@@ -103,28 +101,28 @@ function extrachill_breadcrumbs() {
     
     $breadcrumb  = '<div class="bbp-breadcrumb">';
     
-    if ( is_page_template('page-templates/manage-band-profile.php') ) {
+    if ( is_page_template('page-templates/manage-artist-profiles.php') ) {
         $breadcrumb .= '<a href="' . esc_url( $home_url ) . '">' . esc_html( $home_text ) . '</a>';
 
-        $target_band_id = isset( $_GET['band_id'] ) ? absint( $_GET['band_id'] ) : 0;
-        $band_post_for_breadcrumb = null;
-        if ( $target_band_id > 0 ) {
-            $current_post_candidate = get_post( $target_band_id );
-            if ( $current_post_candidate && 'band_profile' === $current_post_candidate->post_type && 'publish' === $current_post_candidate->post_status ) {
-                $band_post_for_breadcrumb = $current_post_candidate;
+        $target_artist_id = isset( $_GET['artist_id'] ) ? absint( $_GET['artist_id'] ) : 0;
+        $artist_post_for_breadcrumb = null;
+        if ( $target_artist_id > 0 ) {
+            $current_post_candidate = get_post( $target_artist_id );
+            if ( $current_post_candidate && 'artist_profile' === $current_post_candidate->post_type && 'publish' === $current_post_candidate->post_status ) {
+                $artist_post_for_breadcrumb = $current_post_candidate;
             }
         }
 
         // "Manage Bands" is the conceptual current page or parent context here.
         $breadcrumb .= $separator . '<span class="breadcrumb-current">' . esc_html__( 'Manage Bands', 'extra-chill-community' ) . '</span>';
 
-        if ( $band_post_for_breadcrumb ) {
+        if ( $artist_post_for_breadcrumb ) {
             // If editing a specific band, add its name as a link after "Manage Bands"
-            $band_title = get_the_title( $band_post_for_breadcrumb );
-            $band_permalink = get_permalink( $band_post_for_breadcrumb );
-            $breadcrumb .= $separator . '<a href="' . esc_url( $band_permalink ) . '">' . esc_html( $band_title ) . '</a>';
+            $artist_title = get_the_title( $artist_post_for_breadcrumb );
+            $artist_permalink = get_permalink( $artist_post_for_breadcrumb );
+            $breadcrumb .= $separator . '<a href="' . esc_url( $artist_permalink ) . '">' . esc_html( $artist_title ) . '</a>';
         }
-        // If not editing a specific band (create mode or invalid band_id), "Manage Bands" as current is already set.
+        // If not editing a specific band (create mode or invalid artist_id), "Manage Bands" as current is already set.
 
     } elseif ( is_singular() ) {
         $breadcrumb .= '<a href="' . esc_url( $home_url ) . '">' . esc_html( $home_text ) . '</a>' . $separator;

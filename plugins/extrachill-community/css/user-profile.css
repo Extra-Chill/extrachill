@@ -1,7 +1,7 @@
 /* --- Profile Styles Updated to Use Global Variables --- */
 
 /* --- User Band Management Actions --- */
-.user-band-management-actions {
+.user-artist-management-actions {
     text-align: right;
     margin-top: 15px;
 }
@@ -333,6 +333,6 @@
     }
 }
 
-.bbp-user-profile-card.user-band-cards-fullwidth{
+.bbp-user-profile-card.user-artist-cards-fullwidth{
     width: 100%;
 }

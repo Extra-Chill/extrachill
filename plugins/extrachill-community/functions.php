@@ -11,7 +11,7 @@
  * @link https://community.extrachill.com
  */
 
-  /**
+/**
  * Theme setup and WordPress feature support
  */
 function extra_chill_community_setup() {
@@ -63,7 +63,7 @@ function extra_chill_community_setup() {
 add_action('after_setup_theme', 'extra_chill_community_setup');
 
 /**
- * Register widget areas.
+ * Register widget areas
  */
 function extra_chill_community_widgets_init() {
     register_sidebar(array(
@@ -91,7 +91,7 @@ function extra_chill_community_widgets_init() {
 }
 add_action('widgets_init', 'extra_chill_community_widgets_init');
 /**
- * Enqueue notifications styles only on notifications page
+ * Enqueue notification styles conditionally
  */
 function extrachill_enqueue_notification_styles() {
     if (is_page_template('page-templates/notifications-feed.php')) {
@@ -106,7 +106,7 @@ function extrachill_enqueue_notification_styles() {
 add_action('wp_enqueue_scripts', 'extrachill_enqueue_notification_styles');
 
 /**
- * Enqueue leaderboard styles only on leaderboard template
+ * Enqueue leaderboard styles conditionally
  */
 function extrachill_enqueue_leaderboard_styles() {
     if (is_page_template('page-templates/leaderboard-template.php')) {
@@ -122,8 +122,11 @@ add_action('wp_enqueue_scripts', 'extrachill_enqueue_leaderboard_styles');
 
 
 
-// ExtraChill Integration Files
-require_once get_stylesheet_directory() . '/extrachill-integration/article-topic-sync.php';
+/**
+ * Load theme modules and integrations
+ */
+
+// Cross-domain integration files
 require_once get_stylesheet_directory() . '/extrachill-integration/blog-searching-forum.php';
 require_once get_stylesheet_directory() . '/extrachill-integration/extrachill-com-articles.php';
 require_once get_stylesheet_directory() . '/extrachill-integration/extrachill-comments.php';
@@ -135,11 +138,14 @@ require_once get_stylesheet_directory() . '/extrachill-integration/serve-login-f
 require_once get_stylesheet_directory() . '/extrachill-integration/session-tokens.php';
 require_once get_stylesheet_directory() . '/extrachill-integration/validate-session.php';
 
-// Forum Features - Master loader for all forum functionality
-require_once get_stylesheet_directory() . '/forum-features/forum-features.php';
+// Forum features - frontend only
+if (!is_admin()) {
+    require_once get_stylesheet_directory() . '/forum-features/forum-features.php';
+}
 
-// Include the new login module includes file
+// Login and authentication modules
 require_once get_stylesheet_directory() . '/login/login-includes.php';
+require_once get_stylesheet_directory() . '/login/email-change-emails.php';
 
 function extrachill_enqueue_scripts() {
     $stylesheet_dir_uri = get_stylesheet_directory_uri();
@@ -164,7 +170,7 @@ function extrachill_enqueue_scripts() {
         $script_url = $stylesheet_dir_uri . $script_path;
         $script_version = filemtime($stylesheet_dir . $script_path);
         wp_enqueue_script('manage-user-profile-links', $script_url, array('jquery'), $script_version, true);
-        // Prepare link types (reuse band profile types if available)
+        // Prepare link types for user profile social links
         $link_types = function_exists('bp_get_supported_social_link_types') ? bp_get_supported_social_link_types() : array(
             'website' => array('label' => 'Website'),
             'instagram' => array('label' => 'Instagram'),
@@ -232,7 +238,7 @@ function modular_bbpress_styles() {
 
 
     // Replies Loop - Load only when replies are displayed
-    if (bbp_is_single_reply() || bbp_is_single_topic() || bbp_is_single_user()) {
+    if (bbp_is_single_reply() || bbp_is_single_topic() || bbp_is_single_user() || is_page_template('page-templates/recent-feed-template.php')) {
         wp_enqueue_style(
             'replies-loop',
             get_stylesheet_directory_uri() . '/css/replies-loop.css',
@@ -255,22 +261,14 @@ function modular_bbpress_styles() {
 add_action('wp_enqueue_scripts', 'enqueue_user_profile_styles');
 
 function enqueue_user_profile_styles() {
-    // User Profile styles - Load only on user profile pages OR the band directory forum
-    if ( (function_exists('bbp_is_single_user') && (bbp_is_single_user() || bbp_is_single_user_edit() || bbp_is_user_home())) || 
-         (function_exists('bbp_is_single_forum') && bbp_is_single_forum(5432)) // Band Directory Forum ID
+    // User Profile styles - Load only on user profile pages
+    if ( (function_exists('bbp_is_single_user') && (bbp_is_single_user() || bbp_is_single_user_edit() || bbp_is_user_home()))
        ) {
         wp_enqueue_style(
             'user-profile', // This handle might be slightly misleading now, but keep for consistency unless a rename is preferred.
             get_stylesheet_directory_uri() . '/css/user-profile.css',
             array('extra-chill-community-style'),
             filemtime(get_stylesheet_directory() . '/css/user-profile.css')
-        );
-        // Enqueue band card styles for user profile band grid AND band directory
-        wp_enqueue_style(
-            'band-profile-cards',
-            get_stylesheet_directory_uri() . '/css/band-profile-cards.css',
-            array('extra-chill-community-style'), // Or 'user-profile' if it should load after it
-            filemtime(get_stylesheet_directory() . '/css/band-profile-cards.css')
         );
     }
 }
@@ -296,7 +294,7 @@ add_action('wp_enqueue_scripts', 'enqueue_quote_script');
 
 function enqueue_collapse_script() {
     // Check if we're on the homepage or the forum front page
-    if ( is_front_page() || is_home() || is_singular('band_profile') ) {
+    if ( is_front_page() || is_home() || is_page_template('page-templates/recent-feed-template.php') ) {
         // Define the path to the script relative to the theme directory
         $script_path = '/js/home-collapse.js';
 
@@ -339,7 +337,9 @@ function enqueue_fontawesome() {
 add_action('wp_enqueue_scripts', 'enqueue_fontawesome');
 
 
-// Redirect non-admin users attempting to access the backend and hide admin bar for non-admins
+/**
+ * Restrict wp-admin access to administrators only
+ */
 function extrachill_redirect_admin() {
     // If user is not an administrator
     if (!current_user_can('administrator')) {
@@ -357,7 +357,9 @@ function extrachill_redirect_admin() {
 }
 add_action('admin_init', 'extrachill_redirect_admin');
 
-// Prevent WordPress core from redirecting logged-in administrators
+/**
+ * Ensure administrators can access wp-admin after login
+ */
 function extrachill_prevent_admin_auth_redirect($redirect_to, $requested_redirect_to, $user) {
     // If user is administrator and trying to access wp-admin, ensure they get there
     if (isset($user->ID) && current_user_can('administrator', $user->ID)) {
@@ -372,8 +374,9 @@ function extrachill_prevent_admin_auth_redirect($redirect_to, $requested_redirec
 }
 add_filter('login_redirect', 'extrachill_prevent_admin_auth_redirect', 5, 3); // High priority
 
-// Function to create 'forum_user' role
-
+/**
+ * Create custom forum_user role for community members
+ */
 function extrachill_create_forum_user_role() {
     add_role('forum_user', 'Forum User', array(
         'read' => true, // Allows a user to read
@@ -398,16 +401,14 @@ function extrachill_get_readable_role($role) {
 
 
 
-/*
- *
- * ALL THE BASIC SHIT AT THE BOTTOM
- *
- * */
+/**
+ * Core utility functions
+ */
 
 
 
 /**
- * Footer copyright text
+ * Display footer copyright text
  */
 function extrachill_footer_text() {
     ?>
@@ -415,7 +416,9 @@ function extrachill_footer_text() {
     <?php
 }
 
-/*     external links in new tab     */
+/**
+ * Open external links in new tab
+ */
 
 function add_target_blank_to_external_links($content) {
     $home_url = home_url(); // Gets your blog's URL
@@ -531,7 +534,6 @@ function extrachill_enqueue_nav_scripts() {
 }
 add_action('wp_enqueue_scripts', 'extrachill_enqueue_nav_scripts');
 
-// Forum features are now loaded via the master forum-features.php file above
 
 function set_default_ec_custom_title( $user_id ) {
     update_user_meta( $user_id, 'ec_custom_title', 'Extra Chillian' );
@@ -541,43 +543,7 @@ add_action( 'user_register', 'set_default_ec_custom_title' );
 
 
 
-// Load Band Platform files if the directory exists
-$band_platform_dir = get_stylesheet_directory() . '/band-platform';
-if ( is_dir( $band_platform_dir ) ) {
-    // Centralized include for all band platform PHP files
-    require_once( $band_platform_dir . '/band-platform-includes.php' ); 
-
-// Removed temporary test file 
-}
-
-// --- Admin Script for Band Members Meta Box ---
-function bp_enqueue_admin_scripts( $hook ) {
-    global $post;
-    // Only load on the edit screen for the 'band_profile' CPT
-    if ( 'post.php' == $hook || 'post-new.php' == $hook ) { 
-        if ( isset($post->post_type) && 'band_profile' === $post->post_type ) {
-
-            wp_enqueue_script( 
-                'band-members-admin', 
-                get_stylesheet_directory_uri() . '/js/band-members-admin.js', 
-                array( 'jquery' ), 
-                filemtime( get_stylesheet_directory() . '/js/band-members-admin.js' ), // Dynamic versioning
-                true // Load in footer
-            );
-
-            // Localize script to pass data
-            wp_localize_script( 'band-members-admin', 'bpMemberArgs', array(
-                'ajaxUrl' => admin_url( 'admin-ajax.php' ),
-                'searchNonce' => wp_create_nonce( 'bp_member_search_nonce' ), // Generate the nonce here
-                'postId' => isset($post->ID) ? $post->ID : 0,
-                'noMembersText' => __( 'No members linked yet.', 'extra-chill-community' ) // Pass translatable string
-            ));
-        }
-    }
-}
-add_action( 'admin_enqueue_scripts', 'bp_enqueue_admin_scripts' );
-
-// --- End Admin Script --- 
+ 
 
 /**
  * Enqueue theme stylesheet and scripts.
@@ -669,69 +635,6 @@ function ec_get_topic_last_active_diff( $topic_id ) {
     return '';
 }
 
-// Function to enqueue assets for the Manage Band Profile page
-function extrachill_enqueue_manage_band_profile_assets() {
-    if (is_page_template('page-templates/manage-band-profile.php')) {
-        // Enqueue specific CSS for manage band profile page
-        wp_enqueue_style(
-            'manage-band-profile-style',
-            get_stylesheet_directory_uri() . '/css/manage-band-profile.css',
-            array('shared-tabs'), // Add shared-tabs as a dependency
-            filemtime(get_stylesheet_directory() . '/css/manage-band-profile.css')
-        );
-
-        // Enqueue specific JS for manage band profile page
-        $manage_js_path = get_stylesheet_directory() . '/js/manage-band-profiles.js';
-        if ( file_exists( $manage_js_path ) ) {
-            wp_enqueue_script(
-                'manage-band-profile-script', // Consistent handle
-                get_stylesheet_directory_uri() . '/js/manage-band-profiles.js',
-                array('jquery', 'shared-tabs'), // Add shared-tabs as a dependency
-                filemtime( $manage_js_path ),
-                true
-            );
-
-            // Localize script to pass data, similar to what was in band-platform-includes.php
-            $band_id = isset( $_GET['band_id'] ) ? absint( $_GET['band_id'] ) : 0;
-            // If creating a new band, a temporary ID or a signal might be passed, or rely on create_band_profile AJAX to return it.
-            // For now, assume 0 if not set for existing band context.
-            
-            $current_user_id = get_current_user_id();
-            $band_profile_id_from_user = 0;
-
-            if ( $band_id === 0 && $current_user_id > 0 ) {
-                // Attempt to get the band_id from user meta if not in URL (e.g., user's own default band page)
-                $user_band_profiles = get_user_meta( $current_user_id, 'band_profile_ids', true );
-                if ( ! empty( $user_band_profiles ) && is_array( $user_band_profiles ) ) {
-                    // For simplicity, take the first one. Or, implement logic to select a primary/default.
-                    $band_profile_id_from_user = reset( $user_band_profiles ); 
-                }
-            }
-            // Prioritize URL param, then user meta, then 0.
-            $final_band_id = $band_id ?: $band_profile_id_from_user;
-
-            $data_to_pass = array(
-                'ajaxUrl'       => admin_url( 'admin-ajax.php' ),
-                'bandProfileId' => $final_band_id, 
-                'ajaxAddNonce'  => wp_create_nonce( 'bp_ajax_add_roster_member_nonce' ), // Ensure this nonce is verified in the AJAX handler
-                'ajaxRemovePlaintextNonce' => wp_create_nonce( 'bp_ajax_remove_plaintext_member_nonce' ),
-                'ajaxInviteMemberByEmailNonce' => wp_create_nonce( 'bp_ajax_invite_member_by_email_nonce' ),
-                // Nonce for image uploads if handled by this script, or ensure custom-avatar.js handles it with its own nonce
-                'i18n' => array( // For any translatable strings used in manage-band-profiles.js
-                    'confirmRemoveMember' => __('Are you sure you want to remove "%s" from the roster listing?', 'extra-chill-community'),
-                    'enterEmail' => __('Please enter an email address.', 'extra-chill-community'),
-                    'sendingInvitation' => __('Sending...', 'extra-chill-community'),
-                    'sendInvitation' => __('Send Invitation', 'extra-chill-community'),
-                    'errorSendingInvitation' => __('Error: Could not send invitation.', 'extra-chill-community'),
-                    'errorAjax' => __('An error occurred. Please try again.', 'extra-chill-community'),
-                    'errorRemoveListing' => __('Error: Could not remove listing.', 'extra-chill-community')
-                )
-            );
-            wp_localize_script( 'manage-band-profile-script', 'bpManageMembersData', $data_to_pass );
-        }
-    }
-}
-add_action('wp_enqueue_scripts', 'extrachill_enqueue_manage_band_profile_assets');
 
 /**
  * Remove private forum IDs option on theme deactivation.
@@ -757,13 +660,11 @@ function extrachill_enqueue_settings_page_assets() {
 }
 add_action('wp_enqueue_scripts', 'extrachill_enqueue_settings_page_assets');
 
-// Function to enqueue shared tab assets
+// Function to enqueue shared tab assets for theme templates
 function extrachill_enqueue_shared_tabs_assets() {
     // Define page templates that use the shared tabs
     $shared_tabs_templates = array(
         'page-templates/settings-page.php',
-        'page-templates/manage-band-profile.php',
-        'page-templates/manage-link-page.php',
         'page-templates/login-register-template.php'
     );
 
@@ -786,48 +687,6 @@ function extrachill_enqueue_shared_tabs_assets() {
 }
 add_action('wp_enqueue_scripts', 'extrachill_enqueue_shared_tabs_assets');
 
-
-// Function to enqueue Band Switcher component styles
-function extrachill_enqueue_band_switcher_styles() {
-    $band_switcher_templates = array(
-        'page-templates/manage-band-profile.php',
-        'page-templates/manage-link-page.php'
-    );
-
-    if (is_page_template($band_switcher_templates)) {
-        wp_enqueue_style(
-            'band-switcher-styles',
-            get_stylesheet_directory_uri() . '/css/components/band-switcher.css',
-            array(), // No specific dependencies, or perhaps 'shared-tabs' if always used together
-            filemtime(get_stylesheet_directory() . '/css/components/band-switcher.css')
-        );
-    }
-}
-add_action('wp_enqueue_scripts', 'extrachill_enqueue_band_switcher_styles');
-
-/**
- * Add custom rewrite rules for extrachill.link domain.
- */
-function extrch_add_link_page_rewrites() {
-    // Only apply these rules if the current host is extrachill.link
-    $current_host = strtolower( $_SERVER['HTTP_HOST'] ?? '' );
-    if ( stripos( $current_host, 'extrachill.link' ) !== false ) {
-        // Rewrite rule for the root extrachill.link URL to load the default 'extrachill' link page
-        add_rewrite_rule(
-            '^$',
-            'index.php?post_type=band_link_page&name=extrachill',
-            'top'
-        );
-
-        // Rewrite rule for extrachill.link/bandname/ to load the corresponding band_link_page
-        add_rewrite_rule(
-            '^([^/]+)/?$',
-            'index.php?post_type=band_link_page&name=$matches[1]',
-            'top'
-        );
-    }
-}
-add_action('init', 'extrch_add_link_page_rewrites');
 
 /**
  * Redirects users from the default WordPress login page to the custom login page.
@@ -966,3 +825,194 @@ function clear_user_activity_cache_on_login( $user_login, $user ) {
     }
 }
 add_action( 'wp_login', 'clear_user_activity_cache_on_login', 10, 2 );
+
+/**
+ * Email Change Management Functions
+ * Helper functions for secure email address change verification system
+ */
+
+if ( ! function_exists( 'extrachill_get_pending_email_changes' ) ) {
+    /**
+     * Get all pending email changes
+     * 
+     * @return array Pending email changes data
+     */
+    function extrachill_get_pending_email_changes() {
+        $pending_changes = get_option( 'extrachill_pending_email_changes', array() );
+        
+        // Clean up expired changes (older than 48 hours)
+        $current_time = current_time( 'timestamp' );
+        $cleaned_changes = array();
+        
+        foreach ( $pending_changes as $user_id => $change_data ) {
+            if ( isset( $change_data['timestamp'] ) && ( $current_time - $change_data['timestamp'] ) < ( 48 * HOUR_IN_SECONDS ) ) {
+                $cleaned_changes[ $user_id ] = $change_data;
+            }
+        }
+        
+        // Update option with cleaned data if changes were made
+        if ( count( $cleaned_changes ) !== count( $pending_changes ) ) {
+            update_option( 'extrachill_pending_email_changes', $cleaned_changes );
+        }
+        
+        return $cleaned_changes;
+    }
+}
+
+if ( ! function_exists( 'extrachill_get_user_pending_email_change' ) ) {
+    /**
+     * Get pending email change for specific user
+     * 
+     * @param int $user_id User ID
+     * @return array|false Pending change data or false if none exists
+     */
+    function extrachill_get_user_pending_email_change( $user_id ) {
+        $pending_changes = extrachill_get_pending_email_changes();
+        return isset( $pending_changes[ $user_id ] ) ? $pending_changes[ $user_id ] : false;
+    }
+}
+
+if ( ! function_exists( 'extrachill_store_pending_email_change' ) ) {
+    /**
+     * Store pending email change data
+     * 
+     * @param int $user_id User ID
+     * @param string $new_email New email address
+     * @param string $verification_hash Secure verification hash
+     * @return bool Success status
+     */
+    function extrachill_store_pending_email_change( $user_id, $new_email, $verification_hash ) {
+        $current_user = get_userdata( $user_id );
+        if ( ! $current_user ) {
+            return false;
+        }
+        
+        $pending_changes = extrachill_get_pending_email_changes();
+        
+        $pending_changes[ $user_id ] = array(
+            'new_email' => $new_email,
+            'old_email' => $current_user->user_email,
+            'hash' => $verification_hash,
+            'timestamp' => current_time( 'timestamp' ),
+            'user_id' => $user_id
+        );
+        
+        return update_option( 'extrachill_pending_email_changes', $pending_changes );
+    }
+}
+
+if ( ! function_exists( 'extrachill_remove_pending_email_change' ) ) {
+    /**
+     * Remove pending email change for user
+     * 
+     * @param int $user_id User ID
+     * @return bool Success status
+     */
+    function extrachill_remove_pending_email_change( $user_id ) {
+        $pending_changes = extrachill_get_pending_email_changes();
+        
+        if ( isset( $pending_changes[ $user_id ] ) ) {
+            unset( $pending_changes[ $user_id ] );
+            return update_option( 'extrachill_pending_email_changes', $pending_changes );
+        }
+        
+        return true; // Already removed
+    }
+}
+
+if ( ! function_exists( 'extrachill_validate_email_change_hash' ) ) {
+    /**
+     * Validate email change verification hash
+     * 
+     * @param string $hash Verification hash from URL
+     * @return array|false User data and email change info, or false if invalid
+     */
+    function extrachill_validate_email_change_hash( $hash ) {
+        $pending_changes = extrachill_get_pending_email_changes();
+        
+        foreach ( $pending_changes as $user_id => $change_data ) {
+            if ( isset( $change_data['hash'] ) && hash_equals( $change_data['hash'], $hash ) ) {
+                return array(
+                    'user_id' => $user_id,
+                    'new_email' => $change_data['new_email'],
+                    'old_email' => $change_data['old_email'],
+                    'timestamp' => $change_data['timestamp']
+                );
+            }
+        }
+        
+        return false;
+    }
+}
+
+if ( ! function_exists( 'extrachill_is_email_available' ) ) {
+    /**
+     * Check if email address is available for use
+     * 
+     * @param string $email Email address to check
+     * @param int $exclude_user_id User ID to exclude from check (for current user)
+     * @return bool True if available, false if taken
+     */
+    function extrachill_is_email_available( $email, $exclude_user_id = 0 ) {
+        // Check if email is already in use by another user
+        $existing_user = get_user_by( 'email', $email );
+        if ( $existing_user && $existing_user->ID !== $exclude_user_id ) {
+            return false;
+        }
+        
+        // Check if email is pending for another user
+        $pending_changes = extrachill_get_pending_email_changes();
+        foreach ( $pending_changes as $user_id => $change_data ) {
+            if ( $user_id !== $exclude_user_id && $change_data['new_email'] === $email ) {
+                return false;
+            }
+        }
+        
+        return true;
+    }
+}
+
+if ( ! function_exists( 'extrachill_generate_email_change_hash' ) ) {
+    /**
+     * Generate secure verification hash for email change
+     * 
+     * @param int $user_id User ID
+     * @param string $new_email New email address
+     * @return string Secure hash
+     */
+    function extrachill_generate_email_change_hash( $user_id, $new_email ) {
+        // Generate secure hash using WordPress patterns
+        $timestamp = current_time( 'timestamp' );
+        $random = wp_generate_password( 32, false );
+        
+        return hash( 'sha256', $user_id . $new_email . $timestamp . $random . wp_salt() );
+    }
+}
+
+if ( ! function_exists( 'extrachill_can_user_change_email' ) ) {
+    /**
+     * Check if user can initiate email change (rate limiting)
+     * 
+     * @param int $user_id User ID
+     * @return bool True if allowed, false if rate limited
+     */
+    function extrachill_can_user_change_email( $user_id ) {
+        // Check for existing pending change
+        $pending_change = extrachill_get_user_pending_email_change( $user_id );
+        if ( $pending_change ) {
+            // Allow new change if current one is older than 1 hour (allows retry)
+            $time_since_last = current_time( 'timestamp' ) - $pending_change['timestamp'];
+            return $time_since_last > HOUR_IN_SECONDS;
+        }
+        
+        // Check last successful email change (stored in user meta)
+        $last_change = get_user_meta( $user_id, '_last_email_change', true );
+        if ( $last_change ) {
+            $time_since_last_change = current_time( 'timestamp' ) - $last_change;
+            // Limit to one change per 24 hours
+            return $time_since_last_change > ( 24 * HOUR_IN_SECONDS );
+        }
+        
+        return true; // First time changing email
+    }
+}

@@ -30,7 +30,7 @@ $social_links = [
 ];
 
 $svg_file_path = get_stylesheet_directory() . '/fonts/fontawesome.svg';
-$svg_version = file_exists( $svg_file_path ) ? filemtime( $svg_file_path ) : time();
+$svg_version = file_exists( $svg_file_path ) ? filemtime( $svg_file_path ) . '-' . time() : time();
 ?>
 
 <div class="social-links">
@@ -39,7 +39,7 @@ $svg_version = file_exists( $svg_file_path ) ? filemtime( $svg_file_path ) : tim
             <li>
                 <a href="<?php echo esc_url( $social['url'] ); ?>" target="_blank" aria-label="<?php echo esc_attr( $social['label'] ); ?>">
                     <svg class="social-icon-svg">
-                        <use href="/wp-content/themes/extra-chill-community/fonts/fontawesome.svg?v=<?php echo $svg_version; ?>#<?php echo esc_attr( $social['icon'] ); ?>"></use>
+                        <use href="<?php echo get_stylesheet_directory_uri(); ?>/fonts/fontawesome.svg?v=<?php echo $svg_version; ?>#<?php echo esc_attr( $social['icon'] ); ?>"></use>
                     </svg>
                 </a>
             </li>

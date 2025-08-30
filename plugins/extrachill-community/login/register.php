@@ -1,15 +1,12 @@
 <?php
-
-// Include Band Platform dependencies if not already loaded globally
-// Ideally, these should be loaded by a central plugin/theme loader.
-$bp_roster_data_functions = dirname(__FILE__) . '/../band-platform/roster/roster-data-functions.php';
-$bp_user_linking_functions = dirname(__FILE__) . '/../band-platform/user-linking.php';
-if (file_exists($bp_roster_data_functions)) {
-    require_once $bp_roster_data_functions;
-}
-if (file_exists($bp_user_linking_functions)) {
-    require_once $bp_user_linking_functions;
-}
+/**
+ * User Registration System
+ * 
+ * Handles user registration with email verification, validation,
+ * and integration with the artist platform plugin.
+ * 
+ * @package ExtraChillCommunity
+ */
 
 function extrachill_registration_form_shortcode() {
     global $extrachill_registration_errors;
@@ -17,24 +14,24 @@ function extrachill_registration_form_shortcode() {
     ob_start(); // Start output buffering
 
     $invite_token = null;
-    $invite_band_id = null;
+    $invite_artist_id = null;
     $invited_email = '';
-    $band_name_for_invite_message = '';
+    $artist_name_for_invite_message = '';
 
-    if (isset($_GET['action']) && $_GET['action'] === 'bp_accept_invite' && isset($_GET['token']) && isset($_GET['band_id'])) {
+    if (isset($_GET['action']) && $_GET['action'] === 'bp_accept_invite' && isset($_GET['token']) && isset($_GET['artist_id'])) {
         $token_from_url = sanitize_text_field($_GET['token']);
-        $band_id_from_url = absint($_GET['band_id']);
+        $artist_id_from_url = absint($_GET['artist_id']);
 
         if (function_exists('bp_get_pending_invitations')) {
-            $pending_invitations = bp_get_pending_invitations($band_id_from_url);
+            $pending_invitations = bp_get_pending_invitations($artist_id_from_url);
             foreach ($pending_invitations as $invite) {
                 if (isset($invite['token']) && $invite['token'] === $token_from_url && isset($invite['status']) && $invite['status'] === 'invited_new_user') {
                     $invite_token = $token_from_url;
-                    $invite_band_id = $band_id_from_url;
+                    $invite_artist_id = $artist_id_from_url;
                     $invited_email = isset($invite['email']) ? sanitize_email($invite['email']) : '';
-                    $band_post_for_invite = get_post($invite_band_id);
-                    if ($band_post_for_invite) {
-                        $band_name_for_invite_message = $band_post_for_invite->post_title;
+                    $artist_post_for_invite = get_post($invite_artist_id);
+                    if ($artist_post_for_invite) {
+                        $artist_name_for_invite_message = $artist_post_for_invite->post_title;
                     }
                     break;
                 }
@@ -59,9 +56,9 @@ function extrachill_registration_form_shortcode() {
         </div>
     <?php endif; ?>
 
-    <?php if (!empty($band_name_for_invite_message) && !empty($invite_token)) : ?>
+    <?php if (!empty($artist_name_for_invite_message) && !empty($invite_token)) : ?>
         <div class="bp-notice bp-notice-invite">
-            <p><?php echo sprintf(esc_html__('You have been invited to join the band \'%s\'! Please complete your registration below to accept.', 'extra-chill-community'), esc_html($band_name_for_invite_message)); ?></p>
+            <p><?php echo sprintf(esc_html__('You have been invited to join the artist \'%s\'! Please complete your registration below to accept.', 'extra-chill-community'), esc_html($artist_name_for_invite_message)); ?></p>
         </div>
     <?php endif; ?>
 
@@ -92,11 +89,11 @@ function extrachill_registration_form_shortcode() {
             </label>
             <label>
                 <input type="checkbox" name="user_is_artist" id="user_is_artist" value="1"> I am a musician
-                <small>(required for band profiles and link pages)</small>
+                <small>(required for artist profiles and link pages)</small>
             </label>
             <label>
                 <input type="checkbox" name="user_is_professional" id="user_is_professional" value="1"> I work in the music industry
-                <small>(required for band profiles and link pages)</small>
+                <small>(required for artist profiles and link pages)</small>
             </label>
         </div>
 
@@ -116,9 +113,9 @@ function extrachill_registration_form_shortcode() {
         <?php if ( isset($_GET['from_join']) && $_GET['from_join'] === 'true' ) : ?>
             <input type="hidden" name="from_join" value="true">
         <?php endif; ?>
-        <?php if ($invite_token && $invite_band_id) : ?>
+        <?php if ($invite_token && $invite_artist_id) : ?>
             <input type="hidden" name="invite_token" value="<?php echo esc_attr($invite_token); ?>">
-            <input type="hidden" name="invite_band_id" value="<?php echo esc_attr($invite_band_id); ?>">
+            <input type="hidden" name="invite_artist_id" value="<?php echo esc_attr($invite_artist_id); ?>">
         <?php endif; ?>
     </form>
 </div>
@@ -134,7 +131,7 @@ function extrachill_registration_form_shortcode() {
 $GLOBALS['extrachill_registration_errors'] = array();
 function extrachill_handle_registration() {
     global $extrachill_registration_errors;
-    $processed_invite_band_id = null; // Variable to store band_id if invite is processed
+    $processed_invite_artist_id = null; // Variable to store artist_id if invite is processed
 
     if (isset($_POST['extrachill_register']) && check_admin_referer('extrachill_register_nonce', 'extrachill_register_nonce_field')) {
         // Collect and sanitize form data
@@ -205,10 +202,10 @@ function extrachill_handle_registration() {
 
         // Check for and process band invitation
         $invite_token_posted = isset($_POST['invite_token']) ? sanitize_text_field($_POST['invite_token']) : null;
-        $invite_band_id_posted = isset($_POST['invite_band_id']) ? absint($_POST['invite_band_id']) : null;
+        $invite_artist_id_posted = isset($_POST['invite_artist_id']) ? absint($_POST['invite_artist_id']) : null;
 
-        if ($invite_token_posted && $invite_band_id_posted && function_exists('bp_get_pending_invitations') && function_exists('bp_add_band_membership') && function_exists('bp_remove_pending_invitation')) {
-            $pending_invitations = bp_get_pending_invitations($invite_band_id_posted);
+        if ($invite_token_posted && $invite_artist_id_posted && function_exists('bp_get_pending_invitations') && function_exists('bp_add_artist_membership') && function_exists('bp_remove_pending_invitation')) {
+            $pending_invitations = bp_get_pending_invitations($invite_artist_id_posted);
             $valid_invite_data = null;
             $valid_invite_id_for_removal = null;
 
@@ -225,12 +222,12 @@ function extrachill_handle_registration() {
             if ($valid_invite_data) {
                 // USER_IS_ARTIST META IS NO LONGER FORCED HERE. USER CHOICE FROM CHECKBOX WILL BE USED.
 
-                if (bp_add_band_membership($user_id, $invite_band_id_posted)) {
-                    if (bp_remove_pending_invitation($invite_band_id_posted, $valid_invite_id_for_removal)) {
-                        $processed_invite_band_id = $invite_band_id_posted; // Store for redirect
+                if (bp_add_artist_membership($user_id, $invite_artist_id_posted)) {
+                    if (bp_remove_pending_invitation($invite_artist_id_posted, $valid_invite_id_for_removal)) {
+                        $processed_invite_artist_id = $invite_artist_id_posted; // Store for redirect
                     } else {
                         // Still treat as success for user, but log the cleanup issue
-                        $processed_invite_band_id = $invite_band_id_posted;
+                        $processed_invite_artist_id = $invite_artist_id_posted;
                     }
                 } else {
                     $extrachill_registration_errors[] = 'Your account was created, but there was an issue joining the invited band. Please contact support.';
@@ -239,8 +236,8 @@ function extrachill_handle_registration() {
                 // Don't add an error to $extrachill_registration_errors here, as registration itself might be fine, just invite part failed.
                 // User gets registered as normal without joining band.
             }
-        } elseif ($invite_token_posted || $invite_band_id_posted) {
-            // Log if token/band_id was posted but functions were missing (should not happen with require_once at top)
+        } elseif ($invite_token_posted || $invite_artist_id_posted) {
+            // Log if token/artist_id was posted but functions were missing (should not happen with require_once at top)
         }
 
           // Save user statuses after successful registration (DIRECTLY IN THIS FUNCTION)
@@ -260,7 +257,7 @@ function extrachill_handle_registration() {
         // Other post-registration processes like auto-login
         // Pass the from_join flag to auto_login_new_user
         $from_join_flag = isset($_GET['from_join']) && $_GET['from_join'] === 'true';
-        auto_login_new_user($user_id, $processed_invite_band_id, $from_join_flag);
+        auto_login_new_user($user_id, $processed_invite_artist_id, $from_join_flag);
 
 
      }
@@ -296,7 +293,7 @@ function sync_to_sendy($email, $name) {
 }
 
 
-function auto_login_new_user($user_id, $redirect_band_id = null, $from_join_flow = false) {
+function auto_login_new_user($user_id, $redirect_artist_id = null, $from_join_flow = false) {
     $user = get_user_by('id', $user_id);
 
     if ($user) {
@@ -308,9 +305,9 @@ function auto_login_new_user($user_id, $redirect_band_id = null, $from_join_flow
 
         // --- START Join Flow Post-Registration Redirect ---
         if ($from_join_flow) {
-             $manage_band_page = get_page_by_path('manage-band-profiles');
-              if ($manage_band_page) {
-                  $redirect_url = add_query_arg('from_join', 'true', get_permalink($manage_band_page));
+             $manage_artist_page = get_page_by_path('manage-artist-profiles');
+              if ($manage_artist_page) {
+                  $redirect_url = add_query_arg('from_join', 'true', get_permalink($manage_artist_page));
               } else {
                   // Fallback if manage page not found
                  $redirect_url = home_url();
@@ -321,15 +318,15 @@ function auto_login_new_user($user_id, $redirect_band_id = null, $from_join_flow
         // If not from join flow and a specific band ID was provided (e.g., from invite), redirect there.
         // Note: The band invite process might need refinement to pass the redirect_to URL through the registration form
         // if we want to send invitees to a specific page after registration + joining band.
-        // For now, if redirect_band_id is set and not from join flow, redirect to that band's profile?
+        // For now, if redirect_artist_id is set and not from join flow, redirect to that band's profile?
         // This part of the logic depends on the intended flow after accepting an invite.
-        else if ($redirect_band_id) {
+        else if ($redirect_artist_id) {
              // Determine redirect URL for band invite scenario
              // This might need to go to the band's profile page or management page depending on the invite flow
              // For now, let's redirect to the band's profile page if it exists.
-             $band_post = get_post($redirect_band_id);
-             if ($band_post && $band_post->post_type === 'band_profile') {
-                 $redirect_url = get_permalink($band_post);
+             $artist_post = get_post($redirect_artist_id);
+             if ($artist_post && $artist_post->post_type === 'artist_profile') {
+                 $redirect_url = get_permalink($artist_post);
              } else {
                  // Fallback if band post not found
                  $redirect_url = home_url();

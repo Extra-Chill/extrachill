@@ -1,9 +1,65 @@
 /**
  * CSS for the User Settings Page (page-templates/settings-page.php)
- * Aims to match the tab styling of manage-band-profile.css
+ * Aims to match the tab styling of manage-artist-profile.css
  */
 
 /* Add styles here as the settings page is refactored */
+
+/* Email change status indicators */
+.email-status {
+    display: block;
+    margin-top: 8px;
+    padding: 8px 12px;
+    border-radius: 4px;
+    font-size: 0.9em;
+    line-height: 1.4;
+}
+
+.email-status.pending {
+    background-color: #fff3cd;
+    border: 1px solid #ffeaa7;
+    color: #856404;
+}
+
+.email-status.rate-limited {
+    background-color: #f8d7da;
+    border: 1px solid #f5c6cb;
+    color: #721c24;
+}
+
+.email-status small {
+    display: block;
+    margin-top: 4px;
+    opacity: 0.8;
+}
+
+/* Enhanced input styling for email fields */
+input[type="email"]#current_email:disabled {
+    background-color: #f8f9fa;
+    color: #6c757d;
+    cursor: not-allowed;
+}
+
+input[type="email"]#new_email {
+    background-color: #fff;
+    border: 2px solid #e9ecef;
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+input[type="email"]#new_email:focus {
+    border-color: #80bdff;
+    outline: 0;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+/* Description text styling */
+.description {
+    display: block;
+    margin-top: 5px;
+    font-size: 0.85em;
+    color: #6c757d;
+    line-height: 1.4;
+}
 
 .account-settings-page h1 {
     margin-bottom: 20px;

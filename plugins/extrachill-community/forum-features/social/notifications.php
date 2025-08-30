@@ -4,129 +4,28 @@
 $GLOBALS['extrachill_notifications_cache'] = null;
 
 /**
- * Add notification bell icon and user avatar to navigation menu
+ * REMOVED: Duplicate notification bell hook function
+ * 
+ * This function was creating conflicts with the dedicated notification-bell-avatar.php template.
+ * The actual notification bell is now handled by /forum-features/content/notification-bell-avatar.php
+ * which is included directly in header.php for better performance and maintainability.
  */
-add_filter('wp_nav_menu_items', 'extrachill_add_notification_bell_icon', 10, 2);
-function extrachill_add_notification_bell_icon( $items, $args ) {
-    global $extrachill_notifications_cache; // Access global cache
-
-    if (is_user_logged_in()) {
-        $current_user_id = get_current_user_id();
-        $current_user = wp_get_current_user();
-
-        // Check if notifications are cached
-        if ($extrachill_notifications_cache === null) {
-            // Fetch notifications and store in cache
-            $extrachill_notifications_cache = get_user_meta($current_user_id, 'extrachill_notifications', true) ?: [];
-        }
-        $notifications = $extrachill_notifications_cache; // Use cached notifications
-
-        // Filter unread notifications for the count
-        $unread_count = count(array_filter($notifications, function ($notification) {
-            return !$notification['read'];
-        }));
-
-        // Notification bell icon
-        echo '<div class="notification-bell-avatar-wrapper">';
-        
-        // User menu wrapper
-        echo '<div class="user-menu-wrapper" aria-haspopup="true">';
-
-        // Notification bell
-        echo '<div class="notification-bell-icon">';
-        echo '<a href="/notifications" title="Notifications"><i class="fa-solid fa-bell"></i>';
-        if ($unread_count > 0) { 
-            echo '<span class="notification-count">' . $unread_count . '</span>';
-        }
-        echo '</a></div>';
-
-        // Get the custom avatar (or fallback to default avatar)
-        $avatar_html = get_avatar($current_user_id, 40);
-
-        // User avatar button (for dropdown)
-        echo '<div class="user-avatar-container">';
-        echo '<a href="' . bbp_get_user_profile_url(get_current_user_id()) . '" class="user-avatar-link">';
-        echo $avatar_html;
-        echo '</a>';
-        echo '<button class="user-avatar-button">';
-        echo '</button>';
-
-        // Dropdown menu
-        echo '<div class="user-dropdown-menu">';
-        echo '<ul>';
-        echo '<li><a href="' . bbp_get_user_profile_url(get_current_user_id()) . '">View Profile</a></li>';
-        echo '<li><a href="' . bbp_get_user_profile_edit_url(get_current_user_id()) . '">Edit Profile</a></li>';
-
-        // Conditional Band Management Link
-        $user_band_ids = get_user_meta( $current_user_id, '_band_profile_ids', true );
-        $base_manage_url = home_url( '/manage-band-profiles/' ); 
-        $final_manage_url = $base_manage_url; // Default to base URL
-
-        if ( ! empty( $user_band_ids ) && is_array( $user_band_ids ) ) {
-            // User has one or more band profiles - find the most recently updated one
-            $latest_band_id = 0;
-            $latest_modified_timestamp = 0;
-
-            foreach ( $user_band_ids as $band_id ) {
-                $band_id_int = absint($band_id);
-                if ( $band_id_int > 0 ) {
-                    $post_modified_gmt = get_post_field( 'post_modified_gmt', $band_id_int, 'raw' );
-                    if ( $post_modified_gmt ) {
-                        $current_timestamp = strtotime( $post_modified_gmt );
-                        if ( $current_timestamp > $latest_modified_timestamp ) {
-                            $latest_modified_timestamp = $current_timestamp;
-                            $latest_band_id = $band_id_int;
-                        }
-                    }
-                }
-            }
-
-            if ( $latest_band_id > 0 ) {
-                $final_manage_url = add_query_arg( 'band_id', $latest_band_id, $base_manage_url );
-            }
-            echo '<li><a href="' . esc_url( $final_manage_url ) . '">' . esc_html__( 'Manage Band(s)', 'extra-chill-community' ) . '</a></li>';
-        } else {
-            // User has no band profiles - Link to Create, if they are an artist OR professional.
-            $is_artist = get_user_meta( $current_user_id, 'user_is_artist', true );
-            $is_professional = get_user_meta( $current_user_id, 'user_is_professional', true );
-            if ( $is_artist === '1' || $is_professional === '1' ) {
-                // The manage-band-profiles page handles creation if no band_id is passed.
-                echo '<li><a href="' . esc_url( $base_manage_url ) . '">' . esc_html__( 'Create Band Profile', 'extra-chill-community' ) . '</a></li>';
-            }
-        }
-
-        // Conditional Link Page Management Link
-        if ( ! empty( $user_band_ids ) && is_array( $user_band_ids ) ) {
-            // User has one or more band profiles, so they *could* have a link page.
-            // We use the same $latest_band_id logic as above for consistency,
-            // as /manage-link-page/ takes a band_id.
-            $base_link_page_manage_url = home_url( '/manage-link-page/' );
-            $final_link_page_manage_url = $base_link_page_manage_url;
-
-            if ( $latest_band_id > 0 ) { // $latest_band_id was determined in the block above
-                $final_link_page_manage_url = add_query_arg( 'band_id', $latest_band_id, $base_link_page_manage_url );
-            }
-            // If $latest_band_id is 0 (e.g., bands exist but no valid modified date found), it links to /manage-link-page/ without band_id.
-            // The /manage-link-page/ template will need to handle this (e.g., prompt to select a band or show a message).
-            echo '<li><a href="' . esc_url( $final_link_page_manage_url ) . '">' . esc_html__( 'Manage Link Page(s)', 'extra-chill-community' ) . '</a></li>';
-        } 
-        // If no band_ids, this link is not shown, as link pages depend on band profiles.
-
-        echo '<li><a href="' . esc_url( home_url('/settings/') ) . '">' . esc_html__( 'Settings', 'extra-chill-community' ) . '</a></li>';
-        echo '<li><a href="' . wp_logout_url( home_url() ) . '">Log Out</a></li>';
-        echo '</ul>';
-        echo '</div>';
-
-        echo '</div>'; // End user-menu-wrapper
-        echo '</div>'; // End notification-bell-avatar-wrapper
-    }
-}
 
 
 // Mark notifications as read when viewed
 function extrachill_mark_notifications_as_read() {
+    // Security check: ensure user is logged in
+    if ( ! is_user_logged_in() ) {
+        return;
+    }
+    
     $current_user_id = get_current_user_id();
     $notifications = get_user_meta($current_user_id, 'extrachill_notifications', true) ?: [];
+    
+    // Additional safety check
+    if ( ! is_array( $notifications ) ) {
+        return;
+    }
 
     foreach ($notifications as &$notification) {
         if (!$notification['read']) {
@@ -258,8 +157,13 @@ function extrachill_capture_mention_notifications($post_id, $topic_id, $forum_id
 
 
 function extrachill_format_notification_message($notification) {
-    // Set common defaults
-    $timeFormatted = isset($notification['time']) ? date('n/j/y \\a\\t g:ia', strtotime($notification['time'])) : '';
+    // Input validation
+    if ( ! is_array( $notification ) || empty( $notification['type'] ) ) {
+        return '';
+    }
+    
+    // Set common defaults with proper sanitization
+    $timeFormatted = isset($notification['time']) ? esc_html( date('n/j/y \\a\\t g:ia', strtotime($notification['time'])) ) : '';
     
     // Actor details - who performed the action
     $actor_id = $notification['actor_id'] ?? null;
@@ -331,8 +235,8 @@ function extrachill_format_notification_message($notification) {
                         </div>
                     </div>
                 </div>',
-                esc_html($timeFormatted),
-                $current_avatar, // Avatar of the replier
+                $timeFormatted, // Already escaped above
+                $current_avatar, // Avatar of the replier - already escaped by get_avatar()
                 esc_url($current_actor_profile_link), // Link to replier's profile
                 esc_html($current_actor_display_name), // Name of the replier
                 esc_url($link), // Link to the reply itself
@@ -360,8 +264,8 @@ function extrachill_format_notification_message($notification) {
                         </div>
                     </div>
                 </div>',
-                esc_html($timeFormatted),
-                $current_avatar, // Avatar of the quoter
+                $timeFormatted, // Already escaped above
+                $current_avatar, // Avatar of the quoter - already escaped by get_avatar()
                 esc_url($current_actor_profile_link), // Link to quoter's profile
                 esc_html($current_actor_display_name), // Name of the quoter
                 esc_url($link), // Link to the post with the quote
@@ -383,16 +287,16 @@ function extrachill_format_notification_message($notification) {
                         </div>
                     </div>
                 </div>',
-                esc_html($timeFormatted),
-                $avatar, // Avatar of the mentioner (actor)
+                $timeFormatted, // Already escaped above
+                $avatar, // Avatar of the mentioner (actor) - already escaped by get_avatar()
                 esc_url($actor_profile_link), // Link to mentioner's profile
                 esc_html($actor_display_name), // Name of the mentioner
                 esc_url($link), // Link to the mention
                 esc_html($topic_title)
             );
-        case 'new_band_topic':
+        case 'new_artist_topic':
             // Actor is the topic creator. $actor_id, $actor_display_name, $actor_profile_link are set.
-            // Message: "[Actor] started a new topic '[Topic Title]' in your band forum."
+            // Message: "[Actor] started a new topic '[Topic Title]' in your artist forum."
             return sprintf(
                 '<div class="notification-card">
                     <div class="notification-card-header">
@@ -402,20 +306,20 @@ function extrachill_format_notification_message($notification) {
                     <div class="notification-card-body">
                         <div class="notification-avatar">%s</div>
                         <div class="notification-message">
-                            <a href="%s">%s</a> started a new topic "<a href="%s">%s</a>" in your band forum.
+                            <a href="%s">%s</a> started a new topic "<a href="%s">%s</a>" in your artist forum.
                         </div>
                     </div>
                 </div>',
-                esc_html($timeFormatted),
-                $avatar, // Avatar of the actor (topic creator)
+                $timeFormatted, // Already escaped above
+                $avatar, // Avatar of the actor (topic creator) - already escaped by get_avatar()
                 esc_url($actor_profile_link), // Link to actor's profile
                 esc_html($actor_display_name), // Name of the actor
                 esc_url($link), // Link to the topic
                 esc_html($topic_title)
             );
-        case 'new_band_reply':
+        case 'new_artist_reply':
             // Actor is the replier. $actor_id, $actor_display_name, $actor_profile_link are set.
-            // Message: "[Actor] replied in the topic '[Topic Title]' in your band forum."
+            // Message: "[Actor] replied in the topic '[Topic Title]' in your artist forum."
             return sprintf(
                 '<div class="notification-card">
                     <div class="notification-card-header">
@@ -425,12 +329,12 @@ function extrachill_format_notification_message($notification) {
                     <div class="notification-card-body">
                         <div class="notification-avatar">%s</div>
                         <div class="notification-message">
-                            <a href="%s">%s</a> replied in the topic "<a href="%s">%s</a>" in your band forum.
+                            <a href="%s">%s</a> replied in the topic "<a href="%s">%s</a>" in your artist forum.
                         </div>
                     </div>
                 </div>',
-                esc_html($timeFormatted),
-                $avatar, // Avatar of the actor (replier)
+                $timeFormatted, // Already escaped above
+                $avatar, // Avatar of the actor (replier) - already escaped by get_avatar()
                 esc_url($actor_profile_link), // Link to actor's profile
                 esc_html($actor_display_name), // Name of the actor
                 esc_url($link), // Link to the reply
@@ -515,7 +419,18 @@ function extrachill_display_notifications() {
 
 
 function extrachill_cleanup_old_notifications_for_user($user_id) {
+    // Security check: validate user ID
+    $user_id = (int) $user_id;
+    if ( $user_id <= 0 || ! get_userdata( $user_id ) ) {
+        return;
+    }
+    
     $notifications = get_user_meta($user_id, 'extrachill_notifications', true) ?: [];
+    
+    // Safety check
+    if ( ! is_array( $notifications ) ) {
+        return;
+    }
 
     $currentTime = current_time('timestamp');
     $oneWeekAgo = strtotime('-1 week', $currentTime);
@@ -539,53 +454,53 @@ function extrachill_cleanup_old_notifications_for_user($user_id) {
  * Notifies band members of new topics in their band forum.
  * Topic author will not be notified by this function.
  */
-function bp_notify_band_members_new_topic($topic_id, $forum_id, $anonymous_data, $topic_author_id) {
-    // Check if $forum_id is a band forum by looking for associated band_profile_id
-    $band_profile_id = get_post_meta($forum_id, '_associated_band_profile_id', true);
-    error_log(sprintf("[Band Notifications - New Topic] Forum ID: %s, Found Band Profile ID: %s", $forum_id, $band_profile_id ?: 'Not Found'));
+function bp_notify_artist_members_new_topic($topic_id, $forum_id, $anonymous_data, $topic_author_id) {
+    // Check if $forum_id is an artist forum by looking for associated artist_profile_id
+    $artist_profile_id = get_post_meta($forum_id, '_associated_artist_profile_id', true);
+    error_log(sprintf("[Artist Notifications - New Topic] Forum ID: %s, Found Artist Profile ID: %s", $forum_id, $artist_profile_id ?: 'Not Found'));
 
-    if (empty($band_profile_id)) {
+    if (empty($artist_profile_id)) {
         return; // Not a band forum
     }
 
-    // Get band member IDs from the band_profile CPT meta
-    $band_member_ids = get_post_meta($band_profile_id, '_band_member_ids', true);
-    if (empty($band_member_ids) || !is_array($band_member_ids)) {
-        error_log(sprintf("[Band Notifications - New Topic] Band Profile ID: %s. No band_member_ids found or not an array. Value: %s", $band_profile_id, print_r($band_member_ids, true)));
-        return; // No band members found or meta is not an array
+    // Get artist member IDs from the artist_profile CPT meta
+    $artist_member_ids = get_post_meta($artist_profile_id, '_artist_member_ids', true);
+    if (empty($artist_member_ids) || !is_array($artist_member_ids)) {
+        error_log(sprintf("[Artist Notifications - New Topic] Artist Profile ID: %s. No artist_member_ids found or not an array. Value: %s", $artist_profile_id, print_r($artist_member_ids, true)));
+        return; // No artist members found or meta is not an array
     }
-    error_log(sprintf("[Band Notifications - New Topic] Band Profile ID: %s. Found %d band member(s). IDs: %s", $band_profile_id, count($band_member_ids), implode(', ', $band_member_ids)));
+    error_log(sprintf("[Artist Notifications - New Topic] Artist Profile ID: %s. Found %d artist member(s). IDs: %s", $artist_profile_id, count($artist_member_ids), implode(', ', $artist_member_ids)));
 
     // Get topic author data for the notification message
     $topic_author_data = get_userdata($topic_author_id);
     if (!$topic_author_data) {
-        error_log(sprintf("[Band Notifications - New Topic] Could not get userdata for topic author ID: %s. Band Profile ID: %s", $topic_author_id, $band_profile_id));
+        error_log(sprintf("[Artist Notifications - New Topic] Could not get userdata for topic author ID: %s. Artist Profile ID: %s", $topic_author_id, $artist_profile_id));
         return; 
     }
     $actor_display_name = $topic_author_data->display_name;
     $actor_profile_link = bbp_get_user_profile_url($topic_author_id);
-    error_log(sprintf("[Band Notifications - New Topic] Topic Author ID: %s, Display Name: %s. Band Profile ID: %s", $topic_author_id, $actor_display_name, $band_profile_id));
+    error_log(sprintf("[Artist Notifications - New Topic] Topic Author ID: %s, Display Name: %s. Artist Profile ID: %s", $topic_author_id, $actor_display_name, $artist_profile_id));
 
 
     $topic_title = get_the_title($topic_id);
     $topic_link = get_permalink($topic_id);
 
-    // Loop through band members and send notifications
-    foreach ($band_member_ids as $member_id) {
+    // Loop through artist members and send notifications
+    foreach ($artist_member_ids as $member_id) {
         $member_id = (int)$member_id; // Ensure it's an integer
         if ($member_id === 0) {
-            error_log(sprintf("[Band Notifications - New Topic] Skipped member_id 0. Original value before casting was part of: %s. Band Profile ID: %s", print_r($band_member_ids, true), $band_profile_id));
+            error_log(sprintf("[Artist Notifications - New Topic] Skipped member_id 0. Original value before casting was part of: %s. Artist Profile ID: %s", print_r($artist_member_ids, true), $artist_profile_id));
             continue;
         }
 
 
         if ($member_id === (int)$topic_author_id) {
-            error_log(sprintf("[Band Notifications - New Topic] Member ID %d is the topic author %d. Skipping. Band Profile ID: %s", $member_id, (int)$topic_author_id, $band_profile_id));
+            error_log(sprintf("[Artist Notifications - New Topic] Member ID %d is the topic author %d. Skipping. Artist Profile ID: %s", $member_id, (int)$topic_author_id, $artist_profile_id));
             continue; // Don't notify the author of their own topic via this mechanism
         }
 
         $notification = [
-            'type'               => 'new_band_topic',
+            'type'               => 'new_artist_topic',
             'post_id'            => $topic_id,       
             'user_id'            => $member_id,      
             'actor_id'           => (int)$topic_author_id, 
@@ -594,79 +509,89 @@ function bp_notify_band_members_new_topic($topic_id, $forum_id, $anonymous_data,
             'topic_title'        => $topic_title,
             'time'               => current_time('mysql'),
             'read'               => false,
-            'link'               => $topic_link, 
+            'link'               => $topic_link,
         ];
 
-        $user_notifications = get_user_meta($member_id, 'extrachill_notifications', true) ?: [];
-        $user_notifications[] = $notification;
-        update_user_meta($member_id, 'extrachill_notifications', $user_notifications);
-        error_log(sprintf("[Band Notifications - New Topic] Notification successfully created and supposedly saved for member_id: %d for topic_id: %s. Band Profile ID: %s", $member_id, $topic_id, $band_profile_id));
+        // Get current notifications for this artist member and add the new one
+        $member_notifications = get_user_meta($member_id, 'extrachill_notifications', true) ?: [];
+        $member_notifications[] = $notification;
+        update_user_meta($member_id, 'extrachill_notifications', $member_notifications);
+        error_log(sprintf("[Artist Notifications - New Topic] Added notification for Member ID: %d. Artist Profile ID: %s", $member_id, $artist_profile_id));
     }
 }
-add_action('bbp_new_topic', 'bp_notify_band_members_new_topic', 15, 4);
+
 
 /**
- * Notifies band members of new replies in their band forum.
- * Reply author and topic author will not be notified by this function (handled by other notifications).
+ * Notifies artist members of new replies in their artist forum topics.
+ * Reply author will not be notified by this function.
  */
-function bp_notify_band_members_new_reply($reply_id, $topic_id, $forum_id, $anonymous_data, $reply_author_id) {
-    // Check if $forum_id is a band forum
-    $band_profile_id = get_post_meta($forum_id, '_associated_band_profile_id', true);
-    if (empty($band_profile_id)) {
-        return; // Not a band forum
+function bp_notify_artist_members_new_reply($reply_id, $topic_id, $forum_id, $anonymous_data, $reply_author_id) {
+    // Check if $forum_id is an artist forum by looking for associated artist_profile_id
+    $artist_profile_id = get_post_meta($forum_id, '_associated_artist_profile_id', true);
+    error_log(sprintf("[Artist Notifications - New Reply] Forum ID: %s, Found Artist Profile ID: %s", $forum_id, $artist_profile_id ?: 'Not Found'));
+
+    if (empty($artist_profile_id)) {
+        return; // Not an artist forum
     }
 
-    // Get band member IDs
-    $band_member_ids = get_post_meta($band_profile_id, '_band_member_ids', true);
-    if (empty($band_member_ids) || !is_array($band_member_ids)) {
-        return; // No band members found or meta is not an array
+    // Get artist member IDs from the artist_profile CPT meta
+    $artist_member_ids = get_post_meta($artist_profile_id, '_artist_member_ids', true);
+    if (empty($artist_member_ids) || !is_array($artist_member_ids)) {
+        error_log(sprintf("[Artist Notifications - New Reply] Artist Profile ID: %s. No artist_member_ids found or not an array. Value: %s", $artist_profile_id, print_r($artist_member_ids, true)));
+        return; // No artist members found or meta is not an array
     }
+    error_log(sprintf("[Artist Notifications - New Reply] Artist Profile ID: %s. Found %d artist member(s). IDs: %s", $artist_profile_id, count($artist_member_ids), implode(', ', $artist_member_ids)));
 
-    // Get reply author data
+    // Get reply author data for the notification message
     $reply_author_data = get_userdata($reply_author_id);
     if (!$reply_author_data) {
-        error_log("[Band Notifications] Could not get userdata for reply author ID: " . $reply_author_id);
-        return;
+        error_log(sprintf("[Artist Notifications - New Reply] Could not get userdata for reply author ID: %s. Artist Profile ID: %s", $reply_author_id, $artist_profile_id));
+        return; 
     }
     $actor_display_name = $reply_author_data->display_name;
     $actor_profile_link = bbp_get_user_profile_url($reply_author_id);
+    error_log(sprintf("[Artist Notifications - New Reply] Reply Author ID: %s, Display Name: %s. Artist Profile ID: %s", $reply_author_id, $actor_display_name, $artist_profile_id));
+
 
     $topic_title = get_the_title($topic_id);
     $reply_link = bbp_get_reply_url($reply_id);
-    $topic_author_id_on_post = get_post_field('post_author', $topic_id);
-    $topic_author_id = $topic_author_id_on_post ? (int)$topic_author_id_on_post : 0;
 
-
-    // Loop through band members
-    foreach ($band_member_ids as $member_id) {
+    // Loop through artist members and send notifications
+    foreach ($artist_member_ids as $member_id) {
         $member_id = (int)$member_id; // Ensure it's an integer
-        if ($member_id === 0) continue;
-
-        if ($member_id === (int)$reply_author_id) {
-            continue; // Don't notify the author of their own reply
-        }
-        if ($topic_author_id !== 0 && $member_id === $topic_author_id) {
-            // Topic author is already notified by extrachill_capture_reply_notifications
+        if ($member_id === 0) {
+            error_log(sprintf("[Artist Notifications - New Reply] Skipped member_id 0. Original value before casting was part of: %s. Artist Profile ID: %s", print_r($artist_member_ids, true), $artist_profile_id));
             continue;
         }
 
+        if ($member_id === (int)$reply_author_id) {
+            error_log(sprintf("[Artist Notifications - New Reply] Member ID %d is the reply author %d. Skipping. Artist Profile ID: %s", $member_id, (int)$reply_author_id, $artist_profile_id));
+            continue; // Don't notify the author of their own reply via this mechanism
+        }
+
         $notification = [
-            'type'               => 'new_band_reply',
-            'post_id'            => $topic_id,      
-            'reply_id'           => $reply_id,      
+            'type'               => 'new_artist_reply',
+            'post_id'            => $topic_id,     
+            'item_id'            => $reply_id,     
             'user_id'            => $member_id,     
-            'actor_id'           => (int)$reply_author_id,
+            'actor_id'           => (int)$reply_author_id, 
             'actor_display_name' => $actor_display_name,
             'actor_profile_link' => $actor_profile_link,
             'topic_title'        => $topic_title,
             'time'               => current_time('mysql'),
             'read'               => false,
-            'link'               => $reply_link, 
+            'link'               => $reply_link,
         ];
 
-        $user_notifications = get_user_meta($member_id, 'extrachill_notifications', true) ?: [];
-        $user_notifications[] = $notification;
-        update_user_meta($member_id, 'extrachill_notifications', $user_notifications);
+        // Get current notifications for this artist member and add the new one
+        $member_notifications = get_user_meta($member_id, 'extrachill_notifications', true) ?: [];
+        $member_notifications[] = $notification;
+        update_user_meta($member_id, 'extrachill_notifications', $member_notifications);
+        error_log(sprintf("[Artist Notifications - New Reply] Added notification for Member ID: %d. Artist Profile ID: %s", $member_id, $artist_profile_id));
     }
 }
-add_action('bbp_new_reply', 'bp_notify_band_members_new_reply', 15, 5);
+
+
+// Hook artist notification functions to bbPress actions
+add_action('bbp_new_topic', 'bp_notify_artist_members_new_topic', 20, 4);
+add_action('bbp_new_reply', 'bp_notify_artist_members_new_reply', 20, 5);

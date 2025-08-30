@@ -3,7 +3,7 @@
 /*
  Theme Name:   Extra Chill Community
  Theme URI:    https://community.extrachill.com
- Description:  ExtraChill community platform - a comprehensive band platform and link page management system for musicians
+ Description:  ExtraChill community platform - WordPress theme for forums and community features
  Author:       Chris Huber
  Author URI:   https://chubes.net
  Version:      1.0.0
@@ -376,12 +376,7 @@ a:focus, a:active, a:hover {
 	}
 }
 
-/* mobile only */
-@media screen and (max-width: 450px) {
-	.footer-widget-areas {
-		flex-direction: column;
-		margin: 0 10px;
-	}
+/* Additional footer styles moved to main footer section */
  
 	h1 {
 		font-size: 28px;
@@ -606,7 +601,7 @@ h2.forum-front-ec {
 i#forum-collapse,
 #community-forums-collapse,
 #music-forums-collapse,
-#band-platform-collapse {
+#artist-platform-collapse {
 	margin-left: 5px;
 	font-size: 27px;
 }
@@ -671,7 +666,7 @@ span.bbp-admin-links {
 .bbp-forum-freshness,
 .bbp-forum-topic-count,
 .bbp-forum-reply-count,
-.bbp-forum-band-count {
+.bbp-forum-artistcount {
 	font-size: 15px;
 }
  
@@ -781,7 +776,8 @@ blockquote {
 	font-size: 14px;
 	padding-top: 15px;
 	max-width: 96%;
-	margin: auto;
+	margin-left: 0;
+	margin-right: auto;
 }
  
 #bbpress-forums li.bbp-body ul.forum,
@@ -1064,7 +1060,7 @@ p.private-forums {
 }
  
 
-.band-profile-content {
+.artist-profile-content {
     margin: 10px auto;
     max-width: 93%;
     display: flex;
@@ -1179,30 +1175,106 @@ li > ul, li > ol {
 	border-bottom: none;
 }
  
-#extra-footer .footer-bottom-menu .menu-item a {
-	border: none;
-	padding: 5px;
+ 
+.footer-menus-wrapper {
+    padding: 20px 0;
+}
+.footer-menus {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+}
+.footer-menu-column {
+    flex: 1 1 100%; /* Mobile: full width */
+    padding: 0 15px;
+    box-sizing: border-box;
+    margin-bottom: 20px;
+}
+.footer-menu-column .footer-column-menu { /* This targets the UL */
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+.footer-menu-column .footer-column-menu li {
+    line-height: 2.2;
+}
+.footer-menu-column .footer-column-menu li a {
+    border-bottom: 1px solid var(--accent);
+    width: max-content;
+    display: inline-block;
+}
+.footer-menu-column .footer-column-menu .sub-menu li a {
+    border-bottom: none;
+}
+@media (min-width: 768px) {
+    .footer-menus {
+        flex-wrap: nowrap;
+        justify-content: space-between;
+    }
+    .footer-menu-column {
+        flex: 1;
+        text-align: center;
+        margin-bottom: 0;
+        padding: 0 15px;
+    }
+}
+ 
+.footer-extra-menu {
+    padding: 15px 0;
+}
+.footer-extra-menu ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+}
+.footer-extra-menu ul li {
+    margin: 0 10px;
+}
+#extra-footer{
+	background-color:#000;
+	color: #fff;
+	font-size: 16px;
+	width: 100%;
+	margin-top: 10px;
+}
+#extra-footer a{
+	color: #fff;
 	text-decoration: none;
 }
- 
-.footer-widget-areas {
-    display: flex;
-    justify-content: space-around;
+#extra-footer a:hover {
+	text-decoration: underline;
+	text-decoration-color: var(--accent);
+}
+#extra-footer li{
+	padding:3px;
+}
+.social-links {
+	text-align: center;
+}
+.social-links ul li {
+	display: inline;
+}
+.social-links svg:hover {
+	fill: var(--accent);
+	text-decoration: none;
+}
+.social-links a:focus{
+	text-decoration: none;
+}
+.social-links .social-icon-svg {
+	margin: 12px;
+	text-align: center;
+	transition: background-color 0.2s ease-out 0s;
+	fill: #fff;
+	height: 22px;
+	width: 22px;
+}
+.social-links{
+	padding: 25px;
 }
  
-.footer-bottom-menu {
-    display: flex;
-    margin: auto;
-    font-size: 0.9em;
-    justify-content: center;
-    border: none;
-	flex-direction: column;
-}
- 
-.footer-bottom-menu ul {
-	display: flex;
-	justify-content: center;
-}
  
 /* ========= Header & Site Branding ========= */
  
@@ -1631,6 +1703,7 @@ body.menu-open {
 	display: flex;
 	align-items: center;
 	margin-top: 5px;
+	gap:5px;
 }
  
 

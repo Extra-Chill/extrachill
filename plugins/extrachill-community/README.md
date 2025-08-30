@@ -1,14 +1,13 @@
 # Extra Chill Community Theme
 
-A comprehensive WordPress theme powering the ExtraChill community platform - band platforms, link page management, and cross-domain authentication for musicians.
+A WordPress theme for the ExtraChill community platform providing forum enhancements, cross-domain authentication, and bbPress integration. Focuses exclusively on community and forum features. Artist platform functionality has been fully migrated to a separate plugin.
 
 ## Overview
 
-**Extra Chill Community** is a standalone WordPress theme serving the community platform at `community.extrachill.com` with integration capabilities for:
-- `community.extrachill.com` - Main platform (WordPress/bbPress) **[This theme]**
-- `extrachill.link` - Public link pages ("link in bio" service) **[Served by this theme]**
-- `extrch.co` - Short domain variant **[Served by this theme]**
-- `extrachill.com` - Main website **[External integration only]**
+**Extra Chill Community** is a WordPress theme serving the community platform at `community.extrachill.com`:
+- `community.extrachill.com` - Main community platform (WordPress/bbPress) **[This theme]**
+- `extrachill.com` - Main website **[Cross-domain integration only]**
+- Artist platform features **[Fully migrated to separate plugin]**
 
 ## Quick Start
 
@@ -31,63 +30,48 @@ extrachill-community/
 ├── functions.php              # Theme setup and WordPress features
 ├── style.css                  # Main stylesheet with theme header
 ├── index.php                  # Required WordPress template fallback
-├── band-platform/             # Core band and link page features
-├── page-templates/            # Custom page templates
+├── page-templates/            # Custom page templates  
 ├── bbpress/                   # bbPress template overrides
 ├── extrachill-integration/    # Cross-domain authentication
-├── forum-features/            # Community forum enhancements
+├── forum-features/            # Community forum enhancements (38 features)
+├── login/                     # Custom authentication system
 ├── css/                       # Modular stylesheets
-├── js/                        # JavaScript components
+├── js/                        # JavaScript components (13 files)
+├── fonts/                     # Custom font files
 └── vendor/                    # Composer dependencies
 ```
 
 ## Core Features
 
-### 1. Band Platform
+### 1. Forum Features System
 
-**Custom Post Type**: `band_profile`
+**38+ Organized Features** in `forum-features/` directory:
 ```php
-// Create a band profile
-$band_id = wp_insert_post([
-    'post_type' => 'band_profile',
-    'post_title' => 'Band Name',
-    'post_status' => 'publish'
-]);
+// Master loader
+require_once get_stylesheet_directory() . '/forum-features/forum-features.php';
 
-// Associate with user
-update_user_meta($user_id, '_band_profile_ids', [$band_id]);
+// Admin features (9): moderation, notifications, forum management
+// Content features (13): embeds, editor customization, breadcrumbs, queries
+// Social features (10): following, upvoting, notifications, mentions, rank system
+// User features (6): custom avatars, profile management, verification, settings
 ```
 
-**Automatic Forum Creation**: Each band gets a private bbPress forum
+**bbPress Integration**:
 ```php
-// Forums are created automatically via band-platform/band-forums.php
-// Access controlled by band membership
+// Custom templates override default bbPress styling
+if (bbp_is_forum_archive() || is_front_page()) {
+    wp_enqueue_style('forums-loop', get_stylesheet_directory_uri() . '/css/forums-loop.css');
+}
 ```
 
-### 2. Link Page System
-
-**Custom Post Type**: `band_link_page`
-```php
-// Get link page data (canonical provider)
-$data = LinkPageDataProvider::get_data($link_page_id, $band_id, $overrides);
-
-// Structure includes:
-// - profile_img_url
-// - band_name, description
-// - social_links array
-// - custom_css_vars for styling
-```
-
-**Public Access**: `extrachill.link/bandname` or `extrch.co/bandname`
-
-### 3. Cross-Domain Authentication
+### 2. Cross-Domain Authentication
 
 **Session Token System**:
 ```php
 // Automatic login across domains
 extrachill_login_user_across_domains($user_id);
 
-// Validates via custom table: wp_user_session_tokens
+// Validates via custom table: user_session_tokens (with wp_ prefix)
 // Cookie domain: .extrachill.com (covers all subdomains)
 ```
 
@@ -102,16 +86,24 @@ fetch('/wp-json/extrachill/v1/validate-session', {
 });
 ```
 
-### 4. Analytics & Tracking
+### 3. User Profile Management
 
-**Link Click Tracking**:
+**Dynamic User Profile Links**:
 ```php
-// Database: wp_link_page_analytics
-record_link_click($link_page_id, $link_url, $visitor_data);
+// User can add multiple social/music platform links
+$existing_links = get_user_meta($user_id, '_user_profile_dynamic_links', true);
 
-// View analytics in management interface
-$analytics = get_link_page_analytics($link_page_id);
+// Supported link types: website, instagram, twitter, facebook, spotify, soundcloud, bandcamp
+// Custom avatar upload system with AJAX
 ```
+
+### 4. Cross-Domain Integration
+
+**External Platform Features**:
+- Cross-domain authentication with extrachill.com
+- Session token validation and management
+- Seamless commenting system integration
+- REST API endpoints for external access
 
 ## Development
 
@@ -127,17 +119,24 @@ function modular_bbpress_styles() {
 }
 ```
 
-**JavaScript Architecture**:
+**JavaScript Architecture** (13 files in js/ + 4 forum feature scripts):
 ```php
 // Core utilities
-wp_enqueue_script('extrachill-utilities', get_template_directory_uri() . '/js/utilities.js', ['jquery']);
+wp_enqueue_script('extrachill-utilities', get_stylesheet_directory_uri() . '/js/utilities.js', ['jquery']);
 
-// Social features (organized in forum-features/social/js/)
-wp_enqueue_script('extrachill-follow', get_template_directory_uri() . '/forum-features/social/js/extrachill-follow.js', ['jquery']);
-wp_enqueue_script('upvote', get_template_directory_uri() . '/forum-features/social/js/upvote.js', ['jquery']);
+// Social features (4 files in forum-features/social/js/)
+wp_enqueue_script('extrachill-follow', get_stylesheet_directory_uri() . '/forum-features/social/js/extrachill-follow.js', ['jquery']);
+wp_enqueue_script('upvote', get_stylesheet_directory_uri() . '/forum-features/social/js/upvote.js', ['jquery']);
+wp_enqueue_script('extrachill-mentions', get_stylesheet_directory_uri() . '/forum-features/social/js/extrachill-mentions.js', ['jquery']);
+wp_enqueue_script('extrachill-admin', get_stylesheet_directory_uri() . '/forum-features/social/rank-system/js/extrachill_admin.js', ['jquery']);
 
-// Link page management
-wp_enqueue_script('manage-link-page', get_template_directory_uri() . '/band-platform/extrch.co-link-page/live-preview/js/manage-link-page-customization.js', ['jquery']);
+// Forum enhancements
+wp_enqueue_script('quote', get_stylesheet_directory_uri() . '/js/quote.js', ['jquery']);
+wp_enqueue_script('topic-quick-reply', get_stylesheet_directory_uri() . '/js/topic-quick-reply.js', ['jquery']);
+
+// User profile management
+wp_enqueue_script('custom-avatar', get_stylesheet_directory_uri() . '/js/custom-avatar.js', ['jquery']);
+wp_enqueue_script('manage-user-profile-links', get_stylesheet_directory_uri() . '/js/manage-user-profile-links.js', ['jquery']);
 ```
 
 ### Database Schema
@@ -145,25 +144,15 @@ wp_enqueue_script('manage-link-page', get_template_directory_uri() . '/band-plat
 **Custom Tables**:
 ```sql
 -- Cross-domain authentication
-wp_user_session_tokens (user_id, token, expiry)
-
--- Email subscribers with consent
-wp_band_subscribers (band_id, email, consent_date)
-
--- Link analytics
-wp_link_page_analytics (link_page_id, link_url, click_count, visitor_data)
+user_session_tokens (user_id, token, expiration) -- with wp_ prefix
 ```
 
 **Meta Fields**:
 ```php
-// Band associations
-get_user_meta($user_id, '_band_profile_ids');
-
-// Link page customization  
-get_post_meta($link_page_id, '_link_page_custom_css_vars');
-
-// Forum sections
-get_post_meta($forum_id, '_bbp_forum_section'); // top/middle/bottom
+// Theme meta fields
+get_post_meta($forum_id, '_show_on_homepage'); // Boolean for homepage display
+get_user_meta($user_id, '_user_profile_dynamic_links'); // User social links
+get_user_meta($user_id, 'ec_custom_title'); // Custom user titles
 ```
 
 ### Template System
@@ -246,40 +235,32 @@ GET /wp-json/extrachill/v1/forums-feed
 ### AJAX Handlers
 
 ```javascript
-// Link page updates
-wp_ajax_save_link_page_data
-wp_ajax_nopriv_record_link_click
-
-// Band management
-wp_ajax_add_band_member
-wp_ajax_remove_band_member
-
-// Social features
-wp_ajax_follow_user
-wp_ajax_upvote_content
+// Theme AJAX handlers
+wp_ajax_follow_user                    // User following system
+wp_ajax_upvote_content                 // Content upvoting
+wp_ajax_custom_avatar_upload           // Custom avatar uploads
+wp_ajax_clear_most_active_users_cache  // Cache management
 ```
 
 ## Testing
 
 ```bash
-# Manual Testing Checklist:
-# 1. Theme functionality on community.extrachill.com
-# 2. Cross-domain authentication with extrachill.com  
-# 3. Link page rendering on extrachill.link/extrch.co
-# 4. bbPress forum integration
-# 5. Band platform features and forum creation
-# 6. Link page live preview and customization
-# 7. Analytics tracking and QR code generation
+# Testing Areas:
+# 1. Forum Features: Test all 38+ features across 4 categories (admin/content/social/users)
+# 2. Cross-Domain Authentication: Session tokens, auto-login, cookie validation
+# 3. bbPress Integration: Custom templates, stylesheet conflicts, functionality
+# 4. JavaScript Components: All 17 JS files loading and functioning correctly
+# 5. User Management: Profiles, avatars, settings, verification
+# 6. Authentication System: Login/register, email verification, session handling
 ```
 
 ## Deployment
 
 **Production Setup**:
 1. Install theme on community.extrachill.com WordPress
-2. Activate bbPress plugin
+2. Activate bbPress plugin (required)
 3. Configure cross-domain cookies (`.extrachill.com`)
-4. Set up URL rewrites for link pages
-5. Configure QR code generation (requires GD extension)
+4. Run `composer install` for PHP dependencies
 
 **Domain Configuration**:
 ```php
@@ -290,12 +271,14 @@ define('EXTRACHILL_API_URL', 'https://community.extrachill.com');
 
 ## Architecture Notes
 
+- **Community-Focused**: Streamlined theme focused exclusively on community and forum functionality
+- **Plugin Integration**: Works seamlessly with `extrachill-artist-platform` plugin (all artist features migrated to plugin)
 - **No Build System**: Direct file inclusion, no compilation required
-- **PSR-4 Ready**: Composer autoloader configured (`Chubes\Extrachill\` namespace)
-- **Organized Structure**: Forum features in structured subdirectories with master loader
+- **PSR-4 Ready**: Composer autoloader configured (`Chubes\Extrachill\` namespace) 
+- **Organized Structure**: 38+ forum features in structured subdirectories with master loader
 - **WordPress Native**: Full compliance with WordPress coding standards
-- **Performance Focused**: Conditional asset loading, optimized queries, font inheritance
-- **Text Domain Migration**: Complete migration from `generatepress_child` to `extra-chill-community`
+- **Performance Focused**: Conditional asset loading, dynamic versioning, modular CSS
+- **Cross-Domain Ready**: Session token system for seamless authentication across domains
 
 ## License
 

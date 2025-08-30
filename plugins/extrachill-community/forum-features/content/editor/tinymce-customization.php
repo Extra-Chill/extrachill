@@ -30,7 +30,7 @@ function bbp_customize_tinymce_buttons($buttons) {
     // This filter runs AFTER other filters like the one adding the custom image button.
     // We want to define the *exact* set of buttons for bbPress editors here.
     // Apply to bbPress pages OR single band profile pages
-    if ( (function_exists('is_bbpress') && is_bbpress()) || is_singular('band_profile') ) {
+    if ( (function_exists('is_bbpress') && is_bbpress()) || is_singular('artist_profile') ) {
         // Define the desired button array for bbPress editors.
         // Ensure 'image' (our custom one) is included if desired.
         $desired_buttons = array(

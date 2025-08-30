@@ -1,9 +1,17 @@
 <?php
+/**
+ * Quote Notification System
+ * 
+ * Handles notifications when users are quoted in forum posts.
+ * Manages AJAX quote processing and user notification delivery.
+ * 
+ * @package ExtraChillCommunity
+ */
 
 add_action('wp_ajax_notify_quoted_user', 'handle_quote_notification');
 
 function handle_quote_notification() {
-    // Security check
+    // Verify nonce for security
     check_ajax_referer('extrachill_quote_nonce_' . $_POST['post_id'], 'nonce');
 
     $quoted_user_id = isset($_POST['quoted_user_id']) ? intval($_POST['quoted_user_id']) : 0;

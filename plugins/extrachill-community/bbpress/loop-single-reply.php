@@ -19,7 +19,6 @@
                 <span class="upvote-icon" 
                       data-post-id="<?php echo esc_attr($reply_id); ?>" 
                       data-type="reply" 
-                      data-nonce="<?php echo esc_attr(wp_create_nonce('upvote_nonce')); ?>"
                       <?php if (!empty($main_site_post_id)) echo 'data-main-site-post-id="' . esc_attr($main_site_post_id) . '"'; ?>>
                     <i class="<?php echo esc_attr($icon_class); ?> fa-circle-up"></i>
                 </span>

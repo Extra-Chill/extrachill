@@ -1,5 +1,45 @@
 /* --- Reply Card & Sidebar Profile Styles – Using Centralized Variables --- */
 
+/* Content Truncation Styles for Recent Activity Feed */
+.reply-content-truncated {
+    position: relative;
+}
+
+.reply-content-truncated .content-full.collapsed {
+    height: 0;
+    overflow: hidden;
+    transition: height 0.3s ease-in-out;
+}
+
+.reply-content-truncated .content-full.expanded {
+    height: auto;
+    overflow: visible;
+}
+
+.read-more-toggle {
+    background: none;
+    border: none;
+    color: var(--accent);
+    cursor: pointer;
+    font-size: 0.9em;
+    font-weight: 500;
+    margin-top: 0.5rem;
+    padding: 0;
+    text-decoration: underline;
+    transition: color 0.2s ease;
+}
+
+.read-more-toggle:hover {
+    color: var(--accent-2);
+    text-decoration: none;
+}
+
+.read-more-toggle:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+    border-radius: 2px;
+}
+
 /* Reply Card Styles */
 .bbp-reply-card {
     background: var(--card-background);

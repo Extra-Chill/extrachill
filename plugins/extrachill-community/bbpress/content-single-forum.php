@@ -35,14 +35,14 @@ defined( 'ABSPATH' ) || exit;
 
 		<?php
 		// --- START Custom Logic for Forum 5432 / Standard Forums ---
-		$band_directory_forum_id = 5432;
+		$artist_directory_forum_id = 5432;
 		$current_forum_id = bbp_get_forum_id();
 
-		if ( $current_forum_id === $band_directory_forum_id ) {
+		if ( $current_forum_id === $artist_directory_forum_id ) {
 
 			// --- Display for Band Directory Forum (ID: 5432) ---
-			// Load our custom template part for band profiles, bypassing bbp_has_topics()
-			bbp_get_template_part( 'loop', 'band-profiles' );
+			// Load our custom template part for artist profiles, bypassing bbp_has_topics()
+			bbp_get_template_part( 'loop', 'artist-profiles' );
 			
 			// Do NOT display the standard "Create New Topic" form here by default
 			// It could be added back conditionally if needed: 

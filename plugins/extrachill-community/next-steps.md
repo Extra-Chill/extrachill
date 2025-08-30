@@ -1,13 +1,12 @@
 ## Priority Issues
 
 ### Critical Bugs
-- **Blank Link Pages**: Debug excessive band link page creation and add admin viewing paths
 - **bbPress Styling**: Fix reply edit form and author display after stylesheet removal
 - **Editor Preview**: Align visual editor with frontend display (blockquote styling mismatch)
 
 ### User Experience  
 - **Auto oEmbed**: Convert bare YouTube/Spotify URLs to embeds via content filters
-- **Social Icons**: Standardize icon display across link page, band profile, and editing interface
+- **Social Icons**: Standardize icon display across user profiles and editing interface
 
 ### Developer Experience
 - **Code Organization**: Continue cleanup of disorganized files and dead code

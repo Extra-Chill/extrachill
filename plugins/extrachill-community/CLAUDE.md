@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a **standalone WordPress theme** called "Extra Chill Community" hosting the **ExtraChill** community platform - a comprehensive band platform and link page management system for musicians. The project serves a music community across multiple domains with seamless cross-domain authentication.
+This is a **WordPress theme** called "Extra Chill Community" for the **ExtraChill** community platform - a music community with comprehensive forum enhancements and cross-domain authentication. The theme focuses purely on community and forum functionality. Artist profile and link page features have been fully migrated to the `extrachill-artist-platform` plugin.
 
 **Theme Information:**
 - **Name**: Extra Chill Community
@@ -19,29 +19,25 @@ This is a **standalone WordPress theme** called "Extra Chill Community" hosting 
 
 ## KNOWN ISSUES
 
-**PSR-4 Implementation**: Composer autoloader configured for `Chubes\Extrachill\` namespace but no `src/` directory structure exists for custom classes.
+**PSR-4 Implementation**: Composer autoloader configured for `Chubes\Extrachill\` namespace. The `src/` directory exists but is currently empty (contains only .gitkeep).
 
 ## FUTURE PLANS
 
-**PSR-4 Architecture**: Implement proper `src/` directory structure for object-oriented class organization.
+**PSR-4 Architecture**: Implement proper `src/` directory structure with classes to replace procedural patterns in forum features.
 
 **Performance Optimization**: Continue modular CSS/JS loading refinements and font system improvements.
 
 ## Key Domains & Architecture
 
-- `community.extrachill.com` - Main platform (WordPress/bbPress)
-- `extrachill.link` - Public link pages ("link in bio" service)
-- `extrch.co` - Short domain variant
-- `extrachill.com` - Main website
+- `community.extrachill.com` - Main platform (WordPress/bbPress) **[This theme]**
+- `extrachill.com` - Main website **[Cross-domain integration]**
 
 ## Core Features
 
-1. **Band Platform** - Custom `band_profile` CPT with automatic bbPress forum creation
-2. **Link Page System** - Customizable "link in bio" service (`band_link_page` CPT) with live preview
-3. **Cross-Domain Authentication** - Session token system across all ExtraChill domains
-4. **Forum Features** - Comprehensive bbPress extensions (45+ organized features)
-5. **Analytics & Tracking** - Link page analytics with click tracking and QR codes
-6. **Social Features** - User interactions, following system, reputation system
+1. **Forum Features** - Comprehensive bbPress extensions (38+ organized features)
+2. **Cross-Domain Authentication** - Session token system across all ExtraChill domains  
+3. **Social Features** - User interactions, following system, reputation system within forums
+4. **Community Templates** - Custom bbPress templates and page templates for community functionality
 
 ## Development Setup
 
@@ -73,17 +69,12 @@ composer install
 - **Widget Areas**: Custom sidebar plus 5 footer widget areas with proper escaping and structure
 - **Asset Management**: Conditional CSS/JS loading with dynamic versioning using `filemtime()`
 - **Template Hierarchy**: Includes required `index.php` template file as fallback
-- **Code Organization**: Features organized in `band-platform/` directory with centralized includes
+- **Code Organization**: Forum features organized in `forum-features/` directory with master loader
 - **bbPress Integration**: Custom bbPress stylesheet dequeuing (`wp_dequeue_style('bbp-default')`) to prevent conflicts
 - **Independent Templates**: All page templates use native WordPress theme structure without external dependencies
 
-### 2. Single Source of Truth
-- **Link Page Rendering**: `band-platform/extrch.co-link-page/extrch-link-page-template.php` is canonical template
-- **Data Provider**: `band-platform/extrch.co-link-page/data/LinkPageDataProvider.php` handles all data operations
-- **CSS Variables**: Style tag in DOM is sole source of truth for live preview
-
-### 3. Cross-Domain Session Management
-- **Session Tokens**: Custom `wp_user_session_tokens` table with 6-month expiration
+### 2. Cross-Domain Session Management
+- **Session Tokens**: Custom `user_session_tokens` table (with wp_ prefix) with 6-month expiration
 - **Cookie Domain**: `.extrachill.com` covers all subdomains
 - **Auto-Login**: Triggered via `auto_login_via_session_token()`
 
@@ -96,51 +87,46 @@ composer install
 
 ### Forum Features System
 - `forum-features/forum-features.php` - Master loader for all forum functionality
-- `forum-features/admin/` - Moderation, management, notifications (9 features)
-- `forum-features/content/` - Embeds, editor, queries, processing (13 features)
-- `forum-features/social/` - Interactions, following, reputation (7 features)
-- `forum-features/users/` - Profiles, settings, verification (5 features)
-
-### Band Platform Core
-- `band-platform/cpt-band-profile.php` - Band profile custom post type
-- `band-platform/band-forums.php` - Automatic forum creation and management
-- `band-platform/band-platform-includes.php` - Centralized feature includes
-
-### Link Page System
-- `band-platform/extrch.co-link-page/extrch-link-page-template.php` - Canonical template
-- `band-platform/extrch.co-link-page/data/LinkPageDataProvider.php` - Single source of truth
-- `band-platform/extrch.co-link-page/live-preview/` - Real-time preview system
-- `single-band_link_page.php` - Public link page display
+- `forum-features/admin/` - Moderation, management, notifications
+- `forum-features/content/` - Embeds, editor, queries, processing
+- `forum-features/social/` - Interactions, following, reputation
+- `forum-features/users/` - Profiles, settings, verification
 
 ### Page Templates
+- `page-templates/following-feed-template.php` - User following feed
+- `page-templates/leaderboard-template.php` - User leaderboard
 - `page-templates/login-register-template.php` - Authentication with join flow modal
-- `page-templates/manage-band-profile.php` - Band management interface
-- `page-templates/manage-link-page.php` - Link page management
-- `page-templates/settings-page.php` - User settings management
-- `page-templates/notifications-feed.php` - Notifications system
+- `page-templates/main-blog-comments-feed.php` - Cross-domain blog comments
+- `page-templates/notifications-feed.php` - User notifications system
+- `page-templates/recent-feed-template.php` - Recent community activity
+- `page-templates/settings-page.php` - User account settings
 
 ### Authentication & Integration
 - `extrachill-integration/session-tokens.php` - Cross-domain session management
 - `extrachill-integration/validate-session.php` - Token validation
 - `extrachill-integration/seamless-comments.php` - Cross-domain commenting
 - `login/register.php` - Registration system with email verification
+- `login/login.php` - Custom login system
+- `login/login-includes.php` - Login system includes
+- `login/email-change-emails.php` - Email change functionality
 
-### Forum Features Architecture
-- **Organized Structure**: All forum functionality in `forum-features/` with logical subdirectories
-- **Admin Features**: Moderation, forum management, email notifications (`admin/`)
-- **Content Features**: Embeds, editor customization, queries, processing (`content/`)
-- **Social Features**: Interactions, following system, reputation (`social/`)
-- **User Features**: Profiles, settings, verification (`users/`)
-- **Asset Organization**: JavaScript and CSS organized within feature subdirectories
+### Forum Features Architecture (38+ Features Total)
+- **Admin Features** (9): Moderation, forum management, email notifications (`admin/`)
+- **Content Features** (13): Embeds, editor customization, queries, processing (`content/`)
+- **Social Features** (10): Following, upvoting, notifications, mentions, rank system (`social/`)
+- **User Features** (6): Profiles, avatars, verification, settings (`users/`)
+- **Master Loader**: `forum-features/forum-features.php` loads all functionality with comprehensive documentation
+- **Asset Organization**: JavaScript (4 files) and CSS organized within feature subdirectories
 
-### JavaScript Architecture
+### JavaScript Architecture (17 total files: 13 in js/ + 4 in forum-features)
 - **Core Utilities**: `js/utilities.js` - Shared functionality across components
-- **Social Features**: `forum-features/social/js/extrachill-follow.js`, `extrachill-mentions.js` - User interaction systems
-- **Forum Enhancements**: `forum-features/social/js/upvote.js` - bbPress extensions
-- **UI Components**: `js/shared-tabs.js`, `nav-menu.js` - Interface elements
-- **Form Management**: `js/manage-band-profiles.js`, `manage-user-profile-links.js` - Data handling
-- **Content Systems**: `js/sorting.js`, `home-collapse.js` - Dynamic content management
-- **Cross-Domain**: `js/seamless-login.js`, `seamless-comments.js` - Authentication integration
+- **Social Features**: `forum-features/social/js/` (4 files) - Following, mentions, upvoting, admin tools
+- **Forum Enhancements**: `js/quote.js`, `topic-quick-reply.js`, `tinymce-image-upload.js` - bbPress editor extensions
+- **UI Components**: `js/shared-tabs.js`, `nav-menu.js`, `home-collapse.js` - Interface elements
+- **User Management**: `js/custom-avatar.js`, `manage-user-profile-links.js` - User profile functionality
+- **Authentication**: `js/seamless-login.js`, `seamless-comments.js` - Cross-domain integration
+- **Content Systems**: `js/sorting.js`, `submit-community-comments.js` - Dynamic content management
+- **Login System**: `login/js/` (2 files) - Authentication UI and join flow
 
 ### Asset Enqueuing System
 - **Main Stylesheet**: `extra-chill-community-style` - Primary theme styles with root CSS import system
@@ -148,7 +134,7 @@ composer install
 - **Modular CSS**: Context-specific loading via `modular_bbpress_styles()` function
 - **Font System**: Custom WilcoLoftSans and Lobster font-face declarations with inheritance optimization
 - **Content Width**: Responsive overrides with flex-wrap patterns for mobile optimization
-- **JavaScript Assets**: 45+ specialized JS files including utilities, social features, forum enhancements, media upload, and comprehensive link page management system
+- **JavaScript Assets**: 17 specialized JS files including utilities, social features, forum enhancements, and media upload
 - **External Dependencies**: FontAwesome 6.5.1 via CDN
 - **Dynamic Versioning**: All assets use `filemtime()` for cache busting
 - **Conditional Loading**: Context-aware asset loading for optimal performance
@@ -166,11 +152,11 @@ composer install
 7. **Navigation System** - 7 registered navigation menu areas with proper escaping and text domain support
 8. **Performance Optimization** - Font inheritance system, responsive overrides, and selective script loading
 
-### Data Flow Principles
-1. **PHP renders initial state** from database
-2. **JavaScript listens for changes** and updates preview
-3. **DOM serves as single source** of truth during editing
-4. **Hidden inputs updated only before save** for PHP processing
+### Forum Features Architecture
+1. **Master Loader** - `forum-features/forum-features.php` loads all forum functionality
+2. **Organized Structure** - Features grouped by functionality (admin, content, social, users)
+3. **Conditional Loading** - Context-aware CSS/JS loading for performance
+4. **bbPress Integration** - Custom templates and hooks for enhanced functionality
 
 ### Code Patterns
 - **WordPress Coding Standards** - Full compliance with theme development best practices
@@ -185,49 +171,46 @@ composer install
 - **Performance Focus** - Modular CSS/JS loading, font optimization, and responsive design patterns
 
 ### JavaScript Architecture Principles
-- **Modular Design** - 45+ specialized JS files for specific functionality domains
-- **jQuery Dependencies** - Proper dependency management across all custom scripts
-- **DOM-Based State** - No persistent JavaScript state, always read from DOM
-- **Conditional Loading** - Context-aware script enqueuing for performance
-- **Legacy Management** - Deprecated scripts maintained for backward compatibility
+- **Modular Design** - 17 specialized JS files for specific functionality domains
+- **jQuery Dependencies** - Proper dependency management across all custom scripts  
+- **Context-Aware Loading** - Conditional script enqueuing based on page template/context
 - **Cross-Domain Integration** - Seamless login and comment systems across domains
 - **Dynamic Versioning** - `filemtime()` versioning for cache busting
+- **Forum Integration** - Custom bbPress enhancements for editor, social features, and UI
 
 ## Dependencies
 
 ### PHP
-- **WordPress** (with bbPress)
-- **QR Code Generation**: `endroid/qr-code` ^6.0
-- **Custom Classes**: Autoloaded via Composer PSR-4
+- **WordPress** 5.0+ (with bbPress required)
+- **Composer Dependencies**: QR code generation (`endroid/qr-code`) and PSR-4 autoloading configured
 
 ### JavaScript
 - **Direct File Inclusion** - No build system, direct file loading
 - **jQuery Dependencies** - All custom scripts depend on jQuery
-- **45+ Specialized Files** - Modular architecture with specific functionality domains
+- **17 Specialized Files** - Modular architecture with specific functionality domains
 - **FontAwesome** 6.5.1 via CDN
 - **Dynamic Versioning** - `filemtime()` cache busting
 
 ## Database Tables
 
 ### Custom Tables
-- `wp_user_session_tokens` - Cross-domain authentication
-- `wp_band_subscribers` - Email consent management
-- `wp_link_page_analytics` - Link click tracking
+- `user_session_tokens` (with wp_ prefix) - Cross-domain authentication
 
 ### Key Meta Fields
-- `_band_profile_ids` - User to band associations
-- `_link_page_custom_css_vars` - Link page customizations and styling
-- `_bbp_forum_section` - Forum categorization (top/middle/bottom)
-- `_band_subscribers` - Email subscriber consent tracking
+- `_show_on_homepage` - Boolean meta field controlling forum display on homepage
+- `_user_profile_dynamic_links` - User profile social links
+- `ec_custom_title` - User custom titles (default: 'Extra Chillian')
 
 ## Current Status
 
-The platform operates as a production WordPress theme serving the ExtraChill community. Core functionality includes band platforms, link page management, cross-domain authentication, and forum integration. All text domain references have been successfully migrated from `generatepress_child` to `extra-chill-community`.
+The theme operates as a production WordPress theme serving the ExtraChill community. Core functionality includes forum enhancements, cross-domain authentication, and bbPress integration. All text domain references have been successfully migrated from `generatepress_child` to `extra-chill-community`. 
+
+**Migration Complete**: All artist platform functionality (band profiles, link pages, CPTs, admin interfaces, data management) has been completely removed from the theme and migrated to the `extrachill-artist-platform` plugin. The theme now focuses exclusively on community forum features.
 
 ## Cross-Domain Authentication Flow
 
 1. User logs in on any domain via REST API
-2. Session token generated in `wp_user_session_tokens`
+2. Session token generated in `user_session_tokens` (with wp_ prefix)
 3. Cookie set for `.extrachill.com` domain
 4. Auto-login triggered on subsequent visits
 5. External requests validated using Authorization header

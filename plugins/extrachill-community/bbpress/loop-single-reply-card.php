@@ -41,7 +41,6 @@ defined( 'ABSPATH' ) || exit;
                         <span class="upvote-icon"
                               data-post-id="<?php echo esc_attr($reply_id); ?>"
                               data-type="reply"
-                              data-nonce="<?php echo esc_attr(wp_create_nonce('upvote_nonce')); ?>"
                               <?php if (!empty($main_site_post_id)) echo 'data-main-site-post-id="' . esc_attr($main_site_post_id) . '"'; ?>>
                             <i class="<?php echo esc_attr($icon_class); ?> fa-circle-up"></i>
                         </span>
@@ -179,7 +178,7 @@ if ( $is_lead_topic ) {
                     </div>
                 </div><!-- .author-header-column -->
 
-                <?php if ( bbp_is_single_user_replies() ) : ?>
+                <?php if ( bbp_is_single_user_replies() || is_page_template('page-templates/recent-feed-template.php') ) : ?>
                     <span class="bbp-header">
                         <?php esc_html_e( 'in reply to: ', 'bbpress' ); ?>
                         <a class="bbp-topic-permalink" href="<?php bbp_topic_permalink( bbp_get_reply_topic_id() ); ?>">
@@ -195,7 +194,33 @@ if ( $is_lead_topic ) {
         <div class="bbp-reply-content-area">
             <div class="bbp-reply-content" data-reply-id="<?php bbp_reply_id(); ?>">
                 <?php do_action( 'bbp_theme_before_reply_content' ); ?>
-                <?php bbp_reply_content(); ?>
+                <?php 
+                // Content truncation for recent activity feed
+                if ( is_page_template('page-templates/recent-feed-template.php') ) {
+                    $content = bbp_get_reply_content();
+                    $content_length = strlen( strip_tags( $content ) );
+                    $truncate_length = 400;
+                    
+                    if ( $content_length > $truncate_length ) {
+                        $reply_id = bbp_get_reply_id();
+                        // Show truncated version with expand functionality
+                        echo '<div class="reply-content-truncated" id="content-' . $reply_id . '">';
+                        echo '<div class="content-preview">' . wp_trim_words( $content, 50, '...' ) . '</div>';
+                        echo '<div class="content-full collapsed" style="height: 0; overflow: hidden;">' . $content . '</div>';
+                        echo '<button class="read-more-toggle" onclick="toggleContentExpansion(' . $reply_id . ', this)">';
+                        echo '<span class="read-more-text">Read More</span>';
+                        echo '<span class="read-less-text" style="display: none;">Read Less</span>';
+                        echo '</button>';
+                        echo '</div>';
+                    } else {
+                        // Content is short enough, show normally
+                        bbp_reply_content();
+                    }
+                } else {
+                    // Not on recent activity feed, show content normally
+                    bbp_reply_content();
+                }
+                ?>
                 <?php do_action( 'bbp_theme_after_reply_content' ); ?>
 
             </div><!-- .bbp-reply-content -->

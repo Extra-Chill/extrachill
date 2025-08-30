@@ -1,4 +1,12 @@
 <?php
+/**
+ * Topic Sorting System
+ * 
+ * AJAX-powered sorting and filtering for forum topics with search capability.
+ * Provides dynamic content updates without page refreshes.
+ * 
+ * @package ExtraChillCommunity
+ */
 
 // Enqueue sorting script
 function enqueue_sorting_script() {
@@ -11,7 +19,9 @@ function enqueue_sorting_script() {
     ]);
 }
 // add_action('wp_enqueue_scripts', 'enqueue_sorting_script');
-// AJAX handler for sorting and searching topics
+/**
+ * AJAX handler for topic sorting and search
+ */
 function extrachill_ajax_search() {
     check_ajax_referer('extrachill_sort_nonce', 'nonce');
 

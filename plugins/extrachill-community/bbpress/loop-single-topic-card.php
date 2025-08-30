@@ -36,8 +36,7 @@ defined( 'ABSPATH' ) || exit;
                         <div class="upvote">
                             <span class="upvote-icon" 
                                   data-post-id="<?php echo esc_attr($topic_id); ?>" 
-                                  data-type="topic" 
-                                  data-nonce="<?php echo esc_attr(wp_create_nonce('upvote_nonce')); ?>">
+                                  data-type="topic">
                                 <i class="<?php echo esc_attr($icon_class); ?> fa-circle-up"></i>
                             </span>
                             <span class="upvote-count"><?php echo esc_html($display_upvote_count); ?></span>

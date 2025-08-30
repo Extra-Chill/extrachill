@@ -1,6 +1,13 @@
 <?php
-
-// session-tokens.php contains various functons related to session management and seamless integration of extrachill.com and community.extrachill.com. the code lives on community.extrachill.com
+/**
+ * Cross-Domain Session Management
+ * 
+ * Manages secure session tokens for seamless authentication across
+ * extrachill.com and community.extrachill.com domains. Handles cookie
+ * setting for multiple domains and session validation.
+ * 
+ * @package ExtraChillCommunity
+ */
 
 add_action('wp_login', 'set_ecc_user_logged_in_token', 10, 2);
 function set_ecc_user_logged_in_token($user_login, $user) {
@@ -117,8 +124,9 @@ function create_session_tokens_table() {
     }
 }
 
-// Hook the function to the 'after_switch_theme' action
+// Hook the function to multiple actions to ensure table creation
 add_action('after_switch_theme', 'create_session_tokens_table');
+add_action('init', 'create_session_tokens_table');
 
 
 add_action('init', function() {
@@ -235,14 +243,14 @@ function handle_sync_session_token() {
     header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
     header('Access-Control-Allow-Headers: Content-Type');
     
-    $band_id = isset($_GET['band_id']) ? intval($_GET['band_id']) : 0;
+    $artist_id = isset($_GET['artist_id']) ? intval($_GET['artist_id']) : 0;
     
     // Check if user is logged in on community domain
     if (is_user_logged_in()) {
         $current_user_id = get_current_user_id();
         
         // Check if user can manage this band
-        if ($band_id && current_user_can('manage_band_members', $band_id)) {
+        if ($artist_id && current_user_can('manage_artist_members', $artist_id)) {
             // Force session token creation/refresh for cross-domain access
             if (isset($_COOKIE['ecc_user_session_token'])) {
                 $existing_token = $_COOKIE['ecc_user_session_token'];
@@ -280,5 +288,64 @@ function handle_sync_session_token() {
     } else {
         wp_send_json_error(array('message' => 'Not logged in'));
     }
+}
+
+/**
+ * Invalidate user sessions across domains when email address changes
+ * Called during email change process for security
+ * 
+ * @param int $user_id User ID whose sessions should be invalidated
+ */
+function invalidate_user_sessions_on_email_change( $user_id ) {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'user_session_tokens';
+    
+    // Remove all session tokens for this user from database
+    $deleted = $wpdb->delete(
+        $table_name,
+        array( 'user_id' => $user_id ),
+        array( '%d' )
+    );
+    
+    // Clear cookies on both domains by setting expired cookies
+    $past_time = time() - 3600; // 1 hour in the past
+    
+    // Clear .extrachill.com domain cookies
+    $cookie_params = [
+        'expires' => $past_time,
+        'path' => '/',
+        'domain' => '.extrachill.com',
+        'secure' => true,
+        'httponly' => false,
+        'samesite' => 'None'
+    ];
+    setcookie('ecc_user_session_token', '', $cookie_params);
+    
+    // Clear .extrachill.link domain cookies  
+    $alias_cookie_params = [
+        'expires' => $past_time,
+        'path' => '/',
+        'domain' => '.extrachill.link',
+        'secure' => true,
+        'httponly' => false,
+        'samesite' => 'None'
+    ];
+    setcookie('ecc_user_session_token', '', $alias_cookie_params);
+    
+    // Clear root extrachill.link cookies
+    $root_cookie_params = [
+        'expires' => $past_time,
+        'path' => '/',
+        'domain' => 'extrachill.link',
+        'secure' => true,
+        'httponly' => false,
+        'samesite' => 'None'
+    ];
+    setcookie('ecc_user_session_token', '', $root_cookie_params);
+    
+    // Log the session invalidation for debugging
+    error_log( "Invalidated {$deleted} session tokens for user {$user_id} due to email change" );
+    
+    return $deleted;
 }
 

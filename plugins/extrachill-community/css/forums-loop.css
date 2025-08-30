@@ -263,7 +263,7 @@
     height: 20px;
     width: 20px;
 }
-.bbp-forum-band-directory{
+.bbp-forum-artist-directory{
     border: 1px solid var(--accent-2);
     /* Subtle glow using the accent-2 color. Adjust spread and opacity as needed. */
     /* Parameters: offset-x | offset-y | blur-radius | spread-radius | color */
@@ -279,14 +279,14 @@
 
 .top-container,
 .middle-container,
-.band-platform-container {
+.artist-platform-container {
     overflow: hidden;
     transition: height 0.3s ease-in-out;
 }
 
 .top-container.collapsed,
 .middle-container.collapsed,
-.band-platform-container.collapsed {
+.artist-platform-container.collapsed {
     height: 0 !important;
 }
 
@@ -294,14 +294,14 @@
    Band Platform Homepage Section Styles
    =============================================== */
 
-.band-platform-homepage-grid {
+.artist-platform-homepage-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
     gap: 16px;
     margin: 16px 0;
 }
 
-.band-homepage-card {
+.artist-homepage-card {
     background: var(--card-background);
     border: 1px solid var(--border-color);
     border-radius: 8px;
@@ -310,13 +310,13 @@
     position: relative;
 }
 
-.band-homepage-card:hover {
+.artist-homepage-card:hover {
     border-color: var(--accent);
     box-shadow: var(--card-hover-shadow);
     transform: translateY(-1px);
 }
 
-.band-homepage-card-link {
+.artist-homepage-card-link {
     text-decoration: none;
     color: inherit;
     display: flex;
@@ -324,7 +324,7 @@
     gap: 16px;
 }
 
-.band-homepage-avatar {
+.artist-homepage-avatar {
     flex-shrink: 0;
     width: 50px;
     height: 50px;
@@ -337,18 +337,18 @@
     border: 1px solid var(--border-color);
 }
 
-.band-homepage-pic {
+.artist-homepage-pic {
     width: 100%;
     height: 100%;
     object-fit: cover;
 }
 
-.band-homepage-info {
+.artist-homepage-info {
     flex: 1;
     min-width: 0;
 }
 
-.band-homepage-name {
+.artist-homepage-name {
     margin: 0 0 6px 0;
     font-size: 16px;
     font-weight: 600;
@@ -359,29 +359,29 @@
     white-space: nowrap;
 }
 
-.band-homepage-genre,
-.band-homepage-activity,
-.band-homepage-views {
+.artist-homepage-genre,
+.artist-homepage-activity,
+.artist-homepage-views {
     margin: 4px 0;
     font-size: 13px;
     color: var(--muted-text);
     line-height: 1.5;
 }
 
-.band-homepage-activity i,
-.band-homepage-views i {
+.artist-homepage-activity i,
+.artist-homepage-views i {
     margin-right: 6px;
     width: 14px;
 }
 
 /* Latest Topic Section - Separate from main info */
-.band-homepage-latest-topic-section {
+.artist-homepage-latest-topic-section {
     border-top: 1px solid var(--border-color);
     margin-top: 12px;
     padding-top: 8px;
 }
 
-.band-homepage-latest-topic {
+.artist-homepage-latest-topic {
     display: flex;
     align-items: center;
     gap: 6px;
@@ -389,13 +389,13 @@
     color: var(--muted-text);
 }
 
-.band-homepage-latest-topic i {
+.artist-homepage-latest-topic i {
     margin-right: 0;
     width: 12px;
     flex-shrink: 0;
 }
 
-.band-homepage-latest-topic .latest-topic-link {
+.artist-homepage-latest-topic .latest-topic-link {
     color: var(--link-color);
     text-decoration: none;
     font-weight: 500;
@@ -405,12 +405,12 @@
     flex: 1;
 }
 
-.band-homepage-latest-topic .latest-topic-link:hover {
+.artist-homepage-latest-topic .latest-topic-link:hover {
     text-decoration: underline;
     color: var(--button-hover-bg);
 }
 
-.band-platform-homepage-footer {
+.artist-platform-homepage-footer {
     display: flex;
     gap: 12px;
     margin-top: 20px;
@@ -420,8 +420,8 @@
     flex-wrap: wrap;
 }
 
-.band-platform-view-all,
-.band-platform-manage {
+.artist-platform-view-all,
+.artist-platform-manage {
     padding: 8px 16px;
     border-radius: 6px;
     text-decoration: none;
@@ -430,55 +430,55 @@
     transition: all 0.2s ease;
 }
 
-.band-platform-view-all {
+.artist-platform-view-all {
     background: var(--button-bg);
     color: white;
     border: 2px solid var(--button-bg);
 }
 
-.band-platform-view-all:hover {
+.artist-platform-view-all:hover {
     background: var(--button-hover-bg);
     border-color: var(--button-hover-bg);
 }
 
-.band-platform-manage {
+.artist-platform-manage {
     background: transparent;
     color: var(--button-bg);
     border: 2px solid var(--button-bg);
 }
 
-.band-platform-manage:hover {
+.artist-platform-manage:hover {
     background: var(--button-bg);
     color: white;
 }
 
 /* Mobile responsive for Band Platform */
 @media (max-width: 768px) {
-    .band-platform-homepage-grid {
+    .artist-platform-homepage-grid {
         grid-template-columns: 1fr;
         gap: 12px;
     }
     
-    .band-homepage-card {
+    .artist-homepage-card {
         padding: 16px;
     }
     
-    .band-homepage-latest-topic-section {
+    .artist-homepage-latest-topic-section {
         margin-top: 8px;
         padding-top: 6px;
     }
     
-    .band-homepage-latest-topic {
+    .artist-homepage-latest-topic {
         font-size: 11px;
     }
     
-    .band-platform-homepage-footer {
+    .artist-platform-homepage-footer {
         flex-direction: column;
         align-items: center;
     }
     
-    .band-platform-view-all,
-    .band-platform-manage {
+    .artist-platform-view-all,
+    .artist-platform-manage {
         width: 100%;
         text-align: center;
         max-width: 200px;
@@ -489,21 +489,21 @@
    Band Directory Page Styles
    =============================================== */
 
-.band-directory-header {
+.artist-directory-header {
     text-align: center;
     margin-bottom: 32px;
     padding: 24px 0;
     border-bottom: 1px solid var(--border-color);
 }
 
-.band-directory-header .page-title {
+.artist-directory-header .page-title {
     margin: 0 0 12px 0;
     font-size: 2.5rem;
     font-weight: 700;
     color: var(--text-color);
 }
 
-.band-directory-header .page-description {
+.artist-directory-header .page-description {
     font-size: 1.1rem;
     color: var(--muted-text);
     margin: 0 0 20px 0;
@@ -512,26 +512,26 @@
     margin-right: auto;
 }
 
-.band-directory-actions {
+.artist-directory-actions {
     margin-top: 16px;
 }
 
-.band-directory-wrapper {
+.artist-directory-wrapper {
     margin-top: 24px;
 }
 
 /* Band Directory Page Mobile Responsive */
 @media (max-width: 768px) {
-    .band-directory-header .page-title {
+    .artist-directory-header .page-title {
         font-size: 2rem;
     }
     
-    .band-directory-header .page-description {
+    .artist-directory-header .page-description {
         font-size: 1rem;
         padding: 0 16px;
     }
     
-    .band-directory-header {
+    .artist-directory-header {
         padding: 16px 0;
     }
 }

@@ -1,5 +1,12 @@
 <?php
-// Custom embed handler for Bandcamp
+/**
+ * Bandcamp Embed Handler
+ * 
+ * Automatically converts Bandcamp URLs into embedded players by parsing
+ * page metadata and generating proper embed iframe code.
+ * 
+ * @package ExtraChillCommunity
+ */
 function custom_bandcamp_embed_handler($matches, $attr, $url, $rawattr) {
     // Fetch the Bandcamp page content
     $response = wp_remote_get($matches[0]);

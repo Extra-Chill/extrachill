@@ -131,59 +131,59 @@ defined( 'ABSPATH' ) || exit;
 			</div>
 
 			<div class="form-group">
-				<label for="band_name"><?php esc_html_e('Band Name(s)', 'bbpress'); ?></label>
-				<input type="text" name="band_name" id="band_name" value="<?php echo esc_attr(get_user_meta(bbp_get_displayed_user_id(), 'band_name', true)); ?>" class="regular-text" placeholder="<?php esc_attr_e('Your band names...', 'bbpress'); ?>"/>
+				<label for="artist_name"><?php esc_html_e('Band Name(s)', 'bbpress'); ?></label>
+				<input type="text" name="artist_name" id="artist_name" value="<?php echo esc_attr(get_user_meta(bbp_get_displayed_user_id(), 'artist_name', true)); ?>" class="regular-text" placeholder="<?php esc_attr_e('Your band names...', 'bbpress'); ?>"/>
 			</div>
 			-->
 
 			<!-- Your Band Profiles Section -->
 			<div class="form-group your-bands-section">
-				<h4 class="entry-title"><?php esc_html_e( 'Your Band Profiles', 'extra-chill-community' ); ?></h4>
-				<p><?php esc_html_e( 'Manage your band\'s presence, showcase music, share stories, and connect with fans.', 'extra-chill-community'); ?></p>
+				<h4 class="entry-title"><?php esc_html_e( 'Your Artist Profiles', 'extra-chill-community' ); ?></h4>
+				<p><?php esc_html_e( 'Manage your artist\'s presence, showcase music, share stories, and connect with fans.', 'extra-chill-community'); ?></p>
 				<?php
 				$user_id = bbp_get_displayed_user_id();
-				$band_profile_ids = get_user_meta( $user_id, '_band_profile_ids', true );
-				$manage_page_url = get_permalink( get_page_by_path( 'manage-band-profile' ) ); // Assuming page slug is 'manage-band-profile'
+				$artist_profile_ids = get_user_meta( $user_id, '_artist_profile_ids', true );
+				$manage_page_url = get_permalink( get_page_by_path( 'manage-artist-profiles' ) ); // Assuming page slug is 'manage-artist-profiles'
 
-				if ( ! empty( $band_profile_ids ) && is_array( $band_profile_ids ) ) :
+				if ( ! empty( $artist_profile_ids ) && is_array( $artist_profile_ids ) ) :
 					?>
-					<ul class="user-band-list">
+					<ul class="user-artist-list">
 						<?php
-						foreach ( $band_profile_ids as $band_id ) :
-							$band_title = get_the_title( $band_id );
-							$profile_link = get_permalink( $band_id );
-							// $edit_link = $manage_page_url ? add_query_arg( 'band_id', $band_id, $manage_page_url ) : '#'; // Keep edit link logic if needed later
+						foreach ( $artist_profile_ids as $artist_id ) :
+							$artist_title = get_the_title( $artist_id );
+							$profile_link = get_permalink( $artist_id );
+							// $edit_link = $manage_page_url ? add_query_arg( 'artist_id', $artist_id, $manage_page_url ) : '#'; // Keep edit link logic if needed later
 							?>
 							<li>
 								<?php if ( $profile_link ) : ?>
-									<a href="<?php echo esc_url( $profile_link ); ?>"><?php echo esc_html( $band_title ); ?></a>
+									<a href="<?php echo esc_url( $profile_link ); ?>"><?php echo esc_html( $artist_title ); ?></a>
 								<?php else: ?>
-									<?php echo esc_html( $band_title ); ?> (Link unavailable)
+									<?php echo esc_html( $artist_title ); ?> (Link unavailable)
 								<?php endif; ?>
 								<?php /* Remove redundant view/edit links for now
-								(<a href="<?php echo esc_url( get_permalink( $band_id ) ); ?>" target="_blank">View</a>)
+								(<a href="<?php echo esc_url( get_permalink( $artist_id ) ); ?>" target="_blank">View</a>)
 								*/ ?>
 							</li>
 						<?php endforeach; ?>
 					</ul>
                     <?php
 					// Re-check manage_page_url before creating the link
-					$manage_page_check = get_page_by_path( 'manage-band-profiles' );
+					$manage_page_check = get_page_by_path( 'manage-artist-profiles' );
 					$create_url = $manage_page_check ? get_permalink( $manage_page_check->ID ) : '#';
 
                     // Link to create *another* profile
                     if ( $create_url !== '#' ) { // Only show if the manage page exists
-						printf( '<p><a href="%s" class="button">%s</a></p>', esc_url( $create_url ), esc_html__( 'Create Another Band Profile', 'extra-chill-community' ) );
+						printf( '<p><a href="%s" class="button">%s</a></p>', esc_url( $create_url ), esc_html__( 'Create Another Artist Profile', 'extra-chill-community' ) );
 					}
                     ?>
 				<?php else : ?>
-					<p><?php esc_html_e( "You haven't created or joined any band profiles yet.", 'extra-chill-community' ); ?></p>
+					<p><?php esc_html_e( "You haven't created or joined any artist profiles yet.", 'extra-chill-community' ); ?></p>
                     <?php
                     // Link to create the first profile
-					$manage_page_check = get_page_by_path( 'manage-band-profiles' );
+					$manage_page_check = get_page_by_path( 'manage-artist-profiles' );
 					$create_url = $manage_page_check ? get_permalink( $manage_page_check->ID ) : '#';
                     if ( $create_url !== '#' ) { // Only show if the manage page exists
-						printf( '<p><a href="%s" class="button">%s</a></p>', esc_url( $create_url ), esc_html__( 'Create Band Profile', 'extra-chill-community' ) );
+						printf( '<p><a href="%s" class="button">%s</a></p>', esc_url( $create_url ), esc_html__( 'Create Artist Profile', 'extra-chill-community' ) );
 					}
                     ?>
 				<?php endif; ?>

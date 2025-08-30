@@ -1,5 +1,13 @@
 <?php
-// Add custom meta boxes to forum edit screen
+/**
+ * Forum Access Restrictions
+ * 
+ * Adds admin interface for setting forum posting requirements based on
+ * user roles (artists, industry professionals). Controls who can post
+ * in specific forums through custom meta fields.
+ * 
+ * @package ExtraChillCommunity
+ */
 function extrachill_add_requirement_boxes() {
     $requirements = [
         '_require_artist'          => 'Require Artist to Post',

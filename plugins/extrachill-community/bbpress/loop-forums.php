@@ -39,8 +39,6 @@ if ( bbp_is_single_forum() && bbp_has_forums( array( 'post_parent' => bbp_get_fo
     <!-- Most Active Users Section -->
     <?php bbp_get_template_part( 'most-active-users' ); ?>
 
-    <!-- Band Platform Section -->
-    <?php bbp_get_template_part( 'band-platform', 'homepage-section' ); ?>
 
 	<!-- Community Forums Section (Simplified) -->
     <span class="forum-title-with-icon">

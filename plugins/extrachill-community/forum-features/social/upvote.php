@@ -1,14 +1,46 @@
 <?php
-
-// upvote logic for community.extrachill.com
+/**
+ * Upvote System
+ * 
+ * AJAX-based upvoting functionality for forum topics and replies.
+ * Manages vote state, counts, and triggers point calculation hooks.
+ * 
+ * @package ExtraChillCommunity
+ */
 
 function handle_upvote_action() {
-    // Check for nonce for security
-    check_ajax_referer('upvote_nonce', 'nonce');
-
+    // Debug logging for troubleshooting
+    error_log('Upvote AJAX called with data: ' . print_r($_POST, true));
+    
+    // Validate required parameters before nonce check
     $post_id = isset($_POST['post_id']) ? intval($_POST['post_id']) : 0;
-    $type = isset($_POST['type']) ? sanitize_text_field($_POST['type']) : ''; // 'topic' or 'reply'
+    $type = isset($_POST['type']) ? sanitize_text_field($_POST['type']) : '';
     $user_id = get_current_user_id();
+    
+    if (!$post_id) {
+        error_log('Upvote error: No post ID provided');
+        wp_send_json_error(['message' => 'No post ID provided']);
+        return;
+    }
+    
+    if (!$user_id) {
+        error_log('Upvote error: User not logged in');
+        wp_send_json_error(['message' => 'User not logged in']);
+        return;
+    }
+    
+    if (!in_array($type, ['topic', 'reply'])) {
+        error_log('Upvote error: Invalid post type: ' . $type);
+        wp_send_json_error(['message' => 'Invalid post type']);
+        return;
+    }
+
+    // Check for nonce for security
+    if (!check_ajax_referer('upvote_nonce', 'nonce', false)) {
+        error_log('Upvote error: Nonce verification failed');
+        wp_send_json_error(['message' => 'Security check failed']);
+        return;
+    }
 
     if ($post_id && $user_id && ($type === 'topic' || $type === 'reply')) {
         $upvoted_posts = get_user_meta($user_id, 'upvoted_posts', true);

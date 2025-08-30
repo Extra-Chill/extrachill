@@ -40,7 +40,7 @@
   </noscript>
   <!-- End Google Tag Manager (noscript) -->
   
-  <?php if ( function_exists('wp_body_open') ) { wp_body_open(); } ?>
+  <?php wp_body_open(); ?>
 
   <header id="masthead" class="site-header" role="banner">
     <div class="site-branding">
@@ -106,7 +106,6 @@
           <li class="menu-footer-links">
             <a href="https://extrachill.com/about">About</a>
             <a href="https://extrachill.com/contact">Contact</a>
-            <a href="https://extrachill.com/shop">Merch Store</a>
           </li>
         </ul>
       </div>
@@ -121,9 +120,8 @@
   </div>
   <?php
     if ( is_user_logged_in() ) {
-      // Logged-in: output notification bell and user avatar.
-      // Call the function with dummy parameters since it echoes directly
-      extrachill_add_notification_bell_icon('', (object)array());
+      // Logged-in: include notification bell and user avatar template.
+      include get_stylesheet_directory() . '/forum-features/content/notification-bell-avatar.php';
     } else {
       // Not logged in: output login button.
       echo '<div class="auth-buttons">';

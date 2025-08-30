@@ -74,7 +74,6 @@ $display_upvote_count = $upvote_count + 1;
           data-main-site-post-id="<?php echo isset($main_site_post_id) ? esc_attr($main_site_post_id) : ''; ?>" 
           data-forum-id="<?php echo esc_attr($forum_id); ?>" 
           data-type="topic" 
-          data-nonce="<?php echo esc_attr(wp_create_nonce('upvote_nonce')); ?>" 
           role="button" 
           aria-label="Upvote this topic">
         <i class="<?php echo esc_attr($icon_class); ?> fa-circle-up"></i>

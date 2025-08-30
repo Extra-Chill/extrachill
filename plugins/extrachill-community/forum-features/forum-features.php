@@ -79,11 +79,9 @@ include_once get_stylesheet_directory() . '/forum-features/content/footer-functi
 // Social Interactions
 include_once get_stylesheet_directory() . '/forum-features/social/upvote.php';
 include_once get_stylesheet_directory() . '/forum-features/social/user-mention-api.php';
-include_once get_stylesheet_directory() . '/forum-features/social/notifications.php';
 
 // Following System
 include_once get_stylesheet_directory() . '/forum-features/social/following-feed.php';
-include_once get_stylesheet_directory() . '/forum-features/social/band-following.php';
 
 // User Badges & Roles
 include_once get_stylesheet_directory() . '/forum-features/social/forum-badges.php';

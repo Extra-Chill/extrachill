@@ -60,13 +60,13 @@ function extrachill_fetch_homepage_forums() {
 }
 
 /**
- * Fetches all band forum IDs from band_profile CPTs.
+ * Fetches all artist forum IDs from artist_profile CPTs.
  *
- * @return array An array of band forum IDs.
+ * @return array An array of artist forum IDs.
  */
-function extrachill_fetch_all_band_forum_ids() {
-    $all_band_profiles_query = new WP_Query(array(
-        'post_type' => 'band_profile',
+function extrachill_fetch_all_artist_forum_ids() {
+    $all_artist_profiles_query = new WP_Query(array(
+        'post_type' => 'artist_profile',
         'post_status' => 'publish',
         'posts_per_page' => -1,
         'fields' => 'ids',
@@ -75,17 +75,17 @@ function extrachill_fetch_all_band_forum_ids() {
         'update_post_term_cache' => false,
     ));
 
-    $band_forum_ids = array();
-    if ($all_band_profiles_query->have_posts()) {
-        foreach ($all_band_profiles_query->posts as $band_profile_cpt_id) {
-            $forum_id = get_post_meta($band_profile_cpt_id, '_band_forum_id', true);
+    $artist_forum_ids = array();
+    if ($all_artist_profiles_query->have_posts()) {
+        foreach ($all_artist_profiles_query->posts as $artist_profile_cpt_id) {
+            $forum_id = get_post_meta($artist_profile_cpt_id, '_artist_forum_id', true);
             if (!empty($forum_id) && is_numeric($forum_id)) {
-                $band_forum_ids[] = absint($forum_id);
+                $artist_forum_ids[] = absint($forum_id);
             }
         }
     }
     wp_reset_postdata();
-    return array_unique(array_filter($band_forum_ids));
+    return array_unique(array_filter($artist_forum_ids));
 }
 
 /**
@@ -131,10 +131,10 @@ function extrachill_get_recent_topics_for_homepage($count = 3) {
  */
 function fetch_latest_post_info_for_homepage() {
     $homepage_forum_ids = extrachill_fetch_homepage_forums();
-    $band_forum_ids = extrachill_fetch_all_band_forum_ids();
+    $artist_forum_ids = extrachill_fetch_all_artist_forum_ids();
     
     // Combine forum IDs, removing duplicates
-    $all_forum_ids = array_merge($homepage_forum_ids, $band_forum_ids);
+    $all_forum_ids = array_merge($homepage_forum_ids, $artist_forum_ids);
     $all_forum_ids = array_unique(array_filter($all_forum_ids));
 
     if (empty($all_forum_ids)) {

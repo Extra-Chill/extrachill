@@ -6,23 +6,23 @@ jQuery(document).ready(function($) {
         // Don't necessarily return, other scripts might be in this file.
         // Instead, just don't attach the handler.
     } else {
-        // Band Follow Button Click Handler
-        $(document).on('click', '.bp-follow-band-button', function(e) {
+        // Artist Follow Button Click Handler
+        $(document).on('click', '.bp-follow-artist-button', function(e) {
             e.preventDefault(); // Prevent default button action, we'll handle it
 
             var button = $(this);
-            var bandId = button.data('band-id');
+            var artistId = button.data('artist-id');
             var currentAction = button.data('action'); // 'follow' or 'unfollow'
             var nonce = bpFollowData.nonce; // Use nonce from localized data
             var ajaxUrl = bpFollowData.ajaxUrl; // Use AJAX URL from localized data
-            var bandName = button.closest('.band-profile-details, .band-hero-content, .band-card-content').find('.entry-title, .band-hero-title, .band-card-title a').first().text().trim();
-            if (!bandName) {
-                bandName = "this band"; // Fallback band name
+            var artistName = button.closest('.artist-profile-details, .artist-hero-content, .artist-card-content').find('.entry-title, .artist-hero-title, .artist-card-title a').first().text().trim();
+            if (!artistName) {
+                artistName = "this artist"; // Fallback artist name
             }
 
 
-            if (!bandId || !currentAction || !nonce || !ajaxUrl) {
-                console.error('Missing data for follow action', { bandId, currentAction, nonce, ajaxUrl });
+            if (!artistId || !currentAction || !nonce || !ajaxUrl) {
+                console.error('Missing data for follow action', { artistId, currentAction, nonce, ajaxUrl });
                 alert('Could not perform action due to missing data.');
                 return;
             }
@@ -37,8 +37,8 @@ jQuery(document).ready(function($) {
                 button.text(bpFollowData.i18n.processing).prop('disabled', true);
 
                 var ajaxData = {
-                    action: 'bp_toggle_follow_band', // AJAX action
-                    band_id: bandId,
+                    action: 'bp_toggle_follow_artist', // AJAX action
+                    artist_id: artistId,
                     nonce: nonce,
                     // current_action: currentAction // Let backend derive from is_following for robustness
                 };
@@ -58,7 +58,7 @@ jQuery(document).ready(function($) {
                             button.data('action', response.data.new_state === 'following' ? 'unfollow' : 'follow');
                             
                             // Update follower count
-                            var $count = $('#band-follower-count-' + bandId + ', .band-follower-count[data-band-id=\"' + bandId + '\"]');
+                            var $count = $('#artist-follower-count-' + artistId + ', .artist-follower-count[data-artist-id=\"' + artistId + '\"]');
                             if ($count.length && typeof response.data.new_count_formatted !== 'undefined') {
                                 $count.text(response.data.new_count_formatted);
                             }
@@ -99,12 +99,12 @@ jQuery(document).ready(function($) {
                     '<div class="bp-follow-modal-backdrop"></div>' +
                     '<div id="bp-follow-consent-modal" class="bp-modal">' +
                         '<div class="bp-modal-content">' +
-                            '<h3 class="bp-modal-title">Follow ' + bandName + '?</h3>' +
-                            '<p>Following adds this band\'s forum activity to your \'Following Feed\'. Manage all followed bands in your account settings.</p>' +
+                            '<h3 class="bp-modal-title">Follow ' + artistName + '?</h3>' +
+                            '<p>Following adds this artist\'s forum activity to your \'Following Feed\'. Manage all followed artists in your account settings.</p>' +
                             '<div class="bp-modal-consent-option">' +
                                 '<label for="bp_share_email_consent">' +
                                     '<input type="checkbox" id="bp_share_email_consent" name="bp_share_email_consent" checked>' +
-                                    ' Share my email with ' + bandName + ' for their direct updates.' +
+                                    ' Share my email with ' + artistName + ' for their direct updates.' +
                                 '</label>' +
                             '</div>' +
                             '<div class="bp-modal-actions">' +

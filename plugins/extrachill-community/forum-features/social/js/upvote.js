@@ -8,11 +8,12 @@ jQuery(document).ready(function($) {
         var $this = $(this);
         var post_id = $this.data('post-id'); 
         var post_type = $this.data('type');
-        var nonce = $this.data('nonce');
-        var community_user_id = extrachill_ajax.user_id; // Assuming you have the user ID available
+        var nonce = extrachill_ajax.nonce; // Use centralized nonce from wp_localize_script
+        var community_user_id = extrachill_ajax.user_id;
 
         if (!post_id || !nonce || !post_type) {
             console.error('Post ID, nonce, or post type is missing.');
+            console.log('Debug info:', {post_id: post_id, nonce: nonce, post_type: post_type});
             return;
         }
 
