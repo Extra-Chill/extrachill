@@ -4,6 +4,7 @@
  * 
  * Renders notification bell and user avatar in header for logged-in users.
  * Provides caching for notifications to optimize performance.
+ * Uses ec_avatar_menu_items filter to allow plugins to add custom dropdown menu items.
  * 
  * @package ExtraChillCommunity
  * @subpackage ForumFeatures\Content
@@ -58,52 +59,27 @@ $unread_count = count(array_filter($notifications, function ($notification) {
                     <li><a href="<?php echo bbp_get_user_profile_edit_url($current_user_id); ?>">Edit Profile</a></li>
 
                     <?php
-                    // Conditional Band Management Link
-                    $user_artist_ids = get_user_meta( $current_user_id, '_artist_profile_ids', true );
-                    $base_manage_url = home_url( '/manage-artist-profiles/' ); 
-                    $final_manage_url = $base_manage_url;
-
-                    if ( ! empty( $user_artist_ids ) && is_array( $user_artist_ids ) ) {
-                        // User has one or more artist profiles - find the most recently updated one
-                        $latest_artist_id = 0;
-                        $latest_modified_timestamp = 0;
-
-                        foreach ( $user_artist_ids as $artist_id ) {
-                            $artist_id_int = absint($artist_id);
-                            if ( $artist_id_int > 0 ) {
-                                $post_modified_gmt = get_post_field( 'post_modified_gmt', $artist_id_int, 'raw' );
-                                if ( $post_modified_gmt ) {
-                                    $current_timestamp = strtotime( $post_modified_gmt );
-                                    if ( $current_timestamp > $latest_modified_timestamp ) {
-                                        $latest_modified_timestamp = $current_timestamp;
-                                        $latest_artist_id = $artist_id_int;
-                                    }
-                                }
+                    // Apply filter to allow plugins to add custom menu items
+                    $custom_menu_items = apply_filters( 'ec_avatar_menu_items', array(), $current_user_id );
+                    
+                    // Sort menu items by priority
+                    if ( ! empty( $custom_menu_items ) && is_array( $custom_menu_items ) ) {
+                        usort( $custom_menu_items, function( $a, $b ) {
+                            $priority_a = isset( $a['priority'] ) ? (int) $a['priority'] : 10;
+                            $priority_b = isset( $b['priority'] ) ? (int) $b['priority'] : 10;
+                            return $priority_a <=> $priority_b;
+                        });
+                        
+                        // Render custom menu items
+                        foreach ( $custom_menu_items as $menu_item ) {
+                            if ( isset( $menu_item['url'] ) && isset( $menu_item['label'] ) ) {
+                                printf(
+                                    '<li><a href="%s">%s</a></li>',
+                                    esc_url( $menu_item['url'] ),
+                                    esc_html( $menu_item['label'] )
+                                );
                             }
                         }
-
-                        if ( $latest_artist_id > 0 ) {
-                            $final_manage_url = add_query_arg( 'artist_id', $latest_artist_id, $base_manage_url );
-                        }
-                        echo '<li><a href="' . esc_url( $final_manage_url ) . '">' . esc_html__( 'Manage Band(s)', 'extra-chill-community' ) . '</a></li>';
-                    } else {
-                        // User has no artist profiles - Link to Create, if they are an artist OR professional.
-                        $is_artist = get_user_meta( $current_user_id, 'user_is_artist', true );
-                        $is_professional = get_user_meta( $current_user_id, 'user_is_professional', true );
-                        if ( $is_artist === '1' || $is_professional === '1' ) {
-                            echo '<li><a href="' . esc_url( $base_manage_url ) . '">' . esc_html__( 'Create Artist Profile', 'extra-chill-community' ) . '</a></li>';
-                        }
-                    }
-
-                    // Conditional Link Page Management Link
-                    if ( ! empty( $user_artist_ids ) && is_array( $user_artist_ids ) ) {
-                        $base_link_page_manage_url = home_url( '/manage-link-page/' );
-                        $final_link_page_manage_url = $base_link_page_manage_url;
-
-                        if ( $latest_artist_id > 0 ) {
-                            $final_link_page_manage_url = add_query_arg( 'artist_id', $latest_artist_id, $base_link_page_manage_url );
-                        }
-                        echo '<li><a href="' . esc_url( $final_link_page_manage_url ) . '">' . esc_html__( 'Manage Link Page(s)', 'extra-chill-community' ) . '</a></li>';
                     }
                     ?>
 

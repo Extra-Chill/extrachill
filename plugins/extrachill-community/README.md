@@ -33,10 +33,10 @@ extrachill-community/
 ├── page-templates/            # Custom page templates  
 ├── bbpress/                   # bbPress template overrides
 ├── extrachill-integration/    # Cross-domain authentication
-├── forum-features/            # Community forum enhancements (38 features)
+├── forum-features/            # Community forum enhancements
 ├── login/                     # Custom authentication system
 ├── css/                       # Modular stylesheets
-├── js/                        # JavaScript components (13 files)
+├── js/                        # JavaScript components (19 files total)
 ├── fonts/                     # Custom font files
 └── vendor/                    # Composer dependencies
 ```
@@ -45,15 +45,15 @@ extrachill-community/
 
 ### 1. Forum Features System
 
-**38+ Organized Features** in `forum-features/` directory:
+**Organized Feature Architecture** in `forum-features/` directory:
 ```php
 // Master loader
 require_once get_stylesheet_directory() . '/forum-features/forum-features.php';
 
-// Admin features (9): moderation, notifications, forum management
-// Content features (13): embeds, editor customization, breadcrumbs, queries
-// Social features (10): following, upvoting, notifications, mentions, rank system
-// User features (6): custom avatars, profile management, verification, settings
+// Admin features: moderation, notifications, forum management, restricted forums
+// Content features: embeds, editor customization, breadcrumbs, queries, pagination
+// Social features: following, upvoting, notifications, mentions, rank system with points
+// User features: custom avatars, profile management, verification, settings, online tracking
 ```
 
 **bbPress Integration**:
@@ -86,15 +86,32 @@ fetch('/wp-json/extrachill/v1/validate-session', {
 });
 ```
 
-### 3. User Profile Management
+### 3. User Management & Notifications
 
-**Dynamic User Profile Links**:
+**User Profile System**:
 ```php
 // User can add multiple social/music platform links
 $existing_links = get_user_meta($user_id, '_user_profile_dynamic_links', true);
 
 // Supported link types: website, instagram, twitter, facebook, spotify, soundcloud, bandcamp
 // Custom avatar upload system with AJAX
+```
+
+**Notification System**:
+```php
+// Header notification bell with unread count
+$notifications = get_user_meta($current_user_id, 'extrachill_notifications', true);
+$unread_count = count(array_filter($notifications, function($n) { return !$n['read']; }));
+
+// User avatar dropdown menu with artist platform integration
+// Conditional links to artist profile management (via plugin)
+```
+
+**Email Management**:
+```php
+// Email change verification system
+extrachill_send_email_change_verification($user_id, $new_email, $hash);
+extrachill_send_email_change_confirmation($user_id, $old_email, $new_email);
 ```
 
 ### 4. Cross-Domain Integration
@@ -119,24 +136,20 @@ function modular_bbpress_styles() {
 }
 ```
 
-**JavaScript Architecture** (13 files in js/ + 4 forum feature scripts):
+**JavaScript Architecture** (19 specialized files total):
 ```php
-// Core utilities
+// Core utilities (js/ directory - 13 files)
 wp_enqueue_script('extrachill-utilities', get_stylesheet_directory_uri() . '/js/utilities.js', ['jquery']);
 
-// Social features (4 files in forum-features/social/js/)
+// Forum features (forum-features/ directory - 4 files)
 wp_enqueue_script('extrachill-follow', get_stylesheet_directory_uri() . '/forum-features/social/js/extrachill-follow.js', ['jquery']);
 wp_enqueue_script('upvote', get_stylesheet_directory_uri() . '/forum-features/social/js/upvote.js', ['jquery']);
 wp_enqueue_script('extrachill-mentions', get_stylesheet_directory_uri() . '/forum-features/social/js/extrachill-mentions.js', ['jquery']);
 wp_enqueue_script('extrachill-admin', get_stylesheet_directory_uri() . '/forum-features/social/rank-system/js/extrachill_admin.js', ['jquery']);
 
-// Forum enhancements
-wp_enqueue_script('quote', get_stylesheet_directory_uri() . '/js/quote.js', ['jquery']);
-wp_enqueue_script('topic-quick-reply', get_stylesheet_directory_uri() . '/js/topic-quick-reply.js', ['jquery']);
-
-// User profile management
-wp_enqueue_script('custom-avatar', get_stylesheet_directory_uri() . '/js/custom-avatar.js', ['jquery']);
-wp_enqueue_script('manage-user-profile-links', get_stylesheet_directory_uri() . '/js/manage-user-profile-links.js', ['jquery']);
+// Login system (login/ directory - 2 files)  
+wp_enqueue_script('join-flow', get_stylesheet_directory_uri() . '/login/js/join-flow.js', ['jquery']);
+wp_enqueue_script('seamless-login', get_stylesheet_directory_uri() . '/login/js/seamless-login.js', ['jquery']);
 ```
 
 ### Database Schema
@@ -153,6 +166,10 @@ user_session_tokens (user_id, token, expiration) -- with wp_ prefix
 get_post_meta($forum_id, '_show_on_homepage'); // Boolean for homepage display
 get_user_meta($user_id, '_user_profile_dynamic_links'); // User social links
 get_user_meta($user_id, 'ec_custom_title'); // Custom user titles
+get_user_meta($user_id, 'extrachill_notifications'); // User notification data
+get_user_meta($user_id, '_artist_profile_ids'); // Artist platform plugin integration
+get_user_meta($user_id, 'user_is_artist'); // Artist account flag
+get_user_meta($user_id, 'user_is_professional'); // Professional account flag
 ```
 
 ### Template System
@@ -164,7 +181,10 @@ get_header();
 // Custom login/register interface with join flow modal
 
 // Template Name: Account Settings  
-// User settings management with form processing
+// User settings management with form processing and email change verification
+
+// Template Name: Notifications Feed
+// User notification system with unread status management
 ```
 
 **bbPress Overrides**:
@@ -172,10 +192,60 @@ get_header();
 // Custom templates in bbpress/ directory
 // - loop-single-forum.php
 // - content-single-topic.php  
-// - user-profile.php (enhanced with band links)
+// - user-profile.php (enhanced with social links)
+// - form-user-edit.php (enhanced profile editing)
+// - loop-forums.php (custom forum loop styling)
 ```
 
 ## Configuration
+
+### Filter System
+
+The theme provides a filter system for plugins to extend functionality without modifying theme files.
+
+#### Avatar Menu Filter
+
+The `ec_avatar_menu_items` filter allows plugins to add custom menu items to the user avatar dropdown menu:
+
+```php
+add_filter( 'ec_avatar_menu_items', 'my_plugin_avatar_menu_items', 10, 2 );
+
+function my_plugin_avatar_menu_items( $menu_items, $user_id ) {
+    // Add artist profile management for users with artist accounts
+    $user_artist_ids = get_user_meta( $user_id, '_artist_profile_ids', true );
+    
+    if ( ! empty( $user_artist_ids ) ) {
+        $menu_items[] = array(
+            'url'      => home_url( '/manage-artist-profiles/' ),
+            'label'    => __( 'Manage Artist Profile(s)', 'textdomain' ),
+            'priority' => 5  // Appears before settings
+        );
+        
+        $menu_items[] = array(
+            'url'      => home_url( '/manage-link-page/' ),
+            'label'    => __( 'Manage Link Page(s)', 'textdomain' ),
+            'priority' => 6
+        );
+    } else {
+        // Show create option for artists/professionals
+        $is_artist = get_user_meta( $user_id, 'user_is_artist', true );
+        if ( $is_artist === '1' ) {
+            $menu_items[] = array(
+                'url'      => home_url( '/manage-artist-profiles/' ),
+                'label'    => __( 'Create Artist Profile', 'textdomain' ),
+                'priority' => 5
+            );
+        }
+    }
+    
+    return $menu_items;
+}
+```
+
+**Menu Item Structure:**
+- `url` (string, required) - The menu item URL  
+- `label` (string, required) - The menu item display text
+- `priority` (int, optional) - Sort order (default: 10, lower = higher in menu)
 
 ### Theme Setup
 
@@ -240,18 +310,21 @@ wp_ajax_follow_user                    // User following system
 wp_ajax_upvote_content                 // Content upvoting
 wp_ajax_custom_avatar_upload           // Custom avatar uploads
 wp_ajax_clear_most_active_users_cache  // Cache management
+wp_ajax_user_mention_autocomplete      // User mention system
+wp_ajax_save_user_profile_links        // Dynamic social links
 ```
 
 ## Testing
 
 ```bash
 # Testing Areas:
-# 1. Forum Features: Test all 38+ features across 4 categories (admin/content/social/users)
+# 1. Forum Features: Test all forum enhancement features across 4 categories
 # 2. Cross-Domain Authentication: Session tokens, auto-login, cookie validation
 # 3. bbPress Integration: Custom templates, stylesheet conflicts, functionality
-# 4. JavaScript Components: All 17 JS files loading and functioning correctly
-# 5. User Management: Profiles, avatars, settings, verification
+# 4. JavaScript Components: All 19 JS files loading and functioning correctly
+# 5. User Management: Profiles, avatars, settings, verification, notifications
 # 6. Authentication System: Login/register, email verification, session handling
+# 7. Email Systems: Registration emails, email change verification flow
 ```
 
 ## Deployment
@@ -275,7 +348,7 @@ define('EXTRACHILL_API_URL', 'https://community.extrachill.com');
 - **Plugin Integration**: Works seamlessly with `extrachill-artist-platform` plugin (all artist features migrated to plugin)
 - **No Build System**: Direct file inclusion, no compilation required
 - **PSR-4 Ready**: Composer autoloader configured (`Chubes\Extrachill\` namespace) 
-- **Organized Structure**: 38+ forum features in structured subdirectories with master loader
+- **Organized Structure**: Forum features in structured subdirectories with master loader
 - **WordPress Native**: Full compliance with WordPress coding standards
 - **Performance Focused**: Conditional asset loading, dynamic versioning, modular CSS
 - **Cross-Domain Ready**: Session token system for seamless authentication across domains

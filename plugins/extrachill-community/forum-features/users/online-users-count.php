@@ -101,8 +101,8 @@ function display_online_users_stats() {
 
     echo "<div class='online-stats'>";
     echo "<p><span class='label'>Users Currently Online:</span> <span class='count'>" . $online_users_count . "</span></p>";
-    echo "<p><span class='label'>Most Ever Online:</span> <span class='count'>" . $most_ever_online_count . "</span> on <span class='date'>" . $most_ever_online_date . "</span></p>";
-    // Add Total Members to the output
+    // Most Ever Online tracking continues but display is hidden
+    // echo "<p><span class='label'>Most Ever Online:</span> <span class='count'>" . $most_ever_online_count . "</span> on <span class='date'>" . $most_ever_online_date . "</span></p>";
     echo "<p><span class='label'>Total Members:</span> <span class='count'>" . $total_members . "</span></p>";
     echo "</div>";
 }

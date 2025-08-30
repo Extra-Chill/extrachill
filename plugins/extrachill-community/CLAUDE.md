@@ -19,13 +19,15 @@ This is a **WordPress theme** called "Extra Chill Community" for the **ExtraChil
 
 ## KNOWN ISSUES
 
-**PSR-4 Implementation**: Composer autoloader configured for `Chubes\Extrachill\` namespace. The `src/` directory exists but is currently empty (contains only .gitkeep).
+**PSR-4 Implementation**: Composer autoloader configured for `Chubes\Extrachill\` namespace. The `src/` directory exists but contains no implementation files yet.
 
 ## FUTURE PLANS
 
 **PSR-4 Architecture**: Implement proper `src/` directory structure with classes to replace procedural patterns in forum features.
 
 **Performance Optimization**: Continue modular CSS/JS loading refinements and font system improvements.
+
+**Notification System Enhancement**: Expand real-time notification capabilities and improve caching strategies.
 
 ## Key Domains & Architecture
 
@@ -34,10 +36,11 @@ This is a **WordPress theme** called "Extra Chill Community" for the **ExtraChil
 
 ## Core Features
 
-1. **Forum Features** - Comprehensive bbPress extensions (38+ organized features)
+1. **Forum Features** - Comprehensive bbPress extensions with organized feature architecture
 2. **Cross-Domain Authentication** - Session token system across all ExtraChill domains  
-3. **Social Features** - User interactions, following system, reputation system within forums
-4. **Community Templates** - Custom bbPress templates and page templates for community functionality
+3. **Social Features** - User interactions, following system, upvoting, notifications, and rank system
+4. **User Management** - Custom profiles, avatars, settings, email verification, and notification system
+5. **Community Templates** - Custom bbPress templates and specialized page templates
 
 ## Development Setup
 
@@ -84,6 +87,9 @@ composer install
 - `functions.php` - Theme setup, WordPress features, asset loading
 - `index.php` - Required WordPress template file (fallback)
 - `style.css` - Main theme stylesheet with header and font declarations
+- `header.php` - Theme header with notification bell and user avatar system
+- `footer.php` - Theme footer with widget areas and navigation
+- `sidebar.php` - Custom sidebar implementation
 
 ### Forum Features System
 - `forum-features/forum-features.php` - Master loader for all forum functionality
@@ -108,25 +114,26 @@ composer install
 - `login/register.php` - Registration system with email verification
 - `login/login.php` - Custom login system
 - `login/login-includes.php` - Login system includes
-- `login/email-change-emails.php` - Email change functionality
+- `login/email-change-emails.php` - Email change verification and confirmation emails
 
-### Forum Features Architecture (38+ Features Total)
-- **Admin Features** (9): Moderation, forum management, email notifications (`admin/`)
-- **Content Features** (13): Embeds, editor customization, queries, processing (`content/`)
-- **Social Features** (10): Following, upvoting, notifications, mentions, rank system (`social/`)
-- **User Features** (6): Profiles, avatars, verification, settings (`users/`)
+### Forum Features Architecture
+- **Admin Features**: Moderation tools, forum management, email notifications, restricted forums (`admin/`)
+- **Content Features**: Bandcamp embeds, editor customization, queries, breadcrumbs, pagination (`content/`)
+- **Social Features**: Following system, upvoting, notifications, mentions, rank system with points calculation (`social/`)
+- **User Features**: Custom profiles, avatars, verification, settings, online user tracking (`users/`)
 - **Master Loader**: `forum-features/forum-features.php` loads all functionality with comprehensive documentation
-- **Asset Organization**: JavaScript (4 files) and CSS organized within feature subdirectories
+- **Asset Organization**: Specialized JavaScript files and CSS organized within feature subdirectories
 
-### JavaScript Architecture (17 total files: 13 in js/ + 4 in forum-features)
+### JavaScript Architecture (19 total files)
 - **Core Utilities**: `js/utilities.js` - Shared functionality across components
-- **Social Features**: `forum-features/social/js/` (4 files) - Following, mentions, upvoting, admin tools
+- **Social Features**: `forum-features/social/js/` - Following, mentions, upvoting, admin tools
 - **Forum Enhancements**: `js/quote.js`, `topic-quick-reply.js`, `tinymce-image-upload.js` - bbPress editor extensions
 - **UI Components**: `js/shared-tabs.js`, `nav-menu.js`, `home-collapse.js` - Interface elements
 - **User Management**: `js/custom-avatar.js`, `manage-user-profile-links.js` - User profile functionality
 - **Authentication**: `js/seamless-login.js`, `seamless-comments.js` - Cross-domain integration
 - **Content Systems**: `js/sorting.js`, `submit-community-comments.js` - Dynamic content management
 - **Login System**: `login/js/` (2 files) - Authentication UI and join flow
+- **Notification System**: Header notification bell with avatar dropdown menu
 
 ### Asset Enqueuing System
 - **Main Stylesheet**: `extra-chill-community-style` - Primary theme styles with root CSS import system
@@ -134,7 +141,7 @@ composer install
 - **Modular CSS**: Context-specific loading via `modular_bbpress_styles()` function
 - **Font System**: Custom WilcoLoftSans and Lobster font-face declarations with inheritance optimization
 - **Content Width**: Responsive overrides with flex-wrap patterns for mobile optimization
-- **JavaScript Assets**: 17 specialized JS files including utilities, social features, forum enhancements, and media upload
+- **JavaScript Assets**: 19 specialized JS files including utilities, social features, forum enhancements, and media upload
 - **External Dependencies**: FontAwesome 6.5.1 via CDN
 - **Dynamic Versioning**: All assets use `filemtime()` for cache busting
 - **Conditional Loading**: Context-aware asset loading for optimal performance
@@ -171,7 +178,7 @@ composer install
 - **Performance Focus** - Modular CSS/JS loading, font optimization, and responsive design patterns
 
 ### JavaScript Architecture Principles
-- **Modular Design** - 17 specialized JS files for specific functionality domains
+- **Modular Design** - 19 specialized JS files for specific functionality domains
 - **jQuery Dependencies** - Proper dependency management across all custom scripts  
 - **Context-Aware Loading** - Conditional script enqueuing based on page template/context
 - **Cross-Domain Integration** - Seamless login and comment systems across domains
@@ -187,7 +194,7 @@ composer install
 ### JavaScript
 - **Direct File Inclusion** - No build system, direct file loading
 - **jQuery Dependencies** - All custom scripts depend on jQuery
-- **17 Specialized Files** - Modular architecture with specific functionality domains
+- **19 Specialized Files** - Modular architecture with specific functionality domains
 - **FontAwesome** 6.5.1 via CDN
 - **Dynamic Versioning** - `filemtime()` cache busting
 
@@ -200,12 +207,47 @@ composer install
 - `_show_on_homepage` - Boolean meta field controlling forum display on homepage
 - `_user_profile_dynamic_links` - User profile social links
 - `ec_custom_title` - User custom titles (default: 'Extra Chillian')
+- `extrachill_notifications` - User notification data cache
+- `_artist_profile_ids` - Cross-reference to artist platform plugin data
+- `user_is_artist` - User role flag for artist accounts
+- `user_is_professional` - User role flag for professional accounts
+
+## Filter System
+
+### Avatar Menu Filter
+
+The theme provides the `ec_avatar_menu_items` filter to allow plugins to add custom menu items to the user avatar dropdown menu in the header.
+
+**Filter Usage:**
+```php
+add_filter( 'ec_avatar_menu_items', 'my_plugin_avatar_menu_items', 10, 2 );
+
+function my_plugin_avatar_menu_items( $menu_items, $user_id ) {
+    $menu_items[] = array(
+        'url'      => home_url( '/custom-page/' ),
+        'label'    => __( 'Custom Menu Item', 'textdomain' ),
+        'priority' => 10
+    );
+    
+    return $menu_items;
+}
+```
+
+**Menu Item Structure:**
+- `url` (string, required) - The menu item URL
+- `label` (string, required) - The menu item text
+- `priority` (int, optional) - Sort priority (default: 10, lower numbers appear first)
+
+**Integration Pattern:**
+The filter is applied in `forum-features/content/notification-bell-avatar.php` between core profile menu items and settings/logout items, allowing plugins to inject custom functionality without modifying theme files.
 
 ## Current Status
 
 The theme operates as a production WordPress theme serving the ExtraChill community. Core functionality includes forum enhancements, cross-domain authentication, and bbPress integration. All text domain references have been successfully migrated from `generatepress_child` to `extra-chill-community`. 
 
 **Migration Complete**: All artist platform functionality (band profiles, link pages, CPTs, admin interfaces, data management) has been completely removed from the theme and migrated to the `extrachill-artist-platform` plugin. The theme now focuses exclusively on community forum features.
+
+**Artist Platform Integration**: Plugins can use the `ec_avatar_menu_items` filter to add custom menu items to the user avatar dropdown, maintaining seamless navigation between community and plugin-specific functions.
 
 ## Cross-Domain Authentication Flow
 
