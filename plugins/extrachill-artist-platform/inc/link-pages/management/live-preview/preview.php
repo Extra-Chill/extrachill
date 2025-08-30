@@ -51,11 +51,24 @@ $inline_bg_style = $background_image_url ?
 // Fetch social icons position setting for preview
 $social_icons_position = isset($preview_template_data['_link_page_social_icons_position']) ? $preview_template_data['_link_page_social_icons_position'] : 'above';
 
-// --- Featured Link Data for Preview ---
-$featured_link_html_preview = isset($preview_template_data['featured_link_html']) ? $preview_template_data['featured_link_html'] : '';
-$featured_link_url_to_skip_preview = isset($preview_template_data['featured_link_url_to_skip']) 
-                                      ? $preview_template_data['featured_link_url_to_skip'] 
-                                      : null;
+// --- Generate Featured Link Data for Preview (same as live template) ---
+$featured_link_html_preview = '';
+$featured_link_url_to_skip_preview = null;
+
+// Get IDs from preview data to call centralized functions
+$link_page_id = isset($preview_template_data['link_page_id']) ? $preview_template_data['link_page_id'] : 0;
+$artist_id = isset($preview_template_data['associated_artist_profile_id']) ? $preview_template_data['associated_artist_profile_id'] : 0;
+
+// Extract CSS variables (needed for featured link rendering)
+$css_vars = isset($preview_template_data['css_vars']) && is_array($preview_template_data['css_vars']) 
+    ? $preview_template_data['css_vars'] 
+    : [];
+
+if ($link_page_id && function_exists('extrch_render_featured_link_section_html') && function_exists('extrch_get_featured_link_url_to_skip')) {
+    // Use the same centralized approach as the live template
+    $featured_link_html_preview = extrch_render_featured_link_section_html($link_page_id, $link_sections, $css_vars);
+    $featured_link_url_to_skip_preview = extrch_get_featured_link_url_to_skip($link_page_id);
+}
 
 // Load required stylesheets for preview
 $plugin_url = EXTRACHILL_ARTIST_PLATFORM_PLUGIN_URL;
@@ -72,6 +85,39 @@ if (file_exists($plugin_dir . $extrch_links_css)): ?>
 if (file_exists($plugin_dir . $share_modal_css)): ?>
     <link rel="stylesheet" href="<?php echo esc_url($plugin_url . $share_modal_css); ?>?ver=<?php echo esc_attr(filemtime($plugin_dir . $share_modal_css)); ?>">
 <?php endif; ?>
+
+<!-- Load Font Awesome for icons (same as live page) -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.1/css/all.min.css">
+
+<?php
+// Load Google Fonts for preview using raw font values (base names, not processed stacks)
+if (class_exists('ExtraChillArtistPlatform_Fonts') && isset($preview_template_data['raw_font_values'])) {
+    $font_values = array();
+    $raw_fonts = $preview_template_data['raw_font_values'];
+    
+    if (!empty($raw_fonts['title_font'])) {
+        $font_values[] = $raw_fonts['title_font'];
+    }
+    if (!empty($raw_fonts['body_font'])) {
+        $font_values[] = $raw_fonts['body_font'];
+    }
+    
+    if (!empty($font_values)) {
+        $font_manager = ExtraChillArtistPlatform_Fonts::instance();
+        $font_url = $font_manager->get_google_fonts_url($font_values);
+        if (!empty($font_url)) {
+            echo '<link rel="stylesheet" href="' . esc_url($font_url) . '" media="print" onload="this.media=\'all\'">';
+            echo '<noscript><link rel="stylesheet" href="' . esc_url($font_url) . '"></noscript>';
+        }
+        
+        // Generate @font-face CSS for local fonts (dynamic loading like Google Fonts)
+        $local_fonts_css = $font_manager->get_local_fonts_css($font_values);
+        if (!empty($local_fonts_css)) {
+            echo '<style>' . $local_fonts_css . '</style>';
+        }
+    }
+}
+?>
 
 <div class="extrch-link-page-preview-bg-wrapper" style="<?php echo esc_attr($inline_bg_style); ?>">
 <div class="<?php echo esc_attr($container_classes); ?>"
@@ -121,44 +167,13 @@ if (file_exists($plugin_dir . $share_modal_css)): ?>
         }
         
         // --- Inject Custom CSS Variables for Live Preview ---
-        if (isset($preview_template_data['link_page_id']) && $preview_template_data['link_page_id']): 
-            $link_page_id = $preview_template_data['link_page_id'];
-            $custom_vars_data = get_post_meta($link_page_id, '_link_page_custom_css_vars', true);
-            $custom_vars = is_array($custom_vars_data) ? $custom_vars_data : [];
+        // Use centralized CSS variables from ec_get_link_page_data (single source of truth)
+        // $css_vars already defined earlier in the file
             
-            $defaults = [
-                '--link-page-background-color' => '#121212',
-                '--link-page-card-bg-color' => 'rgba(0,0,0,0.4)',
-                '--link-page-text-color' => '#e5e5e5',
-                '--link-page-link-text-color' => '#ffffff',
-                '--link-page-button-bg-color' => '#0b5394',
-                '--link-page-button-border-color' => '#0b5394',
-                '--link-page-button-hover-bg-color' => '#53940b',
-                '--link-page-button-hover-text-color' => '#ffffff',
-                '--link-page-muted-text-color' => '#aaa',
-                '--link-page-title-font-family' => "'WilcoLoftSans', Helvetica, Arial, sans-serif",
-                '--link-page-title-font-size' => '2.1em',
-                '--link-page-body-font-family' => "'WilcoLoftSans', Helvetica, Arial, sans-serif",
-                '--link-page-body-font-size' => '1em',
-                '--link-page-profile-img-size' => '30%',
-                '--link-page-profile-img-aspect-ratio' => '1 / 1',
-                '--link-page-profile-img-border-radius' => '8px',
-                '--link-page-button-radius' => '8px',
-                '--link-page-overlay-color' => 'rgba(0,0,0,0.5)',
-            ];
-            
-            $final_vars = array_merge($defaults, $custom_vars);
-            
-            if (!empty($final_vars)): ?>
-                <style id="extrch-link-page-custom-vars">:root {
-                    <?php foreach ($final_vars as $key => $value): 
-                        if (!empty($value)): ?>
-                            <?php echo esc_html($key); ?>:<?php echo esc_html($value); ?>;
-                        <?php endif; 
-                    endforeach; ?>
-                }</style>
-            <?php endif;
-        endif;
+        // Output CSS variables using centralized function
+        if ( function_exists( 'ec_generate_css_variables_style_block' ) ) {
+            echo ec_generate_css_variables_style_block( $css_vars, 'extrch-link-page-custom-vars' );
+        }
         
         // --- Output Featured Link HTML for Preview (if any) ---
         if (!empty($featured_link_html_preview)): ?>

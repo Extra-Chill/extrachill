@@ -64,12 +64,6 @@ body .extrch-share-page-trigger:active {
     line-height: 1;
 }
 
-/* --- Item Share Trigger (Inside Individual Links) --- */
-.extrch-link-page-link {
-    /* position: relative; already defined in extrch-links.css if needed */
-    /* display: flex; etc. are in extrch-links.css */
-}
-
 .extrch-share-item-trigger {
     padding: 0.3em .1em;
     font-size: 1em;
@@ -118,11 +112,6 @@ body button.extrch-share-item-trigger:active {
     /* If specific sizing needed, add here */
     color: var(--link-page-text-color); /* Ensure icon inherits the button's color */
 }
-
-/* (The empty button rule below was likely a placeholder or mistake, removing it) */
-/* button.extrch-share-trigger:hover, button.extrch-share-trigger:active{ 
-
-} */
 
 /* --- Share Modal Base --- */
 .extrch-share-modal {

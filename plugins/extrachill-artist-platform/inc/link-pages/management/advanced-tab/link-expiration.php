@@ -10,10 +10,15 @@ add_action('extrch_cleanup_expired_links_event', function() {
     $link_pages = get_posts($args);
     $now = current_time('timestamp');
     foreach ($link_pages as $link_page_id) {
-        $expiration_enabled = get_post_meta($link_page_id, '_link_expiration_enabled', true);
-        if ($expiration_enabled !== '1') continue;
-        $links = get_post_meta($link_page_id, '_link_page_links', true);
-        if (is_string($links)) $links = json_decode($links, true);
+        // Use centralized data system (single source of truth)
+        $artist_id = get_post_meta($link_page_id, '_associated_artist_profile_id', true);
+        if (!$artist_id) continue;
+        
+        $data = ec_get_link_page_data($artist_id, $link_page_id);
+        $expiration_enabled = $data['settings']['link_expiration_enabled'] ?? false;
+        if (!$expiration_enabled) continue;
+        
+        $links = $data['links'] ?? [];
         if (!is_array($links)) continue;
         $changed = false;
         foreach ($links as $section_idx => &$section) {

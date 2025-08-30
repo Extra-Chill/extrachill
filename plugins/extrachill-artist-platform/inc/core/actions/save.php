@@ -1,8 +1,15 @@
 <?php
 /**
- * Centralized Link Page Save Operations
+ * Centralized Save System
  * 
- * Consolidates all link page save logic into a single, robust function.
+ * Unified save operations for artist profiles and link pages with centralized
+ * data preparation, file handling, and security validation.
+ * 
+ * Architecture:
+ * - Preparation functions sanitize and validate form data  
+ * - Handler functions execute saves with proper error handling
+ * - File upload functions manage attachments with cleanup
+ * - Admin post handlers provide secure form endpoints
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -106,13 +113,15 @@ function ec_handle_link_page_file_uploads( $link_page_id, $files_data ) {
     // Background image upload
     if ( ! empty( $files_data['link_page_background_image_upload']['tmp_name'] ) ) {
         if ( $files_data['link_page_background_image_upload']['size'] <= $max_file_size ) {
-            $old_bg_image_id = get_post_meta( $link_page_id, '_link_page_background_image_id', true );
+            // Get old image from filter BEFORE updating (single source of truth)
+            $data = ec_get_link_page_data( $associated_artist_id, $link_page_id );
+            $old_bg_image_id = $data['settings']['background_image_id'] ?? '';
             $new_bg_image_id = media_handle_upload( 'link_page_background_image_upload', $link_page_id );
             
             if ( is_numeric( $new_bg_image_id ) ) {
                 update_post_meta( $link_page_id, '_link_page_background_image_id', $new_bg_image_id );
                 if ( $old_bg_image_id && $old_bg_image_id != $new_bg_image_id ) {
-                    wp_delete_attachment( $old_bg_image_id, true );
+                    do_action( 'ec_delete_old_bg_image', $old_bg_image_id );
                 }
             }
         }
@@ -123,13 +132,15 @@ function ec_handle_link_page_file_uploads( $link_page_id, $files_data ) {
         if ( $files_data['link_page_profile_image_upload']['size'] <= $max_file_size ) {
             $associated_artist_id = ec_get_artist_for_link_page( $link_page_id );
             if ( $associated_artist_id ) {
+                // Get old image from filter BEFORE updating (single source of truth) 
+                $data = ec_get_link_page_data( $associated_artist_id, $link_page_id );
+                $old_profile_image_id = $data['settings']['profile_image_id'] ?? '';
                 $attach_id = media_handle_upload( 'link_page_profile_image_upload', $associated_artist_id );
                 if ( is_numeric( $attach_id ) ) {
-                    $old_profile_image_id = get_post_meta( $link_page_id, '_link_page_profile_image_id', true );
                     set_post_thumbnail( $associated_artist_id, $attach_id );
                     update_post_meta( $link_page_id, '_link_page_profile_image_id', $attach_id );
                     if ( $old_profile_image_id && $old_profile_image_id != $attach_id ) {
-                        wp_delete_attachment( $old_profile_image_id, true );
+                        do_action( 'ec_delete_old_profile_image', $old_profile_image_id );
                     }
                 }
             }
@@ -155,13 +166,123 @@ function ec_prepare_link_page_save_data( $post_data ) {
         }
     }
 
-    // CSS variables
-    if ( isset( $post_data['link_page_custom_css_vars_json'] ) ) {
-        $css_vars_json = wp_unslash( $post_data['link_page_custom_css_vars_json'] );
-        $css_vars = json_decode( $css_vars_json, true );
-        if ( json_last_error() === JSON_ERROR_NONE && is_array( $css_vars ) ) {
-            $save_data['css_vars'] = $css_vars;
+    // CSS variables - Read directly from form inputs (no JSON intermediary)
+    $css_vars = array();
+    
+    // Colors
+    if ( isset( $post_data['link_page_button_color'] ) ) {
+        $css_vars['--link-page-button-bg-color'] = sanitize_hex_color( $post_data['link_page_button_color'] );
+    }
+    if ( isset( $post_data['link_page_text_color'] ) ) {
+        $css_vars['--link-page-text-color'] = sanitize_hex_color( $post_data['link_page_text_color'] );
+    }
+    if ( isset( $post_data['link_page_link_text_color'] ) ) {
+        $css_vars['--link-page-link-text-color'] = sanitize_hex_color( $post_data['link_page_link_text_color'] );
+    }
+    if ( isset( $post_data['link_page_hover_color'] ) ) {
+        $css_vars['--link-page-button-hover-bg-color'] = sanitize_hex_color( $post_data['link_page_hover_color'] );
+    }
+    if ( isset( $post_data['link_page_button_border_color'] ) ) {
+        $css_vars['--link-page-button-border-color'] = sanitize_hex_color( $post_data['link_page_button_border_color'] );
+    }
+    
+    // Background
+    if ( isset( $post_data['link_page_background_type'] ) ) {
+        $bg_type = sanitize_text_field( $post_data['link_page_background_type'] );
+        if ( in_array( $bg_type, array( 'color', 'gradient', 'image' ) ) ) {
+            $css_vars['--link-page-background-type'] = $bg_type;
         }
+    }
+    if ( isset( $post_data['link_page_background_color'] ) ) {
+        $css_vars['--link-page-background-color'] = sanitize_hex_color( $post_data['link_page_background_color'] );
+    }
+    if ( isset( $post_data['link_page_background_gradient_start'] ) ) {
+        $css_vars['--link-page-background-gradient-start'] = sanitize_hex_color( $post_data['link_page_background_gradient_start'] );
+    }
+    if ( isset( $post_data['link_page_background_gradient_end'] ) ) {
+        $css_vars['--link-page-background-gradient-end'] = sanitize_hex_color( $post_data['link_page_background_gradient_end'] );
+    }
+    if ( isset( $post_data['link_page_background_gradient_direction'] ) ) {
+        $direction = sanitize_text_field( $post_data['link_page_background_gradient_direction'] );
+        if ( in_array( $direction, array( 'to right', 'to bottom', '135deg' ) ) ) {
+            $css_vars['--link-page-background-gradient-direction'] = $direction;
+        }
+    }
+    
+    // Background image controls
+    if ( isset( $post_data['link_page_background_image_size'] ) ) {
+        $image_size = sanitize_text_field( $post_data['link_page_background_image_size'] );
+        if ( in_array( $image_size, array( 'cover', 'contain', 'auto' ) ) ) {
+            $css_vars['--link-page-image-size'] = $image_size;
+        }
+    }
+    if ( isset( $post_data['link_page_background_image_position'] ) ) {
+        $image_position = sanitize_text_field( $post_data['link_page_background_image_position'] );
+        $valid_positions = array( 'center center', 'top center', 'bottom center', 'left center', 'right center' );
+        if ( in_array( $image_position, $valid_positions ) ) {
+            $css_vars['--link-page-image-position'] = $image_position;
+        }
+    }
+    if ( isset( $post_data['link_page_background_image_repeat'] ) ) {
+        $image_repeat = sanitize_text_field( $post_data['link_page_background_image_repeat'] );
+        if ( in_array( $image_repeat, array( 'no-repeat', 'repeat', 'repeat-x', 'repeat-y' ) ) ) {
+            $css_vars['--link-page-image-repeat'] = $image_repeat;
+        }
+    }
+    
+    // Typography
+    if ( isset( $post_data['link_page_title_font_family'] ) ) {
+        $css_vars['--link-page-title-font-family'] = sanitize_text_field( $post_data['link_page_title_font_family'] );
+    }
+    if ( isset( $post_data['link_page_title_font_size'] ) ) {
+        // Convert slider value back to em/percentage
+        $title_size = absint( $post_data['link_page_title_font_size'] );
+        $css_vars['--link-page-title-font-size'] = $title_size . '%';
+    }
+    if ( isset( $post_data['link_page_body_font_family'] ) ) {
+        $css_vars['--link-page-body-font-family'] = sanitize_text_field( $post_data['link_page_body_font_family'] );
+    }
+    if ( isset( $post_data['link_page_body_font_size'] ) ) {
+        // Convert pixel value back to em (16px = 1em)
+        $body_size = absint( $post_data['link_page_body_font_size'] );
+        $css_vars['--link-page-body-font-size'] = round( $body_size / 16, 2 ) . 'em';
+    }
+    
+    // Button styling
+    if ( isset( $post_data['link_page_button_radius'] ) ) {
+        $button_radius = absint( $post_data['link_page_button_radius'] );
+        $css_vars['--link-page-button-radius'] = $button_radius . 'px';
+    }
+    
+    // Profile image settings
+    if ( isset( $post_data['link_page_profile_img_size'] ) ) {
+        $profile_size = absint( $post_data['link_page_profile_img_size'] );
+        $css_vars['--link-page-profile-img-size'] = $profile_size . '%';
+    }
+    if ( isset( $post_data['link_page_profile_img_border_radius'] ) ) {
+        $profile_radius = absint( $post_data['link_page_profile_img_border_radius'] );
+        $css_vars['--link-page-profile-img-border-radius'] = $profile_radius . '%';
+    }
+    if ( isset( $post_data['link_page_profile_img_aspect_ratio'] ) ) {
+        $aspect_ratio = sanitize_text_field( $post_data['link_page_profile_img_aspect_ratio'] );
+        if ( in_array( $aspect_ratio, array( '1/1', '4/3', '16/9', '3/2' ) ) ) {
+            $css_vars['--link-page-profile-img-aspect-ratio'] = $aspect_ratio;
+        }
+    }
+    if ( isset( $post_data['link_page_profile_img_shape'] ) ) {
+        $profile_shape = sanitize_text_field( $post_data['link_page_profile_img_shape'] );
+        if ( in_array( $profile_shape, array( 'circle', 'square', 'rectangle' ) ) ) {
+            $css_vars['_link_page_profile_img_shape'] = $profile_shape;
+        }
+    }
+    
+    // Overlay
+    if ( isset( $post_data['link_page_overlay_toggle_present'] ) ) {
+        $css_vars['overlay'] = isset( $post_data['link_page_overlay_toggle'] ) && $post_data['link_page_overlay_toggle'] === '1' ? '1' : '0';
+    }
+    
+    if ( ! empty( $css_vars ) ) {
+        $save_data['css_vars'] = $css_vars;
     }
 
     // Advanced settings
@@ -427,3 +548,51 @@ function ec_prepare_artist_profile_save_data( $post_data ) {
 
     return $save_data;
 }
+
+/**
+ * Admin post handler for link page form submissions
+ */
+function ec_admin_post_save_link_page() {
+    // Verify nonce
+    if ( ! isset( $_POST['bp_save_link_page_nonce'] ) || 
+         ! wp_verify_nonce( $_POST['bp_save_link_page_nonce'], 'bp_save_link_page_action' ) ) {
+        wp_die( __( 'Security check failed.', 'extrachill-artist-platform' ) );
+    }
+    
+    // Check user is logged in
+    if ( ! is_user_logged_in() ) {
+        wp_die( __( 'Permission denied: You must be logged in to save changes.', 'extrachill-artist-platform' ) );
+    }
+    
+    // Get link page and artist IDs
+    $link_page_id = isset( $_POST['link_page_id'] ) ? absint( $_POST['link_page_id'] ) : 0;
+    $artist_id = isset( $_POST['artist_id'] ) ? absint( $_POST['artist_id'] ) : 0;
+    
+    if ( ! $link_page_id || get_post_type( $link_page_id ) !== 'artist_link_page' ) {
+        wp_die( __( 'Invalid link page.', 'extrachill-artist-platform' ) );
+    }
+    
+    // Check user permissions
+    if ( ! ec_can_manage_artist( get_current_user_id(), $artist_id ) ) {
+        wp_die( __( 'Permission denied: You do not have access to manage this artist.', 'extrachill-artist-platform' ) );
+    }
+    
+    // Prepare and save data using centralized functions
+    $save_data = ec_prepare_link_page_save_data( $_POST );
+    $result = ec_handle_link_page_save( $link_page_id, $save_data, $_FILES );
+    
+    if ( is_wp_error( $result ) ) {
+        wp_die( $result->get_error_message() );
+    }
+    
+    // Redirect back with success message
+    $redirect_args = array( 'artist_id' => $artist_id, 'bp_link_page_updated' => '1' );
+    $manage_page = get_page_by_path( 'manage-link-page' );
+    $base_url = $manage_page ? get_permalink( $manage_page ) : home_url( '/manage-link-page/' );
+    $redirect_url = add_query_arg( $redirect_args, $base_url );
+    
+    wp_safe_redirect( $redirect_url );
+    exit;
+}
+add_action( 'admin_post_ec_save_link_page', 'ec_admin_post_save_link_page' );
+add_action( 'admin_post_nopriv_ec_save_link_page', 'ec_admin_post_save_link_page' );

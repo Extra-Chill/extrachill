@@ -5,7 +5,7 @@
  * Loaded from manage-link-page.php
  */
 
-// All links tab data should be hydrated from $data provided by LinkPageDataProvider.
+// All links tab data should be hydrated from $data provided by ec_get_link_page_data filter.
 
 defined( 'ABSPATH' ) || exit;
 
@@ -32,11 +32,11 @@ $social_links = !empty($artist_id) ? $social_manager->get($artist_id) : array();
 // Get supported social link types from centralized manager
 $supported_link_types = $social_manager->get_supported_types();
 
-// Fetch link expiration enabled setting for this link page
+// Use centralized data for link expiration setting (single source of truth)
 $current_link_page_id = isset(
     $link_page_id
 ) ? $link_page_id : (isset($data['link_page_id']) ? $data['link_page_id'] : 0);
-$link_expiration_enabled = $current_link_page_id ? (get_post_meta($current_link_page_id, '_link_expiration_enabled', true) === '1') : false;
+$link_expiration_enabled = $data['settings']['link_expiration_enabled'] ?? false;
 
 // Make $link_expiration_enabled available to JS
 if (function_exists('wp_localize_script')) {
@@ -73,13 +73,8 @@ require_once dirname(dirname(__DIR__)) . '/advanced-tab/link-expiration.php';
         <div class="bp-social-icons-position-setting" style="margin-top: 15px;">
             <h4><?php esc_html_e('Social Icons Position', 'extrachill-artist-platform'); ?></h4>
             <?php
-            $current_position = 'above'; // Default
-            if ($current_link_page_id) {
-                $saved_position = get_post_meta($current_link_page_id, '_link_page_social_icons_position', true);
-                if (!empty($saved_position)) {
-                    $current_position = $saved_position;
-                }
-            }
+            // Use centralized data for social icons position (single source of truth)
+            $current_position = $data['settings']['social_icons_position'] ?? 'above';
             ?>
             <label style="margin-right: 10px;">
                 <input type="radio" name="link_page_social_icons_position" value="above" <?php checked($current_position, 'above'); ?>>

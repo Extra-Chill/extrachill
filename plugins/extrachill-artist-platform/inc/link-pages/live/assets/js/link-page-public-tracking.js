@@ -6,8 +6,7 @@
         return;
     }
 
-    const { ajax_url, link_page_id } = extrchTrackingData;
-    // const nonce = extrchTrackingData.nonce; // Use if nonce check is implemented
+    const { ajax_url, link_page_id, nonce } = extrchTrackingData;
 
     /**
      * Sends tracking data to the backend.
@@ -22,9 +21,9 @@
         formData.append('link_page_id', link_page_id);
         formData.append('event_type', eventType);
         formData.append('event_identifier', eventIdentifier);
-        // if (nonce) {
-        //     formData.append('security_nonce', nonce);
-        // }
+        if (nonce) {
+            formData.append('nonce', nonce);
+        }
 
         // Use sendBeacon for clicks if available (more reliable during page unload)
         if (eventType === 'link_click' && navigator.sendBeacon) {

@@ -435,7 +435,7 @@
         const featuredLinkTitleInput = document.getElementById('featured_link_custom_title'); // If you ever add a title input
         if (featuredLinkTitleInput) {
             featuredLinkTitleInput.addEventListener('input', function() {
-                const previewEl = manager.getPreviewEl && manager.getPreviewEl();
+                const previewContainerParent = document.querySelector('.manage-link-page-preview-live'); const previewEl = previewContainerParent?.querySelector('.extrch-link-page-preview-container');
                 if (!previewEl) return;
                 const titleEl = previewEl.querySelector('.link-page-featured-link-section .featured-link-title');
                 if (titleEl) titleEl.textContent = this.value;
@@ -444,7 +444,7 @@
 
         // Update description in preview in real time, surgical update
         customDescriptionTextarea.addEventListener('input', function() {
-            const previewEl = manager.getPreviewEl && manager.getPreviewEl();
+            const previewContainerParent = document.querySelector('.manage-link-page-preview-live'); const previewEl = previewContainerParent?.querySelector('.extrch-link-page-preview-container');
             if (!previewEl) return;
             const featuredSection = previewEl.querySelector('.link-page-featured-link-section');
             if (!featuredSection) return;
@@ -559,14 +559,14 @@
 
     // --- Helper functions to update only title/description in preview ---
     function updateFeaturedLinkTitleInPreview(newTitle) {
-        const previewEl = manager.getPreviewEl && manager.getPreviewEl();
+        const previewContainerParent = document.querySelector('.manage-link-page-preview-live'); const previewEl = previewContainerParent?.querySelector('.extrch-link-page-preview-container');
         if (!previewEl) return;
         const titleEl = previewEl.querySelector('.link-page-featured-link-section .featured-link-title');
         if (titleEl) titleEl.textContent = newTitle;
     }
 
     function updateFeaturedLinkDescriptionInPreview(newDescription) {
-        const previewEl = manager.getPreviewEl && manager.getPreviewEl();
+        const previewContainerParent = document.querySelector('.manage-link-page-preview-live'); const previewEl = previewContainerParent?.querySelector('.extrch-link-page-preview-container');
         if (!previewEl) return;
         const descEl = previewEl.querySelector('.link-page-featured-link-section .featured-link-description');
         if (descEl) descEl.textContent = newDescription;

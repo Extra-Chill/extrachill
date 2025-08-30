@@ -210,3 +210,260 @@ function ec_get_artist_subscribers( $artist_id, $args = array() ) {
     
     return $wpdb->get_results( $sql );
 }
+
+/**
+ * Get comprehensive link page data for management interface
+ * 
+ * Single source of truth for all link page settings, CSS variables, links, and social data.
+ * Replaces scattered get_post_meta calls throughout templates and JavaScript.
+ * 
+ * @param int $artist_id Artist profile post ID
+ * @param int $link_page_id Link page post ID (will be determined if not provided)
+ * @param array $overrides Optional override data from live preview form changes
+ * @return array Comprehensive link page data array
+ */
+function ec_get_link_page_data( $artist_id, $link_page_id = null, $overrides = array() ) {
+    if ( ! $artist_id ) {
+        return array();
+    }
+    
+    // Get link page ID if not provided
+    if ( ! $link_page_id ) {
+        $link_page_id = ec_get_link_page_for_artist( $artist_id );
+    }
+    
+    if ( ! $link_page_id ) {
+        return array();
+    }
+    
+    // Get all link page meta data
+    $all_meta = get_post_meta( $link_page_id );
+    
+    // Structure the data into logical sections
+    $data = array(
+        // Basic IDs
+        'artist_id' => (int) $artist_id,
+        'link_page_id' => (int) $link_page_id,
+        
+        // CSS Variables (from _link_page_custom_css_vars meta)
+        'css_vars' => array(),
+        
+        // Links data (from _link_page_links meta)
+        'links' => array(),
+        
+        // Social links (from _artist_profile_social_links meta on artist profile)
+        'socials' => array(),
+        
+        // Advanced settings
+        'settings' => array(
+            // Expiration settings
+            'link_expiration_enabled' => false,
+            'weekly_notifications_enabled' => false,
+            
+            // Redirect settings  
+            'redirect_enabled' => false,
+            'redirect_target_url' => '',
+            
+            // Feature toggles
+            'youtube_embed_enabled' => true, // Default true
+            'featured_link_enabled' => false,
+            'featured_link_custom_description' => '',
+            'featured_link_thumbnail_id' => '',
+            'featured_link_fetched_thumbnail_url' => '',
+            'featured_link_og_image_removed' => false,
+            
+            // Analytics
+            'meta_pixel_id' => '',
+            'google_tag_id' => '',
+            'google_tag_manager_id' => '',
+            
+            // Display settings
+            'subscribe_display_mode' => 'icon_modal',
+            'subscribe_description' => '',
+            'social_icons_position' => 'above',
+            'profile_image_shape' => 'circle',
+            'overlay_enabled' => true
+        )
+    );
+    
+    // Parse CSS variables from meta with defaults as single source of truth
+    $css_vars_raw = array();
+    if ( isset( $all_meta['_link_page_custom_css_vars'][0] ) ) {
+        $css_vars_raw = maybe_unserialize( $all_meta['_link_page_custom_css_vars'][0] );
+        if ( ! is_array( $css_vars_raw ) ) {
+            $css_vars_raw = array();
+        }
+    }
+    
+    // Merge with defaults from centralized system
+    $default_css_vars = ec_get_link_page_defaults_for( 'styles' );
+    $data['css_vars'] = array_merge( $default_css_vars, $css_vars_raw );
+    
+    // Set button hover text color to match button text color (link text color) 
+    $data['css_vars']['--link-page-button-hover-text-color'] = $data['css_vars']['--link-page-link-text-color'];
+    
+    // Store raw font values separately for form population (before font stack processing)
+    $data['raw_font_values'] = array(
+        'title_font' => $data['css_vars']['--link-page-title-font-family'] ?? '',
+        'body_font' => $data['css_vars']['--link-page-body-font-family'] ?? ''
+    );
+    
+    // Process fonts through dedicated font filter for CSS output
+    if ( class_exists( 'ExtraChillArtistPlatform_Fonts' ) ) {
+        $font_manager = ExtraChillArtistPlatform_Fonts::instance();
+        $data['css_vars'] = $font_manager->process_font_css_vars( $data['css_vars'] );
+    }
+    
+    // Parse links data from meta
+    if ( isset( $all_meta['_link_page_links'][0] ) ) {
+        $links_raw = maybe_unserialize( $all_meta['_link_page_links'][0] );
+        if ( is_array( $links_raw ) ) {
+            $data['links'] = $links_raw;
+        }
+    }
+    
+    // Get social links from artist profile (not link page) - check both possible meta keys
+    $artist_social_links = get_post_meta( $artist_id, '_artist_profile_social_links', true );
+    $artist_social_links = maybe_unserialize( $artist_social_links ); // Explicit unserialize
+    if ( ! is_array( $artist_social_links ) || empty( $artist_social_links ) ) {
+        $social_json = get_post_meta( $artist_id, '_artist_social_links_json', true );
+        if ( ! empty( $social_json ) ) {
+            $artist_social_links = json_decode( $social_json, true );
+        }
+    }
+    if ( is_array( $artist_social_links ) ) {
+        $data['socials'] = $artist_social_links;
+    }
+    
+    // Parse advanced settings with proper defaults
+    $data['settings']['link_expiration_enabled'] = isset( $all_meta['_link_expiration_enabled'][0] ) && $all_meta['_link_expiration_enabled'][0] === '1';
+    $data['settings']['weekly_notifications_enabled'] = isset( $all_meta['_link_page_enable_weekly_notifications'][0] ) && $all_meta['_link_page_enable_weekly_notifications'][0] === '1';
+    $data['settings']['redirect_enabled'] = isset( $all_meta['_link_page_redirect_enabled'][0] ) && $all_meta['_link_page_redirect_enabled'][0] === '1';
+    $data['settings']['redirect_target_url'] = $all_meta['_link_page_redirect_target_url'][0] ?? '';
+    $data['settings']['youtube_embed_enabled'] = ! isset( $all_meta['_enable_youtube_inline_embed'][0] ) || $all_meta['_enable_youtube_inline_embed'][0] !== '0';
+    $data['settings']['featured_link_enabled'] = isset( $all_meta['_enable_featured_link'][0] ) && $all_meta['_enable_featured_link'][0] === '1';
+    $data['settings']['featured_link_original_id'] = $all_meta['_featured_link_original_id'][0] ?? '';
+    $data['settings']['featured_link_custom_description'] = $all_meta['_featured_link_custom_description'][0] ?? '';
+    $data['settings']['featured_link_thumbnail_id'] = $all_meta['_featured_link_thumbnail_id'][0] ?? '';
+    $data['settings']['featured_link_fetched_thumbnail_url'] = $all_meta['_featured_link_fetched_thumbnail_url'][0] ?? '';
+    $data['settings']['featured_link_og_image_removed'] = isset( $all_meta['_featured_link_og_image_removed'][0] ) && $all_meta['_featured_link_og_image_removed'][0] === '1';
+    $data['settings']['meta_pixel_id'] = $all_meta['_link_page_meta_pixel_id'][0] ?? '';
+    $data['settings']['google_tag_id'] = $all_meta['_link_page_google_tag_id'][0] ?? '';
+    $data['settings']['google_tag_manager_id'] = $all_meta['_link_page_google_tag_manager_id'][0] ?? '';
+    $data['settings']['subscribe_display_mode'] = $all_meta['_link_page_subscribe_display_mode'][0] ?? 'icon_modal';
+    $data['settings']['subscribe_description'] = $all_meta['_link_page_subscribe_description'][0] ?? '';
+    $data['settings']['social_icons_position'] = $all_meta['_link_page_social_icons_position'][0] ?? 'above';
+    $data['settings']['profile_image_shape'] = $all_meta['_link_page_profile_img_shape'][0] ?? 'circle';
+    
+    // Parse overlay setting from CSS vars (special case)
+    if ( isset( $data['css_vars']['overlay'] ) ) {
+        $data['settings']['overlay_enabled'] = $data['css_vars']['overlay'] === '1';
+    }
+    
+    // Build display data for template consumption (with override support)
+    $display_data = array(
+        // Basic display fields (with override support - only use override if it exists and has value)
+        'display_title' => (isset($overrides['artist_profile_title']) && $overrides['artist_profile_title'] !== '') ? $overrides['artist_profile_title'] : ($artist_id ? get_the_title($artist_id) : ''),
+        'bio' => (isset($overrides['link_page_bio_text']) && $overrides['link_page_bio_text'] !== '') ? $overrides['link_page_bio_text'] : ($artist_id ? get_post($artist_id)->post_content : ''),
+        'profile_img_url' => (isset($overrides['profile_img_url']) && $overrides['profile_img_url'] !== '') ? $overrides['profile_img_url'] : ($artist_id ? (get_the_post_thumbnail_url($artist_id, 'medium') ?: '') : ''),
+        
+        // Social links (with override support)
+        'social_links' => isset($overrides['social_links']) ? $overrides['social_links'] : $data['socials'],
+        
+        // Process social links JSON if present in overrides
+        'socials' => $data['socials'], // Keep original structure
+        
+        // Link sections (with override support)
+        'link_sections' => isset($data['links'][0]['links']) || empty($data['links']) ? $data['links'] : array(array('section_title' => '', 'links' => $data['links'])),
+        
+        // CSS Variables (with override support)
+        'css_vars' => $data['css_vars'],
+        
+        // Background type extracted from CSS vars for preview template data-bg-type attribute
+        'background_type' => $data['css_vars']['--link-page-background-type'] ?? 'color',
+        
+        // Background style (computed from CSS vars)
+        'background_style' => '', // Will be computed from CSS vars if needed
+        
+        // Settings and metadata
+        'powered_by' => true,
+        'artist_id' => $artist_id,
+        'link_page_id' => $link_page_id,
+        
+        // Profile image shape setting
+        'profile_img_shape' => $data['settings']['profile_image_shape'],
+        
+        // Social icons position
+        '_link_page_social_icons_position' => $data['settings']['social_icons_position'],
+        
+        // Subscribe settings
+        '_link_page_subscribe_display_mode' => $data['settings']['subscribe_display_mode'],
+        '_link_page_subscribe_description' => $data['settings']['subscribe_description'],
+        
+        // Link page ID for templates
+        '_actual_link_page_id_for_template' => $link_page_id,
+        
+        // Artist profile object
+        'artist_profile' => $artist_id ? get_post($artist_id) : null,
+        
+        // Original structured data for complex operations
+        'settings' => $data['settings'],
+        'links' => $data['links'],
+        
+        // Raw font values for form population (before font stack processing)
+        'raw_font_values' => $data['raw_font_values'],
+    );
+    
+    // Handle social links JSON override
+    if (isset($overrides['artist_profile_social_links_json'])) {
+        $social_decoded = json_decode($overrides['artist_profile_social_links_json'], true);
+        if (is_array($social_decoded)) {
+            $display_data['social_links'] = $social_decoded;
+            $display_data['socials'] = $social_decoded;
+        }
+    }
+    
+    // Handle links JSON override
+    if (isset($overrides['link_page_links_json'])) {
+        $links_decoded = json_decode($overrides['link_page_links_json'], true);
+        if (is_array($links_decoded)) {
+            $display_data['links'] = $links_decoded;
+            $display_data['link_sections'] = isset($links_decoded[0]['links']) || empty($links_decoded) ? $links_decoded : array(array('section_title' => '', 'links' => $links_decoded));
+        }
+    }
+    
+    // Handle CSS vars JSON override
+    if (isset($overrides['css_vars'])) {
+        $display_data['css_vars'] = is_array($overrides['css_vars']) ? $overrides['css_vars'] : array();
+    }
+    
+    // Apply WordPress filter for extensibility
+    return apply_filters( 'extrch_get_link_page_data', $display_data, $artist_id, $link_page_id, $overrides );
+}
+
+/**
+ * Generate CSS variables style block (centralized CSS generation function)
+ * 
+ * @param array $css_vars CSS variables array
+ * @param string $element_id CSS style element ID
+ * @return string Generated CSS style block
+ */
+function ec_generate_css_variables_style_block( $css_vars, $element_id = 'link-page-custom-vars' ) {
+    if ( empty( $css_vars ) || ! is_array( $css_vars ) ) {
+        return '';
+    }
+    
+    $output = '<style id="' . esc_attr( $element_id ) . '">:root {';
+    foreach ( $css_vars as $key => $value ) {
+        // Output all CSS variables to ensure JavaScript has complete structure
+        // Only skip null/false values, but include empty strings (user may want empty values)
+        if ( $value !== null && $value !== false ) {
+            // CSS keys should be escaped as HTML, but CSS values should not be escaped
+            // since they're inside <style> tags and may contain valid CSS syntax like quotes
+            $output .= esc_html( $key ) . ':' . $value . ';';
+        }
+    }
+    $output .= '}</style>';
+    
+    return $output;
+}

@@ -29,15 +29,13 @@ function extrch_validate_meta_pixel_id( $pixel_id ) {
 /**
  * Get Meta Pixel ID for a link page
  *
+ * @param int $artist_id The artist profile ID
  * @param int $link_page_id The link page ID
  * @return string The Meta Pixel ID or empty string if not set
  */
-function extrch_get_meta_pixel_id( $link_page_id ) {
-    if ( empty( $link_page_id ) ) {
-        return '';
-    }
-
-    return get_post_meta( $link_page_id, '_link_page_meta_pixel_id', true );
+function extrch_get_meta_pixel_id( $artist_id, $link_page_id ) {
+    $data = ec_get_link_page_data( $artist_id, $link_page_id );
+    return $data['settings']['meta_pixel_id'] ?? '';
 }
 
 /**

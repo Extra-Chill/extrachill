@@ -18,7 +18,10 @@
     
     // Main fonts preview update function - Direct DOM manipulation
     function updateFontFamilyPreview(fontData) {
-        const previewEl = manager.getPreviewEl ? manager.getPreviewEl() : null;
+        const previewContainerParent = document.querySelector('.manage-link-page-preview-live');
+        if (!previewContainerParent) return;
+        
+        const previewEl = previewContainerParent.querySelector('.extrch-link-page-preview-container');
         if (!previewEl) return;
 
         // Apply font family changes to CSS custom properties on the preview element
@@ -30,7 +33,10 @@
     
     // Update font size preview
     function updateFontSizePreview(sizeData) {
-        const previewEl = manager.getPreviewEl ? manager.getPreviewEl() : null;
+        const previewContainerParent = document.querySelector('.manage-link-page-preview-live');
+        if (!previewContainerParent) return;
+        
+        const previewEl = previewContainerParent.querySelector('.extrch-link-page-preview-container');
         if (!previewEl) return;
 
         if (sizeData.property && sizeData.size) {
@@ -79,7 +85,10 @@
     // Generic font change event listener
     document.addEventListener('fontChanged', function(e) {
         if (e.detail && e.detail.property && e.detail.value) {
-            const previewEl = manager.getPreviewEl ? manager.getPreviewEl() : null;
+            const previewContainerParent = document.querySelector('.manage-link-page-preview-live');
+            if (!previewContainerParent) return;
+            
+            const previewEl = previewContainerParent.querySelector('.extrch-link-page-preview-container');
             if (previewEl) {
                 if (e.detail.type === 'family') {
                     const fontStack = getFontStackByValue(e.detail.value);

@@ -99,24 +99,26 @@ function ec_perform_complete_sync( $artist_id, $link_page_id ) {
     }
 
     // --- ARTIST PROFILE → LINK PAGE SYNC ---
+    // Use centralized data system (single source of truth)
+    $data = ec_get_link_page_data( $artist_id, $link_page_id );
     
     // Sync Title
     $artist_title = $artist_post->post_title;
-    $current_link_title = get_post_meta( $link_page_id, '_link_page_display_title', true );
+    $current_link_title = $data['display_title'] ?? '';
     if ( $current_link_title !== $artist_title ) {
         update_post_meta( $link_page_id, '_link_page_display_title', $artist_title );
     }
 
     // Sync Bio (Content)
     $artist_bio = $artist_post->post_content;
-    $current_link_bio = get_post_meta( $link_page_id, '_link_page_bio_text', true );
+    $current_link_bio = $data['bio'] ?? '';
     if ( $current_link_bio !== $artist_bio ) {
         update_post_meta( $link_page_id, '_link_page_bio_text', $artist_bio );
     }
 
     // Sync Profile Picture (Featured Image)
     $artist_thumbnail_id = get_post_thumbnail_id( $artist_id );
-    $current_link_thumbnail_id = get_post_meta( $link_page_id, '_link_page_profile_image_id', true );
+    $current_link_thumbnail_id = $data['settings']['profile_image_id'] ?? '';
     
     if ( $artist_thumbnail_id ) {
         if ( $current_link_thumbnail_id != $artist_thumbnail_id ) {
@@ -129,10 +131,10 @@ function ec_perform_complete_sync( $artist_id, $link_page_id ) {
 
     // --- LINK PAGE → ARTIST PROFILE SYNC ---
     
-    // Get link page data that might have been updated independently
-    $link_page_title = get_post_meta( $link_page_id, '_link_page_display_title', true );
-    $link_page_bio = get_post_meta( $link_page_id, '_link_page_bio_text', true );
-    $link_page_thumbnail_id = get_post_meta( $link_page_id, '_link_page_profile_image_id', true );
+    // Use centralized data that might have been updated independently (already retrieved above)
+    $link_page_title = $data['display_title'] ?? '';
+    $link_page_bio = $data['bio'] ?? '';
+    $link_page_thumbnail_id = $data['settings']['profile_image_id'] ?? '';
 
     $artist_update_data = array( 'ID' => $artist_id );
     $needs_artist_update = false;

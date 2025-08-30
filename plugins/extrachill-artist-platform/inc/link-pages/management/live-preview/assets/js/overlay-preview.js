@@ -6,7 +6,7 @@
     
     // Main overlay preview update function - Direct DOM manipulation
     function updateOverlayPreview(overlayEnabled) {
-        const previewEl = manager.getPreviewEl ? manager.getPreviewEl() : null;
+        const previewContainerParent = document.querySelector('.manage-link-page-preview-live'); const previewEl = previewContainerParent?.querySelector('.extrch-link-page-preview-container');
         if (!previewEl) return;
 
         // Find the content wrapper that receives overlay styling

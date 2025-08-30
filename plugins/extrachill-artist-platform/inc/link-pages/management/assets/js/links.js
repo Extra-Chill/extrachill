@@ -12,8 +12,15 @@
     let expirationModal, expirationDatetimeInput, saveExpirationBtn, clearExpirationBtn, cancelExpirationBtn;
     let currentEditingLinkItem = null; // To store the .bp-link-item being edited for expiration
 
-    // Debounce for input updates to preview
-    const debouncedNotifyLinksChanged = ExtrchLinkPageSharedUtils.debounce(notifyLinksChanged, 300);
+    // Simple debounce for input updates to preview
+    function debounce(func, delay) {
+        let timeout;
+        return function(...args) {
+            clearTimeout(timeout);
+            timeout = setTimeout(() => func.apply(this, args), delay);
+        };
+    }
+    const debouncedNotifyLinksChanged = debounce(notifyLinksChanged, 300);
 
     function initializeExpirationModalDOM() {
         expirationModal = document.getElementById('bp-link-expiration-modal');
@@ -362,23 +369,13 @@
                                 }
     
     function getLinksDataFromDOM() {
-        if (!sectionsListEl) return [];
-        const sectionsData = [];
-        sectionsListEl.querySelectorAll('.bp-link-section').forEach(sectionEl => {
-            const sectionTitle = sectionEl.querySelector('.bp-link-section-title')?.value || '';
-            const linksData = [];
-            sectionEl.querySelectorAll('.bp-link-item').forEach(linkEl => {
-                linksData.push({
-                    id: linkEl.dataset.linkId || ('link_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)), // Include id, generate if missing
-                    link_text: linkEl.querySelector('.bp-link-text-input')?.value || '',
-                    link_url: linkEl.querySelector('.bp-link-url-input')?.value || '',
-                    expires_at: linkEl.dataset.expiresAt || '',
-                    // link_is_active can be added here if a toggle is implemented in the future
-                });
-            });
-            sectionsData.push({ section_title: sectionTitle, links: linksData });
-        });
-        return sectionsData;
+        // Get links from centralized data source
+        if (manager.getLinks && typeof manager.getLinks === 'function') {
+            return manager.getLinks() || [];
+        }
+        
+        console.warn('[Links] Centralized links data not available - this should not happen');
+        return [];
     }
 
     // Dispatch events to notify preview system of links changes
@@ -474,7 +471,15 @@
         manager.links.allowPreviewUpdate = true;
         // updateLinksPreview(); // REMOVE this call to prevent JS from re-rendering the preview on initial load
 
-        // 6. Dispatch event indicating links are ready and window.bpLinkPageLinks is populated
+        // 6. Trigger initial featured link highlighting if there's a featured link
+        if (initialFeaturedUrlForDomClass) {
+            // Trigger the same event that would be fired when featured link changes
+            document.dispatchEvent(new CustomEvent('featuredLinkOriginalUrlChanged', { 
+                detail: { newUrl: initialFeaturedUrlForDomClass } 
+            }));
+        }
+
+        // 7. Dispatch event indicating links are ready and window.bpLinkPageLinks is populated
         dispatchLinksUpdatedEvent(); 
         console.log('[LinksManager] Initialized, window.bpLinkPageLinks populated, event dispatched.');
     }

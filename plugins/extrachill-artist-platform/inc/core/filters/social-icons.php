@@ -377,6 +377,60 @@ class ExtraChillArtistPlatform_SocialLinks {
     }
 
     /**
+     * Sanitize Font Awesome icon classes while preserving spaces
+     * 
+     * @since 1.1.0
+     * @param string $icon_class Font Awesome icon class string
+     * @return string Sanitized icon class string
+     */
+    private function sanitize_icon_class( $icon_class ) {
+        if ( empty( $icon_class ) ) {
+            return 'fas fa-globe';
+        }
+
+        // Split the class string into individual classes
+        $classes = explode( ' ', trim( $icon_class ) );
+        $sanitized_classes = array();
+
+        foreach ( $classes as $class ) {
+            $class = trim( $class );
+            
+            // Skip empty classes
+            if ( empty( $class ) ) {
+                continue;
+            }
+
+            // Allow Font Awesome prefixes and icon classes
+            if ( preg_match( '/^(fab|fas|far|fal|fat|fad|fa-brands|fa-solid|fa-regular|fa-light|fa-thin|fa-duotone)$/i', $class ) ) {
+                $sanitized_classes[] = strtolower( $class );
+            }
+            // Allow Font Awesome icon names (fa-*)
+            elseif ( preg_match( '/^fa-[a-z0-9-]+$/i', $class ) ) {
+                $sanitized_classes[] = strtolower( $class );
+            }
+        }
+
+        // If no valid classes found, return fallback
+        if ( empty( $sanitized_classes ) ) {
+            return 'fas fa-globe';
+        }
+
+        // Ensure we have at least a prefix and icon
+        if ( count( $sanitized_classes ) === 1 ) {
+            // If only one class and it's an icon, add default prefix
+            if ( preg_match( '/^fa-/', $sanitized_classes[0] ) ) {
+                array_unshift( $sanitized_classes, 'fas' );
+            }
+            // If only prefix, add default icon
+            elseif ( in_array( $sanitized_classes[0], array( 'fab', 'fas', 'far', 'fal', 'fat', 'fad' ) ) ) {
+                $sanitized_classes[] = 'fa-globe';
+            }
+        }
+
+        return implode( ' ', $sanitized_classes );
+    }
+
+    /**
      * Get icon class for a social link type
      * 
      * @since 1.1.0
@@ -389,17 +443,18 @@ class ExtraChillArtistPlatform_SocialLinks {
         
         // First priority: Check if icon is specified in link data
         if ( ! empty( $link_data['icon'] ) ) {
-            return sanitize_html_class( $link_data['icon'] );
+            return $this->sanitize_icon_class( $link_data['icon'] );
         }
 
         // Second priority: Get from supported types config
         if ( array_key_exists( $type, $supported_types ) && ! empty( $supported_types[ $type ]['icon'] ) ) {
-            return sanitize_html_class( $supported_types[ $type ]['icon'] );
+            return $this->sanitize_icon_class( $supported_types[ $type ]['icon'] );
         }
 
         // Third priority: Generate FontAwesome class from type
         if ( $type !== 'custom' && $type !== 'website' ) {
-            return 'fab fa-' . sanitize_html_class( str_replace( '_', '-', $type ) );
+            $icon_name = sanitize_html_class( str_replace( '_', '-', $type ) );
+            return $this->sanitize_icon_class( 'fab fa-' . $icon_name );
         }
 
         // Final fallback

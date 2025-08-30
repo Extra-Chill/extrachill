@@ -73,16 +73,9 @@ if (!$link_page_id || get_post_type($link_page_id) !== 'artist_link_page') {
 
 // --- Google Font Preload for Live Preview (Initial Page Load) ---
 // Font configuration now handled by centralized font manager
-$custom_vars_data = get_post_meta($link_page_id, '_link_page_custom_css_vars', true);
-
-// Handle both array (new format) and JSON string (legacy) formats
-if (is_array($custom_vars_data)) {
-    $custom_vars = $custom_vars_data;
-} elseif (is_string($custom_vars_data)) {
-    $custom_vars = json_decode($custom_vars_data, true);
-} else {
-    $custom_vars = array();
-}
+// Get custom vars from centralized data system
+$link_page_data = $artist_id > 0 ? ec_get_link_page_data($artist_id, $link_page_id) : array();
+$custom_vars = $link_page_data['css_vars'] ?? array();
 $fonts_manager = ExtraChillArtistPlatform_Fonts::instance();
 if (!empty($custom_vars['--link-page-title-font-family'])) {
     $title_font_stack = $custom_vars['--link-page-title-font-family'];
@@ -108,6 +101,11 @@ get_header(); ?>
         <?php do_action( 'extra_chill_before_main_content' ); ?>
 
 <?php
+// --- Display Success Notices ---
+if (isset($_GET['bp_link_page_updated']) && $_GET['bp_link_page_updated'] === '1') {
+    echo '<div class="bp-notice bp-notice-success"><p>' . esc_html__('Link page updated successfully!', 'extrachill-artist-platform') . '</p></div>';
+}
+
 // --- Display Error Notices ---
 if (isset($_GET['bp_link_page_error'])) {
     $error_type = sanitize_key($_GET['bp_link_page_error']);
@@ -136,10 +134,10 @@ if (!ec_can_manage_artist(get_current_user_id(), $artist_id)) {
 }
 
 // --- Canonical Data Fetch ---
-if ( class_exists( 'LinkPageDataProvider' ) ) {
-    $data = LinkPageDataProvider::get_data( $link_page_id, $artist_id, array() ); // No overrides for initial page load
+if ( function_exists( 'ec_get_link_page_data' ) ) {
+    $data = ec_get_link_page_data( $artist_id, $link_page_id ); // No overrides for initial page load
 } else {
-    // Fallback if LinkPageDataProvider somehow isn't loaded
+    // Fallback if ec_get_link_page_data function somehow isn't loaded
     // This should ideally not happen if includes are correct.
     $data = array(
         'display_title' => get_the_title($artist_id) ?: 'Link Page',
@@ -152,7 +150,7 @@ if ( class_exists( 'LinkPageDataProvider' ) ) {
         'background_image_url' => '',
         // Add other necessary defaults to prevent errors
     );
-     echo '<div class="bp-notice bp-notice-error"><p>' . esc_html__('Error: LinkPageDataProvider class not found. Link page data may be incomplete.', 'extrachill-artist-platform') . '</p></div>';
+     echo '<div class="bp-notice bp-notice-error"><p>' . esc_html__('Error: ec_get_link_page_data function not found. Link page data may be incomplete.', 'extrachill-artist-platform') . '</p></div>';
 }
 
 // Set global font config for JS hydration
@@ -250,12 +248,12 @@ if ($link_page_id && get_post_type($link_page_id) === 'artist_link_page') {
 ?>
 <div class="manage-link-page-flex">
     <div class="manage-link-page-edit shared-tabs-component">
-        <form method="post" id="bp-manage-link-page-form" enctype="multipart/form-data" action="">
+        <form method="post" id="bp-manage-link-page-form" enctype="multipart/form-data" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
             <?php wp_nonce_field('bp_save_link_page_action', 'bp_save_link_page_nonce'); ?>
-            <input type="hidden" name="extrch_action" value="save_link_page_data">
+            <input type="hidden" name="action" value="ec_save_link_page">
             <input type="hidden" name="artist_id" value="<?php echo esc_attr($artist_id); ?>">
             <input type="hidden" name="link_page_id" value="<?php echo esc_attr($link_page_id); ?>">
-            <input type="hidden" name="link_expiration_enabled" id="link_expiration_enabled" value="<?php echo esc_attr((get_post_meta($link_page_id, '_link_expiration_enabled', true) === '1' ? '1' : '0') ?? '0'); ?>">
+            <input type="hidden" name="link_expiration_enabled" id="link_expiration_enabled" value="<?php echo esc_attr(($link_page_data['settings']['link_expiration_enabled'] ?? false) ? '1' : '0'); ?>">
             
             <div class="shared-tabs-buttons-container">
                 <!-- Item 1: Info -->
@@ -395,7 +393,7 @@ if ($link_page_id && get_post_type($link_page_id) === 'artist_link_page') {
                 $initial_container_style_for_php_preview = isset($data['background_style']) ? $data['background_style'] : '';
                 set_query_var('initial_container_style_for_php_preview', $initial_container_style_for_php_preview);
                 // 4. Prepare preview data for the new modular preview partial
-                $preview_template_data_for_php = LinkPageDataProvider::get_data($link_page_id, $artist_id);
+                $preview_template_data_for_php = ec_get_link_page_data($artist_id, $link_page_id);
                 // Add the link_page_id to the data array before passing it to the preview iframe
                 $preview_template_data_for_php['link_page_id'] = $link_page_id;
                 set_query_var('preview_template_data', $preview_template_data_for_php);

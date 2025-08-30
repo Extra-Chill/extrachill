@@ -30,21 +30,21 @@ if ( ! isset( $data ) || ! is_array( $data ) ) {
         }
     }
 
-    // Ensure LinkPageDataProvider class is available.
-    if ( ! class_exists( 'LinkPageDataProvider' ) ) {
-        $data_provider_path = EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/core/LinkPageDataProvider.php';
-        if ( file_exists( $data_provider_path ) ) {
-            require_once $data_provider_path;
+    // Ensure ec_get_link_page_data filter function is available.
+    if ( ! function_exists( 'ec_get_link_page_data' ) ) {
+        $data_filter_path = EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/core/filters/data.php';
+        if ( file_exists( $data_filter_path ) ) {
+            require_once $data_filter_path;
         }
     }
 
-    if ( class_exists( 'LinkPageDataProvider' ) && isset($link_page_id) && ( isset($artist_id) || isset($artist_id) ) ) {
+    if ( function_exists( 'ec_get_link_page_data' ) && isset($link_page_id) && ( isset($artist_id) || isset($artist_id) ) ) {
         // When this template is included directly (e.g., by single-artist_link_page.php or initial preview render),
         // there are no $preview_data_overrides.
         $current_artist_id = isset($artist_id) ? $artist_id : $artist_id; // Support both
-        $data = LinkPageDataProvider::get_data( $link_page_id, $current_artist_id, array() );
+        $data = ec_get_link_page_data( $current_artist_id, $link_page_id );
     } else {
-        // Fallback if LinkPageDataProvider isn't available or IDs are missing.
+        // Fallback if ec_get_link_page_data function isn't available or IDs are missing.
         // This might indicate an issue with how the template is being included.
         $data = array( // Provide minimal default structure to avoid errors
             'display_title' => 'Error: Link Page Data Unavailable',
@@ -65,14 +65,14 @@ if (isset($extrch_link_page_template_data) && is_array($extrch_link_page_templat
 }
 
 // Ensure essential keys exist in $data to prevent undefined index errors,
-// especially if LinkPageDataProvider::get_data() might not return them all in some edge case.
+// especially if ec_get_link_page_data() might not return them all in some edge case.
 $data['powered_by'] = isset($data['powered_by']) ? $data['powered_by'] : true;
 $data['display_title'] = isset($data['display_title']) ? $data['display_title'] : '';
 $data['bio'] = isset($data['bio']) ? $data['bio'] : '';
 $data['profile_img_url'] = isset($data['profile_img_url']) ? $data['profile_img_url'] : '';
 $data['social_links'] = isset($data['social_links']) && is_array($data['social_links']) ? $data['social_links'] : [];
 
-// LinkPageDataProvider::get_data() now returns 'link_sections' directly.
+// ec_get_link_page_data() now returns 'link_sections' directly.
 $link_sections = isset($data['link_sections']) && is_array($data['link_sections']) ? $data['link_sections'] : [];
 
 // Determine the inline style for the container.
@@ -206,13 +206,25 @@ if (isset($link_page_id) && function_exists('extrch_render_featured_link_section
         </div>
 
         <?php 
-        // Conditionally render social icons ABOVE featured link and regular links using centralized manager
-        if ($social_icons_position === 'above' && !empty($data['artist_id'])) {
+        // Conditionally render social icons ABOVE featured link and regular links using data from centralized filter
+        if ($social_icons_position === 'above' && !empty($data['social_links'])) {
             $social_manager = extrachill_artist_platform_social_links();
-            echo $social_manager->render_social_icons( $data['artist_id'], array(
-                'container_class' => 'extrch-link-page-socials',
-                'icon_class' => 'extrch-social-icon'
-            ) );
+            echo '<div class="extrch-link-page-socials">';
+            foreach ($data['social_links'] as $link) {
+                if (!empty($link['url']) && !empty($link['type'])) {
+                    $icon_class = $social_manager->get_icon_class($link['type'], $link);
+                    $label = $social_manager->get_link_label($link);
+                    echo sprintf(
+                        '<a href="%s" class="%s" target="_blank" rel="noopener noreferrer" title="%s" aria-label="%s"><i class="%s"></i></a>',
+                        esc_url($link['url']),
+                        esc_attr('extrch-social-icon'),
+                        esc_attr($label),
+                        esc_attr($label),
+                        esc_attr($icon_class)
+                    );
+                }
+            }
+            echo '</div>';
         } // end if $social_icons_position === 'above'
 
         // Output Featured Link HTML if generated
@@ -286,13 +298,25 @@ if (isset($link_page_id) && function_exists('extrch_render_featured_link_section
             require EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/subscription/subscribe-modal.php';
         }
 
-        // Conditionally render social icons below links (and below subscribe form if present) using centralized manager
-        if ($social_icons_position === 'below' && !empty($data['artist_id'])) {
+        // Conditionally render social icons below links (and below subscribe form if present) using data from centralized filter
+        if ($social_icons_position === 'below' && !empty($data['social_links'])) {
             $social_manager = extrachill_artist_platform_social_links();
-            echo $social_manager->render_social_icons( $data['artist_id'], array(
-                'container_class' => 'extrch-link-page-socials extrch-socials-below',
-                'icon_class' => 'extrch-social-icon'
-            ) );
+            echo '<div class="extrch-link-page-socials extrch-socials-below">';
+            foreach ($data['social_links'] as $link) {
+                if (!empty($link['url']) && !empty($link['type'])) {
+                    $icon_class = $social_manager->get_icon_class($link['type'], $link);
+                    $label = $social_manager->get_link_label($link);
+                    echo sprintf(
+                        '<a href="%s" class="%s" target="_blank" rel="noopener noreferrer" title="%s" aria-label="%s"><i class="%s"></i></a>',
+                        esc_url($link['url']),
+                        esc_attr('extrch-social-icon'),
+                        esc_attr($label),
+                        esc_attr($label),
+                        esc_attr($icon_class)
+                    );
+                }
+            }
+            echo '</div>';
         }
         ?>
 

@@ -36,19 +36,19 @@ if ( !$artist_profile ) {
     exit;
 }
 
-// Ensure LinkPageDataProvider class is available.
-if ( ! class_exists( 'LinkPageDataProvider' ) ) {
-    $data_provider_path = EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/core/LinkPageDataProvider.php';
-    if ( file_exists( $data_provider_path ) ) {
-        require_once $data_provider_path;
+// Ensure ec_get_link_page_data filter function is available.
+if ( ! function_exists( 'ec_get_link_page_data' ) ) {
+    $data_filter_path = EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/core/filters/data.php';
+    if ( file_exists( $data_filter_path ) ) {
+        require_once $data_filter_path;
     }
 }
 
-if ( class_exists( 'LinkPageDataProvider' ) ) {
-    $data = LinkPageDataProvider::get_data( $link_page_id, $artist_id, array() ); // No overrides for public page
+if ( function_exists( 'ec_get_link_page_data' ) ) {
+    $data = ec_get_link_page_data( $artist_id, $link_page_id ); // No overrides for public page
     $data['original_link_page_id'] = $link_page_id; // Add the actual link page ID to $data
 } else {
-    // Fallback if LinkPageDataProvider somehow isn't loaded
+    // Fallback if ec_get_link_page_data function somehow isn't loaded
     $data = array(
         'display_title' => get_the_title($artist_id) ?: 'Link Page',
         'bio' => '',
@@ -64,7 +64,7 @@ if ( class_exists( 'LinkPageDataProvider' ) ) {
     $data['original_link_page_id'] = $link_page_id; // Add the actual link page ID to $data
 }
 
-// Also ensure it's added if LinkPageDataProvider provides the data
+// Also ensure it's added if ec_get_link_page_data filter provides the data
 if (isset($data) && is_array($data)) {
     $data['original_link_page_id'] = $link_page_id; 
 }

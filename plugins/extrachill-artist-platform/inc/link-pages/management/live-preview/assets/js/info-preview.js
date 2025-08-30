@@ -44,28 +44,28 @@
 
     // Event listeners for info updates from management forms
     document.addEventListener('titleChanged', function(e) {
-        const previewEl = manager.getPreviewEl ? manager.getPreviewEl() : null;
+        const previewContainerParent = document.querySelector('.manage-link-page-preview-live'); const previewEl = previewContainerParent?.querySelector('.extrch-link-page-preview-container');
         if (e.detail && e.detail.title && previewEl) {
             updatePreviewTitle(e.detail.title, previewEl);
         }
     });
 
     document.addEventListener('bioChanged', function(e) {
-        const previewEl = manager.getPreviewEl ? manager.getPreviewEl() : null;
+        const previewContainerParent = document.querySelector('.manage-link-page-preview-live'); const previewEl = previewContainerParent?.querySelector('.extrch-link-page-preview-container');
         if (e.detail && e.detail.bio && previewEl) {
             updatePreviewBio(e.detail.bio, previewEl);
         }
     });
 
     document.addEventListener('profileImageChanged', function(e) {
-        const previewEl = manager.getPreviewEl ? manager.getPreviewEl() : null;
+        const previewContainerParent = document.querySelector('.manage-link-page-preview-live'); const previewEl = previewContainerParent?.querySelector('.extrch-link-page-preview-container');
         if (e.detail && e.detail.imageSrc && previewEl) {
             updatePreviewProfileImage(e.detail.imageSrc, previewEl);
         }
     });
 
     document.addEventListener('profileImageRemoved', function(e) {
-        const previewEl = manager.getPreviewEl ? manager.getPreviewEl() : null;
+        const previewContainerParent = document.querySelector('.manage-link-page-preview-live'); const previewEl = previewContainerParent?.querySelector('.extrch-link-page-preview-container');
         if (previewEl) {
             removePreviewProfileImage(previewEl);
         }

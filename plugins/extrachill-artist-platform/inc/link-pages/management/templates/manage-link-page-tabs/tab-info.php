@@ -7,7 +7,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-// All info tab data should be hydrated from $data provided by LinkPageDataProvider.
+// All info tab data should be hydrated from $data provided by ec_get_link_page_data filter.
 
 // Retrieve data passed from manage-link-page.php
 $current_artist_id = get_query_var('tab_info_artist_id');

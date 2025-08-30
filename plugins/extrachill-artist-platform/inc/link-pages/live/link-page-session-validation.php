@@ -57,7 +57,7 @@ function extrch_check_link_page_manage_access( $request ) {
 function extrch_enqueue_public_session_script($link_page_id, $artist_id) {
     $plugin_dir = EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR;
     $plugin_uri = EXTRACHILL_ARTIST_PLATFORM_PLUGIN_URL;
-    $session_js_path = 'assets/js/link-page-session.js';
+    $session_js_path = 'inc/link-pages/live/assets/js/link-page-session.js';
 
     if (file_exists($plugin_dir . $session_js_path)) {
         $script_handle = 'extrch-public-session';

@@ -101,6 +101,9 @@
         const titleFontFamilySelect = document.getElementById('link_page_title_font_family');
         const bodyFontFamilySelect = document.getElementById('link_page_body_font_family');
 
+        // DO NOT override dropdown values here - PHP template sets correct selected values
+        // JavaScript should only handle change events, not initialization
+
         // Title font family event handling
         if (titleFontFamilySelect) {
             titleFontFamilySelect.addEventListener('change', function() {

@@ -90,7 +90,9 @@ function extrch_process_weekly_performance_emails( $debug_target_user_id = null 
                 continue;
             }
 
-            $is_notification_enabled = get_post_meta( $link_page_id, '_link_page_enable_weekly_notifications', true );
+            // Use centralized data system (single source of truth)
+            $data = ec_get_link_page_data( $artist_profile_id, $link_page_id );
+            $is_notification_enabled = $data['settings']['weekly_notifications_enabled'] ?? false;
             if ( $is_notification_enabled !== '1' ) {
                 continue; // Skip if this link page notifications are not enabled
             }

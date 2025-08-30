@@ -26,42 +26,25 @@ function extrch_get_subscription_display_options() {
 /**
  * Get current subscription display mode for a link page
  *
+ * @param int $artist_id The artist profile ID
  * @param int $link_page_id The link page ID
  * @return string The current subscription display mode
  */
-function extrch_get_subscription_display_mode( $link_page_id ) {
-    if ( empty( $link_page_id ) ) {
-        return ec_get_link_page_default( 'subscription', 'default_mode', 'icon_modal' );
-    }
-
-    $mode = get_post_meta( $link_page_id, '_link_page_subscribe_display_mode', true );
-    return ! empty( $mode ) ? $mode : ec_get_link_page_default( 'subscription', 'default_mode', 'icon_modal' );
+function extrch_get_subscription_display_mode( $artist_id, $link_page_id ) {
+    $data = ec_get_link_page_data( $artist_id, $link_page_id );
+    return $data['settings']['subscribe_display_mode'] ?? 'icon_modal';
 }
 
 /**
  * Get subscription form description for a link page
  *
- * @param int    $link_page_id The link page ID
- * @param string $artist_name  Optional artist name for default description
+ * @param int $artist_id The artist profile ID
+ * @param int $link_page_id The link page ID
  * @return string The subscription form description
  */
-function extrch_get_subscription_description( $link_page_id, $artist_name = '' ) {
-    if ( empty( $link_page_id ) ) {
-        $default_artist = ! empty( $artist_name ) ? $artist_name : ec_get_link_page_default( 'subscription', 'fallback_artist', __( 'this band', 'extrachill-artist-platform' ) );
-        $description_template = ec_get_link_page_default( 'subscription', 'description_template', __( 'Enter your email address to receive occasional news and updates from %s.', 'extrachill-artist-platform' ) );
-        return sprintf( $description_template, $default_artist );
-    }
-
-    $description = get_post_meta( $link_page_id, '_link_page_subscribe_description', true );
-    
-    if ( ! empty( $description ) ) {
-        return $description;
-    }
-
-    // Generate default description using centralized filter system
-    $default_artist = ! empty( $artist_name ) ? $artist_name : ec_get_link_page_default( 'subscription', 'fallback_artist', __( 'this band', 'extrachill-artist-platform' ) );
-    $description_template = ec_get_link_page_default( 'subscription', 'description_template', __( 'Enter your email address to receive occasional news and updates from %s.', 'extrachill-artist-platform' ) );
-    return sprintf( $description_template, $default_artist );
+function extrch_get_subscription_description( $artist_id, $link_page_id ) {
+    $data = ec_get_link_page_data( $artist_id, $link_page_id );
+    return $data['settings']['subscribe_description'] ?? '';
 }
 
 /**

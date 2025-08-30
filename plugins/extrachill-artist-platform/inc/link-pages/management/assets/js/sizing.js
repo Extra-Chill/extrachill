@@ -33,6 +33,47 @@
         buttonRadiusOutput = document.getElementById('button_radius_output');
     }
 
+    function loadInitialSizingValues() {
+        // Load initial sizing values from centralized data source
+        if (manager.customization && typeof manager.customization.getCustomVars === 'function') {
+            const cssVars = manager.customization.getCustomVars();
+            if (cssVars && typeof cssVars === 'object') {
+                // Set font size sliders
+                if (titleFontSizeSlider && cssVars['--link-page-title-font-size']) {
+                    const emValue = cssVars['--link-page-title-font-size'];
+                    const percentage = Math.round((parseFloat(emValue) - FONT_SIZE_MIN_EM) / (FONT_SIZE_MAX_EM - FONT_SIZE_MIN_EM) * 100);
+                    titleFontSizeSlider.value = percentage;
+                    if (titleFontSizeOutput) titleFontSizeOutput.textContent = percentage + '%';
+                }
+                
+                // Set button radius slider  
+                if (buttonRadiusSlider && cssVars['--link-page-button-radius']) {
+                    const pxValue = cssVars['--link-page-button-radius'];
+                    const percentage = Math.round((parseFloat(pxValue) / 30) * 100);
+                    buttonRadiusSlider.value = percentage;
+                    if (buttonRadiusOutput) buttonRadiusOutput.textContent = percentage + '%';
+                }
+                
+                console.log('[Sizing] Loaded initial values from centralized data');
+            }
+        }
+        
+        // Load settings from centralized data
+        if (manager.getSettings && typeof manager.getSettings === 'function') {
+            const settings = manager.getSettings();
+            if (settings && settings.profile_image_shape) {
+                const shape = settings.profile_image_shape;
+                if (shape === 'circle' && profileImgShapeCircleRadio) {
+                    profileImgShapeCircleRadio.checked = true;
+                } else if (shape === 'square' && profileImgShapeSquareRadio) {
+                    profileImgShapeSquareRadio.checked = true;
+                } else if (shape === 'rectangle' && profileImgShapeRectangleRadio) {
+                    profileImgShapeRectangleRadio.checked = true;
+                }
+            }
+        }
+    }
+
     // --- Function to sync UI controls from customVars (for sizing controls) ---
     function syncSizingInputValues() {
         if (!manager.customization || typeof manager.customization.getCustomVars !== 'function') {
@@ -45,32 +86,24 @@
             return;
         }
 
-        if (titleFontSizeSlider && titleFontSizeOutput) {
-            const defaultSliderValue = 50; 
-            let sliderValue = defaultSliderValue;
-            if (currentCV.hasOwnProperty('--link-page-title-font-size')) {
-                const savedEmString = currentCV['--link-page-title-font-size'];
-                const savedEmValue = parseFloat(savedEmString);
-                if (!isNaN(savedEmValue)) {
-                    const percentage = (savedEmValue - FONT_SIZE_MIN_EM) / (FONT_SIZE_MAX_EM - FONT_SIZE_MIN_EM);
-                    sliderValue = Math.max(1, Math.min(100, Math.round(percentage * 100))); 
-                } else {
-                     sliderValue = defaultSliderValue;
-                }
-            } else {
-                 sliderValue = defaultSliderValue;
+        // ONLY sync UI controls to existing CSS variables - never apply defaults to CSS variables
+        if (titleFontSizeSlider && titleFontSizeOutput && currentCV.hasOwnProperty('--link-page-title-font-size')) {
+            const savedEmString = currentCV['--link-page-title-font-size'];
+            const savedEmValue = parseFloat(savedEmString);
+            if (!isNaN(savedEmValue)) {
+                const percentage = (savedEmValue - FONT_SIZE_MIN_EM) / (FONT_SIZE_MAX_EM - FONT_SIZE_MIN_EM);
+                const sliderValue = Math.max(1, Math.min(100, Math.round(percentage * 100))); 
+                titleFontSizeSlider.value = sliderValue;
+                titleFontSizeOutput.textContent = sliderValue + '%';
             }
-            titleFontSizeSlider.value = sliderValue;
-            titleFontSizeOutput.textContent = sliderValue + '%';
         }
 
-        if (profileImgSizeSlider && profileImgSizeOutput) {
-            let savedSizePercent = PROFILE_IMG_SIZE_DEFAULT;
-            if (currentCV['--link-page-profile-img-size']) {
-                savedSizePercent = parseInt(currentCV['--link-page-profile-img-size'].toString().replace('%',''), 10) || PROFILE_IMG_SIZE_DEFAULT;
+        if (profileImgSizeSlider && profileImgSizeOutput && currentCV['--link-page-profile-img-size']) {
+            const savedSizePercent = parseInt(currentCV['--link-page-profile-img-size'].toString().replace('%',''), 10);
+            if (!isNaN(savedSizePercent)) {
+                profileImgSizeSlider.value = savedSizePercent;
+                profileImgSizeOutput.textContent = savedSizePercent + '%';
             }
-            profileImgSizeSlider.value = savedSizePercent;
-            profileImgSizeOutput.textContent = savedSizePercent + '%';
         }
 
         if (profileImgShapeHiddenInput && profileImgShapeCircleRadio && profileImgShapeSquareRadio && profileImgShapeRectangleRadio) { 
@@ -78,14 +111,13 @@
             // Hidden input will be updated at save time, not during initialization
         }
 
-        // --- Button Radius Slider ---
-        if (buttonRadiusSlider && buttonRadiusOutput) {
-            let savedRadiusPx = 8; // Default radius
-            if (currentCV['--link-page-button-radius']) {
-                savedRadiusPx = parseInt(currentCV['--link-page-button-radius'].toString().replace('px',''), 10) || 8;
+        // --- Button Radius Slider - ONLY sync UI to existing values ---
+        if (buttonRadiusSlider && buttonRadiusOutput && currentCV['--link-page-button-radius']) {
+            const savedRadiusPx = parseInt(currentCV['--link-page-button-radius'].toString().replace('px',''), 10);
+            if (!isNaN(savedRadiusPx)) {
+                buttonRadiusSlider.value = savedRadiusPx;
+                buttonRadiusOutput.textContent = savedRadiusPx + 'px';
             }
-            buttonRadiusSlider.value = savedRadiusPx;
-            buttonRadiusOutput.textContent = savedRadiusPx + 'px';
         }
     }
     manager.sizing.syncSizingInputValues = syncSizingInputValues; // Expose for customization.js if needed
@@ -95,6 +127,9 @@
         if (isSizingInitialized) return;
 
         cacheSizingDomElements();
+        
+        // Load initial sizing values from centralized data
+        loadInitialSizingValues();
 
         // Attach Event Listeners - Convert to direct event handling
         if (titleFontSizeSlider && titleFontSizeOutput) {

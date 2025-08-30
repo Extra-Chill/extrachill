@@ -20,11 +20,16 @@ function extrch_save_featured_link_settings($link_page_id, $post_data, $files_da
         return;
     }
 
-    $is_feature_enabled_globally = get_post_meta($link_page_id, '_enable_featured_link', true) === '1';
+    // Get artist_id to access centralized data
+    $artist_id = get_post_meta($link_page_id, '_associated_artist_profile_id', true);
+    $link_page_data = $artist_id > 0 ? ec_get_link_page_data($artist_id, $link_page_id) : array();
+    $settings = $link_page_data['settings'] ?? array();
+
+    $is_feature_enabled_globally = $settings['featured_link_enabled'] ?? false;
     
     // Define these upfront for clarity and use throughout the function
     $new_link_url_from_post = isset($post_data['featured_link_original_id']) ? sanitize_text_field($post_data['featured_link_original_id']) : null;
-    $current_link_url_from_meta = get_post_meta($link_page_id, '_featured_link_original_id', true);
+    $current_link_url_from_meta = $settings['featured_link_original_id'] ?? '';
     $was_thumbnail_explicitly_removed = isset($post_data['featured_link_thumbnail_id_action']) && $post_data['featured_link_thumbnail_id_action'] === 'remove';
     $is_new_thumbnail_uploaded = !empty($files_data['featured_link_thumbnail_upload']['tmp_name']);
     $og_image_removed = isset($post_data['featured_link_og_image_removed']) && $post_data['featured_link_og_image_removed'] === '1';
@@ -45,7 +50,7 @@ function extrch_save_featured_link_settings($link_page_id, $post_data, $files_da
                 require_once(ABSPATH . 'wp-admin/includes/image.php');
                 require_once(ABSPATH . 'wp-admin/includes/media.php');
                 
-                $old_custom_thumb_id = get_post_meta($link_page_id, '_featured_link_thumbnail_id', true);
+                $old_custom_thumb_id = $settings['featured_link_thumbnail_id'] ?? '';
                 $new_custom_thumb_id = media_handle_upload('featured_link_thumbnail_upload', $link_page_id);
 
                 if (is_numeric($new_custom_thumb_id) && !is_wp_error($new_custom_thumb_id)) {
@@ -66,7 +71,7 @@ function extrch_save_featured_link_settings($link_page_id, $post_data, $files_da
             $url_has_changed = ($new_link_url_from_post !== $current_link_url_from_meta);
 
             if ($url_has_changed || $was_thumbnail_explicitly_removed) {
-                $old_custom_thumb_id_to_clear = get_post_meta($link_page_id, '_featured_link_thumbnail_id', true);
+                $old_custom_thumb_id_to_clear = $settings['featured_link_thumbnail_id'] ?? '';
                 if ($old_custom_thumb_id_to_clear) {
                     // Always delete the old custom thumbnail if the link changes or is removed
                     wp_delete_attachment($old_custom_thumb_id_to_clear, true);
@@ -75,7 +80,9 @@ function extrch_save_featured_link_settings($link_page_id, $post_data, $files_da
                 delete_post_meta($link_page_id, '_featured_link_fetched_thumbnail_url');
             }
             
-            $current_custom_thumb_id_after_potential_clear = get_post_meta($link_page_id, '_featured_link_thumbnail_id', true);
+            // Re-fetch settings after potential clearing to get updated thumbnail_id
+            $updated_link_page_data = $artist_id > 0 ? ec_get_link_page_data($artist_id, $link_page_id) : array();
+            $current_custom_thumb_id_after_potential_clear = $updated_link_page_data['settings']['featured_link_thumbnail_id'] ?? '';
 
             if (!$current_custom_thumb_id_after_potential_clear && !empty($new_link_url_from_post) && function_exists('extrch_fetch_remote_og_image')) {
                 // Attempt to fetch OG image for the new_link_url_from_post
@@ -98,7 +105,7 @@ function extrch_save_featured_link_settings($link_page_id, $post_data, $files_da
     } else {
         delete_post_meta($link_page_id, '_featured_link_custom_description');
         
-        $existing_thumb_id = get_post_meta($link_page_id, '_featured_link_thumbnail_id', true);
+        $existing_thumb_id = $settings['featured_link_thumbnail_id'] ?? '';
         if ($existing_thumb_id) {
             delete_post_meta($link_page_id, '_featured_link_thumbnail_id');
         }
@@ -116,21 +123,26 @@ function extrch_save_featured_link_settings($link_page_id, $post_data, $files_da
  * @return string The HTML for the featured link section, or empty string.
  */
 function extrch_render_featured_link_section_html($link_page_id, $link_sections, $css_vars) {
-    $is_featured_link_enabled = get_post_meta($link_page_id, '_enable_featured_link', true) === '1';
+    // Get artist_id to access centralized data
+    $artist_id = get_post_meta($link_page_id, '_associated_artist_profile_id', true);
+    $link_page_data = $artist_id > 0 ? ec_get_link_page_data($artist_id, $link_page_id) : array();
+    $settings = $link_page_data['settings'] ?? array();
+
+    $is_featured_link_enabled = $settings['featured_link_enabled'] ?? false;
     if (!$is_featured_link_enabled) {
         return '';
     }
 
-    $featured_link_original_url_from_meta = get_post_meta($link_page_id, '_featured_link_original_id', true);
+    $featured_link_original_url_from_meta = $settings['featured_link_original_id'] ?? '';
     if (empty($featured_link_original_url_from_meta)) {
         return '';
     }
 
-    $custom_desc = get_post_meta($link_page_id, '_featured_link_custom_description', true);
-    $thumbnail_id = get_post_meta($link_page_id, '_featured_link_thumbnail_id', true);
-    $fetched_thumbnail_url = get_post_meta($link_page_id, '_featured_link_fetched_thumbnail_url', true);
-    $og_image_removed = get_post_meta($link_page_id, '_featured_link_og_image_removed', true) === '1';
-    $title_font_family = isset($css_vars['--link-page-title-font-family']) ? $css_vars['--link-page-title-font-family'] : "'WilcoLoftSans', sans-serif";
+    $custom_desc = $settings['featured_link_custom_description'] ?? '';
+    $thumbnail_id = $settings['featured_link_thumbnail_id'] ?? '';
+    $fetched_thumbnail_url = $settings['featured_link_fetched_thumbnail_url'] ?? '';
+    $og_image_removed = $settings['featured_link_og_image_removed'] ?? false;
+    $title_font_family = $css_vars['--link-page-title-font-family'] ?? '';
     $thumbnail_url_to_display = '';
 
     if ($thumbnail_id) {
@@ -209,10 +221,14 @@ function extrch_render_featured_link_section_html($link_page_id, $link_sections,
  * @return string|null The URL of the featured link to skip, or null.
  */
 function extrch_get_featured_link_url_to_skip($link_page_id) {
-    $is_featured_link_enabled = get_post_meta($link_page_id, '_enable_featured_link', true) === '1';
+    // Get artist_id to access centralized data
+    $artist_id = get_post_meta($link_page_id, '_associated_artist_profile_id', true);
+    $link_page_data = $artist_id > 0 ? ec_get_link_page_data($artist_id, $link_page_id) : array();
+    $settings = $link_page_data['settings'] ?? array();
+
+    $is_featured_link_enabled = $settings['featured_link_enabled'] ?? false;
     if ($is_featured_link_enabled) {
-        // _featured_link_original_id now stores the URL.
-        return get_post_meta($link_page_id, '_featured_link_original_id', true);
+        return $settings['featured_link_original_id'] ?? '';
     }
     return null;
 }

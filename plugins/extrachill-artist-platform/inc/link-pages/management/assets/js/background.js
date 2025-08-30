@@ -78,11 +78,15 @@
 
         // New function to sync all background input fields from customVars
         const syncBackgroundInputValues = () => {
-            if (!manager || !manager.customization || typeof manager.customization.getCustomVars !== 'function') {
-                // console.warn('syncBackgroundInputValues: manager.customization.getCustomVars is not available. Cannot sync background input values.');
-                return; // Exit if dependency not met
+            // Get CSS variables from centralized data source
+            let centralCustomVars = {};
+            if (manager.customization && typeof manager.customization.getCustomVars === 'function') {
+                centralCustomVars = manager.customization.getCustomVars() || {};
+                console.log('[Background] Using centralized CSS variables');
+            } else {
+                console.warn('[Background] Centralized CSS vars not available - this should not happen');
+                return;
             }
-            const centralCustomVars = manager.customization.getCustomVars();
 
             if (typeSelectInput) {
                 typeSelectInput.value = centralCustomVars['--link-page-background-type'] || 'color';

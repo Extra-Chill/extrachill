@@ -29,15 +29,13 @@ function extrch_validate_google_tag_id( $tag_id ) {
 /**
  * Get Google Tag ID for a link page
  *
+ * @param int $artist_id The artist profile ID
  * @param int $link_page_id The link page ID
  * @return string The Google Tag ID or empty string if not set
  */
-function extrch_get_google_tag_id( $link_page_id ) {
-    if ( empty( $link_page_id ) ) {
-        return '';
-    }
-
-    return get_post_meta( $link_page_id, '_link_page_google_tag_id', true );
+function extrch_get_google_tag_id( $artist_id, $link_page_id ) {
+    $data = ec_get_link_page_data( $artist_id, $link_page_id );
+    return $data['settings']['google_tag_id'] ?? '';
 }
 
 /**

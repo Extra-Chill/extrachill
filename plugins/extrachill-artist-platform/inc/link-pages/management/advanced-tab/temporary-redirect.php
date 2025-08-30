@@ -19,19 +19,14 @@ defined( 'ABSPATH' ) || exit;
 /**
  * Get current temporary redirect settings for display
  *
+ * @param int $artist_id The artist profile ID
  * @param int $link_page_id The link page ID
  * @return array Array containing redirect settings
  */
-function extrch_get_temporary_redirect_settings( $link_page_id ) {
-    if ( empty( $link_page_id ) ) {
-        return array(
-            'enabled' => false,
-            'target_url' => '',
-        );
-    }
-
+function extrch_get_temporary_redirect_settings( $artist_id, $link_page_id ) {
+    $data = ec_get_link_page_data( $artist_id, $link_page_id );
     return array(
-        'enabled' => get_post_meta( $link_page_id, '_link_page_redirect_enabled', true ) === '1',
-        'target_url' => get_post_meta( $link_page_id, '_link_page_redirect_target_url', true ),
+        'enabled' => $data['settings']['redirect_enabled'] ?? false,
+        'target_url' => $data['settings']['redirect_target_url'] ?? '',
     );
 }

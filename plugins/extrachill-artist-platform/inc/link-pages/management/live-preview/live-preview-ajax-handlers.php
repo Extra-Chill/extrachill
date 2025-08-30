@@ -70,9 +70,9 @@ function extrch_handle_preview_content_update() {
             }
         }
 
-        // Get complete data using data provider
-        if ( class_exists( 'LinkPageDataProvider' ) ) {
-            $preview_data = LinkPageDataProvider::get_data( $link_page_id, $artist_id, $updated_data );
+        // Get complete data using centralized filter function with overrides
+        if ( function_exists( 'ec_get_link_page_data' ) ) {
+            $preview_data = ec_get_link_page_data( $artist_id, $link_page_id, $updated_data );
         } else {
             $preview_data = $updated_data;
         }
@@ -159,10 +159,10 @@ function extrch_handle_preview_reset() {
     }
 
     // Get saved data without any overrides
-    if ( class_exists( 'LinkPageDataProvider' ) ) {
-        $saved_data = LinkPageDataProvider::get_data( $link_page_id, $artist_id );
+    if ( function_exists( 'ec_get_link_page_data' ) ) {
+        $saved_data = ec_get_link_page_data( $artist_id, $link_page_id );
     } else {
-        wp_send_json_error( 'Data provider not available' );
+        wp_send_json_error( 'Data filter function not available' );
     }
 
     // Generate reset preview HTML

@@ -6,7 +6,7 @@
 
     // Helper to get the preview iframe and content wrapper
     function getPreviewEls() {
-        const previewEl = manager.getPreviewEl ? manager.getPreviewEl() : null;
+        const previewContainerParent = document.querySelector('.manage-link-page-preview-live'); const previewEl = previewContainerParent?.querySelector('.extrch-link-page-preview-container');
         const contentWrapperEl = previewEl ? previewEl.querySelector('.extrch-link-page-content-wrapper') : null;
         return { previewEl, contentWrapperEl };
     }
@@ -14,7 +14,7 @@
     // Helper to get the band name for the subscribe header
     function getBandName() {
         // Try to get from a data attribute on the preview container, or from the page
-        const previewEl = manager.getPreviewEl ? manager.getPreviewEl() : null;
+        const previewContainerParent = document.querySelector('.manage-link-page-preview-live'); const previewEl = previewContainerParent?.querySelector('.extrch-link-page-preview-container');
         if (previewEl) {
             const h1 = previewEl.querySelector('.extrch-link-page-title');
             if (h1 && h1.textContent.trim() !== '') {

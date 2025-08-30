@@ -1,3 +1,17 @@
+/**
+ * Shared Tabs System
+ * 
+ * Responsive tabbed interface that switches between accordion mode (mobile) 
+ * and tabs mode (desktop). Handles dynamic content positioning, tab state 
+ * management, and URL hash synchronization.
+ * 
+ * Features:
+ * - Responsive layout switching (768px breakpoint)
+ * - Tab state preservation via URL hash
+ * - Custom events for tab activation ('sharedTabActivated')
+ * - External tab activation support
+ * - Smart scrolling behavior
+ */
 document.addEventListener('DOMContentLoaded', function() {
     const components = document.querySelectorAll('.shared-tabs-component');
 

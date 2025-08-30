@@ -277,6 +277,74 @@ class ExtraChillArtistPlatform_Fonts {
     }
 
     /**
+     * Generate @font-face CSS for local fonts
+     * 
+     * Only generates @font-face definitions for selected local fonts (not Google Fonts).
+     * Follows same dynamic pattern as Google Font loading.
+     * 
+     * @since 1.1.0
+     * @param array $font_values Array of selected font values 
+     * @return string CSS @font-face definitions for local fonts
+     */
+    public function get_local_fonts_css( $font_values ) {
+        if ( empty( $font_values ) || ! is_array( $font_values ) ) {
+            return '';
+        }
+        
+        $local_fonts_css = '';
+        $fonts = $this->get_supported_fonts();
+        
+        foreach ( $font_values as $font_value ) {
+            // Skip empty values
+            if ( empty( $font_value ) ) {
+                continue;
+            }
+            
+            // Find font in supported fonts list
+            $font_config = null;
+            foreach ( $fonts as $font ) {
+                if ( $font['value'] === $font_value ) {
+                    $font_config = $font;
+                    break;
+                }
+            }
+            
+            // Only process local fonts (not Google Fonts)
+            if ( $font_config && 
+                 isset( $font_config['google_font_param'] ) && 
+                 $font_config['google_font_param'] === 'local_default' ) {
+                
+                // Generate @font-face for specific local fonts
+                if ( $font_value === 'WilcoLoftSans' ) {
+                    $local_fonts_css .= $this->get_wilco_loft_sans_font_face();
+                }
+                // Add other local fonts here as needed
+            }
+        }
+        
+        return $local_fonts_css;
+    }
+
+    /**
+     * Get @font-face definition for WilcoLoftSans
+     * 
+     * @since 1.1.0
+     * @return string CSS @font-face definition
+     */
+    private function get_wilco_loft_sans_font_face() {
+        $theme_url = get_template_directory_uri();
+        
+        return "@font-face {
+    font-family: 'WilcoLoftSans';
+    src: url('{$theme_url}/fonts/WilcoLoftSans/WilcoLoftSans-Treble.woff2') format('woff2'),
+         url('{$theme_url}/fonts/WilcoLoftSans/WilcoLoftSans-Treble.woff') format('woff');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}\n";
+    }
+
+    /**
      * Localize font data for JavaScript
      * 
      * @since 1.1.0

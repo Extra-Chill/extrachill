@@ -239,9 +239,13 @@ function extrachill_redirect_artist_link_page_cpt_to_custom_domain() {
         if ( $current_link_page_post && $current_link_page_post->ID ) {
             $link_page_id = $current_link_page_post->ID;
 
-            $temp_redirect_enabled = get_post_meta( $link_page_id, '_link_page_redirect_enabled', true );
-            if ( $temp_redirect_enabled === '1' ) {
-                $target_redirect_url = get_post_meta( $link_page_id, '_link_page_redirect_target_url', true );
+            // Use centralized data source for redirect settings (single source of truth)
+            $artist_id = get_post_meta( $link_page_id, '_associated_artist_profile_id', true );
+            $data = ec_get_link_page_data( $artist_id, $link_page_id );
+            $temp_redirect_enabled = $data['settings']['redirect_enabled'] ?? false;
+            $target_redirect_url = $data['settings']['redirect_target_url'] ?? '';
+            
+            if ( $temp_redirect_enabled ) {
                 if ( ! empty( $target_redirect_url ) && filter_var( $target_redirect_url, FILTER_VALIDATE_URL ) ) {
                     if ( ! headers_sent() ) {
                         wp_redirect( esc_url_raw( $target_redirect_url ), 302 );
@@ -250,9 +254,9 @@ function extrachill_redirect_artist_link_page_cpt_to_custom_domain() {
                 }
             }
             if ( ! $is_dev_mode && ! $is_extrachill_link_host ) {
-                $associated_artist_profile_id = get_post_meta( $link_page_id, '_associated_artist_profile_id', true );
-                if ( $associated_artist_profile_id ) {
-                    $artist_profile_post = get_post( $associated_artist_profile_id );
+                // Use already retrieved artist_id (avoid duplicate query)
+                if ( $artist_id ) {
+                    $artist_profile_post = get_post( $artist_id );
                     if ( $artist_profile_post && ! empty( $artist_profile_post->post_name ) ) {
                         $artist_slug = $artist_profile_post->post_name;
                         $target_url_path = '/' . $artist_slug . '/';

@@ -23,8 +23,9 @@ window.ExtrchLinkPageInfoManager = {
         this.fields.removeProfileImageHidden = document.getElementById('remove_link_page_profile_image_hidden');
 
         // Get the preview image element for live updates
-        const previewEl = this.manager.getPreviewEl();
-        const imgEl = previewEl.querySelector('.link-page-profile-image');
+        const previewContainerParent = document.querySelector('.manage-link-page-preview-live');
+        const previewEl = previewContainerParent?.querySelector('.extrch-link-page-preview-container');
+        const imgEl = previewEl?.querySelector('.link-page-profile-image');
         if (imgEl) {
             this.originalImageSrc = imgEl.src;
             this.fields.profileImagePreview = imgEl;
@@ -32,6 +33,19 @@ window.ExtrchLinkPageInfoManager = {
         
         this._attachEventListeners();
         this.updateRemoveButtonVisibility();
+        this._loadInitialValues();
+    },
+
+    _loadInitialValues: function() {
+        // Load initial values from centralized data source
+        if (this.manager && this.manager.getSettings && typeof this.manager.getSettings === 'function') {
+            const settings = this.manager.getSettings();
+            if (settings && typeof settings === 'object') {
+                // Load any settings-based data (currently info tab uses mostly form fields)
+                // Profile image state is handled by the remove button visibility logic
+                console.log('[Info] Loaded initial values from centralized settings');
+            }
+        }
     },
 
     _attachEventListeners: function() {
@@ -69,7 +83,7 @@ window.ExtrchLinkPageInfoManager = {
                 this.fields.removeProfileImageHidden.value = '0'; // Image selected, so not removing
                 this.updateRemoveButtonVisibility(true); // an image is present
 
-                this.manager.customization.updateSetting('--link-page-profile-img-url', e.target.result);
+                manager.customization.updateSetting('--link-page-profile-img-url', e.target.result);
             };
             reader.readAsDataURL(file);
         }
@@ -82,7 +96,7 @@ window.ExtrchLinkPageInfoManager = {
         this.fields.profileImageUpload.value = ''; // Clear the file input
         this.fields.removeProfileImageHidden.value = '1'; // Set hidden input to indicate removal
         this.updateRemoveButtonVisibility(false);
-        this.manager.customization.updateSetting('--link-page-profile-img-url', '');
+        manager.customization.updateSetting('--link-page-profile-img-url', '');
     },
     
     updateRemoveButtonVisibility: function(isImagePresent = null) {
@@ -91,8 +105,9 @@ window.ExtrchLinkPageInfoManager = {
         if (isImagePresent !== null) {
             imageActuallyPresent = isImagePresent;
         } else {
-            const previewEl = this.manager.getPreviewEl();
-            const imgElement = previewEl.querySelector('.link-page-profile-image');
+            const previewContainerParent = document.querySelector('.manage-link-page-preview-live');
+            const previewEl = previewContainerParent?.querySelector('.extrch-link-page-preview-container');
+            const imgElement = previewEl?.querySelector('.link-page-profile-image');
             if (imgElement) {
                 const imgSrc = imgElement.getAttribute('src');
                 imageActuallyPresent = imgSrc && imgSrc.trim() !== '' && !imgSrc.includes('data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7');
@@ -122,7 +137,7 @@ window.ExtrchLinkPageInfoManager = {
             this.updateRemoveButtonVisibility(false);
         }
         
-        this.manager.customization.updateSetting('--link-page-profile-img-url', imageUrlToUse);
+        manager.customization.updateSetting('--link-page-profile-img-url', imageUrlToUse);
     }
 }; 
 
@@ -157,4 +172,11 @@ function serializeInfoForSave() {
 }
 
 // Expose the serialize method for the save handler
-window.ExtrchLinkPageInfoManager.serializeForSave = serializeInfoForSave; 
+window.ExtrchLinkPageInfoManager.serializeForSave = serializeInfoForSave;
+
+// Self-initialize on DOMContentLoaded
+document.addEventListener('DOMContentLoaded', function() {
+    if (window.ExtrchLinkPageManager) {
+        window.ExtrchLinkPageInfoManager.init(window.ExtrchLinkPageManager);
+    }
+}); 

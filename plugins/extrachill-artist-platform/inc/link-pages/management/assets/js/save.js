@@ -1,57 +1,59 @@
-// manage-link-page-save.js
-// Centralized save logic for the link page manager (custom vars, links, socials, advanced, etc.)
+/**
+ * Link Page Save Manager
+ * 
+ * Centralized save logic for link page management forms. Handles serialization
+ * of CSS variables, links data, socials data, and form submission coordination.
+ * 
+ * Key features:
+ * - CSS variables read directly from CSSOM (not textContent)
+ * - Form serialization with hidden input coordination  
+ * - Tab state preservation across page reloads
+ * - Module-specific serialization hooks
+ */
 (function(manager) {
     if (!manager) return;
     manager.save = manager.save || {};
 
-
     /**
-     * Serializes the current CSS variables from the preview style tag into the hidden input.
+     * Read CSS variables directly from style tag (moved from css-variables.js abstraction)
      */
-    function serializeCssVarsToHiddenInput() {
-        const hiddenInput = document.getElementById('link_page_custom_css_vars_json');
+    function getCustomVarsFromStyleTag() {
+        // Parse the style tag for all CSS vars - READ FROM CSSOM, NOT textContent
         const styleTag = document.getElementById('extrch-link-page-custom-vars');
-
-        if (!hiddenInput || !styleTag) {
-            console.warn('[Save] CSS variables elements not found');
-            return;
-        }
-
+        if (!styleTag) return {};
+        
         let vars = {};
         
-        try {
-            const sheet = styleTag.sheet;
-            if (sheet && sheet.cssRules && sheet.cssRules.length > 0) {
-                for (let i = 0; i < sheet.cssRules.length; i++) {
-                    const rule = sheet.cssRules[i];
-                    if (rule && rule.selectorText === ':root' && rule.style) {
-                        for (let j = 0; j < rule.style.length; j++) {
-                            const property = rule.style[j];
-                            if (property && property.startsWith('--')) {
-                                const value = rule.style.getPropertyValue(property);
-                                if (value && value.trim()) {
-                                    vars[property] = value.trim();
-                                }
+        // Use CSSOM to read current CSS variables (including dynamic updates)
+        let sheet = styleTag.sheet;
+        if (sheet && sheet.cssRules) {
+            for (let i = 0; i < sheet.cssRules.length; i++) {
+                if (sheet.cssRules[i].selectorText === ':root') {
+                    const rootRule = sheet.cssRules[i];
+                    // Read all CSS custom properties from the :root rule
+                    for (let j = 0; j < rootRule.style.length; j++) {
+                        const property = rootRule.style[j];
+                        if (property.startsWith('--')) {
+                            const value = rootRule.style.getPropertyValue(property);
+                            if (value) {
+                                vars[property] = value.trim();
                             }
                         }
                     }
+                    break;
                 }
             }
-        } catch (e) {
-            console.warn('[Save] CSS parsing failed:', e.message);
         }
         
-        // Ensure all expected CSS variables are present
-        const expectedVars = getExpectedCssVariables();
-        const currentSavedVars = getCurrentSavedCssVariables();
-        
-        for (const [key, hardcodedDefault] of Object.entries(expectedVars)) {
-            if (!(key in vars)) {
-                vars[key] = currentSavedVars[key] || hardcodedDefault;
-            }
-        }
-        
-        hiddenInput.value = JSON.stringify(vars);
+        return vars;
+    }
+
+    /**
+     * CSS variables are now handled directly via form inputs - no serialization needed
+     */
+    function serializeCssVarsToHiddenInput() {
+        // No longer needed - CSS variables saved directly from form inputs
+        console.log('[Save] CSS variables now handled directly via form inputs - no JSON serialization needed');
     }
 
     /**
@@ -109,25 +111,11 @@
     }
 
     /**
-     * Serializes other settings like overlay toggle into the CSS vars JSON.
+     * Overlay settings are now handled directly via form inputs - no serialization needed
      */
     function serializeOtherSettingsToHiddenInput() {
-        const hiddenInput = document.getElementById('link_page_custom_css_vars_json');
-        if (!hiddenInput) return;
-        
-        let vars = {};
-        try {
-            vars = JSON.parse(hiddenInput.value || '{}'); 
-        } catch (e) {
-            vars = {};
-        }
-        
-        const overlayToggle = document.getElementById('link_page_overlay_toggle');
-        if (overlayToggle) {
-            vars.overlay = overlayToggle.checked ? '1' : '0';
-        }
-        
-        hiddenInput.value = JSON.stringify(vars);
+        // No longer needed - overlay toggle saved directly from form input
+        console.log('[Save] Overlay settings now handled directly via form inputs');
     }
 
     /**
@@ -244,5 +232,8 @@
     }
 
     manager.save.attachSaveHandlerToForm = attachSaveHandlerToForm;
+
+    // Automatically attach save handler (no longer needs to be called manually)
+    manager.save.attachSaveHandlerToForm();
 
 })(window.ExtrchLinkPageManager = window.ExtrchLinkPageManager || {}); 

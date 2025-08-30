@@ -26,7 +26,7 @@
 
         if (!sectionsData) return;
 
-        const previewEl = manager.getPreviewEl ? manager.getPreviewEl() : null;
+        const previewContainerParent = document.querySelector('.manage-link-page-preview-live'); const previewEl = previewContainerParent?.querySelector('.extrch-link-page-preview-container');
         if (!previewEl) return;
 
         // Find the links container in the preview
@@ -76,5 +76,16 @@
     // Expose functions on manager
     manager.linksPreview.update = updateLinksPreview;
     manager.linksPreview.updateDebounced = debouncedUpdateLinksPreview;
+
+    // Initialize preview with centralized data on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        if (manager.getLinks && typeof manager.getLinks === 'function') {
+            const initialLinks = manager.getLinks();
+            if (initialLinks && initialLinks.length > 0) {
+                updateLinksPreview({ detail: { sectionsData: initialLinks } });
+                console.log('[Links Preview] Initialized with centralized data');
+            }
+        }
+    });
 
 })(window.ExtrchLinkPageManager = window.ExtrchLinkPageManager || {});

@@ -6,7 +6,7 @@
     
     // Main socials preview update function - Direct DOM manipulation
     function updateSocialsPreview(socialsData, position) {
-        const previewEl = manager.getPreviewEl ? manager.getPreviewEl() : null;
+        const previewContainerParent = document.querySelector('.manage-link-page-preview-live'); const previewEl = previewContainerParent?.querySelector('.extrch-link-page-preview-container');
         if (!previewEl) return;
 
         // Find or create the socials container in the preview
@@ -93,5 +93,16 @@
 
     // Expose functions on manager
     manager.socialsPreview.update = updateSocialsPreview;
+
+    // Initialize preview with centralized data on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        if (manager.getSocials && typeof manager.getSocials === 'function') {
+            const initialSocials = manager.getSocials();
+            if (initialSocials && initialSocials.length > 0) {
+                updateSocialsPreview(initialSocials, 'above'); // Default position
+                console.log('[Socials Preview] Initialized with centralized data');
+            }
+        }
+    });
 
 })(window.ExtrchLinkPageManager = window.ExtrchLinkPageManager || {}, window.extrchLinkPageConfig);

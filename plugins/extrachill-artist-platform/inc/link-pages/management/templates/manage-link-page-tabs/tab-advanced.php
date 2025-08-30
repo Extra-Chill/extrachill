@@ -5,60 +5,37 @@
  * Loaded from manage-link-page.php
  */
 
-// All advanced tab data should be hydrated from $data provided by LinkPageDataProvider.
-
 defined( 'ABSPATH' ) || exit;
 
-// Ensure variables from parent scope are available if needed.
-// $link_page_id is likely needed to fetch current meta values.
-global $post; // The main post object for the page template
+// Get centralized link page data
+global $post;
 $current_link_page_id = isset($link_page_id) ? $link_page_id : ($post ? $post->ID : 0);
+$current_artist_id = isset($artist_id) ? $artist_id : 0;
 
-// Fetch current values for the settings
-$link_expiration_enabled = $current_link_page_id ? (get_post_meta($current_link_page_id, '_link_expiration_enabled', true) === '1') : false;
-$weekly_notifications_enabled = $current_link_page_id ? (get_post_meta($current_link_page_id, '_link_page_enable_weekly_notifications', true) === '1') : false;
-$redirect_enabled = $current_link_page_id ? (get_post_meta($current_link_page_id, '_link_page_redirect_enabled', true) === '1') : false;
-$redirect_target_url = $current_link_page_id ? get_post_meta($current_link_page_id, '_link_page_redirect_target_url', true) : '';
+// Use centralized data system instead of direct get_post_meta calls
+$link_page_data = $current_artist_id > 0 ? ec_get_link_page_data($current_artist_id, $current_link_page_id) : array();
+$settings = isset($link_page_data['settings']) ? $link_page_data['settings'] : array();
 
-// Fetch current value for YouTube inline embed setting
-$is_youtube_embed_actually_enabled = $current_link_page_id ? (get_post_meta($current_link_page_id, '_enable_youtube_inline_embed', true) !== '0') : true; // Default true (feature ON)
+// Extract settings with defaults (centralized system returns proper booleans)
+$link_expiration_enabled = $settings['link_expiration_enabled'] ?? false;
+$weekly_notifications_enabled = $settings['weekly_notifications_enabled'] ?? false;
+$redirect_enabled = $settings['redirect_enabled'] ?? false;
+$redirect_target_url = $settings['redirect_target_url'] ?? '';
+$is_youtube_embed_actually_enabled = $settings['youtube_embed_enabled'] ?? true;
 $should_disable_checkbox_be_checked = !$is_youtube_embed_actually_enabled;
+$meta_pixel_id = $settings['meta_pixel_id'] ?? '';
+$enable_featured_link = $settings['featured_link_enabled'] ?? false;
+$featured_link_original_url = $settings['featured_link_original_id'] ?? '';
 
-// Fetch current value for Meta Pixel ID
-$meta_pixel_id = $current_link_page_id ? get_post_meta($current_link_page_id, '_link_page_meta_pixel_id', true) : '';
-
-// --- Featured Link Setting ---
-$enable_featured_link = $current_link_page_id ? (get_post_meta($current_link_page_id, '_enable_featured_link', true) === '1') : false;
-$featured_link_original_url = $current_link_page_id ? get_post_meta($current_link_page_id, '_featured_link_original_id', true) : '';
-
-// Fetch all links for populating dropdowns
+// Get links data for populating dropdowns from centralized system
+// Flatten nested link sections into a single array for dropdown use
 $all_links_for_dropdowns = [];
-if ($current_link_page_id) {
-    $links_json_string = get_post_meta($current_link_page_id, '_link_page_links', true);
-    
-    // Handle both JSON strings and PHP serialized arrays (WordPress auto-serializes arrays)
-    if (is_string($links_json_string)) {
-        // Try JSON decode first (legacy format)
-        $json_decoded = json_decode($links_json_string, true);
-        if (json_last_error() === JSON_ERROR_NONE && is_array($json_decoded)) {
-            $links_array = $json_decoded;
-        } else {
-            // Try PHP unserialize (WordPress auto-serialization)
-            $unserialized = @unserialize($links_json_string);
-            $links_array = ($unserialized !== false && is_array($unserialized)) ? $unserialized : [];
-        }
-    } else {
-        $links_array = is_array($links_json_string) ? $links_json_string : [];
-    }
-
-    if (is_array($links_array)) {
-        foreach ($links_array as $link_section) {
-            if (isset($link_section['links']) && is_array($link_section['links'])) {
-                foreach ($link_section['links'] as $link_item) {
-                    // Ensure essential data is present, especially link_text and link_url. ID is no longer the primary concern for this dropdown.
-                    if (isset($link_item['link_text']) && !empty($link_item['link_url'])) {
-                        $all_links_for_dropdowns[] = $link_item;
-                    }
+if (!empty($link_page_data['links']) && is_array($link_page_data['links'])) {
+    foreach ($link_page_data['links'] as $section) {
+        if (!empty($section['links']) && is_array($section['links'])) {
+            foreach ($section['links'] as $link) {
+                if (!empty($link['link_url']) && !empty($link['link_text'])) {
+                    $all_links_for_dropdowns[] = $link;
                 }
             }
         }
@@ -81,9 +58,15 @@ if ($current_link_page_id) {
                 <option value=""><?php esc_html_e('-- Select a Link --', 'extrachill-artist-platform'); ?></option>
                 <?php if (!empty($all_links_for_dropdowns)) : ?>
                     <?php foreach ($all_links_for_dropdowns as $link_item) : ?>
-                        <option value="<?php echo esc_attr($link_item['link_url']); ?>" <?php selected($featured_link_original_url, $link_item['link_url']); ?>>
-                            <?php echo esc_html(stripslashes($link_item['link_text'])); ?> (<?php echo esc_url($link_item['link_url']); ?>)
+                        <?php 
+                        $link_url = isset($link_item['link_url']) ? $link_item['link_url'] : '';
+                        $link_text = isset($link_item['link_text']) ? $link_item['link_text'] : '';
+                        if (!empty($link_url) && !empty($link_text)) :
+                        ?>
+                        <option value="<?php echo esc_attr($link_url); ?>" <?php selected($featured_link_original_url, $link_url); ?>>
+                            <?php echo esc_html(stripslashes($link_text)); ?> (<?php echo esc_url($link_url); ?>)
                         </option>
+                        <?php endif; ?>
                     <?php endforeach; ?>
                 <?php endif; ?>
                 <?php // Options are pre-populated by PHP. JavaScript may update this list if links are changed in the "Links" tab. ?>
@@ -114,9 +97,15 @@ if ($current_link_page_id) {
                 <option value=""><?php esc_html_e('-- Select a Link --', 'extrachill-artist-platform'); ?></option>
                 <?php if (!empty($all_links_for_dropdowns)) : ?>
                     <?php foreach ($all_links_for_dropdowns as $link_item) : ?>
-                        <option value="<?php echo esc_attr($link_item['link_url']); ?>" <?php selected($redirect_target_url, $link_item['link_url']); ?>>
-                            <?php echo esc_html(stripslashes($link_item['link_text'])); ?> (<?php echo esc_url($link_item['link_url']); ?>)
+                        <?php 
+                        $link_url = isset($link_item['link_url']) ? $link_item['link_url'] : '';
+                        $link_text = isset($link_item['link_text']) ? $link_item['link_text'] : '';
+                        if (!empty($link_url) && !empty($link_text)) :
+                        ?>
+                        <option value="<?php echo esc_attr($link_url); ?>" <?php selected($redirect_target_url, $link_url); ?>>
+                            <?php echo esc_html(stripslashes($link_text)); ?> (<?php echo esc_url($link_url); ?>)
                         </option>
+                        <?php endif; ?>
                     <?php endforeach; ?>
                 <?php endif; ?>
                 <?php // Options are pre-populated by PHP. JavaScript may update this list if links are changed in the "Links" tab. ?>
@@ -140,8 +129,8 @@ if ($current_link_page_id) {
     <h2><?php esc_html_e('Subscription Settings', 'extrachill-artist-platform'); ?></h2>
     <div class="bp-link-settings-section">
         <?php
-        // Fetch current value for the subscribe display mode meta key
-        $subscribe_display_mode = $current_link_page_id ? get_post_meta($current_link_page_id, '_link_page_subscribe_display_mode', true) : '';
+        // Get current value from centralized data
+        $subscribe_display_mode = $settings['subscribe_display_mode'] ?? '';
 
         // Define available options and their labels
         $subscribe_options = array(
@@ -168,8 +157,8 @@ if ($current_link_page_id) {
             <?php esc_html_e('This setting controls the appearance of the email subscription feature on your live link page.', 'extrachill-artist-platform'); ?>
         </p>
         <?php
-        // Fetch current value for the subscribe form description
-        $subscribe_description = $current_link_page_id ? get_post_meta($current_link_page_id, '_link_page_subscribe_description', true) : '';
+        // Get current value from centralized data
+        $subscribe_description = $settings['subscribe_description'] ?? '';
         $artist_name = isset($data['display_title']) && $data['display_title'] ? $data['display_title'] : __('this band', 'extrachill-artist-platform');
         $subscribe_description_default = sprintf( __( 'Enter your email address to receive occasional news and updates from %s.', 'extrachill-artist-platform' ), $artist_name );
         $subscribe_description_to_show = $subscribe_description !== '' ? $subscribe_description : $subscribe_description_default;
@@ -196,8 +185,8 @@ if ($current_link_page_id) {
         </div>
 
         <?php
-        // Fetch current value for Google Tag ID
-        $google_tag_id = $current_link_page_id ? get_post_meta($current_link_page_id, '_link_page_google_tag_id', true) : '';
+        // Get current value from centralized data
+        $google_tag_id = $settings['google_tag_id'] ?? '';
         ?>
         <div class="bp-link-setting-item" style="margin-bottom: 1.5em;">
             <label for="link_page_google_tag_id" style="display:block; font-weight:600; margin-bottom: 0.3em;"><?php esc_html_e('Google Tag ID (GA4 / Ads)', 'extrachill-artist-platform'); ?></label>

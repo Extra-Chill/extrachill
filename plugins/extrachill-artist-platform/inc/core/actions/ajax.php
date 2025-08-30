@@ -1,9 +1,15 @@
 <?php
 /**
- * Centralized AJAX handler system for ExtraChill Artist Platform
+ * Centralized AJAX Handler System
  * 
- * Single source of truth for all AJAX operations with standardized
- * nonce validation, permission checks, and response formatting.
+ * Registry-based AJAX system providing standardized security, permission 
+ * validation, and error handling for all AJAX operations.
+ * 
+ * Features:
+ * - Centralized action registration with EC_Ajax_Registry
+ * - Automatic nonce verification and permission checks
+ * - Standardized error responses and logging
+ * - Extensible permission callback system
  */
 
 /**

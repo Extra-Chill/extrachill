@@ -102,7 +102,8 @@
     // Event listeners for featured link updates from management forms
     document.addEventListener('featuredLinkChanged', function(e) {
         if (e.detail) {
-            const previewEl = manager.getPreviewEl ? manager.getPreviewEl() : null;
+            const previewContainerParent = document.querySelector('.manage-link-page-preview-live');
+            const previewEl = previewContainerParent?.querySelector('.extrch-link-page-preview-container');
             const contentWrapper = previewEl ? previewEl.querySelector('.extrch-link-page-content-wrapper') : null;
             
             if (previewEl && contentWrapper) {
@@ -117,7 +118,7 @@
     });
     
     document.addEventListener('featuredLinkCleared', function(e) {
-        const previewEl = manager.getPreviewEl ? manager.getPreviewEl() : null;
+        const previewContainerParent = document.querySelector('.manage-link-page-preview-live'); const previewEl = previewContainerParent?.querySelector('.extrch-link-page-preview-container');
         if (previewEl) {
             clearPreviewFeaturedLink(previewEl);
             setFeaturedLinkUrlToSkipForPreview(null);

@@ -145,5 +145,5 @@ function extrachill_init_post_types() {
     extrachill_register_artist_link_page_cpt();
 }
 
-// Register post types immediately - don't wait for init hook since we're already in init
-extrachill_init_post_types();
+// Hook to init with proper priority for post type registration
+add_action( 'init', 'extrachill_init_post_types', 0 );

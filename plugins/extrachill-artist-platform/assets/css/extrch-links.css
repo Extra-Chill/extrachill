@@ -1,15 +1,6 @@
-@font-face {
-    font-family: 'WilcoLoftSans';
-    src: url('../../../fonts/WilcoLoftSans/WilcoLoftSans-Treble.woff2') format('woff2'),
-         url('../../../fonts/WilcoLoftSans/WilcoLoftSans-Treble.woff') format('woff');
-    font-weight: 700; /* Changed from normal, assuming Treble is the bold/title font */
-    font-style: normal;
-    font-display: swap; /* Removed extraneous URL */
-}
-
 /* extrch-links.css: Essential styles for extrch.co Link Page */
 
-/* @font-face for WilcoLoftSans removed as it should be globally defined in theme's style.css -- This comment is now outdated. */
+/* @font-face for WilcoLoftSans handled by theme's style.css to avoid conflicts */
 
 /* Default values for CSS variables REMOVED. All variables are now set by PHP in the <head>. */
 
@@ -41,28 +32,28 @@ body {
 }
 
 .extrch-link-page-container[data-bg-type="color"] {
-  background-color: var(--link-page-background-color, #1a1a1a);
+  background-color: var(--link-page-background-color);
   background-image: none; /* Explicitly remove image/gradient */
 }
 
 .extrch-link-page-container[data-bg-type="gradient"] {
   background: linear-gradient(
-    var(--link-page-background-gradient-direction, to right),
-    var(--link-page-background-gradient-start, #0b5394),
-    var(--link-page-background-gradient-end, #53940b)
+    var(--link-page-background-gradient-direction),
+    var(--link-page-background-gradient-start),
+    var(--link-page-background-gradient-end)
   );
   background-image: linear-gradient(
-    var(--link-page-background-gradient-direction, to right),
-    var(--link-page-background-gradient-start, #0b5394),
-    var(--link-page-background-gradient-end, #53940b)
+    var(--link-page-background-gradient-direction),
+    var(--link-page-background-gradient-start),
+    var(--link-page-background-gradient-end)
   );
   background-color: transparent; /* Ensure no base color shows through */
 }
 .extrch-link-page-container[data-bg-type="image"] {
   background-image: var(--link-page-background-image-url);
-  background-size: var(--link-page-image-size, cover); /* Use variable */
-  background-position: var(--link-page-image-position, center center); /* Use variable */
-  background-repeat: var(--link-page-image-repeat, no-repeat); /* Use variable */
+  background-size: var(--link-page-image-size); /* Use variable */
+  background-position: var(--link-page-image-position); /* Use variable */
+  background-repeat: var(--link-page-image-repeat); /* Use variable */
   background-color: transparent; /* Ensure no base color shows through */
 }
 
@@ -88,14 +79,14 @@ body {
 .extrch-link-page-profile-img {
   margin: 0 auto 15px auto;
   overflow: hidden;
-  width: var(--link-page-profile-img-size, 30%);
+  width: var(--link-page-profile-img-size);
   min-width: 60px;
   max-width: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
-  aspect-ratio: var(--link-page-profile-img-aspect-ratio, 1 / 1);
-  border-radius: var(--link-page-profile-img-border-radius, 8px);
+  aspect-ratio: var(--link-page-profile-img-aspect-ratio);
+  border-radius: var(--link-page-profile-img-border-radius);
 }
 .extrch-link-page-profile-img img {
   width: 100%;
@@ -127,7 +118,7 @@ body {
 
 .extrch-link-page-title {
   font-family: var(--link-page-title-font-family);
-  font-size: var(--link-page-title-font-size, 2.1em);
+  font-size: var(--link-page-title-font-size);
   font-weight: 700;
   text-align: center;
   margin: 0 0 0.3em 0;
@@ -170,8 +161,8 @@ body {
   background: var(--link-page-button-bg-color);
   color: var(--link-page-link-text-color);
   padding: 0.95em 1.2em;
-  border-radius: var(--link-page-button-radius, 8px);
-  border: 2px solid var(--link-page-button-border-color, var(--link-page-button-bg-color)); /* Ensure border color uses variable */
+  border-radius: var(--link-page-button-radius);
+  border: 2px solid var(--link-page-button-border-color); /* Ensure border color uses variable */
   text-decoration: none;
   font-weight: 600;
   font-family: var(--link-page-body-font-family); /* Directly apply body font */
@@ -381,8 +372,8 @@ body {
 .extrch-subscribe-modal-content {
   position: relative;
   z-index: 2;
-  background: var(--link-page-card-bg-color, #232323);
-  color: var(--link-page-text-color, #fff);
+  background: var(--link-page-card-bg-color);
+  color: var(--link-page-text-color);
   border-radius: 16px;
   box-shadow: 0 4px 24px rgba(0,0,0,0.18);
   padding: 2em 2em 1.5em 2em;
@@ -392,7 +383,7 @@ body {
   flex-direction: column;
   align-items: center;
   animation: extrch-modal-fadein 0.2s;
-  border: 1px solid var(--link-page-button-border-color, #444);
+  border: 1px solid var(--link-page-button-border-color);
 }
 @keyframes extrch-modal-fadein {
   from { opacity: 0; transform: translateY(30px); }
@@ -404,7 +395,7 @@ body {
   right: 0.7em;
   background: none;
   border: none;
-  color: var(--link-page-text-color, #fff);
+  color: var(--link-page-text-color);
   font-size: 1.5em;
   cursor: pointer;
   opacity: 0.7;
@@ -425,14 +416,14 @@ body {
 }
 .extrch-subscribe-modal-header p {
   margin: 0;
-  color: var(--link-page-muted-text-color, #aaa);
+  color: var(--link-page-muted-text-color);
   font-size: 1em;
 }
 
 /* --- Subscribe Inline Form Styles --- */
 .extrch-link-page-subscribe-inline-form-container {
-  background: var(--link-page-card-bg-color, #232323);
-  color: var(--link-page-text-color, #fff);
+  background: var(--link-page-card-bg-color);
+  color: var(--link-page-text-color);
   border-radius: 16px;
   box-shadow: 0 4px 20px rgba(0,0,0,0.13);
   padding: 1.5em 1.5em 1.2em 1.5em;
@@ -442,7 +433,7 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  border: 1px solid var(--link-page-button-border-color, #444);
+  border: 1px solid var(--link-page-button-border-color);
 }
 .extrch-link-page-subscribe-inline-form-container h3 {
   margin: 0 0 0.3em 0;
@@ -452,7 +443,7 @@ body {
 }
 .extrch-link-page-subscribe-inline-form-container p {
   margin: 0 0 1em 0;
-  color: var(--link-page-muted-text-color, #aaa);
+  color: var(--link-page-muted-text-color);
   font-size: 1em;
   text-align: center;
 }
@@ -474,9 +465,9 @@ body {
   width: 100%;
   padding: 0.7em 1em;
   border-radius: 8px;
-  border: 1.5px solid var(--link-page-button-border-color, #444);
-  background: var(--link-page-input-bg, #181818);
-  color: var(--link-page-text-color, #fff);
+  border: 1.5px solid var(--link-page-button-border-color);
+  background: var(--link-page-input-bg);
+  color: var(--link-page-text-color);
   font-size: 1em;
   font-family: var(--link-page-body-font-family);
   margin-bottom: 0.2em;
@@ -484,14 +475,14 @@ body {
   transition: border-color 0.18s;
 }
 .extrch-subscribe-form input[type="email"]:focus {
-  border-color: var(--link-page-button-hover-bg-color, #53940b);
+  border-color: var(--link-page-button-hover-bg-color);
   outline: none;
 }
 .extrch-subscribe-form button[type="submit"] {
-  background: var(--link-page-button-bg-color, #53940b);
-  color: var(--link-page-link-text-color, #fff);
+  background: var(--link-page-button-bg-color);
+  color: var(--link-page-link-text-color);
   border: none;
-  border-radius: var(--link-page-button-radius, 8px);
+  border-radius: var(--link-page-button-radius);
   padding: 0.7em 1em;
   font-size: 1.08em;
   font-family: var(--link-page-body-font-family);
@@ -500,15 +491,15 @@ body {
   transition: background 0.18s, color 0.18s;
 }
 .extrch-subscribe-form button[type="submit"]:hover {
-  background: var(--link-page-button-hover-bg-color, #3a6b0b);
-  color: var(--link-page-button-bg-color, #fff);
+  background: var(--link-page-button-hover-bg-color);
+  color: var(--link-page-button-bg-color);
 }
 .extrch-form-message {
   min-height: 1.2em;
   font-size: 0.98em;
   margin-top: 0.2em;
   text-align: center;
-  color: var(--link-page-muted-text-color, #aaa);
+  color: var(--link-page-muted-text-color);
 }
 @media (max-width: 600px) {
   .extrch-link-page-subscribe-inline-form-container {
@@ -533,10 +524,10 @@ body {
 .extrch-subscribe-modal form.extrch-subscribe-form button[type="submit"],
 .extrch-subscribe-modal .button.button-primary,
 .extrch-subscribe-modal .extrch-subscribe-btn {
-  background: var(--link-page-button-bg-color, #53940b) !important;
-  color: var(--link-page-link-text-color, #fff) !important;
-  border: 1.2px solid var(--link-page-button-border-color, var(--link-page-button-bg-color)) !important;
-  border-radius: var(--link-page-button-radius, 8px) !important;
+  background: var(--link-page-button-bg-color) !important;
+  color: var(--link-page-link-text-color) !important;
+  border: 1.2px solid var(--link-page-button-border-color) !important;
+  border-radius: var(--link-page-button-radius) !important;
   padding: 0.7em 1em !important;
   font-size: 1.08em !important;
   font-family: var(--link-page-body-font-family) !important;
@@ -559,19 +550,19 @@ body {
 .extrch-subscribe-modal .extrch-subscribe-btn:hover:not(:disabled) {
   background: var(--link-page-button-hover-bg-color) !important;
   color: var(--link-page-button-bg-color) !important;
-  border-color: var(--link-page-button-border-color, var(--link-page-button-bg-color)) !important;
+  border-color: var(--link-page-button-border-color) !important;
 }
 
 /* --- Featured Link Section --- */
 .link-page-featured-link-section {
   display: block;
-  background-color: var(--link-page-card-bg-color, #fff);
-  color: var(--link-page-text-color, #222);
+  background-color: var(--link-page-card-bg-color);
+  color: var(--link-page-text-color);
   padding: 0;
   border-radius: 16px;
   margin-bottom: 1em;
   box-shadow: 0 4px 20px rgba(0,0,0,0.10);
-  border: 1.5px solid var(--link-page-button-border-color, #eee);
+  border: 1.5px solid var(--link-page-button-border-color);
   max-width: 100%;
   width: 100%;
   overflow: hidden;
@@ -602,14 +593,14 @@ body {
   font-weight: bold;
   margin: 0 0 0.4em 0;
   line-height: 1.2;
-  color: var(--link-page-text-color, #222);
+  color: var(--link-page-text-color);
 }
 .link-page-featured-link-section .featured-link-description {
   font-size: 1em;
   opacity: 0.88;
   margin: 0 0 1.1em 0;
   line-height: 1.5;
-  color: var(--link-page-text-color, #222);
+  color: var(--link-page-text-color);
 }
 .link-page-featured-link-section .featured-link-share-row {
   width: 100%;
@@ -622,7 +613,7 @@ body {
 .link-page-featured-link-section .extrch-share-featured-trigger {
   background: transparent;
   border: none;
-  color: var(--link-page-link-text-color, #888);
+  color: var(--link-page-link-text-color);
   font-size: 1.3em;
   cursor: pointer;
   padding: 0.3em 0.5em;
@@ -631,7 +622,7 @@ body {
 }
 .link-page-featured-link-section .extrch-share-featured-trigger:hover {
   opacity: 1;
-  color: var(--link-page-button-hover-bg-color, #53940b);
+  color: var(--link-page-button-hover-bg-color);
 }
 @media (max-width: 600px) {
   .link-page-featured-link-section {
@@ -651,7 +642,7 @@ body {
 }
 
 .extrch-featured-item-highlight{
-  background-color: var(--link-page-card-bg-color, #333);
+  background-color: var(--link-page-card-bg-color);
 }
 
 .featured-link-title-row {
@@ -668,13 +659,13 @@ body {
   margin: 0;
   flex: 1 1 auto;
   line-height: 1.2;
-  color: var(--link-page-text-color, #222);
+  color: var(--link-page-text-color);
 }
 
 .extrch-share-featured-trigger {
   background: none;
   border: none;
-  color: var(--link-page-accent, #888);
+  color: var(--link-page-accent);
   font-size: 1.2em;
   cursor: pointer;
   padding: 0.25em 0.5em;
@@ -684,7 +675,7 @@ body {
 }
 .extrch-share-featured-trigger:hover,
 .extrch-share-featured-trigger:focus {
-  color: var(--link-page-accent-hover, #222);
+  color: var(--link-page-accent-hover);
 }
 
 /* Remove old share row styles if present */
@@ -696,11 +687,11 @@ body {
 .extrch-link-page-preview-container .extrch-link-page-subscribe-inline-form-container .extrch-subscribe-btn:hover:not(:disabled) {
   background: var(--link-page-button-hover-bg-color) !important;
   color: var(--link-page-button-bg-color) !important;
-  border-color: var(--link-page-button-border-color, var(--link-page-button-bg-color)) !important;
+  border-color: var(--link-page-button-border-color) !important;
 }
 
 .link-page-featured-link-section .featured-link-title:hover,
 .link-page-featured-link-section .featured-link-description:hover {
-  color: var(--link-page-button-hover-bg-color, #53940b);
+  color: var(--link-page-button-hover-bg-color);
   cursor: pointer;
 }

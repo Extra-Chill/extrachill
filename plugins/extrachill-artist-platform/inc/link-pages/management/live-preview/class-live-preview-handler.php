@@ -93,9 +93,10 @@ class ExtraChill_Live_Preview_Handler {
      * @return array Preview data
      */
     private function prepare_preview_data( $link_page_id, $artist_id, $form_data ) {
-        // Load the data provider if available
-        if ( class_exists( 'LinkPageDataProvider' ) ) {
-            return LinkPageDataProvider::get_data( $link_page_id, $artist_id, $form_data );
+        // Load the data via centralized filter function with overrides support
+        if ( function_exists( 'ec_get_link_page_data' ) ) {
+            // Pass form_data as overrides parameter for real-time preview
+            return ec_get_link_page_data( $artist_id, $link_page_id, $form_data );
         }
 
         // Fallback data preparation

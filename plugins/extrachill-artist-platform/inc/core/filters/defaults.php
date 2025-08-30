@@ -27,12 +27,19 @@ function ec_get_link_page_defaults() {
             '--link-page-button-hover-text-color'       => '#ffffff',
             '--link-page-muted-text-color'              => '#aaa',
             '--link-page-overlay-color'                 => 'rgba(0, 0, 0, 0.5)',
+            '--link-page-input-bg'                      => '#181818',
+            '--link-page-accent'                        => '#888',
+            '--link-page-accent-hover'                  => '#222',
             
             // Background settings
             '--link-page-background-type'               => 'color',
             '--link-page-background-gradient-start'     => '#0b5394',
             '--link-page-background-gradient-end'       => '#53940b',
             '--link-page-background-gradient-direction' => 'to right',
+            '--link-page-background-image-url'          => '',
+            '--link-page-image-size'                    => 'cover',
+            '--link-page-image-position'                => 'center center',
+            '--link-page-image-repeat'                  => 'no-repeat',
             'overlay'                                   => '1',
             
             // Typography

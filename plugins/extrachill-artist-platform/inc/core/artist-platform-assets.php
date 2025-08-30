@@ -203,36 +203,36 @@ class ExtraChillArtistPlatform_Assets {
         // Link page tracking script
         wp_enqueue_script( 
             'extrachill-link-tracking', 
-            $plugin_url . 'assets/js/link-page-public-tracking.js', 
+            $plugin_url . 'inc/link-pages/live/assets/js/link-page-public-tracking.js', 
             array( 'jquery' ), 
-            $this->get_asset_version( 'assets/js/link-page-public-tracking.js' ), 
+            $this->get_asset_version( 'inc/link-pages/live/assets/js/link-page-public-tracking.js' ), 
             true 
         );
 
         // Share modal script
         wp_enqueue_script( 
             'extrachill-share-modal', 
-            $plugin_url . 'assets/js/extrch-share-modal.js', 
+            $plugin_url . 'inc/link-pages/live/assets/js/extrch-share-modal.js', 
             array( 'jquery' ), 
-            $this->get_asset_version( 'assets/js/extrch-share-modal.js' ), 
+            $this->get_asset_version( 'inc/link-pages/live/assets/js/extrch-share-modal.js' ), 
             true 
         );
 
         // Subscribe functionality
         wp_enqueue_script( 
             'extrachill-subscribe', 
-            $plugin_url . 'assets/js/link-page-subscribe.js', 
+            $plugin_url . 'inc/link-pages/live/assets/js/link-page-subscribe.js', 
             array( 'jquery' ), 
-            $this->get_asset_version( 'assets/js/link-page-subscribe.js' ), 
+            $this->get_asset_version( 'inc/link-pages/live/assets/js/link-page-subscribe.js' ), 
             true 
         );
 
         // YouTube embed functionality
         wp_enqueue_script( 
             'extrachill-youtube-embed', 
-            $plugin_url . 'assets/js/link-page-youtube-embed.js', 
+            $plugin_url . 'inc/link-pages/live/assets/js/link-page-youtube-embed.js', 
             array( 'jquery' ), 
-            $this->get_asset_version( 'assets/js/link-page-youtube-embed.js' ), 
+            $this->get_asset_version( 'inc/link-pages/live/assets/js/link-page-youtube-embed.js' ), 
             true 
         );
     }
@@ -281,9 +281,9 @@ class ExtraChillArtistPlatform_Assets {
         // Enqueue manage-artist-profiles JS (main)
         wp_enqueue_script( 
             'extrachill-manage-artist-profiles', 
-            $plugin_url . 'assets/js/manage-artist-profiles.js', 
+            $plugin_url . 'inc/artist-profiles/assets/js/manage-artist-profiles.js', 
             array( 'jquery', 'extrachill-shared-tabs-js' ), 
-            $this->get_asset_version( 'assets/js/manage-artist-profiles.js' ), 
+            $this->get_asset_version( 'inc/artist-profiles/assets/js/manage-artist-profiles.js' ), 
             true 
         );
 
@@ -292,9 +292,9 @@ class ExtraChillArtistPlatform_Assets {
 
         wp_enqueue_script( 
             'extrachill-artist-subscribers', 
-            $plugin_url . 'assets/js/manage-artist-subscribers.js', 
+            $plugin_url . 'inc/artist-profiles/assets/js/manage-artist-subscribers.js', 
             array( 'jquery' ), 
-            $this->get_asset_version( 'assets/js/manage-artist-subscribers.js' ), 
+            $this->get_asset_version( 'inc/artist-profiles/assets/js/manage-artist-subscribers.js' ), 
             true 
         );
     }
@@ -323,19 +323,14 @@ class ExtraChillArtistPlatform_Assets {
             $this->get_asset_version( 'inc/link-pages/management/assets/css/management.css' )
         );
 
-        // Live preview CSS - public link page styles
-        wp_enqueue_style( 
-            'extrachill-link-page-public', 
-            $plugin_url . 'inc/link-pages/management/live-preview/assets/css/preview.css', 
-            array( 'extrachill-manage-link-page' ), 
-            $this->get_asset_version( 'inc/link-pages/management/live-preview/assets/css/preview.css' )
-        );
+        // Live preview CSS removed - iframe loads styles independently
+        // This prevents management page styles from interfering with preview iframe
 
-        // Share modal CSS - needed for preview parity
+        // Share modal CSS - dependency updated since we removed link-page-public enqueue
         wp_enqueue_style( 
             'extrachill-share-modal', 
             $plugin_url . 'assets/css/extrch-share-modal.css', 
-            array( 'extrachill-link-page-public' ), 
+            array( 'extrachill-manage-link-page' ), 
             $this->get_asset_version( 'assets/css/extrch-share-modal.css' )
         );
 
@@ -358,31 +353,36 @@ class ExtraChillArtistPlatform_Assets {
         );
 
 
-        // Get current artist and link page IDs for JavaScript configuration
+        // Get current artist ID for centralized data loading
         $current_artist_id = isset( $_GET['artist_id'] ) ? absint( $_GET['artist_id'] ) : 0;
-        $link_page_id = 0;
-
-        if ( $current_artist_id > 0 ) {
-            $link_page_id = get_post_meta( $current_artist_id, '_extrch_link_page_id', true );
-        }
-
-        // Localize JavaScript configuration for live preview functionality
+        
+        // Get comprehensive link page data using centralized filter
+        $link_page_data = $current_artist_id > 0 ? ec_get_link_page_data( $current_artist_id ) : array();
+        
+        // Prepare JavaScript configuration with comprehensive data
+        $js_config = array(
+            // AJAX configuration
+            'ajax_url' => admin_url( 'admin-ajax.php' ),
+            'nonce' => wp_create_nonce( 'extrch_link_page_ajax_nonce' ),
+            'fetch_link_title_nonce' => wp_create_nonce( 'fetch_link_meta_title_nonce' ),
+            
+            // Supported types from existing filter
+            'supportedLinkTypes' => extrachill_artist_platform_social_links()->get_supported_types(),
+            
+            // Comprehensive link page data (single source of truth)
+            'linkPageData' => $link_page_data
+        );
+        
+        // Localize comprehensive data for JavaScript modules
         wp_localize_script( 
-            'extrachill-manage-link-page-shared-utils', 
+            'extrachill-manage-link-page-css-variables', 
             'extrchLinkPageConfig', 
-            array(
-                'ajax_url' => admin_url( 'admin-ajax.php' ),
-                'nonce' => wp_create_nonce( 'extrch_link_page_ajax_nonce' ),
-                'fetch_link_title_nonce' => wp_create_nonce( 'fetch_link_meta_title_nonce' ),
-                'link_page_id' => $link_page_id,
-                'artist_id' => $current_artist_id,
-                'supportedLinkTypes' => extrachill_artist_platform_social_links()->get_supported_types(),
-            )
+            $js_config
         );
 
         // Individual management modules (self-contained, no orchestrator needed)
         $management_scripts = array(
-            'shared-utils', 'css-variables', 'colors', 'fonts', 'links', 'analytics', 
+            'css-variables', 'colors', 'fonts', 'links', 'analytics', 
             'background', 'featured-link', 'info', 'qrcode', 'save', 'sizing', 
             'socials', 'subscribe', 'ui-utils', 'advanced'
         );
@@ -400,7 +400,7 @@ class ExtraChillArtistPlatform_Assets {
         // Load preview modules separately
         $preview_scripts = array(
             'links-preview', 'info-preview', 'socials-preview', 
-            'background-preview', 'fonts-preview',
+            'background-preview', 'colors-preview', 'fonts-preview',
             'sizing-preview', 'overlay-preview', 'featured-link-preview'
         );
 
@@ -408,7 +408,7 @@ class ExtraChillArtistPlatform_Assets {
             wp_enqueue_script( 
                 "extrachill-link-page-{$script}", 
                 $plugin_url . "inc/link-pages/management/live-preview/assets/js/{$script}.js", 
-                array( 'jquery', 'extrachill-manage-link-page-shared-utils' ), 
+                array( 'jquery' ), 
                 $this->get_asset_version( "inc/link-pages/management/live-preview/assets/js/{$script}.js" ), 
                 true 
             );
@@ -418,22 +418,12 @@ class ExtraChillArtistPlatform_Assets {
     /**
      * Add custom styles for link page CSS variables
      * 
-     * Outputs custom CSS variables stored in link page meta.
+     * CSS variables are now handled by inc/link-pages/live/link-page-head.php 
+     * to maintain single source of truth from ec_get_link_page_data() filter.
      */
     public function add_custom_styles() {
-        if ( is_singular( 'artist_link_page' ) || $this->is_link_page_context() ) {
-            global $post;
-            
-            if ( ! $post ) {
-                return;
-            }
-
-            $custom_css_vars = get_post_meta( $post->ID, '_link_page_custom_css_vars', true );
-            
-            if ( ! empty( $custom_css_vars ) ) {
-                echo '<style id="link-page-custom-vars">' . wp_kses_post( $custom_css_vars ) . '</style>';
-            }
-        }
+        // CSS variables are now generated by link-page-head.php and preview.php only
+        // This removes duplication and maintains centralized control
     }
 
     /**

@@ -18,7 +18,13 @@
             return;
         }
 
-        const linksData = window.bpLinkPageLinks?.length ? window.bpLinkPageLinks : (manager?.links?.getLinksData?.() || []);
+        // Get links data from centralized source
+        let linksData = [];
+        if (manager?.getLinks && typeof manager.getLinks === 'function') {
+            linksData = manager.getLinks() || [];
+        } else {
+            console.warn('[Advanced] Centralized links data not available - this should not happen');
+        }
 
         if (!linksData.length) {
             redirectTargetSelect.innerHTML = '<option value="">-- No Links Available --</option>';

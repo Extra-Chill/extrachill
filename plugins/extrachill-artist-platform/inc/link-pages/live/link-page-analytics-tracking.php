@@ -137,7 +137,7 @@ function handle_link_click_tracking() {
 function extrch_enqueue_public_tracking_script($link_page_id, $artist_id) {
     $theme_dir = EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR;
     $theme_uri = EXTRACHILL_ARTIST_PLATFORM_PLUGIN_URL;
-    $tracking_js_path = '/assets/js/link-page-public-tracking.js';
+    $tracking_js_path = '/inc/link-pages/live/assets/js/link-page-public-tracking.js';
 
     if (file_exists($theme_dir . $tracking_js_path)) {
         $script_handle = 'extrch-public-tracking';
@@ -153,7 +153,7 @@ function extrch_enqueue_public_tracking_script($link_page_id, $artist_id) {
         wp_localize_script($script_handle, 'extrchTrackingData', array(
             'ajax_url' => admin_url('admin-ajax.php'),
             'link_page_id' => $link_page_id,
-            // 'nonce' => wp_create_nonce('extrch_link_page_tracking') // Create nonce if using check_ajax_referer
+            'nonce' => wp_create_nonce('extrch_link_page_tracking_nonce')
         ));
     } else {
         // Optionally log an error if the script file is missing
@@ -305,18 +305,10 @@ function extrch_fetch_link_page_analytics_ajax() {
         $current_loop_date = strtotime('+1 day', $current_loop_date);
     }
 
-    // --- Format Top Links --- Need link text from saved link page data
-    $link_sections_data = get_post_meta($link_page_id, '_link_page_links', true);
-    $link_sections = [];
-    if (is_string($link_sections_data) && !empty($link_sections_data)) {
-        $link_sections = json_decode($link_sections_data, true);
-    } elseif (is_array($link_sections_data)) {
-        $link_sections = $link_sections_data;
-    }
-    // Ensure $link_sections is an array after processing, default to empty if json_decode failed or was null
-    if (!is_array($link_sections)) {
-        $link_sections = [];
-    }
+    // --- Format Top Links --- Use centralized data source (single source of truth)
+    $artist_id = ec_get_artist_for_link_page($link_page_id);
+    $data = ec_get_link_page_data($artist_id, $link_page_id);
+    $link_sections = $data['links'] ?? [];
 
     $url_to_text_map = [];
     if (is_array($link_sections)) {
@@ -331,17 +323,8 @@ function extrch_fetch_link_page_analytics_ajax() {
         }
     }
     // Add social links too
-    $social_links_data = get_post_meta($link_page_id, '_link_page_social_links', true);
-    $social_links = [];
-    if (is_string($social_links_data) && !empty($social_links_data)) {
-        $social_links = json_decode($social_links_data, true);
-    } elseif (is_array($social_links_data)) {
-        $social_links = $social_links_data;
-    }
-    // Ensure $social_links is an array after processing, default to empty if json_decode failed or was null
-    if (!is_array($social_links)) {
-        $social_links = [];
-    }
+    // Use centralized data source for social links (already retrieved above)
+    $social_links = $data['socials'] ?? [];
 
     if (is_array($social_links)) {
         foreach ($social_links as $social) {

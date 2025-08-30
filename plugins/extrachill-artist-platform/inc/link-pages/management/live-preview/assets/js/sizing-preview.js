@@ -6,7 +6,7 @@
     
     // Main sizing preview update function - Direct DOM manipulation
     function updateSizingPreview(sizingData) {
-        const previewEl = manager.getPreviewEl ? manager.getPreviewEl() : null;
+        const previewContainerParent = document.querySelector('.manage-link-page-preview-live'); const previewEl = previewContainerParent?.querySelector('.extrch-link-page-preview-container');
         if (!previewEl) return;
 
         // Apply sizing changes to CSS custom properties on the preview element
@@ -17,7 +17,7 @@
 
     // Update profile image shape - Direct DOM class manipulation
     function updateProfileImageShape(shape) {
-        const previewEl = manager.getPreviewEl ? manager.getPreviewEl() : null;
+        const previewContainerParent = document.querySelector('.manage-link-page-preview-live'); const previewEl = previewContainerParent?.querySelector('.extrch-link-page-preview-container');
         if (!previewEl) return;
 
         const previewProfileImageDiv = previewEl.querySelector('.extrch-link-page-profile-img');

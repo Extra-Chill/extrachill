@@ -36,26 +36,15 @@
         }
     }
 
-    // Extract social links data from DOM elements
+    // Extract social links data from centralized source
     function getSocialsDataFromDOM() {
-        if (!socialListEl) return [];
+        // Get socials from centralized data source
+        if (manager.getSocials && typeof manager.getSocials === 'function') {
+            return manager.getSocials() || [];
+        }
         
-        const rows = socialListEl.querySelectorAll('.bp-social-row');
-        const data = [];
-        
-        rows.forEach((row) => {
-            const typeSelect = row.querySelector('.bp-social-type-select');
-            const urlInput = row.querySelector('.bp-social-url-input');
-            
-            if (typeSelect && urlInput && typeSelect.value && urlInput.value.trim()) {
-                data.push({ 
-                    type: typeSelect.value, 
-                    url: urlInput.value.trim() 
-                });
-            }
-        });
-        
-        return data;
+        console.warn('[Socials] Centralized socials data not available - this should not happen');
+        return [];
     }
     
     // Expose for external access

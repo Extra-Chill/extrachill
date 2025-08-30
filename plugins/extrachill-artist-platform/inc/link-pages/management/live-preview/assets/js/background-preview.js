@@ -6,7 +6,10 @@
     
     // Main background preview update function - Direct DOM manipulation
     function updateBackgroundPreview(backgroundData) {
-        const previewEl = manager.getPreviewEl ? manager.getPreviewEl() : null;
+        const previewContainerParent = document.querySelector('.manage-link-page-preview-live');
+        if (!previewContainerParent) return;
+        
+        const previewEl = previewContainerParent.querySelector('.extrch-link-page-preview-container');
         if (!previewEl) return;
 
         // Find the main container that should receive background styling

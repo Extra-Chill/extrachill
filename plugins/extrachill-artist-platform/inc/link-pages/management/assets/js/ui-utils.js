@@ -1,6 +1,16 @@
-// UI Utilities for Manage Link Page
-
-// Tab switching for manage link page
+/**
+ * Link Page Management UI Utilities
+ * 
+ * Responsive tab management and UI utilities for the link page management interface.
+ * Handles accordion/tabs mode switching, tab state persistence, and URL copying.
+ * 
+ * Features:
+ * - Responsive tab/accordion switching (769px breakpoint) 
+ * - localStorage tab state persistence
+ * - Tab-specific module initialization
+ * - Copy link page URL functionality
+ * - WordPress admin bar aware scrolling
+ */
 (function(){
     const tabs = document.querySelectorAll('.manage-link-page-tab');
     const tabContents = document.querySelectorAll('.manage-link-page-tab-content');

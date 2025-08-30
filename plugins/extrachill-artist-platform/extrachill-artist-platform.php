@@ -33,8 +33,7 @@ if ( ! defined( 'EXTRCH_LINKPAGE_DEV' ) ) {
 /**
  * Main ExtraChill Artist Platform Class
  * 
- * Singleton plugin class handling theme compatibility, initialization,
- * and core functionality loading.
+ * Singleton plugin class handling initialization and core functionality loading.
  */
 class ExtraChillArtistPlatform {
 
@@ -61,9 +60,44 @@ class ExtraChillArtistPlatform {
     }
 
     /**
+     * Check plugin dependencies
+     * 
+     * @return bool True if all dependencies are met, false otherwise
+     */
+    private function check_dependencies() {
+        $errors = array();
+        
+        // Check for required theme
+        if ( get_template() !== 'extrachill-community' ) {
+            $errors[] = 'ExtraChill Artist Platform requires the Extra Chill Community theme.';
+        }
+        
+        // Check for bbPress plugin
+        if ( ! class_exists( 'bbPress' ) && ! is_plugin_active( 'bbpress/bbpress.php' ) ) {
+            $errors[] = 'ExtraChill Artist Platform requires bbPress plugin to be active.';
+        }
+        
+        if ( ! empty( $errors ) ) {
+            add_action( 'admin_notices', function() use ( $errors ) {
+                foreach ( $errors as $error ) {
+                    echo '<div class="notice notice-error"><p>' . esc_html( $error ) . '</p></div>';
+                }
+            } );
+            return false;
+        }
+        
+        return true;
+    }
+
+    /**
      * Initialize hooks and actions
      */
     private function init_hooks() {
+        // Check dependencies before initializing
+        if ( ! $this->check_dependencies() ) {
+            return;
+        }
+        
         add_action( 'init', array( $this, 'init' ) );
         add_action( 'plugins_loaded', array( $this, 'load_textdomain' ) );
         
@@ -74,15 +108,8 @@ class ExtraChillArtistPlatform {
 
     /**
      * Initialize the plugin
-     * 
-     * Checks theme compatibility before loading core functionality.
      */
     public function init() {
-        // Check for required theme
-        if ( ! $this->is_compatible_theme_active() ) {
-            add_action( 'admin_notices', array( $this, 'theme_compatibility_notice' ) );
-            return;
-        }
         // Load plugin includes
         $this->load_includes();
     }
@@ -98,34 +125,7 @@ class ExtraChillArtistPlatform {
         );
     }
 
-    /**
-     * Check if compatible theme is active
-     * 
-     * Requires Extra Chill Community theme or extrachill-community stylesheet.
-     */
-    private function is_compatible_theme_active() {
-        $theme = wp_get_theme();
-        $compatible_themes = array(
-            'Extra Chill Community',
-            'extrachill-community'
-        );
-        
-        return in_array( $theme->get('Name'), $compatible_themes ) || 
-               in_array( $theme->get_stylesheet(), $compatible_themes );
-    }
 
-    /**
-     * Show theme compatibility notice
-     */
-    public function theme_compatibility_notice() {
-        ?>
-        <div class="notice notice-error">
-            <p>
-                <?php esc_html_e( 'ExtraChill Artist Platform requires the Extra Chill Community theme to be active.', 'extrachill-artist-platform' ); ?>
-            </p>
-        </div>
-        <?php
-    }
 
     /**
      * Load plugin includes and functionality
@@ -159,18 +159,17 @@ class ExtraChillArtistPlatform {
         // Link Page System
         require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/create-link-page.php';
         // link-page-custom-vars-and-fonts-head.php consolidated into inc/link-pages/live/link-page-head.php
-        require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/core/LinkPageDataProvider.php';
+        // LinkPageDataProvider.php removed - using centralized ec_get_link_page_data filter instead
         require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/live/link-page-analytics-tracking.php';
         require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/live/link-page-session-validation.php';
         require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/live/link-page-head.php';
         
         // Link Page Management
-        require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/management/link-page-form-handler.php';
+        require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/management/background-image-ajax.php';
         require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/management/link-page-qrcode-ajax.php';
         require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/management/ajax-handlers.php';
         require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/management/live-preview/class-live-preview-handler.php';
         require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/management/live-preview/live-preview-ajax-handlers.php';
-        require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/management/live-preview/live-preview-utilities.php';
         
         // Advanced Features
         require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/management/advanced-tab/link-page-featured-link-handler.php';
@@ -198,6 +197,7 @@ class ExtraChillArtistPlatform {
         require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/core/actions/save.php';
         require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/core/actions/sync.php';
         require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/core/actions/ajax.php';
+        require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/core/actions/delete.php';
         
         // Data Helper Functions
         require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/core/filters/data.php';
