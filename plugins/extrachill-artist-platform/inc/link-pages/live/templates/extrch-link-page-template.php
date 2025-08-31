@@ -16,18 +16,12 @@
 
 // If $data is not already set by the caller (e.g., AJAX handler or direct include with params), then fetch it.
 if ( ! isset( $data ) || ! is_array( $data ) ) {
-    // Ensure $link_page_id and $artist_id are available if called directly (e.g., by single-artist_link_page.php or initial preview render)
-    // These might be global or passed if this template is included by a function that sets them up.
-    // For robustness, ensure they are available or fetch them if absolutely necessary (though ideally passed).
-    if ( ! isset( $link_page_id ) || ( ! isset( $artist_id ) && ! isset( $artist_id ) ) ) {
-        // Fallback: This might occur if the template is included unexpectedly without setup.
-        // Attempt to get them from global $post if on a relevant page, but this is not ideal for an AJAX context.
-        global $post;
-        if ( ! isset( $link_page_id ) && isset( $post->ID ) ) $link_page_id = $post->ID; 
-        if ( ! isset( $artist_id ) && ! isset( $artist_id ) && isset( $post->ID ) ) {
-            $artist_id = ec_get_artist_for_link_page( $post->ID );
-            $artist_id = $artist_id; // Backward compatibility alias
-        }
+    // Resolve IDs using centralized helpers with sensible fallbacks
+    if ( ! isset( $link_page_id ) || ! is_numeric( $link_page_id ) ) {
+        $link_page_id = apply_filters('ec_get_link_page_id', 0);
+    }
+    if ( ! isset( $artist_id ) || ! is_numeric( $artist_id ) ) {
+        $artist_id = apply_filters('ec_get_artist_id', $link_page_id);
     }
 
     // Ensure ec_get_link_page_data filter function is available.
@@ -38,11 +32,10 @@ if ( ! isset( $data ) || ! is_array( $data ) ) {
         }
     }
 
-    if ( function_exists( 'ec_get_link_page_data' ) && isset($link_page_id) && ( isset($artist_id) || isset($artist_id) ) ) {
+    if ( function_exists( 'ec_get_link_page_data' ) && $link_page_id && $artist_id ) {
         // When this template is included directly (e.g., by single-artist_link_page.php or initial preview render),
         // there are no $preview_data_overrides.
-        $current_artist_id = isset($artist_id) ? $artist_id : $artist_id; // Support both
-        $data = ec_get_link_page_data( $current_artist_id, $link_page_id );
+        $data = ec_get_link_page_data( (int) $artist_id, (int) $link_page_id );
     } else {
         // Fallback if ec_get_link_page_data function isn't available or IDs are missing.
         // This might indicate an issue with how the template is being included.
@@ -131,7 +124,7 @@ if (empty($single_artist_link_page_id) && isset($extrch_link_page_template_data[
     $single_artist_link_page_id = $extrch_link_page_template_data['original_link_page_id'];
 }
 
-// Manually construct the extrachill.link URL using the band slug
+// Manually construct the extrachill.link URL using the artist slug
 $artist_slug = isset($data['artist_profile']->post_name) ? $data['artist_profile']->post_name : '';
 $share_page_url = !empty($artist_slug) ? 'https://extrachill.link/' . $artist_slug : home_url('/'); // Fallback to home_url if slug is empty
 
@@ -160,19 +153,6 @@ $social_icons_position = $data['_link_page_social_icons_position'] ?? ec_get_lin
 
 $body_bg_style = '';
 
-// Fetch Featured Link Data (moved up to be available for the main structure)
-$featured_link_html = '';
-$featured_link_original_url_to_skip = null;
-
-if (isset($link_page_id) && function_exists('extrch_render_featured_link_section_html') && function_exists('extrch_get_featured_link_url_to_skip')) {
-    // $link_sections should be available from $data['link_sections'] as populated earlier
-    // $data['css_vars'] should also be available
-    $current_link_sections = isset($data['link_sections']) && is_array($data['link_sections']) ? $data['link_sections'] : [];
-    $current_css_vars = isset($data['css_vars']) && is_array($data['css_vars']) ? $data['css_vars'] : [];
-
-    $featured_link_html = extrch_render_featured_link_section_html($link_page_id, $current_link_sections, $current_css_vars);
-    $featured_link_original_url_to_skip = extrch_get_featured_link_url_to_skip($link_page_id);
-}
 
 ?>
 <div class="<?php echo esc_attr($container_classes); ?>"
@@ -183,7 +163,7 @@ if (isset($link_page_id) && function_exists('extrch_render_featured_link_section
             <?php 
             // Absolutely positioned bell (subscribe) and ellipses (share) triggers in top left/right
             if ($subscribe_display_mode === 'icon_modal') : ?>
-                <button class="extrch-share-trigger extrch-subscribe-icon-trigger extrch-bell-page-trigger" aria-label="Subscribe to this band">
+                <button class="extrch-share-trigger extrch-subscribe-icon-trigger extrch-bell-page-trigger" aria-label="Subscribe to this artist">
                     <i class="fas fa-bell"></i>
                 </button>
             <?php endif; ?>
@@ -206,117 +186,46 @@ if (isset($link_page_id) && function_exists('extrch_render_featured_link_section
         </div>
 
         <?php 
-        // Conditionally render social icons ABOVE featured link and regular links using data from centralized filter
+        // Conditionally render social icons ABOVE regular links using filter system
         if ($social_icons_position === 'above' && !empty($data['social_links'])) {
-            $social_manager = extrachill_artist_platform_social_links();
-            echo '<div class="extrch-link-page-socials">';
-            foreach ($data['social_links'] as $link) {
-                if (!empty($link['url']) && !empty($link['type'])) {
-                    $icon_class = $social_manager->get_icon_class($link['type'], $link);
-                    $label = $social_manager->get_link_label($link);
-                    echo sprintf(
-                        '<a href="%s" class="%s" target="_blank" rel="noopener noreferrer" title="%s" aria-label="%s"><i class="%s"></i></a>',
-                        esc_url($link['url']),
-                        esc_attr('extrch-social-icon'),
-                        esc_attr($label),
-                        esc_attr($label),
-                        esc_attr($icon_class)
-                    );
-                }
-            }
-            echo '</div>';
+            echo ec_render_social_icons_container($data['social_links'], 'above');
         } // end if $social_icons_position === 'above'
-
-        // Output Featured Link HTML if generated
-        // This will now be after "above" socials and before regular links
-        if (!empty($featured_link_html)) {
-            echo $featured_link_html;
-        }
 
         // Prepare for rendering actual link sections
         // ...
         ?>
         <?php if (!empty($link_sections)): ?>
-            <?php foreach ($link_sections as $section): ?>
-                <?php if (!empty($section['section_title'])): ?>
-                    <div class="extrch-link-page-section-title"><?php echo esc_html($section['section_title']); ?></div>
-                <?php endif; ?>
-
-                <?php if (!empty($section['links']) && is_array($section['links'])):
-                    // Initialize here for each section, in case a section is empty
-                    $has_links_in_section_after_filter = false;
-                ?>
-                    <div class="extrch-link-page-links">
-                        <?php 
-                        $normalized_url_to_skip_for_public_page = $featured_link_original_url_to_skip ? trailingslashit($featured_link_original_url_to_skip) : null;
-                        foreach ($section['links'] as $link_item):
-                            if (empty($link_item['link_url']) || empty($link_item['link_text'])) continue;
-                            // Skip if this link is the featured link (always use normalized URL)
-                            $current_link_url_normalized_for_public_page = trailingslashit($link_item['link_url']);
-                            if ($normalized_url_to_skip_for_public_page && $current_link_url_normalized_for_public_page === $normalized_url_to_skip_for_public_page) {
-                                continue;
-                            }
-                            $has_links_in_section_after_filter = true; // Mark that we found at least one link to render in this section
-                            
-                            // --- Inline YouTube Embed logic ---
-                            $link_classes = "extrch-link-page-link";
-                            $is_youtube_link = false;
-                            if (isset($link_page_id) && function_exists('extrch_is_youtube_embed_enabled') && extrch_is_youtube_embed_enabled($link_page_id)) {
-                                if (preg_match('/(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/', $link_item['link_url'], $matches)) {
-                                    $link_classes .= " extrch-youtube-embed-trigger";
-                                    $is_youtube_link = true;
-                                }
-                            }
-                            // --- End Inline YouTube Embed logic ---
-                            ?>
-                            <a href="<?php echo esc_url($link_item['link_url']); ?>" class="<?php echo esc_attr($link_classes); ?>" rel="noopener">
-                                <span class="extrch-link-page-link-text"><?php echo esc_html($link_item['link_text']); ?></span>
-                                <span class="extrch-link-page-link-icon">
-                                    <button class="extrch-share-trigger extrch-share-item-trigger" 
-                                            aria-label="Share this link" 
-                                            data-share-type="link"
-                                            data-share-url="<?php echo esc_url($link_item['link_url']); ?>" 
-                                            data-share-title="<?php echo esc_attr($link_item['link_text']); ?>">
-                                        <i class="fas fa-ellipsis-v"></i>
-                                    </button>
-                                </span>
-                            </a>
-                        <?php endforeach; ?>
-                    </div>
-                <?php endif; ?>
-            <?php endforeach; ?>
+            <?php 
+            foreach ($link_sections as $section):
+                $section_args = array(
+                    'section_title' => $section['section_title'] ?? '',
+                    'links' => $section['links'] ?? array(),
+                    'share_enabled' => true,
+                    'link_page_id' => $link_page_id
+                );
+                echo ec_render_link_section( $section, $section_args );
+            endforeach; 
+            ?>
         <?php endif; ?>
         <?php
         // Output the inline subscribe form below all links if in inline_form mode
         if ($subscribe_display_mode === 'inline_form') {
-            $artist_name = $data['display_title'];
-            require EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/subscription/subscribe-inline-form.php';
+            echo ec_render_template('subscribe-inline-form', array(
+                'artist_id' => $artist_id,
+                'data' => $data
+            ));
         }
         // Output the modal partial (but not the bell icon) if in icon_modal mode
         if ($subscribe_display_mode === 'icon_modal') {
-            $artist_name = $data['display_title'];
-            require EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/subscription/subscribe-modal.php';
+            echo ec_render_template('subscribe-modal', array(
+                'artist_id' => $artist_id,
+                'data' => $data
+            ));
         }
 
-        // Conditionally render social icons below links (and below subscribe form if present) using data from centralized filter
+        // Conditionally render social icons below links (and below subscribe form if present) using filter system
         if ($social_icons_position === 'below' && !empty($data['social_links'])) {
-            $social_manager = extrachill_artist_platform_social_links();
-            echo '<div class="extrch-link-page-socials extrch-socials-below">';
-            foreach ($data['social_links'] as $link) {
-                if (!empty($link['url']) && !empty($link['type'])) {
-                    $icon_class = $social_manager->get_icon_class($link['type'], $link);
-                    $label = $social_manager->get_link_label($link);
-                    echo sprintf(
-                        '<a href="%s" class="%s" target="_blank" rel="noopener noreferrer" title="%s" aria-label="%s"><i class="%s"></i></a>',
-                        esc_url($link['url']),
-                        esc_attr('extrch-social-icon'),
-                        esc_attr($label),
-                        esc_attr($label),
-                        esc_attr($icon_class)
-                    );
-                }
-            }
-            echo '</div>';
+            echo ec_render_social_icons_container($data['social_links'], 'below');
         }
         ?>
 
@@ -327,44 +236,8 @@ if (isset($link_page_id) && function_exists('extrch_render_featured_link_section
         <?php endif; ?>
     </div>
 
-    <div id="extrch-share-modal" class="extrch-share-modal" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="extrch-share-modal-main-title">
-        <div class="extrch-share-modal-overlay"></div>
-        <div class="extrch-share-modal-content">
-            <button class="extrch-share-modal-close" aria-label="Close share modal">&times;</button>
-            
-            <div class="extrch-share-modal-header">
-                <img src="" alt="Profile" class="extrch-share-modal-profile-img" style="display:none;">
-                <h3 id="extrch-share-modal-main-title" class="extrch-share-modal-main-title">Share Page</h3>
-                <p class="extrch-share-modal-subtitle"></p>
-            </div>
-
-            <div class="extrch-share-modal-options-grid">
-                <button class="extrch-share-option-button extrch-share-option-copy-link" aria-label="Copy Link">
-                    <span class="extrch-share-option-icon"><i class="fas fa-copy"></i></span>
-                    <span class="extrch-share-option-label">Copy Link</span>
-                </button>
-                <button class="extrch-share-option-button extrch-share-option-native" aria-label="More sharing options">
-                    <span class="extrch-share-option-icon"><i class="fas fa-ellipsis-h"></i></span>
-                    <span class="extrch-share-option-label">More</span>
-                </button>
-                <a href="#" class="extrch-share-option-button extrch-share-option-facebook" rel="noopener" aria-label="Share on Facebook">
-                    <span class="extrch-share-option-icon"><i class="fab fa-facebook-f"></i></span>
-                    <span class="extrch-share-option-label">Facebook</span>
-                </a>
-                <a href="#" class="extrch-share-option-button extrch-share-option-twitter" rel="noopener" aria-label="Share on Twitter">
-                    <span class="extrch-share-option-icon"><i class="fab fa-x-twitter"></i></span>
-                    <span class="extrch-share-option-label">Twitter</span>
-                </a>
-                 <a href="#" class="extrch-share-option-button extrch-share-option-linkedin" rel="noopener" aria-label="Share on LinkedIn">
-                    <span class="extrch-share-option-icon"><i class="fab fa-linkedin-in"></i></span>
-                    <span class="extrch-share-option-label">LinkedIn</span>
-                </a>
-                <a href="#" class="extrch-share-option-button extrch-share-option-email" aria-label="Share via Email">
-                    <span class="extrch-share-option-icon"><i class="fas fa-envelope"></i></span>
-                    <span class="extrch-share-option-label">Email</span>
-                </a>
-                <!-- Add other social media buttons here if needed, following the same structure -->
-            </div>
-        </div>
-    </div>
+    <?php
+    // Include reusable share modal template (JS populates and controls it)
+    echo ec_render_template('share-modal');
+    ?>
 </div>

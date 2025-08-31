@@ -1,9 +1,9 @@
 <?php
 /**
- * AJAX Background Image Upload Handler
+ * Background AJAX Handlers
  * 
- * Handles AJAX uploads for background images in the link page management interface.
- * The main form processing is now handled by ec_admin_post_save_link_page() in save.php.
+ * Handles all background-related AJAX operations for the link page management interface.
+ * Registered through the centralized AJAX system in inc/core/actions/ajax.php.
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -33,18 +33,8 @@ function extrch_upload_background_image_ajax() {
         return;
     }
     
-    $link_page_id = isset($_POST['link_page_id']) ? absint($_POST['link_page_id']) : 0;
-    
-    // If no link page ID provided, try to get it from user's artists
-    if (!$link_page_id) {
-        $current_user_id = get_current_user_id();
-        $user_artist_ids = get_user_meta($current_user_id, '_artist_profile_ids', true);
-        if (is_array($user_artist_ids) && !empty($user_artist_ids)) {
-            // Get the most recent artist's link page
-            $artist_id = $user_artist_ids[0];
-            $link_page_id = get_post_meta($artist_id, '_extrch_link_page_id', true);
-        }
-    }
+    // Get link page ID directly from AJAX data (sent by background.js:221)
+    $link_page_id = absint($_POST['link_page_id']);
     
     if (!$link_page_id || get_post_type($link_page_id) !== 'artist_link_page') {
         wp_send_json_error('Invalid link page ID');
@@ -52,7 +42,7 @@ function extrch_upload_background_image_ajax() {
     }
     
     // Check if user can edit this link page
-    $associated_artist_id = get_post_meta($link_page_id, '_associated_artist_profile_id', true);
+    $associated_artist_id = apply_filters('ec_get_artist_id', $link_page_id);
     if ($associated_artist_id) {
         $current_user_id = get_current_user_id();
         $user_artist_ids = get_user_meta($current_user_id, '_artist_profile_ids', true);
@@ -110,6 +100,3 @@ function extrch_upload_background_image_ajax() {
         wp_send_json_error('Upload failed');
     }
 }
-// Register AJAX handlers
-add_action('wp_ajax_extrch_upload_background_image_ajax', 'extrch_upload_background_image_ajax');
-add_action('wp_ajax_nopriv_extrch_upload_background_image_ajax', 'extrch_upload_background_image_ajax');

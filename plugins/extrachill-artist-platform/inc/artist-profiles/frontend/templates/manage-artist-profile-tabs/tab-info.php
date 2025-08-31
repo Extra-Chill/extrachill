@@ -7,18 +7,15 @@
 
 defined( 'ABSPATH' ) || exit;
 
-// Ensure variables from parent scope are available (e.g., $edit_mode, $target_artist_id, $artist_post, etc.)
-global $edit_mode, $target_artist_id, $artist_post, 
-       $current_genre, $current_local_city, $current_website_url, // Though website is not explicitly listed, it might be part of social or general info. For now, focusing on listed items.
-       $current_spotify_url, $current_apple_music_url, $current_bandcamp_url, // These are social links.
-       $artist_profilele_social_links_data; // This will hold all social links.
-
-// Make title and content available from the parent scope
-global $artist_post_title, $artist_post_content, $display_artist_name, $display_artist_bio;
-
-// These are now expected to be set in manage-artist-profile.php and made available
-// global $artist_post_title, $artist_post_content;
-global $prefill_user_avatar_id, $prefill_user_avatar_thumbnail_url;
+// Extract arguments passed from ec_render_template
+$edit_mode = $edit_mode ?? false;
+$target_artist_id = $target_artist_id ?? 0;
+$display_artist_name = $display_artist_name ?? '';
+$display_artist_bio = $display_artist_bio ?? '';
+$display_profile_image_url = $display_profile_image_url ?? '';
+$display_header_image_url = $display_header_image_url ?? '';
+$current_profile_image_id = $current_profile_image_id ?? null;
+$current_header_image_id = $current_header_image_id ?? null;
 
 // The following variables are expected to be set in the parent scope (manage-artist-profile.php)
 // $edit_mode (bool)
@@ -36,7 +33,7 @@ global $prefill_user_avatar_id, $prefill_user_avatar_thumbnail_url;
         <?php 
         // Link Page Management Button
         if ( $edit_mode && $target_artist_id > 0 ) : 
-            $link_page_id = get_post_meta( $target_artist_id, '_extrch_link_page_id', true );
+            $link_page_id = apply_filters('ec_get_link_page_id', $target_artist_id);
             $manage_url = add_query_arg( array( 'artist_id' => $target_artist_id ), site_url( '/manage-link-page/' ) );
             $label = ( ! empty( $link_page_id ) && get_post_status( $link_page_id ) ) ? __( 'Manage Link Page', 'extrachill-artist-platform' ) : __( 'Create Link Page', 'extrachill-artist-platform' );
         ?>
@@ -58,7 +55,7 @@ global $prefill_user_avatar_id, $prefill_user_avatar_thumbnail_url;
             $featured_image_style = 'display: none;';
 
             if ( $edit_mode && has_post_thumbnail( $target_artist_id ) ) {
-                $current_featured_image_url = get_the_post_thumbnail_url( $target_artist_id, 'thumbnail' );
+                $current_featured_image_url = get_the_post_thumbnail_url( $target_artist_id, 'medium' );
             } elseif ( !$edit_mode && !empty($prefill_user_avatar_thumbnail_url) ) {
                 $current_featured_image_url = $prefill_user_avatar_thumbnail_url;
             }

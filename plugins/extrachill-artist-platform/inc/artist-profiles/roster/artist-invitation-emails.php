@@ -96,7 +96,7 @@ function bp_send_artist_invitation_email( $recipient_email, $artist_name, $membe
                 error_log( 'Band Invitation Email Error (PHPMailer): ' . $phpmailer->ErrorInfo );
             }
         }
-        error_log( 'Band Invitation Email: wp_mail() failed to send to ' . $recipient_email . ' for band ID ' . $artist_id );
+        // Email sending failed - wp_mail() returned false
     }
 
     return $sent;
@@ -109,7 +109,7 @@ function bp_send_artist_invitation_email( $recipient_email, $artist_name, $membe
 function bp_handle_invitation_acceptance() {
     if ( isset( $_GET['action'] ) && $_GET['action'] === 'bp_accept_invite' && isset( $_GET['token'] ) && isset( $_GET['artist_id'] ) ) {
         $token   = sanitize_text_field( $_GET['token'] );
-        $artist_id = absint( $_GET['artist_id'] );
+        $artist_id = apply_filters('ec_get_artist_id', $_GET);
         $redirect_url = get_permalink( $artist_id );
 
         if ( ! $redirect_url ) {
@@ -164,7 +164,7 @@ function bp_handle_invitation_acceptance() {
                 exit;
             } else {
                 // Failed to remove invite, but user was added. Log this.
-                error_log("Band Invite: User $user_id added to band $artist_id, but failed to remove pending invite ID " . $valid_invite['id']);
+                // User added successfully but failed to remove pending invite
                 wp_safe_redirect( add_query_arg( array( 'invite_accepted' => '1', 'invite_warning' => 'cleanup_failed' ), $redirect_url ) );
                 exit;
             }

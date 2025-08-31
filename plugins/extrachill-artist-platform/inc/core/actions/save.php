@@ -14,6 +14,9 @@
 
 defined( 'ABSPATH' ) || exit;
 
+// Include file upload functions
+require_once plugin_dir_path( __FILE__ ) . '../filters/upload.php';
+
 /**
  * Central function to handle all link page save operations
  *
@@ -42,7 +45,7 @@ function ec_handle_link_page_save( $link_page_id, $save_data = array(), $files_d
         }
     }
 
-    // Advanced settings
+    // Advanced settings (Advanced tab fields only)
     $advanced_fields = array(
         'link_expiration_enabled' => '_link_expiration_enabled',
         'weekly_notifications_enabled' => '_link_page_enable_weekly_notifications',
@@ -52,11 +55,6 @@ function ec_handle_link_page_save( $link_page_id, $save_data = array(), $files_d
         'youtube_embed_enabled' => '_enable_youtube_inline_embed',
         'meta_pixel_id' => '_link_page_meta_pixel_id',
         'google_tag_id' => '_link_page_google_tag_id',
-        'featured_link_enabled' => '_enable_featured_link',
-        'featured_link_url' => '_featured_link_original_id',
-        'social_icons_position' => '_link_page_social_icons_position',
-        'overlay_toggle' => '_link_page_overlay_toggle',
-        'profile_img_shape' => '_link_page_profile_img_shape',
         'subscribe_display_mode' => '_link_page_subscribe_display_mode',
         'subscribe_description' => '_link_page_subscribe_description'
     );
@@ -76,76 +74,156 @@ function ec_handle_link_page_save( $link_page_id, $save_data = array(), $files_d
         ec_handle_link_page_file_uploads( $link_page_id, $files_data );
     }
 
-    // Fire the save action hook for extensibility
+    // Handle social icons if present
+    if ( isset( $save_data['social_icons'] ) && is_array( $save_data['social_icons'] ) ) {
+        $artist_id = apply_filters('ec_get_artist_id', $link_page_id);
+        if ( $artist_id ) {
+            $social_manager = extrachill_artist_platform_social_links();
+            $social_result = $social_manager->save( $artist_id, $save_data['social_icons'] );
+            
+            if ( is_wp_error( $social_result ) ) {
+                error_log( 'Social links save error: ' . $social_result->get_error_message() );
+                // Don't fail entire save for social issues, just log it
+            }
+        }
+    }
+
+    /**
+     * Fires when a link page needs post-save processing.
+     * 
+     * This action hook triggers essential post-save operations like data
+     * synchronization. Other plugins and theme functions can also hook in
+     * to perform additional operations after the link page data is saved.
+     * 
+     * Hooked functions should check for errors and may prevent save completion
+     * by returning WP_Error or throwing exceptions.
+     * 
+     * @since 1.0.0
+     * 
+     * @param int $link_page_id The ID of the link page that was saved.
+     */
     do_action( 'ec_link_page_save', $link_page_id );
 
     return true;
 }
 
 /**
- * Hook sync system into link page saves
+ * Link page save completion handler
+ * 
+ * Triggered by ec_link_page_save action to complete the save process
+ * by triggering the sync action.
  */
-function ec_sync_after_link_page_save( $link_page_id ) {
+function ec_handle_link_page_save_completion( $link_page_id ) {
     // Get associated artist profile ID
-    $artist_id = ec_get_artist_for_link_page( $link_page_id );
+    $artist_id = apply_filters('ec_get_artist_id', $link_page_id);
     if ( $artist_id && get_post_type( $artist_id ) === 'artist_profile' ) {
-        ec_handle_artist_platform_sync( $artist_id );
+        // Trigger sync action directly
+        do_action( 'ec_artist_platform_sync', $artist_id );
     }
 }
-add_action( 'ec_link_page_save', 'ec_sync_after_link_page_save', 100, 1 );
+add_action( 'ec_link_page_save', 'ec_handle_link_page_save_completion', 10, 1 );
+
 
 /**
- * Handle file uploads for link pages
+ * Process individual social icon form fields into structured array
  *
- * @param int $link_page_id The link page ID
- * @param array $files_data $_FILES array
+ * @param array $post_data $_POST array
+ * @return array Structured social icons array
  */
-function ec_handle_link_page_file_uploads( $link_page_id, $files_data ) {
+function ec_process_social_form_fields( $post_data ) {
+    $social_data = array();
     
-    if ( ! function_exists( 'wp_handle_upload' ) ) {
-        require_once( ABSPATH . 'wp-admin/includes/file.php' );
-        require_once( ABSPATH . 'wp-admin/includes/image.php' );
-        require_once( ABSPATH . 'wp-admin/includes/media.php' );
-    }
-
-    $max_file_size = 5 * 1024 * 1024; // 5MB
-
-    // Background image upload
-    if ( ! empty( $files_data['link_page_background_image_upload']['tmp_name'] ) ) {
-        if ( $files_data['link_page_background_image_upload']['size'] <= $max_file_size ) {
-            // Get old image from filter BEFORE updating (single source of truth)
-            $data = ec_get_link_page_data( $associated_artist_id, $link_page_id );
-            $old_bg_image_id = $data['settings']['background_image_id'] ?? '';
-            $new_bg_image_id = media_handle_upload( 'link_page_background_image_upload', $link_page_id );
-            
-            if ( is_numeric( $new_bg_image_id ) ) {
-                update_post_meta( $link_page_id, '_link_page_background_image_id', $new_bg_image_id );
-                if ( $old_bg_image_id && $old_bg_image_id != $new_bg_image_id ) {
-                    do_action( 'ec_delete_old_bg_image', $old_bg_image_id );
-                }
-            }
+    // Check for social types and URLs
+    $social_types = isset( $post_data['social_type'] ) ? $post_data['social_type'] : array();
+    $social_urls = isset( $post_data['social_url'] ) ? $post_data['social_url'] : array();
+    
+    // Process each social icon
+    $social_count = max( count( $social_types ), count( $social_urls ) );
+    
+    for ( $social_idx = 0; $social_idx < $social_count; $social_idx++ ) {
+        $social_type = isset( $social_types[$social_idx] ) ? sanitize_text_field( $social_types[$social_idx] ) : '';
+        $social_url = isset( $social_urls[$social_idx] ) ? esc_url_raw( wp_unslash( $social_urls[$social_idx] ) ) : '';
+        
+        // Skip empty social icons
+        if ( empty( $social_type ) && empty( $social_url ) ) {
+            continue;
+        }
+        
+        // Only add if we have both type and URL
+        if ( ! empty( $social_type ) && ! empty( $social_url ) ) {
+            $social_data[] = array(
+                'type' => $social_type,
+                'url' => $social_url
+            );
         }
     }
+    
+    return $social_data;
+}
 
-    // Profile image upload
-    if ( ! empty( $files_data['link_page_profile_image_upload']['tmp_name'] ) ) {
-        if ( $files_data['link_page_profile_image_upload']['size'] <= $max_file_size ) {
-            $associated_artist_id = ec_get_artist_for_link_page( $link_page_id );
-            if ( $associated_artist_id ) {
-                // Get old image from filter BEFORE updating (single source of truth) 
-                $data = ec_get_link_page_data( $associated_artist_id, $link_page_id );
-                $old_profile_image_id = $data['settings']['profile_image_id'] ?? '';
-                $attach_id = media_handle_upload( 'link_page_profile_image_upload', $associated_artist_id );
-                if ( is_numeric( $attach_id ) ) {
-                    set_post_thumbnail( $associated_artist_id, $attach_id );
-                    update_post_meta( $link_page_id, '_link_page_profile_image_id', $attach_id );
-                    if ( $old_profile_image_id && $old_profile_image_id != $attach_id ) {
-                        do_action( 'ec_delete_old_profile_image', $old_profile_image_id );
+/**
+ * Process individual link form fields into structured array
+ *
+ * @param array $post_data $_POST array
+ * @return array Structured links array
+ */
+function ec_process_link_form_fields( $post_data ) {
+    $links_data = array();
+    
+    // Check for section titles
+    $section_titles = isset( $post_data['link_section_title'] ) ? $post_data['link_section_title'] : array();
+    
+    // Check for link texts and URLs
+    $link_texts = isset( $post_data['link_text'] ) ? $post_data['link_text'] : array();
+    $link_urls = isset( $post_data['link_url'] ) ? $post_data['link_url'] : array();
+    $link_expires = isset( $post_data['link_expires_at'] ) ? $post_data['link_expires_at'] : array();
+    $link_ids = isset( $post_data['link_id'] ) ? $post_data['link_id'] : array();
+    
+    // Process each section
+    $section_count = max( count( $section_titles ), count( $link_texts ), 1 );
+    
+    for ( $section_idx = 0; $section_idx < $section_count; $section_idx++ ) {
+        $section_data = array(
+            'section_title' => isset( $section_titles[$section_idx] ) ? sanitize_text_field( wp_unslash( $section_titles[$section_idx] ) ) : '',
+            'links' => array()
+        );
+        
+        // Process links for this section
+        if ( isset( $link_texts[$section_idx] ) && is_array( $link_texts[$section_idx] ) ) {
+            foreach ( $link_texts[$section_idx] as $link_idx => $link_text ) {
+                $link_url = isset( $link_urls[$section_idx][$link_idx] ) ? esc_url_raw( wp_unslash( $link_urls[$section_idx][$link_idx] ) ) : '';
+                $link_text = sanitize_text_field( wp_unslash( $link_text ) );
+                
+                // Skip empty links
+                if ( empty( $link_text ) && empty( $link_url ) ) {
+                    continue;
+                }
+                
+                $link_data = array(
+                    'link_text' => $link_text,
+                    'link_url' => $link_url,
+                    'id' => isset( $link_ids[$section_idx][$link_idx] ) ? sanitize_text_field( $link_ids[$section_idx][$link_idx] ) : 'link_' . time() . '_' . wp_rand()
+                );
+                
+                // Add expiration if available
+                if ( isset( $link_expires[$section_idx][$link_idx] ) ) {
+                    $expires_at = sanitize_text_field( wp_unslash( $link_expires[$section_idx][$link_idx] ) );
+                    if ( ! empty( $expires_at ) ) {
+                        $link_data['expires_at'] = $expires_at;
                     }
                 }
+                
+                $section_data['links'][] = $link_data;
             }
         }
+        
+        // Only add section if it has content
+        if ( ! empty( $section_data['section_title'] ) || ! empty( $section_data['links'] ) ) {
+            $links_data[] = $section_data;
+        }
     }
+    
+    return $links_data;
 }
 
 /**
@@ -157,14 +235,11 @@ function ec_handle_link_page_file_uploads( $link_page_id, $files_data ) {
 function ec_prepare_link_page_save_data( $post_data ) {
     $save_data = array();
 
-    // Links data
-    if ( isset( $post_data['link_page_links_json'] ) ) {
-        $links_json = wp_unslash( $post_data['link_page_links_json'] );
-        $links_array = json_decode( $links_json, true );
-        if ( json_last_error() === JSON_ERROR_NONE && is_array( $links_array ) ) {
-            $save_data['links'] = $links_array;
-        }
-    }
+    // Links data - Process individual form fields instead of JSON
+    $save_data['links'] = ec_process_link_form_fields( $post_data );
+
+    // Social icons data - Process individual form fields instead of JSON
+    $save_data['social_icons'] = ec_process_social_form_fields( $post_data );
 
     // CSS variables - Read directly from form inputs (no JSON intermediary)
     $css_vars = array();
@@ -235,18 +310,17 @@ function ec_prepare_link_page_save_data( $post_data ) {
         $css_vars['--link-page-title-font-family'] = sanitize_text_field( $post_data['link_page_title_font_family'] );
     }
     if ( isset( $post_data['link_page_title_font_size'] ) ) {
-        // Convert slider value back to em/percentage
-        $title_size = absint( $post_data['link_page_title_font_size'] );
-        $css_vars['--link-page-title-font-size'] = $title_size . '%';
+        // Convert slider value (0-100) to em using original formula
+        $slider_percentage = absint( $post_data['link_page_title_font_size'] );
+        $font_size_min_em = 0.8;
+        $font_size_max_em = 3.5;
+        $em_value = $font_size_min_em + ($font_size_max_em - $font_size_min_em) * ($slider_percentage / 100);
+        $css_vars['--link-page-title-font-size'] = round($em_value, 2) . 'em';
     }
     if ( isset( $post_data['link_page_body_font_family'] ) ) {
         $css_vars['--link-page-body-font-family'] = sanitize_text_field( $post_data['link_page_body_font_family'] );
     }
-    if ( isset( $post_data['link_page_body_font_size'] ) ) {
-        // Convert pixel value back to em (16px = 1em)
-        $body_size = absint( $post_data['link_page_body_font_size'] );
-        $css_vars['--link-page-body-font-size'] = round( $body_size / 16, 2 ) . 'em';
-    }
+    // Removed body font size processing - uses theme default font size
     
     // Button styling
     if ( isset( $post_data['link_page_button_radius'] ) ) {
@@ -259,20 +333,10 @@ function ec_prepare_link_page_save_data( $post_data ) {
         $profile_size = absint( $post_data['link_page_profile_img_size'] );
         $css_vars['--link-page-profile-img-size'] = $profile_size . '%';
     }
-    if ( isset( $post_data['link_page_profile_img_border_radius'] ) ) {
-        $profile_radius = absint( $post_data['link_page_profile_img_border_radius'] );
-        $css_vars['--link-page-profile-img-border-radius'] = $profile_radius . '%';
-    }
-    if ( isset( $post_data['link_page_profile_img_aspect_ratio'] ) ) {
-        $aspect_ratio = sanitize_text_field( $post_data['link_page_profile_img_aspect_ratio'] );
-        if ( in_array( $aspect_ratio, array( '1/1', '4/3', '16/9', '3/2' ) ) ) {
-            $css_vars['--link-page-profile-img-aspect-ratio'] = $aspect_ratio;
-        }
-    }
     if ( isset( $post_data['link_page_profile_img_shape'] ) ) {
         $profile_shape = sanitize_text_field( $post_data['link_page_profile_img_shape'] );
         if ( in_array( $profile_shape, array( 'circle', 'square', 'rectangle' ) ) ) {
-            $css_vars['_link_page_profile_img_shape'] = $profile_shape;
+            $css_vars['--link-page-profile-img-shape'] = $profile_shape;
         }
     }
     
@@ -310,25 +374,10 @@ function ec_prepare_link_page_save_data( $post_data ) {
         $save_data['google_tag_id'] = empty( $google_tag ) ? '' : ( preg_match( '/^(G|AW)-[a-zA-Z0-9]+$/', $google_tag ) ? $google_tag : '' );
     }
 
-    // Featured link
-    $save_data['featured_link_enabled'] = isset( $post_data['enable_featured_link'] ) && $post_data['enable_featured_link'] == '1' ? '1' : '0';
-    if ( $save_data['featured_link_enabled'] === '1' && isset( $post_data['featured_link_original_id'] ) ) {
-        $save_data['featured_link_url'] = esc_url_raw( wp_unslash( $post_data['featured_link_original_id'] ) );
-    }
-
     // UI settings
     if ( isset( $post_data['link_page_social_icons_position'] ) ) {
         $position = sanitize_text_field( $post_data['link_page_social_icons_position'] );
         $save_data['social_icons_position'] = in_array( $position, array( 'above', 'below' ), true ) ? $position : 'above';
-    }
-
-    if ( isset( $post_data['link_page_overlay_toggle_present'] ) ) {
-        $save_data['overlay_toggle'] = isset( $post_data['link_page_overlay_toggle'] ) && $post_data['link_page_overlay_toggle'] === '1' ? '1' : '0';
-    }
-
-    if ( isset( $post_data['link_page_profile_img_shape'] ) ) {
-        $shape = sanitize_text_field( $post_data['link_page_profile_img_shape'] );
-        $save_data['profile_img_shape'] = in_array( $shape, array( 'circle', 'square', 'rectangle' ), true ) ? $shape : '';
     }
 
     // Subscription settings
@@ -427,72 +476,37 @@ function ec_handle_artist_profile_save( $artist_id, $save_data = array(), $files
         }
     }
 
-    // Fire the save action hook for extensibility
+    /**
+     * Fires when an artist profile needs post-save processing.
+     * 
+     * This action hook triggers essential post-save operations like data
+     * synchronization. Other plugins and theme functions can also hook in
+     * to perform additional operations after the artist profile data is saved.
+     * 
+     * Hooked functions should check for errors and may prevent save completion
+     * by returning WP_Error or throwing exceptions.
+     * 
+     * @since 1.0.0
+     * 
+     * @param int $artist_id The ID of the artist profile that was saved.
+     */
     do_action( 'ec_artist_profile_save', $artist_id );
 
     return true;
 }
 
 /**
- * Hook sync system into artist profile saves
+ * Artist profile save completion handler
+ * 
+ * Triggered by ec_artist_profile_save action to complete the save process
+ * by triggering the sync action.
  */
-function ec_sync_after_artist_profile_save( $artist_id ) {
-    ec_handle_artist_platform_sync( $artist_id );
+function ec_handle_artist_profile_save_completion( $artist_id ) {
+    // Trigger sync action directly
+    do_action( 'ec_artist_platform_sync', $artist_id );
 }
-add_action( 'ec_artist_profile_save', 'ec_sync_after_artist_profile_save', 100, 1 );
+add_action( 'ec_artist_profile_save', 'ec_handle_artist_profile_save_completion', 10, 1 );
 
-/**
- * Handle file uploads for artist profiles
- *
- * @param int $artist_id The artist profile ID
- * @param array $files_data $_FILES array
- */
-function ec_handle_artist_profile_file_uploads( $artist_id, $files_data ) {
-    
-    if ( ! function_exists( 'wp_handle_upload' ) ) {
-        require_once( ABSPATH . 'wp-admin/includes/file.php' );
-        require_once( ABSPATH . 'wp-admin/includes/image.php' );
-        require_once( ABSPATH . 'wp-admin/includes/media.php' );
-    }
-
-    $max_file_size = 5 * 1024 * 1024; // 5MB
-
-    // Featured image upload
-    if ( ! empty( $files_data['featured_image']['tmp_name'] ) ) {
-        if ( $files_data['featured_image']['size'] <= $max_file_size && $files_data['featured_image']['error'] == UPLOAD_ERR_OK ) {
-            $old_thumbnail_id = get_post_thumbnail_id( $artist_id );
-            $new_image_id = media_handle_upload( 'featured_image', $artist_id );
-            
-            if ( is_numeric( $new_image_id ) ) {
-                set_post_thumbnail( $artist_id, $new_image_id );
-                if ( $old_thumbnail_id && $old_thumbnail_id != $new_image_id ) {
-                    wp_delete_attachment( $old_thumbnail_id, true );
-                }
-            }
-        }
-    } elseif ( isset( $files_data['prefill_avatar_id'] ) && is_numeric( $files_data['prefill_avatar_id'] ) ) {
-        // Handle prefill avatar for new artist profiles
-        $prefill_avatar_id = absint( $files_data['prefill_avatar_id'] );
-        if ( wp_attachment_is_image( $prefill_avatar_id ) ) {
-            set_post_thumbnail( $artist_id, $prefill_avatar_id );
-        }
-    }
-
-    // Artist header image upload
-    if ( ! empty( $files_data['artist_header_image']['tmp_name'] ) ) {
-        if ( $files_data['artist_header_image']['size'] <= $max_file_size && $files_data['artist_header_image']['error'] == UPLOAD_ERR_OK ) {
-            $old_header_image_id = get_post_meta( $artist_id, '_artist_profile_header_image_id', true );
-            $new_header_image_id = media_handle_upload( 'artist_header_image', $artist_id );
-            
-            if ( is_numeric( $new_header_image_id ) ) {
-                update_post_meta( $artist_id, '_artist_profile_header_image_id', $new_header_image_id );
-                if ( $old_header_image_id && $old_header_image_id != $new_header_image_id ) {
-                    wp_delete_attachment( $old_header_image_id, true );
-                }
-            }
-        }
-    }
-}
 
 /**
  * Prepare save data from POST array for artist profiles
@@ -564,9 +578,9 @@ function ec_admin_post_save_link_page() {
         wp_die( __( 'Permission denied: You must be logged in to save changes.', 'extrachill-artist-platform' ) );
     }
     
-    // Get link page and artist IDs
-    $link_page_id = isset( $_POST['link_page_id'] ) ? absint( $_POST['link_page_id'] ) : 0;
-    $artist_id = isset( $_POST['artist_id'] ) ? absint( $_POST['artist_id'] ) : 0;
+    // Get link page and artist IDs directly from form data
+    $link_page_id = absint($_POST['link_page_id']);
+    $artist_id = absint($_POST['artist_id']);
     
     if ( ! $link_page_id || get_post_type( $link_page_id ) !== 'artist_link_page' ) {
         wp_die( __( 'Invalid link page.', 'extrachill-artist-platform' ) );

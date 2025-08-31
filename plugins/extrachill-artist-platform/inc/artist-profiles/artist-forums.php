@@ -304,7 +304,7 @@ function bp_filter_artist_forum_permalink( $link, $post ) {
 
         if ( $is_artist_forum ) {
             // Get the associated artist profile ID
-            $artist_profile_id = get_post_meta( $post->ID, '_associated_artist_profile_id', true );
+            $artist_profile_id = apply_filters('ec_get_artist_id', $post->ID);
 
             if ( ! empty( $artist_profile_id ) ) {
                 // Get the permalink for the artist profile

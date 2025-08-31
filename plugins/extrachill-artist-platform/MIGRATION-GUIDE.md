@@ -1,8 +1,8 @@
-# ExtraChill Artist Platform - Migration Guide
+# Extra Chill Artist Platform - Migration Guide
 
 ## Migration Overview
 
-The ExtraChill Artist Platform includes a comprehensive migration system for transitioning from "Band Platform" to "Artist Platform" terminology. Migration is only required if you're upgrading from a previous version that used "band" terminology.
+The Extra Chill Artist Platform includes a comprehensive migration system for transitioning from "Band Platform" to "Artist Platform" terminology. Migration is only required if you're upgrading from a previous version that used "band" terminology.
 
 ## How Migration Works
 

@@ -1,6 +1,6 @@
 <?php
 /**
- * ExtraChill Artist Platform Social Links Manager
+ * Extra Chill Artist Platform Social Links Manager
  * 
  * Centralized management for artist social links functionality.
  * Single source for social types, CRUD operations, validation, and rendering.

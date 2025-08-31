@@ -322,7 +322,7 @@ function bp_ajax_search_artists() {
 
     // Get search term and artist profile ID from request
     $search_term = isset( $_POST['search_term'] ) ? sanitize_text_field( $_POST['search_term'] ) : '';
-    $artist_profile_id = isset( $_POST['artist_profile_id'] ) ? absint( $_POST['artist_profile_id'] ) : 0;
+    $artist_profile_id = apply_filters('ec_get_artist_id', $_POST);
 
     if ( empty( $search_term ) ) {
         wp_send_json_error( __( 'Search term cannot be empty.', 'extrachill-artist-platform' ) );

@@ -1,6 +1,6 @@
 <?php
 /**
- * Inline Subscribe Form for Band Link Page
+ * Inline Subscribe Form for Artist Link Page
  * Used in extrch-link-page-template.php when display mode is 'inline_form'.
  *
  * Assumes $artist_id is set by the including template.
@@ -9,10 +9,10 @@
 defined( 'ABSPATH' ) || exit;
 
 // Ensure $artist_id is available
-$current_artist_id = isset($artist_id) ? absint($artist_id) : 0;
+$current_artist_id = apply_filters('ec_get_artist_id', isset($artist_id) ? compact('artist_id') : []);
 
 if (empty($current_artist_id)) {
-    // Don't render the form if band ID is missing
+    // Don't render the form if artist ID is missing
     // error_log('Subscribe inline form partial: artist_id is missing.'); // For debugging
     return;
 }

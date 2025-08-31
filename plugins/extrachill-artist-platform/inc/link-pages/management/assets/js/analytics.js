@@ -1,8 +1,10 @@
 // JavaScript for Analytics Tab - Manage Link Page
 
-(function(manager) {
-    // Use the config from the manager if available, otherwise fall back to the localized analytics config
-    const ajaxConfig = (manager && manager.ajaxConfig) ? manager.ajaxConfig : (window.extrchAnalyticsConfig || {});
+(function() {
+    'use strict';
+    
+    // Use the localized analytics config directly
+    const ajaxConfig = extraChillArtistPlatform.analyticsConfig || {};
 
     const loadingIndicator = document.getElementById('bp-analytics-loading');
     const errorIndicator = document.getElementById('bp-analytics-error');
@@ -19,7 +21,7 @@
 
     function fetchAnalyticsData() {
         // Use the explicitly localized data from the PHP template
-        if (!window.extrchLinkPagePreviewAJAX?.link_page_id) {
+        if (!extraChillArtistPlatform.linkPageData?.link_page_id) {
             showError('Configuration error. Cannot fetch analytics.');
             return;
         }
@@ -29,13 +31,13 @@
 
         const data = {
             action: 'extrch_fetch_link_page_analytics', // Define this AJAX action
-            security_nonce: window.extrchLinkPagePreviewAJAX.nonce, // Use nonce from localized config
-            link_page_id: window.extrchLinkPagePreviewAJAX.link_page_id, // Use link_page_id from localized config
+            nonce: extraChillArtistPlatform.nonce, // Use nonce from localized config
+            link_page_id: extraChillArtistPlatform.linkPageData.link_page_id, // Use link_page_id from localized config
             date_range: dateRangeSelect ? dateRangeSelect.value : '30', // Default to 30 days
         };
 
         // --- Real AJAX Call ---
-        jQuery.post(window.extrchLinkPagePreviewAJAX.ajax_url, data, function(response) {
+        jQuery.post(extraChillArtistPlatform.ajaxUrl, data, function(response) {
             if (response.success) {
                 updateUI(response.data);
             } else {
@@ -154,15 +156,11 @@
     }
 
     // Expose the handler function
-    window.ExtrchLinkPageAnalytics = {
-        handleTabBecameVisible: handleAnalyticsTabBecameVisible
-    };
+    // No global exposure - module is self-contained and event-driven
 
-    // Listen for the sharedTabActivated event
-    document.addEventListener('sharedTabActivated', function(event) {
-        if (event.detail.tabId === 'manage-link-page-tab-analytics') {
-            handleAnalyticsTabBecameVisible();
-        }
+    // Listen for analytics tab activation
+    document.addEventListener('analyticsTabActivated', function(event) {
+        handleAnalyticsTabBecameVisible();
     });
 
-})(window.ExtrchLinkPageManager = window.ExtrchLinkPageManager || {});
+})();

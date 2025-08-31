@@ -112,14 +112,8 @@
                     // --- End scroll active tab ---
 
                     // --- Initialize tab-specific JS ---
-                    if (tabId === 'analytics' && window.ExtrchLinkPageAnalytics && typeof window.ExtrchLinkPageAnalytics.handleTabBecameVisible === 'function') {
-                        // console.log('UI Utils: Analytics tab activated, calling its handler.');
-                        window.ExtrchLinkPageAnalytics.handleTabBecameVisible();
-                    }
-                    if (tabId === 'customize' && window.ExtrchLinkPageManager && window.ExtrchLinkPageManager.customization && typeof window.ExtrchLinkPageManager.customization.init === 'function' && !window.ExtrchLinkPageManager.customization.isInitialized) {
-                        // console.log('UI Utils: Customize tab activated, calling its init().');
-                        window.ExtrchLinkPageManager.customization.init();
-                    }
+                    // Tab-specific initialization handled by specific tab events
+                    // Tab-specific initialization handled by specific tab events
                     // Add more tab-specific initializations here if needed
                     // --- End Initialize tab-specific JS ---
                 }
@@ -151,14 +145,7 @@
                 // --- End scroll active tab ---
                 
                 // --- Initialize tab-specific JS for default first tab ---
-                if (firstTabId === 'analytics' && window.ExtrchLinkPageAnalytics && typeof window.ExtrchLinkPageAnalytics.handleTabBecameVisible === 'function') {
-                    // console.log('UI Utils: Analytics tab (default) activated, calling its handler.');
-                    window.ExtrchLinkPageAnalytics.handleTabBecameVisible();
-                }
-                if (firstTabId === 'customize' && window.ExtrchLinkPageManager && window.ExtrchLinkPageManager.customization && typeof window.ExtrchLinkPageManager.customization.init === 'function' && !window.ExtrchLinkPageManager.customization.isInitialized) {
-                    // console.log('UI Utils: Customize tab (default) activated, calling its init().');
-                    window.ExtrchLinkPageManager.customization.init();
-                }
+                // First tab initialization handled by specific tab events in shared-tabs.js
                 // Add more tab-specific initializations here if needed
                 // --- End Initialize tab-specific JS for default first tab ---
             }
@@ -192,14 +179,8 @@
                 // --- End scroll active tab ---
                 
                 // --- Initialize tab-specific JS ---
-                if (tabId === 'analytics' && window.ExtrchLinkPageAnalytics && typeof window.ExtrchLinkPageAnalytics.handleTabBecameVisible === 'function') {
-                    // console.log('UI Utils: Analytics tab activated, calling its handler.');
-                    window.ExtrchLinkPageAnalytics.handleTabBecameVisible();
-                }
-                 if (tabId === 'customize' && window.ExtrchLinkPageManager && window.ExtrchLinkPageManager.customization && typeof window.ExtrchLinkPageManager.customization.init === 'function' && !window.ExtrchLinkPageManager.customization.isInitialized) {
-                    // console.log('UI Utils: Customize tab activated, calling its init().');
-                    window.ExtrchLinkPageManager.customization.init();
-                }
+                // Tab-specific initialization handled by specific tab events
+                 // Tab-specific initialization handled by specific tab events
                 // Add more tab-specific initializations here if needed
                 // --- End Initialize tab-specific JS ---
 
@@ -231,14 +212,7 @@
                 // --- End scroll active tab ---
                 
                 // --- Initialize tab-specific JS for default first tab ---
-                if (firstTabId === 'analytics' && window.ExtrchLinkPageAnalytics && typeof window.ExtrchLinkPageAnalytics.handleTabBecameVisible === 'function') {
-                    // console.log('UI Utils: Analytics tab (default) activated, calling its handler.');
-                    window.ExtrchLinkPageAnalytics.handleTabBecameVisible();
-                }
-                if (firstTabId === 'customize' && window.ExtrchLinkPageManager && window.ExtrchLinkPageManager.customization && typeof window.ExtrchLinkPageManager.customization.init === 'function' && !window.ExtrchLinkPageManager.customization.isInitialized) {
-                    // console.log('UI Utils: Customize tab (default) activated, calling its init().');
-                    window.ExtrchLinkPageManager.customization.init();
-                }
+                // First tab initialization handled by specific tab events in shared-tabs.js
                 // Add more tab-specific initializations here if needed
                 // --- End Initialize tab-specific JS for default first tab ---
             }

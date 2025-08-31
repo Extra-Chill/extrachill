@@ -46,7 +46,7 @@ function ec_get_link_page_defaults() {
             '--link-page-title-font-family'             => 'WilcoLoftSans',
             '--link-page-title-font-size'               => '2.1em',
             '--link-page-body-font-family'              => 'Helvetica',
-            '--link-page-body-font-size'                => '1em',
+            // Body font size removed - uses theme default font size
             
             // Button styling
             '--link-page-button-radius'                 => '8px',
@@ -54,8 +54,6 @@ function ec_get_link_page_defaults() {
             
             // Profile image settings
             '--link-page-profile-img-size'              => '30%',
-            '--link-page-profile-img-border-radius'     => '50%',
-            '--link-page-profile-img-aspect-ratio'      => '1/1',
             '_link_page_profile_img_shape'              => 'circle',
         ),
         
@@ -67,13 +65,6 @@ function ec_get_link_page_defaults() {
             'profile_img_slider_value'  => 50,
         ),
         
-        'links' => array(
-            'create_default_section' => true,
-            'section_title'         => '',
-            'link_text_template'    => '%artist_name% Forum',
-            'link_url_template'     => '/artist/%artist_slug%',
-            'link_is_active'        => true,
-        ),
         
         'subscription' => array(
             'default_mode'        => 'icon_modal',
@@ -83,11 +74,45 @@ function ec_get_link_page_defaults() {
     );
     
     /**
-     * Filter link page defaults
+     * Filters the complete set of link page default values.
      *
-     * Allows themes and plugins to customize all link page default values.
+     * This filter allows themes and plugins to customize all default values
+     * used throughout the link page system. The defaults are organized by
+     * category (styles, settings, links, subscription) for easy modification.
      *
-     * @param array $defaults All link page defaults structured by category
+     * @since 1.0.0
+     *
+     * @param array $defaults {
+     *     Complete array of link page defaults organized by category.
+     *
+     *     @type array $styles {
+     *         CSS variable defaults and visual styling defaults.
+     *
+     *         @type string $--link-page-background-color        Default background color.
+     *         @type string $--link-page-text-color              Default text color.
+     *         @type string $--link-page-button-bg-color         Default button background.
+     *         @type string $--link-page-title-font-family       Default title font family.
+     *         @type string $--link-page-title-font-size         Default title font size.
+     *         @type string $--link-page-profile-img-size        Default profile image size.
+     *         ... Additional CSS variables for complete theming control.
+     *     }
+     *     @type array $settings {
+     *         Functional settings and display mode defaults.
+     *
+     *         @type string $subscribe_display_mode    Default subscription display mode.
+     *         @type string $social_icons_position     Default social icons placement.
+     *         @type string $background_type           Default background type.
+     *         @type string $background_color          Default background color value.
+     *         @type int    $profile_img_slider_value  Default profile image size slider value.
+     *     }
+     *     @type array $subscription {
+     *         Email subscription form defaults.
+     *
+     *         @type string $default_mode        Default subscription collection mode.
+     *         @type string $description_template Default description with placeholder support.
+     *         @type string $fallback_artist      Fallback text when artist name unavailable.
+     *     }
+     * }
      */
     return apply_filters( 'ec_link_page_defaults', $defaults );
 }

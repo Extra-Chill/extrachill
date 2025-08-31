@@ -85,7 +85,7 @@ function extrch_process_weekly_performance_emails( $debug_target_user_id = null 
                 continue;
             }
 
-            $link_page_id = get_post_meta( $artist_profile_id, '_extrch_link_page_id', true );
+            $link_page_id = apply_filters('ec_get_link_page_id', $artist_profile_id);
             if ( ! $link_page_id || get_post_type( $link_page_id ) !== 'artist_link_page' ) {
                 continue;
             }
@@ -155,7 +155,7 @@ function extrch_process_weekly_performance_emails( $debug_target_user_id = null 
  * @param int $link_page_id The ID of the artist_link_page post.
  */
 function extrch_send_single_link_page_performance_email( $link_page_id ) {
-    $artist_profile_id = get_post_meta( $link_page_id, '_associated_artist_profile_id', true );
+    $artist_profile_id = apply_filters('ec_get_artist_id', $link_page_id);
     if ( ! $artist_profile_id ) {
         // error_log("Weekly Email: Could not find associated artist_profile_id for link_page_id: " . $link_page_id);
         return;
@@ -282,7 +282,7 @@ function extrch_fetch_link_page_analytics_for_email( $link_page_id, $start_date,
     $raw_new_replies_count = 0;
     $recent_topic_titles = array();
 
-    $artist_profile_id = get_post_meta( $link_page_id, '_associated_artist_profile_id', true );
+    $artist_profile_id = apply_filters('ec_get_artist_id', $link_page_id);
     if ( $artist_profile_id ) {
         $forum_id = get_post_meta( $artist_profile_id, '_artist_forum_id', true );
         error_log("[ANALYTICS DEBUG] Artist Profile ID: {$artist_profile_id}, Forum ID: {$forum_id}");
@@ -616,7 +616,7 @@ add_action( 'admin_init', function() {
 
     // Keep the old trigger for single link page tests, ensuring it doesn't conflict
     if ( isset( $_GET['debug_send_weekly_email'] ) && !isset($_GET['debug_send_consolidated_email_user']) && current_user_can('manage_options') ) {
-        $link_page_id_to_test = absint($_GET['debug_send_weekly_email']);
+        $link_page_id_to_test = apply_filters('ec_get_link_page_id', $_GET);
         if ($link_page_id_to_test) {
             define('EXTRCH_DEBUG_WEEKLY_EMAIL_TO_ADMIN', true); 
             // We need to capture the output of extrch_send_single_link_page_performance_email related to mail_sent

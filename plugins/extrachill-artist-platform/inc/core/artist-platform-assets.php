@@ -94,8 +94,8 @@ class ExtraChillArtistPlatform_Assets {
             );
         }
 
-        // Artist platform home page assets
-        if ( $this->is_artist_platform_home_page() ) {
+        // Hero card styles for artist platform home page and artist archive
+        if ( $this->should_load_hero_card_styles() ) {
             wp_enqueue_style( 
                 'extrachill-artist-platform-home', 
                 $plugin_url . 'assets/css/artist-platform-home.css', 
@@ -138,11 +138,26 @@ class ExtraChillArtistPlatform_Assets {
             true 
         );
 
-        // Localize script for AJAX
+        // Get current artist ID for complete data
+        $current_artist_id = apply_filters('ec_get_artist_id', $_GET);
+        $link_page_data = $current_artist_id > 0 ? ec_get_link_page_data( $current_artist_id ) : array();
+        
+        // Get fonts manager for font data
+        $fonts_data = array();
+        if ( class_exists( 'ExtraChillArtistPlatform_Fonts' ) ) {
+            $font_manager = ExtraChillArtistPlatform_Fonts::instance();
+            $fonts_data = $font_manager->get_supported_fonts();
+        }
+        
+        // Localize script for AJAX with complete data structure
         wp_localize_script( 'extrachill-artist-platform', 'extraChillArtistPlatform', array(
             'ajaxUrl' => admin_url( 'admin-ajax.php' ),
-            'nonce' => wp_create_nonce( 'extrachill_artist_platform_nonce' ),
-            'linkPageAnalytics' => array(
+            'nonce' => wp_create_nonce( 'ec_ajax_nonce' ),
+            'linkPageData' => $link_page_data,
+            'fonts' => $fonts_data,
+            'linkExpirationEnabled' => $link_page_data['settings']['link_expiration_enabled'] ?? false,
+            'nonces' => array(),
+            'analyticsConfig' => array(
                 'trackingEnabled' => true,
                 'trackingEndpoint' => admin_url( 'admin-ajax.php' )
             )
@@ -278,6 +293,15 @@ class ExtraChillArtistPlatform_Assets {
             true 
         );
 
+        // Enqueue artist-switcher JS (shared component)
+        wp_enqueue_script( 
+            'extrachill-artist-switcher-js', 
+            $plugin_url . 'assets/js/artist-switcher.js', 
+            array(), 
+            $this->get_asset_version( 'assets/js/artist-switcher.js' ), 
+            true 
+        );
+
         // Enqueue manage-artist-profiles JS (main)
         wp_enqueue_script( 
             'extrachill-manage-artist-profiles', 
@@ -306,6 +330,8 @@ class ExtraChillArtistPlatform_Assets {
      */
     private function enqueue_link_page_management_assets() {
         $plugin_url = EXTRACHILL_ARTIST_PLATFORM_PLUGIN_URL;
+
+        // Core assets are handled by individual enqueue methods below
 
         // Enqueue shared-tabs CSS (dependency)
         wp_enqueue_style( 
@@ -352,9 +378,18 @@ class ExtraChillArtistPlatform_Assets {
             true 
         );
 
+        // Enqueue artist-switcher JS (shared component)
+        wp_enqueue_script( 
+            'extrachill-artist-switcher-js', 
+            $plugin_url . 'assets/js/artist-switcher.js', 
+            array(), 
+            $this->get_asset_version( 'assets/js/artist-switcher.js' ), 
+            true 
+        );
+
 
         // Get current artist ID for centralized data loading
-        $current_artist_id = isset( $_GET['artist_id'] ) ? absint( $_GET['artist_id'] ) : 0;
+        $current_artist_id = apply_filters('ec_get_artist_id', $_GET);
         
         // Get comprehensive link page data using centralized filter
         $link_page_data = $current_artist_id > 0 ? ec_get_link_page_data( $current_artist_id ) : array();
@@ -363,7 +398,7 @@ class ExtraChillArtistPlatform_Assets {
         $js_config = array(
             // AJAX configuration
             'ajax_url' => admin_url( 'admin-ajax.php' ),
-            'nonce' => wp_create_nonce( 'extrch_link_page_ajax_nonce' ),
+            'nonce' => wp_create_nonce( 'ec_ajax_nonce' ),
             'fetch_link_title_nonce' => wp_create_nonce( 'fetch_link_meta_title_nonce' ),
             
             // Supported types from existing filter
@@ -373,17 +408,26 @@ class ExtraChillArtistPlatform_Assets {
             'linkPageData' => $link_page_data
         );
         
-        // Localize comprehensive data for JavaScript modules
+        // Localize comprehensive data for JavaScript modules (use colors script as localization target)
         wp_localize_script( 
-            'extrachill-manage-link-page-css-variables', 
+            'extrachill-manage-link-page-colors', 
             'extrchLinkPageConfig', 
             $js_config
         );
 
+        // Enqueue centralized sortable system (required by management modules)
+        wp_enqueue_script( 
+            'extrachill-sortable-system', 
+            $plugin_url . 'inc/link-pages/management/assets/js/sortable.js', 
+            array( 'jquery', 'sortable-js' ), 
+            $this->get_asset_version( 'inc/link-pages/management/assets/js/sortable.js' ), 
+            true 
+        );
+
         // Individual management modules (self-contained, no orchestrator needed)
         $management_scripts = array(
-            'css-variables', 'colors', 'fonts', 'links', 'analytics', 
-            'background', 'featured-link', 'info', 'qrcode', 'save', 'sizing', 
+            'colors', 'fonts', 'links', 'analytics', 
+            'background', 'info', 'qrcode', 'sizing', 
             'socials', 'subscribe', 'ui-utils', 'advanced'
         );
 
@@ -391,7 +435,7 @@ class ExtraChillArtistPlatform_Assets {
             wp_enqueue_script( 
                 "extrachill-manage-link-page-{$script}", 
                 $plugin_url . "inc/link-pages/management/assets/js/{$script}.js", 
-                array( 'jquery', 'sortable-js', 'extrachill-shared-tabs-js' ), 
+                array( 'jquery', 'sortable-js', 'extrachill-shared-tabs-js', 'extrachill-sortable-system' ), 
                 $this->get_asset_version( "inc/link-pages/management/assets/js/{$script}.js" ), 
                 true 
             );
@@ -399,9 +443,9 @@ class ExtraChillArtistPlatform_Assets {
 
         // Load preview modules separately
         $preview_scripts = array(
-            'links-preview', 'info-preview', 'socials-preview', 
+            'links-preview', 'info-preview', 'socials-preview', 'subscribe-preview',
             'background-preview', 'colors-preview', 'fonts-preview',
-            'sizing-preview', 'overlay-preview', 'featured-link-preview'
+            'sizing-preview', 'overlay-preview', 'sorting-preview'
         );
 
         foreach ( $preview_scripts as $script ) {
@@ -412,6 +456,66 @@ class ExtraChillArtistPlatform_Assets {
                 $this->get_asset_version( "inc/link-pages/management/live-preview/assets/js/{$script}.js" ), 
                 true 
             );
+        }
+        
+        // Enqueue Google Fonts for current link page
+        $this->enqueue_link_page_google_fonts();
+    }
+
+    /**
+     * Enqueue Google Fonts for link page management
+     * 
+     * Loads fonts dynamically based on current link page settings.
+     * Replaces inline font loading from template.
+     */
+    private function enqueue_link_page_google_fonts() {
+        // Get current artist and link page IDs
+        $artist_id = apply_filters('ec_get_artist_id', $_GET);
+        if ( ! $artist_id ) {
+            return;
+        }
+        
+        $link_page_id = apply_filters('ec_get_link_page_id', $artist_id);
+        if ( ! $link_page_id ) {
+            return;
+        }
+        
+        // Get link page data with font settings
+        $link_page_data = ec_get_link_page_data( $artist_id, $link_page_id );
+        $custom_vars = $link_page_data['css_vars'] ?? array();
+        
+        $fonts_manager = ExtraChillArtistPlatform_Fonts::instance();
+        
+        // Enqueue title font
+        if ( ! empty( $custom_vars['--link-page-title-font-family'] ) ) {
+            $title_font_stack = $custom_vars['--link-page-title-font-family'];
+            $title_font_value = trim( explode( ',', trim( $title_font_stack ), 2 )[0], " '" );
+            $google_font_param = $fonts_manager->get_google_font_param( $title_font_value );
+            
+            if ( $google_font_param ) {
+                wp_enqueue_style( 
+                    'extrachill-link-page-title-font', 
+                    'https://fonts.googleapis.com/css2?family=' . $google_font_param . '&display=swap',
+                    array(),
+                    null // Google Fonts don't need versioning
+                );
+            }
+        }
+        
+        // Enqueue body font
+        if ( ! empty( $custom_vars['--link-page-body-font-family'] ) ) {
+            $body_font_stack = $custom_vars['--link-page-body-font-family'];
+            $body_font_value = trim( explode( ',', trim( $body_font_stack ), 2 )[0], " '" );
+            $google_font_param = $fonts_manager->get_google_font_param( $body_font_value );
+            
+            if ( $google_font_param ) {
+                wp_enqueue_style( 
+                    'extrachill-link-page-body-font', 
+                    'https://fonts.googleapis.com/css2?family=' . $google_font_param . '&display=swap',
+                    array(),
+                    null // Google Fonts don't need versioning
+                );
+            }
         }
     }
 
@@ -469,7 +573,24 @@ class ExtraChillArtistPlatform_Assets {
     }
 
     /**
+     * Check if current page should load hero card styles
+     * Includes both artist platform home page and artist profiles archive
+     */
+    private function should_load_hero_card_styles() {
+        // Artist platform home page
+        $is_home_page = is_page() && 
+                       ( get_page_template_slug() === 'artist-platform-home.php' || 
+                         strpos( get_page_template_slug(), 'artist-platform-home' ) !== false );
+        
+        // Artist profiles archive page (/artists)
+        $is_artist_archive = is_post_type_archive( 'artist_profile' );
+        
+        return $is_home_page || $is_artist_archive;
+    }
+
+    /**
      * Check if current page is artist platform home page
+     * @deprecated Use should_load_hero_card_styles() instead
      */
     private function is_artist_platform_home_page() {
         return is_page() && 
@@ -509,7 +630,7 @@ class ExtraChillArtistPlatform_Assets {
      */
     private function localize_artist_profile_data() {
         $current_user_id = get_current_user_id();
-        $artist_id = isset( $_GET['artist_id'] ) ? absint( $_GET['artist_id'] ) : 0;
+        $artist_id = apply_filters('ec_get_artist_id', $_GET);
         $artist_profile_id_from_user = 0;
 
         if ( ! $artist_id && $current_user_id ) {

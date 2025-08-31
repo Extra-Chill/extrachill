@@ -7,12 +7,10 @@
 
 defined( 'ABSPATH' ) || exit;
 
-// Ensure variables from parent scope are available
-global $edit_mode, $target_artist_id;
-
-// The following variables are expected to be set in the parent scope (manage-artist-profile.php)
-// $edit_mode (bool)
-// $target_artist_id (int)
+// Extract arguments passed from ec_render_template
+$edit_mode = $edit_mode ?? false;
+$target_artist_id = $target_artist_id ?? 0;
+$artist_post_title = $artist_post_title ?? '';
 
 ?>
 

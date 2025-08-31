@@ -1,11 +1,10 @@
 {
   "name": "extrachill-artist-platform",
   "version": "1.0.0",
-  "description": "WordPress plugin providing comprehensive artist platform functionality for the ExtraChill community",
+  "description": "WordPress plugin providing comprehensive artist platform functionality for the Extra Chill community",
   "main": "extrachill-artist-platform.php",
   "scripts": {
     "build": "./build.sh",
-    "build:clean": "rm -rf dist/ && npm run build",
     "version": "grep -i 'Version:' extrachill-artist-platform.php | head -1 | sed 's/.*Version:\\s*\\([0-9\\.]*\\).*/\\1/'"
   },
   "repository": {

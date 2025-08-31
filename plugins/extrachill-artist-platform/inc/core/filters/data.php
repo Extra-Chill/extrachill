@@ -6,20 +6,6 @@
  * Replaces scattered get_post_meta calls throughout the codebase.
  */
 
-/**
- * Get the artist profile ID associated with a link page
- * 
- * @param int $link_page_id Link page post ID
- * @return int|false Artist profile ID or false if not found
- */
-function ec_get_artist_for_link_page( $link_page_id ) {
-    if ( ! $link_page_id || get_post_type( $link_page_id ) !== 'artist_link_page' ) {
-        return false;
-    }
-    
-    $artist_id = get_post_meta( $link_page_id, '_associated_artist_profile_id', true );
-    return $artist_id ? (int) $artist_id : false;
-}
 
 /**
  * Get all artist profile IDs for a user
@@ -266,11 +252,6 @@ function ec_get_link_page_data( $artist_id, $link_page_id = null, $overrides = a
             
             // Feature toggles
             'youtube_embed_enabled' => true, // Default true
-            'featured_link_enabled' => false,
-            'featured_link_custom_description' => '',
-            'featured_link_thumbnail_id' => '',
-            'featured_link_fetched_thumbnail_url' => '',
-            'featured_link_og_image_removed' => false,
             
             // Analytics
             'meta_pixel_id' => '',
@@ -341,12 +322,6 @@ function ec_get_link_page_data( $artist_id, $link_page_id = null, $overrides = a
     $data['settings']['redirect_enabled'] = isset( $all_meta['_link_page_redirect_enabled'][0] ) && $all_meta['_link_page_redirect_enabled'][0] === '1';
     $data['settings']['redirect_target_url'] = $all_meta['_link_page_redirect_target_url'][0] ?? '';
     $data['settings']['youtube_embed_enabled'] = ! isset( $all_meta['_enable_youtube_inline_embed'][0] ) || $all_meta['_enable_youtube_inline_embed'][0] !== '0';
-    $data['settings']['featured_link_enabled'] = isset( $all_meta['_enable_featured_link'][0] ) && $all_meta['_enable_featured_link'][0] === '1';
-    $data['settings']['featured_link_original_id'] = $all_meta['_featured_link_original_id'][0] ?? '';
-    $data['settings']['featured_link_custom_description'] = $all_meta['_featured_link_custom_description'][0] ?? '';
-    $data['settings']['featured_link_thumbnail_id'] = $all_meta['_featured_link_thumbnail_id'][0] ?? '';
-    $data['settings']['featured_link_fetched_thumbnail_url'] = $all_meta['_featured_link_fetched_thumbnail_url'][0] ?? '';
-    $data['settings']['featured_link_og_image_removed'] = isset( $all_meta['_featured_link_og_image_removed'][0] ) && $all_meta['_featured_link_og_image_removed'][0] === '1';
     $data['settings']['meta_pixel_id'] = $all_meta['_link_page_meta_pixel_id'][0] ?? '';
     $data['settings']['google_tag_id'] = $all_meta['_link_page_google_tag_id'][0] ?? '';
     $data['settings']['google_tag_manager_id'] = $all_meta['_link_page_google_tag_manager_id'][0] ?? '';
@@ -365,7 +340,7 @@ function ec_get_link_page_data( $artist_id, $link_page_id = null, $overrides = a
         // Basic display fields (with override support - only use override if it exists and has value)
         'display_title' => (isset($overrides['artist_profile_title']) && $overrides['artist_profile_title'] !== '') ? $overrides['artist_profile_title'] : ($artist_id ? get_the_title($artist_id) : ''),
         'bio' => (isset($overrides['link_page_bio_text']) && $overrides['link_page_bio_text'] !== '') ? $overrides['link_page_bio_text'] : ($artist_id ? get_post($artist_id)->post_content : ''),
-        'profile_img_url' => (isset($overrides['profile_img_url']) && $overrides['profile_img_url'] !== '') ? $overrides['profile_img_url'] : ($artist_id ? (get_the_post_thumbnail_url($artist_id, 'medium') ?: '') : ''),
+        'profile_img_url' => (isset($overrides['profile_img_url']) && $overrides['profile_img_url'] !== '') ? $overrides['profile_img_url'] : ($artist_id ? (get_the_post_thumbnail_url($artist_id, 'large') ?: '') : ''),
         
         // Social links (with override support)
         'social_links' => isset($overrides['social_links']) ? $overrides['social_links'] : $data['socials'],
@@ -466,4 +441,72 @@ function ec_generate_css_variables_style_block( $css_vars, $element_id = 'link-p
     $output .= '}</style>';
     
     return $output;
+}
+
+/**
+ * Render artist switcher component (Global Helper Function)
+ * 
+ * @param array $args Template arguments for the switcher
+ *   - switcher_id: HTML element ID
+ *   - base_url: URL to redirect to when switching artists  
+ *   - current_artist_id: Currently selected artist ID
+ *   - user_id: User ID to get artist list for
+ *   - css_class: Additional CSS classes
+ *   - label_text: Select option label
+ */
+
+/**
+ * Render a single link using unified template system
+ * 
+ * @param array $link_data Link data with 'link_url' and 'link_text' keys
+ * @param array $args Additional template arguments
+ * @return string Rendered HTML
+ */
+function ec_render_single_link( $link_data, $args = array() ) {
+    $template_args = array_merge( $args, $link_data );
+    return ec_render_template( 'single-link', $template_args );
+}
+
+/**
+ * Render a complete link section using unified template system
+ * 
+ * @param array $section_data Section data with 'section_title' and 'links' keys
+ * @param array $args Additional template arguments
+ * @return string Rendered HTML
+ */
+function ec_render_link_section( $section_data, $args = array() ) {
+    $template_args = array_merge( $args, $section_data );
+    return ec_render_template( 'link-section', $template_args );
+}
+
+/**
+ * Render a single social icon using unified template system
+ * 
+ * @param array $social_data Social data with 'url' and 'type' keys
+ * @param object $social_manager Optional social links manager instance
+ * @return string Rendered HTML
+ */
+function ec_render_social_icon( $social_data, $social_manager = null ) {
+    $template_args = array(
+        'social_data' => $social_data,
+        'social_manager' => $social_manager
+    );
+    return ec_render_template( 'social-icon', $template_args );
+}
+
+/**
+ * Render a container with multiple social icons using unified template system
+ * 
+ * @param array $social_links Array of social link data
+ * @param string $position Position class ('above' or 'below')
+ * @param object $social_manager Optional social links manager instance
+ * @return string Rendered HTML
+ */
+function ec_render_social_icons_container( $social_links, $position = 'above', $social_manager = null ) {
+    $template_args = array(
+        'social_links' => $social_links,
+        'position' => $position,
+        'social_manager' => $social_manager
+    );
+    return ec_render_template( 'social-icons-container', $template_args );
 }

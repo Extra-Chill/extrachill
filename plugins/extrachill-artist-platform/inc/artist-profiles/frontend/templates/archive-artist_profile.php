@@ -47,9 +47,12 @@ get_header(); ?>
                         <?php while ( have_posts() ) : the_post(); ?>
                             
                             <?php
-                            // Use the artist-profile-card component - check if class exists first
-                            if ( class_exists( 'ExtraChillArtistPlatform_Templates' ) ) {
-                                ExtraChillArtistPlatform_Templates::load_artist_profile_card( get_the_ID(), 'directory' );
+                            // Use the artist-profile-card component via unified template system
+                            if ( function_exists( 'ec_render_template' ) ) {
+                                echo ec_render_template( 'artist-profile-card', array(
+                                    'artist_id' => get_the_ID(),
+                                    'context' => 'directory'
+                                ) );
                             } else {
                                 // Fallback: load template directly
                                 if ( defined( 'EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR' ) ) {

@@ -80,7 +80,7 @@ function extrch_fetch_artist_subscribers_ajax() {
         wp_send_json_error( array( 'message' => __( 'Missing required parameters.', 'extrachill-artist-platform' ) ) );
     }
 
-    $artist_id = absint( $_POST['artist_id'] );
+    $artist_id = apply_filters('ec_get_artist_id', $_POST);
     $nonce = sanitize_text_field( $_POST['_ajax_nonce'] );
 
     // Verify nonce
@@ -137,7 +137,7 @@ function extrch_export_artist_subscribers_csv() {
     }
     error_log('extrch_export_artist_subscribers_csv: Required parameters found (GET/POST).');
 
-    $artist_id = absint( $_REQUEST['artist_id'] );
+    $artist_id = apply_filters('ec_get_artist_id', $_REQUEST);
     $nonce = sanitize_text_field( $_REQUEST['_wpnonce'] );
     error_log('extrch_export_artist_subscribers_csv: Artist ID: ' . $artist_id . ', Nonce: ' . $nonce);
 

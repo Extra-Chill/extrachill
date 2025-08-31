@@ -9,12 +9,13 @@
  * @package extra-chill-community
  */
 
-global $edit_mode, $target_artist_id;
+// Extract arguments passed from ec_render_template
+$target_artist_id = $target_artist_id ?? 0;
 
-// Fetch current values if in edit mode
+// Fetch current values
 $forum_section_title_override = '';
 $forum_section_bio_override = '';
-if ( $edit_mode && $target_artist_id > 0 ) {
+if ( $target_artist_id > 0 ) {
     $forum_section_title_override = get_post_meta( $target_artist_id, '_forum_section_title_override', true );
     $forum_section_bio_override = get_post_meta( $target_artist_id, '_forum_section_bio_override', true );
 }

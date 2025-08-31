@@ -13,15 +13,11 @@
      * Includes retry logic and timeout handling for better mobile compatibility.
      */
     function checkManageAccess(retryCount = 0) {
-        const editButton = document.querySelector('.extrch-link-page-edit-btn');
         const maxRetries = 2;
         const timeoutMs = 3000; // Reduced timeout for faster response
         
-        
-        // Hide button by default until access is confirmed by API
-        if (editButton) {
-            editButton.style.display = 'none';
-        } else {
+        // Don't create multiple edit buttons if one already exists
+        if (document.querySelector('.extrch-link-page-edit-btn')) {
             return;
         }
 
@@ -52,18 +48,14 @@
             .then(data => {
                 
                 if (data && data.canManage) {
-                    if (editButton) {
-                        editButton.style.display = 'flex';
-                    }
+                    // Create edit button only if user has permission
+                    createEditButton();
                 } else {
-                    if (editButton) {
-                        editButton.style.display = 'none';
-                    }
-                    
                     // Apply fallback logic for certain error conditions
                     if (retryCount === 0 && shouldRetryRequest(data)) {
                         setTimeout(() => checkManageAccess(retryCount + 1), 1000);
                     }
+                    // No else needed - unauthorized users get no button at all
                 }
             })
             .catch(error => {
@@ -89,6 +81,27 @@
                     }
                 }
             });
+    }
+
+    /**
+     * Creates and injects the edit button into the page
+     */
+    function createEditButton() {
+        const manageUrl = `https://community.extrachill.com/manage-link-page/?artist_id=${artist_id}`;
+        
+        // Create the edit button element
+        const editButton = document.createElement('a');
+        editButton.href = manageUrl;
+        editButton.className = 'extrch-link-page-edit-btn';
+        editButton.innerHTML = '<i class="fas fa-pencil-alt"></i>';
+        
+        // Insert the button at the top of the body (after noscript)
+        const noscript = document.querySelector('noscript');
+        if (noscript && noscript.nextSibling) {
+            document.body.insertBefore(editButton, noscript.nextSibling);
+        } else {
+            document.body.appendChild(editButton);
+        }
     }
 
     /**

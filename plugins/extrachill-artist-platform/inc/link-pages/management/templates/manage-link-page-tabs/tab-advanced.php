@@ -7,14 +7,8 @@
 
 defined( 'ABSPATH' ) || exit;
 
-// Get centralized link page data
-global $post;
-$current_link_page_id = isset($link_page_id) ? $link_page_id : ($post ? $post->ID : 0);
-$current_artist_id = isset($artist_id) ? $artist_id : 0;
-
-// Use centralized data system instead of direct get_post_meta calls
-$link_page_data = $current_artist_id > 0 ? ec_get_link_page_data($current_artist_id, $current_link_page_id) : array();
-$settings = isset($link_page_data['settings']) ? $link_page_data['settings'] : array();
+// Use the data passed from the parent template
+$settings = isset($data['settings']) ? $data['settings'] : array();
 
 // Extract settings with defaults (centralized system returns proper booleans)
 $link_expiration_enabled = $settings['link_expiration_enabled'] ?? false;
@@ -24,23 +18,6 @@ $redirect_target_url = $settings['redirect_target_url'] ?? '';
 $is_youtube_embed_actually_enabled = $settings['youtube_embed_enabled'] ?? true;
 $should_disable_checkbox_be_checked = !$is_youtube_embed_actually_enabled;
 $meta_pixel_id = $settings['meta_pixel_id'] ?? '';
-$enable_featured_link = $settings['featured_link_enabled'] ?? false;
-$featured_link_original_url = $settings['featured_link_original_id'] ?? '';
-
-// Get links data for populating dropdowns from centralized system
-// Flatten nested link sections into a single array for dropdown use
-$all_links_for_dropdowns = [];
-if (!empty($link_page_data['links']) && is_array($link_page_data['links'])) {
-    foreach ($link_page_data['links'] as $section) {
-        if (!empty($section['links']) && is_array($section['links'])) {
-            foreach ($section['links'] as $link) {
-                if (!empty($link['link_url']) && !empty($link['link_text'])) {
-                    $all_links_for_dropdowns[] = $link;
-                }
-            }
-        }
-    }
-}
 
 ?>
 <div class="link-page-content-card">
@@ -48,33 +25,6 @@ if (!empty($link_page_data['links']) && is_array($link_page_data['links'])) {
     <div class="bp-link-settings-section">
 
         <label style="display:flex;align-items:center;gap:0.5em;font-weight:600;">
-            <input type="checkbox" name="enable_featured_link" id="bp-enable-featured-link" value="1" <?php checked($enable_featured_link); ?> />
-            <?php esc_html_e('Enable Featured Link', 'extrachill-artist-platform'); ?>
-        </label>
-        <p class="description" style="margin:0.5em 0 0 1.8em; color:#aaa; font-size:0.97em; margin-bottom: 0.5em;"><?php esc_html_e('Highlight a specific link at the top of your page with a custom thumbnail, title, and description.', 'extrachill-artist-platform'); ?></p>
-        <div id="bp-featured-link-select-container" style="margin:0.5em 0 1.5em 1.8em; <?php echo $enable_featured_link ? '' : 'display:none;'; ?>">
-            <label for="bp-featured-link-original-id" style="display:block; margin-bottom: 0.3em;"><?php esc_html_e('Select Link to Feature:', 'extrachill-artist-platform'); ?></label>
-            <select name="featured_link_original_id" id="bp-featured-link-original-id" style="min-width: 300px;" data-initial-selected-url="<?php echo esc_attr($featured_link_original_url); ?>">
-                <option value=""><?php esc_html_e('-- Select a Link --', 'extrachill-artist-platform'); ?></option>
-                <?php if (!empty($all_links_for_dropdowns)) : ?>
-                    <?php foreach ($all_links_for_dropdowns as $link_item) : ?>
-                        <?php 
-                        $link_url = isset($link_item['link_url']) ? $link_item['link_url'] : '';
-                        $link_text = isset($link_item['link_text']) ? $link_item['link_text'] : '';
-                        if (!empty($link_url) && !empty($link_text)) :
-                        ?>
-                        <option value="<?php echo esc_attr($link_url); ?>" <?php selected($featured_link_original_url, $link_url); ?>>
-                            <?php echo esc_html(stripslashes($link_text)); ?> (<?php echo esc_url($link_url); ?>)
-                        </option>
-                        <?php endif; ?>
-                    <?php endforeach; ?>
-                <?php endif; ?>
-                <?php // Options are pre-populated by PHP. JavaScript may update this list if links are changed in the "Links" tab. ?>
-            </select>
-            <p class="description" style="margin-top: 0.3em; color:#aaa; font-size:0.97em;"><?php esc_html_e('Choose one of your existing links to feature. You can customize its appearance in the \'Customize\' tab.', 'extrachill-artist-platform'); ?></p>
-        </div>
-
-        <label style="display:flex;align-items:center;gap:0.5em;font-weight:600; margin-top:1.5em;">
             <input type="checkbox" name="link_expiration_enabled_advanced" id="bp-enable-link-expiration-advanced" value="1" <?php checked($link_expiration_enabled); ?> />
             <?php esc_html_e('Enable Link Expiration Dates', 'extrachill-artist-platform'); ?>
         </label>
@@ -159,7 +109,7 @@ if (!empty($link_page_data['links']) && is_array($link_page_data['links'])) {
         <?php
         // Get current value from centralized data
         $subscribe_description = $settings['subscribe_description'] ?? '';
-        $artist_name = isset($data['display_title']) && $data['display_title'] ? $data['display_title'] : __('this band', 'extrachill-artist-platform');
+        $artist_name = isset($data['display_title']) && $data['display_title'] ? $data['display_title'] : __('this artist', 'extrachill-artist-platform');
         $subscribe_description_default = sprintf( __( 'Enter your email address to receive occasional news and updates from %s.', 'extrachill-artist-platform' ), $artist_name );
         $subscribe_description_to_show = $subscribe_description !== '' ? $subscribe_description : $subscribe_description_default;
         ?>

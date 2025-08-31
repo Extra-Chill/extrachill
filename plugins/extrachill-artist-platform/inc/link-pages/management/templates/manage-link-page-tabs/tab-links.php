@@ -5,15 +5,10 @@
  * Loaded from manage-link-page.php
  */
 
-// All links tab data should be hydrated from $data provided by ec_get_link_page_data filter.
-
 defined( 'ABSPATH' ) || exit;
 
-// Ensure variables from parent scope are available if needed.
-// For this tab, most content is JS-rendered, but PHP comments/structure are preserved.
-
-// Use get_query_var('data') to access the canonical $data array
-$data = get_query_var('data', []);
+// Extract arguments passed from ec_render_template
+$data = $data ?? array();
 $link_sections = $data['link_sections'] ?? [];
 
 // Fetch canonical social links from artist meta
@@ -51,23 +46,21 @@ require_once dirname(dirname(__DIR__)) . '/advanced-tab/link-expiration.php';
 <div class="link-page-content-card">
     <div id="bp-social-icons-section">
         <h2><?php esc_html_e('Social Icons', 'extrachill-artist-platform'); ?></h2>
-        <div id="bp-social-icons-list">
+        <div id="bp-social-icons-list" data-supported-types="<?php echo esc_attr(json_encode($supported_link_types)); ?>">
             <?php foreach ($social_links as $idx => $social): ?>
-                <div class="bp-social-row" data-idx="<?php echo esc_attr($idx); ?>">
+                <div class="bp-social-row bp-social-item" data-idx="<?php echo esc_attr($idx); ?>">
                     <span class="bp-social-drag-handle drag-handle"><i class="fas fa-grip-vertical"></i></span>
-                    <select class="bp-social-type-select">
+                    <select class="bp-social-type-select" name="social_type[<?php echo esc_attr($idx); ?>]">
                         <?php foreach ($supported_link_types as $key => $type): ?>
                             <option value="<?php echo esc_attr($key); ?>"<?php selected($social['type'], $key); ?>><?php echo esc_html($type['label']); ?></option>
                         <?php endforeach; ?>
                     </select>
-                    <input type="url" class="bp-social-url-input" placeholder="Profile URL" value="<?php echo esc_attr($social['url'] ?? ''); ?>">
+                    <input type="url" class="bp-social-url-input" name="social_url[<?php echo esc_attr($idx); ?>]" placeholder="Profile URL" value="<?php echo esc_attr($social['url'] ?? ''); ?>">
                     <a href="#" class="bp-remove-social-btn bp-remove-item-link ml-auto" title="Remove Social Icon">&times;</a>
                 </div>
             <?php endforeach; ?>
         </div>
-        <input type="hidden" name="artist_profile_social_links_json" id="artist_profile_social_links_json" value="<?php echo esc_attr(json_encode($social_links)); ?>">
-        <!-- Backward compatibility hidden field -->
-        <input type="hidden" name="artist_profile_social_links_json" id="artist_profile_social_links_json" value="<?php echo esc_attr(json_encode($social_links)); ?>">
+        <!-- Social icons now processed via individual form fields -->
         <button type="button" id="bp-add-social-icon-btn" class="button button-secondary bp-add-social-icon-btn"><i class="fas fa-plus"></i> <?php esc_html_e('Add Social Icon', 'extrachill-artist-platform'); ?></button>
 
         <div class="bp-social-icons-position-setting" style="margin-top: 15px;">
@@ -92,12 +85,12 @@ require_once dirname(dirname(__DIR__)) . '/advanced-tab/link-expiration.php';
 <div class="link-page-content-card">
     <div id="bp-link-list-section">
         <h2><?php esc_html_e('Link Sections', 'extrachill-artist-platform'); ?></h2>
-        <div id="bp-link-sections-list" data-expiration-enabled="<?php echo $link_expiration_enabled ? 'true' : 'false'; ?>">
+        <div id="bp-link-sections-list" data-expiration-enabled="<?php echo $link_expiration_enabled ? 'true' : 'false'; ?>" data-link-page-id="<?php echo esc_attr($current_link_page_id); ?>">
             <?php foreach ($link_sections as $sidx => $section): ?>
                 <div class="bp-link-section" data-sidx="<?php echo esc_attr($sidx); ?>">
                     <div class="bp-link-section-header">
                         <span class="bp-section-drag-handle drag-handle"><i class="fas fa-grip-vertical"></i></span>
-                        <input type="text" class="bp-link-section-title" placeholder="Section Title (optional)" value="<?php echo esc_attr($section['section_title'] ?? ''); ?>" data-sidx="<?php echo esc_attr($sidx); ?>">
+                        <input type="text" class="bp-link-section-title" name="link_section_title[<?php echo esc_attr($sidx); ?>]" placeholder="Section Title (optional)" value="<?php echo esc_attr($section['section_title'] ?? ''); ?>" data-sidx="<?php echo esc_attr($sidx); ?>">
                         <div class="bp-section-actions-group ml-auto">
                             <a href="#" class="bp-remove-link-section-btn bp-remove-item-link" data-sidx="<?php echo esc_attr($sidx); ?>" title="Remove Section">&times;</a>
                         </div>
@@ -105,25 +98,15 @@ require_once dirname(dirname(__DIR__)) . '/advanced-tab/link-expiration.php';
                     <div class="bp-link-list">
                         <?php foreach (($section['links'] ?? []) as $lidx => $link): ?>
                             <?php
-                            // Determine if this link is the featured link (to be highlighted)
-                            $is_featured_link = false;
-                            $debug_link_url = !empty($link['link_url']) ? $link['link_url'] : '';
-                            $debug_featured_url = !empty($data['featured_link_url_to_skip']) ? $data['featured_link_url_to_skip'] : '';
-                            if (!empty($debug_featured_url) && !empty($debug_link_url)) {
-                                $is_featured_link = (trailingslashit($debug_link_url) === trailingslashit($debug_featured_url));
-                            }
                             $link_item_classes = 'bp-link-item';
-                            if ($is_featured_link) {
-                                $link_item_classes .= ' bp-editor-featured-link';
-                            }
                             ?>
                             <div class="<?php echo esc_attr($link_item_classes); ?>" data-sidx="<?php echo esc_attr($sidx); ?>" data-lidx="<?php echo esc_attr($lidx); ?>" data-expires-at="<?php echo esc_attr($link['expires_at'] ?? ''); ?>" data-link-id="<?php echo esc_attr($link['id'] ?? ''); ?>">
                                 <span class="bp-link-drag-handle drag-handle"><i class="fas fa-grip-vertical"></i></span>
-                                <input type="text" class="bp-link-text-input" placeholder="Link Text" value="<?php echo esc_attr($link['link_text'] ?? ''); ?>">
-                                <input type="url" class="bp-link-url-input" placeholder="URL" value="<?php echo esc_attr($link['link_url'] ?? ''); ?>">
-                                <?php if ($link_expiration_enabled): ?>
-                                    <span class="bp-link-expiration-icon" title="Set expiration date" data-sidx="<?php echo esc_attr($sidx); ?>" data-lidx="<?php echo esc_attr($lidx); ?>">&#x23F3;</span>
-                                <?php endif; ?>
+                                <input type="text" class="bp-link-text-input" name="link_text[<?php echo esc_attr($sidx); ?>][<?php echo esc_attr($lidx); ?>]" placeholder="Link Text" value="<?php echo esc_attr($link['link_text'] ?? ''); ?>">
+                                <input type="url" class="bp-link-url-input" name="link_url[<?php echo esc_attr($sidx); ?>][<?php echo esc_attr($lidx); ?>]" placeholder="URL" value="<?php echo esc_attr($link['link_url'] ?? ''); ?>">
+                                <input type="hidden" name="link_id[<?php echo esc_attr($sidx); ?>][<?php echo esc_attr($lidx); ?>]" value="<?php echo esc_attr($link['id'] ?? ''); ?>">
+                                <input type="hidden" name="link_expires_at[<?php echo esc_attr($sidx); ?>][<?php echo esc_attr($lidx); ?>]" value="<?php echo esc_attr($link['expires_at'] ?? ''); ?>">
+                                <!-- Expiration icon will be added dynamically via JavaScript when enabled -->
                                 <a href="#" class="bp-remove-link-btn bp-remove-item-link ml-auto" title="Remove Link">&times;</a>
                             </div>
                         <?php endforeach; ?>
@@ -136,22 +119,11 @@ require_once dirname(dirname(__DIR__)) . '/advanced-tab/link-expiration.php';
     </div>
 </div>
 
-<!-- Add hidden input for link_sections_json -->
-<input type="hidden" name="link_page_links_json" id="link_page_links_json" value="<?php echo esc_attr(json_encode($link_sections)); ?>">
+<!-- Links data now processed via individual form fields -->
 
 <?php
-// Add a global JS variable for link expiration status (can be refined later if a centralized config object is preferred)
-// This helps JS know whether to render expiration icons for dynamically added links
+// Templates now rendered via AJAX using ec_render_template() system
 ?>
-<script type="text/javascript">
-    // Make supported link types available to JavaScript
-    window.extrchLinkPageConfig = window.extrchLinkPageConfig || {};
-    window.extrchLinkPageConfig.linkExpirationEnabled = <?php echo $link_expiration_enabled ? 'true' : 'false'; ?>;
-    window.extrchLinkPageConfig.supportedLinkTypes = <?php echo json_encode($data['supportedLinkTypes'] ?? []); ?>;
-    // The featured_link_nonce is now localized globally in the assets system
-    // Ensuring other nonces are initialized if not already present by the global localization.
-    window.extrchLinkPageConfig.nonces = window.extrchLinkPageConfig.nonces || {}; 
-</script>
 
 <?php
 // Output the expiration modal markup (hidden by default)

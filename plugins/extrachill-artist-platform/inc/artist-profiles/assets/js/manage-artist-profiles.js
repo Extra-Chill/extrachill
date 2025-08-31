@@ -148,14 +148,13 @@ jQuery(document).ready(function($) {
 
     } // End of initializeRosterTabEventListeners
 
-    document.addEventListener('sharedTabActivated', function(event) {
+    // Listen for managers tab activation
+    document.addEventListener('artistManagersTabActivated', function(event) {
         if (event.detail && event.detail.tabPaneElement) {
             const tabId = event.detail.tabId;
             const tabPaneElement = event.detail.tabPaneElement;
-            // console.log('Shared tab activated:', tabId, tabPaneElement);
 
             // Initialize profile managers tab if it's the one activated
-            // Assumes the profile managers tab pane has the ID 'manage-artist-profile-managers-content'
             if (tabId === 'manage-artist-profile-managers-content') {
                 if (!initializedTabs.has(tabId)) {
                     initializeProfileManagersTabEventListeners(tabPaneElement);
@@ -163,10 +162,15 @@ jQuery(document).ready(function($) {
                 }
             }
 
-            // Initialize image previews if the activated tab contains relevant forms
-            // This is a general call; initializeArtistImagePreviews itself is scoped by $context
-            // We pass the tabPaneElement as context to re-scan for inputs.
+            // Initialize image previews for this tab
             initializeArtistImagePreviews(tabPaneElement);
+        }
+    });
+
+    // Listen for info tab activation for image previews
+    document.addEventListener('artistInfoTabActivated', function(event) {
+        if (event.detail && event.detail.tabPaneElement) {
+            initializeArtistImagePreviews(event.detail.tabPaneElement);
         }
     });
 

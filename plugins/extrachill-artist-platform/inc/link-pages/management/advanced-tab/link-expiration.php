@@ -11,7 +11,7 @@ add_action('extrch_cleanup_expired_links_event', function() {
     $now = current_time('timestamp');
     foreach ($link_pages as $link_page_id) {
         // Use centralized data system (single source of truth)
-        $artist_id = get_post_meta($link_page_id, '_associated_artist_profile_id', true);
+        $artist_id = apply_filters('ec_get_artist_id', $link_page_id);
         if (!$artist_id) continue;
         
         $data = ec_get_link_page_data($artist_id, $link_page_id);

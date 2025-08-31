@@ -1,8 +1,6 @@
 // Sizing Preview Module - Handles live preview updates for sizing, radius, and shape styling
-(function(manager) {
-    if (!manager) return;
-    
-    manager.sizingPreview = manager.sizingPreview || {};
+(function() {
+    'use strict';
     
     // Main sizing preview update function - Direct DOM manipulation
     function updateSizingPreview(sizingData) {
@@ -108,8 +106,6 @@
         }
     });
 
-    // Expose functions on manager
-    manager.sizingPreview.updateSizing = updateSizingPreview;
-    manager.sizingPreview.updateProfileImageShape = updateProfileImageShape;
+    // Self-contained module - no global exposure needed
 
-})(window.ExtrchLinkPageManager = window.ExtrchLinkPageManager || {});
+})();

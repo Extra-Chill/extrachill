@@ -176,9 +176,22 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
 
-            // Dispatch a custom event when a tab's content is considered active and updated
+            // Dispatch specific tab events when content becomes active
             if (targetPane && targetPane.id) {
-                const event = new CustomEvent('sharedTabActivated', { 
+                // Map tab IDs to specific event names
+                const tabEventMap = {
+                    'manage-link-page-tab-analytics': 'analyticsTabActivated',
+                    'manage-link-page-tab-customize': 'customizeTabActivated',
+                    'manage-link-page-tab-links': 'linksTabActivated', 
+                    'manage-link-page-tab-info': 'infoTabActivated',
+                    'manage-artist-profile-info-content': 'artistInfoTabActivated',
+                    'manage-artist-profile-managers-content': 'artistManagersTabActivated',
+                    'manage-artist-profile-followers-content': 'artistFollowersTabActivated',
+                    'manage-artist-profile-forum-content': 'artistForumTabActivated'
+                };
+                
+                const eventName = tabEventMap[targetPane.id] || 'tabActivated';
+                const event = new CustomEvent(eventName, { 
                     detail: { 
                         tabId: targetPane.id,
                         tabPaneElement: targetPane,
@@ -187,7 +200,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     } 
                 });
                 document.dispatchEvent(event);
-                // console.log('Dispatched sharedTabActivated for:', targetPane.id);
             }
 
             // The logic to manage the active class on panes within the desktop area

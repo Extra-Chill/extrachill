@@ -1,10 +1,45 @@
 // Socials Preview Module - Handles live preview updates for social icons
-(function(manager, config) {
-    if (!manager) return;
+(function() {
+    'use strict';
     
-    manager.socialsPreview = manager.socialsPreview || {};
+    // Template rendering function using AJAX
+    async function renderSocialTemplate(socialType, socialUrl) {
+        if (!extraChillArtistPlatform?.ajaxUrl) {
+            console.error('AJAX URL not available for social template rendering');
+            return null;
+        }
+
+        try {
+            const formData = new FormData();
+            formData.append('action', 'render_social_template');
+            formData.append('nonce', extraChillArtistPlatform.nonce || '');
+            formData.append('social_type', socialType);
+            formData.append('social_url', socialUrl);
+
+            const response = await fetch(extraChillArtistPlatform.ajaxUrl, {
+                method: 'POST',
+                body: formData
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const data = await response.json();
+            
+            if (data.success && data.data.html) {
+                return data.data.html;
+            } else {
+                console.error('Social template rendering failed:', data.data?.message || 'Unknown error');
+                return null;
+            }
+        } catch (error) {
+            console.error('Error rendering social template:', error);
+            return null;
+        }
+    }
     
-    // Main socials preview update function - Direct DOM manipulation
+    // Main socials preview update function - Using template system
     function updateSocialsPreview(socialsData, position) {
         const previewContainerParent = document.querySelector('.manage-link-page-preview-live'); const previewEl = previewContainerParent?.querySelector('.extrch-link-page-preview-container');
         if (!previewEl) return;
@@ -29,47 +64,49 @@
         socialsContainer = document.createElement('div');
         socialsContainer.className = 'extrch-link-page-socials';
         
-        // Create social icons HTML
-        socialsData.forEach(social => {
-            if (social.type && social.url) {
-                const socialLink = document.createElement('a');
-                socialLink.href = social.url;
-                socialLink.className = 'extrch-social-icon';
-                socialLink.setAttribute('data-type', social.type);
-                socialLink.target = '_blank';
-                socialLink.rel = 'noopener noreferrer';
-                
-                // Create icon element
-                const iconElement = document.createElement('i');
-                iconElement.className = getSocialIconClass(social.type);
-                socialLink.appendChild(iconElement);
-                
-                socialsContainer.appendChild(socialLink);
-            }
+        // Add position class if needed
+        if (position === 'below') {
+            socialsContainer.classList.add('extrch-socials-below');
+        }
+        
+        // Create social icons using template system
+        Promise.all(
+            socialsData
+                .filter(social => social.type && social.url)
+                .map(social => renderSocialTemplate(social.type, social.url))
+        ).then(htmlResults => {
+            htmlResults.forEach(html => {
+                if (html) {
+                    socialsContainer.insertAdjacentHTML('beforeend', html);
+                }
+            });
+        }).catch(error => {
+            console.error('Error rendering social icons:', error);
         });
 
         // Position the socials container based on position setting
         if (position === 'below') {
-            // Insert after content wrapper
-            contentWrapper.parentNode.insertBefore(socialsContainer, contentWrapper.nextSibling);
+            // Insert after links but before powered-by section within content wrapper
+            const poweredByEl = contentWrapper.querySelector('.extrch-link-page-powered');
+            if (poweredByEl) {
+                contentWrapper.insertBefore(socialsContainer, poweredByEl);
+            } else {
+                // Fallback: append to end of content wrapper
+                contentWrapper.appendChild(socialsContainer);
+            }
         } else {
-            // Insert before content wrapper (default: above)
-            contentWrapper.parentNode.insertBefore(socialsContainer, contentWrapper);
+            // Insert after header content but before links (default: above)
+            const headerContent = contentWrapper.querySelector('.extrch-link-page-header-content');
+            if (headerContent) {
+                contentWrapper.insertBefore(socialsContainer, headerContent.nextSibling);
+            } else {
+                // Fallback: prepend to content wrapper
+                contentWrapper.insertBefore(socialsContainer, contentWrapper.firstChild);
+            }
         }
     }
 
-    // Helper function to get appropriate icon class for social type
-    // Uses the PHP filter data passed via config instead of duplicating
-    function getSocialIconClass(type) {
-        const supportedTypes = (config && config.supportedLinkTypes) ? config.supportedLinkTypes : {};
-        
-        if (supportedTypes[type] && supportedTypes[type].icon) {
-            return supportedTypes[type].icon;
-        }
-        
-        // Fallback for any missing types
-        return 'fas fa-globe';
-    }
+    // Social icon rendering now handled by PHP templates via AJAX
 
     // Event listeners for socials updates from management forms
     document.addEventListener('socialIconsChanged', function(e) {
@@ -81,28 +118,16 @@
 
     // Event listener for position changes
     document.addEventListener('socialIconsPositionChanged', function(e) {
-        if (e.detail && e.detail.position) {
-            // Get current socials data from management module if available
-            let socialsData = [];
-            if (manager.socialIcons && typeof manager.socialIcons.getSocialsDataFromDOM === 'function') {
-                socialsData = manager.socialIcons.getSocialsDataFromDOM();
-            }
-            updateSocialsPreview(socialsData, e.detail.position);
+        if (e.detail && e.detail.position && e.detail.socials) {
+            updateSocialsPreview(e.detail.socials, e.detail.position);
         }
     });
 
-    // Expose functions on manager
-    manager.socialsPreview.update = updateSocialsPreview;
+    // Self-contained module - no global exposure needed
 
     // Initialize preview with centralized data on page load
     document.addEventListener('DOMContentLoaded', function() {
-        if (manager.getSocials && typeof manager.getSocials === 'function') {
-            const initialSocials = manager.getSocials();
-            if (initialSocials && initialSocials.length > 0) {
-                updateSocialsPreview(initialSocials, 'above'); // Default position
-                console.log('[Socials Preview] Initialized with centralized data');
-            }
-        }
+        // Preview initializes from DOM events, not initial data
     });
 
-})(window.ExtrchLinkPageManager = window.ExtrchLinkPageManager || {}, window.extrchLinkPageConfig);
+})();

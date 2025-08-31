@@ -1,6 +1,6 @@
 <?php
 /**
- * Plugin Name: ExtraChill Artist Platform
+ * Plugin Name: Extra Chill Artist Platform
  * Plugin URI: https://extrachill.com
  * Description: Comprehensive artist platform for musicians. Features artist profiles, link pages with analytics, subscriber management, cross-domain authentication, forum integration, and live preview management interface.
  * Version: 1.0.0
@@ -31,7 +31,7 @@ if ( ! defined( 'EXTRCH_LINKPAGE_DEV' ) ) {
 }
 
 /**
- * Main ExtraChill Artist Platform Class
+ * Main Extra Chill Artist Platform Class
  * 
  * Singleton plugin class handling initialization and core functionality loading.
  */
@@ -56,6 +56,9 @@ class ExtraChillArtistPlatform {
      * Constructor - Initialize hooks
      */
     private function __construct() {
+        // Load post types early to ensure functions exist before hooks fire
+        require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/core/artist-platform-post-types.php';
+        
         $this->init_hooks();
     }
 
@@ -69,12 +72,12 @@ class ExtraChillArtistPlatform {
         
         // Check for required theme
         if ( get_template() !== 'extrachill-community' ) {
-            $errors[] = 'ExtraChill Artist Platform requires the Extra Chill Community theme.';
+            $errors[] = 'Extra Chill Artist Platform requires the Extra Chill Community theme.';
         }
         
         // Check for bbPress plugin
         if ( ! class_exists( 'bbPress' ) && ! is_plugin_active( 'bbpress/bbpress.php' ) ) {
-            $errors[] = 'ExtraChill Artist Platform requires bbPress plugin to be active.';
+            $errors[] = 'Extra Chill Artist Platform requires bbPress plugin to be active.';
         }
         
         if ( ! empty( $errors ) ) {
@@ -98,7 +101,7 @@ class ExtraChillArtistPlatform {
             return;
         }
         
-        add_action( 'init', array( $this, 'init' ) );
+        add_action( 'init', array( $this, 'init' ), 15 );
         add_action( 'plugins_loaded', array( $this, 'load_textdomain' ) );
         
         // Activation and deactivation hooks
@@ -136,12 +139,14 @@ class ExtraChillArtistPlatform {
         // Core System Files
         require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/core/class-templates.php';
         require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/core/artist-platform-assets.php';
-        require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/core/artist-platform-migration.php';
-        require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/core/artist-platform-post-types.php';
         require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/core/artist-platform-rewrite-rules.php';
+        require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/core/filters/ids.php';
         require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/core/filters/defaults.php';
+        require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/core/filters/create.php';
         require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/core/filters/social-icons.php';
         require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/core/filters/fonts.php';
+        require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/core/filters/avatar-menu.php';
+        require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/core/filters/templates.php';
         // data-sync.php removed - now using unified sync system in inc/core/actions/sync.php
         require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/core/default-artist-page-link-profiles.php';
 
@@ -160,19 +165,25 @@ class ExtraChillArtistPlatform {
         require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/create-link-page.php';
         // link-page-custom-vars-and-fonts-head.php consolidated into inc/link-pages/live/link-page-head.php
         // LinkPageDataProvider.php removed - using centralized ec_get_link_page_data filter instead
-        require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/live/link-page-analytics-tracking.php';
-        require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/live/link-page-session-validation.php';
+        require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/live/ajax/analytics.php';
         require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/live/link-page-head.php';
+        require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/live/link-page-session-validation.php';
         
         // Link Page Management
-        require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/management/background-image-ajax.php';
-        require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/management/link-page-qrcode-ajax.php';
-        require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/management/ajax-handlers.php';
+        require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/management/ajax/background.php';
+        require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/management/ajax/qrcode.php';
+        
+        // Modular AJAX Handlers (Single Responsibility)
+        // Management AJAX modules
+        require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/management/ajax/social.php';
+        require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/management/ajax/links.php';
+        require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/management/ajax/subscribe.php';
+        require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/management/ajax/analytics.php';
+        
+        // Live AJAX modules  
         require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/management/live-preview/class-live-preview-handler.php';
-        require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/management/live-preview/live-preview-ajax-handlers.php';
         
         // Advanced Features
-        require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/management/advanced-tab/link-page-featured-link-handler.php';
         require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/management/advanced-tab/link-expiration.php';
         require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/management/advanced-tab/temporary-redirect.php';
         require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/management/advanced-tab/youtube-embed-control.php';
@@ -183,8 +194,8 @@ class ExtraChillArtistPlatform {
 
         // Subscription System
         require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/subscribe-functions.php';
-        require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/subscription/subscribe-inline-form.php';
-        require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/subscription/subscribe-modal.php';
+        require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/templates/subscribe-inline-form.php';
+        require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/templates/subscribe-modal.php';
 
         // Roster Management System  
         require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/artist-profiles/roster/manage-roster-ui.php';
@@ -196,18 +207,17 @@ class ExtraChillArtistPlatform {
         // Action System
         require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/core/actions/save.php';
         require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/core/actions/sync.php';
-        require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/core/actions/ajax.php';
         require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/core/actions/delete.php';
+        require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/core/actions/join-flow.php';
         
         // Data Helper Functions
         require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/core/filters/data.php';
 
         // Initialize core instances
-        ExtraChillArtistPlatform_Templates::instance();
+        ExtraChillArtistPlatform_PageTemplates::instance();
         ExtraChillArtistPlatform_Assets::instance();
         ExtraChillArtistPlatform_SocialLinks::instance();
         ExtraChillArtistPlatform_Fonts::instance();
-        ExtraChillArtistPlatform_Migration::instance();
 
         // Initialize database tables
         add_action('after_switch_theme', 'extrch_create_subscribers_table');

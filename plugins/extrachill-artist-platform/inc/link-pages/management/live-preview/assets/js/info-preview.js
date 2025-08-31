@@ -1,8 +1,6 @@
 // Info Preview Module - Handles live preview updates for profile info (title, bio, image)
-(function(manager) {
-    if (!manager) return;
-    
-    manager.infoPreview = manager.infoPreview || {};
+(function() {
+    'use strict';
     
     // Update preview title - Direct DOM manipulation
     function updatePreviewTitle(newTitle, previewEl) {
@@ -71,10 +69,6 @@
         }
     });
 
-    // Expose functions on manager
-    manager.infoPreview.updateTitle = updatePreviewTitle;
-    manager.infoPreview.updateBio = updatePreviewBio;
-    manager.infoPreview.updateImage = updatePreviewProfileImage;
-    manager.infoPreview.removeImage = removePreviewProfileImage;
+    // Self-contained module - no global exposure needed
 
-})(window.ExtrchLinkPageManager = window.ExtrchLinkPageManager || {});
+})();

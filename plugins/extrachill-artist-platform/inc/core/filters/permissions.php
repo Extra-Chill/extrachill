@@ -1,6 +1,6 @@
 <?php
 /**
- * Centralized permission system for ExtraChill Artist Platform
+ * Centralized permission system for Extra Chill Artist Platform
  * 
  * Single source of truth for all artist membership and management permissions.
  * Replaces scattered permission checks throughout the codebase.
@@ -34,6 +34,62 @@ function ec_can_manage_artist( $user_id = null, $artist_id = null ) {
     }
     
     return in_array( (int) $artist_id, array_map( 'intval', $user_artist_ids ) );
+}
+
+
+/**
+ * AJAX-specific permission helper: Can manage artist based on POST data
+ * 
+ * @param array $post_data POST data from AJAX request
+ * @return bool True if user can manage the artist
+ */
+function ec_ajax_can_manage_artist( $post_data ) {
+    $artist_id = isset( $post_data['artist_id'] ) ? (int) $post_data['artist_id'] : 0;
+    if ( ! $artist_id ) {
+        return false;
+    }
+    
+    return ec_can_manage_artist( get_current_user_id(), $artist_id );
+}
+
+/**
+ * AJAX-specific permission helper: Can manage link page based on POST data
+ * 
+ * @param array $post_data POST data from AJAX request
+ * @return bool True if user can manage the link page
+ */
+function ec_ajax_can_manage_link_page( $post_data ) {
+    $link_page_id = isset( $post_data['link_page_id'] ) ? (int) $post_data['link_page_id'] : 0;
+    if ( ! $link_page_id ) {
+        return false;
+    }
+    
+    $artist_id = apply_filters('ec_get_artist_id', $link_page_id);
+    if ( ! $artist_id ) {
+        return false;
+    }
+    
+    return ec_can_manage_artist( get_current_user_id(), $artist_id );
+}
+
+/**
+ * AJAX-specific permission helper: Admin capabilities
+ * 
+ * @param array $post_data POST data from AJAX request
+ * @return bool True if user has admin capabilities
+ */
+function ec_ajax_is_admin( $post_data ) {
+    return current_user_can( 'manage_options' );
+}
+
+/**
+ * AJAX-specific permission helper: Can create artist profiles
+ * 
+ * @param array $post_data POST data from AJAX request
+ * @return bool True if user can create artist profiles
+ */
+function ec_ajax_can_create_artists( $post_data ) {
+    return ec_can_create_artist_profiles( get_current_user_id() );
 }
 
 /**
@@ -90,7 +146,7 @@ function ec_filter_user_capabilities( $allcaps, $caps, $args, $user ) {
     // Handle link page analytics viewing
     if ( $cap === 'view_artist_link_page_analytics' && $object_id ) {
         if ( get_post_type( $object_id ) === 'artist_link_page' ) {
-            $artist_id = get_post_meta( $object_id, '_associated_artist_profile_id', true );
+            $artist_id = apply_filters('ec_get_artist_id', $object_id);
             if ( $artist_id && ec_can_manage_artist( $user_id, $artist_id ) ) {
                 $allcaps[$cap] = true;
             }

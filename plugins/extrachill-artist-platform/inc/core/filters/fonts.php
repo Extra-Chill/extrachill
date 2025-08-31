@@ -68,6 +68,9 @@ class ExtraChillArtistPlatform_Fonts {
      * @since 1.1.0
      */
     private function init_hooks() {
+        // Register the font filter to provide fonts to the system
+        add_filter( 'ec_artist_platform_fonts', array( $this, 'get_supported_fonts' ) );
+        
         // Localize font data for JavaScript in admin
         add_action( 'admin_enqueue_scripts', array( $this, 'localize_font_data' ) );
     }
@@ -80,15 +83,8 @@ class ExtraChillArtistPlatform_Fonts {
      */
     public function get_supported_fonts() {
         if ( null === $this->supported_fonts ) {
-            /**
-             * Filter supported font types
-             * 
-             * Allows developers to modify the available fonts for artist platform.
-             * 
-             * @since 1.1.0
-             * @param array $fonts Supported fonts configuration
-             */
-            $this->supported_fonts = apply_filters( 'ec_artist_platform_fonts', array(
+            // Define the default fonts - no filter recursion
+            $this->supported_fonts = array(
                 array(
                     'value' => 'Helvetica',
                     'label' => 'Helvetica',
@@ -173,7 +169,7 @@ class ExtraChillArtistPlatform_Fonts {
                     'stack' => "'Inter', Helvetica, Arial, sans-serif",
                     'google_font_param' => 'Inter:wght@400;600;700',
                 ),
-            ) );
+            );
         }
 
         return $this->supported_fonts;

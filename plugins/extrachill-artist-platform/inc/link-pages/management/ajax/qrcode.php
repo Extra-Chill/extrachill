@@ -1,29 +1,23 @@
 <?php
 /**
- * Extrch.co Link Page - QR Code AJAX Handlers
+ * QR Code AJAX Handlers
  *
  * Handles AJAX requests related to QR code generation for link pages.
- *
- * @package ExtrchCo
+ * Registered through the centralized AJAX system in inc/core/actions/ajax.php.
  */
 
 defined( 'ABSPATH' ) || exit;
 
-// Include the Composer autoloader to ensure library classes are available
-// require_once get_stylesheet_directory() . '/vendor/autoload.php'; // MOVED TO functions.php
-
-// --- AJAX Handler for QR Code Generation ---
 /**
  * AJAX handler to generate a QR code for a given URL.
- * Hooked to wp_ajax_extrch_generate_qrcode.
  */
 function extrch_generate_qrcode_ajax() {
     // Check nonce for security
     check_ajax_referer('extrch_link_page_ajax_nonce', 'security');
 
     // Check if the user has permission to manage this link page
-    // The link_page_id is passed in the AJAX data
-    $link_page_id = isset($_POST['link_page_id']) ? absint($_POST['link_page_id']) : 0;
+    // The link_page_id is passed in the AJAX data (sent by qrcode.js:38)
+    $link_page_id = absint($_POST['link_page_id']);
 
     if (!$link_page_id) {
          wp_send_json_error(['message' => 'Invalid link page ID.'], 400);
@@ -31,7 +25,7 @@ function extrch_generate_qrcode_ajax() {
     }
     
     // Retrieve associated artist ID from link page meta
-    $artist_id = get_post_meta($link_page_id, '_associated_artist_profile_id', true);
+    $artist_id = apply_filters('ec_get_artist_id', $link_page_id);
 
     // Verify user has permission to manage the associated artist
     if (!$artist_id || !ec_can_manage_artist(get_current_user_id(), $artist_id)) {
@@ -70,12 +64,6 @@ function extrch_generate_qrcode_ajax() {
 
     } catch (Exception $e) {
         // Log the error and return a JSON error response
-        // error_log('QR Code Generation Error: ' . $e->getMessage());
         wp_send_json_error(['message' => 'Failed to generate QR code: ' . $e->getMessage()], 500);
     }
 }
-
-// AJAX handler registered through centralized system in inc/core/actions/ajax.php 
-// because this functionality is only accessible from the authenticated manage page.
-
-// --- End AJAX Handler for QR Code Generation --- 

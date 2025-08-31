@@ -15,7 +15,6 @@ global $wp_query; // Make sure $wp_query is available
 // Use the current post as the link page
 $link_page = $wp_query->get_queried_object(); // Get the post object from the main query
 
-
 if ( !$link_page || !isset($link_page->ID) || $link_page->post_type !== 'artist_link_page' ) {
     
     // If the queried object isn't what we expect, then it's a genuine issue.
@@ -26,7 +25,7 @@ if ( !$link_page || !isset($link_page->ID) || $link_page->post_type !== 'artist_
 
 $link_page_id = $link_page->ID;
 
-$artist_id = ec_get_artist_for_link_page($link_page_id);
+$artist_id = apply_filters('ec_get_artist_id', $link_page_id);
 
 $artist_profile = $artist_id ? get_post($artist_id) : null;
 
@@ -110,18 +109,8 @@ $body_bg_style .= 'min-height:100vh;';
 <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-NXKDLFD"
             height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 <?php
-// Display the edit button only if the user can manage the artist.
-// This logic is now handled by JavaScript after an AJAX check.
-// if ( $can_manage_artist ) {
-    $manage_url = 'https://community.extrachill.com/manage-link-page/?artist_id=' . $artist_id; // Link directly to the main site for session recognition
-    ?>
-    <a href="<?php echo esc_url($manage_url); ?>" class="extrch-link-page-edit-btn">
-        <i class="fas fa-pencil-alt"></i>
-    </a>
-    <?php
-// }
-?>
-    <?php
+// Edit icon will be rendered by JavaScript only if user has permission
+// No server-side rendering for security - unauthorized users get zero HTML
     // Pass $data explicitly to the template so overlay and all settings are available
     $extrch_link_page_template_data = $data;
     // Add the link_page_id to the $extrch_link_page_template_data array as well for good measure

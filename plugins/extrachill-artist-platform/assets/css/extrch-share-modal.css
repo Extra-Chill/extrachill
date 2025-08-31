@@ -162,6 +162,34 @@ body button.extrch-share-item-trigger:active {
     transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
 }
 
+/* Background inheritance for share modal - matches main container */
+.extrch-share-modal-content[data-bg-type="color"] {
+    background-color: var(--link-page-background-color);
+    background-image: none; /* Explicitly remove image/gradient */
+}
+
+.extrch-share-modal-content[data-bg-type="gradient"] {
+    background: linear-gradient(
+        var(--link-page-background-gradient-direction),
+        var(--link-page-background-gradient-start),
+        var(--link-page-background-gradient-end)
+    );
+    background-image: linear-gradient(
+        var(--link-page-background-gradient-direction),
+        var(--link-page-background-gradient-start),
+        var(--link-page-background-gradient-end)
+    );
+    background-color: transparent; /* Ensure no base color shows through */
+}
+
+.extrch-share-modal-content[data-bg-type="image"] {
+    background-image: var(--link-page-background-image-url);
+    background-size: var(--link-page-image-size); /* Use variable */
+    background-position: var(--link-page-image-position); /* Use variable */
+    background-repeat: var(--link-page-image-repeat); /* Use variable */
+    background-color: transparent; /* Ensure no base color shows through */
+}
+
 .extrch-share-modal.active .extrch-share-modal-content {
     opacity: 1; /* Make content visible when active */
     transform: translate(-50%, -50%) scale(1);

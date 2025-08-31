@@ -5,8 +5,10 @@
 
 defined( 'ABSPATH' ) || exit;
 
-// Ensure $target_artist_id is available, typically set in manage-artist-profile.php
-if ( ! isset( $target_artist_id ) || empty( $target_artist_id ) ) {
+// Extract arguments passed from ec_render_template
+$target_artist_id = $target_artist_id ?? 0;
+
+if ( ! $target_artist_id ) {
     echo '<p>' . esc_html__( 'Artist ID not found. Cannot display followers.', 'extrachill-artist-platform' ) . '</p>';
     return;
 }

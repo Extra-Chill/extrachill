@@ -22,6 +22,7 @@ function extrachill_add_rewrite_rules() {
         'manage-artist-profiles',
         'manage-link-page',
         'artist-directory', 
+        'artist-platform',  // Artist platform homepage
         'settings',
         'notifications',
         'login',
@@ -240,7 +241,7 @@ function extrachill_redirect_artist_link_page_cpt_to_custom_domain() {
             $link_page_id = $current_link_page_post->ID;
 
             // Use centralized data source for redirect settings (single source of truth)
-            $artist_id = get_post_meta( $link_page_id, '_associated_artist_profile_id', true );
+            $artist_id = apply_filters('ec_get_artist_id', $link_page_id);
             $data = ec_get_link_page_data( $artist_id, $link_page_id );
             $temp_redirect_enabled = $data['settings']['redirect_enabled'] ?? false;
             $target_redirect_url = $data['settings']['redirect_target_url'] ?? '';
@@ -297,7 +298,107 @@ function extrachill_redirect_artist_forum_to_profile() {
     }
     
     // Get associated artist profile ID
-    $artist_profile_id = get_post_meta($forum_id, '_associated_artist_profile_id', true);
+    $artist_profile_id = apply_filters('ec_get_artist_id', $forum_id);
+    if (empty($artist_profile_id)) {
+        return;
+    }
+    
+    // Validate artist profile exists and is published
+    $artist_post = get_post($artist_profile_id);
+    if (!$artist_post || $artist_post->post_status !== 'publish') {
+        return;
+    }
+    
+    // Redirect to artist profile (301 for SEO)
+    $artist_url = get_permalink($artist_profile_id);
+    if ($artist_url) {
+        wp_redirect(esc_url_raw($artist_url), 301);
+        exit;
+    }
+}
+
+/**
+ * Redirects direct topic access within artist forums to associated artist profile page.
+ * Ensures artist profile is the single source of truth for forum content.
+ */
+function extrachill_redirect_artist_topic_to_profile() {
+    // Only redirect on single topic pages
+    if (!function_exists('bbp_is_single_topic') || !bbp_is_single_topic()) {
+        return;
+    }
+    
+    $topic_id = bbp_get_topic_id();
+    if (empty($topic_id)) {
+        return;
+    }
+    
+    // Get the forum this topic belongs to
+    $forum_id = bbp_get_topic_forum_id($topic_id);
+    if (empty($forum_id)) {
+        return;
+    }
+    
+    // Check if this is an artist forum
+    $is_artist_forum = get_post_meta($forum_id, '_is_artist_profile_forum', true);
+    if (!$is_artist_forum) {
+        return;
+    }
+    
+    // Get associated artist profile ID using centralized filter
+    $artist_profile_id = apply_filters('ec_get_artist_id', $forum_id);
+    if (empty($artist_profile_id)) {
+        return;
+    }
+    
+    // Validate artist profile exists and is published
+    $artist_post = get_post($artist_profile_id);
+    if (!$artist_post || $artist_post->post_status !== 'publish') {
+        return;
+    }
+    
+    // Redirect to artist profile (301 for SEO)
+    $artist_url = get_permalink($artist_profile_id);
+    if ($artist_url) {
+        wp_redirect(esc_url_raw($artist_url), 301);
+        exit;
+    }
+}
+
+/**
+ * Redirects direct reply access within artist forums to associated artist profile page.
+ * Ensures artist profile is the single source of truth for forum content.
+ */
+function extrachill_redirect_artist_reply_to_profile() {
+    // Only redirect on single reply pages
+    if (!function_exists('bbp_is_single_reply') || !bbp_is_single_reply()) {
+        return;
+    }
+    
+    $reply_id = bbp_get_reply_id();
+    if (empty($reply_id)) {
+        return;
+    }
+    
+    // Get the topic this reply belongs to
+    $topic_id = bbp_get_reply_topic_id($reply_id);
+    if (empty($topic_id)) {
+        return;
+    }
+    
+    // Get the forum this topic belongs to
+    $forum_id = bbp_get_topic_forum_id($topic_id);
+    if (empty($forum_id)) {
+        return;
+    }
+    
+    // Check if this is an artist forum
+    $is_artist_forum = get_post_meta($forum_id, '_is_artist_profile_forum', true);
+    if (!$is_artist_forum) {
+        return;
+    }
+    
+    // Get associated artist profile ID using centralized filter
+    $artist_profile_id = apply_filters('ec_get_artist_id', $forum_id);
     if (empty($artist_profile_id)) {
         return;
     }
@@ -317,9 +418,11 @@ function extrachill_redirect_artist_forum_to_profile() {
 }
 
 // Hook into WordPress
-add_action( 'init', 'extrachill_init_rewrite_rules', 10 );
+add_action( 'init', 'extrachill_init_rewrite_rules', 25 );
 add_filter( 'query_vars', 'extrachill_add_query_vars' );
 add_filter( 'redirect_canonical', 'extrachill_prevent_canonical_redirect_for_link_domain', 10, 2 );
 add_filter( 'template_include', 'extrachill_handle_link_domain_routing' );
 add_action( 'template_redirect', 'extrachill_redirect_artist_link_page_cpt_to_custom_domain' );
 add_action( 'template_redirect', 'extrachill_redirect_artist_forum_to_profile', 10 );
+add_action( 'template_redirect', 'extrachill_redirect_artist_topic_to_profile', 10 );
+add_action( 'template_redirect', 'extrachill_redirect_artist_reply_to_profile', 10 );

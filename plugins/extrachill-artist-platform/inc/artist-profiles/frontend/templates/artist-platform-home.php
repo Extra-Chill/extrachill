@@ -48,7 +48,7 @@ get_header(); ?>
                                         <a href="<?php echo esc_url(wp_login_url(get_permalink())); ?>" class="button button-primary">
                                             <?php _e('Log In', 'extrachill-artist-platform'); ?>
                                         </a>
-                                        <a href="<?php echo esc_url(wp_registration_url()); ?>" class="button">
+                                        <a href="<?php echo esc_url(home_url('/login/#tab-register')); ?>" class="button">
                                             <?php _e('Sign Up', 'extrachill-artist-platform'); ?>
                                         </a>
                                     </div>
@@ -147,7 +147,7 @@ get_header(); ?>
                                             $artist_url = get_permalink($artist_id);
                                             $profile_image_id = get_post_meta($artist_id, '_artist_profile_image_id', true);
                                             $profile_image_url = $profile_image_id ? wp_get_attachment_image_url($profile_image_id, 'thumbnail') : '';
-                                            $link_page_id = get_post_meta($artist_id, '_extrch_link_page_id', true);
+                                            $link_page_id = apply_filters('ec_get_link_page_id', $artist_id);
                                             
                                             // Get subscriber count
                                             global $wpdb;

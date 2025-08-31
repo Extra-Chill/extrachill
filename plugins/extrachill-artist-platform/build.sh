@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# ExtraChill Artist Platform - Build Script
+# Extra Chill Artist Platform - Build Script
 # Generates a clean distribution zip file for WordPress plugin
 
 set -e  # Exit on any error
@@ -191,7 +191,7 @@ build_plugin() {
 
 # Main script execution
 main() {
-    print_status "ExtraChill Artist Platform Build Script"
+    print_status "Extra Chill Artist Platform Build Script"
     print_status "========================================"
     
     # Check dependencies

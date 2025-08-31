@@ -230,7 +230,7 @@ function bp_ajax_toggle_follow_artist_handler() {
 
     // Get data
     $user_id = get_current_user_id();
-    $artist_id = isset( $_POST['artist_id'] ) ? absint( $_POST['artist_id'] ) : 0;
+    $artist_id = apply_filters('ec_get_artist_id', $_POST);
 
     // error_log("Follow AJAX: user_id={$user_id}, artist_id={$artist_id}");
 

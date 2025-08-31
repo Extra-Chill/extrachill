@@ -1,9 +1,11 @@
 /**
- * Manage Link Page - Info Tab (Title, Bio, Profile Image)
- * Handles UI and calls the content engine for live preview updates.
+ * Manage Link Page - Info Tab (Title, Bio, Profile Image) - Self-Contained
+ * Handles UI and dispatches events for live preview updates.
  */
-window.ExtrchLinkPageInfoManager = {
-    manager: null,
+(function() {
+    'use strict';
+    
+    const InfoManager = {
     fields: {
         titleInput: null,
         bioTextarea: null,
@@ -13,8 +15,7 @@ window.ExtrchLinkPageInfoManager = {
     },
     originalImageSrc: null, // To store the initial image src for restoration
 
-    init: function(manager) {
-        this.manager = manager;
+    init: function() {
 
         this.fields.titleInput = document.getElementById('artist_profile_title');
         this.fields.bioTextarea = document.getElementById('link_page_bio_text');
@@ -37,15 +38,8 @@ window.ExtrchLinkPageInfoManager = {
     },
 
     _loadInitialValues: function() {
-        // Load initial values from centralized data source
-        if (this.manager && this.manager.getSettings && typeof this.manager.getSettings === 'function') {
-            const settings = this.manager.getSettings();
-            if (settings && typeof settings === 'object') {
-                // Load any settings-based data (currently info tab uses mostly form fields)
-                // Profile image state is handled by the remove button visibility logic
-                console.log('[Info] Loaded initial values from centralized settings');
-            }
-        }
+        // Self-contained - no external dependencies needed
+        console.log('[Info] Using form field values directly');
     },
 
     _attachEventListeners: function() {
@@ -82,8 +76,6 @@ window.ExtrchLinkPageInfoManager = {
                 }));
                 this.fields.removeProfileImageHidden.value = '0'; // Image selected, so not removing
                 this.updateRemoveButtonVisibility(true); // an image is present
-
-                manager.customization.updateSetting('--link-page-profile-img-url', e.target.result);
             };
             reader.readAsDataURL(file);
         }
@@ -96,7 +88,6 @@ window.ExtrchLinkPageInfoManager = {
         this.fields.profileImageUpload.value = ''; // Clear the file input
         this.fields.removeProfileImageHidden.value = '1'; // Set hidden input to indicate removal
         this.updateRemoveButtonVisibility(false);
-        manager.customization.updateSetting('--link-page-profile-img-url', '');
     },
     
     updateRemoveButtonVisibility: function(isImagePresent = null) {
@@ -136,47 +127,23 @@ window.ExtrchLinkPageInfoManager = {
             document.dispatchEvent(new CustomEvent('profileImageRemoved'));
             this.updateRemoveButtonVisibility(false);
         }
-        
-        manager.customization.updateSetting('--link-page-profile-img-url', imageUrlToUse);
     }
-}; 
+};
 
-/**
- * Serializes current info settings into hidden inputs for form submission.
- * This method should ONLY be called by the save handler, not during user interactions.
- */
-function serializeInfoForSave() {
-    let success = true;
-    
-    // Serialize profile image removal flag
-    const removeProfileImageHidden = document.getElementById('remove_link_page_profile_image_hidden');
-    if (removeProfileImageHidden) {
-        // Check if image was removed (no file selected and preview is hidden)
-        const profileImageUpload = document.getElementById('link_page_profile_image_upload');
-        const profileImagePreview = document.querySelector('.profile-image-preview');
-        
-        if (profileImageUpload && !profileImageUpload.files?.length && 
-            profileImagePreview?.style.display === 'none') {
-            removeProfileImageHidden.value = '1'; // Mark for removal
-            console.log('[InfoManager] Marked profile image for removal');
-        } else {
-            removeProfileImageHidden.value = '0'; // Keep image
-            console.log('[InfoManager] Profile image will be kept');
-        }
+// No serialization needed - form fields handle all data persistence
+
+    // Listen for info tab activation
+    document.addEventListener('infoTabActivated', function(event) {
+        InfoManager.init();
+    });
+
+    // Auto-initialize when DOM is ready (for default tab)
+    if (document.readyState !== 'loading') {
+        InfoManager.init();
     } else {
-        console.warn('[InfoManager] Remove profile image hidden input not found');
-        success = false;
+        document.addEventListener('DOMContentLoaded', function() {
+            InfoManager.init();
+        });
     }
-    
-    return success;
-}
 
-// Expose the serialize method for the save handler
-window.ExtrchLinkPageInfoManager.serializeForSave = serializeInfoForSave;
-
-// Self-initialize on DOMContentLoaded
-document.addEventListener('DOMContentLoaded', function() {
-    if (window.ExtrchLinkPageManager) {
-        window.ExtrchLinkPageInfoManager.init(window.ExtrchLinkPageManager);
-    }
-}); 
+})(); 

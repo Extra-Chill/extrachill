@@ -3,7 +3,7 @@
  * Custom <head> content for the isolated extrachill.link page.
  *
  * This function outputs the minimal, necessary head elements,
- * replacing wp_head() for the single band link page template.
+ * replacing wp_head() for the single artist link page template.
  *
  * @package ExtrchCo
  *
@@ -65,12 +65,7 @@ function extrch_link_page_custom_head( $artist_id, $link_page_id ) {
     // Inline body margin reset (from single-artist_link_page.php)
     echo '<style>body{margin:0;padding:0;}</style>';
 
-    // Localize session data for link-page-session.js
-    $session_data = array(
-        'ajax_url' => admin_url( 'admin-ajax.php' ),
-        'artist_id'  => $artist_id, // Use the $artist_id passed to this function
-    );
-    echo '<script>window.extrchSessionData = ' . wp_json_encode( $session_data ) . ';</script>';
+    // Session data removed - now using server-side permission checks
 
     // Output custom CSS variables and Google Fonts
     // Get processed data from ec_get_link_page_data filter (includes font processing)

@@ -28,7 +28,7 @@ function bp_get_artist_profile_last_activity_timestamp( $artist_profile_id ) {
     $latest_activity_timestamp = $profile_modified_gmt ?: 0; // Initialize with profile time
 
     // Check link page activity
-    $link_page_id = get_post_meta( $artist_profile_id, '_extrch_link_page_id', true );
+    $link_page_id = apply_filters('ec_get_link_page_id', $artist_profile_id);
     if ( $link_page_id ) {
         $link_page_modified = get_post_modified_time( 'U', true, $link_page_id );
         if ( $link_page_modified && $link_page_modified > $latest_activity_timestamp ) {
@@ -175,7 +175,10 @@ function bp_display_artist_cards_grid( $limit = 12, $exclude_user_artists = fals
         
         // Use the artist profile card template - set context to indicate this is for directory/homepage display
         $context = 'directory';
-        ExtraChillArtistPlatform_Templates::load_artist_profile_card( $artist_id, $context );
+        echo ec_render_template( 'artist-profile-card', array(
+            'artist_id' => $artist_id,
+            'context' => $context
+        ) );
     }
     
     echo '</div>'; // .artist-cards-grid

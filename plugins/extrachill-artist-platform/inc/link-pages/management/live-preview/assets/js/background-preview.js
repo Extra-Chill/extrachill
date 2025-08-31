@@ -1,8 +1,6 @@
 // Background Preview Module - Handles live preview updates for background styling
-(function(manager) {
-    if (!manager) return;
-    
-    manager.backgroundPreview = manager.backgroundPreview || {};
+(function() {
+    'use strict';
     
     // Main background preview update function - Direct DOM manipulation
     function updateBackgroundPreview(backgroundData) {
@@ -82,17 +80,23 @@
     // Event listeners for individual background property changes
     document.addEventListener('backgroundTypeChanged', function(e) {
         if (e.detail && e.detail.type) {
-            // Get current background data from customization system if available
+            // Read current background data from form inputs directly
             let backgroundData = { type: e.detail.type };
             
-            if (manager.customization && typeof manager.customization.getCustomVars === 'function') {
-                const customVars = manager.customization.getCustomVars();
-                backgroundData.color = customVars['--link-page-background-color'];
-                backgroundData.startColor = customVars['--link-page-background-gradient-start'];
-                backgroundData.endColor = customVars['--link-page-background-gradient-end'];
-                backgroundData.direction = customVars['--link-page-background-gradient-direction'];
-                backgroundData.imageUrl = customVars['--link-page-background-image-url'];
-            }
+            // Read from form inputs instead of CSS variables
+            const bgColorInput = document.getElementById('link_page_background_color');
+            const gradStartInput = document.getElementById('link_page_background_gradient_start');
+            const gradEndInput = document.getElementById('link_page_background_gradient_end');
+            const gradDirInput = document.getElementById('link_page_background_gradient_direction');
+            
+            if (bgColorInput) backgroundData.color = bgColorInput.value;
+            if (gradStartInput) backgroundData.startColor = gradStartInput.value;
+            if (gradEndInput) backgroundData.endColor = gradEndInput.value;
+            if (gradDirInput) backgroundData.direction = gradDirInput.value;
+            
+            // Get image URL from CSS variable (since it's not in a form input)
+            const rootStyle = getComputedStyle(document.documentElement);
+            backgroundData.imageUrl = rootStyle.getPropertyValue('--link-page-background-image-url').trim();
             
             updateBackgroundPreview(backgroundData);
         }
@@ -117,7 +121,52 @@
         }
     });
 
-    // Expose functions on manager
-    manager.backgroundPreview.update = updateBackgroundPreview;
+    // Helper function to update CSS variables directly
+    function updateCSSVariable(property, value) {
+        const styleTag = document.getElementById('extrch-link-page-custom-vars');
+        if (styleTag && styleTag.sheet) {
+            // Find the :root rule and update the property
+            for (let i = 0; i < styleTag.sheet.cssRules.length; i++) {
+                if (styleTag.sheet.cssRules[i].selectorText === ':root') {
+                    styleTag.sheet.cssRules[i].style.setProperty(property, value);
+                    break;
+                }
+            }
+        }
+    }
 
-})(window.ExtrchLinkPageManager = window.ExtrchLinkPageManager || {});
+    // Event listeners to update CSS variables based on management events
+
+    document.addEventListener('backgroundColorChanged', function(e) {
+        if (e.detail && e.detail.color) {
+            updateCSSVariable('--link-page-background-color', e.detail.color);
+        }
+    });
+
+    document.addEventListener('backgroundGradientChanged', function(e) {
+        if (e.detail && e.detail.gradientData) {
+            const gradient = e.detail.gradientData;
+            if (gradient.startColor) {
+                updateCSSVariable('--link-page-background-gradient-start', gradient.startColor);
+            }
+            if (gradient.endColor) {
+                updateCSSVariable('--link-page-background-gradient-end', gradient.endColor);
+            }
+            if (gradient.direction) {
+                updateCSSVariable('--link-page-background-gradient-direction', gradient.direction);
+            }
+        }
+    });
+
+    document.addEventListener('backgroundImageChanged', function(e) {
+        if (e.detail && e.detail.imageUrl !== undefined) {
+            updateCSSVariable('--link-page-background-image-url', e.detail.imageUrl);
+            if (e.detail.imageUrl && e.detail.imageUrl.trim() !== '') {
+                updateCSSVariable('--link-page-background-type', 'image');
+            }
+        }
+    });
+
+    // Self-contained module - no global exposure needed
+
+})();

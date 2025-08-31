@@ -1,12 +1,8 @@
 // Fonts Preview Module - Handles live preview updates for font styling
-(function(manager, config) {
-    if (!manager) return;
-    
-    manager.fontsPreview = manager.fontsPreview || {};
-    
-    // Get font options from the fonts filter system (passed via config)
+(function() {
+    // Get font options from global config  
     function getFontOptions() {
-        return (config && config.fonts && Array.isArray(config.fonts)) ? config.fonts : [];
+        return (extraChillArtistPlatform && extraChillArtistPlatform.fonts && Array.isArray(extraChillArtistPlatform.fonts)) ? extraChillArtistPlatform.fonts : [];
     }
     
     // Get font stack by value using filter data
@@ -14,6 +10,38 @@
         const options = getFontOptions();
         const found = options.find(f => f.value === fontValue);
         return found ? found.stack : "'Helvetica', Arial, sans-serif";
+    }
+    
+    // Get Google Font parameter by value
+    function getGoogleFontParam(fontValue) {
+        const options = getFontOptions();
+        const found = options.find(f => f.value === fontValue);
+        return (found && found.google_font_param !== 'local_default') ? found.google_font_param : null;
+    }
+    
+    // Track loaded Google Fonts to prevent duplicates
+    const loadedGoogleFonts = new Set();
+    
+    // Dynamic Google Font loading helper
+    function loadGoogleFont(fontValue) {
+        const googleFontParam = getGoogleFontParam(fontValue);
+        
+        // Skip if not a Google Font or already loaded
+        if (!googleFontParam || loadedGoogleFonts.has(googleFontParam)) {
+            return;
+        }
+        
+        // Mark as loading to prevent duplicates
+        loadedGoogleFonts.add(googleFontParam);
+        
+        // Create and inject Google Fonts link tag
+        const link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = `https://fonts.googleapis.com/css2?family=${googleFontParam}&display=swap`;
+        link.setAttribute('data-font-param', googleFontParam);
+        
+        // Add to document head
+        document.head.appendChild(link);
     }
     
     // Main fonts preview update function - Direct DOM manipulation
@@ -26,6 +54,9 @@
 
         // Apply font family changes to CSS custom properties on the preview element
         if (fontData.property && fontData.fontFamily) {
+            // Load Google Font dynamically if needed
+            loadGoogleFont(fontData.fontFamily);
+            
             const fontStack = getFontStackByValue(fontData.fontFamily);
             previewEl.style.setProperty(fontData.property, fontStack);
         }
@@ -91,6 +122,9 @@
             const previewEl = previewContainerParent.querySelector('.extrch-link-page-preview-container');
             if (previewEl) {
                 if (e.detail.type === 'family') {
+                    // Load Google Font dynamically if needed
+                    loadGoogleFont(e.detail.value);
+                    
                     const fontStack = getFontStackByValue(e.detail.value);
                     previewEl.style.setProperty(e.detail.property, fontStack);
                 } else {
@@ -100,8 +134,6 @@
         }
     });
 
-    // Expose functions on manager
-    manager.fontsPreview.updateFontFamily = updateFontFamilyPreview;
-    manager.fontsPreview.updateFontSize = updateFontSizePreview;
+    // Self-contained module - no global exposure needed
 
-})(window.ExtrchLinkPageManager = window.ExtrchLinkPageManager || {}, window.extrchLinkPageConfig);
+})();

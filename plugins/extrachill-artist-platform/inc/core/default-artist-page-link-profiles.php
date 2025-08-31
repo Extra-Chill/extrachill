@@ -52,7 +52,7 @@ function extrch_get_or_create_default_admin_link_page( $create_if_missing = true
     }
 
     // Now check for or create the link page for this artist_id.
-    $link_page_id = get_post_meta( $artist_id, '_extrch_link_page_id', true );
+    $link_page_id = apply_filters('ec_get_link_page_id', $artist_id);
     $link_page_post_exists = $link_page_id ? (get_post_status($link_page_id) && get_post_type($link_page_id) === 'artist_link_page') : false;
 
     if ( ! $link_page_post_exists ) {
@@ -65,13 +65,13 @@ function extrch_get_or_create_default_admin_link_page( $create_if_missing = true
         if ( ! $artist_profile_post_obj ) {
             return null;
         }
-        // Create the link page if it doesn't exist AND $create_if_missing is true.
-        // Ensure the creation function is available
-        if ( ! function_exists( 'extrch_create_link_page_for_artist_profile' ) ) {
-            require_once dirname( __FILE__ ) . '/../link-pages/create-link-page.php';
+        // Create the link page if it doesn't exist using centralized creation system
+        $creation_result = ec_create_link_page( $artist_id );
+        if ( is_wp_error( $creation_result ) ) {
+            error_log( 'Link page creation failed: ' . $creation_result->get_error_message() );
+            return array('artist_id' => $artist_id, 'link_page_id' => null);
         }
-        extrch_create_link_page_for_artist_profile( $artist_id, $artist_profile_post_obj );
-        $link_page_id = get_post_meta( $artist_id, '_extrch_link_page_id', true );
+        $link_page_id = $creation_result;
 
         if ( ! $link_page_id || !get_post_status($link_page_id) ) { // Check if it was actually created
             return array('artist_id' => $artist_id, 'link_page_id' => null);

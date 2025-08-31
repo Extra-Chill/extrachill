@@ -1,6 +1,6 @@
-# ExtraChill Artist Platform
+# Extra Chill Artist Platform
 
-WordPress plugin providing comprehensive artist platform functionality for the ExtraChill community. Enables artists to create profiles, link pages, manage subscribers, and integrate with forums.
+WordPress plugin providing comprehensive artist platform functionality for the Extra Chill community. Enables artists to create profiles, link pages, manage subscribers, and integrate with forums.
 
 ## Architecture
 
@@ -27,16 +27,18 @@ WordPress plugin providing comprehensive artist platform functionality for the E
 #### Link Page System
 **Location**: `inc/link-pages/`
 - **Live Pages**: `inc/link-pages/live/` - Public templates, analytics, session validation
-- **Management Interface**: `inc/link-pages/management/` - Admin interface with modular JS/CSS
+- **Management Interface**: `inc/link-pages/management/` - Admin interface with modular JS/CSS, drag-and-drop link reordering
 - **Live Preview**: `inc/link-pages/management/live-preview/` - Real-time preview functionality
-- **Advanced Features**: `inc/link-pages/management/advanced-tab/` - Tracking, redirects, expiration
-- **Subscription System**: `inc/link-pages/subscription/` - Email collection forms and modals
+- **Advanced Features**: `inc/link-pages/management/advanced-tab/` - Tracking, redirects, link expiration, YouTube embeds
+- **Component Templates**: `inc/link-pages/management/templates/components/` - Modular UI components
+- **Subscription Templates**: `inc/link-pages/templates/` - Email collection forms and modals
 
 #### Cross-Domain Authentication  
-**File**: `inc/link-pages/live/link-page-session-validation.php`
+**Files**: `inc/link-pages/live/ajax/edit-icon.php`, `inc/link-pages/live/link-page-session-validation.php`
 - Session token system for `.extrachill.com` domain
 - Auto-login across subdomains using secure cookies
-- Token validation for link page access
+- REST API permission validation with retry logic
+- Edit icon visibility based on authentication state
 - 6-month token expiration with cleanup
 
 #### Forum Integration
@@ -46,19 +48,20 @@ WordPress plugin providing comprehensive artist platform functionality for the E
 - Centralized permission system (`inc/core/filters/permissions.php`)
 
 #### Subscription System
-**Locations**: `inc/artist-profiles/`, `inc/link-pages/subscription/`, `inc/database/`
+**Locations**: `inc/artist-profiles/`, `inc/link-pages/templates/`, `inc/database/`
 - Email collection with artist association (`inc/artist-profiles/subscribe-data-functions.php`)
 - Database table: `{prefix}_artist_subscribers` (`inc/database/subscriber-db.php`)
 - AJAX-driven subscription forms with modal support
-- Inline and modal subscription interfaces (`inc/link-pages/subscription/`)
+- Inline and modal subscription interfaces (`inc/link-pages/templates/`)
 - Link page subscription functions (`inc/link-pages/subscribe-functions.php`)
 - Export tracking and management capabilities
 
 #### Analytics System
-**Files**: `inc/database/link-page-analytics-db.php`, `inc/link-pages/live/link-page-analytics-tracking.php`
+**Files**: `inc/database/link-page-analytics-db.php`, `inc/link-pages/live/ajax/analytics.php`, `inc/link-pages/management/ajax/analytics.php`
 - Daily aggregation of page views and link clicks
 - Database tables: `{prefix}_extrch_link_page_daily_views`, `{prefix}_extrch_link_page_daily_link_clicks`
-- Chart.js-powered analytics dashboard with date filtering
+- Public tracking via live AJAX module with automatic data pruning
+- Chart.js-powered analytics dashboard via management AJAX module
 - Management interface: `inc/link-pages/management/assets/js/analytics.js`
 
 #### Roster Management System
@@ -80,12 +83,11 @@ WordPress plugin providing comprehensive artist platform functionality for the E
 
 **Management Interface**: `inc/link-pages/management/assets/js/`
 - **Core modules**: `info.js`, `links.js`, `colors.js`, `fonts.js`, `sizing.js`, `background.js`
-- **Advanced features**: `analytics.js`, `qrcode.js`, `socials.js`, `subscribe.js`, `advanced.js`, `featured-link.js`
-- **UI utilities**: `ui-utils.js` (responsive tab management, copy URL functionality), `save.js` (centralized form serialization)
-- **CSS management**: `css-variables.js` (DEPRECATED - CSS variables now managed directly via CSSOM)
+- **Advanced features**: `analytics.js`, `qrcode.js`, `socials.js`, `subscribe.js`, `advanced.js`, `featured-link.js`, `link-expiration.js`
+- **UI utilities**: `ui-utils.js` (responsive tab management, copy URL functionality), `sortable.js` (SortableJS drag-and-drop reordering)
 
 **Live Preview System**: `inc/link-pages/management/live-preview/assets/js/`
-- **Preview modules**: `background-preview.js`, `colors-preview.js`, `fonts-preview.js`, `info-preview.js`, `links-preview.js`, `sizing-preview.js`, `socials-preview.js`
+- **Preview modules**: `background-preview.js`, `colors-preview.js`, `fonts-preview.js`, `info-preview.js`, `links-preview.js`, `sizing-preview.js`, `socials-preview.js`, `link-expiration-preview.js`, `subscribe-preview.js`
 - **UI components**: `overlay-preview.js`, `featured-link-preview.js`
 
 **Public Interface**: `inc/link-pages/live/assets/js/`
@@ -102,13 +104,55 @@ WordPress plugin providing comprehensive artist platform functionality for the E
 
 **Global Components**: `assets/js/`
 - `shared-tabs.js` - Responsive tabbed interface (accordion on mobile, tabs on desktop)
+- `artist-switcher.js` - Artist selection dropdown for switching contexts  
 - `artist-platform.js` - Core plugin functionality
 - `artist-platform-home.js` - Homepage-specific features
 
-### Database Tables
-- `{prefix}_extrch_link_page_daily_views` - Daily page view aggregates
-- `{prefix}_extrch_link_page_daily_link_clicks` - Daily click aggregates  
-- `{prefix}_artist_subscribers` - Subscription data with export tracking
+**New JavaScript Modules**:
+- `link-expiration.js` & `link-expiration-preview.js` - Time-based link scheduling
+- `sortable.js` - SortableJS integration for drag-and-drop link reordering
+- `subscribe-preview.js` - Live preview for subscription form changes
+
+### Database Schema
+
+#### Analytics Tables
+```sql
+CREATE TABLE {prefix}_extrch_link_page_daily_views (
+    view_id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+    link_page_id bigint(20) unsigned NOT NULL,
+    stat_date date NOT NULL,
+    view_count bigint(20) unsigned NOT NULL DEFAULT 0,
+    PRIMARY KEY (view_id),
+    UNIQUE KEY unique_daily_view (link_page_id, stat_date)
+);
+
+CREATE TABLE {prefix}_extrch_link_page_daily_link_clicks (
+    click_id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+    link_page_id bigint(20) unsigned NOT NULL,
+    stat_date date NOT NULL,
+    link_url varchar(2083) NOT NULL,
+    click_count bigint(20) unsigned NOT NULL DEFAULT 0,
+    PRIMARY KEY (click_id),
+    UNIQUE KEY unique_daily_link_click (link_page_id, stat_date, link_url(191)),
+    KEY link_page_date (link_page_id, stat_date)
+);
+```
+
+#### Subscription Table
+```sql
+CREATE TABLE {prefix}_artist_subscribers (
+    subscriber_id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+    artist_profile_id BIGINT(20) UNSIGNED NOT NULL,
+    subscriber_email VARCHAR(255) NOT NULL,
+    username VARCHAR(60) NULL DEFAULT NULL,
+    subscribed_at DATETIME NOT NULL,
+    exported TINYINT(1) NOT NULL DEFAULT 0,
+    PRIMARY KEY (subscriber_id),
+    UNIQUE KEY email_artist (subscriber_email, artist_profile_id),
+    KEY artist_profile_id (artist_profile_id),
+    KEY exported (exported)
+);
+```
 
 ### Dependencies
 - **WordPress**: 5.0+ (tested up to 6.4)
@@ -117,6 +161,24 @@ WordPress plugin providing comprehensive artist platform functionality for the E
 - **External**: bbPress, Font Awesome, Google Fonts
 
 ### Additional Features
+
+#### Link Expiration System
+**Files**: `inc/link-pages/management/advanced-tab/link-expiration.php`, `inc/link-pages/management/assets/js/link-expiration.js`
+- Time-based link lifecycle management
+- Automatic link deactivation and scheduling
+- Live preview integration with expiration display
+
+#### Drag-and-Drop Interface
+**File**: `inc/link-pages/management/assets/js/sortable.js`
+- SortableJS integration for link reordering
+- Touch-friendly drag-and-drop for mobile devices
+- Real-time preview updates during reordering
+
+#### Artist Context Switching
+**File**: `assets/js/artist-switcher.js`
+- Artist selection dropdown for multi-artist management
+- Context-aware UI updates based on selected artist
+- Seamless switching between artist profiles
 
 #### Artist Following System
 **File**: `inc/artist-profiles/artist-following.php`
@@ -137,18 +199,36 @@ WordPress plugin providing comprehensive artist platform functionality for the E
 - **Hook integration**: `ec_link_page_save`, `ec_artist_profile_save` action hooks
 - **Admin post handlers**: Security-validated form submission processing
 
-**JavaScript Coordination**: `inc/link-pages/management/assets/js/save.js`
-- **Form serialization**: Centralized hidden input management for complex data structures
-- **CSS variables**: Direct CSSOM reading (not textContent parsing)
-- **Module integration**: Calls serializeForSave() methods on feature modules
-- **Tab preservation**: Active tab state maintained across page reloads
-- **Loading states**: User feedback during save operations
+**Form Processing**: Pure WordPress form submission
+- **Direct field processing**: All data processed via individual form fields
+- **No JavaScript required**: Standard WordPress admin_post handler
+- **Immediate validation**: Server-side sanitization and validation
+- **Standard patterns**: Follows WordPress form processing conventions
 
-**AJAX System**: `inc/core/actions/ajax.php` 
-- **Centralized registry**: `EC_Ajax_Registry` class for standardized AJAX handling
-- **Permission validation**: Role-based access control with nonce verification
-- **Error handling**: Try-catch with proper error logging and user feedback
-- **Extensible architecture**: Register new AJAX actions with permission callbacks
+**AJAX System Architecture**: WordPress-native modular system with standardized patterns
+- **WordPress Native Patterns**: Uses standard `add_action('wp_ajax_*')` throughout codebase
+- **Centralized Permissions**: Permission helpers in `inc/core/filters/permissions.php`
+  - `ec_ajax_can_manage_artist()`, `ec_ajax_can_manage_link_page()` for AJAX contexts  
+  - `ec_can_manage_artist()`, `ec_can_create_artist_profiles()` for general contexts
+  - Unified permission logic with proper nonce verification in each handler
+
+**Live (Public) AJAX Modules**: `inc/link-pages/live/ajax/`
+- **analytics.php**: Public tracking (`extrch_record_link_event`, `link_page_click_tracking`) with data pruning
+- **edit-icon.php**: Deprecated REST API endpoints (now server-side permission checks)
+
+**Management (Admin) AJAX Modules**: `inc/link-pages/management/ajax/`
+- **links.php**: Link management (`render_link_item_editor`, `render_link_section_editor`, `render_link_template`, `render_links_section_template`, `render_links_preview_template`)
+- **social.php**: Social icon management (`render_social_item_editor`, `render_social_template`)
+- **analytics.php**: Admin analytics dashboard (`extrch_fetch_link_page_analytics`)
+- **background.php**: Background image uploads with file cleanup
+- **qrcode.php**: QR code generation for link pages
+- **featured-link.php**: Open Graph image fetching (`extrch_fetch_og_image_for_preview`)
+- **subscribe.php**: Subscription handling (`extrch_link_page_subscribe`, `render_subscribe_template`)
+
+**Permission System**: Server-side permission validation
+- Cross-domain authentication moved to template-level checks
+- REST API endpoints removed in favor of server-side session validation
+- Permission checks handled via `inc/core/filters/permissions.php`
 
 #### Data Synchronization
 **Files**: `inc/core/actions/sync.php`, `inc/core/filters/data.php`
@@ -157,11 +237,25 @@ WordPress plugin providing comprehensive artist platform functionality for the E
 - Automatic sync triggers after save operations
 
 #### Template System
-**Files**: `inc/core/class-templates.php`, feature-specific template directories
-- Custom template overrides with routing and conditional loading
+
+**Dual Template Architecture**:
+
+1. **Page Templates** (`inc/core/class-templates.php`)
+   - Full page routing and template loading
+   - WordPress template hierarchy integration
+   - Context-aware template selection
+
+2. **Component Templates** (`inc/core/filters/templates.php`)
+   - Modular UI component rendering
+   - AJAX-driven template fragments
+   - Template filtering and customization
+
+**Template Directories**:
 - **Artist Profile Templates**: `inc/artist-profiles/frontend/templates/`
 - **Link Page Templates**: `inc/link-pages/live/templates/` (public), `inc/link-pages/management/templates/` (admin)
-- **Component Templates**: Modular tab interfaces and shared components
+- **Component Templates**: `inc/link-pages/management/templates/components/` - Modular UI components
+- **Core Templates**: `inc/core/templates/` - Base template components
+- **Subscription Templates**: `inc/link-pages/templates/` - Email collection forms
 
 #### Admin Interface
 **Files**: `inc/artist-profiles/admin/meta-boxes.php`, `inc/artist-profiles/admin/user-linking.php`
@@ -198,19 +292,50 @@ WordPress plugin providing comprehensive artist platform functionality for the E
 
 ### JavaScript Patterns
 
-#### Module Organization
-- **Namespace pattern**: `window.ExtrchLinkPageManager` for management interface modules
-- **Event-driven architecture**: Custom events (`sharedTabActivated`) for tab system integration
-- **Self-contained modules**: Each feature module handles its own initialization and cleanup
-- **CSSOM integration**: Direct CSS variable manipulation via CSSOM rather than text parsing
+#### Module Architecture
+
+**Self-Contained IIFE Pattern**: All JavaScript modules use immediate function expressions
+```javascript
+// Example from info.js
+(function() {
+    'use strict';
+    
+    const InfoManager = {
+        fields: {},
+        init: function() { /* initialization */ },
+        bindEvents: function() { /* event binding */ }
+    };
+    
+    document.addEventListener('DOMContentLoaded', InfoManager.init.bind(InfoManager));
+})();
+```
+
+**Event-Driven Communication**: Modules communicate via CustomEvent dispatching
+```javascript
+// Management module dispatches events
+document.dispatchEvent(new CustomEvent('infoChanged', {
+    detail: { title: newTitle, bio: newBio }
+}));
+
+// Preview module listens for events
+document.addEventListener('infoChanged', function(e) {
+    updatePreviewInfo(e.detail);
+});
+```
+
+**Module Categories**:
+1. **Management Modules**: Handle form interactions, dispatch events for data changes
+2. **Preview Modules**: Listen for events, update live preview DOM elements  
+3. **Utility Modules**: Shared functionality (tabs, sorting, UI components)
+4. **Global Modules**: Cross-component features (artist switching, core initialization)
 
 #### Key JavaScript Features
-- **Responsive UI components**: Shared tabs system with accordion/tabs layout switching
-- **REST API integration**: Session validation with retry logic and cross-domain support
-- **Modern web APIs**: Native Web Share API with fallback to social media links
-- **Form serialization**: Centralized save system with JSON data handling
-- **Live preview system**: Real-time CSS variable updates via preview modules
-- **AJAX workflows**: Comprehensive error handling with nonce validation
+- **Responsive Tabs**: `shared-tabs.js` - Accordion/tabs hybrid with 768px breakpoint
+- **Drag-and-Drop**: `sortable.js` - SortableJS integration with touch support
+- **Live Preview**: Real-time CSS variable updates via dedicated preview modules
+- **Form Serialization**: Complex data structures serialized to hidden inputs for save
+- **AJAX Integration**: WordPress-native patterns with comprehensive error handling
+- **Modern APIs**: Native Web Share API with social media fallbacks
 
 #### Save System Data Flow
 1. **JavaScript modules** serialize complex data structures to hidden form inputs

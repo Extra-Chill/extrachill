@@ -1,8 +1,6 @@
 // Colors Preview Module - Handles live preview updates for color styling
-(function(manager) {
-    if (!manager) return;
-    
-    manager.colorsPreview = manager.colorsPreview || {};
+(function() {
+    'use strict';
     
     // Main colors preview update function - Update style tag, preview inherits automatically
     function updateColorsPreview(colorData) {
@@ -92,12 +90,11 @@
         }
     });
 
-    // Expose functions on manager
-    manager.colorsPreview.update = updateColorsPreview;
+    // Self-contained module - no global exposure needed
 
     // Self-contained initialization - CSS variables are already loaded by PHP
     document.addEventListener('DOMContentLoaded', function() {
         console.log('[Colors Preview] Self-contained module ready');
     });
 
-})(window.ExtrchLinkPageManager = window.ExtrchLinkPageManager || {});
+})();

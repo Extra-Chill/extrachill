@@ -207,7 +207,7 @@
     }
 
     // Listen for tab activation
-    document.addEventListener('sharedTabActivated', function(e) {
+    document.addEventListener('artistFollowersTabActivated', function(e) {
         if (
             e.detail &&
             e.detail.tabPaneElement &&

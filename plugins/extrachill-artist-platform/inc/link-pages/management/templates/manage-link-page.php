@@ -6,93 +6,28 @@
 
 defined( 'ABSPATH' ) || exit;
 
-// Debug logging for manage-link-page
-global $wp_query, $post;
-error_log('[DEBUG] Manage Link Page Template: Starting template load');
-error_log('[DEBUG] Request URI: ' . $_SERVER['REQUEST_URI']);
-error_log('[DEBUG] Query vars: ' . print_r($wp_query->query_vars, true));
-error_log('[DEBUG] Is page: ' . ($wp_query->is_page ? 'yes' : 'no'));
-error_log('[DEBUG] Is singular: ' . ($wp_query->is_singular ? 'yes' : 'no'));
-error_log('[DEBUG] Is 404: ' . ($wp_query->is_404 ? 'yes' : 'no'));
-if ($post) {
-    error_log('[DEBUG] Global post ID: ' . $post->ID);
-    error_log('[DEBUG] Global post type: ' . $post->post_type);
-}
-
-// --- Permission and Band ID Check (MOVED TO TOP) ---
+// --- Permission and Artist ID Check ---
 $current_user_id = get_current_user_id();
-$artist_id = isset($_GET['artist_id']) ? absint($_GET['artist_id']) : 0;
+$artist_id = apply_filters('ec_get_artist_id', $_GET);
 $artist_post = $artist_id ? get_post($artist_id) : null;
-
-error_log('[DEBUG] Artist ID from GET: ' . $artist_id);
-error_log('[DEBUG] Current user ID: ' . $current_user_id);
 
 // Link page includes are now loaded directly in the main bootstrap
 
-// --- Fetch or Create Associated Link Page ---
-$link_page_id = get_post_meta($artist_id, '_extrch_link_page_id', true);
+// --- Auto-Create Link Page if Needed ---
+$link_page_id = apply_filters('ec_get_link_page_id', $artist_id);
+
 if (!$link_page_id || get_post_type($link_page_id) !== 'artist_link_page') {
-    // Create a new artist_link_page post
-    $link_page_id = wp_insert_post(array(
-        'post_type'   => 'artist_link_page',
-        'post_title'  => 'Link Page for ' . get_the_title($artist_id),
-        'post_status' => 'publish',
-        'meta_input'  => array('_associated_artist_profile_id' => $artist_id),
-    ));
-    if ($link_page_id && !is_wp_error($link_page_id)) {
-        update_post_meta($artist_id, '_extrch_link_page_id', $link_page_id);
-        // Add default link section using centralized filter system
-        $link_defaults = ec_get_link_page_defaults_for( 'links' );
-        if ( $link_defaults['create_default_section'] ) {
-            $artist_name = get_the_title($artist_id);
-            $artist_profile_url = site_url('/artist/' . get_post_field('post_name', $artist_id));
-            
-            // Build link text from template
-            $link_text = str_replace( '%artist_name%', $artist_name, $link_defaults['link_text_template'] );
-            
-            $default_link_section = array(
-                array(
-                    'section_title' => $link_defaults['section_title'],
-                    'links' => array(
-                        array(
-                            'link_url' => $artist_profile_url,
-                            'link_text' => esc_html( $link_text ),
-                            'link_is_active' => $link_defaults['link_is_active']
-                        )
-                    )
-                )
-            );
-            update_post_meta($link_page_id, '_link_page_links', $default_link_section);
-        }
-    } else {
-        echo '<div class="bp-notice bp-notice-error"><p>' . esc_html__('Could not create link page.', 'extrachill-artist-platform') . '</p></div>';
+    // No link page exists for this artist - create one
+    $creation_result = ec_create_link_page($artist_id);
+    if (is_wp_error($creation_result)) {
+        echo '<div class="bp-notice bp-notice-error"><p>' . esc_html__('Could not create link page: ', 'extrachill-artist-platform') . esc_html($creation_result->get_error_message()) . '</p></div>';
         get_footer();
         return;
     }
+    $link_page_id = $creation_result;
 }
 
-// --- Google Font Preload for Live Preview (Initial Page Load) ---
-// Font configuration now handled by centralized font manager
-// Get custom vars from centralized data system
-$link_page_data = $artist_id > 0 ? ec_get_link_page_data($artist_id, $link_page_id) : array();
-$custom_vars = $link_page_data['css_vars'] ?? array();
-$fonts_manager = ExtraChillArtistPlatform_Fonts::instance();
-if (!empty($custom_vars['--link-page-title-font-family'])) {
-    $title_font_stack = $custom_vars['--link-page-title-font-family'];
-    $title_font_value = trim(explode(',', trim($title_font_stack), 2)[0], " '");
-    $google_font_param = $fonts_manager->get_google_font_param($title_font_value);
-    if ($google_font_param) {
-        echo '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=' . esc_attr($google_font_param) . '&display=swap">' . PHP_EOL;
-    }
-}
-if (!empty($custom_vars['--link-page-body-font-family'])) {
-    $body_font_stack = $custom_vars['--link-page-body-font-family'];
-    $body_font_value = trim(explode(',', trim($body_font_stack), 2)[0], " '");
-    $google_font_param = $fonts_manager->get_google_font_param($body_font_value);
-    if ($google_font_param) {
-        echo '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=' . esc_attr($google_font_param) . '&display=swap">' . PHP_EOL;
-    }
-}
+// Google Fonts now loaded via WordPress enqueue system in asset management
 
 get_header(); ?>
 
@@ -102,7 +37,13 @@ get_header(); ?>
 
 <?php
 // --- Display Success Notices ---
-if (isset($_GET['bp_link_page_updated']) && $_GET['bp_link_page_updated'] === '1') {
+$is_join_flow = isset($_GET['from_join']) && $_GET['from_join'] === 'true';
+
+if ($is_join_flow) {
+    // Welcome message for new join flow users
+    echo '<div class="bp-notice bp-notice-success"><p>' . esc_html__('Welcome to Extra Chill! Your link page has been created and is ready to customize.', 'extrachill-artist-platform') . '</p></div>';
+} elseif (isset($_GET['bp_link_page_updated']) && $_GET['bp_link_page_updated'] === '1') {
+    // Regular update success message for existing users
     echo '<div class="bp-notice bp-notice-success"><p>' . esc_html__('Link page updated successfully!', 'extrachill-artist-platform') . '</p></div>';
 }
 
@@ -119,7 +60,7 @@ if (isset($_GET['bp_link_page_error'])) {
 
 // --- Permission and Artist ID Check ---
 $current_user_id = get_current_user_id();
-$artist_id = isset($_GET['artist_id']) ? absint($_GET['artist_id']) : 0;
+$artist_id = apply_filters('ec_get_artist_id', $_GET);
 $artist_post = $artist_id ? get_post($artist_id) : null;
 
 if (!$artist_post || $artist_post->post_type !== 'artist_profile') {
@@ -153,8 +94,7 @@ if ( function_exists( 'ec_get_link_page_data' ) ) {
      echo '<div class="bp-notice bp-notice-error"><p>' . esc_html__('Error: ec_get_link_page_data function not found. Link page data may be incomplete.', 'extrachill-artist-platform') . '</p></div>';
 }
 
-// Set global font config for JS hydration
-set_query_var('extrch_link_page_fonts', $fonts_manager->get_supported_fonts());
+// Fonts are now handled directly in the tab template
 ?>
 <?php
 // --- Breadcrumb for Manage Link Page ---
@@ -174,18 +114,17 @@ echo '</div>';
     <?php echo esc_html__('Manage Link Page for ', 'extrachill-artist-platform') . esc_html(get_the_title($artist_id)); ?>
 </h1>
 <?php
-// --- Artist Switcher Dropdown (for Link Pages) ---
+// --- Artist Switcher (Shared Component) ---
+// Filter artists to only those with valid link pages
 $current_user_id_for_switcher = get_current_user_id();
-// Fetch all artist profiles associated with the user
 $user_artist_ids_for_switcher = get_user_meta( $current_user_id_for_switcher, '_artist_profile_ids', true );
-
-// Create a new array to hold only artists that have a valid, existing link page
 $valid_artists_for_link_page_switcher = array();
+
 if ( is_array( $user_artist_ids_for_switcher ) && ! empty( $user_artist_ids_for_switcher ) ) {
     foreach ( $user_artist_ids_for_switcher as $user_artist_id_item_check ) {
         $artist_id_check = absint($user_artist_id_item_check);
         if ( $artist_id_check > 0 && get_post_status( $artist_id_check ) === 'publish' ) {
-            $link_page_id_check = get_post_meta( $artist_id_check, '_extrch_link_page_id', true );
+            $link_page_id_check = apply_filters('ec_get_link_page_id', $artist_id_check);
             if ( $link_page_id_check &&
                  get_post_status( $link_page_id_check ) === 'publish' &&
                  get_post_type( $link_page_id_check ) === 'artist_link_page' ) {
@@ -195,27 +134,23 @@ if ( is_array( $user_artist_ids_for_switcher ) && ! empty( $user_artist_ids_for_
     }
 }
 
-// Only show switcher if the user is associated with more than one artist profile *that has a link page*
-if ( count( $valid_artists_for_link_page_switcher ) > 1 ) :
-    $current_page_url_for_switcher = get_permalink(); // Base URL for the manage-link-page
-    $current_selected_artist_id_for_switcher = isset( $_GET['artist_id'] ) ? absint( $_GET['artist_id'] ) : 0;
-?>
-    <div class="artist-switcher-container">
-        <select name="link-page-artist-switcher-select" id="link-page-artist-switcher-select">
-            <option value=""><?php esc_html_e( '-- Select an Artist --', 'extrachill-artist-platform'); ?></option>
-            <?php
-            foreach ( $valid_artists_for_link_page_switcher as $user_artist_id_item ) { // Iterate over the filtered list
-                $artist_title_for_switcher = get_the_title( $user_artist_id_item );
-                // The previous checks ensure title and publish status are fine for the artist profile itself
-                // and that a valid link page exists.
-                echo '<option value="' . esc_attr( $user_artist_id_item ) . '" ' . selected( $current_selected_artist_id_for_switcher, $user_artist_id_item, false ) . '>' . esc_html( $artist_title_for_switcher ) . '</option>';
-            }
-            ?>
-        </select>
-    </div>
-<?php
-endif; // End Band Switcher Dropdown for Link Pages
-// --- End Band Switcher ---
+// Render switcher using shared component if multiple valid artists
+if ( count( $valid_artists_for_link_page_switcher ) > 1 ) {
+    // Temporarily override user meta for filtered artist list
+    $original_artist_ids = get_user_meta( $current_user_id_for_switcher, '_artist_profile_ids', true );
+    update_user_meta( $current_user_id_for_switcher, '_artist_profile_ids', $valid_artists_for_link_page_switcher );
+    
+    echo ec_render_template( 'artist-switcher', array(
+        'switcher_id' => 'link-page-artist-switcher-select',
+        'base_url' => get_permalink(),
+        'current_artist_id' => $artist_id,
+        'user_id' => $current_user_id_for_switcher
+    ) );
+    
+    // Restore original artist IDs
+    update_user_meta( $current_user_id_for_switcher, '_artist_profile_ids', $original_artist_ids );
+}
+// --- End Artist Switcher ---
 
 // Display the public link page URL as plain text with a small copy link
 if ($link_page_id && get_post_type($link_page_id) === 'artist_link_page') {
@@ -282,17 +217,10 @@ if ($link_page_id && get_post_type($link_page_id) === 'artist_link_page') {
                         }
                         // --- END Join Flow Success Notice (Existing User Redirect - Moved) ---
 
-                        // Set up variables for tab-info.php from $data
-                        // $display_title = $data['display_title'] ?? ''; // $display_title is not directly used by tab-info.php itself
-                        // $bio_text = $data['bio'] ?? ''; // This was previously declared but not passed
-                        
-                        // Pass necessary data to the template part
-                        set_query_var('tab_info_artist_id', $artist_id);
-                        set_query_var('tab_info_bio_text', $data['bio'] ?? '');
-
-                        // Potentially other variables if tab-info.php uses them directly
-                        set_query_var('data', $data);
-                        include EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/management/templates/manage-link-page-tabs/tab-info.php';
+                        echo ec_render_template('manage-link-page-tab-info', array(
+                            'artist_id' => $artist_id,
+                            'data' => $data
+                        ));
                         ?>
                     </div>
                 </div>
@@ -306,9 +234,9 @@ if ($link_page_id && get_post_type($link_page_id) === 'artist_link_page') {
                     </button>
                     <div class="shared-tab-pane" id="manage-link-page-tab-links">
                         <?php
-                        // $data['link_sections'] is used by JS, tab-links.php might not need direct PHP vars for links now
-                        set_query_var('data', $data);
-                        include EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/management/templates/manage-link-page-tabs/tab-links.php';
+                        echo ec_render_template('manage-link-page-tab-links', array(
+                            'data' => $data
+                        ));
                         ?>
                     </div>
                 </div>
@@ -322,26 +250,9 @@ if ($link_page_id && get_post_type($link_page_id) === 'artist_link_page') {
                     </button>
                     <div class="shared-tab-pane" id="manage-link-page-tab-customize">
                         <?php
-                        // Set up variables for tab-customize.php from $data
-                        // These are for the initial HTML 'value' attributes of the form inputs
-                        $background_type = $data['background_type'] ?? 'color';
-                        $background_color = $data['background_color'] ?? '#1a1a1a';
-                        $background_gradient_start = $data['background_gradient_start'] ?? '#0b5394';
-                        $background_gradient_end = $data['background_gradient_end'] ?? '#53940b';
-                        $background_gradient_direction = $data['background_gradient_direction'] ?? 'to right';
-                        $background_image_id = $data['background_image_id'] ?? '';
-                        $background_image_url = $data['background_image_url'] ?? '';
-
-                        // CSS variable related values (for color pickers not directly tied to background type)
-                        $button_color = $data['css_vars']['--link-page-button-color'] ?? '#0b5394';
-                        $text_color = $data['css_vars']['--link-page-text-color'] ?? '#e5e5e5';
-                        $link_text_color = $data['css_vars']['--link-page-link-text-color'] ?? '#ffffff';
-                        $hover_color = $data['css_vars']['--link-page-hover-color'] ?? '#083b6c';
-                        // $custom_css_vars is used for the font family select, $link_page_id for profile image shape meta
-                        $custom_css_vars = $data['css_vars'] ?? [];
-
-                        set_query_var('data', $data);
-                        include EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/management/templates/manage-link-page-tabs/tab-customize.php';
+                        echo ec_render_template('manage-link-page-tab-customize', array(
+                            'data' => $data
+                        ));
                         ?>
                     </div>
                 </div>
@@ -355,10 +266,9 @@ if ($link_page_id && get_post_type($link_page_id) === 'artist_link_page') {
                     </button>
                     <div class="shared-tab-pane" id="manage-link-page-tab-advanced">
                         <?php
-                        // Pass $link_page_id to the advanced tab template if needed
-                        set_query_var('link_page_id', $link_page_id);
-                        set_query_var('data', $data);
-                        include EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/management/templates/manage-link-page-tabs/tab-advanced.php';
+                        echo ec_render_template('manage-link-page-tab-advanced', array(
+                            'data' => $data
+                        ));
                         ?>
                     </div>
                 </div>
@@ -372,10 +282,9 @@ if ($link_page_id && get_post_type($link_page_id) === 'artist_link_page') {
                     </button>
                     <div class="shared-tab-pane" id="manage-link-page-tab-analytics">
                         <?php
-                        // Pass $link_page_id to the analytics tab template if needed
-                        set_query_var('link_page_id', $link_page_id);
-                        set_query_var('data', $data);
-                        include EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/management/templates/manage-link-page-tabs/tab-analytics.php';
+                        echo ec_render_template('manage-link-page-tab-analytics', array(
+                            'data' => $data
+                        ));
                         ?>
                     </div>
                 </div>
@@ -389,16 +298,12 @@ if ($link_page_id && get_post_type($link_page_id) === 'artist_link_page') {
             <div class="extrch-link-page-preview-indicator">Live Preview</div>
             <div class="manage-link-page-preview-live">
                 <?php
-                // 2. Prepare and set the initial container style for the template
-                $initial_container_style_for_php_preview = isset($data['background_style']) ? $data['background_style'] : '';
-                set_query_var('initial_container_style_for_php_preview', $initial_container_style_for_php_preview);
-                // 4. Prepare preview data for the new modular preview partial
+                // Prepare preview data
                 $preview_template_data_for_php = ec_get_link_page_data($artist_id, $link_page_id);
-                // Add the link_page_id to the data array before passing it to the preview iframe
                 $preview_template_data_for_php['link_page_id'] = $link_page_id;
-                set_query_var('preview_template_data', $preview_template_data_for_php);
-                set_query_var('data', $data);
-                require EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/management/live-preview/preview.php';
+                echo ec_render_template('link-page-live-preview', array(
+                    'preview_data' => $preview_template_data_for_php
+                ));
                 ?>
             </div>
         </div>
@@ -429,45 +334,6 @@ extrch_render_link_expiration_modal();
 
 <?php get_footer(); ?>
 
-<script type="text/javascript">
-document.addEventListener('DOMContentLoaded', function() {
-    const linkPageArtistSwitcher = document.getElementById('link-page-artist-switcher-select');
-    if (linkPageArtistSwitcher) {
-        linkPageArtistSwitcher.addEventListener('change', function() {
-            if (this.value) {
-                const baseUrl = "<?php echo esc_url(get_permalink(get_the_ID())); ?>";
-                // Check if baseUrl already has query parameters
-                const separator = baseUrl.includes('?') ? '&' : '?';
-                window.location.href = baseUrl + separator + 'artist_id=' + this.value;
-            }
-        });
-    }
-});
-</script>
 
 <?php
 do_action( 'extra_chill_after_primary_content_area' );
-
-/**
- * Debug: Check initial value of hidden social links input in the DOM on page load.
- * This script runs *after* the form HTML is rendered, but *before* most external JS executes.
- */
-?>
-<script type="text/javascript">
-    document.addEventListener('DOMContentLoaded', function() {
-        const initialSocialInput = document.getElementById('artist_profile_social_links_json');
-        if (initialSocialInput) {
-            console.log('[LinkPageLoad - Initial DOM Check] #artist_profile_social_links_json value:', initialSocialInput.value);
-            console.log('[LinkPageLoad - Initial DOM Check] #artist_profile_social_links_json typeof value:', typeof initialSocialInput.value);
-            try {
-                 const parsedValue = JSON.parse(initialSocialInput.value);
-                 console.log('[LinkPageLoad - Initial DOM Check] #artist_profile_social_links_json parsed JSON:', parsedValue);
-                 console.log('[LinkPageLoad - Initial DOM Check] #artist_profile_social_links_json typeof parsed JSON:', typeof parsedValue);
-            } catch (e) {
-                 console.error('[LinkPageLoad - Initial DOM Check] Failed to parse JSON from #artist_profile_social_links_json', e);
-            }
-        } else {
-            console.warn('[LinkPageLoad - Initial DOM Check] #artist_profile_social_links_json element not found.');
-        }
-    });
-</script>

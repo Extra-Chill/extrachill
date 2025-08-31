@@ -64,8 +64,8 @@ class ExtraChill_Live_Preview_Handler {
             wp_die( 'Security check failed' );
         }
 
-        $link_page_id = absint( $_POST['link_page_id'] );
-        $artist_id = absint( $_POST['artist_id'] );
+        $link_page_id = apply_filters('ec_get_link_page_id', $_POST);
+        $artist_id = apply_filters('ec_get_artist_id', $_POST);
 
         if ( ! $link_page_id || ! $artist_id ) {
             wp_send_json_error( 'Missing required parameters' );
@@ -119,16 +119,9 @@ class ExtraChill_Live_Preview_Handler {
      * @return string Generated HTML
      */
     private function generate_preview_html( $preview_data ) {
-        ob_start();
-        
-        // Set query vars for the preview template
-        set_query_var( 'preview_template_data', $preview_data );
-        set_query_var( 'initial_container_style_for_php_preview', $preview_data['background_style'] ?? '' );
-        
-        // Include the preview template
-        include EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/management/live-preview/preview.php';
-        
-        return ob_get_clean();
+        return ec_render_template('link-page-live-preview', array(
+            'preview_data' => $preview_data
+        ));
     }
 }
 

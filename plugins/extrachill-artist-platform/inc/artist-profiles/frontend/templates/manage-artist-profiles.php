@@ -4,18 +4,7 @@
  * Description: A page template for users to create or edit an artist profile.
  */
 
-// Debug logging for manage-artist-profile
-global $wp_query, $post;
-error_log('[DEBUG] Manage Artist Profile Template: Starting template load');
-error_log('[DEBUG] Request URI: ' . $_SERVER['REQUEST_URI']);
-error_log('[DEBUG] Query vars: ' . print_r($wp_query->query_vars, true));
-error_log('[DEBUG] Is page: ' . ($wp_query->is_page ? 'yes' : 'no'));
-error_log('[DEBUG] Is singular: ' . ($wp_query->is_singular ? 'yes' : 'no'));
-error_log('[DEBUG] Is 404: ' . ($wp_query->is_404 ? 'yes' : 'no'));
-if ($post) {
-    error_log('[DEBUG] Global post ID: ' . $post->ID);
-    error_log('[DEBUG] Global post type: ' . $post->post_type);
-}
+// Manage Artist Profile Template
 
 get_header(); ?>
 
@@ -34,9 +23,9 @@ get_header(); ?>
                 <?php
                 // --- Success Message Check (after creation redirect) ---
                 if ( isset( $_GET['bp_success'] ) && $_GET['bp_success'] === 'created' && isset( $_GET['new_artist_id'] ) ) {
-                    $created_artist_id = absint( $_GET['new_artist_id'] );
+                    $created_artist_id = apply_filters('ec_get_artist_id', $_GET);
                     $created_artist_profile_url = get_permalink( $created_artist_id );
-                    $created_link_page_id = isset( $_GET['new_link_page_id'] ) ? absint( $_GET['new_link_page_id'] ) : 0;
+                    $created_link_page_id = apply_filters('ec_get_link_page_id', $_GET);
                     $manage_link_page_url_base = home_url('/manage-link-page/');
 
                     if ( $created_artist_profile_url ) {
@@ -124,7 +113,7 @@ get_header(); ?>
 
                         // --- Determine Mode (Create or Edit) --- 
                         if ( isset( $_GET['artist_id'] ) ) {
-                            $target_artist_id = absint( $_GET['artist_id'] );
+                            $target_artist_id = apply_filters('ec_get_artist_id', $_GET);
                             if ( $target_artist_id > 0 ) {
                                 $artist_post = get_post( $target_artist_id );
                                 if ( $artist_post && $artist_post->post_type === 'artist_profile' ) {
@@ -218,34 +207,20 @@ get_header(); ?>
                         if ( $can_proceed ) :
                             ?>
                             
-                            <?php // Set the H1 title of the page dynamically ?>
-                            <script type="text/javascript">document.title = "<?php echo esc_js( $form_title ); ?>";</script>
-                            <?php // You might need a more robust way to set the H1 if the template uses the_title() early
-                                echo '<h1 class="entry-title page-title">' . esc_html( $form_title ) . '</h1>'; 
+                            <?php 
+                            // Set the H1 title of the page dynamically
+                            echo '<h1 class="entry-title page-title">' . esc_html( $form_title ) . '</h1>'; 
                             ?>
 
                             <?php
-                            // --- Artist Switcher Dropdown ---
-                            $current_user_id_for_switcher = get_current_user_id();
-                            $user_artist_ids_for_switcher = get_user_meta( $current_user_id_for_switcher, '_artist_profile_ids', true );
-                            
-                            if ( is_array( $user_artist_ids_for_switcher ) && count( $user_artist_ids_for_switcher ) > 1 ) :
-                                $current_page_url_for_switcher = get_permalink(); // Base URL for the management page
-                                $current_selected_artist_id_for_switcher = isset( $_GET['artist_id'] ) ? absint( $_GET['artist_id'] ) : 0;
-                            ?>
-                                <div class="artist-switcher-container">
-                                    <select name="artist-switcher-select" id="artist-switcher-select">
-                                        <option value=""><?php esc_html_e( '-- Select an Artist --', 'extrachill-artist-platform'); ?></option>
-                                        <?php
-                                        foreach ( $user_artist_ids_for_switcher as $user_artist_id_item ) {
-                                            $artist_title_for_switcher = get_the_title( $user_artist_id_item );
-                                            echo '<option value="' . esc_attr( $user_artist_id_item ) . '" ' . selected( $current_selected_artist_id_for_switcher, $user_artist_id_item, false ) . '>' . esc_html( $artist_title_for_switcher ) . '</option>';
-                                        }
-                                        ?>
-                                    </select>
-                                </div>
-                            <?php
-                            endif; // End Artist Switcher Dropdown
+                            // --- Artist Switcher (Shared Component) ---
+                            echo ec_render_template( 'artist-switcher', array(
+                                'switcher_id' => 'artist-switcher-select',
+                                'base_url' => get_permalink(),
+                                // Use the artist being edited (0 in create mode)
+                                'current_artist_id' => (int) $target_artist_id,
+                                'user_id' => get_current_user_id()
+                            ) );
                             // --- End Artist Switcher ---
                             ?>
 
@@ -265,11 +240,8 @@ get_header(); ?>
                                     </div>
                                 <?php endif; ?>
 
-                                <!-- TOP SUBMIT BUTTON AND INTRO -->
+                                <!-- TOP SUBMIT BUTTON -->
                                 <?php if ( ! $edit_mode ) : ?>
-                                    <div class="bp-intro bp-notice bp-notice-info" style="margin-bottom: 15px;">
-                                        <p><?php esc_html_e( 'You can fill this out now, or just press Save to skip and go straight to customizing your link page. You can always come back and update your band profile later.', 'extrachill-artist-platform' ); ?></p>
-                                    </div>
                                     <div class="form-group submit-group" style="margin-bottom: 20px;">
                                         <input type="submit" name="<?php echo esc_attr( $submit_name ); ?>" class="button button-primary" value="<?php echo esc_attr( $submit_value ); ?>" />
                                     </div>
@@ -295,27 +267,21 @@ get_header(); ?>
                                                 }
                                                 // --- END Join Flow Guidance Notice ---
 
-                                                // Pass variables to the template part
-                                                set_query_var('edit_mode', $edit_mode);
-                                                set_query_var('target_artist_id', $target_artist_id);
-                                                set_query_var('artist_post', $artist_post);
-                                                set_query_var('current_genre', $current_genre);
-                                                set_query_var('current_local_city', $current_local_city);
-                                                set_query_var('current_website_url', $current_website_url);
-                                                set_query_var('current_spotify_url', $current_spotify_url);
-                                                set_query_var('current_apple_music_url', $current_apple_music_url);
-                                                set_query_var('current_bandcamp_url', $current_bandcamp_url);
-                                                set_query_var('current_allow_public_topics', $current_allow_public_topics);
-
-                                                // Pass variables for pre-filling/display
-                                                set_query_var('display_artist_name', $display_artist_name);
-                                                set_query_var('display_artist_bio', $display_artist_bio);
-                                                set_query_var('display_profile_image_url', $display_profile_image_url);
-                                                set_query_var('display_header_image_url', $display_header_image_url);
-                                                set_query_var('current_profile_image_id', $edit_mode ? $current_profile_image_id : null);
-                                                set_query_var('current_header_image_id', $edit_mode ? $current_header_image_id : null);
-
-                                                include EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/artist-profiles/frontend/templates/manage-artist-profile-tabs/tab-info.php';
+                                                echo ec_render_template('manage-artist-profile-tab-info', array(
+                                                    'edit_mode' => (bool) $edit_mode,
+                                                    'target_artist_id' => (int) $target_artist_id,
+                                                    'display_artist_name' => $display_artist_name,
+                                                    'display_artist_bio' => $display_artist_bio,
+                                                    'display_profile_image_url' => $display_profile_image_url,
+                                                    'display_header_image_url' => $display_header_image_url,
+                                                    'current_profile_image_id' => $edit_mode ? $current_profile_image_id : null,
+                                                    'current_header_image_id' => $edit_mode ? $current_header_image_id : null,
+                                                    // Also pass fields referenced inside the tab template
+                                                    'current_local_city' => $current_local_city,
+                                                    'current_genre' => $current_genre,
+                                                    'prefill_user_avatar_thumbnail_url' => $prefill_user_avatar_thumbnail_url,
+                                                    'prefill_user_avatar_id' => $prefill_user_avatar_id
+                                                ));
                                                 ?>
                                             </div>
                                         </div>
@@ -329,10 +295,11 @@ get_header(); ?>
                                             </button>
                                             <div id="manage-artist-profile-managers-content" class="shared-tab-pane">
                                                 <?php
-                                                // Pass variables to the template part
-                                                set_query_var('target_artist_id', $target_artist_id);
-                                                set_query_var('artist_post_title', $artist_post_title); // Pass artist name for emails
-                                                include EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/artist-profiles/frontend/templates/manage-artist-profile-tabs/tab-profile-managers.php';
+                                                echo ec_render_template('manage-artist-profile-tab-profile-managers', array(
+                                                    'edit_mode' => (bool) $edit_mode,
+                                                    'target_artist_id' => (int) $target_artist_id,
+                                                    'artist_post_title' => $artist_post_title
+                                                ));
                                                 ?>
                                             </div>
                                         </div>
@@ -345,7 +312,9 @@ get_header(); ?>
                                             </button>
                                             <div id="manage-artist-profile-followers-content" class="shared-tab-pane">
                                                 <?php 
-                                                include EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/artist-profiles/frontend/templates/manage-artist-profile-tabs/tab-subscribers.php';
+                                                echo ec_render_template('manage-artist-profile-tab-subscribers', array(
+                                                    'target_artist_id' => $target_artist_id
+                                                ));
                                                 ?>
                                             </div>
                                         </div>
@@ -358,7 +327,9 @@ get_header(); ?>
                                             </button>
                                             <div id="manage-artist-profile-forum-content" class="shared-tab-pane">
                                                 <?php 
-                                                include EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/artist-profiles/frontend/templates/manage-artist-profile-tabs/tab-forum.php';
+                                                echo ec_render_template('manage-artist-profile-tab-forum', array(
+                                                    'target_artist_id' => $target_artist_id
+                                                ));
                                                 ?>
                                             </div>
                                         </div>
@@ -400,61 +371,7 @@ get_header(); ?>
 
 <?php // Script for tab functionality removed, will be handled by shared-tabs.js ?>
 
-<script type="text/javascript">
-document.addEventListener('DOMContentLoaded', function() {
-    // Logic for Band Switcher Dropdown - KEEP THIS SEPARATE SCRIPT
-    const bandSwitcher = document.getElementById('artist-switcher-select');
-    if (bandSwitcher) {
-        bandSwitcher.addEventListener('change', function() {
-            const baseUrl = "<?php echo esc_url(get_permalink(get_the_ID())); ?>"; // Get current page's URL
-            if (this.value) { // If a band ID is selected
-                window.location.href = baseUrl + '?artist_id=' + this.value;
-            } else { // If '-- Select a Band --' (empty value) is selected
-                window.location.href = baseUrl;
-            }
-        });
-    }
-});
-</script>
 
-<script type="text/javascript">
-document.addEventListener('DOMContentLoaded', function() {
-    const form = document.getElementById('bp-manage-artist-form');
-    if (!form) return;
-
-    const submitButton = form.querySelector('input[type="submit"].button-primary');
-    const profileImageInput = document.getElementById('featured_image');
-    const headerImageInput = document.getElementById('artist_header_image');
-    
-    let feedbackDiv = null; // To store the feedback message div
-
-    form.addEventListener('submit', function(event) {
-        let newProfileImageSelected = profileImageInput && profileImageInput.files && profileImageInput.files.length > 0;
-        let newHeaderImageSelected = headerImageInput && headerImageInput.files && headerImageInput.files.length > 0;
-
-        if (submitButton && (newProfileImageSelected || newHeaderImageSelected)) {
-            if (!feedbackDiv) {
-                feedbackDiv = document.createElement('div');
-                feedbackDiv.className = 'bp-save-feedback'; // You can style this class
-                feedbackDiv.style.marginTop = '10px';
-                feedbackDiv.style.fontSize = '0.9em';
-                feedbackDiv.style.color = '#555'; // Example style
-                // Insert after the submit button, or its container
-                if (submitButton.parentNode.classList.contains('submit-group')) {
-                    submitButton.parentNode.appendChild(feedbackDiv);
-                } else {
-                    submitButton.insertAdjacentElement('afterend', feedbackDiv);
-                }
-            }
-            feedbackDiv.textContent = 'Saving, please wait... Image processing may take a moment.';
-            
-            // Optionally disable the submit button to prevent multiple submissions
-            // submitButton.disabled = true; 
-            // submitButton.style.opacity = '0.7';
-        }
-    });
-});
-</script>
 
 <?php 
 do_action( 'extra_chill_after_primary_content_area' );

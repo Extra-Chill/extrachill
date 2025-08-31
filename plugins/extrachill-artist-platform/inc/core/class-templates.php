@@ -1,15 +1,22 @@
 <?php
 /**
- * ExtraChill Artist Platform Templates Class
+ * ExtraChill Artist Platform Page Templates Class
  * 
- * Handles template loading and overrides for artist platform functionality.
- * Plugin templates take precedence over theme templates.
+ * Handles WordPress page template routing for artist platform post types and management pages.
+ * Provides proper template_include and page_template overrides.
+ * 
+ * Note: Component templates (links, social icons, etc.) are handled by the unified
+ * ec_render_template() system in inc/core/filters/templates.php
  */
+
+// IMPORTANT:
+// This class is ONLY responsible for selecting full-page templates (template_include/page_template).
+// Do not use it for rendering component partials. For components, use ec_render_template() via filters.
 
 // Exit if accessed directly
 defined( 'ABSPATH' ) || exit;
 
-class ExtraChillArtistPlatform_Templates {
+class ExtraChillArtistPlatform_PageTemplates {
 
     /**
      * Single instance of the class
@@ -122,102 +129,6 @@ class ExtraChillArtistPlatform_Templates {
         }
 
         return $template;
-    }
-
-
-    /**
-     * Get template part with plugin fallback
-     * 
-     * Searches plugin template directories before falling back to theme.
-     */
-    public static function get_template_part( $slug, $name = null, $args = array() ) {
-        $templates = array();
-        
-        if ( isset( $name ) ) {
-            $templates[] = "{$slug}-{$name}.php";
-        }
-        $templates[] = "{$slug}.php";
-
-        // Look for template in plugin first - check multiple locations
-        $plugin_template = null;
-        $template_dirs = array(
-            'inc/artist-profiles/frontend/templates/',
-            'inc/link-pages/live/templates/',
-            'inc/link-pages/management/templates/'
-        );
-        
-        foreach ( $templates as $template ) {
-            foreach ( $template_dirs as $dir ) {
-                $plugin_path = EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . $dir . $template;
-                if ( file_exists( $plugin_path ) ) {
-                    $plugin_template = $plugin_path;
-                    break 2;
-                }
-            }
-        }
-
-        if ( $plugin_template ) {
-            // Make args available to template scope
-            if ( ! empty( $args ) ) {
-                // Create variables directly in local scope
-                foreach ( $args as $key => $value ) {
-                    ${$key} = $value;
-                }
-            }
-            
-            include $plugin_template;
-            return;
-        }
-
-        // Fallback to theme template
-        get_template_part( $slug, $name, $args );
-    }
-
-    /**
-     * Load template with args
-     * 
-     * Searches multiple plugin template directories and extracts args.
-     */
-    public static function load_template( $template_name, $args = array() ) {
-        // Check multiple template directories
-        $template_dirs = array(
-            'inc/artist-profiles/frontend/templates/',
-            'inc/link-pages/live/templates/',
-            'inc/link-pages/management/templates/'
-        );
-        
-        foreach ( $template_dirs as $dir ) {
-            $template_path = EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . $dir . $template_name;
-            if ( file_exists( $template_path ) ) {
-                if ( ! empty( $args ) ) {
-                    // Create variables directly in local scope
-                    foreach ( $args as $key => $value ) {
-                        ${$key} = $value;
-                    }
-                }
-                include $template_path;
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    /**
-     * Load artist profile card component
-     * 
-     * @param int $artist_id Required. The artist profile post ID
-     * @param string $context Optional. Context: 'user-profile', 'dashboard', 'directory'
-     */
-    public static function load_artist_profile_card( $artist_id, $context = 'default' ) {
-        if ( ! $artist_id ) {
-            return false;
-        }
-
-        return self::load_template( 'artist-profile-card.php', array(
-            'artist_id' => $artist_id,
-            'context' => $context
-        ) );
     }
 
     /**

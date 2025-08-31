@@ -8,52 +8,5 @@
 
 defined( 'ABSPATH' ) || exit;
 
-/**
- * AJAX handler for public subscribe form on the link page.
- * Accepts: artist_id, subscriber_email, _ajax_nonce
- */
-function extrch_link_page_subscribe_ajax_handler() {
-    // Validate required fields
-    if ( ! isset( $_POST['artist_id'], $_POST['subscriber_email'], $_POST['_ajax_nonce'] ) ) {
-        wp_send_json_error( array( 'message' => __( 'Missing required fields.', 'extrachill-artist-platform' ) ), 400 );
-    }
-    $artist_id = absint( $_POST['artist_id'] );
-    $email = sanitize_email( $_POST['subscriber_email'] );
-    $nonce = sanitize_text_field( $_POST['_ajax_nonce'] );
-
-    // Verify nonce
-    if ( ! wp_verify_nonce( $nonce, 'extrch_subscribe_nonce' ) ) {
-        wp_send_json_error( array( 'message' => __( 'Security check failed. Please refresh and try again.', 'extrachill-artist-platform' ) ), 403 );
-    }
-    // Validate artist_id
-    if ( ! $artist_id || get_post_type( $artist_id ) !== 'artist_profile' ) {
-        wp_send_json_error( array( 'message' => __( 'Invalid band specified.', 'extrachill-artist-platform' ) ), 400 );
-    }
-    // Validate email
-    if ( ! is_email( $email ) ) {
-        wp_send_json_error( array( 'message' => __( 'Please enter a valid email address.', 'extrachill-artist-platform' ) ), 400 );
-    }
-    global $wpdb;
-    $table = $wpdb->prefix . 'artist_subscribers';
-    // Check for existing subscription
-    $exists = $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM $table WHERE artist_profile_id = %d AND subscriber_email = %s", $artist_id, $email ) );
-    if ( $exists ) {
-        wp_send_json_error( array( 'message' => __( 'You are already subscribed to this band.', 'extrachill-artist-platform' ) ), 409 );
-    }
-    // Insert new subscriber
-    $result = $wpdb->insert( $table, array(
-        'artist_profile_id'   => $artist_id,
-        'subscriber_email'  => $email,
-        'username'          => '', // Optionally fill if user is logged in
-        'subscribed_at'     => current_time( 'mysql', 1 ), // GMT
-        'exported'          => 0,
-    ), array( '%d', '%s', '%s', '%s', '%d' ) );
-    if ( $result ) {
-        wp_send_json_success( array( 'message' => __( 'Thank you for subscribing!', 'extrachill-artist-platform' ) ) );
-    } else {
-        wp_send_json_error( array( 'message' => __( 'Could not save your subscription. Please try again later.', 'extrachill-artist-platform' ) ), 500 );
-    }
-    wp_die();
-}
 
 // AJAX handlers registered through centralized system in inc/core/actions/ajax.php

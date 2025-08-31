@@ -18,7 +18,7 @@ add_action( 'wp_ajax_bp_ajax_invite_member_by_email', 'bp_ajax_invite_member_by_
 
 function bp_ajax_invite_member_by_email() {
     check_ajax_referer( 'bp_ajax_invite_member_by_email_nonce', 'nonce' );
-    $artist_id = isset( $_POST['artist_id'] ) ? absint( $_POST['artist_id'] ) : 0;
+    $artist_id = apply_filters('ec_get_artist_id', $_POST);
     $invite_email = isset( $_POST['invite_email'] ) ? sanitize_email( $_POST['invite_email'] ) : '';
     if ( ! $artist_id || ! is_email( $invite_email ) ) {
         wp_send_json_error( array( 'message' => 'Missing or invalid parameters (band ID or email).' ) );

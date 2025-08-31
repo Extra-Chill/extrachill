@@ -36,7 +36,7 @@ $header_image_url = $header_image_id ? wp_get_attachment_image_url($header_image
 // Get meta data
 $genre = get_post_meta($artist_id, '_genre', true);
 $local_city = get_post_meta($artist_id, '_local_city', true);
-$link_page_id = get_post_meta($artist_id, '_extrch_link_page_id', true);
+$link_page_id = apply_filters('ec_get_link_page_id', $artist_id);
 $forum_id = get_post_meta($artist_id, '_artist_forum_id', true);
 
 // Get subscriber count
@@ -121,11 +121,6 @@ if ( $header_image_url ) {
                 <a href="<?php echo esc_url($artist_url); ?>" class="button button-primary">
                     <?php esc_html_e('View Profile', 'extrachill-artist-platform'); ?>
                 </a>
-                <?php if ( $forum_id && function_exists('bbp_get_forum_permalink') ) : ?>
-                    <a href="<?php echo esc_url(bbp_get_forum_permalink($forum_id)); ?>" class="button">
-                        <?php esc_html_e('Forum', 'extrachill-artist-platform'); ?>
-                    </a>
-                <?php endif; ?>
                 <?php if ( $link_page_id ) : ?>
                     <?php 
                     $link_page_post = get_post($link_page_id);

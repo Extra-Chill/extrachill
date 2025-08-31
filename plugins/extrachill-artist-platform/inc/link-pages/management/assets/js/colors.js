@@ -1,9 +1,5 @@
-(function(manager) {
-    if (!manager) {
-        console.error("ExtrchLinkPageManager not found. Colors script cannot run.");
-        return;
-    }
-    manager.colors = manager.colors || {};
+(function() {
+    'use strict';
 
     // --- DOM Elements ---
     let buttonColorInput = null;
@@ -80,17 +76,11 @@
         }
     }
 
-    // Public init function for the colors module
-    manager.colors.init = function() {
-        // Self-contained module - initialize directly on DOMContentLoaded
+    // Auto-initialize when DOM is ready
+    if (document.readyState !== 'loading') {
         initializeColorControls();
-    };
-
-    // --- Initial Call to arm the init logic for the colors module ---
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', manager.colors.init);
     } else {
-        manager.colors.init();
+        document.addEventListener('DOMContentLoaded', initializeColorControls);
     }
 
-})(window.ExtrchLinkPageManager = window.ExtrchLinkPageManager || {}); 
+})(); 

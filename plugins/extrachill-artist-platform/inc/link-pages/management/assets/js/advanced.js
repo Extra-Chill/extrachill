@@ -1,10 +1,7 @@
 // JavaScript for Advanced Tab - Manage Link Page
 
-(function(manager) { // Wrap in IIFE and pass manager
-    if (!manager) {
-        // console.warn('ExtrchLinkPageManager is not defined for Advanced Tab. Some features might not work.');
-        // Allow to proceed if manager is not there, but some features might be limited
-    }
+(function() {
+    'use strict';
 
     const redirectEnabledCheckbox = document.getElementById('bp-enable-temporary-redirect');
     const redirectTargetContainer = document.getElementById('bp-temporary-redirect-target-container');
@@ -20,8 +17,8 @@
 
         // Get links data from centralized source
         let linksData = [];
-        if (manager?.getLinks && typeof manager.getLinks === 'function') {
-            linksData = manager.getLinks() || [];
+        if (extraChillArtistPlatform.linkPageData && Array.isArray(extraChillArtistPlatform.linkPageData.links)) {
+            linksData = extraChillArtistPlatform.linkPageData.links;
         } else {
             console.warn('[Advanced] Centralized links data not available - this should not happen');
         }
@@ -68,6 +65,7 @@
     }
 
     function initializeAdvancedTab() {
+        // Initialize redirect functionality
         if (redirectEnabledCheckbox && redirectTargetContainer && redirectTargetSelect) {
             // The data-php-redirect-url is set by tab-advanced.php and will be read directly in populateRedirectTargetDropdownIfNeeded
             // No need to copy it to another data attribute here.
@@ -88,6 +86,21 @@
             updateDisplayAndPopulate(); // Initial call
         }
 
+        // Initialize expiration functionality
+        const expirationEnabledCheckbox = document.getElementById('bp-enable-link-expiration-advanced');
+        if (expirationEnabledCheckbox) {
+            expirationEnabledCheckbox.addEventListener('change', function() {
+                const isEnabled = this.checked;
+                
+                // Dispatch event to notify expiration system of setting change
+                document.dispatchEvent(new CustomEvent('expirationSettingChanged', {
+                    detail: { enabled: isEnabled }
+                }));
+                
+                console.log('[Advanced] Link expiration setting changed:', isEnabled);
+            });
+        }
+
         // Listen for custom event that indicates links have been updated
         // This ensures the dropdown is repopulated if links are added/removed/edited in another tab
         document.addEventListener('bpLinkPageLinksRefreshed', function() {
@@ -97,18 +110,11 @@
         });
     }
 
-    // Expose init for the main manager if needed, or self-initialize
-    if (manager && typeof manager.advanced === 'object' && manager.advanced !== null) { // Check if manager.advanced is an object
-        manager.advanced.init = initializeAdvancedTab;
-    } else if (manager) { // If manager exists but manager.advanced isn't an object, create it.
-        manager.advanced = { init: initializeAdvancedTab };
+    // Auto-initialize when DOM is ready
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initializeAdvancedTab);
     } else {
-        // Self-initialize if not part of a larger manager structure or if manager.advanced is not defined
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', initializeAdvancedTab);
-        } else {
-            initializeAdvancedTab();
-        }
+        initializeAdvancedTab();
     }
 
-})(window.ExtrchLinkPageManager); // Pass the global manager object
+})(); // Self-contained module

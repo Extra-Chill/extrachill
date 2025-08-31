@@ -7,11 +7,10 @@
 
 defined( 'ABSPATH' ) || exit;
 
-// All info tab data should be hydrated from $data provided by ec_get_link_page_data filter.
-
-// Retrieve data passed from manage-link-page.php
-$current_artist_id = get_query_var('tab_info_artist_id');
-$current_bio_text = get_query_var('tab_info_bio_text', '');
+// Extract arguments passed from ec_render_template
+$current_artist_id = $artist_id ?? 0;
+$data = $data ?? array();
+$current_bio_text = $data['bio'] ?? '';
 
 ?>
 <div class="link-page-content-card">

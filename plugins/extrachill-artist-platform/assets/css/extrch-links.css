@@ -385,6 +385,34 @@ body {
   animation: extrch-modal-fadein 0.2s;
   border: 1px solid var(--link-page-button-border-color);
 }
+
+/* Background inheritance for subscribe modal - matches main container */
+.extrch-subscribe-modal-content[data-bg-type="color"] {
+  background-color: var(--link-page-background-color);
+  background-image: none; /* Explicitly remove image/gradient */
+}
+
+.extrch-subscribe-modal-content[data-bg-type="gradient"] {
+  background: linear-gradient(
+    var(--link-page-background-gradient-direction),
+    var(--link-page-background-gradient-start),
+    var(--link-page-background-gradient-end)
+  );
+  background-image: linear-gradient(
+    var(--link-page-background-gradient-direction),
+    var(--link-page-background-gradient-start),
+    var(--link-page-background-gradient-end)
+  );
+  background-color: transparent; /* Ensure no base color shows through */
+}
+
+.extrch-subscribe-modal-content[data-bg-type="image"] {
+  background-image: var(--link-page-background-image-url);
+  background-size: var(--link-page-image-size); /* Use variable */
+  background-position: var(--link-page-image-position); /* Use variable */
+  background-repeat: var(--link-page-image-repeat); /* Use variable */
+  background-color: transparent; /* Ensure no base color shows through */
+}
 @keyframes extrch-modal-fadein {
   from { opacity: 0; transform: translateY(30px); }
   to { opacity: 1; transform: translateY(0); }
@@ -553,134 +581,6 @@ body {
   border-color: var(--link-page-button-border-color) !important;
 }
 
-/* --- Featured Link Section --- */
-.link-page-featured-link-section {
-  display: block;
-  background-color: var(--link-page-card-bg-color);
-  color: var(--link-page-text-color);
-  padding: 0;
-  border-radius: 16px;
-  margin-bottom: 1em;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.10);
-  border: 1.5px solid var(--link-page-button-border-color);
-  max-width: 100%;
-  width: 100%;
-  overflow: hidden;
-  position: relative;
-}
-.link-page-featured-link-section .featured-link-anchor {
-  display: block;
-  text-decoration: none;
-  color: inherit;
-}
-.link-page-featured-link-section .featured-link-thumbnail {
-  width: 100%;
-  aspect-ratio: 16/9;
-  height: auto;
-  object-fit: cover;
-  border-top-left-radius: 16px;
-  border-top-right-radius: 16px;
-  border-bottom-left-radius: 0;
-  border-bottom-right-radius: 0;
-  display: block;
-}
-.link-page-featured-link-section .featured-link-content {
-  padding: 1.2em 1.5em 0.5em 1.5em;
-  text-align: left;
-}
-.link-page-featured-link-section .featured-link-title {
-  font-size: 1.35em;
-  font-weight: bold;
-  margin: 0 0 0.4em 0;
-  line-height: 1.2;
-  color: var(--link-page-text-color);
-}
-.link-page-featured-link-section .featured-link-description {
-  font-size: 1em;
-  opacity: 0.88;
-  margin: 0 0 1.1em 0;
-  line-height: 1.5;
-  color: var(--link-page-text-color);
-}
-.link-page-featured-link-section .featured-link-share-row {
-  width: 100%;
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  padding: 0 1.5em 1em 1.5em;
-  box-sizing: border-box;
-}
-.link-page-featured-link-section .extrch-share-featured-trigger {
-  background: transparent;
-  border: none;
-  color: var(--link-page-link-text-color);
-  font-size: 1.3em;
-  cursor: pointer;
-  padding: 0.3em 0.5em;
-  opacity: 0.7;
-  transition: opacity 0.2s, color 0.2s;
-}
-.link-page-featured-link-section .extrch-share-featured-trigger:hover {
-  opacity: 1;
-  color: var(--link-page-button-hover-bg-color);
-}
-@media (max-width: 600px) {
-  .link-page-featured-link-section {
-    border-radius: 10px;
-    margin-bottom: 1em;
-  }
-  .link-page-featured-link-section .featured-link-thumbnail {
-    border-top-left-radius: 10px;
-    border-top-right-radius: 10px;
-  }
-  .link-page-featured-link-section .featured-link-content {
-    padding: 0.9em 0.8em 0.4em 0.8em;
-  }
-  .link-page-featured-link-section .featured-link-share-row {
-    padding: 0 0.8em 0.7em 0.8em;
-  }
-}
-
-.extrch-featured-item-highlight{
-  background-color: var(--link-page-card-bg-color);
-}
-
-.featured-link-title-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  margin-bottom: 0.25em;
-}
-
-.featured-link-title {
-  font-size: 1.25rem;
-  font-weight: bold;
-  margin: 0;
-  flex: 1 1 auto;
-  line-height: 1.2;
-  color: var(--link-page-text-color);
-}
-
-.extrch-share-featured-trigger {
-  background: none;
-  border: none;
-  color: var(--link-page-accent);
-  font-size: 1.2em;
-  cursor: pointer;
-  padding: 0.25em 0.5em;
-  margin-left: 0.5em;
-  align-self: flex-start;
-  transition: color 0.2s;
-}
-.extrch-share-featured-trigger:hover,
-.extrch-share-featured-trigger:focus {
-  color: var(--link-page-accent-hover);
-}
-
-/* Remove old share row styles if present */
-.featured-link-share-row { display: none !important; }
-
 /* --- Ensure subscribe button hover works in live preview (iframe) --- */
 .extrch-link-page-preview-container .extrch-link-page-subscribe-inline-form-container form.extrch-subscribe-form button[type="submit"]:hover:not(:disabled),
 .extrch-link-page-preview-container .extrch-link-page-subscribe-inline-form-container .button.button-primary:hover:not(:disabled),
@@ -688,10 +588,4 @@ body {
   background: var(--link-page-button-hover-bg-color) !important;
   color: var(--link-page-button-bg-color) !important;
   border-color: var(--link-page-button-border-color) !important;
-}
-
-.link-page-featured-link-section .featured-link-title:hover,
-.link-page-featured-link-section .featured-link-description:hover {
-  color: var(--link-page-button-hover-bg-color);
-  cursor: pointer;
 }

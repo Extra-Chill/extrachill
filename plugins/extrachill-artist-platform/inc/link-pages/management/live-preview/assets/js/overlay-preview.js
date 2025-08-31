@@ -1,8 +1,6 @@
 // Overlay Preview Module - Handles live preview updates for overlay toggle
-(function(manager) {
-    if (!manager) return;
-    
-    manager.overlayPreview = manager.overlayPreview || {};
+(function() {
+    'use strict';
     
     // Main overlay preview update function - Direct DOM manipulation
     function updateOverlayPreview(overlayEnabled) {
@@ -33,7 +31,6 @@
         }
     });
 
-    // Expose functions on manager
-    manager.overlayPreview.update = updateOverlayPreview;
+    // Self-contained module - no global exposure needed
 
-})(window.ExtrchLinkPageManager = window.ExtrchLinkPageManager || {});
+})();

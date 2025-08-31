@@ -51,11 +51,10 @@ function ec_handle_artist_platform_sync( $artist_id ) {
         return new WP_Error( 'artist_not_found', 'Artist profile post not found' );
     }
 
-    // Get associated link page
-    $link_page_id = get_post_meta( $artist_id, '_extrch_link_page_id', true );
+    // Get associated link page - sync skips if null
+    $link_page_id = apply_filters('ec_get_link_page_id', $artist_id);
     if ( ! $link_page_id || get_post_type( $link_page_id ) !== 'artist_link_page' ) {
-        // No link page exists - this is normal for some artist profiles
-        return true;
+        return true; // Skip sync - no link page to sync with
     }
 
     // Start sync protection
@@ -71,8 +70,19 @@ function ec_handle_artist_platform_sync( $artist_id ) {
             return $sync_result;
         }
 
-        // Fire the sync action hook for extensibility
-        do_action( 'ec_artist_platform_sync', $artist_id );
+        /**
+         * Fires after artist platform sync is completed successfully.
+         * 
+         * This action hook allows other plugins and theme functions to perform
+         * additional operations after the bidirectional sync between an artist
+         * profile and link page is complete. Commonly used for cache clearing,
+         * search index updates, or triggering external API synchronization.
+         * 
+         * @since 1.0.0
+         * 
+         * @param int $artist_id The ID of the artist profile that was synced.
+         */
+        do_action( 'ec_artist_platform_sync_complete', $artist_id );
 
         return true;
 
@@ -190,7 +200,7 @@ function ec_sync_on_meta_update( $meta_id, $object_id, $meta_key, $meta_value ) 
     if ( get_post_type( $object_id ) === 'artist_link_page' && 
          in_array( $meta_key, $sync_keys, true ) ) {
         
-        $artist_id = get_post_meta( $object_id, '_associated_artist_profile_id', true );
+        $artist_id = apply_filters('ec_get_artist_id', $object_id);
         if ( $artist_id && get_post_type( $artist_id ) === 'artist_profile' ) {
             ec_handle_artist_platform_sync( $artist_id );
         }
@@ -198,6 +208,16 @@ function ec_sync_on_meta_update( $meta_id, $object_id, $meta_key, $meta_value ) 
 }
 add_action( 'updated_post_meta', 'ec_sync_on_meta_update', 10, 4 );
 add_action( 'added_post_meta', 'ec_sync_on_meta_update', 10, 4 );
+
+/**
+ * Sync action handler
+ * 
+ * Triggered by ec_artist_platform_sync action to perform the actual sync.
+ */
+function ec_handle_sync_action( $artist_id ) {
+    ec_handle_artist_platform_sync( $artist_id );
+}
+add_action( 'ec_artist_platform_sync', 'ec_handle_sync_action', 10, 1 );
 
 /**
  * Trigger sync for an artist profile (public API)

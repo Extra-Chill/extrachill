@@ -12,58 +12,31 @@
 
 defined( 'ABSPATH' ) || exit;
 
-// Ensure variables from parent scope are available
-// (e.g., $background_type, $background_color, $background_image_url, $button_color, $text_color, $link_text_color, $hover_color, $link_page_id, etc.)
-// As with tab-info.php, we assume accessibility from the parent scope for this refactor.
-global $background_type, $background_color, $background_image_url, $button_color, $text_color, $link_text_color, $hover_color, $link_page_id;
+// Extract arguments passed from ec_render_template
+$data = $data ?? array();
 
-// $extrch_link_page_fonts is provided by the font config system, loaded in bootstrap.
-$extrch_link_page_fonts = get_query_var('extrch_link_page_fonts', array());
+// Extract variables from $data
+$background_type = $data['background_type'] ?? 'color';
+$background_color = $data['background_color'] ?? '#1a1a1a';
+$background_gradient_start = $data['background_gradient_start'] ?? '#0b5394';
+$background_gradient_end = $data['background_gradient_end'] ?? '#53940b';
+$background_gradient_direction = $data['background_gradient_direction'] ?? 'to right';
+$background_image_id = $data['background_image_id'] ?? '';
+$background_image_url = $data['background_image_url'] ?? '';
 
-// Hydrate from canonical centralized data
-$data = get_query_var('data', array());
+// CSS variable related values
+$button_color = $data['css_vars']['--link-page-button-color'] ?? '#0b5394';
+$text_color = $data['css_vars']['--link-page-text-color'] ?? '#e5e5e5';
+$link_text_color = $data['css_vars']['--link-page-link-text-color'] ?? '#ffffff';
+$hover_color = $data['css_vars']['--link-page-hover-color'] ?? '#083b6c';
+
+// $extrch_link_page_fonts is provided by the font config system
+$extrch_link_page_fonts = apply_filters('ec_artist_platform_fonts', array());
 $custom_vars = isset($data['css_vars']) && is_array($data['css_vars']) ? $data['css_vars'] : array();
 $settings = isset($data['settings']) && is_array($data['settings']) ? $data['settings'] : array();
 
 ?>
 
-<!-- Featured Link Settings Card -->
-<?php
-$is_featured_link_enabled = $settings['featured_link_enabled'] ?? false;
-$featured_link_original_id_val = $settings['featured_link_original_id'] ?? '';
-$show_featured_link_card = $is_featured_link_enabled && !empty($featured_link_original_id_val);
-
-$featured_custom_description = $show_featured_link_card ? $settings['featured_link_custom_description'] ?? '' : '';
-$featured_thumbnail_id = $show_featured_link_card ? $settings['featured_link_thumbnail_id'] ?? '' : '';
-$fetched_og_image_url = $show_featured_link_card ? $settings['featured_link_fetched_thumbnail_url'] ?? '' : '';
-$featured_thumbnail_url = $featured_thumbnail_id ? wp_get_attachment_image_url($featured_thumbnail_id, 'medium') : ($fetched_og_image_url ? esc_url($fetched_og_image_url) : '#');
-$initial_thumbnail_display = ($featured_thumbnail_url && $featured_thumbnail_url !== '#') ? 'block' : 'none';
-$has_any_thumbnail = ($featured_thumbnail_url && $featured_thumbnail_url !== '#');
-?>
-<div class="link-page-content-card" id="featured-link-settings-card" style="<?php echo $show_featured_link_card ? '' : 'display:none;'; ?>">
-    <h4 class="customize-card-title"><?php esc_html_e('Featured Link Settings', 'extrachill-artist-platform'); ?></h4>
-    
-    <div class="customize-section featured-link-thumbnail-section">
-        <label for="featured_link_thumbnail_upload"><strong><?php esc_html_e('Featured Link Thumbnail', 'extrachill-artist-platform'); ?></strong></label><br>
-        <button type="button" class="button" id="featured-link-choose-file-btn" onclick="document.getElementById('featured_link_thumbnail_upload').click();" style="margin-bottom: 10px;">Choose File</button>
-        <input type="file" id="featured_link_thumbnail_upload" name="featured_link_thumbnail_upload" accept="image/*" style="display:none;">
-        <?php if ($has_any_thumbnail) : ?>
-            <button type="button" class="button button-secondary" id="remove_featured_link_thumbnail_btn" style="margin-left: 8px; margin-bottom: 10px;">Remove Thumbnail</button>
-        <?php endif; ?>
-        <p class="description" style="font-size: 0.9em; margin-top: -5px; margin-bottom: 10px;">
-            <?php esc_html_e('Upload an image (e.g., 1200x630px). If not provided, the system will attempt to fetch a preview image from the link source.', 'extrachill-artist-platform'); ?>
-        </p>
-    </div>
-
-    <!-- The featured link title is always the link's title. No override input. -->
-
-    <div class="customize-section featured-link-description-section" style="margin-top: 15px;">
-        <label for="featured_link_custom_description"><strong><?php esc_html_e('Featured Link Description', 'extrachill-artist-platform'); ?></strong></label><br>
-        <textarea id="featured_link_custom_description" name="featured_link_custom_description" rows="3" class="regular-text" style="width:100%; max-width:400px;"><?php echo esc_textarea($featured_custom_description); ?></textarea>
-    </div>
-</div>
-
-<input type="hidden" name="featured_link_thumbnail_id_action" id="featured_link_thumbnail_id_action" value="<?php echo ($show_featured_link_card && $featured_thumbnail_id && $featured_link_original_id_val) ? 'remove' : ''; ?>">
 
 <!-- Fonts Card -->
 <div class="link-page-content-card">
@@ -81,8 +54,17 @@ $has_any_thumbnail = ($featured_thumbnail_url && $featured_thumbnail_url !== '#'
         </select>
         <div class="customize-subsection" style="margin-top: 15px;">
             <label for="link_page_title_font_size"><strong><?php esc_html_e('Title Size', 'extrachill-artist-platform'); ?></strong></label><br>
-            <input type="range" id="link_page_title_font_size" name="link_page_title_font_size" min="1" max="100" value="50" step="1" style="width: 180px; vertical-align: middle;">
-            <output for="link_page_title_font_size" id="title_font_size_output" style="margin-left: 10px; vertical-align: middle;">50%</output>
+            <?php 
+            // Calculate slider value from stored em value using original conversion
+            $font_size_min_em = 0.8;
+            $font_size_max_em = 3.5;
+            $current_em_string = $custom_vars['--link-page-title-font-size'] ?? '2.1em';
+            $current_em_value = (float) str_replace('em', '', $current_em_string);
+            $percentage = ($current_em_value - $font_size_min_em) / ($font_size_max_em - $font_size_min_em);
+            $slider_value = max(1, min(100, round($percentage * 100)));
+            ?>
+            <input type="range" id="link_page_title_font_size" name="link_page_title_font_size" min="1" max="100" value="<?php echo esc_attr($slider_value); ?>" step="1" style="width: 180px; vertical-align: middle;">
+            <output for="link_page_title_font_size" id="title_font_size_output" style="margin-left: 10px; vertical-align: middle;"><?php echo esc_html($slider_value . '%'); ?></output>
         </div>
         <div class="customize-section customize-body-font-section" style="margin-top: 20px;">
             <label for="link_page_body_font_family"><strong><?php esc_html_e('Body Font', 'extrachill-artist-platform'); ?></strong></label><br>
@@ -95,19 +77,7 @@ $has_any_thumbnail = ($featured_thumbnail_url && $featured_thumbnail_url !== '#'
                 }
                 ?>
             </select>
-            <div class="customize-subsection" style="margin-top: 15px;">
-                <label for="link_page_body_font_size"><strong><?php esc_html_e('Body Font Size', 'extrachill-artist-platform'); ?></strong></label><br>
-                <input type="range" id="link_page_body_font_size" name="link_page_body_font_size" min="10" max="30" value="<?php 
-                    // Convert em to pixel approximation for slider (1em ≈ 16px)
-                    $body_font_size = $custom_vars['--link-page-body-font-size'] ?? '1em';
-                    $size_value = str_replace('em', '', $body_font_size);
-                    echo esc_attr(round($size_value * 16));
-                ?>" step="1" style="width: 180px; vertical-align: middle;">
-                <output for="link_page_body_font_size" id="body_font_size_output" style="margin-left: 10px; vertical-align: middle;"><?php 
-                    $body_font_size = $custom_vars['--link-page-body-font-size'] ?? '1em';
-                    echo esc_html($body_font_size);
-                ?></output>
-            </div>
+            <!-- Removed body font size control - uses theme default font size -->
         </div>
     </div>
 </div>
@@ -141,29 +111,6 @@ $has_any_thumbnail = ($featured_thumbnail_url && $featured_thumbnail_url !== '#'
         <p class="description" style="margin-top: 0.5em; font-size: 0.97em;">
             <?php esc_html_e('Adjust the profile image size (relative to the card width).', 'extrachill-artist-platform'); ?>
         </p>
-    </div>
-    <div class="customize-section">
-        <label for="link_page_profile_img_border_radius"><strong><?php esc_html_e('Profile Image Border Radius', 'extrachill-artist-platform'); ?></strong></label><br>
-        <input type="range" id="link_page_profile_img_border_radius" name="link_page_profile_img_border_radius" min="0" max="50" value="<?php 
-            $border_radius = $custom_vars['--link-page-profile-img-border-radius'] ?? '50%';
-            $radius_value = str_replace('%', '', $border_radius);
-            echo esc_attr($radius_value);
-        ?>" step="1" style="width: 180px; vertical-align: middle;">
-        <output for="link_page_profile_img_border_radius" id="profile_img_border_radius_output" style="margin-left: 10px; vertical-align: middle;"><?php 
-            echo esc_html($custom_vars['--link-page-profile-img-border-radius'] ?? '50%');
-        ?></output>
-        <p class="description" style="margin-top: 0.5em; font-size: 0.97em;">
-            <?php esc_html_e('Adjust the profile image border radius from square (0%) to circle (50%).', 'extrachill-artist-platform'); ?>
-        </p>
-    </div>
-    <div class="customize-section">
-        <label for="link_page_profile_img_aspect_ratio"><strong><?php esc_html_e('Profile Image Aspect Ratio', 'extrachill-artist-platform'); ?></strong></label><br>
-        <select id="link_page_profile_img_aspect_ratio" name="link_page_profile_img_aspect_ratio" style="max-width:200px;">
-            <option value="1/1"<?php selected($custom_vars['--link-page-profile-img-aspect-ratio'] ?? '1/1', '1/1'); ?>><?php esc_html_e('Square (1:1)', 'extrachill-artist-platform'); ?></option>
-            <option value="4/3"<?php selected($custom_vars['--link-page-profile-img-aspect-ratio'] ?? '1/1', '4/3'); ?>><?php esc_html_e('Standard (4:3)', 'extrachill-artist-platform'); ?></option>
-            <option value="16/9"<?php selected($custom_vars['--link-page-profile-img-aspect-ratio'] ?? '1/1', '16/9'); ?>><?php esc_html_e('Widescreen (16:9)', 'extrachill-artist-platform'); ?></option>
-            <option value="3/2"<?php selected($custom_vars['--link-page-profile-img-aspect-ratio'] ?? '1/1', '3/2'); ?>><?php esc_html_e('Photo (3:2)', 'extrachill-artist-platform'); ?></option>
-        </select>
     </div>
 </div>
 
@@ -294,4 +241,3 @@ $has_any_thumbnail = ($featured_thumbnail_url && $featured_thumbnail_url !== '#'
 <!-- Add the hidden input for custom CSS vars JSON -->
 <!-- CSS variables now handled directly via form inputs - no JSON intermediary needed -->
 
-<input type="hidden" name="featured_link_og_image_removed" id="featured_link_og_image_removed" value="<?php echo ($settings['featured_link_og_image_removed'] ?? false) ? '1' : ''; ?>">

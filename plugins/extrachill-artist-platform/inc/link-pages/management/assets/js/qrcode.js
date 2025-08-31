@@ -34,8 +34,8 @@
 
             const ajaxData = new FormData();
             ajaxData.append('action', 'extrch_generate_qrcode');
-            ajaxData.append('security', window.extrchLinkPagePreviewAJAX.nonce); 
-            ajaxData.append('link_page_id', window.extrchLinkPagePreviewAJAX.link_page_id);
+            ajaxData.append('nonce', extraChillArtistPlatform.nonce); 
+            ajaxData.append('link_page_id', extraChillArtistPlatform.linkPageData.link_page_id);
 
             // Get the public URL from the element on the page
             const publicUrlElement = document.querySelector('.bp-link-page-url-text');
@@ -50,7 +50,7 @@
                  return;
              }
 
-            fetch(window.extrchLinkPagePreviewAJAX.ajax_url, {
+            fetch(extraChillArtistPlatform.ajaxUrl, {
                 method: 'POST',
                 body: ajaxData
             })

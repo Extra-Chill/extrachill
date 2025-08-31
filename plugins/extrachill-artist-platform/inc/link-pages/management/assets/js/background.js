@@ -1,19 +1,16 @@
 // Link Page Background Customization Module
-(function(manager) {
-    // Ensure the manager exists first.
-    if (!manager) {
-        // console.error('ExtrchLinkPageManager is not defined. Background script cannot run.');
-        return; // Cannot proceed without the manager
-    }
+(function() {
+    'use strict';
+    
+    let isInitialized = false;
 
     // Define the core background module functionality
     const defineBackgroundModule = () => {
-        // console.log('[Background] defineBackgroundModule called.'); // Comment out
-        if (manager.background) { // Avoid double definition
+        if (isInitialized) { // Avoid double definition
             return;
         }
 
-        manager.background = manager.background || {};
+        isInitialized = true;
 
         // --- DOM Elements (Inputs that are stable) ---
         const typeSelectInput = document.getElementById('link_page_background_type');
@@ -78,30 +75,24 @@
 
         // New function to sync all background input fields from customVars
         const syncBackgroundInputValues = () => {
-            // Get CSS variables from centralized data source
-            let centralCustomVars = {};
-            if (manager.customization && typeof manager.customization.getCustomVars === 'function') {
-                centralCustomVars = manager.customization.getCustomVars() || {};
-                console.log('[Background] Using centralized CSS variables');
-            } else {
-                console.warn('[Background] Centralized CSS vars not available - this should not happen');
-                return;
-            }
+            // Get CSS variables directly from document
+            const rootStyle = getComputedStyle(document.documentElement);
+            console.log('[Background] Reading CSS variables directly from DOM');
 
             if (typeSelectInput) {
-                typeSelectInput.value = centralCustomVars['--link-page-background-type'] || 'color';
+                typeSelectInput.value = rootStyle.getPropertyValue('--link-page-background-type').trim();
             }
             if (bgColorInput) {
-                bgColorInput.value = centralCustomVars['--link-page-background-color'] || '#1a1a1a';
+                bgColorInput.value = rootStyle.getPropertyValue('--link-page-background-color').trim();
             }
             if (gradStartInput) {
-                gradStartInput.value = centralCustomVars['--link-page-background-gradient-start'] || '#0b5394';
+                gradStartInput.value = rootStyle.getPropertyValue('--link-page-background-gradient-start').trim();
             }
             if (gradEndInput) {
-                gradEndInput.value = centralCustomVars['--link-page-background-gradient-end'] || '#53940b';
+                gradEndInput.value = rootStyle.getPropertyValue('--link-page-background-gradient-end').trim();
             }
             if (gradDirInput) {
-                gradDirInput.value = centralCustomVars['--link-page-background-gradient-direction'] || 'to right';
+                gradDirInput.value = rootStyle.getPropertyValue('--link-page-background-gradient-direction').trim();
             }
             updateAdminImagePreview(); // Syncs the admin image preview element
         };
@@ -110,22 +101,31 @@
             // console.log('[Background] initializeBackgroundControls called.'); // Comment out
             syncBackgroundInputValues();
 
-            const centralCustomVars = manager.customization.getCustomVars ? manager.customization.getCustomVars() : {};
-            const bgType = centralCustomVars['--link-page-background-type'] || 'color';
+            // Work directly with form fields
+            const bgType = getComputedStyle(document.documentElement).getPropertyValue('--link-page-background-type').trim() || 'color';
             // console.log('[Background] Initial bgType from customVars:', bgType); // Comment out
 
             updateBackgroundTypeUI(bgType);
             // console.log('[Background] updateBackgroundTypeUI called with:', bgType); // Comment out (immediately after the call)
         };
 
+
         // --- Event Listeners ---
         if (typeSelectInput) {
             typeSelectInput.addEventListener('change', function() {
                 const newType = this.value;
-                if (manager.customization?.updateSetting) {
-                     manager.customization.updateSetting('--link-page-background-type', newType);
-                }
                 updateBackgroundTypeUI(newType);
+                
+                // Update CSS variable directly
+                const styleTag = document.getElementById('extrch-link-page-custom-vars');
+                if (styleTag?.sheet) {
+                    for (let rule of styleTag.sheet.cssRules) {
+                        if (rule.selectorText === ':root') {
+                            rule.style.setProperty('--link-page-background-type', newType);
+                            break;
+                        }
+                    }
+                }
                 
                 // Emit event for preview module
                 document.dispatchEvent(new CustomEvent('backgroundTypeChanged', {
@@ -136,18 +136,12 @@
 
         if (bgColorInput) {
             bgColorInput.addEventListener('input', function() {
-                if (manager.customization && typeof manager.customization.updateSetting === 'function') {
-                    manager.customization.updateSetting('--link-page-background-color', this.value);
-                }
                 // Emit event for preview module
                 document.dispatchEvent(new CustomEvent('backgroundColorChanged', {
                     detail: { color: this.value }
                 }));
             });
             bgColorInput.addEventListener('change', function() {
-                if (manager.customization && typeof manager.customization.updateSetting === 'function') {
-                    manager.customization.updateSetting('--link-page-background-color', this.value);
-                }
                 // Emit event for preview module
                 document.dispatchEvent(new CustomEvent('backgroundColorChanged', {
                     detail: { color: this.value }
@@ -157,39 +151,24 @@
 
         if (gradStartInput) {
             gradStartInput.addEventListener('input', function() {
-                if (manager.customization && typeof manager.customization.updateSetting === 'function') {
-                    manager.customization.updateSetting('--link-page-background-gradient-start', this.value);
-                }
                 emitGradientChangeEvent();
             });
             gradStartInput.addEventListener('change', function() {
-                 if (manager.customization && typeof manager.customization.updateSetting === 'function') {
-                    manager.customization.updateSetting('--link-page-background-gradient-start', this.value);
-                }
                 emitGradientChangeEvent();
             });
         }
 
         if (gradEndInput) {
             gradEndInput.addEventListener('input', function() {
-                if (manager.customization && typeof manager.customization.updateSetting === 'function') {
-                    manager.customization.updateSetting('--link-page-background-gradient-end', this.value);
-                }
                 emitGradientChangeEvent();
             });
             gradEndInput.addEventListener('change', function() {
-                if (manager.customization && typeof manager.customization.updateSetting === 'function') {
-                    manager.customization.updateSetting('--link-page-background-gradient-end', this.value);
-                }
                 emitGradientChangeEvent();
             });
         }
 
         if (gradDirInput) {
             gradDirInput.addEventListener('change', function() {
-                if (manager.customization && typeof manager.customization.updateSetting === 'function') {
-                    manager.customization.updateSetting('--link-page-background-gradient-direction', this.value);
-                }
                 emitGradientChangeEvent();
             });
         }
@@ -211,9 +190,6 @@
                         processImageWithCanvas(file);
                     }
                 } else { // File input cleared
-                    if (manager.customization && typeof manager.customization.updateSetting === 'function') {
-                        manager.customization.updateSetting('--link-page-background-image-url', '');
-                    }
                     // Emit event for preview module
                     document.dispatchEvent(new CustomEvent('backgroundImageChanged', {
                         detail: { imageUrl: '' }
@@ -252,7 +228,7 @@
             }
             
             // Upload via AJAX
-            fetch(window.ajaxurl || '/wp-admin/admin-ajax.php', {
+            fetch(extraChillArtistPlatform.ajaxUrl, {
                 method: 'POST',
                 body: formData
             })
@@ -262,22 +238,29 @@
                     // Use the server URL instead of data URL
                     const imageUrl = data.data.url;
                     
-                    if (manager.customization && typeof manager.customization.updateSetting === 'function') {
-                        const currentType = manager.customization.getCustomVars()['--link-page-background-type'];
-                        const finalImageUrl = 'url(' + imageUrl + ')';
+                    const currentType = typeSelectInput?.value || 'color';
+                    const finalImageUrl = 'url(' + imageUrl + ')';
+                    
+                    // Emit event for preview module
+                    document.dispatchEvent(new CustomEvent('backgroundImageChanged', {
+                        detail: { imageUrl: finalImageUrl }
+                    }));
+                    
+                    if (currentType !== 'image') {
+                        // Update form controls
+                        if (typeSelectInput) typeSelectInput.value = 'image';
+                        updateBackgroundTypeUI('image');
                         
-                        manager.customization.updateSetting('--link-page-background-image-url', finalImageUrl);
-                        
-                        if (currentType !== 'image') {
-                            manager.customization.updateSetting('--link-page-background-type', 'image');
-                            updateBackgroundTypeUI('image');
-                        }
+                        // Emit event for type change
+                        document.dispatchEvent(new CustomEvent('backgroundTypeChanged', {
+                            detail: { type: 'image' }
+                        }));
+                    }
                         
                         // Emit event for preview module
                         document.dispatchEvent(new CustomEvent('backgroundImageChanged', {
                             detail: { imageUrl: finalImageUrl }
                         }));
-                    }
                     
                     // Clear the file input since the file has been uploaded via AJAX
                     if (uploadInput) {
@@ -349,21 +332,20 @@
                     cssValue = 'url(' + cssValue + ')';
                 }
                 
-                if (manager.customization && typeof manager.customization.updateSetting === 'function') {
-                    const currentType = manager.customization.getCustomVars()['--link-page-background-type'];
-                    
-                    manager.customization.updateSetting('--link-page-background-image-url', cssValue);
-                    
-                    if (currentType !== 'image') {
-                        manager.customization.updateSetting('--link-page-background-type', 'image');
-                        updateBackgroundTypeUI('image');
-                    }
-                    
-                    // Emit event for preview module
-                    document.dispatchEvent(new CustomEvent('backgroundImageChanged', {
-                        detail: { imageUrl: cssValue }
-                    }));
+                // Direct CSS manipulation without manager abstraction
+                const currentType = getComputedStyle(document.documentElement).getPropertyValue('--link-page-background-type').trim();
+                
+                document.documentElement.style.setProperty('--link-page-background-image-url', cssValue);
+                
+                if (currentType !== 'image') {
+                    document.documentElement.style.setProperty('--link-page-background-type', 'image');
+                    updateBackgroundTypeUI('image');
                 }
+                
+                // Emit event for preview module
+                document.dispatchEvent(new CustomEvent('backgroundImageChanged', {
+                    detail: { imageUrl: cssValue }
+                }));
             };
             
             img.onerror = function() {
@@ -379,37 +361,15 @@
             reader.readAsDataURL(file);
         }
 
-        // Public methods
-        manager.background.init = function() {
-            // console.log('[Background] Public init called. Dependencies should be met now.'); // Comment out
-            syncBackgroundInputValues();
-        };
-
-        manager.background.updateAdminImagePreview = updateAdminImagePreview; // Expose if needed elsewhere
-        manager.background.updateBackgroundTypeUI = updateBackgroundTypeUI; // Expose for customization.js if it needs to call this
-        manager.background.syncBackgroundInputValues = syncBackgroundInputValues; // Expose for customization.js if it needs to call this
-
-        // Add a public method to sync and update UI (for tab activation)
-        manager.background.syncAndUpdateUI = function() {
-            // console.log('[Background] syncAndUpdateUI called (e.g., on tab switch).'); // Comment out
-            syncBackgroundInputValues(); // Syncs values from customVars
-            const centralCustomVars = manager.customization.getCustomVars ? manager.customization.getCustomVars() : {};
-            const bgType = centralCustomVars['--link-page-background-type'] || 'color';
-            updateBackgroundTypeUI(bgType); // Update UI based on synced value
-        };
+        // Self-contained initialization
+        syncBackgroundInputValues();
     };
-
-    // Check if customization is already ready when this script executes. If so, define the module.
-    // Otherwise, wait for the customization module to signal readiness.
-    // Self-initialize on DOMContentLoaded
-    document.addEventListener('DOMContentLoaded', function() {
-        // Always define and initialize background module
+    
+    // Auto-initialize when DOM is ready
+    if (document.readyState !== 'loading') {
         defineBackgroundModule();
-        
-        // Auto-initialize if module was successfully defined
-        if (manager.background && typeof manager.background.init === 'function') {
-            manager.background.init();
-        }
-    });
+    } else {
+        document.addEventListener('DOMContentLoaded', defineBackgroundModule);
+    }
 
-})(window.ExtrchLinkPageManager);
+})();

@@ -104,51 +104,20 @@ function bp_handle_create_artist_profile_submission() {
         bp_create_artist_forum_on_save( $new_artist_id, $new_artist_post, false );
     }
 
-    // --- Trigger Link Page Creation ---
-    // Explicitly call the link page creation function to ensure it runs immediately
-    // after the artist profile is created and before redirection.
-    if ($new_artist_post && function_exists('extrch_create_link_page_for_artist_profile')) {
-        extrch_create_link_page_for_artist_profile( $new_artist_id, $new_artist_post );
-        error_log('[Artist Profile Creation] Manually triggered link page creation for artist ID: ' . $new_artist_id);
-    }
-
-    // --- Get the ID of the link page that should have been created ---
-    $new_link_page_id = get_post_meta( $new_artist_id, '_extrch_link_page_id', true );
-    error_log('[Artist Profile Creation] Retrieved link page ID: ' . ($new_link_page_id ? $new_link_page_id : 'NULL'));
-
     // --- Redirect after successful creation ---
+    $manage_page = get_page_by_path('manage-artist-profiles');
+    $manage_page_url = $manage_page ? get_permalink($manage_page) : home_url('/manage-artist-profiles/');
+    $query_args = array(
+        'bp_success' => 'created',
+        'new_artist_id' => $new_artist_id
+    );
+    
+    // Ensure the user is redirected to the newly created artist's edit view within the manage page
+    $redirect_url = add_query_arg( 'artist_id', $new_artist_id, $manage_page_url ); 
+    $redirect_url = add_query_arg( $query_args, $redirect_url );
 
-    // Check if the user came from the join flow
-    if ( isset( $_POST['from_join'] ) && $_POST['from_join'] === 'true' && $new_link_page_id ) {
-        // If from join flow, redirect to the Manage Link Page for the new artist
-        $link_page = get_page_by_path('manage-link-page');
-        $manage_link_page_url = $link_page ? get_permalink($link_page) : home_url('/manage-link-page/');
-        $redirect_url = add_query_arg( array(
-            'artist_id' => $new_artist_id,
-            'from_join' => 'true' // Pass the flag to trigger the notice on the link page
-        ), $manage_link_page_url );
-
-        wp_safe_redirect( $redirect_url );
-        exit;
-
-    } else {
-        // Original redirect logic: redirect to the manage artist profile page with success flags
-        $manage_page = get_page_by_path('manage-artist-profiles');
-        $manage_page_url = $manage_page ? get_permalink($manage_page) : home_url('/manage-artist-profiles/');
-        $query_args = array(
-            'bp_success' => 'created',
-            'new_artist_id' => $new_artist_id
-        );
-        if ( $new_link_page_id ) {
-            $query_args['new_link_page_id'] = $new_link_page_id;
-        }
-        // Ensure the user is redirected to the newly created artist's edit view within the manage page
-        $redirect_url = add_query_arg( 'artist_id', $new_artist_id, $manage_page_url ); 
-        $redirect_url = add_query_arg( $query_args, $redirect_url );
-
-        wp_safe_redirect( $redirect_url );
-        exit;
-    }
+    wp_safe_redirect( $redirect_url );
+    exit;
 
 }
 add_action( 'template_redirect', 'bp_handle_create_artist_profile_submission' ); 
@@ -165,7 +134,7 @@ function bp_handle_edit_artist_profile_submission() {
     }
 
     // Get the Artist ID being edited (from hidden input)
-    $artist_id = isset( $_POST['artist_id'] ) ? absint( $_POST['artist_id'] ) : 0;
+    $artist_id = absint($_POST['artist_id']);
 
     // Determine the redirect URL for errors (back to the edit page)
     $manage_page = get_page_by_path('manage-artist-profiles');

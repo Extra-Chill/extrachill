@@ -763,8 +763,3 @@ i.fa-solid.fa-qrcode:hover {
 .extrch-link-page-preview-bg-wrapper{
   min-width: 100%;
 }
-
-/* Highlight for the currently featured link in the Links Tab editor */
-.bp-editor-featured-link {
-  border: 1px solid var(--accent); /* Khaki - a complementary border */
-}

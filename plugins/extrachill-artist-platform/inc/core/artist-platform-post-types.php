@@ -146,4 +146,4 @@ function extrachill_init_post_types() {
 }
 
 // Hook to init with proper priority for post type registration
-add_action( 'init', 'extrachill_init_post_types', 0 );
+add_action( 'init', 'extrachill_init_post_types', 5 );
