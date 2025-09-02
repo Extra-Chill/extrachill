@@ -9,4 +9,4 @@
 defined( 'ABSPATH' ) || exit;
 
 
-// AJAX handlers registered through centralized system in inc/core/actions/ajax.php
+// AJAX handlers registered via wp_ajax hooks in inc/link-pages/management/ajax/subscribe.php

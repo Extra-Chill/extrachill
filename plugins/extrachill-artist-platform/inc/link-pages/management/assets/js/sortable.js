@@ -238,11 +238,45 @@
         document.addEventListener('DOMContentLoaded', initializeAvailableSortables);
     }
     
+    // Listen for new sections being added and initialize sorting
+    document.addEventListener('linksectionadded', function(e) {
+        setTimeout(() => {
+            // Re-initialize all link containers to include the new section
+            const sectionsContainer = document.getElementById('bp-link-sections-list');
+            if (sectionsContainer) {
+                const linkContainers = sectionsContainer.querySelectorAll('.bp-link-list');
+                if (linkContainers.length > 0) {
+                    initLinks(linkContainers);
+                }
+            }
+        }, 100); // Small delay to ensure DOM is fully updated
+    });
+    
+    // Listen for new links being added and refresh link sorting
+    document.addEventListener('linkItemCreated', function(e) {
+        setTimeout(() => {
+            // Re-initialize link sorting for the affected section
+            const linkElement = e.detail?.linkElement;
+            if (linkElement) {
+                const linkContainer = linkElement.closest('.bp-link-list');
+                if (linkContainer) {
+                    initLinks([linkContainer]);
+                }
+            }
+        }, 50); // Small delay to ensure DOM is fully updated
+    });
+    
     function initializeAvailableSortables() {
         // Initialize sections if present
         const sectionsContainer = document.getElementById('bp-link-sections-list');
         if (sectionsContainer) {
             initSections(sectionsContainer);
+            
+            // Initialize individual link containers within sections
+            const linkContainers = sectionsContainer.querySelectorAll('.bp-link-list');
+            if (linkContainers.length > 0) {
+                initLinks(linkContainers);
+            }
         }
         
         // Initialize social icons if present  

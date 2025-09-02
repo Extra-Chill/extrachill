@@ -119,15 +119,21 @@
                             if (html) {
                                 linkList.insertAdjacentHTML('beforeend', html);
                                 
-                                // Get the newly added link element and dispatch event
+                                // Get the newly added link element and dispatch events
                                 const newLinkElement = linkList.lastElementChild;
                                 if (newLinkElement && newLinkElement.classList.contains('bp-link-item')) {
+                                    // Dispatch event for sortable system
                                     document.dispatchEvent(new CustomEvent('linkItemCreated', {
                                         detail: { linkElement: newLinkElement }
                                     }));
+                                    
+                                    // Dispatch event for preview system with empty link data
+                                    // Preview will wait for user input before showing the link
+                                    dispatchLinkAdded(sectionIndex, linkIndex, {
+                                        link_text: '',
+                                        link_url: ''
+                                    });
                                 }
-                                
-                                // Remove premature preview updates - let user input trigger events
                             }
                         });
                         // actionTaken handled in callback
@@ -167,8 +173,8 @@
                     const textInput = linkItem.querySelector('.bp-link-text-input');
                     const urlInput = linkItem.querySelector('.bp-link-url-input');
                     
-                    // Only dispatch if both text and URL have values
-                    if (textInput && urlInput && textInput.value.trim() && urlInput.value.trim()) {
+                    // Always dispatch with current values - preview will handle empty states
+                    if (textInput && urlInput) {
                         dispatchLinkUpdated(sectionIndex, linkIndex, 'complete', {
                             link_text: textInput.value.trim(),
                             link_url: urlInput.value.trim()

@@ -14,7 +14,18 @@ add_action( 'wp_ajax_render_links_preview_template', 'ec_ajax_render_links_previ
 
 /**
  * AJAX handler for rendering link item editor template
- * Returns HTML for a single editable link item in management interface
+ * 
+ * Returns HTML for a single editable link item in management interface.
+ * Used by JavaScript to dynamically create and update link editing forms.
+ * 
+ * Expected POST parameters:
+ * - sidx: Section index (int)
+ * - lidx: Link index within section (int) 
+ * - link_data: Array containing link_text, link_url, expires_at, id
+ * - expiration_enabled: Whether expiration functionality is enabled (bool)
+ * 
+ * @return void Sends JSON response with rendered HTML template
+ * @since 1.0.0
  */
 function ec_ajax_render_link_item_editor() {
     try {
@@ -136,7 +147,6 @@ function ec_ajax_render_link_template() {
         // Get and validate parameters
         $link_url = wp_unslash( sanitize_url( $_POST['link_url'] ?? '' ) );
         $link_text = wp_unslash( sanitize_text_field( $_POST['link_text'] ?? '' ) );
-        $share_enabled = isset( $_POST['share_enabled'] ) ? (bool) $_POST['share_enabled'] : true;
         $youtube_embed = isset( $_POST['youtube_embed'] ) ? (bool) $_POST['youtube_embed'] : false;
         
         if ( empty( $link_url ) || empty( $link_text ) ) {
@@ -148,7 +158,6 @@ function ec_ajax_render_link_template() {
         $template_args = array(
             'link_url' => $link_url,
             'link_text' => $link_text,
-            'share_enabled' => $share_enabled,
             'link_classes' => 'extrch-link-page-link',
             'youtube_embed' => $youtube_embed
         );
@@ -258,7 +267,6 @@ function ec_render_links_sections_html( $links_data ) {
         $section_args = array(
             'section_title' => $section_data['section_title'] ?? '',
             'links' => $section_data['links'] ?? array(),
-            'share_enabled' => true,
             'link_page_id' => 0 // No YouTube embed for preview
         );
         

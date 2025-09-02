@@ -16,8 +16,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (subscribeModal && subscribeIconTrigger) {
         // Open modal when icon is clicked
         subscribeIconTrigger.addEventListener('click', function() {
-            subscribeModal.style.display = 'flex';
-            // Optional: Add a class to the body or html to prevent scrolling
+            subscribeModal.classList.remove('extrch-modal-hidden');
             document.body.classList.add('extrch-modal-open');
         });
 
@@ -42,7 +41,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         function closeSubscribeModal() {
             if (subscribeModal) {
-                subscribeModal.style.display = 'none';
+                subscribeModal.classList.add('extrch-modal-hidden');
                 document.body.classList.remove('extrch-modal-open');
                  // Clear form and messages on close
                 if (modalForm) {

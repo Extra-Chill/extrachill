@@ -8,26 +8,16 @@
 
 
 /**
- * Get all artist profile IDs for a user
+ * Get all artist profile IDs for a user (published only)
+ * 
+ * Uses the centralized ec_get_user_owned_artists() function to ensure
+ * only the user's owned artist profiles are returned.
  * 
  * @param int $user_id User ID (defaults to current user)
- * @return array Array of artist profile IDs
+ * @return array Array of published artist profile IDs owned by the user
  */
 function ec_get_user_artist_ids( $user_id = null ) {
-    if ( ! $user_id ) {
-        $user_id = get_current_user_id();
-    }
-    
-    if ( ! $user_id ) {
-        return array();
-    }
-    
-    $artist_ids = get_user_meta( $user_id, '_artist_profile_ids', true );
-    if ( ! is_array( $artist_ids ) ) {
-        return array();
-    }
-    
-    return array_map( 'intval', $artist_ids );
+    return ec_get_user_owned_artists( $user_id );
 }
 
 /**

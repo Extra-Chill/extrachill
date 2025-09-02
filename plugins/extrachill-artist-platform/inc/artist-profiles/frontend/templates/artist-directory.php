@@ -26,7 +26,7 @@ get_header(); ?>
                     <?php if ( is_user_logged_in() ) : ?>
                         <?php 
                         $current_user_id = get_current_user_id();
-                        $user_artist_ids = get_user_meta( $current_user_id, '_artist_profile_ids', true );
+                        $user_artist_ids = ec_get_user_accessible_artists( $current_user_id );
                         $is_artist_or_pro = ( get_user_meta( $current_user_id, 'user_is_artist', true ) === '1' || 
                                               get_user_meta( $current_user_id, 'user_is_professional', true ) === '1' );
                         

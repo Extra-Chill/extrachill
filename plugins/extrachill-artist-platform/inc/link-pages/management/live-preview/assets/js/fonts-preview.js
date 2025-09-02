@@ -44,34 +44,22 @@
         document.head.appendChild(link);
     }
     
-    // Main fonts preview update function - Direct DOM manipulation
+    // Main fonts preview update function - CSS variable updates
     function updateFontFamilyPreview(fontData) {
-        const previewContainerParent = document.querySelector('.manage-link-page-preview-live');
-        if (!previewContainerParent) return;
-        
-        const previewEl = previewContainerParent.querySelector('.extrch-link-page-preview-container');
-        if (!previewEl) return;
-
-        // Apply font family changes to CSS custom properties on the preview element
+        // Apply font family changes via CSS variables
         if (fontData.property && fontData.fontFamily) {
             // Load Google Font dynamically if needed
             loadGoogleFont(fontData.fontFamily);
             
             const fontStack = getFontStackByValue(fontData.fontFamily);
-            previewEl.style.setProperty(fontData.property, fontStack);
+            updateCSSVariable(fontData.property, fontStack);
         }
     }
     
-    // Update font size preview
+    // Update font size preview via CSS variables
     function updateFontSizePreview(sizeData) {
-        const previewContainerParent = document.querySelector('.manage-link-page-preview-live');
-        if (!previewContainerParent) return;
-        
-        const previewEl = previewContainerParent.querySelector('.extrch-link-page-preview-container');
-        if (!previewEl) return;
-
         if (sizeData.property && sizeData.size) {
-            previewEl.style.setProperty(sizeData.property, sizeData.size);
+            updateCSSVariable(sizeData.property, sizeData.size);
         }
     }
 
@@ -116,23 +104,31 @@
     // Generic font change event listener
     document.addEventListener('fontChanged', function(e) {
         if (e.detail && e.detail.property && e.detail.value) {
-            const previewContainerParent = document.querySelector('.manage-link-page-preview-live');
-            if (!previewContainerParent) return;
-            
-            const previewEl = previewContainerParent.querySelector('.extrch-link-page-preview-container');
-            if (previewEl) {
-                if (e.detail.type === 'family') {
-                    // Load Google Font dynamically if needed
-                    loadGoogleFont(e.detail.value);
-                    
-                    const fontStack = getFontStackByValue(e.detail.value);
-                    previewEl.style.setProperty(e.detail.property, fontStack);
-                } else {
-                    previewEl.style.setProperty(e.detail.property, e.detail.value);
-                }
+            if (e.detail.type === 'family') {
+                // Load Google Font dynamically if needed
+                loadGoogleFont(e.detail.value);
+                
+                const fontStack = getFontStackByValue(e.detail.value);
+                updateCSSVariable(e.detail.property, fontStack);
+            } else {
+                updateCSSVariable(e.detail.property, e.detail.value);
             }
         }
     });
+
+    // Helper function to update CSS variables directly
+    function updateCSSVariable(property, value) {
+        const styleTag = document.getElementById('extrch-link-page-custom-vars');
+        if (styleTag && styleTag.sheet) {
+            // Find the :root rule and update the property
+            for (let i = 0; i < styleTag.sheet.cssRules.length; i++) {
+                if (styleTag.sheet.cssRules[i].selectorText === ':root') {
+                    styleTag.sheet.cssRules[i].style.setProperty(property, value);
+                    break;
+                }
+            }
+        }
+    }
 
     // Self-contained module - no global exposure needed
 

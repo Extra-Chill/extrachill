@@ -12,6 +12,7 @@
  *   - user_id: User ID to get artist list for (default: current user)
  *   - css_class: Additional CSS classes (default: '')
  *   - label_text: Select option label (default: '-- Select an Artist --')
+ *   - artist_ids: Optional pre-filtered array of artist IDs (default: fetch from user)
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -24,11 +25,11 @@ $user_id = $args['user_id'] ?? get_current_user_id();
 $css_class = $args['css_class'] ?? '';
 $label_text = $args['label_text'] ?? __( '-- Select an Artist --', 'extrachill-artist-platform' );
 
-// Get user's artist profiles
-$user_artist_ids = get_user_meta( $user_id, '_artist_profile_ids', true );
+// Get user's accessible artist profiles - use provided list or fetch from user
+$user_artist_ids = $args['artist_ids'] ?? ec_get_user_accessible_artists( $user_id );
 
 // Only render if user has multiple artists
-if ( ! is_array( $user_artist_ids ) || count( $user_artist_ids ) <= 1 ) {
+if ( count( $user_artist_ids ) <= 1 ) {
     return; // No switcher needed for single artist
 }
 

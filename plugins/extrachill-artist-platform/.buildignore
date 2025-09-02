@@ -86,3 +86,4 @@ phpunit.xml.dist
 # Plugin specific development
 /uploads/
 /debug/
+

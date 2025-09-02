@@ -114,6 +114,92 @@ function ec_can_create_artist_profiles( $user_id = null ) {
 }
 
 /**
+ * Get all artist profiles accessible to a user
+ * 
+ * Admin users get access to all published artist profiles.
+ * Regular users get access to their assigned artist profiles only.
+ * 
+ * @param int $user_id User ID to check (defaults to current user)
+ * @return array Array of artist profile IDs the user can access
+ */
+function ec_get_user_accessible_artists( $user_id = null ) {
+    if ( ! $user_id ) {
+        $user_id = get_current_user_id();
+    }
+    
+    if ( ! $user_id ) {
+        return array();
+    }
+    
+    // Administrators can access all published artist profiles
+    if ( user_can( $user_id, 'manage_options' ) ) {
+        $artist_posts = get_posts( array(
+            'post_type' => 'artist_profile',
+            'post_status' => 'publish',
+            'numberposts' => -1,
+            'fields' => 'ids'
+        ) );
+        
+        return is_array( $artist_posts ) ? $artist_posts : array();
+    }
+    
+    // Regular users get their assigned artist profiles (published only)
+    $user_artist_ids = get_user_meta( $user_id, '_artist_profile_ids', true );
+    if ( ! is_array( $user_artist_ids ) ) {
+        return array();
+    }
+    
+    // Filter to only published artist profiles
+    $published_artists = array();
+    foreach ( $user_artist_ids as $artist_id ) {
+        $artist_id_int = absint( $artist_id );
+        if ( $artist_id_int > 0 && get_post_status( $artist_id_int ) === 'publish' ) {
+            $published_artists[] = $artist_id_int;
+        }
+    }
+    
+    return $published_artists;
+}
+
+/**
+ * Get artist profiles owned by a user
+ * 
+ * Unlike ec_get_user_accessible_artists(), this function returns only the artist 
+ * profiles that actually belong to the user (from _artist_profile_ids meta), 
+ * regardless of admin capabilities. Use this for personal/ownership contexts
+ * like avatar menus and profile counts.
+ * 
+ * @param int $user_id User ID to check (defaults to current user)
+ * @return array Array of artist profile IDs owned by the user
+ */
+function ec_get_user_owned_artists( $user_id = null ) {
+    if ( ! $user_id ) {
+        $user_id = get_current_user_id();
+    }
+    
+    if ( ! $user_id ) {
+        return array();
+    }
+    
+    // Get user's assigned artist profiles (published only)
+    $user_artist_ids = get_user_meta( $user_id, '_artist_profile_ids', true );
+    if ( ! is_array( $user_artist_ids ) ) {
+        return array();
+    }
+    
+    // Filter to only published artist profiles
+    $published_artists = array();
+    foreach ( $user_artist_ids as $artist_id ) {
+        $artist_id_int = absint( $artist_id );
+        if ( $artist_id_int > 0 && get_post_status( $artist_id_int ) === 'publish' ) {
+            $published_artists[] = $artist_id_int;
+        }
+    }
+    
+    return $published_artists;
+}
+
+/**
  * Central capability filter that grants all necessary permissions based on artist membership
  * 
  * @param array   $allcaps An array of all the user's capabilities

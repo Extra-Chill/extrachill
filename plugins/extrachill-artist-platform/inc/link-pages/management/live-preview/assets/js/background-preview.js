@@ -2,72 +2,66 @@
 (function() {
     'use strict';
     
-    // Main background preview update function - Direct DOM manipulation
+    // Main background preview update function - CSS variable updates
     function updateBackgroundPreview(backgroundData) {
-        const previewContainerParent = document.querySelector('.manage-link-page-preview-live');
-        if (!previewContainerParent) return;
-        
-        const previewEl = previewContainerParent.querySelector('.extrch-link-page-preview-container');
-        if (!previewEl) return;
-
-        // Find the main container that should receive background styling
-        const linkPageContainer = previewEl.querySelector('.extrch-link-page-container');
-        if (!linkPageContainer) return;
-
-        // Apply background based on type
+        // Apply background based on type using CSS variables
         switch (backgroundData.type) {
             case 'color':
-                applyColorBackground(linkPageContainer, backgroundData.color);
+                applyColorBackground(backgroundData.color);
                 break;
             case 'gradient':
-                applyGradientBackground(linkPageContainer, backgroundData);
+                applyGradientBackground(backgroundData);
                 break;
             case 'image':
-                applyImageBackground(linkPageContainer, backgroundData.imageUrl);
+                applyImageBackground(backgroundData.imageUrl);
                 break;
             default:
                 // Clear all backgrounds
-                clearBackground(linkPageContainer);
+                clearBackground();
         }
     }
 
-    // Apply solid color background
-    function applyColorBackground(container, color) {
-        container.style.background = '';
-        container.style.backgroundImage = '';
-        container.style.backgroundColor = color || '#1a1a1a';
+    // Apply solid color background via CSS variables
+    function applyColorBackground(color) {
+        updateBackgroundType('color');
+        if (color) {
+            updateCSSVariable('--link-page-background-color', color);
+        }
+        // Clear other background properties
+        updateCSSVariable('--link-page-background-image-url', '');
     }
 
-    // Apply gradient background
-    function applyGradientBackground(container, gradientData) {
+    // Apply gradient background via CSS variables
+    function applyGradientBackground(gradientData) {
+        updateBackgroundType('gradient');
+        
         const startColor = gradientData.startColor || '#0b5394';
         const endColor = gradientData.endColor || '#53940b';
         const direction = gradientData.direction || 'to right';
         
-        container.style.backgroundColor = '';
-        container.style.backgroundImage = `linear-gradient(${direction}, ${startColor}, ${endColor})`;
+        updateCSSVariable('--link-page-background-gradient-start', startColor);
+        updateCSSVariable('--link-page-background-gradient-end', endColor);
+        updateCSSVariable('--link-page-background-gradient-direction', direction);
+        
+        // Clear other background properties
+        updateCSSVariable('--link-page-background-image-url', '');
     }
 
-    // Apply image background
-    function applyImageBackground(container, imageUrl) {
+    // Apply image background via CSS variables
+    function applyImageBackground(imageUrl) {
         if (imageUrl && imageUrl.trim() !== '') {
-            container.style.backgroundColor = '';
-            // Handle both data URLs and regular URLs
-            const backgroundValue = imageUrl.startsWith('url(') ? imageUrl : `url(${imageUrl})`;
-            container.style.backgroundImage = backgroundValue;
-            container.style.backgroundSize = 'cover';
-            container.style.backgroundPosition = 'center';
-            container.style.backgroundRepeat = 'no-repeat';
+            updateBackgroundType('image');
+            updateCSSVariable('--link-page-background-image-url', imageUrl);
         } else {
-            clearBackground(container);
+            clearBackground();
         }
     }
 
-    // Clear all background styling
-    function clearBackground(container) {
-        container.style.background = '';
-        container.style.backgroundImage = '';
-        container.style.backgroundColor = '#1a1a1a'; // Default fallback
+    // Clear all background styling via CSS variables
+    function clearBackground() {
+        updateBackgroundType('color');
+        updateCSSVariable('--link-page-background-color', '#1a1a1a');
+        updateCSSVariable('--link-page-background-image-url', '');
     }
 
     // Event listeners for background updates from management forms
@@ -80,62 +74,10 @@
     // Event listeners for individual background property changes
     document.addEventListener('backgroundTypeChanged', function(e) {
         if (e.detail && e.detail.type) {
-            // Read current background data from form inputs directly
-            let backgroundData = { type: e.detail.type };
-            
-            // Read from form inputs instead of CSS variables
-            const bgColorInput = document.getElementById('link_page_background_color');
-            const gradStartInput = document.getElementById('link_page_background_gradient_start');
-            const gradEndInput = document.getElementById('link_page_background_gradient_end');
-            const gradDirInput = document.getElementById('link_page_background_gradient_direction');
-            
-            if (bgColorInput) backgroundData.color = bgColorInput.value;
-            if (gradStartInput) backgroundData.startColor = gradStartInput.value;
-            if (gradEndInput) backgroundData.endColor = gradEndInput.value;
-            if (gradDirInput) backgroundData.direction = gradDirInput.value;
-            
-            // Get image URL from CSS variable (since it's not in a form input)
-            const rootStyle = getComputedStyle(document.documentElement);
-            backgroundData.imageUrl = rootStyle.getPropertyValue('--link-page-background-image-url').trim();
-            
-            updateBackgroundPreview(backgroundData);
+            // Use helper function to update both CSS variable and HTML attribute
+            updateBackgroundType(e.detail.type);
         }
     });
-
-    document.addEventListener('backgroundColorChanged', function(e) {
-        if (e.detail && e.detail.color) {
-            updateBackgroundPreview({ type: 'color', color: e.detail.color });
-        }
-    });
-
-    document.addEventListener('backgroundGradientChanged', function(e) {
-        if (e.detail && e.detail.gradientData) {
-            const backgroundData = { type: 'gradient', ...e.detail.gradientData };
-            updateBackgroundPreview(backgroundData);
-        }
-    });
-
-    document.addEventListener('backgroundImageChanged', function(e) {
-        if (e.detail && e.detail.imageUrl !== undefined) {
-            updateBackgroundPreview({ type: 'image', imageUrl: e.detail.imageUrl });
-        }
-    });
-
-    // Helper function to update CSS variables directly
-    function updateCSSVariable(property, value) {
-        const styleTag = document.getElementById('extrch-link-page-custom-vars');
-        if (styleTag && styleTag.sheet) {
-            // Find the :root rule and update the property
-            for (let i = 0; i < styleTag.sheet.cssRules.length; i++) {
-                if (styleTag.sheet.cssRules[i].selectorText === ':root') {
-                    styleTag.sheet.cssRules[i].style.setProperty(property, value);
-                    break;
-                }
-            }
-        }
-    }
-
-    // Event listeners to update CSS variables based on management events
 
     document.addEventListener('backgroundColorChanged', function(e) {
         if (e.detail && e.detail.color) {
@@ -162,10 +104,37 @@
         if (e.detail && e.detail.imageUrl !== undefined) {
             updateCSSVariable('--link-page-background-image-url', e.detail.imageUrl);
             if (e.detail.imageUrl && e.detail.imageUrl.trim() !== '') {
-                updateCSSVariable('--link-page-background-type', 'image');
+                updateBackgroundType('image');
             }
         }
     });
+
+    // Helper function to update CSS variables directly
+    function updateCSSVariable(property, value) {
+        const styleTag = document.getElementById('extrch-link-page-custom-vars');
+        if (styleTag && styleTag.sheet) {
+            // Find the :root rule and update the property
+            for (let i = 0; i < styleTag.sheet.cssRules.length; i++) {
+                if (styleTag.sheet.cssRules[i].selectorText === ':root') {
+                    styleTag.sheet.cssRules[i].style.setProperty(property, value);
+                    break;
+                }
+            }
+        }
+    }
+
+    // Helper function to update background type in both CSS variable and HTML attribute
+    function updateBackgroundType(type) {
+        // Update CSS variable for form state
+        updateCSSVariable('--link-page-background-type', type);
+        
+        // Update HTML data attribute for CSS styling (CRITICAL)
+        const previewContainer = document.querySelector('.extrch-link-page-preview-container');
+        if (previewContainer) {
+            previewContainer.setAttribute('data-bg-type', type);
+        }
+    }
+
 
     // Self-contained module - no global exposure needed
 

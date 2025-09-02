@@ -226,4 +226,4 @@ function extrch_export_artist_subscribers_csv() {
     exit; // Or let the function naturally end
 }
 
-// AJAX handlers registered through centralized system in inc/core/actions/ajax.php
+// AJAX handlers registered individually via wp_ajax hooks in respective modules

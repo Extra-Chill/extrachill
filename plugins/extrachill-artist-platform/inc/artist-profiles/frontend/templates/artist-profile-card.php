@@ -18,7 +18,7 @@ if ( ! isset($artist_id) || ! $artist_id ) {
 }
 
 $artist_post = get_post($artist_id);
-if ( ! $artist_post || $artist_post->post_type !== 'artist_profile' ) {
+if ( ! $artist_post || $artist_post->post_type !== 'artist_profile' || get_post_status($artist_id) !== 'publish' ) {
     return;
 }
 
@@ -28,7 +28,7 @@ $artist_url = get_permalink($artist_id);
 $artist_bio = get_post_field('post_content', $artist_id);
 
 // Get images
-$profile_image_id = get_post_meta($artist_id, '_artist_profile_image_id', true);
+$profile_image_id = get_post_thumbnail_id($artist_id);
 $profile_image_url = $profile_image_id ? wp_get_attachment_image_url($profile_image_id, 'medium') : '';
 $header_image_id = get_post_meta($artist_id, '_artist_profile_header_image_id', true);
 $header_image_url = $header_image_id ? wp_get_attachment_image_url($header_image_id, 'large') : '';
@@ -42,15 +42,14 @@ $forum_id = get_post_meta($artist_id, '_artist_forum_id', true);
 // Get subscriber count
 global $wpdb;
 $subscriber_count = $wpdb->get_var($wpdb->prepare(
-    "SELECT COUNT(*) FROM {$wpdb->prefix}artist_subscribers WHERE artist_id = %d",
+    "SELECT COUNT(*) FROM {$wpdb->prefix}artist_subscribers WHERE artist_profile_id = %d",
     $artist_id
 ));
 $subscriber_count = (int) $subscriber_count;
 
 // Get current user permissions for action buttons
 $current_user_id = get_current_user_id();
-$user_artist_ids = get_user_meta($current_user_id, '_artist_profile_ids', true);
-$user_artist_ids = is_array($user_artist_ids) ? $user_artist_ids : array();
+$user_artist_ids = ec_get_user_accessible_artists($current_user_id);
 $is_user_artist = in_array($artist_id, $user_artist_ids);
 $show_manage_buttons = ($context === 'user-profile' || $context === 'dashboard') && $is_user_artist;
 

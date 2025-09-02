@@ -3,7 +3,7 @@
  * QR Code AJAX Handlers
  *
  * Handles AJAX requests related to QR code generation for link pages.
- * Registered through the centralized AJAX system in inc/core/actions/ajax.php.
+ * Registered via wp_ajax hooks in this file.
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -67,3 +67,6 @@ function extrch_generate_qrcode_ajax() {
         wp_send_json_error(['message' => 'Failed to generate QR code: ' . $e->getMessage()], 500);
     }
 }
+
+// Register AJAX handlers
+add_action( 'wp_ajax_extrch_generate_qrcode', 'extrch_generate_qrcode_ajax' );

@@ -26,7 +26,7 @@ get_header(); ?>
                     <?php if ( is_user_logged_in() ) : ?>
                         <?php 
                         $current_user_id = get_current_user_id();
-                        $user_artist_ids = get_user_meta( $current_user_id, '_artist_profile_ids', true );
+                        $user_artist_ids = ec_get_user_accessible_artists( $current_user_id );
                         $is_artist_or_pro = ( get_user_meta( $current_user_id, 'user_is_artist', true ) === '1' || 
                                               get_user_meta( $current_user_id, 'user_is_professional', true ) === '1' );
                         
@@ -42,56 +42,58 @@ get_header(); ?>
 
                 <?php if ( have_posts() ) : ?>
                     
-                    <div class="artist-profiles-grid">
+                    <div class="artist-cards-grid">
                         
                         <?php while ( have_posts() ) : the_post(); ?>
                             
                             <?php
                             // Use the artist-profile-card component via unified template system
-                            if ( function_exists( 'ec_render_template' ) ) {
-                                echo ec_render_template( 'artist-profile-card', array(
-                                    'artist_id' => get_the_ID(),
-                                    'context' => 'directory'
-                                ) );
-                            } else {
-                                // Fallback: load template directly
-                                if ( defined( 'EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR' ) ) {
-                                    $template_path = EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'templates/components/artist-profile-card.php';
-                                    if ( file_exists( $template_path ) ) {
-                                        $artist_id = get_the_ID();
-                                        $context = 'directory';
-                                        include $template_path;
-                                    }
-                                } else {
-                                    // Last resort: basic fallback display
-                                    echo '<div class="artist-profile-card-fallback">';
-                                    echo '<h4><a href="' . esc_url( get_permalink() ) . '">' . esc_html( get_the_title() ) . '</a></h4>';
-                                    echo '<p>' . esc_html( get_the_excerpt() ) . '</p>';
-                                    echo '</div>';
-                                }
-                            }
+                            echo ec_render_template( 'artist-profile-card', array(
+                                'artist_id' => get_the_ID(),
+                                'context' => 'directory'
+                            ) );
                             ?>
                             
                         <?php endwhile; ?>
                         
-                    </div><!-- .artist-profiles-grid -->
+                    </div><!-- .artist-cards-grid -->
                     
                     <?php
-                    // Pagination
-                    $pagination = paginate_links( array(
+                    // Theme-consistent pagination using WordPress native .page-numbers classes
+                    $pagination_links = paginate_links( array(
                         'prev_text' => __( '&laquo; Previous', 'extrachill-artist-platform' ),
                         'next_text' => __( 'Next &raquo;', 'extrachill-artist-platform' ),
-                        'type'      => 'array'
+                        'type'      => 'plain'
                     ) );
                     
-                    if ( $pagination ) : ?>
-                        <nav class="pagination-wrapper" aria-label="<?php esc_attr_e( 'Artists pagination', 'extrachill-artist-platform' ); ?>">
-                            <ul class="pagination">
-                                <?php foreach ( $pagination as $page_link ) : ?>
-                                    <li><?php echo $page_link; ?></li>
-                                <?php endforeach; ?>
-                            </ul>
-                        </nav>
+                    if ( $pagination_links ) : ?>
+                        <div class="bbp-pagination">
+                            <div class="bbp-pagination-count">
+                                <?php
+                                global $wp_query;
+                                $total = $wp_query->found_posts;
+                                $paged = get_query_var( 'paged' ) ? get_query_var( 'paged' ) : 1;
+                                $per_page = get_query_var( 'posts_per_page' );
+                                $start = ( $paged - 1 ) * $per_page + 1;
+                                $end = min( $paged * $per_page, $total );
+                                
+                                printf( 
+                                    _n( 
+                                        'Viewing %1$d artist', 
+                                        'Viewing %1$d to %2$d (of %3$d total)', 
+                                        $total, 
+                                        'extrachill-artist-platform' 
+                                    ),
+                                    $total == 1 ? 1 : $start,
+                                    $end,
+                                    $total
+                                );
+                                ?>
+                            </div>
+                            <div class="bbp-pagination-links">
+                                <?php echo $pagination_links; ?>
+                            </div>
+                        </div>
                     <?php endif; ?>
                     
                 <?php else : ?>

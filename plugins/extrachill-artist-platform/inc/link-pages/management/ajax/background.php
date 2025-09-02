@@ -3,7 +3,7 @@
  * Background AJAX Handlers
  * 
  * Handles all background-related AJAX operations for the link page management interface.
- * Registered through the centralized AJAX system in inc/core/actions/ajax.php.
+ * Registered via wp_ajax hooks in this file.
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -45,8 +45,8 @@ function extrch_upload_background_image_ajax() {
     $associated_artist_id = apply_filters('ec_get_artist_id', $link_page_id);
     if ($associated_artist_id) {
         $current_user_id = get_current_user_id();
-        $user_artist_ids = get_user_meta($current_user_id, '_artist_profile_ids', true);
-        if (!is_array($user_artist_ids) || !in_array($associated_artist_id, $user_artist_ids)) {
+        $user_artist_ids = ec_get_user_accessible_artists($current_user_id);
+        if (!in_array($associated_artist_id, $user_artist_ids)) {
             wp_send_json_error('Permission denied');
             return;
         }
@@ -100,3 +100,6 @@ function extrch_upload_background_image_ajax() {
         wp_send_json_error('Upload failed');
     }
 }
+
+// Register AJAX handlers
+add_action( 'wp_ajax_extrch_upload_background_image_ajax', 'extrch_upload_background_image_ajax' );

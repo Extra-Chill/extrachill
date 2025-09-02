@@ -25,29 +25,23 @@ if ( ! isset( $data ) || ! is_array( $data ) ) {
     }
 
     // Ensure ec_get_link_page_data filter function is available.
-    if ( ! function_exists( 'ec_get_link_page_data' ) ) {
-        $data_filter_path = EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/core/filters/data.php';
-        if ( file_exists( $data_filter_path ) ) {
-            require_once $data_filter_path;
-        }
+    $data_filter_path = EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/core/filters/data.php';
+    if ( file_exists( $data_filter_path ) ) {
+        require_once $data_filter_path;
     }
 
-    if ( function_exists( 'ec_get_link_page_data' ) && $link_page_id && $artist_id ) {
-        // When this template is included directly (e.g., by single-artist_link_page.php or initial preview render),
-        // there are no $preview_data_overrides.
+    if ( $link_page_id && $artist_id ) {
         $data = ec_get_link_page_data( (int) $artist_id, (int) $link_page_id );
     } else {
-        // Fallback if ec_get_link_page_data function isn't available or IDs are missing.
-        // This might indicate an issue with how the template is being included.
-        $data = array( // Provide minimal default structure to avoid errors
+        $data = array( 
             'display_title' => 'Error: Link Page Data Unavailable',
             'bio' => '',
             'profile_img_url' => '',
             'social_links' => array(),
-            'link_sections' => array(), // Use link_sections directly
+            'link_sections' => array(),
             'powered_by' => true,
             'css_vars' => array(),
-            'background_style' => 'background-color: #f0f0f0;', // Default error background
+            'background_style' => 'background-color: #f0f0f0;',
         );
     }
 }
@@ -200,7 +194,6 @@ $body_bg_style = '';
                 $section_args = array(
                     'section_title' => $section['section_title'] ?? '',
                     'links' => $section['links'] ?? array(),
-                    'share_enabled' => true,
                     'link_page_id' => $link_page_id
                 );
                 echo ec_render_link_section( $section, $section_args );

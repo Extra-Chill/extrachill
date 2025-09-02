@@ -190,9 +190,9 @@ document.addEventListener('DOMContentLoaded', function() {
         initAccessibility();
         initResponsiveBehavior();
         
-        console.log('[Artist Platform Home] JavaScript initialized successfully');
+        // Initialization complete
     } catch (error) {
-        console.error('[Artist Platform Home] Error initializing JavaScript:', error);
+        // Handle initialization errors silently
     }
 });
 

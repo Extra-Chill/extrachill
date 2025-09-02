@@ -9,4 +9,4 @@
 // Placeholder file to prevent 404 errors
 // Add global artist platform JavaScript functionality here as needed
 
-console.log('ExtracChill Artist Platform: Global scripts loaded');
+// Global scripts loaded

@@ -197,6 +197,17 @@
                 }
             });
         }
+
+        // Overlay toggle input
+        const overlayToggleInput = document.getElementById('link_page_overlay_toggle');
+        if (overlayToggleInput) {
+            overlayToggleInput.addEventListener('change', function() {
+                // Emit event for preview module
+                document.dispatchEvent(new CustomEvent('overlayChanged', {
+                    detail: { overlay: this.checked }
+                }));
+            });
+        }
         
         // Function to upload large images to server
         function uploadImageToServer(file) {

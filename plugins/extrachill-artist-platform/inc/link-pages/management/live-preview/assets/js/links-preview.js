@@ -153,22 +153,73 @@
 
         const linkElement = allLinks[globalIndex];
         if (linkElement && linkData) {
-            // Update link text
-            if (linkData.link_text) {
-                linkElement.textContent = linkData.link_text;
-            }
-            // Update link URL
-            if (linkData.link_url) {
-                linkElement.href = linkData.link_url;
+            // Update link text and URL with real-time feedback
+            const newText = linkData.link_text || linkData.link_url || 'New Link';
+            const newUrl = linkData.link_url || '#';
+            
+            linkElement.textContent = newText;
+            linkElement.href = newUrl;
+            
+            // Update visual feedback for incomplete links
+            if (!linkData.link_text || !linkData.link_url) {
+                linkElement.style.opacity = '0.6';
+                linkElement.style.fontStyle = 'italic';
+            } else {
+                linkElement.style.opacity = '';
+                linkElement.style.fontStyle = '';
             }
         }
     }
 
     // Add link to preview
     async function addLinkToPreview(sectionIndex, linkData) {
-        // For now, we'll do a targeted section refresh instead of full re-render
-        // This is better than full refresh but not as granular as individual link insertion
-        refreshSectionInPreview(sectionIndex);
+        const linksContainer = ensureLinksContainer();
+        if (!linksContainer) return;
+
+        // Find the section at the given index
+        const sections = Array.from(linksContainer.children);
+        if (sectionIndex >= sections.length) {
+            // Section doesn't exist yet, create it first
+            await addSectionToPreview({ 
+                sectionIndex: sectionIndex,
+                section_title: '' 
+            });
+        }
+
+        // If link data is completely empty, don't show anything
+        if (!linkData || (!linkData.link_text && !linkData.link_url)) {
+            return; // Don't add completely empty links to preview
+        }
+
+        // Find the section element
+        const sectionEl = linksContainer.children[sectionIndex];
+        if (!sectionEl) return;
+
+        // Find or create the section links container
+        let sectionLinksContainer = sectionEl.querySelector('.extrch-link-page-section-links');
+        if (!sectionLinksContainer) {
+            sectionLinksContainer = document.createElement('div');
+            sectionLinksContainer.className = 'extrch-link-page-section-links';
+            sectionEl.appendChild(sectionLinksContainer);
+        }
+
+        // Create and add the new link element (handle partial data for real-time preview)
+        if (linkData.link_text || linkData.link_url) {
+            const linkEl = document.createElement('a');
+            linkEl.className = 'extrch-link-page-link';
+            linkEl.href = linkData.link_url || '#';
+            linkEl.textContent = linkData.link_text || linkData.link_url || 'New Link';
+            linkEl.target = '_blank';
+            linkEl.rel = 'noopener noreferrer';
+            
+            // Add visual indicator for incomplete links
+            if (!linkData.link_text || !linkData.link_url) {
+                linkEl.style.opacity = '0.6';
+                linkEl.style.fontStyle = 'italic';
+            }
+            
+            sectionLinksContainer.appendChild(linkEl);
+        }
     }
 
     // Remove link from preview  

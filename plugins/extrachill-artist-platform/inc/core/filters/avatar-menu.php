@@ -16,12 +16,12 @@ defined( 'ABSPATH' ) || exit;
  * @return array Modified menu items array
  */
 function extrachill_artist_platform_avatar_menu_items( $menu_items, $user_id ) {
-    // Get user's artist profile IDs
-    $user_artist_ids = get_user_meta( $user_id, '_artist_profile_ids', true );
+    // Get user's owned (published) artist profile IDs
+    $user_artist_ids = ec_get_user_owned_artists( $user_id );
     $base_manage_url = home_url( '/manage-artist-profiles/' );
     $final_manage_url = $base_manage_url;
 
-    if ( ! empty( $user_artist_ids ) && is_array( $user_artist_ids ) ) {
+    if ( ! empty( $user_artist_ids ) ) {
         // User has one or more artist profiles - find the most recently updated one
         $latest_artist_id = 0;
         $latest_modified_timestamp = 0;

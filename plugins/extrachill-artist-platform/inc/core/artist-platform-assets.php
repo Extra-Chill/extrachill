@@ -341,6 +341,14 @@ class ExtraChillArtistPlatform_Assets {
             $this->get_asset_version( 'assets/css/shared-tabs.css' )
         );
 
+        // Enqueue artist-switcher CSS (dependency)
+        wp_enqueue_style( 
+            'extrachill-artist-switcher', 
+            $plugin_url . 'assets/css/components/artist-switcher.css', 
+            array(), 
+            $this->get_asset_version( 'assets/css/components/artist-switcher.css' )
+        );
+
         // Management interface styles
         wp_enqueue_style( 
             'extrachill-manage-link-page', 
@@ -427,7 +435,7 @@ class ExtraChillArtistPlatform_Assets {
         // Individual management modules (self-contained, no orchestrator needed)
         $management_scripts = array(
             'colors', 'fonts', 'links', 'analytics', 
-            'background', 'info', 'qrcode', 'sizing', 
+            'background', 'info', 'profile-image', 'qrcode', 'sizing', 
             'socials', 'subscribe', 'ui-utils', 'advanced'
         );
 
@@ -443,7 +451,7 @@ class ExtraChillArtistPlatform_Assets {
 
         // Load preview modules separately
         $preview_scripts = array(
-            'links-preview', 'info-preview', 'socials-preview', 'subscribe-preview',
+            'links-preview', 'info-preview', 'profile-image-preview', 'socials-preview', 'subscribe-preview',
             'background-preview', 'colors-preview', 'fonts-preview',
             'sizing-preview', 'overlay-preview', 'sorting-preview'
         );
@@ -588,15 +596,6 @@ class ExtraChillArtistPlatform_Assets {
         return $is_home_page || $is_artist_archive;
     }
 
-    /**
-     * Check if current page is artist platform home page
-     * @deprecated Use should_load_hero_card_styles() instead
-     */
-    private function is_artist_platform_home_page() {
-        return is_page() && 
-               ( get_page_template_slug() === 'artist-platform-home.php' || 
-                 strpos( get_page_template_slug(), 'artist-platform-home' ) !== false );
-    }
 
 
     /**

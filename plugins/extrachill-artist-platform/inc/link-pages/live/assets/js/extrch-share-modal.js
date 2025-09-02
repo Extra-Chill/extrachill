@@ -79,15 +79,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Show/hide buttons based on navigator.share availability
         if (navigator.share && nativeShareOptionButton) {
-            nativeShareOptionButton.style.display = 'flex'; // Or 'inline-flex' if that's the grid default
-            socialMediaShareButtons.forEach(btn => { btn.style.display = 'none'; });
-            if (copyLinkButton) copyLinkButton.style.display = 'flex'; // Ensure copy link is visible
+            nativeShareOptionButton.classList.remove('extrch-modal-hidden');
+            socialMediaShareButtons.forEach(btn => { btn.classList.remove('extrch-share-option-visible'); btn.classList.add('extrch-modal-hidden'); });
         } else {
-            if (nativeShareOptionButton) nativeShareOptionButton.style.display = 'none';
-            socialMediaShareButtons.forEach(btn => { btn.style.display = 'flex'; }); // Or 'inline-flex'
-            if (copyLinkButton) copyLinkButton.style.display = 'flex'; // Ensure copy link is visible
+            if (nativeShareOptionButton) nativeShareOptionButton.classList.add('extrch-modal-hidden');
+            socialMediaShareButtons.forEach(btn => { btn.classList.add('extrch-share-option-visible'); btn.classList.remove('extrch-modal-hidden'); });
         }
-        modal.style.display = 'flex'; // Make the modal container visible
+        modal.classList.remove('extrch-modal-hidden'); // Make the modal container visible
         // Timeout to allow the display change to take effect before adding class for transition
         setTimeout(() => {
             modal.classList.add('active');
@@ -97,9 +95,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function closeModal() {
         modal.classList.remove('active');
-        // Add a timeout to allow the fade-out transition to complete before hiding with display:none
+        // Add a timeout to allow the fade-out transition to complete before hiding
         setTimeout(() => {
-            modal.style.display = 'none'; 
+            modal.classList.add('extrch-modal-hidden'); 
             document.body.style.overflow = ''; // Restore background scrolling
         }, 300); // Match CSS transition duration
 

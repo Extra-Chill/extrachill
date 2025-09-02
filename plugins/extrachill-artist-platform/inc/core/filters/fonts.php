@@ -359,11 +359,6 @@ class ExtraChillArtistPlatform_Fonts {
                 'ajaxurl' => admin_url( 'admin-ajax.php' )
             ) );
             
-            // Also set the global window variable for backward compatibility
-            wp_add_inline_script( 'extrachill-manage-link-page-fonts', 
-                'window.extrchLinkPageFonts = ' . wp_json_encode( $this->get_supported_fonts() ) . ';',
-                'before'
-            );
         }
     }
 

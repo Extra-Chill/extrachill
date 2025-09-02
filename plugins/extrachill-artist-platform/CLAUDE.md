@@ -12,7 +12,7 @@ WordPress plugin providing comprehensive artist platform functionality for the E
 - **ExtraChillArtistPlatform_SocialLinks**: Social link type management and configuration (`inc/core/filters/social-icons.php`)
 
 ### File Organization
-- **Core Directory**: `inc/core/` - Post types, rewrite rules, asset management, templates, data providers
+- **Core Directory**: `inc/core/` - Post types, rewrite rules, asset management, templates, centralized data functions
 - **Artist Profiles**: `inc/artist-profiles/` - Admin, frontend, roster management, forum integration
 - **Link Pages**: `inc/link-pages/` - Live pages, management interface, subscription system
 - **Database**: `inc/database/` - Analytics and subscriber database functions
@@ -83,12 +83,12 @@ WordPress plugin providing comprehensive artist platform functionality for the E
 
 **Management Interface**: `inc/link-pages/management/assets/js/`
 - **Core modules**: `info.js`, `links.js`, `colors.js`, `fonts.js`, `sizing.js`, `background.js`
-- **Advanced features**: `analytics.js`, `qrcode.js`, `socials.js`, `subscribe.js`, `advanced.js`, `featured-link.js`, `link-expiration.js`
+- **Advanced features**: `analytics.js`, `qrcode.js`, `socials.js`, `subscribe.js`, `advanced.js`, `link-expiration.js`
 - **UI utilities**: `ui-utils.js` (responsive tab management, copy URL functionality), `sortable.js` (SortableJS drag-and-drop reordering)
 
 **Live Preview System**: `inc/link-pages/management/live-preview/assets/js/`
 - **Preview modules**: `background-preview.js`, `colors-preview.js`, `fonts-preview.js`, `info-preview.js`, `links-preview.js`, `sizing-preview.js`, `socials-preview.js`, `link-expiration-preview.js`, `subscribe-preview.js`
-- **UI components**: `overlay-preview.js`, `featured-link-preview.js`
+- **UI components**: `overlay-preview.js`, `sorting-preview.js`
 
 **Public Interface**: `inc/link-pages/live/assets/js/`
 - `link-page-public-tracking.js` - Analytics and click tracking
@@ -108,9 +108,10 @@ WordPress plugin providing comprehensive artist platform functionality for the E
 - `artist-platform.js` - Core plugin functionality
 - `artist-platform-home.js` - Homepage-specific features
 
-**New JavaScript Modules**:
-- `link-expiration.js` & `link-expiration-preview.js` - Time-based link scheduling
-- `sortable.js` - SortableJS integration for drag-and-drop link reordering
+**Key JavaScript Modules**:
+- `link-expiration.js` & `link-expiration-preview.js` - Time-based link scheduling and preview
+- `sortable.js` - SortableJS integration for drag-and-drop link reordering  
+- `sorting-preview.js` - Live preview for drag-and-drop operations
 - `subscribe-preview.js` - Live preview for subscription form changes
 
 ### Database Schema
@@ -189,10 +190,10 @@ CREATE TABLE {prefix}_artist_subscribers (
 - Public form handling and validation
 - Centralized permission system with role-based access
 - Profile editing and management interfaces
-- Artist directory and search functionality (`inc/artist-profiles/frontend/artist-directory.php`)
+- Artist grid display with activity sorting (`inc/artist-profiles/frontend/artist-grid.php`)
 
 #### Centralized Save System
-**Core Files**: `inc/core/actions/save.php`, `inc/core/actions/ajax.php`
+**Core Files**: `inc/core/actions/save.php`
 - **Unified save operations**: `ec_handle_link_page_save()`, `ec_handle_artist_profile_save()`
 - **Data preparation**: `ec_prepare_link_page_save_data()`, `ec_prepare_artist_profile_save_data()`
 - **File handling**: Centralized upload processing with cleanup of old attachments
@@ -222,13 +223,21 @@ CREATE TABLE {prefix}_artist_subscribers (
 - **analytics.php**: Admin analytics dashboard (`extrch_fetch_link_page_analytics`)
 - **background.php**: Background image uploads with file cleanup
 - **qrcode.php**: QR code generation for link pages
-- **featured-link.php**: Open Graph image fetching (`extrch_fetch_og_image_for_preview`)
 - **subscribe.php**: Subscription handling (`extrch_link_page_subscribe`, `render_subscribe_template`)
 
 **Permission System**: Server-side permission validation
 - Cross-domain authentication moved to template-level checks
 - REST API endpoints removed in favor of server-side session validation
 - Permission checks handled via `inc/core/filters/permissions.php`
+
+#### Centralized Data System
+**Core File**: `inc/core/filters/data.php`
+- **`ec_get_link_page_data()`**: Single source of truth for all link page data
+- Replaces scattered `get_post_meta()` calls with unified data provider function
+- Supports live preview overrides and extensive data validation
+- Provides comprehensive data for CSS variables, links, social icons, and advanced settings
+- Applies WordPress filters for extensibility (`extrch_get_link_page_data`)
+- Used throughout templates, AJAX handlers, and asset management
 
 #### Data Synchronization
 **Files**: `inc/core/actions/sync.php`, `inc/core/filters/data.php`

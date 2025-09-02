@@ -39,10 +39,6 @@ function ec_handle_link_page_save( $link_page_id, $save_data = array(), $files_d
     if ( isset( $save_data['css_vars'] ) && is_array( $save_data['css_vars'] ) ) {
         update_post_meta( $link_page_id, '_link_page_custom_css_vars', $save_data['css_vars'] );
         
-        // Backward compatibility for overlay
-        if ( isset( $save_data['css_vars']['overlay'] ) ) {
-            update_post_meta( $link_page_id, '_link_page_overlay_toggle', $save_data['css_vars']['overlay'] === '1' ? '1' : '0' );
-        }
     }
 
     // Advanced settings (Advanced tab fields only)
@@ -82,8 +78,7 @@ function ec_handle_link_page_save( $link_page_id, $save_data = array(), $files_d
             $social_result = $social_manager->save( $artist_id, $save_data['social_icons'] );
             
             if ( is_wp_error( $social_result ) ) {
-                error_log( 'Social links save error: ' . $social_result->get_error_message() );
-                // Don't fail entire save for social issues, just log it
+                // Don't fail entire save for social issues
             }
         }
     }
@@ -608,5 +603,12 @@ function ec_admin_post_save_link_page() {
     wp_safe_redirect( $redirect_url );
     exit;
 }
-add_action( 'admin_post_ec_save_link_page', 'ec_admin_post_save_link_page' );
-add_action( 'admin_post_nopriv_ec_save_link_page', 'ec_admin_post_save_link_page' );
+add_action( 'template_redirect', 'ec_handle_link_page_form_submission' );
+
+function ec_handle_link_page_form_submission() {
+    if ( $_SERVER['REQUEST_METHOD'] === 'POST' && 
+         isset($_POST['action']) && 
+         $_POST['action'] === 'ec_save_link_page' ) {
+        ec_admin_post_save_link_page();
+    }
+}

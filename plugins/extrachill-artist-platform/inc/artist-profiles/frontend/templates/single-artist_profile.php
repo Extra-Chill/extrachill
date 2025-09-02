@@ -181,8 +181,8 @@ get_header(); ?>
                                         <?php 
                                         // Check if the artist profile being viewed belongs to the current user - CANNOT FOLLOW OWN ARTIST
                                         $is_own_artist = false;
-                                        $user_artists = get_user_meta( get_current_user_id(), '_artist_profile_ids', true );
-                                        if ( is_array($user_artists) && in_array($artist_profile_id, $user_artists) ) {
+                                        $user_artists = ec_get_user_accessible_artists( get_current_user_id() );
+                                        if ( in_array($artist_profile_id, $user_artists) ) {
                                             $is_own_artist = true;
                                         }
                                         ?>

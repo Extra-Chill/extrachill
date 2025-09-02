@@ -151,7 +151,6 @@ if (class_exists('ExtraChillArtistPlatform_Fonts') && isset($preview_template_da
                 $section_args = array(
                     'section_title' => $section['section_title'] ?? '',
                     'links' => $section['links'] ?? array(),
-                    'share_enabled' => true,
                     'link_page_id' => 0 // No YouTube embed for preview
                 );
                 echo ec_render_link_section( $section, $section_args );

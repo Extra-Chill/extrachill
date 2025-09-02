@@ -24,7 +24,7 @@ $artist_name = isset($artist_name) ? $artist_name : (isset($data['display_title'
 
 ?>
 
-<div id="extrch-subscribe-modal" class="extrch-subscribe-modal extrch-modal" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="extrch-subscribe-modal-title">
+<div id="extrch-subscribe-modal" class="extrch-subscribe-modal extrch-modal extrch-modal-hidden" role="dialog" aria-modal="true" aria-labelledby="extrch-subscribe-modal-title">
     <div class="extrch-subscribe-modal-overlay extrch-modal-overlay"></div>
     <div class="extrch-subscribe-modal-content extrch-modal-content">
         <button class="extrch-subscribe-modal-close extrch-modal-close" aria-label="<?php esc_attr_e('Close subscription modal', 'extrachill-artist-platform'); ?>">&times;</button>

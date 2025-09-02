@@ -49,41 +49,61 @@
         const { contentWrapper } = getPreviewContainers();
         if (!contentWrapper) return;
 
-        // For now, we'll handle same-section movement
-        // Cross-section movement is more complex and can be added later
-        if (fromContainer !== toContainer) return;
-
         const linksContainer = contentWrapper.querySelector('.extrch-link-page-links');
         if (!linksContainer) return;
 
-        // Find the section container
-        const sectionContainers = linksContainer.querySelectorAll('.extrch-link-page-section-links, .extrch-link-page-links > a');
+        // Handle movement based on container elements from management interface
+        const fromSectionIndex = getSectionIndexFromContainer(fromContainer);
+        const toSectionIndex = getSectionIndexFromContainer(toContainer);
         
-        // Find links within the section - this is simplified for now
-        // A more robust implementation would match the management structure exactly
-        const allLinks = Array.from(linksContainer.querySelectorAll('a.extrch-link-page-link'));
-        
-        if (oldIndex >= allLinks.length || newIndex >= allLinks.length) return;
+        if (fromSectionIndex === -1 || toSectionIndex === -1) return;
 
-        const linkToMove = allLinks[oldIndex];
+        // Get the section elements in preview
+        const previewSections = Array.from(linksContainer.children);
+        const fromSection = previewSections[fromSectionIndex];
+        const toSection = previewSections[toSectionIndex];
+        
+        if (!fromSection || !toSection) return;
+
+        // Get links within the source section
+        const fromSectionLinks = fromSection.querySelectorAll('a.extrch-link-page-link');
+        const linkToMove = fromSectionLinks[oldIndex];
+        
         if (!linkToMove) return;
 
         // Remove the link from its current position
         linkToMove.remove();
 
-        // Insert at new position
-        if (newIndex >= allLinks.length - 1) {
-            // Insert at end of parent
-            if (linkToMove.parentNode) {
-                linkToMove.parentNode.appendChild(linkToMove);
-            }
-        } else {
-            // Insert before the link that's currently at newIndex
-            const referenceLink = allLinks[newIndex];
-            if (referenceLink && referenceLink.parentNode) {
-                referenceLink.parentNode.insertBefore(linkToMove, referenceLink);
-            }
+        // Get target section links container
+        let toSectionLinksContainer = toSection.querySelector('.extrch-link-page-section-links');
+        if (!toSectionLinksContainer) {
+            toSectionLinksContainer = document.createElement('div');
+            toSectionLinksContainer.className = 'extrch-link-page-section-links';
+            toSection.appendChild(toSectionLinksContainer);
         }
+
+        // Insert at new position within target section
+        const toSectionLinks = toSectionLinksContainer.querySelectorAll('a.extrch-link-page-link');
+        
+        if (newIndex >= toSectionLinks.length) {
+            // Insert at end
+            toSectionLinksContainer.appendChild(linkToMove);
+        } else {
+            // Insert before the link at newIndex
+            const referenceLink = toSectionLinks[newIndex];
+            toSectionLinksContainer.insertBefore(linkToMove, referenceLink);
+        }
+    }
+
+    // Helper function to get section index from management container element
+    function getSectionIndexFromContainer(container) {
+        if (!container) return -1;
+        
+        const section = container.closest('.bp-link-section');
+        if (!section) return -1;
+        
+        const sidx = section.dataset.sidx;
+        return sidx !== undefined ? parseInt(sidx, 10) : -1;
     }
 
     // Move social icon element in preview

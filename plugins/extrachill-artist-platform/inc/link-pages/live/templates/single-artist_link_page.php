@@ -43,30 +43,8 @@ if ( ! function_exists( 'ec_get_link_page_data' ) ) {
     }
 }
 
-if ( function_exists( 'ec_get_link_page_data' ) ) {
-    $data = ec_get_link_page_data( $artist_id, $link_page_id ); // No overrides for public page
-    $data['original_link_page_id'] = $link_page_id; // Add the actual link page ID to $data
-} else {
-    // Fallback if ec_get_link_page_data function somehow isn't loaded
-    $data = array(
-        'display_title' => get_the_title($artist_id) ?: 'Link Page',
-        'bio' => '',
-        'profile_img_url' => '',
-        'social_links' => array(),
-        'link_sections' => array(),
-        'powered_by' => true,
-        'css_vars' => array(),
-        'background_type' => 'color',
-        'background_color' => '#1a1a1a',
-        // Add other necessary defaults to prevent errors in the template
-    );
-    $data['original_link_page_id'] = $link_page_id; // Add the actual link page ID to $data
-}
-
-// Also ensure it's added if ec_get_link_page_data filter provides the data
-if (isset($data) && is_array($data)) {
-    $data['original_link_page_id'] = $link_page_id; 
-}
+$data = ec_get_link_page_data( $artist_id, $link_page_id );
+$data['original_link_page_id'] = $link_page_id;
 
 $body_bg_style = '';
 $background_type = isset($data['background_type']) ? $data['background_type'] : ec_get_link_page_default( 'settings', 'background_type', 'color' );

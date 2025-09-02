@@ -28,7 +28,7 @@
 /* Content Card Styling (similar to .link-page-content-card) */
 /* These apply within .shared-tab-pane now */
 .shared-tab-pane .artist-profile-content-card, /* Adjusted selector */
-.artist-profile-content-card /* Keep for backward compatibility or other instances */ {
+.artist-profile-content-card {
     background-color: var(--card-background); 
     border: 1px solid var(--border-color); 
     border-radius: 8px;

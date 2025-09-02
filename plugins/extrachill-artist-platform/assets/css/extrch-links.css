@@ -589,3 +589,31 @@ body {
   color: var(--link-page-button-bg-color) !important;
   border-color: var(--link-page-button-border-color) !important;
 }
+
+/* Modal visibility control */
+.extrch-modal-hidden {
+  display: none !important;
+}
+
+/* Share modal element visibility */
+.extrch-share-option-visible {
+  display: flex !important;
+}
+
+.extrch-share-profile-img-hidden {
+  display: none !important;
+}
+
+/* Form styling */
+.extrch-form-input-wide {
+  width: 100%;
+  max-width: 400px;
+}
+
+.extrch-form-input-hidden {
+  display: none;
+}
+
+.extrch-form-button-spaced {
+  margin-left: 5px;
+}

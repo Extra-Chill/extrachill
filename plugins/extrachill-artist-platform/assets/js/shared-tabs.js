@@ -314,7 +314,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Listen for the custom event dispatched by join-flow-ui.js
         document.addEventListener('activateJoinFlowTab', function(event) {
-            console.log('activateJoinFlowTab event received for tab:', event.detail.targetTab);
+            // Tab activation event received
             if (event.detail && event.detail.targetTab) {
                  // Find the component this event is intended for (assuming one shared tabs component on the page)
                  // If there were multiple, we'd need to pass component ID in the event detail.

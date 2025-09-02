@@ -104,12 +104,15 @@ ExtraChillArtistPlatform_SocialLinks::instance();
 // Migration system (band -> artist terminology)  
 ExtraChillArtistPlatform_Migration::instance();
 
+// Centralized data provider (replaces LinkPageDataProvider class)
+$data = ec_get_link_page_data($artist_id, $link_page_id);
+
 // Features loaded via core class initialization
 ```
 
 ### AJAX System
 
-The plugin uses a comprehensive modular AJAX system:
+The plugin uses a modular AJAX system organized by functionality:
 
 ```php
 // Live (Public) AJAX Actions: inc/link-pages/live/ajax/
@@ -122,7 +125,6 @@ add_action( 'wp_ajax_nopriv_link_page_click_tracking', 'handle_link_click_tracki
 add_action( 'wp_ajax_render_link_item_editor', 'ec_ajax_render_link_item_editor' );
 add_action( 'wp_ajax_render_social_item_editor', 'ec_ajax_render_social_item_editor' );
 add_action( 'wp_ajax_extrch_fetch_link_page_analytics', 'extrch_fetch_link_page_analytics_ajax' );
-add_action( 'wp_ajax_extrch_fetch_og_image_for_preview', 'extrch_ajax_fetch_og_image_for_preview' );
 add_action( 'wp_ajax_extrch_link_page_subscribe', 'extrch_link_page_subscribe_ajax_handler' );
 add_action( 'wp_ajax_nopriv_extrch_link_page_subscribe', 'extrch_link_page_subscribe_ajax_handler' );
 ```
@@ -145,9 +147,25 @@ if ( ec_ajax_can_manage_link_page() ) {
 $can_edit = ec_can_manage_artist( get_current_user_id(), get_the_ID() );
 ```
 
+### Data Provider System
+
+```php
+// Get comprehensive link page data using centralized function
+$data = ec_get_link_page_data( $artist_id, $link_page_id );
+
+// Access specific data sections
+$links = $data['links'];
+$css_vars = $data['css_vars'];
+$social_links = $data['social_links'];
+$advanced_settings = $data['advanced_settings'];
+
+// Use with live preview overrides
+$preview_data = ec_get_link_page_data( $artist_id, $link_page_id, $override_data );
+```
+
 ### Adding Custom AJAX Actions
 
-The plugin uses WordPress native AJAX patterns with centralized permission checking:
+The plugin uses WordPress native AJAX patterns with modular organization:
 
 ```php
 // Register AJAX actions using WordPress native patterns
@@ -209,8 +227,8 @@ document.addEventListener('backgroundChanged', function(e) {
 });
 
 // Example: Dispatching custom events for inter-module communication  
-document.dispatchEvent(new CustomEvent('featuredLinkChanged', {
-    detail: { featuredLink: linkData }
+document.dispatchEvent(new CustomEvent('linksChanged', {
+    detail: { links: linkData }
 }));
 
 // Example: Subscribe to social icons changes
@@ -269,7 +287,6 @@ Artist roster data is stored using WordPress post meta:
 
 Link page configuration stored as post meta:
 - `_link_page_data` - JSON configuration for links, styling, and settings
-- `_featured_link_id` - ID of the currently featured link
 - `_youtube_embed_url` - YouTube video URL for embedded content
 
 ### 🎯 Advanced Features
@@ -335,20 +352,31 @@ document.addEventListener('DOMContentLoaded', function() {
 ### Available Hooks
 
 ```php
-// Modify link page data
-add_filter('ec_get_link_page_data', function($data, $link_page_id) {
+// Modify link page data (centralized data provider)
+add_filter('extrch_get_link_page_data', function($data, $artist_id, $link_page_id) {
+    // Customize comprehensive link page data
     return $data;
-}, 10, 2);
+}, 10, 3);
 
 // Hook into save operations
-add_action('ec_link_page_save', function($link_page_id, $data) {
-    // Custom save logic
-}, 10, 2);
+add_action('ec_link_page_save', function($link_page_id) {
+    // Custom save logic after successful save
+}, 10, 1);
+
+add_action('ec_artist_profile_save', function($artist_id) {
+    // Custom logic after artist profile save
+}, 10, 1);
 
 // Track link clicks  
 add_action('extrachill_link_clicked', function($link_url, $link_page_id) {
     // Custom tracking logic
 }, 10, 2);
+
+// Template rendering
+add_filter('ec_render_template', function($output, $template_name, $args) {
+    // Customize template output
+    return $output;
+}, 10, 3);
 ```
 
 ### Permission System
@@ -403,7 +431,7 @@ inc/
 │   │   ├── ids.php                      # ID generation and management
 │   │   ├── templates.php                # Component template filtering
 │   │   ├── permissions.php              # Centralized permission system
-│   │   ├── data.php                     # Data filtering and validation
+│   │   ├── data.php                     # Centralized data provider (ec_get_link_page_data)
 │   │   ├── defaults.php                 # Default configurations
 │   │   └── avatar-menu.php              # Avatar menu customization
 │   ├── templates/                       # Core template components
@@ -411,6 +439,7 @@ inc/
 ├── artist-profiles/                  # Profile management
 │   ├── admin/                       # Admin meta boxes, user linking
 │   ├── frontend/                    # Public forms, directory
+│   │   ├── artist-grid.php         # Artist grid display functions
 │   │   └── templates/              # Artist profile templates
 │   │       ├── archive-artist_profile.php
 │   │       ├── single-artist_profile.php
@@ -435,7 +464,6 @@ inc/
 │   │   │   ├── analytics.php          # Admin analytics dashboard
 │   │   │   ├── background.php         # Background image uploads
 │   │   │   ├── qrcode.php             # QR code generation
-│   │   │   ├── featured-link.php      # Open Graph image fetching
 │   │   │   └── subscribe.php          # Subscription templates
 │   │   ├── advanced-tab/           # Advanced features (tracking, redirects)
 │   │   ├── live-preview/           # Live preview functionality

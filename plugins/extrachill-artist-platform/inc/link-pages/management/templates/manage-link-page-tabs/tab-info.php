@@ -17,15 +17,13 @@ $current_bio_text = $data['bio'] ?? '';
     <div id="bp-artist-name-section" class="form-group">
         <label for="artist_profile_title"><strong><?php esc_html_e('Artist Name', 'extrachill-artist-platform'); ?></strong></label>
         <?php $artist_profile_title = $current_artist_id ? get_the_title($current_artist_id) : ''; ?>
-        <input type="text" id="artist_profile_title" name="artist_profile_title" value="<?php echo esc_attr($artist_profile_title); ?>" maxlength="120" style="width:100%;max-width:400px;">
-        <!-- Backward compatibility hidden field -->
-        <input type="hidden" name="artist_profile_title" value="<?php echo esc_attr($artist_profile_title); ?>">
+        <input type="text" id="artist_profile_title" name="artist_profile_title" value="<?php echo esc_attr($artist_profile_title); ?>" maxlength="120" class="extrch-form-input-wide">
     </div>
     <div id="bp-profile-image-section" class="form-group">
         <label for="link_page_profile_image_upload"><strong><?php esc_html_e('Profile Image', 'extrachill-artist-platform'); ?></strong></label><br>
         <button type="button" class="button" onclick="document.getElementById('link_page_profile_image_upload').click();">Change Profile Picture</button>
-        <input type="file" id="link_page_profile_image_upload" name="link_page_profile_image_upload" accept="image/*" style="display:none;">
-        <button type="button" id="bp-remove-profile-image-btn" class="button button-secondary" style="margin-left: 5px;"><?php esc_html_e('Remove Image', 'extrachill-artist-platform'); ?></button>
+        <input type="file" id="link_page_profile_image_upload" name="link_page_profile_image_upload" accept="image/*" class="extrch-form-input-hidden">
+        <button type="button" id="bp-remove-profile-image-btn" class="button button-secondary extrch-form-button-spaced"><?php esc_html_e('Remove Image', 'extrachill-artist-platform'); ?></button>
         <input type="hidden" name="remove_link_page_profile_image" id="remove_link_page_profile_image_hidden" value="0">
     </div>
     <div id="bp-bio-section" class="form-group">

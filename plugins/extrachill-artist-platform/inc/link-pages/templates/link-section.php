@@ -8,7 +8,6 @@
  * @param array $args {
  *     @type string $section_title The section title (optional)
  *     @type array $links Array of link data with 'link_url' and 'link_text' keys
- *     @type bool $share_enabled Whether to include share buttons on links (default: true)
  *     @type int $link_page_id Link page ID for YouTube embed checking (optional)
  * }
  */
@@ -17,14 +16,12 @@
 $args = wp_parse_args($args, array(
     'section_title' => '',
     'links' => array(),
-    'share_enabled' => true,
     'link_page_id' => 0
 ));
 
 // Extract variables
 $section_title = $args['section_title'];
 $links = $args['links'];
-$share_enabled = $args['share_enabled'];
 $link_page_id = $args['link_page_id'];
 
 // Ensure links is an array for processing
@@ -71,7 +68,6 @@ foreach ($links as $link_item) {
         $link_args = array(
             'link_url' => $link_item['link_url'],
             'link_text' => $link_item['link_text'],
-            'share_enabled' => $share_enabled,
             'link_classes' => $link_classes,
             'youtube_embed' => $is_youtube_link
         );

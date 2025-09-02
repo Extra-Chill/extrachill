@@ -75,24 +75,7 @@ if (!ec_can_manage_artist(get_current_user_id(), $artist_id)) {
 }
 
 // --- Canonical Data Fetch ---
-if ( function_exists( 'ec_get_link_page_data' ) ) {
-    $data = ec_get_link_page_data( $artist_id, $link_page_id ); // No overrides for initial page load
-} else {
-    // Fallback if ec_get_link_page_data function somehow isn't loaded
-    // This should ideally not happen if includes are correct.
-    $data = array(
-        'display_title' => get_the_title($artist_id) ?: 'Link Page',
-        'bio' => '',
-        'profile_img_url' => '',
-        'social_links' => array(),
-        'links' => array(), // Ensure 'links' key exists for json_encode later
-        'custom_css_vars_json' => '',
-        'background_style' => '',
-        'background_image_url' => '',
-        // Add other necessary defaults to prevent errors
-    );
-     echo '<div class="bp-notice bp-notice-error"><p>' . esc_html__('Error: ec_get_link_page_data function not found. Link page data may be incomplete.', 'extrachill-artist-platform') . '</p></div>';
-}
+$data = ec_get_link_page_data( $artist_id, $link_page_id );
 
 // Fonts are now handled directly in the tab template
 ?>
@@ -115,40 +98,32 @@ echo '</div>';
 </h1>
 <?php
 // --- Artist Switcher (Shared Component) ---
-// Filter artists to only those with valid link pages
+// Filter accessible artists to only those with valid link pages
 $current_user_id_for_switcher = get_current_user_id();
-$user_artist_ids_for_switcher = get_user_meta( $current_user_id_for_switcher, '_artist_profile_ids', true );
+$user_accessible_artists = ec_get_user_accessible_artists( $current_user_id_for_switcher );
 $valid_artists_for_link_page_switcher = array();
 
-if ( is_array( $user_artist_ids_for_switcher ) && ! empty( $user_artist_ids_for_switcher ) ) {
-    foreach ( $user_artist_ids_for_switcher as $user_artist_id_item_check ) {
-        $artist_id_check = absint($user_artist_id_item_check);
-        if ( $artist_id_check > 0 && get_post_status( $artist_id_check ) === 'publish' ) {
-            $link_page_id_check = apply_filters('ec_get_link_page_id', $artist_id_check);
-            if ( $link_page_id_check &&
-                 get_post_status( $link_page_id_check ) === 'publish' &&
-                 get_post_type( $link_page_id_check ) === 'artist_link_page' ) {
-                $valid_artists_for_link_page_switcher[] = $artist_id_check;
-            }
+foreach ( $user_accessible_artists as $user_artist_id_item_check ) {
+    $artist_id_check = absint( $user_artist_id_item_check );
+    if ( $artist_id_check > 0 && get_post_status( $artist_id_check ) === 'publish' ) {
+        $link_page_id_check = apply_filters( 'ec_get_link_page_id', $artist_id_check );
+        if ( $link_page_id_check &&
+             get_post_status( $link_page_id_check ) === 'publish' &&
+             get_post_type( $link_page_id_check ) === 'artist_link_page' ) {
+            $valid_artists_for_link_page_switcher[] = $artist_id_check;
         }
     }
 }
 
-// Render switcher using shared component if multiple valid artists
+// Only render if multiple valid artists, and use the consistent template component
 if ( count( $valid_artists_for_link_page_switcher ) > 1 ) {
-    // Temporarily override user meta for filtered artist list
-    $original_artist_ids = get_user_meta( $current_user_id_for_switcher, '_artist_profile_ids', true );
-    update_user_meta( $current_user_id_for_switcher, '_artist_profile_ids', $valid_artists_for_link_page_switcher );
-    
     echo ec_render_template( 'artist-switcher', array(
         'switcher_id' => 'link-page-artist-switcher-select',
         'base_url' => get_permalink(),
-        'current_artist_id' => $artist_id,
-        'user_id' => $current_user_id_for_switcher
+        'current_artist_id' => (int) $artist_id,
+        'user_id' => $current_user_id_for_switcher,
+        'artist_ids' => $valid_artists_for_link_page_switcher
     ) );
-    
-    // Restore original artist IDs
-    update_user_meta( $current_user_id_for_switcher, '_artist_profile_ids', $original_artist_ids );
 }
 // --- End Artist Switcher ---
 
@@ -183,7 +158,7 @@ if ($link_page_id && get_post_type($link_page_id) === 'artist_link_page') {
 ?>
 <div class="manage-link-page-flex">
     <div class="manage-link-page-edit shared-tabs-component">
-        <form method="post" id="bp-manage-link-page-form" enctype="multipart/form-data" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
+        <form method="post" id="bp-manage-link-page-form" enctype="multipart/form-data" action="">
             <?php wp_nonce_field('bp_save_link_page_action', 'bp_save_link_page_nonce'); ?>
             <input type="hidden" name="action" value="ec_save_link_page">
             <input type="hidden" name="artist_id" value="<?php echo esc_attr($artist_id); ?>">

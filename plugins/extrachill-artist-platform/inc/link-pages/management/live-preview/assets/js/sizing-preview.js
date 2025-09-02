@@ -2,14 +2,11 @@
 (function() {
     'use strict';
     
-    // Main sizing preview update function - Direct DOM manipulation
+    // Main sizing preview update function - CSS variable updates
     function updateSizingPreview(sizingData) {
-        const previewContainerParent = document.querySelector('.manage-link-page-preview-live'); const previewEl = previewContainerParent?.querySelector('.extrch-link-page-preview-container');
-        if (!previewEl) return;
-
-        // Apply sizing changes to CSS custom properties on the preview element
+        // Apply sizing changes via CSS variables
         if (sizingData.property && sizingData.value) {
-            previewEl.style.setProperty(sizingData.property, sizingData.value);
+            updateCSSVariable(sizingData.property, sizingData.value);
         }
     }
 
@@ -105,6 +102,20 @@
             });
         }
     });
+
+    // Helper function to update CSS variables directly
+    function updateCSSVariable(property, value) {
+        const styleTag = document.getElementById('extrch-link-page-custom-vars');
+        if (styleTag && styleTag.sheet) {
+            // Find the :root rule and update the property
+            for (let i = 0; i < styleTag.sheet.cssRules.length; i++) {
+                if (styleTag.sheet.cssRules[i].selectorText === ':root') {
+                    styleTag.sheet.cssRules[i].style.setProperty(property, value);
+                    break;
+                }
+            }
+        }
+    }
 
     // Self-contained module - no global exposure needed
 
