@@ -110,7 +110,7 @@ if ( ! bbp_is_single_forum() ) : ?>
 
 					<?php endif; ?>
 
-					<?php // Only show forum dropdown if NOT on a single forum AND NOT on a single band profile page
+					<?php // Only show forum dropdown if NOT on a single forum AND NOT on a single artist profile page
                     if ( ! bbp_is_single_forum() && ! is_singular('artist_profile') ) : ?>
 
 						<?php do_action( 'bbp_theme_before_topic_form_forum' ); ?>

@@ -36,13 +36,29 @@ echo '</div>'; // End of chill-home-header
 
 // Set up the query to fetch the most recent replies
 if (extrachill_get_recent_feed_query(15)) {
-?>
+    $pagination = extrachill_get_recent_feed_pagination();
+    if ($pagination) {
+        ?>
+        <div class="bbp-pagination">
+            <div class="bbp-pagination-count"><?php echo $pagination['count_html']; ?></div>
+            <div class="bbp-pagination-links"><?php echo $pagination['links_html']; ?></div>
+        </div>
+        <?php
+    }
+    ?>
     <div id="bbpress-forums" class="bbpress-wrapper">
-        <?php bbp_get_template_part('pagination', 'replies'); // Pagination above the replies ?>
-        <?php bbp_get_template_part('loop', 'replies'); // The loop that displays replies ?>
-        <?php bbp_get_template_part('pagination', 'replies'); // Pagination below the replies ?>
+        <?php bbp_get_template_part('loop', 'replies'); ?>
     </div>
-<?php
+    <?php
+    // Repeat pagination at bottom
+    if ($pagination) {
+        ?>
+        <div class="bbp-pagination">
+            <div class="bbp-pagination-count"><?php echo $pagination['count_html']; ?></div>
+            <div class="bbp-pagination-links"><?php echo $pagination['links_html']; ?></div>
+        </div>
+        <?php
+    }
 } else {
     echo '<div class="bbp-template-notice"><p>No recent activity found.</p></div>';
 }

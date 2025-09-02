@@ -34,11 +34,11 @@ document.addEventListener('DOMContentLoaded', function() {
         } else if (primaryMenu.classList.contains('search-open')) {
             resetMenu();
         } else {
-            primaryMenu.classList.add('search-open', 'menu-open', 'menu-opened');
+            // Search-only mode: don't apply full-page blocking classes
+            primaryMenu.classList.add('search-open');
             searchSection.classList.add('menu-open');
             searchToggle.classList.add('menu-open');
-            body.classList.add('menu-open');
-            lockBodyScroll();
+            // Don't add body.menu-open or lockBodyScroll() for search-only mode
         }
     });
 

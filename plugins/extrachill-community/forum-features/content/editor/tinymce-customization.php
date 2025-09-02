@@ -1,7 +1,7 @@
 <?php
 // Enable visual editor specifically for bbPress
 function bbp_enable_visual_editor($args = array()) {
-    $args['tinymce'] = array('content_css' => '/wp-content/themes/extra-chill-community/css/tinymce-editor.css');
+    $args['tinymce'] = array('content_css' => get_stylesheet_directory_uri() . '/css/tinymce-editor.css');
     $args['quicktags'] = false;
     $args['teeny'] = false;
     return $args;
@@ -29,7 +29,7 @@ add_filter('bbp_get_tiny_mce_plugins', 'bbp_tinymce_paste_plugin');
 function bbp_customize_tinymce_buttons($buttons) {
     // This filter runs AFTER other filters like the one adding the custom image button.
     // We want to define the *exact* set of buttons for bbPress editors here.
-    // Apply to bbPress pages OR single band profile pages
+    // Apply to bbPress pages OR single artist profile pages
     if ( (function_exists('is_bbpress') && is_bbpress()) || is_singular('artist_profile') ) {
         // Define the desired button array for bbPress editors.
         // Ensure 'image' (our custom one) is included if desired.
@@ -49,7 +49,7 @@ function bbp_customize_tinymce_buttons($buttons) {
         );
         return $desired_buttons;
     }
-    // If not a bbPress context or single band profile, return the original buttons unmodified
+    // If not a bbPress context or single artist profile, return the original buttons unmodified
     return $buttons;
 }
 add_filter('mce_buttons', 'bbp_customize_tinymce_buttons', 50); // Add priority (e.g., 50) to ensure it runs later

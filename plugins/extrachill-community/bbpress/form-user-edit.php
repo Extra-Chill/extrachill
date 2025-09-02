@@ -120,23 +120,10 @@ defined( 'ABSPATH' ) || exit;
 	if ($is_artist_profile || $is_professional_profile) : 
 	?>
 	<div class="bbp-user-profile-card">
-		<h2 class="entry-title"><?php esc_html_e('Band Platform', 'bbpress'); ?></h2>
+		<h2 class="entry-title"><?php esc_html_e('Artist Platform', 'extra-chill-community'); ?></h2>
 		<fieldset class="bbp-form">
 
-			<?php /* Artist Name, Band Name, Genre, Influences are now part of the Band Profile CPT, not the user profile */ ?>
-			<!--
-			<div class="form-group">
-				<label for="artist_name"><?php esc_html_e('Artist Name', 'bbpress'); ?></label>
-				<input type="text" name="artist_name" id="artist_name" value="<?php echo esc_attr(get_user_meta(bbp_get_displayed_user_id(), 'artist_name', true)); ?>" class="regular-text" placeholder="<?php esc_attr_e('Your artist name...', 'bbpress'); ?>"/>
-			</div>
-
-			<div class="form-group">
-				<label for="artist_name"><?php esc_html_e('Band Name(s)', 'bbpress'); ?></label>
-				<input type="text" name="artist_name" id="artist_name" value="<?php echo esc_attr(get_user_meta(bbp_get_displayed_user_id(), 'artist_name', true)); ?>" class="regular-text" placeholder="<?php esc_attr_e('Your band names...', 'bbpress'); ?>"/>
-			</div>
-			-->
-
-			<!-- Your Band Profiles Section -->
+			<!-- Artist Profiles Section -->
 			<div class="form-group your-bands-section">
 				<h4 class="entry-title"><?php esc_html_e( 'Your Artist Profiles', 'extra-chill-community' ); ?></h4>
 				<p><?php esc_html_e( 'Manage your artist\'s presence, showcase music, share stories, and connect with fans.', 'extra-chill-community'); ?></p>

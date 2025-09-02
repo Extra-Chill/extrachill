@@ -56,10 +56,10 @@ function mycustom_breadcrumb_output( $crumbs, $r = array(), $args = array() ) {
     }
 
     // For single artist profiles
-    // Home -> Artists Archive -> Band Profile Title
+    // Home -> Artists Archive -> Artist Profile Title
     elseif ( is_singular( 'artist_profile' ) ) {
         $artists_url = site_url( '/artists/' );
-        $current_title = get_the_title(); // Get current band profile title
+        $current_title = get_the_title(); // Get current artist profile title
 
         return array(
             '<a href="' . esc_url( home_url( '/' ) ) . '">Home</a>',
@@ -113,16 +113,16 @@ function extrachill_breadcrumbs() {
             }
         }
 
-        // "Manage Bands" is the conceptual current page or parent context here.
-        $breadcrumb .= $separator . '<span class="breadcrumb-current">' . esc_html__( 'Manage Bands', 'extra-chill-community' ) . '</span>';
+        // "Manage Artists" is the conceptual current page or parent context here.
+        $breadcrumb .= $separator . '<span class="breadcrumb-current">' . esc_html__( 'Manage Artists', 'extra-chill-community' ) . '</span>';
 
         if ( $artist_post_for_breadcrumb ) {
-            // If editing a specific band, add its name as a link after "Manage Bands"
+            // If editing a specific artist, add its name as a link after "Manage Artists"
             $artist_title = get_the_title( $artist_post_for_breadcrumb );
             $artist_permalink = get_permalink( $artist_post_for_breadcrumb );
             $breadcrumb .= $separator . '<a href="' . esc_url( $artist_permalink ) . '">' . esc_html( $artist_title ) . '</a>';
         }
-        // If not editing a specific band (create mode or invalid artist_id), "Manage Bands" as current is already set.
+        // If not editing a specific artist (create mode or invalid artist_id), "Manage Artists" as current is already set.
 
     } elseif ( is_singular() ) {
         $breadcrumb .= '<a href="' . esc_url( $home_url ) . '">' . esc_html( $home_text ) . '</a>' . $separator;

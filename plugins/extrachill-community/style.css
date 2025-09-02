@@ -3,7 +3,7 @@
 /*
  Theme Name:   Extra Chill Community
  Theme URI:    https://community.extrachill.com
- Description:  ExtraChill community platform - WordPress theme for forums and community features
+ Description:  Extra Chill community platform - WordPress theme for forums and community features
  Author:       Chris Huber
  Author URI:   https://chubes.net
  Version:      1.0.0
@@ -327,14 +327,14 @@ a:focus, a:active, a:hover {
 
 .extrachill-recent-activity, div.bbp-template-notice.info, .status-notice p {
 	background-color: var(--notice-bg);
-	width: max-content;
-	max-width: 100%;
+	width: 100%;
 	border: 2px solid var(--notice-border);
 	padding: 12px;
 	border-radius: 5px;
 	font-size: 15px;
 	text-decoration: none;
 	margin-bottom: 15px;
+	box-sizing: border-box;
 }
 
 /* desktop */
@@ -388,9 +388,6 @@ a:focus, a:active, a:hover {
 		padding-bottom: 3px;
 	}
  
-	.extrachill-recent-activity, div.bbp-template-notice.info, .status-notice p {
-		width: 100%;
-	}
  
 	h2 {
 		font-size: 28px;
@@ -466,7 +463,6 @@ a:focus, a:active, a:hover {
 	.folowdetails {
 		display: flex;
 	}
-}
 
 /*end mobile only styles */ 
 /* BBPRESS */
@@ -1460,6 +1456,19 @@ button.search {
 .search-section.menu-open {
 	transform: translateX(0);
 	overflow-y: auto; /* Enable internal scrolling */
+}
+
+/* Search-only mode - no click blocking */
+#primary-menu.search-open:not(.menu-opened) {
+	width: auto;
+	height: auto;
+	position: relative;
+	z-index: 1000;
+}
+
+/* Ensure search section displays properly in search-only mode */
+#primary-menu.search-open:not(.menu-opened) .search-section.menu-open {
+	transform: translateX(0);
 }
  
 .menu-items {

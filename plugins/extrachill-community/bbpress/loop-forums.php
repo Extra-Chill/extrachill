@@ -27,17 +27,22 @@ if ( bbp_is_single_forum() && bbp_has_forums( array( 'post_parent' => bbp_get_fo
 
 <?php else : ?>
 
-	<?php if (is_user_logged_in()) : ?>
-		<p>Welcome back, <a href="<?php echo bbp_get_user_profile_url(get_current_user_id()); ?>"><?php echo wp_get_current_user()->display_name; ?></a>. Thanks for being part of the scene.</p>
-	<?php else :?>
-		<p><a href="/login">Log in</a> to partake in the online music scene.</p>
-	<?php endif; ?>
+	<div class="homepage-description">
+        <p>A hub for the underground music community, bringing artists and fans of DIY music together</p>
+    </div>
+
+	<div class="homepage-top-actions">
+		<?php if (is_user_logged_in()) : ?>
+			<a href="<?php echo bbp_get_user_profile_url(get_current_user_id()); ?>" class="button profile-btn">View Profile</a>
+			<a href="/settings" class="button settings-btn">Settings</a>
+		<?php else : ?>
+			<a href="/login" class="button login-btn">Log In</a>
+			<a href="/login?register=1" class="button signup-btn">Sign Up</a>
+		<?php endif; ?>
+	</div>
 
 	<!-- Most Active Topics Section (Front Page Row) -->
     <?php bbp_get_template_part( 'front-page', 'recently-active' ); ?>
-    
-    <!-- Most Active Users Section -->
-    <?php bbp_get_template_part( 'most-active-users' ); ?>
 
 
 	<!-- Community Forums Section (Simplified) -->
@@ -59,6 +64,12 @@ if ( bbp_is_single_forum() && bbp_has_forums( array( 'post_parent' => bbp_get_fo
         <?php else : ?>
             <p>No forums are currently set to display on the homepage.</p>
         <?php endif; ?>
+    </div>
+
+    <!-- Bottom Action Buttons -->
+    <div class="homepage-bottom-actions">
+        <a href="/artists/extra-chill" class="button support-forum-btn">Support Forum</a>
+        <a href="/artist-platform" class="button artist-platform-btn">Artist Platform</a>
     </div>
 
 <?php endif; ?>

@@ -60,7 +60,7 @@ defined( 'ABSPATH' ) || exit;
                     // Match settings from bbp_enable_visual_editor filter:
                     'teeny'         => false,
                     'quicktags'     => false, 
-                    'content_css'   => '/wp-content/themes/extra-chill-community/css/tinymce-editor.css',
+                    'content_css'   => get_stylesheet_directory_uri() . '/css/tinymce-editor.css',
                     // Original settings:
                     'dfw'           => false,
                     'tinymce'       => true,  // Use TinyMCE

@@ -5,7 +5,7 @@
  * Handles notifications when users are quoted in forum posts.
  * Manages AJAX quote processing and user notification delivery.
  * 
- * @package ExtraChillCommunity
+ * @package Extra ChillCommunity
  */
 
 add_action('wp_ajax_notify_quoted_user', 'handle_quote_notification');

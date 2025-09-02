@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a **WordPress theme** called "Extra Chill Community" for the **ExtraChill** community platform - a music community with comprehensive forum enhancements and cross-domain authentication. The theme focuses purely on community and forum functionality. Artist profile and link page features have been fully migrated to the `extrachill-artist-platform` plugin.
+This is a **WordPress theme** called "Extra Chill Community" for the **Extra Chill** community platform - a music community with comprehensive forum enhancements and cross-domain authentication. The theme focuses purely on community and forum functionality. Artist profile and link page features have been fully migrated to the `extrachill-artist-platform` plugin.
 
 **Theme Information:**
 - **Name**: Extra Chill Community
@@ -37,7 +37,7 @@ This is a **WordPress theme** called "Extra Chill Community" for the **ExtraChil
 ## Core Features
 
 1. **Forum Features** - Comprehensive bbPress extensions with organized feature architecture
-2. **Cross-Domain Authentication** - Session token system across all ExtraChill domains  
+2. **Cross-Domain Authentication** - Session token system across all Extra Chill domains  
 3. **Social Features** - User interactions, following system, upvoting, notifications, and rank system
 4. **User Management** - Custom profiles, avatars, settings, email verification, and notification system
 5. **Community Templates** - Custom bbPress templates and specialized page templates
@@ -243,7 +243,7 @@ The filter is applied in `forum-features/content/notification-bell-avatar.php` b
 
 ## Current Status
 
-The theme operates as a production WordPress theme serving the ExtraChill community. Core functionality includes forum enhancements, cross-domain authentication, and bbPress integration. All text domain references have been successfully migrated from `generatepress_child` to `extra-chill-community`. 
+The theme operates as a production WordPress theme serving the Extra Chill community. Core functionality includes forum enhancements, cross-domain authentication, and bbPress integration. All text domain references have been successfully migrated from `generatepress_child` to `extra-chill-community`. 
 
 **Migration Complete**: All artist platform functionality (band profiles, link pages, CPTs, admin interfaces, data management) has been completely removed from the theme and migrated to the `extrachill-artist-platform` plugin. The theme now focuses exclusively on community forum features.
 
@@ -257,4 +257,4 @@ The theme operates as a production WordPress theme serving the ExtraChill commun
 4. Auto-login triggered on subsequent visits
 5. External requests validated using Authorization header
 
-This system enables seamless user experience across the entire ExtraChill ecosystem while maintaining security and performance.
+This system enables seamless user experience across the entire Extra Chill ecosystem while maintaining security and performance.

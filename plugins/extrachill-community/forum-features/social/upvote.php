@@ -5,7 +5,7 @@
  * AJAX-based upvoting functionality for forum topics and replies.
  * Manages vote state, counts, and triggers point calculation hooks.
  * 
- * @package ExtraChillCommunity
+ * @package Extra ChillCommunity
  */
 
 function handle_upvote_action() {
@@ -36,6 +36,7 @@ function handle_upvote_action() {
     }
 
     // Check for nonce for security
+    error_log('Upvote nonce verification - User ID: ' . $user_id . ', Nonce: ' . sanitize_text_field($_POST['nonce']));
     if (!check_ajax_referer('upvote_nonce', 'nonce', false)) {
         error_log('Upvote error: Nonce verification failed');
         wp_send_json_error(['message' => 'Security check failed']);

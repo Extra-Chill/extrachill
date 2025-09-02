@@ -115,6 +115,7 @@
     font-size: 1rem;
     color: var(--muted-text);
     margin-bottom: 0.25rem;
+    width: 100%;
 }
 
 .bbp-user-profile .bbp-user-follower-count {
@@ -263,7 +264,6 @@
     }
     /* Ensure header card remains full width */
     .bbp-user-header-card {
-        width: 100%;
         margin-left: 0;
         margin-right: 0;
     }

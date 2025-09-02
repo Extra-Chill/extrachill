@@ -5,7 +5,7 @@
  * Handles login form display, redirect logic, and artist platform
  * integration for new user onboarding flow.
  * 
- * @package ExtraChillCommunity
+ * @package Extra ChillCommunity
  */
 
 function extrachill_login_form() {

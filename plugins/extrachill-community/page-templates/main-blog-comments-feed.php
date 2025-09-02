@@ -2,7 +2,7 @@
 /**
  * Template Name: Main Blog Comments Feed
  *
- * @package ExtraChillCommunity
+ * @package Extra ChillCommunity
  */
 
 get_header();

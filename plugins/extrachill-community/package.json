@@ -1,0 +1,34 @@
+{
+  "name": "extrachill-community",
+  "version": "1.0.0",
+  "description": "Extra Chill community platform - WordPress theme for forums and community features",
+  "main": "style.css",
+  "scripts": {
+    "build": "./build.sh",
+    "version": "grep -i 'Version:' style.css | head -1 | sed 's/.*Version:\\s*\\([0-9\\.]*\\).*/\\1/'"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/chubes4/extrachill-community.git"
+  },
+  "keywords": [
+    "wordpress",
+    "theme",
+    "community",
+    "forum",
+    "bbpress",
+    "music",
+    "extrachill"
+  ],
+  "author": "Chris Huber <hello@chubes.net> (https://chubes.net)",
+  "license": "GPL-2.0+",
+  "bugs": {
+    "url": "https://github.com/chubes4/extrachill-community/issues"
+  },
+  "homepage": "https://community.extrachill.com",
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "devDependencies": {},
+  "private": true
+}

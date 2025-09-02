@@ -140,108 +140,12 @@
     line-height: 1.6;
 }
 
-/* ------------------ Most Active Users Section ------------------ */
-.most-active-users-section {
-    margin: 20px 0;
-    position: relative;
-}
-
-.active-users-grid {
-    display: flex;
-    gap: 1rem;
-    padding: 0;
-    overflow-x: auto;
-    scroll-snap-type: x mandatory;
-    -webkit-overflow-scrolling: touch;
-    scroll-behavior: smooth;
-}
-
-.most-active-users-section .user-name {
-    font-size: 1rem;
-    font-weight: bold;
-    margin-bottom: 0.25rem;
-}
-.most-active-users-section .user-details .user-name a{
-    font-size: 1rem;
-    font-weight: bold;
-
-}
-.view-all-users-link {
-    display: flex;
-    justify-content: center;
-}
-
-.view-all-users-link a {
-    color: var(--accent-2);
-    text-decoration: none;
-    font-size: 1rem;
-    font-weight: bold;
-}
-
 .forum-badges {
     font-size: 0.9rem;
 }
 
-.most-active-users-section .user-details {
-    font-size: 0.9rem;
-    color: var(--muted-text);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-}
-
-.most-active-users-section .user-actions {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-.user-card {
-    flex: 0 0 calc(20% - 1rem);
-    background-color: var(--card-background);
-    border: 1px solid var(--border-color);
-    border-radius: 4px;
-    padding: 1rem;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-    scroll-snap-align: start;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    margin: 20px 0;
-}
-
 .user-custom-title {
     color: var(--accent-2);
-}
-
-@media (max-width: 767px) {
-    .user-card {
-        flex: 0 0 50%;
-    }
-    
-    .scroll-arrow {
-        position: absolute;
-        top: 50%;
-        transform: translateY(-50%);
-        background: rgba(255,255,255,0.9);
-        border: 1px solid var(--border-color);
-        border-radius: 50%;
-        width: 40px;
-        height: 40px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        z-index: 10;
-    }
-    
-    .scroll-arrow.prev { left: 10px; }
-    .scroll-arrow.next { right: 10px; }
-    
-    .active-users-grid::-webkit-scrollbar {
-        display: none;
-    }
 }
 
 .username-badge {
@@ -483,6 +387,161 @@
         text-align: center;
         max-width: 200px;
     }
+}
+
+/* ===============================================
+   Homepage Description Styles
+   =============================================== */
+.homepage-description {
+    margin-bottom: 20px;
+}
+
+.homepage-description p {
+    font-size: 16px;
+    color: var(--text-color);
+    margin: 0;
+}
+
+/* ===============================================
+   Homepage Top Action Buttons Styles
+   =============================================== */
+
+.homepage-top-actions {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 20px;
+    align-items: center;
+}
+
+.homepage-top-actions .button {
+    padding: 10px 20px;
+    border-radius: 5px;
+    text-decoration: none;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.login-btn {
+    background: var(--button-bg);
+    color: white;
+}
+
+.signup-btn {
+    background: var(--button-secondary-bg);
+    color: white;
+}
+
+.profile-btn {
+    background: var(--button-bg);
+    color: white;
+}
+
+.settings-btn {
+    background: var(--button-secondary-bg);
+    color: white;
+}
+
+.login-btn:hover {
+    background: var(--button-hover-bg);
+}
+
+.signup-btn:hover {
+    background: var(--button-secondary-hover-bg);
+}
+
+.profile-btn:hover {
+    background: var(--button-hover-bg);
+}
+
+.settings-btn:hover {
+    background: var(--button-secondary-hover-bg);
+}
+
+/* Mobile responsive for homepage buttons */
+@media (max-width: 768px) {
+    .homepage-top-actions {
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .homepage-top-actions .button {
+        width: 100%;
+        text-align: center;
+    }
+}
+
+/* ===============================================
+   Homepage Bottom Action Buttons Styles
+   =============================================== */
+
+.homepage-bottom-actions {
+    display: flex;
+    gap: 16px;
+    margin: 24px 0 20px 0;
+    justify-content: center;
+    align-items: center;
+}
+
+.homepage-bottom-actions .button {
+    padding: 12px 24px;
+    border-radius: 6px;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 15px;
+    transition: all 0.2s ease;
+    text-align: center;
+    min-width: 150px;
+}
+
+.support-forum-btn {
+    background: var(--button-bg);
+    color: white;
+    border: 2px solid var(--button-bg);
+}
+
+.artist-platform-btn {
+    background: var(--button-secondary-bg);
+    color: white;
+    border: 2px solid var(--button-secondary-bg);
+}
+
+.support-forum-btn:hover {
+    background: var(--button-hover-bg);
+    border-color: var(--button-hover-bg);
+}
+
+.artist-platform-btn:hover {
+    background: var(--button-secondary-hover-bg);
+    border-color: var(--button-secondary-hover-bg);
+}
+
+/* Mobile responsive for bottom buttons */
+@media (max-width: 768px) {
+    .homepage-bottom-actions {
+        flex-direction: column;
+        gap: 12px;
+        margin: 20px 0;
+    }
+    
+    .homepage-bottom-actions .button {
+        width: 100%;
+        max-width: 280px;
+    }
+}
+
+/* ===============================================
+   View Recently Active Link Styles
+   =============================================== */
+.view-all-users-link {
+    display: flex;
+    justify-content: center;
+}
+
+.view-all-users-link a {
+    color: var(--accent-2);
+    text-decoration: none;
+    font-size: 1rem;
+    font-weight: bold;
 }
 
 /* ===============================================

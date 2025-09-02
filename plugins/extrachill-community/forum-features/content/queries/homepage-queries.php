@@ -5,7 +5,7 @@
  * Centralized database queries specifically for homepage/front-page functionality.
  * Includes forum fetching, recent topics, and latest activity queries.
  * 
- * @package ExtraChillCommunity
+ * @package Extra ChillCommunity
  * @version 1.0.0
  */
 

@@ -5,7 +5,7 @@
  * Centralized database queries for the Recent Activity Feed page template.
  * Handles reply-based Twitter-like feed with configurable forum exclusions.
  * 
- * @package ExtraChillCommunity  
+ * @package Extra ChillCommunity  
  * @version 1.0.0
  */
 
@@ -49,7 +49,44 @@ function extrachill_get_recent_feed_query($per_page = 15, $paged = null) {
     
     $args = extrachill_get_recent_replies_args($per_page, $paged);
     
+    // Set global for pagination access
+    global $bbp_reply_query;
+    $bbp_reply_query = new WP_Query($args);
+    
     return bbp_has_replies($args);
+}
+
+/**
+ * Generate pagination for recent feed template
+ *
+ * @return array|false Pagination HTML array or false if no pagination needed
+ */
+function extrachill_get_recent_feed_pagination() {
+    global $bbp_reply_query;
+    
+    if (!$bbp_reply_query || !$bbp_reply_query->max_num_pages > 1) {
+        return false;
+    }
+    
+    $current_page = max(1, bbp_get_paged());
+    $total_pages = $bbp_reply_query->max_num_pages;
+    $total_replies = $bbp_reply_query->found_posts;
+    $per_page = $bbp_reply_query->query_vars['posts_per_page'];
+    
+    // Calculate pagination display values
+    $start = (($current_page - 1) * $per_page) + 1;
+    $end = min($current_page * $per_page, $total_replies);
+    
+    return array(
+        'count_html' => "Viewing reply $start to $end (of $total_replies total)",
+        'links_html' => paginate_links(array(
+            'total' => $total_pages,
+            'current' => $current_page,
+            'prev_text' => '&laquo; Previous',
+            'next_text' => 'Next &raquo;',
+            'type' => 'list'
+        ))
+    );
 }
 
 /**

@@ -6,7 +6,7 @@
  * Provides caching for notifications to optimize performance.
  * Uses ec_avatar_menu_items filter to allow plugins to add custom dropdown menu items.
  * 
- * @package ExtraChillCommunity
+ * @package Extra ChillCommunity
  * @subpackage ForumFeatures\Content
  */
 

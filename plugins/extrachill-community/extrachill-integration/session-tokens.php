@@ -6,7 +6,7 @@
  * extrachill.com and community.extrachill.com domains. Handles cookie
  * setting for multiple domains and session validation.
  * 
- * @package ExtraChillCommunity
+ * @package Extra ChillCommunity
  */
 
 add_action('wp_login', 'set_ecc_user_logged_in_token', 10, 2);
@@ -36,7 +36,9 @@ function set_ecc_user_logged_in_token($user_login, $user) {
         'httponly' => false, // Set to true if you want to prohibit JavaScript access.
         'samesite' => 'None' // Or 'Lax', depending on your cross-site request needs.
     ];
+    error_log('[DEBUG] Attempting to set cookie for .extrachill.link domain');
     $cookie_result2 = setcookie('ecc_user_session_token', $token, $alias_cookie_params);
+    error_log('[DEBUG] .extrachill.link cookie result: ' . ($cookie_result2 ? 'SUCCESS' : 'FAILED'));
     
     // Also set without dot prefix as fallback for root domain
     $root_cookie_params = [
@@ -47,7 +49,9 @@ function set_ecc_user_logged_in_token($user_login, $user) {
              'httponly' => false, // Set to true if you want to prohibit JavaScript access.
              'samesite' => 'None' // Or 'Lax', depending on your cross-site request needs.
          ];
+    error_log('[DEBUG] Attempting to set cookie for extrachill.link domain (no dot)');
     $cookie_result3 = setcookie('ecc_user_session_token', $token, $root_cookie_params);
+    error_log('[DEBUG] extrachill.link cookie result: ' . ($cookie_result3 ? 'SUCCESS' : 'FAILED'));
 }
 
 function generate_community_session_token() {
@@ -209,9 +213,6 @@ function auto_login_via_session_token() {
         
         wp_set_current_user($user_id);
         wp_set_auth_cookie($user_id, true);
-
-        // Optionally, trigger the wp_login action to mimic the standard login process.
-        do_action('wp_login', $user->user_login, $user);
     }
 }
 

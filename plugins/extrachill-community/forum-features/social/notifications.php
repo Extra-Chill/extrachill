@@ -451,7 +451,7 @@ function extrachill_cleanup_old_notifications_for_user($user_id) {
 }
 
 /**
- * Notifies band members of new topics in their band forum.
+ * Notifies artist members of new topics in their artist forum.
  * Topic author will not be notified by this function.
  */
 function bp_notify_artist_members_new_topic($topic_id, $forum_id, $anonymous_data, $topic_author_id) {

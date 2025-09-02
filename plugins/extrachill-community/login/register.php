@@ -5,7 +5,7 @@
  * Handles user registration with email verification, validation,
  * and integration with the artist platform plugin.
  * 
- * @package ExtraChillCommunity
+ * @package Extra ChillCommunity
  */
 
 function extrachill_registration_form_shortcode() {
@@ -303,27 +303,13 @@ function auto_login_new_user($user_id, $redirect_artist_id = null, $from_join_fl
 
         // Determine the redirect URL
 
-        // --- START Join Flow Post-Registration Redirect ---
+        // If from join flow, use default redirect
         if ($from_join_flow) {
-             $manage_artist_page = get_page_by_path('manage-artist-profiles');
-              if ($manage_artist_page) {
-                  $redirect_url = add_query_arg('from_join', 'true', get_permalink($manage_artist_page));
-              } else {
-                  // Fallback if manage page not found
-                 $redirect_url = home_url();
-              }
+            $redirect_url = apply_filters('registration_redirect', home_url());
         }
-        // --- END Join Flow Post-Registration Redirect ---
-
-        // If not from join flow and a specific band ID was provided (e.g., from invite), redirect there.
-        // Note: The band invite process might need refinement to pass the redirect_to URL through the registration form
-        // if we want to send invitees to a specific page after registration + joining band.
-        // For now, if redirect_artist_id is set and not from join flow, redirect to that band's profile?
-        // This part of the logic depends on the intended flow after accepting an invite.
+        // If not from join flow and a specific artist ID was provided (e.g., from invite), redirect there.
         else if ($redirect_artist_id) {
-             // Determine redirect URL for band invite scenario
-             // This might need to go to the band's profile page or management page depending on the invite flow
-             // For now, let's redirect to the band's profile page if it exists.
+             // Redirect to the artist's profile page if it exists.
              $artist_post = get_post($redirect_artist_id);
              if ($artist_post && $artist_post->post_type === 'artist_profile') {
                  $redirect_url = get_permalink($artist_post);
@@ -333,7 +319,7 @@ function auto_login_new_user($user_id, $redirect_artist_id = null, $from_join_fl
              }
 
         }
-        // Default redirect after registration if not from join flow or band invite
+        // Default redirect after registration if not from join flow or artist invite
         else {
             $redirect_url = apply_filters('registration_redirect', home_url());
         }

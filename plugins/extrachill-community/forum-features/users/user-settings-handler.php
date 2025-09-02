@@ -193,17 +193,17 @@ if ( ! function_exists( 'extrachill_handle_settings_page_forms' ) ) {
             // --- Subscriptions & Email Preferences --- 
             if ( isset( $_POST['artist_email_consent'] ) || isset( $_POST['submit_user_settings'] ) ) { 
                 $new_email_permissions = array();
-                $followed_bands_on_page = isset($_POST['followed_bands_on_page']) && is_array($_POST['followed_bands_on_page']) ? array_map('intval', $_POST['followed_bands_on_page']) : [];
+                $followed_artists_on_page = isset($_POST['followed_artists_on_page']) && is_array($_POST['followed_artists_on_page']) ? array_map('intval', $_POST['followed_artists_on_page']) : [];
 
                 if (isset($_POST['artist_email_consent']) && is_array($_POST['artist_email_consent'])){
                     foreach ( $_POST['artist_email_consent'] as $artist_id_str => $consent_value ) {
                         $artist_id = intval($artist_id_str);
-                        if (in_array($artist_id, $followed_bands_on_page, true)) { 
+                        if (in_array($artist_id, $followed_artists_on_page, true)) { 
                              $new_email_permissions[ $artist_id ] = ($consent_value === '1');
                         }
                     }
                 }
-                foreach ($followed_bands_on_page as $artist_id) {
+                foreach ($followed_artists_on_page as $artist_id) {
                     if (!isset($new_email_permissions[$artist_id])) {
                         $new_email_permissions[$artist_id] = false;
                     }

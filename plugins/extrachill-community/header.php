@@ -6,7 +6,7 @@
  * the newsletter subscription form and replaces the shopping cart icon with
  * the logged in user profile image and notification bell.
  *
- * @package ExtraChill
+ * @package Extra Chill
  */
 ?>
 <!DOCTYPE html>

@@ -1,0 +1,20 @@
+{
+	"folders": [
+		{
+			"path": "../.."
+		},
+		{
+			"path": "../../../../Plugins/extrachill-artist-platform"
+		},
+		{
+			"path": "../../../../extrachill-app"
+		},
+		{
+			"path": "../../../extrachill"
+		},
+		{
+			"path": "../../../extrachill-shop"
+		}
+	],
+	"settings": {}
+}

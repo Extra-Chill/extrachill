@@ -1,6 +1,6 @@
 <?php
 /**
- * Blog Comments Integration for ExtraChill Community
+ * Blog Comments Integration for Extra Chill Community
  * 
  * Provides cross-domain comment display and management functionality
  * between community.extrachill.com and extrachill.com

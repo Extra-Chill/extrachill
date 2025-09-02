@@ -92,6 +92,12 @@
     text-decoration: none;
 }
 
+.bbp-topic-card a:hover {
+    color: inherit;
+    text-decoration: underline;
+    text-decoration-color: var(--link-color);
+}
+
 .bbp-topic-card h3 a {
     text-decoration: underline;
 }

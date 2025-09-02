@@ -1,6 +1,6 @@
 # Extra Chill Community Theme
 
-A WordPress theme for the ExtraChill community platform providing forum enhancements, cross-domain authentication, and bbPress integration. Focuses exclusively on community and forum features. Artist platform functionality has been fully migrated to a separate plugin.
+A WordPress theme for the Extra Chill community platform providing forum enhancements, cross-domain authentication, and bbPress integration. Focuses exclusively on community and forum features. Artist platform functionality has been fully migrated to a separate plugin.
 
 ## Overview
 

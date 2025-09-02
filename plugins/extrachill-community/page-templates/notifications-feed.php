@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Template Name: ExtraChill Notifications
+ * Template Name: Extra Chill Notifications
  *
  * This is the template that displays the notifications page.
  */

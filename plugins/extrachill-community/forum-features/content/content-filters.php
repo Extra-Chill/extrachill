@@ -92,7 +92,9 @@ function embed_tweets($content) {
         // If the API call was successful, replace the URL with the embed code
         if (!is_wp_error($response) && isset($response['body'])) {
             $embed_data = json_decode($response['body'], true);
-            return '<div class="twitter-embed">' . $embed_data['html'] . '</div>'; // Wrap in a div to manage styling and formatting independently
+            if ($embed_data && isset($embed_data['html'])) {
+                return '<div class="twitter-embed">' . $embed_data['html'] . '</div>'; // Wrap in a div to manage styling and formatting independently
+            }
         }
 
         // If the API call failed, just return the original URL

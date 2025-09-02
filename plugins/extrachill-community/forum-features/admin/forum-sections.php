@@ -5,7 +5,7 @@
  * Admin functionality for controlling which forums display on the community homepage.
  * Adds checkbox to forum edit pages for homepage display control.
  * 
- * @package ExtraChillCommunity
+ * @package Extra ChillCommunity
  * @version 1.0.0
  */
 
@@ -14,21 +14,21 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-// Function to register homepage display meta box
-function register_homepage_display_metabox() {
+// WordPress meta box registration (working pattern)
+function extrachill_add_homepage_display_meta_box() {
     add_meta_box(
-        'homepage-display-metabox',
-        esc_html__('Homepage Display', 'extra-chill-community'),
-        'render_homepage_display_checkbox',
-        bbp_get_forum_post_type(),
+        'extrachill_homepage_display',
+        'Homepage Display',
+        'extrachill_homepage_display_meta_box_callback',
+        'forum',
         'side',
-        'default'
+        'high'
     );
 }
-add_action('add_meta_boxes', 'register_homepage_display_metabox');
+add_action('add_meta_boxes', 'extrachill_add_homepage_display_meta_box');
 
-// Function to render homepage display checkbox in meta box
-function render_homepage_display_checkbox($post) {
+// Meta box callback function
+function extrachill_homepage_display_meta_box_callback($post) {
     $show_on_homepage = get_post_meta($post->ID, '_show_on_homepage', true);
     
     // Add nonce field for security
@@ -44,6 +44,7 @@ function render_homepage_display_checkbox($post) {
     </p>
     <?php
 }
+
 
 // Function to save the homepage display setting
 function save_forum_homepage_display($post_id) {
@@ -75,11 +76,6 @@ function save_forum_homepage_display($post_id) {
 }
 add_action('save_post', 'save_forum_homepage_display');
 
-// Keep bbPress hook as fallback for compatibility
-function save_forum_homepage_display_bbpress($forum_id) {
-    save_forum_homepage_display($forum_id);
-}
-add_action('bbp_forum_attributes_metabox_save', 'save_forum_homepage_display_bbpress');
 
 // One-time migration function to convert old section data
 function migrate_forum_section_to_homepage_display() {

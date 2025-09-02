@@ -1,6 +1,6 @@
 <?php
 /**
- * Seamless Comments Integration for ExtraChill Community
+ * Seamless Comments Integration for Extra Chill Community
  * 
  * Serves comment forms and manages cross-domain comment functionality.
  * Enables users on extrachill.com to comment using their community accounts.

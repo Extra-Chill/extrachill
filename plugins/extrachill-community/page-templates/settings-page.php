@@ -232,12 +232,12 @@ if ($email_change_error) {
                             ), ARRAY_A );
                             $consented_artist_ids = !empty($consented_artist_ids_results) ? wp_list_pluck( $consented_artist_ids_results, 'artist_profile_id' ) : array();
 
-                            $followed_bands_posts = function_exists('bp_get_user_followed_bands') ? bp_get_user_followed_bands( $current_user_id, array('posts_per_page' => -1) ) : array();
+                            $followed_artists_posts = function_exists('bp_get_user_followed_bands') ? bp_get_user_followed_bands( $current_user_id, array('posts_per_page' => -1) ) : array();
                             
-                            if ( ! empty( $followed_bands_posts ) ) :
+                            if ( ! empty( $followed_artists_posts ) ) :
                             ?>
                                 <ul class="followed-bands-settings">
-                                    <?php foreach ( $followed_bands_posts as $artist_post ) :
+                                    <?php foreach ( $followed_artists_posts as $artist_post ) :
                                         $artist_id = $artist_post->ID;
                                         $artist_name = get_the_title( $artist_id );
                                         $artist_url = get_permalink( $artist_id );
@@ -247,7 +247,7 @@ if ($email_change_error) {
                                     <li>
                                         <input type="checkbox"
                                                id="artist_consent_<?php echo esc_attr( $artist_id ); ?>"
-                                               name="bands_consented[]" // Ensure this is the correct name for the AJAX handler
+                                               name="artists_consented[]" // Ensure this is the correct name for the AJAX handler
                                                value="<?php echo esc_attr( $artist_id ); ?>"
                                                <?php checked( $has_platform_consent, true ); ?>>
                                         <label for="artist_consent_<?php echo esc_attr( $artist_id ); ?>">

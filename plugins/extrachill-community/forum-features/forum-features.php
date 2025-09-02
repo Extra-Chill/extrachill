@@ -5,7 +5,7 @@
  * Complete overview and loader for all Extra Chill Community forum functionality.
  * This single file provides developers a comprehensive understanding of all features.
  * 
- * @package ExtraChillCommunity
+ * @package Extra ChillCommunity
  * @version 1.0.0
  * @author Chris Huber
  */
@@ -89,6 +89,9 @@ include_once get_stylesheet_directory() . '/forum-features/social/forum-badges.p
 // Rank System (Point-Based Engagement)
 include_once get_stylesheet_directory() . '/forum-features/social/rank-system/point-calculation.php';
 include_once get_stylesheet_directory() . '/forum-features/social/rank-system/chill-forums-rank.php';
+
+// Notification System
+include_once get_stylesheet_directory() . '/forum-features/social/notifications.php';
 
 // =============================================================================
 // USER FEATURES - Profiles, settings, verification

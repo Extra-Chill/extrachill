@@ -1,6 +1,11 @@
 jQuery(document).ready(function($) {
-    $('body').on('click', '.upvote-icon', function() {
-        if (!extrachill_ajax.is_user_logged_in) {
+    $('body').on('click', '.upvote-icon', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        // Check if user has valid session token
+        var sessionToken = document.cookie.match(/ecc_user_session_token=([^;]*)/);
+        if (!sessionToken || !sessionToken[1] || sessionToken[1].length === 0) {
             window.location.href = '/login';
             return;
         }

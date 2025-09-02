@@ -91,14 +91,17 @@ if ( $is_artist || $is_professional ) :
             ?>
         </h2>
         <?php if ( !empty($user_artist_ids) && is_array($user_artist_ids) ) : ?>
-            <div class="user-artist-cards artist-cards-container">
+            <div class="artist-cards-grid">
                 <?php foreach ( $user_artist_ids as $user_artist_id ) : ?>
                     <?php 
                     $artist_post = get_post( $user_artist_id ); 
                     if ( $artist_post && $artist_post->post_type === 'artist_profile' ) :
-                        // Use plugin's artist card template
-                        if ( class_exists( 'ExtraChillArtistPlatform_Templates' ) ) {
-                            ExtraChillArtistPlatform_Templates::load_artist_profile_card( $user_artist_id, 'user-profile' );
+                        // Use plugin's filter-based template system
+                        if ( function_exists( 'ec_render_template' ) ) {
+                            echo ec_render_template( 'artist-profile-card', array(
+                                'artist_id' => $user_artist_id,
+                                'context' => 'user-profile'
+                            ) );
                         }
                     endif; ?>
                 <?php endforeach; ?>
