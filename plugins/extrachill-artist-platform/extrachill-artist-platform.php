@@ -39,11 +39,15 @@ class ExtraChillArtistPlatform {
 
     /**
      * Single instance of the plugin
+     * 
+     * @var ExtraChillArtistPlatform|null
      */
     private static $instance = null;
 
     /**
-     * Get single instance
+     * Get single instance of the plugin
+     * 
+     * @return ExtraChillArtistPlatform
      */
     public static function instance() {
         if ( null === self::$instance ) {
@@ -53,7 +57,10 @@ class ExtraChillArtistPlatform {
     }
 
     /**
-     * Constructor - Initialize hooks
+     * Constructor - Initialize hooks and load post types
+     * 
+     * Prevents direct instantiation and loads post types early
+     * to ensure functions exist before hooks fire.
      */
     private function __construct() {
         // Load post types early to ensure functions exist before hooks fire
@@ -147,7 +154,6 @@ class ExtraChillArtistPlatform {
         require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/core/filters/fonts.php';
         require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/core/filters/avatar-menu.php';
         require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/core/filters/templates.php';
-        // data-sync.php removed - now using unified sync system in inc/core/actions/sync.php
         require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/core/default-artist-page-link-profiles.php';
 
         // Artist Profile System
@@ -163,8 +169,6 @@ class ExtraChillArtistPlatform {
 
         // Link Page System
         require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/create-link-page.php';
-        // link-page-custom-vars-and-fonts-head.php consolidated into inc/link-pages/live/link-page-head.php
-        // LinkPageDataProvider.php removed - using centralized ec_get_link_page_data filter instead
         require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/live/ajax/analytics.php';
         require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/live/link-page-head.php';
         require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/live/link-page-session-validation.php';

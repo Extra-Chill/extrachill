@@ -6,10 +6,11 @@ WordPress plugin providing comprehensive artist platform functionality for the E
 
 ### Core Classes
 - **ExtraChillArtistPlatform**: Main plugin class (singleton), initialization (`extrachill-artist-platform.php`)
-- **ExtraChillArtistPlatform_Templates**: Template handling, routing, custom template loading (`inc/core/class-templates.php`)
+- **ExtraChillArtistPlatform_PageTemplates**: Template handling, routing, custom template loading (`inc/core/class-templates.php`)
 - **ExtraChillArtistPlatform_Assets**: Asset management and conditional enqueuing (`inc/core/artist-platform-assets.php`)
 - **ExtraChillArtistPlatform_Migration**: Database migration from band to artist terminology (`inc/core/artist-platform-migration.php`)
-- **ExtraChillArtistPlatform_SocialLinks**: Social link type management and configuration (`inc/core/filters/social-icons.php`)
+- **ExtraChillArtistPlatform_SocialLinks**: Comprehensive social link management with 15+ platform support, validation, and rendering (`inc/core/filters/social-icons.php`)
+- **ExtraChill_Live_Preview_Handler**: Live preview processing and data override management (`inc/link-pages/management/live-preview/class-live-preview-handler.php`)
 
 ### File Organization
 - **Core Directory**: `inc/core/` - Post types, rewrite rules, asset management, templates, centralized data functions
@@ -29,16 +30,17 @@ WordPress plugin providing comprehensive artist platform functionality for the E
 - **Live Pages**: `inc/link-pages/live/` - Public templates, analytics, session validation
 - **Management Interface**: `inc/link-pages/management/` - Admin interface with modular JS/CSS, drag-and-drop link reordering
 - **Live Preview**: `inc/link-pages/management/live-preview/` - Real-time preview functionality
+  - **Live Preview Handler**: `inc/link-pages/management/live-preview/class-live-preview-handler.php` - Live preview handler (ExtraChill_Live_Preview_Handler)
+  - **Preview Template**: `inc/link-pages/management/live-preview/preview.php` - Live preview rendering with data override support
 - **Advanced Features**: `inc/link-pages/management/advanced-tab/` - Tracking, redirects, link expiration, YouTube embeds
 - **Component Templates**: `inc/link-pages/management/templates/components/` - Modular UI components
 - **Subscription Templates**: `inc/link-pages/templates/` - Email collection forms and modals
 
 #### Cross-Domain Authentication  
-**Files**: `inc/link-pages/live/ajax/edit-icon.php`, `inc/link-pages/live/link-page-session-validation.php`
+**File**: `inc/link-pages/live/link-page-session-validation.php`
 - Session token system for `.extrachill.com` domain
 - Auto-login across subdomains using secure cookies
-- REST API permission validation with retry logic
-- Edit icon visibility based on authentication state
+- Server-side session validation with template-level permission checks
 - 6-month token expiration with cleanup
 
 #### Forum Integration
@@ -82,19 +84,19 @@ WordPress plugin providing comprehensive artist platform functionality for the E
 #### JavaScript Architecture
 
 **Management Interface**: `inc/link-pages/management/assets/js/`
-- **Core modules**: `info.js`, `links.js`, `colors.js`, `fonts.js`, `sizing.js`, `background.js`
+- **Core modules**: `info.js`, `links.js`, `colors.js`, `fonts.js`, `sizing.js`, `background.js`, `profile-image.js`
 - **Advanced features**: `analytics.js`, `qrcode.js`, `socials.js`, `subscribe.js`, `advanced.js`, `link-expiration.js`
 - **UI utilities**: `ui-utils.js` (responsive tab management, copy URL functionality), `sortable.js` (SortableJS drag-and-drop reordering)
 
 **Live Preview System**: `inc/link-pages/management/live-preview/assets/js/`
-- **Preview modules**: `background-preview.js`, `colors-preview.js`, `fonts-preview.js`, `info-preview.js`, `links-preview.js`, `sizing-preview.js`, `socials-preview.js`, `link-expiration-preview.js`, `subscribe-preview.js`
+- **Preview modules**: `background-preview.js`, `colors-preview.js`, `fonts-preview.js`, `info-preview.js`, `links-preview.js`, `sizing-preview.js`, `socials-preview.js`, `link-expiration-preview.js`, `subscribe-preview.js`, `profile-image-preview.js`
 - **UI components**: `overlay-preview.js`, `sorting-preview.js`
 
 **Public Interface**: `inc/link-pages/live/assets/js/`
 - `link-page-public-tracking.js` - Analytics and click tracking
 - `link-page-subscribe.js` - Subscription form functionality
 - `link-page-youtube-embed.js` - YouTube video embed handling
-- `link-page-session.js` - Cross-domain session validation with REST API integration
+- `link-page-session.js` - Cross-domain session validation with server-side integration
 - `extrch-share-modal.js` - Native Web Share API with social fallbacks
 
 **Artist Profile Management**: `inc/artist-profiles/assets/js/`
@@ -113,6 +115,8 @@ WordPress plugin providing comprehensive artist platform functionality for the E
 - `sortable.js` - SortableJS integration for drag-and-drop link reordering  
 - `sorting-preview.js` - Live preview for drag-and-drop operations
 - `subscribe-preview.js` - Live preview for subscription form changes
+- `profile-image.js` & `profile-image-preview.js` - Profile image upload and preview management
+- `analytics.js` - Chart.js-powered analytics dashboard with event-driven initialization
 
 ### Database Schema
 
@@ -175,6 +179,15 @@ CREATE TABLE {prefix}_artist_subscribers (
 - Touch-friendly drag-and-drop for mobile devices
 - Real-time preview updates during reordering
 
+#### Social Platform Integration
+**File**: `inc/core/filters/social-icons.php`
+- **Comprehensive Platform Support**: 15+ social platforms including Apple Music, Bandcamp, Bluesky, Facebook, GitHub, Instagram, Patreon, Pinterest, SoundCloud, Spotify, TikTok, Twitch, Twitter/X, YouTube, and custom links
+- **Smart Icon Management**: Font Awesome icon class validation with fallback handling
+- **URL Validation**: Automatic protocol addition and comprehensive URL sanitization
+- **Custom Labels**: Support for custom link labels (e.g., custom website links)
+- **CRUD Operations**: Complete social link lifecycle management with permission validation
+- **Rendering System**: Flexible HTML output with customizable container classes and accessibility attributes
+
 #### Artist Context Switching
 **File**: `assets/js/artist-switcher.js`
 - Artist selection dropdown for multi-artist management
@@ -185,12 +198,20 @@ CREATE TABLE {prefix}_artist_subscribers (
 **File**: `inc/artist-profiles/artist-following.php`
 - Follow/unfollow functionality with database integration
 
+#### Artist Grid System
+**File**: `inc/artist-profiles/frontend/artist-grid.php`
+- Activity-based artist sorting with comprehensive timestamp calculation
+- User exclusion logic for personalized displays
+- Forum activity integration via bbPress
+- Link page activity tracking for sorting
+- Responsive grid layouts with context-aware rendering
+- Template integration via `ec_render_template()` system
+
 #### Frontend Forms & Permissions  
 **Files**: `inc/artist-profiles/frontend/frontend-forms.php`, `inc/core/filters/permissions.php`
 - Public form handling and validation
 - Centralized permission system with role-based access
 - Profile editing and management interfaces
-- Artist grid display with activity sorting (`inc/artist-profiles/frontend/artist-grid.php`)
 
 #### Centralized Save System
 **Core Files**: `inc/core/actions/save.php`
@@ -215,7 +236,6 @@ CREATE TABLE {prefix}_artist_subscribers (
 
 **Live (Public) AJAX Modules**: `inc/link-pages/live/ajax/`
 - **analytics.php**: Public tracking (`extrch_record_link_event`, `link_page_click_tracking`) with data pruning
-- **edit-icon.php**: Deprecated REST API endpoints (now server-side permission checks)
 
 **Management (Admin) AJAX Modules**: `inc/link-pages/management/ajax/`
 - **links.php**: Link management (`render_link_item_editor`, `render_link_section_editor`, `render_link_template`, `render_links_section_template`, `render_links_preview_template`)
@@ -226,9 +246,10 @@ CREATE TABLE {prefix}_artist_subscribers (
 - **subscribe.php**: Subscription handling (`extrch_link_page_subscribe`, `render_subscribe_template`)
 
 **Permission System**: Server-side permission validation
-- Cross-domain authentication moved to template-level checks
-- REST API endpoints removed in favor of server-side session validation
-- Permission checks handled via `inc/core/filters/permissions.php`
+- Cross-domain authentication handled via template-level checks
+- Server-side session validation replaces client-side API calls
+- Permission checks centralized via `inc/core/filters/permissions.php`
+- Context-aware permission validation for AJAX and template rendering
 
 #### Centralized Data System
 **Core File**: `inc/core/filters/data.php`
@@ -272,9 +293,34 @@ CREATE TABLE {prefix}_artist_subscribers (
 - User account linking and validation
 - Administrative assets: `inc/artist-profiles/assets/js/`
 
+#### Custom CSS System
+**File**: `assets/css/custom-social-icons.css`
+- **Custom Social Icon Support**: Extends Font Awesome with additional social platforms (Substack, Venmo)
+- **CSS Mask Technique**: Uses SVG masks to inherit parent text color and sizing
+- **Font Awesome Integration**: Seamless integration with existing icon classes
+- **Dynamic Color Inheritance**: Icons automatically adapt to theme colors
+
 ### Migration System  
 **File**: `inc/core/artist-platform-migration.php`
 - Band-to-artist terminology migration with transaction safety and rollback
+
+### Build System
+**Core Files**: `build.sh`, `package.json`, `.buildignore`
+- **Automated Build Process**: Shell script creates production-ready zip distributions
+- **Version Extraction**: Automatically extracts version from main plugin file
+- **File Filtering**: `.buildignore` excludes development files from production builds
+- **Dependency Validation**: Checks for required tools (rsync, zip)
+- **Structure Validation**: Validates plugin integrity before packaging
+- **Output Location**: Creates versioned zip files in `/dist` directory
+
+**Build Features**:
+- **Clean Builds**: Automatic cleanup of previous build artifacts
+- **Exclude Management**: Comprehensive file exclusion via `.buildignore` patterns
+- **Integrity Checks**: Plugin structure validation during build process
+- **Progress Reporting**: Colored console output with success/error reporting
+- **Archive Contents**: Summary of packaged files and total size
+
+**NPM Integration**: `package.json` provides build scripts and version extraction
 
 ## Development Standards
 
@@ -319,32 +365,48 @@ CREATE TABLE {prefix}_artist_subscribers (
 })();
 ```
 
-**Event-Driven Communication**: Modules communicate via CustomEvent dispatching
+**Event-Driven Communication**: Modules communicate via CustomEvent dispatching with standardized patterns
 ```javascript
-// Management module dispatches events
+// Management modules dispatch specific events for each data type
 document.dispatchEvent(new CustomEvent('infoChanged', {
     detail: { title: newTitle, bio: newBio }
 }));
+document.dispatchEvent(new CustomEvent('linksChanged', {
+    detail: { links: linkData }
+}));
+document.dispatchEvent(new CustomEvent('backgroundChanged', {
+    detail: { backgroundData: bgData }
+}));
 
-// Preview module listens for events
+// Preview modules listen for corresponding events
 document.addEventListener('infoChanged', function(e) {
     updatePreviewInfo(e.detail);
+});
+document.addEventListener('linksChanged', function(e) {
+    updatePreviewLinks(e.detail.links);
+});
+document.addEventListener('backgroundChanged', function(e) {
+    updatePreviewBackground(e.detail.backgroundData);
 });
 ```
 
 **Module Categories**:
-1. **Management Modules**: Handle form interactions, dispatch events for data changes
-2. **Preview Modules**: Listen for events, update live preview DOM elements  
-3. **Utility Modules**: Shared functionality (tabs, sorting, UI components)
-4. **Global Modules**: Cross-component features (artist switching, core initialization)
+1. **Management Modules**: Handle form interactions, dispatch events for data changes (`info.js`, `links.js`, `colors.js`, etc.)
+2. **Preview Modules**: Listen for events, update live preview DOM elements (`info-preview.js`, `links-preview.js`, `colors-preview.js`, etc.)
+3. **Utility Modules**: Shared functionality (`ui-utils.js`, `sortable.js` for drag-and-drop, `shared-tabs.js`)
+4. **Global Modules**: Cross-component features (`artist-switcher.js`, `artist-platform.js`)
+5. **Public Interface**: User-facing functionality (`link-page-session.js`, `extrch-share-modal.js`, tracking modules)
 
 #### Key JavaScript Features
+- **Event-Driven Architecture**: Standardized CustomEvent communication between management and preview modules
 - **Responsive Tabs**: `shared-tabs.js` - Accordion/tabs hybrid with 768px breakpoint
-- **Drag-and-Drop**: `sortable.js` - SortableJS integration with touch support
-- **Live Preview**: Real-time CSS variable updates via dedicated preview modules
-- **Form Serialization**: Complex data structures serialized to hidden inputs for save
-- **AJAX Integration**: WordPress-native patterns with comprehensive error handling
+- **Drag-and-Drop**: `sortable.js` - SortableJS integration with touch support and live preview updates
+- **Live Preview**: Real-time CSS variable updates via dedicated preview modules with comprehensive data synchronization
+- **Form Serialization**: Complex data structures serialized to hidden inputs for WordPress native form processing
+- **AJAX Integration**: WordPress-native patterns with modular organization and comprehensive error handling
 - **Modern APIs**: Native Web Share API with social media fallbacks
+- **Context-Aware Loading**: Asset management with conditional enqueuing based on page context
+- **Artist Context Switching**: Seamless multi-artist management with state preservation
 
 #### Save System Data Flow
 1. **JavaScript modules** serialize complex data structures to hidden form inputs

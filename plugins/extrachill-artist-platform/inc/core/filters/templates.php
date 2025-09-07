@@ -40,7 +40,7 @@ function ec_template_handler( $output, $template_name, $args = array() ) {
     $template_map = array(
         'single-link' => array(
             'file' => 'inc/link-pages/templates/single-link.php',
-            'required' => array( 'link_url', 'link_text' )
+            'required' => array()
         ),
         'link-section' => array(
             'file' => 'inc/link-pages/templates/link-section.php',

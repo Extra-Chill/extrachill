@@ -89,6 +89,11 @@ class ExtraChillArtistPlatform_SocialLinks {
                     'icon' => 'fab fa-facebook-f',
                     'base_url' => 'facebook.com'
                 ),
+                'github' => array( 
+                    'label' => __( 'GitHub', 'extrachill-artist-platform' ), 
+                    'icon' => 'fab fa-github',
+                    'base_url' => 'github.com'
+                ),
                 'instagram' => array( 
                     'label' => __( 'Instagram', 'extrachill-artist-platform' ), 
                     'icon' => 'fab fa-instagram',
@@ -114,6 +119,11 @@ class ExtraChillArtistPlatform_SocialLinks {
                     'icon' => 'fab fa-spotify',
                     'base_url' => 'spotify.com'
                 ),
+                'substack' => array( 
+                    'label' => __( 'Substack', 'extrachill-artist-platform' ), 
+                    'icon' => 'fab fa-substack',
+                    'base_url' => 'substack.com'
+                ),
                 'tiktok' => array( 
                     'label' => __( 'TikTok', 'extrachill-artist-platform' ), 
                     'icon' => 'fab fa-tiktok',
@@ -128,6 +138,11 @@ class ExtraChillArtistPlatform_SocialLinks {
                     'label' => __( 'Twitter / X', 'extrachill-artist-platform' ), 
                     'icon' => 'fab fa-x-twitter',
                     'base_url' => 'x.com'
+                ),
+                'venmo' => array( 
+                    'label' => __( 'Venmo', 'extrachill-artist-platform' ), 
+                    'icon' => 'fab fa-venmo',
+                    'base_url' => 'venmo.com'
                 ),
                 'website' => array( 
                     'label' => __( 'Website', 'extrachill-artist-platform' ), 

@@ -20,11 +20,15 @@ class ExtraChillArtistPlatform_PageTemplates {
 
     /**
      * Single instance of the class
+     * 
+     * @var ExtraChillArtistPlatform_PageTemplates|null
      */
     private static $instance = null;
 
     /**
-     * Get single instance
+     * Get single instance of the template handler
+     * 
+     * @return ExtraChillArtistPlatform_PageTemplates
      */
     public static function instance() {
         if ( null === self::$instance ) {
@@ -34,14 +38,18 @@ class ExtraChillArtistPlatform_PageTemplates {
     }
 
     /**
-     * Constructor - Initialize hooks
+     * Constructor - Initialize template hooks
+     * 
+     * Prevents direct instantiation and sets up template filtering.
      */
     private function __construct() {
         $this->init_hooks();
     }
 
     /**
-     * Initialize hooks
+     * Initialize template-related WordPress hooks
+     * 
+     * Sets up filters for custom template loading and registration.
      */
     private function init_hooks() {
         add_filter( 'template_include', array( $this, 'load_artist_link_page_template' ), 10 );
@@ -56,6 +64,10 @@ class ExtraChillArtistPlatform_PageTemplates {
      * Load artist link page and artist profile templates
      * 
      * Overrides single and archive templates for custom post types.
+     * Handles both artist_link_page and artist_profile post type templates.
+     * 
+     * @param string $template Current template path
+     * @return string Modified template path
      */
     public function load_artist_link_page_template( $template ) {
         // Check if this is a artist_link_page post type
@@ -89,6 +101,10 @@ class ExtraChillArtistPlatform_PageTemplates {
      * Load artist platform page templates
      * 
      * Overrides page templates for artist platform management pages.
+     * Maps template slugs to their actual file locations within the plugin.
+     * 
+     * @param string $template Current template path
+     * @return string Modified template path
      */
     public function load_artist_platform_page_templates( $template ) {
         global $post;
@@ -135,6 +151,10 @@ class ExtraChillArtistPlatform_PageTemplates {
      * Register artist platform templates with WordPress
      * 
      * Makes them appear in the page template dropdown in admin.
+     * Only registers templates that actually exist in the plugin directory.
+     * 
+     * @param array $templates Existing page templates
+     * @return array Modified templates array
      */
     public function register_artist_platform_templates( $templates ) {
         $artist_platform_templates = array(
@@ -168,7 +188,10 @@ class ExtraChillArtistPlatform_PageTemplates {
      * Setup proper query context for artist platform page templates
      * 
      * Prevents "invalid query" errors by establishing proper post data
-     * and query context for artist platform templates.
+     * and query context for artist platform templates. Ensures WordPress
+     * knows these are valid page requests.
+     * 
+     * @return void
      */
     public function setup_artist_platform_page_context() {
         global $post, $wp_query;

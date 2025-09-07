@@ -1,0 +1,37 @@
+/**
+ * Extra Chill Artist Platform - Custom Social Icons
+ * 
+ * CSS definitions for custom social media icons that extend Font Awesome
+ * Uses CSS mask technique to inherit color exactly like real Font Awesome icons
+ * 
+ * @package ExtraChillArtistPlatform
+ * @version 1.0.0
+ */
+
+/* Substack Icon - uses CSS mask to inherit parent text color, size adjusted to match other icons */
+.fab.fa-substack:before {
+    content: "";
+    display: inline-block;
+    width: 0.85em;
+    height: 1em;
+    vertical-align: middle;
+    background-color: currentColor;
+    mask: url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 448 511.471'%3E%3Cpath fill='black' d='M0 0h448v62.804H0V0zm0 229.083h448v282.388L223.954 385.808 0 511.471V229.083zm0-114.542h448v62.804H0v-62.804z'/%3E%3C/svg%3E") no-repeat center;
+    mask-size: contain;
+    -webkit-mask: url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 448 511.471'%3E%3Cpath fill='black' d='M0 0h448v62.804H0V0zm0 229.083h448v282.388L223.954 385.808 0 511.471V229.083zm0-114.542h448v62.804H0v-62.804z'/%3E%3C/svg%3E") no-repeat center;
+    -webkit-mask-size: contain;
+}
+
+/* Venmo Icon - uses CSS mask to inherit parent text color */
+.fab.fa-venmo:before {
+    content: "";
+    display: inline-block;
+    width: 1em;
+    height: 1em;
+    vertical-align: middle;
+    background-color: currentColor;
+    mask: url("data:image/svg+xml;charset=utf8,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath fill='black' d='M364.178 131.79c8.97 14.762 13.013 29.966 13.013 49.172 0 61.26-52.48 140.84-95.074 196.72h-97.285l-39.016-232.48 85.185-8.06 20.627 165.426c19.275-31.29 43.062-80.464 43.062-113.989 0-18.35-3.155-30.85-8.085-41.142l77.573-15.648z'/%3E%3C/svg%3E") no-repeat center;
+    mask-size: contain;
+    -webkit-mask: url("data:image/svg+xml;charset=utf8,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath fill='black' d='M364.178 131.79c8.97 14.762 13.013 29.966 13.013 49.172 0 61.26-52.48 140.84-95.074 196.72h-97.285l-39.016-232.48 85.185-8.06 20.627 165.426c19.275-31.29 43.062-80.464 43.062-113.989 0-18.35-3.155-30.85-8.085-41.142l77.573-15.648z'/%3E%3C/svg%3E") no-repeat center;
+    -webkit-mask-size: contain;
+}

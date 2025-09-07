@@ -75,10 +75,10 @@
         linkToMove.remove();
 
         // Get target section links container
-        let toSectionLinksContainer = toSection.querySelector('.extrch-link-page-section-links');
+        let toSectionLinksContainer = toSection.querySelector('.extrch-link-page-links');
         if (!toSectionLinksContainer) {
             toSectionLinksContainer = document.createElement('div');
-            toSectionLinksContainer.className = 'extrch-link-page-section-links';
+            toSectionLinksContainer.className = 'extrch-link-page-links';
             toSection.appendChild(toSectionLinksContainer);
         }
 

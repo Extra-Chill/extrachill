@@ -27,10 +27,11 @@ $link_text = $args['link_text'];
 $link_classes = $args['link_classes'];
 $youtube_embed = $args['youtube_embed'];
 
-// Don't render if missing required data
-if (empty($link_url) || empty($link_text)) {
-    return;
-}
+// Provide sensible defaults for empty links during editing
+$display_url = !empty($link_url) ? $link_url : '#';
+$display_text = !empty($link_text) ? $link_text : '';
+$share_url = !empty($link_url) ? $link_url : '#';
+$share_title = !empty($link_text) ? $link_text : 'Untitled Link';
 
 // Add YouTube embed class if needed
 if ($youtube_embed) {
@@ -38,14 +39,14 @@ if ($youtube_embed) {
 }
 ?>
 
-<a href="<?php echo esc_url($link_url); ?>" class="<?php echo esc_attr($link_classes); ?>" rel="noopener">
-    <span class="extrch-link-page-link-text"><?php echo esc_html($link_text); ?></span>
+<a href="<?php echo esc_url($display_url); ?>" class="<?php echo esc_attr($link_classes); ?>" rel="noopener">
+    <span class="extrch-link-page-link-text"><?php echo esc_html($display_text); ?></span>
     <span class="extrch-link-page-link-icon">
         <button class="extrch-share-trigger extrch-share-item-trigger" 
                 aria-label="Share this link" 
                 data-share-type="link"
-                data-share-url="<?php echo esc_url($link_url); ?>" 
-                data-share-title="<?php echo esc_attr($link_text); ?>">
+                data-share-url="<?php echo esc_url($share_url); ?>" 
+                data-share-title="<?php echo esc_attr($share_title); ?>">
             <i class="fas fa-ellipsis-v"></i>
         </button>
     </span>

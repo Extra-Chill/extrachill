@@ -39,87 +39,187 @@
         }
     }
     
-    // Main socials preview update function - Using template system
-    function updateSocialsPreview(socialsData, position) {
-        const previewContainerParent = document.querySelector('.manage-link-page-preview-live'); const previewEl = previewContainerParent?.querySelector('.extrch-link-page-preview-container');
+    // Legacy bulk update function - for backward compatibility with socialIconsChanged event
+    async function updateSocialsPreview(socialsData, position) {
+        const previewEl = document.querySelector('.manage-link-page-preview-live .extrch-link-page-preview-container');
         if (!previewEl) return;
 
-        // Find or create the socials container in the preview
-        let socialsContainer = previewEl.querySelector('.extrch-link-page-socials');
         const contentWrapper = previewEl.querySelector('.extrch-link-page-content-wrapper');
-        
         if (!contentWrapper) return;
 
-        // Remove existing socials container if it exists
-        if (socialsContainer) {
-            socialsContainer.remove();
+        // Remove existing container
+        const existingContainer = previewEl.querySelector('.extrch-link-page-socials');
+        if (existingContainer) {
+            existingContainer.remove();
         }
 
-        // If no socials data, just remove and return
+        // If no socials data, just return (container already removed)
         if (!socialsData || socialsData.length === 0) {
             return;
         }
 
-        // Create new socials container
-        socialsContainer = document.createElement('div');
+        // Create new container
+        const socialsContainer = document.createElement('div');
         socialsContainer.className = 'extrch-link-page-socials';
         
-        // Add position class if needed
-        if (position === 'below') {
-            socialsContainer.classList.add('extrch-socials-below');
+        // Position the container
+        insertSocialContainerAtPosition(socialsContainer, contentWrapper, position);
+
+        // Render all social icons
+        const validSocials = socialsData.filter(social => social.type && social.url);
+        const htmlResults = await Promise.all(
+            validSocials.map(social => renderSocialTemplate(social.type, social.url))
+        );
+
+        const validHtml = htmlResults.filter(html => html);
+        if (validHtml.length > 0) {
+            socialsContainer.innerHTML = validHtml.join('');
         }
+    }
+
+    // Granular preview update functions
+    async function addSocialIconToPreview(socialData) {
+        const previewEl = document.querySelector('.manage-link-page-preview-live .extrch-link-page-preview-container');
+        if (!previewEl) return;
+
+        let socialsContainer = previewEl.querySelector('.extrch-link-page-socials');
         
-        // Create social icons using template system
-        Promise.all(
-            socialsData
-                .filter(social => social.type && social.url)
-                .map(social => renderSocialTemplate(social.type, social.url))
-        ).then(htmlResults => {
-            htmlResults.forEach(html => {
-                if (html) {
-                    socialsContainer.insertAdjacentHTML('beforeend', html);
-                }
-            });
-        }).catch(error => {
-            console.error('Error rendering social icons:', error);
+        // Create container if it doesn't exist
+        if (!socialsContainer) {
+            socialsContainer = document.createElement('div');
+            socialsContainer.className = 'extrch-link-page-socials';
+            
+            // Position based on current position setting
+            const position = getCurrentSocialIconsPosition();
+            const contentWrapper = previewEl.querySelector('.extrch-link-page-content-wrapper');
+            if (contentWrapper) {
+                insertSocialContainerAtPosition(socialsContainer, contentWrapper, position);
+            }
+        }
+
+        // Render and append the new social icon
+        const html = await renderSocialTemplate(socialData.type, socialData.url);
+        if (html) {
+            socialsContainer.insertAdjacentHTML('beforeend', html);
+        }
+    }
+
+    function removeSocialIconFromPreview(socialData) {
+        const previewEl = document.querySelector('.manage-link-page-preview-live .extrch-link-page-preview-container');
+        if (!previewEl) return;
+
+        const socialsContainer = previewEl.querySelector('.extrch-link-page-socials');
+        if (!socialsContainer) return;
+
+        // Find and remove the matching social icon
+        const socialIcons = socialsContainer.querySelectorAll('a[href]');
+        socialIcons.forEach(icon => {
+            if (icon.href === socialData.url) {
+                icon.remove();
+            }
         });
 
-        // Position the socials container based on position setting
+        // Remove container if empty
+        if (socialsContainer.children.length === 0) {
+            socialsContainer.remove();
+        }
+    }
+
+    async function reorderSocialIconsInPreview(socialsData) {
+        const previewEl = document.querySelector('.manage-link-page-preview-live .extrch-link-page-preview-container');
+        if (!previewEl) return;
+
+        const socialsContainer = previewEl.querySelector('.extrch-link-page-socials');
+        if (!socialsContainer) return;
+
+        // Re-render all social icons in new order
+        const validSocials = socialsData.filter(social => social.type && social.url);
+        const htmlResults = await Promise.all(
+            validSocials.map(social => renderSocialTemplate(social.type, social.url))
+        );
+
+        const validHtml = htmlResults.filter(html => html);
+        if (validHtml.length > 0) {
+            socialsContainer.innerHTML = validHtml.join('');
+        }
+    }
+
+    function repositionSocialIconsContainer(position) {
+        const previewEl = document.querySelector('.manage-link-page-preview-live .extrch-link-page-preview-container');
+        if (!previewEl) return;
+
+        const socialsContainer = previewEl.querySelector('.extrch-link-page-socials');
+        const contentWrapper = previewEl.querySelector('.extrch-link-page-content-wrapper');
+        
+        if (!socialsContainer || !contentWrapper) return;
+
+        // Remove from current position
+        socialsContainer.remove();
+        
+        // Re-insert at correct position
+        insertSocialContainerAtPosition(socialsContainer, contentWrapper, position);
+    }
+
+    // Helper function to get current position setting
+    function getCurrentSocialIconsPosition() {
+        const checkedRadio = document.querySelector('input[name="link_page_social_icons_position"]:checked');
+        return checkedRadio ? checkedRadio.value : 'above';
+    }
+
+    // Helper function to insert container at correct position
+    function insertSocialContainerAtPosition(socialsContainer, contentWrapper, position) {
+        // Update CSS class
         if (position === 'below') {
-            // Insert after links but before powered-by section within content wrapper
+            socialsContainer.classList.add('extrch-socials-below');
+            // Insert after links but before powered-by section
             const poweredByEl = contentWrapper.querySelector('.extrch-link-page-powered');
             if (poweredByEl) {
                 contentWrapper.insertBefore(socialsContainer, poweredByEl);
             } else {
-                // Fallback: append to end of content wrapper
                 contentWrapper.appendChild(socialsContainer);
             }
         } else {
-            // Insert after header content but before links (default: above)
+            socialsContainer.classList.remove('extrch-socials-below');
+            // Insert after header content but before links (above)
             const headerContent = contentWrapper.querySelector('.extrch-link-page-header-content');
             if (headerContent) {
                 contentWrapper.insertBefore(socialsContainer, headerContent.nextSibling);
             } else {
-                // Fallback: prepend to content wrapper
                 contentWrapper.insertBefore(socialsContainer, contentWrapper.firstChild);
             }
         }
     }
 
-    // Social icon rendering now handled by PHP templates via AJAX
+    // Event listeners for granular social icon updates
+    document.addEventListener('socialIconAdded', function(e) {
+        if (e.detail && e.detail.socialData && e.detail.socialData.type && e.detail.socialData.url) {
+            addSocialIconToPreview(e.detail.socialData);
+        }
+    });
 
-    // Event listeners for socials updates from management forms
+    document.addEventListener('socialIconDeleted', function(e) {
+        if (e.detail && e.detail.socialData) {
+            removeSocialIconFromPreview(e.detail.socialData);
+        }
+    });
+
+    document.addEventListener('socialIconsMoved', function(e) {
+        if (e.detail && e.detail.socials) {
+            reorderSocialIconsInPreview(e.detail.socials);
+        }
+    });
+
+    document.addEventListener('socialIconsPositionChanged', function(e) {
+        if (e.detail && e.detail.position) {
+            repositionSocialIconsContainer(e.detail.position);
+        }
+    });
+
+    // Legacy event listeners for backward compatibility
     document.addEventListener('socialIconsChanged', function(e) {
         if (e.detail && e.detail.socials !== undefined) {
             const position = e.detail.position || 'above';
             updateSocialsPreview(e.detail.socials, position);
-        }
-    });
-
-    // Event listener for position changes
-    document.addEventListener('socialIconsPositionChanged', function(e) {
-        if (e.detail && e.detail.position && e.detail.socials) {
-            updateSocialsPreview(e.detail.socials, e.detail.position);
         }
     });
 

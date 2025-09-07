@@ -9,14 +9,6 @@
     let socialListEl, addSocialBtn, supportedTypes = {};
     let socialIconsPositionRadios = [];
 
-    function debounce(func, delay) {
-        let timeout;
-        return function(...args) {
-            const context = this;
-            clearTimeout(timeout);
-            timeout = setTimeout(() => func.apply(context, args), delay);
-        };
-    }
 
     // Centralized URL validation
     function isValidUrl(url) {
@@ -57,25 +49,7 @@
     }
     
 
-    // Notify preview module of social icons changes
-    function notifySocialsChanged() {
-        // Always notify when called - event-driven architecture
-        
-        const socials = getSocialsDataFromDOM();
-        const position = getSocialIconsPositionFromDOM();
-        
-        document.dispatchEvent(new CustomEvent('socialIconsChanged', {
-            detail: { 
-                socials: socials,
-                position: position
-            }
-        }));
-    }
-    
     // No serialization needed - form fields handle all data persistence
-
-    // Debounced preview updates
-    const debouncedSocialPreviewUpdate = debounce(notifySocialsChanged, 300);
 
     function initModule() {
         socialListEl = document.getElementById('bp-social-icons-list');
@@ -95,7 +69,6 @@
         // Working directly with form fields - no hidden inputs needed
         
         // Module initialization complete
-        console.log('[SocialIcons] Module initialized successfully, preview updates enabled');
 
         // Supported social types from global config
         const allSocialTypes = supportedTypes;
@@ -110,12 +83,18 @@
         isInitialSocialRender = true;
         isInitialSortableSocialsEnd = true; // Reset flag on each init
 
-        // Listen for sortable events - no preview updates needed (handled by sorting-preview.js)
+        // Listen for sortable events - fire socialIconsMoved for preview updates
         document.addEventListener('socialIconMoved', function() {
             // Sortable movements handled by sorting-preview.js
             // Management only needs to track state, not trigger preview updates
             if (!isInitialSortableSocialsEnd) {
-                // User drag completed - no preview update needed
+                // User drag completed - fire event for preview updates
+                const socials = getSocialsDataFromDOM();
+                document.dispatchEvent(new CustomEvent('socialIconsMoved', {
+                    detail: { 
+                        socials: socials
+                    }
+                }));
             } else {
                 isInitialSortableSocialsEnd = false; // Consume the flag
             }
@@ -126,14 +105,30 @@
             if (e.target.classList.contains('bp-social-url-input')) {
                 const url = e.target.value.trim();
                 if (url) {
-                    notifySocialsChanged();
+                    // Fire direct event for URL changes
+                    const socials = getSocialsDataFromDOM();
+                    const position = getSocialIconsPositionFromDOM();
+                    document.dispatchEvent(new CustomEvent('socialIconsChanged', {
+                        detail: { 
+                            socials: socials,
+                            position: position
+                        }
+                    }));
                 }
             }
         }, true); // Use capture to catch blur on children
 
         socialListEl.addEventListener('change', function(e) {
             if (e.target.classList.contains('bp-social-type-select')) {
-                notifySocialsChanged();
+                // Fire direct event for type changes
+                const socials = getSocialsDataFromDOM();
+                const position = getSocialIconsPositionFromDOM();
+                document.dispatchEvent(new CustomEvent('socialIconsChanged', {
+                    detail: { 
+                        socials: socials,
+                        position: position
+                    }
+                }));
             }
         });
 
@@ -142,8 +137,22 @@
                 e.preventDefault();
                 const row = e.target.closest('.bp-social-row');
                 if (row) {
+                    // Get the social data before removing
+                    const typeSelect = row.querySelector('select[name^="social_type["]');
+                    const urlInput = row.querySelector('input[name^="social_url["]');
+                    const socialData = {
+                        type: typeSelect ? typeSelect.value : '',
+                        url: urlInput ? urlInput.value : ''
+                    };
+                    
                     row.remove();
-                    notifySocialsChanged();
+                    
+                    // Fire socialIconDeleted event for preview updates
+                    document.dispatchEvent(new CustomEvent('socialIconDeleted', {
+                        detail: { 
+                            socialData: socialData
+                        }
+                    }));
                 } else {
                     // console.warn('[SocialIcons] Could not find .bp-social-row to remove.', e.target); // Comment out
                 }
@@ -187,7 +196,14 @@
                     }, function(response) {
                         if (response.success && response.data.html) {
                             socialListEl.insertAdjacentHTML('beforeend', response.data.html);
-                            // Remove premature preview update - let user input trigger updates via blur/change handlers
+                            
+                            // Fire socialIconAdded event for preview updates
+                            document.dispatchEvent(new CustomEvent('socialIconAdded', {
+                                detail: { 
+                                    socialData: socialData,
+                                    html: response.data.html
+                                }
+                            }));
                         } else {
                             console.error('Failed to render social item:', response.data ? response.data.message : 'Unknown error');
                         }
@@ -216,8 +232,6 @@
                         socials: socials
                     }
                 }));
-                // Also notify of general socials change
-                notifySocialsChanged();
             });
         });
 

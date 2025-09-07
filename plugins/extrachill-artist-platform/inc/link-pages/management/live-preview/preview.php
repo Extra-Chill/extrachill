@@ -146,16 +146,22 @@ if (class_exists('ExtraChillArtistPlatform_Fonts') && isset($preview_template_da
         }
         
         if (!empty($link_sections)): ?>
-            <?php 
-            foreach ($link_sections as $section):
-                $section_args = array(
-                    'section_title' => $section['section_title'] ?? '',
-                    'links' => $section['links'] ?? array(),
-                    'link_page_id' => 0 // No YouTube embed for preview
-                );
-                echo ec_render_link_section( $section, $section_args );
-            endforeach; 
-            ?>
+            <div class="extrch-link-page-links">
+                <?php 
+                foreach ($link_sections as $section_index => $section):
+                    $section_args = array(
+                        'section_title' => $section['section_title'] ?? '',
+                        'links' => $section['links'] ?? array(),
+                        'link_page_id' => 0 // No YouTube embed for preview
+                    );
+                    ?>
+                    <div class="extrch-link-page-section" data-section-index="<?php echo esc_attr($section_index); ?>">
+                        <?php echo ec_render_link_section( $section, $section_args ); ?>
+                    </div>
+                    <?php
+                endforeach; 
+                ?>
+            </div>
         <?php endif; // End check for $link_sections ?>
         <?php
         // Output the inline subscribe form using the same template as the live page

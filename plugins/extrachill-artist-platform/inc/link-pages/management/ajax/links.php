@@ -2,7 +2,8 @@
 /**
  * Links AJAX Handlers
  * 
- * Single responsibility: Handle all AJAX requests related to link section and item management
+ * Single responsibility: Handle all AJAX requests related to link section and item management.
+ * Provides template rendering endpoints for management interface and live preview system.
  */
 
 // Register links AJAX actions using WordPress native patterns
@@ -59,15 +60,32 @@ function ec_ajax_render_link_item_editor() {
             $sanitized_link_data['id'] = wp_unslash( sanitize_text_field( $link_data['id'] ) );
         }
         
-        // Render template
-        $html = ec_render_template( 'link-item-editor', array(
+        // Render editor template
+        $editor_html = ec_render_template( 'link-item-editor', array(
             'sidx' => $sidx,
             'lidx' => $lidx,
             'link_data' => $sanitized_link_data,
             'expiration_enabled' => $expiration_enabled
         ) );
         
-        wp_send_json_success( array( 'html' => $html ) );
+        // Render preview template - allow completely empty links for WYSIWYG
+        $preview_html = ec_render_template( 'single-link', array(
+            'link_url' => $sanitized_link_data['link_url'] ?: '',
+            'link_text' => $sanitized_link_data['link_text'] ?: '',
+            'link_classes' => 'extrch-link-page-link',
+            'youtube_embed' => false
+        ) );
+        
+        // Return complete DOM update instructions - server does ALL the thinking
+        wp_send_json_success( array(
+            'action' => 'add_link',
+            'editor_html' => $editor_html,
+            'preview_html' => $preview_html,
+            'section_index' => $sidx,
+            'link_index' => $lidx,
+            'editor_target_selector' => '.bp-link-section[data-sidx="' . $sidx . '"] .bp-link-list',
+            'preview_target_selector' => '.extrch-link-page-section[data-section-index="' . $sidx . '"] .extrch-link-page-links'
+        ) );
         
     } catch ( Exception $e ) {
         error_log( 'Link item editor template rendering error: ' . $e->getMessage() );
@@ -76,8 +94,18 @@ function ec_ajax_render_link_item_editor() {
 }
 
 /**
- * AJAX handler for rendering link section editor template  
- * Returns HTML for a complete editable link section in management interface
+ * AJAX handler for rendering link section editor template
+ * 
+ * Returns HTML for a complete editable link section in management interface.
+ * Handles section title and multiple links with full sanitization.
+ * 
+ * Expected POST parameters:
+ * - sidx: Section index (int)
+ * - section_data: Array containing section_title and links array
+ * - expiration_enabled: Whether expiration functionality is enabled (bool)
+ * 
+ * @return void Sends JSON response with rendered HTML template
+ * @since 1.0.0
  */
 function ec_ajax_render_link_section_editor() {
     try {
@@ -140,18 +168,28 @@ function ec_ajax_render_link_section_editor() {
 
 /**
  * AJAX handler for rendering single link template
- * Returns HTML for a single link element
+ * 
+ * Returns HTML for a single link element using the unified template system.
+ * Handles YouTube embed detection and applies appropriate CSS classes.
+ * 
+ * Expected POST parameters:
+ * - link_url: Link URL (optional, defaults to '#')
+ * - link_text: Link text (optional)
+ * - youtube_embed: Whether this link should use YouTube embed (bool)
+ * 
+ * @return void Sends JSON response with rendered HTML
+ * @since 1.0.0
  */
 function ec_ajax_render_link_template() {
     try {
-        // Get and validate parameters
+        // Get and validate parameters (allow empty data for new links)
         $link_url = wp_unslash( sanitize_url( $_POST['link_url'] ?? '' ) );
         $link_text = wp_unslash( sanitize_text_field( $_POST['link_text'] ?? '' ) );
         $youtube_embed = isset( $_POST['youtube_embed'] ) ? (bool) $_POST['youtube_embed'] : false;
         
-        if ( empty( $link_url ) || empty( $link_text ) ) {
-            wp_send_json_error( array( 'message' => 'Missing required link data' ) );
-            return;
+        // Allow empty text/URL for new link templates
+        if ( empty( $link_url ) ) {
+            $link_url = '#'; // Default placeholder URL
         }
         
         // Build template arguments
@@ -180,7 +218,15 @@ function ec_ajax_render_link_template() {
 
 /**
  * AJAX handler for rendering complete links section template
- * Returns HTML for the entire links section using unified template system
+ * 
+ * Returns HTML for the entire links section using unified template system.
+ * Processes multiple sections with titles and sanitizes all input data.
+ * 
+ * Expected POST parameters:
+ * - sections_data: Array of section objects with section_title and links
+ * 
+ * @return void Sends JSON response with complete sections HTML
+ * @since 1.0.0
  */
 function ec_ajax_render_links_section_template() {
     try {
@@ -248,7 +294,10 @@ function ec_ajax_render_links_section_template() {
 /**
  * Helper function to render complete links sections HTML for preview
  * 
- * @param array $links_data Array of section data with titles and links
+ * Renders multiple link sections using the unified template system.
+ * Used by live preview to generate HTML without YouTube embeds.
+ * 
+ * @param array $links_data Array of section data with section_title and links
  * @return string Complete HTML for all link sections
  */
 function ec_render_links_sections_html( $links_data ) {
@@ -279,7 +328,16 @@ function ec_render_links_sections_html( $links_data ) {
 
 /**
  * AJAX handler for rendering links preview template
- * Used by live preview system to render complete link sections
+ * 
+ * Used by live preview system to render complete link sections with
+ * real-time updates from management interface changes.
+ * 
+ * Expected POST parameters:
+ * - links_data: JSON string containing array of section data
+ * - nonce: WordPress AJAX nonce for security
+ * 
+ * @return void Sends JSON response with rendered HTML
+ * @since 1.0.0
  */
 function ec_ajax_render_links_preview_template() {
     try {

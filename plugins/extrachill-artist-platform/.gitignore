@@ -41,6 +41,10 @@ access_log
 # Cache directories
 .cache/
 
+# Documentation sync tracking
+docs-sync.json
+docs/.docs-sync.json
+
 # Environment files
 .env
 .env.local

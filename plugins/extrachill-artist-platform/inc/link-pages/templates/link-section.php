@@ -45,9 +45,7 @@ foreach ($links as $link_item) {
 // Continue rendering even if no links after filtering - section title should still show
 ?>
 
-<?php if (!empty($section_title)): ?>
-    <div class="extrch-link-page-section-title"><?php echo esc_html($section_title); ?></div>
-<?php endif; ?>
+<div class="extrch-link-page-section-title"><?php echo esc_html($section_title); ?></div>
 
 <div class="extrch-link-page-links">
     <?php foreach ($links_to_render as $link_item): 

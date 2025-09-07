@@ -243,9 +243,9 @@
         });
         
         // Listen for new link creation to add icons if enabled
-        document.addEventListener('linkItemCreated', function(e) {
-            if (e.detail && e.detail.linkElement && getLinkExpirationEnabled()) {
-                addExpirationIconToLink(e.detail.linkElement);
+        document.addEventListener('linkElementAdded', function(e) {
+            if (e.detail && e.detail.element && getLinkExpirationEnabled()) {
+                addExpirationIconToLink(e.detail.element);
             }
         });
     }

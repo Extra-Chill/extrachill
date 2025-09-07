@@ -5,36 +5,48 @@ A comprehensive WordPress plugin that provides artist profile management, link p
 ## Features
 
 ### 🎵 Artist Profiles
-- Custom post type for artist/band profiles
-- Forum integration with bbPress
-- Roster management with invitation system
-- Artist directory and following functionality
-- Profile manager assignment and permissions
+- Custom post type for artist/band profiles with comprehensive meta data
+- Activity-based artist grid display with smart sorting
+- Forum integration with bbPress for artist-specific discussions
+- Roster management with email invitation system and role assignment
+- Artist directory with user exclusion logic for personalized views
+- Profile manager assignment and centralized permissions
+- Following system with database-backed relationships
 
 ### 🔗 Link Pages
-- Custom link page creation and management
-- Live preview interface with drag-and-drop functionality
-- Custom fonts, colors, and styling options
-- YouTube video embed support with toggle control
-- QR code generation and sharing modal
-- Featured link highlighting system
-- Social platform integration
-- Click analytics and reporting
+- Custom link page creation with comprehensive management interface
+- Real-time live preview with event-driven JavaScript architecture and dedicated live preview handler
+- Drag-and-drop link reordering with SortableJS integration and live preview updates
+- Advanced styling system with custom fonts, colors, backgrounds, and profile image management
+- YouTube video embed support with toggle control and preview
+- QR code generation with download functionality
+- Native Web Share API integration with social media fallbacks
+- Featured link highlighting and link expiration scheduling
+- Social platform integration with 15+ platforms including Apple Music, Bandcamp, Bluesky, Pinterest, and more
+- Comprehensive social link management with smart icon validation and URL sanitization
+- Comprehensive click analytics with Chart.js dashboard and automatic data pruning
 
 ### 📊 Analytics Dashboard
-- Track link clicks and user engagement
-- Visual charts and reporting
-- Export capabilities for data analysis
+- Daily aggregation of page views and link clicks
+- Chart.js-powered visual analytics with date filtering
+- Real-time click tracking with automatic data pruning
+- Export capabilities for comprehensive data analysis
+- Public tracking via AJAX with privacy-conscious data collection
 
 ### 👥 Subscription Management
-- Fan email collection system
-- Artist-specific subscriber lists
-- Integration with email marketing workflows
+- Modal and inline subscription forms with AJAX processing
+- Artist-specific subscriber lists with export tracking
+- Database-backed subscriber management with deduplication
+- Link page and artist profile subscription integration
+- Email marketing workflow integration with export status tracking
 
 ### 🔐 Permission System
 - Centralized access control via `inc/core/filters/permissions.php`
-- Role-based artist profile management
-- Server-side permission validation
+- Role-based artist profile management with granular permissions
+- Server-side permission validation with context-aware checks
+- AJAX permission validation with comprehensive nonce verification
+- Cross-domain session management with secure token system
+- Template-level permission checks without client-side API dependencies
 
 ## Requirements
 
@@ -93,21 +105,25 @@ A comprehensive WordPress plugin that provides artist profile management, link p
 ExtraChillArtistPlatform::instance();
 
 // Template handling and routing
-ExtraChillArtistPlatform_Templates::instance();
+ExtraChillArtistPlatform_PageTemplates::instance();
 
 // Asset management
 ExtraChillArtistPlatform_Assets::instance();
 
-// Social link management
+// Social link management with comprehensive platform support
 ExtraChillArtistPlatform_SocialLinks::instance();
+
+// Live preview processing
+ExtraChill_Live_Preview_Handler::instance();
 
 // Migration system (band -> artist terminology)  
 ExtraChillArtistPlatform_Migration::instance();
 
-// Centralized data provider (replaces LinkPageDataProvider class)
+// Centralized data provider function
 $data = ec_get_link_page_data($artist_id, $link_page_id);
 
-// Features loaded via core class initialization
+// Core features include live preview, social platform integration,
+// analytics dashboard, subscription management, and permission system
 ```
 
 ### AJAX System
@@ -143,24 +159,51 @@ if ( ec_ajax_can_manage_link_page() ) {
     // AJAX context: User can manage link pages
 }
 
-// Template-level permission checks (no REST API needed)
+// Template-level permission checks with cross-domain session support
 $can_edit = ec_can_manage_artist( get_current_user_id(), get_the_ID() );
 ```
 
 ### Data Provider System
+
+Centralized data management with comprehensive validation:
 
 ```php
 // Get comprehensive link page data using centralized function
 $data = ec_get_link_page_data( $artist_id, $link_page_id );
 
 // Access specific data sections
-$links = $data['links'];
-$css_vars = $data['css_vars'];
-$social_links = $data['social_links'];
-$advanced_settings = $data['advanced_settings'];
+$links = $data['links']; // All links with expiration and visibility
+$css_vars = $data['css_vars']; // CSS custom properties for styling
+$social_links = $data['social_links']; // Social platform integrations
+$advanced_settings = $data['advanced_settings']; // Tracking, redirects, etc.
+$subscription_settings = $data['subscription_settings']; // Email collection config
 
 // Use with live preview overrides
 $preview_data = ec_get_link_page_data( $artist_id, $link_page_id, $override_data );
+```
+
+### Artist Grid Display
+
+Activity-based artist sorting with comprehensive timestamp calculation:
+
+```php
+// Display artist grid with current user's artists excluded
+ec_display_artist_cards_grid( 12, true );
+
+// Get comprehensive activity timestamp (profile, link page, forum activity)
+$activity_timestamp = ec_get_artist_profile_last_activity_timestamp( $artist_id );
+
+// Template integration with context-aware rendering
+echo ec_render_template( 'artist-profile-card', array(
+    'artist_id' => $artist_id,
+    'context' => 'directory'
+) );
+
+// Check user ownership for conditional display
+$user_artists = ec_get_user_owned_artists( get_current_user_id() );
+if ( ! in_array( $artist_id, $user_artists ) ) {
+    // Display artist card in grid
+}
 ```
 
 ### Adding Custom AJAX Actions
@@ -220,20 +263,57 @@ class ExtraChillArtistPlatform_Assets {
 ### JavaScript Development
 
 ```javascript
-// All modules are self-contained with event-driven communication
-// Example: Listening for background changes
-document.addEventListener('backgroundChanged', function(e) {
-    console.log('Background updated:', e.detail.backgroundData);
-});
+// Event-driven module communication with standardized patterns
+// Management modules dispatch events, preview modules listen
 
-// Example: Dispatching custom events for inter-module communication  
-document.dispatchEvent(new CustomEvent('linksChanged', {
-    detail: { links: linkData }
+// Background management dispatches changes
+document.dispatchEvent(new CustomEvent('backgroundChanged', {
+    detail: { backgroundData: newBackgroundData }
 }));
 
-// Example: Subscribe to social icons changes
+// Links management dispatches comprehensive link data
+document.dispatchEvent(new CustomEvent('linksChanged', {
+    detail: { 
+        links: linkData,
+        order: newOrder,
+        visibility: visibilityStates
+    }
+}));
+
+// Preview modules listen for specific events
+document.addEventListener('backgroundChanged', function(e) {
+    updatePreviewBackground(e.detail.backgroundData);
+});
+
+document.addEventListener('linksChanged', function(e) {
+    updatePreviewLinks(e.detail.links);
+    updateLinkOrder(e.detail.order);
+});
+
+// Social icons with live preview integration
 document.addEventListener('socialIconsChanged', function(e) {
-    console.log('Social icons updated:', e.detail.socials);
+    updatePreviewSocials(e.detail.socials);
+});
+
+// Drag-and-drop with SortableJS integration
+const sortable = Sortable.create(linkList, {
+    animation: 150,
+    onEnd: function(evt) {
+        // Dispatch reorder event for live preview
+        document.dispatchEvent(new CustomEvent('linksReordered', {
+            detail: { newOrder: getNewOrder() }
+        }));
+    }
+});
+
+// Profile image management with live preview
+document.addEventListener('profileImageChanged', function(e) {
+    updatePreviewProfileImage(e.detail.imageData);
+});
+
+// Social platform integration
+document.addEventListener('socialIconsChanged', function(e) {
+    updatePreviewSocials(e.detail.socials);
 });
 ```
 
@@ -291,11 +371,16 @@ Link page configuration stored as post meta:
 
 ### 🎯 Advanced Features
 
-- **Drag-and-Drop Interface**: SortableJS-powered link reordering with live preview
-- **Link Expiration**: Time-based link scheduling and automatic deactivation
-- **Artist Context Switching**: Multi-artist management with seamless switching
-- **Component Templates**: Modular UI components for extensible interfaces
-- **Cross-Domain Authentication**: Secure session management across subdomains
+- **Event-Driven JavaScript Architecture**: CustomEvent-based communication between management and preview modules
+- **Artist Grid System**: Activity-based sorting with forum integration and comprehensive timestamp calculation
+- **Drag-and-Drop Interface**: SortableJS-powered link reordering with real-time live preview updates
+- **Link Expiration System**: Time-based link scheduling with automatic deactivation and preview integration
+- **Artist Context Switching**: Multi-artist management with seamless state preservation
+- **Centralized Data Provider**: Single source of truth via `ec_get_link_page_data()` with live preview support
+- **Component Templates**: Modular UI components with AJAX-driven rendering
+- **Cross-Domain Authentication**: Secure session management across subdomains with server-side validation
+- **Permission System**: Centralized access control with context-aware validation
+- **Save System**: WordPress-native form processing with comprehensive data preparation and validation
 
 ## Customization
 
@@ -405,13 +490,16 @@ Ensure the Extra Chill Community theme is active. The plugin will display an adm
 Check that rewrite rules are flushed by deactivating and reactivating the plugin.
 
 ### Analytics Not Tracking
-Verify that JavaScript is not blocked and check browser console for errors.
+Verify that JavaScript is not blocked and check browser console for errors. Check that AJAX endpoints are accessible.
 
 ### Permission Issues
-Ensure user has proper role assignments and check permission functions in `inc/core/filters/permissions.php`.
+Ensure user has proper role assignments and check permission functions in `inc/core/filters/permissions.php`. Verify session validation for cross-domain authentication.
 
 ### Roster Invitations Not Sending
 Check that WordPress can send emails and verify SMTP configuration. Review invitation tokens in database if needed.
+
+### Live Preview Not Updating
+Check browser console for JavaScript errors. Verify that event-driven communication between management and preview modules is working correctly.
 
 ### File Structure
 ```
@@ -467,14 +555,15 @@ inc/
 │   │   │   └── subscribe.php          # Subscription templates
 │   │   ├── advanced-tab/           # Advanced features (tracking, redirects)
 │   │   ├── live-preview/           # Live preview functionality
+│   │   │   ├── class-live-preview-handler.php  # Live preview handler (ExtraChill_Live_Preview_Handler)
+│   │   │   └── assets/js/          # Live preview JavaScript modules
 │   │   └── templates/              # Management templates
 │   │       ├── manage-link-page.php
 │   │       ├── components/         # Modular UI components
 │   │       └── manage-link-page-tabs/
 │   ├── live/                       # Live page functionality
 │   │   ├── ajax/                   # Public AJAX handlers
-│   │   │   ├── analytics.php          # Public tracking and data pruning
-│   │   │   └── edit-icon.php          # Deprecated REST API endpoints
+│   │   │   └── analytics.php          # Public tracking and data pruning
 │   │   ├── assets/js/               # Public JavaScript modules
 │   │   └── templates/              # Public link page templates
 │   │       ├── single-artist_link_page.php
@@ -506,6 +595,49 @@ assets/
 ## Support
 
 For issues and feature requests, contact the development team or submit issues through the project repository.
+
+## Build System
+
+The plugin includes a comprehensive build system for creating production-ready distributions:
+
+### Building the Plugin
+
+```bash
+# Using NPM script
+npm run build
+
+# Or directly with shell script
+./build.sh
+```
+
+### Build Features
+
+- **Automated Packaging**: Creates versioned zip files in the `/dist` directory
+- **File Filtering**: Excludes development files via `.buildignore`
+- **Version Extraction**: Automatically reads version from main plugin file
+- **Structure Validation**: Ensures plugin integrity before packaging
+- **Dependency Checking**: Verifies required tools (rsync, zip)
+- **Clean Builds**: Automatic cleanup of previous artifacts
+
+### Build Configuration
+
+The build process excludes:
+- Development documentation (README.md, CLAUDE.md, docs/)
+- Version control files (.git/, .gitignore)
+- Development tools (build.sh, package.json, .buildignore)
+- Testing files and temporary artifacts
+- Node modules and PHP vendor directories
+
+## Custom CSS System
+
+The plugin extends Font Awesome with custom social platform icons:
+
+- **Substack Integration**: Custom mask-based icon for Substack links
+- **Venmo Support**: CSS mask implementation for Venmo payment links
+- **Dynamic Color Inheritance**: Icons automatically adapt to theme colors
+- **Seamless Integration**: Works with existing Font Awesome classes
+
+Custom icons are defined in `assets/css/custom-social-icons.css` using SVG mask techniques.
 
 ## License
 

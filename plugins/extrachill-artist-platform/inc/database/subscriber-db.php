@@ -1,13 +1,32 @@
 <?php
 /**
- * Database table creation and management for the Artist Subscriber feature.
+ * Artist Subscribers Database Management
+ * 
+ * Handles creation and management of the artist_subscribers database table.
+ * Provides email collection and subscription tracking functionality.
  */
 
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Creates the custom database table for artist subscribers.
- * This function is intended to be run on theme activation.
+ * Creates the custom database table for artist subscribers
+ * 
+ * Creates the artist_subscribers table with proper indexes and constraints.
+ * Supports user association, email collection, export tracking, and source attribution.
+ * Uses dbDelta for safe table creation and updates.
+ * 
+ * Table structure:
+ * - subscriber_id: Auto-increment primary key
+ * - user_id: WordPress user ID (nullable for non-users)
+ * - artist_profile_id: Associated artist profile
+ * - subscriber_email: Email address (unique per artist)
+ * - username: Display name
+ * - source: Subscription source tracking
+ * - subscribed_at: Subscription timestamp
+ * - exported: Export status flag
+ * 
+ * @global wpdb $wpdb WordPress database abstraction object
+ * @return void
  */
 function extrch_create_subscribers_table() {
     global $wpdb;

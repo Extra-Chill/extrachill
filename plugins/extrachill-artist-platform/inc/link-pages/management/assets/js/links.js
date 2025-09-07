@@ -1,367 +1,361 @@
-// Link Sections Management Module - Self-Contained
+/**
+ * Link Sections Management Module
+ * 
+ * Handles link section and item management with drag-and-drop functionality.
+ * Uses event-driven architecture to communicate with preview modules.
+ * Follows IIFE pattern for module isolation.
+ */
 (function() {
     'use strict';
     
-
     let sectionsListEl, addSectionBtn;
-    // Expiration functionality moved to dedicated link-expiration.js module
-
-
-    // DOM-based expiration state detection
-    function isExpirationEnabled() {
-        const sectionsListEl = document.getElementById('bp-link-sections-list');
-        return sectionsListEl && sectionsListEl.dataset.expirationEnabled === 'true';
-    }
-
-    // Expiration modal functions moved to link-expiration.js module
-
-    // getLinkExpirationEnabled moved to link-expiration.js and exposed globally
-
-    // AJAX-based link item creation using server template system
-    function createLinkItemHTML(sidx, lidx, linkData = {}, callback = null) {
-        const sectionsListEl = document.getElementById('bp-link-sections-list');
-        const linkPageId = sectionsListEl ? sectionsListEl.dataset.linkPageId : null;
-        
+    let initialized = false;
+    let clickHandler = null;
+    
+    // ============================================================================
+    // AJAX TEMPLATE FUNCTIONS
+    // Pure functions for template rendering - no direct DOM manipulation
+    // ============================================================================
+    
+    /**
+     * Render link item editor template via AJAX
+     * 
+     * @param {number} sectionIndex Section index
+     * @param {number} linkIndex Link index within section
+     * @param {Object} linkData Link data object with text, URL, etc.
+     * @returns {Promise<string|null>} Rendered HTML template or null on error
+     */
+    async function renderLinkItemTemplate(sectionIndex, linkIndex, linkData = {}) {
+        const linkPageId = sectionsListEl?.dataset.linkPageId;
         if (!linkPageId) {
             console.error('Link page ID not found in DOM data attributes');
-            if (callback) callback('');
-            return;
+            return null;
         }
         
-        jQuery.post(extraChillArtistPlatform.ajaxUrl, {
-            action: 'render_link_item_editor',
-            link_page_id: linkPageId,
-            sidx: sidx,
-            lidx: lidx,
-            link_data: linkData,
-            expiration_enabled: false, // Always false - icons handled by JavaScript
-            nonce: extraChillArtistPlatform.nonce
-        }, function(response) {
-            if (response.success && response.data.html) {
-                if (callback) callback(response.data.html);
-            } else {
-                console.error('Failed to render link item:', response.data ? response.data.message : 'Unknown error');
-                if (callback) callback('');
+        try {
+            const formData = new FormData();
+            formData.append('action', 'render_link_item_editor');
+            formData.append('link_page_id', linkPageId);
+            formData.append('sidx', sectionIndex);
+            formData.append('lidx', linkIndex);
+            formData.append('link_data', linkData);
+            formData.append('expiration_enabled', false);
+            formData.append('nonce', extraChillArtistPlatform.nonce);
+            
+            const response = await fetch(extraChillArtistPlatform.ajaxUrl, {
+                method: 'POST',
+                body: formData
+            });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
-        }).fail(function() {
-            console.error('AJAX request failed for link item rendering');
-            if (callback) callback('');
-        });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                return data.data; // Return complete server instructions
+            } else {
+                console.error('Link item template rendering failed:', data.data?.message || 'Unknown error');
+                return null;
+            }
+        } catch (error) {
+            console.error('AJAX request failed for link item rendering:', error);
+            return null;
+        }
     }
     
-    // AJAX-based section creation using server template system
-    function createSectionItemHTML(sidx, sectionData = {}, callback = null) {
-        const sectionsListEl = document.getElementById('bp-link-sections-list');
-        const linkPageId = sectionsListEl ? sectionsListEl.dataset.linkPageId : null;
-        
+    async function renderSectionTemplate(sectionIndex, sectionData = {}) {
+        const linkPageId = sectionsListEl?.dataset.linkPageId;
         if (!linkPageId) {
             console.error('Link page ID not found in DOM data attributes');
-            if (callback) callback('');
-            return;
+            return null;
         }
         
-        jQuery.post(extraChillArtistPlatform.ajaxUrl, {
-            action: 'render_link_section_editor',
-            link_page_id: linkPageId,
-            sidx: sidx,
-            section_data: sectionData,
-            expiration_enabled: false, // Always false - icons handled by JavaScript
-            nonce: extraChillArtistPlatform.nonce
-        }, function(response) {
-            if (response.success && response.data.html) {
-                if (callback) callback(response.data.html);
+        try {
+            const formData = new FormData();
+            formData.append('action', 'render_link_section_editor');
+            formData.append('link_page_id', linkPageId);
+            formData.append('sidx', sectionIndex);
+            formData.append('section_data', sectionData);
+            formData.append('expiration_enabled', false);
+            formData.append('nonce', extraChillArtistPlatform.nonce);
+            
+            const response = await fetch(extraChillArtistPlatform.ajaxUrl, {
+                method: 'POST',
+                body: formData
+            });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            
+            if (data.success && data.data.html) {
+                return data.data.html;
             } else {
-                console.error('Failed to render section:', response.data ? response.data.message : 'Unknown error');
-                if (callback) callback('');
+                console.error('Section template rendering failed:', data.data?.message || 'Unknown error');
+                return null;
             }
-        }).fail(function() {
-            console.error('AJAX request failed for section rendering');
-            if (callback) callback('');
-        });
+        } catch (error) {
+            console.error('AJAX request failed for section rendering:', error);
+            return null;
+        }
     }
-
-    // Event delegation for add/remove/edit actions
-    function attachEventListeners() {
-        if (!sectionsListEl) return;
-
-        sectionsListEl.addEventListener('click', function(e) {
-            const target = e.target;
-            let actionTaken = false;
-
-            if (target.classList.contains('bp-remove-link-btn') || target.closest('.bp-remove-link-btn')) {
-                e.preventDefault();
-                const linkItem = target.closest('.bp-link-item');
-                if (linkItem) {
-                    const sectionIndex = parseInt(linkItem.dataset.sidx) || 0;
-                    const linkIndex = parseInt(linkItem.dataset.lidx) || 0;
-                    linkItem.remove();
-                    dispatchLinkRemoved(sectionIndex, linkIndex);
-                    actionTaken = true;
-                }
-            } else if (target.classList.contains('bp-remove-link-section-btn') || target.closest('.bp-remove-link-section-btn')) {
-                e.preventDefault();
-                const section = target.closest('.bp-link-section');
-                if (section) {
-                    const sectionIndex = parseInt(section.dataset.sidx) || 0;
-                    section.remove();
-                    dispatchSectionDeleted(sectionIndex);
-                    actionTaken = true;
-                }
-            } else if (target.classList.contains('bp-add-link-btn') || target.closest('.bp-add-link-btn')) {
-                e.preventDefault();
-                const section = target.closest('.bp-link-section');
-                if (section) {
-                    const linkList = section.querySelector('.bp-link-list');
-                    const sectionIndex = parseInt(section.dataset.sidx) || 0;
-                    const linkIndex = linkList.children.length;
-                    if (linkList) {
-                        createLinkItemHTML(sectionIndex, linkIndex, {}, function(html) {
-                            if (html) {
-                                linkList.insertAdjacentHTML('beforeend', html);
-                                
-                                // Get the newly added link element and dispatch events
-                                const newLinkElement = linkList.lastElementChild;
-                                if (newLinkElement && newLinkElement.classList.contains('bp-link-item')) {
-                                    // Dispatch event for sortable system
-                                    document.dispatchEvent(new CustomEvent('linkItemCreated', {
-                                        detail: { linkElement: newLinkElement }
-                                    }));
-                                    
-                                    // Dispatch event for preview system with empty link data
-                                    // Preview will wait for user input before showing the link
-                                    dispatchLinkAdded(sectionIndex, linkIndex, {
-                                        link_text: '',
-                                        link_url: ''
-                                    });
-                                }
-                            }
-                        });
-                        // actionTaken handled in callback
-                    }
-                }
-            } else if (target.classList.contains('bp-link-expiration-icon') || target.closest('.bp-link-expiration-icon')) {
-                e.preventDefault();
-                const linkItem = target.closest('.bp-link-item');
-                if (linkItem) {
-                    // Dispatch event for expiration module to handle
-                    document.dispatchEvent(new CustomEvent('linkExpirationRequested', {
-                        detail: { linkElement: linkItem }
-                    }));
-                }
-            }
-            // Events are now dispatched individually for each action type
-        });
-
-        // Event-driven preview updates on user input (following social icons pattern)
-        sectionsListEl.addEventListener('blur', function(e) {
-            const target = e.target;
-            
-            // Handle section title updates
-            if (target.classList.contains('bp-link-section-title')) {
-                const sectionIndex = getSectionIndexFromElement(target);
-                const title = target.value.trim();
-                if (title) {
-                    dispatchSectionUpdated(sectionIndex, title);
-                }
-            }
-            
-            // Handle link text/URL updates
-            else if (target.classList.contains('bp-link-text-input') || target.classList.contains('bp-link-url-input')) {
-                const { sectionIndex, linkIndex } = getLinkIndicesFromElement(target);
-                const linkItem = target.closest('.bp-link-item');
-                if (linkItem) {
-                    const textInput = linkItem.querySelector('.bp-link-text-input');
-                    const urlInput = linkItem.querySelector('.bp-link-url-input');
-                    
-                    // Always dispatch with current values - preview will handle empty states
-                    if (textInput && urlInput) {
-                        dispatchLinkUpdated(sectionIndex, linkIndex, 'complete', {
-                            link_text: textInput.value.trim(),
-                            link_url: urlInput.value.trim()
-                        });
-                    }
-                }
-            }
-        }, true); // Use capture for child events
-        
-        sectionsListEl.addEventListener('change', function(e) {
-            const target = e.target;
-            
-            // Handle any select/checkbox changes if needed in the future
-            if (target.tagName === 'SELECT' || target.type === 'checkbox') {
-                // Future: handle dropdown or checkbox changes
-            }
-        });
-        
-        // Expiration modal event listeners handled by link-expiration.js module
-        // Add section button listener moved to init() function to follow social icons pattern
-    }
-
-
-    function updateAllIndices() {
-        if (!sectionsListEl) return;
-        let sidx = 0;
-        sectionsListEl.querySelectorAll('.bp-link-section').forEach(sectionEl => {
-            sectionEl.dataset.sidx = sidx;
-            const sectionTitleInput = sectionEl.querySelector('.bp-link-section-title');
-            if (sectionTitleInput) sectionTitleInput.dataset.sidx = sidx;
-            const addLinkBtnInSection = sectionEl.querySelector('.bp-add-link-btn');
-            if (addLinkBtnInSection) addLinkBtnInSection.dataset.sidx = sidx;
-            const removeSectionBtnEl = sectionEl.querySelector('.bp-remove-link-section-btn');
-            if (removeSectionBtnEl) removeSectionBtnEl.dataset.sidx = sidx;
-            
-            let lidx = 0;
-            sectionEl.querySelectorAll('.bp-link-item').forEach(linkEl => {
-                linkEl.dataset.sidx = sidx;
-                linkEl.dataset.lidx = lidx;
-                const expIcon = linkEl.querySelector('.bp-link-expiration-icon');
-                if (expIcon) {
-                    expIcon.dataset.sidx = sidx;
-                    expIcon.dataset.lidx = lidx;
-                }
-                lidx++;
-            });
-            sidx++;
-        });
-    }
-
     
-    // Extract links data from DOM form fields (similar to social icons system)
-    function getLinksDataFromDOM() {
-        const linksData = [];
-        const sections = document.querySelectorAll('.bp-link-section');
+    // ============================================================================
+    // SECTION ACTION FUNCTIONS (Single Responsibility)
+    // ============================================================================
+    
+    async function addSection() {
+        if (!sectionsListEl) return;
         
-        sections.forEach((section, sectionIndex) => {
-            const sectionTitleInput = section.querySelector('.bp-link-section-title');
-            const sectionTitle = sectionTitleInput ? sectionTitleInput.value.trim() : '';
-            
-            const sectionData = {
-                section_title: sectionTitle,
-                links: []
-            };
-            
-            const linkItems = section.querySelectorAll('.bp-link-item');
-            linkItems.forEach((linkItem, linkIndex) => {
-                const textInput = linkItem.querySelector('input[name*="link_text"]');
-                const urlInput = linkItem.querySelector('input[name*="link_url"]');
-                
-                if (textInput && urlInput && (textInput.value.trim() || urlInput.value.trim())) {
-                    sectionData.links.push({
-                        link_text: textInput.value.trim(),
-                        link_url: urlInput.value.trim()
-                    });
-                }
-            });
-            
-            // Only include sections that have a title or at least one link
-            if (sectionTitle || sectionData.links.length > 0) {
-                linksData.push(sectionData);
-            }
-        });
+        const sectionIndex = sectionsListEl.children.length;
+        const html = await renderSectionTemplate(sectionIndex, {});
         
-        return linksData;
+        if (html) {
+            sectionsListEl.insertAdjacentHTML('beforeend', html);
+            document.dispatchEvent(new CustomEvent('linksectionadded', {
+                detail: { sectionIndex, title: '' }
+            }));
+        }
     }
-
-    // Event dispatchers for specific link actions
-    function dispatchLinkAdded(sectionIndex, linkIndex, linkData) {
-        document.dispatchEvent(new CustomEvent('linkadded', {
-            detail: { sectionIndex, linkIndex, link: linkData }
-        }));
-    }
-
-    function dispatchLinkUpdated(sectionIndex, linkIndex, field, value) {
-        document.dispatchEvent(new CustomEvent('linkupdated', {
-            detail: { sectionIndex, linkIndex, field, value }
-        }));
-    }
-
-    function dispatchLinkRemoved(sectionIndex, linkIndex) {
-        document.dispatchEvent(new CustomEvent('linkdeleted', {
-            detail: { sectionIndex, linkIndex }
-        }));
-    }
-
-    function dispatchSectionAdded(sectionIndex, sectionTitle) {
-        document.dispatchEvent(new CustomEvent('linksectionadded', {
-            detail: { sectionIndex, title: sectionTitle }
-        }));
-    }
-
-    function dispatchSectionUpdated(sectionIndex, title) {
-        document.dispatchEvent(new CustomEvent('linksectiontitleupdated', {
-            detail: { sectionIndex, title }
-        }));
-    }
-
-    function dispatchSectionDeleted(sectionIndex) {
+    
+    function removeSection(sectionElement) {
+        if (!sectionElement) return;
+        
+        const sectionIndex = getSectionIndex(sectionElement);
+        sectionElement.remove();
         document.dispatchEvent(new CustomEvent('linksectiondeleted', {
             detail: { sectionIndex }
         }));
     }
-
-    // Helper functions to extract indices from DOM elements
-    function getSectionIndexFromElement(element) {
+    
+    function updateSectionTitle(sectionElement, title) {
+        if (!sectionElement) return;
+        
+        const sectionIndex = getSectionIndex(sectionElement);
+        document.dispatchEvent(new CustomEvent('linksectiontitleupdated', {
+            detail: { sectionIndex, title }
+        }));
+    }
+    
+    // ============================================================================
+    // LINK ACTION FUNCTIONS (Single Responsibility)
+    // ============================================================================
+    
+    async function addLink(sectionElement) {
+        if (!sectionElement) return;
+        
+        const sectionIndex = getSectionIndex(sectionElement);
+        const linkIndex = sectionElement.querySelector('.bp-link-list').children.length;
+        
+        try {
+            const response = await renderLinkItemTemplate(sectionIndex, linkIndex, {});
+            
+            if (response && response.action === 'add_link') {
+                // 1. Add to editor using server-provided selector
+                const editorTarget = document.querySelector(response.editor_target_selector);
+                if (editorTarget) {
+                    editorTarget.insertAdjacentHTML('beforeend', response.editor_html);
+                }
+                
+                // 2. Add to preview using server-provided selector  
+                const previewTarget = document.querySelector(response.preview_target_selector);
+                if (previewTarget) {
+                    previewTarget.insertAdjacentHTML('beforeend', response.preview_html);
+                }
+                
+                // 3. Fire simple event for sortable ONLY
+                const newElement = editorTarget?.lastElementChild;
+                if (newElement) {
+                    document.dispatchEvent(new CustomEvent('linkElementAdded', {
+                        detail: { element: newElement }
+                    }));
+                }
+            }
+        } catch (error) {
+            console.error('Add link failed:', error);
+        }
+    }
+    
+    function removeLink(linkElement) {
+        if (!linkElement) return;
+        
+        const sectionIndex = getSectionIndex(linkElement);
+        const linkIndex = getLinkIndex(linkElement);
+        
+        linkElement.remove();
+        document.dispatchEvent(new CustomEvent('linkdeleted', {
+            detail: { sectionIndex, linkIndex }
+        }));
+    }
+    
+    function updateLinkText(linkElement, text) {
+        if (!linkElement) return;
+        
+        const sectionIndex = getSectionIndex(linkElement);
+        const linkIndex = getLinkIndex(linkElement);
+        
+        document.dispatchEvent(new CustomEvent('linkupdated', {
+            detail: { sectionIndex, linkIndex, field: 'link_text', value: text }
+        }));
+    }
+    
+    function updateLinkUrl(linkElement, url) {
+        if (!linkElement) return;
+        
+        const sectionIndex = getSectionIndex(linkElement);
+        const linkIndex = getLinkIndex(linkElement);
+        
+        document.dispatchEvent(new CustomEvent('linkupdated', {
+            detail: { sectionIndex, linkIndex, field: 'link_url', value: url }
+        }));
+    }
+    
+    function handleLinkExpiration(linkElement) {
+        if (!linkElement) return;
+        
+        document.dispatchEvent(new CustomEvent('linkExpirationRequested', {
+            detail: { linkElement }
+        }));
+    }
+    
+    
+    // ============================================================================
+    // DOM UTILITY FUNCTIONS (Simple Queries)
+    // ============================================================================
+    
+    function getSectionIndex(element) {
         const sectionElement = element.closest('.bp-link-section');
         return sectionElement ? parseInt(sectionElement.dataset.sidx) || 0 : 0;
     }
-
-    function getLinkIndicesFromElement(element) {
-        const linkItem = element.closest('.bp-link-item');
-        const sectionElement = element.closest('.bp-link-section');
-        const sectionIndex = sectionElement ? parseInt(sectionElement.dataset.sidx) || 0 : 0;
-        const linkIndex = linkItem ? parseInt(linkItem.dataset.lidx) || 0 : 0;
-        return { sectionIndex, linkIndex };
-    }
-
-
-    // No longer needed - HTML generation moved to server-side templates
     
-
-    // Simple initialization - just set up event listeners
+    function getLinkIndex(element) {
+        const linkElement = element.closest('.bp-link-item');
+        return linkElement ? parseInt(linkElement.dataset.lidx) || 0 : 0;
+    }
+    
+    function updateDataAttributes() {
+        if (!sectionsListEl) return;
+        
+        // Update section indices
+        let sectionIndex = 0;
+        sectionsListEl.querySelectorAll('.bp-link-section').forEach(sectionEl => {
+            sectionEl.dataset.sidx = sectionIndex;
+            
+            // Update link indices within this section
+            let linkIndex = 0;
+            sectionEl.querySelectorAll('.bp-link-item').forEach(linkEl => {
+                linkEl.dataset.sidx = sectionIndex;
+                linkEl.dataset.lidx = linkIndex;
+                linkIndex++;
+            });
+            
+            sectionIndex++;
+        });
+    }
+    
+    // ============================================================================
+    // DIRECT EVENT LISTENERS
+    // ============================================================================
+    
+    function attachEventListeners() {
+        if (!sectionsListEl) return;
+        
+        // Remove existing listener if any
+        if (clickHandler) {
+            sectionsListEl.removeEventListener('click', clickHandler);
+        }
+        
+        // Create new click handler
+        clickHandler = function(e) {
+            const target = e.target;
+            
+            if (target.matches('.bp-add-link-section-btn') || target.closest('.bp-add-link-section-btn')) {
+                e.preventDefault();
+                addSection();
+            }
+            else if (target.matches('.bp-remove-link-section-btn') || target.closest('.bp-remove-link-section-btn')) {
+                e.preventDefault();
+                removeSection(target.closest('.bp-link-section'));
+            }
+            else if (target.matches('.bp-add-link-btn') || target.closest('.bp-add-link-btn')) {
+                e.preventDefault();
+                addLink(target.closest('.bp-link-section'));
+            }
+            else if (target.matches('.bp-remove-link-btn') || target.closest('.bp-remove-link-btn')) {
+                e.preventDefault();
+                removeLink(target.closest('.bp-link-item'));
+            }
+            else if (target.matches('.bp-link-expiration-icon') || target.closest('.bp-link-expiration-icon')) {
+                e.preventDefault();
+                handleLinkExpiration(target.closest('.bp-link-item'));
+            }
+        };
+        
+        // Add the click handler
+        sectionsListEl.addEventListener('click', clickHandler);
+        
+        // Direct input event handlers (these can be duplicated safely)
+        sectionsListEl.addEventListener('input', function(e) {
+            const target = e.target;
+            
+            if (target.matches('.bp-link-section-title')) {
+                updateSectionTitle(target.closest('.bp-link-section'), target.value);
+            }
+            else if (target.matches('.bp-link-text-input')) {
+                updateLinkText(target.closest('.bp-link-item'), target.value);
+            }
+            else if (target.matches('.bp-link-url-input')) {
+                updateLinkUrl(target.closest('.bp-link-item'), target.value);
+            }
+        });
+    }
+    
+    // ============================================================================
+    // SIMPLE INITIALIZATION
+    // ============================================================================
+    
     function init() {
+        if (initialized) return; // Prevent duplicate initialization
+        
         sectionsListEl = document.getElementById('bp-link-sections-list');
         addSectionBtn = document.getElementById('bp-add-link-section-btn');
         
-        // Set up add section button listener
+        // Set up main add section button
         if (addSectionBtn) {
             addSectionBtn.addEventListener('click', function(e) {
                 e.preventDefault();
-                
-                // Re-query for sections container at click time
-                const currentSectionsListEl = document.getElementById('bp-link-sections-list');
-                const sectionIndex = currentSectionsListEl.children.length;
-                
-                createSectionItemHTML(sectionIndex, {}, function(html) {
-                    if (html) {
-                        currentSectionsListEl.insertAdjacentHTML('beforeend', html);
-                        dispatchSectionAdded(sectionIndex, '');
-                    }
-                });
+                addSection();
             });
         }
         
-        // Set up section-related listeners if sections container exists
+        // Set up section-related listeners
         if (sectionsListEl) {
             attachEventListeners();
         }
         
-        console.log('[Links] Form management initialized');
+        initialized = true;
     }
-
+    
+    // ============================================================================
+    // MODULE INITIALIZATION
+    // ============================================================================
+    
     // Listen for links tab activation
     document.addEventListener('linksTabActivated', function(event) {
         init();
     });
-
-    // Listen for sortable events and update indices automatically
-    // Note: Preview movement handled by sorting-preview.js module
+    
+    // Listen for sortable events to update data attributes after reordering
     document.addEventListener('linkMoved', function() {
-        updateAllIndices();
+        updateDataAttributes();
     });
     
     document.addEventListener('sectionMoved', function() {
-        updateAllIndices();
+        updateDataAttributes();
     });
-
-
+    
 })();

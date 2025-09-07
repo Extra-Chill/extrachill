@@ -2,8 +2,9 @@
 /**
  * ExtraChill Artist Platform Assets Class
  * 
- * Handles CSS and JavaScript asset loading with context-aware loading
- * and proper dependency management.
+ * Handles CSS and JavaScript asset loading with context-aware loading,
+ * proper dependency management, and file existence checks. Provides
+ * conditional asset loading based on page template context.
  */
 
 // Exit if accessed directly
@@ -13,11 +14,15 @@ class ExtraChillArtistPlatform_Assets {
 
     /**
      * Single instance of the class
+     * 
+     * @var ExtraChillArtistPlatform_Assets|null
      */
     private static $instance = null;
 
     /**
-     * Get single instance
+     * Get single instance of the assets manager
+     * 
+     * @return ExtraChillArtistPlatform_Assets
      */
     public static function instance() {
         if ( null === self::$instance ) {
@@ -27,14 +32,20 @@ class ExtraChillArtistPlatform_Assets {
     }
 
     /**
-     * Constructor - Initialize hooks
+     * Constructor - Initialize asset management hooks
+     * 
+     * Prevents direct instantiation and sets up WordPress hooks
+     * for frontend and admin asset loading.
      */
     private function __construct() {
         $this->init_hooks();
     }
 
     /**
-     * Initialize hooks
+     * Initialize WordPress hooks for asset management
+     * 
+     * Sets up enqueue actions for frontend and admin contexts,
+     * plus custom styles injection.
      */
     private function init_hooks() {
         add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_frontend_assets' ) );
@@ -43,9 +54,13 @@ class ExtraChillArtistPlatform_Assets {
     }
 
     /**
-     * Enqueue frontend assets
+     * Enqueue frontend assets with context awareness
      * 
-     * Context-aware asset loading based on current page template.
+     * Conditionally loads CSS and JavaScript assets based on the current
+     * page context (link pages, management interfaces, artist profiles).
+     * Includes file existence checks and cache busting.
+     * 
+     * @return void
      */
     public function enqueue_frontend_assets() {
         $plugin_url = EXTRACHILL_ARTIST_PLATFORM_PLUGIN_URL;
@@ -138,7 +153,7 @@ class ExtraChillArtistPlatform_Assets {
             true 
         );
 
-        // Get current artist ID for complete data
+        // Get current artist ID and link page data using centralized data provider
         $current_artist_id = apply_filters('ec_get_artist_id', $_GET);
         $link_page_data = $current_artist_id > 0 ? ec_get_link_page_data( $current_artist_id ) : array();
         
@@ -205,6 +220,14 @@ class ExtraChillArtistPlatform_Assets {
             $plugin_url . 'assets/css/extrch-links.css', 
             array(), 
             $this->get_asset_version( 'assets/css/extrch-links.css' )
+        );
+
+        // Custom social icons styles
+        wp_enqueue_style( 
+            'extrachill-custom-social-icons', 
+            $plugin_url . 'assets/css/custom-social-icons.css', 
+            array( 'extrachill-link-page' ), 
+            $this->get_asset_version( 'assets/css/custom-social-icons.css' )
         );
 
         // Share modal styles
@@ -357,6 +380,14 @@ class ExtraChillArtistPlatform_Assets {
             $this->get_asset_version( 'inc/link-pages/management/assets/css/management.css' )
         );
 
+        // Custom social icons styles for management interface
+        wp_enqueue_style( 
+            'extrachill-custom-social-icons', 
+            $plugin_url . 'assets/css/custom-social-icons.css', 
+            array( 'extrachill-manage-link-page' ), 
+            $this->get_asset_version( 'assets/css/custom-social-icons.css' )
+        );
+
         // Live preview CSS removed - iframe loads styles independently
         // This prevents management page styles from interfering with preview iframe
 
@@ -366,6 +397,15 @@ class ExtraChillArtistPlatform_Assets {
             $plugin_url . 'assets/css/extrch-share-modal.css', 
             array( 'extrachill-manage-link-page' ), 
             $this->get_asset_version( 'assets/css/extrch-share-modal.css' )
+        );
+
+        // Enqueue Chart.js for analytics visualization (UMD build for global use)
+        wp_enqueue_script( 
+            'chart-js', 
+            'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js', 
+            array(), 
+            '4.4.0', 
+            true 
         );
 
         // Enqueue SortableJS for drag and drop functionality
@@ -399,7 +439,7 @@ class ExtraChillArtistPlatform_Assets {
         // Get current artist ID for centralized data loading
         $current_artist_id = apply_filters('ec_get_artist_id', $_GET);
         
-        // Get comprehensive link page data using centralized filter
+        // Get comprehensive link page data using centralized data provider function
         $link_page_data = $current_artist_id > 0 ? ec_get_link_page_data( $current_artist_id ) : array();
         
         // Prepare JavaScript configuration with comprehensive data
@@ -412,7 +452,7 @@ class ExtraChillArtistPlatform_Assets {
             // Supported types from existing filter
             'supportedLinkTypes' => extrachill_artist_platform_social_links()->get_supported_types(),
             
-            // Comprehensive link page data (single source of truth)
+            // Comprehensive link page data from centralized data provider
             'linkPageData' => $link_page_data
         );
         
@@ -440,10 +480,16 @@ class ExtraChillArtistPlatform_Assets {
         );
 
         foreach ( $management_scripts as $script ) {
+            // Analytics script needs Chart.js dependency
+            $dependencies = array( 'jquery', 'sortable-js', 'extrachill-shared-tabs-js', 'extrachill-sortable-system' );
+            if ( $script === 'analytics' ) {
+                $dependencies[] = 'chart-js';
+            }
+            
             wp_enqueue_script( 
                 "extrachill-manage-link-page-{$script}", 
                 $plugin_url . "inc/link-pages/management/assets/js/{$script}.js", 
-                array( 'jquery', 'sortable-js', 'extrachill-shared-tabs-js', 'extrachill-sortable-system' ), 
+                $dependencies, 
                 $this->get_asset_version( "inc/link-pages/management/assets/js/{$script}.js" ), 
                 true 
             );
@@ -488,7 +534,7 @@ class ExtraChillArtistPlatform_Assets {
             return;
         }
         
-        // Get link page data with font settings
+        // Get link page data with font settings using centralized data provider
         $link_page_data = ec_get_link_page_data( $artist_id, $link_page_id );
         $custom_vars = $link_page_data['css_vars'] ?? array();
         
@@ -531,7 +577,7 @@ class ExtraChillArtistPlatform_Assets {
      * Add custom styles for link page CSS variables
      * 
      * CSS variables are now handled by inc/link-pages/live/link-page-head.php 
-     * to maintain single source of truth from ec_get_link_page_data() filter.
+     * to maintain single source of truth from ec_get_link_page_data() function.
      */
     public function add_custom_styles() {
         // CSS variables are now generated by link-page-head.php and preview.php only

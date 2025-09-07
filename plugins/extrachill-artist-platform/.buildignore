@@ -11,6 +11,7 @@ CLAUDE.md
 MIGRATION-GUIDE.md
 CHANGELOG.md
 *.md
+docs/
 
 # Development configuration
 .claude/

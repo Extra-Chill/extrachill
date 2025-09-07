@@ -1,10 +1,16 @@
-// JavaScript for Analytics Tab - Manage Link Page
+/**
+ * Analytics Dashboard JavaScript Module
+ * 
+ * Handles Chart.js-powered analytics visualization for link page management.
+ * Features event-driven initialization, real-time data fetching, and responsive charts.
+ * 
+ * Dependencies: Chart.js, jQuery
+ * Event Integration: Listens for 'analyticsTabActivated' custom event
+ * AJAX Endpoint: 'extrch_fetch_link_page_analytics'
+ */
 
 (function() {
     'use strict';
-    
-    // Use the localized analytics config directly
-    const ajaxConfig = extraChillArtistPlatform.analyticsConfig || {};
 
     const loadingIndicator = document.getElementById('bp-analytics-loading');
     const errorIndicator = document.getElementById('bp-analytics-error');
@@ -114,10 +120,16 @@
         }
     }
 
-    // --- Initial Load / Tab Activation ---
-    function initAnalyticsIfNeeded() {
+    // --- Initialize analytics when tab activates ---
+    function initAnalytics() {
         if (analyticsInitialized) {
             return; // Already initialized
+        }
+
+        // Verify configuration is available
+        if (!extraChillArtistPlatform || !extraChillArtistPlatform.linkPageData) {
+            showError('Configuration not available. Please refresh the page.');
+            return;
         }
 
         analyticsInitialized = true;
@@ -137,11 +149,11 @@
         // Check if the tab content panel is actually visible (style.display is not 'none')
         // This check is important because this function might be called slightly before UI update completes.
         if (analyticsTabContent && analyticsTabContent.style.display !== 'none') {
-            initAnalyticsIfNeeded();
+            initAnalytics();
         } else {
             setTimeout(() => {
                 if (analyticsTabContent && analyticsTabContent.style.display !== 'none') {
-                    initAnalyticsIfNeeded();
+                    initAnalytics();
                 }
             }, 50); // Short delay
         }

@@ -39,7 +39,6 @@ function extrch_record_link_event_ajax() {
 
     // Check if the link page exists and is the correct post type
     $actual_post_type = get_post_type($link_page_id);
-    error_log('[EXTRCH Analytics Tracking] Actual post type for ID ' . $link_page_id . ': ' . $actual_post_type); // DEBUG
     if ($actual_post_type !== 'artist_link_page') {
         wp_send_json_error(['message' => 'Invalid link page ID.'], 400);
         return;
@@ -72,7 +71,6 @@ function extrch_record_link_event_ajax() {
     }
 
     if (empty($sql)) {
-        error_log('[EXTRCH Analytics Tracking] SQL query was empty, invalid event type?'); // DEBUG
         wp_send_json_error(['message' => 'Invalid event type.'], 400);
         return;
     }
@@ -173,7 +171,6 @@ add_action('extrch_link_page_minimal_head', 'extrch_enqueue_public_tracking_scri
  */
 function extrch_prune_old_analytics_data() {
     global $wpdb;
-    error_log('[EXTRCH Analytics Pruning] Cron job extrch_prune_old_analytics_data started.'); // DEBUG
 
     $ninety_days_ago = date('Y-m-d', strtotime('-90 days', current_time('timestamp')));
 
@@ -205,7 +202,6 @@ function extrch_prune_old_analytics_data() {
     } else {
         error_log("[EXTRCH Analytics Pruning] Pruned {$result_clicks} rows from {$table_clicks_name}.");
     }
-    error_log('[EXTRCH Analytics Pruning] Cron job extrch_prune_old_analytics_data finished.'); // DEBUG
 }
 add_action('extrch_daily_analytics_prune_event', 'extrch_prune_old_analytics_data');
 
@@ -215,7 +211,6 @@ add_action('extrch_daily_analytics_prune_event', 'extrch_prune_old_analytics_dat
 function extrch_schedule_analytics_pruning_cron() {
     if (!wp_next_scheduled('extrch_daily_analytics_prune_event')) {
         wp_schedule_event(time(), 'daily', 'extrch_daily_analytics_prune_event');
-        error_log('[EXTRCH Analytics Pruning] Scheduled daily analytics pruning cron job.'); // DEBUG
     }
 }
 add_action('init', 'extrch_schedule_analytics_pruning_cron'); // Or admin_init, depending on when it should be checked. 'init' is generally fine.
@@ -227,5 +222,4 @@ add_action('init', 'extrch_schedule_analytics_pruning_cron'); // Or admin_init, 
  */
 function extrch_unschedule_analytics_pruning_cron() {
     wp_clear_scheduled_hook('extrch_daily_analytics_prune_event');
-    error_log('[EXTRCH Analytics Pruning] Unscheduled daily analytics pruning cron job.'); // DEBUG
 }

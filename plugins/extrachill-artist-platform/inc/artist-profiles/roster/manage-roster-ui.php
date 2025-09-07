@@ -1,7 +1,7 @@
 <?php
 /**
- * Handles the display and specific UI logic for the "Manage Band Members" section 
- * on the frontend manage band profile page.
+ * Handles the display and specific UI logic for the "Manage Artist Members" section 
+ * on the frontend manage artist profile page.
  */
 
 // Exit if accessed directly
@@ -10,15 +10,15 @@ defined( 'ABSPATH' ) || exit;
 require_once dirname( __FILE__ ) . '/roster-data-functions.php'; // Include the new data functions file
 
 /**
- * Displays the entire "Manage Band Members" interface.
+ * Displays the entire "Manage Artist Members" interface.
  *
- * @param int $artist_id The ID of the band profile being managed.
+ * @param int $artist_id The ID of the artist profile being managed.
  * @param int $current_user_id The ID of the user currently viewing/editing the page.
  */
 if (!function_exists('bp_display_manage_members_section')) {
 function bp_display_manage_members_section( $artist_id, $current_user_id ) {
     if ( ! $artist_id || ! $current_user_id ) {
-        echo '<p>' . esc_html__( 'Cannot display member management: Missing band or user information.', 'extrachill-artist-platform' ) . '</p>';
+        echo '<p>' . esc_html__( 'Cannot display member management: Missing artist or user information.', 'extrachill-artist-platform' ) . '</p>';
         return;
     }
 
@@ -33,7 +33,7 @@ function bp_display_manage_members_section( $artist_id, $current_user_id ) {
     $has_any_members = false;
 
     ?>
-    <h2><?php esc_html_e( 'Band Roster', 'extrachill-artist-platform' ); ?></h2>
+    <h2><?php esc_html_e( 'Artist Roster', 'extrachill-artist-platform' ); ?></h2>
     
     <div id="bp-manage-members-section">
         
@@ -53,7 +53,7 @@ function bp_display_manage_members_section( $artist_id, $current_user_id ) {
                             <span class="member-name"><?php echo esc_html( $user_info->display_name ); ?> (<?php echo esc_html( $user_info->user_login ); ?>)</span>
                             <span class="member-status-label">(Linked Account)</span>
                             <?php if ( $user_info->ID !== $current_user_id ) : ?>
-                                <button type="button" class="button button-small bp-remove-member-button" data-user-id="<?php echo esc_attr( $user_info->ID ); ?>" title="<?php esc_attr_e( 'Remove this member from band', 'extrachill-artist-platform' ); ?>">&times; <?php esc_html_e('Remove', 'extrachill-artist-platform'); ?></button>
+                                <button type="button" class="button button-small bp-remove-member-button" data-user-id="<?php echo esc_attr( $user_info->ID ); ?>" title="<?php esc_attr_e( 'Remove this member from artist', 'extrachill-artist-platform' ); ?>">&times; <?php esc_html_e('Remove', 'extrachill-artist-platform'); ?></button>
                             <?php else: ?>
                                 <span class="is-current-user"><?php esc_html_e('You', 'extrachill-artist-platform'); ?></span>
                             <?php endif; ?>
@@ -99,7 +99,7 @@ function bp_display_manage_members_section( $artist_id, $current_user_id ) {
 
             if ( ! $has_any_members ) :
             ?>
-                <li class="no-members"><?php esc_html_e( 'No members listed for this band yet.', 'extrachill-artist-platform' ); ?></li>
+                <li class="no-members"><?php esc_html_e( 'No members listed for this artist yet.', 'extrachill-artist-platform' ); ?></li>
             <?php endif; ?>
         </ul>
 

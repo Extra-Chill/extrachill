@@ -151,37 +151,6 @@ $settings = isset($data['settings']) && is_array($data['settings']) ? $data['set
                 <?php esc_html_e('Maximum file size: 5MB.', 'extrachill-artist-platform'); ?>
             </p>
             <div id="background-image-preview" style="margin-top:10px;"></div>
-            
-            <!-- Additional Background Image Controls -->
-            <div style="margin-top: 15px;">
-                <label for="link_page_background_image_size"><strong><?php esc_html_e('Background Size', 'extrachill-artist-platform'); ?></strong></label><br>
-                <select id="link_page_background_image_size" name="link_page_background_image_size" style="max-width:200px;">
-                    <option value="cover"<?php selected($custom_vars['--link-page-image-size'] ?? 'cover', 'cover'); ?>><?php esc_html_e('Cover (Fill Area)', 'extrachill-artist-platform'); ?></option>
-                    <option value="contain"<?php selected($custom_vars['--link-page-image-size'] ?? 'cover', 'contain'); ?>><?php esc_html_e('Contain (Fit Area)', 'extrachill-artist-platform'); ?></option>
-                    <option value="auto"<?php selected($custom_vars['--link-page-image-size'] ?? 'cover', 'auto'); ?>><?php esc_html_e('Original Size', 'extrachill-artist-platform'); ?></option>
-                </select>
-            </div>
-            
-            <div style="margin-top: 10px;">
-                <label for="link_page_background_image_position"><strong><?php esc_html_e('Background Position', 'extrachill-artist-platform'); ?></strong></label><br>
-                <select id="link_page_background_image_position" name="link_page_background_image_position" style="max-width:200px;">
-                    <option value="center center"<?php selected($custom_vars['--link-page-image-position'] ?? 'center center', 'center center'); ?>><?php esc_html_e('Center', 'extrachill-artist-platform'); ?></option>
-                    <option value="top center"<?php selected($custom_vars['--link-page-image-position'] ?? 'center center', 'top center'); ?>><?php esc_html_e('Top Center', 'extrachill-artist-platform'); ?></option>
-                    <option value="bottom center"<?php selected($custom_vars['--link-page-image-position'] ?? 'center center', 'bottom center'); ?>><?php esc_html_e('Bottom Center', 'extrachill-artist-platform'); ?></option>
-                    <option value="left center"<?php selected($custom_vars['--link-page-image-position'] ?? 'center center', 'left center'); ?>><?php esc_html_e('Left Center', 'extrachill-artist-platform'); ?></option>
-                    <option value="right center"<?php selected($custom_vars['--link-page-image-position'] ?? 'center center', 'right center'); ?>><?php esc_html_e('Right Center', 'extrachill-artist-platform'); ?></option>
-                </select>
-            </div>
-            
-            <div style="margin-top: 10px;">
-                <label for="link_page_background_image_repeat"><strong><?php esc_html_e('Background Repeat', 'extrachill-artist-platform'); ?></strong></label><br>
-                <select id="link_page_background_image_repeat" name="link_page_background_image_repeat" style="max-width:200px;">
-                    <option value="no-repeat"<?php selected($custom_vars['--link-page-image-repeat'] ?? 'no-repeat', 'no-repeat'); ?>><?php esc_html_e('No Repeat', 'extrachill-artist-platform'); ?></option>
-                    <option value="repeat"<?php selected($custom_vars['--link-page-image-repeat'] ?? 'no-repeat', 'repeat'); ?>><?php esc_html_e('Repeat', 'extrachill-artist-platform'); ?></option>
-                    <option value="repeat-x"<?php selected($custom_vars['--link-page-image-repeat'] ?? 'no-repeat', 'repeat-x'); ?>><?php esc_html_e('Repeat Horizontally', 'extrachill-artist-platform'); ?></option>
-                    <option value="repeat-y"<?php selected($custom_vars['--link-page-image-repeat'] ?? 'no-repeat', 'repeat-y'); ?>><?php esc_html_e('Repeat Vertically', 'extrachill-artist-platform'); ?></option>
-                </select>
-            </div>
         </div>
         <div class="customize-section">
             <label>

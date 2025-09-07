@@ -86,14 +86,17 @@ class ExtraChill_Live_Preview_Handler {
     /**
      * Prepare preview data from form inputs
      * 
+     * Uses the centralized ec_get_link_page_data() function with override support
+     * for real-time preview functionality without database updates.
+     * 
      * @since 1.0.0
      * @param int $link_page_id The link page ID
      * @param int $artist_id The artist ID
-     * @param array $form_data The form data
-     * @return array Preview data
+     * @param array $form_data The form data containing preview overrides
+     * @return array Preview data with form overrides applied
      */
     private function prepare_preview_data( $link_page_id, $artist_id, $form_data ) {
-        // Load the data via centralized filter function with overrides support
+        // Load the data via centralized data provider function with overrides support
         if ( function_exists( 'ec_get_link_page_data' ) ) {
             // Pass form_data as overrides parameter for real-time preview
             return ec_get_link_page_data( $artist_id, $link_page_id, $form_data );
@@ -114,9 +117,11 @@ class ExtraChill_Live_Preview_Handler {
     /**
      * Generate preview HTML from data
      * 
+     * Uses the unified template system to render preview HTML.
+     * 
      * @since 1.0.0
-     * @param array $preview_data The preview data
-     * @return string Generated HTML
+     * @param array $preview_data The preview data from ec_get_link_page_data()
+     * @return string Generated HTML for preview iframe
      */
     private function generate_preview_html( $preview_data ) {
         return ec_render_template('link-page-live-preview', array(

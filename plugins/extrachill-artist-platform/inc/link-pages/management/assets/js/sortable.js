@@ -253,10 +253,10 @@
     });
     
     // Listen for new links being added and refresh link sorting
-    document.addEventListener('linkItemCreated', function(e) {
+    document.addEventListener('linkElementAdded', function(e) {
         setTimeout(() => {
-            // Re-initialize link sorting for the affected section
-            const linkElement = e.detail?.linkElement;
+            // Re-initialize link sorting for the affected section  
+            const linkElement = e.detail?.element;
             if (linkElement) {
                 const linkContainer = linkElement.closest('.bp-link-list');
                 if (linkContainer) {

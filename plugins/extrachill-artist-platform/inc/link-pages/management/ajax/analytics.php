@@ -14,45 +14,24 @@ add_action( 'wp_ajax_extrch_fetch_link_page_analytics', 'extrch_fetch_link_page_
  * Hooked to wp_ajax_extrch_fetch_link_page_analytics (only for logged-in users).
  */
 function extrch_fetch_link_page_analytics_ajax() {
-    error_log('[EXTRCH_ANALYTICS_AJAX] Request received. POST data: ' . print_r($_POST, true));
-    error_log('[EXTRCH_ANALYTICS_AJAX] Current user ID: ' . get_current_user_id());
+    try {
+        // Verify standardized nonce (matches pattern used by all other AJAX handlers)
+        check_ajax_referer('ec_ajax_nonce', 'nonce');
+        
+        // Check permissions using centralized permission system
+        if (!ec_ajax_can_manage_link_page($_POST)) {
+            wp_send_json_error(array('message' => 'Unauthorized'));
+            return;
+        }
 
-    if ( !isset( $_POST['link_page_id'], $_POST['security_nonce'] ) ) {
-        error_log('[EXTRCH_ANALYTICS_AJAX] Error: Missing link_page_id or security_nonce.');
-        wp_send_json_error(['message' => 'Missing required parameters.'], 400);
-        return;
-    }
+        // Get and sanitize parameters
+        $link_page_id = isset($_POST['link_page_id']) ? (int) $_POST['link_page_id'] : 0;
+        $date_range_days = isset($_POST['date_range']) ? (int) $_POST['date_range'] : 30;
 
-    $link_page_id = (int) $_POST['link_page_id'];
-    $nonce = sanitize_text_field( $_POST['security_nonce'] );
-    $date_range_days = isset($_POST['date_range']) ? (int) $_POST['date_range'] : 30;
-
-    error_log('[EXTRCH_ANALYTICS_AJAX] Link Page ID: ' . $link_page_id . ', Nonce: ' . $nonce . ', Date Range: ' . $date_range_days);
-
-    // Verify Nonce
-    if ( ! wp_verify_nonce( $nonce, 'extrch_link_page_ajax_nonce' ) ) {
-        error_log('[EXTRCH_ANALYTICS_AJAX] Nonce verification failed. Received Nonce: ' . $nonce . ' for action: extrch_link_page_ajax_nonce');
-        wp_send_json_error(['message' => 'Nonce verification failed.'], 403);
-        return;
-    }
-    error_log('[EXTRCH_ANALYTICS_AJAX] Nonce verification PASSED.');
-    
-    // Permission Check:
-    // Verify that the current user has the specific capability 'view_artist_link_page_analytics' 
-    // for the given $link_page_id. This capability is dynamically granted in 
-    // 'inc/core/filters/permissions.php' based on artist membership 
-    // and association with the link page.
-    // This is preferred over direct 'edit_post' checks on the link page or associated artist profile
-    // to ensure the permission logic is centralized and specific to this feature.
-    $can_view_analytics = current_user_can( 'view_artist_link_page_analytics', $link_page_id );
-    error_log('[EXTRCH_ANALYTICS_AJAX] User can view_artist_link_page_analytics for link_page_id (' . $link_page_id . '): ' . ($can_view_analytics ? 'YES' : 'NO'));
-
-    if ( ! $can_view_analytics ) {
-        error_log('[EXTRCH_ANALYTICS_AJAX] User permission check failed for view_artist_link_page_analytics.');
-        wp_send_json_error(['message' => 'You do not have permission to view these analytics.'], 403);
-        return;
-    }
-    error_log('[EXTRCH_ANALYTICS_AJAX] User permission check PASSED for view_artist_link_page_analytics.');
+        if (!$link_page_id) {
+            wp_send_json_error(['message' => 'Missing link page ID.'], 400);
+            return;
+        }
 
     // --- Date Calculation ---
     $end_date = current_time('Y-m-d');
@@ -147,7 +126,7 @@ function extrch_fetch_link_page_analytics_ajax() {
         $current_loop_date = strtotime('+1 day', $current_loop_date);
     }
 
-    // --- Format Top Links --- Use centralized data source (single source of truth)
+    // --- Format Top Links --- Use centralized data provider function
     $artist_id = apply_filters('ec_get_artist_id', $link_page_id);
     $data = ec_get_link_page_data($artist_id, $link_page_id);
     $link_sections = $data['links'] ?? [];
@@ -165,7 +144,7 @@ function extrch_fetch_link_page_analytics_ajax() {
         }
     }
     // Add social links too
-    // Use centralized data source for social links (already retrieved above)
+    // Use centralized data provider for social links (already retrieved above)
     $social_links = $data['socials'] ?? [];
 
     if (is_array($social_links)) {
@@ -198,4 +177,8 @@ function extrch_fetch_link_page_analytics_ajax() {
     ];
 
     wp_send_json_success($response_data);
+    
+    } catch (Exception $e) {
+        wp_send_json_error(array('message' => 'An error occurred while fetching analytics data.'));
+    }
 }

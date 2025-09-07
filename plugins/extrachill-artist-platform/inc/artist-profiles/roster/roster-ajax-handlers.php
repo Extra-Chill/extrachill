@@ -2,7 +2,7 @@
 /**
  * Artist Roster AJAX Handlers
  * 
- * Handles AJAX requests for band member invitation system, including
+ * Handles AJAX requests for artist member invitation system, including
  * email invitations, invitation management, and roster operations.
  */
 
@@ -21,10 +21,10 @@ function bp_ajax_invite_member_by_email() {
     $artist_id = apply_filters('ec_get_artist_id', $_POST);
     $invite_email = isset( $_POST['invite_email'] ) ? sanitize_email( $_POST['invite_email'] ) : '';
     if ( ! $artist_id || ! is_email( $invite_email ) ) {
-        wp_send_json_error( array( 'message' => 'Missing or invalid parameters (band ID or email).' ) );
+        wp_send_json_error( array( 'message' => 'Missing or invalid parameters (artist ID or email).' ) );
     }
     if ( ! current_user_can( 'edit_post', $artist_id ) ) {
-        wp_send_json_error( array( 'message' => 'You do not have permission to manage members for this band.' ) );
+        wp_send_json_error( array( 'message' => 'You do not have permission to manage members for this artist.' ) );
     }
     $linked_members = bp_get_linked_members( $artist_id );
     if (is_array($linked_members)) {
@@ -32,7 +32,7 @@ function bp_ajax_invite_member_by_email() {
             if (isset($linked_member_obj->ID)) {
                 $user_info = get_userdata($linked_member_obj->ID);
                 if ($user_info && strtolower($user_info->user_email) === strtolower($invite_email)) {
-                    wp_send_json_error( array( 'message' => 'This email address is already linked to a member of this band.' ) );
+                    wp_send_json_error( array( 'message' => 'This email address is already linked to a member of this artist.' ) );
                 }
             }
         }
@@ -41,7 +41,7 @@ function bp_ajax_invite_member_by_email() {
     if ( is_array( $new_invitation_result ) && isset( $new_invitation_result['id'] ) ) {
         $invite = $new_invitation_result;
         $artist_post = get_post( $artist_id );
-        $artist_name = $artist_post ? $artist_post->post_title : 'the band';
+        $artist_name = $artist_post ? $artist_post->post_title : 'the artist';
         $mail_sent_successfully = bp_send_artist_invitation_email( 
             $invite['email'], 
             $artist_name, 

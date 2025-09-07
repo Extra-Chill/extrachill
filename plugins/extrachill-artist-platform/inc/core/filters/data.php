@@ -13,7 +13,7 @@
  * Uses the centralized ec_get_user_owned_artists() function to ensure
  * only the user's owned artist profiles are returned.
  * 
- * @param int $user_id User ID (defaults to current user)
+ * @param int|null $user_id User ID (defaults to current user if null)
  * @return array Array of published artist profile IDs owned by the user
  */
 function ec_get_user_artist_ids( $user_id = null ) {
@@ -22,6 +22,9 @@ function ec_get_user_artist_ids( $user_id = null ) {
 
 /**
  * Get the forum ID associated with an artist profile
+ * 
+ * Retrieves the bbPress forum ID that's associated with the given
+ * artist profile for forum integration functionality.
  * 
  * @param int $artist_id Artist profile post ID
  * @return int|false Forum ID or false if not found
@@ -38,9 +41,12 @@ function ec_get_forum_for_artist( $artist_id ) {
 /**
  * Check if a user is a member of a specific artist profile
  * 
- * @param int $user_id User ID (defaults to current user)
- * @param int $artist_id Artist profile ID
- * @return bool True if user is a member
+ * Determines if a user has membership/ownership rights to manage
+ * a specific artist profile and its associated content.
+ * 
+ * @param int|null $user_id User ID (defaults to current user if null)
+ * @param int|null $artist_id Artist profile ID
+ * @return bool True if user is a member, false otherwise
  */
 function ec_is_user_artist_member( $user_id = null, $artist_id = null ) {
     if ( ! $user_id ) {
@@ -58,7 +64,10 @@ function ec_is_user_artist_member( $user_id = null, $artist_id = null ) {
 /**
  * Get all followed artist profile IDs for a user
  * 
- * @param int $user_id User ID (defaults to current user)
+ * Retrieves the list of artist profiles that a user is following
+ * for content updates and notifications.
+ * 
+ * @param int|null $user_id User ID (defaults to current user if null)
  * @return array Array of followed artist profile IDs
  */
 function ec_get_user_followed_artists( $user_id = null ) {
@@ -81,9 +90,12 @@ function ec_get_user_followed_artists( $user_id = null ) {
 /**
  * Check if a user is following a specific artist
  * 
- * @param int $user_id User ID (defaults to current user)
- * @param int $artist_id Artist profile ID
- * @return bool True if user is following the artist
+ * Determines if a user is currently following an artist profile
+ * for updates and notification purposes.
+ * 
+ * @param int|null $user_id User ID (defaults to current user if null)
+ * @param int|null $artist_id Artist profile ID
+ * @return bool True if user is following the artist, false otherwise
  */
 function ec_is_user_following_artist( $user_id = null, $artist_id = null ) {
     if ( ! $user_id ) {
@@ -100,6 +112,9 @@ function ec_is_user_following_artist( $user_id = null, $artist_id = null ) {
 
 /**
  * Get the link page ID associated with an artist profile
+ * 
+ * Finds the artist_link_page post that's associated with the given
+ * artist profile via the _associated_artist_profile_id meta.
  * 
  * @param int $artist_id Artist profile post ID
  * @return int|false Link page ID or false if not found
@@ -122,9 +137,12 @@ function ec_get_link_page_for_artist( $artist_id ) {
 }
 
 /**
- * Get all artist profiles for current user (with caching)
+ * Get all artist profiles for current user
  * 
- * @param int $user_id User ID (defaults to current user)
+ * Returns full WP_Post objects for all published artist profiles
+ * owned by the specified user. Uses ec_get_user_artist_ids() for IDs.
+ * 
+ * @param int|null $user_id User ID (defaults to current user if null)
  * @return array Array of WP_Post objects for artist profiles
  */
 function ec_get_user_artist_profiles( $user_id = null ) {
@@ -152,9 +170,15 @@ function ec_get_user_artist_profiles( $user_id = null ) {
 /**
  * Get all subscribers for an artist profile
  * 
+ * Retrieves subscriber data from the artist_subscribers database table
+ * with support for pagination and export filtering.
+ * 
  * @param int $artist_id Artist profile post ID
- * @param array $args Optional arguments for pagination/filtering
- * @return array Array of subscriber data
+ * @param array $args Optional arguments:
+ *   - per_page: Results per page (default: 20)
+ *   - page: Page number (default: 1)
+ *   - include_exported: Include exported subscribers (default: false)
+ * @return array Array of subscriber database rows
  */
 function ec_get_artist_subscribers( $artist_id, $args = array() ) {
     global $wpdb;
@@ -188,15 +212,21 @@ function ec_get_artist_subscribers( $artist_id, $args = array() ) {
 }
 
 /**
- * Get comprehensive link page data for management interface
+ * Get comprehensive link page data for management interface and templates
  * 
  * Single source of truth for all link page settings, CSS variables, links, and social data.
  * Replaces scattered get_post_meta calls throughout templates and JavaScript.
  * 
+ * This function serves as the centralized data provider for:
+ * - Management interface data loading
+ * - Live preview system with override support
+ * - Template rendering across the codebase
+ * - Asset management and CSS variable generation
+ * 
  * @param int $artist_id Artist profile post ID
  * @param int $link_page_id Link page post ID (will be determined if not provided)
  * @param array $overrides Optional override data from live preview form changes
- * @return array Comprehensive link page data array
+ * @return array Comprehensive link page data array with display_data structure
  */
 function ec_get_link_page_data( $artist_id, $link_page_id = null, $overrides = array() ) {
     if ( ! $artist_id ) {
@@ -407,11 +437,14 @@ function ec_get_link_page_data( $artist_id, $link_page_id = null, $overrides = a
 }
 
 /**
- * Generate CSS variables style block (centralized CSS generation function)
+ * Generate CSS variables style block for link page styling
  * 
- * @param array $css_vars CSS variables array
- * @param string $element_id CSS style element ID
- * @return string Generated CSS style block
+ * Creates a complete <style> element with CSS custom properties from
+ * the provided variables array. Used throughout templates and previews.
+ * 
+ * @param array $css_vars CSS variables array with --variable-name keys
+ * @param string $element_id CSS style element ID for targeting
+ * @return string Generated CSS style block HTML
  */
 function ec_generate_css_variables_style_block( $css_vars, $element_id = 'link-page-custom-vars' ) {
     if ( empty( $css_vars ) || ! is_array( $css_vars ) ) {
@@ -434,15 +467,19 @@ function ec_generate_css_variables_style_block( $css_vars, $element_id = 'link-p
 }
 
 /**
- * Render artist switcher component (Global Helper Function)
+ * Render artist switcher component documentation
  * 
- * @param array $args Template arguments for the switcher
- *   - switcher_id: HTML element ID
+ * NOTE: This is documentation-only. Actual rendering is handled by
+ * the unified template system via ec_render_template('artist-switcher', $args).
+ * 
+ * @param array $args Template arguments for the switcher:
+ *   - switcher_id: HTML element ID for the select element
  *   - base_url: URL to redirect to when switching artists  
  *   - current_artist_id: Currently selected artist ID
  *   - user_id: User ID to get artist list for
- *   - css_class: Additional CSS classes
- *   - label_text: Select option label
+ *   - css_class: Additional CSS classes for styling
+ *   - label_text: Select option label text
+ * @return string Rendered HTML (via ec_render_template)
  */
 
 /**

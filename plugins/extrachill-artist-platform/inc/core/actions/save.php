@@ -20,8 +20,12 @@ require_once plugin_dir_path( __FILE__ ) . '../filters/upload.php';
 /**
  * Central function to handle all link page save operations
  *
+ * Processes and saves link page data including links, CSS variables, 
+ * advanced settings, social icons, and file uploads. Triggers post-save 
+ * synchronization via action hooks.
+ *
  * @param int $link_page_id The link page ID
- * @param array $save_data Array of data to save
+ * @param array $save_data Array of prepared save data
  * @param array $files_data $_FILES array if applicable
  * @return bool|WP_Error True on success, WP_Error on failure
  */
@@ -106,7 +110,10 @@ function ec_handle_link_page_save( $link_page_id, $save_data = array(), $files_d
  * Link page save completion handler
  * 
  * Triggered by ec_link_page_save action to complete the save process
- * by triggering the sync action.
+ * by triggering the sync action for associated artist profile.
+ * 
+ * @param int $link_page_id The saved link page ID
+ * @return void
  */
 function ec_handle_link_page_save_completion( $link_page_id ) {
     // Get associated artist profile ID
@@ -122,7 +129,10 @@ add_action( 'ec_link_page_save', 'ec_handle_link_page_save_completion', 10, 1 );
 /**
  * Process individual social icon form fields into structured array
  *
- * @param array $post_data $_POST array
+ * Converts form field arrays (social_type[], social_url[]) into
+ * structured social icons data for storage. Skips empty entries.
+ *
+ * @param array $post_data $_POST array containing form fields
  * @return array Structured social icons array
  */
 function ec_process_social_form_fields( $post_data ) {
@@ -159,8 +169,12 @@ function ec_process_social_form_fields( $post_data ) {
 /**
  * Process individual link form fields into structured array
  *
- * @param array $post_data $_POST array
- * @return array Structured links array
+ * Converts nested form field arrays into structured link data with
+ * sections, individual links, and expiration times. Handles complex
+ * multi-dimensional form structure from drag-and-drop interface.
+ *
+ * @param array $post_data $_POST array containing form fields
+ * @return array Structured links array with sections and links
  */
 function ec_process_link_form_fields( $post_data ) {
     $links_data = array();
@@ -222,10 +236,14 @@ function ec_process_link_form_fields( $post_data ) {
 }
 
 /**
- * Prepare save data from POST array
+ * Prepare save data from POST array for link pages
  * 
- * @param array $post_data $_POST array
- * @return array Prepared save data
+ * Sanitizes and validates all form data for link page saves.
+ * Processes links, social icons, CSS variables, advanced settings,
+ * and converts form values to appropriate storage formats.
+ * 
+ * @param array $post_data $_POST array from form submission
+ * @return array Prepared and sanitized save data
  */
 function ec_prepare_link_page_save_data( $post_data ) {
     $save_data = array();
@@ -279,26 +297,6 @@ function ec_prepare_link_page_save_data( $post_data ) {
         }
     }
     
-    // Background image controls
-    if ( isset( $post_data['link_page_background_image_size'] ) ) {
-        $image_size = sanitize_text_field( $post_data['link_page_background_image_size'] );
-        if ( in_array( $image_size, array( 'cover', 'contain', 'auto' ) ) ) {
-            $css_vars['--link-page-image-size'] = $image_size;
-        }
-    }
-    if ( isset( $post_data['link_page_background_image_position'] ) ) {
-        $image_position = sanitize_text_field( $post_data['link_page_background_image_position'] );
-        $valid_positions = array( 'center center', 'top center', 'bottom center', 'left center', 'right center' );
-        if ( in_array( $image_position, $valid_positions ) ) {
-            $css_vars['--link-page-image-position'] = $image_position;
-        }
-    }
-    if ( isset( $post_data['link_page_background_image_repeat'] ) ) {
-        $image_repeat = sanitize_text_field( $post_data['link_page_background_image_repeat'] );
-        if ( in_array( $image_repeat, array( 'no-repeat', 'repeat', 'repeat-x', 'repeat-y' ) ) ) {
-            $css_vars['--link-page-image-repeat'] = $image_repeat;
-        }
-    }
     
     // Typography
     if ( isset( $post_data['link_page_title_font_family'] ) ) {
@@ -392,8 +390,12 @@ function ec_prepare_link_page_save_data( $post_data ) {
 /**
  * Central function to handle all artist profile save operations
  *
+ * Processes and saves artist profile data including post title/content,
+ * meta fields, file uploads, and member management. Triggers post-save
+ * synchronization via action hooks.
+ *
  * @param int $artist_id The artist profile ID
- * @param array $save_data Array of data to save
+ * @param array $save_data Array of prepared save data
  * @param array $files_data $_FILES array if applicable
  * @return bool|WP_Error True on success, WP_Error on failure
  */
@@ -494,7 +496,10 @@ function ec_handle_artist_profile_save( $artist_id, $save_data = array(), $files
  * Artist profile save completion handler
  * 
  * Triggered by ec_artist_profile_save action to complete the save process
- * by triggering the sync action.
+ * by triggering cross-system synchronization.
+ * 
+ * @param int $artist_id The saved artist profile ID
+ * @return void
  */
 function ec_handle_artist_profile_save_completion( $artist_id ) {
     // Trigger sync action directly
@@ -506,8 +511,12 @@ add_action( 'ec_artist_profile_save', 'ec_handle_artist_profile_save_completion'
 /**
  * Prepare save data from POST array for artist profiles
  * 
- * @param array $post_data $_POST array
- * @return array Prepared save data
+ * Sanitizes and validates all form data for artist profile saves.
+ * Handles title, bio, genre, location, forum settings, and member
+ * management data with proper sanitization.
+ * 
+ * @param array $post_data $_POST array from form submission
+ * @return array Prepared and sanitized save data
  */
 function ec_prepare_artist_profile_save_data( $post_data ) {
     $save_data = array();
@@ -560,6 +569,12 @@ function ec_prepare_artist_profile_save_data( $post_data ) {
 
 /**
  * Admin post handler for link page form submissions
+ * 
+ * Handles secure form submission processing with nonce verification,
+ * permission checks, data preparation, and save execution. Redirects
+ * back to management interface with appropriate feedback.
+ * 
+ * @return void Dies on error, redirects on success
  */
 function ec_admin_post_save_link_page() {
     // Verify nonce

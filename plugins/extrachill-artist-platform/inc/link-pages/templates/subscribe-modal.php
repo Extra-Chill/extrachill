@@ -13,7 +13,6 @@ $current_artist_id = apply_filters('ec_get_artist_id', isset($artist_id) ? compa
 
 if (empty($current_artist_id)) {
     // Don't render the modal if artist ID is missing
-    // error_log('Subscribe modal partial: artist_id is missing.'); // For debugging
     return;
 }
 

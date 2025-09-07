@@ -2,42 +2,8 @@
 (function() {
     'use strict';
     
-    // Server-side template rendering for complete link sections (following social icons pattern)
-    async function renderLinksPreviewTemplate(linksData) {
-        if (!extraChillArtistPlatform?.ajaxUrl) {
-            console.error('AJAX URL not available for links preview template rendering');
-            return null;
-        }
+    // renderLinkTemplate function REMOVED - preview updates now handled by server-side chaining
 
-        try {
-            const formData = new FormData();
-            formData.append('action', 'render_links_preview_template');
-            formData.append('nonce', extraChillArtistPlatform.nonce || '');
-            formData.append('links_data', JSON.stringify(linksData));
-            formData.append('youtube_embed', '0');
-
-            const response = await fetch(extraChillArtistPlatform.ajaxUrl, {
-                method: 'POST',
-                body: formData
-            });
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            const data = await response.json();
-            
-            if (data.success && data.data.html) {
-                return data.data.html;
-            } else {
-                console.error('Links preview template rendering failed:', data.data?.message || 'Unknown error');
-                return null;
-            }
-        } catch (error) {
-            console.error('Error rendering links preview template:', error);
-            return null;
-        }
-    }
     
     // Get preview containers
     function getPreviewContainers() {
@@ -48,61 +14,46 @@
         return { previewEl, contentWrapper };
     }
 
-    // Create or get the main links container
-    function ensureLinksContainer() {
+    // Simple helper to get main links container for remaining event-driven functions
+    function getLinksContainer() {
         const { contentWrapper } = getPreviewContainers();
-        if (!contentWrapper) return null;
-
-        let linksContainer = contentWrapper.querySelector('.extrch-link-page-links');
-        if (!linksContainer) {
-            linksContainer = document.createElement('div');
-            linksContainer.className = 'extrch-link-page-links';
-            
-            // Position after social icons (if above) and before powered-by
-            const socialIconsAbove = contentWrapper.querySelector('.extrch-link-page-socials:not(.extrch-socials-below)');
-            const poweredByEl = contentWrapper.querySelector('.extrch-link-page-powered');
-            
-            if (socialIconsAbove) {
-                contentWrapper.insertBefore(linksContainer, socialIconsAbove.nextSibling);
-            } else if (poweredByEl) {
-                contentWrapper.insertBefore(linksContainer, poweredByEl);
-            } else {
-                contentWrapper.appendChild(linksContainer);
-            }
-        }
-        
-        return linksContainer;
+        return contentWrapper?.querySelector('.extrch-link-page-links');
     }
 
     // Add new section to preview
     async function addSectionToPreview(sectionData) {
-        const linksContainer = ensureLinksContainer();
-        if (!linksContainer) return;
+        const { contentWrapper } = getPreviewContainers();
+        if (!contentWrapper) return;
+        
+        let linksContainer = contentWrapper.querySelector('.extrch-link-page-links');
+        if (!linksContainer) {
+            linksContainer = document.createElement('div');
+            linksContainer.className = 'extrch-link-page-links';
+            contentWrapper.appendChild(linksContainer);
+        }
 
         // Create section element
         const sectionEl = document.createElement('div');
         sectionEl.className = 'extrch-link-page-section';
         sectionEl.dataset.sectionIndex = sectionData.sectionIndex || 0;
 
-        // Add section title if present
-        if (sectionData.section_title) {
-            const titleEl = document.createElement('div');
-            titleEl.className = 'extrch-link-page-section-title';
-            titleEl.textContent = sectionData.section_title;
-            sectionEl.appendChild(titleEl);
-        }
+        // Always add section title div (even if empty) to match server template structure
+        const titleEl = document.createElement('div');
+        titleEl.className = 'extrch-link-page-section-title';
+        titleEl.textContent = sectionData.section_title || '';
+        sectionEl.appendChild(titleEl);
 
-        // Add links container for this section
+        // CRITICAL: Add links container inside each section
         const sectionLinksContainer = document.createElement('div');
-        sectionLinksContainer.className = 'extrch-link-page-section-links';
+        sectionLinksContainer.className = 'extrch-link-page-links';
         sectionEl.appendChild(sectionLinksContainer);
 
         linksContainer.appendChild(sectionEl);
     }
 
-    // Update section title in preview
+    // Update section title in preview with direct DOM updates
     function updateSectionTitleInPreview(sectionIndex, title) {
-        const linksContainer = ensureLinksContainer();
+        const linksContainer = getLinksContainer();
         if (!linksContainer) return;
 
         const sectionEl = linksContainer.querySelector(`[data-section-index="${sectionIndex}"]`);
@@ -124,7 +75,7 @@
 
     // Remove section from preview
     function removeSectionFromPreview(sectionIndex) {
-        const linksContainer = ensureLinksContainer();
+        const linksContainer = getLinksContainer();
         if (!linksContainer) return;
 
         const sectionEl = linksContainer.querySelector(`[data-section-index="${sectionIndex}"]`);
@@ -133,167 +84,66 @@
         }
     }
 
-    // Update individual link in preview
+    // Update individual link in preview with direct DOM updates
     function updateLinkInPreview(sectionIndex, linkIndex, linkData) {
-        const linksContainer = ensureLinksContainer();
+        const linksContainer = getLinksContainer();
         if (!linksContainer) return;
 
-        // Find the specific link element in the preview
-        // For now, we'll find all links and use indices - can be improved with better targeting
-        const allLinks = Array.from(linksContainer.querySelectorAll('a.extrch-link-page-link'));
-        
-        // Calculate the global link index by counting through sections
-        let globalIndex = 0;
-        const sections = getLinksDataFromDOM();
-        
-        for (let s = 0; s < sectionIndex && s < sections.length; s++) {
-            globalIndex += sections[s].links.length;
-        }
-        globalIndex += linkIndex;
-
-        const linkElement = allLinks[globalIndex];
-        if (linkElement && linkData) {
-            // Update link text and URL with real-time feedback
-            const newText = linkData.link_text || linkData.link_url || 'New Link';
-            const newUrl = linkData.link_url || '#';
-            
-            linkElement.textContent = newText;
-            linkElement.href = newUrl;
-            
-            // Update visual feedback for incomplete links
-            if (!linkData.link_text || !linkData.link_url) {
-                linkElement.style.opacity = '0.6';
-                linkElement.style.fontStyle = 'italic';
-            } else {
-                linkElement.style.opacity = '';
-                linkElement.style.fontStyle = '';
-            }
-        }
-    }
-
-    // Add link to preview
-    async function addLinkToPreview(sectionIndex, linkData) {
-        const linksContainer = ensureLinksContainer();
-        if (!linksContainer) return;
-
-        // Find the section at the given index
-        const sections = Array.from(linksContainer.children);
-        if (sectionIndex >= sections.length) {
-            // Section doesn't exist yet, create it first
-            await addSectionToPreview({ 
-                sectionIndex: sectionIndex,
-                section_title: '' 
-            });
-        }
-
-        // If link data is completely empty, don't show anything
-        if (!linkData || (!linkData.link_text && !linkData.link_url)) {
-            return; // Don't add completely empty links to preview
-        }
-
-        // Find the section element
-        const sectionEl = linksContainer.children[sectionIndex];
+        // Find the specific section
+        const sectionEl = linksContainer.querySelector(`[data-section-index="${sectionIndex}"]`);
         if (!sectionEl) return;
 
-        // Find or create the section links container
-        let sectionLinksContainer = sectionEl.querySelector('.extrch-link-page-section-links');
-        if (!sectionLinksContainer) {
-            sectionLinksContainer = document.createElement('div');
-            sectionLinksContainer.className = 'extrch-link-page-section-links';
-            sectionEl.appendChild(sectionLinksContainer);
-        }
-
-        // Create and add the new link element (handle partial data for real-time preview)
-        if (linkData.link_text || linkData.link_url) {
-            const linkEl = document.createElement('a');
-            linkEl.className = 'extrch-link-page-link';
-            linkEl.href = linkData.link_url || '#';
-            linkEl.textContent = linkData.link_text || linkData.link_url || 'New Link';
-            linkEl.target = '_blank';
-            linkEl.rel = 'noopener noreferrer';
-            
-            // Add visual indicator for incomplete links
-            if (!linkData.link_text || !linkData.link_url) {
-                linkEl.style.opacity = '0.6';
-                linkEl.style.fontStyle = 'italic';
+        // Find all link elements in this section
+        const linkElements = Array.from(sectionEl.querySelectorAll('a.extrch-link-page-link'));
+        const linkElement = linkElements[linkIndex];
+        
+        if (linkElement && linkData) {
+            // Direct DOM updates for real-time changes (like info tab)
+            if (linkData.link_text !== undefined) {
+                // Update only the text span, not the entire link element
+                const textSpan = linkElement.querySelector('.extrch-link-page-link-text');
+                if (textSpan) {
+                    textSpan.textContent = linkData.link_text;
+                }
+                // Also update the share button's data-share-title
+                const shareButton = linkElement.querySelector('.extrch-share-trigger');
+                if (shareButton) {
+                    const shareTitle = linkData.link_text || 'Untitled Link';
+                    shareButton.setAttribute('data-share-title', shareTitle);
+                }
             }
-            
-            sectionLinksContainer.appendChild(linkEl);
+            if (linkData.link_url !== undefined) {
+                linkElement.href = linkData.link_url || '#';
+                // Also update the share button's data-share-url
+                const shareButton = linkElement.querySelector('.extrch-share-trigger');
+                if (shareButton) {
+                    shareButton.setAttribute('data-share-url', linkData.link_url || '#');
+                }
+            }
         }
     }
+
+    // addLinkToPreview function REMOVED - preview updates now handled by server-side chaining
 
     // Remove link from preview  
     function removeLinkFromPreview(sectionIndex, linkIndex) {
-        // For now, refresh the section instead of precise removal
-        refreshSectionInPreview(sectionIndex);
-    }
-
-    // Refresh a specific section in preview (better than full refresh)
-    async function refreshSectionInPreview(sectionIndex) {
-        const linksContainer = ensureLinksContainer();
+        const linksContainer = getLinksContainer();
         if (!linksContainer) return;
 
-        const sectionsData = getLinksDataFromDOM();
-        if (sectionIndex >= sectionsData.length) return;
+        // Find the specific section
+        const sectionEl = linksContainer.querySelector(`[data-section-index="${sectionIndex}"]`);
+        if (!sectionEl) return;
 
-        const sectionData = sectionsData[sectionIndex];
+        // Find all link elements in this section
+        const linkElements = Array.from(sectionEl.querySelectorAll('a.extrch-link-page-link'));
         
-        // Render just this section using template system
-        try {
-            const sectionHTML = await renderLinksPreviewTemplate([sectionData]);
-            if (sectionHTML) {
-                // Find and replace the specific section
-                const existingSections = Array.from(linksContainer.children);
-                if (existingSections[sectionIndex]) {
-                    const tempDiv = document.createElement('div');
-                    tempDiv.innerHTML = sectionHTML;
-                    const newSectionContent = tempDiv.firstElementChild;
-                    
-                    if (newSectionContent) {
-                        existingSections[sectionIndex].replaceWith(newSectionContent);
-                    }
-                }
-            }
-        } catch (error) {
-            console.error('Error refreshing section in preview:', error);
+        // Remove the specific link element
+        if (linkElements[linkIndex]) {
+            linkElements[linkIndex].remove();
         }
     }
 
-    // Get links data from management form (for use in event handlers)
-    function getLinksDataFromDOM() {
-        const linksData = [];
-        const sections = document.querySelectorAll('.bp-link-section');
-        
-        sections.forEach((section, sectionIndex) => {
-            const sectionTitleInput = section.querySelector('.bp-link-section-title');
-            const sectionTitle = sectionTitleInput ? sectionTitleInput.value.trim() : '';
-            
-            const sectionData = {
-                section_title: sectionTitle,
-                links: []
-            };
-            
-            const linkItems = section.querySelectorAll('.bp-link-item');
-            linkItems.forEach((linkItem, linkIndex) => {
-                const textInput = linkItem.querySelector('input[name*="link_text"]');
-                const urlInput = linkItem.querySelector('input[name*="link_url"]');
-                
-                if (textInput && urlInput && textInput.value.trim() && urlInput.value.trim()) {
-                    sectionData.links.push({
-                        link_text: textInput.value.trim(),
-                        link_url: urlInput.value.trim()
-                    });
-                }
-            });
-            
-            // Only include sections that have a title or at least one valid link
-            if (sectionTitle || sectionData.links.length > 0) {
-                linksData.push(sectionData);
-            }
-        });
-        
-        return linksData;
-    }
+
 
     // Event listeners for all link events - granular updates
     document.addEventListener('linksectionadded', function(e) {
@@ -318,12 +168,8 @@
         updateSectionTitleInPreview(sectionIndex, title);
     });
 
-    document.addEventListener('linkadded', function(e) {
-        // Link added - refresh the affected section
-        const sectionIndex = e.detail?.sectionIndex ?? 0;
-        const linkData = e.detail?.link ?? {};
-        addLinkToPreview(sectionIndex, linkData);
-    });
+    // linkadded event listener REMOVED - preview updates now handled directly by server-side chaining
+    // Sortable and expiration systems still listen for linkadded event for DOM element setup
 
     document.addEventListener('linkdeleted', function(e) {
         // Link deleted - refresh the affected section  
@@ -336,7 +182,17 @@
         // Link updated - update the specific link element
         const sectionIndex = e.detail?.sectionIndex ?? 0;
         const linkIndex = e.detail?.linkIndex ?? 0;
-        const linkData = e.detail?.value ?? {};
+        const field = e.detail?.field;
+        const value = e.detail?.value;
+        
+        // Handle individual field updates
+        const linkData = {};
+        if (field === 'link_text') {
+            linkData.link_text = value;
+        } else if (field === 'link_url') {
+            linkData.link_url = value;
+        }
+        
         updateLinkInPreview(sectionIndex, linkIndex, linkData);
     });
 
