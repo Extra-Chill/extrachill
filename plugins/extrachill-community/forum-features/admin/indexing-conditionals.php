@@ -1,7 +1,10 @@
 <?php
 // Function to conditionally modify robots meta tag for user topic and reply pages
 function extrachill_conditional_noindex_yoast($robots) {
-    if (is_bbpress() && bbp_is_single_user()) {
+    if (function_exists('is_bbpress') && is_bbpress() && function_exists('bbp_is_single_user') && bbp_is_single_user()) {
+        if (!function_exists('bbp_get_displayed_user_id')) {
+            return $robots;
+        }
         $user_id = bbp_get_displayed_user_id();
 
         // Get the current URL

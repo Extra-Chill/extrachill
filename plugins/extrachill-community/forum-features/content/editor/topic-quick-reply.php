@@ -10,7 +10,7 @@ defined( 'ABSPATH' ) || exit;
  * Enqueue Topic Quick Reply CSS and JS only on single topic pages.
  */
 function extrachill_enqueue_topic_quick_reply_assets() {
-    if ( bbp_is_single_topic() ) {
+    if ( function_exists('bbp_is_single_topic') && bbp_is_single_topic() ) {
         $css_path = get_stylesheet_directory() . '/css/topic-quick-reply.css';
         $js_path = get_stylesheet_directory() . '/js/topic-quick-reply.js';
         

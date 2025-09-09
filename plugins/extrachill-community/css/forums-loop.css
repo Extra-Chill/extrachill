@@ -460,13 +460,16 @@
 /* Mobile responsive for homepage buttons */
 @media (max-width: 768px) {
     .homepage-top-actions {
-        flex-direction: column;
+        flex-direction: row;
         gap: 8px;
+        justify-content: flex-start;
     }
     
     .homepage-top-actions .button {
-        width: 100%;
+        width: auto;
         text-align: center;
+        flex: 1;
+        max-width: 200px;
     }
 }
 

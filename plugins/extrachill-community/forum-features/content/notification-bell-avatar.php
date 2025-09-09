@@ -47,7 +47,7 @@ $unread_count = count(array_filter($notifications, function ($notification) {
 
         <!-- User avatar container -->
         <div class="user-avatar-container">
-            <a href="<?php echo bbp_get_user_profile_url($current_user_id); ?>" class="user-avatar-link">
+            <a href="<?php echo function_exists('bbp_get_user_profile_url') ? bbp_get_user_profile_url($current_user_id) : get_author_posts_url($current_user_id); ?>" class="user-avatar-link">
                 <?php echo get_avatar($current_user_id, 40); ?>
             </a>
             <button class="user-avatar-button"></button>

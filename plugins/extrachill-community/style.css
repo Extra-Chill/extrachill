@@ -286,6 +286,22 @@ a:focus, a:active, a:hover {
 	box-shadow: none;
 }
 
+/* WordPress paginate_links with type=list styling to match bbPress pagination */
+#bbpress-forums .bbp-pagination-links ul.page-numbers {
+	display: flex;
+	align-items: center;
+	gap: 5px;
+	list-style: none;
+	margin: 0;
+	padding: 0;
+}
+
+#bbpress-forums .bbp-pagination-links ul.page-numbers li {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
 /* Responsive Design */
 @media (max-width: 480px) {
 	.bbp-pagination {

@@ -64,7 +64,7 @@ function save_forum_homepage_display($post_id) {
     }
     
     // Only process for forum post type
-    if (get_post_type($post_id) !== bbp_get_forum_post_type()) {
+    if (!function_exists('bbp_get_forum_post_type') || get_post_type($post_id) !== bbp_get_forum_post_type()) {
         return;
     }
     
@@ -81,6 +81,11 @@ add_action('save_post', 'save_forum_homepage_display');
 function migrate_forum_section_to_homepage_display() {
     // Check if migration has already been run
     if (get_option('forum_section_migration_complete')) {
+        return;
+    }
+    
+    // Exit early if bbPress is not active
+    if (!function_exists('bbp_get_forum_post_type')) {
         return;
     }
     

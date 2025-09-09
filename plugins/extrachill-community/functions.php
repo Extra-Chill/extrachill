@@ -321,6 +321,10 @@ add_filter( 'bbp_topic_admin_links', 'ec_remove_reply_and_edit_from_admin_links'
  */
 function ec_get_topic_last_active_diff( $topic_id ) {
     // Get the last active time as stored by bbPress.
+    if (!function_exists('bbp_get_topic_last_active_time')) {
+        return '';
+    }
+    
     $last_active_time = bbp_get_topic_last_active_time( $topic_id );
     if ( ! empty( $last_active_time ) ) {
         // Convert it to a timestamp.

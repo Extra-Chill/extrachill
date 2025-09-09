@@ -26,13 +26,18 @@ function save_extra_user_profile_fields( $user_id ) {
     if ( !current_user_can( 'edit_user', $user_id ) ) { 
         return false; 
     }
+    
+    // Verify nonce for security
+    if ( !isset($_POST['_wpnonce']) || !wp_verify_nonce($_POST['_wpnonce'], 'update-user_' . $user_id) ) {
+        return false;
+    }
 
-    update_user_meta( $user_id, 'instagram', $_POST['instagram'] );
-    update_user_meta( $user_id, 'spotify', $_POST['spotify'] );
-    update_user_meta( $user_id, 'soundcloud', $_POST['soundcloud'] );
-    update_user_meta( $user_id, 'twitter', $_POST['twitter'] );
-    update_user_meta( $user_id, 'facebook', $_POST['facebook'] );
-    update_user_meta( $user_id, 'bandcamp', $_POST['bandcamp'] );
+    update_user_meta( $user_id, 'instagram', isset($_POST['instagram']) ? $_POST['instagram'] : '' );
+    update_user_meta( $user_id, 'spotify', isset($_POST['spotify']) ? $_POST['spotify'] : '' );
+    update_user_meta( $user_id, 'soundcloud', isset($_POST['soundcloud']) ? $_POST['soundcloud'] : '' );
+    update_user_meta( $user_id, 'twitter', isset($_POST['twitter']) ? $_POST['twitter'] : '' );
+    update_user_meta( $user_id, 'facebook', isset($_POST['facebook']) ? $_POST['facebook'] : '' );
+    update_user_meta( $user_id, 'bandcamp', isset($_POST['bandcamp']) ? $_POST['bandcamp'] : '' );
 }
 
 function save_bbp_user_music_fan_details($user_id) {

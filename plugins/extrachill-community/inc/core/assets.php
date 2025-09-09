@@ -99,7 +99,7 @@ add_action('wp_enqueue_scripts', 'extrachill_enqueue_shared_tabs_assets');
  */
 function modular_bbpress_styles() {
     // Forums Loop - Load only on forum listing/single forum
-    if (bbp_is_forum_archive() || is_front_page() || bbp_is_single_forum()) {
+    if ((function_exists('bbp_is_forum_archive') && bbp_is_forum_archive()) || is_front_page() || (function_exists('bbp_is_single_forum') && bbp_is_single_forum())) {
         wp_enqueue_style(
             'forums-loop',
             get_stylesheet_directory_uri() . '/css/forums-loop.css',
@@ -109,7 +109,7 @@ function modular_bbpress_styles() {
     }
 
     // Topics Loop - Load only on topic archives/single topic/search results/relevant pages
-    if ( bbp_is_topic_archive() || bbp_is_single_forum() || is_page('recent') || is_page('following') || bbp_is_single_user() || bbp_is_search_results() || is_search() ) {
+    if ( (function_exists('bbp_is_topic_archive') && bbp_is_topic_archive()) || (function_exists('bbp_is_single_forum') && bbp_is_single_forum()) || is_page('recent') || is_page('following') || (function_exists('bbp_is_single_user') && bbp_is_single_user()) || (function_exists('bbp_is_search_results') && bbp_is_search_results()) || is_search() ) {
         wp_enqueue_style(
             'topics-loop',
             get_stylesheet_directory_uri() . '/css/topics-loop.css',
@@ -119,7 +119,7 @@ function modular_bbpress_styles() {
     }
 
     // Replies Loop - Load only when replies are displayed
-    if (bbp_is_single_reply() || bbp_is_single_topic() || bbp_is_single_user() || is_page_template('page-templates/recent-feed-template.php')) {
+    if ((function_exists('bbp_is_single_reply') && bbp_is_single_reply()) || (function_exists('bbp_is_single_topic') && bbp_is_single_topic()) || (function_exists('bbp_is_single_user') && bbp_is_single_user()) || is_page_template('page-templates/recent-feed-template.php')) {
         wp_enqueue_style(
             'replies-loop',
             get_stylesheet_directory_uri() . '/css/replies-loop.css',
@@ -141,7 +141,7 @@ add_action('wp_enqueue_scripts', 'modular_bbpress_styles');
 
 function enqueue_user_profile_styles() {
     // User Profile styles - Load only on user profile pages
-    if ( (function_exists('bbp_is_single_user') && (bbp_is_single_user() || bbp_is_single_user_edit() || bbp_is_user_home()))
+    if ( (function_exists('bbp_is_single_user') && (bbp_is_single_user() || (function_exists('bbp_is_single_user_edit') && bbp_is_single_user_edit()) || (function_exists('bbp_is_user_home') && bbp_is_user_home())))
        ) {
         wp_enqueue_style(
             'user-profile',

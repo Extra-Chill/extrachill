@@ -65,9 +65,6 @@
     text-decoration: underline;
 }
 
-.leaderboard-pagination {
-    text-align: center;
-}
 
 /* Responsive adjustments (example for mobile) */
 @media (max-width: 768px) {
