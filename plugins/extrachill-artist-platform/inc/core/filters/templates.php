@@ -185,7 +185,7 @@ function ec_template_handler( $output, $template_name, $args = array() ) {
                 }
                 return '';
             }
-    } elseif ( in_array( $required_arg, array( 'edit_mode', 'display_artist_name', 'display_artist_bio', 'display_profile_image_url', 'display_header_image_url', 'sidx', 'lidx' ), true ) ) {
+    } elseif ( in_array( $required_arg, array( 'edit_mode', 'display_artist_name', 'display_artist_bio', 'display_profile_image_url', 'display_header_image_url', 'sidx', 'lidx', 'index' ), true ) ) {
             // Presence-only check: these fields can be empty strings or 0 (valid for indices)
             if ( ! array_key_exists( $required_arg, $args ) ) {
                 if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {

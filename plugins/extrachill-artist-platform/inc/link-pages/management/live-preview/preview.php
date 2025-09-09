@@ -144,9 +144,9 @@ if (class_exists('ExtraChillArtistPlatform_Fonts') && isset($preview_template_da
         if ( function_exists( 'ec_generate_css_variables_style_block' ) ) {
             echo ec_generate_css_variables_style_block( $css_vars, 'extrch-link-page-custom-vars' );
         }
-        
-        if (!empty($link_sections)): ?>
-            <div class="extrch-link-page-links">
+        ?>
+        <div class="extrch-link-page-links">
+            <?php if (!empty($link_sections)): ?>
                 <?php 
                 foreach ($link_sections as $section_index => $section):
                     $section_args = array(
@@ -161,8 +161,8 @@ if (class_exists('ExtraChillArtistPlatform_Fonts') && isset($preview_template_da
                     <?php
                 endforeach; 
                 ?>
-            </div>
-        <?php endif; // End check for $link_sections ?>
+            <?php endif; // End check for $link_sections ?>
+        </div>
         <?php
         // Output the inline subscribe form using the same template as the live page
         if ($subscribe_display_mode === 'inline_form') {

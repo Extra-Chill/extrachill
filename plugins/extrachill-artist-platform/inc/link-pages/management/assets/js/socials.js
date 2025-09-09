@@ -57,7 +57,7 @@
         socialIconsPositionRadios = document.querySelectorAll('input[name="link_page_social_icons_position"]');
         
         // Get supported types from DOM data attribute
-        const socialContainer = document.querySelector('#bp-social-icons-list') || document.querySelector('#bp-socials-list');
+        const socialContainer = document.querySelector('#bp-social-icons-list');
         const supportedTypesData = socialContainer ? socialContainer.dataset.supportedTypes : null;
         supportedTypes = supportedTypesData ? JSON.parse(supportedTypesData) : {};
 
