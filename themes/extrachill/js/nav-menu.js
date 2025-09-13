@@ -38,11 +38,7 @@ document.addEventListener('DOMContentLoaded', function() {
         } else if (primaryMenu.classList.contains('search-open')) {
             resetMenu();
         } else {
-            primaryMenu.classList.add('search-open', 'menu-open', 'menu-opened');
-            searchSection.classList.add('menu-open');
-            searchToggle.classList.add('menu-open');
-            body.classList.add('menu-open');
-            lockBodyScroll();
+            openSearchOnly();
         }
     });
 
@@ -61,6 +57,14 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
+    function openSearchOnly() {
+        primaryMenu.classList.add('search-open', 'menu-open');
+        searchSection.classList.add('menu-open');
+        searchToggle.classList.add('menu-open');
+        body.classList.add('search-only-open');
+        // Don't lock body scroll for search-only mode
+    }
+
     function openMenu() {
         primaryMenu.classList.add('menu-open', 'menu-opened');
         searchSection.classList.add('menu-open');
@@ -76,7 +80,7 @@ document.addEventListener('DOMContentLoaded', function() {
         menuItems.classList.remove('menu-open');
         menuToggle.classList.remove('menu-open');
         searchToggle.classList.remove('menu-open');
-        body.classList.remove('menu-open');
+        body.classList.remove('menu-open', 'search-only-open');
 
         // Remove submenu-open class from all submenus and their parent items
         menuItems.querySelectorAll('.submenu-open').forEach(submenu => {

@@ -6,14 +6,12 @@
     </div>
     <div class="home-about-links">
       <a href="/about" class="home-about-link">Learn More About Extra Chill</a>
-      <a href="https://instagram.com/extrachill" class="home-about-link" target="_blank" rel="noopener noreferrer">Instagram</a>
     </div>
   </div>
   <div class="home-newsletter-signup">
     <h2 class="home-newsletter-header">A Note from the Editor</h2>
-    <div class="home-newsletter-subhead">Stories, reflections, and music industry insights from the underground.</div>
+    <p class="home-newsletter-subhead">Stories, reflections, and music industry insights from the underground.</p>
     <form id="homepageNewsletterForm" class="newsletter-form">
-      <label for="newsletter-email-home" class="sr-only">Newsletter Email</label>
       <input type="email" id="newsletter-email-home" name="email" required placeholder="Your email for the inside scoop...">
       <input type="hidden" name="action" value="subscribe_to_sendy_home">
       <?php wp_nonce_field('subscribe_to_sendy_home_nonce', 'subscribe_to_sendy_home_nonce_field'); ?>

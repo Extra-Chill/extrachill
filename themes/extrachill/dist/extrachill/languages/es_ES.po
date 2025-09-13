@@ -1,0 +1,515 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: Themes - ExtraChill\n"
+"Report-Msgid-Bugs-To: \n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"POT-Creation-Date: 2025-07-07T23:09:43+00:00\n"
+"PO-Revision-Date: 2018-05-30 04:57:00+0000\n"
+"Language: es\n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: GlotPress/2.2.2\n"
+
+#. Template Name of the theme
+msgid "Page Builder Template"
+msgstr "Plantilla del maquetador visual"
+
+#: festival-wire/festival-wire-post-type.php:35
+msgid "Featured Image"
+msgstr "Imagen destacada"
+
+#: extrachill-custom/extrachill-customizer.php:20
+msgid "Footer Options"
+msgstr "Opciones del pié de página"
+
+#: extrachill-custom/extrachill-customizer.php:18
+msgid "Change the Footer Settings from here as you want"
+msgstr "Cambia desde aquí los ajustes del pié de página como quieras"
+
+#: inc/ajax.php:9
+msgid "Permissions check failed."
+msgstr ""
+
+#: navigation.php:47
+msgctxt "Next post link"
+msgid "&rarr;"
+msgstr "&rarr;"
+
+#: navigation.php:44
+msgctxt "Previous post link"
+msgid "&larr;"
+msgstr "&larr;"
+
+#. Template Name of the theme
+msgid "Contact Page Template"
+msgstr "Plantilla de página de contacto"
+
+#: no-results.php:27
+msgid "It seems we can&rsquo;t find what you&rsquo;re looking for. Perhaps searching can help."
+msgstr "Parece que no encontramos lo que estás buscando. Puede que una búsqueda te ayude."
+
+#: no-results.php:18
+#, php-format
+msgid "Ready to publish your first post? <a href=\"%1$s\">Get started here</a>."
+msgstr "¿Listo para publicar tu primera entrada? <a href=\"%1$s\">Empieza aquí</a>."
+
+#: navigation.php:25
+#: navigation.php:37
+msgid "Next &rarr;"
+msgstr "Siguiente &rarr;"
+
+#: navigation.php:24
+#: navigation.php:36
+msgid "&larr; Previous"
+msgstr "&larr; Anterior"
+
+#: inc/functions.php:223
+msgid "Reply"
+msgstr "Respuesta"
+
+#: inc/functions.php:217
+msgid "Your comment is awaiting moderation."
+msgstr "Tu comentario está esperando ser moderado."
+
+#: inc/functions.php:211
+#, php-format
+msgid "%1$s at %2$s"
+msgstr "el %1$s a las %2$s"
+
+#: inc/functions.php:208
+msgid "Post author"
+msgstr "Autor"
+
+#: content-newsletter.php:60
+#: content-page.php:48
+msgid "Edit"
+msgstr "Editar"
+
+#: inc/ajax.php:80
+#, php-format
+msgid "<span class=\"posted-on\"><a href=\"%1$s\" title=\"%2$s\" rel=\"bookmark\"><i class=\"fa fa-calendar-o\"></i> %3$s</a></span>"
+msgstr "<span class=\"posted-on\"><a href=\"%1$s\" title=\"%2$s\" rel=\"bookmark\"><i class=\"fa fa-calendar-o\"></i> %3$s</a></span>"
+
+#: extrachill-custom/extrachill-customizer.php:46
+#: extrachill-custom/extrachill-customizer.php:86
+msgid "Copyright &copy; "
+msgstr ""
+
+#: extrachill-custom/extrachill-customizer.php:42
+msgid "Footer Copyright Editor"
+msgstr "Editor del copyright en el pie de página"
+
+#: functions.php:59
+msgid "Primary Menu"
+msgstr "Menú Primario"
+
+#: content-newsletter.php:51
+#: content-page.php:37
+#: content-single.php:73
+#: single-festival_wire.php:98
+msgid "Pages:"
+msgstr "Páginas:"
+
+#: comments.php:67
+msgid "Comments are closed."
+msgstr "Comentarios cerrados."
+
+#: comments.php:40
+#: comments.php:57
+msgid "Newer Comments &rarr;"
+msgstr "Comentarios Posteriores &rarr;"
+
+#: comments.php:39
+#: comments.php:56
+msgid "&larr; Older Comments"
+msgstr "&larr; Comentarios anteriores"
+
+#: comments.php:38
+#: comments.php:55
+msgid "Comment navigation"
+msgstr "Comentario de navegación"
+
+#: archive.php:60
+msgid "Archives"
+msgstr "Archivo"
+
+#: archive.php:58
+#, php-format
+msgid "Year: %s"
+msgstr "Año: %s"
+
+#: archive.php:56
+#, php-format
+msgid "Month: %s"
+msgstr "Mes: %s"
+
+#: archive.php:54
+#, php-format
+msgid "Day: %s"
+msgstr "Día: %s"
+
+#: archive.php:51
+#, php-format
+msgid "Author: %s"
+msgstr "Autor: %s"
+
+#. Theme Name of the theme
+#: style.css
+msgid "Extra Chill"
+msgstr ""
+
+#. Author of the theme
+#: style.css
+msgid "Chubes"
+msgstr ""
+
+#: 404.php:19
+msgid "Well, that’s not very chill of us."
+msgstr ""
+
+#: 404.php:21
+msgid "We can’t find what you’re looking for. Try a search instead."
+msgstr ""
+
+#: archive.php:95
+msgid "Select Subcategory:"
+msgstr ""
+
+#: archive.php:97
+msgid "Select Subcategory"
+msgstr ""
+
+#: comments.php:31
+#, php-format
+msgctxt "comments title"
+msgid "One comment on &ldquo;%2$s&rdquo;"
+msgid_plural "%1$s comments on <strong>%2$s</strong>"
+msgstr[0] ""
+msgstr[1] ""
+
+#: extrachill-custom/before-main-widget.php:10
+msgid "Before Main"
+msgstr ""
+
+#: extrachill-custom/before-main-widget.php:12
+msgid "Widgets added here will appear before the main content."
+msgstr ""
+
+#: extrachill-custom/extrachill-customizer.php:58
+#: extrachill-custom/extrachill-customizer.php:67
+msgid "Edit the Copyright information in your footer. You can also use shortcodes [the-year] and [site-link]."
+msgstr ""
+
+#: extrachill-custom/extrachill-customizer.php:86
+msgid "All rights reserved."
+msgstr ""
+
+#: festival-wire/festival-wire-post-type.php:17
+msgctxt "Post Type General Name"
+msgid "Festival Wire"
+msgstr ""
+
+#: festival-wire/festival-wire-post-type.php:18
+msgctxt "Post Type Singular Name"
+msgid "Festival Wire"
+msgstr ""
+
+#: festival-wire/festival-wire-post-type.php:19
+#: festival-wire/festival-wire-post-type.php:20
+#: festival-wire/festival-wire-post-type.php:46
+msgid "Festival Wire"
+msgstr ""
+
+#: festival-wire/festival-wire-post-type.php:21
+msgid "Festival Wire Archives"
+msgstr ""
+
+#: festival-wire/festival-wire-post-type.php:22
+msgid "Festival Wire Attributes"
+msgstr ""
+
+#: festival-wire/festival-wire-post-type.php:23
+msgid "Parent Item:"
+msgstr ""
+
+#: festival-wire/festival-wire-post-type.php:24
+msgid "All Festival Wire"
+msgstr ""
+
+#: festival-wire/festival-wire-post-type.php:25
+msgid "Add New Festival Wire"
+msgstr ""
+
+#: festival-wire/festival-wire-post-type.php:26
+msgid "Add New"
+msgstr ""
+
+#: festival-wire/festival-wire-post-type.php:27
+msgid "New Festival Wire"
+msgstr ""
+
+#: festival-wire/festival-wire-post-type.php:28
+msgid "Edit Festival Wire"
+msgstr ""
+
+#: festival-wire/festival-wire-post-type.php:29
+msgid "Update Festival Wire"
+msgstr ""
+
+#: festival-wire/festival-wire-post-type.php:30
+#: festival-wire/festival-wire-post-type.php:31
+msgid "View Festival Wire"
+msgstr ""
+
+#: festival-wire/festival-wire-post-type.php:32
+msgid "Search Festival Wire"
+msgstr ""
+
+#: festival-wire/festival-wire-post-type.php:33
+msgid "Not found"
+msgstr ""
+
+#: festival-wire/festival-wire-post-type.php:34
+msgid "Not found in Trash"
+msgstr ""
+
+#: festival-wire/festival-wire-post-type.php:36
+msgid "Set featured image"
+msgstr ""
+
+#: festival-wire/festival-wire-post-type.php:37
+msgid "Remove featured image"
+msgstr ""
+
+#: festival-wire/festival-wire-post-type.php:38
+msgid "Use as featured image"
+msgstr ""
+
+#: festival-wire/festival-wire-post-type.php:39
+msgid "Insert into item"
+msgstr ""
+
+#: festival-wire/festival-wire-post-type.php:40
+msgid "Uploaded to this item"
+msgstr ""
+
+#: festival-wire/festival-wire-post-type.php:41
+msgid "Festival Wire list"
+msgstr ""
+
+#: festival-wire/festival-wire-post-type.php:42
+msgid "Festival Wire list navigation"
+msgstr ""
+
+#: festival-wire/festival-wire-post-type.php:43
+msgid "Filter festival wire list"
+msgstr ""
+
+#: festival-wire/festival-wire-post-type.php:47
+msgid "News feed for music festivals"
+msgstr ""
+
+#: functions.php:402
+#, php-format
+msgid "Footer Widget Area %d"
+msgstr ""
+
+#: functions.php:404
+#, php-format
+msgid "Widgets added here will appear in footer column %d."
+msgstr ""
+
+#: functions.php:714
+msgctxt "taxonomy general name"
+msgid "Festivals"
+msgstr ""
+
+#: functions.php:715
+msgctxt "taxonomy singular name"
+msgid "Festival"
+msgstr ""
+
+#: functions.php:716
+msgid "Search Festivals"
+msgstr ""
+
+#: functions.php:717
+msgid "All Festivals"
+msgstr ""
+
+#: functions.php:718
+msgid "Edit Festival"
+msgstr ""
+
+#: functions.php:719
+msgid "Update Festival"
+msgstr ""
+
+#: functions.php:720
+msgid "Add New Festival"
+msgstr ""
+
+#: functions.php:721
+msgid "New Festival Name"
+msgstr ""
+
+#: functions.php:722
+msgid "Festivals"
+msgstr ""
+
+#: functions.php:736
+msgctxt "taxonomy general name"
+msgid "Artists"
+msgstr ""
+
+#: functions.php:737
+msgctxt "taxonomy singular name"
+msgid "Artist"
+msgstr ""
+
+#: functions.php:738
+msgid "Search Artists"
+msgstr ""
+
+#: functions.php:739
+msgid "All Artists"
+msgstr ""
+
+#: functions.php:740
+msgid "Edit Artist"
+msgstr ""
+
+#: functions.php:741
+msgid "Update Artist"
+msgstr ""
+
+#: functions.php:742
+msgid "Add New Artist"
+msgstr ""
+
+#: functions.php:743
+msgid "New Artist Name"
+msgstr ""
+
+#: functions.php:744
+msgid "Artists"
+msgstr ""
+
+#: functions.php:758
+msgctxt "taxonomy general name"
+msgid "Venues"
+msgstr ""
+
+#: functions.php:759
+msgctxt "taxonomy singular name"
+msgid "Venue"
+msgstr ""
+
+#: functions.php:760
+msgid "Search Venues"
+msgstr ""
+
+#: functions.php:761
+msgid "All Venues"
+msgstr ""
+
+#: functions.php:762
+msgid "Edit Venue"
+msgstr ""
+
+#: functions.php:763
+msgid "Update Venue"
+msgstr ""
+
+#: functions.php:764
+msgid "Add New Venue"
+msgstr ""
+
+#: functions.php:765
+msgid "New Venue Name"
+msgstr ""
+
+#: functions.php:766
+msgid "Venues"
+msgstr ""
+
+#: inc/functions.php:53
+#, php-format
+msgid "<time class=\"entry-date published\">%s</time> by <a href=\"%s\" target=\"_blank\" rel=\"noopener noreferrer\">%s</a> in <a href=\"%s\" target=\"_blank\" rel=\"noopener noreferrer\">%s</a>"
+msgstr ""
+
+#: inc/functions.php:90
+#, php-format
+msgid "%s by "
+msgstr ""
+
+#: no-results.php:22
+msgid "Sorry, no results. Check spelling or try different keywords."
+msgstr ""
+
+#. Template Name of the theme
+msgid "All Posts"
+msgstr ""
+
+#: page-templates/all-posts.php:22
+msgid "The Latest"
+msgstr ""
+
+#: page-templates/all-posts.php:37
+msgid "Select Category:"
+msgstr ""
+
+#: page-templates/all-posts.php:39
+msgid "Select Category"
+msgstr ""
+
+#. Template Name of the theme
+#: page-templates/all-tags.php:27
+msgid "All Tags"
+msgstr ""
+
+#: page-templates/all-tags.php:42
+msgid "<b>Sort by:</b>"
+msgstr ""
+
+#: page-templates/all-tags.php:44
+msgid "Most Posts"
+msgstr ""
+
+#: page-templates/all-tags.php:45
+msgid "A-Z"
+msgstr ""
+
+#: page-templates/all-tags.php:46
+msgid "Z-A"
+msgstr ""
+
+#. Template Name of the theme
+msgid "Post Copy"
+msgstr ""
+
+#. Template Name of the theme
+msgid "Locations Archive"
+msgstr ""
+
+#: searchform.php:11
+msgid "Enter search terms..."
+msgstr ""
+
+#. translators: %s: Name of current post. Only visible to screen readers.
+#: single-festival_wire.php:111
+#, php-format
+msgid "Edit %s"
+msgstr ""
+
+#: single-festival_wire.php:147
+#, php-format
+msgid "Related %s News"
+msgstr ""
+
+#: taxonomy-location.php:49
+msgid "Choose a Sub-Location"
+msgstr ""

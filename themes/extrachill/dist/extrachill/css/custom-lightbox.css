@@ -1,0 +1,61 @@
+/* Lightbox Overlay */
+#custom-lightbox {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.9);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+}
+
+/* Lightbox Content */
+#custom-lightbox .lightbox-content {
+    position: relative;
+    max-width: 90%;
+    max-height: 90%;
+}
+
+#custom-lightbox img {
+    display: block;
+    max-width: 100%;
+    max-height: 100vh;
+    margin: 0 auto;
+}
+
+/* Close Button */
+.close-lightbox {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    color: #fff;
+    font-size: 2rem;
+    cursor: pointer;
+}
+
+/* Navigation Buttons */
+.lightbox-nav {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: space-between;
+    transform: translateY(-50%);
+}
+
+.lightbox-nav button {
+    background: transparent;
+    border: none;
+    color: #fff;
+    font-size: 2rem;
+    cursor: pointer;
+    padding: 0 20px;
+}
+
+.wp-block-gallery  .wp-block-image{
+    cursor: pointer;
+}

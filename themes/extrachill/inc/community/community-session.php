@@ -25,6 +25,11 @@ add_action('wp_footer', 'ecc_preload_user_session'); // or wp_head, depending on
 
 
 function get_user_details_directly($sessionToken) {
+    // Early return if no session token provided - don't make unnecessary API calls
+    if (empty($sessionToken)) {
+        return false;
+    }
+    
     // Check if user details are cached as a transient
     $cachedUserDetails = get_transient('user_details_' . md5($sessionToken));
 

@@ -275,6 +275,7 @@ body.home {
     align-items: center;
     justify-content: space-between;
     margin-bottom: 1.1em;
+    flex-wrap: nowrap;
 }
 .home-3x3-label {
     font-family: 'Loft Sans', sans-serif;
@@ -299,6 +300,8 @@ body.home {
     transition: background 0.2s, color 0.2s, border 0.2s;
     margin-left: 1em;
     display: inline-block;
+    flex-shrink: 0;
+    white-space: nowrap;
 }
 .home-3x3-archive-link:hover,
 .home-3x3-archive-link:focus {
@@ -360,6 +363,12 @@ body.home {
 .home-3x3-community-card a {
     color: var(--link-color);
     text-decoration: underline;
+}
+@media (max-width: 1100px) {
+    .home-3x3-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 2em;
+    }
 }
 @media (max-width: 1000px) {
     .home-3x3-grid-container {

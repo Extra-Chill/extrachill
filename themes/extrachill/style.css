@@ -92,7 +92,7 @@ h1 a, h2 a, h3 a, h4 a, h5 a, h6 a, .entry-title a{
 	color: var(--header-text);
 }
 
-h1.entry-title, #postvote {
+h1.entry-title {
 	font-size: 32px;
 	line-height: 1.6;
 }
@@ -550,6 +550,10 @@ background-color: #000;
 }
 .social-links a:focus{
 text-decoration: none;
+}
+
+#extra-footer .social-links a:hover {
+    text-decoration: none;
 }
 
 .social-links .social-icon-svg {
@@ -1294,7 +1298,6 @@ padding:3px;
 	#page {
 		width: 97%;
 	}
-	#postvote, 
 	.author-bio p, 
 	.entry-content p, .entry-content h2, .entry-content h3, .entry-content h4, .entry-content h5, .entry-content h6, 
 	.archive-post, 
@@ -1386,7 +1389,7 @@ font-size: 20px;
 	.related-posts-wrapper-flyout .related-posts-flyout {
 		padding: 20px;
 	}
-h1.entry-title, #postvote {
+h1.entry-title {
 	font-size: 26px;
 	line-height: 1.6;
 }
@@ -1416,7 +1419,7 @@ h5 {
 .archive .post h2{
 		padding-bottom: 5px;
 	}
-	.search h2, .archive h2, #wild-vote{
+	.search h2, .archive h2{
 		font-size: 24px;
 	}
 /*--------------------------------------------------------------

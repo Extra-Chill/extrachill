@@ -89,7 +89,11 @@ if ( ! function_exists( 'extrachill_entry_meta' ) ) :
                     __( '%s by ', 'extrachill' ),
                     $published_time_string
                 );
-                coauthors_posts_links();
+                if ( function_exists( 'coauthors_posts_links' ) ) {
+                    coauthors_posts_links();
+                } else {
+                    the_author_posts_link();
+                }
                 echo '</div>';
 
                 // Display the updated time on a new line if it exists

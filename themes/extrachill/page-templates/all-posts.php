@@ -55,6 +55,7 @@ $args = array(
     'post_type'      => 'post',
     'post_status'    => 'publish',
     'paged'          => $paged,
+    'author__not_in' => array(39),
 );
 
 if ($sort == 'oldest') {

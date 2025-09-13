@@ -328,10 +328,61 @@ add_filter('the_content', 'add_target_blank_to_external_links');
 
 
 function wp_innovator_get_artists_in_category($category_name) {
-    // Query the artist taxonomy directly instead of loading all posts
+    // Get the current category ID
+    $category_id = null;
+    if (is_category()) {
+        $category_id = get_queried_object_id();
+    } else {
+        // Fallback: get category by slug
+        $category = get_category_by_slug($category_name);
+        if ($category) {
+            $category_id = $category->term_id;
+        }
+    }
+    
+    if (!$category_id) {
+        return array();
+    }
+    
+    // Query posts in the current category that have artist taxonomy terms
+    $posts_with_artists = get_posts(array(
+        'post_type' => 'post',
+        'post_status' => 'publish',
+        'category' => $category_id,
+        'numberposts' => -1,
+        'fields' => 'ids',
+        'tax_query' => array(
+            array(
+                'taxonomy' => 'artist',
+                'operator' => 'EXISTS'
+            )
+        )
+    ));
+    
+    if (empty($posts_with_artists)) {
+        return array();
+    }
+    
+    // Get all unique artist terms from these posts
+    $artist_ids = array();
+    foreach ($posts_with_artists as $post_id) {
+        $post_artists = wp_get_post_terms($post_id, 'artist', array('fields' => 'ids'));
+        if (!is_wp_error($post_artists)) {
+            $artist_ids = array_merge($artist_ids, $post_artists);
+        }
+    }
+    
+    // Remove duplicates
+    $artist_ids = array_unique($artist_ids);
+    
+    if (empty($artist_ids)) {
+        return array();
+    }
+    
+    // Get the artist term objects for only the relevant artists
     $artists_terms = get_terms(array(
         'taxonomy' => 'artist',
-        'hide_empty' => true,
+        'include' => $artist_ids,
         'orderby' => 'name',
         'order' => 'ASC'
     ));
@@ -511,7 +562,7 @@ class Custom_Walker_Nav_Menu extends Walker_Nav_Menu {
         $item_output .= $args->link_before . apply_filters( 'the_title', $item->title, $item->ID ) . $args->link_after;
 
         // Add SVG if menu item has children
-        if ( in_array( 'menu-item-has-children', $item->classes ) ) {
+        if ( is_array( $item->classes ) && in_array( 'menu-item-has-children', $item->classes ) ) {
             $item_output .= ' <svg class="submenu-indicator"><use href="' . get_template_directory_uri() . '/fonts/extrachill.svg?v=1.5#angle-down-solid"></use></svg>';
         }
 

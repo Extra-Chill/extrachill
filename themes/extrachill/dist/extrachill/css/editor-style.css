@@ -1,0 +1,238 @@
+/* 
+ * Editor Styles
+ * Fixes styling issues in the WordPress block editor for all post types
+ * Ensures proper text contrast and title sizing
+ */
+
+/* Root variables are loaded separately via functions.php */
+
+/* Ensure proper text contrast in the editor */
+.edit-post-visual-editor,
+.block-editor-writing-flow,
+.wp-block-post-content {
+    background-color: var(--background-color, #ffffff) !important;
+    color: var(--text-color, #000000) !important;
+}
+
+/* Fix title styling in editor - comprehensive targeting */
+.edit-post-visual-editor .wp-block-post-title,
+.edit-post-visual-editor .editor-post-title__input,
+.editor-post-title__input,
+.wp-block-post-title,
+.wp-block[data-type="core/post-title"],
+.wp-block[data-type="core/post-title"] .wp-block-post-title,
+.block-editor-block-list__layout .wp-block[data-type="core/post-title"] {
+    font-family: "Loft Sans", sans-serif !important;
+    font-size: 32px !important;
+    line-height: 1.4 !important;
+    color: var(--text-color, #000000) !important;
+    background: transparent !important;
+    font-weight: 700 !important;
+    margin: 20px auto !important;
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+}
+
+/* Target the editor title wrapper specifically - this is likely the issue */
+.editor-post-title,
+.editor-post-title__block,
+.wp-block-post-title,
+.block-editor-block-list__layout > .wp-block[data-type="core/post-title"],
+.edit-post-visual-editor .editor-post-title {
+    margin-left: auto !important;
+    margin-right: auto !important;
+    max-width: 840px !important; /* Match typical content width */
+    width: 100% !important;
+    box-sizing: border-box !important;
+}
+
+/* Force the title input to not be positioned absolutely or fixed */
+.editor-post-title__input,
+.edit-post-visual-editor .editor-post-title__input {
+    text-align: left !important;
+    position: static !important;
+    left: auto !important;
+    right: auto !important;
+    transform: none !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    width: 100% !important;
+}
+
+/* Target the specific editor layout containers */
+.block-editor-writing-flow .editor-post-title,
+.block-editor-writing-flow .wp-block-post-title,
+.edit-post-visual-editor__content-area .editor-post-title {
+    margin-left: auto !important;
+    margin-right: auto !important;
+    max-width: 840px !important;
+}
+
+/* Fix heading sizes in editor to match theme */
+.edit-post-visual-editor .wp-block h1,
+.wp-block h1 { font-size: 32px !important; line-height: 1.4 !important; }
+
+.edit-post-visual-editor .wp-block h2,
+.wp-block h2 { font-size: 28px !important; line-height: 1.4 !important; }
+
+.edit-post-visual-editor .wp-block h3,
+.wp-block h3 { font-size: 24px !important; line-height: 1.4 !important; }
+
+.edit-post-visual-editor .wp-block h4,
+.wp-block h4 { font-size: 20px !important; line-height: 1.4 !important; }
+
+.edit-post-visual-editor .wp-block h5,
+.wp-block h5 { font-size: 18px !important; line-height: 1.4 !important; }
+
+.edit-post-visual-editor .wp-block h6,
+.wp-block h6 { font-size: 16px !important; line-height: 1.4 !important; }
+
+/* All headings should use the theme font */
+.edit-post-visual-editor .wp-block h1,
+.edit-post-visual-editor .wp-block h2,
+.edit-post-visual-editor .wp-block h3,
+.edit-post-visual-editor .wp-block h4,
+.edit-post-visual-editor .wp-block h5,
+.edit-post-visual-editor .wp-block h6,
+.wp-block h1,
+.wp-block h2,
+.wp-block h3,
+.wp-block h4,
+.wp-block h5,
+.wp-block h6 {
+    font-family: "Loft Sans", sans-serif !important;
+    color: var(--text-color, #000000) !important;
+    font-weight: 700 !important;
+    margin: 20px 0 !important;
+}
+
+/* Ensure proper background and text contrast for the main editor */
+.block-editor-writing-flow,
+.edit-post-visual-editor__content-area,
+.block-editor-block-list__layout,
+.wp-block-post-content {
+    background-color: var(--background-color, #ffffff) !important;
+    color: var(--text-color, #000000) !important;
+}
+
+/* Fix any potential dark mode issues */
+@media (prefers-color-scheme: dark) {
+    .edit-post-visual-editor,
+    .block-editor-writing-flow,
+    .wp-block-post-content {
+        background-color: var(--background-color, #1a1a1a) !important;
+        color: var(--text-color, #e5e5e5) !important;
+    }
+    
+    .edit-post-visual-editor .wp-block-post-title,
+    .edit-post-visual-editor .editor-post-title__input,
+    .editor-post-title__input,
+    .wp-block-post-title {
+        color: var(--text-color, #e5e5e5) !important;
+        background: transparent !important;
+    }
+    
+    
+    .block-editor-writing-flow,
+    .edit-post-visual-editor__content-area,
+    .block-editor-block-list__layout,
+    .wp-block-post-content {
+        background-color: var(--background-color, #1a1a1a) !important;
+        color: var(--text-color, #e5e5e5) !important;
+    }
+}
+
+
+
+/* General paragraph and content styling */
+.edit-post-visual-editor .wp-block-paragraph,
+.wp-block-paragraph {
+    font-size: 19px !important;
+    line-height: 1.9 !important;
+    color: var(--text-color, #000000) !important;
+    font-family: 'Helvetica', 'Open Sans', serif !important;
+}
+
+/* Ensure links are visible */
+.edit-post-visual-editor .wp-block a,
+.edit-post-visual-editor a,
+.wp-block a {
+    color: var(--link-color, #0b5394) !important;
+}
+
+/* Fix any transparent backgrounds that might cause issues */
+.edit-post-visual-editor .wp-block[data-type],
+.wp-block[data-type] {
+    background: transparent !important;
+}
+
+/* Ensure block editor interface elements don't interfere */
+.block-editor-block-list__layout .wp-block {
+    background: transparent !important;
+}
+
+/* Fix any input field styling issues in the editor */
+.edit-post-visual-editor .form-field input,
+.edit-post-visual-editor .form-field textarea,
+.edit-post-visual-editor input,
+.edit-post-visual-editor textarea {
+    background-color: var(--background-color, #ffffff) !important;
+    color: var(--text-color, #000000) !important;
+    border: 1px solid var(--border-color, #ddd) !important;
+    padding: 8px !important;
+    border-radius: 3px !important;
+}
+
+/* Additional specificity for dark mode form fields */
+@media (prefers-color-scheme: dark) {
+    .edit-post-visual-editor .form-field input,
+    .edit-post-visual-editor .form-field textarea,
+    .edit-post-visual-editor input,
+    .edit-post-visual-editor textarea {
+        background-color: var(--background-color, #1a1a1a) !important;
+        color: var(--text-color, #e5e5e5) !important;
+        border: 1px solid var(--border-color, #555) !important;
+    }
+}
+
+/* AGGRESSIVE TITLE POSITIONING FIX - Override WordPress core positioning */
+.interface-interface-skeleton__content .edit-post-visual-editor .editor-post-title,
+.interface-interface-skeleton__content .editor-post-title,
+.block-editor-editor-skeleton__content .editor-post-title,
+.edit-post-layout__content .editor-post-title,
+.editor-styles-wrapper .editor-post-title {
+    margin-left: auto !important;
+    margin-right: auto !important;
+    max-width: 840px !important;
+    position: relative !important;
+    left: auto !important;
+    right: auto !important;
+    transform: none !important;
+}
+
+/* Force the main editor container to center content properly */
+.block-editor-writing-flow {
+    max-width: 840px !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+}
+
+/* Additional aggressive targeting for the title input */
+body .editor-post-title__input,
+body .wp-block-post-title,
+body .edit-post-visual-editor .editor-post-title__input {
+    position: static !important;
+    left: auto !important;
+    right: auto !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    transform: none !important;
+    width: 100% !important;
+} 

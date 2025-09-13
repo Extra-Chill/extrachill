@@ -1,0 +1,474 @@
+/* ==========================================================================
+   Navigation, Menu Search & Menu Newsletter Styles
+   ========================================================================== */
+
+/* General Navigation Styles
+   ========================================================================== */
+nav li > ul, nav li > ol {
+	margin: 0;
+	list-style: none;
+}
+
+/* Primary Menu Styles
+   ========================================================================== */
+#site-title {
+	padding-bottom: 0;
+	line-height: .5;
+	padding-top: 0px;
+}
+
+.site-title a {
+	text-transform:none;
+	font-family: "Lobster", sans-serif;
+	float:left;
+	font-weight: 100;
+	color: #fff;
+	text-decoration: none;
+	font-size: 36px;
+}
+
+#masthead {
+    position: sticky;
+    top: 0; /* Stick to the top of the viewport */
+    z-index: 1000; /* Ensure it stays on top of other content */
+    background-color: #000; /* Optional: Ensure the background is not transparent */
+}
+
+#masthead #reading-progress {
+    position: absolute;
+    bottom: -1px; /* Align the progress bar at the bottom of the header */
+    left: 0;
+    width: 0;
+    height: 5px;
+    background-color: #53940b; /* The green fill color */
+    z-index: 9999; /* Ensure it appears above other elements within the header */
+    transition: width 0.25s ease-out;
+}
+
+/* Main menu hidden by default */
+#primary-menu {
+    position: absolute;
+    top: 100%; /* Positioned off-screen initially */
+    left: 0;
+    width: 100%;
+    z-index: 999999;
+    overflow-y: auto;
+    transform: translateX(-100%);
+    transition: transform 0.6s ease-in-out;
+}
+
+/* Only show primary menu when .menu-open is applied */
+#primary-menu.menu-open {
+    transform: translateX(0);
+    overflow-y: auto;
+}
+
+/* Class to make the primary menu cover the entire viewport */
+.menu-opened {
+    width: 100%;
+    height: 100vh;
+    overflow-y: auto;
+    z-index: 1000; /* Ensure the menu appears above other elements */
+}
+
+#primary-menu li {
+    background-color: #000;
+    border-top: 1px solid #888;
+    text-align: center;
+	color: #fff;
+}
+
+#primary-menu .social-links li, #primary-menu li.menu-social-links {
+	border: none;
+}
+
+#primary-menu a {
+    color: #fff;
+    text-transform: uppercase;
+    line-height: 2.5em;
+	font-size: 19px;
+}
+
+#primary-menu .sub-menu {
+    border-left: 3px solid #53940b;
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease, padding 0.3s ease;
+}
+
+#primary-menu .sub-menu li {
+    padding: 0;
+    background-color: #111;
+}
+
+#primary-menu .sub-menu ul li {
+    background-color: #222;
+}
+
+.menu-toggle-container {
+    width: 35px;
+    height: 30px;
+    cursor: pointer;
+    position: relative;
+    background: #000;
+	border: none;
+	border-radius: 0;
+	padding: 0;
+}
+
+.menu-toggle-container:hover {
+    background-color: #53940b;
+    transition: background-color 0.1s;
+}
+
+/* Hamburger lines */
+.menu-line {
+    display: block;
+    width: 80%;
+    height: 3px;
+    background-color: #fff;
+    margin: 5px auto;
+    transition: transform 0.3s ease;
+    text-align: center;
+	border-radius: 5px;
+}
+
+/* Transform menu icon to "X" when menu is open */
+.menu-toggle-container.menu-open .top {
+    transform: translateY(8px) rotate(45deg);
+}
+
+.menu-toggle-container.menu-open .middle {
+    opacity: 0;
+}
+
+.menu-toggle-container.menu-open .bottom {
+    transform: translateY(-8px) rotate(-45deg);
+}
+
+.site-branding {
+    flex: 1; /* Ensures it takes up the space on the left */
+	margin: 0 20px;
+}
+
+.main-navigation, .search-top, .cart-top {
+    display: flex;
+    align-items: center;
+}
+
+.search-top{
+	cursor: pointer;
+	pointer-events: auto; /* Ensure the icon can be clicked */
+}
+
+.search-cart{
+	display: flex;
+}
+
+svg.menu-toggle, svg.search-top, svg.submenu-indicator {
+    fill: #fff;
+    transition: fill 0.3s;
+	margin: 0 20px;
+	vertical-align: middle;
+}
+
+svg.cart-top{
+    fill: #fff;
+    transition: fill 0.3s;
+	vertical-align: middle;
+	margin-right: 20px;
+}
+
+.cart-icon .cart-count {
+    position: absolute;
+    top: 12px;
+    right: 7px;
+    background-color: red;
+    color: white;
+    font-size: 11px;
+    font-weight: bold;
+    line-height: 1;
+    text-align: center;
+    border-radius: 50%;
+    width: 17px;
+    height: 17px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 3px rgba(0, 0, 0, 0.3);
+    pointer-events: none; /* Prevents click interference */
+}
+
+svg.search-top, svg.cart-top{
+	height: 1.15em; /* Adjust based on actual size requirement */
+    width: 1.15em;
+}
+
+svg.submenu-indicator{
+	margin: 0 -20px;
+	height: 1em; /* Adjust based on actual size requirement */
+    width: 1em;
+}
+
+svg.menu-toggle{
+	margin: 15px;
+}
+
+.search-top:hover, .search-top:hover {
+	fill: #53940b;
+}
+
+button.search svg:hover{
+	fill:#fff;
+}
+
+h1.site-title, p.site-title {
+    display: flex;
+    line-height: 1.25;
+    align-content: center;
+    margin: 10px 0;
+}
+
+button.search{
+	padding:8px;
+	margin-left:3px;
+}
+
+.menu-item-has-children > a {
+    position: relative; /* Ensures submenu indicator is positioned relative to this link */
+}
+
+#primary-menu .sub-menu.submenu-open {
+    display: block;
+    max-height: 500px; /* Set a reasonable max height for open submenus */
+    padding-top: 10px; /* Adjust padding if needed */
+}
+
+.submenu-indicator {
+    position: absolute;
+    top: 50%; /* Center vertically */
+    right: 0; /* Align to the far right within the link area */
+    transform: translateY(-50%);
+}
+
+header#masthead.site-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+}
+
+#masthead .social-links i.fa {
+    font-size: 15px;
+    padding: 0 4px;
+}
+
+#header-text-nav-wrap {
+    padding: 10px 0;
+}
+
+#masthead.colormag-header-classic #site-navigation #site-title {
+    margin-left: 2%;
+}
+
+/* Search Styles (within menu context)
+   ========================================================================== */
+
+/* Styles for the search form itself (if needed, based on searchform.php) */
+.search-form {
+    /* Add specific styles if needed */
+}
+
+.search-wrap{
+	padding: 15px;
+	text-align: center;
+	display: flex;
+    justify-content: center;
+}
+
+/* Old search form style - might not be used by menu search */
+#search-form input[type="submit"] {
+	border-radius: 0;
+	margin-left: -8px;
+	margin-bottom: 0;
+	padding: 6px 10px 5px;
+	font-size: 18px;
+}
+
+/* Styles for the top search icon/form area */
+.search-form-top {
+	border: 1px solid #eaeaea;
+	display: none;
+	padding: 10px;
+	position: absolute;
+	right: 0;
+	top: 60px;
+	z-index: 9999;
+	background-color: #fff;
+	width: 320px;
+}
+
+/* Styles for the flyout search section */
+.search-section, .menu-items {
+    transform: translateX(-100%);
+    transition: transform 0.6s ease-in-out;
+	background-color: #000;
+}
+
+.menu-items{
+	height: 100vh;
+}
+
+.search-section{
+	border-bottom: 0 solid #53940b; /* Start with border-width of 0 */
+}
+
+/* Show search section only when search icon is clicked */
+.search-section.menu-open {
+    transform: translateX(0);
+	overflow-y: auto; /* Enable internal scrolling */
+}
+
+.search-open .search-section{
+	border-bottom-width: 6px; /* Animate the border*/
+	transition: border-width 0.6s ease-in-out; /* Transition both in and out */
+}
+
+/* Show menu items when full menu is toggled */
+.menu-items.menu-open {
+    transform: translateX(0);
+	overflow-y: auto;
+    max-height: 100vh; /* Ensure menu occupies the full viewport height */
+}
+
+/* Transform search icon to "X" when search is open */
+.search-top.menu-open {
+    transform: rotate(45deg);
+    transition: transform 0.3s ease;
+}
+
+input.s {
+	width: 100%;
+	padding: 4px 54px 4px 10px;
+	height: 45px;
+	margin: 0;
+    background-color: var(--card-background); /* Match form input style */
+    border: 1px solid var(--border-color); /* Match form input style */
+    border-radius: 3px; /* Match form input style */
+    font-size: 14px; /* Match form input style */
+    color: var(--text-color); /* Match form input style */
+}
+
+input.s:focus {
+	padding-left: 10px;
+	text-indent: 0;
+    border: 1px solid var(--focus-border-color); /* Match form input style */
+}
+
+/* Prevent background scrolling when full menu is open */
+body.menu-open {
+    overflow: clip;
+}
+
+/* Allow page interaction when only search is open */
+body.search-only-open {
+    /* No overflow restriction - page remains interactive */
+}
+
+/* Menu Newsletter Form Styles
+   ========================================================================== */
+.menu-newsletter .newsletter-form{
+	max-width: 55%;
+	margin: 25px auto;
+	border: 1px dashed var(--border-color);
+	border-radius: 10px;
+	padding: 20px 15px;
+	background-color: var(--card-background);
+	font-size: 15px;
+}
+
+.menu-newsletter .newsletter-form input{
+	margin-bottom: 20px;
+    /* Inherit general input styles or add specific ones */
+    padding: 1%;
+    border: 1px solid var(--border-color);
+    line-height: 20px;
+    width: 90%; /* Adjust as needed */
+    background-color: var(--card-background);
+    border-radius: 3px;
+    font-size: 14px;
+    color: var(--text-color);
+}
+.menu-newsletter .newsletter-form input:focus {
+    border: 1px solid var(--focus-border-color);
+}
+
+.menu-newsletter .newsletter-form button{
+	margin-bottom: 10px;
+    /* Inherit general button styles or add specific ones */
+    padding: 5px 10px;
+    background-color: var(--button-bg);
+    border: 0px;
+    transition: background-color 0.3s linear 0s;
+    border-radius: 5px;
+    font-size: 14px;
+    appearance: none !important;
+    cursor: pointer;
+    display: inline-block;
+    color: #fff;
+    width: auto; /* Adjust as needed */
+}
+
+.menu-newsletter .newsletter-form button:hover{
+    background-color: var(--button-hover-bg);
+}
+
+.menu-newsletter .newsletter-form p{
+	margin: 0;
+}
+
+#primary-menu .newsletter-form p a {
+	line-height: 1em;
+	text-transform: none;
+    color: var(--link-color); /* Use theme link color */
+    text-decoration: underline;
+}
+#primary-menu .newsletter-form p a:hover {
+    color: inherit; /* Or specify hover color */
+    text-decoration-color: #53940b;
+}
+
+/* Footer links within the menu */
+.menu-footer-links{
+	min-height: 40px;
+    border-top: 1px solid #888; /* Add border like other menu items */
+    background-color: #000; /* Match menu background */
+    text-align: center;
+    color: #fff;
+}
+.menu-footer-links a{
+	margin: 0 10px;
+    color: #fff;
+    text-transform: uppercase;
+    line-height: 2.5em;
+	font-size: 19px;
+}
+#menu-footer-bottom{ /* Style for the very bottom links if needed */
+	display: flex;
+	margin: auto;
+	font-size: .9em;
+	justify-content: center;
+	border: none;
+    background-color: #000; /* Match menu background */
+}
+#extra-footer #menu-footer-bottom .menu-item a{
+	border: none;
+	padding: 5px;
+    color: #fff;
+    text-transform: uppercase;
+}
+
+.search-wrap input[type="text"]{
+    margin-bottom: 0;
+}  
+  
