@@ -1,0 +1,62 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Build Theme",
+            "type": "shell",
+            "command": "./build.sh",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": false
+            },
+            "problemMatcher": [],
+            "detail": "Create production ZIP file for WordPress deployment"
+        },
+        {
+            "label": "Check PHP Syntax",
+            "type": "shell",
+            "command": "find . -name '*.php' -exec php -l {} \\;",
+            "group": "test",
+            "presentation": {
+                "echo": true,
+                "reveal": "silent",
+                "focus": false,
+                "panel": "shared"
+            },
+            "problemMatcher": {
+                "owner": "php",
+                "fileLocation": "relative",
+                "pattern": {
+                    "regexp": "^Parse error: (.+) in (.+) on line (\\d+)$",
+                    "file": 2,
+                    "line": 3,
+                    "message": 1
+                }
+            },
+            "detail": "Check all PHP files for syntax errors"
+        },
+        {
+            "label": "Watch CSS Changes",
+            "type": "shell",
+            "command": "fswatch -o css/ | xargs -n1 -I{} echo 'CSS files changed - refresh browser'",
+            "group": "build",
+            "isBackground": true,
+            "presentation": {
+                "echo": true,
+                "reveal": "silent",
+                "focus": false,
+                "panel": "shared"
+            },
+            "problemMatcher": [],
+            "detail": "Monitor CSS directory for changes (requires fswatch)"
+        }
+    ]
+}

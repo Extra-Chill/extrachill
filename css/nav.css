@@ -365,9 +365,21 @@ input.s:focus {
     border: 1px solid var(--focus-border-color); /* Match form input style */
 }
 
-/* Prevent background scrolling when menu is open */
+/* Prevent background scrolling when full menu is open */
 body.menu-open {
     overflow: clip;
+}
+
+/* Allow page interaction when only search is open */
+body.search-only-open {
+    /* No overflow restriction - page remains interactive */
+}
+
+/* When only search is open, limit menu width to prevent click blocking */
+body.search-only-open #primary-menu {
+    width: auto; /* Don't cover full page width */
+    right: 0;    /* Align to right side */
+    left: auto;  /* Remove left alignment */
 }
 
 /* Menu Newsletter Form Styles

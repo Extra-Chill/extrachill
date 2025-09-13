@@ -1,0 +1,45 @@
+# Development files and directories
+.git/
+.gitignore
+.DS_Store
+.vscode/
+.cursor/
+node_modules/
+vendor/
+docs/
+dist/
+
+# Build system files
+build.sh
+.buildignore
+composer.lock
+package-lock.json
+
+# Documentation
+README.md
+CLAUDE.md
+.claude/
+
+# Development and testing files
+*.log
+*.tmp
+.env
+.env.local
+
+# OS generated files
+Thumbs.db
+desktop.ini
+
+# IDE files
+*.swp
+*.swo
+*~
+
+# Backup files
+*.bak
+*.backup
+
+# Additional WordPress theme exclusions
+bower.json
+wp-cli.phar
+tag-migration-admin.php
