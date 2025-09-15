@@ -375,11 +375,24 @@ body.search-only-open {
     /* No overflow restriction - page remains interactive */
 }
 
-/* When only search is open, limit menu width to prevent click blocking */
+/* When only search is open, ensure search section spans full width while maintaining clickable background */
 body.search-only-open #primary-menu {
-    width: auto; /* Don't cover full page width */
-    right: 0;    /* Align to right side */
-    left: auto;  /* Remove left alignment */
+    width: 100%; /* Allow full width for search section */
+    right: 0;
+    left: 0;
+}
+
+/* Ensure search section takes full available width */
+body.search-only-open .search-section {
+    width: 100%;
+    margin: 0 auto; /* Center the search section */
+}
+
+/* Optimize search input width within the search section */
+body.search-only-open .search-wrap {
+    max-width: 800px; /* Reasonable max width for search input */
+    width: 90%; /* Responsive width with padding */
+    margin: 0 auto; /* Center the search wrap */
 }
 
 /* Menu Newsletter Form Styles
