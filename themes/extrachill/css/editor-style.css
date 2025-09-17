@@ -236,3 +236,59 @@ body .edit-post-visual-editor .editor-post-title__input {
     transform: none !important;
     width: 100% !important;
 } 
+
+/* === List Styles (restore bullets/numbers removed by global reset in style.css) === */
+/* The global theme reset sets ul/ol to list-style: none; and removes margins. On the frontend
+   bullets are reintroduced within .entry-content. Inside the editor there is no .entry-content
+   wrapper, so we explicitly scope list styles to the editable content area to match frontend. */
+.editor-styles-wrapper .block-editor-block-list__layout ul,
+.editor-styles-wrapper .wp-block-post-content ul,
+.editor-styles-wrapper .wp-block ul {
+    list-style: square outside !important;
+    margin: 0 0 25px 30px !important;
+    padding: 0 !important;
+}
+
+.editor-styles-wrapper .block-editor-block-list__layout ol,
+.editor-styles-wrapper .wp-block-post-content ol,
+.editor-styles-wrapper .wp-block ol {
+    list-style: decimal outside !important;
+    margin: 0 0 30px 30px !important;
+    padding: 0 0 0 0 !important;
+}
+
+/* Nested lists: indent slightly but not compound excessively */
+.editor-styles-wrapper ul ul,
+.editor-styles-wrapper ul ol,
+.editor-styles-wrapper ol ul,
+.editor-styles-wrapper ol ol {
+    margin-left: 25px !important;
+    margin-top: 10px !important;
+    margin-bottom: 10px !important;
+}
+
+/* List item spacing consistent with frontend */
+.editor-styles-wrapper li {
+    line-height: inherit !important;
+    font-size: inherit !important;
+    margin: 10px 0 !important;
+}
+
+/* Avoid interfering with navigation or special block list styles (e.g., menus) */
+.editor-styles-wrapper .wp-block-navigation ul,
+.editor-styles-wrapper .wp-block-navigation ol,
+.editor-styles-wrapper .wp-block-navigation li {
+    list-style: none !important;
+    margin: 0 !important;
+}
+
+/* Tighten task list (core/list with checkboxes) alignment */
+.editor-styles-wrapper .wp-block-list .wp-block-list-item {
+    display: list-item; /* Ensure proper marker rendering even if editor injects flex */
+}
+
+/* Ensure list marker color inherits (especially in dark mode) */
+.editor-styles-wrapper ul li::marker,
+.editor-styles-wrapper ol li::marker {
+    color: var(--text-color, #000000);
+}

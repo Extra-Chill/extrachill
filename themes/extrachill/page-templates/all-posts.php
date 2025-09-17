@@ -11,7 +11,7 @@ get_header(); ?>
 
 <?php do_action('extrachill_before_body_content'); ?>
 
-<section id="primary" class="content-area">
+<section id="primary">
     <main id="main" class="site-main" role="main">
         <nav class="breadcrumbs" itemprop="breadcrumb">
             <a href="<?php echo home_url(); ?>">Home</a> › <span>All</span>
@@ -122,7 +122,7 @@ wp_reset_postdata();
     </main><!-- #main -->
 </section><!-- #primary -->
 
-<?php get_sidebar(); ?>
+<?php // get_sidebar(); ?>
 
 <?php do_action('extrachill_after_body_content'); ?>
 
