@@ -156,6 +156,7 @@ require_once(EXTRACHILL_INCLUDES_DIR . '/core/reading-progress.php');
 require_once(EXTRACHILL_INCLUDES_DIR . '/core/rewrite-rules.php');
 require_once(EXTRACHILL_INCLUDES_DIR . '/core/yoast-stuff.php');
 require_once(EXTRACHILL_INCLUDES_DIR . '/core/recent-posts-in-sidebar.php');
+require_once(EXTRACHILL_INCLUDES_DIR . '/core/dm-events-integration.php');
 
 /** Load admin functionality - Admin only files (conditional loading could be added later) */
 require_once(EXTRACHILL_INCLUDES_DIR . '/admin/log-404-errors.php');
@@ -885,7 +886,7 @@ function extrachill_enqueue_single_post_styles() {
 add_action('wp_enqueue_scripts', 'extrachill_enqueue_single_post_styles', 20);
 
 function extrachill_enqueue_archive_styles() {
-    if ( is_archive() || is_search() ) {
+    if ( is_archive() || is_search() || is_page_template('page-templates/all-posts.php') ) {
         $css_path = get_stylesheet_directory() . '/css/archive.css';
         if ( file_exists( $css_path ) ) {
             wp_enqueue_style(
@@ -901,7 +902,7 @@ add_action('wp_enqueue_scripts', 'extrachill_enqueue_archive_styles', 20);
 
 function extrachill_add_full_width_body_class($classes) {
     // Prevent full-width on newsletter archive
-    if ((is_archive() || is_search()) && !is_page_template('archive-newsletter.php')) {
+    if ((is_archive() || is_search() || is_page_template('page-templates/all-posts.php')) && !is_page_template('archive-newsletter.php')) {
         $classes[] = 'full-width-content';
     }
     return $classes;
