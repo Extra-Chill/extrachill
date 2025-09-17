@@ -1,0 +1,12 @@
+# Ignore build artifacts
+/dist/
+
+# Node modules (if ever added)
+node_modules/
+
+# OS / editor files
+.DS_Store
+*.swp
+
+# Composer vendor in dist (keep root vendor tracked)
+/dist/**/vendor/
