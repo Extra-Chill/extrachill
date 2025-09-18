@@ -163,9 +163,7 @@ function extrachill_clear_sidebar_recent_posts_cache($post_id) {
         $wpdb->query("DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_sidebar_recent_%'");
         $wpdb->query("DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_timeout_sidebar_recent_%'");
         
-        if (defined('WP_DEBUG') && WP_DEBUG) {
-            error_log("Sidebar recent posts cache cleared due to {$post_type} update (ID: {$post_id})");
-        }
+        
     }
 }
 
