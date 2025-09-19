@@ -144,15 +144,13 @@ function festival_wire_migration_admin_page() {
 	if (!current_user_can('manage_options')) {
 		wp_die('You do not have sufficient permissions to access this page.');
 	}
-	$done = get_option('festival_wire_migration_done');
-	if ($done) {
-		echo '<div class="notice notice-success"><p><strong>Migration already completed.</strong></p></div>';
-		return;
-	}
+
+	// Handle tag migration
+	$tag_migration_done = get_option('festival_wire_migration_done');
 	if (isset($_POST['festival_wire_migrate']) && check_admin_referer('festival_wire_migrate_action')) {
 		$report = festival_wire_perform_tag_to_festival_migration();
 		update_option('festival_wire_migration_done', 1);
-		echo '<div class="notice notice-success"><p><strong>Migration complete!</strong></p>';
+		echo '<div class="notice notice-success"><p><strong>Tag Migration complete!</strong></p>';
 		if (!empty($report)) {
 			echo '<ul>';
 			foreach ($report as $line) {
@@ -161,16 +159,80 @@ function festival_wire_migration_admin_page() {
 			echo '</ul>';
 		}
 		echo '</div>';
-		return;
+		$tag_migration_done = true;
 	}
+
+	// Handle author migration
+	$author_migration_done = get_option('festival_wire_author_migration_done');
+	if (isset($_POST['festival_wire_author_migrate']) && check_admin_referer('festival_wire_author_migrate_action')) {
+		$new_author_id = intval($_POST['new_author_id']);
+		if ($new_author_id > 0) {
+			$report = festival_wire_perform_author_migration($new_author_id);
+			update_option('festival_wire_author_migration_done', 1);
+			echo '<div class="notice notice-success"><p><strong>Author Migration complete!</strong></p>';
+			if (!empty($report)) {
+				echo '<ul>';
+				foreach ($report as $line) {
+					echo '<li>' . esc_html($line) . '</li>';
+				}
+				echo '</ul>';
+			}
+			echo '</div>';
+			$author_migration_done = true;
+		} else {
+			echo '<div class="notice notice-error"><p><strong>Error:</strong> Please select a valid author.</p></div>';
+		}
+	}
+
+	// Get Festival Wire post count for display
+	global $wpdb;
+	$festival_wire_count = $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_type = 'festival_wire'");
 	?>
 	<div class="wrap">
-		<h1>Festival Wire Tag to Festival Migration</h1>
-		<p>This will migrate all tags currently attached to any Festival Wire post to the new <strong>festival</strong> taxonomy. The tags will be removed from all posts and deleted if unused. This action is one-time and cannot be undone.</p>
-		<form method="post">
-			<?php wp_nonce_field('festival_wire_migrate_action'); ?>
-			<input type="submit" name="festival_wire_migrate" class="button button-primary" value="Migrate Festival Wire Tags to Festivals" onclick="return confirm('Are you sure? This cannot be undone.');">
-		</form>
+		<h1>Festival Wire Migration Tools</h1>
+
+		<!-- Tag Migration Section -->
+		<h2>Tag to Festival Migration</h2>
+		<?php if ($tag_migration_done): ?>
+			<div class="notice notice-success"><p><strong>Tag migration already completed.</strong></p></div>
+		<?php else: ?>
+			<p>This will migrate all tags currently attached to any Festival Wire post to the new <strong>festival</strong> taxonomy. The tags will be removed from all posts and deleted if unused. This action is one-time and cannot be undone.</p>
+			<form method="post">
+				<?php wp_nonce_field('festival_wire_migrate_action'); ?>
+				<input type="submit" name="festival_wire_migrate" class="button button-primary" value="Migrate Festival Wire Tags to Festivals" onclick="return confirm('Are you sure? This cannot be undone.');">
+			</form>
+		<?php endif; ?>
+
+		<hr style="margin: 30px 0;">
+
+		<!-- Author Migration Section -->
+		<h2>Festival Wire Author Migration</h2>
+		<?php if ($author_migration_done): ?>
+			<div class="notice notice-success"><p><strong>Author migration already completed.</strong></p></div>
+		<?php else: ?>
+			<p>This will reassign ALL Festival Wire posts (currently <strong><?php echo number_format($festival_wire_count); ?> posts</strong>) to a selected author. This action is one-time and cannot be undone.</p>
+			<form method="post">
+				<?php wp_nonce_field('festival_wire_author_migrate_action'); ?>
+				<table class="form-table">
+					<tr>
+						<th scope="row"><label for="new_author_id">Select New Author:</label></th>
+						<td>
+							<?php
+							wp_dropdown_users(array(
+								'name' => 'new_author_id',
+								'id' => 'new_author_id',
+								'show_option_none' => 'Select an author...',
+								'option_none_value' => 0
+							));
+							?>
+						</td>
+					</tr>
+				</table>
+				<p class="submit">
+					<input type="submit" name="festival_wire_author_migrate" class="button button-primary" value="Migrate All Festival Wire Authors" onclick="return confirm('Are you sure you want to reassign all <?php echo number_format($festival_wire_count); ?> Festival Wire posts? This cannot be undone.');">
+				</p>
+			</form>
+		<?php endif; ?>
 	</div>
 	<?php
 }
@@ -225,6 +287,51 @@ function festival_wire_perform_tag_to_festival_migration() {
 			$report[] = sprintf('Migrated tag "%s" (slug: %s), but it is still used elsewhere.', $tag->name, $tag->slug);
 		}
 	}
+	return $report;
+}
+
+function festival_wire_perform_author_migration($new_author_id) {
+	global $wpdb;
+	$report = array();
+
+	// Validate the author ID exists
+	$author = get_userdata($new_author_id);
+	if (!$author) {
+		$report[] = 'Error: Invalid author ID provided.';
+		return $report;
+	}
+
+	// Get current count of Festival Wire posts
+	$total_posts = $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_type = 'festival_wire'");
+
+	if ($total_posts == 0) {
+		$report[] = 'No Festival Wire posts found to migrate.';
+		return $report;
+	}
+
+	// Perform the bulk update
+	$updated = $wpdb->update(
+		$wpdb->posts,
+		array('post_author' => $new_author_id),
+		array('post_type' => 'festival_wire'),
+		array('%d'),
+		array('%s')
+	);
+
+	if ($updated === false) {
+		$report[] = 'Error: Database update failed.';
+	} else {
+		$report[] = sprintf('Successfully migrated %d Festival Wire posts to author: %s (%s).',
+			$updated,
+			$author->display_name,
+			$author->user_login
+		);
+
+		if ($updated != $total_posts) {
+			$report[] = sprintf('Note: Expected %d posts but updated %d posts.', $total_posts, $updated);
+		}
+	}
+
 	return $report;
 }
 // --- End Migration Tool ---

@@ -85,6 +85,21 @@
 	color: #ffffff;
 }
 
+.taxonomy-badge.festival-burning-man {
+	background-color: #8B4513; /* Desert Sand Brown */
+	color: #FFA500; /* Flame Orange */
+}
+
+.taxonomy-badge.festival-farm-aid {
+	background-color: #228B22; /* Farm Green */
+	color: #FFFF00; /* Bright Yellow */
+}
+
+.taxonomy-badge.festival-hopscotch-festival {
+	background-color: #6B73FF; /* Indie Purple/Blue */
+	color: #ffffff; /* White text */
+}
+
 /* === Location Badges === */
 .taxonomy-badge.location-charleston {
 	background-color: #660000;
