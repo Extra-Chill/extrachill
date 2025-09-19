@@ -183,7 +183,8 @@
 
 .top-container,
 .middle-container,
-.artist-platform-container {
+.artist-platform-container,
+.community-forums-container {
     overflow: hidden;
     transition: height 0.3s ease-in-out;
 }
@@ -192,6 +193,7 @@
 .middle-container.collapsed,
 .artist-platform-container.collapsed {
     height: 0 !important;
+    overflow: hidden;
 }
 
 /* ===============================================

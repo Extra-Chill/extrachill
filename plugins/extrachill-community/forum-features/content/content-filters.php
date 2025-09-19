@@ -232,10 +232,6 @@ function ec_clean_bbpress_content($content) {
         $content = ec_clean_apple_word_markup($content);
         $new_length = strlen($content);
         
-        // Debug logging (remove after testing)
-        if ($original_length !== $new_length) {
-            error_log('EC Content Filter: Cleaned content, length changed from ' . $original_length . ' to ' . $new_length);
-        }
     }
     return $content;
 }

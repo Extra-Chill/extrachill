@@ -64,12 +64,12 @@ if ( bbp_is_single_forum() && bbp_has_forums( array( 'post_parent' => bbp_get_fo
         <?php else : ?>
             <p>No forums are currently set to display on the homepage.</p>
         <?php endif; ?>
-    </div>
 
-    <!-- Bottom Action Buttons -->
-    <div class="homepage-bottom-actions">
-        <a href="/artists/extra-chill" class="button support-forum-btn">Support Forum</a>
-        <a href="/artist-platform" class="button artist-platform-btn">Artist Platform</a>
+        <!-- Bottom Action Buttons -->
+        <div class="homepage-bottom-actions">
+            <a href="/artists/extra-chill" class="button support-forum-btn">Support Forum</a>
+            <a href="/artist-platform" class="button artist-platform-btn">Artist Platform</a>
+        </div>
     </div>
 
 <?php endif; ?>
