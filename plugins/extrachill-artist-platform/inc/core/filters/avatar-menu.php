@@ -16,8 +16,8 @@ defined( 'ABSPATH' ) || exit;
  * @return array Modified menu items array
  */
 function extrachill_artist_platform_avatar_menu_items( $menu_items, $user_id ) {
-    // Get user's owned (published) artist profile IDs
-    $user_artist_ids = ec_get_user_owned_artists( $user_id );
+    // Get user's accessible (published) artist profile IDs
+    $user_artist_ids = ec_get_user_accessible_artists( $user_id );
     $base_manage_url = home_url( '/manage-artist-profiles/' );
     $final_manage_url = $base_manage_url;
 
@@ -65,11 +65,8 @@ function extrachill_artist_platform_avatar_menu_items( $menu_items, $user_id ) {
             'priority' => 6
         );
     } else {
-        // User has no artist profiles - show create option for artists/professionals
-        $is_artist = get_user_meta( $user_id, 'user_is_artist', true );
-        $is_professional = get_user_meta( $user_id, 'user_is_professional', true );
-
-        if ( $is_artist === '1' || $is_professional === '1' ) {
+        // User has no accessible artist profiles - show create option for those who can create
+        if ( ec_can_create_artist_profiles( $user_id ) ) {
             $menu_items[] = array(
                 'url'      => $base_manage_url,
                 'label'    => __( 'Create Artist Profile', 'extrachill-artist-platform' ),

@@ -54,6 +54,10 @@ if (isset($_GET['bp_link_page_error'])) {
         echo '<div class="bp-notice bp-notice-error"><p>' . esc_html__('Error: Background image file size exceeds the 5MB limit.', 'extrachill-artist-platform') . '</p></div>';
     } elseif ($error_type === 'profile_image_size') {
         echo '<div class="bp-notice bp-notice-error"><p>' . esc_html__('Error: Profile image file size exceeds the 5MB limit.', 'extrachill-artist-platform') . '</p></div>';
+    } elseif ($error_type === 'upload_failed') {
+        echo '<div class="bp-notice bp-notice-error"><p>' . esc_html__('Error: Profile image upload failed. Please try again.', 'extrachill-artist-platform') . '</p></div>';
+    } elseif ($error_type === 'general') {
+        echo '<div class="bp-notice bp-notice-error"><p>' . esc_html__('Error: An error occurred while saving. Please try again.', 'extrachill-artist-platform') . '</p></div>';
     }
     // Add other error types here if needed in the future
 }

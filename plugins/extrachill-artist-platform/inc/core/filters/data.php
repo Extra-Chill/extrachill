@@ -283,6 +283,7 @@ function ec_get_link_page_data( $artist_id, $link_page_id = null, $overrides = a
             'subscribe_description' => '',
             'social_icons_position' => 'above',
             'profile_image_shape' => 'circle',
+            'profile_image_id' => '',
             'overlay_enabled' => true
         )
     );
@@ -349,7 +350,8 @@ function ec_get_link_page_data( $artist_id, $link_page_id = null, $overrides = a
     $data['settings']['subscribe_description'] = $all_meta['_link_page_subscribe_description'][0] ?? '';
     $data['settings']['social_icons_position'] = $all_meta['_link_page_social_icons_position'][0] ?? 'above';
     $data['settings']['profile_image_shape'] = $all_meta['_link_page_profile_img_shape'][0] ?? 'circle';
-    
+    $data['settings']['profile_image_id'] = get_post_thumbnail_id( $artist_id ) ?: '';
+
     // Parse overlay setting from CSS vars (special case)
     if ( isset( $data['css_vars']['overlay'] ) ) {
         $data['settings']['overlay_enabled'] = $data['css_vars']['overlay'] === '1';

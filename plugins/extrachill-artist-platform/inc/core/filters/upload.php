@@ -18,8 +18,10 @@ defined( 'ABSPATH' ) || exit;
  *
  * @param int $link_page_id The link page ID
  * @param array $files_data $_FILES array
+ * @param array $save_data Save data containing removal flags
+ * @return string|null Error code if upload fails, null on success
  */
-function ec_handle_link_page_file_uploads( $link_page_id, $files_data ) {
+function ec_handle_link_page_file_uploads( $link_page_id, $files_data, $save_data = array() ) {
     
     if ( ! function_exists( 'wp_handle_upload' ) ) {
         require_once( ABSPATH . 'wp-admin/includes/file.php' );
@@ -28,6 +30,23 @@ function ec_handle_link_page_file_uploads( $link_page_id, $files_data ) {
     }
 
     $max_file_size = 5 * 1024 * 1024; // 5MB
+
+    // Profile image removal
+    if ( isset( $save_data['remove_profile_image'] ) && $save_data['remove_profile_image'] === true ) {
+        $associated_artist_id = apply_filters('ec_get_artist_id', $link_page_id);
+        if ( $associated_artist_id ) {
+            // Get current profile image ID before removing
+            $current_profile_image_id = get_post_thumbnail_id( $associated_artist_id );
+            if ( $current_profile_image_id ) {
+                // Remove from both storage locations
+                delete_post_thumbnail( $associated_artist_id );
+                delete_post_meta( $link_page_id, '_link_page_profile_image_id' );
+
+                // Delete the actual attachment file
+                wp_delete_attachment( $current_profile_image_id, true );
+            }
+        }
+    }
 
     // Background image upload
     if ( ! empty( $files_data['link_page_background_image_upload']['tmp_name'] ) ) {
@@ -59,13 +78,18 @@ function ec_handle_link_page_file_uploads( $link_page_id, $files_data ) {
 
     // Profile image upload
     if ( ! empty( $files_data['link_page_profile_image_upload']['tmp_name'] ) ) {
-        if ( $files_data['link_page_profile_image_upload']['size'] <= $max_file_size ) {
+        if ( $files_data['link_page_profile_image_upload']['size'] <= $max_file_size && $files_data['link_page_profile_image_upload']['error'] == UPLOAD_ERR_OK ) {
             $associated_artist_id = apply_filters('ec_get_artist_id', $link_page_id);
             if ( $associated_artist_id ) {
                 // Get old image from filter BEFORE updating (single source of truth) 
                 $data = ec_get_link_page_data( $associated_artist_id, $link_page_id );
                 $old_profile_image_id = $data['settings']['profile_image_id'] ?? '';
                 $attach_id = media_handle_upload( 'link_page_profile_image_upload', $associated_artist_id );
+                if ( is_wp_error( $attach_id ) ) {
+                    // Upload failed - log error and return error code
+                    error_log( 'Profile image upload failed: ' . $attach_id->get_error_message() );
+                    return 'upload_failed';
+                }
                 if ( is_numeric( $attach_id ) ) {
                     set_post_thumbnail( $associated_artist_id, $attach_id );
                     update_post_meta( $link_page_id, '_link_page_profile_image_id', $attach_id );
@@ -83,6 +107,11 @@ function ec_handle_link_page_file_uploads( $link_page_id, $files_data ) {
                         do_action( 'ec_delete_old_profile_image', $old_profile_image_id );
                     }
                 }
+            }
+        } else {
+            // File size exceeded or upload error
+            if ( $files_data['link_page_profile_image_upload']['size'] > $max_file_size ) {
+                return 'profile_image_size';
             }
         }
     }

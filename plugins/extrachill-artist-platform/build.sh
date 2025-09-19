@@ -1,7 +1,8 @@
 #!/bin/bash
 
 # Extra Chill Artist Platform - Build Script
-# Generates a clean distribution zip file for WordPress plugin
+# Generates a clean production package for WordPress deployment
+# Follows architectural standards: Clean -> Install prod deps -> Copy -> Validate -> ZIP -> Restore dev deps
 
 set -e  # Exit on any error
 
@@ -16,7 +17,8 @@ NC='\033[0m' # No Color
 PLUGIN_MAIN_FILE="extrachill-artist-platform.php"
 PLUGIN_SLUG="extrachill-artist-platform"
 BUILD_DIR="dist"
-TEMP_DIR="$BUILD_DIR/temp"
+PROD_DIR="$BUILD_DIR/$PLUGIN_SLUG"
+ZIP_FILE="$BUILD_DIR/$PLUGIN_SLUG.zip"
 
 # Function to print colored output
 print_status() {
@@ -35,36 +37,89 @@ print_warning() {
     echo -e "${YELLOW}[WARNING]${NC} $1"
 }
 
+# Function to check required tools
+check_dependencies() {
+    print_status "Checking build dependencies..."
+
+    # Check for required commands
+    local missing_tools=()
+
+    if ! command -v rsync &> /dev/null; then
+        missing_tools+=("rsync")
+    fi
+
+    if ! command -v zip &> /dev/null; then
+        missing_tools+=("zip")
+    fi
+
+    if ! command -v composer &> /dev/null; then
+        missing_tools+=("composer")
+    fi
+
+    if [ ${#missing_tools[@]} -ne 0 ]; then
+        print_error "Missing required tools: ${missing_tools[*]}"
+        print_error "Please install the missing tools and try again."
+        exit 1
+    fi
+
+    print_success "All build dependencies found"
+}
+
 # Function to extract version from main plugin file
 get_plugin_version() {
     if [ ! -f "$PLUGIN_MAIN_FILE" ]; then
         print_error "Main plugin file '$PLUGIN_MAIN_FILE' not found!"
         exit 1
     fi
-    
+
     # Extract version from plugin header
     VERSION=$(grep -i "Version:" "$PLUGIN_MAIN_FILE" | head -1 | sed 's/.*Version:[ ]*\([0-9\.]*\).*/\1/')
-    
+
     if [ -z "$VERSION" ]; then
         print_error "Could not extract version from $PLUGIN_MAIN_FILE"
         exit 1
     fi
-    
+
     echo "$VERSION"
 }
 
-# Function to check if rsync is available
-check_rsync() {
-    if ! command -v rsync &> /dev/null; then
-        print_error "rsync is required but not installed. Please install rsync."
-        exit 1
+# Function to clean previous builds
+clean_previous_builds() {
+    print_status "Cleaning previous build artifacts..."
+
+    if [ -d "$BUILD_DIR" ]; then
+        rm -rf "$BUILD_DIR"
+    fi
+
+    print_success "Previous builds cleaned"
+}
+
+# Function to install production dependencies
+install_production_deps() {
+    print_status "Installing production dependencies..."
+
+    if [ -f "composer.json" ]; then
+        composer install --no-dev --optimize-autoloader --no-interaction
+        print_success "Production dependencies installed"
+    else
+        print_warning "No composer.json found, skipping Composer dependencies"
+    fi
+}
+
+# Function to restore development dependencies
+restore_dev_deps() {
+    print_status "Restoring development dependencies..."
+
+    if [ -f "composer.json" ]; then
+        composer install --no-interaction
+        print_success "Development dependencies restored"
     fi
 }
 
 # Function to create exclude file for rsync
 create_rsync_excludes() {
     local exclude_file="$1"
-    
+
     # Read .buildignore if it exists
     if [ -f ".buildignore" ]; then
         # Convert .buildignore to rsync exclude format
@@ -77,7 +132,6 @@ create_rsync_excludes() {
 .gitattributes
 README.md
 CLAUDE.md
-MIGRATION-GUIDE.md
 .claude
 .vscode
 .idea
@@ -105,106 +159,138 @@ EOF
     fi
 }
 
+# Function to copy files with exclusions
+copy_plugin_files() {
+    print_status "Copying plugin files to production directory..."
+
+    # Create build directories
+    mkdir -p "$PROD_DIR"
+
+    # Create rsync excludes file
+    local exclude_file="/tmp/.rsync-excludes-$$"
+    create_rsync_excludes "$exclude_file"
+
+    # Copy files using rsync with excludes
+    rsync -av --exclude-from="$exclude_file" ./ "$PROD_DIR/"
+
+    # Clean up exclude file
+    rm -f "$exclude_file"
+
+    print_success "Plugin files copied successfully"
+}
+
 # Function to validate plugin structure
-validate_plugin() {
-    local plugin_dir="$1"
-    
+validate_plugin_structure() {
     print_status "Validating plugin structure..."
-    
+
     # Check for main plugin file
-    if [ ! -f "$plugin_dir/$PLUGIN_MAIN_FILE" ]; then
-        print_error "Main plugin file not found in build!"
+    if [ ! -f "$PROD_DIR/$PLUGIN_MAIN_FILE" ]; then
+        print_error "Main plugin file not found in production build!"
         return 1
     fi
-    
+
     # Check for essential directories
-    local essential_dirs=("inc" "assets" "templates")
+    local essential_dirs=("inc" "assets")
+    local missing_dirs=()
+
     for dir in "${essential_dirs[@]}"; do
-        if [ ! -d "$plugin_dir/$dir" ]; then
-            print_warning "Directory '$dir' not found in build"
+        if [ ! -d "$PROD_DIR/$dir" ]; then
+            missing_dirs+=("$dir")
         fi
     done
-    
-    print_success "Plugin structure validated"
+
+    if [ ${#missing_dirs[@]} -ne 0 ]; then
+        print_error "Essential directories missing from build: ${missing_dirs[*]}"
+        return 1
+    fi
+
+    # Verify composer.lock is present for production
+    if [ -f "composer.json" ] && [ ! -f "$PROD_DIR/composer.lock" ]; then
+        print_error "composer.lock missing from production build!"
+        return 1
+    fi
+
+    print_success "Plugin structure validation passed"
     return 0
 }
 
-# Main build function
+# Function to create production ZIP
+create_production_zip() {
+    print_status "Creating production ZIP file..."
+
+    # Remove existing ZIP if it exists
+    if [ -f "$ZIP_FILE" ]; then
+        rm -f "$ZIP_FILE"
+    fi
+
+    # Create ZIP from production directory
+    cd "$BUILD_DIR"
+    zip -r "$PLUGIN_SLUG.zip" "$PLUGIN_SLUG/" -q
+    cd - > /dev/null
+
+    # Get file size
+    local file_size=$(ls -lh "$ZIP_FILE" | awk '{print $5}')
+
+    print_success "Production ZIP created: $ZIP_FILE ($file_size)"
+
+    # Show contents summary
+    print_status "Archive contents summary:"
+    unzip -l "$ZIP_FILE" | head -15
+    local total_files=$(unzip -l "$ZIP_FILE" | tail -1)
+    echo "..."
+    echo "$total_files"
+}
+
+# Main build function following architectural standards template
 build_plugin() {
     local version="$1"
-    local zip_filename="$PLUGIN_SLUG-v$version.zip"
-    
+
     print_status "Starting build process for version $version"
-    
-    # Clean up any previous builds
-    if [ -d "$BUILD_DIR" ]; then
-        print_status "Cleaning previous build..."
-        rm -rf "$BUILD_DIR"
-    fi
-    
-    # Create build directories
-    mkdir -p "$TEMP_DIR"
-    
-    # Create rsync excludes file
-    local exclude_file="$TEMP_DIR/.rsync-excludes"
-    create_rsync_excludes "$exclude_file"
-    
-    print_status "Copying plugin files..."
-    
-    # Copy files using rsync with excludes
-    rsync -av --exclude-from="$exclude_file" ./ "$TEMP_DIR/$PLUGIN_SLUG/"
-    
-    # Validate the build
-    if ! validate_plugin "$TEMP_DIR/$PLUGIN_SLUG"; then
+    print_status "Following template: Clean -> Install prod deps -> Copy -> Validate -> ZIP -> Restore dev deps"
+
+    # Step 1: Clean previous builds
+    clean_previous_builds
+
+    # Step 2: Install production dependencies
+    install_production_deps
+
+    # Step 3: Copy files with exclusions
+    copy_plugin_files
+
+    # Step 4: Validate plugin structure
+    if ! validate_plugin_structure; then
         print_error "Plugin validation failed"
+        restore_dev_deps  # Restore deps before exit
         exit 1
     fi
-    
-    # Create the zip file
-    print_status "Creating zip file: $zip_filename"
-    cd "$TEMP_DIR"
-    
-    if command -v zip &> /dev/null; then
-        zip -r "../$zip_filename" "$PLUGIN_SLUG/" -q
-    else
-        print_error "zip command not found. Please install zip utility."
-        exit 1
-    fi
-    
-    cd - > /dev/null
-    
-    # Clean up temp directory
-    rm -rf "$TEMP_DIR"
-    
-    # Get file size
-    local file_size=$(ls -lh "$BUILD_DIR/$zip_filename" | awk '{print $5}')
-    
-    print_success "Build completed successfully!"
-    print_success "Output: $BUILD_DIR/$zip_filename ($file_size)"
-    
-    # Show contents summary
-    print_status "Archive contents:"
-    unzip -l "$BUILD_DIR/$zip_filename" | head -20
-    echo "..."
-    echo "$(unzip -l "$BUILD_DIR/$zip_filename" | tail -1)"
+
+    # Step 5: Create ZIP in /dist
+    create_production_zip
+
+    # Step 6: Restore development dependencies
+    restore_dev_deps
+
+    print_success "Build process completed successfully!"
+    print_success "Production package: $ZIP_FILE"
+    print_success "Clean production directory: $PROD_DIR"
 }
 
 # Main script execution
 main() {
-    print_status "Extra Chill Artist Platform Build Script"
-    print_status "========================================"
-    
-    # Check dependencies
-    check_rsync
-    
+    print_status "Extra Chill Artist Platform - Production Build"
+    print_status "============================================="
+
+    # Check all required dependencies
+    check_dependencies
+
     # Get plugin version
     local version
     version=$(get_plugin_version)
     print_status "Plugin version: $version"
-    
-    # Build the plugin
+
+    # Execute build process
     build_plugin "$version"
-    
+
     print_status "Build process complete!"
 }
 

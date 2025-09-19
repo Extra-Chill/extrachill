@@ -69,9 +69,12 @@ function ec_handle_link_page_save( $link_page_id, $save_data = array(), $files_d
         }
     }
 
-    // Handle file uploads if present
-    if ( ! empty( $files_data ) ) {
-        ec_handle_link_page_file_uploads( $link_page_id, $files_data );
+    // Handle file uploads and removal if present
+    if ( ! empty( $files_data ) || isset( $save_data['remove_profile_image'] ) ) {
+        $upload_error = ec_handle_link_page_file_uploads( $link_page_id, $files_data, $save_data );
+        if ( $upload_error ) {
+            return new WP_Error( 'upload_error', 'File upload error', array( 'error_code' => $upload_error ) );
+        }
     }
 
     // Handle social icons if present
@@ -384,6 +387,11 @@ function ec_prepare_link_page_save_data( $post_data ) {
         $save_data['subscribe_description'] = $description !== '' ? $description : '';
     }
 
+    // Profile image removal
+    if ( isset( $post_data['remove_link_page_profile_image'] ) ) {
+        $save_data['remove_profile_image'] = $post_data['remove_link_page_profile_image'] === '1';
+    }
+
     return $save_data;
 }
 
@@ -606,7 +614,18 @@ function ec_admin_post_save_link_page() {
     $result = ec_handle_link_page_save( $link_page_id, $save_data, $_FILES );
     
     if ( is_wp_error( $result ) ) {
-        wp_die( $result->get_error_message() );
+        // Handle upload errors with proper redirects
+        $error_data = $result->get_error_data();
+        if ( isset( $error_data['error_code'] ) ) {
+            $redirect_args = array( 'artist_id' => $artist_id, 'bp_link_page_error' => $error_data['error_code'] );
+        } else {
+            $redirect_args = array( 'artist_id' => $artist_id, 'bp_link_page_error' => 'general' );
+        }
+        $manage_page = get_page_by_path( 'manage-link-page' );
+        $base_url = $manage_page ? get_permalink( $manage_page ) : home_url( '/manage-link-page/' );
+        $redirect_url = add_query_arg( $redirect_args, $base_url );
+        wp_safe_redirect( $redirect_url );
+        exit;
     }
     
     // Redirect back with success message
