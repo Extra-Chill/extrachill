@@ -675,10 +675,6 @@ function enqueue_custom_lightbox_script() {
 }
 add_action( 'wp_enqueue_scripts', 'enqueue_custom_lightbox_script' );
 
-/**
- * Include Festival Wire functionality.
- */
-require_once get_stylesheet_directory() . '/inc/festival-wire/festival-wire.php';
 
 /* WooCommerce asset dequeuing moved to /inc/woocommerce.php */
 
