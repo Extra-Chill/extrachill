@@ -59,13 +59,26 @@ The theme uses a clean, modular architecture organized in the `/inc/` directory:
 
 ## Development Commands
 
-There are no build tools configured. The theme uses:
-- Direct CSS/JS file editing
+### Development Workflow
+The theme supports direct file editing for development:
+- Direct CSS/JS file editing with no build step required
 - WordPress native asset enqueuing with `filemtime()` versioning for cache busting
-- Manual minification when needed
 - Modern WordPress hooks and filters for extensibility
 
-Common development tasks:
+### Production Deployment
+For production deployment, use the build script:
+```bash
+# Create production-ready ZIP file
+./build.sh
+
+# Build process includes:
+# - File exclusion via .buildignore
+# - Production Composer dependencies
+# - Structure validation
+# - Clean ZIP package creation
+```
+
+### Common Development Tasks
 ```bash
 # Check for PHP syntax errors
 php -l filename.php
