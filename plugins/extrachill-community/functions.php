@@ -11,9 +11,6 @@
  * @link https://community.extrachill.com
  */
 
-/**
- * Theme setup and WordPress feature support
- */
 function extra_chill_community_setup() {
     // Add default posts and comments RSS feed links to head.
     add_theme_support('automatic-feed-links');
@@ -62,9 +59,6 @@ function extra_chill_community_setup() {
 }
 add_action('after_setup_theme', 'extra_chill_community_setup');
 
-/**
- * Register widget areas
- */
 function extra_chill_community_widgets_init() {
     register_sidebar(array(
         'name'          => esc_html__('Sidebar', 'extra-chill-community'),
@@ -93,9 +87,6 @@ add_action('widgets_init', 'extra_chill_community_widgets_init');
 
 
 
-/**
- * Load theme modules and integrations
- */
 
 // Cross-domain integration files
 require_once get_stylesheet_directory() . '/extrachill-integration/blog-searching-forum.php';

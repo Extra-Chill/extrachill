@@ -1,11 +1,11 @@
 <?php
 /**
  * Recent Feed Query Functions
- * 
+ *
  * Centralized database queries for the Recent Activity Feed page template.
- * Handles reply-based Twitter-like feed with configurable forum exclusions.
- * 
- * @package Extra ChillCommunity  
+ * Handles activity feed with both topics and replies in chronological order.
+ *
+ * @package Extra ChillCommunity
  * @version 1.0.0
  */
 
@@ -16,16 +16,16 @@ if (!defined('ABSPATH')) {
 
 
 /**
- * Get standardized query arguments for recent replies feed.
- * Simple chronological feed of all forum replies.
+ * Get standardized query arguments for recent activity feed.
+ * Simple chronological feed of all forum topics and replies.
  *
- * @param int $per_page Number of replies per page (default: 15)
+ * @param int $per_page Number of posts per page (default: 15)
  * @param int $paged Current page number (default: 1)
- * @return array Query arguments for bbp_has_replies()
+ * @return array Query arguments for mixed topic/reply query
  */
 function extrachill_get_recent_replies_args($per_page = 15, $paged = 1) {
     return array(
-        'post_type' => bbp_get_reply_post_type(),
+        'post_type' => array(bbp_get_topic_post_type(), bbp_get_reply_post_type()),
         'posts_per_page' => $per_page,
         'paged' => $paged,
         'orderby' => 'date',
@@ -35,12 +35,12 @@ function extrachill_get_recent_replies_args($per_page = 15, $paged = 1) {
 }
 
 /**
- * Execute recent feed query and return whether replies were found.
+ * Execute recent feed query and return whether activity was found.
  * Complete wrapper function for recent feed page template.
  *
- * @param int $per_page Number of replies per page (default: 15)
+ * @param int $per_page Number of posts per page (default: 15)
  * @param int $paged Current page number (defaults to bbPress pagination)
- * @return bool True if replies found, false otherwise
+ * @return bool True if activity found, false otherwise
  */
 function extrachill_get_recent_feed_query($per_page = 15, $paged = null) {
     if ($paged === null) {
@@ -78,7 +78,7 @@ function extrachill_get_recent_feed_pagination() {
     $end = min($current_page * $per_page, $total_replies);
     
     return array(
-        'count_html' => "Viewing reply $start to $end (of $total_replies total)",
+        'count_html' => "Viewing activity $start to $end (of $total_replies total)",
         'links_html' => paginate_links(array(
             'total' => $total_pages,
             'current' => $current_page,
@@ -90,14 +90,14 @@ function extrachill_get_recent_feed_pagination() {
 }
 
 /**
- * Get recent replies for custom implementations.
+ * Get recent activity for custom implementations.
  * Returns WP_Query object instead of bbPress loop setup.
  *
- * @param int $per_page Number of replies per page (default: 15)
+ * @param int $per_page Number of posts per page (default: 15)
  * @param int $paged Current page number (default: 1)
- * @return WP_Query Query object with recent replies
+ * @return WP_Query Query object with recent topics and replies
  */
-function extrachill_get_recent_replies_query($per_page = 15, $paged = 1) {
+function extrachill_get_recent_activity_query($per_page = 15, $paged = 1) {
     $args = extrachill_get_recent_replies_args($per_page, $paged);
     
     return new WP_Query($args);

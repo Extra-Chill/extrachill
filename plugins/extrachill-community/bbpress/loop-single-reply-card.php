@@ -53,9 +53,12 @@ defined( 'ABSPATH' ) || exit;
                     <?php
 $reply_id  = bbp_get_reply_id();
 $topic_id  = bbp_get_topic_id();
+$current_post_id = get_the_ID();
+$current_post_type = get_post_type($current_post_id);
 
-// If the "reply" is actually the lead topic (ID == topic ID), treat it as a topic
-$is_lead_topic = ( $reply_id === $topic_id );
+// If the "reply" is actually the lead topic, treat it as a topic
+// Check both ID comparison and post type for safety
+$is_lead_topic = ( $reply_id === $topic_id ) || ( $current_post_type === bbp_get_topic_post_type() );
 
 // If you want the same top bar for both, just decide which functions to call:
 if ( $is_lead_topic ) {
@@ -82,21 +85,24 @@ if ( $is_lead_topic ) {
 } else {
     // REGULAR REPLY
     // - Use reply-based "Reply" and "Edit" links
+    // Only process if this is actually a reply post type
+    if ( $current_post_type === bbp_get_reply_post_type() ) {
+        // Reply-to Link
+        $reply_topic_id = bbp_get_reply_topic_id( $reply_id );
+        if ( $reply_topic_id && ! bbp_is_topic_closed( $reply_topic_id ) ) {
+            $reply_link = bbp_get_reply_to_link( array(
+                'id'         => $reply_id,
+                'reply_text' => __( 'Reply', 'bbpress' )
+            ) );
+        }
 
-    // Reply-to Link
-    if ( ! bbp_is_topic_closed( bbp_get_reply_topic_id( $reply_id ) ) ) {
-        $reply_link = bbp_get_reply_to_link( array(
-            'id'         => $reply_id,
-            'reply_text' => __( 'Reply', 'bbpress' )
-        ) );
-    }
-
-    // Reply Edit Link
-    if ( current_user_can( 'edit_reply', $reply_id ) ) {
-        $edit_link = bbp_get_reply_edit_link( array(
-            'id'        => $reply_id,
-            'edit_text' => __( 'Edit', 'bbpress' )
-        ) );
+        // Reply Edit Link
+        if ( current_user_can( 'edit_reply', $reply_id ) ) {
+            $edit_link = bbp_get_reply_edit_link( array(
+                'id'        => $reply_id,
+                'edit_text' => __( 'Edit', 'bbpress' )
+            ) );
+        }
     }
 }
 
@@ -180,10 +186,17 @@ if ( $is_lead_topic ) {
 
                 <?php if ( bbp_is_single_user_replies() || is_page_template('page-templates/recent-feed-template.php') ) : ?>
                     <span class="bbp-header">
-                        <?php esc_html_e( 'in reply to: ', 'bbpress' ); ?>
-                        <a class="bbp-topic-permalink" href="<?php bbp_topic_permalink( bbp_get_reply_topic_id() ); ?>">
-                            <?php bbp_topic_title( bbp_get_reply_topic_id() ); ?>
-                        </a>
+                        <?php if ( $is_lead_topic || $current_post_type === bbp_get_topic_post_type() ) : ?>
+                            <?php esc_html_e( 'in forum: ', 'bbpress' ); ?>
+                            <a class="bbp-forum-permalink" href="<?php bbp_forum_permalink( bbp_get_topic_forum_id() ); ?>">
+                                <?php echo esc_html( bbp_get_forum_title( bbp_get_topic_forum_id() ) ); ?>
+                            </a>
+                        <?php else : ?>
+                            <?php esc_html_e( 'in reply to: ', 'bbpress' ); ?>
+                            <a class="bbp-topic-permalink" href="<?php bbp_topic_permalink( bbp_get_reply_topic_id() ); ?>">
+                                <?php bbp_topic_title( bbp_get_reply_topic_id() ); ?>
+                            </a>
+                        <?php endif; ?>
                     </span>
                 <?php endif; ?>        
 
@@ -199,13 +212,13 @@ if ( $is_lead_topic ) {
                 if ( is_page_template('page-templates/recent-feed-template.php') ) {
                     $content = bbp_get_reply_content();
                     $content_length = strlen( strip_tags( $content ) );
-                    $truncate_length = 400;
+                    $truncate_length = 500;
                     
                     if ( $content_length > $truncate_length ) {
                         $reply_id = bbp_get_reply_id();
                         // Show truncated version with expand functionality
                         echo '<div class="reply-content-truncated" id="content-' . $reply_id . '">';
-                        echo '<div class="content-preview">' . wp_trim_words( $content, 50, '...' ) . '</div>';
+                        echo '<div class="content-preview">' . wp_trim_words( $content, 75, '...' ) . '</div>';
                         echo '<div class="content-full collapsed" style="height: 0; overflow: hidden;">' . $content . '</div>';
                         echo '<button class="read-more-toggle" onclick="toggleContentExpansion(' . $reply_id . ', this)">';
                         echo '<span class="read-more-text">Read More</span>';
