@@ -8,7 +8,7 @@ ExtraChill is a modern, performance-optimized WordPress theme designed specifica
 
 - **Main Blog**: Music journalism, artist features, and industry coverage
 - **Community Forum**: Integration with bbPress for user discussions
-- **Festival Wire**: Real-time festival coverage and updates
+- **Festival Wire**: Homepage ticker integration (functionality provided by ExtraChill News Wire plugin)
 - **Merch Store**: WooCommerce integration for merchandise sales
 - **Event Listings**: Custom event scraping and management system
 
@@ -16,8 +16,8 @@ ExtraChill is a modern, performance-optimized WordPress theme designed specifica
 
 ### 🎵 Music-Focused Content Management
 - **Custom Taxonomies**: Artist, Venue, Festival, and Location organization
-- **Festival Wire**: Real-time festival coverage with AJAX-powered updates
-- **Newsletter System**: Custom post type for newsletter content
+- **Festival Wire Integration**: Homepage ticker display for festival coverage (requires ExtraChill News Wire plugin)
+- **Newsletter Integration**: Newsletter functionality provided by ExtraChill Newsletter Plugin
 - **Event Scraping**: Automated event data collection from multiple venues
 
 ### 🚀 Performance Optimizations
@@ -60,6 +60,7 @@ ExtraChill is a modern, performance-optimized WordPress theme designed specifica
    - bbPress (for community features)
    - WooCommerce (for store functionality)
    - Co-Authors Plus (for multi-author posts)
+   - ExtraChill News Wire (for Festival Wire functionality)
 
 4. **Initial setup**:
    ```bash
@@ -105,8 +106,7 @@ extrachill/
 │   ├── admin/             # Admin functionality
 │   ├── community/         # Forum integration
 │   ├── core/              # WordPress core features
-│   ├── festival-wire/     # Festival coverage system
-│   ├── home/              # Homepage components
+│   ├── home/              # Homepage components (includes Festival Wire ticker)
 │   └── woocommerce/       # E-commerce integration
 ├── js/                    # JavaScript files
 ├── chill-events/          # Event scraping system
@@ -185,8 +185,8 @@ The theme provides extensive hooks for customization:
 // Modify event scraper data
 add_filter('extrachill_event_data', 'custom_event_modification');
 
-// Customize festival wire display
-add_filter('extrachill_festival_wire_content', 'custom_festival_display');
+// Customize festival wire ticker display
+add_filter('extrachill_festival_wire_ticker', 'custom_ticker_display');
 
 // Modify community integration
 add_action('extrachill_community_init', 'custom_community_setup');
@@ -202,9 +202,9 @@ add_action('extrachill_community_init', 'custom_community_setup');
 - Clear any caching plugins
 
 **Festival Wire not displaying**:
-- Check custom post type registration
-- Verify AJAX functionality
-- Review JavaScript console for errors
+- Ensure ExtraChill News Wire plugin is installed and activated
+- Check that Festival Wire posts exist in WordPress admin
+- Verify homepage ticker functionality
 
 **Community features not working**:
 - Ensure bbPress is installed and configured
@@ -249,7 +249,7 @@ This theme is proprietary software developed for ExtraChill.com. All rights rese
 - WooCommerce performance optimization
 - Modular CSS architecture implementation
 - Community integration enhancements
-- Festival Wire system improvements
+- Festival Wire migration to standalone plugin
 - Performance optimizations and memory management
 
 ---

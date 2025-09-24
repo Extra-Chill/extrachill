@@ -67,6 +67,7 @@ global $post; // Ensure $post is available for setup_postdata.
         </div>
       </div>
       <div class="home-3x3-outer-card">
+        <!-- Newsletter section requires ExtraChill Newsletter Plugin -->
         <div class="home-3x3-stacked-section">
           <div class="home-3x3-header">
             <span class="home-3x3-label">Latest Newsletters</span>

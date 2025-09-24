@@ -3,26 +3,26 @@
 Purpose: Enable an AI agent to make high‑quality, production‑safe contributions to the ExtraChill WordPress theme immediately.
 
 ## 1. Big Picture
-- This repo is a custom WordPress theme powering blog + community (bbPress) + festival coverage + WooCommerce + newsletter CPT + event scraping (separate system). 100% PHP/CSS/JS with NO build toolchain (just a packaging script).
-- Architecture is modular: almost all feature logic lives under `inc/` in subfolders (core, admin, community, festival-wire, woocommerce). `functions.php` wires everything and controls conditional asset loading.
+- This repo is a custom WordPress theme powering blog + community (bbPress) + WooCommerce + event scraping (separate system) + Festival Wire homepage integration. Newsletter functionality moved to ExtraChill Newsletter Plugin. 100% PHP/CSS/JS with NO build toolchain (just a packaging script).
+- Architecture is modular: almost all feature logic lives under `inc/` in subfolders (core, admin, community, home, woocommerce). `functions.php` wires everything and controls conditional asset loading.
 - Performance + reduced bloat + conditional loading are guiding principles (minimal image sizes, selective WooCommerce & style/script enqueueing, dynamic versioning via `filemtime()`).
 
 ## 2. Core Conventions
 - Add new feature modules in an appropriate `inc/<area>/` file; include them from `functions.php` (or an existing aggregator file) only if needed globally. Consider future conditional requires.
 - Always enqueue assets with dynamic versioning: `filemtime( $path )` and narrow page conditions (e.g. `is_front_page()`, `is_singular('post')`).
 - Root CSS variables must load first (`css/root.css`) → other styles depend on handle `extrachill-root`. If adding a stylesheet, declare dependency on that handle.
-- Page/context-specific CSS: archive → `css/archive.css`, single post → `css/single-post.css`, newsletter archive override → `css/archive-newsletter.css`, home → `css/home.css`, navigation → `css/nav.css`.
+- Page/context-specific CSS: archive → `css/archive.css`, single post → `css/single-post.css`, home → `css/home.css`, navigation → `css/nav.css`.
 - Do NOT resurrect removed CSS concatenation/inline “optimization” (comment notes memory issues). Keep individual files.
 - Use local fonts in `/fonts/`; don't introduce external font CDNs.
 - Image sizes: custom policy removes many defaults; avoid relying on `thumbnail` or WooCommerce sizes—check existing sizes before using.
 
 ## 3. Custom Data Structures & Content Types
 - Taxonomies registered in `functions.php` (festival, artist, venue) + city/state taxonomy in `inc/core/city-state-taxonomy.php`.
-- Custom Post Types: `festival_wire` (see `inc/festival-wire/`), `newsletter` (`inc/newsletter.php`). Follow existing arg patterns (REST enabled, non-hierarchical unless needed, slug = lowercase snake/hyphen form).
+- Custom Post Types: Newsletter functionality completely handled by ExtraChill Newsletter Plugin (no theme templates). Festival Wire custom post type handled by ExtraChill News Wire plugin. Follow existing arg patterns (REST enabled, non-hierarchical unless needed, slug = lowercase snake/hyphen form).
 - When adding CPT/taxonomies: after deploy, requires `wp rewrite flush` (document in PR description—don’t add automatic flush in code).
 
 ## 4. Asset & Script Patterns
-- JS enqueue examples: archive pages (`chill-custom.js`), single post (`community-comments.js`), home (`home.js` + localized `extrachill_ajax_object.ajax_url`). Copy these patterns for new scoped scripts.
+- JS enqueue examples: archive pages (`chill-custom.js`), single post (`community-comments.js`). Copy these patterns for new scoped scripts with localized AJAX objects.
 - Lightbox loading: Conditional DOM inspection pattern in `enqueue_custom_lightbox_script()`—mirror that approach for other content-driven enhancements.
 - Admin/editor styling: Editor styles added via `add_editor_style()` and admin enqueue (`extrachill_enqueue_admin_styles`). New editor styling should extend `editor-style.css` not replace it.
 
@@ -46,14 +46,14 @@ Purpose: Enable an AI agent to make high‑quality, production‑safe contributi
 - No JS bundler—submit plain ES5/ESNext compatible with target browsers (WordPress standards). Avoid adding a bundler unless explicitly approved.
 
 ## 10. Adding Features (Example Flow)
-1. Create `inc/<domain>/<feature>.php` (e.g. `inc/festival-wire/live-updates.php`).
+1. Create `inc/<domain>/<feature>.php` (e.g. `inc/home/new-homepage-section.php`).
 2. Wire require in `functions.php` (or rely on auto include if under `inc/community/`).
 3. Enqueue any CSS/JS conditionally with `filemtime()` versioning.
 4. Add filters/actions exposing extension points (prefix with `extrachill_`).
 5. Update README or this instructions file only if pattern divergent.
 
 ## 11. Patterns to Copy
-- Conditional CSS override: see newsletter archive handler (`extrachill_enqueue_newsletter_archive_styles`).
+- Conditional CSS override: see existing CSS enqueuing patterns with page context conditions.
 - REST field extension: co-authors registration block (guards existence, registers via `register_rest_field`).
 - Navigation enhancement: custom walker `Custom_Walker_Nav_Menu` adding SVG indicators.
 
@@ -68,4 +68,4 @@ Purpose: Enable an AI agent to make high‑quality, production‑safe contributi
 Include: feature summary, conditional loading review, taxonomy/CPT impacts (note rewrite flush), performance considerations, and any new hooks introduced.
 
 ---
-Clarify needs? Ask which modules or workflows require deeper expansion (e.g., festival wire internals, event scraping).
+Clarify needs? Ask which modules or workflows require deeper expansion (e.g., community integration, event scraping, plugin integrations).

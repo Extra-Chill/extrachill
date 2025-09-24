@@ -62,7 +62,6 @@ document.addEventListener('DOMContentLoaded', function() {
         searchSection.classList.add('menu-open');
         searchToggle.classList.add('menu-open');
         body.classList.add('search-only-open');
-        // Don't lock body scroll for search-only mode
     }
 
     function openMenu() {
@@ -103,49 +102,4 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-// Removing the JavaScript block for the newsletter form submission
-document.addEventListener('DOMContentLoaded', function () {
-    const newsletterForm = document.querySelector('.newsletter-form');
-    const emailInput = document.querySelector('#newsletter-email-nav');
-    const submitButton = newsletterForm.querySelector('button[type="submit"]');
-    const feedback = document.createElement('p'); // Feedback message element
-    feedback.classList.add('newsletter-feedback');
-    newsletterForm.appendChild(feedback); // Append feedback message
-
-    newsletterForm.addEventListener('submit', function (e) {
-        e.preventDefault();
-
-        // Disable submit button to prevent multiple submissions
-        submitButton.disabled = true;
-
-        // Prepare data for AJAX
-        const formData = new FormData(newsletterForm);
-        formData.append('action', 'subscribe_to_sendy');
-        formData.append('subscribe_nonce', ajax_object.subscribe_nonce); // Add nonce dynamically
-
-        // Send AJAX request
-        fetch(ajax_object.ajax_url, {
-            method: 'POST',
-            body: formData
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                feedback.textContent = data.data.message; // Success message
-                feedback.style.color = 'green';
-                emailInput.value = ''; // Clear the email input
-                localStorage.setItem('subscribed', 'true');
-            } else {
-                feedback.textContent = data.data.message; // Error message
-                feedback.style.color = 'red';
-            }
-            submitButton.disabled = false; // Re-enable submit button
-        })
-        .catch(error => {
-            feedback.textContent = 'An error occurred. Please try again.';
-            feedback.style.color = 'red';
-            submitButton.disabled = false;
-        });
-    });
-});
 

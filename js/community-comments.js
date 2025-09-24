@@ -121,7 +121,6 @@ window.addEventListener('load', function() {
     }
 
     function fetchAndDisplayCommentForm(userDetails) {
-        // AJAX call to get the comment form
         fetch('https://community.extrachill.com/wp-json/extrachill/v1/comments/form')
         .then(response => {
             if (!response.ok) {
@@ -132,10 +131,10 @@ window.addEventListener('load', function() {
         .then(htmlContent => {
             const commentFormContainer = document.querySelector('.community-comment-form');
             commentFormContainer.innerHTML = htmlContent;
-            applyUserDetailsToForm(userDetails); // Apply user details to form before displaying it.
-    
+            applyUserDetailsToForm(userDetails);
+
             commentFormContainer.style.display = 'block';
-            initReplyLinks(); // Initialize reply links here.
+            initReplyLinks();
         })
         .catch(error => {
             console.error('Failed to fetch the comment form:', error);
@@ -149,7 +148,6 @@ window.addEventListener('load', function() {
         commentForm.setAttribute('data-username', userDetails.username);
         commentForm.setAttribute('data-email', userDetails.email);
         commentForm.setAttribute('data-user-id', userDetails.userID);
-        // Apply the post ID during this phase
         if (extrachillPostData && extrachillPostData.postId) {
             commentForm.setAttribute('data-post-id', extrachillPostData.postId);
         } else {
@@ -167,7 +165,6 @@ window.addEventListener('load', function() {
     
 
     function handleUserNotLoggedIn() {
-        // Handle scenarios where the user is not logged in
         document.querySelector('.community-comment-form').style.display = 'none';
     }
 
@@ -177,7 +174,6 @@ window.addEventListener('load', function() {
                 e.preventDefault();
                 var commentID = e.target.dataset.commentid;
                 document.getElementById('comment_parent').value = commentID;
-                // Scroll and focus
                 document.getElementById('community-comment-form').scrollIntoView({ behavior: 'smooth', block: 'start' });
                 document.getElementById('comment').focus();
             }
@@ -185,7 +181,6 @@ window.addEventListener('load', function() {
     }
     
 
-    // Initialize the comment form once the page is fully loaded
     initCommentForm();
 
 
@@ -195,7 +190,6 @@ window.addEventListener('load', function() {
     document.addEventListener('submit', function(e) {
         if (e.target.matches('#community-comment-form form')) {
             e.preventDefault();
-            // Show loading indicator
             const loadingMessage = document.createElement('div');
             loadingMessage.className = 'comment-submission-message';
             loadingMessage.style.color = 'blue';
@@ -222,7 +216,6 @@ window.addEventListener('load', function() {
             .then(handleCommentSuccess)
             .catch(handleCommentError)
             .finally(() => {
-                // Corrected fadeOut effect for vanilla JS
                 loadingMessage.style.transition = 'opacity 1s ease-out';
                 loadingMessage.style.opacity = '0';
                 loadingMessage.addEventListener('transitionend', () => loadingMessage.remove());
@@ -231,7 +224,6 @@ window.addEventListener('load', function() {
     });
         
     function handleCommentSuccess(response) {
-        // Display success message
         const commentForm = document.querySelector('.community-comment-form');
         const successMessage = document.createElement('div');
         successMessage.className = 'comment-submission-message';
@@ -251,7 +243,6 @@ window.addEventListener('load', function() {
     }
     
     function handleCommentError(error) {
-        // Display error message
         const errorMessage = document.createElement('div');
         errorMessage.className = 'comment-submission-message';
         errorMessage.style.color = 'red';
