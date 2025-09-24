@@ -30,15 +30,8 @@ $svg_version = file_exists($svg_path) ? filemtime($svg_path) : '';
                     'items_wrap' => '%3$s'
                 ));
             ?>
-            <!-- Newsletter Subscription Form -->
-            <li class="menu-newsletter">
-                <form class="newsletter-form">
-                    <label for="newsletter-email-nav" class="sr-only">Get our Newsletter</label>
-                    <input type="email" id="newsletter-email-nav" name="email" placeholder="Enter your email" required>
-                    <button type="submit">Subscribe</button>
-                    <p><a href="/newsletters">See past newsletters</a></p>
-                </form>
-            </li>
+            <!-- Plugin Hook: Content before social links -->
+            <?php do_action('extrachill_navigation_before_social_links'); ?>
             <li class="menu-social-links">
                 <?php include get_template_directory() . '/social-links.php'; ?>
             </li>

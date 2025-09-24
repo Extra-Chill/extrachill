@@ -28,15 +28,13 @@ The theme uses a clean, modular architecture organized in the `/inc/` directory:
 - **admin/**: Administrative functionality (customizer, contact forms, logging)
 - **community/**: Forum integration, user sync, upvotes, activity feeds
 - **core/**: Essential WordPress functionality (breadcrumbs, taxonomies, SEO)
-- **festival-wire/**: Custom post type and AJAX functionality
-- **home/**: Homepage-specific components and sections
+- **home/**: Homepage-specific components and sections (includes Festival Wire homepage ticker)
 - **woocommerce/**: E-commerce integration with performance optimization
 
 ### Custom Post Types & Taxonomies
-- **Festival Wire**: Custom post type for festival coverage (`inc/festival-wire/`)
-- **Newsletter**: Custom post type for newsletter content with specialized templates
 - **Custom Taxonomies**: Artist, Venue, Festival, Location taxonomies with REST API support
 - **Chill Events**: Event scraping system (`chill-events/data-sources/scrapers/`)
+- **Festival Wire Integration**: Homepage ticker display for Festival Wire posts (handled by ExtraChill News Wire plugin)
 
 ### Community Integration
 - **bbPress Forum Integration**: Community comments, upvotes, activity feeds (`inc/community/`)
@@ -102,10 +100,9 @@ wp rewrite flush
 
 ### Template Hierarchy
 - **Taxonomy Templates**: Custom templates for artist, venue, festival, location
-- **Festival Wire**: Specialized templates for festival coverage
-- **Newsletter System**: Custom post type templates with unique styling
 - **WooCommerce**: Custom product templates with conditional loading
 - **Page Templates**: Specialized templates in `page-templates/` directory
+- **Festival Wire**: Post type templates handled by ExtraChill News Wire plugin
 
 ## Custom Functionality
 
@@ -116,17 +113,15 @@ wp rewrite flush
 - **Data Structure**: Standardized event data format across all scrapers
 
 ### Newsletter System
-- **Custom Post Type**: Specialized newsletter content management
-- **Archive Templates**: `single-newsletter.php`, `archive-newsletter.php`
-- **Custom Styling**: Dedicated CSS file `css/archive-newsletter.css`
-- **Community Integration**: Connected to forum and user engagement features
+- **Plugin Integration**: Newsletter functionality provided by ExtraChill Newsletter Plugin
+- **Homepage Integration**: Plugin hooks into theme via `do_action('extrachill_homepage_newsletter_section')`
+- **Template Management**: All newsletter templates handled by plugin, not theme
 
-### Festival Wire
-- **Real-time Coverage**: Live festival content management system
-- **AJAX Functionality**: Dynamic content loading without page refresh
-- **Modular Components**: Content cards, tip forms, query filters
-- **File Structure**: Complete system in `inc/festival-wire/` directory
-- **Custom Templates**: `single-festival_wire.php`, `archive-festival_wire.php`
+### Festival Wire Integration
+- **Homepage Ticker**: Dynamic ticker display of latest Festival Wire posts
+- **Plugin Integration**: Festival Wire functionality provided by ExtraChill News Wire plugin
+- **Theme Support**: Homepage ticker component maintains display functionality
+- **File Location**: Homepage ticker component in `inc/home/festival-wire-ticker.php`
 
 ### Performance Features
 - **WooCommerce Optimization**: Conditional loading prevents global initialization

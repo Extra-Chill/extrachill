@@ -105,7 +105,7 @@ endif;
  * Image Size Optimization - Remove unnecessary WordPress bloat sizes
  * Removes excessive image sizes from WordPress registry to prevent generation
  * and clean up media library interface. Keeps essential sizes for theme:
- * - medium (300x300) - Content images, grids, festival wire
+ * - medium (300x300) - Content images, grids, news cards
  * - medium_large (768x0) - Featured images in content.php and sidebar
  * - large (1024x1024) - Featured images, full-width content
  * - 1536x1536 - Concert photography galleries and high-res displays
@@ -166,8 +166,6 @@ require_once(EXTRACHILL_INCLUDES_DIR . '/admin/contact-form.php');
 require_once(EXTRACHILL_INCLUDES_DIR . '/bandcamp-embeds.php');
 require_once(EXTRACHILL_INCLUDES_DIR . '/contextual-search-excerpt.php');
 require_once(EXTRACHILL_INCLUDES_DIR . '/location-filter.php');
-require_once(EXTRACHILL_INCLUDES_DIR . '/navigation-functions.php');
-require_once(EXTRACHILL_INCLUDES_DIR . '/newsletter.php');
 ('MEMORY DEBUG - After main includes: ' . round(memory_get_peak_usage(true) / 1024 / 1024, 2) . ' MB');
 
 
@@ -853,18 +851,6 @@ function extrachill_modify_default_style() {
 }
 add_action('wp_enqueue_scripts', 'extrachill_modify_default_style', 20);
 
-function enqueue_homepage_js() {
-    if (is_front_page()) {
-        $js_path = '/js/home.js';
-        wp_enqueue_script('extrachill-home', get_template_directory_uri() . $js_path, array('jquery'), filemtime(get_stylesheet_directory() . $js_path), true);
-        // Pass AJAX URL correctly as an array
-        wp_localize_script('extrachill-home', 'extrachill_ajax_object', array(
-            'ajax_url' => admin_url('admin-ajax.php')
-            // Add other data like nonces here if needed
-        ));
-    }
-}
-add_action('wp_enqueue_scripts', 'enqueue_homepage_js');
 
 function extrachill_enqueue_single_post_styles() {
     if ( is_singular('post') ) {
@@ -897,8 +883,8 @@ function extrachill_enqueue_archive_styles() {
 add_action('wp_enqueue_scripts', 'extrachill_enqueue_archive_styles', 20);
 
 function extrachill_add_full_width_body_class($classes) {
-    // Prevent full-width on newsletter archive
-    if ((is_archive() || is_search() || is_page_template('page-templates/all-posts.php')) && !is_page_template('archive-newsletter.php')) {
+    // Add full-width class to archive, search, and all-posts pages
+    if (is_archive() || is_search() || is_page_template('page-templates/all-posts.php')) {
         $classes[] = 'full-width-content';
     }
     return $classes;
@@ -940,23 +926,5 @@ add_action('admin_enqueue_scripts', 'extrachill_enqueue_admin_styles');
 
 /* WooCommerce prevention function moved to /inc/woocommerce.php */
 
-function extrachill_enqueue_newsletter_archive_styles() {
-    // Check for the newsletter post type archive or single newsletter
-    if ( is_post_type_archive('newsletter') || is_singular('newsletter') ) {
-        // Dequeue the regular archive.css if enqueued
-        wp_dequeue_style('extrachill-archive');
-        // Enqueue the newsletter-specific stylesheet from the css directory
-        $css_path = get_stylesheet_directory() . '/css/archive-newsletter.css';
-        if ( file_exists( $css_path ) ) {
-            wp_enqueue_style(
-                'extrachill-archive-newsletter',
-                get_stylesheet_directory_uri() . '/css/archive-newsletter.css',
-                array('extrachill-root', 'extrachill-style'),
-                filemtime( $css_path )
-            );
-        }
-    }
-}
-add_action('wp_enqueue_scripts', 'extrachill_enqueue_newsletter_archive_styles', 22);
 
 // CSS optimization code removed - was causing memory bloat by using file_get_contents() on every page load

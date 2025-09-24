@@ -37,6 +37,7 @@ if ( is_array( $header_user_details ) && ! empty( $header_user_details['username
                 : esc_html__( 'Join the Community', 'extrachill' ); ?>
         </a>
 
+        <!-- Newsletter archive link requires ExtraChill Newsletter Plugin -->
         <a href="<?php echo esc_url( home_url( '/newsletters/' ) ); ?>"
            class="hero-button newsletter-button">
             <?php esc_html_e( 'Newsletter', 'extrachill' ); ?>

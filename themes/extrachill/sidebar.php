@@ -36,12 +36,11 @@
 		echo '</div>';
 		echo '</div>';
 
-		// Display Recent Newsletters directly
+		// Recent newsletters shortcode provided by ExtraChill Newsletter Plugin
 		echo '<div class="sidebar-card">';
 		if ( function_exists( 'recent_newsletters_shortcode' ) ) {
 			echo recent_newsletters_shortcode();
 		} else {
-			// Optional: Provide a fallback message if the function doesn't exist
 			echo '<p>Recent newsletters are currently unavailable.</p>';
 		}
 		echo '</div>';
