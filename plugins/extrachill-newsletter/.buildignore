@@ -1,0 +1,71 @@
+# ExtraChill Newsletter Plugin Build Ignore
+# Files and directories to exclude from production ZIP
+
+# Development files
+.git/
+.github/
+.vscode/
+.DS_Store
+.buildignore
+
+# Documentation
+README.md
+CHANGELOG.md
+docs/
+
+# Build tools and scripts
+build.sh
+package.json
+package-lock.json
+composer.lock
+webpack.config.js
+gulpfile.js
+
+# Testing
+tests/
+phpunit.xml
+.phpunit.result.cache
+
+# IDE files
+*.sublime-*
+.idea/
+*.swp
+*.swo
+
+# OS generated files
+Thumbs.db
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+
+# Node modules (if any)
+node_modules/
+
+# Vendor development dependencies
+vendor/bin/
+vendor/*/tests/
+vendor/*/*/tests/
+
+# Log files
+*.log
+logs/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Backup files
+*~
+*.bak
+*.orig
+
+# Claude files
+.claude/
+CLAUDE.md
+
+# Distribution directory
+dist/

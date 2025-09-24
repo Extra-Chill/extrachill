@@ -1,0 +1,233 @@
+/**
+ * Newsletter Admin Styles
+ *
+ * Styles for the newsletter admin settings page
+ *
+ * @package ExtraChillNewsletter
+ * @since 1.0.0
+ */
+
+/* ==========================================================================
+   Settings Page Layout
+   ========================================================================== */
+
+.newsletter-connection-test {
+    background: #f1f1f1;
+    border: 1px solid #ccd0d4;
+    border-radius: 4px;
+    padding: 20px;
+    margin: 20px 0;
+}
+
+.newsletter-connection-test h3 {
+    margin-top: 0;
+    margin-bottom: 10px;
+}
+
+#connection-result {
+    margin-top: 15px;
+}
+
+#connection-result .notice {
+    margin: 0;
+}
+
+/* ==========================================================================
+   Help Section
+   ========================================================================== */
+
+.newsletter-help-section {
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 1px solid #ccd0d4;
+}
+
+.newsletter-help-section h3 {
+    color: #1d2327;
+    font-size: 18px;
+    margin-bottom: 15px;
+}
+
+.help-box {
+    background: #fff;
+    border: 1px solid #c3c4c7;
+    border-radius: 4px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 1px 1px rgba(0,0,0,0.04);
+}
+
+.help-box h4 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    color: #1d2327;
+    font-size: 16px;
+}
+
+.help-box ol,
+.help-box ul {
+    margin-bottom: 0;
+}
+
+.help-box li {
+    margin-bottom: 8px;
+    line-height: 1.5;
+}
+
+.help-box p {
+    margin-bottom: 10px;
+    line-height: 1.6;
+}
+
+/* ==========================================================================
+   Status Indicators
+   ========================================================================== */
+
+.status-indicator {
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: 3px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.status-indicator.configured {
+    background: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.status-indicator.not-configured {
+    background: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+#status-info p {
+    margin-bottom: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+#status-info strong {
+    margin-right: 10px;
+}
+
+/* ==========================================================================
+   Form Enhancements
+   ========================================================================== */
+
+.form-table th {
+    width: 200px;
+}
+
+.form-table td {
+    position: relative;
+}
+
+.form-table input[type="text"],
+.form-table input[type="email"],
+.form-table input[type="url"],
+.form-table input[type="password"] {
+    width: 400px;
+    max-width: 100%;
+}
+
+.form-table textarea {
+    width: 400px;
+    max-width: 100%;
+    resize: vertical;
+}
+
+.form-table .description {
+    font-style: italic;
+    color: #646970;
+    margin-top: 5px;
+    line-height: 1.4;
+}
+
+.form-table input[type="password"] + .description:before {
+    content: "🔒 ";
+    font-size: 12px;
+}
+
+/* ==========================================================================
+   Section Styling
+   ========================================================================== */
+
+.form-table > tbody > tr:first-of-type th,
+.form-table > tbody > tr:first-of-type td {
+    border-top: 1px solid #c3c4c7;
+    padding-top: 25px;
+}
+
+h2:not(:first-child) {
+    margin-top: 40px;
+    padding-top: 20px;
+    border-top: 1px solid #c3c4c7;
+}
+
+/* Section descriptions */
+.form-table + p {
+    margin-bottom: 20px;
+    font-style: italic;
+    color: #646970;
+}
+
+/* ==========================================================================
+   Button Styling
+   ========================================================================== */
+
+#test-connection {
+    position: relative;
+}
+
+#test-connection:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* ==========================================================================
+   Responsive Design
+   ========================================================================== */
+
+@media (max-width: 782px) {
+    .form-table th,
+    .form-table td {
+        display: block;
+        width: 100% !important;
+        padding: 10px 0;
+    }
+
+    .form-table th {
+        padding-bottom: 0;
+    }
+
+    .form-table input[type="text"],
+    .form-table input[type="email"],
+    .form-table input[type="url"],
+    .form-table input[type="password"],
+    .form-table textarea {
+        width: 100%;
+    }
+
+    .help-box {
+        padding: 15px;
+    }
+
+    .newsletter-connection-test {
+        padding: 15px;
+    }
+
+    #status-info p {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    #status-info strong {
+        margin-bottom: 5px;
+    }
+}
