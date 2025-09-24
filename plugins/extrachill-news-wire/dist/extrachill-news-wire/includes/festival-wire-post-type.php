@@ -1,6 +1,12 @@
 <?php
 /**
- * Festival Wire Custom Post Type Registration and Taxonomy setup.
+ * Festival Wire Custom Post Type Registration
+ *
+ * Registers the festival_wire custom post type with proper labels,
+ * taxonomies, and capabilities. Includes location taxonomy integration.
+ *
+ * @package ExtraChillNewsWire
+ * @since 1.0.0
  */
 
 // Exit if accessed directly.
@@ -9,10 +15,19 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Register the Festival Wire Custom Post Type.
+ * Register Festival Wire custom post type
+ *
+ * Creates festival_wire post type with full WordPress features including:
+ * - Gutenberg editor support
+ * - REST API integration
+ * - Archive and single page templates
+ * - Category, festival, and data_source taxonomies
+ *
+ * @since 1.0.0
  */
 function register_festival_wire_cpt() {
 
+	// Post type labels for admin interface
 	$labels = array(
 		        'name'                  => _x( 'Festival Wire', 'Post Type General Name', 'extrachill' ),
         'singular_name'         => _x( 'Festival Wire', 'Post Type Singular Name', 'extrachill' ),
@@ -42,12 +57,13 @@ function register_festival_wire_cpt() {
         'items_list_navigation' => __( 'Festival Wire list navigation', 'extrachill' ),
         'filter_items_list'     => __( 'Filter festival wire list', 'extrachill' ),
 	);
+	// Post type configuration
 	$args = array(
 		        'label'                 => __( 'Festival Wire', 'extrachill' ),
         'description'           => __( 'News feed for music festivals', 'extrachill' ),
 		'labels'                => $labels,
-		'supports'              => array( 'title', 'editor', 'excerpt', 'author', 'thumbnail', 'revisions', 'custom-fields' ), // Added excerpt support
-		'taxonomies'            => array( 'category', 'festival', 'data_source' ), // Updated to include festival taxonomy
+		'supports'              => array( 'title', 'editor', 'excerpt', 'author', 'thumbnail', 'revisions', 'custom-fields' ),
+		'taxonomies'            => array( 'category', 'festival', 'data_source' ),
 		'hierarchical'          => false,
 		'public'                => true,
 		'show_ui'               => true,
@@ -57,12 +73,12 @@ function register_festival_wire_cpt() {
 		'show_in_admin_bar'     => true,
 		'show_in_nav_menus'     => true,
 		'can_export'            => true,
-		'has_archive'           => true, // Enable archive page
-		'rewrite'               => array( 'slug' => 'festival-wire' ), // Custom slug
-		'exclude_from_search'   => false, // Setting to false means it *can* be searched, but we will control *where* it shows up in search via pre_get_posts
+		'has_archive'           => true,
+		'rewrite'               => array( 'slug' => 'festival-wire' ),
+		'exclude_from_search'   => false,
 		'publicly_queryable'    => true,
 		'capability_type'       => 'post',
-		'show_in_rest'          => true, // Enable Gutenberg editor support
+		'show_in_rest'          => true,
 	);
 	register_post_type( 'festival_wire', $args );
 
@@ -70,7 +86,12 @@ function register_festival_wire_cpt() {
 add_action( 'init', 'register_festival_wire_cpt', 0 );
 
 /**
- * Add the location taxonomy to the Festival Wire CPT.
+ * Add location taxonomy to Festival Wire posts
+ *
+ * Registers existing location taxonomy for use with Festival Wire posts.
+ * Location taxonomy is defined in the theme's core functionality.
+ *
+ * @since 1.0.0
  */
 function add_location_to_festival_wire() {
 	register_taxonomy_for_object_type( 'location', 'festival_wire' );

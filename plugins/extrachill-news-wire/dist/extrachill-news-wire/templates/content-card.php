@@ -1,11 +1,17 @@
 <?php
 /**
- * Template part for displaying a Festival Wire card.
- * Used in archive-festival_wire.php, single-festival_wire.php (related posts),
- * and festival-wire-ajax.php (load more).
+ * Festival Wire Content Card Template
  *
- * @package ExtraChill
- * @since 1.0
+ * Displays Festival Wire posts in card format with:
+ * - Featured image with permalink
+ * - Taxonomy badges (categories, festivals, locations)
+ * - Smart date display (relative for recent, absolute for older)
+ * - Trimmed excerpt
+ *
+ * Used by: archive pages, AJAX load-more, related posts
+ *
+ * @package ExtraChillNewsWire
+ * @since 1.0.0
  */
 ?>
 
