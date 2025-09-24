@@ -72,7 +72,7 @@ ExtraChill is a modern, performance-optimized WordPress theme designed specifica
 
 ### Local Development
 
-The theme uses a simple, build-free development approach:
+The theme supports direct file editing for development with no build step required:
 
 ```bash
 # Navigate to theme directory
@@ -92,6 +92,26 @@ define('WP_DEBUG', true);
 define('WP_DEBUG_LOG', true);
 define('SCRIPT_DEBUG', true);
 ```
+
+### Production Deployment
+
+For production deployment, use the build script to create clean ZIP packages:
+
+```bash
+# Create production-ready ZIP file
+./build.sh
+
+# Output will be in /dist/ directory:
+# - dist/extrachill/ (clean production directory)
+# - dist/extrachill.zip (deployable ZIP file)
+```
+
+#### Build Process Features
+- **File Exclusion**: Uses `.buildignore` to exclude development files
+- **Production Dependencies**: Installs production-only Composer dependencies
+- **Structure Validation**: Verifies all essential theme files are present
+- **Clean Packaging**: Creates optimized ZIP file for WordPress deployment
+- **Development Restoration**: Automatically restores dev dependencies after build
 
 ### File Structure
 
@@ -120,6 +140,7 @@ extrachill/
 2. **Include in functions.php** with proper dependencies
 3. **Add styles** in dedicated CSS file with conditional loading
 4. **Test thoroughly** with WordPress debugging enabled
+5. **For production**: Run `./build.sh` to create deployable package
 
 ### CSS Development
 
