@@ -1,9 +1,6 @@
 <?php
 /**
- * Links AJAX Handlers
- * 
- * Single responsibility: Handle all AJAX requests related to link section and item management.
- * Provides template rendering endpoints for management interface and live preview system.
+ * Links AJAX Handlers - Template rendering for link management and live preview.
  */
 
 // Register links AJAX actions using WordPress native patterns
@@ -14,18 +11,7 @@ add_action( 'wp_ajax_render_links_section_template', 'ec_ajax_render_links_secti
 add_action( 'wp_ajax_render_links_preview_template', 'ec_ajax_render_links_preview_template' );
 
 /**
- * AJAX handler for rendering link item editor template
- * 
- * Returns HTML for a single editable link item in management interface.
- * Used by JavaScript to dynamically create and update link editing forms.
- * 
- * Expected POST parameters:
- * - sidx: Section index (int)
- * - lidx: Link index within section (int) 
- * - link_data: Array containing link_text, link_url, expires_at, id
- * - expiration_enabled: Whether expiration functionality is enabled (bool)
- * 
- * @return void Sends JSON response with rendered HTML template
+ * Render link item editor template.
  * @since 1.0.0
  */
 function ec_ajax_render_link_item_editor() {

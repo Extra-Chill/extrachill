@@ -12,18 +12,10 @@ defined( 'ABSPATH' ) || exit;
 
 class ExtraChillArtistPlatform_Assets {
 
-    /**
-     * Single instance of the class
-     * 
-     * @var ExtraChillArtistPlatform_Assets|null
-     */
+    /** @var ExtraChillArtistPlatform_Assets|null */
     private static $instance = null;
 
-    /**
-     * Get single instance of the assets manager
-     * 
-     * @return ExtraChillArtistPlatform_Assets
-     */
+    /** @return ExtraChillArtistPlatform_Assets */
     public static function instance() {
         if ( null === self::$instance ) {
             self::$instance = new self();
@@ -32,21 +24,12 @@ class ExtraChillArtistPlatform_Assets {
     }
 
     /**
-     * Constructor - Initialize asset management hooks
-     * 
-     * Prevents direct instantiation and sets up WordPress hooks
-     * for frontend and admin asset loading.
+     * Constructor - Sets up WordPress hooks for frontend and admin asset loading.
      */
     private function __construct() {
         $this->init_hooks();
     }
 
-    /**
-     * Initialize WordPress hooks for asset management
-     * 
-     * Sets up enqueue actions for frontend and admin contexts,
-     * plus custom styles injection.
-     */
     private function init_hooks() {
         add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_frontend_assets' ) );
         add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_assets' ) );
@@ -179,11 +162,6 @@ class ExtraChillArtistPlatform_Assets {
         ) );
     }
 
-    /**
-     * Enqueue admin assets
-     * 
-     * Only loads on artist platform related admin pages.
-     */
     public function enqueue_admin_assets( $hook ) {
         $plugin_url = EXTRACHILL_ARTIST_PLATFORM_PLUGIN_URL;
 
@@ -206,11 +184,6 @@ class ExtraChillArtistPlatform_Assets {
         }
     }
 
-    /**
-     * Enqueue link page specific assets
-     * 
-     * Includes tracking, share modal, subscribe, and YouTube embed scripts.
-     */
     private function enqueue_link_page_assets() {
         $plugin_url = EXTRACHILL_ARTIST_PLATFORM_PLUGIN_URL;
 
@@ -275,11 +248,6 @@ class ExtraChillArtistPlatform_Assets {
         );
     }
 
-    /**
-     * Enqueue artist profile management assets
-     * 
-     * Loads tabbed interface, artist switcher, and roster management.
-     */
     private function enqueue_artist_profile_management_assets() {
         $plugin_url = EXTRACHILL_ARTIST_PLATFORM_PLUGIN_URL;
 
@@ -346,11 +314,6 @@ class ExtraChillArtistPlatform_Assets {
         );
     }
 
-    /**
-     * Enqueue link page management assets
-     * 
-     * Loads live preview system and all management modules.
-     */
     private function enqueue_link_page_management_assets() {
         $plugin_url = EXTRACHILL_ARTIST_PLATFORM_PLUGIN_URL;
 
@@ -517,10 +480,7 @@ class ExtraChillArtistPlatform_Assets {
     }
 
     /**
-     * Enqueue Google Fonts for link page management
-     * 
-     * Loads fonts dynamically based on current link page settings.
-     * Replaces inline font loading from template.
+     * Enqueue Google Fonts dynamically based on current link page settings.
      */
     private function enqueue_link_page_google_fonts() {
         // Get current artist and link page IDs
@@ -584,51 +544,41 @@ class ExtraChillArtistPlatform_Assets {
         // This removes duplication and maintains centralized control
     }
 
-    /**
-     * Check if current context is a link page
-     */
+    /** @return bool */
     private function is_link_page_context() {
         return is_singular( 'artist_link_page' ) || 
                ( isset( $_GET['artist_link_page'] ) && ! empty( $_GET['artist_link_page'] ) );
     }
 
-    /**
-     * Check if current page is manage artist profile
-     */
+    /** @return bool */
     private function is_manage_artist_profile_page() {
         return is_page() && 
                ( get_page_template_slug() === 'manage-artist-profiles.php' || 
                  strpos( get_page_template_slug(), 'manage-artist-profiles' ) !== false );
     }
 
-    /**
-     * Check if current page is manage link page
-     */
+    /** @return bool */
     private function is_manage_link_page_page() {
         return is_page() && 
                ( get_page_template_slug() === 'manage-link-page.php' || 
                  strpos( get_page_template_slug(), 'manage-link-page' ) !== false );
     }
 
-    /**
-     * Check if current page is artist directory
-     */
+    /** @return bool */
     private function is_artist_directory_page() {
         return is_page() && 
                ( get_page_template_slug() === 'artist-directory.php' || 
                  strpos( get_page_template_slug(), 'artist-directory' ) !== false );
     }
 
-    /**
-     * Check if current page is artist profile
-     */
+    /** @return bool */
     private function is_artist_profile_page() {
         return is_singular( 'artist_profile' );
     }
 
     /**
-     * Check if current page should load hero card styles
-     * Includes both artist platform home page and artist profiles archive
+     * Check if current page should load hero card styles.
+     * @return bool
      */
     private function should_load_hero_card_styles() {
         // Artist platform home page
@@ -644,9 +594,7 @@ class ExtraChillArtistPlatform_Assets {
 
 
 
-    /**
-     * Check if current page is a bbPress user profile
-     */
+    /** @return bool */
     private function is_bbpress_user_profile() {
         // Check if bbPress is active and this is a user profile page
         if ( ! function_exists( 'bbp_is_single_user' ) ) {
@@ -657,9 +605,9 @@ class ExtraChillArtistPlatform_Assets {
     }
 
     /**
-     * Check if current admin page is artist platform related
-     * 
-     * Checks post type and admin page hooks for artist platform content.
+     * Check if current admin page is artist platform related.
+     * @param string $hook
+     * @return bool
      */
     private function is_artist_platform_admin_page( $hook ) {
         global $post_type;
@@ -669,9 +617,7 @@ class ExtraChillArtistPlatform_Assets {
     }
 
     /**
-     * Localize artist profile management JavaScript data
-     * 
-     * Passes AJAX endpoints, nonces, and roster management data to frontend.
+     * Localize artist profile management JavaScript data.
      */
     private function localize_artist_profile_data() {
         $current_user_id = get_current_user_id();
@@ -710,9 +656,9 @@ class ExtraChillArtistPlatform_Assets {
     }
 
     /**
-     * Get asset version using file modification time
-     * 
-     * Uses filemtime() for cache busting, falls back to plugin version.
+     * Get asset version using filemtime() for cache busting.
+     * @param string $asset_path
+     * @return string|int
      */
     private function get_asset_version( $asset_path ) {
         $full_path = EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . $asset_path;

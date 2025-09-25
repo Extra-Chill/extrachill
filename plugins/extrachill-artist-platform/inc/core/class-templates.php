@@ -1,35 +1,19 @@
 <?php
 /**
- * ExtraChill Artist Platform Page Templates Class
- * 
- * Handles WordPress page template routing for artist platform post types and management pages.
- * Provides proper template_include and page_template overrides.
- * 
- * Note: Component templates (links, social icons, etc.) are handled by the unified
- * ec_render_template() system in inc/core/filters/templates.php
+ * Page Templates - WordPress template routing for artist platform post types.
+ * Component templates handled by ec_render_template() in inc/core/filters/templates.php
  */
 
-// IMPORTANT:
-// This class is ONLY responsible for selecting full-page templates (template_include/page_template).
-// Do not use it for rendering component partials. For components, use ec_render_template() via filters.
 
 // Exit if accessed directly
 defined( 'ABSPATH' ) || exit;
 
 class ExtraChillArtistPlatform_PageTemplates {
 
-    /**
-     * Single instance of the class
-     * 
-     * @var ExtraChillArtistPlatform_PageTemplates|null
-     */
+    /** @var ExtraChillArtistPlatform_PageTemplates|null */
     private static $instance = null;
 
-    /**
-     * Get single instance of the template handler
-     * 
-     * @return ExtraChillArtistPlatform_PageTemplates
-     */
+    /** @return ExtraChillArtistPlatform_PageTemplates */
     public static function instance() {
         if ( null === self::$instance ) {
             self::$instance = new self();
@@ -38,9 +22,7 @@ class ExtraChillArtistPlatform_PageTemplates {
     }
 
     /**
-     * Constructor - Initialize template hooks
-     * 
-     * Prevents direct instantiation and sets up template filtering.
+     * Constructor - Sets up template filtering.
      */
     private function __construct() {
         $this->init_hooks();

@@ -122,16 +122,8 @@ if (empty($single_artist_link_page_id) && isset($extrch_link_page_template_data[
 $artist_slug = isset($data['artist_profile']->post_name) ? $data['artist_profile']->post_name : '';
 $share_page_url = !empty($artist_slug) ? 'https://extrachill.link/' . $artist_slug : home_url('/'); // Fallback to home_url if slug is empty
 
-// If we're on extrachill.link and no session token exists, check if user came from management interface
-$current_host = strtolower($_SERVER['HTTP_HOST'] ?? '');
-if ($current_host === 'extrachill.link' && empty($_COOKIE['ecc_user_session_token'])) {
-    $referer = $_SERVER['HTTP_REFERER'] ?? '';
-    if (strpos($referer, 'community.extrachill.com/manage-link-page') !== false || 
-        strpos($referer, 'community.extrachill.com/manage-artist-profile') !== false) {
-        // User came from management interface but has no session token on extrachill.link
-        // This suggests they need cross-domain session synchronization
-    }
-}
+// Cross-domain authentication is now handled natively by WordPress multisite
+// No need for custom session token checks
 
 $bg_type = isset($data['css_vars']['--link-page-background-type']) ? $data['css_vars']['--link-page-background-type'] : 'color';
 

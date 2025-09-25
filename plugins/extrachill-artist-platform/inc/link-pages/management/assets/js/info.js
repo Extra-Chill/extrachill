@@ -1,7 +1,3 @@
-/**
- * Manage Link Page - Info Tab (Title, Bio) - Self-Contained
- * Handles UI and dispatches events for live preview updates.
- */
 (function() {
     'use strict';
     
@@ -21,8 +17,6 @@
     },
 
     _loadInitialValues: function() {
-        // Self-contained - no external dependencies needed
-        console.log('[Info] Using form field values directly for title and bio');
     },
 
     _attachEventListeners: function() {
@@ -39,8 +33,6 @@
         document.dispatchEvent(new CustomEvent('titleChanged', {
             detail: { title: newTitle }
         }));
-        // The actual artist_profile title update (and sync to artist_link_page post_title) happens server-side on form save.
-        // No need to update hidden input for this, as 'artist_profile_title' is part of the form.
     },
 
     _handleBioChange: function(event) {
@@ -48,12 +40,10 @@
         document.dispatchEvent(new CustomEvent('bioChanged', {
             detail: { bio: newBio }
         }));
-        // 'link_page_bio_text' is part of the form, server handles saving.
     },
 
 };
 
-// No serialization needed - form fields handle all data persistence
 
     // Listen for info tab activation
     document.addEventListener('infoTabActivated', function(event) {

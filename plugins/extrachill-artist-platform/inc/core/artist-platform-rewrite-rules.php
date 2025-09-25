@@ -13,27 +13,49 @@
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Add all artist platform rewrite rules
+ * Get all excluded slugs dynamically
+ *
+ * @return array Array of slugs to exclude from artist link page rewrite rules
  */
-function extrachill_add_rewrite_rules() {
-    // Artist link page rewrite rules - exclude CPT archives and WordPress pages
-    $excluded_slugs = array(
+function extrachill_get_excluded_slugs() {
+    // Get all published WordPress pages dynamically
+    $pages = get_posts(array(
+        'post_type' => 'page',
+        'post_status' => 'publish',
+        'numberposts' => -1,
+        'fields' => 'ids'
+    ));
+
+    $page_slugs = array();
+    foreach ($pages as $page_id) {
+        $slug = get_post_field('post_name', $page_id);
+        if ($slug) {
+            $page_slugs[] = $slug;
+        }
+    }
+
+    // Keep critical hardcoded exclusions for non-page URLs and plugin paths
+    $static_exclusions = array(
         'artists',          // Artist profiles archive
         'manage-artist-profiles',
         'manage-link-page',
-        'artist-directory', 
+        'artist-directory',
         'artist-platform',  // Artist platform homepage
-        'settings',
-        'notifications',
-        'login',
-        'register',
         'wp-login',
         'wp-admin',
-        'admin',
-        'recent',           // Recent activity feed
-        'all-users'         // All users page
+        'admin'
     );
-    
+
+    return array_merge($static_exclusions, $page_slugs);
+}
+
+/**
+ * Add all artist platform rewrite rules
+ */
+function extrachill_add_rewrite_rules() {
+    // Artist link page rewrite rules - dynamically exclude all WordPress pages
+    $excluded_slugs = extrachill_get_excluded_slugs();
+
     $excluded_pattern = '(?!' . implode('|', $excluded_slugs) . ')';
     add_rewrite_rule( '^' . $excluded_pattern . '([^/]+)/?$', 'index.php?artist_link_page=$matches[1]', 'top' );
     add_rewrite_tag( '%artist_link_page%', '([^&]+)' );

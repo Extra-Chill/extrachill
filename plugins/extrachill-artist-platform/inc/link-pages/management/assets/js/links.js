@@ -1,9 +1,5 @@
 /**
- * Link Sections Management Module
- * 
- * Handles link section and item management with drag-and-drop functionality.
- * Uses event-driven architecture to communicate with preview modules.
- * Follows IIFE pattern for module isolation.
+ * Link Sections Management - drag-and-drop functionality with event-driven preview communication.
  */
 (function() {
     'use strict';
@@ -12,18 +8,9 @@
     let initialized = false;
     let clickHandler = null;
     
-    // ============================================================================
-    // AJAX TEMPLATE FUNCTIONS
-    // Pure functions for template rendering - no direct DOM manipulation
-    // ============================================================================
     
     /**
-     * Render link item editor template via AJAX
-     * 
-     * @param {number} sectionIndex Section index
-     * @param {number} linkIndex Link index within section
-     * @param {Object} linkData Link data object with text, URL, etc.
-     * @returns {Promise<string|null>} Rendered HTML template or null on error
+     * Complex AJAX template rendering with nonce verification and error handling.
      */
     async function renderLinkItemTemplate(sectionIndex, linkIndex, linkData = {}) {
         const linkPageId = sectionsListEl?.dataset.linkPageId;

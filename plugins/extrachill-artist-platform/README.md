@@ -45,8 +45,8 @@ A comprehensive WordPress plugin that provides artist profile management, link p
 - Role-based artist profile management with granular permissions
 - Server-side permission validation with context-aware checks
 - AJAX permission validation with comprehensive nonce verification
-- Cross-domain session management with secure token system
-- Template-level permission checks without client-side API dependencies
+- WordPress multisite integration for cross-domain authentication (legacy session tokens maintained for compatibility)
+- Template-level permission checks using native WordPress authentication
 
 ## Requirements
 

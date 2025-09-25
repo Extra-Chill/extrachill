@@ -1,12 +1,17 @@
 # Cross-Domain Authentication System
 
+## Current Status: Multisite Migration
+
+**IMPORTANT**: This documentation describes the legacy session token system that is being replaced by WordPress multisite native authentication.
+
+### Current Architecture (WordPress Multisite)
+WordPress multisite now provides native cross-domain authentication across all `.extrachill.com` subdomains, eliminating the need for custom session tokens in most use cases.
+
+### Legacy System (Maintained for Compatibility)
 Secure session-based authentication system enabling seamless access across `.extrachill.com` subdomains with server-side validation.
 
-## System Architecture
-
-### Session Token System
-
-The authentication system uses secure session tokens to maintain user sessions across subdomains without relying on client-side cookies or API calls.
+#### Session Token System (Legacy)
+The legacy authentication system uses secure session tokens to maintain user sessions across subdomains without relying on client-side cookies or API calls.
 
 ### Domain Coverage
 

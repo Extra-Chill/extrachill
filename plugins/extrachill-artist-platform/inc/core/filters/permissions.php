@@ -6,13 +6,6 @@
  * Replaces scattered permission checks throughout the codebase.
  */
 
-/**
- * Check if a user can manage a specific artist
- * 
- * @param int $user_id User ID to check
- * @param int $artist_id Artist profile ID
- * @return bool True if user can manage the artist
- */
 function ec_can_manage_artist( $user_id = null, $artist_id = null ) {
     if ( ! $user_id ) {
         $user_id = get_current_user_id();
@@ -37,12 +30,6 @@ function ec_can_manage_artist( $user_id = null, $artist_id = null ) {
 }
 
 
-/**
- * AJAX-specific permission helper: Can manage artist based on POST data
- * 
- * @param array $post_data POST data from AJAX request
- * @return bool True if user can manage the artist
- */
 function ec_ajax_can_manage_artist( $post_data ) {
     $artist_id = isset( $post_data['artist_id'] ) ? (int) $post_data['artist_id'] : 0;
     if ( ! $artist_id ) {
@@ -52,12 +39,6 @@ function ec_ajax_can_manage_artist( $post_data ) {
     return ec_can_manage_artist( get_current_user_id(), $artist_id );
 }
 
-/**
- * AJAX-specific permission helper: Can manage link page based on POST data
- * 
- * @param array $post_data POST data from AJAX request
- * @return bool True if user can manage the link page
- */
 function ec_ajax_can_manage_link_page( $post_data ) {
     $link_page_id = isset( $post_data['link_page_id'] ) ? (int) $post_data['link_page_id'] : 0;
     if ( ! $link_page_id ) {
@@ -72,32 +53,14 @@ function ec_ajax_can_manage_link_page( $post_data ) {
     return ec_can_manage_artist( get_current_user_id(), $artist_id );
 }
 
-/**
- * AJAX-specific permission helper: Admin capabilities
- * 
- * @param array $post_data POST data from AJAX request
- * @return bool True if user has admin capabilities
- */
 function ec_ajax_is_admin( $post_data ) {
     return current_user_can( 'manage_options' );
 }
 
-/**
- * AJAX-specific permission helper: Can create artist profiles
- * 
- * @param array $post_data POST data from AJAX request
- * @return bool True if user can create artist profiles
- */
 function ec_ajax_can_create_artists( $post_data ) {
     return ec_can_create_artist_profiles( get_current_user_id() );
 }
 
-/**
- * Check if user can create artist profiles
- * 
- * @param int $user_id User ID to check
- * @return bool True if user can create artist profiles
- */
 function ec_can_create_artist_profiles( $user_id = null ) {
     if ( ! $user_id ) {
         $user_id = get_current_user_id();
@@ -114,13 +77,7 @@ function ec_can_create_artist_profiles( $user_id = null ) {
 }
 
 /**
- * Get all artist profiles accessible to a user
- * 
- * Admin users get access to all published artist profiles.
- * Regular users get access to their assigned artist profiles only.
- * 
- * @param int $user_id User ID to check (defaults to current user)
- * @return array Array of artist profile IDs the user can access
+ * Admin users get all profiles, regular users get only assigned profiles.
  */
 function ec_get_user_accessible_artists( $user_id = null ) {
     if ( ! $user_id ) {
@@ -162,15 +119,7 @@ function ec_get_user_accessible_artists( $user_id = null ) {
 }
 
 /**
- * Get artist profiles owned by a user
- * 
- * Unlike ec_get_user_accessible_artists(), this function returns only the artist 
- * profiles that actually belong to the user (from _artist_profile_ids meta), 
- * regardless of admin capabilities. Use this for personal/ownership contexts
- * like avatar menus and profile counts.
- * 
- * @param int $user_id User ID to check (defaults to current user)
- * @return array Array of artist profile IDs owned by the user
+ * Unlike ec_get_user_accessible_artists(), ignores admin capabilities.
  */
 function ec_get_user_owned_artists( $user_id = null ) {
     if ( ! $user_id ) {
@@ -200,13 +149,7 @@ function ec_get_user_owned_artists( $user_id = null ) {
 }
 
 /**
- * Central capability filter that grants all necessary permissions based on artist membership
- * 
- * @param array   $allcaps An array of all the user's capabilities
- * @param array   $caps    Array of capabilities being checked
- * @param array   $args    Context for the capability check
- * @param WP_User $user    The user object
- * @return array Filtered array of the user's capabilities
+ * Central capability filter grants permissions based on artist membership.
  */
 function ec_filter_user_capabilities( $allcaps, $caps, $args, $user ) {
     $user_id = $user->ID;

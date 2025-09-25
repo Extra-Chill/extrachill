@@ -1,7 +1,6 @@
 (function() {
     'use strict';
 
-    // --- DOM Elements ---
     let buttonColorInput = null;
     let textColorInput = null;
     let linkTextColorInput = null;
@@ -17,7 +16,6 @@
     }
 
     function loadInitialColorValues() {
-        // Initial values are loaded from PHP into form inputs directly
         // Self-contained module - no dependency on centralized abstractions
         console.log('[Colors] Self-contained module ready - using form input values directly');
     }

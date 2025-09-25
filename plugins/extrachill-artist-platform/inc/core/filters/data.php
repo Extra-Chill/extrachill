@@ -7,28 +7,10 @@
  */
 
 
-/**
- * Get all artist profile IDs for a user (published only)
- * 
- * Uses the centralized ec_get_user_owned_artists() function to ensure
- * only the user's owned artist profiles are returned.
- * 
- * @param int|null $user_id User ID (defaults to current user if null)
- * @return array Array of published artist profile IDs owned by the user
- */
 function ec_get_user_artist_ids( $user_id = null ) {
     return ec_get_user_owned_artists( $user_id );
 }
 
-/**
- * Get the forum ID associated with an artist profile
- * 
- * Retrieves the bbPress forum ID that's associated with the given
- * artist profile for forum integration functionality.
- * 
- * @param int $artist_id Artist profile post ID
- * @return int|false Forum ID or false if not found
- */
 function ec_get_forum_for_artist( $artist_id ) {
     if ( ! $artist_id || get_post_type( $artist_id ) !== 'artist_profile' ) {
         return false;
@@ -38,16 +20,6 @@ function ec_get_forum_for_artist( $artist_id ) {
     return $forum_id ? (int) $forum_id : false;
 }
 
-/**
- * Check if a user is a member of a specific artist profile
- * 
- * Determines if a user has membership/ownership rights to manage
- * a specific artist profile and its associated content.
- * 
- * @param int|null $user_id User ID (defaults to current user if null)
- * @param int|null $artist_id Artist profile ID
- * @return bool True if user is a member, false otherwise
- */
 function ec_is_user_artist_member( $user_id = null, $artist_id = null ) {
     if ( ! $user_id ) {
         $user_id = get_current_user_id();
@@ -61,15 +33,6 @@ function ec_is_user_artist_member( $user_id = null, $artist_id = null ) {
     return in_array( (int) $artist_id, $user_artist_ids );
 }
 
-/**
- * Get all followed artist profile IDs for a user
- * 
- * Retrieves the list of artist profiles that a user is following
- * for content updates and notifications.
- * 
- * @param int|null $user_id User ID (defaults to current user if null)
- * @return array Array of followed artist profile IDs
- */
 function ec_get_user_followed_artists( $user_id = null ) {
     if ( ! $user_id ) {
         $user_id = get_current_user_id();
@@ -87,16 +50,6 @@ function ec_get_user_followed_artists( $user_id = null ) {
     return array_map( 'intval', $followed_ids );
 }
 
-/**
- * Check if a user is following a specific artist
- * 
- * Determines if a user is currently following an artist profile
- * for updates and notification purposes.
- * 
- * @param int|null $user_id User ID (defaults to current user if null)
- * @param int|null $artist_id Artist profile ID
- * @return bool True if user is following the artist, false otherwise
- */
 function ec_is_user_following_artist( $user_id = null, $artist_id = null ) {
     if ( ! $user_id ) {
         $user_id = get_current_user_id();
@@ -110,15 +63,6 @@ function ec_is_user_following_artist( $user_id = null, $artist_id = null ) {
     return in_array( (int) $artist_id, $followed_artists );
 }
 
-/**
- * Get the link page ID associated with an artist profile
- * 
- * Finds the artist_link_page post that's associated with the given
- * artist profile via the _associated_artist_profile_id meta.
- * 
- * @param int $artist_id Artist profile post ID
- * @return int|false Link page ID or false if not found
- */
 function ec_get_link_page_for_artist( $artist_id ) {
     if ( ! $artist_id || get_post_type( $artist_id ) !== 'artist_profile' ) {
         return false;
@@ -136,15 +80,6 @@ function ec_get_link_page_for_artist( $artist_id ) {
     return ! empty( $link_pages ) ? (int) $link_pages[0] : false;
 }
 
-/**
- * Get all artist profiles for current user
- * 
- * Returns full WP_Post objects for all published artist profiles
- * owned by the specified user. Uses ec_get_user_artist_ids() for IDs.
- * 
- * @param int|null $user_id User ID (defaults to current user if null)
- * @return array Array of WP_Post objects for artist profiles
- */
 function ec_get_user_artist_profiles( $user_id = null ) {
     if ( ! $user_id ) {
         $user_id = get_current_user_id();
@@ -168,17 +103,7 @@ function ec_get_user_artist_profiles( $user_id = null ) {
 }
 
 /**
- * Get all subscribers for an artist profile
- * 
- * Retrieves subscriber data from the artist_subscribers database table
- * with support for pagination and export filtering.
- * 
- * @param int $artist_id Artist profile post ID
- * @param array $args Optional arguments:
- *   - per_page: Results per page (default: 20)
- *   - page: Page number (default: 1)
- *   - include_exported: Include exported subscribers (default: false)
- * @return array Array of subscriber database rows
+ * Complex database query for paginated subscriber data with filtering.
  */
 function ec_get_artist_subscribers( $artist_id, $args = array() ) {
     global $wpdb;
@@ -439,14 +364,7 @@ function ec_get_link_page_data( $artist_id, $link_page_id = null, $overrides = a
 }
 
 /**
- * Generate CSS variables style block for link page styling
- * 
- * Creates a complete <style> element with CSS custom properties from
- * the provided variables array. Used throughout templates and previews.
- * 
- * @param array $css_vars CSS variables array with --variable-name keys
- * @param string $element_id CSS style element ID for targeting
- * @return string Generated CSS style block HTML
+ * Generates CSS style block with security considerations for CSS value handling.
  */
 function ec_generate_css_variables_style_block( $css_vars, $element_id = 'link-page-custom-vars' ) {
     if ( empty( $css_vars ) || ! is_array( $css_vars ) ) {
@@ -468,53 +386,16 @@ function ec_generate_css_variables_style_block( $css_vars, $element_id = 'link-p
     return $output;
 }
 
-/**
- * Render artist switcher component documentation
- * 
- * NOTE: This is documentation-only. Actual rendering is handled by
- * the unified template system via ec_render_template('artist-switcher', $args).
- * 
- * @param array $args Template arguments for the switcher:
- *   - switcher_id: HTML element ID for the select element
- *   - base_url: URL to redirect to when switching artists  
- *   - current_artist_id: Currently selected artist ID
- *   - user_id: User ID to get artist list for
- *   - css_class: Additional CSS classes for styling
- *   - label_text: Select option label text
- * @return string Rendered HTML (via ec_render_template)
- */
-
-/**
- * Render a single link using unified template system
- * 
- * @param array $link_data Link data with 'link_url' and 'link_text' keys
- * @param array $args Additional template arguments
- * @return string Rendered HTML
- */
 function ec_render_single_link( $link_data, $args = array() ) {
     $template_args = array_merge( $args, $link_data );
     return ec_render_template( 'single-link', $template_args );
 }
 
-/**
- * Render a complete link section using unified template system
- * 
- * @param array $section_data Section data with 'section_title' and 'links' keys
- * @param array $args Additional template arguments
- * @return string Rendered HTML
- */
 function ec_render_link_section( $section_data, $args = array() ) {
     $template_args = array_merge( $args, $section_data );
     return ec_render_template( 'link-section', $template_args );
 }
 
-/**
- * Render a single social icon using unified template system
- * 
- * @param array $social_data Social data with 'url' and 'type' keys
- * @param object $social_manager Optional social links manager instance
- * @return string Rendered HTML
- */
 function ec_render_social_icon( $social_data, $social_manager = null ) {
     $template_args = array(
         'social_data' => $social_data,
@@ -523,14 +404,6 @@ function ec_render_social_icon( $social_data, $social_manager = null ) {
     return ec_render_template( 'social-icon', $template_args );
 }
 
-/**
- * Render a container with multiple social icons using unified template system
- * 
- * @param array $social_links Array of social link data
- * @param string $position Position class ('above' or 'below')
- * @param object $social_manager Optional social links manager instance
- * @return string Rendered HTML
- */
 function ec_render_social_icons_container( $social_links, $position = 'above', $social_manager = null ) {
     $template_args = array(
         'social_links' => $social_links,

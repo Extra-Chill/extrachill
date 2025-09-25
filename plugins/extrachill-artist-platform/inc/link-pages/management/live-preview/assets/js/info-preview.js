@@ -1,8 +1,7 @@
-// Info Preview Module - Handles live preview updates for text content (title, bio)
+// Info Preview - Handles title/bio live preview updates
 (function() {
     'use strict';
     
-    // Update preview title - Direct DOM manipulation
     function updatePreviewTitle(newTitle, previewEl) {
         if (!previewEl) return;
         const titleElement = previewEl.querySelector('.extrch-link-page-title');
@@ -11,7 +10,6 @@
         }
     }
 
-    // Update preview bio - Direct DOM manipulation  
     function updatePreviewBio(newBio, previewEl) {
         if (!previewEl) return;
         const bioElement = previewEl.querySelector('.extrch-link-page-bio');
@@ -21,7 +19,6 @@
     }
 
 
-    // Event listeners for info updates from management forms
     document.addEventListener('titleChanged', function(e) {
         const previewContainerParent = document.querySelector('.manage-link-page-preview-live'); const previewEl = previewContainerParent?.querySelector('.extrch-link-page-preview-container');
         if (e.detail && e.detail.title && previewEl) {
@@ -37,6 +34,5 @@
     });
 
 
-    // Self-contained module - no global exposure needed
 
 })();

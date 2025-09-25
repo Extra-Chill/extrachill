@@ -37,18 +37,8 @@ if ( ! defined( 'EXTRCH_LINKPAGE_DEV' ) ) {
  */
 class ExtraChillArtistPlatform {
 
-    /**
-     * Single instance of the plugin
-     * 
-     * @var ExtraChillArtistPlatform|null
-     */
     private static $instance = null;
 
-    /**
-     * Get single instance of the plugin
-     * 
-     * @return ExtraChillArtistPlatform
-     */
     public static function instance() {
         if ( null === self::$instance ) {
             self::$instance = new self();
@@ -56,12 +46,6 @@ class ExtraChillArtistPlatform {
         return self::$instance;
     }
 
-    /**
-     * Constructor - Initialize hooks and load post types
-     * 
-     * Prevents direct instantiation and loads post types early
-     * to ensure functions exist before hooks fire.
-     */
     private function __construct() {
         // Load post types early to ensure functions exist before hooks fire
         require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/core/artist-platform-post-types.php';
@@ -69,11 +53,6 @@ class ExtraChillArtistPlatform {
         $this->init_hooks();
     }
 
-    /**
-     * Check plugin dependencies
-     * 
-     * @return bool True if all dependencies are met, false otherwise
-     */
     private function check_dependencies() {
         $errors = array();
         
@@ -99,9 +78,6 @@ class ExtraChillArtistPlatform {
         return true;
     }
 
-    /**
-     * Initialize hooks and actions
-     */
     private function init_hooks() {
         // Check dependencies before initializing
         if ( ! $this->check_dependencies() ) {
@@ -116,17 +92,11 @@ class ExtraChillArtistPlatform {
         register_deactivation_hook( __FILE__, array( $this, 'deactivate' ) );
     }
 
-    /**
-     * Initialize the plugin
-     */
     public function init() {
         // Load plugin includes
         $this->load_includes();
     }
 
-    /**
-     * Load plugin text domain for translations
-     */
     public function load_textdomain() {
         load_plugin_textdomain( 
             'extrachill-artist-platform', 
@@ -213,6 +183,7 @@ class ExtraChillArtistPlatform {
         require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/core/actions/sync.php';
         require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/core/actions/delete.php';
         require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/core/actions/join-flow.php';
+        require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/core/actions/homepage-hooks.php';
         
         // Data Helper Functions
         require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/core/filters/data.php';
@@ -228,9 +199,7 @@ class ExtraChillArtistPlatform {
     }
 
     /**
-     * Plugin activation
-     * 
-     * Flushes rewrite rules and sets activation flag.
+     * Plugin activation - flushes rewrite rules and sets activation flag.
      */
     public static function activate() {
         // Flush rewrite rules to register custom rewrite rules
@@ -241,11 +210,6 @@ class ExtraChillArtistPlatform {
         update_option( 'extrachill_artist_platform_activated', true );
     }
 
-    /**
-     * Plugin deactivation
-     * 
-     * Flushes rewrite rules and removes activation flag.
-     */
     public static function deactivate() {
         // Flush rewrite rules
         flush_rewrite_rules();

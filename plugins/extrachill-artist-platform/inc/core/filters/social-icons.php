@@ -11,24 +11,12 @@ defined( 'ABSPATH' ) || exit;
 
 class ExtraChillArtistPlatform_SocialLinks {
 
-    /**
-     * Single instance of the class
-     */
     private static $instance = null;
 
-    /**
-     * Meta key for storing artist social links
-     */
     const META_KEY = '_artist_profile_social_links';
 
-    /**
-     * Supported social link types
-     */
     private $supported_types = null;
 
-    /**
-     * Get single instance
-     */
     public static function instance() {
         if ( null === self::$instance ) {
             self::$instance = new self();
@@ -36,18 +24,14 @@ class ExtraChillArtistPlatform_SocialLinks {
         return self::$instance;
     }
 
-    /**
-     * Constructor
-     * 
-     * @since 1.1.0
-     */
     private function __construct() {
         add_action( 'init', array( $this, 'init_hooks' ) );
     }
 
     /**
-     * Initialize WordPress hooks
-     * 
+     * Initialize WordPress hooks for social functionality.
+     */
+    public function init_hooks() {
      * @since 1.1.0
      */
     public function init_hooks() {

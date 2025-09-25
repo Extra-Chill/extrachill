@@ -469,10 +469,9 @@ add_action( 'manage_users_custom_column', 'bp_display_user_artist_memberships_co
  * @param WP_User $user The user object being edited.
  */
 function bp_show_artist_membership_fields( $user ) {
-    // Only show this section for users with capability to edit others (e.g., Admins)
-    // or maybe specific roles. Prevents regular users seeing it on their own profile.
-    // For simplicity, let's restrict to users who can edit other users.
-    if ( ! current_user_can( 'edit_users' ) ) {
+    // Show for users who can edit others OR when editing their own profile
+    // This allows admins to manage other users' relationships and users to manage their own
+    if ( ! current_user_can( 'edit_users' ) && ! current_user_can( 'edit_user', $user->ID ) ) {
         return;
     }
 
@@ -522,8 +521,8 @@ function bp_show_artist_membership_fields( $user ) {
 }
 // Add fields to user edit screen (for admins editing others)
 add_action( 'edit_user_profile', 'bp_show_artist_membership_fields' );
-// Optionally add to own profile screen (if needed, maybe read-only or restricted)
-// add_action( 'show_user_profile', 'bp_show_artist_membership_fields' ); 
+// Add to own profile screen so users can manage their own artist relationships
+add_action( 'show_user_profile', 'bp_show_artist_membership_fields' ); 
 
 /**
  * Saves the artist membership data from the user profile edit screen.
@@ -542,9 +541,19 @@ function bp_save_user_artist_memberships( $user_id ) {
     if ( ! is_array( $current_artist_ids ) ) {
         $current_artist_ids = array();
     }
-    // Detect newly added artists
+
+    // Handle removed artists using proper bidirectional function
+    $removed_artist_ids = array_diff( $current_artist_ids, $submitted_artist_ids );
+    foreach ( $removed_artist_ids as $artist_id ) {
+        bp_remove_artist_membership( $user_id, $artist_id );
+    }
+
+    // Handle added artists using proper bidirectional function
     $new_artist_ids = array_diff( $submitted_artist_ids, $current_artist_ids );
-    update_user_meta( $user_id, '_artist_profile_ids', $submitted_artist_ids );
+    foreach ( $new_artist_ids as $artist_id ) {
+        bp_add_artist_membership( $user_id, $artist_id );
+    }
+
     // Send admin notification for each new artist
     if ( ! empty( $new_artist_ids ) ) {
         foreach ( $new_artist_ids as $artist_id ) {

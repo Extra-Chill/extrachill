@@ -36,12 +36,13 @@ WordPress plugin providing comprehensive artist platform functionality for the E
 - **Component Templates**: `inc/link-pages/management/templates/components/` - Modular UI components
 - **Subscription Templates**: `inc/link-pages/templates/` - Email collection forms and modals
 
-#### Cross-Domain Authentication  
+#### Cross-Domain Authentication
 **File**: `inc/link-pages/live/link-page-session-validation.php`
-- Session token system for `.extrachill.com` domain
-- Auto-login across subdomains using secure cookies
+- **Legacy System**: Session token system for `.extrachill.com` domain (maintained for compatibility)
+- **Current Architecture**: WordPress multisite provides native cross-domain authentication
+- Auto-login across subdomains using WordPress native multisite user sessions
 - Server-side session validation with template-level permission checks
-- 6-month token expiration with cleanup
+- **Migration Status**: Transitioning from custom session tokens to native WordPress multisite authentication
 
 #### Forum Integration
 **Files**: `inc/artist-profiles/artist-forums.php`, `inc/artist-profiles/artist-forum-section-overrides.php`
@@ -408,11 +409,33 @@ document.addEventListener('backgroundChanged', function(e) {
 - **Context-Aware Loading**: Asset management with conditional enqueuing based on page context
 - **Artist Context Switching**: Seamless multi-artist management with state preservation
 
-#### Save System Data Flow
-1. **JavaScript modules** serialize complex data structures to hidden form inputs
-2. **Form submission** triggers `admin_post_ec_save_link_page` handler
-3. **Security validation**: Nonce verification and permission checks
-4. **Data preparation**: `ec_prepare_link_page_save_data()` sanitizes and validates all inputs
-5. **Save execution**: `ec_handle_link_page_save()` processes meta updates and file uploads
-6. **Sync trigger**: Action hooks trigger cross-system data synchronization
-7. **Redirect**: User returned to management interface with success feedback
+ #### Save System Data Flow
+ 1. **JavaScript modules** serialize complex data structures to hidden form inputs
+ 2. **Form submission** triggers `admin_post_ec_save_link_page` handler
+ 3. **Security validation**: Nonce verification and permission checks
+ 4. **Data preparation**: `ec_prepare_link_page_save_data()` sanitizes and validates all inputs
+ 5. **Save execution**: `ec_handle_link_page_save()` processes meta updates and file uploads
+ 6. **Sync trigger**: Action hooks trigger cross-system data synchronization
+ 7. **Redirect**: User returned to management interface with success feedback
+
+ ### FORBIDDEN FALLBACK TYPES
+ - Placeholder fallbacks for undefined data that should be required
+ - Legacy fallbacks for removed functionality
+ - Fallbacks that prevent code failure or hide broken functionality
+ - Fallbacks that provide dual support for multiple methods
+
+ ### Planning Standards (Plan Mode)
+ - Create a specific and refined plan outlining all explicit changes exactly as they will be implemented
+ - Plans must explicitly identify which files and functions to modify, create, or delete
+ - When writing todos, always include excessive detail, intermediary steps, and files to modify/create
+ - Plans MUST align with existing codebase patterns
+ - All code review should be completed before you present the plan
+
+ ### Special Rules
+ - All AI models in the codebase are correct. Do not change them.
+ - Verify all API documentation using the context7 mcp
+
+ ### Documentation Standards
+ - Use concise inline docblocks at the top of files and/or critical functions to explain technicalities for developers
+ - Inline comments are reserved strictly for nuanced behavior that is not obvious from the readable code
+ - Actively remove outdated documentation, including references to deleted functionality
