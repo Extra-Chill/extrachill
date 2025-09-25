@@ -13,12 +13,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 // Get Turnstile site key from options
 $turnstile_site_key = get_option( 'ec_turnstile_site_key' );
 
-// Check if user is a community member
-$is_community_member = false;
-if ( isset( $_COOKIE['ecc_user_session_token'] ) ) {
-	$user_details = get_user_details_directly( sanitize_text_field( $_COOKIE['ecc_user_session_token'] ) );
-	$is_community_member = ! empty( $user_details['username'] );
-}
+// Check if user is a community member via WordPress native authentication
+$is_community_member = is_user_logged_in();
 ?>
 
 <form id="festival-wire-tip-form" class="festival-wire-tip-form" method="post" action="" autocomplete="off" data-community-member="<?php echo $is_community_member ? 'true' : 'false'; ?>">

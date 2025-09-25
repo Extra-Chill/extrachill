@@ -38,7 +38,6 @@
 			}
 		}
 
-		// Get festival taxonomy terms
 		$festivals = get_the_terms(get_the_ID(), 'festival');
 		if ($festivals && !is_wp_error($festivals)) {
 			foreach ($festivals as $festival) {
@@ -72,8 +71,8 @@
 
 		<div class="entry-meta">
 			<?php
-			$post_time_u = get_the_time('U'); // Get post time as Unix timestamp
-			$current_time_u = current_time('timestamp'); // Get current time as Unix timestamp
+			$post_time_u = get_the_time('U');
+			$current_time_u = current_time('timestamp');
 			$time_diff_seconds = $current_time_u - $post_time_u;
 
 			// Define threshold (e.g., 24 hours)

@@ -124,12 +124,16 @@ function process_festival_wire_tip_submission() {
 		wp_send_json_error( array( 'message' => 'Please wait before submitting another tip.' ) );
 	}
 	
-	// Community member detection via session cookie
-	$is_community_member = false;
+	// Community member detection via WordPress native authentication
+	$is_community_member = is_user_logged_in();
 	$user_details = null;
-	if ( isset( $_COOKIE['ecc_user_session_token'] ) ) {
-		$user_details = get_user_details_directly( sanitize_text_field( $_COOKIE['ecc_user_session_token'] ) );
-		$is_community_member = ! empty( $user_details['username'] );
+	if ( $is_community_member ) {
+		$user = wp_get_current_user();
+		$user_details = array(
+			'username' => $user->user_nicename,
+			'email' => $user->user_email,
+			'userID' => $user->ID,
+		);
 	}
 	
 	// Input validation and sanitization

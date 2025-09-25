@@ -275,7 +275,6 @@ function festival_wire_migration_admin_page() {
 		}
 	}
 
-	// Get Festival Wire post count for display
 	global $wpdb;
 	$festival_wire_count = $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_type = 'festival_wire'");
 	?>
@@ -364,7 +363,6 @@ function festival_wire_perform_tag_to_festival_migration() {
 			$festival_term = wp_insert_term($tag->name, 'festival', array('slug' => $tag->slug));
 		}
 		$festival_term_id = is_array($festival_term) ? $festival_term['term_id'] : $festival_term;
-		// Get all posts (any type) with this tag
 		$post_ids = $wpdb->get_col($wpdb->prepare(
 			"SELECT tr.object_id FROM {$wpdb->term_relationships} tr WHERE tr.term_taxonomy_id = %d",
 			$tt_id
@@ -411,7 +409,6 @@ function festival_wire_perform_author_migration($new_author_id) {
 		return $report;
 	}
 
-	// Get current count of Festival Wire posts
 	$total_posts = $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_type = 'festival_wire'");
 
 	if ($total_posts == 0) {

@@ -139,43 +139,8 @@
             });
         }
 
-        // Dynamic email field visibility (in case cookie state changes)
-        function updateEmailFieldVisibility() {
-            const hasCommunityToken = getCookie('ecc_user_session_token');
-            const emailContainer = form.find('.email-field-container');
-            const communityNote = form.find('.community-member-note');
-            const emailField = form.find('#festival-wire-tip-email');
-            
-            if (hasCommunityToken) {
-                emailContainer.hide();
-                emailField.prop('required', false);
-                communityNote.show();
-                form.data('community-member', true);
-            } else {
-                emailContainer.show();
-                emailField.prop('required', true);
-                communityNote.hide();
-                form.data('community-member', false);
-            }
-        }
-
-        // Check for cookie changes periodically
-        let lastCommunityTokenState = getCookie('ecc_user_session_token') ? true : false;
-        setInterval(function() {
-            const currentState = getCookie('ecc_user_session_token') ? true : false;
-            if (currentState !== lastCommunityTokenState) {
-                updateEmailFieldVisibility();
-                lastCommunityTokenState = currentState;
-            }
-        }, 1000);
-
-        // Helper function to get cookie value
-        function getCookie(name) {
-            const value = "; " + document.cookie;
-            const parts = value.split("; " + name + "=");
-            if (parts.length === 2) return parts.pop().split(";").shift();
-            return null;
-        }
+        // Form visibility is now determined server-side via WordPress authentication
+        // No need for dynamic cookie checking since WordPress manages authentication state
 
         form.on('submit', function(e) {
             e.preventDefault();
