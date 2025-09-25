@@ -67,8 +67,7 @@ if ( bbp_is_single_forum() && bbp_has_forums( array( 'post_parent' => bbp_get_fo
 
         <!-- Bottom Action Buttons -->
         <div class="homepage-bottom-actions">
-            <a href="/artists/extra-chill" class="button support-forum-btn">Support Forum</a>
-            <a href="/artist-platform" class="button artist-platform-btn">Artist Platform</a>
+            <?php do_action( 'extrachill_below_forums' ); ?>
         </div>
     </div>
 

@@ -12,37 +12,7 @@
  * Restrict wp-admin access to administrators only
  */
 function extrachill_redirect_admin() {
-    // Primary: Check WordPress native authentication first
-    if (is_user_logged_in() && current_user_can('administrator')) {
-        return; // Admin authenticated via WordPress - allow access
-    }
-    
-    // Fallback: Only if NOT logged in, check session token authentication
-    if (!is_user_logged_in() && isset($_COOKIE['ecc_user_session_token'])) {
-        global $wpdb;
-        $token = $_COOKIE['ecc_user_session_token'];
-        $table_name = $wpdb->prefix . 'user_session_tokens';
-        
-        // Get user ID from valid session token
-        $user_id = $wpdb->get_var($wpdb->prepare(
-            "SELECT user_id FROM {$table_name} WHERE token = %s AND expiration > NOW()",
-            $token
-        ));
-        
-        if ($user_id) {
-            $user = get_user_by('id', $user_id);
-            if ($user && in_array('administrator', $user->roles)) {
-                // Only set auth cookies if user is NOT already logged in
-                if (!is_user_logged_in()) {
-                    wp_set_current_user($user_id);
-                    wp_set_auth_cookie($user_id, true);
-                }
-                return;
-            }
-        }
-    }
-    
-    // Final check: If still not admin after both authentication methods, restrict access
+    // WordPress multisite handles authentication natively - simple admin check
     if (!current_user_can('administrator') && is_admin() && !wp_doing_ajax()) {
         wp_safe_redirect(home_url('/'));
         exit();

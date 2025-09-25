@@ -1,4 +1,6 @@
-/*tooltips */
+/**
+ * Tooltip functionality for data-title elements
+ */
 
 document.addEventListener('DOMContentLoaded', function() {
     let tooltip;

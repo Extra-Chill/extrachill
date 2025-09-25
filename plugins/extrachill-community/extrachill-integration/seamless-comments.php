@@ -6,47 +6,6 @@
  * Enables users on extrachill.com to comment using their community accounts.
  */
 
-add_action('rest_api_init', function () {
-    register_rest_route('extrachill/v1', '/comments/form', array(
-        'methods' => 'GET',
-        'callback' => 'serve_comment_form',
-        'permission_callback' => '__return_true',
-    ));
-});
-
-/**
- * Serve comment form via REST API
- * 
- * Provides HTML comment form for cross-domain embedding on extrachill.com.
- * Includes nonce security and proper form structure for AJAX submission.
- * 
- * @param WP_REST_Request $request REST API request object
- */
-function serve_comment_form(WP_REST_Request $request) {
-    header('Content-Type: text/html; charset=utf-8');
-
-    // Generate nonce for comment submission security
-    $comment_nonce = wp_create_nonce('submit_community_comment');
-
-    // Directly outputting the HTML content
-    echo '
-    <div id="community-comment-form" data-post-id="" data-username="" data-email="" data-user-id="">
-        <h2>Leave a Comment</h2>
-        <form action="https://extrachill.com/wp-json/extrachill/v1/community-comment" method="post">
-            <p>Hello, <span id="user-name">Guest</span>!</p>
-            <p>
-                <label for="comment">Comment:</label>
-                <textarea id="comment" name="comment" rows="4" required></textarea>
-            </p>
-            <input type="hidden" name="comment_parent" id="comment_parent" value="0" />
-            <input type="hidden" name="comment_nonce" id="comment_nonce" value="' . esc_attr($comment_nonce) . '" />
-            <p><input type="submit" value="Post Comment" /></p>
-        </form>
-        <div class="comment-message"></div>
-    </div>';
-
-    exit; // Ensure no further processing or output occurs after this point
-}
 
 
 

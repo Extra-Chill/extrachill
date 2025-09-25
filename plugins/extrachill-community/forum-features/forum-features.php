@@ -27,7 +27,6 @@ if (!defined('ABSPATH')) {
 
 // Moderation Features
 include_once get_stylesheet_directory() . '/forum-features/admin/bbpress-spam-adjustments.php';
-include_once get_stylesheet_directory() . '/forum-features/admin/restricted-forums.php';
 include_once get_stylesheet_directory() . '/forum-features/admin/pinned-topic.php';
 include_once get_stylesheet_directory() . '/forum-features/admin/team-members-mods.php';
 

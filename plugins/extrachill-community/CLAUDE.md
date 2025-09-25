@@ -19,11 +19,11 @@ This is a **WordPress theme** called "Extra Chill Community" for the **Extra Chi
 
 ## KNOWN ISSUES
 
-**PSR-4 Implementation**: Composer autoloader configured for `Chubes\Extrachill\` namespace. The `src/` directory exists but contains no implementation files yet.
+**PSR-4 Implementation**: No PSR-4 autoloading configured in composer.json. The theme currently uses procedural patterns throughout forum features.
 
 ## FUTURE PLANS
 
-**PSR-4 Architecture**: Implement proper `src/` directory structure with classes to replace procedural patterns in forum features.
+**PSR-4 Architecture**: Implement PSR-4 autoloading configuration in composer.json and create `src/` directory structure with classes to replace procedural patterns in forum features.
 
 **Performance Optimization**: Continue modular CSS/JS loading refinements and font system improvements.
 
@@ -37,7 +37,7 @@ This is a **WordPress theme** called "Extra Chill Community" for the **Extra Chi
 ## Core Features
 
 1. **Forum Features** - Comprehensive bbPress extensions with organized feature architecture
-2. **Cross-Domain Authentication** - Session token system across all Extra Chill domains  
+2. **Cross-Domain Authentication** - WordPress multisite native authentication system (migrating from legacy session tokens)  
 3. **Social Features** - User interactions, following system, upvoting, notifications, and rank system
 4. **User Management** - Custom profiles, avatars, settings, email verification, and notification system
 5. **Community Templates** - Custom bbPress templates and specialized page templates
@@ -57,7 +57,7 @@ composer install
 
 ### Development Notes
 - **No Build System** - Direct file inclusion without compilation
-- **PSR-4 Ready** - Composer autoloader configured (no `src/` directory implemented)
+- **Procedural Architecture** - No PSR-4 autoloading configured, uses direct procedural patterns
 - **Asset Versioning** - Dynamic `filemtime()` versioning for cache management
 - **Organized Architecture** - Forum features in structured subdirectories with master loader
 - **Font System** - Custom font-face declarations with inheritance optimization
@@ -77,9 +77,10 @@ composer install
 - **Independent Templates**: All page templates use native WordPress theme structure without external dependencies
 
 ### 2. Cross-Domain Session Management
-- **Session Tokens**: Custom `user_session_tokens` table (with wp_ prefix) with 6-month expiration
-- **Cookie Domain**: `.extrachill.com` covers all subdomains
-- **Auto-Login**: Triggered via `auto_login_via_session_token()`
+- **WordPress Multisite**: Native WordPress multisite provides unified authentication across all Extra Chill domains
+- **Legacy Session Tokens**: Custom `user_session_tokens` table (maintained for backward compatibility during migration)
+- **Cookie Domain**: WordPress multisite handles cross-domain authentication via `.extrachill.com` subdomain coverage
+- **Auto-Login**: Native WordPress multisite login replaces custom `auto_login_via_session_token()` (legacy method maintained for compatibility)
 
 ## Critical File Locations
 
@@ -108,12 +109,12 @@ composer install
 - `page-templates/settings-page.php` - User account settings
 
 ### Authentication & Integration
-- `extrachill-integration/session-tokens.php` - Cross-domain session management
-- `extrachill-integration/validate-session.php` - Token validation
-- `extrachill-integration/seamless-comments.php` - Cross-domain commenting
+- `extrachill-integration/session-tokens.php` - **Legacy**: Cross-domain session management (maintained for compatibility)
+- `extrachill-integration/validate-session.php` - **Legacy**: Token validation (transitioning to WordPress multisite)
+- `extrachill-integration/seamless-comments.php` - Cross-domain commenting with multisite integration
 - `login/register.php` - Registration system with email verification
-- `login/login.php` - Custom login system
-- `login/login-includes.php` - Login system includes
+- `login/login.php` - Custom login system integrated with WordPress multisite authentication
+- `login/login-includes.php` - Login system includes with multisite support
 - `login/email-change-emails.php` - Email change verification and confirmation emails
 
 ### Forum Features Architecture
@@ -124,16 +125,13 @@ composer install
 - **Master Loader**: `forum-features/forum-features.php` loads all functionality with comprehensive documentation
 - **Asset Organization**: Specialized JavaScript files and CSS organized within feature subdirectories
 
-### JavaScript Architecture (19 total files)
+### JavaScript Architecture (20 total files)
 - **Core Utilities**: `js/utilities.js` - Shared functionality across components
-- **Social Features**: `forum-features/social/js/` - Following, mentions, upvoting, admin tools
-- **Forum Enhancements**: `js/quote.js`, `topic-quick-reply.js`, `tinymce-image-upload.js` - bbPress editor extensions
-- **UI Components**: `js/shared-tabs.js`, `nav-menu.js`, `home-collapse.js` - Interface elements
-- **User Management**: `js/custom-avatar.js`, `manage-user-profile-links.js` - User profile functionality
-- **Authentication**: `js/seamless-login.js`, `seamless-comments.js` - Cross-domain integration
-- **Content Systems**: `js/sorting.js`, `submit-community-comments.js` - Dynamic content management
-- **Login System**: `login/js/` (2 files) - Authentication UI and join flow
-- **Notification System**: Header notification bell with avatar dropdown menu
+- **Main JS Directory** (`js/`): 12 files - Core functionality including custom-avatar.js, manage-user-profile-links.js, quote.js, seamless-comments.js, seamless-login.js, shared-tabs.js, submit-community-comments.js, tinymce-image-upload.js, topic-quick-reply.js, sorting.js, home-collapse.js, nav-menu.js
+- **Social Features** (`forum-features/social/js/`): 4 files - extrachill-follow.js, upvote.js, extrachill-mentions.js, extrachill_admin.js (rank system)
+- **Login System** (`login/js/`): 2 files - login-register-tabs.js, join-flow-ui.js
+- **bbPress Extensions** (`bbpress/autosave/`): 1 file - plugin.min.js
+- **Note**: User mentions functionality consolidated to single file in `forum-features/social/js/extrachill-mentions.js`
 
 ### Asset Enqueuing System
 - **Main Stylesheet**: `extra-chill-community-style` - Primary theme styles with root CSS import system
@@ -141,7 +139,7 @@ composer install
 - **Modular CSS**: Context-specific loading via `modular_bbpress_styles()` function
 - **Font System**: Custom WilcoLoftSans and Lobster font-face declarations with inheritance optimization
 - **Content Width**: Responsive overrides with flex-wrap patterns for mobile optimization
-- **JavaScript Assets**: 19 specialized JS files including utilities, social features, forum enhancements, and media upload
+- **JavaScript Assets**: 21 specialized JS files including utilities, social features, forum enhancements, and media upload
 - **External Dependencies**: FontAwesome 6.5.1 via CDN
 - **Dynamic Versioning**: All assets use `filemtime()` for cache busting
 - **Conditional Loading**: Context-aware asset loading for optimal performance
@@ -173,12 +171,12 @@ composer install
 - **Widget Areas** - Multiple footer and sidebar areas via `register_sidebar()` with proper escaping
 - **Asset Management** - Dynamic versioning with `filemtime()`, selective loading, and conflict prevention
 - **bbPress Integration** - Custom hooks, filters, and stylesheet dequeuing for seamless integration
-- **PSR-4 Autoloading** - Composer-managed class autoloading with `Chubes\Extrachill\` namespace
+- **Procedural Code Organization** - No PSR-4 autoloading configured, uses direct function-based patterns
 - **Security Implementation** - Proper escaping, nonce verification, and input sanitization
 - **Performance Focus** - Modular CSS/JS loading, font optimization, and responsive design patterns
 
 ### JavaScript Architecture Principles
-- **Modular Design** - 19 specialized JS files for specific functionality domains
+- **Modular Design** - 21 specialized JS files for specific functionality domains
 - **jQuery Dependencies** - Proper dependency management across all custom scripts  
 - **Context-Aware Loading** - Conditional script enqueuing based on page template/context
 - **Cross-Domain Integration** - Seamless login and comment systems across domains
@@ -189,12 +187,12 @@ composer install
 
 ### PHP
 - **WordPress** 5.0+ (with bbPress required)
-- **Composer Dependencies**: QR code generation (`endroid/qr-code`) and PSR-4 autoloading configured
+- **Composer Dependencies**: QR code generation (`endroid/qr-code`) only
 
 ### JavaScript
 - **Direct File Inclusion** - No build system, direct file loading
 - **jQuery Dependencies** - All custom scripts depend on jQuery
-- **19 Specialized Files** - Modular architecture with specific functionality domains
+- **21 Specialized Files** - Modular architecture with specific functionality domains
 - **FontAwesome** 6.5.1 via CDN
 - **Dynamic Versioning** - `filemtime()` cache busting
 
@@ -251,10 +249,19 @@ The theme operates as a production WordPress theme serving the Extra Chill commu
 
 ## Cross-Domain Authentication Flow
 
-1. User logs in on any domain via REST API
-2. Session token generated in `user_session_tokens` (with wp_ prefix)
-3. Cookie set for `.extrachill.com` domain
-4. Auto-login triggered on subsequent visits
-5. External requests validated using Authorization header
+### Current (WordPress Multisite)
+1. User logs in on any Extra Chill domain
+2. WordPress multisite automatically provides authentication across all `.extrachill.com` subdomains
+3. Native WordPress user sessions handle cross-domain authentication
+4. Users remain logged in across all Extra Chill properties without additional validation
 
-This system enables seamless user experience across the entire Extra Chill ecosystem while maintaining security and performance.
+### Legacy (Maintained for Compatibility)
+1. **Legacy Path**: User logs in via custom REST API endpoints
+2. **Legacy Path**: Session token generated in `user_session_tokens` table
+3. **Legacy Path**: Custom cookie set for `.extrachill.com` domain
+4. **Legacy Path**: Auto-login triggered via `auto_login_via_session_token()`
+5. **Legacy Path**: External requests validated using Authorization header
+
+**Migration Status**: The system is transitioning from custom session tokens to WordPress multisite native authentication. Legacy endpoints are maintained during the migration period to ensure backward compatibility.
+
+This hybrid approach enables seamless user experience across the entire Extra Chill ecosystem while maintaining security, performance, and compatibility during the multisite migration.

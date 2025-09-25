@@ -12,16 +12,10 @@
  */
 
 function extra_chill_community_setup() {
-    // Add default posts and comments RSS feed links to head.
     add_theme_support('automatic-feed-links');
-
-    // Let WordPress manage the document title.
     add_theme_support('title-tag');
-
-    // Enable support for Post Thumbnails on posts and pages.
     add_theme_support('post-thumbnails');
 
-    // Enable support for custom logo.
     add_theme_support('custom-logo', array(
         'height'      => 250,
         'width'       => 250,
@@ -29,7 +23,6 @@ function extra_chill_community_setup() {
         'flex-height' => true,
     ));
 
-    // Enable support for HTML5 markup.
     add_theme_support('html5', array(
         'search-form',
         'comment-form',
@@ -40,17 +33,14 @@ function extra_chill_community_setup() {
         'script',
     ));
 
-    // Add theme support for selective refresh for widgets.
     add_theme_support('customize-selective-refresh-widgets');
 
-    // Register navigation menus.
     register_nav_menus(array(
         'primary'      => esc_html__('Primary Menu', 'extra-chill-community'),
         'footer'       => esc_html__('Footer Menu', 'extra-chill-community'),
         'footer-extra' => esc_html__('Footer Extra Menu', 'extra-chill-community'),
     ));
-    
-    // Register additional footer menus
+
     for ( $i = 1; $i <= 5; $i++ ) {
         register_nav_menus(array(
             'footer-' . $i => sprintf(esc_html__('Footer Menu %d', 'extra-chill-community'), $i),
@@ -70,7 +60,6 @@ function extra_chill_community_widgets_init() {
         'after_title'   => '</h2>',
     ));
     
-    // Register footer widget areas
     for ( $i = 1; $i <= 5; $i++ ) {
         register_sidebar(array(
             'name'          => sprintf(esc_html__('Footer Widget Area %d', 'extra-chill-community'), $i),
@@ -88,22 +77,16 @@ add_action('widgets_init', 'extra_chill_community_widgets_init');
 
 
 
-// Cross-domain integration files
 require_once get_stylesheet_directory() . '/extrachill-integration/blog-searching-forum.php';
 require_once get_stylesheet_directory() . '/extrachill-integration/extrachill-com-articles.php';
 require_once get_stylesheet_directory() . '/extrachill-integration/extrachill-comments.php';
 require_once get_stylesheet_directory() . '/extrachill-integration/get-user-details.php';
-require_once get_stylesheet_directory() . '/extrachill-integration/rest-api-forums-feed.php';
 require_once get_stylesheet_directory() . '/extrachill-integration/seamless-comments.php';
-require_once get_stylesheet_directory() . '/extrachill-integration/seamless-login.php';
-require_once get_stylesheet_directory() . '/extrachill-integration/serve-login-form.php';
 require_once get_stylesheet_directory() . '/extrachill-integration/session-tokens.php';
 require_once get_stylesheet_directory() . '/extrachill-integration/validate-session.php';
 
-// Forum features
 require_once get_stylesheet_directory() . '/forum-features/forum-features.php';
 
-// Login and authentication modules
 require_once get_stylesheet_directory() . '/login/login-includes.php';
 require_once get_stylesheet_directory() . '/login/email-change-emails.php';
 
@@ -123,47 +106,52 @@ require_once get_stylesheet_directory() . '/login/email-change-emails.php';
 require_once get_template_directory() . '/inc/core/admin-access-control.php';
 require_once get_template_directory() . '/inc/core/assets.php';
 
-
-
-
 /**
- * Create custom forum_user role for community members
+ * Clean up unused forum_user role from database
  */
-function extrachill_create_forum_user_role() {
-    add_role('forum_user', 'Forum User', array(
-        'read' => true, // Allows a user to read
-        'level_0' => true, // Equivalent to subscriber
-        'edit_posts' => true, // Allows editing of their own posts
-                'edit_others_posts' => false,
+function extrachill_cleanup_forum_user_role_notice() {
+    if (!current_user_can('administrator')) {
+        return;
+    }
 
-    ));
+    if (get_option('extrachill_forum_user_cleanup_completed') || get_option('extrachill_forum_user_cleanup_dismissed')) {
+        return;
+    }
+
+    if (!get_role('forum_user')) {
+        update_option('extrachill_forum_user_cleanup_completed', true);
+        return;
+    }
+
+    if (isset($_GET['extrachill_cleanup_forum_role']) && wp_verify_nonce($_GET['_wpnonce'], 'cleanup_forum_role')) {
+        remove_role('forum_user');
+        update_option('extrachill_forum_user_cleanup_completed', true);
+        echo '<div class="notice notice-success is-dismissible"><p><strong>Extra Chill:</strong> Unused forum_user role has been removed from the database.</p></div>';
+        return;
+    }
+
+    if (isset($_GET['extrachill_dismiss_cleanup']) && wp_verify_nonce($_GET['_wpnonce'], 'dismiss_cleanup')) {
+        update_option('extrachill_forum_user_cleanup_dismissed', true);
+        return;
+    }
+
+    $cleanup_url = wp_nonce_url(add_query_arg('extrachill_cleanup_forum_role', '1'), 'cleanup_forum_role');
+    $dismiss_url = wp_nonce_url(add_query_arg('extrachill_dismiss_cleanup', '1'), 'dismiss_cleanup');
+
+    echo '<div class="notice notice-info is-dismissible">';
+    echo '<p><strong>Extra Chill Theme Cleanup:</strong> An unused "forum_user" role was found in your database from previous theme code.</p>';
+    echo '<p><a href="' . esc_url($cleanup_url) . '" class="button button-primary">Clean Up Now</a> ';
+    echo '<a href="' . esc_url($dismiss_url) . '" class="button button-secondary">Dismiss</a></p>';
+    echo '</div>';
 }
-
-add_action('init', 'extrachill_create_forum_user_role');
-
-function extrachill_get_readable_role($role) {
-    $roles = array(
-        'forum_user' => 'Community Member',
-        // Add other roles here if needed
-    );
-
-    return isset($roles[$role]) ? $roles[$role] : ucfirst($role);
-}
-
-
-
+add_action('admin_notices', 'extrachill_cleanup_forum_user_role_notice');
 
 /**
  * Core utility functions
  */
 
-
-
-
-
 function custom_search_filter($query) {
     if (!is_admin() && $query->is_main_query() && function_exists('bbp_is_search') && bbp_is_search()) {
-        // Include forum and bbPress post types only on bbPress search contexts
         $query->set('post_type', array('post', 'page', 'forum', 'topic', 'reply'));
     }
     return $query;
@@ -225,12 +213,9 @@ class Custom_Walker_Nav_Menu extends Walker_Nav_Menu {
         $item_output .= '<a'. $attributes .'>';
         $item_output .= $args->link_before . apply_filters( 'the_title', $item->title, $item->ID ) . $args->link_after;
 
-        // Add a submenu indicator if the item has children
         if ( in_array( 'menu-item-has-children', $classes ) ) {
-            // Check if it's a top-level item by looking for menu-item-depth-0 class
             $is_top_level = in_array('menu-item-depth-0', $classes);
             if ( $is_top_level ) {
-                // Replace SVG with Font Awesome icon
                 $item_output .= ' <i class="submenu-indicator fas fa-angle-down"></i>';
             }
         }
@@ -259,26 +244,20 @@ add_action( 'user_register', 'set_default_ec_custom_title' );
  * Custom hooks, filters, and modifications for bbPress forum integration.
  */
 
-// Disable bbPress default search - using custom search implementation
 add_filter('bbp_allow_search', '__return_false');
 
-// Remove topic tags in bbPress
 function remove_bbpress_topic_tags() {
     return false;
 }
 add_filter('bbp_allow_topic_tags', 'remove_bbpress_topic_tags');
 
-// Add a filter to display custom message below edit form in bbPress
 add_action('bbp_theme_after_topic_form', 'custom_message_below_edit_form');
 
 function custom_message_below_edit_form() {
-    // Get the current post ID
     $post_id = get_the_ID();
-    
-    // Check if this is the designated music submission forum (configurable via option)
     $music_submission_forum_id = get_option('extrachill_music_submission_forum_id', 138);
+
     if (is_bbpress() && $post_id == $music_submission_forum_id) {
-        // Display the conditional message below the edit form
         echo '<p>Are you an artist submitting your own music? See our <a href="/new-music-submission-guidelines">Music Submission Guidelines</a>.</p>';
     }
 }
@@ -291,13 +270,12 @@ return $args;
 }
 add_filter('bbp_before_list_forums_parse_args', 'remove_counts' );
 
-// Remove reply and edit links from admin links
 function ec_remove_reply_and_edit_from_admin_links( $links, $reply_id ) {
     if ( isset( $links['reply'] ) ) {
-        unset( $links['reply'] ); // Remove Reply
+        unset( $links['reply'] );
     }
     if ( isset( $links['edit'] ) ) {
-        unset( $links['edit'] ); // Remove Edit
+        unset( $links['edit'] );
     }
     return $links;
 }
@@ -311,16 +289,13 @@ add_filter( 'bbp_topic_admin_links', 'ec_remove_reply_and_edit_from_admin_links'
  * @return string Human-readable time difference (e.g., "5 minutes ago").
  */
 function ec_get_topic_last_active_diff( $topic_id ) {
-    // Get the last active time as stored by bbPress.
     if (!function_exists('bbp_get_topic_last_active_time')) {
         return '';
     }
-    
+
     $last_active_time = bbp_get_topic_last_active_time( $topic_id );
     if ( ! empty( $last_active_time ) ) {
-        // Convert it to a timestamp.
         $timestamp = strtotime( $last_active_time );
-        // Calculate the time difference from now.
         return human_time_diff( $timestamp, current_time( 'timestamp' ) ) . ' ago';
     }
     return '';
@@ -339,27 +314,20 @@ add_action( 'switch_theme', 'extrachill_remove_private_forum_ids_option' );
 
 
 /**
- * Redirects users from the default WordPress login page to the custom login page.
+ * Redirect wp-login.php access to custom login page
  */
 function extrachill_redirect_wp_login() {
-    // Get the full REQUEST_URI to catch all wp-login.php access patterns
     $request_uri = $_SERVER['REQUEST_URI'];
-    
-    // Check if the user is trying to access wp-login.php
+
     if (strpos($request_uri, 'wp-login.php') !== false && $_SERVER['REQUEST_METHOD'] === 'GET') {
-        // Allow specific actions like logout, lostpassword, resetpass
         $allowed_actions = ['logout', 'lostpassword', 'resetpass', 'rp', 'activate'];
         $action = isset($_GET['action']) ? $_GET['action'] : '';
 
-        // If user is already logged in and is an administrator, allow access to wp-login.php
-        // This prevents redirect loops when admins try to access wp-admin
         if (is_user_logged_in() && current_user_can('administrator')) {
-            return; // Allow administrators full access to wp-login.php
+            return;
         }
 
-        // For non-logged-in users or non-admins, redirect to custom login page
         if (!in_array($action, $allowed_actions) && !is_user_logged_in()) {
-            // Preserve any redirect_to parameter
             $redirect_to = isset($_GET['redirect_to']) ? $_GET['redirect_to'] : '';
             $login_url = home_url('/login');
             if (!empty($redirect_to)) {
@@ -373,19 +341,15 @@ function extrachill_redirect_wp_login() {
 add_action('template_redirect', 'extrachill_redirect_wp_login');
 
 /**
- * Filters the login URL to use the custom login page.
+ * Filter login URL to use custom login page
  */
 function extrachill_custom_login_url($login_url, $redirect) {
-    // If user is already logged in and is an administrator, don't modify the login URL
-    // This prevents redirect loops when admins try to access wp-admin
     if (is_user_logged_in() && current_user_can('administrator')) {
-        return $login_url; // Return the original wp-login.php URL for admins
+        return $login_url;
     }
-    
-    // Use the custom login page URL for non-admins or non-logged-in users
+
     $custom_login_url = home_url('/login');
 
-    // Append redirect_to parameter if it exists
     if (!empty($redirect)) {
         $custom_login_url = add_query_arg('redirect_to', urlencode($redirect), $custom_login_url);
     }
@@ -396,48 +360,38 @@ add_filter('login_url', 'extrachill_custom_login_url', 10, 2);
 
 
 /**
- * Clear most active users cache when new topics or replies are created
- * This ensures the cached data stays fresh when new activity occurs
+ * Clear most active users cache on new forum activity
  */
 function clear_most_active_users_cache( $post_id, $post, $update ) {
-    // Only clear cache for new posts, not updates
     if ( $update ) {
         return;
     }
-    
-    // Only clear cache for topics and replies
+
     if ( in_array( $post->post_type, array( 'topic', 'reply' ) ) ) {
         delete_transient( 'most_active_users_30_days' );
     }
 }
 add_action( 'wp_insert_post', 'clear_most_active_users_cache', 10, 3 );
 
-/**
- * Manual function to clear most active users cache
- * Can be called from admin or via AJAX if needed
- */
 function clear_most_active_users_cache_manual() {
     $deleted = delete_transient( 'most_active_users_30_days' );
     return $deleted;
 }
 
 /**
- * AJAX handler for manually clearing most active users cache
- * Only accessible to administrators
+ * AJAX handler for clearing most active users cache
  */
 function ajax_clear_most_active_users_cache() {
-    // Check nonce for security
     if ( ! wp_verify_nonce( $_POST['nonce'], 'clear_most_active_users_cache' ) ) {
         wp_die( 'Security check failed' );
     }
-    
-    // Check user permissions
+
     if ( ! current_user_can( 'administrator' ) ) {
         wp_die( 'Insufficient permissions' );
     }
-    
+
     $result = clear_most_active_users_cache_manual();
-    
+
     wp_send_json_success( array(
         'cleared' => $result,
         'message' => $result ? 'Cache cleared successfully' : 'Cache was already empty or expired'
@@ -445,29 +399,17 @@ function ajax_clear_most_active_users_cache() {
 }
 add_action( 'wp_ajax_clear_most_active_users_cache', 'ajax_clear_most_active_users_cache' );
 
-/**
- * Clear online users related caches when needed
- * This ensures the online users count stays accurate
- */
 function clear_online_users_cache() {
     delete_transient( 'online_users_count' );
     delete_transient( 'most_ever_online_check' );
 }
 
-/**
- * Clear user activity cache when user logs out
- * This ensures accurate online user counts
- */
 function clear_user_activity_cache_on_logout( $user_id ) {
     $user_activity_cache_key = 'user_activity_' . $user_id;
     delete_transient( $user_activity_cache_key );
 }
 add_action( 'wp_logout', 'clear_user_activity_cache_on_logout' );
 
-/**
- * Clear user activity cache when user logs in
- * This ensures fresh activity tracking
- */
 function clear_user_activity_cache_on_login( $user_login, $user ) {
     if ( $user && isset( $user->ID ) ) {
         $user_activity_cache_key = 'user_activity_' . $user->ID;
@@ -483,37 +425,32 @@ add_action( 'wp_login', 'clear_user_activity_cache_on_login', 10, 2 );
 
 if ( ! function_exists( 'extrachill_get_pending_email_changes' ) ) {
     /**
-     * Get all pending email changes
-     * 
+     * Get all pending email changes with expired entries cleanup
+     *
      * @return array Pending email changes data
      */
     function extrachill_get_pending_email_changes() {
         $pending_changes = get_option( 'extrachill_pending_email_changes', array() );
-        
-        // Clean up expired changes (older than 48 hours)
         $current_time = current_time( 'timestamp' );
         $cleaned_changes = array();
-        
+
         foreach ( $pending_changes as $user_id => $change_data ) {
             if ( isset( $change_data['timestamp'] ) && ( $current_time - $change_data['timestamp'] ) < ( 48 * HOUR_IN_SECONDS ) ) {
                 $cleaned_changes[ $user_id ] = $change_data;
             }
         }
-        
-        // Update option with cleaned data if changes were made
+
         if ( count( $cleaned_changes ) !== count( $pending_changes ) ) {
             update_option( 'extrachill_pending_email_changes', $cleaned_changes );
         }
-        
+
         return $cleaned_changes;
     }
 }
 
 if ( ! function_exists( 'extrachill_get_user_pending_email_change' ) ) {
     /**
-     * Get pending email change for specific user
-     * 
-     * @param int $user_id User ID
+     * @param int $user_id
      * @return array|false Pending change data or false if none exists
      */
     function extrachill_get_user_pending_email_change( $user_id ) {
@@ -524,11 +461,9 @@ if ( ! function_exists( 'extrachill_get_user_pending_email_change' ) ) {
 
 if ( ! function_exists( 'extrachill_store_pending_email_change' ) ) {
     /**
-     * Store pending email change data
-     * 
-     * @param int $user_id User ID
-     * @param string $new_email New email address
-     * @param string $verification_hash Secure verification hash
+     * @param int $user_id
+     * @param string $new_email
+     * @param string $verification_hash
      * @return bool Success status
      */
     function extrachill_store_pending_email_change( $user_id, $new_email, $verification_hash ) {
@@ -536,9 +471,9 @@ if ( ! function_exists( 'extrachill_store_pending_email_change' ) ) {
         if ( ! $current_user ) {
             return false;
         }
-        
+
         $pending_changes = extrachill_get_pending_email_changes();
-        
+
         $pending_changes[ $user_id ] = array(
             'new_email' => $new_email,
             'old_email' => $current_user->user_email,
@@ -546,40 +481,36 @@ if ( ! function_exists( 'extrachill_store_pending_email_change' ) ) {
             'timestamp' => current_time( 'timestamp' ),
             'user_id' => $user_id
         );
-        
+
         return update_option( 'extrachill_pending_email_changes', $pending_changes );
     }
 }
 
 if ( ! function_exists( 'extrachill_remove_pending_email_change' ) ) {
     /**
-     * Remove pending email change for user
-     * 
-     * @param int $user_id User ID
+     * @param int $user_id
      * @return bool Success status
      */
     function extrachill_remove_pending_email_change( $user_id ) {
         $pending_changes = extrachill_get_pending_email_changes();
-        
+
         if ( isset( $pending_changes[ $user_id ] ) ) {
             unset( $pending_changes[ $user_id ] );
             return update_option( 'extrachill_pending_email_changes', $pending_changes );
         }
-        
-        return true; // Already removed
+
+        return true;
     }
 }
 
 if ( ! function_exists( 'extrachill_validate_email_change_hash' ) ) {
     /**
-     * Validate email change verification hash
-     * 
      * @param string $hash Verification hash from URL
      * @return array|false User data and email change info, or false if invalid
      */
     function extrachill_validate_email_change_hash( $hash ) {
         $pending_changes = extrachill_get_pending_email_changes();
-        
+
         foreach ( $pending_changes as $user_id => $change_data ) {
             if ( isset( $change_data['hash'] ) && hash_equals( $change_data['hash'], $hash ) ) {
                 return array(
@@ -590,79 +521,68 @@ if ( ! function_exists( 'extrachill_validate_email_change_hash' ) ) {
                 );
             }
         }
-        
+
         return false;
     }
 }
 
 if ( ! function_exists( 'extrachill_is_email_available' ) ) {
     /**
-     * Check if email address is available for use
-     * 
      * @param string $email Email address to check
-     * @param int $exclude_user_id User ID to exclude from check (for current user)
+     * @param int $exclude_user_id User ID to exclude from check
      * @return bool True if available, false if taken
      */
     function extrachill_is_email_available( $email, $exclude_user_id = 0 ) {
-        // Check if email is already in use by another user
         $existing_user = get_user_by( 'email', $email );
         if ( $existing_user && $existing_user->ID !== $exclude_user_id ) {
             return false;
         }
-        
-        // Check if email is pending for another user
+
         $pending_changes = extrachill_get_pending_email_changes();
         foreach ( $pending_changes as $user_id => $change_data ) {
             if ( $user_id !== $exclude_user_id && $change_data['new_email'] === $email ) {
                 return false;
             }
         }
-        
+
         return true;
     }
 }
 
 if ( ! function_exists( 'extrachill_generate_email_change_hash' ) ) {
     /**
-     * Generate secure verification hash for email change
-     * 
-     * @param int $user_id User ID
-     * @param string $new_email New email address
+     * @param int $user_id
+     * @param string $new_email
      * @return string Secure hash
      */
     function extrachill_generate_email_change_hash( $user_id, $new_email ) {
-        // Generate secure hash using WordPress patterns
         $timestamp = current_time( 'timestamp' );
         $random = wp_generate_password( 32, false );
-        
+
         return hash( 'sha256', $user_id . $new_email . $timestamp . $random . wp_salt() );
     }
 }
 
 if ( ! function_exists( 'extrachill_can_user_change_email' ) ) {
     /**
-     * Check if user can initiate email change (rate limiting)
-     * 
-     * @param int $user_id User ID
+     * Check if user can initiate email change with rate limiting
+     *
+     * @param int $user_id
      * @return bool True if allowed, false if rate limited
      */
     function extrachill_can_user_change_email( $user_id ) {
-        // Check for existing pending change
         $pending_change = extrachill_get_user_pending_email_change( $user_id );
         if ( $pending_change ) {
-            // Allow new change if current one is older than 1 hour (allows retry)
             $time_since_last = current_time( 'timestamp' ) - $pending_change['timestamp'];
             return $time_since_last > HOUR_IN_SECONDS;
         }
-        
-        // Check last successful email change (stored in user meta)
+
         $last_change = get_user_meta( $user_id, '_last_email_change', true );
         if ( $last_change ) {
             $time_since_last_change = current_time( 'timestamp' ) - $last_change;
-            // Limit to one change per 24 hours
             return $time_since_last_change > ( 24 * HOUR_IN_SECONDS );
         }
-        
-        return true; // First time changing email
+
+        return true;
     }
 }

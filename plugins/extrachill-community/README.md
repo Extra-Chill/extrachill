@@ -2,6 +2,8 @@
 
 A WordPress theme for the Extra Chill community platform providing forum enhancements, cross-domain authentication, and bbPress integration. Focuses exclusively on community and forum features. Artist platform functionality has been fully migrated to a separate plugin.
 
+**Version**: 1.0.0
+
 ## Overview
 
 **Extra Chill Community** is a WordPress theme serving the community platform at `community.extrachill.com`:
@@ -36,7 +38,7 @@ extrachill-community/
 ├── forum-features/            # Community forum enhancements
 ├── login/                     # Custom authentication system
 ├── css/                       # Modular stylesheets
-├── js/                        # JavaScript components (19 files total)
+├── js/                        # JavaScript components (21 files total)
 ├── fonts/                     # Custom font files
 └── vendor/                    # Composer dependencies
 ```
@@ -66,12 +68,21 @@ if (bbp_is_forum_archive() || is_front_page()) {
 
 ### 2. Cross-Domain Authentication
 
-**Session Token System**:
+**WordPress Multisite (Current)**:
 ```php
-// Automatic login across domains
+// WordPress multisite provides native cross-domain authentication
+// No custom session tokens needed for authenticated users
+if (is_user_logged_in()) {
+    // User authenticated across all .extrachill.com subdomains automatically
+}
+```
+
+**Legacy Session Token System (Maintained for Compatibility)**:
+```php
+// Legacy automatic login across domains (transitioning away from this)
 extrachill_login_user_across_domains($user_id);
 
-// Validates via custom table: user_session_tokens (with wp_ prefix)
+// Legacy validation via custom table: user_session_tokens (with wp_ prefix)
 // Cookie domain: .extrachill.com (covers all subdomains)
 ```
 
@@ -80,11 +91,13 @@ extrachill_login_user_across_domains($user_id);
 // Cross-domain comments for extrachill.com
 seamlessComments.submitComment(commentData);
 
-// Session validation
+// Legacy session validation (maintained for compatibility)
 fetch('/wp-json/extrachill/v1/validate-session', {
     headers: { 'Authorization': 'Bearer ' + sessionToken }
 });
 ```
+
+**Migration Status**: The theme is transitioning from custom session tokens to WordPress multisite native authentication. Legacy endpoints are maintained during the migration period.
 
 ### 3. User Management & Notifications
 
@@ -116,11 +129,16 @@ extrachill_send_email_change_confirmation($user_id, $old_email, $new_email);
 
 ### 4. Cross-Domain Integration
 
-**External Platform Features**:
-- Cross-domain authentication with extrachill.com
-- Session token validation and management
+**Current (WordPress Multisite)**:
+- Native WordPress multisite authentication across all Extra Chill domains
+- Automatic cross-domain user sessions (no tokens required)
 - Seamless commenting system integration
-- REST API endpoints for external access
+- Performance optimization through native WordPress functions
+
+**Legacy Features (Maintained for Compatibility)**:
+- Custom session token validation and management
+- REST API endpoints for external access during migration
+- Authorization header-based authentication for mobile apps
 
 ## Development
 
@@ -136,10 +154,13 @@ function modular_bbpress_styles() {
 }
 ```
 
-**JavaScript Architecture** (19 specialized files total):
+**JavaScript Architecture** (21 specialized files total):
 ```php
 // Core utilities (js/ directory - 13 files)
 wp_enqueue_script('extrachill-utilities', get_stylesheet_directory_uri() . '/js/utilities.js', ['jquery']);
+// Additional files: custom-avatar.js, manage-user-profile-links.js, quote.js, seamless-comments.js,
+// seamless-login.js, shared-tabs.js, submit-community-comments.js, tinymce-image-upload.js,
+// topic-quick-reply.js, sorting.js, home-collapse.js, nav-menu.js, extrachill-mentions.js
 
 // Forum features (forum-features/ directory - 4 files)
 wp_enqueue_script('extrachill-follow', get_stylesheet_directory_uri() . '/forum-features/social/js/extrachill-follow.js', ['jquery']);
@@ -147,17 +168,25 @@ wp_enqueue_script('upvote', get_stylesheet_directory_uri() . '/forum-features/so
 wp_enqueue_script('extrachill-mentions', get_stylesheet_directory_uri() . '/forum-features/social/js/extrachill-mentions.js', ['jquery']);
 wp_enqueue_script('extrachill-admin', get_stylesheet_directory_uri() . '/forum-features/social/rank-system/js/extrachill_admin.js', ['jquery']);
 
-// Login system (login/ directory - 2 files)  
-wp_enqueue_script('join-flow', get_stylesheet_directory_uri() . '/login/js/join-flow.js', ['jquery']);
-wp_enqueue_script('seamless-login', get_stylesheet_directory_uri() . '/login/js/seamless-login.js', ['jquery']);
+// Login system (login/ directory - 2 files)
+wp_enqueue_script('login-register-tabs', get_stylesheet_directory_uri() . '/login/js/login-register-tabs.js', ['jquery']);
+wp_enqueue_script('join-flow-ui', get_stylesheet_directory_uri() . '/login/js/join-flow-ui.js', ['jquery']);
+
+// bbPress extensions (bbpress/autosave/ - 1 file)
+// plugin.min.js - TinyMCE autosave functionality
+
+// Note: extrachill-mentions.js exists in both js/ and forum-features/social/js/ directories
 ```
 
 ### Database Schema
 
 **Custom Tables**:
 ```sql
--- Cross-domain authentication
+-- Legacy cross-domain authentication (maintained during multisite migration)
 user_session_tokens (user_id, token, expiration) -- with wp_ prefix
+
+-- Note: WordPress multisite provides native user authentication,
+-- reducing the need for custom session tokens
 ```
 
 **Meta Fields**:
@@ -291,15 +320,18 @@ add_action('wp_enqueue_scripts', 'extrachill_dequeue_bbpress_default_styles', 15
 ### Custom REST API
 
 ```php
-// Session validation
+// Legacy session validation (maintained for compatibility)
 GET /wp-json/extrachill/v1/validate-session
 Authorization: Bearer {token}
 
-// User details
+// Legacy user details (WordPress multisite provides native access)
 GET /wp-json/extrachill/v1/user-details/{user_id}
 
-// Forums feed  
+// Forums feed (migrated to native multisite functions)
 GET /wp-json/extrachill/v1/forums-feed
+
+// Note: Many REST endpoints are being replaced with native WordPress multisite functions
+// for improved performance and reduced complexity
 ```
 
 ### AJAX Handlers
@@ -321,7 +353,7 @@ wp_ajax_save_user_profile_links        // Dynamic social links
 # 1. Forum Features: Test all forum enhancement features across 4 categories
 # 2. Cross-Domain Authentication: Session tokens, auto-login, cookie validation
 # 3. bbPress Integration: Custom templates, stylesheet conflicts, functionality
-# 4. JavaScript Components: All 19 JS files loading and functioning correctly
+# 4. JavaScript Components: All 21 JS files loading and functioning correctly
 # 5. User Management: Profiles, avatars, settings, verification, notifications
 # 6. Authentication System: Login/register, email verification, session handling
 # 7. Email Systems: Registration emails, email change verification flow
@@ -347,11 +379,11 @@ define('EXTRACHILL_API_URL', 'https://community.extrachill.com');
 - **Community-Focused**: Streamlined theme focused exclusively on community and forum functionality
 - **Plugin Integration**: Works seamlessly with `extrachill-artist-platform` plugin (all artist features migrated to plugin)
 - **No Build System**: Direct file inclusion, no compilation required
-- **PSR-4 Ready**: Composer autoloader configured (`Chubes\Extrachill\` namespace) 
+- **Procedural Architecture**: No PSR-4 autoloading configured, uses direct function-based patterns 
 - **Organized Structure**: Forum features in structured subdirectories with master loader
 - **WordPress Native**: Full compliance with WordPress coding standards
 - **Performance Focused**: Conditional asset loading, dynamic versioning, modular CSS
-- **Cross-Domain Ready**: Session token system for seamless authentication across domains
+- **Cross-Domain Ready**: WordPress multisite for seamless authentication across domains (legacy session tokens maintained for compatibility)
 
 ## License
 

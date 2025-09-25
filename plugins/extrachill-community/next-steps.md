@@ -1,26 +1,31 @@
-## Priority Issues
+## Current Development Priorities
 
-### Critical Bugs
-- **bbPress Styling**: Fix reply edit form and author display after stylesheet removal
-- **Editor Preview**: Align visual editor with frontend display (blockquote styling mismatch)
+### Architecture & Code Organization
+- **PSR-4 Implementation**: Add PSR-4 autoloading configuration to composer.json and implement class-based architecture for forum features
+- **Code Refactoring**: Continue migration from procedural to object-oriented patterns in forum-features directory
+- **Asset Optimization**: Further refinement of conditional CSS/JS loading based on context
 
-### User Experience  
+### User Experience Enhancements
 - **Auto oEmbed**: Convert bare YouTube/Spotify URLs to embeds via content filters
-- **Social Icons**: Standardize icon display across user profiles and editing interface
-
-### Developer Experience
-- **Code Organization**: Continue cleanup of disorganized files and dead code
-- **WordPress Hooks**: Implement centralized logic via custom filters and actions
+- **Notification System**: Implement real-time notifications and improve caching strategies
+- **Social Features**: Enhance user interaction systems and profile customization
 
 ## Planned Features
 
 ### Authentication Enhancement
-1. **OAuth Integration**: Add Google and Apple login via existing login/register interface
+- **OAuth Integration**: Add Google and Apple login via existing login/register interface
+- **Session Management**: Enhance cross-domain authentication reliability
 
-### Forum Evolution  
-2. **Hybrid Social-Forum Model**: Custom "forum_post" post type for quick status updates alongside traditional topics/replies. Enables Twitter-like posting while maintaining forum structure.
+### Forum Evolution
+- **Hybrid Social-Forum Model**: Custom "feed_post" post type for quick status updates alongside traditional topics/replies
+- **Enhanced Editor**: Improve TinyMCE customization with better media handling and preview alignment
+- **Introduction Requirements**: Force new users to post in introduction forum before accessing other areas
 
-3. **Introduction Requirements**: Force new users to post in introduction forum before accessing other areas (spam prevention)
+### Performance & Scalability
+- **Caching Strategy**: Implement advanced caching for user activity, notifications, and most active users
+- **Database Optimization**: Review and optimize custom queries and transient usage
+- **Asset Management**: Further optimize conditional loading and reduce JavaScript duplication
 
 ### Community Management
-4. **Spam Filter Review**: Audit current filters to balance security with user accessibility
+- **Moderation Tools**: Enhance admin capabilities for forum management
+- **Spam Prevention**: Balance security with user accessibility in content filters

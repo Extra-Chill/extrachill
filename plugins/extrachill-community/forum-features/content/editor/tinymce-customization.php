@@ -166,12 +166,6 @@ function extrachill_output_tinymce_setup_script() {
 }
 add_action('wp_footer', 'extrachill_output_tinymce_setup_script', 99);
 
-// Load custom extrachill mentions plugin for bbPress only
-function bbp_load_extrachill_mentions_plugin($plugins) {
-    if (function_exists('is_bbpress') && is_bbpress()) {
-        $mentions_plugin_url = get_stylesheet_directory_uri() . '/js/extrachill-mentions.js';
-        $plugins['extrachillmentions'] = $mentions_plugin_url;
-    }
-    return $plugins;
-}
-//add_filter('mce_external_plugins', 'bbp_load_extrachill_mentions_plugin');
+// Note: Mentions functionality is loaded via inc/core/assets.php
+// The extrachill-mentions.js file self-registers as a TinyMCE plugin
+// No external plugin registration needed - just load the script normally

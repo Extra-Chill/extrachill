@@ -9,10 +9,7 @@
  */
 
 function handle_upvote_action() {
-    // Debug logging for troubleshooting
     error_log('Upvote AJAX called with data: ' . print_r($_POST, true));
-    
-    // Validate required parameters before nonce check
     $post_id = isset($_POST['post_id']) ? intval($_POST['post_id']) : 0;
     $type = isset($_POST['type']) ? sanitize_text_field($_POST['type']) : '';
     $user_id = get_current_user_id();
@@ -35,7 +32,6 @@ function handle_upvote_action() {
         return;
     }
 
-    // Check for nonce for security
     error_log('Upvote nonce verification - User ID: ' . $user_id . ', Nonce: ' . sanitize_text_field($_POST['nonce']));
     if (!check_ajax_referer('upvote_nonce', 'nonce', false)) {
         error_log('Upvote error: Nonce verification failed');
@@ -52,33 +48,25 @@ function handle_upvote_action() {
         $post_author_id = get_post_field('post_author', $post_id);
 
         if (in_array($post_id, $upvoted_posts)) {
-            // User has already upvoted, remove the upvote
             $upvoted_posts = array_diff($upvoted_posts, [$post_id]);
             update_user_meta($user_id, 'upvoted_posts', $upvoted_posts);
 
-            // Decrement the upvote count
             $upvote_count = max(get_post_meta($post_id, 'upvote_count', true) - 1, 0);
             update_post_meta($post_id, 'upvote_count', $upvote_count);
 
             $upvoted = false;
-
-            // Trigger the action
             do_action('custom_upvote_action', $post_id, $post_author_id, $upvoted);
 
             wp_send_json_success(['message' => 'Upvote removed', 'new_count' => $upvote_count, 'upvoted' => false]);
         } else {
-            // Add the upvote
             $upvoted_posts[] = $post_id;
             update_user_meta($user_id, 'upvoted_posts', $upvoted_posts);
 
-            // Increment the upvote count
             $upvote_count = get_post_meta($post_id, 'upvote_count', true);
             $upvote_count = empty($upvote_count) ? 1 : intval($upvote_count) + 1;
             update_post_meta($post_id, 'upvote_count', $upvote_count);
 
             $upvoted = true;
-
-            // Trigger the action
             do_action('custom_upvote_action', $post_id, $post_author_id, $upvoted);
 
             wp_send_json_success(['message' => 'Upvote recorded', 'new_count' => $upvote_count, 'upvoted' => true]);
@@ -92,7 +80,7 @@ function handle_upvote_action() {
 
 
 add_action('wp_ajax_handle_upvote', 'handle_upvote_action');
-add_action('wp_ajax_nopriv_handle_upvote', 'handle_upvote_action'); // If you want to allow non-logged in users to view upvote counts
+add_action('wp_ajax_nopriv_handle_upvote', 'handle_upvote_action');
 
 function get_upvote_count($post_id) {
     $count = get_post_meta($post_id, 'upvote_count', true);
@@ -104,10 +92,8 @@ function extrachill_get_upvoted_posts($post_type, $user_id = null) {
     $upvoted = $user_id ? [$user_id] : get_user_meta($current_user_id, 'upvoted_posts', true);
 
     if (empty($upvoted) || !is_array($upvoted)) {
-        return new WP_Query(); // Return an empty WP_Query object if no upvoted posts
+        return new WP_Query();
     }
-
-    // Support both 'paged' (archives) and 'page' (static page) pagination vars
     $paged = max( 1, get_query_var('paged'), get_query_var('page') );
 
     $args = array(
@@ -126,9 +112,9 @@ function extrachill_get_upvoted_posts($post_type, $user_id = null) {
 function extrachill_get_user_total_upvotes($user_id) {
     $args = array(
         'author'         => $user_id,
-        'post_type'      => array('post', 'reply', 'topic'), // Include relevant post types
+        'post_type'      => array('post', 'reply', 'topic'),
         'posts_per_page' => -1,
-        'fields'         => 'ids', // Only get post IDs for efficiency
+        'fields'         => 'ids'
     );
 
     $user_posts_query = new WP_Query( $args );

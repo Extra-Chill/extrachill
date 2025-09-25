@@ -37,24 +37,8 @@ function extrachill_get_user_total_points($user_id) {
 
     $follower_points = 0;
 
-    // Get main site post count (cached)
-    $author_id = false; // Initialize
-    $author_id = get_transient('user_author_id_' . $user_id);
-    if (false === $author_id) {
-        $author_id = convert_community_user_id_to_author_id($user_id);
-        // Cache even if null to avoid repeated checks
-        set_transient('user_author_id_' . $user_id, $author_id, HOUR_IN_SECONDS); // Cache for 1 hour
-    }
-
-    $main_site_post_count = 0; // Initialize default value
-    if ($author_id !== null) {
-        $main_site_post_count = false; // Initialize before transient check
-        $main_site_post_count = get_transient('user_main_site_post_count_' . $user_id);
-        if (false === $main_site_post_count) {
-            $main_site_post_count = intval(fetch_main_site_post_count_for_user($author_id) ?? 0);
-            set_transient('user_main_site_post_count_' . $user_id, $main_site_post_count, HOUR_IN_SECONDS); // Cache for 1 hour
-        }
-    }
+    // Get main site post count (with multisite, user ID is the same across network)
+    $main_site_post_count = fetch_main_site_post_count_for_user($user_id);
     $main_site_post_points = $main_site_post_count * 10;
 
     // Calculate total points

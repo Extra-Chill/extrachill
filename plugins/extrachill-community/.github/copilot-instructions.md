@@ -5,7 +5,7 @@ Scope: WordPress theme for community.extrachill.com focused on bbPress forums, u
 ## Architecture
 - Hybrid theme: `functions.php` orchestrates setup/enqueues; bbPress overrides in `bbpress/`; feature modules in `forum-features/`; auth/integration in `extrachill-integration/`; login flows in `login/`.
 - Assets are conditional and versioned with `filemtime()`; bbPress default styles are dequeued and replaced by theme CSS.
-- Cross‑domain auth: session tokens enable SSO across `.extrachill.com` via REST in `extrachill-integration/`.
+- Cross‑domain auth: **Migrating to WordPress multisite** - native authentication replaces custom session tokens. Legacy session token system in `extrachill-integration/` maintained for compatibility.
 - PSR‑4 autoload ready (`composer.json` → `Chubes\\Extrachill\\` → `src/`), but most logic is procedural today.
 
 ## Key files & patterns
@@ -25,7 +25,7 @@ Scope: WordPress theme for community.extrachill.com focused on bbPress forums, u
 
 ## Integration with extrachill-artist-platform
 - Avatar menu: plugin injects via `ec_avatar_menu_items` filter; each item has `url`, `label`, `priority` (lower = higher in menu).
-- Cross-domain access checks: REST under `extrachill/v1/*` with `.extrachill.com` cookie auth; changes here require coordinating plugin JS (edit icon, session modules).
+- Cross-domain access checks: **Legacy REST** under `extrachill/v1/*` with `.extrachill.com` cookie auth (maintained during multisite migration); changes here require coordinating plugin JS (edit icon, session modules).
 
 ## Workflows
 - Install deps: `composer install` at theme root (no npm here).

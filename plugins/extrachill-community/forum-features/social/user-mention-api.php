@@ -38,9 +38,8 @@ function extrachill_user_mention_search_endpoint( $request ) {
                 'slug'     => $user->user_nicename,
             );
         }
-    } else {
-        return new WP_REST_Response( array( 'message' => 'No users found.' ), 200 );
     }
 
+    // Always return array structure for consistency
     return rest_ensure_response( $users_data );
 }

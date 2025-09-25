@@ -68,23 +68,9 @@ wp_reset_postdata(); // Reset the global post object
     <div class="bbp-user-avatar-area">
         <span class='vcard'>
             <a class="url fn n" href="<?php bbp_user_profile_url(); ?>" title="<?php bbp_displayed_user_field('display_name'); ?>" rel="me">
-                <?php 
-                // Attempt to get the custom avatar ID
-                $custom_avatar_id = get_user_meta(bbp_get_displayed_user_field('ID'), 'custom_avatar_id', true);
-
-                // Display custom avatar if available, otherwise default to Gravatar
-                if ($custom_avatar_id && wp_attachment_is_image($custom_avatar_id)) {
-                    // Get the medium size URL of the custom avatar
-                    $medium_src = wp_get_attachment_image_url($custom_avatar_id, 'medium');
-
-                    if ($medium_src) {
-                        // Construct the image tag with the medium size URL
-                        echo '<img src="' . esc_url($medium_src) . '" alt="' . esc_attr(bbp_get_displayed_user_field('display_name')) . '" class="avatar" width="150" height="150">';
-                    }
-                } else {
-                    // Fallback to default Gravatar with the specified size
-                    echo get_avatar(bbp_get_displayed_user_field('user_email', 'raw'), apply_filters('bbp_single_user_details_avatar_size', 150));
-                }
+                <?php
+                // Use filtered get_avatar() for consistent avatar handling across all locations
+                echo get_avatar(bbp_get_displayed_user_field('ID'), apply_filters('bbp_single_user_details_avatar_size', 150));
                 ?>
             </a>
         </span>

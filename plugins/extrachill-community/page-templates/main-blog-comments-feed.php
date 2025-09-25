@@ -44,7 +44,7 @@ if ($isUserProfile) {
 echo '</span>';
 
 if (is_user_logged_in()) :
-    echo '<p>Logged in as <a href="<?php echo bbp_get_user_profile_url(wp_get_current_user()->ID); ?>">' . esc_html(wp_get_current_user()->display_name) . '.</a></p>';
+    echo '<p>Logged in as <a href="' . bbp_get_user_profile_url(wp_get_current_user()->ID) . '">' . esc_html(wp_get_current_user()->display_name) . '.</a></p>';
 else :
     echo '<p>You are not signed in. <a href="/login">Login</a> or <a href="/register">Register</a></p>';
 endif;

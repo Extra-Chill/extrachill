@@ -1,10 +1,9 @@
 <?php
 /**
  * Custom Login System
- * 
- * Handles login form display, redirect logic, and artist platform
- * integration for new user onboarding flow.
- * 
+ *
+ * Handles login form display and redirect logic for user onboarding.
+ *
  * @package Extra ChillCommunity
  */
 
@@ -33,7 +32,6 @@ function extrachill_login_page_redirect() {
             if ($from_join) {
                 $user_id = get_current_user_id();
 
-                // Get the user's artist profile IDs directly from user meta.
                 $user_artist_ids = get_user_meta( $user_id, '_artist_profile_ids', true );
 
                 if ( ! empty( $user_artist_ids ) && is_array( $user_artist_ids ) ) {
@@ -262,7 +260,6 @@ function bp_join_flow_login_redirect($redirect_to, $requested_redirect_to, $user
         if ($from_join) {
             $user_id = $user->ID;
 
-            // Get the user's artist profile IDs directly from user meta.
             $user_artist_ids = get_user_meta( $user_id, '_artist_profile_ids', true );
 
             if ( ! empty( $user_artist_ids ) && is_array( $user_artist_ids ) ) {

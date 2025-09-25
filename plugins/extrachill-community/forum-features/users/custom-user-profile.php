@@ -132,20 +132,16 @@ function display_main_site_post_count_on_profile() {
     if (!function_exists('bbp_get_displayed_user_id')) {
         return;
     }
-    
-    $community_user_id = bbp_get_displayed_user_id();
-    $author_id = convert_community_user_id_to_author_id($community_user_id);
 
-    if ($author_id !== null) {
-        $post_count = fetch_main_site_post_count_for_user($author_id);
+    $user_id = bbp_get_displayed_user_id();
+    $post_count = fetch_main_site_post_count_for_user($user_id);
 
-        // Use the new mapping to get the author slug (user nicename)
-        $author_slug = get_author_nicename_by_id($author_id);
+    if ($post_count > 0) {
+        // Get the author slug directly from the user data
+        $author_slug = get_author_nicename_by_id($user_id);
         $author_url = "https://extrachill.com/author/{$author_slug}/"; // Adjust URL structure as needed
 
-        if ($post_count > 0) {
-            echo "<p><b>Extra Chill Articles:</b> $post_count <a href='" . esc_url($author_url) . "'>(View All)</a></p>";
-        }
+        echo "<p><b>Extra Chill Articles:</b> $post_count <a href='" . esc_url($author_url) . "'>(View All)</a></p>";
     }
 }
 

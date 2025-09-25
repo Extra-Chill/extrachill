@@ -218,11 +218,15 @@ if ( $is_lead_topic ) {
                         $reply_id = bbp_get_reply_id();
                         // Show truncated version with expand functionality
                         echo '<div class="reply-content-truncated" id="content-' . $reply_id . '">';
-                        echo '<div class="content-preview">' . wp_trim_words( $content, 75, '...' ) . '</div>';
+                        
+                        // Twitter-style truncation that preserves HTML structure
+                        $truncated_content = extrachill_truncate_html_content( $content, $truncate_length );
+                        echo '<div class="content-preview">' . $truncated_content . '</div>';
+                        
                         echo '<div class="content-full collapsed" style="height: 0; overflow: hidden;">' . $content . '</div>';
                         echo '<button class="read-more-toggle" onclick="toggleContentExpansion(' . $reply_id . ', this)">';
-                        echo '<span class="read-more-text">Read More</span>';
-                        echo '<span class="read-less-text" style="display: none;">Read Less</span>';
+                        echo '<span class="read-more-text">Show More</span>';
+                        echo '<span class="read-less-text" style="display: none;">Show Less</span>';
                         echo '</button>';
                         echo '</div>';
                     } else {

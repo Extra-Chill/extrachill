@@ -56,10 +56,10 @@ function extrachill_custom_avatar_upload() {
 }
 
 /**
- * Override get_avatar to use the "thumbnail" size for the image,
- * then manually set HTML width/height to $size (like Gravatar does).
+ * Override pre_get_avatar to provide custom avatars before WordPress processes Gravatar.
+ * Uses proper WordPress hook for custom avatar systems with multisite support.
  */
-function extrachill_custom_avatar($avatar, $id_or_email, $size, $default, $alt) {
+function extrachill_custom_avatar($avatar, $id_or_email, $args) {
     $user = false;
 
     // Identify the user
@@ -74,30 +74,34 @@ function extrachill_custom_avatar($avatar, $id_or_email, $size, $default, $alt) 
     }
 
     if ($user && is_object($user)) {
-        $custom_avatar_id = get_user_meta($user->ID, 'custom_avatar_id', true);
+        // Use get_user_option for proper multisite support (checks current site first, then network-wide)
+        $custom_avatar_id = get_user_option('custom_avatar_id', $user->ID);
 
         if ($custom_avatar_id && wp_attachment_is_image($custom_avatar_id)) {
-            // We'll get the WordPress "thumbnail" size as the base URL
+            // Get the WordPress "thumbnail" size as the base URL
             $thumbnail_src = wp_get_attachment_image_url($custom_avatar_id, 'thumbnail');
 
             if ($thumbnail_src) {
-                // Let’s echo a numeric size for HTML attributes
-                // (like Gravatar does with <img width="64" height="64">).
+                // Extract size and alt from args array
+                $size = isset($args['size']) ? (int) $args['size'] : 96;
+                $alt = isset($args['alt']) ? $args['alt'] : '';
+
+                // Build avatar HTML matching WordPress standards
                 $avatar_html = sprintf(
                     '<img src="%1$s" alt="%2$s" width="%3$d" height="%3$d" class="avatar avatar-%3$d photo" />',
                     esc_url($thumbnail_src),
                     esc_attr($alt),
-                    (int) $size
+                    $size
                 );
                 return $avatar_html;
             }
         }
     }
 
-    // Fallback to Gravatar if no custom avatar is found
-    return $avatar;
+    // Return null to let WordPress handle Gravatar fallback
+    return null;
 }
-add_filter('get_avatar', 'extrachill_custom_avatar', 10, 5);
+add_filter('pre_get_avatar', 'extrachill_custom_avatar', 10, 3);
 
 /**
  * (Optional) Generate custom avatar IDs for existing user meta

@@ -120,7 +120,7 @@ defined( 'ABSPATH' ) || exit;
 	if ($is_artist_profile || $is_professional_profile) : 
 	?>
 	<div class="bbp-user-profile-card">
-		<h2 class="entry-title"><?php esc_html_e('Artist Platform', 'extra-chill-community'); ?></h2>
+		<h2 class="entry-title"><?php esc_html_e('Artist Profiles', 'extra-chill-community'); ?></h2>
 		<fieldset class="bbp-form">
 
 			<!-- Artist Profiles Section -->

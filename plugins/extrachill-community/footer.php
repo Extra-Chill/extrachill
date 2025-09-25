@@ -1,9 +1,8 @@
 <?php
 /**
- * footer.php
+ * Theme footer with dynamic menu areas and social links
  *
- * 
- *
+ * @package Extra ChillCommunity
  */
 ?>
 
@@ -16,7 +15,6 @@ if (function_exists('display_online_users_stats')) {
 }
 ?>
 <footer id="extra-footer" >
-    <!-- Social Media Links -->
     <?php include get_stylesheet_directory() . '/forum-features/content/social-links.php'; ?>
     <div class="footer-menus-wrapper">
         <div class="footer-menus">
@@ -37,7 +35,6 @@ if (function_exists('display_online_users_stats')) {
             ?>
         </div>
     </div>
-    <!-- Copyright -->
     <div class="footer-copyright">
         &copy; <?php echo date( 'Y' ); ?> <a href="https://extrachill.com">Extra Chill</a>. All rights reserved.
     </div>

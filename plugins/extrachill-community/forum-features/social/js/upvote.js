@@ -3,12 +3,7 @@ jQuery(document).ready(function($) {
         e.preventDefault();
         e.stopPropagation();
         
-        // Check if user has valid session token
-        var sessionToken = document.cookie.match(/ecc_user_session_token=([^;]*)/);
-        if (!sessionToken || !sessionToken[1] || sessionToken[1].length === 0) {
-            window.location.href = '/login';
-            return;
-        }
+        // WordPress multisite handles authentication - server-side AJAX will validate user
 
         var $this = $(this);
         var post_id = $this.data('post-id'); 

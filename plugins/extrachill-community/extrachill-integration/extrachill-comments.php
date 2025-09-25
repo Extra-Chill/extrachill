@@ -8,10 +8,10 @@
 
 /**
  * Display main site comments for a specific user
- * 
- * Fetches and displays comments from extrachill.com API for a given user.
- * Includes comprehensive error handling and user-friendly fallbacks.
- * 
+ *
+ * Fetches and displays comments from extrachill.com using multisite queries.
+ * Uses switch_to_blog() to access main site data directly from the database.
+ *
  * @param int $community_user_id User ID to fetch comments for
  * @return string HTML markup for comments display or error message
  */
@@ -26,30 +26,36 @@ function display_main_site_comments_for_user($community_user_id) {
     // Safely retrieve the user nicename, or use a placeholder if not found
     $user_nicename = $user_info ? $user_info->user_nicename : 'Unknown User';
 
-    $response = wp_remote_get("https://extrachill.com/wp-json/extrachill/v1/user-comments/{$community_user_id}", array(
-        'timeout' => 10,
-        'sslverify' => true
+    // Switch to main site (extrachill.com) to fetch comments directly
+    $main_site_id = 1;
+    switch_to_blog($main_site_id);
+
+    // Fetch comments for this user from main site
+    $user_comments = get_comments(array(
+        'user_id' => $community_user_id,
+        'status' => 'approve',
+        'order' => 'DESC',
+        'orderby' => 'comment_date_gmt'
     ));
 
-    if (is_wp_error($response)) {
-        $error_message = $response->get_error_message();
-        error_log("Failed to fetch comments for user {$community_user_id}: {$error_message}");
-        return '<div class="bbpress-comments-error">Unable to load comments at this time. Please try again later.</div>';
+    // Build comments array in same format as REST API
+    $comments = array();
+    if (!empty($user_comments)) {
+        foreach ($user_comments as $comment) {
+            $post = get_post($comment->comment_post_ID);
+            if ($post) {
+                $comments[] = array(
+                    'comment_ID' => $comment->comment_ID,
+                    'post_permalink' => get_permalink($post->ID),
+                    'post_title' => $post->post_title,
+                    'comment_date_gmt' => $comment->comment_date_gmt,
+                    'comment_content' => $comment->comment_content
+                );
+            }
+        }
     }
 
-    $response_code = wp_remote_retrieve_response_code($response);
-    if ($response_code !== 200) {
-        error_log("API returned non-200 status for user {$community_user_id}: {$response_code}");
-        return '<div class="bbpress-comments-error">Comments service temporarily unavailable. Please try again later.</div>';
-    }
-
-    $body = wp_remote_retrieve_body($response);
-    $comments = json_decode($body, true);
-
-    if (json_last_error() !== JSON_ERROR_NONE) {
-        error_log("JSON decode error for user {$community_user_id}: " . json_last_error_msg());
-        return '<div class="bbpress-comments-error">Unable to process comments data.</div>';
-    }
+    restore_current_blog();
 
     if (empty($comments)) {
         return '<div class="bbpress-comments-list"><h3>Comments Feed for <span class="comments-feed-user">' . esc_html($user_nicename) . '</span></h3><p>No comments found for this user.</p></div>';
@@ -98,55 +104,27 @@ function display_main_site_comment_count_for_user($user_id = null) {
     // Use current user ID if none is passed
     $user_id = $user_id ?: get_current_user_id();
 
-    // Check if comment count is already cached in a transient
-    $cached_comment_count = get_transient('main_site_comment_count_' . $user_id);
-    if (false !== $cached_comment_count) {
-        return $cached_comment_count; // Return cached comment count if available
-    }
-
     if (empty($user_id)) {
         // Fallback to the BBPress displayed user ID if not provided
         $user_id = bbp_get_displayed_user_id();
     }
-    
+
     // Final validation
     if (empty($user_id) || !is_numeric($user_id)) {
         return '<b>Main Site Comments:</b> Unable to load';
     }
-    
-    $response = wp_remote_get("https://extrachill.com/wp-json/extrachill/v1/user-comments-count/{$user_id}", array(
-        'timeout' => 10,
-        'sslverify' => true
+
+    // Get the main site ID (assuming site ID 1 is the main extrachill.com site)
+    $main_site_id = 1;
+
+    // Switch to main site to count comments
+    switch_to_blog($main_site_id);
+    $comment_count = get_comments(array(
+        'user_id' => $user_id,
+        'count' => true,
+        'status' => 'approve'
     ));
-
-    if (is_wp_error($response)) {
-        $error_message = $response->get_error_message();
-        error_log("Failed to fetch comment count for user {$user_id}: {$error_message}");
-        // Cache the failure for 1 hour to avoid repeated failed requests
-        $result = '<b>Main Site Comments:</b> Unavailable';
-        set_transient('main_site_comment_count_' . $user_id, $result, 3600);
-        return $result;
-    }
-
-    $response_code = wp_remote_retrieve_response_code($response);
-    if ($response_code !== 200) {
-        error_log("Comment count API returned non-200 status for user {$user_id}: {$response_code}");
-        $result = '<b>Main Site Comments:</b> Unavailable';
-        set_transient('main_site_comment_count_' . $user_id, $result, 3600);
-        return $result;
-    }
-
-    $body = wp_remote_retrieve_body($response);
-    $data = json_decode($body, true);
-    
-    if (json_last_error() !== JSON_ERROR_NONE) {
-        error_log("JSON decode error for comment count user {$user_id}: " . json_last_error_msg());
-        $result = '<b>Main Site Comments:</b> Unavailable';
-        set_transient('main_site_comment_count_' . $user_id, $result, 3600);
-        return $result;
-    }
-
-    $comment_count = $data['comment_count'] ?? 0;
+    restore_current_blog();
 
     if ($comment_count > 0) {
         // Adjust the URL to where you list all comments by this user on the main site
@@ -155,9 +133,6 @@ function display_main_site_comment_count_for_user($user_id = null) {
     } else {
         $result = "<b>Main Site Comments:</b> $comment_count";
     }
-    
-    // Cache the result for 7 days to avoid repeated API calls
-    set_transient('main_site_comment_count_' . $user_id, $result, 604800);
 
     return $result;
 }

@@ -50,7 +50,6 @@ get_header(); ?>
 				<?php endwhile; ?>
 
 				<?php
-				// Pagination
 				the_posts_pagination(array(
 					'prev_text' => esc_html__('Previous', 'extra-chill-community'),
 					'next_text' => esc_html__('Next', 'extra-chill-community'),

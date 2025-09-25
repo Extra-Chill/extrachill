@@ -1,11 +1,6 @@
 {
     "name": "chubes/extrachill",
-    "description": "packages for commmunity theme",
-    "autoload": {
-        "psr-4": {
-            "Chubes\\Extrachill\\": "src/"
-        }
-    },
+    "description": "packages for community theme",
     "authors": [
         {
             "name": "Chris Huber"

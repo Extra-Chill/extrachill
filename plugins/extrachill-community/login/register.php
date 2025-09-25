@@ -1,10 +1,9 @@
 <?php
 /**
  * User Registration System
- * 
- * Handles user registration with email verification, validation,
- * and integration with the artist platform plugin.
- * 
+ *
+ * Handles user registration with email verification and validation.
+ *
  * @package Extra ChillCommunity
  */
 

@@ -254,3 +254,100 @@ add_filter('bbp_new_reply_pre_content', 'ec_clean_content_before_save');
 add_filter('bbp_edit_topic_pre_content', 'ec_clean_content_before_save'); 
 add_filter('bbp_edit_reply_pre_content', 'ec_clean_content_before_save');
 
+
+/**
+ * Truncate HTML content while preserving structure (Twitter-style truncation)
+ * Cuts off at character limit while respecting word boundaries and HTML tags
+ *
+ * @param string $content The HTML content to truncate
+ * @param int $length Maximum character length (default: 500)
+ * @param string $ellipsis What to append when content is truncated (default: '...')
+ * @return string Truncated HTML content
+ */
+function extrachill_truncate_html_content($content, $length = 500, $ellipsis = '...') {
+    if (empty($content) || !is_string($content)) {
+        return $content;
+    }
+
+    // Get plain text length to check if truncation is needed
+    $plain_text = strip_tags($content);
+    if (strlen($plain_text) <= $length) {
+        return $content;
+    }
+
+    // Use DOMDocument to parse HTML safely
+    $dom = new DOMDocument();
+    libxml_use_internal_errors(true);
+    @$dom->loadHTML('<?xml encoding="UTF-8"><div>' . $content . '</div>', LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
+    libxml_clear_errors();
+
+    $div = $dom->getElementsByTagName('div')->item(0);
+    if (!$div) {
+        return $content;
+    }
+
+    $truncated = '';
+    $current_length = 0;
+    $truncated_dom = new DOMDocument();
+    $truncated_div = $truncated_dom->createElement('div');
+    $truncated_dom->appendChild($truncated_div);
+
+    // Walk through child nodes and build truncated content
+    foreach ($div->childNodes as $node) {
+        $node_text = $node->textContent;
+        $node_length = strlen($node_text);
+
+        if ($current_length + $node_length <= $length) {
+            // Node fits entirely
+            $imported_node = $truncated_dom->importNode($node, true);
+            $truncated_div->appendChild($imported_node);
+            $current_length += $node_length;
+        } else {
+            // Node needs to be truncated
+            $remaining_length = $length - $current_length;
+
+            if ($remaining_length > 0) {
+                // Clone the node and truncate its text content
+                $truncated_node = $node->cloneNode(true);
+
+                // Find text nodes and truncate them
+                $text_nodes = [];
+                $xpath = new DOMXPath($dom);
+                $text_elements = $xpath->query('.//text()', $truncated_node);
+
+                foreach ($text_elements as $text_element) {
+                    $text_nodes[] = $text_element;
+                }
+
+                if (!empty($text_nodes)) {
+                    // Truncate the last text node
+                    $last_text_node = end($text_nodes);
+                    $text_content = $last_text_node->textContent;
+
+                    // Find word boundary to truncate at
+                    $truncated_text = substr($text_content, 0, $remaining_length);
+                    $last_space = strrpos($truncated_text, ' ');
+
+                    if ($last_space !== false && $last_space > $remaining_length * 0.8) {
+                        $truncated_text = substr($truncated_text, 0, $last_space);
+                    }
+
+                    $last_text_node->textContent = $truncated_text . $ellipsis;
+                }
+
+                $imported_node = $truncated_dom->importNode($truncated_node, true);
+                $truncated_div->appendChild($imported_node);
+            }
+            break; // Stop processing further nodes
+        }
+    }
+
+    // Convert back to HTML string
+    $html = $truncated_dom->saveHTML($truncated_div);
+    // Remove the wrapper div tags
+    $html = preg_replace('/^<div>/', '', $html);
+    $html = preg_replace('/<\/div>$/', '', $html);
+
+    return trim($html);
+}
+
