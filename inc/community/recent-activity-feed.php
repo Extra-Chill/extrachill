@@ -1,6 +1,22 @@
 <?php
 
-// this code is used to display recent activity from the community site
+/**
+ * Recent Activity Feed Functions
+ * Native multisite integration for displaying community forum activity
+ * Replaces REST API calls with direct database queries for improved performance
+ *
+ * @package ExtraChill
+ * @since 1.0
+ */
+/**
+ * Generate compact human-readable time difference strings
+ * Uses abbreviated format (e.g., "5m ago", "2h ago") for space efficiency
+ *
+ * @param int $from Unix timestamp of the past time
+ * @param int $to   Unix timestamp of current time (defaults to now)
+ * @return string Formatted time difference string
+ * @since 1.0
+ */
 function custom_human_time_diff($from, $to = '') {
     if (empty($to)) {
         $to = time();
@@ -31,42 +47,126 @@ function custom_human_time_diff($from, $to = '') {
     return $since . __(' ago');
 }
 
+/**
+ * Fetch recent activity from community site using native multisite functions
+ * Direct replacement for REST API calls - provides significant performance improvement
+ * Queries bbPress topics and replies from community.extrachill.com via multisite
+ *
+ * @param int $limit Number of activities to fetch (default: 10)
+ * @return array Array of activity data with user, topic, and forum information
+ * @since 1.0
+ *
+ * @throws Exception If multisite operation fails, logs error and returns empty array
+ */
+function ec_fetch_recent_activity_multisite( $limit = 10 ) {
+	if ( ! is_multisite() ) {
+		error_log( 'Recent activity multisite error: WordPress multisite not detected' );
+		return array();
+	}
+
+	$activities = array();
+
+	// Switch to community site (blog ID 2)
+	switch_to_blog( 2 );
+
+	try {
+		// Query recent bbPress activity
+		$args = array(
+			'post_type' => array( 'topic', 'reply' ),
+			'post_status' => 'publish',
+			'posts_per_page' => $limit,
+			'orderby' => 'date',
+			'order' => 'DESC',
+			'meta_query' => array(
+				'relation' => 'AND',
+				array(
+					'key' => '_bbp_forum_id',
+					'value' => '1494', // Exclude restricted forum
+					'compare' => '!=',
+				),
+			),
+		);
+
+		$query = new WP_Query( $args );
+
+		if ( $query->have_posts() ) {
+			while ( $query->have_posts() ) {
+				$query->the_post();
+				$post_id = get_the_ID();
+				$post_type = get_post_type( $post_id );
+
+				$forum_id = ( 'reply' === $post_type ) ? get_post_meta( get_post_meta( $post_id, '_bbp_topic_id', true ), '_bbp_forum_id', true ) : get_post_meta( $post_id, '_bbp_forum_id', true );
+				$forum_title = get_the_title( $forum_id );
+				$forum_url = get_permalink( $forum_id );
+
+				$topic_title = ( 'reply' === $post_type ) ? get_the_title( get_post_meta( $post_id, '_bbp_topic_id', true ) ) : get_the_title( $post_id );
+				$topic_url = get_permalink( $post_id );
+
+				$author_id = get_the_author_meta( 'ID' );
+				$username = get_the_author();
+				$user_profile_url = get_author_posts_url( $author_id );
+
+				$activities[] = array(
+					'type' => ( 'reply' === $post_type ) ? 'Reply' : 'Topic',
+					'username' => $username,
+					'user_profile_url' => $user_profile_url,
+					'topic_title' => $topic_title,
+					'topic_url' => $topic_url,
+					'forum_title' => $forum_title,
+					'forum_url' => $forum_url,
+					'date_time' => get_the_date( 'c' ),
+				);
+			}
+			wp_reset_postdata();
+		}
+	} catch ( Exception $e ) {
+		error_log( 'Recent activity multisite error: ' . $e->getMessage() );
+		$activities = array();
+	} finally {
+		// Always restore current blog
+		restore_current_blog();
+	}
+
+	return $activities;
+}
+
+/**
+ * WordPress shortcode handler for displaying recent community activity
+ * Implements 10-minute caching to reduce database queries and improve performance
+ *
+ * @return string HTML output for recent activity display
+ * @since 1.0
+ */
 function extrachill_recent_activity_shortcode() {
-    // Set a transient name
     $transient_name = 'extrachill_recent_activity';
     $activities = get_transient($transient_name);
 
-    // If the transient does not exist, fetch the data from the API
     if ($activities === false) {
-        $request_url = 'https://community.extrachill.com/wp-json/extrachill/v1/recent-activity';
-        $response = wp_remote_get($request_url);
+        $activities = ec_fetch_recent_activity_multisite( 10 );
 
-        if (is_wp_error($response)) {
+        if ( empty( $activities ) ) {
             return 'Could not retrieve recent activity.';
         }
 
-        $activities = json_decode(wp_remote_retrieve_body($response), true);
-
-        // Set a transient for 10 minutes to cache the API response
         set_transient($transient_name, $activities, 10 * MINUTE_IN_SECONDS);
     }
 
     $output = '<div class="extrachill-recent-activity">';
     if (!empty($activities)) {
         $output .= '<ul>';
-        $counter = 0; // Initialize counter for unique ID
+        $counter = 0;
         foreach ($activities as $activity) {
             if (!is_array($activity)) {
                 continue;
             }
             $dateFormatted = custom_human_time_diff(strtotime($activity['date_time']));
-            $counter++; // Increment counter for each activity
+            $counter++;
             if ($activity['type'] === 'Reply') {
                 $output .= sprintf(
                     '<li><a href="%s">%s</a> replied to <a id="topic-%d" href="%s">%s</a> in <a href="%s">%s</a> - %s</li>',
                     esc_url($activity['user_profile_url']),
                     esc_html($activity['username']),
-                    $counter, // Unique ID for the topic link
+                    $counter,
                     esc_url($activity['topic_url']),
                     esc_html($activity['topic_title']),
                     esc_url($activity['forum_url']),
@@ -78,7 +178,7 @@ function extrachill_recent_activity_shortcode() {
                     '<li><a href="%s">%s</a> posted <a id="topic-%d" href="%s">%s</a> in <a href="%s">%s</a> - %s</li>',
                     esc_url($activity['user_profile_url']),
                     esc_html($activity['username']),
-                    $counter, // Unique ID for the topic link
+                    $counter,
                     esc_url($activity['topic_url']),
                     esc_html($activity['topic_title']),
                     esc_url($activity['forum_url']),
@@ -91,8 +191,7 @@ function extrachill_recent_activity_shortcode() {
     } else {
         $output .= 'No recent activity found.';
     }
-    
-    // Ensure the "Visit Community" button has a unique ID as well
+
     $output .= '<a id="visit-community" href="https://community.extrachill.com"><button>Visit Community</button></a>';
     $output .= '</div>';
 

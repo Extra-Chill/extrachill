@@ -5,13 +5,8 @@
  * @package ExtraChill
  */
 
-global $header_user_details; // Declare as global
-// Fetch user details for hero greeting and ad-free detection
-if (isset($_COOKIE['ecc_user_session_token'])) {
-    $header_user_details = get_user_details_directly($_COOKIE['ecc_user_session_token']); // Fetch user details once
-} else {
-    $header_user_details = false; // Set to false if no session token
-}
+// WordPress multisite handles authentication natively across all domains
+// No need to fetch user details in header - authentication works automatically
 ?><!DOCTYPE html>
 <html <?php language_attributes(); ?>>
 <head>
@@ -36,8 +31,8 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   
   <?php wp_head(); ?>
   <?php
-  // Conditionally include Mediavine ad blocklist based on ad-free status, passing pre-fetched user details
-  if ( is_user_ad_free( $header_user_details ) ) {
+  // Conditionally include Mediavine ad blocklist based on ad-free status
+  if ( is_user_ad_free() ) {
       ?>
       <div id="mediavine-settings" data-blocklist-all="1"></div>
       <?php

@@ -23,7 +23,6 @@ foreach ($newsletter_posts as $post) {
     $exclude_ids[] = $post->ID;
 }
 
-// Get recent posts excluding those already displayed above
 $more_recent_posts = get_posts(array(
     'numberposts' => 4, 
     'post__not_in' => $exclude_ids,

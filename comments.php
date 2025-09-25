@@ -65,10 +65,27 @@ if ( post_password_required() )
 	?>
 		<p class="no-comments"><?php _e( 'Comments are closed.', 'extrachill' ); ?></p>
 	<?php endif; ?>
-    <div class="community-comment-form">
-        <!-- Placeholder for dynamic comment form content after login -->
-    </div>
-    <div class="community-login-form">
-        <!-- Placeholder for dynamic login form content -->
-    </div>
+    <?php
+    // Native multisite comment system - no REST API calls needed!
+    if (is_user_logged_in()) {
+        // User is logged in across the multisite - show comment form
+        comment_form(array(
+            'title_reply' => __('Leave a Comment', 'extrachill'),
+            'comment_notes_before' => '',
+            'comment_notes_after' => '',
+        ));
+    } else {
+        // User not logged in - show native WordPress login form
+        echo '<h3>' . __('Login to Comment', 'extrachill') . '</h3>';
+        echo '<p>You must be logged in to comment. <a href="' . wp_registration_url() . '">Register here</a> if you don\'t have an account.</p>';
+        wp_login_form(array(
+            'redirect' => get_permalink(),
+            'form_id' => 'community-loginform',
+            'label_username' => __('Username or Email', 'extrachill'),
+            'label_password' => __('Password', 'extrachill'),
+            'label_remember' => __('Remember Me', 'extrachill'),
+            'label_log_in' => __('Log In', 'extrachill'),
+        ));
+    }
+    ?>
 </div><!-- #comments -->

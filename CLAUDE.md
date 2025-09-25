@@ -28,7 +28,7 @@ The theme uses a clean, modular architecture organized in the `/inc/` directory:
 - **admin/**: Administrative functionality (customizer, contact forms, logging)
 - **community/**: Forum integration, user sync, upvotes, activity feeds
 - **core/**: Essential WordPress functionality (breadcrumbs, taxonomies, SEO)
-- **home/**: Homepage-specific components and sections (includes Festival Wire homepage ticker)
+- **home/**: Homepage-specific components and sections (hook points for plugin integrations)
 - **woocommerce/**: E-commerce integration with performance optimization
 
 ### Custom Post Types & Taxonomies
@@ -38,9 +38,15 @@ The theme uses a clean, modular architecture organized in the `/inc/` directory:
 
 ### Community Integration
 - **bbPress Forum Integration**: Community comments, upvotes, activity feeds (`inc/community/`)
-- **User Session Management**: Custom authentication and user sync
-- **Forum Search**: Custom search functionality for community content
-- **Activity Feed**: Recent community activity integration
+- **WordPress Multisite Integration**: Native WordPress multisite functions replace custom session management
+- **Forum Search**: Multisite-native search functionality (`inc/community/multisite-forum-search.php`)
+  - `ec_fetch_forum_results_multisite()` replaces REST API calls with direct database queries
+  - Uses hardcoded blog ID 2 for maximum performance (no database lookups)
+- **Activity Feed**: Native multisite recent activity integration (`inc/community/recent-activity-feed.php`)
+  - `ec_fetch_recent_activity_multisite()` uses direct database queries instead of REST API
+- **User Details**: Native WordPress authentication (`inc/community/community-session.php`)
+  - `preload_user_details()` replaces custom session token validation
+  - Uses `is_user_logged_in()` and `wp_get_current_user()` for authentication
 
 ### WooCommerce Integration
 - **Performance Optimized**: WooCommerce only loads when products are present or on store pages
@@ -115,7 +121,7 @@ wp rewrite flush
 - **Taxonomy Templates**: Custom templates for artist, venue, festival, location
 - **WooCommerce**: Custom product templates with conditional loading
 - **Page Templates**: Specialized templates in `page-templates/` directory
-- **Festival Wire**: Post type templates handled by ExtraChill News Wire plugin
+- **Festival Wire**: Custom post type functionality provided by ExtraChill News Wire plugin
 
 ## Custom Functionality
 
@@ -131,10 +137,10 @@ wp rewrite flush
 - **Template Management**: All newsletter templates handled by plugin, not theme
 
 ### Festival Wire Integration
-- **Homepage Ticker**: Dynamic ticker display of latest Festival Wire posts
-- **Plugin Integration**: Festival Wire functionality provided by ExtraChill News Wire plugin
-- **Theme Support**: Homepage ticker component maintains display functionality
-- **File Location**: Homepage ticker component in `inc/home/festival-wire-ticker.php`
+- **Homepage Integration**: Festival Wire functionality provided by ExtraChill News Wire plugin via hook
+- **Plugin Integration**: Plugin hooks into theme via `extrachill_after_hero` action hook
+- **Theme Support**: Theme provides hook points for plugin integration
+- **Migration Complete**: Festival Wire functionality fully moved to plugin (no theme files remain)
 
 ### Performance Features
 - **WooCommerce Optimization**: Conditional loading prevents global initialization

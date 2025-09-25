@@ -11,6 +11,8 @@
 
 <?php do_action( 'extrachill_before_footer' ); ?>
 
+<?php do_action( 'extrachill_above_footer' ); ?>
+
 <footer id="extra-footer" >
     <!-- Social Media Links -->
     <?php include get_template_directory() . '/social-links.php'; ?>

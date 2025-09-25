@@ -9,7 +9,7 @@
  * 2.  It checks if this is a main search query on the frontend. If not, it returns, letting WordPress proceed as normal.
  * 3.  It checks for a cached result (transient) for the given search term to avoid expensive operations on every load.
  * 4.  If no cache is found:
- *     a. It fetches ALL relevant posts from the remote forum API (`ec_fetch_forum_results`).
+ *     a. It fetches ALL relevant posts from the community forum using multisite functions (`ec_fetch_forum_results`).
  *     b. It runs a separate, new WP_Query to get ALL relevant posts from the local database.
  *     c. It merges the local posts and the virtual forum posts into a single array.
  *     d. It sorts this master array by date, descending.
@@ -17,7 +17,7 @@
  * 5.  It takes the final merged list (from cache or newly generated) and tells the main query object the total number of found posts (`$query->found_posts`) and the correct number of pages (`$query->max_num_pages`). This makes WordPress pagination functions work correctly.
  * 6.  It then manually paginates the master array using `array_slice` to get just the posts for the current page.
  * 7.  Finally, it returns this paginated slice of posts to the main query, which then uses them in the search results loop. The original database query is never run.
- * 8.  Helper filters (`post_link`, `the_permalink`) ensure that the virtual forum posts link back to the correct forum URLs.
+ * 8.  Helper filters (`post_link`, `the_permalink`) ensure that the virtual forum posts link back to the correct community.extrachill.com URLs.
  */
 
 // Hook into `posts_pre_query` to supply our own custom-merged results.
@@ -94,25 +94,19 @@ function ec_hijack_search_query( $posts, $query ) {
 
 
 /**
- * Fetches search results from the remote forum API.
+ * Wrapper function for forum search results
+ * Maintains compatibility while delegating to multisite implementation
+ *
+ * This function serves as the interface used by the search hijack system
+ * while the actual implementation uses native multisite functions for performance
+ *
+ * @param string $search_term The search term to query
+ * @param int    $limit       Maximum number of results to return (default: 100)
+ * @return array Array of forum search results from multisite query
+ * @since 1.0
  */
 function ec_fetch_forum_results( $search_term, $limit = 100 ) {
-	$url = add_query_arg(
-		array(
-			'search'   => $search_term,
-			'per_page' => $limit,
-		),
-		'https://community.extrachill.com/wp-json/ec/v1/bbpress-search'
-	);
-
-	$response = wp_remote_get( $url );
-	if ( is_wp_error( $response ) || 200 !== wp_remote_retrieve_response_code( $response ) ) {
-		return array();
-	}
-	$body = wp_remote_retrieve_body( $response );
-	$data = json_decode( $body, true );
-
-	return is_array( $data ) ? $data : array();
+	return ec_fetch_forum_results_multisite( $search_term, $limit );
 }
 
 /**
@@ -122,7 +116,7 @@ function ec_fetch_local_results( $search_term ) {
 	$local_args = array(
 		's'              => $search_term,
 		'post_type'      => array( 'post', 'page', 'product' ),
-		'posts_per_page' => -1, // Get all results.
+		'posts_per_page' => -1,
 		'post_status'    => 'publish',
 	);
 	$local_query = new WP_Query( $local_args );
@@ -160,12 +154,11 @@ function ec_process_remote_results( $remote_data ) {
 			}
 		} else { // It's a topic.
 			if ( ! isset( $topics[ $topic_id ] ) ) {
-				$topics[ $topic_id ] = $item; // Add topic only if no replies have been added yet.
+				$topics[ $topic_id ] = $item;
 			}
 		}
 	}
 
-	// Create virtual posts for the final, deduplicated results.
 	foreach ( $topics as $item ) {
 		$post_obj = (object) array(
 			'ID'             => 900000000 + (int) $item['id'],

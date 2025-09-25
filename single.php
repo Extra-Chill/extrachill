@@ -39,20 +39,11 @@ get_header(); ?>
     }
     do_action( 'extrachill_after_comments_template' );
     // Add related artist and venue sections below comments
-    global $post;
+    require_once get_template_directory() . '/inc/single-post/related-posts.php';
+
     $post_id = get_the_ID();
-    
-    // Get taxonomy terms directly
-    $artist_terms = get_the_terms($post_id, 'artist');
-    $venue_terms = get_the_terms($post_id, 'venue');
-    if ($artist_terms && !is_wp_error($artist_terms)) {
-        $artist_id = $artist_terms[0]->term_id;
-        include locate_template('single-post/more-from-artist.php');
-    }
-    if ($venue_terms && !is_wp_error($venue_terms)) {
-        $venue_id = $venue_terms[0]->term_id;
-        include locate_template('single-post/more-from-venue.php');
-    }
+    extrachill_display_related_posts('artist', $post_id);
+    extrachill_display_related_posts('venue', $post_id);
     ?>
 
 

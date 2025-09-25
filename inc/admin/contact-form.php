@@ -87,38 +87,23 @@ function handle_ec_contact_form_submission() {
     exit;
 }
 
-// Sync user data to Sendy
+// Sync user data to Sendy via Newsletter Plugin
 function sync_to_sendy($email, $name) {
-    $sendyUrl = 'https://mail.extrachill.com/sendy';
-    $listId = 'BDcQlqYuXXifYrXrd3ViUQ';
-    $apiKey = 'z7RZLH84oEKNzMvFZhdt';
-    $postData = http_build_query(array(
-        'email' => $email,
-        'name' => $name,
-        'list' => $listId,
-        'api_key' => $apiKey,
-        'boolean' => 'true'
-    ));
-
-    // Send subscription request using WordPress HTTP API
-    $response = wp_remote_post("$sendyUrl/subscribe", array(
-        'headers' => array(
-            'Content-Type' => 'application/x-www-form-urlencoded'
-        ),
-        'body' => $postData,
-        'timeout' => 30
-    ));
-    
-    if (is_wp_error($response)) {
-        error_log('Failed to sync email to Sendy: ' . $response->get_error_message());
+    // Check if newsletter plugin is active and function exists
+    if (!function_exists('subscribe_email_to_sendy')) {
+        error_log('ExtraChill Newsletter Plugin not available for contact form Sendy integration');
         return;
     }
-    
-    $response_body = wp_remote_retrieve_body($response);
 
-    if (strpos($response_body, '1') === false) {
-        error_log('Failed to sync email to Sendy: ' . $response_body);
+    // Use plugin's centralized Sendy integration
+    $result = subscribe_email_to_sendy($email, 'contact');
+
+    if (!$result['success']) {
+        error_log('Contact form Sendy subscription failed: ' . $result['message']);
     }
+
+    // No need for direct HTTP handling - plugin manages all API communication
+    return;
 }
 
 

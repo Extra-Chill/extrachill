@@ -2,9 +2,9 @@
 // home/hero.php - Homepage Hero Section
 
 $username = '';
-global $header_user_details; // Access global user details
-if ( is_array( $header_user_details ) && ! empty( $header_user_details['username'] ) ) {
-    $username = sanitize_text_field( $header_user_details['username'] );
+if ( is_user_logged_in() ) {
+    $user = wp_get_current_user();
+    $username = $user->user_nicename;
 }
 ?>
 <section id="hero-section">

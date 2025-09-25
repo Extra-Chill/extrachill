@@ -161,9 +161,9 @@ nav li > ul, nav li > ol {
 	pointer-events: auto; /* Ensure the icon can be clicked */
 }
 
-.search-cart{
-	display: flex;
-}
+/* Header top-right area - removed .search-cart container
+   Individual elements (.search-icon, plugin containers) are now direct children of header
+   Header already has display:flex, so this maintains layout */
 
 svg.menu-toggle, svg.search-top, svg.submenu-indicator {
     fill: #fff;

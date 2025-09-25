@@ -1,22 +1,32 @@
 <?php
 
-// this code is used to add upvoting functionality to the site with AJAX via custom REST API endpoints
+/**
+ * Post Sorting Functionality
+ * Provides URL-based sorting options for archive pages
+ *
+ * @package ExtraChill
+ * @since 1.0
+ */
 
+/**
+ * Modify main query to support URL-based sorting on archive pages
+ * Responds to 'sort' GET parameter with 'oldest' or 'recent' values
+ *
+ * @param WP_Query $query The WordPress query object
+ * @return void
+ * @since 1.0
+ */
 function extrachill_sort_posts($query) {
-    // Only modify the main query on the front-end and only for archive pages
     if (!is_admin() && $query->is_main_query() && is_archive()) {
-        // Check for the 'sort' parameter in the URL
         $sort = isset($_GET['sort']) ? $_GET['sort'] : '';
 
         switch ($sort) {
             case 'oldest':
-                // Sort posts by date ascending
                 $query->set('orderby', 'date');
                 $query->set('order', 'ASC');
                 break;
             case 'recent':
             default:
-                // Default sorting: by recent (date descending). No need to modify the query.
                 break;
         }
     }
