@@ -1,0 +1,40 @@
+# Development files
+node_modules/
+vendor/
+.git/
+.github/
+docs/
+
+# Build files
+build.sh
+.buildignore
+composer.lock
+package-lock.json
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# System files
+.DS_Store
+.htaccess
+Thumbs.db
+
+# Local environment
+.env
+.env.local
+
+# Documentation
+README.md
+CHANGELOG.md
+
+# Testing
+tests/
+phpunit.xml
+.phpunit.result.cache
+
+# Claude specific
+.claude/
+CLAUDE.md
