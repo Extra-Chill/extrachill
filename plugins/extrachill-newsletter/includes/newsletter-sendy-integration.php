@@ -38,6 +38,9 @@ function get_sendy_config() {
 		'homepage_list_id' => '',
 		'popup_list_id' => '',
 		'navigation_list_id' => '',
+		'content_list_id' => '',
+		'footer_list_id' => '',
+		'contact_list_id' => '',
 		'campaign_list_id' => '',
 	);
 
@@ -56,6 +59,9 @@ function get_sendy_config() {
 			'popup' => $settings['popup_list_id'],
 			'homepage' => $settings['homepage_list_id'],
 			'navigation' => $settings['navigation_list_id'],
+			'content' => $settings['content_list_id'],
+			'footer' => $settings['footer_list_id'],
+			'contact' => $settings['contact_list_id'],
 		),
 	);
 }

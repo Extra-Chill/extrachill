@@ -1,13 +1,13 @@
 ExtraChill Newsletter Plugin Build Log
 =====================================
 
-Build Date: Tue Sep 23 19:52:53 CDT 2025
+Build Date: Thu Sep 25 15:01:49 CDT 2025
 Plugin Name: extrachill-newsletter
-Version: *Version:1.0
+Version: * Version: 1.0.0
 Build Directory: dist/extrachill-newsletter
-ZIP Archive: dist/extrachill-newsletter-*Version:1.0.zip
-Files Packaged:       11
-Build Size: 140K
-ZIP Size:  32K
+ZIP Archive: dist/extrachill-newsletter.zip
+Files Packaged:       18
+Build Size: 196K
+ZIP Size:  44K
 
 Build completed successfully.

@@ -155,6 +155,30 @@ function newsletter_add_settings_fields() {
 	);
 
 	add_settings_field(
+		'content_list_id',
+		__('Content Form List ID', 'extrachill-newsletter'),
+		'newsletter_field_content_list',
+		'newsletter_settings',
+		'newsletter_lists_section'
+	);
+
+	add_settings_field(
+		'footer_list_id',
+		__('Footer Form List ID', 'extrachill-newsletter'),
+		'newsletter_field_footer_list',
+		'newsletter_settings',
+		'newsletter_lists_section'
+	);
+
+	add_settings_field(
+		'contact_list_id',
+		__('Contact Form List ID', 'extrachill-newsletter'),
+		'newsletter_field_contact_list',
+		'newsletter_settings',
+		'newsletter_lists_section'
+	);
+
+	add_settings_field(
 		'campaign_list_id',
 		__('Campaign List ID', 'extrachill-newsletter'),
 		'newsletter_field_campaign_list',
@@ -211,6 +235,22 @@ function newsletter_add_settings_fields() {
 		'newsletter_settings',
 		'newsletter_features_section'
 	);
+
+	add_settings_field(
+		'enable_content',
+		__('Enable Content Form', 'extrachill-newsletter'),
+		'newsletter_field_enable_content',
+		'newsletter_settings',
+		'newsletter_features_section'
+	);
+
+	add_settings_field(
+		'enable_footer',
+		__('Enable Footer Form', 'extrachill-newsletter'),
+		'newsletter_field_enable_footer',
+		'newsletter_settings',
+		'newsletter_features_section'
+	);
 }
 
 /**
@@ -232,6 +272,9 @@ function newsletter_sanitize_settings($input) {
 	$sanitized['homepage_list_id'] = sanitize_text_field($input['homepage_list_id'] ?? '');
 	$sanitized['popup_list_id'] = sanitize_text_field($input['popup_list_id'] ?? '');
 	$sanitized['navigation_list_id'] = sanitize_text_field($input['navigation_list_id'] ?? '');
+	$sanitized['content_list_id'] = sanitize_text_field($input['content_list_id'] ?? '');
+	$sanitized['footer_list_id'] = sanitize_text_field($input['footer_list_id'] ?? '');
+	$sanitized['contact_list_id'] = sanitize_text_field($input['contact_list_id'] ?? '');
 	$sanitized['campaign_list_id'] = sanitize_text_field($input['campaign_list_id'] ?? '');
 
 	// Email Configuration
@@ -243,6 +286,8 @@ function newsletter_sanitize_settings($input) {
 	// Feature Configuration
 	$sanitized['enable_popup'] = !empty($input['enable_popup']) ? 1 : 0;
 	$sanitized['enable_navigation'] = !empty($input['enable_navigation']) ? 1 : 0;
+	$sanitized['enable_content'] = !empty($input['enable_content']) ? 1 : 0;
+	$sanitized['enable_footer'] = !empty($input['enable_footer']) ? 1 : 0;
 	$sanitized['popup_exclusion_pages'] = sanitize_textarea_field($input['popup_exclusion_pages'] ?? '');
 
 	return $sanitized;
@@ -262,6 +307,9 @@ function get_newsletter_settings() {
 		'homepage_list_id' => '',
 		'popup_list_id' => '',
 		'navigation_list_id' => '',
+		'content_list_id' => '',
+		'footer_list_id' => '',
+		'contact_list_id' => '',
 		'campaign_list_id' => '',
 		'from_name' => 'Extra Chill',
 		'from_email' => 'newsletter@extrachill.com',
@@ -269,6 +317,8 @@ function get_newsletter_settings() {
 		'brand_id' => '1',
 		'enable_popup' => 1,
 		'enable_navigation' => 1,
+		'enable_content' => 1,
+		'enable_footer' => 1,
 		'popup_exclusion_pages' => "home\ncontact-us\nfestival-wire"
 	);
 
@@ -336,6 +386,27 @@ function newsletter_field_navigation_list() {
 	echo '<p class="description">' . __('List ID for navigation menu subscriptions.', 'extrachill-newsletter') . '</p>';
 }
 
+function newsletter_field_content_list() {
+	$settings = get_newsletter_settings();
+	$value = $settings['content_list_id'];
+	echo '<input type="text" name="extrachill_newsletter_settings[content_list_id]" value="' . esc_attr($value) . '" class="regular-text" />';
+	echo '<p class="description">' . __('List ID for post-content form subscriptions.', 'extrachill-newsletter') . '</p>';
+}
+
+function newsletter_field_footer_list() {
+	$settings = get_newsletter_settings();
+	$value = $settings['footer_list_id'];
+	echo '<input type="text" name="extrachill_newsletter_settings[footer_list_id]" value="' . esc_attr($value) . '" class="regular-text" />';
+	echo '<p class="description">' . __('List ID for footer form subscriptions.', 'extrachill-newsletter') . '</p>';
+}
+
+function newsletter_field_contact_list() {
+	$settings = get_newsletter_settings();
+	$value = $settings['contact_list_id'];
+	echo '<input type="text" name="extrachill_newsletter_settings[contact_list_id]" value="' . esc_attr($value) . '" class="regular-text" />';
+	echo '<p class="description">' . __('List ID for contact form subscriptions.', 'extrachill-newsletter') . '</p>';
+}
+
 function newsletter_field_campaign_list() {
 	$settings = get_newsletter_settings();
 	$value = $settings['campaign_list_id'];
@@ -387,6 +458,20 @@ function newsletter_field_enable_navigation() {
 	$checked = $settings['enable_navigation'] ? 'checked="checked"' : '';
 	echo '<label><input type="checkbox" name="extrachill_newsletter_settings[enable_navigation]" value="1" ' . $checked . ' /> ';
 	echo __('Enable newsletter form in navigation menu', 'extrachill-newsletter') . '</label>';
+}
+
+function newsletter_field_enable_content() {
+	$settings = get_newsletter_settings();
+	$checked = $settings['enable_content'] ? 'checked="checked"' : '';
+	echo '<label><input type="checkbox" name="extrachill_newsletter_settings[enable_content]" value="1" ' . $checked . ' /> ';
+	echo __('Enable newsletter form after post content', 'extrachill-newsletter') . '</label>';
+}
+
+function newsletter_field_enable_footer() {
+	$settings = get_newsletter_settings();
+	$checked = $settings['enable_footer'] ? 'checked="checked"' : '';
+	echo '<label><input type="checkbox" name="extrachill_newsletter_settings[enable_footer]" value="1" ' . $checked . ' /> ';
+	echo __('Enable newsletter form above footer', 'extrachill-newsletter') . '</label>';
 }
 
 /**

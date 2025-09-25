@@ -227,6 +227,144 @@
     }
 
     /**
+     * Content Newsletter Form Handler
+     *
+     * Handles subscription form that appears after post content
+     */
+    function initContentForm() {
+        const contentForm = document.getElementById('contentNewsletterForm');
+        if (!contentForm) return;
+
+        const emailInput = contentForm.querySelector('input[name="email"]');
+        const submitButton = contentForm.querySelector('button[type="submit"]');
+        const nonceField = contentForm.querySelector('input[name="nonce"]');
+        const feedback = contentForm.parentNode.querySelector('.newsletter-feedback');
+
+        if (!emailInput || !submitButton || !nonceField || !feedback) return;
+
+        contentForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            // Disable submit button
+            const originalButtonText = submitButton.textContent;
+            submitButton.disabled = true;
+            submitButton.textContent = 'Subscribing...';
+            feedback.style.display = 'none';
+
+            // Prepare form data
+            const formData = new FormData();
+            formData.append('action', 'submit_newsletter_content_form');
+            formData.append('email', emailInput.value);
+            formData.append('nonce', nonceField.value);
+
+            fetch(newsletterParams?.ajaxurl || '/wp-admin/admin-ajax.php', {
+                method: 'POST',
+                credentials: 'same-origin',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                feedback.style.display = 'block';
+
+                if (data.success) {
+                    feedback.textContent = data.data || 'Successfully subscribed!';
+                    feedback.style.color = '#28a745';
+                    emailInput.value = '';
+
+                    // Update localStorage
+                    if (window.localStorage) {
+                        localStorage.setItem('subscribed', 'true');
+                        localStorage.setItem('lastSubscribedTime', Date.now().toString());
+                    }
+                } else {
+                    feedback.textContent = data.data || 'Subscription failed. Please try again.';
+                    feedback.style.color = '#dc3545';
+                }
+            })
+            .catch(error => {
+                console.error('Newsletter subscription error:', error);
+                feedback.style.display = 'block';
+                feedback.textContent = 'An error occurred. Please try again.';
+                feedback.style.color = '#dc3545';
+            })
+            .finally(() => {
+                // Reset button
+                submitButton.disabled = false;
+                submitButton.textContent = originalButtonText;
+            });
+        });
+    }
+
+    /**
+     * Footer Newsletter Form Handler
+     *
+     * Handles subscription form that appears above the footer
+     */
+    function initFooterForm() {
+        const footerForm = document.getElementById('footerNewsletterForm');
+        if (!footerForm) return;
+
+        const emailInput = footerForm.querySelector('input[name="email"]');
+        const submitButton = footerForm.querySelector('button[type="submit"]');
+        const nonceField = footerForm.querySelector('input[name="nonce"]');
+        const feedback = footerForm.parentNode.querySelector('.newsletter-feedback');
+
+        if (!emailInput || !submitButton || !nonceField || !feedback) return;
+
+        footerForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            // Disable submit button
+            const originalButtonText = submitButton.textContent;
+            submitButton.disabled = true;
+            submitButton.textContent = 'Subscribing...';
+            feedback.style.display = 'none';
+
+            // Prepare form data
+            const formData = new FormData();
+            formData.append('action', 'submit_newsletter_footer_form');
+            formData.append('email', emailInput.value);
+            formData.append('nonce', nonceField.value);
+
+            fetch(newsletterParams?.ajaxurl || '/wp-admin/admin-ajax.php', {
+                method: 'POST',
+                credentials: 'same-origin',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                feedback.style.display = 'block';
+
+                if (data.success) {
+                    feedback.textContent = data.data || 'Successfully subscribed!';
+                    feedback.style.color = '#28a745';
+                    emailInput.value = '';
+
+                    // Update localStorage
+                    if (window.localStorage) {
+                        localStorage.setItem('subscribed', 'true');
+                        localStorage.setItem('lastSubscribedTime', Date.now().toString());
+                    }
+                } else {
+                    feedback.textContent = data.data || 'Subscription failed. Please try again.';
+                    feedback.style.color = '#dc3545';
+                }
+            })
+            .catch(error => {
+                console.error('Newsletter subscription error:', error);
+                feedback.style.display = 'block';
+                feedback.textContent = 'An error occurred. Please try again.';
+                feedback.style.color = '#dc3545';
+            })
+            .finally(() => {
+                // Reset button
+                submitButton.disabled = false;
+                submitButton.textContent = originalButtonText;
+            });
+        });
+    }
+
+    /**
      * Newsletter Popup System
      *
      * Creates and manages newsletter subscription popup
@@ -488,11 +626,13 @@
         initArchiveForm();
         initHomepageForm();
         initNavigationForm();
+        initContentForm();
+        initFooterForm();
         initShortcodeForms();
 
         // Initialize popup system (only on appropriate pages)
-        const shouldShowPopup = !document.cookie.includes('ecc_user_session_token') &&
-                               !document.body.classList.contains('home') &&
+        // Note: Logged-in user filtering handled server-side via enqueue_newsletter_popup_scripts()
+        const shouldShowPopup = !document.body.classList.contains('home') &&
                                !document.body.classList.contains('page-template-contact') &&
                                !document.body.classList.contains('post-type-archive-festival_wire');
 

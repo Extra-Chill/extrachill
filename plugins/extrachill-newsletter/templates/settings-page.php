@@ -72,6 +72,9 @@ $settings = get_newsletter_settings();
 				<li><strong><?php _e('Homepage:', 'extrachill-newsletter'); ?></strong> <?php _e('Newsletter signup section on homepage', 'extrachill-newsletter'); ?></li>
 				<li><strong><?php _e('Popup:', 'extrachill-newsletter'); ?></strong> <?php _e('Site-wide popup subscription form', 'extrachill-newsletter'); ?></li>
 				<li><strong><?php _e('Navigation:', 'extrachill-newsletter'); ?></strong> <?php _e('Newsletter form in site navigation menu', 'extrachill-newsletter'); ?></li>
+				<li><strong><?php _e('Content Form:', 'extrachill-newsletter'); ?></strong> <?php _e('Subscription form appearing after post content', 'extrachill-newsletter'); ?></li>
+				<li><strong><?php _e('Footer Form:', 'extrachill-newsletter'); ?></strong> <?php _e('Subscription form above the site footer', 'extrachill-newsletter'); ?></li>
+				<li><strong><?php _e('Contact Form:', 'extrachill-newsletter'); ?></strong> <?php _e('Contact form integration for theme contact pages', 'extrachill-newsletter'); ?></li>
 				<li><strong><?php _e('Campaigns:', 'extrachill-newsletter'); ?></strong> <?php _e('Main list for sending newsletter campaigns', 'extrachill-newsletter'); ?></li>
 			</ul>
 		</div>
@@ -104,6 +107,12 @@ $settings = get_newsletter_settings();
 					}
 					if ($settings['enable_navigation']) {
 						$enabled_features[] = __('Navigation', 'extrachill-newsletter');
+					}
+					if ($settings['enable_content']) {
+						$enabled_features[] = __('Content', 'extrachill-newsletter');
+					}
+					if ($settings['enable_footer']) {
+						$enabled_features[] = __('Footer', 'extrachill-newsletter');
 					}
 					echo !empty($enabled_features) ? implode(', ', $enabled_features) : __('None', 'extrachill-newsletter');
 					?>

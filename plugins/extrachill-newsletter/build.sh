@@ -4,7 +4,7 @@
 # Creates production-ready ZIP package for WordPress deployment
 #
 # Usage: ./build.sh
-# Output: dist/extrachill-newsletter-{version}.zip
+# Output: dist/extrachill-newsletter.zip
 #
 # @package ExtraChillNewsletter
 # @since 1.0.0
@@ -50,7 +50,7 @@ echo
 # Build configuration
 DIST_DIR="dist"
 BUILD_DIR="$DIST_DIR/$PLUGIN_NAME"
-ZIP_FILE="$DIST_DIR/$PLUGIN_NAME-$VERSION.zip"
+ZIP_FILE="$DIST_DIR/$PLUGIN_NAME.zip"
 BUILDIGNORE_FILE=".buildignore"
 
 # Clean previous builds

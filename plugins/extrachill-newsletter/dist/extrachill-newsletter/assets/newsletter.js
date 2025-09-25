@@ -104,9 +104,8 @@
             formData.append('email', emailInput.value);
             formData.append('nonce', nonceField ? nonceField.value : '');
 
-            // Use localized AJAX URL
-            const ajaxUrl = window.extrachill_ajax_object?.ajax_url ||
-                           newsletterParams?.ajaxurl ||
+            // Use localized AJAX URL from plugin
+            const ajaxUrl = newsletterParams?.ajaxurl ||
                            '/wp-admin/admin-ajax.php';
 
             fetch(ajaxUrl, {
@@ -161,6 +160,7 @@
 
         const emailInput = document.querySelector('#newsletter-email-nav');
         const submitButton = navForm.querySelector('button[type="submit"]');
+        const nonceField = navForm.querySelector('input[name="subscribe_nonce"]');
 
         if (!emailInput || !submitButton) return;
 
@@ -186,7 +186,7 @@
             const formData = new FormData();
             formData.append('action', 'subscribe_to_sendy');
             formData.append('email', emailInput.value);
-            formData.append('subscribe_nonce', newsletterParams?.newsletter_nonce || '');
+            formData.append('subscribe_nonce', nonceField ? nonceField.value : '');
 
             fetch(newsletterParams?.ajaxurl || '/wp-admin/admin-ajax.php', {
                 method: 'POST',
@@ -491,8 +491,8 @@
         initShortcodeForms();
 
         // Initialize popup system (only on appropriate pages)
-        const shouldShowPopup = !document.cookie.includes('ecc_user_session_token') &&
-                               !document.body.classList.contains('home') &&
+        // Note: Logged-in user filtering handled server-side via enqueue_newsletter_popup_scripts()
+        const shouldShowPopup = !document.body.classList.contains('home') &&
                                !document.body.classList.contains('page-template-contact') &&
                                !document.body.classList.contains('post-type-archive-festival_wire');
 

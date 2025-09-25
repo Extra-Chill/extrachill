@@ -2,7 +2,7 @@
 /**
  * Plugin Name: ExtraChill Newsletter
  * Description: Complete newsletter system with Sendy integration for email campaigns and subscriptions. Provides custom newsletter post type, multiple subscription forms, email template generation, and admin management tools.
- * Version: 1.0
+ * Version: 1.0.0
  * Author: Chris Huber
  * Text Domain: extrachill-newsletter
  * Domain Path: /languages
@@ -82,6 +82,8 @@ function enqueue_newsletter_assets() {
 					'newsletter_nonce' => wp_create_nonce( 'newsletter_nonce' ),
 					'newsletter_popup_nonce' => wp_create_nonce( 'newsletter_popup_nonce' ),
 					'subscribe_to_sendy_home_nonce' => wp_create_nonce( 'subscribe_to_sendy_home_nonce' ),
+					'newsletter_content_nonce' => wp_create_nonce( 'newsletter_content_nonce' ),
+					'newsletter_footer_nonce' => wp_create_nonce( 'newsletter_footer_nonce' ),
 				)
 			);
 		}
@@ -165,10 +167,70 @@ function locate_newsletter_template( $template_name ) {
  * @since 1.0.0
  */
 function display_newsletter_navigation_form() {
+	// Check if navigation form is enabled
+	$settings = get_option('extrachill_newsletter_settings', array());
+	if (empty($settings['enable_navigation'])) {
+		return;
+	}
+
 	// Load newsletter navigation form template from plugin
 	include EXTRACHILL_NEWSLETTER_TEMPLATES_DIR . 'navigation-form.php';
 }
 add_action( 'extrachill_navigation_before_social_links', 'display_newsletter_navigation_form' );
+
+/**
+ * Display Newsletter form after post content
+ *
+ * Hooks into theme's post content layout via extrachill_after_post_content action hook.
+ * Uses plugin template for consistent rendering and form handling.
+ *
+ * @since 1.0.0
+ */
+function display_newsletter_content_form() {
+	// Don't show on homepage - homepage has its own newsletter section
+	if (is_front_page()) {
+		return;
+	}
+
+	// Check if content form is enabled
+	$settings = get_option('extrachill_newsletter_settings', array());
+	if (empty($settings['enable_content'])) {
+		return;
+	}
+
+	// Load newsletter content form template from plugin
+	include EXTRACHILL_NEWSLETTER_TEMPLATES_DIR . 'content-form.php';
+}
+add_action( 'extrachill_after_post_content', 'display_newsletter_content_form' );
+
+/**
+ * Display Newsletter form above footer
+ *
+ * Hooks into theme's footer layout via extrachill_above_footer action hook.
+ * Uses plugin template for consistent rendering and form handling.
+ *
+ * @since 1.0.0
+ */
+function display_newsletter_footer_form() {
+	// Check if footer form is enabled
+	$settings = get_option('extrachill_newsletter_settings', array());
+	if (empty($settings['enable_footer'])) {
+		return;
+	}
+
+	// Special homepage logic: only show footer form if homepage newsletter is not being used
+	if (is_front_page()) {
+		// Check if homepage newsletter section is active via action hook
+		// If any plugins/themes hook into extrachill_homepage_newsletter_section, don't show footer form
+		if (has_action('extrachill_homepage_newsletter_section')) {
+			return;
+		}
+	}
+
+	// Load newsletter footer form template from plugin
+	include EXTRACHILL_NEWSLETTER_TEMPLATES_DIR . 'footer-form.php';
+}
+add_action( 'extrachill_above_footer', 'display_newsletter_footer_form' );
 
 /**
  * Plugin activation hook

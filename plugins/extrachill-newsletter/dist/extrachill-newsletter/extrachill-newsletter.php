@@ -2,7 +2,7 @@
 /**
  * Plugin Name: ExtraChill Newsletter
  * Description: Complete newsletter system with Sendy integration for email campaigns and subscriptions. Provides custom newsletter post type, multiple subscription forms, email template generation, and admin management tools.
- * Version: 1.0
+ * Version: 1.0.0
  * Author: Chris Huber
  * Text Domain: extrachill-newsletter
  * Domain Path: /languages
@@ -31,28 +31,35 @@ require_once EXTRACHILL_NEWSLETTER_INCLUDES_DIR . 'newsletter-post-type.php';
 require_once EXTRACHILL_NEWSLETTER_INCLUDES_DIR . 'newsletter-sendy-integration.php';
 require_once EXTRACHILL_NEWSLETTER_INCLUDES_DIR . 'newsletter-ajax-handlers.php';
 require_once EXTRACHILL_NEWSLETTER_INCLUDES_DIR . 'newsletter-shortcodes.php';
+require_once EXTRACHILL_NEWSLETTER_INCLUDES_DIR . 'newsletter-admin.php';
 
 /**
- * Enqueue Newsletter assets conditionally
+ * Enqueue Newsletter assets globally
  *
- * Loads CSS and JavaScript only on newsletter archive, single pages, and pages
- * that contain newsletter subscription forms (homepage, all pages with popup).
+ * Loads CSS and JavaScript on all pages since the navigation menu contains
+ * a newsletter subscription form that appears site-wide.
  *
  * @since 1.0.0
  */
 function enqueue_newsletter_assets() {
-	// Newsletter archive and single pages: Load all assets
-	if ( is_post_type_archive( 'newsletter' ) || is_singular( 'newsletter' ) ) {
+	// Load newsletter JavaScript globally (navigation menu appears on all pages)
+	// But load CSS more selectively to avoid layout conflicts
+	$load_js_globally = true;
+	$load_css = is_post_type_archive( 'newsletter' ) || is_singular( 'newsletter' ) || is_front_page();
 
-		// Main Newsletter CSS
-		$css_file_path = EXTRACHILL_NEWSLETTER_PLUGIN_DIR . 'assets/newsletter.css';
-		if ( file_exists( $css_file_path ) ) {
-			wp_enqueue_style(
-				'extrachill-newsletter',
-				EXTRACHILL_NEWSLETTER_ASSETS_URL . 'newsletter.css',
-				array(),
-				filemtime( $css_file_path )
-			);
+	if ( $load_js_globally ) {
+
+		// Main Newsletter CSS (only on pages with newsletter content)
+		if ( $load_css ) {
+			$css_file_path = EXTRACHILL_NEWSLETTER_PLUGIN_DIR . 'assets/newsletter.css';
+			if ( file_exists( $css_file_path ) ) {
+				wp_enqueue_style(
+					'extrachill-newsletter',
+					EXTRACHILL_NEWSLETTER_ASSETS_URL . 'newsletter.css',
+					array(),
+					filemtime( $css_file_path )
+				);
+			}
 		}
 
 		// Newsletter JavaScript with AJAX support
@@ -75,33 +82,13 @@ function enqueue_newsletter_assets() {
 					'newsletter_nonce' => wp_create_nonce( 'newsletter_nonce' ),
 					'newsletter_popup_nonce' => wp_create_nonce( 'newsletter_popup_nonce' ),
 					'subscribe_to_sendy_home_nonce' => wp_create_nonce( 'subscribe_to_sendy_home_nonce' ),
+					'newsletter_content_nonce' => wp_create_nonce( 'newsletter_content_nonce' ),
+					'newsletter_footer_nonce' => wp_create_nonce( 'newsletter_footer_nonce' ),
 				)
 			);
 		}
 	}
 
-	// Homepage: Load specific homepage assets
-	if ( is_front_page() ) {
-		$js_file_path = EXTRACHILL_NEWSLETTER_PLUGIN_DIR . 'assets/newsletter.js';
-		if ( file_exists( $js_file_path ) ) {
-			wp_enqueue_script(
-				'extrachill-newsletter-home',
-				EXTRACHILL_NEWSLETTER_ASSETS_URL . 'newsletter.js',
-				array( 'jquery' ),
-				filemtime( $js_file_path ),
-				true
-			);
-
-			wp_localize_script(
-				'extrachill-newsletter-home',
-				'extrachill_ajax_object',
-				array(
-					'ajax_url' => admin_url( 'admin-ajax.php' ),
-					'subscribe_to_sendy_home_nonce' => wp_create_nonce( 'subscribe_to_sendy_home_nonce' ),
-				)
-			);
-		}
-	}
 
 	// Newsletter popup script (conditionally loaded based on newsletter.php logic)
 	enqueue_newsletter_popup_scripts();
@@ -111,7 +98,7 @@ add_action( 'wp_enqueue_scripts', 'enqueue_newsletter_assets' );
 /**
  * Display Newsletter section on homepage
  *
- * Hooks into theme's front page to display newsletter signup section.
+ * Hooks into theme's homepage layout via location-based action hook.
  * Uses plugin template for consistent rendering and data management.
  *
  * @since 1.0.0
@@ -120,7 +107,7 @@ function display_newsletter_homepage_section() {
 	// Load newsletter homepage section template from plugin
 	include EXTRACHILL_NEWSLETTER_TEMPLATES_DIR . 'homepage-section.php';
 }
-add_action( 'extrachill_newsletter_homepage_section', 'display_newsletter_homepage_section' );
+add_action( 'extrachill_homepage_newsletter_section', 'display_newsletter_homepage_section' );
 
 /**
  * Template loader for Newsletter post type
@@ -172,33 +159,64 @@ function locate_newsletter_template( $template_name ) {
 }
 
 /**
- * Add navigation menu newsletter form integration
+ * Display Newsletter form in navigation menu
  *
- * Hooks into navigation system to add newsletter subscription form.
- * Uses filter to integrate with existing theme navigation structure.
+ * Hooks into theme's navigation layout via location-based action hook.
+ * Uses plugin template for consistent rendering and form handling.
  *
  * @since 1.0.0
- * @param string $items Existing menu items
- * @param object $args Menu arguments
- * @return string Modified menu items with newsletter form
  */
-function add_newsletter_to_navigation( $items, $args ) {
-	// Only add to primary menu
-	if ( $args->theme_location == 'primary' ) {
-		$newsletter_form = '
-			<li class="menu-newsletter">
-				<form class="newsletter-form">
-					<label for="newsletter-email-nav" class="sr-only">Get our Newsletter</label>
-					<input type="email" id="newsletter-email-nav" name="email" placeholder="Enter your email" required>
-					<button type="submit">Subscribe</button>
-					<p><a href="/newsletters">See past newsletters</a></p>
-				</form>
-			</li>';
-		$items .= $newsletter_form;
+function display_newsletter_navigation_form() {
+	// Check if navigation form is enabled
+	$settings = get_option('extrachill_newsletter_settings', array());
+	if (empty($settings['enable_navigation'])) {
+		return;
 	}
-	return $items;
+
+	// Load newsletter navigation form template from plugin
+	include EXTRACHILL_NEWSLETTER_TEMPLATES_DIR . 'navigation-form.php';
 }
-add_filter( 'wp_nav_menu_items', 'add_newsletter_to_navigation', 10, 2 );
+add_action( 'extrachill_navigation_before_social_links', 'display_newsletter_navigation_form' );
+
+/**
+ * Display Newsletter form after post content
+ *
+ * Hooks into theme's post content layout via extrachill_after_post_content action hook.
+ * Uses plugin template for consistent rendering and form handling.
+ *
+ * @since 1.0.0
+ */
+function display_newsletter_content_form() {
+	// Check if content form is enabled
+	$settings = get_option('extrachill_newsletter_settings', array());
+	if (empty($settings['enable_content'])) {
+		return;
+	}
+
+	// Load newsletter content form template from plugin
+	include EXTRACHILL_NEWSLETTER_TEMPLATES_DIR . 'content-form.php';
+}
+add_action( 'extrachill_after_post_content', 'display_newsletter_content_form' );
+
+/**
+ * Display Newsletter form above footer
+ *
+ * Hooks into theme's footer layout via extrachill_above_footer action hook.
+ * Uses plugin template for consistent rendering and form handling.
+ *
+ * @since 1.0.0
+ */
+function display_newsletter_footer_form() {
+	// Check if footer form is enabled
+	$settings = get_option('extrachill_newsletter_settings', array());
+	if (empty($settings['enable_footer'])) {
+		return;
+	}
+
+	// Load newsletter footer form template from plugin
+	include EXTRACHILL_NEWSLETTER_TEMPLATES_DIR . 'footer-form.php';
+}
+add_action( 'extrachill_above_footer', 'display_newsletter_footer_form' );
 
 /**
  * Plugin activation hook

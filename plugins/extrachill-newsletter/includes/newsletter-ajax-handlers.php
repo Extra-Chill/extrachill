@@ -206,8 +206,14 @@ add_action('wp_ajax_nopriv_subscribe_to_sendy', 'handle_subscribe_to_sendy_nav')
  * @since 1.0.0
  */
 function enqueue_newsletter_popup_scripts() {
-	// Don't load if user has session token (community user)
-	if (isset($_COOKIE['ecc_user_session_token'])) {
+	// Check if popup is enabled in admin settings
+	$settings = get_option('extrachill_newsletter_settings', array());
+	if (empty($settings['enable_popup'])) {
+		return;
+	}
+
+	// Don't load if user is logged in (community user)
+	if (is_user_logged_in()) {
 		return;
 	}
 
@@ -340,3 +346,71 @@ function log_newsletter_subscription_attempt($email, $source, $success, $error_m
 	// Hook for custom tracking systems
 	do_action('newsletter_subscription_logged', $log_data);
 }
+
+/**
+ * AJAX Handler: Content Newsletter Subscription Form
+ *
+ * Handles subscription requests from the post-content newsletter form.
+ * Uses content-specific list for tracking engagement attribution.
+ *
+ * @since 1.0.0
+ */
+function handle_submit_newsletter_content_form() {
+	// Verify nonce
+	if (!check_ajax_referer('newsletter_content_nonce', 'nonce', false)) {
+		wp_send_json_error(__('Security check failed', 'extrachill-newsletter'));
+		return;
+	}
+
+	// Sanitize and validate email
+	$email = sanitize_email($_POST['email']);
+	if (!is_email($email)) {
+		wp_send_json_error(__('Please enter a valid email address', 'extrachill-newsletter'));
+		return;
+	}
+
+	// Subscribe to content-specific list
+	$result = subscribe_email_to_sendy($email, 'content');
+
+	if ($result['success']) {
+		wp_send_json_success($result['message']);
+	} else {
+		wp_send_json_error($result['message']);
+	}
+}
+add_action('wp_ajax_submit_newsletter_content_form', 'handle_submit_newsletter_content_form');
+add_action('wp_ajax_nopriv_submit_newsletter_content_form', 'handle_submit_newsletter_content_form');
+
+/**
+ * AJAX Handler: Footer Newsletter Subscription Form
+ *
+ * Handles subscription requests from the footer newsletter form.
+ * Uses footer-specific list for tracking source attribution.
+ *
+ * @since 1.0.0
+ */
+function handle_submit_newsletter_footer_form() {
+	// Verify nonce
+	if (!check_ajax_referer('newsletter_footer_nonce', 'nonce', false)) {
+		wp_send_json_error(__('Security check failed', 'extrachill-newsletter'));
+		return;
+	}
+
+	// Sanitize and validate email
+	$email = sanitize_email($_POST['email']);
+	if (!is_email($email)) {
+		wp_send_json_error(__('Please enter a valid email address', 'extrachill-newsletter'));
+		return;
+	}
+
+	// Subscribe to footer-specific list
+	$result = subscribe_email_to_sendy($email, 'footer');
+
+	if ($result['success']) {
+		wp_send_json_success($result['message']);
+	} else {
+		wp_send_json_error($result['message']);
+	}
+}
+add_action('wp_ajax_submit_newsletter_footer_form', 'handle_submit_newsletter_footer_form');
+add_action('wp_ajax_nopriv_submit_newsletter_footer_form', 'handle_submit_newsletter_footer_form');

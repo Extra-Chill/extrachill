@@ -16,7 +16,7 @@ get_header(); ?>
 
 <?php do_action( 'extrachill_before_body_content' ); ?>
 
-<section id="primary" class="newsletter-archive">
+<section id="primary" class="newsletter-archive full-width-content">
     <?php if ( have_posts() ) : ?>
 
         <header class="page-header">

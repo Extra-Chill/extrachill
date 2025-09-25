@@ -17,24 +17,51 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Sendy API Configuration
  *
- * Centralized configuration for Sendy integration settings.
- * These can be moved to WordPress options or wp-config.php for security.
+ * Gets Sendy configuration from WordPress options with fallback defaults.
+ * Settings are managed via the admin settings page.
  *
  * @since 1.0.0
  */
 function get_sendy_config() {
-	return array(
-		'api_key' => 'z7RZLH84oEKNzMvFZhdt',
+	// Get settings from WordPress options
+	$settings = get_option('extrachill_newsletter_settings', array());
+
+	// Defaults for backward compatibility
+	$defaults = array(
+		'sendy_api_key' => '',
 		'sendy_url' => 'https://mail.extrachill.com/sendy',
 		'from_name' => 'Extra Chill',
 		'from_email' => 'newsletter@extrachill.com',
 		'reply_to' => 'chubes@extrachill.com',
 		'brand_id' => '1',
+		'archive_list_id' => '',
+		'homepage_list_id' => '',
+		'popup_list_id' => '',
+		'navigation_list_id' => '',
+		'content_list_id' => '',
+		'footer_list_id' => '',
+		'contact_list_id' => '',
+		'campaign_list_id' => '',
+	);
+
+	$settings = wp_parse_args($settings, $defaults);
+
+	return array(
+		'api_key' => $settings['sendy_api_key'],
+		'sendy_url' => $settings['sendy_url'],
+		'from_name' => $settings['from_name'],
+		'from_email' => $settings['from_email'],
+		'reply_to' => $settings['reply_to'],
+		'brand_id' => $settings['brand_id'],
 		'list_ids' => array(
-			'main' => 'L3SqZJUj8NY892RnvQOvMzLA,...',
-			'archive' => 'D763iZceU7My0uwjlBwsTC8A',
-			'popup' => 'YormkKgHWtLGWq6I83Av763Q',
-			'homepage' => 'yYBiTvmXZH892P763BS9MOHalQ',
+			'main' => $settings['campaign_list_id'],
+			'archive' => $settings['archive_list_id'],
+			'popup' => $settings['popup_list_id'],
+			'homepage' => $settings['homepage_list_id'],
+			'navigation' => $settings['navigation_list_id'],
+			'content' => $settings['content_list_id'],
+			'footer' => $settings['footer_list_id'],
+			'contact' => $settings['contact_list_id'],
 		),
 	);
 }
