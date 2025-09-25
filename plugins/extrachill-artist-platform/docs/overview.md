@@ -23,7 +23,7 @@ The platform consists of two primary custom post types:
 - **Subscription System**: Email collection with artist association
 
 ### Advanced Features
-- **Cross-Domain Authentication**: Session-based authentication for `.extrachill.com` domain
+- **Cross-Domain Authentication**: WordPress multisite native authentication across `.extrachill.com` subdomains (legacy session tokens maintained for compatibility)
 - **Link Expiration**: Time-based link scheduling and lifecycle management
 - **Forum Integration**: bbPress integration with artist-specific forum sections
 - **Asset Management**: Context-aware loading with file existence checks
