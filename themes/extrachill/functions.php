@@ -12,23 +12,15 @@
  * @since      ExtraChill 1.0
  */
 
-// Memory debugging - track memory usage at key points
-('MEMORY DEBUG - Start of functions.php: ' . round(memory_get_peak_usage(true) / 1024 / 1024, 2) . ' MB');
+include_once(ABSPATH . 'wp-admin/includes/plugin.php');
 
 add_theme_support( "responsive-embeds" );
 add_theme_support( "wp-block-styles" );
 add_theme_support( "align-wide" );
 
-/* WooCommerce functionality moved to /inc/woocommerce.php */
+/* WooCommerce functionality moved to extrachill-shop plugin */
 
 
-// chill generators
-
-add_action( 'wp_ajax_rapper_name_generator', 'rapper_name_generator_ajax_handler' );
-add_action( 'wp_ajax_nopriv_rapper_name_generator', 'rapper_name_generator_ajax_handler' );
-
-add_action( 'wp_ajax_band_name_generator', 'band_name_generator_ajax_handler' );
-add_action( 'wp_ajax_nopriv_band_name_generator', 'band_name_generator_ajax_handler' );
 
 
 
@@ -116,11 +108,6 @@ function extrachill_unregister_image_sizes() {
     remove_image_size('2048x2048');     // Excessive for most use cases, removes storage bloat
     
     // Keep 1536x1536 - Essential for concert photography galleries and high-res displays
-    
-    // Remove ALL WooCommerce image sizes - not used in templates
-    remove_image_size('woocommerce_thumbnail');         // 300x300 - product thumbnails
-    remove_image_size('woocommerce_single');            // 600px - single product images
-    remove_image_size('woocommerce_gallery_thumbnail'); // 100px - product gallery thumbnails
 }
 add_action('init', 'extrachill_unregister_image_sizes', 99);
 
@@ -142,14 +129,6 @@ require_once(EXTRACHILL_INCLUDES_DIR . '/functions.php');
 /** Load core breadcrumb system */
 require_once(EXTRACHILL_INCLUDES_DIR . '/core/breadcrumbs.php');
 
-/** Load WooCommerce functionality - Modular approach */
-require_once(EXTRACHILL_INCLUDES_DIR . '/woocommerce/core.php');
-require_once(EXTRACHILL_INCLUDES_DIR . '/woocommerce/cart-widget.php');
-require_once(EXTRACHILL_INCLUDES_DIR . '/woocommerce/breadcrumb-integration.php');
-require_once(EXTRACHILL_INCLUDES_DIR . '/woocommerce/secondary-header.php');
-require_once(EXTRACHILL_INCLUDES_DIR . '/woocommerce/ad-free-license.php');
-require_once(EXTRACHILL_INCLUDES_DIR . '/woocommerce/product-helpers.php');
-
 /** Load core functionality - Always required */
 require_once(EXTRACHILL_INCLUDES_DIR . '/core/city-state-taxonomy.php');
 require_once(EXTRACHILL_INCLUDES_DIR . '/core/reading-progress.php');
@@ -166,7 +145,6 @@ require_once(EXTRACHILL_INCLUDES_DIR . '/admin/contact-form.php');
 require_once(EXTRACHILL_INCLUDES_DIR . '/bandcamp-embeds.php');
 require_once(EXTRACHILL_INCLUDES_DIR . '/contextual-search-excerpt.php');
 require_once(EXTRACHILL_INCLUDES_DIR . '/location-filter.php');
-('MEMORY DEBUG - After main includes: ' . round(memory_get_peak_usage(true) / 1024 / 1024, 2) . ' MB');
 
 
 /**
@@ -246,7 +224,6 @@ function include_community_integration_files() {
     }
 }
 add_action('after_setup_theme', 'include_community_integration_files');
-('MEMORY DEBUG - After community integration files: ' . round(memory_get_peak_usage(true) / 1024 / 1024, 2) . ' MB');
 
 
 /**
@@ -426,12 +403,6 @@ function wp_innovator_enqueue_scripts() {
         $js_version = file_exists($js_path) ? filemtime($js_path) : '1.0.0';
         wp_enqueue_script('wp-innovator-custom-script', $js_url, array(), $js_version, true);
     }
-    if (is_singular('post')) { // Enqueue community-comments.js for single posts
-        $js_path = get_template_directory() . '/js/community-comments.js';
-        $js_url = get_template_directory_uri() . '/js/community-comments.js';
-        $js_version = file_exists( $js_path ) ? filemtime( $js_path ) : '1.0.0'; // Dynamic versioning
-        wp_enqueue_script('community-comments-js', $js_url, array(), $js_version, true);
-    }
     // Enqueue the new nav.css file
     $nav_css_path = get_theme_file_path('/css/nav.css');
     if ( file_exists( $nav_css_path ) ) {
@@ -471,7 +442,7 @@ function wp_innovator_randomize_posts( $query ) {
 
 add_action( 'pre_get_posts', 'wp_innovator_randomize_posts' );
 
-if ( function_exists('get_coauthors') ) {
+if ( is_plugin_active('co-authors-plus/co-authors-plus.php') ) {
     add_action( 'rest_api_init', 'custom_register_coauthors' );
     function custom_register_coauthors() {
         register_rest_field( 'post',
@@ -483,19 +454,36 @@ if ( function_exists('get_coauthors') ) {
             )
         );
     }
- 
+
     function custom_get_coauthors( $object, $field_name, $request ) {
         $coauthors = get_coauthors($object['id']);
-        
+
         $authors = array();
-        foreach ($coauthors as $author) {
-            $authors[] = array(
-                'display_name' => $author->display_name,
-                'user_nicename' => $author->user_nicename
-            );
-        };
- 
+        if (!empty($coauthors)) {
+            foreach ($coauthors as $author) {
+                $authors[] = array(
+                    'display_name' => $author->display_name,
+                    'user_nicename' => $author->user_nicename
+                );
+            }
+        } else {
+            // Fallback to default author
+            $default_author = get_userdata(get_post_field('post_author', $object['id']));
+            if ($default_author) {
+                $authors[] = array(
+                    'display_name' => $default_author->display_name,
+                    'user_nicename' => $default_author->user_nicename
+                );
+            }
+        }
+
         return $authors;
+    }
+} else {
+    // Admin notice if plugin not active
+    add_action('admin_notices', 'extrachill_coauthors_notice');
+    function extrachill_coauthors_notice() {
+        echo '<div class="notice notice-warning is-dismissible"><p>Co-Authors Plus plugin is not active. Some author-related features may use fallbacks.</p></div>';
     }
 }
 
@@ -697,7 +685,7 @@ function extrachill_prevent_admin_styles_on_frontend() {
     wp_dequeue_style( 'imagify-admin-bar' );
     
     // Remove co-authors-plus styles unless we're on a post with co-authors
-    if ( ! is_single() || ! function_exists( 'get_coauthors' ) ) {
+    if ( ! is_single() || ! is_plugin_active('co-authors-plus/co-authors-plus.php') ) {
         wp_dequeue_style( 'co-authors-plus-coauthors-style' );
         wp_dequeue_style( 'co-authors-plus-avatar-style' );
         wp_dequeue_style( 'co-authors-plus-name-style' );

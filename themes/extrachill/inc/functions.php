@@ -8,6 +8,9 @@
  * @package    ExtraChill
  * @since      1.0
  */
+
+include_once(ABSPATH . 'wp-admin/includes/plugin.php');
+
 /* * ************************************************************************************* */
 
 /**
@@ -89,7 +92,7 @@ if ( ! function_exists( 'extrachill_entry_meta' ) ) :
                     __( '%s by ', 'extrachill' ),
                     $published_time_string
                 );
-                if ( function_exists( 'coauthors_posts_links' ) ) {
+                if ( is_plugin_active('co-authors-plus/co-authors-plus.php') ) {
                     coauthors_posts_links();
                 } else {
                     the_author_posts_link();

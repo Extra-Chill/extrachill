@@ -33,10 +33,12 @@ ExtraChill is a modern, performance-optimized WordPress theme designed specifica
 - **Custom Typography**: Local web fonts for optimal performance
 
 ### 🤝 Community Integration
-- **bbPress Forum Integration**: Seamless community discussions
-- **User Sync**: Custom authentication and session management
-- **Activity Feeds**: Recent community activity integration
-- **Upvote System**: Community-driven content engagement
+- **bbPress Forum Integration**: Seamless community discussions with multisite support
+- **WordPress Multisite**: Native cross-domain authentication and user management
+- **Forum Search**: Multisite-native forum search functionality (`ec_fetch_forum_results_multisite()`)
+- **Activity Feeds**: Recent community activity integration via multisite functions (`ec_fetch_recent_activity_multisite()`)
+- **User Details**: Native WordPress authentication (`preload_user_details()` replaces session tokens)
+- **Upvote System**: Community-driven content engagement with multisite user sessions
 
 ## Installation
 
@@ -124,7 +126,10 @@ extrachill/
 │   └── single-post.css    # Single post styles
 ├── inc/                   # Modular PHP functionality
 │   ├── admin/             # Admin functionality
-│   ├── community/         # Forum integration
+│   ├── community/         # Forum integration with multisite functions
+│   │   ├── multisite-forum-search.php     # Multisite forum search functions
+│   │   ├── recent-activity-feed.php       # Multisite activity feed functions
+│   │   └── community-session.php          # Native WordPress authentication
 │   ├── core/              # WordPress core features
 │   ├── home/              # Homepage components (includes Festival Wire ticker)
 │   └── woocommerce/       # E-commerce integration
@@ -272,6 +277,8 @@ This theme is proprietary software developed for ExtraChill.com. All rights rese
 - Community integration enhancements
 - Festival Wire migration to standalone plugin
 - Performance optimizations and memory management
+- WordPress multisite integration for cross-domain authentication
+- Native multisite functions replace REST API calls for better performance
 
 ---
 

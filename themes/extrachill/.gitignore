@@ -4,6 +4,9 @@
 # Node modules (if ever added)
 node_modules/
 
+# Composer vendor directory
+vendor/
+
 # OS / editor files
 .DS_Store
 *.swp

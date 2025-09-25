@@ -42,10 +42,9 @@ $svg_version = file_exists($svg_path) ? filemtime($svg_path) : '';
     </div>
 </nav>
 
-<span class="search-cart">
-    <div class="search-icon">
-        <svg class="search-top">
-            <use href="<?php echo get_template_directory_uri(); ?>/fonts/fontawesome.svg<?php echo $svg_version ? '?v=' . $svg_version : ''; ?>#magnifying-glass-solid"></use>
-        </svg>
-    </div>
-</span>
+<div class="search-icon">
+    <svg class="search-top">
+        <use href="<?php echo get_template_directory_uri(); ?>/fonts/fontawesome.svg<?php echo $svg_version ? '?v=' . $svg_version : ''; ?>#magnifying-glass-solid"></use>
+    </svg>
+</div>
+<?php do_action('extrachill_header_top_right'); ?>

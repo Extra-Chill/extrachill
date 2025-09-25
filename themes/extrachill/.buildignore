@@ -1,5 +1,6 @@
 # Development files and directories
 .git/
+.github/
 .gitignore
 .DS_Store
 .vscode/

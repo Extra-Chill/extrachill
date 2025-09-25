@@ -61,9 +61,9 @@ function ecc_add_community_username_field() {
     if($product->get_id() !== 90123) return;
 
     $username = '';
-    if(!empty($_COOKIE['ecc_user_session_token'])) {
-        $details = get_user_details_directly(sanitize_text_field($_COOKIE['ecc_user_session_token']));
-        $username = $details['username'] ?? '';
+    if (is_user_logged_in()) {
+        $user = wp_get_current_user();
+        $username = $user->user_nicename;
     }
     ?>
     <div class="community-username-field">
@@ -97,10 +97,10 @@ function ecc_save_username_to_cart($cart_item_data,$product_id) {
 
     if(!empty($_POST['community_username'])) {
         $cart_item_data['community_username'] = sanitize_text_field($_POST['community_username']);
-    } elseif(!isset($cart_item_data['community_username']) && !empty($_COOKIE['ecc_user_session_token'])) {
-        $details = get_user_details_directly(sanitize_text_field($_COOKIE['ecc_user_session_token']));
-        if(!empty($details['username'])) {
-            $cart_item_data['community_username'] = sanitize_text_field($details['username']);
+    } elseif(!isset($cart_item_data['community_username']) && is_user_logged_in()) {
+        $user = wp_get_current_user();
+        if(!empty($user->user_nicename)) {
+            $cart_item_data['community_username'] = sanitize_text_field($user->user_nicename);
         }
     }
     return $cart_item_data;
@@ -134,10 +134,11 @@ add_action('woocommerce_cart_item_name','ecc_cart_username_input',20,3);
 function ecc_cart_username_input($name,$cart_item,$key) {
     if((int)$cart_item['product_id']!==90123) return $name;
 
-    $value = $cart_item['community_username'] 
-           ?? ($_COOKIE['ecc_user_session_token'] 
-               ? esc_attr(get_user_details_directly($_COOKIE['ecc_user_session_token'])['username'] ?? '') 
-               : '');
+    $value = $cart_item['community_username'] ?? '';
+    if (empty($value) && is_user_logged_in()) {
+        $user = wp_get_current_user();
+        $value = esc_attr($user->user_nicename);
+    }
 
     $name .= '<p><label>Community Username:<br><input type="text" name="community_username['.esc_attr($key).']" value="'.esc_attr($value).'" required></label></p>';
     return $name;
