@@ -3,7 +3,7 @@
 Purpose: Enable an AI agent to make high‑quality, production‑safe contributions to the ExtraChill WordPress theme immediately.
 
 ## 1. Big Picture
-- This repo is a custom WordPress theme powering blog + community (bbPress) + WooCommerce + event scraping (separate system) + Festival Wire homepage integration. Newsletter functionality moved to ExtraChill Newsletter Plugin. 100% PHP/CSS/JS with NO build toolchain (just a packaging script).
+- This repo is a custom WordPress theme powering blog + community (bbPress) + WooCommerce + Festival Wire homepage integration. Newsletter functionality moved to ExtraChill Newsletter Plugin. 100% PHP/CSS/JS with NO build toolchain (just a packaging script).
 - Architecture is modular: almost all feature logic lives under `inc/` in subfolders (core, admin, community, home, woocommerce). `functions.php` wires everything and controls conditional asset loading.
 - Performance + reduced bloat + conditional loading are guiding principles (minimal image sizes, selective WooCommerce & style/script enqueueing, dynamic versioning via `filemtime()`).
 
@@ -68,4 +68,4 @@ Purpose: Enable an AI agent to make high‑quality, production‑safe contributi
 Include: feature summary, conditional loading review, taxonomy/CPT impacts (note rewrite flush), performance considerations, and any new hooks introduced.
 
 ---
-Clarify needs? Ask which modules or workflows require deeper expansion (e.g., community integration, event scraping, plugin integrations).
+Clarify needs? Ask which modules or workflows require deeper expansion (e.g., community integration, plugin integrations).

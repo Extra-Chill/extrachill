@@ -1,15 +1,12 @@
 <?php
 /**
- * ExtraChill functions related to defining constants, adding files and WordPress core functionality.
+ * ExtraChill Theme Setup and Configuration
  *
- * Defining some constants, loading all the required files and Adding some core functionality.
+ * Core theme functionality including WordPress feature support,
+ * asset loading, and multisite community integration.
  *
- * @uses       add_theme_support() To add support for post thumbnails and automatic feed links.
- * @uses       register_nav_menu() To add support for navigation menu.
- * @uses       set_post_thumbnail_size() To set a custom post thumbnail size.
- *
- * @package    ExtraChill
- * @since      ExtraChill 1.0
+ * @package ExtraChill
+ * @since 1.0
  */
 
 include_once(ABSPATH . 'wp-admin/includes/plugin.php');
@@ -18,7 +15,6 @@ add_theme_support( "responsive-embeds" );
 add_theme_support( "wp-block-styles" );
 add_theme_support( "align-wide" );
 
-/* WooCommerce functionality moved to extrachill-shop plugin */
 
 
 
@@ -27,41 +23,26 @@ add_theme_support( "align-wide" );
 add_action('after_setup_theme', 'extrachill_setup');
 
 /**
- * All setup functionalities.
- *
- * @since 1.0
+ * Theme setup and configuration
+ * Configures WordPress features, navigation menus, and editor styles
  */
 if (!function_exists('extrachill_setup')):
     function extrachill_setup()
     {
         
-        /*
-         * Make theme available for translation.
-         * Translations can be filed in the /languages/ directory.
-         */
         load_theme_textdomain('extrachill', get_template_directory() . '/languages');
         
-        // Add default posts and comments RSS feed links to head
         add_theme_support('automatic-feed-links');
         
-        // This theme uses Featured Images (also known as post thumbnails) for per-post/per-page.
         add_theme_support('post-thumbnails');
         
-        // Registering navigation menu.
         register_nav_menus(array(
             'primary' => __('Primary Menu', 'extrachill'),
         ));
         
-        /*
-         * Let WordPress manage the document title.
-         * By adding theme support, we declare that this theme does not use a
-         * hard-coded <title> tag in the document head, and expect WordPress to
-         * provide it for us.
-         */
         add_theme_support('title-tag');
         
         
-        // Adding excerpt option box for pages as well
         add_post_type_support('page', 'excerpt');
         add_theme_support( 'editor-styles' );
         add_editor_style( 'css/root.css' );
@@ -69,10 +50,6 @@ if (!function_exists('extrachill_setup')):
         add_editor_style( 'style.css' );
         add_editor_style( 'css/single-post.css' );
         
-        /*
-         * Switch default core markup for search form, comment form, and comments
-         * to output valid HTML5.
-         */
     add_theme_support('html5', array(
     'search-form',
     'comment-form',
@@ -82,7 +59,6 @@ if (!function_exists('extrachill_setup')):
     'script'
 ));
         
-        // Adds the support for the Custom Logo introduced in WordPress 4.5
         add_theme_support('custom-logo', array(
             'flex-width' => true,
             'flex-height' => true
@@ -115,7 +91,6 @@ add_action('init', 'extrachill_unregister_image_sizes', 99);
 // This default behavior helps prevent serving massive unoptimized images
 // Large uploads (typically 2560px+) will be automatically scaled to reasonable sizes
 
-/* WooCommerce context detection moved to /inc/woocommerce.php */
 
 /**
  * Define Directory Location Constants
@@ -123,13 +98,10 @@ add_action('init', 'extrachill_unregister_image_sizes', 99);
 define('EXTRACHILL_PARENT_DIR', get_template_directory());
 define('EXTRACHILL_INCLUDES_DIR', EXTRACHILL_PARENT_DIR . '/inc');
 
-/** Load functions */
 require_once(EXTRACHILL_INCLUDES_DIR . '/functions.php');
 
-/** Load core breadcrumb system */
 require_once(EXTRACHILL_INCLUDES_DIR . '/core/breadcrumbs.php');
 
-/** Load core functionality - Always required */
 require_once(EXTRACHILL_INCLUDES_DIR . '/core/city-state-taxonomy.php');
 require_once(EXTRACHILL_INCLUDES_DIR . '/core/reading-progress.php');
 require_once(EXTRACHILL_INCLUDES_DIR . '/core/rewrite-rules.php');
@@ -137,19 +109,13 @@ require_once(EXTRACHILL_INCLUDES_DIR . '/core/yoast-stuff.php');
 require_once(EXTRACHILL_INCLUDES_DIR . '/core/recent-posts-in-sidebar.php');
 require_once(EXTRACHILL_INCLUDES_DIR . '/core/dm-events-integration.php');
 
-/** Load admin functionality - Admin only files (conditional loading could be added later) */
 require_once(EXTRACHILL_INCLUDES_DIR . '/admin/log-404-errors.php');
-require_once(EXTRACHILL_INCLUDES_DIR . '/admin/contact-form.php');
 
-/** Load conditional functionality - These files could be conditionally loaded in future optimization */
 require_once(EXTRACHILL_INCLUDES_DIR . '/bandcamp-embeds.php');
 require_once(EXTRACHILL_INCLUDES_DIR . '/contextual-search-excerpt.php');
 require_once(EXTRACHILL_INCLUDES_DIR . '/location-filter.php');
 
 
-/**
- * Detect plugin. For use on Front End only.
- */
 include_once(ABSPATH . 'wp-admin/includes/plugin.php');
 
     
@@ -320,7 +286,6 @@ function wp_innovator_get_artists_in_category($category_name) {
         return array();
     }
     
-    // Query posts in the current category that have artist taxonomy terms
     $posts_with_artists = get_posts(array(
         'post_type' => 'post',
         'post_status' => 'publish',
@@ -339,7 +304,6 @@ function wp_innovator_get_artists_in_category($category_name) {
         return array();
     }
     
-    // Get all unique artist terms from these posts
     $artist_ids = array();
     foreach ($posts_with_artists as $post_id) {
         $post_artists = wp_get_post_terms($post_id, 'artist', array('fields' => 'ids'));
@@ -348,14 +312,12 @@ function wp_innovator_get_artists_in_category($category_name) {
         }
     }
     
-    // Remove duplicates
     $artist_ids = array_unique($artist_ids);
     
     if (empty($artist_ids)) {
         return array();
     }
     
-    // Get the artist term objects for only the relevant artists
     $artists_terms = get_terms(array(
         'taxonomy' => 'artist',
         'include' => $artist_ids,
@@ -573,6 +535,51 @@ function add_custom_favicon() {
 // Hook the function to wp_head
 add_action('wp_head', 'add_custom_favicon');
 
+/**
+ * Default Homepage Hero Section
+ * Provides default hero content that can be overridden by plugins
+ */
+function extrachill_default_homepage_hero() {
+    include get_template_directory() . '/inc/home/templates/hero.php';
+}
+add_action( 'extrachill_homepage_hero', 'extrachill_default_homepage_hero', 10 );
+
+/**
+ * Default Homepage Content Top Section
+ * Provides default 3x3 grid content that can be overridden by plugins
+ */
+function extrachill_default_homepage_content_top() {
+    include get_template_directory() . '/inc/home/templates/section-3x3-grid.php';
+}
+add_action( 'extrachill_homepage_content_top', 'extrachill_default_homepage_content_top', 10 );
+
+/**
+ * Default Homepage Content Middle Section
+ * Provides default "More Recent Posts" content that can be overridden by plugins
+ */
+function extrachill_default_homepage_content_middle() {
+    include get_template_directory() . '/inc/home/templates/section-more-recent-posts.php';
+}
+add_action( 'extrachill_homepage_content_middle', 'extrachill_default_homepage_content_middle', 10 );
+
+/**
+ * Default Homepage Content Bottom Section
+ * Provides default extrachill.link promotional content that can be overridden by plugins
+ */
+function extrachill_default_homepage_content_bottom() {
+    include get_template_directory() . '/inc/home/templates/section-extrachill-link.php';
+}
+add_action( 'extrachill_homepage_content_bottom', 'extrachill_default_homepage_content_bottom', 10 );
+
+/**
+ * Default Homepage Final Left Section
+ * Provides default About Extra Chill content that can be overridden by plugins
+ */
+function extrachill_default_final_left() {
+    include get_template_directory() . '/inc/home/templates/section-about.php';
+}
+add_action( 'extrachill_home_final_left', 'extrachill_default_final_left', 10 );
+
 
 function add_archive_body_class($classes) {
     if (is_page_template('page-templates/all-posts.php')) {
@@ -774,7 +781,7 @@ add_action('init', function() {
 
 
 
-require_once get_stylesheet_directory() . '/tag-migration-admin.php';
+require_once get_stylesheet_directory() . '/inc/admin/tag-migration-admin.php';
 
 function extrachill_enqueue_home_styles() {
     if ( is_front_page() ) {

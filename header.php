@@ -1,12 +1,9 @@
 <?php
 /**
- * Theme Header Section for our theme.
+ * Theme Header Section
  *
  * @package ExtraChill
  */
-
-// WordPress multisite handles authentication natively across all domains
-// No need to fetch user details in header - authentication works automatically
 ?><!DOCTYPE html>
 <html <?php language_attributes(); ?>>
 <head>
@@ -21,17 +18,14 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="profile" href="http://gmpg.org/xfn/11" />
   
-  <!-- Preload critical fonts for faster LCP performance -->
   <link rel="preload" href="<?php echo get_template_directory_uri(); ?>/fonts/WilcoLoftSans-Treble.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="<?php echo get_template_directory_uri(); ?>/fonts/Lobster2.woff2" as="font" type="font/woff2" crossorigin>
   
-  <!-- DNS prefetch for external domains to reduce latency -->
   <link rel="dns-prefetch" href="//scripts.mediavine.com">
   <link rel="dns-prefetch" href="//www.googletagmanager.com">
   
   <?php wp_head(); ?>
   <?php
-  // Conditionally include Mediavine ad blocklist based on ad-free status
   if ( is_user_ad_free() ) {
       ?>
       <div id="mediavine-settings" data-blocklist-all="1"></div>

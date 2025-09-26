@@ -33,7 +33,6 @@ The theme uses a clean, modular architecture organized in the `/inc/` directory:
 
 ### Custom Post Types & Taxonomies
 - **Custom Taxonomies**: Artist, Venue, Festival, Location taxonomies with REST API support
-- **Chill Events**: Event scraping system (`chill-events/data-sources/scrapers/`)
 - **Festival Wire Integration**: Homepage ticker display for Festival Wire posts (handled by ExtraChill News Wire plugin)
 
 ### Community Integration
@@ -124,12 +123,6 @@ wp rewrite flush
 - **Festival Wire**: Custom post type functionality provided by ExtraChill News Wire plugin
 
 ## Custom Functionality
-
-### Event Scraping System
-- **Multi-venue Support**: Scrapers for Charleston Tin Roof, Forte Jazz Lounge, The Burgundy Lounge, The Commodore, The Royal American
-- **File Location**: `chill-events/data-sources/scrapers/`
-- **Execution**: Manual execution via admin interface or scheduled jobs
-- **Data Structure**: Standardized event data format across all scrapers
 
 ### Newsletter System
 - **Plugin Integration**: Newsletter functionality provided by ExtraChill Newsletter Plugin

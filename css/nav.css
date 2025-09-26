@@ -395,68 +395,6 @@ body.search-only-open .search-wrap {
     margin: 0 auto; /* Center the search wrap */
 }
 
-/* Menu Newsletter Form Styles
-   ========================================================================== */
-.menu-newsletter .newsletter-form{
-	max-width: 55%;
-	margin: 25px auto;
-	border: 1px dashed var(--border-color);
-	border-radius: 10px;
-	padding: 20px 15px;
-	background-color: var(--card-background);
-	font-size: 15px;
-}
-
-.menu-newsletter .newsletter-form input{
-	margin-bottom: 20px;
-    /* Inherit general input styles or add specific ones */
-    padding: 1%;
-    border: 1px solid var(--border-color);
-    line-height: 20px;
-    width: 90%; /* Adjust as needed */
-    background-color: var(--card-background);
-    border-radius: 3px;
-    font-size: 14px;
-    color: var(--text-color);
-}
-.menu-newsletter .newsletter-form input:focus {
-    border: 1px solid var(--focus-border-color);
-}
-
-.menu-newsletter .newsletter-form button{
-	margin-bottom: 10px;
-    /* Inherit general button styles or add specific ones */
-    padding: 5px 10px;
-    background-color: var(--button-bg);
-    border: 0px;
-    transition: background-color 0.3s linear 0s;
-    border-radius: 5px;
-    font-size: 14px;
-    appearance: none !important;
-    cursor: pointer;
-    display: inline-block;
-    color: #fff;
-    width: auto; /* Adjust as needed */
-}
-
-.menu-newsletter .newsletter-form button:hover{
-    background-color: var(--button-hover-bg);
-}
-
-.menu-newsletter .newsletter-form p{
-	margin: 0;
-}
-
-#primary-menu .newsletter-form p a {
-	line-height: 1em;
-	text-transform: none;
-    color: var(--link-color); /* Use theme link color */
-    text-decoration: underline;
-}
-#primary-menu .newsletter-form p a:hover {
-    color: inherit; /* Or specify hover color */
-    text-decoration-color: #53940b;
-}
 
 /* Footer links within the menu */
 .menu-footer-links{

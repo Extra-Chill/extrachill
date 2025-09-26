@@ -6,9 +6,8 @@
  * @since 1.0
  */
 
-$featured_image_size = 'medium_large'; // Using WordPress' medium_large size for better image quality.
+$featured_image_size = 'medium_large';
 
-// Get location taxonomy terms
 $locations = get_the_terms(get_the_ID(), 'location');
 $location_classes = '';
 if ( ! is_wp_error( $locations ) && ! empty( $locations ) ) {
@@ -33,7 +32,6 @@ if ( ! is_wp_error( $locations ) && ! empty( $locations ) ) {
                 echo '<a href="' . esc_url( get_category_link( $cat->term_id ) ) . '" class="taxonomy-badge category-badge category-' . $cat_slug . '-badge">' . esc_html( $cat->name ) . '</a>';
             }
         }
-        // Use cached locations from above
         if ( ! is_wp_error( $locations ) && ! empty( $locations ) ) {
             foreach ( $locations as $location ) {
                 $loc_slug = sanitize_html_class( $location->slug );
