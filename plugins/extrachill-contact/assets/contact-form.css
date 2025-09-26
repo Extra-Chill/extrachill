@@ -1,0 +1,150 @@
+/**
+ * ExtraChill Contact Form Styles
+ *
+ * Basic styling for contact form elements that integrates
+ * with existing theme styles.
+ *
+ * @package ExtraChillContact
+ * @since 1.0.0
+ */
+
+/* Contact Form Container */
+.custom-contact-form {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+/* Form Groups */
+.custom-contact-form .form-group {
+    margin-bottom: 20px;
+}
+
+.custom-contact-form .form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: #333;
+}
+
+/* Form Inputs */
+.custom-contact-form .input-text {
+    width: 100%;
+    padding: 12px 15px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 16px;
+    line-height: 1.5;
+    transition: border-color 0.3s ease;
+    box-sizing: border-box;
+}
+
+.custom-contact-form .input-text:focus {
+    border-color: #007cba;
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(0, 124, 186, 0.1);
+}
+
+/* Textarea Specific */
+.custom-contact-form textarea.input-text {
+    resize: vertical;
+    min-height: 120px;
+}
+
+/* Submit Button */
+.custom-contact-form .submit-button {
+    background-color: #007cba;
+    color: white;
+    padding: 12px 30px;
+    border: none;
+    border-radius: 4px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.custom-contact-form .submit-button:hover {
+    background-color: #005a87;
+}
+
+.custom-contact-form .submit-button:focus {
+    outline: 2px solid #007cba;
+    outline-offset: 2px;
+}
+
+/* Consent Checkbox */
+.custom-contact-form .consent {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+}
+
+.custom-contact-form .consent input[type="checkbox"] {
+    width: auto;
+    margin: 0;
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+.custom-contact-form .consent label {
+    margin: 0;
+    font-weight: normal;
+    cursor: pointer;
+    flex-grow: 1;
+}
+
+/* Turnstile Container */
+.custom-contact-form .cf-turnstile {
+    margin: 20px 0;
+    display: flex;
+    justify-content: center;
+}
+
+/* Success Message */
+.contact-success-message {
+    background: #d4edda;
+    color: #155724;
+    padding: 15px;
+    border: 1px solid #c3e6cb;
+    border-radius: 4px;
+    margin: 20px 0;
+    font-weight: 500;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .custom-contact-form {
+        padding: 15px;
+    }
+
+    .custom-contact-form .input-text {
+        font-size: 16px; /* Prevents zoom on iOS */
+    }
+
+    .custom-contact-form .submit-button {
+        width: 100%;
+        padding: 15px;
+    }
+}
+
+/* Required Field Indicator */
+.custom-contact-form label:after {
+    content: " *";
+    color: #e74c3c;
+    font-weight: bold;
+}
+
+.custom-contact-form .consent label:after {
+    content: "";
+}
+
+/* Error States */
+.custom-contact-form .input-text:invalid {
+    border-color: #e74c3c;
+}
+
+.custom-contact-form .input-text:invalid:focus {
+    border-color: #e74c3c;
+    box-shadow: 0 0 0 2px rgba(231, 76, 60, 0.1);
+}

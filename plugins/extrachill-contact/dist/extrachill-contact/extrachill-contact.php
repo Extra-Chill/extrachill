@@ -1,0 +1,107 @@
+<?php
+/**
+ * Plugin Name: ExtraChill Contact
+ * Plugin URI: https://extrachill.com
+ * Description: Contact form system with Sendy newsletter integration and HTML email templates for ExtraChill platform. Provides shortcode-based contact forms with Cloudflare Turnstile protection and automatic newsletter subscription.
+ * Version: 1.0.0
+ * Author: Chris Huber
+ * Author URI: https://chubes.net
+ * License: GPL v2 or later
+ * License URI: https://www.gnu.org/licenses/gpl-2.0.html
+ * Text Domain: extrachill-contact
+ * Domain Path: /languages
+ * Requires at least: 5.0
+ * Tested up to: 6.4
+ * Requires PHP: 7.4
+ */
+
+// Exit if accessed directly
+defined( 'ABSPATH' ) || exit;
+
+/**
+ * Define plugin constants
+ */
+define( 'EXTRACHILL_CONTACT_VERSION', '1.0.0' );
+define( 'EXTRACHILL_CONTACT_PLUGIN_FILE', __FILE__ );
+define( 'EXTRACHILL_CONTACT_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
+define( 'EXTRACHILL_CONTACT_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
+define( 'EXTRACHILL_CONTACT_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
+define( 'EXTRACHILL_CONTACT_INCLUDES_DIR', EXTRACHILL_CONTACT_PLUGIN_DIR . 'includes/' );
+define( 'EXTRACHILL_CONTACT_ASSETS_URL', EXTRACHILL_CONTACT_PLUGIN_URL . 'assets/' );
+
+/**
+ * Main ExtraChill Contact Class
+ *
+ * Singleton plugin class handling initialization and core functionality loading.
+ */
+class ExtraChillContact {
+
+    private static $instance = null;
+
+    public static function instance() {
+        if ( null === self::$instance ) {
+            self::$instance = new self();
+        }
+        return self::$instance;
+    }
+
+    private function __construct() {
+        $this->init_hooks();
+    }
+
+    private function init_hooks() {
+        // Include core functionality
+        require_once EXTRACHILL_CONTACT_INCLUDES_DIR . 'contact-form-core.php';
+
+        // Plugin lifecycle hooks
+        register_activation_hook( __FILE__, array( $this, 'activate' ) );
+        register_deactivation_hook( __FILE__, array( $this, 'deactivate' ) );
+
+        // Asset loading
+        add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_assets' ) );
+    }
+
+    /**
+     * Plugin activation
+     */
+    public function activate() {
+        // No database table creation needed - using wp_mail system only
+        flush_rewrite_rules();
+    }
+
+    /**
+     * Plugin deactivation
+     */
+    public function deactivate() {
+        flush_rewrite_rules();
+    }
+
+    /**
+     * Enqueue plugin assets conditionally
+     */
+    public function enqueue_assets() {
+        // Only load assets on contact-us page
+        if ( is_page( 'contact-us' ) ) {
+            // Contact form CSS
+            $css_file_path = EXTRACHILL_CONTACT_PLUGIN_DIR . 'assets/contact-form.css';
+            if ( file_exists( $css_file_path ) ) {
+                wp_enqueue_style(
+                    'extrachill-contact-form',
+                    EXTRACHILL_CONTACT_ASSETS_URL . 'contact-form.css',
+                    array(),
+                    filemtime( $css_file_path )
+                );
+            }
+        }
+    }
+}
+
+/**
+ * Initialize the plugin
+ */
+function extrachill_contact() {
+    return ExtraChillContact::instance();
+}
+
+// Fire it up
+extrachill_contact();
