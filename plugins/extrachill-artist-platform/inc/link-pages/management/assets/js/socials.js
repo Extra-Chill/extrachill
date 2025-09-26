@@ -1,8 +1,7 @@
-// Social Icons Management Module - Self-Contained
+// Social Icons Management Module
 (function() {
     'use strict';
-    
-    // Self-contained module - no initialization state needed
+
     let isInitialSocialRender = true;
     let isInitialSortableSocialsEnd = true;
 
@@ -10,7 +9,6 @@
     let socialIconsPositionRadios = [];
 
 
-    // Centralized URL validation
     function isValidUrl(url) {
         if (!url || typeof url !== 'string') return false;
         try {
@@ -21,21 +19,17 @@
         }
     }
 
-    // Extract social links data from individual form fields
     function getSocialsDataFromDOM() {
         const socialsData = [];
-        
-        // Read data from individual form fields instead of JSON
         const socialTypeSelects = document.querySelectorAll('select[name^="social_type["]');
         const socialUrlInputs = document.querySelectorAll('input[name^="social_url["]');
-        
-        // Process each social icon by matching type and URL inputs
+
         socialTypeSelects.forEach((typeSelect, index) => {
             const typeMatch = typeSelect.name.match(/social_type\[(\d+)\]/);
             if (typeMatch) {
                 const socialIdx = parseInt(typeMatch[1]);
                 const urlInput = document.querySelector(`input[name="social_url[${socialIdx}]"]`);
-                
+
                 if (typeSelect.value && urlInput && urlInput.value) {
                     socialsData.push({
                         type: typeSelect.value,
@@ -44,19 +38,17 @@
                 }
             }
         });
-        
+
         return socialsData;
     }
     
 
-    // No serialization needed - form fields handle all data persistence
 
     function initModule() {
         socialListEl = document.getElementById('bp-social-icons-list');
         addSocialBtn = document.getElementById('bp-add-social-icon-btn');
         socialIconsPositionRadios = document.querySelectorAll('input[name="link_page_social_icons_position"]');
         
-        // Get supported types from DOM data attribute
         const socialContainer = document.querySelector('#bp-social-icons-list');
         const supportedTypesData = socialContainer ? socialContainer.dataset.supportedTypes : null;
         supportedTypes = supportedTypesData ? JSON.parse(supportedTypesData) : {};
@@ -66,11 +58,6 @@
             return;
         }
 
-        // Working directly with form fields - no hidden inputs needed
-        
-        // Module initialization complete
-
-        // Supported social types from global config
         const allSocialTypes = supportedTypes;
         const socialTypesArray = Object.keys(allSocialTypes).map(key => ({
             value: key,
@@ -81,14 +68,9 @@
         const repeatableTypes = socialTypesArray.filter(type => type.value === 'website' || type.value === 'email').map(type => type);
 
         isInitialSocialRender = true;
-        isInitialSortableSocialsEnd = true; // Reset flag on each init
-
-        // Listen for sortable events - fire socialIconsMoved for preview updates
+        isInitialSortableSocialsEnd = true;
         document.addEventListener('socialIconMoved', function() {
-            // Sortable movements handled by sorting-preview.js
-            // Management only needs to track state, not trigger preview updates
             if (!isInitialSortableSocialsEnd) {
-                // User drag completed - fire event for preview updates
                 const socials = getSocialsDataFromDOM();
                 document.dispatchEvent(new CustomEvent('socialIconsMoved', {
                     detail: { 
@@ -96,16 +78,14 @@
                     }
                 }));
             } else {
-                isInitialSortableSocialsEnd = false; // Consume the flag
+                isInitialSortableSocialsEnd = false;
             }
         });
 
-        // Only update preview on blur (for URL input) or change (for type select)
         socialListEl.addEventListener('blur', function(e) {
             if (e.target.classList.contains('bp-social-url-input')) {
                 const url = e.target.value.trim();
                 if (url) {
-                    // Fire direct event for URL changes
                     const socials = getSocialsDataFromDOM();
                     const position = getSocialIconsPositionFromDOM();
                     document.dispatchEvent(new CustomEvent('socialIconsChanged', {
@@ -116,11 +96,10 @@
                     }));
                 }
             }
-        }, true); // Use capture to catch blur on children
+        }, true);
 
         socialListEl.addEventListener('change', function(e) {
             if (e.target.classList.contains('bp-social-type-select')) {
-                // Fire direct event for type changes
                 const socials = getSocialsDataFromDOM();
                 const position = getSocialIconsPositionFromDOM();
                 document.dispatchEvent(new CustomEvent('socialIconsChanged', {
@@ -137,24 +116,19 @@
                 e.preventDefault();
                 const row = e.target.closest('.bp-social-row');
                 if (row) {
-                    // Get the social data before removing
                     const typeSelect = row.querySelector('select[name^="social_type["]');
                     const urlInput = row.querySelector('input[name^="social_url["]');
                     const socialData = {
                         type: typeSelect ? typeSelect.value : '',
                         url: urlInput ? urlInput.value : ''
                     };
-                    
+
                     row.remove();
-                    
-                    // Fire socialIconDeleted event for preview updates
                     document.dispatchEvent(new CustomEvent('socialIconDeleted', {
                         detail: { 
                             socialData: socialData
                         }
                     }));
-                } else {
-                    // console.warn('[SocialIcons] Could not find .bp-social-row to remove.', e.target); // Comment out
                 }
             }
         });
