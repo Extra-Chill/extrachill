@@ -1,9 +1,8 @@
 <?php
 /**
- * footer.php
+ * Theme Footer
  *
- * 
- *
+ * @package ExtraChill
  */
 ?>
 
@@ -14,7 +13,6 @@
 <?php do_action( 'extrachill_above_footer' ); ?>
 
 <footer id="extra-footer" >
-    <!-- Social Media Links -->
     <?php include get_template_directory() . '/social-links.php'; ?>
 
     <div class="footer-menus-wrapper">
@@ -28,7 +26,7 @@
                             'theme_location'  => $menu_location,
                             'container'       => 'div',
                             'container_class' => 'footer-menu-column',
-                            'menu_class'      => 'footer-column-menu', // Use a specific class for these menus
+                            'menu_class'      => 'footer-column-menu',
                         )
                     );
                 }
@@ -37,7 +35,6 @@
         </div>
     </div>
 
-    <!-- Copyright -->
     <div class="footer-copyright">
         &copy; <?php echo date( 'Y' ); ?> <a href="https://extrachill.com">Extra Chill</a>. All rights reserved.
     </div>

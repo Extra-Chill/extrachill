@@ -10,7 +10,6 @@ ExtraChill is a modern, performance-optimized WordPress theme designed specifica
 - **Community Forum**: Integration with bbPress for user discussions
 - **Festival Wire**: Homepage ticker integration (functionality provided by ExtraChill News Wire plugin)
 - **Merch Store**: WooCommerce integration for merchandise sales
-- **Event Listings**: Custom event scraping and management system
 
 ## Key Features
 
@@ -18,7 +17,6 @@ ExtraChill is a modern, performance-optimized WordPress theme designed specifica
 - **Custom Taxonomies**: Artist, Venue, Festival, and Location organization
 - **Festival Wire Integration**: Homepage ticker display for festival coverage (requires ExtraChill News Wire plugin)
 - **Newsletter Integration**: Newsletter functionality provided by ExtraChill Newsletter Plugin
-- **Event Scraping**: Automated event data collection from multiple venues
 
 ### 🚀 Performance Optimizations
 - **Conditional Asset Loading**: CSS/JS loaded only when needed
@@ -37,7 +35,7 @@ ExtraChill is a modern, performance-optimized WordPress theme designed specifica
 - **WordPress Multisite**: Native cross-domain authentication and user management
 - **Forum Search**: Multisite-native forum search functionality (`ec_fetch_forum_results_multisite()`)
 - **Activity Feeds**: Recent community activity integration via multisite functions (`ec_fetch_recent_activity_multisite()`)
-- **User Details**: Native WordPress authentication (`preload_user_details()` replaces session tokens)
+- **User Details**: Native WordPress authentication using `is_user_logged_in()` and `wp_get_current_user()` (replaces custom session tokens)
 - **Upvote System**: Community-driven content engagement with multisite user sessions
 
 ## Installation
@@ -134,7 +132,6 @@ extrachill/
 │   ├── home/              # Homepage components (includes Festival Wire ticker)
 │   └── woocommerce/       # E-commerce integration
 ├── js/                    # JavaScript files
-├── chill-events/          # Event scraping system
 ├── page-templates/        # Custom page templates
 └── woocommerce/           # WooCommerce template overrides
 ```
@@ -275,10 +272,11 @@ This theme is proprietary software developed for ExtraChill.com. All rights rese
 - WooCommerce performance optimization
 - Modular CSS architecture implementation
 - Community integration enhancements
-- Festival Wire migration to standalone plugin
+- Festival Wire migration to standalone plugin (ExtraChill News Wire plugin)
+- Newsletter system migration to standalone plugin (ExtraChill Newsletter Plugin)
 - Performance optimizations and memory management
-- WordPress multisite integration for cross-domain authentication
-- Native multisite functions replace REST API calls for better performance
+- WordPress multisite integration with native cross-domain authentication
+- Native multisite functions replace REST API calls and custom session tokens for better performance
 
 ---
 

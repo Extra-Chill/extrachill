@@ -62,31 +62,12 @@ global $post; // Ensure $post is available for setup_postdata.
             <a class="home-3x3-archive-link" href="https://community.extrachill.com">View All</a>
           </div>
           <div class="home-3x3-list home-3x3-community-list">
-            <?php include get_template_directory() . '/inc/home/community-activity.php'; ?>
+            <?php include get_template_directory() . '/inc/home/templates/community-activity.php'; ?>
           </div>
         </div>
       </div>
       <div class="home-3x3-outer-card">
-        <!-- Newsletter section requires ExtraChill Newsletter Plugin -->
-        <div class="home-3x3-stacked-section">
-          <div class="home-3x3-header">
-            <span class="home-3x3-label">Latest Newsletters</span>
-            <a class="home-3x3-archive-link" href="<?php echo esc_url( get_post_type_archive_link('newsletter') ); ?>">View All</a>
-          </div>
-          <div class="home-3x3-list">
-            <?php
-            if (!empty($newsletter_posts)) :
-              foreach ($newsletter_posts as $post) :
-                setup_postdata($post); ?>
-                <a href="<?php the_permalink(); ?>" class="home-3x3-card home-3x3-card-link" aria-label="<?php the_title_attribute(); ?>">
-                  <span class="home-3x3-title"><?php the_title(); ?></span>
-                  <span class="home-3x3-meta">Sent <?php echo get_the_date(); ?></span>
-                </a>
-            <?php endforeach; wp_reset_postdata(); else: ?>
-                <div class="home-3x3-card home-3x3-empty">No newsletters yet.</div>
-            <?php endif; ?>
-          </div>
-        </div>
+        <?php do_action( 'extrachill_home_grid_bottom_right' ); ?>
       </div>
     </div>
   </div>

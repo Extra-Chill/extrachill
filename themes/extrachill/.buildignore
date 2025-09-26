@@ -42,5 +42,3 @@ desktop.ini
 
 # Additional WordPress theme exclusions
 bower.json
-wp-cli.phar
-tag-migration-admin.php
