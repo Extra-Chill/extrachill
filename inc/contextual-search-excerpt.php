@@ -1,6 +1,6 @@
 <?php
 
-// this codee is used to display contextual excerpts in search results
+// this code is used to display contextual excerpts in search results
 
 if ( ! function_exists( 'ec_get_contextual_excerpt' ) ) {
     function ec_get_contextual_excerpt( $content, $search_term, $word_limit = 30 ) {

@@ -1,7 +1,12 @@
 <?php
 // Get the file modification time for cache busting
-$svg_path = get_template_directory() . '/fonts/fontawesome.svg';
+$svg_path = get_template_directory() . '/assets/fonts/fontawesome.svg';
 $svg_version = file_exists($svg_path) ? filemtime($svg_path) : '';
+
+// Hook this navigation menu into the header
+add_action('extrachill_header_top_right', function() {
+    get_template_part('inc/header/navigation-menu');
+}, 10);
 ?>
 <nav id="site-navigation" class="main-navigation" role="navigation" aria-label="Main Navigation">
     <button class="menu-toggle-container" role="button" aria-expanded="false" tabindex="0" aria-label="Toggle Menu">
@@ -14,13 +19,10 @@ $svg_version = file_exists($svg_path) ? filemtime($svg_path) : '';
         <!-- Top part: Search section -->
         <div class="search-section">
             <?php get_search_form(); ?>
-        </div>
+    </div>
 
         <!-- Bottom part: Main menu items -->
         <ul class="menu-items">
-            <li class="menu-community-link">
-                <a href="https://community.extrachill.com">Visit Forum</a>
-            </li>
             <?php
                 wp_nav_menu(array(
                     'theme_location' => 'primary',
@@ -35,16 +37,20 @@ $svg_version = file_exists($svg_path) ? filemtime($svg_path) : '';
             <li class="menu-social-links">
                 <?php include get_template_directory() . '/social-links.php'; ?>
             </li>
-            <li class="menu-footer-links">
-                <a href="/about">About</a> <a href="/contact">Contact</a> <a href="/shop">Merch Store</a>
-            </li>
+            <?php
+                wp_nav_menu(array(
+                    'theme_location' => 'navigation-footer',
+                    'container' => false,
+                    'items_wrap' => '%3$s',
+                    'fallback_cb' => false
+                ));
+            ?>
         </ul>
     </div>
 </nav>
 
 <div class="search-icon">
     <svg class="search-top">
-        <use href="<?php echo get_template_directory_uri(); ?>/fonts/fontawesome.svg<?php echo $svg_version ? '?v=' . $svg_version : ''; ?>#magnifying-glass-solid"></use>
+        <use href="<?php echo get_template_directory_uri(); ?>/assets/fonts/fontawesome.svg<?php echo $svg_version ? '?v=' . $svg_version : ''; ?>#magnifying-glass-solid"></use>
     </svg>
 </div>
-<?php do_action('extrachill_header_top_right'); ?>

@@ -62,7 +62,7 @@ embed, iframe, object {
 
 @font-face {
     font-family: 'Loft Sans';
-    src: url('fonts/WilcoLoftSans-Treble.woff2') format('woff2');
+    src: url('assets/fonts/WilcoLoftSans-Treble.woff2') format('woff2');
     font-style: normal;
     font-weight: 100 900; 
 	font-display: swap;
@@ -71,7 +71,7 @@ embed, iframe, object {
 /* Lobster */
 @font-face {
     font-family: 'Lobster';
-    src: url('fonts/Lobster2.woff2') format('woff2');
+    src: url('assets/fonts/Lobster2.woff2') format('woff2');
     font-weight: normal;
     font-style: normal;
     font-display: swap;

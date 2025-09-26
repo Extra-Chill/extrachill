@@ -83,47 +83,9 @@ if (is_category()) {
         }
     }
 
-    // Fetch and display parent category link and subcategories
-    if (is_category()) {
-        $current_category = get_category(get_queried_object_id());
+    <?php do_action('extrachill_archive_below_description'); ?>
 
-        $subcategories = get_categories(array(
-            'child_of' => $current_category->term_id,
-            'hide_empty' => false,
-        ));
-
-        if ($subcategories) {
-            echo '<div class="subcategory-dropdown">';
-            echo '<h2 class="filter-head">' . __('Select Subcategory:', 'extrachill') . '</h2>';
-            echo '<select id="subcategory" name="subcategory" onchange="if (this.value) window.location.href=this.value;">';
-            echo '<option value="">' . __('Select Subcategory', 'extrachill') . '</option>';
-            foreach ($subcategories as $subcategory) {
-                echo '<option value="' . get_category_link($subcategory->term_id) . '">' . $subcategory->name . '</option>';
-            }
-            echo '</select>';
-            echo '</div>';
-        }
-    }
-    ?>
-
-    <div id="extrachill-custom-sorting">
-        <?php
-        if (is_category('song-meanings')) {
-            wp_innovator_dropdown_menu('song-meanings', 'Filter By Artist');
-        } elseif (is_category('music-history')) {
-            wp_innovator_dropdown_menu('music-history', 'Filter By Tag');
-        }
-        ?>
-        <?php if (is_archive()): ?>
-            <button id="randomize-posts">Randomize Posts</button>
-        <?php endif; ?>
-        <div id="custom-sorting-dropdown">
-            <select id="post-sorting" name="post_sorting" onchange="window.location.href='<?php echo esc_url($archive_link); ?>?sort='+this.value;">
-                <option value="recent">Sort by Recent</option>
-                <option value="oldest">Sort by Oldest</option>
-            </select>
-        </div>
-    </div>
+    <?php do_action('extrachill_archive_above_posts'); ?>
     <div class="article-container">
         <?php global $post_i; $post_i = 1; ?>
         <?php while (have_posts()) : the_post(); ?>
@@ -146,23 +108,5 @@ if (is_category()) {
 
 <?php do_action('extrachill_after_body_content'); ?>
 
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    var sortingDropdown = document.getElementById('post-sorting');
-    var urlParams = new URLSearchParams(window.location.search);
-    var sort = urlParams.get('sort'); // Get the 'sort' parameter from the URL
-
-    // If 'sort' parameter exists, set the dropdown value to match
-    if (sort) {
-        sortingDropdown.value = sort;
-    }
-
-    // Add change event listener to update the page URL based on selection
-    sortingDropdown.addEventListener('change', function() {
-        var selectedOption = this.value;
-        window.location.href = '?sort=' + selectedOption;
-    });
-});
-</script>
 
 <?php get_footer(); ?>

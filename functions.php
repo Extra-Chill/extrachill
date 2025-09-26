@@ -15,6 +15,9 @@ add_theme_support( "responsive-embeds" );
 add_theme_support( "wp-block-styles" );
 add_theme_support( "align-wide" );
 
+// Remove default WordPress gallery styles (we have custom gallery styling)
+add_filter( 'use_default_gallery_style', '__return_false' );
+
 
 
 
@@ -24,7 +27,6 @@ add_action('after_setup_theme', 'extrachill_setup');
 
 /**
  * Theme setup and configuration
- * Configures WordPress features, navigation menus, and editor styles
  */
 if (!function_exists('extrachill_setup')):
     function extrachill_setup()
@@ -45,10 +47,10 @@ if (!function_exists('extrachill_setup')):
         
         add_post_type_support('page', 'excerpt');
         add_theme_support( 'editor-styles' );
-        add_editor_style( 'css/root.css' );
-        add_editor_style( 'css/editor-style.css' );
+        add_editor_style( 'assets/css/root.css' );
+        add_editor_style( 'assets/css/editor-style.css' );
         add_editor_style( 'style.css' );
-        add_editor_style( 'css/single-post.css' );
+        add_editor_style( 'assets/css/single-post.css' );
         
     add_theme_support('html5', array(
     'search-form',
@@ -70,40 +72,30 @@ if (!function_exists('extrachill_setup')):
 endif;
 
 /**
- * Image Size Optimization - Remove unnecessary WordPress bloat sizes
- * Removes excessive image sizes from WordPress registry to prevent generation
- * and clean up media library interface. Keeps essential sizes for theme:
- * - medium (300x300) - Content images, grids, news cards
- * - medium_large (768x0) - Featured images in content.php and sidebar
- * - large (1024x1024) - Featured images, full-width content
- * - 1536x1536 - Concert photography galleries and high-res displays
+ * Remove unnecessary WordPress image sizes to optimize media library
  */
 function extrachill_unregister_image_sizes() {
-    // Remove WordPress core bloat sizes
-    remove_image_size('thumbnail');     // 150x150 - not used in templates
-    remove_image_size('2048x2048');     // Excessive for most use cases, removes storage bloat
-    
-    // Keep 1536x1536 - Essential for concert photography galleries and high-res displays
+    remove_image_size('thumbnail');
+    remove_image_size('2048x2048');
 }
 add_action('init', 'extrachill_unregister_image_sizes', 99);
 
-// WordPress 5.3+ automatically scales down large images for performance
-// This default behavior helps prevent serving massive unoptimized images
-// Large uploads (typically 2560px+) will be automatically scaled to reasonable sizes
 
 
-/**
- * Define Directory Location Constants
- */
 define('EXTRACHILL_PARENT_DIR', get_template_directory());
 define('EXTRACHILL_INCLUDES_DIR', EXTRACHILL_PARENT_DIR . '/inc');
 
-require_once(EXTRACHILL_INCLUDES_DIR . '/functions.php');
+require_once(EXTRACHILL_INCLUDES_DIR . '/core/templates/post-meta.php');
+require_once(EXTRACHILL_INCLUDES_DIR . '/single-post/comments.php');
+require_once(EXTRACHILL_INCLUDES_DIR . '/core/templates/share.php');
+require_once(EXTRACHILL_INCLUDES_DIR . '/core/templates/social-links.php');
 
+require_once(EXTRACHILL_INCLUDES_DIR . '/core/assets.php');
 require_once(EXTRACHILL_INCLUDES_DIR . '/core/breadcrumbs.php');
+require_once(EXTRACHILL_INCLUDES_DIR . '/core/template-overrides.php');
+require_once(EXTRACHILL_INCLUDES_DIR . '/header/walker.php');
 
 require_once(EXTRACHILL_INCLUDES_DIR . '/core/city-state-taxonomy.php');
-require_once(EXTRACHILL_INCLUDES_DIR . '/core/reading-progress.php');
 require_once(EXTRACHILL_INCLUDES_DIR . '/core/rewrite-rules.php');
 require_once(EXTRACHILL_INCLUDES_DIR . '/core/yoast-stuff.php');
 require_once(EXTRACHILL_INCLUDES_DIR . '/core/recent-posts-in-sidebar.php');
@@ -111,9 +103,13 @@ require_once(EXTRACHILL_INCLUDES_DIR . '/core/dm-events-integration.php');
 
 require_once(EXTRACHILL_INCLUDES_DIR . '/admin/log-404-errors.php');
 
-require_once(EXTRACHILL_INCLUDES_DIR . '/bandcamp-embeds.php');
+require_once(EXTRACHILL_INCLUDES_DIR . '/core/editor/bandcamp-embeds.php');
+require_once(EXTRACHILL_INCLUDES_DIR . '/core/editor/instagram-embeds.php');
+require_once(EXTRACHILL_INCLUDES_DIR . '/core/editor/spotify-embeds.php');
 require_once(EXTRACHILL_INCLUDES_DIR . '/contextual-search-excerpt.php');
-require_once(EXTRACHILL_INCLUDES_DIR . '/location-filter.php');
+
+require_once(EXTRACHILL_INCLUDES_DIR . '/archives/archive-child-terms-dropdown.php');
+require_once(EXTRACHILL_INCLUDES_DIR . '/archives/archive-custom-sorting.php');
 
 
 include_once(ABSPATH . 'wp-admin/includes/plugin.php');
@@ -124,7 +120,6 @@ add_filter('the_content', function($content)
     return str_replace('margin-left: 1em; margin-right: 1em;', '', $content);
 });
 add_filter('auto_update_theme', '__return_false');
-// Disable Emoji Mess
 function disable_wp_emojicons()
 {
     add_filter('tiny_mce_plugins', 'disable_emojicons_tinymce');
@@ -161,13 +156,8 @@ function add_file_types_to_uploads($file_types)
 add_action('upload_mimes', 'add_file_types_to_uploads');
 
 function exclude_from_search($query) {
-    // Check if the query is the main query, a search query, and not in the admin area.
     if ($query->is_main_query() && $query->is_search && !is_admin()) {
-        $query->set('post_type', array(
-            'post',    // Include standard posts in search results.
-            'page',    // Include pages in search results.
-            'product', // Include WooCommerce products in search results.
-        ));
+        $query->set('post_type', array('post', 'page', 'product'));
     }
     return $query;
 }
@@ -176,15 +166,10 @@ add_filter('pre_get_posts', 'exclude_from_search');
 
 
 
-// include all PHP files in the 'community-integration' directory
-
 function include_community_integration_files() {
     $directory = get_template_directory() . '/inc/community/';
-    
-    // Get all PHP files in the directory
     $php_files = glob($directory . '*.php');
-    
-    // Include each PHP file
+
     foreach ($php_files as $file) {
         include_once $file;
     }
@@ -192,23 +177,6 @@ function include_community_integration_files() {
 add_action('after_setup_theme', 'include_community_integration_files');
 
 
-/**
- * Remove wp-embed-aspect-21-9 class from Spotify embeds
- */
-function remove_spotify_aspect_ratio_class( $content ) {
-    // Search for any instance of the Spotify embed HTML markup
-    $spotify_embed_html = '<figure class="wp-block-embed is-type-rich is-provider-spotify wp-block-embed-spotify wp-embed-aspect-21-9 wp-has-aspect-ratio">';
-    $pos = strpos( $content, $spotify_embed_html );
-    while ( $pos !== false ) {
-        // Replace the Spotify embed HTML markup with a modified version that does not include the wp-embed-aspect-21-9 class
-        $new_embed_html = '<figure class="wp-block-embed is-type-rich is-provider-spotify wp-block-embed-spotify">';
-        $content = substr_replace( $content, $new_embed_html, $pos, strlen( $spotify_embed_html ) );
-        // Search for the next instance of the Spotify embed HTML markup
-        $pos = strpos( $content, $spotify_embed_html, $pos + strlen( $new_embed_html ) );
-    }
-    return $content;
-}
-add_filter( 'the_content', 'remove_spotify_aspect_ratio_class' );
 
 function wpb_password_post_filter( $where = '' ) {
     if (!is_single() && !is_admin()) {
@@ -226,7 +194,6 @@ function wpshapere_remove_dashicons_wordpress() {
 }
 add_action( 'wp_enqueue_scripts', 'wpshapere_remove_dashicons_wordpress' );
 
-// noindex tags with 1 post or less
 
 add_filter( 'wp_robots', 'wpse_cleantags_add_noindex' );
 function wpse_cleantags_add_noindex( $robots ) {
@@ -243,22 +210,21 @@ function wpse_cleantags_add_noindex( $robots ) {
 }
 
 
-/*     external links in new tab     */
-
+/**
+ * Add target="_blank" to external links
+ */
 function add_target_blank_to_external_links($content) {
-    $home_url = home_url(); // Gets your blog's URL
+    $home_url = home_url();
     $content = preg_replace_callback(
         '@<a\s[^>]*href=([\'"])(.+?)\1[^>]*>@i',
         function($matches) use ($home_url) {
-            // Check if the link is an internal anchor
             if (strpos($matches[2], '#') === 0) {
-                return $matches[0]; // Return the link as is, it's an internal anchor
+                return $matches[0];
             }
-            // Check if the link does not contain the home URL
             if (strpos($matches[2], $home_url) === false) {
                 return str_replace('<a', '<a target="_blank" rel="noopener noreferrer"', $matches[0]);
             } else {
-                return $matches[0]; // It's an internal link, not external
+                return $matches[0];
             }
         },
         $content
@@ -358,27 +324,6 @@ function wp_innovator_dropdown_menu($category_name, $filter_heading) {
 }
 
 
-function wp_innovator_enqueue_scripts() {
-    if (is_archive()) {  // Enqueue the script for all archive pages
-        $js_path = get_template_directory() . '/js/chill-custom.js';
-        $js_url = get_template_directory_uri() . '/js/chill-custom.js';
-        $js_version = file_exists($js_path) ? filemtime($js_path) : '1.0.0';
-        wp_enqueue_script('wp-innovator-custom-script', $js_url, array(), $js_version, true);
-    }
-    // Enqueue the new nav.css file
-    $nav_css_path = get_theme_file_path('/css/nav.css');
-    if ( file_exists( $nav_css_path ) ) {
-        wp_enqueue_style(
-            'extrachill-nav-styles',
-            get_theme_file_uri('/css/nav.css'),
-            array(), // No dependencies
-            filemtime( $nav_css_path ), // Dynamic versioning
-            'all' // Media type
-        );
-    }
-}
-
-add_action('wp_enqueue_scripts', 'wp_innovator_enqueue_scripts');
 
 function extrachill_register_menus() {
     register_nav_menus(
@@ -389,6 +334,7 @@ function extrachill_register_menus() {
             'footer-4' => __( 'Footer 4' ),
             'footer-5' => __( 'Footer 5' ),
             'footer-extra' => __( 'Footer Extra' ), // New menu location
+            'navigation-footer' => __( 'Navigation Footer' ), // Navigation menu footer links
         )
     );
 }
@@ -451,76 +397,6 @@ if ( is_plugin_active('co-authors-plus/co-authors-plus.php') ) {
 
 
 
-class Custom_Walker_Nav_Menu extends Walker_Nav_Menu {
-    function start_lvl( &$output, $depth = 0, $args = null ) {
-        if ( isset( $args->item_spacing ) && 'discard' === $args->item_spacing ) {
-            $t = '';
-            $n = '';
-        } else {
-            $t = "\t";
-            $n = "\n";
-        }
-        $indent = str_repeat( $t, $depth );
-        $classes = array( 'sub-menu' );
-        $class_names = join( ' ', apply_filters( 'nav_menu_submenu_css_class', $classes, $args, $depth ) );
-        $class_names = $class_names ? ' class="' . esc_attr( $class_names ) . '"' : '';
-        
-        $output .= "{$n}{$indent}<ul$class_names>{$n}";
-    }
-
-    function start_el( &$output, $item, $depth = 0, $args = null, $id = 0 ) {
-        if ( isset( $args->item_spacing ) && 'discard' === $args->item_spacing ) {
-            $t = '';
-            $n = '';
-        } else {
-            $t = "\t";
-            $n = "\n";
-        }
-        $indent = ( $depth ) ? str_repeat( $t, $depth ) : '';
-
-        $classes = empty( $item->classes ) ? array() : (array) $item->classes;
-        $classes[] = 'menu-item-' . $item->ID;
-
-        $args = (object) $args;
-        $class_names = join( ' ', apply_filters( 'nav_menu_css_class', array_filter( $classes ), $item, $args, $depth ) );
-        $class_names = $class_names ? ' class="' . esc_attr( $class_names ) . '"' : '';
-
-        $id = apply_filters( 'nav_menu_item_id', 'menu-item-'. $item->ID, $item, $args, $depth );
-        $id = $id ? ' id="' . esc_attr( $id ) . '"' : '';
-
-        $output .= $indent . '<li' . $id . $class_names .'>';
-
-        $atts = array();
-        $atts['title']  = ! empty( $item->attr_title ) ? $item->attr_title : '';
-        $atts['target'] = ! empty( $item->target )     ? $item->target     : '';
-        $atts['rel']    = ! empty( $item->xfn )        ? $item->xfn        : '';
-        $atts['href']   = ! empty( $item->url )        ? $item->url        : '';
-
-        $atts = apply_filters( 'nav_menu_link_attributes', $atts, $item, $args, $depth );
-
-        $attributes = '';
-        foreach ( $atts as $attr => $value ) {
-            if ( ! empty( $value ) ) {
-                $value = ( 'href' === $attr ) ? esc_url( $value ) : esc_attr( $value );
-                $attributes .= ' ' . $attr . '="' . $value . '"';
-            }
-        }
-
-        $item_output = $args->before;
-        $item_output .= '<a'. $attributes .'>';
-        $item_output .= $args->link_before . apply_filters( 'the_title', $item->title, $item->ID ) . $args->link_after;
-
-        // Add SVG if menu item has children
-        if ( is_array( $item->classes ) && in_array( 'menu-item-has-children', $item->classes ) ) {
-            $item_output .= ' <svg class="submenu-indicator"><use href="' . get_template_directory_uri() . '/fonts/extrachill.svg?v=1.5#angle-down-solid"></use></svg>';
-        }
-
-        $item_output .= '</a>';
-        $item_output .= $args->after;
-
-        $output .= apply_filters( 'walker_nav_menu_start_el', $item_output, $item, $depth, $args );
-    }
-}
 
 
 // Add favicon to the head section
@@ -581,6 +457,7 @@ function extrachill_default_final_left() {
 add_action( 'extrachill_home_final_left', 'extrachill_default_final_left', 10 );
 
 
+
 function add_archive_body_class($classes) {
     if (is_page_template('page-templates/all-posts.php')) {
         $classes[] = 'archive';
@@ -589,84 +466,12 @@ function add_archive_body_class($classes) {
 }
 add_filter('body_class', 'add_archive_body_class');
 
-function custom_instagram_embed_handler($matches, $attr, $url, $rawattr) {
-    // Check if the URL is an Instagram profile
-    if (preg_match('#https?://(www\.)?instagram\.com/[a-zA-Z0-9_.-]+/?$#i', $url)) {
-        $embed = sprintf(
-            '<blockquote class="instagram-media" data-instgrm-permalink="%s" data-instgrm-version="14" style=" background:#FFF; border:0; border-radius:3px; box-shadow:0 0 1px 0 rgba(0,0,0,0.5),0 1px 10px 0 rgba(0,0,0,0.15); margin: 1px; max-width:540px; min-width:326px; padding:0; width:99.375%%; width:-webkit-calc(100%% - 2px); width:calc(100%% - 2px);"><a href="%s" target="_blank"></a></blockquote><script async src="//www.instagram.com/embed.js"></script>',
-            esc_url($url),
-            esc_url($url)
-        );
-    } else {
-        // For posts or reels, use the existing embed format
-        $embed = sprintf(
-            '<iframe src="%s/embed" width="400" height="500" frameborder="0" scrolling="no" allowtransparency="true"></iframe>',
-            esc_url($matches[0])
-        );
-    }
-
-    return apply_filters('custom_instagram_embed', $embed, $embed, $matches, $attr, $url, $rawattr);
-}
-
-function register_custom_instagram_embed_handler() {
-    wp_embed_register_handler(
-        'instagram',
-        '#https?://(www\.)?instagram\.com/(p|reel)/[a-zA-Z0-9_-]+#i',
-        'custom_instagram_embed_handler'
-    );
-
-    // Register the handler for Instagram profiles as well
-    wp_embed_register_handler(
-        'instagram_profile',
-        '#https?://(www\.)?instagram\.com/[a-zA-Z0-9_.-]+/?$#i',
-        'custom_instagram_embed_handler'
-    );
-}
-add_action('init', 'register_custom_instagram_embed_handler');
 
 /* inject_mediavine_settings moved to /inc/woocommerce.php */
 
 /* WooCommerce wrappers and CSS enqueuing moved to /inc/woocommerce.php */
 
 
-function enqueue_custom_lightbox_script() {
-    if ( is_singular() ) {
-        $post_id = get_queried_object_id();
-        $content = get_post_field( 'post_content', $post_id );
-
-        if ( $content && (
-            has_block( 'core/gallery', $content ) ||
-            has_block( 'gallery', $content ) ||
-            strpos( $content, 'wp:gallery' ) !== false
-        ) ) {
-            // Define paths for the JS and CSS files.
-            $js_path  = get_stylesheet_directory() . '/js/custom-lightbox.js';
-            $css_path = get_stylesheet_directory() . '/css/custom-lightbox.css';
-
-            // Use filemtime() for dynamic versioning if the file exists.
-            $js_version  = file_exists( $js_path )  ? filemtime( $js_path )  : null;
-            $css_version = file_exists( $css_path ) ? filemtime( $css_path ) : null;
-
-            // Enqueue the lightbox JS.
-            wp_enqueue_script(
-                'custom-lightbox',
-                get_stylesheet_directory_uri() . '/js/custom-lightbox.js',
-                array( 'jquery' ),
-                $js_version,
-                true
-            );
-
-            // Enqueue the lightbox CSS.
-            wp_enqueue_style(
-                'custom-lightbox-style',
-                get_stylesheet_directory_uri() . '/css/custom-lightbox.css',
-                array(),
-                $css_version
-            );
-        }
-    }
-}
-add_action( 'wp_enqueue_scripts', 'enqueue_custom_lightbox_script' );
 
 
 /* WooCommerce asset dequeuing moved to /inc/woocommerce.php */
@@ -783,99 +588,14 @@ add_action('init', function() {
 
 require_once get_stylesheet_directory() . '/inc/admin/tag-migration-admin.php';
 
-function extrachill_enqueue_home_styles() {
-    if ( is_front_page() ) {
-        $css_path = get_stylesheet_directory() . '/css/home.css';
-        if ( file_exists( $css_path ) ) {
-            wp_enqueue_style(
-                'extrachill-home',
-                get_stylesheet_directory_uri() . '/css/home.css',
-                array(),
-                filemtime( $css_path )
-            );
-        }
-    }
-}
-add_action( 'wp_enqueue_scripts', 'extrachill_enqueue_home_styles' );
-
-function extrachill_enqueue_root_styles() {
-    $css_path = get_stylesheet_directory() . '/css/root.css';
-    if ( file_exists( $css_path ) ) {
-        wp_enqueue_style(
-            'extrachill-root',
-            get_stylesheet_directory_uri() . '/css/root.css',
-            array(),
-            filemtime( $css_path )
-        );
-    }
-}
-add_action( 'wp_enqueue_scripts', 'extrachill_enqueue_root_styles', 5 ); // Priority 5: before other styles
-
-// Ensure root.css is loaded before style.css by making it a dependency
-function extrachill_enqueue_main_styles() {
-    // WordPress automatically loads style.css, so we just need to add root.css as a dependency
-    // and enqueue additional stylesheets
-    
-    // Enqueue badge colors style
-    $badge_colors_path = get_stylesheet_directory() . '/css/badge-colors.css';
-    if ( file_exists( $badge_colors_path ) ) {
-        wp_enqueue_style(
-            'badge-colors',
-            get_stylesheet_directory_uri() . '/css/badge-colors.css',
-            array('extrachill-root'), // Make it dependent on root.css
-            filemtime( $badge_colors_path )
-        );
-    }
-}
-add_action( 'wp_enqueue_scripts', 'extrachill_enqueue_main_styles', 10 );
-
-// Ensure root.css is loaded before the default WordPress style.css
-function extrachill_modify_default_style() {
-    // WordPress automatically loads style.css with handle 'extrachill-style'
-    // We need to ensure root.css is loaded first
-    wp_dequeue_style('extrachill-style');
-    wp_deregister_style('extrachill-style');
-    
-    // Re-enqueue with root.css as dependency
-    wp_enqueue_style(
-        'extrachill-style',
-        get_stylesheet_uri(),
-        array('extrachill-root'),
-        filemtime(get_template_directory() . '/style.css')
-    );
-}
-add_action('wp_enqueue_scripts', 'extrachill_modify_default_style', 20);
 
 
-function extrachill_enqueue_single_post_styles() {
-    if ( is_singular('post') ) {
-        $css_path = get_stylesheet_directory() . '/css/single-post.css';
-        if ( file_exists( $css_path ) ) {
-            wp_enqueue_style(
-                'extrachill-single-post',
-                get_stylesheet_directory_uri() . '/css/single-post.css',
-                array('extrachill-root', 'extrachill-style'),
-                filemtime( $css_path )
-            );
-        }
-    }
-}
-add_action('wp_enqueue_scripts', 'extrachill_enqueue_single_post_styles', 20);
 
-function extrachill_enqueue_archive_styles() {
-    if ( is_archive() || is_search() || is_page_template('page-templates/all-posts.php') ) {
-        $css_path = get_stylesheet_directory() . '/css/archive.css';
-        if ( file_exists( $css_path ) ) {
-            wp_enqueue_style(
-                'extrachill-archive',
-                get_stylesheet_directory_uri() . '/css/archive.css',
-                array('extrachill-root', 'extrachill-style'),
-                filemtime( $css_path )
-            );
-        }
-    }
-}
-add_action('wp_enqueue_scripts', 'extrachill_enqueue_archive_styles', 20);
+
+
+
+
+
 
 function extrachill_add_full_width_body_class($classes) {
     // Add full-width class to archive, search, and all-posts pages
@@ -886,36 +606,6 @@ function extrachill_add_full_width_body_class($classes) {
 }
 add_filter('body_class', 'extrachill_add_full_width_body_class');
 
-/**
- * Enqueue admin styles to fix editor styling issues
- */
-function extrachill_enqueue_admin_styles($hook) {
-    // Only load on post edit screens
-    if ($hook == 'post.php' || $hook == 'post-new.php') {
-        // First enqueue root.css
-        $root_css_path = get_stylesheet_directory() . '/css/root.css';
-        if (file_exists($root_css_path)) {
-            wp_enqueue_style(
-                'extrachill-admin-root',
-                get_stylesheet_directory_uri() . '/css/root.css',
-                array(),
-                filemtime($root_css_path)
-            );
-        }
-        
-        // Then enqueue editor-style.css with root.css as dependency
-        $admin_css_path = get_stylesheet_directory() . '/css/editor-style.css';
-        if (file_exists($admin_css_path)) {
-            wp_enqueue_style(
-                'extrachill-admin-editor',
-                get_stylesheet_directory_uri() . '/css/editor-style.css',
-                array('extrachill-admin-root'),
-                filemtime($admin_css_path)
-            );
-        }
-    }
-}
-add_action('admin_enqueue_scripts', 'extrachill_enqueue_admin_styles');
 
 /* WooCommerce safe wrapper functions moved to /inc/woocommerce.php */
 
