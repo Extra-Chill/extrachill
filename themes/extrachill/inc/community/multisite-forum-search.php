@@ -3,23 +3,14 @@
 /**
  * Multisite Forum Search Functions
  * Direct multisite queries for forum search functionality
- * Replaces REST API calls with native WordPress multisite functions
- *
- * @package ExtraChill
- * @since 1.0
  */
 
 /**
  * Fetches search results from the community forum using multisite functions
- * Direct replacement for REST API call - provides significant performance improvement
- * by using native WordPress database queries instead of HTTP requests
  *
- * @param string $search_term The search term to search for in topics and replies
- * @param int    $limit       Maximum number of results to fetch (default: 100)
- * @return array Array of forum search results with contextual excerpts
- * @since 1.0
- *
- * @throws Exception If multisite operation fails, logs error and returns empty array
+ * @param string $search_term Search term for topics and replies
+ * @param int    $limit       Maximum results to fetch (default: 100)
+ * @return array Forum search results with contextual excerpts
  */
 function ec_fetch_forum_results_multisite( $search_term, $limit = 100 ) {
 	if ( empty( $search_term ) ) {
@@ -33,11 +24,9 @@ function ec_fetch_forum_results_multisite( $search_term, $limit = 100 ) {
 
 	$results = array();
 
-	// Switch to community site (blog ID 2)
 	switch_to_blog( 2 );
 
 	try {
-		// Query arguments matching the original REST API endpoint logic
 		$args = array(
 			'post_type'      => array( 'topic', 'reply' ),
 			'post_status'    => 'publish',
@@ -76,7 +65,6 @@ function ec_fetch_forum_results_multisite( $search_term, $limit = 100 ) {
 					$forum_link = get_permalink( $forum_id );
 				}
 
-				// For replies, construct the URL manually using WordPress native functions
 				$post_url = get_permalink();
 				if ( $type === 'reply' ) {
 					$post_url = get_permalink() . '#post-' . get_the_ID();
@@ -102,11 +90,9 @@ function ec_fetch_forum_results_multisite( $search_term, $limit = 100 ) {
 		}
 
 	} catch ( Exception $e ) {
-		// Log error but don't break the search functionality
 		error_log( 'Forum search multisite error: ' . $e->getMessage() );
 		$results = array();
 	} finally {
-		// Always restore current blog
 		restore_current_blog();
 	}
 
@@ -114,26 +100,22 @@ function ec_fetch_forum_results_multisite( $search_term, $limit = 100 ) {
 }
 
 /**
- * Generate a contextual excerpt highlighting the search term within content
- * Provides intelligent excerpt generation showing text around the first match
+ * Generate contextual excerpt highlighting search term within content
  *
- * @param string $content     The full content to extract excerpt from
- * @param string $search_term The term to highlight and center excerpt around
- * @param int    $word_limit  Number of words to include around the match (default: 30)
- * @return string The contextual excerpt with ellipses as needed
- * @since 1.0
+ * @param string $content     Full content to extract excerpt from
+ * @param string $search_term Term to highlight and center excerpt around
+ * @param int    $word_limit  Words to include around match (default: 30)
+ * @return string Contextual excerpt with ellipses as needed
  */
 function ec_get_contextual_excerpt_multisite( $content, $search_term, $word_limit = 30 ) {
 	$position = stripos( $content, $search_term );
 	if ( $position === false ) {
-		// If no match, fallback to default trimmed content
 		return '...' . wp_trim_words( $content, $word_limit ) . '...';
 	}
 
 	$words = explode( ' ', $content );
 	$match_position = 0;
 
-	// Count words until we find the match
 	foreach ( $words as $index => $word ) {
 		if ( stripos( $word, $search_term ) !== false ) {
 			$match_position = $index;
@@ -144,7 +126,6 @@ function ec_get_contextual_excerpt_multisite( $content, $search_term, $word_limi
 	$start = max( 0, $match_position - floor( $word_limit / 2 ) );
 	$length = min( count( $words ) - $start, $word_limit );
 
-	// Extract the excerpt
 	$excerpt = array_slice( $words, $start, $length );
 
 	$prefix = $start > 0 ? '...' : '';

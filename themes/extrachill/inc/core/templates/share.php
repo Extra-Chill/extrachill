@@ -27,7 +27,7 @@ if ( isset( $share_title ) && is_array( $share_title ) ) {
 $share_url   = isset( $share_url ) ? esc_url( $share_url ) : get_permalink();
 $share_title = isset( $share_title ) ? esc_attr( $share_title ) : get_the_title();
 
-$svg_file_path = get_template_directory() . '/fonts/fontawesome.svg';
+$svg_file_path = get_template_directory() . '/assets/fonts/fontawesome.svg';
 $svg_version   = file_exists( $svg_file_path ) ? filemtime( $svg_file_path ) : time();
 
 ?>
@@ -36,7 +36,7 @@ $svg_version   = file_exists( $svg_file_path ) ? filemtime( $svg_file_path ) : t
     <!-- Main Share Button (Icon) -->
     <button class="share-button">
         <svg>
-            <use href="<?php echo esc_attr( get_template_directory_uri() . '/fonts/fontawesome.svg?v=' . $svg_version ); ?>#share"></use>
+            <use href="<?php echo esc_attr( get_template_directory_uri() . '/assets/fonts/fontawesome.svg?v=' . $svg_version ); ?>#share"></use>
         </svg> Share
     </button>
 

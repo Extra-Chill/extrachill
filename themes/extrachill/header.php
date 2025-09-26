@@ -18,8 +18,8 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="profile" href="http://gmpg.org/xfn/11" />
   
-  <link rel="preload" href="<?php echo get_template_directory_uri(); ?>/fonts/WilcoLoftSans-Treble.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="preload" href="<?php echo get_template_directory_uri(); ?>/fonts/Lobster2.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="<?php echo get_template_directory_uri(); ?>/assets/fonts/WilcoLoftSans-Treble.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="<?php echo get_template_directory_uri(); ?>/assets/fonts/Lobster2.woff2" as="font" type="font/woff2" crossorigin>
   
   <link rel="dns-prefetch" href="//scripts.mediavine.com">
   <link rel="dns-prefetch" href="//www.googletagmanager.com">
@@ -40,23 +40,21 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 <!-- End Google Tag Manager (noscript) -->
 <?php if (function_exists('wp_body_open')) { wp_body_open(); } ?>
 
+<?php do_action('extrachill_above_header'); ?>
+
 <header id="masthead" class="site-header" role="banner">
     <div class="site-branding">
-        <?php if (is_front_page()): ?>
-            <h1 class="site-title"><a href="<?php echo esc_url(home_url('/')); ?>" rel="home"><?php bloginfo('name'); ?></a></h1>
+        <?php
+        $site_title = apply_filters('extrachill_site_title', get_bloginfo('name'));
+        if (is_front_page()): ?>
+            <h1 class="site-title"><a href="<?php echo esc_url(home_url('/')); ?>" rel="home"><?php echo esc_html($site_title); ?></a></h1>
         <?php else: ?>
-            <p class="site-title"><a href="<?php echo esc_url(home_url('/')); ?>" rel="home"><?php bloginfo('name'); ?></a></p>
+            <p class="site-title"><a href="<?php echo esc_url(home_url('/')); ?>" rel="home"><?php echo esc_html($site_title); ?></a></p>
         <?php endif; ?>
     </div><!-- .site-branding -->
 
-    <?php get_template_part('navigation-menu'); ?> <!-- Include the navigation here -->
+    <?php do_action('extrachill_header_top_right'); ?>
 </header><!-- #masthead -->
-
-
-
-<?php
-// Header image functionality removed - not used in current theme
-?>
 
 <?php do_action('extrachill_after_header'); ?>
 
