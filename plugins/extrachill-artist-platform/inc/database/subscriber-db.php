@@ -6,8 +6,7 @@
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Creates artist_subscribers table with indexes and constraints using dbDelta.
- * @global wpdb $wpdb
+ * Creates artist_subscribers table with indexes and constraints.
  */
 function extrch_create_subscribers_table() {
     global $wpdb;
@@ -16,7 +15,6 @@ function extrch_create_subscribers_table() {
     $table_name = $wpdb->prefix . 'artist_subscribers';
     $charset_collate = $wpdb->get_charset_collate();
 
-    // SQL statement to create the table
     $sql = "CREATE TABLE $table_name (
         subscriber_id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
         user_id BIGINT(20) UNSIGNED NULL,
@@ -34,11 +32,7 @@ function extrch_create_subscribers_table() {
         KEY user_artist_source (user_id, artist_profile_id, source)
     ) $charset_collate;";
 
-    // Use dbDelta to create or update the table
     dbDelta( $sql );
 
-    // Optionally, check for errors or success, though dbDelta handles most cases
-    // $wpdb->print_error(); // For debugging
 }
 
-// Note: The activation hook registration is now in the main bootstrap 

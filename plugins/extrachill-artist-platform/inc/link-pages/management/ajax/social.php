@@ -1,8 +1,8 @@
 <?php
 /**
  * Social Icons AJAX Handlers
- * 
- * Single responsibility: Handle all AJAX requests related to social icon management
+ *
+ * Template rendering for social icon management and live preview.
  */
 
 // Register social icon AJAX actions using WordPress native patterns
@@ -10,8 +10,7 @@ add_action( 'wp_ajax_render_social_item_editor', 'ec_ajax_render_social_item_edi
 add_action( 'wp_ajax_render_social_template', 'ec_ajax_render_social_template' );
 
 /**
- * AJAX handler for rendering social item editor template
- * Returns HTML for a single editable social media item in management interface  
+ * Render social media item editor with available platform options.
  */
 function ec_ajax_render_social_item_editor() {
     try {
@@ -77,8 +76,7 @@ function ec_ajax_render_social_item_editor() {
 }
 
 /**
- * AJAX handler for rendering social icon template
- * Returns HTML for a single social icon element
+ * Render single social icon element using the unified template system.
  */
 function ec_ajax_render_social_template() {
     try {

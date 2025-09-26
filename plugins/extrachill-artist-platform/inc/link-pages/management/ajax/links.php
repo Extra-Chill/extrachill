@@ -11,8 +11,7 @@ add_action( 'wp_ajax_render_links_section_template', 'ec_ajax_render_links_secti
 add_action( 'wp_ajax_render_links_preview_template', 'ec_ajax_render_links_preview_template' );
 
 /**
- * Render link item editor template.
- * @since 1.0.0
+ * Render link item editor template with full sanitization and preview HTML.
  */
 function ec_ajax_render_link_item_editor() {
     try {
@@ -80,18 +79,7 @@ function ec_ajax_render_link_item_editor() {
 }
 
 /**
- * AJAX handler for rendering link section editor template
- * 
- * Returns HTML for a complete editable link section in management interface.
- * Handles section title and multiple links with full sanitization.
- * 
- * Expected POST parameters:
- * - sidx: Section index (int)
- * - section_data: Array containing section_title and links array
- * - expiration_enabled: Whether expiration functionality is enabled (bool)
- * 
- * @return void Sends JSON response with rendered HTML template
- * @since 1.0.0
+ * Render complete link section editor with titles and multiple links.
  */
 function ec_ajax_render_link_section_editor() {
     try {
@@ -153,18 +141,7 @@ function ec_ajax_render_link_section_editor() {
 }
 
 /**
- * AJAX handler for rendering single link template
- * 
- * Returns HTML for a single link element using the unified template system.
- * Handles YouTube embed detection and applies appropriate CSS classes.
- * 
- * Expected POST parameters:
- * - link_url: Link URL (optional, defaults to '#')
- * - link_text: Link text (optional)
- * - youtube_embed: Whether this link should use YouTube embed (bool)
- * 
- * @return void Sends JSON response with rendered HTML
- * @since 1.0.0
+ * Render single link template with YouTube embed detection.
  */
 function ec_ajax_render_link_template() {
     try {
@@ -203,16 +180,7 @@ function ec_ajax_render_link_template() {
 }
 
 /**
- * AJAX handler for rendering complete links section template
- * 
- * Returns HTML for the entire links section using unified template system.
- * Processes multiple sections with titles and sanitizes all input data.
- * 
- * Expected POST parameters:
- * - sections_data: Array of section objects with section_title and links
- * 
- * @return void Sends JSON response with complete sections HTML
- * @since 1.0.0
+ * Render complete links section with multiple sections and sanitized input.
  */
 function ec_ajax_render_links_section_template() {
     try {
@@ -278,13 +246,7 @@ function ec_ajax_render_links_section_template() {
 }
 
 /**
- * Helper function to render complete links sections HTML for preview
- * 
- * Renders multiple link sections using the unified template system.
- * Used by live preview to generate HTML without YouTube embeds.
- * 
- * @param array $links_data Array of section data with section_title and links
- * @return string Complete HTML for all link sections
+ * Generate preview HTML for multiple link sections without YouTube embeds.
  */
 function ec_render_links_sections_html( $links_data ) {
     $html = '';
@@ -313,17 +275,7 @@ function ec_render_links_sections_html( $links_data ) {
 }
 
 /**
- * AJAX handler for rendering links preview template
- * 
- * Used by live preview system to render complete link sections with
- * real-time updates from management interface changes.
- * 
- * Expected POST parameters:
- * - links_data: JSON string containing array of section data
- * - nonce: WordPress AJAX nonce for security
- * 
- * @return void Sends JSON response with rendered HTML
- * @since 1.0.0
+ * Live preview AJAX handler for real-time link section updates.
  */
 function ec_ajax_render_links_preview_template() {
     try {

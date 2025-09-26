@@ -16,17 +16,13 @@
     }
 
     function loadInitialColorValues() {
-        // Self-contained module - no dependency on centralized abstractions
         console.log('[Colors] Self-contained module ready - using form input values directly');
     }
 
     function initializeColorControls() {
         cacheDOMElements();
         
-        // Load initial values from centralized data source
         loadInitialColorValues();
-
-        // All event listeners dispatch events for self-contained preview modules.
 
         // Button Color
         if (buttonColorInput) {
@@ -74,7 +70,6 @@
         }
     }
 
-    // Auto-initialize when DOM is ready
     if (document.readyState !== 'loading') {
         initializeColorControls();
     } else {
