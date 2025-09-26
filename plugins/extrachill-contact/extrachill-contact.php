@@ -18,9 +18,6 @@
 // Exit if accessed directly
 defined( 'ABSPATH' ) || exit;
 
-/**
- * Define plugin constants
- */
 define( 'EXTRACHILL_CONTACT_VERSION', '1.0.0' );
 define( 'EXTRACHILL_CONTACT_PLUGIN_FILE', __FILE__ );
 define( 'EXTRACHILL_CONTACT_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
@@ -50,39 +47,24 @@ class ExtraChillContact {
     }
 
     private function init_hooks() {
-        // Include core functionality
         require_once EXTRACHILL_CONTACT_INCLUDES_DIR . 'contact-form-core.php';
 
-        // Plugin lifecycle hooks
         register_activation_hook( __FILE__, array( $this, 'activate' ) );
         register_deactivation_hook( __FILE__, array( $this, 'deactivate' ) );
 
-        // Asset loading
         add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_assets' ) );
     }
 
-    /**
-     * Plugin activation
-     */
     public function activate() {
-        // No database table creation needed - using wp_mail system only
         flush_rewrite_rules();
     }
 
-    /**
-     * Plugin deactivation
-     */
     public function deactivate() {
         flush_rewrite_rules();
     }
 
-    /**
-     * Enqueue plugin assets conditionally
-     */
     public function enqueue_assets() {
-        // Only load assets on contact-us page
         if ( is_page( 'contact-us' ) ) {
-            // Contact form CSS
             $css_file_path = EXTRACHILL_CONTACT_PLUGIN_DIR . 'assets/contact-form.css';
             if ( file_exists( $css_file_path ) ) {
                 wp_enqueue_style(
@@ -96,12 +78,8 @@ class ExtraChillContact {
     }
 }
 
-/**
- * Initialize the plugin
- */
 function extrachill_contact() {
     return ExtraChillContact::instance();
 }
 
-// Fire it up
 extrachill_contact();
