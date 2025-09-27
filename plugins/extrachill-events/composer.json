@@ -1,0 +1,36 @@
+{
+    "name": "extrachill/extrachill-events",
+    "description": "Calendar and event plugin integrations for the ExtraChill ecosystem",
+    "type": "wordpress-plugin",
+    "license": "GPL-2.0-or-later",
+    "authors": [
+        {
+            "name": "Chris Huber",
+            "email": "chubes@extrachill.com",
+            "homepage": "https://chubes.net"
+        }
+    ],
+    "require": {
+        "php": ">=7.4"
+    },
+    "require-dev": {
+        "squizlabs/php_codesniffer": "^3.7",
+        "wp-coding-standards/wpcs": "^3.0",
+        "phpunit/phpunit": "^9.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "ExtraChillEvents\\": "includes/"
+        }
+    },
+    "scripts": {
+        "lint:php": "phpcs --standard=WordPress --extensions=php .",
+        "lint:fix": "phpcbf --standard=WordPress --extensions=php .",
+        "test": "phpunit"
+    },
+    "config": {
+        "allow-plugins": {
+            "dealerdirect/phpcodesniffer-composer-installer": true
+        }
+    }
+}
