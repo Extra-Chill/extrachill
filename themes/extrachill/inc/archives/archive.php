@@ -15,7 +15,7 @@ if ( ! is_category( 'festival-wire' ) && ! is_post_type_archive( 'festival-wire'
 ?>
 <?php do_action('extrachill_before_body_content'); ?>
 
-<section id="primary">
+<section id="primary" class="full-width-content">
 <?php
 
 // Determine the correct archive link based on the type of archive

@@ -4,14 +4,62 @@
  *
  * Provides both frontend UI and backend query modification for archive post sorting.
  * Handles URL-based sorting via 'sort' GET parameter with 'oldest' or 'recent' values.
+ * Includes modern artist taxonomy filtering for specific categories.
  *
  * @package ExtraChill
  * @since 1.0
  */
 
 /**
- * Modify main query to support URL-based sorting on archive pages
+ * Generate artist dropdown filter for current category
+ * Uses modern artist taxonomy to create dropdown filter
+ *
+ * @param string $filter_heading Display heading for filter section
+ * @since 1.0
+ */
+function extrachill_artist_filter_dropdown($filter_heading) {
+    $current_artist = get_query_var('artist');
+    $category_id = get_queried_object_id();
+    $archive_link = get_category_link($category_id);
+
+    // Get artists that have posts in this category
+    $artists = get_terms(array(
+        'taxonomy' => 'artist',
+        'orderby' => 'name',
+        'order' => 'ASC',
+        'hide_empty' => true,
+        'object_ids' => get_posts(array(
+            'post_type' => 'post',
+            'post_status' => 'publish',
+            'category' => $category_id,
+            'numberposts' => -1,
+            'fields' => 'ids'
+        ))
+    ));
+
+    if (empty($artists) || is_wp_error($artists)) {
+        return;
+    }
+
+    echo '<div id="artist-filters"><h2 class="filter-head">' . esc_html($filter_heading) . '</h2>';
+    echo '<select id="artist-filter-dropdown" onchange="window.location.href=this.value;">';
+
+    $selected = empty($current_artist) ? ' selected' : '';
+    echo '<option value="' . esc_url($archive_link) . '"' . $selected . '>View All</option>';
+
+    foreach ($artists as $artist) {
+        $artist_url = add_query_arg('artist', $artist->slug, $archive_link);
+        $selected = ($artist->slug == $current_artist) ? ' selected' : '';
+        echo '<option value="' . esc_url($artist_url) . '"' . $selected . '>' . esc_html($artist->name) . '</option>';
+    }
+
+    echo '</select></div>';
+}
+
+/**
+ * Modify main query to support URL-based sorting and artist filtering on archive pages
  * Responds to 'sort' GET parameter with 'oldest' or 'recent' values
+ * Responds to 'artist' GET parameter for artist taxonomy filtering
  *
  * @param WP_Query $query The WordPress query object
  * @return void
@@ -19,6 +67,7 @@
  */
 function extrachill_sort_posts($query) {
     if (!is_admin() && $query->is_main_query() && is_archive()) {
+        // Handle sorting
         $sort = isset($_GET['sort']) ? $_GET['sort'] : '';
 
         switch ($sort) {
@@ -30,12 +79,25 @@ function extrachill_sort_posts($query) {
             default:
                 break;
         }
+
+        // Handle artist filtering
+        $artist = get_query_var('artist');
+        if (!empty($artist)) {
+            $query->set('artist', $artist);
+        }
     }
 }
 add_action('pre_get_posts', 'extrachill_sort_posts');
 
 add_action('extrachill_archive_above_posts', 'extrachill_custom_sorting', 10);
 
+/**
+ * Display custom sorting interface for archive pages
+ * Provides dropdown sorting options, randomize button, and category-specific filtering
+ * Hooks into 'extrachill_archive_above_posts' action
+ *
+ * @since 1.0
+ */
 function extrachill_custom_sorting() {
     if (!is_archive()) {
         return;
@@ -61,9 +123,9 @@ function extrachill_custom_sorting() {
     echo '<div id="extrachill-custom-sorting">';
 
     if (is_category('song-meanings')) {
-        wp_innovator_dropdown_menu('song-meanings', 'Filter By Artist');
+        extrachill_artist_filter_dropdown('Filter By Artist');
     } elseif (is_category('music-history')) {
-        wp_innovator_dropdown_menu('music-history', 'Filter By Tag');
+        extrachill_artist_filter_dropdown('Filter By Artist');
     }
 
     echo '<button id="randomize-posts">Randomize Posts</button>';

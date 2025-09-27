@@ -18,11 +18,19 @@ if ( post_password_required() ) {
     return;
 }
 
-/**
- * Custom comment callback function with community integration
- */
 if ( ! function_exists( 'extrachill_comment' ) ) :
 
+/**
+ * Custom comment callback function with multisite community integration
+ *
+ * Displays individual comments with enhanced author linking via multisite functions.
+ * Handles trackbacks, author identification, and community user linking.
+ *
+ * @param WP_Comment $comment Comment object
+ * @param array $args Comment arguments
+ * @param int $depth Comment depth level
+ * @since 1.0
+ */
 function extrachill_comment( $comment, $args, $depth ) {
     $GLOBALS['comment'] = $comment;
     switch ( $comment->comment_type ) :

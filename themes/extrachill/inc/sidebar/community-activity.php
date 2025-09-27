@@ -6,10 +6,19 @@
  * Shows recent forum activity from the community multisite.
  *
  * @package ExtraChill
- * @since 1.0
+ * @since 69.57
  */
 
 if ( ! function_exists( 'extrachill_sidebar_community_activity' ) ) :
+    /**
+     * Display recent community activity in sidebar
+     *
+     * Shows recent forum topics and replies from community.extrachill.com
+     * Uses 10-minute caching to reduce multisite database queries
+     * Links open in new tab to community site
+     *
+     * @since 69.57
+     */
     function extrachill_sidebar_community_activity() {
         $transient_name = 'extrachill_recent_activity';
         $activities = get_transient($transient_name);

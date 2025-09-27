@@ -6,7 +6,7 @@
  * archives, taxonomies, and custom post types. Single function handles all contexts.
  *
  * @package ExtraChill
- * @since 1.0
+ * @since 69.57
  */
 
 if (!defined('ABSPATH')) {
@@ -20,7 +20,7 @@ if (!defined('ABSPATH')) {
  * with consistent formatting and logic throughout the theme.
  *
  * @return void
- * @since 1.0
+ * @since 69.57
  */
 if (!function_exists('extrachill_breadcrumbs')) {
     function extrachill_breadcrumbs() {
@@ -33,7 +33,7 @@ if (!function_exists('extrachill_breadcrumbs')) {
             return;
         }
 
-        // Skip breadcrumbs for WooCommerce pages
+        // Skip breadcrumbs for shop pages handled by ExtraChill Shop plugin
         if (function_exists('is_woocommerce') && (is_woocommerce() || is_cart() || is_checkout() || is_account_page() || is_product() || is_shop())) {
             return;
         }

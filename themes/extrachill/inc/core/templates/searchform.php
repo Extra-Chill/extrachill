@@ -6,7 +6,7 @@
  * Replaces WordPress's archaic get_search_form() pattern with organized architecture.
  *
  * @package ExtraChill
- * @since 1.0
+ * @since 69.57
  */
 
 /**
@@ -15,7 +15,7 @@
  * Outputs the theme's search form HTML with proper escaping and accessibility.
  *
  * @return void
- * @since 1.0
+ * @since 69.57
  */
 if (!function_exists('extrachill_search_form')) {
     function extrachill_search_form() {

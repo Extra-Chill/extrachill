@@ -11,7 +11,7 @@ get_header(); ?>
 
 <?php do_action('extrachill_before_body_content'); ?>
 
-<section id="primary">
+<section id="primary" class="archive full-width-content">
     <main id="main" class="site-main" role="main">
         <?php extrachill_breadcrumbs(); ?>
         <header class="page-header">

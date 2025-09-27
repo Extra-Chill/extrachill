@@ -1,44 +1,41 @@
 <?php
 /**
- * Main index template for post loops and fallback displays
+ * Template Router - Central template dispatch system
  *
- * Displays post cards using modular template parts and native pagination.
- * Uses action hooks for extensible content sections.
+ * Routes all page types to their appropriate template files in organized subdirectories.
+ * Replaces complex template override system with clean, simple routing logic.
  *
  * @package ExtraChill
- * @since 1.0
+ * @since 69.57
  */
 
-get_header(); ?>
+// Route to appropriate template based on page type
+if ( is_front_page() || is_home() ) {
+    // Homepage - both static front page and latest posts
+    include get_template_directory() . '/inc/home/templates/front-page.php';
 
-	<?php do_action( 'extrachill_before_body_content' ); ?>
+} elseif ( is_single() ) {
+    // Single posts
+    include get_template_directory() . '/inc/single/single-post.php';
 
-	<section id="primary">
-		<div id="content" class="clearfix">
+} elseif ( is_page() ) {
+    // Pages
+    include get_template_directory() . '/inc/single/single-page.php';
 
-			<?php if ( have_posts() ) : ?>
+} elseif ( is_archive() || is_category() || is_tag() || is_author() || is_date() ) {
+    // All archive types
+    include get_template_directory() . '/inc/archives/archive.php';
 
-				<?php while ( have_posts() ) : the_post(); 
-			?>
+} elseif ( is_search() ) {
+    // Search results - use archive template
+    include get_template_directory() . '/inc/archives/archive.php';
 
-					<?php get_template_part( 'inc/archives/post-card' ); ?>
-			
+} elseif ( is_404() ) {
+    // 404 errors
+    include get_template_directory() . '/404.php';
 
-				<?php endwhile; ?>
-
-				<?php extrachill_pagination(null, 'index'); ?>
-
-			<?php else : ?>
-
-				<?php extrachill_no_results(); ?>
-
-			<?php endif; ?>
-
-		</div><!-- #content -->
-			</section><!-- #primary -->
-
-	<?php get_sidebar(); ?>
-
-	<?php do_action( 'extrachill_after_body_content' ); ?>
-
-<?php get_footer(); ?>
+} else {
+    // Unknown page type - fallback to 404
+    include get_template_directory() . '/404.php';
+}
+?>

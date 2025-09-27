@@ -6,7 +6,7 @@
  * Handles both regular posts and forum posts from community multisite.
  *
  * @package ExtraChill
- * @since 1.0
+ * @since 69.57
  */
 
 if ( ! function_exists( 'extrachill_entry_meta' ) ) :
@@ -18,7 +18,7 @@ if ( ! function_exists( 'extrachill_entry_meta' ) ) :
      * - Forum posts: community author link, forum name, external links to community site
      *
      * @global WP_Post $post Current post object, may include forum-specific properties
-     * @since 1.0
+     * @since 69.57
      */
     function extrachill_entry_meta() {
         global $post;

@@ -13,6 +13,10 @@ add_action('extrachill_archive_below_description', 'extrachill_child_terms_dropd
 
 /**
  * Display child terms dropdown for hierarchical taxonomies
+ * Shows subcategories for categories and sub-locations for location taxonomy
+ * Only displays when child terms exist
+ *
+ * @since 1.0
  */
 function extrachill_child_terms_dropdown() {
     $term = get_queried_object();

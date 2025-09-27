@@ -127,7 +127,7 @@ extrachill/
 │   │   ├── badge-colors.css    # Taxonomy badge colors
 │   │   └── editor-style.css    # Block editor styles
 │   └── fonts/                  # Local web fonts
-├── inc/                        # Modular PHP functionality (44+ files)
+├── inc/                        # Modular PHP functionality (47 files)
 │   ├── admin/                  # Admin functionality (3 files)
 │   │   ├── log-404-errors.php
 │   │   ├── tag-migration-admin.php
@@ -137,7 +137,7 @@ extrachill/
 │   │   ├── archive-child-terms-dropdown.php
 │   │   ├── archive-custom-sorting.php
 │   │   └── post-card.php
-│   ├── core/                   # Core WordPress features
+│   ├── core/                   # Core WordPress features (5 files + 3 subdirectories)
 │   │   ├── multisite/          # Cross-site integration (4 files)
 │   │   │   ├── multisite-search.php
 │   │   │   ├── recent-activity-feed.php
@@ -156,17 +156,29 @@ extrachill/
 │   │   │   ├── bandcamp-embeds.php
 │   │   │   ├── instagram-embeds.php
 │   │   │   └── spotify-embeds.php
+│   │   ├── actions.php         # Centralized WordPress action hooks
 │   │   ├── assets.php          # Asset management
-│   │   ├── template-overrides.php
 │   │   ├── custom-taxonomies.php
 │   │   ├── rewrite-rules.php
 │   │   └── yoast-stuff.php
-│   ├── header/                 # Navigation functionality (2 files)
-│   │   ├── walker.php
-│   │   └── navigation-menu.php
-│   ├── home/                   # Homepage components (8+ files)
+│   ├── footer/                 # Footer navigation functionality (2 files)
+│   │   ├── footer-bottom-menu.php
+│   │   └── footer-main-menu.php
+│   ├── header/                 # Navigation functionality (4 files)
+│   │   ├── navigation.php
+│   │   ├── navigation-menu.php
+│   │   ├── nav-bottom-menu.php
+│   │   └── nav-main-menu.php
+│   ├── home/                   # Homepage components (8 files: 1 + 7 templates)
 │   │   ├── homepage-queries.php
-│   │   └── templates/          # Homepage template sections
+│   │   └── templates/          # Homepage template sections (7 files)
+│   │       ├── hero.php
+│   │       ├── section-3x3-grid.php
+│   │       ├── section-more-recent-posts.php
+│   │       ├── section-extrachill-link.php
+│   │       ├── section-about.php
+│   │       ├── community-activity.php
+│   │       └── front-page.php
 │   ├── sidebar/                # Sidebar functionality (2 files)
 │   │   ├── recent-posts.php
 │   │   └── community-activity.php
@@ -207,16 +219,28 @@ extrachill/
 
 The theme follows a modular architecture with clear separation of concerns:
 
-- **Core WordPress functionality** in `/inc/core/` (7 core files + 3 subdirectories)
+- **Core WordPress functionality** in `/inc/core/` (5 core files + 3 subdirectories)
 - **Shared template components** in `/inc/core/templates/` (8 reusable templates)
 - **Multisite integration** in `/inc/core/multisite/` (4 cross-site files)
 - **Custom embeds** in `/inc/core/editor/` (3 embed types)
 - **Admin features** in `/inc/admin/` (3 admin files)
 - **Archive functionality** in `/inc/archives/` (4 archive files)
-- **Navigation system** in `/inc/header/` (2 navigation files)
-- **Homepage components** in `/inc/home/` (8+ homepage files)
+- **Footer navigation** in `/inc/footer/` (2 footer files)
+- **Header navigation system** in `/inc/header/` (4 navigation files)
+- **Homepage components** in `/inc/home/` (8 homepage files: 1 + 7 templates)
 - **Sidebar functionality** in `/inc/sidebar/` (2 sidebar files)
 - **Single post/page features** in `/inc/single/` (4 single files)
+
+### Hook-Based Menu System
+
+The theme features a sophisticated hook-based menu system that replaces WordPress's native menu management:
+
+- **Performance**: Hardcoded menus eliminate database queries for menu generation
+- **Extensibility**: Plugins can hook into `extrachill_navigation_main_menu` and `extrachill_footer_main_content` to add menu items
+- **Maintainability**: Menu content separated into focused template files (`nav-main-menu.php`, `footer-main-menu.php`)
+- **Admin Cleanup**: WordPress menu management interface removed via `extrachill_remove_menu_admin_pages()`
+
+The system uses action hooks registered in `inc/core/actions.php` to load hardcoded menu templates, allowing both performance optimization and plugin extensibility without the overhead of WordPress's menu system.
 
 ### Performance Features
 
@@ -307,6 +331,7 @@ define('SCRIPT_DEBUG', true);
 - **Event Submission System**: Complete removal of event submission functionality
 - **Location System**: Complete elimination of unused location browsing functionality
 - **Session Token System**: Completely removed in favor of native WordPress multisite authentication
+- **WordPress Menu Management**: Replaced with hook-based system for performance and extensibility
 - **WooCommerce Files**: All WooCommerce templates and CSS removed, moved to ExtraChill Shop plugin
 - **Community Files**: Removed community-comments.php, community-session.php, extrachill-upvotes.php, forum-search.php, multisite-forum-search.php
 - **Legacy Templates**: Removed content-page.php, content-single.php, content.php, comments.php, no-results.php, page.php, search.php, searchform.php, single.php
@@ -326,7 +351,7 @@ define('SCRIPT_DEBUG', true);
 - **Streamlined asset loading**: Conditional CSS/JS enqueuing based on page context via `inc/core/assets.php`
 - **Memory optimization**: Efficient resource management through selective loading and admin style dequeuing
 - **Multisite optimization**: Direct database queries with hardcoded blog IDs replace REST API calls
-- **Template consolidation**: 44+ modular PHP files replace monolithic template structure
+- **Template consolidation**: 47 modular PHP files replace monolithic template structure
 
 ## Support and Contributing
 
@@ -351,7 +376,7 @@ This theme is proprietary software developed for ExtraChill.com. All rights rese
 ## Changelog
 
 ### Version 69.57+
-- **Modular Architecture**: 44+ PHP files organized in 7 directories with clear separation of concerns
+- **Modular Architecture**: 47 PHP files organized in 8 directories with clear separation of concerns
 - **Asset Migration**: Complete move from legacy `css/` and `js/` to `assets/css/` and `assets/js/`
 - **Template System**: 8 shared template components in `/inc/core/templates/`
 - **Multisite Integration**: 4 cross-site files in `/inc/core/multisite/` with hardcoded blog IDs

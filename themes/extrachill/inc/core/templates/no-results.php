@@ -6,7 +6,7 @@
  * Provides admin links for post creation when appropriate.
  *
  * @package ExtraChill
- * @since 1.0
+ * @since 69.57
  */
 
 if ( ! function_exists( 'extrachill_no_results' ) ) :

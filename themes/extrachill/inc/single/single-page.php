@@ -3,10 +3,10 @@
  * Complete Single Page Template
  *
  * Handles the complete single page experience: header, content, comments, footer.
- * Replaces theme root page.php via template override system.
+ * Handles individual page display with clean template structure.
  *
  * @package    ExtraChill
- * @since      1.0
+ * @since      69.57
  */
 
 get_header(); ?>
