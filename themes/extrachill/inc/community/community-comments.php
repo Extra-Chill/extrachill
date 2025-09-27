@@ -1,10 +1,13 @@
-<?php 
-
-// this code is used to display community comments on extrachill.com and handle comment submission and retrieval
-
-// comment submission logic on extrachill.com plugin
-
-// Updated REST API endpoint registration to include a reply_to parameter
+<?php
+/**
+ * Community Comments Integration
+ *
+ * Handles comment submission, retrieval, and author link functionality
+ * for community users via REST API endpoints.
+ *
+ * @package ExtraChill
+ * @since 69.57
+ */
 add_action('rest_api_init', function () {
     register_rest_route('extrachill/v1', '/community-comment', array(
         'methods' => 'POST',
@@ -21,6 +24,11 @@ add_action('rest_api_init', function () {
     ));
 });
 
+/**
+ * Insert community comment with metadata via REST API
+ * @param WP_REST_Request $request REST request with comment data
+ * @return WP_REST_Response|WP_Error Success response or error
+ */
 function insert_community_comment_with_meta(WP_REST_Request $request) {
     $params = $request->get_json_params();
     $post_id = isset($params['post_id']) ? intval($params['post_id']) : 0;
@@ -28,23 +36,20 @@ function insert_community_comment_with_meta(WP_REST_Request $request) {
     $community_user_id = isset($params['community_user_id']) ? sanitize_text_field($params['community_user_id']) : '';
     $user_nicename = isset($params['author']) ? sanitize_text_field($params['author']) : '';
     $user_email = isset($params['email']) ? sanitize_email($params['email']) : '';
-    $comment_parent = isset($params['comment_parent']) ? intval($params['comment_parent']) : 0; // Directly use 'comment_parent'
+    $comment_parent = isset($params['comment_parent']) ? intval($params['comment_parent']) : 0;
 
-    // Construct the comment data array including the comment_parent field
     $comment_data = [
         'comment_post_ID' => $post_id,
         'comment_content' => $comment_content,
         'comment_author' => $user_nicename,
         'comment_author_email' => $user_email,
-        'comment_approved' => 1, // Auto-approve this comment.
-        'comment_parent' => $comment_parent, // Set the parent of this comment
+        'comment_approved' => 1,
+        'comment_parent' => $comment_parent,
     ];
 
-    // Insert the comment.
     $comment_id = wp_insert_comment($comment_data);
 
     if ($comment_id) {
-        // Add custom meta data for the comment.
         add_comment_meta($comment_id, 'community_user_id', $community_user_id);
         add_comment_meta($comment_id, 'user_nicename', $user_nicename);
         add_comment_meta($comment_id, 'user_email', $user_email);
@@ -72,23 +77,25 @@ add_action('rest_api_init', function () {
     ));
 });
 
+/**
+ * Fetch user comments by community ID via REST API
+ * @param WP_REST_Request $request REST request with community_user_id
+ * @return WP_REST_Response|WP_Error Array of user comments or error
+ */
 function fetch_user_comments_by_community_id($request) {
     $community_user_id = $request['community_user_id'];
-    global $wpdb;
 
     $comments_query = new WP_Comment_Query;
     $comments = $comments_query->query(array(
         'meta_key' => 'community_user_id',
         'meta_value' => $community_user_id,
-        'order' => 'DESC', // Newest comments first
+        'order' => 'DESC',
     ));
 
     $comments_data = array_map(function($comment) {
-        // Fetch the post title
         $post_title = get_the_title($comment->comment_post_ID);
-        // Generate the permalink
         $post_permalink = get_permalink($comment->comment_post_ID);
-        
+
         return array(
             'comment_ID' => $comment->comment_ID,
             'comment_post_ID' => $comment->comment_post_ID,
@@ -108,14 +115,19 @@ function fetch_user_comments_by_community_id($request) {
 
 
 
+/**
+ * Get comment count for community user
+ * @param string $community_user_id Community user identifier
+ * @return int Number of comments
+ */
 function get_comment_count_by_community_user_id($community_user_id) {
     global $wpdb;
 
     $count = $wpdb->get_var($wpdb->prepare("
-        SELECT COUNT(*) 
-        FROM $wpdb->comments 
-        JOIN $wpdb->commentmeta ON $wpdb->comments.comment_ID = $wpdb->commentmeta.comment_id 
-        WHERE meta_key = 'community_user_id' AND meta_value = %s", 
+        SELECT COUNT(*)
+        FROM $wpdb->comments
+        JOIN $wpdb->commentmeta ON $wpdb->comments.comment_ID = $wpdb->commentmeta.comment_id
+        WHERE meta_key = 'community_user_id' AND meta_value = %s",
         $community_user_id
     ));
 
@@ -158,25 +170,22 @@ function fetch_user_comment_count($request) {
 
 add_filter('get_comment_author_link', 'custom_comment_author_link_with_preg_replace');
 
+/**
+ * Transform comment author links to community profile links
+ * Links usernames to community.extrachill.com profiles for comments after cutoff date
+ * @param string $author_link Original author link HTML
+ * @return string Modified author link with community profile URL
+ */
 function custom_comment_author_link_with_preg_replace($author_link) {
     global $comment;
-    
-    // Ensure the global $comment object is available and contains necessary properties
+
     if (!empty($comment) && isset($comment->comment_date)) {
-        // Convert the comment date to a Unix timestamp for comparison
         $comment_date = strtotime($comment->comment_date);
-        // Specify the cutoff Unix timestamp (2/9/24)
         $cutoff_date = strtotime('2024-02-09 00:00:00');
 
-        // Only apply changes to comments made after the cutoff date
         if ($comment_date > $cutoff_date) {
-            // Pattern to match the existing comment author link HTML structure
             $pattern = '/<div class="comment-author-link">(.*?)<\/div>/';
-
-            // Replacement pattern includes the anchor tag around the username
             $replacement = '<div class="comment-author-link"><a href="https://community.extrachill.com/u/$1">$1</a></div>';
-
-            // Perform the replacement
             $author_link = preg_replace($pattern, $replacement, $author_link);
         }
     }

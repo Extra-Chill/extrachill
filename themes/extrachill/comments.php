@@ -5,7 +5,7 @@
  * The area of the page that contains both current comments
  * and the comment form. The actual display of comments is
  * handled by a callback to extrachill_comment() which is
- * located in the inc/functions.php file.
+ * located in the inc/single-post/comments.php file.
  *
  * @package ExtraChill
  * @since 1.0
@@ -66,7 +66,7 @@ if ( post_password_required() )
 		<p class="no-comments"><?php _e( 'Comments are closed.', 'extrachill' ); ?></p>
 	<?php endif; ?>
     <?php
-    // Native multisite comment system - no REST API calls needed!
+    // Native WordPress multisite authentication
     if (is_user_logged_in()) {
         // User is logged in across the multisite - show comment form
         comment_form(array(

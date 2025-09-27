@@ -96,16 +96,7 @@ if ($all_posts_query->have_posts()) :
     <?php endwhile; ?>
 </div>
 
-<div class="pagination">
-    <?php
-    if (function_exists('wp_pagenavi')) {
-        wp_pagenavi(array('query' => $all_posts_query));
-    } else {
-        previous_posts_link('&laquo; Newer Posts', $all_posts_query->max_num_pages);
-        next_posts_link('Older Posts &raquo;', $all_posts_query->max_num_pages);
-    }
-    ?>
-</div>
+<?php extrachill_pagination($all_posts_query, 'all-posts'); ?>
 
 <?php else : ?>
 

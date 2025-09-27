@@ -54,10 +54,6 @@ function display_breadcrumbs() {
             $post_type_obj = get_post_type_object($post_type);
             $archive_link = get_post_type_archive_link($post_type);
 
-            // Special handling for dm_events to use plugin's custom URL
-            if ($post_type === 'dm_events') {
-                $archive_link = apply_filters('dm_events_main_page_url', $archive_link);
-            }
 
             if ($archive_link && $post_type_obj) {
                 echo '<a href="' . $archive_link . '">' . $post_type_obj->labels->name . '</a> › ';

@@ -2,16 +2,19 @@
 /**
  * ExtraChill Theme Asset Management
  *
- * Centralized asset enqueuing for CSS, JavaScript, and font files.
- * All theme assets are organized in the /assets/ directory.
+ * Centralized conditional asset loading with performance optimizations:
+ * - Page-specific CSS loading (home, single-post, archive)
+ * - Root CSS variables loaded first for dependency management
+ * - JavaScript enqueuing with filemtime() cache busting
+ * - Admin editor style integration
  *
  * @package ExtraChill
  * @since 69.57
  */
 
 /**
- * Enqueue archive-specific scripts and styles
- * Loads custom JavaScript for archive pages and navigation styles
+ * Enqueue archive-specific scripts and navigation styles
+ * Conditional loading for archive pages only
  */
 function extrachill_enqueue_archive_scripts() {
     if (is_archive()) {
@@ -38,7 +41,7 @@ add_action('wp_enqueue_scripts', 'extrachill_enqueue_archive_scripts');
 
 /**
  * Enqueue reading progress bar script
- * Loads on all pages to show reading progress
+ * Global loading with filemtime() versioning
  */
 function extrachill_enqueue_reading_progress() {
     wp_enqueue_script(
@@ -51,28 +54,10 @@ function extrachill_enqueue_reading_progress() {
 }
 add_action('wp_enqueue_scripts', 'extrachill_enqueue_reading_progress');
 
-/**
- * Enqueue location filter scripts for homepage
- * Currently commented out but available for reactivation
- */
-function extrachill_enqueue_location_filter() {
-    if ( is_front_page() ) {
-        $script_path = get_template_directory() . '/assets/js/location-filter.js';
-        $script_version = filemtime( $script_path );
-
-        wp_enqueue_script( 'location-filter-js', get_template_directory_uri() . '/assets/js/location-filter.js', array(), $script_version, true );
-
-        wp_localize_script( 'location-filter-js', 'locationFilterData', array(
-            'ajax_url' => admin_url( 'admin-ajax.php' ),
-            'nonce'    => wp_create_nonce( 'location_filter_nonce' ),
-        ) );
-    }
-}
-// add_action( 'wp_enqueue_scripts', 'extrachill_enqueue_location_filter' );
 
 /**
  * Enqueue homepage-specific styles
- * Only loads on the front page for performance
+ * Front page conditional loading for performance optimization
  */
 function extrachill_enqueue_home_styles() {
     if ( is_front_page() ) {
@@ -91,7 +76,7 @@ add_action( 'wp_enqueue_scripts', 'extrachill_enqueue_home_styles' );
 
 /**
  * Enqueue root CSS variables
- * Loads first to provide CSS custom properties for other stylesheets
+ * Priority 5 loading to establish CSS custom properties dependency
  */
 function extrachill_enqueue_root_styles() {
     $css_path = get_stylesheet_directory() . '/assets/css/root.css';
@@ -107,8 +92,8 @@ function extrachill_enqueue_root_styles() {
 add_action( 'wp_enqueue_scripts', 'extrachill_enqueue_root_styles', 5 );
 
 /**
- * Enqueue badge colors and other main styles
- * Depends on root.css being loaded first
+ * Enqueue badge colors with root CSS dependency
+ * Ensures proper CSS custom property inheritance
  */
 function extrachill_enqueue_main_styles() {
     $badge_colors_path = get_stylesheet_directory() . '/assets/css/badge-colors.css';
@@ -124,8 +109,8 @@ function extrachill_enqueue_main_styles() {
 add_action( 'wp_enqueue_scripts', 'extrachill_enqueue_main_styles', 10 );
 
 /**
- * Modify default WordPress style.css loading
- * Ensures root.css loads before the main stylesheet
+ * Override default style.css to establish root CSS dependency
+ * Ensures proper CSS custom property cascade
  */
 function extrachill_modify_default_style() {
     wp_dequeue_style('extrachill-style');
@@ -142,7 +127,7 @@ add_action('wp_enqueue_scripts', 'extrachill_modify_default_style', 20);
 
 /**
  * Enqueue single post styles
- * Only loads on individual post pages
+ * Conditional loading for singular post pages only
  */
 function extrachill_enqueue_single_post_styles() {
     if ( is_singular('post') ) {
@@ -161,7 +146,7 @@ add_action('wp_enqueue_scripts', 'extrachill_enqueue_single_post_styles', 20);
 
 /**
  * Enqueue archive page styles
- * Loads on archive, search, and all-posts template pages
+ * Conditional loading for archive, search, and all-posts template
  */
 function extrachill_enqueue_archive_styles() {
     if ( is_archive() || is_search() || is_page_template('page-templates/all-posts.php') ) {
@@ -179,8 +164,8 @@ function extrachill_enqueue_archive_styles() {
 add_action('wp_enqueue_scripts', 'extrachill_enqueue_archive_styles', 20);
 
 /**
- * Enqueue all-locations page styles
- * Only loads on the all-locations page template
+ * Enqueue all-locations page template styles
+ * Page template specific conditional loading
  */
 function extrachill_enqueue_all_locations_styles() {
     if ( is_page_template('page-templates/all-locations.php') ) {
@@ -199,7 +184,7 @@ add_action('wp_enqueue_scripts', 'extrachill_enqueue_all_locations_styles', 20);
 
 /**
  * Enqueue admin editor styles
- * Provides proper styling for the WordPress editor
+ * WordPress block editor integration with root CSS dependency
  */
 function extrachill_enqueue_admin_styles($hook) {
     if ($hook == 'post.php' || $hook == 'post-new.php') {

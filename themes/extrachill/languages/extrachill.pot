@@ -3,7 +3,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Extra Chill 69.57\n"
-"Report-Msgid-Bugs-To: https://wordpress.org/support/theme/colormag-pro\n"
+"Report-Msgid-Bugs-To: https://github.com/Extra-Chill/main-site\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"

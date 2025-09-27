@@ -17,6 +17,7 @@ ExtraChill is a modern, performance-optimized WordPress theme designed specifica
 - **Custom Taxonomies**: Artist, Venue, Festival, and Location organization
 - **Festival Wire Integration**: Homepage ticker display for festival coverage (requires ExtraChill News Wire plugin)
 - **Newsletter Integration**: Newsletter functionality provided by ExtraChill Newsletter Plugin
+- **Contact Forms**: Contact form functionality provided by ExtraChill Contact Plugin
 
 ### 🚀 Performance Optimizations
 - **Conditional Asset Loading**: CSS/JS loaded only when needed
@@ -79,8 +80,8 @@ The theme supports direct file editing for development with no build step requir
 cd wp-content/themes/extrachill
 
 # Edit files directly
-# CSS files are in /css/
-# JavaScript files are in /js/
+# CSS files are in /assets/css/
+# JavaScript files are in /assets/js/
 # PHP files use standard WordPress structure
 
 # Check for syntax errors
@@ -117,11 +118,14 @@ For production deployment, use the build script to create clean ZIP packages:
 
 ```
 extrachill/
-├── css/                    # Modular CSS files
-│   ├── root.css           # CSS custom properties
-│   ├── home.css           # Homepage styles
-│   ├── archive.css        # Archive page styles
-│   └── single-post.css    # Single post styles
+├── assets/                # Theme assets directory
+│   ├── css/               # Modular CSS files
+│   │   ├── root.css       # CSS custom properties
+│   │   ├── home.css       # Homepage styles
+│   │   ├── archive.css    # Archive page styles
+│   │   └── single-post.css # Single post styles
+│   ├── js/                # JavaScript files
+│   └── fonts/             # Local web fonts
 ├── inc/                   # Modular PHP functionality
 │   ├── admin/             # Admin functionality
 │   ├── community/         # Forum integration with multisite functions
@@ -129,9 +133,10 @@ extrachill/
 │   │   ├── recent-activity-feed.php       # Multisite activity feed functions
 │   │   └── community-session.php          # Native WordPress authentication
 │   ├── core/              # WordPress core features
-│   ├── home/              # Homepage components (includes Festival Wire ticker)
+│   │   ├── templates/     # Shared template components
+│   │   └── assets.php     # Centralized asset management
+│   ├── home/              # Homepage components
 │   └── woocommerce/       # E-commerce integration
-├── js/                    # JavaScript files
 ├── page-templates/        # Custom page templates
 └── woocommerce/           # WooCommerce template overrides
 ```
@@ -146,7 +151,7 @@ extrachill/
 
 ### CSS Development
 
-- **Root variables** go in `css/root.css`
+- **Root variables** go in `assets/css/root.css`
 - **Page-specific styles** in separate CSS files
 - **Component styles** in dedicated files
 - **Use WordPress enqueuing** with `filemtime()` versioning
@@ -198,7 +203,7 @@ Access theme customization through:
 Add custom styles through:
 1. **Child theme** (recommended for major changes)
 2. **WordPress Customizer** Additional CSS
-3. **Custom CSS files** in `/css/` directory
+3. **Custom CSS files** in `/assets/css/` directory
 
 ### Hooks and Filters
 
@@ -227,7 +232,7 @@ add_action('extrachill_community_init', 'custom_community_setup');
 **Festival Wire not displaying**:
 - Ensure ExtraChill News Wire plugin is installed and activated
 - Check that Festival Wire posts exist in WordPress admin
-- Verify homepage ticker functionality
+- Verify plugin hook integration with theme
 
 **Community features not working**:
 - Ensure bbPress is installed and configured
@@ -274,6 +279,9 @@ This theme is proprietary software developed for ExtraChill.com. All rights rese
 - Community integration enhancements
 - Festival Wire migration to standalone plugin (ExtraChill News Wire plugin)
 - Newsletter system migration to standalone plugin (ExtraChill Newsletter Plugin)
+- Contact form system migration to standalone plugin (ExtraChill Contact Plugin)
+- Complete removal of event submission system (all JavaScript and server-side functionality)
+- Removal of location filter JavaScript (backend functions remain dormant)
 - Performance optimizations and memory management
 - WordPress multisite integration with native cross-domain authentication
 - Native multisite functions replace REST API calls and custom session tokens for better performance

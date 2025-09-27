@@ -1,16 +1,11 @@
 <?php
 
 /**
- * Multisite Forum Search Functions
- * Direct multisite queries for forum search functionality
+ * Multisite forum search with native WordPress functions
  */
 
 /**
- * Fetches search results from the community forum using multisite functions
- *
- * @param string $search_term Search term for topics and replies
- * @param int    $limit       Maximum results to fetch (default: 100)
- * @return array Forum search results with contextual excerpts
+ * Search forum topics and replies across multisite
  */
 function ec_fetch_forum_results_multisite( $search_term, $limit = 100 ) {
 	if ( empty( $search_term ) ) {
@@ -100,12 +95,7 @@ function ec_fetch_forum_results_multisite( $search_term, $limit = 100 ) {
 }
 
 /**
- * Generate contextual excerpt highlighting search term within content
- *
- * @param string $content     Full content to extract excerpt from
- * @param string $search_term Term to highlight and center excerpt around
- * @param int    $word_limit  Words to include around match (default: 30)
- * @return string Contextual excerpt with ellipses as needed
+ * Contextual excerpt with search term highlighting
  */
 function ec_get_contextual_excerpt_multisite( $content, $search_term, $word_limit = 30 ) {
 	$position = stripos( $content, $search_term );

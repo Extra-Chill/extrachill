@@ -23,7 +23,7 @@ get_header(); ?>
 
 				<?php endwhile; ?>
 
-				<?php get_template_part( 'navigation', 'none' ); ?>
+				<?php extrachill_pagination(null, 'index'); ?>
 
 			<?php else : ?>
 
