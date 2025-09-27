@@ -30,7 +30,7 @@ if ( ! is_single() ) {
 			</p>
 		</div>
 
-		<form id="contentNewsletterForm" class="newsletter-form newsletter-content-form">
+		<form id="contentNewsletterForm" class="newsletter-form newsletter-section-form">
 			<div class="newsletter-form-group">
 				<label for="newsletter-email-content" class="sr-only">
 					<?php _e('Email address for newsletter', 'extrachill-newsletter'); ?>

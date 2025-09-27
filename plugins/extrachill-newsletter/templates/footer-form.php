@@ -26,7 +26,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 				</p>
 			</div>
 
-			<form id="footerNewsletterForm" class="newsletter-form newsletter-footer-form">
+			<form id="footerNewsletterForm" class="newsletter-form newsletter-section-form">
 				<div class="newsletter-form-group">
 					<label for="newsletter-email-footer" class="sr-only">
 						<?php _e('Email address for newsletter', 'extrachill-newsletter'); ?>

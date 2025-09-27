@@ -1,0 +1,793 @@
+/**
+ * ExtraChill Newsletter Forms CSS Module
+ *
+ * Universal CSS module for all newsletter subscription forms across the ExtraChill platform.
+ * Provides consistent styling aligned with the extrachill theme's root CSS variables.
+ *
+ * @package ExtraChillNewsletter
+ * @since 2.0.0
+ */
+
+/* ==========================================================================
+   Base Form Styles - Universal Elements
+   ========================================================================== */
+
+/* Base newsletter form container */
+.newsletter-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1em;
+    align-items: center;
+    max-width: 400px;
+    margin: 0 auto;
+}
+
+/* Universal input styling */
+.newsletter-form input[type="email"],
+.newsletter-form input[type="text"],
+.newsletter-form textarea {
+    width: 100%;
+    padding: 0.75em 1em;
+    border: 1px solid var(--border-color, #ccc);
+    border-radius: 4px;
+    background: var(--input-background, #fff);
+    color: var(--text-color, #333);
+    font-size: 1em;
+    font-family: inherit;
+    box-sizing: border-box;
+    transition: border-color 0.2s ease;
+}
+
+.newsletter-form input[type="email"]:focus,
+.newsletter-form input[type="text"]:focus,
+.newsletter-form textarea:focus {
+    border-color: var(--focus-border-color, #53940b);
+    outline: none;
+    box-shadow: var(--focus-box-shadow, 0 0 0 2px rgba(83,148,11,0.2));
+}
+
+.newsletter-form input[type="email"]::placeholder,
+.newsletter-form input[type="text"]::placeholder,
+.newsletter-form textarea::placeholder {
+    color: var(--muted-text, #999);
+    opacity: 0.8;
+}
+
+/* Universal button styling */
+.newsletter-form button[type="submit"],
+.newsletter-form .submit-button {
+    background: var(--accent, #53940b);
+    color: #fff;
+    border: none;
+    padding: 0.75em 2em;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1em;
+    font-weight: 600;
+    transition: background-color 0.2s, transform 0.2s;
+    white-space: nowrap;
+}
+
+.newsletter-form button[type="submit"]:hover,
+.newsletter-form .submit-button:hover {
+    background: var(--button-hover-bg, #4a7e09);
+    transform: translateY(-1px);
+}
+
+.newsletter-form button[type="submit"]:disabled,
+.newsletter-form .submit-button:disabled {
+    background: var(--muted-text, #999);
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* Universal feedback messages */
+.newsletter-feedback {
+    margin-top: 1em;
+    font-size: 0.95em;
+    text-align: center;
+    padding: 0.5em;
+    border-radius: 4px;
+}
+
+.newsletter-feedback.success {
+    color: #155724;
+    background-color: #d4edda;
+    border: 1px solid #c3e6cb;
+}
+
+.newsletter-feedback.error {
+    color: #721c24;
+    background-color: #f8d7da;
+    border: 1px solid #f5c6cb;
+}
+
+/* Universal screen reader text */
+.sr-only,
+.screen-reader-text {
+    position: absolute !important;
+    clip: rect(1px, 1px, 1px, 1px);
+    width: 1px !important;
+    height: 1px !important;
+    overflow: hidden;
+}
+
+/* ==========================================================================
+   Layout Variants - Context-Specific Patterns
+   ========================================================================== */
+
+/* Inline form layout (navigation, compact forms) */
+.newsletter-form.newsletter-inline-form {
+    flex-direction: column;
+    max-width: 55%;
+    margin: 25px auto;
+    gap: 0.75em;
+}
+
+/* Section form layout (homepage, content, footer) */
+.newsletter-form.newsletter-section-form {
+    flex-direction: column;
+    max-width: 400px;
+    margin: 0 auto;
+    gap: 1em;
+}
+
+/* Horizontal form layout (homepage subscription) */
+.newsletter-form.newsletter-horizontal-form {
+    flex-direction: row;
+    gap: 0.5em;
+    justify-content: center;
+    align-items: center;
+    max-width: 100%;
+}
+
+.newsletter-form.newsletter-horizontal-form input[type="email"] {
+    flex: 1;
+    min-width: 200px;
+}
+
+/* Complex form layout (festival tip form with multiple fields) */
+.newsletter-form.newsletter-complex-form {
+    flex-direction: column;
+    max-width: 500px;
+    margin: 0 auto;
+    gap: 1.25em;
+}
+
+.newsletter-form.newsletter-complex-form textarea {
+    min-height: 150px;
+    resize: vertical;
+}
+
+/* ==========================================================================
+   Navigation Menu Form
+   ========================================================================== */
+
+.menu-newsletter {
+    /* Inherits from theme's navigation styling */
+}
+
+.menu-newsletter .newsletter-form {
+    max-width: 55%;
+    margin: 25px auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75em;
+}
+
+.menu-newsletter .newsletter-form input {
+    margin-bottom: 20px;
+    padding: 0.5em 0.75em;
+}
+
+.menu-newsletter .newsletter-form button {
+    margin-bottom: 10px;
+    padding: 0.5em 1em;
+}
+
+.menu-newsletter .newsletter-form p {
+    margin: 0;
+}
+
+#primary-menu .newsletter-form p a {
+    line-height: 1em;
+    text-transform: none;
+    font-size: 0.85em;
+    color: var(--muted-text, #666);
+    text-decoration: underline;
+}
+
+#primary-menu .newsletter-form p a:hover {
+    color: inherit;
+    text-decoration-color: var(--accent, #53940b);
+}
+
+/* ==========================================================================
+   Homepage Newsletter Section
+   ========================================================================== */
+
+.newsletter-homepage-section {
+    margin: 3em 0;
+}
+
+.home-newsletter-about-row {
+    display: flex;
+    flex-direction: row;
+    gap: 3em;
+    width: 100%;
+    align-items: stretch;
+}
+
+.home-newsletter-signup {
+    width: 100%;
+    max-width: 540px;
+    background: var(--card-background, #f8f9fa);
+    border: 1px solid var(--border-color, #e9ecef);
+    border-radius: 16px;
+    padding: 2.5em;
+    box-shadow: 0 4px 16px rgba(83,148,11,0.08), 0 2px 4px rgba(0,0,0,0.04);
+    transition: all 0.25s ease;
+    position: relative;
+    z-index: 3;
+}
+
+.home-newsletter-signup:hover,
+.home-newsletter-signup:focus-within {
+    box-shadow: 0 12px 48px rgba(83,148,11,0.11), 0 2px 12px rgba(0,0,0,0.07);
+    transform: scale(1.012);
+}
+
+.home-newsletter-header {
+    text-align: center;
+    font-family: 'Loft Sans', sans-serif;
+    font-size: 1.8em;
+    font-weight: 700;
+    margin-bottom: 0.5em;
+    color: var(--heading-color, #333);
+    text-shadow: 0 2px 8px rgba(83,148,11,0.04);
+}
+
+.home-newsletter-subhead {
+    text-align: center;
+    font-family: 'Loft Sans', sans-serif;
+    font-size: 1.2em;
+    font-weight: 500;
+    margin-bottom: 1.5em;
+    color: var(--text-color, #666);
+    line-height: 1.4;
+    max-width: 90%;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.home-newsletter-signup .newsletter-form {
+    width: 100%;
+    display: flex;
+    gap: 0.5em;
+    justify-content: center;
+    align-items: center;
+    max-width: 100%;
+}
+
+.home-newsletter-signup input[type="email"] {
+    padding: 0.9em 1.2em;
+    border: 1.5px solid var(--border-color, #ddd);
+    border-radius: 8px;
+    flex: 1;
+    font-size: 1em;
+}
+
+.home-newsletter-signup input[type="email"]::placeholder {
+    font-style: italic;
+}
+
+.home-newsletter-signup button[type="submit"] {
+    padding: 0.9em 2em;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 1em;
+    letter-spacing: 0.01em;
+}
+
+.home-newsletter-signup button[type="submit"]:hover,
+.home-newsletter-signup button[type="submit"]:focus {
+    box-shadow: 0 4px 12px rgba(83,148,11,0.3);
+    transform: scale(1.03);
+}
+
+.home-about-box {
+    flex: 1 1 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.newsletter-homepage-links {
+    text-align: center;
+    margin-top: 1em;
+}
+
+.past-newsletters-link a {
+    color: var(--accent, #53940b);
+    text-decoration: none;
+    font-size: 0.95em;
+    font-weight: 500;
+}
+
+.past-newsletters-link a:hover {
+    text-decoration: underline;
+}
+
+/* ==========================================================================
+   Content Area Newsletter Form
+   ========================================================================== */
+
+.newsletter-content-section {
+    margin: 3em 0;
+    background: var(--card-background, #f8f9fa);
+    border: 1px solid var(--border-color, #e9ecef);
+    border-radius: 12px;
+    padding: 2em;
+}
+
+.newsletter-content-wrapper {
+    max-width: 600px;
+    margin: 0 auto;
+    text-align: center;
+}
+
+.newsletter-content-header h3 {
+    font-size: 1.5em;
+    font-weight: 600;
+    margin-bottom: 0.5em;
+    color: var(--heading-color, #333);
+}
+
+.newsletter-content-description {
+    font-size: 1em;
+    color: var(--text-color, #666);
+    margin-bottom: 1.5em;
+    line-height: 1.5;
+}
+
+.newsletter-content-form .newsletter-form-group {
+    display: flex;
+    gap: 0.5em;
+    justify-content: center;
+    align-items: center;
+    max-width: 400px;
+    margin: 0 auto;
+}
+
+.newsletter-content-form input[type="email"] {
+    flex: 1;
+}
+
+.newsletter-content-links {
+    margin-top: 1em;
+}
+
+/* ==========================================================================
+   Footer Newsletter Form
+   ========================================================================== */
+
+.newsletter-footer-section {
+    background: var(--card-background, #f8f9fa);
+    border: 1px solid var(--border-color, #e9ecef);
+    border-radius: 12px;
+    padding: 2.5em 2em;
+    margin: 3em 0;
+}
+
+.newsletter-footer-wrapper {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.newsletter-footer-content {
+    text-align: center;
+}
+
+.newsletter-footer-header h3 {
+    font-size: 1.6em;
+    font-weight: 600;
+    margin-bottom: 0.5em;
+    color: var(--heading-color, #333);
+}
+
+.newsletter-footer-description {
+    font-size: 1.1em;
+    color: var(--text-color, #666);
+    margin-bottom: 1.5em;
+    line-height: 1.5;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.newsletter-footer-form .newsletter-form-group {
+    display: flex;
+    gap: 0.5em;
+    justify-content: center;
+    align-items: center;
+    max-width: 450px;
+    margin: 0 auto;
+}
+
+.newsletter-footer-form input[type="email"] {
+    flex: 1;
+    font-size: 1em;
+}
+
+.newsletter-footer-form button[type="submit"] {
+    font-size: 1em;
+    font-weight: 700;
+}
+
+.newsletter-footer-links {
+    margin-top: 1em;
+}
+
+/* ==========================================================================
+   Festival Wire Tip Form
+   ========================================================================== */
+
+.festival-wire-tip-form-container {
+    background-color: var(--card-background, #f8f9fa);
+    border: 1px solid var(--border-color, #e9ecef);
+    border-radius: 12px;
+    padding: 2rem;
+    margin: 2rem auto;
+    max-width: 600px;
+    box-shadow: var(--card-shadow, 0 2px 10px rgba(0, 0, 0, 0.05));
+}
+
+.tip-form-title {
+    font-size: 1.6rem;
+    margin-bottom: 0.75rem;
+    color: var(--heading-color, #333);
+    text-align: center;
+    font-weight: 600;
+}
+
+.tip-form-description {
+    font-size: 1rem;
+    color: var(--muted-text, #666);
+    margin-bottom: 1.5rem;
+    text-align: center;
+    line-height: 1.5;
+}
+
+.festival-wire-tip-form {
+    max-width: 500px;
+    margin: 0 auto;
+}
+
+.festival-wire-tip-form textarea {
+    min-height: 150px;
+    resize: vertical;
+    font-family: inherit;
+}
+
+.festival-wire-tip-form .cf-turnstile {
+    margin: 1rem 0;
+    display: flex;
+    justify-content: center;
+}
+
+.festival-wire-tip-form button[type="submit"] {
+    background-color: var(--accent, #53940b);
+    min-width: 140px;
+}
+
+.festival-wire-tip-form .festival-wire-tip-message {
+    margin-top: 1em;
+    padding: 0.75rem;
+    border-radius: 6px;
+    font-weight: 500;
+    text-align: center;
+}
+
+.festival-wire-tip-form .festival-wire-tip-message.success {
+    background-color: rgba(83, 148, 11, 0.1);
+    color: var(--accent, #53940b);
+    border: 1px solid rgba(83, 148, 11, 0.2);
+}
+
+.festival-wire-tip-form .festival-wire-tip-message.error {
+    background-color: rgba(220, 53, 69, 0.1);
+    color: #dc3545;
+    border: 1px solid rgba(220, 53, 69, 0.2);
+}
+
+.character-count {
+    font-size: 0.8em;
+    color: var(--muted-text, #666);
+    margin-top: 0.5em;
+    text-align: right;
+}
+
+.email-field-note,
+.community-member-note {
+    font-size: 0.85em;
+    color: var(--muted-text, #666);
+    margin-top: 0.5em;
+    font-style: italic;
+}
+
+.community-member-note {
+    color: var(--accent, #53940b);
+}
+
+/* ==========================================================================
+   Newsletter Popup Styles
+   ========================================================================== */
+
+.overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 9998;
+    display: none;
+}
+
+.subscribe-popup {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: var(--card-background, #fff);
+    border: 2px solid var(--border-color, #ddd);
+    border-radius: 12px;
+    padding: 2em;
+    max-width: 400px;
+    width: 90%;
+    z-index: 9999;
+    text-align: center;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.subscribe-popup p {
+    margin-bottom: 1.5em;
+    color: var(--text-color, #333);
+    font-size: 1.1em;
+    line-height: 1.4;
+}
+
+.subscribe-popup form {
+    margin-bottom: 1.5em;
+}
+
+.subscribe-popup input[type="text"] {
+    width: 100%;
+    padding: 0.75em;
+    border: 1px solid var(--border-color, #ccc);
+    border-radius: 6px;
+    margin-bottom: 1em;
+    font-size: 1em;
+    box-sizing: border-box;
+}
+
+.subscribe-popup .subscribe-button {
+    background: var(--accent, #53940b);
+    color: #fff;
+    border: none;
+    padding: 0.75em 2em;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 1em;
+    font-weight: 600;
+    width: 100%;
+    margin-bottom: 1em;
+}
+
+.subscribe-popup .subscribe-button:hover {
+    background: var(--button-hover-bg, #4a7e09);
+}
+
+.popup-buttons {
+    display: flex;
+    gap: 0.5em;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.popup-buttons button {
+    padding: 0.5em 1em;
+    border: 1px solid var(--border-color, #ccc);
+    border-radius: 4px;
+    background: var(--card-background, #f8f9fa);
+    color: var(--text-color, #333);
+    cursor: pointer;
+    font-size: 0.9em;
+}
+
+.popup-buttons button:hover {
+    background: var(--border-color, #e9ecef);
+}
+
+/* Newsletter archive link in popup */
+.subscribe-popup p:has(> a[href="/newsletters"]) {
+    margin-top: 0.5em;
+    margin-bottom: 1em;
+}
+
+.subscribe-popup p a[href="/newsletters"] {
+    color: var(--accent, #53940b);
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 0.95em;
+}
+
+.subscribe-popup p a[href="/newsletters"]:hover {
+    text-decoration: underline;
+}
+
+/* ==========================================================================
+   Shortcode Newsletter Forms
+   ========================================================================== */
+
+.newsletter-subscription-form {
+    background: var(--card-background, #f8f9fa);
+    border: 1px solid var(--border-color, #e9ecef);
+    border-radius: 8px;
+    padding: 2em;
+    margin: 2em 0;
+    text-align: center;
+}
+
+.newsletter-form-title {
+    margin-bottom: 0.5em;
+    color: var(--heading-color, #333);
+    font-size: 1.3em;
+    font-weight: 600;
+}
+
+.newsletter-form-description {
+    margin-bottom: 1.5em;
+    color: var(--text-color, #666);
+    font-size: 1em;
+}
+
+.newsletter-shortcode-form .newsletter-form-fields {
+    display: flex;
+    gap: 0.5em;
+    justify-content: center;
+    align-items: center;
+    max-width: 400px;
+    margin: 0 auto 1em;
+}
+
+.newsletter-shortcode-form input[type="email"] {
+    flex: 1;
+    padding: 0.75em 1em;
+    border: 1px solid var(--border-color, #ccc);
+    border-radius: 4px;
+    font-size: 1em;
+}
+
+.newsletter-submit-button {
+    background: var(--accent, #53940b);
+    color: #fff;
+    border: none;
+    padding: 0.75em 1.5em;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.newsletter-submit-button:hover {
+    background: var(--button-hover-bg, #4a7e09);
+}
+
+/* ==========================================================================
+   Responsive Design
+   ========================================================================== */
+
+@media (max-width: 900px) {
+    .home-newsletter-about-row {
+        flex-direction: column;
+        gap: 2em;
+        margin: 2.5em auto 2.5em auto;
+    }
+
+    .home-newsletter-signup,
+    .home-about-box {
+        max-width: 100%;
+    }
+
+    .home-newsletter-signup .newsletter-form,
+    .newsletter-footer-form .newsletter-form-group,
+    .newsletter-content-form .newsletter-form-group {
+        flex-direction: column;
+        gap: 1em;
+    }
+
+    .home-newsletter-signup input[type="email"],
+    .home-newsletter-signup button[type="submit"],
+    .newsletter-footer-form input[type="email"],
+    .newsletter-footer-form button[type="submit"],
+    .newsletter-content-form input[type="email"],
+    .newsletter-content-form button[type="submit"] {
+        width: 100%;
+    }
+
+    .subscribe-popup {
+        max-width: 320px;
+        padding: 1.5em;
+    }
+
+    .popup-buttons {
+        flex-direction: column;
+    }
+
+    .popup-buttons button {
+        width: 100%;
+        margin-bottom: 0.5em;
+    }
+
+    .newsletter-shortcode-form .newsletter-form-fields {
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .newsletter-shortcode-form input[type="email"] {
+        width: 100%;
+        margin-bottom: 1em;
+    }
+
+    .menu-newsletter .newsletter-form {
+        max-width: 80%;
+    }
+}
+
+@media (max-width: 600px) {
+    .newsletter-content-section,
+    .newsletter-footer-section,
+    .newsletter-subscription-form {
+        padding: 1.5em 1em;
+        margin: 1.5em 0;
+    }
+
+    .home-newsletter-signup {
+        padding: 2em 1.5em;
+    }
+
+    .home-newsletter-header {
+        font-size: 1.5em;
+    }
+
+    .home-newsletter-subhead {
+        font-size: 1.1em;
+    }
+
+    .subscribe-popup {
+        max-width: 280px;
+        padding: 1.2em;
+    }
+
+    .festival-wire-tip-form-container {
+        padding: 1.5rem;
+        margin: 1.5rem auto;
+    }
+
+    .tip-form-title {
+        font-size: 1.4rem;
+    }
+
+    .festival-wire-tip-form input[type="text"],
+    .festival-wire-tip-form input[type="email"],
+    .festival-wire-tip-form textarea {
+        padding: 0.65rem;
+        font-size: 0.95rem;
+    }
+
+    .festival-wire-tip-form button[type="submit"] {
+        width: 100%;
+        padding: 0.8rem;
+    }
+}

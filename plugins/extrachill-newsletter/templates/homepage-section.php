@@ -34,7 +34,7 @@ if ( ! is_front_page() ) {
             <?php _e('Stories, reflections, and music industry insights from the underground.', 'extrachill-newsletter'); ?>
         </p>
 
-        <form id="homepageNewsletterForm" class="newsletter-form home-newsletter-form">
+        <form id="homepageNewsletterForm" class="newsletter-form newsletter-horizontal-form">
             <label for="newsletter-email-home" class="sr-only">
                 <?php _e('Email address for newsletter', 'extrachill-newsletter'); ?>
             </label>

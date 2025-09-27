@@ -227,184 +227,143 @@
     }
 
     /**
-     * Newsletter Popup System
+     * Content Newsletter Form Handler
      *
-     * Creates and manages newsletter subscription popup
+     * Handles subscription form that appears after post content
      */
-    function initNewsletterPopup() {
-        // Don't show popup if user has already subscribed recently or has session token
-        if (localStorage.getItem('subscribed') === 'true') {
-            return;
-        }
+    function initContentForm() {
+        const contentForm = document.getElementById('contentNewsletterForm');
+        if (!contentForm) return;
 
-        // Create overlay if it doesn't exist
-        let overlay = document.querySelector('.overlay');
-        if (!overlay) {
-            overlay = document.createElement('div');
-            overlay.className = 'overlay';
-            document.body.appendChild(overlay);
-        }
+        const emailInput = contentForm.querySelector('input[name="email"]');
+        const submitButton = contentForm.querySelector('button[type="submit"]');
+        const nonceField = contentForm.querySelector('input[name="nonce"]');
+        const feedback = contentForm.parentNode.querySelector('.newsletter-feedback');
 
-        /**
-         * Create popup with specified content
-         */
-        function createPopup(headerText, inputPlaceholder, buttonText, popupClass, replaceExisting = false) {
-            let popup;
-            const closeButtonText = localStorage.getItem('subscribed') === 'true' ? "Close" : "Sorry, I'm Not That Chill";
+        if (!emailInput || !submitButton || !nonceField || !feedback) return;
 
-            if (replaceExisting) {
-                popup = document.querySelector('.' + popupClass);
-                if (popup) {
-                    popup.innerHTML = `
-                        <p>${headerText}</p>
-                        <button class="close-popup">${closeButtonText}</button>
-                        <button class="follow-instagram">Follow Instagram</button>`;
-                }
-            } else {
-                popup = document.createElement('div');
-                popup.className = popupClass;
+        contentForm.addEventListener('submit', function(e) {
+            e.preventDefault();
 
-                let linkHTML = '';
-                if (popupClass === 'subscribe-popup') {
-                    linkHTML = `<p style="text-align:center;"><a href="/newsletters" target="_blank">See past Newsletters</a></p>`;
-                }
+            // Disable submit button
+            const originalButtonText = submitButton.textContent;
+            submitButton.disabled = true;
+            submitButton.textContent = 'Subscribing...';
+            feedback.style.display = 'none';
 
-                popup.innerHTML = `
-                    <p>${headerText}</p>
-                    <form>
-                        <input type="text" name="email" placeholder="${inputPlaceholder}" required>
-                        <button class="subscribe-button" type="submit">${buttonText}</button>
-                    </form>
-                    ${linkHTML}
-                    <span class="popup-buttons">
-                    <button class="follow-instagram">Follow Instagram</button>
-                    <button class="close-popup">${closeButtonText}</button>
-                    </span>`;
+            // Prepare form data
+            const formData = new FormData();
+            formData.append('action', 'submit_newsletter_content_form');
+            formData.append('email', emailInput.value);
+            formData.append('nonce', nonceField.value);
 
-                document.body.appendChild(popup);
-                overlay.style.display = 'block';
-            }
+            fetch(newsletterParams?.ajaxurl || '/wp-admin/admin-ajax.php', {
+                method: 'POST',
+                credentials: 'same-origin',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                feedback.style.display = 'block';
 
-            return popup;
-        }
+                if (data.success) {
+                    feedback.textContent = data.data || 'Successfully subscribed!';
+                    feedback.style.color = '#28a745';
+                    emailInput.value = '';
 
-        /**
-         * Handle scroll-triggered popup display
-         */
-        function handleScrollAndPopup() {
-            const subscribed = localStorage.getItem('subscribed');
-            let popupTriggered = false;
-
-            // Check for trigger elements
-            const primaryTriggerDiv = document.querySelector('.community-cta');
-            const secondaryTriggerDiv = document.querySelector('#extra-footer');
-            const targetDiv = primaryTriggerDiv || secondaryTriggerDiv;
-
-            if (!targetDiv) return;
-
-            const observer = new IntersectionObserver((entries, observer) => {
-                entries.forEach(entry => {
-                    if (entry.isIntersecting && !popupTriggered) {
-                        popupTriggered = true;
-                        observer.unobserve(entry.target);
-
-                        if (subscribed !== 'true') {
-                            createPopup(
-                                'Independent music journalism with personality! Enter your email for a good time.',
-                                'Enter your email',
-                                'Subscribe',
-                                'subscribe-popup'
-                            );
-                        }
+                    // Update localStorage
+                    if (window.localStorage) {
+                        localStorage.setItem('subscribed', 'true');
+                        localStorage.setItem('lastSubscribedTime', Date.now().toString());
                     }
-                });
-            }, { threshold: 0.5 });
-
-            observer.observe(targetDiv);
-        }
-
-        /**
-         * Handle popup interactions
-         */
-        function initPopupInteractions() {
-            document.addEventListener('pointerup', function(event) {
-                if (event.pointerType === 'mouse' && event.button !== 0) return;
-
-                // Close popup
-                if (event.target.classList.contains('close-popup')) {
-                    event.stopPropagation();
-                    const popup = event.target.closest('.subscribe-popup');
-                    if (popup) {
-                        popup.remove();
-                        overlay.style.display = 'none';
-                    }
-                    sessionStorage.removeItem('popupShown');
+                } else {
+                    feedback.textContent = data.data || 'Subscription failed. Please try again.';
+                    feedback.style.color = '#dc3545';
                 }
-
-                // Follow Instagram
-                if (event.target.classList.contains('follow-instagram')) {
-                    window.open('https://www.instagram.com/extrachill', '_blank');
-                }
-            }, true);
-
-            // Handle popup form submission
-            document.body.addEventListener('submit', function(event) {
-                if (event.target.closest('.subscribe-popup form')) {
-                    event.preventDefault();
-
-                    const form = event.target;
-                    const emailInput = form.querySelector('input[name="email"]');
-                    const submitButton = form.querySelector('.subscribe-button');
-
-                    if (!emailInput || !submitButton) return;
-
-                    // Disable button
-                    submitButton.disabled = true;
-                    const originalText = submitButton.textContent;
-                    submitButton.textContent = 'Subscribing...';
-
-                    const formData = new FormData();
-                    formData.append('action', 'submit_newsletter_popup_form');
-                    formData.append('email', emailInput.value);
-                    formData.append('nonce', newsletter_vars?.nonce || '');
-
-                    fetch(newsletter_vars?.ajaxurl || '/wp-admin/admin-ajax.php', {
-                        method: 'POST',
-                        credentials: 'same-origin',
-                        body: formData
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            createPopup(
-                                'Thank you for subscribing! Stay tuned for updates.',
-                                '', '', 'subscribe-popup', true
-                            );
-
-                            // Update localStorage
-                            localStorage.setItem('subscribed', 'true');
-                            localStorage.setItem('lastSubscribedTime', Date.now().toString());
-                        } else {
-                            alert('Error: ' + (data.data || 'Subscription failed'));
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Newsletter popup error:', error);
-                        alert('Error: Network problem. Please try again.');
-                    })
-                    .finally(() => {
-                        // Reset button
-                        submitButton.disabled = false;
-                        submitButton.textContent = originalText;
-                    });
-                }
+            })
+            .catch(error => {
+                console.error('Newsletter subscription error:', error);
+                feedback.style.display = 'block';
+                feedback.textContent = 'An error occurred. Please try again.';
+                feedback.style.color = '#dc3545';
+            })
+            .finally(() => {
+                // Reset button
+                submitButton.disabled = false;
+                submitButton.textContent = originalButtonText;
             });
-        }
-
-        // Initialize popup system
-        initPopupInteractions();
-        handleScrollAndPopup();
+        });
     }
+
+    /**
+     * Footer Newsletter Form Handler
+     *
+     * Handles subscription form that appears above the footer
+     */
+    function initFooterForm() {
+        const footerForm = document.getElementById('footerNewsletterForm');
+        if (!footerForm) return;
+
+        const emailInput = footerForm.querySelector('input[name="email"]');
+        const submitButton = footerForm.querySelector('button[type="submit"]');
+        const nonceField = footerForm.querySelector('input[name="nonce"]');
+        const feedback = footerForm.parentNode.querySelector('.newsletter-feedback');
+
+        if (!emailInput || !submitButton || !nonceField || !feedback) return;
+
+        footerForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            // Disable submit button
+            const originalButtonText = submitButton.textContent;
+            submitButton.disabled = true;
+            submitButton.textContent = 'Subscribing...';
+            feedback.style.display = 'none';
+
+            // Prepare form data
+            const formData = new FormData();
+            formData.append('action', 'submit_newsletter_footer_form');
+            formData.append('email', emailInput.value);
+            formData.append('nonce', nonceField.value);
+
+            fetch(newsletterParams?.ajaxurl || '/wp-admin/admin-ajax.php', {
+                method: 'POST',
+                credentials: 'same-origin',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                feedback.style.display = 'block';
+
+                if (data.success) {
+                    feedback.textContent = data.data || 'Successfully subscribed!';
+                    feedback.style.color = '#28a745';
+                    emailInput.value = '';
+
+                    // Update localStorage
+                    if (window.localStorage) {
+                        localStorage.setItem('subscribed', 'true');
+                        localStorage.setItem('lastSubscribedTime', Date.now().toString());
+                    }
+                } else {
+                    feedback.textContent = data.data || 'Subscription failed. Please try again.';
+                    feedback.style.color = '#dc3545';
+                }
+            })
+            .catch(error => {
+                console.error('Newsletter subscription error:', error);
+                feedback.style.display = 'block';
+                feedback.textContent = 'An error occurred. Please try again.';
+                feedback.style.color = '#dc3545';
+            })
+            .finally(() => {
+                // Reset button
+                submitButton.disabled = false;
+                submitButton.textContent = originalButtonText;
+            });
+        });
+    }
+
 
     /**
      * Initialize shortcode forms
@@ -481,6 +440,135 @@
     }
 
     /**
+     * Initialize Festival Wire Tip Form
+     *
+     * Handles tip form submissions with Turnstile verification and newsletter integration
+     */
+    function initFestivalTipForm() {
+        const form = document.getElementById('festival-wire-tip-form');
+        const messageDiv = form?.querySelector('.festival-wire-tip-message');
+        const submitButton = form?.querySelector('.festival-wire-tip-submit');
+        const textarea = document.getElementById('festival-wire-tip-content');
+        const charCount = document.getElementById('char-count');
+
+        if (!form) {
+            return; // Form not present on this page
+        }
+
+        // Character counter functionality
+        if (textarea && charCount) {
+            textarea.addEventListener('input', function() {
+                const currentLength = this.value.length;
+                charCount.textContent = currentLength;
+
+                // Change color when approaching limit
+                const parent = charCount.parentElement;
+                if (currentLength > 900) {
+                    parent.style.color = '#d32f2f';
+                } else if (currentLength > 800) {
+                    parent.style.color = '#ff9800';
+                } else {
+                    parent.style.color = '#666';
+                }
+            });
+        }
+
+        // Form submission
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            if (submitButton.disabled) {
+                return;
+            }
+
+            // Get form data
+            const content = document.getElementById('festival-wire-tip-content')?.value;
+            const email = document.getElementById('festival-wire-tip-email')?.value;
+            const isCommunityMember = form.dataset.communityMember === 'true';
+
+            // Basic validation
+            if (!content || content.trim().length < 10) {
+                showTipMessage('Please provide a more detailed tip (at least 10 characters).', 'error');
+                return;
+            }
+
+            if (!isCommunityMember && (!email || !isValidEmail(email))) {
+                showTipMessage('Please enter a valid email address.', 'error');
+                return;
+            }
+
+            // Get Turnstile response if present
+            const turnstileResponse = window.turnstile ? window.turnstile.getResponse() : '';
+
+            // Prepare data for AJAX
+            const formData = new FormData();
+            formData.append('action', 'newsletter_festival_wire_tip_submission');
+            formData.append('content', content);
+            if (!isCommunityMember) {
+                formData.append('email', email);
+            }
+            formData.append('cf-turnstile-response', turnstileResponse);
+
+            // Add nonce if present
+            const nonceField = form.querySelector('input[name="newsletter_festival_tip_nonce_field"]');
+            if (nonceField) {
+                formData.append('newsletter_festival_tip_nonce_field', nonceField.value);
+            }
+
+            // Disable submit button and show loading state
+            submitButton.disabled = true;
+            const originalText = submitButton.textContent;
+            submitButton.textContent = 'Submitting...';
+            messageDiv.innerHTML = '';
+
+            // Submit via AJAX
+            fetch(newsletterParams?.ajaxurl || '/wp-admin/admin-ajax.php', {
+                method: 'POST',
+                credentials: 'same-origin',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showTipMessage(data.data.message || 'Thank you for your tip!', 'success');
+
+                    // Reset form
+                    form.reset();
+
+                    // Reset character counter
+                    if (charCount) {
+                        charCount.textContent = '0';
+                        charCount.parentElement.style.color = '#666';
+                    }
+
+                    // Reset turnstile if it exists
+                    if (window.turnstile) {
+                        window.turnstile.reset();
+                    }
+                } else {
+                    showTipMessage(data.data.message || 'There was an error submitting your tip. Please try again.', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Festival tip submission error:', error);
+                showTipMessage('There was a network error. Please try again.', 'error');
+            })
+            .finally(() => {
+                // Re-enable submit button
+                submitButton.disabled = false;
+                submitButton.textContent = originalText;
+            });
+        });
+
+        function showTipMessage(message, type) {
+            if (messageDiv) {
+                messageDiv.innerHTML = `<div class="form-status ${type}">${message}</div>`;
+                messageDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+        }
+    }
+
+    /**
      * Initialize all newsletter functionality when DOM is ready
      */
     function initNewsletter() {
@@ -488,17 +576,12 @@
         initArchiveForm();
         initHomepageForm();
         initNavigationForm();
+        initContentForm();
+        initFooterForm();
         initShortcodeForms();
+        initFestivalTipForm();
 
-        // Initialize popup system (only on appropriate pages)
-        // Note: Logged-in user filtering handled server-side via enqueue_newsletter_popup_scripts()
-        const shouldShowPopup = !document.body.classList.contains('home') &&
-                               !document.body.classList.contains('page-template-contact') &&
-                               !document.body.classList.contains('post-type-archive-festival_wire');
-
-        if (shouldShowPopup) {
-            initNewsletterPopup();
-        }
+        // Newsletter popup functionality moved to dedicated newsletter-popup.js module
 
         // Add form validation to all newsletter forms
         const newsletterForms = document.querySelectorAll('.newsletter-form, .newsletter-shortcode-form');

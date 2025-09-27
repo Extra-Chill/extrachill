@@ -16,7 +16,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 ?>
 
 <li class="menu-newsletter">
-	<form class="newsletter-form newsletter-nav-form" id="navigationNewsletterForm">
+	<form class="newsletter-form newsletter-inline-form" id="navigationNewsletterForm">
 		<label for="newsletter-email-nav" class="sr-only"><?php _e('Get our Newsletter', 'extrachill-newsletter'); ?></label>
 		<input type="email" id="newsletter-email-nav" name="email" placeholder="<?php esc_attr_e('Enter your email', 'extrachill-newsletter'); ?>" required>
 		<input type="hidden" name="action" value="subscribe_to_sendy">

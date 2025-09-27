@@ -85,11 +85,11 @@ function newsletter_admin_init() {
 		'newsletter_settings'
 	);
 
-	// Feature Configuration Section
+	// Integration Configuration Section
 	add_settings_section(
-		'newsletter_features_section',
-		__('Feature Configuration', 'extrachill-newsletter'),
-		'newsletter_features_section_callback',
+		'newsletter_integrations_section',
+		__('Integration Configuration', 'extrachill-newsletter'),
+		'newsletter_integrations_section_callback',
 		'newsletter_settings'
 	);
 
@@ -101,10 +101,12 @@ add_action('admin_init', 'newsletter_admin_init');
 /**
  * Add settings fields
  *
- * @since 1.0.0
+ * Dynamically generates settings fields based on registered integrations.
+ *
+ * @since 2.0.0
  */
 function newsletter_add_settings_fields() {
-	// API fields
+	// API fields (static)
 	add_settings_field(
 		'sendy_api_key',
 		__('Sendy API Key', 'extrachill-newsletter'),
@@ -121,72 +123,7 @@ function newsletter_add_settings_fields() {
 		'newsletter_api_section'
 	);
 
-	// List fields
-	add_settings_field(
-		'archive_list_id',
-		__('Archive Page List ID', 'extrachill-newsletter'),
-		'newsletter_field_archive_list',
-		'newsletter_settings',
-		'newsletter_lists_section'
-	);
-
-	add_settings_field(
-		'homepage_list_id',
-		__('Homepage List ID', 'extrachill-newsletter'),
-		'newsletter_field_homepage_list',
-		'newsletter_settings',
-		'newsletter_lists_section'
-	);
-
-	add_settings_field(
-		'popup_list_id',
-		__('Popup List ID', 'extrachill-newsletter'),
-		'newsletter_field_popup_list',
-		'newsletter_settings',
-		'newsletter_lists_section'
-	);
-
-	add_settings_field(
-		'navigation_list_id',
-		__('Navigation List ID', 'extrachill-newsletter'),
-		'newsletter_field_navigation_list',
-		'newsletter_settings',
-		'newsletter_lists_section'
-	);
-
-	add_settings_field(
-		'content_list_id',
-		__('Content Form List ID', 'extrachill-newsletter'),
-		'newsletter_field_content_list',
-		'newsletter_settings',
-		'newsletter_lists_section'
-	);
-
-	add_settings_field(
-		'footer_list_id',
-		__('Footer Form List ID', 'extrachill-newsletter'),
-		'newsletter_field_footer_list',
-		'newsletter_settings',
-		'newsletter_lists_section'
-	);
-
-	add_settings_field(
-		'contact_list_id',
-		__('Contact Form List ID', 'extrachill-newsletter'),
-		'newsletter_field_contact_list',
-		'newsletter_settings',
-		'newsletter_lists_section'
-	);
-
-	add_settings_field(
-		'campaign_list_id',
-		__('Campaign List ID', 'extrachill-newsletter'),
-		'newsletter_field_campaign_list',
-		'newsletter_settings',
-		'newsletter_lists_section'
-	);
-
-	// Email fields
+	// Email fields (static)
 	add_settings_field(
 		'from_name',
 		__('From Name', 'extrachill-newsletter'),
@@ -219,76 +156,91 @@ function newsletter_add_settings_fields() {
 		'newsletter_email_section'
 	);
 
-	// Feature fields
+	// Campaign list field (static)
 	add_settings_field(
-		'enable_popup',
-		__('Enable Popup', 'extrachill-newsletter'),
-		'newsletter_field_enable_popup',
+		'campaign_list_id',
+		__('Campaign List ID', 'extrachill-newsletter'),
+		'newsletter_field_campaign_list',
 		'newsletter_settings',
-		'newsletter_features_section'
+		'newsletter_lists_section'
 	);
 
-	add_settings_field(
-		'enable_navigation',
-		__('Enable Navigation Form', 'extrachill-newsletter'),
-		'newsletter_field_enable_navigation',
-		'newsletter_settings',
-		'newsletter_features_section'
-	);
+	// Dynamic integration fields
+	newsletter_add_integration_fields();
+}
 
-	add_settings_field(
-		'enable_content',
-		__('Enable Content Form', 'extrachill-newsletter'),
-		'newsletter_field_enable_content',
-		'newsletter_settings',
-		'newsletter_features_section'
-	);
+/**
+ * Add dynamic integration fields
+ *
+ * Generates settings fields for all registered newsletter integrations.
+ *
+ * @since 2.0.0
+ */
+function newsletter_add_integration_fields() {
+	$integrations = get_newsletter_integrations();
 
-	add_settings_field(
-		'enable_footer',
-		__('Enable Footer Form', 'extrachill-newsletter'),
-		'newsletter_field_enable_footer',
-		'newsletter_settings',
-		'newsletter_features_section'
-	);
+	foreach ($integrations as $context => $integration) {
+		// Add enable/disable field
+		add_settings_field(
+			$integration['enable_key'],
+			$integration['label'],
+			function() use ($integration) {
+				newsletter_field_integration_enable($integration);
+			},
+			'newsletter_settings',
+			'newsletter_integrations_section'
+		);
+
+		// Add list ID field
+		add_settings_field(
+			$integration['list_id_key'],
+			sprintf(__('%s List ID', 'extrachill-newsletter'), $integration['label']),
+			function() use ($integration) {
+				newsletter_field_integration_list_id($integration);
+			},
+			'newsletter_settings',
+			'newsletter_lists_section'
+		);
+	}
 }
 
 /**
  * Sanitize settings before saving
  *
- * @since 1.0.0
+ * Dynamically sanitizes all settings including registered integrations.
+ *
+ * @since 2.0.0
  * @param array $input Raw input data
  * @return array Sanitized data
  */
 function newsletter_sanitize_settings($input) {
 	$sanitized = array();
 
-	// API Configuration
+	// API Configuration (static)
 	$sanitized['sendy_api_key'] = sanitize_text_field($input['sendy_api_key'] ?? '');
 	$sanitized['sendy_url'] = esc_url_raw($input['sendy_url'] ?? '');
 
-	// List Configuration
-	$sanitized['archive_list_id'] = sanitize_text_field($input['archive_list_id'] ?? '');
-	$sanitized['homepage_list_id'] = sanitize_text_field($input['homepage_list_id'] ?? '');
-	$sanitized['popup_list_id'] = sanitize_text_field($input['popup_list_id'] ?? '');
-	$sanitized['navigation_list_id'] = sanitize_text_field($input['navigation_list_id'] ?? '');
-	$sanitized['content_list_id'] = sanitize_text_field($input['content_list_id'] ?? '');
-	$sanitized['footer_list_id'] = sanitize_text_field($input['footer_list_id'] ?? '');
-	$sanitized['contact_list_id'] = sanitize_text_field($input['contact_list_id'] ?? '');
-	$sanitized['campaign_list_id'] = sanitize_text_field($input['campaign_list_id'] ?? '');
-
-	// Email Configuration
+	// Email Configuration (static)
 	$sanitized['from_name'] = sanitize_text_field($input['from_name'] ?? 'Extra Chill');
 	$sanitized['from_email'] = sanitize_email($input['from_email'] ?? 'newsletter@extrachill.com');
 	$sanitized['reply_to'] = sanitize_email($input['reply_to'] ?? 'chubes@extrachill.com');
 	$sanitized['brand_id'] = sanitize_text_field($input['brand_id'] ?? '1');
 
-	// Feature Configuration
-	$sanitized['enable_popup'] = !empty($input['enable_popup']) ? 1 : 0;
-	$sanitized['enable_navigation'] = !empty($input['enable_navigation']) ? 1 : 0;
-	$sanitized['enable_content'] = !empty($input['enable_content']) ? 1 : 0;
-	$sanitized['enable_footer'] = !empty($input['enable_footer']) ? 1 : 0;
+	// Campaign list (static)
+	$sanitized['campaign_list_id'] = sanitize_text_field($input['campaign_list_id'] ?? '');
+
+	// Legacy field
 	$sanitized['popup_exclusion_pages'] = sanitize_textarea_field($input['popup_exclusion_pages'] ?? '');
+
+	// Dynamic integration fields
+	$integrations = get_newsletter_integrations();
+	foreach ($integrations as $context => $integration) {
+		// Sanitize enable key
+		$sanitized[$integration['enable_key']] = !empty($input[$integration['enable_key']]) ? 1 : 0;
+
+		// Sanitize list ID key
+		$sanitized[$integration['list_id_key']] = sanitize_text_field($input[$integration['list_id_key']] ?? '');
+	}
 
 	return $sanitized;
 }
@@ -296,31 +248,29 @@ function newsletter_sanitize_settings($input) {
 /**
  * Get newsletter settings with defaults
  *
- * @since 1.0.0
+ * Dynamically generates defaults based on registered integrations.
+ *
+ * @since 2.0.0
  * @return array Settings array
  */
 function get_newsletter_settings() {
 	$defaults = array(
 		'sendy_api_key' => '',
 		'sendy_url' => 'https://mail.extrachill.com/sendy',
-		'archive_list_id' => '',
-		'homepage_list_id' => '',
-		'popup_list_id' => '',
-		'navigation_list_id' => '',
-		'content_list_id' => '',
-		'footer_list_id' => '',
-		'contact_list_id' => '',
 		'campaign_list_id' => '',
 		'from_name' => 'Extra Chill',
 		'from_email' => 'newsletter@extrachill.com',
 		'reply_to' => 'chubes@extrachill.com',
 		'brand_id' => '1',
-		'enable_popup' => 1,
-		'enable_navigation' => 1,
-		'enable_content' => 1,
-		'enable_footer' => 1,
 		'popup_exclusion_pages' => "home\ncontact-us\nfestival-wire"
 	);
+
+	// Add defaults for registered integrations
+	$integrations = get_newsletter_integrations();
+	foreach ($integrations as $context => $integration) {
+		$defaults[$integration['enable_key']] = 1; // Enable by default
+		$defaults[$integration['list_id_key']] = '';
+	}
 
 	$settings = get_option('extrachill_newsletter_settings', array());
 	return wp_parse_args($settings, $defaults);
@@ -339,8 +289,31 @@ function newsletter_email_section_callback() {
 	echo '<p>' . __('Configure email sender information and branding.', 'extrachill-newsletter') . '</p>';
 }
 
-function newsletter_features_section_callback() {
-	echo '<p>' . __('Enable or disable newsletter features throughout the site.', 'extrachill-newsletter') . '</p>';
+function newsletter_integrations_section_callback() {
+	echo '<p>' . __('Configure newsletter integrations from all active plugins.', 'extrachill-newsletter') . '</p>';
+
+	// Show integration status overview
+	$integrations = get_newsletter_integrations();
+	if (!empty($integrations)) {
+		echo '<div class="newsletter-integrations-overview">';
+		echo '<h4>' . __('Registered Integrations:', 'extrachill-newsletter') . '</h4>';
+		echo '<ul>';
+		foreach ($integrations as $context => $integration) {
+			$enabled = newsletter_integration_enabled($integration['enable_key']);
+			$status = $enabled ? __('Enabled', 'extrachill-newsletter') : __('Disabled', 'extrachill-newsletter');
+			$status_class = $enabled ? 'enabled' : 'disabled';
+			echo '<li>';
+			echo '<strong>' . esc_html($integration['label']) . '</strong> ';
+			echo '<span class="integration-status ' . esc_attr($status_class) . '">(' . esc_html($status) . ')</span>';
+			echo '<br><em>' . esc_html($integration['description']) . '</em>';
+			if (!empty($integration['plugin'])) {
+				echo '<br><small>' . sprintf(__('Provided by: %s', 'extrachill-newsletter'), esc_html($integration['plugin'])) . '</small>';
+			}
+			echo '</li>';
+		}
+		echo '</ul>';
+		echo '</div>';
+	}
 }
 
 // Field callbacks
@@ -358,54 +331,6 @@ function newsletter_field_sendy_url() {
 	echo '<p class="description">' . __('Your Sendy installation URL (without trailing slash).', 'extrachill-newsletter') . '</p>';
 }
 
-function newsletter_field_archive_list() {
-	$settings = get_newsletter_settings();
-	$value = $settings['archive_list_id'];
-	echo '<input type="text" name="extrachill_newsletter_settings[archive_list_id]" value="' . esc_attr($value) . '" class="regular-text" />';
-	echo '<p class="description">' . __('List ID for newsletter archive page subscriptions.', 'extrachill-newsletter') . '</p>';
-}
-
-function newsletter_field_homepage_list() {
-	$settings = get_newsletter_settings();
-	$value = $settings['homepage_list_id'];
-	echo '<input type="text" name="extrachill_newsletter_settings[homepage_list_id]" value="' . esc_attr($value) . '" class="regular-text" />';
-	echo '<p class="description">' . __('List ID for homepage newsletter subscriptions.', 'extrachill-newsletter') . '</p>';
-}
-
-function newsletter_field_popup_list() {
-	$settings = get_newsletter_settings();
-	$value = $settings['popup_list_id'];
-	echo '<input type="text" name="extrachill_newsletter_settings[popup_list_id]" value="' . esc_attr($value) . '" class="regular-text" />';
-	echo '<p class="description">' . __('List ID for newsletter popup subscriptions.', 'extrachill-newsletter') . '</p>';
-}
-
-function newsletter_field_navigation_list() {
-	$settings = get_newsletter_settings();
-	$value = $settings['navigation_list_id'];
-	echo '<input type="text" name="extrachill_newsletter_settings[navigation_list_id]" value="' . esc_attr($value) . '" class="regular-text" />';
-	echo '<p class="description">' . __('List ID for navigation menu subscriptions.', 'extrachill-newsletter') . '</p>';
-}
-
-function newsletter_field_content_list() {
-	$settings = get_newsletter_settings();
-	$value = $settings['content_list_id'];
-	echo '<input type="text" name="extrachill_newsletter_settings[content_list_id]" value="' . esc_attr($value) . '" class="regular-text" />';
-	echo '<p class="description">' . __('List ID for post-content form subscriptions.', 'extrachill-newsletter') . '</p>';
-}
-
-function newsletter_field_footer_list() {
-	$settings = get_newsletter_settings();
-	$value = $settings['footer_list_id'];
-	echo '<input type="text" name="extrachill_newsletter_settings[footer_list_id]" value="' . esc_attr($value) . '" class="regular-text" />';
-	echo '<p class="description">' . __('List ID for footer form subscriptions.', 'extrachill-newsletter') . '</p>';
-}
-
-function newsletter_field_contact_list() {
-	$settings = get_newsletter_settings();
-	$value = $settings['contact_list_id'];
-	echo '<input type="text" name="extrachill_newsletter_settings[contact_list_id]" value="' . esc_attr($value) . '" class="regular-text" />';
-	echo '<p class="description">' . __('List ID for contact form subscriptions.', 'extrachill-newsletter') . '</p>';
-}
 
 function newsletter_field_campaign_list() {
 	$settings = get_newsletter_settings();
@@ -442,36 +367,41 @@ function newsletter_field_brand_id() {
 	echo '<p class="description">' . __('Sendy brand ID for newsletter campaigns.', 'extrachill-newsletter') . '</p>';
 }
 
-function newsletter_field_enable_popup() {
-	$settings = get_newsletter_settings();
-	$checked = $settings['enable_popup'] ? 'checked="checked"' : '';
-	echo '<label><input type="checkbox" name="extrachill_newsletter_settings[enable_popup]" value="1" ' . $checked . ' /> ';
-	echo __('Enable newsletter popup on site pages', 'extrachill-newsletter') . '</label>';
 
-	echo '<br><br><label for="popup_exclusion_pages">' . __('Pages to exclude from popup (one slug per line):', 'extrachill-newsletter') . '</label><br>';
-	echo '<textarea name="extrachill_newsletter_settings[popup_exclusion_pages]" id="popup_exclusion_pages" rows="4" cols="50">' . esc_textarea($settings['popup_exclusion_pages']) . '</textarea>';
-	echo '<p class="description">' . __('Enter page slugs (one per line) where the popup should not appear.', 'extrachill-newsletter') . '</p>';
+/**
+ * Dynamic integration enable field
+ *
+ * Renders enable/disable checkbox for a specific integration.
+ *
+ * @since 2.0.0
+ * @param array $integration Integration configuration
+ */
+function newsletter_field_integration_enable($integration) {
+	$settings = get_newsletter_settings();
+	$checked = !empty($settings[$integration['enable_key']]) ? 'checked="checked"' : '';
+	echo '<label><input type="checkbox" name="extrachill_newsletter_settings[' . esc_attr($integration['enable_key']) . ']" value="1" ' . $checked . ' /> ';
+	echo sprintf(__('Enable %s', 'extrachill-newsletter'), esc_html($integration['label'])) . '</label>';
+	if (!empty($integration['description'])) {
+		echo '<p class="description">' . esc_html($integration['description']) . '</p>';
+	}
+	if (!empty($integration['plugin'])) {
+		echo '<p class="description"><small>' . sprintf(__('Provided by: %s', 'extrachill-newsletter'), esc_html($integration['plugin'])) . '</small></p>';
+	}
 }
 
-function newsletter_field_enable_navigation() {
+/**
+ * Dynamic integration list ID field
+ *
+ * Renders list ID input field for a specific integration.
+ *
+ * @since 2.0.0
+ * @param array $integration Integration configuration
+ */
+function newsletter_field_integration_list_id($integration) {
 	$settings = get_newsletter_settings();
-	$checked = $settings['enable_navigation'] ? 'checked="checked"' : '';
-	echo '<label><input type="checkbox" name="extrachill_newsletter_settings[enable_navigation]" value="1" ' . $checked . ' /> ';
-	echo __('Enable newsletter form in navigation menu', 'extrachill-newsletter') . '</label>';
-}
-
-function newsletter_field_enable_content() {
-	$settings = get_newsletter_settings();
-	$checked = $settings['enable_content'] ? 'checked="checked"' : '';
-	echo '<label><input type="checkbox" name="extrachill_newsletter_settings[enable_content]" value="1" ' . $checked . ' /> ';
-	echo __('Enable newsletter form after post content', 'extrachill-newsletter') . '</label>';
-}
-
-function newsletter_field_enable_footer() {
-	$settings = get_newsletter_settings();
-	$checked = $settings['enable_footer'] ? 'checked="checked"' : '';
-	echo '<label><input type="checkbox" name="extrachill_newsletter_settings[enable_footer]" value="1" ' . $checked . ' /> ';
-	echo __('Enable newsletter form above footer', 'extrachill-newsletter') . '</label>';
+	$value = isset($settings[$integration['list_id_key']]) ? $settings[$integration['list_id_key']] : '';
+	echo '<input type="text" name="extrachill_newsletter_settings[' . esc_attr($integration['list_id_key']) . ']" value="' . esc_attr($value) . '" class="regular-text" />';
+	echo '<p class="description">' . sprintf(__('List ID for %s subscriptions.', 'extrachill-newsletter'), esc_html($integration['label'])) . '</p>';
 }
 
 /**

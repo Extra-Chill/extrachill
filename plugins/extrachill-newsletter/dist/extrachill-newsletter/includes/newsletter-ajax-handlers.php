@@ -197,64 +197,6 @@ function handle_subscribe_to_sendy_nav() {
 add_action('wp_ajax_subscribe_to_sendy', 'handle_subscribe_to_sendy_nav');
 add_action('wp_ajax_nopriv_subscribe_to_sendy', 'handle_subscribe_to_sendy_nav');
 
-/**
- * Enqueue Newsletter Popup Scripts
- *
- * Conditionally loads newsletter popup JavaScript based on user session
- * and page context. Excludes certain pages from popup display.
- *
- * @since 1.0.0
- */
-function enqueue_newsletter_popup_scripts() {
-	// Check if popup is enabled in admin settings
-	$settings = get_option('extrachill_newsletter_settings', array());
-	if (empty($settings['enable_popup'])) {
-		return;
-	}
-
-	// Don't load if user is logged in (community user)
-	if (is_user_logged_in()) {
-		return;
-	}
-
-	// Determine if popup should load on current page
-	$load_script = true;
-
-	// Exclude homepage
-	if (is_front_page()) {
-		$load_script = false;
-	}
-
-	// Exclude contact page
-	if (is_page('contact-us')) {
-		$load_script = false;
-	}
-
-	// Exclude Festival Wire archive
-	if (is_post_type_archive('festival_wire')) {
-		$load_script = false;
-	}
-
-	// Load popup script if conditions are met
-	if ($load_script) {
-		$script_path = EXTRACHILL_NEWSLETTER_PLUGIN_DIR . 'assets/newsletter.js';
-		if (file_exists($script_path)) {
-			wp_enqueue_script(
-				'newsletter-popup-subscribe',
-				EXTRACHILL_NEWSLETTER_ASSETS_URL . 'newsletter.js',
-				array('jquery'),
-				filemtime($script_path),
-				true
-			);
-
-			// Localize popup-specific variables
-			wp_localize_script('newsletter-popup-subscribe', 'newsletter_vars', array(
-				'ajaxurl' => admin_url('admin-ajax.php'),
-				'nonce' => wp_create_nonce('newsletter_popup_nonce')
-			));
-		}
-	}
-}
 
 /**
  * Handle AJAX errors gracefully
@@ -414,3 +356,212 @@ function handle_submit_newsletter_footer_form() {
 }
 add_action('wp_ajax_submit_newsletter_footer_form', 'handle_submit_newsletter_footer_form');
 add_action('wp_ajax_nopriv_submit_newsletter_footer_form', 'handle_submit_newsletter_footer_form');
+
+/**
+ * AJAX Handler: Festival Wire Tip Submission
+ *
+ * Handles Festival Wire tip submissions with comprehensive validation:
+ * - Nonce and rate limiting verification
+ * - Community member detection via session cookie
+ * - Cloudflare Turnstile anti-spam verification
+ * - Email validation and newsletter subscription for non-members
+ * - Admin email notification
+ *
+ * @since 2.0.0
+ */
+function handle_newsletter_festival_wire_tip_submission() {
+	// Security and rate limiting verification
+	if ( ! check_ajax_referer( 'newsletter_festival_tip_nonce', 'newsletter_festival_tip_nonce_field', false ) ) {
+		wp_send_json_error( array( 'message' => __('Security check failed.', 'extrachill-newsletter') ) );
+	}
+
+	$user_ip = isset( $_SERVER['REMOTE_ADDR'] ) ? $_SERVER['REMOTE_ADDR'] : '';
+	if ( ! empty( $user_ip ) && newsletter_is_tip_rate_limited( $user_ip ) ) {
+		wp_send_json_error( array( 'message' => __('Please wait before submitting another tip.', 'extrachill-newsletter') ) );
+	}
+
+	// Community member detection via WordPress native authentication
+	$is_community_member = is_user_logged_in();
+	$user_details = null;
+	if ( $is_community_member ) {
+		$user = wp_get_current_user();
+		$user_details = array(
+			'username' => $user->user_nicename,
+			'email' => $user->user_email,
+			'userID' => $user->ID,
+		);
+	}
+
+	// Input validation and sanitization
+	$content = isset( $_POST['content'] ) ? sanitize_textarea_field( $_POST['content'] ) : '';
+	$email = isset( $_POST['email'] ) ? sanitize_email( $_POST['email'] ) : '';
+	$turnstile_response = isset( $_POST['cf-turnstile-response'] ) ? sanitize_text_field( $_POST['cf-turnstile-response'] ) : '';
+	$honeypot = isset( $_POST['website'] ) ? sanitize_text_field( $_POST['website'] ) : '';
+
+	// Anti-spam honeypot check
+	if ( ! empty( $honeypot ) ) {
+		wp_send_json_error( array( 'message' => __('Spam detected.', 'extrachill-newsletter') ) );
+	}
+
+	if ( empty( $content ) ) {
+		wp_send_json_error( array( 'message' => __('Please enter your tip.', 'extrachill-newsletter') ) );
+	}
+
+	// Email requirement for non-community members
+	if ( ! $is_community_member ) {
+		if ( empty( $email ) ) {
+			wp_send_json_error( array( 'message' => __('Email address is required.', 'extrachill-newsletter') ) );
+		}
+		if ( ! is_email( $email ) ) {
+			wp_send_json_error( array( 'message' => __('Please enter a valid email address.', 'extrachill-newsletter') ) );
+		}
+	}
+
+	// Content length validation
+	if ( strlen( $content ) > 1000 ) {
+		wp_send_json_error( array( 'message' => __('Your tip is too long. Please keep it under 1000 characters.', 'extrachill-newsletter') ) );
+	}
+
+	if ( strlen( $content ) < 10 ) {
+		wp_send_json_error( array( 'message' => __('Please provide a more detailed tip (at least 10 characters).', 'extrachill-newsletter') ) );
+	}
+
+	// Cloudflare Turnstile anti-spam verification
+	$turnstile_secret_key = get_option( 'ec_turnstile_secret_key' );
+	if ( ! empty( $turnstile_secret_key ) ) {
+		$verify_result = newsletter_verify_turnstile_response( $turnstile_response, $turnstile_secret_key );
+
+		if ( ! $verify_result['success'] ) {
+			wp_send_json_error( array( 'message' => __('Turnstile verification failed. Please try again.', 'extrachill-newsletter') ) );
+		}
+	}
+
+	// Newsletter subscription for non-community members via integration system
+	if ( ! $is_community_member && ! empty( $email ) ) {
+		$newsletter_result = subscribe_via_integration( $email, 'festival_wire_tip' );
+		if ( ! $newsletter_result['success'] ) {
+			error_log( 'Festival tip newsletter subscription failed for email: ' . $email . ' - ' . $newsletter_result['message'] );
+		}
+	}
+
+	// Email notification to admin
+	$to = get_option( 'admin_email' );
+	$subject = __('New Festival Wire Tip Submission', 'extrachill-newsletter');
+
+	$message = __("A new festival tip has been submitted:\n\n", 'extrachill-newsletter');
+	$message .= __("Tip: ", 'extrachill-newsletter') . $content . "\n\n";
+	$message .= __("User Type: ", 'extrachill-newsletter') . ( $is_community_member ? __('Community Member (', 'extrachill-newsletter') . $user_details['username'] . ')' : __('Guest', 'extrachill-newsletter') ) . "\n";
+	if ( ! $is_community_member && ! empty( $email ) ) {
+		$message .= __("Email: ", 'extrachill-newsletter') . $email . "\n";
+	}
+	$message .= __("IP Address: ", 'extrachill-newsletter') . $user_ip . "\n";
+	$message .= __("Submitted on: ", 'extrachill-newsletter') . current_time( 'mysql' ) . "\n";
+
+	$headers = array( 'Content-Type: text/plain; charset=UTF-8' );
+
+	$email_sent = wp_mail( $to, $subject, $message, $headers );
+
+	// Handle submission result
+	if ( $email_sent ) {
+		if ( ! empty( $user_ip ) ) {
+			newsletter_set_tip_rate_limit( $user_ip );
+		}
+		$success_message = $is_community_member
+			? __('Thank you for your tip! We will review it soon.', 'extrachill-newsletter')
+			: __('Thank you for your tip! We will review it soon and have added you to our festival updates.', 'extrachill-newsletter');
+		wp_send_json_success( array( 'message' => $success_message ) );
+	} else {
+		wp_send_json_error( array( 'message' => __('There was an error sending your tip. Please try again later.', 'extrachill-newsletter') ) );
+	}
+}
+add_action( 'wp_ajax_newsletter_festival_wire_tip_submission', 'handle_newsletter_festival_wire_tip_submission' );
+add_action( 'wp_ajax_nopriv_newsletter_festival_wire_tip_submission', 'handle_newsletter_festival_wire_tip_submission' );
+
+/**
+ * Verify Cloudflare Turnstile anti-spam response
+ *
+ * Validates Turnstile token with Cloudflare API for spam protection.
+ * Includes comprehensive error handling and logging.
+ *
+ * @since 2.0.0
+ * @param string $turnstile_response The turnstile response token
+ * @param string $secret_key The secret key for Turnstile
+ * @return array Verification result with success status
+ */
+function newsletter_verify_turnstile_response( $turnstile_response, $secret_key ) {
+	$verify_url = 'https://challenges.cloudflare.com/turnstile/v0/siteverify';
+
+	$args = array(
+		'body' => array(
+			'secret' => $secret_key,
+			'response' => $turnstile_response,
+			'remoteip' => isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : '',
+		),
+        'timeout' => 15,
+	);
+
+	$response = wp_remote_post( $verify_url, $args );
+
+	// Handle connection errors
+	if ( is_wp_error( $response ) ) {
+        error_log('Newsletter Turnstile Verification Error: ' . $response->get_error_message());
+		return array( 'success' => false, 'error' => 'Connection error: ' . $response->get_error_message() );
+	}
+
+	// Validate HTTP response
+	$response_code = wp_remote_retrieve_response_code( $response );
+    if ( $response_code !== 200 ) {
+        error_log('Newsletter Turnstile Verification HTTP Error: Code ' . $response_code . ' Body: ' . wp_remote_retrieve_body($response));
+        return array( 'success' => false, 'error' => 'HTTP error: ' . $response_code );
+    }
+
+	// Parse and validate JSON response
+	$response_body = wp_remote_retrieve_body( $response );
+	$result = json_decode( $response_body, true );
+
+    if ( $result === null ) {
+        error_log('Newsletter Turnstile Verification JSON Decode Error: Body - ' . $response_body);
+        return array( 'success' => false, 'error' => 'Invalid response format' );
+    }
+
+    // Log verification failures and validate response format
+    if ( isset( $result['success'] ) && ! $result['success'] && isset( $result['error-codes'] ) ) {
+         error_log('Newsletter Turnstile Verification Failed: ' . implode(', ', $result['error-codes']));
+    } elseif ( ! isset( $result['success'] ) ) {
+         error_log('Newsletter Turnstile Verification Unexpected Response: ' . $response_body);
+         return array( 'success' => false, 'error' => 'Unexpected response format' );
+    }
+
+	return $result;
+}
+
+/**
+ * Check IP address rate limiting for tip submissions
+ *
+ * Prevents spam by limiting submission frequency per IP address.
+ * Uses WordPress transients for temporary storage.
+ *
+ * @since 2.0.0
+ * @param string $ip The IP address to check
+ * @return bool True if rate limited, false otherwise
+ */
+function newsletter_is_tip_rate_limited( $ip ) {
+	$transient_key = 'newsletter_tip_rate_limit_' . md5( $ip );
+	$last_submission = get_transient( $transient_key );
+
+	return $last_submission !== false;
+}
+
+/**
+ * Set rate limit for IP address after successful submission
+ *
+ * Creates temporary block for IP address to prevent rapid submissions.
+ * Rate limit duration is 5 minutes (300 seconds).
+ *
+ * @since 2.0.0
+ * @param string $ip The IP address to rate limit
+ */
+function newsletter_set_tip_rate_limit( $ip ) {
+	$transient_key = 'newsletter_tip_rate_limit_' . md5( $ip );
+	set_transient( $transient_key, time(), 300 ); // 5 minutes
+}

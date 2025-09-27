@@ -26,7 +26,7 @@ get_header(); ?>
 
         <div class="newsletter-subscribe-form">
             <h2><?php _e('Subscribe to Our Newsletter', 'extrachill-newsletter'); ?></h2>
-            <form id="newsletterArchiveForm" class="newsletter-form">
+            <form id="newsletterArchiveForm" class="newsletter-form newsletter-section-form">
                 <label for="newsletter_archive_email"><?php _e('Email:', 'extrachill-newsletter'); ?></label><br>
                 <input type="email" id="newsletter_archive_email" name="email" required>
                 <input type="hidden" name="action" value="submit_newsletter_form">
@@ -107,7 +107,7 @@ get_header(); ?>
             <!-- Show subscription form even when no newsletters exist -->
             <div class="newsletter-subscribe-form">
                 <h3><?php _e('Subscribe to Our Newsletter', 'extrachill-newsletter'); ?></h3>
-                <form id="newsletterEmptyForm" class="newsletter-form">
+                <form id="newsletterEmptyForm" class="newsletter-form newsletter-section-form">
                     <label for="newsletter_empty_email"><?php _e('Email:', 'extrachill-newsletter'); ?></label><br>
                     <input type="email" id="newsletter_empty_email" name="email" required>
                     <input type="hidden" name="action" value="submit_newsletter_form">
