@@ -19,14 +19,14 @@ add_theme_support( 'responsive-embeds' );
 add_theme_support( 'wp-block-styles' );
 add_theme_support( 'align-wide' );
 
-
-
-
-
-
-
 add_action('after_setup_theme', 'extrachill_setup');
 
+/**
+ * ExtraChill theme setup function
+ * Configures theme features, menus, editor styles, and WordPress support
+ *
+ * @since 69.57
+ */
 if (!function_exists('extrachill_setup')):
     function extrachill_setup()
     {
@@ -41,13 +41,12 @@ if (!function_exists('extrachill_setup')):
         add_theme_support('title-tag');
         add_post_type_support('page', 'excerpt');
 
-        // Enhanced editor styles for block editor
         add_theme_support( 'editor-styles' );
         add_editor_style( 'assets/css/root.css' );
         add_editor_style( 'assets/css/editor-style.css' );
         add_editor_style( 'style.css' );
         add_editor_style( 'assets/css/single-post.css' );
-        
+
     add_theme_support('html5', array(
     'search-form',
     'comment-form',
@@ -56,19 +55,20 @@ if (!function_exists('extrachill_setup')):
     'caption',
     'script'
 ));
-        
+
         add_theme_support('custom-logo', array(
             'flex-width' => true,
             'flex-height' => true
         ));
-        
-        
 
     }
 endif;
 
 /**
- * Remove unnecessary WordPress image sizes for performance
+ * Remove unused WordPress image sizes for performance
+ * Eliminates generation of unused thumbnail and 2048x2048 image sizes
+ *
+ * @since 69.57
  */
 function extrachill_unregister_image_sizes() {
     remove_image_size('thumbnail');
@@ -81,44 +81,62 @@ add_action('init', 'extrachill_unregister_image_sizes', 99);
 define('EXTRACHILL_PARENT_DIR', get_template_directory());
 define('EXTRACHILL_INCLUDES_DIR', EXTRACHILL_PARENT_DIR . '/inc');
 
-
+// Core shared templates - reusable components across theme
 require_once(EXTRACHILL_INCLUDES_DIR . '/core/templates/post-meta.php');
 require_once(EXTRACHILL_INCLUDES_DIR . '/core/templates/pagination.php');
-require_once(EXTRACHILL_INCLUDES_DIR . '/single-post/comments.php');
+require_once(EXTRACHILL_INCLUDES_DIR . '/core/templates/no-results.php');
+require_once(EXTRACHILL_INCLUDES_DIR . '/single/comments.php');
 require_once(EXTRACHILL_INCLUDES_DIR . '/core/templates/share.php');
 require_once(EXTRACHILL_INCLUDES_DIR . '/core/templates/social-links.php');
+require_once(EXTRACHILL_INCLUDES_DIR . '/core/templates/taxonomy-badges.php');
 
+// Core functionality
 require_once(EXTRACHILL_INCLUDES_DIR . '/core/assets.php');
-require_once(EXTRACHILL_INCLUDES_DIR . '/core/breadcrumbs.php');
+require_once(EXTRACHILL_INCLUDES_DIR . '/core/templates/breadcrumbs.php');
 require_once(EXTRACHILL_INCLUDES_DIR . '/core/template-overrides.php');
 require_once(EXTRACHILL_INCLUDES_DIR . '/header/walker.php');
-
-require_once(EXTRACHILL_INCLUDES_DIR . '/core/city-state-taxonomy.php');
+require_once(EXTRACHILL_INCLUDES_DIR . '/core/custom-taxonomies.php');
 require_once(EXTRACHILL_INCLUDES_DIR . '/core/rewrite-rules.php');
 require_once(EXTRACHILL_INCLUDES_DIR . '/core/yoast-stuff.php');
-require_once(EXTRACHILL_INCLUDES_DIR . '/core/recent-posts-in-sidebar.php');
 
+// Sidebar functionality
+require_once(EXTRACHILL_INCLUDES_DIR . '/sidebar/recent-posts.php');
+require_once(EXTRACHILL_INCLUDES_DIR . '/sidebar/community-activity.php');
+
+// Admin functionality
 require_once(EXTRACHILL_INCLUDES_DIR . '/admin/log-404-errors.php');
 
+// Custom embeds
 require_once(EXTRACHILL_INCLUDES_DIR . '/core/editor/bandcamp-embeds.php');
 require_once(EXTRACHILL_INCLUDES_DIR . '/core/editor/instagram-embeds.php');
 require_once(EXTRACHILL_INCLUDES_DIR . '/core/editor/spotify-embeds.php');
-require_once(EXTRACHILL_INCLUDES_DIR . '/contextual-search-excerpt.php');
 
+// Archive functionality
 require_once(EXTRACHILL_INCLUDES_DIR . '/archives/archive-child-terms-dropdown.php');
 require_once(EXTRACHILL_INCLUDES_DIR . '/archives/archive-custom-sorting.php');
+require_once(EXTRACHILL_INCLUDES_DIR . '/archives/post-card.php');
 
-    
-add_filter('the_content', function($content)
-{
+// Single post/page functionality
+require_once(EXTRACHILL_INCLUDES_DIR . '/single/single-post.php');
+require_once(EXTRACHILL_INCLUDES_DIR . '/single/single-page.php');
+
+// Search functionality
+require_once(EXTRACHILL_INCLUDES_DIR . '/core/multisite/multisite-search.php');
+require_once(EXTRACHILL_INCLUDES_DIR . '/core/templates/searchform.php');
+
+// Remove default WordPress block margins for custom styling control
+add_filter('the_content', function($content) {
     return str_replace('margin-left: 1em; margin-right: 1em;', '', $content);
 });
 add_filter('auto_update_theme', '__return_false');
+
 /**
- * Disable WordPress emoji functionality for performance
+ * Disable WordPress emoji scripts and styles for performance optimization
+ * Removes all emoji-related scripts, styles, and filters to reduce HTTP requests
+ *
+ * @since 69.57
  */
-function disable_wp_emojicons()
-{
+function disable_wp_emojicons() {
     add_filter('tiny_mce_plugins', 'disable_emojicons_tinymce');
     remove_action('admin_print_styles', 'print_emoji_styles');
     remove_action('wp_head', 'print_emoji_detection_script', 1);
@@ -130,12 +148,16 @@ function disable_wp_emojicons()
     remove_filter('the_content', 'wp_staticize_emoji');
 }
 
-function disable_emojicons_tinymce($plugins)
-{
+/**
+ * Remove emoji plugin from TinyMCE editor
+ *
+ * @param array $plugins TinyMCE plugins array
+ * @return array Modified plugins array without wpemoji
+ * @since 69.57
+ */
+function disable_emojicons_tinymce($plugins) {
     if (is_array($plugins)) {
-        return array_diff($plugins, array(
-            'wpemoji'
-        ));
+        return array_diff($plugins, array('wpemoji'));
     } else {
         return array();
     }
@@ -144,7 +166,11 @@ function disable_emojicons_tinymce($plugins)
 add_action('init', 'disable_wp_emojicons');
 
 /**
- * Allow SVG file uploads
+ * Allow SVG file uploads by adding SVG MIME type
+ *
+ * @param array $file_types Existing MIME types
+ * @return array Modified MIME types including SVG support
+ * @since 69.57
  */
 function add_file_types_to_uploads($file_types)
 {
@@ -154,7 +180,12 @@ function add_file_types_to_uploads($file_types)
 add_action('upload_mimes', 'add_file_types_to_uploads');
 
 /**
- * Limit search results to specific post types
+ * Restrict search results to specific post types
+ * Limits search to posts, pages, and WooCommerce products only
+ *
+ * @param WP_Query $query WordPress query object
+ * @return WP_Query Modified query object
+ * @since 69.57
  */
 function exclude_from_search($query) {
     if ($query->is_main_query() && $query->is_search && !is_admin()) {
@@ -168,20 +199,38 @@ add_filter('pre_get_posts', 'exclude_from_search');
 
 
 /**
- * Load all community integration files using native WordPress multisite functions
+ * Load all multisite integration files using native WordPress multisite functions
+ * Uses glob() to dynamically include all PHP files in multisite directory
+ * Enables cross-site search, activity feeds, and license validation
+ *
+ * @since 69.57
  */
-function include_community_integration_files() {
-    $directory = get_template_directory() . '/inc/community/';
+function include_multisite_integration_files() {
+    $directory = get_template_directory() . '/inc/core/multisite/';
     $php_files = glob($directory . '*.php');
 
     foreach ($php_files as $file) {
         include_once $file;
     }
 }
-add_action('after_setup_theme', 'include_community_integration_files');
+add_action('after_setup_theme', 'include_multisite_integration_files');
+
+/**
+ * Multisite integration for community features
+ * ExtraChill Newsletter, Contact, and Shop functionality handled by dedicated plugins
+ * Includes cross-site search, activity feeds, and ad-free license validation
+ */
 
 
 
+/**
+ * Exclude password-protected posts from archives and listings
+ * Only applies to non-single views and frontend
+ *
+ * @param string $where SQL WHERE clause
+ * @return string Modified WHERE clause excluding password-protected posts
+ * @since 69.57
+ */
 function wpb_password_post_filter( $where = '' ) {
     if (!is_single() && !is_admin()) {
         $where .= " AND post_password = ''";
@@ -190,6 +239,12 @@ function wpb_password_post_filter( $where = '' ) {
 }
 add_filter( 'posts_where', 'wpb_password_post_filter' );
 
+/**
+ * Remove Dashicons for non-logged-in users for performance optimization
+ * Reduces CSS payload for frontend visitors
+ *
+ * @since 69.57
+ */
 function wpshapere_remove_dashicons_wordpress() {
   if ( ! is_user_logged_in() ) {
     wp_dequeue_style('dashicons');
@@ -200,20 +255,35 @@ add_action( 'wp_enqueue_scripts', 'wpshapere_remove_dashicons_wordpress' );
 
 
 add_filter( 'wp_robots', 'wpse_cleantags_add_noindex' );
+/**
+ * Add noindex directive to tag pages with less than 2 posts
+ * Prevents low-content tag pages from being indexed by search engines
+ *
+ * @param array $robots Robots directives array
+ * @return array Modified robots directives
+ * @since 69.57
+ */
 function wpse_cleantags_add_noindex( $robots ) {
     global $wp_query;
-
 
     if ( is_tag() && $wp_query->found_posts < 2 ) {
         $robots['noindex'] = true;
         $robots['follow']  = true;
     }
 
-
     return $robots;
 }
 
 
+/**
+ * Automatically add target="_blank" and security attributes to external links
+ * Adds rel="noopener noreferrer" for security and opens external links in new tab
+ * Excludes anchor links (#) and internal links
+ *
+ * @param string $content Post content HTML
+ * @return string Modified content with external link attributes
+ * @since 69.57
+ */
 function add_target_blank_to_external_links($content) {
     $home_url = home_url();
     $content = preg_replace_callback(
@@ -307,7 +377,6 @@ function wp_innovator_get_artists_in_category($category_name) {
 
 /**
  * Generate artist dropdown menu for category filtering
- * Note: JavaScript filtering functionality has been removed
  * @param string $category_name Category to filter artists for
  * @param string $filter_heading Display heading for filter section
  */
@@ -332,6 +401,12 @@ function wp_innovator_dropdown_menu($category_name, $filter_heading) {
 
 
 
+/**
+ * Register footer navigation menu locations
+ * Provides multiple footer menu areas for flexible footer layouts
+ *
+ * @since 69.57
+ */
 function extrachill_register_menus() {
     register_nav_menus(
         array(
@@ -340,8 +415,8 @@ function extrachill_register_menus() {
             'footer-3' => __( 'Footer 3' ),
             'footer-4' => __( 'Footer 4' ),
             'footer-5' => __( 'Footer 5' ),
-            'footer-extra' => __( 'Footer Extra' ), // New menu location
-            'navigation-footer' => __( 'Navigation Footer' ), // Navigation menu footer links
+            'footer-extra' => __( 'Footer Extra' ),
+            'navigation-footer' => __( 'Navigation Footer' ),
         )
     );
 }
@@ -349,6 +424,13 @@ add_action( 'init', 'extrachill_register_menus' );
 
 
 
+/**
+ * Randomize post order in archive pages when ?randomize parameter is present
+ * Allows users to discover content in random order via URL parameter
+ *
+ * @param WP_Query $query WordPress query object
+ * @since 69.57
+ */
 function wp_innovator_randomize_posts( $query ) {
     if ( $query->is_main_query() && !is_admin() && is_archive() && isset($_GET['randomize']) ) {
         $query->set( 'orderby', 'rand' );
@@ -359,6 +441,12 @@ add_action( 'pre_get_posts', 'wp_innovator_randomize_posts' );
 
 if ( is_plugin_active('co-authors-plus/co-authors-plus.php') ) {
     add_action( 'rest_api_init', 'custom_register_coauthors' );
+    /**
+     * Register coauthors field for REST API
+     * Enables access to Co-Authors Plus data via WordPress REST API
+     *
+     * @since 69.57
+     */
     function custom_register_coauthors() {
         register_rest_field( 'post',
             'coauthors',
@@ -370,6 +458,16 @@ if ( is_plugin_active('co-authors-plus/co-authors-plus.php') ) {
         );
     }
 
+    /**
+     * Get coauthors data for REST API response
+     * Returns array of coauthor information with fallback to default author
+     *
+     * @param array $object Post object data
+     * @param string $field_name Field name being requested
+     * @param WP_REST_Request $request REST request object
+     * @return array Array of author objects with display_name and user_nicename
+     * @since 69.57
+     */
     function custom_get_coauthors( $object, $field_name, $request ) {
         $coauthors = get_coauthors($object['id']);
 
@@ -396,6 +494,12 @@ if ( is_plugin_active('co-authors-plus/co-authors-plus.php') ) {
     }
 } else {
     add_action('admin_notices', 'extrachill_coauthors_notice');
+    /**
+     * Display admin notice when Co-Authors Plus plugin is not active
+     * Informs administrators about missing plugin dependency
+     *
+     * @since 69.57
+     */
     function extrachill_coauthors_notice() {
         echo '<div class="notice notice-warning is-dismissible"><p>Co-Authors Plus plugin is not active. Some author-related features may use fallbacks.</p></div>';
     }
@@ -405,6 +509,12 @@ if ( is_plugin_active('co-authors-plus/co-authors-plus.php') ) {
 
 
 
+/**
+ * Add custom favicon to site head
+ * Uses favicon.ico from site root directory
+ *
+ * @since 69.57
+ */
 function add_custom_favicon() {
     $favicon_url = get_site_url() . '/favicon.ico';
     echo '<link rel="icon" href="' . esc_url($favicon_url) . '" type="image/x-icon" />';
@@ -412,28 +522,55 @@ function add_custom_favicon() {
 add_action('wp_head', 'add_custom_favicon');
 
 /**
- * Default homepage sections - extensible via plugin hooks
+ * Default homepage hero section handler
+ * Includes hero template for homepage layout
+ *
+ * @since 69.57
  */
 function extrachill_default_homepage_hero() {
     include get_template_directory() . '/inc/home/templates/hero.php';
 }
 add_action( 'extrachill_homepage_hero', 'extrachill_default_homepage_hero', 10 );
 
+/**
+ * Default homepage top content section handler
+ * Includes 3x3 grid template for featured content
+ *
+ * @since 69.57
+ */
 function extrachill_default_homepage_content_top() {
     include get_template_directory() . '/inc/home/templates/section-3x3-grid.php';
 }
 add_action( 'extrachill_homepage_content_top', 'extrachill_default_homepage_content_top', 10 );
 
+/**
+ * Default homepage middle content section handler
+ * Includes recent posts template for additional content
+ *
+ * @since 69.57
+ */
 function extrachill_default_homepage_content_middle() {
     include get_template_directory() . '/inc/home/templates/section-more-recent-posts.php';
 }
 add_action( 'extrachill_homepage_content_middle', 'extrachill_default_homepage_content_middle', 10 );
 
+/**
+ * Default homepage bottom content section handler
+ * Includes ExtraChill link section template
+ *
+ * @since 69.57
+ */
 function extrachill_default_homepage_content_bottom() {
     include get_template_directory() . '/inc/home/templates/section-extrachill-link.php';
 }
 add_action( 'extrachill_homepage_content_bottom', 'extrachill_default_homepage_content_bottom', 10 );
 
+/**
+ * Default homepage final left section handler
+ * Includes about section template for homepage footer area
+ *
+ * @since 69.57
+ */
 function extrachill_default_final_left() {
     include get_template_directory() . '/inc/home/templates/section-about.php';
 }
@@ -441,6 +578,14 @@ add_action( 'extrachill_home_final_left', 'extrachill_default_final_left', 10 );
 
 
 
+/**
+ * Add archive body class to all-posts page template
+ * Ensures consistent styling between archives and all-posts template
+ *
+ * @param array $classes Existing body classes
+ * @return array Modified body classes array
+ * @since 69.57
+ */
 function add_archive_body_class($classes) {
     if (is_page_template('page-templates/all-posts.php')) {
         $classes[] = 'archive';
@@ -452,7 +597,11 @@ add_filter('body_class', 'add_archive_body_class');
 
 
 /**
- * Prevent unnecessary admin styles from loading on frontend
+ * Prevent unnecessary admin and plugin styles from loading on frontend
+ * Performance optimization that removes unused CSS from frontend pages
+ * Conditionally removes admin-bar, dashicons, and plugin-specific styles
+ *
+ * @since 69.57
  */
 function extrachill_prevent_admin_styles_on_frontend() {
     if ( is_admin() ) {
@@ -480,78 +629,32 @@ function extrachill_prevent_admin_styles_on_frontend() {
 add_action( 'wp_enqueue_scripts', 'extrachill_prevent_admin_styles_on_frontend', 100 );
 
 
-add_action('init', function() {
-    if (!taxonomy_exists('festival')) {
-        register_taxonomy('festival', array('post', 'festival_wire'), array(
-            'hierarchical' => false,
-            'labels' => array(
-                'name' => _x('Festivals', 'taxonomy general name', 'extrachill'),
-                'singular_name' => _x('Festival', 'taxonomy singular name', 'extrachill'),
-                'search_items' => __('Search Festivals', 'extrachill'),
-                'all_items' => __('All Festivals', 'extrachill'),
-                'edit_item' => __('Edit Festival', 'extrachill'),
-                'update_item' => __('Update Festival', 'extrachill'),
-                'add_new_item' => __('Add New Festival', 'extrachill'),
-                'new_item_name' => __('New Festival Name', 'extrachill'),
-                'menu_name' => __('Festivals', 'extrachill'),
-            ),
-            'show_ui' => true,
-            'show_admin_column' => true,
-            'query_var' => true,
-            'rewrite' => array('slug' => 'festival'),
-            'show_in_rest' => true,
-        ));
-    }
-
-    if (!taxonomy_exists('artist')) {
-        register_taxonomy('artist', array('post'), array(
-            'hierarchical' => false,
-            'labels' => array(
-                'name' => _x('Artists', 'taxonomy general name', 'extrachill'),
-                'singular_name' => _x('Artist', 'taxonomy singular name', 'extrachill'),
-                'search_items' => __('Search Artists', 'extrachill'),
-                'all_items' => __('All Artists', 'extrachill'),
-                'edit_item' => __('Edit Artist', 'extrachill'),
-                'update_item' => __('Update Artist', 'extrachill'),
-                'add_new_item' => __('Add New Artist', 'extrachill'),
-                'new_item_name' => __('New Artist Name', 'extrachill'),
-                'menu_name' => __('Artists', 'extrachill'),
-            ),
-            'show_ui' => true,
-            'show_admin_column' => true,
-            'query_var' => true,
-            'rewrite' => array('slug' => 'artist'),
-            'show_in_rest' => true,
-        ));
-    }
-
-    if (!taxonomy_exists('venue')) {
-        register_taxonomy('venue', array('post'), array(
-            'hierarchical' => false,
-            'labels' => array(
-                'name' => _x('Venues', 'taxonomy general name', 'extrachill'),
-                'singular_name' => _x('Venue', 'taxonomy singular name', 'extrachill'),
-                'search_items' => __('Search Venues', 'extrachill'),
-                'all_items' => __('All Venues', 'extrachill'),
-                'edit_item' => __('Edit Venue', 'extrachill'),
-                'update_item' => __('Update Venue', 'extrachill'),
-                'add_new_item' => __('Add New Venue', 'extrachill'),
-                'new_item_name' => __('New Venue Name', 'extrachill'),
-                'menu_name' => __('Venues', 'extrachill'),
-            ),
-            'show_ui' => true,
-            'show_admin_column' => true,
-            'query_var' => true,
-            'rewrite' => array('slug' => 'venue'),
-            'show_in_rest' => true,
-        ));
-    }
-}, 0);
 
 
 
 require_once get_stylesheet_directory() . '/inc/admin/tag-migration-admin.php';
 
+/**
+ * Hook taxonomy badges above post title
+ * Displays artist, venue, festival taxonomy badges for current post
+ *
+ * @since 69.57
+ */
+function extrachill_hook_taxonomy_badges_above_title() {
+    extrachill_display_taxonomy_badges( get_the_ID() );
+}
+add_action( 'extrachill_above_post_title', 'extrachill_hook_taxonomy_badges_above_title' );
+
+/**
+ * Hook comments section for posts
+ * Includes enhanced comments system with community integration
+ *
+ * @since 69.57
+ */
+function extrachill_hook_comments_section() {
+    require_once get_template_directory() . '/inc/single/comments.php';
+}
+add_action( 'extrachill_comments_section', 'extrachill_hook_comments_section' );
 
 
 
@@ -561,6 +664,15 @@ require_once get_stylesheet_directory() . '/inc/admin/tag-migration-admin.php';
 
 
 
+
+/**
+ * Add full-width body class to archives, search, and all-posts template
+ * Enables full-width layout for listing pages
+ *
+ * @param array $classes Existing body classes
+ * @return array Modified body classes array
+ * @since 69.57
+ */
 function extrachill_add_full_width_body_class($classes) {
     if (is_archive() || is_search() || is_page_template('page-templates/all-posts.php')) {
         $classes[] = 'full-width-content';

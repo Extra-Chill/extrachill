@@ -188,3 +188,118 @@ a.card-link-target:hover,
     font-size: 14px; /* Slightly larger font for better readability */
     font-weight: 500; /* Medium weight for better visual hierarchy */
 }
+
+/* Archive and Search Styles (moved from style.css) */
+.archive img, .search img {
+	height: 260px;
+	object-fit: cover;
+}
+
+.archive .below-entry-meta-left .meta-top-row, .search .below-entry-meta-left .meta-top-row {
+    display: block;
+    gap: 4px; /* Space between date and author */
+    margin-bottom: 4px; /* Space below the first row */
+}
+
+.archive .post-location-meta, .search .post-location-meta{
+	margin-bottom: 5px;
+}
+
+.archive .below-entry-meta, .search .below-entry-meta, .single-related-posts .below-entry-meta {
+	border: none;
+}
+
+.archive-post .add-to-cart-button{
+	margin-top: 5px;
+}
+
+.archive-post .product-category-link{
+    font-weight: 500;
+	background-color: #000;
+	font-size: 13px;
+}
+
+.archive div.entry-content.clearfix {
+  overflow: hidden;
+}
+
+.archive article, .search article {
+	margin-bottom: 25px;
+	padding-top:10px;
+}
+
+.archive .post .img {
+	margin-top: 25px;
+}
+
+.post .entry-title a:hover, .search .entry-title a:hover {
+	color: var(--accent);
+}
+
+.archive .entry-header, .search .entry-header{
+	margin-top: 10px;
+}
+
+.archive .post h2{
+		padding-bottom: 5px;
+	}
+	.search h2, .archive h2{
+		font-size: 24px;
+	}
+
+.archive-excerpt{
+font-size: 16px;
+margin: 5px 0;
+}
+
+/* Taxonomy Description */
+.taxonomy-description{
+	font-size: 16px;
+}
+
+/* Taxonomy Badges (Standardized) */
+.taxonomy-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+  align-items: center;
+  position: relative;
+  z-index: 2;
+}
+.taxonomy-badge {
+  font-size: 0.75rem;
+  padding: 0.25rem 0.75rem;
+  background-color: var(--card-background);
+  color: var(--link-color);
+  border-radius: 50px;
+  border: 1px solid var(--border-color);
+  font-weight: 500;
+  line-height: 1;
+  text-decoration: none;
+  display: inline-block;
+  transition: background 0.18s, color 0.18s;
+}
+.taxonomy-badge:hover {
+  background-color: var(--button-hover-bg);
+  color: #fff;
+  text-decoration: none;
+}
+
+.tag-badge {
+  background-color: rgba(var(--link-color-rgb), 0.1);
+  color: var(--link-color);
+  border: 1px solid var(--border-color);
+}
+.location-badge {
+  background-color: var(--button-bg);
+  color: #fff;
+  border: 1px solid var(--border-color);
+}
+
+@media (max-width: 600px) {
+  .taxonomy-badges {
+    gap: 0.3rem;
+    margin-bottom: 0.7rem;
+  }
+}

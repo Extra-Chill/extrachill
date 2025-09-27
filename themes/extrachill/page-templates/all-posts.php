@@ -13,14 +13,11 @@ get_header(); ?>
 
 <section id="primary">
     <main id="main" class="site-main" role="main">
-        <nav class="breadcrumbs" itemprop="breadcrumb">
-            <a href="<?php echo home_url(); ?>">Home</a> › <span>All</span>
-        </nav>
+        <?php extrachill_breadcrumbs(); ?>
         <header class="page-header">
             <h1 class="page-title">
                 <span><?php _e('The Latest', 'extrachill'); ?></span>
             </h1>
-            <a class="locations-link" href="/locations">Browse Locations</a>
         </header><!-- .page-header -->
 
         <div class="taxonomy-description">
@@ -92,7 +89,7 @@ if ($all_posts_query->have_posts()) :
 
 <div class="article-container">
     <?php while ($all_posts_query->have_posts()) : $all_posts_query->the_post(); ?>
-        <?php get_template_part('content', get_post_format()); ?>
+        <?php get_template_part('inc/archives/post-card'); ?>
     <?php endwhile; ?>
 </div>
 
@@ -101,7 +98,7 @@ if ($all_posts_query->have_posts()) :
 <?php else : ?>
 
     <p>No posts found for this sorting option.</p>
-    <?php get_template_part('no-results', 'none'); ?>
+    <?php extrachill_no_results(); ?>
 
 <?php endif;
 

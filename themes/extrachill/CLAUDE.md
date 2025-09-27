@@ -2,19 +2,6 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## KNOWN ISSUES
-
-- Comment system needs review, particularly community user data integration and author links
-- Instagram integration feature needs completion for direct posting from wp-admin
-- Remote login system needs registration functionality added
-
-## FUTURE PLANS
-
-- Complete event import system refactor with Action Scheduler implementation
-- Add homepage extrachill.link feature section
-- Gradual theme renaming and final ColorMag cleanup
-- Co-Authors Plus and WP-PageNavi plugin migrations
-
 ## Project Overview
 
 The ExtraChill theme is a custom WordPress theme serving as the frontend for an independent music ecosystem that includes a blog, a forum (extrachill-community theme), and a merch store (extrachill-shop theme). The theme powers extrachill.com with custom music event listings, festival coverage, community integration, and journalistic written content about the music industry.
@@ -25,47 +12,49 @@ The ExtraChill theme is a custom WordPress theme serving as the frontend for an 
 
 ### Modular File Structure
 The theme uses a clean, modular architecture organized in the `/inc/` directory:
-- **admin/**: Administrative functionality (customizer, logging, tag migration)
-- **archives/**: Archive page functionality (custom sorting, child terms dropdown)
-- **community/**: Forum integration, user sync, upvotes, activity feeds
+- **admin/**: Administrative functionality (tag migration admin, log 404 errors, customizer)
+- **archives/**: Archive page functionality (custom sorting, child terms dropdown, post cards, archive.php)
 - **core/**: Essential WordPress functionality with shared templates:
-  - **core/templates/**: Shared template components (post-meta, share, social-links)
+  - **core/templates/**: Shared template components (post-meta, pagination, no-results, share, social-links, taxonomy-badges, breadcrumbs, searchform)
   - **core/editor/**: Custom embeds (Bandcamp, Instagram, Spotify)
-- **header/**: Navigation functionality (walker, menu system)
-- **home/**: Homepage-specific components and template sections
-- **single-post/**: Single post functionality (comments, related posts)
-- **woocommerce/**: E-commerce integration with performance optimization
+  - **core/multisite/**: Cross-site integration (multisite-search, recent-activity-feed, ad-free-license, comment-author-links)
+- **header/**: Navigation functionality (walker, navigation-menu)
+- **home/**: Homepage-specific components and template sections (templates/, homepage-queries)
+- **sidebar/**: Sidebar-specific functionality (recent-posts, community-activity)
+- **single/**: Single post and page functionality (comments, related-posts, single-post, single-page)
 
 ### Custom Post Types & Taxonomies
-- **Custom Taxonomies**: Artist, Venue, Festival, Location taxonomies with REST API support
+- **Custom Taxonomies**: Artist, Venue, Festival taxonomies with REST API support (defined in functions.php)
 - **Festival Wire Integration**: Homepage ticker display for Festival Wire posts (handled by ExtraChill News Wire plugin)
 
-### Community Integration
-- **bbPress Forum Integration**: Community comments, upvotes, activity feeds (`inc/community/`)
+### Multisite Integration
 - **WordPress Multisite Integration**: Native WordPress multisite functions replace custom session management
-- **Forum Search**: Multisite-native search functionality (`inc/community/multisite-forum-search.php`)
-  - `ec_fetch_forum_results_multisite()` replaces REST API calls with direct database queries
+- **Cross-Site Features**: Search, activity feeds, and license validation via direct database queries
+### Multisite Integration (`inc/core/multisite/`)
+- **Multisite Search**: Unified real-time search across sites (`inc/core/multisite/multisite-search.php`)
+  - `ec_fetch_forum_results_multisite()` uses direct database queries via `switch_to_blog(2)`
+  - `ec_hijack_search_query()` merges local + forum results in real-time
   - Uses hardcoded blog ID 2 for maximum performance (no database lookups)
-- **Activity Feed**: Native multisite recent activity integration (`inc/community/recent-activity-feed.php`)
-  - `ec_fetch_recent_activity_multisite()` uses direct database queries instead of REST API
-- **User Details**: Native WordPress authentication (`inc/community/community-session.php`)
-  - `preload_user_details()` replaces custom session token validation
-  - Uses `is_user_logged_in()` and `wp_get_current_user()` for authentication
+  - No caching - always fresh results, native WordPress pagination
+- **Activity Feed**: Cross-site activity integration (`inc/core/multisite/recent-activity-feed.php`)
+  - `ec_fetch_recent_activity_multisite()` uses direct database queries via `switch_to_blog(2)`
+- **Ad-Free License Validation**: Cross-site license validation (`inc/core/multisite/ad-free-license.php`)
+  - `is_user_ad_free()` uses `switch_to_blog(3)` to check shop site's license database
+  - Native WordPress multisite authentication for cross-site validation
 
-### WooCommerce Integration
-- **Performance Optimized**: WooCommerce only loads when products are present or on store pages
-- **Conditional Theme Support**: Dynamic theme support based on context
-- **Safe Wrapper Functions**: Helper functions prevent WooCommerce errors
-- **Custom Templates**: Product pages and cart integration (`inc/woocommerce/`, `woocommerce/`)
-- **Asset Optimization**: Prevents unnecessary script/style loading
+### Plugin Integration
+- **ExtraChill News Wire**: Festival Wire ticker integration via action hooks
+- **ExtraChill Newsletter**: Newsletter functionality via dedicated plugin
+- **ExtraChill Contact**: Contact form functionality via dedicated plugin
+- **Action Hook Architecture**: Extensible plugin integration points throughout theme
 
 ### CSS Architecture
 - **Root Variables**: Global CSS custom properties in `assets/css/root.css`
-- **Modular Loading**: Page-specific CSS files (`home.css`, `archive.css`, `single-post.css`)
-- **Component Styles**: Separate files for badges, navigation, custom lightbox
+- **Modular Loading**: Page-specific CSS files (`home.css`, `archive.css`, `single-post.css`, `nav.css`, `badge-colors.css`, `editor-style.css`)
+- **Component Styles**: Separate files for badges, editor styles
 - **Performance Loading**: Conditional CSS enqueuing based on page context
 - **Dependency Management**: Proper CSS loading order with root.css loading first
-- **Custom Lightbox**: Gallery-specific lightbox functionality with conditional loading
+- **Asset Directory**: All CSS files located in `assets/css/` (moved from legacy `css/` directory)
 
 ## Development Commands
 
@@ -108,12 +97,77 @@ wp rewrite flush
 ## Key File Locations
 
 ### Core Theme Files
-- **`functions.php`** - Main theme setup, asset loading, and module includes
+- **`functions.php`** - Main theme setup, asset loading, and module includes (44 PHP files)
 - **`inc/core/assets.php`** - Centralized asset management with conditional loading
-- **`inc/single-post/comments.php`** - Comment system with community integration
+- **`inc/single/comments.php`** - Comment system with community integration
 - **`inc/core/templates/post-meta.php`** - Post meta display template
+- **`inc/archives/archive.php`** - Archive page template functionality
 - **`style.css`** - Main stylesheet with CSS reset and core styles
 - **`assets/css/root.css`** - CSS custom properties and theme variables
+
+### Complete Include File Structure
+**Core Shared Templates (8 files)**:
+- `inc/core/templates/post-meta.php` - Post metadata display
+- `inc/core/templates/pagination.php` - Native WordPress pagination
+- `inc/core/templates/no-results.php` - No results found template
+- `inc/core/templates/share.php` - Social sharing functionality
+- `inc/core/templates/social-links.php` - Social media links
+- `inc/core/templates/taxonomy-badges.php` - Taxonomy badge display
+- `inc/core/templates/breadcrumbs.php` - Breadcrumb navigation
+- `inc/core/templates/searchform.php` - Search form template
+
+**Core Functionality (7 files)**:
+- `inc/core/assets.php` - Asset management and conditional loading
+- `inc/core/template-overrides.php` - WordPress template overrides
+- `inc/core/custom-taxonomies.php` - Custom taxonomy registration
+- `inc/core/rewrite-rules.php` - URL rewrite rules
+- `inc/core/yoast-stuff.php` - Yoast SEO integration
+
+**Custom Embeds (3 files)**:
+- `inc/core/editor/bandcamp-embeds.php` - Bandcamp embed support
+- `inc/core/editor/instagram-embeds.php` - Instagram embed support
+- `inc/core/editor/spotify-embeds.php` - Spotify embed support
+
+**Multisite Integration (4 files)**:
+- `inc/core/multisite/multisite-search.php` - Cross-site search functionality
+- `inc/core/multisite/recent-activity-feed.php` - Cross-site activity feeds
+- `inc/core/multisite/ad-free-license.php` - Cross-site license validation
+- `inc/core/multisite/comment-author-links.php` - Cross-site comment author linking
+
+**Sidebar Functionality (2 files)**:
+- `inc/sidebar/recent-posts.php` - Recent posts sidebar widget
+- `inc/sidebar/community-activity.php` - Community activity sidebar
+
+**Archive Functionality (4 files)**:
+- `inc/archives/archive-child-terms-dropdown.php` - Child terms dropdown
+- `inc/archives/archive-custom-sorting.php` - Custom archive sorting
+- `inc/archives/post-card.php` - Post card template
+- `inc/archives/archive.php` - Main archive template
+
+**Single Post/Page Functionality (4 files)**:
+- `inc/single/single-post.php` - Single post functionality
+- `inc/single/single-page.php` - Single page functionality
+- `inc/single/comments.php` - Comment system
+- `inc/single/related-posts.php` - Related posts functionality
+
+**Header/Navigation (2 files)**:
+- `inc/header/walker.php` - Custom navigation walker
+- `inc/header/navigation-menu.php` - Navigation menu functionality
+
+**Homepage Components (5+ files)**:
+- `inc/home/homepage-queries.php` - Homepage query functions
+- `inc/home/templates/hero.php` - Hero section
+- `inc/home/templates/section-3x3-grid.php` - 3x3 grid section
+- `inc/home/templates/section-more-recent-posts.php` - Recent posts section
+- `inc/home/templates/section-extrachill-link.php` - ExtraChill link section
+- `inc/home/templates/section-about.php` - About section
+- `inc/home/templates/community-activity.php` - Community activity
+- `inc/home/templates/front-page.php` - Front page template
+
+**Admin Functionality (3 files)**:
+- `inc/admin/log-404-errors.php` - 404 error logging
+- `inc/admin/tag-migration-admin.php` - Tag migration administration
+- `inc/admin/extrachill-customizer.php` - Theme customizer settings
 
 ### Asset Loading Strategy
 - **Centralized Management**: All asset loading handled in `inc/core/assets.php`
@@ -124,9 +178,9 @@ wp rewrite flush
 - **Navigation Scripts**: Menu navigation JavaScript with conditional loading
 
 ### Template Hierarchy
-- **Taxonomy Templates**: Custom templates for artist, venue, festival, location
-- **WooCommerce**: Custom product templates with conditional loading
-- **Page Templates**: Specialized templates in `page-templates/` directory
+- **Taxonomy Templates**: Custom templates for artist, venue, festival
+- **Page Templates**: Specialized templates in `page-templates/` directory (all-posts.php)
+- **Archive Templates**: Core archive functionality in `inc/archives/archive.php`
 - **Festival Wire**: Custom post type functionality provided by ExtraChill News Wire plugin
 
 ## Custom Functionality
@@ -136,14 +190,12 @@ wp rewrite flush
 - **Contact Form System**: Functionality moved to ExtraChill Contact Plugin
 - **Session Token System**: Completely removed in favor of native WordPress multisite authentication
 - **Event Submission System**: Completely removed - all JavaScript and server-side functionality deleted
-  - Deleted: `assets/js/event-submission-logged-out.js`
-  - Deleted: `assets/js/event-submission-modal.js`
-  - All event submission modal and logged-out user handling removed
-- **Location Filter Client-Side System**: Frontend JavaScript functionality completely removed
-  - Deleted: `assets/js/location-filter.js`
-  - Added: `inc/location-filter.php` (server-side only, NOT included in functions.php)
-  - Backend AJAX handlers remain functional but dormant (not actively loaded)
-  - Frontend location filtering interface completely removed
+- **Location System**: Complete elimination of unused location browsing functionality
+- **WooCommerce Files**: All WooCommerce templates and CSS removed, moved to ExtraChill Shop plugin
+- **Community Features**: Multiple community files removed (community-comments.php, community-session.php, extrachill-upvotes.php, forum-search.php, multisite-forum-search.php)
+- **Legacy Template Files**: Removed content-page.php, content-single.php, content.php, comments.php, no-results.php, page.php, search.php, searchform.php, single.php
+- **Legacy CSS Files**: Removed all-locations.css, woocommerce.css
+- **Legacy PHP Files**: Removed breadcrumbs.php, recent-posts-in-sidebar.php, location-filter.php, contextual-search-excerpt.php
 
 ### Plugin Integration Points
 - **Festival Wire**: ExtraChill News Wire plugin hooks into `extrachill_after_hero` action
@@ -157,11 +209,10 @@ wp rewrite flush
   - `extrachill_home_final_left`
 
 ### Performance Features
-- **WooCommerce Optimization**: Conditional loading prevents global initialization
-- **Asset Optimization**: CSS/JS loaded only when needed
+- **Modular Asset Loading**: CSS/JS loaded only when needed based on page context
 - **Memory Management**: Memory usage tracking and optimization
-- **Image Optimization**: Unnecessary WordPress image sizes removed
 - **Query Optimization**: Efficient taxonomy and post queries
+- **Multisite Optimization**: Direct database queries replace REST API calls
 
 ## Security & Best Practices
 
@@ -189,20 +240,28 @@ EXTRACHILL_INCLUDES_DIR - Inc directory path for modular includes
 
 ## Recent Architectural Changes
 
-- **Core Templates Directory**: Created `/inc/core/templates/` for shared template components
-- **Major System Removal**: Complete removal of event submission and location filter JavaScript systems
-  - Event submission functionality completely deleted (both client and server-side)
-  - Location filter JavaScript removed, backend functions remain dormant in `inc/location-filter.php`
-- **Plugin Migration**: Newsletter, contact forms, and session tokens moved to dedicated plugins
-- **Enhanced Modularization**: Better organization of functionality by purpose with cleaner separation
+- **Core Templates Directory**: Created `/inc/core/templates/` for shared template components (8 files)
+- **Sidebar Directory**: Created `/inc/sidebar/` for sidebar-specific functionality (2 files)
+- **Multisite Directory**: Organized `/inc/core/multisite/` for cross-site functionality (4 files)
+- **Native Pagination System**: Added comprehensive pagination system replacing wp-pagenavi plugin
+  - Located at `inc/core/templates/pagination.php`
+  - Professional count display with context-aware navigation
+  - Native WordPress pagination with proper URL parameter handling
+  - Context-aware styling support for different page types
+- **Asset Directory Migration**: Moved all assets from `css/` and `js/` to `assets/css/` and `assets/js/`
+- **System Streamlining**: Complete removal of unused event submission, location filtering, and session token systems
+- **Plugin Migration**: Newsletter, contact forms, and Festival Wire functionality moved to dedicated plugins
+- **Enhanced Modularization**: Better organization with core templates directory and cleaner separation of concerns
+- **Template Consolidation**: Removed legacy template files in favor of modular include system
 - **Asset Management**: Centralized in `inc/core/assets.php` with conditional loading
-- **Authentication Simplification**: Native WordPress multisite authentication replaces custom session management
-- **Performance Optimization**: Removal of unused JavaScript reduces client-side complexity
+- **Authentication Simplification**: Native WordPress multisite authentication
+- **Performance Optimization**: Modular CSS architecture and selective loading
+- **File Structure Cleanup**: Removed 15+ legacy PHP files and multiple CSS files no longer needed
 
 ## Important Notes
 
-- **Community-Focused**: Deep integration with bbPress and native multisite authentication
-- **Performance Optimized**: WooCommerce conditional loading and modular asset loading
-- **Modern Architecture**: Clean separation of concerns with enhanced modular structure
+- **Multisite-Focused**: Native WordPress multisite integration with cross-site functionality
+- **Performance Optimized**: Modular asset loading and selective enqueuing
+- **Modern Architecture**: Clean separation of concerns with shared template components
 - **No Build Process**: Direct file editing with WordPress native optimization
 - **Extensible Design**: Action hook architecture supports plugin integration

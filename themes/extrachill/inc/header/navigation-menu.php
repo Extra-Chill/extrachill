@@ -1,9 +1,17 @@
 <?php
-// Get the file modification time for cache busting
+/**
+ * Main Navigation Menu Template
+ *
+ * Flyout navigation menu with hamburger toggle, search integration, and social links.
+ * Uses custom walker for menu structure and includes FontAwesome SVG sprite versioning.
+ *
+ * @package ExtraChill
+ * @since 1.0
+ */
+
 $svg_path = get_template_directory() . '/assets/fonts/fontawesome.svg';
 $svg_version = file_exists($svg_path) ? filemtime($svg_path) : '';
 
-// Hook this navigation menu into the header
 add_action('extrachill_header_top_right', function() {
     get_template_part('inc/header/navigation-menu');
 }, 10);
@@ -16,12 +24,10 @@ add_action('extrachill_header_top_right', function() {
     </button>
 
     <div id="primary-menu" class="flyout-menu">
-        <!-- Top part: Search section -->
         <div class="search-section">
-            <?php get_search_form(); ?>
+            <?php extrachill_search_form(); ?>
     </div>
 
-        <!-- Bottom part: Main menu items -->
         <ul class="menu-items">
             <?php
                 wp_nav_menu(array(
@@ -32,10 +38,9 @@ add_action('extrachill_header_top_right', function() {
                     'items_wrap' => '%3$s'
                 ));
             ?>
-            <!-- Plugin Hook: Content before social links -->
             <?php do_action('extrachill_navigation_before_social_links'); ?>
             <li class="menu-social-links">
-                <?php include get_template_directory() . '/social-links.php'; ?>
+                <?php include get_template_directory() . '/inc/core/templates/social-links.php'; ?>
             </li>
             <?php
                 wp_nav_menu(array(

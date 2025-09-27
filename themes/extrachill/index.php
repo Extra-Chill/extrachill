@@ -1,6 +1,9 @@
 <?php
 /**
- * Theme Index Section for our theme.
+ * Main index template for post loops and fallback displays
+ *
+ * Displays post cards using modular template parts and native pagination.
+ * Uses action hooks for extensible content sections.
  *
  * @package ExtraChill
  * @since 1.0
@@ -18,7 +21,7 @@ get_header(); ?>
 				<?php while ( have_posts() ) : the_post(); 
 			?>
 
-					<?php get_template_part( 'content', '' ); ?>
+					<?php get_template_part( 'inc/archives/post-card' ); ?>
 			
 
 				<?php endwhile; ?>
@@ -27,7 +30,7 @@ get_header(); ?>
 
 			<?php else : ?>
 
-				<?php get_template_part( 'no-results', 'none' ); ?>
+				<?php extrachill_no_results(); ?>
 
 			<?php endif; ?>
 

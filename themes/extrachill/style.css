@@ -92,25 +92,6 @@ h1 a, h2 a, h3 a, h4 a, h5 a, h6 a, .entry-title a{
 	color: var(--header-text);
 }
 
-h1.entry-title {
-	font-size: 32px;
-	line-height: 1.6;
-}
-.breadcrumbs, .woocommerce:where(body:not(.woocommerce-uses-block-theme)) .woocommerce-breadcrumb {
-	font-size: 13px;
-	color: var(--muted-text);
-	margin-top: 20px;
-	margin-bottom: 25px;
-}
-
-.breadcrumbs a, .woocommerce-breadcrumb a {
-	color: var(--muted-text);
-	border-bottom: .5px dotted var(--link-color);
-}
-
-.breadcrumb-title{
-	display: none;
-}
 
 h2 {
 	font-size: 33px;
@@ -151,7 +132,7 @@ p {
     margin: 20px 0;
 }
 
-button#randomize-posts, .extrachill-recent-activity button, a.view-all-newsletters {
+button#randomize-posts, .extrachill-recent-activity button {
   background-color: var(--button-bg);
   font-weight: 500;
   padding: 10px;
@@ -165,10 +146,10 @@ button#randomize-posts, .extrachill-recent-activity button, a.view-all-newslette
 	font-size: 14px;
 }
 
-button#randomize-posts:hover, .extrachill-recent-activity button:hover, a.view-all-newsletters:hover {
+button#randomize-posts:hover, .extrachill-recent-activity button:hover {
   background-color: var(--button-hover-bg);
 }
-#visit-community button, a.view-all-newsletters{
+#visit-community button{
 	display:flex;
 	justify-content: center;
 	width: 100%;
@@ -444,11 +425,7 @@ img {
 	margin-bottom: auto;
 	/* Fluid images for posts, comments, and widgets */
 }
-.archive img, .search img {
-	height: 260px;
-	object-fit: cover;
-}
-.widget img, .single-related-posts img {
+.widget img {
 	height: 200px;
 	object-fit: cover;
 	width: 100%;
@@ -566,9 +543,6 @@ text-decoration: none;
 }
 
 
-.comments {
-	padding-right: 10px;
-}
 
 .below-entry-meta {
     color: var(--muted-text);
@@ -589,11 +563,6 @@ text-decoration: none;
     margin: 5px 0; /* Space below the first row */
 	line-height: 1.2;
 }
-.search .below-entry-meta-left .meta-top-row, .archive .below-entry-meta-left .meta-top-row {
-    display: block;
-    gap: 4px; /* Space between date and author */
-    margin-bottom: 4px; /* Space below the first row */
-}
 .below-entry-meta-left .meta-bottom-row {
     margin-bottom: 0;
 }
@@ -604,10 +573,6 @@ text-decoration: none;
 	display: flex;
 	font-size: 13px;
 	column-gap: 4px;
-}
-.archive .post-location-meta, .search .post-location-meta{
-	margin-bottom: 5px;
-
 }
 .post-location-meta a{
 	font-weight: 500;
@@ -625,14 +590,6 @@ text-decoration: none;
 	background-color: var(--button-bg);
 	color: #fff;
 }
-.single .post-location-meta {
-    align-self: flex-end;
-	line-height: 1.3;
-}
-.single .below-entry-meta{
-	margin: 15px auto;
-	border-bottom: .5px dotted var(--border-color);
-}
 .page-template-page-locations .location-list ul {
 	list-style:disc;
 }
@@ -644,31 +601,6 @@ text-decoration: none;
 	margin: 0 20px;
 }
 
-.home-header, .page-template-all-posts .page-header, .page-template-page-locations .page-header {
-	display: flex;
-	justify-content: space-between;
-	align-items: flex-end;
-}
-.page-template-all-posts .page-header, .page-template-page-locations .page-header  {
-	border-bottom: 2px solid var(--accent);
-}
-.home-header h2{
-	margin-bottom: 0;
-}
-.view-all-button, .locations-link, .all-link{
-    background-color: var(--button-bg);
-    color: #fff;
-    padding: 3px 8px;
-    font-size: 14px;
-    border-radius: 3px;
-}
-.view-all-button:hover, .locations-link:hover, .all-link:hover{
-	background-color: var(--button-hover-bg);
-	color: var(--button-text);
-}
-.page-template-all-posts .page-header .page-title, .page-template-page-locations .page-header .page-title {
-	margin-bottom: 0;
-}
 
 
 .location-link, .read-more-button {
@@ -684,37 +616,20 @@ text-decoration: none;
 .below-entry-meta a {
     color: inherit;
 }
-.archive .below-entry-meta,.home .below-entry-meta, .search .below-entry-meta, .single-related-posts .below-entry-meta {
-	border: none;
-}
 a.author.url.fn, .forum-meta a {
   border-bottom: .5px dotted var(--link-color);
 }
 
-span.comments a{
-  border-bottom: .5px dotted var(--link-color);
-  margin-left: 6px;
-}
-span.comments .fa {
-	font-size: 12px;
-}
 #updated-date {
         display: block; 
     }
 
-.single .article-content .below-entry-meta {
-border-bottom: 2px solid var(--accent);
-  margin-bottom: 10px;
-}
 
 /*
 ====> 11.4 Highlighted posts widget
 --------------------------------------------------------------*/
 
 
-.single .related-posts div.below-entry-meta {
-  border:none;
-}
 
 #primary .widget-title {
 	border-bottom: 2px solid var(--accent);
@@ -727,19 +642,11 @@ border-bottom: 2px solid var(--accent);
 	margin:0 25px;
 }
 
-/* WooCommerce tabs styling moved to css/woocommerce.css */
-.home #primary{
-	display: flex;
-	flex-direction: column;
-}
+/* WooCommerce functionality handled by ExtraChill Shop plugin */
 
 /*
 ====> 11.14 Widgets General CSS
 --------------------------------------------------------------*/
-h3.entry-title {
-font-size: 20px;
-line-height:1.4;
-}
 
 #secondary .widget ul ul {
 	padding-left: 10px;
@@ -903,7 +810,7 @@ body {
 	width: 64%;
 }
 
-/* WooCommerce styles moved to css/woocommerce.css for better organization */
+/* WooCommerce functionality handled by ExtraChill Shop plugin */
 
 #secondary {
 	float: right;
@@ -911,37 +818,14 @@ body {
 	display: flex;
 	flex-direction: column;
 }
-/* WooCommerce button styles moved to css/woocommerce.css */
-.archive-post .add-to-cart-button{
-	margin-top: 5px;
-}
-.archive-post .product-category-link{
-    font-weight: 500;
-	background-color: #000;
-	font-size: 13px;
-}
-/* WooCommerce product styles moved to css/woocommerce.css */
-/* Keep breadcrumb styles, move product-price to woocommerce.css */
-.woocommerce:where(body:not(.woocommerce-uses-block-theme)) .woocommerce-breadcrumb, .woocommerce:where(body:not(.woocommerce-uses-block-theme)) .woocommerce-breadcrumb a{
-	color:var(--muted-text);
-}
-
-
+/* WooCommerce functionality handled by ExtraChill Shop plugin */
 
 @media only screen and (max-width: 359px) {
-
-#primary {
-
-padding-left: 0px;
-
-padding-right: 0px;
-
+	#primary {
+		padding-left: 0px;
+		padding-right: 0px;
+	}
 }
-
-
-}
-
-
 
 /* =PAGE HEADER TITLE
 ----------------------------------------------- */
@@ -953,37 +837,16 @@ padding-right: 0px;
 	font-size: 28px;
 }
 
-.archive div.entry-content.clearfix {
-  overflow: hidden;
-}
-
-.archive article, .search article, .home article {
-	margin-bottom: 25px;
-	padding-top:10px;
-}
-
-.archive .post .img {
-	margin-top: 25px;
-}
-.single #content .post {
-	margin-bottom: 0;
-}
 
 #content .post .article-content, #content .post .single-title-above {
 	padding: 0;
 }
 
-#content .post .article-content .entry-title a:hover, #content .post .single-title-above .entry-title a:hover {
-	color: var(--accent);
-}
 
 #content .post .article-content .below-entry-meta .post-views, #content .post .single-title-above .below-entry-meta .post-views {
 	padding-right: 10px;
 }
 
-.post .entry-title a:hover, .search .entry-title a:hover {
-	color: var(--accent);
-}
 .entry-content ul {
 	list-style: square;
 	margin-bottom: 25px;	
@@ -1022,166 +885,10 @@ input[type="reset"]:active, input[type="button"]:active, input[type="submit"]:ac
 
 /* =PAGINATION
 ----------------------------------------------- */
-.pagination {
-	margin: 15px 0;
-}
-
-.pagination span {
-	padding: 2px 5px;
-	border: 1px solid #EAEAEA;
-	background-color: var(--accent);
-	color: #FFFFFF;
-}
-
-.pagination a span {
-	background-color: #FFFFFF;
-	color: #777777;
-}
 
 /*
-====> 13.7 Comments
+====> 13.7 Comments (moved to single-post.css)
 --------------------------------------------------------------*/
-#comments {
-	border-top: 1px solid #F8F8F8;
-	padding-top: 15px;
-}
-
-#comments i {
-	font-size: 16px;
-	color: #AAAAAA;
-	padding-right: 10px;
-}
-
-.comments-title {
-	font-size: 24px;
-}
-
-.comment-content a {
-	word-wrap: break-word;
-}
-
-.comment-navigation {
-	margin-bottom: 15px;
-}
-
-.bypostauthor {
-	display: block;
-}
-
-#comments .comments-title {
-	margin-bottom: 10px;
-}
-
-.avatar {
-	border-radius: 50%;
-	float: left;
-}
-
-.comments-area article header {
-	margin: 0 0 5px;
-	overflow: hidden;
-	position: relative;
-}
-
-.comments-area .comment-author-link span {
-	margin-left: 10px;
-	padding: 0 5px;
-	background-color: #003466;
-	color: #FFFFFF;
-	border-radius: 3px;
-}
-.comment-edit-link{
-	margin-left:10px;
-}
-
-.comment-content {
-	padding: 15px 15px 30px;
-	background-color: var(--card-background);
-	border: 1px solid var(--border-color);
-	border-radius: 2px;
-}
-
-.comment {
-	margin-bottom: 20px;
-}
-
-.comment ul, .comment ol {
-	margin: 0 0 20px 20px;
-}
-
-.comment ul {
-	list-style: square outside none;
-}
-
-.comment .comment-reply-link {
-	float: right;
-}
-.comment-list {
-	margin-bottom: 25px;
-	list-style-type: none;
-	padding: 0;
-}
-
-.comment-list .children {
-	margin-left: 20px;
-	list-style-type: none;
-	padding: 0;
-}
-
-.nav-previous, .nav-next {
-	margin-bottom: 15px;
-}
-
-.nav-previous a {
-	float: left;
-}
-
-.nav-next a {
-	float: right;
-}
-
-.nav-previous a:hover, .nav-next a:hover {
-	text-decoration: underline;
-}
-
-/* =COMMENT FORM
------------------------------------------------ */
-#respond h3#reply-title {
-	font-size: 22px;
-	line-height: 28px;
-}
-
-#respond h3#reply-title #cancel-comment-reply-link {
-	margin-left: 10px;
-	margin-left: 1rem;
-	font-weight: normal;
-	font-size: 16px;
-	font-size: 1.6rem;
-}
-
-#respond form label {
-	display: block;
-	line-height: 1.5;
-}
-
-#respond form input[type="text"], #respond form textarea {
-	box-sizing: border-box;
-	font-size: 16px;
-	line-height: 1.5;
-	padding: 10px;
-	width: 100%;
-}
-
-#respond form p.form-allowed-tags {
-	font-size: 16px;
-	line-height: 1;
-	color: #5e5e5e;
-	display: none;
-}
-
-.required {
-	color: red;
-}
 
 /*
 ====> 13.8 Footer
@@ -1287,9 +994,6 @@ padding:3px;
 .social-links{
 	padding: 25px;
 }
-.archive .entry-header, .search .entry-header{
-	margin-top: 10px;
-}
 @media (max-width: 768px) {
 	.site-title a {
 		font-size: 34px;
@@ -1334,45 +1038,22 @@ padding:3px;
 	}
 	.author-bio p, 
 	.entry-content p, .entry-content h2, .entry-content h3, .entry-content h4, .entry-content h5, .entry-content h6, 
-	.archive-post, 
-	.community-cta, 
-	.related-posts-main-title, .single-related-posts .article-content, 
-	.extrachill-recent-activity, 
-	.comments-title, 
-	.taxonomy-description, 
-	.archive .page-header, .search-header, .category-dropdown, #extrachill-custom-sorting, .page-template-contact .entry-header, .newsletter-subscribe-form, .article-container .newsletter, .recent-title, .wp-block-image figcaption,
-	.woocommerce #main,
-	.woocommerce-checkout .inner-wrap,
-	.woocommerce-cart .inner-wrap,
+	.community-cta,
+	.extrachill-recent-activity,
+	.recent-title, .wp-block-image figcaption,
 	.subcategory-dropdown,
-	.breadcrumbs,
-	.single .below-entry-meta,
 	.related-wire-title,
-	.recent-newsletters-widget li,
-	.view-all-newsletters,
 	h3.widget-title,
-	.comments-area,
-	.related-tax-section,
-	.newsletter .entry-header {
+	.related-tax-section {
 	max-width: 92%; 
 	margin-left: auto;
 	margin-right: auto;
-	}
-	.front-page-top-section {
-		width: 92%;
-		margin: auto;
 	}
 	#seconday .widget-title{
 	width: 92%;
 	margin-left: auto;
 	margin-right: auto;
 	}
-	.recent-newsletters-widget{
-		width: 100%;
-	}
-}
-.newsletter .below-entry-meta {
-	max-width: 100%;
 }
 
 
@@ -1385,7 +1066,6 @@ padding:3px;
 		width: 100%;
 	}
 
-/* WooCommerce responsive styles moved to css/woocommerce.css */
 }
 
 @media screen and (max-width: 767px) {
@@ -1404,29 +1084,9 @@ padding:3px;
 
 
 
-	.single-related-posts {
-		margin-right: 0;
-		width: 100%;
-	}
-	.related-posts-main-title span {
-font-size: 20px;
-	}
 	.gallery-columns-4 .gallery-item, .gallery-columns-5 .gallery-item, .gallery-columns-6 .gallery-item, .gallery-columns-7 .gallery-item, .gallery-columns-8 .gallery-item, .gallery-columns-9 .gallery-item {
 		width: 33.33%;
 	}
-	.related-posts-wrapper-flyout {
-		width: 95%;
-	}
-	.related-posts-wrapper-flyout .related-posts-flyout-main-title {
-		padding: 20px;
-	}
-	.related-posts-wrapper-flyout .related-posts-flyout {
-		padding: 20px;
-	}
-h1.entry-title {
-	font-size: 26px;
-	line-height: 1.6;
-}
 
 h2 {
 	font-size: 28px;
@@ -1450,12 +1110,6 @@ h5 {
 		margin-right:5px;
 }
 
-.archive .post h2{
-		padding-bottom: 5px;
-	}
-	.search h2, .archive h2{
-		font-size: 24px;
-	}
 /*--------------------------------------------------------------
 18.0 single post pagination
 --------------------------------------------------------------*/
@@ -1480,54 +1134,19 @@ div.article-container :before {
     padding-bottom: 0px !important;
 	
 }
-.taxonomy-description{
-	font-size: 16px;
-}
 	
-.chill-generators-form {
-  font-weight: bold;
-  font-size: 18px;
-  padding:5px;
-}
-
-.chill-generators-submit {
-  margin-top: 10px;
-
-}
-.generated-name-wrap {
-  font-size: 18px;
-	padding-bottom:20px;
-}
-.actual-name {
-  font-weight: bold;
-	font-size:24px;
-	padding-top:10px;
-}
 
 
 .hide-level-2 .toc-level-2 { /* Kept */
   display: none;
 }
 
-/* Removed .related-posts-thumbnail for legacy related posts cleanup */
-
-.related-posts-thumbnail{
-	margin-bottom: 5px;
-}
 .widget_block p:empty { display: none; }
 
 .tribe-common--breakpoint-medium.tribe-common .tribe-common-l-container {
 	padding:10px;
 }
 
-.comments svg {
-height: 1em;
-width: 1em;
-fill: #36454f;
-}
-.entry-title {
-    display: inline; /* This makes the title inline with the preceding elements */
-}
 
 .extrachill-recent-activity{
 font-size: 15px;
@@ -1574,10 +1193,6 @@ a.location-link{
 	overflow: hidden;
 }
 
-.archive-excerpt{
-font-size: 16px;
-margin: 5px 0;
-}
 
 #forum-post, .read-more-button{
 	background:var(--button-bg);
@@ -1633,52 +1248,6 @@ margin: 5px 0;
   border-bottom: 1px solid var(--border-color, #333);
 }
 
-/* === Taxonomy Badges (Standardized) === */
-.taxonomy-badges {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  margin-bottom: 1.25rem;
-  align-items: center;
-  position: relative;
-  z-index: 2;
-}
-.taxonomy-badge {
-  font-size: 0.75rem;
-  padding: 0.25rem 0.75rem;
-  background-color: var(--card-background);
-  color: var(--link-color);
-  border-radius: 50px;
-  border: 1px solid var(--border-color);
-  font-weight: 500;
-  line-height: 1;
-  text-decoration: none;
-  display: inline-block;
-  transition: background 0.18s, color 0.18s;
-}
-.taxonomy-badge:hover {
-  background-color: var(--button-hover-bg);
-  color: #fff;
-  text-decoration: none;
-}
-
-.tag-badge {
-  background-color: rgba(var(--link-color-rgb), 0.1);
-  color: var(--link-color);
-  border: 1px solid var(--border-color);
-}
-.location-badge {
-  background-color: var(--button-bg);
-  color: #fff;
-  border: 1px solid var(--border-color);
-}
-
-@media (max-width: 600px) {
-  .taxonomy-badges {
-    gap: 0.3rem;
-    margin-bottom: 0.7rem;
-  }
-}
 
 /* Sidebar Mini Card Styles for Festival Wire */
 .my-recent-posts .mini-card {

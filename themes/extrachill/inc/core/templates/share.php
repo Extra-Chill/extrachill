@@ -1,6 +1,12 @@
 <?php
 /**
- * Component: Share Button - Modern and Modular
+ * Share Button Template - Modern and Modular
+ *
+ * Interactive share component with dropdown for Facebook, Twitter/X, email, and copy link.
+ * Includes JavaScript for toggle functionality and clipboard copy with fallback.
+ *
+ * @package ExtraChill
+ * @since 69.57
  *
  * @var string|array $share_url URL to be shared (if an array, the first element will be used)
  * @var string|array $share_title Title of the content being shared (if an array, the first element will be used)

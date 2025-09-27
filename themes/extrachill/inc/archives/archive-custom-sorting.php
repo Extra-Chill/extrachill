@@ -2,25 +2,45 @@
 /**
  * Archive Custom Sorting Component
  *
- * Displays custom sorting dropdown and randomize button for archives
+ * Provides both frontend UI and backend query modification for archive post sorting.
+ * Handles URL-based sorting via 'sort' GET parameter with 'oldest' or 'recent' values.
  *
  * @package ExtraChill
  * @since 1.0
  */
 
-// Hook into archive above posts
+/**
+ * Modify main query to support URL-based sorting on archive pages
+ * Responds to 'sort' GET parameter with 'oldest' or 'recent' values
+ *
+ * @param WP_Query $query The WordPress query object
+ * @return void
+ * @since 1.0
+ */
+function extrachill_sort_posts($query) {
+    if (!is_admin() && $query->is_main_query() && is_archive()) {
+        $sort = isset($_GET['sort']) ? $_GET['sort'] : '';
+
+        switch ($sort) {
+            case 'oldest':
+                $query->set('orderby', 'date');
+                $query->set('order', 'ASC');
+                break;
+            case 'recent':
+            default:
+                break;
+        }
+    }
+}
+add_action('pre_get_posts', 'extrachill_sort_posts');
+
 add_action('extrachill_archive_above_posts', 'extrachill_custom_sorting', 10);
 
-/**
- * Display custom sorting controls for archives
- */
 function extrachill_custom_sorting() {
-    // Only show on archive pages
     if (!is_archive()) {
         return;
     }
 
-    // Determine the correct archive link based on the type of archive
     $archive_link = '';
     if (is_category()) {
         $archive_link = get_category_link(get_queried_object_id());
@@ -40,17 +60,14 @@ function extrachill_custom_sorting() {
 
     echo '<div id="extrachill-custom-sorting">';
 
-    // Category-specific artist dropdowns
     if (is_category('song-meanings')) {
         wp_innovator_dropdown_menu('song-meanings', 'Filter By Artist');
     } elseif (is_category('music-history')) {
         wp_innovator_dropdown_menu('music-history', 'Filter By Tag');
     }
 
-    // Randomize button
     echo '<button id="randomize-posts">Randomize Posts</button>';
 
-    // Sorting dropdown
     echo '<div id="custom-sorting-dropdown">';
     echo '<select id="post-sorting" name="post_sorting" onchange="window.location.href=\'' . esc_url($archive_link) . '?sort=\'+this.value;">';
     echo '<option value="recent">Sort by Recent</option>';
@@ -59,20 +76,17 @@ function extrachill_custom_sorting() {
     echo '</div>';
     echo '</div>';
 
-    // JavaScript for sorting functionality
     ?>
     <script>
     document.addEventListener('DOMContentLoaded', function() {
         var sortingDropdown = document.getElementById('post-sorting');
         var urlParams = new URLSearchParams(window.location.search);
-        var sort = urlParams.get('sort'); // Get the 'sort' parameter from the URL
+        var sort = urlParams.get('sort');
 
-        // If 'sort' parameter exists, set the dropdown value to match
         if (sort) {
             sortingDropdown.value = sort;
         }
 
-        // Add change event listener to update the page URL based on selection
         sortingDropdown.addEventListener('change', function() {
             var selectedOption = this.value;
             window.location.href = '?sort=' + selectedOption;

@@ -1,6 +1,20 @@
 <?php
-// File: extrachill-custom/social-links.php
+/**
+ * Social Links Template
+ *
+ * Displays ExtraChill social media links with FontAwesome SVG icons.
+ * Centralized social media configuration for consistent display across theme.
+ *
+ * @package ExtraChill
+ * @since 69.57
+ */
 
+// Prevent direct access
+if (!defined('ABSPATH')) {
+    exit;
+}
+
+// ExtraChill social media platform configuration
 $social_links = [
     [
         'url'   => 'https://facebook.com/extrachill',
@@ -36,6 +50,7 @@ $social_links = [
     *******/
 ];
 
+// FontAwesome SVG sprite with cache busting via file modification time
 $svg_file_path = get_template_directory() . '/assets/fonts/fontawesome.svg';
 $svg_version = file_exists( $svg_file_path ) ? filemtime( $svg_file_path ) : time();
 ?>

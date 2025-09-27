@@ -17,7 +17,7 @@ Purpose: Enable an AI agent to make high‑quality, production‑safe contributi
 - Image sizes: custom policy removes many defaults; avoid relying on `thumbnail` or WooCommerce sizes—check existing sizes before using.
 
 ## 3. Custom Data Structures & Content Types
-- Taxonomies registered in `functions.php` (festival, artist, venue) + city/state taxonomy in `inc/core/city-state-taxonomy.php`.
+- All custom taxonomies (festival, artist, venue, location) registered in `inc/core/custom-taxonomies.php`.
 - Custom Post Types: Newsletter functionality completely handled by ExtraChill Newsletter Plugin (no theme templates). Festival Wire custom post type handled by ExtraChill News Wire plugin. Follow existing arg patterns (REST enabled, non-hierarchical unless needed, slug = lowercase snake/hyphen form).
 - When adding CPT/taxonomies: after deploy, requires `wp rewrite flush` (document in PR description—don’t add automatic flush in code).
 
