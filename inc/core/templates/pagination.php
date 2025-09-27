@@ -45,6 +45,11 @@ function extrachill_pagination($query = null, $context = 'default') {
     $total_posts = $pagination_query->found_posts;
     $per_page = $pagination_query->query_vars['posts_per_page'];
 
+    // Handle edge case where posts_per_page might be -1 (show all posts)
+    if ($per_page == -1) {
+        $per_page = $total_posts;
+    }
+
     // Calculate pagination display values
     $start = (($current_page - 1) * $per_page) + 1;
     $end = min($current_page * $per_page, $total_posts);
@@ -86,7 +91,7 @@ function extrachill_pagination($query = null, $context = 'default') {
         'type' => 'list',
         'end_size' => 1,
         'mid_size' => 2,
-        'add_args' => array_merge($_GET, array('paged' => '%#%'))
+        'add_args' => $_GET
     ));
 
     // Output pagination HTML

@@ -1,6 +1,9 @@
 <?php
 /**
- * The template for displaying 404 pages (Page Not Found).
+ * 404 Error page template with ExtraChill branding
+ *
+ * Displays custom 404 message with search form integration.
+ * Uses theme action hooks for extensible content sections.
  *
  * @package ExtraChill
  * @since 1.0
@@ -17,7 +20,7 @@ get_header(); ?>
                     <h1 class="page-title"><?php _e( 'Well, that’s not very chill of us.', 'extrachill' ); ?></h1>
                 </header>
                 <p><?php _e( 'We can’t find what you’re looking for. Try a search instead.', 'extrachill' ); ?></p>
-                <?php get_search_form(); ?>
+                <?php extrachill_search_form(); ?>
             </div><!-- .page-content -->
         </section><!-- .error-404 -->
     </section><!-- #primary -->

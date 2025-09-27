@@ -37,7 +37,7 @@ if (is_category()) {
 }
 ?>
 <?php if (have_posts()) : ?>
-    <?php display_breadcrumbs(); ?>
+    <?php extrachill_breadcrumbs(); ?>
 
     <header class="page-header">
         <h1 class="page-title">
@@ -89,7 +89,7 @@ if (is_category()) {
     <div class="article-container">
         <?php global $post_i; $post_i = 1; ?>
         <?php while (have_posts()) : the_post(); ?>
-            <?php get_template_part('content', ''); ?>
+            <?php get_template_part('inc/archives/post-card'); ?>
         <?php endwhile; ?>
     </div>
 
@@ -100,7 +100,7 @@ if (is_category()) {
     </div>
 
 <?php else : ?>
-    <?php get_template_part('no-results', 'archive'); ?>
+    <?php extrachill_no_results(); ?>
 <?php endif; ?>
 </section><!-- #primary -->
 

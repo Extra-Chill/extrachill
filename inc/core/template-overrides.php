@@ -27,7 +27,9 @@ function extrachill_template_overrides($template) {
     // Define template overrides map - maps template filename to new location
     $overrides = array(
         'front-page.php' => EXTRACHILL_INCLUDES_DIR . '/home/templates/front-page.php',
-        'archive.php' => EXTRACHILL_INCLUDES_DIR . '/archives/archive.php'
+        'archive.php' => EXTRACHILL_INCLUDES_DIR . '/archives/archive.php',
+        'single.php' => EXTRACHILL_INCLUDES_DIR . '/single/single-post.php',
+        'page.php' => EXTRACHILL_INCLUDES_DIR . '/single/single-page.php'
     );
 
     // Get the template filename from the full path

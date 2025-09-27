@@ -11,8 +11,14 @@
 
 if ( ! function_exists( 'extrachill_entry_meta' ) ) :
     /**
-     * Display post meta information including date, author, and forum integration
-     * Handles both regular posts and forum posts from community multisite
+     * Display post meta information for regular posts and forum posts
+     *
+     * Handles different meta display formats for:
+     * - Regular posts: date, author (via Co-Authors Plus if available), updated time
+     * - Forum posts: community author link, forum name, external links to community site
+     *
+     * @global WP_Post $post Current post object, may include forum-specific properties
+     * @since 1.0
      */
     function extrachill_entry_meta() {
         global $post;

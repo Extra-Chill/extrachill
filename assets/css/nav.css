@@ -425,5 +425,22 @@ body.search-only-open .search-wrap {
 
 .search-wrap input[type="text"]{
     margin-bottom: 0;
-}  
+}
+
+/* Breadcrumb Styles (moved from style.css) */
+.breadcrumbs {
+	font-size: 13px;
+	color: var(--muted-text);
+	margin-top: 20px;
+	margin-bottom: 25px;
+}
+
+.breadcrumbs a {
+	color: var(--muted-text);
+	border-bottom: .5px dotted var(--link-color);
+}
+
+.breadcrumb-title{
+	display: none;
+}
   

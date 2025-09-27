@@ -759,3 +759,53 @@ body.home {
         padding: 2em 1em;
     }
 }
+
+/* Home Header and Page Template Styles (moved from style.css) */
+.home-header, .page-template-all-posts .page-header, .page-template-page-locations .page-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: flex-end;
+}
+.page-template-all-posts .page-header, .page-template-page-locations .page-header  {
+	border-bottom: 2px solid var(--accent);
+}
+.home-header h2{
+	margin-bottom: 0;
+}
+.view-all-button, .locations-link, .all-link{
+    background-color: var(--button-bg);
+    color: #fff;
+    padding: 3px 8px;
+    font-size: 14px;
+    border-radius: 3px;
+}
+.view-all-button:hover, .locations-link:hover, .all-link:hover{
+	background-color: var(--button-hover-bg);
+	color: var(--button-text);
+}
+.page-template-all-posts .page-header .page-title, .page-template-page-locations .page-header .page-title {
+	margin-bottom: 0;
+}
+
+/* Home Primary Layout */
+.home #primary{
+	display: flex;
+	flex-direction: column;
+}
+
+/* Home Article Spacing */
+.home article {
+	margin-bottom: 25px;
+	padding-top:10px;
+}
+
+/* Home Below Entry Meta */
+.home .below-entry-meta {
+	border: none;
+}
+
+/* Front Page Section Responsive */
+.front-page-top-section {
+	width: 92%;
+	margin: auto;
+}
