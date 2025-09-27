@@ -25,10 +25,15 @@ The ExtraChill theme is a custom WordPress theme serving as the frontend for an 
 
 ### Modular File Structure
 The theme uses a clean, modular architecture organized in the `/inc/` directory:
-- **admin/**: Administrative functionality (customizer, contact forms, logging)
+- **admin/**: Administrative functionality (customizer, logging, tag migration)
+- **archives/**: Archive page functionality (custom sorting, child terms dropdown)
 - **community/**: Forum integration, user sync, upvotes, activity feeds
-- **core/**: Essential WordPress functionality (breadcrumbs, taxonomies, SEO)
-- **home/**: Homepage-specific components and sections (hook points for plugin integrations)
+- **core/**: Essential WordPress functionality with shared templates:
+  - **core/templates/**: Shared template components (post-meta, share, social-links)
+  - **core/editor/**: Custom embeds (Bandcamp, Instagram, Spotify)
+- **header/**: Navigation functionality (walker, menu system)
+- **home/**: Homepage-specific components and template sections
+- **single-post/**: Single post functionality (comments, related posts)
 - **woocommerce/**: E-commerce integration with performance optimization
 
 ### Custom Post Types & Taxonomies
@@ -55,12 +60,12 @@ The theme uses a clean, modular architecture organized in the `/inc/` directory:
 - **Asset Optimization**: Prevents unnecessary script/style loading
 
 ### CSS Architecture
-- **Root Variables**: Global CSS custom properties in `css/root.css`
+- **Root Variables**: Global CSS custom properties in `assets/css/root.css`
 - **Modular Loading**: Page-specific CSS files (`home.css`, `archive.css`, `single-post.css`)
-- **Component Styles**: Separate files for badges, navigation, WooCommerce integration
-- **Dark Mode Ready**: CSS custom properties support automatic theme switching
+- **Component Styles**: Separate files for badges, navigation, custom lightbox
 - **Performance Loading**: Conditional CSS enqueuing based on page context
-- **Dependency Management**: Proper CSS loading order with dependencies
+- **Dependency Management**: Proper CSS loading order with root.css loading first
+- **Custom Lightbox**: Gallery-specific lightbox functionality with conditional loading
 
 ## Development Commands
 
@@ -104,17 +109,19 @@ wp rewrite flush
 
 ### Core Theme Files
 - **`functions.php`** - Main theme setup, asset loading, and module includes
-- **`inc/functions.php`** - Core helper functions, meta display, and comment system
-- **`inc/woocommerce/core.php`** - WooCommerce integration with performance optimization
+- **`inc/core/assets.php`** - Centralized asset management with conditional loading
+- **`inc/single-post/comments.php`** - Comment system with community integration
+- **`inc/core/templates/post-meta.php`** - Post meta display template
 - **`style.css`** - Main stylesheet with CSS reset and core styles
-- **`css/root.css`** - CSS custom properties and theme variables
+- **`assets/css/root.css`** - CSS custom properties and theme variables
 
 ### Asset Loading Strategy
+- **Centralized Management**: All asset loading handled in `inc/core/assets.php`
 - **Dynamic CSS Loading**: Page-specific stylesheets loaded conditionally
-- **JavaScript Optimization**: Scripts enqueued only when needed
-- **Font Management**: Web fonts served from local `fonts/` directory
+- **JavaScript Optimization**: Scripts enqueued only when needed (reading progress, navigation)
 - **Cache Busting**: `filemtime()` versioning for all assets
-- **Priority Loading**: Root CSS loads first, other styles depend on it
+- **Priority Loading**: Root CSS loads first (priority 5), other styles depend on it
+- **Navigation Scripts**: Menu navigation JavaScript with conditional loading
 
 ### Template Hierarchy
 - **Taxonomy Templates**: Custom templates for artist, venue, festival, location
@@ -124,16 +131,30 @@ wp rewrite flush
 
 ## Custom Functionality
 
-### Newsletter System
-- **Plugin Integration**: Newsletter functionality provided by ExtraChill Newsletter Plugin
-- **Homepage Integration**: Plugin hooks into theme via `do_action('extrachill_homepage_newsletter_section')`
-- **Template Management**: All newsletter templates handled by plugin, not theme
+### Removed Systems
+- **Newsletter System**: Functionality moved to ExtraChill Newsletter Plugin
+- **Contact Form System**: Functionality moved to ExtraChill Contact Plugin
+- **Session Token System**: Completely removed in favor of native WordPress multisite authentication
+- **Event Submission System**: Completely removed - all JavaScript and server-side functionality deleted
+  - Deleted: `assets/js/event-submission-logged-out.js`
+  - Deleted: `assets/js/event-submission-modal.js`
+  - All event submission modal and logged-out user handling removed
+- **Location Filter Client-Side System**: Frontend JavaScript functionality completely removed
+  - Deleted: `assets/js/location-filter.js`
+  - Added: `inc/location-filter.php` (server-side only, NOT included in functions.php)
+  - Backend AJAX handlers remain functional but dormant (not actively loaded)
+  - Frontend location filtering interface completely removed
 
-### Festival Wire Integration
-- **Homepage Integration**: Festival Wire functionality provided by ExtraChill News Wire plugin via hook
-- **Plugin Integration**: Plugin hooks into theme via `extrachill_after_hero` action hook
-- **Theme Support**: Theme provides hook points for plugin integration
-- **Migration Complete**: Festival Wire functionality fully moved to plugin (no theme files remain)
+### Plugin Integration Points
+- **Festival Wire**: ExtraChill News Wire plugin hooks into `extrachill_after_hero` action
+- **Newsletter**: ExtraChill Newsletter Plugin provides homepage newsletter section
+- **Contact Forms**: ExtraChill Contact Plugin handles all contact functionality
+- **Homepage Sections**: Extensible via action hooks:
+  - `extrachill_homepage_hero`
+  - `extrachill_homepage_content_top`
+  - `extrachill_homepage_content_middle`
+  - `extrachill_homepage_content_bottom`
+  - `extrachill_home_final_left`
 
 ### Performance Features
 - **WooCommerce Optimization**: Conditional loading prevents global initialization
@@ -166,10 +187,22 @@ EXTRACHILL_INCLUDES_DIR - Inc directory path for modular includes
 - **Accessibility**: Semantic HTML and ARIA attributes
 - **REST API**: Custom taxonomies support REST API integration
 
+## Recent Architectural Changes
+
+- **Core Templates Directory**: Created `/inc/core/templates/` for shared template components
+- **Major System Removal**: Complete removal of event submission and location filter JavaScript systems
+  - Event submission functionality completely deleted (both client and server-side)
+  - Location filter JavaScript removed, backend functions remain dormant in `inc/location-filter.php`
+- **Plugin Migration**: Newsletter, contact forms, and session tokens moved to dedicated plugins
+- **Enhanced Modularization**: Better organization of functionality by purpose with cleaner separation
+- **Asset Management**: Centralized in `inc/core/assets.php` with conditional loading
+- **Authentication Simplification**: Native WordPress multisite authentication replaces custom session management
+- **Performance Optimization**: Removal of unused JavaScript reduces client-side complexity
+
 ## Important Notes
 
-- **Community-Focused**: Deep integration with bbPress and custom user systems
-- **Performance Optimized**: WooCommerce conditional loading prevents unnecessary resource usage
-- **Modern Architecture**: Clean separation of concerns with modular file structure
+- **Community-Focused**: Deep integration with bbPress and native multisite authentication
+- **Performance Optimized**: WooCommerce conditional loading and modular asset loading
+- **Modern Architecture**: Clean separation of concerns with enhanced modular structure
 - **No Build Process**: Direct file editing with WordPress native optimization
-- **Extensible Design**: Filter-based architecture supports easy customization
+- **Extensible Design**: Action hook architecture supports plugin integration

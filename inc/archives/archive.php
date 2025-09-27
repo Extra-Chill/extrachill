@@ -93,7 +93,7 @@ if (is_category()) {
         <?php endwhile; ?>
     </div>
 
-    <?php get_template_part('navigation', 'archive'); ?>
+    <?php extrachill_pagination(null, 'archive'); ?>
 
     <div class="back-home-link-container">
         <a href="<?php echo esc_url(home_url('/')); ?>" class="back-home-link">← Back Home</a>

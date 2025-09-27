@@ -10,22 +10,9 @@
 <?php
 if ( is_archive() || is_home() || is_search() ) {
 	/**
-	 * Checking WP-PageNaviplugin exist
+	 * Display pagination for archive pages
 	 */
-	if ( function_exists( 'wp_pagenavi' ) ) :
-		wp_pagenavi();
-
-	else:
-		global $wp_query;
-		if ( $wp_query->max_num_pages > 1 ) :
-			?>
-			<ul class="default-wp-page clearfix">
-				<li class="previous"><?php next_posts_link( __( '&larr; Previous', 'extrachill' ) ); ?></li>
-<li class="next"><?php previous_posts_link( __( 'Next &rarr;', 'extrachill' ) ); ?></li>
-			</ul>
-		<?php
-		endif;
-	endif;
+	extrachill_pagination(null, 'archive');
 }
 
 if ( is_single() ) {

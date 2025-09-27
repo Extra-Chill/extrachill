@@ -29,7 +29,7 @@ get_header(); ?>
 
 				</div>
 
-				<?php get_template_part( 'navigation', 'archive' ); ?>
+				<?php extrachill_pagination(null, 'search'); ?>
 
 				<div class="back-home-link-container">
 					<a href="<?php echo esc_url( home_url( '/' ) ); ?>" class="back-home-link">← Back Home</a>
