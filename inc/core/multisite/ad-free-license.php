@@ -6,7 +6,7 @@
  * Uses switch_to_blog(3) to check shop site's license database from main site.
  *
  * @package ExtraChill
- * @since 1.0
+ * @since 69.57
  */
 
 /**

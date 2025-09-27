@@ -6,7 +6,7 @@
  * Replaces REST API calls with direct database queries for improved performance
  *
  * @package ExtraChill
- * @since 1.0
+ * @since 69.57
  */
 /**
  * Generate compact human-readable time difference strings
@@ -15,7 +15,7 @@
  * @param int $from Unix timestamp of the past time
  * @param int $to   Unix timestamp of current time (defaults to now)
  * @return string Formatted time difference string
- * @since 1.0
+ * @since 69.57
  */
 function custom_human_time_diff($from, $to = '') {
     if (empty($to)) {
@@ -54,7 +54,7 @@ function custom_human_time_diff($from, $to = '') {
  *
  * @param int $limit Number of activities to fetch (default: 10)
  * @return array Array of activity data with user, topic, and forum information
- * @since 1.0
+ * @since 69.57
  *
  * @throws Exception If multisite operation fails, logs error and returns empty array
  */
@@ -135,7 +135,7 @@ function ec_fetch_recent_activity_multisite( $limit = 10 ) {
  * Implements 10-minute caching to reduce database queries and improve performance
  *
  * @return string HTML output for recent activity display
- * @since 1.0
+ * @since 69.57
  */
 function extrachill_recent_activity_shortcode() {
     $transient_name = 'extrachill_recent_activity';

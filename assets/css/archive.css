@@ -138,8 +138,8 @@ a.card-link-target:hover,
 
 .back-home-link {
     display: inline-block;
-    padding: 0.8em 2em;
-    font-size: 1.05em;
+    padding: 0.6em 1.5em;
+    font-size: 1em;
     font-weight: 700;
     color: #fff;
     background-color: var(--button-bg);
@@ -157,29 +157,6 @@ a.card-link-target:hover,
     outline: none;
 }
 
-/* --- Newsletter Archive: Disable grid and use simple list --- */
-.newsletter-archive .article-container {
-    display: block !important;
-    width: 100%;
-}
-.newsletter-archive .article-container article {
-    width: 100%;
-    margin-bottom: 2em;
-    border-bottom: 1px solid var(--border-color, #333);
-    padding-bottom: 1.5em;
-}
-.newsletter-archive .article-container article:last-child {
-    border-bottom: none;
-    margin-bottom: 0;
-}
-
-/* Remove grid-specific styles for newsletter archive */
-.newsletter-archive .article-container .post {
-    display: block;
-    margin-bottom: 0;
-    width: 100%;
-    flex-direction: unset;
-}
 
 /* Archive-specific button styling improvements */
 .archive-card .read-more-button {
@@ -257,34 +234,7 @@ margin: 5px 0;
 	font-size: 16px;
 }
 
-/* Taxonomy Badges (Standardized) */
-.taxonomy-badges {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  margin-bottom: 1.25rem;
-  align-items: center;
-  position: relative;
-  z-index: 2;
-}
-.taxonomy-badge {
-  font-size: 0.75rem;
-  padding: 0.25rem 0.75rem;
-  background-color: var(--card-background);
-  color: var(--link-color);
-  border-radius: 50px;
-  border: 1px solid var(--border-color);
-  font-weight: 500;
-  line-height: 1;
-  text-decoration: none;
-  display: inline-block;
-  transition: background 0.18s, color 0.18s;
-}
-.taxonomy-badge:hover {
-  background-color: var(--button-hover-bg);
-  color: #fff;
-  text-decoration: none;
-}
+/* Taxonomy badge base styles moved to style.css for global availability */
 
 .tag-badge {
   background-color: rgba(var(--link-color-rgb), 0.1);

@@ -1,9 +1,23 @@
 <?php
 /**
+ * Related Posts Display for Single Posts
+ *
+ * Shows related posts based on shared taxonomy terms (artist, venue).
+ * Includes 1-hour caching for performance optimization.
+ *
+ * @package ExtraChill
+ * @since 1.0
+ */
+
+/**
  * Display related posts from the same taxonomy term
+ *
+ * Shows up to 3 related posts with thumbnails and meta information.
+ * Uses transient caching for improved performance.
  *
  * @param string $taxonomy The taxonomy to query (e.g., 'artist', 'venue')
  * @param int $post_id The current post ID to exclude from results
+ * @since 1.0
  */
 function extrachill_display_related_posts($taxonomy, $post_id) {
     if (!in_array($taxonomy, ['artist', 'venue'])) {

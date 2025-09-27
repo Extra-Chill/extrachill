@@ -8,7 +8,7 @@
  * Makes variables global so homepage templates can access them.
  *
  * @package ExtraChill
- * @since 1.0
+ * @since 69.57
  */
 
 // Exit if accessed directly

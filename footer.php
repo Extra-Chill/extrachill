@@ -13,37 +13,17 @@
 <?php do_action( 'extrachill_above_footer' ); ?>
 
 <footer id="extra-footer" >
-    <?php include get_template_directory() . '/social-links.php'; ?>
+    <?php do_action( 'extrachill_social_links' ); ?>
 
     <div class="footer-menus-wrapper">
-        <div class="footer-menus">
-            <?php
-            for ( $i = 1; $i <= 5; $i++ ) {
-                $menu_location = 'footer-' . $i;
-                if ( has_nav_menu( $menu_location ) ) {
-                    wp_nav_menu(
-                        array(
-                            'theme_location'  => $menu_location,
-                            'container'       => 'div',
-                            'container_class' => 'footer-menu-column',
-                            'menu_class'      => 'footer-column-menu',
-                        )
-                    );
-                }
-            }
-            ?>
-        </div>
+        <?php do_action('extrachill_footer_main_content'); ?>
     </div>
 
     <div class="footer-copyright">
         &copy; <?php echo date( 'Y' ); ?> <a href="https://extrachill.com">Extra Chill</a>. All rights reserved.
     </div>
 
-    <?php if ( has_nav_menu( 'footer-extra' ) ) : ?>
-        <div class="footer-extra-menu">
-            <?php wp_nav_menu( array( 'theme_location' => 'footer-extra' ) ); ?>
-        </div>
-    <?php endif; ?>
+    <?php do_action('extrachill_below_copyright'); ?>
 </footer>
 
 

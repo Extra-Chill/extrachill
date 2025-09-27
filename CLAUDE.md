@@ -18,7 +18,8 @@ The theme uses a clean, modular architecture organized in the `/inc/` directory:
   - **core/templates/**: Shared template components (post-meta, pagination, no-results, share, social-links, taxonomy-badges, breadcrumbs, searchform)
   - **core/editor/**: Custom embeds (Bandcamp, Instagram, Spotify)
   - **core/multisite/**: Cross-site integration (multisite-search, recent-activity-feed, ad-free-license, comment-author-links)
-- **header/**: Navigation functionality (walker, navigation-menu)
+- **footer/**: Footer navigation functionality (footer-bottom-menu, footer-main-menu)
+- **header/**: Navigation functionality (navigation, navigation-menu, nav-bottom-menu, nav-main-menu)
 - **home/**: Homepage-specific components and template sections (templates/, homepage-queries)
 - **sidebar/**: Sidebar-specific functionality (recent-posts, community-activity)
 - **single/**: Single post and page functionality (comments, related-posts, single-post, single-page)
@@ -47,6 +48,50 @@ The theme uses a clean, modular architecture organized in the `/inc/` directory:
 - **ExtraChill Newsletter**: Newsletter functionality via dedicated plugin
 - **ExtraChill Contact**: Contact form functionality via dedicated plugin
 - **Action Hook Architecture**: Extensible plugin integration points throughout theme
+
+### Hook-Based Menu System Architecture
+
+The theme uses an elegant hook-based menu system that provides both performance and extensibility:
+
+#### **Menu System Components:**
+
+1. **Container Structure** (`inc/header/navigation-menu.php`):
+   - Provides flyout menu HTML container structure
+   - Includes action hooks: `extrachill_navigation_main_menu`, `extrachill_navigation_bottom_menu`
+   - Handles hamburger toggle, search integration, and social links
+
+2. **Hook Registration** (`inc/core/actions.php`):
+   - Registers default handlers for navigation hooks
+   - `extrachill_default_navigation_main_menu()` loads main navigation content
+   - `extrachill_default_navigation_bottom_menu()` loads bottom navigation content
+   - Allows plugins to override or extend menu content
+
+3. **Content Templates**:
+   - `inc/header/nav-main-menu.php` - Hardcoded main navigation items (Community, Calendar, Festival Wire, Blog Content)
+   - `inc/header/nav-bottom-menu.php` - Hardcoded bottom navigation links (About, Contact)
+
+4. **Footer Menu System**:
+   - `inc/footer/footer-main-menu.php` - Hardcoded main footer menu with hierarchical structure
+   - `inc/footer/footer-bottom-menu.php` - Hardcoded legal/policy links
+   - Uses `extrachill_footer_main_content` and `extrachill_below_copyright` hooks
+
+#### **Architecture Benefits:**
+- **Performance**: Hardcoded menus eliminate database queries for menu generation
+- **Extensibility**: Plugins can hook into menu action points to add custom items
+- **Maintainability**: Menu content separated into logical, focused files
+- **Admin Cleanup**: WordPress menu management interface removed (no longer needed)
+
+#### **Plugin Integration Examples:**
+```php
+// Plugin can add menu items via hooks
+add_action('extrachill_navigation_main_menu', 'my_plugin_add_menu_item', 15);
+add_action('extrachill_footer_main_content', 'my_plugin_add_footer_section', 20);
+```
+
+#### **Menu Management:**
+- No WordPress admin menu management (interface removed via `extrachill_remove_menu_admin_pages()`)
+- Menu content modified directly in template files
+- Hook system allows plugins to dynamically add menu items without core file modification
 
 ### CSS Architecture
 - **Root Variables**: Global CSS custom properties in `assets/css/root.css`
@@ -97,7 +142,7 @@ wp rewrite flush
 ## Key File Locations
 
 ### Core Theme Files
-- **`functions.php`** - Main theme setup, asset loading, and module includes (44 PHP files)
+- **`functions.php`** - Main theme setup, asset loading, and module includes (47 PHP files)
 - **`inc/core/assets.php`** - Centralized asset management with conditional loading
 - **`inc/single/comments.php`** - Comment system with community integration
 - **`inc/core/templates/post-meta.php`** - Post meta display template
@@ -116,9 +161,9 @@ wp rewrite flush
 - `inc/core/templates/breadcrumbs.php` - Breadcrumb navigation
 - `inc/core/templates/searchform.php` - Search form template
 
-**Core Functionality (7 files)**:
+**Core Functionality (5 files)**:
+- `inc/core/actions.php` - Centralized WordPress action hooks
 - `inc/core/assets.php` - Asset management and conditional loading
-- `inc/core/template-overrides.php` - WordPress template overrides
 - `inc/core/custom-taxonomies.php` - Custom taxonomy registration
 - `inc/core/rewrite-rules.php` - URL rewrite rules
 - `inc/core/yoast-stuff.php` - Yoast SEO integration
@@ -150,11 +195,17 @@ wp rewrite flush
 - `inc/single/comments.php` - Comment system
 - `inc/single/related-posts.php` - Related posts functionality
 
-**Header/Navigation (2 files)**:
-- `inc/header/walker.php` - Custom navigation walker
-- `inc/header/navigation-menu.php` - Navigation menu functionality
+**Footer Navigation (2 files)**:
+- `inc/footer/footer-bottom-menu.php` - Footer bottom menu functionality
+- `inc/footer/footer-main-menu.php` - Footer main menu functionality
 
-**Homepage Components (5+ files)**:
+**Header/Navigation (4 files)**:
+- `inc/header/navigation.php` - Core navigation functionality
+- `inc/header/navigation-menu.php` - Navigation menu functionality
+- `inc/header/nav-bottom-menu.php` - Bottom navigation menu
+- `inc/header/nav-main-menu.php` - Main navigation menu
+
+**Homepage Components (8 files)**:
 - `inc/home/homepage-queries.php` - Homepage query functions
 - `inc/home/templates/hero.php` - Hero section
 - `inc/home/templates/section-3x3-grid.php` - 3x3 grid section
@@ -189,6 +240,7 @@ wp rewrite flush
 - **Newsletter System**: Functionality moved to ExtraChill Newsletter Plugin
 - **Contact Form System**: Functionality moved to ExtraChill Contact Plugin
 - **Session Token System**: Completely removed in favor of native WordPress multisite authentication
+- **WordPress Menu Management**: Replaced with hook-based system for performance and extensibility
 - **Event Submission System**: Completely removed - all JavaScript and server-side functionality deleted
 - **Location System**: Complete elimination of unused location browsing functionality
 - **WooCommerce Files**: All WooCommerce templates and CSS removed, moved to ExtraChill Shop plugin

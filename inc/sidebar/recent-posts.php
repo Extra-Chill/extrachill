@@ -6,10 +6,20 @@
  * Shows contextual posts based on current page type.
  *
  * @package ExtraChill
- * @since 1.0
+ * @since 69.57
  */
 
 if ( ! function_exists( 'extrachill_sidebar_recent_posts' ) ) :
+    /**
+     * Display contextual recent posts in sidebar
+     *
+     * Shows different content based on current page:
+     * - Single posts: Related posts from same category
+     * - Festival Wire posts: Latest Festival Wire posts
+     * - Other pages: General recent posts
+     *
+     * @since 69.57
+     */
     function extrachill_sidebar_recent_posts() {
         $post_id = get_the_ID();
         $current_post_type = get_post_type($post_id);
