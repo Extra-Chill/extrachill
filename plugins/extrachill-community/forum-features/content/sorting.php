@@ -5,7 +5,7 @@
  * AJAX-powered sorting and filtering for forum topics with search capability.
  * Provides dynamic content updates without page refreshes.
  * 
- * @package Extra ChillCommunity
+ * @package ExtraChillCommunity
  */
 
 // Enqueue sorting script

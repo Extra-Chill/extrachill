@@ -37,8 +37,10 @@ function extrachill_get_user_total_points($user_id) {
 
     $follower_points = 0;
 
-    // Get main site post count (with multisite, user ID is the same across network)
-    $main_site_post_count = fetch_main_site_post_count_for_user($user_id);
+    // Get main site post count for points calculation
+    switch_to_blog(1);
+    $main_site_post_count = count_user_posts($user_id, 'post', true);
+    restore_current_blog();
     $main_site_post_points = $main_site_post_count * 10;
 
     // Calculate total points

@@ -5,7 +5,7 @@
  * Complete overview and loader for all Extra Chill Community forum functionality.
  * This single file provides developers a comprehensive understanding of all features.
  * 
- * @package Extra ChillCommunity
+ * @package ExtraChillCommunity
  * @version 1.0.0
  * @author Chris Huber
  */

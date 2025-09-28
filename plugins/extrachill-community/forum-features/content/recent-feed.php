@@ -5,7 +5,7 @@
  * Legacy functions for recent feed functionality.
  * Most functionality has been moved to content/queries/recent-feed-queries.php
  * 
- * @package Extra ChillCommunity
+ * @package ExtraChillCommunity
  * @version 1.0.0
  */
 

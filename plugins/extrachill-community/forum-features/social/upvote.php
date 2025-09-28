@@ -5,7 +5,7 @@
  * AJAX-based upvoting functionality for forum topics and replies.
  * Manages vote state, counts, and triggers point calculation hooks.
  * 
- * @package Extra ChillCommunity
+ * @package ExtraChillCommunity
  */
 
 function handle_upvote_action() {

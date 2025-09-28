@@ -5,7 +5,7 @@
  * Automatically converts Bandcamp URLs into embedded players by parsing
  * page metadata and generating proper embed iframe code.
  * 
- * @package Extra ChillCommunity
+ * @package ExtraChillCommunity
  */
 function custom_bandcamp_embed_handler($matches, $attr, $url, $rawattr) {
     // Fetch the Bandcamp page content

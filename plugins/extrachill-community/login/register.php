@@ -4,7 +4,7 @@
  *
  * Handles user registration with email verification and validation.
  *
- * @package Extra ChillCommunity
+ * @package ExtraChillCommunity
  */
 
 function extrachill_registration_form_shortcode() {

@@ -4,7 +4,7 @@
  *
  * Handles login form display and redirect logic for user onboarding.
  *
- * @package Extra ChillCommunity
+ * @package ExtraChillCommunity
  */
 
 function extrachill_login_form() {

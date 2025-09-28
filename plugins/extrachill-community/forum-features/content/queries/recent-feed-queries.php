@@ -5,7 +5,7 @@
  * Centralized database queries for the Recent Activity Feed page template.
  * Handles activity feed with both topics and replies in chronological order.
  *
- * @package Extra ChillCommunity
+ * @package ExtraChillCommunity
  * @version 1.0.0
  */
 

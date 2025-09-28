@@ -5,7 +5,7 @@
  * Admin functionality for controlling which forums display on the community homepage.
  * Adds checkbox to forum edit pages for homepage display control.
  * 
- * @package Extra ChillCommunity
+ * @package ExtraChillCommunity
  * @version 1.0.0
  */
 

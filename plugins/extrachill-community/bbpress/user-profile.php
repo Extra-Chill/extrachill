@@ -64,10 +64,16 @@ $is_professional   = get_user_meta( $displayed_user_id, 'user_is_professional', 
 
     <!-- Display Main Site Comments Count -->
     <?php
-    $main_site_comments_html = display_main_site_comment_count_for_user();
-    if (!empty($main_site_comments_html)) : ?>
-        <p class="bbp-user-main-site-comment-count"><?php echo $main_site_comments_html; ?></p>
-    <?php endif; ?>
+    $user_id = bbp_get_displayed_user_id();
+    $comment_count = get_user_main_site_comment_count($user_id);
+
+    if ($comment_count > 0) {
+        $comments_url = "https://community.extrachill.com/blog-comments?user_id={$user_id}";
+        echo '<p class="bbp-user-main-site-comment-count"><b>Main Site Comments:</b> ' . $comment_count . ' <a href="' . esc_url($comments_url) . '">(View All)</a></p>';
+    } else {
+        echo '<p class="bbp-user-main-site-comment-count"><b>Main Site Comments:</b> ' . $comment_count . '</p>';
+    }
+    ?>
     </div>
     </div>
                     

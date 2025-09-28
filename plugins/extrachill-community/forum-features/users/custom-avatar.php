@@ -5,7 +5,7 @@
  * AJAX-powered avatar upload and management for user profiles.
  * Handles file validation, upload processing, and avatar deletion.
  * 
- * @package Extra ChillCommunity
+ * @package ExtraChillCommunity
  */
 add_action('wp_ajax_custom_avatar_upload', 'extrachill_custom_avatar_upload');
 function extrachill_custom_avatar_upload() {
