@@ -1,37 +1,37 @@
-# Extra Chill Community Theme
+# Extra Chill Community Plugin
 
-A WordPress theme for the Extra Chill community platform providing forum enhancements, cross-domain authentication, and bbPress integration. Focuses exclusively on community and forum features. Artist platform functionality has been fully migrated to a separate plugin.
+A WordPress plugin for the Extra Chill community platform providing forum enhancements, cross-domain authentication, and bbPress integration. Works with the extrachill theme to provide community functionality for community.extrachill.com. Focuses exclusively on community and forum features.
 
 **Version**: 1.0.0
 
 ## Overview
 
-**Extra Chill Community** is a WordPress theme serving the community platform at `community.extrachill.com`:
-- `community.extrachill.com` - Main community platform (WordPress/bbPress) **[This theme]**
-- `extrachill.com` - Main website **[Cross-domain integration only]**
-- Artist platform features **[Fully migrated to separate plugin]**
+**Extra Chill Community** is a WordPress plugin providing community functionality:
+- `community.extrachill.com` - Main community platform (WordPress/bbPress) **[Uses extrachill theme + this plugin]**
+- `extrachill.com` - Main website **[Uses extrachill theme + cross-domain integration]**
+- Artist platform features **[Handled by separate extrachill-artist-platform plugin]**
 
 ## Quick Start
 
 ### Installation
 
 ```bash
-# Navigate to theme directory
-cd wp-content/themes/extrachill-community
+# Navigate to plugin directory
+cd wp-content/plugins/extrachill-community
 
 # Install PHP dependencies
 composer install
 
-# No build process required - uses direct file inclusion
+# Activate plugin in WordPress admin
+# Plugin integrates with extrachill theme
 ```
 
-### Theme Structure
+### Plugin Structure
 
 ```
 extrachill-community/
-├── functions.php              # Theme setup and WordPress features
-├── style.css                  # Main stylesheet with theme header
-├── index.php                  # Required WordPress template fallback
+├── extrachill-community.php   # Main plugin file
+├── includes/                  # Core plugin functionality
 ├── page-templates/            # Custom page templates  
 ├── bbpress/                   # bbPress template overrides
 ├── extrachill-integration/    # Cross-domain authentication
@@ -60,9 +60,9 @@ require_once get_stylesheet_directory() . '/forum-features/forum-features.php';
 
 **bbPress Integration**:
 ```php
-// Custom templates override default bbPress styling
+// Plugin enhances bbPress functionality
 if (bbp_is_forum_archive() || is_front_page()) {
-    wp_enqueue_style('forums-loop', get_stylesheet_directory_uri() . '/css/forums-loop.css');
+    wp_enqueue_style('forums-loop', plugin_dir_url(__FILE__) . 'css/forums-loop.css');
 }
 ```
 
@@ -90,11 +90,6 @@ extrachill_login_user_across_domains($user_id);
 ```javascript
 // Cross-domain comments for extrachill.com
 seamlessComments.submitComment(commentData);
-
-// Legacy session validation (maintained for compatibility)
-fetch('/wp-json/extrachill/v1/validate-session', {
-    headers: { 'Authorization': 'Bearer ' + sessionToken }
-});
 ```
 
 **Migration Status**: The theme is transitioning from custom session tokens to WordPress multisite native authentication. Legacy endpoints are maintained during the migration period.
@@ -149,7 +144,7 @@ extrachill_send_email_change_confirmation($user_id, $old_email, $new_email);
 // Modular CSS with conditional loading
 function modular_bbpress_styles() {
     if (is_bbpress()) {
-        wp_enqueue_style('forums-loop', get_template_directory_uri() . '/css/forums-loop.css');
+        wp_enqueue_style('forums-loop', plugin_dir_url(__FILE__) . 'css/forums-loop.css');
     }
 }
 ```
@@ -157,20 +152,20 @@ function modular_bbpress_styles() {
 **JavaScript Architecture** (21 specialized files total):
 ```php
 // Core utilities (js/ directory - 13 files)
-wp_enqueue_script('extrachill-utilities', get_stylesheet_directory_uri() . '/js/utilities.js', ['jquery']);
+wp_enqueue_script('extrachill-utilities', plugin_dir_url(__FILE__) . 'js/utilities.js', ['jquery']);
 // Additional files: custom-avatar.js, manage-user-profile-links.js, quote.js, seamless-comments.js,
 // seamless-login.js, shared-tabs.js, submit-community-comments.js, tinymce-image-upload.js,
 // topic-quick-reply.js, sorting.js, home-collapse.js, nav-menu.js, extrachill-mentions.js
 
 // Forum features (forum-features/ directory - 4 files)
-wp_enqueue_script('extrachill-follow', get_stylesheet_directory_uri() . '/forum-features/social/js/extrachill-follow.js', ['jquery']);
-wp_enqueue_script('upvote', get_stylesheet_directory_uri() . '/forum-features/social/js/upvote.js', ['jquery']);
-wp_enqueue_script('extrachill-mentions', get_stylesheet_directory_uri() . '/forum-features/social/js/extrachill-mentions.js', ['jquery']);
-wp_enqueue_script('extrachill-admin', get_stylesheet_directory_uri() . '/forum-features/social/rank-system/js/extrachill_admin.js', ['jquery']);
+wp_enqueue_script('extrachill-follow', plugin_dir_url(__FILE__) . 'forum-features/social/js/extrachill-follow.js', ['jquery']);
+wp_enqueue_script('upvote', plugin_dir_url(__FILE__) . 'forum-features/social/js/upvote.js', ['jquery']);
+wp_enqueue_script('extrachill-mentions', plugin_dir_url(__FILE__) . 'forum-features/social/js/extrachill-mentions.js', ['jquery']);
+wp_enqueue_script('extrachill-admin', plugin_dir_url(__FILE__) . 'forum-features/social/rank-system/js/extrachill_admin.js', ['jquery']);
 
 // Login system (login/ directory - 2 files)
-wp_enqueue_script('login-register-tabs', get_stylesheet_directory_uri() . '/login/js/login-register-tabs.js', ['jquery']);
-wp_enqueue_script('join-flow-ui', get_stylesheet_directory_uri() . '/login/js/join-flow-ui.js', ['jquery']);
+wp_enqueue_script('login-register-tabs', plugin_dir_url(__FILE__) . 'login/js/login-register-tabs.js', ['jquery']);
+wp_enqueue_script('join-flow-ui', plugin_dir_url(__FILE__) . 'login/js/join-flow-ui.js', ['jquery']);
 
 // bbPress extensions (bbpress/autosave/ - 1 file)
 // plugin.min.js - TinyMCE autosave functionality
@@ -276,23 +271,20 @@ function my_plugin_avatar_menu_items( $menu_items, $user_id ) {
 - `label` (string, required) - The menu item display text
 - `priority` (int, optional) - Sort order (default: 10, lower = higher in menu)
 
-### Theme Setup
+### Plugin Setup
 
 ```php
-function extra_chill_community_setup() {
-    // WordPress features
-    add_theme_support('title-tag');
-    add_theme_support('post-thumbnails');
-    add_theme_support('html5', ['search-form', 'comment-form']);
-    
-    // Navigation menus (7 total)
-    register_nav_menus([
-        'primary' => 'Primary Menu',
-        'footer' => 'Footer Menu',
-        'footer-extra' => 'Footer Extra Menu'
-        // + 4 additional footer areas
-    ]);
+function extrachill_community_init() {
+    // Plugin initialization
+    // Integrates with extrachill theme
+    // Provides forum and community functionality
+
+    // bbPress enhancements
+    if (class_exists('bbPress')) {
+        // Initialize forum features
+    }
 }
+add_action('init', 'extrachill_community_init');
 ```
 
 ### Performance Optimization
@@ -320,10 +312,6 @@ add_action('wp_enqueue_scripts', 'extrachill_dequeue_bbpress_default_styles', 15
 ### Custom REST API
 
 ```php
-// Legacy session validation (maintained for compatibility)
-GET /wp-json/extrachill/v1/validate-session
-Authorization: Bearer {token}
-
 // Legacy user details (WordPress multisite provides native access)
 GET /wp-json/extrachill/v1/user-details/{user_id}
 
@@ -362,10 +350,12 @@ wp_ajax_save_user_profile_links        // Dynamic social links
 ## Deployment
 
 **Production Setup**:
-1. Install theme on community.extrachill.com WordPress
-2. Activate bbPress plugin (required)
-3. Configure cross-domain cookies (`.extrachill.com`)
-4. Run `composer install` for PHP dependencies
+1. Install plugin on community.extrachill.com WordPress
+2. Activate extrachill theme
+3. Activate bbPress plugin (required)
+4. Activate extrachill-community plugin
+5. Configure cross-domain cookies (`.extrachill.com`)
+6. Run `composer install` for PHP dependencies
 
 **Domain Configuration**:
 ```php
@@ -376,12 +366,13 @@ define('EXTRACHILL_API_URL', 'https://community.extrachill.com');
 
 ## Architecture Notes
 
-- **Community-Focused**: Streamlined theme focused exclusively on community and forum functionality
-- **Plugin Integration**: Works seamlessly with `extrachill-artist-platform` plugin (all artist features migrated to plugin)
+- **Plugin Architecture**: WordPress plugin providing community functionality that integrates with extrachill theme
+- **Theme Integration**: Works seamlessly with extrachill theme on community.extrachill.com
+- **Artist Platform Integration**: Works with `extrachill-artist-platform` plugin via filters and hooks
 - **No Build System**: Direct file inclusion, no compilation required
-- **Procedural Architecture**: No PSR-4 autoloading configured, uses direct function-based patterns 
+- **Procedural Architecture**: No PSR-4 autoloading configured, uses direct function-based patterns
 - **Organized Structure**: Forum features in structured subdirectories with master loader
-- **WordPress Native**: Full compliance with WordPress coding standards
+- **WordPress Native**: Full compliance with WordPress plugin development standards
 - **Performance Focused**: Conditional asset loading, dynamic versioning, modular CSS
 - **Cross-Domain Ready**: WordPress multisite for seamless authentication across domains (legacy session tokens maintained for compatibility)
 

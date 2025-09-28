@@ -4,9 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a **WordPress theme** called "Extra Chill Community" for the **Extra Chill** community platform - a music community with comprehensive forum enhancements and cross-domain authentication. The theme focuses purely on community and forum functionality. Artist profile and link page features have been fully migrated to the `extrachill-artist-platform` plugin.
+This is a **WordPress plugin** called "Extra Chill Community" for the **Extra Chill** community platform - a music community with comprehensive forum enhancements and cross-domain authentication. The plugin provides community and forum functionality that integrates with the extrachill theme. Artist profile and link page features are handled by the `extrachill-artist-platform` plugin.
 
-**Theme Information:**
+**Plugin Information:**
 - **Name**: Extra Chill Community
 - **Version**: 1.0.0
 - **Text Domain**: `extra-chill-community`
@@ -19,7 +19,7 @@ This is a **WordPress theme** called "Extra Chill Community" for the **Extra Chi
 
 ## KNOWN ISSUES
 
-**PSR-4 Implementation**: No PSR-4 autoloading configured in composer.json. The theme currently uses procedural patterns throughout forum features.
+**PSR-4 Implementation**: No PSR-4 autoloading configured in composer.json. The plugin currently uses procedural patterns throughout forum features.
 
 ## FUTURE PLANS
 
@@ -31,8 +31,8 @@ This is a **WordPress theme** called "Extra Chill Community" for the **Extra Chi
 
 ## Key Domains & Architecture
 
-- `community.extrachill.com` - Main platform (WordPress/bbPress) **[This theme]**
-- `extrachill.com` - Main website **[Cross-domain integration]**
+- `community.extrachill.com` - Main platform (WordPress/bbPress) **[Uses extrachill theme + this plugin]**
+- `extrachill.com` - Main website **[Uses extrachill theme + cross-domain integration]**
 
 ## Core Features
 
@@ -65,16 +65,13 @@ composer install
 
 ## Architecture Principles
 
-### 1. Hybrid Theme Structure
-- **Theme Setup**: Full WordPress theme with `extra_chill_community_setup()` function
-- **WordPress Features**: Supports automatic-feed-links, title-tag, post-thumbnails, custom-logo, HTML5 markup, customize-selective-refresh-widgets
-- **Navigation Menus**: Primary, Footer, and Footer Extra menus plus 5 additional footer menu areas registered with proper text domain
-- **Widget Areas**: Custom sidebar plus 5 footer widget areas with proper escaping and structure
+### 1. Plugin Architecture
+- **Plugin Structure**: WordPress plugin providing community functionality that integrates with the extrachill theme
+- **bbPress Integration**: Custom bbPress enhancements and forum functionality
 - **Asset Management**: Conditional CSS/JS loading with dynamic versioning using `filemtime()`
-- **Template Hierarchy**: Includes required `index.php` template file as fallback
 - **Code Organization**: Forum features organized in `forum-features/` directory with master loader
-- **bbPress Integration**: Custom bbPress stylesheet dequeuing (`wp_dequeue_style('bbp-default')`) to prevent conflicts
-- **Independent Templates**: All page templates use native WordPress theme structure without external dependencies
+- **Theme Integration**: Works with extrachill theme to provide community functionality on community.extrachill.com
+- **Template System**: Provides custom templates and functionality that extend the base theme
 
 ### 2. Cross-Domain Session Management
 - **WordPress Multisite**: Native WordPress multisite provides unified authentication across all Extra Chill domains
@@ -110,7 +107,6 @@ composer install
 
 ### Authentication & Integration
 - `extrachill-integration/session-tokens.php` - **Legacy**: Cross-domain session management (maintained for compatibility)
-- `extrachill-integration/validate-session.php` - **Legacy**: Token validation (transitioning to WordPress multisite)
 - `extrachill-integration/seamless-comments.php` - Cross-domain commenting with multisite integration
 - `login/register.php` - Registration system with email verification
 - `login/login.php` - Custom login system integrated with WordPress multisite authentication
@@ -147,15 +143,15 @@ composer install
 
 ## Development Guidelines
 
-### Theme Development Principles
-1. **Hybrid Architecture** - WordPress theme with mixed independence and selective legacy dependencies
-2. **WordPress Standards** - Full compliance with WordPress theme development guidelines and coding standards
-3. **Theme Setup Hook** - Uses `after_setup_theme` action for proper theme initialization
-4. **Modular Asset Loading** - Context-aware CSS/JS enqueuing with bbPress stylesheet conflict prevention
-5. **Template Hierarchy** - WordPress template structure with required `index.php` as fallback
-6. **Widget System** - Custom sidebar plus 5 footer widget areas via `widgets_init` action
-7. **Navigation System** - 7 registered navigation menu areas with proper escaping and text domain support
-8. **Performance Optimization** - Font inheritance system, responsive overrides, and selective script loading
+### Plugin Development Principles
+1. **Plugin Architecture** - WordPress plugin that integrates with the extrachill theme to provide community functionality
+2. **WordPress Standards** - Full compliance with WordPress plugin development guidelines and coding standards
+3. **Plugin Initialization** - Uses plugin initialization hooks for proper setup
+4. **Modular Asset Loading** - Context-aware CSS/JS enqueuing with bbPress integration
+5. **Theme Integration** - Works seamlessly with extrachill theme on community.extrachill.com
+6. **bbPress Enhancement** - Extends bbPress functionality with custom features
+7. **Cross-Domain Integration** - Provides multisite authentication and data sharing
+8. **Performance Optimization** - Conditional loading and selective script enqueuing
 
 ### Forum Features Architecture
 1. **Master Loader** - `forum-features/forum-features.php` loads all forum functionality
@@ -164,16 +160,15 @@ composer install
 4. **bbPress Integration** - Custom templates and hooks for enhanced functionality
 
 ### Code Patterns
-- **WordPress Coding Standards** - Full compliance with theme development best practices
-- **Theme Setup Function** - `extra_chill_community_setup()` with comprehensive feature support
-- **WordPress Feature Support** - Complete `add_theme_support()` implementation for core features
-- **Navigation System** - Multiple menu areas via `register_nav_menus()` with proper text domain
-- **Widget Areas** - Multiple footer and sidebar areas via `register_sidebar()` with proper escaping
+- **WordPress Coding Standards** - Full compliance with plugin development best practices
+- **Plugin Architecture** - Community functionality that integrates with extrachill theme
+- **bbPress Enhancement** - Custom hooks, filters, and functionality extensions
 - **Asset Management** - Dynamic versioning with `filemtime()`, selective loading, and conflict prevention
-- **bbPress Integration** - Custom hooks, filters, and stylesheet dequeuing for seamless integration
+- **Theme Integration** - Seamless integration with extrachill theme on community.extrachill.com
 - **Procedural Code Organization** - No PSR-4 autoloading configured, uses direct function-based patterns
 - **Security Implementation** - Proper escaping, nonce verification, and input sanitization
-- **Performance Focus** - Modular CSS/JS loading, font optimization, and responsive design patterns
+- **Performance Focus** - Modular CSS/JS loading and conditional script enqueuing
+- **Cross-Domain Functionality** - Multisite authentication and data sharing capabilities
 
 ### JavaScript Architecture Principles
 - **Modular Design** - 21 specialized JS files for specific functionality domains
@@ -241,9 +236,9 @@ The filter is applied in `forum-features/content/notification-bell-avatar.php` b
 
 ## Current Status
 
-The theme operates as a production WordPress theme serving the Extra Chill community. Core functionality includes forum enhancements, cross-domain authentication, and bbPress integration. All text domain references have been successfully migrated from `generatepress_child` to `extra-chill-community`. 
+The plugin operates as a production WordPress plugin serving the Extra Chill community alongside the extrachill theme. Core functionality includes forum enhancements, cross-domain authentication, and bbPress integration. The plugin provides community functionality for community.extrachill.com while the extrachill theme handles the visual presentation.
 
-**Migration Complete**: All artist platform functionality (band profiles, link pages, CPTs, admin interfaces, data management) has been completely removed from the theme and migrated to the `extrachill-artist-platform` plugin. The theme now focuses exclusively on community forum features.
+**Architecture Transition**: The community functionality has been transitioned from a standalone theme to a plugin-based architecture. This plugin now works with the extrachill theme to provide community features on community.extrachill.com.
 
 **Artist Platform Integration**: Plugins can use the `ec_avatar_menu_items` filter to add custom menu items to the user avatar dropdown, maintaining seamless navigation between community and plugin-specific functions.
 

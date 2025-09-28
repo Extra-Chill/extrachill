@@ -106,3 +106,6 @@ function display_online_users_stats() {
     echo "<p><span class='label'>Total Members:</span> <span class='count'>" . $total_members . "</span></p>";
     echo "</div>";
 }
+
+// Hook online users stats into theme footer
+add_action('extrachill_before_footer', 'display_online_users_stats');

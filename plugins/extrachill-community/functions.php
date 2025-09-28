@@ -33,57 +33,20 @@ function extra_chill_community_setup() {
         'script',
     ));
 
-    add_theme_support('customize-selective-refresh-widgets');
-
     register_nav_menus(array(
-        'primary'      => esc_html__('Primary Menu', 'extra-chill-community'),
-        'footer'       => esc_html__('Footer Menu', 'extra-chill-community'),
-        'footer-extra' => esc_html__('Footer Extra Menu', 'extra-chill-community'),
+        'primary' => esc_html__('Primary Menu', 'extra-chill-community'),
     ));
-
-    for ( $i = 1; $i <= 5; $i++ ) {
-        register_nav_menus(array(
-            'footer-' . $i => sprintf(esc_html__('Footer Menu %d', 'extra-chill-community'), $i),
-        ));
-    }
 }
 add_action('after_setup_theme', 'extra_chill_community_setup');
 
-function extra_chill_community_widgets_init() {
-    register_sidebar(array(
-        'name'          => esc_html__('Sidebar', 'extra-chill-community'),
-        'id'            => 'sidebar-1',
-        'description'   => esc_html__('Add widgets here.', 'extra-chill-community'),
-        'before_widget' => '<section id="%1$s" class="widget %2$s">',
-        'after_widget'  => '</section>',
-        'before_title'  => '<h2 class="widget-title">',
-        'after_title'   => '</h2>',
-    ));
-    
-    for ( $i = 1; $i <= 5; $i++ ) {
-        register_sidebar(array(
-            'name'          => sprintf(esc_html__('Footer Widget Area %d', 'extra-chill-community'), $i),
-            'id'            => 'footer-' . $i,
-            'description'   => sprintf(esc_html__('Footer widget area %d.', 'extra-chill-community'), $i),
-            'before_widget' => '<section id="%1$s" class="widget %2$s">',
-            'after_widget'  => '</section>',
-            'before_title'  => '<h3 class="widget-title">',
-            'after_title'   => '</h3>',
-        ));
-    }
-}
-add_action('widgets_init', 'extra_chill_community_widgets_init');
 
 
 
 
-require_once get_stylesheet_directory() . '/extrachill-integration/blog-searching-forum.php';
 require_once get_stylesheet_directory() . '/extrachill-integration/extrachill-com-articles.php';
 require_once get_stylesheet_directory() . '/extrachill-integration/extrachill-comments.php';
-require_once get_stylesheet_directory() . '/extrachill-integration/get-user-details.php';
 require_once get_stylesheet_directory() . '/extrachill-integration/seamless-comments.php';
 require_once get_stylesheet_directory() . '/extrachill-integration/session-tokens.php';
-require_once get_stylesheet_directory() . '/extrachill-integration/validate-session.php';
 
 require_once get_stylesheet_directory() . '/forum-features/forum-features.php';
 

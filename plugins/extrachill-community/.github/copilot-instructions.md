@@ -14,7 +14,7 @@ Scope: WordPress theme for community.extrachill.com focused on bbPress forums, u
   - Conditional enqueues with cache busting, e.g. `forums-loop.css`, `topics-loop.css`, `replies-loop.css`.
   - Dequeue `bbp-default` styles; localize scripts with nonces (`upvote_nonce`, `quote_nonce`).
 - `forum-features/` grouped by domain: `admin/`, `content/`, `social/`, `users/`; loader `forum-features/forum-features.php` (frontend only).
-- `extrachill-integration/`: `session-tokens.php`, `validate-session.php`, `seamless-comments.php`, `rest-api-forums-feed.php`.
+- `extrachill-integration/`: `session-tokens.php`, `seamless-comments.php`, `rest-api-forums-feed.php`.
 - `login/`: custom login/register UI and email change verification (`email-change-emails.php` + helpers in `functions.php`).
 
 ## Conventions

@@ -90,3 +90,16 @@ $unread_count = count(array_filter($notifications, function ($notification) {
         </div> <!-- End user-avatar-container -->
     </div> <!-- End user-menu-wrapper -->
 </div> <!-- End notification-bell-avatar-wrapper -->
+
+<?php
+// Hook notification bell and avatar into theme header
+add_action('extrachill_header_top_right', function() {
+    if ( is_user_logged_in() ) {
+        include get_stylesheet_directory() . '/forum-features/content/notification-bell-avatar.php';
+    } else {
+        echo '<div class="auth-buttons">';
+        echo '<a href="/login" class="login-button">Login</a>';
+        echo '</div>';
+    }
+}, 20); // After navigation menu (priority 10)
+?>

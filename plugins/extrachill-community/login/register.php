@@ -10,7 +10,7 @@
 function extrachill_registration_form_shortcode() {
     global $extrachill_registration_errors;
 
-    ob_start(); // Start output buffering
+    ob_start();
 
     $invite_token = null;
     $invite_artist_id = null;
@@ -123,7 +123,7 @@ function extrachill_registration_form_shortcode() {
         <?php
     }
 
-    return ob_get_clean(); // Return the buffered output
+    return ob_get_clean();
 }
 
 
@@ -339,7 +339,6 @@ function extrachill_get_registration_errors() {
         $errors = $GLOBALS['extrachill_registration_errors'];
     }
 
-    // Return the errors
     return $errors;
 }
 
