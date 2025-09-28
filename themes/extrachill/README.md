@@ -221,7 +221,7 @@ The theme follows a modular architecture with clear separation of concerns:
 
 - **Core WordPress functionality** in `/inc/core/` (5 core files + 3 subdirectories)
 - **Shared template components** in `/inc/core/templates/` (8 reusable templates)
-- **Multisite integration** in `/inc/core/multisite/` (4 cross-site files)
+- **Multisite integration** via `extrachill-multisite` network plugin (cross-site functionality)
 - **Custom embeds** in `/inc/core/editor/` (3 embed types)
 - **Admin features** in `/inc/admin/` (3 admin files)
 - **Archive functionality** in `/inc/archives/` (4 archive files)
@@ -320,7 +320,7 @@ define('SCRIPT_DEBUG', true);
 ### New Modular Architecture
 - **Core Templates Directory**: Created `/inc/core/templates/` for 8 shared template components
 - **Sidebar Directory**: Created `/inc/sidebar/` for sidebar-specific functionality
-- **Multisite Directory**: Organized `/inc/core/multisite/` for 4 cross-site functionality files
+- **Multisite Integration**: Centralized in `extrachill-multisite` network plugin for cross-site functionality
 - **Native Pagination System**: Replaced wp-pagenavi plugin with lightweight, native WordPress pagination
   - Located at `inc/core/templates/pagination.php`
   - Professional post count display with context-aware navigation
@@ -379,7 +379,7 @@ This theme is proprietary software developed for ExtraChill.com. All rights rese
 - **Modular Architecture**: 47 PHP files organized in 8 directories with clear separation of concerns
 - **Asset Migration**: Complete move from legacy `css/` and `js/` to `assets/css/` and `assets/js/`
 - **Template System**: 8 shared template components in `/inc/core/templates/`
-- **Multisite Integration**: 4 cross-site files in `/inc/core/multisite/` with hardcoded blog IDs
+- **Multisite Integration**: Centralized in `extrachill-multisite` network plugin with hardcoded blog IDs
 - **Native Pagination**: Custom pagination system replacing wp-pagenavi plugin
 - **Plugin Migrations**: Newsletter, contact forms, Festival Wire moved to dedicated plugins
 - **System Removals**: 15+ legacy files eliminated (event submission, location filtering, session tokens)

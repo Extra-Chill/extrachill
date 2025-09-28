@@ -24,7 +24,7 @@ if ( ! function_exists( 'extrachill_sidebar_community_activity' ) ) :
         $activities = get_transient($transient_name);
 
         if ($activities === false) {
-            $activities = ec_fetch_recent_activity_multisite( 10 );
+            $activities = function_exists('ec_fetch_recent_activity_multisite') ? ec_fetch_recent_activity_multisite( 10 ) : array();
 
             if ( empty( $activities ) ) {
                 return;
@@ -59,7 +59,7 @@ if ( ! function_exists( 'extrachill_sidebar_community_activity' ) ) :
 
                 $time_string = '';
                 if (!empty($post_date)) {
-                    $time_string = custom_human_time_diff(strtotime($post_date));
+                    $time_string = function_exists('custom_human_time_diff') ? custom_human_time_diff(strtotime($post_date)) : human_time_diff(strtotime($post_date));
                 }
 
                 $post_url = '';

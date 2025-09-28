@@ -78,7 +78,7 @@ if (!empty($activities)) {
             continue;
         }
         
-        $dateFormatted = custom_human_time_diff(strtotime($activity['date_time']));
+        $dateFormatted = function_exists('custom_human_time_diff') ? custom_human_time_diff(strtotime($activity['date_time'])) : human_time_diff(strtotime($activity['date_time']));
         $counter++;
         
         if ($activity['type'] === 'Reply') {

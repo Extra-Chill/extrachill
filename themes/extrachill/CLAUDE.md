@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-The ExtraChill theme is a custom WordPress theme serving as the frontend for an independent music ecosystem that includes a blog, a forum (extrachill-community theme), and a merch store (extrachill-shop theme). The theme powers extrachill.com with custom music event listings, festival coverage, community integration, and journalistic written content about the music industry.
+The ExtraChill theme is a custom WordPress theme serving as the frontend for an independent music ecosystem that includes a blog, community forums, and content management. The theme powers both extrachill.com and community.extrachill.com, with community functionality provided by the extrachill-community plugin and e-commerce handled by the extrachill-shop plugin. Features include custom music event listings, festival coverage, community integration, and journalistic written content about the music industry.
 
 **Current Status**: Fully converted from ColorMag Pro with performance optimizations and modern WordPress features.
 
@@ -29,24 +29,26 @@ The theme uses a clean, modular architecture organized in the `/inc/` directory:
 - **Festival Wire Integration**: Homepage ticker display for Festival Wire posts (handled by ExtraChill News Wire plugin)
 
 ### Multisite Integration
-- **WordPress Multisite Integration**: Native WordPress multisite functions replace custom session management
+- **Centralized Plugin**: All multisite functionality now provided by `extrachill-multisite` network plugin
+- **WordPress Multisite Integration**: Native WordPress multisite functions for cross-site database access
 - **Cross-Site Features**: Search, activity feeds, and license validation via direct database queries
-### Multisite Integration (`inc/core/multisite/`)
-- **Multisite Search**: Unified real-time search across sites (`inc/core/multisite/multisite-search.php`)
+- **Multisite Search**: Unified real-time search across sites
   - `ec_fetch_forum_results_multisite()` uses direct database queries via `switch_to_blog(2)`
   - `ec_hijack_search_query()` merges local + forum results in real-time
   - Uses hardcoded blog ID 2 for maximum performance (no database lookups)
   - No caching - always fresh results, native WordPress pagination
-- **Activity Feed**: Cross-site activity integration (`inc/core/multisite/recent-activity-feed.php`)
+- **Activity Feed**: Cross-site activity integration
   - `ec_fetch_recent_activity_multisite()` uses direct database queries via `switch_to_blog(2)`
-- **Ad-Free License Validation**: Cross-site license validation (`inc/core/multisite/ad-free-license.php`)
+- **Ad-Free License Validation**: Cross-site license validation
   - `is_user_ad_free()` uses `switch_to_blog(3)` to check shop site's license database
   - Native WordPress multisite authentication for cross-site validation
 
 ### Plugin Integration
+- **ExtraChill Community**: Community and forum functionality integration for community.extrachill.com
 - **ExtraChill News Wire**: Festival Wire ticker integration via action hooks
 - **ExtraChill Newsletter**: Newsletter functionality via dedicated plugin
 - **ExtraChill Contact**: Contact form functionality via dedicated plugin
+- **ExtraChill Shop**: E-commerce functionality via dedicated plugin
 - **Action Hook Architecture**: Extensible plugin integration points throughout theme
 
 ### Hook-Based Menu System Architecture
@@ -173,11 +175,10 @@ wp rewrite flush
 - `inc/core/editor/instagram-embeds.php` - Instagram embed support
 - `inc/core/editor/spotify-embeds.php` - Spotify embed support
 
-**Multisite Integration (4 files)**:
-- `inc/core/multisite/multisite-search.php` - Cross-site search functionality
-- `inc/core/multisite/recent-activity-feed.php` - Cross-site activity feeds
-- `inc/core/multisite/ad-free-license.php` - Cross-site license validation
-- `inc/core/multisite/comment-author-links.php` - Cross-site comment author linking
+**Multisite Integration**:
+- All multisite functionality now provided by `extrachill-multisite` network plugin
+- Cross-site search, activity feeds, license validation, and comment author linking
+- Functions accessible network-wide via centralized plugin architecture
 
 **Sidebar Functionality (2 files)**:
 - `inc/sidebar/recent-posts.php` - Recent posts sidebar widget
@@ -250,9 +251,11 @@ wp rewrite flush
 - **Legacy PHP Files**: Removed breadcrumbs.php, recent-posts-in-sidebar.php, location-filter.php, contextual-search-excerpt.php
 
 ### Plugin Integration Points
+- **Community Features**: ExtraChill Community Plugin provides forum functionality for community.extrachill.com
 - **Festival Wire**: ExtraChill News Wire plugin hooks into `extrachill_after_hero` action
 - **Newsletter**: ExtraChill Newsletter Plugin provides homepage newsletter section
 - **Contact Forms**: ExtraChill Contact Plugin handles all contact functionality
+- **E-commerce**: ExtraChill Shop Plugin provides shop functionality for shop.extrachill.com
 - **Homepage Sections**: Extensible via action hooks:
   - `extrachill_homepage_hero`
   - `extrachill_homepage_content_top`
@@ -294,7 +297,7 @@ EXTRACHILL_INCLUDES_DIR - Inc directory path for modular includes
 
 - **Core Templates Directory**: Created `/inc/core/templates/` for shared template components (8 files)
 - **Sidebar Directory**: Created `/inc/sidebar/` for sidebar-specific functionality (2 files)
-- **Multisite Directory**: Organized `/inc/core/multisite/` for cross-site functionality (4 files)
+- **Multisite Integration**: Centralized in `extrachill-multisite` network plugin for cross-site functionality
 - **Native Pagination System**: Added comprehensive pagination system replacing wp-pagenavi plugin
   - Located at `inc/core/templates/pagination.php`
   - Professional count display with context-aware navigation
@@ -312,7 +315,9 @@ EXTRACHILL_INCLUDES_DIR - Inc directory path for modular includes
 
 ## Important Notes
 
+- **Dual-Site Theme**: Serves both extrachill.com and community.extrachill.com with plugin-based functionality
 - **Multisite-Focused**: Native WordPress multisite integration with cross-site functionality
+- **Plugin Architecture**: Community features provided by extrachill-community plugin rather than separate theme
 - **Performance Optimized**: Modular asset loading and selective enqueuing
 - **Modern Architecture**: Clean separation of concerns with shared template components
 - **No Build Process**: Direct file editing with WordPress native optimization
