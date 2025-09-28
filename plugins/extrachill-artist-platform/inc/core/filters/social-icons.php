@@ -6,7 +6,6 @@
  * Single source for social types, CRUD operations, validation, and rendering.
  */
 
-// Exit if accessed directly
 defined( 'ABSPATH' ) || exit;
 
 class ExtraChillArtistPlatform_SocialLinks {
@@ -28,12 +27,6 @@ class ExtraChillArtistPlatform_SocialLinks {
         add_action( 'init', array( $this, 'init_hooks' ) );
     }
 
-    /**
-     * Initialize WordPress hooks for social functionality.
-     */
-    public function init_hooks() {
-     * @since 1.1.0
-     */
     public function init_hooks() {
         // Hook for when social links are updated
         add_action( 'updated_post_meta', array( $this, 'on_social_links_updated' ), 10, 4 );

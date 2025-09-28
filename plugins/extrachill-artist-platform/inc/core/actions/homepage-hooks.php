@@ -2,7 +2,7 @@
 /**
  * Homepage Integration Hooks
  *
- * Handles integration with the community theme homepage via WordPress action hooks.
+ * Handles integration with community pages via WordPress action hooks.
  * Provides the artist platform and support forum buttons for the forum homepage.
  *
  * @package ExtraChillArtistPlatform

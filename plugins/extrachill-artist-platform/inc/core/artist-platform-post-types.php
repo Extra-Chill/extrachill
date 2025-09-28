@@ -9,14 +9,9 @@
  * @since 1.0.0
  */
 
-// Exit if accessed directly
 defined( 'ABSPATH' ) || exit;
 
-/**
- * Register artist_profile Custom Post Type
- */
 function extrachill_register_artist_profile_cpt() {
-    // Check if we can register post types
     if ( ! function_exists( 'register_post_type' ) ) {
         return;
     }

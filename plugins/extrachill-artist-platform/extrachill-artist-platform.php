@@ -13,28 +13,20 @@
  * Requires at least: 5.0
  * Tested up to: 6.4
  * Requires PHP: 7.4
+ * Requires Plugins: bbpress, extrachill-community
  */
 
-// Exit if accessed directly
 defined( 'ABSPATH' ) || exit;
-
-// Define plugin constants
 define( 'EXTRACHILL_ARTIST_PLATFORM_VERSION', '1.0.0' );
 define( 'EXTRACHILL_ARTIST_PLATFORM_PLUGIN_FILE', __FILE__ );
 define( 'EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'EXTRACHILL_ARTIST_PLATFORM_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'EXTRACHILL_ARTIST_PLATFORM_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
 
-// Development mode constant for link page testing
 if ( ! defined( 'EXTRCH_LINKPAGE_DEV' ) ) {
     define( 'EXTRCH_LINKPAGE_DEV', false );
 }
 
-/**
- * Main Extra Chill Artist Platform Class
- * 
- * Singleton plugin class handling initialization and core functionality loading.
- */
 class ExtraChillArtistPlatform {
 
     private static $instance = null;
@@ -54,9 +46,9 @@ class ExtraChillArtistPlatform {
     private function check_dependencies() {
         $errors = array();
         
-        // Check for required theme
-        if ( get_template() !== 'extrachill-community' ) {
-            $errors[] = 'Extra Chill Artist Platform requires the Extra Chill Community theme.';
+        // Check for required community plugin functionality
+        if ( ! function_exists( 'extrachill_community_get_version' ) && get_template() !== 'extrachill' ) {
+            $errors[] = 'Extra Chill Artist Platform requires the Extra Chill Community plugin or Extra Chill theme.';
         }
         
         // Check for bbPress plugin
@@ -101,9 +93,6 @@ class ExtraChillArtistPlatform {
 
 
 
-    /**
-     * Load plugin includes and functionality
-     */
     private function load_includes() {
         require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/core/class-templates.php';
         require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/core/artist-platform-assets.php';
@@ -115,7 +104,6 @@ class ExtraChillArtistPlatform {
         require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/core/filters/fonts.php';
         require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/core/filters/avatar-menu.php';
         require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/core/filters/templates.php';
-        require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/core/default-artist-page-link-profiles.php';
 
         require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/artist-profiles/admin/user-linking.php';
         require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/artist-profiles/admin/meta-boxes.php';
@@ -175,9 +163,6 @@ class ExtraChillArtistPlatform {
         add_action('after_switch_theme', 'extrch_create_subscribers_table');
     }
 
-    /**
-     * Plugin activation
-     */
     public static function activate() {
         flush_rewrite_rules();
         update_option( 'extrachill_artist_platform_activated', true );

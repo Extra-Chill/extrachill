@@ -1,17 +1,16 @@
 #!/bin/bash
 
 # Extra Chill Artist Platform - Build Script
-# Generates a clean production package for WordPress deployment
-# Follows architectural standards: Clean -> Install prod deps -> Copy -> Validate -> ZIP -> Restore dev deps
+# Clean -> Install prod deps -> Copy -> Validate -> ZIP -> Restore dev deps
 
-set -e  # Exit on any error
+set -e
 
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 BLUE='\033[0;34m'
 YELLOW='\033[1;33m'
-NC='\033[0m' # No Color
+NC='\033[0m'
 
 # Plugin configuration
 PLUGIN_MAIN_FILE="extrachill-artist-platform.php"
@@ -20,7 +19,6 @@ BUILD_DIR="dist"
 PROD_DIR="$BUILD_DIR/$PLUGIN_SLUG"
 ZIP_FILE="$BUILD_DIR/$PLUGIN_SLUG.zip"
 
-# Function to print colored output
 print_status() {
     echo -e "${BLUE}[BUILD]${NC} $1"
 }
@@ -37,11 +35,9 @@ print_warning() {
     echo -e "${YELLOW}[WARNING]${NC} $1"
 }
 
-# Function to check required tools
 check_dependencies() {
     print_status "Checking build dependencies..."
 
-    # Check for required commands
     local missing_tools=()
 
     if ! command -v rsync &> /dev/null; then
@@ -65,14 +61,12 @@ check_dependencies() {
     print_success "All build dependencies found"
 }
 
-# Function to extract version from main plugin file
 get_plugin_version() {
     if [ ! -f "$PLUGIN_MAIN_FILE" ]; then
         print_error "Main plugin file '$PLUGIN_MAIN_FILE' not found!"
         exit 1
     fi
 
-    # Extract version from plugin header
     VERSION=$(grep -i "Version:" "$PLUGIN_MAIN_FILE" | head -1 | sed 's/.*Version:[ ]*\([0-9\.]*\).*/\1/')
 
     if [ -z "$VERSION" ]; then
@@ -241,33 +235,22 @@ create_production_zip() {
     echo "$total_files"
 }
 
-# Main build function following architectural standards template
 build_plugin() {
     local version="$1"
 
     print_status "Starting build process for version $version"
-    print_status "Following template: Clean -> Install prod deps -> Copy -> Validate -> ZIP -> Restore dev deps"
 
-    # Step 1: Clean previous builds
     clean_previous_builds
-
-    # Step 2: Install production dependencies
     install_production_deps
-
-    # Step 3: Copy files with exclusions
     copy_plugin_files
 
-    # Step 4: Validate plugin structure
     if ! validate_plugin_structure; then
         print_error "Plugin validation failed"
-        restore_dev_deps  # Restore deps before exit
+        restore_dev_deps
         exit 1
     fi
 
-    # Step 5: Create ZIP in /dist
     create_production_zip
-
-    # Step 6: Restore development dependencies
     restore_dev_deps
 
     print_success "Build process completed successfully!"

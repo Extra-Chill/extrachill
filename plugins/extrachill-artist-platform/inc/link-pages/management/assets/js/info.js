@@ -1,56 +1,67 @@
+/**
+ * Artist Profile Info Management
+ *
+ * Handles title and bio input fields with event-driven preview communication.
+ * Part of the artist platform management interface.
+ */
 (function() {
     'use strict';
-    
+
     const InfoManager = {
-    fields: {
-        titleInput: null,
-        bioTextarea: null,
-    },
+        fields: {
+            titleInput: null,
+            bioTextarea: null,
+        },
 
-    init: function() {
+        init: function() {
+            this.fields.titleInput = document.getElementById('artist_profile_title');
+            this.fields.bioTextarea = document.getElementById('link_page_bio_text');
 
-        this.fields.titleInput = document.getElementById('artist_profile_title');
-        this.fields.bioTextarea = document.getElementById('link_page_bio_text');
-        
-        this._attachEventListeners();
-        this._loadInitialValues();
-    },
+            this._attachEventListeners();
+            this._loadInitialValues();
+        },
 
-    _loadInitialValues: function() {
-    },
+        _loadInitialValues: function() {
+        },
 
-    _attachEventListeners: function() {
-        if (this.fields.titleInput) {
-            this.fields.titleInput.addEventListener('input', this._handleTitleChange.bind(this));
-        }
-        if (this.fields.bioTextarea) {
-            this.fields.bioTextarea.addEventListener('input', this._handleBioChange.bind(this));
-        }
-    },
+        _attachEventListeners: function() {
+            if (this.fields.titleInput) {
+                this.fields.titleInput.addEventListener('input', this._handleTitleChange.bind(this));
+            }
+            if (this.fields.bioTextarea) {
+                this.fields.bioTextarea.addEventListener('input', this._handleBioChange.bind(this));
+            }
+        },
 
-    _handleTitleChange: function(event) {
-        const newTitle = event.target.value;
-        document.dispatchEvent(new CustomEvent('titleChanged', {
-            detail: { title: newTitle }
-        }));
-    },
+        /**
+         * Handle title input changes and dispatch events for preview
+         * @param {Event} event Input event
+         */
+        _handleTitleChange: function(event) {
+            const newTitle = event.target.value;
+            document.dispatchEvent(new CustomEvent('titleChanged', {
+                detail: { title: newTitle }
+            }));
+        },
 
-    _handleBioChange: function(event) {
-        const newBio = event.target.value;
-        document.dispatchEvent(new CustomEvent('bioChanged', {
-            detail: { bio: newBio }
-        }));
-    },
+        /**
+         * Handle bio textarea changes and dispatch events for preview
+         * @param {Event} event Input event
+         */
+        _handleBioChange: function(event) {
+            const newBio = event.target.value;
+            document.dispatchEvent(new CustomEvent('bioChanged', {
+                detail: { bio: newBio }
+            }));
+        },
 
-};
+    };
 
 
-    // Listen for info tab activation
     document.addEventListener('infoTabActivated', function(event) {
         InfoManager.init();
     });
 
-    // Auto-initialize when DOM is ready (for default tab)
     if (document.readyState !== 'loading') {
         InfoManager.init();
     } else {

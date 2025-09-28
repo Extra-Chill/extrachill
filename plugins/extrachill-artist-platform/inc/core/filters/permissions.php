@@ -1,11 +1,15 @@
 <?php
 /**
- * Centralized permission system for Extra Chill Artist Platform
- * 
- * Single source of truth for all artist membership and management permissions.
- * Replaces scattered permission checks throughout the codebase.
+ * Centralized permission system for artist platform
  */
 
+/**
+ * Check if user can manage artist profile
+ *
+ * @param int|null $user_id   User ID (defaults to current user)
+ * @param int|null $artist_id Artist profile post ID
+ * @return bool               True if user can manage artist
+ */
 function ec_can_manage_artist( $user_id = null, $artist_id = null ) {
     if ( ! $user_id ) {
         $user_id = get_current_user_id();
@@ -15,12 +19,10 @@ function ec_can_manage_artist( $user_id = null, $artist_id = null ) {
         return false;
     }
     
-    // Administrators can always manage
     if ( user_can( $user_id, 'manage_options' ) ) {
         return true;
     }
-    
-    // Check if user is linked to this artist profile
+
     $user_artist_ids = get_user_meta( $user_id, '_artist_profile_ids', true );
     if ( ! is_array( $user_artist_ids ) ) {
         $user_artist_ids = array();
@@ -30,65 +32,96 @@ function ec_can_manage_artist( $user_id = null, $artist_id = null ) {
 }
 
 
+/**
+ * AJAX permission check for artist management
+ *
+ * @param array $post_data AJAX request data
+ * @return bool            True if current user can manage artist
+ */
 function ec_ajax_can_manage_artist( $post_data ) {
     $artist_id = isset( $post_data['artist_id'] ) ? (int) $post_data['artist_id'] : 0;
     if ( ! $artist_id ) {
         return false;
     }
-    
+
     return ec_can_manage_artist( get_current_user_id(), $artist_id );
 }
 
+/**
+ * AJAX permission check for link page management
+ *
+ * @param array $post_data AJAX request data
+ * @return bool            True if current user can manage link page
+ */
 function ec_ajax_can_manage_link_page( $post_data ) {
     $link_page_id = isset( $post_data['link_page_id'] ) ? (int) $post_data['link_page_id'] : 0;
     if ( ! $link_page_id ) {
         return false;
     }
-    
+
     $artist_id = apply_filters('ec_get_artist_id', $link_page_id);
     if ( ! $artist_id ) {
         return false;
     }
-    
+
     return ec_can_manage_artist( get_current_user_id(), $artist_id );
 }
 
+/**
+ * AJAX permission check for admin capabilities
+ *
+ * @param array $post_data AJAX request data (unused but required for consistency)
+ * @return bool            True if current user has admin capabilities
+ */
 function ec_ajax_is_admin( $post_data ) {
     return current_user_can( 'manage_options' );
 }
 
+/**
+ * AJAX permission check for artist profile creation
+ *
+ * @param array $post_data AJAX request data (unused but required for consistency)
+ * @return bool            True if current user can create artist profiles
+ */
 function ec_ajax_can_create_artists( $post_data ) {
     return ec_can_create_artist_profiles( get_current_user_id() );
 }
 
+/**
+ * Check if user can create artist profiles
+ *
+ * @param int|null $user_id User ID (defaults to current user)
+ * @return bool             True if user can create artist profiles
+ */
 function ec_can_create_artist_profiles( $user_id = null ) {
     if ( ! $user_id ) {
         $user_id = get_current_user_id();
     }
-    
+
     if ( ! $user_id ) {
         return false;
     }
-    
-    // Check if user can edit pages or is marked as artist/professional
-    return user_can( $user_id, 'edit_pages' ) || 
-           get_user_meta( $user_id, 'user_is_artist', true ) === '1' || 
+
+    return user_can( $user_id, 'edit_pages' ) ||
+           get_user_meta( $user_id, 'user_is_artist', true ) === '1' ||
            get_user_meta( $user_id, 'user_is_professional', true ) === '1';
 }
 
 /**
- * Admin users get all profiles, regular users get only assigned profiles.
+ * Get all artist profiles user can access
+ *
+ * @param int|null $user_id User ID (defaults to current user)
+ * @return array            Array of artist profile IDs
  */
 function ec_get_user_accessible_artists( $user_id = null ) {
     if ( ! $user_id ) {
         $user_id = get_current_user_id();
     }
-    
+
     if ( ! $user_id ) {
         return array();
     }
-    
-    // Administrators can access all published artist profiles
+
     if ( user_can( $user_id, 'manage_options' ) ) {
         $artist_posts = get_posts( array(
             'post_type' => 'artist_profile',
@@ -96,17 +129,15 @@ function ec_get_user_accessible_artists( $user_id = null ) {
             'numberposts' => -1,
             'fields' => 'ids'
         ) );
-        
+
         return is_array( $artist_posts ) ? $artist_posts : array();
     }
-    
-    // Regular users get their assigned artist profiles (published only)
+
     $user_artist_ids = get_user_meta( $user_id, '_artist_profile_ids', true );
     if ( ! is_array( $user_artist_ids ) ) {
         return array();
     }
-    
-    // Filter to only published artist profiles
+
     $published_artists = array();
     foreach ( $user_artist_ids as $artist_id ) {
         $artist_id_int = absint( $artist_id );
@@ -114,29 +145,30 @@ function ec_get_user_accessible_artists( $user_id = null ) {
             $published_artists[] = $artist_id_int;
         }
     }
-    
+
     return $published_artists;
 }
 
 /**
- * Unlike ec_get_user_accessible_artists(), ignores admin capabilities.
+ * Get artist profiles owned by user (published only)
+ *
+ * @param int|null $user_id User ID (defaults to current user)
+ * @return array            Array of published artist profile IDs owned by user
  */
 function ec_get_user_owned_artists( $user_id = null ) {
     if ( ! $user_id ) {
         $user_id = get_current_user_id();
     }
-    
+
     if ( ! $user_id ) {
         return array();
     }
-    
-    // Get user's assigned artist profiles (published only)
+
     $user_artist_ids = get_user_meta( $user_id, '_artist_profile_ids', true );
     if ( ! is_array( $user_artist_ids ) ) {
         return array();
     }
-    
-    // Filter to only published artist profiles
+
     $published_artists = array();
     foreach ( $user_artist_ids as $artist_id ) {
         $artist_id_int = absint( $artist_id );
@@ -144,19 +176,28 @@ function ec_get_user_owned_artists( $user_id = null ) {
             $published_artists[] = $artist_id_int;
         }
     }
-    
+
     return $published_artists;
 }
 
 /**
- * Central capability filter grants permissions based on artist membership.
+ * Extends WordPress capabilities with custom artist permissions including forum-specific bbPress access control
+ *
+ * Dynamically grants custom capabilities for artist profile management and bbPress forum access
+ * based on user ownership and settings. Handles artist profile post type permissions and
+ * forum-specific permissions for artist-linked forums.
+ *
+ * @param array   $allcaps Array of user capabilities
+ * @param array   $caps    Required capabilities for the request
+ * @param array   $args    Arguments for the capability check (includes object ID)
+ * @param WP_User $user    User object
+ * @return array           Modified capabilities array
  */
 function ec_filter_user_capabilities( $allcaps, $caps, $args, $user ) {
     $user_id = $user->ID;
     $cap     = $args[0];
     $object_id = isset( $args[2] ) ? $args[2] : null;
     
-    // Handle create_artist_profiles capability
     if ( $cap === 'create_artist_profiles' ) {
         if ( ec_can_create_artist_profiles( $user_id ) ) {
             $allcaps[$cap] = true;
@@ -164,7 +205,6 @@ function ec_filter_user_capabilities( $allcaps, $caps, $args, $user ) {
         return $allcaps;
     }
     
-    // Handle manage_artist_members capability
     if ( $cap === 'manage_artist_members' && $object_id ) {
         if ( ec_can_manage_artist( $user_id, $object_id ) ) {
             $allcaps[$cap] = true;
@@ -172,7 +212,6 @@ function ec_filter_user_capabilities( $allcaps, $caps, $args, $user ) {
         return $allcaps;
     }
     
-    // Handle link page analytics viewing
     if ( $cap === 'view_artist_link_page_analytics' && $object_id ) {
         if ( get_post_type( $object_id ) === 'artist_link_page' ) {
             $artist_id = apply_filters('ec_get_artist_id', $object_id);
@@ -183,16 +222,13 @@ function ec_filter_user_capabilities( $allcaps, $caps, $args, $user ) {
         return $allcaps;
     }
     
-    // Handle artist profile specific capabilities
     if ( $object_id && get_post_type( $object_id ) === 'artist_profile' ) {
         if ( ec_can_manage_artist( $user_id, $object_id ) ) {
-            // Grant standard WordPress post capabilities
             $post_caps = array( 'edit_post', 'delete_post', 'read_post', 'publish_post', 'manage_artist_members' );
             if ( in_array( $cap, $post_caps ) ) {
                 $allcaps[$cap] = true;
             }
             
-            // Handle bbPress forum capabilities
             $artist_forum_id = get_post_meta( $object_id, '_artist_forum_id', true );
             if ( $artist_forum_id && isset( $args[2] ) && $args[2] == $artist_forum_id ) {
                 $forum_caps = array(
@@ -206,14 +242,12 @@ function ec_filter_user_capabilities( $allcaps, $caps, $args, $user ) {
                 }
             }
         }
-        
-        // Handle public topic creation setting
+
         if ( $cap === 'publish_topics' ) {
             $artist_forum_id = get_post_meta( $object_id, '_artist_forum_id', true );
             if ( $artist_forum_id && isset( $args[2] ) && $args[2] == $artist_forum_id ) {
                 $allow_public_creation = get_post_meta( $object_id, '_allow_public_topic_creation', true );
                 if ( $allow_public_creation !== '1' && ! ec_can_manage_artist( $user_id, $object_id ) && ! user_can( $user_id, 'manage_options' ) ) {
-                    // Don't grant capability for non-members when public creation is disabled
                     return $allcaps;
                 }
             }
@@ -223,5 +257,4 @@ function ec_filter_user_capabilities( $allcaps, $caps, $args, $user ) {
     return $allcaps;
 }
 
-// Hook the centralized capability filter
 add_filter( 'user_has_cap', 'ec_filter_user_capabilities', 10, 4 );

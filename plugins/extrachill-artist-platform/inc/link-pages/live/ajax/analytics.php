@@ -1,11 +1,8 @@
 <?php
 /**
- * Analytics AJAX Handlers
- * 
- * Single responsibility: Handle all AJAX requests and functions related to analytics functionality
+ * Analytics tracking for public link pages with data pruning and WordPress cron integration
  */
 
-// Register analytics AJAX actions using WordPress native patterns
 add_action( 'wp_ajax_extrch_record_link_event', 'extrch_record_link_event_ajax' );
 add_action( 'wp_ajax_nopriv_extrch_record_link_event', 'extrch_record_link_event_ajax' );
 
@@ -14,37 +11,26 @@ add_action( 'wp_ajax_nopriv_link_page_click_tracking', 'handle_link_click_tracki
 
 
 /**
- * AJAX handler for recording link page view and click events.
- *
- * Hooked to wp_ajax_nopriv_extrch_record_link_event.
+ * Records analytics events with daily aggregation and automatic data validation
  */
 function extrch_record_link_event_ajax() {
 
-    // --- Restore original logic --- //
-    // /* // REMOVE opening comment
-    // Check nonce for basic verification (optional but recommended)
-    // check_ajax_referer('extrch_link_page_tracking', 'security_nonce');
-
-    // --- Input Sanitization ---
     $link_page_id = apply_filters('ec_get_link_page_id', $_POST);
     $event_type = isset($_POST['event_type']) ? sanitize_key($_POST['event_type']) : ''; // 'page_view' or 'link_click'
     $event_identifier = isset($_POST['event_identifier']) ? esc_url_raw($_POST['event_identifier']) : ''; // URL for clicks, 'page' for views
 
 
-    // Basic validation
     if (!$link_page_id || !$event_type || !$event_identifier || !in_array($event_type, ['page_view', 'link_click'])) {
         wp_send_json_error(['message' => 'Invalid data.'], 400);
         return;
     }
 
-    // Check if the link page exists and is the correct post type
     $actual_post_type = get_post_type($link_page_id);
     if ($actual_post_type !== 'artist_link_page') {
         wp_send_json_error(['message' => 'Invalid link page ID.'], 400);
         return;
     }
 
-    // --- Database Interaction ---
     global $wpdb;
     $current_date = current_time('Y-m-d');
     $sql = '';
@@ -66,7 +52,7 @@ function extrch_record_link_event_ajax() {
             "ON DUPLICATE KEY UPDATE click_count = click_count + 1",
             $link_page_id,
             $current_date,
-            $event_identifier // This is the link_url for clicks
+            $event_identifier
         );
     }
 
@@ -80,21 +66,14 @@ function extrch_record_link_event_ajax() {
     if ($result !== false) {
         wp_send_json_success(['message' => 'Event recorded.']);
     } else {
-        error_log('[EXTRCH Analytics Tracking] DB Error: ' . $wpdb->last_error); // Log specific DB error
+        error_log('[EXTRCH Analytics Tracking] DB Error: ' . $wpdb->last_error);
         wp_send_json_error(['message' => 'Database error: ' . $wpdb->last_error], 500);
     }
-    // */ // REMOVE closing comment
-
-    // --- Send Simple Success Response for Testing --- // // REMOVE or comment out this block
-    // wp_send_json_success(['message' => 'AJAX handler reached successfully (simplified test).']);
 
 }
 
 /**
- * Legacy AJAX handler for link click tracking
- * 
- * Maintains backwards compatibility for existing tracking implementations.
- * Records individual click events with detailed metadata.
+ * Legacy click tracking with individual event records and user metadata
  */
 function handle_link_click_tracking() {
     if ( ! isset( $_POST['link_page_id'] ) || ! isset( $_POST['link_url'] ) ) {
@@ -127,15 +106,9 @@ function handle_link_click_tracking() {
     wp_die( 'success' );
 }
 
-// Management analytics function moved to inc/link-pages/management/ajax/analytics.php
 
 /**
- * Enqueues the frontend tracking script for the public link page.
- *
- * Uses the extrch_link_page_minimal_head action added previously.
- *
- * @param int $link_page_id
- * @param int $artist_id
+ * Enqueues tracking script with file existence verification and nonce security
  */
 function extrch_enqueue_public_tracking_script($link_page_id, $artist_id) {
     $theme_dir = EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR;
@@ -147,9 +120,9 @@ function extrch_enqueue_public_tracking_script($link_page_id, $artist_id) {
         wp_enqueue_script(
             $script_handle,
             $theme_uri . $tracking_js_path,
-            array(), // No dependencies
+            array(),
             filemtime($theme_dir . $tracking_js_path),
-            true // Load in footer
+            true
         );
 
         // Localize data for the script
@@ -159,15 +132,13 @@ function extrch_enqueue_public_tracking_script($link_page_id, $artist_id) {
             'nonce' => wp_create_nonce('extrch_link_page_tracking_nonce')
         ));
     } else {
-        // Optionally log an error if the script file is missing
         error_log('Error: link-page-public-tracking.js not found.');
     }
 }
-// Hook into the custom action defined in extrch_link_page_custom_head
 add_action('extrch_link_page_minimal_head', 'extrch_enqueue_public_tracking_script', 10, 2);
 
 /**
- * Prunes old analytics data (older than 90 days) from the database.
+ * Automated 90-day data retention with error logging
  */
 function extrch_prune_old_analytics_data() {
     global $wpdb;
@@ -177,7 +148,6 @@ function extrch_prune_old_analytics_data() {
     $table_views_name = $wpdb->prefix . 'extrch_link_page_daily_views';
     $table_clicks_name = $wpdb->prefix . 'extrch_link_page_daily_link_clicks';
 
-    // Prune daily views
     $sql_views = $wpdb->prepare(
         "DELETE FROM {$table_views_name} WHERE stat_date < %s",
         $ninety_days_ago
@@ -190,7 +160,6 @@ function extrch_prune_old_analytics_data() {
         error_log("[EXTRCH Analytics Pruning] Pruned {$result_views} rows from {$table_views_name}.");
     }
 
-    // Prune daily link clicks
     $sql_clicks = $wpdb->prepare(
         "DELETE FROM {$table_clicks_name} WHERE stat_date < %s",
         $ninety_days_ago
@@ -205,21 +174,13 @@ function extrch_prune_old_analytics_data() {
 }
 add_action('extrch_daily_analytics_prune_event', 'extrch_prune_old_analytics_data');
 
-/**
- * Schedules the daily analytics pruning cron job if not already scheduled.
- */
 function extrch_schedule_analytics_pruning_cron() {
     if (!wp_next_scheduled('extrch_daily_analytics_prune_event')) {
         wp_schedule_event(time(), 'daily', 'extrch_daily_analytics_prune_event');
     }
 }
-add_action('init', 'extrch_schedule_analytics_pruning_cron'); // Or admin_init, depending on when it should be checked. 'init' is generally fine.
+add_action('init', 'extrch_schedule_analytics_pruning_cron');
 
-/**
- * Unschedules the daily analytics pruning cron job.
- *
- * Typically called on theme/plugin deactivation.
- */
 function extrch_unschedule_analytics_pruning_cron() {
     wp_clear_scheduled_hook('extrch_daily_analytics_prune_event');
 }

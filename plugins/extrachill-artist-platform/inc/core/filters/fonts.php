@@ -10,7 +10,6 @@
  * @since 1.1.0
  */
 
-// Exit if accessed directly
 defined( 'ABSPATH' ) || exit;
 
 class ExtraChillArtistPlatform_Fonts {

@@ -1,66 +1,102 @@
 <?php
 /**
- * Centralized data helper functions for ExtraChill Artist Platform
- * Single source of truth for common data retrieval patterns.
+ * Centralized data functions for artist platform
  */
 
-
+/**
+ * Get artist profile IDs associated with user
+ *
+ * @param int|null $user_id User ID (defaults to current user)
+ * @return array Array of artist profile post IDs
+ */
 function ec_get_user_artist_ids( $user_id = null ) {
     return ec_get_user_owned_artists( $user_id );
 }
 
+/**
+ * Get bbPress forum ID for artist
+ *
+ * @param int $artist_id Artist profile post ID
+ * @return int|false Forum ID or false if none found
+ */
 function ec_get_forum_for_artist( $artist_id ) {
     if ( ! $artist_id || get_post_type( $artist_id ) !== 'artist_profile' ) {
         return false;
     }
-    
+
     $forum_id = get_post_meta( $artist_id, '_artist_forum_id', true );
     return $forum_id ? (int) $forum_id : false;
 }
 
+/**
+ * Check if user is associated with artist profile
+ *
+ * @param int|null $user_id User ID (defaults to current user)
+ * @param int|null $artist_id Artist profile post ID
+ * @return bool True if user is associated with artist
+ */
 function ec_is_user_artist_member( $user_id = null, $artist_id = null ) {
     if ( ! $user_id ) {
         $user_id = get_current_user_id();
     }
-    
+
     if ( ! $user_id || ! $artist_id ) {
         return false;
     }
-    
+
     $user_artist_ids = ec_get_user_artist_ids( $user_id );
     return in_array( (int) $artist_id, $user_artist_ids );
 }
 
+/**
+ * Get artist profiles followed by user
+ *
+ * @param int|null $user_id User ID (defaults to current user)
+ * @return array Array of followed artist profile post IDs
+ */
 function ec_get_user_followed_artists( $user_id = null ) {
     if ( ! $user_id ) {
         $user_id = get_current_user_id();
     }
-    
+
     if ( ! $user_id ) {
         return array();
     }
-    
+
     $followed_ids = get_user_meta( $user_id, '_followed_artist_profile_ids', true );
     if ( ! is_array( $followed_ids ) ) {
         return array();
     }
-    
+
     return array_map( 'intval', $followed_ids );
 }
 
+/**
+ * Check if user is following specific artist
+ *
+ * @param int|null $user_id User ID (defaults to current user)
+ * @param int|null $artist_id Artist profile post ID
+ * @return bool True if user is following the artist
+ */
 function ec_is_user_following_artist( $user_id = null, $artist_id = null ) {
     if ( ! $user_id ) {
         $user_id = get_current_user_id();
     }
-    
+
     if ( ! $user_id || ! $artist_id ) {
         return false;
     }
-    
+
     $followed_artists = ec_get_user_followed_artists( $user_id );
     return in_array( (int) $artist_id, $followed_artists );
 }
 
+/**
+ * Get link page associated with artist profile
+ *
+ * @param int $artist_id Artist profile post ID
+ * @return int|false Link page post ID or false if none found
+ */
 function ec_get_link_page_for_artist( $artist_id ) {
     if ( ! $artist_id || get_post_type( $artist_id ) !== 'artist_profile' ) {
         return false;
@@ -77,20 +113,26 @@ function ec_get_link_page_for_artist( $artist_id ) {
     return ! empty( $link_pages ) ? (int) $link_pages[0] : false;
 }
 
+/**
+ * Get artist profile post objects for user
+ *
+ * @param int|null $user_id User ID (defaults to current user)
+ * @return WP_Post[] Array of artist profile post objects
+ */
 function ec_get_user_artist_profiles( $user_id = null ) {
     if ( ! $user_id ) {
         $user_id = get_current_user_id();
     }
-    
+
     if ( ! $user_id ) {
         return array();
     }
-    
+
     $artist_ids = ec_get_user_artist_ids( $user_id );
     if ( empty( $artist_ids ) ) {
         return array();
     }
-    
+
     return get_posts( array(
         'post_type' => 'artist_profile',
         'post__in' => $artist_ids,
@@ -100,36 +142,40 @@ function ec_get_user_artist_profiles( $user_id = null ) {
 }
 
 /**
- * Complex database query for paginated subscriber data with filtering
+ * Get subscriber list for artist with pagination
+ *
+ * @param int   $artist_id Artist profile post ID
+ * @param array $args      Query arguments (per_page, page, include_exported)
+ * @return array           Subscriber records
  */
 function ec_get_artist_subscribers( $artist_id, $args = array() ) {
     global $wpdb;
-    
+
     if ( ! $artist_id ) {
         return array();
     }
-    
+
     $defaults = array(
         'per_page' => 20,
         'page' => 1,
         'include_exported' => false
     );
     $args = wp_parse_args( $args, $defaults );
-    
+
     $table_name = $wpdb->prefix . 'artist_subscribers';
     $offset = ( $args['page'] - 1 ) * $args['per_page'];
-    
+
     $where_clause = $wpdb->prepare( "WHERE artist_profile_id = %d", $artist_id );
     if ( ! $args['include_exported'] ) {
         $where_clause .= " AND (exported = 0 OR exported IS NULL)";
     }
-    
+
     $sql = $wpdb->prepare(
         "SELECT * FROM {$table_name} {$where_clause} ORDER BY subscription_date DESC LIMIT %d OFFSET %d",
         $args['per_page'],
         $offset
     );
-    
+
     return $wpdb->get_results( $sql );
 }
 
@@ -286,13 +332,17 @@ function ec_get_link_page_data( $artist_id, $link_page_id = null, $overrides = a
 }
 
 /**
- * Generates CSS style block for CSS variables
+ * Generate CSS variables style block for link pages
+ *
+ * @param array  $css_vars   CSS variable array (key => value)
+ * @param string $element_id Style element ID
+ * @return string            Style block HTML
  */
 function ec_generate_css_variables_style_block( $css_vars, $element_id = 'link-page-custom-vars' ) {
     if ( empty( $css_vars ) || ! is_array( $css_vars ) ) {
         return '';
     }
-    
+
     $output = '<style id="' . esc_attr( $element_id ) . '">:root {';
     foreach ( $css_vars as $key => $value ) {
         if ( $value !== null && $value !== false ) {
@@ -300,20 +350,41 @@ function ec_generate_css_variables_style_block( $css_vars, $element_id = 'link-p
         }
     }
     $output .= '}</style>';
-    
+
     return $output;
 }
 
+/**
+ * Render single link template
+ *
+ * @param array $link_data Link data array
+ * @param array $args Additional template arguments
+ * @return string Rendered template HTML
+ */
 function ec_render_single_link( $link_data, $args = array() ) {
     $template_args = array_merge( $args, $link_data );
     return ec_render_template( 'single-link', $template_args );
 }
 
+/**
+ * Render link section template
+ *
+ * @param array $section_data Section data array
+ * @param array $args Additional template arguments
+ * @return string Rendered template HTML
+ */
 function ec_render_link_section( $section_data, $args = array() ) {
     $template_args = array_merge( $args, $section_data );
     return ec_render_template( 'link-section', $template_args );
 }
 
+/**
+ * Render social icon template
+ *
+ * @param array $social_data Social link data
+ * @param object|null $social_manager Social manager instance
+ * @return string Rendered template HTML
+ */
 function ec_render_social_icon( $social_data, $social_manager = null ) {
     $template_args = array(
         'social_data' => $social_data,
@@ -322,6 +393,14 @@ function ec_render_social_icon( $social_data, $social_manager = null ) {
     return ec_render_template( 'social-icon', $template_args );
 }
 
+/**
+ * Render social icons container template
+ *
+ * @param array $social_links Array of social link data
+ * @param string $position Position ('above' or 'below')
+ * @param object|null $social_manager Social manager instance
+ * @return string Rendered template HTML
+ */
 function ec_render_social_icons_container( $social_links, $position = 'above', $social_manager = null ) {
     $template_args = array(
         'social_links' => $social_links,

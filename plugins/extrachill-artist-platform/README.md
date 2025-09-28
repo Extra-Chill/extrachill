@@ -52,14 +52,14 @@ A comprehensive WordPress plugin that provides artist profile management, link p
 
 - **WordPress**: 5.0 or higher (tested up to 6.4)
 - **PHP**: 7.4 or higher  
-- **Theme**: Extra Chill Community theme (compatibility enforced)
+- **Theme**: Extrachill theme with Extra Chill Community plugin (compatibility enforced)
 - **Optional**: bbPress (for forum features)
 
 ## Installation
 
 1. Upload the plugin folder to `/wp-content/plugins/`
 2. Activate the plugin through the WordPress admin
-3. Ensure the Extra Chill Community theme is active
+3. Ensure the extrachill theme and Extra Chill Community plugin are active
 4. Configure plugin settings as needed
 
 ## Usage
@@ -484,7 +484,7 @@ $permission_callbacks = [
 ## Troubleshooting
 
 ### Theme Compatibility Issues
-Ensure the Extra Chill Community theme is active. The plugin will display an admin notice if an incompatible theme is detected.
+Ensure the extrachill theme and Extra Chill Community plugin are active. The plugin will display an admin notice if an incompatible theme is detected.
 
 ### Link Page Not Loading
 Check that rewrite rules are flushed by deactivating and reactivating the plugin.

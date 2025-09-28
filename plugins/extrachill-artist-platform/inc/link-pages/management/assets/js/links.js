@@ -10,7 +10,7 @@
     
     
     /**
-     * Complex AJAX template rendering with nonce verification and error handling.
+     * AJAX template rendering with server-side validation
      */
     async function renderLinkItemTemplate(sectionIndex, linkIndex, linkData = {}) {
         const linkPageId = sectionsListEl?.dataset.linkPageId;
@@ -41,7 +41,7 @@
             const data = await response.json();
             
             if (data.success) {
-                return data.data; // Return complete server instructions
+                return data.data;
             } else {
                 console.error('Link item template rendering failed:', data.data?.message || 'Unknown error');
                 return null;
@@ -90,11 +90,7 @@
             return null;
         }
     }
-    
-    // ============================================================================
-    // SECTION ACTION FUNCTIONS (Single Responsibility)
-    // ============================================================================
-    
+
     async function addSection() {
         if (!sectionsListEl) return;
         
@@ -128,9 +124,7 @@
         }));
     }
     
-    // ============================================================================
-    // LINK ACTION FUNCTIONS (Single Responsibility)
-    // ============================================================================
+    // Link Management
     
     async function addLink(sectionElement) {
         if (!sectionElement) return;
@@ -142,19 +136,16 @@
             const response = await renderLinkItemTemplate(sectionIndex, linkIndex, {});
             
             if (response && response.action === 'add_link') {
-                // 1. Add to editor using server-provided selector
                 const editorTarget = document.querySelector(response.editor_target_selector);
                 if (editorTarget) {
                     editorTarget.insertAdjacentHTML('beforeend', response.editor_html);
                 }
-                
-                // 2. Add to preview using server-provided selector  
+
                 const previewTarget = document.querySelector(response.preview_target_selector);
                 if (previewTarget) {
                     previewTarget.insertAdjacentHTML('beforeend', response.preview_html);
                 }
-                
-                // 3. Fire simple event for sortable ONLY
+
                 const newElement = editorTarget?.lastElementChild;
                 if (newElement) {
                     document.dispatchEvent(new CustomEvent('linkElementAdded', {
@@ -210,9 +201,7 @@
     }
     
     
-    // ============================================================================
-    // DOM UTILITY FUNCTIONS (Simple Queries)
-    // ============================================================================
+    // DOM Utilities
     
     function getSectionIndex(element) {
         const sectionElement = element.closest('.bp-link-section');
@@ -226,13 +215,11 @@
     
     function updateDataAttributes() {
         if (!sectionsListEl) return;
-        
-        // Update section indices
+
         let sectionIndex = 0;
         sectionsListEl.querySelectorAll('.bp-link-section').forEach(sectionEl => {
             sectionEl.dataset.sidx = sectionIndex;
-            
-            // Update link indices within this section
+
             let linkIndex = 0;
             sectionEl.querySelectorAll('.bp-link-item').forEach(linkEl => {
                 linkEl.dataset.sidx = sectionIndex;
@@ -244,19 +231,14 @@
         });
     }
     
-    // ============================================================================
-    // DIRECT EVENT LISTENERS
-    // ============================================================================
+    // Event Listeners
     
     function attachEventListeners() {
         if (!sectionsListEl) return;
-        
-        // Remove existing listener if any
+
         if (clickHandler) {
             sectionsListEl.removeEventListener('click', clickHandler);
         }
-        
-        // Create new click handler
         clickHandler = function(e) {
             const target = e.target;
             
@@ -281,11 +263,8 @@
                 handleLinkExpiration(target.closest('.bp-link-item'));
             }
         };
-        
-        // Add the click handler
+
         sectionsListEl.addEventListener('click', clickHandler);
-        
-        // Direct input event handlers (these can be duplicated safely)
         sectionsListEl.addEventListener('input', function(e) {
             const target = e.target;
             
@@ -301,46 +280,36 @@
         });
     }
     
-    // ============================================================================
-    // SIMPLE INITIALIZATION
-    // ============================================================================
+    // Initialization
     
     function init() {
-        if (initialized) return; // Prevent duplicate initialization
-        
+        if (initialized) return;
+
         sectionsListEl = document.getElementById('bp-link-sections-list');
         addSectionBtn = document.getElementById('bp-add-link-section-btn');
-        
-        // Set up main add section button
+
         if (addSectionBtn) {
             addSectionBtn.addEventListener('click', function(e) {
                 e.preventDefault();
                 addSection();
             });
         }
-        
-        // Set up section-related listeners
+
         if (sectionsListEl) {
             attachEventListeners();
         }
-        
+
         initialized = true;
     }
-    
-    // ============================================================================
-    // MODULE INITIALIZATION
-    // ============================================================================
-    
-    // Listen for links tab activation
+
     document.addEventListener('linksTabActivated', function(event) {
         init();
     });
-    
-    // Listen for sortable events to update data attributes after reordering
+
     document.addEventListener('linkMoved', function() {
         updateDataAttributes();
     });
-    
+
     document.addEventListener('sectionMoved', function() {
         updateDataAttributes();
     });

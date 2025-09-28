@@ -46,5 +46,5 @@ Event-driven modular system using IIFE patterns with standardized CustomEvent co
 
 - WordPress 5.0+ (tested up to 6.4)
 - PHP 7.4+
-- Extra Chill Community theme (enforced)
+- Extrachill theme with Extra Chill Community plugin (enforced)
 - bbPress plugin for forum integration

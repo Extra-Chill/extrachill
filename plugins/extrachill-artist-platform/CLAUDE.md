@@ -163,7 +163,7 @@ CREATE TABLE {prefix}_artist_subscribers (
 ### Dependencies
 - **WordPress**: 5.0+ (tested up to 6.4)
 - **PHP**: 7.4+
-- **Plugin Dependencies**: Extra Chill Community theme (enforced via WordPress native plugin dependency system)
+- **Plugin Dependencies**: Extrachill theme with Extra Chill Community plugin (enforced via WordPress native plugin dependency system)
 - **External**: bbPress, Font Awesome, Google Fonts
 
 ### Additional Features

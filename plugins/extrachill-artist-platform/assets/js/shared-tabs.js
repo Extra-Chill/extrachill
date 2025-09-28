@@ -1,16 +1,5 @@
 /**
- * Shared Tabs System
- * 
- * Responsive tabbed interface that switches between accordion mode (mobile) 
- * and tabs mode (desktop). Handles dynamic content positioning, tab state 
- * management, and URL hash synchronization.
- * 
- * Features:
- * - Responsive layout switching (768px breakpoint)
- * - Tab state preservation via URL hash
- * - Custom events for tab activation ('sharedTabActivated')
- * - External tab activation support
- * - Smart scrolling behavior
+ * Responsive tabs system with accordion mode for mobile
  */
 document.addEventListener('DOMContentLoaded', function() {
     const components = document.querySelectorAll('.shared-tabs-component');
@@ -21,19 +10,18 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const tabButtons = tabButtonsContainer.querySelectorAll('.shared-tab-button');
         const desktopContentArea = component.querySelector('.shared-desktop-tab-content-area');
-        const mobileBreakpoint = 768; // Or your desired breakpoint
+        const mobileBreakpoint = 768;
 
-        const originalPaneInfo = new Map(); // Stores { parent: originalParent, nextSibling: originalNextSibling }
+        const originalPaneInfo = new Map();
 
-        let isInitialLoad = true; // Track if this is the first tab activation
+        let isInitialLoad = true;
 
         function storeInitialPaneStructure() {
-            if (originalPaneInfo.size > 0) { // Basic check to see if it's already populated for this component
-                // A more robust check might involve verifying if keys still match current panes
+            if (originalPaneInfo.size > 0) {
                 let firstPaneId = component.querySelector('.shared-tab-pane')?.id;
                 if (firstPaneId && originalPaneInfo.has(firstPaneId)) return;
             }
-            originalPaneInfo.clear(); // Clear if re-populating (e.g. in a dynamic content scenario, though not typical here)
+            originalPaneInfo.clear();
             const panes = component.querySelectorAll('.shared-tab-pane');
             panes.forEach(pane => {
                 if (pane.id && pane.parentElement) {
@@ -45,28 +33,22 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
 
-        // Store the initial structure once per component instance
         storeInitialPaneStructure();
 
-        // Add a new function to activate a tab, specifically for external triggers like the join flow modal
         function activateTabFromExternalTrigger(tabId) {
              const targetButton = component.querySelector('.shared-tab-button[data-tab="' + tabId + '"]');
              if (targetButton) {
-                 // Call updateTabs, forcing it to open/activate regardless of current state or device size
-                 updateTabs(targetButton, true, true, false); // Args: activeButton, shouldScroll, forceOpen, isButtonClick
+                     updateTabs(targetButton, true, true, false);
              } else {
-                 // console.warn('Attempted to activate non-existent tab:', tabId);
              }
         }
 
-        // Modify updateTabs to accept an optional forceOpen parameter
         function updateTabs(activeButton, shouldScroll = true, forceOpen = false, isButtonClick = false) {
             if (!activeButton) return; 
             const targetTabId = activeButton.dataset.tab;
             const targetPane = component.querySelector('#' + targetTabId + '.shared-tab-pane');
             const isDesktop = window.innerWidth >= mobileBreakpoint;
 
-             // On mobile, if not forced open and clicking an active button, close it.
             if (!isDesktop && !forceOpen && isButtonClick && activeButton.classList.contains('active')) {
                 activeButton.classList.remove('active');
                 const arrow = activeButton.querySelector('.shared-tab-arrow');
@@ -75,68 +57,54 @@ document.addEventListener('DOMContentLoaded', function() {
                  if (history.pushState && targetPane && window.location.hash === '#' + targetPane.id) {
                     history.pushState(null, null, window.location.pathname + window.location.search.split('#')[0]);
                 }
-                // Exit early as we've closed the tab
                 return;
             }
 
 
-            // If we reach here, we are either forced open, on desktop, or clicking a non-active tab
 
-            // Deactivate all other buttons
             tabButtons.forEach(btn => {
                 if (btn !== activeButton) {
                     btn.classList.remove('active');
                     const arrow = btn.querySelector('.shared-tab-arrow');
                     if (arrow) arrow.classList.remove('open');
-                    // Hiding of non-active panes is handled below based on layout
                 }
             });
 
-            // Activate current button
             activeButton.classList.add('active');
             const arrow = activeButton.querySelector('.shared-tab-arrow');
             if (arrow) arrow.classList.add('open');
 
-            // --- Refactored Pane Management Logic --- 
             const allPanes = component.querySelectorAll('.shared-tab-pane');
 
             allPanes.forEach(pane => {
                 const info = originalPaneInfo.get(pane.id);
                 if (!info) {
-                     // console.warn('Pane not found in originalPaneInfo during layout update:', pane.id);
-                    return; // Skip this pane if its original info is missing
+                    return;
                 }
 
                 if (pane === targetPane) {
-                    // This is the active pane
-                    if (isDesktop) {
-                        // On desktop, move active pane to desktop content area
+                            if (isDesktop) {
                         if (desktopContentArea && pane.parentElement !== desktopContentArea) {
-                             desktopContentArea.appendChild(pane); // Move to desktop area
+                             desktopContentArea.appendChild(pane);
                         }
-                        pane.classList.add('is-active-pane'); // Add active class
-                        pane.style.display = ''; // Remove inline display style, rely on CSS
+                        pane.classList.add('is-active-pane');
+                        pane.style.display = '';
                     } else {
-                        // On mobile, ensure active pane is in its original location and shown
                         if (pane.parentElement !== info.parent) {
-                             info.parent.insertBefore(pane, info.nextSibling); // Move back to original
+                             info.parent.insertBefore(pane, info.nextSibling);
                         }
-                         pane.classList.remove('is-active-pane'); // Remove desktop active class
-                        pane.style.display = 'block'; // Show on mobile
+                         pane.classList.remove('is-active-pane');
+                        pane.style.display = 'block';
                     }
                 } else {
-                    // This is an inactive pane
-                    // Always move inactive panes back to their original location
                     if (pane.parentElement !== info.parent) {
-                        info.parent.insertBefore(pane, info.nextSibling); // Move back to original
+                        info.parent.insertBefore(pane, info.nextSibling);
                     }
-                    pane.classList.remove('is-active-pane'); // Remove desktop active class
-                    pane.style.display = 'none'; // Hide inactive pane
+                    pane.classList.remove('is-active-pane');
+                    pane.style.display = 'none';
                 }
             });
-            // --- End Refactored Pane Management Logic ---
 
-            // Ensure the desktop content area container display is correct based on mode
             if (desktopContentArea) {
                  if (isDesktop) {
                      desktopContentArea.style.display = 'block';
@@ -207,12 +175,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
         }
 
-        // Existing click handler for tab buttons
         tabButtons.forEach(button => {
             button.addEventListener('click', function(e) {
                 e.preventDefault();
-                // Pass shouldScroll = true only if on mobile (accordion mode)
-                updateTabs(this, window.innerWidth < mobileBreakpoint, false, true); // Args: activeButton, shouldScroll, forceOpen, isButtonClick
+                updateTabs(this, window.innerWidth < mobileBreakpoint, false, true);
             });
         });
 
@@ -220,13 +186,12 @@ document.addEventListener('DOMContentLoaded', function() {
             let activatedByHash = false;
             if (window.location.hash) {
                 const hash = window.location.hash; 
-                // Ensure hash is a valid ID for a pane within this component
                 const targetPaneByHash = component.querySelector(hash + '.shared-tab-pane');
                 if (targetPaneByHash) {
                     const correspondingButton = component.querySelector('.shared-tab-button[data-tab="' + hash.substring(1) + '"]');
                     if (correspondingButton) {
                         // On initial load, do NOT scroll
-                        updateTabs(correspondingButton, false, false, false); // shouldScroll = false
+                        updateTabs(correspondingButton, false, false, false);
                         activatedByHash = true;
                     }
                 }
@@ -235,11 +200,11 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         function initializeDefaultOrActiveTab() {
-            storeInitialPaneStructure(); // Ensure structure is stored before any tab activation
+            storeInitialPaneStructure();
 
             if (activateTabFromHash()) {
-                isInitialLoad = false; // After initial activation, set to false
-                return; // Hash determined the active tab, updateTabs was called
+                isInitialLoad = false;
+                return;
             }
 
             let activeButton = tabButtonsContainer.querySelector('.shared-tab-button.active');
@@ -257,11 +222,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
             if (activeButton) {
                 // On initial load, do NOT scroll
-                updateTabs(activeButton, false, false, false); // shouldScroll = false
+                updateTabs(activeButton, false, false, false);
             } else if (tabButtons.length === 0 && desktopContentArea) {
                 desktopContentArea.style.display = 'none';
             }
-            isInitialLoad = false; // After initial activation, set to false
+            isInitialLoad = false;
         }
         
         initializeDefaultOrActiveTab();

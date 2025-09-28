@@ -5,7 +5,6 @@
  */
 
 
-// Exit if accessed directly
 defined( 'ABSPATH' ) || exit;
 
 class ExtraChillArtistPlatform_PageTemplates {

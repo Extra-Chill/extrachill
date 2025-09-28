@@ -2,9 +2,6 @@
 (function() {
     'use strict';
     
-    // renderLinkTemplate function REMOVED - preview updates now handled by server-side chaining
-
-    
     // Get preview containers
     function getPreviewContainers() {
         const previewContainerParent = document.querySelector('.manage-link-page-preview-live');
@@ -43,7 +40,7 @@
         titleEl.textContent = sectionData.section_title || '';
         sectionEl.appendChild(titleEl);
 
-        // CRITICAL: Add links container inside each section
+        // Add links container inside each section
         const sectionLinksContainer = document.createElement('div');
         sectionLinksContainer.className = 'extrch-link-page-links';
         sectionEl.appendChild(sectionLinksContainer);
@@ -84,7 +81,7 @@
         }
     }
 
-    // Update individual link in preview with direct DOM updates
+    // Update individual link in preview
     function updateLinkInPreview(sectionIndex, linkIndex, linkData) {
         const linksContainer = getLinksContainer();
         if (!linksContainer) return;
@@ -98,14 +95,11 @@
         const linkElement = linkElements[linkIndex];
         
         if (linkElement && linkData) {
-            // Direct DOM updates for real-time changes (like info tab)
             if (linkData.link_text !== undefined) {
-                // Update only the text span, not the entire link element
                 const textSpan = linkElement.querySelector('.extrch-link-page-link-text');
                 if (textSpan) {
                     textSpan.textContent = linkData.link_text;
                 }
-                // Also update the share button's data-share-title
                 const shareButton = linkElement.querySelector('.extrch-share-trigger');
                 if (shareButton) {
                     const shareTitle = linkData.link_text || 'Untitled Link';
@@ -114,7 +108,6 @@
             }
             if (linkData.link_url !== undefined) {
                 linkElement.href = linkData.link_url || '#';
-                // Also update the share button's data-share-url
                 const shareButton = linkElement.querySelector('.extrch-share-trigger');
                 if (shareButton) {
                     shareButton.setAttribute('data-share-url', linkData.link_url || '#');
@@ -122,8 +115,6 @@
             }
         }
     }
-
-    // addLinkToPreview function REMOVED - preview updates now handled by server-side chaining
 
     // Remove link from preview  
     function removeLinkFromPreview(sectionIndex, linkIndex) {
@@ -145,62 +136,50 @@
 
 
 
-    // Event listeners for all link events - granular updates
+    // Event listeners for link management
     document.addEventListener('linksectionadded', function(e) {
-        // Section added - add to preview immediately with empty title
         const sectionIndex = e.detail?.sectionIndex ?? 0;
-        addSectionToPreview({ 
+        addSectionToPreview({
             sectionIndex: sectionIndex,
-            section_title: '' 
+            section_title: ''
         });
     });
 
     document.addEventListener('linksectiondeleted', function(e) {
-        // Section deleted - remove from preview immediately
         const sectionIndex = e.detail?.sectionIndex ?? 0;
         removeSectionFromPreview(sectionIndex);
     });
 
     document.addEventListener('linksectiontitleupdated', function(e) {
-        // Section title updated - update title in preview immediately
         const sectionIndex = e.detail?.sectionIndex ?? 0;
         const title = e.detail?.title ?? '';
         updateSectionTitleInPreview(sectionIndex, title);
     });
 
-    // linkadded event listener REMOVED - preview updates now handled directly by server-side chaining
-    // Sortable and expiration systems still listen for linkadded event for DOM element setup
-
     document.addEventListener('linkdeleted', function(e) {
-        // Link deleted - refresh the affected section  
         const sectionIndex = e.detail?.sectionIndex ?? 0;
         const linkIndex = e.detail?.linkIndex ?? 0;
         removeLinkFromPreview(sectionIndex, linkIndex);
     });
 
     document.addEventListener('linkupdated', function(e) {
-        // Link updated - update the specific link element
         const sectionIndex = e.detail?.sectionIndex ?? 0;
         const linkIndex = e.detail?.linkIndex ?? 0;
         const field = e.detail?.field;
         const value = e.detail?.value;
-        
-        // Handle individual field updates
+
         const linkData = {};
         if (field === 'link_text') {
             linkData.link_text = value;
         } else if (field === 'link_url') {
             linkData.link_url = value;
         }
-        
+
         updateLinkInPreview(sectionIndex, linkIndex, linkData);
     });
 
-    // Self-contained module - no global exposure needed
-
-    // Initialize preview with centralized data on page load
     document.addEventListener('DOMContentLoaded', function() {
-        // Preview initializes from DOM events, not initial data
+        // Preview initializes from DOM events
     });
 
 })();

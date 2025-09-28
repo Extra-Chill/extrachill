@@ -7,15 +7,12 @@
  * conditional asset loading based on page template context.
  */
 
-// Exit if accessed directly
 defined( 'ABSPATH' ) || exit;
 
 class ExtraChillArtistPlatform_Assets {
 
-    /** @var ExtraChillArtistPlatform_Assets|null */
     private static $instance = null;
 
-    /** @return ExtraChillArtistPlatform_Assets */
     public static function instance() {
         if ( null === self::$instance ) {
             self::$instance = new self();
@@ -23,9 +20,6 @@ class ExtraChillArtistPlatform_Assets {
         return self::$instance;
     }
 
-    /**
-     * Constructor - Sets up WordPress hooks for frontend and admin asset loading.
-     */
     private function __construct() {
         $this->init_hooks();
     }
