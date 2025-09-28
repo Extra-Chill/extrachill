@@ -1,9 +1,12 @@
 <?php
 /**
- * The template for displaying Archive page.
+ * Archive Page Template
+ *
+ * Displays archive pages for categories, tags, authors, dates, and custom taxonomies.
+ * Includes breadcrumbs, pagination, and conditional ad blocking for festival-wire content.
  *
  * @package ExtraChill
- * @since 1.0
+ * @since 69.57
  */
 
 get_header(); ?>

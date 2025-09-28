@@ -12,14 +12,7 @@
  * @since 69.57
  */
 
-/**
- * Enqueue navigation assets (CSS and JavaScript)
- * Loads navigation styles and flyout menu functionality on all pages
- *
- * @since 69.57
- */
 function extrachill_enqueue_navigation_assets() {
-    // Enqueue navigation CSS
     $nav_css_path = get_theme_file_path('/assets/css/nav.css');
     if ( file_exists( $nav_css_path ) ) {
         wp_enqueue_style(
@@ -31,7 +24,6 @@ function extrachill_enqueue_navigation_assets() {
         );
     }
 
-    // Enqueue navigation JavaScript for flyout menu functionality
     $nav_js_path = get_template_directory() . '/assets/js/nav-menu.js';
     if ( file_exists( $nav_js_path ) ) {
         wp_enqueue_script(
@@ -205,6 +197,10 @@ add_action('wp_enqueue_scripts', 'extrachill_enqueue_archive_styles', 20);
 
 /**
  * Enqueue admin editor styles with root CSS dependencies
+ * Loads root CSS and editor styles in WordPress admin post editor
+ *
+ * @param string $hook WordPress admin page hook
+ * @since 69.57
  */
 function extrachill_enqueue_admin_styles($hook) {
     if ($hook == 'post.php' || $hook == 'post-new.php') {

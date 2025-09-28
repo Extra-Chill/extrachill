@@ -22,9 +22,6 @@ add_theme_support( 'align-wide' );
 add_action('after_setup_theme', 'extrachill_setup');
 
 
-/**
- * ExtraChill theme setup function
- */
 if (!function_exists('extrachill_setup')):
     function extrachill_setup()
     {
@@ -96,7 +93,6 @@ require_once(EXTRACHILL_INCLUDES_DIR . '/sidebar/recent-posts.php');
 require_once(EXTRACHILL_INCLUDES_DIR . '/sidebar/community-activity.php');
 
 // Admin functionality
-require_once(EXTRACHILL_INCLUDES_DIR . '/admin/log-404-errors.php');
 
 /**
  * Remove WordPress menu management from admin interface
@@ -105,7 +101,6 @@ require_once(EXTRACHILL_INCLUDES_DIR . '/admin/log-404-errors.php');
  * @since 69.57
  */
 function extrachill_remove_menu_admin_pages() {
-    // Remove "Appearance > Menus" page
     remove_submenu_page('themes.php', 'nav-menus.php');
 }
 add_action('admin_menu', 'extrachill_remove_menu_admin_pages', 999);
@@ -135,7 +130,6 @@ require_once(EXTRACHILL_INCLUDES_DIR . '/archives/archive-custom-sorting.php');
 // Search functionality
 require_once(EXTRACHILL_INCLUDES_DIR . '/core/templates/searchform.php');
 
-// Remove default WordPress block margins for custom styling control
 add_filter('the_content', function($content) {
     return str_replace('margin-left: 1em; margin-right: 1em;', '', $content);
 });
@@ -404,6 +398,5 @@ function extrachill_prevent_admin_styles_on_frontend() {
 }
 add_action( 'wp_enqueue_scripts', 'extrachill_prevent_admin_styles_on_frontend', 100 );
 
-require_once get_stylesheet_directory() . '/inc/admin/tag-migration-admin.php';
 
 

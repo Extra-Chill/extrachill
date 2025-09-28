@@ -34,10 +34,10 @@ ExtraChill is a modern, performance-optimized WordPress theme designed specifica
 
 ### 🤝 Community Integration
 - **WordPress Multisite**: Native cross-domain authentication and user management
-- **Forum Search**: Real-time search across multisite network via `ec_fetch_forum_results_multisite()` (hardcoded blog ID 2)
-- **Activity Feeds**: Cross-site activity integration via `ec_fetch_recent_activity_multisite()`
-- **Ad-Free License**: Cross-site license validation via `is_user_ad_free()` (hardcoded blog ID 3)
-- **Comment Author Links**: Cross-site comment author linking for community integration
+- **Community Activity**: Real-time community activity display with plugin integration
+- **Activity Feeds**: Cross-site activity integration with function existence checks and caching
+- **Plugin Architecture**: Designed for external multisite plugin integration
+- **Fallback Handling**: Graceful degradation when multisite functions are unavailable
 
 ## Installation
 
@@ -127,7 +127,7 @@ extrachill/
 │   │   ├── badge-colors.css    # Taxonomy badge colors
 │   │   └── editor-style.css    # Block editor styles
 │   └── fonts/                  # Local web fonts
-├── inc/                        # Modular PHP functionality (47 files)
+├── inc/                        # Modular PHP functionality (41 files)
 │   ├── admin/                  # Admin functionality (3 files)
 │   │   ├── log-404-errors.php
 │   │   ├── tag-migration-admin.php
@@ -137,12 +137,7 @@ extrachill/
 │   │   ├── archive-child-terms-dropdown.php
 │   │   ├── archive-custom-sorting.php
 │   │   └── post-card.php
-│   ├── core/                   # Core WordPress features (5 files + 3 subdirectories)
-│   │   ├── multisite/          # Cross-site integration (4 files)
-│   │   │   ├── multisite-search.php
-│   │   │   ├── recent-activity-feed.php
-│   │   │   ├── ad-free-license.php
-│   │   │   └── comment-author-links.php
+│   ├── core/                   # Core WordPress features (5 files + 2 subdirectories)
 │   │   ├── templates/          # Shared template components (8 files)
 │   │   │   ├── post-meta.php
 │   │   │   ├── pagination.php
@@ -219,9 +214,9 @@ extrachill/
 
 The theme follows a modular architecture with clear separation of concerns:
 
-- **Core WordPress functionality** in `/inc/core/` (5 core files + 3 subdirectories)
+- **Core WordPress functionality** in `/inc/core/` (5 core files + 2 subdirectories)
 - **Shared template components** in `/inc/core/templates/` (8 reusable templates)
-- **Multisite integration** via `extrachill-multisite` network plugin (cross-site functionality)
+- **Multisite integration** via external plugin architecture (cross-site functionality)
 - **Custom embeds** in `/inc/core/editor/` (3 embed types)
 - **Admin features** in `/inc/admin/` (3 admin files)
 - **Archive functionality** in `/inc/archives/` (4 archive files)
@@ -299,10 +294,10 @@ add_action('extrachill_home_final_left', 'custom_final_section');
 - Check that Festival Wire posts exist in WordPress admin
 - Verify plugin hook integration with theme
 
-**Multisite search not working**:
-- Check that multisite is properly configured
-- Verify blog IDs are correct in multisite functions
-- Ensure cross-site database access permissions are set
+**Community activity not displaying**:
+- Ensure multisite plugin providing functions is installed and activated
+- Check that community activity functions are available
+- Verify caching is working properly (10-minute cache)
 
 ### Debug Mode
 
@@ -350,8 +345,8 @@ define('SCRIPT_DEBUG', true);
   - `assets/css/editor-style.css` - Block editor styles
 - **Streamlined asset loading**: Conditional CSS/JS enqueuing based on page context via `inc/core/assets.php`
 - **Memory optimization**: Efficient resource management through selective loading and admin style dequeuing
-- **Multisite optimization**: Direct database queries with hardcoded blog IDs replace REST API calls
-- **Template consolidation**: 47 modular PHP files replace monolithic template structure
+- **Multisite optimization**: Plugin architecture with function existence checks and caching
+- **Template consolidation**: 41 modular PHP files replace monolithic template structure
 
 ## Support and Contributing
 
@@ -376,14 +371,14 @@ This theme is proprietary software developed for ExtraChill.com. All rights rese
 ## Changelog
 
 ### Version 69.57+
-- **Modular Architecture**: 47 PHP files organized in 8 directories with clear separation of concerns
+- **Modular Architecture**: 41 PHP files organized in 8 directories with clear separation of concerns
 - **Asset Migration**: Complete move from legacy `css/` and `js/` to `assets/css/` and `assets/js/`
 - **Template System**: 8 shared template components in `/inc/core/templates/`
-- **Multisite Integration**: Centralized in `extrachill-multisite` network plugin with hardcoded blog IDs
+- **Multisite Integration**: Plugin architecture with function existence checks and caching fallbacks
 - **Native Pagination**: Custom pagination system replacing wp-pagenavi plugin
 - **Plugin Migrations**: Newsletter, contact forms, Festival Wire moved to dedicated plugins
 - **System Removals**: 15+ legacy files eliminated (event submission, location filtering, session tokens)
-- **Performance Optimization**: Conditional loading, memory optimization, direct database queries
+- **Performance Optimization**: Conditional loading, memory optimization, plugin architecture integration
 - **WordPress Standards**: Native multisite authentication, proper template hierarchy
 
 ---

@@ -17,7 +17,6 @@ The theme uses a clean, modular architecture organized in the `/inc/` directory:
 - **core/**: Essential WordPress functionality with shared templates:
   - **core/templates/**: Shared template components (post-meta, pagination, no-results, share, social-links, taxonomy-badges, breadcrumbs, searchform)
   - **core/editor/**: Custom embeds (Bandcamp, Instagram, Spotify)
-  - **core/multisite/**: Cross-site integration (multisite-search, recent-activity-feed, ad-free-license, comment-author-links)
 - **footer/**: Footer navigation functionality (footer-bottom-menu, footer-main-menu)
 - **header/**: Navigation functionality (navigation, navigation-menu, nav-bottom-menu, nav-main-menu)
 - **home/**: Homepage-specific components and template sections (templates/, homepage-queries)
@@ -29,19 +28,13 @@ The theme uses a clean, modular architecture organized in the `/inc/` directory:
 - **Festival Wire Integration**: Homepage ticker display for Festival Wire posts (handled by ExtraChill News Wire plugin)
 
 ### Multisite Integration
-- **Centralized Plugin**: All multisite functionality now provided by `extrachill-multisite` network plugin
+- **Plugin Architecture**: Multisite functionality designed for external plugin integration
 - **WordPress Multisite Integration**: Native WordPress multisite functions for cross-site database access
 - **Cross-Site Features**: Search, activity feeds, and license validation via direct database queries
-- **Multisite Search**: Unified real-time search across sites
-  - `ec_fetch_forum_results_multisite()` uses direct database queries via `switch_to_blog(2)`
-  - `ec_hijack_search_query()` merges local + forum results in real-time
-  - Uses hardcoded blog ID 2 for maximum performance (no database lookups)
-  - No caching - always fresh results, native WordPress pagination
-- **Activity Feed**: Cross-site activity integration
-  - `ec_fetch_recent_activity_multisite()` uses direct database queries via `switch_to_blog(2)`
-- **Ad-Free License Validation**: Cross-site license validation
-  - `is_user_ad_free()` uses `switch_to_blog(3)` to check shop site's license database
-  - Native WordPress multisite authentication for cross-site validation
+- **Community Activity**: Theme includes community activity display with function existence checks
+  - Uses `ec_fetch_recent_activity_multisite()` function if available (defined in external plugin)
+  - Implements 10-minute caching to reduce database queries
+  - Fallback handling when multisite functions are not available
 
 ### Plugin Integration
 - **ExtraChill Community**: Community and forum functionality integration for community.extrachill.com
@@ -144,7 +137,7 @@ wp rewrite flush
 ## Key File Locations
 
 ### Core Theme Files
-- **`functions.php`** - Main theme setup, asset loading, and module includes (47 PHP files)
+- **`functions.php`** - Main theme setup, asset loading, and module includes (41 PHP files)
 - **`inc/core/assets.php`** - Centralized asset management with conditional loading
 - **`inc/single/comments.php`** - Comment system with community integration
 - **`inc/core/templates/post-meta.php`** - Post meta display template
@@ -176,9 +169,9 @@ wp rewrite flush
 - `inc/core/editor/spotify-embeds.php` - Spotify embed support
 
 **Multisite Integration**:
-- All multisite functionality now provided by `extrachill-multisite` network plugin
-- Cross-site search, activity feeds, license validation, and comment author linking
-- Functions accessible network-wide via centralized plugin architecture
+- Multisite functionality partially moved to external plugin architecture
+- Theme still contains multisite function calls but functions may be defined in external plugins
+- Community activity integration uses caching with fallback for missing functions
 
 **Sidebar Functionality (2 files)**:
 - `inc/sidebar/recent-posts.php` - Recent posts sidebar widget
@@ -245,7 +238,7 @@ wp rewrite flush
 - **Event Submission System**: Completely removed - all JavaScript and server-side functionality deleted
 - **Location System**: Complete elimination of unused location browsing functionality
 - **WooCommerce Files**: All WooCommerce templates and CSS removed, moved to ExtraChill Shop plugin
-- **Community Features**: Multiple community files removed (community-comments.php, community-session.php, extrachill-upvotes.php, forum-search.php, multisite-forum-search.php)
+- **Community Features**: Community functionality streamlined with external plugin integration
 - **Legacy Template Files**: Removed content-page.php, content-single.php, content.php, comments.php, no-results.php, page.php, search.php, searchform.php, single.php
 - **Legacy CSS Files**: Removed all-locations.css, woocommerce.css
 - **Legacy PHP Files**: Removed breadcrumbs.php, recent-posts-in-sidebar.php, location-filter.php, contextual-search-excerpt.php
@@ -287,7 +280,7 @@ EXTRACHILL_INCLUDES_DIR - Inc directory path for modular includes
 
 ## WordPress Standards Compliance
 
-- **PSR-4 Namespacing**: Clean, organized code structure
+- **Modular Organization**: Clean, organized procedural code structure
 - **WordPress Hooks**: Extensive use of filters for extensibility
 - **Translation Ready**: All strings properly internationalized
 - **Accessibility**: Semantic HTML and ARIA attributes
@@ -297,7 +290,7 @@ EXTRACHILL_INCLUDES_DIR - Inc directory path for modular includes
 
 - **Core Templates Directory**: Created `/inc/core/templates/` for shared template components (8 files)
 - **Sidebar Directory**: Created `/inc/sidebar/` for sidebar-specific functionality (2 files)
-- **Multisite Integration**: Centralized in `extrachill-multisite` network plugin for cross-site functionality
+- **Multisite Integration**: Theme designed for external plugin integration for cross-site functionality
 - **Native Pagination System**: Added comprehensive pagination system replacing wp-pagenavi plugin
   - Located at `inc/core/templates/pagination.php`
   - Professional count display with context-aware navigation
@@ -311,7 +304,7 @@ EXTRACHILL_INCLUDES_DIR - Inc directory path for modular includes
 - **Asset Management**: Centralized in `inc/core/assets.php` with conditional loading
 - **Authentication Simplification**: Native WordPress multisite authentication
 - **Performance Optimization**: Modular CSS architecture and selective loading
-- **File Structure Cleanup**: Removed 15+ legacy PHP files and multiple CSS files no longer needed
+- **File Structure Cleanup**: Streamlined to 41 modular PHP files with improved organization
 
 ## Important Notes
 

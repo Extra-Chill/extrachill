@@ -3,9 +3,8 @@
  * Homepage Content Queries
  *
  * Pre-fetches all homepage content in optimized queries to avoid multiple
- * database calls within template sections.
- *
- * Makes variables global so homepage templates can access them.
+ * database calls within template sections. Makes variables global for
+ * template consumption.
  *
  * @package ExtraChill
  * @since 69.57
@@ -15,12 +14,6 @@
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
-
-/**
- * Homepage Content Queries
- *
- * Fetches all data needed for homepage sections and makes them globally available
- */
 global $live_reviews_posts, $interviews_posts, $more_recent_posts;
 
 $live_reviews_posts = get_posts(array('numberposts' => 3, 'category_name' => 'live-music-reviews'));
