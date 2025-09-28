@@ -5,7 +5,7 @@ function custom_bandcamp_embed_handler($matches, $attr, $url, $rawattr) {
     $response = wp_remote_get($matches[0]);
 
     if (is_wp_error($response)) {
-        return ''; // Return an empty string if there is an error
+        return '';
     }
 
     $body = wp_remote_retrieve_body($response);
@@ -15,13 +15,13 @@ function custom_bandcamp_embed_handler($matches, $attr, $url, $rawattr) {
     preg_match($pattern, $body, $meta_matches);
 
     if (empty($meta_matches)) {
-        return ''; // Return an empty string if no meta tag is found
+        return '';
     }
 
     $page_properties = json_decode(html_entity_decode($meta_matches[1]), true);
 
     if (empty($page_properties) || !isset($page_properties['item_id']) || !isset($page_properties['item_type'])) {
-        return ''; // Return an empty string if the necessary properties are not found
+        return '';
     }
 
     $type = $page_properties['item_type'] === 'a' ? 'album' : 'track';

@@ -4,7 +4,7 @@
  *
  * Native WordPress pagination system for ExtraChill theme.
  * Replaces wp-pagenavi plugin with clean, lightweight solution.
- * Visual design inspired by community theme pagination.
+ * Visual design supports consistent pagination across the platform.
  *
  * @package ExtraChill
  * @since 69.58

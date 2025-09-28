@@ -26,7 +26,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   
   <?php wp_head(); ?>
   <?php
-  if ( is_user_ad_free() ) {
+  if ( function_exists('is_user_ad_free') && is_user_ad_free() ) {
       ?>
       <div id="mediavine-settings" data-blocklist-all="1"></div>
       <?php

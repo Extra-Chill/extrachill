@@ -73,11 +73,7 @@ add_action('init', 'extrachill_unregister_image_sizes', 99);
 define('EXTRACHILL_PARENT_DIR', get_template_directory());
 define('EXTRACHILL_INCLUDES_DIR', EXTRACHILL_PARENT_DIR . '/inc');
 
-// Multisite integration
-require_once(EXTRACHILL_INCLUDES_DIR . '/core/multisite/ad-free-license.php');
-require_once(EXTRACHILL_INCLUDES_DIR . '/core/multisite/comment-author-links.php');
-require_once(EXTRACHILL_INCLUDES_DIR . '/core/multisite/multisite-search.php');
-require_once(EXTRACHILL_INCLUDES_DIR . '/core/multisite/recent-activity-feed.php');
+// Multisite integration - now handled by extrachill-multisite plugin
 
 // Core shared templates
 require_once(EXTRACHILL_INCLUDES_DIR . '/core/templates/post-meta.php');
