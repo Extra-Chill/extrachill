@@ -15,7 +15,6 @@
  * Requires PHP: 7.4
  */
 
-// Exit if accessed directly
 defined( 'ABSPATH' ) || exit;
 
 define( 'EXTRACHILL_CONTACT_VERSION', '1.0.0' );
@@ -28,8 +27,6 @@ define( 'EXTRACHILL_CONTACT_ASSETS_URL', EXTRACHILL_CONTACT_PLUGIN_URL . 'assets
 
 /**
  * Main ExtraChill Contact Class
- *
- * Singleton plugin class handling initialization and core functionality loading.
  */
 class ExtraChillContact {
 

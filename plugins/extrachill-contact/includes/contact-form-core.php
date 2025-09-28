@@ -1,22 +1,10 @@
 <?php
 /**
  * ExtraChill Contact Form Core Functionality
- *
- * Provides contact form shortcode, AJAX processing, email templates,
- * Sendy newsletter integration, and Cloudflare Turnstile verification.
- *
- * @package ExtraChillContact
- * @since 1.0.0
  */
 
-// Exit if accessed directly
 defined( 'ABSPATH' ) || exit;
 
-/**
- * Generate contact form HTML via shortcode
- *
- * @return string Contact form HTML
- */
 function custom_contact_form_shortcode() {
     $form_html = '
     <form id="ec-contact-form" class="custom-contact-form" method="post" action="' . esc_url(admin_url('admin-post.php')) . '">
@@ -67,38 +55,29 @@ function custom_contact_form_shortcode() {
 }
 add_shortcode('ec_custom_contact_form', 'custom_contact_form_shortcode');
 
-/**
- * Handle contact form submission via AJAX
- */
 function handle_ec_contact_form_submission() {
-    // Verify nonce
     if (!wp_verify_nonce($_POST['ec_contact_form_nonce'], 'ec_contact_form_action')) {
         wp_die('Nonce verification failed');
     }
 
-    // Verify Turnstile
     $turnstile_response = isset($_POST['cf-turnstile-response']) ? $_POST['cf-turnstile-response'] : '';
     if (!wp_surgeon_verify_turnstile($turnstile_response)) {
         wp_die('Captcha verification failed');
     }
 
-    // Sanitize input data
     $name = sanitize_text_field(wp_unslash($_POST['contact_name']));
     $email = sanitize_email(wp_unslash($_POST['contact_email']));
     $subject = sanitize_text_field(wp_unslash($_POST['contact_subject']));
     $message = sanitize_textarea_field(wp_unslash($_POST['contact_message']));
     $newsletter_consent = isset($_POST['newsletter_consent']) ? sanitize_text_field(wp_unslash($_POST['newsletter_consent'])) : '';
 
-    // Send emails
     send_email_to_admin($name, $email, $subject, $message);
     send_confirmation_email_to_user($name, $email, $subject, $message);
 
-    // Handle newsletter subscription if consented
     if ($newsletter_consent === 'yes') {
         sync_to_sendy($email);
     }
 
-    // Redirect back to contact page with success message
     $redirect_url = add_query_arg('contact_success', '1', wp_get_referer());
     wp_redirect($redirect_url);
     exit;
@@ -106,28 +85,18 @@ function handle_ec_contact_form_submission() {
 add_action('admin_post_ec_contact_form_action', 'handle_ec_contact_form_submission');
 add_action('admin_post_nopriv_ec_contact_form_action', 'handle_ec_contact_form_submission');
 
-/**
- * Sync email to Sendy newsletter list
- *
- * @param string $email Email address to subscribe
- */
 function sync_to_sendy($email) {
-    // Check if newsletter plugin function exists
     if (function_exists('subscribe_email_to_sendy')) {
         try {
             subscribe_email_to_sendy($email, 'contact');
         } catch (Exception $e) {
-            // Silently handle newsletter subscription errors
             error_log('Contact form Sendy sync failed: ' . $e->getMessage());
         }
     }
 }
 
 /**
- * Verify Cloudflare Turnstile response
- *
- * @param string $response Turnstile response token
- * @return bool True if verification successful
+ * Verify Cloudflare Turnstile response with hardcoded credentials
  */
 function wp_surgeon_verify_turnstile($response) {
     if (empty($response)) {
@@ -157,14 +126,6 @@ function wp_surgeon_verify_turnstile($response) {
     return isset($data['success']) && $data['success'] === true;
 }
 
-/**
- * Send email notification to admin
- *
- * @param string $name Contact name
- * @param string $email Contact email
- * @param string $subject Contact subject
- * @param string $message Contact message
- */
 function send_email_to_admin($name, $email, $subject, $message) {
     $admin_email = get_option('admin_email');
     $admin_headers = array(
@@ -172,10 +133,8 @@ function send_email_to_admin($name, $email, $subject, $message) {
         'Reply-To: ' . $email
     );
 
-    // Fix: Remove backslashes from subject
     $subject = stripslashes(htmlspecialchars_decode($subject, ENT_QUOTES));
 
-    // Ensure the message is safe and properly formatted
     $escaped_message = nl2br(stripslashes(htmlspecialchars($message, ENT_HTML5, 'UTF-8')));
 
     $admin_body = <<<HTML
@@ -196,14 +155,6 @@ HTML;
     wp_mail($admin_email, "New submission: $subject", $admin_body, $admin_headers);
 }
 
-/**
- * Send confirmation email to user
- *
- * @param string $name Contact name
- * @param string $email Contact email
- * @param string $subject Contact subject
- * @param string $message Contact message
- */
 function send_confirmation_email_to_user($name, $email, $subject, $message) {
     $admin_email = get_option('admin_email');
     $user_subject = "Extra Chill Got Your Message";
@@ -212,10 +163,8 @@ function send_confirmation_email_to_user($name, $email, $subject, $message) {
         'From: Extra Chill <' . $admin_email . '>'
     );
 
-    // Fix: Remove backslashes from subject
     $subject = stripslashes(htmlspecialchars_decode($subject, ENT_QUOTES));
 
-    // Ensure the message is safe and properly formatted
     $escaped_message = nl2br(stripslashes(htmlspecialchars($message, ENT_HTML5, 'UTF-8')));
 
     $user_body = <<<HTML
@@ -240,9 +189,6 @@ HTML;
     wp_mail($email, $user_subject, $user_body, $user_headers);
 }
 
-/**
- * Enqueue Cloudflare Turnstile script
- */
 function wp_surgeon_enqueue_turnstile_script() {
     if (is_page('contact-us')) {
         wp_enqueue_script('cloudflare-turnstile', 'https://challenges.cloudflare.com/turnstile/v0/api.js', array(), null, true);
@@ -250,9 +196,6 @@ function wp_surgeon_enqueue_turnstile_script() {
 }
 add_action('wp_enqueue_scripts', 'wp_surgeon_enqueue_turnstile_script');
 
-/**
- * Display success message on contact page
- */
 function display_contact_success_message() {
     if (isset($_GET['contact_success']) && $_GET['contact_success'] == '1') {
         echo '<div class="contact-success-message" style="background: #d4edda; color: #155724; padding: 15px; border: 1px solid #c3e6cb; border-radius: 4px; margin: 20px 0;">

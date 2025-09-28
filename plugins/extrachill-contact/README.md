@@ -13,9 +13,13 @@ A WordPress plugin that provides contact form functionality with Sendy newslette
 
 ## Installation
 
-### From GitHub Release
-1. Download the latest release ZIP from [Releases](https://github.com/Extra-Chill/extrachill-contact/releases)
-2. Upload via WordPress admin: **Plugins > Add New > Upload Plugin**
+### From Production Build
+1. Navigate to plugin directory and create production build:
+   ```bash
+   cd extrachill-plugins/extrachill-contact
+   ./build.sh
+   ```
+2. Upload the generated ZIP from `dist/` directory via WordPress admin: **Plugins > Add New > Upload Plugin**
 3. Activate the plugin
 
 ### Migration from Theme
@@ -27,19 +31,17 @@ DROP TABLE IF EXISTS wp_contact_submissions;
 
 The plugin uses WordPress `wp_mail` exclusively and does not create or use any database tables.
 
-### From Source
-1. Clone this repository to your WordPress plugins directory:
+### Local Development
+1. Copy plugin to your WordPress plugins directory:
    ```bash
-   cd wp-content/plugins/
-   git clone https://github.com/Extra-Chill/extrachill-contact.git
+   cp -r extrachill-plugins/extrachill-contact /path/to/wp-content/plugins/
    ```
 2. Activate through WordPress admin
 
 ### Build from Source
 ```bash
-# Clone and build production package
-git clone https://github.com/Extra-Chill/extrachill-contact.git
-cd extrachill-contact
+# Navigate to plugin directory and build production package
+cd extrachill-plugins/extrachill-contact
 ./build.sh
 
 # Install the generated ZIP from dist/ directory
@@ -79,7 +81,7 @@ Add the contact form to any page or post using the shortcode:
 - **Cloudflare Turnstile**: Hardcoded site key `0x4AAAAAAAPvQsUv5Z6QBB5n`
 
 ### Newsletter Integration
-To enable newsletter subscriptions, install the [ExtraChill Newsletter](https://github.com/Extra-Chill/extrachill-newsletter) plugin. The contact form will automatically detect and integrate with it.
+To enable newsletter subscriptions, install the ExtraChill Newsletter plugin from the `extrachill-plugins/extrachill-newsletter/` directory. The contact form will automatically detect and integrate with it.
 
 ### Email Templates
 The plugin includes two HTML email templates with Extra Chill branding:
@@ -186,7 +188,7 @@ GPL v2 or later - see [LICENSE](LICENSE) file for details.
 
 ## Support
 
-For support, please use the [GitHub Issues](https://github.com/Extra-Chill/extrachill-contact/issues) page.
+For support and issues, contact the development team or submit issues through the project documentation.
 
 ## Credits
 
