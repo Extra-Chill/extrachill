@@ -3,18 +3,16 @@
 /**
  * Custom Taxonomy Registration
  *
- * Registers all custom taxonomies for the theme including:
+ * Registers custom taxonomies for music-focused content:
  * - Location (hierarchical city/state taxonomy)
  * - Festival (non-hierarchical)
  * - Artist (non-hierarchical)
  * - Venue (non-hierarchical)
  *
+ * All taxonomies include REST API support for block editor integration.
+ *
  * @package ExtraChill
- * @since 1.0
- */
-
-/**
- * Register all custom taxonomies
+ * @since 69.57
  */
 function extra_chill_register_custom_taxonomies() {
     // Location taxonomy (hierarchical)

@@ -1,3 +1,9 @@
+/**
+ * Archive Page Functionality
+ *
+ * Handles post randomization and artist filtering on archive pages.
+ * Manages URL parameters and scroll position restoration.
+ */
 document.addEventListener('DOMContentLoaded', function() {
     var randomizeButton = document.getElementById('randomize-posts');
     if (randomizeButton) {
@@ -23,6 +29,10 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
+/**
+ * Filter posts by artist taxonomy
+ * @param {string} artistSlug - Artist slug to filter by, or 'all' to show all posts
+ */
 function filterPostsByArtist(artistSlug) {
     var baseUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
     baseUrl = baseUrl.replace(/\/page\/\d+/, ''); // Remove pagination from the base URL

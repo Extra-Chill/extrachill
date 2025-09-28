@@ -1,3 +1,9 @@
+/**
+ * Navigation Menu Controller
+ *
+ * Handles flyout menu toggling, search functionality, and submenu navigation.
+ * Manages body scroll locking during menu open states.
+ */
 document.addEventListener('DOMContentLoaded', function() {
     const menuToggle = document.querySelector('.menu-toggle-container');
     const searchToggle = document.querySelector('.search-icon');

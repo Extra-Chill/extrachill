@@ -1,12 +1,23 @@
 <?php
 /**
- * Post meta display with multisite forum integration and Co-Authors Plus support
+ * Post Meta Display Component
+ *
+ * Handles author, date, and forum metadata display with conditional formatting.
+ * Supports both regular posts and multisite forum posts from community.extrachill.com.
+ * Integrates with Co-Authors Plus plugin when available.
+ *
+ * @package ExtraChill
+ * @since 69.57
  */
 
 if ( ! function_exists( 'extrachill_entry_meta' ) ) :
     /**
-     * Displays meta with conditional formatting for forum posts vs regular posts
-     * Forum posts link to community.extrachill.com authors and forums
+     * Display post metadata with conditional formatting
+     *
+     * Shows author, publication date, and update date for regular posts.
+     * For forum posts, displays forum author links and forum context.
+     *
+     * @since 69.57
      */
     function extrachill_entry_meta() {
         global $post;

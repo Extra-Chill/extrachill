@@ -1,10 +1,14 @@
+/**
+ * Reading Progress Indicator
+ *
+ * Creates a visual progress bar in the masthead that shows reading progress
+ * based on scroll position. Updates dynamically on scroll and resize events.
+ */
 document.addEventListener('DOMContentLoaded', function () {
-    // Create and append the progress bar to the masthead
     const progressBar = document.createElement('div');
     progressBar.id = 'reading-progress';
     document.getElementById('masthead').appendChild(progressBar);
 
-    // Function to update the width of the progress bar based on scroll position
     function updateProgressBar() {
         const scrollPosition = window.scrollY;
         const documentHeight = document.body.scrollHeight - window.innerHeight;
@@ -18,9 +22,6 @@ document.addEventListener('DOMContentLoaded', function () {
         progressBar.style.width = Math.min(progressWidth, mastheadWidth) + 'px';
     }
 
-    // Attach the update function to the scroll event
     window.addEventListener('scroll', updateProgressBar);
-
-    // Also update on resize to recalculate container width
     window.addEventListener('resize', updateProgressBar);
 });
