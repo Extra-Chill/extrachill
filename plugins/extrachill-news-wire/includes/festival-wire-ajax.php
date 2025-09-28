@@ -171,20 +171,21 @@ function process_festival_wire_tip_submission() {
 	}
 
 	// Cloudflare Turnstile anti-spam verification
-	$turnstile_secret_key = get_option( 'ec_turnstile_secret_key' );
-	if ( ! empty( $turnstile_secret_key ) ) {
-		$verify_result = verify_turnstile_response( $turnstile_response, $turnstile_secret_key );
-
-		if ( ! $verify_result['success'] ) {
+	if ( ec_is_turnstile_configured() ) {
+		if ( ! ec_verify_turnstile_response( $turnstile_response ) ) {
 			wp_send_json_error( array( 'message' => 'Turnstile verification failed. Please try again.' ) );
 		}
 	}
 
-	// Sendy newsletter subscription for non-community members
+	// Newsletter subscription for non-community members via Newsletter plugin integration
 	if ( ! $is_community_member && ! empty( $email ) ) {
-		$sendy_result = add_tip_email_to_sendy( $email );
-		if ( ! $sendy_result ) {
-			error_log( 'Festival tip Sendy subscription failed for email: ' . $email );
+		if (function_exists('subscribe_via_integration')) {
+			$newsletter_result = subscribe_via_integration( $email, 'festival_wire_tip' );
+			if ( ! $newsletter_result['success'] ) {
+				error_log( 'Festival tip newsletter subscription failed for email: ' . $email . ' - ' . $newsletter_result['message'] );
+			}
+		} else {
+			error_log( 'Festival Wire: Newsletter plugin not available for tip subscriptions' );
 		}
 	}
 
@@ -221,64 +222,6 @@ function process_festival_wire_tip_submission() {
 add_action( 'wp_ajax_festival_wire_tip_submission', 'process_festival_wire_tip_submission' );
 add_action( 'wp_ajax_nopriv_festival_wire_tip_submission', 'process_festival_wire_tip_submission' );
 
-/**
- * Verify Cloudflare Turnstile anti-spam response
- *
- * Validates Turnstile token with Cloudflare API for spam protection.
- * Includes comprehensive error handling and logging.
- *
- * @since 1.0.0
- * @param string $turnstile_response The turnstile response token
- * @param string $secret_key The secret key for Turnstile
- * @return array Verification result with success status
- */
-function verify_turnstile_response( $turnstile_response, $secret_key ) {
-	$verify_url = 'https://challenges.cloudflare.com/turnstile/v0/siteverify';
-
-	$args = array(
-		'body' => array(
-			'secret' => $secret_key,
-			'response' => $turnstile_response,
-			'remoteip' => isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : '',
-		),
-        'timeout' => 15,
-	);
-
-	$response = wp_remote_post( $verify_url, $args );
-
-	// Handle connection errors
-	if ( is_wp_error( $response ) ) {
-        error_log('Turnstile Verification Error: ' . $response->get_error_message());
-		return array( 'success' => false, 'error' => 'Connection error: ' . $response->get_error_message() );
-	}
-
-	// Validate HTTP response
-	$response_code = wp_remote_retrieve_response_code( $response );
-    if ( $response_code !== 200 ) {
-        error_log('Turnstile Verification HTTP Error: Code ' . $response_code . ' Body: ' . wp_remote_retrieve_body($response));
-        return array( 'success' => false, 'error' => 'HTTP error: ' . $response_code );
-    }
-
-	// Parse and validate JSON response
-	$response_body = wp_remote_retrieve_body( $response );
-	$result = json_decode( $response_body, true );
-
-    if ( $result === null ) {
-        error_log('Turnstile Verification JSON Decode Error: Body - ' . $response_body);
-        return array( 'success' => false, 'error' => 'Invalid response format' );
-    }
-
-    // Log verification failures and validate response format
-    if ( isset( $result['success'] ) && ! $result['success'] && isset( $result['error-codes'] ) ) {
-         error_log('Turnstile Verification Failed: ' . implode(', ', $result['error-codes']));
-    } elseif ( ! isset( $result['success'] ) ) {
-         error_log('Turnstile Verification Unexpected Response: ' . $response_body);
-         return array( 'success' => false, 'error' => 'Unexpected response format' );
-    }
-
-
-	return $result;
-}
 
 /**
  * Check IP address rate limiting for tip submissions
@@ -311,61 +254,4 @@ function set_rate_limit( $ip ) {
 	set_transient( $transient_key, time(), 300 ); // 5 minutes
 }
 
-/**
- * Add tip submitter email to Sendy newsletter list
- *
- * Subscribes tip submitters to festival updates newsletter.
- * Includes comprehensive error handling and validation.
- *
- * @since 1.0.0
- * @param string $email The email address to subscribe
- * @return bool True on success, false on failure
- */
-function add_tip_email_to_sendy( $email ) {
-	if ( empty( $email ) || ! is_email( $email ) ) {
-		return false;
-	}
-
-	// Sendy API configuration
-	$sendy_url = 'https://mail.extrachill.com/sendy';
-	$list_id = '6O9Io8G6fbhBHRhPeiHZ763A';
-	$api_key = 'z7RZLH84oEKNzMvFZhdt';
-
-	$args = array(
-		'body' => array(
-			'email' => $email,
-			'list' => $list_id,
-			'api_key' => $api_key,
-			'boolean' => 'true'
-		),
-		'timeout' => 15,
-		'headers' => array(
-			'Content-Type' => 'application/x-www-form-urlencoded'
-		)
-	);
-
-	$response = wp_remote_post( $sendy_url . '/subscribe', $args );
-
-	// Handle connection errors
-	if ( is_wp_error( $response ) ) {
-		error_log( 'Sendy API error: ' . $response->get_error_message() );
-		return false;
-	}
-
-	// Validate API response
-	$response_code = wp_remote_retrieve_response_code( $response );
-	$response_body = wp_remote_retrieve_body( $response );
-
-	if ( $response_code !== 200 ) {
-		error_log( 'Sendy API HTTP error: ' . $response_code . ' - ' . $response_body );
-		return false;
-	}
-
-	// Sendy returns '1' for successful subscription
-	if ( $response_body === '1' ) {
-		return true;
-	} else {
-		error_log( 'Sendy API response error: ' . $response_body );
-		return false;
-	}
-} 
+ 

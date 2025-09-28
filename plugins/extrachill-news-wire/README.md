@@ -28,16 +28,22 @@ ExtraChill News Wire is a standalone WordPress plugin extracted from the ExtraCh
 
 ## Installation
 
-### WordPress Admin Installation
-1. Download the plugin ZIP file from the releases
+### Production Build Installation
+1. Navigate to plugin directory and create production build:
+   ```bash
+   cd extrachill-plugins/extrachill-news-wire
+   ./build.sh
+   ```
 2. Go to WordPress Admin > Plugins > Add New
-3. Click "Upload Plugin" and select the ZIP file
+3. Click "Upload Plugin" and select the ZIP file from `dist/` directory
 4. Activate the plugin
 
 ### Manual Installation
-1. Download and extract the plugin files
-2. Upload the `extrachill-news-wire` folder to `/wp-content/plugins/`
-3. Activate the plugin through the WordPress admin
+1. Copy plugin files to WordPress plugins directory:
+   ```bash
+   cp -r extrachill-plugins/extrachill-news-wire /path/to/wp-content/plugins/
+   ```
+2. Activate the plugin through the WordPress admin
 
 ### Requirements
 - WordPress 5.0 or higher
@@ -120,10 +126,11 @@ Festival Wire posts support all standard WordPress features:
 
 ### Build Process
 ```bash
-# Create production build
+# Navigate to plugin directory and create production build
+cd extrachill-plugins/extrachill-news-wire
 ./build.sh
 
-# Output: dist/extrachill-news-wire.zip
+# Output: dist/extrachill-news-wire-{version}.zip
 ```
 
 ### WordPress Standards
@@ -145,7 +152,7 @@ This plugin was developed for the ExtraChill music publication platform. For sup
 
 - **Developer**: Chris Huber
 - **Website**: [extrachill.com](https://extrachill.com)
-- **GitHub**: [Extra-Chill/extrachill-news-wire](https://github.com/Extra-Chill/extrachill-news-wire)
+- **Development**: Part of the Extra Chill Platform ecosystem
 
 ## License
 

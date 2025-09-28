@@ -180,11 +180,15 @@ function process_festival_wire_tip_submission() {
 		}
 	}
 
-	// Sendy newsletter subscription for non-community members
+	// Newsletter subscription for non-community members via Newsletter plugin integration
 	if ( ! $is_community_member && ! empty( $email ) ) {
-		$sendy_result = add_tip_email_to_sendy( $email );
-		if ( ! $sendy_result ) {
-			error_log( 'Festival tip Sendy subscription failed for email: ' . $email );
+		if (function_exists('subscribe_via_integration')) {
+			$newsletter_result = subscribe_via_integration( $email, 'festival_wire_tip' );
+			if ( ! $newsletter_result['success'] ) {
+				error_log( 'Festival tip newsletter subscription failed for email: ' . $email . ' - ' . $newsletter_result['message'] );
+			}
+		} else {
+			error_log( 'Festival Wire: Newsletter plugin not available for tip subscriptions' );
 		}
 	}
 
@@ -311,61 +315,4 @@ function set_rate_limit( $ip ) {
 	set_transient( $transient_key, time(), 300 ); // 5 minutes
 }
 
-/**
- * Add tip submitter email to Sendy newsletter list
- *
- * Subscribes tip submitters to festival updates newsletter.
- * Includes comprehensive error handling and validation.
- *
- * @since 1.0.0
- * @param string $email The email address to subscribe
- * @return bool True on success, false on failure
- */
-function add_tip_email_to_sendy( $email ) {
-	if ( empty( $email ) || ! is_email( $email ) ) {
-		return false;
-	}
-
-	// Sendy API configuration
-	$sendy_url = 'https://mail.extrachill.com/sendy';
-	$list_id = '6O9Io8G6fbhBHRhPeiHZ763A';
-	$api_key = 'z7RZLH84oEKNzMvFZhdt';
-
-	$args = array(
-		'body' => array(
-			'email' => $email,
-			'list' => $list_id,
-			'api_key' => $api_key,
-			'boolean' => 'true'
-		),
-		'timeout' => 15,
-		'headers' => array(
-			'Content-Type' => 'application/x-www-form-urlencoded'
-		)
-	);
-
-	$response = wp_remote_post( $sendy_url . '/subscribe', $args );
-
-	// Handle connection errors
-	if ( is_wp_error( $response ) ) {
-		error_log( 'Sendy API error: ' . $response->get_error_message() );
-		return false;
-	}
-
-	// Validate API response
-	$response_code = wp_remote_retrieve_response_code( $response );
-	$response_body = wp_remote_retrieve_body( $response );
-
-	if ( $response_code !== 200 ) {
-		error_log( 'Sendy API HTTP error: ' . $response_code . ' - ' . $response_body );
-		return false;
-	}
-
-	// Sendy returns '1' for successful subscription
-	if ( $response_body === '1' ) {
-		return true;
-	} else {
-		error_log( 'Sendy API response error: ' . $response_body );
-		return false;
-	}
-} 
+ 

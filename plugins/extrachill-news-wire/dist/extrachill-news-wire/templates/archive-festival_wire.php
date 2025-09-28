@@ -130,12 +130,10 @@ get_header(); ?>
                     <button id="festival-wire-load-more" class="cm-load-more-button">Load More Posts</button>
                 <?php endif; ?>
 
-				<!-- Modular Festival Wire Tip Form -->
-				<div class="festival-wire-tip-form-container">
-					<h2 class="tip-form-title">Have a Festival News Tip?</h2>
-					<p class="tip-form-description">Heard something exciting about an upcoming festival? Drop us a tip, and we'll check it out!</p>
-					<?php require __DIR__ . '/../includes/festival-tip-form.php'; ?>
-				</div>
+				<?php
+				// Newsletter plugin owns and displays the tip form
+				do_action('extrachill_after_news_wire');
+				?>
 
 				<!-- Music Festivals Forum CTA -->
 				<div class="forum-cta-container">

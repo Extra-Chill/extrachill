@@ -170,12 +170,10 @@ get_header(); ?>
 		
 		<?php endwhile; // End of the loop. ?>
 
-		<!-- Modular Festival Wire Tip Form -->
-		<div class="festival-wire-tip-form-container">
-			<h2 class="tip-form-title">Have a Festival News Tip?</h2>
-			<p class="tip-form-description">Heard something exciting about an upcoming festival? Drop us a tip, and we'll check it out!</p>
-			<?php require __DIR__ . '/../extrachill-news-wire/includes/festival-tip-form.php'; ?>
-		</div>
+		<?php
+		// Newsletter plugin owns and displays the tip form
+		do_action('extrachill_after_news_wire');
+		?>
 
 		<!-- Back to Archive Button -->
 		<div class="festival-wire-back-button-container">
