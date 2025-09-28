@@ -1,55 +1,35 @@
 <?php
 /**
- * Newsletter AJAX Handlers
- *
- * Handles all AJAX requests for newsletter functionality including
- * subscription forms, campaign management, and popup interactions.
- *
- * @package ExtraChillNewsletter
- * @since 1.0.0
+ * Newsletter AJAX handlers for subscription forms and campaign management
  */
 
-// Exit if accessed directly.
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-/**
- * AJAX Handler: Push Newsletter to Sendy
- *
- * Handles the admin meta box "Push to Sendy" button functionality.
- * Creates or updates newsletter campaigns in Sendy via API.
- *
- * @since 1.0.0
- */
 function handle_push_newsletter_to_sendy_ajax() {
-	// Verify request method
 	if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 		wp_send_json_error(__('Invalid request type', 'extrachill-newsletter'), 400);
 		return;
 	}
 
-	// Verify nonce
 	if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'push_newsletter_to_sendy_nonce')) {
 		wp_send_json_error(__('Security check failed', 'extrachill-newsletter'), 401);
 		return;
 	}
 
-	// Verify post ID and permissions
 	$post_id = intval($_POST['post_id']);
 	if (!$post_id || !current_user_can('edit_post', $post_id)) {
 		wp_send_json_error(__('Invalid post ID or insufficient permissions', 'extrachill-newsletter'), 403);
 		return;
 	}
 
-	// Get post and verify it exists
 	$post = get_post($post_id);
 	if (!$post || $post->post_type !== 'newsletter') {
 		wp_send_json_error(__('Newsletter not found', 'extrachill-newsletter'), 404);
 		return;
 	}
 
-	// Prepare and send email campaign
 	$email_data = prepare_newsletter_email_content($post);
 	$result = send_newsletter_campaign_to_sendy($post_id, $email_data);
 
@@ -61,29 +41,18 @@ function handle_push_newsletter_to_sendy_ajax() {
 }
 add_action('wp_ajax_push_newsletter_to_sendy_ajax', 'handle_push_newsletter_to_sendy_ajax');
 
-/**
- * AJAX Handler: Newsletter Archive Subscription Form
- *
- * Handles subscription requests from the newsletter archive page form.
- * Subscribes users to the main newsletter list.
- *
- * @since 1.0.0
- */
 function handle_submit_newsletter_form() {
-	// Verify nonce
 	if (!check_ajax_referer('newsletter_nonce', 'nonce', false)) {
 		wp_send_json_error(__('Security check failed', 'extrachill-newsletter'));
 		return;
 	}
 
-	// Sanitize and validate email
 	$email = sanitize_email($_POST['email']);
 	if (!is_email($email)) {
 		wp_send_json_error(__('Please enter a valid email address', 'extrachill-newsletter'));
 		return;
 	}
 
-	// Subscribe to main newsletter list
 	$result = subscribe_email_to_sendy($email, 'archive');
 
 	if ($result['success']) {
@@ -95,29 +64,18 @@ function handle_submit_newsletter_form() {
 add_action('wp_ajax_submit_newsletter_form', 'handle_submit_newsletter_form');
 add_action('wp_ajax_nopriv_submit_newsletter_form', 'handle_submit_newsletter_form');
 
-/**
- * AJAX Handler: Newsletter Popup Subscription Form
- *
- * Handles subscription requests from the site-wide newsletter popup.
- * Uses a separate list for popup-specific tracking.
- *
- * @since 1.0.0
- */
 function handle_submit_newsletter_popup_form() {
-	// Verify nonce
 	if (!check_ajax_referer('newsletter_popup_nonce', 'nonce', false)) {
 		wp_send_json_error(__('Security check failed', 'extrachill-newsletter'));
 		return;
 	}
 
-	// Sanitize and validate email
 	$email = sanitize_email($_POST['email']);
 	if (!is_email($email)) {
 		wp_send_json_error(__('Please enter a valid email address', 'extrachill-newsletter'));
 		return;
 	}
 
-	// Subscribe to popup-specific list
 	$result = subscribe_email_to_sendy($email, 'popup');
 
 	if ($result['success']) {
@@ -129,29 +87,18 @@ function handle_submit_newsletter_popup_form() {
 add_action('wp_ajax_submit_newsletter_popup_form', 'handle_submit_newsletter_popup_form');
 add_action('wp_ajax_nopriv_submit_newsletter_popup_form', 'handle_submit_newsletter_popup_form');
 
-/**
- * AJAX Handler: Homepage Newsletter Subscription Form
- *
- * Handles subscription requests from the homepage newsletter section.
- * Uses homepage-specific list for tracking source attribution.
- *
- * @since 1.0.0
- */
 function handle_subscribe_to_sendy_home() {
-	// Verify nonce
 	if (!check_ajax_referer('subscribe_to_sendy_home_nonce', 'nonce', false)) {
 		wp_send_json_error(__('Security check failed', 'extrachill-newsletter'));
 		return;
 	}
 
-	// Sanitize and validate email
 	$email = sanitize_email($_POST['email']);
 	if (!is_email($email)) {
 		wp_send_json_error(__('Please enter a valid email address', 'extrachill-newsletter'));
 		return;
 	}
 
-	// Subscribe to homepage-specific list
 	$result = subscribe_email_to_sendy($email, 'homepage');
 
 	if ($result['success']) {
@@ -172,20 +119,17 @@ add_action('wp_ajax_nopriv_subscribe_to_sendy_home', 'handle_subscribe_to_sendy_
  * @since 1.0.0
  */
 function handle_subscribe_to_sendy_nav() {
-	// Verify nonce (using standard subscription nonce)
 	if (!check_ajax_referer('newsletter_nonce', 'subscribe_nonce', false)) {
 		wp_send_json_error(__('Security check failed', 'extrachill-newsletter'));
 		return;
 	}
 
-	// Sanitize and validate email
 	$email = sanitize_email($_POST['email']);
 	if (!is_email($email)) {
 		wp_send_json_error(__('Please enter a valid email address', 'extrachill-newsletter'));
 		return;
 	}
 
-	// Subscribe to navigation newsletter list
 	$result = subscribe_email_to_sendy($email, 'navigation');
 
 	if ($result['success']) {
@@ -199,18 +143,9 @@ add_action('wp_ajax_nopriv_subscribe_to_sendy', 'handle_subscribe_to_sendy_nav')
 
 
 /**
- * Handle AJAX errors gracefully
- *
- * Provides consistent error handling and logging for all AJAX endpoints.
- * Can be extended for user-friendly error messages.
- *
- * @since 1.0.0
- * @param string $error_code Error identifier
- * @param string $error_message User-facing error message
- * @param array $context Additional error context for logging
+ * Centralized AJAX error handling with logging
  */
 function handle_newsletter_ajax_error($error_code, $error_message, $context = array()) {
-	// Log error with context for debugging
 	error_log(sprintf(
 		'Newsletter AJAX Error [%s]: %s - Context: %s',
 		$error_code,
@@ -218,35 +153,20 @@ function handle_newsletter_ajax_error($error_code, $error_message, $context = ar
 		json_encode($context)
 	));
 
-	// Send user-friendly error response
 	wp_send_json_error($error_message);
 }
 
-/**
- * Validate AJAX request security
- *
- * Centralized security validation for newsletter AJAX requests.
- * Checks nonces, capabilities, and request parameters.
- *
- * @since 1.0.0
- * @param string $nonce_action Nonce action to verify
- * @param bool $require_login Whether user login is required
- * @return bool True if valid, false otherwise
- */
 function validate_newsletter_ajax_security($nonce_action, $require_login = false) {
-	// Check request method
 	if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 		handle_newsletter_ajax_error('invalid_method', __('Invalid request method', 'extrachill-newsletter'));
 		return false;
 	}
 
-	// Verify nonce
 	if (!check_ajax_referer($nonce_action, 'nonce', false)) {
 		handle_newsletter_ajax_error('invalid_nonce', __('Security verification failed', 'extrachill-newsletter'));
 		return false;
 	}
 
-	// Check login requirement
 	if ($require_login && !is_user_logged_in()) {
 		handle_newsletter_ajax_error('login_required', __('Please log in to perform this action', 'extrachill-newsletter'));
 		return false;
@@ -255,18 +175,6 @@ function validate_newsletter_ajax_security($nonce_action, $require_login = false
 	return true;
 }
 
-/**
- * Log newsletter subscription attempts
- *
- * Tracks subscription attempts for analytics and debugging.
- * Can be extended for conversion rate tracking.
- *
- * @since 1.0.0
- * @param string $email Email address
- * @param string $source Subscription source (archive, popup, homepage, nav)
- * @param bool $success Whether subscription succeeded
- * @param string $error_message Error message if failed
- */
 function log_newsletter_subscription_attempt($email, $source, $success, $error_message = '') {
 	$log_data = array(
 		'timestamp' => current_time('mysql'),
@@ -281,11 +189,7 @@ function log_newsletter_subscription_attempt($email, $source, $success, $error_m
 		$log_data['error'] = $error_message;
 	}
 
-	// Log to WordPress error log for now
-	// Can be extended to store in custom database table
 	error_log('Newsletter Subscription: ' . json_encode($log_data));
-
-	// Hook for custom tracking systems
 	do_action('newsletter_subscription_logged', $log_data);
 }
 
@@ -298,20 +202,17 @@ function log_newsletter_subscription_attempt($email, $source, $success, $error_m
  * @since 1.0.0
  */
 function handle_submit_newsletter_content_form() {
-	// Verify nonce
 	if (!check_ajax_referer('newsletter_content_nonce', 'nonce', false)) {
 		wp_send_json_error(__('Security check failed', 'extrachill-newsletter'));
 		return;
 	}
 
-	// Sanitize and validate email
 	$email = sanitize_email($_POST['email']);
 	if (!is_email($email)) {
 		wp_send_json_error(__('Please enter a valid email address', 'extrachill-newsletter'));
 		return;
 	}
 
-	// Subscribe to content-specific list
 	$result = subscribe_email_to_sendy($email, 'content');
 
 	if ($result['success']) {
@@ -332,20 +233,17 @@ add_action('wp_ajax_nopriv_submit_newsletter_content_form', 'handle_submit_newsl
  * @since 1.0.0
  */
 function handle_submit_newsletter_footer_form() {
-	// Verify nonce
 	if (!check_ajax_referer('newsletter_footer_nonce', 'nonce', false)) {
 		wp_send_json_error(__('Security check failed', 'extrachill-newsletter'));
 		return;
 	}
 
-	// Sanitize and validate email
 	$email = sanitize_email($_POST['email']);
 	if (!is_email($email)) {
 		wp_send_json_error(__('Please enter a valid email address', 'extrachill-newsletter'));
 		return;
 	}
 
-	// Subscribe to footer-specific list
 	$result = subscribe_email_to_sendy($email, 'footer');
 
 	if ($result['success']) {
@@ -427,11 +325,8 @@ function handle_newsletter_festival_wire_tip_submission() {
 	}
 
 	// Cloudflare Turnstile anti-spam verification
-	$turnstile_secret_key = get_option( 'ec_turnstile_secret_key' );
-	if ( ! empty( $turnstile_secret_key ) ) {
-		$verify_result = newsletter_verify_turnstile_response( $turnstile_response, $turnstile_secret_key );
-
-		if ( ! $verify_result['success'] ) {
+	if ( ec_is_turnstile_configured() ) {
+		if ( ! ec_verify_turnstile_response( $turnstile_response ) ) {
 			wp_send_json_error( array( 'message' => __('Turnstile verification failed. Please try again.', 'extrachill-newsletter') ) );
 		}
 	}
@@ -477,63 +372,6 @@ function handle_newsletter_festival_wire_tip_submission() {
 add_action( 'wp_ajax_newsletter_festival_wire_tip_submission', 'handle_newsletter_festival_wire_tip_submission' );
 add_action( 'wp_ajax_nopriv_newsletter_festival_wire_tip_submission', 'handle_newsletter_festival_wire_tip_submission' );
 
-/**
- * Verify Cloudflare Turnstile anti-spam response
- *
- * Validates Turnstile token with Cloudflare API for spam protection.
- * Includes comprehensive error handling and logging.
- *
- * @since 2.0.0
- * @param string $turnstile_response The turnstile response token
- * @param string $secret_key The secret key for Turnstile
- * @return array Verification result with success status
- */
-function newsletter_verify_turnstile_response( $turnstile_response, $secret_key ) {
-	$verify_url = 'https://challenges.cloudflare.com/turnstile/v0/siteverify';
-
-	$args = array(
-		'body' => array(
-			'secret' => $secret_key,
-			'response' => $turnstile_response,
-			'remoteip' => isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : '',
-		),
-        'timeout' => 15,
-	);
-
-	$response = wp_remote_post( $verify_url, $args );
-
-	// Handle connection errors
-	if ( is_wp_error( $response ) ) {
-        error_log('Newsletter Turnstile Verification Error: ' . $response->get_error_message());
-		return array( 'success' => false, 'error' => 'Connection error: ' . $response->get_error_message() );
-	}
-
-	// Validate HTTP response
-	$response_code = wp_remote_retrieve_response_code( $response );
-    if ( $response_code !== 200 ) {
-        error_log('Newsletter Turnstile Verification HTTP Error: Code ' . $response_code . ' Body: ' . wp_remote_retrieve_body($response));
-        return array( 'success' => false, 'error' => 'HTTP error: ' . $response_code );
-    }
-
-	// Parse and validate JSON response
-	$response_body = wp_remote_retrieve_body( $response );
-	$result = json_decode( $response_body, true );
-
-    if ( $result === null ) {
-        error_log('Newsletter Turnstile Verification JSON Decode Error: Body - ' . $response_body);
-        return array( 'success' => false, 'error' => 'Invalid response format' );
-    }
-
-    // Log verification failures and validate response format
-    if ( isset( $result['success'] ) && ! $result['success'] && isset( $result['error-codes'] ) ) {
-         error_log('Newsletter Turnstile Verification Failed: ' . implode(', ', $result['error-codes']));
-    } elseif ( ! isset( $result['success'] ) ) {
-         error_log('Newsletter Turnstile Verification Unexpected Response: ' . $response_body);
-         return array( 'success' => false, 'error' => 'Unexpected response format' );
-    }
-
-	return $result;
-}
 
 /**
  * Check IP address rate limiting for tip submissions

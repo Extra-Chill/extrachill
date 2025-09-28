@@ -33,9 +33,12 @@ A comprehensive WordPress plugin for newsletter management and Sendy integration
 2. Go to WordPress Admin → Plugins and activate "ExtraChill Newsletter"
 
 ### Development Installation
-1. Clone the repository to `wp-content/plugins/`
-2. Run `./build.sh` to create a production-ready package
-3. Install the generated ZIP file
+1. Navigate to plugin directory and create production build:
+   ```bash
+   cd extrachill-plugins/extrachill-newsletter
+   ./build.sh
+   ```
+2. Install the generated ZIP file from `dist/` directory
 
 ## Configuration
 

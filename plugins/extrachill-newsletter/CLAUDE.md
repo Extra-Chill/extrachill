@@ -31,7 +31,8 @@ The plugin follows a modular architecture with functionality split across focuse
 - **includes/newsletter-post-type.php**: Custom post type registration, meta boxes, and admin interface
 - **includes/newsletter-sendy-integration.php**: Sendy API integration for campaigns and subscriptions
 - **includes/newsletter-ajax-handlers.php**: All AJAX endpoints for forms and admin actions
-- **includes/newsletter-shortcodes.php**: Shortcodes for newsletters and subscription forms
+- **includes/newsletter-hooks.php**: WordPress hook integrations and theme connectivity
+- **includes/newsletter-popup.php**: Newsletter popup functionality and modal system
 - **includes/newsletter-admin.php**: Admin settings page and configuration management
 - **templates/**: Template files that override WordPress theme templates
 

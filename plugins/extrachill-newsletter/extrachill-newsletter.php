@@ -30,7 +30,10 @@ require_once EXTRACHILL_NEWSLETTER_INCLUDES_DIR . 'newsletter-admin.php';
 require_once EXTRACHILL_NEWSLETTER_INCLUDES_DIR . 'newsletter-popup.php';
 
 /**
- * Enqueue Newsletter assets globally
+ * Enqueue newsletter assets with conditional loading
+ *
+ * Loads newsletter CSS conditionally based on page context and
+ * provides AJAX localization with security nonces for all forms.
  */
 function enqueue_newsletter_assets() {
 	$forms_css_file_path = EXTRACHILL_NEWSLETTER_PLUGIN_DIR . 'assets/newsletter-forms.css';
@@ -118,9 +121,6 @@ function display_newsletter_grid_section() {
 }
 add_action( 'extrachill_home_grid_bottom_right', 'display_newsletter_grid_section' );
 
-/**
- * Template loader for Newsletter post type
- */
 function newsletter_template_loader( $template ) {
 	if ( is_post_type_archive( 'newsletter' ) ) {
 		$plugin_template = locate_newsletter_template( 'archive-newsletter.php' );
@@ -178,7 +178,6 @@ function display_newsletter_footer_form() {
 		return;
 	}
 
-	// Homepage logic: avoid duplicate forms
 	if (is_front_page()) {
 		if (has_action('extrachill_home_final_right')) {
 			return;

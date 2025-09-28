@@ -118,7 +118,6 @@ function newsletter_sendy_meta_box_html($post) {
 		echo '<p><small>' . sprintf(__('Campaign ID: %s', 'extrachill-newsletter'), $campaign_id) . '</small></p>';
 	}
 
-	// Add JavaScript for AJAX handling
 	?>
 	<script type="text/javascript">
 	document.getElementById('push_newsletter_to_sendy').addEventListener('click', function() {

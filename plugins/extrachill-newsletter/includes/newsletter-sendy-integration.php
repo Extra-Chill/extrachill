@@ -9,7 +9,6 @@
  * @since 1.0.0
  */
 
-// Exit if accessed directly.
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -23,10 +22,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @since 1.0.0
  */
 function get_sendy_config() {
-	// Get settings from WordPress options
 	$settings = get_option('extrachill_newsletter_settings', array());
 
-	// Defaults for backward compatibility
 	$defaults = array(
 		'sendy_api_key' => '',
 		'sendy_url' => 'https://mail.extrachill.com/sendy',

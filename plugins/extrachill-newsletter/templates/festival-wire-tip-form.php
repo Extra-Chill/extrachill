@@ -18,8 +18,8 @@ if (!newsletter_integration_enabled('enable_festival_wire_tip')) {
 	return;
 }
 
-// Get Turnstile site key from options
-$turnstile_site_key = get_option( 'ec_turnstile_site_key' );
+// Get Turnstile site key from centralized configuration
+$turnstile_site_key = ec_get_turnstile_site_key();
 
 // Check if user is a community member via WordPress native authentication
 $is_community_member = is_user_logged_in();
