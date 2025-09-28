@@ -32,7 +32,7 @@ if ( ! function_exists( 'extrachill_handle_email_change_verification' ) ) {
                         $session_tokens->destroy_all();
                     }
                     
-                    // Invalidate cross-domain session tokens
+                    // Invalidate any legacy cross-domain session tokens if function exists
                     if ( function_exists( 'invalidate_user_sessions_on_email_change' ) ) {
                         invalidate_user_sessions_on_email_change( $user_id );
                     }

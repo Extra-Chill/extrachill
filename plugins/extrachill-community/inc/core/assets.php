@@ -16,7 +16,7 @@ function extra_chill_community_enqueue_scripts() {
     wp_enqueue_style( 'extra-chill-community-style', 
         get_stylesheet_uri(), 
         array(), 
-        filemtime(get_stylesheet_directory() . '/style.css') 
+        filemtime(EXTRACHILL_COMMUNITY_PLUGIN_DIR . '/style.css') 
     );
 }
 add_action( 'wp_enqueue_scripts', 'extra_chill_community_enqueue_scripts', 10 );
@@ -36,9 +36,9 @@ function extrachill_enqueue_notification_styles() {
     if (is_page_template('page-templates/notifications-feed.php')) {
         wp_enqueue_style(
             'extrachill-notifications', 
-            get_stylesheet_directory_uri() . '/forum-features/social/css/notifications.css', 
+            EXTRACHILL_COMMUNITY_PLUGIN_URL . '/forum-features/social/css/notifications.css', 
             array('extra-chill-community-style'), 
-            filemtime(get_stylesheet_directory() . '/forum-features/social/css/notifications.css')
+            filemtime(EXTRACHILL_COMMUNITY_PLUGIN_DIR . '/forum-features/social/css/notifications.css')
         );
     }
 }
@@ -48,9 +48,9 @@ function extrachill_enqueue_leaderboard_styles() {
     if (is_page_template('page-templates/leaderboard-template.php')) {
         wp_enqueue_style(
             'extrachill-leaderboard', 
-            get_stylesheet_directory_uri() . '/css/leaderboard.css', 
+            EXTRACHILL_COMMUNITY_PLUGIN_URL . '/css/leaderboard.css', 
             array('extra-chill-community-style'), 
-            filemtime(get_stylesheet_directory() . '/css/leaderboard.css')
+            filemtime(EXTRACHILL_COMMUNITY_PLUGIN_DIR . '/css/leaderboard.css')
         );
     }
 }
@@ -60,9 +60,9 @@ function extrachill_enqueue_settings_page_assets() {
     if (is_page_template('page-templates/settings-page.php')) {
         wp_enqueue_style(
             'settings-page-style',
-            get_stylesheet_directory_uri() . '/css/settings-page.css',
+            EXTRACHILL_COMMUNITY_PLUGIN_URL . '/css/settings-page.css',
             array('shared-tabs'), // Add shared-tabs as a dependency
-            filemtime(get_stylesheet_directory() . '/css/settings-page.css')
+            filemtime(EXTRACHILL_COMMUNITY_PLUGIN_DIR . '/css/settings-page.css')
         );
     }
 }
@@ -78,16 +78,16 @@ function extrachill_enqueue_shared_tabs_assets() {
     if (is_page_template($shared_tabs_templates)) {
         wp_enqueue_style(
             'shared-tabs',
-            get_stylesheet_directory_uri() . '/css/shared-tabs.css',
+            EXTRACHILL_COMMUNITY_PLUGIN_URL . '/css/shared-tabs.css',
             array(), 
-            filemtime(get_stylesheet_directory() . '/css/shared-tabs.css')
+            filemtime(EXTRACHILL_COMMUNITY_PLUGIN_DIR . '/css/shared-tabs.css')
         );
 
         wp_enqueue_script(
             'shared-tabs',
-            get_stylesheet_directory_uri() . '/js/shared-tabs.js',
+            EXTRACHILL_COMMUNITY_PLUGIN_URL . '/js/shared-tabs.js',
             array('jquery'), 
-            filemtime(get_stylesheet_directory() . '/js/shared-tabs.js'),
+            filemtime(EXTRACHILL_COMMUNITY_PLUGIN_DIR . '/js/shared-tabs.js'),
             true // Load in footer
         );
     }
@@ -99,41 +99,41 @@ add_action('wp_enqueue_scripts', 'extrachill_enqueue_shared_tabs_assets');
  */
 function modular_bbpress_styles() {
     // Forums Loop - Load only on forum listing/single forum
-    if ((function_exists('bbp_is_forum_archive') && bbp_is_forum_archive()) || is_front_page() || (function_exists('bbp_is_single_forum') && bbp_is_single_forum())) {
+    if (bbp_is_forum_archive() || is_front_page() || bbp_is_single_forum()) {
         wp_enqueue_style(
             'forums-loop',
-            get_stylesheet_directory_uri() . '/css/forums-loop.css',
+            EXTRACHILL_COMMUNITY_PLUGIN_URL . '/css/forums-loop.css',
             array('extra-chill-community-style'),
-            filemtime(get_stylesheet_directory() . '/css/forums-loop.css')
+            filemtime(EXTRACHILL_COMMUNITY_PLUGIN_DIR . '/css/forums-loop.css')
         );
     }
 
     // Topics Loop - Load only on topic archives/single topic/search results/relevant pages
-    if ( (function_exists('bbp_is_topic_archive') && bbp_is_topic_archive()) || (function_exists('bbp_is_single_forum') && bbp_is_single_forum()) || is_page('recent') || is_page('following') || (function_exists('bbp_is_single_user') && bbp_is_single_user()) || (function_exists('bbp_is_search_results') && bbp_is_search_results()) || is_search() ) {
+    if ( bbp_is_topic_archive() || bbp_is_single_forum() || is_page('recent') || is_page('following') || bbp_is_single_user() || bbp_is_search_results() || is_search() ) {
         wp_enqueue_style(
             'topics-loop',
-            get_stylesheet_directory_uri() . '/css/topics-loop.css',
+            EXTRACHILL_COMMUNITY_PLUGIN_URL . '/css/topics-loop.css',
             array('extra-chill-community-style'),
-            filemtime(get_stylesheet_directory() . '/css/topics-loop.css')
+            filemtime(EXTRACHILL_COMMUNITY_PLUGIN_DIR . '/css/topics-loop.css')
         );
     }
 
     // Replies Loop - Load only when replies are displayed
-    if ((function_exists('bbp_is_single_reply') && bbp_is_single_reply()) || (function_exists('bbp_is_single_topic') && bbp_is_single_topic()) || (function_exists('bbp_is_single_user') && bbp_is_single_user()) || is_page_template('page-templates/recent-feed-template.php')) {
+    if (bbp_is_single_reply() || bbp_is_single_topic() || bbp_is_single_user() || is_page_template('page-templates/recent-feed-template.php')) {
         wp_enqueue_style(
             'replies-loop',
-            get_stylesheet_directory_uri() . '/css/replies-loop.css',
+            EXTRACHILL_COMMUNITY_PLUGIN_URL . '/css/replies-loop.css',
             array('extra-chill-community-style'),
-            filemtime(get_stylesheet_directory() . '/css/replies-loop.css')
+            filemtime(EXTRACHILL_COMMUNITY_PLUGIN_DIR . '/css/replies-loop.css')
         );
     }
 
     if (is_page('register') || is_page('login') || is_page_template('page-templates/login-register-template.php')) {
         wp_enqueue_style(
             'register',
-            get_stylesheet_directory_uri() . '/css/login-register.css',
+            EXTRACHILL_COMMUNITY_PLUGIN_URL . '/css/login-register.css',
             array('extra-chill-community-style'),
-            filemtime(get_stylesheet_directory() . '/css/login-register.css')
+            filemtime(EXTRACHILL_COMMUNITY_PLUGIN_DIR . '/css/login-register.css')
         );
     }
 }
@@ -141,13 +141,12 @@ add_action('wp_enqueue_scripts', 'modular_bbpress_styles');
 
 function enqueue_user_profile_styles() {
     // User Profile styles - Load only on user profile pages
-    if ( (function_exists('bbp_is_single_user') && (bbp_is_single_user() || (function_exists('bbp_is_single_user_edit') && bbp_is_single_user_edit()) || (function_exists('bbp_is_user_home') && bbp_is_user_home())))
-       ) {
+    if ( bbp_is_single_user() || bbp_is_single_user_edit() || bbp_is_user_home() ) {
         wp_enqueue_style(
             'user-profile',
-            get_stylesheet_directory_uri() . '/css/user-profile.css',
+            EXTRACHILL_COMMUNITY_PLUGIN_URL . '/css/user-profile.css',
             array('extra-chill-community-style'),
-            filemtime(get_stylesheet_directory() . '/css/user-profile.css')
+            filemtime(EXTRACHILL_COMMUNITY_PLUGIN_DIR . '/css/user-profile.css')
         );
     }
 }
@@ -157,8 +156,8 @@ add_action('wp_enqueue_scripts', 'enqueue_user_profile_styles');
  * Load interactive JavaScript with AJAX localization
  */
 function extrachill_enqueue_scripts() {
-    $stylesheet_dir_uri = get_stylesheet_directory_uri();
-    $stylesheet_dir = get_stylesheet_directory();
+    $stylesheet_dir_uri = EXTRACHILL_COMMUNITY_PLUGIN_URL;
+    $stylesheet_dir = EXTRACHILL_COMMUNITY_PLUGIN_DIR;
 
     // Dynamic versioning based on file modification times
     $follow_script_version = filemtime( $stylesheet_dir . '/forum-features/social/js/extrachill-follow.js' );
@@ -167,7 +166,7 @@ function extrachill_enqueue_scripts() {
     $mentions_script_version = filemtime( $stylesheet_dir . '/forum-features/social/js/extrachill-mentions.js' );
 
     // Conditionally enqueue the custom avatar script with dynamic versioning
-    if (function_exists('bbp_is_single_user_edit') && bbp_is_single_user_edit()) {
+    if (bbp_is_single_user_edit()) {
         wp_enqueue_script('extrachill-custom-avatar', $stylesheet_dir_uri . '/js/custom-avatar.js', array('jquery'), $custom_avatar_script_version, true);
         wp_localize_script('extrachill-custom-avatar', 'extrachillCustomAvatar', array(
             'ajaxurl' => admin_url('admin-ajax.php'),
@@ -207,7 +206,7 @@ function extrachill_enqueue_scripts() {
     ));
 
     // Conditionally enqueue the mentions script with dynamic versioning for bbPress
-   if (function_exists('is_bbpress') && is_bbpress()) {
+   if (is_bbpress()) {
        wp_enqueue_script('extrachill-mentions', $stylesheet_dir_uri . '/forum-features/social/js/extrachill-mentions.js', array('jquery'), $mentions_script_version, true);
    }
 }
@@ -215,18 +214,18 @@ add_action('wp_enqueue_scripts', 'extrachill_enqueue_scripts', 20);
 
 function enqueue_quote_script() {
     // Check if bbPress is active and the current page is a bbPress page
-    if (function_exists('is_bbpress') && is_bbpress()) {
+    if (is_bbpress()) {
         // Define the script path
         $script_path = '/js/quote.js';
         
         // Get the full file path for the file check
-        $script_file = get_stylesheet_directory() . $script_path;
+        $script_file = EXTRACHILL_COMMUNITY_PLUGIN_DIR . $script_path;
 
         // Use filemtime() to get the file's last modified time for versioning
         $version = filemtime($script_file);
 
         // Register and enqueue the script with dynamic versioning
-        wp_enqueue_script('custom-bbpress-quote', get_stylesheet_directory_uri() . $script_path, array('jquery'), $version, true);
+        wp_enqueue_script('custom-bbpress-quote', EXTRACHILL_COMMUNITY_PLUGIN_URL . $script_path, array('jquery'), $version, true);
     }
 }
 add_action('wp_enqueue_scripts', 'enqueue_quote_script');
@@ -238,26 +237,26 @@ function enqueue_collapse_script() {
         $script_path = '/js/home-collapse.js';
         
         // Get the full file path for the filemtime() function
-        $script_full_path = get_stylesheet_directory() . $script_path;
+        $script_full_path = EXTRACHILL_COMMUNITY_PLUGIN_DIR . $script_path;
 
         // Use file's last modified time as version to ensure fresh cache on updates
         $version = filemtime($script_full_path);
 
         // Enqueue the script with dynamic versioning
-        wp_enqueue_script( 'home-collapse', get_stylesheet_directory_uri() . $script_path, array('jquery'), $version, true );
+        wp_enqueue_script( 'home-collapse', EXTRACHILL_COMMUNITY_PLUGIN_URL . $script_path, array('jquery'), $version, true );
     }
 }
 add_action( 'wp_enqueue_scripts', 'enqueue_collapse_script' );
 
 function enqueue_utilities() {
     // Get the file path
-    $script_path = get_stylesheet_directory() . '/js/utilities.js';
+    $script_path = EXTRACHILL_COMMUNITY_PLUGIN_DIR . '/js/utilities.js';
 
     // Fetch the last modified time of the file for versioning
     $version = filemtime($script_path);
 
     // Enqueue the script with dynamic versioning
-    wp_enqueue_script('extrachill-utilities', get_stylesheet_directory_uri() . '/js/utilities.js', array('jquery'), $version, true);
+    wp_enqueue_script('extrachill-utilities', EXTRACHILL_COMMUNITY_PLUGIN_URL . '/js/utilities.js', array('jquery'), $version, true);
 
     // Localize the script for AJAX functionality
     wp_localize_script('extrachill-utilities', 'extrachill_ajax', array(
@@ -269,9 +268,9 @@ add_action('wp_enqueue_scripts', 'enqueue_utilities');
 
 function extrachill_enqueue_nav_scripts() {
     $script_path = '/js/nav-menu.js';
-    $version = filemtime(get_stylesheet_directory() . $script_path);
+    $version = filemtime(EXTRACHILL_COMMUNITY_PLUGIN_DIR . $script_path);
 
-    wp_enqueue_script('extrachill-nav-menu', get_stylesheet_directory_uri() . $script_path, array(), $version, true);
+    wp_enqueue_script('extrachill-nav-menu', EXTRACHILL_COMMUNITY_PLUGIN_URL . $script_path, array(), $version, true);
 }
 add_action('wp_enqueue_scripts', 'extrachill_enqueue_nav_scripts');
 

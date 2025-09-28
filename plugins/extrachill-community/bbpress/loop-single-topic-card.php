@@ -82,7 +82,7 @@ echo '<span class="topic-views">' . (int) $views . ' Views</span>';
         if ( is_page_template('page-templates/recent-feed-template.php') ||
              is_page_template('page-templates/following-feed-template.php') ||
              is_search() || 
-             (function_exists('bbp_is_search') && bbp_is_search()) ) {
+             bbp_is_search() ) {
             $show_forum_name_on_card = true;
         }
 

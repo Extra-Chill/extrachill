@@ -10,14 +10,14 @@ defined( 'ABSPATH' ) || exit;
  * Enqueue Topic Quick Reply CSS and JS only on single topic pages.
  */
 function extrachill_enqueue_topic_quick_reply_assets() {
-    if ( function_exists('bbp_is_single_topic') && bbp_is_single_topic() ) {
-        $css_path = get_stylesheet_directory() . '/css/topic-quick-reply.css';
-        $js_path = get_stylesheet_directory() . '/js/topic-quick-reply.js';
+    if ( bbp_is_single_topic() ) {
+        $css_path = EXTRACHILL_COMMUNITY_PLUGIN_DIR . '/css/topic-quick-reply.css';
+        $js_path = EXTRACHILL_COMMUNITY_PLUGIN_DIR . '/js/topic-quick-reply.js';
         
         if ( file_exists( $css_path ) ) {
              wp_enqueue_style(
                 'extrachill-topic-quick-reply', 
-                get_stylesheet_directory_uri() . '/css/topic-quick-reply.css', 
+                EXTRACHILL_COMMUNITY_PLUGIN_URL . '/css/topic-quick-reply.css', 
                 array(),
                 filemtime( $css_path )
             );
@@ -26,7 +26,7 @@ function extrachill_enqueue_topic_quick_reply_assets() {
         if ( file_exists( $js_path ) ) {
              wp_enqueue_script(
                 'extrachill-topic-quick-reply', 
-                get_stylesheet_directory_uri() . '/js/topic-quick-reply.js', 
+                EXTRACHILL_COMMUNITY_PLUGIN_URL . '/js/topic-quick-reply.js', 
                 array('jquery', 'editor', 'quicktags'), // Keep editor dependencies
                 filemtime( $js_path ),
                 true // Load in footer
@@ -42,7 +42,7 @@ add_action( 'wp_enqueue_scripts', 'extrachill_enqueue_topic_quick_reply_assets' 
  */
 function extrachill_output_mobile_quick_reply_form() {
     // Only output on single bbPress topics where the user can reply
-    if ( function_exists('is_bbpress') && is_bbpress() && bbp_is_single_topic() ) {
+    if ( is_bbpress() && bbp_is_single_topic() ) {
         $topic_id = bbp_get_topic_id();
         $can_reply = is_user_logged_in() && 
                      current_user_can( 'publish_replies', $topic_id ) && 

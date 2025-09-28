@@ -1,9 +1,9 @@
 ## Current Development Priorities
 
 ### Architecture & Code Organization
-- **PSR-4 Implementation**: Add PSR-4 autoloading configuration to composer.json and implement class-based architecture for forum features
-- **Code Refactoring**: Continue migration from procedural to object-oriented patterns in forum-features directory
-- **Asset Optimization**: Further refinement of conditional CSS/JS loading based on context
+- **PSR-4 Implementation**: Add PSR-4 autoloading configuration to composer.json (currently minimal structure only) and implement class-based architecture for forum features
+- **Code Refactoring**: Continue migration from current procedural patterns to object-oriented structure in forum-features directory
+- **Asset Optimization**: Further refinement of conditional CSS/JS loading based on context (current: 17 JavaScript files)
 
 ### User Experience Enhancements
 - **Auto oEmbed**: Convert bare YouTube/Spotify URLs to embeds via content filters

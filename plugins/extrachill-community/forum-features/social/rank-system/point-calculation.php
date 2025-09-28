@@ -1,6 +1,21 @@
 <?php
 
-// Function to calculate total points for a user, including main site comment points + articles
+/**
+ * Calculate total points for user across multiple point sources with caching
+ *
+ * Calculates comprehensive user ranking points from bbPress activity (topics/replies),
+ * upvotes received, main site posts, and follower count. Implements 1-hour caching
+ * to optimize performance.
+ *
+ * Point calculation breakdown:
+ * - bbPress topics/replies: 2 points each
+ * - Upvotes received: 0.5 points each
+ * - Main site posts: 10 points each
+ * - Followers: Currently 0 points (reserved for future)
+ *
+ * @param int $user_id WordPress user ID
+ * @return float Total calculated points for the user
+ */
 function extrachill_get_user_total_points($user_id) {
     // Check if total points are cached
     $cached_total_points = get_transient('user_points_' . $user_id);
@@ -55,7 +70,14 @@ function extrachill_get_user_total_points($user_id) {
 }
 
 
-// Queue user points recalculation on new replies and topics
+/**
+ * Queue user for points recalculation after bbPress activity
+ *
+ * Adds user to recalculation queue when they create topics or replies.
+ * Queue is processed hourly via WP Cron for performance optimization.
+ *
+ * @param int $post_id bbPress topic or reply post ID
+ */
 function extrachill_queue_points_recalculation($post_id) {
     $user_id = bbp_is_reply($post_id) ? bbp_get_reply_author_id($post_id) : bbp_get_topic_author_id($post_id);
     // Add the user_id to a queue for later processing
@@ -71,7 +93,12 @@ if (!wp_next_scheduled('extrachill_daily_points_recalculation')) {
 
 add_action('extrachill_daily_points_recalculation', 'extrachill_process_points_recalculation_queue');
 
-// Process the queue, ideally triggered by a WP Cron event
+/**
+ * Process queued user point recalculations via WP Cron
+ *
+ * Processes all users in the recalculation queue and clears queue after completion.
+ * Triggered hourly by WP Cron event 'extrachill_daily_points_recalculation'.
+ */
 function extrachill_process_points_recalculation_queue() {
     $queue = get_option('extrachill_points_recalculation_queue', array());
 
@@ -103,7 +130,15 @@ add_action('custom_upvote_action', function($post_id, $post_author_id, $upvoted)
 
 
 
-// Display user points
+/**
+ * Display user points with caching fallback
+ *
+ * Returns cached points if available, otherwise retrieves from user meta.
+ * If user meta is empty, triggers full point recalculation.
+ *
+ * @param int $user_id WordPress user ID
+ * @return float User's total points
+ */
 function extrachill_display_user_points($user_id) {
     // Check if user points are already cached in a transient
     $cached_points = get_transient('user_points_' . $user_id);
@@ -131,7 +166,7 @@ function extrachill_admin_enqueue_scripts($hook) {
     if ('user-edit.php' !== $hook && 'profile.php' !== $hook) {
         return;
     }
-    wp_enqueue_script('extrachill_admin_js', get_stylesheet_directory_uri() . '/forum-features/social/rank-system/js/extrachill_admin.js', array('jquery'), null, true);
+    wp_enqueue_script('extrachill_admin_js', EXTRACHILL_COMMUNITY_PLUGIN_URL . 'forum-features/social/rank-system/js/extrachill_admin.js', array('jquery'), null, true);
     wp_localize_script('extrachill_admin_js', 'extraChillAdmin', array(
         'ajaxUrl' => admin_url('admin-ajax.php'),
         'nonce' => wp_create_nonce('extrachill_recalculate_points_nonce'),
@@ -178,6 +213,15 @@ function extrachill_add_recalculate_points_button($user) {
 add_action('show_user_profile', 'extrachill_add_recalculate_points_button');
 add_action('edit_user_profile', 'extrachill_add_recalculate_points_button');
 
+/**
+ * Increment or decrement user points by specified amount
+ *
+ * Updates user meta for extrachill_total_points by adding/subtracting points.
+ * Used for real-time upvote adjustments.
+ *
+ * @param int   $user_id WordPress user ID
+ * @param float $points  Points to add (positive) or subtract (negative)
+ */
 function extrachill_increment_user_points($user_id, $points) {
     // Retrieve current points and ensure it's treated as a float
     $current_points = floatval(get_user_meta($user_id, 'extrachill_total_points', true) ?? 0);

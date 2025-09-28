@@ -128,11 +128,6 @@ function save_bbp_user_professional_fields($user_id) {
 }
 
 function display_main_site_post_count_on_profile() {
-    // Only proceed if bbPress functions are available
-    if (!function_exists('bbp_get_displayed_user_id')) {
-        return;
-    }
-
     $user_id = bbp_get_displayed_user_id();
 
     // Get main site post count
@@ -150,13 +145,8 @@ function display_main_site_post_count_on_profile() {
     }
 }
 
-// Function to display music fan details - only when bbPress is available
+// Function to display music fan details
 function display_music_fan_details() {
-    // Only proceed if bbPress functions are available
-    if (!function_exists('bbp_get_displayed_user_id')) {
-        return;
-    }
-
     // Music Fan Section variables
     $favorite_artists = get_user_meta(bbp_get_displayed_user_id(), 'favorite_artists', true);
     $top_concerts = get_user_meta(bbp_get_displayed_user_id(), 'top_concerts', true);
@@ -208,18 +198,11 @@ function override_bbp_user_role_after_bbp_load() {
 }
 
 function override_bbp_user_forum_role( $role, $user_id ) {
-    // Ensure bbPress functions are available
-    if ( function_exists( 'bbp_is_user_keymaster' ) && function_exists( 'bbp_get_user_display_role' ) ) {
+    // Get the custom title if it exists
+    $custom_title = get_user_meta( $user_id, 'ec_custom_title', true );
 
-        // Get the custom title if it exists
-        $custom_title = get_user_meta( $user_id, 'ec_custom_title', true );
-
-        // Return custom title if set, otherwise return "Extra Chillian" for regular users
-        return ! empty( $custom_title ) ? $custom_title : 'Extra Chillian';
-    }
-
-    // Fallback if bbPress is not loaded properly
-    return $role;
+    // Return custom title if set, otherwise return "Extra Chillian" for regular users
+    return ! empty( $custom_title ) ? $custom_title : 'Extra Chillian';
 }
 
 function save_ec_custom_title( $user_id ) {

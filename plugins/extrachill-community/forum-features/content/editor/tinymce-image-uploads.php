@@ -30,11 +30,11 @@ add_action(
 
 function enqueue_custom_tinymce_plugin_scripts() {
     // Check if we're on a bbPress page and specifically on a topic or reply form.
-    if (function_exists('is_bbpress') && (is_bbpress() && (bbp_is_single_topic() || bbp_is_single_reply() || bbp_is_topic_edit() || bbp_is_reply_edit() || bbp_is_single_forum()))) {
+    if (is_bbpress() && (bbp_is_single_topic() || bbp_is_single_reply() || bbp_is_topic_edit() || bbp_is_reply_edit() || bbp_is_single_forum())) {
         // Dynamically version the script based on the file modification time for cache busting.
-        $script_version = filemtime(get_stylesheet_directory() . '/js/tinymce-image-upload.js');
+        $script_version = filemtime(EXTRACHILL_COMMUNITY_PLUGIN_DIR . '/js/tinymce-image-upload.js');
 
-        wp_enqueue_script('custom-tinymce-plugin', get_stylesheet_directory_uri() . '/js/tinymce-image-upload.js', array('jquery'), $script_version, true);
+        wp_enqueue_script('custom-tinymce-plugin', EXTRACHILL_COMMUNITY_PLUGIN_URL . '/js/tinymce-image-upload.js', array('jquery'), $script_version, true);
 
         wp_localize_script('custom-tinymce-plugin', 'customTinymcePlugin', array(
             'ajaxUrl' => admin_url('admin-ajax.php'),
@@ -47,7 +47,7 @@ function enqueue_custom_tinymce_plugin_scripts() {
 add_action('wp_enqueue_scripts', 'enqueue_custom_tinymce_plugin_scripts');
 
 function register_custom_tinymce_plugin($plugin_array) {
-    $plugin_array['local_upload_plugin'] = get_stylesheet_directory_uri() . '/js/tinymce-image-upload.js'; // Path to your JS file
+    $plugin_array['local_upload_plugin'] = EXTRACHILL_COMMUNITY_PLUGIN_URL . '/js/tinymce-image-upload.js'; // Path to your JS file
     return $plugin_array;
 }
 add_filter('mce_external_plugins', 'register_custom_tinymce_plugin');

@@ -1,7 +1,7 @@
 <?php
 // Enable visual editor specifically for bbPress
 function bbp_enable_visual_editor($args = array()) {
-    $args['tinymce'] = array('content_css' => get_stylesheet_directory_uri() . '/css/tinymce-editor.css');
+    $args['tinymce'] = array('content_css' => EXTRACHILL_COMMUNITY_PLUGIN_URL . '/css/tinymce-editor.css');
     $args['quicktags'] = false;
     $args['teeny'] = false;
     return $args;
@@ -10,15 +10,15 @@ add_filter('bbp_after_get_the_content_parse_args', 'bbp_enable_visual_editor', 9
 
 // Add custom stylesheet to TinyMCE
 function bbp_add_tinymce_stylesheet($mce_css) {
-    $version = filemtime(get_stylesheet_directory() . '/css/tinymce-editor.css');
-    $mce_css .= ', ' . get_stylesheet_directory_uri() . '/css/tinymce-editor.css?ver=' . $version;
+    $version = filemtime(EXTRACHILL_COMMUNITY_PLUGIN_DIR . '/css/tinymce-editor.css');
+    $mce_css .= ', ' . EXTRACHILL_COMMUNITY_PLUGIN_URL . '/css/tinymce-editor.css?ver=' . $version;
     return $mce_css;
 }
 add_filter('mce_css', 'bbp_add_tinymce_stylesheet');
 
 // Add 'paste' plugin to TinyMCE (bbPress context only)
 function bbp_tinymce_paste_plugin($plugins = array()) {
-    if (function_exists('is_bbpress') && is_bbpress()) {
+    if (is_bbpress()) {
         $plugins[] = 'paste';
     }
     return $plugins;
@@ -30,7 +30,7 @@ function bbp_customize_tinymce_buttons($buttons) {
     // This filter runs AFTER other filters like the one adding the custom image button.
     // We want to define the *exact* set of buttons for bbPress editors here.
     // Apply to bbPress pages OR single artist profile pages
-    if ( (function_exists('is_bbpress') && is_bbpress()) || is_singular('artist_profile') ) {
+    if ( is_bbpress() || is_singular('artist_profile') ) {
         // Define the desired button array for bbPress editors.
         // Ensure 'image' (our custom one) is included if desired.
         $desired_buttons = array(
@@ -56,8 +56,8 @@ add_filter('mce_buttons', 'bbp_customize_tinymce_buttons', 50); // Add priority 
 
 // Load custom autosave plugin for bbPress only
 function bbp_load_custom_autosave_plugin($plugins) {
-    if (function_exists('is_bbpress') && is_bbpress()) {
-        $autosave_plugin_url = get_stylesheet_directory_uri() . '/bbpress/autosave/plugin.min.js';
+    if (is_bbpress()) {
+        $autosave_plugin_url = EXTRACHILL_COMMUNITY_PLUGIN_URL . '/bbpress/autosave/plugin.min.js';
         $plugins['autosave'] = $autosave_plugin_url;
     }
     return $plugins;
@@ -66,7 +66,7 @@ add_filter('mce_external_plugins', 'bbp_load_custom_autosave_plugin');
 
 // Configure autosave and paste handling specifically for bbPress editors
 function bbp_autosave_tinymce_settings($init) {
-    if (function_exists('is_bbpress') && is_bbpress()) {
+    if (is_bbpress()) {
         $init['autosave_ask_before_unload'] = false;
         // Set interval to a very large value to effectively disable the timer-based save.
         // We will trigger saves manually on typing pause via the setup callback.
@@ -94,7 +94,7 @@ add_filter('tiny_mce_before_init', 'bbp_autosave_tinymce_settings');
 // Define the JavaScript setup function for TinyMCE (Simplified Logging)
 function extrachill_output_tinymce_setup_script() {
     // Only output this script on bbPress pages
-    if (!function_exists('is_bbpress') || !is_bbpress()) {
+    if (!is_bbpress()) {
         return;
     }
     ?>

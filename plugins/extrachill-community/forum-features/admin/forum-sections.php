@@ -64,7 +64,7 @@ function save_forum_homepage_display($post_id) {
     }
     
     // Only process for forum post type
-    if (!function_exists('bbp_get_forum_post_type') || get_post_type($post_id) !== bbp_get_forum_post_type()) {
+    if (get_post_type($post_id) !== bbp_get_forum_post_type()) {
         return;
     }
     
@@ -76,71 +76,3 @@ function save_forum_homepage_display($post_id) {
 }
 add_action('save_post', 'save_forum_homepage_display');
 
-
-// One-time migration function to convert old section data
-function migrate_forum_section_to_homepage_display() {
-    // Check if migration has already been run
-    if (get_option('forum_section_migration_complete')) {
-        return;
-    }
-    
-    // Exit early if bbPress is not active
-    if (!function_exists('bbp_get_forum_post_type')) {
-        return;
-    }
-    
-    $forums = get_posts([
-        'post_type' => bbp_get_forum_post_type(),
-        'numberposts' => -1,
-        'meta_query' => [
-            [
-                'key' => '_bbp_forum_section',
-                'compare' => 'EXISTS'
-            ]
-        ]
-    ]);
-    
-    $migrated_count = 0;
-    
-    foreach ($forums as $forum) {
-        $section = get_post_meta($forum->ID, '_bbp_forum_section', true);
-        
-        // Convert 'top' and 'middle' sections to show on homepage
-        if (in_array($section, ['top', 'middle'])) {
-            update_post_meta($forum->ID, '_show_on_homepage', '1');
-            $migrated_count++;
-        }
-        
-        // Remove the old meta field
-        delete_post_meta($forum->ID, '_bbp_forum_section');
-    }
-    
-    // Mark migration as complete
-    update_option('forum_section_migration_complete', true);
-    
-    // Add admin notice
-    if ($migrated_count > 0) {
-        add_option('forum_migration_notice', sprintf(
-            /* translators: %d: number of forums migrated */
-            esc_html__('Forum migration complete: %d forums set to display on homepage.', 'extra-chill-community'),
-            $migrated_count
-        ));
-    }
-}
-
-// Run migration on admin init
-add_action('admin_init', 'migrate_forum_section_to_homepage_display');
-
-// Display migration notice
-function display_forum_migration_notice() {
-    $notice = get_option('forum_migration_notice');
-    if ($notice) {
-        ?>
-        <div class="notice notice-success is-dismissible">
-            <p><?php echo esc_html($notice); ?></p>
-        </div>
-        <?php
-        delete_option('forum_migration_notice');
-    }
-}
-add_action('admin_notices', 'display_forum_migration_notice');

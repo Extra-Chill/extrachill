@@ -19,7 +19,7 @@ A WordPress plugin for the Extra Chill community platform providing forum enhanc
 # Navigate to plugin directory
 cd wp-content/plugins/extrachill-community
 
-# Install PHP dependencies
+# Install PHP dependencies (minimal composer.json)
 composer install
 
 # Activate plugin in WordPress admin
@@ -31,14 +31,14 @@ composer install
 ```
 extrachill-community/
 ├── extrachill-community.php   # Main plugin file
-├── includes/                  # Core plugin functionality
+├── inc/                       # Core plugin functionality
 ├── page-templates/            # Custom page templates  
 ├── bbpress/                   # bbPress template overrides
 ├── extrachill-integration/    # Cross-domain authentication
 ├── forum-features/            # Community forum enhancements
 ├── login/                     # Custom authentication system
 ├── css/                       # Modular stylesheets
-├── js/                        # JavaScript components (21 files total)
+├── js/                        # JavaScript components (17 files total)
 ├── fonts/                     # Custom font files
 └── vendor/                    # Composer dependencies
 ```
@@ -149,18 +149,19 @@ function modular_bbpress_styles() {
 }
 ```
 
-**JavaScript Architecture** (21 specialized files total):
+**JavaScript Architecture** (17 specialized files total):
 ```php
-// Core utilities (js/ directory - 13 files)
+// Core utilities (js/ directory - 10 files)
 wp_enqueue_script('extrachill-utilities', plugin_dir_url(__FILE__) . 'js/utilities.js', ['jquery']);
-// Additional files: custom-avatar.js, manage-user-profile-links.js, quote.js, seamless-comments.js,
-// seamless-login.js, shared-tabs.js, submit-community-comments.js, tinymce-image-upload.js,
-// topic-quick-reply.js, sorting.js, home-collapse.js, nav-menu.js, extrachill-mentions.js
+// Additional files: custom-avatar.js, manage-user-profile-links.js, quote.js, shared-tabs.js,
+// tinymce-image-upload.js, topic-quick-reply.js, sorting.js, home-collapse.js, nav-menu.js
 
-// Forum features (forum-features/ directory - 4 files)
+// Forum features - Social (forum-features/social/js/ - 3 files)
 wp_enqueue_script('extrachill-follow', plugin_dir_url(__FILE__) . 'forum-features/social/js/extrachill-follow.js', ['jquery']);
 wp_enqueue_script('upvote', plugin_dir_url(__FILE__) . 'forum-features/social/js/upvote.js', ['jquery']);
 wp_enqueue_script('extrachill-mentions', plugin_dir_url(__FILE__) . 'forum-features/social/js/extrachill-mentions.js', ['jquery']);
+
+// Forum features - Rank System (forum-features/social/rank-system/js/ - 1 file)
 wp_enqueue_script('extrachill-admin', plugin_dir_url(__FILE__) . 'forum-features/social/rank-system/js/extrachill_admin.js', ['jquery']);
 
 // Login system (login/ directory - 2 files)
@@ -170,7 +171,7 @@ wp_enqueue_script('join-flow-ui', plugin_dir_url(__FILE__) . 'login/js/join-flow
 // bbPress extensions (bbpress/autosave/ - 1 file)
 // plugin.min.js - TinyMCE autosave functionality
 
-// Note: extrachill-mentions.js exists in both js/ and forum-features/social/js/ directories
+// Note: extrachill-mentions.js exists only in forum-features/social/js/ directory
 ```
 
 ### Database Schema
@@ -279,10 +280,8 @@ function extrachill_community_init() {
     // Integrates with extrachill theme
     // Provides forum and community functionality
 
-    // bbPress enhancements
-    if (class_exists('bbPress')) {
-        // Initialize forum features
-    }
+    // bbPress enhancements (bbPress is required at activation)
+    // Initialize forum features
 }
 add_action('init', 'extrachill_community_init');
 ```
@@ -341,7 +340,7 @@ wp_ajax_save_user_profile_links        // Dynamic social links
 # 1. Forum Features: Test all forum enhancement features across 4 categories
 # 2. Cross-Domain Authentication: Session tokens, auto-login, cookie validation
 # 3. bbPress Integration: Custom templates, stylesheet conflicts, functionality
-# 4. JavaScript Components: All 21 JS files loading and functioning correctly
+# 4. JavaScript Components: All 17 JS files loading and functioning correctly
 # 5. User Management: Profiles, avatars, settings, verification, notifications
 # 6. Authentication System: Login/register, email verification, session handling
 # 7. Email Systems: Registration emails, email change verification flow

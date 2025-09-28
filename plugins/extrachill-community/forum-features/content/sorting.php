@@ -10,7 +10,7 @@
 
 // Enqueue sorting script
 function enqueue_sorting_script() {
-    wp_enqueue_script('sorting', get_stylesheet_directory_uri() . '/js/sorting.js', ['jquery'], null, true);
+    wp_enqueue_script('sorting', EXTRACHILL_COMMUNITY_PLUGIN_URL . 'js/sorting.js', ['jquery'], null, true);
 
     // Localize script to pass AJAX URL and nonce
     wp_localize_script('sorting', 'extraChillAjax', [

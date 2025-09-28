@@ -62,7 +62,7 @@ echo '</div>'; // End of chill-home-header
         
         // Display comments for the user ID obtained from the URL
         if ($community_user_id) {
-            echo display_main_site_comments_for_user($community_user_id);
+            echo function_exists('display_main_site_comments_for_user') ? display_main_site_comments_for_user($community_user_id) : '<div class="bbpress-comments-error">Multisite plugin not activated.</div>';
         } else {
             echo 'User ID not provided.';
         }

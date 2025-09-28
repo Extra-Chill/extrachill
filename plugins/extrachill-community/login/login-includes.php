@@ -20,11 +20,11 @@ function extrachill_enqueue_login_register_assets() {
         }
 
         // Enqueue custom login/register tabs script
-        $login_register_tabs_script_path = get_stylesheet_directory() . '/login/js/login-register-tabs.js';
+        $login_register_tabs_script_path = EXTRACHILL_COMMUNITY_PLUGIN_DIR . '/login/js/login-register-tabs.js';
         if ( file_exists( $login_register_tabs_script_path ) ) {
             wp_enqueue_script(
                 'login-register-tabs',
-                get_stylesheet_directory_uri() . '/login/js/login-register-tabs.js',
+                EXTRACHILL_COMMUNITY_PLUGIN_URL . '/login/js/login-register-tabs.js',
                 array('shared-tabs', 'jquery', 'cloudflare-turnstile'), // Correct dependencies: shared-tabs, jquery, and cloudflare-turnstile
                 filemtime( $login_register_tabs_script_path ),
                 true
@@ -32,17 +32,17 @@ function extrachill_enqueue_login_register_assets() {
         }
 
         // Enqueue login/register specific styles
-        wp_enqueue_style('login-register-styles', get_stylesheet_directory_uri() . '/css/login-register.css', array(), filemtime(get_stylesheet_directory() . '/css/login-register.css'));
+        wp_enqueue_style('login-register-styles', EXTRACHILL_COMMUNITY_PLUGIN_URL . '/css/login-register.css', array(), filemtime(EXTRACHILL_COMMUNITY_PLUGIN_DIR . '/css/login-register.css'));
 
         // Remove commented-out shared-tabs.css enqueue as styles are included in login-register.css
-        // wp_enqueue_style('shared-tabs-styles', get_stylesheet_directory_uri() . '/css/components/shared-tabs.css', array(), filemtime(get_stylesheet_directory() . '/css/components/shared-tabs.css'));
+        // wp_enqueue_style('shared-tabs-styles', EXTRACHILL_COMMUNITY_PLUGIN_URL . '/css/components/shared-tabs.css', array(), filemtime(EXTRACHILL_COMMUNITY_PLUGIN_DIR . '/css/components/shared-tabs.css'));
 
         // Enqueue script for the join flow UI logic
-        $join_flow_ui_script_path = get_stylesheet_directory() . '/login/js/join-flow-ui.js';
+        $join_flow_ui_script_path = EXTRACHILL_COMMUNITY_PLUGIN_DIR . '/login/js/join-flow-ui.js';
         if ( file_exists( $join_flow_ui_script_path ) ) {
             wp_enqueue_script(
                 'join-flow-ui',
-                get_stylesheet_directory_uri() . '/login/js/join-flow-ui.js',
+                EXTRACHILL_COMMUNITY_PLUGIN_URL . '/login/js/join-flow-ui.js',
                 array('login-register-tabs'), // Depends on the login-register-tabs script
                 filemtime( $join_flow_ui_script_path ),
                 true

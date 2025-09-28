@@ -44,7 +44,7 @@ get_header();
                         <div id="tab-login" class="shared-tab-pane active">
                             <?php
                                 // Include the login form file
-                                require_once get_stylesheet_directory() . '/login/login.php';
+                                require_once EXTRACHILL_COMMUNITY_PLUGIN_DIR . '/login/login.php';
                                 // Call the function that displays the login form if it's not automatically displayed by the include
                                 if (function_exists('extrachill_login_form')) {
                                      echo extrachill_login_form();
@@ -62,7 +62,7 @@ get_header();
                          <div id="tab-register" class="shared-tab-pane">
                               <?php
                                 // Include the registration form file
-                                 require_once get_stylesheet_directory() . '/login/register.php';
+                                 require_once EXTRACHILL_COMMUNITY_PLUGIN_DIR . '/login/register.php';
                                  // Call the function that displays the registration form if it's not automatically displayed by the include
                                  if (function_exists('extrachill_registration_form_shortcode')) {
                                       echo extrachill_registration_form_shortcode();

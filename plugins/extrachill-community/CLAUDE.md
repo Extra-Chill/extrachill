@@ -21,11 +21,6 @@ This is a **WordPress plugin** called "Extra Chill Community" for the **Extra Ch
 
 **PSR-4 Implementation**: No PSR-4 autoloading configured in composer.json. The plugin currently uses procedural patterns throughout forum features.
 
-## FUTURE PLANS
-
-**PSR-4 Architecture**: Implement PSR-4 autoloading configuration in composer.json and create `src/` directory structure with classes to replace procedural patterns in forum features.
-
-**Performance Optimization**: Continue modular CSS/JS loading refinements and font system improvements.
 
 **Notification System Enhancement**: Expand real-time notification capabilities and improve caching strategies.
 
@@ -37,7 +32,7 @@ This is a **WordPress plugin** called "Extra Chill Community" for the **Extra Ch
 ## Core Features
 
 1. **Forum Features** - Comprehensive bbPress extensions with organized feature architecture
-2. **Cross-Domain Authentication** - WordPress multisite native authentication system (migrating from legacy session tokens)  
+2. **Cross-Domain Authentication** - WordPress multisite native authentication system for seamless cross-domain user sessions  
 3. **Social Features** - User interactions, following system, upvoting, notifications, and rank system
 4. **User Management** - Custom profiles, avatars, settings, email verification, and notification system
 5. **Community Templates** - Custom bbPress templates and specialized page templates
@@ -46,10 +41,10 @@ This is a **WordPress plugin** called "Extra Chill Community" for the **Extra Ch
 
 ### Dependencies Installation
 ```bash
-# Navigate to theme directory
-cd /Users/chubes/Local\ Sites/community-stage/app/public/wp-content/themes/extrachill-community
+# Navigate to plugin directory
+cd /Users/chubes/Developer/Extra\ Chill\ Platform/extrachill-plugins/extrachill-community
 
-# Install PHP dependencies
+# Install PHP dependencies (minimal - only composer structure exists)
 composer install
 
 # Note: No npm build system - uses direct file inclusion
@@ -81,13 +76,11 @@ composer install
 
 ## Critical File Locations
 
-### Core Theme Files
-- `functions.php` - Theme setup, WordPress features, asset loading
-- `index.php` - Required WordPress template file (fallback)
-- `style.css` - Main theme stylesheet with header and font declarations
-- `header.php` - Theme header with notification bell and user avatar system
-- `footer.php` - Theme footer with widget areas and navigation
-- `sidebar.php` - Custom sidebar implementation
+### Core Plugin Files
+- `extrachill-community.php` - Main plugin file with plugin header and initialization
+- `inc/core/assets.php` - Asset management and enqueuing system
+- `css/` - Plugin stylesheet directory
+- `js/` - Core JavaScript files directory
 
 ### Forum Features System
 - `forum-features/forum-features.php` - Master loader for all forum functionality
@@ -121,13 +114,14 @@ composer install
 - **Master Loader**: `forum-features/forum-features.php` loads all functionality with comprehensive documentation
 - **Asset Organization**: Specialized JavaScript files and CSS organized within feature subdirectories
 
-### JavaScript Architecture (20 total files)
+### JavaScript Architecture (17 total files)
 - **Core Utilities**: `js/utilities.js` - Shared functionality across components
-- **Main JS Directory** (`js/`): 12 files - Core functionality including custom-avatar.js, manage-user-profile-links.js, quote.js, seamless-comments.js, seamless-login.js, shared-tabs.js, submit-community-comments.js, tinymce-image-upload.js, topic-quick-reply.js, sorting.js, home-collapse.js, nav-menu.js
-- **Social Features** (`forum-features/social/js/`): 4 files - extrachill-follow.js, upvote.js, extrachill-mentions.js, extrachill_admin.js (rank system)
+- **Main JS Directory** (`js/`): 10 files - Core functionality including custom-avatar.js, manage-user-profile-links.js, quote.js, shared-tabs.js, tinymce-image-upload.js, topic-quick-reply.js, sorting.js, home-collapse.js, nav-menu.js
+- **Social Features** (`forum-features/social/js/`): 3 files - extrachill-follow.js, upvote.js, extrachill-mentions.js
+- **Rank System** (`forum-features/social/rank-system/js/`): 1 file - extrachill_admin.js
 - **Login System** (`login/js/`): 2 files - login-register-tabs.js, join-flow-ui.js
 - **bbPress Extensions** (`bbpress/autosave/`): 1 file - plugin.min.js
-- **Note**: User mentions functionality consolidated to single file in `forum-features/social/js/extrachill-mentions.js`
+- **Note**: User mentions functionality exists only in `forum-features/social/js/extrachill-mentions.js`
 
 ### Asset Enqueuing System
 - **Main Stylesheet**: `extra-chill-community-style` - Primary theme styles with root CSS import system
@@ -135,7 +129,7 @@ composer install
 - **Modular CSS**: Context-specific loading via `modular_bbpress_styles()` function
 - **Font System**: Custom WilcoLoftSans and Lobster font-face declarations with inheritance optimization
 - **Content Width**: Responsive overrides with flex-wrap patterns for mobile optimization
-- **JavaScript Assets**: 21 specialized JS files including utilities, social features, forum enhancements, and media upload
+- **JavaScript Assets**: 17 specialized JS files including utilities, social features, forum enhancements, and media upload
 - **External Dependencies**: FontAwesome 6.5.1 via CDN
 - **Dynamic Versioning**: All assets use `filemtime()` for cache busting
 - **Conditional Loading**: Context-aware asset loading for optimal performance
@@ -171,7 +165,7 @@ composer install
 - **Cross-Domain Functionality** - Multisite authentication and data sharing capabilities
 
 ### JavaScript Architecture Principles
-- **Modular Design** - 21 specialized JS files for specific functionality domains
+- **Modular Design** - 17 specialized JS files for specific functionality domains
 - **jQuery Dependencies** - Proper dependency management across all custom scripts  
 - **Context-Aware Loading** - Conditional script enqueuing based on page template/context
 - **Cross-Domain Integration** - Seamless login and comment systems across domains
@@ -182,12 +176,12 @@ composer install
 
 ### PHP
 - **WordPress** 5.0+ (with bbPress required)
-- **Composer Dependencies**: QR code generation (`endroid/qr-code`) only
+- **Composer Dependencies**: None (minimal composer.json structure only)
 
 ### JavaScript
 - **Direct File Inclusion** - No build system, direct file loading
 - **jQuery Dependencies** - All custom scripts depend on jQuery
-- **21 Specialized Files** - Modular architecture with specific functionality domains
+- **17 Specialized Files** - Modular architecture with specific functionality domains
 - **FontAwesome** 6.5.1 via CDN
 - **Dynamic Versioning** - `filemtime()` cache busting
 

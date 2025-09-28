@@ -106,7 +106,7 @@ function extrachill_registration_form_shortcode() {
             <input type="submit" name="extrachill_register" value="Join Now">
         </div>
 
-        <div class="cf-turnstile" data-sitekey="0x4AAAAAAAPvQsUv5Z6QBB5n" data-callback="community_register"></div>
+        <?php echo ec_render_turnstile_widget(array('data-callback' => 'community_register')); ?>
 
         <?php wp_nonce_field('extrachill_register_nonce', 'extrachill_register_nonce_field'); ?>
         <?php if ( isset($_GET['from_join']) && $_GET['from_join'] === 'true' ) : ?>
@@ -142,7 +142,7 @@ function extrachill_handle_registration() {
         // Captcha verification
         $turnstile_response = $_POST['cf-turnstile-response'];
         
-        if (!extrachill_verify_turnstile($turnstile_response)) {
+        if (!ec_verify_turnstile_response($turnstile_response)) {
             $extrachill_registration_errors[] = 'Captcha verification failed. Please try again.';
             return; // Early return to prevent further processing
         }
@@ -342,32 +342,3 @@ function extrachill_get_registration_errors() {
     return $errors;
 }
 
-// Function to verify Turnstile response
-function extrachill_verify_turnstile($response) {
-    if ( defined('WP_ENV') && WP_ENV === 'development' ) {
-        return true;
-    }
-    
-    $secret_key = '0x4AAAAAAAPvQp7DbBfqJD7LW-gbrAkiAb0'; // Ensure this is the correct key
-    $verify_url = 'https://challenges.cloudflare.com/turnstile/v0/siteverify';
-
-    $verify_response = wp_remote_post($verify_url, [
-        'body' => [
-            'secret' => $secret_key,
-            'response' => $response,
-        ],
-    ]);
-
-    if (is_wp_error($verify_response)) {
-        return false;
-    }
-
-    $body = wp_remote_retrieve_body($verify_response);
-    $result = json_decode($body);
-
-    if (!$result || empty($result->success)) {
-        return false;
-    }
-
-    return true;
-}

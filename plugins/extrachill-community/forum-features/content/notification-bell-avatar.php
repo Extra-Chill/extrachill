@@ -95,7 +95,7 @@ $unread_count = count(array_filter($notifications, function ($notification) {
 // Hook notification bell and avatar into theme header
 add_action('extrachill_header_top_right', function() {
     if ( is_user_logged_in() ) {
-        include get_stylesheet_directory() . '/forum-features/content/notification-bell-avatar.php';
+        include EXTRACHILL_COMMUNITY_PLUGIN_DIR . 'forum-features/content/notification-bell-avatar.php';
     } else {
         echo '<div class="auth-buttons">';
         echo '<a href="/login" class="login-button">Login</a>';

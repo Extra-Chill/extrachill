@@ -80,11 +80,11 @@ function ec_user_exempt_from_spam_detection($user_id = 0) {
     }
     
     // Exempt users with bbPress moderation capabilities
-    if (function_exists('bbp_is_user_keymaster') && bbp_is_user_keymaster($user_id)) {
+    if (bbp_is_user_keymaster($user_id)) {
         return true;
     }
     
-    if (function_exists('bbp_is_user_moderator') && bbp_is_user_moderator($user_id)) {
+    if (bbp_is_user_moderator($user_id)) {
         return true;
     }
     

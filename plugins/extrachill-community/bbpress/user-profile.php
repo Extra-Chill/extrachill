@@ -65,7 +65,7 @@ $is_professional   = get_user_meta( $displayed_user_id, 'user_is_professional', 
     <!-- Display Main Site Comments Count -->
     <?php
     $user_id = bbp_get_displayed_user_id();
-    $comment_count = get_user_main_site_comment_count($user_id);
+    $comment_count = function_exists('get_user_main_site_comment_count') ? get_user_main_site_comment_count($user_id) : 0;
 
     if ($comment_count > 0) {
         $comments_url = "https://community.extrachill.com/blog-comments?user_id={$user_id}";
