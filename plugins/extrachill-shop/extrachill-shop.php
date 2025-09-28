@@ -80,6 +80,11 @@ class ExtraChillShop {
      * Load plugin includes
      */
     private function load_includes() {
+        // Core functionality
+        require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/database.php';
+        require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/ad-free-license.php';
+        require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/breadcrumb-integration.php';
+
         // Template functionality
         require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'templates/cart-icon.php';
         require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'templates/product-category-header.php';
@@ -109,6 +114,9 @@ class ExtraChillShop {
                 [ 'back_link' => true ]
             );
         }
+
+        // Create ad-free license table
+        extrachill_shop_create_ad_free_table();
 
         // Set plugin activation flag
         update_option( 'extrachill_shop_activated', true );

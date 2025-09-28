@@ -13,7 +13,7 @@ The **Extra Chill Shop** plugin provides WooCommerce integration and e-commerce 
 - **Integration**: Links with WordPress multisite native authentication system
 - **Database**: Uses `extrachill_ad_free` table to track licenses across multisite network
 - **Product ID**: 90123 (hardcoded ad-free license product)
-- **Migration Status**: Moving from session token validation to native multisite user authentication
+- **Authentication**: Uses native WordPress multisite authentication for cross-domain user sessions
 
 ### WooCommerce Performance Optimization
 - **Conditional Loading**: WooCommerce assets only load on store pages
@@ -55,7 +55,7 @@ extrachill-shop/
 - **Database Sharing**: Shared `extrachill_ad_free` table across WordPress multisite network
 - **Authentication**: Community username validation using native WordPress multisite user system
 - **API Integration**: REST endpoints maintained for legacy compatibility during multisite migration
-- **Migration Status**: Transitioning from custom session tokens to native WordPress multisite authentication
+- **Authentication Integration**: WordPress multisite native authentication provides seamless cross-domain user sessions
 
 ## Development Commands
 
@@ -120,10 +120,10 @@ extrachill_ad_free:
 
 ### Security Considerations
 - Username sanitization with `sanitize_text_field()`
-- Native WordPress multisite user authentication (replacing session token validation)
+- Native WordPress multisite user authentication for cross-domain sessions
 - Prepared SQL statements for all database operations
 - Capability checks for administrative functions
-- **Migration Note**: Legacy session token validation maintained during transition
+- **Integration**: Direct WordPress multisite authentication eliminates need for custom session management
 
 ## Plugin Dependencies
 
