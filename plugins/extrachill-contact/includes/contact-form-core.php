@@ -44,7 +44,7 @@ function custom_contact_form_shortcode() {
             <label for="newsletter_consent">Subscribe to our newsletter</label>
         </div>
 
-        <div class="cf-turnstile" data-sitekey="0x4AAAAAAAPvQsUv5Z6QBB5n"></div>
+        <?php echo ec_render_turnstile_widget(); ?>
 
         <div class="form-group">
             <input type="submit" value="Send Message" class="submit-button">
@@ -61,7 +61,7 @@ function handle_ec_contact_form_submission() {
     }
 
     $turnstile_response = isset($_POST['cf-turnstile-response']) ? $_POST['cf-turnstile-response'] : '';
-    if (!wp_surgeon_verify_turnstile($turnstile_response)) {
+    if (!ec_verify_turnstile_response($turnstile_response)) {
         wp_die('Captcha verification failed');
     }
 
@@ -95,36 +95,6 @@ function sync_to_sendy($email) {
     }
 }
 
-/**
- * Verify Cloudflare Turnstile response with hardcoded credentials
- */
-function wp_surgeon_verify_turnstile($response) {
-    if (empty($response)) {
-        return false;
-    }
-
-    $secret_key = '0x4AAAAAAAPvQp7DbBfqJD7LW-gbrAkiAb0';
-
-    $verification_url = 'https://challenges.cloudflare.com/turnstile/v0/siteverify';
-    $verification_data = array(
-        'secret' => $secret_key,
-        'response' => $response
-    );
-
-    $response = wp_remote_post($verification_url, array(
-        'body' => $verification_data,
-        'timeout' => 30
-    ));
-
-    if (is_wp_error($response)) {
-        return false;
-    }
-
-    $body = wp_remote_retrieve_body($response);
-    $data = json_decode($body, true);
-
-    return isset($data['success']) && $data['success'] === true;
-}
 
 function send_email_to_admin($name, $email, $subject, $message) {
     $admin_email = get_option('admin_email');
@@ -191,7 +161,7 @@ HTML;
 
 function wp_surgeon_enqueue_turnstile_script() {
     if (is_page('contact-us')) {
-        wp_enqueue_script('cloudflare-turnstile', 'https://challenges.cloudflare.com/turnstile/v0/api.js', array(), null, true);
+        ec_enqueue_turnstile_script();
     }
 }
 add_action('wp_enqueue_scripts', 'wp_surgeon_enqueue_turnstile_script');
