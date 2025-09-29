@@ -1,6 +1,6 @@
 # ExtraChill Events
 
-WordPress plugin providing seamless integration between ExtraChill themes and popular event plugins. Enables unified styling and functionality for calendar and event management within the ExtraChill ecosystem.
+WordPress plugin providing seamless integration between ExtraChill themes and popular event plugins. Replaces previous dm-events integration with a flexible architecture supporting multiple event management plugins within the ExtraChill ecosystem.
 
 ## Plugin Information
 
@@ -16,23 +16,27 @@ WordPress plugin providing seamless integration between ExtraChill themes and po
 
 ## Architecture
 
-### PSR-4 Implementation
-- **Composer Autoloading**: Configured with PSR-4 namespace `ExtraChillEvents\` mapping to `includes/`
+### Plugin Loading Pattern
+- **Hybrid Loading**: Composer autoloader exists but plugin uses manual `require_once` for actual plugin classes
 - **Class-Based Structure**: Object-oriented plugin architecture with singleton pattern
-- **Namespace Organization**: All classes use proper PHP namespacing for clean code organization
+- **Composer Autoloader**: Only for development dependencies (PHPUnit, PHPCS when configured)
+- **Manual Includes**: All integration classes loaded via direct `require_once` statements
 
 ### Core Classes
 - **ExtraChillEvents**: Main plugin class (singleton), handles initialization and integration management (`extrachill-events.php`)
-- **ExtraChillEvents\DmEventsIntegration**: DM Events plugin integration with badge styling and breadcrumb override (`includes/class-dm-events-integration.php`)
+- **Future Integration Classes**: Architecture ready for Tribe Events, Event Calendar, and other popular event plugins
+
+**Note**: This plugin replaces the previous dm-events integration that was removed from the theme.
 
 ## Key Features
 
 ### Event Plugin Integration
-**Currently Supported**: DM Events plugin
-- **Badge Styling Integration**: Maps DM Events taxonomy badges to ExtraChill's badge class structure
+**Currently Supported**: Architecture implemented for major event plugins
+- **Badge Styling Integration**: Maps event plugin taxonomy badges to ExtraChill's badge class structure
 - **Festival-Specific Colors**: Enables custom festival colors (Bonnaroo, Coachella) from theme's badge-colors.css
 - **Location Styling**: Converts venue taxonomies to location styling for regional color coding
 - **Backward Compatibility**: Preserves original plugin classes while adding theme enhancements
+- **Flexible Architecture**: Supports multiple event management plugins with unified styling
 
 ### Taxonomy Mapping System
 **Badge Class Structure**:
@@ -40,15 +44,17 @@ WordPress plugin providing seamless integration between ExtraChill themes and po
 - **venue/location** → `location-badge location-{slug}` (e.g., `location-charleston`)
 - **other taxonomies** → Uses plugin's default styling (no mapping)
 
-**Integration Hooks**:
-- `dm_events_badge_classes` - Individual badge class enhancement
-- `dm_events_badge_wrapper_classes` - Wrapper class enhancement
-- `dm_events_breadcrumbs` - Breadcrumb system override
+**Integration Hooks** (planned for specific event plugins):
+- Event-specific badge class enhancement filters
+- Wrapper class enhancement filters
+- Breadcrumb system override filters
+- Extensible hook system for future plugin integrations
 
 ### Breadcrumb Integration
-- **Theme Override**: Replaces DM Events breadcrumbs with ExtraChill's breadcrumb system when available
+- **Theme Override**: Replaces event plugin breadcrumbs with ExtraChill's breadcrumb system when available
 - **Fallback Support**: Uses plugin's default breadcrumbs if theme function unavailable
-- **Consistent Navigation**: Ensures unified breadcrumb experience across all pages
+- **Consistent Navigation**: Ensures unified breadcrumb experience across all event pages
+- **Plugin Agnostic**: Works with multiple event management plugins
 
 ## Technical Implementation
 
@@ -108,9 +114,12 @@ WordPress plugin providing seamless integration between ExtraChill themes and po
 - **WPCS**: WordPress Coding Standards ruleset
 
 ### Plugin Dependencies
-- **Optional Integration**: DM Events plugin (auto-detected if active)
+- **Optional Integration**: Major event plugins (auto-detected if active)
+  - Tribe Events (planned)
+  - Event Calendar (planned)
+  - Events Manager (planned)
 - **Theme Compatibility**: Works with any ExtraChill theme containing badge-colors.css
-- **Future Integrations**: Architecture supports Tribe Events, Event Calendar, etc.
+- **Extensible Architecture**: Ready for additional event plugin integrations
 
 ## Common Development Commands
 
@@ -140,11 +149,12 @@ composer run test
 ## Integration Guidelines
 
 ### Adding New Event Plugin Support
-1. **Create Integration Class**: New class in `includes/` following `DmEventsIntegration` pattern
+1. **Create Integration Class**: New class in `includes/` following standardized integration pattern
 2. **Detection Logic**: Add class existence check in `ExtraChillEvents::init_integrations()`
 3. **Hook Integration**: Implement appropriate filter/action hooks for the target plugin
 4. **Badge Mapping**: Map plugin's taxonomy structure to ExtraChill's badge classes
 5. **Testing**: Verify integration with both plugins active and inactive
+6. **Documentation**: Update plugin compatibility documentation
 
 ### Theme Integration Requirements
 - **Badge Colors CSS**: Theme must include badge-colors.css with festival/location styling
@@ -154,13 +164,15 @@ composer run test
 ## Current Limitations
 
 ### Supported Plugins
-- **DM Events**: Full integration with badge styling and breadcrumb override
-- **Future Plugins**: Architecture ready for Tribe Events, Event Calendar, etc.
+- **Planning Stage**: Architecture implemented for major event management plugins
+- **Target Plugins**: Tribe Events, Event Calendar, Events Manager, Modern Events Calendar
+- **Replacement Function**: Replaces previous dm-events integration from theme
 
 ### Integration Scope
-- **Badge Styling Only**: Currently focuses on visual integration, not functionality modification
+- **Visual Integration Focus**: Primarily handles badge styling and breadcrumb consistency
 - **Theme Dependent**: Requires ExtraChill themes with appropriate CSS structure
-- **Manual Mapping**: Taxonomy mappings require manual configuration per plugin
+- **Flexible Mapping**: Extensible taxonomy mapping system for various event plugins
+- **Non-Intrusive**: Enhances plugins without modifying core functionality
 
 ## User Info
 
