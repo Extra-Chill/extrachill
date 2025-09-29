@@ -9,12 +9,15 @@
     /* Buttons in light mode: deep blue, with a slightly darker hover */
     --button-bg: #0b5394;
     --button-hover-bg: #083b6c;
+    --button-secondary-bg: #53940b;
+    --button-secondary-hover-bg: #083b6c;
     /* Component-Specific Variables */
-    --header-bg: #fff;
-    --header-text: #000;
+    --header-bg: #000;
+    --header-text: #fff;
     /* Accent & Secondary Accent */
     --accent: #53940b;
     --accent-2: #36454F;
+    --accent-2-rgb: 54, 69, 79; /* RGB for #36454F */
     --accent-3: #00c8e3;
     /* Notices */
     --notice-bg: #c8e6c9;
@@ -43,12 +46,15 @@
         /* Keep the button as green, with a slightly darker hover for subtle transitions */
         --button-bg: #0b5394;
         --button-hover-bg: #083b6c;
+        --button-secondary-bg: #53940b;
+        --button-secondary-hover-bg: #083b6c;
         /* Component-Specific Variables */
         --header-bg: #000;
         --header-text: #fff;
         /* Accent & Secondary Accent */
         --accent: #53940b; /* Keep the green accent in dark mode */
         --accent-2: #a8c0d0;
+        --accent-2-rgb: 168, 192, 208; /* RGB for #a8c0d0 */
         --accent-3:#00e0ff;  /* brighter electric blue accent */
         /* Notices */
         --notice-bg: #1e1e1e;

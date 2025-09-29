@@ -45,7 +45,7 @@
                         <a href="<?php echo esc_url(get_category_link(get_cat_ID('song-meanings'))); ?>">Song Meanings</a>
                     </li>
                     <li class="menu-item">
-                        <a href="<?php echo esc_url(home_url('/grateful-dead')); ?>">Grateful Dead</a>
+                        <a href="<?php echo esc_url(home_url('/artist/grateful-dead')); ?>">Grateful Dead</a>
                     </li>
                     <li class="menu-item">
                         <a href="<?php echo esc_url(get_category_link(get_cat_ID('musical-curiosities'))); ?>">Musical Curiosities</a>

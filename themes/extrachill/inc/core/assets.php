@@ -2,11 +2,8 @@
 /**
  * ExtraChill Theme Asset Management
  *
- * Centralized conditional asset loading with performance optimizations:
- * - Page-specific CSS loading (home, single-post, archive)
- * - Root CSS variables loaded first for dependency management
- * - JavaScript enqueuing with filemtime() cache busting
- * - Admin editor style integration
+ * Centralized conditional asset loading with performance optimizations
+ * for page-specific CSS/JS and proper dependency management.
  *
  * @package ExtraChill
  * @since 69.57
@@ -37,12 +34,6 @@ function extrachill_enqueue_navigation_assets() {
 }
 add_action('wp_enqueue_scripts', 'extrachill_enqueue_navigation_assets');
 
-/**
- * Enqueue archive page scripts
- * Conditionally loads JavaScript for archive functionality
- *
- * @since 69.57
- */
 function extrachill_enqueue_archive_scripts() {
     if (is_archive()) {
         $js_path = get_template_directory() . '/assets/js/chill-custom.js';
@@ -53,12 +44,6 @@ function extrachill_enqueue_archive_scripts() {
 }
 add_action('wp_enqueue_scripts', 'extrachill_enqueue_archive_scripts');
 
-/**
- * Enqueue reading progress indicator JavaScript
- * Loads reading progress bar functionality with cache busting
- *
- * @since 69.57
- */
 function extrachill_enqueue_reading_progress() {
     wp_enqueue_script(
         'reading-progress-script',
@@ -70,12 +55,6 @@ function extrachill_enqueue_reading_progress() {
 }
 add_action('wp_enqueue_scripts', 'extrachill_enqueue_reading_progress');
 
-/**
- * Enqueue homepage-specific styles
- * Only loads home.css on front page for performance optimization
- *
- * @since 69.57
- */
 function extrachill_enqueue_home_styles() {
     if ( is_front_page() ) {
         $css_path = get_stylesheet_directory() . '/assets/css/home.css';
@@ -92,11 +71,7 @@ function extrachill_enqueue_home_styles() {
 add_action( 'wp_enqueue_scripts', 'extrachill_enqueue_home_styles' );
 
 /**
- * Enqueue root CSS variables and base styles
- * Loads first (priority 5) to establish CSS custom properties for all other styles
- * Critical for theme's CSS architecture - all other styles depend on this
- *
- * @since 69.57
+ * Loads first (priority 5) to establish CSS custom properties for dependent stylesheets
  */
 function extrachill_enqueue_root_styles() {
     $css_path = get_stylesheet_directory() . '/assets/css/root.css';
@@ -111,13 +86,6 @@ function extrachill_enqueue_root_styles() {
 }
 add_action( 'wp_enqueue_scripts', 'extrachill_enqueue_root_styles', 5 );
 
-/**
- * Enqueue taxonomy badge color styles
- * Depends on root CSS for custom properties
- * Provides styling for artist, venue, festival, and category badges
- *
- * @since 69.57
- */
 function extrachill_enqueue_main_styles() {
     $badge_colors_path = get_stylesheet_directory() . '/assets/css/badge-colors.css';
     if ( file_exists( $badge_colors_path ) ) {
@@ -132,11 +100,7 @@ function extrachill_enqueue_main_styles() {
 add_action( 'wp_enqueue_scripts', 'extrachill_enqueue_main_styles', 10 );
 
 /**
- * Modify default WordPress style.css loading to include dependencies
- * Dequeues WordPress default style loading and re-enqueues with root CSS dependency
- * Ensures proper CSS cascade order and prevents FOUC
- *
- * @since 69.57
+ * Re-enqueues style.css with root CSS dependency for proper cascade order
  */
 function extrachill_modify_default_style() {
     wp_dequeue_style('extrachill-style');
@@ -151,13 +115,6 @@ function extrachill_modify_default_style() {
 }
 add_action('wp_enqueue_scripts', 'extrachill_modify_default_style', 20);
 
-/**
- * Enqueue single post page styles
- * Only loads on individual post pages for performance
- * Includes styles for comments, share buttons, and post-specific layouts
- *
- * @since 69.57
- */
 function extrachill_enqueue_single_post_styles() {
     if ( is_singular('post') ) {
         $css_path = get_stylesheet_directory() . '/assets/css/single-post.css';
@@ -173,13 +130,6 @@ function extrachill_enqueue_single_post_styles() {
 }
 add_action('wp_enqueue_scripts', 'extrachill_enqueue_single_post_styles', 20);
 
-/**
- * Enqueue archive and listing page styles
- * Loads on archives, search results, and all-posts template
- * Includes post card layouts, pagination, and grid styles
- *
- * @since 69.57
- */
 function extrachill_enqueue_archive_styles() {
     if ( is_archive() || is_search() || is_page_template('page-templates/all-posts.php') ) {
         $css_path = get_stylesheet_directory() . '/assets/css/archive.css';
@@ -196,12 +146,35 @@ function extrachill_enqueue_archive_styles() {
 add_action('wp_enqueue_scripts', 'extrachill_enqueue_archive_styles', 20);
 
 /**
- * Enqueue admin editor styles with root CSS dependencies
- * Loads root CSS and editor styles in WordPress admin post editor
+ * Enqueue shared tabs assets
  *
- * @param string $hook WordPress admin page hook
- * @since 69.57
+ * Loads tabbed interface CSS/JS only on single pages where tabs are used
+ * (login, settings, artist management pages). Provides universal responsive
+ * accordion/tabs pattern for the entire ecosystem.
  */
+function extrachill_enqueue_shared_tabs() {
+    // Only load on single pages (not homepage, posts, archives)
+    if ( ! is_page() ) {
+        return;
+    }
+
+    wp_enqueue_style(
+        'extrachill-shared-tabs',
+        get_template_directory_uri() . '/assets/css/shared-tabs.css',
+        array(),
+        filemtime( get_template_directory() . '/assets/css/shared-tabs.css' )
+    );
+
+    wp_enqueue_script(
+        'extrachill-shared-tabs',
+        get_template_directory_uri() . '/assets/js/shared-tabs.js',
+        array( 'jquery' ),
+        filemtime( get_template_directory() . '/assets/js/shared-tabs.js' ),
+        true
+    );
+}
+add_action( 'wp_enqueue_scripts', 'extrachill_enqueue_shared_tabs' );
+
 function extrachill_enqueue_admin_styles($hook) {
     if ($hook == 'post.php' || $hook == 'post-new.php') {
         $root_css_path = get_stylesheet_directory() . '/assets/css/root.css';

@@ -3,7 +3,6 @@
  * Hardcoded Bottom Navigation Menu
  *
  * Bottom navigation links for the flyout menu system.
- * Simple footer-style links without WordPress menu system overhead.
  *
  * @package ExtraChill
  * @since 69.57

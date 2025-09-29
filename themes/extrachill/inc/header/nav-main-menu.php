@@ -3,7 +3,6 @@
  * Hardcoded Main Navigation Menu
  *
  * Primary navigation items for the flyout menu system.
- * Clean HTML structure without WordPress menu system overhead.
  *
  * @package ExtraChill
  * @since 69.57

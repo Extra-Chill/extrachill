@@ -12,7 +12,6 @@ The ExtraChill theme is a custom WordPress theme serving as the frontend for an 
 
 ### Modular File Structure
 The theme uses a clean, modular architecture organized in the `/inc/` directory:
-- **admin/**: Administrative functionality (tag migration admin, log 404 errors, customizer)
 - **archives/**: Archive page functionality (custom sorting, child terms dropdown, post cards, archive.php)
 - **core/**: Essential WordPress functionality with shared templates:
   - **core/templates/**: Shared template components (post-meta, pagination, no-results, share, social-links, taxonomy-badges, breadcrumbs, searchform)
@@ -27,21 +26,26 @@ The theme uses a clean, modular architecture organized in the `/inc/` directory:
 - **Custom Taxonomies**: Artist, Venue, Festival taxonomies with REST API support (defined in functions.php)
 - **Festival Wire Integration**: Homepage ticker display for Festival Wire posts (handled by ExtraChill News Wire plugin)
 
-### Multisite Integration
-- **Plugin Architecture**: Multisite functionality designed for external plugin integration
-- **WordPress Multisite Integration**: Native WordPress multisite functions for cross-site database access
-- **Cross-Site Features**: Search, activity feeds, and license validation via direct database queries
-- **Community Activity**: Theme includes community activity display with function existence checks
-  - Uses `ec_fetch_recent_activity_multisite()` function if available (defined in external plugin)
-  - Implements 10-minute caching to reduce database queries
-  - Fallback handling when multisite functions are not available
+### WordPress Multisite Network Integration
+The ExtraChill theme serves **two sites in the WordPress multisite network**:
+- **extrachill.com** (Blog ID 1) - Main music journalism and content site
+- **community.extrachill.com** (Blog ID 2) - Community forums and user hub
+
+**Multisite Plugin Integration**: All multisite functionality provided by the network-activated **extrachill-multisite plugin**:
+- **Cross-Site Data Access**: Native WordPress multisite functions via `switch_to_blog()` and `restore_current_blog()`
+- **Real-Time Forum Search**: Community forum search from main site using `ec_fetch_forum_results_multisite()`
+- **Community Activity**: Theme displays community activity using `ec_fetch_recent_activity_multisite()` with 10-minute caching
+- **Network-Wide Security**: Admin access control across all network sites
+- **Fallback Handling**: Function existence checks ensure graceful degradation when multisite functions unavailable
 
 ### Plugin Integration
+- **ExtraChill Multisite**: Network-activated centralized functionality across all sites
 - **ExtraChill Community**: Community and forum functionality integration for community.extrachill.com
 - **ExtraChill News Wire**: Festival Wire ticker integration via action hooks
 - **ExtraChill Newsletter**: Newsletter functionality via dedicated plugin
 - **ExtraChill Contact**: Contact form functionality via dedicated plugin
 - **ExtraChill Shop**: E-commerce functionality via dedicated plugin
+- **ExtraChill Events**: Event management functionality (replaces dm-events integration)
 - **Action Hook Architecture**: Extensible plugin integration points throughout theme
 
 ### Hook-Based Menu System Architecture
@@ -87,6 +91,37 @@ add_action('extrachill_footer_main_content', 'my_plugin_add_footer_section', 20)
 - No WordPress admin menu management (interface removed via `extrachill_remove_menu_admin_pages()`)
 - Menu content modified directly in template files
 - Hook system allows plugins to dynamically add menu items without core file modification
+
+### Universal Template Routing System
+
+The theme implements a centralized template routing system via `index.php` that replaces WordPress's traditional template hierarchy:
+
+#### **Router Architecture:**
+
+1. **Central Dispatch** (`index.php`):
+   - Single entry point for all page types (homepage, single posts, pages, archives, search, 404)
+   - Conditional routing based on WordPress query functions
+   - Plugin override support via filter hooks for each route
+
+2. **Filter-Based Override System**:
+   - Each template route supports dedicated filter: `extrachill_template_*`
+   - Plugins can completely override template files at the routing level
+   - Maintains backward compatibility while enabling deep customization
+
+3. **Supported Routes**:
+   - `extrachill_template_homepage` - Front page and home page routing
+   - `extrachill_template_single_post` - Single post template override
+   - `extrachill_template_page` - Page template override
+   - `extrachill_template_archive` - Archive, category, tag, author, date pages
+   - `extrachill_template_search` - Search results (uses archive template)
+   - `extrachill_template_404` - 404 error pages
+   - `extrachill_template_fallback` - Unknown page types fallback
+
+#### **Benefits:**
+- **Plugin Control**: Plugins can override entire template structures
+- **Centralized Logic**: All routing decisions in one file
+- **Performance**: Eliminates WordPress template hierarchy overhead
+- **Extensibility**: Filter system allows complete template customization
 
 ### CSS Architecture
 - **Root Variables**: Global CSS custom properties in `assets/css/root.css`
@@ -137,7 +172,8 @@ wp rewrite flush
 ## Key File Locations
 
 ### Core Theme Files
-- **`functions.php`** - Main theme setup, asset loading, and module includes (41 PHP files)
+- **`index.php`** - Universal template router with plugin override support for all page types
+- **`functions.php`** - Main theme setup, asset loading, and module includes (38 PHP files)
 - **`inc/core/assets.php`** - Centralized asset management with conditional loading
 - **`inc/single/comments.php`** - Comment system with community integration
 - **`inc/core/templates/post-meta.php`** - Post meta display template
@@ -156,11 +192,10 @@ wp rewrite flush
 - `inc/core/templates/breadcrumbs.php` - Breadcrumb navigation
 - `inc/core/templates/searchform.php` - Search form template
 
-**Core Functionality (5 files)**:
+**Core Functionality (4 files)**:
 - `inc/core/actions.php` - Centralized WordPress action hooks
 - `inc/core/assets.php` - Asset management and conditional loading
 - `inc/core/custom-taxonomies.php` - Custom taxonomy registration
-- `inc/core/rewrite-rules.php` - URL rewrite rules
 - `inc/core/yoast-stuff.php` - Yoast SEO integration
 
 **Custom Embeds (3 files)**:
@@ -168,9 +203,15 @@ wp rewrite flush
 - `inc/core/editor/instagram-embeds.php` - Instagram embed support
 - `inc/core/editor/spotify-embeds.php` - Spotify embed support
 
+**Universal Template Routing**:
+- `index.php` serves as central template dispatch system with plugin override support
+- Filter hooks allow plugins to completely override template files at routing level
+- Template routing supports: homepage, single posts, pages, archives, search, and 404 pages
+- Each route includes `extrachill_template_*` filter for plugin customization
+
 **Multisite Integration**:
-- Multisite functionality partially moved to external plugin architecture
-- Theme still contains multisite function calls but functions may be defined in external plugins
+- All multisite functionality moved to extrachill-multisite plugin for network activation
+- Theme contains function existence checks for multisite plugin functions
 - Community activity integration uses caching with fallback for missing functions
 
 **Sidebar Functionality (2 files)**:
@@ -209,10 +250,6 @@ wp rewrite flush
 - `inc/home/templates/community-activity.php` - Community activity
 - `inc/home/templates/front-page.php` - Front page template
 
-**Admin Functionality (3 files)**:
-- `inc/admin/log-404-errors.php` - 404 error logging
-- `inc/admin/tag-migration-admin.php` - Tag migration administration
-- `inc/admin/extrachill-customizer.php` - Theme customizer settings
 
 ### Asset Loading Strategy
 - **Centralized Management**: All asset loading handled in `inc/core/assets.php`
@@ -223,14 +260,16 @@ wp rewrite flush
 - **Navigation Scripts**: Menu navigation JavaScript with conditional loading
 
 ### Template Hierarchy
-- **Taxonomy Templates**: Custom templates for artist, venue, festival
-- **Page Templates**: Specialized templates in `page-templates/` directory (all-posts.php)
+- **Universal Router**: `index.php` handles all template routing with plugin override capabilities
+- **Template Filters**: Each page type supports `extrachill_template_*` filters for plugin customization
+- **Modular Templates**: Core functionality organized in `/inc/` directory structure
 - **Archive Templates**: Core archive functionality in `inc/archives/archive.php`
 - **Festival Wire**: Custom post type functionality provided by ExtraChill News Wire plugin
 
 ## Custom Functionality
 
 ### Removed Systems
+- **Template Override System**: Replaced with universal template routing via index.php
 - **Newsletter System**: Functionality moved to ExtraChill Newsletter Plugin
 - **Contact Form System**: Functionality moved to ExtraChill Contact Plugin
 - **Session Token System**: Completely removed in favor of native WordPress multisite authentication
@@ -242,13 +281,23 @@ wp rewrite flush
 - **Legacy Template Files**: Removed content-page.php, content-single.php, content.php, comments.php, no-results.php, page.php, search.php, searchform.php, single.php
 - **Legacy CSS Files**: Removed all-locations.css, woocommerce.css
 - **Legacy PHP Files**: Removed breadcrumbs.php, recent-posts-in-sidebar.php, location-filter.php, contextual-search-excerpt.php
+- **dm-events Integration**: Removed in favor of extrachill-events plugin integration
 
 ### Plugin Integration Points
+- **Multisite Features**: ExtraChill Multisite Plugin provides network-activated centralized functionality
 - **Community Features**: ExtraChill Community Plugin provides forum functionality for community.extrachill.com
 - **Festival Wire**: ExtraChill News Wire plugin hooks into `extrachill_after_hero` action
 - **Newsletter**: ExtraChill Newsletter Plugin provides homepage newsletter section
 - **Contact Forms**: ExtraChill Contact Plugin handles all contact functionality
 - **E-commerce**: ExtraChill Shop Plugin provides shop functionality for shop.extrachill.com
+- **Event Management**: ExtraChill Events Plugin provides calendar and event functionality
+- **Template Override Points**: Universal router supports template override via filters:
+  - `extrachill_template_homepage`
+  - `extrachill_template_single_post`
+  - `extrachill_template_page`
+  - `extrachill_template_archive`
+  - `extrachill_template_search`
+  - `extrachill_template_404`
 - **Homepage Sections**: Extensible via action hooks:
   - `extrachill_homepage_hero`
   - `extrachill_homepage_content_top`
@@ -260,7 +309,7 @@ wp rewrite flush
 - **Modular Asset Loading**: CSS/JS loaded only when needed based on page context
 - **Memory Management**: Memory usage tracking and optimization
 - **Query Optimization**: Efficient taxonomy and post queries
-- **Multisite Optimization**: Direct database queries replace REST API calls
+- **Multisite Optimization**: Direct database queries provided by extrachill-multisite plugin
 
 ## Security & Best Practices
 
@@ -288,9 +337,11 @@ EXTRACHILL_INCLUDES_DIR - Inc directory path for modular includes
 
 ## Recent Architectural Changes
 
+- **Universal Template Routing**: Implemented `index.php` as central template router with plugin override support
+- **Template Override System Replacement**: Removed legacy override system in favor of filter-based routing
+- **Multisite Plugin Migration**: All multisite functionality moved to extrachill-multisite plugin for network activation
 - **Core Templates Directory**: Created `/inc/core/templates/` for shared template components (8 files)
 - **Sidebar Directory**: Created `/inc/sidebar/` for sidebar-specific functionality (2 files)
-- **Multisite Integration**: Theme designed for external plugin integration for cross-site functionality
 - **Native Pagination System**: Added comprehensive pagination system replacing wp-pagenavi plugin
   - Located at `inc/core/templates/pagination.php`
   - Professional count display with context-aware navigation
@@ -298,19 +349,20 @@ EXTRACHILL_INCLUDES_DIR - Inc directory path for modular includes
   - Context-aware styling support for different page types
 - **Asset Directory Migration**: Moved all assets from `css/` and `js/` to `assets/css/` and `assets/js/`
 - **System Streamlining**: Complete removal of unused event submission, location filtering, and session token systems
-- **Plugin Migration**: Newsletter, contact forms, and Festival Wire functionality moved to dedicated plugins
+- **Plugin Migration**: Newsletter, contact forms, multisite functionality, and Festival Wire moved to dedicated plugins
 - **Enhanced Modularization**: Better organization with core templates directory and cleaner separation of concerns
-- **Template Consolidation**: Removed legacy template files in favor of modular include system
+- **Template Consolidation**: Removed legacy template files in favor of modular include system with universal routing
 - **Asset Management**: Centralized in `inc/core/assets.php` with conditional loading
-- **Authentication Simplification**: Native WordPress multisite authentication
+- **Authentication Simplification**: Native WordPress multisite authentication via extrachill-multisite plugin
 - **Performance Optimization**: Modular CSS architecture and selective loading
-- **File Structure Cleanup**: Streamlined to 41 modular PHP files with improved organization
+- **File Structure Cleanup**: Streamlined to 38 modular PHP files with improved organization
+- **Event Integration Update**: Replaced dm-events integration with extrachill-events plugin
 
 ## Important Notes
 
 - **Dual-Site Theme**: Serves both extrachill.com and community.extrachill.com with plugin-based functionality
 - **Multisite-Focused**: Native WordPress multisite integration with cross-site functionality
-- **Plugin Architecture**: Community features provided by extrachill-community plugin rather than separate theme
+- **Plugin Architecture**: Community and multisite features provided by dedicated plugins rather than theme integration
 - **Performance Optimized**: Modular asset loading and selective enqueuing
 - **Modern Architecture**: Clean separation of concerns with shared template components
 - **No Build Process**: Direct file editing with WordPress native optimization

@@ -1,12 +1,12 @@
 <?php
 /**
- * Complete Single Page Template
+ * Single Page Template
  *
- * Handles the complete single page experience: header, content, comments, footer.
- * Handles individual page display with clean template structure.
+ * Handles individual page display with header, content, and edit link.
+ * Loaded via universal template routing system in index.php.
  *
- * @package    ExtraChill
- * @since      69.57
+ * @package ExtraChill
+ * @since 69.57
  */
 
 get_header(); ?>
@@ -16,7 +16,7 @@ get_header(); ?>
 <?php while ( have_posts() ) : the_post(); ?>
 
     <article id="post-<?php the_ID(); ?>" <?php post_class(); ?>>
-        <?php do_action( 'extrachill_before_post_content' ); ?>
+        <?php do_action( 'extrachill_before_page_content' ); ?>
 
         <?php
         extrachill_breadcrumbs();
@@ -47,7 +47,7 @@ get_header(); ?>
             ?>
         </div>
 
-        <?php do_action( 'extrachill_after_post_content' ); ?>
+        <?php do_action( 'extrachill_after_page_content' ); ?>
     </article>
 
 <?php endwhile; ?>

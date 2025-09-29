@@ -33,7 +33,7 @@ ExtraChill is a modern, performance-optimized WordPress theme designed specifica
 - **Component Styles**: Dedicated files for badges (`badge-colors.css`), editor styles (`editor-style.css`)
 
 ### 🤝 Community Integration
-- **WordPress Multisite**: Native cross-domain authentication and user management
+- **WordPress Multisite**: Native cross-domain authentication and user management via extrachill-multisite plugin
 - **Community Activity**: Real-time community activity display with plugin integration
 - **Activity Feeds**: Cross-site activity integration with function existence checks and caching
 - **Plugin Architecture**: Designed for external multisite plugin integration
@@ -58,9 +58,11 @@ ExtraChill is a modern, performance-optimized WordPress theme designed specifica
    - Activate through WordPress admin
 
 3. **Configure recommended plugins**:
+   - ExtraChill Multisite (for network-activated multisite functionality)
    - ExtraChill News Wire (for Festival Wire functionality)
    - ExtraChill Newsletter (for newsletter functionality)
    - ExtraChill Contact (for contact form functionality)
+   - ExtraChill Events (for event management functionality)
 
 4. **Initial setup**:
    ```bash
@@ -117,6 +119,7 @@ For production deployment, use the build script to create clean ZIP packages:
 
 ```
 extrachill/
+├── index.php                   # Universal template router with plugin override support
 ├── assets/                     # Theme assets directory
 │   ├── css/                    # Modular CSS files (7 files)
 │   │   ├── root.css            # CSS custom properties
@@ -127,17 +130,13 @@ extrachill/
 │   │   ├── badge-colors.css    # Taxonomy badge colors
 │   │   └── editor-style.css    # Block editor styles
 │   └── fonts/                  # Local web fonts
-├── inc/                        # Modular PHP functionality (41 files)
-│   ├── admin/                  # Admin functionality (3 files)
-│   │   ├── log-404-errors.php
-│   │   ├── tag-migration-admin.php
-│   │   └── extrachill-customizer.php
+├── inc/                        # Modular PHP functionality (38 files)
 │   ├── archives/               # Archive page functionality (4 files)
 │   │   ├── archive.php
 │   │   ├── archive-child-terms-dropdown.php
 │   │   ├── archive-custom-sorting.php
 │   │   └── post-card.php
-│   ├── core/                   # Core WordPress features (5 files + 2 subdirectories)
+│   ├── core/                   # Core WordPress features (4 files + 2 subdirectories)
 │   │   ├── templates/          # Shared template components (8 files)
 │   │   │   ├── post-meta.php
 │   │   │   ├── pagination.php
@@ -154,7 +153,6 @@ extrachill/
 │   │   ├── actions.php         # Centralized WordPress action hooks
 │   │   ├── assets.php          # Asset management
 │   │   ├── custom-taxonomies.php
-│   │   ├── rewrite-rules.php
 │   │   └── yoast-stuff.php
 │   ├── footer/                 # Footer navigation functionality (2 files)
 │   │   ├── footer-bottom-menu.php
@@ -210,15 +208,24 @@ extrachill/
 
 ## Architecture
 
+### Universal Template Routing System
+
+The theme implements a centralized template routing system via `index.php` that replaces WordPress's traditional template hierarchy:
+
+- **Central Dispatch**: Single entry point for all page types (homepage, single posts, pages, archives, search, 404)
+- **Plugin Override Support**: Filter hooks allow plugins to completely override template files at routing level
+- **Supported Routes**: `extrachill_template_homepage`, `extrachill_template_single_post`, `extrachill_template_page`, `extrachill_template_archive`, `extrachill_template_search`, `extrachill_template_404`, `extrachill_template_fallback`
+- **Performance Benefits**: Eliminates WordPress template hierarchy overhead
+- **Extensibility**: Maintains backward compatibility while enabling deep customization
+
 ### Modular Design
 
 The theme follows a modular architecture with clear separation of concerns:
 
-- **Core WordPress functionality** in `/inc/core/` (5 core files + 2 subdirectories)
+- **Core WordPress functionality** in `/inc/core/` (4 core files + 2 subdirectories)
 - **Shared template components** in `/inc/core/templates/` (8 reusable templates)
-- **Multisite integration** via external plugin architecture (cross-site functionality)
+- **Multisite integration** via extrachill-multisite plugin (cross-site functionality)
 - **Custom embeds** in `/inc/core/editor/` (3 embed types)
-- **Admin features** in `/inc/admin/` (3 admin files)
 - **Archive functionality** in `/inc/archives/` (4 archive files)
 - **Footer navigation** in `/inc/footer/` (2 footer files)
 - **Header navigation system** in `/inc/header/` (4 navigation files)
@@ -313,9 +320,11 @@ define('SCRIPT_DEBUG', true);
 ## Recent Changes (v69.57+)
 
 ### New Modular Architecture
+- **Universal Template Routing**: Implemented `index.php` as central template router with plugin override support
+- **Template Override System Replacement**: Removed legacy override system in favor of filter-based routing
 - **Core Templates Directory**: Created `/inc/core/templates/` for 8 shared template components
 - **Sidebar Directory**: Created `/inc/sidebar/` for sidebar-specific functionality
-- **Multisite Integration**: Centralized in `extrachill-multisite` network plugin for cross-site functionality
+- **Multisite Integration**: All functionality moved to `extrachill-multisite` network plugin for ecosystem-wide availability
 - **Native Pagination System**: Replaced wp-pagenavi plugin with lightweight, native WordPress pagination
   - Located at `inc/core/templates/pagination.php`
   - Professional post count display with context-aware navigation
@@ -323,6 +332,7 @@ define('SCRIPT_DEBUG', true);
   - Context-specific styling support
 
 ### System Removals (15+ Files Deleted)
+- **Template Override System**: Replaced with universal template routing via index.php
 - **Event Submission System**: Complete removal of event submission functionality
 - **Location System**: Complete elimination of unused location browsing functionality
 - **Session Token System**: Completely removed in favor of native WordPress multisite authentication
@@ -332,6 +342,7 @@ define('SCRIPT_DEBUG', true);
 - **Legacy Templates**: Removed content-page.php, content-single.php, content.php, comments.php, no-results.php, page.php, search.php, searchform.php, single.php
 - **Legacy CSS**: Removed all-locations.css, woocommerce.css
 - **Legacy PHP**: Removed breadcrumbs.php, recent-posts-in-sidebar.php, location-filter.php, contextual-search-excerpt.php
+- **Multisite Functions**: Moved all multisite functionality to extrachill-multisite plugin
 
 ### Performance Improvements
 - **Asset Directory Migration**: Moved all assets from `css/` and `js/` to `assets/css/` and `assets/js/`
@@ -346,7 +357,7 @@ define('SCRIPT_DEBUG', true);
 - **Streamlined asset loading**: Conditional CSS/JS enqueuing based on page context via `inc/core/assets.php`
 - **Memory optimization**: Efficient resource management through selective loading and admin style dequeuing
 - **Multisite optimization**: Plugin architecture with function existence checks and caching
-- **Template consolidation**: 41 modular PHP files replace monolithic template structure
+- **Template consolidation**: 38 modular PHP files replace monolithic template structure
 
 ## Support and Contributing
 
@@ -371,15 +382,17 @@ This theme is proprietary software developed for ExtraChill.com. All rights rese
 ## Changelog
 
 ### Version 69.57+
-- **Modular Architecture**: 41 PHP files organized in 8 directories with clear separation of concerns
+- **Universal Template Routing**: Implemented `index.php` as central template router with plugin override support
+- **Template Override System Replacement**: Removed legacy override system in favor of filter-based routing
+- **Modular Architecture**: 38 PHP files organized in 7 directories with clear separation of concerns
 - **Asset Migration**: Complete move from legacy `css/` and `js/` to `assets/css/` and `assets/js/`
 - **Template System**: 8 shared template components in `/inc/core/templates/`
-- **Multisite Integration**: Plugin architecture with function existence checks and caching fallbacks
+- **Multisite Plugin Migration**: All multisite functionality moved to extrachill-multisite plugin for network activation
 - **Native Pagination**: Custom pagination system replacing wp-pagenavi plugin
-- **Plugin Migrations**: Newsletter, contact forms, Festival Wire moved to dedicated plugins
-- **System Removals**: 15+ legacy files eliminated (event submission, location filtering, session tokens)
+- **Plugin Migrations**: Newsletter, contact forms, Festival Wire, and multisite functionality moved to dedicated plugins
+- **System Removals**: 15+ legacy files eliminated (event submission, location filtering, session tokens, override system)
 - **Performance Optimization**: Conditional loading, memory optimization, plugin architecture integration
-- **WordPress Standards**: Native multisite authentication, proper template hierarchy
+- **WordPress Standards**: Native multisite authentication, centralized template routing
 
 ---
 
