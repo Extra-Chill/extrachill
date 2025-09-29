@@ -1,0 +1,180 @@
+/* Shared Tabs/Accordion Styles */
+
+/* Outer component wrapper - primarily for JS scoping, may not need direct styles initially */
+.shared-tabs-component {
+  /* Add any necessary overall wrapper styles here if needed */
+}
+
+/* Mobile-first: Accordion styles */
+.shared-tabs-buttons-container {
+  /* This container might not need specific styles if items handle their own borders/margins */
+}
+
+.shared-tab-item {
+  border: 1px solid var(--border-color, #e0e4ea);
+  border-radius: 8px;
+  margin-bottom: 1em; /* Spacing between accordion items */
+  overflow: hidden; /* Clip content for rounded corners */
+}
+
+.shared-tab-item:last-of-type {
+  margin-bottom: 0;
+}
+
+.shared-tab-button {
+  background: var(--card-background, #fff);
+  color: var(--text-color, #333);
+  border: none;
+  border-bottom: 1px solid var(--border-color, #e0e4ea);
+  padding: 0.9em 1.2em;
+  font-size: 1.05em;
+  font-weight: 600;
+  cursor: pointer;
+  outline: none;
+  transition: background 0.15s, color 0.15s;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  text-align: left;
+}
+
+/* If an item is the last one, and its tab button is not active (content hidden), remove its bottom border */
+.shared-tab-item:last-of-type .shared-tab-button:not(.active) {
+    border-bottom: none;
+}
+
+.shared-tab-button .shared-tab-arrow {
+  transition: transform 0.2s ease-in-out;
+  font-size: 0.8em;
+  margin-left: 10px;
+}
+
+.shared-tab-button .shared-tab-arrow::before {
+  content: '▼'; /* Down arrow for closed accordion */
+}
+
+.shared-tab-button.active .shared-tab-arrow::before {
+  content: '▲'; /* Up arrow for open accordion */
+  transform: rotate(180deg); /* Alternative way to show open, if preferred over content change */
+}
+.shared-tab-button.active .shared-tab-arrow.open::before { /* If JS adds .open class */
+  content: '▲';
+  transform: rotate(0deg); /* Reset transform if using content change + open class */
+}
+
+
+.shared-tab-button.active {
+  background: var(--background-color, #f9f9f9);
+  color: var(--link-color, #0073aa);
+  /* border-bottom-color: transparent; /* Hide border when content is shown directly below if desired */
+}
+
+.shared-tab-button:not(.active):hover {
+  background: var(--muted-text, #f0f0f0);
+  color: var(--background-color, #333); /* Check if this color contrast is good */
+}
+
+.shared-tab-pane {
+  background: var(--background-color, #f9f9f9);
+  box-shadow: none;
+  padding: 1em 1.2em; /* More padding for content usually */
+  margin-bottom: 0;
+  display: none; /* Default hidden for accordion panes, JS controls visibility */
+  /* border-top: 1px solid var(--border-color); /* Optional visual separator */
+}
+
+/* Desktop: Tab styles */
+@media (min-width: 769px) { /* Matches mobileBreakpoint in JS + 1px */
+  .shared-tabs-buttons-container {
+    display: flex;
+    flex-wrap: wrap;
+    margin-bottom: -1px; /* Helps active tab border merge with content area below */
+    position: relative;
+  }
+
+  .shared-tab-item {
+    /* On desktop, the item primarily acts as a holder for the button in the flex row.
+       It doesn't need its own border or full width. */
+    border: none;
+    border-radius: 0;
+    margin-bottom: 0;
+    overflow: visible;
+    flex-shrink: 0; /* Prevent buttons from shrinking too much if they wrap */
+  }
+
+  .shared-tab-button {
+    border: 1px solid var(--border-color, #e0e4ea);
+    border-bottom: none; /* Tab buttons sit on top of the content area */
+    border-radius: 8px 8px 0 0;
+    padding: 0.7em 1.4em;
+    font-size: 1em;
+    position: relative;
+    top: 1px; /* Align with the top border of the content area */
+    width: auto; /* Allow button to size to its content */
+    text-align: center;
+    margin-right: 0.4em;
+    background: var(--card-background, #fff);
+    color: var(--text-color, #333);
+    z-index: 2; /* Ensure tabs are above the content area border */
+    border-bottom: 1px solid var(--border-color, #e0e4ea); /* Default bottom border for non-active tabs */
+  }
+
+  .shared-tab-button.active {
+    background: var(--background-color, #f9f9f9); /* Usually the same as content area bg */
+    color: var(--link-color, #0073aa);
+    border-bottom: 1px solid var(--background-color, #f9f9f9); /* Active tab's bottom border blends with content area */
+    z-index: 3; /* Active tab slightly more prominent */
+  }
+  
+  .shared-tab-button .shared-tab-arrow {
+    display: none; /* Hide accordion arrow in tab mode */
+  }
+
+  .shared-tab-pane {
+    /* On desktop, these panes are hidden by default.
+       Their content is cloned into shared-desktop-tab-content-area.
+       So, they don't need display:block here. JS handles it. */
+    display: none !important; /* Ensure they are not shown directly */
+    padding: 0; /* Content itself will be in desktop area */
+  }
+
+  .shared-desktop-tab-content-area {
+    background: var(--background-color, #f9f9f9);
+    border: 1px solid var(--border-color, #e0e4ea);
+    border-radius: 0 8px 8px 8px; /* Rounded corners, except top-left if first tab is active */
+    /* box-shadow: var(--card-shadow, 0 1px 1px rgba(0,0,0,.04)); */
+    padding: 1.5em 1.2em;
+    margin-bottom: 0.5em;
+    position: relative;
+    z-index: 1; /* Below the tabs */
+    clear: both;
+    width: 100%;
+    box-sizing: border-box;
+    display: none; /* JS will show this on desktop when a tab is active */
+  }
+  
+  /* Adjust border radius of desktop content area if first tab is active */
+  .shared-tabs-buttons-container .shared-tab-item:first-child .shared-tab-button.active ~ .shared-desktop-tab-content-area {
+    /* This selector is tricky. JS might be better to adjust this or simplify rounding.
+       For now, the default 0 8px 8px 8px on shared-desktop-tab-content-area is a good start.
+       If the first tab button is active, its top-left is rounded, content area should not be.
+    */
+  }
+  
+  /* Style for the content that is cloned into the desktop area */
+  .shared-desktop-tab-content-area > .shared-tab-pane {
+      display: block !important; /* Ensure cloned content is visible */
+      border: none;
+      padding: 0; /* Padding is on the desktop-tab-content-area itself */
+      background: transparent; /* Inherit from desktop area */
+      box-shadow: none;
+  }
+}
+
+/* Ensure styles from the original manage-link-page.css for content cards are handled
+   if they are meant to be part of the shared styling FOR THE TAB CONTENT ITSELF.
+   For now, this CSS focuses on the tab *structure* and *behavior*.
+   Styling *within* .shared-tab-pane (like .link-page-content-card) would typically
+   remain in page-specific CSS or be explicitly made shared if generic enough.
+*/ 

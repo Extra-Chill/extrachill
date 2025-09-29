@@ -2,8 +2,8 @@
 /**
  * Sidebar Community Activity
  *
- * Clean, hook-based community activity display for sidebar.
- * Shows recent forum activity from the community multisite.
+ * Hook-based community activity display for sidebar.
+ * Shows recent forum activity with caching and fallback handling.
  *
  * @package ExtraChill
  * @since 69.57
@@ -12,12 +12,7 @@
 if ( ! function_exists( 'extrachill_sidebar_community_activity' ) ) :
     /**
      * Display recent community activity in sidebar
-     *
-     * Shows recent forum topics and replies from community.extrachill.com
-     * Uses 10-minute caching to reduce multisite database queries
-     * Links open in new tab to community site
-     *
-     * @since 69.57
+     * Uses 10-minute caching and function existence checks for plugin integration
      */
     function extrachill_sidebar_community_activity() {
         $transient_name = 'extrachill_recent_activity';

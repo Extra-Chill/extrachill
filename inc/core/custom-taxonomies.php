@@ -3,19 +3,13 @@
 /**
  * Custom Taxonomy Registration
  *
- * Registers custom taxonomies for music-focused content:
- * - Location (hierarchical city/state taxonomy)
- * - Festival (non-hierarchical)
- * - Artist (non-hierarchical)
- * - Venue (non-hierarchical)
- *
- * All taxonomies include REST API support for block editor integration.
+ * Registers music-focused taxonomies: location, festival, artist, venue.
+ * All include REST API support for block editor integration.
  *
  * @package ExtraChill
  * @since 69.57
  */
 function extra_chill_register_custom_taxonomies() {
-    // Location taxonomy (hierarchical)
     if (!taxonomy_exists('location')) {
         $location_labels = array(
             'name'              => _x( 'Locations', 'taxonomy general name', 'extrachill' ),
@@ -50,7 +44,6 @@ function extra_chill_register_custom_taxonomies() {
         register_taxonomy( 'location', array( 'post' ), $location_args );
     }
 
-    // Festival taxonomy (non-hierarchical)
     if (!taxonomy_exists('festival')) {
         register_taxonomy('festival', array('post', 'festival_wire'), array(
             'hierarchical' => false,
@@ -73,7 +66,6 @@ function extra_chill_register_custom_taxonomies() {
         ));
     }
 
-    // Artist taxonomy (non-hierarchical)
     if (!taxonomy_exists('artist')) {
         register_taxonomy('artist', array('post'), array(
             'hierarchical' => false,
@@ -96,7 +88,6 @@ function extra_chill_register_custom_taxonomies() {
         ));
     }
 
-    // Venue taxonomy (non-hierarchical)
     if (!taxonomy_exists('venue')) {
         register_taxonomy('venue', array('post'), array(
             'hierarchical' => false,

@@ -1,12 +1,12 @@
 <?php
 /**
- * Complete Single Post Template
+ * Single Post Template
  *
- * Handles the complete single post experience: header, content, comments, related posts, footer.
- * Replaces theme root single.php via template override system.
+ * Handles single post display with header, content, comments, and related posts.
+ * Loaded via universal template routing system in index.php.
  *
- * @package    ExtraChill
- * @since      1.0
+ * @package ExtraChill
+ * @since 69.57
  */
 
 get_header(); ?>

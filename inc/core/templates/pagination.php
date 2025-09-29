@@ -2,9 +2,8 @@
 /**
  * Pagination Template
  *
- * Native WordPress pagination system for ExtraChill theme.
- * Replaces wp-pagenavi plugin with clean, lightweight solution.
- * Visual design supports consistent pagination across the platform.
+ * Native WordPress pagination system with professional count display
+ * and context-aware navigation for archive, search, and custom queries.
  *
  * @package ExtraChill
  * @since 69.58
@@ -24,20 +23,16 @@ if (!defined('ABSPATH')) {
 function extrachill_pagination($query = null, $context = 'default') {
     global $wp_query;
 
-    // Use provided query or fall back to global
     $pagination_query = $query ? $query : $wp_query;
 
-    // Don't show pagination if not needed
     if (!$pagination_query || $pagination_query->max_num_pages <= 1) {
         return;
     }
 
     // Handle pagination for both global and custom queries
     if ($query) {
-        // Custom query - use query's paged value
         $current_page = max(1, $pagination_query->get('paged', 1));
     } else {
-        // Global query - use standard method
         $current_page = max(1, get_query_var('paged'));
     }
 
@@ -94,7 +89,6 @@ function extrachill_pagination($query = null, $context = 'default') {
         'add_args' => $_GET
     ));
 
-    // Output pagination HTML
     if ($links_html) {
         echo '<div class="extrachill-pagination pagination-' . esc_attr($context) . '">';
         echo '<div class="pagination-count">' . esc_html($count_html) . '</div>';

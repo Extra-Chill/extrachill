@@ -2,8 +2,8 @@
 /**
  * Main Navigation Menu Template
  *
- * Flyout navigation menu with hamburger toggle, search integration, and social links.
- * Hardcoded menu structure with FontAwesome SVG sprite versioning for performance.
+ * Hook-based flyout navigation with hamburger toggle, search integration,
+ * and social links. Uses action hooks for plugin extensibility.
  *
  * @package ExtraChill
  * @since 69.57
