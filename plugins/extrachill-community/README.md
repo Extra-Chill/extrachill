@@ -1,6 +1,6 @@
 # Extra Chill Community Plugin
 
-A WordPress plugin for the Extra Chill community platform providing forum enhancements, cross-domain authentication, and bbPress integration. Works with the extrachill theme to provide community functionality for community.extrachill.com. Focuses exclusively on community and forum features.
+A WordPress plugin for the Extra Chill community platform providing forum enhancements, cross-domain authentication, and bbPress integration. Works with the extrachill theme to provide community functionality for community.extrachill.com.
 
 **Version**: 1.0.0
 
@@ -9,7 +9,6 @@ A WordPress plugin for the Extra Chill community platform providing forum enhanc
 **Extra Chill Community** is a WordPress plugin providing community functionality:
 - `community.extrachill.com` - Main community platform (WordPress/bbPress) **[Uses extrachill theme + this plugin]**
 - `extrachill.com` - Main website **[Uses extrachill theme + cross-domain integration]**
-- Artist platform features **[Handled by separate extrachill-artist-platform plugin]**
 
 ## Quick Start
 
@@ -32,13 +31,12 @@ composer install
 extrachill-community/
 ├── extrachill-community.php   # Main plugin file
 ├── inc/                       # Core plugin functionality
-├── page-templates/            # Custom page templates  
+├── page-templates/            # Custom page templates
 ├── bbpress/                   # bbPress template overrides
 ├── extrachill-integration/    # Cross-domain authentication
 ├── forum-features/            # Community forum enhancements
-├── login/                     # Custom authentication system
 ├── css/                       # Modular stylesheets
-├── js/                        # JavaScript components (17 files total)
+├── js/                        # JavaScript components (13 files total)
 ├── fonts/                     # Custom font files
 └── vendor/                    # Composer dependencies
 ```
@@ -49,8 +47,8 @@ extrachill-community/
 
 **Organized Feature Architecture** in `forum-features/` directory:
 ```php
-// Master loader
-require_once get_stylesheet_directory() . '/forum-features/forum-features.php';
+// Master loader loads all forum functionality
+require_once plugin_dir_path(__FILE__) . 'forum-features/forum-features.php';
 
 // Admin features: moderation, notifications, forum management, restricted forums
 // Content features: embeds, editor customization, breadcrumbs, queries, pagination
@@ -60,9 +58,9 @@ require_once get_stylesheet_directory() . '/forum-features/forum-features.php';
 
 **bbPress Integration**:
 ```php
-// Plugin enhances bbPress functionality
+// Plugin enhances bbPress functionality with conditional loading
 if (bbp_is_forum_archive() || is_front_page()) {
-    wp_enqueue_style('forums-loop', plugin_dir_url(__FILE__) . 'css/forums-loop.css');
+    wp_enqueue_style('forums-loop', plugin_dir_url(__FILE__) . 'css/forums-loop.css', [], filemtime(plugin_dir_path(__FILE__) . 'css/forums-loop.css'));
 }
 ```
 
@@ -92,7 +90,7 @@ extrachill_login_user_across_domains($user_id);
 seamlessComments.submitComment(commentData);
 ```
 
-**Migration Status**: The theme is transitioning from custom session tokens to WordPress multisite native authentication. Legacy endpoints are maintained during the migration period.
+**Migration Status**: The plugin is transitioning from custom session tokens to WordPress multisite native authentication. Legacy endpoints are maintained during the migration period.
 
 ### 3. User Management & Notifications
 
@@ -111,8 +109,8 @@ $existing_links = get_user_meta($user_id, '_user_profile_dynamic_links', true);
 $notifications = get_user_meta($current_user_id, 'extrachill_notifications', true);
 $unread_count = count(array_filter($notifications, function($n) { return !$n['read']; }));
 
-// User avatar dropdown menu with artist platform integration
-// Conditional links to artist profile management (via plugin)
+// User avatar dropdown menu with plugin integration support
+// Extensible via ec_avatar_menu_items filter
 ```
 
 **Email Management**:
@@ -144,7 +142,7 @@ extrachill_send_email_change_confirmation($user_id, $old_email, $new_email);
 // Modular CSS with conditional loading
 function modular_bbpress_styles() {
     if (is_bbpress()) {
-        wp_enqueue_style('forums-loop', plugin_dir_url(__FILE__) . 'css/forums-loop.css');
+        wp_enqueue_style('forums-loop', plugin_dir_url(__FILE__) . 'css/forums-loop.css', [], filemtime(plugin_dir_path(__FILE__) . 'css/forums-loop.css'));
     }
 }
 ```
@@ -164,14 +162,9 @@ wp_enqueue_script('extrachill-mentions', plugin_dir_url(__FILE__) . 'forum-featu
 // Forum features - Rank System (forum-features/social/rank-system/js/ - 1 file)
 wp_enqueue_script('extrachill-admin', plugin_dir_url(__FILE__) . 'forum-features/social/rank-system/js/extrachill_admin.js', ['jquery']);
 
-// Login system (login/ directory - 2 files)
-wp_enqueue_script('login-register-tabs', plugin_dir_url(__FILE__) . 'login/js/login-register-tabs.js', ['jquery']);
-wp_enqueue_script('join-flow-ui', plugin_dir_url(__FILE__) . 'login/js/join-flow-ui.js', ['jquery']);
-
 // bbPress extensions (bbpress/autosave/ - 1 file)
 // plugin.min.js - TinyMCE autosave functionality
 
-// Note: extrachill-mentions.js exists only in forum-features/social/js/ directory
 ```
 
 ### Database Schema
@@ -192,7 +185,6 @@ get_post_meta($forum_id, '_show_on_homepage'); // Boolean for homepage display
 get_user_meta($user_id, '_user_profile_dynamic_links'); // User social links
 get_user_meta($user_id, 'ec_custom_title'); // Custom user titles
 get_user_meta($user_id, 'extrachill_notifications'); // User notification data
-get_user_meta($user_id, '_artist_profile_ids'); // Artist platform plugin integration
 get_user_meta($user_id, 'user_is_artist'); // Artist account flag
 get_user_meta($user_id, 'user_is_professional'); // Professional account flag
 ```
@@ -201,15 +193,17 @@ get_user_meta($user_id, 'user_is_professional'); // Professional account flag
 
 **Page Templates**:
 ```php
-// Template Name: Login/Register Page Template
-get_header();
-// Custom login/register interface with join flow modal
-
-// Template Name: Account Settings  
+// Template Name: Account Settings
 // User settings management with form processing and email change verification
 
 // Template Name: Notifications Feed
 // User notification system with unread status management
+
+// Template Name: Leaderboard
+// Community leaderboard with user rankings
+
+// Template Name: Following Feed
+// User following feed with custom queries
 ```
 
 **bbPress Overrides**:
@@ -236,33 +230,24 @@ The `ec_avatar_menu_items` filter allows plugins to add custom menu items to the
 add_filter( 'ec_avatar_menu_items', 'my_plugin_avatar_menu_items', 10, 2 );
 
 function my_plugin_avatar_menu_items( $menu_items, $user_id ) {
-    // Add artist profile management for users with artist accounts
-    $user_artist_ids = get_user_meta( $user_id, '_artist_profile_ids', true );
-    
-    if ( ! empty( $user_artist_ids ) ) {
+    // Example: Add custom menu items for community features
+    $is_artist = get_user_meta( $user_id, 'user_is_artist', true );
+
+    if ( $is_artist === '1' ) {
         $menu_items[] = array(
-            'url'      => home_url( '/manage-artist-profiles/' ),
-            'label'    => __( 'Manage Artist Profile(s)', 'textdomain' ),
+            'url'      => home_url( '/artist-dashboard/' ),
+            'label'    => __( 'Artist Dashboard', 'textdomain' ),
             'priority' => 5  // Appears before settings
         );
-        
-        $menu_items[] = array(
-            'url'      => home_url( '/manage-link-page/' ),
-            'label'    => __( 'Manage Link Page(s)', 'textdomain' ),
-            'priority' => 6
-        );
-    } else {
-        // Show create option for artists/professionals
-        $is_artist = get_user_meta( $user_id, 'user_is_artist', true );
-        if ( $is_artist === '1' ) {
-            $menu_items[] = array(
-                'url'      => home_url( '/manage-artist-profiles/' ),
-                'label'    => __( 'Create Artist Profile', 'textdomain' ),
-                'priority' => 5
-            );
-        }
     }
-    
+
+    // Add general community menu item
+    $menu_items[] = array(
+        'url'      => home_url( '/community-features/' ),
+        'label'    => __( 'Community Features', 'textdomain' ),
+        'priority' => 10
+    );
+
     return $menu_items;
 }
 ```
@@ -276,14 +261,11 @@ function my_plugin_avatar_menu_items( $menu_items, $user_id ) {
 
 ```php
 function extrachill_community_init() {
-    // Plugin initialization
-    // Integrates with extrachill theme
-    // Provides forum and community functionality
-
-    // bbPress enhancements (bbPress is required at activation)
-    // Initialize forum features
+    require_once plugin_dir_path(__FILE__) . 'inc/core/assets.php';
+    require_once plugin_dir_path(__FILE__) . 'inc/includes.php';
+    require_once plugin_dir_path(__FILE__) . 'inc/users/email-change-emails.php';
 }
-add_action('init', 'extrachill_community_init');
+add_action('plugins_loaded', 'extrachill_community_init');
 ```
 
 ### Performance Optimization
@@ -367,7 +349,7 @@ define('EXTRACHILL_API_URL', 'https://community.extrachill.com');
 
 - **Plugin Architecture**: WordPress plugin providing community functionality that integrates with extrachill theme
 - **Theme Integration**: Works seamlessly with extrachill theme on community.extrachill.com
-- **Artist Platform Integration**: Works with `extrachill-artist-platform` plugin via filters and hooks
+- **Plugin Integration**: Works with other community plugins via filters and hooks
 - **No Build System**: Direct file inclusion, no compilation required
 - **Procedural Architecture**: No PSR-4 autoloading configured, uses direct function-based patterns
 - **Organized Structure**: Forum features in structured subdirectories with master loader

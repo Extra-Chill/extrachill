@@ -1,19 +1,3 @@
-@import url("css/root.css");
-
-/*
- Theme Name:   Extra Chill Community
- Theme URI:    https://community.extrachill.com
- Description:  Extra Chill community platform - WordPress theme for forums and community features
- Author:       Chris Huber
- Author URI:   https://chubes.net
- Version:      1.0.0
- License:      GPL v2 or later
- License URI:  https://www.gnu.org/licenses/gpl-2.0.html
- Text Domain:  extra-chill-community
- Requires at least: 5.0
- Tested up to: 6.4
-*/
-
 @font-face {
     font-family: 'WilcoLoftSans';
     src: url('fonts/WilcoLoftSans/WilcoLoftSans-Treble.eot'); /* IE9 Compat Modes */
@@ -39,46 +23,11 @@ a{
 	color: var(--link-color)
 }
  
-body, button, input, select, textarea  {
-	background-color: var(--background-color);
-    color: var(--text-color);
-	font-family: Helvetica, sans-serif;
-	font-size: 17px;
-	margin: 0;
-	font-weight: 400;
-}
-
-blockquote, body, dd, dl, dt, fieldset, figure, h1, h2, h3, h4, h5, h6, hr, html, iframe, legend, li, ol, p, pre, textarea, ul {
-    margin: 0;
-    padding: 0;
-    border: 0;
-}
-.button, .wp-block-button .wp-block-button__link {
-    padding: 10px 20px;
-    display: inline-block;
-}
-a.button{
-	text-decoration:none;
-	color:#fff;
-}
- 
-.site {
-    display: flex;
-    flex-direction: column;
-    min-height: 100vh; /* Ensures the container takes the full height of the viewport */
-}
 h1,h2,h3,h4,h5,h6 {
     font-size: 100%;
     font-style: inherit;
 }
 
-.site-content {
-    margin-left: auto;
-    margin-right: auto;
-    max-width: 1200px;
-    min-width: 1200px;
-}
- 
 h1, h2, h3, h4, h5, h6 {
 font-family: "WilcoLoftSans", sans-serif;
 font-weight: 400;
@@ -86,10 +35,6 @@ font-weight: 400;
 
 h1 {
 	font-size: 36px;
-}
-
-h1#site-title {
-	margin: 0;
 }
 
 h2 {
@@ -124,61 +69,11 @@ a:focus, a:active, a:hover {
 	text-decoration-color: var(--link-color);
 }
 
-.menu-toggle-container:hover {
-    background-color: var(--link-color);
-    transition: background-color 0.1s;
-}
-
-#primary-menu .sub-menu {
-    border-left: 3px solid var(--link-color);
-}
-
-.search-top:hover, .search-top:hover {    
-	fill: var(--link-color);
-}
-
 #bbpress-forums {
 	overflow: visible;
 	font-size: inherit;
 	line-height: 1.6;
 }
-.entry-content:not(:first-child), .entry-summary:not(:first-child), .page-content:not(:first-child) {
-    margin-top: 2em;
-}
- 
-.main-navigation .main-nav ul li a {
-    margin-left: 20px;
-    margin-right: 20px;
-	padding-left: 0;
-	padding-right: 0;
-}
-
-.inside-header.grid-container {
-	max-width: 100%;
-}
-
-.copyright-bar a {
-	color: var(--header-text);
-	text-decoration-color: var(--link-color);
-}
-
-.copyright-bar a:hover {
-	color: var(--button-hover-bg);
-}
-
-.site-footer {
-	margin-top: 5px;
-}
-
-.entry-header {
-	margin: 15px 0;
-}
-
-.site-content {
-	display: block;
-	flex: 1;
-}
-
 .sorting-search div {
 	max-width: 50%;
 }
@@ -195,12 +90,6 @@ a:focus, a:active, a:hover {
 	margin: 0px;
 }
 
-.one-container .site-content {
-	padding: 0;
-}
-.one-container .container{
-	background-color: var(--background-color);
-}
 /* =============================================================================
    Pagination Styles - Unified Design System Implementation
    ============================================================================= */
@@ -355,10 +244,6 @@ a:focus, a:active, a:hover {
 
 /* desktop */
 @media (min-width: 768px) {
-	.inside-header {
-    	padding: 10px 40px;
-	}
- 
 	.bbp-reply-author {
 		border-right: 1px solid #eee;
 	}
@@ -374,62 +259,53 @@ a:focus, a:active, a:hover {
 
 /* mobile + tablet */
 @media (max-width: 768px) {
-	.inside-header {
-	    padding: 0 30px 0 20px;
-	}
-
- 
 	.extrachill-notifications {
 		list-style: none;
 	}
- 
+
 	.extrachill-notifications li {
 		border-bottom: 1px solid var(--border-color);
 	}
- 
+
 	#private-forums {
 		display: block;
 	}
-}
 
-/* Additional footer styles moved to main footer section */
- 
 	h1 {
 		font-size: 28px;
 	}
- 
+
 	.bbp-reply-author {
 		display: grid;
 		flex-wrap: wrap;
 		padding-bottom: 3px;
 	}
- 
- 
+
 	h2 {
 		font-size: 28px;
 	}
- 
+
 	h3 {
 		font-size: 24px;
 	}
- 
+
 	h4 {
 		font-size: 21px;
 	}
- 
+
 	h5 {
 		font-size: 19px;
 	}
- 
-	a.bbp-forum-title { 
+
+	a.bbp-forum-title {
 		font-size: 18px;
 	}
- 
+
 	.forum-title-with-icon {
 		display: block;
 	}
- 
-	.reply .bbp-reply-author {  
+
+	.reply .bbp-reply-author {
 		float: none;
 		margin: 10px;
 		min-height: 80px;
@@ -438,49 +314,47 @@ a:focus, a:active, a:hover {
 		text-align: left;
 		width: auto;
 		border-bottom: 1px solid #efefef;
-		box-sizing: content-box;	
+		box-sizing: content-box;
 	}
- 
+
 	.reply .bbp-reply-content {
 		margin: 0 10px 5px 10px;
 	}
- 
+
 	#bbpress-forums div.bbp-reply-author .bbp-author-name {
 		padding-right: 5px;
 	}
- 
+
 	.followdetails {
 		display: flex;
 	}
- 
- 
+
 	iframe {
 		max-width: 100%;
 	}
- 
+
 	iframe[src*="youtube.com"],
 	iframe[src*="youtu.be"] {
 		max-height: 40vh;
 	}
- 
+
 	#bbpress-forums div.bbp-forum-author,
 	#bbpress-forums div.bbp-reply-author,
 	#bbpress-forums div.bbp-topic-author {
 		float: none;
 		width: auto;
 	}
- 
+
 	#bbpress-forums div.bbp-forum-content,
 	#bbpress-forums div.bbp-reply-content,
 	#bbpress-forums div.bbp-topic-content {
 		padding-right: 0px;
 	}
- 
+
 	.folowdetails {
 		display: flex;
 	}
-
-/*end mobile only styles */ 
+} 
 /* BBPRESS */
 .home #bbpress-forums,
 .search #bbpress-forums {
@@ -725,26 +599,11 @@ span.bbp-admin-links {
 	color: red;
 	padding-bottom: 5px;
 }
- 
-.menu-footer-container a {
-	color: #fff;	
-	text-decoration-color: var(--link-color);
-}
- 
-.menu-footer-container a:hover {
-	color: var(--link-color);
-}
- 
+
 ol, ul {
 	margin: 0 0 1.5em 1em;
 }
 
-/* Override list margins in navigation menu */
-.main-navigation #primary-menu ol,
-.main-navigation #primary-menu ul {
-	margin: 0;
-}
- 
 .settings-button:hover {
 	background-color: var(--button-hover-bg);
 }
@@ -1079,611 +938,8 @@ p.private-forums {
 	justify-content: center;
 }
  
-.social-links {
-	display: flex;
-	justify-content: center;
-	padding: 25px;
-	width: max-content;
-	margin: auto;
-}
-#extra-footer .social-links ul{
-	margin: 0;
-}
- 
-.main-navigation a {
-	display: inline;
-}
- 
-.main-navigation ul ul {
-    display: inherit; 
-    float: none; 
-    box-shadow: none;
-    position: inherit; 
-    left: none; 
-    opacity: inherit; 
-    z-index: 99999; 
-    width: 100%; 
-    text-align: inherit;
-    top: auto;
-    transition: inherit;
-    transition-delay: 0s;
-    pointer-events: fill; 
-    height: 100%;
-    overflow: hidden;
-	background-color: var(--header-bg);
-}
- 
-.social-links svg {
-	margin: 12px;
-	text-align: center;
-	transition: background-color 0.2s ease-out 0s;
-	fill: #fff;
-	height: 22px;
-	width: 22px;
-}
- 
-#primary-menu .social-links li {
-    border: none;
-}
- 
-.social-links svg:hover {
-	fill: var(--link-color);
-	text-decoration: none;
-	cursor: pointer;
-}
- 
-.social-links a:focus {
-	text-decoration: none;
-}
- 
-.social-links ul li {
-	display: inline;
-	list-style: none;
-}
- 
-#extra-footer {
-	background-color: var(--header-bg);
-	color: var(--header-text);
-	font-size: 16px;
-	width: 100%;
-	margin-top: 10px;
-	overflow: hidden;
-}
- 
-#extra-footer a {
-	color: var(--header-text);
-	text-decoration: none;
-}
- 
-#extra-footer li {
-	padding: 3px;
-}
- 
-#extra-footer .menu {
-    padding: 0 15px;
-    margin: 10px 0;
-    box-sizing: border-box;
-}
- 
-#extra-footer ul {
-	list-style: none;
-}
- 
-.footer-copyright {
-    padding: 25px 0 15px 0;
-    text-align: center;
-}
- 
-li > ul, li > ol {
-	margin: 0 0 0 10px;
-}
- 
-#extra-footer .menu-item a {
-    border-bottom: 1px solid var(--link-color);
-    width: max-content;
-}
- 
-#extra-footer .menu-item li a {
-	border-bottom: none;
-}
- 
- 
-.footer-menus-wrapper {
-    padding: 20px 0;
-}
-.footer-menus {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: flex-start;
-}
-.footer-menu-column {
-    flex: 1 1 100%; /* Mobile: full width */
-    padding: 0 15px;
-    box-sizing: border-box;
-    margin-bottom: 20px;
-}
-.footer-menu-column .footer-column-menu { /* This targets the UL */
-    list-style: none;
-    margin: 0;
-    padding: 0;
-}
-.footer-menu-column .footer-column-menu li {
-    line-height: 2.2;
-}
-.footer-menu-column .footer-column-menu li a {
-    border-bottom: 1px solid var(--accent);
-    width: max-content;
-    display: inline-block;
-}
-.footer-menu-column .footer-column-menu .sub-menu li a {
-    border-bottom: none;
-}
-@media (min-width: 768px) {
-    .footer-menus {
-        flex-wrap: nowrap;
-        justify-content: space-between;
-    }
-    .footer-menu-column {
-        flex: 1;
-        text-align: center;
-        margin-bottom: 0;
-        padding: 0 15px;
-    }
-}
- 
-.footer-extra-menu {
-    padding: 15px 0;
-}
-.footer-extra-menu ul {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    display: flex;
-    justify-content: center;
-}
-.footer-extra-menu ul li {
-    margin: 0 10px;
-}
-#extra-footer{
-	background-color:#000;
-	color: #fff;
-	font-size: 16px;
-	width: 100%;
-	margin-top: 10px;
-}
-#extra-footer a{
-	color: #fff;
-	text-decoration: none;
-}
-#extra-footer a:hover {
-	text-decoration: underline;
-	text-decoration-color: var(--accent);
-}
-#extra-footer li{
-	padding:3px;
-}
-.social-links {
-	text-align: center;
-}
-.social-links ul li {
-	display: inline;
-}
-.social-links svg:hover {
-	fill: var(--accent);
-	text-decoration: none;
-}
-.social-links a:focus{
-	text-decoration: none;
-}
-.social-links .social-icon-svg {
-	margin: 12px;
-	text-align: center;
-	transition: background-color 0.2s ease-out 0s;
-	fill: #fff;
-	height: 22px;
-	width: 22px;
-}
-.social-links{
-	padding: 25px;
-}
- 
- 
-/* ========= Header & Site Branding ========= */
- 
-h1.site-title, p.site-title {
-	display: flex;
-	line-height: 1.25;
-	align-content: center;
-	margin: 10px 0;
-}
- 
-/* Stick the header to the top, with a dark background */
-#masthead {
-	position: relative;
-	top: 0;
-	z-index: 1001;
-	background-color: var(--header-bg);
-}
- 
-/* Header container: use Flexbox to space out branding and navigation */
-header#masthead.site-header {
-	display: flex;
-	justify-content: space-between;
-	align-items: center;
-	width: 100%;
-}
- 
-/* Site Branding (logo or site title) */
-.site-branding {
-	flex: 1;
-	margin: 0 20px;
-}
- 
-#site-title {
-	padding: 0;
-	line-height: 0.5;
-}
- 
-.site-title a {
-	text-transform: none;
-	font-family: "Lobster", sans-serif;
-	float: left;
-	font-weight: 100;
-	color: var(--header-text);
-	text-decoration: none;
-	font-size: 36px;
-	line-height: 1.8;
-}
- 
-/* ========= Navigation & Interactive Elements ========= */
- 
-/* Primary navigation, search icon, and (cart or user) icon share flex alignment */
-.main-navigation,
-.search-top,
-.cart-top {
-	display: flex;
-	align-items: center;
-}
- 
-/* Container for the search/cart (or search/user) block */
-.search-user {
-	display: flex;
-	align-items: center;
-}
- 
-/* The search icon should be clickable */
-.search-top {
-	cursor: pointer;
-	pointer-events: auto;
-}
- 
-h1.site-title, p.site-title {
-	margin: 0;
-	line-height: 1.25;
-}
- 
-#site-title {
-	padding-bottom: 0;
-	line-height: 0.5;
-	padding-top: 0;
-}
- 
-@media (max-width: 768px) {
-    .site-title a {
-        font-size: 34px;
-    }
-}
-@media (max-width: 1024px) {
-.site-content{
-	margin: 0 15px;
-}
-}
+/* ========= Community Plugin Styles ========= */
 
-@media (max-width: 1200px) {
-.site-content {
-	min-width: auto;
-}
-}
-
-/* ========= Menu Toggle (Hamburger Icon) ========= */
- 
-.menu-toggle-container {
-	width: 35px;
-	height: 30px;
-	cursor: pointer;
-	position: relative;
-	background: none;
-	border: none;
-}
- 
-button.menu-toggle-container {
-	background: var(--header-bg);
-	border: none;
-	border-radius: 0;
-	padding: 0;
-}
- 
-.menu-line {
-	display: block;
-	width: 80%;
-	height: 3px;
-	background-color: #fff;
-	margin: 5px auto;
-	transition: transform 0.3s ease;
-	text-align: center;
-	border-radius: 5px;
-}
- 
-/* Hidden by default */
-.search-section,
-.menu-items {
-	transform: translateX(-100%);
-	transition: transform 0.6s ease-in-out;
-	background-color: var(--header-bg);
-}
- 
-.search-wrap {
-	padding: 15px;
-	text-align: center;
-	display: flex;
-}
-.search-wrap input[type="text"] {
-	width: 100%;
-	padding: 4px 54px 4px 10px;
-	height: 45px;
-	color: var(--text-color);
-	background-color: var(--card-background);
-	margin: 0;
-	border: 1px solid var(--border-color);
-	border-radius: 3px;
-	font-size: 14px;
-}
- 
-button,
-.settings-button {
-	padding: 5px 10px;
-	background-color: var(--button-bg);
-	border: 0;
-	transition: background-color 0.3s linear;
-	-webkit-border-radius: 3px;
-	-moz-border-radius: 3px;
-	border-radius: 5px;
-	font-size: 14px;
-	-moz-appearance: none !important;
-	-webkit-appearance: none !important;
-	appearance: none !important;
-	cursor: pointer;
-	display: inline-block;
-	color: #fff;
-}
- 
-input.s:focus {
-	padding-left: 10px;
-	border-color: #EAEAEA;
-	text-indent: 0;
-}
- 
-button.search {
-	padding: 8px;
-	margin-left: 3px;
-}
- 
-/* Show search section only when search icon is clicked */
-.search-section.menu-open {
-	transform: translateX(0);
-	overflow-y: auto; /* Enable internal scrolling */
-}
-
-/* Search-only mode - no click blocking */
-#primary-menu.search-open:not(.menu-opened) {
-	width: auto;
-	height: auto;
-	position: relative;
-	z-index: 1000;
-}
-
-/* Ensure search section displays properly in search-only mode */
-#primary-menu.search-open:not(.menu-opened) .search-section.menu-open {
-	transform: translateX(0);
-}
- 
-.menu-items {
-	height: 100vh;
-}
- 
-/* Show menu items when full menu is toggled */
-.menu-items.menu-open {
-	transform: translateX(0);
-	overflow-y: auto;
-	max-height: 100vh; /* Ensure menu occupies the full viewport height */
-}
-  
-/* ========= SVG Icons ========= */
- 
-svg.menu-toggle,
-svg.search-top,
-svg.submenu-indicator {
-	fill: #fff;
-	transition: fill 0.3s;
-	margin: 0 20px;
-	vertical-align: middle;
-}
- 
-.main-navigation,
-.search-top,
-.user-profile-icon {
-	display: flex;
-	align-items: center;
-}
- 
-svg.login-icon {
-	fill: #fff;
-	transition: fill 0.3s;
-	vertical-align: middle;
-	margin-right: 20px;
-}
- 
-svg.search-top,
-svg.login-icon {
-	height: 1.15em;
-	width: 1.15em;
-}
- 
-svg.submenu-indicator {
-	margin: 0 -20px;
-	height: 1em;
-	width: 1em;
-}
- 
-svg.menu-toggle {
-	margin: 15px;
-}
- 
-/* ========= Primary Menu (Responsive Navigation) ========= */
- 
-.submenu-indicator {
-	position: absolute;
-	top: 50%;
-	right: 0;
-	transform: translateY(-50%);
-}
- 
-@media only screen and (max-width: 359px) {
-	.site-title a {
-	  font-size: 27px;
-	}
-}
- 
-@media (max-width: 425px) {
-	.site-title a {
-		font-size: 32px;
-	}
-}
- 
-@media (max-width: 350px) {
-	.site-title a {
-		font-size: 27px;
-	}
-}
- 
-/* === Flyout Menu: Hidden by Default === */
-
-/* Ensure main-navigation has positioning context */
-.main-navigation {
-	position: relative;
-}
- 
-.main-navigation #primary-menu {
-	position: fixed;
-	top: 60px; /* Start below header */
-	left: 0;
-	width: 100%;
-	height: calc(100vh - 60px); /* Subtract header height */
-	z-index: 1000;
-	overflow-y: auto;
-	transform: translateX(-100%);
-	transition: transform 0.6s ease-in-out;
-	padding-top: 0; /* Remove padding since we're starting below header */
-}
-
-/* Account for admin bar when present */
-.admin-bar .main-navigation #primary-menu {
-	top: 92px; /* Header + admin bar height */
-	height: calc(100vh - 92px);
-}
- 
-#primary-menu.menu-open {
-	transform: translateX(0);
-	overflow-y: auto;
-}
- 
-.main-navigation ul {
-	display: inherit;
-}
- 
-.search-section,
-.menu-items {
-	transform: translateX(-100%);
-	transition: transform 0.6s ease-in-out;
-	background-color: var(--header-bg);
-}
-
-.search-section.menu-open,
-.menu-items.menu-open {
-	transform: translateX(0);
-}
- 
-.menu-items {
-	height: calc(100vh - 60px); /* Subtract header height */
-	overflow-y: auto;
-}
- 
-body.menu-open {
-	overflow: clip;
-}
- 
-.menu-opened {
-	width: 100%;
-	height: 100vh;
-	overflow-y: auto;
-	z-index: 1000;
-}
- 
-#primary-menu li {
-	background-color: var(--header-bg);
-	border-top: 1px solid #888;
-	text-align: center;
-	color: #fff;
-}
- 
-#primary-menu a {
-	color: #fff;
-	text-transform: uppercase;
-	line-height: 2.5em;
-	font-size: 19px;
-}
- 
-#primary-menu .sub-menu {
-	max-height: 0;
-	overflow: hidden;
-	transition: max-height 0.3s ease, padding 0.3s ease;
-}
- 
-#primary-menu .sub-menu.submenu-open {
-	display: block;
-	max-height: 500px; /* Adjust as needed */
-	padding-top: 10px;
-}
- 
-.menu-toggle-container.menu-open .top {
-	transform: translateY(8px) rotate(45deg);
-}
- 
-.menu-toggle-container.menu-open .middle {
-	opacity: 0;
-}
- 
-.menu-toggle-container.menu-open .bottom {
-	transform: translateY(-8px) rotate(-45deg);
-}
- 
-.menu-footer-links {
-	min-height: 40px;
-}
- 
-.menu-footer-links a {
-	margin: 0 10px;
-}
- 
-.auth-buttons {
-	text-transform: uppercase;
-	margin-right: 10px;
-}
- 
-.auth-buttons a {
-	color: #fff;
-}
- 
 /* Card-based forum layout styles */
 .bbp-forum-info {
     margin-bottom: 15px;

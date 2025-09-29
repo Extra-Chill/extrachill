@@ -1,7 +1,6 @@
 <?php
 /* Template Name: Account Settings */
 
-// Form processing logic is now in functions.php
 
 get_header();
 ?>
@@ -10,7 +9,6 @@ get_header();
 
 <?php
 
-// Ensure only logged-in users can access this page
 if (!is_user_logged_in()) {
     auth_redirect();
 }
@@ -18,7 +16,6 @@ if (!is_user_logged_in()) {
 $current_user = wp_get_current_user();
 $user_id = $current_user->ID;
 
-// Display success/error messages
 $settings_errors = get_transient('user_settings_errors_' . $user_id);
 if ($settings_errors) {
     delete_transient('user_settings_errors_' . $user_id);
@@ -39,7 +36,6 @@ if ($settings_success) {
     echo '</div>';
 }
 
-// Check for email change specific messages
 $email_change_error = get_transient('email_change_error_' . $user_id);
 if ($email_change_error) {
     delete_transient('email_change_error_' . $user_id);
@@ -50,37 +46,15 @@ if ($email_change_error) {
 
 ?>
 
-<div class="account-settings-page"> <!-- Renamed class for page-level styling -->
-    <h1><?php esc_html_e( 'Settings', 'extra-chill-community' ); ?></h1>
+<div class="account-settings-page">    <h1><?php esc_html_e( 'Settings', 'extra-chill-community' ); ?></h1>
 
     <form method="post" enctype="multipart/form-data" id="user-settings-form">
         <?php wp_nonce_field('update-user-settings_' . $user_id, '_wpnonce_update_user_settings'); ?>
-        <input type="hidden" name="current_tab_hash" id="current_tab_hash" value=""> <!-- Will be populated by JS -->
-
-        <div class="shared-tabs-component"> <!-- Added shared-tabs-component wrapper -->
-            <div class="shared-tabs-buttons-container"> <!-- Changed class -->
-                <!-- Item 1: Account Details -->
-                <div class="shared-tab-item"> <!-- Changed class -->
-                    <button type="button" class="shared-tab-button active" data-tab="tab-account-details"> <!-- Changed class, added active -->
-                        <?php esc_html_e( 'Account Details', 'extra-chill-community' ); ?>
-                        <span class="shared-tab-arrow open"></span> <!-- Changed class, added open because button is active -->
-                    </button>
-                    <div id="tab-account-details" class="shared-tab-pane"> <!-- Changed class, removed style -->
-                        <h2><?php esc_html_e( 'Account Details', 'extra-chill-community' ); ?></h2>
-                        <?php // Removed individual form tag ?>
+        <input type="hidden" name="current_tab_hash" id="current_tab_hash" value="">
+        <div class="shared-tabs-component">            <div class="shared-tabs-buttons-container">                <div class="shared-tab-item">                    <button type="button" class="shared-tab-button active" data-tab="tab-account-details">                        <?php esc_html_e( 'Account Details', 'extra-chill-community' ); ?>
+                        <span class="shared-tab-arrow open"></span>                    </button>
+                    <div id="tab-account-details" class="shared-tab-pane">                        <h2><?php esc_html_e( 'Account Details', 'extra-chill-community' ); ?></h2>
         <?php
-                        // Display errors for Personal Information Form (transient based) - Now handled globally
-                        /*
-                        $personal_errors = get_transient('personal_settings_errors_' . $user_id);
-                        if ($personal_errors) delete_transient('personal_settings_errors_' . $user_id);
-        if (!empty($personal_errors)) {
-            echo '<div class="settings-errors">';
-            foreach ($personal_errors as $error) {
-                echo '<p class="error">' . esc_html($error) . '</p>';
-            }
-            echo '</div>';
-        }
-                        */
         ?>
         <fieldset class="name-settings">
                         <p>
@@ -91,12 +65,10 @@ if ($email_change_error) {
                             <label for="last_name"><?php esc_html_e( 'Last Name', 'extra-chill-community' ); ?></label>
             <input type="text" id="last_name" name="last_name" value="<?php echo esc_attr($current_user->last_name); ?>">
                         </p>
-                        <?php /* Nickname field removed as per user request */ ?>
                         <p>
                             <label for="display_name"><?php esc_html_e( 'Display Name', 'extra-chill-community' ); ?></label>
             <select id="display_name" name="display_name">
                 <?php
-                                // Generate display name options
                                 $public_display = array();
                                 $public_display['nickname'] = $current_user->nickname;
                                 $public_display['username'] = $current_user->user_login;
@@ -112,7 +84,6 @@ if ($email_change_error) {
                                     $public_display['lastfirst'] = $current_user->last_name . ' ' . $current_user->first_name;
                                 }
 
-                                // Remove empty or duplicate values
                                 $public_display = array_unique(array_filter(array_map('trim', $public_display)));
 
                                 foreach ($public_display as $id => $item) {
@@ -127,32 +98,13 @@ if ($email_change_error) {
                     </div>
                 </div>
 
-                <!-- Item 2: Security -->
-                <div class="shared-tab-item"> <!-- Changed class -->
-                    <button type="button" class="shared-tab-button" data-tab="tab-security"> <!-- Changed class -->
-                        <?php esc_html_e( 'Security', 'extra-chill-community' ); ?>
-                        <span class="shared-tab-arrow"></span> <!-- Changed class -->
-                    </button>
-                    <div id="tab-security" class="shared-tab-pane"> <!-- Changed class, removed style -->
-                        <h2><?php esc_html_e( 'Security', 'extra-chill-community' ); ?></h2>
-                        <?php // Removed individual form tag and nonce ?>
+                <div class="shared-tab-item">                    <button type="button" class="shared-tab-button" data-tab="tab-security">                        <?php esc_html_e( 'Security', 'extra-chill-community' ); ?>
+                        <span class="shared-tab-arrow"></span>                    </button>
+                    <div id="tab-security" class="shared-tab-pane">                        <h2><?php esc_html_e( 'Security', 'extra-chill-community' ); ?></h2>
         <?php
-                        // Display errors for Account Security Form (transient based) - Now handled globally
-                        /*
-                        $security_errors = get_transient('security_settings_errors_' . $user_id);
-                        if ($security_errors) delete_transient('security_settings_errors_' . $user_id);
-        if (!empty($security_errors)) {
-            echo '<div class="settings-errors">';
-            foreach ($security_errors as $error) {
-                echo '<p class="error">' . esc_html($error) . '</p>';
-            }
-            echo '</div>';
-        }
-                        */
         ?>
         <fieldset class="account-settings">
                         <?php
-                        // Check for pending email change
                         $pending_change = extrachill_get_user_pending_email_change( $user_id );
                         $can_change_email = extrachill_can_user_change_email( $user_id );
                         ?>
@@ -197,6 +149,10 @@ if ($email_change_error) {
                         </p>
                         <?php endif; ?>
                         <p>
+                            <label for="current_pass"><?php esc_html_e( 'Current Password', 'extra-chill-community' ); ?> <span class="required">*</span></label>
+                            <input type="password" id="current_pass" name="current_pass" autocomplete="current-password">
+                        </p>
+                        <p>
                             <label for="pass1"><?php esc_html_e( 'New Password', 'extra-chill-community' ); ?></label>
                             <input type="password" id="pass1" name="pass1" autocomplete="new-password">
                         </p>
@@ -208,24 +164,17 @@ if ($email_change_error) {
                     </div>
                 </div>
 
-                <!-- Item 3: Subscriptions -->
-                <div class="shared-tab-item"> <!-- Changed class -->
-                    <button type="button" class="shared-tab-button" data-tab="tab-subscriptions"> <!-- Changed class -->
-                        <?php esc_html_e( 'Subscriptions', 'extra-chill-community' ); ?>
-                        <span class="shared-tab-arrow"></span> <!-- Changed class -->
-                    </button>
-                    <div id="tab-subscriptions" class="shared-tab-pane"> <!-- Changed class, removed style -->
-                        <h2><?php esc_html_e( 'Subscriptions & Email Preferences', 'extra-chill-community' ); ?></h2>
+                <div class="shared-tab-item">                    <button type="button" class="shared-tab-button" data-tab="tab-subscriptions">                        <?php esc_html_e( 'Subscriptions', 'extra-chill-community' ); ?>
+                        <span class="shared-tab-arrow"></span>                    </button>
+                    <div id="tab-subscriptions" class="shared-tab-pane">                        <h2><?php esc_html_e( 'Subscriptions & Email Preferences', 'extra-chill-community' ); ?></h2>
                         <p><?php esc_html_e( 'Manage email consent for bands you follow. Unchecking will prevent a band from seeing your email or including it in their exports.', 'extra-chill-community' ); ?></p>
                         
-                        <?php // Removed individual form tag and nonce ?>
                         <div id="followed-bands-list">
             <?php
                             global $wpdb;
                             $table_name = $wpdb->prefix . 'artist_subscribers';
                             $current_user_id = get_current_user_id();
 
-                            // Get all artist_profile_ids for which the current user has a 'platform_follow_consent'
                             $consented_artist_ids_results = $wpdb->get_results( $wpdb->prepare(
                                 "SELECT artist_profile_id FROM {$table_name} WHERE user_id = %d AND source = 'platform_follow_consent'",
                                 $current_user_id
@@ -241,13 +190,12 @@ if ($email_change_error) {
                                         $artist_id = $artist_post->ID;
                                         $artist_name = get_the_title( $artist_id );
                                         $artist_url = get_permalink( $artist_id );
-                                        // Determine if user has consented for this specific band via platform follow
                                         $has_platform_consent = in_array( $artist_id, $consented_artist_ids );
                                     ?>
                                     <li>
                                         <input type="checkbox"
                                                id="artist_consent_<?php echo esc_attr( $artist_id ); ?>"
-                                               name="artists_consented[]" // Ensure this is the correct name for the AJAX handler
+                                               name="artists_consented[]"
                                                value="<?php echo esc_attr( $artist_id ); ?>"
                                                <?php checked( $has_platform_consent, true ); ?>>
                                         <label for="artist_consent_<?php echo esc_attr( $artist_id ); ?>">
@@ -267,18 +215,14 @@ if ($email_change_error) {
                         </div>
                     </div>
                 </div>
-            </div> <!-- End shared-tabs-buttons-container -->
-
-            <div class="shared-desktop-tab-content-area" style="display: none;"></div> <!-- Added desktop content area -->
-
-        </div> <!-- End shared-tabs-component -->
-
+            </div>
+            <div class="shared-desktop-tab-content-area" style="display: none;"></div>
+        </div>
         <div class="user-settings-save-button-container" style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #eee;">
             <input type="submit" name="submit_user_settings" class="button button-primary" value="<?php esc_attr_e( 'Save All Settings', 'extra-chill-community' ); ?>">
         </div>
 
-    </form> <!-- End user-settings-form -->
-</div>
+    </form></div>
 
 <?php
 get_footer();

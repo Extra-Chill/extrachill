@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a **WordPress plugin** called "Extra Chill Community" for the **Extra Chill** community platform - a music community with comprehensive forum enhancements and cross-domain authentication. The plugin provides community and forum functionality that integrates with the extrachill theme. Artist profile and link page features are handled by the `extrachill-artist-platform` plugin.
+This is a **WordPress plugin** called "Extra Chill Community" for the **Extra Chill** community platform - a music community with comprehensive forum enhancements and cross-domain authentication. The plugin provides community and forum functionality that integrates with the extrachill theme.
 
 **Plugin Information:**
 - **Name**: Extra Chill Community
@@ -20,7 +20,6 @@ This is a **WordPress plugin** called "Extra Chill Community" for the **Extra Ch
 ## KNOWN ISSUES
 
 **PSR-4 Implementation**: No PSR-4 autoloading configured in composer.json. The plugin currently uses procedural patterns throughout forum features.
-
 
 **Notification System Enhancement**: Expand real-time notification capabilities and improve caching strategies.
 
@@ -92,7 +91,6 @@ composer install
 ### Page Templates
 - `page-templates/following-feed-template.php` - User following feed
 - `page-templates/leaderboard-template.php` - User leaderboard
-- `page-templates/login-register-template.php` - Authentication with join flow modal
 - `page-templates/main-blog-comments-feed.php` - Cross-domain blog comments
 - `page-templates/notifications-feed.php` - User notifications system
 - `page-templates/recent-feed-template.php` - Recent community activity
@@ -101,10 +99,7 @@ composer install
 ### Authentication & Integration
 - `extrachill-integration/session-tokens.php` - **Legacy**: Cross-domain session management (maintained for compatibility)
 - `extrachill-integration/seamless-comments.php` - Cross-domain commenting with multisite integration
-- `login/register.php` - Registration system with email verification
-- `login/login.php` - Custom login system integrated with WordPress multisite authentication
-- `login/login-includes.php` - Login system includes with multisite support
-- `login/email-change-emails.php` - Email change verification and confirmation emails
+- `inc/users/email-change-emails.php` - Email change verification and confirmation emails (user settings functionality)
 
 ### Forum Features Architecture
 - **Admin Features**: Moderation tools, forum management, email notifications, restricted forums (`admin/`)
@@ -114,14 +109,12 @@ composer install
 - **Master Loader**: `forum-features/forum-features.php` loads all functionality with comprehensive documentation
 - **Asset Organization**: Specialized JavaScript files and CSS organized within feature subdirectories
 
-### JavaScript Architecture (17 total files)
+### JavaScript Architecture (15 total files)
 - **Core Utilities**: `js/utilities.js` - Shared functionality across components
 - **Main JS Directory** (`js/`): 10 files - Core functionality including custom-avatar.js, manage-user-profile-links.js, quote.js, shared-tabs.js, tinymce-image-upload.js, topic-quick-reply.js, sorting.js, home-collapse.js, nav-menu.js
 - **Social Features** (`forum-features/social/js/`): 3 files - extrachill-follow.js, upvote.js, extrachill-mentions.js
 - **Rank System** (`forum-features/social/rank-system/js/`): 1 file - extrachill_admin.js
-- **Login System** (`login/js/`): 2 files - login-register-tabs.js, join-flow-ui.js
 - **bbPress Extensions** (`bbpress/autosave/`): 1 file - plugin.min.js
-- **Note**: User mentions functionality exists only in `forum-features/social/js/extrachill-mentions.js`
 
 ### Asset Enqueuing System
 - **Main Stylesheet**: `extra-chill-community-style` - Primary theme styles with root CSS import system
@@ -129,7 +122,7 @@ composer install
 - **Modular CSS**: Context-specific loading via `modular_bbpress_styles()` function
 - **Font System**: Custom WilcoLoftSans and Lobster font-face declarations with inheritance optimization
 - **Content Width**: Responsive overrides with flex-wrap patterns for mobile optimization
-- **JavaScript Assets**: 17 specialized JS files including utilities, social features, forum enhancements, and media upload
+- **JavaScript Assets**: 15 specialized JS files including utilities, social features, forum enhancements, and media upload
 - **External Dependencies**: FontAwesome 6.5.1 via CDN
 - **Dynamic Versioning**: All assets use `filemtime()` for cache busting
 - **Conditional Loading**: Context-aware asset loading for optimal performance
@@ -195,7 +188,6 @@ composer install
 - `_user_profile_dynamic_links` - User profile social links
 - `ec_custom_title` - User custom titles (default: 'Extra Chillian')
 - `extrachill_notifications` - User notification data cache
-- `_artist_profile_ids` - Cross-reference to artist platform plugin data
 - `user_is_artist` - User role flag for artist accounts
 - `user_is_professional` - User role flag for professional accounts
 
@@ -210,12 +202,13 @@ The theme provides the `ec_avatar_menu_items` filter to allow plugins to add cus
 add_filter( 'ec_avatar_menu_items', 'my_plugin_avatar_menu_items', 10, 2 );
 
 function my_plugin_avatar_menu_items( $menu_items, $user_id ) {
+    // Example: Add custom menu item for community features
     $menu_items[] = array(
-        'url'      => home_url( '/custom-page/' ),
-        'label'    => __( 'Custom Menu Item', 'textdomain' ),
+        'url'      => home_url( '/community-settings/' ),
+        'label'    => __( 'Community Settings', 'textdomain' ),
         'priority' => 10
     );
-    
+
     return $menu_items;
 }
 ```
@@ -234,7 +227,7 @@ The plugin operates as a production WordPress plugin serving the Extra Chill com
 
 **Architecture Transition**: The community functionality has been transitioned from a standalone theme to a plugin-based architecture. This plugin now works with the extrachill theme to provide community features on community.extrachill.com.
 
-**Artist Platform Integration**: Plugins can use the `ec_avatar_menu_items` filter to add custom menu items to the user avatar dropdown, maintaining seamless navigation between community and plugin-specific functions.
+**Plugin Integration**: Plugins can use the `ec_avatar_menu_items` filter to add custom menu items to the user avatar dropdown, maintaining seamless navigation between community and plugin-specific functions.
 
 ## Cross-Domain Authentication Flow
 

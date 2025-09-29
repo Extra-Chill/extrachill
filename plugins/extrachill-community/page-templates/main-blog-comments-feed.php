@@ -2,7 +2,9 @@
 /**
  * Template Name: Main Blog Comments Feed
  *
- * @package Extra ChillCommunity
+ * Displays comments from the main blog site in the community interface.
+ *
+ * @package ExtraChillCommunity
  */
 
 get_header();

@@ -12,23 +12,18 @@
  * Requires Plugins: bbpress
  * Text Domain: extra-chill-community
  * Domain Path: /languages
- *
- * @package ExtraChillCommunity
  */
 
 if (!defined('ABSPATH')) {
     exit;
 }
 
-// Plugin constants
 define('EXTRACHILL_COMMUNITY_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('EXTRACHILL_COMMUNITY_PLUGIN_URL', plugin_dir_url(__FILE__));
 
-// Plugin initialization
 function extrachill_community_init() {
-    // Load plugin functionality (multisite functions now handled by extrachill-multisite plugin)
-    require_once plugin_dir_path(__FILE__) . 'forum-features/forum-features.php';
-    require_once plugin_dir_path(__FILE__) . 'login/login-includes.php';
-    require_once plugin_dir_path(__FILE__) . 'login/email-change-emails.php';
+    require_once plugin_dir_path(__FILE__) . 'inc/core/assets.php';
+    require_once plugin_dir_path(__FILE__) . 'inc/includes.php';
+    require_once plugin_dir_path(__FILE__) . 'inc/users/email-change-emails.php';
 }
 add_action('plugins_loaded', 'extrachill_community_init');

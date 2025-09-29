@@ -2,8 +2,9 @@
 /**
  * Template Name: Leaderboard Template
  *
- * @package WordPress
- * @subpackage Your_Theme
+ * Displays user ranking based on community engagement points.
+ *
+ * @package ExtraChillCommunity
  */
 
 get_header();

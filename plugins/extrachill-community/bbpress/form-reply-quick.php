@@ -60,7 +60,7 @@ defined( 'ABSPATH' ) || exit;
                     // Match settings from bbp_enable_visual_editor filter:
                     'teeny'         => false,
                     'quicktags'     => false, 
-                    'content_css'   => EXTRACHILL_COMMUNITY_PLUGIN_URL . 'css/tinymce-editor.css',
+                    'content_css'   => EXTRACHILL_COMMUNITY_PLUGIN_URL . 'inc/assets/css/tinymce-editor.css',
                     // Original settings:
                     'dfw'           => false,
                     'tinymce'       => true,  // Use TinyMCE

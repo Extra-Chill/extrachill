@@ -1,9 +1,8 @@
 ## Current Development Priorities
 
-### Architecture & Code Organization
-- **PSR-4 Implementation**: Add PSR-4 autoloading configuration to composer.json (currently minimal structure only) and implement class-based architecture for forum features
-- **Code Refactoring**: Continue migration from current procedural patterns to object-oriented structure in forum-features directory
-- **Asset Optimization**: Further refinement of conditional CSS/JS loading based on context (current: 17 JavaScript files)
+### Migrate Theme to Plugin
+
+- This directory was once a WordPress theme and is in-progress on conversion to a clean plugin. 
 
 ### User Experience Enhancements
 - **Auto oEmbed**: Convert bare YouTube/Spotify URLs to embeds via content filters
@@ -14,7 +13,7 @@
 
 ### Authentication Enhancement
 - **OAuth Integration**: Add Google and Apple login via existing login/register interface
-- **Session Management**: Enhance cross-domain authentication reliability
+- **Session Management**: Complete migration from custom session tokens to WordPress multisite native authentication
 
 ### Forum Evolution
 - **Hybrid Social-Forum Model**: Custom "feed_post" post type for quick status updates alongside traditional topics/replies
@@ -24,8 +23,9 @@
 ### Performance & Scalability
 - **Caching Strategy**: Implement advanced caching for user activity, notifications, and most active users
 - **Database Optimization**: Review and optimize custom queries and transient usage
-- **Asset Management**: Further optimize conditional loading and reduce JavaScript duplication
+- **Asset Management**: Further optimize conditional loading and reduce JavaScript duplication across 17 files
 
 ### Community Management
 - **Moderation Tools**: Enhance admin capabilities for forum management
 - **Spam Prevention**: Balance security with user accessibility in content filters
+- **Filter System Enhancement**: Expand the ec_avatar_menu_items filter system for better plugin integration
