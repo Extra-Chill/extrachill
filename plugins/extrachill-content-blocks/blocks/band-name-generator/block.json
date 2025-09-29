@@ -1,0 +1,27 @@
+{
+  "apiVersion": 2,
+  "name": "extrachill-blocks/band-name-generator",
+  "title": "Band Name Generator",
+  "icon": "admin-users",
+  "category": "widgets",
+  "description": "Generate random band names with this interactive block.",
+  "textdomain": "extrachill-blocks",
+  "attributes": {
+    "title": {
+      "type": "string",
+      "default": "Band Name Generator"
+    },
+    "buttonText": {
+      "type": "string",
+      "default": "Generate Band Name"
+    }
+  },
+  "supports": {
+    "html": false,
+    "align": true
+  },
+  "editorScript": "file:./index.js",
+  "editorStyle": "file:./index.css",
+  "style": "file:./style-index.css",
+  "render": "file:./render.php"
+}

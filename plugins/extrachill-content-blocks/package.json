@@ -1,0 +1,42 @@
+{
+  "name": "extrachill-blocks",
+  "version": "1.0.0",
+  "description": "A collection of custom Gutenberg blocks for community engagement including trivia, voting, and music industry generators.",
+  "author": "Chris Huber <https://extrachill.com>",
+  "license": "GPL-2.0-or-later",
+  "main": "extrachill-blocks.php",
+  "scripts": {
+    "build": "wp-scripts build",
+    "start": "wp-scripts start",
+    "build:trivia": "wp-scripts build blocks/trivia/src/index.js --output-path=build/trivia",
+    "build:image-voting": "wp-scripts build blocks/image-voting/src/index.js --output-path=build/image-voting",
+    "build:rapper-name-generator": "wp-scripts build blocks/rapper-name-generator/src/index.js --output-path=build/rapper-name-generator",
+    "build:band-name-generator": "wp-scripts build blocks/band-name-generator/src/index.js --output-path=build/band-name-generator",
+    "build:ai-adventure": "wp-scripts build blocks/ai-adventure/src/index.js blocks/ai-adventure/src/view.js blocks/ai-adventure/src/style.scss blocks/ai-adventure/src/editor.scss --output-path=build/ai-adventure",
+    "build:ai-adventure-path": "wp-scripts build blocks/ai-adventure-path/src/index.js --output-path=build/ai-adventure-path",
+    "build:ai-adventure-step": "wp-scripts build blocks/ai-adventure-step/src/index.js --output-path=build/ai-adventure-step",
+    "start:trivia": "wp-scripts start blocks/trivia/src/index.js --output-path=build/trivia",
+    "start:image-voting": "wp-scripts start blocks/image-voting/src/index.js --output-path=build/image-voting",
+    "start:rapper-name-generator": "wp-scripts start blocks/rapper-name-generator/src/index.js --output-path=build/rapper-name-generator",
+    "start:band-name-generator": "wp-scripts start blocks/band-name-generator/src/index.js --output-path=build/band-name-generator",
+    "start:ai-adventure": "wp-scripts start blocks/ai-adventure/src/index.js blocks/ai-adventure/src/view.js blocks/ai-adventure/src/style.scss blocks/ai-adventure/src/editor.scss --output-path=build/ai-adventure",
+    "start:ai-adventure-path": "wp-scripts start blocks/ai-adventure-path/src/index.js --output-path=build/ai-adventure-path",
+    "start:ai-adventure-step": "wp-scripts start blocks/ai-adventure-step/src/index.js --output-path=build/ai-adventure-step",
+    "lint:js": "wp-scripts lint-js",
+    "lint:css": "wp-scripts lint-style",
+    "format": "wp-scripts format",
+    "dist": "./build.sh"
+  },
+  "devDependencies": {
+    "@wordpress/scripts": "^27.1.0"
+  },
+  "dependencies": {
+    "@wordpress/block-editor": "^12.20.0",
+    "@wordpress/blocks": "^12.29.0",
+    "@wordpress/components": "^25.16.0",
+    "@wordpress/data": "^9.21.0",
+    "@wordpress/element": "^5.29.0",
+    "@wordpress/i18n": "^4.52.0",
+    "@wordpress/icons": "^9.42.0"
+  }
+}

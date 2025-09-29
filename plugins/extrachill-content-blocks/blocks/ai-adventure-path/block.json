@@ -1,0 +1,30 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "extrachill-blocks/ai-adventure-path",
+	"version": "0.1.0",
+	"title": "AI Adventure Path",
+	"category": "widgets",
+	"icon": "smiley",
+	"description": "Example block scaffolded with Create Block tool – no build step required.",
+	"example": {},
+	"supports": {
+		"html": false
+	},
+	"attributes": {
+		"label": {
+			"type": "string",
+			"source": "html",
+			"selector": "h3"
+		},
+		"pathPrompt": {
+			"type": "string",
+			"source": "html",
+			"selector": ".ai-adventure-path-prompt"
+		}
+	},
+	"parent": [ "extrachill-blocks/ai-adventure" ],
+	"textdomain": "extrachill-blocks",
+	"editorScript": "file:../../build/ai-adventure-path/index.js",
+	"editorStyle": "file:../../build/ai-adventure-path/editor.css"
+}
