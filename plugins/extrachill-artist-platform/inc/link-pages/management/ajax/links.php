@@ -15,22 +15,18 @@ add_action( 'wp_ajax_render_links_preview_template', 'ec_ajax_render_links_previ
  */
 function ec_ajax_render_link_item_editor() {
     try {
-        // Verify standardized nonce
         check_ajax_referer('ec_ajax_nonce', 'nonce');
-        
-        // Check permissions
+
         if (!ec_ajax_can_manage_link_page($_POST)) {
             wp_send_json_error(array('message' => 'Unauthorized'));
             return;
         }
-        
-        // Get and sanitize parameters
+
         $sidx = isset( $_POST['sidx'] ) ? (int) $_POST['sidx'] : 0;
         $lidx = isset( $_POST['lidx'] ) ? (int) $_POST['lidx'] : 0;
         $link_data = isset( $_POST['link_data'] ) ? (array) $_POST['link_data'] : array();
         $expiration_enabled = isset( $_POST['expiration_enabled'] ) ? (bool) $_POST['expiration_enabled'] : false;
-        
-        // Sanitize link data
+
         $sanitized_link_data = array();
         if ( isset( $link_data['link_text'] ) ) {
             $sanitized_link_data['link_text'] = wp_unslash( sanitize_text_field( $link_data['link_text'] ) );
@@ -44,24 +40,21 @@ function ec_ajax_render_link_item_editor() {
         if ( isset( $link_data['id'] ) ) {
             $sanitized_link_data['id'] = wp_unslash( sanitize_text_field( $link_data['id'] ) );
         }
-        
-        // Render editor template
+
         $editor_html = ec_render_template( 'link-item-editor', array(
             'sidx' => $sidx,
             'lidx' => $lidx,
             'link_data' => $sanitized_link_data,
             'expiration_enabled' => $expiration_enabled
         ) );
-        
-        // Render preview template - allow completely empty links for WYSIWYG
+
         $preview_html = ec_render_template( 'single-link', array(
             'link_url' => $sanitized_link_data['link_url'] ?: '',
             'link_text' => $sanitized_link_data['link_text'] ?: '',
             'link_classes' => 'extrch-link-page-link',
             'youtube_embed' => false
         ) );
-        
-        // Return complete DOM update instructions - server does ALL the thinking
+
         wp_send_json_success( array(
             'action' => 'add_link',
             'editor_html' => $editor_html,
@@ -83,21 +76,17 @@ function ec_ajax_render_link_item_editor() {
  */
 function ec_ajax_render_link_section_editor() {
     try {
-        // Verify standardized nonce
         check_ajax_referer('ec_ajax_nonce', 'nonce');
-        
-        // Check permissions
+
         if (!ec_ajax_can_manage_link_page($_POST)) {
             wp_send_json_error(array('message' => 'Unauthorized'));
             return;
         }
-        
-        // Get and sanitize parameters
+
         $sidx = isset( $_POST['sidx'] ) ? (int) $_POST['sidx'] : 0;
         $section_data = isset( $_POST['section_data'] ) ? (array) $_POST['section_data'] : array();
         $expiration_enabled = isset( $_POST['expiration_enabled'] ) ? (bool) $_POST['expiration_enabled'] : false;
-        
-        // Sanitize section data
+
         $sanitized_section_data = array();
         if ( isset( $section_data['section_title'] ) ) {
             $sanitized_section_data['section_title'] = wp_unslash( sanitize_text_field( $section_data['section_title'] ) );

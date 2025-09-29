@@ -33,10 +33,6 @@
             }
         },
 
-        /**
-         * Handle title input changes and dispatch events for preview
-         * @param {Event} event Input event
-         */
         _handleTitleChange: function(event) {
             const newTitle = event.target.value;
             document.dispatchEvent(new CustomEvent('titleChanged', {
@@ -44,10 +40,6 @@
             }));
         },
 
-        /**
-         * Handle bio textarea changes and dispatch events for preview
-         * @param {Event} event Input event
-         */
         _handleBioChange: function(event) {
             const newBio = event.target.value;
             document.dispatchEvent(new CustomEvent('bioChanged', {

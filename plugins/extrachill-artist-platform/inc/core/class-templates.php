@@ -1,7 +1,6 @@
 <?php
 /**
- * Page Templates - WordPress template routing for artist platform post types.
- * Component templates handled by ec_render_template() in inc/core/filters/templates.php
+ * WordPress template routing for artist platform post types with plugin override support
  */
 
 
@@ -51,7 +50,6 @@ class ExtraChillArtistPlatform_PageTemplates {
      * @return string Modified template path
      */
     public function load_artist_link_page_template( $template ) {
-        // Check if this is a artist_link_page post type
         if ( is_singular( 'artist_link_page' ) ) {
             $plugin_template = EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/live/templates/single-artist_link_page.php';
             if ( file_exists( $plugin_template ) ) {
@@ -59,7 +57,6 @@ class ExtraChillArtistPlatform_PageTemplates {
             }
         }
 
-        // Check if this is a artist_profile post type (for forum integration)
         if ( is_singular( 'artist_profile' ) ) {
             $plugin_template = EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/artist-profiles/frontend/templates/single-artist_profile.php';
             if ( file_exists( $plugin_template ) ) {
@@ -67,7 +64,6 @@ class ExtraChillArtistPlatform_PageTemplates {
             }
         }
 
-        // Check if this is the artist_profile archive
         if ( is_post_type_archive( 'artist_profile' ) ) {
             $plugin_template = EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/artist-profiles/frontend/templates/archive-artist_profile.php';
             if ( file_exists( $plugin_template ) ) {
@@ -94,10 +90,7 @@ class ExtraChillArtistPlatform_PageTemplates {
             return $template;
         }
 
-        // Get the page template
         $page_template = get_page_template_slug( $post );
-
-        // Artist platform page templates to override
         $artist_platform_templates = array(
             'manage-artist-profiles.php',
             'manage-link-page.php',
@@ -105,10 +98,8 @@ class ExtraChillArtistPlatform_PageTemplates {
             'artist-platform-home.php'
         );
 
-        // Check if this page uses a artist platform template
         foreach ( $artist_platform_templates as $artist_template ) {
             if ( $page_template === $artist_template ) {
-                // Map template files to their new locations
                 $template_map = array(
                     'manage-artist-profiles.php' => 'inc/artist-profiles/frontend/templates/manage-artist-profiles.php',
                     'manage-link-page.php' => 'inc/link-pages/management/templates/manage-link-page.php',

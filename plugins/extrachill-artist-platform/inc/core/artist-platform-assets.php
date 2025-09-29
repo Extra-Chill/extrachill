@@ -26,6 +26,7 @@ class ExtraChillArtistPlatform_Assets {
 
     private function init_hooks() {
         add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_frontend_assets' ) );
+        add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_join_flow_assets' ) );
         add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_assets' ) );
         add_action( 'wp_head', array( $this, 'add_custom_styles' ) );
     }
@@ -245,55 +246,38 @@ class ExtraChillArtistPlatform_Assets {
     private function enqueue_artist_profile_management_assets() {
         $plugin_url = EXTRACHILL_ARTIST_PLATFORM_PLUGIN_URL;
 
-        // Enqueue shared-tabs CSS (dependency)
-        wp_enqueue_style( 
-            'extrachill-shared-tabs', 
-            $plugin_url . 'assets/css/shared-tabs.css', 
-            array(), 
-            $this->get_asset_version( 'assets/css/shared-tabs.css' )
-        );
-
         // Enqueue artist-switcher CSS (dependency)
-        wp_enqueue_style( 
-            'extrachill-artist-switcher', 
-            $plugin_url . 'assets/css/components/artist-switcher.css', 
-            array(), 
+        wp_enqueue_style(
+            'extrachill-artist-switcher',
+            $plugin_url . 'assets/css/components/artist-switcher.css',
+            array(),
             $this->get_asset_version( 'assets/css/components/artist-switcher.css' )
         );
 
         // Enqueue manage-artist-profile CSS (main)
-        wp_enqueue_style( 
-            'extrachill-manage-artist-profile', 
-            $plugin_url . 'assets/css/manage-artist-profile.css', 
-            array( 'extrachill-shared-tabs' ), 
+        wp_enqueue_style(
+            'extrachill-manage-artist-profile',
+            $plugin_url . 'assets/css/manage-artist-profile.css',
+            array(),
             $this->get_asset_version( 'assets/css/manage-artist-profile.css' )
         );
 
-        // Enqueue shared-tabs JS (dependency)
-        wp_enqueue_script( 
-            'extrachill-shared-tabs-js', 
-            $plugin_url . 'assets/js/shared-tabs.js', 
-            array( 'jquery' ), 
-            $this->get_asset_version( 'assets/js/shared-tabs.js' ), 
-            true 
-        );
-
         // Enqueue artist-switcher JS (shared component)
-        wp_enqueue_script( 
-            'extrachill-artist-switcher-js', 
-            $plugin_url . 'assets/js/artist-switcher.js', 
-            array(), 
-            $this->get_asset_version( 'assets/js/artist-switcher.js' ), 
-            true 
+        wp_enqueue_script(
+            'extrachill-artist-switcher-js',
+            $plugin_url . 'assets/js/artist-switcher.js',
+            array(),
+            $this->get_asset_version( 'assets/js/artist-switcher.js' ),
+            true
         );
 
         // Enqueue manage-artist-profiles JS (main)
-        wp_enqueue_script( 
-            'extrachill-manage-artist-profiles', 
-            $plugin_url . 'inc/artist-profiles/assets/js/manage-artist-profiles.js', 
-            array( 'jquery', 'extrachill-shared-tabs-js' ), 
-            $this->get_asset_version( 'inc/artist-profiles/assets/js/manage-artist-profiles.js' ), 
-            true 
+        wp_enqueue_script(
+            'extrachill-manage-artist-profiles',
+            $plugin_url . 'inc/artist-profiles/assets/js/manage-artist-profiles.js',
+            array( 'jquery' ),
+            $this->get_asset_version( 'inc/artist-profiles/assets/js/manage-artist-profiles.js' ),
+            true
         );
 
         // Localize script data for artist profile management
@@ -313,27 +297,19 @@ class ExtraChillArtistPlatform_Assets {
 
         // Core assets are handled by individual enqueue methods below
 
-        // Enqueue shared-tabs CSS (dependency)
-        wp_enqueue_style( 
-            'extrachill-shared-tabs', 
-            $plugin_url . 'assets/css/shared-tabs.css', 
-            array(), 
-            $this->get_asset_version( 'assets/css/shared-tabs.css' )
-        );
-
         // Enqueue artist-switcher CSS (dependency)
-        wp_enqueue_style( 
-            'extrachill-artist-switcher', 
-            $plugin_url . 'assets/css/components/artist-switcher.css', 
-            array(), 
+        wp_enqueue_style(
+            'extrachill-artist-switcher',
+            $plugin_url . 'assets/css/components/artist-switcher.css',
+            array(),
             $this->get_asset_version( 'assets/css/components/artist-switcher.css' )
         );
 
         // Management interface styles
-        wp_enqueue_style( 
-            'extrachill-manage-link-page', 
-            $plugin_url . 'inc/link-pages/management/assets/css/management.css', 
-            array( 'extrachill-shared-tabs' ), 
+        wp_enqueue_style(
+            'extrachill-manage-link-page',
+            $plugin_url . 'inc/link-pages/management/assets/css/management.css',
+            array(),
             $this->get_asset_version( 'inc/link-pages/management/assets/css/management.css' )
         );
 
@@ -366,30 +342,21 @@ class ExtraChillArtistPlatform_Assets {
         );
 
         // Enqueue SortableJS for drag and drop functionality
-        wp_enqueue_script( 
-            'sortable-js', 
-            'https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js', 
-            array(), 
-            '1.15.2', 
-            true 
-        );
-
-        // Enqueue shared-tabs JS (dependency)
-        wp_enqueue_script( 
-            'extrachill-shared-tabs-js', 
-            $plugin_url . 'assets/js/shared-tabs.js', 
-            array( 'jquery' ), 
-            $this->get_asset_version( 'assets/js/shared-tabs.js' ), 
-            true 
+        wp_enqueue_script(
+            'sortable-js',
+            'https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js',
+            array(),
+            '1.15.2',
+            true
         );
 
         // Enqueue artist-switcher JS (shared component)
-        wp_enqueue_script( 
-            'extrachill-artist-switcher-js', 
-            $plugin_url . 'assets/js/artist-switcher.js', 
-            array(), 
-            $this->get_asset_version( 'assets/js/artist-switcher.js' ), 
-            true 
+        wp_enqueue_script(
+            'extrachill-artist-switcher-js',
+            $plugin_url . 'assets/js/artist-switcher.js',
+            array(),
+            $this->get_asset_version( 'assets/js/artist-switcher.js' ),
+            true
         );
 
 
@@ -438,7 +405,7 @@ class ExtraChillArtistPlatform_Assets {
 
         foreach ( $management_scripts as $script ) {
             // Analytics script needs Chart.js dependency
-            $dependencies = array( 'jquery', 'sortable-js', 'extrachill-shared-tabs-js', 'extrachill-sortable-system' );
+            $dependencies = array( 'jquery', 'sortable-js', 'extrachill-sortable-system' );
             if ( $script === 'analytics' ) {
                 $dependencies[] = 'chart-js';
             }
@@ -650,17 +617,55 @@ class ExtraChillArtistPlatform_Assets {
     }
 
     /**
+     * Enqueue join flow assets on login/register pages
+     *
+     * Loads join flow modal CSS and JavaScript when on the login-register template.
+     *
+     * @return void
+     */
+    public function enqueue_join_flow_assets() {
+        if ( ! is_page_template( 'page-templates/login-register-template.php' ) ) {
+            return;
+        }
+
+        $css_path = 'inc/join/assets/css/join-flow.css';
+        $js_path = 'inc/join/assets/js/join-flow-ui.js';
+        $plugin_url = EXTRACHILL_ARTIST_PLATFORM_PLUGIN_URL;
+
+        // Enqueue join flow CSS
+        if ( file_exists( EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . $css_path ) ) {
+            wp_enqueue_style(
+                'ec-join-flow',
+                $plugin_url . $css_path,
+                array( 'login-register-styles' ),
+                $this->get_asset_version( $css_path )
+            );
+        }
+
+        // Enqueue join flow JavaScript
+        if ( file_exists( EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . $js_path ) ) {
+            wp_enqueue_script(
+                'ec-join-flow-ui',
+                $plugin_url . $js_path,
+                array( 'login-register-tabs' ),
+                $this->get_asset_version( $js_path ),
+                true
+            );
+        }
+    }
+
+    /**
      * Get asset version using filemtime() for cache busting.
      * @param string $asset_path
      * @return string|int
      */
     private function get_asset_version( $asset_path ) {
         $full_path = EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . $asset_path;
-        
+
         if ( file_exists( $full_path ) ) {
             return filemtime( $full_path );
         }
-        
+
         return EXTRACHILL_ARTIST_PLATFORM_VERSION;
     }
 }

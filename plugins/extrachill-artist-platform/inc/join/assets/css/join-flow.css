@@ -1,0 +1,52 @@
+/**
+ * Join Flow Modal Styles
+ *
+ * Styles for the join flow modal overlay and content.
+ *
+ * @package ExtraChillArtistPlatform
+ */
+
+/* Join Flow Modal Overlay */
+.join-flow-modal-overlay {
+	display: none;
+	position: fixed;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	background: rgba(0, 0, 0, 0.8);
+	z-index: 1000;
+}
+
+/* Join Flow Modal Content */
+.join-flow-modal-content {
+	display: none;
+	position: fixed;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+	background: #161616;
+	border: 1px solid rgba(255, 255, 255, 0.1);
+	border-radius: 5px;
+	padding: 30px;
+	box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+	z-index: 1001;
+	text-align: center;
+	width: 400px;
+	box-sizing: border-box;
+}
+
+@media (max-width: 600px) {
+	.join-flow-modal-content {
+		width: 95%;
+		padding: 20px;
+	}
+}
+
+/* Join Flow Button Container */
+.join-flow-buttons {
+	display: flex;
+	justify-content: space-between;
+	gap: 10px;
+	flex-direction: column;
+}

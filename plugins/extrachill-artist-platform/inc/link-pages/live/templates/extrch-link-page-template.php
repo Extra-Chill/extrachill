@@ -122,8 +122,7 @@ if (empty($single_artist_link_page_id) && isset($extrch_link_page_template_data[
 $artist_slug = isset($data['artist_profile']->post_name) ? $data['artist_profile']->post_name : '';
 $share_page_url = !empty($artist_slug) ? 'https://extrachill.link/' . $artist_slug : home_url('/'); // Fallback to home_url if slug is empty
 
-// Cross-domain authentication is now handled natively by WordPress multisite
-// No need for custom session token checks
+// Cross-domain authentication is handled natively by WordPress multisite
 
 $bg_type = isset($data['css_vars']['--link-page-background-type']) ? $data['css_vars']['--link-page-background-type'] : 'color';
 

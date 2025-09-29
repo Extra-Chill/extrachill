@@ -46,12 +46,10 @@ class ExtraChillArtistPlatform {
     private function check_dependencies() {
         $errors = array();
         
-        // Check for required community plugin functionality
         if ( ! function_exists( 'extrachill_community_get_version' ) && get_template() !== 'extrachill' ) {
             $errors[] = 'Extra Chill Artist Platform requires the Extra Chill Community plugin or Extra Chill theme.';
         }
-        
-        // Check for bbPress plugin
+
         if ( ! class_exists( 'bbPress' ) && ! is_plugin_active( 'bbpress/bbpress.php' ) ) {
             $errors[] = 'Extra Chill Artist Platform requires bbPress plugin to be active.';
         }
@@ -90,8 +88,6 @@ class ExtraChillArtistPlatform {
             dirname( EXTRACHILL_ARTIST_PLATFORM_PLUGIN_BASENAME ) . '/languages' 
         );
     }
-
-
 
     private function load_includes() {
         require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/core/class-templates.php';
@@ -150,8 +146,9 @@ class ExtraChillArtistPlatform {
         require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/core/actions/save.php';
         require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/core/actions/sync.php';
         require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/core/actions/delete.php';
-        require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/core/actions/join-flow.php';
         require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/core/actions/homepage-hooks.php';
+
+        require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/join/join-flow.php';
         
         require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/core/filters/data.php';
 

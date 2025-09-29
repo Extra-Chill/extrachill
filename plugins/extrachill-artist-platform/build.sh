@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Extra Chill Artist Platform - Build Script
-# Clean -> Install prod deps -> Copy -> Validate -> ZIP -> Restore dev deps
+# Creates production-ready ZIP package for WordPress deployment
 
 set -e
 
