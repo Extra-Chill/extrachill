@@ -53,7 +53,7 @@ function extrachill_get_user_total_points($user_id) {
     $follower_points = 0;
 
     // Get main site post count for points calculation
-    switch_to_blog(1);
+    switch_to_blog( get_blog_id_from_url( 'extrachill.com', '/' ) );
     $main_site_post_count = count_user_posts($user_id, 'post', true);
     restore_current_blog();
     $main_site_post_points = $main_site_post_count * 10;

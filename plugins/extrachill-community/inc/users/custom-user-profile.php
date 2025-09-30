@@ -131,7 +131,7 @@ function display_main_site_post_count_on_profile() {
     $user_id = bbp_get_displayed_user_id();
 
     // Get main site post count
-    switch_to_blog(1);
+    switch_to_blog( get_blog_id_from_url( 'extrachill.com', '/' ) );
     $post_count = count_user_posts($user_id, 'post', true);
     restore_current_blog();
 

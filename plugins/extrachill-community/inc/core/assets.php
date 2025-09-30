@@ -47,14 +47,31 @@ function extrachill_enqueue_leaderboard_styles() {
 add_action('wp_enqueue_scripts', 'extrachill_enqueue_leaderboard_styles');
 
 function extrachill_enqueue_settings_page_assets() {
-    if (is_page_template('page-templates/settings-page.php')) {
-        wp_enqueue_style(
-            'settings-page-style',
-            EXTRACHILL_COMMUNITY_PLUGIN_URL . '/inc/assets/css/settings-page.css',
-            array(),
-            filemtime(EXTRACHILL_COMMUNITY_PLUGIN_DIR . '/inc/assets/css/settings-page.css')
-        );
+    if (!is_page('settings')) {
+        return;
     }
+
+    wp_enqueue_style(
+        'extrachill-settings-page',
+        EXTRACHILL_COMMUNITY_PLUGIN_URL . '/inc/assets/css/settings-page.css',
+        array(),
+        filemtime(EXTRACHILL_COMMUNITY_PLUGIN_DIR . '/inc/assets/css/settings-page.css')
+    );
+
+    wp_enqueue_style(
+        'extrachill-shared-tabs',
+        get_template_directory_uri() . '/assets/css/shared-tabs.css',
+        array(),
+        filemtime(get_template_directory() . '/assets/css/shared-tabs.css')
+    );
+
+    wp_enqueue_script(
+        'extrachill-shared-tabs',
+        get_template_directory_uri() . '/assets/js/shared-tabs.js',
+        array('jquery'),
+        filemtime(get_template_directory() . '/assets/js/shared-tabs.js'),
+        true
+    );
 }
 add_action('wp_enqueue_scripts', 'extrachill_enqueue_settings_page_assets');
 

@@ -37,5 +37,6 @@ include_once EXTRACHILL_COMMUNITY_PLUGIN_DIR . 'inc/social/notifications.php';
 include_once EXTRACHILL_COMMUNITY_PLUGIN_DIR . 'inc/users/custom-avatar.php';
 include_once EXTRACHILL_COMMUNITY_PLUGIN_DIR . 'inc/users/custom-user-profile.php';
 include_once EXTRACHILL_COMMUNITY_PLUGIN_DIR . 'inc/users/verification.php';
-include_once EXTRACHILL_COMMUNITY_PLUGIN_DIR . 'inc/users/user-settings-handler.php';
+include_once EXTRACHILL_COMMUNITY_PLUGIN_DIR . 'inc/users/settings/settings-content.php';
+include_once EXTRACHILL_COMMUNITY_PLUGIN_DIR . 'inc/users/settings/settings-form-handler.php';
 include_once EXTRACHILL_COMMUNITY_PLUGIN_DIR . 'inc/users/online-users-count.php';
