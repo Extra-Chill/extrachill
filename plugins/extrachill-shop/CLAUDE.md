@@ -44,7 +44,7 @@ extrachill-shop/
 ```
 
 ### Development Standards
-- **PSR-4 Autoloading**: Follow composer autoloading standards
+- **Direct Include Pattern**: Uses `require_once` for all plugin functionality (no PSR-4 autoloading)
 - **WordPress Hooks**: Extensive use of actions/filters for extensibility
 - **Security First**: All inputs sanitized, outputs escaped, nonces verified
 - **Performance Focused**: Conditional loading, caching, optimization
