@@ -30,10 +30,7 @@ require_once EXTRACHILL_NEWSLETTER_INCLUDES_DIR . 'newsletter-admin.php';
 require_once EXTRACHILL_NEWSLETTER_INCLUDES_DIR . 'newsletter-popup.php';
 
 /**
- * Enqueue newsletter assets with conditional loading
- *
- * Loads newsletter CSS conditionally based on page context and
- * provides AJAX localization with security nonces for all forms.
+ * Enqueue newsletter assets with conditional loading and AJAX localization
  */
 function enqueue_newsletter_assets() {
 	$forms_css_file_path = EXTRACHILL_NEWSLETTER_PLUGIN_DIR . 'assets/newsletter-forms.css';
@@ -201,7 +198,7 @@ function extrachill_newsletter_deactivate() {
 register_deactivation_hook( __FILE__, 'extrachill_newsletter_deactivate' );
 
 /**
- * Register Newsletter plugin integrations
+ * Register newsletter integration points
  */
 function newsletter_register_default_integrations($integrations) {
 	$integrations['navigation'] = array(
