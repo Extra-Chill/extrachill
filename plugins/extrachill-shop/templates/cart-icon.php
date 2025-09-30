@@ -19,11 +19,6 @@ add_action('extrachill_header_top_right', 'extrachill_shop_display_cart_icon');
  * Display simple cart icon linking to shop
  */
 function extrachill_shop_display_cart_icon() {
-    // Only show cart if WooCommerce is available
-    if (!class_exists('WooCommerce')) {
-        return;
-    }
-
     // Get shop URL - fallback to /shop if no shop page set
     $shop_url = function_exists('wc_get_page_id') ? get_permalink(wc_get_page_id('shop')) : home_url('/shop');
 

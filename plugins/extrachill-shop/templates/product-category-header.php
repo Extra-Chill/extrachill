@@ -19,11 +19,6 @@ add_action('extrachill_after_header', 'extrachill_shop_display_category_nav');
  * Add secondary header with product categories to WooCommerce pages
  */
 function extrachill_shop_display_category_nav() {
-    // Check if WooCommerce is active to prevent errors
-    if (!class_exists('WooCommerce')) {
-        return;
-    }
-
     // Display only on WooCommerce pages: Shop, Cart, Checkout, or Product pages
     if (is_shop() || is_cart() || is_checkout() || is_product() || is_product_category() || is_product_tag()) {
 

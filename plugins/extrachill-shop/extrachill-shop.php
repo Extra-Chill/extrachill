@@ -13,12 +13,10 @@
  * Requires at least: 5.0
  * Tested up to: 6.4
  * Requires PHP: 7.4
+ * Requires Plugins: woocommerce
  */
 
-// Exit if accessed directly
 defined( 'ABSPATH' ) || exit;
-
-// Define plugin constants
 define( 'EXTRACHILL_SHOP_VERSION', '1.0.0' );
 define( 'EXTRACHILL_SHOP_PLUGIN_FILE', __FILE__ );
 define( 'EXTRACHILL_SHOP_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
@@ -57,7 +55,6 @@ class ExtraChillShop {
         add_action( 'plugins_loaded', [ $this, 'init' ] );
         add_action( 'init', [ $this, 'load_textdomain' ] );
 
-        // Plugin activation/deactivation hooks
         register_activation_hook( __FILE__, [ $this, 'activate' ] );
         register_deactivation_hook( __FILE__, [ $this, 'deactivate' ] );
     }
@@ -66,13 +63,6 @@ class ExtraChillShop {
      * Initialize the plugin
      */
     public function init() {
-        // Check if WooCommerce is active
-        if ( ! class_exists( 'WooCommerce' ) ) {
-            add_action( 'admin_notices', [ $this, 'woocommerce_missing_notice' ] );
-            return;
-        }
-
-        // Load plugin functionality
         $this->load_includes();
     }
 
@@ -105,16 +95,6 @@ class ExtraChillShop {
      * Plugin activation
      */
     public function activate() {
-        // Check WooCommerce dependency
-        if ( ! class_exists( 'WooCommerce' ) ) {
-            deactivate_plugins( EXTRACHILL_SHOP_PLUGIN_BASENAME );
-            wp_die(
-                esc_html__( 'Extra Chill Shop requires WooCommerce to be installed and activated.', 'extrachill-shop' ),
-                esc_html__( 'Plugin Activation Error', 'extrachill-shop' ),
-                [ 'back_link' => true ]
-            );
-        }
-
         // Create ad-free license table
         extrachill_shop_create_ad_free_table();
 
@@ -136,18 +116,6 @@ class ExtraChillShop {
         flush_rewrite_rules();
     }
 
-    /**
-     * Show admin notice if WooCommerce is not active
-     */
-    public function woocommerce_missing_notice() {
-        ?>
-        <div class="notice notice-error">
-            <p>
-                <?php esc_html_e( 'Extra Chill Shop requires WooCommerce to be installed and activated.', 'extrachill-shop' ); ?>
-            </p>
-        </div>
-        <?php
-    }
 
     /**
      * Get plugin version
