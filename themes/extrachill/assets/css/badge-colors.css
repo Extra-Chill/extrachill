@@ -224,11 +224,11 @@
 	background-color: #3b5998;
 	color: #fff;
 }
-.taxonomy-badge.category-concert-reviews-badge {
+.taxonomy-badge.category-concerts-badge {
 	background-color: #e67e22;
 	color: #fff;
 }
-.taxonomy-badge.category-festival-reviews-badge {
+.taxonomy-badge.category-festivals-badge {
 	background-color: #16a085;
 	color: #fff;
 }
@@ -238,6 +238,12 @@
 }
 .taxonomy-badge.category-song-meanings-badge {
 	background-color: #f39c12;
+	color: #fff;
+}
+
+/* === Venue Badges === */
+.taxonomy-badge.venue-charleston-pour-house {
+	background-color: #000;
 	color: #fff;
 }
 

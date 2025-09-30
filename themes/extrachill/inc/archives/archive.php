@@ -18,7 +18,7 @@ if ( ! is_category( 'festival-wire' ) && ! is_post_type_archive( 'festival-wire'
 ?>
 <?php do_action('extrachill_before_body_content'); ?>
 
-<section id="primary" class="full-width-content">
+<div class="full-width-breakout">
 <?php
 
 // Determine the correct archive link based on the type of archive
@@ -51,10 +51,21 @@ if (is_category()) {
                         single_cat_title();
                     } elseif (is_tag()) {
                         single_tag_title();
+                    } elseif (is_tax()) {
+                        // Custom taxonomy archives (Artist, Venue, Festival, etc.)
+                        single_term_title();
+                    } elseif (is_post_type_archive()) {
+                        // Custom post type archives
+                        post_type_archive_title();
                     } elseif (is_author()) {
                         the_post();
-                        printf(__('Author: %s', 'extrachill'), '<class="vcard">' . get_the_author() . '</>');
+                        $archive_author_name = get_the_author();
                         rewind_posts();
+                        printf(
+                            '<span class="archive-author-label">%s <span class="vcard">%s</span></span>',
+                            esc_html__('Author:', 'extrachill'),
+                            esc_html($archive_author_name)
+                        );
                     } elseif (is_day()) {
                         printf(__('Day: %s', 'extrachill'), get_the_date());
                     } elseif (is_month()) {
@@ -75,7 +86,7 @@ if (is_category()) {
     if (!is_paged() && empty($_GET['tag'])) {
         $term_description = term_description();
         if (!empty($term_description)) {
-            printf('<div class="taxonomy-description">%s</div>', $term_description);
+            printf('<div class="taxonomy-description">%s</div>', wp_kses_post($term_description));
         }
 
         if (is_author()) {
@@ -86,9 +97,10 @@ if (is_category()) {
         }
     }
 
-    <?php do_action('extrachill_archive_below_description'); ?>
+    do_action('extrachill_archive_below_description');
 
-    <?php do_action('extrachill_archive_above_posts'); ?>
+    do_action('extrachill_archive_above_posts');
+    ?>
     <div class="article-container">
         <?php global $post_i; $post_i = 1; ?>
         <?php while (have_posts()) : the_post(); ?>
@@ -105,9 +117,7 @@ if (is_category()) {
 <?php else : ?>
     <?php extrachill_no_results(); ?>
 <?php endif; ?>
-</section><!-- #primary -->
-
-<?php // get_sidebar(); ?>
+</div><!-- .full-width-breakout -->
 
 <?php do_action('extrachill_after_body_content'); ?>
 

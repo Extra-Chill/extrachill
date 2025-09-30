@@ -24,7 +24,7 @@ if ( $custom_homepage_content !== false ) {
     <div id="mediavine-settings" data-blocklist-all="1"></div>
     <?php do_action( 'extrachill_homepage_hero' ); ?>
     <?php do_action( 'extrachill_homepage_after_hero' ); ?>
-    <?php do_action( 'extrachill_homepage_content_top' ); ?>
+    <?php do_action( 'extrachill_homepage_content_top' ); // Full-width section below hero ?>
     <?php do_action( 'extrachill_homepage_content_middle' ); ?>
     <?php do_action( 'extrachill_homepage_content_bottom' ); ?>
     <?php do_action( 'extrachill_home_final_left' ); ?>

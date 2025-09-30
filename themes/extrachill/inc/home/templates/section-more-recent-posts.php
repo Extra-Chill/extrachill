@@ -1,7 +1,7 @@
 <?php
 // home/section-more-recent-posts.php - More Recent Posts Row
 // This template now receives its data from front-page.php to avoid redundant queries.
-global $post; // Ensure $post is available for setup_postdata.
+global $post, $more_recent_posts; // Ensure variables are available from homepage-queries.php
 ?>
 <div class="home-more-recent-container">
   <h2 class="home-more-recent-header">More Recent Posts</h2>

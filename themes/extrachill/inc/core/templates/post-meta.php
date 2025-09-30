@@ -22,17 +22,17 @@ if ( ! function_exists( 'extrachill_entry_meta' ) ) :
     function extrachill_entry_meta() {
         global $post;
 
-        if ( 'post' === get_post_type() || ( isset( $post->_is_forum_post ) && $post->_is_forum_post ) ) {
+        $is_forum_post = isset( $post->_is_forum_post ) && $post->_is_forum_post;
+        $forum_class = $is_forum_post ? ' forum-meta' : '';
 
-            $is_forum_post = isset( $post->_is_forum_post ) && $post->_is_forum_post;
+        // Build default meta output
+        ob_start();
 
-            $forum_class = $is_forum_post ? ' forum-meta' : '';
+        echo '<div class="below-entry-meta ' . esc_attr( $forum_class ) . '">';
 
-            echo '<div class="below-entry-meta ' . esc_attr( $forum_class ) . '">';
+        echo '<div class="below-entry-meta-left">';
 
-            echo '<div class="below-entry-meta-left">';
-
-            if ( $is_forum_post ) {
+        if ( $is_forum_post ) {
                 $author = isset( $post->_author ) ? esc_html( $post->_author ) : 'Unknown';
                 $date = isset( $post->post_date ) ? date( 'F j, Y', strtotime( $post->post_date ) ) : 'Unknown';
                 $author_url = 'https://community.extrachill.com/u/' . sanitize_title( $author );
@@ -95,6 +95,10 @@ if ( ! function_exists( 'extrachill_entry_meta' ) ) :
             echo '</div>';
 
             echo '</div>';
-        }
+
+        $default_meta = ob_get_clean();
+
+        // Allow plugins to override meta display for their post types
+        echo apply_filters('extrachill_post_meta', $default_meta, get_the_ID(), get_post_type());
     }
 endif;

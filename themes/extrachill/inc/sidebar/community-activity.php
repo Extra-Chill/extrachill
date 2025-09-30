@@ -42,11 +42,11 @@ if ( ! function_exists( 'extrachill_sidebar_community_activity' ) ) :
                 }
                 $counter++;
 
-                $post_date = isset($activity['post_date']) ? $activity['post_date'] : '';
-                $post_title = isset($activity['post_title']) ? esc_html($activity['post_title']) : '';
-                $post_name = isset($activity['post_name']) ? $activity['post_name'] : '';
-                $author = isset($activity['author']) ? esc_html($activity['author']) : '';
-                $post_type = isset($activity['post_type']) ? $activity['post_type'] : '';
+                 $post_date = isset($activity['date_time']) ? $activity['date_time'] : '';
+                 $post_title = isset($activity['topic_title']) ? esc_html($activity['topic_title']) : '';
+                 $post_name = isset($activity['topic_url']) ? basename($activity['topic_url']) : '';
+                 $author = isset($activity['username']) ? esc_html($activity['username']) : '';
+                 $post_type = isset($activity['type']) ? strtolower($activity['type']) : '';
 
                 if (empty($post_title) || empty($author)) {
                     continue;
@@ -57,12 +57,7 @@ if ( ! function_exists( 'extrachill_sidebar_community_activity' ) ) :
                     $time_string = function_exists('custom_human_time_diff') ? custom_human_time_diff(strtotime($post_date)) : human_time_diff(strtotime($post_date));
                 }
 
-                $post_url = '';
-                if ($post_type === 'topic') {
-                    $post_url = 'https://community.extrachill.com/t/' . $post_name;
-                } elseif ($post_type === 'reply') {
-                    $post_url = 'https://community.extrachill.com/r/' . $post_name;
-                }
+                 $post_url = isset($activity['topic_url']) ? esc_url($activity['topic_url']) : '';
 
                 echo '<li>';
                 if (!empty($post_url)) {

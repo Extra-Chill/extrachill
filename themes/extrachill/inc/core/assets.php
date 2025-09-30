@@ -145,6 +145,21 @@ function extrachill_enqueue_archive_styles() {
 }
 add_action('wp_enqueue_scripts', 'extrachill_enqueue_archive_styles', 20);
 
+function extrachill_enqueue_search_styles() {
+    if ( is_search() ) {
+        $css_path = get_stylesheet_directory() . '/assets/css/search.css';
+        if ( file_exists( $css_path ) ) {
+            wp_enqueue_style(
+                'extrachill-search',
+                get_stylesheet_directory_uri() . '/assets/css/search.css',
+                array('extrachill-root', 'extrachill-style'),
+                filemtime( $css_path )
+            );
+        }
+    }
+}
+add_action('wp_enqueue_scripts', 'extrachill_enqueue_search_styles', 20);
+
 /**
  * Enqueue shared tabs assets
  *
