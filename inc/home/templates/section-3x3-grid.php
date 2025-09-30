@@ -1,9 +1,9 @@
 <?php
 // home/section-3x3-grid.php - Homepage 3x3 Content Grid (restructured)
 // This template now receives its data from front-page.php to avoid redundant queries.
-global $post; // Ensure $post is available for setup_postdata.
+global $post, $live_reviews_posts, $interviews_posts; // Ensure variables are available from homepage-queries.php
 ?>
-<div class="home-3x3-grid-container">
+<div class="full-width-breakout">
   <div class="home-3x3-grid">
     <!-- Live Reviews Column -->
     <div class="home-3x3-col">

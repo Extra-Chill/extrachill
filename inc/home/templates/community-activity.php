@@ -7,9 +7,27 @@ $activities = wp_cache_get($cache_key);
 
 // If not in cache, query the database directly
 if ($activities === false) {
-    // Switch to community site in multisite network (blog ID 2)
+    // Switch to community site in multisite network using domain resolution
     $current_blog_id = get_current_blog_id();
-    switch_to_blog(2);
+    $community_blog_id = 0;
+    if (function_exists('get_blog_id_from_url')) {
+        $resolved_blog_id = get_blog_id_from_url('community.extrachill.com', '/');
+        if (!empty($resolved_blog_id)) {
+            $community_blog_id = (int) $resolved_blog_id;
+        }
+    }
+
+    if (!$community_blog_id) {
+        error_log('Community activity feed: unable to resolve community.extrachill.com blog ID');
+        $activities = array();
+    }
+
+    $switched = false;
+    if ($community_blog_id) {
+        if ($community_blog_id !== $current_blog_id) {
+            switch_to_blog($community_blog_id);
+            $switched = true;
+        }
 
     // Query recent bbPress activity directly
     $args = array(
@@ -33,22 +51,40 @@ if ($activities === false) {
         ),
     );
 
-    $query = new WP_Query($args);
-    $activities = array();
+        $query = new WP_Query($args);
+        $activities = array();
 
-    if ($query->have_posts()) {
-        while ($query->have_posts()) {
-            $query->the_post();
+        if ($query->have_posts()) {
+            while ($query->have_posts()) {
+                $query->the_post();
             $post_id = get_the_ID();
             $post_type = get_post_type($post_id);
-            $forum_id = ('reply' === $post_type) ? bbp_get_reply_forum_id($post_id) : bbp_get_topic_forum_id($post_id);
-            $forum_title = get_the_title($forum_id);
-            $topic_title = ('reply' === $post_type) ? get_the_title(bbp_get_reply_topic_id($post_id)) : get_the_title($post_id);
-            $username = get_the_author();
-            $user_profile_url = bbp_get_user_profile_url(get_the_author_meta('ID'));
+            $author_id = get_the_author_meta('ID');
             $date_time = get_the_date('c');
-            $forum_url = bbp_get_forum_permalink($forum_id);
-            $topic_url = ('reply' === $post_type) ? bbp_get_reply_url($post_id) : bbp_get_topic_permalink($post_id);
+
+            $forum_id = absint(get_post_meta($post_id, '_bbp_forum_id', true));
+            $topic_id = ('reply' === $post_type)
+                ? absint(get_post_meta($post_id, '_bbp_topic_id', true))
+                : $post_id;
+
+            if ('reply' === $post_type && !$topic_id) {
+                $topic_id = absint(get_post_field('post_parent', $post_id));
+            }
+
+            if (!$forum_id && $topic_id) {
+                $forum_id = absint(get_post_meta($topic_id, '_bbp_forum_id', true));
+            }
+
+            $forum_title = $forum_id ? get_the_title($forum_id) : '';
+            $topic_title = $topic_id ? get_the_title($topic_id) : '';
+            $forum_url = $forum_id ? get_permalink($forum_id) : '';
+            $topic_url = $topic_id ? get_permalink($topic_id) : '';
+            $username = get_the_author();
+            $user_profile_url = $author_id ? get_author_posts_url($author_id) : '';
+
+            if (!$topic_url || !$forum_url) {
+                continue;
+            }
 
             $activities[] = array(
                 'id' => $post_id,
@@ -62,10 +98,13 @@ if ($activities === false) {
                 'topic_url' => $topic_url,
             );
         }
-        wp_reset_postdata();
-    }
+            wp_reset_postdata();
+        }
 
-    restore_current_blog();
+        if ($switched) {
+            restore_current_blog();
+        }
+    }
 
     // Cache for 10 minutes using WordPress object cache
     wp_cache_set($cache_key, $activities, '', 10 * MINUTE_IN_SECONDS);

@@ -1,0 +1,227 @@
+/**
+ * Search Results Styling
+ *
+ * Styles for network-wide multisite search results with site badges
+ *
+ * @package ExtraChill
+ * @since 69.57
+ */
+
+/* Search Header */
+.page-title .search-query {
+	color: var(--color-primary);
+}
+
+.search-results-count {
+	font-size: 1rem;
+	color: var(--color-text-secondary);
+	margin-top: 0.5rem;
+	font-weight: 400;
+}
+
+/* Search Results Container */
+.multisite-search-result {
+	margin-bottom: 2rem;
+	padding: 1.5rem;
+	background: var(--color-background-secondary);
+	border-radius: 8px;
+	transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.multisite-search-result:hover {
+	transform: translateY(-2px);
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Site Badges */
+.site-badges {
+	display: flex;
+	gap: 0.5rem;
+	margin-bottom: 1rem;
+	flex-wrap: wrap;
+}
+
+.site-badge {
+	padding: 0.25rem 0.75rem;
+	border-radius: 4px;
+	font-size: 0.875rem;
+	font-weight: 600;
+	color: white;
+	display: inline-block;
+}
+
+/* Site-specific badge colors */
+.site-badge.site-extra-chill {
+	background-color: #FF6B6B;
+}
+
+.site-badge.site-extra-chill-community {
+	background-color: #4ECDC4;
+}
+
+.site-badge.site-extra-chill-shop {
+	background-color: #95E1D3;
+	color: #333;
+}
+
+.site-badge.site-extra-chill-artist-platform {
+	background-color: #F38181;
+}
+
+.site-badge.site-extra-chill-chat {
+	background-color: #AA96DA;
+}
+
+/* Post Type Badge */
+.post-type-badge {
+	padding: 0.25rem 0.75rem;
+	border-radius: 4px;
+	font-size: 0.875rem;
+	background-color: var(--color-text-secondary);
+	color: var(--color-background);
+	display: inline-block;
+}
+
+/* Search Result Content */
+.multisite-search-result .post-title {
+	font-size: 1.5rem;
+	margin-bottom: 0.5rem;
+}
+
+.multisite-search-result .post-title a {
+	color: var(--color-text);
+	text-decoration: none;
+}
+
+.multisite-search-result .post-title a:hover {
+	color: var(--color-primary);
+}
+
+.multisite-search-result .post-meta {
+	margin-bottom: 1rem;
+	font-size: 0.875rem;
+	color: var(--color-text-secondary);
+}
+
+.multisite-search-result .post-excerpt {
+	margin-bottom: 1rem;
+	line-height: 1.6;
+}
+
+.multisite-search-result .post-excerpt p:last-child {
+	margin-bottom: 0;
+}
+
+/* Read More Link */
+.multisite-search-result .read-more {
+	display: inline-block;
+	color: var(--color-primary);
+	text-decoration: none;
+	font-weight: 600;
+	transition: color 0.2s ease;
+}
+
+.multisite-search-result .read-more:hover {
+	color: var(--color-primary-hover);
+}
+
+/* Pagination */
+.pagination-nav {
+	margin-top: 3rem;
+	margin-bottom: 2rem;
+}
+
+.pagination-links {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	gap: 0.5rem;
+	flex-wrap: wrap;
+}
+
+.pagination-links a,
+.pagination-links .page-dots {
+	padding: 0.5rem 1rem;
+	background: var(--color-background-secondary);
+	border-radius: 4px;
+	text-decoration: none;
+	color: var(--color-text);
+	transition: all 0.2s ease;
+}
+
+.pagination-links .page-dots {
+	background: transparent;
+	cursor: default;
+}
+
+.pagination-links a.current {
+	background: var(--color-primary);
+	color: white;
+	font-weight: 600;
+}
+
+.pagination-links a:hover:not(.current) {
+	background: var(--color-primary);
+	color: white;
+}
+
+.pagination-links .prev-page,
+.pagination-links .next-page {
+	font-weight: 600;
+}
+
+/* No Results */
+.no-results {
+	text-align: center;
+	padding: 3rem 1rem;
+}
+
+.no-results h2 {
+	margin-bottom: 1rem;
+	font-size: 1.75rem;
+}
+
+.no-results p {
+	margin-bottom: 1.5rem;
+	color: var(--color-text-secondary);
+}
+
+.no-results a {
+	color: var(--color-primary);
+	text-decoration: none;
+}
+
+.no-results a:hover {
+	text-decoration: underline;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+	.multisite-search-result {
+		padding: 1rem;
+	}
+
+	.multisite-search-result .post-title {
+		font-size: 1.25rem;
+	}
+
+	.site-badges {
+		gap: 0.25rem;
+	}
+
+	.site-badge,
+	.post-type-badge {
+		font-size: 0.75rem;
+		padding: 0.2rem 0.6rem;
+	}
+
+	.pagination-links {
+		gap: 0.25rem;
+	}
+
+	.pagination-links a,
+	.pagination-links .page-dots {
+		padding: 0.4rem 0.75rem;
+		font-size: 0.875rem;
+	}
+}

@@ -24,10 +24,6 @@ if (!defined('ABSPATH')) {
  */
 if (!function_exists('extrachill_breadcrumbs')) {
     function extrachill_breadcrumbs() {
-        if (WP_DEBUG) {
-            error_log('extrachill_breadcrumbs() called on: ' . $_SERVER['REQUEST_URI']);
-        }
-
         // Allow override by plugins or custom functions
         if (function_exists('override_display_breadcrumbs') && override_display_breadcrumbs()) {
             return;

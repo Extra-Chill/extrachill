@@ -1,5 +1,6 @@
 # Ignore build artifacts
 /dist/
+build/
 
 # Node modules (if ever added)
 node_modules/
@@ -13,3 +14,13 @@ vendor/
 
 # Composer vendor in dist (keep root vendor tracked)
 /dist/**/vendor/
+
+# Additional build and development files
+composer.lock
+package-lock.json
+.claude/
+CLAUDE.md
+AGENTS.md
+.buildignore
+build.sh
+docs/

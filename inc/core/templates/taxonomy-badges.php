@@ -42,14 +42,19 @@ function extrachill_display_taxonomy_badges( $post_id = null, $args = array() ) 
     $post_type = get_post_type( $post_id );
     $taxonomies = get_object_taxonomies( $post_type );
 
-    // Process each taxonomy dynamically
-    foreach ( $taxonomies as $taxonomy ) {
-        $terms = get_the_terms( $post_id, $taxonomy );
+     // Process each taxonomy dynamically
+     foreach ( $taxonomies as $taxonomy ) {
+         // Exclude author taxonomy from badge system
+         if ( $taxonomy === 'author' ) {
+             continue;
+         }
 
-        // Skip if no terms assigned
-        if ( ! $terms || is_wp_error( $terms ) ) {
-            continue;
-        }
+         $terms = get_the_terms( $post_id, $taxonomy );
+
+         // Skip if no terms assigned
+         if ( ! $terms || is_wp_error( $terms ) ) {
+             continue;
+         }
 
         foreach ( $terms as $term ) {
             $term_slug = sanitize_html_class( $term->slug );

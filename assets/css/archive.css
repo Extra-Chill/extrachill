@@ -87,12 +87,7 @@ a.card-link-target:hover,
  */
 
 /* Grid layout for full-width archives and search results */
-.full-width-content #primary {
-    width: 100%;
-    padding: 0; /* Remove padding if any exists */
-}
-
-.full-width-content .article-container {
+.full-width-breakout .article-container {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
     gap: 2em;
@@ -102,7 +97,7 @@ a.card-link-target:hover,
 }
 
 /* Ensure individual articles fill the grid cell */
-.full-width-content .article-container .post {
+.full-width-breakout .article-container .post {
     width: 100%;
     margin-bottom: 0; /* Remove bottom margin as gap is now handled by grid */
     display: flex;
@@ -110,20 +105,20 @@ a.card-link-target:hover,
 }
 
 /* Adjust card styles for grid */
-.full-width-content .post .article-content {
+.full-width-breakout .post .article-content {
     flex-grow: 1; /* Allows content to fill available space, aligning footers */
 }
 
 /* Responsive adjustments */
 @media (max-width: 768px) {
-    .full-width-content .article-container {
+    .full-width-breakout .article-container {
         grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
         gap: 1.5em;
     }
 }
 
 @media (max-width: 480px) {
-    .full-width-content .article-container {
+    .full-width-breakout .article-container {
         grid-template-columns: 1fr; /* Single column on mobile */
         gap: 1em;
     }

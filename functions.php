@@ -66,6 +66,7 @@ require_once(EXTRACHILL_INCLUDES_DIR . '/core/templates/taxonomy-badges.php');
 
 require_once(EXTRACHILL_INCLUDES_DIR . '/core/actions.php');
 require_once(EXTRACHILL_INCLUDES_DIR . '/core/assets.php');
+require_once(EXTRACHILL_INCLUDES_DIR . '/core/rewrite.php');
 require_once(EXTRACHILL_INCLUDES_DIR . '/core/templates/breadcrumbs.php');
 require_once(EXTRACHILL_INCLUDES_DIR . '/header/navigation-menu.php');
 require_once(EXTRACHILL_INCLUDES_DIR . '/core/custom-taxonomies.php');
@@ -96,6 +97,7 @@ require_once(EXTRACHILL_INCLUDES_DIR . '/archives/archive-custom-sorting.php');
 
 // Search functionality
 require_once(EXTRACHILL_INCLUDES_DIR . '/core/templates/searchform.php');
+require_once(EXTRACHILL_INCLUDES_DIR . '/archives/search-result-card.php');
 
 add_filter('the_content', function($content) {
     return str_replace('margin-left: 1em; margin-right: 1em;', '', $content);
