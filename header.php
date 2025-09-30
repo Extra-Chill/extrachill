@@ -44,12 +44,10 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
 <header id="masthead" class="site-header" role="banner">
     <div class="site-branding">
-        <?php
-        $site_title = apply_filters('extrachill_site_title', get_bloginfo('name'));
-        if (is_front_page()): ?>
-            <h1 class="site-title"><a href="<?php echo esc_url(home_url('/')); ?>" rel="home"><?php echo esc_html($site_title); ?></a></h1>
+        <?php if (is_front_page()): ?>
+            <h1 class="site-title"><a href="<?php echo esc_url(home_url('/')); ?>" rel="home">Extra Chill</a></h1>
         <?php else: ?>
-            <p class="site-title"><a href="<?php echo esc_url(home_url('/')); ?>" rel="home"><?php echo esc_html($site_title); ?></a></p>
+            <p class="site-title"><a href="<?php echo esc_url(home_url('/')); ?>" rel="home">Extra Chill</a></p>
         <?php endif; ?>
     </div><!-- .site-branding -->
 
