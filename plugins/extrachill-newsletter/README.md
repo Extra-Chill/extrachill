@@ -38,7 +38,7 @@ A comprehensive WordPress plugin for newsletter management and Sendy integration
    cd extrachill-plugins/extrachill-newsletter
    ./build.sh
    ```
-2. Install the generated ZIP file from `dist/` directory
+2. Install the generated ZIP file from `/build` directory
 
 ## Configuration
 
@@ -153,7 +153,7 @@ The plugin registers these AJAX endpoints:
 # Create production ZIP
 ./build.sh
 
-# Output: dist/extrachill-newsletter-{version}.zip
+# Output: /build/extrachill-newsletter/ directory and /build/extrachill-newsletter.zip file
 ```
 
 ### File Structure

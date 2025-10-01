@@ -9,57 +9,6 @@
  */
 
 /* ==========================================================================
-   Newsletter Archive Layout
-   ========================================================================== */
-
-/* Primary content and sidebar layout */
-#primary {
-    float: left;
-    width: 68%;
-    box-sizing: border-box;
-    padding-right: 2em;
-}
-
-#secondary {
-    float: right;
-    width: 30%;
-    box-sizing: border-box;
-}
-
-/* Newsletter archive container */
-.newsletter-archive .article-container {
-    display: block !important;
-    width: 100%;
-}
-
-.newsletter-archive .article-container article {
-    width: 100%;
-    margin-bottom: 2em;
-    border-bottom: none;
-    padding-bottom: 0;
-}
-
-.newsletter-archive .article-container article:last-child {
-    border-bottom: none;
-    margin-bottom: 0;
-}
-
-/* Remove grid-specific styles for newsletter archive */
-.newsletter-archive .article-container .post {
-    display: block;
-    margin-bottom: 0;
-}
-
-/* Clear floats after main and sidebar */
-#content:after,
-.site-content:after,
-.content-area:after {
-    content: "";
-    display: table;
-    clear: both;
-}
-
-/* ==========================================================================
    Newsletter Card Styles
    ========================================================================== */
 

@@ -13,7 +13,7 @@ The **ExtraChill Newsletter Plugin** is a WordPress plugin that provides complet
 # Create production-ready ZIP package
 ./build.sh
 
-# Output: dist/extrachill-newsletter-{version}.zip
+# Output: /build/extrachill-newsletter/ directory and /build/extrachill-newsletter.zip file
 ```
 
 The build script automatically:

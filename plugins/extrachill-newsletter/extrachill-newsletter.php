@@ -1,6 +1,6 @@
 <?php
 /**
- * Plugin Name: ExtraChill Newsletter
+ * Plugin Name: Extra Chill Newsletter
  * Description: Complete newsletter system with Sendy integration for email campaigns and subscriptions. Provides custom newsletter post type, multiple subscription forms, email template generation, and admin management tools.
  * Version: 1.0.0
  * Author: Chris Huber
@@ -18,20 +18,20 @@ if ( ! defined( 'ABSPATH' ) ) {
 define( 'EXTRACHILL_NEWSLETTER_VERSION', '1.0' );
 define( 'EXTRACHILL_NEWSLETTER_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'EXTRACHILL_NEWSLETTER_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
-define( 'EXTRACHILL_NEWSLETTER_INCLUDES_DIR', EXTRACHILL_NEWSLETTER_PLUGIN_DIR . 'includes/' );
+define( 'EXTRACHILL_NEWSLETTER_INC_DIR', EXTRACHILL_NEWSLETTER_PLUGIN_DIR . 'inc/' );
 define( 'EXTRACHILL_NEWSLETTER_TEMPLATES_DIR', EXTRACHILL_NEWSLETTER_PLUGIN_DIR . 'templates/' );
 define( 'EXTRACHILL_NEWSLETTER_ASSETS_URL', EXTRACHILL_NEWSLETTER_PLUGIN_URL . 'assets/' );
 
-require_once EXTRACHILL_NEWSLETTER_INCLUDES_DIR . 'newsletter-post-type.php';
-require_once EXTRACHILL_NEWSLETTER_INCLUDES_DIR . 'newsletter-sendy-integration.php';
-require_once EXTRACHILL_NEWSLETTER_INCLUDES_DIR . 'newsletter-ajax-handlers.php';
-require_once EXTRACHILL_NEWSLETTER_INCLUDES_DIR . 'newsletter-hooks.php';
-require_once EXTRACHILL_NEWSLETTER_INCLUDES_DIR . 'newsletter-admin.php';
-require_once EXTRACHILL_NEWSLETTER_INCLUDES_DIR . 'newsletter-popup.php';
+require_once EXTRACHILL_NEWSLETTER_INC_DIR . 'newsletter-post-type.php';
+require_once EXTRACHILL_NEWSLETTER_INC_DIR . 'newsletter-sendy-integration.php';
+require_once EXTRACHILL_NEWSLETTER_INC_DIR . 'newsletter-ajax-handlers.php';
+require_once EXTRACHILL_NEWSLETTER_INC_DIR . 'newsletter-hooks.php';
+require_once EXTRACHILL_NEWSLETTER_INC_DIR . 'newsletter-popup.php';
 
-/**
- * Enqueue newsletter assets with conditional loading and AJAX localization
- */
+if ( is_admin() ) {
+	require_once EXTRACHILL_NEWSLETTER_INC_DIR . 'admin/newsletter-settings.php';
+}
+
 function enqueue_newsletter_assets() {
 	$forms_css_file_path = EXTRACHILL_NEWSLETTER_PLUGIN_DIR . 'assets/newsletter-forms.css';
 	if ( file_exists( $forms_css_file_path ) ) {
@@ -81,10 +81,11 @@ function enqueue_newsletter_assets() {
 			)
 		);
 	}
+}
 add_action( 'wp_enqueue_scripts', 'enqueue_newsletter_assets' );
 
 function display_newsletter_homepage_section() {
-	$settings = get_option('extrachill_newsletter_settings', array());
+	$settings = get_site_option('extrachill_newsletter_settings', array());
 	if (empty($settings['enable_homepage'])) {
 		return;
 	}
@@ -94,6 +95,7 @@ function display_newsletter_homepage_section() {
 add_action( 'extrachill_home_final_right', 'display_newsletter_homepage_section' );
 
 function display_newsletter_grid_section() {
+    global $post;
     $newsletter_posts = get_posts(array('numberposts' => 3, 'post_type' => 'newsletter'));
     ?>
     <div class="home-3x3-stacked-section">
@@ -119,12 +121,7 @@ function display_newsletter_grid_section() {
 add_action( 'extrachill_home_grid_bottom_right', 'display_newsletter_grid_section' );
 
 function newsletter_template_loader( $template ) {
-	if ( is_post_type_archive( 'newsletter' ) ) {
-		$plugin_template = locate_newsletter_template( 'archive-newsletter.php' );
-		if ( $plugin_template ) {
-			return $plugin_template;
-		}
-	} elseif ( is_singular( 'newsletter' ) ) {
+	if ( is_singular( 'newsletter' ) ) {
 		$plugin_template = locate_newsletter_template( 'single-newsletter.php' );
 		if ( $plugin_template ) {
 			return $plugin_template;
@@ -146,7 +143,7 @@ function locate_newsletter_template( $template_name ) {
 }
 
 function display_newsletter_navigation_form() {
-	$settings = get_option('extrachill_newsletter_settings', array());
+	$settings = get_site_option('extrachill_newsletter_settings', array());
 	if (empty($settings['enable_navigation'])) {
 		return;
 	}
@@ -160,7 +157,7 @@ function display_newsletter_content_form() {
 		return;
 	}
 
-	$settings = get_option('extrachill_newsletter_settings', array());
+	$settings = get_site_option('extrachill_newsletter_settings', array());
 	if (empty($settings['enable_content'])) {
 		return;
 	}
@@ -170,7 +167,7 @@ function display_newsletter_content_form() {
 add_action( 'extrachill_after_post_content', 'display_newsletter_content_form' );
 
 function display_newsletter_footer_form() {
-	$settings = get_option('extrachill_newsletter_settings', array());
+	$settings = get_site_option('extrachill_newsletter_settings', array());
 	if (empty($settings['enable_footer'])) {
 		return;
 	}
@@ -197,9 +194,6 @@ function extrachill_newsletter_deactivate() {
 }
 register_deactivation_hook( __FILE__, 'extrachill_newsletter_deactivate' );
 
-/**
- * Register newsletter integration points
- */
 function newsletter_register_default_integrations($integrations) {
 	$integrations['navigation'] = array(
 		'label' => __('Navigation Menu Form', 'extrachill-newsletter'),
@@ -270,16 +264,13 @@ function newsletter_display_festival_wire_tip_form() {
 }
 add_action('extrachill_after_news_wire', 'newsletter_display_festival_wire_tip_form');
 
-/**
- * Initialize newsletter integration action hooks
- */
 function newsletter_init_integration_actions() {
 	$integrations = get_newsletter_integrations();
 
 	foreach ($integrations as $context => $integration) {
 		add_action("newsletter_display_{$context}", function($email = null) use ($context, $integration) {
 			if ($email) {
-				return subscribe_via_integration($email, $context);
+				return extrachill_multisite_subscribe($email, $context);
 			} else {
 				newsletter_render_integration_form($context, $integration);
 			}
@@ -288,9 +279,6 @@ function newsletter_init_integration_actions() {
 }
 add_action('init', 'newsletter_init_integration_actions', 20); // Run after integrations are registered
 
-/**
- * Render integration form via template hierarchy
- */
 function newsletter_render_integration_form($context, $integration) {
 	if (!newsletter_integration_enabled($integration['enable_key'])) {
 		return;

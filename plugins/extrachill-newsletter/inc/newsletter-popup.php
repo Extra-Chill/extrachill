@@ -24,7 +24,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 function newsletter_popup_init() {
 	// Check if popup is enabled in admin settings
-	$settings = get_option('extrachill_newsletter_settings', array());
+	$settings = get_site_option('extrachill_newsletter_settings', array());
 	if (empty($settings['enable_popup'])) {
 		return; // Exit early if popup is disabled
 	}

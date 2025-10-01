@@ -1,5 +1,6 @@
 # Build output directory
 dist/
+build/
 
 # macOS
 .DS_Store
@@ -30,3 +31,13 @@ vendor/
 # Temporary files
 *.tmp
 *.temp
+
+# Additional build and development files
+composer.lock
+package-lock.json
+.claude/
+CLAUDE.md
+AGENTS.md
+.buildignore
+build.sh
+docs/
