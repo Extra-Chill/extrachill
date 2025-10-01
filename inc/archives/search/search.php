@@ -59,9 +59,9 @@ if ( ! empty( $search_term ) && function_exists( 'extrachill_multisite_search' )
 				// Create pseudo-post object for template compatibility
 				global $post;
 				$post = (object) $result;
+				setup_postdata( $post );
 				$post->_site_name = $result['site_name'];
 				$post->_site_url  = $result['site_url'];
-				setup_postdata( $post );
 				?>
 				<?php get_template_part( 'inc/archives/post-card' ); ?>
 				<?php $post_i++; ?>
