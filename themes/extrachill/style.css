@@ -115,7 +115,7 @@ h6 {
 
 body, button, input, select, textarea {
 	color: var(--text-color);
-	font: 19px 'Helvetica', 'Open Sans', serif;
+	font: 18px 'Helvetica', 'Open Sans', serif;
 	line-height: 1.9;
 	word-wrap: break-word;
 }
@@ -769,8 +769,8 @@ body {
 	margin: auto;
 	max-width: 1250px;
 	width: 100%;
-	padding-left: max(1.5em, env(safe-area-inset-left));
-	padding-right: max(1.5em, env(safe-area-inset-right));
+	padding-left: max(1.25em, env(safe-area-inset-left));
+	padding-right: max(1.25em, env(safe-area-inset-right));
 	box-sizing: border-box;
 }
 .instagram-media{
