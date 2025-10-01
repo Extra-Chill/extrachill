@@ -13,7 +13,7 @@
     <a href="https://community.extrachill.com">Visit Forum</a>
 </li>
 <li class="menu-item">
-    <a href="<?php echo esc_url(home_url('/calendar')); ?>">Live Music Calendar</a>
+    <a href="https://events.extrachill.com">Live Music Calendar</a>
 </li>
 <li class="menu-item">
     <a href="<?php echo esc_url(home_url('/festival-wire')); ?>">Festival Wire</a>

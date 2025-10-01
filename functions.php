@@ -76,6 +76,9 @@ require_once(EXTRACHILL_INCLUDES_DIR . '/core/yoast-stuff.php');
 require_once(EXTRACHILL_INCLUDES_DIR . '/sidebar/recent-posts.php');
 require_once(EXTRACHILL_INCLUDES_DIR . '/sidebar/community-activity.php');
 
+// Search functionality
+require_once(EXTRACHILL_INCLUDES_DIR . '/archives/search/search-site-badge.php');
+
 function extrachill_remove_menu_admin_pages() {
     remove_submenu_page('themes.php', 'nav-menus.php');
 }
@@ -94,10 +97,10 @@ require_once(EXTRACHILL_INCLUDES_DIR . '/core/editor/spotify-embeds.php');
 // Archive functionality
 require_once(EXTRACHILL_INCLUDES_DIR . '/archives/archive-child-terms-dropdown.php');
 require_once(EXTRACHILL_INCLUDES_DIR . '/archives/archive-custom-sorting.php');
+require_once(EXTRACHILL_INCLUDES_DIR . '/archives/archive-filter-bar.php');
 
 // Search functionality
 require_once(EXTRACHILL_INCLUDES_DIR . '/core/templates/searchform.php');
-require_once(EXTRACHILL_INCLUDES_DIR . '/archives/search-result-card.php');
 
 add_filter('the_content', function($content) {
     return str_replace('margin-left: 1em; margin-right: 1em;', '', $content);
@@ -244,3 +247,11 @@ function extrachill_prevent_admin_styles_on_frontend() {
     }
 }
 add_action( 'wp_enqueue_scripts', 'extrachill_prevent_admin_styles_on_frontend', 100 );
+
+function extrachill_add_sticky_header_class( $classes ) {
+    if ( apply_filters( 'extrachill_enable_sticky_header', true ) ) {
+        $classes[] = 'sticky-header';
+    }
+    return $classes;
+}
+add_filter( 'body_class', 'extrachill_add_sticky_header_class' );

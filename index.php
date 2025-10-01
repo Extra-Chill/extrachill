@@ -32,7 +32,7 @@ if ( is_front_page() || is_home() ) {
 
 } elseif ( is_search() ) {
     $template = apply_filters( 'extrachill_template_search',
-        get_template_directory() . '/inc/archives/search.php'
+        get_template_directory() . '/inc/archives/search/search.php'
     );
     include $template;
 

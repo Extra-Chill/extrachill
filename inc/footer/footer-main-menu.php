@@ -20,7 +20,7 @@
                         <a href="<?php echo esc_url(home_url('/festival-wire')); ?>">Festival Wire</a>
                     </li>
                     <li class="menu-item">
-                        <a href="<?php echo esc_url(home_url('/calendar')); ?>">Calendar</a>
+                        <a href="https://events.extrachill.com">Calendar</a>
                     </li>
                     <li class="menu-item">
                         <a href="<?php echo esc_url(get_category_link(get_cat_ID('interviews'))); ?>">Interviews</a>

@@ -112,9 +112,6 @@ h5 {
 h6 {
 	font-size: 17px;
 }
-.filter-head {
-	font-size: 24px;
-}
 
 body, button, input, select, textarea {
 	color: var(--text-color);
@@ -132,23 +129,6 @@ p {
     margin: 20px 0;
 }
 
-button#randomize-posts, .extrachill-recent-activity button {
-  background-color: var(--button-bg);
-  font-weight: 500;
-  padding: 10px;
-  border-radius: 10px;
-}
-
-#post-sorting{
-	background-color: var(--card-background);
-	padding: 5px;
-	border-radius: 5px;
-	font-size: 14px;
-}
-
-button#randomize-posts:hover, .extrachill-recent-activity button:hover {
-  background-color: var(--button-hover-bg);
-}
 sup, sub {
 	font-size: 10px;
 	height: 0;
@@ -307,7 +287,7 @@ textarea {
 	appearance: none !important;
 }
 
-input[type="text"], input[type="email"], input[type="password"], select {
+input[type="text"], input[type="email"], input[type="password"] {
 	padding: 1%;
 	border: 1px solid var(--border-color);
 	line-height: 20px;
@@ -317,9 +297,16 @@ input[type="text"], input[type="email"], input[type="password"], select {
 	border-radius: 3px;
 	font-size: 14px;
 }
-select{
-	padding: 1%;
+
+select {
+	padding: 10px 16px;
+	border: 1px solid var(--border-color);
+	line-height: 1.4;
 	width: max-content;
+	background-color: var(--card-background);
+	border-radius: 8px;
+	font-size: 14px;
+	color: var(--text-color);
 }
 
 textarea {
@@ -778,21 +765,19 @@ body {
 	background: var(--background-color);
 }
 
-#page {
-	max-width: 1200px;
-	margin: 0 auto;
-}
-
 .inner-wrap {
 	margin: auto;
 	max-width: 1250px;
 	width: 100%;
+	padding-left: max(1.5em, env(safe-area-inset-left));
+	padding-right: max(1.5em, env(safe-area-inset-right));
+	box-sizing: border-box;
 }
 .instagram-media{
 	margin:auto !important;
 }
 
-/* Full-width breakout utility - breaks out of .inner-wrap and #page containers */
+/* Full-width breakout utility - breaks out of .inner-wrap container */
 .full-width-breakout {
 	width: 100vw;
 	max-width: 100vw !important;
@@ -1032,32 +1017,6 @@ padding:3px;
 	}
 	
 
-}
-
-
-
-@media screen and (max-width: 1190px) {
-	#page {
-		width: 97%;
-	}
-	.author-bio p, 
-	.entry-content p, .entry-content h2, .entry-content h3, .entry-content h4, .entry-content h5, .entry-content h6, 
-	.community-cta,
-	.extrachill-recent-activity,
-	.recent-title, .wp-block-image figcaption,
-	.subcategory-dropdown,
-	.related-wire-title,
-	h3.widget-title,
-	.related-tax-section {
-	max-width: 92%; 
-	margin-left: auto;
-	margin-right: auto;
-	}
-	#seconday .widget-title{
-	width: 92%;
-	margin-left: auto;
-	margin-right: auto;
-	}
 }
 
 

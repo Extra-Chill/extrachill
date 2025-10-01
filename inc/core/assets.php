@@ -45,6 +45,10 @@ function extrachill_enqueue_archive_scripts() {
 add_action('wp_enqueue_scripts', 'extrachill_enqueue_archive_scripts');
 
 function extrachill_enqueue_reading_progress() {
+    if ( ! apply_filters( 'extrachill_enable_sticky_header', true ) ) {
+        return;
+    }
+
     wp_enqueue_script(
         'reading-progress-script',
         get_template_directory_uri() . '/assets/js/reading-progress.js',

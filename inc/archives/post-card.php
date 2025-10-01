@@ -14,6 +14,7 @@ $featured_image_size = 'medium_large';
 
 <div class="archive-card">
     <article id="post-<?php the_ID(); ?>" <?php post_class(); ?>>
+        <?php do_action( 'extrachill_archive_above_tax_badges' ); ?>
         <?php
         extrachill_display_taxonomy_badges( get_the_ID(), array(
             'wrapper_style' => 'position: relative; z-index: 2;'
@@ -35,28 +36,6 @@ $featured_image_size = 'medium_large';
                 </h2>
             </header>
 
-            <?php if ( get_post_type() === 'product' ) : ?>
-                <div class="product-details">
-                    <span class="woocommerce-category-price">
-                        <div class="product-category">
-                            <?php
-                            $product_cats = wp_get_post_terms( get_the_ID(), 'product_cat' );
-                            if ( ! empty( $product_cats ) && ! is_wp_error( $product_cats ) ) {
-                                foreach ( $product_cats as $cat ) {
-                                    echo '<a class="product-category-link" href="' . esc_url( get_term_link( $cat ) ) . '">' . esc_html( $cat->name ) . '</a>';
-                                }
-                            }
-                            ?>
-                        </div>
-                        <div class="product-price">
-                            <?php
-                            echo extrachill_get_product_price_html( get_the_ID() );
-                            ?>
-                        </div>
-                    </span>
-                </div>
-            <?php endif; ?>
-
             <?php extrachill_entry_meta(); ?>
 
             <?php if ( isset( $post->_is_forum_post ) && $post->_is_forum_post ) : ?>
@@ -70,33 +49,9 @@ $featured_image_size = 'medium_large';
                 <span>
                     <a href="<?php echo esc_url( get_permalink( $post ) ); ?>" class="location-link" id="forum-post" target="_blank" rel="noopener noreferrer">View in Community</a>
                 </span>
-            <?php elseif ( get_post_type() === 'product' ) : ?>
-                <div class="archive-excerpt">
-                    <?php
-                    $excerpt = get_the_excerpt();
-                    $search_term = get_query_var( 's' );
-                    $highlighted_excerpt = highlight_search_term( $excerpt, $search_term );
-                    echo wp_kses_post( $highlighted_excerpt . '...' );
-                    ?>
-                </div>
-                <div class="woocommerce add-to-cart-button">
-                    <?php
-                    extrachill_render_add_to_cart_button();
-                    ?>
-                </div>
             <?php else : ?>
                 <div class="archive-excerpt">
-                    <?php
-                    $content = get_the_excerpt();
-                    $search_term = get_query_var('s');
-
-                    // Use the contextual excerpt for regular posts on search pages
-                    if (is_search() && $search_term) {
-                        echo wp_kses_post(ec_get_contextual_excerpt(wp_strip_all_tags($content), $search_term, 30));
-                    } else {
-                        echo wp_kses_post(wp_trim_words($content, 30, '...'));
-                    }
-                    ?>
+                    <?php echo wp_kses_post(wp_trim_words(get_the_excerpt(), 30, '...')); ?>
                 </div>
 
                 <span>

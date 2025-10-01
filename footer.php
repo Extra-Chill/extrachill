@@ -26,9 +26,6 @@
     <?php do_action('extrachill_below_copyright'); ?>
 </footer>
 
-
-
-</div><!-- #page -->
 <?php wp_footer(); ?>
 </body>
 <!-- Google Tag Manager (noscript) -->
