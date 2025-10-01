@@ -7,6 +7,7 @@ if ( is_user_logged_in() ) {
     $username = $user->user_nicename;
 }
 ?>
+<div class="full-width-breakout">
 <section id="hero-section">
     <h2>
         <?php
@@ -43,4 +44,5 @@ if ( is_user_logged_in() ) {
             <?php esc_html_e( 'Newsletter', 'extrachill' ); ?>
         </a>
     </div>
-</section> 
+</section>
+</div><!-- .full-width-breakout --> 

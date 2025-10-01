@@ -9,7 +9,7 @@
   border-radius: 14px;
   box-shadow: 0 1.5px 6px rgba(0,0,0,0.03); /* even more subtle than single post */
   border: 1px solid var(--border-color, #333);
-  padding: 1.5em 1.2em 1.2em 1.2em;
+  padding: 1.2em;
   margin-bottom: 1em;
   width: 100%;
   box-sizing: border-box;
@@ -75,12 +75,25 @@ a.card-link-target:hover,
   display: flex;
   gap: 10px;
   align-items: center;
-  justify-content: space-between;
+  justify-content: space-around;
+  flex-wrap: wrap;
   background-color: var(--card-background);
   padding: 15px;
   border-radius: 10px;
   border: 1px solid var(--border-color);
-  }
+}
+
+/* Archive filter bar button styling */
+#extrachill-custom-sorting button {
+  background-color: var(--button-bg);
+  color: #fff;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+#extrachill-custom-sorting button:hover {
+  background-color: var(--button-hover-bg);
+}
 
 /*
  * Archive & Search Page Styles
@@ -89,8 +102,8 @@ a.card-link-target:hover,
 /* Grid layout for full-width archives and search results */
 .full-width-breakout .article-container {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 2em;
+    grid-template-columns: repeat(auto-fill, minmax(325px, 1fr));
+    gap: 1.75em;
     width: 100%;
     max-width: 1600px; /* Optional: Constrain max width for very large screens */
     margin: 0 auto;

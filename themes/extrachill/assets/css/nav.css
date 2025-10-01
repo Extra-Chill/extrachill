@@ -28,10 +28,13 @@ nav li > ul, nav li > ol {
 }
 
 #masthead {
+    z-index: 1000; /* Ensure it stays on top of other content */
+    background-color: #000; /* Ensure the background is not transparent */
+}
+
+body.sticky-header #masthead {
     position: sticky;
     top: 0; /* Stick to the top of the viewport */
-    z-index: 1000; /* Ensure it stays on top of other content */
-    background-color: #000; /* Optional: Ensure the background is not transparent */
 }
 
 #masthead #reading-progress {

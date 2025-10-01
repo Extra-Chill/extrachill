@@ -1,28 +1,27 @@
 <?php
 /**
- * Archive Child Terms Dropdown Component
+ * Archive Child Terms Dropdown Helper
  *
- * Displays child terms dropdown for hierarchical taxonomies
+ * Provides child terms dropdown HTML for hierarchical taxonomies
+ * Called by archive filter bar component
  *
  * @package ExtraChill
  * @since 1.0
  */
 
-// Hook into archive below description
-add_action('extrachill_archive_below_description', 'extrachill_child_terms_dropdown', 10);
-
 /**
- * Display child terms dropdown for hierarchical taxonomies
+ * Generate child terms dropdown HTML for hierarchical taxonomies
  * Shows subcategories for categories and sub-locations for location taxonomy
- * Only displays when child terms exist
+ * Only returns HTML when child terms exist
  *
+ * @return string HTML for child terms dropdown or empty string
  * @since 1.0
  */
-function extrachill_child_terms_dropdown() {
+function extrachill_child_terms_dropdown_html() {
     $term = get_queried_object();
 
     if (!$term || !is_a($term, 'WP_Term')) {
-        return;
+        return '';
     }
 
     $child_terms = array();
@@ -50,19 +49,23 @@ function extrachill_child_terms_dropdown() {
         $select_text = __('Choose a Sub-Location', 'extrachill');
     }
 
-    // Display dropdown if child terms exist
-    if (!empty($child_terms)) {
-        echo '<div class="' . esc_attr($dropdown_class) . '">';
-        echo '<h2 class="filter-head">' . esc_html($heading) . '</h2>';
-        echo '<select id="child-terms-select" onchange="if (this.value) window.location.href=this.value;">';
-        echo '<option value="">' . esc_html($select_text) . '</option>';
-
-        foreach ($child_terms as $child_term) {
-            $term_link = is_category() ? get_category_link($child_term->term_id) : get_term_link($child_term);
-            echo '<option value="' . esc_url($term_link) . '">' . esc_html($child_term->name) . '</option>';
-        }
-
-        echo '</select>';
-        echo '</div>';
+    // Return dropdown HTML if child terms exist
+    if (empty($child_terms)) {
+        return '';
     }
+
+    ob_start();
+    ?>
+    <div class="<?php echo esc_attr($dropdown_class); ?>">
+        <select id="child-terms-select" onchange="if (this.value) window.location.href=this.value;">
+            <option value=""><?php echo esc_html($select_text); ?></option>
+            <?php foreach ($child_terms as $child_term) :
+                $term_link = is_category() ? get_category_link($child_term->term_id) : get_term_link($child_term);
+            ?>
+                <option value="<?php echo esc_url($term_link); ?>"><?php echo esc_html($child_term->name); ?></option>
+            <?php endforeach; ?>
+        </select>
+    </div>
+    <?php
+    return ob_get_clean();
 }

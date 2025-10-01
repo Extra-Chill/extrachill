@@ -118,6 +118,32 @@ if (!function_exists('extrachill_breadcrumbs')) {
             echo '<a href="' . home_url('/all-tags') . '">Tags</a> › ';
             echo '<span>' . single_tag_title('', false) . '</span>';
         }
+        elseif (is_tax()) {
+            // Handle custom taxonomy archives (location, festival, artist, venue)
+            $term = get_queried_object();
+            $taxonomy = get_taxonomy($term->taxonomy);
+
+            if ($taxonomy) {
+                // Display link to main taxonomy archive using plural label
+                $archive_url = home_url('/' . $taxonomy->rewrite['slug']);
+                echo '<a href="' . esc_url($archive_url) . '">' . esc_html($taxonomy->labels->name) . '</a> › ';
+
+                // For hierarchical taxonomies, display full parent hierarchy
+                if ($taxonomy->hierarchical && $term->parent) {
+                    $parents = get_ancestors($term->term_id, $term->taxonomy);
+                    if (!empty($parents)) {
+                        $parents = array_reverse($parents);
+                        foreach ($parents as $parent_id) {
+                            $parent_term = get_term($parent_id, $term->taxonomy);
+                            echo '<a href="' . get_term_link($parent_term) . '">' . esc_html($parent_term->name) . '</a> › ';
+                        }
+                    }
+                }
+
+                // Display current term name
+                echo '<span>' . esc_html($term->name) . '</span>';
+            }
+        }
         else {
             // Fallback for other archive types
             echo '<span>Archives</span>';

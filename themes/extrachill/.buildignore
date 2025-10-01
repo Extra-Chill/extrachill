@@ -42,3 +42,14 @@ desktop.ini
 
 # Additional WordPress theme exclusions
 bower.json
+
+# Unused font files (only WilcoLoftSans-Treble.woff2 and Lobster2.woff2 are used)
+assets/fonts/Lobster_Two.zip
+assets/fonts/Lobster_Two/
+assets/fonts/lobster-v20-latin-regular.*
+assets/fonts/PTSerif-*.woff2
+assets/fonts/owfont-regular.*
+assets/fonts/LibreFranklin-*.woff2
+
+# Unused language files
+languages/

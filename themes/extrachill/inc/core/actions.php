@@ -62,3 +62,13 @@ function extrachill_hook_comments_section() {
     require_once get_template_directory() . '/inc/single/comments.php';
 }
 add_action( 'extrachill_comments_section', 'extrachill_hook_comments_section' );
+
+function extrachill_default_archive_header() {
+    include get_template_directory() . '/inc/archives/archive-header.php';
+}
+add_action( 'extrachill_archive_header', 'extrachill_default_archive_header', 10 );
+
+function extrachill_default_search_header() {
+    include get_template_directory() . '/inc/archives/search/search-header.php';
+}
+add_action( 'extrachill_search_header', 'extrachill_default_search_header', 10 );

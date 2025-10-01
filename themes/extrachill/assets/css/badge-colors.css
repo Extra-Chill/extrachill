@@ -100,6 +100,11 @@
 	color: #ffffff; /* White text */
 }
 
+.taxonomy-badge.festival-boogieman-fest {
+	background-color: #000000;
+	color: #FFA500;
+}
+
 /* === Location Badges === */
 .taxonomy-badge.location-charleston {
 	background-color: #660000;
@@ -245,5 +250,9 @@
 .taxonomy-badge.venue-charleston-pour-house {
 	background-color: #000;
 	color: #fff;
+}
+.taxonomy-badge.venue-the-royal-american {
+	background-color: #000;
+	color: #ff0000;
 }
 
