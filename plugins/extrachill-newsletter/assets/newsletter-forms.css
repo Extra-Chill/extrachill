@@ -30,8 +30,7 @@
     padding: 0.75em 1em;
     border: 1px solid var(--border-color, #ccc);
     border-radius: 4px;
-    background: var(--input-background, #fff);
-    color: var(--text-color, #333);
+    background: var(--input-background, var(--background-color));
     font-size: 1em;
     font-family: inherit;
     box-sizing: border-box;
@@ -210,18 +209,9 @@
     margin: 3em 0;
 }
 
-.home-newsletter-about-row {
-    display: flex;
-    flex-direction: row;
-    gap: 3em;
-    width: 100%;
-    align-items: stretch;
-}
-
 .home-newsletter-signup {
     width: 100%;
-    max-width: 540px;
-    background: var(--card-background, #f8f9fa);
+    background: var(--background-color);
     border: 1px solid var(--border-color, #e9ecef);
     border-radius: 16px;
     padding: 2.5em;
@@ -243,7 +233,6 @@
     font-size: 1.8em;
     font-weight: 700;
     margin-bottom: 0.5em;
-    color: var(--heading-color, #333);
     text-shadow: 0 2px 8px rgba(83,148,11,0.04);
 }
 
@@ -253,7 +242,7 @@
     font-size: 1.2em;
     font-weight: 500;
     margin-bottom: 1.5em;
-    color: var(--text-color, #666);
+    color: var(--muted-text);
     line-height: 1.4;
     max-width: 90%;
     margin-left: auto;
@@ -263,17 +252,18 @@
 .home-newsletter-signup .newsletter-form {
     width: 100%;
     display: flex;
-    gap: 0.5em;
+    flex-direction: column;
+    gap: 1em;
     justify-content: center;
-    align-items: center;
+    align-items: stretch;
     max-width: 100%;
 }
 
 .home-newsletter-signup input[type="email"] {
     padding: 0.9em 1.2em;
-    border: 1.5px solid var(--border-color, #ddd);
+    border: 1.5px solid var(--border-color);
     border-radius: 8px;
-    flex: 1;
+    width: 100%;
     font-size: 1em;
 }
 
@@ -287,19 +277,13 @@
     font-weight: 700;
     font-size: 1em;
     letter-spacing: 0.01em;
+    width: 100%;
 }
 
 .home-newsletter-signup button[type="submit"]:hover,
 .home-newsletter-signup button[type="submit"]:focus {
     box-shadow: 0 4px 12px rgba(83,148,11,0.3);
     transform: scale(1.03);
-}
-
-.home-about-box {
-    flex: 1 1 0;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
 }
 
 .newsletter-homepage-links {
@@ -324,7 +308,7 @@
 
 .newsletter-content-section {
     margin: 3em 0;
-    background: var(--card-background, #f8f9fa);
+    background: var(--background-color, #f8f9fa);
     border: 1px solid var(--border-color, #e9ecef);
     border-radius: 12px;
     padding: 2em;
@@ -340,12 +324,11 @@
     font-size: 1.5em;
     font-weight: 600;
     margin-bottom: 0.5em;
-    color: var(--heading-color, #333);
 }
 
 .newsletter-content-description {
     font-size: 1em;
-    color: var(--text-color, #666);
+    color: var(--muted-text);
     margin-bottom: 1.5em;
     line-height: 1.5;
 }
@@ -392,12 +375,11 @@
     font-size: 1.6em;
     font-weight: 600;
     margin-bottom: 0.5em;
-    color: var(--heading-color, #333);
 }
 
 .newsletter-footer-description {
     font-size: 1.1em;
-    color: var(--text-color, #666);
+    color: var(--muted-text);
     margin-bottom: 1.5em;
     line-height: 1.5;
     max-width: 600px;
@@ -445,7 +427,6 @@
 .tip-form-title {
     font-size: 1.6rem;
     margin-bottom: 0.75rem;
-    color: var(--heading-color, #333);
     text-align: center;
     font-weight: 600;
 }
@@ -552,7 +533,6 @@
 
 .subscribe-popup p {
     margin-bottom: 1.5em;
-    color: var(--text-color, #333);
     font-size: 1.1em;
     line-height: 1.4;
 }
@@ -600,7 +580,6 @@
     border: 1px solid var(--border-color, #ccc);
     border-radius: 4px;
     background: var(--card-background, #f8f9fa);
-    color: var(--text-color, #333);
     cursor: pointer;
     font-size: 0.9em;
 }
@@ -641,14 +620,13 @@
 
 .newsletter-form-title {
     margin-bottom: 0.5em;
-    color: var(--heading-color, #333);
     font-size: 1.3em;
     font-weight: 600;
 }
 
 .newsletter-form-description {
     margin-bottom: 1.5em;
-    color: var(--text-color, #666);
+    color: var(--muted-text);
     font-size: 1em;
 }
 
@@ -689,14 +667,7 @@
    ========================================================================== */
 
 @media (max-width: 900px) {
-    .home-newsletter-about-row {
-        flex-direction: column;
-        gap: 2em;
-        margin: 2.5em auto 2.5em auto;
-    }
-
-    .home-newsletter-signup,
-    .home-about-box {
+    .home-newsletter-signup {
         max-width: 100%;
     }
 

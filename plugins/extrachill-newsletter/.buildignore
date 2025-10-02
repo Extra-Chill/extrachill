@@ -66,6 +66,3 @@ temp/
 # Claude files
 .claude/
 CLAUDE.md
-
-# Distribution directory
-dist/

@@ -16,11 +16,16 @@ The **ExtraChill Newsletter Plugin** is a WordPress plugin that provides complet
 # Output: /build/extrachill-newsletter/ directory and /build/extrachill-newsletter.zip file
 ```
 
+**Universal Build Script**: Symlinked to shared build script at `../../.github/build.sh`
+
 The build script automatically:
-- Extracts version from main plugin file
-- Copies files excluding items in `.buildignore`
+- Auto-detects plugin from `Plugin Name:` header
+- Extracts version from main plugin file for validation and logging
+- Installs production dependencies: `composer install --no-dev` (if composer.json exists)
+- Copies files excluding items in `.buildignore` using rsync
 - Validates plugin structure and required files
-- Creates optimized ZIP for WordPress deployment
+- Creates both clean directory and non-versioned ZIP for WordPress deployment
+- Restores development dependencies after build
 
 ## Plugin Architecture
 

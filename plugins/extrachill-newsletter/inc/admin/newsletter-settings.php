@@ -57,9 +57,6 @@ function ec_newsletter_handle_settings_save() {
 	$settings['reply_to'] = isset( $_POST['reply_to'] ) ? sanitize_email( wp_unslash( $_POST['reply_to'] ) ) : 'chubes@extrachill.com';
 	$settings['brand_id'] = isset( $_POST['brand_id'] ) ? sanitize_text_field( wp_unslash( $_POST['brand_id'] ) ) : '1';
 
-	// Campaign list
-	$settings['campaign_list_id'] = isset( $_POST['campaign_list_id'] ) ? sanitize_text_field( wp_unslash( $_POST['campaign_list_id'] ) ) : '';
-
 	// Dynamic integration fields
 	$integrations = get_newsletter_integrations();
 	foreach ( $integrations as $context => $integration ) {
@@ -170,23 +167,6 @@ function ec_newsletter_render_settings_page() {
 						<td>
 							<input type="text" id="brand_id" name="brand_id" value="<?php echo esc_attr( $settings['brand_id'] ); ?>" class="small-text" />
 							<p class="description"><?php _e( 'Sendy brand ID for newsletter campaigns.', 'extrachill-newsletter' ); ?></p>
-						</td>
-					</tr>
-				</tbody>
-			</table>
-
-			<!-- Campaign List Configuration -->
-			<h2><?php _e( 'Campaign List Configuration', 'extrachill-newsletter' ); ?></h2>
-			<p class="description"><?php _e( 'Set the Sendy list ID for newsletter campaigns sent via "Sync to Sendy" button.', 'extrachill-newsletter' ); ?></p>
-			<table class="form-table">
-				<tbody>
-					<tr>
-						<th scope="row">
-							<label for="campaign_list_id"><?php _e( 'Campaign List ID', 'extrachill-newsletter' ); ?></label>
-						</th>
-						<td>
-							<input type="text" id="campaign_list_id" name="campaign_list_id" value="<?php echo esc_attr( $settings['campaign_list_id'] ); ?>" class="regular-text" />
-							<p class="description"><?php _e( 'List ID for newsletter campaigns (comma-separated for multiple lists).', 'extrachill-newsletter' ); ?></p>
 						</td>
 					</tr>
 				</tbody>

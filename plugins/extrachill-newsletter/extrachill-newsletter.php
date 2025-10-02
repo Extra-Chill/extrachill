@@ -243,14 +243,6 @@ function newsletter_register_default_integrations($integrations) {
 		'plugin' => 'extrachill-newsletter'
 	);
 
-	$integrations['contact'] = array(
-		'label' => __('Contact Form', 'extrachill-newsletter'),
-		'description' => __('Newsletter subscription via contact forms', 'extrachill-newsletter'),
-		'list_id_key' => 'contact_list_id',
-		'enable_key' => 'enable_contact',
-		'plugin' => 'extrachill-newsletter'
-	);
-
 	return $integrations;
 }
 add_filter('newsletter_form_integrations', 'newsletter_register_default_integrations');

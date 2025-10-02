@@ -31,7 +31,6 @@ function get_sendy_config() {
 		'from_email' => 'newsletter@extrachill.com',
 		'reply_to' => 'chubes@extrachill.com',
 		'brand_id' => '1',
-		'campaign_list_id' => '',
 	);
 
 	$settings = wp_parse_args( $settings, $defaults );
@@ -43,7 +42,6 @@ function get_sendy_config() {
 		'from_email' => $settings['from_email'],
 		'reply_to' => $settings['reply_to'],
 		'brand_id' => $settings['brand_id'],
-		'campaign_list_id' => $settings['campaign_list_id'],
 	);
 }
 
@@ -86,7 +84,6 @@ function get_newsletter_settings() {
 	$defaults = array(
 		'sendy_api_key' => '',
 		'sendy_url' => 'https://mail.extrachill.com/sendy',
-		'campaign_list_id' => '',
 		'from_name' => 'Extra Chill',
 		'from_email' => 'newsletter@extrachill.com',
 		'reply_to' => 'chubes@extrachill.com',
@@ -227,7 +224,6 @@ function send_newsletter_campaign_to_sendy($post_id, $email_data) {
 		'subject' => $email_data['subject'],
 		'plain_text' => $email_data['plain_text'],
 		'html_text' => $email_data['html_template'],
-		'list_ids' => $config['campaign_list_id'],
 		'brand_id' => $config['brand_id']
 	);
 
