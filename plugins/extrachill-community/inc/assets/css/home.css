@@ -181,21 +181,6 @@
    Forum Collapse Functionality Styles
    =============================================== */
 
-.top-container,
-.middle-container,
-.artist-platform-container,
-.community-forums-container {
-    overflow: hidden;
-    transition: height 0.3s ease-in-out;
-}
-
-.top-container.collapsed,
-.middle-container.collapsed,
-.artist-platform-container.collapsed {
-    height: 0 !important;
-    overflow: hidden;
-}
-
 /* ===============================================
    Band Platform Homepage Section Styles
    =============================================== */
@@ -392,19 +377,6 @@
 }
 
 /* ===============================================
-   Homepage Description Styles
-   =============================================== */
-.homepage-description {
-    margin-bottom: 20px;
-}
-
-.homepage-description p {
-    font-size: 16px;
-    color: var(--text-color);
-    margin: 0;
-}
-
-/* ===============================================
    Homepage Top Action Buttons Styles
    =============================================== */
 
@@ -472,65 +444,6 @@
         text-align: center;
         flex: 1;
         max-width: 200px;
-    }
-}
-
-/* ===============================================
-   Homepage Bottom Action Buttons Styles
-   =============================================== */
-
-.homepage-bottom-actions {
-    display: flex;
-    gap: 16px;
-    margin: 24px 0 20px 0;
-    justify-content: center;
-    align-items: center;
-}
-
-.homepage-bottom-actions .button {
-    padding: 12px 24px;
-    border-radius: 6px;
-    text-decoration: none;
-    font-weight: 600;
-    font-size: 15px;
-    transition: all 0.2s ease;
-    text-align: center;
-    min-width: 150px;
-}
-
-.support-forum-btn {
-    background: var(--button-bg);
-    color: white;
-    border: 2px solid var(--button-bg);
-}
-
-.artist-platform-btn {
-    background: var(--button-secondary-bg);
-    color: white;
-    border: 2px solid var(--button-secondary-bg);
-}
-
-.support-forum-btn:hover {
-    background: var(--button-hover-bg);
-    border-color: var(--button-hover-bg);
-}
-
-.artist-platform-btn:hover {
-    background: var(--button-secondary-hover-bg);
-    border-color: var(--button-secondary-hover-bg);
-}
-
-/* Mobile responsive for bottom buttons */
-@media (max-width: 768px) {
-    .homepage-bottom-actions {
-        flex-direction: column;
-        gap: 12px;
-        margin: 20px 0;
-    }
-    
-    .homepage-bottom-actions .button {
-        width: 100%;
-        max-width: 280px;
     }
 }
 

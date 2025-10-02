@@ -53,9 +53,7 @@ defined( 'ABSPATH' ) || exit;
     </div>
 
     <div class="bbp-topic-stats">
-    <?php $views = get_post_meta(get_the_ID(), 'bbp_topic_views', true);
-echo '<span class="topic-views">' . (int) $views . ' Views</span>';
-?>
+        <span class="topic-views"><?php echo number_format(ec_get_post_views()); ?> views</span>
         <div class="bbp-topic-voice-count">
             <?php bbp_topic_voice_count(); ?> Voices
         </div>
@@ -80,8 +78,7 @@ echo '<span class="topic-views">' . (int) $views . ' Views</span>';
 
         $show_forum_name_on_card = false;
         if ( is_page_template('page-templates/recent-feed-template.php') ||
-             is_page_template('page-templates/following-feed-template.php') ||
-             is_search() || 
+             is_search() ||
              bbp_is_search() ) {
             $show_forum_name_on_card = true;
         }

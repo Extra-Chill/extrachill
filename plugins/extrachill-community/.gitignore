@@ -1,2 +1,34 @@
 /vendor/
-/dist/
+
+# Additional build and development files
+composer.lock
+package-lock.json
+.claude/
+CLAUDE.md
+AGENTS.md
+.buildignore
+build.sh
+docs/
+
+# Build output
+build/
+
+# Node modules
+node_modules/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+
+# Cache directories
+.cache/

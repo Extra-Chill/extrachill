@@ -133,7 +133,10 @@ if (bbp_has_topics($loop_args)) :
 <?php endif; ?>
 
 <?php
-bbp_get_template_part('pagination', 'topics');
+global $bbp_topic_query;
+if ( ! empty( $bbp_topic_query ) ) {
+	extrachill_pagination( $bbp_topic_query, 'bbpress' );
+}
 do_action('bbp_template_after_topics_loop');
 ?>
 

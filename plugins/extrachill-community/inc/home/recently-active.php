@@ -1,9 +1,8 @@
 <?php
 /**
- * Front Page - Recently Active Topics
+ * Recently Active Topics Component
  *
- * @package bbPress
- * @subpackage Theme
+ * @package ExtraChillCommunity
  */
 
 // Exit if accessed directly
@@ -11,7 +10,7 @@ defined( 'ABSPATH' ) || exit;
 ?>
 
 <div class="front-page-section recently-active-topics">
-    <h2 class="forum-front-ec">Recently Active Topics</h2>
+    <h2>Recently Active Topics</h2>
     <ul class="recently-active-topic-row">
         <?php
         $recently_active_topic_ids = extrachill_get_recent_topics_for_homepage(3);
@@ -33,7 +32,7 @@ defined( 'ABSPATH' ) || exit;
                     <div class="card-meta">
                     <div class="bbp-forum-stats">
                             <div class="bbp-forum-views">
-                                <?php echo get_post_meta( $topic_id, 'bbp_topic_views', true ); ?> Views
+                                <?php echo number_format(ec_get_post_views($topic_id)); ?> views
                                 </div>
                             <div class="bbp-forum-topic-count">
                                 <?php echo bbp_get_topic_voice_count( $topic_id ); ?> Voices

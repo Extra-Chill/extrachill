@@ -29,55 +29,31 @@ defined( 'ABSPATH' ) || exit;
 
 		<?php if ( bbp_has_forums() ) : ?>
 
-			<?php bbp_get_template_part( 'loop', 'forums' ); ?>
+			<?php bbp_get_template_part( 'loop', 'subforums' ); ?>
 
 		<?php endif; ?>
 
-		<?php
-		// --- START Custom Logic for Forum 5432 / Standard Forums ---
-		$artist_directory_forum_id = 5432;
-		$current_forum_id = bbp_get_forum_id();
+		<?php if ( ! bbp_is_forum_category() ) : ?>
 
-		if ( $current_forum_id === $artist_directory_forum_id ) {
+			<?php if ( bbp_has_topics() ) : ?>
 
-			// --- Display for Band Directory Forum (ID: 5432) ---
-			// Load our custom template part for artist profiles, bypassing bbp_has_topics()
-			bbp_get_template_part( 'loop', 'artist-profiles' );
-			
-			// Do NOT display the standard "Create New Topic" form here by default
-			// It could be added back conditionally if needed: 
-			// bbp_get_template_part( 'form', 'topic' );
-			// --- End Display for Band Directory Forum ---
+				<?php
+				global $bbp_topic_query;
+				if ( ! empty( $bbp_topic_query ) ) {
+					extrachill_pagination( $bbp_topic_query, 'bbpress' );
+				}
+				?>
+				<?php bbp_get_template_part( 'loop', 'topics' ); ?>
+				<?php bbp_get_template_part( 'form', 'topic' ); ?>
 
-		} elseif ( ! bbp_is_forum_category() ) {
+			<?php else : ?>
 
-			// --- Standard Display for Other Forums ---
-			if ( bbp_has_topics() ) :
-				
-				// Forum has standard topics
-				bbp_get_template_part( 'pagination', 'topics' );
-				bbp_get_template_part( 'loop', 'topics' );
+				<?php bbp_get_template_part( 'feedback', 'no-topics' ); ?>
+				<?php bbp_get_template_part( 'form', 'topic' ); ?>
 
-				// Show topic form (excluding forum 1494)
-			if ($current_forum_id != 1494) :
-				bbp_get_template_part( 'form', 'topic' );
-			endif;
+			<?php endif; ?>
 
-			else :
-
-				// Forum has no standard topics
-				bbp_get_template_part( 'feedback', 'no-topics' );
-
-				// Show topic form (excluding forum 1494)
-			if ($current_forum_id != 1494) :
-				bbp_get_template_part( 'form', 'topic' );
-			endif;
-
-			endif; // End bbp_has_topics() check
-			// --- End Standard Display for Other Forums ---
-			
-		} // --- END Custom Logic ---
-			?>
+		<?php endif; ?>
 
 	<?php endif; ?>
 

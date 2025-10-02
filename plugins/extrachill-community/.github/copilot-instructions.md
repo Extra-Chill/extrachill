@@ -35,7 +35,7 @@ Scope: WordPress theme for community.extrachill.com focused on bbPress forums, u
 
 ## Examples to mirror
 - Conditional style: enqueue `css/leaderboard.css` only on `page-templates/leaderboard-template.php`.
-- Targeted JS: enqueue `forum-features/social/js/upvote.js` except forum ID 1494; localize `{ ajaxurl, nonce, is_user_logged_in, user_id }`.
+- Targeted JS: enqueue `forum-features/social/js/upvote.js`; localize `{ ajaxurl, nonce, is_user_logged_in, user_id }`.
 - bbPress search: set `post_type` to `['post','page','forum','topic','reply']` in `pre_get_posts` during bbPress search.
 
 ## Changes: safe vs risky

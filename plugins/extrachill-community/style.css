@@ -22,40 +22,7 @@
 a{
 	color: var(--link-color)
 }
- 
-h1,h2,h3,h4,h5,h6 {
-    font-size: 100%;
-    font-style: inherit;
-}
 
-h1, h2, h3, h4, h5, h6 {
-font-family: "WilcoLoftSans", sans-serif;
-font-weight: 400;
-}
-
-h1 {
-	font-size: 36px;
-}
-
-h2 {
-	font-size: 32px;
-}
-
-h3 {
-	font-size: 28px;
-}
-
-h4 {
-	font-size: 23px;
-}
-
-h5 {
-	font-size: 20px;
-}
-
-h6 {
-	font-size: 17px;
-}
 table, td, th{
 	border: 1px solid var(--border-color);
 }
@@ -88,135 +55,6 @@ a:focus, a:active, a:hover {
 #bbpress-forums .bbp-search-form {
 	padding: 0px;
 	margin: 0px;
-}
-
-/* =============================================================================
-   Pagination Styles - Unified Design System Implementation
-   ============================================================================= */
-
-.bbp-pagination {
-	display: flex;
-	justify-content: space-between;
-	align-items: center;
-	margin: 20px 0;
-	padding: 0;
-	width: 100%;
-}
-
-.bbp-pagination-count {
-	color: var(--muted-text, #6b7280);
-	font-size: 14px;
-	margin-right: 15px;
-}
-
-.bbp-pagination-links {
-	display: flex;
-	align-items: center;
-	gap: 5px;
-}
-
-/* Pagination Link Buttons */
-#bbpress-forums .bbp-pagination-links a,
-#bbpress-forums .bbp-pagination-links span {
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	min-width: 36px;
-	height: 36px;
-	padding: 8px 12px;
-	border: 1px solid var(--border-color, #ddd);
-	border-radius: 3px;
-	color: var(--text-color, #333);
-	background-color: var(--background-color, #fff);
-	text-decoration: none;
-	font-size: 14px;
-	line-height: 1;
-	transition: all 0.2s ease;
-	margin: 0;
-	box-sizing: border-box;
-}
-
-/* Current Page (Active State) */
-#bbpress-forums .bbp-pagination-links span.current {
-	background-color: var(--button-bg, #0b5394);
-	color: white;
-	border-color: var(--button-bg, #0b5394);
-	font-weight: 600;
-}
-
-/* Link Hover States */
-#bbpress-forums .bbp-pagination-links a:hover {
-	background-color: var(--button-hover-bg, #083b6c);
-	color: white;
-	border-color: var(--button-hover-bg, #083b6c);
-	transform: translateY(-1px);
-	box-shadow: var(--card-shadow, 0 2px 6px rgba(0, 0, 0, 0.08));
-}
-
-/* Focus States for Accessibility */
-#bbpress-forums .bbp-pagination-links a:focus {
-	outline: none;
-	border-color: var(--focus-border-color, #53940b);
-	box-shadow: var(--focus-box-shadow, 0 0 0 3px rgba(83, 148, 11, 0.2));
-}
-
-/* Disabled/Inactive Links */
-#bbpress-forums .bbp-pagination-links span.dots {
-	background: transparent;
-	border-color: transparent;
-	color: var(--muted-text, #6b7280);
-	cursor: default;
-}
-
-#bbpress-forums .bbp-pagination-links span.dots:hover {
-	background: transparent;
-	border-color: transparent;
-	transform: none;
-	box-shadow: none;
-}
-
-/* WordPress paginate_links with type=list styling to match bbPress pagination */
-#bbpress-forums .bbp-pagination-links ul.page-numbers {
-	display: flex;
-	align-items: center;
-	gap: 5px;
-	list-style: none;
-	margin: 0;
-	padding: 0;
-}
-
-#bbpress-forums .bbp-pagination-links ul.page-numbers li {
-	margin: 0;
-	padding: 0;
-	list-style: none;
-}
-
-/* Responsive Design */
-@media (max-width: 480px) {
-	.bbp-pagination {
-		flex-direction: column;
-		gap: 10px;
-		align-items: stretch;
-	}
-	
-	.bbp-pagination-count {
-		text-align: center;
-		margin-right: 0;
-		margin-bottom: 5px;
-	}
-	
-	.bbp-pagination-links {
-		justify-content: center;
-		flex-wrap: wrap;
-	}
-	
-	#bbpress-forums .bbp-pagination-links a,
-	#bbpress-forums .bbp-pagination-links span {
-		min-width: 32px;
-		height: 32px;
-		padding: 6px 10px;
-		font-size: 13px;
-	}
 }
 
 #bbpress-forums ul .bbp-forums-list {
@@ -259,14 +97,6 @@ a:focus, a:active, a:hover {
 
 /* mobile + tablet */
 @media (max-width: 768px) {
-	.extrachill-notifications {
-		list-style: none;
-	}
-
-	.extrachill-notifications li {
-		border-bottom: 1px solid var(--border-color);
-	}
-
 	#private-forums {
 		display: block;
 	}
@@ -299,10 +129,6 @@ a:focus, a:active, a:hover {
 
 	a.bbp-forum-title {
 		font-size: 18px;
-	}
-
-	.forum-title-with-icon {
-		display: block;
 	}
 
 	.reply .bbp-reply-author {
@@ -369,12 +195,7 @@ a:focus, a:active, a:hover {
 }
 
 #bbpress-forums #bbp-user-body {
-    margin-left: 0; 
-}
-
-#chill-home-header {
-	border-bottom: 3px solid #36454F;
-	margin-bottom: 20px;
+    margin-left: 0;
 }
 
 button:hover, a.button:hover {
@@ -427,10 +248,7 @@ div.bbp-breadcrumb a:hover {
 	text-decoration: underline;
     text-decoration-color: var(--link-color);
 }
-#bbpress-forums .bbp-pagination-links span.current {
-	background-color: var(--notice-border);
-}
- 
+
 .log-out {
 	color: red;
 }
@@ -477,21 +295,7 @@ div.bbp-topic-header,
     width: 100%;
     height: 100%;
 }
- 
-h2.forum-front-ec {
-	border-bottom: 2px solid var(--accent);
-	width: max-content;
-	display: inline;
-}
- 
-i#forum-collapse,
-#community-forums-collapse,
-#music-forums-collapse,
-#artist-platform-collapse {
-	margin-left: 5px;
-	font-size: 27px;
-}
- 
+
 .forum-titles li {
 	font-size: 14px;
 }
@@ -611,11 +415,7 @@ ol, ul {
 legend, label {
 	font-weight: 600;
 }
- 
-.bbp-pagination-count {
-	font-size: 14px;
-}
- 
+
 blockquote {
 	font-size: 0.9em;
 	border-left: 4px solid #003466;
@@ -805,15 +605,7 @@ span.bbp-admin-links a:hover {
 small.register-form {
 	display: block;
 }
- 
-.extrachill-notifications small {
-	display: inline;
-}
- 
-.extrachill-notifications strong {
-	display: inline;
-}
- 
+
 .hideme {
 	display: none;
 }
@@ -885,14 +677,7 @@ div.bbp-template-notice li {
 .account-settings select {
 	margin-bottom: 10px;
 }
- 
-.top-container,
-.middle-container,
-.bottom-container {
-	transition: height 0.5s ease-out;
-	overflow: hidden;
-}
- 
+
 .collapsed {
 	height: 0 !important; /* Ensure it stays collapsed */
 }

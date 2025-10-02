@@ -50,12 +50,19 @@ composer install
 ```
 
 ### Development Notes
-- **No Build System** - Direct file inclusion without compilation
+- **No Asset Compilation** - Direct file inclusion without npm/webpack compilation
 - **Procedural Architecture** - No PSR-4 autoloading configured, uses direct procedural patterns
 - **Asset Versioning** - Dynamic `filemtime()` versioning for cache management
-- **Organized Architecture** - Forum features in structured subdirectories with master loader
-- **Font System** - Custom font-face declarations with inheritance optimization
+- **Organized Architecture** - Forum features organized in `inc/` structure with master loader at `inc/includes.php`
 - **bbPress Integration** - Default stylesheet dequeuing, custom templates, enhanced functionality
+
+### Build System
+- **Universal Build Script**: Symlinked to shared build script at `../../.github/build.sh`
+- **Auto-Detection**: Script auto-detects plugin from `Plugin Name:` header
+- **Production Build**: Creates `/build/extrachill-community/` directory and `/build/extrachill-community.zip` file (non-versioned)
+- **No Asset Compilation Required**: Plugin uses direct file inclusion (run `./build.sh` directly)
+- **File Exclusion**: `.buildignore` rsync patterns exclude development files
+- **Composer Integration**: Uses `composer install --no-dev` for production, restores dev dependencies after
 
 ## Architecture Principles
 
@@ -63,70 +70,70 @@ composer install
 - **Plugin Structure**: WordPress plugin providing community functionality that integrates with the extrachill theme
 - **bbPress Integration**: Custom bbPress enhancements and forum functionality
 - **Asset Management**: Conditional CSS/JS loading with dynamic versioning using `filemtime()`
-- **Code Organization**: Forum features organized in `forum-features/` directory with master loader
+- **Code Organization**: Forum features organized in `inc/` structure with master loader at `inc/includes.php`
 - **Theme Integration**: Works with extrachill theme to provide community functionality on community.extrachill.com
-- **Template System**: Provides custom templates and functionality that extend the base theme
+- **Template System**: Provides custom bbPress templates and specialized page templates
+- **Hook-Based Components**: Homepage and settings use action hooks instead of monolithic templates
 
 ### 2. Cross-Domain Session Management
 - **WordPress Multisite**: Native WordPress multisite provides unified authentication across all Extra Chill domains
-- **Legacy Session Tokens**: Custom `user_session_tokens` table (maintained for backward compatibility during migration)
 - **Cookie Domain**: WordPress multisite handles cross-domain authentication via `.extrachill.com` subdomain coverage
-- **Auto-Login**: Native WordPress multisite login replaces custom `auto_login_via_session_token()` (legacy method maintained for compatibility)
+- **Seamless Comments**: Cross-domain commenting integration maintained in `extrachill-integration/seamless-comments.php`
 
 ## Critical File Locations
 
 ### Core Plugin Files
 - `extrachill-community.php` - Main plugin file with plugin header and initialization
 - `inc/core/assets.php` - Asset management and enqueuing system
-- `css/` - Plugin stylesheet directory
-- `js/` - Core JavaScript files directory
+- `inc/core/bbpress-templates.php` - bbPress template routing system
+- `inc/includes.php` - Master loader for all forum functionality
+- `style.css` - Main plugin stylesheet
 
-### Forum Features System
-- `forum-features/forum-features.php` - Master loader for all forum functionality
-- `forum-features/admin/` - Moderation, management, notifications
-- `forum-features/content/` - Embeds, editor, queries, processing
-- `forum-features/social/` - Interactions, following, reputation
-- `forum-features/users/` - Profiles, settings, verification
+### Forum Features System (inc/ structure)
+- `inc/admin/` - bbPress spam adjustments, forum sections
+- `inc/content/` - Editor, queries, breadcrumbs, sorting, notifications, dynamic menu
+- `inc/social/` - Upvoting, mentions, badges, notifications, rank system
+- `inc/users/` - Custom avatars, profiles, verification, online tracking, settings
+- `inc/home/` - Homepage components (header, recently active, homepage template)
 
 ### Page Templates
-- `page-templates/following-feed-template.php` - User following feed
 - `page-templates/leaderboard-template.php` - User leaderboard
 - `page-templates/main-blog-comments-feed.php` - Cross-domain blog comments
 - `page-templates/notifications-feed.php` - User notifications system
 - `page-templates/recent-feed-template.php` - Recent community activity
-- `page-templates/settings-page.php` - User account settings
 
-### Authentication & Integration
-- `extrachill-integration/session-tokens.php` - **Legacy**: Cross-domain session management (maintained for compatibility)
+### Settings System (Hook-Based)
+- `inc/users/settings/settings-content.php` - Settings page content rendering via hook
+- `inc/users/settings/settings-form-handler.php` - Form processing and validation
+- `inc/users/email-change-emails.php` - Email change verification and confirmation emails
+
+### Cross-Domain Integration
 - `extrachill-integration/seamless-comments.php` - Cross-domain commenting with multisite integration
-- `inc/users/email-change-emails.php` - Email change verification and confirmation emails (user settings functionality)
 
-### Forum Features Architecture
-- **Admin Features**: Moderation tools, forum management, email notifications, restricted forums (`admin/`)
-- **Content Features**: Bandcamp embeds, editor customization, queries, breadcrumbs, pagination (`content/`)
-- **Social Features**: Following system, upvoting, notifications, mentions, rank system with points calculation (`social/`)
-- **User Features**: Custom profiles, avatars, verification, settings, online user tracking (`users/`)
-- **Master Loader**: `forum-features/forum-features.php` loads all functionality with comprehensive documentation
-- **Asset Organization**: Specialized JavaScript files and CSS organized within feature subdirectories
+### JavaScript Architecture (12 files in inc/assets/js/)
+- custom-avatar.js, extrachill-follow.js, extrachill-mentions.js, home-collapse.js
+- manage-user-profile-links.js, nav-menu.js, quote.js, sorting.js
+- tinymce-image-upload.js, topic-quick-reply.js, upvote.js, utilities.js
 
-### JavaScript Architecture (15 total files)
-- **Core Utilities**: `js/utilities.js` - Shared functionality across components
-- **Main JS Directory** (`js/`): 10 files - Core functionality including custom-avatar.js, manage-user-profile-links.js, quote.js, shared-tabs.js, tinymce-image-upload.js, topic-quick-reply.js, sorting.js, home-collapse.js, nav-menu.js
-- **Social Features** (`forum-features/social/js/`): 3 files - extrachill-follow.js, upvote.js, extrachill-mentions.js
-- **Rank System** (`forum-features/social/rank-system/js/`): 1 file - extrachill_admin.js
-- **bbPress Extensions** (`bbpress/autosave/`): 1 file - plugin.min.js
+### CSS Files (9 files in inc/assets/css/)
+- home.css, leaderboard.css, notifications.css, replies-loop.css, settings-page.css
+- tinymce-editor.css, topic-quick-reply.css, topics-loop.css, user-profile.css
 
-### Asset Enqueuing System
-- **Main Stylesheet**: `extra-chill-community-style` - Primary theme styles with root CSS import system
-- **bbPress Optimization**: `extrachill_dequeue_bbpress_default_styles()` removes default bbPress styles at priority 15
-- **Modular CSS**: Context-specific loading via `modular_bbpress_styles()` function
-- **Font System**: Custom WilcoLoftSans and Lobster font-face declarations with inheritance optimization
-- **Content Width**: Responsive overrides with flex-wrap patterns for mobile optimization
-- **JavaScript Assets**: 15 specialized JS files including utilities, social features, forum enhancements, and media upload
-- **External Dependencies**: FontAwesome 6.5.1 via CDN
-- **Dynamic Versioning**: All assets use `filemtime()` for cache busting
-- **Conditional Loading**: Context-aware asset loading for optimal performance
-- **Script Dependencies**: Proper jQuery dependency management across all custom scripts
+### bbPress Template Overrides
+Custom templates in `bbpress/` directory provide enhanced forum functionality:
+- `bbpress.php` - Main bbPress wrapper template
+- `content-single-forum.php` - Single forum view with subforum support
+- `content-single-topic.php` - Single topic view with custom layout
+- `loop-forums.php` - Forum list container
+- `loop-topics.php` - Topic list container
+- `loop-replies.php` - Reply list container
+- `loop-single-forum-card.php` - Individual forum card rendering
+- `loop-single-topic-card.php` - Individual topic card rendering
+- `loop-single-reply-card.php` - Individual reply card rendering
+- `loop-subforums.php` - Subforum display component
+- `form-topic.php`, `form-reply.php` - Custom form templates with TinyMCE
+- `pagination-topics.php`, `pagination-replies.php`, `pagination-search.php` - Custom pagination
+- `user-profile.php`, `user-details.php` - Enhanced user profile templates
 
 ## Development Guidelines
 
@@ -141,10 +148,11 @@ composer install
 8. **Performance Optimization** - Conditional loading and selective script enqueuing
 
 ### Forum Features Architecture
-1. **Master Loader** - `forum-features/forum-features.php` loads all forum functionality
-2. **Organized Structure** - Features grouped by functionality (admin, content, social, users)
+1. **Master Loader** - `inc/includes.php` loads all forum functionality
+2. **Organized Structure** - Features grouped in `inc/` by functionality (admin, content, social, users, home)
 3. **Conditional Loading** - Context-aware CSS/JS loading for performance
-4. **bbPress Integration** - Custom templates and hooks for enhanced functionality
+4. **bbPress Integration** - Custom templates via `inc/core/bbpress-templates.php` routing
+5. **Hook-Based Components** - Homepage and settings use action hooks for extensibility
 
 ### Code Patterns
 - **WordPress Coding Standards** - Full compliance with plugin development best practices
@@ -158,10 +166,9 @@ composer install
 - **Cross-Domain Functionality** - Multisite authentication and data sharing capabilities
 
 ### JavaScript Architecture Principles
-- **Modular Design** - 17 specialized JS files for specific functionality domains
-- **jQuery Dependencies** - Proper dependency management across all custom scripts  
+- **Modular Design** - 12 specialized JS files in `inc/assets/js/` for specific functionality domains
+- **jQuery Dependencies** - Proper dependency management across all custom scripts
 - **Context-Aware Loading** - Conditional script enqueuing based on page template/context
-- **Cross-Domain Integration** - Seamless login and comment systems across domains
 - **Dynamic Versioning** - `filemtime()` versioning for cache busting
 - **Forum Integration** - Custom bbPress enhancements for editor, social features, and UI
 
@@ -174,7 +181,7 @@ composer install
 ### JavaScript
 - **Direct File Inclusion** - No build system, direct file loading
 - **jQuery Dependencies** - All custom scripts depend on jQuery
-- **17 Specialized Files** - Modular architecture with specific functionality domains
+- **12 Specialized Files** - All files in `inc/assets/js/` directory
 - **FontAwesome** 6.5.1 via CDN
 - **Dynamic Versioning** - `filemtime()` cache busting
 

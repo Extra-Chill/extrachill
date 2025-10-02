@@ -28,9 +28,6 @@ get_header();
 
 <?php
 
-echo '<div id="chill-home">';
-echo '<div id="chill-home-header"><span>';
-
 // Check if we are on a user profile page
 $isUserProfile = bbp_is_single_user();
 
@@ -43,15 +40,11 @@ if ($isUserProfile) {
     echo '<h1>' . get_the_title() . '</h1>';
 }
 
-echo '</span>';
-
 if (is_user_logged_in()) :
     echo '<p>Logged in as <a href="' . bbp_get_user_profile_url(wp_get_current_user()->ID) . '">' . esc_html(wp_get_current_user()->display_name) . '.</a></p>';
 else :
     echo '<p>You are not signed in. <a href="/login">Login</a> or <a href="/register">Register</a></p>';
 endif;
-
-echo '</div>'; // End of chill-home-header
 
 ?>
 
@@ -70,7 +63,6 @@ echo '</div>'; // End of chill-home-header
         }
 
     endwhile; // End of the loop.
-    echo '</div>'; // End of chill-home
 
     ?>
 

@@ -81,10 +81,10 @@ add_action('wp_enqueue_scripts', 'extrachill_enqueue_settings_page_assets');
 function modular_bbpress_styles() {
     if (bbp_is_forum_archive() || is_front_page() || bbp_is_single_forum()) {
         wp_enqueue_style(
-            'forums-loop',
-            EXTRACHILL_COMMUNITY_PLUGIN_URL . '/inc/assets/css/forums-loop.css',
+            'community-home',
+            EXTRACHILL_COMMUNITY_PLUGIN_URL . '/inc/assets/css/home.css',
             array('extra-chill-community-style'),
-            filemtime(EXTRACHILL_COMMUNITY_PLUGIN_DIR . '/inc/assets/css/forums-loop.css')
+            filemtime(EXTRACHILL_COMMUNITY_PLUGIN_DIR . '/inc/assets/css/home.css')
         );
     }
 

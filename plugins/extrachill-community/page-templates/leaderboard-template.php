@@ -28,17 +28,8 @@ get_header();
 
 <?php
 
-echo '<div id="chill-home">';
-echo '<div id="chill-home-header"><span>';
-
 // Display leaderboard title
 echo '<h1 class="leaderboard-title">' . __('Leaderboard', 'your-theme') . '</h1>';
-
-// Check if we are on a user profile page - REMOVED for leaderboard
-
-echo '</span>';
-
-echo '</div>'; // End of chill-home-header
 
 // Output the standard WordPress content within the div
 if (have_posts()) :
@@ -99,8 +90,6 @@ foreach ($users as $user) {
 echo '</tbody>';
 echo '</table>';
 echo '</div></div>';
-
-echo '</div>'; // End of chill-home
 
 // Pagination setup
 if ($total_pages > 1) {

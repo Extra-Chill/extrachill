@@ -18,7 +18,12 @@ defined( 'ABSPATH' ) || exit;
 
 	<?php if ( bbp_view_query() ) : ?>
 
-		<?php bbp_get_template_part( 'pagination', 'topics'    ); ?>
+		<?php
+		global $bbp_topic_query;
+		if ( ! empty( $bbp_topic_query ) ) {
+			extrachill_pagination( $bbp_topic_query, 'bbpress' );
+		}
+		?>
 
 		<?php bbp_get_template_part( 'loop',       'topics'    ); ?>
 

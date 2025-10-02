@@ -22,11 +22,21 @@ defined( 'ABSPATH' ) || exit;
 
 	<?php if ( bbp_has_search_results() ) : ?>
 
-		<?php bbp_get_template_part( 'pagination', 'search' ); ?>
+		<?php
+		global $bbp_search_query;
+		if ( ! empty( $bbp_search_query ) ) {
+			extrachill_pagination( $bbp_search_query, 'bbpress' );
+		}
+		?>
 
 		<?php bbp_get_template_part( 'loop',       'search' ); ?>
 
-		<?php bbp_get_template_part( 'pagination', 'search' ); ?>
+		<?php
+		global $bbp_search_query;
+		if ( ! empty( $bbp_search_query ) ) {
+			extrachill_pagination( $bbp_search_query, 'bbpress' );
+		}
+		?>
 
 	<?php else : ?>
 

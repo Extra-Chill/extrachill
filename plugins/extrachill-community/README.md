@@ -201,19 +201,21 @@ get_user_meta($user_id, 'user_is_professional'); // Professional account flag
 
 // Template Name: Leaderboard
 // Community leaderboard with user rankings
-
-// Template Name: Following Feed
-// User following feed with custom queries
 ```
 
 **bbPress Overrides**:
 ```php
 // Custom templates in bbpress/ directory
-// - loop-single-forum.php
-// - content-single-topic.php  
+// - content-single-topic.php (single topic display)
 // - user-profile.php (enhanced with social links)
 // - form-user-edit.php (enhanced profile editing)
-// - loop-forums.php (custom forum loop styling)
+// - loop-forums.php (forum container loop)
+// - loop-topics.php (topic container loop)
+// - loop-replies.php (reply container loop)
+// - loop-single-forum-card.php (individual forum card)
+// - loop-single-topic-card.php (individual topic card)
+// - loop-single-reply-card.php (individual reply card)
+// Note: Card templates (*-card.php) are used for individual item rendering
 ```
 
 ## Configuration

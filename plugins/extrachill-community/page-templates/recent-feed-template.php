@@ -10,9 +10,6 @@ get_header();
 
 <?php
 
-echo '<div id="chill-home">';
-echo '<div id="chill-home-header"><span>';
-
 // Check if we are on a user profile page
 $isUserProfile = bbp_is_single_user();
 
@@ -23,8 +20,6 @@ if ($isUserProfile) {
     echo '<h1>Recent Activity</h1>';
 }
 
-echo '</span>';
-
 // Output the standard WordPress content within the div
 if (have_posts()) :
     while (have_posts()) : the_post();
@@ -32,33 +27,22 @@ if (have_posts()) :
     endwhile;
 endif;
 
-echo '</div>'; // End of chill-home-header
-
 // Set up the query to fetch the most recent replies
 if (extrachill_get_recent_feed_query(15)) {
-    $pagination = extrachill_get_recent_feed_pagination();
+    global $bbp_reply_query;
     ?>
     <div id="bbpress-forums" class="bbpress-wrapper">
         <?php
-        if ($pagination) {
-            ?>
-            <div class="bbp-pagination">
-                <div class="bbp-pagination-count"><?php echo $pagination['count_html']; ?></div>
-                <div class="bbp-pagination-links"><?php echo $pagination['links_html']; ?></div>
-            </div>
-            <?php
+        // Use theme pagination with bbPress reply query
+        if ( ! empty( $bbp_reply_query ) ) {
+            extrachill_pagination( $bbp_reply_query, 'bbpress' );
         }
         ?>
         <?php bbp_get_template_part('loop', 'replies'); ?>
         <?php
         // Repeat pagination at bottom
-        if ($pagination) {
-            ?>
-            <div class="bbp-pagination">
-                <div class="bbp-pagination-count"><?php echo $pagination['count_html']; ?></div>
-                <div class="bbp-pagination-links"><?php echo $pagination['links_html']; ?></div>
-            </div>
-            <?php
+        if ( ! empty( $bbp_reply_query ) ) {
+            extrachill_pagination( $bbp_reply_query, 'bbpress' );
         }
         ?>
     </div>
@@ -66,7 +50,6 @@ if (extrachill_get_recent_feed_query(15)) {
 } else {
     echo '<div class="bbp-template-notice"><p>No recent activity found.</p></div>';
 }
-echo '</div>'; // End of chill-home
 
 ?>
     <?php // The closing divs for .site-content and .page have been removed. ?>

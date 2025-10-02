@@ -67,7 +67,7 @@ if ( $recent_topics_query_for_exclusion->have_posts() ) {
                         <!-- Stats container: Voices and Replies -->
                         <div class="bbp-forum-stats">
                         <div class="bbp-forum-views">
-                                <?php echo get_post_meta( $topic_id, 'bbp_topic_views', true ); ?> Views
+                                <?php echo number_format(ec_get_post_views($topic_id)); ?> views
                                 </div>
                             <div class="bbp-forum-topic-count">
                                 <?php echo bbp_get_topic_voice_count($topic_id); ?> Voices

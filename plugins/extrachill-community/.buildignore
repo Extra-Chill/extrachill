@@ -21,7 +21,6 @@ CHANGELOG.md
 *~
 
 # Build artifacts and distribution
-dist/
 build/
 *.zip
 *.tar.gz

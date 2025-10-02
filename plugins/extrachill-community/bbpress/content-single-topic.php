@@ -39,11 +39,17 @@ defined( 'ABSPATH' ) || exit;
 
                 if ( bbp_has_replies() ) :
 
-                    bbp_get_template_part( 'pagination', 'replies' );
+                    global $bbp_reply_query;
+                    if ( ! empty( $bbp_reply_query ) && bbp_get_topic_reply_count() > 0 ) {
+                        extrachill_pagination( $bbp_reply_query, 'bbpress' );
+                    }
 
                     bbp_get_template_part( 'loop',       'replies' );
 
-                    bbp_get_template_part( 'pagination', 'replies' );
+                    global $bbp_reply_query;
+                    if ( ! empty( $bbp_reply_query ) && bbp_get_topic_reply_count() > 0 ) {
+                        extrachill_pagination( $bbp_reply_query, 'bbpress' );
+                    }
 
                 endif;
 
