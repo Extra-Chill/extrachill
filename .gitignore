@@ -1,5 +1,4 @@
 # Ignore build artifacts
-/dist/
 build/
 
 # Node modules (if ever added)
@@ -11,9 +10,6 @@ vendor/
 # OS / editor files
 .DS_Store
 *.swp
-
-# Composer vendor in dist (keep root vendor tracked)
-/dist/**/vendor/
 
 # Additional build and development files
 composer.lock

@@ -2,8 +2,7 @@
 /**
  * ExtraChill Theme Setup and Configuration
  *
- * Modular WordPress theme serving extrachill.com and community.extrachill.com
- * with hook-based menu system, custom taxonomies, and plugin integration points.
+ * Loads 47 modular PHP files for theme functionality across multisite network.
  *
  * @package ExtraChill
  * @since 69.57
@@ -66,6 +65,7 @@ require_once(EXTRACHILL_INCLUDES_DIR . '/core/templates/taxonomy-badges.php');
 
 require_once(EXTRACHILL_INCLUDES_DIR . '/core/actions.php');
 require_once(EXTRACHILL_INCLUDES_DIR . '/core/assets.php');
+require_once(EXTRACHILL_INCLUDES_DIR . '/core/view-counts.php');
 require_once(EXTRACHILL_INCLUDES_DIR . '/core/rewrite.php');
 require_once(EXTRACHILL_INCLUDES_DIR . '/core/templates/breadcrumbs.php');
 require_once(EXTRACHILL_INCLUDES_DIR . '/header/navigation-menu.php');

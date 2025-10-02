@@ -481,7 +481,7 @@ a img {
 
 figure.wp-block-gallery.has-nested-images{
 gap:.1em;
-background-color: #000;
+background-color: var(--background-color);
 }
 .wp-block-gallery.has-nested-images.is-cropped figure.wp-block-image:not(#individual-image) img{
 	height: 300px;

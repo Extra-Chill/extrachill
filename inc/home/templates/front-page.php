@@ -27,8 +27,10 @@ if ( $custom_homepage_content !== false ) {
     <?php do_action( 'extrachill_homepage_content_top' ); // Full-width section below hero ?>
     <?php do_action( 'extrachill_homepage_content_middle' ); ?>
     <?php do_action( 'extrachill_homepage_content_bottom' ); ?>
-    <?php do_action( 'extrachill_home_final_left' ); ?>
-    <?php do_action( 'extrachill_home_final_right' ); ?>
+    <div class="home-final">
+        <?php do_action( 'extrachill_home_final_left' ); ?>
+        <?php do_action( 'extrachill_home_final_right' ); ?>
+    </div>
     <?php
 }
 
