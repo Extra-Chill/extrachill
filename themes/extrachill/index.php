@@ -38,13 +38,13 @@ if ( is_front_page() || is_home() ) {
 
 } elseif ( is_404() ) {
     $template = apply_filters( 'extrachill_template_404',
-        get_template_directory() . '/404.php'
+        get_template_directory() . '/inc/core/templates/404.php'
     );
     include $template;
 
 } else {
     $template = apply_filters( 'extrachill_template_fallback',
-        get_template_directory() . '/404.php'
+        get_template_directory() . '/inc/core/templates/404.php'
     );
     include $template;
 }

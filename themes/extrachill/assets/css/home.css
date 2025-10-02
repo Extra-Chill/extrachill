@@ -398,7 +398,7 @@ body.home {
     margin-bottom: 0;
 }
 
-.home-newsletter-about-row {
+.home-final {
     display: flex;
     flex-direction: row;
     gap: 2.5em;
@@ -408,7 +408,9 @@ body.home {
     margin: 4em auto 4em auto;
     width: 100%;
 }
-.home-about-box {
+
+/* Generic layout styles for both children (left and right) */
+.home-final > * {
     flex: 1 1 0;
     min-width: 0;
     background: var(--card-background);
@@ -420,6 +422,7 @@ body.home {
     align-items: center;
     margin: 0;
 }
+
 .home-about-box {
     max-width: 420px;
     justify-content: flex-start;
@@ -483,7 +486,7 @@ body.home {
     text-decoration: none !important;
 }
 @media (max-width: 900px) {
-    .home-newsletter-about-row {
+    .home-final {
         flex-direction: column;
         gap: 2em;
         max-width: 98vw;
