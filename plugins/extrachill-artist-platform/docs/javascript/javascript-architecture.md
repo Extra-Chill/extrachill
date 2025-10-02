@@ -482,57 +482,51 @@ const SortableManager = {
 };
 ```
 
-### Responsive Tabs
+### Join Flow Modal System
 
-Location: `assets/js/shared-tabs.js`
+Location: `inc/join/assets/js/join-flow-ui.js`
 
 ```javascript
-const ResponsiveTabs = {
-    breakpoint: 768,
-    
+const JoinFlowModal = {
+    modal: null,
+    overlay: null,
+
     init: function() {
-        const tabContainers = document.querySelectorAll('.responsive-tabs');
-        
-        tabContainers.forEach(container => {
-            this.initializeContainer(container);
-        });
-        
-        // Handle resize
-        window.addEventListener('resize', this.handleResize.bind(this));
+        this.cacheElements();
+        this.bindEvents();
     },
-    
-    initializeContainer: function(container) {
-        const tabs = container.querySelectorAll('.tab-button');
-        const panels = container.querySelectorAll('.tab-panel');
-        
-        // Desktop behavior
-        if (window.innerWidth >= this.breakpoint) {
-            this.enableTabMode(container);
-        } else {
-            this.enableAccordionMode(container);
+
+    cacheElements: function() {
+        this.modal = document.getElementById('join-flow-modal-content');
+        this.overlay = document.getElementById('join-flow-modal-overlay');
+    },
+
+    bindEvents: function() {
+        const existingAccountBtn = document.getElementById('join-flow-existing-account');
+        const newAccountBtn = document.getElementById('join-flow-new-account');
+
+        if (existingAccountBtn) {
+            existingAccountBtn.addEventListener('click', this.handleExistingAccount.bind(this));
+        }
+
+        if (newAccountBtn) {
+            newAccountBtn.addEventListener('click', this.handleNewAccount.bind(this));
         }
     },
-    
-    enableTabMode: function(container) {
-        container.classList.add('tab-mode');
-        container.classList.remove('accordion-mode');
-        
-        // Tab click behavior
-        const tabs = container.querySelectorAll('.tab-button');
-        tabs.forEach(tab => {
-            tab.addEventListener('click', this.handleTabClick.bind(this));
-        });
+
+    handleExistingAccount: function() {
+        // Trigger login tab activation
+        this.closeModal();
     },
-    
-    enableAccordionMode: function(container) {
-        container.classList.add('accordion-mode');
-        container.classList.remove('tab-mode');
-        
-        // Accordion toggle behavior
-        const headers = container.querySelectorAll('.accordion-header');
-        headers.forEach(header => {
-            header.addEventListener('click', this.handleAccordionClick.bind(this));
-        });
+
+    handleNewAccount: function() {
+        // Trigger register tab activation with join flow parameter
+        this.closeModal();
+    },
+
+    closeModal: function() {
+        if (this.modal) this.modal.style.display = 'none';
+        if (this.overlay) this.overlay.style.display = 'none';
     }
 };
 ```

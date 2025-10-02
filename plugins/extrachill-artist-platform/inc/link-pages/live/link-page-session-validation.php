@@ -1,7 +1,7 @@
 <?php
 /**
- * Link page session validation and JavaScript enqueuing
- * Cross-domain authentication via WordPress multisite
+ * Link page session enqueuing for cross-domain authentication
+ * WordPress multisite provides native cross-domain authentication across .extrachill.com subdomains
  */
 
 defined( 'ABSPATH' ) || exit;

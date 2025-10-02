@@ -61,7 +61,14 @@ composer.lock
 
 
 # Build output
-dist/
 build/
 *.zip
 *.tar.gz
+
+# Additional build and development files
+.claude/
+CLAUDE.md
+AGENTS.md
+.buildignore
+build.sh
+docs/

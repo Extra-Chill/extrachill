@@ -4,6 +4,14 @@ A comprehensive WordPress plugin that provides artist profile management, link p
 
 ## Features
 
+### 🚀 Join Flow System
+- Complete onboarding flow: user registration → artist profile → link page creation
+- Modal interface for existing vs new account selection
+- Automatic artist profile and link page creation on registration
+- Roster membership auto-assignment for profile owners
+- Forum creation integration with bbPress
+- Transient-based post-registration redirect tracking
+
 ### 🎵 Artist Profiles
 - Custom post type for artist/band profiles with comprehensive meta data
 - Activity-based artist grid display with smart sorting
@@ -241,19 +249,26 @@ class ExtraChillArtistPlatform_Assets {
             $this->enqueue_link_page_assets();
             // Loads from inc/link-pages/live/assets/
         }
-        
+
         if ( $this->is_manage_artist_profile_page() ) {
             $this->enqueue_artist_profile_management_assets();
             // Loads from inc/artist-profiles/assets/
         }
-        
+
         if ( $this->is_manage_link_page_page() ) {
             $this->enqueue_link_page_management_assets();
             // Loads from inc/link-pages/management/assets/
         }
-        
+
         // File existence checks and cache busting via filemtime()
         // Global assets loaded from assets/ directory
+    }
+
+    // Join flow assets loaded on login page
+    public function enqueue_join_flow_assets() {
+        if ( is_page_template( 'page-templates/login-register-template.php' ) ) {
+            // Loads from inc/join/assets/
+        }
     }
 }
 
@@ -314,6 +329,11 @@ document.addEventListener('profileImageChanged', function(e) {
 // Social platform integration
 document.addEventListener('socialIconsChanged', function(e) {
     updatePreviewSocials(e.detail.socials);
+});
+
+// Join flow modal handling
+document.addEventListener('DOMContentLoaded', function() {
+    // Modal interactions for account selection
 });
 ```
 
@@ -400,28 +420,22 @@ Override plugin styles in your theme:
     background: rgba(255, 255, 255, 0.9);
 }
 
-/* Modify management interface */
-.shared-tabs-component .shared-tab-button {
-    background: #f0f0f0;
-    border: 1px solid #ddd;
-}
-
 /* Customize analytics charts */
 .analytics-chart-container {
     background: #fff;
     border-radius: 6px;
+}
+
+/* Join flow modal customization */
+.join-flow-modal-content {
+    background: #fff;
+    border-radius: 8px;
 }
 ```
 
 ### Custom JavaScript Integration
 
 ```javascript
-// Listen for plugin events in your theme
-document.addEventListener('sharedTabActivated', function(e) {
-    console.log('Tab activated:', e.detail.tabId);
-    // Custom logic when tabs change
-});
-
 // Extend link page functionality
 document.addEventListener('DOMContentLoaded', function() {
     // Add custom tracking
@@ -505,7 +519,7 @@ Check browser console for JavaScript errors. Verify that event-driven communicat
 ```
 inc/
 ├── core/                             # Core plugin functionality
-│   ├── artist-platform-assets.php       # Asset management class  
+│   ├── artist-platform-assets.php       # Asset management class
 │   ├── class-templates.php              # Page template handling
 │   ├── artist-platform-post-types.php   # CPT registration
 │   ├── artist-platform-migration.php    # Migration system
@@ -522,8 +536,14 @@ inc/
 │   │   ├── data.php                     # Centralized data provider (ec_get_link_page_data)
 │   │   ├── defaults.php                 # Default configurations
 │   │   └── avatar-menu.php              # Avatar menu customization
-│   ├── templates/                       # Core template components
-│   └── default-artist-page-link-profiles.php # Default configurations
+│   └── templates/                       # Core template components
+├── join/                             # Join flow system
+│   ├── join-flow.php                 # Registration handlers and login redirects
+│   ├── templates/
+│   │   └── join-flow-modal.php       # Account selection modal
+│   └── assets/
+│       ├── css/join-flow.css         # Join flow styles
+│       └── js/join-flow-ui.js        # Modal interaction handling
 ├── artist-profiles/                  # Profile management
 │   ├── admin/                       # Admin meta boxes, user linking
 │   ├── frontend/                    # Public forms, directory
@@ -586,7 +606,6 @@ assets/
 │   ├── extrch-links.css            # Public link page styles
 │   └── extrch-share-modal.css      # Share modal styles
 └── js/
-    ├── shared-tabs.js               # Responsive tabbed interface
     ├── artist-switcher.js           # Artist context switching
     ├── artist-platform.js           # Core plugin functionality
     └── artist-platform-home.js     # Homepage-specific features
@@ -612,7 +631,7 @@ npm run build
 
 ### Build Features
 
-- **Automated Packaging**: Creates versioned zip files in the `/dist` directory
+- **Automated Packaging**: Creates `/build/extrachill-artist-platform/` directory and `/build/extrachill-artist-platform.zip` file
 - **File Filtering**: Excludes development files via `.buildignore`
 - **Version Extraction**: Automatically reads version from main plugin file
 - **Structure Validation**: Ensures plugin integrity before packaging

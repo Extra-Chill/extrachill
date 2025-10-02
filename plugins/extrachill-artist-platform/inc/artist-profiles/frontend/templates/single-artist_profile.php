@@ -27,13 +27,8 @@ get_header(); ?>
 
             // --- Main Post Loop ---
             while ( have_posts() ) : the_post(); 
-            
-                $artist_profile_id = get_the_ID();
 
-                // Increment view count for this artist profile
-                if ( function_exists( 'bp_increment_artist_profile_view_count' ) ) {
-                    bp_increment_artist_profile_view_count( $artist_profile_id );
-                }
+                $artist_profile_id = get_the_ID();
 
                 $forum_id = get_post_meta( $artist_profile_id, '_artist_forum_id', true );
                 $allow_public_topics = get_post_meta( $artist_profile_id, '_allow_public_topic_creation', true );

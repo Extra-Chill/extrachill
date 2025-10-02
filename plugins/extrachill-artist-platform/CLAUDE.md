@@ -16,6 +16,7 @@ WordPress plugin providing comprehensive artist platform functionality for the E
 - **Core Directory**: `inc/core/` - Post types, rewrite rules, asset management, templates, centralized data functions
 - **Artist Profiles**: `inc/artist-profiles/` - Admin, frontend, roster management, forum integration
 - **Link Pages**: `inc/link-pages/` - Live pages, management interface, subscription system
+- **Join Flow**: `inc/join/` - User registration and artist platform onboarding
 - **Database**: `inc/database/` - Analytics and subscriber database functions
 - **Assets**: `assets/` - Consolidated CSS/JS, organized by functionality
 
@@ -24,6 +25,19 @@ WordPress plugin providing comprehensive artist platform functionality for the E
 - **artist_link_page**: Link pages (slug: `/{slug}` - top-level rewrite)
 
 ### Key Features
+
+#### Join Flow System
+**Location**: `inc/join/`
+- **Complete onboarding flow**: User registration → automatic artist profile creation → automatic link page creation
+- **Modal interface**: `inc/join/templates/join-flow-modal.php` - Existing vs new account selection
+- **Integration point**: Hooks into `extrachill_below_login_register_form` action from community plugin
+- **Assets**: `inc/join/assets/css/join-flow.css`, `inc/join/assets/js/join-flow-ui.js`
+- **Registration handler**: `ec_handle_join_flow_user_registration()` - Creates artist profile and link page on user registration
+- **User detection**: `ec_is_join_flow_registration()` - Identifies join flow registrations via `from_join` parameter
+- **Login redirect**: `ec_join_flow_login_redirect()` - Handles post-login navigation for join flow users
+- **Roster integration**: Automatically links user as member of their own artist profile via `bp_add_artist_membership()`
+- **Forum creation**: Automatically creates artist forum via `bp_create_artist_forum_on_save()`
+- **Transient tracking**: Stores completion data for post-registration redirect using `join_flow_completion_{user_id}` transients
 
 #### Link Page System
 **Location**: `inc/link-pages/`
@@ -61,10 +75,11 @@ WordPress plugin providing comprehensive artist platform functionality for the E
 
 #### Analytics System
 **Files**: `inc/database/link-page-analytics-db.php`, `inc/link-pages/live/ajax/analytics.php`, `inc/link-pages/management/ajax/analytics.php`
-- Daily aggregation of page views and link clicks
-- Database tables: `{prefix}_extrch_link_page_daily_views`, `{prefix}_extrch_link_page_daily_link_clicks`
-- Public tracking via live AJAX module with automatic data pruning
-- Chart.js-powered analytics dashboard via management AJAX module
+- **Page View Tracking**: Real-time tracking via theme-level `ec_post_views` system (WordPress post meta)
+- **Daily Aggregation**: Scheduled cron calculates daily view deltas and populates `{prefix}_extrch_link_page_daily_views` table
+- **Link Click Tracking**: Direct tracking to `{prefix}_extrch_link_page_daily_link_clicks` table via sendBeacon
+- **Data Retention**: Automatic 90-day pruning of daily analytics tables
+- **Dashboard**: Chart.js-powered analytics with daily breakdown charts
 - Management interface: `inc/link-pages/management/assets/js/analytics.js`
 
 #### Roster Management System
@@ -81,6 +96,7 @@ WordPress plugin providing comprehensive artist platform functionality for the E
 - Timestamp-based cache busting via `filemtime()`
 - Conditional loading based on template context
 - Context-aware asset loading for different page types
+- **Join flow asset loading**: `enqueue_join_flow_assets()` - Loads join flow CSS/JS on login page with `from_join` parameter detection
 
 #### JavaScript Architecture
 
@@ -106,10 +122,12 @@ WordPress plugin providing comprehensive artist platform functionality for the E
 - `artist-members-admin.js` - Backend member administration
 
 **Global Components**: `assets/js/`
-- `shared-tabs.js` - Responsive tabbed interface (accordion on mobile, tabs on desktop)
-- `artist-switcher.js` - Artist selection dropdown for switching contexts  
+- `artist-switcher.js` - Artist selection dropdown for switching contexts
 - `artist-platform.js` - Core plugin functionality
 - `artist-platform-home.js` - Homepage-specific features
+
+**Join Flow Interface**: `inc/join/assets/js/`
+- `join-flow-ui.js` - Modal handling for existing vs new account selection
 
 **Key JavaScript Modules**:
 - `link-expiration.js` & `link-expiration-preview.js` - Time-based link scheduling and preview
@@ -306,22 +324,26 @@ CREATE TABLE {prefix}_artist_subscribers (
 - Band-to-artist terminology migration with transaction safety and rollback
 
 ### Build System
-**Core Files**: `build.sh`, `package.json`, `.buildignore`
-- **Automated Build Process**: Shell script creates production-ready zip distributions
-- **Version Extraction**: Automatically extracts version from main plugin file
-- **File Filtering**: `.buildignore` excludes development files from production builds
-- **Dependency Validation**: Checks for required tools (rsync, zip)
-- **Structure Validation**: Validates plugin integrity before packaging
-- **Output Location**: Creates versioned zip files in `/dist` directory
+**Core Files**: `build.sh -> ../../.github/build.sh`, `package.json`, `.buildignore`
+
+**Universal Build Script**: Symlinked to shared build script at `../../.github/build.sh`
+- **Automated Build Process**: Universal script auto-detects plugin type and creates production packages
+- **Version Extraction**: Automatically extracts version from `Plugin Name:` header in main plugin file
+- **File Filtering**: `.buildignore` provides rsync exclusion patterns for development files
+- **Dependency Validation**: Checks for required tools (rsync, zip, composer)
+- **Production Dependencies**: Runs `composer install --no-dev` before build, restores dev dependencies after
+- **Structure Validation**: Validates plugin integrity before packaging (ensures main file exists)
+- **Output Location**: Creates both `/build/extrachill-artist-platform/` clean directory AND `/build/extrachill-artist-platform.zip` non-versioned file
 
 **Build Features**:
-- **Clean Builds**: Automatic cleanup of previous build artifacts
-- **Exclude Management**: Comprehensive file exclusion via `.buildignore` patterns
+- **Clean Builds**: Automatic cleanup of previous `/build` artifacts (removes legacy `/dist` if exists)
+- **Exclude Management**: Comprehensive file exclusion via `.buildignore` rsync patterns
 - **Integrity Checks**: Plugin structure validation during build process
 - **Progress Reporting**: Colored console output with success/error reporting
-- **Archive Contents**: Summary of packaged files and total size
+- **Archive Summary**: Total file count and ZIP size after successful build
+- **Single Source of Truth**: Updates to `/.github/build.sh` automatically apply to all plugins/themes
 
-**NPM Integration**: `package.json` provides build scripts and version extraction
+**NPM Integration**: `package.json` provides linting scripts and development tooling
 
 ## Development Standards
 
@@ -394,13 +416,14 @@ document.addEventListener('backgroundChanged', function(e) {
 **Module Categories**:
 1. **Management Modules**: Handle form interactions, dispatch events for data changes (`info.js`, `links.js`, `colors.js`, etc.)
 2. **Preview Modules**: Listen for events, update live preview DOM elements (`info-preview.js`, `links-preview.js`, `colors-preview.js`, etc.)
-3. **Utility Modules**: Shared functionality (`ui-utils.js`, `sortable.js` for drag-and-drop, `shared-tabs.js`)
+3. **Utility Modules**: Shared functionality (`ui-utils.js`, `sortable.js` for drag-and-drop)
 4. **Global Modules**: Cross-component features (`artist-switcher.js`, `artist-platform.js`)
 5. **Public Interface**: User-facing functionality (`link-page-session.js`, `extrch-share-modal.js`, tracking modules)
+6. **Join Flow**: User onboarding (`join-flow-ui.js` - modal interactions for account selection)
 
 #### Key JavaScript Features
 - **Event-Driven Architecture**: Standardized CustomEvent communication between management and preview modules
-- **Responsive Tabs**: `shared-tabs.js` - Accordion/tabs hybrid with 768px breakpoint
+- **Responsive Tab System**: `ui-utils.js` provides tab management functionality for management interfaces
 - **Drag-and-Drop**: `sortable.js` - SortableJS integration with touch support and live preview updates
 - **Live Preview**: Real-time CSS variable updates via dedicated preview modules with comprehensive data synchronization
 - **Form Serialization**: Complex data structures serialized to hidden inputs for WordPress native form processing
@@ -408,6 +431,7 @@ document.addEventListener('backgroundChanged', function(e) {
 - **Modern APIs**: Native Web Share API with social media fallbacks
 - **Context-Aware Loading**: Asset management with conditional enqueuing based on page context
 - **Artist Context Switching**: Seamless multi-artist management with state preservation
+- **Join Flow Modals**: Modal-based user onboarding for account selection
 
  #### Save System Data Flow
  1. **JavaScript modules** serialize complex data structures to hidden form inputs

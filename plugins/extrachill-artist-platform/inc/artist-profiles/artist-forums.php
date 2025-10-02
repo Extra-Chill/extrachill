@@ -324,28 +324,6 @@ function bp_filter_artist_forum_permalink( $link, $post ) {
 add_filter( 'post_type_link', 'bp_filter_artist_forum_permalink', 20, 2 ); // Use priority 20 to potentially run after other filters 
 
 /**
- * Increment view count for artist profile
- * 
- * Excludes admin users and post authors from count.
- */
-function bp_increment_artist_profile_view_count( $artist_id ) {
-    if ( empty( $artist_id ) || get_post_type( $artist_id ) !== 'artist_profile' ) {
-        return;
-    }
-
-    // Don't count views for admins or the post author to avoid skewing counts during edits/management.
-    if ( current_user_can( 'manage_options' ) || get_current_user_id() == get_post_field( 'post_author', $artist_id ) ) {
-        // Optionally, you could allow admins to see it increment for testing by commenting out this return.
-        // return;
-    }
-
-    $count_key = '_artist_profile_view_count';
-    $count = (int) get_post_meta( $artist_id, $count_key, true );
-    $count++;
-    update_post_meta( $artist_id, $count_key, $count );
-} 
-
-/**
  * Injects artist forum ID into global query vars
  * 
  * Enables bbPress functions like bbp_get_forum_id() to work correctly

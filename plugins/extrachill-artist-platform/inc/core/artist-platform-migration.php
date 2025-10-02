@@ -129,7 +129,7 @@ class ExtraChillArtistPlatform_Migration {
         <div class="notice notice-warning is-dismissible" id="artist-platform-migration-notice" style="padding: 20px;">
             <div style="display: flex; align-items: center; margin-bottom: 15px;">
                 <span class="dashicons dashicons-warning" style="color: #f56e28; font-size: 24px; margin-right: 10px;"></span>
-                <h3 style="margin: 0; font-size: 18px;"><?php esc_html_e( 'ExtraChill Artist Platform Migration Required', 'extrachill-artist-platform' ); ?></h3>
+                <h3 style="margin: 0; font-size: 18px;"><?php esc_html_e( 'Extra Chill Artist Platform Migration Required', 'extrachill-artist-platform' ); ?></h3>
             </div>
             
             <div style="background: #fff; border: 1px solid #ddd; padding: 15px; border-radius: 4px; margin-bottom: 15px;">

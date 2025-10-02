@@ -168,6 +168,15 @@ class ExtraChillArtistPlatform {
     public static function deactivate() {
         flush_rewrite_rules();
         delete_option( 'extrachill_artist_platform_activated' );
+
+        // Unschedule analytics cron jobs
+        if (function_exists('extrch_unschedule_analytics_aggregation_cron')) {
+            extrch_unschedule_analytics_aggregation_cron();
+        }
+
+        if (function_exists('extrch_unschedule_analytics_pruning_cron')) {
+            extrch_unschedule_analytics_pruning_cron();
+        }
     }
 
 }

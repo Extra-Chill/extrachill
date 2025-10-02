@@ -22,7 +22,6 @@ docs/
 *~
 
 # Build artifacts and distribution
-dist/
 build/
 *.zip
 *.tar.gz

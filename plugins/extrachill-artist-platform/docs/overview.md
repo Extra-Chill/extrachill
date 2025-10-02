@@ -16,6 +16,7 @@ The platform consists of two primary custom post types:
 - Built-in thumbnail support and custom fields
 
 ### Management Systems
+- **Join Flow**: Complete user onboarding with automatic artist profile and link page creation
 - **Live Preview**: Real-time preview system for link page customization
 - **Roster Management**: Band member invitation and role assignment system
 - **Social Integration**: 15+ social platform support with comprehensive validation
