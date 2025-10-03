@@ -2,11 +2,11 @@
 /**
  * Single Post Template
  *
- * Handles single post display with header, content, comments, and related posts.
- * Loaded via universal template routing system in index.php.
+ * Displays single posts with content, comments, and related posts.
+ * Loaded via template_include filter in inc/core/template-router.php.
  *
  * @package ExtraChill
- * @since 69.57
+ * @since 69.58
  */
 
 get_header(); ?>

@@ -1,28 +1,20 @@
 <?php
 /**
- * Archive Filter Bar Component
+ * Archive Filter Bar
  *
- * Unified filter bar for archive pages containing all filtering and sorting controls.
- * Includes child terms dropdown, artist filtering, randomize button, and sort dropdown.
+ * Provides archive sorting (recent/oldest), randomization, and child term filtering.
+ * Includes category-specific artist filters for Song Meanings and Music History.
  *
  * @package ExtraChill
- * @since 1.0
+ * @since 69.58
  */
 
 add_action('extrachill_archive_above_posts', 'extrachill_archive_filter_bar', 10);
 
-/**
- * Display unified archive filter bar
- * Combines all filtering/sorting controls in one consistent interface
- *
- * @since 1.0
- */
 function extrachill_archive_filter_bar() {
     if (!is_archive()) {
         return;
     }
-
-    // Get archive link for current context
     $archive_link = '';
     if (is_category()) {
         $archive_link = get_category_link(get_queried_object_id());
@@ -42,22 +34,17 @@ function extrachill_archive_filter_bar() {
 
     echo '<div id="extrachill-custom-sorting">';
 
-    // Randomize button - always first
     echo '<button id="randomize-posts">Randomize Posts</button>';
 
-    // Child terms dropdown (subcategories/sub-locations)
     if (function_exists('extrachill_child_terms_dropdown_html')) {
         echo extrachill_child_terms_dropdown_html();
     }
 
-    // Artist filter dropdown for specific categories
     if (is_category('song-meanings')) {
         extrachill_artist_filter_dropdown('Filter By Artist');
     } elseif (is_category('music-history')) {
         extrachill_artist_filter_dropdown('Filter By Artist');
     }
-
-    // Sort dropdown
     echo '<div id="custom-sorting-dropdown">';
     echo '<select id="post-sorting" name="post_sorting" onchange="window.location.href=\'' . esc_url($archive_link) . '?sort=\'+this.value;">';
     echo '<option value="recent">Sort by Recent</option>';

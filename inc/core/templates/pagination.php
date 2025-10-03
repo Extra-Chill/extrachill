@@ -1,24 +1,22 @@
 <?php
 /**
- * Pagination Template
+ * Pagination
  *
- * Native WordPress pagination system with professional count display
- * and context-aware navigation for archive, search, and custom queries.
+ * Native WordPress pagination with count display and URL parameter preservation.
  *
  * @package ExtraChill
  * @since 69.58
  */
 
-// Prevent direct access
 if (!defined('ABSPATH')) {
     exit;
 }
 
 /**
- * Display pagination for posts with professional count and navigation.
+ * Display pagination with count and navigation links
  *
- * @param WP_Query|null $query Optional custom query object. Uses global $wp_query if null.
- * @param string $context Optional context for styling (default, archive, search).
+ * @param WP_Query|null $query Custom query or global $wp_query
+ * @param string $context Styling context (default, archive, search)
  */
 function extrachill_pagination($query = null, $context = 'default') {
     global $wp_query;
@@ -29,7 +27,6 @@ function extrachill_pagination($query = null, $context = 'default') {
         return;
     }
 
-    // Handle pagination for both global and custom queries
     if ($query) {
         $current_page = max(1, $pagination_query->get('paged', 1));
     } else {
@@ -40,16 +37,13 @@ function extrachill_pagination($query = null, $context = 'default') {
     $total_posts = $pagination_query->found_posts;
     $per_page = $pagination_query->query_vars['posts_per_page'];
 
-    // Handle edge case where posts_per_page might be -1 (show all posts)
     if ($per_page == -1) {
         $per_page = $total_posts;
     }
 
-    // Calculate pagination display values
     $start = (($current_page - 1) * $per_page) + 1;
     $end = min($current_page * $per_page, $total_posts);
 
-    // Generate count display
     if ($total_posts == 1) {
         $count_html = 'Viewing 1 post';
     } elseif ($end == $start) {
@@ -58,17 +52,12 @@ function extrachill_pagination($query = null, $context = 'default') {
         $count_html = sprintf('Viewing posts %s-%s of %s total', number_format($start), number_format($end), number_format($total_posts));
     }
 
-    // Generate navigation links with proper URL handling
-    $big = 999999999; // Need an unlikely integer
-
-    // Preserve existing query parameters in pagination URLs
+    $big = 999999999;
     $current_url = home_url(add_query_arg(array(), $GLOBALS['wp']->request));
     $base_url = str_replace($big, '%#%', esc_url(get_pagenum_link($big)));
 
-    // For pages with existing query params, use add_query_arg format
     if (!empty($_GET)) {
         $format = '&paged=%#%';
-        // If no existing query params, use standard format
         if (strpos($base_url, '?') === false) {
             $format = '?paged=%#%';
         }
@@ -97,10 +86,6 @@ function extrachill_pagination($query = null, $context = 'default') {
     }
 }
 
-/**
- * Template part wrapper for pagination.
- * Allows easy integration with get_template_part() calls.
- */
 function extrachill_pagination_template_part() {
     extrachill_pagination();
 }

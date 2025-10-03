@@ -1,31 +1,21 @@
 <?php
 /**
- * Post Meta Display Component
+ * Post Meta Display
  *
- * Handles author, date, and forum metadata display with conditional formatting.
- * Supports both regular posts and multisite forum posts from community.extrachill.com.
- * Integrates with Co-Authors Plus plugin when available.
+ * Displays author, date, and update metadata for posts.
+ * Supports multisite forum posts with forum-specific formatting.
  *
  * @package ExtraChill
- * @since 69.57
+ * @since 69.58
  */
 
 if ( ! function_exists( 'extrachill_entry_meta' ) ) :
-    /**
-     * Display post metadata with conditional formatting
-     *
-     * Shows author, publication date, and update date for regular posts.
-     * For forum posts, displays forum author links and forum context.
-     *
-     * @since 69.57
-     */
     function extrachill_entry_meta() {
         global $post;
 
         $is_forum_post = isset( $post->_is_forum_post ) && $post->_is_forum_post;
         $forum_class = $is_forum_post ? ' forum-meta' : '';
 
-        // Build default meta output
         ob_start();
 
         echo '<div class="below-entry-meta ' . esc_attr( $forum_class ) . '">';
@@ -98,7 +88,6 @@ if ( ! function_exists( 'extrachill_entry_meta' ) ) :
 
         $default_meta = ob_get_clean();
 
-        // Allow plugins to override meta display for their post types
         echo apply_filters('extrachill_post_meta', $default_meta, get_the_ID(), get_post_type());
     }
 endif;

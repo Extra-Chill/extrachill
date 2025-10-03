@@ -1,11 +1,11 @@
 <?php
 /**
- * Search Header Component
+ * Search Results Header
  *
- * Displays search results page header with breadcrumbs and search query title.
+ * Displays search query in page title.
  *
  * @package ExtraChill
- * @since 1.0
+ * @since 69.58
  */
 
 $search_query = get_search_query();

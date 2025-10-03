@@ -1,15 +1,13 @@
 <?php
 /**
- * Archive Header Component
+ * Archive Header
  *
- * Displays archive page header with breadcrumbs and title.
- * Handles all archive types: category, tag, author, date, taxonomy, post type.
+ * Displays archive title, taxonomy descriptions, and author bios.
+ * Supports categories, tags, custom taxonomies, post type archives, authors, and date archives.
  *
  * @package ExtraChill
- * @since 1.0
+ * @since 69.58
  */
-
-// Determine the correct archive link based on the type of archive
 $archive_link = '';
 if (is_category()) {
     $archive_link = get_category_link(get_queried_object_id());
@@ -68,7 +66,6 @@ if (is_category()) {
 </header><!-- .page-header -->
 
 <?php
-// Optional Term and Author Description
 if (!is_paged()) {
     $term_description = term_description();
     if (!empty($term_description)) {

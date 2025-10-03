@@ -1,15 +1,13 @@
 <?php
 /**
- * Homepage Content Queries
+ * Homepage Queries
  *
- * Pre-fetches homepage content in optimized queries to avoid multiple
- * database calls. Makes variables global for template consumption.
+ * Pre-fetches homepage content into global variables for template consumption.
  *
  * @package ExtraChill
- * @since 69.57
+ * @since 69.58
  */
 
-// Exit if accessed directly
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }

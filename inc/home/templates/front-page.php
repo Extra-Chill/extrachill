@@ -3,10 +3,10 @@
  * Homepage Template
  *
  * Hook-based homepage with plugin override capability and modular content sections.
- * Loaded via universal template routing system in index.php.
+ * Loaded via template_include filter in inc/core/template-router.php.
  *
  * @package ExtraChill
- * @since 69.57
+ * @since 69.58
  */
 
 get_header();

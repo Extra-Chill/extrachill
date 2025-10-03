@@ -1,16 +1,19 @@
 # Template Routing System
 
-The ExtraChill theme uses a centralized template routing system that replaces WordPress's traditional template hierarchy. All page types are routed through `index.php` with plugin override capabilities.
+The ExtraChill theme uses WordPress's native `template_include` filter for template routing through `/inc/core/template-router.php`. This provides proper integration with WordPress core while maintaining plugin override capabilities.
 
 ## Router Architecture
 
-### Central Dispatch (`index.php`)
-The universal template router handles all page types through conditional logic:
+### WordPress Native Integration (`inc/core/template-router.php`)
+The template router uses WordPress's `template_include` filter to handle all page types:
 - Homepage and front page routing
 - Single posts and pages
 - All archive types (categories, tags, authors, dates)
 - Search results
 - 404 error pages
+
+### Emergency Fallback (`index.php`)
+The `index.php` file serves as a minimal emergency fallback that is rarely reached. Template routing is handled by the dedicated router file.
 
 ### Plugin Override Filters
 Each template route supports dedicated filter for complete override capability:
@@ -30,6 +33,30 @@ Default template file locations when no plugin overrides are active:
 - Archives: `/inc/archives/archive.php`
 - Search: `/inc/archives/search/search.php` (dedicated multisite search template)
 - 404: `/inc/core/templates/404.php`
+
+## Implementation Details
+
+### Router Function (`extrachill_route_templates`)
+The router function is hooked into WordPress's `template_include` filter:
+
+```php
+add_filter( 'template_include', 'extrachill_route_templates' );
+
+function extrachill_route_templates( $template ) {
+    // Route based on WordPress conditional tags
+    if ( is_front_page() || is_home() ) {
+        $template = apply_filters( 'extrachill_template_homepage',
+            get_template_directory() . '/inc/home/templates/front-page.php'
+        );
+    } elseif ( is_single() ) {
+        $template = apply_filters( 'extrachill_template_single_post',
+            get_template_directory() . '/inc/single/single-post.php'
+        );
+    }
+    // ... additional routing logic
+    return $template;
+}
+```
 
 ## Usage Examples
 
@@ -66,9 +93,11 @@ The search template integrates with the extrachill-multisite plugin to provide c
 
 ## Benefits
 
-- **Plugin Control**: Complete template override at routing level
-- **Centralized Logic**: All routing decisions in single file
-- **Performance**: Eliminates WordPress template hierarchy overhead
+- **WordPress Native**: Proper integration with WordPress core via `template_include` filter
+- **Plugin Control**: Complete template override at routing level via dedicated filters
+- **Centralized Logic**: All routing decisions in dedicated router file (`inc/core/template-router.php`)
+- **Performance**: Efficient routing while maintaining WordPress compatibility
 - **Extensibility**: Filter system allows complete template customization
 - **Maintainability**: Clear separation between routing logic and template content
+- **Emergency Fallback**: Minimal `index.php` fallback ensures theme always works
 - **Multisite Search**: Dedicated search template system with cross-site results integration

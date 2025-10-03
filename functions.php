@@ -2,10 +2,13 @@
 /**
  * ExtraChill Theme Setup and Configuration
  *
- * Loads 47 modular PHP files for theme functionality across multisite network.
+ * Theme uses WordPress native template routing via template_include filter
+ * (inc/core/template-router.php) to handle all page types with plugin override support.
+ *
+ * Loads 25 modular PHP files directly via require_once for theme functionality.
  *
  * @package ExtraChill
- * @since 69.57
+ * @since 69.58
  */
 
 include_once(ABSPATH . 'wp-admin/includes/plugin.php');
@@ -67,6 +70,7 @@ require_once(EXTRACHILL_INCLUDES_DIR . '/core/actions.php');
 require_once(EXTRACHILL_INCLUDES_DIR . '/core/assets.php');
 require_once(EXTRACHILL_INCLUDES_DIR . '/core/view-counts.php');
 require_once(EXTRACHILL_INCLUDES_DIR . '/core/rewrite.php');
+require_once(EXTRACHILL_INCLUDES_DIR . '/core/template-router.php');
 require_once(EXTRACHILL_INCLUDES_DIR . '/core/templates/breadcrumbs.php');
 require_once(EXTRACHILL_INCLUDES_DIR . '/header/navigation-menu.php');
 require_once(EXTRACHILL_INCLUDES_DIR . '/core/custom-taxonomies.php');

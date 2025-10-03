@@ -2,9 +2,6 @@
 /**
  * Archive Page Template
  *
- * Displays archive pages for categories, tags, authors, dates, and custom taxonomies.
- * Includes breadcrumbs, pagination, and conditional ad blocking for festival-wire content.
- *
  * @package ExtraChill
  * @since 69.57
  */
