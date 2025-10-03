@@ -13,9 +13,22 @@ defined( 'ABSPATH' ) || exit;
 
 <!-- Community Forums Section -->
 <h2>Community Forums</h2>
-<p><?php echo fetch_latest_post_info_for_homepage(); ?></p>
+<?php do_action('extrachill_community_home_before_forums'); ?>
 <?php
-$args = extrachill_get_homepage_forums_args();
+$args = array(
+    'post_parent' => 0,
+    'meta_query' => array(
+        array(
+            'key' => '_show_on_homepage',
+            'value' => '1',
+            'compare' => '='
+        ),
+    ),
+    'orderby' => 'meta_value',
+    'meta_key' => '_bbp_last_active_time',
+    'order' => 'DESC',
+    'posts_per_page' => -1,
+);
 if ( bbp_has_forums( $args ) ) : ?>
     <ul id="forums-list-homepage" class="bbp-forums">
         <li class="bbp-body">

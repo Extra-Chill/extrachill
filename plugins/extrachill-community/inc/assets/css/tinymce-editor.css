@@ -209,4 +209,247 @@ body.mce-content-body input[type="reset"]:hover {
     background: var(--background-color);
 }
 
+/* ==================================================
+   Drag-and-Drop Overlay Styles
+================================================== */
+.mce-drag-over {
+    border: 2px dashed var(--link-color);
+    position: relative;
+}
+
+.mce-drag-over .mce-drag-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    color: #fff;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 1.5em;
+    z-index: 1000;
+    pointer-events: none;
+}
+
+/* ==================================================
+   Editor Input Fields (bbPress context)
+================================================== */
+input[type="text"]:focus,
+input[type="email"]:focus,
+input[type="url"]:focus,
+input[type="password"]:focus,
+input[type="search"]:focus,
+input[type="tel"]:focus,
+input[type="number"]:focus,
+textarea:focus,
+select:focus {
+    border-color: var(--focus-border-color);
+    box-shadow: var(--focus-box-shadow);
+    background-color: var(--card-background);
+    color: var(--text-color);
+}
+
+input[type="text"],
+input[type="email"],
+input[type="url"],
+input[type="password"],
+input[type="search"],
+input[type="tel"],
+input[type="number"],
+textarea,
+select {
+    color: var(--text-color);
+    background-color: var(--background-color);
+    border-color: var(--border-color);
+    width: max-content;
+    font-size: .8em;
+    padding: 10px 5px;
+    width: 100%;
+    border-radius: 5px;
+    margin: 5px 0;
+    border: .3px solid;
+}
+
+/* ==================================================
+   WordPress Editor Container
+================================================== */
+#bbpress-forums fieldset.bbp-form {
+    padding: 0 20px 20px;
+    border-color: var(--border-color);
+}
+
+.wp-editor-container .mce-container {
+    box-shadow: none !important;
+    background-color: var(--background-color);
+    border-color: var(--border-color);
+}
+
+.wp-editor-container .mce-toolbar .mce-ico {
+    color: var(--muted-text) !important;
+}
+
+.wp-editor-container .mce-toolbar .mce-ico:hover {
+    background: var(--button-hover-bg) !important;
+}
+
+.wp-editor-container {
+    border: 1px solid var(--border-color) !important;
+    border-radius: 5px !important;
+}
+
+.wp-editor-container .div.mce-toolbar-grp {
+    border-bottom: 1px solid var(--border-color) !important;
+}
+
+.wp-editor-container .mce-toolbar .mce-btn-group .mce-btn.mce-listbox {
+    border: 1px solid var(--border-color) !important;
+    background-color: var(--background-color);
+}
+
+.mce-panel.mce-menu {
+    border: 1px solid var(--border-color) !important;
+    border-radius: 5px !important;
+    background: var(--background-color) !important;
+}
+
+.wp-editor-container .mce-panel .mce-btn i.mce-caret {
+    border-top-color: var(--text-color) !important;
+}
+
+.wp-editor-container .mce-panel .mce-btn i.mce-caret:hover {
+    border-top-color: var(--button-hover-bg) !important;
+}
+
+.wp-editor-container .mce-btn .mce-txt {
+    color: var(--text-color) !important;
+}
+
+.wp-editor-container .mce-btn .mce-txt:hover {
+    color: var(--button-hover-bg) !important;
+}
+
+/* ==================================================
+   Featured Link Styling (Editor Links Tab)
+================================================== */
+.bp-editor-featured-link {
+    outline: 1px solid var(--accent);
+    box-shadow: 0 0 8px 2px var(--accent);
+    border-radius: 4px;
+    transition: box-shadow 0.3s ease-in-out, outline 0.3s ease-in-out;
+}
+
+/* ==================================================
+   Mentions Dropdown (Global Scope)
+================================================== */
+.mentions-dropdown {
+    font-family: "WilcoLoftSans", sans-serif;
+    font-size: 14px;
+    line-height: 1.4;
+    position: absolute;
+    z-index: 10000;
+    max-height: 200px;
+    overflow-y: auto;
+    display: none;
+    background: var(--card-background);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    box-shadow: var(--card-shadow);
+    min-width: 200px;
+}
+
+.mentions-item {
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.mentions-item:last-child {
+    border-bottom: none;
+}
+
+.mentions-item:hover,
+.mentions-item.selected {
+    background-color: var(--accent-2);
+    color: var(--header-text);
+}
+
+.mentions-item.mentions-no-results,
+.mentions-item.mentions-loading {
+    justify-content: center;
+    color: var(--muted-text);
+    font-style: italic;
+    cursor: default;
+    padding: 12px;
+}
+
+.mentions-item.mentions-no-results:hover,
+.mentions-item.mentions-loading:hover {
+    background-color: transparent;
+    color: var(--muted-text);
+}
+
+.mentions-avatar {
+    width: 32px;
+    height: 32px;
+    margin-right: 10px;
+    flex-shrink: 0;
+}
+
+.avatar-placeholder {
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: bold;
+    font-size: 14px;
+}
+
+.mentions-user-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.mentions-username {
+    font-weight: 600;
+    color: var(--text-color);
+    margin-bottom: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.mentions-login {
+    font-size: 12px;
+    color: var(--muted-text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.mentions-item:hover .mentions-username,
+.mentions-item.selected .mentions-username {
+    color: var(--header-text);
+}
+
+.mentions-item:hover .mentions-login,
+.mentions-item.selected .mentions-login {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+/* Dark mode specific adjustments */
+@media (prefers-color-scheme: dark) {
+    .mentions-item.selected .mentions-login,
+    .mentions-item:hover .mentions-login {
+        color: rgba(255, 255, 255, 0.7);
+    }
+}
 

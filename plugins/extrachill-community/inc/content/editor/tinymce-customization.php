@@ -8,7 +8,6 @@
  * @subpackage ForumFeatures\Content\Editor
  */
 
-// Enable visual editor specifically for bbPress
 function bbp_enable_visual_editor($args = array()) {
     $args['tinymce'] = array('content_css' => EXTRACHILL_COMMUNITY_PLUGIN_URL . '/inc/assets/css/tinymce-editor.css');
     $args['quicktags'] = false;
@@ -17,7 +16,6 @@ function bbp_enable_visual_editor($args = array()) {
 }
 add_filter('bbp_after_get_the_content_parse_args', 'bbp_enable_visual_editor', 999);
 
-// Add custom stylesheet to TinyMCE
 function bbp_add_tinymce_stylesheet($mce_css) {
     $version = filemtime(EXTRACHILL_COMMUNITY_PLUGIN_DIR . '/inc/assets/css/tinymce-editor.css');
     $mce_css .= ', ' . EXTRACHILL_COMMUNITY_PLUGIN_URL . '/inc/assets/css/tinymce-editor.css?ver=' . $version;
@@ -25,7 +23,6 @@ function bbp_add_tinymce_stylesheet($mce_css) {
 }
 add_filter('mce_css', 'bbp_add_tinymce_stylesheet');
 
-// Add 'paste' plugin to TinyMCE (bbPress context only)
 function bbp_tinymce_paste_plugin($plugins = array()) {
     if (is_bbpress()) {
         $plugins[] = 'paste';
@@ -34,36 +31,24 @@ function bbp_tinymce_paste_plugin($plugins = array()) {
 }
 add_filter('bbp_get_tiny_mce_plugins', 'bbp_tinymce_paste_plugin');
 
-// Customize TinyMCE buttons specifically for bbPress
 function bbp_customize_tinymce_buttons($buttons) {
-    // This filter runs AFTER other filters like the one adding the custom image button.
-    // We want to define the *exact* set of buttons for bbPress editors here.
-    // Apply to bbPress pages OR single artist profile pages
     if ( is_bbpress() || is_singular('artist_profile') ) {
-        // Define the desired button array for bbPress editors.
-        // Ensure 'image' (our custom one) is included if desired.
         $desired_buttons = array(
             'bold',
             'italic',
-            // 'underline', // Keep or remove as needed
-            // 'strikethrough', // Keep or remove as needed
-            'image', // Keep the custom image button
+            'image',
             'blockquote',
-            'link', 'unlink', // Add link/unlink?
-            // 'bullist', 'numlist', // Add lists?
-            // 'pastetext', // Add paste as text?
+            'link', 'unlink',
             'undo',
             'redo',
             'formatselect'
         );
         return $desired_buttons;
     }
-    // If not a bbPress context or single artist profile, return the original buttons unmodified
     return $buttons;
 }
-add_filter('mce_buttons', 'bbp_customize_tinymce_buttons', 50); // Add priority (e.g., 50) to ensure it runs later
+add_filter('mce_buttons', 'bbp_customize_tinymce_buttons', 50);
 
-// Load custom autosave plugin for bbPress only
 function bbp_load_custom_autosave_plugin($plugins) {
     if (is_bbpress()) {
         $autosave_plugin_url = EXTRACHILL_COMMUNITY_PLUGIN_URL . '/bbpress/autosave/plugin.min.js';
@@ -73,26 +58,25 @@ function bbp_load_custom_autosave_plugin($plugins) {
 }
 add_filter('mce_external_plugins', 'bbp_load_custom_autosave_plugin');
 
-// Configure autosave and paste handling specifically for bbPress editors
+/**
+ * Configure autosave and paste handling for bbPress TinyMCE editors
+ * Timer-based autosave disabled in favor of manual trigger on typing pause
+ */
 function bbp_autosave_tinymce_settings($init) {
     if (is_bbpress()) {
         $init['autosave_ask_before_unload'] = false;
-        // Set interval to a very large value to effectively disable the timer-based save.
-        // We will trigger saves manually on typing pause via the setup callback.
         $init['autosave_interval'] = '999999s'; 
         $init['autosave_prefix'] = 'bbp-tinymce-autosave-{path}{query}-{id}-';
         $init['autosave_restore_when_empty'] = true;
-        $init['autosave_retention'] = '43200m'; // 30 days
+        $init['autosave_retention'] = '43200m';
 
-        // Paste handling configuration
-        $init['paste_as_text'] = false; // Allow formatted paste but clean it
+        $init['paste_as_text'] = false;
         $init['paste_auto_cleanup_on_paste'] = true;
         $init['paste_remove_styles'] = true;
         $init['paste_remove_styles_if_webkit'] = true;
-        $init['paste_strip_class_attributes'] = 'all'; // Remove all class attributes
-        $init['paste_retain_style_properties'] = ''; // Don't retain any inline styles
+        $init['paste_strip_class_attributes'] = 'all';
+        $init['paste_retain_style_properties'] = '';
 
-        // Reference a globally defined JavaScript function for the setup callback
         $init['setup'] = 'extrachillTinymceSetup';
 
     }
@@ -100,28 +84,26 @@ function bbp_autosave_tinymce_settings($init) {
 }
 add_filter('tiny_mce_before_init', 'bbp_autosave_tinymce_settings');
 
-// Define the JavaScript setup function for TinyMCE (Simplified Logging)
+/**
+ * Output JavaScript setup function for TinyMCE autosave configuration
+ * Triggers draft save 1.5 seconds after typing stops, clears draft on form submission
+ */
 function extrachill_output_tinymce_setup_script() {
-    // Only output this script on bbPress pages
     if (!is_bbpress()) {
         return;
     }
     ?>
     <script type="text/javascript">
-    // Ensure this function is globally accessible for TinyMCE
     window.extrachillTinymceSetup = function(editor) {
         console.log('[SETUP] Initializing setup for editor:', editor.id);
         var debounceTimer;
-        var saveDelay = 1500; // Save 1.5 seconds after typing stops
-
-        // --- Save on Pause Logic --- 
+        var saveDelay = 1500; 
         editor.on('input keyup', function(e) {
             var nonTriggerKeys = [ 33, 34, 35, 36, 37, 38, 39, 40 ];
             if (e && e.keyCode && nonTriggerKeys.includes(e.keyCode)) {
                  return;
             }
 
-            // Check if the plugin and method exist before attempting to use them
             if (editor.plugins.autosave && typeof editor.plugins.autosave.storeDraft === 'function') {
                 clearTimeout(debounceTimer);
                 debounceTimer = setTimeout(function() {
@@ -137,20 +119,16 @@ function extrachill_output_tinymce_setup_script() {
                     }
                 }, saveDelay);
             } else {
-                // Log this only once per editor instance if needed to avoid spam
                 if (!editor._autosaveChecked) {
                     console.error('[SAVE] TinyMCE autosave plugin or storeDraft method not found for editor:', editor.id);
-                    editor._autosaveChecked = true; // Mark as checked
+                    editor._autosaveChecked = true;
                 }
             }
-        });
-
-        // --- Clear on Submit Logic --- 
+        }); 
         var form = editor.getElement().closest('form');
         if (form) {
             console.log('[SETUP] Found parent form for editor:', editor.id, form);
             form.addEventListener('submit', function() {
-                 // Check if the plugin and method exist before attempting to use them
                 if (editor.plugins.autosave && typeof editor.plugins.autosave.removeDraft === 'function') {
                     if (!editor.removed) {
                         console.log('[CLEAR] Calling removeDraft for editor:', editor.id);
@@ -174,7 +152,3 @@ function extrachill_output_tinymce_setup_script() {
     <?php
 }
 add_action('wp_footer', 'extrachill_output_tinymce_setup_script', 99);
-
-// Note: Mentions functionality is loaded via inc/core/assets.php
-// The extrachill-mentions.js file self-registers as a TinyMCE plugin
-// No external plugin registration needed - just load the script normally

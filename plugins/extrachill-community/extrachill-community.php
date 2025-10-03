@@ -21,45 +21,60 @@ if (!defined('ABSPATH')) {
 define('EXTRACHILL_COMMUNITY_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('EXTRACHILL_COMMUNITY_PLUGIN_URL', plugin_dir_url(__FILE__));
 
+/**
+ * Initialize plugin functionality
+ *
+ * Explicit loading architecture - all 37 feature files loaded directly on plugins_loaded.
+ * Load order: core (4) → content (4) → social (12) → user-profiles (10) → home (3).
+ *
+ * Template components NOT loaded here (loaded via include/require or action hooks):
+ * - inc/home/forum-home-header.php (action hook: extrachill_community_home_header)
+ * - inc/home/forum-homepage.php (template filter: extrachill_template_homepage)
+ * - inc/home/recently-active.php (action hook: extrachill_community_home_top)
+ */
 function extrachill_community_init() {
-    // Core functionality
+    // Core functionality (4 files)
     require_once plugin_dir_path(__FILE__) . 'inc/core/assets.php';
     require_once plugin_dir_path(__FILE__) . 'inc/core/bbpress-templates.php';
     require_once plugin_dir_path(__FILE__) . 'inc/core/nav.php';
+    require_once plugin_dir_path(__FILE__) . 'inc/core/bbpress-spam-adjustments.php';
 
-    // Admin features
-    require_once plugin_dir_path(__FILE__) . 'inc/admin/bbpress-spam-adjustments.php';
-    require_once plugin_dir_path(__FILE__) . 'inc/admin/forum-sections.php';
-
-    // Content features
+    // Content features (4 files)
     require_once plugin_dir_path(__FILE__) . 'inc/content/editor/tinymce-customization.php';
     require_once plugin_dir_path(__FILE__) . 'inc/content/editor/tinymce-image-uploads.php';
-    require_once plugin_dir_path(__FILE__) . 'inc/content/editor/topic-quick-reply.php';
     require_once plugin_dir_path(__FILE__) . 'inc/content/content-filters.php';
-    require_once plugin_dir_path(__FILE__) . 'inc/content/quote.php';
-    require_once plugin_dir_path(__FILE__) . 'inc/content/queries/homepage-queries.php';
-    require_once plugin_dir_path(__FILE__) . 'inc/content/queries/recent-feed-queries.php';
-    require_once plugin_dir_path(__FILE__) . 'inc/content/sorting.php';
     require_once plugin_dir_path(__FILE__) . 'inc/content/recent-feed.php';
 
-    // Social features
+    // Social features (12 files)
     require_once plugin_dir_path(__FILE__) . 'inc/social/upvote.php';
     require_once plugin_dir_path(__FILE__) . 'inc/social/user-mention-api.php';
     require_once plugin_dir_path(__FILE__) . 'inc/social/forum-badges.php';
     require_once plugin_dir_path(__FILE__) . 'inc/social/rank-system/point-calculation.php';
     require_once plugin_dir_path(__FILE__) . 'inc/social/rank-system/chill-forums-rank.php';
-    require_once plugin_dir_path(__FILE__) . 'inc/social/notifications.php';
+    require_once plugin_dir_path(__FILE__) . 'inc/social/notifications/notification-bell.php';
+    require_once plugin_dir_path(__FILE__) . 'inc/social/notifications/notification-card.php';
+    require_once plugin_dir_path(__FILE__) . 'inc/social/notifications/notification-handler.php';
+    require_once plugin_dir_path(__FILE__) . 'inc/social/notifications/notification-cleanup.php';
+    require_once plugin_dir_path(__FILE__) . 'inc/social/notifications/capture-replies.php';
+    require_once plugin_dir_path(__FILE__) . 'inc/social/notifications/capture-mentions.php';
+    require_once plugin_dir_path(__FILE__) . 'inc/social/notifications/notifications-content.php';
 
-    // User features
-    require_once plugin_dir_path(__FILE__) . 'inc/users/custom-avatar.php';
-    require_once plugin_dir_path(__FILE__) . 'inc/users/custom-user-profile.php';
-    require_once plugin_dir_path(__FILE__) . 'inc/users/verification.php';
-    require_once plugin_dir_path(__FILE__) . 'inc/users/settings/settings-content.php';
-    require_once plugin_dir_path(__FILE__) . 'inc/users/settings/settings-form-handler.php';
-    require_once plugin_dir_path(__FILE__) . 'inc/users/online-users-count.php';
-    require_once plugin_dir_path(__FILE__) . 'inc/users/email-change-emails.php';
+    // User profile features (10 files)
+    require_once plugin_dir_path(__FILE__) . 'inc/user-profiles/custom-avatar.php';
+    require_once plugin_dir_path(__FILE__) . 'inc/user-profiles/user-avatar-menu.php';
+    require_once plugin_dir_path(__FILE__) . 'inc/user-profiles/custom-user-profile.php';
+    require_once plugin_dir_path(__FILE__) . 'inc/user-profiles/verification.php';
+    require_once plugin_dir_path(__FILE__) . 'inc/user-profiles/settings/settings-content.php';
+    require_once plugin_dir_path(__FILE__) . 'inc/user-profiles/settings/settings-form-handler.php';
+    require_once plugin_dir_path(__FILE__) . 'inc/user-profiles/online-users-count.php';
+    require_once plugin_dir_path(__FILE__) . 'inc/user-profiles/email-change-emails.php';
+    require_once plugin_dir_path(__FILE__) . 'inc/user-profiles/edit/upload-custom-avatar.php';
+    require_once plugin_dir_path(__FILE__) . 'inc/user-profiles/edit/user-links.php';
+    require_once plugin_dir_path(__FILE__) . 'inc/user-profiles/edit/user-info.php';
 
-    // Homepage features
+    // Homepage features (3 files)
+    require_once plugin_dir_path(__FILE__) . 'inc/home/latest-post.php';
     require_once plugin_dir_path(__FILE__) . 'inc/home/actions.php';
+    require_once plugin_dir_path(__FILE__) . 'inc/home/homepage-forum-display.php';
 }
 add_action('plugins_loaded', 'extrachill_community_init');

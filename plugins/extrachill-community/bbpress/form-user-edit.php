@@ -16,34 +16,12 @@ defined( 'ABSPATH' ) || exit;
 <div class="bbp-user-profile-edit-container">
 <form id="ec-your-profile" method="post" enctype="multipart/form-data">  
 
-	<!-- Avatar/Title Section (Consider using bbp-user-header-card if desired) -->
-	<div class="bbp-user-profile-card"> 
+	<!-- Avatar/Title Section -->
+	<div class="bbp-user-profile-card">
 		<fieldset class="bbp-form">
 			<div class="form-group">
-				<?php
-				$custom_avatar_id = get_user_meta(get_current_user_id(), 'custom_avatar_id', true);
-				?>
-				<div id="avatar-thumbnail">
-					<h4>Current Avatar</h4>
-					<p>This is the avatar you currently have set. Upload a new image to change it.</p>
-					<?php if ($custom_avatar_id && wp_attachment_is_image($custom_avatar_id)): ?>
-						<?php 
-							$thumbnail_src = wp_get_attachment_image_url($custom_avatar_id, 'thumbnail');
-							if($thumbnail_src): ?>
-						<img src="<?php echo esc_url($thumbnail_src); ?>" alt="Current Avatar" style="max-width: 100px; max-height: 100px;" />
-							<?php endif; ?>
-					<?php endif; ?>
-				</div>
-				<label for="custom-avatar-upload"><?php esc_html_e( 'Upload New Avatar', 'bbpress' ); ?></label>
-				<input type='file' id='custom-avatar-upload' name='custom_avatar' accept='image/*'>
-				<div id="custom-avatar-upload-message"></div>
-				<label for="ec_custom_title"><?php 
-						$current_custom_title = get_user_meta( bbp_get_displayed_user_id(), 'ec_custom_title', true );
-						$label_text = !empty( $current_custom_title ) ? sprintf( esc_html__( 'Custom Title (Current: %s)', 'bbpress' ), $current_custom_title ) : esc_html__( 'Custom Title', 'bbpress' );
-						esc_html_e( $label_text ); 
-					?></label>
-				<input type="text" name="ec_custom_title" id="ec_custom_title" value="<?php echo esc_attr( get_user_meta( bbp_get_displayed_user_id(), 'ec_custom_title', true ) ); ?>" class="regular-text" placeholder="Extra Chillian" />
-				<p class="description"><?php esc_html_e( 'Enter a custom title, or leave blank for default.', 'bbpress' ); ?></p>
+				<?php extrachill_render_avatar_upload_field(); ?>
+				<?php extrachill_render_custom_title_field(); ?>
 			</div>
 		</fieldset>
 	</div>
@@ -56,60 +34,14 @@ defined( 'ABSPATH' ) || exit;
 		?></h2>
 
 		<fieldset class="bbp-form">
-
-			<?php do_action( 'bbp_user_edit_before_about' ); ?>
-
-			<div class="form-group">
-				<label for="description"><?php esc_html_e( 'Bio', 'bbpress' ); ?></label>
-				<textarea name="description" id="description" rows="5" cols="30"><?php bbp_displayed_user_field( 'description', 'edit' ); ?></textarea>
-			</div>
-
-			<?php // Moved Local Scene (City) Field Here ?>
-			<div class="form-group">
-				<label for="local_city"><?php esc_html_e('Local Scene (City/Region)', 'extra-chill-community'); ?></label>
-				<input type="text" name="local_city" id="local_city" value="<?php echo esc_attr(get_user_meta(bbp_get_displayed_user_id(), 'local_city', true)); ?>" class="regular-text" placeholder="<?php esc_attr_e('Your local city/region...', 'extra-chill-community'); ?>"/>
-			</div>
-
-			<?php do_action( 'bbp_user_edit_after_about' ); ?>
-
+			<?php extrachill_render_about_section_fields(); ?>
 		</fieldset>
 	</div>
-
-	<?php
-	// --- MIGRATION: Convert old static link fields to dynamic array if needed ---
-	$user_id = bbp_get_displayed_user_id();
-	$dynamic_links = get_user_meta($user_id, '_user_profile_dynamic_links', true);
-	if (!is_array($dynamic_links) || empty($dynamic_links)) {
-		$dynamic_links = array();
-		$static_fields = array(
-			'user_url'   => array('type_key' => 'website'),
-			'instagram'  => array('type_key' => 'instagram'),
-			'twitter'    => array('type_key' => 'twitter'),
-			'facebook'   => array('type_key' => 'facebook'),
-			'spotify'    => array('type_key' => 'spotify'),
-			'soundcloud' => array('type_key' => 'soundcloud'),
-			'bandcamp'   => array('type_key' => 'bandcamp'),
-		);
-		foreach ($static_fields as $meta_key => $link_info) {
-			$url = get_user_meta($user_id, $meta_key, true);
-			if (!empty($url)) {
-				$dynamic_links[] = array('type_key' => $link_info['type_key'], 'url' => $url);
-			}
-		}
-		if (!empty($dynamic_links)) {
-			update_user_meta($user_id, '_user_profile_dynamic_links', $dynamic_links);
-		}
-	}
-	?>
 
 	<!-- Your Links Section (Dynamic) -->
 	<div class="bbp-user-profile-card">
 		<h2 class="entry-title"><?php esc_html_e( 'Your Links', 'bbpress' ); ?></h2>
-		<div id="user-dynamic-links-container" data-nonce="<?php echo esc_attr( wp_create_nonce( 'user_dynamic_link_nonce' ) ); ?>">
-			<p class="description"><?php esc_html_e( 'Add links to your website, social media, streaming, etc.', 'bbpress' ); ?></p>
-			<div id="user-links-list"></div>
-			<button type="button" id="user-add-link-button" class="button button-secondary"><i class="fas fa-plus"></i> <?php esc_html_e( 'Add Link', 'bbpress' ); ?></button>
-		</div>
+		<?php extrachill_render_user_links_field(); ?>
 	</div>
 
 	<?php // ARTIST/PROFESSIONAL Fieldset ?>

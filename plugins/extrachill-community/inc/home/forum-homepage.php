@@ -2,8 +2,11 @@
 /**
  * Community Forum Homepage Template
  *
- * Provides the bbPress forum index as the homepage for community.extrachill.com
- * Used via extrachill_template_homepage filter
+ * Template component loaded via extrachill_template_homepage filter (not via extrachill_community_init).
+ * Provides the bbPress forum index as the homepage for community.extrachill.com.
+ * Registered by inc/home/homepage-forum-display.php.
+ *
+ * @package ExtraChillCommunity
  */
 
 if (!defined('ABSPATH')) {

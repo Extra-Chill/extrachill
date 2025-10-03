@@ -2,8 +2,9 @@
 /**
  * Settings Page Content Renderer
  *
- * Hooks into theme's single-page.php via extrachill_before_page_content
- * to render complete settings page when slug is "settings".
+ * Hook-based settings page system uses extrachill_after_page_content
+ * to inject complete settings interface without page template file.
+ * Provides account details, security, and subscription management tabs.
  *
  * @package ExtraChillCommunity
  */
@@ -12,9 +13,6 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-/**
- * Render settings page content via hook
- */
 function extrachill_community_render_settings_content() {
     if (!is_page('settings')) {
         return;
@@ -239,17 +237,4 @@ function extrachill_community_render_settings_content() {
 
     <?php
 }
-add_action('extrachill_before_page_content', 'extrachill_community_render_settings_content', 5);
-
-/**
- * Suppress default page content for settings page
- */
-function extrachill_community_suppress_settings_default_content() {
-    if (!is_page('settings')) {
-        return;
-    }
-
-    // Remove the default page content by not outputting anything
-    remove_action('extrachill_after_page_content', 'the_content');
-}
-add_action('extrachill_after_page_content', 'extrachill_community_suppress_settings_default_content', 1);
+add_action('extrachill_after_page_content', 'extrachill_community_render_settings_content', 5);

@@ -96,6 +96,4 @@ do_action( 'bbp_template_before_lead_topic' ); ?>
 
 </ul><!-- #bbp-topic-<?php bbp_topic_id(); ?>-lead -->
 
-<?php // === Removed Quick Reply Section === ?>
-
 <?php do_action( 'bbp_template_after_lead_topic' );

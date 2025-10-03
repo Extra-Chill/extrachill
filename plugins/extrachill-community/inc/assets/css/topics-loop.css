@@ -124,10 +124,24 @@
     padding: 5px 0;
     margin: auto;
     width: 100%;
+    box-sizing: border-box;
+}
+
+.sorting-search div {
+    max-width: 50%;
+}
+
+#bbp-ajax-search-form {
+    display: flex;
 }
 
 .bbp-search-form form {
     display: flex;
+}
+
+#bbpress-forums .bbp-search-form {
+    padding: 0px;
+    margin: 0px;
 }
 
 /* Sorting & Search Container (Detailed Styling) */

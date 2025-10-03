@@ -14,9 +14,6 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-/**
- * Whitelist of trusted domains that should not trigger spam detection
- */
 function ec_get_trusted_domains() {
     return apply_filters('ec_trusted_domains', [
         'spotify.com',
@@ -34,16 +31,15 @@ function ec_get_trusted_domains() {
 }
 
 /**
- * Check if content contains only trusted domain links
+ * Verify all URLs in content are from trusted domains
+ * @return bool True if all links are trusted, false if any untrusted links found
  */
 function ec_content_has_only_trusted_links($content) {
     $trusted_domains = ec_get_trusted_domains();
-    
-    // Extract all URLs from content
     preg_match_all('/https?:\/\/[^\s<>"]+/i', $content, $matches);
-    
+
     if (empty($matches[0])) {
-        return true; // No links found, not a link-based spam issue
+        return true;
     }
     
     foreach ($matches[0] as $url) {
@@ -56,17 +52,18 @@ function ec_content_has_only_trusted_links($content) {
                 break;
             }
         }
-        
+
         if (!$is_trusted) {
-            return false; // Found untrusted link
+            return false;
         }
     }
-    
-    return true; // All links are from trusted domains
+
+    return true;
 }
 
 /**
  * Check if user should be exempt from strict spam detection
+ * Exempts administrators, moderators, keymasters, and users with 10+ community points
  */
 function ec_user_exempt_from_spam_detection($user_id = 0) {
     if (!$user_id) {
@@ -76,22 +73,19 @@ function ec_user_exempt_from_spam_detection($user_id = 0) {
     if (!$user_id) {
         return false;
     }
-    
-    // Exempt administrators and moderators
+
     if (user_can($user_id, 'manage_options') || user_can($user_id, 'moderate_comments')) {
         return true;
     }
-    
-    // Exempt users with bbPress moderation capabilities
+
     if (bbp_is_user_keymaster($user_id)) {
         return true;
     }
-    
+
     if (bbp_is_user_moderator($user_id)) {
         return true;
     }
-    
-    // Exempt established community members (users with 10+ points)
+
     if (function_exists('extrachill_get_user_total_points')) {
         $user_points = extrachill_get_user_total_points($user_id);
         if ($user_points >= 10) {
@@ -103,29 +97,26 @@ function ec_user_exempt_from_spam_detection($user_id = 0) {
 }
 
 /**
- * Adjust reply spam detection
+ * Filter bbPress reply spam detection to reduce false positives
+ * Exempts trusted users and content with only trusted domain links
  */
 function ec_adjust_reply_spam_detection($is_spam, $reply_id = 0, $anonymous_data = array(), $reply_author = '', $reply_email = '', $reply_url = '') {
-    // If already marked as not spam, don't override
     if (!$is_spam) {
         return $is_spam;
     }
-    
-    // Get reply content
+
     $reply_content = get_post_field('post_content', $reply_id);
     if (!$reply_content) {
         return $is_spam;
     }
-    
-    // Check if user is exempt
+
     $user_id = get_post_field('post_author', $reply_id);
     if (ec_user_exempt_from_spam_detection($user_id)) {
-        return false; // Not spam for exempt users
+        return false;
     }
-    
-    // Check if content only contains trusted domain links
+
     if (ec_content_has_only_trusted_links($reply_content)) {
-        return false; // Not spam if only trusted links
+        return false;
     }
     
     return $is_spam;
@@ -133,29 +124,26 @@ function ec_adjust_reply_spam_detection($is_spam, $reply_id = 0, $anonymous_data
 add_filter('bbp_is_reply_spam', 'ec_adjust_reply_spam_detection', 10, 6);
 
 /**
- * Adjust topic spam detection
+ * Filter bbPress topic spam detection to reduce false positives
+ * Exempts trusted users and content with only trusted domain links
  */
 function ec_adjust_topic_spam_detection($is_spam, $topic_id = 0, $anonymous_data = array(), $topic_author = '', $topic_email = '', $topic_url = '') {
-    // If already marked as not spam, don't override
     if (!$is_spam) {
         return $is_spam;
     }
-    
-    // Get topic content
+
     $topic_content = get_post_field('post_content', $topic_id);
     if (!$topic_content) {
         return $is_spam;
     }
-    
-    // Check if user is exempt
+
     $user_id = get_post_field('post_author', $topic_id);
     if (ec_user_exempt_from_spam_detection($user_id)) {
-        return false; // Not spam for exempt users
+        return false;
     }
-    
-    // Check if content only contains trusted domain links
+
     if (ec_content_has_only_trusted_links($topic_content)) {
-        return false; // Not spam if only trusted links
+        return false;
     }
     
     return $is_spam;
@@ -163,14 +151,14 @@ function ec_adjust_topic_spam_detection($is_spam, $topic_id = 0, $anonymous_data
 add_filter('bbp_is_topic_spam', 'ec_adjust_topic_spam_detection', 10, 6);
 
 /**
- * Reduce spam detection sensitivity for posts with music-related keywords
+ * Reduce spam detection sensitivity for music-related content
+ * Content with 3+ music keywords likely represents legitimate music discussion
  */
 function ec_reduce_spam_sensitivity_for_music_content($is_spam, $content) {
     if (!$is_spam) {
         return $is_spam;
     }
-    
-    // Music-related keywords that suggest legitimate content
+
     $music_keywords = [
         'album', 'single', 'EP', 'track', 'song', 'artist', 'band', 'music', 
         'release', 'drop', 'playlist', 'listen', 'stream', 'spotify', 'bandcamp',
@@ -186,8 +174,7 @@ function ec_reduce_spam_sensitivity_for_music_content($is_spam, $content) {
             $music_keyword_count++;
         }
     }
-    
-    // If content has 3+ music keywords, likely legitimate music discussion
+
     if ($music_keyword_count >= 3) {
         return false;
     }
@@ -195,9 +182,6 @@ function ec_reduce_spam_sensitivity_for_music_content($is_spam, $content) {
     return $is_spam;
 }
 
-/**
- * Apply music content spam reduction to replies
- */
 function ec_reduce_reply_spam_for_music($is_spam, $reply_id = 0, $anonymous_data = array(), $reply_author = '', $reply_email = '', $reply_url = '') {
     if (!$is_spam) {
         return $is_spam;
@@ -208,9 +192,6 @@ function ec_reduce_reply_spam_for_music($is_spam, $reply_id = 0, $anonymous_data
 }
 add_filter('bbp_is_reply_spam', 'ec_reduce_reply_spam_for_music', 5, 6);
 
-/**
- * Apply music content spam reduction to topics
- */  
 function ec_reduce_topic_spam_for_music($is_spam, $topic_id = 0, $anonymous_data = array(), $topic_author = '', $topic_email = '', $topic_url = '') {
     if (!$is_spam) {
         return $is_spam;

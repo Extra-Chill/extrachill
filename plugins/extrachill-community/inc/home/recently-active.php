@@ -2,6 +2,10 @@
 /**
  * Recently Active Topics Component
  *
+ * Template component loaded via extrachill_community_home_top action hook (not via extrachill_community_init).
+ * Displays three most recently active forum topics on community homepage.
+ * Registered by inc/home/actions.php.
+ *
  * @package ExtraChillCommunity
  */
 
@@ -13,7 +17,18 @@ defined( 'ABSPATH' ) || exit;
     <h2>Recently Active Topics</h2>
     <ul class="recently-active-topic-row">
         <?php
-        $recently_active_topic_ids = extrachill_get_recent_topics_for_homepage(3);
+        $query = new WP_Query(array(
+            'post_type' => bbp_get_topic_post_type(),
+            'posts_per_page' => 10,
+            'post_status' => 'publish',
+            'orderby' => 'meta_value',
+            'meta_key' => '_bbp_last_active_time',
+            'meta_type' => 'DATETIME',
+            'order' => 'DESC',
+            'fields' => 'ids',
+        ));
+        $recently_active_topic_ids = array_slice($query->posts, 0, 3);
+        wp_reset_postdata();
 
         // Display the topics
         if ( ! empty( $recently_active_topic_ids ) ) :

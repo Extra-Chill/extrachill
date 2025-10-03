@@ -17,72 +17,39 @@ function custom_bbp_make_dofollow_links($content) {
     return trim($html);
 }
 
-// fix extra space in mentions
-/*
-function fix_bbp_mentions_after_wpautop($content) {
-    // Define the pattern to find <a> tags with <br> directly inside them, within bbPress content
-    $pattern = '/<a href="([^"]+)" class="bbp-user-mention[^"]*">\s*<br\s*\/?>\s*(.*?)<\/a>/i';
-
-    // Replacement pattern without <br>
-    $replacement = '<a href="$1" class="bbp-user-mention">$2</a>';
-
-    // Replace the pattern in the content
-    $fixed_content = preg_replace($pattern, $replacement, $content);
-
-    return $fixed_content;
-}
-// Apply this fix after wpautop and bbp_rel_nofollow for both replies and topics
-add_filter('bbp_get_reply_content', 'fix_bbp_mentions_after_wpautop', 70);
-add_filter('bbp_get_topic_content', 'fix_bbp_mentions_after_wpautop', 70);
-
-*/
 function embed_tweets($content) {
-    // Adjusted the regex to be more selective, specifically targeting tweet status URLs
     $pattern = '/https?:\/\/(?:www\.)?(twitter\.com|x\.com)\/(?:#!\/)?(\w+)\/status(?:es)?\/(\d+)/i';
 
-    // Replace callback function
     $callback = function($matches) {
-        // Building the Tweet URL with the original domain found (twitter.com or x.com)
         $tweet_url = 'https://' . $matches[1] . '/' . $matches[2] . '/status/' . $matches[3];
-
-        // Twitter oEmbed API endpoint with the Tweet URL
         $oembed_endpoint = 'https://publish.twitter.com/oembed?url=' . urlencode($tweet_url);
-
-        // Make the API call to get the embed code
         $response = wp_remote_get($oembed_endpoint);
 
-        // If the API call was successful, replace the URL with the embed code
         if (!is_wp_error($response) && isset($response['body'])) {
             $embed_data = json_decode($response['body'], true);
             if ($embed_data && isset($embed_data['html'])) {
-                return '<div class="twitter-embed">' . $embed_data['html'] . '</div>'; // Wrap in a div to manage styling and formatting independently
+                return '<div class="twitter-embed">' . $embed_data['html'] . '</div>';
             }
         }
 
-        // If the API call failed, just return the original URL
         return $matches[0];
     };
 
-    // Disable wpautop for specific block
     remove_filter('the_content', 'wpautop');
     remove_filter('the_excerpt', 'wpautop');
 
-    // Run our regex on the content and replace URLs with embed codes
     $new_content = preg_replace_callback($pattern, $callback, $content);
 
-    // Re-enable wpautop for other content
     add_filter('the_content', 'wpautop');
     add_filter('the_excerpt', 'wpautop');
 
     return $new_content;
 }
 
-// Hook our function to content filters
-add_filter('the_content', 'embed_tweets', 9); // Priority set to 9 to run before wpautop at priority 10
+add_filter('the_content', 'embed_tweets', 9);
 add_filter('bbp_get_reply_content', 'embed_tweets', 9);
 add_filter('bbp_get_topic_content', 'embed_tweets', 9);
 
-// Remove inline style attributes from <img> tags in post/bbPress content
 function strip_img_inline_styles($content) {
     if (stripos($content, '<img') === false) {
         return $content;
@@ -96,7 +63,6 @@ function strip_img_inline_styles($content) {
         $img->removeAttribute('style');
     }
     $html = $dom->saveHTML();
-    // Remove doctype/html/body wrappers
     $html = preg_replace(array('/^<!DOCTYPE.+?>/', '/<html>/i', '/<\/html>/i', '/<body>/i', '/<\/body>/i'), array('', '', '', '', ''), $html);
     return trim($html);
 }

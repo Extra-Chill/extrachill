@@ -2,9 +2,9 @@
 /**
  * Forum Homepage Header
  *
- * Provides the page header for community.extrachill.com homepage
- * Hooked into extrachill_community_home_header
- * Uses theme typography - no custom classes needed
+ * Template component loaded via extrachill_community_home_header action hook (not via extrachill_community_init).
+ * Provides the page header for community.extrachill.com homepage.
+ * Registered by inc/home/actions.php.
  *
  * @package ExtraChillCommunity
  */

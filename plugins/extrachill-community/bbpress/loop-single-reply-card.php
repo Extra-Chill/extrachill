@@ -21,18 +21,12 @@ defined( 'ABSPATH' ) || exit;
         <div class="bbp-reply-header">
             <div class="bbp-reply-header-content">
                 <?php
-                // =====================
-                // UPVOTE &amp; DATE SECTION
-                // =====================
                 $user_id       = get_current_user_id();
                 $reply_id      = bbp_get_reply_id();
                 $upvoted_posts = get_user_meta($user_id, 'upvoted_posts', true);
                 $icon_class    = ( is_array($upvoted_posts) && in_array($reply_id, $upvoted_posts ) ) ? 'fa-solid' : 'fa-regular';
 
-                // Local upvote count function
-                $upvote_count = get_upvote_count($reply_id); // Ensure this function is adapted to your setup
-
-                // Example offset for display
+                $upvote_count = get_upvote_count($reply_id);
                 $display_upvote_count = $upvote_count + 1;
                 ?>
 
@@ -56,17 +50,9 @@ $topic_id  = bbp_get_topic_id();
 $current_post_id = get_the_ID();
 $current_post_type = get_post_type($current_post_id);
 
-// If the "reply" is actually the lead topic, treat it as a topic
-// Check both ID comparison and post type for safety
 $is_lead_topic = ( $reply_id === $topic_id ) || ( $current_post_type === bbp_get_topic_post_type() );
 
-// If you want the same top bar for both, just decide which functions to call:
 if ( $is_lead_topic ) {
-    // LEAD TOPIC
-    // - Use topic-based "Reply" and "Edit" links
-
-    // Topic Reply Link
-    // This anchors to the reply form for the topic
     if ( ! bbp_is_topic_closed( $topic_id ) ) {
         $reply_link = bbp_get_topic_reply_link( array(
             'id'         => $topic_id,
@@ -74,7 +60,6 @@ if ( $is_lead_topic ) {
         ) );
     }
 
-    // Topic Edit Link
     if ( current_user_can( 'edit_topic', $topic_id ) ) {
         $edit_link = bbp_get_topic_edit_link( array(
             'id'        => $topic_id,
@@ -83,11 +68,7 @@ if ( $is_lead_topic ) {
     }
 
 } else {
-    // REGULAR REPLY
-    // - Use reply-based "Reply" and "Edit" links
-    // Only process if this is actually a reply post type
     if ( $current_post_type === bbp_get_reply_post_type() ) {
-        // Reply-to Link
         $reply_topic_id = bbp_get_reply_topic_id( $reply_id );
         if ( $reply_topic_id && ! bbp_is_topic_closed( $reply_topic_id ) ) {
             $reply_link = bbp_get_reply_to_link( array(
@@ -96,7 +77,6 @@ if ( $is_lead_topic ) {
             ) );
         }
 
-        // Reply Edit Link
         if ( current_user_can( 'edit_reply', $reply_id ) ) {
             $edit_link = bbp_get_reply_edit_link( array(
                 'id'        => $reply_id,
@@ -105,8 +85,6 @@ if ( $is_lead_topic ) {
         }
     }
 }
-
-// Now output them in the top bar
 ?>
 <div class="bbp-reply-meta-top">
     <?php if ( ! empty( $reply_link ) ) : ?>
@@ -123,22 +101,15 @@ if ( $is_lead_topic ) {
 
                 </div>
 
-
                 <?php
-                // ============================
-                // MANUAL AUTHOR DETAILS SETUP
-                // ============================
                 $author_id     = bbp_get_reply_author_id( $reply_id );
                 $author_name   = bbp_get_reply_author_display_name( $reply_id );
-                $author_avatar = bbp_get_reply_author_avatar( $reply_id, 80 ); // 80px
+                $author_avatar = bbp_get_reply_author_avatar( $reply_id, 80 );
                 $author_url    = bbp_get_reply_author_url( $reply_id );
-
-                // If you want to show the user's forum role below the username:
                 $author_role = bbp_get_user_display_role( $author_id );
                 ?>
 
                 <div class="author-header-column">
-                    <!-- AVATAR + USERNAME + BADGES -->
                     <div class="author-details-header">
                         <div class="bbp-author-avatar">
                             <a href="<?php echo esc_url( $author_url ); ?>" title="View profile">
@@ -151,11 +122,8 @@ if ( $is_lead_topic ) {
                                 <?php echo esc_html( $author_name ); ?>
                             </a>
 
-                            <!-- Inline forum badges -->
                             <div class="forum-badges">
                                 <?php
-                                // This hook might output user badges or extra details
-                                // If you have custom logic for badges, place it here
                                 do_action( 'bbp_theme_after_reply_author_details' );
                                 ?>
                             </div>
@@ -176,11 +144,7 @@ if ( $is_lead_topic ) {
                     <?php endif; ?>
 
                     <div class="header-rankpoints">
-
-                        <?php
-                        // This calls your custom function to display rank &amp; points
-                        extrachill_add_rank_and_points_to_reply();
-                        ?>
+                        <?php extrachill_add_rank_and_points_to_reply(); ?>
                     </div>
                 </div><!-- .author-header-column -->
 
@@ -203,12 +167,10 @@ if ( $is_lead_topic ) {
             </div><!-- .bbp-reply-header-content -->
         </div><!-- .bbp-reply-header -->
 
-        <!-- MAIN CONTENT AREA -->
         <div class="bbp-reply-content-area">
             <div class="bbp-reply-content" data-reply-id="<?php bbp_reply_id(); ?>">
                 <?php do_action( 'bbp_theme_before_reply_content' ); ?>
-                <?php 
-                // Content truncation for recent activity feed
+                <?php
                 if ( is_page_template('page-templates/recent-feed-template.php') ) {
                     $content = bbp_get_reply_content();
                     $content_length = strlen( strip_tags( $content ) );
@@ -216,10 +178,8 @@ if ( $is_lead_topic ) {
                     
                     if ( $content_length > $truncate_length ) {
                         $reply_id = bbp_get_reply_id();
-                        // Show truncated version with expand functionality
                         echo '<div class="reply-content-truncated" id="content-' . $reply_id . '">';
-                        
-                        // Twitter-style truncation that preserves HTML structure
+
                         $truncated_content = extrachill_truncate_html_content( $content, $truncate_length );
                         echo '<div class="content-preview">' . $truncated_content . '</div>';
                         
@@ -230,11 +190,9 @@ if ( $is_lead_topic ) {
                         echo '</button>';
                         echo '</div>';
                     } else {
-                        // Content is short enough, show normally
                         bbp_reply_content();
                     }
                 } else {
-                    // Not on recent activity feed, show content normally
                     bbp_reply_content();
                 }
                 ?>
@@ -245,66 +203,15 @@ if ( $is_lead_topic ) {
             <div class="bbp-reply-meta-right">
                     <div class="bbp-reply-ip"><?php bbp_author_ip( bbp_get_reply_id() ); ?></div>
                     <?php do_action( 'bbp_theme_before_reply_admin_links' ); ?>
-                    <?php bbp_reply_admin_links(); ?> 
+                    <?php bbp_reply_admin_links(); ?>
                     <?php do_action( 'bbp_theme_after_reply_admin_links' ); ?>
                 </div>
                 <?php endif; ?>
-                <!-- .bbp-reply-meta-right -->
-        </div> <!-- .bbp-reply-content-area -->
+        </div>
 
     </div><!-- .bbp-reply-content-area -->
 
     <?php do_action( 'bbp_template_after_reply_content' ); ?>
 </div><!-- #bbp-reply-card-<?php bbp_reply_id(); ?> -->
-
-<?php
-// === Add Quick Reply Section If This Card is the Lead Topic ===
-if ( bbp_get_reply_id() === bbp_get_topic_id() ) {
-    $topic_id = bbp_get_topic_id(); // Already have topic ID
-    $can_reply = is_user_logged_in() && 
-                 current_user_can( 'publish_replies', $topic_id ) && 
-                 !bbp_is_topic_closed( $topic_id );
-
-    if ( $can_reply ) {
-        ?>
-        <div class="quick-reply-section-after-lead">
-            <?php // --- Desktop Section (Button & Form) --- ?>
-            <?php 
-            // Only show Desktop Quick Reply if there are actual replies
-            $reply_count = bbp_get_topic_reply_count( $topic_id ); 
-            if ( $reply_count > 0 ) : 
-            ?>
-            <div class="quick-reply-container quick-reply-desktop" style="margin-top: 20px; margin-bottom: 20px;">
-                 <button id="quick-reply-button-desktop" 
-                         class="button quick-reply-button" 
-                         data-topic-id="<?php echo esc_attr( $topic_id ); ?>">
-                     Quick Reply
-                 </button>
-                 <div id="quick-reply-form-placeholder-desktop" style="display: none; margin-top: 15px;">
-                     <?php bbp_get_template_part( 'form', 'reply-quick' ); ?>
-                 </div>
-            </div>
-            <?php 
-            endif; // End check for reply_count > 0
-            ?>
-
-            <?php // --- Mobile Section (Button ONLY) --- ?>
-            <?php // REMOVE Mobile button rendering from here - Moved to footer function ?>
-            <?php /*
-            <div class="quick-reply-container quick-reply-mobile quick-reply-mobile-button-only">
-                 <button id="quick-reply-button-mobile" 
-                         class="button quick-reply-button-float" 
-                         data-topic-id="<?php echo esc_attr( $topic_id ); ?>">
-                     <i class="fa-solid fa-reply"></i>
-                 </button>
-            </div>
-            */ ?>
-            <?php // Form container is now rendered in the footer ?>
-        </div> <?php // .quick-reply-section-after-lead ?>
-        <?php
-    }
-}
-// ============================================================
-?>
 
 <?php do_action( 'bbp_template_after_single_card' ); ?>

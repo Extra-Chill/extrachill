@@ -1,59 +1,14 @@
 <?php
 /**
- * Custom Avatar Upload System
- * 
- * AJAX-powered avatar upload and management for user profiles.
- * Handles file validation, upload processing, and avatar deletion.
- * 
+ * Custom Avatar Display System
+ *
+ * Provides custom avatar display functionality throughout the site.
+ * Handles avatar retrieval and fallback to Gravatar.
+ *
+ * Note: Avatar upload/edit functionality is in inc/user-profiles/edit/upload-custom-avatar.php
+ *
  * @package ExtraChillCommunity
  */
-add_action('wp_ajax_custom_avatar_upload', 'extrachill_custom_avatar_upload');
-function extrachill_custom_avatar_upload() {
-    // Ensure file-handling functions exist
-    if (!function_exists('wp_handle_upload')) {
-        require_once(ABSPATH . 'wp-admin/includes/file.php');
-    }
-
-    // Validate file type
-    $uploadedfile = $_FILES['custom_avatar'];
-    $allowed_types = array('image/jpeg', 'image/png', 'image/gif', 'image/webp');
-    $file_type = wp_check_filetype_and_ext($uploadedfile['tmp_name'], $uploadedfile['name']);
-    if (!in_array($file_type['type'], $allowed_types)) {
-        wp_send_json_error(array('message' => 'Error: Invalid file type. Only JPG, PNG, GIF, and WebP files are allowed.'));
-        return;
-    }
-
-    // Handle the file upload
-    $upload_overrides = array('test_form' => false);
-    $movefile = wp_handle_upload($uploadedfile, $upload_overrides);
-
-    if ($movefile && !isset($movefile['error'])) {
-        // Create the attachment post
-        $attachment = array(
-            'guid'           => $movefile['url'],
-            'post_mime_type' => $movefile['type'],
-            'post_title'     => preg_replace('/\.[^.]+$/', '', basename($movefile['file'])),
-            'post_content'   => '',
-            'post_status'    => 'inherit'
-        );
-
-        // Insert attachment in the DB
-        $attach_id = wp_insert_attachment($attachment, $movefile['file']);
-
-        // Generate metadata using WordPress defaults (thumbnail, medium, large, etc.)
-        require_once(ABSPATH . 'wp-admin/includes/image.php');
-        $attach_data = wp_generate_attachment_metadata($attach_id, $movefile['file']);
-        wp_update_attachment_metadata($attach_id, $attach_data);
-
-        // Save the attachment ID to user meta
-        update_user_meta(get_current_user_id(), 'custom_avatar_id', $attach_id);
-
-        // Return success + full URL
-        wp_send_json_success(array('url' => wp_get_attachment_url($attach_id)));
-    } else {
-        wp_send_json_error(array('message' => isset($movefile['error']) ? $movefile['error'] : 'Unknown error'));
-    }
-}
 
 /**
  * Override pre_get_avatar to provide custom avatars before WordPress processes Gravatar.

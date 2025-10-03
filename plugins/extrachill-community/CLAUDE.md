@@ -53,7 +53,7 @@ composer install
 - **No Asset Compilation** - Direct file inclusion without npm/webpack compilation
 - **Procedural Architecture** - No PSR-4 autoloading configured, uses direct procedural patterns
 - **Asset Versioning** - Dynamic `filemtime()` versioning for cache management
-- **Organized Architecture** - Forum features organized in `inc/` structure with master loader at `inc/includes.php`
+- **Explicit Loading Pattern** - All functionality loaded via 37 direct `require_once` statements in `extrachill_community_init()` function
 - **bbPress Integration** - Default stylesheet dequeuing, custom templates, enhanced functionality
 
 ### Build System
@@ -70,7 +70,7 @@ composer install
 - **Plugin Structure**: WordPress plugin providing community functionality that integrates with the extrachill theme
 - **bbPress Integration**: Custom bbPress enhancements and forum functionality
 - **Asset Management**: Conditional CSS/JS loading with dynamic versioning using `filemtime()`
-- **Code Organization**: Forum features organized in `inc/` structure with master loader at `inc/includes.php`
+- **Explicit Loading System**: All 37 feature modules loaded via direct `require_once` in `extrachill_community_init()` function (no master loader file)
 - **Theme Integration**: Works with extrachill theme to provide community functionality on community.extrachill.com
 - **Template System**: Provides custom bbPress templates and specialized page templates
 - **Hook-Based Components**: Homepage and settings use action hooks instead of monolithic templates
@@ -78,46 +78,72 @@ composer install
 ### 2. Cross-Domain Session Management
 - **WordPress Multisite**: Native WordPress multisite provides unified authentication across all Extra Chill domains
 - **Cookie Domain**: WordPress multisite handles cross-domain authentication via `.extrachill.com` subdomain coverage
-- **Seamless Comments**: Cross-domain commenting integration maintained in `extrachill-integration/seamless-comments.php`
 
 ## Critical File Locations
 
 ### Core Plugin Files
-- `extrachill-community.php` - Main plugin file with plugin header and initialization
+- `extrachill-community.php` - Main plugin file with 37 explicit `require_once` statements in `extrachill_community_init()`
 - `inc/core/assets.php` - Asset management and enqueuing system
 - `inc/core/bbpress-templates.php` - bbPress template routing system
-- `inc/includes.php` - Master loader for all forum functionality
-- `style.css` - Main plugin stylesheet
+- `inc/core/bbpress-spam-adjustments.php` - bbPress spam adjustments
+- `inc/core/nav.php` - Navigation functionality
 
 ### Forum Features System (inc/ structure)
-- `inc/admin/` - bbPress spam adjustments, forum sections
-- `inc/content/` - Editor, queries, breadcrumbs, sorting, notifications, dynamic menu
-- `inc/social/` - Upvoting, mentions, badges, notifications, rank system
-- `inc/users/` - Custom avatars, profiles, verification, online tracking, settings
-- `inc/home/` - Homepage components (header, recently active, homepage template)
+
+**Explicit Loading Pattern** - All files loaded via direct `require_once` in `extrachill_community_init()`:
+
+**Core (4 files loaded)**:
+- `inc/core/assets.php`, `bbpress-templates.php`, `nav.php`, `bbpress-spam-adjustments.php`
+
+**Content (4 files loaded)**:
+- `inc/content/editor/tinymce-customization.php`, `editor/tinymce-image-uploads.php`
+- `inc/content/content-filters.php`, `recent-feed.php`
+
+**Social (12 files loaded)**:
+- `inc/social/upvote.php`, `user-mention-api.php`, `forum-badges.php`
+- `inc/social/rank-system/point-calculation.php`, `rank-system/chill-forums-rank.php`
+- `inc/social/notifications/notification-bell.php`, `notification-card.php`, `notification-handler.php`
+- `inc/social/notifications/notification-cleanup.php`, `capture-replies.php`, `capture-mentions.php`, `notifications-content.php`
+
+**User Profiles (10 files loaded)**:
+- `inc/user-profiles/custom-avatar.php`, `user-avatar-menu.php`, `custom-user-profile.php`, `verification.php`
+- `inc/user-profiles/settings/settings-content.php`, `settings/settings-form-handler.php`
+- `inc/user-profiles/online-users-count.php`, `email-change-emails.php`
+- `inc/user-profiles/edit/upload-custom-avatar.php`, `edit/user-links.php`
+
+**Home (3 files loaded)**:
+- `inc/home/latest-post.php`, `actions.php`, `homepage-forum-display.php`
+
+**Template Components (3 files - loaded via include/filters, NOT in init)**:
+- `inc/home/forum-home-header.php`, `forum-homepage.php`, `recently-active.php`
+
+**Total: 37 files explicitly loaded + 3 template components**
 
 ### Page Templates
 - `page-templates/leaderboard-template.php` - User leaderboard
 - `page-templates/main-blog-comments-feed.php` - Cross-domain blog comments
-- `page-templates/notifications-feed.php` - User notifications system
 - `page-templates/recent-feed-template.php` - Recent community activity
 
 ### Settings System (Hook-Based)
-- `inc/users/settings/settings-content.php` - Settings page content rendering via hook
-- `inc/users/settings/settings-form-handler.php` - Form processing and validation
-- `inc/users/email-change-emails.php` - Email change verification and confirmation emails
+- `inc/user-profiles/settings/settings-content.php` - Settings page content rendering via hook
+- `inc/user-profiles/settings/settings-form-handler.php` - Form processing and validation
 
-### Cross-Domain Integration
-- `extrachill-integration/seamless-comments.php` - Cross-domain commenting with multisite integration
+### JavaScript Architecture (7 files in inc/assets/js/)
 
-### JavaScript Architecture (12 files in inc/assets/js/)
-- custom-avatar.js, extrachill-follow.js, extrachill-mentions.js, home-collapse.js
-- manage-user-profile-links.js, nav-menu.js, quote.js, sorting.js
-- tinymce-image-upload.js, topic-quick-reply.js, upvote.js, utilities.js
+**Loaded via assets.php (5 files)**:
+- `upvote.js` - Content upvoting system (global load)
+- `extrachill-mentions.js` - User mention system (bbPress only)
+- `home-collapse.js` - Homepage collapse functionality (conditional)
+- `utilities.js` - General utility functions (global load)
+- `tinymce-image-upload.js` - TinyMCE image uploads (bbPress only)
+
+**Loaded independently (2 files)**:
+- `custom-avatar.js` - Avatar upload system (loaded by `inc/user-profiles/edit/upload-custom-avatar.php`)
+- `manage-user-profile-links.js` - Profile links editor (loaded by `inc/user-profiles/edit/user-links.php`)
 
 ### CSS Files (9 files in inc/assets/css/)
-- home.css, leaderboard.css, notifications.css, replies-loop.css, settings-page.css
-- tinymce-editor.css, topic-quick-reply.css, topics-loop.css, user-profile.css
+- bbpress.css, home.css, leaderboard.css, notifications.css, replies-loop.css
+- settings-page.css, tinymce-editor.css, topics-loop.css, user-profile.css
 
 ### bbPress Template Overrides
 Custom templates in `bbpress/` directory provide enhanced forum functionality:
@@ -148,11 +174,12 @@ Custom templates in `bbpress/` directory provide enhanced forum functionality:
 8. **Performance Optimization** - Conditional loading and selective script enqueuing
 
 ### Forum Features Architecture
-1. **Master Loader** - `inc/includes.php` loads all forum functionality
-2. **Organized Structure** - Features grouped in `inc/` by functionality (admin, content, social, users, home)
+1. **Explicit Loading Pattern** - 37 files loaded via direct `require_once` in `extrachill_community_init()` function
+2. **Organized Structure** - Features grouped by functionality: core (4), content (4), social (12), user-profiles (10), home (3)
 3. **Conditional Loading** - Context-aware CSS/JS loading for performance
 4. **bbPress Integration** - Custom templates via `inc/core/bbpress-templates.php` routing
 5. **Hook-Based Components** - Homepage and settings use action hooks for extensibility
+6. **Template Partials** - 3 home template components loaded via include/filters (not in init)
 
 ### Code Patterns
 - **WordPress Coding Standards** - Full compliance with plugin development best practices
@@ -166,7 +193,8 @@ Custom templates in `bbpress/` directory provide enhanced forum functionality:
 - **Cross-Domain Functionality** - Multisite authentication and data sharing capabilities
 
 ### JavaScript Architecture Principles
-- **Modular Design** - 12 specialized JS files in `inc/assets/js/` for specific functionality domains
+- **Modular Design** - 7 JS files in `inc/assets/js/` with specialized functionality domains
+- **Mixed Loading** - 5 files via assets.php centrally, 2 loaded independently by their feature modules
 - **jQuery Dependencies** - Proper dependency management across all custom scripts
 - **Context-Aware Loading** - Conditional script enqueuing based on page template/context
 - **Dynamic Versioning** - `filemtime()` versioning for cache busting
@@ -181,14 +209,10 @@ Custom templates in `bbpress/` directory provide enhanced forum functionality:
 ### JavaScript
 - **Direct File Inclusion** - No build system, direct file loading
 - **jQuery Dependencies** - All custom scripts depend on jQuery
-- **12 Specialized Files** - All files in `inc/assets/js/` directory
-- **FontAwesome** 6.5.1 via CDN
+- **7 Files Total** - 5 via assets.php centrally, 2 via feature modules independently
 - **Dynamic Versioning** - `filemtime()` cache busting
 
 ## Database Tables
-
-### Custom Tables
-- `user_session_tokens` (with wp_ prefix) - Cross-domain authentication
 
 ### Key Meta Fields
 - `_show_on_homepage` - Boolean meta field controlling forum display on homepage
@@ -226,31 +250,24 @@ function my_plugin_avatar_menu_items( $menu_items, $user_id ) {
 - `priority` (int, optional) - Sort priority (default: 10, lower numbers appear first)
 
 **Integration Pattern:**
-The filter is applied in `forum-features/content/notification-bell-avatar.php` between core profile menu items and settings/logout items, allowing plugins to inject custom functionality without modifying theme files.
+The filter is applied in `inc/user-profiles/user-avatar-menu.php` at line 40 between core profile menu items and settings/logout items, allowing plugins to inject custom functionality without modifying theme files.
 
 ## Current Status
 
-The plugin operates as a production WordPress plugin serving the Extra Chill community alongside the extrachill theme. Core functionality includes forum enhancements, cross-domain authentication, and bbPress integration. The plugin provides community functionality for community.extrachill.com while the extrachill theme handles the visual presentation.
+The plugin operates as a production WordPress plugin serving the Extra Chill community alongside the extrachill theme. Core functionality includes forum enhancements, WordPress multisite authentication, and bbPress integration. The plugin provides community functionality for community.extrachill.com while the extrachill theme handles the visual presentation.
 
-**Architecture Transition**: The community functionality has been transitioned from a standalone theme to a plugin-based architecture. This plugin now works with the extrachill theme to provide community features on community.extrachill.com.
+**Migration Complete**: The community functionality has been successfully transitioned from a standalone theme to a plugin-based architecture. All theme files (header.php, footer.php, index.php, functions.php) have been removed. The plugin now provides clean forum functionality that integrates with the extrachill theme.
 
-**Plugin Integration**: Plugins can use the `ec_avatar_menu_items` filter to add custom menu items to the user avatar dropdown, maintaining seamless navigation between community and plugin-specific functions.
+**Modern Architecture**: The plugin uses hook-based components for homepage and settings pages, organized file structure in `inc/` directory, and WordPress multisite native authentication. All assets moved to `inc/assets/css/` and `inc/assets/js/` directories.
+
+**Plugin Integration**: Other plugins can use the `ec_avatar_menu_items` filter to add custom menu items to the user avatar dropdown, maintaining seamless navigation between community and plugin-specific functions.
 
 ## Cross-Domain Authentication Flow
 
-### Current (WordPress Multisite)
+### WordPress Multisite Native Authentication
 1. User logs in on any Extra Chill domain
 2. WordPress multisite automatically provides authentication across all `.extrachill.com` subdomains
 3. Native WordPress user sessions handle cross-domain authentication
 4. Users remain logged in across all Extra Chill properties without additional validation
 
-### Legacy (Maintained for Compatibility)
-1. **Legacy Path**: User logs in via custom REST API endpoints
-2. **Legacy Path**: Session token generated in `user_session_tokens` table
-3. **Legacy Path**: Custom cookie set for `.extrachill.com` domain
-4. **Legacy Path**: Auto-login triggered via `auto_login_via_session_token()`
-5. **Legacy Path**: External requests validated using Authorization header
-
-**Migration Status**: The system is transitioning from custom session tokens to WordPress multisite native authentication. Legacy endpoints are maintained during the migration period to ensure backward compatibility.
-
-This hybrid approach enables seamless user experience across the entire Extra Chill ecosystem while maintaining security, performance, and compatibility during the multisite migration.
+**Migration Complete**: The plugin now uses WordPress multisite native authentication exclusively. All custom session token functionality has been removed. Cross-domain integration relies entirely on WordPress core multisite capabilities for authentication.
