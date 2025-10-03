@@ -2,11 +2,11 @@
 /**
  * Single Page Template
  *
- * Handles individual page display with header, content, and edit link.
- * Loaded via universal template routing system in index.php.
+ * Displays individual pages with content and edit link.
+ * Loaded via template_include filter in inc/core/template-router.php.
  *
  * @package ExtraChill
- * @since 69.57
+ * @since 69.58
  */
 
 get_header(); ?>

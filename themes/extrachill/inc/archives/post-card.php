@@ -1,12 +1,12 @@
 <?php
 /**
- * Archive Post Card Template
+ * Post Card Template
  *
- * Displays post cards for archives, search results, and post listings.
- * Clean template with no context conditionals - purely for card display.
+ * Displays post card with featured image, title, meta, and excerpt.
+ * Supports forum posts from multisite search results.
  *
  * @package ExtraChill
- * @since 1.0
+ * @since 69.58
  */
 
 $featured_image_size = 'medium_large';

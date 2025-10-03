@@ -1,23 +1,18 @@
 <?php
 /**
- * Related Posts Display for Single Posts
+ * Related Posts
  *
- * Shows related posts based on shared taxonomy terms (artist, venue).
- * Includes 1-hour caching for performance optimization.
+ * Displays related posts from artist or venue taxonomy with 1-hour caching.
  *
  * @package ExtraChill
- * @since 1.0
+ * @since 69.58
  */
 
 /**
- * Display related posts from the same taxonomy term
+ * Display related posts from taxonomy term
  *
- * Shows up to 3 related posts with thumbnails and meta information.
- * Uses transient caching for improved performance.
- *
- * @param string $taxonomy The taxonomy to query (e.g., 'artist', 'venue')
- * @param int $post_id The current post ID to exclude from results
- * @since 1.0
+ * @param string $taxonomy artist or venue
+ * @param int $post_id Current post to exclude
  */
 function extrachill_display_related_posts($taxonomy, $post_id) {
     if (!in_array($taxonomy, ['artist', 'venue'])) {
@@ -34,7 +29,6 @@ function extrachill_display_related_posts($taxonomy, $post_id) {
     $term_link = get_term_link($term);
     $term_name = esc_html($term->name);
 
-    // Cache related posts for better performance
     $cache_key = $taxonomy . '_posts_' . $term_id . '_' . $post_id;
     $related_posts_data = get_transient($cache_key);
 
@@ -51,16 +45,13 @@ function extrachill_display_related_posts($taxonomy, $post_id) {
             'post__not_in' => [$post_id],
         ]);
 
-        // Store the posts array for caching
         $related_posts_data = $related_posts->posts;
-        set_transient($cache_key, $related_posts_data, 3600); // 1 hour cache
+        set_transient($cache_key, $related_posts_data, 3600);
     } else {
-        // Create mock query object for template compatibility
         $related_posts = new WP_Query();
         $related_posts->posts = $related_posts_data;
         $related_posts->post_count = count($related_posts_data);
 
-        // Initialize required query variables to prevent PHP 8+ undefined array key warnings
         $related_posts->query_vars = array_merge([
             'fields' => '',
             'update_post_term_cache' => true,
@@ -69,7 +60,6 @@ function extrachill_display_related_posts($taxonomy, $post_id) {
             'ignore_sticky_posts' => false
         ], $related_posts->query_vars ?? []);
 
-        // Set current post index for proper iteration
         $related_posts->current_post = -1;
     }
 

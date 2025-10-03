@@ -13,10 +13,10 @@ The ExtraChill theme is a custom WordPress theme serving as the frontend for an 
 ### Modular File Structure
 The theme uses a clean, modular architecture organized in the `/inc/` directory:
 - **archives/**: Archive page functionality (9 files total)
-  - Core archive files (5 files): archive.php, archive-header.php, archive-filter-bar.php, archive-custom-sorting.php, archive-child-terms-dropdown.php, post-card.php
+  - Core archive files (6 files): archive.php, archive-header.php, archive-filter-bar.php, archive-custom-sorting.php, archive-child-terms-dropdown.php, post-card.php
   - **archives/search/**: Multisite search system (3 files): search.php, search-header.php, search-site-badge.php
-- **core/**: Essential WordPress functionality (6 core files + 2 subdirectories)
-  - Core files (6): actions.php, assets.php, custom-taxonomies.php, yoast-stuff.php, view-counts.php, rewrite.php
+- **core/**: Essential WordPress functionality (7 core files + 2 subdirectories)
+  - Core files (7): actions.php, assets.php, custom-taxonomies.php, yoast-stuff.php, view-counts.php, rewrite.php, template-router.php
   - **core/templates/**: Shared template components (9 files): post-meta.php, pagination.php, no-results.php, share.php, social-links.php, taxonomy-badges.php, breadcrumbs.php, searchform.php, 404.php
   - **core/editor/**: Custom embeds (3 files): bandcamp-embeds.php, instagram-embeds.php, spotify-embeds.php
 - **footer/**: Footer navigation functionality (2 files): footer-bottom-menu.php, footer-main-menu.php
@@ -99,14 +99,15 @@ add_action('extrachill_footer_main_content', 'my_plugin_add_footer_section', 20)
 
 ### Universal Template Routing System
 
-The theme implements a centralized template routing system via `index.php` that replaces WordPress's traditional template hierarchy:
+The theme implements template routing via WordPress's native `template_include` filter through `/inc/core/template-router.php`:
 
 #### **Router Architecture:**
 
-1. **Central Dispatch** (`index.php`):
-   - Single entry point for all page types (homepage, single posts, pages, archives, search, 404)
-   - Conditional routing based on WordPress query functions
-   - Plugin override support via filter hooks for each route
+1. **WordPress Native Integration** (`inc/core/template-router.php`):
+   - Uses WordPress's `template_include` filter for proper integration with template hierarchy
+   - Routes all page types: homepage, single posts, pages, archives, search, 404
+   - Plugin override support via dedicated `extrachill_template_*` filters for each route
+   - `index.php` serves as minimal emergency fallback only
 
 2. **Filter-Based Override System**:
    - Each template route supports dedicated filter: `extrachill_template_*`
@@ -123,9 +124,10 @@ The theme implements a centralized template routing system via `index.php` that 
    - `extrachill_template_fallback` - Unknown page types fallback
 
 #### **Benefits:**
-- **Plugin Control**: Plugins can override entire template structures
-- **Centralized Logic**: All routing decisions in one file
-- **Performance**: Eliminates WordPress template hierarchy overhead
+- **Plugin Control**: Plugins can override entire template structures via filters
+- **WordPress Native**: Proper integration with WordPress core via `template_include` filter
+- **Centralized Logic**: All routing decisions in dedicated router file
+- **Performance**: Efficient routing while maintaining WordPress compatibility
 - **Extensibility**: Filter system allows complete template customization
 
 ### CSS Architecture
@@ -185,8 +187,9 @@ wp rewrite flush
 ## Key File Locations
 
 ### Core Theme Files
-- **`index.php`** - Universal template router with plugin override support for all page types
-- **`functions.php`** - Main theme setup, asset loading, and module includes (47 PHP files)
+- **`inc/core/template-router.php`** - WordPress native template routing via `template_include` filter
+- **`index.php`** - Emergency fallback template (minimal functionality)
+- **`functions.php`** - Main theme setup, asset loading, and module includes (25 direct includes from 48 total PHP files in /inc/)
 - **`inc/core/assets.php`** - Centralized asset management with conditional loading
 - **`inc/single/comments.php`** - Comment system with community integration
 - **`inc/core/templates/post-meta.php`** - Post meta display template
@@ -207,13 +210,14 @@ wp rewrite flush
 - `inc/core/templates/searchform.php` - Search form template
 - `inc/core/templates/404.php` - 404 error page template
 
-**Core Functionality (6 files)**:
+**Core Functionality (7 files)**:
 - `inc/core/actions.php` - Centralized WordPress action hooks
 - `inc/core/assets.php` - Asset management and conditional loading
 - `inc/core/custom-taxonomies.php` - Custom taxonomy registration
 - `inc/core/yoast-stuff.php` - Yoast SEO integration
-- `inc/core/view-counts.php` - Post view count tracking system
-- `inc/core/rewrite.php` - Custom rewrite rules
+- `inc/core/view-counts.php` - Universal view counting for all post types
+- `inc/core/rewrite.php` - Category base rewriting for multisite permalink consistency
+- `inc/core/template-router.php` - WordPress native template routing via `template_include` filter
 
 **Custom Embeds (3 files)**:
 - `inc/core/editor/bandcamp-embeds.php` - Bandcamp embed support
@@ -221,7 +225,8 @@ wp rewrite flush
 - `inc/core/editor/spotify-embeds.php` - Spotify embed support
 
 **Universal Template Routing**:
-- `index.php` serves as central template dispatch system with plugin override support
+- `inc/core/template-router.php` handles routing via WordPress's `template_include` filter
+- `index.php` serves as emergency fallback only (minimal functionality)
 - Filter hooks allow plugins to completely override template files at routing level
 - Template routing supports: homepage, single posts, pages, archives, search, and 404 pages
 - Search routes to dedicated multisite search template at `inc/archives/search/search.php`
@@ -246,9 +251,9 @@ wp rewrite flush
 **Archive Functionality (9 files total)**:
 - `inc/archives/archive.php` - Main archive template
 - `inc/archives/archive-header.php` - Archive page header component
-- `inc/archives/archive-filter-bar.php` - Archive filtering interface
+- `inc/archives/archive-filter-bar.php` - Archive filtering interface with randomization and sorting
 - `inc/archives/archive-child-terms-dropdown.php` - Child terms dropdown
-- `inc/archives/archive-custom-sorting.php` - Custom archive sorting
+- `inc/archives/archive-custom-sorting.php` - Custom archive sorting functions
 - `inc/archives/post-card.php` - Post card template
 - **Search subdirectory (3 files)**: search.php, search-header.php, search-site-badge.php
 
@@ -288,7 +293,8 @@ wp rewrite flush
 - **Navigation Scripts**: Menu navigation JavaScript with conditional loading
 
 ### Template Hierarchy
-- **Universal Router**: `index.php` handles all template routing with plugin override capabilities
+- **WordPress Native Router**: `inc/core/template-router.php` handles routing via `template_include` filter
+- **Emergency Fallback**: `index.php` provides minimal fallback functionality
 - **Template Filters**: Each page type supports `extrachill_template_*` filters for plugin customization
 - **Modular Templates**: Core functionality organized in `/inc/` directory structure
 - **Archive Templates**: Core archive functionality in `inc/archives/archive.php`
@@ -299,7 +305,7 @@ wp rewrite flush
 ## Custom Functionality
 
 ### Removed Systems
-- **Template Override System**: Replaced with universal template routing via index.php
+- **Template Override System**: Replaced with WordPress native routing via template-router.php
 - **Newsletter System**: Functionality moved to ExtraChill Newsletter Plugin
 - **Contact Form System**: Functionality moved to ExtraChill Contact Plugin
 - **Session Token System**: Completely removed in favor of native WordPress multisite authentication
@@ -337,6 +343,8 @@ wp rewrite flush
 
 ### Performance Features
 - **Modular Asset Loading**: CSS/JS loaded only when needed based on page context
+- **View Count Tracking**: Universal post view counting system with editor/admin exclusion
+- **Permalink Optimization**: Category base rewriting for consistent multisite URLs
 - **Memory Management**: Memory usage tracking and optimization
 - **Query Optimization**: Efficient taxonomy and post queries
 - **Multisite Optimization**: Direct database queries provided by extrachill-multisite plugin
@@ -367,8 +375,9 @@ EXTRACHILL_INCLUDES_DIR - Inc directory path for modular includes
 
 ## Recent Architectural Changes
 
-- **Universal Template Routing**: Implemented `index.php` as central template router with plugin override support
-- **Template Override System Replacement**: Removed legacy override system in favor of filter-based routing
+- **WordPress Native Template Routing**: Implemented `inc/core/template-router.php` using `template_include` filter
+- **Template Router Migration**: Moved routing logic from `index.php` to dedicated router file for proper WordPress integration
+- **Emergency Fallback**: `index.php` now serves as minimal emergency fallback only
 - **Multisite Plugin Migration**: All multisite functionality moved to extrachill-multisite plugin for network activation
 - **Core Templates Directory**: Created `/inc/core/templates/` for shared template components (8 files)
 - **Sidebar Directory**: Created `/inc/sidebar/` for sidebar-specific functionality (2 files)
@@ -385,7 +394,10 @@ EXTRACHILL_INCLUDES_DIR - Inc directory path for modular includes
 - **Asset Management**: Centralized in `inc/core/assets.php` with conditional loading
 - **Authentication Simplification**: Native WordPress multisite authentication via extrachill-multisite plugin
 - **Performance Optimization**: Modular CSS architecture and selective loading
-- **File Structure Cleanup**: Streamlined to 47 modular PHP files with improved organization
+- **File Structure Cleanup**: Streamlined to 48 modular PHP files with improved organization (25 directly loaded in functions.php)
+- **View Counting System**: Universal post view tracking with `ec_get_post_views()`, `ec_the_post_views()`, and `ec_track_post_views()`
+- **Rewrite System**: Category base rewriting for consistent multisite permalink structures
+- **Sticky Header Filter**: `extrachill_enable_sticky_header` filter allows plugins to control sticky header behavior
 - **Event Integration Update**: Replaced dm-events integration with extrachill-events plugin
 - **Multisite Search System**: Dedicated search template system with cross-site search integration
 - **View Counting System**: Post view count tracking functionality

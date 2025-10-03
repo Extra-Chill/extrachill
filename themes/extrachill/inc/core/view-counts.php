@@ -2,8 +2,11 @@
 /**
  * Universal View Counting System
  *
- * Tracks page views for all post types across the Extra Chill ecosystem.
- * Uses WordPress post meta for lightweight, cached storage.
+ * Tracks post views for all singular post types using WordPress post meta.
+ * Excludes editors/admins and preview requests from view tracking.
+ *
+ * @package ExtraChill
+ * @since 69.58
  */
 
 if (!defined('ABSPATH')) {
@@ -13,20 +16,17 @@ if (!defined('ABSPATH')) {
 /**
  * Track post views on singular pages
  *
- * Excludes: previews, logged-in editors/admins, and REST API requests
- * Fires on wp_head for all singular post types
+ * Excludes previews and users who can edit posts
  */
 function ec_track_post_views($post_id) {
 	if (!$post_id || is_preview()) {
 		return;
 	}
 
-	// Exclude users who can edit posts (editors/admins)
 	if (current_user_can('edit_posts')) {
 		return;
 	}
 
-	// Get and increment view count
 	$views = (int) get_post_meta($post_id, 'ec_post_views', true);
 	update_post_meta($post_id, 'ec_post_views', $views + 1);
 }

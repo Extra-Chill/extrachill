@@ -46,13 +46,11 @@ if ( ! function_exists( 'extrachill_social_links' ) ) :
                 'icon'  => 'pinterest',
                 'label' => 'Pinterest',
             ],
-            /*****
             [
-                'url'   => 'https://community.extrachill.com',
-                'icon'  => 'igloo-solid',
-                'label' => 'Community Platform',
+                'url'   => 'https://github.com/chubes4',
+                'icon'  => 'github',
+                'label' => 'GitHub',
             ],
-            *******/
         ];
 
         // FontAwesome SVG sprite with cache busting via file modification time
