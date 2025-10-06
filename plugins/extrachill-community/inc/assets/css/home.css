@@ -1,3 +1,39 @@
+/* --- Latest Post Component --- */
+.community-latest-post {
+    background-color: var(--notice-bg);
+    width: 100%;
+    border: 2px solid var(--notice-border);
+    padding: 12px;
+    border-radius: 5px;
+    font-size: 15px;
+    margin-bottom: 15px;
+    box-sizing: border-box;
+}
+
+.community-latest-post ul {
+    margin: inherit;
+    max-width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+}
+
+.community-latest-post ul li {
+    border-bottom: 1px solid var(--border-color);
+    width: max-content;
+    padding: 5px 0;
+    list-style: none;
+}
+
+.community-latest-post a {
+    text-decoration: none;
+    color: var(--link-color);
+}
+
+.community-latest-post a:hover {
+    text-decoration: underline;
+    text-decoration-color: var(--link-color);
+}
+
 /* --- Forum Card Styles --- */
 .bbp-forum-card {
     background-color: var(--card-background);
@@ -52,11 +88,11 @@
         width: 100%;
     }
     /* Make the container a column layout */
-    #bbpress-forums ul.recently-active-topic-row {
+    ul.recently-active-topic-row {
         flex-direction: column;
     }
     /* Force each card to occupy full width */
-    #bbpress-forums .recently-active-topic-row .topic-card-row {
+    .recently-active-topic-row .topic-card-row {
         flex: none;
         width: 100%;
     }
@@ -65,7 +101,7 @@
 /* =========================================
    1) Container: Display horizontally
    ========================================= */
-#bbpress-forums ul.recently-active-topic-row {
+ul.recently-active-topic-row {
     display: flex;
     flex-wrap: wrap;
     gap: 1rem; /* spacing between cards */
@@ -74,7 +110,7 @@
     margin: 20px 0;
 }
 
-#bbpress-forums .recently-active-topic-row .topic-card-row {
+.recently-active-topic-row .topic-card-row {
     flex: 1 1 calc(33.333% - 1rem);
     box-sizing: border-box;
     background-color: var(--card-background);

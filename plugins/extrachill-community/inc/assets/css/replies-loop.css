@@ -388,70 +388,7 @@ button#jump-to-latest {
     align-items: baseline;
 }
 
-.share-button {
-    background-color: var(--button-bg);
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    padding: 6px 10px;
-    border-radius: 3px;
-    gap: 5px;
-    margin: 20px 0px;
-    font-size: 13px;
-}
-
-/* Share button styling */
-.share-button-container {
-    position: relative; /* Required for positioning dropdown */
-    display: inline-block; /* Adjust as needed (inline-block, block, flex) */
-}
-
-/* Share options dropdown styling */
-.share-options {
-    display: none; /* Hidden by default */
-    position: absolute;
-    top: 100%; /* Position below the button */
-    left: 0;
-    background-color: var(--card-background);
-    border: 1px solid var(--border-color);
-    border-radius: 3px;
-    box-shadow: 2px 2px 5px var(--card-shadow);
-    padding: 10px 0;
-    z-index: 9999; /* Ensure it's above other content */
-    min-width: 150px; /* Adjust as needed */
-    margin-top: -19px;
-}
-
-.share-options-list {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-}
-
-.share-options-list li {
-    padding: 0;
-    margin: 0;
-}
-
-.share-options-list li a {
-    display: block;
-    padding: 8px 15px;
-    text-decoration: none;
-    color: var(--link-color);
-}
-
-.share-options-list li a:hover,
-.share-options-list li a:focus {
-    background-color: var(--accent-2); /* Example hover/focus background color for options */
-}
-
-.share-option-icon {
-    width: 1em; /* Adjust icon size in dropdown as needed */
-    height: 1em;
-    margin-right: 8px;
-    fill: #555; /* Icon color in dropdown */
-    vertical-align: middle;
-}
+/* Share button styles moved to theme: extrachill/assets/css/share.css */
 
 
 span.bbp-admin-links {

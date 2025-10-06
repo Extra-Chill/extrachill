@@ -77,7 +77,7 @@ function extrachill_enqueue_settings_page_assets() {
 add_action('wp_enqueue_scripts', 'extrachill_enqueue_settings_page_assets');
 
 function enqueue_bbpress_global_styles() {
-    if (is_bbpress()) {
+    if (is_bbpress() || is_front_page() || is_home()) {
         wp_enqueue_style(
             'extrachill-bbpress',
             EXTRACHILL_COMMUNITY_PLUGIN_URL . '/inc/assets/css/bbpress.css',
@@ -89,7 +89,7 @@ function enqueue_bbpress_global_styles() {
 add_action('wp_enqueue_scripts', 'enqueue_bbpress_global_styles');
 
 function modular_bbpress_styles() {
-    if (bbp_is_forum_archive() || is_front_page() || bbp_is_single_forum()) {
+    if (bbp_is_forum_archive() || is_front_page() || is_home() || bbp_is_single_forum()) {
         wp_enqueue_style(
             'community-home',
             EXTRACHILL_COMMUNITY_PLUGIN_URL . '/inc/assets/css/home.css',
@@ -114,6 +114,19 @@ function modular_bbpress_styles() {
             array('extrachill-bbpress'),
             filemtime(EXTRACHILL_COMMUNITY_PLUGIN_DIR . '/inc/assets/css/replies-loop.css')
         );
+    }
+
+    // Load share button styles from theme on single topic pages
+    if (bbp_is_single_topic()) {
+        $share_css_path = get_template_directory() . '/assets/css/share.css';
+        if (file_exists($share_css_path)) {
+            wp_enqueue_style(
+                'extrachill-share',
+                get_template_directory_uri() . '/assets/css/share.css',
+                array('extrachill-bbpress'),
+                filemtime($share_css_path)
+            );
+        }
     }
 }
 add_action('wp_enqueue_scripts', 'modular_bbpress_styles');

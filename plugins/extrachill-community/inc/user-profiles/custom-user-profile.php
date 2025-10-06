@@ -77,6 +77,3 @@ function override_bbp_user_forum_role( $role, $user_id ) {
     // Return custom title if set, otherwise return "Extra Chillian" for regular users
     return ! empty( $custom_title ) ? $custom_title : 'Extra Chillian';
 }
-
-// Hook user avatar menu into theme header (priority 30: after notification bell)
-add_action('extrachill_header_top_right', 'extrachill_display_user_avatar_menu', 30);

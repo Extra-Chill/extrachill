@@ -171,7 +171,6 @@ span.bbp-admin-links {
 /* ==================================================
    Notices
 ================================================== */
-.extrachill-recent-activity,
 div.bbp-template-notice.info,
 .status-notice p {
     background-color: var(--notice-bg);
@@ -207,11 +206,6 @@ div.bbp-template-notice.info li a {
     color: var(--accent);
 }
 
-.extrachill-recent-activity a {
-    text-decoration: none;
-}
-
-.extrachill-recent-activity a:hover,
 div.bbp-template-notice.info li a:hover {
     text-decoration: underline;
     text-decoration-color: var(--link-color);

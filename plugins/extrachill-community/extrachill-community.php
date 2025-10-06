@@ -24,8 +24,8 @@ define('EXTRACHILL_COMMUNITY_PLUGIN_URL', plugin_dir_url(__FILE__));
 /**
  * Initialize plugin functionality
  *
- * Explicit loading architecture - all 37 feature files loaded directly on plugins_loaded.
- * Load order: core (4) → content (4) → social (12) → user-profiles (10) → home (3).
+ * Explicit loading architecture - all 36 feature files loaded directly on plugins_loaded.
+ * Load order: core (5) → content (4) → social (12) → user-profiles (8) → home (3).
  *
  * Template components NOT loaded here (loaded via include/require or action hooks):
  * - inc/home/forum-home-header.php (action hook: extrachill_community_home_header)
@@ -33,11 +33,12 @@ define('EXTRACHILL_COMMUNITY_PLUGIN_URL', plugin_dir_url(__FILE__));
  * - inc/home/recently-active.php (action hook: extrachill_community_home_top)
  */
 function extrachill_community_init() {
-    // Core functionality (4 files)
+    // Core functionality (5 files)
     require_once plugin_dir_path(__FILE__) . 'inc/core/assets.php';
     require_once plugin_dir_path(__FILE__) . 'inc/core/bbpress-templates.php';
     require_once plugin_dir_path(__FILE__) . 'inc/core/nav.php';
     require_once plugin_dir_path(__FILE__) . 'inc/core/bbpress-spam-adjustments.php';
+    require_once plugin_dir_path(__FILE__) . 'inc/core/sidebar.php';
 
     // Content features (4 files)
     require_once plugin_dir_path(__FILE__) . 'inc/content/editor/tinymce-customization.php';
@@ -59,15 +60,14 @@ function extrachill_community_init() {
     require_once plugin_dir_path(__FILE__) . 'inc/social/notifications/capture-mentions.php';
     require_once plugin_dir_path(__FILE__) . 'inc/social/notifications/notifications-content.php';
 
-    // User profile features (10 files)
+    // User profile features (8 files) - avatar menu moved to extrachill-multisite
     require_once plugin_dir_path(__FILE__) . 'inc/user-profiles/custom-avatar.php';
-    require_once plugin_dir_path(__FILE__) . 'inc/user-profiles/user-avatar-menu.php';
+    // Avatar menu now loaded from extrachill-multisite plugin with conditional loading
     require_once plugin_dir_path(__FILE__) . 'inc/user-profiles/custom-user-profile.php';
     require_once plugin_dir_path(__FILE__) . 'inc/user-profiles/verification.php';
     require_once plugin_dir_path(__FILE__) . 'inc/user-profiles/settings/settings-content.php';
     require_once plugin_dir_path(__FILE__) . 'inc/user-profiles/settings/settings-form-handler.php';
     require_once plugin_dir_path(__FILE__) . 'inc/user-profiles/online-users-count.php';
-    require_once plugin_dir_path(__FILE__) . 'inc/user-profiles/email-change-emails.php';
     require_once plugin_dir_path(__FILE__) . 'inc/user-profiles/edit/upload-custom-avatar.php';
     require_once plugin_dir_path(__FILE__) . 'inc/user-profiles/edit/user-links.php';
     require_once plugin_dir_path(__FILE__) . 'inc/user-profiles/edit/user-info.php';

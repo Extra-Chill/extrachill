@@ -127,12 +127,6 @@ if ( $is_lead_topic ) {
                                 do_action( 'bbp_theme_after_reply_author_details' );
                                 ?>
                             </div>
-                            <div class="author-follow-button">
-                        <?php if ( function_exists('extrachill_follow_button') ) {
-                            extrachill_follow_button( bbp_get_reply_author_id() );
-                        } ?>
-                        
-                    </div>
 
                         </div>
                     </div><!-- .author-details-header -->
