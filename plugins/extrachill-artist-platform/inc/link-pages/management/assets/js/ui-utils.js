@@ -142,12 +142,6 @@
                         behavior: 'smooth'
                     });
                 }
-                // --- End scroll active tab ---
-                
-                // --- Initialize tab-specific JS for default first tab ---
-                // First tab initialization handled by specific tab events in shared-tabs.js
-                // Add more tab-specific initializations here if needed
-                // --- End Initialize tab-specific JS for default first tab ---
             }
         } else { // Tabs mode (desktop)
             tabs.forEach(t => t.classList.remove('active'));
@@ -176,14 +170,6 @@
                 //         behavior: 'smooth'
                 //     });
                 // }
-                // --- End scroll active tab ---
-                
-                // --- Initialize tab-specific JS ---
-                // Tab-specific initialization handled by specific tab events
-                 // Tab-specific initialization handled by specific tab events
-                // Add more tab-specific initializations here if needed
-                // --- End Initialize tab-specific JS ---
-
             } else if (tabs.length > 0) { // Default to first tab
                 const firstTabToActivate = tabs[0];
                 const firstTabId = firstTabToActivate.getAttribute('data-tab');
@@ -209,12 +195,6 @@
                 //         behavior: 'smooth'
                 //     });
                 // }
-                // --- End scroll active tab ---
-                
-                // --- Initialize tab-specific JS for default first tab ---
-                // First tab initialization handled by specific tab events in shared-tabs.js
-                // Add more tab-specific initializations here if needed
-                // --- End Initialize tab-specific JS for default first tab ---
             }
         }
     }

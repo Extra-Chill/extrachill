@@ -1,8 +1,10 @@
 <?php
 /**
- * Extrch.co Link Page Analytics - Database Management
+ * Link Page Analytics Database Management
  *
- * Handles creation and updates for the custom analytics database table.
+ * Creates and manages analytics tables for daily views and link clicks.
+ *
+ * @package ExtraChillArtistPlatform
  */
 
 defined('ABSPATH') || exit;
@@ -11,7 +13,7 @@ define('EXTRCH_ANALYTICS_DB_VERSION', '1.1');
 define('EXTRCH_ANALYTICS_DB_VERSION_OPTION', 'extrch_analytics_db_version');
 
 /**
- * Creates or updates analytics tables with version checking.
+ * Creates or updates analytics tables when database version changes
  */
 function extrch_create_or_update_analytics_table() {
     $current_db_version = get_option(EXTRCH_ANALYTICS_DB_VERSION_OPTION);

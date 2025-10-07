@@ -10,7 +10,7 @@ add_action( 'wp_ajax_link_page_click_tracking', 'handle_link_click_tracking' );
 add_action( 'wp_ajax_nopriv_link_page_click_tracking', 'handle_link_click_tracking' );
 
 /**
- * Legacy click tracking with individual event records and user metadata
+ * Records link click events to daily aggregation table
  */
 function handle_link_click_tracking() {
     if ( ! isset( $_POST['link_page_id'] ) || ! isset( $_POST['link_url'] ) ) {
@@ -45,7 +45,7 @@ function handle_link_click_tracking() {
 
 
 /**
- * Enqueues tracking script with file existence verification and nonce security
+ * Enqueues tracking script for link page analytics
  */
 function extrch_enqueue_public_tracking_script($link_page_id, $artist_id) {
     $theme_dir = EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR;
@@ -75,11 +75,10 @@ function extrch_enqueue_public_tracking_script($link_page_id, $artist_id) {
 add_action('extrch_link_page_minimal_head', 'extrch_enqueue_public_tracking_script', 10, 2);
 
 /**
- * Automated 90-day data retention for link page analytics
+ * Prunes analytics data older than 90 days
  *
- * Page views are tracked in real-time via ec_post_views (WordPress post meta),
- * then aggregated daily into the daily views table for analytics charts.
- * This function prunes both daily views and link clicks tables.
+ * Removes old records from both daily views and link clicks tables.
+ * Page views tracked via ec_post_views are aggregated daily before pruning.
  */
 function extrch_prune_old_analytics_data() {
     global $wpdb;
@@ -128,10 +127,9 @@ function extrch_unschedule_analytics_pruning_cron() {
 }
 
 /**
- * Daily aggregation of view counts from ec_post_views to daily table
+ * Aggregates daily view counts from ec_post_views into analytics table
  *
- * Calculates daily increments by comparing current ec_post_views totals
- * with historical cumulative totals from the daily views table.
+ * Calculates daily increments by comparing current totals with historical data.
  */
 function extrch_aggregate_daily_link_page_views() {
     global $wpdb;
@@ -183,7 +181,7 @@ function extrch_aggregate_daily_link_page_views() {
 add_action('extrch_daily_analytics_aggregate_event', 'extrch_aggregate_daily_link_page_views');
 
 /**
- * Schedule daily aggregation cron
+ * Schedules daily analytics aggregation cron event
  */
 function extrch_schedule_analytics_aggregation_cron() {
     if (!wp_next_scheduled('extrch_daily_analytics_aggregate_event')) {
@@ -193,7 +191,7 @@ function extrch_schedule_analytics_aggregation_cron() {
 add_action('init', 'extrch_schedule_analytics_aggregation_cron');
 
 /**
- * Unschedule aggregation cron on plugin deactivation
+ * Unschedules analytics aggregation cron event
  */
 function extrch_unschedule_analytics_aggregation_cron() {
     wp_clear_scheduled_hook('extrch_daily_analytics_aggregate_event');

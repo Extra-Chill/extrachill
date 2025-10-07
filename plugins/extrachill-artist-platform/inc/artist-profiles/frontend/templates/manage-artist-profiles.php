@@ -8,8 +8,8 @@
 
 get_header(); ?>
 
-	<div id="primary" class="content-area">
-		<main id="main" class="main-content">
+	<div class="main-content">
+		<main id="main" class="site-main">
 			<?php do_action( 'extra_chill_before_main_content' ); ?>
 
             <div class="breadcrumb-notice-container">
@@ -367,13 +367,9 @@ get_header(); ?>
 
 			<?php do_action( 'extra_chill_after_main_content' ); ?>
 		</main><!-- #main -->
-	</div><!-- #primary -->
+	</div><!-- .main-content -->
 
-<?php // Script for tab functionality removed, will be handled by shared-tabs.js ?>
-
-
-
-<?php 
+<?php
 do_action( 'extra_chill_after_primary_content_area' );
 // Sidebar removed for standalone theme
 get_footer(); 

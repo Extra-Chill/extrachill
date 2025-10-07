@@ -523,14 +523,16 @@ class ExtraChillArtistPlatform_Assets {
     }
 
     private function should_load_hero_card_styles() {
-        // Artist platform home page
-        $is_home_page = is_page() && 
-                       ( get_page_template_slug() === 'artist-platform-home.php' || 
-                         strpos( get_page_template_slug(), 'artist-platform-home' ) !== false );
-        
+        // Artist platform homepage on artist.extrachill.com (site #6)
+        $is_home_page = false;
+        if ( is_front_page() || is_home() ) {
+            $artist_blog_id = get_blog_id_from_url( 'artist.extrachill.com', '/' );
+            $is_home_page = $artist_blog_id && get_current_blog_id() === $artist_blog_id;
+        }
+
         // Artist profiles archive page (/artists)
         $is_artist_archive = is_post_type_archive( 'artist_profile' );
-        
+
         return $is_home_page || $is_artist_archive;
     }
 
@@ -587,6 +589,12 @@ class ExtraChillArtistPlatform_Assets {
         wp_localize_script( 'extrachill-manage-artist-profiles', 'apManageMembersData', $data_to_pass );
     }
 
+    /**
+     * Enqueues join flow assets on login/register page
+     *
+     * Loads modal styling and JavaScript for the join flow system
+     * with dependencies on community plugin's login/register interface.
+     */
     public function enqueue_join_flow_assets() {
         if ( ! is_page_template( 'page-templates/login-register-template.php' ) ) {
             return;
@@ -596,7 +604,6 @@ class ExtraChillArtistPlatform_Assets {
         $js_path = 'inc/join/assets/js/join-flow-ui.js';
         $plugin_url = EXTRACHILL_ARTIST_PLATFORM_PLUGIN_URL;
 
-        // Enqueue join flow CSS
         if ( file_exists( EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . $css_path ) ) {
             wp_enqueue_style(
                 'ec-join-flow',
@@ -606,7 +613,6 @@ class ExtraChillArtistPlatform_Assets {
             );
         }
 
-        // Enqueue join flow JavaScript
         if ( file_exists( EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . $js_path ) ) {
             wp_enqueue_script(
                 'ec-join-flow-ui',

@@ -134,15 +134,9 @@ function ec_ajax_render_link_section_editor() {
  */
 function ec_ajax_render_link_template() {
     try {
-        // Get and validate parameters (allow empty data for new links)
         $link_url = wp_unslash( sanitize_url( $_POST['link_url'] ?? '' ) );
         $link_text = wp_unslash( sanitize_text_field( $_POST['link_text'] ?? '' ) );
-        $youtube_embed = isset( $_POST['youtube_embed'] ) ? (bool) $_POST['youtube_embed'] : false;
-        
-        // Allow empty text/URL for new link templates
-        if ( empty( $link_url ) ) {
-            $link_url = '#'; // Default placeholder URL
-        }
+        $youtube_embed = $_POST['youtube_embed'] ?? false;
         
         // Build template arguments
         $template_args = array(

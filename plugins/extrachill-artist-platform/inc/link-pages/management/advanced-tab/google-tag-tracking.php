@@ -24,8 +24,8 @@ function extrch_get_google_tag_id( $artist_id, $link_page_id ) {
     return $data['settings']['google_tag_id'] ?? '';
 }
 
-function extrch_is_google_tag_enabled( $link_page_id ) {
-    $tag_id = extrch_get_google_tag_id( $link_page_id );
+function extrch_is_google_tag_enabled( $artist_id, $link_page_id ) {
+    $tag_id = extrch_get_google_tag_id( $artist_id, $link_page_id );
     return ! empty( $tag_id ) && extrch_validate_google_tag_id( $tag_id );
 }
 
@@ -48,12 +48,12 @@ function extrch_get_google_tag_type( $tag_id ) {
     return 'unknown';
 }
 
-function extrch_get_google_tag_settings( $link_page_id ) {
-    $tag_id = extrch_get_google_tag_id( $link_page_id );
+function extrch_get_google_tag_settings( $artist_id, $link_page_id ) {
+    $tag_id = extrch_get_google_tag_id( $artist_id, $link_page_id );
 
     return array(
         'tag_id'      => $tag_id,
-        'is_enabled'  => extrch_is_google_tag_enabled( $link_page_id ),
+        'is_enabled'  => extrch_is_google_tag_enabled( $artist_id, $link_page_id ),
         'is_valid'    => extrch_validate_google_tag_id( $tag_id ),
         'tag_type'    => extrch_get_google_tag_type( $tag_id ),
     );

@@ -220,8 +220,7 @@
         }
     });
 
-    // Check if this tab is the *initially* active tab and load subscribers
-    // Use a slightly delayed check to ensure shared-tabs.js has finished its initial layout
+    // Check if subscribers tab is initially active and load data
     setTimeout(() => {
         const tabId = subscribersTab.id;
         const correspondingButton = document.querySelector(`.shared-tab-button[data-tab="${tabId}"]`);

@@ -11,9 +11,6 @@
  * @param bool   $powered_by (optional, default true)
  */
 
-// error_log('[DEBUG TEMPLATE] extrch-link-page-template.php loaded. Current Post ID in global $post: ' . (isset($GLOBALS['post']) ? $GLOBALS['post']->ID : 'Not set'));
-// REMOVED: error_log('[DEBUG TEMPLATE] Query vars: ' . print_r(get_defined_vars(), true)); // THIS WAS CAUSING MEMORY EXHAUSTION
-
 // If $data is not already set by the caller (e.g., AJAX handler or direct include with params), then fetch it.
 if ( ! isset( $data ) || ! is_array( $data ) ) {
     // Resolve IDs using centralized helpers with sensible fallbacks

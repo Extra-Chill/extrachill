@@ -39,19 +39,19 @@ function ec_template_handler( $output, $template_name, $args = array() ) {
     // Template validation and file mapping
     $template_map = array(
         'single-link' => array(
-            'file' => 'inc/link-pages/templates/single-link.php',
+            'file' => 'inc/link-pages/management/templates/components/single-link.php',
             'required' => array()
         ),
         'link-section' => array(
-            'file' => 'inc/link-pages/templates/link-section.php',
+            'file' => 'inc/link-pages/management/templates/components/link-section.php',
             'required' => array( 'links' )
         ),
         'social-icon' => array(
-            'file' => 'inc/link-pages/templates/social-icon.php',
+            'file' => 'inc/link-pages/management/templates/components/social-icon.php',
             'required' => array( 'social_data' )
         ),
         'social-icons-container' => array(
-            'file' => 'inc/link-pages/templates/social-icons-container.php',
+            'file' => 'inc/link-pages/management/templates/components/social-icons-container.php',
             'required' => array( 'social_links' )
         ),
         'artist-switcher' => array(
@@ -77,13 +77,11 @@ function ec_template_handler( $output, $template_name, $args = array() ) {
         ),
         // Subscription Templates
         'subscribe-inline-form' => array(
-            // Moved from inc/link-pages/subscription/ to inc/link-pages/templates/
-            'file' => 'inc/link-pages/templates/subscribe-inline-form.php',
+            'file' => 'inc/link-pages/live/templates/subscribe-inline-form.php',
             'required' => array( 'artist_id' )
         ),
         'subscribe-modal' => array(
-            // Moved from inc/link-pages/subscription/ to inc/link-pages/templates/
-            'file' => 'inc/link-pages/templates/subscribe-modal.php',
+            'file' => 'inc/link-pages/live/templates/subscribe-modal.php',
             'required' => array( 'artist_id' )
         ),
         // Management Tab Templates
@@ -131,7 +129,7 @@ function ec_template_handler( $output, $template_name, $args = array() ) {
         ,
         // Share Modal Template (used by both live link page and preview)
         'share-modal' => array(
-            'file' => 'inc/link-pages/templates/extrch-share-modal.php',
+            'file' => 'inc/link-pages/live/templates/extrch-share-modal.php',
             'required' => array() // JS populates content dynamically
         )
     );

@@ -31,8 +31,8 @@ if (!$link_page_id || get_post_type($link_page_id) !== 'artist_link_page') {
 
 get_header(); ?>
 
-<div id="primary" class="content-area">
-    <main id="main" class="main-content">
+<div class="main-content">
+    <main id="main" class="site-main">
         <?php do_action( 'extra_chill_before_main_content' ); ?>
 
 <?php
@@ -309,7 +309,7 @@ extrch_render_link_expiration_modal();
 
         <?php do_action( 'extra_chill_after_main_content' ); ?>
     </main><!-- #main -->
-</div><!-- #primary -->
+</div><!-- .main-content -->
 
 <?php get_footer(); ?>
 

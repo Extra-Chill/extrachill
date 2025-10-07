@@ -81,7 +81,7 @@ function bp_send_artist_invitation_email( $recipient_email, $artist_name, $membe
 
     // Set the 'From' name and email for this email only
     add_filter('wp_mail_from_name', function() { return 'Extra Chill Community'; });
-    add_filter('wp_mail_from', function() { return 'bands@community.extrachill.com'; });
+    add_filter('wp_mail_from', function() { return 'admin@extrachill.com'; });
     $sent = wp_mail( $recipient_email, $subject, $message, $headers );
     remove_all_filters('wp_mail_from_name');
     remove_all_filters('wp_mail_from');
@@ -227,7 +227,7 @@ function bp_send_admin_artist_membership_notification( $user_id, $artist_id ) {
         'Reply-To: chubes@extrachill.com'
     );
     add_filter('wp_mail_from_name', function() { return 'Extra Chill Community'; });
-    add_filter('wp_mail_from', function() { return 'bands@community.extrachill.com'; });
+    add_filter('wp_mail_from', function() { return 'admin@extrachill.com'; });
     $sent = wp_mail( $user->user_email, $subject, $message, $headers );
     remove_all_filters('wp_mail_from_name');
     remove_all_filters('wp_mail_from');

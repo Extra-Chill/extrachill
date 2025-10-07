@@ -257,13 +257,11 @@ function extrch_fetch_link_page_analytics_for_email( $link_page_id, $start_date,
         "SELECT SUM(view_count) FROM {$views_table} WHERE link_page_id = %d AND stat_date BETWEEN %s AND %s",
         $link_page_id, $start_date, $end_date
     ) );
-    error_log("[ANALYTICS DEBUG] Raw Total Views from DB: " . print_r($raw_total_views, true));
 
     $raw_total_clicks = $wpdb->get_var( $wpdb->prepare(
         "SELECT SUM(click_count) FROM {$clicks_table} WHERE link_page_id = %d AND stat_date BETWEEN %s AND %s",
         $link_page_id, $start_date, $end_date
     ) );
-    error_log("[ANALYTICS DEBUG] Raw Total Clicks from DB: " . print_r($raw_total_clicks, true));
 
     $raw_top_links_results = $wpdb->get_results( $wpdb->prepare(
         "SELECT link_url, SUM(click_count) as total_clicks 
@@ -274,7 +272,6 @@ function extrch_fetch_link_page_analytics_for_email( $link_page_id, $start_date,
          LIMIT 3",
         $link_page_id, $start_date, $end_date
     ), ARRAY_A );
-    error_log("[ANALYTICS DEBUG] Raw Top Links from DB: " . print_r($raw_top_links_results, true));
 
     // Forum Activity Analytics
     $forum_id = 0;
@@ -285,15 +282,11 @@ function extrch_fetch_link_page_analytics_for_email( $link_page_id, $start_date,
     $artist_profile_id = apply_filters('ec_get_artist_id', $link_page_id);
     if ( $artist_profile_id ) {
         $forum_id = get_post_meta( $artist_profile_id, '_artist_forum_id', true );
-        error_log("[ANALYTICS DEBUG] Artist Profile ID: {$artist_profile_id}, Forum ID: {$forum_id}");
-    } else {
-        error_log("[ANALYTICS DEBUG] No Artist Profile ID found for Link Page ID: {$link_page_id}");
     }
 
     if ( $forum_id ) {
         $datetime_start = $start_date . ' 00:00:00';
         $datetime_end   = $end_date   . ' 23:59:59';
-        error_log("[ANALYTICS DEBUG] Forum Query Datetime Start: {$datetime_start}, End: {$datetime_end}");
 
         // New Topics Count
         $raw_new_topics_count = $wpdb->get_var( $wpdb->prepare(
@@ -302,7 +295,6 @@ function extrch_fetch_link_page_analytics_for_email( $link_page_id, $start_date,
              AND post_date >= %s AND post_date <= %s",
             'topic', 'publish', $forum_id, $datetime_start, $datetime_end
         ) );
-        error_log("[ANALYTICS DEBUG] Raw New Topics Count from DB: " . print_r($raw_new_topics_count, true));
 
         // New Replies Count
         $raw_new_replies_count = $wpdb->get_var( $wpdb->prepare(
@@ -313,8 +305,7 @@ function extrch_fetch_link_page_analytics_for_email( $link_page_id, $start_date,
              AND p.post_date >= %s AND p.post_date <= %s",
             'reply', 'publish', 'topic', $forum_id, $datetime_start, $datetime_end
         ) );
-        error_log("[ANALYTICS DEBUG] Raw New Replies Count from DB: " . print_r($raw_new_replies_count, true));
-        
+
         // Recent Topic Titles
         $recent_topics = get_posts(array(
             'post_type' => 'topic',
@@ -332,12 +323,9 @@ function extrch_fetch_link_page_analytics_for_email( $link_page_id, $start_date,
             'order' => 'DESC',
             'fields' => 'id=>parent', 
         ));
-        error_log("[ANALYTICS DEBUG] Raw Recent Topics from get_posts: " . print_r($recent_topics, true));
         foreach($recent_topics as $topic) {
             $recent_topic_titles[] = get_the_title($topic->ID);
         }
-    } else {
-        error_log("[ANALYTICS DEBUG] No Forum ID found or Forum ID is 0, skipping forum stats.");
     }
 
     return array(
@@ -603,29 +591,20 @@ add_action( 'admin_init', function() {
         $user_info = get_userdata($user_id_to_test);
 
         if ($user_id_to_test && $user_info) {
-            error_log("[DEBUG CONSOLIDATED EMAIL] Triggered for User ID: {$user_id_to_test}. User display: {$user_info->display_name}");
-            // Call the main processing function, which will handle its own wp_die() with mail status
-            extrch_process_weekly_performance_emails($user_id_to_test); 
-            // The extrch_process_weekly_performance_emails should call wp_die itself if $debug_target_user_id is set.
-            // So, we should not reach here if that function works as expected.
-            wp_die("[DEBUG CONSOLIDATED EMAIL] Fallback: Processing finished for User ID: {$user_id_to_test}, but extrch_process_weekly_performance_emails did not call wp_die(). This is unexpected.");
+            extrch_process_weekly_performance_emails($user_id_to_test);
+            wp_die("Consolidated email test completed for User ID: {$user_id_to_test}. Check error log for details.");
         } else {
-            wp_die("[DEBUG CONSOLIDATED EMAIL] Error: Invalid User ID ({$user_id_to_test}) or user not found.");
+            wp_die("Error: Invalid User ID ({$user_id_to_test}) or user not found.");
         }
     }
 
-    // Keep the old trigger for single link page tests, ensuring it doesn't conflict
     if ( isset( $_GET['debug_send_weekly_email'] ) && !isset($_GET['debug_send_consolidated_email_user']) && current_user_can('manage_options') ) {
         $link_page_id_to_test = apply_filters('ec_get_link_page_id', $_GET);
         if ($link_page_id_to_test) {
-            define('EXTRCH_DEBUG_WEEKLY_EMAIL_TO_ADMIN', true); 
-            // We need to capture the output of extrch_send_single_link_page_performance_email related to mail_sent
-            // This function doesn't return it directly, but it logs and we can wp_die here too.
+            define('EXTRCH_DEBUG_WEEKLY_EMAIL_TO_ADMIN', true);
             $admin_email_for_single_test = get_option('admin_email');
-            // Temporarily, let's just call it. The internal logging will show wp_mail result.
             extrch_send_single_link_page_performance_email($link_page_id_to_test);
-            // The $debug_message is now internal to extrch_send_single_link_page_performance_email
-            wp_die('Single link page test email function executed for link page ID: ' . $link_page_id_to_test . '. Check error log for wp_mail() result. Email attempted to admin: ' . $admin_email_for_single_test);
+            wp_die('Single link page test email sent for link page ID: ' . $link_page_id_to_test . '. Check error log for details. Email sent to: ' . $admin_email_for_single_test);
         }
     }
 } );

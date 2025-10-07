@@ -143,14 +143,5 @@ $meta_pixel_id = $settings['meta_pixel_id'] ?? '';
             <input type="text" name="link_page_google_tag_id" id="link_page_google_tag_id" value="<?php echo esc_attr($google_tag_id); ?>" class="regular-text" placeholder="e.g., G-XXXXXXXXXX or AW-XXXXXXXXXX" />
             <p class="description" style="color:#888; font-size:0.97em; margin-top:0.5em;"><?php esc_html_e('Enter your Google Tag ID for Google Analytics 4 or Google Ads. This enables tracking page views, events, and allows for targeted advertising campaigns.', 'extrachill-artist-platform'); ?></p>
         </div>
-
-        <?php // Placeholder for Google Tag ID field in the future ?>
-        <!--
-        <div class="bp-link-setting-item" style="margin-bottom: 1.5em;">
-            <label for="link_page_google_tag_id" style="display:block; font-weight:600; margin-bottom: 0.3em;"><?php esc_html_e('Google Tag ID (GA4 / Ads)', 'extrachill-artist-platform'); ?></label>
-            <input type="text" name="link_page_google_tag_id" id="link_page_google_tag_id" value="" class="regular-text" placeholder="e.g., G-XXXXXXXXXX or AW-XXXXXXXXXX" />
-            <p class="description" style="color:#888; font-size:0.97em; margin-top:0.5em;"><?php esc_html_e('Enter your Google Tag ID for Google Analytics 4 or Google Ads.', 'extrachill-artist-platform'); ?></p>
-        </div>
-        -->
     </div>
 </div>

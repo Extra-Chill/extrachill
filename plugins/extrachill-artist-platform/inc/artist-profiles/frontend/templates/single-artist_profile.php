@@ -5,8 +5,8 @@
 
 get_header(); ?>
 
-    <div id="primary" class="content-area">
-        <main id="main" class="main-content">
+    <div class="main-content">
+        <main id="main" class="site-main">
             <?php
             /**
              * Custom hook for before main content.
@@ -444,7 +444,7 @@ get_header(); ?>
             do_action( 'extra_chill_after_main_content' );
             ?>
         </main><!-- #main -->
-    </div><!-- #primary -->
+    </div><!-- .main-content -->
 
 <?php
 /**

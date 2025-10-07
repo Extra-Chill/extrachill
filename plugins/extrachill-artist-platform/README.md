@@ -53,21 +53,21 @@ A comprehensive WordPress plugin that provides artist profile management, link p
 - Role-based artist profile management with granular permissions
 - Server-side permission validation with context-aware checks
 - AJAX permission validation with comprehensive nonce verification
-- WordPress multisite integration for cross-domain authentication (legacy session tokens maintained for compatibility)
+- WordPress multisite provides native cross-domain authentication across all Extra Chill domains
 - Template-level permission checks using native WordPress authentication
 
 ## Requirements
 
 - **WordPress**: 5.0 or higher (tested up to 6.4)
 - **PHP**: 7.4 or higher  
-- **Theme**: Extrachill theme with Extra Chill Community plugin (compatibility enforced)
-- **Optional**: bbPress (for forum features)
+- **Theme**: Extrachill theme
+- **Required Plugin**: bbPress (for forum features)
 
 ## Installation
 
 1. Upload the plugin folder to `/wp-content/plugins/`
 2. Activate the plugin through the WordPress admin
-3. Ensure the extrachill theme and Extra Chill Community plugin are active
+3. Ensure the extrachill theme and bbPress plugin are active
 4. Configure plugin settings as needed
 
 ## Usage
@@ -398,7 +398,6 @@ Link page configuration stored as post meta:
 - **Artist Context Switching**: Multi-artist management with seamless state preservation
 - **Centralized Data Provider**: Single source of truth via `ec_get_link_page_data()` with live preview support
 - **Component Templates**: Modular UI components with AJAX-driven rendering
-- **Cross-Domain Authentication**: Secure session management across subdomains with server-side validation
 - **Permission System**: Centralized access control with context-aware validation
 - **Save System**: WordPress-native form processing with comprehensive data preparation and validation
 
@@ -498,7 +497,7 @@ $permission_callbacks = [
 ## Troubleshooting
 
 ### Theme Compatibility Issues
-Ensure the extrachill theme and Extra Chill Community plugin are active. The plugin will display an admin notice if an incompatible theme is detected.
+Ensure the extrachill theme and bbPress plugin are active.
 
 ### Link Page Not Loading
 Check that rewrite rules are flushed by deactivating and reactivating the plugin.
@@ -507,7 +506,7 @@ Check that rewrite rules are flushed by deactivating and reactivating the plugin
 Verify that JavaScript is not blocked and check browser console for errors. Check that AJAX endpoints are accessible.
 
 ### Permission Issues
-Ensure user has proper role assignments and check permission functions in `inc/core/filters/permissions.php`. Verify session validation for cross-domain authentication.
+Ensure user has proper role assignments and check permission functions in `inc/core/filters/permissions.php`.
 
 ### Roster Invitations Not Sending
 Check that WordPress can send emails and verify SMTP configuration. Review invitation tokens in database if needed.

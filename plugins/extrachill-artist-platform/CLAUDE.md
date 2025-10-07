@@ -50,14 +50,6 @@ WordPress plugin providing comprehensive artist platform functionality for the E
 - **Component Templates**: `inc/link-pages/management/templates/components/` - Modular UI components
 - **Subscription Templates**: `inc/link-pages/templates/` - Email collection forms and modals
 
-#### Cross-Domain Authentication
-**File**: `inc/link-pages/live/link-page-session-validation.php`
-- **Legacy System**: Session token system for `.extrachill.com` domain (maintained for compatibility)
-- **Current Architecture**: WordPress multisite provides native cross-domain authentication
-- Auto-login across subdomains using WordPress native multisite user sessions
-- Server-side session validation with template-level permission checks
-- **Migration Status**: Transitioning from custom session tokens to native WordPress multisite authentication
-
 #### Forum Integration
 **Files**: `inc/artist-profiles/artist-forums.php`, `inc/artist-profiles/artist-forum-section-overrides.php`
 - bbPress integration with artist-specific forum sections
@@ -113,7 +105,6 @@ WordPress plugin providing comprehensive artist platform functionality for the E
 - `link-page-public-tracking.js` - Analytics and click tracking
 - `link-page-subscribe.js` - Subscription form functionality
 - `link-page-youtube-embed.js` - YouTube video embed handling
-- `link-page-session.js` - Cross-domain session validation with server-side integration
 - `extrch-share-modal.js` - Native Web Share API with social fallbacks
 
 **Artist Profile Management**: `inc/artist-profiles/assets/js/`
@@ -181,8 +172,8 @@ CREATE TABLE {prefix}_artist_subscribers (
 ### Dependencies
 - **WordPress**: 5.0+ (tested up to 6.4)
 - **PHP**: 7.4+
-- **Plugin Dependencies**: Extrachill theme with Extra Chill Community plugin (enforced via WordPress native plugin dependency system)
-- **External**: bbPress, Font Awesome, Google Fonts
+- **Plugin Dependencies**: bbPress plugin (enforced via WordPress native plugin dependency system)
+- **External**: Font Awesome, Google Fonts
 
 ### Additional Features
 
@@ -265,8 +256,6 @@ CREATE TABLE {prefix}_artist_subscribers (
 - **subscribe.php**: Subscription handling (`extrch_link_page_subscribe`, `render_subscribe_template`)
 
 **Permission System**: Server-side permission validation
-- Cross-domain authentication handled via template-level checks
-- Server-side session validation replaces client-side API calls
 - Permission checks centralized via `inc/core/filters/permissions.php`
 - Context-aware permission validation for AJAX and template rendering
 
@@ -418,7 +407,7 @@ document.addEventListener('backgroundChanged', function(e) {
 2. **Preview Modules**: Listen for events, update live preview DOM elements (`info-preview.js`, `links-preview.js`, `colors-preview.js`, etc.)
 3. **Utility Modules**: Shared functionality (`ui-utils.js`, `sortable.js` for drag-and-drop)
 4. **Global Modules**: Cross-component features (`artist-switcher.js`, `artist-platform.js`)
-5. **Public Interface**: User-facing functionality (`link-page-session.js`, `extrch-share-modal.js`, tracking modules)
+5. **Public Interface**: User-facing functionality (`extrch-share-modal.js`, tracking modules)
 6. **Join Flow**: User onboarding (`join-flow-ui.js` - modal interactions for account selection)
 
 #### Key JavaScript Features

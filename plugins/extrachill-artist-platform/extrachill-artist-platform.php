@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Extra Chill Artist Platform
  * Plugin URI: https://extrachill.com
- * Description: Comprehensive artist platform for musicians. Features artist profiles, link pages with analytics, subscriber management, cross-domain authentication, forum integration, and live preview management interface.
+ * Description: Artist platform for musicians with profiles, link pages, analytics, and subscriber management.
  * Version: 1.0.0
  * Author: Chris Huber
  * Author URI: https://chubes.net
@@ -13,7 +13,7 @@
  * Requires at least: 5.0
  * Tested up to: 6.4
  * Requires PHP: 7.4
- * Requires Plugins: bbpress, extrachill-community
+ * Requires Plugins: bbpress
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -43,34 +43,8 @@ class ExtraChillArtistPlatform {
         $this->init_hooks();
     }
 
-    private function check_dependencies() {
-        $errors = array();
-        
-        if ( ! function_exists( 'extrachill_community_get_version' ) && get_template() !== 'extrachill' ) {
-            $errors[] = 'Extra Chill Artist Platform requires the Extra Chill Community plugin or Extra Chill theme.';
-        }
-
-        if ( ! class_exists( 'bbPress' ) && ! is_plugin_active( 'bbpress/bbpress.php' ) ) {
-            $errors[] = 'Extra Chill Artist Platform requires bbPress plugin to be active.';
-        }
-        
-        if ( ! empty( $errors ) ) {
-            add_action( 'admin_notices', function() use ( $errors ) {
-                foreach ( $errors as $error ) {
-                    echo '<div class="notice notice-error"><p>' . esc_html( $error ) . '</p></div>';
-                }
-            } );
-            return false;
-        }
-        
-        return true;
-    }
 
     private function init_hooks() {
-        if ( ! $this->check_dependencies() ) {
-            return;
-        }
-
         add_action( 'init', array( $this, 'init' ), 15 );
         add_action( 'plugins_loaded', array( $this, 'load_textdomain' ) );
         register_activation_hook( __FILE__, array( $this, 'activate' ) );
@@ -114,8 +88,7 @@ class ExtraChillArtistPlatform {
         require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/create-link-page.php';
         require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/live/ajax/analytics.php';
         require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/live/link-page-head.php';
-        require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/live/link-page-session-validation.php';
-        
+
         require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/management/ajax/background.php';
         require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/management/ajax/qrcode.php';
         
@@ -135,18 +108,20 @@ class ExtraChillArtistPlatform {
         require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/management/advanced-tab/link-page-weekly-email.php';
 
         require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/subscribe-functions.php';
-        require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/templates/subscribe-inline-form.php';
-        require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/templates/subscribe-modal.php';
 
         require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/artist-profiles/roster/manage-roster-ui.php';
         require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/artist-profiles/roster/roster-ajax-handlers.php';
+
+        require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/notifications/artist-notifications.php';
+        require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/notifications/artist-notification-cards.php';
 
         require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/database/subscriber-db.php';
 
         require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/core/actions/save.php';
         require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/core/actions/sync.php';
         require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/core/actions/delete.php';
-        require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/core/actions/homepage-hooks.php';
+
+        require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/home/homepage-override.php';
 
         require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/join/join-flow.php';
         

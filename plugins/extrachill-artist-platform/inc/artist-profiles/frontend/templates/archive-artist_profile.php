@@ -12,7 +12,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 get_header(); ?>
 
 <div class="container">
-    <div id="primary" class="content-area">
+    <div class="main-content">
         <main id="main" class="site-main">
 
             <div class="entry-content">
@@ -116,7 +116,7 @@ get_header(); ?>
             </div><!-- .entry-content -->
 
         </main><!-- #main -->
-    </div><!-- #primary -->
+    </div><!-- .main-content -->
 </div><!-- .container -->
 
 <?php get_footer(); ?>

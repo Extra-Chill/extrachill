@@ -4,10 +4,6 @@
  * ec_get_link_page_data() serves as single source of truth for all link page data access.
  */
 
-function ec_get_user_artist_ids( $user_id = null ) {
-    return ec_get_user_owned_artists( $user_id );
-}
-
 function ec_get_forum_for_artist( $artist_id ) {
     if ( ! $artist_id || get_post_type( $artist_id ) !== 'artist_profile' ) {
         return false;
@@ -26,7 +22,7 @@ function ec_is_user_artist_member( $user_id = null, $artist_id = null ) {
         return false;
     }
 
-    $user_artist_ids = ec_get_user_artist_ids( $user_id );
+    $user_artist_ids = ec_get_user_owned_artists( $user_id );
     return in_array( (int) $artist_id, $user_artist_ids );
 }
 
@@ -85,7 +81,7 @@ function ec_get_user_artist_profiles( $user_id = null ) {
         return array();
     }
 
-    $artist_ids = ec_get_user_artist_ids( $user_id );
+    $artist_ids = ec_get_user_owned_artists( $user_id );
     if ( empty( $artist_ids ) ) {
         return array();
     }

@@ -18,7 +18,7 @@ defined( 'ABSPATH' ) || exit;
 function extrachill_artist_platform_avatar_menu_items( $menu_items, $user_id ) {
     // Get user's accessible (published) artist profile IDs
     $user_artist_ids = ec_get_user_accessible_artists( $user_id );
-    $base_manage_url = home_url( '/manage-artist-profiles/' );
+    $base_manage_url = 'https://artist.extrachill.com/manage-artist-profiles/';
     $final_manage_url = $base_manage_url;
 
     if ( ! empty( $user_artist_ids ) ) {
@@ -52,7 +52,7 @@ function extrachill_artist_platform_avatar_menu_items( $menu_items, $user_id ) {
         );
 
         // Add Manage Link Page(s) menu item
-        $base_link_page_manage_url = home_url( '/manage-link-page/' );
+        $base_link_page_manage_url = 'https://artist.extrachill.com/manage-link-page/';
         $final_link_page_manage_url = $base_link_page_manage_url;
 
         if ( $latest_artist_id > 0 ) {
