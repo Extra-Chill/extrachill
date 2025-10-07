@@ -168,48 +168,6 @@ span.bbp-admin-links {
     text-decoration-color: var(--link-color);
 }
 
-/* ==================================================
-   Notices
-================================================== */
-div.bbp-template-notice.info,
-.status-notice p {
-    background-color: var(--notice-bg);
-    width: 100%;
-    border: 2px solid var(--notice-border);
-    padding: 12px;
-    border-radius: 5px;
-    font-size: 15px;
-    text-decoration: none;
-    margin-bottom: 15px;
-    box-sizing: border-box;
-}
-
-div.bbp-template-notice {
-    background-color: var(--notice-bg);
-    padding: 10px 15px;
-    border-radius: 6px;
-    margin-bottom: 20px;
-    color: var(--text-color);
-}
-
-div.bbp-template-notice li {
-    margin: 0 !important;
-    padding: 0;
-}
-
-div.bbp-template-notice.info li {
-    color: inherit;
-    font-size: 14px;
-}
-
-div.bbp-template-notice.info li a {
-    color: var(--accent);
-}
-
-div.bbp-template-notice.info li a:hover {
-    text-decoration: underline;
-    text-decoration-color: var(--link-color);
-}
 
 /* ==================================================
    Form Containers

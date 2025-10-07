@@ -15,6 +15,29 @@ defined( 'ABSPATH' ) || exit;
     <div class="topic-with-sidebar">
         <div class="topic-main-content">
             <?php
+            // Share button, view count, and jump to latest button
+            ?>
+            <div class="views-container">
+                <div class="views-left">
+                    <?php do_action( 'extrachill_share_button' ); ?>
+                    <p class="topic-views"><?php ec_the_post_views(); ?></p>
+                </div>
+                <?php
+                // Get the reply count for the current topic
+                $reply_count = bbp_get_topic_reply_count( bbp_get_topic_id() );
+
+                // Only show the "Jump to Latest" button if there are more than 2 replies
+                if ( $reply_count > 2 ) {
+                    // Get the latest reply ID for the current topic
+                    $latest_reply_id = bbp_get_topic_last_reply_id( bbp_get_topic_id() );
+                    $latest_reply_url = esc_url( bbp_get_reply_url( $latest_reply_id ) );
+
+                    // Display the "Jump to Latest" button
+                    echo '<button id="jump-to-latest" class="jump-to-latest" data-latest-reply-url="' . $latest_reply_url . '">Jump to Latest</button>';
+                }
+                ?>
+            </div>
+            <?php
             bbp_topic_subscription_link();
 
             bbp_topic_favorite_link();
@@ -29,8 +52,6 @@ defined( 'ABSPATH' ) || exit;
 
                 bbp_topic_tag_list();
 
-                bbp_single_topic_description();
-
                 if ( bbp_show_lead_topic() ) :
 
                     bbp_get_template_part( 'content', 'single-topic-lead' );
@@ -39,16 +60,11 @@ defined( 'ABSPATH' ) || exit;
 
                 if ( bbp_has_replies() ) :
 
-                    global $bbp_reply_query;
-                    if ( ! empty( $bbp_reply_query ) && bbp_get_topic_reply_count() > 0 ) {
-                        extrachill_pagination( $bbp_reply_query, 'bbpress' );
-                    }
-
                     bbp_get_template_part( 'loop',       'replies' );
 
-                    global $bbp_reply_query;
-                    if ( ! empty( $bbp_reply_query ) && bbp_get_topic_reply_count() > 0 ) {
-                        extrachill_pagination( $bbp_reply_query, 'bbpress' );
+                    $bbp = bbpress();
+                    if ( ! empty( $bbp->reply_query ) && bbp_get_topic_reply_count() > 0 ) {
+                        extrachill_pagination( $bbp->reply_query, 'bbpress' );
                     }
 
                 endif;

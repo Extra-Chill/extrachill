@@ -369,27 +369,30 @@ span.bbp-topic-post-date {
     text-decoration: underline;
 }
 
-button#jump-to-latest {
-    padding: 4px 10px;
-    font-size: 12px;
-    background-color: var(--button-bg);
-    float: right;
-    cursor: pointer;
-}
-
 .topic-views {
     font-size: 13px;
     color: var(--muted-text);
 }
 
-.views-container{
+.views-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 15px;
+}
+
+.views-left {
     display: flex;
     gap: 15px;
     align-items: baseline;
 }
 
-/* Share button styles moved to theme: extrachill/assets/css/share.css */
-
+button#jump-to-latest {
+    padding: 4px 10px;
+    font-size: 12px;
+    background-color: var(--button-bg);
+    cursor: pointer;
+}
 
 span.bbp-admin-links {
     float: right;

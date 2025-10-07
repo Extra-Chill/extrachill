@@ -12,16 +12,6 @@ $isUserProfile = bbp_is_single_user();
 
 if (!$isUserProfile) {
     echo '<h1>' . esc_html(get_the_title()) . '</h1>';
-
-    // ✅ Check if we are on a single topic page
-    if (bbp_is_single_topic()) {
-        ?><div class="views-container"><?php
-        do_action( 'extrachill_share_button' );
-        echo '<p class="topic-views">';
-        ec_the_post_views();
-        echo '</p>';
-        ?></div><?php
-    }
 }
 
 // Output the standard WordPress content within the div
@@ -31,5 +21,20 @@ if (have_posts()) :
     endwhile;
 endif;
 ?>
+
+<script type="text/javascript">
+document.addEventListener('DOMContentLoaded', function() {
+    var jumpButton = document.querySelector('#jump-to-latest');
+
+    if (jumpButton) {
+        jumpButton.addEventListener('click', function() {
+            var latestReplyUrl = this.getAttribute('data-latest-reply-url');
+            if (latestReplyUrl) {
+                window.location.href = latestReplyUrl;
+            }
+        });
+    }
+});
+</script>
 
 <?php get_footer(); ?>

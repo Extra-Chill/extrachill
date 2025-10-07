@@ -72,9 +72,10 @@ function extrachill_community_init() {
     require_once plugin_dir_path(__FILE__) . 'inc/user-profiles/edit/user-links.php';
     require_once plugin_dir_path(__FILE__) . 'inc/user-profiles/edit/user-info.php';
 
-    // Homepage features (3 files)
+    // Homepage features (4 files)
     require_once plugin_dir_path(__FILE__) . 'inc/home/latest-post.php';
     require_once plugin_dir_path(__FILE__) . 'inc/home/actions.php';
     require_once plugin_dir_path(__FILE__) . 'inc/home/homepage-forum-display.php';
+    require_once plugin_dir_path(__FILE__) . 'inc/home/artist-platform-buttons.php';
 }
 add_action('plugins_loaded', 'extrachill_community_init');
