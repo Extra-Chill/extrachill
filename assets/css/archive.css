@@ -204,10 +204,6 @@ a.card-link-target:hover,
 	font-size: 13px;
 }
 
-.archive div.entry-content.clearfix {
-  overflow: hidden;
-}
-
 .archive article, .search article {
 	margin-bottom: 25px;
 	padding-top:10px;
@@ -260,4 +256,26 @@ margin: 5px 0;
     gap: 0.3rem;
     margin-bottom: 0.7rem;
   }
+}
+
+/* Page Template Styles (all-posts.php) */
+.page-template-all-posts .page-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: flex-end;
+	border-bottom: 2px solid var(--accent);
+}
+.page-template-all-posts .page-header .page-title {
+	margin-bottom: 0;
+}
+.view-all-button, .all-link {
+    background-color: var(--button-bg);
+    color: #fff;
+    padding: 3px 8px;
+    font-size: 14px;
+    border-radius: 3px;
+}
+.view-all-button:hover, .all-link:hover {
+	background-color: var(--button-hover-bg);
+	color: var(--button-text);
 }

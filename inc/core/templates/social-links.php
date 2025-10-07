@@ -47,7 +47,7 @@ if ( ! function_exists( 'extrachill_social_links' ) ) :
                 'label' => 'Pinterest',
             ],
             [
-                'url'   => 'https://github.com/chubes4',
+                'url'   => 'https://github.com/Extra-Chill',
                 'icon'  => 'github',
                 'label' => 'GitHub',
             ],

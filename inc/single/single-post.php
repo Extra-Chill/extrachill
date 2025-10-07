@@ -13,7 +13,7 @@ get_header(); ?>
 
 <?php do_action( 'extrachill_before_body_content' ); ?>
 
-<section id="primary" id="main">
+<section class="main-content">
     <?php while ( have_posts() ) : the_post(); ?>
 
         <?php
@@ -73,7 +73,7 @@ get_header(); ?>
     extrachill_display_related_posts('venue', $post_id);
     ?>
 </aside>
-</section><!-- #primary -->
+</section><!-- .main-content -->
 
 <?php get_sidebar(); ?>
 

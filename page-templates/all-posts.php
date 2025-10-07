@@ -11,8 +11,8 @@ get_header(); ?>
 
 <?php do_action('extrachill_before_body_content'); ?>
 
-<section id="primary" class="archive full-width-content">
-    <main id="main" class="site-main" role="main">
+<section class="main-content archive full-width-content">
+    <main class="site-main" role="main">
         <?php extrachill_breadcrumbs(); ?>
         <header class="page-header">
             <h1 class="page-title">
@@ -87,11 +87,13 @@ if ($all_posts_query->have_posts()) :
     </div>
 </div>
 
-<div class="article-container">
-    <?php while ($all_posts_query->have_posts()) : $all_posts_query->the_post(); ?>
-        <?php get_template_part('inc/archives/post-card'); ?>
-    <?php endwhile; ?>
-</div>
+<div class="full-width-breakout">
+    <div class="article-container">
+        <?php while ($all_posts_query->have_posts()) : $all_posts_query->the_post(); ?>
+            <?php get_template_part('inc/archives/post-card'); ?>
+        <?php endwhile; ?>
+    </div><!-- .article-container -->
+</div><!-- .full-width-breakout -->
 
 <?php extrachill_pagination($all_posts_query, 'all-posts'); ?>
 
@@ -107,8 +109,8 @@ wp_reset_postdata();
 
 
 
-    </main><!-- #main -->
-</section><!-- #primary -->
+    </main><!-- .site-main -->
+</section><!-- .main-content -->
 
 <?php // get_sidebar(); ?>
 

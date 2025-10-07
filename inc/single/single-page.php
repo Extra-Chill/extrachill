@@ -52,8 +52,6 @@ get_header(); ?>
 
 <?php endwhile; ?>
 
-</div><!-- #primary -->
-
 <?php do_action( 'extrachill_after_body_content' ); ?>
 
 <?php get_footer(); ?>

@@ -6,7 +6,7 @@
  */
 ?>
 
-</main><!-- #main -->
+</main><!-- .extrachill-content -->
 
 <?php do_action( 'extrachill_before_footer' ); ?>
 

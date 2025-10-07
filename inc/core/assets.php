@@ -158,7 +158,8 @@ function extrachill_enqueue_search_styles() {
 add_action('wp_enqueue_scripts', 'extrachill_enqueue_search_styles', 20);
 
 function extrachill_enqueue_shared_tabs() {
-    if ( ! is_page() ) {
+    // Load on pages OR single posts with comments open for logged-out users
+    if ( ! is_page() && ! ( is_single() && comments_open() && ! is_user_logged_in() ) ) {
         return;
     }
 

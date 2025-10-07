@@ -167,13 +167,6 @@ function add_target_blank_to_external_links($content) {
 }
 add_filter('the_content', 'add_target_blank_to_external_links');
 
-function wp_innovator_randomize_posts( $query ) {
-    if ( $query->is_main_query() && !is_admin() && is_archive() && isset($_GET['randomize']) ) {
-        $query->set( 'orderby', 'rand' );
-    }
-}
-add_action( 'pre_get_posts', 'wp_innovator_randomize_posts' );
-
 if ( is_plugin_active('co-authors-plus/co-authors-plus.php') ) {
     add_action( 'rest_api_init', 'custom_register_coauthors' );
     function custom_register_coauthors() {
@@ -246,9 +239,6 @@ function extrachill_prevent_admin_styles_on_frontend() {
         wp_dequeue_style( 'co-authors-plus-image-style' );
     }
 
-    if ( ! is_single() && ! is_page() ) {
-        wp_dequeue_style( 'trivia-block-trivia-style' );
-    }
 }
 add_action( 'wp_enqueue_scripts', 'extrachill_prevent_admin_styles_on_frontend', 100 );
 

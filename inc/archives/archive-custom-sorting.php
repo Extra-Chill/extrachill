@@ -59,6 +59,7 @@ function extrachill_artist_filter_dropdown($filter_heading) {
 /**
  * Modify main query to support URL-based sorting and artist filtering on archive pages
  * Responds to 'sort' GET parameter with 'oldest' or 'recent' values
+ * Responds to 'randomize' GET parameter to randomize post order
  * Responds to 'artist' GET parameter for artist taxonomy filtering
  *
  * @param WP_Query $query The WordPress query object
@@ -78,6 +79,11 @@ function extrachill_sort_posts($query) {
             case 'recent':
             default:
                 break;
+        }
+
+        // Handle randomization
+        if (isset($_GET['randomize'])) {
+            $query->set('orderby', 'rand');
         }
 
         // Handle artist filtering

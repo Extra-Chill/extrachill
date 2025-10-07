@@ -13,7 +13,7 @@ get_header(); ?>
 
     <?php do_action( 'extrachill_before_body_content' ); ?>
 
-    <section id="primary">
+    <section class="main-content">
         <section class="error-404 not-found">
             <div class="page-content">
                 <header class="page-header">
@@ -23,7 +23,7 @@ get_header(); ?>
                 <?php extrachill_search_form(); ?>
             </div><!-- .page-content -->
         </section><!-- .error-404 -->
-    </section><!-- #primary -->
+    </section><!-- .main-content -->
 
     <?php get_sidebar(); ?>
 

@@ -10,7 +10,7 @@
  */
 ?>
 
-<aside id="secondary">
+<aside class="sidebar">
 	<?php
 	$sidebar_content = apply_filters( 'extrachill_sidebar_content', false );
 
