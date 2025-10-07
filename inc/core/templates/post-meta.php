@@ -25,7 +25,12 @@ if ( ! function_exists( 'extrachill_entry_meta' ) ) :
         if ( $is_forum_post ) {
                 $author = isset( $post->_author ) ? esc_html( $post->_author ) : 'Unknown';
                 $date = isset( $post->post_date ) ? date( 'F j, Y', strtotime( $post->post_date ) ) : 'Unknown';
-                $author_url = 'https://community.extrachill.com/u/' . sanitize_title( $author );
+
+                // Use centralized multisite author URL function
+                $author_id = isset( $post->post_author ) ? $post->post_author : 0;
+                $author_url = function_exists( 'ec_get_user_profile_url' )
+                    ? ec_get_user_profile_url( $author_id )
+                    : 'https://community.extrachill.com/u/' . sanitize_title( $author );
 
                 $forum_title = isset( $post->_forum['title'] ) ? esc_html( $post->_forum['title'] ) : 'Unknown Forum';
                 $forum_link = isset( $post->_forum['link'] ) ? esc_url( $post->_forum['link'] ) : '#';
@@ -71,7 +76,13 @@ if ( ! function_exists( 'extrachill_entry_meta' ) ) :
                 if ( is_plugin_active('co-authors-plus/co-authors-plus.php') ) {
                     coauthors_posts_links();
                 } else {
-                    the_author_posts_link();
+                    // Use centralized multisite author URL function
+                    if ( function_exists( 'ec_get_user_profile_url' ) ) {
+                        $author_url = ec_get_user_profile_url( get_the_author_meta( 'ID' ) );
+                        echo '<a href="' . esc_url( $author_url ) . '">' . esc_html( get_the_author() ) . '</a>';
+                    } else {
+                        the_author_posts_link();
+                    }
                 }
                 echo '</div>';
 

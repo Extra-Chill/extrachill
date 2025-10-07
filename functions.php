@@ -80,9 +80,6 @@ require_once(EXTRACHILL_INCLUDES_DIR . '/core/yoast-stuff.php');
 require_once(EXTRACHILL_INCLUDES_DIR . '/sidebar/recent-posts.php');
 require_once(EXTRACHILL_INCLUDES_DIR . '/sidebar/community-activity.php');
 
-// Search functionality
-require_once(EXTRACHILL_INCLUDES_DIR . '/archives/search/search-site-badge.php');
-
 function extrachill_remove_menu_admin_pages() {
     remove_submenu_page('themes.php', 'nav-menus.php');
 }

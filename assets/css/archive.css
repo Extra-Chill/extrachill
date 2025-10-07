@@ -5,10 +5,10 @@
  */
 
 .archive-card {
-  background: var(--card-background, #181818);
+  background: var(--card-background);
   border-radius: 14px;
   box-shadow: 0 1.5px 6px rgba(0,0,0,0.03); /* even more subtle than single post */
-  border: 1px solid var(--border-color, #333);
+  border: 1px solid var(--border-color);
   padding: 1.2em;
   margin-bottom: 1em;
   width: 100%;
@@ -86,7 +86,7 @@ a.card-link-target:hover,
 /* Archive filter bar button styling */
 #extrachill-custom-sorting button {
   background-color: var(--button-bg);
-  color: #fff;
+  color: var(--button-text);
   font-weight: 500;
   cursor: pointer;
 }
@@ -149,7 +149,7 @@ a.card-link-target:hover,
     padding: 0.6em 1.5em;
     font-size: 1em;
     font-weight: 700;
-    color: #fff;
+    color: var(--button-text);
     background-color: var(--button-bg);
     border-radius: 8px;
     text-decoration: none;
@@ -161,7 +161,7 @@ a.card-link-target:hover,
 .back-home-link:focus {
     background-color: var(--button-hover-bg);
     transform: translateY(-2px);
-    color: #fff;
+    color: var(--button-text);
     outline: none;
 }
 
@@ -200,7 +200,7 @@ a.card-link-target:hover,
 
 .archive-post .product-category-link{
     font-weight: 500;
-	background-color: #000;
+	background-color: var(--header-bg);
 	font-size: 13px;
 }
 
@@ -247,7 +247,7 @@ margin: 5px 0;
 }
 .location-badge {
   background-color: var(--button-bg);
-  color: #fff;
+  color: var(--button-text);
   border: 1px solid var(--border-color);
 }
 
@@ -270,7 +270,7 @@ margin: 5px 0;
 }
 .view-all-button, .all-link {
     background-color: var(--button-bg);
-    color: #fff;
+    color: var(--button-text);
     padding: 3px 8px;
     font-size: 14px;
     border-radius: 3px;

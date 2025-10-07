@@ -80,7 +80,7 @@ embed, iframe, object {
 
 
 h1, h2, h3, h4, h5, h6, .entry-title {
-	color: var(--header-text);
+	color: var(--text-color);
 	font-weight: normal;
 	font-family: "Loft Sans", sans-serif;
 	line-height: 1.4;
@@ -89,9 +89,12 @@ h1, h2, h3, h4, h5, h6, .entry-title {
 }
 
 h1 a, h2 a, h3 a, h4 a, h5 a, h6 a, .entry-title a{
-	color: var(--header-text);
+	color: var(--text-color);
 }
 
+h1 {
+	font-size: 32px;
+}
 
 h2 {
 	font-size: 33px;
@@ -546,7 +549,7 @@ a.author.url.fn, .forum-meta a {
 }
 
 .pagination-count {
-	color: #666;
+	color: var(--muted-text);
 	font-size: 14px;
 	margin-bottom: 10px;
 }
@@ -575,12 +578,12 @@ a.author.url.fn, .forum-meta a {
 
 .pagination-links ul.page-numbers .page-numbers {
 	padding: 8px 12px;
-	color: #fff;
+	color: var(--button-text);
 	display: inline-block;
 	font-size: 14px;
 	border-radius: 5px;
 	text-decoration: none;
-	background-color: #000;
+	background-color: var(--button-bg);
 	transition: background-color 0.3s ease;
 	border: none;
 }
@@ -592,7 +595,7 @@ a.author.url.fn, .forum-meta a {
 }
 
 .pagination-links ul.page-numbers .page-numbers.current {
-	background-color: #003466;
+	background-color: var(--button-hover-bg);
 	cursor: default;
 }
 
@@ -603,7 +606,7 @@ a.author.url.fn, .forum-meta a {
 
 .pagination-links ul.page-numbers .page-numbers.dots {
 	background-color: transparent;
-	color: #666;
+	color: var(--muted-text);
 	cursor: default;
 }
 

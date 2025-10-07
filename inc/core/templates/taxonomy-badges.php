@@ -49,12 +49,24 @@ function extrachill_display_taxonomy_badges( $post_id = null, $args = array() ) 
              continue;
          }
 
-         $terms = get_the_terms( $post_id, $taxonomy );
+          // Use stored taxonomies if available (for search results), otherwise fetch normally
+          if ( isset( $GLOBALS['post']->taxonomies ) && isset( $GLOBALS['post']->taxonomies[$taxonomy] ) ) {
+              $term_ids = $GLOBALS['post']->taxonomies[$taxonomy];
+              $terms = array();
+              foreach ( $term_ids as $term_name => $term_id ) {
+                  $term = get_term( $term_id );
+                  if ( $term && ! is_wp_error( $term ) ) {
+                      $terms[] = $term;
+                  }
+              }
+          } else {
+              $terms = get_the_terms( $post_id, $taxonomy );
+          }
 
-         // Skip if no terms assigned
-         if ( ! $terms || is_wp_error( $terms ) ) {
-             continue;
-         }
+          // Skip if no terms assigned
+          if ( ! $terms || is_wp_error( $terms ) ) {
+              continue;
+          }
 
         foreach ( $terms as $term ) {
             $term_slug = sanitize_html_class( $term->slug );

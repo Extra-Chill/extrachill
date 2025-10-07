@@ -148,16 +148,6 @@ border-bottom: 2px solid var(--accent);
     display: inline; /* This makes the title inline with the preceding elements */
 }
 
-h3.entry-title {
-font-size: 20px;
-line-height:1.4;
-}
-
-h1.entry-title {
-	font-size: 32px;
-	line-height: 1.6;
-}
-
 #content .post .article-content .entry-title a:hover, #content .post .single-title-above .entry-title a:hover {
 	color: var(--accent);
 }

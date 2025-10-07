@@ -28,9 +28,9 @@ get_header(); ?>
             <?php while (have_posts()) : the_post(); ?>
                 <?php get_template_part('inc/archives/post-card'); ?>
             <?php endwhile; ?>
-
-            <?php extrachill_pagination(null, 'archive'); ?>
         </div><!-- .article-container -->
+
+        <?php extrachill_pagination(null, 'archive'); ?>
     </div><!-- .full-width-breakout -->
 
     <div class="back-home-link-container">
