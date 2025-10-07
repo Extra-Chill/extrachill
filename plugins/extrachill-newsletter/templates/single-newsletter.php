@@ -16,7 +16,7 @@ get_header(); ?>
 
 <?php do_action( 'extrachill_before_body_content' ); ?>
 
-<section id="primary" class="content-area newsletter-single">
+<section class="main-content newsletter-single">
 <main id="main" class="site-main">
         <?php
         while ( have_posts() ) :
@@ -123,7 +123,7 @@ get_header(); ?>
         endwhile; // End of the loop.
         ?>
 </main>
-</section><!-- #primary -->
+</section><!-- .main-content -->
 
 <?php
 get_sidebar();

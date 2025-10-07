@@ -53,7 +53,7 @@ function handle_submit_newsletter_form() {
 		return;
 	}
 
-	$result = subscribe_email_to_sendy($email, 'archive');
+	$result = extrachill_multisite_subscribe($email, 'archive');
 
 	if ($result['success']) {
 		wp_send_json_success($result['message']);
@@ -76,7 +76,7 @@ function handle_submit_newsletter_popup_form() {
 		return;
 	}
 
-	$result = subscribe_email_to_sendy($email, 'popup');
+	$result = extrachill_multisite_subscribe($email, 'popup');
 
 	if ($result['success']) {
 		wp_send_json_success($result['message']);
@@ -99,7 +99,7 @@ function handle_subscribe_to_sendy_home() {
 		return;
 	}
 
-	$result = subscribe_email_to_sendy($email, 'homepage');
+	$result = extrachill_multisite_subscribe($email, 'homepage');
 
 	if ($result['success']) {
 		wp_send_json_success($result['message']);
@@ -130,7 +130,7 @@ function handle_subscribe_to_sendy_nav() {
 		return;
 	}
 
-	$result = subscribe_email_to_sendy($email, 'navigation');
+	$result = extrachill_multisite_subscribe($email, 'navigation');
 
 	if ($result['success']) {
 		wp_send_json_success($result['message']);
@@ -213,7 +213,7 @@ function handle_submit_newsletter_content_form() {
 		return;
 	}
 
-	$result = subscribe_email_to_sendy($email, 'content');
+	$result = extrachill_multisite_subscribe($email, 'content');
 
 	if ($result['success']) {
 		wp_send_json_success($result['message']);
@@ -244,7 +244,7 @@ function handle_submit_newsletter_footer_form() {
 		return;
 	}
 
-	$result = subscribe_email_to_sendy($email, 'footer');
+	$result = extrachill_multisite_subscribe($email, 'footer');
 
 	if ($result['success']) {
 		wp_send_json_success($result['message']);
