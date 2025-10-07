@@ -29,6 +29,12 @@ if (!function_exists('extrachill_breadcrumbs')) {
             return;
         }
 
+        // Use bbPress native breadcrumbs for forum pages
+        if (function_exists('is_bbpress') && is_bbpress() && function_exists('bbp_breadcrumb')) {
+            bbp_breadcrumb();
+            return;
+        }
+
         // Skip breadcrumbs for shop pages handled by ExtraChill Shop plugin
         if (function_exists('is_woocommerce') && (is_woocommerce() || is_cart() || is_checkout() || is_account_page() || is_product() || is_shop())) {
             return;

@@ -141,17 +141,9 @@ endif;
             'comment_notes_after' => '',
         ));
     } else {
-        // User not logged in - show native WordPress login form
-        echo '<h3>' . __('Login to Comment', 'extrachill') . '</h3>';
-        echo '<p>You must be logged in to comment. <a href="' . wp_registration_url() . '">Register here</a> if you don\'t have an account.</p>';
-        wp_login_form(array(
-            'redirect' => get_permalink(),
-            'form_id' => 'community-loginform',
-            'label_username' => __('Username or Email', 'extrachill'),
-            'label_password' => __('Password', 'extrachill'),
-            'label_remember' => __('Remember Me', 'extrachill'),
-            'label_log_in' => __('Log In', 'extrachill'),
-        ));
+        // User not logged in - render login/register block inline
+        echo '<h3>' . __('Login or Register to Comment', 'extrachill') . '</h3>';
+        echo do_blocks('<!-- wp:extrachill/login-register /-->');
     }
     ?>
 </div><!-- #comments -->

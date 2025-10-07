@@ -10,6 +10,6 @@
 ?>
 
 <li class="menu-footer-links">
-    <a href="<?php echo esc_url(get_permalink(get_page_by_path('about'))); ?>">About</a>
-    <a href="<?php echo esc_url(get_permalink(get_page_by_path('contact'))); ?>">Contact</a>
+    <a href="https://extrachill.com/about/">About</a>
+    <a href="https://extrachill.com/contact/">Contact</a>
 </li>

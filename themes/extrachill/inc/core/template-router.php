@@ -23,6 +23,11 @@ add_filter( 'template_include', 'extrachill_route_templates' );
  */
 function extrachill_route_templates( $template ) {
 
+	// Let bbPress handle its own templates for ALL bbPress page types
+	if ( function_exists( 'is_bbpress' ) && is_bbpress() ) {
+		return $template;
+	}
+
 	if ( is_front_page() || is_home() ) {
 		$template = apply_filters( 'extrachill_template_homepage',
 			get_template_directory() . '/inc/home/templates/front-page.php'

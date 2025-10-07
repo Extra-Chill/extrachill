@@ -392,93 +392,18 @@ p a {
 /*--------------------------------------------------------------
 6.0 Images
 --------------------------------------------------------------*/
+/* Simplified modern image styles for Gutenberg */
 img {
 	max-width: 100%;
 	height: auto;
-	vertical-align: top;
-	margin-bottom: 18px;
 }
-
-.entry-content img, .comment-content img, .widget img, .archive img, .search img {
-	max-width: 100%;
-	margin-bottom: auto;
-	/* Fluid images for posts, comments, and widgets */
-}
-.widget img {
-	height: 200px;
-	object-fit: cover;
-	width: 100%;
-}
-.page .entry-content img {
-	margin-bottom: 15px;
-}
-
-img.size-full, img.size-large {
-	max-width: 100%;
-	height: auto;
-}
-
-.entry-content img.wp-smiley {
-	border: none;
-	margin-bottom: 0;
-	margin-top: 0;
-	padding: 0;
-}
-.widget .entry-content {
-	overflow: hidden;
-}
-a img {
-	border: 0;
-}
-
-
 
 /*--------------------------------------------------------------
 9.0 Media
 --------------------------------------------------------------*/
 /*
-====> 9.1 Captions
---------------------------------------------------------------*/
-.wp-caption {
-	border: 1px solid #cccccc;
-	margin-bottom: 1.5rem;
-	max-width: 100%;
-}
-
-#colophon .wp-caption {
-	border: 1px solid #444444;
-}
-
-.wp-caption img[class*="wp-image-"] {
-	display: block;
-	margin: 1.2% auto 0;
-	max-width: 98%;
-}
-
-.wp-caption-text {
-	text-align: center;
-}
-
-.wp-caption .wp-caption-text {
-	margin: 0.8075rem 0;
-}
-
-/*
 ====> 9.2 WordPress Gallery Support
 --------------------------------------------------------------*/
-.gallery {
-	margin: 0 auto 15px;
-}
-
-.gallery-item {
-	display: inline-block;
-	padding: 15px 2%;
-	text-align: center;
-	vertical-align: top;
-	width: 100%;
-	box-sizing: border-box;
-}
-
 figure.wp-block-gallery.has-nested-images{
 gap:.1em;
 background-color: var(--background-color);
@@ -569,18 +494,6 @@ text-decoration: none;
 	background-color: var(--button-bg);
 	color: #fff;
 }
-.page-template-page-locations .location-list ul {
-	list-style:disc;
-}
-#primary ul.location-list {
-	margin: 0;
-}
-
-#primary ul.location-list ul {
-	margin: 0 20px;
-}
-
-
 
 .location-link, .read-more-button {
     background-color: var(--button-bg);
@@ -604,54 +517,11 @@ a.author.url.fn, .forum-meta a {
     }
 
 
-/*
-====> 11.4 Highlighted posts widget
---------------------------------------------------------------*/
-
-
-
-#primary .widget-title {
-	border-bottom: 2px solid var(--accent);
-	font-size: 18px;
-	margin-bottom: 15px;
-	padding-bottom: 0;
-	padding-top: 0;
-}
-#primary ol, #primary ul{
+.main-content ol, .main-content ul{
 	margin:0 25px;
 }
 
-/* WooCommerce functionality handled by ExtraChill Shop plugin */
-
-/*
-====> 11.14 Widgets General CSS
---------------------------------------------------------------*/
-
-#secondary .widget ul ul {
-	padding-left: 10px;
-}
-#secondary .widget-title a{
-	color: var(--header-text);
-	text-decoration: underline var(--link-color);
-}
-
-#secondary .widget-title a:hover{
-	text-decoration-color: var(--border-color);
-}
-
-#secondary .widget-title span {
-	display: inline-block;
-}
-
-#secondary .widget-title span .rsswidget {
-	color: #fff;
-}
-
-#secondary .widget p {
-	font-size: 14px;
-}
-
-#secondary a:hover {
+.sidebar a:hover {
 	text-decoration: underline;
 }
 
@@ -765,19 +635,27 @@ body {
 	background: var(--background-color);
 }
 
-.inner-wrap {
+.extrachill-content {
 	margin: auto;
 	max-width: 1250px;
 	width: 100%;
 	padding-left: max(1.25em, env(safe-area-inset-left));
 	padding-right: max(1.25em, env(safe-area-inset-right));
 	box-sizing: border-box;
+	display: grid;
+	grid-template-columns: 1fr 380px;
+	gap: 2.5em;
+}
+
+/* Single column layout when no sidebar */
+.extrachill-content:not(:has(.sidebar)) {
+	display: block;
 }
 .instagram-media{
 	margin:auto !important;
 }
 
-/* Full-width breakout utility - breaks out of .inner-wrap container */
+/* Full-width breakout utility - breaks out of .extrachill-content container */
 .full-width-breakout {
 	width: 100vw;
 	max-width: 100vw !important;
@@ -792,28 +670,17 @@ body {
 /*
 ====> 13.3 Primary & Secondary Content Area
 --------------------------------------------------------------*/
-/* =PRIMARY AND SECONDARY CONTENT AREA
+/* =MAIN CONTENT AND SIDEBAR AREA
 ----------------------------------------------- */
-#primary {
-	float: left;
-	width: 64%;
-}
-
 /* WooCommerce functionality handled by ExtraChill Shop plugin */
 
-#secondary {
-	float: right;
-	width: 27%;
+.main-content {
+	min-width: 0; /* prevents grid overflow */
+}
+
+.sidebar {
 	display: flex;
 	flex-direction: column;
-}
-/* WooCommerce functionality handled by ExtraChill Shop plugin */
-
-@media only screen and (max-width: 359px) {
-	#primary {
-		padding-left: 0px;
-		padding-right: 0px;
-	}
 }
 
 /* =PAGE HEADER TITLE
@@ -830,7 +697,6 @@ body {
 #content .post .article-content, #content .post .single-title-above {
 	padding: 0;
 }
-
 
 #content .post .article-content .below-entry-meta .post-views, #content .post .single-title-above .below-entry-meta .post-views {
 	padding-right: 10px;
@@ -1021,56 +887,12 @@ padding:3px;
 
 
 @media screen and (max-width: 768px) {
-	   .mobile-only {
-        display: block; /* show image on small screens */
-    }
-	#primary, #secondary {
-		float: none;
-		width: 100%;
+	.mobile-only {
+		display: block; /* show image on small screens */
 	}
-
-}
-
-@media screen and (max-width: 767px) {
-
-	.num-404 {
-		font-size: 170px;
-		line-height: 210px;
+	.extrachill-content {
+		grid-template-columns: 1fr; /* single column on mobile */
 	}
-	.error {
-		margin: 0 auto 50px;
-		padding: 0;
-		width: 70%;
-	}
-}
-
-
-
-
-	.gallery-columns-4 .gallery-item, .gallery-columns-5 .gallery-item, .gallery-columns-6 .gallery-item, .gallery-columns-7 .gallery-item, .gallery-columns-8 .gallery-item, .gallery-columns-9 .gallery-item {
-		width: 33.33%;
-	}
-
-h2 {
-	font-size: 28px;
-}
-
-h3 {
-	font-size: 24px;
-}
-
-h4 {
-	font-size: 21px;
-}
-h5 {
-	font-size: 19px;
-}
-	.share-buttons a {
-		font-size:10px;
-	}
-		.share-buttons i {
-		font-size:12px;
-		margin-right:5px;
 }
 
 /*--------------------------------------------------------------
@@ -1088,28 +910,6 @@ h5 {
 div.article-container :before {
     display: inline;
 }
-
-.wpp-meta, .post-stats{
-	display: none;
-}
-.blocks-gallery-item img{
-    padding-top: 0px !important; 
-    padding-bottom: 0px !important;
-	
-}
-	
-
-
-.hide-level-2 .toc-level-2 { /* Kept */
-  display: none;
-}
-
-.widget_block p:empty { display: none; }
-
-.tribe-common--breakpoint-medium.tribe-common .tribe-common-l-container {
-	padding:10px;
-}
-
 
 .extrachill-recent-activity{
 font-size: 15px;
@@ -1186,7 +986,7 @@ a.location-link{
 
 /* Sidebar Recent Posts Title Margin for Desktop */
 @media (min-width: 900px) {
-  #secondary {
+  .sidebar {
     margin-top: 32px;
   }
   .sidebar-recent-title-margin {
