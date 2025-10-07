@@ -1,12 +1,11 @@
 <?php
 /**
- * Search Results Template
+ * Search Results Template for ExtraChill Search Plugin
  *
  * Displays multisite search results from across the WordPress network.
- * Calls extrachill_multisite_search() directly for cross-site results.
  *
- * @package ExtraChill
- * @since 1.0
+ * @package ExtraChill\Search
+ * @since 1.0.0
  */
 
 get_header(); ?>
@@ -16,29 +15,12 @@ get_header(); ?>
 <?php do_action('extrachill_before_body_content'); ?>
 
 <?php
+$search_data = extrachill_get_search_results();
+$search_results = $search_data['results'];
+$total_results = $search_data['total'];
 $search_term = get_search_query();
-$search_results = array();
-$total_results = 0;
 $current_page = max( 1, get_query_var( 'paged' ) );
 $posts_per_page = get_option( 'posts_per_page', 10 );
-$offset = ( $current_page - 1 ) * $posts_per_page;
-
-if ( ! empty( $search_term ) && function_exists( 'extrachill_multisite_search' ) ) {
-	$search_data = extrachill_multisite_search(
-		$search_term,
-		array(),
-		array(
-			'limit'        => $posts_per_page,
-			'offset'       => $offset,
-			'return_count' => true,
-		)
-	);
-
-	if ( ! empty( $search_data ) && is_array( $search_data ) ) {
-		$search_results = isset( $search_data['results'] ) ? $search_data['results'] : array();
-		$total_results = isset( $search_data['total'] ) ? $search_data['total'] : 0;
-	}
-}
 ?>
 
 <?php if ( ! empty( $search_results ) ) : ?>
@@ -67,51 +49,9 @@ if ( ! empty( $search_term ) && function_exists( 'extrachill_multisite_search' )
 				<?php $post_i++; ?>
 			<?php endforeach; ?>
 			<?php wp_reset_postdata(); ?>
-
-			<?php
-			// Display pagination for search results
-			if ( $total_results > 0 ) {
-				$max_num_pages = ceil( $total_results / $posts_per_page );
-
-				if ( $max_num_pages > 1 ) {
-					// Calculate display values
-					$start = ( ( $current_page - 1 ) * $posts_per_page ) + 1;
-					$end = min( $current_page * $posts_per_page, $total_results );
-
-					// Generate count display
-					if ( $total_results == 1 ) {
-						$count_html = 'Viewing 1 result';
-					} elseif ( $end == $start ) {
-						$count_html = sprintf( 'Viewing result %s of %s', number_format( $start ), number_format( $total_results ) );
-					} else {
-						$count_html = sprintf( 'Viewing results %s-%s of %s total', number_format( $start ), number_format( $end ), number_format( $total_results ) );
-					}
-
-					// Generate pagination links
-					$big = 999999999;
-					$links_html = paginate_links( array(
-						'base'      => str_replace( $big, '%#%', esc_url( get_pagenum_link( $big ) ) ),
-						'format'    => '?paged=%#%',
-						'total'     => $max_num_pages,
-						'current'   => $current_page,
-						'prev_text' => '&laquo; Previous',
-						'next_text' => 'Next &raquo;',
-						'type'      => 'list',
-						'end_size'  => 1,
-						'mid_size'  => 2,
-						'add_args'  => array( 's' => $search_term ),
-					) );
-
-					if ( $links_html ) {
-						echo '<div class="extrachill-pagination pagination-search">';
-						echo '<div class="pagination-count">' . esc_html( $count_html ) . '</div>';
-						echo '<div class="pagination-links">' . $links_html . '</div>';
-						echo '</div>';
-					}
-				}
-			}
-			?>
 		</div><!-- .article-container -->
+
+		<?php extrachill_pagination( null, 'search' ); ?>
 	</div><!-- .full-width-breakout -->
 
 	<div class="back-home-link-container">

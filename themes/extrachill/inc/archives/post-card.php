@@ -23,7 +23,7 @@ $featured_image_size = 'medium_large';
 
         <?php if ( has_post_thumbnail() ) { ?>
             <div class="featured-image">
-                <a href="<?php the_permalink(); ?>" title="<?php the_title_attribute(); ?>">
+                <a href="<?php echo isset($post->permalink) ? esc_url($post->permalink) : the_permalink(); ?>" title="<?php the_title_attribute(); ?>">
                     <?php the_post_thumbnail( 'medium_large' ); ?>
                 </a>
             </div>
@@ -32,7 +32,7 @@ $featured_image_size = 'medium_large';
         <div class="archive-post">
             <header class="entry-header">
                 <h2 class="entry-title" style="margin: 0; position: relative;">
-                    <a href="<?php the_permalink(); ?>" class="card-link-target" title="<?php the_title_attribute(); ?>"><?php the_title(); ?></a>
+                    <a href="<?php echo isset($post->permalink) ? esc_url($post->permalink) : the_permalink(); ?>" class="card-link-target" title="<?php the_title_attribute(); ?>"><?php the_title(); ?></a>
                 </h2>
             </header>
 
@@ -47,7 +47,7 @@ $featured_image_size = 'medium_large';
                     ?>
                 </div>
                 <span>
-                    <a href="<?php echo esc_url( get_permalink( $post ) ); ?>" class="location-link" id="forum-post" target="_blank" rel="noopener noreferrer">View in Community</a>
+                    <a href="<?php echo isset($post->permalink) ? esc_url($post->permalink) : esc_url(get_permalink($post)); ?>" class="location-link" id="forum-post" target="_blank" rel="noopener noreferrer">View in Community</a>
                 </span>
             <?php else : ?>
                 <div class="archive-excerpt">
@@ -55,7 +55,7 @@ $featured_image_size = 'medium_large';
                 </div>
 
                 <span>
-                    <a href="<?php the_permalink(); ?>" class="read-more-button" target="_self" rel="noopener noreferrer">View Full Post</a>
+                    <a href="<?php echo isset($post->permalink) ? esc_url($post->permalink) : the_permalink(); ?>" class="read-more-button" target="_self" rel="noopener noreferrer">View Full Post</a>
                 </span>
             <?php endif; ?>
         </div>
