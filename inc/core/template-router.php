@@ -39,6 +39,15 @@ function extrachill_route_templates( $template ) {
 		);
 
 	} elseif ( is_page() ) {
+		// Check if page has a custom template assigned
+		$page_template = get_page_template_slug();
+
+		// If custom template exists, let WordPress handle it
+		if ( $page_template && locate_template( $page_template ) ) {
+			return $template; // Use WordPress's natural template selection
+		}
+
+		// Otherwise, use default page template
 		$template = apply_filters( 'extrachill_template_page',
 			get_template_directory() . '/inc/single/single-page.php'
 		);
