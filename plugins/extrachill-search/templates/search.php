@@ -53,8 +53,11 @@ $posts_per_page = get_option( 'posts_per_page', 10 );
 			<?php wp_reset_postdata(); ?>
 
 			<?php
-			// Display pagination for search results
-			extrachill_search_pagination( $total_results, $posts_per_page );
+			// Display pagination using theme's native function with mock query
+			if ( function_exists( 'extrachill_pagination' ) && function_exists( 'extrachill_create_search_query_object' ) ) {
+				$search_query = extrachill_create_search_query_object( $total_results, $posts_per_page );
+				extrachill_pagination( $search_query, 'search' );
+			}
 			?>
 		</div><!-- .article-container -->
 	</div><!-- .full-width-breakout -->
