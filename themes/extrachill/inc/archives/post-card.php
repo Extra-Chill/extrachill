@@ -21,7 +21,25 @@ $featured_image_size = 'medium_large';
         ) );
         ?>
 
-        <?php if ( has_post_thumbnail() ) { ?>
+        <?php
+        // Check for cross-site thumbnail data from multisite search
+        if ( isset( $post->_thumbnail ) && ! empty( $post->_thumbnail['thumbnail_url'] ) ) {
+            $thumbnail = $post->_thumbnail;
+            ?>
+            <div class="featured-image">
+                <a href="<?php echo isset($post->permalink) ? esc_url($post->permalink) : the_permalink(); ?>" title="<?php the_title_attribute(); ?>">
+                    <img src="<?php echo esc_url( $thumbnail['thumbnail_url'] ); ?>"
+                         <?php if ( ! empty( $thumbnail['thumbnail_srcset'] ) ) : ?>
+                         srcset="<?php echo esc_attr( $thumbnail['thumbnail_srcset'] ); ?>"
+                         <?php endif; ?>
+                         <?php if ( ! empty( $thumbnail['thumbnail_sizes'] ) ) : ?>
+                         sizes="<?php echo esc_attr( $thumbnail['thumbnail_sizes'] ); ?>"
+                         <?php endif; ?>
+                         alt="<?php echo esc_attr( ! empty( $thumbnail['thumbnail_alt'] ) ? $thumbnail['thumbnail_alt'] : get_the_title() ); ?>"
+                         loading="lazy">
+                </a>
+            </div>
+        <?php } elseif ( has_post_thumbnail() ) { ?>
             <div class="featured-image">
                 <a href="<?php echo isset($post->permalink) ? esc_url($post->permalink) : the_permalink(); ?>" title="<?php the_title_attribute(); ?>">
                     <?php the_post_thumbnail( 'medium_large' ); ?>

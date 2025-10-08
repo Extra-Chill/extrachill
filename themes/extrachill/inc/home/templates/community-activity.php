@@ -117,7 +117,7 @@ if (!empty($activities)) {
             continue;
         }
         
-        $dateFormatted = function_exists('custom_human_time_diff') ? custom_human_time_diff(strtotime($activity['date_time'])) : human_time_diff(strtotime($activity['date_time']));
+        $dateFormatted = human_time_diff(strtotime($activity['date_time'])) . ' ago';
         $counter++;
         
         if ($activity['type'] === 'Reply') {

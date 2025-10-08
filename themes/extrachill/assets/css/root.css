@@ -11,9 +11,6 @@
     --button-hover-bg: #083b6c;
     --button-secondary-bg: #53940b;
     --button-secondary-hover-bg: #083b6c;
-    /* Component-Specific Variables */
-    --header-bg: #000;
-    --header-text: #fff;
     /* Accent & Secondary Accent */
     --accent: #53940b;
     --accent-2: #36454F;
@@ -50,9 +47,6 @@
         --button-hover-bg: #083b6c;
         --button-secondary-bg: #53940b;
         --button-secondary-hover-bg: #083b6c;
-        /* Component-Specific Variables */
-        --header-bg: #000;
-        --header-text: #fff;
         /* Accent & Secondary Accent */
         --accent: #53940b; /* Keep the green accent in dark mode */
         --accent-2: #a8c0d0;

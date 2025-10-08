@@ -32,9 +32,16 @@ The theme uses a clean, modular architecture organized in the `/inc/` directory:
 - **Festival Wire Integration**: Homepage ticker display for Festival Wire posts (handled by ExtraChill News Wire plugin)
 
 ### WordPress Multisite Network Integration
-The ExtraChill theme serves **two sites in the WordPress multisite network**:
-- **extrachill.com** (Blog ID 1) - Main music journalism and content site
-- **community.extrachill.com** (Blog ID 2) - Community forums and user hub
+The ExtraChill theme serves **all seven sites in the WordPress multisite network**:
+- **extrachill.com** - Main music journalism and content site
+- **community.extrachill.com** - Community forums and user hub
+- **shop.extrachill.com** - E-commerce platform with WooCommerce
+- **app.extrachill.com** - Mobile API backend (planning stage)
+- **chat.extrachill.com** - AI chatbot system with ChatGPT-style interface
+- **artist.extrachill.com** - Artist platform and profiles
+- **events.extrachill.com** - Event calendar hub powered by Data Machine
+
+**Site-Specific Configuration**: Each site uses the same theme with different plugin integrations and template overrides via `extrachill_template_*` filters
 
 **Multisite Plugin Integration**: All multisite functionality provided by the network-activated **extrachill-multisite plugin**:
 - **Cross-Site Data Access**: Native WordPress multisite functions via `switch_to_blog()` and `restore_current_blog()`

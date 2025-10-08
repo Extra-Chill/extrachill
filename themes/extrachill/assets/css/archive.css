@@ -200,7 +200,7 @@ a.card-link-target:hover,
 
 .archive-post .product-category-link{
     font-weight: 500;
-	background-color: var(--header-bg);
+	background-color: #000;
 	font-size: 13px;
 }
 
