@@ -89,33 +89,6 @@
   opacity: 0.9;
 }
 
-/* Artist Directory Pagination */
-.artist-directory-pagination {
-  text-align: center;
-  margin-top: 2em;
-  padding-top: 1em;
-}
-
-.artist-directory-pagination .page-numbers {
-  display: inline-block;
-  padding: 0.5em 0.8em;
-  margin: 0 0.2em;
-  text-decoration: none;
-  border: 1px solid var(--border-color, #e0e4ea);
-  border-radius: 4px;
-  color: var(--text-color);
-}
-
-.artist-directory-pagination .page-numbers.current {
-  background: var(--primary-color, #007cba);
-  color: white;
-  border-color: var(--primary-color, #007cba);
-}
-
-.artist-directory-pagination .page-numbers:hover {
-  background: var(--border-color, #e0e4ea);
-}
-
 .no-artists-found {
   text-align: center;
   padding: 3em 1em;

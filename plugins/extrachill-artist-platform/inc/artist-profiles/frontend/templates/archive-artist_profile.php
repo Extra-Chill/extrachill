@@ -57,44 +57,11 @@ get_header(); ?>
                         <?php endwhile; ?>
                         
                     </div><!-- .artist-cards-grid -->
-                    
+
                     <?php
-                    // Theme-consistent pagination using WordPress native .page-numbers classes
-                    $pagination_links = paginate_links( array(
-                        'prev_text' => __( '&laquo; Previous', 'extrachill-artist-platform' ),
-                        'next_text' => __( 'Next &raquo;', 'extrachill-artist-platform' ),
-                        'type'      => 'plain'
-                    ) );
-                    
-                    if ( $pagination_links ) : ?>
-                        <div class="bbp-pagination">
-                            <div class="bbp-pagination-count">
-                                <?php
-                                global $wp_query;
-                                $total = $wp_query->found_posts;
-                                $paged = get_query_var( 'paged' ) ? get_query_var( 'paged' ) : 1;
-                                $per_page = get_query_var( 'posts_per_page' );
-                                $start = ( $paged - 1 ) * $per_page + 1;
-                                $end = min( $paged * $per_page, $total );
-                                
-                                printf( 
-                                    _n( 
-                                        'Viewing %1$d artist', 
-                                        'Viewing %1$d to %2$d (of %3$d total)', 
-                                        $total, 
-                                        'extrachill-artist-platform' 
-                                    ),
-                                    $total == 1 ? 1 : $start,
-                                    $end,
-                                    $total
-                                );
-                                ?>
-                            </div>
-                            <div class="bbp-pagination-links">
-                                <?php echo $pagination_links; ?>
-                            </div>
-                        </div>
-                    <?php endif; ?>
+                    // Centralized pagination system
+                    extrachill_pagination( null, 'artist-directory' );
+                    ?>
                     
                 <?php else : ?>
                     
