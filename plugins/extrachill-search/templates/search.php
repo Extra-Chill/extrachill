@@ -44,6 +44,8 @@ $posts_per_page = get_option( 'posts_per_page', 10 );
 				setup_postdata( $post );
 				$post->_site_name = $result['site_name'];
 				$post->_site_url  = $result['site_url'];
+				$post->taxonomies = $result['taxonomies'];
+				$post->_thumbnail = ! empty( $result['thumbnail'] ) ? $result['thumbnail'] : array();
 				?>
 				<?php get_template_part( 'inc/archives/post-card' ); ?>
 				<?php $post_i++; ?>

@@ -42,15 +42,49 @@ function extrachill_search_pagination( $total_results, $posts_per_page ) {
     $current_page = max( 1, get_query_var( 'paged' ) );
     $max_num_pages = ceil( $total_results / $posts_per_page );
 
-    $pagination_args = array(
+    // Calculate viewing range
+    $start = ( ( $current_page - 1 ) * $posts_per_page ) + 1;
+    $end = min( $current_page * $posts_per_page, $total_results );
+
+    // Generate count display
+    if ( $total_results == 1 ) {
+        $count_html = 'Viewing 1 result';
+    } elseif ( $end == $start ) {
+        $count_html = sprintf( 'Viewing result %s of %s', number_format( $start ), number_format( $total_results ) );
+    } else {
+        $count_html = sprintf( 'Viewing results %s-%s of %s total', number_format( $start ), number_format( $end ), number_format( $total_results ) );
+    }
+
+    // Generate pagination links
+    $big = 999999999;
+    $base_url = str_replace( $big, '%#%', esc_url( get_pagenum_link( $big ) ) );
+
+    if ( ! empty( $_GET ) ) {
+        $format = '&paged=%#%';
+        if ( strpos( $base_url, '?' ) === false ) {
+            $format = '?paged=%#%';
+        }
+    } else {
+        $format = '?paged=%#%';
+    }
+
+    $links_html = paginate_links( array(
+        'base'      => $base_url,
+        'format'    => $format,
         'total'     => $max_num_pages,
         'current'   => $current_page,
         'prev_text' => '&laquo; Previous',
         'next_text' => 'Next &raquo;',
         'type'      => 'list',
-    );
+        'end_size'  => 1,
+        'mid_size'  => 2,
+        'add_args'  => $_GET,
+    ) );
 
-    echo '<div class="extrachill-pagination pagination-search">';
-    echo paginate_links( $pagination_args );
-    echo '</div>';
+    if ( $links_html ) {
+        echo '<div class="extrachill-pagination pagination-search">';
+        echo '<div class="pagination-count">' . esc_html( $count_html ) . '</div>';
+        echo '<div class="pagination-links">' . $links_html . '</div>';
+        echo '</div>';
+    }
 }

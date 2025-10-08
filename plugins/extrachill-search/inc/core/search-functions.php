@@ -175,6 +175,19 @@ function extrachill_multisite_search( $search_term, $site_urls = array(), $args 
 						}
 					}
 
+					// Fetch featured image data
+					$thumbnail_id = get_post_thumbnail_id( $post->ID );
+					$thumbnail_data = array();
+					if ( $thumbnail_id ) {
+						$thumbnail_data = array(
+							'thumbnail_id'     => $thumbnail_id,
+							'thumbnail_url'    => wp_get_attachment_image_url( $thumbnail_id, 'medium_large' ),
+							'thumbnail_srcset' => wp_get_attachment_image_srcset( $thumbnail_id, 'medium_large' ),
+							'thumbnail_sizes'  => wp_get_attachment_image_sizes( $thumbnail_id, 'medium_large' ),
+							'thumbnail_alt'    => get_post_meta( $thumbnail_id, '_wp_attachment_image_alt', true ),
+						);
+					}
+
 					$result = array(
 						'ID'           => $post->ID,
 						'post_title'   => get_the_title(),
@@ -189,6 +202,7 @@ function extrachill_multisite_search( $search_term, $site_urls = array(), $args 
 						'site_url'     => parse_url( $blog_details->siteurl, PHP_URL_HOST ),
 						'permalink'    => get_permalink(),
 						'taxonomies'   => $taxonomies,
+						'thumbnail'    => $thumbnail_data,
 					);
 
 					$all_results[] = $result;
