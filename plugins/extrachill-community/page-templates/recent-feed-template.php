@@ -6,6 +6,21 @@
 
 get_header();
 ?>
+<div class="page-content">
+    <?php
+    /**
+     * Custom hook for inside site container.
+     */
+    do_action( 'extra_chill_inside_site_container' );
+    ?>
+    <div class="site-content">
+        <div class="container">
+            <?php
+            /**
+             * Custom hook for inside container.
+             */
+            do_action( 'extra_chill_inside_container' );
+            ?>
         <?php extrachill_breadcrumbs(); ?>
 
 <?php
@@ -29,20 +44,15 @@ endif;
 
 // Set up the query to fetch the most recent replies
 if (extrachill_get_recent_feed_query(15)) {
-    global $bbp_reply_query;
+    // bbPress stores query in bbpress()->reply_query
+    $bbp = bbpress();
     ?>
     <div id="bbpress-forums" class="bbpress-wrapper">
-        <?php
-        // Use theme pagination with bbPress reply query
-        if ( ! empty( $bbp_reply_query ) ) {
-            extrachill_pagination( $bbp_reply_query, 'bbpress' );
-        }
-        ?>
         <?php bbp_get_template_part('loop', 'replies'); ?>
         <?php
-        // Repeat pagination at bottom
-        if ( ! empty( $bbp_reply_query ) ) {
-            extrachill_pagination( $bbp_reply_query, 'bbpress' );
+        // Pagination at bottom
+        if ( ! empty( $bbp->reply_query ) ) {
+            extrachill_pagination( $bbp->reply_query, 'bbpress' );
         }
         ?>
     </div>
@@ -52,7 +62,9 @@ if (extrachill_get_recent_feed_query(15)) {
 }
 
 ?>
-    <?php // The closing divs for .site-content and .page have been removed. ?>
+        </div><!-- .container -->
+    </div><!-- .site-content -->
+</div><!-- .page-content -->
 <?php
 get_footer();
 ?>

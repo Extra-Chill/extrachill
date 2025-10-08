@@ -49,10 +49,7 @@ function extrachill_get_recent_feed_query($per_page = 15, $paged = null) {
 
     $args = extrachill_get_recent_replies_args($per_page, $paged);
 
-    // Set global for pagination access
-    global $bbp_reply_query;
-    $bbp_reply_query = new WP_Query($args);
-
+    // bbp_has_replies() sets bbpress()->reply_query internally
     return bbp_has_replies($args);
 }
 

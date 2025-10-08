@@ -53,7 +53,7 @@ composer install
 - **No Asset Compilation** - Direct file inclusion without npm/webpack compilation
 - **Procedural Architecture** - No PSR-4 autoloading configured, uses direct procedural patterns
 - **Asset Versioning** - Dynamic `filemtime()` versioning for cache management
-- **Explicit Loading Pattern** - All functionality loaded via 37 direct `require_once` statements in `extrachill_community_init()` function
+- **Explicit Loading Pattern** - All functionality loaded via 33 direct `require_once` statements in `extrachill_community_init()` function
 - **bbPress Integration** - Default stylesheet dequeuing, custom templates, enhanced functionality
 
 ### Build System
@@ -70,7 +70,7 @@ composer install
 - **Plugin Structure**: WordPress plugin providing community functionality that integrates with the extrachill theme
 - **bbPress Integration**: Custom bbPress enhancements and forum functionality
 - **Asset Management**: Conditional CSS/JS loading with dynamic versioning using `filemtime()`
-- **Explicit Loading System**: All 37 feature modules loaded via direct `require_once` in `extrachill_community_init()` function (no master loader file)
+- **Explicit Loading System**: All 33 feature modules loaded via direct `require_once` in `extrachill_community_init()` function (no master loader file)
 - **Theme Integration**: Works with extrachill theme to provide community functionality on community.extrachill.com
 - **Template System**: Provides custom bbPress templates and specialized page templates
 - **Hook-Based Components**: Homepage and settings use action hooks instead of monolithic templates
@@ -82,18 +82,19 @@ composer install
 ## Critical File Locations
 
 ### Core Plugin Files
-- `extrachill-community.php` - Main plugin file with 37 explicit `require_once` statements in `extrachill_community_init()`
+- `extrachill-community.php` - Main plugin file with 33 explicit `require_once` statements in `extrachill_community_init()`
 - `inc/core/assets.php` - Asset management and enqueuing system
 - `inc/core/bbpress-templates.php` - bbPress template routing system
 - `inc/core/bbpress-spam-adjustments.php` - bbPress spam adjustments
 - `inc/core/nav.php` - Navigation functionality
+- `inc/core/sidebar.php` - Sidebar functionality
 
 ### Forum Features System (inc/ structure)
 
 **Explicit Loading Pattern** - All files loaded via direct `require_once` in `extrachill_community_init()`:
 
-**Core (4 files loaded)**:
-- `inc/core/assets.php`, `bbpress-templates.php`, `nav.php`, `bbpress-spam-adjustments.php`
+**Core (5 files loaded)**:
+- `inc/core/assets.php`, `bbpress-templates.php`, `nav.php`, `bbpress-spam-adjustments.php`, `sidebar.php`
 
 **Content (4 files loaded)**:
 - `inc/content/editor/tinymce-customization.php`, `editor/tinymce-image-uploads.php`
@@ -105,19 +106,20 @@ composer install
 - `inc/social/notifications/notification-bell.php`, `notification-card.php`, `notification-handler.php`
 - `inc/social/notifications/notification-cleanup.php`, `capture-replies.php`, `capture-mentions.php`, `notifications-content.php`
 
-**User Profiles (10 files loaded)**:
-- `inc/user-profiles/custom-avatar.php`, `user-avatar-menu.php`, `custom-user-profile.php`, `verification.php`
+**User Profiles (8 files loaded)**:
+- `inc/user-profiles/custom-avatar.php`, `custom-user-profile.php`, `verification.php`
 - `inc/user-profiles/settings/settings-content.php`, `settings/settings-form-handler.php`
-- `inc/user-profiles/online-users-count.php`, `email-change-emails.php`
-- `inc/user-profiles/edit/upload-custom-avatar.php`, `edit/user-links.php`
+- `inc/user-profiles/online-users-count.php`
+- `inc/user-profiles/edit/upload-custom-avatar.php`, `edit/user-links.php`, `edit/user-info.php`
+- **Note**: `user-avatar-menu.php` moved to extrachill-multisite plugin for conditional loading across network
 
-**Home (3 files loaded)**:
-- `inc/home/latest-post.php`, `actions.php`, `homepage-forum-display.php`
+**Home (4 files loaded)**:
+- `inc/home/latest-post.php`, `actions.php`, `homepage-forum-display.php`, `artist-platform-buttons.php`
 
 **Template Components (3 files - loaded via include/filters, NOT in init)**:
 - `inc/home/forum-home-header.php`, `forum-homepage.php`, `recently-active.php`
 
-**Total: 37 files explicitly loaded + 3 template components**
+**Total: 33 files explicitly loaded + 3 template components**
 
 ### Page Templates
 - `page-templates/leaderboard-template.php` - User leaderboard

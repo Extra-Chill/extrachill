@@ -22,20 +22,15 @@ define('EXTRACHILL_COMMUNITY_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('EXTRACHILL_COMMUNITY_PLUGIN_URL', plugin_dir_url(__FILE__));
 
 /**
- * Initialize plugin functionality
- *
- * Explicit loading architecture - all 36 feature files loaded directly on plugins_loaded.
- * Load order: core (5) → content (4) → social (12) → user-profiles (8) → home (3).
- *
- * Template components NOT loaded here (loaded via include/require or action hooks):
- * - inc/home/forum-home-header.php (action hook: extrachill_community_home_header)
- * - inc/home/forum-homepage.php (template filter: extrachill_template_homepage)
- * - inc/home/recently-active.php (action hook: extrachill_community_home_top)
+ * Loads 33 feature files via direct require_once.
+ * Load order: core (5) → content (4) → social (12) → user-profiles (8) → home (4).
+ * Templates loaded via hooks: forum-home-header, forum-homepage, recently-active.
  */
 function extrachill_community_init() {
-    // Core functionality (5 files)
+    // Core functionality (6 files)
     require_once plugin_dir_path(__FILE__) . 'inc/core/assets.php';
     require_once plugin_dir_path(__FILE__) . 'inc/core/bbpress-templates.php';
+    require_once plugin_dir_path(__FILE__) . 'inc/core/page-templates.php';
     require_once plugin_dir_path(__FILE__) . 'inc/core/nav.php';
     require_once plugin_dir_path(__FILE__) . 'inc/core/bbpress-spam-adjustments.php';
     require_once plugin_dir_path(__FILE__) . 'inc/core/sidebar.php';

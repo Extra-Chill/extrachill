@@ -91,22 +91,14 @@ echo '</tbody>';
 echo '</table>';
 echo '</div></div>';
 
-// Pagination setup
+// Pagination setup - Create mock query object for centralized pagination
 if ($total_pages > 1) {
-    $pagination_args = array(
-        'current'   => $current_page,
-        'total'     => $total_pages,
-        'prev_text' => __('« Prev'),
-        'next_text' => __('Next »'),
-    );
-    $pagination_args = array_merge($pagination_args, array(
-        'base'   => get_pagenum_link(1) . '%_%',
-        'format' => 'page/%#%/',
-    ));
+    $mock_query = new stdClass();
+    $mock_query->max_num_pages = $total_pages;
+    $mock_query->found_posts = $total_users;
+    $mock_query->query_vars = array('posts_per_page' => $items_per_page, 'paged' => $current_page);
 
-    echo '<div class="pagination leaderboard-pagination">';
-    echo paginate_links($pagination_args);
-    echo '</div>';
+    extrachill_pagination($mock_query, 'leaderboard');
 }
 
 ?>

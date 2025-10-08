@@ -99,12 +99,24 @@ function display_online_users_stats() {
         set_transient($transient_key_total_members, $total_members, 24 * HOUR_IN_SECONDS); // Cache for 24 hours
     }
 
-    echo "<div class='online-stats'>";
-    echo "<p><span class='label'>Users Currently Online:</span> <span class='count'>" . $online_users_count . "</span></p>";
-    // Most Ever Online tracking continues but display is hidden
-    // echo "<p><span class='label'>Most Ever Online:</span> <span class='count'>" . $most_ever_online_count . "</span> on <span class='date'>" . $most_ever_online_date . "</span></p>";
-    echo "<p><span class='label'>Total Members:</span> <span class='count'>" . $total_members . "</span></p>";
-    echo "</div>";
+    ?>
+    <div class="online-stats-card">
+        <div class="online-stat">
+            <i class="fa-solid fa-circle online-indicator"></i>
+            <div class="stat-content">
+                <span class="stat-value"><?php echo esc_html($online_users_count); ?></span>
+                <span class="stat-label">Online Now</span>
+            </div>
+        </div>
+        <div class="online-stat">
+            <i class="fa-solid fa-users"></i>
+            <div class="stat-content">
+                <span class="stat-value"><?php echo esc_html($total_members); ?></span>
+                <span class="stat-label">Total Members</span>
+            </div>
+        </div>
+    </div>
+    <?php
 }
 
 // Hook online users stats into theme footer

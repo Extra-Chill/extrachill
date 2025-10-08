@@ -39,3 +39,11 @@ function extrachill_community_homepage_template($template) {
     return EXTRACHILL_COMMUNITY_PLUGIN_DIR . 'inc/home/forum-homepage.php';
 }
 add_filter('extrachill_template_homepage', 'extrachill_community_homepage_template', 10);
+
+ /**
+  * Remove forum statistics template notice
+  *
+  * Prevents bbp_single_forum_description() from displaying the template notice
+  * with forum statistics while preserving the separate forum description content.
+  */
+ add_filter( 'bbp_get_single_forum_description', '__return_empty_string' );

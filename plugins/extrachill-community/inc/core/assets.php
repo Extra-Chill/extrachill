@@ -12,8 +12,9 @@
  * - custom-avatar.js (loaded by inc/user-profiles/edit/upload-custom-avatar.php)
  * - manage-user-profile-links.js (loaded by inc/user-profiles/edit/user-links.php)
  *
- * CSS files (9): notifications.css, leaderboard.css, settings-page.css, bbpress.css,
- * home.css, topics-loop.css, replies-loop.css, user-profile.css, tinymce-editor.css
+ * CSS files (10): global.css (loaded on all pages), notifications.css, leaderboard.css,
+ * settings-page.css, bbpress.css, home.css, topics-loop.css, replies-loop.css,
+ * user-profile.css, tinymce-editor.css
  *
  * @package ExtraChillCommunity
  */
@@ -22,6 +23,16 @@ function enqueue_fontawesome() {
     wp_enqueue_style('font-awesome', '//cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css');
 }
 add_action('wp_enqueue_scripts', 'enqueue_fontawesome');
+
+function extrachill_enqueue_global_styles() {
+    wp_enqueue_style(
+        'extrachill-community-global',
+        EXTRACHILL_COMMUNITY_PLUGIN_URL . '/inc/assets/css/global.css',
+        array(),
+        filemtime(EXTRACHILL_COMMUNITY_PLUGIN_DIR . '/inc/assets/css/global.css')
+    );
+}
+add_action('wp_enqueue_scripts', 'extrachill_enqueue_global_styles');
 
 function extrachill_enqueue_notification_styles() {
     if (is_page('notifications')) {
@@ -77,7 +88,7 @@ function extrachill_enqueue_settings_page_assets() {
 add_action('wp_enqueue_scripts', 'extrachill_enqueue_settings_page_assets');
 
 function enqueue_bbpress_global_styles() {
-    if (is_bbpress() || is_front_page() || is_home()) {
+    if (is_bbpress() || is_front_page() || is_home() || is_page('recent')) {
         wp_enqueue_style(
             'extrachill-bbpress',
             EXTRACHILL_COMMUNITY_PLUGIN_URL . '/inc/assets/css/bbpress.css',
@@ -107,7 +118,7 @@ function modular_bbpress_styles() {
         );
     }
 
-    if (bbp_is_single_reply() || bbp_is_single_topic() || bbp_is_single_user() || is_page_template('page-templates/recent-feed-template.php')) {
+    if (bbp_is_single_reply() || bbp_is_single_topic() || bbp_is_single_user() || is_page('recent')) {
         wp_enqueue_style(
             'replies-loop',
             EXTRACHILL_COMMUNITY_PLUGIN_URL . '/inc/assets/css/replies-loop.css',
@@ -164,7 +175,7 @@ function extrachill_enqueue_scripts() {
 add_action('wp_enqueue_scripts', 'extrachill_enqueue_scripts', 20);
 
 function enqueue_collapse_script() {
-    if ( is_front_page() || is_home() || is_page_template('page-templates/recent-feed-template.php') ) {
+    if ( is_front_page() || is_home() || is_page('recent') ) {
         $script_path = '/inc/assets/js/home-collapse.js';
         $script_full_path = EXTRACHILL_COMMUNITY_PLUGIN_DIR . $script_path;
         $version = filemtime($script_full_path);

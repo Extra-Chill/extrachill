@@ -180,6 +180,7 @@ span.bbp-admin-links {
     max-width: 800px;
     margin: 30px auto;
     border: 1px solid var(--border-color);
+    padding: 20px;
 }
 
 .bbp-topic-form legend,
@@ -414,136 +415,18 @@ a.settings-button {
 /* ==================================================
    Avatar and Notification Menu
 ================================================== */
-i.fa-solid.fa-bell,
 span.gp-icon.icon-search {
     color: var(--header-text);
     font-size: 16px;
 }
 
-i.fa-solid.fa-bell:hover,
 span.gp-icon.icon-search:hover {
     color: var(--link-color);
-}
-
-.notification-bell-icon {
-    position: relative;
-    display: inline-block;
-}
-
-.notification-bell-avatar-wrapper {
-    display: flex;
-    align-items: center;
-    gap: 18px;
-}
-
-.notification-bell-avatar-wrapper .avatar {
-    height: 35px;
-    border-radius: 50%;
-    border: 1px solid var(--accent-2);
-    margin-right: 10px;
-}
-
-.notification-count {
-    position: absolute;
-    top: -5px;
-    right: -5px;
-    background-color: var(--error-color);
-    color: var(--header-text);
-    border-radius: 50%;
-    padding: 0 5px;
-    font-size: 12px;
-}
-
-.user-menu-wrapper {
-    position: relative;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-}
-
-.user-avatar-link img {
-    height: 35px;
-    border-radius: 50%;
-    border: 1px solid var(--accent-2);
-    margin-right: 10px;
-}
-
-.user-avatar-button {
-    background: none;
-    border: none;
-    padding: 0;
-    cursor: pointer;
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    opacity: 0;
-}
-
-.user-dropdown-menu {
-    position: absolute;
-    right: 0;
-    top: 100%;
-    background: var(--background-color);
-    border: 1px solid var(--border-color);
-    border-radius: 5px;
-    padding: 10px 0;
-    min-width: 200px;
-    z-index: 1000;
-    display: none;
-    margin-top: 10px;
-    box-shadow: var(--card-shadow);
-}
-
-.user-dropdown-menu ul {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-}
-
-.user-dropdown-menu li {
-    padding: 0;
-}
-
-.user-dropdown-menu a {
-    display: block;
-    padding: 8px 20px;
-    color: var(--text-color);
-    text-decoration: none;
-    font-size: 14px;
-}
-
-.user-dropdown-menu a:hover {
-    background-color: var(--accent-2);
-    color: var(--link-color);
-}
-
-.user-avatar-container {
-    position: relative;
-    display: inline-block;
-    vertical-align: middle;
-}
-
-.notification-bell-icon a {
-    pointer-events: auto;
-}
-
-.user-dropdown-menu.show {
-    display: block;
 }
 
 /* ==================================================
    Miscellaneous
 ================================================== */
-.log-out {
-    color: var(--error-color);
-}
-
-.log-out:hover {
-    color: var(--text-color);
-    text-decoration-color: var(--error-color);
-}
 
 #bbpress-forums #bbp-single-user-details {
     margin: 0;
@@ -597,18 +480,6 @@ div.error-message {
 legend,
 label {
     font-weight: 600;
-}
-
-.online-stats p {
-    margin-bottom: 0;
-}
-
-.online-stats {
-    font-size: 14px;
-    padding-top: 15px;
-    max-width: 96%;
-    margin-left: 0;
-    margin-right: auto;
 }
 
 #bbpress-forums li.bbp-body ul.forum,
@@ -781,10 +652,6 @@ p.private-forums {
         display: block;
     }
 
-    h1 {
-        font-size: 28px;
-    }
-
     .bbp-reply-author {
         display: grid;
         flex-wrap: wrap;
@@ -867,4 +734,59 @@ p.private-forums {
 .home #bbpress-forums,
 .search #bbpress-forums {
     margin-top: 15px;
+}
+
+/* ==================================================
+   TinyMCE Toolbar Dark Mode (Page Level)
+================================================== */
+.wp-editor-container {
+    border: 1px solid var(--border-color) !important;
+    border-radius: 5px !important;
+    background-color: var(--card-background);
+}
+
+.wp-editor-container .mce-container {
+    background-color: var(--card-background);
+    border-color: var(--border-color);
+}
+
+.wp-editor-container .mce-toolbar-grp {
+    background-color: var(--card-background);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.wp-editor-container .mce-toolbar .mce-btn {
+    background-color: var(--card-background);
+    color: var(--text-color);
+}
+
+.wp-editor-container .mce-toolbar .mce-btn:hover {
+    background-color: var(--button-hover-bg);
+}
+
+.wp-editor-container .mce-btn .mce-txt {
+    color: var(--text-color) !important;
+}
+
+.wp-editor-container .mce-btn i.mce-caret {
+    border-top-color: var(--text-color) !important;
+}
+
+.wp-editor-container .mce-panel .mce-btn.mce-listbox {
+    border: 1px solid var(--border-color);
+    background-color: var(--card-background);
+}
+
+.mce-panel.mce-menu {
+    background: var(--card-background) !important;
+    border: 1px solid var(--border-color) !important;
+}
+
+.mce-menu-item {
+    color: var(--text-color) !important;
+}
+
+.mce-menu-item:hover {
+    background-color: var(--accent-2) !important;
+    color: var(--header-text) !important;
 }

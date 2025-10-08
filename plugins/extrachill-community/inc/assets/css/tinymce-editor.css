@@ -198,16 +198,6 @@ body.mce-content-body input[type="reset"]:hover {
     background-color: var(--accent-2);
     color: var(--header-text);
 }
-.wp-editor-container{
-    border: 1px solid var(--border-color);
-}body.mce-container, .wp-editor-container .mce-container *, .wp-editor-container .mce-widget, .wp-editor-container .mce-widget * {
-    color: inherit;
-    font-family: inherit;
-    background: var(--card-background);
-}
-.mce-container-body {
-    background: var(--background-color);
-}
 
 /* ==================================================
    Drag-and-Drop Overlay Styles
@@ -273,61 +263,11 @@ select {
 }
 
 /* ==================================================
-   WordPress Editor Container
+   bbPress Form Styling
 ================================================== */
 #bbpress-forums fieldset.bbp-form {
     padding: 0 20px 20px;
     border-color: var(--border-color);
-}
-
-.wp-editor-container .mce-container {
-    box-shadow: none !important;
-    background-color: var(--background-color);
-    border-color: var(--border-color);
-}
-
-.wp-editor-container .mce-toolbar .mce-ico {
-    color: var(--muted-text) !important;
-}
-
-.wp-editor-container .mce-toolbar .mce-ico:hover {
-    background: var(--button-hover-bg) !important;
-}
-
-.wp-editor-container {
-    border: 1px solid var(--border-color) !important;
-    border-radius: 5px !important;
-}
-
-.wp-editor-container .div.mce-toolbar-grp {
-    border-bottom: 1px solid var(--border-color) !important;
-}
-
-.wp-editor-container .mce-toolbar .mce-btn-group .mce-btn.mce-listbox {
-    border: 1px solid var(--border-color) !important;
-    background-color: var(--background-color);
-}
-
-.mce-panel.mce-menu {
-    border: 1px solid var(--border-color) !important;
-    border-radius: 5px !important;
-    background: var(--background-color) !important;
-}
-
-.wp-editor-container .mce-panel .mce-btn i.mce-caret {
-    border-top-color: var(--text-color) !important;
-}
-
-.wp-editor-container .mce-panel .mce-btn i.mce-caret:hover {
-    border-top-color: var(--button-hover-bg) !important;
-}
-
-.wp-editor-container .mce-btn .mce-txt {
-    color: var(--text-color) !important;
-}
-
-.wp-editor-container .mce-btn .mce-txt:hover {
-    color: var(--button-hover-bg) !important;
 }
 
 /* ==================================================

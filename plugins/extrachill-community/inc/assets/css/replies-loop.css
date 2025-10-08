@@ -44,6 +44,14 @@
     border-radius: 2px;
 }
 
+/* Ensure images always display on own line */
+.bbp-reply-content img,
+.bbp-topic-content img {
+    display: block;
+    margin-top: 1em;
+    margin-bottom: 1em;
+}
+
 /* Reply Card Styles */
 .bbp-reply-card {
     background: var(--card-background);
