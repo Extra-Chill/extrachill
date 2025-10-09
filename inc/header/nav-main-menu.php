@@ -9,9 +9,6 @@
  */
 ?>
 
-<li class="menu-community-link">
-    <a href="https://community.extrachill.com">Visit Forum</a>
-</li>
 <li class="menu-item">
     <a href="https://events.extrachill.com">Live Music Calendar</a>
 </li>

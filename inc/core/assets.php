@@ -157,20 +157,16 @@ function extrachill_enqueue_search_styles() {
 }
 add_action('wp_enqueue_scripts', 'extrachill_enqueue_search_styles', 20);
 
-function extrachill_enqueue_shared_tabs() {
-    // Load on pages OR single posts with comments open for logged-out users
-    if ( ! is_page() && ! ( is_single() && comments_open() && ! is_user_logged_in() ) ) {
-        return;
-    }
-
-    wp_enqueue_style(
+function extrachill_register_shared_tabs() {
+    // Register unconditionally - components enqueue when needed
+    wp_register_style(
         'extrachill-shared-tabs',
         get_template_directory_uri() . '/assets/css/shared-tabs.css',
         array(),
         filemtime( get_template_directory() . '/assets/css/shared-tabs.css' )
     );
 
-    wp_enqueue_script(
+    wp_register_script(
         'extrachill-shared-tabs',
         get_template_directory_uri() . '/assets/js/shared-tabs.js',
         array( 'jquery' ),
@@ -178,7 +174,7 @@ function extrachill_enqueue_shared_tabs() {
         true
     );
 }
-add_action( 'wp_enqueue_scripts', 'extrachill_enqueue_shared_tabs' );
+add_action( 'wp_enqueue_scripts', 'extrachill_register_shared_tabs', 5 );
 
 function extrachill_enqueue_admin_styles($hook) {
     if ($hook == 'post.php' || $hook == 'post-new.php') {

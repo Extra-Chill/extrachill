@@ -78,7 +78,9 @@ if ( ! function_exists( 'extrachill_entry_meta' ) ) :
                 } else {
                     // Use centralized multisite author URL function
                     if ( function_exists( 'ec_get_user_profile_url' ) ) {
-                        $author_url = ec_get_user_profile_url( get_the_author_meta( 'ID' ) );
+                        // Check if we have direct post_author from multisite search
+                        $author_id = isset( $post->post_author ) ? $post->post_author : get_the_author_meta( 'ID' );
+                        $author_url = ec_get_user_profile_url( $author_id );
                         echo '<a href="' . esc_url( $author_url ) . '">' . esc_html( get_the_author() ) . '</a>';
                     } else {
                         the_author_posts_link();

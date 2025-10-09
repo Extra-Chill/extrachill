@@ -14,22 +14,22 @@
     <div class="footer-menu-column">
         <ul class="footer-column-menu">
             <li class="menu-item menu-item-has-children">
-                <a href="<?php echo esc_url(home_url('/all')); ?>">The Latest</a>
+                <a href="https://extrachill.com/all">The Latest</a>
                 <ul class="sub-menu">
                     <li class="menu-item">
-                        <a href="<?php echo esc_url(home_url('/festival-wire')); ?>">Festival Wire</a>
+                        <a href="https://extrachill.com/festival-wire">Festival Wire</a>
                     </li>
                     <li class="menu-item">
                         <a href="https://events.extrachill.com">Calendar</a>
                     </li>
                     <li class="menu-item">
-                        <a href="<?php echo esc_url(get_category_link(get_cat_ID('interviews'))); ?>">Interviews</a>
+                        <a href="https://extrachill.com/interviews/">Interviews</a>
                     </li>
                     <li class="menu-item">
-                        <a href="<?php echo esc_url(get_category_link(get_cat_ID('live-music-reviews'))); ?>">Live Music Reviews</a>
+                        <a href="https://extrachill.com/live-music-reviews/">Live Music Reviews</a>
                     </li>
                     <li class="menu-item">
-                        <a href="<?php echo esc_url(home_url('/newsletters')); ?>">Newsletters</a>
+                        <a href="https://extrachill.com/newsletters">Newsletters</a>
                     </li>
                 </ul>
             </li>
@@ -42,16 +42,16 @@
                 <a href="#">The Rabbit Hole</a>
                 <ul class="sub-menu">
                     <li class="menu-item">
-                        <a href="<?php echo esc_url(get_category_link(get_cat_ID('song-meanings'))); ?>">Song Meanings</a>
+                        <a href="https://extrachill.com/song-meanings/">Song Meanings</a>
                     </li>
                     <li class="menu-item">
-                        <a href="<?php echo esc_url(home_url('/artist/grateful-dead')); ?>">Grateful Dead</a>
+                        <a href="https://extrachill.com/artist/grateful-dead">Grateful Dead</a>
                     </li>
                     <li class="menu-item">
-                        <a href="<?php echo esc_url(get_category_link(get_cat_ID('musical-curiosities'))); ?>">Musical Curiosities</a>
+                        <a href="https://extrachill.com/musical-curiosities/">Musical Curiosities</a>
                     </li>
                     <li class="menu-item">
-                        <a href="<?php echo esc_url(get_category_link(get_cat_ID('famous-guitars'))); ?>">Famous Guitars</a>
+                        <a href="https://extrachill.com/famous-guitars/">Famous Guitars</a>
                     </li>
                 </ul>
             </li>
@@ -86,22 +86,22 @@
     <div class="footer-menu-column">
         <ul class="footer-column-menu">
             <li class="menu-item menu-item-has-children">
-                <a href="<?php echo esc_url(get_permalink(get_page_by_path('about'))); ?>">About</a>
+                <a href="https://extrachill.com/about/">About</a>
                 <ul class="sub-menu">
                     <li class="menu-item">
-                        <a href="<?php echo esc_url(get_permalink(get_page_by_path('contact-us'))); ?>">Contact Us</a>
+                        <a href="https://extrachill.com/contact/">Contact Us</a>
                     </li>
                     <li class="menu-item">
-                        <a href="<?php echo esc_url(get_permalink(get_page_by_path('about/the-history-of-extra-chill'))); ?>">History of Extra Chill</a>
+                        <a href="https://extrachill.com/about/the-history-of-extra-chill/">History of Extra Chill</a>
                     </li>
                     <li class="menu-item">
-                        <a href="<?php echo esc_url(get_permalink(get_page_by_path('festival'))); ?>">Extra Chill Fest</a>
+                        <a href="https://extrachill.com/festival/">Extra Chill Fest</a>
                     </li>
                     <li class="menu-item">
-                        <a href="<?php echo esc_url(get_category_link(get_cat_ID('extra-chill-presents'))); ?>">Extra Chill Presents</a>
+                        <a href="https://extrachill.com/extra-chill-presents/">Extra Chill Presents</a>
                     </li>
                     <li class="menu-item">
-                        <a href="<?php echo esc_url(get_permalink(get_page_by_path('about/in-the-press'))); ?>">In the Press</a>
+                        <a href="https://extrachill.com/about/in-the-press/">In the Press</a>
                     </li>
                 </ul>
             </li>

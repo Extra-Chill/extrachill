@@ -58,6 +58,7 @@ function extra_chill_register_custom_taxonomies() {
                 'new_item_name' => __('New Festival Name', 'extrachill'),
                 'menu_name' => __('Festivals', 'extrachill'),
             ),
+            'public' => true,
             'show_ui' => true,
             'show_admin_column' => true,
             'query_var' => true,
