@@ -47,34 +47,6 @@ body.home {
     gap: 20px;
 }
 
-.hero-button {
-    display: inline-block;
-    padding: 12px 25px;
-    font-size: 1.1em;
-    text-decoration: none;
-    border-radius: 5px;
-    transition: background-color 0.3s ease;
-}
-
-.community-button {
-    background-color: var(--button-bg);
-    color: white;
-}
-
-.community-button:hover {
-    background-color: var(--button-hover-bg);
-}
-
-.newsletter-button {
-    background-color: var(--card-background);;
-    border: .3px solid var(--border-color);
-    color: var(--muted-text);
-}
-
-.newsletter-button:hover {
-    background-color: var(--border-color);
-}
-
 /* Media query for screens smaller than 450px */
 @media (max-width: 450px) {
     #hero-section h2 {
@@ -83,11 +55,6 @@ body.home {
 
     #hero-section h3 {
         font-size: 1em; /* Reduced font size for mobile */
-    }
-
-    .hero-button {
-        padding: 8px 15px; /* Reduced padding for mobile */
-        font-size: 0.9em; /* Reduced font size for mobile */
     }
 }
 

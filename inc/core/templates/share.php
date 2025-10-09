@@ -50,7 +50,7 @@ if ( ! function_exists( 'extrachill_share_button' ) ) :
         <div class="share-button-container">
 
             <!-- Main Share Button (Icon) -->
-            <button class="share-button">
+            <button class="button share-button">
                 <svg>
                     <use href="<?php echo esc_attr( get_template_directory_uri() . '/assets/fonts/fontawesome.svg?v=' . $svg_version ); ?>#share"></use>
                 </svg> Share
