@@ -32,7 +32,7 @@ if ( is_user_logged_in() ) {
 
     <div class="hero-buttons-container">
         <a href="<?php echo esc_url( $username ? 'https://community.extrachill.com' : 'https://community.extrachill.com/register' ); ?>"
-           class="hero-button community-button">
+           class="button">
             <?php echo $username
                 ? esc_html__( 'Visit Community', 'extrachill' )
                 : esc_html__( 'Join the Community', 'extrachill' ); ?>
@@ -40,7 +40,7 @@ if ( is_user_logged_in() ) {
 
         <!-- Newsletter archive link requires ExtraChill Newsletter Plugin -->
         <a href="<?php echo esc_url( home_url( '/newsletters/' ) ); ?>"
-           class="hero-button newsletter-button">
+           class="button-3">
             <?php esc_html_e( 'Newsletter', 'extrachill' ); ?>
         </a>
     </div>

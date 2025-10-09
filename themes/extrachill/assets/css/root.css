@@ -32,6 +32,68 @@
     --button-text: #fff;
 }
 
+/* Button System - Base + 2 Variants */
+.button,
+a.button,
+input.button,
+button.button {
+    background-color: var(--button-bg);
+    color: var(--button-text);
+    padding: 8px 16px;
+    border: none;
+    border-radius: 5px;
+    font-size: 14px;
+    cursor: pointer;
+    display: inline-block;
+    text-decoration: none;
+    transition: background-color 0.3s ease;
+    line-height: 1.4;
+}
+
+.button:hover,
+a.button:hover,
+input.button:hover,
+button.button:hover {
+    background-color: var(--button-hover-bg);
+    color: var(--button-text);
+    text-decoration: none;
+}
+
+/* Button 2 - Green/Secondary */
+.button-2,
+a.button-2,
+input.button-2,
+button.button-2 {
+    background-color: var(--button-secondary-bg);
+    color: var(--button-text);
+}
+
+.button-2:hover,
+a.button-2:hover,
+input.button-2:hover,
+button.button-2:hover {
+    background-color: var(--button-secondary-hover-bg);
+    color: var(--button-text);
+}
+
+/* Button 3 - Neutral/Tertiary (inspired by hero newsletter button) */
+.button-3,
+a.button-3,
+input.button-3,
+button.button-3 {
+    background-color: var(--card-background);
+    border: 1px solid var(--border-color);
+    color: var(--muted-text);
+}
+
+.button-3:hover,
+a.button-3:hover,
+input.button-3:hover,
+button.button-3:hover {
+    background-color: var(--border-color);
+    color: var(--muted-text);
+}
+
 /* --- Dark Mode Overrides --- */
 @media (prefers-color-scheme: dark) {
     :root {
