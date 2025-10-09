@@ -130,9 +130,10 @@ if (!function_exists('extrachill_breadcrumbs')) {
             $taxonomy = get_taxonomy($term->taxonomy);
 
             if ($taxonomy) {
-                // Display link to main taxonomy archive using plural label
-                $archive_url = home_url('/' . $taxonomy->rewrite['slug']);
-                echo '<a href="' . esc_url($archive_url) . '">' . esc_html($taxonomy->labels->name) . '</a> › ';
+                // For non-hierarchical taxonomies, show taxonomy label as non-linked context
+                if (!$taxonomy->hierarchical) {
+                    echo '<span>' . esc_html($taxonomy->labels->name) . '</span> › ';
+                }
 
                 // For hierarchical taxonomies, display full parent hierarchy
                 if ($taxonomy->hierarchical && $term->parent) {
@@ -149,6 +150,10 @@ if (!function_exists('extrachill_breadcrumbs')) {
                 // Display current term name
                 echo '<span>' . esc_html($term->name) . '</span>';
             }
+        }
+        elseif (is_search()) {
+            // Handle search results
+            echo '<span>Search Results</span>';
         }
         else {
             // Fallback for other archive types

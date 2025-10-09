@@ -38,7 +38,17 @@ function extrachill_display_taxonomy_badges( $post_id = null, $args = array() ) 
 
     $badges_html = '';
 
-    // Get ALL taxonomies for this post type
+    // Check if this is a cross-site search result
+    $origin_site_id = isset( $GLOBALS['post']->_origin_site_id ) ? $GLOBALS['post']->_origin_site_id : null;
+    $current_site_id = get_current_blog_id();
+    $is_cross_site = $origin_site_id && $origin_site_id !== $current_site_id;
+
+    // For cross-site results, switch to origin site FIRST to get correct taxonomies
+    if ( $origin_site_id ) {
+        switch_to_blog( $origin_site_id );
+    }
+
+    // Get ALL taxonomies for this post type (from origin site if cross-site)
     $post_type = get_post_type( $post_id );
     $taxonomies = get_object_taxonomies( $post_type );
 
@@ -53,9 +63,23 @@ function extrachill_display_taxonomy_badges( $post_id = null, $args = array() ) 
           if ( isset( $GLOBALS['post']->taxonomies ) && isset( $GLOBALS['post']->taxonomies[$taxonomy] ) ) {
               $term_ids = $GLOBALS['post']->taxonomies[$taxonomy];
               $terms = array();
+
               foreach ( $term_ids as $term_name => $term_id ) {
                   $term = get_term( $term_id );
                   if ( $term && ! is_wp_error( $term ) ) {
+                      // For cross-site, manually construct the archive URL
+                      if ( $is_cross_site ) {
+                          $origin_site_url = get_site_url( $origin_site_id );
+                          $term_slug = $term->slug;
+
+                          // Get taxonomy object to determine archive path
+                          $tax_obj = get_taxonomy( $taxonomy );
+                          $rewrite_slug = $tax_obj && isset( $tax_obj->rewrite['slug'] ) ? $tax_obj->rewrite['slug'] : $taxonomy;
+
+                          // Manually construct archive URL: https://site.com/taxonomy-slug/term-slug/
+                          $term->cross_site_link = trailingslashit( $origin_site_url ) . trailingslashit( $rewrite_slug ) . $term_slug . '/';
+                      }
+
                       $terms[] = $term;
                   }
               }
@@ -79,13 +103,21 @@ function extrachill_display_taxonomy_badges( $post_id = null, $args = array() ) 
                 $badge_class .= ' ' . $taxonomy . '-' . $term_slug;
             }
 
+            // Use manually constructed cross-site link if available, otherwise use get_term_link()
+            $term_link = isset( $term->cross_site_link ) ? $term->cross_site_link : get_term_link( $term );
+
             $badges_html .= sprintf(
                 '<a href="%s" class="taxonomy-badge %s">%s</a>',
-                esc_url( get_term_link( $term ) ),
+                esc_url( $term_link ),
                 esc_attr( $badge_class ),
                 esc_html( $term->name )
             );
         }
+    }
+
+    // Restore current blog if we switched
+    if ( $origin_site_id ) {
+        restore_current_blog();
     }
 
     // Output badges
