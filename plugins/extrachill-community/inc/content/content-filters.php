@@ -35,15 +35,7 @@ function embed_tweets($content) {
         return $matches[0];
     };
 
-    remove_filter('the_content', 'wpautop');
-    remove_filter('the_excerpt', 'wpautop');
-
-    $new_content = preg_replace_callback($pattern, $callback, $content);
-
-    add_filter('the_content', 'wpautop');
-    add_filter('the_excerpt', 'wpautop');
-
-    return $new_content;
+    return preg_replace_callback($pattern, $callback, $content);
 }
 
 add_filter('the_content', 'embed_tweets', 9);

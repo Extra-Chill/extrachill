@@ -32,11 +32,20 @@ add_action('bbp_register_theme_packages', 'extrachill_community_register_bbpress
 /**
  * Override homepage template to show forum index
  *
+ * Only applies to community.extrachill.com to avoid conflicts with other site homepages.
+ *
  * @param string $template Default homepage template path
  * @return string Modified template path
  */
 function extrachill_community_homepage_template($template) {
-    return EXTRACHILL_COMMUNITY_PLUGIN_DIR . 'inc/home/forum-homepage.php';
+    // Only override on community.extrachill.com
+    $community_blog_id = get_blog_id_from_url( 'community.extrachill.com', '/' );
+
+    if ( $community_blog_id && get_current_blog_id() === $community_blog_id ) {
+        return EXTRACHILL_COMMUNITY_PLUGIN_DIR . 'inc/home/forum-homepage.php';
+    }
+
+    return $template;
 }
 add_filter('extrachill_template_homepage', 'extrachill_community_homepage_template', 10);
 

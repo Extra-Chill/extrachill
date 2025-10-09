@@ -88,7 +88,7 @@ function extrachill_enqueue_settings_page_assets() {
 add_action('wp_enqueue_scripts', 'extrachill_enqueue_settings_page_assets');
 
 function enqueue_bbpress_global_styles() {
-    if (is_bbpress() || is_front_page() || is_home() || is_page('recent')) {
+    if (is_bbpress() || is_front_page() || is_home() || is_page('recent') || is_singular('artist_profile')) {
         wp_enqueue_style(
             'extrachill-bbpress',
             EXTRACHILL_COMMUNITY_PLUGIN_URL . '/inc/assets/css/bbpress.css',
@@ -109,7 +109,7 @@ function modular_bbpress_styles() {
         );
     }
 
-    if ( bbp_is_topic_archive() || bbp_is_single_forum() || is_page('recent') || is_page('following') || bbp_is_single_user() || bbp_is_search_results() || is_search() ) {
+    if ( bbp_is_topic_archive() || bbp_is_single_forum() || is_page('recent') || is_page('following') || bbp_is_single_user() || bbp_is_search_results() || is_search() || is_singular('artist_profile') ) {
         wp_enqueue_style(
             'topics-loop',
             EXTRACHILL_COMMUNITY_PLUGIN_URL . '/inc/assets/css/topics-loop.css',
@@ -118,7 +118,7 @@ function modular_bbpress_styles() {
         );
     }
 
-    if (bbp_is_single_reply() || bbp_is_single_topic() || bbp_is_single_user() || is_page('recent')) {
+    if (bbp_is_single_reply() || bbp_is_single_topic() || bbp_is_single_user() || is_page('recent') || is_singular('artist_profile')) {
         wp_enqueue_style(
             'replies-loop',
             EXTRACHILL_COMMUNITY_PLUGIN_URL . '/inc/assets/css/replies-loop.css',

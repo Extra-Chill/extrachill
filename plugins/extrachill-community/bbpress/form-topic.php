@@ -241,7 +241,7 @@ if ( ! bbp_is_single_forum() ) : ?>
 
 		<?php if ( ! is_user_logged_in() ) : ?>
 
-			<?php bbp_get_template_part( 'form', 'user-login' ); ?>
+			<?php echo do_blocks('<!-- wp:extrachill/login-register /-->'); ?>
 
 		<?php endif; ?>
 

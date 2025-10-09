@@ -742,21 +742,21 @@ p.private-forums {
 .wp-editor-container {
     border: 1px solid var(--border-color) !important;
     border-radius: 5px !important;
-    background-color: var(--card-background);
+    background-color: var(--background-color);
 }
 
 .wp-editor-container .mce-container {
-    background-color: var(--card-background);
+    background-color: var(--background-color);
     border-color: var(--border-color);
 }
 
 .wp-editor-container .mce-toolbar-grp {
-    background-color: var(--card-background);
+    background-color: var(--background-color);
     border-bottom: 1px solid var(--border-color);
 }
 
 .wp-editor-container .mce-toolbar .mce-btn {
-    background-color: var(--card-background);
+    background-color: var(--background-color);
     color: var(--text-color);
 }
 
@@ -773,8 +773,30 @@ p.private-forums {
 }
 
 .wp-editor-container .mce-panel .mce-btn.mce-listbox {
-    border: 1px solid var(--border-color);
-    background-color: var(--card-background);
+    border: none;
+    background-color: transparent;
+}
+
+.wp-editor-container .mce-panel .mce-btn.mce-listbox button {
+    background-color: transparent;
+}
+
+/* Icon colors */
+.wp-editor-container .mce-ico {
+    color: var(--text-color) !important;
+}
+
+/* Status bar */
+.wp-editor-container .mce-statusbar {
+    background-color: var(--background-color) !important;
+    border-color: var(--border-color) !important;
+    color: var(--text-color) !important;
+}
+
+/* Edit area */
+.wp-editor-container .mce-edit-area {
+    background-color: var(--background-color) !important;
+    border-color: var(--border-color) !important;
 }
 
 .mce-panel.mce-menu {
