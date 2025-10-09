@@ -24,9 +24,9 @@ if ( ! is_single() ) {
 <div class="newsletter-content-section">
 	<div class="newsletter-content-wrapper">
 		<div class="newsletter-content-header">
-			<h3><?php _e('Join the Extra Chill Community', 'extrachill-newsletter'); ?></h3>
+			<h3><?php _e('Stay Connected with Extra Chill', 'extrachill-newsletter'); ?></h3>
 			<p class="newsletter-content-description">
-				<?php _e('Get stories, reflections, and music industry insights delivered to your inbox. Join our community of music lovers and industry insiders.', 'extrachill-newsletter'); ?>
+				<?php _e('Get stories, reflections, and music industry insights delivered to your inbox. Stay connected with the latest from the underground.', 'extrachill-newsletter'); ?>
 			</p>
 		</div>
 

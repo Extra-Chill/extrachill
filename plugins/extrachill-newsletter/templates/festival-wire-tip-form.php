@@ -21,6 +21,11 @@ if (!newsletter_integration_enabled('enable_festival_wire_tip')) {
 // Get Turnstile site key from centralized configuration
 $turnstile_site_key = ec_get_turnstile_site_key();
 
+// Enqueue Cloudflare Turnstile script when form renders
+if ( function_exists( 'ec_enqueue_turnstile_script' ) ) {
+	ec_enqueue_turnstile_script();
+}
+
 // Check if user is a community member via WordPress native authentication
 $is_community_member = is_user_logged_in();
 ?>
