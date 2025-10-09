@@ -1,0 +1,17 @@
+# Build artifacts
+/build/
+
+# Development dependencies
+/vendor/
+/node_modules/
+
+# IDE and system files
+.DS_Store
+.vscode/
+.idea/
+
+# Composer
+composer.lock
+
+# NPM
+package-lock.json
