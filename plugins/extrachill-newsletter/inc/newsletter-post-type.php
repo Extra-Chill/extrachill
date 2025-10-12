@@ -110,7 +110,7 @@ function newsletter_sendy_meta_box_html($post) {
 	wp_nonce_field('newsletter_sendy_nonce_action', 'newsletter_sendy_nonce_field');
 
 	echo '<p>' . __('Push this newsletter to Sendy as an email campaign.', 'extrachill-newsletter') . '</p>';
-	echo '<button type="button" class="button button-primary" id="push_newsletter_to_sendy">' . __('Push to Sendy', 'extrachill-newsletter') . '</button>';
+	echo '<button type="button" class="button-1 button-medium" id="push_newsletter_to_sendy">' . __('Push to Sendy', 'extrachill-newsletter') . '</button>';
 
 	// Get campaign status if available
 	$campaign_id = get_post_meta($post->ID, '_sendy_campaign_id', true);
@@ -205,70 +205,3 @@ function save_newsletter_meta_box_data($post_id) {
 	// Additional meta data processing can be added here if needed
 }
 add_action('save_post', 'save_newsletter_meta_box_data');
-
-/**
- * Add newsletter columns to admin list
- *
- * Customizes the newsletter post list in wp-admin to show
- * relevant information like campaign status and send date.
- *
- * @since 1.0.0
- * @param array $columns Existing columns
- * @return array Modified columns
- */
-function newsletter_admin_columns($columns) {
-	// Add custom columns after title
-	$new_columns = array();
-	foreach ($columns as $key => $value) {
-		$new_columns[$key] = $value;
-		if ($key == 'title') {
-			$new_columns['campaign_status'] = __('Campaign Status', 'extrachill-newsletter');
-			$new_columns['send_date'] = __('Send Date', 'extrachill-newsletter');
-		}
-	}
-	return $new_columns;
-}
-add_filter('manage_newsletter_posts_columns', 'newsletter_admin_columns');
-
-/**
- * Populate custom newsletter admin columns
- *
- * Fills the custom columns with appropriate data for each newsletter.
- *
- * @since 1.0.0
- * @param string $column Column name
- * @param int $post_id Post ID
- */
-function newsletter_admin_column_content($column, $post_id) {
-	switch ($column) {
-		case 'campaign_status':
-			$campaign_id = get_post_meta($post_id, '_sendy_campaign_id', true);
-			if ($campaign_id) {
-				echo '<span style="color: green;">✓ ' . __('Sent to Sendy', 'extrachill-newsletter') . '</span>';
-				echo '<br><small>ID: ' . esc_html($campaign_id) . '</small>';
-			} else {
-				echo '<span style="color: orange;">○ ' . __('Not sent', 'extrachill-newsletter') . '</span>';
-			}
-			break;
-		case 'send_date':
-			echo get_the_date('M j, Y', $post_id);
-			break;
-	}
-}
-add_action('manage_newsletter_posts_custom_column', 'newsletter_admin_column_content', 10, 2);
-
-/**
- * Make newsletter admin columns sortable
- *
- * Allows sorting by custom columns in the newsletter admin list.
- *
- * @since 1.0.0
- * @param array $columns Sortable columns
- * @return array Modified sortable columns
- */
-function newsletter_admin_sortable_columns($columns) {
-	$columns['send_date'] = 'date';
-	$columns['campaign_status'] = 'campaign_status';
-	return $columns;
-}
-add_filter('manage_edit-newsletter_sortable_columns', 'newsletter_admin_sortable_columns');

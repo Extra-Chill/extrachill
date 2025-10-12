@@ -194,6 +194,39 @@ function extrachill_newsletter_deactivate() {
 }
 register_deactivation_hook( __FILE__, 'extrachill_newsletter_deactivate' );
 
+/**
+ * Register default newsletter integration contexts.
+ *
+ * Three-Plugin Newsletter Architecture:
+ * 1. extrachill-newsletter (this plugin) - Provides admin settings UI, Sendy API config, helper functions
+ * 2. extrachill-multisite - Provides bridge function extrachill_multisite_subscribe() for centralized subscription
+ * 3. Other plugins - Register their integration contexts via newsletter_form_integrations filter
+ *
+ * Integration Registration Pattern:
+ * Plugins register declaratively via filter with:
+ * - label: Human-readable integration name
+ * - description: Integration description
+ * - list_id_key: Settings key for Sendy list ID (e.g., 'navigation_list_id')
+ * - enable_key: Settings key for enable toggle (e.g., 'enable_navigation')
+ * - plugin: Source plugin name
+ *
+ * Configuration Flow:
+ * 1. Admin configures via Newsletter → Settings UI (enable toggle + Sendy list ID per integration)
+ * 2. Global Sendy settings (API key, URL, from email) configured once
+ * 3. All settings stored in get_site_option('extrachill_newsletter_settings') network-wide
+ *
+ * Subscription Flow:
+ * 1. Plugin calls extrachill_multisite_subscribe($email, 'context')
+ * 2. Bridge validates integration, looks up list ID, retrieves Sendy config, makes API call
+ * 3. Returns structured response with success status and message
+ *
+ * Current Integrations:
+ * - registration (login-register plugin)
+ * - navigation, homepage, popup, archive, content, footer (this plugin)
+ *
+ * @param array $integrations Existing integrations from other plugins
+ * @return array Modified integrations array
+ */
 function newsletter_register_default_integrations($integrations) {
 	$integrations['navigation'] = array(
 		'label' => __('Navigation Menu Form', 'extrachill-newsletter'),

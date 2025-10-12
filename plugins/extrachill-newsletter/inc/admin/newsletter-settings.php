@@ -14,8 +14,6 @@ defined( 'ABSPATH' ) || exit;
 add_action( 'admin_menu', 'ec_newsletter_add_settings_menu' );
 
 /**
- * Add newsletter settings page to admin menu
- *
  * @since 1.0.0
  */
 function ec_newsletter_add_settings_menu() {
@@ -32,8 +30,6 @@ function ec_newsletter_add_settings_menu() {
 add_action( 'admin_post_ec_newsletter_settings', 'ec_newsletter_handle_settings_save' );
 
 /**
- * Handle newsletter settings form submission
- *
  * @since 1.0.0
  */
 function ec_newsletter_handle_settings_save() {
@@ -81,8 +77,6 @@ function ec_newsletter_handle_settings_save() {
 }
 
 /**
- * Render newsletter settings page
- *
  * @since 1.0.0
  */
 function ec_newsletter_render_settings_page() {

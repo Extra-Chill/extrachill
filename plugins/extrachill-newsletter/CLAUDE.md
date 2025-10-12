@@ -29,6 +29,19 @@ The build script automatically:
 
 ## Plugin Architecture
 
+### Three-Plugin Newsletter System
+This plugin is part of a **three-plugin architecture** for newsletter management:
+
+1. **extrachill-newsletter** (this plugin) - Provides admin settings UI, Sendy API configuration, helper functions
+2. **extrachill-multisite** - Provides bridge function `extrachill_multisite_subscribe()` for centralized subscription
+3. **Other plugins** - Register their integration contexts via `newsletter_form_integrations` filter
+
+**Integration System**:
+- Plugins register newsletter contexts declaratively via filter
+- Admin configures each integration (enable toggle + Sendy list ID) via Newsletter → Settings
+- All settings stored network-wide in `get_site_option('extrachill_newsletter_settings')`
+- Zero hardcoded credentials - all API keys and list IDs configurable through admin UI
+
 ### Modular Structure
 The plugin follows a modular architecture with functionality split across focused include files:
 
@@ -38,7 +51,7 @@ The plugin follows a modular architecture with functionality split across focuse
 - **includes/newsletter-ajax-handlers.php**: All AJAX endpoints for forms and admin actions
 - **includes/newsletter-hooks.php**: WordPress hook integrations and theme connectivity
 - **includes/newsletter-popup.php**: Newsletter popup functionality and modal system
-- **includes/newsletter-admin.php**: Admin settings page and configuration management
+- **includes/newsletter-admin.php**: Admin settings page and configuration management with integration discovery
 - **templates/**: Template files that override WordPress theme templates
 
 ### Key Integration Patterns
