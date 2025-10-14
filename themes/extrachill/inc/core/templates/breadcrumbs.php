@@ -37,7 +37,13 @@ if (!function_exists('extrachill_breadcrumbs')) {
         echo '<nav class="breadcrumbs" itemprop="breadcrumb">';
         echo '<a href="' . home_url() . '">Home</a> › ';
 
-        if (is_single() && is_singular('post')) {
+        // Allow plugins to override the default breadcrumb trail
+        $custom_trail = apply_filters('extrachill_breadcrumbs_override_trail', '');
+        if (!empty($custom_trail)) {
+            echo $custom_trail;
+        } else {
+            // Original breadcrumb logic
+            if (is_single() && is_singular('post')) {
             global $post;
 
             $categories = get_the_category($post->ID);
@@ -134,6 +140,7 @@ if (!function_exists('extrachill_breadcrumbs')) {
         else {
             echo '<span>Archives</span>';
         }
+        } // Close the custom_trail else block
 
         // Allow plugins to append custom breadcrumb items
         do_action('extrachill_breadcrumbs_append');

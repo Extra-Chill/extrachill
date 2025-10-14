@@ -148,10 +148,6 @@ border-bottom: 2px solid var(--accent);
     display: inline; /* This makes the title inline with the preceding elements */
 }
 
-#content .post .article-content .entry-title a:hover, #content .post .single-title-above .entry-title a:hover {
-	color: var(--accent);
-}
-
 /* Related Posts Styles */
 .related-posts-main-title span {
 font-size: 20px;
@@ -273,10 +269,6 @@ font-size: 20px;
 
 .nav-next a {
 	float: right;
-}
-
-.nav-previous a:hover, .nav-next a:hover {
-	text-decoration: underline;
 }
 
 /* Comment Form */

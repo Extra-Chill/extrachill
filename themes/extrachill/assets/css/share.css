@@ -67,7 +67,8 @@
 
 .share-options-list li a:hover,
 .share-options-list li a:focus {
-    background-color: var(--accent-2); /* Example hover/focus background color for options */
+    background-color: var(--accent-2);
+    color: #fff;
 }
 
 .share-option-icon {
