@@ -1,9 +1,11 @@
 <?php
 /**
- * Unified Breadcrumb System for ExtraChill Theme
+ * Unified Breadcrumb System
  *
- * Centralized breadcrumb functionality for all page types including posts, pages,
- * archives, taxonomies, and custom post types. Single function handles all contexts.
+ * Technical Implementation:
+ * - bbPress integration: Defers to bbp_breadcrumb() for native forum breadcrumbs
+ * - WooCommerce bypass: ExtraChill Shop plugin handles shop breadcrumbs independently
+ * - Hierarchical taxonomies: Full ancestor chain display for parent/child relationships
  *
  * @package ExtraChill
  * @since 69.57
@@ -13,34 +15,21 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-/**
- * Display unified breadcrumbs for all page contexts
- *
- * Handles posts, pages, archives, taxonomies, and custom post types
- * with consistent formatting and logic throughout the theme.
- *
- * @return void
- * @since 69.57
- */
 if (!function_exists('extrachill_breadcrumbs')) {
     function extrachill_breadcrumbs() {
-        // Allow override by plugins or custom functions
         if (function_exists('override_display_breadcrumbs') && override_display_breadcrumbs()) {
             return;
         }
 
-        // Use bbPress native breadcrumbs for forum pages
         if (function_exists('is_bbpress') && is_bbpress() && function_exists('bbp_breadcrumb')) {
             bbp_breadcrumb();
             return;
         }
 
-        // Skip breadcrumbs for shop pages handled by ExtraChill Shop plugin
         if (function_exists('is_woocommerce') && (is_woocommerce() || is_cart() || is_checkout() || is_account_page() || is_product() || is_shop())) {
             return;
         }
 
-        // Skip breadcrumbs on front page
         if (is_front_page()) {
             return;
         }
@@ -48,13 +37,12 @@ if (!function_exists('extrachill_breadcrumbs')) {
         echo '<nav class="breadcrumbs" itemprop="breadcrumb">';
         echo '<a href="' . home_url() . '">Home</a> › ';
 
-        if (is_single()) {
-            // Handle single posts with category and tag breadcrumbs
+        if (is_single() && is_singular('post')) {
             global $post;
 
             $categories = get_the_category($post->ID);
             $filtered_categories = array_filter($categories, function($cat) {
-                return $cat->term_id != 714; // Filter out specific category
+                return $cat->term_id != 714;
             });
 
             $category = !empty($filtered_categories) ? reset($filtered_categories) : (count($categories) === 1 ? reset($categories) : null);
@@ -80,19 +68,15 @@ if (!function_exists('extrachill_breadcrumbs')) {
             echo '<span class="breadcrumb-title"> › ' . get_the_title($post->ID) . '</span>';
         }
         elseif (is_singular() && !is_singular(array('post', 'page', 'product'))) {
-            // Handle custom post types
             $post_type = get_post_type();
             $post_type_obj = get_post_type_object($post_type);
             $archive_link = get_post_type_archive_link($post_type);
 
             if ($archive_link && $post_type_obj) {
-                echo '<a href="' . $archive_link . '">' . $post_type_obj->labels->name . '</a> › ';
+                echo '<a href="' . $archive_link . '">' . $post_type_obj->labels->name . '</a>';
             }
-
-            echo '<span>' . get_the_title() . '</span>';
         }
         elseif (is_page()) {
-            // Handle pages with parent hierarchy
             $parent_id = wp_get_post_parent_id(get_the_ID());
             if ($parent_id) {
                 $parent_title = get_the_title($parent_id);
@@ -102,7 +86,6 @@ if (!function_exists('extrachill_breadcrumbs')) {
             echo '<span>' . get_the_title() . '</span>';
         }
         elseif (is_post_type_archive()) {
-            // Handle post type archives
             $post_type = get_post_type();
             $post_type_obj = get_post_type_object($post_type);
 
@@ -111,7 +94,6 @@ if (!function_exists('extrachill_breadcrumbs')) {
             }
         }
         elseif (is_category()) {
-            // Handle category archives with parent hierarchy
             $category = get_queried_object();
             if ($category->parent) {
                 $parent_category = get_category($category->parent);
@@ -120,22 +102,18 @@ if (!function_exists('extrachill_breadcrumbs')) {
             echo '<span>' . single_cat_title('', false) . '</span>';
         }
         elseif (is_tag()) {
-            // Handle tag archives
             echo '<a href="' . home_url('/all-tags') . '">Tags</a> › ';
             echo '<span>' . single_tag_title('', false) . '</span>';
         }
         elseif (is_tax()) {
-            // Handle custom taxonomy archives (location, festival, artist, venue)
             $term = get_queried_object();
             $taxonomy = get_taxonomy($term->taxonomy);
 
             if ($taxonomy) {
-                // For non-hierarchical taxonomies, show taxonomy label as non-linked context
                 if (!$taxonomy->hierarchical) {
                     echo '<span>' . esc_html($taxonomy->labels->name) . '</span> › ';
                 }
 
-                // For hierarchical taxonomies, display full parent hierarchy
                 if ($taxonomy->hierarchical && $term->parent) {
                     $parents = get_ancestors($term->term_id, $term->taxonomy);
                     if (!empty($parents)) {
@@ -147,18 +125,18 @@ if (!function_exists('extrachill_breadcrumbs')) {
                     }
                 }
 
-                // Display current term name
                 echo '<span>' . esc_html($term->name) . '</span>';
             }
         }
         elseif (is_search()) {
-            // Handle search results
             echo '<span>Search Results</span>';
         }
         else {
-            // Fallback for other archive types
             echo '<span>Archives</span>';
         }
+
+        // Allow plugins to append custom breadcrumb items
+        do_action('extrachill_breadcrumbs_append');
 
         echo '</nav>';
     }

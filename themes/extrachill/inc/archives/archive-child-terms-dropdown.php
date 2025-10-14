@@ -29,7 +29,6 @@ function extrachill_child_terms_dropdown_html() {
     $heading = '';
     $select_text = '';
 
-    // Handle different taxonomies
     if (is_category()) {
         $child_terms = get_categories(array(
             'child_of' => $term->term_id,
@@ -49,7 +48,6 @@ function extrachill_child_terms_dropdown_html() {
         $select_text = __('Choose a Sub-Location', 'extrachill');
     }
 
-    // Return dropdown HTML if child terms exist
     if (empty($child_terms)) {
         return '';
     }

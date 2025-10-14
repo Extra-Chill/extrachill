@@ -146,8 +146,8 @@ a.card-link-target:hover,
 
 .back-home-link {
     display: inline-block;
-    padding: 0.6em 1.5em;
-    font-size: 1em;
+    padding: var(--button-padding-medium);
+    font-size: var(--button-font-size-medium);
     font-weight: 700;
     color: var(--button-text);
     background-color: var(--button-bg);
@@ -168,9 +168,9 @@ a.card-link-target:hover,
 
 /* Archive-specific button styling improvements */
 .archive-card .read-more-button {
-    padding: 8px 16px; /* More generous padding to match other buttons */
+    padding: var(--button-padding-medium);
     border-radius: 8px; /* Rounder corners to match site button standards */
-    font-size: 14px; /* Slightly larger font for better readability */
+    font-size: var(--button-font-size-medium);
     font-weight: 500; /* Medium weight for better visual hierarchy */
 }
 

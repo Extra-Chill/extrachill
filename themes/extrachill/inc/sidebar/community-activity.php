@@ -2,18 +2,20 @@
 /**
  * Sidebar Community Activity
  *
- * Hook-based community activity display for sidebar.
- * Shows recent forum activity with caching and fallback handling.
+ * Queries bbPress topics/replies directly from community.extrachill.com via multisite blog switching.
+ * Manually constructs forum URLs using /r/ slug pattern and profile URLs via ec_get_user_profile_url().
+ *
+ * Technical Implementation:
+ * - Multisite blog switching: Uses get_blog_id_from_url() with switch_to_blog() for cross-site data access
+ * - Forum URL pattern: Manually constructs community.extrachill.com/r/{forum-slug} for forum links
+ * - Profile URL dependency: Requires extrachill-users plugin for ec_get_user_profile_url() function
+ * - Caching: 10-minute WordPress object cache for performance optimization
  *
  * @package ExtraChill
  * @since 69.57
  */
 
 if ( ! function_exists( 'extrachill_sidebar_community_activity' ) ) :
-    /**
-     * Display recent community activity in sidebar
-     * Direct bbPress query with 10-minute caching
-     */
     function extrachill_sidebar_community_activity() {
         $cache_key = 'extrachill_sidebar_activity';
         $activities = wp_cache_get($cache_key);
@@ -87,7 +89,7 @@ if ( ! function_exists( 'extrachill_sidebar_community_activity' ) ) :
 
                         $forum_title = $forum_id ? get_the_title($forum_id) : '';
                         $topic_title = $topic_id ? get_the_title($topic_id) : '';
-                        $forum_url = $forum_id ? get_permalink($forum_id) : '';
+                        $forum_url = $forum_id ? 'https://community.extrachill.com/r/' . get_post_field('post_name', $forum_id) : '';
                         $topic_url = $topic_id ? get_permalink($topic_id) : '';
                         $username = get_the_author();
                         $user_profile_url = ( $author_id && function_exists( 'ec_get_user_profile_url' ) )

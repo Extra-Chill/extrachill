@@ -11,7 +11,7 @@ The ExtraChill theme is a custom WordPress theme serving as the frontend for an 
 ## Architecture & Core Components
 
 ### Modular File Structure
-The theme uses a clean, modular architecture organized in the `/inc/` directory:
+The theme uses a clean, modular architecture organized in the `/inc/` directory with **47 total PHP files**:
 - **archives/**: Archive page functionality (9 files total)
   - Core archive files (6 files): archive.php, archive-header.php, archive-filter-bar.php, archive-custom-sorting.php, archive-child-terms-dropdown.php, post-card.php
   - **archives/search/**: Multisite search system (3 files): search.php, search-header.php, search-site-badge.php
@@ -32,7 +32,7 @@ The theme uses a clean, modular architecture organized in the `/inc/` directory:
 - **Festival Wire Integration**: Homepage ticker display for Festival Wire posts (handled by ExtraChill News Wire plugin)
 
 ### WordPress Multisite Network Integration
-The ExtraChill theme serves **all seven sites in the WordPress multisite network**:
+The ExtraChill theme serves **all eight sites in the WordPress multisite network**:
 - **extrachill.com** - Main music journalism and content site
 - **community.extrachill.com** - Community forums and user hub
 - **shop.extrachill.com** - E-commerce platform with WooCommerce
@@ -40,15 +40,18 @@ The ExtraChill theme serves **all seven sites in the WordPress multisite network
 - **chat.extrachill.com** - AI chatbot system with ChatGPT-style interface
 - **artist.extrachill.com** - Artist platform and profiles
 - **events.extrachill.com** - Event calendar hub powered by Data Machine
+- **stream.extrachill.com** - Live streaming platform (Phase 1 non-functional UI)
 
 **Site-Specific Configuration**: Each site uses the same theme with different plugin integrations and template overrides via `extrachill_template_*` filters
 
-**Multisite Plugin Integration**: All multisite functionality provided by the network-activated **extrachill-multisite plugin**:
-- **Cross-Site Data Access**: Native WordPress multisite functions via `switch_to_blog()` and `restore_current_blog()`
-- **Real-Time Forum Search**: Community forum search from main site using `ec_fetch_forum_results_multisite()`
-- **Community Activity**: Theme displays community activity using `ec_fetch_recent_activity_multisite()` with 10-minute caching
-- **Network-Wide Security**: Admin access control across all network sites
-- **Fallback Handling**: Function existence checks ensure graceful degradation when multisite functions unavailable
+**Multisite Plugin Integration**: Multisite functionality provided by network-activated plugins:
+- **Cross-Site Search**: extrachill-search plugin provides `extrachill_multisite_search()` function
+- **User Profile URLs**: extrachill-users plugin provides `ec_get_user_profile_url()` for intelligent routing
+- **Community Activity**: Theme directly queries bbPress data via `switch_to_blog()` with manual URL construction
+- **Direct Database Access**: Theme uses WordPress native `WP_Query` for bbPress topics/replies
+- **Manual URL Construction**: Forum URLs constructed as `https://community.extrachill.com/r/{forum-slug}`
+- **WordPress Object Cache**: 10-minute caching via `wp_cache_get()` and `wp_cache_set()`
+- **Network-Wide Security**: Admin access control provided by extrachill-multisite plugin
 
 ### Plugin Integration
 - **ExtraChill Multisite**: Network-activated centralized functionality across all sites
@@ -114,6 +117,8 @@ The theme implements template routing via WordPress's native `template_include` 
    - Uses WordPress's `template_include` filter for proper integration with template hierarchy
    - Routes all page types: homepage, single posts, pages, archives, search, 404
    - Plugin override support via dedicated `extrachill_template_*` filters for each route
+   - **Custom Page Template Support**: Automatically detects and respects custom page templates assigned via WordPress admin
+   - When a page has a custom template assigned (via `get_page_template_slug()`), the router bypasses filter hooks and lets WordPress handle template selection naturally
    - `index.php` serves as minimal emergency fallback only
 
 2. **Filter-Based Override System**:
@@ -124,11 +129,18 @@ The theme implements template routing via WordPress's native `template_include` 
 3. **Supported Routes**:
    - `extrachill_template_homepage` - Front page and home page routing
    - `extrachill_template_single_post` - Single post template override
-   - `extrachill_template_page` - Page template override
+   - `extrachill_template_page` - Page template override (only applied when no custom page template is assigned)
    - `extrachill_template_archive` - Archive, category, tag, author, date pages
    - `extrachill_template_search` - Search results (uses dedicated multisite search template)
    - `extrachill_template_404` - 404 error pages
    - `extrachill_template_fallback` - Unknown page types fallback
+
+4. **Custom Page Template Handling**:
+   - Router checks for custom page templates via `get_page_template_slug()` before applying filters
+   - If a custom template is assigned and exists in the theme, the router returns WordPress's natural template selection
+   - This allows standard WordPress page templates (e.g., `page-templates/all-posts.php`) to work without plugin interference
+   - Filter `extrachill_template_page` only applies when no custom template is assigned
+   - Maintains full compatibility with WordPress's native template system
 
 #### **Benefits:**
 - **Plugin Control**: Plugins can override entire template structures via filters
@@ -194,9 +206,9 @@ wp rewrite flush
 ## Key File Locations
 
 ### Core Theme Files
-- **`inc/core/template-router.php`** - WordPress native template routing via `template_include` filter
+- **`inc/core/template-router.php`** - WordPress native template routing via `template_include` filter with custom page template support
 - **`index.php`** - Emergency fallback template (minimal functionality)
-- **`functions.php`** - Main theme setup, asset loading, and module includes (25 direct includes from 48 total PHP files in /inc/)
+- **`functions.php`** - Main theme setup, asset loading, and module includes (23 direct includes from 47 total PHP files in /inc/)
 - **`inc/core/assets.php`** - Centralized asset management with conditional loading
 - **`inc/single/comments.php`** - Comment system with community integration
 - **`inc/core/templates/post-meta.php`** - Post meta display template
@@ -234,7 +246,8 @@ wp rewrite flush
 **Universal Template Routing**:
 - `inc/core/template-router.php` handles routing via WordPress's `template_include` filter
 - `index.php` serves as emergency fallback only (minimal functionality)
-- Filter hooks allow plugins to completely override template files at routing level
+- **Custom Page Template Support**: Router detects and respects custom page templates assigned via WordPress admin
+- Filter hooks allow plugins to completely override template files at routing level (except when custom page templates are assigned)
 - Template routing supports: homepage, single posts, pages, archives, search, and 404 pages
 - Search routes to dedicated multisite search template at `inc/archives/search/search.php`
 - 404 errors route to `inc/core/templates/404.php`
@@ -246,14 +259,16 @@ wp rewrite flush
 - `inc/archives/search/search-site-badge.php` - Site identification badges for cross-site results
 
 **Multisite Integration**:
-- All multisite functionality provided by extrachill-multisite plugin (network-activated)
-- Search system uses `extrachill_multisite_search()` for cross-site results
-- Theme contains function existence checks for multisite plugin functions
-- Community activity integration uses caching with fallback for missing functions
+- Cross-site search provided by extrachill-search plugin (network-activated)
+- User profile URL resolution provided by extrachill-users plugin (network-activated)
+- Community activity widgets directly query bbPress data via `switch_to_blog()`
+- Theme manually constructs forum URLs: `https://community.extrachill.com/r/{forum-slug}`
+- WordPress object cache used for 10-minute activity caching
+- Function existence checks for `ec_get_user_profile_url()` from extrachill-users plugin
 
 **Sidebar Functionality (2 files)**:
 - `inc/sidebar/recent-posts.php` - Recent posts sidebar widget
-- `inc/sidebar/community-activity.php` - Community activity sidebar
+- `inc/sidebar/community-activity.php` - Direct bbPress query widget with blog switching and manual URL construction
 
 **Archive Functionality (9 files total)**:
 - `inc/archives/archive.php` - Main archive template
@@ -287,7 +302,7 @@ wp rewrite flush
 - `inc/home/templates/section-more-recent-posts.php` - Recent posts section
 - `inc/home/templates/section-extrachill-link.php` - ExtraChill link section
 - `inc/home/templates/section-about.php` - About section
-- `inc/home/templates/community-activity.php` - Community activity
+- `inc/home/templates/community-activity.php` - Direct bbPress query with blog switching for 3x3 grid display
 - `inc/home/templates/front-page.php` - Front page template
 
 
@@ -337,10 +352,11 @@ wp rewrite flush
 - **Template Override Points**: Universal router supports template override via filters:
   - `extrachill_template_homepage`
   - `extrachill_template_single_post`
-  - `extrachill_template_page`
+  - `extrachill_template_page` (only when no custom page template assigned)
   - `extrachill_template_archive`
   - `extrachill_template_search`
   - `extrachill_template_404`
+  - **Note**: Custom page templates assigned via WordPress admin bypass filter hooks
 - **Homepage Sections**: Extensible via action hooks:
   - `extrachill_homepage_hero`
   - `extrachill_homepage_content_top`
@@ -401,7 +417,9 @@ EXTRACHILL_INCLUDES_DIR - Inc directory path for modular includes
 - **Asset Management**: Centralized in `inc/core/assets.php` with conditional loading
 - **Authentication Simplification**: Native WordPress multisite authentication via extrachill-multisite plugin
 - **Performance Optimization**: Modular CSS architecture and selective loading
-- **File Structure Cleanup**: Streamlined to 48 modular PHP files with improved organization (25 directly loaded in functions.php)
+- **File Structure Cleanup**: Streamlined to 47 modular PHP files with improved organization (23 directly loaded in functions.php)
+- **Custom Page Template Support**: Router automatically respects custom page templates assigned via WordPress admin
+- **Button Style Standardization**: Unified button classes across the entire ecosystem
 - **View Counting System**: Universal post view tracking with `ec_get_post_views()`, `ec_the_post_views()`, and `ec_track_post_views()`
 - **Rewrite System**: Category base rewriting for consistent multisite permalink structures
 - **Sticky Header Filter**: `extrachill_enable_sticky_header` filter allows plugins to control sticky header behavior

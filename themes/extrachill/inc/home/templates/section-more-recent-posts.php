@@ -1,7 +1,16 @@
 <?php
-// home/section-more-recent-posts.php - More Recent Posts Row
-// This template now receives its data from front-page.php to avoid redundant queries.
-global $post, $more_recent_posts; // Ensure variables are available from homepage-queries.php
+/**
+ * Homepage More Recent Posts Section
+ *
+ * Technical Implementation:
+ * - Receives query data from front-page.php to avoid redundant database queries
+ * - Global variables: $more_recent_posts from homepage-queries.php
+ *
+ * @package ExtraChill
+ * @since 69.58
+ */
+
+global $post, $more_recent_posts;
 ?>
 <div class="home-more-recent-container">
   <h2 class="home-more-recent-header">More Recent Posts</h2>

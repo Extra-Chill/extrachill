@@ -1,5 +1,10 @@
 <?php
-// home/templates/section-about.php - About Extra Chill Section
+/**
+ * Homepage About Section
+ *
+ * @package ExtraChill
+ * @since 69.58
+ */
 ?>
 <div class="home-about-box">
   <h2 class="home-about-header">About Extra Chill</h2>

@@ -290,7 +290,7 @@ textarea {
 	appearance: none !important;
 }
 
-input[type="text"], input[type="email"], input[type="password"] {
+input[type="text"], input[type="email"], input[type="url"], input[type="password"] {
 	padding: 1%;
 	border: 1px solid var(--border-color);
 	line-height: 20px;
@@ -322,12 +322,96 @@ textarea {
 	border-radius: 3px;
 }
 
-input[type="text"]:focus, input[type="email"]:focus, input[type="search"]:focus, input[type="password"]:focus, select:focus {
+input[type="text"]:focus, input[type="email"]:focus, input[type="url"]:focus, input[type="search"]:focus, input[type="password"]:focus, select:focus {
 	border: 1px solid var(--focus-border-color);
 }
 
 textarea:focus {
 	border: 1px solid var(--focus-border-color);
+}
+
+/* Checkbox Styles */
+input[type="checkbox"] {
+	appearance: none;
+	-webkit-appearance: none;
+	width: 18px;
+	height: 18px;
+	border: 2px solid var(--border-color);
+	border-radius: 4px;
+	background-color: var(--background-color);
+	cursor: pointer;
+	position: relative;
+	vertical-align: middle;
+	margin-right: 8px;
+	transition: background-color 0.2s, border-color 0.2s;
+}
+
+input[type="checkbox"]:checked {
+	background-color: var(--accent);
+	border-color: var(--accent);
+}
+
+input[type="checkbox"]:checked::after {
+	content: '\2714';
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+	color: #ffffff;
+	font-size: 14px;
+	font-weight: bold;
+}
+
+input[type="checkbox"]:focus {
+	outline: none;
+	box-shadow: var(--focus-box-shadow);
+}
+
+input[type="checkbox"]:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+}
+
+/* Radio Button Styles */
+input[type="radio"] {
+	appearance: none;
+	-webkit-appearance: none;
+	width: 18px;
+	height: 18px;
+	border: 2px solid var(--border-color);
+	border-radius: 50%;
+	background-color: var(--background-color);
+	cursor: pointer;
+	position: relative;
+	vertical-align: middle;
+	margin-right: 8px;
+	transition: background-color 0.2s, border-color 0.2s;
+}
+
+input[type="radio"]:checked {
+	border-color: var(--accent);
+}
+
+input[type="radio"]:checked::after {
+	content: '';
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+	width: 10px;
+	height: 10px;
+	border-radius: 50%;
+	background-color: var(--accent);
+}
+
+input[type="radio"]:focus {
+	outline: none;
+	box-shadow: var(--focus-box-shadow);
+}
+
+input[type="radio"]:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
 }
 
 
@@ -337,23 +421,16 @@ input[type="reset"], input[type="button"], input[type="submit"] {
 	font-size: 16px;
 }
 
-/* Shared button styles */
-.btn-standard, button, input[type="reset"], input[type="button"], input[type="submit"], .post-location-meta a, .location-link, .read-more-button, .archive-post .product-category-link {
-	padding: 5px 10px;
-	border: 0px;
-	border-radius: 3px;
-	font-size: 14px;
-	appearance: none !important;
-	cursor: pointer;
-	display: inline-block;
-	color: #fff;
-	text-decoration: none;
-	transition: background-color 0.3s linear 0s;
-}
-
+/* Minimal element type fallback for areas we don't control */
 button, input[type="reset"], input[type="button"], input[type="submit"] {
 	background-color: var(--button-bg);
+	color: var(--button-text);
+	padding: var(--button-padding-medium);
+	border: none;
 	border-radius: 5px;
+	font-size: var(--button-font-size-medium);
+	cursor: pointer;
+	transition: background-color 0.3s ease;
 }
 
 button:hover, input[type="reset"]:hover, input[type="button"]:hover, input[type="submit"]:hover {
@@ -390,6 +467,17 @@ a {
 
 p a {
   text-decoration: underline;
+}
+
+/* Universal link hover behavior - single source of truth for entire platform */
+a:hover {
+	text-decoration: underline;
+	text-decoration-color: var(--link-color);
+}
+
+/* Paragraph links already have underline, enhance on hover */
+p a:hover {
+	text-decoration-color: var(--accent);
 }
 
 /*--------------------------------------------------------------
@@ -498,9 +586,6 @@ text-decoration: none;
 	color: #fff;
 }
 
-.location-link, .read-more-button {
-    background-color: var(--button-bg);
-}
 .post-location-meta a.location-link{
 	color: #fff;
 }
@@ -576,26 +661,7 @@ a.author.url.fn, .forum-meta a {
 	list-style: none;
 }
 
-.pagination-links ul.page-numbers .page-numbers {
-	padding: 8px 12px;
-	color: var(--button-text);
-	display: inline-block;
-	font-size: 14px;
-	border-radius: 5px;
-	text-decoration: none;
-	background-color: var(--button-bg);
-	transition: background-color 0.3s ease;
-	border: none;
-}
-
-.pagination-links ul.page-numbers .page-numbers:hover,
-.pagination-links ul.page-numbers .page-numbers:focus {
-	background-color: var(--accent);
-	outline: none;
-}
-
 .pagination-links ul.page-numbers .page-numbers.current {
-	background-color: var(--button-hover-bg);
 	cursor: default;
 }
 
@@ -608,23 +674,7 @@ a.author.url.fn, .forum-meta a {
 	background-color: transparent;
 	color: var(--muted-text);
 	cursor: default;
-}
-
-.pagination-links ul.page-numbers .page-numbers.dots:hover,
-.pagination-links ul.page-numbers .page-numbers.dots:focus {
-	background-color: transparent;
-}
-
-/* Mobile responsive adjustments */
-@media (max-width: 768px) {
-	.pagination-links ul.page-numbers {
-		gap: 3px;
-	}
-
-	.pagination-links ul.page-numbers .page-numbers {
-		padding: 6px 10px;
-		font-size: 13px;
-	}
+	pointer-events: none;
 }
 /*--------------------------------------------------------------
 13.0 Content
@@ -960,15 +1010,7 @@ a.location-link{
 }
 
 
-#forum-post, .read-more-button{
-	background:var(--button-bg);
-	font-size: 13px;
-	font-weight: normal;
-}
-#forum-post:hover, .read-more-button:hover {
-	background:var(--button-hover-bg);
-	color: #fff;
-}
+/* Forum post and read-more buttons use explicit button classes in HTML */
 
 /* Sidebar Card Layout */
 .sidebar-card {
@@ -1098,5 +1140,140 @@ a.location-link{
   background-color: var(--button-hover-bg);
   color: #fff;
   text-decoration: none;
+}
+
+/*--------------------------------------------------------------
+Notice System
+--------------------------------------------------------------*/
+.notice {
+  padding: 1em 1.5em;
+  margin-bottom: 1.5em;
+  border-radius: 4px;
+  border-left: 4px solid;
+  background-color: var(--card-background);
+  color: var(--text-color);
+}
+
+.notice-success {
+  background-color: var(--notice-bg);
+  border-left-color: var(--accent);
+}
+
+.notice-error {
+  border-left-color: #dc3232;
+}
+
+.notice-info {
+  background-color: var(--notice-bg);
+  border-left-color: var(--notice-border);
+}
+
+/*--------------------------------------------------------------
+Button System - Explicit Color + Size Classes
+--------------------------------------------------------------*/
+
+/* Base styles shared by ALL button colors */
+.button-1, .button-2, .button-3, .button-danger,
+a.button-1, a.button-2, a.button-3, a.button-danger,
+input.button-1, input.button-2, input.button-3, input.button-danger,
+button.button-1, button.button-2, button.button-3, button.button-danger {
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  display: inline-block;
+  text-decoration: none;
+  transition: background-color 0.3s ease;
+  line-height: 1.4;
+  color: var(--button-text);
+}
+
+/* Button-1: Primary/Accent */
+.button-1,
+a.button-1,
+input.button-1,
+button.button-1 {
+  background-color: var(--button-bg);
+}
+
+.button-1:hover,
+a.button-1:hover,
+input.button-1:hover,
+button.button-1:hover {
+  background-color: var(--button-hover-bg);
+  text-decoration: none;
+}
+
+/* Button-2: Green/Secondary */
+.button-2,
+a.button-2,
+input.button-2,
+button.button-2 {
+  background-color: var(--button-secondary-bg);
+}
+
+.button-2:hover,
+a.button-2:hover,
+input.button-2:hover,
+button.button-2:hover {
+  background-color: var(--button-secondary-hover-bg);
+}
+
+/* Button-3: Neutral/Tertiary */
+.button-3,
+a.button-3,
+input.button-3,
+button.button-3 {
+  background-color: var(--card-background);
+  border: 1px solid var(--border-color);
+  color: var(--muted-text);
+}
+
+.button-3:hover,
+a.button-3:hover,
+input.button-3:hover,
+button.button-3:hover {
+  background-color: var(--border-color);
+}
+
+/* Button-Danger: Red/Destructive */
+.button-danger,
+a.button-danger,
+input.button-danger,
+button.button-danger {
+  background-color: var(--error-color, #dc3232);
+  color: #fff;
+}
+
+.button-danger:hover,
+a.button-danger:hover,
+input.button-danger:hover,
+button.button-danger:hover {
+  background-color: var(--error-color, #dc3232);
+  opacity: 0.8;
+}
+
+/* Size Variants */
+.button-small,
+a.button-small,
+input.button-small,
+button.button-small {
+  padding: var(--button-padding-small);
+  font-size: var(--button-font-size-small);
+}
+
+.button-medium,
+a.button-medium,
+input.button-medium,
+button.button-medium {
+  padding: var(--button-padding-medium);
+  font-size: var(--button-font-size-medium);
+}
+
+.button-large,
+a.button-large,
+input.button-large,
+button.button-large {
+  padding: var(--button-padding-large);
+  font-size: var(--button-font-size-large);
 }
 

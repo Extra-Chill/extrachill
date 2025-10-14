@@ -2,8 +2,10 @@
 /**
  * Post Meta Display
  *
- * Displays author, date, and update metadata for posts.
- * Supports multisite forum posts with forum-specific formatting.
+ * Technical Implementation:
+ * - Profile URLs: Uses ec_get_user_profile_url() from extrachill-users plugin with /u/ slug fallback
+ * - Forum posts: Conditional formatting for multisite community posts with forum context
+ * - Co-Authors Plus: Graceful fallback to native WordPress author links when plugin inactive
  *
  * @package ExtraChill
  * @since 69.58
@@ -26,7 +28,6 @@ if ( ! function_exists( 'extrachill_entry_meta' ) ) :
                 $author = isset( $post->_author ) ? esc_html( $post->_author ) : 'Unknown';
                 $date = isset( $post->post_date ) ? date( 'F j, Y', strtotime( $post->post_date ) ) : 'Unknown';
 
-                // Use centralized multisite author URL function
                 $author_id = isset( $post->post_author ) ? $post->post_author : 0;
                 $author_url = function_exists( 'ec_get_user_profile_url' )
                     ? ec_get_user_profile_url( $author_id )
@@ -76,9 +77,7 @@ if ( ! function_exists( 'extrachill_entry_meta' ) ) :
                 if ( is_plugin_active('co-authors-plus/co-authors-plus.php') ) {
                     coauthors_posts_links();
                 } else {
-                    // Use centralized multisite author URL function
                     if ( function_exists( 'ec_get_user_profile_url' ) ) {
-                        // Check if we have direct post_author from multisite search
                         $author_id = isset( $post->post_author ) ? $post->post_author : get_the_author_meta( 'ID' );
                         $author_url = ec_get_user_profile_url( $author_id );
                         echo '<a href="' . esc_url( $author_url ) . '">' . esc_html( get_the_author() ) . '</a>';

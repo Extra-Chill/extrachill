@@ -2,8 +2,10 @@
 /**
  * Post Card Template
  *
- * Displays post card with featured image, title, meta, and excerpt.
- * Supports forum posts from multisite search results.
+ * Technical Implementation:
+ * - Multisite search support: Detects cross-site thumbnail data via $post->_thumbnail
+ * - Forum posts: Conditional formatting for forum posts via $post->_is_forum_post flag
+ * - Dynamic permalinks: Uses $post->permalink when available for cross-site links
  *
  * @package ExtraChill
  * @since 69.58
@@ -22,7 +24,6 @@ $featured_image_size = 'medium_large';
         ?>
 
         <?php
-        // Check for cross-site thumbnail data from multisite search
         if ( isset( $post->_thumbnail ) && ! empty( $post->_thumbnail['thumbnail_url'] ) ) {
             $thumbnail = $post->_thumbnail;
             ?>
@@ -65,7 +66,7 @@ $featured_image_size = 'medium_large';
                     ?>
                 </div>
                 <span>
-                    <a href="<?php echo isset($post->permalink) ? esc_url($post->permalink) : esc_url(get_permalink($post)); ?>" class="button location-link" id="forum-post" target="_blank" rel="noopener noreferrer">View in Community</a>
+                    <a href="<?php echo isset($post->permalink) ? esc_url($post->permalink) : esc_url(get_permalink($post)); ?>" class="button-1 button-small" id="forum-post" target="_blank" rel="noopener noreferrer">View in Community</a>
                 </span>
             <?php else : ?>
                 <div class="archive-excerpt">
@@ -73,7 +74,7 @@ $featured_image_size = 'medium_large';
                 </div>
 
                 <span>
-                    <a href="<?php echo isset($post->permalink) ? esc_url($post->permalink) : the_permalink(); ?>" class="button read-more-button" target="_self" rel="noopener noreferrer">View Full Post</a>
+                    <a href="<?php echo isset($post->permalink) ? esc_url($post->permalink) : the_permalink(); ?>" class="button-1 button-medium" target="_self" rel="noopener noreferrer">View Full Post</a>
                 </span>
             <?php endif; ?>
         </div>

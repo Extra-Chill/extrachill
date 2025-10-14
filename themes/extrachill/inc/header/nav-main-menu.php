@@ -19,16 +19,16 @@
     <a href="#">Latest Blog Content <svg class="submenu-indicator"><use href="<?php echo get_template_directory_uri(); ?>/assets/fonts/extrachill.svg?v=1.5#angle-down-solid"></use></svg></a>
     <ul class="sub-menu">
         <li class="menu-item">
-            <a href="https://extrachill.com/live-music-reviews/">Live Music Reviews</a>
+            <a href="https://extrachill.com/category/live-music-reviews/">Live Music Reviews</a>
         </li>
         <li class="menu-item">
-            <a href="https://extrachill.com/music-news/">Music News</a>
+            <a href="https://extrachill.com/category/music-news/">Music News</a>
         </li>
         <li class="menu-item">
-            <a href="https://extrachill.com/interviews/">Interviews</a>
+            <a href="https://extrachill.com/category/interviews/">Interviews</a>
         </li>
         <li class="menu-item">
-            <a href="https://extrachill.com/song-meanings/">Song Meanings</a>
+            <a href="https://extrachill.com/category/song-meanings/">Song Meanings</a>
         </li>
         <li class="menu-item">
             <a href="https://extrachill.com/artist/grateful-dead/">Grateful Dead</a>
