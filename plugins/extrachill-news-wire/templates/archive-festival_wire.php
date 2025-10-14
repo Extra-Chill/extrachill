@@ -10,13 +10,13 @@
 
 get_header(); ?>
 
-	<div id="primary" class="content-area festival-wire-page">
+	<div class="main-content festival-wire-page">
 		<main id="main" class="site-main" role="main">
 
-			<?php 
+			<?php
 			// Display breadcrumbs
-			if (function_exists('display_breadcrumbs')) {
-				display_breadcrumbs();
+			if (function_exists('extrachill_breadcrumbs')) {
+				extrachill_breadcrumbs();
 			}
 			
 			if ( have_posts() ) : ?>
@@ -220,7 +220,7 @@ get_header(); ?>
 			<?php endif; ?>
 
 		</main><!-- #main -->
-	</div><!-- #primary -->
+	</div><!-- .main-content -->
 
 <?php 
 // Sidebar removed as per requirements

@@ -85,7 +85,7 @@ function festival_wire_load_more_handler() {
         ob_start();
 
         while ( $posts_query->have_posts() ) : $posts_query->the_post();
-            require plugin_dir_path(__FILE__) . '../templates/content-card.php';
+            require FESTIVAL_WIRE_TEMPLATE_DIR . 'content-card.php';
         endwhile;
 
         $output = ob_get_clean();
@@ -179,8 +179,8 @@ function process_festival_wire_tip_submission() {
 
 	// Newsletter subscription for non-community members via Newsletter plugin integration
 	if ( ! $is_community_member && ! empty( $email ) ) {
-		if (function_exists('subscribe_via_integration')) {
-			$newsletter_result = subscribe_via_integration( $email, 'festival_wire_tip' );
+		if (function_exists('extrachill_multisite_subscribe')) {
+			$newsletter_result = extrachill_multisite_subscribe( $email, 'festival_wire_tip' );
 			if ( ! $newsletter_result['success'] ) {
 				error_log( 'Festival tip newsletter subscription failed for email: ' . $email . ' - ' . $newsletter_result['message'] );
 			}

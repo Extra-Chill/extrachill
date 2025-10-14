@@ -35,7 +35,7 @@ ExtraChill News Wire is a standalone WordPress plugin extracted from the ExtraCh
    ./build.sh
    ```
 2. Go to WordPress Admin > Plugins > Add New
-3. Click "Upload Plugin" and select the ZIP file from `dist/` directory
+3. Click "Upload Plugin" and select the ZIP file from `/build` directory
 4. Activate the plugin
 
 ### Manual Installation
@@ -130,7 +130,7 @@ Festival Wire posts support all standard WordPress features:
 cd extrachill-plugins/extrachill-news-wire
 ./build.sh
 
-# Output: dist/extrachill-news-wire-{version}.zip
+# Output: /build/extrachill-news-wire/ directory and /build/extrachill-news-wire.zip file
 ```
 
 ### WordPress Standards

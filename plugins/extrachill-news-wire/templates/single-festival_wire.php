@@ -10,13 +10,13 @@
 
 get_header(); ?>
 
-	<div id="primary" class="content-area">
+	<div class="main-content">
 		<main id="main" class="site-main" role="main">
 
 		<?php
-		// Display breadcrumbs
-		if (function_exists('display_breadcrumbs')) {
-			display_breadcrumbs();
+		// Display breadcrumbs using theme function
+		if (function_exists('extrachill_breadcrumbs')) {
+			extrachill_breadcrumbs();
 		}
 		
 		while ( have_posts() ) : the_post();
@@ -24,43 +24,13 @@ get_header(); ?>
 			<article id="post-<?php the_ID(); ?>" <?php post_class( array( 'festival-wire-single-post', 'single-post' ) ); ?>>
 				<header class="entry-header">
 					<?php
-					// Display all taxonomies in a unified container
-					echo '<div class="taxonomy-badges">';
-					
-					// Display categories as tags
-					$categories = get_the_category();
-					if (!empty($categories)) {
-						foreach ($categories as $category) {
-							$cat_slug = sanitize_html_class($category->slug);
-							echo '<a href="' . esc_url(get_category_link($category->term_id)) . '" class="taxonomy-badge category-badge category-' . $cat_slug . '-badge">' . esc_html($category->name) . '</a>';
-						}
+					// Display taxonomy badges using theme function
+					if ( function_exists('extrachill_display_taxonomy_badges') ) {
+						extrachill_display_taxonomy_badges( get_the_ID() );
 					}
 
-					// Get festival taxonomy terms
-					$festivals = get_the_terms(get_the_ID(), 'festival');
-					if ($festivals && !is_wp_error($festivals)) {
-						foreach ($festivals as $festival) {
-							$festival_slug = sanitize_html_class($festival->slug);
-							echo '<a href="' . esc_url(get_term_link($festival)) . '" class="taxonomy-badge festival-badge festival-' . $festival_slug . '">' . esc_html($festival->name) . '</a>';
-						}
-					}
-
-					// Display Location Terms
-					$locations = get_the_terms(get_the_ID(), 'location');
-					if ( $locations && ! is_wp_error( $locations ) ) :
-						foreach ( $locations as $location ) :
-							$location_link = get_term_link( $location );
-							if ( ! is_wp_error( $location_link ) ) :
-								$loc_slug = sanitize_html_class( $location->slug );
-								echo '<a href="' . esc_url( $location_link ) . '" class="taxonomy-badge location-badge location-' . $loc_slug . '" rel="tag">' . esc_html( $location->name ) . '</a>';
-							endif;
-						endforeach;
-					endif;
-
-					echo '</div>'; // .taxonomy-badges
-					
 					// Display the title
-					the_title( '<h1 class="entry-title">', '</h1>' ); 
+					the_title( '<h1 class="entry-title">', '</h1>' );
 					?>
 
 					<div class="entry-meta">
@@ -157,7 +127,7 @@ get_header(); ?>
 						}
 
 						// Use plugin's content card
-						require __DIR__ . '/../extrachill-news-wire/templates/content-card.php';
+						require __DIR__ . '/content-card.php';
 					}
 					
 					echo '</div>'; // .festival-wire-grid
@@ -181,7 +151,7 @@ get_header(); ?>
 		</div>
 
 		</main><!-- #main -->
-	</div><!-- #primary -->
+	</div><!-- .main-content -->
 
 <?php
 get_sidebar();

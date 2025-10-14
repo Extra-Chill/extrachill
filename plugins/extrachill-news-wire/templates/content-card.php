@@ -26,39 +26,12 @@
 	
 	<div class="festival-wire-card-content">
 		<?php
-		// Use unified taxonomy-badges structure
-		echo '<div class="taxonomy-badges" style="position: relative; z-index: 2;">';
-		
-		// Categories
-		$categories = get_the_category();
-		if (!empty($categories)) {
-			foreach ($categories as $category) {
-				$cat_slug = sanitize_html_class($category->slug);
-				echo '<a href="' . esc_url(get_category_link($category->term_id)) . '" class="taxonomy-badge category-badge category-' . $cat_slug . '-badge">' . esc_html($category->name) . '</a>';
-			}
+		// Display taxonomy badges using theme function with custom styling
+		if ( function_exists('extrachill_display_taxonomy_badges') ) {
+			extrachill_display_taxonomy_badges( get_the_ID(), array(
+				'wrapper_style' => 'position: relative; z-index: 2;'
+			) );
 		}
-
-		$festivals = get_the_terms(get_the_ID(), 'festival');
-		if ($festivals && !is_wp_error($festivals)) {
-			foreach ($festivals as $festival) {
-				$festival_slug = sanitize_html_class($festival->slug);
-				echo '<a href="' . esc_url(get_term_link($festival)) . '" class="taxonomy-badge festival-badge festival-' . $festival_slug . '">' . esc_html($festival->name) . '</a>';
-			}
-		}
-
-		// Locations
-		$locations = get_the_terms(get_the_ID(), 'location');
-		if ( $locations && ! is_wp_error( $locations ) ) :
-			foreach ( $locations as $location ) :
-				$location_link = get_term_link( $location );
-				if ( ! is_wp_error( $location_link ) ) :
-					$loc_slug = sanitize_html_class( $location->slug );
-					echo '<a href="' . esc_url( $location_link ) . '" class="taxonomy-badge location-badge location-' . $loc_slug . '" rel="tag">' . esc_html( $location->name ) . '</a>';
-				endif;
-			endforeach;
-		endif;
-		
-		echo '</div>'; // .taxonomy-badges
 		?>
 		
 		<header class="entry-header">

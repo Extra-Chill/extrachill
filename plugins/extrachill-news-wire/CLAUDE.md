@@ -63,14 +63,19 @@ extrachill-news-wire/
 # Create production-ready ZIP package
 ./build.sh
 
-# Output: dist/extrachill-news-wire.zip
+# Output: /build/extrachill-news-wire/ directory and /build/extrachill-news-wire.zip file
 ```
 
+**Universal Build Script**: Symlinked to shared build script at `../../.github/build.sh`
+
 The build script automatically:
-- Extracts version from main plugin file
-- Excludes development files via `.buildignore` patterns
+- Auto-detects plugin from `Plugin Name:` header
+- Extracts version from main plugin file for validation and logging
+- Installs production dependencies: `composer install --no-dev` (if composer.json exists)
+- Excludes development files via `.buildignore` rsync patterns
 - Validates plugin structure and required files
-- Creates optimized ZIP for WordPress deployment
+- Creates both clean directory and non-versioned ZIP for WordPress deployment
+- Restores development dependencies after build
 
 ## Core Functionality
 

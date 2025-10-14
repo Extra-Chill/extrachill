@@ -45,7 +45,7 @@ if ($ticker_query->have_posts()) {
 }
 
 if (!empty($items)) : ?>
-    <div class="festival-wire-ticker-block">
+    <div class="festival-wire-ticker-block full-width-breakout">
         <div class="festival-wire-ticker-header">
             <span class="festival-wire-ticker-label">
                 <span class="festival-wire-live-dot" aria-hidden="true"></span>

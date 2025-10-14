@@ -4,7 +4,7 @@
  */
 
 /* General Styles */
-#primary.festival-wire-page {
+.main-content.festival-wire-page {
     width: 100%;
     margin: 0 auto;
     float: none;
