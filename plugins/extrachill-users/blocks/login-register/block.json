@@ -1,0 +1,19 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 2,
+	"name": "extrachill/login-register",
+	"title": "Login/Register Form",
+	"category": "widgets",
+	"icon": "admin-users",
+	"description": "Tabbed login and registration form for Extra Chill Community",
+	"supports": {
+		"html": false,
+		"multiple": true
+	},
+	"textdomain": "extrachill-users",
+	"editorScript": "file:./index.js",
+	"editorStyle": "file:./index.css",
+	"render": "file:./render.php",
+	"style": "file:./style.css",
+	"viewScript": "file:./view.js"
+}

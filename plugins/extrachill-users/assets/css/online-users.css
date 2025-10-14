@@ -1,0 +1,77 @@
+/**
+ * Online Users Stats Card
+ *
+ * Network-wide online users display widget for community and artist sites.
+ *
+ * @package ExtraChillUsers
+ */
+
+/* ==================================================
+   Online Users Stats Card
+================================================== */
+.online-stats-card {
+	background: var(--card-background);
+	border: 1px solid var(--border-color);
+	border-radius: 8px;
+	padding: 1rem 1.5rem;
+	margin: 2rem auto;
+	max-width: 600px;
+	display: flex;
+	gap: 2rem;
+	align-items: center;
+	justify-content: center;
+}
+
+.online-stat {
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+}
+
+.online-stat i {
+	font-size: 1.5rem;
+	color: var(--accent);
+}
+
+.online-stat .online-indicator {
+	color: #10b981;
+	animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+	0%,
+	100% {
+		opacity: 1;
+	}
+	50% {
+		opacity: 0.5;
+	}
+}
+
+.stat-content {
+	display: flex;
+	flex-direction: column;
+	gap: 0.1rem;
+}
+
+.stat-value {
+	font-size: 1.5rem;
+	font-weight: 700;
+	color: var(--text-primary);
+	line-height: 1;
+}
+
+.stat-label {
+	font-size: 0.875rem;
+	color: var(--text-secondary);
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+}
+
+@media (max-width: 600px) {
+	.online-stats-card {
+		flex-direction: column;
+		gap: 1.5rem;
+		padding: 1.25rem 1rem;
+	}
+}

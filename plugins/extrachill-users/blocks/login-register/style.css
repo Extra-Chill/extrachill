@@ -1,0 +1,163 @@
+/* --- Login/Register Form Styles - Using Centralized Variables --- */
+
+/* --- Utility Classes --- */
+.hidden {
+    display: none;
+}
+
+/* --- Login Signup Link --- */
+.login-signup-link {
+    margin-top: 15px;
+}
+.login-register-form {
+    background-color: var(--card-background); /* Light Mode */
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: var(--card-shadow);
+    max-width: 600px;
+    margin: 30px auto;
+    font-family: 'Arial', sans-serif;
+    border: 1px solid var(--border-color);
+}
+
+.login-register-form h2 {
+    color: var(--link-color);
+    margin-bottom: 10px;
+    font-size: 28px;
+}
+
+.login-register-form p {
+    font-size: 16px;
+    color: var(--muted-text);
+}
+
+.login-register-form label {
+    font-weight: 600;
+    color: var(--text-color);
+    display: block;
+    margin-bottom: 6px;
+}
+
+/* Input Styles */
+.login-register-form input[type="text"],
+.login-register-form input[type="email"],
+.login-register-form input[type="password"] {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    font-size: 15px;
+    color: var(--text-color);
+    background-color: var(--background-color);
+    margin-bottom: 15px;
+    box-sizing: border-box;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+/* Focus States */
+.login-register-form input[type="text"]:focus,
+.login-register-form input[type="email"]:focus,
+.login-register-form input[type="password"]:focus {
+    border-color: var(--focus-border-color);
+    outline: none;
+    box-shadow: var(--focus-box-shadow);
+}
+
+/* Submit Button */
+.login-register-form input[type="submit"] {
+    /* Button sizing via explicit classes in HTML */
+    background-color: var(--accent);
+    color: #ffffff;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.2s ease-in-out;
+}
+
+/* Submit Button Hover */
+.login-register-form input[type="submit"]:hover {
+    background-color: var(--button-hover-bg);
+}
+
+/* Error Message Styles */
+.login-register-errors {
+    background-color: #ffecec; /* Light Mode */
+    border-left: 4px solid #f44336;
+    padding: 10px 15px;
+    border-radius: 6px;
+    color: #c53030;
+    margin-top: 15px;
+}
+
+.login-register-errors .error {
+    margin: 0;
+}
+
+/* --- Dark Mode Overrides --- */
+@media (prefers-color-scheme: dark) {
+    .login-register-form {
+        background-color: var(--card-background); /* Dark Mode: Consistent with card styles */
+        box-shadow: var(--card-shadow);
+    }
+
+    .login-register-form h2,
+    .login-register-form p,
+    .login-register-form label {
+        color: var(--text-color);
+    }
+
+
+    /* Submit Button Hover */
+    .login-register-form input[type="submit"]:hover {
+        background-color: var(--button-hover-bg);
+    }
+
+    /* Error Message in Dark Mode */
+    .login-register-errors {
+        background-color: #330000; /* Darker error background */
+        border-left: 4px solid #f44336;
+        color: #ffcccc;
+    }
+}
+
+/* --- Additional Notice and Form Element Styles --- */
+
+/* Form Section Styles */
+.registration-user-types {
+    margin-top: 15px;
+}
+
+.registration-user-types label {
+    display: block;
+    margin-bottom: 5px;
+}
+
+.registration-submit-section {
+    margin-top: 15px;
+}
+
+/* Turnstile Widget */
+.cf-turnstile {
+    margin-top: 20px;
+}
+
+/* --- Universal Login/Registration Success Notices --- */
+.extrachill-auth-notice {
+    margin: 0 0 20px 0;
+    padding: 15px 20px;
+    border-left: 4px solid var(--notice-border);
+}
+
+.extrachill-auth-success {
+    background: var(--notice-bg);
+    color: var(--text-color);
+}
+
+.extrachill-auth-notice-content {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.extrachill-auth-notice strong {
+    font-weight: 600;
+}

@@ -1,0 +1,113 @@
+/* --- Password Reset Form Styles - Using Theme Variables --- */
+
+/* --- Utility Classes --- */
+.hidden {
+    display: none;
+}
+
+/* --- Password Reset Form Container --- */
+.password-reset-form {
+    background-color: var(--card-background);
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: var(--card-shadow);
+    max-width: 600px;
+    margin: 30px auto;
+    font-family: 'Arial', sans-serif;
+    border: 1px solid var(--border-color);
+}
+
+.password-reset-form h2 {
+    color: var(--link-color);
+    margin-bottom: 10px;
+    font-size: 28px;
+}
+
+.password-reset-form p {
+    font-size: 16px;
+    color: var(--muted-text);
+    margin: 1rem 0;
+}
+
+.password-reset-form label {
+    font-weight: 600;
+    color: var(--text-color);
+    display: block;
+    margin-bottom: 6px;
+}
+
+/* Input Styles */
+.password-reset-form input[type="text"],
+.password-reset-form input[type="email"],
+.password-reset-form input[type="password"] {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    font-size: 15px;
+    color: var(--text-color);
+    background-color: var(--background-color);
+    margin-bottom: 15px;
+    box-sizing: border-box;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+/* Focus States */
+.password-reset-form input[type="text"]:focus,
+.password-reset-form input[type="email"]:focus,
+.password-reset-form input[type="password"]:focus {
+    border-color: var(--focus-border-color);
+    outline: none;
+    box-shadow: var(--focus-box-shadow);
+}
+
+/* Links */
+.password-reset-form a {
+    color: var(--link-color);
+    text-decoration: none;
+}
+
+.password-reset-form a:hover {
+    text-decoration: underline;
+}
+
+/* Success Message Styles */
+.password-reset-success {
+    background-color: var(--notice-bg);
+    border-left: 4px solid var(--notice-border);
+    padding: 15px 20px;
+    border-radius: 6px;
+    color: var(--text-color);
+    margin-bottom: 15px;
+}
+
+/* Error Message Styles */
+.password-reset-error {
+    background-color: #ffecec;
+    border-left: 4px solid #f44336;
+    padding: 15px 20px;
+    border-radius: 6px;
+    color: #c53030;
+    margin-bottom: 15px;
+}
+
+/* --- Dark Mode Overrides --- */
+@media (prefers-color-scheme: dark) {
+    .password-reset-form {
+        background-color: var(--card-background);
+        box-shadow: var(--card-shadow);
+    }
+
+    .password-reset-form h2,
+    .password-reset-form p,
+    .password-reset-form label {
+        color: var(--text-color);
+    }
+
+    /* Error Message in Dark Mode */
+    .password-reset-error {
+        background-color: #330000;
+        border-left: 4px solid #f44336;
+        color: #ffcccc;
+    }
+}

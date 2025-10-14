@@ -1,0 +1,13 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "extrachill/password-reset",
+	"title": "Password Reset Form",
+	"category": "widgets",
+	"icon": "lock",
+	"description": "Custom password reset form for users who forgot their password",
+	"textdomain": "extrachill-users",
+	"editorScript": "file:./index.js",
+	"render": "file:./render.php",
+	"style": "file:./style.css"
+}
