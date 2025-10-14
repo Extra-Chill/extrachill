@@ -12,8 +12,9 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * Hook cart icon into theme header top-right area
+ * Priority 25 ensures it appears between notification bell (20) and avatar menu (30)
  */
-add_action('extrachill_header_top_right', 'extrachill_shop_display_cart_icon');
+add_action('extrachill_header_top_right', 'extrachill_shop_display_cart_icon', 25);
 
 /**
  * Display simple cart icon linking to shop

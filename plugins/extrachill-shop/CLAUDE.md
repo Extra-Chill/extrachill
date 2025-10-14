@@ -137,11 +137,19 @@ extrachill_ad_free:
 - **PHP CodeSniffer**: Code quality and WordPress standards compliance
 - **PHPUnit**: Unit testing framework (when implemented)
 
+## Build System
+
+- **Universal Build Script**: Symlinked to shared build script at `../../.github/build.sh`
+- **Auto-Detection**: Script auto-detects plugin from `Plugin Name:` header
+- **Production Build**: Creates `/build/extrachill-shop/` directory and `/build/extrachill-shop.zip` file (non-versioned)
+- **File Exclusion**: `.buildignore` rsync patterns exclude development files
+- **Composer Integration**: Uses `composer install --no-dev` for production, restores dev dependencies after
+
 ## Deployment Workflow
 
 1. **Development**: Direct file editing with live WordPress environment
 2. **Quality Assurance**: Run composer lint and test commands
-3. **Build**: Execute `./build.sh` to create production package
+3. **Build**: Execute `./build.sh` to create production package (outputs to `/build/`)
 4. **Deploy**: Upload generated ZIP to WordPress admin or via deployment pipeline
 
 ## Integration with Main Theme

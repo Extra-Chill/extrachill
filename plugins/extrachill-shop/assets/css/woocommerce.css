@@ -12,8 +12,8 @@
    WooCommerce Page Layout & Containers
    ========================================================================== */
 
-.woocommerce-page #primary,
-.woocommerce #primary {
+.woocommerce-page .main-content,
+.woocommerce .main-content {
     max-width: 1200px;
     margin: 0 auto;
     padding: 20px;
@@ -272,7 +272,7 @@
 }
 
 /* Product tabs */
-.woocommerce #primary .wc-tabs,
+.woocommerce .main-content .wc-tabs,
 .woocommerce .woocommerce-tabs {
     margin-top: 40px;
     border-top: 1px solid var(--border-color);
@@ -513,8 +513,8 @@
    ========================================================================== */
 
 @media (max-width: 768px) {
-    .woocommerce-page #primary,
-    .woocommerce #primary {
+    .woocommerce-page .main-content,
+    .woocommerce .main-content {
         padding: 15px;
     }
     
