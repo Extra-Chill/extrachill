@@ -93,10 +93,6 @@
 	text-decoration: none;
 }
 
-.multisite-search-result .post-title a:hover {
-	color: var(--color-primary);
-}
-
 .multisite-search-result .post-meta {
 	margin-bottom: 1rem;
 	font-size: 0.875rem;
@@ -144,10 +140,6 @@
 .no-results a {
 	color: var(--color-primary);
 	text-decoration: none;
-}
-
-.no-results a:hover {
-	text-decoration: underline;
 }
 
 /* Responsive Design */

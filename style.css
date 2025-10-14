@@ -471,13 +471,9 @@ p a {
 
 /* Universal link hover behavior - single source of truth for entire platform */
 a:hover {
+	color: var(--link-hover-color);
 	text-decoration: underline;
 	text-decoration-color: var(--link-color);
-}
-
-/* Paragraph links already have underline, enhance on hover */
-p a:hover {
-	text-decoration-color: var(--accent);
 }
 
 /*--------------------------------------------------------------
@@ -817,10 +813,6 @@ input[type="reset"]:active, input[type="button"]:active, input[type="submit"]:ac
 	color: #fff;
 text-decoration: none;
 }
-#extra-footer a:hover {
-	text-decoration: underline;
-	text-decoration-color: var(--accent);
-}
 
 .footer-menus-wrapper {
     padding: 20px 0;
@@ -945,6 +937,10 @@ padding:3px;
 	}
 	.extrachill-content {
 		grid-template-columns: 1fr; /* single column on mobile */
+	}
+	.full-width-breakout {
+		padding-left: max(1.0em, env(safe-area-inset-left));
+		padding-right: max(1.0em, env(safe-area-inset-right));
 	}
 }
 
@@ -1084,10 +1080,6 @@ a.location-link{
   color: var(--link-color, #79c031);
   text-decoration: none;
   transition: color 0.18s;
-}
-.my-recent-posts .mini-card .recent-title a:hover {
-  color: var(--button-bg, #53940b);
-  text-decoration: underline;
 }
 .my-recent-posts .mini-card .post-thumbnail {
   margin-bottom: 0.5em;

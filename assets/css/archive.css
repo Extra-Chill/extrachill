@@ -213,10 +213,6 @@ a.card-link-target:hover,
 	margin-top: 25px;
 }
 
-.post .entry-title a:hover, .search .entry-title a:hover {
-	color: var(--accent);
-}
-
 .archive .entry-header, .search .entry-header{
 	margin-top: 10px;
 }
