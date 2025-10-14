@@ -4,9 +4,7 @@ vendor/
 .git/
 .gitignore
 .DS_Store
-*.log
 .env
-.env.*
 
 # Build system files
 build.sh
@@ -28,8 +26,6 @@ docs/
 # Testing files
 tests/
 phpunit.xml
-*.test.js
-*.spec.js
 
 # Development dependencies
 src/
@@ -37,9 +33,3 @@ assets/src/
 scss/
 less/
 coffee/
-
-# Backup and temporary files
-*.bak
-*.tmp
-*.swp
-*~

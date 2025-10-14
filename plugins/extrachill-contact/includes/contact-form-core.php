@@ -12,39 +12,39 @@ function custom_contact_form_shortcode() {
         <input type="hidden" name="action" value="ec_contact_form_action">
 
         <div class="form-group">
-            <label for="contact_name">Name *</label>
+            <label for="contact_name">Name</label>
             <input type="text" name="contact_name" id="contact_name" class="input-text" required>
         </div>
 
         <div class="form-group">
-            <label for="contact_email">Email *</label>
+            <label for="contact_email">Email</label>
             <input type="email" name="contact_email" id="contact_email" class="input-text" required>
         </div>
 
         <div class="form-group">
-            <label for="contact_subject">Subject *</label>
+            <label for="contact_subject">Subject</label>
             <select name="contact_subject" id="contact_subject" class="input-text" required>
                 <option value="">Select a subject</option>
                 <option value="General Inquiry">General Inquiry</option>
                 <option value="Press/Media">Press/Media</option>
-                <option value="Festival Submission">Festival Submission</option>
-                <option value="Partnership">Partnership</option>
+                <option value="Partnership/Collaboration">Partnership/Collaboration</option>
+                <option value="Artist Platform Support">Artist Platform Support</option>
+                <option value="Shop/Store Support">Shop/Store Support</option>
+                <option value="Community Forum Support">Community Forum Support</option>
+                <option value="Account/Login Support">Account/Login Support</option>
                 <option value="Technical Issue">Technical Issue</option>
                 <option value="Other">Other</option>
             </select>
         </div>
 
         <div class="form-group">
-            <label for="contact_message">Message *</label>
+            <label for="contact_message">Message</label>
             <textarea name="contact_message" id="contact_message" class="input-text" rows="5" required></textarea>
         </div>
 
-        <div class="form-group consent">
-            <input type="checkbox" name="newsletter_consent" id="newsletter_consent" value="yes">
-            <label for="newsletter_consent">Subscribe to our newsletter</label>
-        </div>
+        <p class="form-notice">By submitting this form, you\'ll receive our newsletter with music news, festival coverage, and platform updates.</p>
 
-        <?php echo ec_render_turnstile_widget(); ?>
+        ' . ec_render_turnstile_widget() . '
 
         <div class="form-group">
             <input type="submit" value="Send Message" class="submit-button">
@@ -57,26 +57,34 @@ add_shortcode('ec_custom_contact_form', 'custom_contact_form_shortcode');
 
 function handle_ec_contact_form_submission() {
     if (!wp_verify_nonce($_POST['ec_contact_form_nonce'], 'ec_contact_form_action')) {
-        wp_die('Nonce verification failed');
+        $redirect_url = add_query_arg('nonce_failed', '1', wp_get_referer());
+        wp_redirect($redirect_url);
+        exit;
     }
 
-    $turnstile_response = isset($_POST['cf-turnstile-response']) ? $_POST['cf-turnstile-response'] : '';
+    $turnstile_response = isset( $_POST['cf-turnstile-response'] ) ? wp_unslash( $_POST['cf-turnstile-response'] ) : '';
+
+    if ( empty( $turnstile_response ) ) {
+        $redirect_url = add_query_arg('captcha_failed', '1', wp_get_referer());
+        wp_redirect($redirect_url);
+        exit;
+    }
+
     if (!ec_verify_turnstile_response($turnstile_response)) {
-        wp_die('Captcha verification failed');
+        $redirect_url = add_query_arg('captcha_failed', '1', wp_get_referer());
+        wp_redirect($redirect_url);
+        exit;
     }
 
     $name = sanitize_text_field(wp_unslash($_POST['contact_name']));
     $email = sanitize_email(wp_unslash($_POST['contact_email']));
     $subject = sanitize_text_field(wp_unslash($_POST['contact_subject']));
     $message = sanitize_textarea_field(wp_unslash($_POST['contact_message']));
-    $newsletter_consent = isset($_POST['newsletter_consent']) ? sanitize_text_field(wp_unslash($_POST['newsletter_consent'])) : '';
 
     send_email_to_admin($name, $email, $subject, $message);
     send_confirmation_email_to_user($name, $email, $subject, $message);
 
-    if ($newsletter_consent === 'yes') {
-        sync_to_sendy($email);
-    }
+    sync_to_sendy($email);
 
     $redirect_url = add_query_arg('contact_success', '1', wp_get_referer());
     wp_redirect($redirect_url);
@@ -86,9 +94,9 @@ add_action('admin_post_ec_contact_form_action', 'handle_ec_contact_form_submissi
 add_action('admin_post_nopriv_ec_contact_form_action', 'handle_ec_contact_form_submission');
 
 function sync_to_sendy($email) {
-    if (function_exists('subscribe_email_to_sendy')) {
+    if (function_exists('extrachill_multisite_subscribe')) {
         try {
-            subscribe_email_to_sendy($email, 'contact');
+            extrachill_multisite_subscribe($email, 'contact');
         } catch (Exception $e) {
             error_log('Contact form Sendy sync failed: ' . $e->getMessage());
         }
@@ -122,7 +130,7 @@ function send_email_to_admin($name, $email, $subject, $message) {
 </html>
 HTML;
 
-    wp_mail($admin_email, "New submission: $subject", $admin_body, $admin_headers);
+    wp_mail($admin_email, "New submission: " . $subject, $admin_body, $admin_headers);
 }
 
 function send_confirmation_email_to_user($name, $email, $subject, $message) {
@@ -144,13 +152,17 @@ function send_confirmation_email_to_user($name, $email, $subject, $message) {
 </head>
 <body>
   <p>Hey $name,</p>
-  <p>Thank you for reaching out to Extra Chill!</p>
-  <p>We prioritize responses for members of the <a href="https://community.extrachill.com">Extra Chill Community</a>, our free-to-join forum where you can connect with other music lovers, share ideas, and get exclusive insights.</p>
-  <p>If you're already a member and haven't heard back within two weeks, feel free to follow up.</p>
-  <p>Not a member yet? <a href="https://community.extrachill.com">Join here</a> and post your message—this is the best way to get a response from us.</p>
-  <p>Here's a summary of your message:</p>
+  <p>Thank you for reaching out to Extra Chill! We've received your message and will get back to you within 3-5 business days.</p>
+  <p>Here's a summary of what you sent:</p>
   <blockquote>$escaped_message</blockquote>
-  <p>We truly appreciate & support those who support us and look forward to seeing you in the community!</p>
+  <p>While you're waiting, feel free to explore the Extra Chill platform:</p>
+  <ul>
+    <li><a href="https://community.extrachill.com">Community Forums</a> - Connect with other music lovers</li>
+    <li><a href="https://artist.extrachill.com">Artist Platform</a> - Discover and follow artists</li>
+    <li><a href="https://shop.extrachill.com">Shop</a> - Browse merch and support the platform</li>
+    <li><a href="https://chat.extrachill.com">AI Chat</a> - Get instant answers about music and festivals</li>
+    <li><a href="https://events.extrachill.com">Events Calendar</a> - Find upcoming shows and festivals</li>
+  </ul>
   <p>Best regards,<br>Extra Chill</p>
 </body>
 </html>
@@ -170,6 +182,18 @@ function display_contact_success_message() {
     if (isset($_GET['contact_success']) && $_GET['contact_success'] == '1') {
         echo '<div class="contact-success-message" style="background: #d4edda; color: #155724; padding: 15px; border: 1px solid #c3e6cb; border-radius: 4px; margin: 20px 0;">
                 <strong>Thank you!</strong> Your message has been sent successfully. We\'ll get back to you soon.
+              </div>';
+    }
+
+    if (isset($_GET['nonce_failed']) && $_GET['nonce_failed'] == '1') {
+        echo '<div class="contact-error-message" style="background: #f8d7da; color: #721c24; padding: 15px; border: 1px solid #f5c6cb; border-radius: 4px; margin: 20px 0;">
+                <strong>Error:</strong> Security verification failed. Please try again.
+              </div>';
+    }
+
+    if (isset($_GET['captcha_failed']) && $_GET['captcha_failed'] == '1') {
+        echo '<div class="contact-error-message" style="background: #f8d7da; color: #721c24; padding: 15px; border: 1px solid #f5c6cb; border-radius: 4px; margin: 20px 0;">
+                <strong>Error:</strong> Captcha verification failed. Please complete the captcha and try again.
               </div>';
     }
 }

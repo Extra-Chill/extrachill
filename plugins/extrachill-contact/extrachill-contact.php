@@ -1,6 +1,6 @@
 <?php
 /**
- * Plugin Name: ExtraChill Contact
+ * Plugin Name: Extra Chill Contact
  * Plugin URI: https://extrachill.com
  * Description: Contact form system with Sendy newsletter integration and HTML email templates for ExtraChill platform. Provides shortcode-based contact forms with Cloudflare Turnstile protection and automatic newsletter subscription.
  * Version: 1.0.0
@@ -25,9 +25,6 @@ define( 'EXTRACHILL_CONTACT_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
 define( 'EXTRACHILL_CONTACT_INCLUDES_DIR', EXTRACHILL_CONTACT_PLUGIN_DIR . 'includes/' );
 define( 'EXTRACHILL_CONTACT_ASSETS_URL', EXTRACHILL_CONTACT_PLUGIN_URL . 'assets/' );
 
-/**
- * Main ExtraChill Contact Class
- */
 class ExtraChillContact {
 
     private static $instance = null;
@@ -80,3 +77,16 @@ function extrachill_contact() {
 }
 
 extrachill_contact();
+
+add_filter( 'newsletter_form_integrations', 'extrachill_contact_register_newsletter_integration' );
+
+function extrachill_contact_register_newsletter_integration( $integrations ) {
+	$integrations['contact'] = array(
+		'label' => __( 'Contact Form', 'extrachill-contact' ),
+		'description' => __( 'Newsletter subscription via contact forms', 'extrachill-contact' ),
+		'list_id_key' => 'contact_list_id',
+		'enable_key' => 'enable_contact',
+		'plugin' => 'extrachill-contact',
+	);
+	return $integrations;
+}

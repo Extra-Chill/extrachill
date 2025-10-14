@@ -19,7 +19,7 @@ A WordPress plugin that provides contact form functionality with Sendy newslette
    cd extrachill-plugins/extrachill-contact
    ./build.sh
    ```
-2. Upload the generated ZIP from `dist/` directory via WordPress admin: **Plugins > Add New > Upload Plugin**
+2. Upload the generated ZIP from `/build` directory via WordPress admin: **Plugins > Add New > Upload Plugin**
 3. Activate the plugin
 
 ### Migration from Theme
@@ -44,7 +44,7 @@ The plugin uses WordPress `wp_mail` exclusively and does not create or use any d
 cd extrachill-plugins/extrachill-contact
 ./build.sh
 
-# Install the generated ZIP from dist/ directory
+# Install the generated ZIP from /build directory
 ```
 
 ## Usage
@@ -120,7 +120,7 @@ CSS is conditionally loaded only on pages containing the contact form.
 # Create production ZIP package
 ./build.sh
 
-# Output: dist/extrachill-contact-{version}.zip
+# Output: /build/extrachill-contact/ directory and /build/extrachill-contact.zip file
 ```
 
 ### File Structure

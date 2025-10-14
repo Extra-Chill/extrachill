@@ -13,6 +13,9 @@
     max-width: 600px;
     margin: 0 auto;
     padding: 20px;
+    background: var(--card-background);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
 }
 
 /* Form Groups */
@@ -24,25 +27,26 @@
     display: block;
     margin-bottom: 8px;
     font-weight: 600;
-    color: #333;
 }
 
 /* Form Inputs */
 .custom-contact-form .input-text {
     width: 100%;
     padding: 12px 15px;
-    border: 1px solid #ddd;
+    border: 1px solid var(--border-color);
     border-radius: 4px;
     font-size: 16px;
     line-height: 1.5;
     transition: border-color 0.3s ease;
     box-sizing: border-box;
+    background: var(--background-color);
+    color: var(--text-color);
 }
 
 .custom-contact-form .input-text:focus {
-    border-color: #007cba;
+    border-color: var(--focus-border-color);
     outline: none;
-    box-shadow: 0 0 0 2px rgba(0, 124, 186, 0.1);
+    box-shadow: var(--focus-box-shadow);
 }
 
 /* Textarea Specific */
@@ -53,8 +57,8 @@
 
 /* Submit Button */
 .custom-contact-form .submit-button {
-    background-color: #007cba;
-    color: white;
+    background-color: var(--button-bg);
+    color: var(--header-text);
     padding: 12px 30px;
     border: none;
     border-radius: 4px;
@@ -65,11 +69,11 @@
 }
 
 .custom-contact-form .submit-button:hover {
-    background-color: #005a87;
+    background-color: var(--button-hover-bg);
 }
 
 .custom-contact-form .submit-button:focus {
-    outline: 2px solid #007cba;
+    outline: 2px solid var(--focus-border-color);
     outline-offset: 2px;
 }
 
@@ -103,10 +107,10 @@
 
 /* Success Message */
 .contact-success-message {
-    background: #d4edda;
-    color: #155724;
+    background: var(--notice-bg);
+    color: var(--text-color);
     padding: 15px;
-    border: 1px solid #c3e6cb;
+    border: 1px solid var(--notice-border);
     border-radius: 4px;
     margin: 20px 0;
     font-weight: 500;
@@ -131,7 +135,7 @@
 /* Required Field Indicator */
 .custom-contact-form label:after {
     content: " *";
-    color: #e74c3c;
+    color: var(--accent);
     font-weight: bold;
 }
 
@@ -141,10 +145,10 @@
 
 /* Error States */
 .custom-contact-form .input-text:invalid {
-    border-color: #e74c3c;
+    border-color: var(--accent);
 }
 
 .custom-contact-form .input-text:invalid:focus {
-    border-color: #e74c3c;
-    box-shadow: 0 0 0 2px rgba(231, 76, 60, 0.1);
+    border-color: var(--accent);
+    box-shadow: var(--focus-box-shadow);
 }
