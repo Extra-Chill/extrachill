@@ -33,6 +33,7 @@ if ( is_admin() ) {
 }
 
 function enqueue_newsletter_assets() {
+	// Forms CSS - loaded globally for navigation and other forms
 	$forms_css_file_path = EXTRACHILL_NEWSLETTER_PLUGIN_DIR . 'assets/newsletter-forms.css';
 	if ( file_exists( $forms_css_file_path ) ) {
 		wp_enqueue_style(
@@ -43,6 +44,18 @@ function enqueue_newsletter_assets() {
 		);
 	}
 
+	// Sidebar CSS - loaded globally since sidebar appears on all pages
+	$sidebar_css_file_path = EXTRACHILL_NEWSLETTER_PLUGIN_DIR . 'assets/sidebar.css';
+	if ( file_exists( $sidebar_css_file_path ) ) {
+		wp_enqueue_style(
+			'extrachill-newsletter-sidebar',
+			EXTRACHILL_NEWSLETTER_ASSETS_URL . 'sidebar.css',
+			array(),
+			filemtime( $sidebar_css_file_path )
+		);
+	}
+
+	// Newsletter page CSS - loaded only on newsletter/festival wire pages
 	$load_newsletter_css = is_post_type_archive( 'newsletter' ) || is_singular( 'newsletter' ) || is_front_page() ||
 	                      is_post_type_archive( 'festival_wire' ) || is_singular( 'festival_wire' );
 
@@ -84,6 +97,45 @@ function enqueue_newsletter_assets() {
 }
 add_action( 'wp_enqueue_scripts', 'enqueue_newsletter_assets' );
 
+/**
+ * Customize post meta for newsletter post type.
+ * Changes "Posted on" to "Sent on" and adjusts date/author display.
+ *
+ * @param string $default_meta The default meta HTML.
+ * @param int    $post_id      The post ID.
+ * @param string $post_type    The post type.
+ * @return string Modified meta HTML for newsletters.
+ */
+function newsletter_customize_post_meta( $default_meta, $post_id, $post_type ) {
+	if ( $post_type !== 'newsletter' ) {
+		return $default_meta;
+	}
+
+	$date = get_the_date();
+	$author_id = get_post_field( 'post_author', $post_id );
+	$author_name = get_the_author_meta( 'display_name', $author_id );
+	$author_url = function_exists( 'ec_get_user_profile_url' )
+		? ec_get_user_profile_url( $author_id )
+		: get_author_posts_url( $author_id );
+
+	$meta_html = '<div class="below-entry-meta">';
+	$meta_html .= '<div class="below-entry-meta-left">';
+	$meta_html .= '<div class="meta-top-row">';
+	$meta_html .= sprintf(
+		__( 'Sent on <time class="entry-date published newsletter-date" datetime="%s">%s</time> by <a href="%s">%s</a>', 'extrachill-newsletter' ),
+		esc_attr( get_the_date( 'c', $post_id ) ),
+		esc_html( $date ),
+		esc_url( $author_url ),
+		esc_html( $author_name )
+	);
+	$meta_html .= '</div>';
+	$meta_html .= '</div>';
+	$meta_html .= '</div>';
+
+	return $meta_html;
+}
+add_filter( 'extrachill_post_meta', 'newsletter_customize_post_meta', 10, 3 );
+
 function display_newsletter_homepage_section() {
 	$settings = get_site_option('extrachill_newsletter_settings', array());
 	if (empty($settings['enable_homepage'])) {
@@ -119,28 +171,6 @@ function display_newsletter_grid_section() {
     <?php
 }
 add_action( 'extrachill_home_grid_bottom_right', 'display_newsletter_grid_section' );
-
-function newsletter_template_loader( $template ) {
-	if ( is_singular( 'newsletter' ) ) {
-		$plugin_template = locate_newsletter_template( 'single-newsletter.php' );
-		if ( $plugin_template ) {
-			return $plugin_template;
-		}
-	}
-
-	return $template;
-}
-add_filter( 'template_include', 'newsletter_template_loader' );
-
-function locate_newsletter_template( $template_name ) {
-	$plugin_template_path = EXTRACHILL_NEWSLETTER_TEMPLATES_DIR . $template_name;
-
-	if ( file_exists( $plugin_template_path ) ) {
-		return $plugin_template_path;
-	}
-
-	return false;
-}
 
 function display_newsletter_navigation_form() {
 	$settings = get_site_option('extrachill_newsletter_settings', array());

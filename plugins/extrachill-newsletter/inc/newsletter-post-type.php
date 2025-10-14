@@ -110,7 +110,7 @@ function newsletter_sendy_meta_box_html($post) {
 	wp_nonce_field('newsletter_sendy_nonce_action', 'newsletter_sendy_nonce_field');
 
 	echo '<p>' . __('Push this newsletter to Sendy as an email campaign.', 'extrachill-newsletter') . '</p>';
-	echo '<button type="button" class="button-1 button-medium" id="push_newsletter_to_sendy">' . __('Push to Sendy', 'extrachill-newsletter') . '</button>';
+	echo '<button type="button" class="button button-primary" id="push_newsletter_to_sendy">' . __('Push to Sendy', 'extrachill-newsletter') . '</button>';
 
 	// Get campaign status if available
 	$campaign_id = get_post_meta($post->ID, '_sendy_campaign_id', true);

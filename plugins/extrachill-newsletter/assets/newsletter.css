@@ -60,13 +60,12 @@
    ========================================================================== */
 
 .newsletter-date {
-    color: var(--muted-text, #666);
+    color: var(--muted-text);
     font-size: 0.9em;
-    font-style: italic;
 }
 
 .newsletter-author {
-    color: var(--muted-text, #666);
+    color: var(--muted-text);
     font-size: 0.9em;
     margin-left: 1em;
 }
@@ -162,68 +161,8 @@
 }
 
 /* ==========================================================================
-   Shortcode Styles
+   Newsletter Subscription Forms
    ========================================================================== */
-
-.recent-newsletters-widget {
-    background: var(--card-background, #f8f9fa);
-    border: 1px solid var(--border-color, #e9ecef);
-    border-radius: 8px;
-    padding: 1.5em;
-    margin-bottom: 2em;
-}
-
-.recent-newsletters-widget .widget-title {
-    margin-bottom: 1em;
-    font-size: 1.2em;
-    font-weight: 600;
-}
-
-.recent-newsletters-list {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-}
-
-.recent-newsletter-item {
-    margin-bottom: 1em;
-    padding-bottom: 1em;
-    border-bottom: 1px solid var(--border-color, #e9ecef);
-}
-
-.recent-newsletter-item:last-child {
-    border-bottom: none;
-    margin-bottom: 0;
-    padding-bottom: 0;
-}
-
-.recent-newsletter-link {
-    text-decoration: none;
-    font-weight: 600;
-}
-
-.recent-newsletter-link:hover {
-    color: var(--accent, #53940b);
-    text-decoration: underline;
-}
-
-.view-all-newsletters {
-    display: inline-block;
-    margin-top: 1em;
-    padding: 0.5em 1em;
-    background: var(--accent, #53940b);
-    color: #fff;
-    text-decoration: none;
-    border-radius: 4px;
-    font-weight: 600;
-    font-size: 0.9em;
-    transition: background-color 0.2s;
-}
-
-.view-all-newsletters:hover {
-    background: var(--button-hover-bg, #4a7e09);
-    text-decoration: none;
-}
 
 .newsletter-subscription-form {
     background: var(--card-background, #f8f9fa);

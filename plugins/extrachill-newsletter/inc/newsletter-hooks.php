@@ -36,9 +36,8 @@ if ( ! function_exists( 'extrachill_sidebar_recent_newsletters' ) ) :
 		$newsletter_query = new WP_Query($newsletter_args);
 
 		if ($newsletter_query->have_posts()) {
-			echo '<div class="sidebar-card">';
-			echo '<div class="recent-newsletters-widget">';
-			echo '<h3 class="widget-title"><span>Recent Newsletters</span></h3>';
+			echo '<div class="sidebar-card recent-newsletters-widget">';
+			echo '<h3 class="widget-title">' . esc_html__('Recent Newsletters', 'extrachill-newsletter') . '</h3>';
 			echo '<ul class="recent-newsletters-list">';
 
 			while ($newsletter_query->have_posts()) {
@@ -56,14 +55,11 @@ if ( ! function_exists( 'extrachill_sidebar_recent_newsletters' ) ) :
 			// View all link
 			$newsletter_archive_url = get_post_type_archive_link('newsletter');
 			if ($newsletter_archive_url) {
-				echo '<div class="view-all-newsletters">';
 				echo '<a href="' . esc_url($newsletter_archive_url) . '" class="view-all-link">';
 				echo esc_html__('View All Newsletters', 'extrachill-newsletter') . ' →';
 				echo '</a>';
-				echo '</div>';
 			}
 
-			echo '</div>';
 			echo '</div>';
 		}
 
