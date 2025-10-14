@@ -3,7 +3,6 @@
  * Template Functions for ExtraChill Search Plugin
  *
  * @package ExtraChill\Search
- * @since 1.0.0
  */
 
 function extrachill_get_search_results() {
@@ -35,10 +34,7 @@ function extrachill_get_search_results() {
 }
 
 /**
- * Create mock WP_Query object for search results pagination
- *
- * Allows use of theme's native extrachill_pagination() function with
- * multisite search results by providing required WP_Query properties.
+ * Create mock WP_Query for theme pagination compatibility.
  *
  * @param int $total_results Total number of search results
  * @param int $posts_per_page Number of results per page
@@ -47,7 +43,6 @@ function extrachill_get_search_results() {
 function extrachill_create_search_query_object( $total_results, $posts_per_page ) {
     $current_page = max( 1, get_query_var( 'paged' ) );
 
-    // Create mock WP_Query object
     $query = new WP_Query();
     $query->found_posts = $total_results;
     $query->max_num_pages = ceil( $total_results / $posts_per_page );

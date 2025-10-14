@@ -1,6 +1,6 @@
 # ExtraChill Search
 
-Network-activated WordPress plugin providing centralized multisite search functionality for the ExtraChill Platform. Searches across all seven sites in the WordPress multisite network and displays unified results.
+Network-activated WordPress plugin providing centralized multisite search functionality for the ExtraChill Platform. Searches across all eight sites in the WordPress multisite network and displays unified results.
 
 ## Plugin Information
 
@@ -31,10 +31,25 @@ Network-activated WordPress plugin providing centralized multisite search functi
 - **Flexible Post Type Support**: Automatically searches all public post types across sites
 - **Meta Query Support**: Full support for `meta_query` parameter for advanced filtering (bbPress support)
 - **Pagination and Sorting**: Supports limit, offset, orderby, order parameters with cross-site date sorting
+- **Relevance Scoring**: Weighted algorithm prioritizing exact matches, phrase matches, and word-level matching
 - **Contextual Excerpts**: `ec_get_contextual_excerpt_multisite()` generates search term centered excerpts
 - **Network Site Discovery**: `extrachill_get_network_sites()` with static caching for performance
 - **Site URL Resolution**: `extrachill_resolve_site_urls()` converts domain strings to blog IDs
 - **Fallback Excerpt Function**: Provides `ec_get_contextual_excerpt()` for themes without native implementation
+
+#### Pagination Fix Architecture
+**404 Override System** (`extrachill-search.php`):
+- **`fix_search_404()` method**: Intercepts 404 errors on paginated search queries
+- **`template_redirect` hook**: Executes at priority 1 before template loading
+- **Network-Wide Fix**: Resolves pagination 404s across all 8 network sites (previously only worked on extrachill.com)
+- **Intelligent Detection**: Checks for 404 status with search query parameter (`s`), not relying on `is_search()`
+- **Result Verification**: Runs `extrachill_multisite_search()` to verify multisite results exist for current page
+- **Query Override**: Sets `$wp_query->is_404 = false` and `$wp_query->is_search = true` when results found
+- **Status Header Fix**: Sets `status_header(200)` to prevent 404 HTTP response
+- **Template Routing**: WordPress then loads `search.php` template instead of `404.php`
+
+**Why This Fix Is Needed**:
+WordPress native search only checks the current site for results. When paginating multisite search results, if the current site has no matching posts on that page, WordPress returns 404 even though other network sites have results. The `fix_search_404()` method queries all network sites to verify results exist before allowing the 404.
 
 #### Template System
 **Search Results Template** (`templates/search.php`):
@@ -46,7 +61,13 @@ Network-activated WordPress plugin providing centralized multisite search functi
 
 **Template Helper Functions** (`inc/templates/template-functions.php`):
 - **`extrachill_get_search_results()`**: Fetches paginated search results with total count
-- **`extrachill_search_pagination()`**: Generates pagination UI for search results
+- **`extrachill_create_search_query_object()`**: Creates mock WP_Query object for theme pagination compatibility
+
+**Site Badge Component** (`inc/templates/site-badge.php`):
+- **`extrachill_search_site_badge()`**: Displays site badge indicating result origin
+- Hooked to `extrachill_archive_above_tax_badges` action
+- Uses metadata attached to post object (`_site_name`, `_site_url`, `_origin_site_id`)
+- Only displays on search pages with multisite results
 
 #### Taxonomy Functions (Placeholder)
 **Future Functionality** (`inc/core/taxonomy-functions.php`):
@@ -57,7 +78,7 @@ Network-activated WordPress plugin providing centralized multisite search functi
 ## WordPress Multisite Integration
 
 ### Network Sites Covered
-The plugin searches across all seven sites in the ExtraChill Platform network:
+The plugin searches across all eight sites in the ExtraChill Platform network:
 1. **extrachill.com** - Main music journalism site
 2. **community.extrachill.com** - Community forums (bbPress)
 3. **shop.extrachill.com** - E-commerce (WooCommerce)
@@ -65,6 +86,7 @@ The plugin searches across all seven sites in the ExtraChill Platform network:
 5. **chat.extrachill.com** - AI chatbot interface
 6. **artist.extrachill.com** - Artist platform and profiles
 7. **events.extrachill.com** - Event calendar hub
+8. **stream.extrachill.com** - Live streaming platform (Phase 1 non-functional UI)
 
 ### Native WordPress Functions Used
 - **`switch_to_blog()`**: Cross-site database access
@@ -90,12 +112,14 @@ extrachill-search/
 │   │   ├── search-functions.php    # Core multisite search functionality
 │   │   └── taxonomy-functions.php  # Placeholder for future taxonomy archives
 │   └── templates/
-│       └── template-functions.php  # Template helper functions for search results
+│       ├── template-functions.php  # Template helper functions for search results
+│       └── site-badge.php          # Site badge component for multisite results
 ├── templates/
 │   └── search.php                  # Search results template
 ├── build.sh                        # Symlink to universal build script
 ├── .buildignore                    # Production build exclusions
-└── CLAUDE.md                       # This documentation file
+├── CLAUDE.md                       # This documentation file
+└── README.md                       # GitHub standard format documentation
 ```
 
 ## Theme Integration
@@ -108,17 +132,25 @@ The plugin expects the ExtraChill theme to provide:
 - **`inc/archives/post-card.php`**: Post card template for result display
 
 ### Theme Action Hooks Used
-- **`extrachill_before_body_content`**: Before main content area
-- **`extrachill_after_body_content`**: After main content area
-- **`extrachill_search_header`**: Search results header area
-- **`extrachill_archive_below_description`**: Below archive description
-- **`extrachill_archive_above_posts`**: Above posts loop
+**Hooks Used by Plugin**:
+- **`extrachill_before_body_content`**: Before main content area (search.php template)
+- **`extrachill_after_body_content`**: After main content area (search.php template)
+- **`extrachill_search_header`**: Search results header area (search.php template)
+- **`extrachill_archive_below_description`**: Below archive description (search.php template)
+- **`extrachill_archive_above_posts`**: Above posts loop (search.php template)
 
-### Template Include Filter
-The plugin uses WordPress's `template_include` filter at priority 99 to override the default search template:
+**Hooks Provided by Plugin**:
+- **`extrachill_archive_above_tax_badges`**: Site badge display hook (used by site-badge.php component)
+- **`extrachill_search_args`**: Filter for customizing search query arguments
+- **`extrachill_search_scoring_weights`**: Filter for customizing relevance scoring weights
+
+### Template Override Filter
+The plugin uses the ExtraChill theme's `extrachill_template_search` filter at priority 10 to override the default search template:
 ```php
-add_filter( 'template_include', 'extrachill_search_template_include', 99 );
+add_filter( 'extrachill_template_search', array( $this, 'override_search_template' ), 10 );
 ```
+
+This integrates with the theme's universal template routing system rather than using WordPress's generic `template_include` filter.
 
 ## Search Functionality
 
@@ -157,23 +189,49 @@ $results = extrachill_multisite_search(
 ### Search Result Structure
 ```php
 array(
-    'ID'           => 123,                    // Post ID
-    'post_title'   => 'Post Title',           // Post title
-    'post_content' => 'Full content...',      // Full post content
-    'post_excerpt' => 'Excerpt or trimmed...', // Excerpt
-    'post_date'    => '2025-10-07 12:00:00',  // Publication date
-    'post_type'    => 'post',                 // Post type
-    'post_name'    => 'post-slug',            // Post slug
-    'post_author'  => 1,                      // Author ID
-    'site_id'      => 1,                      // Blog ID
-    'site_name'    => 'Extra Chill',          // Site name
-    'site_url'     => 'extrachill.com',       // Site URL (host only)
-    'permalink'    => 'https://...',          // Full post URL
-    'taxonomies'   => array(                  // Taxonomy terms
+    'ID'            => 123,                    // Post ID
+    'post_title'    => 'Post Title',           // Post title
+    'post_content'  => 'Full content...',      // Full post content
+    'post_excerpt'  => 'Excerpt or trimmed...', // Excerpt
+    'post_date'     => '2025-10-07 12:00:00',  // Publication date
+    'post_modified' => '2025-10-08 14:30:00',  // Last modified date
+    'post_type'     => 'post',                 // Post type
+    'post_name'     => 'post-slug',            // Post slug
+    'post_author'   => 1,                      // Author ID
+    'site_id'       => 1,                      // Blog ID
+    'site_name'     => 'Extra Chill',          // Site name
+    'site_url'      => 'extrachill.com',       // Site URL (host only)
+    'permalink'     => 'https://...',          // Full post URL
+    'taxonomies'    => array(                  // Taxonomy terms
         'category' => array( 'term_name' => term_id ),
     ),
+    'thumbnail'     => array(                  // Featured image data
+        'thumbnail_id'     => 456,
+        'thumbnail_url'    => 'https://...',
+        'thumbnail_srcset' => '...',
+        'thumbnail_sizes'  => '...',
+        'thumbnail_alt'    => 'Alt text',
+    ),
+    '_search_score' => 750,                    // Internal relevance score (when searching)
 )
 ```
+
+### Relevance Scoring Algorithm
+The plugin uses a weighted relevance scoring system (via `extrachill_calculate_search_score()`) that prioritizes exact matches:
+
+**Scoring Weights** (filterable via `extrachill_search_scoring_weights`):
+- **Exact title match**: 1000 points
+- **Title contains exact phrase**: 500 points
+- **Phrase at start of title**: +200 bonus points
+- **All search words in title**: 400 points + 25 per word
+- **Content occurrences**: 50 points per occurrence (max 200)
+- **Recency bonus**: Up to 100 points (diminishing over 365 days)
+
+**Multi-word Search Example**: "grateful dead althea meaning"
+- Matches title "The Meaning of the Grateful Dead's 'Althea'" with word-level matching
+- All four words present in title = 400 + (4 × 25) = 500 points + recency
+
+**Sorting**: Results sorted by relevance score (descending), with post date as tiebreaker
 
 ## Build System
 

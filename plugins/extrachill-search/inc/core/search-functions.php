@@ -2,16 +2,13 @@
 /**
  * Core Search Functions for ExtraChill Search Plugin
  *
+ * Provides network-wide search across all eight sites using domain-based resolution
+ * and WordPress native multisite functions with automatic blog-id-cache.
+ *
  * @package ExtraChill\Search
  * @since 1.0.0
  */
 
-/**
- * Get all network sites with static caching
- *
- * @since 1.0.0
- * @return array Array of site data or empty array if not multisite
- */
 function extrachill_get_network_sites() {
 	static $sites_cache = null;
 
@@ -47,15 +44,6 @@ function extrachill_get_network_sites() {
 	return $sites;
 }
 
-/**
- * Resolve site URLs to blog IDs
- *
- * Uses get_blog_id_from_url() with WordPress native blog-id-cache for performance.
- *
- * @since 1.0.0
- * @param array $site_urls Array of site URLs to resolve
- * @return array Resolved blog IDs
- */
 function extrachill_resolve_site_urls( $site_urls ) {
 	if ( ! is_array( $site_urls ) || empty( $site_urls ) ) {
 		return array();
@@ -74,16 +62,12 @@ function extrachill_resolve_site_urls( $site_urls ) {
 }
 
 /**
- * Search across multisite network
+ * Search across multisite network with relevance scoring.
  *
- * Uses domain-based site resolution with get_blog_id_from_url() for maintainable code.
- * WordPress blog-id-cache provides automatic performance optimization.
- *
- * @since 1.0.0
- * @param string $search_term Search query (empty for all posts)
- * @param array  $site_urls   Site URLs to search (empty = all network sites)
- * @param array  $args        Query arguments
- * @return array Search results or array with 'results' and 'total' if return_count is true
+ * @param string $search_term Search query (empty for all posts).
+ * @param array  $site_urls   Site URLs to search (empty = all sites).
+ * @param array  $args        Query arguments.
+ * @return array Search results with optional total count.
  */
 function extrachill_multisite_search( $search_term, $site_urls = array(), $args = array() ) {
 	if ( ! is_multisite() ) {
@@ -103,11 +87,8 @@ function extrachill_multisite_search( $search_term, $site_urls = array(), $args 
 	);
 
 	$args = wp_parse_args( $args, $defaults );
-
-	// Apply filter for customization
 	$args = apply_filters( 'extrachill_search_args', $args, $search_term, $site_urls );
 
-	// Resolve sites to search
 	if ( empty( $site_urls ) ) {
 		$network_sites = extrachill_get_network_sites();
 		$blog_ids      = wp_list_pluck( $network_sites, 'id' );
@@ -131,8 +112,10 @@ function extrachill_multisite_search( $search_term, $site_urls = array(), $args 
 				continue;
 			}
 
-			$post_types = get_post_types( array( 'public' => true ), 'names' );
-			$post_types = array_diff( $post_types, array( 'attachment' ) );
+			$post_types = array_diff(
+				get_post_types( array( 'public' => true ), 'names' ),
+				array( 'attachment' )
+			);
 
 			if ( empty( $post_types ) ) {
 				continue;
@@ -165,7 +148,6 @@ function extrachill_multisite_search( $search_term, $site_urls = array(), $args 
 					$query->the_post();
 					global $post;
 
-					// Fetch taxonomies for the post
 					$taxonomies = array();
 					$public_taxonomies = get_taxonomies( array( 'public' => true ), 'objects' );
 					foreach ( $public_taxonomies as $taxonomy ) {
@@ -175,7 +157,6 @@ function extrachill_multisite_search( $search_term, $site_urls = array(), $args 
 						}
 					}
 
-					// Fetch featured image data
 					$thumbnail_id = get_post_thumbnail_id( $post->ID );
 					$thumbnail_data = array();
 					if ( $thumbnail_id ) {
@@ -189,20 +170,21 @@ function extrachill_multisite_search( $search_term, $site_urls = array(), $args 
 					}
 
 					$result = array(
-						'ID'           => $post->ID,
-						'post_title'   => get_the_title(),
-						'post_content' => get_the_content(),
-						'post_excerpt' => has_excerpt() ? get_the_excerpt() : wp_trim_words( get_the_content(), 30 ),
-						'post_date'    => $post->post_date,
-						'post_type'    => $post->post_type,
-						'post_name'    => $post->post_name,
-						'post_author'  => $post->post_author,
-						'site_id'      => $blog_id,
-						'site_name'    => $blog_details->blogname,
-						'site_url'     => parse_url( $blog_details->siteurl, PHP_URL_HOST ),
-						'permalink'    => get_permalink(),
-						'taxonomies'   => $taxonomies,
-						'thumbnail'    => $thumbnail_data,
+						'ID'            => $post->ID,
+						'post_title'    => get_the_title(),
+						'post_content'  => get_the_content(),
+						'post_excerpt'  => has_excerpt() ? get_the_excerpt() : wp_trim_words( get_the_content(), 30 ),
+						'post_date'     => $post->post_date,
+						'post_modified' => $post->post_modified,
+						'post_type'     => $post->post_type,
+						'post_name'     => $post->post_name,
+						'post_author'   => $post->post_author,
+						'site_id'       => $blog_id,
+						'site_name'     => $blog_details->blogname,
+						'site_url'      => parse_url( $blog_details->siteurl, PHP_URL_HOST ),
+						'permalink'     => get_permalink(),
+						'taxonomies'    => $taxonomies,
+						'thumbnail'     => $thumbnail_data,
 					);
 
 					$all_results[] = $result;
@@ -216,11 +198,29 @@ function extrachill_multisite_search( $search_term, $site_urls = array(), $args 
 		restore_current_blog();
 	}
 
-	if ( $args['orderby'] === 'date' ) {
-		usort( $all_results, function ( $a, $b ) use ( $args ) {
-			$comparison = strtotime( $b['post_date'] ) - strtotime( $a['post_date'] );
-			return $args['order'] === 'ASC' ? -$comparison : $comparison;
-		});
+	if ( ! empty( $search_term ) ) {
+		foreach ( $all_results as $index => $result ) {
+			$all_results[ $index ]['_search_score'] = extrachill_calculate_search_score( $result, $search_term );
+		}
+
+		usort(
+			$all_results,
+			function ( $a, $b ) {
+				$score_diff = $b['_search_score'] - $a['_search_score'];
+				if ( $score_diff !== 0 ) {
+					return $score_diff;
+				}
+				return strtotime( $b['post_date'] ) - strtotime( $a['post_date'] );
+			}
+		);
+	} elseif ( $args['orderby'] === 'date' ) {
+		usort(
+			$all_results,
+			function ( $a, $b ) use ( $args ) {
+				$comparison = strtotime( $b['post_date'] ) - strtotime( $a['post_date'] );
+				return $args['order'] === 'ASC' ? -$comparison : $comparison;
+			}
+		);
 	}
 
 	$total_results = count( $all_results );
@@ -236,15 +236,6 @@ function extrachill_multisite_search( $search_term, $site_urls = array(), $args 
 	return $all_results;
 }
 
-/**
- * Generate contextual excerpt centered around search term
- *
- * @since 1.0.0
- * @param string $content     Content to excerpt
- * @param string $search_term Term to center around
- * @param int    $word_limit  Maximum words. Default 30
- * @return string Contextual excerpt
- */
 function ec_get_contextual_excerpt_multisite( $content, $search_term, $word_limit = 30 ) {
 	$content = wp_strip_all_tags( $content );
 	$words   = explode( ' ', $content );
@@ -255,7 +246,7 @@ function ec_get_contextual_excerpt_multisite( $content, $search_term, $word_limi
 
 	$search_pos = stripos( $content, $search_term );
 	if ( $search_pos !== false ) {
-		$start_word    = max( 0, floor( $search_pos / 6 ) - ( $word_limit / 2 ) );
+		$start_word = max( 0, floor( $search_pos / 6 ) - ( $word_limit / 2 ) );
 		$excerpt_words = array_slice( $words, $start_word, $word_limit );
 		return ( $start_word > 0 ? '...' : '' ) . implode( ' ', $excerpt_words ) . '...';
 	}
@@ -264,10 +255,68 @@ function ec_get_contextual_excerpt_multisite( $content, $search_term, $word_limi
 }
 
 /**
- * Register fallback contextual excerpt function for themes without native implementation
+ * Calculate weighted relevance score prioritizing exact matches.
  *
- * @since 1.0.0
+ * Scoring weights: exact title (1000), title phrase (500), all words (400), content matches (max 200), recency (max 100).
+ *
+ * @param array  $result      Search result data.
+ * @param string $search_term Search query.
+ * @return int Relevance score.
  */
+function extrachill_calculate_search_score( $result, $search_term ) {
+	$score = 0;
+	$term_lower = strtolower( $search_term );
+	$title_lower = strtolower( $result['post_title'] );
+	$content_lower = strtolower( strip_tags( $result['post_content'] ) );
+
+	$weights = apply_filters(
+		'extrachill_search_scoring_weights',
+		array(
+			'exact_title_match'   => 1000,
+			'title_phrase_match'  => 500,
+			'title_start_bonus'   => 200,
+			'all_words_in_title'  => 400,
+			'per_word_in_title'   => 25,
+			'content_per_match'   => 50,
+			'content_max'         => 200,
+			'recency_max'         => 100,
+			'recency_days'        => 365,
+		)
+	);
+
+	if ( $title_lower === $term_lower ) {
+		$score += $weights['exact_title_match'];
+	} elseif ( strpos( $title_lower, $term_lower ) !== false ) {
+		$score += $weights['title_phrase_match'];
+		if ( strpos( $title_lower, $term_lower ) === 0 ) {
+			$score += $weights['title_start_bonus'];
+		}
+	} else {
+		$search_words = preg_split( '/\s+/', $term_lower, -1, PREG_SPLIT_NO_EMPTY );
+		$words_found = 0;
+
+		foreach ( $search_words as $word ) {
+			if ( strpos( $title_lower, $word ) !== false ) {
+				$words_found++;
+			}
+		}
+
+		if ( $words_found === count( $search_words ) && count( $search_words ) > 1 ) {
+			$score += $weights['all_words_in_title'];
+			$score += $words_found * $weights['per_word_in_title'];
+		}
+	}
+
+	$content_count = substr_count( $content_lower, $term_lower );
+	$score += min( $content_count * $weights['content_per_match'], $weights['content_max'] );
+
+	$days_old = ( time() - strtotime( $result['post_date'] ) ) / DAY_IN_SECONDS;
+	$recency_score = max( 0, $weights['recency_max'] - ( $days_old / ( $weights['recency_days'] / 100 ) ) );
+	$score += $recency_score;
+
+	return $score;
+}
+
 if ( ! function_exists( 'ec_get_contextual_excerpt' ) ) {
 	if ( ! function_exists( 'ec_register_contextual_excerpt_fallback' ) ) {
 		function ec_register_contextual_excerpt_fallback() {

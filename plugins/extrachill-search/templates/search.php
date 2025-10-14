@@ -38,28 +38,28 @@ $posts_per_page = get_option( 'posts_per_page', 10 );
 			<?php global $post_i; $post_i = 1; ?>
 			<?php foreach ( $search_results as $result ) : ?>
 				<?php
-				// Create pseudo-post object for template compatibility
 				global $post;
 				$post = (object) $result;
 				setup_postdata( $post );
 				$post->_site_name = $result['site_name'];
 				$post->_site_url  = $result['site_url'];
+				$post->_origin_site_id = $result['site_id'];
 				$post->taxonomies = $result['taxonomies'];
-				$post->_thumbnail = ! empty( $result['thumbnail'] ) ? $result['thumbnail'] : array();
+				$post->_thumbnail = isset( $result['thumbnail'] ) && ! empty( $result['thumbnail'] ) ? $result['thumbnail'] : array();
+				$post->post_modified = $result['post_modified'];
 				?>
 				<?php get_template_part( 'inc/archives/post-card' ); ?>
 				<?php $post_i++; ?>
 			<?php endforeach; ?>
 			<?php wp_reset_postdata(); ?>
-
-			<?php
-			// Display pagination using theme's native function with mock query
-			if ( function_exists( 'extrachill_pagination' ) && function_exists( 'extrachill_create_search_query_object' ) ) {
-				$search_query = extrachill_create_search_query_object( $total_results, $posts_per_page );
-				extrachill_pagination( $search_query, 'search' );
-			}
-			?>
 		</div><!-- .article-container -->
+
+		<?php
+		if ( function_exists( 'extrachill_pagination' ) && function_exists( 'extrachill_create_search_query_object' ) ) {
+			$search_query = extrachill_create_search_query_object( $total_results, $posts_per_page );
+			extrachill_pagination( $search_query, 'search' );
+		}
+		?>
 	</div><!-- .full-width-breakout -->
 
 	<div class="back-home-link-container">

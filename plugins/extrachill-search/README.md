@@ -8,8 +8,10 @@ Network-activated WordPress plugin providing universal multisite search function
 - **Domain-Based Site Resolution** - Uses WordPress native `get_blog_id_from_url()` with automatic caching
 - **Flexible Post Type Support** - Searches all public post types (posts, pages, custom post types, bbPress topics/replies)
 - **Advanced Filtering** - Full `WP_Query` parameter support including meta queries
+- **Relevance Scoring** - Weighted algorithm prioritizing exact matches, phrase matches, and word-level matching
 - **Contextual Excerpts** - Generates search-term-centered excerpts with highlighted matches
-- **Cross-Site Pagination** - Results sorted chronologically across all sites
+- **Cross-Site Pagination** - Results sorted chronologically across all sites with 404 fix for paginated queries
+- **Pagination 404 Fix** - Automatically resolves WordPress 404 errors on paginated search across network sites
 - **Site Badges** - Visual indicators showing which site each result originates from
 
 ## Requirements
@@ -135,7 +137,13 @@ array(
 - **Static Caching** - Network sites cached in memory
 - **WordPress Native Caching** - `get_blog_id_from_url()` uses blog-id-cache automatically
 - **Efficient Blog Switching** - Minimal context switching with proper error handling
+- **Relevance Scoring** - Weighted algorithm sorts results by match quality before pagination
 - **Cross-Site Date Sorting** - Results sorted chronologically across all sites
+
+### Pagination Architecture
+WordPress native search only checks the current site for results. When paginating multisite search results, if the current site has no matching posts on a given page, WordPress returns 404 even though other network sites may have results.
+
+The plugin intercepts these 404 errors via the `template_redirect` hook, queries all network sites to verify results exist, and overrides the 404 status when multisite results are found. This ensures pagination works correctly across all 7 network sites.
 
 ## Theme Integration
 
@@ -154,10 +162,12 @@ The plugin expects your theme to provide:
 - `extrachill_archive_above_posts` - Above posts loop
 
 ### Template Override Filter
-The plugin overrides the search template using:
+The plugin uses the ExtraChill theme's template routing filter:
 ```php
-add_filter( 'extrachill_template_search', 'override_search_template', 10 );
+add_filter( 'extrachill_template_search', array( $this, 'override_search_template' ), 10 );
 ```
+
+This integrates with the theme's universal template routing system located in `inc/core/template-router.php`.
 
 ## File Structure
 

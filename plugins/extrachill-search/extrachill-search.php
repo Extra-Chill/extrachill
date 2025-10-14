@@ -2,7 +2,7 @@
 /**
  * Plugin Name: ExtraChill Search
  * Plugin URI: https://extrachill.com
- * Description: Centralized multisite search functionality for the ExtraChill Platform
+ * Description: Network-wide search across all eight sites using domain-based resolution
  * Version: 1.0.0
  * Author: Chris Huber
  * Author URI: https://chubes.net
@@ -17,14 +17,10 @@
  * @version 1.0.0
  */
 
-// Prevent direct access
 if ( ! defined( 'ABSPATH' ) ) {
-    exit;
+	exit;
 }
 
-/**
- * Plugin initialization
- */
 class ExtraChill_Search_Plugin {
 
     const VERSION = '1.0.0';
@@ -49,6 +45,7 @@ class ExtraChill_Search_Plugin {
 
         add_action( 'plugins_loaded', array( $this, 'load_textdomain' ) );
         add_filter( 'extrachill_template_search', array( $this, 'override_search_template' ), 10 );
+        add_action( 'template_redirect', array( $this, 'fix_search_404' ), 1 );
     }
 
     private function includes() {
@@ -83,15 +80,6 @@ class ExtraChill_Search_Plugin {
         load_plugin_textdomain( 'extrachill-search', false, dirname( plugin_basename( __FILE__ ) ) . '/languages/' );
     }
 
-    /**
-     * Override search template with multisite search template
-     *
-     * Hooks into ExtraChill theme's template_search filter to provide
-     * network-wide search functionality across all sites.
-     *
-     * @param string $template Default template path from theme
-     * @return string Plugin template path or original template
-     */
     public function override_search_template( $template ) {
         $plugin_template = plugin_dir_path( __FILE__ ) . 'templates/search.php';
         if ( file_exists( $plugin_template ) ) {
@@ -99,7 +87,41 @@ class ExtraChill_Search_Plugin {
         }
         return $template;
     }
+
+    /**
+     * Prevent 404 errors on paginated multisite search when current site has no results.
+     */
+    public function fix_search_404() {
+        if ( ! is_404() ) {
+            return;
+        }
+
+        $search_term = get_query_var( 's' );
+        if ( empty( $search_term ) || ! function_exists( 'extrachill_multisite_search' ) ) {
+            return;
+        }
+
+        $paged = max( 1, get_query_var( 'paged', 1 ) );
+        $posts_per_page = (int) get_option( 'posts_per_page', 10 );
+        $offset = ( $paged - 1 ) * $posts_per_page;
+
+        $search_data = extrachill_multisite_search(
+            $search_term,
+            array(),
+            array(
+                'limit'        => $posts_per_page,
+                'offset'       => $offset,
+                'return_count' => true,
+            )
+        );
+
+        if ( ! empty( $search_data['results'] ) ) {
+            global $wp_query;
+            $wp_query->is_404 = false;
+            $wp_query->is_search = true;
+            status_header( 200 );
+        }
+    }
 }
 
-// Initialize the plugin
 ExtraChill_Search_Plugin::get_instance();
