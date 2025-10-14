@@ -13,7 +13,7 @@ $preview_template_data = $preview_data ?? array();
 $container_style_attr = $preview_template_data['background_style'] ?? '';
 
 if (!isset($preview_template_data) || !is_array($preview_template_data)) {
-    echo '<div class="bp-notice bp-notice-error">Preview data not provided correctly.</div>';
+    echo '<div class="notice notice-error">Preview data not provided correctly.</div>';
     return;
 }
 
@@ -70,9 +70,6 @@ if (file_exists($plugin_dir . $extrch_links_css)): ?>
 if (file_exists($plugin_dir . $share_modal_css)): ?>
     <link rel="stylesheet" href="<?php echo esc_url($plugin_url . $share_modal_css); ?>?ver=<?php echo esc_attr(filemtime($plugin_dir . $share_modal_css)); ?>">
 <?php endif; ?>
-
-<!-- Load Font Awesome for icons (same as live page) -->
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.1/css/all.min.css">
 
 <?php
 // Load Google Fonts for preview using raw font values (base names, not processed stacks)

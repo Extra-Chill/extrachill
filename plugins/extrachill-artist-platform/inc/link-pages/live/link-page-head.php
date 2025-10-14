@@ -46,7 +46,9 @@ function extrch_link_page_custom_head( $artist_id, $link_page_id ) {
     if ( file_exists( $theme_dir . $share_modal_css_path ) ) { // Enqueue Share Modal CSS
         echo '<link rel="stylesheet" href="' . esc_url( $theme_uri . $share_modal_css_path ) . '?ver=' . esc_attr( filemtime( $theme_dir . $share_modal_css_path ) ) . '">';
     }
-    echo '<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.1/css/all.min.css">';
+
+    // Font Awesome (required for social icons)
+    echo '<link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">';
 
     // Share Modal Script
     $share_modal_js_path = '/inc/link-pages/live/assets/js/extrch-share-modal.js';

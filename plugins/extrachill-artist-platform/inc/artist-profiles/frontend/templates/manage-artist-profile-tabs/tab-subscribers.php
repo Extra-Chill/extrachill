@@ -48,12 +48,12 @@ $subscribers_csv_export_nonce = wp_create_nonce( 'export_artist_subscribers_csv_
             <?php esc_html_e('Include already exported subscribers', 'extrachill-artist-platform'); ?>
         </label>
         <?php // Changed from button to anchor tag for direct link download ?>
-        <a href="<?php echo esc_url( $export_url ); ?>" id="export-subscribers-link" class="button button-primary" style="min-width: 120px; flex: 1 1 200px; max-width: 220px; text-align: center;">
+        <a href="<?php echo esc_url( $export_url ); ?>" id="export-subscribers-link" class="button-2 button-medium" style="min-width: 120px; flex: 1 1 200px; max-width: 220px; text-align: center;">
             <?php esc_html_e( 'Export', 'extrachill-artist-platform' ); ?>
         </a>
          <?php // Optional: Add a button/form for exporting ALL subscribers if needed later ?>
-         <!-- 
-         <button type="button" class="button button-secondary" disabled><?php esc_html_e( 'Download All Subscribers (CSV) - Coming Soon', 'extrachill-artist-platform' ); ?></button>
+         <!--
+         <button type="button" class="button-2 button-medium" disabled><?php esc_html_e( 'Download All Subscribers (CSV) - Coming Soon', 'extrachill-artist-platform' ); ?></button>
           -->
     </div>
 

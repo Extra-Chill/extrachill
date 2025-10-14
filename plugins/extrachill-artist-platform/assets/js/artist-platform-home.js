@@ -41,8 +41,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Handle action card clicks with loading states
     const initActionButtons = () => {
-        const actionButtons = document.querySelectorAll('.action-card .button, .primary-action-card .button');
-        
+        const actionButtons = document.querySelectorAll('[data-action-button]');
+
         actionButtons.forEach(button => {
             button.addEventListener('click', function(e) {
                 // Add loading state
@@ -50,7 +50,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 this.textContent = 'Loading...';
                 this.disabled = true;
                 this.style.opacity = '0.7';
-                
+
                 // Remove loading state after a short delay if the page doesn't navigate
                 setTimeout(() => {
                     if (this.disabled) {
@@ -66,10 +66,10 @@ document.addEventListener('DOMContentLoaded', function() {
     // Handle artist card actions
     const initArtistCardInteractions = () => {
         const artistCards = document.querySelectorAll('.artist-profile-card');
-        
+
         artistCards.forEach(card => {
             // Add keyboard navigation support
-            const buttons = card.querySelectorAll('.button');
+            const buttons = card.querySelectorAll('[data-action-button]');
             buttons.forEach((button, index) => {
                 button.addEventListener('keydown', function(e) {
                     if (e.key === 'ArrowRight' && buttons[index + 1]) {
@@ -137,7 +137,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Add accessibility improvements
     const initAccessibility = () => {
         // Add ARIA labels to action buttons that don't have them
-        const actionButtons = document.querySelectorAll('.action-card .button, .artist-card-actions .button');
+        const actionButtons = document.querySelectorAll('[data-action-button]');
         actionButtons.forEach(button => {
             if (!button.getAttribute('aria-label')) {
                 const cardTitle = button.closest('.action-card, .artist-profile-card')
@@ -152,7 +152,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const cards = document.querySelectorAll('.feature-card, .action-card, .artist-profile-card');
         cards.forEach(card => {
             // Make cards focusable if they contain interactive elements
-            const hasInteractiveElements = card.querySelector('a, button');
+            const hasInteractiveElements = card.querySelector('[data-action-button], a, button');
             if (hasInteractiveElements && !card.hasAttribute('tabindex')) {
                 card.setAttribute('tabindex', '0');
                 card.setAttribute('role', 'group');

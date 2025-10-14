@@ -32,7 +32,7 @@ get_header(); ?>
                         
                         if ( !empty($user_artist_ids) || $is_artist_or_pro ) : ?>
                             <div class="artist-directory-actions">
-                                <a href="<?php echo home_url('/manage-artist-profiles/'); ?>" class="button">
+                                <a href="<?php echo home_url('/manage-artist-profiles/'); ?>" class="button-2 button-medium">
                                     <?php echo !empty($user_artist_ids) ? 'Manage My Artists' : 'Create Artist Profile'; ?>
                                 </a>
                             </div>

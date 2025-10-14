@@ -58,10 +58,6 @@ function ec_template_handler( $output, $template_name, $args = array() ) {
             'file' => 'inc/core/templates/artist-switcher.php',
             'required' => array()
         ),
-        'artist-profile-card' => array(
-            'file' => 'inc/artist-profiles/frontend/templates/artist-profile-card.php',
-            'required' => array( 'artist_id' )
-        ),
         // Admin/Management Templates
         'link-item-editor' => array(
             'file' => 'inc/link-pages/management/templates/components/link-item-editor.php',

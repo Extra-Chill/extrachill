@@ -116,7 +116,7 @@ get_header(); ?>
                                         if ( $manage_artist_url ) {
                                             $manage_artist_url_with_id = add_query_arg( 'artist_id', $artist_profile_id, $manage_artist_url );
                                             echo '<div class="artist-profile-actions">';
-                                            echo '<a href="' . esc_url( $manage_artist_url_with_id ) . '" class="button artist-manage-button">Manage Artist</a>';
+                                            echo '<a href="' . esc_url( $manage_artist_url_with_id ) . '" class="button-2 button-medium artist-manage-button">Manage Artist</a>';
                                             echo '</div>';
                                         }
                                     endif;
@@ -182,7 +182,7 @@ get_header(); ?>
                                         }
                                         ?>
                                         <?php if ( ! $is_own_artist ): ?>
-                                            <button type="button" class="button button-small artist-follow-button" 
+                                            <button type="button" class="button-2 button-small artist-follow-button" 
                                                     data-action="<?php echo esc_attr( $follow_button_action ); ?>" 
                                                     data-artist-id="<?php echo esc_attr( $artist_profile_id ); ?>">
                                                 <?php echo esc_html( $follow_button_text ); ?>
@@ -192,7 +192,7 @@ get_header(); ?>
                                             <span class="artist-own-indicator">(<?php esc_html_e('Your Artist', 'extrachill-artist-platform'); ?>)</span>
                                         <?php endif; ?>
                                     <?php else : // User not logged in ?>
-                                        <a href="<?php echo esc_url( site_url('/login') ); ?>" class="button button-small artist-follow-login-button">
+                                        <a href="<?php echo esc_url( site_url('/login') ); ?>" class="button-2 button-small artist-follow-login-button">
                                             <?php esc_html_e( 'Follow', 'extrachill-artist-platform' ); ?>
                                         </a>
                                     <?php endif; ?>
@@ -235,7 +235,7 @@ get_header(); ?>
                                     $manage_page = get_page_by_path( 'manage-artist-profiles' ); // Corrected slug
                                     if ( $manage_page ) { // Check if page exists before using its ID
                                         $edit_url = add_query_arg( 'artist_id', $artist_profile_id, get_permalink( $manage_page->ID ) );
-                                        echo '<p class="artist-edit-link"><a href="' . esc_url( $edit_url ) . '" class="button button-small">' . __( 'Edit Artist Profile', 'extrachill-artist-platform' ) . '</a></p>';
+                                        echo '<p class="artist-edit-link"><a href="' . esc_url( $edit_url ) . '" class="button-2 button-small">' . __( 'Edit Artist Profile', 'extrachill-artist-platform' ) . '</a></p>';
                                     }
                                     ?>
                                 <?php endif; ?>

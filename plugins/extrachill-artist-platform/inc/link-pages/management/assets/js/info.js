@@ -50,8 +50,10 @@
     };
 
 
-    document.addEventListener('infoTabActivated', function(event) {
-        InfoManager.init();
+    document.addEventListener('sharedTabActivated', function(event) {
+        if (event.detail.tabId === 'manage-link-page-tab-info') {
+            InfoManager.init();
+        }
     });
 
     if (document.readyState !== 'loading') {

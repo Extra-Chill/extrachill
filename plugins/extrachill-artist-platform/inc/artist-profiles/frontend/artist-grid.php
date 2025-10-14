@@ -110,7 +110,7 @@ function ec_display_artist_cards_grid( $limit = 12, $exclude_user_artists = fals
         echo '<div class="no-artists-found">';
         echo '<p>' . __( 'No artists have joined the platform yet.', 'extrachill-artist-platform' ) . '</p>';
         if ( is_user_logged_in() && ec_can_create_artist_profiles( get_current_user_id() ) ) {
-            echo '<p><a href="' . esc_url( home_url( '/manage-artist-profiles/' ) ) . '" class="button button-primary">';
+            echo '<p><a href="' . esc_url( home_url( '/manage-artist-profiles/' ) ) . '" class="button">';
             echo __( 'Create the First Artist Profile', 'extrachill-artist-platform' );
             echo '</a></p>';
         }
@@ -137,21 +137,19 @@ function ec_display_artist_cards_grid( $limit = 12, $exclude_user_artists = fals
     $artists_with_activity = array_slice( $artists_with_activity, 0, $limit );
 
     echo '<div class="artist-cards-grid">';
-    
+
     foreach ( $artists_with_activity as $artist_data ) {
         $artist_id = $artist_data['id'];
-        $activity_timestamp = $artist_data['activity'];
-        
-        // Format activity date
-        $activity_date = $activity_timestamp ? human_time_diff( $activity_timestamp, time() ) : __( 'No recent activity', 'extrachill-artist-platform' );
-        
-        // Use the artist profile card template - set context to indicate this is for directory/homepage display
-        $context = 'directory';
-        echo ec_render_template( 'artist-profile-card', array(
-            'artist_id' => $artist_id,
-            'context' => $context
-        ) );
+        $artist_post = get_post( $artist_id );
+
+        if ( $artist_post ) {
+            global $post;
+            $post = $artist_post;
+            setup_postdata( $post );
+            include( EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/artist-profiles/frontend/templates/artist-card.php' );
+            wp_reset_postdata();
+        }
     }
-    
+
     echo '</div>'; // .artist-cards-grid
 }

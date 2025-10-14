@@ -24,31 +24,31 @@ if ( ! defined( 'ABSPATH' ) ) exit;
 
         <div class="extrch-share-modal-options-grid extrch-share-modal-options">
             <!-- Native share (shown only when supported) -->
-            <button type="button" class="extrch-share-option-button extrch-share-option-native extrch-modal-hidden">
+            <button type="button" class="extrch-share-option-button button-2 button-medium extrch-share-option-native extrch-modal-hidden">
                 <span class="extrch-share-option-icon"><i class="fas fa-share-square"></i></span>
                 <span class="extrch-share-option-label"><?php esc_html_e('Share', 'extrachill-artist-platform'); ?></span>
             </button>
 
             <!-- Fallback social links (hidden when native share is available) -->
-            <a class="extrch-share-option-button extrch-share-option-facebook extrch-share-option-visible" href="#" target="_blank" rel="noopener">
+            <a class="extrch-share-option-button button-2 button-medium extrch-share-option-facebook extrch-share-option-visible" href="#" target="_blank" rel="noopener">
                 <span class="extrch-share-option-icon"><i class="fab fa-facebook"></i></span>
                 <span class="extrch-share-option-label">Facebook</span>
             </a>
-            <a class="extrch-share-option-button extrch-share-option-twitter extrch-share-option-visible" href="#" target="_blank" rel="noopener">
+            <a class="extrch-share-option-button button-2 button-medium extrch-share-option-twitter extrch-share-option-visible" href="#" target="_blank" rel="noopener">
                 <span class="extrch-share-option-icon"><i class="fab fa-x-twitter"></i></span>
                 <span class="extrch-share-option-label">X</span>
             </a>
-            <a class="extrch-share-option-button extrch-share-option-linkedin extrch-share-option-visible" href="#" target="_blank" rel="noopener">
+            <a class="extrch-share-option-button button-2 button-medium extrch-share-option-linkedin extrch-share-option-visible" href="#" target="_blank" rel="noopener">
                 <span class="extrch-share-option-icon"><i class="fab fa-linkedin"></i></span>
                 <span class="extrch-share-option-label">LinkedIn</span>
             </a>
-            <a class="extrch-share-option-button extrch-share-option-email extrch-share-option-visible" href="#" target="_blank" rel="noopener">
+            <a class="extrch-share-option-button button-2 button-medium extrch-share-option-email extrch-share-option-visible" href="#" target="_blank" rel="noopener">
                 <span class="extrch-share-option-icon"><i class="fas fa-envelope"></i></span>
                 <span class="extrch-share-option-label"><?php esc_html_e('Email', 'extrachill-artist-platform'); ?></span>
             </a>
 
             <!-- Copy link (always available) -->
-            <button type="button" class="extrch-share-option-button extrch-share-option-copy-link">
+            <button type="button" class="extrch-share-option-button button-2 button-medium extrch-share-option-copy-link">
                 <span class="extrch-share-option-icon"><i class="fas fa-copy"></i></span>
                 <span class="extrch-share-option-label"><?php esc_html_e('Copy Link', 'extrachill-artist-platform'); ?></span>
             </button>

@@ -322,17 +322,17 @@ class ExtraChillArtistPlatform_Fonts {
 
     /**
      * Get @font-face definition for WilcoLoftSans
-     * 
+     *
      * @since 1.1.0
      * @return string CSS @font-face definition
      */
     private function get_wilco_loft_sans_font_face() {
         $theme_url = get_template_directory_uri();
-        
+
         return "@font-face {
     font-family: 'WilcoLoftSans';
-    src: url('{$theme_url}/fonts/WilcoLoftSans/WilcoLoftSans-Treble.woff2') format('woff2'),
-         url('{$theme_url}/fonts/WilcoLoftSans/WilcoLoftSans-Treble.woff') format('woff');
+    src: url('{$theme_url}/assets/fonts/WilcoLoftSans-Treble.woff2') format('woff2'),
+         url('{$theme_url}/assets/fonts/WilcoLoftSans-Treble.woff') format('woff');
     font-weight: normal;
     font-style: normal;
     font-display: swap;

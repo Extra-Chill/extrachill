@@ -56,56 +56,94 @@ class ExtraChillArtistPlatform_Assets {
 
         // Artist profile single page assets
         if ( $this->is_artist_profile_page() ) {
-            wp_enqueue_style( 
-                'extrachill-artist-profile', 
-                $plugin_url . 'assets/css/artist-profile.css', 
-                array(), 
+            wp_enqueue_style(
+                'extrachill-artist-profile',
+                $plugin_url . 'assets/css/artist-profile.css',
+                array(),
                 $this->get_asset_version( 'assets/css/artist-profile.css' )
             );
-            
-            // Enqueue topics loop CSS for forum integration
-            wp_enqueue_style( 
-                'extrachill-topics-loop', 
-                get_template_directory_uri() . '/css/topics-loop.css', 
-                array(), 
-                wp_get_theme()->get('Version')
-            );
+
+            // Load community plugin forum styles for hybrid artist profile pages
+            if ( defined( 'EXTRACHILL_COMMUNITY_PLUGIN_URL' ) && defined( 'EXTRACHILL_COMMUNITY_PLUGIN_DIR' ) ) {
+                wp_enqueue_style(
+                    'extrachill-bbpress',
+                    EXTRACHILL_COMMUNITY_PLUGIN_URL . '/inc/assets/css/bbpress.css',
+                    array(),
+                    filemtime( EXTRACHILL_COMMUNITY_PLUGIN_DIR . '/inc/assets/css/bbpress.css' )
+                );
+
+                wp_enqueue_style(
+                    'topics-loop',
+                    EXTRACHILL_COMMUNITY_PLUGIN_URL . '/inc/assets/css/topics-loop.css',
+                    array( 'extrachill-bbpress' ),
+                    filemtime( EXTRACHILL_COMMUNITY_PLUGIN_DIR . '/inc/assets/css/topics-loop.css' )
+                );
+
+                wp_enqueue_style(
+                    'replies-loop',
+                    EXTRACHILL_COMMUNITY_PLUGIN_URL . '/inc/assets/css/replies-loop.css',
+                    array( 'extrachill-bbpress' ),
+                    filemtime( EXTRACHILL_COMMUNITY_PLUGIN_DIR . '/inc/assets/css/replies-loop.css' )
+                );
+            }
         }
 
         // Artist directory assets
         if ( $this->is_artist_directory_page() ) {
-            wp_enqueue_style( 
-                'extrachill-artist-platform-home', 
-                $plugin_url . 'assets/css/artist-platform-home.css', 
-                array(), 
+            wp_enqueue_style(
+                'extrachill-artist-card',
+                $plugin_url . 'assets/css/artist-card.css',
+                array(),
+                $this->get_asset_version( 'assets/css/artist-card.css' )
+            );
+
+            wp_enqueue_style(
+                'extrachill-artist-platform-home',
+                $plugin_url . 'assets/css/artist-platform-home.css',
+                array( 'extrachill-artist-card' ),
                 $this->get_asset_version( 'assets/css/artist-platform-home.css' )
             );
         }
 
         // Hero card styles for artist platform home page and artist archive
         if ( $this->should_load_hero_card_styles() ) {
-            wp_enqueue_style( 
-                'extrachill-artist-platform-home', 
-                $plugin_url . 'assets/css/artist-platform-home.css', 
-                array( 'extrachill-artist-platform' ), 
+            // Load dedicated artist card styles
+            wp_enqueue_style(
+                'extrachill-artist-card',
+                $plugin_url . 'assets/css/artist-card.css',
+                array(),
+                $this->get_asset_version( 'assets/css/artist-card.css' )
+            );
+
+            wp_enqueue_style(
+                'extrachill-artist-platform-home',
+                $plugin_url . 'assets/css/artist-platform-home.css',
+                array( 'extrachill-artist-platform', 'extrachill-artist-card' ),
                 $this->get_asset_version( 'assets/css/artist-platform-home.css' )
             );
 
-            wp_enqueue_script( 
-                'extrachill-artist-platform-home', 
-                $plugin_url . 'assets/js/artist-platform-home.js', 
-                array( 'jquery' ), 
-                $this->get_asset_version( 'assets/js/artist-platform-home.js' ), 
-                true 
+            wp_enqueue_script(
+                'extrachill-artist-platform-home',
+                $plugin_url . 'assets/js/artist-platform-home.js',
+                array( 'jquery' ),
+                $this->get_asset_version( 'assets/js/artist-platform-home.js' ),
+                true
             );
         }
 
         // bbPress user profile pages with artist cards
         if ( $this->is_bbpress_user_profile() ) {
-            wp_enqueue_style( 
-                'extrachill-artist-platform-home', 
-                $plugin_url . 'assets/css/artist-platform-home.css', 
-                array(), 
+            wp_enqueue_style(
+                'extrachill-artist-card',
+                $plugin_url . 'assets/css/artist-card.css',
+                array(),
+                $this->get_asset_version( 'assets/css/artist-card.css' )
+            );
+
+            wp_enqueue_style(
+                'extrachill-artist-platform-home',
+                $plugin_url . 'assets/css/artist-platform-home.css',
+                array( 'extrachill-artist-card' ),
                 $this->get_asset_version( 'assets/css/artist-platform-home.css' )
             );
         }
@@ -241,6 +279,10 @@ class ExtraChillArtistPlatform_Assets {
     private function enqueue_artist_profile_management_assets() {
         $plugin_url = EXTRACHILL_ARTIST_PLATFORM_PLUGIN_URL;
 
+        // Enqueue shared tabs for profile management interface
+        wp_enqueue_style( 'extrachill-shared-tabs', get_template_directory_uri() . '/assets/css/shared-tabs.css', array(), filemtime( get_template_directory() . '/assets/css/shared-tabs.css' ) );
+        wp_enqueue_script( 'extrachill-shared-tabs', get_template_directory_uri() . '/assets/js/shared-tabs.js', array( 'jquery' ), filemtime( get_template_directory() . '/assets/js/shared-tabs.js' ), true );
+
         // Enqueue artist-switcher CSS (dependency)
         wp_enqueue_style(
             'extrachill-artist-switcher',
@@ -289,6 +331,10 @@ class ExtraChillArtistPlatform_Assets {
 
     private function enqueue_link_page_management_assets() {
         $plugin_url = EXTRACHILL_ARTIST_PLATFORM_PLUGIN_URL;
+
+        // Enqueue shared tabs for management interface
+        wp_enqueue_style( 'extrachill-shared-tabs', get_template_directory_uri() . '/assets/css/shared-tabs.css', array(), filemtime( get_template_directory() . '/assets/css/shared-tabs.css' ) );
+        wp_enqueue_script( 'extrachill-shared-tabs', get_template_directory_uri() . '/assets/js/shared-tabs.js', array( 'jquery' ), filemtime( get_template_directory() . '/assets/js/shared-tabs.js' ), true );
 
         // Core assets are handled by individual enqueue methods below
 
@@ -523,7 +569,7 @@ class ExtraChillArtistPlatform_Assets {
     }
 
     private function should_load_hero_card_styles() {
-        // Artist platform homepage on artist.extrachill.com (site #6)
+        // Artist platform homepage on artist.extrachill.com (site #4)
         $is_home_page = false;
         if ( is_front_page() || is_home() ) {
             $artist_blog_id = get_blog_id_from_url( 'artist.extrachill.com', '/' );
@@ -596,7 +642,7 @@ class ExtraChillArtistPlatform_Assets {
      * with dependencies on community plugin's login/register interface.
      */
     public function enqueue_join_flow_assets() {
-        if ( ! is_page_template( 'page-templates/login-register-template.php' ) ) {
+        if ( ! isset( $_GET['from_join'] ) || $_GET['from_join'] !== 'true' ) {
             return;
         }
 
@@ -608,7 +654,7 @@ class ExtraChillArtistPlatform_Assets {
             wp_enqueue_style(
                 'ec-join-flow',
                 $plugin_url . $css_path,
-                array( 'login-register-styles' ),
+                array( 'extrachill-shared-tabs' ),
                 $this->get_asset_version( $css_path )
             );
         }
@@ -617,7 +663,7 @@ class ExtraChillArtistPlatform_Assets {
             wp_enqueue_script(
                 'ec-join-flow-ui',
                 $plugin_url . $js_path,
-                array( 'login-register-tabs' ),
+                array( 'extrachill-shared-tabs' ),
                 $this->get_asset_version( $js_path ),
                 true
             );

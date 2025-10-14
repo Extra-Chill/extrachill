@@ -15,8 +15,15 @@ get_header(); ?>
     <div class="main-content">
         <main id="main" class="site-main">
 
+            <?php
+            // Display breadcrumbs
+            if ( function_exists( 'extrachill_breadcrumbs' ) ) {
+                extrachill_breadcrumbs();
+            }
+            ?>
+
             <div class="entry-content">
-                
+
                 <div class="artist-directory-header">
                     <h1 class="page-title"><?php esc_html_e( 'Artists', 'extrachill-artist-platform' ); ?></h1>
                     <p class="page-description">
@@ -32,7 +39,7 @@ get_header(); ?>
                         
                         if ( !empty($user_artist_ids) || $is_artist_or_pro ) : ?>
                             <div class="artist-directory-actions">
-                                <a href="<?php echo esc_url( home_url('/manage-artist-profiles/') ); ?>" class="button">
+                                <a href="<?php echo esc_url( home_url('/manage-artist-profiles/') ); ?>" class="button-2 button-medium">
                                     <?php echo !empty($user_artist_ids) ? esc_html__( 'Manage My Artists', 'extrachill-artist-platform' ) : esc_html__( 'Create Artist Profile', 'extrachill-artist-platform' ); ?>
                                 </a>
                             </div>
@@ -41,21 +48,15 @@ get_header(); ?>
                 </div>
 
                 <?php if ( have_posts() ) : ?>
-                    
+
                     <div class="artist-cards-grid">
-                        
+
                         <?php while ( have_posts() ) : the_post(); ?>
-                            
-                            <?php
-                            // Use the artist-profile-card component via unified template system
-                            echo ec_render_template( 'artist-profile-card', array(
-                                'artist_id' => get_the_ID(),
-                                'context' => 'directory'
-                            ) );
-                            ?>
-                            
+
+                            <?php include( EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/artist-profiles/frontend/templates/artist-card.php' ); ?>
+
                         <?php endwhile; ?>
-                        
+
                     </div><!-- .artist-cards-grid -->
 
                     <?php
@@ -71,7 +72,7 @@ get_header(); ?>
                         
                         <?php if ( is_user_logged_in() && current_user_can( 'edit_posts' ) ) : ?>
                             <p>
-                                <a href="<?php echo esc_url( home_url( '/manage-artist-profiles/' ) ); ?>" class="button button-primary">
+                                <a href="<?php echo esc_url( home_url( '/manage-artist-profiles/' ) ); ?>" class="button-2 button-medium">
                                     <?php esc_html_e( 'Create the First Artist Profile', 'extrachill-artist-platform' ); ?>
                                 </a>
                             </p>

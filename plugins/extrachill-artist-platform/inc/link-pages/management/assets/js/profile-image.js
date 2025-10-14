@@ -115,8 +115,10 @@
     };
 
     // Listen for profile image tab activation (if separate) or info tab
-    document.addEventListener('infoTabActivated', function(event) {
-        ProfileImageManager.init();
+    document.addEventListener('sharedTabActivated', function(event) {
+        if (event.detail.tabId === 'manage-link-page-tab-info') {
+            ProfileImageManager.init();
+        }
     });
 
     // Auto-initialize when DOM is ready (for default tab)

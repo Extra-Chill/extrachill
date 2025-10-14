@@ -547,10 +547,10 @@ body {
 
 /* --- Bulletproof subscribe form input and button override for manager and live page (restored) --- */
 .extrch-link-page-subscribe-inline-form-container form.extrch-subscribe-form button[type="submit"],
-.extrch-link-page-subscribe-inline-form-container .button.button-primary,
+.extrch-link-page-subscribe-inline-form-container .button,
 .extrch-link-page-subscribe-inline-form-container .extrch-subscribe-btn,
 .extrch-subscribe-modal form.extrch-subscribe-form button[type="submit"],
-.extrch-subscribe-modal .button.button-primary,
+.extrch-subscribe-modal .button,
 .extrch-subscribe-modal .extrch-subscribe-btn {
   background: var(--link-page-button-bg-color) !important;
   color: var(--link-page-link-text-color) !important;
@@ -571,10 +571,10 @@ body {
   display: block !important;
 }
 .extrch-link-page-subscribe-inline-form-container form.extrch-subscribe-form button[type="submit"]:hover:not(:disabled),
-.extrch-link-page-subscribe-inline-form-container .button.button-primary:hover:not(:disabled),
+.extrch-link-page-subscribe-inline-form-container .button:hover:not(:disabled),
 .extrch-link-page-subscribe-inline-form-container .extrch-subscribe-btn:hover:not(:disabled),
 .extrch-subscribe-modal form.extrch-subscribe-form button[type="submit"]:hover:not(:disabled),
-.extrch-subscribe-modal .button.button-primary:hover:not(:disabled),
+.extrch-subscribe-modal .button:hover:not(:disabled),
 .extrch-subscribe-modal .extrch-subscribe-btn:hover:not(:disabled) {
   background: var(--link-page-button-hover-bg-color) !important;
   color: var(--link-page-button-bg-color) !important;
@@ -583,7 +583,7 @@ body {
 
 /* --- Ensure subscribe button hover works in live preview (iframe) --- */
 .extrch-link-page-preview-container .extrch-link-page-subscribe-inline-form-container form.extrch-subscribe-form button[type="submit"]:hover:not(:disabled),
-.extrch-link-page-preview-container .extrch-link-page-subscribe-inline-form-container .button.button-primary:hover:not(:disabled),
+.extrch-link-page-preview-container .extrch-link-page-subscribe-inline-form-container .button:hover:not(:disabled),
 .extrch-link-page-preview-container .extrch-link-page-subscribe-inline-form-container .extrch-subscribe-btn:hover:not(:disabled) {
   background: var(--link-page-button-hover-bg-color) !important;
   color: var(--link-page-button-bg-color) !important;

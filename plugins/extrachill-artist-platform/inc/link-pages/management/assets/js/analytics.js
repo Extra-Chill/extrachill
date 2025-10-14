@@ -171,8 +171,10 @@
     // No global exposure - module is self-contained and event-driven
 
     // Listen for analytics tab activation
-    document.addEventListener('analyticsTabActivated', function(event) {
-        handleAnalyticsTabBecameVisible();
+    document.addEventListener('sharedTabActivated', function(event) {
+        if (event.detail.tabId === 'manage-link-page-tab-analytics') {
+            handleAnalyticsTabBecameVisible();
+        }
     });
 
 })();

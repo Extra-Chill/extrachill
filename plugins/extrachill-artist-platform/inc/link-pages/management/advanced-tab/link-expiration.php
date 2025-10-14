@@ -65,9 +65,9 @@ function extrch_render_link_expiration_modal() {
                 <input type="datetime-local" id="bp-link-expiration-datetime" class="bp-link-expiration-datetime">
             </label>
             <div class="bp-link-expiration-modal-actions">
-                <button type="button" class="button button-primary" id="bp-save-link-expiration"><?php esc_html_e('Save', 'extrachill-artist-platform'); ?></button>
-                <button type="button" class="button" id="bp-clear-link-expiration"><?php esc_html_e('Clear', 'extrachill-artist-platform'); ?></button>
-                <button type="button" class="button" id="bp-cancel-link-expiration"><?php esc_html_e('Cancel', 'extrachill-artist-platform'); ?></button>
+                <button type="button" class="button-2 button-medium" id="bp-save-link-expiration"><?php esc_html_e('Save', 'extrachill-artist-platform'); ?></button>
+                <button type="button" class="button-2 button-medium" id="bp-clear-link-expiration"><?php esc_html_e('Clear', 'extrachill-artist-platform'); ?></button>
+                <button type="button" class="button-3 button-medium" id="bp-cancel-link-expiration"><?php esc_html_e('Cancel', 'extrachill-artist-platform'); ?></button>
             </div>
         </div>
     </div>

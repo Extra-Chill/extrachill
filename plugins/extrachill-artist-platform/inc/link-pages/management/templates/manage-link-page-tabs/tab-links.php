@@ -61,7 +61,7 @@ require_once dirname(dirname(__DIR__)) . '/advanced-tab/link-expiration.php';
             <?php endforeach; ?>
         </div>
         <!-- Social icons now processed via individual form fields -->
-        <button type="button" id="bp-add-social-icon-btn" class="button button-secondary bp-add-social-icon-btn"><i class="fas fa-plus"></i> <?php esc_html_e('Add Social Icon', 'extrachill-artist-platform'); ?></button>
+        <button type="button" id="bp-add-social-icon-btn" class="button-2 button-medium bp-add-social-icon-btn"><i class="fas fa-plus"></i> <?php esc_html_e('Add Social Icon', 'extrachill-artist-platform'); ?></button>
 
         <div class="bp-social-icons-position-setting" style="margin-top: 15px;">
             <h4><?php esc_html_e('Social Icons Position', 'extrachill-artist-platform'); ?></h4>
@@ -111,11 +111,11 @@ require_once dirname(dirname(__DIR__)) . '/advanced-tab/link-expiration.php';
                             </div>
                         <?php endforeach; ?>
                     </div>
-                    <button type="button" class="button button-secondary bp-add-link-btn" data-sidx="<?php echo esc_attr($sidx); ?>"><i class="fas fa-plus"></i> Add Link</button>
+                    <button type="button" class="button-2 button-medium bp-add-link-btn" data-sidx="<?php echo esc_attr($sidx); ?>"><i class="fas fa-plus"></i> Add Link</button>
                 </div>
             <?php endforeach; ?>
         </div>
-        <button type="button" id="bp-add-link-section-btn" class="button button-secondary bp-add-link-section-btn"><i class="fas fa-plus"></i> Add Link Section</button>
+        <button type="button" id="bp-add-link-section-btn" class="button-2 button-medium bp-add-link-section-btn"><i class="fas fa-plus"></i> Add Link Section</button>
     </div>
 </div>
 

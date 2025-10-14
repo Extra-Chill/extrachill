@@ -226,15 +226,11 @@
 
 /* Link Page Management Button Container */
 .link-page-manage-button-container {
-    margin-top: 1em; 
-    padding: 1em; 
-    background-color: var(--background-color); 
-    border: 1px solid var(--border-color);   
-    border-radius: 6px; 
-}
-
-.link-page-manage-button-container .button-primary {
-    /* Add any specific styling if defaults aren't enough */
+    margin-top: 1em;
+    padding: 1em;
+    background-color: var(--background-color);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
 }
 
 /* Submit group */
@@ -610,73 +606,6 @@ body.bp-modal-open {
 @media (prefers-color-scheme: dark) {
     /* #bp-invite-member-modal.bp-modal {} */ /* Most styling handled by vars */
     /* #bp-invite-member-modal .bp-modal-close {} */
-}
-
-/*--------------------------------------------------------------
-# Notices / Feedback Messages
---------------------------------------------------------------*/
-.bp-notice {
-    padding: 1em 1.5em;
-    margin-bottom: 1.5em;
-    margin-top: 15px !important; /* Increased specificity and value to ensure separation */
-    border-left-width: 4px;
-    border-left-style: solid;
-    border-radius: 4px;
-    background-color: var(--card-background); /* Default background */
-    box-sizing: border-box; /* Added for robustness */
-}
-
-.bp-notice p {
-    margin: 0.5em 0;
-}
-
-.bp-notice p:first-child {
-    margin-top: 0;
-}
-
-.bp-notice p:last-child {
-    margin-bottom: 0;
-}
-
-.bp-notice-success {
-    border-left-color: var(--accent, #53940b); /* Green accent for success */
-    /* background-color: lime !important; DEBUG: Force obvious background */
-    /* color: black !important; DEBUG: Ensure text is readable on lime background */
-}
-
-.bp-notice-error {
-    border-left-color: #dc3232; /* WordPress error red */
-    color: var(--text-color); /* Ensure text is readable */
-}
-
-.bp-notice .button,
-.bp-notice a.button {
-    background-color: var(--button-bg, #0b5394);
-    color: var(--header-text, #fff); /* Assuming button text is light on dark bg */
-    padding: 0.5em 1em;
-    text-decoration: none;
-    border-radius: 3px;
-    font-size: 0.9em;
-    margin-right: 0.5em;
-    border: 1px solid transparent;
-    display: inline-block; /* Align buttons properly */
-    line-height: normal; /* Ensure consistent height */
-}
-
-.bp-notice .button:hover,
-.bp-notice a.button:hover {
-    background-color: var(--button-hover-bg, #083b6c);
-    color: var(--header-text, #fff);
-}
-
-.bp-notice .button-secondary,
-.bp-notice a.button-secondary {
-    background-color: var(--button-secondary-bg, #53940b);
-}
-
-.bp-notice .button-secondary:hover,
-.bp-notice a.button-secondary:hover {
-    background-color: var(--button-secondary-hover-bg, #3f7208); /* Darken secondary on hover */
 }
 
 /* Shared Tabs Component - Desktop Pane Display */

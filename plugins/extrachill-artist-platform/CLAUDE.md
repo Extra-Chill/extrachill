@@ -169,6 +169,105 @@ CREATE TABLE {prefix}_artist_subscribers (
 );
 ```
 
+## Plugin Integration
+
+### Cross-Plugin Dependencies
+
+**Required Plugins**:
+- **bbPress**: Forum integration and artist forum creation (enforced via WordPress native plugin dependency system)
+
+**Recommended Plugins**:
+- **extrachill-users**: Provides avatar menu system and user creation filter
+- **extrachill-multisite**: Network-wide functionality and cross-site data access
+- **extrachill-login-register**: Join flow integration via action hooks
+
+### Avatar Menu Integration
+
+**File**: `inc/core/filters/avatar-menu.php`
+
+The plugin integrates with the theme's avatar dropdown menu system to provide artist-specific management options.
+
+**Filter Used**: `ec_avatar_menu_items`
+
+**Integration Pattern**:
+```php
+add_filter( 'ec_avatar_menu_items', 'extrachill_artist_platform_avatar_menu_items', 10, 2 );
+```
+
+**Provided Menu Items**:
+- **"Manage Artist Profile(s)"** - Links to most recently updated artist profile (priority: 5)
+- **"Manage Link Page(s)"** - Links to link page management for latest artist (priority: 6)
+- **"Create Artist Profile"** - Shown only when user has no profiles but has creation permission (priority: 5)
+
+**Intelligent URL Generation**:
+- Detects user's accessible artist profiles via `ec_get_user_accessible_artists()`
+- Automatically selects most recently updated artist profile for menu links
+- Appends `artist_id` query parameter for direct navigation to specific artist
+- Cross-domain links to artist.extrachill.com for management interfaces
+
+### Homepage Template Override
+
+**File**: `inc/home/homepage-override.php`
+
+Provides custom homepage for artist.extrachill.com subdomain using theme's universal template routing system.
+
+**Filter Used**: `extrachill_template_homepage`
+
+**Integration Pattern**:
+```php
+add_filter( 'extrachill_template_homepage', 'ec_artist_platform_override_homepage' );
+```
+
+**Site Detection**:
+- Uses WordPress native `get_blog_id_from_url( 'artist.extrachill.com', '/' )` for site identification
+- Compares against `get_current_blog_id()` for conditional override
+- Returns plugin template path when on artist subdomain: `inc/home/templates/homepage.php`
+
+**Template Features**:
+- Artist grid display with activity-based sorting
+- Homepage-specific assets loaded via `ExtraChillArtistPlatform_Assets::enqueue_homepage_assets()`
+- Integration with theme layout and navigation
+
+### Join Flow Integration
+
+**File**: `inc/join/join-flow-init.php`
+
+Integrates with extrachill-login-register plugin to provide artist platform onboarding.
+
+**Action Hook Used**: `extrachill_below_login_register_form`
+
+**Integration Pattern**:
+```php
+add_action( 'extrachill_below_login_register_form', 'ec_render_join_flow_modal' );
+```
+
+**Provided Features**:
+- **Modal Interface**: Renders join flow modal for account selection (existing vs new)
+- **Asset Loading**: Conditional enqueuing of join flow CSS/JS when `from_join` parameter detected
+- **Registration Handler**: `ec_handle_join_flow_user_registration()` creates artist profile and link page post-registration
+- **Roster Integration**: Automatically links user to their own artist profile via `bp_add_artist_membership()`
+- **Forum Creation**: Creates dedicated artist forum via `bp_create_artist_forum_on_save()`
+
+**URL Parameter Detection**:
+- Detects `from_join` parameter to trigger join flow interface
+- Uses transients for post-registration redirect tracking: `join_flow_completion_{user_id}`
+
+### Cross-Site Functionality
+
+**Community Integration (community.extrachill.com)**:
+- Artist forums created and managed via bbPress integration
+- Forum permissions linked to artist roster membership
+- Cross-domain navigation between community and artist sites
+
+**Main Site Integration (extrachill.com)**:
+- Artist profile display and navigation
+- Cross-site theme integration for consistent styling
+
+**Artist Site (artist.extrachill.com)**:
+- Homepage template override for artist grid
+- Management interfaces for profiles and link pages
+- Analytics dashboard and subscription management
+
 ### Dependencies
 - **WordPress**: 5.0+ (tested up to 6.4)
 - **PHP**: 7.4+

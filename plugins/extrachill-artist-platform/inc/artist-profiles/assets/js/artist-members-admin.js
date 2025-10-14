@@ -48,7 +48,7 @@ jQuery(document).ready(function($) {
                                     .text(`${user.display_name} (${user.user_login})`)
                                     .append(' ')
                                     .append(
-                                        $('<button type="button" class="button button-small bp-select-artist-button">Select</button>')
+                                        $('<button type="button" class="button-1 button-small bp-select-artist-button">Select</button>')
                                             .data('user-id', user.ID)
                                             .data('user-name', `${user.display_name} (${user.user_login})`)
                                     )

@@ -124,9 +124,6 @@ ExtraChillArtistPlatform_SocialLinks::instance();
 // Live preview processing
 ExtraChill_Live_Preview_Handler::instance();
 
-// Migration system (band -> artist terminology)  
-ExtraChillArtistPlatform_Migration::instance();
-
 // Centralized data provider function
 $data = ec_get_link_page_data($artist_id, $link_page_id);
 
@@ -521,7 +518,6 @@ inc/
 │   ├── artist-platform-assets.php       # Asset management class
 │   ├── class-templates.php              # Page template handling
 │   ├── artist-platform-post-types.php   # CPT registration
-│   ├── artist-platform-migration.php    # Migration system
 │   ├── artist-platform-rewrite-rules.php # URL routing
 │   ├── actions/
 │   │   ├── save.php                     # Centralized save operations
@@ -656,6 +652,57 @@ The plugin extends Font Awesome with custom social platform icons:
 - **Seamless Integration**: Works with existing Font Awesome classes
 
 Custom icons are defined in `assets/css/custom-social-icons.css` using SVG mask techniques.
+
+## Image Meta Key Reference
+
+**CRITICAL**: These meta keys must be used consistently throughout the codebase. Any inconsistency will break image associations after migration.
+
+### Artist Profile Images
+
+| Image Type | Meta Key | Storage Method | Usage |
+|-----------|----------|----------------|-------|
+| **Profile Avatar** | `_thumbnail_id` | WordPress native featured image | `get_post_thumbnail_id()` / `set_post_thumbnail()` |
+| **Header Image** | `_artist_profile_header_image_id` | Custom post meta | `get_post_meta()` / `update_post_meta()` |
+
+**Files Using These Keys**:
+- ✅ `inc/core/filters/upload.php` line 160, 164 (WRITE)
+- ✅ `inc/artist-profiles/frontend/templates/single-artist_profile.php` line 93 (READ)
+- ✅ `inc/artist-profiles/frontend/templates/artist-profile-card.php` line 33 (READ)
+- ✅ `inc/artist-profiles/frontend/templates/manage-artist-profile-tabs/tab-info.php` line 95 (READ)
+- ✅ `inc/artist-profiles/frontend/templates/manage-artist-profiles.php` line 148, 150 (READ) - **FIXED 2025-10-09**
+
+### Link Page Images
+
+| Image Type | Meta Key | Storage Method | Usage |
+|-----------|----------|----------------|-------|
+| **Featured Image** | `_thumbnail_id` | WordPress native featured image | `get_post_thumbnail_id()` / `set_post_thumbnail()` |
+| **Background Image** | `_link_page_background_image_id` | Custom post meta | `get_post_meta()` / `update_post_meta()` |
+| **Profile Image Reference** | `_link_page_profile_image_id` | Custom post meta (stores artist's `_thumbnail_id`) | Synced from artist profile |
+
+**Files Using These Keys**:
+- ✅ `inc/core/filters/upload.php` line 61 (background WRITE), line 95 (profile reference WRITE)
+- ✅ `inc/link-pages/management/ajax/background.php` line 81 (background WRITE)
+- ✅ `inc/core/actions/sync.php` line 135, 139 (profile reference sync)
+
+### Migration Script References
+
+**Admin Tools Plugin**: `extrachill-admin-tools/inc/tools/artist-platform-migration.php`
+- Line 809-811: Collect `_artist_profile_header_image_id` from profiles
+- Line 819-820: Collect `_link_page_background_image_id` from link pages
+- Line 805-806: Collect `_thumbnail_id` from profiles (featured image)
+- Line 815-816: Collect `_thumbnail_id` from link pages (featured image)
+
+### Historical Issues (Resolved)
+
+**2025-10-09**: Fixed inconsistent meta keys that broke image associations after migration:
+- ❌ **WRONG**: `_artist_header_image_id` was being READ in `manage-artist-profiles.php`
+- ✅ **CORRECT**: `_artist_profile_header_image_id` is the actual key used everywhere else
+- ❌ **WRONG**: `_artist_profile_image_id` was being READ (completely incorrect key)
+- ✅ **CORRECT**: Should use WordPress native `get_post_thumbnail_id()`
+- ❌ **WRONG**: `_ec_background_image_id` was being checked in migration script
+- ✅ **CORRECT**: `_link_page_background_image_id` is the actual key
+
+**If keys need to be changed in the future**: Run a database migration to update all instances of the old key to the new key across `wp_postmeta` table.
 
 ## License
 

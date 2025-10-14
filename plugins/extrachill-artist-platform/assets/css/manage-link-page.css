@@ -1,7 +1,6 @@
 .manage-link-page-container { font-family: inherit; }
 #bp-link-list-section { margin-bottom: 2em; }
-.bp-link-row input[type="text"], .bp-link-row input[type="url"] { padding: 6px; border: 1px solid #ccc; border-radius: 3px; }
-.bp-link-row button { padding: 4px 8px; }
+.bp-link-row button { padding: var(--button-padding-small); }
 
 /* Split layout for manage link page */
 .manage-link-page-title {
@@ -275,7 +274,7 @@
 }
 
 #bp-qr-code-modal-image-container .loading-message,
-#bp-qr-code-modal-image-container .bp-notice-error {
+#bp-qr-code-modal-image-container .notice-error {
     margin: 1em 0;
     padding: 0.5em;
 }
@@ -324,6 +323,11 @@ i.fa-solid.fa-qrcode:hover {
     max-width: 100%; /* Prevent inputs from exceeding their container's width */
     box-sizing: border-box; /* Include padding and border in the element's total width and height */
     margin-bottom: 0.5em; /* Add some space below inputs if they stack */
+    padding: 8px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background-color: var(--card-background);
+    color: var(--text-color);
 }
 
 /* --- Social Icon Row Adjustments within Cards --- */

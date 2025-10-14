@@ -24,7 +24,7 @@ $current_link_page_id = isset($link_page_id) ? $link_page_id : 0; // Get from pa
             <option value="90"><?php esc_html_e('Last 90 Days', 'extrachill-artist-platform'); ?></option>
             <?php /* <option value="custom"><?php esc_html_e('Custom Range', 'extrachill-artist-platform'); ?></option> */ ?>
         </select>
-        <button type="button" id="bp-refresh-analytics" class="button button-secondary"><?php esc_html_e('Refresh', 'extrachill-artist-platform'); ?></button>
+        <button type="button" id="bp-refresh-analytics" class="button-2 button-medium"><?php esc_html_e('Refresh', 'extrachill-artist-platform'); ?></button>
     </div>
 
     <div id="bp-analytics-loading" style="display: none; margin-top: 1em;"><?php esc_html_e('Loading analytics data...', 'extrachill-artist-platform'); ?></div>

@@ -37,9 +37,9 @@ $current_header_image_id = $current_header_image_id ?? null;
             $manage_url = add_query_arg( array( 'artist_id' => $target_artist_id ), site_url( '/manage-link-page/' ) );
             $label = ( ! empty( $link_page_id ) && get_post_status( $link_page_id ) ) ? __( 'Manage Link Page', 'extrachill-artist-platform' ) : __( 'Create Link Page', 'extrachill-artist-platform' );
         ?>
-            <a href="<?php echo esc_url( $manage_url ); ?>" class="button button-secondary"><?php echo esc_html( $label ); ?></a>
+            <a href="<?php echo esc_url( $manage_url ); ?>" class="button-2 button-medium"><?php echo esc_html( $label ); ?></a>
         <?php else : // Create mode or conditions not met for edit mode button ?>
-            <a href="#" class="button button-secondary disabled" style="pointer-events: none; opacity: 0.6;" title="<?php esc_attr_e( 'Save your band profile first. A link page will be created automatically.', 'extrachill-artist-platform' ); ?>" onclick="return false;">
+            <a href="#" class="button-2 button-medium disabled" style="pointer-events: none; opacity: 0.6;" title="<?php esc_attr_e( 'Save your band profile first. A link page will be created automatically.', 'extrachill-artist-platform' ); ?>" onclick="return false;">
                 <?php esc_html_e( 'Create Link Page', 'extrachill-artist-platform' ); ?>
             </a>
         <?php endif; ?>
@@ -159,7 +159,7 @@ $current_header_image_id = $current_header_image_id ?? null;
         <div id="bp-social-icons-list">
             <!-- JS will render the list of social icons here -->
         </div>
-        <button type="button" id="bp-add-social-icon-btn" class="button button-secondary bp-add-social-icon-btn">
+        <button type="button" id="bp-add-social-icon-btn" class="button-2 button-medium bp-add-social-icon-btn">
             <i class="fas fa-plus"></i> <?php esc_html_e('Add Social Icon', 'extrachill-artist-platform'); ?>
         </button>
     </div>

@@ -1,0 +1,198 @@
+/**
+ * Artist Card Styles
+ *
+ * Universal artist profile card styling for all contexts:
+ * - Homepage dashboard
+ * - Artist directory
+ * - Artist archive
+ * - User profiles
+ */
+
+/* Artist Cards Grid Container */
+.artist-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  gap: 1.5em;
+}
+
+/* Hero Style Artist Profile Cards */
+.artist-profile-card {
+  background: var(--card-background);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: var(--card-shadow);
+  transition: transform 0.2s ease, box-shadow 0.3s ease;
+}
+
+.artist-profile-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--card-hover-shadow);
+}
+
+/* Hero Section with Background Image */
+.artist-hero-section {
+  position: relative;
+  height: 140px;
+  background-size: cover;
+  background-position: center center;
+  background-repeat: no-repeat;
+  background-color: var(--accent);
+  display: flex;
+  align-items: flex-end;
+  padding: 0;
+}
+
+/* Fallback gradient when no background image */
+.artist-hero-section:not([style*='background-image']) {
+  background: linear-gradient(135deg, var(--accent) 0%, var(--button-hover-bg) 100%);
+}
+
+/* Dark overlay for text readability */
+.artist-hero-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.5) 100%);
+  z-index: 1;
+}
+
+/* Hero content container */
+.artist-hero-content {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: flex-end;
+  gap: 1em;
+  padding: 1em 1.2em;
+  width: 100%;
+}
+
+/* Profile Picture Overlay - Rounded Corner Square */
+.artist-profile-image-overlay {
+  width: 60px;
+  height: 60px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 3px solid var(--border-color);
+  box-shadow: var(--card-shadow);
+  flex-shrink: 0;
+  background: var(--card-background);
+}
+
+.artist-profile-image-overlay img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* Artist Info Overlay */
+.artist-info-overlay {
+  flex: 1;
+  min-width: 0;
+}
+
+.artist-info-overlay .artist-name {
+  margin: 0 0 0.2em 0;
+  font-size: 1.1em;
+  font-weight: 600;
+}
+
+.artist-info-overlay .artist-name a {
+  color: #fff;
+  text-decoration: none;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.4);
+}
+
+.artist-info-overlay .artist-name a:hover {
+  color: rgba(255,255,255,0.9);
+}
+
+.artist-info-overlay .artist-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  font-size: 0.85em;
+  color: rgba(255,255,255,0.9);
+  text-shadow: 0 1px 2px rgba(0,0,0,0.4);
+  flex-wrap: wrap;
+}
+
+.artist-info-overlay .meta-separator {
+  opacity: 0.7;
+}
+
+/* Card Content Section (below hero) */
+.artist-card-content {
+  padding: 1.2em;
+}
+
+.artist-card-bio {
+  margin-bottom: 1em;
+}
+
+.artist-card-bio p {
+  margin: 0;
+  font-size: 0.95em;
+  line-height: 1.5;
+  color: var(--text-color);
+  opacity: 0.9;
+}
+
+.artist-card-actions {
+  display: flex;
+  gap: 0.8em;
+  flex-wrap: wrap;
+}
+
+.artist-card-actions .button {
+  font-size: 0.9em;
+  padding: 0.6em 1em;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .artist-cards-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .artist-card-actions {
+    flex-direction: column;
+  }
+
+  .artist-card-actions .button {
+    width: 100%;
+    text-align: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .artist-card-content {
+    padding: 1em;
+  }
+
+  /* Hero card mobile adjustments */
+  .artist-hero-section {
+    height: 120px;
+  }
+
+  .artist-profile-image-overlay {
+    width: 50px;
+    height: 50px;
+  }
+
+  .artist-hero-content {
+    padding: 0.8em 1em;
+  }
+
+  .artist-info-overlay .artist-name {
+    font-size: 1em;
+  }
+
+  .artist-info-overlay .artist-meta {
+    font-size: 0.8em;
+  }
+}

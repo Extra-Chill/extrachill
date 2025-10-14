@@ -28,14 +28,14 @@ class ExtraChillArtistPlatform_PageTemplates {
 
     /**
      * Initialize template-related WordPress hooks
-     * 
+     *
      * Sets up filters for custom template loading and registration.
      */
     private function init_hooks() {
         add_filter( 'template_include', array( $this, 'load_artist_link_page_template' ), 10 );
-        add_filter( 'page_template', array( $this, 'load_artist_platform_page_templates' ), 99 );
+        add_filter( 'extrachill_template_page', array( $this, 'load_artist_platform_page_templates' ), 10 );
         add_action( 'template_redirect', array( $this, 'setup_artist_platform_page_context' ) );
-        
+
         // Register plugin templates with WordPress
         add_filter( 'theme_page_templates', array( $this, 'register_artist_platform_templates' ) );
     }
@@ -76,11 +76,11 @@ class ExtraChillArtistPlatform_PageTemplates {
 
     /**
      * Load artist platform page templates
-     * 
-     * Overrides page templates for artist platform management pages.
-     * Maps template slugs to their actual file locations within the plugin.
-     * 
-     * @param string $template Current template path
+     *
+     * Integrates with theme's template router to serve plugin templates.
+     * Hooks into extrachill_template_page filter provided by theme's routing system.
+     *
+     * @param string $template Current template path from theme router
      * @return string Modified template path
      */
     public function load_artist_platform_page_templates( $template ) {
@@ -91,26 +91,17 @@ class ExtraChillArtistPlatform_PageTemplates {
         }
 
         $page_template = get_page_template_slug( $post );
-        $artist_platform_templates = array(
-            'manage-artist-profiles.php',
-            'manage-link-page.php',
-            'artist-directory.php'
+
+        $template_map = array(
+            'manage-artist-profiles.php' => 'inc/artist-profiles/frontend/templates/manage-artist-profiles.php',
+            'manage-link-page.php'       => 'inc/link-pages/management/templates/manage-link-page.php',
+            'artist-directory.php'       => 'inc/artist-profiles/frontend/templates/artist-directory.php'
         );
 
-        foreach ( $artist_platform_templates as $artist_template ) {
-            if ( $page_template === $artist_template ) {
-                $template_map = array(
-                    'manage-artist-profiles.php' => 'inc/artist-profiles/frontend/templates/manage-artist-profiles.php',
-                    'manage-link-page.php' => 'inc/link-pages/management/templates/manage-link-page.php',
-                    'artist-directory.php' => 'inc/artist-profiles/frontend/templates/artist-directory.php'
-                );
-                
-                if ( isset( $template_map[ $artist_template ] ) ) {
-                    $plugin_template = EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . $template_map[ $artist_template ];
-                    if ( file_exists( $plugin_template ) ) {
-                        return $plugin_template;
-                    }
-                }
+        if ( isset( $template_map[ $page_template ] ) ) {
+            $plugin_template = EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . $template_map[ $page_template ];
+            if ( file_exists( $plugin_template ) ) {
+                return $plugin_template;
             }
         }
 

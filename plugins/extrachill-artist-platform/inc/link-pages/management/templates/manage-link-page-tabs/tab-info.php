@@ -21,9 +21,9 @@ $current_bio_text = $data['bio'] ?? '';
     </div>
     <div id="bp-profile-image-section" class="form-group">
         <label for="link_page_profile_image_upload"><strong><?php esc_html_e('Profile Image', 'extrachill-artist-platform'); ?></strong></label><br>
-        <button type="button" class="button" onclick="document.getElementById('link_page_profile_image_upload').click();">Change Profile Picture</button>
+        <button type="button" class="button-2 button-medium" onclick="document.getElementById('link_page_profile_image_upload').click();">Change Profile Picture</button>
         <input type="file" id="link_page_profile_image_upload" name="link_page_profile_image_upload" accept="image/*" class="extrch-form-input-hidden">
-        <button type="button" id="bp-remove-profile-image-btn" class="button button-secondary extrch-form-button-spaced"><?php esc_html_e('Remove Image', 'extrachill-artist-platform'); ?></button>
+        <button type="button" id="bp-remove-profile-image-btn" class="button-2 button-medium extrch-form-button-spaced"><?php esc_html_e('Remove Image', 'extrachill-artist-platform'); ?></button>
         <input type="hidden" name="remove_link_page_profile_image" id="remove_link_page_profile_image_hidden" value="0">
     </div>
     <div id="bp-bio-section" class="form-group">

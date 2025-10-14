@@ -7,7 +7,7 @@
     const qrImageElement = qrImageContainer ? qrImageContainer.querySelector('img') : null;
     const loadingMessage = qrImageContainer ? qrImageContainer.querySelector('.loading-message') : null;
     const errorMessageElement = document.createElement('p'); // For displaying errors
-    errorMessageElement.className = 'bp-notice bp-notice-error';
+    errorMessageElement.className = 'notice notice-error';
     errorMessageElement.style.display = 'none';
     if (qrImageContainer) {
         qrImageContainer.appendChild(errorMessageElement);

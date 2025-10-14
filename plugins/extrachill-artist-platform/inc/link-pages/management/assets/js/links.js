@@ -302,8 +302,10 @@
         initialized = true;
     }
 
-    document.addEventListener('linksTabActivated', function(event) {
-        init();
+    document.addEventListener('sharedTabActivated', function(event) {
+        if (event.detail.tabId === 'manage-link-page-tab-links') {
+            init();
+        }
     });
 
     document.addEventListener('linkMoved', function() {

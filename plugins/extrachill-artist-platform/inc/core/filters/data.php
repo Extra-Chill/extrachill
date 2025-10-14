@@ -221,6 +221,7 @@ function ec_get_link_page_data( $artist_id, $link_page_id = null, $overrides = a
     $data['settings']['social_icons_position'] = $all_meta['_link_page_social_icons_position'][0] ?? 'above';
     $data['settings']['profile_image_shape'] = $all_meta['_link_page_profile_img_shape'][0] ?? 'circle';
     $data['settings']['profile_image_id'] = get_post_thumbnail_id( $artist_id ) ?: '';
+    $data['settings']['background_image_id'] = $all_meta['_link_page_background_image_id'][0] ?? '';
 
     if ( isset( $data['css_vars']['overlay'] ) ) {
         $data['settings']['overlay_enabled'] = $data['css_vars']['overlay'] === '1';
@@ -248,6 +249,8 @@ function ec_get_link_page_data( $artist_id, $link_page_id = null, $overrides = a
         'settings' => $data['settings'],
         'links' => $data['links'],
         'raw_font_values' => $data['raw_font_values'],
+        'background_image_id' => $data['settings']['background_image_id'],
+        'background_image_url' => !empty($data['settings']['background_image_id']) ? wp_get_attachment_url($data['settings']['background_image_id']) : '',
     );
     if (isset($overrides['artist_profile_social_links_json'])) {
         $social_decoded = json_decode($overrides['artist_profile_social_links_json'], true);

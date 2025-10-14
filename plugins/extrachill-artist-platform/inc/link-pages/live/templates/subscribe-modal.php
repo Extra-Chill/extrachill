@@ -44,11 +44,10 @@ $artist_name = isset($artist_name) ? $artist_name : (isset($data['display_title'
             <input type="hidden" name="_ajax_nonce" value="<?php echo esc_attr($subscribe_nonce); ?>">
 
             <div class="form-group">
-                <label for="subscriber_email_modal" class="screen-reader-text"><?php esc_html_e('Email Address', 'extrachill-artist-platform'); ?></label>
-                <input type="email" name="subscriber_email" id="subscriber_email_modal" placeholder="<?php esc_attr_e('Your email address', 'extrachill-artist-platform'); ?>" required>
+                <input type="email" name="subscriber_email" id="subscriber_email_modal" placeholder="<?php esc_attr_e('Your email address', 'extrachill-artist-platform'); ?>" required aria-label="<?php esc_attr_e('Email Address', 'extrachill-artist-platform'); ?>">
             </div>
 
-            <button type="submit" class="button button-primary"><?php esc_html_e('Subscribe', 'extrachill-artist-platform'); ?></button>
+            <button type="submit" class="button-1 button-medium"><?php esc_html_e('Subscribe', 'extrachill-artist-platform'); ?></button>
 
             <div class="extrch-form-message" aria-live="polite"></div> <?php // For success/error messages ?>
         </form>

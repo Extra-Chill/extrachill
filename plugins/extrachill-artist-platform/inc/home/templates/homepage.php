@@ -2,7 +2,7 @@
 /**
  * Artist Platform Homepage Template
  *
- * Homepage template for artist.extrachill.com (site #6 in multisite network).
+ * Homepage template for artist.extrachill.com (site #4 in multisite network).
  * Displays dashboard for logged-in artists or welcome screen for visitors.
  *
  * @package ExtraChillArtistPlatform
@@ -19,21 +19,20 @@ get_header(); ?>
 	?>
 </div>
 
-<?php while ( have_posts() ) : the_post(); ?>
-	<article id="post-<?php the_ID(); ?>" <?php post_class(); ?>>
-		<div class="inside-article">
-			<header class="entry-header">
-				<h1 class="entry-title page-title"><?php the_title(); ?></h1>
-			</header><!-- .entry-header -->
+<article class="artist-platform-homepage">
+	<div class="inside-article">
+		<header class="entry-header">
+			<h1 class="entry-title page-title"><?php esc_html_e( 'Artist Platform', 'extrachill-artist-platform' ); ?></h1>
+		</header><!-- .entry-header -->
 
-			<div class="entry-content" itemprop="text">
-				<?php
-				// Initialize user data
-				$current_user     = wp_get_current_user();
-				$is_logged_in     = is_user_logged_in();
-				$can_create_artists = ec_can_create_artist_profiles( get_current_user_id() );
-				$user_artist_ids  = ec_get_user_owned_artists( $current_user->ID );
-				?>
+		<div class="entry-content" itemprop="text">
+			<?php
+			// Initialize user data
+			$current_user     = wp_get_current_user();
+			$is_logged_in     = is_user_logged_in();
+			$can_create_artists = ec_can_create_artist_profiles( get_current_user_id() );
+			$user_artist_ids  = ec_get_user_owned_artists( $current_user->ID );
+			?>
 
 				<?php if ( ! $is_logged_in ) : ?>
 					<!-- Not Logged In Section -->
@@ -43,10 +42,10 @@ get_header(); ?>
 							<p><?php esc_html_e( 'Create your artist profile, build a custom link page, connect with fans, and manage your music career all in one place.', 'extrachill-artist-platform' ); ?></p>
 
 							<div class="welcome-actions">
-								<a href="<?php echo esc_url( wp_login_url( get_permalink() ) ); ?>" class="button button-primary">
+								<a href="<?php echo esc_url( home_url( '/login/' ) ); ?>" class="button-1 button-medium">
 									<?php esc_html_e( 'Log In', 'extrachill-artist-platform' ); ?>
 								</a>
-								<a href="<?php echo esc_url( home_url( '/login/#tab-register' ) ); ?>" class="button">
+								<a href="<?php echo esc_url( home_url( '/login/#tab-register' ) ); ?>" class="button-2 button-medium">
 									<?php esc_html_e( 'Sign Up', 'extrachill-artist-platform' ); ?>
 								</a>
 							</div>
@@ -57,7 +56,7 @@ get_header(); ?>
 							<?php ec_display_artist_cards_grid( 6, false ); // Show 6 artists, don't exclude any ?>
 
 							<div class="view-all-artists">
-								<a href="<?php echo esc_url( get_post_type_archive_link( 'artist_profile' ) ); ?>" class="button">
+								<a href="<?php echo esc_url( get_post_type_archive_link( 'artist_profile' ) ); ?>" class="button-2 button-medium">
 									<?php esc_html_e( 'View All Artists', 'extrachill-artist-platform' ); ?>
 								</a>
 							</div>
@@ -77,13 +76,13 @@ get_header(); ?>
 								<div class="primary-action-card">
 									<h3><?php esc_html_e( 'Create Your First Artist Profile', 'extrachill-artist-platform' ); ?></h3>
 									<p><?php esc_html_e( 'Start by creating your artist profile. You can always add more details later.', 'extrachill-artist-platform' ); ?></p>
-									<a href="<?php echo esc_url( home_url( '/manage-artist-profiles/' ) ); ?>" class="button button-primary button-large">
+									<a href="<?php echo esc_url( home_url( '/manage-artist-profiles/' ) ); ?>" class="button-1 button-large" data-action-button>
 										<?php esc_html_e( 'Create Artist Profile', 'extrachill-artist-platform' ); ?>
 									</a>
 								</div>
 							</div>
 						<?php else : ?>
-							<div class="bp-notice bp-notice-info">
+							<div class="notice notice-info">
 								<p><?php esc_html_e( 'To create artist profiles, you need artist or professional membership. Contact us to upgrade your account.', 'extrachill-artist-platform' ); ?></p>
 							</div>
 						<?php endif; ?>
@@ -93,7 +92,7 @@ get_header(); ?>
 							<?php ec_display_artist_cards_grid( 8, false ); // Show 8 artists, don't exclude any ?>
 
 							<div class="view-all-artists">
-								<a href="<?php echo esc_url( get_post_type_archive_link( 'artist_profile' ) ); ?>" class="button">
+								<a href="<?php echo esc_url( get_post_type_archive_link( 'artist_profile' ) ); ?>" class="button-2 button-medium">
 									<?php esc_html_e( 'View All Artists', 'extrachill-artist-platform' ); ?>
 								</a>
 							</div>
@@ -141,7 +140,7 @@ get_header(); ?>
 									<div class="action-card">
 										<h4><?php esc_html_e( 'Create New Artist Profile', 'extrachill-artist-platform' ); ?></h4>
 										<p><?php esc_html_e( 'Add another artist to your portfolio', 'extrachill-artist-platform' ); ?></p>
-										<a href="<?php echo esc_url( $smart_manage_url ); ?>" class="button button-primary">
+										<a href="<?php echo esc_url( $smart_manage_url ); ?>" class="button-1 button-medium" data-action-button>
 											<?php esc_html_e( 'Create New', 'extrachill-artist-platform' ); ?>
 										</a>
 									</div>
@@ -150,7 +149,7 @@ get_header(); ?>
 								<div class="action-card">
 									<h4><?php esc_html_e( 'Browse Artist Directory', 'extrachill-artist-platform' ); ?></h4>
 									<p><?php esc_html_e( 'Discover other artists in the community', 'extrachill-artist-platform' ); ?></p>
-									<a href="<?php echo esc_url( get_post_type_archive_link( 'artist_profile' ) ); ?>" class="button">
+									<a href="<?php echo esc_url( get_post_type_archive_link( 'artist_profile' ) ); ?>" class="button-2 button-medium" data-action-button>
 										<?php esc_html_e( 'Explore', 'extrachill-artist-platform' ); ?>
 									</a>
 								</div>
@@ -163,13 +162,14 @@ get_header(); ?>
 							<div class="artist-cards-grid">
 								<?php
 								foreach ( $user_artist_ids as $artist_id ) :
-									echo ec_render_template(
-										'artist-profile-card',
-										array(
-											'artist_id' => $artist_id,
-											'context'   => 'dashboard',
-										)
-									);
+									$artist_post = get_post( $artist_id );
+									if ( $artist_post ) :
+										global $post;
+										$post = $artist_post;
+										setup_postdata( $post );
+										include( EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/artist-profiles/frontend/templates/artist-card.php' );
+										wp_reset_postdata();
+									endif;
 								endforeach;
 								?>
 							</div>
@@ -181,17 +181,16 @@ get_header(); ?>
 							<?php ec_display_artist_cards_grid( 12, true ); // Show 12 artists, exclude user's own ?>
 
 							<div class="view-all-artists">
-								<a href="<?php echo esc_url( get_post_type_archive_link( 'artist_profile' ) ); ?>" class="button">
+								<a href="<?php echo esc_url( get_post_type_archive_link( 'artist_profile' ) ); ?>" class="button-2 button-medium">
 									<?php esc_html_e( 'View All Artists', 'extrachill-artist-platform' ); ?>
 								</a>
 							</div>
 						</div>
 					</div>
-				<?php endif; ?>
+			<?php endif; ?>
 
-			</div><!-- .entry-content -->
-		</div><!-- .inside-article -->
-	</article><!-- #post-## -->
-<?php endwhile; ?>
+		</div><!-- .entry-content -->
+	</div><!-- .inside-article -->
+</article><!-- .artist-platform-homepage -->
 
 <?php get_footer(); ?>

@@ -29,13 +29,13 @@ get_header(); ?>
                     $manage_link_page_url_base = home_url('/manage-link-page/');
 
                     if ( $created_artist_profile_url ) {
-                        echo '<div class="bp-notice bp-notice-success">';
+                        echo '<div class="notice notice-success">';
                         echo '<p>' . esc_html__( 'Artist profile created successfully!', 'extrachill-artist-platform' ) . '</p>';
                         echo '<p>';
-                        echo '<a href="' . esc_url( $created_artist_profile_url ) . '" class="button">' . esc_html__( 'View Artist Profile', 'extrachill-artist-platform' ) . '</a>';
+                        echo '<a href="' . esc_url( $created_artist_profile_url ) . '" class="button-2 button-medium">' . esc_html__( 'View Artist Profile', 'extrachill-artist-platform' ) . '</a>';
                         if ( $created_link_page_id && $manage_link_page_url_base ) {
                             $manage_link_page_url = add_query_arg( 'artist_id', $created_artist_id, $manage_link_page_url_base );
-                            echo ' ' . '<a href="' . esc_url( $manage_link_page_url ) . '" class="button">' . esc_html__( 'Manage extrachill.link Page', 'extrachill-artist-platform' ) . '</a>';
+                            echo ' ' . '<a href="' . esc_url( $manage_link_page_url ) . '" class="button-2 button-medium">' . esc_html__( 'Manage extrachill.link Page', 'extrachill-artist-platform' ) . '</a>';
                         }
                         echo '</p>';
                         echo '</div>';
@@ -47,7 +47,7 @@ get_header(); ?>
                 // with other programmatically set $error_message values.
                 if ( ! empty( $error_message ) ) {
                     // Add a simple CSS class for styling potential errors
-                    echo '<div class="bp-notice bp-notice-error">';
+                    echo '<div class="notice notice-error">';
                     echo '<p>' . esc_html( $error_message ) . '</p>';
                     echo '</div>';
                 }
@@ -145,9 +145,9 @@ get_header(); ?>
                                 // Populate form fields from existing post
                                 $artist_post_title = $artist_post->post_title;
                                 $artist_post_content = $artist_post->post_content;
-                                $current_profile_image_id = get_post_meta( $target_artist_id, '_artist_profile_image_id', true );
+                                $current_profile_image_id = get_post_thumbnail_id( $target_artist_id );
                                 $current_profile_image_url = $current_profile_image_id ? wp_get_attachment_image_url( $current_profile_image_id, 'thumbnail' ) : '';
-                                $current_header_image_id = get_post_meta( $target_artist_id, '_artist_header_image_id', true );
+                                $current_header_image_id = get_post_meta( $target_artist_id, '_artist_profile_header_image_id', true );
                                 $current_header_image_url = $current_header_image_id ? wp_get_attachment_image_url( $current_header_image_id, 'large' ) : '';
 
                             } else {
@@ -235,7 +235,7 @@ get_header(); ?>
 
                                 <!-- ERROR MESSAGE INSIDE FORM -->
                                 <?php if ( ! empty( $error_message ) ) : ?>
-                                    <div class="bp-notice bp-notice-error" style="margin-bottom: 15px;">
+                                    <div class="notice notice-error" style="margin-bottom: 15px;">
                                         <p><?php echo esc_html( $error_message ); ?></p>
                                     </div>
                                 <?php endif; ?>
@@ -243,7 +243,7 @@ get_header(); ?>
                                 <!-- TOP SUBMIT BUTTON -->
                                 <?php if ( ! $edit_mode ) : ?>
                                     <div class="form-group submit-group" style="margin-bottom: 20px;">
-                                        <input type="submit" name="<?php echo esc_attr( $submit_name ); ?>" class="button button-primary" value="<?php echo esc_attr( $submit_value ); ?>" />
+                                        <input type="submit" name="<?php echo esc_attr( $submit_name ); ?>" class="button-1 button-large" value="<?php echo esc_attr( $submit_value ); ?>" />
                                     </div>
                                 <?php endif; ?>
 
@@ -261,7 +261,7 @@ get_header(); ?>
                                                 // --- START Join Flow Guidance Notice (Create Band Profile) ---
                                                 // Display this notice if the user arrived from the join flow and is in create mode
                                                 if ( isset($_GET['from_join']) && $_GET['from_join'] === 'true' && ! $edit_mode ) {
-                                                    echo '<div class="bp-notice bp-notice-info" style="margin-top: 15px; margin-bottom: 15px;">'; // Added margin-top and margin-bottom for spacing
+                                                    echo '<div class="notice notice-info" style="margin-top: 15px; margin-bottom: 15px;">'; // Added margin-top and margin-bottom for spacing
                                                     echo '<p>' . esc_html__( 'Welcome to the Extra Chill link page setup! To create your link page, you first need to create an Artist Profile. Fill out the details below to get started.', 'extrachill-artist-platform' ) . '</p>';
                                                     echo '</div>';
                                                 }
@@ -341,9 +341,9 @@ get_header(); ?>
                                 
                                 <!-- Submission -->
                                 <div class="form-group submit-group">
-                                    <input type="submit" name="<?php echo esc_attr( $submit_name ); ?>" class="button button-primary" value="<?php echo esc_attr( $submit_value ); ?>" />
+                                    <input type="submit" name="<?php echo esc_attr( $submit_name ); ?>" class="button-1 button-large" value="<?php echo esc_attr( $submit_value ); ?>" />
                                     <?php if ( $edit_mode && isset($target_artist_id) && $target_artist_id > 0 ) : ?>
-                                        <a href="<?php echo esc_url( get_permalink( $target_artist_id ) ); ?>" class="button button-secondary" target="_blank"><?php esc_html_e( 'View Band Profile', 'extrachill-artist-platform' ); ?></a>
+                                        <a href="<?php echo esc_url( get_permalink( $target_artist_id ) ); ?>" class="button-2 button-medium" target="_blank"><?php esc_html_e( 'View Band Profile', 'extrachill-artist-platform' ); ?></a>
                                     <?php endif; ?>
                                 </div>
                             </form>

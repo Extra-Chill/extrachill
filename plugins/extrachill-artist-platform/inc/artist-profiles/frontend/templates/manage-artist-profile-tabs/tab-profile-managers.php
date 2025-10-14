@@ -15,7 +15,7 @@ $artist_post_title = $artist_post_title ?? '';
 ?>
 
 <div class="artist-profile-content-card">
-    <div class="bp-notice bp-notice-info" style="margin-bottom: 1.5em;">
+    <div class="notice notice-info" style="margin-bottom: 1.5em;">
         <p><?php esc_html_e( "Profile managers can moderate the artist's forum, edit this artist profile, and manage the associated Extrachill.link page.", 'extrachill-artist-platform' ); ?></p>
     </div>
     <?php 
@@ -49,7 +49,7 @@ $artist_post_title = $artist_post_title ?? '';
                             <span style="color: #666;">(<?php echo esc_html( $user_info->user_email ); ?>)</span>
                         </span>
                         <?php if ( $user_info->ID !== $current_user_id ) : ?>
-                            <button type="button" class="button button-small remove-manager-btn" 
+                            <button type="button" class="button-2 button-small remove-manager-btn" 
                                     data-user-id="<?php echo esc_attr( $user_info->ID ); ?>"
                                     data-artist-id="<?php echo esc_attr( $target_artist_id ); ?>">
                                 <?php esc_html_e( 'Remove', 'extrachill-artist-platform' ); ?>
@@ -71,7 +71,7 @@ $artist_post_title = $artist_post_title ?? '';
             <div style="display: flex; gap: 10px; align-items: center;">
                 <input type="text" id="user-search-input" placeholder="<?php esc_attr_e( 'Username or email...', 'extrachill-artist-platform' ); ?>" 
                        style="flex: 1; max-width: 300px;" />
-                <button type="button" id="add-manager-btn" class="button button-primary" 
+                <button type="button" id="add-manager-btn" class="button-2 button-medium" 
                         data-artist-id="<?php echo esc_attr( $target_artist_id ); ?>">
                     <?php esc_html_e( 'Add Manager', 'extrachill-artist-platform' ); ?>
                 </button>

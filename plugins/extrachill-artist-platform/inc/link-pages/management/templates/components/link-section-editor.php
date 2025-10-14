@@ -66,8 +66,8 @@ $links = $section_data['links'] ?? array();
         <?php endforeach; ?>
     </div>
     
-    <button type="button" 
-            class="button button-secondary bp-add-link-btn" 
+    <button type="button"
+            class="button-2 button-medium bp-add-link-btn"
             data-sidx="<?php echo esc_attr($sidx); ?>">
         <i class="fas fa-plus"></i> Add Link
     </button>

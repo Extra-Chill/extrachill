@@ -20,7 +20,7 @@ if (!$link_page_id || get_post_type($link_page_id) !== 'artist_link_page') {
     // No link page exists for this artist - create one
     $creation_result = ec_create_link_page($artist_id);
     if (is_wp_error($creation_result)) {
-        echo '<div class="bp-notice bp-notice-error"><p>' . esc_html__('Could not create link page: ', 'extrachill-artist-platform') . esc_html($creation_result->get_error_message()) . '</p></div>';
+        echo '<div class="notice notice-error"><p>' . esc_html__('Could not create link page: ', 'extrachill-artist-platform') . esc_html($creation_result->get_error_message()) . '</p></div>';
         get_footer();
         return;
     }
@@ -31,7 +31,7 @@ if (!$link_page_id || get_post_type($link_page_id) !== 'artist_link_page') {
 
 get_header(); ?>
 
-<div class="main-content">
+<div class="main-content full-width-breakout">
     <main id="main" class="site-main">
         <?php do_action( 'extra_chill_before_main_content' ); ?>
 
@@ -41,23 +41,23 @@ $is_join_flow = isset($_GET['from_join']) && $_GET['from_join'] === 'true';
 
 if ($is_join_flow) {
     // Welcome message for new join flow users
-    echo '<div class="bp-notice bp-notice-success"><p>' . esc_html__('Welcome to Extra Chill! Your link page has been created and is ready to customize.', 'extrachill-artist-platform') . '</p></div>';
+    echo '<div class="notice notice-success"><p>' . esc_html__('Welcome to Extra Chill! Your link page has been created and is ready to customize.', 'extrachill-artist-platform') . '</p></div>';
 } elseif (isset($_GET['bp_link_page_updated']) && $_GET['bp_link_page_updated'] === '1') {
     // Regular update success message for existing users
-    echo '<div class="bp-notice bp-notice-success"><p>' . esc_html__('Link page updated successfully!', 'extrachill-artist-platform') . '</p></div>';
+    echo '<div class="notice notice-success"><p>' . esc_html__('Link page updated successfully!', 'extrachill-artist-platform') . '</p></div>';
 }
 
 // --- Display Error Notices ---
 if (isset($_GET['bp_link_page_error'])) {
     $error_type = sanitize_key($_GET['bp_link_page_error']);
     if ($error_type === 'background_image_size') {
-        echo '<div class="bp-notice bp-notice-error"><p>' . esc_html__('Error: Background image file size exceeds the 5MB limit.', 'extrachill-artist-platform') . '</p></div>';
+        echo '<div class="notice notice-error"><p>' . esc_html__('Error: Background image file size exceeds the 5MB limit.', 'extrachill-artist-platform') . '</p></div>';
     } elseif ($error_type === 'profile_image_size') {
-        echo '<div class="bp-notice bp-notice-error"><p>' . esc_html__('Error: Profile image file size exceeds the 5MB limit.', 'extrachill-artist-platform') . '</p></div>';
+        echo '<div class="notice notice-error"><p>' . esc_html__('Error: Profile image file size exceeds the 5MB limit.', 'extrachill-artist-platform') . '</p></div>';
     } elseif ($error_type === 'upload_failed') {
-        echo '<div class="bp-notice bp-notice-error"><p>' . esc_html__('Error: Profile image upload failed. Please try again.', 'extrachill-artist-platform') . '</p></div>';
+        echo '<div class="notice notice-error"><p>' . esc_html__('Error: Profile image upload failed. Please try again.', 'extrachill-artist-platform') . '</p></div>';
     } elseif ($error_type === 'general') {
-        echo '<div class="bp-notice bp-notice-error"><p>' . esc_html__('Error: An error occurred while saving. Please try again.', 'extrachill-artist-platform') . '</p></div>';
+        echo '<div class="notice notice-error"><p>' . esc_html__('Error: An error occurred while saving. Please try again.', 'extrachill-artist-platform') . '</p></div>';
     }
     // Add other error types here if needed in the future
 }
@@ -68,12 +68,12 @@ $artist_id = apply_filters('ec_get_artist_id', $_GET);
 $artist_post = $artist_id ? get_post($artist_id) : null;
 
 if (!$artist_post || $artist_post->post_type !== 'artist_profile') {
-    echo '<div class="bp-notice bp-notice-error"><p>' . esc_html__('Invalid artist profile.', 'extrachill-artist-platform') . '</p></div>';
+    echo '<div class="notice notice-error"><p>' . esc_html__('Invalid artist profile.', 'extrachill-artist-platform') . '</p></div>';
     get_footer();
     return;
 }
 if (!ec_can_manage_artist(get_current_user_id(), $artist_id)) {
-    echo '<div class="bp-notice bp-notice-error"><p>' . esc_html__('You do not have permission to manage this artist link page.', 'extrachill-artist-platform') . '</p></div>';
+    echo '<div class="notice notice-error"><p>' . esc_html__('You do not have permission to manage this artist link page.', 'extrachill-artist-platform') . '</p></div>';
     get_footer();
     return;
 }
@@ -84,18 +84,27 @@ $data = ec_get_link_page_data( $artist_id, $link_page_id );
 // Fonts are now handled directly in the tab template
 ?>
 <?php
-// --- Breadcrumb for Manage Link Page ---
-$artist_profile_title = get_the_title($artist_id);
-$manage_page = get_page_by_path('manage-artist-profiles');
-$manage_artist_profile_url = $manage_page 
-    ? add_query_arg('artist_id', $artist_id, get_permalink($manage_page))
-    : site_url('/manage-artist-profiles/?artist_id=' . $artist_id);
-$breadcrumb_separator = '<span class="bbp-breadcrumb-sep"> › </span>';
-echo '<div class="bbp-breadcrumb">';
-echo '<a href="' . esc_url(home_url('/')) . '">Home</a>' . $breadcrumb_separator;
-echo '<a href="' . esc_url($manage_artist_profile_url) . '">' . esc_html($artist_profile_title) . '</a>' . $breadcrumb_separator;
-echo '<span class="bbp-breadcrumb-current">' . esc_html__('Manage Link Page', 'extrachill-artist-platform') . '</span>';
-echo '</div>';
+// Display breadcrumbs using theme system with custom append
+if (function_exists('extrachill_breadcrumbs')) {
+    // Add custom breadcrumb items for manage link page
+    add_action('extrachill_breadcrumbs_append', function() {
+        $artist_id = apply_filters('ec_get_artist_id', $_GET);
+        if (!$artist_id) return;
+        
+        $artist_post = get_post($artist_id);
+        if (!$artist_post) return;
+        
+        $manage_page = get_page_by_path('manage-artist-profiles');
+        $manage_artist_profile_url = $manage_page 
+            ? add_query_arg('artist_id', $artist_id, get_permalink($manage_page))
+            : site_url('/manage-artist-profiles/?artist_id=' . $artist_id);
+        
+        echo ' › <a href="' . esc_url($manage_artist_profile_url) . '">' . esc_html($artist_post->post_title) . '</a>';
+        echo ' › <span>' . esc_html__('Manage Link Page', 'extrachill-artist-platform') . '</span>';
+    });
+    
+    extrachill_breadcrumbs();
+}
 ?>
 <h1 class="manage-link-page-title">
     <?php echo esc_html__('Manage Link Page for ', 'extrachill-artist-platform') . esc_html(get_the_title($artist_id)); ?>
@@ -137,12 +146,12 @@ if ($link_page_id && get_post_type($link_page_id) === 'artist_link_page') {
     // Always show the extrachill.link URL as the public URL
     $public_url = 'https://extrachill.link/' . $artist_slug;
     
-    echo '<div class="bp-notice bp-notice-info bp-link-page-url">';
+    echo '<div class="notice notice-info bp-link-page-url">';
     // Make the URL clickable
     $display_url = str_replace(array('https://', 'http://'), '', $public_url ?? '');
     echo '<a href="' . esc_url($public_url ?? '') . '" class="bp-link-page-url-text" target="_blank" rel="noopener">' . esc_html($display_url) . '</a>';
     // Change button to display Font Awesome QR code icon
-    echo '<button type="button" id="bp-get-qr-code-btn" class="button button-secondary" title="' . esc_attr__("Get QR Code", "extrachill-artist-platform") . '" style="margin-left: 0.5em;"><i class="fa-solid fa-qrcode"></i></button>';
+    echo '<button type="button" id="bp-get-qr-code-btn" class="button-2 button-small" title="' . esc_attr__("Get QR Code", "extrachill-artist-platform") . '" style="margin-left: 0.5em;"><i class="fa-solid fa-qrcode"></i></button>';
     echo '</div>';
     echo '<div id="bp-qr-code-container" style="margin-top: 1em; text-align: left;"></div>'; // Existing Container for QR code (can be repurposed or removed if modal is sufficient)
     // --- QR Code Modal ---
@@ -182,7 +191,7 @@ if ($link_page_id && get_post_type($link_page_id) === 'artist_link_page') {
                         // Display this notice if the user just completed the new user join flow (registered + created artist)
                         // Assumes from_join=true is passed after successful artist creation redirect
                         if ( isset( $_GET['from_join'] ) && $_GET['from_join'] === 'true' ) {
-                            echo '<div class="bp-notice bp-notice-info" style="margin-top: 15px; margin-bottom: 15px;">';
+                            echo '<div class="notice notice-info" style="margin-top: 15px; margin-bottom: 15px;">';
                             echo '<p>' . esc_html__( 'Welcome to your new Extrachill.link! Your Artist Profile info (Name, Bio, Picture) is synced here. Use the tabs to add links and customize your page appearance.', 'extrachill-artist-platform' ) . '</p>';
                             echo '</div>';
                         }
@@ -190,7 +199,7 @@ if ($link_page_id && get_post_type($link_page_id) === 'artist_link_page') {
 
                         // --- START Join Flow Success Notice (Existing User Redirect - Moved) ---
                         if ( isset( $_GET['from_join_success'] ) && $_GET['from_join_success'] === 'existing_user_link_page' ) {
-                            echo '<div class="bp-notice bp-notice-success" style="margin-top: 15px; margin-bottom: 15px;">';
+                            echo '<div class="notice notice-success" style="margin-top: 15px; margin-bottom: 15px;">';
                             echo '<p>' . esc_html__( 'Welcome back! You\'ve been redirected to manage your extrachill.link page.', 'extrachill-artist-platform' ) . '</p>';
                             echo '</div>';
                         }
@@ -295,9 +304,9 @@ extrch_render_link_expiration_modal();
 ?>
 
 <div class="link-page-footer-actions" style="display: flex; justify-content: center; align-items: center; gap: 20px; width: 100%; margin-top: 2em; margin-bottom: 2em;">
-    <button type="submit" form="bp-manage-link-page-form" name="bp_save_link_page" class="button button-primary bp-link-page-save-btn"><?php esc_html_e('Save Link Page', 'extrachill-artist-platform'); ?></button>
+    <button type="submit" form="bp-manage-link-page-form" name="bp_save_link_page" class="button-1 button-large bp-link-page-save-btn"><?php esc_html_e('Save Link Page', 'extrachill-artist-platform'); ?></button>
     <div id="link-page-loading-message" style="display: none; margin-left: 1em; font-weight: bold;"><?php esc_html_e('Please wait...', 'extrachill-artist-platform'); ?></div>
-    <a href="<?php echo esc_url(site_url('/manage-artist-profile/?artist_id=' . $artist_id)); ?>" class="button button-secondary"><?php esc_html_e('Manage Artist', 'extrachill-artist-platform'); ?></a>
+    <a href="<?php echo esc_url(site_url('/manage-artist-profile/?artist_id=' . $artist_id)); ?>" class="button-2 button-large"><?php esc_html_e('Manage Artist', 'extrachill-artist-platform'); ?></a>
 </div>
 
 <button id="extrch-jump-to-preview-btn" class="extrch-jump-to-preview-btn" aria-label="<?php esc_attr_e('Scroll to Preview / Settings', 'extrachill-artist-platform'); ?>" title="<?php esc_attr_e('Scroll to Preview', 'extrachill-artist-platform'); ?>">

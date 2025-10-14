@@ -80,9 +80,6 @@ function bp_create_artist_forum_on_save( $post_id, $post, $update ) {
     // Default to allowing public topic creation for new artist forums.
     update_post_meta( $forum_id, '_allow_public_topic_creation', '1' );
 
-    // Set the default forum section for artist forums to 'none' to hide them from main lists.
-    update_post_meta( $forum_id, '_bbp_forum_section', 'none' );
-
     // Optional: Set initial forum settings (e.g., allow topic creation?)
     // update_post_meta( $forum_id, '_bbp_allow_topic_creaton', true ); // Example
 
@@ -165,82 +162,14 @@ function bp_handle_artist_profile_untrash( $post_id ) {
             // Ensure it's actually one of our artist forums before untrashing.
              $is_artist_forum = get_post_meta( $forum_id, '_is_artist_profile_forum', true );
              if ( $is_artist_forum ) {
-                wp_untrash_post( $forum_id );
-                 // Optional: bbPress might automatically set status back, but confirm if it needs hiding again.
-                 // bbp_hide_forum( $forum_id ); -> REMOVED - Don't re-hide on untrash
-            }
-        }
+                 wp_untrash_post( $forum_id );
+             }
+         }
     }
 }
 add_action( 'untrash_post', 'bp_handle_artist_profile_untrash' );
 
-/**
- * Hides artist profile forums from admin forum list
- * 
- * Excludes forums with '_is_artist_profile_forum' meta from admin list.
- * Can be toggled via 'show_artist_forums' query parameter.
- */
-function bp_hide_artist_forums_from_admin_list( $query ) {
-    // Check if we are in the admin area, on the main query for the 'edit-forum' screen.
-    if ( is_admin() && $query->is_main_query() && function_exists('bbp_get_forum_post_type') ) {
-        
-        // If a specific query parameter is set to show artist forums, bail out early.
-        if ( isset( $_GET['show_artist_forums'] ) && $_GET['show_artist_forums'] === '1' ) {
-            return;
-        }
 
-        // Get current screen information
-        $screen = get_current_screen();
-
-        // Check if it's the forum list table screen and the post type is forum
-        if ( isset($screen->id) && $screen->id === 'edit-forum' && $query->get('post_type') === bbp_get_forum_post_type() ) {
-            
-            // Get existing meta query
-            $meta_query = $query->get( 'meta_query' );
-            if ( ! is_array( $meta_query ) ) {
-                $meta_query = array();
-            }
-
-            // Add our condition to exclude artist forums
-            // 'relation' => 'AND' is the default
-            $meta_query[] = array(
-                'key'     => '_is_artist_profile_forum',
-                'compare' => 'NOT EXISTS', // Exclude if the key exists
-                // Alternatively, if we always set it (even to false):
-                // 'value'   => '1', 
-                // 'compare' => '!='
-            );
-
-            // Set the modified meta query back to the main query object
-            $query->set( 'meta_query', $meta_query );
-        }
-    }
-}
-add_action( 'pre_get_posts', 'bp_hide_artist_forums_from_admin_list' ); 
-
-/**
- * Adds toggle link to show/hide artist forums in admin
- */
-function bp_add_toggle_artist_forums_link_admin( $post_type ) {
-    // Only add to the 'edit-forum' screen and for the forum post type
-    if ( isset($_GET['post_type']) && $_GET['post_type'] === 'forum' ) {
-        $show_artist_forums = isset( $_GET['show_artist_forums'] ) && $_GET['show_artist_forums'] === '1';
-
-        if ( $show_artist_forums ) {
-            $url = remove_query_arg( 'show_artist_forums' );
-            $link_text = __( 'Hide Artist Forums', 'extrachill-artist-platform' );
-        } else {
-            $url = add_query_arg( 'show_artist_forums', '1' );
-            $link_text = __( 'Show Artist Forums', 'extrachill-artist-platform' );
-        }
-
-        echo '<div class="alignleft actions extrachill-forum-toggle">';
-        echo '<a href="' . esc_url( $url ) . '" class="button">' . esc_html( $link_text ) . '</a>';
-        echo '</div>';
-    }
-}
-
-add_action( 'restrict_manage_posts', 'bp_add_toggle_artist_forums_link_admin', 20, 1 );
 
 /**
  * Ensures bbPress functions are loaded for artist profile templates
