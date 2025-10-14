@@ -53,7 +53,7 @@ composer install
 - **No Asset Compilation** - Direct file inclusion without npm/webpack compilation
 - **Procedural Architecture** - No PSR-4 autoloading configured, uses direct procedural patterns
 - **Asset Versioning** - Dynamic `filemtime()` versioning for cache management
-- **Explicit Loading Pattern** - All functionality loaded via 33 direct `require_once` statements in `extrachill_community_init()` function
+- **Explicit Loading Pattern** - All functionality loaded via 35 direct `require_once` statements in `extrachill_community_init()` function
 - **bbPress Integration** - Default stylesheet dequeuing, custom templates, enhanced functionality
 
 ### Build System
@@ -70,7 +70,7 @@ composer install
 - **Plugin Structure**: WordPress plugin providing community functionality that integrates with the extrachill theme
 - **bbPress Integration**: Custom bbPress enhancements and forum functionality
 - **Asset Management**: Conditional CSS/JS loading with dynamic versioning using `filemtime()`
-- **Explicit Loading System**: All 33 feature modules loaded via direct `require_once` in `extrachill_community_init()` function (no master loader file)
+- **Explicit Loading System**: All 35 feature files loaded via direct `require_once` in `extrachill_community_init()` function (no master loader file) + 3 template components loaded via includes/filters
 - **Theme Integration**: Works with extrachill theme to provide community functionality on community.extrachill.com
 - **Template System**: Provides custom bbPress templates and specialized page templates
 - **Hook-Based Components**: Homepage and settings use action hooks instead of monolithic templates
@@ -82,7 +82,7 @@ composer install
 ## Critical File Locations
 
 ### Core Plugin Files
-- `extrachill-community.php` - Main plugin file with 33 explicit `require_once` statements in `extrachill_community_init()`
+- `extrachill-community.php` - Main plugin file with 35 explicit `require_once` statements in `extrachill_community_init()`
 - `inc/core/assets.php` - Asset management and enqueuing system
 - `inc/core/bbpress-templates.php` - bbPress template routing system
 - `inc/core/bbpress-spam-adjustments.php` - bbPress spam adjustments
@@ -93,8 +93,8 @@ composer install
 
 **Explicit Loading Pattern** - All files loaded via direct `require_once` in `extrachill_community_init()`:
 
-**Core (5 files loaded)**:
-- `inc/core/assets.php`, `bbpress-templates.php`, `nav.php`, `bbpress-spam-adjustments.php`, `sidebar.php`
+**Core (7 files loaded)**:
+- `inc/core/assets.php`, `bbpress-templates.php`, `breadcrumb-filter.php`, `page-templates.php`, `nav.php`, `bbpress-spam-adjustments.php`, `sidebar.php`
 
 **Content (4 files loaded)**:
 - `inc/content/editor/tinymce-customization.php`, `editor/tinymce-image-uploads.php`
@@ -109,9 +109,8 @@ composer install
 **User Profiles (8 files loaded)**:
 - `inc/user-profiles/custom-avatar.php`, `custom-user-profile.php`, `verification.php`
 - `inc/user-profiles/settings/settings-content.php`, `settings/settings-form-handler.php`
-- `inc/user-profiles/online-users-count.php`
 - `inc/user-profiles/edit/upload-custom-avatar.php`, `edit/user-links.php`, `edit/user-info.php`
-- **Note**: `user-avatar-menu.php` moved to extrachill-multisite plugin for conditional loading across network
+- **Note**: `user-avatar-menu.php` and `online-users-count.php` moved to extrachill-users plugin for conditional loading across network
 
 **Home (4 files loaded)**:
 - `inc/home/latest-post.php`, `actions.php`, `homepage-forum-display.php`, `artist-platform-buttons.php`
@@ -119,7 +118,7 @@ composer install
 **Template Components (3 files - loaded via include/filters, NOT in init)**:
 - `inc/home/forum-home-header.php`, `forum-homepage.php`, `recently-active.php`
 
-**Total: 33 files explicitly loaded + 3 template components**
+**Total: 35 files explicitly loaded in init + 3 template components = 38 total files**
 
 ### Page Templates
 - `page-templates/leaderboard-template.php` - User leaderboard
@@ -176,12 +175,12 @@ Custom templates in `bbpress/` directory provide enhanced forum functionality:
 8. **Performance Optimization** - Conditional loading and selective script enqueuing
 
 ### Forum Features Architecture
-1. **Explicit Loading Pattern** - 37 files loaded via direct `require_once` in `extrachill_community_init()` function
-2. **Organized Structure** - Features grouped by functionality: core (4), content (4), social (12), user-profiles (10), home (3)
+1. **Explicit Loading Pattern** - 35 files loaded via direct `require_once` in `extrachill_community_init()` function + 3 template components loaded via includes/filters
+2. **Organized Structure** - Features grouped by functionality: core (7), content (4), social (12), user-profiles (8), home (4), plus 3 template components
 3. **Conditional Loading** - Context-aware CSS/JS loading for performance
-4. **bbPress Integration** - Custom templates via `inc/core/bbpress-templates.php` routing
+4. **bbPress Integration** - Custom templates via `inc/core/bbpress-templates.php` routing, breadcrumb customization via `bbp_breadcrumbs` filter
 5. **Hook-Based Components** - Homepage and settings use action hooks for extensibility
-6. **Template Partials** - 3 home template components loaded via include/filters (not in init)
+6. **Template Partials** - 3 home template components (forum-home-header, forum-homepage, recently-active) loaded via include/filters (not in init)
 
 ### Code Patterns
 - **WordPress Coding Standards** - Full compliance with plugin development best practices
@@ -252,7 +251,7 @@ function my_plugin_avatar_menu_items( $menu_items, $user_id ) {
 - `priority` (int, optional) - Sort priority (default: 10, lower numbers appear first)
 
 **Integration Pattern:**
-The filter is applied in `inc/user-profiles/user-avatar-menu.php` at line 40 between core profile menu items and settings/logout items, allowing plugins to inject custom functionality without modifying theme files.
+The filter is applied in the extrachill-users plugin (formerly in this plugin at `inc/user-profiles/user-avatar-menu.php`) between core profile menu items and settings/logout items, allowing plugins to inject custom functionality without modifying theme files.
 
 ## Current Status
 

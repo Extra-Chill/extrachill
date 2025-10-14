@@ -57,25 +57,44 @@ function extrachill_capture_mention_notifications($post_id, $topic_id, $forum_id
             // Priority deduplication: If mentioned user is topic author, remove reply notification
             // Mention notifications are more specific than reply notifications
             if ($user->ID == get_post_field('post_author', $actual_topic_id_for_context)) {
-                $user_notifications = get_user_meta($user->ID, 'extrachill_notifications', true) ?: [];
+                // Switch to community site for deduplication
+                $community_blog_id = get_blog_id_from_url( 'community.extrachill.com', '/' );
+                if ( $community_blog_id ) {
+                    $current_blog_id = get_current_blog_id();
+                    $switched = false;
 
-                if (is_array($user_notifications)) {
-                    $current_time = current_time('timestamp');
+                    if ( $current_blog_id !== $community_blog_id ) {
+                        switch_to_blog( $community_blog_id );
+                        $switched = true;
+                    }
 
-                    // Remove reply notification from same actor/topic within last 5 seconds
-                    $filtered_notifications = array_filter($user_notifications, function($notif) use ($action_author_id, $actual_topic_id_for_context, $current_time) {
-                        // Keep notification if it's not a recent reply from this actor on this topic
-                        if ($notif['type'] !== 'reply') return true;
-                        if (!isset($notif['actor_id']) || $notif['actor_id'] != $action_author_id) return true;
-                        if (!isset($notif['post_id']) || $notif['post_id'] != $actual_topic_id_for_context) return true;
-                        if (!isset($notif['time']) || abs(strtotime($notif['time']) - $current_time) > 5) return true;
+                    try {
+                        $user_notifications = get_user_meta($user->ID, 'extrachill_notifications', true) ?: [];
 
-                        // Remove this reply notification (mention takes precedence)
-                        return false;
-                    });
+                        if (is_array($user_notifications)) {
+                            $current_time = current_time('timestamp');
 
-                    // Re-index array and update
-                    update_user_meta($user->ID, 'extrachill_notifications', array_values($filtered_notifications));
+                            // Remove reply notification from same actor/topic within last 5 seconds
+                            $filtered_notifications = array_filter($user_notifications, function($notif) use ($action_author_id, $actual_topic_id_for_context, $current_time) {
+                                // Keep notification if it's not a recent reply from this actor on this topic
+                                if ($notif['type'] !== 'reply') return true;
+                                if (!isset($notif['actor_id']) || $notif['actor_id'] != $action_author_id) return true;
+                                if (!isset($notif['post_id']) || $notif['post_id'] != $actual_topic_id_for_context) return true;
+                                if (!isset($notif['time']) || abs(strtotime($notif['time']) - $current_time) > 5) return true;
+
+                                // Remove this reply notification (mention takes precedence)
+                                return false;
+                            });
+
+                            // Re-index array and update
+                            update_user_meta($user->ID, 'extrachill_notifications', array_values($filtered_notifications));
+                        }
+
+                    } finally {
+                        if ( $switched ) {
+                            restore_current_blog();
+                        }
+                    }
                 }
             }
         }

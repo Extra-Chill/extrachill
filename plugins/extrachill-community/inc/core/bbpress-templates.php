@@ -10,20 +10,10 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-/**
- * Get the template path for bbPress templates in this plugin
- *
- * @return string Full path to plugin's bbpress template directory
- */
 function extrachill_community_get_bbpress_template_path() {
     return EXTRACHILL_COMMUNITY_PLUGIN_DIR . 'bbpress';
 }
 
-/**
- * Register the plugin's bbPress template location with bbPress
- *
- * Priority 1 ensures plugin templates are checked first
- */
 function extrachill_community_register_bbpress_templates() {
     bbp_register_template_stack('extrachill_community_get_bbpress_template_path', 1);
 }

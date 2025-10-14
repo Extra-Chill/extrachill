@@ -147,7 +147,7 @@ if ( bbp_is_forum_edit() ) : ?>
 
 						<?php do_action( 'bbp_theme_before_forum_form_submit_button' ); ?>
 
-						<button type="submit" id="bbp_forum_submit" name="bbp_forum_submit" class="button submit"><?php esc_html_e( 'Submit', 'bbpress' ); ?></button>
+						<button type="submit" id="bbp_forum_submit" name="bbp_forum_submit" class="button-1 button-medium"><?php esc_html_e( 'Submit', 'bbpress' ); ?></button>
 
 						<?php do_action( 'bbp_theme_after_forum_form_submit_button' ); ?>
 

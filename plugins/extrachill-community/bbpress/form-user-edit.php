@@ -92,7 +92,7 @@ defined( 'ABSPATH' ) || exit;
 
                     // Link to create *another* profile
                     if ( $create_url !== '#' ) { // Only show if the manage page exists
-						printf( '<p><a href="%s" class="button">%s</a></p>', esc_url( $create_url ), esc_html__( 'Create Another Artist Profile', 'extra-chill-community' ) );
+						printf( '<p><a href="%s" class="button-1 button-medium">%s</a></p>', esc_url( $create_url ), esc_html__( 'Create Another Artist Profile', 'extra-chill-community' ) );
 					}
                     ?>
 				<?php else : ?>
@@ -102,7 +102,7 @@ defined( 'ABSPATH' ) || exit;
 					$manage_page_check = get_page_by_path( 'manage-artist-profiles' );
 					$create_url = $manage_page_check ? get_permalink( $manage_page_check->ID ) : '#';
                     if ( $create_url !== '#' ) { // Only show if the manage page exists
-						printf( '<p><a href="%s" class="button">%s</a></p>', esc_url( $create_url ), esc_html__( 'Create Artist Profile', 'extra-chill-community' ) );
+						printf( '<p><a href="%s" class="button-1 button-medium">%s</a></p>', esc_url( $create_url ), esc_html__( 'Create Artist Profile', 'extra-chill-community' ) );
 					}
                     ?>
 				<?php endif; ?>
@@ -151,7 +151,7 @@ defined( 'ABSPATH' ) || exit;
 		<fieldset class="submit">
 			<div class="form-group">
 				<?php bbp_edit_user_form_fields(); ?>
-				<button type="submit" id="bbp_user_edit_submit" name="bbp_user_edit_submit" class="button submit user-submit">
+				<button type="submit" id="bbp_user_edit_submit" name="bbp_user_edit_submit" class="button-1 button-medium user-submit">
 					<?php bbp_is_user_home_edit() ? esc_html_e( 'Update Profile', 'bbpress' ) : esc_html_e( 'Update User', 'bbpress' ); ?>
 				</button>
 			</div>

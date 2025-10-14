@@ -61,9 +61,7 @@
     text-decoration: none;
 }
 
-.leaderboard-table td a:hover {
-    text-decoration: underline;
-}
+/* Link hover handled by theme */
 
 
 /* Responsive adjustments (example for mobile) */

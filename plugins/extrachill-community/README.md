@@ -53,17 +53,20 @@ extrachill-community/
 
 **Explicit Loading Pattern** - All functionality loaded in `extrachill_community_init()`:
 ```php
-// Main plugin file uses 37 direct require_once statements (NO master loader file)
-// Load order: core (4) → content (4) → social (12) → user-profiles (10) → home (3)
+// Main plugin file uses 35 direct require_once statements (NO master loader file)
+// Load order: core (7) → content (4) → social (12) → user-profiles (8) → home (4)
 
-// Core features (4 files): assets, bbPress templates, navigation, spam adjustments
+// Core features (7 files): assets, bbPress templates, breadcrumb filter, page templates, navigation, spam adjustments, sidebar
 // Content features (4 files): TinyMCE editor (2), content filters, recent feed
-// Social features (12 files): upvoting, mentions, badges, rank system (2), notifications (7)
-// User profile features (10 files): avatars, menu, profiles, verification, settings (2), online tracking, email changes, edit (2)
-// Home features (3 files): latest post, actions, forum display
+// Social features (12 files): upvoting, mentions, badges, rank system (2), notifications (6)
+// User profile features (8 files): avatars, profiles, verification, settings (2), edit (3)
+// Home features (4 files): latest post, actions, forum display, artist platform buttons
 
 // Template components (3 files) loaded separately via include/filters:
 // - inc/home/forum-home-header.php, forum-homepage.php, recently-active.php
+
+// Total: 35 files loaded in init + 3 template components = 38 total files
+// Note: Avatar menu and online users moved to extrachill-users plugin for network loading
 ```
 
 **bbPress Integration**:
@@ -248,15 +251,16 @@ function my_plugin_avatar_menu_items( $menu_items, $user_id ) {
 ### Plugin Setup
 
 ```php
-// Main plugin file: extrachill_community_init() with 37 explicit require_once statements
+// Main plugin file: extrachill_community_init() with 35 explicit require_once statements
 function extrachill_community_init() {
-    // Core (4): assets, bbpress-templates, nav, bbpress-spam-adjustments
+    // Core (7): assets, bbpress-templates, breadcrumb-filter, page-templates, nav, bbpress-spam-adjustments, sidebar
     // Content (4): tinymce (2), content-filters, recent-feed
-    // Social (12): upvote, mentions, badges, rank-system (2), notifications (7)
-    // User Profiles (10): avatar, menu, profile, verification, settings (2), online, email, edit (2)
-    // Home (3): latest-post, actions, homepage-forum-display
+    // Social (12): upvote, mentions, badges, rank-system (2), notifications (6)
+    // User Profiles (8): avatar, profile, verification, settings (2), edit (3)
+    // Home (4): latest-post, actions, homepage-forum-display, artist-platform-buttons
 
-    // See extrachill-community.php lines 36-78 for complete explicit loading
+    // See extrachill-community.php lines 30-76 for complete explicit loading
+    // Note: Avatar menu and online users moved to extrachill-users plugin
 }
 add_action('plugins_loaded', 'extrachill_community_init');
 ```
@@ -288,16 +292,16 @@ wp_ajax_save_user_profile_links        // Dynamic social links
 
 ```bash
 # Testing Areas:
-# 1. Plugin Loading: Verify all 37 files load via explicit require_once in extrachill_community_init()
-# 2. Forum Features: Core (4), content (4), social (12), user-profiles (10), home (3)
+# 1. Plugin Loading: Verify all 35 files load via explicit require_once in extrachill_community_init()
+# 2. Forum Features: Core (7), content (4), social (12), user-profiles (8), home (4)
 # 3. Cross-Domain Integration: WordPress multisite authentication
-# 4. bbPress Integration: Custom templates, stylesheet conflicts, functionality
+# 4. bbPress Integration: Custom templates, breadcrumb filter, stylesheet conflicts, functionality
 # 5. JavaScript Components: 5 via assets.php, 2 independent loaders
 # 6. User Management: Profiles, avatars, settings, verification, notifications
 # 7. Social Features: Upvoting, mentions, badges, rank system (2 files)
-# 8. Notification System: 7 notification files in inc/social/notifications/
+# 8. Notification System: 6 notification files in inc/social/notifications/
 # 9. Hook-Based Components: Homepage and settings page action hooks
-# 10. User Avatar Menu: ec_avatar_menu_items filter in inc/user-profiles/user-avatar-menu.php
+# 10. User Avatar Menu: ec_avatar_menu_items filter now in extrachill-users plugin
 ```
 
 ## Deployment
@@ -323,13 +327,13 @@ define('EXTRACHILL_API_URL', 'https://community.extrachill.com');
 - **Theme Integration**: Works seamlessly with extrachill theme on community.extrachill.com
 - **Plugin Integration**: Works with other community plugins via filters and hooks
 - **No Build System**: Direct file inclusion, no compilation required
-- **Explicit Loading Architecture**: 39 files via direct require_once in extrachill_community_init() (NO master loader file)
-- **Organized Structure**: Core (4), content (5), social (12), user-profiles (10), home (3)
+- **Explicit Loading Architecture**: 35 files loaded in init + 3 template components via includes/filters = 38 total files (NO master loader file)
+- **Organized Structure**: Core (7), content (4), social (12), user-profiles (8), home (4), plus 3 template components
 - **WordPress Native**: Full compliance with WordPress plugin development standards
-- **Performance Focused**: Conditional asset loading, dynamic versioning, modular CSS, 6 active JS files (1 disabled)
+- **Performance Focused**: Conditional asset loading, dynamic versioning, modular CSS, 7 JS files (5 via assets.php, 2 independent)
 - **Cross-Domain Ready**: WordPress multisite native authentication exclusively (migration complete)
 - **Hook-Based Components**: Homepage and settings use action hooks for extensibility
-- **Filter System**: ec_avatar_menu_items filter in inc/user-profiles/user-avatar-menu.php for plugin integration
+- **Filter System**: ec_avatar_menu_items filter in extrachill-users plugin for cross-plugin integration
 
 ## License
 

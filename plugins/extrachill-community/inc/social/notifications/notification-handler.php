@@ -16,7 +16,8 @@ if (!defined('ABSPATH')) {
  * Handle notification action hook
  *
  * Central handler for all notifications. Accepts user IDs and notification data,
- * enriches with actor information, and stores in user meta.
+ * enriches with actor information, and stores in user meta on community.extrachill.com
+ * for network-wide notification access.
  *
  * @param int|array $user_ids Single user ID or array of user IDs to notify
  * @param array $notification_data Notification data array with required fields:
@@ -54,23 +55,43 @@ function extrachill_handle_notification($user_ids, $notification_data) {
         'read'               => false,
     ]);
 
-    // Add notification to each user's meta
-    foreach ($user_ids as $user_id) {
-        $user_id = (int) $user_id;
+    // Switch to community site for centralized notification storage
+    $community_blog_id = get_blog_id_from_url( 'community.extrachill.com', '/' );
+    if ( ! $community_blog_id ) {
+        return; // Failsafe: can't find community site
+    }
 
-        // Validate user exists
-        if ($user_id <= 0 || !get_userdata($user_id)) {
-            continue;
+    $current_blog_id = get_current_blog_id();
+    $switched = false;
+
+    if ( $current_blog_id !== $community_blog_id ) {
+        switch_to_blog( $community_blog_id );
+        $switched = true;
+    }
+
+    try {
+        // Add notification to each user's meta on community site
+        foreach ($user_ids as $user_id) {
+            $user_id = (int) $user_id;
+
+            // Validate user exists
+            if ($user_id <= 0 || !get_userdata($user_id)) {
+                continue;
+            }
+
+            // Get existing notifications
+            $notifications = get_user_meta($user_id, 'extrachill_notifications', true) ?: [];
+
+            // Append new notification
+            $notifications[] = $enriched_notification;
+
+            // Update user meta
+            update_user_meta($user_id, 'extrachill_notifications', $notifications);
         }
-
-        // Get existing notifications
-        $notifications = get_user_meta($user_id, 'extrachill_notifications', true) ?: [];
-
-        // Append new notification
-        $notifications[] = $enriched_notification;
-
-        // Update user meta
-        update_user_meta($user_id, 'extrachill_notifications', $notifications);
+    } finally {
+        if ( $switched ) {
+            restore_current_blog();
+        }
     }
 }
 add_action('extrachill_notify', 'extrachill_handle_notification', 10, 2);

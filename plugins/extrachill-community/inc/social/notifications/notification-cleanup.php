@@ -16,6 +16,7 @@ if (!defined('ABSPATH')) {
  * Mark notifications as read when viewed
  *
  * Marks all unread notifications as read and triggers cleanup of old notifications.
+ * Writes to community.extrachill.com for network-wide notification management.
  */
 function extrachill_mark_notifications_as_read() {
     // Security check: ensure user is logged in
@@ -24,25 +25,47 @@ function extrachill_mark_notifications_as_read() {
     }
 
     $current_user_id = get_current_user_id();
-    $notifications = get_user_meta($current_user_id, 'extrachill_notifications', true) ?: [];
 
-    // Additional safety check
-    if ( ! is_array( $notifications ) ) {
-        return;
+    // Switch to community site to update notifications
+    $community_blog_id = get_blog_id_from_url( 'community.extrachill.com', '/' );
+    if ( ! $community_blog_id ) {
+        return; // Failsafe: can't find community site
     }
 
-    foreach ($notifications as &$notification) {
-        if (!$notification['read']) {
-            $notification['read'] = true;
-            $notification['viewed_time'] = current_time('mysql');
+    $current_blog_id = get_current_blog_id();
+    $switched = false;
+
+    if ( $current_blog_id !== $community_blog_id ) {
+        switch_to_blog( $community_blog_id );
+        $switched = true;
+    }
+
+    try {
+        $notifications = get_user_meta($current_user_id, 'extrachill_notifications', true) ?: [];
+
+        // Additional safety check
+        if ( ! is_array( $notifications ) ) {
+            return;
+        }
+
+        foreach ($notifications as &$notification) {
+            if (!$notification['read']) {
+                $notification['read'] = true;
+                $notification['viewed_time'] = current_time('mysql');
+            }
+        }
+
+        // Update the notifications after marking them as read
+        update_user_meta($current_user_id, 'extrachill_notifications', $notifications);
+
+        // After marking as read, proceed to clean up old notifications
+        extrachill_cleanup_old_notifications_for_user($current_user_id);
+
+    } finally {
+        if ( $switched ) {
+            restore_current_blog();
         }
     }
-
-    // Update the notifications after marking them as read
-    update_user_meta($current_user_id, 'extrachill_notifications', $notifications);
-
-    // After marking as read, proceed to clean up old notifications
-    extrachill_cleanup_old_notifications_for_user($current_user_id);
 }
 
 /**
@@ -50,6 +73,7 @@ function extrachill_mark_notifications_as_read() {
  *
  * Removes read notifications older than one week.
  * Keeps all unread notifications regardless of age.
+ * Operates on community.extrachill.com (assumes already switched if needed).
  *
  * @param int $user_id User ID to clean up notifications for
  */
@@ -59,6 +83,9 @@ function extrachill_cleanup_old_notifications_for_user($user_id) {
     if ( $user_id <= 0 || ! get_userdata( $user_id ) ) {
         return;
     }
+
+    // Note: This function assumes we're already on the community site
+    // It's called from extrachill_mark_notifications_as_read() which handles blog switching
 
     $notifications = get_user_meta($user_id, 'extrachill_notifications', true) ?: [];
 

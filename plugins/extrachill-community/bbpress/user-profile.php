@@ -149,9 +149,9 @@ if ( $is_artist || $is_professional ) :
                     $final_manage_link_page_url_card = add_query_arg( 'artist_id', $latest_artist_id_card, $base_manage_link_page_url_card );
                 }
             ?>
-                <a href="<?php echo esc_url( $final_manage_artists_url_card ); ?>" class="button button-small extrachill-manage-profile-button"><?php esc_html_e( 'Manage Artist(s)', 'extra-chill-community' ); ?></a>
+                <a href="<?php echo esc_url( $final_manage_artists_url_card ); ?>" class="button-1 button-small"><?php esc_html_e( 'Manage Artist(s)', 'extra-chill-community' ); ?></a>
             <?php else : // No artist profiles, but is an artist, viewing own profile ?>
-                <a href="<?php echo esc_url( $base_manage_artists_url_card ); ?>" class="button button-small extrachill-manage-profile-button"><?php esc_html_e( 'Create Artist Profile', 'extra-chill-community' ); ?></a>
+                <a href="<?php echo esc_url( $base_manage_artists_url_card ); ?>" class="button-1 button-small"><?php esc_html_e( 'Create Artist Profile', 'extra-chill-community' ); ?></a>
             <?php endif; // End if has artist_ids (for buttons)
             echo '</div>'; // End .user-artist-management-actions
         endif; // End if viewing own profile

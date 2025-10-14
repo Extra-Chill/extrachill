@@ -114,9 +114,7 @@ body.mce-content-body a {
     color: var(--link-color);
     text-decoration: none;
 }
-body.mce-content-body a:hover {
-    text-decoration: underline;
-}
+/* Link hover handled by theme */
 
 /* Form elements */
 body.mce-content-body input[type="text"],

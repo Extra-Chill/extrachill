@@ -211,11 +211,7 @@ input[type="email"]#new_email:focus {
     color: var(--link-color, #0073aa);
 }
 
-.shared-tab-pane .followed-bands-settings li a:hover, /* Adjusted selector */
-.settings-tab-pane .followed-bands-settings li a:hover {
-    text-decoration: underline;
-    color: var(--link-hover-color, #005a87);
-}
+/* Link hover handled by theme */
 
 .shared-tab-pane .description, /* Adjusted selector */
 .settings-tab-pane .description {

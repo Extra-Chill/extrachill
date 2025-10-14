@@ -30,10 +30,6 @@ function ec_get_trusted_domains() {
     ]);
 }
 
-/**
- * Verify all URLs in content are from trusted domains
- * @return bool True if all links are trusted, false if any untrusted links found
- */
 function ec_content_has_only_trusted_links($content) {
     $trusted_domains = ec_get_trusted_domains();
     preg_match_all('/https?:\/\/[^\s<>"]+/i', $content, $matches);
@@ -62,8 +58,7 @@ function ec_content_has_only_trusted_links($content) {
 }
 
 /**
- * Check if user should be exempt from strict spam detection
- * Exempts administrators, moderators, keymasters, and users with 10+ community points
+ * Exempts admins, moderators, keymasters, and users with 10+ community points
  */
 function ec_user_exempt_from_spam_detection($user_id = 0) {
     if (!$user_id) {
@@ -96,10 +91,6 @@ function ec_user_exempt_from_spam_detection($user_id = 0) {
     return apply_filters('ec_user_exempt_from_spam_detection', false, $user_id);
 }
 
-/**
- * Filter bbPress reply spam detection to reduce false positives
- * Exempts trusted users and content with only trusted domain links
- */
 function ec_adjust_reply_spam_detection($is_spam, $reply_id = 0, $anonymous_data = array(), $reply_author = '', $reply_email = '', $reply_url = '') {
     if (!$is_spam) {
         return $is_spam;
@@ -123,10 +114,6 @@ function ec_adjust_reply_spam_detection($is_spam, $reply_id = 0, $anonymous_data
 }
 add_filter('bbp_is_reply_spam', 'ec_adjust_reply_spam_detection', 10, 6);
 
-/**
- * Filter bbPress topic spam detection to reduce false positives
- * Exempts trusted users and content with only trusted domain links
- */
 function ec_adjust_topic_spam_detection($is_spam, $topic_id = 0, $anonymous_data = array(), $topic_author = '', $topic_email = '', $topic_url = '') {
     if (!$is_spam) {
         return $is_spam;
@@ -151,7 +138,6 @@ function ec_adjust_topic_spam_detection($is_spam, $topic_id = 0, $anonymous_data
 add_filter('bbp_is_topic_spam', 'ec_adjust_topic_spam_detection', 10, 6);
 
 /**
- * Reduce spam detection sensitivity for music-related content
  * Content with 3+ music keywords likely represents legitimate music discussion
  */
 function ec_reduce_spam_sensitivity_for_music_content($is_spam, $content) {

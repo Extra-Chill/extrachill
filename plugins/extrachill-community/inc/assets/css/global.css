@@ -2,13 +2,16 @@
  * Global Community Styles
  *
  * Styles that need to be loaded on ALL community pages, not just bbPress pages.
- * Includes notification bell and online users count styles.
+ * Includes notification bell styles.
+ *
+ * Note: Avatar menu styles located in extrachill-users plugin (assets/css/avatar-menu.css)
+ * Note: Online users stats styles located in extrachill-users plugin (assets/css/online-users.css)
  *
  * @package ExtraChillCommunity
  */
 
 /* ==================================================
-   Notification Bell & User Menu
+   Notification Bell
 ================================================== */
 i.fa-solid.fa-bell {
     color: #fff;
@@ -46,157 +49,4 @@ i.fa-solid.fa-bell:hover {
     border-radius: 50%;
     padding: 0 5px;
     font-size: 12px;
-}
-
-.user-menu-wrapper {
-    position: relative;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-}
-
-.user-avatar-link img {
-    height: 35px;
-    border-radius: 50%;
-    border: 1px solid var(--accent-2);
-    margin-right: 10px;
-}
-
-.user-avatar-button {
-    background: none;
-    border: none;
-    padding: 0;
-    cursor: pointer;
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    opacity: 0;
-}
-
-.user-dropdown-menu {
-    position: absolute;
-    right: 0;
-    top: 100%;
-    background: var(--background-color);
-    border: 1px solid var(--border-color);
-    border-radius: 5px;
-    padding: 10px 0;
-    min-width: 200px;
-    z-index: 1000;
-    display: none;
-    margin-top: 10px;
-    box-shadow: var(--card-shadow);
-}
-
-.user-dropdown-menu ul {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-}
-
-.user-dropdown-menu li {
-    padding: 0;
-}
-
-.user-dropdown-menu a {
-    display: block;
-    padding: 8px 20px;
-    color: var(--text-color);
-    text-decoration: none;
-    font-size: 14px;
-}
-
-.user-dropdown-menu a:hover {
-    background-color: var(--accent-2);
-    color: var(--link-color);
-}
-
-.user-avatar-container {
-    position: relative;
-    display: inline-block;
-    vertical-align: middle;
-}
-
-.notification-bell-icon a {
-    pointer-events: auto;
-}
-
-.user-dropdown-menu.show {
-    display: block;
-}
-
-.log-out {
-    color: var(--error-color);
-}
-
-.log-out:hover {
-    color: var(--text-color);
-    text-decoration-color: var(--error-color);
-}
-
-/* ==================================================
-   Online Users Stats Card
-================================================== */
-.online-stats-card {
-    background: var(--card-background);
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    padding: 1rem 1.5rem;
-    margin: 2rem auto;
-    max-width: 600px;
-    display: flex;
-    gap: 2rem;
-    align-items: center;
-    justify-content: center;
-}
-
-.online-stat {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-}
-
-.online-stat i {
-    font-size: 1.5rem;
-    color: var(--accent);
-}
-
-.online-stat .online-indicator {
-    color: #10b981;
-    animation: pulse 2s ease-in-out infinite;
-}
-
-@keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.5; }
-}
-
-.stat-content {
-    display: flex;
-    flex-direction: column;
-    gap: 0.1rem;
-}
-
-.stat-value {
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: var(--text-primary);
-    line-height: 1;
-}
-
-.stat-label {
-    font-size: 0.875rem;
-    color: var(--text-secondary);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-@media (max-width: 600px) {
-    .online-stats-card {
-        flex-direction: column;
-        gap: 1.5rem;
-        padding: 1.25rem 1rem;
-    }
 }

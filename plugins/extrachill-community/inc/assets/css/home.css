@@ -29,10 +29,7 @@
     color: var(--link-color);
 }
 
-.community-latest-post a:hover {
-    text-decoration: underline;
-    text-decoration-color: var(--link-color);
-}
+/* Link hover handled by theme */
 
 /* --- Forum Card Styles --- */
 .bbp-forum-card {
@@ -151,11 +148,7 @@ ul.recently-active-topic-row {
     text-decoration: underline;
     color: var(--link-color);
 }
-.recently-active-topic-row .topic-card-row a:hover {
-    color: inherit;
-    text-decoration: underline;
-    text-decoration-color: var(--link-color);
-}
+/* Link hover handled by theme */
 
 .card-meta a {
     padding: auto;
@@ -349,11 +342,11 @@ ul.recently-active-topic-row {
 
 .artist-platform-view-all,
 .artist-platform-manage {
-    padding: 8px 16px;
+    padding: var(--button-padding-medium);
     border-radius: 6px;
     text-decoration: none;
     font-weight: 500;
-    font-size: 14px;
+    font-size: var(--button-font-size-medium);
     transition: all 0.2s ease;
 }
 
@@ -424,7 +417,7 @@ ul.recently-active-topic-row {
 }
 
 .homepage-top-actions .button {
-    padding: 10px 20px;
+    padding: var(--button-padding-medium);
     border-radius: 5px;
     text-decoration: none;
     font-weight: 500;
@@ -564,11 +557,11 @@ ul.recently-active-topic-row {
 }
 
 .artist-platform-homepage-actions .button {
-    padding: 12px 24px;
+    padding: var(--button-padding-large);
     border-radius: 5px;
     text-decoration: none;
     font-weight: 500;
-    font-size: 15px;
+    font-size: var(--button-font-size-large);
     transition: all 0.2s ease;
     border: 2px solid transparent;
 }

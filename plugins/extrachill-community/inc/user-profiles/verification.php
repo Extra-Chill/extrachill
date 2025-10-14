@@ -1,5 +1,10 @@
 <?php
 function extrachill_add_user_role_fields($user) {
+    // Only render these fields in wp-admin, not on bbPress frontend
+    if (!is_admin()) {
+        return;
+    }
+
     $is_admin = current_user_can('administrator');
     $artist = get_user_meta($user->ID, 'user_is_artist', true) == '1';
     $professional = get_user_meta($user->ID, 'user_is_professional', true) == '1';
@@ -29,6 +34,11 @@ add_action('show_user_profile', 'extrachill_add_user_role_fields');
 add_action('edit_user_profile', 'extrachill_add_user_role_fields');
 
 function extrachill_save_user_meta($user_id) {
+    // Only process these fields in wp-admin to prevent data loss on frontend
+    if (!is_admin()) {
+        return;
+    }
+
     if (!current_user_can('edit_user', $user_id)) {
         return false;
     }

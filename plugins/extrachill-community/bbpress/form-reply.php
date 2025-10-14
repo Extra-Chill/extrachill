@@ -174,7 +174,7 @@ if ( bbp_is_reply_edit() ) : ?>
 
 						<?php bbp_cancel_reply_to_link(); ?>
 
-						<button type="submit" id="bbp_reply_submit" name="bbp_reply_submit" class="button submit"><?php esc_html_e( 'Submit', 'bbpress' ); ?></button>
+						<button type="submit" id="bbp_reply_submit" name="bbp_reply_submit" class="button-1 button-medium"><?php esc_html_e( 'Submit', 'bbpress' ); ?></button>
 
 						<?php do_action( 'bbp_theme_after_reply_form_submit_button' ); ?>
 

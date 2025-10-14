@@ -132,14 +132,13 @@
 /* Styling for <a> tags as buttons within the user actions area */
 .bbp-user-profile .bbp-user-actions-area a.settings-button,
 .bbp-user-profile .bbp-user-actions-area a.extrachill-edit-profile-button {
+    /* Button sizing via explicit classes in HTML */
     background-color: var(--button-bg);
     color: #fff;
     border-radius: 5px;
     border: none;
     cursor: pointer;
     transition: background-color 0.2s ease-in-out;
-    padding: 5px 10px;
-    font-size: 14px;
     text-decoration: none;
     display: inline-block;
     line-height: normal;

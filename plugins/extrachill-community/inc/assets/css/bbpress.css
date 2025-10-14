@@ -45,19 +45,18 @@
    Breadcrumbs
 ================================================== */
 div.bbp-breadcrumb {
-    width: 100%;
-    font-size: 14px;
-    padding: 15px 0;
-    background: var(--background-color);
-    box-sizing: border-box;
-    display: block;
-    margin-bottom: 15px;
+    font-size: 13px;
+    color: var(--muted-text);
+    margin-top: 20px;
+    margin-bottom: 25px;
 }
 
-div.bbp-breadcrumb a:hover {
-    text-decoration: underline;
-    text-decoration-color: var(--link-color);
+div.bbp-breadcrumb a {
+    color: var(--muted-text);
+    border-bottom: .5px dotted var(--link-color);
 }
+
+/* Breadcrumb link hover handled by theme */
 
 /* ==================================================
    Headers and Footers
@@ -109,9 +108,7 @@ span.bbp-admin-links a {
     text-decoration-color: var(--text-color);
 }
 
-span.bbp-admin-links a:hover {
-    text-decoration-color: var(--link-color);
-}
+/* Admin link hover handled by theme */
 
 /* ==================================================
    Meta and Permalink Styles
@@ -163,10 +160,7 @@ span.bbp-admin-links {
     text-decoration: none;
 }
 
-.bbp-links-with-quote a:hover {
-    text-decoration: underline;
-    text-decoration-color: var(--link-color);
-}
+/* Quote link hover handled by theme */
 
 
 /* ==================================================
@@ -204,6 +198,8 @@ span.bbp-admin-links {
     font-size: 15px;
     box-sizing: border-box;
     transition: border-color 0.2s ease-in-out;
+    background-color: var(--background-color);
+    color: var(--text-color);
 }
 
 .bbp-topic-form input[type="text"]:focus,
@@ -510,8 +506,8 @@ label {
     color: var(--brand-blue);
 }
 
-#bbpress-forums ul.status-closed:hover,
-#bbpress-forums ul.status-closed a:hover {
+/* Closed status hover handled by theme */
+#bbpress-forums ul.status-closed:hover {
     color: var(--text-color);
 }
 
@@ -772,13 +768,15 @@ p.private-forums {
     border-top-color: var(--text-color) !important;
 }
 
-.wp-editor-container .mce-panel .mce-btn.mce-listbox {
-    border: none;
-    background-color: transparent;
+.wp-editor-container .mce-toolbar .mce-btn-group .mce-btn.mce-listbox {
+    border: 1px solid var(--border-color) !important;
+    background-color: var(--background-color) !important;
+    border-radius: 4px !important;
 }
 
 .wp-editor-container .mce-panel .mce-btn.mce-listbox button {
-    background-color: transparent;
+    background-color: var(--background-color) !important;
+    color: var(--text-color) !important;
 }
 
 /* Icon colors */

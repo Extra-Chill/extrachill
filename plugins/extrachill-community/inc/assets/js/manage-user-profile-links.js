@@ -38,7 +38,7 @@ jQuery(document).ready(function($) {
                     <input type="url" name="user_links[${index}][url]" id="user_links_${index}_url" value="${url}" placeholder="https://..." required style="width: 100%;">
                 </div>
                 <div style="flex: 0 0 auto;">
-                    <button type="button" class="button button-small user-remove-link-button" title="${transRemoveLink}">&times;</button>
+                    <button type="button" class="button-1 button-small user-remove-link-button" title="${transRemoveLink}">&times;</button>
                 </div>
             </div>
         `;

@@ -2,30 +2,16 @@
 /**
  * Page Template Registration
  *
- * Registers and loads community page templates with WordPress.
- * Makes templates available in page template dropdown and handles template loading.
+ * Registers leaderboard, recent feed, and blog comments feed page templates.
  *
  * @package ExtraChillCommunity
  */
 
-// Exit if accessed directly.
 if (!defined('ABSPATH')) {
     exit;
 }
 
-/**
- * Register community page templates with WordPress
- *
- * Makes page templates appear in the page template dropdown in admin.
- *
- * @param array $templates Existing page templates.
- * @param WP_Theme $theme Current theme object.
- * @param WP_Post|null $post Current post object or null.
- * @param string $post_type Post type.
- * @return array Modified templates array.
- */
 function extrachill_community_register_page_templates($templates, $theme, $post, $post_type) {
-    // Only register templates for 'page' post type
     if ($post_type !== 'page') {
         return $templates;
     }
@@ -36,7 +22,6 @@ function extrachill_community_register_page_templates($templates, $theme, $post,
         'page-templates/main-blog-comments-feed.php'   => __('Main Blog Comments Feed', 'extrachill-community'),
     );
 
-    // Only register templates that actually exist
     foreach ($community_templates as $template_file => $template_name) {
         $full_path = EXTRACHILL_COMMUNITY_PLUGIN_DIR . $template_file;
         if (file_exists($full_path)) {
@@ -48,15 +33,6 @@ function extrachill_community_register_page_templates($templates, $theme, $post,
 }
 add_filter('theme_page_templates', 'extrachill_community_register_page_templates', 10, 4);
 
-/**
- * Load community page templates
- *
- * Integrates with theme's template router to serve plugin templates.
- * Hooks into extrachill_template_page filter provided by theme's routing system.
- *
- * @param string $template Current template path from theme router.
- * @return string Modified template path.
- */
 function extrachill_community_load_page_templates($template) {
     global $post;
 

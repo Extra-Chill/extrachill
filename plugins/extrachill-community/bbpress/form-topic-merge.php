@@ -98,7 +98,7 @@ defined( 'ABSPATH' ) || exit;
 						</div>
 
 						<div class="bbp-submit-wrapper">
-							<button type="submit" id="bbp_merge_topic_submit" name="bbp_merge_topic_submit" class="button submit"><?php esc_html_e( 'Submit', 'bbpress' ); ?></button>
+							<button type="submit" id="bbp_merge_topic_submit" name="bbp_merge_topic_submit" class="button-1 button-medium"><?php esc_html_e( 'Submit', 'bbpress' ); ?></button>
 						</div>
 					</div>
 

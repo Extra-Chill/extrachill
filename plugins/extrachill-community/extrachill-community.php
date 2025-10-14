@@ -23,13 +23,15 @@ define('EXTRACHILL_COMMUNITY_PLUGIN_URL', plugin_dir_url(__FILE__));
 
 /**
  * Loads 33 feature files via direct require_once.
- * Load order: core (5) → content (4) → social (12) → user-profiles (8) → home (4).
+ * Load order: core (7) → content (4) → social (12) → user-profiles (6) → home (4).
  * Templates loaded via hooks: forum-home-header, forum-homepage, recently-active.
+ * Note: Avatar functionality moved to extrachill-users plugin for network-wide availability.
  */
 function extrachill_community_init() {
-    // Core functionality (6 files)
+    // Core functionality (7 files)
     require_once plugin_dir_path(__FILE__) . 'inc/core/assets.php';
     require_once plugin_dir_path(__FILE__) . 'inc/core/bbpress-templates.php';
+    require_once plugin_dir_path(__FILE__) . 'inc/core/breadcrumb-filter.php';
     require_once plugin_dir_path(__FILE__) . 'inc/core/page-templates.php';
     require_once plugin_dir_path(__FILE__) . 'inc/core/nav.php';
     require_once plugin_dir_path(__FILE__) . 'inc/core/bbpress-spam-adjustments.php';
@@ -55,15 +57,11 @@ function extrachill_community_init() {
     require_once plugin_dir_path(__FILE__) . 'inc/social/notifications/capture-mentions.php';
     require_once plugin_dir_path(__FILE__) . 'inc/social/notifications/notifications-content.php';
 
-    // User profile features (8 files) - avatar menu moved to extrachill-multisite
-    require_once plugin_dir_path(__FILE__) . 'inc/user-profiles/custom-avatar.php';
-    // Avatar menu now loaded from extrachill-multisite plugin with conditional loading
+    // User profile features (6 files) - avatar system moved to extrachill-users plugin
     require_once plugin_dir_path(__FILE__) . 'inc/user-profiles/custom-user-profile.php';
     require_once plugin_dir_path(__FILE__) . 'inc/user-profiles/verification.php';
     require_once plugin_dir_path(__FILE__) . 'inc/user-profiles/settings/settings-content.php';
     require_once plugin_dir_path(__FILE__) . 'inc/user-profiles/settings/settings-form-handler.php';
-    require_once plugin_dir_path(__FILE__) . 'inc/user-profiles/online-users-count.php';
-    require_once plugin_dir_path(__FILE__) . 'inc/user-profiles/edit/upload-custom-avatar.php';
     require_once plugin_dir_path(__FILE__) . 'inc/user-profiles/edit/user-links.php';
     require_once plugin_dir_path(__FILE__) . 'inc/user-profiles/edit/user-info.php';
 

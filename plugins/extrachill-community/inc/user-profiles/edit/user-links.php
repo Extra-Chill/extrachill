@@ -69,7 +69,7 @@ function extrachill_render_user_links_field() {
     <div id="user-dynamic-links-container" data-nonce="<?php echo esc_attr(wp_create_nonce('user_dynamic_link_nonce')); ?>">
         <p class="description"><?php esc_html_e('Add links to your website, social media, streaming, etc.', 'bbpress'); ?></p>
         <div id="user-links-list"></div>
-        <button type="button" id="user-add-link-button" class="button button-secondary"><i class="fas fa-plus"></i> <?php esc_html_e('Add Link', 'bbpress'); ?></button>
+        <button type="button" id="user-add-link-button" class="button button-2"><i class="fas fa-plus"></i> <?php esc_html_e('Add Link', 'bbpress'); ?></button>
     </div>
     <?php
 }

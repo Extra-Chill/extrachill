@@ -89,8 +89,8 @@ wp_reset_postdata(); // Reset the global post object
         </p>
         <div class="bbp-user-actions-area">
                 <?php if ( bbp_get_displayed_user_id() == get_current_user_id() ) : ?>
-                    <a href="/settings" class="settings-button"><?php esc_html_e('Settings', 'bbpress'); ?></a>
-                <a href="<?php echo esc_url( bbp_get_user_profile_edit_url( bbp_get_displayed_user_id() ) ); ?>" class="extrachill-edit-profile-button"><?php esc_html_e('Edit Profile', 'extra-chill-community'); ?></a>
+                    <a href="/settings" class="button-1 button-small"><?php esc_html_e('Settings', 'bbpress'); ?></a>
+                <a href="<?php echo esc_url( bbp_get_user_profile_edit_url( bbp_get_displayed_user_id() ) ); ?>" class="button-1 button-small"><?php esc_html_e('Edit Profile', 'extra-chill-community'); ?></a>
             <?php endif; ?>
         </div>
 
