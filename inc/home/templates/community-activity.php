@@ -1,13 +1,24 @@
 <?php
-// home/community-activity.php - Community Activity for 3x3 Grid
+/**
+ * Homepage Community Activity - 3x3 Grid Section
+ *
+ * Queries bbPress topics/replies directly from community.extrachill.com via multisite blog switching.
+ * Manually constructs forum URLs using /r/ slug pattern and profile URLs via ec_get_user_profile_url().
+ *
+ * Technical Implementation:
+ * - Multisite blog switching: Uses get_blog_id_from_url() with switch_to_blog() for cross-site data access
+ * - Forum URL pattern: Manually constructs community.extrachill.com/r/{forum-slug} for forum links
+ * - Profile URL dependency: Requires extrachill-users plugin for ec_get_user_profile_url() function
+ * - Caching: 10-minute WordPress object cache for performance optimization
+ *
+ * @package ExtraChill
+ * @since 69.57
+ */
 
-// Use WordPress object cache for performance
 $cache_key = 'extrachill_recent_activity';
 $activities = wp_cache_get($cache_key);
 
-// If not in cache, query the database directly
 if ($activities === false) {
-    // Switch to community site in multisite network using domain resolution
     $current_blog_id = get_current_blog_id();
     $community_blog_id = 0;
     if (function_exists('get_blog_id_from_url')) {
@@ -28,8 +39,6 @@ if ($activities === false) {
             switch_to_blog($community_blog_id);
             $switched = true;
         }
-
-    // Query recent bbPress activity directly
     $args = array(
         'post_type' => array('topic', 'reply'),
         'post_status' => 'publish',
@@ -77,10 +86,12 @@ if ($activities === false) {
 
             $forum_title = $forum_id ? get_the_title($forum_id) : '';
             $topic_title = $topic_id ? get_the_title($topic_id) : '';
-            $forum_url = $forum_id ? get_permalink($forum_id) : '';
+            $forum_url = $forum_id ? 'https://community.extrachill.com/r/' . get_post_field('post_name', $forum_id) : '';
             $topic_url = $topic_id ? get_permalink($topic_id) : '';
             $username = get_the_author();
-            $user_profile_url = $author_id ? get_author_posts_url($author_id) : '';
+            $user_profile_url = ( $author_id && function_exists( 'ec_get_user_profile_url' ) )
+                ? ec_get_user_profile_url( $author_id )
+                : '';
 
             if (!$topic_url || !$forum_url) {
                 continue;
@@ -106,7 +117,6 @@ if ($activities === false) {
         }
     }
 
-    // Cache for 10 minutes using WordPress object cache
     wp_cache_set($cache_key, $activities, '', 10 * MINUTE_IN_SECONDS);
 }
 
@@ -132,7 +142,7 @@ if (!empty($activities)) {
                 esc_html($activity['forum_title']),
                 $dateFormatted
             );
-        } else { // Topic
+        } else {
             printf(
                 '<div class="home-3x3-card home-3x3-community-card"><a href="%s">%s</a> posted <a id="topic-%d" href="%s">%s</a> in <a href="%s">%s</a> - %s</div>',
                 esc_url($activity['user_profile_url']),

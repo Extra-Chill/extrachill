@@ -2,9 +2,6 @@
 /**
  * Single Post Template
  *
- * Displays single posts with content, comments, and related posts.
- * Loaded via template_include filter in inc/core/template-router.php.
- *
  * @package ExtraChill
  * @since 69.58
  */
@@ -16,10 +13,7 @@ get_header(); ?>
 <section class="main-content">
     <?php while ( have_posts() ) : the_post(); ?>
 
-        <?php
-        // Always show breadcrumbs for posts
-        extrachill_breadcrumbs();
-        ?>
+        <?php extrachill_breadcrumbs(); ?>
 
 <div class="single-post-card">
 <article id="post-<?php the_ID(); ?>">
@@ -60,12 +54,10 @@ get_header(); ?>
 <aside>
     <?php
     do_action( 'extrachill_before_comments_template' );
-    // If comments are open or we have at least one comment, load up the comment template
     if ( comments_open() || '0' != get_comments_number() ) {
         do_action( 'extrachill_comments_section' );
     }
     do_action( 'extrachill_after_comments_template' );
-    // Add related artist and venue sections below comments
     require_once get_template_directory() . '/inc/single/related-posts.php';
 
     $post_id = get_the_ID();

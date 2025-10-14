@@ -23,10 +23,10 @@
                         <a href="https://events.extrachill.com">Calendar</a>
                     </li>
                     <li class="menu-item">
-                        <a href="https://extrachill.com/interviews/">Interviews</a>
+                        <a href="https://extrachill.com/category/interviews/">Interviews</a>
                     </li>
                     <li class="menu-item">
-                        <a href="https://extrachill.com/live-music-reviews/">Live Music Reviews</a>
+                        <a href="https://extrachill.com/category/live-music-reviews/">Live Music Reviews</a>
                     </li>
                     <li class="menu-item">
                         <a href="https://extrachill.com/newsletters">Newsletters</a>
@@ -42,16 +42,16 @@
                 <a href="#">The Rabbit Hole</a>
                 <ul class="sub-menu">
                     <li class="menu-item">
-                        <a href="https://extrachill.com/song-meanings/">Song Meanings</a>
+                        <a href="https://extrachill.com/category/song-meanings/">Song Meanings</a>
                     </li>
                     <li class="menu-item">
                         <a href="https://extrachill.com/artist/grateful-dead">Grateful Dead</a>
                     </li>
                     <li class="menu-item">
-                        <a href="https://extrachill.com/musical-curiosities/">Musical Curiosities</a>
+                        <a href="https://extrachill.com/category/musical-curiosities/">Musical Curiosities</a>
                     </li>
                     <li class="menu-item">
-                        <a href="https://extrachill.com/famous-guitars/">Famous Guitars</a>
+                        <a href="https://extrachill.com/category/famous-guitars/">Famous Guitars</a>
                     </li>
                 </ul>
             </li>

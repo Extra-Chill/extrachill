@@ -1,5 +1,10 @@
 <?php
-// Section: extrachill.link Homepage Promo
+/**
+ * Homepage extrachill.link Promo Section
+ *
+ * @package ExtraChill
+ * @since 69.58
+ */
 ?>
 <section class="home-extrachill-link-container" aria-labelledby="extrachill-link-header">
   <div class="home-extrachill-link-card">
@@ -14,6 +19,6 @@
       <li>Free for all artists</li>
       <li>Seamless integration with your artist profile</li>
     </ul>
-    <a href="https://extrachill.link/join" class="home-extrachill-link-cta" target="_blank" rel="noopener">Create Your Free Link Page</a>
+    <a href="https://extrachill.link/join" class="button-1 button-large" target="_blank" rel="noopener">Create Your Free Link Page</a>
   </div>
 </section> 

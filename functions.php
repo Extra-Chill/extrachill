@@ -2,10 +2,8 @@
 /**
  * ExtraChill Theme Setup and Configuration
  *
- * Theme uses WordPress native template routing via template_include filter
- * (inc/core/template-router.php) to handle all page types with plugin override support.
- *
- * Loads 25 modular PHP files directly via require_once for theme functionality.
+ * Template routing via WordPress native template_include filter in
+ * inc/core/template-router.php with plugin override support via filters.
  *
  * @package ExtraChill
  * @since 69.58
@@ -57,8 +55,6 @@ add_action('init', 'extrachill_unregister_image_sizes', 99);
 
 define('EXTRACHILL_PARENT_DIR', get_template_directory());
 define('EXTRACHILL_INCLUDES_DIR', EXTRACHILL_PARENT_DIR . '/inc');
-
-// Core shared templates
 require_once(EXTRACHILL_INCLUDES_DIR . '/core/templates/post-meta.php');
 require_once(EXTRACHILL_INCLUDES_DIR . '/core/templates/pagination.php');
 require_once(EXTRACHILL_INCLUDES_DIR . '/core/templates/no-results.php');
@@ -76,7 +72,6 @@ require_once(EXTRACHILL_INCLUDES_DIR . '/header/navigation-menu.php');
 require_once(EXTRACHILL_INCLUDES_DIR . '/core/custom-taxonomies.php');
 require_once(EXTRACHILL_INCLUDES_DIR . '/core/yoast-stuff.php');
 
-// Sidebar functionality
 require_once(EXTRACHILL_INCLUDES_DIR . '/sidebar/recent-posts.php');
 require_once(EXTRACHILL_INCLUDES_DIR . '/sidebar/community-activity.php');
 
@@ -90,17 +85,14 @@ function extrachill_remove_customizer_menus($wp_customize) {
 }
 add_action('customize_register', 'extrachill_remove_customizer_menus', 20);
 
-// Custom embeds
 require_once(EXTRACHILL_INCLUDES_DIR . '/core/editor/bandcamp-embeds.php');
 require_once(EXTRACHILL_INCLUDES_DIR . '/core/editor/instagram-embeds.php');
 require_once(EXTRACHILL_INCLUDES_DIR . '/core/editor/spotify-embeds.php');
 
-// Archive functionality
 require_once(EXTRACHILL_INCLUDES_DIR . '/archives/archive-child-terms-dropdown.php');
 require_once(EXTRACHILL_INCLUDES_DIR . '/archives/archive-custom-sorting.php');
 require_once(EXTRACHILL_INCLUDES_DIR . '/archives/archive-filter-bar.php');
 
-// Search functionality
 require_once(EXTRACHILL_INCLUDES_DIR . '/core/templates/searchform.php');
 
 add_filter('the_content', function($content) {
@@ -199,11 +191,6 @@ if ( is_plugin_active('co-authors-plus/co-authors-plus.php') ) {
         }
 
         return $authors;
-    }
-} else {
-    add_action('admin_notices', 'extrachill_coauthors_notice');
-    function extrachill_coauthors_notice() {
-        echo '<div class="notice notice-warning is-dismissible"><p>Co-Authors Plus plugin is not active. Some author-related features may use fallbacks.</p></div>';
     }
 }
 

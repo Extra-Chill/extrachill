@@ -417,41 +417,7 @@ body.home {
     justify-content: center;
     margin-top: 0.5em;
 }
-.home-about-link {
-    color: var(--accent);
-    font-weight: 700;
-    text-decoration: underline;
-    font-size: 1.08em;
-    transition: color 0.18s;
-}
-.home-about-link:hover,
-.home-about-link:focus {
-    color: var(--button-hover-bg);
-    outline: none;
-}
-.home-about-links .home-about-link {
-    display: inline-block;
-    background: var(--button-bg) !important;
-    color: #fff !important;
-    border-radius: 7px !important;
-    padding: 0.55em 1.3em !important;
-    font-size: 1em;
-    font-weight: 600;
-    text-decoration: none !important;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
-    transition: background 0.18s, color 0.18s, box-shadow 0.18s;
-    border: none;
-    letter-spacing: 0.01em;
-    margin: 0;
-}
-.home-about-links .home-about-link:hover,
-.home-about-links .home-about-link:focus {
-    background: var(--button-hover-bg) !important;
-    color: #fff !important;
-    outline: none;
-    box-shadow: 0 4px 16px rgba(83,148,11,0.10);
-    text-decoration: none !important;
-}
+/* Home about links use explicit button classes in HTML */
 @media (max-width: 900px) {
     .home-final {
         flex-direction: column;
@@ -532,25 +498,9 @@ body.home {
     font-weight: bold;
 }
 
-.home-extrachill-link-cta {
-    display: inline-block;
-    background: var(--button-bg);
-    color: #fff;
-    border-radius: 8px;
-    padding: 0.9em 2.2em;
-    font-size: 1.13em;
-    font-weight: 700;
-    text-decoration: none;
-    box-shadow: 0 2px 8px rgba(83,148,11,0.07);
-    transition: background 0.2s, transform 0.2s;
-    margin-top: 1.2em;
-    letter-spacing: 0.01em;
-}
+/* ExtraChill link CTA uses explicit button classes in HTML */
 .home-extrachill-link-cta:hover,
 .home-extrachill-link-cta:focus {
-    background: var(--button-hover-bg);
-    color: #fff;
-    outline: none;
     transform: scale(1.03);
 }
 

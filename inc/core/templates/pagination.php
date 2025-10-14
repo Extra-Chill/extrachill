@@ -2,7 +2,9 @@
 /**
  * Pagination
  *
- * Native WordPress pagination with count display and URL parameter preservation.
+ * Technical Implementation:
+ * - URL preservation: Maintains GET parameters across pagination using add_args
+ * - Dynamic formatting: Adjusts URL format based on existing query string presence
  *
  * @package ExtraChill
  * @since 69.58
@@ -12,12 +14,6 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-/**
- * Display pagination with count and navigation links
- *
- * @param WP_Query|null $query Custom query or global $wp_query
- * @param string $context Styling context (default, archive, search)
- */
 function extrachill_pagination($query = null, $context = 'default') {
     global $wp_query;
 

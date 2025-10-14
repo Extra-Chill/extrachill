@@ -1,8 +1,12 @@
 <?php
 /**
- * ExtraChill Theme Asset Management
+ * Asset Management
  *
- * Conditional loading for 9 CSS files with filemtime() cache busting.
+ * Technical Implementation:
+ * - Conditional loading: Page-specific CSS/JS enqueued only when needed
+ * - Cache busting: filemtime() versioning for all assets to force browser cache refresh on file changes
+ * - Loading priority: Root CSS loads at priority 5, dependent styles at priority 10+
+ * - Shared components: Registered assets (shared-tabs) for conditional enqueuing by blocks/plugins
  *
  * @package ExtraChill
  * @since 69.57
@@ -33,6 +37,11 @@ function extrachill_enqueue_navigation_assets() {
 }
 add_action('wp_enqueue_scripts', 'extrachill_enqueue_navigation_assets');
 
+function extrachill_enqueue_fontawesome() {
+    wp_enqueue_style('font-awesome', '//cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css');
+}
+add_action('wp_enqueue_scripts', 'extrachill_enqueue_fontawesome');
+
 function extrachill_enqueue_archive_scripts() {
     if (is_archive()) {
         $js_path = get_template_directory() . '/assets/js/chill-custom.js';
@@ -60,14 +69,20 @@ add_action('wp_enqueue_scripts', 'extrachill_enqueue_reading_progress');
 
 function extrachill_enqueue_home_styles() {
     if ( is_front_page() ) {
-        $css_path = get_stylesheet_directory() . '/assets/css/home.css';
-        if ( file_exists( $css_path ) ) {
-            wp_enqueue_style(
-                'extrachill-home',
-                get_stylesheet_directory_uri() . '/assets/css/home.css',
-                array(),
-                filemtime( $css_path )
-            );
+        // Check if plugin has overridden homepage template
+        $template_override = apply_filters( 'extrachill_template_homepage', false );
+
+        // Only load home.css if theme is handling homepage
+        if ( ! $template_override ) {
+            $css_path = get_stylesheet_directory() . '/assets/css/home.css';
+            if ( file_exists( $css_path ) ) {
+                wp_enqueue_style(
+                    'extrachill-home',
+                    get_stylesheet_directory_uri() . '/assets/css/home.css',
+                    array(),
+                    filemtime( $css_path )
+                );
+            }
         }
     }
 }
@@ -113,7 +128,7 @@ function extrachill_modify_default_style() {
 add_action('wp_enqueue_scripts', 'extrachill_modify_default_style', 20);
 
 function extrachill_enqueue_single_post_styles() {
-    if ( is_singular('post') ) {
+    if ( is_singular( array( 'post', 'newsletter', 'festival_wire' ) ) ) {
         $css_path = get_stylesheet_directory() . '/assets/css/single-post.css';
         if ( file_exists( $css_path ) ) {
             wp_enqueue_style(
@@ -158,7 +173,6 @@ function extrachill_enqueue_search_styles() {
 add_action('wp_enqueue_scripts', 'extrachill_enqueue_search_styles', 20);
 
 function extrachill_register_shared_tabs() {
-    // Register unconditionally - components enqueue when needed
     wp_register_style(
         'extrachill-shared-tabs',
         get_template_directory_uri() . '/assets/css/shared-tabs.css',

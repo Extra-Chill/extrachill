@@ -9,15 +9,14 @@
  */
 
 .share-button {
+    /* Button sizing via explicit classes in HTML */
     background-color: var(--button-bg);
     cursor: pointer;
     display: flex;
     align-items: center;
-    padding: 6px 10px;
     border-radius: 3px;
     gap: 5px;
     margin: 20px 0px;
-    font-size: 13px;
 }
 
 .share-button svg {

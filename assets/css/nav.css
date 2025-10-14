@@ -150,36 +150,32 @@ body.sticky-header #masthead {
 }
 
 .site-branding {
-    flex: 1; /* Ensures it takes up the space on the left */
-	margin: 0 20px;
+    margin: 0 20px;
 }
 
-.main-navigation, .search-top, .cart-top {
+/* All header right elements use flex alignment */
+.main-navigation,
+.search-icon,
+.notification-bell-icon,
+.cart-icon,
+.user-avatar-container {
     display: flex;
     align-items: center;
 }
 
-.search-top{
-	cursor: pointer;
-	pointer-events: auto; /* Ensure the icon can be clicked */
+.search-top {
+    cursor: pointer;
+    pointer-events: auto;
 }
 
-/* Header top-right area - removed .search-cart container
-   Individual elements (.search-icon, plugin containers) are now direct children of header
-   Header already has display:flex, so this maintains layout */
-
-svg.menu-toggle, svg.search-top, svg.submenu-indicator {
+/* Remove explicit margins - flex gap handles spacing */
+svg.menu-toggle,
+svg.search-top,
+svg.submenu-indicator,
+svg.cart-top {
     fill: #fff;
     transition: fill 0.3s;
-	margin: 0 20px;
-	vertical-align: middle;
-}
-
-svg.cart-top{
-    fill: #fff;
-    transition: fill 0.3s;
-	vertical-align: middle;
-	margin-right: 20px;
+    vertical-align: middle;
 }
 
 .cart-icon .cart-count {
@@ -256,9 +252,15 @@ button.search{
 
 header#masthead.site-header {
     display: flex;
-    justify-content: space-between;
     align-items: center;
     width: 100%;
+    padding: 0 1rem;
+    gap: 1rem;
+}
+
+/* Site branding takes up available space on left, pushing everything else right */
+.site-branding {
+    flex: 1;
 }
 
 #masthead .social-links i.fa {

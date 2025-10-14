@@ -12,17 +12,15 @@
 
 /**
  * Generate artist dropdown filter for current category
- * Uses modern artist taxonomy to create dropdown filter
+ * Uses modern artist taxonomy to create dropdown filter with descriptive default option
  *
- * @param string $filter_heading Display heading for filter section
  * @since 1.0
  */
-function extrachill_artist_filter_dropdown($filter_heading) {
+function extrachill_artist_filter_dropdown() {
     $current_artist = get_query_var('artist');
     $category_id = get_queried_object_id();
     $archive_link = get_category_link($category_id);
 
-    // Get artists that have posts in this category
     $artists = get_terms(array(
         'taxonomy' => 'artist',
         'orderby' => 'name',
@@ -41,11 +39,11 @@ function extrachill_artist_filter_dropdown($filter_heading) {
         return;
     }
 
-    echo '<div id="artist-filters"><h2 class="filter-head">' . esc_html($filter_heading) . '</h2>';
+    echo '<div id="artist-filters">';
     echo '<select id="artist-filter-dropdown" onchange="window.location.href=this.value;">';
 
     $selected = empty($current_artist) ? ' selected' : '';
-    echo '<option value="' . esc_url($archive_link) . '"' . $selected . '>View All</option>';
+    echo '<option value="' . esc_url($archive_link) . '"' . $selected . '>All Artists</option>';
 
     foreach ($artists as $artist) {
         $artist_url = add_query_arg('artist', $artist->slug, $archive_link);
@@ -68,7 +66,6 @@ function extrachill_artist_filter_dropdown($filter_heading) {
  */
 function extrachill_sort_posts($query) {
     if (!is_admin() && $query->is_main_query() && is_archive()) {
-        // Handle sorting
         $sort = isset($_GET['sort']) ? $_GET['sort'] : '';
 
         switch ($sort) {
@@ -81,12 +78,10 @@ function extrachill_sort_posts($query) {
                 break;
         }
 
-        // Handle randomization
         if (isset($_GET['randomize'])) {
             $query->set('orderby', 'rand');
         }
 
-        // Handle artist filtering
         $artist = get_query_var('artist');
         if (!empty($artist)) {
             $query->set('artist', $artist);

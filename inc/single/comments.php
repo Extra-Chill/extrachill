@@ -1,36 +1,22 @@
 <?php
 /**
- * Complete Comment System Template
+ * Comment System
  *
- * Consolidated comment template with multisite integration and custom comment callback.
- * Replaces root comments.php with action hook architecture for extensibility.
+ * Technical Implementation:
+ * - Multisite author links: Uses ec_should_use_multisite_comment_links() and ec_get_comment_author_link_multisite()
+ * - Native WordPress multisite authentication: Checks is_user_logged_in() for cross-site auth state
+ * - Login/Register block: Renders extrachill/login-register block inline for unauthenticated users
  *
  * @package ExtraChill
  * @since 1.0
  */
 
-/*
- * If the current post is protected by a password and
- * the visitor has not yet entered the password we will
- * return early without loading the comments.
- */
 if ( post_password_required() ) {
     return;
 }
 
 if ( ! function_exists( 'extrachill_comment' ) ) :
 
-/**
- * Custom comment callback function with multisite community integration
- *
- * Displays individual comments with enhanced author linking via multisite functions.
- * Handles trackbacks, author identification, and community user linking.
- *
- * @param WP_Comment $comment Comment object
- * @param array $args Comment arguments
- * @param int $depth Comment depth level
- * @since 1.0
- */
 function extrachill_comment( $comment, $args, $depth ) {
     $GLOBALS['comment'] = $comment;
     switch ( $comment->comment_type ) :
@@ -126,22 +112,18 @@ endif;
     <?php endif; ?>
 
     <?php
-        // If comments are closed and there are comments, show notice
         if ( ! comments_open() && '0' != get_comments_number() && post_type_supports( get_post_type(), 'comments' ) ) :
     ?>
         <p class="no-comments"><?php _e( 'Comments are closed.', 'extrachill' ); ?></p>
     <?php endif; ?>
     <?php
-    // Native WordPress multisite authentication
     if (is_user_logged_in()) {
-        // User is logged in across the multisite - show comment form
         comment_form(array(
             'title_reply' => __('Leave a Comment', 'extrachill'),
             'comment_notes_before' => '',
             'comment_notes_after' => '',
         ));
     } else {
-        // User not logged in - render login/register block inline
         echo '<h3>' . __('Login or Register to Comment', 'extrachill') . '</h3>';
         echo do_blocks('<!-- wp:extrachill/login-register /-->');
     }

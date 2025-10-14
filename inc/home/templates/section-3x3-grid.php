@@ -1,7 +1,16 @@
 <?php
-// home/section-3x3-grid.php - Homepage 3x3 Content Grid (restructured)
-// This template now receives its data from front-page.php to avoid redundant queries.
-global $post, $live_reviews_posts, $interviews_posts; // Ensure variables are available from homepage-queries.php
+/**
+ * Homepage 3x3 Content Grid
+ *
+ * Technical Implementation:
+ * - Receives query data from front-page.php to avoid redundant database queries
+ * - Global variables: $live_reviews_posts, $interviews_posts from homepage-queries.php
+ *
+ * @package ExtraChill
+ * @since 69.58
+ */
+
+global $post, $live_reviews_posts, $interviews_posts;
 ?>
 <div class="full-width-breakout">
   <div class="home-3x3-grid">

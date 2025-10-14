@@ -1,5 +1,12 @@
 <?php
-// home/hero.php - Homepage Hero Section
+/**
+ * Homepage Hero Section
+ *
+ * Displays personalized welcome message for logged-in users.
+ *
+ * @package ExtraChill
+ * @since 69.58
+ */
 
 $username = '';
 if ( is_user_logged_in() ) {
@@ -32,7 +39,7 @@ if ( is_user_logged_in() ) {
 
     <div class="hero-buttons-container">
         <a href="<?php echo esc_url( $username ? 'https://community.extrachill.com' : 'https://community.extrachill.com/register' ); ?>"
-           class="button">
+           class="button-1 button-medium">
             <?php echo $username
                 ? esc_html__( 'Visit Community', 'extrachill' )
                 : esc_html__( 'Join the Community', 'extrachill' ); ?>
@@ -40,7 +47,7 @@ if ( is_user_logged_in() ) {
 
         <!-- Newsletter archive link requires ExtraChill Newsletter Plugin -->
         <a href="<?php echo esc_url( home_url( '/newsletters/' ) ); ?>"
-           class="button-3">
+           class="button-3 button-medium">
             <?php esc_html_e( 'Newsletter', 'extrachill' ); ?>
         </a>
     </div>
