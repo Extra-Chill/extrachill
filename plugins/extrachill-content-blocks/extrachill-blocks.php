@@ -1,6 +1,6 @@
 <?php
 /**
- * Plugin Name: ExtraChill Blocks
+ * Plugin Name: Extra Chill Blocks
  * Plugin URI: https://extrachill.com
  * Description: A collection of custom Gutenberg blocks for community engagement including trivia, voting, and music industry generators.
  * Version: 1.0.0
@@ -14,15 +14,16 @@
  * Domain Path: /languages
  * Network: false
  *
+ * AI Integration Dependency: The AI Adventure blocks require the ExtraChill AI Client plugin
+ * for AI-powered storytelling functionality. The AI Client must be network-activated with
+ * valid API credentials configured in Network Admin → Settings → AI Client.
+ *
  * @package ExtraChillBlocks
  */
 
-// Prevent direct access
 if (!defined('ABSPATH')) {
     exit;
 }
-
-// Define plugin constants
 if (!defined('EXTRACHILL_BLOCKS_FILE')) {
     define('EXTRACHILL_BLOCKS_FILE', __FILE__);
 }
@@ -36,16 +37,26 @@ if (!defined('EXTRACHILL_BLOCKS_VERSION')) {
     define('EXTRACHILL_BLOCKS_VERSION', '1.0.0');
 }
 
-// Include shared functionality
-require_once EXTRACHILL_BLOCKS_PATH . 'includes/openai.php';
-require_once EXTRACHILL_BLOCKS_PATH . 'includes/admin.php';
-
 /**
- * Registers all blocks from the 'blocks' directory.
+ * Register all blocks via automatic discovery.
  *
- * This function scans for 'block.json' files in subdirectories of the 'blocks' folder
- * and registers them as WordPress blocks. For blocks that need server-side rendering,
- * a 'render.php' file should be included in the block's directory.
+ * Uses glob() pattern matching to find all block.json files in blocks/ directory.
+ * Automatically loads index.php from each block directory for server-side rendering.
+ * Skips utility and component directories that don't contain actual blocks.
+ *
+ * Block Structure:
+ * - blocks/{block-name}/block.json - Block configuration
+ * - blocks/{block-name}/index.php - Server-side rendering (optional)
+ * - blocks/{block-name}/src/ - Editor JavaScript
+ *
+ * Blocks Registered:
+ * - extrachill-blocks/trivia
+ * - extrachill-blocks/image-voting
+ * - extrachill-blocks/rapper-name-generator
+ * - extrachill-blocks/band-name-generator
+ * - extrachill-blocks/ai-adventure
+ * - extrachill-blocks/ai-adventure-path
+ * - extrachill-blocks/ai-adventure-step
  */
 function extrachill_blocks_register_all_blocks() {
     $block_json_files = glob(EXTRACHILL_BLOCKS_PATH . 'blocks/**/block.json');
@@ -53,38 +64,31 @@ function extrachill_blocks_register_all_blocks() {
     foreach ($block_json_files as $filename) {
         $block_folder = dirname($filename);
 
-        // Skip utility/component folders
+        // Skip utility and component directories
         if (strpos($block_folder, 'utils') !== false || strpos($block_folder, 'components') !== false) {
             continue;
         }
 
-        // Load the block's index.php if it exists
+        // Load block's index.php if it exists (for server-side rendering)
         $index_file = $block_folder . '/index.php';
         if (file_exists($index_file)) {
             require_once $index_file;
         }
 
-        // Prepare args for registration
+        // Register block with optional render callback
         $args = [];
         $block_data = json_decode(file_get_contents($filename), true);
-
-        // Only assign a render_callback if the block doesn't define a 'render' file in block.json
-        // and a specific callback function exists for it.
         if (!isset($block_data['render'])) {
             if ($block_data['name'] === 'extrachill-blocks/ai-adventure' && function_exists('extrachill_blocks_render_ai_adventure_block')) {
                 $args['render_callback'] = 'extrachill_blocks_render_ai_adventure_block';
             }
         }
 
-        // Register the block
         register_block_type($block_folder, $args);
     }
 }
 add_action('init', 'extrachill_blocks_register_all_blocks');
 
-/**
- * Enqueue shared styles for all blocks
- */
 function extrachill_blocks_enqueue_shared_styles() {
     $shared_css_path = EXTRACHILL_BLOCKS_PATH . 'assets/css/shared.css';
     if (file_exists($shared_css_path)) {
@@ -98,11 +102,7 @@ function extrachill_blocks_enqueue_shared_styles() {
 }
 add_action('wp_enqueue_scripts', 'extrachill_blocks_enqueue_shared_styles');
 
-/**
- * Conditionally enqueue block-specific frontend assets only when blocks are present
- */
 function extrachill_blocks_enqueue_block_assets() {
-    // Check if any of our blocks are present
     $has_blocks = false;
     $block_checks = [
         'extrachill-blocks/trivia',
@@ -124,8 +124,6 @@ function extrachill_blocks_enqueue_block_assets() {
     if (!$has_blocks) {
         return;
     }
-
-    // Enqueue block-specific assets
     $blocks_to_check = [
         'trivia' => 'extrachill-blocks/trivia',
         'image-voting' => 'extrachill-blocks/image-voting',
@@ -152,32 +150,13 @@ function extrachill_blocks_enqueue_block_assets() {
 }
 add_action('wp_enqueue_scripts', 'extrachill_blocks_enqueue_block_assets');
 
-/**
- * Plugin activation
- */
 function extrachill_blocks_activate() {
-    // Create database tables
-    extrachill_blocks_create_database_tables();
-
-    // Flush rewrite rules
     flush_rewrite_rules();
 }
 
-/**
- * Plugin deactivation
- */
 function extrachill_blocks_deactivate() {
-    // Clean up if needed
     flush_rewrite_rules();
 }
 
-/**
- * Create database tables
- */
-function extrachill_blocks_create_database_tables() {
-    // No database tables needed - blocks use WordPress native post content storage
-}
-
-// Register activation/deactivation hooks
 register_activation_hook(__FILE__, 'extrachill_blocks_activate');
 register_deactivation_hook(__FILE__, 'extrachill_blocks_deactivate');

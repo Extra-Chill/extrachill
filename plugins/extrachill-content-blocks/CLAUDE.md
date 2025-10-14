@@ -14,15 +14,16 @@ The codebase follows a modern, unified plugin architecture with automatic block 
 extrachill-blocks/
 ├── extrachill-blocks.php          # Main plugin file
 ├── package.json                   # Unified build configuration
-├── includes/                      # Shared functionality
-│   ├── openai.php                # OpenAI API client
-│   └── admin.php                 # Settings page
 ├── blocks/                        # Individual block directories
 │   ├── trivia/                   # Interactive trivia questions
 │   ├── image-voting/             # Image voting with email capture
 │   ├── rapper-name-generator/    # Rapper name generator
 │   ├── band-name-generator/      # Band name generator
 │   ├── ai-adventure/             # AI-powered text adventure game
+│   │   ├── includes/             # AI Adventure specific includes
+│   │   │   ├── api-handler.php  # REST API handler with ai_request filter
+│   │   │   └── prompt-builder.php # Prompt construction utilities
+│   │   └── index.php             # Block initialization
 │   ├── ai-adventure-path/        # Adventure story path
 │   └── ai-adventure-step/        # Adventure story step
 └── build/                        # Compiled assets
@@ -125,18 +126,26 @@ The plugin uses automatic block discovery:
 - **ai-adventure**: Main container block for adventures
 - **ai-adventure-path**: Story path/branch block
 - **ai-adventure-step**: Individual story step with triggers
-- OpenAI GPT-4 integration for dynamic storytelling
+- AI-powered storytelling via ExtraChill AI Client plugin (provider: openai, model: gpt-5-nano)
 - REST API endpoint: `/wp-json/extrachill-blocks/v1/adventure`
 - Nested block structure for complex branching narratives
 - Real-time AI-generated responses and story progression
 
 ## Build System
 
-- **Unified Build**: Single `package.json` with shared dependencies
-- **Individual Compilation**: Each block can be built separately
+### WordPress Asset Compilation
+- **Unified Build**: Single `package.json` with shared dependencies across all blocks
+- **Individual Compilation**: Each block can be built separately for development
 - **WordPress Scripts**: Uses `@wordpress/scripts` for modern tooling
 - **Asset Optimization**: Automatic minification and optimization
-- **Development Mode**: Hot reload and source maps
+- **Development Mode**: Hot reload and source maps via `npm start`
+
+### Production Deployment
+- **Universal Build Script**: Symlinked to shared build script at `../../.github/build.sh`
+- **Build Process**: Run `./build.sh` after compiling assets with `npm run build`
+- **Output**: Creates `/build/extrachill-blocks/` directory and `/build/extrachill-blocks.zip` file (non-versioned)
+- **File Exclusion**: `.buildignore` patterns exclude development files (node_modules, src files, etc.)
+- **Composer Integration**: Uses `composer install --no-dev` for production dependencies
 
 ## Asset Management
 
@@ -164,15 +173,32 @@ All blocks use the namespace `extrachill-blocks/block-name`:
 - `extrachill-blocks/ai-adventure-path`
 - `extrachill-blocks/ai-adventure-step`
 
-## OpenAI Integration
+## AI Integration
 
-The plugin includes standalone OpenAI API integration for AI-powered blocks:
-- **Settings Page**: WordPress Admin → Settings → ExtraChill Blocks
-- **API Key Storage**: Stored in WordPress options table (`extrachill_blocks_options`)
-- **OpenAI Client**: `includes/openai.php` - Standalone GPT-4 integration
-- **Filter Hook**: `extrachill_blocks_get_openai_key` - Provides API key to blocks
+The plugin uses the **ExtraChill AI Client** plugin for centralized AI provider integration:
+
+### Architecture Decision: Centralized AI Management
+- **No Local Settings Page**: Eliminates per-plugin API key configuration complexity
+- **Hardcoded Configuration**: OpenAI provider with gpt-5-nano model defined in `api-handler.php`
+- **Standalone Client Removed**: Previous `includes/openai.php` removed in favor of centralized approach
+- **Dependency**: Requires ExtraChill AI Client plugin as prerequisite for AI functionality
+- **Migration Rationale**: Centralizes API key management, reduces code duplication, simplifies maintenance
+
+### Technical Implementation
+- **AI Request Filter**: Uses `ai_request` filter from ai-http-client library
+- **Network-Wide API Keys**: Managed centrally via ExtraChill AI Client plugin (Network Admin → Settings → AI Client)
+- **Model Changes**: Update `api-handler.php` constants and redeploy plugin to change provider or model
 - **REST API**: `/wp-json/extrachill-blocks/v1/adventure` - AI Adventure game endpoint
+- **Agentic Capabilities**: Full support for tools/function calling via ai-http-client (not currently used)
+- **Multi-Provider Support**: Library supports OpenAI, Anthropic, Google Gemini, Grok, OpenRouter
 - **Security**: Input sanitization, output escaping, capability checks
+
+### Testing AI Functionality
+1. Verify ExtraChill AI Client plugin is activated
+2. Configure OpenAI API key in Network Admin → Settings → AI Client
+3. Create test post with AI Adventure block
+4. Test introduction generation and conversation turns
+5. Verify progression triggers work correctly
 
 ## Development Environment
 
@@ -198,10 +224,22 @@ The plugin includes standalone OpenAI API integration for AI-powered blocks:
 
 ## Deployment
 
+### Prerequisites
+- **Required Plugin**: ExtraChill AI Client plugin must be activated for AI Adventure functionality
+- **API Configuration**: OpenAI API key configured in Network Admin → Settings → AI Client
+
+### Deployment Process
 - Single plugin installation provides all community engagement blocks
 - Network-wide deployment across ExtraChill multisite
 - Unified update and maintenance system
 - Business-focused functionality separated from personal blocks
+
+### AI Functionality Verification
+1. Confirm ExtraChill AI Client plugin is network-activated
+2. Verify API keys are configured in network settings
+3. Test AI Adventure block on development site first
+4. Monitor REST API endpoint responses for errors
+5. Validate story progression and trigger logic
 
 ## Migration from Chubes Blocks
 
@@ -211,6 +249,14 @@ This plugin was created by migrating business-focused blocks from chubes-blocks:
 - **Generator Blocks**: Music industry name generators
 - **Data Storage**: WordPress native post content storage
 - **Asset Systems**: Conditional loading and performance optimization maintained
+
+### AI Architecture Refactoring
+During development, the AI Adventure implementation underwent architectural refactoring:
+- **Previous**: Standalone OpenAI client in `includes/openai.php` with local settings page
+- **Current**: Centralized AI Client plugin integration via `ai_request` filter
+- **Rationale**: Eliminates redundant API key configuration, centralizes AI provider management across all ExtraChill plugins
+- **Impact**: Requires ExtraChill AI Client plugin as dependency, removes local settings complexity
+- **Code Location**: AI integration logic now in `blocks/ai-adventure/includes/api-handler.php`
 
 ## Development Standards
 

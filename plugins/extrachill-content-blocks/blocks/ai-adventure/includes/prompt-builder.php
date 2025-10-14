@@ -108,7 +108,8 @@ ADDITIONAL RULES:
      * Builds messages for a new step's introduction.
      *
      * @param array $params Game parameters.
-     * @return array Messages array for OpenAI.
+     * @return array Messages array for LLM API.
+     * @see ai_request filter in ai-http-client library
      */
     public static function build_introduction_messages( $params ) {
         $player_context = ! empty( $params['character_name'] ) ? "You are speaking to the player, who has taken on the name '" . $params['character_name'] . "'. Address them by this name when appropriate." : "The player is anonymous.";
@@ -150,7 +151,8 @@ ADDITIONAL RULES:
      *
      * @param array $params Game parameters.
      * @param string $progression_section Formatted progression history.
-     * @return array Messages array for OpenAI.
+     * @return array Messages array for LLM API.
+     * @see ai_request filter in ai-http-client library
      */
     public static function build_conversation_messages( $params, $progression_section ) {
         $player_context = ! empty( $params['character_name'] ) ? "You are speaking to the player, who has taken on the name '" . $params['character_name'] . "'. Address them by this name when appropriate." : "The player is anonymous.";
@@ -187,7 +189,8 @@ ADDITIONAL RULES:
      * @param array $params Game parameters.
      * @param string $progression_section Formatted progression history.
      * @param array $triggers Available triggers for analysis.
-     * @return array Messages array for OpenAI.
+     * @return array Messages array for LLM API.
+     * @see ai_request filter in ai-http-client library
      */
     public static function build_progression_messages( $params, $progression_section, $triggers ) {
         $triggers_list = array_map( function( $t ) { 

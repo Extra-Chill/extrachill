@@ -10,7 +10,6 @@ yarn-error.log*
 
 # Build
 /build/
-dist/
 
 # IDE
 .vscode/
@@ -25,6 +24,16 @@ Thumbs.db
 
 # Misc
 .cache/
+
+# Additional build and development files
+composer.lock
+package-lock.json
+.claude/
+CLAUDE.md
+AGENTS.md
+.buildignore
+build.sh
+docs/
 
 # Composer
 vendor/

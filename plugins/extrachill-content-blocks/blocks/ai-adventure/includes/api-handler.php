@@ -1,8 +1,23 @@
 <?php
 /**
  * API Handler for AI Adventure
- * 
+ *
  * Handles REST API requests for the AI Adventure game.
+ *
+ * AI Integration:
+ * Uses ai_request filter from ExtraChill AI Client plugin (extrachill-ai-client)
+ * for centralized AI provider management across all ExtraChill plugins.
+ *
+ * Hardcoded Configuration (no local settings):
+ * - Provider: openai
+ * - Model: gpt-5-nano
+ * - To change: Update constants in this file and redeploy plugin
+ *
+ * Benefits of Centralized AI Client:
+ * - Single API key configuration in Network Admin → Settings → AI Client
+ * - Eliminates redundant per-plugin API key configuration
+ * - Consistent AI provider integration across all plugins
+ * - Simplified maintenance and updates
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -75,11 +90,19 @@ class ExtraChill_Blocks_AI_Adventure_API {
      */
     private static function handle_introduction_request( $params ) {
         $messages = ExtraChill_Blocks_Prompt_Builder::build_introduction_messages( $params );
-        $narrative = ExtraChill_Blocks_OpenAI_Client::call_openai( $messages, 0.7 );
 
-        if ( is_wp_error( $narrative ) ) {
-            return $narrative;
+        // AI configuration is hardcoded to avoid UI complexity. Provider: openai, Model: gpt-5-nano.
+        // To change provider or model, update these constants and redeploy the plugin.
+        $response = apply_filters( 'ai_request', array(
+            'messages' => $messages,
+            'model' => 'gpt-5-nano'
+        ), 'openai' );
+
+        if ( ! $response['success'] ) {
+            return new WP_Error( 'ai_request_failed', $response['error'], array( 'status' => 500 ) );
         }
+
+        $narrative = $response['data']['choices'][0]['message']['content'];
 
         return new WP_REST_Response( array( 'narrative' => $narrative ), 200 );
     }
@@ -94,11 +117,19 @@ class ExtraChill_Blocks_AI_Adventure_API {
     private static function handle_conversation_turn( $params, $progression_section ) {
         // Get conversation response
         $conversation_messages = ExtraChill_Blocks_Prompt_Builder::build_conversation_messages( $params, $progression_section );
-        $narrative_response = ExtraChill_Blocks_OpenAI_Client::call_openai( $conversation_messages, 0.6 );
 
-        if ( is_wp_error( $narrative_response ) ) {
-            return $narrative_response;
+        // AI configuration is hardcoded to avoid UI complexity. Provider: openai, Model: gpt-5-nano.
+        // To change provider or model, update these constants and redeploy the plugin.
+        $response = apply_filters( 'ai_request', array(
+            'messages' => $conversation_messages,
+            'model' => 'gpt-5-nano'
+        ), 'openai' );
+
+        if ( ! $response['success'] ) {
+            return new WP_Error( 'ai_request_failed', $response['error'], array( 'status' => 500 ) );
         }
+
+        $narrative_response = $response['data']['choices'][0]['message']['content'];
 
         // Check for story progression
         $next_step_id = null;
@@ -125,11 +156,19 @@ class ExtraChill_Blocks_AI_Adventure_API {
      */
     private static function analyze_progression( $params, $progression_section ) {
         $progression_messages = ExtraChill_Blocks_Prompt_Builder::build_progression_messages( $params, $progression_section, $params['triggers'] );
-        $progression_response = ExtraChill_Blocks_OpenAI_Client::call_openai( $progression_messages, 0.2 );
 
-        if ( is_wp_error( $progression_response ) ) {
+        // AI configuration is hardcoded to avoid UI complexity. Provider: openai, Model: gpt-5-nano.
+        // To change provider or model, update these constants and redeploy the plugin.
+        $response = apply_filters( 'ai_request', array(
+            'messages' => $progression_messages,
+            'model' => 'gpt-5-nano'
+        ), 'openai' );
+
+        if ( ! $response['success'] ) {
             return null; // Don't progress on error
         }
+
+        $progression_response = $response['data']['choices'][0]['message']['content'];
 
         // Parse JSON response
         $json_start = strpos( $progression_response, '{' );
