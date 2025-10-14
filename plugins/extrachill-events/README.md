@@ -17,7 +17,7 @@ Calendar and event plugin integrations for the ExtraChill ecosystem. Provides se
    cd extrachill-plugins/extrachill-events
    ./build.sh
    ```
-2. Upload the generated ZIP from `dist/` directory via WordPress admin: **Plugins > Add New > Upload Plugin**
+2. Upload the generated ZIP from `/build` directory via WordPress admin: **Plugins > Add New > Upload Plugin**
 3. Activate the plugin
 4. Plugin automatically detects and integrates with supported event plugins
 
@@ -56,7 +56,7 @@ composer run lint:php
 # Build production package
 ./build.sh
 
-# Output: dist/extrachill-events-{version}.zip
+# Output: /build/extrachill-events/ directory and /build/extrachill-events.zip file
 ```
 
 ## License

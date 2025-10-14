@@ -12,7 +12,6 @@ package-lock.json
 .vscode/
 .idea/
 *.zip
-dist/
 tests/
 phpunit.xml
 .phpcs.xml

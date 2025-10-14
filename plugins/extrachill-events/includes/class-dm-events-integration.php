@@ -1,11 +1,9 @@
 <?php
 /**
- * DM Events Plugin Integration Class
+ * DM Events badge styling integration
  *
- * Provides seamless integration between the DM Events WordPress plugin
- * and ExtraChill themes' badge styling system. Hooks into the plugin's
- * badge rendering filters to inject theme-compatible CSS classes, enabling
- * DM Events taxonomies to display with ExtraChill's custom colors and styling.
+ * Maps DM Events taxonomies to ExtraChill's badge class structure for
+ * festival-specific colors and location styling.
  *
  * @package ExtraChillEvents
  * @since 1.0.0
@@ -13,36 +11,12 @@
 
 namespace ExtraChillEvents;
 
-// Prevent direct access
 if (!defined('ABSPATH')) {
     exit;
 }
 
-/**
- * DM Events Integration Class
- *
- * FUNCTIONALITY:
- * - Maps DM Events taxonomy badges to ExtraChill's badge class structure
- * - Enables festival-specific colors (e.g., Bonnaroo, Coachella) from badge-colors.css
- * - Converts venue taxonomies to location styling for regional color coding
- * - Maintains plugin compatibility while adding theme-specific enhancements
- *
- * TAXONOMY MAPPING:
- * - festival → festival-badge festival-{slug} (e.g., festival-bonnaroo)
- * - venue → location-badge location-{slug} (e.g., location-charleston)
- * - other taxonomies → category-badge category-{slug}-badge
- *
- * TECHNICAL DETAILS:
- * - Hooks: dm_events_badge_classes, dm_events_badge_wrapper_classes, dm_events_breadcrumbs
- * - Preserves plugin's original classes for backwards compatibility
- * - Adds ExtraChill classes alongside existing ones for dual compatibility
- * - Automatically applies existing badge-colors.css styling rules
- */
 class DmEventsIntegration {
 
-    /**
-     * Constructor - Initialize the integration
-     */
     public function __construct() {
         $this->init_hooks();
     }

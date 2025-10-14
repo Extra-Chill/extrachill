@@ -14,6 +14,71 @@ WordPress plugin providing seamless integration between ExtraChill themes and po
 - **Tested up to**: 6.4
 - **Network**: false
 
+## events.extrachill.com Integration
+
+This plugin provides homepage template override for **events.extrachill.com** (site #7 in the multisite network), creating a dedicated calendar-focused event hub powered by Data Machine and dm-events.
+
+### Homepage Template Override Architecture
+
+**Template Override Pattern** (follows extrachill-chat plugin pattern):
+- Uses `extrachill_template_homepage` filter from theme's universal routing system
+- Domain detection via `get_blog_id_from_url('events.extrachill.com', '/')`
+- Blog ID comparison ensures override only applies to events.extrachill.com
+- Returns plugin template path for complete homepage control
+
+**Implementation**:
+```php
+add_filter( 'extrachill_template_homepage', 'ec_events_override_homepage_template' );
+
+function ec_events_override_homepage_template( $template ) {
+    // Only override on events.extrachill.com
+    $events_blog_id = get_blog_id_from_url( 'events.extrachill.com', '/' );
+    if ( $events_blog_id && get_current_blog_id() === $events_blog_id ) {
+        return EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/templates/homepage.php';
+    }
+    return $template;
+}
+```
+
+### Data Machine Calendar Integration
+
+**Homepage Template** (`inc/templates/homepage.php`):
+- Displays content from WordPress static homepage (Settings → Reading → "A static page")
+- Renders homepage post content via `apply_filters('the_content', $homepage->post_content)`
+- Allows adding dm-events calendar block (or any blocks) via WordPress editor
+- Full-width container with `get_header()` and `get_footer()` for complete page control
+- DM Events calendar block handles all filtering, pagination, and event display logic
+
+**Setup Process**:
+1. Create a page in WordPress admin (e.g., "Events Calendar")
+2. Add dm-events calendar block to the page via block editor
+3. Set as static homepage: Settings → Reading → "A static page" → Front page: "Events Calendar"
+
+**Required Plugins** (site-activated on events.extrachill.com):
+- **Data Machine** - Event automation and content pipeline
+- **dm-events** - Calendar block and event post type
+- **extrachill-events** - Homepage template override (this plugin)
+
+### Multisite Network Architecture
+
+**events.extrachill.com Setup**:
+1. Create site in Network Admin → Sites → Add New
+2. Site URL: events.extrachill.com
+3. Site Title: "ExtraChill Events"
+4. Activate Data Machine, dm-events, and extrachill-events on the new site
+
+**Data Flow**:
+- Data Machine handles event import and automation on events.extrachill.com
+- dm-events calendar block provides full event display and filtering
+- Main site (extrachill.com) focuses on content automation without event processing
+- Events site serves as centralized event hub for entire network
+
+**Benefits**:
+- Clean separation: main site for content, events site for calendar
+- Centralized event management via Data Machine pipelines
+- Single source of truth for all network events
+- Optimized performance: no event pipeline complexity on main site
+
 ## Architecture
 
 ### Plugin Loading Pattern
@@ -96,10 +161,12 @@ WordPress plugin providing seamless integration between ExtraChill themes and po
 - **Security Implementation**: Proper escaping, nonce verification, and input sanitization
 
 ### Build System
-- **Standardized Build Process**: Uses `build.sh` script for production ZIP creation
-- **Version Extraction**: Automatically reads version from plugin header
-- **File Exclusion**: `.buildignore` patterns exclude development files
-- **Composer Integration**: Production builds use `composer install --no-dev`
+- **Universal Build Script**: Symlinked to shared build script at `../../.github/build.sh`
+- **Auto-Detection**: Script auto-detects plugin type from `Plugin Name:` header
+- **Production Build**: Creates `/build/extrachill-events/` directory and `/build/extrachill-events.zip` file (non-versioned)
+- **Version Extraction**: Automatically reads version from plugin header for validation
+- **File Exclusion**: `.buildignore` rsync patterns exclude development files
+- **Composer Integration**: Production builds use `composer install --no-dev`, restores dev dependencies after
 
 ## Dependencies
 
@@ -142,7 +209,7 @@ composer run test
 ```
 
 ### Build Output
-- **Production Package**: `dist/extrachill-events-{version}.zip`
+- **Production Package**: `/build/extrachill-events/` directory and `/build/extrachill-events.zip` file
 - **File Exclusions**: Development files, vendor/, .git/, build tools
 - **Structure Validation**: Ensures plugin integrity before packaging
 
