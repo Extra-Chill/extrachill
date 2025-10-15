@@ -14,30 +14,6 @@ global $post, $live_reviews_posts, $interviews_posts;
 ?>
 <div class="full-width-breakout">
   <div class="home-3x3-grid">
-    <!-- Live Reviews Column -->
-    <div class="home-3x3-col">
-      <div class="home-3x3-header">
-        <span class="home-3x3-label">Live Reviews</span>
-        <a class="home-3x3-archive-link" href="<?php echo esc_url( get_category_link(2608) ); ?>">View All</a>
-      </div>
-      <div class="home-3x3-list">
-        <?php
-        if (!empty($live_reviews_posts)) :
-          foreach ($live_reviews_posts as $post) :
-            setup_postdata($post); ?>
-            <a href="<?php the_permalink(); ?>" class="home-3x3-card home-3x3-card-link" aria-label="<?php the_title_attribute(); ?>">
-              <?php if ( has_post_thumbnail() ) : ?>
-                <span class="home-3x3-thumb"><?php the_post_thumbnail('medium'); ?></span>
-              <?php endif; ?>
-              <span class="home-3x3-title"><?php the_title(); ?></span>
-              <span class="home-3x3-meta"><?php echo get_the_date(); ?></span>
-            </a>
-        <?php endforeach; wp_reset_postdata(); else: ?>
-            <div class="home-3x3-card home-3x3-empty">No reviews yet.</div>
-        <?php endif; ?>
-      </div>
-    </div>
-
     <!-- Interviews Column -->
     <div class="home-3x3-col">
       <div class="home-3x3-header">
@@ -58,6 +34,30 @@ global $post, $live_reviews_posts, $interviews_posts;
             </a>
         <?php endforeach; wp_reset_postdata(); else: ?>
             <div class="home-3x3-card home-3x3-empty">No interviews yet.</div>
+        <?php endif; ?>
+      </div>
+    </div>
+
+    <!-- Live Reviews Column -->
+    <div class="home-3x3-col">
+      <div class="home-3x3-header">
+        <span class="home-3x3-label">Live Reviews</span>
+        <a class="home-3x3-archive-link" href="<?php echo esc_url( get_category_link(2608) ); ?>">View All</a>
+      </div>
+      <div class="home-3x3-list">
+        <?php
+        if (!empty($live_reviews_posts)) :
+          foreach ($live_reviews_posts as $post) :
+            setup_postdata($post); ?>
+            <a href="<?php the_permalink(); ?>" class="home-3x3-card home-3x3-card-link" aria-label="<?php the_title_attribute(); ?>">
+              <?php if ( has_post_thumbnail() ) : ?>
+                <span class="home-3x3-thumb"><?php the_post_thumbnail('medium'); ?></span>
+              <?php endif; ?>
+              <span class="home-3x3-title"><?php the_title(); ?></span>
+              <span class="home-3x3-meta"><?php echo get_the_date(); ?></span>
+            </a>
+        <?php endforeach; wp_reset_postdata(); else: ?>
+            <div class="home-3x3-card home-3x3-empty">No reviews yet.</div>
         <?php endif; ?>
       </div>
     </div>
