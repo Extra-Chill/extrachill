@@ -20,11 +20,11 @@ if ( is_user_logged_in() ) {
         <?php
         if ( $username ) {
             printf(
-                esc_html__( 'Welcome back, %s 🥶', 'extrachill' ),
+                esc_html__( 'Welcome back, %s', 'extrachill' ),
                 esc_html( $username )
             );
         } else {
-            esc_html_e( 'Welcome to the Online Music Scene 🥶', 'extrachill' );
+            esc_html_e( 'Join the Online Music Scene', 'extrachill' );
         }
         ?>
     </h2>
@@ -38,17 +38,19 @@ if ( is_user_logged_in() ) {
     </h3>
 
     <div class="hero-buttons-container">
-        <a href="<?php echo esc_url( $username ? 'https://community.extrachill.com' : 'https://community.extrachill.com/register' ); ?>"
+        <a href="<?php echo esc_url( 'https://extrachill.com/all' ); ?>"
            class="button-1 button-medium">
-            <?php echo $username
-                ? esc_html__( 'Visit Community', 'extrachill' )
-                : esc_html__( 'Join the Community', 'extrachill' ); ?>
+            <?php esc_html_e( 'Blog', 'extrachill' ); ?>
         </a>
 
-        <!-- Newsletter archive link requires ExtraChill Newsletter Plugin -->
-        <a href="<?php echo esc_url( home_url( '/newsletters/' ) ); ?>"
+        <a href="<?php echo esc_url( 'https://community.extrachill.com' ); ?>"
+           class="button-2 button-medium">
+            <?php esc_html_e( 'Forum', 'extrachill' ); ?>
+        </a>
+
+        <a href="<?php echo esc_url( 'https://artist.extrachill.com' ); ?>"
            class="button-3 button-medium">
-            <?php esc_html_e( 'Newsletter', 'extrachill' ); ?>
+            <?php esc_html_e( 'Artists', 'extrachill' ); ?>
         </a>
     </div>
 </section>
