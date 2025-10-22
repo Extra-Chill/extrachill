@@ -113,25 +113,35 @@ function extrachill_blocks_handle_image_vote() {
                 if (!isset($block['attrs']['voters'])) {
                     $block['attrs']['voters'] = array();
                 }
-                if (!isset($block['attrs']['allowMultipleVotes'])) {
-                    $block['attrs']['allowMultipleVotes'] = false;
-                }
 
-                // Check if user has already voted
+                // Check if user has already voted for THIS specific block
                 $has_voted = in_array($email_address, $block['attrs']['voters']);
-                $allow_multiple = $block['attrs']['allowMultipleVotes'];
 
-                if (!$has_voted || $allow_multiple) {
-                    // Add vote
-                    $block['attrs']['voteCount']++;
-                    if (!$has_voted) {
-                        $block['attrs']['voters'][] = $email_address;
-                    }
-                    $vote_counted = true;
-                    $new_vote_count = $block['attrs']['voteCount'];
-                } else {
-                    wp_send_json_error(array('message' => 'You have already voted for this item.'));
+                if ($has_voted) {
+                    wp_send_json_error(array(
+                        'message' => 'You have already voted for this item.',
+                        'code' => 'already_voted'
+                    ));
                 }
+
+                // Attempt newsletter subscription (before counting vote)
+                if (function_exists('extrachill_multisite_subscribe')) {
+                    $subscription_result = extrachill_multisite_subscribe($email_address, 'image_voting');
+                    if (!$subscription_result['success']) {
+                        error_log(sprintf(
+                            'Image voting newsletter subscription failed for %s: %s',
+                            $email_address,
+                            $subscription_result['message']
+                        ));
+                        // Continue - vote counts even if newsletter subscription fails
+                    }
+                }
+
+                // Count the vote
+                $block['attrs']['voteCount']++;
+                $block['attrs']['voters'][] = $email_address;
+                $vote_counted = true;
+                $new_vote_count = $block['attrs']['voteCount'];
             }
         }
         $updated_blocks[] = $block;
@@ -160,25 +170,25 @@ function extrachill_blocks_handle_image_vote() {
     ));
 }
 
-// Enqueue frontend script for voting functionality
-add_action('wp_enqueue_scripts', 'extrachill_blocks_image_voting_enqueue_frontend_script');
+// Localize frontend script with AJAX data
+// Assets are auto-enqueued via block.json viewScript property
+add_action('wp_enqueue_scripts', 'extrachill_blocks_image_voting_localize_script', 20);
 
 /**
- * Enqueue frontend script only when image voting block is present
+ * Localize frontend script with AJAX data
+ * Priority 20 ensures this runs after WordPress auto-enqueues scripts from block.json
  */
-function extrachill_blocks_image_voting_enqueue_frontend_script() {
+function extrachill_blocks_image_voting_localize_script() {
     if (has_block('extrachill-blocks/image-voting')) {
-        wp_enqueue_script(
-            'extrachill-blocks-image-voting-frontend',
-            EXTRACHILL_BLOCKS_URL . 'blocks/image-voting/frontend.js',
-            array('jquery'),
-            filemtime(EXTRACHILL_BLOCKS_PATH . 'blocks/image-voting/frontend.js'),
-            true
+        // WordPress auto-generates handle: extrachill-blocks-image-voting-view-script-0
+        // for the first viewScript file (frontend.js)
+        wp_localize_script(
+            'extrachill-blocks-image-voting-view-script-0',
+            'extraChillBlocksImageVoting',
+            array(
+                'ajaxurl' => admin_url('admin-ajax.php'),
+                'nonce' => wp_create_nonce('extrachill_blocks_vote_nonce')
+            )
         );
-
-        wp_localize_script('extrachill-blocks-image-voting-frontend', 'extraChillBlocksImageVoting', array(
-            'ajaxurl' => admin_url('admin-ajax.php'),
-            'nonce' => wp_create_nonce('extrachill_blocks_vote_nonce')
-        ));
     }
 }

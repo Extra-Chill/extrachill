@@ -26,12 +26,9 @@
     "voters": {
       "type": "array",
       "default": []
-    },
-    "allowMultipleVotes": {
-      "type": "boolean",
-      "default": false
     }
   },
+  "viewScript": ["file:./frontend.js", "file:./reorder.js"],
   "supports": {
     "html": false,
     "align": true

@@ -56,6 +56,7 @@ ob_start();
         <div class="extrachill-blocks-image-voting-form" style="display: none;">
             <input type="email" class="extrachill-blocks-email-input" placeholder="Enter your email to vote" required>
             <button class="extrachill-blocks-submit-vote">Submit Vote</button>
+            <div class="extrachill-voting-message" style="display: none;"></div>
         </div>
     <?php endif; ?>
     <p class="extrachill-blocks-vote-count">Votes: <span class="vote-number"><?php echo esc_html($vote_count); ?></span></p>

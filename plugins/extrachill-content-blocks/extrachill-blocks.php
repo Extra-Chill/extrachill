@@ -38,25 +38,8 @@ if (!defined('EXTRACHILL_BLOCKS_VERSION')) {
 }
 
 /**
- * Register all blocks via automatic discovery.
- *
- * Uses glob() pattern matching to find all block.json files in blocks/ directory.
- * Automatically loads index.php from each block directory for server-side rendering.
- * Skips utility and component directories that don't contain actual blocks.
- *
- * Block Structure:
- * - blocks/{block-name}/block.json - Block configuration
- * - blocks/{block-name}/index.php - Server-side rendering (optional)
- * - blocks/{block-name}/src/ - Editor JavaScript
- *
- * Blocks Registered:
- * - extrachill-blocks/trivia
- * - extrachill-blocks/image-voting
- * - extrachill-blocks/rapper-name-generator
- * - extrachill-blocks/band-name-generator
- * - extrachill-blocks/ai-adventure
- * - extrachill-blocks/ai-adventure-path
- * - extrachill-blocks/ai-adventure-step
+ * Register blocks via glob() pattern matching for automatic discovery.
+ * Skips utility and component directories. Loads index.php for server-side rendering when present.
  */
 function extrachill_blocks_register_all_blocks() {
     $block_json_files = glob(EXTRACHILL_BLOCKS_PATH . 'blocks/**/block.json');
@@ -64,18 +47,15 @@ function extrachill_blocks_register_all_blocks() {
     foreach ($block_json_files as $filename) {
         $block_folder = dirname($filename);
 
-        // Skip utility and component directories
         if (strpos($block_folder, 'utils') !== false || strpos($block_folder, 'components') !== false) {
             continue;
         }
 
-        // Load block's index.php if it exists (for server-side rendering)
         $index_file = $block_folder . '/index.php';
         if (file_exists($index_file)) {
             require_once $index_file;
         }
 
-        // Register block with optional render callback
         $args = [];
         $block_data = json_decode(file_get_contents($filename), true);
         if (!isset($block_data['render'])) {
@@ -160,3 +140,20 @@ function extrachill_blocks_deactivate() {
 
 register_activation_hook(__FILE__, 'extrachill_blocks_activate');
 register_deactivation_hook(__FILE__, 'extrachill_blocks_deactivate');
+
+/**
+ * Register image voting newsletter integration context.
+ * Configuration managed via extrachill-newsletter admin settings.
+ * Subscription handled via extrachill-multisite bridge function.
+ */
+add_filter('newsletter_form_integrations', 'extrachill_blocks_register_newsletter_integration');
+function extrachill_blocks_register_newsletter_integration($integrations) {
+	$integrations['image_voting'] = array(
+		'label' => __('Image Voting Block', 'extrachill-blocks'),
+		'description' => __('Newsletter subscription when users vote on images', 'extrachill-blocks'),
+		'list_id_key' => 'image_voting_list_id',
+		'enable_key' => 'enable_image_voting',
+		'plugin' => 'extrachill-blocks',
+	);
+	return $integrations;
+}

@@ -1,91 +1,138 @@
 jQuery(document).ready(function($) {
-    // Handle vote button clicks
-    $('.extrachill-blocks-image-voting-button').on('click', function(e) {
-        e.preventDefault();
+	const STORAGE_KEY = 'extrachill_voter_email';
 
-        const $button = $(this);
-        const $container = $button.closest('.extrachill-blocks-image-voting-container');
-        const $form = $container.find('.extrachill-blocks-image-voting-form');
+	// Get saved email from localStorage
+	function getSavedEmail() {
+		return localStorage.getItem(STORAGE_KEY) || '';
+	}
 
-        // Show email form
-        $form.show();
-        $button.hide();
-    });
+	// Save email to localStorage
+	function saveEmail(email) {
+		localStorage.setItem(STORAGE_KEY, email);
+	}
 
-    // Handle vote submission
-    $('.extrachill-blocks-submit-vote').on('click', function(e) {
-        e.preventDefault();
+	// Change button to "Voted" state
+	function markAsVoted($button) {
+		$button
+			.prop('disabled', true)
+			.text('Voted ✓')
+			.addClass('voted');
+	}
 
-        const $button = $(this);
-        const $container = $button.closest('.extrachill-blocks-image-voting-container');
-        const $emailInput = $container.find('.extrachill-blocks-email-input');
-        const $voteCount = $container.find('.vote-number');
-        const $form = $container.find('.extrachill-blocks-image-voting-form');
+	// Display error/info message with auto-fade
+	function showMessage($container, message, type) {
+		const $messageBox = $container.find('.extrachill-voting-message');
+		const isError = type === 'error';
 
-        const email = $emailInput.val().trim();
-        const instanceId = $container.data('block-instance-id');
-        const postId = $container.data('post-id');
+		$messageBox
+			.removeClass('message-error message-info')
+			.addClass(isError ? 'message-error' : 'message-info')
+			.text(message)
+			.fadeIn(200);
 
-        if (!email) {
-            alert('Please enter your email address.');
-            return;
-        }
+		// Auto-fade after 3.5 seconds
+		setTimeout(() => {
+			$messageBox.fadeOut(400);
+		}, 3500);
+	}
 
-        if (!isValidEmail(email)) {
-            alert('Please enter a valid email address.');
-            return;
-        }
+	// Submit vote with email
+	function submitVote($container, email) {
+		const $button = $container.find('.extrachill-blocks-image-voting-button');
+		const $voteCount = $container.find('.vote-number');
+		const instanceId = $button.data('block-instance-id');
+		const postId = $container.data('post-id');
 
-        if (!instanceId || !postId) {
-            alert('Error: Missing block or post information.');
-            return;
-        }
+		// Disable button during submission
+		$button.prop('disabled', true).text('Voting...');
 
-        // Disable button during submission
-        $button.prop('disabled', true).text('Submitting...');
+		$.ajax({
+			url: extraChillBlocksImageVoting.ajaxurl,
+			type: 'POST',
+			data: {
+				action: 'extrachill_blocks_image_vote',
+				nonce: extraChillBlocksImageVoting.nonce,
+				post_id: postId,
+				instance_id: instanceId,
+				email_address: email
+			},
+			success: function(response) {
+				if (response.success) {
+					// Save email for future votes
+					saveEmail(email);
 
-        $.ajax({
-            url: extraChillBlocksImageVoting.ajaxurl,
-            type: 'POST',
-            data: {
-                action: 'extrachill_blocks_image_vote',
-                post_id: postId,
-                instance_id: instanceId,
-                email_address: email,
-                nonce: extraChillBlocksImageVoting.nonce
-            },
-            success: function(response) {
-                if (response.success) {
-                    // Update vote count
-                    $voteCount.text(response.data.vote_count);
+					// Update vote count
+					$voteCount.text(response.data.vote_count);
 
-                    // Hide form and show thank you message
-                    $form.hide();
-                    $container.append('<p class="extrachill-blocks-vote-success">Thank you for voting!</p>');
-                } else {
-                    alert('Error: ' + response.data.message);
-                    $button.prop('disabled', false).text('Submit Vote');
-                }
-            },
-            error: function(xhr, status, error) {
-                console.error('AJAX Error:', error);
-                alert('An error occurred. Please try again.');
-                $button.prop('disabled', false).text('Submit Vote');
-            }
-        });
-    });
+					// Mark as voted
+					markAsVoted($button);
 
-    // Email validation function
-    function isValidEmail(email) {
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        return emailRegex.test(email);
-    }
+					// Hide form if visible
+					$container.find('.extrachill-blocks-image-voting-form').hide();
+				} else {
+					// Check if already voted
+					if (response.data && response.data.code === 'already_voted') {
+						markAsVoted($button);
+						$container.find('.extrachill-blocks-image-voting-form').hide();
+					} else {
+						// Other error - re-enable button
+						$button.prop('disabled', false).text('Vote');
+						showMessage($container, response.data.message || 'An error occurred', 'error');
+					}
+				}
+			},
+			error: function() {
+				$button.prop('disabled', false).text('Vote');
+				showMessage($container, 'Network error. Please try again.', 'error');
+			}
+		});
+	}
 
-    // Handle Enter key in email input
-    $('.extrachill-blocks-email-input').on('keypress', function(e) {
-        if (e.which === 13) { // Enter key
-            e.preventDefault();
-            $(this).siblings('.extrachill-blocks-submit-vote').click();
-        }
-    });
+	// Initialize each voting block
+	$('.extrachill-blocks-image-voting-container').each(function() {
+		const $container = $(this);
+		const $button = $container.find('.extrachill-blocks-image-voting-button');
+		const $form = $container.find('.extrachill-blocks-image-voting-form');
+		const $emailInput = $form.find('.extrachill-blocks-email-input');
+		const $submitBtn = $form.find('.extrachill-blocks-submit-vote');
+		const savedEmail = getSavedEmail();
+
+		// Pre-fill email if saved
+		if (savedEmail) {
+			$emailInput.val(savedEmail);
+		}
+
+		// Vote button click
+		$button.on('click', function() {
+			if (savedEmail) {
+				// Auto-submit with saved email
+				submitVote($container, savedEmail);
+			} else {
+				// Show email form
+				$form.show();
+				$emailInput.focus();
+			}
+		});
+
+		// Submit vote with email from form
+		$submitBtn.on('click', function() {
+			const email = $emailInput.val().trim();
+
+			// Simple email validation
+			if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+				showMessage($container, 'Please enter a valid email address', 'error');
+				return;
+			}
+
+			submitVote($container, email);
+		});
+
+		// Enter key submits form
+		$emailInput.on('keypress', function(e) {
+			if (e.which === 13) {
+				e.preventDefault();
+				$submitBtn.click();
+			}
+		});
+	});
 });
