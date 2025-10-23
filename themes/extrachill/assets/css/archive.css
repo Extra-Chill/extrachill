@@ -186,9 +186,7 @@ a.card-link-target:hover,
     margin-bottom: 4px; /* Space below the first row */
 }
 
-.archive .post-location-meta, .search .post-location-meta{
-	margin-bottom: 5px;
-}
+
 
 .archive .below-entry-meta, .search .below-entry-meta, .single-related-posts .below-entry-meta {
 	border: none;
@@ -223,11 +221,6 @@ a.card-link-target:hover,
 	.search h2, .archive h2{
 		font-size: 24px;
 	}
-
-.archive-excerpt{
-font-size: 16px;
-margin: 5px 0;
-}
 
 /* Taxonomy Description */
 .taxonomy-description{

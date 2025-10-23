@@ -12,9 +12,9 @@ The ExtraChill theme is a custom WordPress theme serving as the frontend for an 
 
 ### Modular File Structure
 The theme uses a clean, modular architecture organized in the `/inc/` directory with **47 total PHP files**:
-- **archives/**: Archive page functionality (9 files total)
-  - Core archive files (6 files): archive.php, archive-header.php, archive-filter-bar.php, archive-custom-sorting.php, archive-child-terms-dropdown.php, post-card.php
-  - **archives/search/**: Multisite search system (3 files): search.php, search-header.php, search-site-badge.php
+- **archives/**: Archive page functionality (8 files total)
+  - Core archive files (7 files): archive.php, archive-header.php, archive-filter-bar.php, archive-custom-sorting.php, archive-child-terms-dropdown.php, post-card.php, artist-profile-link.php
+  - **archives/search/**: Search header template (1 file): search-header.php (loaded via extrachill_search_header action hook, used by extrachill-search plugin)
 - **core/**: Essential WordPress functionality (7 core files + 2 subdirectories)
   - Core files (7): actions.php, assets.php, custom-taxonomies.php, yoast-stuff.php, view-counts.php, rewrite.php, template-router.php
   - **core/templates/**: Shared template components (9 files): post-meta.php, pagination.php, no-results.php, share.php, social-links.php, taxonomy-badges.php, breadcrumbs.php, searchform.php, 404.php
@@ -131,7 +131,7 @@ The theme implements template routing via WordPress's native `template_include` 
    - `extrachill_template_single_post` - Single post template override
    - `extrachill_template_page` - Page template override (only applied when no custom page template is assigned)
    - `extrachill_template_archive` - Archive, category, tag, author, date pages
-   - `extrachill_template_search` - Search results (uses dedicated multisite search template)
+   - `extrachill_template_search` - Search results (overridden by extrachill-search plugin)
    - `extrachill_template_404` - 404 error pages
    - `extrachill_template_fallback` - Unknown page types fallback
 
@@ -151,8 +151,8 @@ The theme implements template routing via WordPress's native `template_include` 
 
 ### CSS Architecture
 - **Root Variables**: Global CSS custom properties in `assets/css/root.css`
-- **Modular Loading**: Page-specific CSS files (9 total: `home.css`, `archive.css`, `single-post.css`, `nav.css`, `badge-colors.css`, `editor-style.css`, `search.css`, `shared-tabs.css`, `root.css`)
-- **Component Styles**: Separate files for badges, editor styles, search results, and shared tab interfaces
+- **Modular Loading**: Page-specific CSS files (11 total: `home.css`, `archive.css`, `single-post.css`, `nav.css`, `badge-colors.css`, `editor-style.css`, `search.css`, `shared-tabs.css`, `share.css`, `sidebar.css`, `root.css`)
+- **Component Styles**: Separate files for badges, editor styles, search results, shared tab interfaces, share buttons, and sidebar components
 - **Performance Loading**: Conditional CSS enqueuing based on page context
 - **Dependency Management**: Proper CSS loading order with root.css loading first
 - **Asset Directory**: All CSS files located in `assets/css/` (moved from legacy `css/` directory)
@@ -180,11 +180,11 @@ For production deployment, use the build script:
 - Installs production dependencies: `composer install --no-dev`
 - Copies files using rsync with `.buildignore` exclusion patterns
 - Validates theme structure (ensures `style.css` and `index.php` exist)
-- Creates `/build/extrachill/` clean production directory
-- Creates `/build/extrachill.zip` non-versioned deployment package
+- Creates `build/extrachill/` clean production directory
+- Creates `build/extrachill.zip` non-versioned deployment package
 - Restores development dependencies: `composer install`
 
-**Output**: Both `/build/extrachill/` directory AND `/build/extrachill.zip` file exist simultaneously
+**Output**: Both `build/extrachill/` directory AND `build/extrachill.zip` file exist simultaneously
 
 ### Common Development Tasks
 ```bash
@@ -208,12 +208,12 @@ wp rewrite flush
 ### Core Theme Files
 - **`inc/core/template-router.php`** - WordPress native template routing via `template_include` filter with custom page template support
 - **`index.php`** - Emergency fallback template (minimal functionality)
-- **`functions.php`** - Main theme setup, asset loading, and module includes (23 direct includes from 47 total PHP files in /inc/)
+- **`functions.php`** - Main theme setup, asset loading, and module includes (25 direct includes from 47 total PHP files in /inc/)
 - **`inc/core/assets.php`** - Centralized asset management with conditional loading
 - **`inc/single/comments.php`** - Comment system with community integration
 - **`inc/core/templates/post-meta.php`** - Post meta display template
 - **`inc/archives/archive.php`** - Archive page template functionality
-- **`inc/archives/search/search.php`** - Multisite search template with cross-site results
+- **`inc/archives/search/search-header.php`** - Search header template (used via extrachill_search_header action hook)
 - **`style.css`** - Main stylesheet with CSS reset and core styles
 - **`assets/css/root.css`** - CSS custom properties and theme variables
 
@@ -249,14 +249,14 @@ wp rewrite flush
 - **Custom Page Template Support**: Router detects and respects custom page templates assigned via WordPress admin
 - Filter hooks allow plugins to completely override template files at routing level (except when custom page templates are assigned)
 - Template routing supports: homepage, single posts, pages, archives, search, and 404 pages
-- Search routes to dedicated multisite search template at `inc/archives/search/search.php`
+- Search routing overridden by extrachill-search plugin via `extrachill_template_search` filter
 - 404 errors route to `inc/core/templates/404.php`
 - Each route includes `extrachill_template_*` filter for plugin customization
 
-**Multisite Search System (3 files)**:
-- `inc/archives/search/search.php` - Main multisite search template using `extrachill_multisite_search()`
-- `inc/archives/search/search-header.php` - Search results header with result counts
-- `inc/archives/search/search-site-badge.php` - Site identification badges for cross-site results
+**Search Template Integration**:
+- **Main Search Template**: Provided by extrachill-search plugin (network-activated) via `extrachill_template_search` filter override
+- **Search Header Template** (`inc/archives/search/search-header.php`): Provided by theme, loaded via `extrachill_search_header` action hook
+- **Search Styling** (`assets/css/search.css`): Provided by theme (plugin has no CSS)
 
 **Multisite Integration**:
 - Cross-site search provided by extrachill-search plugin (network-activated)
@@ -270,14 +270,15 @@ wp rewrite flush
 - `inc/sidebar/recent-posts.php` - Recent posts sidebar widget
 - `inc/sidebar/community-activity.php` - Direct bbPress query widget with blog switching and manual URL construction
 
-**Archive Functionality (9 files total)**:
+**Archive Functionality (8 files total)**:
 - `inc/archives/archive.php` - Main archive template
 - `inc/archives/archive-header.php` - Archive page header component
 - `inc/archives/archive-filter-bar.php` - Archive filtering interface with randomization and sorting
 - `inc/archives/archive-child-terms-dropdown.php` - Child terms dropdown
 - `inc/archives/archive-custom-sorting.php` - Custom archive sorting functions
+- `inc/archives/artist-profile-link.php` - Artist profile link component
 - `inc/archives/post-card.php` - Post card template
-- **Search subdirectory (3 files)**: search.php, search-header.php, search-site-badge.php
+- **Search subdirectory (1 file)**: search-header.php
 
 **Single Post/Page Functionality (4 files)**:
 - `inc/single/single-post.php` - Single post functionality
@@ -320,7 +321,7 @@ wp rewrite flush
 - **Template Filters**: Each page type supports `extrachill_template_*` filters for plugin customization
 - **Modular Templates**: Core functionality organized in `/inc/` directory structure
 - **Archive Templates**: Core archive functionality in `inc/archives/archive.php`
-- **Multisite Search**: Dedicated search template system in `inc/archives/search/` with cross-site results
+- **Search Integration**: Search header template provided by theme (`inc/archives/search/search-header.php`), main template provided by extrachill-search plugin
 - **404 Pages**: 404 template at `inc/core/templates/404.php`
 - **Festival Wire**: Custom post type functionality provided by ExtraChill News Wire plugin
 
@@ -363,6 +364,19 @@ wp rewrite flush
   - `extrachill_homepage_content_middle`
   - `extrachill_homepage_content_bottom`
   - `extrachill_home_final_left`
+- **Author Archive Hooks**: Extensible plugin integration for author pages:
+  - `extrachill_after_author_bio` - Fires after author bio on author archive pages
+    - **Parameter**: `$author_id` (int) - The queried author's user ID
+    - **Context**: Only fires on author archives (inside `is_author()` conditional) on first page (not paged)
+    - **Usage**: Plugins add content after author bio (e.g., community profile links, social links, custom CTAs)
+    - **Example Integration**: extrachill-users plugin displays "View Community Profile" button
+- **Archive Filter Bar**: Extensible plugin integration for archive pages:
+  - `extrachill_archive_filter_bar` - Inject navigational buttons/links into archive filter bar
+    - **Context**: Fires inside `<div id="extrachill-custom-sorting">` on all archive pages with filter bar
+    - **Visual Position**: Buttons appear on right side of filter bar (use `float: right` styling)
+    - **Usage**: Plugins add navigational buttons for archive-specific actions (e.g., view artist profile, browse location)
+    - **Example Integration**: Theme displays "View Artist Profile" button on artist taxonomy archives
+    - **Styling**: Plugins handle their own wrapper divs and styling (no automatic container)
 
 ### Performance Features
 - **Modular Asset Loading**: CSS/JS loaded only when needed based on page context
@@ -402,7 +416,7 @@ EXTRACHILL_INCLUDES_DIR - Inc directory path for modular includes
 - **Template Router Migration**: Moved routing logic from `index.php` to dedicated router file for proper WordPress integration
 - **Emergency Fallback**: `index.php` now serves as minimal emergency fallback only
 - **Multisite Plugin Migration**: All multisite functionality moved to extrachill-multisite plugin for network activation
-- **Core Templates Directory**: Created `/inc/core/templates/` for shared template components (8 files)
+- **Core Templates Directory**: Created `/inc/core/templates/` for shared template components (9 files)
 - **Sidebar Directory**: Created `/inc/sidebar/` for sidebar-specific functionality (2 files)
 - **Native Pagination System**: Added comprehensive pagination system replacing wp-pagenavi plugin
   - Located at `inc/core/templates/pagination.php`
@@ -417,14 +431,14 @@ EXTRACHILL_INCLUDES_DIR - Inc directory path for modular includes
 - **Asset Management**: Centralized in `inc/core/assets.php` with conditional loading
 - **Authentication Simplification**: Native WordPress multisite authentication via extrachill-multisite plugin
 - **Performance Optimization**: Modular CSS architecture and selective loading
-- **File Structure Cleanup**: Streamlined to 47 modular PHP files with improved organization (23 directly loaded in functions.php)
+- **File Structure Cleanup**: Streamlined to 47 modular PHP files with improved organization (25 directly loaded in functions.php)
 - **Custom Page Template Support**: Router automatically respects custom page templates assigned via WordPress admin
 - **Button Style Standardization**: Unified button classes across the entire ecosystem
 - **View Counting System**: Universal post view tracking with `ec_get_post_views()`, `ec_the_post_views()`, and `ec_track_post_views()`
 - **Rewrite System**: Category base rewriting for consistent multisite permalink structures
 - **Sticky Header Filter**: `extrachill_enable_sticky_header` filter allows plugins to control sticky header behavior
 - **Event Integration Update**: Replaced dm-events integration with extrachill-events plugin
-- **Multisite Search System**: Dedicated search template system with cross-site search integration
+- **Search Plugin Integration**: Theme provides search header and CSS, extrachill-search plugin provides main template via filter override
 - **View Counting System**: Post view count tracking functionality
 - **Custom Rewrite Rules**: Enhanced URL rewriting system
 - **Shared Components**: Reusable tab interface system with CSS and JavaScript

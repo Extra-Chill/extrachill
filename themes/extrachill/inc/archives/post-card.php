@@ -30,6 +30,10 @@ $featured_image_size = 'medium_large';
             <div class="featured-image">
                 <a href="<?php echo isset($post->permalink) ? esc_url($post->permalink) : the_permalink(); ?>" title="<?php the_title_attribute(); ?>">
                     <img src="<?php echo esc_url( $thumbnail['thumbnail_url'] ); ?>"
+                         <?php if ( ! empty( $thumbnail['thumbnail_width'] ) && ! empty( $thumbnail['thumbnail_height'] ) ) : ?>
+                         width="<?php echo esc_attr( $thumbnail['thumbnail_width'] ); ?>"
+                         height="<?php echo esc_attr( $thumbnail['thumbnail_height'] ); ?>"
+                         <?php endif; ?>
                          <?php if ( ! empty( $thumbnail['thumbnail_srcset'] ) ) : ?>
                          srcset="<?php echo esc_attr( $thumbnail['thumbnail_srcset'] ); ?>"
                          <?php endif; ?>
@@ -58,21 +62,10 @@ $featured_image_size = 'medium_large';
             <?php extrachill_entry_meta(); ?>
 
             <?php if ( isset( $post->_is_forum_post ) && $post->_is_forum_post ) : ?>
-                <div class="archive-excerpt">
-                    <?php
-                    $excerpt = $post->post_excerpt;
-                    $search_term = get_query_var( 's' );
-                    echo wp_kses_post( highlight_search_term( $excerpt, $search_term ) );
-                    ?>
-                </div>
                 <span>
                     <a href="<?php echo isset($post->permalink) ? esc_url($post->permalink) : esc_url(get_permalink($post)); ?>" class="button-1 button-small" id="forum-post" target="_blank" rel="noopener noreferrer">View in Community</a>
                 </span>
             <?php else : ?>
-                <div class="archive-excerpt">
-                    <?php echo wp_kses_post(wp_trim_words(get_the_excerpt(), 30, '...')); ?>
-                </div>
-
                 <span>
                     <a href="<?php echo isset($post->permalink) ? esc_url($post->permalink) : the_permalink(); ?>" class="button-1 button-medium" target="_self" rel="noopener noreferrer">View Full Post</a>
                 </span>

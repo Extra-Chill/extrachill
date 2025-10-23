@@ -18,7 +18,7 @@ ExtraChill is a modern, performance-optimized WordPress theme designed specifica
 - **Festival Wire Integration**: Homepage ticker display for festival coverage (requires ExtraChill News Wire plugin)
 - **Newsletter Integration**: Newsletter functionality provided by ExtraChill Newsletter Plugin
 - **Contact Forms**: Contact form functionality provided by ExtraChill Contact Plugin
-- **Multisite Search**: Cross-site search integration with site-specific badges and result filtering
+- **Search Integration**: Search header template and CSS provided by theme, main template provided by extrachill-search plugin
 
 ### 🚀 Performance Optimizations
 - **Conditional Asset Loading**: CSS/JS loaded only when needed based on page context
@@ -86,9 +86,9 @@ The theme supports direct file editing for development with no build step requir
 cd wp-content/themes/extrachill
 
 # Edit files directly
-# CSS files are in /assets/css/ (9 files: root.css, home.css, archive.css, single-post.css, nav.css, badge-colors.css, editor-style.css, search.css, shared-tabs.css)
+# CSS files are in /assets/css/ (11 files: root.css, home.css, archive.css, single-post.css, nav.css, badge-colors.css, editor-style.css, search.css, shared-tabs.css, share.css, sidebar.css)
 # JavaScript files are in /assets/js/ (4 files: nav-menu.js, reading-progress.js, chill-custom.js, shared-tabs.js)
-# PHP files use modular include structure in /inc/ directory (47 total files, 23 directly loaded in functions.php)
+# PHP files use modular include structure in /inc/ directory (47 total files, 25 directly loaded in functions.php)
 
 # Check for syntax errors
 php -l functions.php
@@ -108,7 +108,7 @@ For production deployment, use the build script to create clean ZIP packages:
 # Create production-ready ZIP file
 ./build.sh
 
-# Output will be in /build/ directory:
+# Output will be in build/ directory:
 # - build/extrachill/ (clean production directory)
 # - build/extrachill.zip (deployable ZIP file)
 ```
@@ -126,7 +126,7 @@ For production deployment, use the build script to create clean ZIP packages:
 extrachill/
 ├── index.php                   # Emergency fallback template (minimal functionality)
 ├── assets/                     # Theme assets directory
-│   ├── css/                    # Modular CSS files (9 files)
+│   ├── css/                    # Modular CSS files (11 files)
 │   │   ├── root.css            # CSS custom properties
 │   │   ├── home.css            # Homepage styles
 │   │   ├── archive.css         # Archive page styles
@@ -142,18 +142,17 @@ extrachill/
 │   │   ├── chill-custom.js     # Custom functionality
 │   │   └── shared-tabs.js      # Shared tab interface
 │   └── fonts/                  # Local web fonts
-├── inc/                        # Modular PHP functionality (47 files total, 23 directly loaded)
-│   ├── archives/               # Archive page functionality (9 files)
+├── inc/                        # Modular PHP functionality (47 files total, 25 directly loaded)
+│   ├── archives/               # Archive page functionality (8 files)
 │   │   ├── archive.php
 │   │   ├── archive-header.php
 │   │   ├── archive-filter-bar.php
 │   │   ├── archive-child-terms-dropdown.php
 │   │   ├── archive-custom-sorting.php
+│   │   ├── artist-profile-link.php
 │   │   ├── post-card.php
-│   │   └── search/             # Multisite search system (3 files)
-│   │       ├── search.php      # Main search template
-│   │       ├── search-header.php
-│   │       └── search-site-badge.php
+│   │   └── search/             # Search integration (1 file)
+│   │       └── search-header.php  # Search header (via extrachill_search_header hook)
 │   ├── core/                   # Core WordPress features (7 files + 2 subdirectories)
 │   │   ├── templates/          # Shared template components (9 files)
 │   │   │   ├── post-meta.php
@@ -250,14 +249,14 @@ The theme follows a modular architecture with clear separation of concerns:
 - **Core WordPress functionality** in `/inc/core/` (7 core files + 2 subdirectories = 19 total files)
 - **Shared template components** in `/inc/core/templates/` (9 reusable templates including 404.php)
 - **Custom embeds** in `/inc/core/editor/` (3 embed types: Bandcamp, Spotify, Instagram)
-- **Archive functionality** in `/inc/archives/` (6 core files + search subdirectory with 3 files = 9 total files)
-- **Multisite search system** in `/inc/archives/search/` (3 files for cross-site search)
+- **Archive functionality** in `/inc/archives/` (7 core files + search subdirectory with 1 file = 8 total files)
+- **Search integration** in `/inc/archives/search/` (1 file: search-header.php used via extrachill_search_header hook by extrachill-search plugin)
 - **Footer navigation** in `/inc/footer/` (2 footer files)
 - **Header navigation system** in `/inc/header/` (4 navigation files)
 - **Homepage components** in `/inc/home/` (8 homepage files: 1 core + 7 templates)
 - **Sidebar functionality** in `/inc/sidebar/` (2 sidebar files)
 - **Single post/page features** in `/inc/single/` (4 single files)
-- **Total**: 47 PHP files in `/inc/` directory with 23 directly loaded in functions.php
+- **Total**: 47 PHP files in `/inc/` directory with 25 directly loaded in functions.php
 
 ### Hook-Based Menu System
 
@@ -397,8 +396,8 @@ define('SCRIPT_DEBUG', true);
 - **Streamlined asset loading**: Conditional CSS/JS enqueuing based on page context via `inc/core/assets.php`
 - **Memory optimization**: Efficient resource management through selective loading and admin style dequeuing
 - **Multisite optimization**: Plugin architecture with function existence checks and caching
-- **Template consolidation**: 47 modular PHP files replace monolithic template structure (23 directly loaded in functions.php)
-- **Multisite search integration**: Cross-site search with dedicated template system
+- **Template consolidation**: 47 modular PHP files replace monolithic template structure (25 directly loaded in functions.php)
+- **Search plugin integration**: Theme provides search header template and CSS, extrachill-search plugin provides main template
 - **View counting**: Universal post view tracking with `ec_get_post_views()`, `ec_the_post_views()`, and `ec_track_post_views()`
 - **Permalink consistency**: Category base rewriting for consistent multisite URL structures
 
@@ -424,17 +423,17 @@ This theme is proprietary software developed for ExtraChill.com. All rights rese
 
 ## Changelog
 
-### Version 69.57+
+### Version 69.58+
 - **WordPress Native Template Routing**: Implemented `inc/core/template-router.php` using `template_include` filter
 - **Template Router Migration**: Moved routing logic from `index.php` to dedicated router file
 - **Emergency Fallback**: `index.php` now serves as minimal emergency fallback only
-- **Modular Architecture**: 47 PHP files organized in 7 directories with clear separation of concerns (23 directly loaded in functions.php)
+- **Modular Architecture**: 47 PHP files organized in 7 directories with clear separation of concerns (25 directly loaded in functions.php)
 - **Custom Page Template Support**: Router respects custom page templates assigned via WordPress admin
 - **Button Style Standardization**: Unified button classes across the entire ecosystem
 - **Asset Migration**: Complete move from legacy `css/` and `js/` to `assets/css/` and `assets/js/`
 - **Template System**: 9 shared template components in `/inc/core/templates/` (including 404.php)
 - **Multisite Plugin Migration**: All multisite functionality moved to extrachill-multisite plugin for network activation
-- **Multisite Search System**: Dedicated search template system in `/inc/archives/search/` with cross-site search integration
+- **Search Plugin Integration**: Theme provides search header template and CSS, extrachill-search plugin provides main template via filter override
 - **Native Pagination**: Custom pagination system replacing wp-pagenavi plugin
 - **Plugin Migrations**: Newsletter, contact forms, Festival Wire, and multisite functionality moved to dedicated plugins
 - **System Removals**: 15+ legacy files eliminated (event submission, location filtering, session tokens, override system)
@@ -449,6 +448,6 @@ This theme is proprietary software developed for ExtraChill.com. All rights rese
 
 **Theme**: ExtraChill
 **Author**: Chubes
-**Version**: 69.57
+**Version**: 69.58
 **WordPress**: 5.0+
 **License**: Proprietary

@@ -68,7 +68,7 @@ global $post, $live_reviews_posts, $interviews_posts;
         <div class="home-3x3-stacked-section">
           <div class="home-3x3-header">
             <span class="home-3x3-label">Community Activity</span>
-            <a class="home-3x3-archive-link" href="https://community.extrachill.com">View All</a>
+            <a class="home-3x3-archive-link" href="https://community.extrachill.com/recent">View All</a>
           </div>
           <div class="home-3x3-list home-3x3-community-list">
             <?php include get_template_directory() . '/inc/home/templates/community-activity.php'; ?>

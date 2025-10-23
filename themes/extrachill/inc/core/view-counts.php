@@ -3,7 +3,7 @@
  * Universal View Counting System
  *
  * Tracks post views for all singular post types using WordPress post meta.
- * Excludes editors/admins and preview requests from view tracking.
+ * Excludes users who can edit others' posts (Editors/Admins) and preview requests from view tracking.
  *
  * @package ExtraChill
  * @since 69.58
@@ -16,14 +16,14 @@ if (!defined('ABSPATH')) {
 /**
  * Track post views on singular pages
  *
- * Excludes previews and users who can edit posts
+ * Excludes previews and users who can edit others' posts
  */
 function ec_track_post_views($post_id) {
 	if (!$post_id || is_preview()) {
 		return;
 	}
 
-	if (current_user_can('edit_posts')) {
+	if (current_user_can('edit_others_posts')) {
 		return;
 	}
 

@@ -31,7 +31,7 @@ get_header(); ?>
 
         <?php
 $paged = (get_query_var('paged')) ? get_query_var('paged') : 1;
-$sort = (isset($_GET['sort']) && in_array($_GET['sort'], array('recent', 'oldest'))) ? $_GET['sort'] : 'recent';
+$sort = (isset($_GET['sort']) && in_array($_GET['sort'], array('recent', 'oldest', 'random', 'popular'))) ? $_GET['sort'] : 'recent';
 
 $args = array(
     'post_type'      => 'post',
@@ -43,22 +43,21 @@ $args = array(
 if ($sort == 'oldest') {
     $args['orderby'] = 'date';
     $args['order'] = 'ASC';
+} elseif ($sort == 'random') {
+    $args['orderby'] = 'rand';
+} elseif ($sort == 'popular') {
+    $args['meta_key'] = 'ec_post_views';
+    $args['orderby'] = 'meta_value_num';
+    $args['order'] = 'DESC';
 } else {
     $args['orderby'] = 'date';
     $args['order'] = 'DESC';
 }
 
-// Check for randomize parameter
-if (isset($_GET['randomize'])) {
-    $args['orderby'] = 'rand';
-}
-
-// Execute the query
 $all_posts_query = new WP_Query($args);
 
 global $wpdb;
 
-// Check if there are posts
 if ($all_posts_query->have_posts()) :
     ?>
 
@@ -72,9 +71,13 @@ if ($all_posts_query->have_posts()) :
     </div><!-- .article-container -->
 </div><!-- .full-width-breakout -->
 
-<?php extrachill_pagination($all_posts_query, 'all-posts'); ?>
+ <?php extrachill_pagination($all_posts_query, 'all-posts'); ?>
 
-<?php else : ?>
+ <div class="back-home-link-container">
+     <a href="<?php echo esc_url(home_url('/')); ?>" class="back-home-link">← Back Home</a>
+ </div>
+
+ <?php else : ?>
 
     <p>No posts found for this sorting option.</p>
     <?php extrachill_no_results(); ?>

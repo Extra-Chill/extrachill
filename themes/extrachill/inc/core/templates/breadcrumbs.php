@@ -3,7 +3,7 @@
  * Unified Breadcrumb System
  *
  * Technical Implementation:
- * - bbPress integration: Defers to bbp_breadcrumb() for native forum breadcrumbs
+ * - bbPress integration: Plugin-based breadcrumbs via extrachill_breadcrumbs_override_trail filter
  * - WooCommerce bypass: ExtraChill Shop plugin handles shop breadcrumbs independently
  * - Hierarchical taxonomies: Full ancestor chain display for parent/child relationships
  *
@@ -21,11 +21,6 @@ if (!function_exists('extrachill_breadcrumbs')) {
             return;
         }
 
-        if (function_exists('is_bbpress') && is_bbpress() && function_exists('bbp_breadcrumb')) {
-            bbp_breadcrumb();
-            return;
-        }
-
         if (function_exists('is_woocommerce') && (is_woocommerce() || is_cart() || is_checkout() || is_account_page() || is_product() || is_shop())) {
             return;
         }
@@ -35,7 +30,10 @@ if (!function_exists('extrachill_breadcrumbs')) {
         }
 
         echo '<nav class="breadcrumbs" itemprop="breadcrumb">';
-        echo '<a href="' . home_url() . '">Home</a> › ';
+
+        // Allow plugins to override the root breadcrumb link
+        $root_link = apply_filters( 'extrachill_breadcrumbs_root', '<a href="' . home_url() . '">Home</a>' );
+        echo $root_link . ' › ';
 
         // Allow plugins to override the default breadcrumb trail
         $custom_trail = apply_filters('extrachill_breadcrumbs_override_trail', '');

@@ -1,9 +1,8 @@
 <?php
 /**
- * ExtraChill Theme Setup and Configuration
+ * ExtraChill Theme Setup
  *
- * Template routing via WordPress native template_include filter in
- * inc/core/template-router.php with plugin override support via filters.
+ * Template routing via template_include filter in inc/core/template-router.php.
  *
  * @package ExtraChill
  * @since 69.58
@@ -92,6 +91,7 @@ require_once(EXTRACHILL_INCLUDES_DIR . '/core/editor/spotify-embeds.php');
 require_once(EXTRACHILL_INCLUDES_DIR . '/archives/archive-child-terms-dropdown.php');
 require_once(EXTRACHILL_INCLUDES_DIR . '/archives/archive-custom-sorting.php');
 require_once(EXTRACHILL_INCLUDES_DIR . '/archives/archive-filter-bar.php');
+require_once(EXTRACHILL_INCLUDES_DIR . '/archives/artist-profile-link.php');
 
 require_once(EXTRACHILL_INCLUDES_DIR . '/core/templates/searchform.php');
 
