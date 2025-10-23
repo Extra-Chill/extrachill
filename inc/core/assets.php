@@ -2,11 +2,7 @@
 /**
  * Asset Management
  *
- * Technical Implementation:
- * - Conditional loading: Page-specific CSS/JS enqueued only when needed
- * - Cache busting: filemtime() versioning for all assets to force browser cache refresh on file changes
- * - Loading priority: Root CSS loads at priority 5, dependent styles at priority 10+
- * - Shared components: Registered assets (shared-tabs) for conditional enqueuing by blocks/plugins
+ * Conditional loading with filemtime() cache busting. Root CSS priority 5, dependent styles priority 10+.
  *
  * @package ExtraChill
  * @since 69.57
@@ -69,10 +65,8 @@ add_action('wp_enqueue_scripts', 'extrachill_enqueue_reading_progress');
 
 function extrachill_enqueue_home_styles() {
     if ( is_front_page() ) {
-        // Check if plugin has overridden homepage template
         $template_override = apply_filters( 'extrachill_template_homepage', false );
 
-        // Only load home.css if theme is handling homepage
         if ( ! $template_override ) {
             $css_path = get_stylesheet_directory() . '/assets/css/home.css';
             if ( file_exists( $css_path ) ) {
@@ -171,6 +165,26 @@ function extrachill_enqueue_search_styles() {
     }
 }
 add_action('wp_enqueue_scripts', 'extrachill_enqueue_search_styles', 20);
+
+function extrachill_enqueue_sidebar_styles() {
+    // Only load on pages that have sidebars
+    if ( is_singular( array( 'post', 'newsletter', 'festival_wire' ) ) || is_404() ) {
+        $sidebar_override = apply_filters( 'extrachill_sidebar_content', false );
+
+        if ( $sidebar_override === false ) {
+            $css_path = get_stylesheet_directory() . '/assets/css/sidebar.css';
+            if ( file_exists( $css_path ) ) {
+                wp_enqueue_style(
+                    'extrachill-sidebar',
+                    get_stylesheet_directory_uri() . '/assets/css/sidebar.css',
+                    array('extrachill-root', 'extrachill-style'),
+                    filemtime( $css_path )
+                );
+            }
+        }
+    }
+}
+add_action('wp_enqueue_scripts', 'extrachill_enqueue_sidebar_styles', 20);
 
 function extrachill_register_shared_tabs() {
     wp_register_style(

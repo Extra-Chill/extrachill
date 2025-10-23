@@ -33,52 +33,11 @@
 	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
-/* Site Badges */
-.site-badges {
-	display: flex;
-	gap: 0.5rem;
-	margin-bottom: 1rem;
-	flex-wrap: wrap;
-}
-
+/* Site Badge */
 .site-badge {
-	padding: 0.25rem 0.75rem;
-	border-radius: 4px;
+	margin-bottom: 0.75rem;
 	font-size: 0.875rem;
 	font-weight: 600;
-	color: white;
-	display: inline-block;
-}
-
-/* Site-specific badge colors */
-.site-badge.site-extra-chill {
-	background-color: #FF6B6B;
-}
-
-.site-badge.site-extra-chill-community {
-	background-color: #4ECDC4;
-}
-
-.site-badge.site-extra-chill-shop {
-	background-color: #95E1D3;
-	color: #333;
-}
-
-.site-badge.site-extra-chill-artist-platform {
-	background-color: #F38181;
-}
-
-.site-badge.site-extra-chill-chat {
-	background-color: #AA96DA;
-}
-
-/* Post Type Badge */
-.post-type-badge {
-	padding: 0.25rem 0.75rem;
-	border-radius: 4px;
-	font-size: 0.875rem;
-	background-color: var(--color-text-secondary);
-	color: var(--color-background);
 	display: inline-block;
 }
 
@@ -152,13 +111,7 @@
 		font-size: 1.25rem;
 	}
 
-	.site-badges {
-		gap: 0.25rem;
-	}
-
-	.site-badge,
-	.post-type-badge {
+	.site-badge {
 		font-size: 0.75rem;
-		padding: 0.2rem 0.6rem;
 	}
 }

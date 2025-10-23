@@ -1,7 +1,7 @@
 /*
 Theme Name: Extra Chill
 Author: Chubes
-Version: 69.57
+Version: 69.58
 Text Domain: extrachill
 */
 
@@ -512,7 +512,7 @@ background-color: var(--background-color);
 	display: inline;
 }
 
-.social-links svg:hover, svg.cart-top:hover {
+.social-links svg:hover {
 	fill: var(--accent);
 	text-decoration: none;
 }
@@ -532,8 +532,6 @@ text-decoration: none;
 	height: 22px;
 	width: 22px;
 }
-
-
 
 .below-entry-meta {
     color: var(--muted-text);
@@ -560,14 +558,8 @@ text-decoration: none;
 .forum-meta{
 	padding: 0;
 }
-.post-location-meta{
-	display: flex;
-	font-size: 13px;
-	column-gap: 4px;
-}
-.post-location-meta a{
-	font-weight: 500;
-}
+
+
 .post-categories{
 	background-color: var(--card-background);
 	color: var(--text-color);
@@ -582,13 +574,8 @@ text-decoration: none;
 	color: #fff;
 }
 
-.post-location-meta a.location-link{
-	color: #fff;
-}
-.location-link:hover {
-    background-color: #111;
-    text-decoration: none;
-}
+
+
 .below-entry-meta a {
     color: inherit;
 }
@@ -603,10 +590,6 @@ a.author.url.fn, .forum-meta a {
 
 .main-content ol, .main-content ul{
 	margin:0 25px;
-}
-
-.sidebar a:hover {
-	text-decoration: underline;
 }
 
 .error-404 {
@@ -659,6 +642,10 @@ a.author.url.fn, .forum-meta a {
 
 .pagination-links ul.page-numbers .page-numbers.current {
 	cursor: default;
+	background-color: var(--card-background);
+	color: var(--text-color);
+	border: 1px solid var(--border-color);
+	opacity: 0.7;
 }
 
 .pagination-links ul.page-numbers .page-numbers.prev,
@@ -725,11 +712,6 @@ body {
 
 .main-content {
 	min-width: 0; /* prevents grid overflow */
-}
-
-.sidebar {
-	display: flex;
-	flex-direction: column;
 }
 
 /* =PAGE HEADER TITLE
@@ -960,38 +942,6 @@ div.article-container :before {
     display: inline;
 }
 
-.extrachill-recent-activity{
-font-size: 15px;
-border-top: 1px solid #d4d4d4;
-
-}
-.my-recent-posts{
-	text-align: center;
-}
-h2.recent-title{
-	font-size: 22px;
-}
-.extrachill-recent-activity ul {
-  margin: inherit;
-  max-width: 100%;
-  display: flex;
-  flex-wrap: wrap;
-}
-
-.extrachill-recent-activity ul li{
-  border-bottom: 1px solid #d4d4d4;
-  width: max-content;
-  padding: 5px 0;
-  list-style: none;
-
-}
-.extrachill-recent-activity a#visit button {
-margin-top: 10px;
-margin-bottom: 10px;
-}
-.extrachill-recent-activity #topic{
-border-bottom: 1px solid var(--accent);
-}
 
 
 
@@ -999,111 +949,10 @@ border-bottom: 1px solid var(--accent);
 
 
 
-/*LOCATION LINK COLORS - use local college colors  */
 
-a.location-link{
-	overflow: hidden;
-}
 
 
 /* Forum post and read-more buttons use explicit button classes in HTML */
-
-/* Sidebar Card Layout */
-.sidebar-card {
-  background: var(--card-background, #181818);
-  border-radius: 14px;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.10);
-  margin-bottom: 2em;
-  padding: 1.5em 1.2em 1.2em 1.2em;
-  transition: box-shadow 0.18s;
-  border: 1px solid var(--border-color, #333);
-}
-@media (max-width: 700px) {
-  .sidebar-card {
-    padding: 1em 0.7em;
-    margin-bottom: 1.2em;
-  }
-}
-
-/* Sidebar Recent Posts Title Margin for Desktop */
-@media (min-width: 900px) {
-  .sidebar {
-    margin-top: 32px;
-  }
-  .sidebar-recent-title-margin {
-    margin-top: 0;
-  }
-}
-.sidebar-tax-link {
-  color: var(--accent, #79c031);
-  text-decoration: underline;
-  font-weight: 700;
-}
-.sidebar-tax-link:hover {
-  color: var(--button-hover-bg, #003466);
-  text-decoration: underline;
-}
-
-/* Related taxonomies CSS moved to css/single-post.css for modularization and maintainability. */
-
-.my-recent-posts .post:not(:last-child) {
-  margin-bottom: 1.3em;
-  padding-bottom: 1.1em;
-  border-bottom: 1px solid var(--border-color, #333);
-}
-
-
-/* Sidebar Mini Card Styles for Festival Wire */
-.my-recent-posts .mini-card {
-  background: var(--card-background, #191d1a);
-  border-radius: 10px;
-  box-shadow: 0 2px 8px rgba(83,148,11,0.07);
-  border: 1.5px solid var(--border-color, #333);
-  padding: 1.1em 1em 0.7em 1em;
-  margin-bottom: 1.1em;
-  transition: box-shadow 0.18s, background 0.18s;
-  text-align: left;
-  color: #fff;
-}
-.my-recent-posts .mini-card:hover {
-  background: var(--button-hover-bg, #232323);
-  box-shadow: 0 4px 16px rgba(83,148,11,0.13);
-}
-.my-recent-posts .mini-card .recent-title {
-  font-size: 1.08em;
-  font-weight: 700;
-  margin: 0.2em 0 0.1em 0;
-  color: var(--link-color, #79c031);
-  letter-spacing: 0.01em;
-}
-.my-recent-posts .mini-card .recent-title a {
-  color: var(--link-color, #79c031);
-  text-decoration: none;
-  transition: color 0.18s;
-}
-.my-recent-posts .mini-card .post-thumbnail {
-  margin-bottom: 0.5em;
-  border-radius: 7px;
-  overflow: hidden;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.07);
-}
-
-/* Sidebar Widget Title Contrast - Toned Down */
-.my-recent-posts .widget-title.sidebar-recent-title-margin {
-  background: var(--card-background, #191d1a);
-  color: var(--text-color);
-  border-radius: 8px 8px 0 0;
-  font-family: 'Loft Sans', 'Montserrat', 'Arial', sans-serif;
-  font-size: 1.08em;
-  font-weight: 700;
-  letter-spacing: 0.01em;
-  text-transform: uppercase;
-  padding: 0.6em 0.7em 0.4em 0.7em;
-  margin-bottom: 0.7em;
-  border-bottom: 2px solid #79c031;
-  box-shadow: none;
-  text-align: left;
-}
 
 /* Taxonomy Badges - Global Base Styles */
 .taxonomy-badges {

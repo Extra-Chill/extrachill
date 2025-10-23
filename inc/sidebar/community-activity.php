@@ -6,7 +6,7 @@
  * Manually constructs forum URLs using /r/ slug pattern and profile URLs via ec_get_user_profile_url().
  *
  * Technical Implementation:
- * - Multisite blog switching: Uses get_blog_id_from_url() with switch_to_blog() for cross-site data access
+ * - Multisite blog switching: Uses direct blog ID numbers with switch_to_blog() for cross-site data access
  * - Forum URL pattern: Manually constructs community.extrachill.com/r/{forum-slug} for forum links
  * - Profile URL dependency: Requires extrachill-users plugin for ec_get_user_profile_url() function
  * - Caching: 10-minute WordPress object cache for performance optimization
@@ -22,13 +22,7 @@ if ( ! function_exists( 'extrachill_sidebar_community_activity' ) ) :
 
         if ($activities === false) {
             $current_blog_id = get_current_blog_id();
-            $community_blog_id = 0;
-            if (function_exists('get_blog_id_from_url')) {
-                $resolved_blog_id = get_blog_id_from_url('community.extrachill.com', '/');
-                if (!empty($resolved_blog_id)) {
-                    $community_blog_id = (int) $resolved_blog_id;
-                }
-            }
+            $community_blog_id = 2;
 
             if (!$community_blog_id) {
                 error_log('Community activity feed: unable to resolve community.extrachill.com blog ID');
@@ -36,11 +30,10 @@ if ( ! function_exists( 'extrachill_sidebar_community_activity' ) ) :
             }
 
             $switched = false;
-            if ($community_blog_id) {
-                if ($community_blog_id !== $current_blog_id) {
-                    switch_to_blog($community_blog_id);
-                    $switched = true;
-                }
+            if ($community_blog_id !== $current_blog_id) {
+                switch_to_blog($community_blog_id);
+                $switched = true;
+            }
 
                 $args = array(
                     'post_type' => array('topic', 'reply'),
@@ -118,7 +111,6 @@ if ( ! function_exists( 'extrachill_sidebar_community_activity' ) ) :
                 if ($switched) {
                     restore_current_blog();
                 }
-            }
 
             wp_cache_set($cache_key, $activities, '', 10 * MINUTE_IN_SECONDS);
         }
@@ -140,7 +132,7 @@ if ( ! function_exists( 'extrachill_sidebar_community_activity' ) ) :
 
                 if ($activity['type'] === 'Reply') {
                     printf(
-                        '<div class="home-3x3-card home-3x3-community-card"><a href="%s">%s</a> replied to <a id="topic-%d" href="%s">%s</a> in <a href="%s">%s</a> - %s</div>',
+                        '<div class="sidebar-activity-card"><a href="%s">%s</a> replied to <a id="topic-%d" href="%s">%s</a> in <a href="%s">%s</a> - %s</div>',
                         esc_url($activity['user_profile_url']),
                         esc_html($activity['username']),
                         $counter,
@@ -152,7 +144,7 @@ if ( ! function_exists( 'extrachill_sidebar_community_activity' ) ) :
                     );
                 } else {
                     printf(
-                        '<div class="home-3x3-card home-3x3-community-card"><a href="%s">%s</a> posted <a id="topic-%d" href="%s">%s</a> in <a href="%s">%s</a> - %s</div>',
+                        '<div class="sidebar-activity-card"><a href="%s">%s</a> posted <a id="topic-%d" href="%s">%s</a> in <a href="%s">%s</a> - %s</div>',
                         esc_url($activity['user_profile_url']),
                         esc_html($activity['username']),
                         $counter,

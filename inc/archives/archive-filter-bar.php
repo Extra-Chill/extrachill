@@ -39,7 +39,8 @@ function extrachill_archive_filter_bar() {
 
     echo '<div id="extrachill-custom-sorting">';
 
-    echo '<button id="randomize-posts" class="button-2 button-medium">Randomize Posts</button>';
+    // Allow plugins to inject navigational buttons/links (appear on right side)
+    do_action( 'extrachill_archive_filter_bar' );
 
     if (is_page_template('page-templates/all-posts.php')) {
         echo '<div class="category-dropdown">';
@@ -66,6 +67,8 @@ function extrachill_archive_filter_bar() {
     echo '<select id="post-sorting" name="post_sorting" onchange="window.location.href=\'' . esc_url($archive_link) . '?sort=\'+this.value;">';
     echo '<option value="recent">Sort by Recent</option>';
     echo '<option value="oldest">Sort by Oldest</option>';
+    echo '<option value="random">Sort by Random</option>';
+    echo '<option value="popular">Sort by Most Popular</option>';
     echo '</select>';
     echo '</div>';
 

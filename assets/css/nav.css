@@ -149,16 +149,15 @@ body.sticky-header #masthead {
     transform: translateY(-8px) rotate(-45deg);
 }
 
-.site-branding {
-    margin: 0 20px;
+/* Universal header right navigation element */
+.header-right-icon {
+    display: flex;
+    align-items: center;
 }
 
-/* All header right elements use flex alignment */
+/* Header navigation containers */
 .main-navigation,
-.search-icon,
-.notification-bell-icon,
-.cart-icon,
-.user-avatar-container {
+.search-icon {
     display: flex;
     align-items: center;
 }
@@ -171,34 +170,13 @@ body.sticky-header #masthead {
 /* Remove explicit margins - flex gap handles spacing */
 svg.menu-toggle,
 svg.search-top,
-svg.submenu-indicator,
-svg.cart-top {
+svg.submenu-indicator {
     fill: #fff;
     transition: fill 0.3s;
     vertical-align: middle;
 }
 
-.cart-icon .cart-count {
-    position: absolute;
-    top: 12px;
-    right: 7px;
-    background-color: red;
-    color: white;
-    font-size: 11px;
-    font-weight: bold;
-    line-height: 1;
-    text-align: center;
-    border-radius: 50%;
-    width: 17px;
-    height: 17px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 0 3px rgba(0, 0, 0, 0.3);
-    pointer-events: none; /* Prevents click interference */
-}
-
-svg.search-top, svg.cart-top{
+svg.search-top{
 	height: 1.15em; /* Adjust based on actual size requirement */
     width: 1.15em;
 }

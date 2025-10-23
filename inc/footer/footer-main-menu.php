@@ -20,13 +20,13 @@
                         <a href="https://extrachill.com/festival-wire">Festival Wire</a>
                     </li>
                     <li class="menu-item">
-                        <a href="https://events.extrachill.com">Calendar</a>
-                    </li>
-                    <li class="menu-item">
                         <a href="https://extrachill.com/category/interviews/">Interviews</a>
                     </li>
                     <li class="menu-item">
                         <a href="https://extrachill.com/category/live-music-reviews/">Live Music Reviews</a>
+                    </li>
+                    <li class="menu-item">
+                        <a href="https://extrachill.com/category/music-news/">Music News</a>
                     </li>
                     <li class="menu-item">
                         <a href="https://extrachill.com/newsletters">Newsletters</a>
@@ -65,6 +65,9 @@
                 <ul class="sub-menu">
                     <li class="menu-item">
                         <a href="https://community.extrachill.com/recent">Recent Activity</a>
+                    </li>
+                    <li class="menu-item">
+                        <a href="https://artist.extrachill.com">Artists</a>
                     </li>
                     <li class="menu-item">
                         <a href="https://community.extrachill.com/r/local-scenes">Local Scenes</a>

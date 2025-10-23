@@ -39,7 +39,7 @@ add_action('extrachill_header_top_right', function() {
         </div>
     </nav>
 
-    <div class="search-icon">
+    <div class="search-icon header-right-icon">
         <svg class="search-top">
             <use href="<?php echo get_template_directory_uri(); ?>/assets/fonts/fontawesome.svg<?php echo $svg_version ? '?v=' . $svg_version : ''; ?>#magnifying-glass-solid"></use>
         </svg>

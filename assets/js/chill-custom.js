@@ -1,22 +1,9 @@
 /**
  * Archive Page Functionality
  *
- * Handles post randomization and artist filtering on archive pages.
- * Manages URL parameters and scroll position restoration.
+ * Handles artist filtering on archive pages and scroll position restoration.
  */
 document.addEventListener('DOMContentLoaded', function() {
-    var randomizeButton = document.getElementById('randomize-posts');
-    if (randomizeButton) {
-        randomizeButton.addEventListener('click', function() {
-            var currentUrl = new URL(window.location.href);
-            var searchParams = currentUrl.searchParams;
-
-            searchParams.set('scrollPos', window.pageYOffset);
-            searchParams.set('randomize', Math.random());
-            window.location.href = currentUrl.toString();
-        });
-    }
-
     var savedScrollPos = new URLSearchParams(window.location.search).get('scrollPos');
     if (savedScrollPos) {
         window.scrollTo(0, parseInt(savedScrollPos));
