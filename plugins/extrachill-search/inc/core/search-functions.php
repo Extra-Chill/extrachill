@@ -112,10 +112,25 @@ function extrachill_multisite_search( $search_term, $site_urls = array(), $args 
 				continue;
 			}
 
-			$post_types = array_diff(
-				get_post_types( array( 'public' => true ), 'names' ),
-				array( 'attachment' )
+			// Site-specific post type configuration
+			$site_post_types = array(
+				1 => array( 'post', 'page', 'festival_wire', 'newsletter' ),
+				2 => array( 'topic', 'reply', 'forum' ),
+				3 => array( 'product', 'page' ),
+				4 => array( 'artist_profile', 'topic', 'reply' ),
+				5 => array( 'page' ),
+				6 => array( 'page' ),
+				7 => array( 'dm_events', 'page' ),
+				8 => array( 'page' ),
 			);
+
+			// Get post types for current blog with fallback to ['post', 'page']
+			$post_types = isset( $site_post_types[ $blog_id ] )
+				? $site_post_types[ $blog_id ]
+				: array( 'post', 'page' );
+
+			// Allow filtering for extensibility
+			$post_types = apply_filters( 'extrachill_search_site_post_types', $post_types, $blog_id );
 
 			if ( empty( $post_types ) ) {
 				continue;
@@ -148,6 +163,21 @@ function extrachill_multisite_search( $search_term, $site_urls = array(), $args 
 					$query->the_post();
 					global $post;
 
+					// Handle bbPress replies specially - use native WP functions for reliability with switch_to_blog()
+					$post_title = get_the_title();
+					$permalink  = get_permalink();
+
+					// bbPress stores topic ID in post_parent for replies
+					if ( $post->post_type === 'reply' && ! empty( $post->post_parent ) ) {
+						$topic_id = $post->post_parent;
+						$topic_title = get_the_title( $topic_id );
+
+						if ( ! empty( $topic_title ) ) {
+							$post_title = 'Re: ' . $topic_title;
+							$permalink = get_permalink( $topic_id ) . '#post-' . $post->ID;
+						}
+					}
+
 					$taxonomies = array();
 					$public_taxonomies = get_taxonomies( array( 'public' => true ), 'objects' );
 					foreach ( $public_taxonomies as $taxonomy ) {
@@ -160,18 +190,21 @@ function extrachill_multisite_search( $search_term, $site_urls = array(), $args 
 					$thumbnail_id = get_post_thumbnail_id( $post->ID );
 					$thumbnail_data = array();
 					if ( $thumbnail_id ) {
+						$thumbnail_metadata = wp_get_attachment_metadata( $thumbnail_id );
 						$thumbnail_data = array(
 							'thumbnail_id'     => $thumbnail_id,
 							'thumbnail_url'    => wp_get_attachment_image_url( $thumbnail_id, 'medium_large' ),
 							'thumbnail_srcset' => wp_get_attachment_image_srcset( $thumbnail_id, 'medium_large' ),
 							'thumbnail_sizes'  => wp_get_attachment_image_sizes( $thumbnail_id, 'medium_large' ),
 							'thumbnail_alt'    => get_post_meta( $thumbnail_id, '_wp_attachment_image_alt', true ),
+							'thumbnail_width'  => isset( $thumbnail_metadata['sizes']['medium_large']['width'] ) ? $thumbnail_metadata['sizes']['medium_large']['width'] : null,
+							'thumbnail_height' => isset( $thumbnail_metadata['sizes']['medium_large']['height'] ) ? $thumbnail_metadata['sizes']['medium_large']['height'] : null,
 						);
 					}
 
 					$result = array(
 						'ID'            => $post->ID,
-						'post_title'    => get_the_title(),
+						'post_title'    => $post_title,
 						'post_content'  => get_the_content(),
 						'post_excerpt'  => has_excerpt() ? get_the_excerpt() : wp_trim_words( get_the_content(), 30 ),
 						'post_date'     => $post->post_date,
@@ -182,7 +215,7 @@ function extrachill_multisite_search( $search_term, $site_urls = array(), $args 
 						'site_id'       => $blog_id,
 						'site_name'     => $blog_details->blogname,
 						'site_url'      => parse_url( $blog_details->siteurl, PHP_URL_HOST ),
-						'permalink'     => get_permalink(),
+						'permalink'     => $permalink,
 						'taxonomies'    => $taxonomies,
 						'thumbnail'     => $thumbnail_data,
 					);
@@ -234,24 +267,6 @@ function extrachill_multisite_search( $search_term, $site_urls = array(), $args 
 	}
 
 	return $all_results;
-}
-
-function ec_get_contextual_excerpt_multisite( $content, $search_term, $word_limit = 30 ) {
-	$content = wp_strip_all_tags( $content );
-	$words   = explode( ' ', $content );
-
-	if ( count( $words ) <= $word_limit ) {
-		return $content;
-	}
-
-	$search_pos = stripos( $content, $search_term );
-	if ( $search_pos !== false ) {
-		$start_word = max( 0, floor( $search_pos / 6 ) - ( $word_limit / 2 ) );
-		$excerpt_words = array_slice( $words, $start_word, $word_limit );
-		return ( $start_word > 0 ? '...' : '' ) . implode( ' ', $excerpt_words ) . '...';
-	}
-
-	return implode( ' ', array_slice( $words, 0, $word_limit ) ) . '...';
 }
 
 /**
@@ -317,55 +332,3 @@ function extrachill_calculate_search_score( $result, $search_term ) {
 	return $score;
 }
 
-if ( ! function_exists( 'ec_get_contextual_excerpt' ) ) {
-	if ( ! function_exists( 'ec_register_contextual_excerpt_fallback' ) ) {
-		function ec_register_contextual_excerpt_fallback() {
-			if ( function_exists( 'ec_get_contextual_excerpt' ) ) {
-				return;
-			}
-
-			$theme = function_exists( 'wp_get_theme' ) ? wp_get_theme() : null;
-
-			if ( is_object( $theme ) && method_exists( $theme, 'get_template' ) ) {
-				$template   = $theme->get_template();
-				$stylesheet = method_exists( $theme, 'get_stylesheet' ) ? $theme->get_stylesheet() : '';
-
-				if ( 'extrachill-community' === $template || 'extrachill-community' === $stylesheet ) {
-					return;
-				}
-			}
-
-			function ec_get_contextual_excerpt( $content, $search_term, $word_limit = 30 ) {
-				$position = stripos( $content, $search_term );
-
-				if ( $position === false ) {
-					$excerpt = '...' . wp_trim_words( $content, $word_limit ) . '...';
-				} else {
-					$words = explode( ' ', $content );
-					$match_position = 0;
-
-					foreach ( $words as $index => $word ) {
-						if ( stripos( $word, $search_term ) !== false ) {
-							$match_position = $index;
-							break;
-						}
-					}
-
-					$start  = max( 0, $match_position - floor( $word_limit / 2 ) );
-					$length = min( count( $words ) - $start, $word_limit );
-
-					$excerpt_words = array_slice( $words, $start, $length );
-
-					$prefix = $start > 0 ? '...' : '';
-					$suffix = ( $start + $length ) < count( $words ) ? '...' : '';
-
-					$excerpt = $prefix . implode( ' ', $excerpt_words ) . $suffix;
-				}
-
-				return $excerpt;
-			}
-		}
-	}
-
-	add_action( 'after_setup_theme', 'ec_register_contextual_excerpt_fallback', 9 );
-}

@@ -5,7 +5,7 @@ Network-activated WordPress plugin providing universal multisite search function
 ## Features
 
 - **Universal Multisite Search** - Search all network sites or specific sites with single function call
-- **Domain-Based Site Resolution** - Uses WordPress native `get_blog_id_from_url()` with automatic caching
+- **Dynamic Site Discovery** - Uses `get_sites()` to enumerate network sites with automatic WordPress blog-id-cache for performance
 - **Flexible Post Type Support** - Searches all public post types (posts, pages, custom post types, bbPress topics/replies)
 - **Advanced Filtering** - Full `WP_Query` parameter support including meta queries
 - **Relevance Scoring** - Weighted algorithm prioritizing exact matches, phrase matches, and word-level matching
@@ -135,7 +135,7 @@ array(
 
 ### Performance Optimizations
 - **Static Caching** - Network sites cached in memory
-- **WordPress Native Caching** - `get_blog_id_from_url()` uses blog-id-cache automatically
+- **WordPress Blog-ID-Cache** - Automatic blog ID caching for optimal performance
 - **Efficient Blog Switching** - Minimal context switching with proper error handling
 - **Relevance Scoring** - Weighted algorithm sorts results by match quality before pagination
 - **Cross-Site Date Sorting** - Results sorted chronologically across all sites
@@ -143,7 +143,7 @@ array(
 ### Pagination Architecture
 WordPress native search only checks the current site for results. When paginating multisite search results, if the current site has no matching posts on a given page, WordPress returns 404 even though other network sites may have results.
 
-The plugin intercepts these 404 errors via the `template_redirect` hook, queries all network sites to verify results exist, and overrides the 404 status when multisite results are found. This ensures pagination works correctly across all 7 network sites.
+The plugin intercepts these 404 errors via the `template_redirect` hook, queries all network sites to verify results exist, and overrides the 404 status when multisite results are found. This ensures pagination works correctly across all network sites.
 
 ## Theme Integration
 

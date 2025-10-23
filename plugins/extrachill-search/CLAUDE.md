@@ -27,7 +27,7 @@ Network-activated WordPress plugin providing centralized multisite search functi
 #### Multisite Search System
 **Universal Network Search** (`inc/core/search-functions.php`):
 - **`extrachill_multisite_search()`**: Core search function querying all network sites or specified sites
-- **Domain-Based Site Resolution**: Uses WordPress native `get_blog_id_from_url()` with automatic blog-id-cache
+- **Dynamic Site Discovery**: Uses `get_sites()` to enumerate network sites with automatic WordPress blog-id-cache for performance
 - **Flexible Post Type Support**: Automatically searches all public post types across sites
 - **Meta Query Support**: Full support for `meta_query` parameter for advanced filtering (bbPress support)
 - **Pagination and Sorting**: Supports limit, offset, orderby, order parameters with cross-site date sorting
@@ -91,14 +91,13 @@ The plugin searches across all eight sites in the ExtraChill Platform network:
 ### Native WordPress Functions Used
 - **`switch_to_blog()`**: Cross-site database access
 - **`restore_current_blog()`**: Restore original site context
-- **`get_blog_id_from_url()`**: Domain-based blog ID resolution with automatic caching
+- **`get_sites()`**: Dynamic network site discovery
 - **`is_multisite()`**: Multisite installation detection
-- **`get_sites()`**: Network site discovery
 - **`get_blog_details()`**: Site metadata retrieval
 
 ### Performance Optimizations
 - **Static Caching**: Network sites cached in memory via `extrachill_get_network_sites()`
-- **WordPress Native Caching**: `get_blog_id_from_url()` uses blog-id-cache automatically
+- **WordPress Blog-ID-Cache**: Automatic blog ID caching for optimal performance
 - **Efficient Blog Switching**: Minimal context switching with proper error handling
 - **Cross-Site Date Sorting**: Results sorted by date across all sites for unified chronology
 
