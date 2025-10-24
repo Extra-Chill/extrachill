@@ -37,8 +37,11 @@ function create_newsletter_post_type() {
 			'not_found_in_trash' => __('No newsletters found in trash', 'extrachill-newsletter'),
 		),
 		'public' => true,
-		'has_archive' => true,
-		'rewrite' => array('slug' => 'newsletters'),
+		'has_archive' => false,
+		'rewrite' => array(
+			'slug' => '',
+			'with_front' => false
+		),
 		'supports' => array('title', 'editor', 'author', 'thumbnail', 'excerpt', 'comments'),
 		'show_in_rest' => true,
 		'menu_position' => 6,

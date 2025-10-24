@@ -6,10 +6,12 @@ A comprehensive WordPress plugin for newsletter management and Sendy integration
 
 - **Custom Newsletter Post Type**: Complete newsletter management with archive and single page templates
 - **Sendy Integration**: Full API integration for campaign creation, updates, and subscription management
-- **Multiple Subscription Forms**: Archive page, homepage, navigation menu, and popup forms
+- **Multiple Subscription Forms**: Archive page, homepage, navigation menu, popup, content, and footer forms
+- **Festival Wire Tip System**: Community-driven festival tip submissions with anti-spam protection
 - **Template Override System**: Plugin-provided templates that override theme templates
 - **AJAX-Powered Forms**: Seamless subscription experience without page reloads
-- **Shortcode Support**: Flexible newsletter widgets and forms for any content area
+- **Integration System**: Declarative form registration via WordPress filters
+- **Security Features**: Cloudflare Turnstile anti-spam, rate limiting, and nonce verification
 - **Responsive Design**: Mobile-optimized forms and layouts
 - **Admin Integration**: Campaign management meta box with push-to-Sendy functionality
 
@@ -44,26 +46,27 @@ A comprehensive WordPress plugin for newsletter management and Sendy integration
 
 ### Sendy API Settings
 
-The plugin uses hardcoded Sendy configuration for security. To modify settings, edit the `get_sendy_config()` function in `includes/newsletter-sendy-integration.php`:
+The plugin provides a comprehensive admin settings interface for configuration. Navigate to **Newsletter → Settings** on newsletter.extrachill.com to configure:
 
-```php
-function get_sendy_config() {
-    return array(
-        'api_key' => 'your-sendy-api-key',
-        'sendy_url' => 'https://your-sendy-installation.com/sendy',
-        'from_name' => 'Your Newsletter Name',
-        'from_email' => 'newsletter@yourdomain.com',
-        'reply_to' => 'reply@yourdomain.com',
-        'brand_id' => '1',
-        'list_ids' => array(
-            'main' => 'your-main-list-id',
-            'archive' => 'your-archive-list-id',
-            'popup' => 'your-popup-list-id',
-            'homepage' => 'your-homepage-list-id',
-        ),
-    );
-}
-```
+- **Global Sendy Settings**: API key, Sendy URL, from email, reply-to email, brand ID
+- **Integration Management**: Enable/disable specific newsletter subscription contexts
+- **List ID Configuration**: Sendy list IDs for each integration context
+
+All settings are stored network-wide in `get_site_option('extrachill_newsletter_settings')` and accessible from all sites in the multisite network.
+
+**Zero Hardcoded Credentials**: All API keys and list IDs are configurable through the admin UI.
+
+### Integration Contexts
+
+The plugin supports multiple subscription contexts through a declarative registration system:
+
+- **Navigation**: Navigation menu subscription form
+- **Homepage**: Main homepage subscription form
+- **Popup**: Modal popup newsletter subscription
+- **Archive**: Newsletter archive page subscription
+- **Content**: Newsletter form after post content
+- **Footer**: Newsletter form above site footer
+- **Festival Wire Tip**: Festival tip submission with newsletter signup
 
 ### Theme Integration
 
@@ -85,35 +88,19 @@ do_action('extrachill_newsletter_homepage_section');
 
 ### Subscription Forms
 
-The plugin provides multiple subscription forms:
+The plugin provides multiple subscription forms that integrate via WordPress hooks:
 
 - **Archive Page**: Automatically displays on the newsletter archive page
-- **Homepage**: Use the action hook or template inclusion
-- **Navigation Menu**: Automatically integrates with theme navigation (filter-based)
-- **Popup**: Automatically loads on appropriate pages
-- **Shortcodes**: Manual placement using shortcodes
+- **Homepage**: Main homepage subscription form
+- **Navigation Menu**: Automatically integrates with theme navigation
+- **Popup**: Modal popup newsletter subscription
+- **Content**: Newsletter form displayed after post content
+- **Footer**: Newsletter form displayed above site footer
+- **Festival Wire Tip**: Festival tip submission form with newsletter signup
 
-### Available Shortcodes
+All forms use the centralized `extrachill_multisite_subscribe()` function for consistent subscription handling.
 
-#### Recent Newsletters Widget
-```php
-[recent_newsletters count="5" show_dates="true" show_view_all="true" title="Latest Updates"]
-```
 
-#### Subscription Form
-```php
-[newsletter_subscription_form list="archive" title="Subscribe" button_text="Join Us"]
-```
-
-#### Archive Link
-```php
-[newsletter_archive_link text="Browse Past Issues"]
-```
-
-#### Newsletter Count
-```php
-[newsletter_count format="text" text_format="We've published %d newsletters!"]
-```
 
 ### Template Customization
 
@@ -125,25 +112,35 @@ The plugin uses its own templates but allows theme overrides. To customize templ
 
 ## AJAX Endpoints
 
-The plugin registers these AJAX endpoints:
+The plugin registers these AJAX endpoints for form handling:
 
 - `submit_newsletter_form` - Archive page subscription
 - `submit_newsletter_popup_form` - Popup subscription
 - `subscribe_to_sendy_home` - Homepage subscription
 - `subscribe_to_sendy` - Navigation subscription
-- `submit_newsletter_shortcode_form` - Shortcode form subscription
+- `submit_newsletter_content_form` - Content form subscription
+- `submit_newsletter_footer_form` - Footer form subscription
+- `newsletter_festival_wire_tip_submission` - Festival wire tip submission
 - `push_newsletter_to_sendy_ajax` - Admin campaign management
+
+All endpoints include security verification, input sanitization, and rate limiting where appropriate.
 
 ## Hooks and Filters
 
 ### Actions
-- `extrachill_newsletter_homepage_section` - Display homepage newsletter section
-- `extrachill_after_newsletter_content` - After newsletter content display
+- `extrachill_navigation_before_social_links` - Navigation menu subscription form
+- `extrachill_home_grid_bottom_right` - Latest newsletters grid display
+- `extrachill_after_post_content` - Content subscription form
+- `extrachill_above_footer` - Footer subscription form
+- `extrachill_after_news_wire` - Festival wire tip form
+- `extrachill_sidebar_bottom` - Recent newsletters sidebar widget
+- `extrachill_archive_below_description` - Archive page subscription form
 - `newsletter_subscription_logged` - After subscription attempt logging
 
 ### Filters
-- `wp_nav_menu_items` - Adds newsletter form to navigation menu
+- `newsletter_form_integrations` - Register newsletter integration contexts
 - `template_include` - Template override system
+- `extrachill_post_meta` - Customize post meta display for newsletters
 
 ## Development
 
@@ -161,20 +158,29 @@ The plugin registers these AJAX endpoints:
 ```
 extrachill-newsletter/
 ├── extrachill-newsletter.php          # Main plugin file
-├── includes/
+├── inc/
 │   ├── newsletter-post-type.php       # Custom post type registration
 │   ├── newsletter-sendy-integration.php # Sendy API integration
 │   ├── newsletter-ajax-handlers.php   # AJAX request handlers
-│   └── newsletter-shortcodes.php      # Shortcode functionality
+│   ├── newsletter-hooks.php           # WordPress hook integrations
+│   ├── newsletter-popup.php           # Newsletter popup functionality
+│   ├── newsletter-subscribe.php       # Subscription functions
+│   └── admin/
+│       └── newsletter-settings.php    # Admin settings page
 ├── templates/
-│   ├── archive-newsletter.php         # Newsletter archive template
-│   ├── single-newsletter.php          # Single newsletter template
-│   ├── content-newsletter.php         # Newsletter content template
+│   ├── navigation-form.php            # Navigation menu form
+│   ├── content-form.php               # Post content form
+│   ├── footer-form.php                # Footer form
+│   ├── festival-wire-tip-form.php     # Festival tip form
 │   └── homepage-section.php           # Homepage section template
 ├── assets/
-│   ├── newsletter.css                  # Consolidated styles
-│   └── newsletter.js                   # Consolidated JavaScript
-├── build.sh                           # Production build script
+│   ├── newsletter.css                 # Newsletter page styles
+│   ├── newsletter-forms.css           # Form-specific styles
+│   ├── newsletter.js                  # JavaScript functionality
+│   ├── newsletter-popup.js            # Popup-specific JavaScript
+│   └── sidebar.css                    # Sidebar widget styles
+├── build.sh                           # Production build script (symlink)
+├── .buildignore                       # Build exclusion patterns
 └── README.md                          # This file
 ```
 
@@ -192,14 +198,19 @@ The plugin follows WordPress best practices:
 ## Changelog
 
 ### Version 1.0.0
-- Initial release
+- Initial release with modular architecture
 - Extracted newsletter functionality from ExtraChill theme
-- Complete Sendy integration
-- Multiple subscription forms
-- Template override system
-- Admin campaign management
-- Shortcode support
-- Responsive design
+- Complete Sendy integration with centralized API configuration
+- Multiple subscription forms (navigation, homepage, popup, archive)
+- Template override system with plugin fallback
+- Admin campaign management with push-to-Sendy functionality
+- Integration system with declarative form registration
+- Enhanced security with nonce verification and input sanitization
+- Festival wire tip submission system with anti-spam protection
+- Content and footer newsletter forms
+- Cloudflare Turnstile integration for spam prevention
+- Rate limiting for tip submissions
+- Responsive design and mobile optimization
 
 ## Support
 

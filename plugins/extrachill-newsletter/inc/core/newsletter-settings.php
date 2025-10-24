@@ -262,3 +262,32 @@ function ec_newsletter_render_settings_page() {
 	</style>
 	<?php
 }
+
+/**
+ * Get newsletter settings with defaults
+ *
+ * Dynamically generates defaults based on registered integrations.
+ *
+ * @since 1.0.0
+ * @return array Settings array with defaults
+ */
+function get_newsletter_settings() {
+	$defaults = array(
+		'sendy_api_key' => '',
+		'sendy_url' => 'https://mail.extrachill.com/sendy',
+		'from_name' => 'Extra Chill',
+		'from_email' => 'newsletter@extrachill.com',
+		'reply_to' => 'chubes@extrachill.com',
+		'brand_id' => '1',
+	);
+
+	// Add defaults for registered integrations
+	$integrations = get_newsletter_integrations();
+	foreach ( $integrations as $context => $integration ) {
+		$defaults[ $integration['enable_key'] ] = 1; // Enable by default
+		$defaults[ $integration['list_id_key'] ] = '';
+	}
+
+	$settings = get_site_option( 'extrachill_newsletter_settings', array() );
+	return wp_parse_args( $settings, $defaults );
+}

@@ -91,10 +91,6 @@
     font-weight: 600;
 }
 
-.newsletter-subscribe-cta a:hover {
-    text-decoration: underline;
-}
-
 .newsletter-archive-link {
     text-align: center;
     margin-top: 1em;
@@ -104,10 +100,6 @@
     color: var(--accent, #53940b);
     text-decoration: none;
     font-weight: 500;
-}
-
-.newsletter-archive-link a:hover {
-    text-decoration: underline;
 }
 
 /* Newsletter Navigation */

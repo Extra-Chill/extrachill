@@ -22,7 +22,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 		<input type="hidden" name="action" value="subscribe_to_sendy">
 		<?php wp_nonce_field('newsletter_nonce', 'subscribe_nonce'); ?>
 		<button type="submit"><?php _e('Subscribe', 'extrachill-newsletter'); ?></button>
-		<p><a href="/newsletters"><?php _e('See past newsletters', 'extrachill-newsletter'); ?></a></p>
+		<p><a href="https://newsletter.extrachill.com"><?php _e('See past newsletters', 'extrachill-newsletter'); ?></a></p>
 	</form>
 	<p class="newsletter-feedback" style="display:none;" aria-live="polite"></p>
 </li>

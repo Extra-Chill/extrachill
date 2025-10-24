@@ -196,11 +196,6 @@
     text-decoration: underline;
 }
 
-#primary-menu .newsletter-form p a:hover {
-    color: inherit;
-    text-decoration-color: var(--accent, #53940b);
-}
-
 /* ==========================================================================
    Homepage Newsletter Section
    ========================================================================== */
@@ -296,10 +291,6 @@
     text-decoration: none;
     font-size: 0.95em;
     font-weight: 500;
-}
-
-.past-newsletters-link a:hover {
-    text-decoration: underline;
 }
 
 /* ==========================================================================
@@ -589,19 +580,19 @@
 }
 
 /* Newsletter archive link in popup */
-.subscribe-popup p:has(> a[href="/newsletters"]) {
+.subscribe-popup p:has(> a[href*="newsletter.extrachill.com"]) {
     margin-top: 0.5em;
     margin-bottom: 1em;
 }
 
-.subscribe-popup p a[href="/newsletters"] {
+.subscribe-popup p a[href*="newsletter.extrachill.com"] {
     color: var(--accent, #53940b);
     text-decoration: none;
     font-weight: 500;
     font-size: 0.95em;
 }
 
-.subscribe-popup p a[href="/newsletters"]:hover {
+.subscribe-popup p a[href*="newsletter.extrachill.com"]:hover {
     text-decoration: underline;
 }
 
