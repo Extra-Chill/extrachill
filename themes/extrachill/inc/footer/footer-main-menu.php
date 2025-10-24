@@ -29,7 +29,7 @@
                         <a href="https://extrachill.com/category/music-news/">Music News</a>
                     </li>
                     <li class="menu-item">
-                        <a href="https://extrachill.com/newsletters">Newsletters</a>
+                        <a href="https://newsletter.extrachill.com">Newsletters</a>
                     </li>
                 </ul>
             </li>

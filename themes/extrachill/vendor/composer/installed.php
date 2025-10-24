@@ -3,7 +3,7 @@
         'name' => 'extrachill/extrachill-theme',
         'pretty_version' => 'dev-main',
         'version' => 'dev-main',
-        'reference' => 'cbc69af4e726ee05afd0fdc8c97fe7f4c232b8f4',
+        'reference' => 'a74abc397342271a77ebf30e6a5729ead9048d4e',
         'type' => 'wordpress-theme',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -31,7 +31,7 @@
         'extrachill/extrachill-theme' => array(
             'pretty_version' => 'dev-main',
             'version' => 'dev-main',
-            'reference' => 'cbc69af4e726ee05afd0fdc8c97fe7f4c232b8f4',
+            'reference' => 'a74abc397342271a77ebf30e6a5729ead9048d4e',
             'type' => 'wordpress-theme',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),

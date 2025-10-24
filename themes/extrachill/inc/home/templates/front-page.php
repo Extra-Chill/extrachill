@@ -11,6 +11,8 @@
 
 get_header();
 
+do_action( 'extrachill_before_body_content' );
+
 $custom_homepage_content = apply_filters( 'extrachill_homepage_content', false );
 
 if ( $custom_homepage_content !== false ) {
