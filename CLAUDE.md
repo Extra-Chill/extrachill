@@ -45,17 +45,21 @@ The ExtraChill theme serves **all eight sites in the WordPress multisite network
 **Site-Specific Configuration**: Each site uses the same theme with different plugin integrations and template overrides via `extrachill_template_*` filters
 
 **Multisite Plugin Integration**: Multisite functionality provided by network-activated plugins:
-- **Cross-Site Search**: extrachill-search plugin provides `extrachill_multisite_search()` function
+- **Cross-Site Search**: extrachill-search plugin provides `extrachill_multisite_search()` function (only plugin using `get_sites()`)
 - **User Profile URLs**: extrachill-users plugin provides `ec_get_user_profile_url()` for intelligent routing
-- **Community Activity**: Theme directly queries bbPress data via `switch_to_blog()` with manual URL construction
+- **Community Activity**: Theme directly queries bbPress data via `switch_to_blog()` with hardcoded blog ID 2
 - **Direct Database Access**: Theme uses WordPress native `WP_Query` for bbPress topics/replies
-- **Manual URL Construction**: Forum URLs constructed as `https://community.extrachill.com/r/{forum-slug}`
+- **Hardcoded Blog IDs**: Theme uses blog ID 2 for community.extrachill.com, blog ID 4 for artist.extrachill.com
 - **WordPress Object Cache**: 10-minute caching via `wp_cache_get()` and `wp_cache_set()`
 - **Network-Wide Security**: Admin access control provided by extrachill-multisite plugin
 
 ### Plugin Integration
 - **ExtraChill Multisite**: Network-activated centralized functionality across all sites
 - **ExtraChill Community**: Community and forum functionality integration for community.extrachill.com
+- **ExtraChill Artist Platform**: Artist profiles and extrachill.link integration
+  - Homepage includes extrachill.link promo section (inc/home/templates/section-extrachill-link.php)
+  - Promo section features join CTA linking to https://extrachill.link/join
+  - Section styled with home-extrachill-link CSS classes in home.css
 - **ExtraChill News Wire**: Festival Wire ticker integration via action hooks
 - **ExtraChill Newsletter**: Newsletter functionality via dedicated plugin
 - **ExtraChill Contact**: Contact form functionality via dedicated plugin
@@ -301,7 +305,7 @@ wp rewrite flush
 - `inc/home/templates/hero.php` - Hero section
 - `inc/home/templates/section-3x3-grid.php` - 3x3 grid section
 - `inc/home/templates/section-more-recent-posts.php` - Recent posts section
-- `inc/home/templates/section-extrachill-link.php` - ExtraChill link section
+- `inc/home/templates/section-extrachill-link.php` - extrachill.link promo section with join CTA linking to https://extrachill.link/join
 - `inc/home/templates/section-about.php` - About section
 - `inc/home/templates/community-activity.php` - Direct bbPress query with blog switching for 3x3 grid display
 - `inc/home/templates/front-page.php` - Front page template

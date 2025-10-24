@@ -129,41 +129,9 @@ border-bottom: 2px solid var(--accent);
 	margin-bottom: 0;
 }
 
-.single-related-posts {
-	margin-right: 0;
-	width: 100%;
-}
-
-.single-related-posts img {
-	height: 200px;
-	object-fit: cover;
-	width: 100%;
-}
-
 /* Entry Title Styles */
 .entry-title {
     display: inline; /* This makes the title inline with the preceding elements */
-}
-
-/* Related Posts Styles */
-.related-posts-main-title span {
-font-size: 20px;
-}
-
-.related-posts-wrapper-flyout {
-	width: 95%;
-}
-
-.related-posts-wrapper-flyout .related-posts-flyout-main-title {
-	padding: 20px;
-}
-
-.related-posts-wrapper-flyout .related-posts-flyout {
-	padding: 20px;
-}
-
-.related-posts-thumbnail{
-	margin-bottom: 5px;
 }
 
 /* Comments Styles */
