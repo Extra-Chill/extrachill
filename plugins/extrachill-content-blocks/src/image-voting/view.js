@@ -24,9 +24,10 @@ $(document).ready(function() {
 	// Change button to "Voted" state
 	function markAsVoted($button) {
 		$button
+			.removeClass('button-1')
+			.addClass('button-2')
 			.prop('disabled', true)
-			.text('Voted ✓')
-			.addClass('voted');
+			.text('Voted ✓');
 	}
 
 	// Display error/info message with auto-fade
@@ -107,6 +108,16 @@ $(document).ready(function() {
 		const $submitBtn = $form.find('.extrachill-blocks-submit-vote');
 		const savedEmail = getSavedEmail();
 
+		// Check if user already voted on this block
+		const voters = JSON.parse($container.attr('data-voters') || '[]');
+		const hasVoted = savedEmail && voters.includes(savedEmail);
+
+		if (hasVoted) {
+			// Mark as already voted on page load
+			markAsVoted($button);
+			$form.hide();
+		}
+
 		// Pre-fill email if saved
 		if (savedEmail) {
 			$emailInput.val(savedEmail);
@@ -114,6 +125,11 @@ $(document).ready(function() {
 
 		// Vote button click
 		$button.on('click', function() {
+			if (hasVoted) {
+				// Already voted - do nothing
+				return;
+			}
+
 			if (savedEmail) {
 				// Auto-submit with saved email
 				submitVote($container, savedEmail);

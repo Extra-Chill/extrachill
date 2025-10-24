@@ -1,0 +1,109 @@
+/* Image Voting Block Editor Styles */
+
+.extrachill-blocks-image-voting-editor {
+	max-width: 100%;
+	padding: 0;
+	border: 1px solid #ddd;
+	border-radius: 8px;
+	background: #fff;
+	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+	overflow: hidden;
+}
+
+/* Image Wrapper - 4:5 Aspect Ratio (matches frontend) */
+.extrachill-blocks-image-wrapper-editor {
+	position: relative;
+	width: 100%;
+	padding-bottom: 125%; /* 4:5 aspect ratio */
+	overflow: hidden;
+	background: #f5f5f5;
+	border-bottom: 1px solid #ddd;
+}
+
+/* Selected Image Preview */
+.extrachill-blocks-image-wrapper-editor img {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	display: block;
+}
+
+/* Overlay Badges Preview (matches frontend) */
+.extrachill-blocks-overlay-badges-editor {
+	position: absolute;
+	top: 12px;
+	left: 12px;
+	z-index: 10;
+	display: flex;
+	flex-direction: row;
+	gap: 8px;
+	align-items: center;
+}
+
+.extrachill-blocks-vote-badge-editor {
+	display: inline-block;
+	background: rgba(0, 0, 0, 0.75);
+	color: white;
+	padding: 6px 12px;
+	border-radius: 6px;
+	font-size: 14px;
+	font-weight: 500;
+	line-height: 1.2;
+	backdrop-filter: blur(4px);
+}
+
+.extrachill-blocks-title-badge-editor {
+	display: inline-block;
+	background: rgba(0, 0, 0, 0.75);
+	color: white;
+	padding: 8px 12px;
+	border-radius: 6px;
+	font-size: 16px;
+	font-weight: 600;
+	margin: 0;
+	line-height: 1.3;
+	backdrop-filter: blur(4px);
+}
+
+/* Editor Controls Area */
+.extrachill-blocks-image-voting-editor-controls {
+	padding: 24px;
+	background: #fff;
+}
+
+/* Block Title Input Field */
+.extrachill-blocks-image-voting-editor .components-base-control {
+	margin-bottom: 16px;
+}
+
+.extrachill-blocks-image-voting-editor .components-base-control__label {
+	font-weight: 600;
+	margin-bottom: 8px;
+	display: block;
+}
+
+/* Vote Count Display */
+.extrachill-blocks-image-voting-editor p {
+	font-size: 14px;
+	color: #757575;
+	margin: 12px 0 0 0;
+}
+
+/* Media Upload Button */
+.extrachill-blocks-image-voting-editor .components-button.is-primary {
+	margin-top: 12px;
+}
+
+/* Placeholder State (no image selected) */
+.extrachill-blocks-no-image-placeholder {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	height: 100%;
+	color: #757575;
+	font-size: 14px;
+	text-align: center;
+}

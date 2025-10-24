@@ -29,12 +29,12 @@
     }
   },
   "viewScript": "file:./view.js",
+  "style": "file:./style-index.css",
   "supports": {
     "html": false,
     "align": true
   },
   "editorScript": "file:./index.js",
   "editorStyle": "file:./index.css",
-  "style": "file:./style-index.css",
   "render": "file:./render.php"
 }

@@ -14,6 +14,8 @@ $wrapper_attributes = get_block_wrapper_attributes([
     'class' => 'extrachill-blocks-rapper-name-generator'
 ]);
 
+$message_container = '<div class="extrachill-generator-message" style="display: none;"></div>';
+
 ob_start();
 ?>
 <div <?php echo $wrapper_attributes; ?>>
@@ -48,9 +50,10 @@ ob_start();
                 <option value="3"><?php _e('3 Words', 'extrachill-blocks'); ?></option>
             </select>
         </div>
-        <button type="submit"><?php echo esc_html($button_text); ?></button>
+        <button type="submit" class="button-1 button-medium"><?php echo esc_html($button_text); ?></button>
     </form>
-    <div class="extrachill-blocks-generator-result">
+    <?php echo $message_container; ?>
+    <div class="extrachill-blocks-generator-result" style="display: none;">
         <div class="generated-name-wrap">
             <em><?php _e('Your rapper name will appear here', 'extrachill-blocks'); ?></em>
         </div>

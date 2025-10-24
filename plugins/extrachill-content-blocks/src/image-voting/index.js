@@ -1,3 +1,6 @@
+import './style.scss';
+import './editor.scss';
+
 const { registerBlockType } = wp.blocks;
 const { TextControl, Button } = wp.components;
 const { MediaUpload } = wp.blockEditor;
@@ -53,27 +56,50 @@ registerBlockType('extrachill-blocks/image-voting', {
         return createElement(
             'div',
             { className: 'extrachill-blocks-image-voting-editor' },
-            createElement(TextControl, {
-                label: 'Block Title',
-                value: attributes.blockTitle,
-                onChange: (newTitle) => setAttributes({ blockTitle: newTitle }),
-            }),
+            // Image wrapper with 4:5 aspect ratio preview
             attributes.mediaURL ?
-                createElement('img', {
-                    src: attributes.mediaURL,
-                    style: { maxWidth: '250px', height: 'auto', margin: '10px 0' },
-                    alt: 'Selected image for voting'
-                })
-                : null,
-            createElement('p', {}, // Wrap the "Select Image" button in a <p>
-                createElement(MediaUpload, {
-                    onSelect: onSelectImage,
-                    type: 'image',
-                    value: attributes.mediaID,
-                    render: ({ open }) => createElement(Button, { isPrimary: true, onClick: open }, 'Select Image')
-                })
-            ),
-            createElement('p', {}, `Vote Count: ${attributes.voteCount}`)
+                createElement('div', { className: 'extrachill-blocks-image-wrapper-editor' },
+                    createElement('img', {
+                        src: attributes.mediaURL,
+                        alt: 'Selected image for voting'
+                    }),
+                    createElement('div', { className: 'extrachill-blocks-overlay-badges-editor' },
+                        createElement('span', { className: 'extrachill-blocks-vote-badge-editor' },
+                            `Votes: ${attributes.voteCount}`
+                        ),
+                        createElement('h2', { className: 'extrachill-blocks-title-badge-editor' },
+                            attributes.blockTitle
+                        )
+                    )
+                )
+                : createElement('div', {
+                    className: 'extrachill-blocks-image-wrapper-editor',
+                    style: { display: 'flex', alignItems: 'center', justifyContent: 'center' }
+                },
+                    createElement('div', { className: 'extrachill-blocks-no-image-placeholder' },
+                        'No image selected'
+                    )
+                ),
+            // Editor controls below image
+            createElement('div', { className: 'extrachill-blocks-image-voting-editor-controls' },
+                createElement(TextControl, {
+                    label: 'Block Title',
+                    value: attributes.blockTitle,
+                    onChange: (newTitle) => setAttributes({ blockTitle: newTitle }),
+                }),
+                createElement('p', {},
+                    createElement(MediaUpload, {
+                        onSelect: onSelectImage,
+                        type: 'image',
+                        value: attributes.mediaID,
+                        render: ({ open }) => createElement(Button, {
+                            isPrimary: true,
+                            onClick: open
+                        }, attributes.mediaURL ? 'Change Image' : 'Select Image')
+                    })
+                ),
+                createElement('p', {}, `Vote Count: ${attributes.voteCount}`)
+            )
         );
     },
     save: () => null // Dynamic block rendered via render.php

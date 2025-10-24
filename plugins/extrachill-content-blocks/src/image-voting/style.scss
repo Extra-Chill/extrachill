@@ -1,0 +1,209 @@
+/* Image Voting Block Frontend Styles */
+
+.extrachill-blocks-image-voting-container {
+	max-width: 100%;
+	margin: 24px 0;
+	padding: 0;
+	border: 1px solid var(--border-color);
+	border-radius: 8px;
+	background: var(--background-color);
+	box-shadow: var(--card-shadow);
+	transition: box-shadow 0.3s ease;
+	overflow: hidden;
+}
+
+.extrachill-blocks-image-voting-container:hover {
+	box-shadow: var(--card-hover-shadow);
+}
+
+/* Image Wrapper - 4:5 Aspect Ratio */
+.extrachill-blocks-image-wrapper {
+	position: relative;
+	width: 100%;
+	padding-bottom: 125%; /* 4:5 aspect ratio (5/4 * 100) */
+	overflow: hidden;
+	background: var(--card-background);
+}
+
+/* Featured Image - Absolutely Positioned */
+.extrachill-blocks-image-voting-image {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	display: block;
+}
+
+/* Overlay Badges Container */
+.extrachill-blocks-overlay-badges {
+	position: absolute;
+	top: 12px;
+	left: 12px;
+	z-index: 10;
+	display: flex;
+	flex-direction: row;
+	gap: 8px;
+	align-items: center;
+}
+
+/* Vote Badge (Top-Left) */
+.extrachill-blocks-vote-badge {
+	display: inline-block;
+	background: rgba(0, 0, 0, 0.75);
+	color: white;
+	padding: 6px 12px;
+	border-radius: 6px;
+	font-size: 14px;
+	font-weight: 500;
+	line-height: 1.2;
+	backdrop-filter: blur(4px);
+}
+
+/* Title Badge (Below Vote Count) */
+.extrachill-blocks-title-badge {
+	display: inline-block;
+	background: rgba(0, 0, 0, 0.75);
+	color: white;
+	padding: 8px 12px;
+	border-radius: 6px;
+	font-size: 16px;
+	font-weight: 600;
+	margin: 0;
+	line-height: 1.3;
+	backdrop-filter: blur(4px);
+}
+
+/* Content Area Below Image */
+.extrachill-blocks-image-voting-content {
+	padding: 24px;
+}
+
+/* Vote Button - Full Width */
+.extrachill-blocks-image-voting-button {
+	width: 100%;
+	margin-bottom: 12px;
+}
+
+/* Email Form */
+.extrachill-blocks-image-voting-form {
+	margin-top: 12px;
+	animation: fadeInUp 0.3s ease;
+}
+
+.extrachill-blocks-email-input {
+	width: 100%;
+	padding: 12px 16px;
+	font-size: 16px;
+	border: 2px solid var(--border-color);
+	border-radius: 6px;
+	margin-bottom: 8px;
+	background: var(--card-background);
+	color: var(--text-color);
+	font-family: inherit;
+	transition: border-color 0.2s ease;
+}
+
+.extrachill-blocks-email-input:focus {
+	outline: none;
+	border-color: var(--focus-border-color);
+	box-shadow: var(--focus-box-shadow);
+}
+
+.extrachill-blocks-submit-vote {
+	width: 100%;
+}
+
+/* Vote Number Inside Badge */
+.vote-number {
+	font-weight: 600;
+}
+
+/* Messages */
+.extrachill-voting-message {
+	padding: 12px;
+	border-radius: 6px;
+	margin-top: 12px;
+	font-size: 14px;
+	text-align: center;
+	animation: fadeInUp 0.3s ease;
+}
+
+.extrachill-voting-message.message-error {
+	background: rgba(214, 54, 56, 0.1);
+	color: #d63638;
+	border: 1px solid #d63638;
+}
+
+.extrachill-voting-message.message-info {
+	background: var(--notice-bg);
+	color: var(--text-color);
+	border: 1px solid var(--notice-border);
+}
+
+/* Animations */
+@keyframes fadeInUp {
+	from {
+		opacity: 0;
+		transform: translateY(10px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+	.extrachill-blocks-image-voting-container {
+		margin: 16px 0;
+	}
+
+	.extrachill-blocks-image-voting-content {
+		padding: 20px;
+	}
+
+	.extrachill-blocks-overlay-badges {
+		top: 10px;
+		left: 10px;
+		gap: 6px;
+	}
+
+	.extrachill-blocks-title-badge {
+		font-size: 14px;
+		padding: 6px 10px;
+	}
+
+	.extrachill-blocks-vote-badge {
+		font-size: 12px;
+		padding: 5px 10px;
+	}
+}
+
+@media (max-width: 480px) {
+	.extrachill-blocks-image-voting-content {
+		padding: 16px;
+	}
+
+	.extrachill-blocks-email-input {
+		padding: 10px 14px;
+		font-size: 15px;
+	}
+
+	.extrachill-blocks-overlay-badges {
+		top: 8px;
+		left: 8px;
+		gap: 4px;
+	}
+
+	.extrachill-blocks-title-badge {
+		font-size: 13px;
+		padding: 4px 8px;
+	}
+
+	.extrachill-blocks-vote-badge {
+		font-size: 11px;
+		padding: 3px 6px;
+	}
+}
