@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Extra Chill Blocks
  * Plugin URI: https://extrachill.com
- * Description: A collection of custom Gutenberg blocks for community engagement including trivia, voting, and music industry generators.
+ * Description: Community engagement Gutenberg blocks: trivia, image voting with newsletter integration, music industry name generators, and AI-powered text adventures.
  * Version: 1.0.0
  * Requires at least: 5.8
  * Requires PHP: 7.4
@@ -14,9 +14,8 @@
  * Domain Path: /languages
  * Network: false
  *
- * AI Integration Dependency: The AI Adventure blocks require the ExtraChill AI Client plugin
- * for AI-powered storytelling functionality. The AI Client must be network-activated with
- * valid API credentials configured in Network Admin → Settings → AI Client.
+ * AI Adventure blocks require ExtraChill AI Client plugin with configured API credentials.
+ * Image Voting block integrates with ExtraChill Newsletter plugin via bridge function.
  *
  * @package ExtraChillBlocks
  */
@@ -38,11 +37,10 @@ if (!defined('EXTRACHILL_BLOCKS_VERSION')) {
 }
 
 /**
- * Register blocks via glob() pattern matching for automatic discovery.
- * Skips utility and component directories. Loads index.php for server-side rendering when present.
+ * Register all blocks via automatic discovery from build/ directory
  */
 function extrachill_blocks_register_all_blocks() {
-    $block_json_files = glob(EXTRACHILL_BLOCKS_PATH . 'blocks/**/block.json');
+    $block_json_files = glob(EXTRACHILL_BLOCKS_PATH . 'build/**/block.json');
 
     foreach ($block_json_files as $filename) {
         $block_folder = dirname($filename);
@@ -56,15 +54,23 @@ function extrachill_blocks_register_all_blocks() {
             require_once $index_file;
         }
 
-        $args = [];
         $block_data = json_decode(file_get_contents($filename), true);
-        if (!isset($block_data['render'])) {
-            if ($block_data['name'] === 'extrachill-blocks/ai-adventure' && function_exists('extrachill_blocks_render_ai_adventure_block')) {
-                $args['render_callback'] = 'extrachill_blocks_render_ai_adventure_block';
+        $block_name = $block_data['name'];
+
+        $block_args = array();
+
+        if ($block_name === 'extrachill-blocks/ai-adventure' && function_exists('extrachill_blocks_render_ai_adventure_block')) {
+            $block_args['render_callback'] = 'extrachill_blocks_render_ai_adventure_block';
+        } else {
+            $render_file = $block_folder . '/render.php';
+            if (file_exists($render_file)) {
+                $block_args['render_callback'] = function($attributes, $content, $block) use ($render_file) {
+                    return include $render_file;
+                };
             }
         }
 
-        register_block_type($block_folder, $args);
+        register_block_type($block_folder, $block_args);
     }
 }
 add_action('init', 'extrachill_blocks_register_all_blocks');
@@ -142,9 +148,9 @@ register_activation_hook(__FILE__, 'extrachill_blocks_activate');
 register_deactivation_hook(__FILE__, 'extrachill_blocks_deactivate');
 
 /**
- * Register image voting newsletter integration context.
- * Configuration managed via extrachill-newsletter admin settings.
- * Subscription handled via extrachill-multisite bridge function.
+ * Register newsletter integration for image voting block.
+ * Allows admin to configure Sendy list ID and enable/disable via ExtraChill Newsletter settings.
+ * Actual subscription handled via extrachill_multisite_subscribe() bridge function in index.php.
  */
 add_filter('newsletter_form_integrations', 'extrachill_blocks_register_newsletter_integration');
 function extrachill_blocks_register_newsletter_integration($integrations) {

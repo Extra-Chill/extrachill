@@ -1,0 +1,40 @@
+{
+  "apiVersion": 2,
+  "name": "extrachill-blocks/image-voting",
+  "title": "Image Voting Block",
+  "icon": "thumbs-up",
+  "category": "widgets",
+  "description": "Allow users to vote on images with email capture.",
+  "textdomain": "extrachill-blocks",
+  "attributes": {
+    "blockTitle": {
+      "type": "string",
+      "default": "Vote for this image"
+    },
+    "mediaID": {
+      "type": "number",
+      "default": 0
+    },
+    "mediaURL": {
+      "type": "string",
+      "default": ""
+    },
+    "voteCount": {
+      "type": "number",
+      "default": 0
+    },
+    "voters": {
+      "type": "array",
+      "default": []
+    }
+  },
+  "viewScript": "file:./view.js",
+  "supports": {
+    "html": false,
+    "align": true
+  },
+  "editorScript": "file:./index.js",
+  "editorStyle": "file:./index.css",
+  "style": "file:./style-index.css",
+  "render": "file:./render.php"
+}
