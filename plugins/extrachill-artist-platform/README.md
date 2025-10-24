@@ -48,6 +48,13 @@ A comprehensive WordPress plugin that provides artist profile management, link p
 - Link page and artist profile subscription integration
 - Email marketing workflow integration with export status tracking
 
+### 🔔 Notification System
+- **Forum activity notifications**: Artist members receive notifications for topics and replies in their artist forums
+- **Custom notification cards**: Specialized rendering via extrachill-community plugin integration
+- **Notification types**: New topics (`new_artist_topic`) and replies (`new_artist_reply`) in artist forums
+- **Smart filtering**: Excludes notification author from recipient list automatically
+- **Visual card system**: Font Awesome icons with formatted timestamps and actor avatars
+
 ### 🔐 Permission System
 - Centralized access control via `inc/core/filters/permissions.php`
 - Role-based artist profile management with granular permissions
@@ -205,11 +212,31 @@ echo ec_render_template( 'artist-profile-card', array(
 ) );
 
 // Check user ownership for conditional display
-$user_artists = ec_get_user_owned_artists( get_current_user_id() );
+$user_artists = ec_get_artists_for_user( get_current_user_id() );
 if ( ! in_array( $artist_id, $user_artists ) ) {
     // Display artist card in grid
 }
 ```
+
+### Homepage Action Hooks
+
+Centralized homepage functionality with action hook system:
+
+```php
+// Homepage template override filter (theme integration)
+add_filter( 'extrachill_template_homepage', 'ec_artist_platform_override_homepage' );
+
+// Hero section rendering
+add_action( 'extrachill_artist_home_hero', 'ec_render_artist_home_hero', 10, 4 );
+
+// Your Artists section above grid
+add_action( 'extrachill_above_artist_grid', 'ec_render_your_artists', 10, 1 );
+```
+
+**Hook Integration**:
+- Uses theme's universal template routing via `extrachill_template_homepage` filter
+- Modular hero section with user state awareness
+- "Your Artists" section displays user's profiles above directory grid
 
 ### Adding Custom AJAX Actions
 
@@ -521,7 +548,8 @@ inc/
 │   ├── artist-platform-rewrite-rules.php # URL routing
 │   ├── actions/
 │   │   ├── save.php                     # Centralized save operations
-│   │   └── sync.php                     # Data synchronization
+│   │   ├── sync.php                     # Data synchronization
+│   │   └── add.php                      # Action hook registrations
 │   ├── filters/
 │   │   ├── social-icons.php             # Social link management
 │   │   ├── fonts.php                    # Font configuration
@@ -529,8 +557,7 @@ inc/
 │   │   ├── templates.php                # Component template filtering
 │   │   ├── permissions.php              # Centralized permission system
 │   │   ├── data.php                     # Centralized data provider (ec_get_link_page_data)
-│   │   ├── defaults.php                 # Default configurations
-│   │   └── avatar-menu.php              # Avatar menu customization
+│   │   └── defaults.php                 # Default configurations
 │   └── templates/                       # Core template components
 ├── join/                             # Join flow system
 │   ├── join-flow.php                 # Registration handlers and login redirects
@@ -539,17 +566,28 @@ inc/
 │   └── assets/
 │       ├── css/join-flow.css         # Join flow styles
 │       └── js/join-flow-ui.js        # Modal interaction handling
+├── notifications/                    # Notification system
+│   ├── artist-notifications.php        # Forum activity notifications
+│   └── artist-notification-cards.php   # Notification card rendering
+├── home/                            # Homepage functionality
+│   ├── homepage-hooks.php              # Centralized hook registrations
+│   ├── homepage-artist-card-actions.php # Card rendering actions
+│   └── templates/
+│       ├── homepage.php                # Main homepage template
+│       ├── hero.php                    # Hero section template
+│       └── your-artists.php            # Your Artists section
 ├── artist-profiles/                  # Profile management
 │   ├── admin/                       # Admin meta boxes, user linking
 │   ├── frontend/                    # Public forms, directory
 │   │   ├── artist-grid.php         # Artist grid display functions
+│   │   ├── breadcrumbs.php         # Navigation breadcrumbs
 │   │   └── templates/              # Artist profile templates
 │   │       ├── archive-artist_profile.php
 │   │       ├── single-artist_profile.php
 │   │       ├── artist-directory.php
 │   │       ├── artist-platform-home.php
 │   │       ├── manage-artist-profiles.php
-│   │       ├── artist-profile-card.php
+│   │       ├── artist-card.php     # Artist card template
 │   │       └── manage-artist-profile-tabs/
 │   ├── roster/                      # Band member management
 │   │   ├── artist-invitation-emails.php
@@ -558,6 +596,7 @@ inc/
 │   │   └── roster-data-functions.php
 │   ├── artist-forums.php            # Forum integration
 │   ├── artist-following.php         # Follow system
+│   ├── blog-coverage.php            # Blog coverage tracking
 │   └── subscribe-data-functions.php # Artist subscription data
 ├── link-pages/                      # Link page system
 │   ├── management/                  # Management interface
@@ -578,14 +617,14 @@ inc/
 │   │       └── manage-link-page-tabs/
 │   ├── live/                       # Live page functionality
 │   │   ├── ajax/                   # Public AJAX handlers
-│   │   │   └── analytics.php          # Public tracking and data pruning
+│   │   │   ├── analytics.php          # Public tracking and data pruning
+│   │   │   └── edit-permission.php    # Live permission editing
 │   │   ├── assets/js/               # Public JavaScript modules
 │   │   └── templates/              # Public link page templates
 │   │       ├── single-artist_link_page.php
-│   │       └── extrch-link-page-template.php
-│   ├── templates/                  # Subscription forms
-│   │   ├── subscribe-inline-form.php
-│   │   └── subscribe-modal.php
+│   │       ├── extrch-link-page-template.php
+│   │       ├── subscribe-inline-form.php
+│   │       └── subscribe-modal.php
 │   ├── create-link-page.php        # Link page creation
 │   ├── subscribe-functions.php     # Subscription functionality
 │   └── link-page-*.php             # Core link page functionality
@@ -636,7 +675,7 @@ npm run build
 ### Build Configuration
 
 The build process excludes:
-- Development documentation (README.md, CLAUDE.md, docs/)
+- Development documentation (README.md, CLAUDE.md)
 - Version control files (.git/, .gitignore)
 - Development tools (build.sh, package.json, .buildignore)
 - Testing files and temporary artifacts

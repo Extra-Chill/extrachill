@@ -25,8 +25,7 @@ $user_id = $args['user_id'] ?? get_current_user_id();
 $css_class = $args['css_class'] ?? '';
 $label_text = $args['label_text'] ?? __( '-- Select an Artist --', 'extrachill-artist-platform' );
 
-// Get user's accessible artist profiles - use provided list or fetch from user
-$user_artist_ids = $args['artist_ids'] ?? ec_get_user_accessible_artists( $user_id );
+$user_artist_ids = $args['artist_ids'] ?? ec_get_artists_for_user( $user_id, true );
 
 // Only render if user has multiple artists
 if ( count( $user_artist_ids ) <= 1 ) {

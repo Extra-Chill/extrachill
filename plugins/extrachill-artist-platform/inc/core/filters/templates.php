@@ -127,6 +127,10 @@ function ec_template_handler( $output, $template_name, $args = array() ) {
         'share-modal' => array(
             'file' => 'inc/link-pages/live/templates/extrch-share-modal.php',
             'required' => array() // JS populates content dynamically
+        ),
+        'artist-profile-card' => array(
+            'file' => 'inc/artist-profiles/frontend/templates/artist-card.php',
+            'required' => array( 'artist_id' )
         )
     );
     

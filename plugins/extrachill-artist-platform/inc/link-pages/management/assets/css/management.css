@@ -767,3 +767,22 @@ i.fa-solid.fa-qrcode:hover {
 .extrch-link-page-preview-bg-wrapper{
   min-width: 100%;
 }
+
+/* Link Page Footer Actions */
+.link-page-footer-actions {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 1em;
+  padding: 1.5em 0;
+  margin-top: 2em;
+}
+
+/* Responsive: Stack buttons on mobile */
+@media (max-width: 600px) {
+  .link-page-footer-actions {
+    flex-direction: column;
+    gap: 0.75em;
+  }
+}

@@ -73,24 +73,21 @@ function ec_ajax_render_social_item_editor() {
  */
 function ec_ajax_render_social_template() {
     try {
-        // Verify standardized nonce
         check_ajax_referer('ec_ajax_nonce', 'nonce');
-        
-        // Get and validate parameters
+
         $social_type = wp_unslash( sanitize_text_field( $_POST['social_type'] ?? '' ) );
         $social_url = wp_unslash( sanitize_url( $_POST['social_url'] ?? '' ) );
-        
+
         if ( empty( $social_type ) || empty( $social_url ) ) {
             wp_send_json_error( array( 'message' => 'Missing required social data' ) );
             return;
         }
-        
-        // Get social manager
+
         if ( ! function_exists( 'extrachill_artist_platform_social_links' ) ) {
             wp_send_json_error( array( 'message' => 'Social links manager not available' ) );
             return;
         }
-        
+
         $social_manager = extrachill_artist_platform_social_links();
         
         // Build social data

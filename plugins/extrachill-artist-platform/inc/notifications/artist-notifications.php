@@ -26,14 +26,13 @@ function ec_artist_notify_new_topic($topic_id, $forum_id, $anonymous_data, $topi
     $artist_profile_id = get_post_meta($forum_id, '_associated_artist_profile_id', true);
 
     if (empty($artist_profile_id)) {
-        return; // Not an artist forum
+        return;
     }
 
-    // Get artist member IDs
     $artist_member_ids = get_post_meta($artist_profile_id, '_artist_member_ids', true);
 
     if (empty($artist_member_ids) || !is_array($artist_member_ids)) {
-        return; // No artist members found
+        return;
     }
 
     // Filter out topic author from notification recipients
@@ -42,10 +41,9 @@ function ec_artist_notify_new_topic($topic_id, $forum_id, $anonymous_data, $topi
     });
 
     if (empty($artist_member_ids)) {
-        return; // No members to notify after filtering
+        return;
     }
 
-    // Get topic data
     $topic_title = get_the_title($topic_id);
     $topic_link = get_permalink($topic_id);
 
@@ -74,14 +72,13 @@ function ec_artist_notify_new_reply($reply_id, $topic_id, $forum_id, $anonymous_
     $artist_profile_id = get_post_meta($forum_id, '_associated_artist_profile_id', true);
 
     if (empty($artist_profile_id)) {
-        return; // Not an artist forum
+        return;
     }
 
-    // Get artist member IDs
     $artist_member_ids = get_post_meta($artist_profile_id, '_artist_member_ids', true);
 
     if (empty($artist_member_ids) || !is_array($artist_member_ids)) {
-        return; // No artist members found
+        return;
     }
 
     // Filter out reply author from notification recipients
@@ -90,10 +87,9 @@ function ec_artist_notify_new_reply($reply_id, $topic_id, $forum_id, $anonymous_
     });
 
     if (empty($artist_member_ids)) {
-        return; // No members to notify after filtering
+        return;
     }
 
-    // Get topic and reply data
     $topic_title = get_the_title($topic_id);
     $reply_link = bbp_get_reply_url($reply_id);
 

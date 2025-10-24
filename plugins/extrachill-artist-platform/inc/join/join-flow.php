@@ -72,13 +72,7 @@ function ec_handle_join_flow_user_registration( $user_id ) {
 		bp_add_artist_membership( $user_id, $artist_id );
 	}
 
-	// Create forum for the artist
-	if ( function_exists( 'bp_create_artist_forum_on_save' ) ) {
-		$artist_post = get_post( $artist_id );
-		if ( $artist_post ) {
-			bp_create_artist_forum_on_save( $artist_id, $artist_post, false );
-		}
-	}
+	// Forum is automatically created via save_post_artist_profile hook
 
 	// Create link page using centralized creation system
 	$link_page_result = ec_create_link_page( $artist_id );

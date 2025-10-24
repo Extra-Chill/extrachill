@@ -5,26 +5,15 @@
   color: var(--text-color);
 }
 
-.welcome-hero {
+/* Artist Home Hero - Universal */
+.artist-home-hero {
   text-align: center;
-  margin-bottom: 3em;
 }
 
-.welcome-hero h2 {
-  font-size: 2.2em;
-  font-weight: 700;
-  margin-bottom: 0.8em;
-  color: var(--text-color);
-}
-
-.welcome-hero p {
-  font-size: 1.1em;
-  line-height: 1.6;
-  margin-bottom: 2em;
+.artist-home-hero p {
   max-width: 600px;
   margin-left: auto;
   margin-right: auto;
-  color: var(--text-color);
 }
 
 .welcome-actions {
@@ -104,27 +93,6 @@
   color: var(--text-color);
 }
 
-.welcome-user {
-  text-align: center;
-  margin-bottom: 3em;
-}
-
-.welcome-user h2 {
-  font-size: 2em;
-  font-weight: 700;
-  margin-bottom: 0.8em;
-  color: var(--text-color);
-}
-
-.welcome-user p {
-  font-size: 1.1em;
-  line-height: 1.6;
-  margin-bottom: 1.5em;
-  max-width: 600px;
-  margin-left: auto;
-  margin-right: auto;
-}
-
 .getting-started-actions {
   display: flex;
   justify-content: center;
@@ -178,73 +146,6 @@
   color: var(--text-color);
 }
 
-.dashboard-welcome {
-  text-align: center;
-  margin-bottom: 3em;
-}
-
-.dashboard-welcome h2 {
-  font-size: 2em;
-  font-weight: 700;
-  margin-bottom: 0.8em;
-  color: var(--text-color);
-}
-
-.dashboard-welcome p {
-  font-size: 1.1em;
-  line-height: 1.6;
-  max-width: 600px;
-  margin-left: auto;
-  margin-right: auto;
-}
-
-/* Quick Actions Section */
-.quick-actions-section {
-  margin-bottom: 3em;
-}
-
-.quick-actions-section h3 {
-  font-size: 1.6em;
-  font-weight: 600;
-  margin-bottom: 1.5em;
-  color: var(--text-color);
-}
-
-.quick-actions-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 1.5em;
-  margin-bottom: 2em;
-}
-
-.action-card {
-  background: var(--card-background, #fff);
-  border: 1px solid var(--border-color, #e0e4ea);
-  border-radius: 10px;
-  padding: 1.5em;
-  text-align: center;
-  box-shadow: var(--card-shadow, 0 2px 8px rgba(0,0,0,0.1));
-  transition: box-shadow 0.3s ease, transform 0.2s ease;
-}
-
-.action-card:hover {
-  box-shadow: var(--card-hover-shadow, 0 4px 16px rgba(0,0,0,0.15));
-  transform: translateY(-2px);
-}
-
-.action-card h4 {
-  font-size: 1.2em;
-  font-weight: 600;
-  margin-bottom: 0.8em;
-  color: var(--text-color);
-}
-
-.action-card p {
-  margin-bottom: 1.5em;
-  line-height: 1.5;
-  color: var(--text-color);
-}
-
 /* Artist Profiles Section */
 .artist-profiles-section {
   margin-bottom: 2em;
@@ -275,10 +176,6 @@
     font-size: 1.6em;
   }
 
-  .quick-actions-grid {
-    grid-template-columns: 1fr;
-  }
-
   .welcome-actions,
   .discover-actions {
     flex-direction: column;
@@ -287,8 +184,7 @@
 }
 
 @media (max-width: 480px) {
-  .primary-action-card,
-  .action-card {
+  .primary-action-card {
     padding: 1.2em;
   }
 
@@ -297,4 +193,19 @@
   .dashboard-welcome p {
     font-size: 1em;
   }
+}
+
+/* Artist Grid Pagination */
+.artist-grid-pagination {
+  margin-top: 2em;
+}
+
+/* Loading state for artist grid */
+.artist-cards-grid {
+  transition: opacity 0.3s ease;
+}
+
+/* Pagination inherits theme styles from .extrachill-pagination */
+.artist-grid-pagination .extrachill-pagination {
+  margin-top: 0;
 }

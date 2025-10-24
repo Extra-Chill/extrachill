@@ -44,9 +44,7 @@ function extrch_upload_background_image_ajax() {
     // Check if user can edit this link page
     $associated_artist_id = apply_filters('ec_get_artist_id', $link_page_id);
     if ($associated_artist_id) {
-        $current_user_id = get_current_user_id();
-        $user_artist_ids = ec_get_user_accessible_artists($current_user_id);
-        if (!in_array($associated_artist_id, $user_artist_ids)) {
+        if (!ec_can_manage_artist(get_current_user_id(), $associated_artist_id)) {
             wp_send_json_error('Permission denied');
             return;
         }

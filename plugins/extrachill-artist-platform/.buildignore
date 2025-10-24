@@ -43,8 +43,8 @@ yarn-error.log*
 package-lock.json
 yarn.lock
 
-# PHP dependencies (vendor/ excluded but composer.lock included for production)
-vendor/
+# PHP dependencies (vendor/ included with production dependencies for distribution)
+# Note: WordPress plugins must include vendor/ since end users don't have Composer access
 
 # Logs and temporary files
 *.log

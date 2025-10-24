@@ -60,10 +60,10 @@ function extrachill_register_artist_profile_cpt() {
         'show_in_admin_bar'     => true,
         'show_in_nav_menus'     => true,
         'can_export'            => true,
-        'has_archive'           => 'artists',
+        'has_archive'           => false,
         'exclude_from_search'   => false,
         'publicly_queryable'    => true,
-        'rewrite'               => array('slug' => 'artists'),
+        'rewrite'               => false,
         'map_meta_cap'          => true,
         'show_in_rest'          => true,
     );

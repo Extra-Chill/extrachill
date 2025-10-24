@@ -22,7 +22,7 @@ function ec_is_user_artist_member( $user_id = null, $artist_id = null ) {
         return false;
     }
 
-    $user_artist_ids = ec_get_user_owned_artists( $user_id );
+    $user_artist_ids = ec_get_artists_for_user( $user_id );
     return in_array( (int) $artist_id, $user_artist_ids );
 }
 
@@ -81,7 +81,7 @@ function ec_get_user_artist_profiles( $user_id = null ) {
         return array();
     }
 
-    $artist_ids = ec_get_user_owned_artists( $user_id );
+    $artist_ids = ec_get_artists_for_user( $user_id );
     if ( empty( $artist_ids ) ) {
         return array();
     }
@@ -229,7 +229,7 @@ function ec_get_link_page_data( $artist_id, $link_page_id = null, $overrides = a
 
     $display_data = array(
         'display_title' => (isset($overrides['artist_profile_title']) && $overrides['artist_profile_title'] !== '') ? $overrides['artist_profile_title'] : ($artist_id ? get_the_title($artist_id) : ''),
-        'bio' => (isset($overrides['link_page_bio_text']) && $overrides['link_page_bio_text'] !== '') ? $overrides['link_page_bio_text'] : ($artist_id ? get_post($artist_id)->post_content : ''),
+        'bio' => (isset($overrides['link_page_bio_text']) && $overrides['link_page_bio_text'] !== '') ? $overrides['link_page_bio_text'] : ($artist_id ? (get_post($artist_id)->post_content ?? '') : ''),
         'profile_img_url' => (isset($overrides['profile_img_url']) && $overrides['profile_img_url'] !== '') ? $overrides['profile_img_url'] : ($artist_id ? (get_the_post_thumbnail_url($artist_id, 'large') ?: '') : ''),
         'social_links' => isset($overrides['social_links']) ? $overrides['social_links'] : $data['socials'],
         'socials' => $data['socials'],

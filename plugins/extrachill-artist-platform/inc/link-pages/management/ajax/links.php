@@ -167,14 +167,13 @@ function ec_ajax_render_link_template() {
  */
 function ec_ajax_render_links_section_template() {
     try {
-        // Get and validate section data
         $sections_data = isset( $_POST['sections_data'] ) ? $_POST['sections_data'] : array();
-        
+
         if ( empty( $sections_data ) || ! is_array( $sections_data ) ) {
             wp_send_json_success( array( 'html' => '' ) );
             return;
         }
-        
+
         // Sanitize and prepare sections data
         $sanitized_sections = array();
         foreach ( $sections_data as $section ) {
@@ -264,15 +263,14 @@ function ec_ajax_render_links_preview_template() {
     try {
         // Verify standardized nonce
         check_ajax_referer( 'ec_ajax_nonce', 'nonce' );
-        
-        // Get and validate links data
+
         $links_data = isset( $_POST['links_data'] ) ? json_decode( stripslashes( $_POST['links_data'] ), true ) : array();
-        
+
         if ( ! is_array( $links_data ) ) {
             wp_send_json_error( array( 'message' => 'Invalid links data' ) );
             return;
         }
-        
+
         // Render complete links HTML using existing template system
         $html = ec_render_links_sections_html( $links_data );
         

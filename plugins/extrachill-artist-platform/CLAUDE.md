@@ -8,7 +8,6 @@ WordPress plugin providing comprehensive artist platform functionality for the E
 - **ExtraChillArtistPlatform**: Main plugin class (singleton), initialization (`extrachill-artist-platform.php`)
 - **ExtraChillArtistPlatform_PageTemplates**: Template handling, routing, custom template loading (`inc/core/class-templates.php`)
 - **ExtraChillArtistPlatform_Assets**: Asset management and conditional enqueuing (`inc/core/artist-platform-assets.php`)
-- **ExtraChillArtistPlatform_Migration**: Database migration from band to artist terminology (`inc/core/artist-platform-migration.php`)
 - **ExtraChillArtistPlatform_SocialLinks**: Comprehensive social link management with 15+ platform support, validation, and rendering (`inc/core/filters/social-icons.php`)
 - **ExtraChill_Live_Preview_Handler**: Live preview processing and data override management (`inc/link-pages/management/live-preview/class-live-preview-handler.php`)
 
@@ -21,16 +20,45 @@ WordPress plugin providing comprehensive artist platform functionality for the E
 - **Assets**: `assets/` - Consolidated CSS/JS, organized by functionality
 
 ### Custom Post Types
-- **artist_profile**: Artist/band profiles (archive: `/artists/`, single: `/artists/{slug}`)  
-- **artist_link_page**: Link pages (slug: `/{slug}` - top-level rewrite)
+- **artist_profile**: Artist/band profiles (archive: `/artists/`, single: `/artists/{slug}` on artist.extrachill.com, top-level `/{slug}` on other domains)
+- **artist_link_page**: Link pages (accessible at `extrachill.link/{artist-slug}` via top-level rewrite rules, canonical domain for public link pages)
+
+### extrachill.link Domain Integration
+The plugin provides comprehensive integration with the extrachill.link domain for artist link pages:
+
+**Domain Mapping Architecture**:
+- **Backend Mapping**: extrachill.link maps to artist.extrachill.com (blog ID 4) via .github/sunrise.php
+- **Frontend URLs**: All link page URLs display as extrachill.link/{artist-slug} while operating on artist.extrachill.com backend
+- **Cross-Domain Auth**: Authentication managed by extrachill-multisite plugin (inc/core/cross-domain-auth.php)
+- **URL Preservation**: sunrise.php `home_url` filter replaces artist.extrachill.com with extrachill.link in frontend output
+
+**Link Page URL Structure**:
+- **Public URLs**: extrachill.link/{artist-slug} (e.g., extrachill.link/extra-chill)
+- **Management Interface**: extrachill.link/manage-link-page (accessible when authenticated)
+- **Join Flow**: extrachill.link/join redirects to artist.extrachill.com/login/?from_join=true via sunrise.php
+
+**Rewrite Rules & Routing** (`inc/core/artist-platform-rewrite-rules.php`):
+- **Domain-Aware Rewrite Rules**: Top-level rewrite rules only active on extrachill.link domain
+- **Dynamic Exclusions**: Automatically excludes WordPress pages and critical paths (manage-artist-profiles, manage-link-page, join, wp-login, wp-admin)
+- **Template Routing**: `extrachill_handle_link_domain_routing()` handles all extrachill.link routing via `template_include` filter
+- **Root Domain Handling**: extrachill.link root serves "extra-chill" default link page
+- **Canonical Redirect Prevention**: Disables WordPress canonical redirects on extrachill.link domain
+- **404 Redirects**: Non-existent slugs redirect to extrachill.link root
+
+**Public Template Integration**:
+- **Template File**: inc/link-pages/live/templates/extrch-link-page-template.php
+- **Powered By Footer**: Includes "Powered by Extra Chill" with link to https://extrachill.link
+- **Cross-Domain Edit Permission**: AJAX handler (inc/link-pages/live/ajax/edit-permission.php) includes CORS headers for extrachill.link
+- **Share Modal Integration**: Share URLs use extrachill.link canonical URLs (inc/link-pages/live/assets/js/extrch-share-modal.js)
 
 ### Key Features
 
 #### Join Flow System
 **Location**: `inc/join/`
 - **Complete onboarding flow**: User registration → automatic artist profile creation → automatic link page creation
+- **Entry Point**: extrachill.link/join redirects to artist.extrachill.com/login/?from_join=true via sunrise.php
 - **Modal interface**: `inc/join/templates/join-flow-modal.php` - Existing vs new account selection
-- **Integration point**: Hooks into `extrachill_below_login_register_form` action from community plugin
+- **Integration point**: Hooks into `extrachill_below_login_register_form` action from extrachill-users plugin
 - **Assets**: `inc/join/assets/css/join-flow.css`, `inc/join/assets/js/join-flow-ui.js`
 - **Registration handler**: `ec_handle_join_flow_user_registration()` - Creates artist profile and link page on user registration
 - **User detection**: `ec_is_join_flow_registration()` - Identifies join flow registrations via `from_join` parameter
@@ -38,17 +66,22 @@ WordPress plugin providing comprehensive artist platform functionality for the E
 - **Roster integration**: Automatically links user as member of their own artist profile via `bp_add_artist_membership()`
 - **Forum creation**: Automatically creates artist forum via `bp_create_artist_forum_on_save()`
 - **Transient tracking**: Stores completion data for post-registration redirect using `join_flow_completion_{user_id}` transients
+- **extrachill.link Integration**: Join flow creates link pages accessible at extrachill.link/{artist-slug}
 
 #### Link Page System
 **Location**: `inc/link-pages/`
-- **Live Pages**: `inc/link-pages/live/` - Public templates, analytics, session validation
+- **Live Pages**: `inc/link-pages/live/` - Public templates, analytics
+  - **Public URLs**: All link pages accessible at extrachill.link/{artist-slug}
+  - **Template**: inc/link-pages/live/templates/extrch-link-page-template.php includes "Powered by Extra Chill" footer
 - **Management Interface**: `inc/link-pages/management/` - Admin interface with modular JS/CSS, drag-and-drop link reordering
+  - **Management URL**: Accessible at extrachill.link/manage-link-page when authenticated
 - **Live Preview**: `inc/link-pages/management/live-preview/` - Real-time preview functionality
   - **Live Preview Handler**: `inc/link-pages/management/live-preview/class-live-preview-handler.php` - Live preview handler (ExtraChill_Live_Preview_Handler)
   - **Preview Template**: `inc/link-pages/management/live-preview/preview.php` - Live preview rendering with data override support
 - **Advanced Features**: `inc/link-pages/management/advanced-tab/` - Tracking, redirects, link expiration, YouTube embeds
 - **Component Templates**: `inc/link-pages/management/templates/components/` - Modular UI components
-- **Subscription Templates**: `inc/link-pages/templates/` - Email collection forms and modals
+- **Subscription Templates**: `inc/link-pages/live/templates/` - Email collection forms and modals
+- **Canonical URLs**: All link page operations use extrachill.link URLs (sharing, analytics, public access)
 
 #### Forum Integration
 **Files**: `inc/artist-profiles/artist-forums.php`, `inc/artist-profiles/artist-forum-section-overrides.php`
@@ -57,11 +90,11 @@ WordPress plugin providing comprehensive artist platform functionality for the E
 - Centralized permission system (`inc/core/filters/permissions.php`)
 
 #### Subscription System
-**Locations**: `inc/artist-profiles/`, `inc/link-pages/templates/`, `inc/database/`
+**Locations**: `inc/artist-profiles/`, `inc/link-pages/live/templates/`, `inc/database/`
 - Email collection with artist association (`inc/artist-profiles/subscribe-data-functions.php`)
 - Database table: `{prefix}_artist_subscribers` (`inc/database/subscriber-db.php`)
 - AJAX-driven subscription forms with modal support
-- Inline and modal subscription interfaces (`inc/link-pages/templates/`)
+- Inline and modal subscription interfaces (`inc/link-pages/live/templates/`)
 - Link page subscription functions (`inc/link-pages/subscribe-functions.php`)
 - Export tracking and management capabilities
 
@@ -81,6 +114,30 @@ WordPress plugin providing comprehensive artist platform functionality for the E
 - AJAX-powered roster UI with role assignment (`inc/artist-profiles/roster/roster-ajax-handlers.php`)
 - Token-based invitation acceptance system
 - Data functions and validation (`inc/artist-profiles/roster/roster-data-functions.php`)
+
+#### Notification System
+**Location**: `inc/notifications/`
+- **Artist forum notifications**: `inc/notifications/artist-notifications.php` - Captures bbPress topic/reply events for artist members
+- **Notification card rendering**: `inc/notifications/artist-notification-cards.php` - Custom card templates for artist notifications
+- **Integration**: Hooks into `extrachill_notify` action from extrachill-community plugin
+- **Notification types**: `new_artist_topic` (new forum topics), `new_artist_reply` (forum replies)
+- **Automatic filtering**: Excludes notification author from recipient list
+- **Card rendering**: Custom HTML via `extrachill_notification_card_render` filter
+
+#### Breadcrumbs System
+**File**: `inc/artist-profiles/frontend/breadcrumbs.php`
+- Navigation breadcrumbs for artist profile pages
+- WordPress-native breadcrumb generation
+
+#### Blog Coverage System
+**File**: `inc/artist-profiles/blog-coverage.php`
+- Artist blog post coverage tracking and display
+- Integration with main site content
+
+#### Edit Permission AJAX
+**File**: `inc/link-pages/live/ajax/edit-permission.php`
+- Real-time permission editing for live link pages
+- AJAX-driven permission updates
 
 ### Asset Management
 **Class**: `ExtraChillArtistPlatform_Assets` in `inc/core/artist-platform-assets.php`
@@ -177,39 +234,20 @@ CREATE TABLE {prefix}_artist_subscribers (
 - **bbPress**: Forum integration and artist forum creation (enforced via WordPress native plugin dependency system)
 
 **Recommended Plugins**:
-- **extrachill-users**: Provides avatar menu system and user creation filter
+- **extrachill-users**: Provides avatar menu system, user creation filter, join flow integration, and **artist profile functions** (`ec_get_artists_for_user()`, `ec_can_create_artist_profiles()`)
 - **extrachill-multisite**: Network-wide functionality and cross-site data access
-- **extrachill-login-register**: Join flow integration via action hooks
 
-### Avatar Menu Integration
+**Artist Profile Functions** (from extrachill-users plugin):
+- All user-artist profile relationship functions now live in extrachill-users/inc/artist-profiles.php
+- Network-wide availability (extrachill-users is network-activated)
+- Functions handle multisite blog switching automatically
+- This plugin uses these functions throughout templates and management interfaces
 
-**File**: `inc/core/filters/avatar-menu.php`
+### Homepage Action Hooks System
 
-The plugin integrates with the theme's avatar dropdown menu system to provide artist-specific management options.
+**File**: `inc/home/homepage-hooks.php`
 
-**Filter Used**: `ec_avatar_menu_items`
-
-**Integration Pattern**:
-```php
-add_filter( 'ec_avatar_menu_items', 'extrachill_artist_platform_avatar_menu_items', 10, 2 );
-```
-
-**Provided Menu Items**:
-- **"Manage Artist Profile(s)"** - Links to most recently updated artist profile (priority: 5)
-- **"Manage Link Page(s)"** - Links to link page management for latest artist (priority: 6)
-- **"Create Artist Profile"** - Shown only when user has no profiles but has creation permission (priority: 5)
-
-**Intelligent URL Generation**:
-- Detects user's accessible artist profiles via `ec_get_user_accessible_artists()`
-- Automatically selects most recently updated artist profile for menu links
-- Appends `artist_id` query parameter for direct navigation to specific artist
-- Cross-domain links to artist.extrachill.com for management interfaces
-
-### Homepage Template Override
-
-**File**: `inc/home/homepage-override.php`
-
-Provides custom homepage for artist.extrachill.com subdomain using theme's universal template routing system.
+Centralized hook registrations for artist platform homepage functionality using theme's universal routing system.
 
 **Filter Used**: `extrachill_template_homepage`
 
@@ -219,20 +257,20 @@ add_filter( 'extrachill_template_homepage', 'ec_artist_platform_override_homepag
 ```
 
 **Site Detection**:
-- Uses WordPress native `get_blog_id_from_url( 'artist.extrachill.com', '/' )` for site identification
-- Compares against `get_current_blog_id()` for conditional override
+- Uses hardcoded blog ID (4) for artist.extrachill.com
 - Returns plugin template path when on artist subdomain: `inc/home/templates/homepage.php`
 
-**Template Features**:
-- Artist grid display with activity-based sorting
-- Homepage-specific assets loaded via `ExtraChillArtistPlatform_Assets::enqueue_homepage_assets()`
-- Integration with theme layout and navigation
+**Action Hooks**:
+- `extrachill_artist_home_hero` - Renders hero section with welcome messages
+- `extrachill_above_artist_grid` - Renders "Your Artists" section above grid
+
+**Supporting File**: `inc/home/homepage-artist-card-actions.php` - Card rendering actions
 
 ### Join Flow Integration
 
 **File**: `inc/join/join-flow-init.php`
 
-Integrates with extrachill-login-register plugin to provide artist platform onboarding.
+Integrates with extrachill-users plugin to provide artist platform onboarding.
 
 **Action Hook Used**: `extrachill_below_login_register_form`
 
@@ -345,6 +383,7 @@ add_action( 'extrachill_below_login_register_form', 'ec_render_join_flow_modal' 
 
 **Live (Public) AJAX Modules**: `inc/link-pages/live/ajax/`
 - **analytics.php**: Public tracking (`extrch_record_link_event`, `link_page_click_tracking`) with data pruning
+- **edit-permission.php**: Real-time permission editing for live link pages
 
 **Management (Admin) AJAX Modules**: `inc/link-pages/management/ajax/`
 - **links.php**: Link management (`render_link_item_editor`, `render_link_section_editor`, `render_link_template`, `render_links_section_template`, `render_links_preview_template`)
@@ -392,7 +431,7 @@ add_action( 'extrachill_below_login_register_form', 'ec_render_join_flow_modal' 
 - **Link Page Templates**: `inc/link-pages/live/templates/` (public), `inc/link-pages/management/templates/` (admin)
 - **Component Templates**: `inc/link-pages/management/templates/components/` - Modular UI components
 - **Core Templates**: `inc/core/templates/` - Base template components
-- **Subscription Templates**: `inc/link-pages/templates/` - Email collection forms
+- **Subscription Templates**: `inc/link-pages/live/templates/` - Email collection forms
 
 #### Admin Interface
 **Files**: `inc/artist-profiles/admin/meta-boxes.php`, `inc/artist-profiles/admin/user-linking.php`
@@ -406,10 +445,6 @@ add_action( 'extrachill_below_login_register_form', 'ec_render_join_flow_modal' 
 - **CSS Mask Technique**: Uses SVG masks to inherit parent text color and sizing
 - **Font Awesome Integration**: Seamless integration with existing icon classes
 - **Dynamic Color Inheritance**: Icons automatically adapt to theme colors
-
-### Migration System  
-**File**: `inc/core/artist-platform-migration.php`
-- Band-to-artist terminology migration with transaction safety and rollback
 
 ### Build System
 **Core Files**: `build.sh -> ../../.github/build.sh`, `package.json`, `.buildignore`
@@ -450,7 +485,7 @@ add_action( 'extrachill_below_login_register_form', 'ec_render_join_flow_modal' 
 - Uses WordPress HTTP API with custom timeout handling
 
 ### Code Organization
-- Singleton pattern for core classes (`ExtraChillArtistPlatform`, `ExtraChillArtistPlatform_Templates`, `ExtraChillArtistPlatform_Assets`, `ExtraChillArtistPlatform_Migration`)
+- Singleton pattern for core classes (`ExtraChillArtistPlatform`, `ExtraChillArtistPlatform_Templates`, `ExtraChillArtistPlatform_Assets`)
 - Modular JavaScript organization by feature and functionality
 - Centralized asset enqueuing with context-aware loading
 - Template-based page routing system with nested organization

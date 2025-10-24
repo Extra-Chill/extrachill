@@ -36,11 +36,9 @@ function extrachill_get_excluded_slugs() {
 
     // Keep critical hardcoded exclusions for non-page URLs and plugin paths
     $static_exclusions = array(
-        'artists',          // Artist profiles archive
-        'manage-artist-profiles',
-        'manage-link-page',
-        'artist-directory',
-        'artist-platform',  // Artist platform homepage
+        'manage-artist-profiles',  // Management interface
+        'manage-link-page',        // Link page management
+        'join',                    // Join flow redirect (handled separately)
         'wp-login',
         'wp-admin',
         'admin'
@@ -51,11 +49,24 @@ function extrachill_get_excluded_slugs() {
 
 /**
  * Add all artist platform rewrite rules
+ *
+ * Only adds rewrite rules on extrachill.link domain. Other domains rely on
+ * template_include routing via extrachill_handle_artist_profile_routing().
  */
 function extrachill_add_rewrite_rules() {
-    // Artist link page rewrite rules - dynamically exclude all WordPress pages
-    $excluded_slugs = extrachill_get_excluded_slugs();
+    // Only add rewrite rules for extrachill.link domain
+    // Template routing handles all other domains via REQUEST_URI parsing
+    $current_host = strtolower( $_SERVER['HTTP_HOST'] ?? '' );
+    $is_link_domain = ( stripos( $current_host, 'extrachill.link' ) !== false );
 
+    if ( ! $is_link_domain ) {
+        // Still register the query var for consistency, but no rewrite rules
+        add_rewrite_tag( '%artist_link_page%', '([^&]+)' );
+        return;
+    }
+
+    // Artist link page rewrite rules - only on extrachill.link domain
+    $excluded_slugs = extrachill_get_excluded_slugs();
     $excluded_pattern = '(?!' . implode('|', $excluded_slugs) . ')';
     add_rewrite_rule( '^' . $excluded_pattern . '([^/]+)/?$', 'index.php?artist_link_page=$matches[1]', 'top' );
     add_rewrite_tag( '%artist_link_page%', '([^&]+)' );
@@ -242,6 +253,71 @@ function extrachill_handle_link_domain_routing( $template ) {
 }
 
 /**
+ * Handle template routing for artist profiles on artist.extrachill.com
+ *
+ * Provides top-level /{slug} URLs for artist profiles when NOT on extrachill.link domain.
+ * Domain-aware routing prevents conflicts with link page routing on extrachill.link.
+ *
+ * @param string $template The template WordPress wants to load
+ * @return string The template to actually load
+ */
+function extrachill_handle_artist_profile_routing( $template ) {
+    $current_host = strtolower( $_SERVER['HTTP_HOST'] ?? '' );
+
+    // Only handle requests that are NOT on extrachill.link
+    if ( stripos( $current_host, 'extrachill.link' ) !== false ) {
+        return $template;
+    }
+
+    // Skip if already handling a specific query
+    if ( is_admin() || is_post_type_archive() || is_search() ) {
+        return $template;
+    }
+
+    global $wp_query;
+    $request_uri = $_SERVER['REQUEST_URI'] ?? '';
+    $request_path = trim( parse_url( $request_uri, PHP_URL_PATH ), '/' );
+
+    // Skip empty paths and known WordPress paths
+    if ( empty( $request_path ) ||
+         in_array( $request_path, ['wp-login', 'wp-admin', 'admin', 'artists'], true ) ) {
+        return $template;
+    }
+
+    // Query for artist profile by slug
+    $artist_profiles = get_posts( array(
+        'name'           => $request_path,
+        'post_type'      => 'artist_profile',
+        'post_status'    => 'publish',
+        'numberposts'    => 1,
+        'fields'         => 'ids',
+    ) );
+
+    if ( ! empty( $artist_profiles ) ) {
+        $artist_id = $artist_profiles[0];
+        $artist_post = get_post( $artist_id );
+
+        // Set up wp_query for artist profile
+        $wp_query->posts = array( $artist_post );
+        $wp_query->post_count = 1;
+        $wp_query->found_posts = 1;
+        $wp_query->max_num_pages = 1;
+        $wp_query->is_single = true;
+        $wp_query->is_singular = true;
+        $wp_query->is_404 = false;
+        $wp_query->query_vars['name'] = $request_path;
+        $wp_query->query_vars['post_type'] = 'artist_profile';
+        $wp_query->queried_object_id = $artist_id;
+        $wp_query->queried_object = $artist_post;
+
+        // Load artist profile template
+        return locate_template( array( 'single-artist_profile.php', 'single.php' ) );
+    }
+
+    return $template;
+}
+
+/**
  * Initialize all rewrite rules and routing
  */
 function extrachill_init_rewrite_rules() {
@@ -346,6 +422,7 @@ function extrachill_redirect_artist_forum_to_profile() {
 add_action( 'init', 'extrachill_init_rewrite_rules', 25 );
 add_filter( 'query_vars', 'extrachill_add_query_vars' );
 add_filter( 'redirect_canonical', 'extrachill_prevent_canonical_redirect_for_link_domain', 10, 2 );
+add_filter( 'template_include', 'extrachill_handle_artist_profile_routing', 5 );
 add_filter( 'template_include', 'extrachill_handle_link_domain_routing' );
 add_action( 'template_redirect', 'extrachill_redirect_artist_link_page_cpt_to_custom_domain' );
 add_action( 'template_redirect', 'extrachill_redirect_artist_forum_to_profile', 10 );

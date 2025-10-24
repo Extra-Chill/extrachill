@@ -34,10 +34,7 @@ function ec_render_artist_notification_cards($html, $notification) {
     $link = $notification['link'] ?? '#';
     $time = $notification['time'] ?? '';
 
-    // Format timestamp
     $time_formatted = $time ? esc_html(date('n/j/y \\a\\t g:ia', strtotime($time))) : '';
-
-    // Get actor avatar
     $avatar = $actor_id ? get_avatar($actor_id, 40) : '';
 
     // Determine icon and message based on type

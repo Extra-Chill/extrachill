@@ -166,7 +166,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const isMobile = window.innerWidth <= 768;
             
             // Adjust card layouts for mobile
-            const grids = document.querySelectorAll('.quick-actions-grid, .artist-cards-grid, .features-grid');
+            const grids = document.querySelectorAll('.artist-cards-grid, .features-grid');
             grids.forEach(grid => {
                 if (isMobile) {
                     grid.style.gridTemplateColumns = '1fr';
@@ -195,42 +195,3 @@ document.addEventListener('DOMContentLoaded', function() {
         // Handle initialization errors silently
     }
 });
-
-// Utility function to show toast notifications (if needed in the future)
-window.showToast = function(message, type = 'info') {
-    const toast = document.createElement('div');
-    toast.className = `inc-toast toast-${type}`;
-    toast.textContent = message;
-    toast.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        background: ${type === 'success' ? '#4caf50' : type === 'error' ? '#f44336' : '#2196f3'};
-        color: white;
-        padding: 12px 20px;
-        border-radius: 8px;
-        box-shadow: 0 4px 16px rgba(0,0,0,0.2);
-        z-index: 10000;
-        font-size: 14px;
-        font-weight: 500;
-        opacity: 0;
-        transition: opacity 0.3s ease;
-    `;
-    
-    document.body.appendChild(toast);
-    
-    // Fade in
-    setTimeout(() => {
-        toast.style.opacity = '1';
-    }, 10);
-    
-    // Fade out and remove
-    setTimeout(() => {
-        toast.style.opacity = '0';
-        setTimeout(() => {
-            if (toast.parentNode) {
-                toast.parentNode.removeChild(toast);
-            }
-        }, 300);
-    }, 3000);
-};

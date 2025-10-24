@@ -129,6 +129,14 @@ class ExtraChillArtistPlatform_Assets {
                 $this->get_asset_version( 'assets/js/artist-platform-home.js' ),
                 true
             );
+
+            wp_enqueue_script(
+                'extrachill-artist-grid-pagination',
+                $plugin_url . 'assets/js/artist-grid-pagination.js',
+                array( 'jquery', 'extrachill-artist-platform' ),
+                $this->get_asset_version( 'assets/js/artist-grid-pagination.js' ),
+                true
+            );
         }
 
         // bbPress user profile pages with artist cards
@@ -267,13 +275,32 @@ class ExtraChillArtistPlatform_Assets {
         );
 
         // YouTube embed functionality
-        wp_enqueue_script( 
-            'extrachill-youtube-embed', 
-            $plugin_url . 'inc/link-pages/live/assets/js/link-page-youtube-embed.js', 
-            array( 'jquery' ), 
-            $this->get_asset_version( 'inc/link-pages/live/assets/js/link-page-youtube-embed.js' ), 
-            true 
+        wp_enqueue_script(
+            'extrachill-youtube-embed',
+            $plugin_url . 'inc/link-pages/live/assets/js/link-page-youtube-embed.js',
+            array( 'jquery' ),
+            $this->get_asset_version( 'inc/link-pages/live/assets/js/link-page-youtube-embed.js' ),
+            true
         );
+
+        // Edit permission check (cross-domain)
+        wp_enqueue_script(
+            'extrachill-link-page-edit-permission',
+            $plugin_url . 'inc/link-pages/live/assets/js/link-page-edit-permission.js',
+            array(),
+            $this->get_asset_version( 'inc/link-pages/live/assets/js/link-page-edit-permission.js' ),
+            true
+        );
+
+        // Pass artist_id to edit permission script
+        global $artist_id;
+        if ( isset( $artist_id ) && $artist_id ) {
+            wp_localize_script(
+                'extrachill-link-page-edit-permission',
+                'extrchEditPermission',
+                array( 'artistId' => $artist_id )
+            );
+        }
     }
 
     private function enqueue_artist_profile_management_assets() {
@@ -572,8 +599,7 @@ class ExtraChillArtistPlatform_Assets {
         // Artist platform homepage on artist.extrachill.com (site #4)
         $is_home_page = false;
         if ( is_front_page() || is_home() ) {
-            $artist_blog_id = get_blog_id_from_url( 'artist.extrachill.com', '/' );
-            $is_home_page = $artist_blog_id && get_current_blog_id() === $artist_blog_id;
+            $is_home_page = get_current_blog_id() === 4;
         }
 
         // Artist profiles archive page (/artists)

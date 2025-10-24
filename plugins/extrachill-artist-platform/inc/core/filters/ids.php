@@ -64,9 +64,8 @@ function ec_get_artist_id( $context = null ) {
             }
         }
         
-        // If it's a user, get their first owned artist profile
         if ( $post_type === false ) { // Likely a user ID
-            $user_artist_ids = ec_get_user_owned_artists( $id );
+            $user_artist_ids = ec_get_artists_for_user( $id );
             if ( ! empty( $user_artist_ids ) ) {
                 $first_artist_id = (int) $user_artist_ids[0];
                 return $first_artist_id;
@@ -168,9 +167,8 @@ function ec_get_link_page_id( $context = null ) {
             return $link_page_id;
         }
         
-        // If it's a user, get their first owned artist's link page
         if ( $post_type === false ) { // Likely a user ID
-            $user_artist_ids = ec_get_user_owned_artists( $id );
+            $user_artist_ids = ec_get_artists_for_user( $id );
             if ( ! empty( $user_artist_ids ) ) {
                 $first_artist_id = (int) $user_artist_ids[0];
                 $link_pages = get_posts( array(

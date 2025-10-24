@@ -10,15 +10,6 @@
 
 get_header(); ?>
 
-<div class="breadcrumb-notice-container">
-	<?php
-	// Add breadcrumbs
-	if ( function_exists( 'extrachill_breadcrumbs' ) ) {
-		extrachill_breadcrumbs();
-	}
-	?>
-</div>
-
 <article class="artist-platform-homepage">
 	<div class="inside-article">
 		<header class="entry-header">
@@ -31,44 +22,33 @@ get_header(); ?>
 			$current_user     = wp_get_current_user();
 			$is_logged_in     = is_user_logged_in();
 			$can_create_artists = ec_can_create_artist_profiles( get_current_user_id() );
-			$user_artist_ids  = ec_get_user_owned_artists( $current_user->ID );
+			$user_artist_ids  = ec_get_artists_for_user( $current_user->ID );
 			?>
 
 				<?php if ( ! $is_logged_in ) : ?>
 					<!-- Not Logged In Section -->
 					<div class="artist-platform-welcome">
-						<div class="welcome-hero">
-							<h2><?php esc_html_e( 'Welcome to the Artist Platform', 'extrachill-artist-platform' ); ?></h2>
-							<p><?php esc_html_e( 'Create your artist profile, build a custom link page, connect with fans, and manage your music career all in one place.', 'extrachill-artist-platform' ); ?></p>
+						<?php do_action( 'extrachill_artist_home_hero', $current_user, $is_logged_in, $can_create_artists, $user_artist_ids ); ?>
 
-							<div class="welcome-actions">
-								<a href="<?php echo esc_url( home_url( '/login/' ) ); ?>" class="button-1 button-medium">
-									<?php esc_html_e( 'Log In', 'extrachill-artist-platform' ); ?>
-								</a>
-								<a href="<?php echo esc_url( home_url( '/login/#tab-register' ) ); ?>" class="button-2 button-medium">
-									<?php esc_html_e( 'Sign Up', 'extrachill-artist-platform' ); ?>
-								</a>
-							</div>
+						<div class="support-buttons-section">
+							<a href="https://artist.extrachill.com/extra-chill" class="button-1 button-support"><?php esc_html_e( 'Get Support', 'extrachill-artist-platform' ); ?></a>
+							<a href="https://extrachill.com/contact-us" class="button-1 button-contact"><?php esc_html_e( 'Contact', 'extrachill-artist-platform' ); ?></a>
 						</div>
 
 						<div class="featured-artists-section">
 							<h3><?php esc_html_e( 'Active Artists', 'extrachill-artist-platform' ); ?></h3>
-							<?php ec_display_artist_cards_grid( 6, false ); // Show 6 artists, don't exclude any ?>
-
-							<div class="view-all-artists">
-								<a href="<?php echo esc_url( get_post_type_archive_link( 'artist_profile' ) ); ?>" class="button-2 button-medium">
-									<?php esc_html_e( 'View All Artists', 'extrachill-artist-platform' ); ?>
-								</a>
-							</div>
+							<?php ec_display_artist_cards_grid( 24, false ); ?>
 						</div>
 					</div>
 
 				<?php elseif ( empty( $user_artist_ids ) ) : ?>
 					<!-- Logged In, No Artists -->
 					<div class="artist-platform-getting-started">
-						<div class="welcome-user">
-							<h2><?php printf( esc_html__( 'Welcome, %s!', 'extrachill-artist-platform' ), esc_html( $current_user->display_name ) ); ?></h2>
-							<p><?php esc_html_e( 'Ready to get started with your artist journey? Create your first artist profile to unlock all platform features.', 'extrachill-artist-platform' ); ?></p>
+						<?php do_action( 'extrachill_artist_home_hero', $current_user, $is_logged_in, $can_create_artists, $user_artist_ids ); ?>
+
+						<div class="support-buttons-section">
+							<a href="https://artist.extrachill.com/extra-chill" class="button-1 button-support"><?php esc_html_e( 'Get Support', 'extrachill-artist-platform' ); ?></a>
+							<a href="https://extrachill.com/contact-us" class="button-1 button-contact"><?php esc_html_e( 'Contact', 'extrachill-artist-platform' ); ?></a>
 						</div>
 
 						<?php if ( $can_create_artists ) : ?>
@@ -89,22 +69,18 @@ get_header(); ?>
 
 						<div class="featured-artists-section">
 							<h3><?php esc_html_e( 'Discover Artists', 'extrachill-artist-platform' ); ?></h3>
-							<?php ec_display_artist_cards_grid( 8, false ); // Show 8 artists, don't exclude any ?>
-
-							<div class="view-all-artists">
-								<a href="<?php echo esc_url( get_post_type_archive_link( 'artist_profile' ) ); ?>" class="button-2 button-medium">
-									<?php esc_html_e( 'View All Artists', 'extrachill-artist-platform' ); ?>
-								</a>
-							</div>
+							<?php ec_display_artist_cards_grid( 24, false ); ?>
 						</div>
 					</div>
 
 				<?php else : ?>
 					<!-- Logged In, Has Artists - Dashboard -->
 					<div class="artist-platform-dashboard">
-						<div class="dashboard-welcome">
-							<h2><?php printf( esc_html__( 'Welcome back, %s!', 'extrachill-artist-platform' ), esc_html( $current_user->display_name ) ); ?></h2>
-							<p><?php printf( esc_html( _n( 'Manage your artist profile and platform features below.', 'Manage your %d artist profiles and platform features below.', count( $user_artist_ids ), 'extrachill-artist-platform' ) ), count( $user_artist_ids ) ); ?></p>
+						<?php do_action( 'extrachill_artist_home_hero', $current_user, $is_logged_in, $can_create_artists, $user_artist_ids ); ?>
+
+						<div class="support-buttons-section">
+							<a href="https://artist.extrachill.com/extra-chill" class="button-1 button-support"><?php esc_html_e( 'Get Support', 'extrachill-artist-platform' ); ?></a>
+							<a href="https://extrachill.com/contact-us" class="button-1 button-contact"><?php esc_html_e( 'Contact', 'extrachill-artist-platform' ); ?></a>
 						</div>
 
 						<?php
@@ -132,59 +108,12 @@ get_header(); ?>
 							home_url( '/manage-artist-profiles/' );
 						?>
 
-						<!-- Quick Actions -->
-						<div class="quick-actions-section">
-							<h3><?php esc_html_e( 'Quick Actions', 'extrachill-artist-platform' ); ?></h3>
-							<div class="quick-actions-grid">
-								<?php if ( $can_create_artists ) : ?>
-									<div class="action-card">
-										<h4><?php esc_html_e( 'Create New Artist Profile', 'extrachill-artist-platform' ); ?></h4>
-										<p><?php esc_html_e( 'Add another artist to your portfolio', 'extrachill-artist-platform' ); ?></p>
-										<a href="<?php echo esc_url( $smart_manage_url ); ?>" class="button-1 button-medium" data-action-button>
-											<?php esc_html_e( 'Create New', 'extrachill-artist-platform' ); ?>
-										</a>
-									</div>
-								<?php endif; ?>
-
-								<div class="action-card">
-									<h4><?php esc_html_e( 'Browse Artist Directory', 'extrachill-artist-platform' ); ?></h4>
-									<p><?php esc_html_e( 'Discover other artists in the community', 'extrachill-artist-platform' ); ?></p>
-									<a href="<?php echo esc_url( get_post_type_archive_link( 'artist_profile' ) ); ?>" class="button-2 button-medium" data-action-button>
-										<?php esc_html_e( 'Explore', 'extrachill-artist-platform' ); ?>
-									</a>
-								</div>
-							</div>
-						</div>
-
-						<!-- Artist Profiles -->
-						<div class="artist-profiles-section">
-							<h3><?php esc_html_e( 'Your Artist Profiles', 'extrachill-artist-platform' ); ?></h3>
-							<div class="artist-cards-grid">
-								<?php
-								foreach ( $user_artist_ids as $artist_id ) :
-									$artist_post = get_post( $artist_id );
-									if ( $artist_post ) :
-										global $post;
-										$post = $artist_post;
-										setup_postdata( $post );
-										include( EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/artist-profiles/frontend/templates/artist-card.php' );
-										wp_reset_postdata();
-									endif;
-								endforeach;
-								?>
-							</div>
-						</div>
+						<?php do_action( 'extrachill_above_artist_grid', $user_artist_ids ); ?>
 
 						<!-- Featured Artists from Community -->
 						<div class="featured-artists-section">
 							<h3><?php esc_html_e( 'Discover Other Artists', 'extrachill-artist-platform' ); ?></h3>
-							<?php ec_display_artist_cards_grid( 12, true ); // Show 12 artists, exclude user's own ?>
-
-							<div class="view-all-artists">
-								<a href="<?php echo esc_url( get_post_type_archive_link( 'artist_profile' ) ); ?>" class="button-2 button-medium">
-									<?php esc_html_e( 'View All Artists', 'extrachill-artist-platform' ); ?>
-								</a>
-							</div>
+							<?php ec_display_artist_cards_grid( 24, true ); ?>
 						</div>
 					</div>
 			<?php endif; ?>

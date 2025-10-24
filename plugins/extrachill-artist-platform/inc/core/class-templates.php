@@ -64,13 +64,6 @@ class ExtraChillArtistPlatform_PageTemplates {
             }
         }
 
-        if ( is_post_type_archive( 'artist_profile' ) ) {
-            $plugin_template = EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/artist-profiles/frontend/templates/archive-artist_profile.php';
-            if ( file_exists( $plugin_template ) ) {
-                return $plugin_template;
-            }
-        }
-
         return $template;
     }
 
@@ -156,7 +149,7 @@ class ExtraChillArtistPlatform_PageTemplates {
         global $post, $wp_query;
 
         // Only run on frontend page views
-        if ( is_admin() || ! is_page() ) {
+        if ( is_admin() || ! is_page() || is_archive() || is_post_type_archive() ) {
             return;
         }
 

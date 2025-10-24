@@ -17,14 +17,12 @@ function extrch_fetch_link_page_analytics_ajax() {
     try {
         // Verify standardized nonce (matches pattern used by all other AJAX handlers)
         check_ajax_referer('ec_ajax_nonce', 'nonce');
-        
-        // Check permissions using centralized permission system
+
         if (!ec_ajax_can_manage_link_page($_POST)) {
             wp_send_json_error(array('message' => 'Unauthorized'));
             return;
         }
 
-        // Get and sanitize parameters
         $link_page_id = isset($_POST['link_page_id']) ? (int) $_POST['link_page_id'] : 0;
         $date_range_days = isset($_POST['date_range']) ? (int) $_POST['date_range'] : 30;
 

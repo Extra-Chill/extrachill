@@ -15,13 +15,8 @@ get_header(); ?>
 
             // --- Display Breadcrumbs ---
             // Moved to be a direct child of <main>, before the while loop and <article>
-            if ( function_exists( 'bbp_breadcrumb' ) ) {
-                bbp_breadcrumb( array( 
-                    'before' => '<div class="bbp-breadcrumb"><p>', 
-                    'after'  => '</p></div>',
-                    'sep_before' => '<span class="bbp-breadcrumb-sep">', 
-                    'sep_after'  => '</span>'
-                ) );
+            if ( function_exists( 'extrachill_breadcrumbs' ) ) {
+                extrachill_breadcrumbs();
             }
             // --- End Breadcrumbs ---
 
@@ -176,7 +171,7 @@ get_header(); ?>
                                         <?php 
                                         // Check if the artist profile being viewed belongs to the current user - CANNOT FOLLOW OWN ARTIST
                                         $is_own_artist = false;
-                                        $user_artists = ec_get_user_accessible_artists( get_current_user_id() );
+                                        $user_artists = ec_get_artists_for_user( get_current_user_id() );
                                         if ( in_array($artist_profile_id, $user_artists) ) {
                                             $is_own_artist = true;
                                         }
@@ -219,9 +214,9 @@ get_header(); ?>
 
                                         if ( ! empty( $public_url_href ) ) {
                                             $public_url_display_text = preg_replace( '#^https?://#', '', $public_url_href );
-                                            
+
                                             echo '<div class="artist-public-link-display">';
-                                            echo '<a href="' . esc_url( $public_url_href ) . '" rel="noopener">' . esc_html( $public_url_display_text ) . '</a>';
+                                            echo '<a href="' . esc_url( $public_url_href ) . '" class="button-3 button-medium" rel="noopener">' . esc_html( $public_url_display_text ) . '</a>';
                                             echo '</div>';
                                         }
                                     }
@@ -268,6 +263,15 @@ get_header(); ?>
                                 echo '<p>' . __( 'No biography available yet.', 'extrachill-artist-platform' ) . '</p>';
                             }
                             echo '</div>'; // .artist-bio-section
+
+                            // --- Display Blog Coverage Button ---
+                            if ( function_exists( 'extrachill_artist_display_blog_coverage_button' ) ) {
+                                global $post;
+                                if ( isset( $post ) && $post->post_type === 'artist_profile' && ! empty( $post->post_name ) ) {
+                                    extrachill_artist_display_blog_coverage_button( $post->post_name );
+                                }
+                            }
+                            // --- End Blog Coverage Button ---
 
                             // --- Display Artist Forum Section ---
                             // Removed function_exists check for bbp_topic_index

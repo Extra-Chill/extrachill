@@ -14,20 +14,28 @@ function ec_can_manage_artist( $user_id = null, $artist_id = null ) {
     if ( ! $user_id ) {
         $user_id = get_current_user_id();
     }
-    
+
     if ( ! $user_id || ! $artist_id ) {
         return false;
     }
-    
+
+    // Admin always has access
     if ( user_can( $user_id, 'manage_options' ) ) {
         return true;
     }
 
+    // Check if user is post author (primary owner)
+    $post = get_post( $artist_id );
+    if ( $post && (int) $post->post_author === (int) $user_id ) {
+        return true;
+    }
+
+    // Check if user is in member list (additional access via meta)
     $user_artist_ids = get_user_meta( $user_id, '_artist_profile_ids', true );
     if ( ! is_array( $user_artist_ids ) ) {
         $user_artist_ids = array();
     }
-    
+
     return in_array( (int) $artist_id, array_map( 'intval', $user_artist_ids ) );
 }
 
@@ -80,104 +88,13 @@ function ec_ajax_is_admin( $post_data ) {
 /**
  * AJAX permission check for artist profile creation
  *
+ * Note: ec_can_create_artist_profiles() is provided by extrachill-users plugin (network-activated)
+ *
  * @param array $post_data AJAX request data (unused but required for consistency)
  * @return bool            True if current user can create artist profiles
  */
 function ec_ajax_can_create_artists( $post_data ) {
     return ec_can_create_artist_profiles( get_current_user_id() );
-}
-
-/**
- * Check if user can create artist profiles
- *
- * @param int|null $user_id User ID (defaults to current user)
- * @return bool             True if user can create artist profiles
- */
-function ec_can_create_artist_profiles( $user_id = null ) {
-    if ( ! $user_id ) {
-        $user_id = get_current_user_id();
-    }
-
-    if ( ! $user_id ) {
-        return false;
-    }
-
-    return user_can( $user_id, 'edit_pages' ) ||
-           get_user_meta( $user_id, 'user_is_artist', true ) === '1' ||
-           get_user_meta( $user_id, 'user_is_professional', true ) === '1';
-}
-
-/**
- * Get all artist profiles user can access
- *
- * @param int|null $user_id User ID (defaults to current user)
- * @return array            Array of artist profile IDs
- */
-function ec_get_user_accessible_artists( $user_id = null ) {
-    if ( ! $user_id ) {
-        $user_id = get_current_user_id();
-    }
-
-    if ( ! $user_id ) {
-        return array();
-    }
-
-    if ( user_can( $user_id, 'manage_options' ) ) {
-        $artist_posts = get_posts( array(
-            'post_type' => 'artist_profile',
-            'post_status' => 'publish',
-            'numberposts' => -1,
-            'fields' => 'ids'
-        ) );
-
-        return is_array( $artist_posts ) ? $artist_posts : array();
-    }
-
-    $user_artist_ids = get_user_meta( $user_id, '_artist_profile_ids', true );
-    if ( ! is_array( $user_artist_ids ) ) {
-        return array();
-    }
-
-    $published_artists = array();
-    foreach ( $user_artist_ids as $artist_id ) {
-        $artist_id_int = absint( $artist_id );
-        if ( $artist_id_int > 0 && get_post_status( $artist_id_int ) === 'publish' ) {
-            $published_artists[] = $artist_id_int;
-        }
-    }
-
-    return $published_artists;
-}
-
-/**
- * Get artist profiles owned by user (published only)
- *
- * @param int|null $user_id User ID (defaults to current user)
- * @return array            Array of published artist profile IDs owned by user
- */
-function ec_get_user_owned_artists( $user_id = null ) {
-    if ( ! $user_id ) {
-        $user_id = get_current_user_id();
-    }
-
-    if ( ! $user_id ) {
-        return array();
-    }
-
-    $user_artist_ids = get_user_meta( $user_id, '_artist_profile_ids', true );
-    if ( ! is_array( $user_artist_ids ) ) {
-        return array();
-    }
-
-    $published_artists = array();
-    foreach ( $user_artist_ids as $artist_id ) {
-        $artist_id_int = absint( $artist_id );
-        if ( $artist_id_int > 0 && get_post_status( $artist_id_int ) === 'publish' ) {
-            $published_artists[] = $artist_id_int;
-        }
-    }
-
-    return $published_artists;
 }
 
 /**

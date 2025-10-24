@@ -115,11 +115,8 @@ if (empty($single_artist_link_page_id) && isset($extrch_link_page_template_data[
     $single_artist_link_page_id = $extrch_link_page_template_data['original_link_page_id'];
 }
 
-// Manually construct the extrachill.link URL using the artist slug
 $artist_slug = isset($data['artist_profile']->post_name) ? $data['artist_profile']->post_name : '';
-$share_page_url = !empty($artist_slug) ? 'https://extrachill.link/' . $artist_slug : home_url('/'); // Fallback to home_url if slug is empty
-
-// Cross-domain authentication is handled natively by WordPress multisite
+$share_page_url = !empty($artist_slug) ? 'https://extrachill.link/' . $artist_slug : home_url('/');
 
 $bg_type = isset($data['css_vars']['--link-page-background-type']) ? $data['css_vars']['--link-page-background-type'] : 'color';
 
@@ -220,5 +217,9 @@ $body_bg_style = '';
     <?php
     // Include reusable share modal template (JS populates and controls it)
     echo ec_render_template('share-modal');
+    ?>
+
+    <?php
+    // Edit icon rendered client-side via link-page-edit-permission.js for authenticated users
     ?>
 </div>

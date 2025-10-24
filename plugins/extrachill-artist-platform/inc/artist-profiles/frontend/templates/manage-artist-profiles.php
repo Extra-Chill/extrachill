@@ -235,14 +235,14 @@ get_header(); ?>
 
                                 <!-- ERROR MESSAGE INSIDE FORM -->
                                 <?php if ( ! empty( $error_message ) ) : ?>
-                                    <div class="notice notice-error" style="margin-bottom: 15px;">
+                                    <div class="notice notice-error">
                                         <p><?php echo esc_html( $error_message ); ?></p>
                                     </div>
                                 <?php endif; ?>
 
                                 <!-- TOP SUBMIT BUTTON -->
                                 <?php if ( ! $edit_mode ) : ?>
-                                    <div class="form-group submit-group" style="margin-bottom: 20px;">
+                                    <div class="form-group submit-group">
                                         <input type="submit" name="<?php echo esc_attr( $submit_name ); ?>" class="button-1 button-large" value="<?php echo esc_attr( $submit_value ); ?>" />
                                     </div>
                                 <?php endif; ?>
@@ -250,7 +250,7 @@ get_header(); ?>
                                 <!-- Accordion Items Container -->
                                 <div class="shared-tabs-component">
                                     <div class="shared-tabs-buttons-container">
-                                        <!-- Item 1: Band Info -->
+                                        <!-- Item 1: Artist Info -->
                                         <div class="shared-tab-item">
                                             <button type="button" class="shared-tab-button active" data-tab="manage-artist-profile-info-content">
                                                 <?php esc_html_e( 'Artist Info', 'extrachill-artist-platform' ); ?>
@@ -258,10 +258,10 @@ get_header(); ?>
                                             </button>
                                             <div id="manage-artist-profile-info-content" class="shared-tab-pane">
                                                 <?php
-                                                // --- START Join Flow Guidance Notice (Create Band Profile) ---
+                                                // --- START Join Flow Guidance Notice (Create Artist Profile) ---
                                                 // Display this notice if the user arrived from the join flow and is in create mode
                                                 if ( isset($_GET['from_join']) && $_GET['from_join'] === 'true' && ! $edit_mode ) {
-                                                    echo '<div class="notice notice-info" style="margin-top: 15px; margin-bottom: 15px;">'; // Added margin-top and margin-bottom for spacing
+                                                    echo '<div class="notice notice-info">';
                                                     echo '<p>' . esc_html__( 'Welcome to the Extra Chill link page setup! To create your link page, you first need to create an Artist Profile. Fill out the details below to get started.', 'extrachill-artist-platform' ) . '</p>';
                                                     echo '</div>';
                                                 }
@@ -343,15 +343,15 @@ get_header(); ?>
                                 <div class="form-group submit-group">
                                     <input type="submit" name="<?php echo esc_attr( $submit_name ); ?>" class="button-1 button-large" value="<?php echo esc_attr( $submit_value ); ?>" />
                                     <?php if ( $edit_mode && isset($target_artist_id) && $target_artist_id > 0 ) : ?>
-                                        <a href="<?php echo esc_url( get_permalink( $target_artist_id ) ); ?>" class="button-2 button-medium" target="_blank"><?php esc_html_e( 'View Band Profile', 'extrachill-artist-platform' ); ?></a>
+                                        <a href="<?php echo esc_url( get_permalink( $target_artist_id ) ); ?>" class="button-2 button-large" target="_blank"><?php esc_html_e( 'View Artist Profile', 'extrachill-artist-platform' ); ?></a>
                                     <?php endif; ?>
                                 </div>
                             </form>
 
-                        <?php 
+                        <?php
                         endif; // end $can_proceed
-                        
-                        // Handle case where edit mode was requested but band not found
+
+                        // Handle case where edit mode was requested but artist profile not found
                         // Only show this if there wasn't a more specific error already displayed
                         if ( isset( $_GET['artist_id'] ) && ! $edit_mode && empty($error_message) ) {
                              // Check if the specific error was 'invalid_artist_id' which we already handled

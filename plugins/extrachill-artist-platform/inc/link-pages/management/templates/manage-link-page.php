@@ -31,7 +31,7 @@ if (!$link_page_id || get_post_type($link_page_id) !== 'artist_link_page') {
 
 get_header(); ?>
 
-<div class="main-content full-width-breakout">
+<div class="main-content">
     <main id="main" class="site-main">
         <?php do_action( 'extra_chill_before_main_content' ); ?>
 
@@ -84,23 +84,23 @@ $data = ec_get_link_page_data( $artist_id, $link_page_id );
 // Fonts are now handled directly in the tab template
 ?>
 <?php
-// Display breadcrumbs using theme system with custom append
+// Display breadcrumbs using theme system with custom override
 if (function_exists('extrachill_breadcrumbs')) {
-    // Add custom breadcrumb items for manage link page
-    add_action('extrachill_breadcrumbs_append', function() {
+    // Override the breadcrumb trail for manage link page
+    add_filter('extrachill_breadcrumbs_override_trail', function($trail) {
         $artist_id = apply_filters('ec_get_artist_id', $_GET);
-        if (!$artist_id) return;
+        if (!$artist_id) return $trail;
         
         $artist_post = get_post($artist_id);
-        if (!$artist_post) return;
+        if (!$artist_post) return $trail;
         
         $manage_page = get_page_by_path('manage-artist-profiles');
         $manage_artist_profile_url = $manage_page 
             ? add_query_arg('artist_id', $artist_id, get_permalink($manage_page))
             : site_url('/manage-artist-profiles/?artist_id=' . $artist_id);
         
-        echo ' › <a href="' . esc_url($manage_artist_profile_url) . '">' . esc_html($artist_post->post_title) . '</a>';
-        echo ' › <span>' . esc_html__('Manage Link Page', 'extrachill-artist-platform') . '</span>';
+        return '<a href="' . esc_url($manage_artist_profile_url) . '">' . esc_html($artist_post->post_title) . '</a> › ' .
+               '<span>' . esc_html__('Manage Link Page', 'extrachill-artist-platform') . '</span>';
     });
     
     extrachill_breadcrumbs();
@@ -113,7 +113,7 @@ if (function_exists('extrachill_breadcrumbs')) {
 // --- Artist Switcher (Shared Component) ---
 // Filter accessible artists to only those with valid link pages
 $current_user_id_for_switcher = get_current_user_id();
-$user_accessible_artists = ec_get_user_accessible_artists( $current_user_id_for_switcher );
+$user_accessible_artists = ec_get_artists_for_user( $current_user_id_for_switcher, true );
 $valid_artists_for_link_page_switcher = array();
 
 foreach ( $user_accessible_artists as $user_artist_id_item_check ) {
@@ -303,10 +303,9 @@ if ($link_page_id && get_post_type($link_page_id) === 'artist_link_page') {
 extrch_render_link_expiration_modal();
 ?>
 
-<div class="link-page-footer-actions" style="display: flex; justify-content: center; align-items: center; gap: 20px; width: 100%; margin-top: 2em; margin-bottom: 2em;">
+<div class="link-page-footer-actions">
     <button type="submit" form="bp-manage-link-page-form" name="bp_save_link_page" class="button-1 button-large bp-link-page-save-btn"><?php esc_html_e('Save Link Page', 'extrachill-artist-platform'); ?></button>
-    <div id="link-page-loading-message" style="display: none; margin-left: 1em; font-weight: bold;"><?php esc_html_e('Please wait...', 'extrachill-artist-platform'); ?></div>
-    <a href="<?php echo esc_url(site_url('/manage-artist-profile/?artist_id=' . $artist_id)); ?>" class="button-2 button-large"><?php esc_html_e('Manage Artist', 'extrachill-artist-platform'); ?></a>
+    <a href="<?php echo esc_url(site_url('/manage-artist-profiles/?artist_id=' . $artist_id)); ?>" class="button-2 button-large"><?php esc_html_e('Manage Artist', 'extrachill-artist-platform'); ?></a>
 </div>
 
 <button id="extrch-jump-to-preview-btn" class="extrch-jump-to-preview-btn" aria-label="<?php esc_attr_e('Scroll to Preview / Settings', 'extrachill-artist-platform'); ?>" title="<?php esc_attr_e('Scroll to Preview', 'extrachill-artist-platform'); ?>">

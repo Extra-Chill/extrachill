@@ -49,7 +49,7 @@ function bp_create_artist_forum_on_save( $post_id, $post, $update ) {
     // Ensure bbPress functions are available.
     if ( ! function_exists( 'bbp_insert_forum' ) ) {
         // bbPress not active, cannot create forum
-        // Log error or notify admin: bbPress not active?
+        error_log( '[Artist Forums] Cannot create forum for artist profile ID ' . $post_id . ': bbPress not active' );
         return;
     }
 
@@ -65,7 +65,7 @@ function bp_create_artist_forum_on_save( $post_id, $post, $update ) {
 
     if ( is_wp_error( $forum_id ) ) {
         // Failed to create forum
-        // Log error
+        error_log( '[Artist Forums] Failed to create forum for artist profile ID ' . $post_id . ': ' . $forum_id->get_error_message() );
         return;
     }
 
@@ -76,6 +76,7 @@ function bp_create_artist_forum_on_save( $post_id, $post, $update ) {
 
     // Store the new forum ID in the artist profile CPT meta.
     update_post_meta( $post_id, '_artist_forum_id', $forum_id );
+    error_log( '[Artist Forums] Successfully created forum ID ' . $forum_id . ' for artist profile ID ' . $post_id . ' (' . $post->post_title . ')' );
 
     // Default to allowing public topic creation for new artist forums.
     update_post_meta( $forum_id, '_allow_public_topic_creation', '1' );
@@ -85,30 +86,9 @@ function bp_create_artist_forum_on_save( $post_id, $post, $update ) {
 
 
 }
-// Use a priority lower than the member saving function if order matters, but 10 is usually fine.
-// Use 3 arguments for $update check.
-// Increase priority to 20 to potentially run after bbPress initialization
-/**
- * Centralized wrapper for forum creation when using the centralized save system.
- *
- * @param int $artist_id The ID of the artist profile being saved.
- */
-function bp_create_artist_forum_on_save_centralized( $artist_id ) {
-    if ( ! $artist_id || get_post_type( $artist_id ) !== 'artist_profile' ) {
-        return;
-    }
 
-    $artist_post = get_post( $artist_id );
-    if ( ! $artist_post ) {
-        return;
-    }
-
-    // Call the existing forum creation function with the post object and update flag
-    bp_create_artist_forum_on_save( $artist_id, $artist_post, true );
-}
-
-// Hook into centralized save system only - no legacy save_post hook needed
-add_action( 'ec_artist_profile_save', 'bp_create_artist_forum_on_save_centralized', 20, 1 );
+// Use WordPress native action hook for all artist profile saves
+add_action( 'save_post_artist_profile', 'bp_create_artist_forum_on_save', 20, 3 );
 
 
 /**
@@ -317,5 +297,36 @@ function bp_cleanup_user_meta_on_artist_profile_deletion( $post_id ) {
     }
 }
 add_action( 'before_delete_post', 'bp_cleanup_user_meta_on_artist_profile_deletion' ); // Hook into before_delete_post
+
+/**
+ * Automatically add artist profile creator to bidirectional relationship meta
+ * Ensures creator has immediate access via both post_author and meta
+ */
+add_action('save_post_artist_profile', 'bp_sync_artist_creator_membership', 10, 3);
+
+function bp_sync_artist_creator_membership($post_id, $post, $update) {
+    // Only run on NEW artist profiles (not updates)
+    if ($update) {
+        return;
+    }
+
+    // Prevent infinite loops
+    remove_action('save_post_artist_profile', 'bp_sync_artist_creator_membership', 10);
+
+    // Get post author
+    $author_id = (int) $post->post_author;
+    if (!$author_id) {
+        add_action('save_post_artist_profile', 'bp_sync_artist_creator_membership', 10, 3);
+        return;
+    }
+
+    // Add creator as member (bidirectional relationship)
+    if (function_exists('bp_add_artist_membership')) {
+        bp_add_artist_membership($author_id, $post_id);
+    }
+
+    // Restore hook
+    add_action('save_post_artist_profile', 'bp_sync_artist_creator_membership', 10, 3);
+}
 
 // Forum-to-artist profile redirect moved to artist-platform-rewrite-rules.php for consolidation
