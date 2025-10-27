@@ -2,8 +2,8 @@
 /**
  * Newsletter Settings Page
  *
- * Admin settings page for configuring Sendy integration and newsletter subscription
- * forms. Provides centralized API configuration and dynamic integration management.
+ * Admin UI for Sendy API configuration and integration management.
+ * Dynamically discovers registered integrations via filter.
  *
  * @package ExtraChillNewsletter
  * @since 1.0.0
@@ -12,10 +12,6 @@
 defined( 'ABSPATH' ) || exit;
 
 add_action( 'admin_menu', 'ec_newsletter_add_settings_menu' );
-
-/**
- * @since 1.0.0
- */
 function ec_newsletter_add_settings_menu() {
 	add_submenu_page(
 		'edit.php?post_type=newsletter',
@@ -28,10 +24,6 @@ function ec_newsletter_add_settings_menu() {
 }
 
 add_action( 'admin_post_ec_newsletter_settings', 'ec_newsletter_handle_settings_save' );
-
-/**
- * @since 1.0.0
- */
 function ec_newsletter_handle_settings_save() {
 	if ( ! current_user_can( 'manage_options' ) ) {
 		wp_die( __( 'You do not have permission to access this page.', 'extrachill-newsletter' ) );
@@ -75,10 +67,6 @@ function ec_newsletter_handle_settings_save() {
 	wp_redirect( $redirect_url );
 	exit;
 }
-
-/**
- * @since 1.0.0
- */
 function ec_newsletter_render_settings_page() {
 	$settings = get_newsletter_settings();
 	$integrations = get_newsletter_integrations();
@@ -262,15 +250,6 @@ function ec_newsletter_render_settings_page() {
 	</style>
 	<?php
 }
-
-/**
- * Get newsletter settings with defaults
- *
- * Dynamically generates defaults based on registered integrations.
- *
- * @since 1.0.0
- * @return array Settings array with defaults
- */
 function get_newsletter_settings() {
 	$defaults = array(
 		'sendy_api_key' => '',

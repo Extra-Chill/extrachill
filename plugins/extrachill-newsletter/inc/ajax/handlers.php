@@ -110,14 +110,6 @@ function handle_subscribe_to_sendy_home() {
 add_action('wp_ajax_subscribe_to_sendy_home', 'handle_subscribe_to_sendy_home');
 add_action('wp_ajax_nopriv_subscribe_to_sendy_home', 'handle_subscribe_to_sendy_home');
 
-/**
- * AJAX Handler: Navigation Menu Newsletter Subscription
- *
- * Handles subscription requests from the navigation menu newsletter form.
- * Uses main newsletter list for general subscriptions.
- *
- * @since 1.0.0
- */
 function handle_subscribe_to_sendy_nav() {
 	if (!check_ajax_referer('newsletter_nonce', 'subscribe_nonce', false)) {
 		wp_send_json_error(__('Security check failed', 'extrachill-newsletter'));
@@ -140,11 +132,6 @@ function handle_subscribe_to_sendy_nav() {
 }
 add_action('wp_ajax_subscribe_to_sendy', 'handle_subscribe_to_sendy_nav');
 add_action('wp_ajax_nopriv_subscribe_to_sendy', 'handle_subscribe_to_sendy_nav');
-
-
-/**
- * Centralized AJAX error handling with logging
- */
 function handle_newsletter_ajax_error($error_code, $error_message, $context = array()) {
 	error_log(sprintf(
 		'Newsletter AJAX Error [%s]: %s - Context: %s',
@@ -193,14 +180,6 @@ function log_newsletter_subscription_attempt($email, $source, $success, $error_m
 	do_action('newsletter_subscription_logged', $log_data);
 }
 
-/**
- * AJAX Handler: Content Newsletter Subscription Form
- *
- * Handles subscription requests from the post-content newsletter form.
- * Uses content-specific list for tracking engagement attribution.
- *
- * @since 1.0.0
- */
 function handle_submit_newsletter_content_form() {
 	if (!check_ajax_referer('newsletter_content_nonce', 'nonce', false)) {
 		wp_send_json_error(__('Security check failed', 'extrachill-newsletter'));
@@ -223,15 +202,6 @@ function handle_submit_newsletter_content_form() {
 }
 add_action('wp_ajax_submit_newsletter_content_form', 'handle_submit_newsletter_content_form');
 add_action('wp_ajax_nopriv_submit_newsletter_content_form', 'handle_submit_newsletter_content_form');
-
-/**
- * AJAX Handler: Footer Newsletter Subscription Form
- *
- * Handles subscription requests from the footer newsletter form.
- * Uses footer-specific list for tracking source attribution.
- *
- * @since 1.0.0
- */
 function handle_submit_newsletter_footer_form() {
 	if (!check_ajax_referer('newsletter_footer_nonce', 'nonce', false)) {
 		wp_send_json_error(__('Security check failed', 'extrachill-newsletter'));
@@ -256,16 +226,9 @@ add_action('wp_ajax_submit_newsletter_footer_form', 'handle_submit_newsletter_fo
 add_action('wp_ajax_nopriv_submit_newsletter_footer_form', 'handle_submit_newsletter_footer_form');
 
 /**
- * AJAX Handler: Festival Wire Tip Submission
+ * Festival Wire tip submission with Turnstile, rate limiting, and newsletter integration
  *
- * Handles Festival Wire tip submissions with comprehensive validation:
- * - Nonce and rate limiting verification
- * - Community member detection via session cookie
- * - Cloudflare Turnstile anti-spam verification
- * - Email validation and newsletter subscription for non-members
- * - Admin email notification
- *
- * @since 2.0.0
+ * Non-members automatically subscribed to festival_wire_tip newsletter list.
  */
 function handle_newsletter_festival_wire_tip_submission() {
 	// Security and rate limiting verification
@@ -371,18 +334,6 @@ function handle_newsletter_festival_wire_tip_submission() {
 }
 add_action( 'wp_ajax_newsletter_festival_wire_tip_submission', 'handle_newsletter_festival_wire_tip_submission' );
 add_action( 'wp_ajax_nopriv_newsletter_festival_wire_tip_submission', 'handle_newsletter_festival_wire_tip_submission' );
-
-
-/**
- * Check IP address rate limiting for tip submissions
- *
- * Prevents spam by limiting submission frequency per IP address.
- * Uses WordPress transients for temporary storage.
- *
- * @since 2.0.0
- * @param string $ip The IP address to check
- * @return bool True if rate limited, false otherwise
- */
 function newsletter_is_tip_rate_limited( $ip ) {
 	$transient_key = 'newsletter_tip_rate_limit_' . md5( $ip );
 	$last_submission = get_transient( $transient_key );
@@ -390,16 +341,7 @@ function newsletter_is_tip_rate_limited( $ip ) {
 	return $last_submission !== false;
 }
 
-/**
- * Set rate limit for IP address after successful submission
- *
- * Creates temporary block for IP address to prevent rapid submissions.
- * Rate limit duration is 5 minutes (300 seconds).
- *
- * @since 2.0.0
- * @param string $ip The IP address to rate limit
- */
 function newsletter_set_tip_rate_limit( $ip ) {
 	$transient_key = 'newsletter_tip_rate_limit_' . md5( $ip );
-	set_transient( $transient_key, time(), 300 ); // 5 minutes
+	set_transient( $transient_key, time(), 300 );
 }

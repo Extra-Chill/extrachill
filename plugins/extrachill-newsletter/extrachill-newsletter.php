@@ -57,15 +57,6 @@ if ( is_newsletter_site() ) {
 	}
 }
 
-/**
- * Customize post meta for newsletter post type.
- * Changes "Posted on" to "Sent on" and adjusts date/author display.
- *
- * @param string $default_meta The default meta HTML.
- * @param int    $post_id      The post ID.
- * @param string $post_type    The post type.
- * @return string Modified meta HTML for newsletters.
- */
 function newsletter_customize_post_meta( $default_meta, $post_id, $post_type ) {
 	if ( $post_type !== 'newsletter' ) {
 		return $default_meta;
@@ -111,7 +102,7 @@ function display_newsletter_grid_section() {
 	<div class="home-3x3-stacked-section">
 		<div class="home-3x3-header">
 			<span class="home-3x3-label">Latest Newsletters</span>
-			<a class="home-3x3-archive-link" href="<?php echo esc_url( $archive_url ); ?>">View All</a>
+			<a class="home-3x3-archive-link button-3 button-small" href="<?php echo esc_url( $archive_url ); ?>">View All</a>
 		</div>
 		<div class="home-3x3-list">
 			<?php if ( ! empty( $newsletter_posts ) ) : ?>
@@ -208,37 +199,20 @@ function extrachill_newsletter_deactivate() {
 register_deactivation_hook( __FILE__, 'extrachill_newsletter_deactivate' );
 
 /**
- * Register default newsletter integration contexts.
+ * Register default newsletter integration contexts via filter system
  *
- * Three-Plugin Newsletter Architecture:
- * 1. extrachill-newsletter (this plugin) - Provides admin settings UI, Sendy API config, helper functions
- * 2. extrachill-multisite - Provides bridge function extrachill_multisite_subscribe() for centralized subscription
- * 3. Other plugins - Register their integration contexts via newsletter_form_integrations filter
+ * Integration contexts registered:
+ * - navigation: Site navigation menu subscription form
+ * - homepage: Main homepage subscription section
+ * - popup: Modal popup subscription (backend only, no frontend display)
+ * - archive: Newsletter archive page subscription
+ * - content: After post content subscription
+ * - footer: Above footer subscription
  *
- * Integration Registration Pattern:
- * Plugins register declaratively via filter with:
- * - label: Human-readable integration name
- * - description: Integration description
- * - list_id_key: Settings key for Sendy list ID (e.g., 'navigation_list_id')
- * - enable_key: Settings key for enable toggle (e.g., 'enable_navigation')
- * - plugin: Source plugin name
- *
- * Configuration Flow:
- * 1. Admin configures via Newsletter → Settings UI (enable toggle + Sendy list ID per integration)
- * 2. Global Sendy settings (API key, URL, from email) configured once
- * 3. All settings stored in get_site_option('extrachill_newsletter_settings') network-wide
- *
- * Subscription Flow:
- * 1. Plugin calls extrachill_multisite_subscribe($email, 'context')
- * 2. Bridge validates integration, looks up list ID, retrieves Sendy config, makes API call
- * 3. Returns structured response with success status and message
- *
- * Current Integrations:
- * - registration (login-register plugin)
- * - navigation, homepage, popup, archive, content, footer (this plugin)
- *
- * @param array $integrations Existing integrations from other plugins
- * @return array Modified integrations array
+ * Settings configured via Newsletter → Settings on newsletter.extrachill.com:
+ * - Enable/disable toggle per integration
+ * - Sendy list ID per integration
+ * - Global Sendy API configuration
  */
 function newsletter_register_default_integrations($integrations) {
 	$integrations['navigation'] = array(

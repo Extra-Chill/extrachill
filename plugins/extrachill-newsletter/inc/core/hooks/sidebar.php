@@ -12,13 +12,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-/**
- * Sidebar Recent Newsletters Hook Function
- *
- * Loads recent newsletters sidebar widget template.
- *
- * @since 1.0.0
- */
 function extrachill_sidebar_recent_newsletters() {
 	include EXTRACHILL_NEWSLETTER_PLUGIN_DIR . 'inc/core/templates/recent-newsletters.php';
 }

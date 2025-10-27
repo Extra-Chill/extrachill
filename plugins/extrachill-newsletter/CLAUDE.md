@@ -44,71 +44,84 @@ This plugin provides complete newsletter functionality with network-wide subscri
 - Zero hardcoded credentials - all API keys and list IDs configurable through admin UI
 - Subscription bridge function `extrachill_multisite_subscribe()` available network-wide
 - Dynamic action hooks created for each integration: `newsletter_display_{context}`
-- Supports multiple contexts: navigation, homepage, popup, archive, content, footer, festival_wire_tip
+- Supports multiple contexts: navigation, homepage, popup (backend only - no frontend display), archive, content, footer, festival_wire_tip
 
 ### Conditional Loading Pattern
 
 The plugin uses `is_newsletter_site()` helper to conditionally load features:
 
 **Newsletter Site Only** (newsletter.extrachill.com):
-- Newsletter custom post type (`inc/newsletter-post-type.php`)
-- Sendy campaign integration (`inc/newsletter-sendy-integration.php`)
-- Admin settings page (`inc/admin/newsletter-settings.php`)
-- Newsletter popup (`inc/newsletter-popup.php`)
+- Newsletter custom post type (`inc/core/newsletter-post-type.php`)
+- Admin settings page (`inc/core/newsletter-settings.php`)
 - Homepage as archive template override
 
 **Network-Wide** (all sites):
-- Subscription functions (`inc/newsletter-subscribe.php`)
-- AJAX handlers for forms (`inc/newsletter-ajax-handlers.php`)
-- Hook integrations for form display (`inc/newsletter-hooks.php`)
-- Asset enqueuing
+- Asset management (`inc/core/assets.php`)
+- Sendy API integration (`inc/core/sendy-api.php`)
+- Email template generation (`inc/core/templates/email-template.php`)
+- AJAX handlers (`inc/ajax/handlers.php`)
+- Hook integrations (`inc/core/hooks/breadcrumbs.php`, `inc/core/hooks/forms.php`, `inc/core/hooks/homepage.php`, `inc/core/hooks/post-meta.php`, `inc/core/hooks/sidebar.php`)
 
 ### Modular Structure
 
-The plugin follows a modular architecture with conditional loading:
+The plugin follows a modular architecture with organized directory structure:
 
-- **extrachill-newsletter.php**: Main plugin file with network activation, conditional loading, constants, and form display functions
-- **inc/newsletter-subscribe.php**: Network-wide subscription functions and Sendy API configuration
-- **inc/newsletter-post-type.php**: Custom post type registration (newsletter site only)
-- **inc/newsletter-sendy-integration.php**: Sendy API integration for campaigns (newsletter site only)
-- **inc/newsletter-ajax-handlers.php**: All AJAX endpoints for forms with security and rate limiting (network-wide)
-- **inc/newsletter-hooks.php**: WordPress hook integrations and theme connectivity (network-wide)
-- **inc/newsletter-popup.php**: Newsletter popup functionality (newsletter site only)
-- **inc/admin/newsletter-settings.php**: Admin settings page (newsletter site only)
-- **templates/**: Template files for all newsletter forms and display
+- **extrachill-newsletter.php**: Main plugin file with network activation, conditional loading, constants, integration registration, and inline form display functions
+- **inc/core/assets.php**: Centralized asset management with conditional enqueuing and `filemtime()` cache busting (network-wide)
+- **inc/core/sendy-api.php**: Sendy API integration, subscription functions, and configuration (network-wide)
+- **inc/core/newsletter-post-type.php**: Custom post type registration (newsletter site only)
+- **inc/core/newsletter-settings.php**: Admin settings page (newsletter site only)
+- **inc/core/templates/email-template.php**: Email HTML generation from post content (network-wide)
+- **inc/core/templates/homepage.php**: Homepage template override for newsletter archive (newsletter site only)
+- **inc/core/templates/recent-newsletters.php**: Sidebar widget template (network-wide)
+- **inc/core/templates/forms/**: Directory containing all subscription form templates
+- **inc/core/hooks/breadcrumbs.php**: Breadcrumb customization (network-wide)
+- **inc/core/hooks/forms.php**: Archive form display hooks (network-wide)
+- **inc/core/hooks/homepage.php**: Homepage template override and query modification (network-wide)
+- **inc/core/hooks/post-meta.php**: Post meta customization for newsletters (network-wide)
+- **inc/core/hooks/sidebar.php**: Sidebar widget integration (network-wide)
+- **inc/ajax/handlers.php**: All AJAX endpoints with security and rate limiting (network-wide)
+- **assets/css/**: Stylesheet directory (newsletter.css, newsletter-forms.css, sidebar.css, admin.css)
+- **assets/js/**: JavaScript directory (newsletter.js)
 
 ### Key Integration Patterns
 
 #### Newsletter Site Homepage as Archive
 On newsletter.extrachill.com, the homepage displays the newsletter archive:
-- `template_include` filter redirects homepage to newsletter archive template
-- Clean, dedicated landing page for all newsletters
+- `extrachill_template_homepage` filter (provided by extrachill theme) redirects homepage to plugin's archive template
+- Plugin template: `inc/core/templates/homepage.php`
+- Clean, dedicated landing page for all newsletters with subscription form integration
 - No separate `/newsletters/` archive URL needed
-- Template hierarchy: theme's `archive-newsletter.php` > plugin template
+- Custom archive header and query modification via hooks in `inc/core/hooks/homepage.php`
 
 #### Template Override System
-The plugin uses WordPress template hierarchy override with `template_include` filter:
-- Plugin templates in `/templates/` directory take precedence
-- Theme templates serve as fallback
-- Conditional template loading based on post type and site context
+The plugin uses theme filter integration for template overrides:
+- Homepage template override via `extrachill_template_homepage` filter
+- Form templates in `inc/core/templates/forms/` directory
+- Theme templates can override plugin forms by placing templates in theme root
+- Fallback rendering system for form integrations without custom templates
 
 #### Hook-Based Theme Integration
 The plugin integrates with themes via action hooks:
 - `extrachill_navigation_before_social_links` - Navigation menu subscription form (network-wide)
 - `extrachill_home_grid_bottom_right` - Latest newsletters grid (main blog only, not newsletter site)
+- `extrachill_home_final_right` - Homepage subscription form (main blog only)
 - `extrachill_after_post_content` - Content subscription form (network-wide)
 - `extrachill_above_footer` - Footer subscription form (network-wide)
 - `extrachill_after_news_wire` - Festival wire tip form (network-wide)
 - `extrachill_sidebar_bottom` - Recent newsletters sidebar widget (network-wide)
-- `extrachill_archive_below_description` - Archive page subscription form (newsletter site)
+- `extrachill_archive_below_description` - Archive page subscription form (archive pages)
+- `newsletter_homepage_hero` - Newsletter homepage hero form (newsletter site homepage only)
 
 #### Asset Loading Strategy
-- **Forms CSS**: Loaded globally for navigation and other forms (`newsletter-forms.css`)
-- **Sidebar CSS**: Loaded globally for sidebar widgets (`sidebar.css`)
-- **Newsletter CSS**: Loaded conditionally on newsletter/festival pages (`newsletter.css`)
-- **Global JavaScript**: Loaded site-wide with AJAX localization (`newsletter.js`)
-- **Popup JavaScript**: Loaded conditionally for popup functionality (`newsletter-popup.js`)
+Centralized in `inc/core/assets.php` with conditional loading:
+- **Forms CSS**: Loaded globally for navigation and other forms (`assets/css/newsletter-forms.css`)
+- **Sidebar CSS**: Loaded globally for sidebar widgets (`assets/css/sidebar.css`)
+- **Newsletter CSS**: Loaded conditionally on newsletter/festival pages (`assets/css/newsletter.css`)
+- **Admin CSS**: Loaded only on newsletter post edit screens (`assets/css/admin.css`)
+- **Global JavaScript**: Loaded site-wide with AJAX localization and nonces (`assets/js/newsletter.js`)
 - **File-based Versioning**: Uses `filemtime()` for cache busting on all assets
+- **Theme Integration**: Forces theme archive CSS on newsletter homepage when needed
 
 ### Sendy Integration Architecture
 
@@ -129,12 +142,14 @@ Multiple subscription forms with dedicated AJAX handlers:
 - Archive page subscription (`submit_newsletter_form`)
 - Homepage subscription (`subscribe_to_sendy_home`)
 - Navigation subscription (`subscribe_to_sendy`)
-- Popup subscription (`submit_newsletter_popup_form`)
+- Popup subscription (`submit_newsletter_popup_form`) - backend infrastructure exists, no frontend display currently implemented
 - Content subscription (`submit_newsletter_content_form`)
 - Footer subscription (`submit_newsletter_footer_form`)
 - Festival wire tip submission (`newsletter_festival_wire_tip_submission`)
 
 All forms use the centralized `extrachill_multisite_subscribe()` function with context-based list routing.
+
+**Note**: The popup integration context is registered with backend AJAX handler and nonce generation, but the frontend JavaScript module for displaying the popup was removed during refactoring. The infrastructure remains ready for future popup implementation.
 
 ### Custom Post Type Implementation
 - **Post Type**: `newsletter` with full WordPress features (newsletter site only)
@@ -171,7 +186,7 @@ When modifying templates:
 
 ### AJAX Development
 When adding new AJAX functionality:
-- Register handlers in `newsletter-ajax-handlers.php`
+- Register handlers in `inc/ajax/handlers.php`
 - Use proper nonce verification with context-specific nonces
 - Implement rate limiting for public forms where appropriate
 - Include Cloudflare Turnstile verification for spam-sensitive forms
@@ -221,9 +236,13 @@ The build process creates production-ready WordPress plugin packages:
 
 Essential files for plugin functionality:
 - Main plugin file with proper WordPress headers
-- `/inc/` directory with all PHP modules
-- `/templates/` directory with template files
-- `/assets/` directory with CSS/JS files
+- `/inc/core/` directory with core PHP modules
+- `/inc/ajax/` directory with AJAX handlers
+- `/inc/core/hooks/` directory with WordPress hook integrations
+- `/inc/core/templates/` directory with template files
+- `/inc/core/templates/forms/` directory with form templates
+- `/assets/css/` directory with stylesheets
+- `/assets/js/` directory with JavaScript files
 - `.buildignore` file for build exclusions
 
 The build script is symlinked from the shared build system at `../../.github/build.sh` and supports:

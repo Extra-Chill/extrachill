@@ -1,9 +1,9 @@
 <?php
 /**
- * Newsletter Subscription Functions
+ * Sendy API Integration
  *
- * Centralized subscription functions for newsletter integration system.
- * Network-wide availability for cross-site newsletter subscriptions.
+ * Network-wide subscription functions and Sendy API integration.
+ * Provides centralized configuration and subscription bridge.
  *
  * @package ExtraChillNewsletter
  * @since 1.0.0
@@ -11,12 +11,6 @@
 
 defined( 'ABSPATH' ) || exit;
 
-/**
- * Get Sendy API configuration from network-wide site options
- *
- * @since 1.0.0
- * @return array Sendy configuration array
- */
 function get_sendy_config() {
 	$settings = get_site_option( 'extrachill_newsletter_settings', array() );
 
@@ -41,38 +35,19 @@ function get_sendy_config() {
 	);
 }
 
-/**
- * Get registered newsletter integrations via filter system
- *
- * @since 1.0.0
- * @return array Registered integrations
- */
 function get_newsletter_integrations() {
 	return apply_filters( 'newsletter_form_integrations', array() );
 }
 
-/**
- * Check if newsletter integration is enabled in network settings
- *
- * @since 1.0.0
- * @param string $enable_key Settings key for enable toggle
- * @return bool True if enabled
- */
 function newsletter_integration_enabled( $enable_key ) {
 	$settings = get_site_option( 'extrachill_newsletter_settings', array() );
 	return ! empty( $settings[ $enable_key ] );
 }
 
 /**
- * Centralized newsletter subscription bridge
+ * Subscribe email address via Sendy API
  *
- * Validates integration config, retrieves list ID from settings,
- * and makes Sendy API subscription request.
- *
- * @since 1.0.0
- * @param string $email Email address to subscribe
- * @param string $context Integration context (e.g., 'navigation', 'homepage')
- * @return array Response with 'success' boolean and 'message' string
+ * Validates integration, retrieves list ID from network settings, makes API request.
  */
 function extrachill_multisite_subscribe( $email, $context ) {
 	$integrations = get_newsletter_integrations();
@@ -166,16 +141,11 @@ function extrachill_multisite_subscribe( $email, $context ) {
 		}
 	}
 }
+
 /**
- * Send or update campaign in Sendy
+ * Send or update Sendy campaign
  *
- * Handles both creation of new campaigns and updates to existing ones.
- * Uses Sendy API to check campaign existence and create/update accordingly.
- *
- * @since 1.0.0
- * @param int $post_id WordPress post ID
- * @param array $email_data Email content data from prepare_newsletter_email_content()
- * @return bool|WP_Error True on success, WP_Error on failure
+ * Checks campaign existence, creates new or updates existing campaign via Sendy API.
  */
 function send_newsletter_campaign_to_sendy($post_id, $email_data) {
 	$config = get_sendy_config();

@@ -13,13 +13,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-/**
- * Override homepage template for newsletter.extrachill.com
- *
- * @since 1.0.0
- * @param string $template Default template path from theme
- * @return string Modified template path
- */
 function newsletter_override_homepage( $template ) {
 	// Only override on newsletter.extrachill.com (blog ID 9)
 	if ( get_current_blog_id() === 9 ) {
@@ -29,13 +22,6 @@ function newsletter_override_homepage( $template ) {
 	return $template;
 }
 add_filter( 'extrachill_template_homepage', 'newsletter_override_homepage' );
-
-/**
- * Modify main query to show newsletter posts on homepage
- *
- * @since 1.0.0
- * @param WP_Query $query The WordPress query object
- */
 function newsletter_homepage_query( $query ) {
 	// Only modify main query on newsletter site homepage
 	if ( ! is_admin() && $query->is_main_query() && is_front_page() && get_current_blog_id() === 9 ) {
@@ -46,15 +32,6 @@ function newsletter_homepage_query( $query ) {
 	}
 }
 add_action( 'pre_get_posts', 'newsletter_homepage_query' );
-
-/**
- * Newsletter Homepage Custom Archive Header
- *
- * Replaces default archive header with custom newsletter branding.
- * Only runs on newsletter.extrachill.com homepage.
- *
- * @since 1.0.0
- */
 function newsletter_override_archive_header() {
 	if ( get_current_blog_id() !== 9 || ! is_front_page() ) {
 		return;

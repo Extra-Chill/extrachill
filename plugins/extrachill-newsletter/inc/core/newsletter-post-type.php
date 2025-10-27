@@ -1,27 +1,16 @@
 <?php
 /**
- * Newsletter Custom Post Type Registration
+ * Newsletter Custom Post Type
  *
- * Handles the registration of the newsletter custom post type and related
- * admin functionality including meta boxes and post status handling.
+ * Post type registration, Sendy meta box, and admin functionality.
  *
  * @package ExtraChillNewsletter
  * @since 1.0.0
  */
-
-// Exit if accessed directly.
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-/**
- * Register Newsletter custom post type
- *
- * Creates the newsletter custom post type with full WordPress features
- * including REST API support, archive pages, and admin integration.
- *
- * @since 1.0.0
- */
 function create_newsletter_post_type() {
 	register_post_type('newsletter', array(
 		'labels' => array(
@@ -58,18 +47,6 @@ function create_newsletter_post_type() {
 	));
 }
 add_action('init', 'create_newsletter_post_type');
-
-/**
- * Check newsletter post conditions
- *
- * Validates whether newsletter operations should proceed based on
- * post status, type, and WordPress state conditions.
- *
- * @since 1.0.0
- * @param int $post_id WordPress post ID
- * @param WP_Post $post WordPress post object
- * @return bool True if conditions are met, false otherwise
- */
 function check_newsletter_conditions($post_id, $post) {
 	if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) {
 		return false;
@@ -79,15 +56,6 @@ function check_newsletter_conditions($post_id, $post) {
 	}
 	return true;
 }
-
-/**
- * Add Sendy integration meta box
- *
- * Adds administrative meta box for Sendy campaign management
- * to newsletter edit screens in wp-admin.
- *
- * @since 1.0.0
- */
 function add_newsletter_sendy_meta_box() {
 	add_meta_box(
 		'newsletter_sendy_meta_box',
@@ -99,16 +67,6 @@ function add_newsletter_sendy_meta_box() {
 	);
 }
 add_action('add_meta_boxes', 'add_newsletter_sendy_meta_box');
-
-/**
- * Render Sendy meta box HTML
- *
- * Outputs the meta box content with push to Sendy button
- * and JavaScript for AJAX campaign management.
- *
- * @since 1.0.0
- * @param WP_Post $post Current post object
- */
 function newsletter_sendy_meta_box_html($post) {
 	wp_nonce_field('newsletter_sendy_nonce_action', 'newsletter_sendy_nonce_field');
 
@@ -174,16 +132,6 @@ function newsletter_sendy_meta_box_html($post) {
 	</script>
 	<?php
 }
-
-/**
- * Save newsletter meta box data
- *
- * Handles saving of newsletter meta box data when posts are saved.
- * Currently used for Sendy campaign ID storage.
- *
- * @since 1.0.0
- * @param int $post_id WordPress post ID
- */
 function save_newsletter_meta_box_data($post_id) {
 	// Verify nonce
 	if (!isset($_POST['newsletter_sendy_nonce_field']) || !wp_verify_nonce($_POST['newsletter_sendy_nonce_field'], 'newsletter_sendy_nonce_action')) {

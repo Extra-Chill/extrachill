@@ -13,16 +13,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Override post meta display for newsletter post type
+ * Display "Sent on {date}" for newsletter posts
  *
- * Displays "Sent on {date}" instead of default theme post meta.
- * Assumes: if published, it has been sent (no separate tracking needed).
- *
- * @since 1.0.0
- * @param string $output Default meta HTML
- * @param int $post_id Post ID
- * @param string $post_type Post type
- * @return string Modified meta HTML
+ * Published status assumes newsletter has been sent.
  */
 function newsletter_custom_post_meta( $output, $post_id, $post_type ) {
 	if ( $post_type !== 'newsletter' ) {

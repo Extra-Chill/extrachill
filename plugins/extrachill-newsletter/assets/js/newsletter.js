@@ -1,8 +1,7 @@
 /**
- * ExtraChill Newsletter Plugin JavaScript
+ * Newsletter Form Handlers
  *
- * Handles all newsletter subscription forms, popup functionality,
- * and AJAX interactions throughout the site.
+ * AJAX subscription form handling and validation for all newsletter forms.
  *
  * @package ExtraChillNewsletter
  * @since 1.0.0
@@ -11,11 +10,6 @@
 (function($) {
     'use strict';
 
-    /**
-     * Newsletter Archive Form Handler
-     *
-     * Handles subscription form on newsletter archive pages
-     */
     function initArchiveForm() {
         const archiveForm = document.getElementById('newsletterArchiveForm');
         if (!archiveForm) return;
@@ -73,11 +67,6 @@
         });
     }
 
-    /**
-     * Homepage Newsletter Form Handler
-     *
-     * Handles the newsletter form on the homepage
-     */
     function initHomepageForm() {
         const homepageForm = document.getElementById('homepageNewsletterForm');
         if (!homepageForm) return;
@@ -149,11 +138,6 @@
         });
     }
 
-    /**
-     * Navigation Menu Newsletter Form Handler
-     *
-     * Handles newsletter subscription in navigation menu
-     */
     function initNavigationForm() {
         const navForm = document.querySelector('.newsletter-form');
         if (!navForm) return;
@@ -226,11 +210,6 @@
         });
     }
 
-    /**
-     * Content Newsletter Form Handler
-     *
-     * Handles subscription form that appears after post content
-     */
     function initContentForm() {
         const contentForm = document.getElementById('contentNewsletterForm');
         if (!contentForm) return;
@@ -295,11 +274,6 @@
         });
     }
 
-    /**
-     * Footer Newsletter Form Handler
-     *
-     * Handles subscription form that appears above the footer
-     */
     function initFooterForm() {
         const footerForm = document.getElementById('footerNewsletterForm');
         if (!footerForm) return;
@@ -363,13 +337,6 @@
             });
         });
     }
-
-
-    /**
-     * Initialize shortcode forms
-     *
-     * Handles newsletter subscription forms created by shortcodes
-     */
     function initShortcodeForms() {
         const shortcodeForms = document.querySelectorAll('.newsletter-shortcode-form');
 
@@ -430,20 +397,11 @@
             });
         });
     }
-
-    /**
-     * Utility function to validate email addresses
-     */
     function isValidEmail(email) {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         return emailRegex.test(email);
     }
 
-    /**
-     * Initialize Festival Wire Tip Form
-     *
-     * Handles tip form submissions with Turnstile verification and newsletter integration
-     */
     function initFestivalTipForm() {
         const form = document.getElementById('festival-wire-tip-form');
         const messageDiv = form?.querySelector('.festival-wire-tip-message');
@@ -568,9 +526,6 @@
         }
     }
 
-    /**
-     * Initialize all newsletter functionality when DOM is ready
-     */
     function initNewsletter() {
         // Initialize form handlers
         initArchiveForm();
@@ -580,10 +535,6 @@
         initFooterForm();
         initShortcodeForms();
         initFestivalTipForm();
-
-        // Newsletter popup functionality moved to dedicated newsletter-popup.js module
-
-        // Add form validation to all newsletter forms
         const newsletterForms = document.querySelectorAll('.newsletter-form, .newsletter-shortcode-form');
         newsletterForms.forEach(form => {
             const emailInput = form.querySelector('input[type="email"], input[name="email"]');

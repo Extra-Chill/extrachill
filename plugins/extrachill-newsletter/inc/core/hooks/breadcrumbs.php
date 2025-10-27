@@ -13,25 +13,79 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Customize breadcrumbs for newsletter single posts
+ * Newsletter breadcrumb root
  *
- * Provides "Newsletter → Post Title" breadcrumb format with link to homepage
- * since newsletters have no archive URL (homepage serves as archive).
+ * On homepage: just "Extra Chill"
+ * On other pages: "Extra Chill › Newsletter"
  *
+ * @param string $root_link Default root breadcrumb link HTML
+ * @return string Modified root link
  * @since 1.0.0
- * @param string $custom_trail Existing custom trail from other filters
- * @return string Modified breadcrumb trail
+ */
+function newsletter_breadcrumb_root( $root_link ) {
+	// Only apply on newsletter.extrachill.com (blog ID 9)
+	if ( get_current_blog_id() !== 9 ) {
+		return $root_link;
+	}
+
+	// On homepage, just "Extra Chill" (trail will add "Newsletter")
+	if ( is_front_page() ) {
+		return '<a href="https://extrachill.com">Extra Chill</a>';
+	}
+
+	// On other pages, include "Newsletter" in root
+	return '<a href="https://extrachill.com">Extra Chill</a> › <a href="' . esc_url( home_url() ) . '">Newsletter</a>';
+}
+add_filter( 'extrachill_breadcrumbs_root', 'newsletter_breadcrumb_root' );
+
+/**
+ * Newsletter homepage breadcrumb trail
+ *
+ * Displays just "Newsletter" (no link) on the homepage to prevent "Archives" suffix.
+ * Priority 5 to run before the single post breadcrumb function.
+ *
+ * @param string $custom_trail Existing custom trail from other plugins
+ * @return string Breadcrumb trail HTML
+ * @since 1.0.0
+ */
+function newsletter_breadcrumb_trail_homepage( $custom_trail ) {
+	// Only apply on newsletter.extrachill.com (blog ID 9)
+	if ( get_current_blog_id() !== 9 ) {
+		return $custom_trail;
+	}
+
+	// Only on front page (homepage)
+	if ( is_front_page() ) {
+		return '<span>Newsletter</span>';
+	}
+
+	return $custom_trail;
+}
+add_filter( 'extrachill_breadcrumbs_override_trail', 'newsletter_breadcrumb_trail_homepage', 5 );
+
+/**
+ * Newsletter breadcrumb format for single posts
+ *
+ * Links to newsletter.extrachill.com (homepage-as-archive).
+ *
+ * @param string $custom_trail Existing custom trail from other plugins
+ * @return string Breadcrumb trail HTML
+ * @since 1.0.0
  */
 function newsletter_customize_breadcrumbs( $custom_trail ) {
+	// Only apply on newsletter.extrachill.com (blog ID 9)
+	if ( get_current_blog_id() !== 9 ) {
+		return $custom_trail;
+	}
+
 	// Only modify on newsletter single posts
 	if ( ! is_singular( 'newsletter' ) ) {
 		return $custom_trail;
 	}
 
-	// Link to newsletter homepage (which serves as archive)
-	$newsletter_home = 'https://newsletter.extrachill.com';
+	// Build breadcrumb trail (root already has "Extra Chill › Newsletter")
 	$post_title = get_the_title();
 
-	return '<a href="' . esc_url( $newsletter_home ) . '">Newsletter</a> → <span>' . esc_html( $post_title ) . '</span>';
+	return '<span>' . esc_html( $post_title ) . '</span>';
 }
 add_filter( 'extrachill_breadcrumbs_override_trail', 'newsletter_customize_breadcrumbs' );

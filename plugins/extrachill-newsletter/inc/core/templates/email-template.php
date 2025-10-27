@@ -14,14 +14,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Prepare email content for Sendy
+ * Convert WordPress post to Sendy-compatible HTML email
  *
- * Converts WordPress post content to Sendy-compatible HTML email
- * with responsive styling, image optimization, and template structure.
- *
- * @since 1.0.0
- * @param WP_Post $post WordPress post object
- * @return array Email data with subject, HTML template, and plain text
+ * Responsive styling, image optimization, YouTube thumbnail conversion.
  */
 function prepare_newsletter_email_content($post) {
 	$content = apply_filters('the_content', $post->post_content);
@@ -65,15 +60,6 @@ function prepare_newsletter_email_content($post) {
 		'plain_text' => wp_strip_all_tags($content)
 	);
 }
-
-/**
- * Generate HTML email template
- *
- * @param string $subject Email subject line
- * @param string $content Processed email content with styling
- * @param string $unsubscribe_link Unsubscribe link HTML
- * @return string Complete HTML email template
- */
 function generate_email_html_template($subject, $content, $unsubscribe_link) {
 	$html_template = <<<HTML
 <html>

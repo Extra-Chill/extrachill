@@ -12,9 +12,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-/**
- * Enqueue frontend assets
- */
 function newsletter_enqueue_frontend_assets() {
 	// Forms CSS - loaded globally for navigation and other forms
 	$forms_css_path = EXTRACHILL_NEWSLETTER_PLUGIN_DIR . 'assets/css/newsletter-forms.css';
@@ -83,10 +80,6 @@ function newsletter_enqueue_frontend_assets() {
 	}
 }
 add_action( 'wp_enqueue_scripts', 'newsletter_enqueue_frontend_assets' );
-
-/**
- * Enqueue admin assets
- */
 function newsletter_enqueue_admin_assets( $hook ) {
 	global $post_type;
 	if ( 'newsletter' !== $post_type ) {
@@ -106,12 +99,9 @@ function newsletter_enqueue_admin_assets( $hook ) {
 add_action( 'admin_enqueue_scripts', 'newsletter_enqueue_admin_assets' );
 
 /**
- * Enqueue theme archive CSS on newsletter homepage
+ * Force theme archive CSS on newsletter homepage
  *
- * The newsletter homepage uses the theme's archive styling but is_front_page()
- * prevents normal archive CSS loading. Force load it here.
- *
- * @since 1.0.0
+ * Newsletter homepage (blog ID 9) uses archive layout but is_front_page() prevents normal loading.
  */
 function newsletter_enqueue_theme_archive_css() {
 	if ( get_current_blog_id() === 9 && is_front_page() ) {

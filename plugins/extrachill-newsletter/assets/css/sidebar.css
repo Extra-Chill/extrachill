@@ -60,7 +60,6 @@
 .newsletter-date {
     color: var(--muted-text, #666);
     font-size: 0.85em;
-    font-style: italic;
 }
 
 .view-all-link {
