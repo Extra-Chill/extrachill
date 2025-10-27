@@ -408,7 +408,7 @@ get_header(); ?>
                                         esc_html__( 'This space is for %s to connect with their community! If you\'re part of the artist, why not start a new topic? Share your latest news, upcoming gigs, or just say hello to your fans.', 'extrachill-artist-platform' ),
                                         $artist_name
                                     );
-                                    echo '<div class="bbp-template-notice info"><p>' . $custom_no_topics_message . '</p></div>';
+                                    echo '<div class="notice notice-info"><p>' . $custom_no_topics_message . '</p></div>';
                                 endif; // end bbp_has_topics()
                                 echo '</div>'; // .artist-forum-topics
                                 // --- End Display Topic List ---

@@ -8,7 +8,10 @@
  * @package ExtraChillArtistPlatform
  */
 
-get_header(); ?>
+get_header();
+
+extrachill_breadcrumbs();
+?>
 
 <article class="artist-platform-homepage">
 	<div class="inside-article">
@@ -30,11 +33,6 @@ get_header(); ?>
 					<div class="artist-platform-welcome">
 						<?php do_action( 'extrachill_artist_home_hero', $current_user, $is_logged_in, $can_create_artists, $user_artist_ids ); ?>
 
-						<div class="support-buttons-section">
-							<a href="https://artist.extrachill.com/extra-chill" class="button-1 button-support"><?php esc_html_e( 'Get Support', 'extrachill-artist-platform' ); ?></a>
-							<a href="https://extrachill.com/contact-us" class="button-1 button-contact"><?php esc_html_e( 'Contact', 'extrachill-artist-platform' ); ?></a>
-						</div>
-
 						<div class="featured-artists-section">
 							<h3><?php esc_html_e( 'Active Artists', 'extrachill-artist-platform' ); ?></h3>
 							<?php ec_display_artist_cards_grid( 24, false ); ?>
@@ -45,11 +43,6 @@ get_header(); ?>
 					<!-- Logged In, No Artists -->
 					<div class="artist-platform-getting-started">
 						<?php do_action( 'extrachill_artist_home_hero', $current_user, $is_logged_in, $can_create_artists, $user_artist_ids ); ?>
-
-						<div class="support-buttons-section">
-							<a href="https://artist.extrachill.com/extra-chill" class="button-1 button-support"><?php esc_html_e( 'Get Support', 'extrachill-artist-platform' ); ?></a>
-							<a href="https://extrachill.com/contact-us" class="button-1 button-contact"><?php esc_html_e( 'Contact', 'extrachill-artist-platform' ); ?></a>
-						</div>
 
 						<?php if ( $can_create_artists ) : ?>
 							<div class="getting-started-actions">
@@ -77,11 +70,6 @@ get_header(); ?>
 					<!-- Logged In, Has Artists - Dashboard -->
 					<div class="artist-platform-dashboard">
 						<?php do_action( 'extrachill_artist_home_hero', $current_user, $is_logged_in, $can_create_artists, $user_artist_ids ); ?>
-
-						<div class="support-buttons-section">
-							<a href="https://artist.extrachill.com/extra-chill" class="button-1 button-support"><?php esc_html_e( 'Get Support', 'extrachill-artist-platform' ); ?></a>
-							<a href="https://extrachill.com/contact-us" class="button-1 button-contact"><?php esc_html_e( 'Contact', 'extrachill-artist-platform' ); ?></a>
-						</div>
 
 						<?php
 						// Find most recently modified artist profile (same logic as avatar menu)

@@ -4,6 +4,10 @@
  *
  * Handles AJAX requests related to QR code generation for link pages.
  * Registered via wp_ajax hooks in this file.
+ *
+ * NOTE: This file depends on the endroid/qr-code library, which is now provided
+ * by the extrachill-admin-tools plugin. Ensure extrachill-admin-tools is active
+ * and has the endroid/qr-code dependency installed via Composer.
  */
 
 defined( 'ABSPATH' ) || exit;

@@ -22,8 +22,8 @@ defined( 'ABSPATH' ) || exit;
  * @return string|null Error code if upload fails, null on success
  */
 function ec_handle_link_page_file_uploads( $link_page_id, $files_data, $save_data = array() ) {
-    
-    if ( ! function_exists( 'wp_handle_upload' ) ) {
+
+    if ( ! function_exists( 'media_handle_upload' ) ) {
         require_once( ABSPATH . 'wp-admin/includes/file.php' );
         require_once( ABSPATH . 'wp-admin/includes/image.php' );
         require_once( ABSPATH . 'wp-admin/includes/media.php' );
@@ -124,8 +124,8 @@ function ec_handle_link_page_file_uploads( $link_page_id, $files_data, $save_dat
  * @param array $files_data $_FILES array
  */
 function ec_handle_artist_profile_file_uploads( $artist_id, $files_data ) {
-    
-    if ( ! function_exists( 'wp_handle_upload' ) ) {
+
+    if ( ! function_exists( 'media_handle_upload' ) ) {
         require_once( ABSPATH . 'wp-admin/includes/file.php' );
         require_once( ABSPATH . 'wp-admin/includes/image.php' );
         require_once( ABSPATH . 'wp-admin/includes/media.php' );

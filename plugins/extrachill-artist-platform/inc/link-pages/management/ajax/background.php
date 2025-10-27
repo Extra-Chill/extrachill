@@ -61,9 +61,9 @@ function extrch_upload_background_image_ajax() {
     require_once(ABSPATH . 'wp-admin/includes/image.php');
     require_once(ABSPATH . 'wp-admin/includes/file.php');
     require_once(ABSPATH . 'wp-admin/includes/media.php');
-    
+
     // Use centralized data for cleanup operations (single source of truth)
-    $data = ec_get_link_page_data($artist_id, $link_page_id);
+    $data = ec_get_link_page_data($associated_artist_id, $link_page_id);
     $old_bg_image_id = $data['settings']['background_image_id'] ?? '';
     
     // Upload the file
