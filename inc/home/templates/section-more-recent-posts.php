@@ -31,6 +31,6 @@ global $post, $more_recent_posts;
     <?php endif; ?>
   </div>
   <div class="home-more-recent-footer">
-    <a href="/all" class="home-more-recent-viewall">View All</a>
+    <a href="/all" class="home-more-recent-viewall button-3 button-small">View All</a>
   </div>
 </div> 

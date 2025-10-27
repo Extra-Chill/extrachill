@@ -14,6 +14,14 @@ add_theme_support( 'responsive-embeds' );
 add_theme_support( 'wp-block-styles' );
 add_theme_support( 'align-wide' );
 
+/**
+ * Enable WordPress native conditional block asset loading.
+ * WordPress 5.8+ feature for classic themes - loads block styles only when blocks are present.
+ * Site-wide optimization affecting all core blocks, plugin blocks, and custom blocks.
+ * For classic themes, styles load in footer via print_late_styles().
+ */
+add_filter('should_load_separate_core_block_assets', '__return_true');
+
 add_action('after_setup_theme', 'extrachill_setup');
 if (!function_exists('extrachill_setup')):
     function extrachill_setup()
@@ -73,6 +81,8 @@ require_once(EXTRACHILL_INCLUDES_DIR . '/core/yoast-stuff.php');
 
 require_once(EXTRACHILL_INCLUDES_DIR . '/sidebar/recent-posts.php');
 require_once(EXTRACHILL_INCLUDES_DIR . '/sidebar/community-activity.php');
+
+require_once(EXTRACHILL_INCLUDES_DIR . '/footer/back-to-home-link.php');
 
 function extrachill_remove_menu_admin_pages() {
     remove_submenu_page('themes.php', 'nav-menus.php');

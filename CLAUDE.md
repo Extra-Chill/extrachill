@@ -125,12 +125,18 @@ The theme implements template routing via WordPress's native `template_include` 
    - When a page has a custom template assigned (via `get_page_template_slug()`), the router bypasses filter hooks and lets WordPress handle template selection naturally
    - `index.php` serves as minimal emergency fallback only
 
-2. **Filter-Based Override System**:
+2. **Plugin Template System Bypasses**:
+   - **bbPress Integration**: bbPress pages bypass routing via `is_bbpress()` check, allowing bbPress's native template system to handle community pages
+   - **WooCommerce Integration**: WooCommerce pages (shop, cart, checkout, account) bypass routing via `is_woocommerce()` check, allowing WooCommerce's native template system to handle e-commerce pages
+   - Both use early return pattern before template routing logic to ensure native plugin template systems work correctly
+   - This allows shop.extrachill.com to use Shop page as homepage without theme interference
+
+3. **Filter-Based Override System**:
    - Each template route supports dedicated filter: `extrachill_template_*`
    - Plugins can completely override template files at the routing level
    - Maintains backward compatibility while enabling deep customization
 
-3. **Supported Routes**:
+4. **Supported Routes**:
    - `extrachill_template_homepage` - Front page and home page routing
    - `extrachill_template_single_post` - Single post template override
    - `extrachill_template_page` - Page template override (only applied when no custom page template is assigned)
@@ -139,7 +145,7 @@ The theme implements template routing via WordPress's native `template_include` 
    - `extrachill_template_404` - 404 error pages
    - `extrachill_template_fallback` - Unknown page types fallback
 
-4. **Custom Page Template Handling**:
+5. **Custom Page Template Handling**:
    - Router checks for custom page templates via `get_page_template_slug()` before applying filters
    - If a custom template is assigned and exists in the theme, the router returns WordPress's natural template selection
    - This allows standard WordPress page templates (e.g., `page-templates/all-posts.php`) to work without plugin interference

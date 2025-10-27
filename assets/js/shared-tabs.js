@@ -33,14 +33,14 @@ document.addEventListener('DOMContentLoaded', function() {
              const targetButton = component.querySelector('.shared-tab-button[data-tab="' + tabId + '"]');
              if (targetButton) {
                  // Call updateTabs, forcing it to open/activate regardless of current state or device size
-                 updateTabs(targetButton, true, true, false); // Args: activeButton, shouldScroll, forceOpen, isButtonClick
+                 updateTabs(targetButton, true, true, false, false); // Args: activeButton, shouldScroll, forceOpen, isButtonClick, shouldUpdateHash
              } else {
                  // console.warn('Attempted to activate non-existent tab:', tabId);
              }
         }
 
         // Modify updateTabs to accept an optional forceOpen parameter
-        function updateTabs(activeButton, shouldScroll = true, forceOpen = false, isButtonClick = false) {
+        function updateTabs(activeButton, shouldScroll = true, forceOpen = false, isButtonClick = false, shouldUpdateHash = false) {
             if (!activeButton) return; 
             const targetTabId = activeButton.dataset.tab;
             const targetPane = component.querySelector('#' + targetTabId + '.shared-tab-pane');
@@ -145,9 +145,9 @@ document.addEventListener('DOMContentLoaded', function() {
                  }
             }
 
-            // Update URL hash (but NOT on initial load)
+            // Update URL hash (but NOT on initial load and ONLY on explicit user click)
             if (targetPane && targetPane.id && activeButton.classList.contains('active')) {
-                if (!isInitialLoad) {
+                if (!isInitialLoad && shouldUpdateHash) {
                     if (history.pushState) {
                         history.pushState(null, null, window.location.pathname + window.location.search.split('#')[0] + '#' + targetPane.id);
                     } else {
@@ -180,7 +180,7 @@ document.addEventListener('DOMContentLoaded', function() {
             button.addEventListener('click', function(e) {
                 e.preventDefault();
                 // Pass shouldScroll = true only if on mobile (accordion mode)
-                updateTabs(this, window.innerWidth < mobileBreakpoint, false, true); // Args: activeButton, shouldScroll, forceOpen, isButtonClick
+                updateTabs(this, window.innerWidth < mobileBreakpoint, false, true, true); // Args: activeButton, shouldScroll, forceOpen, isButtonClick, shouldUpdateHash
             });
         });
 
@@ -193,8 +193,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (targetPaneByHash) {
                     const correspondingButton = component.querySelector('.shared-tab-button[data-tab="' + hash.substring(1) + '"]');
                     if (correspondingButton) {
-                        // On initial load, do NOT scroll
-                        updateTabs(correspondingButton, false, false, false); // shouldScroll = false
+                        // On initial load, do NOT scroll or update hash (hash already in URL)
+                        updateTabs(correspondingButton, false, false, false, false); // Args: activeButton, shouldScroll, forceOpen, isButtonClick, shouldUpdateHash
                         activatedByHash = true;
                     }
                 }
@@ -224,8 +224,8 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             if (activeButton) {
-                // On initial load, do NOT scroll
-                updateTabs(activeButton, false, false, false); // shouldScroll = false
+                // On initial load, do NOT scroll or update hash
+                updateTabs(activeButton, false, false, false, false); // Args: activeButton, shouldScroll, forceOpen, isButtonClick, shouldUpdateHash
             } else if (tabButtons.length === 0 && desktopContentArea) {
                 desktopContentArea.style.display = 'none';
             }
@@ -253,8 +253,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 const shouldScrollOnResize = layoutModeChanged && currentLayoutMode === 'mobile' && activeButtonOnResize;
 
                 if (activeButtonOnResize) {
-                    // Pass the determined shouldScroll flag
-                    updateTabs(activeButtonOnResize, shouldScrollOnResize, false, false); // Args: activeButton, shouldScroll, forceOpen, isButtonClick
+                    // Pass the determined shouldScroll flag, do NOT update hash on resize
+                    updateTabs(activeButtonOnResize, shouldScrollOnResize, false, false, false); // Args: activeButton, shouldScroll, forceOpen, isButtonClick, shouldUpdateHash
                 } else {
                      // If no active button after resize, re-initialize without specific scroll
                      // initializeDefaultOrActiveTab(); // initializeDefaultOrActiveTab handles its own scrolling logic

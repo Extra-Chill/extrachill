@@ -7,11 +7,6 @@
     --link-hover-color: var(--text-color);
     /* Slightly lighter gray for borders so they're less prominent */
     --border-color: #ddd;
-    /* Buttons in light mode: deep blue, with a slightly darker hover */
-    --button-bg: #0b5394;
-    --button-hover-bg: #083b6c;
-    --button-secondary-bg: #53940b;
-    --button-secondary-hover-bg: #3d6b08;
     /* Accent & Secondary Accent */
     --accent: #53940b;
     --accent-2: #36454F;
@@ -29,15 +24,6 @@
     /* Focus/Outline States */
     --focus-border-color: #53940b;
     --focus-box-shadow: 0 0 0 3px rgba(83, 148, 11, 0.2);
-    /* Button Text */
-    --button-text: #fff;
-    /* Button Sizes */
-    --button-padding-small: 6px 12px;
-    --button-font-size-small: 13px;
-    --button-padding-medium: 8px 16px;
-    --button-font-size-medium: 14px;
-    --button-padding-large: 12px 24px;
-    --button-font-size-large: 16px;
 }
 
 /* --- Dark Mode Overrides --- */
@@ -51,11 +37,6 @@
         --link-hover-color: var(--text-color);
         /* Darker border for separation */
         --border-color: #555;
-        /* Keep the button as green, with a slightly darker hover for subtle transitions */
-        --button-bg: #0b5394;
-        --button-hover-bg: #083b6c;
-        --button-secondary-bg: #53940b;
-        --button-secondary-hover-bg: #3d6b08;
         /* Accent & Secondary Accent */
         --accent: #53940b; /* Keep the green accent in dark mode */
         --accent-2: #a8c0d0;
@@ -73,7 +54,5 @@
         /* Focus/Outline States */
         --focus-border-color: #8aa6bf;
         --focus-box-shadow: 0 0 0 3px rgba(138, 166, 191, 0.2);
-        /* Button Text */
-        --button-text: #fff;
     }
 } 

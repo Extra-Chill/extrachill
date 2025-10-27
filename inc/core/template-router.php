@@ -17,11 +17,16 @@ add_filter( 'template_include', 'extrachill_route_templates' );
 
 /**
  * Routes templates via WordPress conditional tags with extrachill_template_* filters for plugin override.
- * bbPress templates bypass routing for native bbPress template system.
+ * bbPress and WooCommerce templates bypass routing for native template systems.
  */
 function extrachill_route_templates( $template ) {
 
 	if ( function_exists( 'is_bbpress' ) && is_bbpress() ) {
+		return $template;
+	}
+
+	// WooCommerce bypass - allow WooCommerce to handle its own templates
+	if ( function_exists( 'is_woocommerce' ) && ( is_woocommerce() || is_cart() || is_checkout() || is_account_page() ) ) {
 		return $template;
 	}
 

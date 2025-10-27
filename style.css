@@ -291,10 +291,7 @@ textarea {
 }
 
 input[type="text"], input[type="email"], input[type="url"], input[type="password"] {
-	padding: 1%;
 	border: 1px solid var(--border-color);
-	line-height: 20px;
-	width: 90%;
 	margin: 0 0 10px;
 	background-color: var(--card-background);
 	border-radius: 3px;
@@ -423,22 +420,22 @@ input[type="reset"], input[type="button"], input[type="submit"] {
 
 /* Minimal element type fallback for areas we don't control */
 button, input[type="reset"], input[type="button"], input[type="submit"] {
-	background-color: var(--button-bg);
-	color: var(--button-text);
-	padding: var(--button-padding-medium);
+	background-color: #0b5394;
+	color: #fff;
+	padding: 8px 16px;
 	border: none;
 	border-radius: 5px;
-	font-size: var(--button-font-size-medium);
+	font-size: 14px;
 	cursor: pointer;
 	transition: background-color 0.3s ease;
 }
 
 button:hover, input[type="reset"]:hover, input[type="button"]:hover, input[type="submit"]:hover {
-	background-color: var(--button-hover-bg);
+	background-color: #083b6c;
 }
 
 .wp-block-button__link {
-	background-color: var(--button-bg);
+	background-color: #0b5394;
 	border-radius:12px;
 	color: #fff;
     box-shadow: none;
@@ -447,10 +444,10 @@ button:hover, input[type="reset"]:hover, input[type="button"]:hover, input[type=
 }
 
 .wp-block-button__link:hover{
-	background-color: var(--button-hover-bg);
+	background-color: #083b6c;
 }
 button:hover{
-	background-color: var(--button-hover-bg);
+	background-color: #083b6c;
 }
 
 
@@ -558,23 +555,6 @@ text-decoration: none;
 .forum-meta{
 	padding: 0;
 }
-
-
-.post-categories{
-	background-color: var(--card-background);
-	color: var(--text-color);
-	border-radius: 3px;
-}
-.post-categories a{
-	box-sizing: border-box;
-	color: var(--muted-text);
-}
-.post-location a{
-	background-color: var(--button-bg);
-	color: #fff;
-}
-
-
 
 .below-entry-meta a {
     color: inherit;
@@ -919,10 +899,12 @@ padding:3px;
 	}
 	.extrachill-content {
 		grid-template-columns: 1fr; /* single column on mobile */
+		padding-left: max(0.75em, env(safe-area-inset-left));
+		padding-right: max(0.75em, env(safe-area-inset-right));
 	}
 	.full-width-breakout {
-		padding-left: max(1.0em, env(safe-area-inset-left));
-		padding-right: max(1.0em, env(safe-area-inset-right));
+		padding-left: max(0.75em, env(safe-area-inset-left));
+		padding-right: max(0.75em, env(safe-area-inset-right));
 	}
 }
 
@@ -967,10 +949,7 @@ div.article-container :before {
 .taxonomy-badge {
   font-size: 0.75rem;
   padding: 0.25rem 0.75rem;
-  background-color: var(--card-background);
-  color: var(--link-color);
   border-radius: 50px;
-  border: 1px solid var(--border-color);
   font-weight: 500;
   line-height: 1;
   text-decoration: none;
@@ -978,17 +957,16 @@ div.article-container :before {
   transition: background 0.18s, color 0.18s;
 }
 .taxonomy-badge:hover {
-  background-color: var(--button-hover-bg);
-  color: #fff;
   text-decoration: none;
 }
 
 /*--------------------------------------------------------------
-Notice System
+Notice System - 3 Tiers Using Theme Colors
 --------------------------------------------------------------*/
 .notice {
   padding: 1em 1.5em;
-  margin-bottom: 1.5em;
+  margin: 0 auto 1.5em auto;
+  max-width: 1200px;
   border-radius: 4px;
   border-left: 4px solid;
   background-color: var(--card-background);
@@ -1000,13 +978,14 @@ Notice System
   border-left-color: var(--accent);
 }
 
-.notice-error {
-  border-left-color: #dc3232;
-}
-
 .notice-info {
   background-color: var(--notice-bg);
-  border-left-color: var(--notice-border);
+  border-left-color: var(--accent-2);
+}
+
+.notice-error {
+  background-color: var(--card-background);
+  border-left-color: #dc3232;
 }
 
 /*--------------------------------------------------------------
@@ -1025,7 +1004,7 @@ button.button-1, button.button-2, button.button-3, button.button-danger {
   text-decoration: none;
   transition: background-color 0.3s ease;
   line-height: 1.4;
-  color: var(--button-text);
+  color: #fff;
 }
 
 /* Button-1: Primary/Accent */
@@ -1033,14 +1012,14 @@ button.button-1, button.button-2, button.button-3, button.button-danger {
 a.button-1,
 input.button-1,
 button.button-1 {
-  background-color: var(--button-bg);
+  background-color: #0b5394;
 }
 
 .button-1:hover,
 a.button-1:hover,
 input.button-1:hover,
 button.button-1:hover {
-  background-color: var(--button-hover-bg);
+  background-color: #083b6c;
   text-decoration: none;
 }
 
@@ -1049,14 +1028,14 @@ button.button-1:hover {
 a.button-2,
 input.button-2,
 button.button-2 {
-  background-color: var(--button-secondary-bg);
+  background-color: #53940b;
 }
 
 .button-2:hover,
 a.button-2:hover,
 input.button-2:hover,
 button.button-2:hover {
-  background-color: var(--button-secondary-hover-bg);
+  background-color: #3d6b08;
 }
 
 /* Button-3: Neutral/Tertiary */
@@ -1098,23 +1077,30 @@ button.button-danger:hover {
 a.button-small,
 input.button-small,
 button.button-small {
-  padding: var(--button-padding-small);
-  font-size: var(--button-font-size-small);
+  padding: 6px 12px;
+  font-size: 13px;
 }
 
 .button-medium,
 a.button-medium,
 input.button-medium,
 button.button-medium {
-  padding: var(--button-padding-medium);
-  font-size: var(--button-font-size-medium);
+  padding: 8px 16px;
+  font-size: 14px;
 }
 
 .button-large,
 a.button-large,
 input.button-large,
 button.button-large {
-  padding: var(--button-padding-large);
-  font-size: var(--button-font-size-large);
+  padding: 12px 24px;
+  font-size: 16px;
+}
+
+/* Back to Home Link */
+.back-to-home-container {
+  text-align: center;
+  margin-top: 1.5em;
+  margin-bottom: 1.5em;
 }
 
