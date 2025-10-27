@@ -14,7 +14,6 @@ defined( 'ABSPATH' ) || exit;
 
 <div id="bbpress-forums" class="bbpress-wrapper">
 
-
 	<?php bbp_forum_subscription_link(); ?>
 
 	<?php do_action( 'bbp_template_before_single_forum' ); ?>

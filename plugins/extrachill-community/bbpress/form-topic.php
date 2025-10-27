@@ -53,7 +53,7 @@ if ( ! bbp_is_single_forum() ) : ?>
 
 				<?php if ( ! bbp_is_topic_edit() && bbp_is_forum_closed() ) : ?>
 
-					<div class="bbp-template-notice">
+					<div class="notice notice-info">
 						<ul>
 							<li><?php esc_html_e( 'This forum is marked as closed to new topics, however your posting capabilities still allow you to create a topic.', 'bbpress' ); ?></li>
 						</ul>
@@ -87,19 +87,6 @@ if ( ! bbp_is_single_forum() ) : ?>
 							<label><?php printf( esc_html__( 'You may use these %s tags and attributes:', 'bbpress' ), '<abbr title="HyperText Markup Language">HTML</abbr>' ); ?></label><br />
 							<code><?php bbp_allowed_tags(); ?></code>
 						</p>
-
-					<?php endif; ?>
-
-					<?php if ( bbp_allow_topic_tags() && current_user_can( 'assign_topic_tags', bbp_get_topic_id() ) ) : ?>
-
-						<?php do_action( 'bbp_theme_before_topic_form_tags' ); ?>
-
-						<p>
-							<label for="bbp_topic_tags"><?php esc_html_e( 'Topic Tags:', 'bbpress' ); ?></label><br />
-							<input type="text" value="<?php bbp_form_topic_tags(); ?>" size="40" name="bbp_topic_tags" id="bbp_topic_tags" <?php disabled( bbp_is_topic_spam() ); ?> />
-						</p>
-
-						<?php do_action( 'bbp_theme_after_topic_form_tags' ); ?>
 
 					<?php endif; ?>
 
@@ -194,15 +181,11 @@ if ( ! bbp_is_single_forum() ) : ?>
 
 					<?php do_action( 'bbp_theme_before_topic_form_submit_wrapper' ); ?>
 
-					<div class="bbp-submit-wrapper">
+					<?php do_action( 'bbp_theme_before_topic_form_submit_button' ); ?>
 
-						<?php do_action( 'bbp_theme_before_topic_form_submit_button' ); ?>
+					<button type="submit" id="bbp_topic_submit" name="bbp_topic_submit" class="button-1 button-large bbp-submit-button"><?php esc_html_e( 'Submit', 'bbpress' ); ?></button>
 
-						<button type="submit" id="bbp_topic_submit" name="bbp_topic_submit" class="button-1 button-medium"><?php esc_html_e( 'Submit', 'bbpress' ); ?></button>
-
-						<?php do_action( 'bbp_theme_after_topic_form_submit_button' ); ?>
-
-					</div>
+					<?php do_action( 'bbp_theme_after_topic_form_submit_button' ); ?>
 
 					<?php do_action( 'bbp_theme_after_topic_form_submit_wrapper' ); ?>
 
@@ -220,7 +203,7 @@ if ( ! bbp_is_single_forum() ) : ?>
 <?php elseif ( bbp_is_forum_closed() ) : ?>
 
 	<div id="forum-closed-<?php bbp_forum_id(); ?>" class="bbp-forum-closed">
-		<div class="bbp-template-notice">
+		<div class="notice notice-info">
 			<ul>
 				<li><?php printf( esc_html__( 'The forum &#8216;%s&#8217; is closed to new topics and replies.', 'bbpress' ), bbp_get_forum_title() ); ?></li>
 			</ul>
@@ -230,7 +213,7 @@ if ( ! bbp_is_single_forum() ) : ?>
 <?php else : ?>
 
 	<div id="no-topic-<?php bbp_forum_id(); ?>" class="bbp-no-topic">
-		<div class="bbp-template-notice">
+		<div class="notice notice-info">
 			<ul>
 				<li><?php is_user_logged_in()
 					? esc_html_e( 'You cannot create new topics.',               'bbpress' )

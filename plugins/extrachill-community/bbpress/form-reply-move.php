@@ -26,13 +26,13 @@ defined( 'ABSPATH' ) || exit;
 
 					<div>
 
-						<div class="bbp-template-notice info">
+						<div class="notice notice-info">
 							<ul>
 								<li><?php esc_html_e( 'You can either make this reply a new topic with a new title, or merge it into an existing topic.', 'bbpress' ); ?></li>
 							</ul>
 						</div>
 
-						<div class="bbp-template-notice">
+						<div class="notice notice-info">
 							<ul>
 								<li><?php esc_html_e( 'If you choose an existing topic, replies will be ordered by the time and date they were created.', 'bbpress' ); ?></li>
 							</ul>
@@ -69,15 +69,13 @@ defined( 'ABSPATH' ) || exit;
 
 						</fieldset>
 
-						<div class="bbp-template-notice error" role="alert" tabindex="-1">
+						<div class="notice notice-error" role="alert" tabindex="-1">
 							<ul>
 								<li><?php esc_html_e( 'This process cannot be undone.', 'bbpress' ); ?></li>
 							</ul>
 						</div>
 
-						<div class="bbp-submit-wrapper">
-							<button type="submit" id="bbp_move_reply_submit" name="bbp_move_reply_submit" class="button-1 button-medium"><?php esc_html_e( 'Submit', 'bbpress' ); ?></button>
-						</div>
+						<button type="submit" id="bbp_move_reply_submit" name="bbp_move_reply_submit" class="button-1 button-large bbp-submit-button"><?php esc_html_e( 'Submit', 'bbpress' ); ?></button>
 					</div>
 
 					<?php bbp_move_reply_form_fields(); ?>

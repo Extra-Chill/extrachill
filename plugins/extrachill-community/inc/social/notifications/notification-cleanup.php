@@ -27,16 +27,11 @@ function extrachill_mark_notifications_as_read() {
     $current_user_id = get_current_user_id();
 
     // Switch to community site to update notifications
-    $community_blog_id = get_blog_id_from_url( 'community.extrachill.com', '/' );
-    if ( ! $community_blog_id ) {
-        return; // Failsafe: can't find community site
-    }
-
     $current_blog_id = get_current_blog_id();
     $switched = false;
 
-    if ( $current_blog_id !== $community_blog_id ) {
-        switch_to_blog( $community_blog_id );
+    if ( $current_blog_id !== 2 ) {
+        switch_to_blog( 2 );
         $switched = true;
     }
 

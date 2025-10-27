@@ -1,0 +1,110 @@
+/* ==================================================
+   Blog Comments Feed - Main Site Comments Display
+
+   Reuses .bbp-reply-card structure for base styling.
+   This file contains blog-specific overrides only.
+
+   Base card styling inherited from replies-loop.css
+   Theme variables from root.css
+================================================== */
+
+/* Blog comment cards container */
+.bbpress-comments-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+/* Blog comment card (inherits from .bbp-reply-card) */
+.bbp-reply-card.blog-comment-card {
+    /* Specific adjustments for blog comments if needed */
+}
+
+/* Blog post title section - shows which post was commented on */
+.blog-comment-post-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--text-color);
+    margin-bottom: 0.5rem;
+    padding: 10px 16px;
+    background: var(--background-color);
+    border-radius: 4px;
+}
+
+.blog-comment-post-title b {
+    color: var(--muted-text);
+    font-weight: 500;
+    font-size: 0.9rem;
+}
+
+.blog-comment-post-title a {
+    color: var(--accent);
+    text-decoration: none;
+}
+
+.blog-comment-post-title a:hover {
+    text-decoration: underline;
+}
+
+/* Main site link styling - replaces reply/edit links */
+.blog-comment-main-site-link {
+    font-size: 0.9rem;
+    color: var(--link-color);
+    padding: 8px 12px;
+    background: rgba(var(--accent-rgb), 0.1);
+    border-radius: 4px;
+    display: inline-block;
+    margin-top: 10px;
+    text-decoration: none;
+    transition: all 0.2s ease;
+}
+
+.blog-comment-main-site-link:hover {
+    background: rgba(var(--accent-rgb), 0.15);
+    color: var(--accent-2);
+}
+
+/* Feed header styling */
+.bbpress-comments-list h3 {
+    font-size: 1.5rem;
+    margin-bottom: 1.5rem;
+    color: var(--text-color);
+}
+
+/* Username highlight in header */
+.comments-feed-user {
+    color: var(--accent);
+    border-bottom: 2px solid var(--link-color);
+}
+
+/* Empty state message */
+.bbpress-comments-list p {
+    color: var(--muted-text);
+    font-size: 1rem;
+}
+
+/* Ensure blog comment cards have proper spacing */
+.blog-comment-card:last-child {
+    margin-bottom: 2rem;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+    .blog-comment-post-title {
+        font-size: 1rem;
+        padding: 8px 12px;
+    }
+
+    .blog-comment-post-title b {
+        font-size: 0.85rem;
+    }
+
+    .blog-comment-main-site-link {
+        font-size: 0.85rem;
+        padding: 6px 10px;
+    }
+
+    .bbpress-comments-list h3 {
+        font-size: 1.3rem;
+    }
+}

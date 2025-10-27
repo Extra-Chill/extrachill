@@ -58,15 +58,13 @@ function extrachill_capture_mention_notifications($post_id, $topic_id, $forum_id
             // Mention notifications are more specific than reply notifications
             if ($user->ID == get_post_field('post_author', $actual_topic_id_for_context)) {
                 // Switch to community site for deduplication
-                $community_blog_id = get_blog_id_from_url( 'community.extrachill.com', '/' );
-                if ( $community_blog_id ) {
-                    $current_blog_id = get_current_blog_id();
-                    $switched = false;
+                $current_blog_id = get_current_blog_id();
+                $switched = false;
 
-                    if ( $current_blog_id !== $community_blog_id ) {
-                        switch_to_blog( $community_blog_id );
-                        $switched = true;
-                    }
+                if ( $current_blog_id !== 2 ) {
+                    switch_to_blog( 2 );
+                    $switched = true;
+                }
 
                     try {
                         $user_notifications = get_user_meta($user->ID, 'extrachill_notifications', true) ?: [];
@@ -95,7 +93,6 @@ function extrachill_capture_mention_notifications($post_id, $topic_id, $forum_id
                             restore_current_blog();
                         }
                     }
-                }
             }
         }
     }

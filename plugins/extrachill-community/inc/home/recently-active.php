@@ -77,6 +77,6 @@ defined( 'ABSPATH' ) || exit;
         ?>
     </ul>
     <div class="view-all-users-link">
-    <a href="<?php echo esc_url(home_url('/recent')); ?>">View Recently Active</a>
+    <a href="<?php echo esc_url(home_url('/recent')); ?>" class="button-3 button-medium">View Recently Active</a>
 </div>
 </div>

@@ -26,14 +26,14 @@ defined( 'ABSPATH' ) || exit;
 
 					<div>
 
-						<div class="bbp-template-notice info">
+						<div class="notice notice-info">
 							<ul>
 								<li><?php esc_html_e( 'Select the topic to merge this one into. The destination topic will remain the lead topic, and this one will change into a reply.', 'bbpress' ); ?></li>
 								<li><?php esc_html_e( 'To keep this topic as the lead, go to the other topic and use the merge tool from there instead.',                                  'bbpress' ); ?></li>
 							</ul>
 						</div>
 
-						<div class="bbp-template-notice">
+						<div class="notice notice-info">
 							<ul>
 								<li><?php esc_html_e( 'Replies to both topics are merged chronologically, ordered by the time and date they were published. Topics may be updated to a 1 second difference to maintain chronological order based on the merge direction.', 'bbpress' ); ?></li>
 							</ul>
@@ -91,15 +91,13 @@ defined( 'ABSPATH' ) || exit;
 							</div>
 						</fieldset>
 
-						<div class="bbp-template-notice error">
+						<div class="notice notice-error">
 							<ul>
 								<li><?php esc_html_e( 'This process cannot be undone.', 'bbpress' ); ?></li>
 							</ul>
 						</div>
 
-						<div class="bbp-submit-wrapper">
-							<button type="submit" id="bbp_merge_topic_submit" name="bbp_merge_topic_submit" class="button-1 button-medium"><?php esc_html_e( 'Submit', 'bbpress' ); ?></button>
-						</div>
+						<button type="submit" id="bbp_merge_topic_submit" name="bbp_merge_topic_submit" class="button-1 button-large bbp-submit-button"><?php esc_html_e( 'Submit', 'bbpress' ); ?></button>
 					</div>
 
 					<?php bbp_merge_topic_form_fields(); ?>

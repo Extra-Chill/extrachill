@@ -26,13 +26,13 @@ defined( 'ABSPATH' ) || exit;
 
 					<div>
 
-						<div class="bbp-template-notice info">
+						<div class="notice notice-info">
 							<ul>
 								<li><?php esc_html_e( 'When you split a topic, you are slicing it in half starting with the reply you just selected. Choose to use that reply as a new topic with a new title, or merge those replies into an existing topic.', 'bbpress' ); ?></li>
 							</ul>
 						</div>
 
-						<div class="bbp-template-notice">
+						<div class="notice notice-info">
 							<ul>
 								<li><?php esc_html_e( 'If you use the existing topic option, replies within both topics will be merged chronologically. The order of the merged replies is based on the time and date they were posted.', 'bbpress' ); ?></li>
 							</ul>
@@ -95,15 +95,13 @@ defined( 'ABSPATH' ) || exit;
 							</div>
 						</fieldset>
 
-						<div class="bbp-template-notice error" role="alert" tabindex="-1">
+						<div class="notice notice-error" role="alert" tabindex="-1">
 							<ul>
 								<li><?php esc_html_e( 'This process cannot be undone.', 'bbpress' ); ?></li>
 							</ul>
 						</div>
 
-						<div class="bbp-submit-wrapper">
-							<button type="submit" id="bbp_merge_topic_submit" name="bbp_merge_topic_submit" class="button-1 button-medium"><?php esc_html_e( 'Submit', 'bbpress' ); ?></button>
-						</div>
+						<button type="submit" id="bbp_merge_topic_submit" name="bbp_merge_topic_submit" class="button-1 button-large bbp-submit-button"><?php esc_html_e( 'Submit', 'bbpress' ); ?></button>
 					</div>
 
 					<?php bbp_split_topic_form_fields(); ?>

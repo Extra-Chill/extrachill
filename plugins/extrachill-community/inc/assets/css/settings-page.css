@@ -33,13 +33,6 @@
     opacity: 0.8;
 }
 
-/* Enhanced input styling for email fields */
-input[type="email"]#current_email:disabled {
-    background-color: #f8f9fa;
-    color: #6c757d;
-    cursor: not-allowed;
-}
-
 input[type="email"]#new_email {
     background-color: #fff;
     border: 2px solid #e9ecef;
@@ -131,9 +124,9 @@ input[type="email"]#new_email:focus {
 .shared-tab-pane form input[type="submit"], /* Adjusted selector */
 .settings-tab-pane form input[type="submit"] {
     padding: 10px 15px;
-    background-color: var(--button-primary-bg, #0073aa); /* Use more specific vars if available */
-    color: var(--button-primary-text, white);
-    border: 1px solid var(--button-primary-border, transparent);
+    background-color: #0b5394;
+    color: white;
+    border: 1px solid transparent;
     border-radius: 3px;
     cursor: pointer;
     transition: background-color 0.2s ease-in-out;
@@ -142,7 +135,7 @@ input[type="email"]#new_email:focus {
 
 .shared-tab-pane form input[type="submit"]:hover, /* Adjusted selector */
 .settings-tab-pane form input[type="submit"]:hover {
-    background-color: var(--button-primary-hover-bg, #005a87);
+    background-color: #083b6c;
 }
 
 /* Error and Success messages - using .bp-notice structure if possible, or keep custom */

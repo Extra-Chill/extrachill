@@ -1,10 +1,11 @@
 /**
- * Content Expansion for Activity Feed
+ * Content Expansion for Truncated Content
  *
- * Provides content expansion toggle functionality for activity feed items.
+ * Provides Show More/Less toggle functionality for long content in:
+ * - Recent activity feed (replies)
+ * - Main blog comments feed
  */
 
-// Content expansion toggle for recent activity feed
 function toggleContentExpansion(replyId, button) {
     const container = document.getElementById('content-' + replyId);
     const preview = container.querySelector('.content-preview');

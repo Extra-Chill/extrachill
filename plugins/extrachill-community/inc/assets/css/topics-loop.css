@@ -241,12 +241,6 @@
     vertical-align: middle;
 }
 
-div.bbp-template-notice.error, div.bbp-template-notice.warning {
-    background-color: var(--background-color);
-    border: 1px solid red;
-    border-radius: 5px;
-    padding: 10px;
-}
 .artist-forum-topics ol, .artist-forum-topics ul {
 	margin: 0;
 }

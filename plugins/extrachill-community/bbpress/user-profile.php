@@ -81,14 +81,15 @@ $is_professional   = get_user_meta( $displayed_user_id, 'user_is_professional', 
 // Wrap the entire conditional artist section in a card
 // Check if the user is marked as an artist or professional
 if ( $is_artist || $is_professional ) :
-    $user_artist_ids = get_user_meta( bbp_get_displayed_user_id(), '_artist_profile_ids', true );
+    // Use canonical function from extrachill-users plugin
+    $user_artist_ids = function_exists('ec_get_artists_for_user') ? ec_get_artists_for_user( bbp_get_displayed_user_id() ) : array();
     ?>
     <div class="bbp-user-profile-card user-artist-cards-fullwidth">
         <h2>
             <?php
             $display_name = bbp_get_displayed_user_field('display_name');
             // Adjust title based on whether they have bands or not
-            if ( !empty($user_artist_ids) && is_array($user_artist_ids) ) {
+            if ( !empty($user_artist_ids) ) {
                  printf( esc_html__( "%s's Artists", 'extra-chill-community' ), esc_html($display_name) );
             } else if ( bbp_get_displayed_user_id() == get_current_user_id() ) {
                  // Title for own profile with no bands
@@ -96,39 +97,45 @@ if ( $is_artist || $is_professional ) :
             }
             ?>
         </h2>
-        <?php if ( !empty($user_artist_ids) && is_array($user_artist_ids) ) : ?>
-            <div class="artist-cards-grid">
-                <?php foreach ( $user_artist_ids as $user_artist_id ) : ?>
-                    <?php 
-                    $artist_post = get_post( $user_artist_id ); 
-                    if ( $artist_post && $artist_post->post_type === 'artist_profile' ) :
-                        // Use plugin's filter-based template system
-                        if ( function_exists( 'ec_render_template' ) ) {
-                            echo ec_render_template( 'artist-profile-card', array(
-                                'artist_id' => $user_artist_id,
-                                'context' => 'user-profile'
-                            ) );
-                        }
-                    endif; ?>
-                <?php endforeach; ?>
-            </div>
+        <?php if ( !empty($user_artist_ids) ) : ?>
+            <ul class="user-artist-list">
+                <?php
+                switch_to_blog( 4 ); // Switch to artist.extrachill.com for post data
+                foreach ( $user_artist_ids as $user_artist_id ) :
+                    $artist_post = get_post( $user_artist_id );
+                    if ( $artist_post ) :
+                        $artist_url = 'https://artist.extrachill.com/' . $artist_post->post_name . '/';
+                ?>
+                    <li class="user-artist-item">
+                        <a href="<?php echo esc_url( $artist_url ); ?>" class="user-artist-link">
+                            <?php echo esc_html( $artist_post->post_title ); ?>
+                        </a>
+                    </li>
+                <?php
+                    endif;
+                endforeach;
+                restore_current_blog();
+                ?>
+            </ul>
         <?php else : ?>
             <p><?php esc_html_e( 'No artist profiles yet.', 'extra-chill-community' ); ?></p>
         <?php endif; ?>
 
-        <?php 
-        // --- Conditional Management Buttons for Own Profile --- 
-        if ( bbp_get_displayed_user_id() == get_current_user_id() ) : // Check if it's the logged-in user's own profile
-            // $is_artist is already confirmed by the outer conditional
+        <?php
+        // Management buttons - only show if viewing own profile or user is admin
+        if ( bbp_get_displayed_user_id() == get_current_user_id() || current_user_can( 'manage_options' ) ) :
             $current_user_id_for_card_buttons = get_current_user_id();
-            $base_manage_artists_url_card = home_url( '/manage-artist-profiles/' );
-            $base_manage_link_page_url_card = home_url( '/manage-link-page/' );
+            $base_manage_artists_url_card = 'https://artist.extrachill.com/manage-artist-profiles/';
+            $base_manage_link_page_url_card = 'https://artist.extrachill.com/manage-link-page/';
 
             echo '<div class="user-artist-management-actions">';
 
-            if ( !empty($user_artist_ids) && is_array($user_artist_ids) ) : // Already have $user_artist_ids from above
+            if ( !empty($user_artist_ids) && is_array($user_artist_ids) ) :
+                // User has artist profiles - find most recently updated one
                 $latest_artist_id_card = 0;
                 $latest_modified_timestamp_card = 0;
+
+                switch_to_blog( 4 );
                 foreach ( $user_artist_ids as $artist_id_item_card ) {
                     $artist_id_int_card = absint($artist_id_item_card);
                     if ( $artist_id_int_card > 0 ) {
@@ -142,19 +149,20 @@ if ( $is_artist || $is_professional ) :
                         }
                     }
                 }
+                restore_current_blog();
+
                 $final_manage_artists_url_card = $base_manage_artists_url_card;
-                $final_manage_link_page_url_card = $base_manage_link_page_url_card;
                 if ( $latest_artist_id_card > 0 ) {
                     $final_manage_artists_url_card = add_query_arg( 'artist_id', $latest_artist_id_card, $base_manage_artists_url_card );
-                    $final_manage_link_page_url_card = add_query_arg( 'artist_id', $latest_artist_id_card, $base_manage_link_page_url_card );
                 }
             ?>
                 <a href="<?php echo esc_url( $final_manage_artists_url_card ); ?>" class="button-1 button-small"><?php esc_html_e( 'Manage Artist(s)', 'extra-chill-community' ); ?></a>
-            <?php else : // No artist profiles, but is an artist, viewing own profile ?>
+            <?php else : // No artist profiles, but user can create ?>
                 <a href="<?php echo esc_url( $base_manage_artists_url_card ); ?>" class="button-1 button-small"><?php esc_html_e( 'Create Artist Profile', 'extra-chill-community' ); ?></a>
-            <?php endif; // End if has artist_ids (for buttons)
+            <?php endif;
+
             echo '</div>'; // End .user-artist-management-actions
-        endif; // End if viewing own profile
+        endif; // End permission check
         ?>
     </div>
 <?php endif; // End if user_is_artist or user_is_professional ?>

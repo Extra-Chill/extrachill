@@ -96,9 +96,9 @@ composer install
 **Core (7 files loaded)**:
 - `inc/core/assets.php`, `bbpress-templates.php`, `breadcrumb-filter.php`, `page-templates.php`, `nav.php`, `bbpress-spam-adjustments.php`, `sidebar.php`
 
-**Content (4 files loaded)**:
+**Content (5 files loaded)**:
 - `inc/content/editor/tinymce-customization.php`, `editor/tinymce-image-uploads.php`
-- `inc/content/content-filters.php`, `recent-feed.php`
+- `inc/content/content-filters.php`, `recent-feed.php`, `main-site-comments.php`
 
 **Social (12 files loaded)**:
 - `inc/social/upvote.php`, `user-mention-api.php`, `forum-badges.php`
@@ -118,7 +118,7 @@ composer install
 **Template Components (3 files - loaded via include/filters, NOT in init)**:
 - `inc/home/forum-home-header.php`, `forum-homepage.php`, `recently-active.php`
 
-**Total: 35 files explicitly loaded in init + 3 template components = 38 total files**
+**Total: 36 files explicitly loaded in init + 3 template components = 39 total files**
 
 ### Page Templates
 - `page-templates/leaderboard-template.php` - User leaderboard
@@ -175,8 +175,8 @@ Custom templates in `bbpress/` directory provide enhanced forum functionality:
 8. **Performance Optimization** - Conditional loading and selective script enqueuing
 
 ### Forum Features Architecture
-1. **Explicit Loading Pattern** - 35 files loaded via direct `require_once` in `extrachill_community_init()` function + 3 template components loaded via includes/filters
-2. **Organized Structure** - Features grouped by functionality: core (7), content (4), social (12), user-profiles (8), home (4), plus 3 template components
+1. **Explicit Loading Pattern** - 36 files loaded via direct `require_once` in `extrachill_community_init()` function + 3 template components loaded via includes/filters
+2. **Organized Structure** - Features grouped by functionality: core (7), content (5), social (12), user-profiles (8), home (4), plus 3 template components
 3. **Conditional Loading** - Context-aware CSS/JS loading for performance
 4. **bbPress Integration** - Custom templates via `inc/core/bbpress-templates.php` routing, breadcrumb customization via `bbp_breadcrumbs` filter
 5. **Hook-Based Components** - Homepage and settings use action hooks for extensibility
@@ -261,7 +261,7 @@ The plugin operates as a production WordPress plugin serving the Extra Chill com
 
 **Modern Architecture**: The plugin uses hook-based components for homepage and settings pages, organized file structure in `inc/` directory, and WordPress multisite native authentication. All assets moved to `inc/assets/css/` and `inc/assets/js/` directories.
 
-**Plugin Integration**: Other plugins can use the `ec_avatar_menu_items` filter to add custom menu items to the user avatar dropdown, maintaining seamless navigation between community and plugin-specific functions.
+**Plugin Integration**: Other plugins can use the `ec_avatar_menu_items` filter (provided by extrachill-users plugin) to add custom menu items to the user avatar dropdown, maintaining seamless navigation between community and plugin-specific functions.
 
 ## Cross-Domain Authentication Flow
 

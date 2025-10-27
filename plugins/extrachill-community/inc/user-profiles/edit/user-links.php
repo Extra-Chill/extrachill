@@ -110,6 +110,7 @@ function extrachill_enqueue_user_links_assets() {
         'spotify' => array('label' => 'Spotify', 'icon' => 'fab fa-spotify'),
         'soundcloud' => array('label' => 'SoundCloud', 'icon' => 'fab fa-soundcloud'),
         'bandcamp' => array('label' => 'Bandcamp', 'icon' => 'fab fa-bandcamp'),
+        'github' => array('label' => 'GitHub', 'icon' => 'fab fa-github'),
         'other' => array('label' => 'Other', 'icon' => 'fas fa-link', 'has_custom_label' => true)
     );
 

@@ -34,7 +34,7 @@ if ( bbp_is_reply_edit() ) : ?>
 
 				<?php if ( ! bbp_is_topic_open() && ! bbp_is_reply_edit() ) : ?>
 
-					<div class="bbp-template-notice">
+					<div class="notice notice-info">
 						<ul>
 							<li><?php esc_html_e( 'This topic is marked as closed to new replies, however your posting capabilities still allow you to reply.', 'bbpress' ); ?></li>
 						</ul>
@@ -44,7 +44,7 @@ if ( bbp_is_reply_edit() ) : ?>
 
 				<?php if ( ! bbp_is_reply_edit() && bbp_is_forum_closed() ) : ?>
 
-					<div class="bbp-template-notice">
+					<div class="notice notice-info">
 						<ul>
 							<li><?php esc_html_e( 'This forum is closed to new content, however your posting capabilities still allow you to post.', 'bbpress' ); ?></li>
 						</ul>
@@ -55,7 +55,7 @@ if ( bbp_is_reply_edit() ) : ?>
 				<?php // Carefully comment out only the unfiltered_html notice block ?>
 				<?php /* if ( current_user_can( 'unfiltered_html' ) ) : ?>
 
-					<div class="bbp-template-notice">
+					<div class="notice notice-info">
 						<ul>
 							<li><?php esc_html_e( 'Your account has the ability to post unrestricted HTML content.', 'bbpress' ); ?></li>
 						</ul>
@@ -168,17 +168,11 @@ if ( bbp_is_reply_edit() ) : ?>
 
 					<?php do_action( 'bbp_theme_before_reply_form_submit_wrapper' ); ?>
 
-					<div class="bbp-submit-wrapper">
+					<?php do_action( 'bbp_theme_before_reply_form_submit_button' ); ?>
 
-						<?php do_action( 'bbp_theme_before_reply_form_submit_button' ); ?>
+					<button type="submit" id="bbp_reply_submit" name="bbp_reply_submit" class="button-1 button-large bbp-submit-button"><?php esc_html_e( 'Submit', 'bbpress' ); ?></button>
 
-						<?php bbp_cancel_reply_to_link(); ?>
-
-						<button type="submit" id="bbp_reply_submit" name="bbp_reply_submit" class="button-1 button-medium"><?php esc_html_e( 'Submit', 'bbpress' ); ?></button>
-
-						<?php do_action( 'bbp_theme_after_reply_form_submit_button' ); ?>
-
-					</div>
+					<?php do_action( 'bbp_theme_after_reply_form_submit_button' ); ?>
 
 					<?php do_action( 'bbp_theme_after_reply_form_submit_wrapper' ); ?>
 
@@ -196,7 +190,7 @@ if ( bbp_is_reply_edit() ) : ?>
 <?php elseif ( bbp_is_topic_closed() ) : ?>
 
 	<div id="no-reply-<?php bbp_topic_id(); ?>" class="bbp-no-reply">
-		<div class="bbp-template-notice">
+		<div class="notice notice-info">
 			<ul>
 				<li><?php printf( esc_html__( 'The topic &#8216;%s&#8217; is closed to new replies.', 'bbpress' ), bbp_get_topic_title() ); ?></li>
 			</ul>
@@ -206,7 +200,7 @@ if ( bbp_is_reply_edit() ) : ?>
 <?php elseif ( bbp_is_forum_closed( bbp_get_topic_forum_id() ) ) : ?>
 
 	<div id="no-reply-<?php bbp_topic_id(); ?>" class="bbp-no-reply">
-		<div class="bbp-template-notice">
+		<div class="notice notice-info">
 			<ul>
 				<li><?php printf( esc_html__( 'The forum &#8216;%s&#8217; is closed to new topics and replies.', 'bbpress' ), bbp_get_forum_title( bbp_get_topic_forum_id() ) ); ?></li>
 			</ul>
@@ -216,7 +210,7 @@ if ( bbp_is_reply_edit() ) : ?>
 <?php else : ?>
 
 	<div id="no-reply-<?php bbp_topic_id(); ?>" class="bbp-no-reply">
-		<div class="bbp-template-notice">
+		<div class="notice notice-info">
 			<ul>
 				<li><?php is_user_logged_in()
 					? esc_html_e( 'You cannot reply to this topic.',               'bbpress' )

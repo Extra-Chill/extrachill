@@ -45,7 +45,7 @@ if ( bbp_is_forum_edit() ) : ?>
 
 				<?php if ( ! bbp_is_forum_edit() && bbp_is_forum_closed() ) : ?>
 
-					<div class="bbp-template-notice">
+					<div class="notice notice-info">
 						<ul>
 							<li><?php esc_html_e( 'This forum is closed to new content, however your posting capabilities still allow you to post.', 'bbpress' ); ?></li>
 						</ul>
@@ -55,7 +55,7 @@ if ( bbp_is_forum_edit() ) : ?>
 
 				<?php if ( current_user_can( 'unfiltered_html' ) ) : ?>
 
-					<div class="bbp-template-notice">
+					<div class="notice notice-info">
 						<ul>
 							<li><?php esc_html_e( 'Your account has the ability to post unrestricted HTML content.', 'bbpress' ); ?></li>
 						</ul>
@@ -143,15 +143,11 @@ if ( bbp_is_forum_edit() ) : ?>
 
 					<?php do_action( 'bbp_theme_before_forum_form_submit_wrapper' ); ?>
 
-					<div class="bbp-submit-wrapper">
+					<?php do_action( 'bbp_theme_before_forum_form_submit_button' ); ?>
 
-						<?php do_action( 'bbp_theme_before_forum_form_submit_button' ); ?>
+					<button type="submit" id="bbp_forum_submit" name="bbp_forum_submit" class="button-1 button-large bbp-submit-button"><?php esc_html_e( 'Submit', 'bbpress' ); ?></button>
 
-						<button type="submit" id="bbp_forum_submit" name="bbp_forum_submit" class="button-1 button-medium"><?php esc_html_e( 'Submit', 'bbpress' ); ?></button>
-
-						<?php do_action( 'bbp_theme_after_forum_form_submit_button' ); ?>
-
-					</div>
+					<?php do_action( 'bbp_theme_after_forum_form_submit_button' ); ?>
 
 					<?php do_action( 'bbp_theme_after_forum_form_submit_wrapper' ); ?>
 
@@ -169,7 +165,7 @@ if ( bbp_is_forum_edit() ) : ?>
 <?php elseif ( bbp_is_forum_closed() ) : ?>
 
 	<div id="no-forum-<?php bbp_forum_id(); ?>" class="bbp-no-forum">
-		<div class="bbp-template-notice">
+		<div class="notice notice-info">
 			<ul>
 				<li><?php printf( esc_html__( 'The forum &#8216;%s&#8217; is closed to new content.', 'bbpress' ), bbp_get_forum_title() ); ?></li>
 			</ul>
@@ -179,7 +175,7 @@ if ( bbp_is_forum_edit() ) : ?>
 <?php else : ?>
 
 	<div id="no-forum-<?php bbp_forum_id(); ?>" class="bbp-no-forum">
-		<div class="bbp-template-notice">
+		<div class="notice notice-info">
 			<ul>
 				<li><?php is_user_logged_in()
 					? esc_html_e( 'You cannot create new forums.',               'bbpress' )

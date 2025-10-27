@@ -331,14 +331,7 @@ span.bbp-topic-post-date {
     box-shadow: var(--card-shadow);
 }
 
-.topic-card-sidebar a {
-    color: var(--link-color);
-    text-decoration: none;
-}
-
 .topic-card-sidebar a.post-title  {
-    color: var(--accent);
-    text-decoration: underline;
     font-size: 20px;
     font-weight: bold;
 }
@@ -366,15 +359,6 @@ span.bbp-topic-post-date {
 .topic-card-sidebar span.bbp-topic-post-date {
     font-size: 0.7rem;
     color: var(--muted-text);
-}
-
-/* Forum link styling in sidebar cards */
-.topic-card-sidebar a[href*="/forums/"] {
-    text-decoration: none;
-}
-
-.topic-card-sidebar a[href*="/forums/"]:hover {
-    text-decoration: underline;
 }
 
 .topic-views {

@@ -20,11 +20,11 @@ if (!defined('ABSPATH')) {
 
 <div class="homepage-top-actions">
     <?php if (is_user_logged_in()) : ?>
-        <a href="<?php echo bbp_get_user_profile_url(get_current_user_id()); ?>" class="button profile-btn"><?php esc_html_e('View Profile', 'extra-chill-community'); ?></a>
-        <a href="/settings" class="button settings-btn"><?php esc_html_e('Settings', 'extra-chill-community'); ?></a>
+        <a href="<?php echo bbp_get_user_profile_url(get_current_user_id()); ?>" class="button-1 button-medium"><?php esc_html_e('View Profile', 'extra-chill-community'); ?></a>
+        <a href="/settings" class="button-2 button-medium"><?php esc_html_e('Settings', 'extra-chill-community'); ?></a>
     <?php else : ?>
-        <a href="/login" class="button login-btn"><?php esc_html_e('Log In', 'extra-chill-community'); ?></a>
-        <a href="/login?register=1" class="button signup-btn"><?php esc_html_e('Sign Up', 'extra-chill-community'); ?></a>
+        <a href="/login" class="button-1 button-medium"><?php esc_html_e('Log In', 'extra-chill-community'); ?></a>
+        <a href="/login?register=1" class="button-2 button-medium"><?php esc_html_e('Sign Up', 'extra-chill-community'); ?></a>
     <?php endif; ?>
 </div>
 

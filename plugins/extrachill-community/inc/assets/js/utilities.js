@@ -54,7 +54,3 @@ document.addEventListener('DOMContentLoaded', function() {
         element.addEventListener('mouseleave', hideTooltip);
     });
 });
-
-
-
-

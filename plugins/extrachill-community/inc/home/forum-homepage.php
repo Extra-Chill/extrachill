@@ -15,6 +15,8 @@ if (!defined('ABSPATH')) {
 
 get_header();
 
+extrachill_breadcrumbs();
+
 do_action('extrachill_community_home_header');
 
 do_action('extrachill_community_home_top');

@@ -97,44 +97,49 @@ wp_reset_postdata(); // Reset the global post object
     </div>
     
     <?php
-    $website = bbp_get_displayed_user_field('user_url');
-    $social_media_fields = [
-        'instagram' => get_user_meta(bbp_get_displayed_user_id(), 'instagram', true),
-        'spotify' => get_user_meta(bbp_get_displayed_user_id(), 'spotify', true),
-        'soundcloud' => get_user_meta(bbp_get_displayed_user_id(), 'soundcloud', true),
-        'twitter' => get_user_meta(bbp_get_displayed_user_id(), 'twitter', true),
-        'facebook' => get_user_meta(bbp_get_displayed_user_id(), 'facebook', true),
-        'bandcamp' => get_user_meta(bbp_get_displayed_user_id(), 'bandcamp', true),
-    ];
-    
-    $utility_links = [];
-    for ($i = 1; $i <= 3; $i++) {
-        $link = get_user_meta(bbp_get_displayed_user_id(), "utility_link_$i", true);
-        if ($link) $utility_links[] = $link;
+    $user_id = bbp_get_displayed_user_id();
+    $dynamic_links = get_user_meta($user_id, '_user_profile_dynamic_links', true);
+
+    if (!is_array($dynamic_links)) {
+        $dynamic_links = array();
     }
-    
-    $has_links = $website || array_filter($social_media_fields) || !empty($utility_links);
+
+    $platform_icons = array(
+        'website' => 'fas fa-globe',
+        'facebook' => 'fab fa-facebook',
+        'instagram' => 'fab fa-instagram',
+        'twitter' => 'fab fa-twitter',
+        'youtube' => 'fab fa-youtube',
+        'tiktok' => 'fab fa-tiktok',
+        'spotify' => 'fab fa-spotify',
+        'soundcloud' => 'fab fa-soundcloud',
+        'bandcamp' => 'fab fa-bandcamp',
+        'github' => 'fab fa-github',
+        'other' => 'fas fa-link'
+    );
     ?>
-    
-    <?php if ($has_links) : ?>
+
+    <?php if (!empty($dynamic_links)) : ?>
     <div class="bbp-user-links-inline">
-        <?php if ($website) : ?>
-            <a href="<?php echo esc_url($website); ?>" class="social-link website" target="_blank" rel="noopener">
-                <i class="fas fa-globe"></i>
-            </a>
-        <?php endif; ?>
+        <?php foreach ($dynamic_links as $link) : ?>
+            <?php
+            $type_key = isset($link['type_key']) ? $link['type_key'] : 'other';
+            $url = isset($link['url']) ? $link['url'] : '';
+            $custom_label = isset($link['custom_label']) ? $link['custom_label'] : '';
+            $icon_class = isset($platform_icons[$type_key]) ? $platform_icons[$type_key] : 'fas fa-link';
 
-        <?php foreach ($social_media_fields as $platform => $url) : ?>
-            <?php if (!empty($url)) : ?>
-                <a href="<?php echo esc_url($url); ?>" class="social-link <?php echo esc_attr($platform); ?>" target="_blank" rel="noopener">
-                    <i class="fab fa-<?php echo esc_attr($platform); ?>"></i>
-                </a>
-            <?php endif; ?>
-        <?php endforeach; ?>
+            if (empty($url)) {
+                continue;
+            }
 
-        <?php foreach ($utility_links as $url) : ?>
-            <a href="<?php echo esc_url($url); ?>" class="social-link utility" target="_blank" rel="noopener">
-                <i class="fas fa-link"></i>
+            $title_attr = $custom_label ? esc_attr($custom_label) : ucfirst($type_key);
+            ?>
+            <a href="<?php echo esc_url($url); ?>"
+               class="social-link <?php echo esc_attr($type_key); ?>"
+               target="_blank"
+               rel="noopener"
+               title="<?php echo $title_attr; ?>">
+                <i class="<?php echo esc_attr($icon_class); ?>"></i>
             </a>
         <?php endforeach; ?>
     </div><!-- .bbp-user-links-inline -->

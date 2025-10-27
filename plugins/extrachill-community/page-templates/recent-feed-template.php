@@ -58,7 +58,7 @@ if (extrachill_get_recent_feed_query(15)) {
     </div>
     <?php
 } else {
-    echo '<div class="bbp-template-notice"><p>No recent activity found.</p></div>';
+    echo '<div class="notice notice-info"><p>No recent activity found.</p></div>';
 }
 
 ?>

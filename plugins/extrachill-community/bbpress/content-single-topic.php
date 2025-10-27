@@ -33,7 +33,7 @@ defined( 'ABSPATH' ) || exit;
                     $latest_reply_url = esc_url( bbp_get_reply_url( $latest_reply_id ) );
 
                     // Display the "Jump to Latest" button
-                    echo '<button id="jump-to-latest" class="jump-to-latest" data-latest-reply-url="' . $latest_reply_url . '">Jump to Latest</button>';
+                    echo '<button id="jump-to-latest" class="jump-to-latest button-3 button-small" data-latest-reply-url="' . $latest_reply_url . '">Jump to Latest</button>';
                 }
                 ?>
             </div>

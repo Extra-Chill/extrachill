@@ -21,7 +21,7 @@ if (!defined('ABSPATH')) {
 function ec_community_add_artist_platform_buttons() {
     ?>
     <div class="artist-platform-homepage-actions">
-        <a href="https://artist.extrachill.com/artists/extra-chill/" class="button support-forum-btn">
+        <a href="https://artist.extrachill.com/extra-chill" class="button-2 button-medium">
             <?php esc_html_e('Support Forum', 'extra-chill-community'); ?>
         </a>
 
@@ -32,13 +32,13 @@ function ec_community_add_artist_platform_buttons() {
 
             if ($can_create_artists) :
                 ?>
-                <a href="https://artist.extrachill.com/" class="button artist-platform-btn">
+                <a href="https://artist.extrachill.com/" class="button-3 button-medium">
                     <?php esc_html_e('Artist Platform', 'extra-chill-community'); ?>
                 </a>
             <?php endif;
         else :
             // For visitors, show join/sign up call to action ?>
-            <a href="https://artist.extrachill.com/login/#tab-register?from_join=true" class="button artist-platform-btn">
+            <a href="https://artist.extrachill.com/login/#tab-register?from_join=true" class="button-3 button-medium">
                 <?php esc_html_e('Join Artist Platform', 'extra-chill-community'); ?>
             </a>
         <?php endif; ?>

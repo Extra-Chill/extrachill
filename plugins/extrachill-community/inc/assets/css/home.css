@@ -484,64 +484,6 @@ ul.recently-active-topic-row {
     justify-content: center;
 }
 
-.view-all-users-link a {
-    color: var(--accent-2);
-    text-decoration: none;
-    font-size: 1rem;
-    font-weight: bold;
-}
-
-/* ===============================================
-   Band Directory Page Styles
-   =============================================== */
-
-.artist-directory-header {
-    text-align: center;
-    margin-bottom: 32px;
-    padding: 24px 0;
-    border-bottom: 1px solid var(--border-color);
-}
-
-.artist-directory-header .page-title {
-    margin: 0 0 12px 0;
-    font-size: 2.5rem;
-    font-weight: 700;
-    color: var(--text-color);
-}
-
-.artist-directory-header .page-description {
-    font-size: 1.1rem;
-    color: var(--muted-text);
-    margin: 0 0 20px 0;
-    max-width: 600px;
-    margin-left: auto;
-    margin-right: auto;
-}
-
-.artist-directory-actions {
-    margin-top: 16px;
-}
-
-.artist-directory-wrapper {
-    margin-top: 24px;
-}
-
-/* Band Directory Page Mobile Responsive */
-@media (max-width: 768px) {
-    .artist-directory-header .page-title {
-        font-size: 2rem;
-    }
-    
-    .artist-directory-header .page-description {
-        font-size: 1rem;
-        padding: 0 16px;
-    }
-    
-    .artist-directory-header {
-        padding: 16px 0;
-    }
-}
-
 /* ===============================================
    Artist Platform Homepage Action Buttons
    =============================================== */

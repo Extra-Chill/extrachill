@@ -126,6 +126,27 @@ function modular_bbpress_styles() {
 }
 add_action('wp_enqueue_scripts', 'modular_bbpress_styles');
 
+function enqueue_blog_comments_feed_styles() {
+    if (is_page_template('page-templates/main-blog-comments-feed.php')) {
+        // Load replies-loop.css for base card styling
+        wp_enqueue_style(
+            'replies-loop',
+            EXTRACHILL_COMMUNITY_PLUGIN_URL . '/inc/assets/css/replies-loop.css',
+            array('extrachill-bbpress'),
+            filemtime(EXTRACHILL_COMMUNITY_PLUGIN_DIR . '/inc/assets/css/replies-loop.css')
+        );
+
+        // Load blog-specific overrides
+        wp_enqueue_style(
+            'blog-comments-feed',
+            EXTRACHILL_COMMUNITY_PLUGIN_URL . '/inc/assets/css/blog-comments-feed.css',
+            array('replies-loop'),
+            filemtime(EXTRACHILL_COMMUNITY_PLUGIN_DIR . '/inc/assets/css/blog-comments-feed.css')
+        );
+    }
+}
+add_action('wp_enqueue_scripts', 'enqueue_blog_comments_feed_styles');
+
 function enqueue_user_profile_styles() {
     if ( bbp_is_single_user() || bbp_is_single_user_edit() || bbp_is_user_home() ) {
         wp_enqueue_style(
@@ -145,37 +166,37 @@ function extrachill_enqueue_scripts() {
     $upvote_script_version = filemtime( $stylesheet_dir . '/inc/assets/js/upvote.js' );
     $mentions_script_version = filemtime( $stylesheet_dir . '/inc/assets/js/extrachill-mentions.js' );
 
-    wp_enqueue_script('extrachill-upvote', $stylesheet_dir_uri . '/inc/assets/js/upvote.js', array('jquery'), $upvote_script_version, true);
-    wp_localize_script('extrachill-upvote', 'extrachill_ajax', array(
-        'ajaxurl' => admin_url('admin-ajax.php'),
-        'nonce' => wp_create_nonce('upvote_nonce'),
-        'user_id' => get_current_user_id()
-    ));
+    if ( is_bbpress() || is_page('recent') ) {
+        wp_enqueue_script('extrachill-upvote', $stylesheet_dir_uri . '/inc/assets/js/upvote.js', array('jquery'), $upvote_script_version, true);
+        wp_localize_script('extrachill-upvote', 'extrachill_ajax', array(
+            'ajaxurl' => admin_url('admin-ajax.php'),
+            'nonce' => wp_create_nonce('upvote_nonce'),
+            'user_id' => get_current_user_id()
+        ));
+    }
 
-   if (is_bbpress()) {
-       wp_enqueue_script('extrachill-mentions', $stylesheet_dir_uri . '/inc/assets/js/extrachill-mentions.js', array('jquery'), $mentions_script_version, true);
-   }
+    if (is_bbpress()) {
+        wp_enqueue_script('extrachill-mentions', $stylesheet_dir_uri . '/inc/assets/js/extrachill-mentions.js', array('jquery'), $mentions_script_version, true);
+    }
 }
 add_action('wp_enqueue_scripts', 'extrachill_enqueue_scripts', 20);
 
-function enqueue_collapse_script() {
-    if ( is_front_page() || is_home() || is_page('recent') ) {
-        $script_path = '/inc/assets/js/home-collapse.js';
+function enqueue_content_expand_script() {
+    if ( is_page('recent') || is_page_template('page-templates/main-blog-comments-feed.php') ) {
+        $script_path = '/inc/assets/js/content-expand.js';
         $script_full_path = EXTRACHILL_COMMUNITY_PLUGIN_DIR . $script_path;
         $version = filemtime($script_full_path);
-        wp_enqueue_script( 'home-collapse', EXTRACHILL_COMMUNITY_PLUGIN_URL . $script_path, array('jquery'), $version, true );
+        wp_enqueue_script( 'extrachill-content-expand', EXTRACHILL_COMMUNITY_PLUGIN_URL . $script_path, array('jquery'), $version, true );
     }
 }
-add_action( 'wp_enqueue_scripts', 'enqueue_collapse_script' );
+add_action( 'wp_enqueue_scripts', 'enqueue_content_expand_script' );
 
 function enqueue_utilities() {
-    $script_path = EXTRACHILL_COMMUNITY_PLUGIN_DIR . '/inc/assets/js/utilities.js';
-    $version = filemtime($script_path);
-    wp_enqueue_script('extrachill-utilities', EXTRACHILL_COMMUNITY_PLUGIN_URL . '/inc/assets/js/utilities.js', array('jquery'), $version, true);
-    wp_localize_script('extrachill-utilities', 'extrachill_ajax', array(
-        'ajaxurl' => admin_url('admin-ajax.php'),
-        'nonce' => wp_create_nonce('extrachill_ajax_nonce')
-    ));
+    if ( is_bbpress() ) {
+        $script_path = EXTRACHILL_COMMUNITY_PLUGIN_DIR . '/inc/assets/js/utilities.js';
+        $version = filemtime($script_path);
+        wp_enqueue_script('extrachill-utilities', EXTRACHILL_COMMUNITY_PLUGIN_URL . '/inc/assets/js/utilities.js', array('jquery'), $version, true);
+    }
 }
 add_action('wp_enqueue_scripts', 'enqueue_utilities');
 

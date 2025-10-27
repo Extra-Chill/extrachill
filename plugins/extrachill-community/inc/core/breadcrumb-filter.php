@@ -1,9 +1,9 @@
 <?php
 /**
- * bbPress Breadcrumb Customization
+ * Community Breadcrumb Integration
  *
- * Removes redundant "Forums" root link from bbPress breadcrumbs since
- * community.extrachill.com homepage IS the forums.
+ * Integrates with theme's breadcrumb system to provide community-specific
+ * breadcrumbs with "Community" root link and proper bbPress page detection.
  *
  * @package ExtraChillCommunity
  * @since 1.0.0
@@ -14,23 +14,113 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Filter bbPress breadcrumbs to remove redundant "Forums" root link
+ * Change breadcrumb root from "Home" to "Extra Chill → Community" on community pages
  *
- * Since community.extrachill.com homepage is the forum archive, the "Forums"
- * breadcrumb link is redundant. This filter removes it from the crumbs array.
+ * Uses theme's extrachill_breadcrumbs_root filter to override the root link.
+ * Only applies on blog ID 2 (community.extrachill.com).
  *
- * Before: Home › Forums › Carolina Reefer
- * After:  Home › Carolina Reefer
- *
- * @param array $crumbs Array of breadcrumb HTML strings
- * @return array Modified breadcrumb array with Forums root link removed
+ * @param string $root_link Default root breadcrumb link HTML
+ * @return string Modified root link
  * @since 1.0.0
  */
-function extrachill_community_filter_breadcrumbs( $crumbs ) {
-	// Remove the "Forums" root link - homepage IS the forums
-	// The root link has the class "bbp-breadcrumb-root"
-	return array_values( array_filter( $crumbs, function( $crumb ) {
-		return strpos( $crumb, 'bbp-breadcrumb-root' ) === false;
-	} ) );
+function extrachill_community_breadcrumb_root( $root_link ) {
+	// Only apply on community.extrachill.com (blog ID 2)
+	if ( get_current_blog_id() !== 2 ) {
+		return $root_link;
+	}
+
+	// On homepage, just "Extra Chill" (trail will add "Community")
+	if ( is_front_page() ) {
+		return '<a href="https://extrachill.com">Extra Chill</a>';
+	}
+
+	// On other pages, include "Community" in root
+	return '<a href="https://extrachill.com">Extra Chill</a> › <a href="' . esc_url( home_url() ) . '">Community</a>';
 }
-add_filter( 'bbp_breadcrumbs', 'extrachill_community_filter_breadcrumbs' );
+add_filter( 'extrachill_breadcrumbs_root', 'extrachill_community_breadcrumb_root' );
+
+/**
+ * Override breadcrumb trail for community homepage
+ *
+ * Displays just "Community" (no link) on the homepage to prevent "Archives" suffix.
+ * Priority 5 to run before the main breadcrumb trail function.
+ *
+ * @param string $custom_trail Existing custom trail from other plugins
+ * @return string Breadcrumb trail HTML
+ * @since 1.0.0
+ */
+function extrachill_community_breadcrumb_trail_homepage( $custom_trail ) {
+	// Only apply on community.extrachill.com (blog ID 2)
+	if ( get_current_blog_id() !== 2 ) {
+		return $custom_trail;
+	}
+
+	// Only on front page (homepage)
+	if ( is_front_page() ) {
+		return '<span>Community</span>';
+	}
+
+	return $custom_trail;
+}
+add_filter( 'extrachill_breadcrumbs_override_trail', 'extrachill_community_breadcrumb_trail_homepage', 5 );
+
+/**
+ * Provide breadcrumb trail for community pages
+ *
+ * Uses theme's extrachill_breadcrumbs_override_trail filter to provide
+ * complete breadcrumb trail for bbPress pages and custom page templates.
+ * Only applies on blog ID 2 (community.extrachill.com).
+ *
+ * Breadcrumb structure:
+ * - Single forum: Community › Forum Name
+ * - Single topic: Community › Forum Name › Topic Name
+ * - User profile: Community › Username
+ * - Custom pages: Community › Page Name
+ *
+ * @param string $custom_trail Existing trail from other plugins
+ * @return string Breadcrumb trail HTML
+ * @since 1.0.0
+ */
+function extrachill_community_breadcrumb_trail( $custom_trail ) {
+	// Only apply on community.extrachill.com (blog ID 2)
+	if ( get_current_blog_id() !== 2 ) {
+		return $custom_trail;
+	}
+
+	// Don't override if on front page
+	if ( is_front_page() ) {
+		return $custom_trail;
+	}
+
+	// Single topic: Community › Forum Name › Topic Name
+	if ( function_exists( 'bbp_is_single_topic' ) && bbp_is_single_topic() ) {
+		$topic_id = bbp_get_topic_id();
+		$forum_id = bbp_get_topic_forum_id( $topic_id );
+		$trail = '';
+
+		if ( $forum_id ) {
+			$trail .= '<a href="' . esc_url( bbp_get_forum_permalink( $forum_id ) ) . '">' . esc_html( bbp_get_forum_title( $forum_id ) ) . '</a> › ';
+		}
+
+		$trail .= '<span>' . esc_html( bbp_get_topic_title( $topic_id ) ) . '</span>';
+		return $trail;
+	}
+
+	// Single forum: Community › Forum Name
+	if ( function_exists( 'bbp_is_single_forum' ) && bbp_is_single_forum() ) {
+		return '<span>' . esc_html( bbp_get_forum_title( bbp_get_forum_id() ) ) . '</span>';
+	}
+
+	// User profile: Community › Username
+	if ( function_exists( 'bbp_is_single_user' ) && bbp_is_single_user() ) {
+		return '<span>' . esc_html( bbp_get_displayed_user_field( 'display_name' ) ) . '</span>';
+	}
+
+	// Custom page: Community › Page Name
+	if ( is_page() ) {
+		return '<span>' . esc_html( get_the_title() ) . '</span>';
+	}
+
+	return $custom_trail;
+}
+add_filter( 'extrachill_breadcrumbs_override_trail', 'extrachill_community_breadcrumb_trail' );

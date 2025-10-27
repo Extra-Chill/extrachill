@@ -29,9 +29,7 @@ add_action('bbp_register_theme_packages', 'extrachill_community_register_bbpress
  */
 function extrachill_community_homepage_template($template) {
     // Only override on community.extrachill.com
-    $community_blog_id = get_blog_id_from_url( 'community.extrachill.com', '/' );
-
-    if ( $community_blog_id && get_current_blog_id() === $community_blog_id ) {
+    if ( get_current_blog_id() === 2 ) {
         return EXTRACHILL_COMMUNITY_PLUGIN_DIR . 'inc/home/forum-homepage.php';
     }
 
