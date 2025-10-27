@@ -22,7 +22,7 @@ This plugin provides homepage template override for **events.extrachill.com** (s
 
 **Template Override Pattern** (follows extrachill-chat plugin pattern):
 - Uses `extrachill_template_homepage` filter from theme's universal routing system
-- Domain detection via `get_blog_id_from_url('events.extrachill.com', '/')`
+- Hardcoded blog ID for performance (events.extrachill.com = site #7)
 - Blog ID comparison ensures override only applies to events.extrachill.com
 - Returns plugin template path for complete homepage control
 
@@ -31,9 +31,9 @@ This plugin provides homepage template override for **events.extrachill.com** (s
 add_filter( 'extrachill_template_homepage', 'ec_events_override_homepage_template' );
 
 function ec_events_override_homepage_template( $template ) {
-    // Only override on events.extrachill.com
-    $events_blog_id = get_blog_id_from_url( 'events.extrachill.com', '/' );
-    if ( $events_blog_id && get_current_blog_id() === $events_blog_id ) {
+    // Only override on events.extrachill.com (blog ID 7)
+    $events_blog_id = 7; // events.extrachill.com
+    if ( get_current_blog_id() === $events_blog_id ) {
         return EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/templates/homepage.php';
     }
     return $template;

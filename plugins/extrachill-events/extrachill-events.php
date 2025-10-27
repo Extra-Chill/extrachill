@@ -64,6 +64,7 @@ class ExtraChillEvents {
         }
 
         require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'includes/class-dm-events-integration.php';
+        require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/breadcrumb-integration.php';
     }
 
     private function init_integrations() {
@@ -98,7 +99,7 @@ extrachill_events();
  * and enables plugins to completely override homepage templates at the routing level.
  *
  * Template Override Pattern (follows extrachill-chat and extrachill-artist-platform):
- * - Uses domain-based site detection with get_blog_id_from_url() for maintainable code
+ * - Uses direct blog ID numbers for optimal performance
  * - WordPress blog-id-cache provides automatic performance optimization
  * - Conditional override only applies to events.extrachill.com (site #7)
  *
@@ -117,8 +118,7 @@ add_filter( 'extrachill_template_homepage', 'ec_events_override_homepage_templat
  */
 function ec_events_override_homepage_template( $template ) {
 	// Only override on events.extrachill.com using domain-based detection
-	$events_blog_id = get_blog_id_from_url( 'events.extrachill.com', '/' );
-	if ( $events_blog_id && get_current_blog_id() === $events_blog_id ) {
+	if ( get_current_blog_id() === 7 ) {
 		return EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/templates/homepage.php';
 	}
 	return $template;

@@ -12,11 +12,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 get_header();
+
+extrachill_breadcrumbs();
 ?>
 
 <div class="events-calendar-container full-width-content">
 	<?php
-	// Get the homepage/front page post object
 	$homepage_id = get_option( 'page_on_front' );
 
 	if ( $homepage_id ) {
