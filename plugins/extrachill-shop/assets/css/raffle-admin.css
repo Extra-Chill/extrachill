@@ -1,0 +1,31 @@
+/**
+ * Raffle Admin Field Styling
+ *
+ * Styles for conditional "Max Raffle Tickets" field in WooCommerce product admin.
+ *
+ * @package ExtraChillShop
+ */
+
+/* Initially hide raffle field */
+.raffle-max-tickets-field {
+    display: none;
+}
+
+/* Visible state */
+.raffle-max-tickets-field.visible {
+    display: block;
+}
+
+/* Match WooCommerce admin field styling */
+.raffle-max-tickets-field label {
+    font-weight: 600;
+}
+
+/* Add subtle visual indicator for raffle-specific field */
+.raffle-max-tickets-field::before {
+    content: "🎟️";
+    display: inline-block;
+    margin-right: 4px;
+    font-size: 14px;
+    vertical-align: middle;
+}

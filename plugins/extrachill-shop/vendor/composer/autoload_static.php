@@ -16,11 +16,6 @@ class ComposerStaticInit6b8f31429929ff785350fc11fe4c0506
         array (
             'PhpParser\\' => 10,
         ),
-        'E' => 
-        array (
-            'ExtraChillShop\\Tests\\' => 21,
-            'ExtraChillShop\\' => 15,
-        ),
         'D' => 
         array (
             'Doctrine\\Instantiator\\' => 22,
@@ -32,14 +27,6 @@ class ComposerStaticInit6b8f31429929ff785350fc11fe4c0506
         'PhpParser\\' => 
         array (
             0 => __DIR__ . '/..' . '/nikic/php-parser/lib/PhpParser',
-        ),
-        'ExtraChillShop\\Tests\\' => 
-        array (
-            0 => __DIR__ . '/../..' . '/tests',
-        ),
-        'ExtraChillShop\\' => 
-        array (
-            0 => __DIR__ . '/../..' . '/src',
         ),
         'Doctrine\\Instantiator\\' => 
         array (

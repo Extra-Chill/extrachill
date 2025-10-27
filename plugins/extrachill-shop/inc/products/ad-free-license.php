@@ -1,9 +1,9 @@
 <?php
 /**
- * WooCommerce Ad-Free License System for ExtraChill Shop Plugin
+ * WooCommerce Ad-Free License Integration for ExtraChill Shop Plugin
  *
- * Allows users to purchase a license via WooCommerce to remove ads from the site
- * for a given community username. Integrates with multisite authentication system.
+ * Handles WooCommerce UI integration for ad-free license purchases.
+ * License creation delegated to extrachill-users plugin.
  *
  * @package ExtraChillShop
  * @since 1.0.0
@@ -17,12 +17,12 @@ if (!defined('ABSPATH')) {
 /**
  * Handle ad-free purchase when order is completed
  *
+ * Delegates license creation to extrachill-users plugin.
+ *
  * @param int $order_id WooCommerce order ID
  */
 add_action('woocommerce_order_status_completed','extrachill_shop_handle_ad_free_purchase',10,1);
 function extrachill_shop_handle_ad_free_purchase($order_id) {
-    global $wpdb;
-    $table = $wpdb->prefix.'extrachill_ad_free';
     $product_id = 90123;
     $order = wc_get_order($order_id);
     if(!$order) return;
@@ -31,24 +31,31 @@ function extrachill_shop_handle_ad_free_purchase($order_id) {
         if((int)$item->get_product_id() !== $product_id) {
             continue;
         }
+
+        // Get community username from order meta
         $username = trim($item->get_meta('community_username',true) ?: $item->get_meta('Community Username',true));
         if(empty($username)) {
             error_log("❌ No username meta for Order #{$order_id}");
             continue;
         }
-        $username = sanitize_text_field($username);
-        $exists = (int)$wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$table} WHERE username=%s",$username));
 
-        $wpdb->replace($table,[
-            'username'=>$username,
-            'date_purchased'=>current_time('mysql'),
-            'order_id'=>$order_id
-        ],['%s','%s','%d']);
+        // Delegate license creation to users plugin
+        if (!function_exists('ec_create_ad_free_license')) {
+            error_log("❌ ec_create_ad_free_license() not found - extrachill-users plugin required");
+            continue;
+        }
 
-        if($wpdb->last_error) {
-            error_log("❌ DB error inserting ad-free for {$username}: ".$wpdb->last_error);
+        $order_data = array(
+            'order_id' => $order_id,
+            'timestamp' => current_time('mysql')
+        );
+
+        $result = ec_create_ad_free_license($username, $order_data);
+
+        if (is_wp_error($result)) {
+            error_log("❌ License creation failed (Order #{$order_id}): " . $result->get_error_message());
         } else {
-            error_log("✅ Ad-free saved for '{$username}' (Order #{$order_id}) — existing? ".($exists?'yes':'no'));
+            error_log("✅ Ad-free license created for '{$username}' (Order #{$order_id})");
         }
         break;
     }

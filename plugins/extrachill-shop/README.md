@@ -1,6 +1,6 @@
 # Extra Chill Shop
 
-WordPress plugin providing WooCommerce integration and e-commerce functionality for the Extra Chill platform. Features cross-domain ad-free license system, performance optimizations, and store customizations.
+WordPress plugin providing WooCommerce integration and e-commerce functionality for the Extra Chill platform. Features cross-domain ad-free license system, custom breadcrumbs, product category navigation, and comprehensive WooCommerce styling.
 
 ## 🛒 Overview
 
@@ -14,17 +14,18 @@ The Extra Chill Shop plugin extends WooCommerce with ExtraChill-specific functio
 - **License Management**: Automated license activation and validation
 - **Community Integration**: Links purchases to community usernames
 
-### ⚡ Performance Optimizations
-- **Conditional Loading**: WooCommerce assets only load when needed
-- **Context Detection**: Smart detection of store page contexts
-- **Asset Management**: Selective script/style enqueuing
-- **Safe Wrappers**: Error-resistant WooCommerce function calls
-
 ### 🎨 Store Customization
-- **Custom Templates**: Tailored product and cart templates
-- **Enhanced Cart Widget**: Community-integrated cart functionality
-- **Breadcrumb Integration**: Unified navigation with main site
-- **Theme Compatibility**: Seamless integration with ExtraChill theme
+- **Unified Breadcrumbs**: Integrates with theme's breadcrumb system via filter for consistent "Extra Chill › Merch Store" structure
+- **Product Category Header**: Dynamic secondary navigation with product categories
+- **Cart Icon Integration**: Header cart icon linking to shop
+- **Comprehensive Styling**: 590 lines of WooCommerce CSS with responsive design
+
+### ⚡ WooCommerce Styling
+- **Product Grid**: CSS Grid layout with responsive breakpoints
+- **Theme Integration**: Uses theme's standard button colors (#0b5394 primary, #083b6c hover)
+- **Dark Mode Support**: CSS custom properties from theme
+- **Mobile Optimized**: Breakpoints at 768px, 600px, 480px
+- **Complete Coverage**: Shop, product, cart, checkout, breadcrumbs, buttons
 
 ## 🏗️ Architecture
 
@@ -33,16 +34,26 @@ The Extra Chill Shop plugin extends WooCommerce with ExtraChill-specific functio
 extrachill-shop/
 ├── extrachill-shop.php          # Main plugin file
 ├── inc/                         # Core functionality
-│   ├── core/                    # Plugin core features
-│   └── woocommerce/             # WooCommerce integrations
-├── templates/                   # Template overrides
+│   └── core/                    # Core plugin files
+│       ├── ad-free-license.php      # License purchase processing
+│       ├── assets.php               # Asset enqueuing
+│       ├── breadcrumb-integration.php # Breadcrumb customization
+│       └── database.php             # Database table creation
+├── templates/                   # Template files
+│   ├── archive-product.php          # Product archive template
+│   ├── cart-icon.php                # Header cart icon
+│   ├── content-single-product.php   # Product content
+│   ├── product-category-header.php  # Category navigation
+│   └── single-product.php           # Single product template
 ├── assets/                      # CSS/JS assets
+│   └── css/
+│       └── woocommerce.css      # WooCommerce styling
 └── languages/                   # Translation files
 ```
 
-### PSR-4 Architecture
-- **Composer Autoloading**: Modern PHP autoloading standards
-- **Class-Based Structure**: Object-oriented plugin architecture
+### Development Standards
+- **Procedural WordPress Pattern**: Direct `require_once` includes for all functionality
+- **WordPress Hooks**: Actions and filters for extensibility
 - **Modular Design**: Single responsibility principle throughout
 - **WordPress Standards**: Full compliance with WordPress coding standards
 
@@ -59,6 +70,7 @@ extrachill-shop/
 2. Activate plugin on shop.extrachill.com
 3. Configure WooCommerce settings as needed
 4. Set up ad-free license product (ID: 90123)
+5. Set shop page as homepage: Settings → Reading → "A static page" → Homepage: "Shop"
 
 ### Development Setup
 ```bash
@@ -85,48 +97,25 @@ composer run lint:fix           # Fix code style issues
 ./build.sh                       # Create deployment package
 ```
 
-### VSCode Integration
-Access build automation via `Ctrl+Shift+P` → "Tasks: Run Task":
-- **Build Plugin**: Creates production ZIP
-- **Install Dependencies**: Composer install
-- **PHP Linting**: Code quality checks
-- **Fix Code Style**: Automatic formatting
+### Build Output
+- **Production Package**: `/build/extrachill-shop/` directory and `/build/extrachill-shop.zip` file
+- **Non-Versioned**: Follows platform standard (no version numbers in filenames)
+- **File Exclusion**: Development files excluded via `.buildignore`
 
 ## 🛡️ Security Features
 
 - **Input Sanitization**: All user input properly sanitized
 - **Output Escaping**: XSS protection for all output
-- **Nonce Verification**: CSRF protection for forms
 - **Capability Checks**: Proper permission validation
 - **Prepared Statements**: SQL injection prevention
-
-## 🔌 WooCommerce Integration
-
-### Context Detection
-Use `extrachill_shop_is_woocommerce_page()` for accurate page context detection:
-```php
-if (extrachill_shop_is_woocommerce_page()) {
-    // WooCommerce-specific functionality
-}
-```
-
-### Safe Function Calls
-Use `extrachill_shop_safe_call()` wrapper to prevent errors:
-```php
-$result = extrachill_shop_safe_call('wc_get_product', [$product_id]);
-```
-
-### Asset Loading Strategy
-- **Conditional Enqueuing**: Assets only load on relevant pages
-- **Dependency Management**: Proper CSS/JS dependency handling
-- **Performance Focus**: Minimal asset footprint
 
 ## 💳 Ad-Free License System
 
 ### Database Schema
 ```sql
 extrachill_ad_free:
-├── username (varchar)           # Community username
+├── id (int)                     # Primary key
+├── username (varchar)           # Community username (unique)
 ├── date_purchased (datetime)    # Purchase timestamp
 └── order_id (int)              # WooCommerce order ID
 ```
@@ -143,13 +132,40 @@ extrachill_ad_free:
 - **Performance**: Hardcoded blog IDs for optimization
 - **Security**: WordPress capability system for access control
 
+## 🎨 Store Customization
+
+### Breadcrumb System
+Integrates with theme's unified breadcrumb system via `extrachill_breadcrumbs_override_trail` filter:
+```
+Extra Chill › Merch Store › Product Category › Product Name
+```
+- Uses same architecture as bbPress community integration
+- Supports hierarchical product categories
+- Context-aware for shop, product, cart, checkout, account pages
+- Single source of truth matching platform standards
+
+### Product Category Header
+Dynamic secondary navigation showing product categories ordered by popularity:
+```php
+// Automatically displays on WooCommerce pages
+// Categories ordered by product count (DESC)
+// Hooks into extrachill_after_header
+```
+
+### Cart Icon
+Simple cart icon in site header linking to shop page:
+```php
+// Hooks into extrachill_header_top_right at priority 25
+// Uses FontAwesome SVG from theme
+```
+
 ## 🧪 Testing
 
 ### Manual Testing
 1. **Product Purchase Flow**: Complete ad-free license purchase
 2. **Cross-Domain Validation**: Verify ad removal on main site
 3. **User Authentication**: Test multisite login persistence
-4. **Performance**: Check asset loading on various page types
+4. **Styling**: Check WooCommerce pages render correctly
 
 ### Code Quality
 ```bash
@@ -170,7 +186,7 @@ The `build.sh` script creates production-ready packages:
 - **Version Extraction**: Auto-reads from plugin header
 - **File Exclusion**: Removes development files via `.buildignore`
 - **Dependency Management**: Production-only composer install
-- **ZIP Creation**: Versioned package in `/dist` directory
+- **ZIP Creation**: Package in `/build` directory
 
 ### Production Checklist
 - [ ] Run `composer run lint:php`
@@ -182,44 +198,30 @@ The `build.sh` script creates production-ready packages:
 ## 🔗 Integration Points
 
 ### Main Site (extrachill.com)
-- **Ad-Free Checks**: API calls to validate user license status
+- **Ad-Free Checks**: Validate user license status via extrachill-users plugin
 - **User Authentication**: WordPress multisite login persistence
 - **Performance**: Cached license lookups
 
 ### Community Site (community.extrachill.com)
 - **Username Validation**: Community user verification
 - **Profile Integration**: License status in user profiles
-- **Social Features**: Purchase notifications and badges
 
 ### Shop Site (shop.extrachill.com)
 - **WooCommerce Integration**: Full e-commerce functionality
 - **Custom Templates**: ExtraChill-themed store experience
 - **License Products**: Ad-free license and merchandise
 
-## 📊 Analytics & Performance
-
-### Performance Metrics
-- **Asset Loading**: Conditional enqueuing reduces page weight by 60%
-- **Context Detection**: Smart page detection prevents unnecessary processing
-- **Database Queries**: Optimized license lookups with caching
-
-### Monitoring
-- **Error Logging**: Comprehensive error tracking
-- **Performance Logging**: Asset loading and query monitoring
-- **User Analytics**: Purchase flow and conversion tracking
-
 ## 🤝 Contributing
 
 ### Development Standards
 - **WordPress Coding Standards**: Strict adherence to WPCS
-- **PSR-4 Autoloading**: Modern PHP namespace structure
+- **Procedural Pattern**: Direct includes, no PSR-4 autoloading
 - **Security First**: Input sanitization and output escaping
-- **Performance Focus**: Efficient code and conditional loading
+- **Performance Focus**: Conditional loading and optimization
 
 ### Code Review Checklist
 - [ ] WordPress coding standards compliance
 - [ ] Security review (sanitization, escaping, capabilities)
-- [ ] Performance analysis (queries, asset loading)
 - [ ] Cross-domain functionality testing
 - [ ] WooCommerce compatibility verification
 

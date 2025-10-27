@@ -24,7 +24,7 @@ function extrachill_shop_display_cart_icon() {
     $shop_url = function_exists('wc_get_page_id') ? get_permalink(wc_get_page_id('shop')) : home_url('/shop');
 
     ?>
-    <div class="cart-icon">
+    <div class="cart-icon header-right-icon">
         <a href="<?php echo esc_url($shop_url); ?>" class="cart-link" title="Visit Shop">
             <svg class="cart-top">
                 <use href="<?php echo get_template_directory_uri(); ?>/fonts/fontawesome.svg?v=1.5#cart-shopping"></use>

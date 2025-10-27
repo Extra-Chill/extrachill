@@ -157,8 +157,8 @@
 /* Add to cart buttons */
 .woocommerce ul.products li.product .button,
 .woocommerce ul.products li.product .add_to_cart_button {
-    background: var(--button-bg);
-    color: var(--background-color);
+    background: #0b5394;
+    color: #fff;
     padding: 12px 20px;
     border: none;
     border-radius: 25px;
@@ -177,7 +177,7 @@
 
 .woocommerce ul.products li.product .button:hover,
 .woocommerce ul.products li.product .add_to_cart_button:hover {
-    background: var(--button-hover-bg);
+    background: #083b6c;
     transform: translateY(-1px);
     box-shadow: var(--card-hover-shadow);
 }
@@ -255,8 +255,8 @@
 }
 
 .single-product .woocommerce div.product form.cart .single_add_to_cart_button {
-    background: var(--button-bg);
-    color: var(--background-color);
+    background: #0b5394;
+    color: #fff;
     padding: 15px 30px;
     border: none;
     border-radius: 25px;
@@ -267,7 +267,7 @@
 }
 
 .single-product .woocommerce div.product form.cart .single_add_to_cart_button:hover {
-    background: var(--button-hover-bg);
+    background: #083b6c;
     transform: translateY(-1px);
 }
 
@@ -471,8 +471,8 @@
 .woocommerce button.button,
 .woocommerce input.button,
 .woocommerce #respond input#submit {
-    background: var(--button-bg);
-    color: var(--background-color);
+    background: #0b5394;
+    color: #fff;
     padding: 12px 24px;
     border: none;
     border-radius: 25px;
@@ -490,7 +490,7 @@
 .woocommerce button.button:hover,
 .woocommerce input.button:hover,
 .woocommerce #respond input#submit:hover {
-    background: var(--button-hover-bg);
+    background: #083b6c;
     transform: translateY(-1px);
     box-shadow: var(--card-hover-shadow);
 }

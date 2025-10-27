@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Extra Chill Shop
  * Plugin URI: https://extrachill.com
- * Description: WooCommerce integration and e-commerce functionality for the Extra Chill platform. Features cross-domain ad-free license system, performance optimizations, and store customizations.
+ * Description: WooCommerce integration and e-commerce functionality for the Extra Chill platform. Features cross-domain ad-free license system, custom breadcrumbs, product category navigation, and comprehensive WooCommerce styling.
  * Version: 1.0.0
  * Author: Chris Huber
  * Author URI: https://chubes.net
@@ -51,10 +51,16 @@ class ExtraChillShop {
     }
 
     private function load_includes() {
-        require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/database.php';
-        require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/ad-free-license.php';
-        require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/breadcrumb-integration.php';
+        // Product customizations
+        require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/products/ad-free-license.php';
+        require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/products/raffle/admin-fields.php';
+        require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/products/raffle/frontend-counter.php';
 
+        // Core functionality
+        require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/core/breadcrumb-integration.php';
+        require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/core/assets.php';
+
+        // Templates
         require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'templates/cart-icon.php';
         require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'templates/product-category-header.php';
     }
@@ -68,7 +74,6 @@ class ExtraChillShop {
     }
 
     public function activate() {
-        extrachill_shop_create_ad_free_table();
         update_option( 'extrachill_shop_activated', true );
         flush_rewrite_rules();
     }
