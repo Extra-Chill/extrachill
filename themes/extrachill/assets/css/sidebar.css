@@ -154,10 +154,10 @@ h2.recent-title {
 	box-shadow: 0 1px 4px rgba(0,0,0,0.04);
 	padding: 0.7em 0.7em 0.7em 0.7em;
 	font-size: 0.98em;
-	display: inline;
-	flex-direction: column;
+	display: block;
 	min-width: 0;
 	transition: box-shadow 0.2s;
+	margin: 0 5px;
 }
 
 .sidebar-activity-card:hover {

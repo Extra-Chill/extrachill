@@ -4,7 +4,7 @@
  *
  * Technical Implementation:
  * - bbPress integration: Plugin-based breadcrumbs via extrachill_breadcrumbs_override_trail filter
- * - WooCommerce bypass: ExtraChill Shop plugin handles shop breadcrumbs independently
+ * - WooCommerce integration: Shop plugin provides breadcrumbs via extrachill_breadcrumbs_override_trail filter
  * - Hierarchical taxonomies: Full ancestor chain display for parent/child relationships
  *
  * @package ExtraChill
@@ -21,18 +21,10 @@ if (!function_exists('extrachill_breadcrumbs')) {
             return;
         }
 
-        if (function_exists('is_woocommerce') && (is_woocommerce() || is_cart() || is_checkout() || is_account_page() || is_product() || is_shop())) {
-            return;
-        }
-
-        if (is_front_page()) {
-            return;
-        }
-
         echo '<nav class="breadcrumbs" itemprop="breadcrumb">';
 
         // Allow plugins to override the root breadcrumb link
-        $root_link = apply_filters( 'extrachill_breadcrumbs_root', '<a href="' . home_url() . '">Home</a>' );
+        $root_link = apply_filters( 'extrachill_breadcrumbs_root', '<a href="' . home_url() . '">Extra Chill</a>' );
         echo $root_link . ' › ';
 
         // Allow plugins to override the default breadcrumb trail

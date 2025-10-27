@@ -5,6 +5,18 @@
  * Move all badge color rules here for maintainability and modularity.
  */
 
+/* === Default Badge Colors (Fallback) === */
+.taxonomy-badge {
+  background-color: var(--card-background);
+  color: var(--link-color);
+  border: 1px solid var(--border-color);
+}
+
+.taxonomy-badge:hover {
+  background-color: #083b6c;
+  color: #fff;
+}
+
 /* === Festival Badges === */
 
 .taxonomy-badge.festival-bonnaroo {

@@ -18,7 +18,7 @@ global $post, $live_reviews_posts, $interviews_posts;
     <div class="home-3x3-col">
       <div class="home-3x3-header">
         <span class="home-3x3-label">Interviews</span>
-        <a class="home-3x3-archive-link" href="<?php echo esc_url( get_category_link(723) ); ?>">View All</a>
+        <a class="home-3x3-archive-link button-3 button-small" href="<?php echo esc_url( get_category_link(723) ); ?>">View All</a>
       </div>
       <div class="home-3x3-list">
         <?php
@@ -42,7 +42,7 @@ global $post, $live_reviews_posts, $interviews_posts;
     <div class="home-3x3-col">
       <div class="home-3x3-header">
         <span class="home-3x3-label">Live Reviews</span>
-        <a class="home-3x3-archive-link" href="<?php echo esc_url( get_category_link(2608) ); ?>">View All</a>
+        <a class="home-3x3-archive-link button-3 button-small" href="<?php echo esc_url( get_category_link(2608) ); ?>">View All</a>
       </div>
       <div class="home-3x3-list">
         <?php
@@ -68,7 +68,7 @@ global $post, $live_reviews_posts, $interviews_posts;
         <div class="home-3x3-stacked-section">
           <div class="home-3x3-header">
             <span class="home-3x3-label">Community Activity</span>
-            <a class="home-3x3-archive-link" href="https://community.extrachill.com/recent">View All</a>
+            <a class="home-3x3-archive-link button-3 button-small" href="https://community.extrachill.com/recent">View All</a>
           </div>
           <div class="home-3x3-list home-3x3-community-list">
             <?php include get_template_directory() . '/inc/home/templates/community-activity.php'; ?>

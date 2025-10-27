@@ -90,26 +90,10 @@
     border-radius: 0 8px 8px 0;
 }
 .home-3x3-archive-link {
-    color: var(--link-color);
-    background: var(--card-background);
-    border: 1px solid var(--border-color);
-    border-radius: 5px;
-    padding: 0.18em 0.9em;
-    font-size: 0.98em;
-    font-weight: 500;
-    text-decoration: none;
-    transition: background 0.2s, color 0.2s, border 0.2s;
     margin-left: 1em;
     display: inline-block;
     flex-shrink: 0;
     white-space: nowrap;
-}
-.home-3x3-archive-link:hover,
-.home-3x3-archive-link:focus {
-    background: var(--button-hover-bg);
-    color: #fff;
-    border-color: var(--button-hover-bg);
-    outline: none;
 }
 .home-3x3-list {
     display: flex;
@@ -244,23 +228,7 @@
     justify-content: flex-end;
 }
 .home-more-recent-viewall {
-    color: #fff;
-    background: var(--button-bg);
-    border-radius: 6px;
-    padding: 0.7em 2em;
-    font-size: 1.08em;
-    font-weight: 700;
-    text-decoration: none;
-    border: none;
-    transition: background 0.2s, color 0.2s;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
     margin-top: 0.5em;
-}
-.home-more-recent-viewall:hover,
-.home-more-recent-viewall:focus {
-    background: var(--button-hover-bg);
-    color: #fff;
-    outline: none;
 }
 @media (max-width: 1100px) {
     .home-more-recent-row {
@@ -547,10 +515,3 @@
 	font-size: 16px;
 }
 
-@media (max-width: 768px) {
-	#hero-section {
-		margin-left: calc(-1 * max(1.25em, env(safe-area-inset-left)));
-		margin-right: calc(-1 * max(1.25em, env(safe-area-inset-right)));
-		width: calc(100% + max(1.25em, env(safe-area-inset-left)) + max(1.25em, env(safe-area-inset-right)));
-	}
-}
