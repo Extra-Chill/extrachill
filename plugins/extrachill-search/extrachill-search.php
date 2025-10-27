@@ -55,6 +55,10 @@ class ExtraChill_Search_Plugin {
             require_once $includes_dir . 'core/search-functions.php';
         }
 
+        if ( file_exists( $includes_dir . 'core/search-algorithm.php' ) ) {
+            require_once $includes_dir . 'core/search-algorithm.php';
+        }
+
         if ( file_exists( $includes_dir . 'core/taxonomy-functions.php' ) ) {
             require_once $includes_dir . 'core/taxonomy-functions.php';
         }
@@ -89,7 +93,7 @@ class ExtraChill_Search_Plugin {
     }
 
     /**
-     * Prevent 404 errors on paginated multisite search when current site has no results.
+     * Prevent 404 errors on paginated multisite search when current site has no results
      */
     public function fix_search_404() {
         if ( ! is_404() ) {
