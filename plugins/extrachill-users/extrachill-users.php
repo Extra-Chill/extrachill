@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Extra Chill Users
  * Plugin URI: https://extrachill.com
- * Description: Network-activated user management system for the ExtraChill Platform. Handles user creation, authentication, team members, profile URLs, avatar menu, and password reset.
+ * Description: Network-activated user management system for the ExtraChill Platform multisite network. Handles authentication (login/register/password reset), user creation, team members, profile URL resolution, custom avatars, avatar menu, online user tracking, comment auto-approval, and ad-free license management.
  * Version: 1.1.0
  * Author: Chris Huber
  * Author URI: https://chubes.net
@@ -40,12 +40,50 @@ function extrachill_users_register_blocks() {
 	register_block_type( __DIR__ . '/build/password-reset' );
 }
 
+/**
+ * Attach block styles to WordPress core block handles using inline styles.
+ * WordPress 5.8+ recommended pattern for conditional block style loading.
+ */
+function extrachill_users_enqueue_block_styles() {
+	if ( is_admin() ) {
+		return;
+	}
+
+	$blocks_to_check = array(
+		'login-register' => 'extrachill/login-register',
+		'password-reset' => 'extrachill/password-reset',
+	);
+
+	foreach ( $blocks_to_check as $block_slug => $block_name ) {
+		if ( has_block( $block_name ) ) {
+			$style_path = EXTRACHILL_USERS_PLUGIN_DIR . "build/{$block_slug}/style-index.css";
+
+			if ( file_exists( $style_path ) ) {
+				// Get WordPress core block handle (backwards compatible)
+				$handle = (
+					function_exists( 'wp_should_load_separate_core_block_assets' ) &&
+					wp_should_load_separate_core_block_assets()
+				) ? 'wp-block-library' : 'wp-block-library';
+
+				// Read the stylesheet
+				$styles = file_get_contents( $style_path );
+
+				// Inline to WordPress core handle
+				wp_add_inline_style( $handle, $styles );
+			}
+		}
+	}
+}
+add_action( 'wp_enqueue_scripts', 'extrachill_users_enqueue_block_styles' );
+
 add_action( 'plugins_loaded', 'extrachill_users_init' );
 
 function extrachill_users_init() {
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/team-members.php';
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/admin-access-control.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/author-links.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/user-creation.php';
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/artist-profiles.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/assets.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/login.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/register.php';
@@ -57,6 +95,8 @@ function extrachill_users_init() {
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/avatar-upload.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/avatar-menu.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/online-users-display.php';
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/comment-auto-approval.php';
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/ad-free-license.php';
 }
 
 add_filter( 'newsletter_form_integrations', 'extrachill_users_newsletter_integration' );

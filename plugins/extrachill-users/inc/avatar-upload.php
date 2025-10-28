@@ -2,7 +2,8 @@
 /**
  * Custom Avatar Upload System
  *
- * AJAX upload processing, form rendering, and asset enqueuing.
+ * AJAX upload handler, bbPress profile edit form field, and conditional asset loading.
+ * Stores attachment ID in custom_avatar_id user meta.
  *
  * @package ExtraChill\Users
  */

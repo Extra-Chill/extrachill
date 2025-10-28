@@ -140,24 +140,3 @@
 .cf-turnstile {
     margin-top: 20px;
 }
-
-/* --- Universal Login/Registration Success Notices --- */
-.extrachill-auth-notice {
-    margin: 0 0 20px 0;
-    padding: 15px 20px;
-    border-left: 4px solid var(--notice-border);
-}
-
-.extrachill-auth-success {
-    background: var(--notice-bg);
-    color: var(--text-color);
-}
-
-.extrachill-auth-notice-content {
-    max-width: 1200px;
-    margin: 0 auto;
-}
-
-.extrachill-auth-notice strong {
-    font-weight: 600;
-}

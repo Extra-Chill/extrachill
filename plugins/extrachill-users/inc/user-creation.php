@@ -33,13 +33,12 @@ function ec_multisite_create_community_user( $user_id, $registration_data ) {
 	}
 
 	// Get community blog ID and check if we need to switch
-	$community_blog_id = get_blog_id_from_url( 'community.extrachill.com', '/' );
 	$current_blog_id   = get_current_blog_id();
 	$switched          = false;
 
 	// Switch to community site only if we're not already there
-	if ( $current_blog_id !== $community_blog_id ) {
-		switch_to_blog( $community_blog_id );
+	if ( $current_blog_id !== 2 ) {
+		switch_to_blog( 2 );
 		$switched = true;
 	}
 

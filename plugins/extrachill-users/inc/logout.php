@@ -2,6 +2,8 @@
 /**
  * Logout Functionality
  *
+ * Custom logout handler with nonce verification (unused in practice - avatar menu uses wp_logout_url()).
+ *
  * @package ExtraChill\Users
  */
 

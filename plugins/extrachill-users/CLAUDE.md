@@ -1,6 +1,6 @@
 # ExtraChill Users
 
-Network-activated WordPress plugin providing comprehensive user management for the ExtraChill Platform multisite network. Handles authentication, registration, password reset, cross-site user management, team member system, profile URL resolution, network-wide avatar menu, custom avatars, and online user tracking across all 8 sites.
+Network-activated WordPress plugin providing comprehensive user management for the ExtraChill Platform multisite network. Handles authentication, registration, password reset, cross-site user management, team member system, profile URL resolution, network-wide avatar menu, custom avatars, and online user tracking across all 9 sites.
 
 ## Plugin Information
 
@@ -25,9 +25,23 @@ Comprehensive user management system for the ExtraChill multisite network provid
 - **Procedural WordPress Pattern**: Uses direct `require_once` includes for all plugin functionality
 - **Network Plugin Structure**: Network-activated plugin providing functionality across all multisite installations
 - **Gutenberg Blocks**: Registers login/register and password reset blocks via `register_block_type()`
-- **Modular Organization**: 14 include files organized by functionality domain
+- **Modular Organization**: 18 include files organized by functionality domain
 
 ### Core Features
+
+#### Admin Access Control (`inc/admin-access-control.php`)
+
+**Network-Wide Admin Restriction**:
+- Restricts wp-admin access to administrators only across entire multisite network
+- Hides admin bar for non-administrator users
+- Prevents login redirects to wp-admin for non-administrators
+- Preserves AJAX functionality and admin-post.php access
+- Safe redirects to homepage for unauthorized access attempts
+
+**Functions**:
+- `extrachill_redirect_admin()` - Redirects non-administrators away from wp-admin
+- `extrachill_hide_admin_bar_for_non_admins()` - Hides admin bar for non-admin users
+- `extrachill_prevent_admin_auth_redirect()` - Filters login redirect to prevent wp-admin access
 
 #### Authentication System (`inc/login.php`, `inc/register.php`, `inc/logout.php`)
 
@@ -43,7 +57,7 @@ Comprehensive user management system for the ExtraChill multisite network provid
 - Custom registration form with user type selection (artist/professional checkboxes)
 - Cloudflare Turnstile captcha integration via `ec_render_turnstile_widget()` and `ec_verify_turnstile_response()` from extrachill-multisite
 - Creates users on community.extrachill.com via `extrachill_create_community_user` filter
-- Newsletter subscription integration via `extrachill_multisite_subscribe($email, 'registration')` bridge function
+- Newsletter subscription integration via `extrachill_multisite_subscribe($email, 'registration')` function from extrachill-newsletter plugin
 - Roster invitation acceptance during registration (extrachill-artist-platform integration)
 - Auto-login after successful registration with auth cookie
 - Success redirects with `?registration=success` parameter for universal success notices
@@ -55,7 +69,7 @@ Comprehensive user management system for the ExtraChill multisite network provid
 **Newsletter Integration**:
 - Registers 'registration' context via `newsletter_form_integrations` filter
 - Zero hardcoded Sendy credentials - all configuration via extrachill-newsletter admin UI
-- Subscription handled via extrachill-multisite bridge function during registration
+- Subscription handled via extrachill-newsletter plugin function during registration
 
 **Roster Invitation Flow**:
 - Detects `?action=bp_accept_invite&token=...&artist_id=...` URL parameters
@@ -93,7 +107,7 @@ Comprehensive user management system for the ExtraChill multisite network provid
 #### Online Users Tracking (`inc/online-users.php`, `inc/online-users-display.php`)
 
 **Network-Wide Activity Tracking**:
-- Records user activity across all 8 sites in the multisite network
+- Records user activity across all 9 sites in the multisite network
 - Centralized data storage on community.extrachill.com as single source of truth
 - 15-minute activity window for "online" status determination
 - Updates `last_active` user meta via `wp` action hook on all sites
@@ -166,7 +180,7 @@ Comprehensive user management system for the ExtraChill multisite network provid
 
 **Cross-Site Integration**:
 - Uses `switch_to_blog()` and `restore_current_blog()` for main site account verification
-- Leverages WordPress native `get_blog_id_from_url()` with automatic blog-id-cache
+- Dynamic site discovery with automatic WordPress blog-id-cache for performance
 
 #### User Creation System (`inc/user-creation.php`)
 **Filter**: `extrachill_create_community_user`
@@ -184,7 +198,7 @@ Comprehensive user management system for the ExtraChill multisite network provid
 
 **Workflow**:
 1. Validate required fields (username, password, email)
-2. Get community blog ID via `get_blog_id_from_url()`
+2. Use direct blog ID number (2) for community site
 3. Switch to community site if not already there
 4. Create user with `wp_create_user()`
 5. Set `user_is_artist` and `user_is_professional` meta
@@ -193,11 +207,55 @@ Comprehensive user management system for the ExtraChill multisite network provid
 
 **Used By**: Registration system in this plugin (`inc/register.php`) for network-wide user creation
 
+#### Artist Profile Functions (`inc/artist-profiles.php`)
+**Purpose**: Network-wide canonical functions for user-artist profile relationships
+
+**Core Functions**:
+
+1. **`ec_get_artists_for_user( $user_id = null, $admin_override = false )`** - Single source of truth
+   - **Default behavior** (`$admin_override = false`): Returns user's own published artist profile IDs
+     - Checks `_artist_profile_ids` user meta
+     - Verifies published status on artist.extrachill.com via blog switching
+     - Includes artist profiles where user is post author
+     - Used in frontend contexts (avatar menu, dashboards, grids, ownership checks)
+
+   - **Admin override** (`$admin_override = true`): Admins get ALL published artists
+     - Only activates for users with `manage_options` capability
+     - Returns all published artist profiles in the network
+     - Used ONLY in management page switcher dropdowns
+     - Regular users still get their own artists even with override=true
+
+   - **Context-aware design**: Single function handles both frontend and admin contexts
+     - Frontend contexts → use default parameter (everyone sees their own artists)
+     - Management dropdowns → use `$admin_override = true` (admins see all for administration)
+
+2. **`ec_can_create_artist_profiles( $user_id = null )`**
+   - Returns boolean - can user create new artist profiles?
+   - Checks capabilities: `edit_pages` capability OR
+   - User meta flags: `user_is_artist` OR `user_is_professional`
+   - Permission-aware logic
+
+**Multisite Architecture**:
+- All functions handle blog switching to artist.extrachill.com automatically
+- Dynamic site discovery with automatic WordPress blog-id-cache for performance
+- try/finally blocks ensure proper blog restoration
+- Network-wide availability (plugin is network-activated)
+
+**Used By**:
+- extrachill-users: Avatar menu system (`inc/avatar-menu.php`)
+- extrachill-artist-platform: All templates and management interfaces
+- extrachill-chat: Add link to page tool (`inc/tools/artist-platform/add-link-to-page.php`)
+- extrachill-stream: Artist membership authentication
+- extrachill-community: Artist platform buttons
+- Any plugin needing user-artist profile relationships
+
 #### Author Profile URL Resolution (`inc/author-links.php`)
 **Functions**:
 - `ec_get_user_profile_url( $user_id, $user_email = '' )` - Centralized user profile URL logic
 - `ec_get_comment_author_link_multisite( $comment )` - Generate comment author link HTML
 - `ec_should_use_multisite_comment_links( $comment )` - Check if comment should use multisite linking (after Feb 9, 2024)
+- `ec_display_author_community_link( $author_id )` - Display "View Community Profile" button on author archives
+- `ec_customize_comment_form_logged_in( $defaults )` - Fix wp-admin profile links to route to community bbPress profile
 
 **Resolution Logic**:
 1. Check if user exists on main site (extrachill.com) → return author posts URL
@@ -209,7 +267,22 @@ Comprehensive user management system for the ExtraChill multisite network provid
 - Main site users: `https://extrachill.com/author/username/`
 - Community users: `https://community.extrachill.com/u/username/`
 
-**Integration**: Used by theme for comment author links and user profile display
+**Bidirectional Profile Linking**:
+The plugin provides complete bidirectional linking between author archives and community profiles:
+
+1. **Community Profile → Author Archive** (existing):
+   - Community profile shows "View Posts" link to author archive
+   - Implemented in extrachill-community plugin
+
+2. **Author Archive → Community Profile** (new):
+   - Function: `ec_display_author_community_link( $author_id )`
+   - Hook: `extrachill_after_author_bio` (priority 10)
+   - Display: "View Community Profile" button (button-2 button-medium classes)
+   - URL: `https://community.extrachill.com/u/{user_nicename}/`
+   - Conditional: Only displays if user exists on community.extrachill.com
+   - Implementation: Uses multisite blog switching with proper error handling and user validation
+
+**Integration**: Used by theme for comment author links, user profile display, and bidirectional profile navigation
 
 #### Avatar Menu System (`inc/avatar-menu.php`)
 **Function**: `extrachill_display_user_avatar_menu()`
@@ -261,6 +334,55 @@ function my_plugin_avatar_menu( $menu_items, $user_id ) {
 - Includes user information and getting started links
 - Custom email template with Extra Chill branding
 
+#### Comment Auto-Approval System (`inc/comment-auto-approval.php`)
+**Logged-In User Comment Auto-Approval**:
+- Automatically approves comments from logged-in users, bypassing moderation queue
+- Non-logged-in users follow standard WordPress comment moderation settings
+- Simple security-focused implementation for trusted user comments
+
+**Function**: `ec_auto_approve_logged_in_comments( $approved, $commentdata )`
+
+**Hook**: `pre_comment_approved` filter at priority 10
+
+**Implementation**:
+- Checks if user is logged in via `is_user_logged_in()`
+- Returns approval status `1` for logged-in users
+- Returns default approval status for non-logged-in users
+
+**Purpose**: Improve user experience by immediately approving comments from authenticated users while maintaining moderation for anonymous comments
+
+#### Ad-Free License System (`inc/ad-free-license.php`)
+**License Management**:
+- `is_user_ad_free( $userDetails = null )` - Validate if user has ad-free license (reads user meta)
+- `ec_create_ad_free_license( $username, $order_data )` - Create ad-free license for user (writes user meta)
+- WordPress-native user meta storage (no custom tables, no blog switching)
+- Meta key: `extrachill_ad_free_purchased`
+- Works network-wide (user meta accessible from all multisite sites)
+
+**User Meta Structure**:
+```php
+// Meta key: extrachill_ad_free_purchased
+// Meta value (array):
+array(
+  'purchased' => '2024-10-27 14:30:00',  // MySQL datetime
+  'order_id'  => 12345,                   // WooCommerce order ID
+  'username'  => 'johndoe'                // Community username
+)
+```
+
+**Integration Points**:
+- **Theme**: Calls `is_user_ad_free()` in `header.php` to block Mediavine ads
+- **Shop Plugin**: Calls `ec_create_ad_free_license()` when WooCommerce orders complete
+- **User Meta**: Stores purchase data in `extrachill_ad_free_purchased` meta key
+
+**Architecture**:
+- **WordPress-Native Storage**: Uses user meta (KISS principle, no custom tables)
+- **No Blog Switching**: User meta accessible network-wide without `switch_to_blog()`
+- **Validation Function**: Lives in users plugin (reads user meta)
+- **Creation Function**: Lives in users plugin (writes user meta)
+- **Purchase Handler**: Lives in shop plugin (WooCommerce integration only)
+- **Clean Separation**: Users plugin owns data operations, shop plugin owns WooCommerce UI
+
 ## File Structure
 
 ```
@@ -268,8 +390,10 @@ extrachill-users/
 ├── extrachill-users.php           (main plugin file)
 ├── inc/
 │   ├── team-members.php           (team member functions)
+│   ├── admin-access-control.php   (admin access restriction)
 │   ├── author-links.php           (profile URL resolution)
 │   ├── user-creation.php          (community user creation filter)
+│   ├── artist-profiles.php        (artist profile functions - network-wide canonical)
 │   ├── login.php                  (login system)
 │   ├── register.php               (registration system)
 │   ├── logout.php                 (logout system - minimal/placeholder)
@@ -280,6 +404,8 @@ extrachill-users/
 │   ├── avatar-display.php         (custom avatar display)
 │   ├── avatar-upload.php          (avatar upload functionality)
 │   ├── avatar-menu.php            (avatar menu display)
+│   ├── comment-auto-approval.php  (comment auto-approval for logged-in users)
+│   ├── ad-free-license.php        (ad-free license validation)
 │   └── assets.php                 (asset enqueuing)
 ├── assets/
 │   ├── css/
@@ -307,7 +433,7 @@ extrachill-users/
 **Blog Switching Architecture**:
 ```php
 // Standard pattern used throughout plugin
-switch_to_blog( get_blog_id_from_url( 'community.extrachill.com', '/' ) );
+switch_to_blog( 2 );
 try {
     // Cross-site database operations
     $user = get_userdata( $user_id );
@@ -316,17 +442,17 @@ try {
 }
 ```
 
-**Domain-Based Site Resolution**:
-- Uses `get_blog_id_from_url()` with automatic WordPress blog-id-cache
-- No hardcoded blog IDs - uses domain strings for maintainability
-- Performance optimized via WordPress native caching
+**Dynamic Site Discovery**:
+- Uses `get_sites()` to enumerate network sites
+- Automatic WordPress blog-id-cache for optimal performance
+- Maintainable and flexible across network changes
 
 ### Plugin Loading Strategy
 **Main Plugin File** (`extrachill-users.php`):
 - Network activation check (requires multisite installation)
 - Defines plugin constants (VERSION, PLUGIN_FILE, PLUGIN_DIR, PLUGIN_URL)
 - Registers Gutenberg blocks via `register_block_type()` in `init` action
-- Loads 14 core includes via `plugins_loaded` action
+- Loads 18 core includes via `plugins_loaded` action
 - Registers newsletter integration via `newsletter_form_integrations` filter
 
 **Block Registration** (via `extrachill_users_register_blocks()`):
@@ -335,19 +461,23 @@ try {
 
 **Include Loading Order** (via `extrachill_users_init()`):
 1. `inc/team-members.php` - Team member functions
-2. `inc/author-links.php` - Profile URL resolution
-3. `inc/user-creation.php` - User creation filter
-4. `inc/assets.php` - Asset management
-5. `inc/login.php` - Login system
-6. `inc/register.php` - Registration system
-7. `inc/logout.php` - Logout system
-8. `inc/registration-emails.php` - Welcome email system
-9. `inc/password-reset.php` - Password reset system
-10. `inc/online-users.php` - Activity tracking
-11. `inc/avatar-display.php` - Avatar display (loads network-wide)
-12. `inc/avatar-upload.php` - Avatar upload (loads network-wide)
-13. `inc/avatar-menu.php` - Avatar menu (loads network-wide)
-14. `inc/online-users-display.php` - Online stats widget
+2. `inc/admin-access-control.php` - Admin access restriction
+3. `inc/author-links.php` - Profile URL resolution
+4. `inc/user-creation.php` - User creation filter
+5. `inc/artist-profiles.php` - Artist profile functions (network-wide canonical)
+6. `inc/assets.php` - Asset management
+7. `inc/login.php` - Login system
+8. `inc/register.php` - Registration system
+9. `inc/logout.php` - Logout system
+10. `inc/registration-emails.php` - Welcome email system
+11. `inc/password-reset.php` - Password reset system
+12. `inc/online-users.php` - Activity tracking
+13. `inc/avatar-display.php` - Avatar display (loads network-wide)
+14. `inc/avatar-upload.php` - Avatar upload (loads network-wide)
+15. `inc/avatar-menu.php` - Avatar menu (loads network-wide)
+16. `inc/online-users-display.php` - Online stats widget
+17. `inc/comment-auto-approval.php` - Comment auto-approval system
+18. `inc/ad-free-license.php` - Ad-free license validation
 
 ## Development Standards
 
@@ -375,7 +505,7 @@ try {
 
 ### Plugin Dependencies
 - **extrachill-multisite**: Required for Turnstile captcha (`ec_render_turnstile_widget()`, `ec_verify_turnstile_response()`)
-- **extrachill-multisite**: Required for newsletter subscription (`extrachill_multisite_subscribe()` bridge function)
+- **extrachill-newsletter**: Required for newsletter subscription (`extrachill_multisite_subscribe()` function)
 - **extrachill-artist-platform** (optional): Optional integration for roster invitation acceptance during registration (`bp_get_pending_invitations()`, `bp_add_artist_membership()`, `bp_remove_pending_invitation()`)
 
 ### Development Dependencies
@@ -449,7 +579,7 @@ try {
 **Purpose**: Network-wide activity tracking and online user statistics
 
 **Key Features**:
-- Tracks user activity across all 8 sites in the multisite network
+- Tracks user activity across all 9 sites in the multisite network
 - Centralized storage on community.extrachill.com
 - Transient caching for performance optimization
 - "Most ever online" tracking with date
@@ -590,13 +720,13 @@ if ( isset( $_GET['action'] ) && $_GET['action'] === 'reset' ) {
 ### Native Functions Used
 - **`switch_to_blog()`**: Cross-site database access
 - **`restore_current_blog()`**: Restore original site context
-- **`get_blog_id_from_url()`**: Domain-based blog ID resolution with automatic caching
+- **`get_sites()`**: Dynamic network site discovery
 - **`is_multisite()`**: Multisite installation detection
 - **`is_user_member_of_blog()`**: Site membership verification
 - **Network activation hooks**: Proper network plugin initialization
 
 ### Performance Optimizations
-- **WordPress Native Caching**: `get_blog_id_from_url()` uses blog-id-cache automatically
+- **WordPress Blog-ID-Cache**: Automatic blog ID caching for optimal performance
 - **Minimal Context Switching**: Efficient blog switching patterns with try/finally blocks
 - **Error Handling**: Comprehensive error logging and fallback mechanisms
 - **Transient Caching**: Online user counts cached for 5 minutes, total members for 24 hours

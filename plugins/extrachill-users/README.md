@@ -4,13 +4,19 @@ Network-activated user management system for the ExtraChill Platform. Handles us
 
 ## Features
 
-- User registration and login
-- Password reset functionality
-- Avatar upload and display
-- Online users tracking
-- Team members management
-- Author profile links
+- User registration and login with Turnstile captcha
+- Password reset functionality with email-based flow
+- Avatar upload and display system with bbPress integration
+- Online users tracking across network with performance optimizations
+- Team members management with manual override support
+- Artist profile relationship functions (network-wide canonical)
+- Author profile URL resolution with bidirectional linking
+- Network-wide avatar menu with plugin extensibility via filter
+- Ad-free license validation system
+- Comment auto-approval for logged-in users
 - Gutenberg blocks for login/register and password reset
+- Newsletter subscription integration during registration
+- Admin access control (wp-admin restriction for non-admins)
 
 ## Requirements
 

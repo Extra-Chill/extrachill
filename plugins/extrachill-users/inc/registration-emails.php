@@ -2,6 +2,8 @@
 /**
  * Registration Email System
  *
+ * Sends HTML welcome email and admin notification on user_register action hook.
+ *
  * @package ExtraChill\Users
  */
 

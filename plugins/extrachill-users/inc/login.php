@@ -8,42 +8,34 @@
 /**
  * Render login form with error handling.
  *
+ * @param array $attributes Block attributes
  * @return string Login form HTML
  */
-function extrachill_login_form() {
+function extrachill_login_form( $attributes = array() ) {
     ob_start();
 
     if (is_user_logged_in()) {
         echo '<div class="login-already-logged-in">You are already logged in.</div>';
     } else {
-        extrachill_display_login_form();
+        extrachill_display_login_form( $attributes );
         extrachill_display_error_messages();
     }
 
     return ob_get_clean();
 }
 
-/**
- * Redirect logged-in users accessing login page.
- */
-function extrachill_handle_logged_in_user() {
-    if (is_admin()) {
-        return;
-    }
+function extrachill_display_login_form( $attributes = array() ) {
+    // Determine redirect URL
+    $current_url = (is_ssl() ? 'https://' : 'http://' ) . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
 
-    $login_page_url = home_url('/login/');
-    $current_url = (is_ssl() ? 'https://' : 'http://') . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
-    $is_login_page = $current_url == $login_page_url;
-
-    if (!$is_login_page && !empty($_REQUEST['redirect_to'])) {
-        wp_redirect($_REQUEST['redirect_to']);
+    if ( ! empty( $attributes['redirectUrl'] ) ) {
+        // Use block attribute if set
+        $redirect_url = add_query_arg( 'login', 'success', esc_url( $attributes['redirectUrl'] ) );
     } else {
-        wp_redirect(home_url());
+        // Default: redirect to current page with success param
+        $redirect_url = add_query_arg( 'login', 'success', $current_url );
     }
-    exit;
-}
 
-function extrachill_display_login_form() {
     ?>
     <div class="login-register-form">
         <h2>Login to Extra Chill</h2>
@@ -58,7 +50,7 @@ function extrachill_display_login_form() {
             <label for="user_pass">Password</label>
             <input type="password" name="pwd" id="user_pass" class="input" placeholder="Your password" required>
 
-            <input type="hidden" name="redirect_to" value="<?php echo esc_attr(extrachill_get_redirect_url()); ?>">
+            <input type="hidden" name="redirect_to" value="<?php echo esc_attr( $redirect_url ); ?>">
 
             <input type="submit" id="wp-submit" class="button" value="Log In">
         </form>
@@ -82,6 +74,13 @@ function extrachill_get_redirect_url() {
         return esc_url($_GET['redirect_to']);
     }
 
+    // If on login page, redirect to homepage
+    $current_path = parse_url($current_url, PHP_URL_PATH);
+    if ($current_path && rtrim($current_path, '/') === '/login') {
+        return home_url();
+    }
+
+    // For inline login forms on other pages, stay on current page
     return add_query_arg('login', 'success', $current_url);
 }
 

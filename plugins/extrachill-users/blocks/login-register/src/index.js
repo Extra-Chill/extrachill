@@ -1,14 +1,29 @@
 import { registerBlockType } from '@wordpress/blocks';
 import { useBlockProps } from '@wordpress/block-editor';
+import './editor.css';
 
 registerBlockType( 'extrachill/login-register', {
-	edit: function() {
+	edit: function( { attributes, setAttributes } ) {
 		const blockProps = useBlockProps();
+		const { redirectUrl } = attributes;
+
 		return (
 			<div { ...blockProps }>
-				<div style={{ padding: '20px', background: '#f0f0f0', border: '1px solid #ddd', borderRadius: '4px', textAlign: 'center' }}>
-					<p style={{ margin: '0', fontWeight: 'bold' }}>Login/Register Form</p>
-					<p style={{ margin: '10px 0 0', fontSize: '12px', color: '#666' }}>This block displays a tabbed login and registration form on the frontend.</p>
+				<div className="login-register-block-preview">
+					<p>Login/Register Form</p>
+					<p className="block-description">This block displays a tabbed login and registration form on the frontend.</p>
+
+					<div className="redirect-field-wrapper">
+						<label htmlFor="redirect-url-input">Redirect URL (Optional)</label>
+						<input
+							id="redirect-url-input"
+							type="text"
+							value={redirectUrl}
+							onChange={(e) => setAttributes({ redirectUrl: e.target.value })}
+							placeholder="https://example.com/"
+						/>
+						<span className="help-text">Leave empty to stay on current page after login. Set to homepage URL on /login page.</span>
+					</div>
 				</div>
 			</div>
 		);

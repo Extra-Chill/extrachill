@@ -52,9 +52,8 @@ function ec_has_main_site_account($user_id) {
     $has_account = false;
 
     try {
-        $main_site_id = get_blog_id_from_url( 'extrachill.com', '/' );
-        switch_to_blog( $main_site_id );
-        $has_account = is_user_member_of_blog( $user_id, $main_site_id );
+        switch_to_blog( 1 );
+        $has_account = is_user_member_of_blog( $user_id, 1 );
     } finally {
         restore_current_blog();
     }

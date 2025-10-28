@@ -2,7 +2,7 @@
 /**
  * Network-Wide Online Users Tracking
  *
- * Tracks activity across all 7 multisite network sites with centralized storage on community.extrachill.com.
+ * Tracks activity across all 9 multisite network sites with centralized storage on community.extrachill.com.
  *
  * @package ExtraChill\Users
  */
@@ -23,11 +23,11 @@ function ec_record_user_activity() {
 	if ( $user_id ) {
 		$current_time            = current_time( 'timestamp' );
 		$user_activity_cache_key = 'user_activity_' . $user_id;
-		$community_blog_id       = get_blog_id_from_url( 'community.extrachill.com', '/' );
+
 
 		// Throttle updates to every 15 minutes (900 seconds)
 		// Check and set transients on community site for consistency
-		switch_to_blog( $community_blog_id );
+		switch_to_blog( 2 );
 		try {
 			$last_update = get_transient( $user_activity_cache_key );
 
@@ -57,7 +57,7 @@ function ec_get_online_users_count() {
 	global $wpdb;
 
 	$transient_key     = 'online_users_count';
-	$community_blog_id = get_blog_id_from_url( 'community.extrachill.com', '/' );
+	$community_blog_id = 2;
 
 	switch_to_blog( $community_blog_id );
 	try {
@@ -93,7 +93,7 @@ function ec_display_online_users_stats() {
 		$online_users_count = ec_get_online_users_count();
 	}
 
-	$community_blog_id = get_blog_id_from_url( 'community.extrachill.com', '/' );
+	$community_blog_id = 2;
 	switch_to_blog( $community_blog_id );
 	try {
 		$transient_key_total_members = 'total_members_count';

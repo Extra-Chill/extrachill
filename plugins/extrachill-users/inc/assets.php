@@ -2,6 +2,8 @@
 /**
  * Asset Management for ExtraChill Users
  *
+ * Loads avatar menu, online users CSS/JS network-wide with filemtime() versioning.
+ *
  * @package ExtraChill\Users
  */
 

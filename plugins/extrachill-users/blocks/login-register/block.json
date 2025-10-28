@@ -6,6 +6,12 @@
 	"category": "widgets",
 	"icon": "admin-users",
 	"description": "Tabbed login and registration form for Extra Chill Community",
+	"attributes": {
+		"redirectUrl": {
+			"type": "string",
+			"default": ""
+		}
+	},
 	"supports": {
 		"html": false,
 		"multiple": true

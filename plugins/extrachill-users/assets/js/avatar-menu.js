@@ -7,15 +7,15 @@
  * @package ExtraChillMultisite
  */
 document.addEventListener('DOMContentLoaded', function() {
-    const avatarButton = document.querySelector('.user-avatar-button');
+    const avatarLink = document.querySelector('.user-avatar-link');
     const dropdownMenu = document.querySelector('.user-dropdown-menu');
 
-    if (!avatarButton || !dropdownMenu) {
+    if (!avatarLink || !dropdownMenu) {
         return;
     }
 
-    // Toggle dropdown when clicking avatar button
-    avatarButton.addEventListener('click', function(e) {
+    // Toggle dropdown when clicking avatar link
+    avatarLink.addEventListener('click', function(e) {
         e.preventDefault();
         e.stopPropagation();
         dropdownMenu.classList.toggle('show');
@@ -32,7 +32,7 @@ document.addEventListener('DOMContentLoaded', function() {
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape' && dropdownMenu.classList.contains('show')) {
             dropdownMenu.classList.remove('show');
-            avatarButton.focus();
+            avatarLink.focus();
         }
     });
 

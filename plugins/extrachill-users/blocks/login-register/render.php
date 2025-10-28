@@ -48,7 +48,7 @@ wp_enqueue_script( 'extrachill-shared-tabs' );
 			<div id="tab-login" class="shared-tab-pane active">
 				<?php
 				if ( function_exists( 'extrachill_login_form' ) ) {
-					echo extrachill_login_form();
+					echo extrachill_login_form( $attributes );
 				}
 				?>
 			</div>
@@ -63,7 +63,7 @@ wp_enqueue_script( 'extrachill-shared-tabs' );
 			<div id="tab-register" class="shared-tab-pane">
 				<?php
 				if ( function_exists( 'extrachill_registration_form_shortcode' ) ) {
-					echo extrachill_registration_form_shortcode();
+					echo extrachill_registration_form_shortcode( $attributes );
 				}
 				?>
 			</div>

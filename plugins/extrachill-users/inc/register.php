@@ -8,10 +8,21 @@
 /**
  * Render registration form with roster invitation support.
  *
+ * @param array $attributes Block attributes or shortcode attributes
  * @return string Registration form HTML
  */
-function extrachill_registration_form_shortcode() {
+function extrachill_registration_form_shortcode( $attributes = array() ) {
     global $extrachill_registration_errors;
+
+    // Store redirect URL in global for use by registration handler
+    // Don't store if there's an active invitation or join flow (they have their own redirects)
+    $has_invitation = isset($_GET['action']) && $_GET['action'] === 'bp_accept_invite'
+        && isset($_GET['token']) && isset($_GET['artist_id']);
+    $is_join_flow = isset($_POST['from_join']) && $_POST['from_join'] === 'true';
+
+    if ( ! empty( $attributes['redirectUrl'] ) && ! $has_invitation && ! $is_join_flow ) {
+        $GLOBALS['extrachill_registration_redirect_url'] = $attributes['redirectUrl'];
+    }
 
     ob_start();
 
@@ -120,7 +131,10 @@ $GLOBALS['extrachill_registration_errors'] = array();
 /**
  * Handle registration form submission.
  *
- * Creates user via multisite filter, processes roster invitations, subscribes to newsletter, auto-login.
+ * Creates user on community.extrachill.com via extrachill_create_community_user filter,
+ * processes roster invitations via extrachill-artist-platform functions,
+ * subscribes to newsletter via extrachill_multisite_subscribe(),
+ * and auto-login with auth cookie.
  */
 function extrachill_handle_registration() {
     global $extrachill_registration_errors;
@@ -222,8 +236,8 @@ add_action('init', 'extrachill_handle_registration');
 /**
  * Auto-login user after registration with optional artist profile redirect.
  *
- * @param int      $user_id User ID
- * @param int|null $redirect_artist_id Optional artist profile ID
+ * @param int      $user_id             User ID
+ * @param int|null $redirect_artist_id  Optional artist profile ID for roster invitation redirect
  */
 function auto_login_new_user($user_id, $redirect_artist_id = null) {
     $user = get_user_by('id', $user_id);
@@ -240,17 +254,16 @@ function auto_login_new_user($user_id, $redirect_artist_id = null) {
             } else {
                 $redirect_url = home_url();
             }
+        } elseif ( ! empty( $GLOBALS['extrachill_registration_redirect_url'] ) ) {
+            // Use block attribute redirect URL if set
+            $redirect_url = add_query_arg( 'registration', 'success', esc_url( $GLOBALS['extrachill_registration_redirect_url'] ) );
         } else {
-            $referrer = isset($_SERVER['HTTP_REFERER']) ? $_SERVER['HTTP_REFERER'] : '';
-
-            if (!empty($referrer)) {
-                $redirect_url = add_query_arg('registration', 'success', $referrer);
-            } else {
-                $redirect_url = add_query_arg('registration', 'success', home_url());
-            }
-
-            $redirect_url = apply_filters('registration_redirect', $redirect_url);
+            // Default: redirect to current page with success param
+            $current_url = ( is_ssl() ? 'https://' : 'http://' ) . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
+            $redirect_url = add_query_arg( 'registration', 'success', $current_url );
         }
+
+        $redirect_url = apply_filters('registration_redirect', $redirect_url);
 
         wp_redirect(esc_url_raw($redirect_url));
         exit;
@@ -268,22 +281,21 @@ function extrachill_get_registration_errors() {
 }
 
 /**
- * Display auth success notices network-wide.
+ * Display authentication success notices network-wide.
+ *
+ * Hooked to extrachill_before_body_content (theme hook) for universal notice display.
+ * Triggered by ?registration=success or ?login=success URL parameters.
  */
 function extrachill_display_auth_success_notices() {
     if (isset($_GET['registration']) && $_GET['registration'] === 'success') {
-        echo '<div class="extrachill-auth-notice extrachill-auth-success">
-            <div class="extrachill-auth-notice-content">
-                <strong>Welcome to Extra Chill!</strong> Your account has been created successfully. You are now logged in.
-            </div>
+        echo '<div class="notice notice-success">
+            <strong>Welcome to Extra Chill!</strong> Your account has been created successfully. You are now logged in.
         </div>';
     }
 
     if (isset($_GET['login']) && $_GET['login'] === 'success') {
-        echo '<div class="extrachill-auth-notice extrachill-auth-success">
-            <div class="extrachill-auth-notice-content">
-                <strong>Welcome back!</strong> You have successfully logged in.
-            </div>
+        echo '<div class="notice notice-success">
+            <strong>Welcome back!</strong> You have successfully logged in.
         </div>';
     }
 }
