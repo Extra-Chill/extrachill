@@ -3,13 +3,11 @@
 function display_main_site_post_count_on_profile() {
     $user_id = bbp_get_displayed_user_id();
 
-    // Get main site post count
     switch_to_blog( 1 );
     $post_count = count_user_posts($user_id, 'post', true);
     restore_current_blog();
 
     if ($post_count > 0) {
-        // Get author nicename
         $user_info = get_userdata($user_id);
         $author_slug = $user_info ? $user_info->user_nicename : null;
         $author_url = "https://extrachill.com/author/{$author_slug}/"; // Adjust URL structure as needed
@@ -71,9 +69,6 @@ function override_bbp_user_role_after_bbp_load() {
 }
 
 function override_bbp_user_forum_role( $role, $user_id ) {
-    // Get the custom title if it exists
     $custom_title = get_user_meta( $user_id, 'ec_custom_title', true );
-
-    // Return custom title if set, otherwise return "Extra Chillian" for regular users
     return ! empty( $custom_title ) ? $custom_title : 'Extra Chillian';
 }

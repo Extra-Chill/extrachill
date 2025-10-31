@@ -26,7 +26,6 @@ function extrachill_community_render_settings_content() {
     $current_user = wp_get_current_user();
     $user_id = $current_user->ID;
 
-    // Display error messages
     $settings_errors = get_transient('user_settings_errors_' . $user_id);
     if ($settings_errors) {
         delete_transient('user_settings_errors_' . $user_id);
@@ -37,7 +36,6 @@ function extrachill_community_render_settings_content() {
         echo '</div>';
     }
 
-    // Display success messages
     $settings_success = get_transient('user_settings_success_' . $user_id);
     if ($settings_success) {
         delete_transient('user_settings_success_' . $user_id);
@@ -48,7 +46,6 @@ function extrachill_community_render_settings_content() {
         echo '</div>';
     }
 
-    // Check for pending email change (WordPress native)
     $new_email_data = get_user_meta($user_id, '_new_user_email', true);
     ?>
 

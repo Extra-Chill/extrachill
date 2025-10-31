@@ -3,9 +3,8 @@
  * Asset Management
  *
  * Context-aware CSS/JavaScript loading with dynamic filemtime() versioning.
- * 7 JS files total: 5 loaded here, 2 by feature modules.
- *
- * @package ExtraChillCommunity
+ * CSS: 11 files with conditional loading.
+ * JavaScript: 5 files total (4 loaded here, 1 by feature module).
  */
 
 function extrachill_enqueue_global_styles() {
@@ -190,15 +189,6 @@ function enqueue_content_expand_script() {
     }
 }
 add_action( 'wp_enqueue_scripts', 'enqueue_content_expand_script' );
-
-function enqueue_utilities() {
-    if ( is_bbpress() ) {
-        $script_path = EXTRACHILL_COMMUNITY_PLUGIN_DIR . '/inc/assets/js/utilities.js';
-        $version = filemtime($script_path);
-        wp_enqueue_script('extrachill-utilities', EXTRACHILL_COMMUNITY_PLUGIN_URL . '/inc/assets/js/utilities.js', array('jquery'), $version, true);
-    }
-}
-add_action('wp_enqueue_scripts', 'enqueue_utilities');
 
 function enqueue_custom_tinymce_plugin_scripts() {
     if (is_bbpress() && (bbp_is_single_topic() || bbp_is_single_reply() || bbp_is_topic_edit() || bbp_is_reply_edit() || bbp_is_single_forum())) {

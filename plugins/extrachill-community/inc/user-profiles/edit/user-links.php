@@ -82,7 +82,6 @@ function extrachill_enqueue_user_links_assets() {
         return;
     }
 
-    // Enqueue JavaScript
     wp_enqueue_script(
         'manage-user-profile-links',
         EXTRACHILL_COMMUNITY_PLUGIN_URL . '/inc/assets/js/manage-user-profile-links.js',
@@ -91,7 +90,6 @@ function extrachill_enqueue_user_links_assets() {
         true
     );
 
-    // Get existing links
     $user_id = bbp_get_displayed_user_id();
     $existing_links = get_user_meta($user_id, '_user_profile_dynamic_links', true);
 

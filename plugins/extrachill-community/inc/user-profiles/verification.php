@@ -1,4 +1,11 @@
 <?php
+/**
+ * User Role Verification
+ *
+ * Admin-only interface for artist and industry professional status verification.
+ * Only renders in wp-admin to prevent frontend data manipulation.
+ */
+
 function extrachill_add_user_role_fields($user) {
     // Only render these fields in wp-admin, not on bbPress frontend
     if (!is_admin()) {

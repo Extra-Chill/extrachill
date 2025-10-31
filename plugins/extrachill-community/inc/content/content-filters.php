@@ -1,4 +1,10 @@
 <?php
+/**
+ * Content Filters
+ *
+ * bbPress content transformation: extrachill.com dofollow links, Twitter/X embed handling, inline style stripping.
+ */
+
 function custom_bbp_make_dofollow_links($content) {
     $dom = new DOMDocument();
     @$dom->loadHTML('<?xml encoding="UTF-8">' . $content, LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);

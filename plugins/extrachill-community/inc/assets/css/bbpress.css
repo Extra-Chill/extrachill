@@ -334,16 +334,34 @@ i.fa-solid:hover {
     color: var(--professional-badge-color);
 }
 
-.tooltip {
+/* CSS-only tooltips for data-title attributes */
+[data-title] {
+    position: relative;
+    cursor: help;
+}
+
+[data-title]::after {
+    content: attr(data-title);
     position: absolute;
-    z-index: 1000;
-    padding: 5px;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    margin-bottom: 5px;
+    padding: 5px 8px;
     color: var(--header-text);
     background: var(--background-color);
+    border: 1px solid var(--border-color);
     border-radius: 5px;
     font-size: 14px;
-    display: none;
-    border: 1px solid var(--border-color);
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease-in-out;
+    z-index: 1000;
+}
+
+[data-title]:hover::after {
+    opacity: 1;
 }
 
 /* ==================================================

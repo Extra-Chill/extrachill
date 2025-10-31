@@ -19,9 +19,11 @@ This is a **WordPress plugin** called "Extra Chill Community" for the **Extra Ch
 
 ## KNOWN ISSUES
 
-**PSR-4 Implementation**: No PSR-4 autoloading configured in composer.json. The plugin currently uses procedural patterns throughout forum features.
+**PSR-4 Implementation**: No PSR-4 autoloading configured in composer.json. The plugin uses procedural patterns with direct `require_once` loading.
 
 **Notification System Enhancement**: Expand real-time notification capabilities and improve caching strategies.
+
+**File Migration**: Avatar functionality (custom-avatar.php, upload-custom-avatar.php, custom-avatar.js, online-users-count.php) moved to extrachill-users plugin for network-wide availability. Navigation file (nav.php) and utilities.js deleted from codebase.
 
 ## Key Domains & Architecture
 
@@ -33,7 +35,7 @@ This is a **WordPress plugin** called "Extra Chill Community" for the **Extra Ch
 1. **Forum Features** - Comprehensive bbPress extensions with organized feature architecture
 2. **Cross-Domain Authentication** - WordPress multisite native authentication system for seamless cross-domain user sessions  
 3. **Social Features** - User interactions, following system, upvoting, notifications, and rank system
-4. **User Management** - Custom profiles, avatars, settings, email verification, and notification system
+4. **User Management** - Custom profiles, settings, email verification, and notification system
 5. **Community Templates** - Custom bbPress templates and specialized page templates
 
 ## Development Setup
@@ -53,7 +55,7 @@ composer install
 - **No Asset Compilation** - Direct file inclusion without npm/webpack compilation
 - **Procedural Architecture** - No PSR-4 autoloading configured, uses direct procedural patterns
 - **Asset Versioning** - Dynamic `filemtime()` versioning for cache management
-- **Explicit Loading Pattern** - All functionality loaded via 35 direct `require_once` statements in `extrachill_community_init()` function
+- **Explicit Loading Pattern** - All functionality loaded via 33 direct `require_once` statements in `extrachill_community_init()` function
 - **bbPress Integration** - Default stylesheet dequeuing, custom templates, enhanced functionality
 
 ### Build System
@@ -70,7 +72,7 @@ composer install
 - **Plugin Structure**: WordPress plugin providing community functionality that integrates with the extrachill theme
 - **bbPress Integration**: Custom bbPress enhancements and forum functionality
 - **Asset Management**: Conditional CSS/JS loading with dynamic versioning using `filemtime()`
-- **Explicit Loading System**: All 35 feature files loaded via direct `require_once` in `extrachill_community_init()` function (no master loader file) + 3 template components loaded via includes/filters
+- **Explicit Loading System**: All 33 feature files loaded via direct `require_once` in `extrachill_community_init()` function (no master loader file)
 - **Theme Integration**: Works with extrachill theme to provide community functionality on community.extrachill.com
 - **Template System**: Provides custom bbPress templates and specialized page templates
 - **Hook-Based Components**: Homepage and settings use action hooks instead of monolithic templates
@@ -82,43 +84,44 @@ composer install
 ## Critical File Locations
 
 ### Core Plugin Files
-- `extrachill-community.php` - Main plugin file with 35 explicit `require_once` statements in `extrachill_community_init()`
+- `extrachill-community.php` - Main plugin file with 33 explicit `require_once` statements in `extrachill_community_init()`
 - `inc/core/assets.php` - Asset management and enqueuing system
 - `inc/core/bbpress-templates.php` - bbPress template routing system
+- `inc/core/breadcrumb-filter.php` - bbPress breadcrumb customization
+- `inc/core/page-templates.php` - Page template routing
 - `inc/core/bbpress-spam-adjustments.php` - bbPress spam adjustments
-- `inc/core/nav.php` - Navigation functionality
 - `inc/core/sidebar.php` - Sidebar functionality
 
 ### Forum Features System (inc/ structure)
 
 **Explicit Loading Pattern** - All files loaded via direct `require_once` in `extrachill_community_init()`:
 
-**Core (7 files loaded)**:
-- `inc/core/assets.php`, `bbpress-templates.php`, `breadcrumb-filter.php`, `page-templates.php`, `nav.php`, `bbpress-spam-adjustments.php`, `sidebar.php`
+**Core (6 files)**:
+- `inc/core/assets.php`, `bbpress-templates.php`, `breadcrumb-filter.php`, `page-templates.php`, `bbpress-spam-adjustments.php`, `sidebar.php`
 
-**Content (5 files loaded)**:
+**Content (5 files)**:
 - `inc/content/editor/tinymce-customization.php`, `editor/tinymce-image-uploads.php`
 - `inc/content/content-filters.php`, `recent-feed.php`, `main-site-comments.php`
 
-**Social (12 files loaded)**:
+**Social (12 files)**:
 - `inc/social/upvote.php`, `user-mention-api.php`, `forum-badges.php`
 - `inc/social/rank-system/point-calculation.php`, `rank-system/chill-forums-rank.php`
 - `inc/social/notifications/notification-bell.php`, `notification-card.php`, `notification-handler.php`
 - `inc/social/notifications/notification-cleanup.php`, `capture-replies.php`, `capture-mentions.php`, `notifications-content.php`
 
-**User Profiles (8 files loaded)**:
-- `inc/user-profiles/custom-avatar.php`, `custom-user-profile.php`, `verification.php`
+**User Profiles (6 files)**:
+- `inc/user-profiles/custom-user-profile.php`, `verification.php`
 - `inc/user-profiles/settings/settings-content.php`, `settings/settings-form-handler.php`
-- `inc/user-profiles/edit/upload-custom-avatar.php`, `edit/user-links.php`, `edit/user-info.php`
-- **Note**: `user-avatar-menu.php` and `online-users-count.php` moved to extrachill-users plugin for conditional loading across network
+- `inc/user-profiles/edit/user-links.php`, `edit/user-info.php`
 
-**Home (4 files loaded)**:
+**Home (4 files)**:
 - `inc/home/latest-post.php`, `actions.php`, `homepage-forum-display.php`, `artist-platform-buttons.php`
 
-**Template Components (3 files - loaded via include/filters, NOT in init)**:
-- `inc/home/forum-home-header.php`, `forum-homepage.php`, `recently-active.php`
+**Total: 33 files loaded in init function**
 
-**Total: 36 files explicitly loaded in init + 3 template components = 39 total files**
+**Moved to extrachill-users plugin**: Avatar system (custom-avatar.php, upload-custom-avatar.php, custom-avatar.js), online-users-count.php, user-avatar-menu.php
+
+**Deleted files**: inc/core/nav.php, inc/assets/js/utilities.js
 
 ### Page Templates
 - `page-templates/leaderboard-template.php` - User leaderboard
@@ -129,22 +132,23 @@ composer install
 - `inc/user-profiles/settings/settings-content.php` - Settings page content rendering via hook
 - `inc/user-profiles/settings/settings-form-handler.php` - Form processing and validation
 
-### JavaScript Architecture (7 files in inc/assets/js/)
+### JavaScript Architecture (5 files in inc/assets/js/)
 
-**Loaded via assets.php (5 files)**:
-- `upvote.js` - Content upvoting system (global load)
+**Loaded via assets.php (4 files)**:
+- `upvote.js` - Content upvoting system (bbPress and recent page)
 - `extrachill-mentions.js` - User mention system (bbPress only)
-- `home-collapse.js` - Homepage collapse functionality (conditional)
-- `utilities.js` - General utility functions (global load)
+- `content-expand.js` - Content expansion functionality (recent page, blog comments feed)
 - `tinymce-image-upload.js` - TinyMCE image uploads (bbPress only)
 
-**Loaded independently (2 files)**:
-- `custom-avatar.js` - Avatar upload system (loaded by `inc/user-profiles/edit/upload-custom-avatar.php`)
+**Loaded independently (1 file)**:
 - `manage-user-profile-links.js` - Profile links editor (loaded by `inc/user-profiles/edit/user-links.php`)
 
-### CSS Files (9 files in inc/assets/css/)
-- bbpress.css, home.css, leaderboard.css, notifications.css, replies-loop.css
-- settings-page.css, tinymce-editor.css, topics-loop.css, user-profile.css
+**Removed files**: custom-avatar.js (moved to extrachill-users plugin), utilities.js (deleted)
+
+### CSS Files (11 files in inc/assets/css/)
+- bbpress.css, blog-comments-feed.css, global.css, home.css, leaderboard.css
+- notifications.css, replies-loop.css, settings-page.css, tinymce-editor.css
+- topics-loop.css, user-profile.css
 
 ### bbPress Template Overrides
 Custom templates in `bbpress/` directory provide enhanced forum functionality:
@@ -175,12 +179,11 @@ Custom templates in `bbpress/` directory provide enhanced forum functionality:
 8. **Performance Optimization** - Conditional loading and selective script enqueuing
 
 ### Forum Features Architecture
-1. **Explicit Loading Pattern** - 36 files loaded via direct `require_once` in `extrachill_community_init()` function + 3 template components loaded via includes/filters
-2. **Organized Structure** - Features grouped by functionality: core (7), content (5), social (12), user-profiles (8), home (4), plus 3 template components
+1. **Explicit Loading Pattern** - 33 files loaded via direct `require_once` in `extrachill_community_init()` function
+2. **Organized Structure** - Features grouped by functionality: core (6), content (5), social (12), user-profiles (6), home (4)
 3. **Conditional Loading** - Context-aware CSS/JS loading for performance
 4. **bbPress Integration** - Custom templates via `inc/core/bbpress-templates.php` routing, breadcrumb customization via `bbp_breadcrumbs` filter
 5. **Hook-Based Components** - Homepage and settings use action hooks for extensibility
-6. **Template Partials** - 3 home template components (forum-home-header, forum-homepage, recently-active) loaded via include/filters (not in init)
 
 ### Code Patterns
 - **WordPress Coding Standards** - Full compliance with plugin development best practices
@@ -194,8 +197,8 @@ Custom templates in `bbpress/` directory provide enhanced forum functionality:
 - **Cross-Domain Functionality** - Multisite authentication and data sharing capabilities
 
 ### JavaScript Architecture Principles
-- **Modular Design** - 7 JS files in `inc/assets/js/` with specialized functionality domains
-- **Mixed Loading** - 5 files via assets.php centrally, 2 loaded independently by their feature modules
+- **Modular Design** - 5 JS files in `inc/assets/js/` with specialized functionality domains
+- **Mixed Loading** - 4 files via assets.php centrally, 1 loaded independently by feature module
 - **jQuery Dependencies** - Proper dependency management across all custom scripts
 - **Context-Aware Loading** - Conditional script enqueuing based on page template/context
 - **Dynamic Versioning** - `filemtime()` versioning for cache busting
@@ -210,7 +213,7 @@ Custom templates in `bbpress/` directory provide enhanced forum functionality:
 ### JavaScript
 - **Direct File Inclusion** - No build system, direct file loading
 - **jQuery Dependencies** - All custom scripts depend on jQuery
-- **7 Files Total** - 5 via assets.php centrally, 2 via feature modules independently
+- **5 Files Total** - 4 via assets.php centrally, 1 via feature module independently
 - **Dynamic Versioning** - `filemtime()` cache busting
 
 ## Database Tables
@@ -227,7 +230,7 @@ Custom templates in `bbpress/` directory provide enhanced forum functionality:
 
 ### Avatar Menu Filter
 
-The theme provides the `ec_avatar_menu_items` filter to allow plugins to add custom menu items to the user avatar dropdown menu in the header.
+The `ec_avatar_menu_items` filter (provided by extrachill-users plugin) allows plugins to add custom menu items to the user avatar dropdown menu in the header.
 
 **Filter Usage:**
 ```php
@@ -250,8 +253,7 @@ function my_plugin_avatar_menu_items( $menu_items, $user_id ) {
 - `label` (string, required) - The menu item text
 - `priority` (int, optional) - Sort priority (default: 10, lower numbers appear first)
 
-**Integration Pattern:**
-The filter is applied in the extrachill-users plugin (formerly in this plugin at `inc/user-profiles/user-avatar-menu.php`) between core profile menu items and settings/logout items, allowing plugins to inject custom functionality without modifying theme files.
+**Note**: This filter is PROVIDED by the extrachill-users plugin, not this plugin. Community plugin can use this filter to add menu items.
 
 ## Current Status
 

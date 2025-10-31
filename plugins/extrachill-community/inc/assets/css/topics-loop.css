@@ -228,7 +228,7 @@
 
 /* Styling for sticky topic cards */
 .bbp-topic-card.bbp-topic-card-sticky {
-    border-top: 3px solid var(--accent-2); /* Accent-2 border */
+    border-left: 3px solid var(--accent-2); /* Accent-2 border */
 }
 
 .bbp-topic-card.bbp-topic-card-sticky .bbp-topic-header-inner:before {

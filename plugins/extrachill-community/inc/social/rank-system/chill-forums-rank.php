@@ -37,7 +37,6 @@ function extrachill_display_user_rank($user_id) {
     // Determine the user's rank based on the total points
     $rank = extrachill_determine_rank_by_points($total_points);
     
-    // Return the calculated rank
     return $rank;
 }
 
@@ -46,7 +45,6 @@ function extrachill_add_rank_and_points_to_reply() {
 
     echo '<div class="rankpoints">';
 
-    // Display Local Scene (City)
     $local_city = get_user_meta($reply_author_id, 'local_city', true);
     if (!empty($local_city)) {
         echo '<div class="reply-author-local-scene">';
@@ -54,17 +52,15 @@ function extrachill_add_rank_and_points_to_reply() {
         echo '</div>';
     }
 
-    // Display Rank
     echo '<div class="reply-author-rank">';
     echo '<span>Rank:</span> ' . extrachill_display_user_rank($reply_author_id);
     echo '</div>';
 
-    // Display Points
     echo '<div class="reply-author-points">';
     echo '<span>Points:</span> ' . extrachill_display_user_points($reply_author_id);
     echo '</div>';
 
-    echo '</div>'; // Close rankpoints div
+    echo '</div>';
 }
 
 
