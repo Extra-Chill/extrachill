@@ -23,11 +23,9 @@ defined( 'ABSPATH' ) || exit;
  */
 function ec_handle_link_page_file_uploads( $link_page_id, $files_data, $save_data = array() ) {
 
-    if ( ! function_exists( 'media_handle_upload' ) ) {
-        require_once( ABSPATH . 'wp-admin/includes/file.php' );
-        require_once( ABSPATH . 'wp-admin/includes/image.php' );
-        require_once( ABSPATH . 'wp-admin/includes/media.php' );
-    }
+    require_once( ABSPATH . 'wp-admin/includes/file.php' );
+    require_once( ABSPATH . 'wp-admin/includes/image.php' );
+    require_once( ABSPATH . 'wp-admin/includes/media.php' );
 
     $max_file_size = 5 * 1024 * 1024; // 5MB
 
@@ -125,11 +123,9 @@ function ec_handle_link_page_file_uploads( $link_page_id, $files_data, $save_dat
  */
 function ec_handle_artist_profile_file_uploads( $artist_id, $files_data ) {
 
-    if ( ! function_exists( 'media_handle_upload' ) ) {
-        require_once( ABSPATH . 'wp-admin/includes/file.php' );
-        require_once( ABSPATH . 'wp-admin/includes/image.php' );
-        require_once( ABSPATH . 'wp-admin/includes/media.php' );
-    }
+    require_once( ABSPATH . 'wp-admin/includes/file.php' );
+    require_once( ABSPATH . 'wp-admin/includes/image.php' );
+    require_once( ABSPATH . 'wp-admin/includes/media.php' );
 
     $max_file_size = 5 * 1024 * 1024; // 5MB
 

@@ -14,17 +14,20 @@ A comprehensive WordPress plugin that provides artist profile management, link p
 
 ### 🎵 Artist Profiles
 - Custom post type for artist/band profiles with comprehensive meta data
-- Activity-based artist grid display with smart sorting
+- Activity-based artist grid display with smart sorting and AJAX pagination
 - Forum integration with bbPress for artist-specific discussions
+- Blog coverage integration linking profiles to main site taxonomy archives
 - Roster management with email invitation system and role assignment
 - Artist directory with user exclusion logic for personalized views
 - Profile manager assignment and centralized permissions
 - Following system with database-backed relationships
+- Unified artist card component for consistent display across pages
 
 ### 🔗 Link Pages
 - Custom link page creation with comprehensive management interface
 - Real-time live preview with event-driven JavaScript architecture and dedicated live preview handler
 - Drag-and-drop link reordering with SortableJS integration and live preview updates
+- Programmatic link addition API via WordPress actions for external integrations
 - Advanced styling system with custom fonts, colors, backgrounds, and profile image management
 - YouTube video embed support with toggle control and preview
 - QR code generation with download functionality
@@ -60,8 +63,8 @@ A comprehensive WordPress plugin that provides artist profile management, link p
 - Role-based artist profile management with granular permissions
 - Server-side permission validation with context-aware checks
 - AJAX permission validation with comprehensive nonce verification
-- WordPress multisite provides native cross-domain authentication across all Extra Chill domains
 - Template-level permission checks using native WordPress authentication
+- Cross-domain authentication managed by extrachill-multisite plugin
 
 ## Requirements
 
@@ -171,7 +174,7 @@ if ( ec_ajax_can_manage_link_page() ) {
     // AJAX context: User can manage link pages
 }
 
-// Template-level permission checks with cross-domain session support
+// Template-level permission checks
 $can_edit = ec_can_manage_artist( get_current_user_id(), get_the_ID() );
 ```
 
@@ -196,17 +199,21 @@ $preview_data = ec_get_link_page_data( $artist_id, $link_page_id, $override_data
 
 ### Artist Grid Display
 
-Activity-based artist sorting with comprehensive timestamp calculation:
+Activity-based artist sorting with AJAX pagination and comprehensive timestamp calculation:
 
 ```php
 // Display artist grid with current user's artists excluded
-ec_display_artist_cards_grid( 12, true );
+ec_display_artist_cards_grid( 24, true );
+
+// Display with AJAX data return (for pagination)
+$data = ec_display_artist_cards_grid( 24, true, 1, true );
+// Returns: array with 'html', 'pagination_html', 'current_page', 'total_pages', 'total_artists'
 
 // Get comprehensive activity timestamp (profile, link page, forum activity)
 $activity_timestamp = ec_get_artist_profile_last_activity_timestamp( $artist_id );
 
 // Template integration with context-aware rendering
-echo ec_render_template( 'artist-profile-card', array(
+echo ec_render_template( 'artist-card', array(
     'artist_id' => $artist_id,
     'context' => 'directory'
 ) );
@@ -220,23 +227,66 @@ if ( ! in_array( $artist_id, $user_artists ) ) {
 
 ### Homepage Action Hooks
 
-Centralized homepage functionality with action hook system:
+Centralized homepage functionality with modular hook system:
 
 ```php
 // Homepage template override filter (theme integration)
 add_filter( 'extrachill_template_homepage', 'ec_artist_platform_override_homepage' );
 
-// Hero section rendering
+// Hero section rendering with user state parameters
 add_action( 'extrachill_artist_home_hero', 'ec_render_artist_home_hero', 10, 4 );
+// Template: inc/home/templates/hero.php
 
 // Your Artists section above grid
 add_action( 'extrachill_above_artist_grid', 'ec_render_your_artists', 10, 1 );
+// Template: inc/home/templates/your-artists.php
+
+// Support buttons section
+add_action( 'extrachill_above_artist_grid', 'ec_render_support_buttons', 15 );
 ```
 
 **Hook Integration**:
 - Uses theme's universal template routing via `extrachill_template_homepage` filter
-- Modular hero section with user state awareness
-- "Your Artists" section displays user's profiles above directory grid
+- Blog ID detection: Only overrides on artist.extrachill.com (blog ID 4)
+- Modular templates: `homepage.php`, `hero.php`, `your-artists.php`
+- User state awareness for personalized hero messaging
+
+### Programmatic Link Addition
+
+Add links to artist link pages programmatically via WordPress action:
+
+```php
+// Add a link programmatically
+do_action( 'ec_artist_add_link', $link_page_id, array(
+    'link_text' => 'My Website',
+    'link_url' => 'https://example.com',
+    'section_index' => 0,  // Optional: which section (default: 0)
+    'position' => 0,        // Optional: position in section (default: append)
+    'expires_at' => ''      // Optional: expiration datetime
+), $user_id );
+
+// Hook into success/failure actions
+add_action( 'ec_artist_link_added', function( $link_page_id, $link_data, $section, $position, $user_id ) {
+    // Log success, send notification, trigger webhook, etc.
+}, 10, 5 );
+
+add_action( 'ec_artist_link_add_failed', function( $link_page_id, $link_data, $error, $user_id ) {
+    // Log error for debugging
+    error_log( 'Link add failed: ' . $error->get_error_message() );
+}, 10, 4 );
+
+// Data sanitization filter (extensible)
+add_filter( 'ec_sanitize_link_data', function( $link_data ) {
+    // Add custom sanitization
+    return $link_data;
+} );
+
+// Data validation filter (extensible)
+add_filter( 'ec_validate_link_data', function( $valid, $link_data ) {
+    // Add custom validation rules
+    return $valid;
+}, 10, 2 );
+```
 
 ### Adding Custom AJAX Actions
 
@@ -250,12 +300,12 @@ add_action( 'wp_ajax_nopriv_custom_action', 'my_custom_handler' ); // For public
 function my_custom_handler() {
     // Security checks
     check_ajax_referer( 'custom_nonce_action', 'nonce' );
-    
+
     // Permission validation using centralized system
     if ( ! ec_ajax_can_manage_artist() ) {
         wp_send_json_error( 'Insufficient permissions' );
     }
-    
+
     // Your custom AJAX logic
     wp_send_json_success( array( 'message' => 'Success!' ) );
 }
@@ -580,14 +630,13 @@ inc/
 │   ├── admin/                       # Admin meta boxes, user linking
 │   ├── frontend/                    # Public forms, directory
 │   │   ├── artist-grid.php         # Artist grid display functions
-│   │   ├── breadcrumbs.php         # Navigation breadcrumbs
+│   │   ├── artist-grid-ajax.php    # AJAX pagination handler
+│   │   ├── breadcrumbs.php         # Theme breadcrumb filter integration
 │   │   └── templates/              # Artist profile templates
-│   │       ├── archive-artist_profile.php
 │   │       ├── single-artist_profile.php
 │   │       ├── artist-directory.php
-│   │       ├── artist-platform-home.php
 │   │       ├── manage-artist-profiles.php
-│   │       ├── artist-card.php     # Artist card template
+│   │       ├── artist-card.php     # Unified artist card component
 │   │       └── manage-artist-profile-tabs/
 │   ├── roster/                      # Band member management
 │   │   ├── artist-invitation-emails.php
@@ -596,7 +645,7 @@ inc/
 │   │   └── roster-data-functions.php
 │   ├── artist-forums.php            # Forum integration
 │   ├── artist-following.php         # Follow system
-│   ├── blog-coverage.php            # Blog coverage tracking
+│   ├── blog-coverage.php            # Main site taxonomy archive linking
 │   └── subscribe-data-functions.php # Artist subscription data
 ├── link-pages/                      # Link page system
 │   ├── management/                  # Management interface
@@ -636,13 +685,17 @@ assets/
 ├── css/                             # Stylesheets
 │   ├── components/                  # Component-specific styles
 │   ├── artist-platform.css         # Global styles
+│   ├── artist-card.css             # Unified artist card styles
+│   ├── artist-profile.css          # Artist profile page styles
+│   ├── artist-platform-home.css    # Homepage styles
 │   ├── manage-link-page.css         # Management interface
 │   ├── extrch-links.css            # Public link page styles
 │   └── extrch-share-modal.css      # Share modal styles
 └── js/
     ├── artist-switcher.js           # Artist context switching
     ├── artist-platform.js           # Core plugin functionality
-    └── artist-platform-home.js     # Homepage-specific features
+    ├── artist-platform-home.js     # Homepage-specific features
+    └── artist-grid-pagination.js   # AJAX pagination for artist grid
 ```
 
 ## Support
@@ -679,7 +732,8 @@ The build process excludes:
 - Version control files (.git/, .gitignore)
 - Development tools (build.sh, package.json, .buildignore)
 - Testing files and temporary artifacts
-- Node modules and PHP vendor directories
+- Node modules (node_modules/)
+- Note: WordPress plugins include vendor/ directory with production dependencies (end users don't have Composer access)
 
 ## Custom CSS System
 

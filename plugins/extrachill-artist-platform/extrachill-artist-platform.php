@@ -14,6 +14,10 @@
  * Tested up to: 6.4
  * Requires PHP: 7.4
  * Requires Plugins: bbpress
+ *
+ * Architecture: Site-activated on artist.extrachill.com with extrachill.link domain mapping.
+ * Link pages accessible at extrachill.link/{artist-slug} via top-level rewrite rules.
+ * Dependencies: bbPress for forum integration, extrachill-users for artist profile functions.
  */
 
 defined( 'ABSPATH' ) || exit;

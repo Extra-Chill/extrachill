@@ -21,7 +21,6 @@ extrachill_breadcrumbs();
 
 		<div class="entry-content" itemprop="text">
 			<?php
-			// Initialize user data
 			$current_user     = wp_get_current_user();
 			$is_logged_in     = is_user_logged_in();
 			$can_create_artists = ec_can_create_artist_profiles( get_current_user_id() );
@@ -29,7 +28,6 @@ extrachill_breadcrumbs();
 			?>
 
 				<?php if ( ! $is_logged_in ) : ?>
-					<!-- Not Logged In Section -->
 					<div class="artist-platform-welcome">
 						<?php do_action( 'extrachill_artist_home_hero', $current_user, $is_logged_in, $can_create_artists, $user_artist_ids ); ?>
 
@@ -40,7 +38,6 @@ extrachill_breadcrumbs();
 					</div>
 
 				<?php elseif ( empty( $user_artist_ids ) ) : ?>
-					<!-- Logged In, No Artists -->
 					<div class="artist-platform-getting-started">
 						<?php do_action( 'extrachill_artist_home_hero', $current_user, $is_logged_in, $can_create_artists, $user_artist_ids ); ?>
 
@@ -67,12 +64,10 @@ extrachill_breadcrumbs();
 					</div>
 
 				<?php else : ?>
-					<!-- Logged In, Has Artists - Dashboard -->
 					<div class="artist-platform-dashboard">
 						<?php do_action( 'extrachill_artist_home_hero', $current_user, $is_logged_in, $can_create_artists, $user_artist_ids ); ?>
 
 						<?php
-						// Find most recently modified artist profile (same logic as avatar menu)
 						$latest_artist_id             = 0;
 						$latest_modified_timestamp = 0;
 
@@ -90,15 +85,12 @@ extrachill_breadcrumbs();
 							}
 						}
 
-						// Set smart management URLs
 						$smart_manage_url = $latest_artist_id > 0 ?
 							add_query_arg( 'artist_id', $latest_artist_id, home_url( '/manage-artist-profiles/' ) ) :
 							home_url( '/manage-artist-profiles/' );
 						?>
 
 						<?php do_action( 'extrachill_above_artist_grid', $user_artist_ids ); ?>
-
-						<!-- Featured Artists from Community -->
 						<div class="featured-artists-section">
 							<h3><?php esc_html_e( 'Discover Other Artists', 'extrachill-artist-platform' ); ?></h3>
 							<?php ec_display_artist_cards_grid( 24, true ); ?>

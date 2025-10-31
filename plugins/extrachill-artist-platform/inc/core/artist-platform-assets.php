@@ -39,22 +39,18 @@ class ExtraChillArtistPlatform_Assets {
         $plugin_url = EXTRACHILL_ARTIST_PLATFORM_PLUGIN_URL;
         $plugin_dir = EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR;
 
-        // Link page specific assets
         if ( $this->is_link_page_context() ) {
             $this->enqueue_link_page_assets();
         }
 
-        // Artist profile management assets
         if ( $this->is_manage_artist_profile_page() ) {
             $this->enqueue_artist_profile_management_assets();
         }
 
-        // Link page management assets
         if ( $this->is_manage_link_page_page() ) {
             $this->enqueue_link_page_management_assets();
         }
 
-        // Artist profile single page assets
         if ( $this->is_artist_profile_page() ) {
             wp_enqueue_style(
                 'extrachill-artist-profile',
@@ -63,7 +59,6 @@ class ExtraChillArtistPlatform_Assets {
                 $this->get_asset_version( 'assets/css/artist-profile.css' )
             );
 
-            // Load community plugin forum styles for hybrid artist profile pages
             if ( defined( 'EXTRACHILL_COMMUNITY_PLUGIN_URL' ) && defined( 'EXTRACHILL_COMMUNITY_PLUGIN_DIR' ) ) {
                 wp_enqueue_style(
                     'extrachill-bbpress',
@@ -88,7 +83,6 @@ class ExtraChillArtistPlatform_Assets {
             }
         }
 
-        // Artist directory assets
         if ( $this->is_artist_directory_page() ) {
             wp_enqueue_style(
                 'extrachill-artist-card',
@@ -105,9 +99,7 @@ class ExtraChillArtistPlatform_Assets {
             );
         }
 
-        // Hero card styles for artist platform home page and artist archive
         if ( $this->should_load_hero_card_styles() ) {
-            // Load dedicated artist card styles
             wp_enqueue_style(
                 'extrachill-artist-card',
                 $plugin_url . 'assets/css/artist-card.css',
@@ -139,7 +131,6 @@ class ExtraChillArtistPlatform_Assets {
             );
         }
 
-        // bbPress user profile pages with artist cards
         if ( $this->is_bbpress_user_profile() ) {
             wp_enqueue_style(
                 'extrachill-artist-card',
@@ -156,7 +147,6 @@ class ExtraChillArtistPlatform_Assets {
             );
         }
 
-        // Global artist platform assets
         wp_enqueue_style( 
             'extrachill-artist-platform', 
             $plugin_url . 'assets/css/artist-platform.css', 
@@ -169,21 +159,18 @@ class ExtraChillArtistPlatform_Assets {
             $plugin_url . 'assets/js/artist-platform.js', 
             array( 'jquery' ), 
             $this->get_asset_version( 'assets/js/artist-platform.js' ), 
-            true 
+            true
         );
 
-        // Get current artist ID and link page data using centralized data provider
         $current_artist_id = apply_filters('ec_get_artist_id', $_GET);
         $link_page_data = $current_artist_id > 0 ? ec_get_link_page_data( $current_artist_id ) : array();
-        
-        // Get fonts manager for font data
+
         $fonts_data = array();
         if ( class_exists( 'ExtraChillArtistPlatform_Fonts' ) ) {
             $font_manager = ExtraChillArtistPlatform_Fonts::instance();
             $fonts_data = $font_manager->get_supported_fonts();
         }
-        
-        // Localize script for AJAX with complete data structure
+
         wp_localize_script( 'extrachill-artist-platform', 'extraChillArtistPlatform', array(
             'ajaxUrl' => admin_url( 'admin-ajax.php' ),
             'nonce' => wp_create_nonce( 'ec_ajax_nonce' ),
@@ -201,7 +188,6 @@ class ExtraChillArtistPlatform_Assets {
     public function enqueue_admin_assets( $hook ) {
         $plugin_url = EXTRACHILL_ARTIST_PLATFORM_PLUGIN_URL;
 
-        // Only load on artist platform related admin pages
         if ( $this->is_artist_platform_admin_page( $hook ) ) {
             wp_enqueue_style( 
                 'extrachill-artist-platform-admin', 
@@ -223,58 +209,51 @@ class ExtraChillArtistPlatform_Assets {
     private function enqueue_link_page_assets() {
         $plugin_url = EXTRACHILL_ARTIST_PLATFORM_PLUGIN_URL;
 
-        // Core link page styles
-        wp_enqueue_style( 
-            'extrachill-link-page', 
-            $plugin_url . 'assets/css/extrch-links.css', 
-            array(), 
+        wp_enqueue_style(
+            'extrachill-link-page',
+            $plugin_url . 'assets/css/extrch-links.css',
+            array(),
             $this->get_asset_version( 'assets/css/extrch-links.css' )
         );
 
-        // Custom social icons styles
-        wp_enqueue_style( 
-            'extrachill-custom-social-icons', 
-            $plugin_url . 'assets/css/custom-social-icons.css', 
-            array( 'extrachill-link-page' ), 
+        wp_enqueue_style(
+            'extrachill-custom-social-icons',
+            $plugin_url . 'assets/css/custom-social-icons.css',
+            array( 'extrachill-link-page' ),
             $this->get_asset_version( 'assets/css/custom-social-icons.css' )
         );
 
-        // Share modal styles
-        wp_enqueue_style( 
-            'extrachill-share-modal', 
-            $plugin_url . 'assets/css/extrch-share-modal.css', 
-            array(), 
+        wp_enqueue_style(
+            'extrachill-share-modal',
+            $plugin_url . 'assets/css/extrch-share-modal.css',
+            array(),
             $this->get_asset_version( 'assets/css/extrch-share-modal.css' )
         );
 
-        // Link page tracking script
-        wp_enqueue_script( 
-            'extrachill-link-tracking', 
-            $plugin_url . 'inc/link-pages/live/assets/js/link-page-public-tracking.js', 
-            array( 'jquery' ), 
-            $this->get_asset_version( 'inc/link-pages/live/assets/js/link-page-public-tracking.js' ), 
-            true 
+        wp_enqueue_script(
+            'extrachill-link-tracking',
+            $plugin_url . 'inc/link-pages/live/assets/js/link-page-public-tracking.js',
+            array( 'jquery' ),
+            $this->get_asset_version( 'inc/link-pages/live/assets/js/link-page-public-tracking.js' ),
+            true
         );
 
-        // Share modal script
-        wp_enqueue_script( 
-            'extrachill-share-modal', 
-            $plugin_url . 'inc/link-pages/live/assets/js/extrch-share-modal.js', 
-            array( 'jquery' ), 
-            $this->get_asset_version( 'inc/link-pages/live/assets/js/extrch-share-modal.js' ), 
-            true 
+        wp_enqueue_script(
+            'extrachill-share-modal',
+            $plugin_url . 'inc/link-pages/live/assets/js/extrch-share-modal.js',
+            array( 'jquery' ),
+            $this->get_asset_version( 'inc/link-pages/live/assets/js/extrch-share-modal.js' ),
+            true
         );
 
-        // Subscribe functionality
-        wp_enqueue_script( 
-            'extrachill-subscribe', 
-            $plugin_url . 'inc/link-pages/live/assets/js/link-page-subscribe.js', 
-            array( 'jquery' ), 
-            $this->get_asset_version( 'inc/link-pages/live/assets/js/link-page-subscribe.js' ), 
-            true 
+        wp_enqueue_script(
+            'extrachill-subscribe',
+            $plugin_url . 'inc/link-pages/live/assets/js/link-page-subscribe.js',
+            array( 'jquery' ),
+            $this->get_asset_version( 'inc/link-pages/live/assets/js/link-page-subscribe.js' ),
+            true
         );
 
-        // YouTube embed functionality
         wp_enqueue_script(
             'extrachill-youtube-embed',
             $plugin_url . 'inc/link-pages/live/assets/js/link-page-youtube-embed.js',
@@ -283,7 +262,6 @@ class ExtraChillArtistPlatform_Assets {
             true
         );
 
-        // Edit permission check (cross-domain)
         wp_enqueue_script(
             'extrachill-link-page-edit-permission',
             $plugin_url . 'inc/link-pages/live/assets/js/link-page-edit-permission.js',
@@ -292,7 +270,6 @@ class ExtraChillArtistPlatform_Assets {
             true
         );
 
-        // Pass artist_id to edit permission script
         global $artist_id;
         if ( isset( $artist_id ) && $artist_id ) {
             wp_localize_script(
@@ -306,11 +283,9 @@ class ExtraChillArtistPlatform_Assets {
     private function enqueue_artist_profile_management_assets() {
         $plugin_url = EXTRACHILL_ARTIST_PLATFORM_PLUGIN_URL;
 
-        // Enqueue shared tabs for profile management interface
         wp_enqueue_style( 'extrachill-shared-tabs', get_template_directory_uri() . '/assets/css/shared-tabs.css', array(), filemtime( get_template_directory() . '/assets/css/shared-tabs.css' ) );
         wp_enqueue_script( 'extrachill-shared-tabs', get_template_directory_uri() . '/assets/js/shared-tabs.js', array( 'jquery' ), filemtime( get_template_directory() . '/assets/js/shared-tabs.js' ), true );
 
-        // Enqueue artist-switcher CSS (dependency)
         wp_enqueue_style(
             'extrachill-artist-switcher',
             $plugin_url . 'assets/css/components/artist-switcher.css',
@@ -318,7 +293,6 @@ class ExtraChillArtistPlatform_Assets {
             $this->get_asset_version( 'assets/css/components/artist-switcher.css' )
         );
 
-        // Enqueue manage-artist-profile CSS (main)
         wp_enqueue_style(
             'extrachill-manage-artist-profile',
             $plugin_url . 'assets/css/manage-artist-profile.css',

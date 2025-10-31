@@ -124,15 +124,20 @@ The plugin provides comprehensive integration with the extrachill.link domain fo
 - **Automatic filtering**: Excludes notification author from recipient list
 - **Card rendering**: Custom HTML via `extrachill_notification_card_render` filter
 
-#### Breadcrumbs System
+#### Breadcrumb Integration
 **File**: `inc/artist-profiles/frontend/breadcrumbs.php`
-- Navigation breadcrumbs for artist profile pages
-- WordPress-native breadcrumb generation
+- Uses theme's extensibility filter hooks for breadcrumb customization
+- `extrachill_breadcrumbs_root` filter for root link override (Extra Chill → Artist Platform)
+- `extrachill_breadcrumbs_override_trail` filter for custom breadcrumb trails
+- Homepage trail: "Artist Platform" (no link) to prevent "Archives" suffix
+- Artist profile trail: "Artist Name" with proper hierarchy
 
-#### Blog Coverage System
+#### Blog Coverage Integration
 **File**: `inc/artist-profiles/blog-coverage.php`
-- Artist blog post coverage tracking and display
-- Integration with main site content
+- Links artist profiles to main site (blog ID 1) taxonomy archives
+- `extrachill_artist_get_taxonomy_by_slug()` - Queries main site for matching artist taxonomy
+- `extrachill_artist_display_blog_coverage_button()` - Renders "View Blog Coverage" button
+- Cross-site blog switching with try/finally pattern for safe multisite operations
 
 #### Edit Permission AJAX
 **File**: `inc/link-pages/live/ajax/edit-permission.php`
@@ -173,6 +178,7 @@ The plugin provides comprehensive integration with the extrachill.link domain fo
 - `artist-switcher.js` - Artist selection dropdown for switching contexts
 - `artist-platform.js` - Core plugin functionality
 - `artist-platform-home.js` - Homepage-specific features
+- `artist-grid-pagination.js` - AJAX pagination for artist grid with smooth transitions
 
 **Join Flow Interface**: `inc/join/assets/js/`
 - `join-flow-ui.js` - Modal handling for existing vs new account selection
@@ -243,28 +249,37 @@ CREATE TABLE {prefix}_artist_subscribers (
 - Functions handle multisite blog switching automatically
 - This plugin uses these functions throughout templates and management interfaces
 
+#### Programmatic Link Addition API
+**File**: `inc/core/actions/add.php`
+- WordPress action-based link addition: `do_action('ec_artist_add_link', $link_page_id, $link_data, $user_id)`
+- Sanitization filter: `apply_filters('ec_sanitize_link_data', $link_data)` - Cleans link text, URL, expiration, and ID
+- Validation filter: `apply_filters('ec_validate_link_data', true, $link_data)` - Validates required fields and URL format
+- AJAX interface: `wp_ajax_ec_artist_add_link` - Provides AJAX wrapper for UI and external systems
+- Success/failure action hooks: `ec_artist_link_added`, `ec_artist_link_add_failed` - For logging, notifications, webhooks
+- Permission validation: Uses existing `ec_can_manage_artist()` permission system
+- Data integration: Works with centralized `ec_get_link_page_data()` and `ec_handle_link_page_save()` functions
+- Section/position support: Optional parameters for link placement within sections
+
 ### Homepage Action Hooks System
 
 **File**: `inc/home/homepage-hooks.php`
 
 Centralized hook registrations for artist platform homepage functionality using theme's universal routing system.
 
-**Filter Used**: `extrachill_template_homepage`
-
-**Integration Pattern**:
-```php
-add_filter( 'extrachill_template_homepage', 'ec_artist_platform_override_homepage' );
-```
-
-**Site Detection**:
-- Uses hardcoded blog ID (4) for artist.extrachill.com
-- Returns plugin template path when on artist subdomain: `inc/home/templates/homepage.php`
+**Template Override**:
+- Filter: `extrachill_template_homepage` (provided by theme's template-router.php)
+- Blog ID detection: Only overrides on artist.extrachill.com (blog ID 4)
+- Template path: `inc/home/templates/homepage.php`
 
 **Action Hooks**:
-- `extrachill_artist_home_hero` - Renders hero section with welcome messages
-- `extrachill_above_artist_grid` - Renders "Your Artists" section above grid
+- `extrachill_artist_home_hero` - Renders hero section with user-state-aware welcome messages
+  - Template: `inc/home/templates/hero.php`
+  - Parameters: `$current_user`, `$is_logged_in`, `$can_create_artists`, `$user_artist_ids`
+- `extrachill_above_artist_grid` - Renders content above artist directory grid
+  - "Your Artists" section: `inc/home/templates/your-artists.php` (priority 10)
+  - Support buttons: Inline rendering (priority 15)
 
-**Supporting File**: `inc/home/homepage-artist-card-actions.php` - Card rendering actions
+**Supporting File**: `inc/home/homepage-artist-card-actions.php` - Card rendering actions for artist grid
 
 ### Join Flow Integration
 
@@ -335,6 +350,17 @@ add_action( 'extrachill_below_login_register_form', 'ec_render_join_flow_modal' 
 - **CRUD Operations**: Complete social link lifecycle management with permission validation
 - **Rendering System**: Flexible HTML output with customizable container classes and accessibility attributes
 
+#### Unified Artist Card System
+**Template**: `inc/artist-profiles/frontend/templates/artist-card.php`
+**Styles**: `assets/css/artist-card.css`
+- Reusable artist profile card component (renamed from artist-profile-card.php)
+- Used across homepage, directory, and archive displays
+- Supports WordPress loop context with global $post
+- Hero section with profile and header images
+- Displays artist name, genre, location metadata
+- Extensible action hook: `ec_artist_card_actions` for additional buttons
+- Extracted styles from artist-platform-home.css for modularity
+
 #### Artist Context Switching
 **File**: `assets/js/artist-switcher.js`
 - Artist selection dropdown for multi-artist management
@@ -353,6 +379,13 @@ add_action( 'extrachill_below_login_register_form', 'ec_render_join_flow_modal' 
 - Link page activity tracking for sorting
 - Responsive grid layouts with context-aware rendering
 - Template integration via `ec_render_template()` system
+- AJAX pagination support with `return_data` parameter
+
+**AJAX Pagination** (`inc/artist-profiles/frontend/artist-grid-ajax.php`):
+- Handler: `wp_ajax_ec_load_artist_page` (both logged-in and logged-out users)
+- Returns: HTML, pagination HTML, current page, total pages, total artists
+- Nonce verification with sanitized input parameters
+- JavaScript: `assets/js/artist-grid-pagination.js` - Smooth transitions and event delegation
 
 #### Frontend Forms & Permissions  
 **Files**: `inc/artist-profiles/frontend/frontend-forms.php`, `inc/core/filters/permissions.php`
@@ -428,10 +461,19 @@ add_action( 'extrachill_below_login_register_form', 'ec_render_join_flow_modal' 
 
 **Template Directories**:
 - **Artist Profile Templates**: `inc/artist-profiles/frontend/templates/`
+  - `single-artist_profile.php` - Artist profile single page
+  - `artist-directory.php` - Artist directory archive
+  - `artist-card.php` - Reusable artist card component (renamed from artist-profile-card.php)
+  - `manage-artist-profiles.php` - Profile management interface
+- **Homepage Templates**: `inc/home/templates/`
+  - `homepage.php` - Main homepage template override
+  - `hero.php` - Hero section with user-state-aware messaging
+  - `your-artists.php` - "Your Artists" section above grid
 - **Link Page Templates**: `inc/link-pages/live/templates/` (public), `inc/link-pages/management/templates/` (admin)
 - **Component Templates**: `inc/link-pages/management/templates/components/` - Modular UI components
 - **Core Templates**: `inc/core/templates/` - Base template components
 - **Subscription Templates**: `inc/link-pages/live/templates/` - Email collection forms
+- **Join Flow Templates**: `inc/join/templates/` - Join flow modal and account selection
 
 #### Admin Interface
 **Files**: `inc/artist-profiles/admin/meta-boxes.php`, `inc/artist-profiles/admin/user-linking.php`
@@ -455,6 +497,7 @@ add_action( 'extrachill_below_login_register_form', 'ec_render_join_flow_modal' 
 - **File Filtering**: `.buildignore` provides rsync exclusion patterns for development files
 - **Dependency Validation**: Checks for required tools (rsync, zip, composer)
 - **Production Dependencies**: Runs `composer install --no-dev` before build, restores dev dependencies after
+- **Vendor Inclusion**: WordPress plugins include `vendor/` directory with production dependencies (end users don't have Composer access)
 - **Structure Validation**: Validates plugin integrity before packaging (ensures main file exists)
 - **Output Location**: Creates both `/build/extrachill-artist-platform/` clean directory AND `/build/extrachill-artist-platform.zip` non-versioned file
 

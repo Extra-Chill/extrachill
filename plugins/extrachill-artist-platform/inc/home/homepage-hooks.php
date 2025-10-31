@@ -49,12 +49,12 @@ add_action( 'extrachill_artist_home_hero', 'ec_render_artist_home_hero', 10, 4 )
 /**
  * Render support buttons section
  *
- * Displays centered "Get Support" and "Contact" buttons above the artist grid.
+ * Displays centered "Support Forum" and "Contact" buttons above the artist grid.
  */
 function ec_render_support_buttons() {
     ?>
     <div class="welcome-actions">
-        <a href="https://artist.extrachill.com/extra-chill" class="button-1 button-large"><?php esc_html_e( 'Get Support', 'extrachill-artist-platform' ); ?></a>
+        <a href="https://artist.extrachill.com/extra-chill" class="button-1 button-large"><?php esc_html_e( 'Support Forum', 'extrachill-artist-platform' ); ?></a>
         <a href="https://extrachill.com/contact-us" class="button-1 button-large"><?php esc_html_e( 'Contact', 'extrachill-artist-platform' ); ?></a>
     </div>
     <?php
