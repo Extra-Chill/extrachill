@@ -21,8 +21,6 @@ This is a **WordPress plugin** called "Extra Chill Community" for the **Extra Ch
 
 **PSR-4 Implementation**: No PSR-4 autoloading configured in composer.json. The plugin uses procedural patterns with direct `require_once` loading.
 
-**Notification System Enhancement**: Expand real-time notification capabilities and improve caching strategies.
-
 **File Migration**: Avatar functionality (custom-avatar.php, upload-custom-avatar.php, custom-avatar.js, online-users-count.php) moved to extrachill-users plugin for network-wide availability. Navigation file (nav.php) and utilities.js deleted from codebase.
 
 ## Key Domains & Architecture
@@ -53,9 +51,6 @@ composer install
 
 ### Development Notes
 - **No Asset Compilation** - Direct file inclusion without npm/webpack compilation
-- **Procedural Architecture** - No PSR-4 autoloading configured, uses direct procedural patterns
-- **Asset Versioning** - Dynamic `filemtime()` versioning for cache management
-- **Explicit Loading Pattern** - All functionality loaded via 33 direct `require_once` statements in `extrachill_community_init()` function
 - **bbPress Integration** - Default stylesheet dequeuing, custom templates, enhanced functionality
 
 ### Build System
@@ -71,9 +66,7 @@ composer install
 ### 1. Plugin Architecture
 - **Plugin Structure**: WordPress plugin providing community functionality that integrates with the extrachill theme
 - **bbPress Integration**: Custom bbPress enhancements and forum functionality
-- **Asset Management**: Conditional CSS/JS loading with dynamic versioning using `filemtime()`
-- **Explicit Loading System**: All 33 feature files loaded via direct `require_once` in `extrachill_community_init()` function (no master loader file)
-- **Theme Integration**: Works with extrachill theme to provide community functionality on community.extrachill.com
+- **Asset Management**: Conditional CSS/JS loading with cache-busting versioning
 - **Template System**: Provides custom bbPress templates and specialized page templates
 - **Hook-Based Components**: Homepage and settings use action hooks instead of monolithic templates
 
@@ -122,6 +115,23 @@ composer install
 **Moved to extrachill-users plugin**: Avatar system (custom-avatar.php, upload-custom-avatar.php, custom-avatar.js), online-users-count.php, user-avatar-menu.php
 
 **Deleted files**: inc/core/nav.php, inc/assets/js/utilities.js
+
+### Integration Files
+
+**bbPress Integration**:
+- `inc/core/bbpress-templates.php` - Template stack registration and homepage override
+- `inc/core/breadcrumb-filter.php` - bbPress breadcrumb customization
+- `inc/core/assets.php` - bbPress context detection and stylesheet dequeue
+
+**Artist Platform Integration**:
+- `inc/home/artist-platform-buttons.php` - Artist platform buttons and CTAs
+- `inc/user-profiles/verification.php` - Artist/professional status (admin-only)
+- `inc/social/forum-badges.php` - Artist badge display in forums
+
+**Users Plugin Integration**:
+- `inc/social/forum-badges.php` - Team member badge using `ec_is_team_member()`
+- `inc/user-profiles/custom-user-profile.php` - Cross-site user data aggregation
+- `inc/social/rank-system/point-calculation.php` - Cross-site point calculation
 
 ### Page Templates
 - `page-templates/leaderboard-template.php` - User leaderboard
@@ -173,25 +183,19 @@ Custom templates in `bbpress/` directory provide enhanced forum functionality:
 2. **WordPress Standards** - Full compliance with WordPress plugin development guidelines and coding standards
 3. **Plugin Initialization** - Uses plugin initialization hooks for proper setup
 4. **Modular Asset Loading** - Context-aware CSS/JS enqueuing with bbPress integration
-5. **Theme Integration** - Works seamlessly with extrachill theme on community.extrachill.com
-6. **bbPress Enhancement** - Extends bbPress functionality with custom features
-7. **Cross-Domain Integration** - Provides multisite authentication and data sharing
-8. **Performance Optimization** - Conditional loading and selective script enqueuing
+5. **bbPress Enhancement** - Extends bbPress functionality with custom features
+6. **Cross-Domain Integration** - Provides multisite authentication and data sharing
+7. **Performance Optimization** - Conditional loading and selective script enqueuing
 
 ### Forum Features Architecture
-1. **Explicit Loading Pattern** - 33 files loaded via direct `require_once` in `extrachill_community_init()` function
-2. **Organized Structure** - Features grouped by functionality: core (6), content (5), social (12), user-profiles (6), home (4)
-3. **Conditional Loading** - Context-aware CSS/JS loading for performance
-4. **bbPress Integration** - Custom templates via `inc/core/bbpress-templates.php` routing, breadcrumb customization via `bbp_breadcrumbs` filter
-5. **Hook-Based Components** - Homepage and settings use action hooks for extensibility
+1. **Organized Structure** - Features grouped by functionality: core (6), content (5), social (12), user-profiles (6), home (4)
+2. **Conditional Loading** - Context-aware CSS/JS loading for performance
+3. **bbPress Integration** - Custom templates via `inc/core/bbpress-templates.php` routing, breadcrumb customization via `bbp_breadcrumbs` filter
+4. **Hook-Based Components** - Homepage and settings use action hooks for extensibility
 
 ### Code Patterns
 - **WordPress Coding Standards** - Full compliance with plugin development best practices
-- **Plugin Architecture** - Community functionality that integrates with extrachill theme
 - **bbPress Enhancement** - Custom hooks, filters, and functionality extensions
-- **Asset Management** - Dynamic versioning with `filemtime()`, selective loading, and conflict prevention
-- **Theme Integration** - Seamless integration with extrachill theme on community.extrachill.com
-- **Procedural Code Organization** - No PSR-4 autoloading configured, uses direct function-based patterns
 - **Security Implementation** - Proper escaping, nonce verification, and input sanitization
 - **Performance Focus** - Modular CSS/JS loading and conditional script enqueuing
 - **Cross-Domain Functionality** - Multisite authentication and data sharing capabilities
@@ -201,7 +205,7 @@ Custom templates in `bbpress/` directory provide enhanced forum functionality:
 - **Mixed Loading** - 4 files via assets.php centrally, 1 loaded independently by feature module
 - **jQuery Dependencies** - Proper dependency management across all custom scripts
 - **Context-Aware Loading** - Conditional script enqueuing based on page template/context
-- **Dynamic Versioning** - `filemtime()` versioning for cache busting
+- **Cache Busting** - Automatic versioning for asset updates
 - **Forum Integration** - Custom bbPress enhancements for editor, social features, and UI
 
 ## Dependencies
@@ -254,6 +258,97 @@ function my_plugin_avatar_menu_items( $menu_items, $user_id ) {
 - `priority` (int, optional) - Sort priority (default: 10, lower numbers appear first)
 
 **Note**: This filter is PROVIDED by the extrachill-users plugin, not this plugin. Community plugin can use this filter to add menu items.
+
+## Plugin Integration Points
+
+### bbPress Integration
+
+The plugin provides comprehensive bbPress enhancements through multiple integration layers:
+
+**Template System Integration**:
+- File: `inc/core/bbpress-templates.php`
+- Hook: `bbp_register_theme_packages` registers custom template stack
+- Custom templates location: `bbpress/` directory (70+ template files)
+- Template discovery: `bbp_register_template_stack()` enables bbPress to find plugin templates
+- Homepage override: Blog ID 2 (community.extrachill.com) only via `extrachill_template_homepage` filter
+- Statistics suppression: `bbp_get_single_forum_description` filter returns empty string
+
+**Asset Loading Integration**:
+- File: `inc/core/assets.php`
+- Context detection using bbPress conditionals: `bbp_is_forum_archive()`, `bbp_is_single_forum()`, `bbp_is_topic_archive()`, `bbp_is_single_topic()`, `bbp_is_single_reply()`, `bbp_is_single_user()`, etc.
+- Default stylesheet dequeue: `wp_dequeue_style('bbp-default')` at priority 15 to prevent conflicts
+
+**Hook Integration Points**:
+- `bbp_theme_after_reply_author_details` - Adds user badges after reply author
+- `bbp_theme_after_user_name` - Adds badges after username
+- `bbp_template_after_user_details_menu_items` - Adds badges in user details menu
+- `bbp_breadcrumbs` - Customizes forum breadcrumb navigation (file: `inc/core/breadcrumb-filter.php`)
+
+**Form and Content Integration**:
+- Custom form templates with TinyMCE rich text editor
+- Image upload support via custom plugin
+- Point calculation using `bbp_get_user_topic_count()` and `bbp_get_user_reply_count()`
+
+### extrachill-artist-platform Integration
+
+**Direct Integration**:
+- File: `inc/home/artist-platform-buttons.php`
+- Hook: `extrachill_community_home_after_forums` (line 50) adds artist platform CTAs to homepage
+
+**Function Dependencies**:
+```php
+// Provided by extrachill-artist-platform plugin
+ec_can_create_artist_profiles($user_id) // Returns boolean for artist creation permission
+```
+
+**Hardcoded Links**:
+- Artist platform homepage: `https://artist.extrachill.com/`
+- Support forum: `https://artist.extrachill.com/extra-chill`
+- Join flow: `https://artist.extrachill.com/login/#tab-register?from_join=true`
+
+**Artist Status Storage**:
+- Meta field: `user_is_artist` (Boolean stored as '1' or '0')
+- File: `inc/user-profiles/verification.php` (admin-only interface)
+- Badge display: `inc/social/forum-badges.php` (CSS class: `user-is-artist`)
+
+**Data Flow**:
+- Community plugin stores artist status flag locally
+- Artist platform provides permission check function
+- No direct database queries to artist platform tables
+- Uses user metadata for badge display
+
+### extrachill-users Integration
+
+**Team Member Detection**:
+- File: `inc/social/forum-badges.php` (lines 18-19, 39-40, 63-64)
+- Function: `ec_is_team_member($user_id)` - Provided by extrachill-users plugin
+- Returns boolean for team member status (supports manual admin overrides)
+- Badge display: `<span class="extrachill-team-member">`
+- Displayed in 3 locations: reply author details, username, user details menu
+
+**User Role Fields**:
+- File: `inc/user-profiles/verification.php`
+- Hooks: `show_user_profile`, `edit_user_profile` (admin-only interface)
+- Admin-only restriction prevents frontend data conflicts
+- Meta fields: `user_is_artist`, `user_is_professional`, `ec_custom_title`
+
+**Avatar Menu System**:
+- Filter: `ec_avatar_menu_items` (provided by extrachill-users plugin)
+- Community plugin documents this filter for use by other plugins
+- Not actively used internally by community plugin
+- Allows cross-plugin navigation integration
+
+**Cross-Site User Data**:
+- File: `inc/user-profiles/custom-user-profile.php`
+- Uses `switch_to_blog(1)` to access main site (extrachill.com) data
+- Aggregates user post count from blog ID 1
+- Aggregates user comments from blog ID 1
+- Always uses `restore_current_blog()` in try/finally pattern
+
+**User Profile Data**:
+- Social links meta: `_user_profile_dynamic_links`
+- Custom user titles: `ec_custom_title`
+- Notification cache: `extrachill_notifications`
 
 ## Current Status
 

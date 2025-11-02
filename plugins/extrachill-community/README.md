@@ -48,7 +48,33 @@ extrachill-community/
 └── vendor/                       # Composer dependencies
 ```
 
+## Plugin Dependencies
+
+### Required Plugins
+- **bbPress** - Forum functionality (enforced via plugin headers)
+- **extrachill theme** - Template integration and styling
+
+### Optional Plugin Integration
+
+**extrachill-artist-platform**:
+- Provides `ec_can_create_artist_profiles($user_id)` for artist permission checks
+- Artist status badges display in forums
+- Artist platform homepage buttons on community homepage
+
+**extrachill-users**:
+- Provides `ec_is_team_member($user_id)` for team member badge system
+- Supports manual admin overrides for team member status
+- Provides `ec_avatar_menu_items` filter for cross-plugin navigation
+
+### Cross-Site Integration
+- Main site (blog ID 1) data aggregation for user profiles
+- Post count display from extrachill.com
+- Comment aggregation from main site blog
+- Point calculation includes main site post contributions (10pts each)
+
 ## Core Features
+
+The plugin integrates deeply with bbPress for forum functionality, with optional integrations to extrachill-artist-platform (artist badges and CTAs) and extrachill-users (team member badges and avatar menu). All integrations use function_exists() checks for graceful degradation when optional plugins are not active.
 
 ### 1. Forum Features System
 

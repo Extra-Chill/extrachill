@@ -93,7 +93,7 @@ echo '</div></div>';
 
 // Pagination setup - Create mock query object for centralized pagination
 if ($total_pages > 1) {
-    $mock_query = new stdClass();
+    $mock_query = new WP_Query();
     $mock_query->max_num_pages = $total_pages;
     $mock_query->found_posts = $total_users;
     $mock_query->query_vars = array('posts_per_page' => $items_per_page, 'paged' => $current_page);

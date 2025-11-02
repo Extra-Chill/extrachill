@@ -1,17 +1,29 @@
 <?php
+/**
+ * User Rank Point Calculation
+ *
+ * Calculates user ranking points from multiple sources with cross-site aggregation.
+ *
+ * Point Values:
+ * - Topics: 2 points (bbp_get_user_topic_count)
+ * - Replies: 2 points (bbp_get_user_reply_count)
+ * - Upvotes received: 0.5 points per upvote
+ * - Main site posts: 10 points each (from blog ID 1)
+ *
+ * Performance:
+ * - 1-hour transient caching per user
+ * - Cross-site queries use switch_to_blog(1) for main site access
+ * - Always restores blog context with restore_current_blog()
+ *
+ * Used by leaderboard page template and user profile display.
+ *
+ * @package ExtraChillCommunity
+ */
 
 /**
  * Calculate total points for user across multiple point sources with caching
  *
- * Calculates comprehensive user ranking points from bbPress activity (topics/replies),
- * upvotes received, main site posts, and follower count. Implements 1-hour caching
- * to optimize performance.
- *
- * Point calculation breakdown:
- * - bbPress topics/replies: 2 points each
- * - Upvotes received: 0.5 points each
- * - Main site posts: 10 points each
- * - Followers: Currently 0 points (reserved for future)
+ * Implements 1-hour caching to optimize performance.
  *
  * @param int $user_id WordPress user ID
  * @return float Total calculated points for the user

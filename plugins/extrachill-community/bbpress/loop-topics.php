@@ -133,9 +133,13 @@ if (bbp_has_topics($loop_args)) :
 <?php endif; ?>
 
 <?php
-global $bbp_topic_query;
-if ( ! empty( $bbp_topic_query ) ) {
-	extrachill_pagination( $bbp_topic_query, 'bbpress' );
+// Access the actual query object used by bbp_has_topics()
+$bbp = bbpress();
+$current_query = ! empty( $bbp->topic_query ) ? $bbp->topic_query : $GLOBALS['wp_query'];
+
+// Only show pagination if there are multiple pages
+if ( ! empty( $current_query ) && $current_query->max_num_pages > 1 ) {
+	extrachill_pagination( $current_query, 'bbpress' );
 }
 do_action('bbp_template_after_topics_loop');
 ?>

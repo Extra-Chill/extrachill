@@ -1,9 +1,20 @@
 <?php
 /**
- * bbPress Template Stack Registration
+ * bbPress Template Integration
  *
- * Registers the plugin's /bbpress/ directory as a template location
- * so bbPress knows to use the plugin's custom templates.
+ * Registers custom template stack with bbPress for template discovery and overrides.
+ * Provides homepage override for community.extrachill.com (blog ID 2) only.
+ *
+ * Template Stack:
+ * - Location: /bbpress/ directory (70+ custom templates)
+ * - Registration: bbp_register_template_stack() enables bbPress template discovery
+ * - Priority: Custom templates override bbPress defaults when present
+ *
+ * Homepage Override:
+ * - Blog ID 2 restriction prevents conflicts on other multisite installations
+ * - Routes to inc/home/forum-homepage.php which outputs [bbp-forum-index] shortcode
+ *
+ * @package ExtraChillCommunity
  */
 
 if (!defined('ABSPATH')) {
@@ -14,17 +25,22 @@ function extrachill_community_get_bbpress_template_path() {
     return EXTRACHILL_COMMUNITY_PLUGIN_DIR . 'bbpress';
 }
 
+/**
+ * Register custom template location with bbPress
+ *
+ * Allows bbPress to discover and use custom templates in /bbpress/ directory.
+ */
 function extrachill_community_register_bbpress_templates() {
     bbp_register_template_stack('extrachill_community_get_bbpress_template_path', 1);
 }
 add_action('bbp_register_theme_packages', 'extrachill_community_register_bbpress_templates');
 
 /**
- * Override homepage template to show forum index
+ * Override homepage template for community site
  *
- * Only applies to community.extrachill.com to avoid conflicts with other site homepages.
+ * Only applies to blog ID 2 (community.extrachill.com) to avoid multisite conflicts.
  *
- * @param string $template Default homepage template path
+ * @param string $template Current template path
  * @return string Modified template path
  */
 function extrachill_community_homepage_template($template) {
@@ -37,10 +53,12 @@ function extrachill_community_homepage_template($template) {
 }
 add_filter('extrachill_template_homepage', 'extrachill_community_homepage_template', 10);
 
- /**
-  * Remove forum statistics template notice
-  *
-  * Prevents bbp_single_forum_description() from displaying the template notice
-  * with forum statistics while preserving the separate forum description content.
-  */
- add_filter( 'bbp_get_single_forum_description', '__return_empty_string' );
+/**
+ * Suppress bbPress forum statistics notice
+ *
+ * Returns empty string to hide template-level statistics display.
+ *
+ * @param string $description Forum description
+ * @return string Empty string
+ */
+add_filter( 'bbp_get_single_forum_description', '__return_empty_string' );

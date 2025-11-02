@@ -72,8 +72,8 @@ add_filter( 'extrachill_breadcrumbs_override_trail', 'extrachill_community_bread
  * Only applies on blog ID 2 (community.extrachill.com).
  *
  * Breadcrumb structure:
- * - Single forum: Community › Forum Name
- * - Single topic: Community › Forum Name › Topic Name
+ * - Single forum: Community › Parent Forum › ... › Forum Name
+ * - Single topic: Community › Parent Forum › ... › Forum Name › Topic Name
  * - User profile: Community › Username
  * - Custom pages: Community › Page Name
  *
@@ -92,13 +92,26 @@ function extrachill_community_breadcrumb_trail( $custom_trail ) {
 		return $custom_trail;
 	}
 
-	// Single topic: Community › Forum Name › Topic Name
+	// Single topic: Community › Parent Forum › Forum Name › Topic Name
 	if ( function_exists( 'bbp_is_single_topic' ) && bbp_is_single_topic() ) {
 		$topic_id = bbp_get_topic_id();
 		$forum_id = bbp_get_topic_forum_id( $topic_id );
 		$trail = '';
 
 		if ( $forum_id ) {
+			// Get parent forums (returns array from immediate parent to root)
+			$ancestors = bbp_get_forum_ancestors( $forum_id );
+
+			if ( ! empty( $ancestors ) ) {
+				// Reverse array to go from root to immediate parent
+				$ancestors = array_reverse( $ancestors );
+
+				foreach ( $ancestors as $ancestor_id ) {
+					$trail .= '<a href="' . esc_url( bbp_get_forum_permalink( $ancestor_id ) ) . '">' . esc_html( bbp_get_forum_title( $ancestor_id ) ) . '</a> › ';
+				}
+			}
+
+			// Add current forum
 			$trail .= '<a href="' . esc_url( bbp_get_forum_permalink( $forum_id ) ) . '">' . esc_html( bbp_get_forum_title( $forum_id ) ) . '</a> › ';
 		}
 
@@ -106,9 +119,25 @@ function extrachill_community_breadcrumb_trail( $custom_trail ) {
 		return $trail;
 	}
 
-	// Single forum: Community › Forum Name
+	// Single forum: Community › Parent Forum › Forum Name
 	if ( function_exists( 'bbp_is_single_forum' ) && bbp_is_single_forum() ) {
-		return '<span>' . esc_html( bbp_get_forum_title( bbp_get_forum_id() ) ) . '</span>';
+		$forum_id = bbp_get_forum_id();
+		$trail = '';
+
+		// Get parent forums (returns array from immediate parent to root)
+		$ancestors = bbp_get_forum_ancestors( $forum_id );
+
+		if ( ! empty( $ancestors ) ) {
+			// Reverse array to go from root to immediate parent
+			$ancestors = array_reverse( $ancestors );
+
+			foreach ( $ancestors as $ancestor_id ) {
+				$trail .= '<a href="' . esc_url( bbp_get_forum_permalink( $ancestor_id ) ) . '">' . esc_html( bbp_get_forum_title( $ancestor_id ) ) . '</a> › ';
+			}
+		}
+
+		$trail .= '<span>' . esc_html( bbp_get_forum_title( $forum_id ) ) . '</span>';
+		return $trail;
 	}
 
 	// User profile: Community › Username

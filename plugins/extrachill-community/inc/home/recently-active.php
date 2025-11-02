@@ -11,29 +11,104 @@
 
 // Exit if accessed directly
 defined( 'ABSPATH' ) || exit;
+
+if ( ! function_exists( 'bbp_get_topic_post_type' ) || ! function_exists( 'bbpress' ) ) {
+    return;
+}
+
+$community_blog_id = 2; // community.extrachill.com
+$artist_blog_id    = 4; // artist.extrachill.com
+$topic_candidates  = array();
+$per_blog_limit    = 10;
+
+foreach ( array( $community_blog_id, $artist_blog_id ) as $blog_id ) {
+    $switched = false;
+
+    if ( $blog_id !== get_current_blog_id() ) {
+        switch_to_blog( $blog_id );
+        $switched = true;
+    }
+
+    $query_args = array(
+        'post_type'      => bbp_get_topic_post_type(),
+        'posts_per_page' => $per_blog_limit,
+        'post_status'    => 'publish',
+        'orderby'        => 'meta_value',
+        'meta_key'       => '_bbp_last_active_time',
+        'meta_type'      => 'DATETIME',
+        'order'          => 'DESC',
+        'fields'         => 'ids',
+    );
+
+    $query = new WP_Query( $query_args );
+
+    if ( ! empty( $query->posts ) ) {
+        foreach ( $query->posts as $topic_id ) {
+            $last_active = get_post_meta( $topic_id, '_bbp_last_active_time', true );
+
+            if ( empty( $last_active ) ) {
+                $last_active = get_post_modified_time( 'Y-m-d H:i:s', true, $topic_id );
+            }
+
+            if ( empty( $last_active ) ) {
+                $last_active = get_post_time( 'Y-m-d H:i:s', true, $topic_id );
+            }
+
+            $topic_candidates[] = array(
+                'topic_id'    => $topic_id,
+                'blog_id'     => $blog_id,
+                'last_active' => $last_active,
+            );
+        }
+    }
+
+    wp_reset_postdata();
+
+    if ( $switched ) {
+        restore_current_blog();
+    }
+}
+
+usort(
+    $topic_candidates,
+    function ( $a, $b ) {
+        $a_time = strtotime( $a['last_active'] );
+        $b_time = strtotime( $b['last_active'] );
+
+        if ( false === $a_time ) {
+            $a_time = 0;
+        }
+
+        if ( false === $b_time ) {
+            $b_time = 0;
+        }
+
+        return $b_time <=> $a_time;
+    }
+);
+
+$recently_active_topics = array_slice( $topic_candidates, 0, 3 );
 ?>
 
 <div class="front-page-section recently-active-topics">
     <h2>Recently Active Topics</h2>
     <ul class="recently-active-topic-row">
         <?php
-        $query = new WP_Query(array(
-            'post_type' => bbp_get_topic_post_type(),
-            'posts_per_page' => 10,
-            'post_status' => 'publish',
-            'orderby' => 'meta_value',
-            'meta_key' => '_bbp_last_active_time',
-            'meta_type' => 'DATETIME',
-            'order' => 'DESC',
-            'fields' => 'ids',
-        ));
-        $recently_active_topic_ids = array_slice($query->posts, 0, 3);
-        wp_reset_postdata();
+        if ( ! empty( $recently_active_topics ) ) :
+            $primary_bbp = bbpress();
+            $original_topic_id = isset( $primary_bbp->current_topic_id ) ? $primary_bbp->current_topic_id : 0;
 
-        // Display the topics
-        if ( ! empty( $recently_active_topic_ids ) ) :
-            foreach ( $recently_active_topic_ids as $topic_id ) :
-                // Set bbPress global context so timestamps, author links, etc. are correct
+            foreach ( $recently_active_topics as $topic_data ) :
+                $topic_id  = $topic_data['topic_id'];
+                $blog_id   = $topic_data['blog_id'];
+                $switched  = false;
+
+                if ( $blog_id !== get_current_blog_id() ) {
+                    switch_to_blog( $blog_id );
+                    $switched = true;
+                }
+
+                // Set bbPress global context so timestamps, author links, etc. are correct.
                 bbpress()->current_topic_id = $topic_id;
                 ?>
                 <li class="topic-card-row">
@@ -70,7 +145,13 @@ defined( 'ABSPATH' ) || exit;
                 <?php
                 // Reset bbPress context
                 bbpress()->current_topic_id = 0;
+
+                if ( $switched ) {
+                    restore_current_blog();
+                }
             endforeach;
+
+            $primary_bbp->current_topic_id = $original_topic_id;
         else :
             echo '<li>No recently active topics found.</li>';
         endif;

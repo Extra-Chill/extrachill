@@ -43,20 +43,88 @@ if (have_posts()) :
 endif;
 
 // Set up the query to fetch the most recent replies
-if (extrachill_get_recent_feed_query(15)) {
-    // bbPress stores query in bbpress()->reply_query
-    $bbp = bbpress();
+$recent_feed = extrachill_get_recent_feed_query(15);
+
+if ($recent_feed && !empty($recent_feed['items'])) {
+    $feed_items  = $recent_feed['items'];
+    $pagination  = $recent_feed['pagination'];
+    $bbp         = bbpress();
+    $previous_reply_id = isset($bbp->current_reply_id) ? $bbp->current_reply_id : 0;
+    $previous_topic_id = isset($bbp->current_topic_id) ? $bbp->current_topic_id : 0;
+    $previous_forum_id = isset($bbp->current_forum_id) ? $bbp->current_forum_id : 0;
     ?>
     <div id="bbpress-forums" class="bbpress-wrapper">
-        <?php bbp_get_template_part('loop', 'replies'); ?>
-        <?php
-        // Pagination at bottom
-        if ( ! empty( $bbp->reply_query ) ) {
-            extrachill_pagination( $bbp->reply_query, 'bbpress' );
-        }
-        ?>
+        <ul class="forums bbp-replies">
+            <li class="bbp-body">
+                <?php
+                foreach ($feed_items as $feed_item) {
+                    $blog_id  = (int) $feed_item['blog_id'];
+                    $post     = $feed_item['post'];
+                    $switched = false;
+
+                    if (!$post || !is_object($post)) {
+                        continue;
+                    }
+
+                    if ($blog_id !== get_current_blog_id()) {
+                        switch_to_blog($blog_id);
+                        $switched = true;
+                    }
+
+                    setup_postdata($post);
+
+                    // Set pre-fetched author data for template use
+                    set_query_var('prefetch_author_id', $feed_item['author_id']);
+                    set_query_var('prefetch_author_name', $feed_item['author_name']);
+                    set_query_var('prefetch_author_avatar_url', $feed_item['author_avatar_url']);
+
+                    // Set pre-fetched topic/forum data for multisite context
+                    set_query_var('prefetch_topic_id', $feed_item['topic_id']);
+                    set_query_var('prefetch_topic_url', $feed_item['topic_url']);
+                    set_query_var('prefetch_topic_title', $feed_item['topic_title']);
+                    set_query_var('prefetch_forum_id', $feed_item['forum_id']);
+                    set_query_var('prefetch_forum_url', $feed_item['forum_url']);
+                    set_query_var('prefetch_forum_title', $feed_item['forum_title']);
+
+                    $bbp->current_reply_id = $post->ID;
+
+                    if ( $post->post_type === bbp_get_topic_post_type() ) {
+                        $topic_id = $post->ID;
+                    } else {
+                        // Get topic ID directly from post_parent to avoid bbp_get_topic_id() filter
+                        $topic_id = (int) get_post_field( 'post_parent', $post->ID );
+                        // Fallback to meta if post_parent is empty
+                        if ( empty( $topic_id ) ) {
+                            $topic_id = (int) get_post_meta( $post->ID, '_bbp_topic_id', true );
+                        }
+                    }
+
+                    $bbp->current_topic_id = $topic_id;
+                    $bbp->current_forum_id = $topic_id ? bbp_get_topic_forum_id($topic_id) : 0;
+
+                    bbp_get_template_part('loop', 'single-reply-card');
+
+                    $bbp->current_reply_id = 0;
+                    $bbp->current_topic_id = 0;
+                    $bbp->current_forum_id = 0;
+
+                    wp_reset_postdata();
+
+                    if ($switched) {
+                        restore_current_blog();
+                    }
+                }
+
+                wp_reset_postdata();
+                ?>
+            </li>
+        </ul>
+        <?php extrachill_pagination($pagination, 'bbpress'); ?>
     </div>
     <?php
+    $bbp->current_reply_id = $previous_reply_id;
+    $bbp->current_topic_id = $previous_topic_id;
+    $bbp->current_forum_id = $previous_forum_id;
 } else {
     echo '<div class="notice notice-info"><p>No recent activity found.</p></div>';
 }

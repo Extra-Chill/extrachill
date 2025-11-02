@@ -1,9 +1,17 @@
 <?php
 /**
- * User Role Verification
+ * User Verification System
  *
- * Admin-only interface for artist and industry professional status verification.
- * Only renders in wp-admin to prevent frontend data manipulation.
+ * Admin-only interface for managing user artist and professional status.
+ * Restricted to wp-admin to prevent frontend data conflicts with artist platform plugin.
+ *
+ * Meta Fields:
+ * - user_is_artist: Boolean ('1' or '0') - Artist account status
+ * - user_is_professional: Boolean ('1' or '0') - Music industry professional status
+ *
+ * Integration: Badge system in inc/social/forum-badges.php displays these statuses in forums.
+ *
+ * @package ExtraChillCommunity
  */
 
 function extrachill_add_user_role_fields($user) {

@@ -36,12 +36,6 @@ defined( 'ABSPATH' ) || exit;
 
 			<?php if ( bbp_has_topics() ) : ?>
 
-				<?php
-				global $bbp_topic_query;
-				if ( ! empty( $bbp_topic_query ) ) {
-					extrachill_pagination( $bbp_topic_query, 'bbpress' );
-				}
-				?>
 				<?php bbp_get_template_part( 'loop', 'topics' ); ?>
 				<?php bbp_get_template_part( 'form', 'topic' ); ?>
 

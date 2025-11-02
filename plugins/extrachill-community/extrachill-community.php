@@ -36,12 +36,13 @@ function extrachill_community_init() {
     require_once plugin_dir_path(__FILE__) . 'inc/core/bbpress-spam-adjustments.php';
     require_once plugin_dir_path(__FILE__) . 'inc/core/sidebar.php';
 
-    // Content features (5 files)
+    // Content features (6 files)
     require_once plugin_dir_path(__FILE__) . 'inc/content/editor/tinymce-customization.php';
     require_once plugin_dir_path(__FILE__) . 'inc/content/editor/tinymce-image-uploads.php';
     require_once plugin_dir_path(__FILE__) . 'inc/content/content-filters.php';
     require_once plugin_dir_path(__FILE__) . 'inc/content/recent-feed.php';
     require_once plugin_dir_path(__FILE__) . 'inc/content/main-site-comments.php';
+    require_once plugin_dir_path(__FILE__) . 'inc/content/subforum-button-classes.php';
 
     // Social features (12 files)
     require_once plugin_dir_path(__FILE__) . 'inc/social/upvote.php';

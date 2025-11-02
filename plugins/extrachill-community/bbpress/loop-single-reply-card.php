@@ -45,22 +45,24 @@ defined( 'ABSPATH' ) || exit;
 </a>
 
                     <?php
+$bbp = bbpress();
 $reply_id  = bbp_get_reply_id();
-$topic_id  = bbp_get_topic_id();
+// Get topic ID from global when set (multisite recent feed), otherwise use bbPress function
+$topic_id  = !empty($bbp->current_topic_id) ? $bbp->current_topic_id : bbp_get_topic_id();
 $current_post_id = get_the_ID();
 $current_post_type = get_post_type($current_post_id);
 
 $is_lead_topic = ( $reply_id === $topic_id ) || ( $current_post_type === bbp_get_topic_post_type() );
 
 if ( $is_lead_topic ) {
-    if ( ! bbp_is_topic_closed( $topic_id ) ) {
+    if ( $topic_id && ! bbp_is_topic_closed( $topic_id ) ) {
         $reply_link = bbp_get_topic_reply_link( array(
             'id'         => $topic_id,
             'reply_text' => __( 'Reply', 'bbpress' )
         ) );
     }
 
-    if ( current_user_can( 'edit_topic', $topic_id ) ) {
+    if ( $topic_id && current_user_can( 'edit_topic', $topic_id ) ) {
         $edit_link = bbp_get_topic_edit_link( array(
             'id'        => $topic_id,
             'edit_text' => __( 'Edit', 'bbpress' )
@@ -102,11 +104,26 @@ if ( $is_lead_topic ) {
                 </div>
 
                 <?php
-                $author_id     = bbp_get_reply_author_id( $reply_id );
-                $author_name   = bbp_get_reply_author_display_name( $reply_id );
-                $author_avatar = bbp_get_reply_author_avatar( $reply_id, 80 );
-                $author_url    = bbp_get_reply_author_url( $reply_id );
-                $author_role = bbp_get_user_display_role( $author_id );
+                // Check for pre-fetched author data (multisite recent feed context)
+                $prefetch_author_id         = get_query_var('prefetch_author_id');
+                $prefetch_author_name       = get_query_var('prefetch_author_name');
+                $prefetch_author_avatar_url = get_query_var('prefetch_author_avatar_url');
+
+                if ($prefetch_author_id && $prefetch_author_avatar_url) {
+                    // Use pre-fetched data
+                    $author_id     = $prefetch_author_id;
+                    $author_name   = $prefetch_author_name;
+                    $author_avatar = '<img src="' . esc_url($prefetch_author_avatar_url) . '" alt="' . esc_attr($author_name) . '" class="avatar" width="80" height="80">';
+                    $author_url    = bbp_get_reply_author_url( $reply_id );
+                    $author_role   = bbp_get_user_display_role( $author_id );
+                } else {
+                    // Use standard bbPress functions
+                    $author_id     = bbp_get_reply_author_id( $reply_id );
+                    $author_name   = bbp_get_reply_author_display_name( $reply_id );
+                    $author_avatar = bbp_get_reply_author_avatar( $reply_id, 80 );
+                    $author_url    = bbp_get_reply_author_url( $reply_id );
+                    $author_role   = bbp_get_user_display_role( $author_id );
+                }
                 ?>
 
                 <div class="author-header-column">
@@ -142,18 +159,36 @@ if ( $is_lead_topic ) {
                     </div>
                 </div><!-- .author-header-column -->
 
-                <?php if ( bbp_is_single_user_replies() || is_page_template('page-templates/recent-feed-template.php') ) : ?>
+                <?php if ( bbp_is_single_user_replies() || is_page_template('page-templates/recent-feed-template.php') ) :
+                    // Check for pre-fetched topic/forum data (multisite context)
+                    $prefetch_topic_url   = get_query_var('prefetch_topic_url');
+                    $prefetch_topic_title = get_query_var('prefetch_topic_title');
+                    $prefetch_forum_url   = get_query_var('prefetch_forum_url');
+                    $prefetch_forum_title = get_query_var('prefetch_forum_title');
+                ?>
                     <span class="bbp-header">
                         <?php if ( $is_lead_topic || $current_post_type === bbp_get_topic_post_type() ) : ?>
                             <?php esc_html_e( 'in forum: ', 'bbpress' ); ?>
-                            <a class="bbp-forum-permalink" href="<?php bbp_forum_permalink( bbp_get_topic_forum_id() ); ?>">
-                                <?php echo esc_html( bbp_get_forum_title( bbp_get_topic_forum_id() ) ); ?>
-                            </a>
+                            <?php if ( $prefetch_forum_url && $prefetch_forum_title ) : ?>
+                                <a class="bbp-forum-permalink" href="<?php echo esc_url( $prefetch_forum_url ); ?>">
+                                    <?php echo esc_html( $prefetch_forum_title ); ?>
+                                </a>
+                            <?php else : ?>
+                                <a class="bbp-forum-permalink" href="<?php bbp_forum_permalink( bbp_get_topic_forum_id() ); ?>">
+                                    <?php echo esc_html( bbp_get_forum_title( bbp_get_topic_forum_id() ) ); ?>
+                                </a>
+                            <?php endif; ?>
                         <?php else : ?>
                             <?php esc_html_e( 'in reply to: ', 'bbpress' ); ?>
-                            <a class="bbp-topic-permalink" href="<?php bbp_topic_permalink( bbp_get_reply_topic_id() ); ?>">
-                                <?php bbp_topic_title( bbp_get_reply_topic_id() ); ?>
-                            </a>
+                            <?php if ( $prefetch_topic_url && $prefetch_topic_title ) : ?>
+                                <a class="bbp-topic-permalink" href="<?php echo esc_url( $prefetch_topic_url ); ?>">
+                                    <?php echo esc_html( $prefetch_topic_title ); ?>
+                                </a>
+                            <?php else : ?>
+                                <a class="bbp-topic-permalink" href="<?php bbp_topic_permalink( bbp_get_reply_topic_id() ); ?>">
+                                    <?php bbp_topic_title( bbp_get_reply_topic_id() ); ?>
+                                </a>
+                            <?php endif; ?>
                         <?php endif; ?>
                     </span>
                 <?php endif; ?>        

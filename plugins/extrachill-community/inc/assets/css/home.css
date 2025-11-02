@@ -185,6 +185,7 @@ ul.recently-active-topic-row {
 
 #bbpress-forums .bbp-forums-list .bbp-forum{
     font-size: .9rem;
+    list-style: none;
 }
 
 .bbp-forum-last-active-time {
