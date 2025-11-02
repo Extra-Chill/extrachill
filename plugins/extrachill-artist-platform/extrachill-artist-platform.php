@@ -150,6 +150,7 @@ class ExtraChillArtistPlatform {
     }
 
     public static function activate() {
+        extrch_create_or_update_analytics_table();
         flush_rewrite_rules();
         update_option( 'extrachill_artist_platform_activated', true );
     }

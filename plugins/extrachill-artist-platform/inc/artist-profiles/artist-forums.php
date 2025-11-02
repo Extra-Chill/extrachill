@@ -14,41 +14,29 @@
  */
 function bp_create_artist_forum_on_save( $post_id, $post, $update ) {
 
-    // Security checks: Nonce verification already happened in user-linking save, but good practice.
-    // Check if it's the correct post type.
     if ( get_post_type( $post_id ) !== 'artist_profile' ) {
         return;
     }
 
-    // Check if it's an autosave or revision.
     if ( wp_is_post_autosave( $post_id ) || wp_is_post_revision( $post_id ) ) {
         return;
     }
 
-    // Check if the post status is 'publish' (or potentially other statuses if needed later).
-    // We only want to create the forum when the profile is actually published.
     if ( $post->post_status !== 'publish' ) {
         return;
     }
 
-    // Check if the forum already exists.
     $existing_forum_id = get_post_meta( $post_id, '_artist_forum_id', true );
     if ( ! empty( $existing_forum_id ) ) {
-        // Forum already exists, maybe update its title if artist name changed?
         $forum = get_post( $existing_forum_id );
         $new_title = sprintf( __( '%s Forum', 'extrachill-artist-platform' ), $post->post_title );
         if ( $forum && $forum->post_title !== $new_title ) {
             wp_update_post( array( 'ID' => $existing_forum_id, 'post_title' => $new_title ) );
         }
-        return; // Exit, forum exists.
+        return;
     }
 
-
-    // --- Create the new forum --- 
-
-    // Ensure bbPress functions are available.
     if ( ! function_exists( 'bbp_insert_forum' ) ) {
-        // bbPress not active, cannot create forum
         error_log( '[Artist Forums] Cannot create forum for artist profile ID ' . $post_id . ': bbPress not active' );
         return;
     }
@@ -56,35 +44,22 @@ function bp_create_artist_forum_on_save( $post_id, $post, $update ) {
     $forum_data = array(
         'post_title'  => sprintf( __( '%s Forum', 'extrachill-artist-platform' ), $post->post_title ),
         'post_content'=> sprintf( __( 'Discussion forum for the artist %s.', 'extrachill-artist-platform' ), $post->post_title ),
-        'post_status' => 'publish', // Create forum as public
-        // 'post_parent' => 0, // Optional: Assign a parent forum if desired
+        'post_status' => 'publish',
     );
 
-    // Create the forum post.
     $forum_id = bbp_insert_forum( $forum_data );
 
     if ( is_wp_error( $forum_id ) ) {
-        // Failed to create forum
         error_log( '[Artist Forums] Failed to create forum for artist profile ID ' . $post_id . ': ' . $forum_id->get_error_message() );
         return;
     }
 
-
-    // Add meta to the new forum to identify it and link back.
     update_post_meta( $forum_id, '_is_artist_profile_forum', true );
     update_post_meta( $forum_id, '_associated_artist_profile_id', $post_id );
-
-    // Store the new forum ID in the artist profile CPT meta.
     update_post_meta( $post_id, '_artist_forum_id', $forum_id );
-    error_log( '[Artist Forums] Successfully created forum ID ' . $forum_id . ' for artist profile ID ' . $post_id . ' (' . $post->post_title . ')' );
-
-    // Default to allowing public topic creation for new artist forums.
     update_post_meta( $forum_id, '_allow_public_topic_creation', '1' );
 
-    // Optional: Set initial forum settings (e.g., allow topic creation?)
-    // update_post_meta( $forum_id, '_bbp_allow_topic_creaton', true ); // Example
-
-
+    error_log( '[Artist Forums] Successfully created forum ID ' . $forum_id . ' for artist profile ID ' . $post_id . ' (' . $post->post_title . ')' );
 }
 
 // Use WordPress native action hook for all artist profile saves
@@ -97,7 +72,6 @@ add_action( 'save_post_artist_profile', 'bp_create_artist_forum_on_save', 20, 3 
  * Matches forum status to artist profile status (delete/trash/restore).
  */
 function bp_handle_artist_profile_deletion( $post_id ) {
-     // Check if it's the correct post type.
     if ( get_post_type( $post_id ) !== 'artist_profile' ) {
         return;
     }
@@ -106,16 +80,12 @@ function bp_handle_artist_profile_deletion( $post_id ) {
 
     if ( ! empty( $forum_id ) ) {
         $forum = get_post( $forum_id );
-        // Ensure it's actually one of our artist forums before deleting.
         $is_artist_forum = get_post_meta( $forum_id, '_is_artist_profile_forum', true );
 
         if ( $forum && $is_artist_forum ) {
-            // Determine if the artist profile is being permanently deleted or just trashed.
             if ( did_action( 'before_delete_post' ) > did_action( 'wp_trash_post' ) ) {
-                // Permanently deleting the artist profile - permanently delete the forum.
-                wp_delete_post( $forum_id, true ); // true = force delete
+                wp_delete_post( $forum_id, true );
             } else {
-                // Trashing the artist profile - trash the forum.
                 wp_trash_post( $forum_id );
             }
         }
@@ -128,23 +98,20 @@ add_action( 'before_delete_post', 'bp_handle_artist_profile_deletion' );
  * Handles restoration of associated forum when artist profile is untrashed
  */
 function bp_handle_artist_profile_untrash( $post_id ) {
-     // Check if it's the correct post type.
     if ( get_post_type( $post_id ) !== 'artist_profile' ) {
         return;
     }
 
     $forum_id = get_post_meta( $post_id, '_artist_forum_id', true );
 
-     if ( ! empty( $forum_id ) ) {
+    if ( ! empty( $forum_id ) ) {
         $forum = get_post( $forum_id );
-        // Check if the forum is in the trash.
-         if ( $forum && get_post_status( $forum_id ) === 'trash' ) {
-            // Ensure it's actually one of our artist forums before untrashing.
-             $is_artist_forum = get_post_meta( $forum_id, '_is_artist_profile_forum', true );
-             if ( $is_artist_forum ) {
-                 wp_untrash_post( $forum_id );
-             }
-         }
+        if ( $forum && get_post_status( $forum_id ) === 'trash' ) {
+            $is_artist_forum = get_post_meta( $forum_id, '_is_artist_profile_forum', true );
+            if ( $is_artist_forum ) {
+                wp_untrash_post( $forum_id );
+            }
+        }
     }
 }
 add_action( 'untrash_post', 'bp_handle_artist_profile_untrash' );

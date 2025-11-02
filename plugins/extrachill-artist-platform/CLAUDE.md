@@ -16,8 +16,12 @@ WordPress plugin providing comprehensive artist platform functionality for the E
 - **Artist Profiles**: `inc/artist-profiles/` - Admin, frontend, roster management, forum integration
 - **Link Pages**: `inc/link-pages/` - Live pages, management interface, subscription system
 - **Join Flow**: `inc/join/` - User registration and artist platform onboarding
+- **Homepage**: `inc/home/` - Homepage template override, hero section, artist grid hooks
+- **Notifications**: `inc/notifications/` - Artist forum notification integration
 - **Database**: `inc/database/` - Analytics and subscriber database functions
 - **Assets**: `assets/` - Consolidated CSS/JS, organized by functionality
+
+**Note**: Migration functionality moved to extrachill-admin-tools plugin (`inc/tools/artist-platform-migration.php`)
 
 ### Custom Post Types
 - **artist_profile**: Artist/band profiles (archive: `/artists/`, single: `/artists/{slug}` on artist.extrachill.com, top-level `/{slug}` on other domains)
@@ -29,7 +33,7 @@ The plugin provides comprehensive integration with the extrachill.link domain fo
 **Domain Mapping Architecture**:
 - **Backend Mapping**: extrachill.link maps to artist.extrachill.com (blog ID 4) via .github/sunrise.php
 - **Frontend URLs**: All link page URLs display as extrachill.link/{artist-slug} while operating on artist.extrachill.com backend
-- **Cross-Domain Auth**: Authentication managed by extrachill-multisite plugin (inc/core/cross-domain-auth.php)
+- **Cross-Domain Auth**: WordPress authentication cookies configured with SameSite=None; Secure attributes by extrachill-users plugin
 - **URL Preservation**: sunrise.php `home_url` filter replaces artist.extrachill.com with extrachill.link in frontend output
 
 **Link Page URL Structure**:
@@ -48,7 +52,7 @@ The plugin provides comprehensive integration with the extrachill.link domain fo
 **Public Template Integration**:
 - **Template File**: inc/link-pages/live/templates/extrch-link-page-template.php
 - **Powered By Footer**: Includes "Powered by Extra Chill" with link to https://extrachill.link
-- **Cross-Domain Edit Permission**: AJAX handler (inc/link-pages/live/ajax/edit-permission.php) includes CORS headers for extrachill.link
+- **Edit Icon System**: Client-side permission check with CORS AJAX to artist.extrachill.com (see Edit Icon System section)
 - **Share Modal Integration**: Share URLs use extrachill.link canonical URLs (inc/link-pages/live/assets/js/extrch-share-modal.js)
 
 ### Key Features
@@ -139,10 +143,35 @@ The plugin provides comprehensive integration with the extrachill.link domain fo
 - `extrachill_artist_display_blog_coverage_button()` - Renders "View Blog Coverage" button
 - Cross-site blog switching with try/finally pattern for safe multisite operations
 
-#### Edit Permission AJAX
-**File**: `inc/link-pages/live/ajax/edit-permission.php`
-- Real-time permission editing for live link pages
-- AJAX-driven permission updates
+#### Edit Icon System
+**Location**: `inc/link-pages/live/ajax/`, `inc/link-pages/live/assets/js/`, `assets/css/`
+
+**Architecture**:
+- **Client-Side Permission Check**: JavaScript-only rendering with zero server-side HTML for security
+- **CORS Request Flow**: extrachill.link → artist.extrachill.com AJAX with credentials
+- **Permission Validation**: Uses `ec_can_manage_artist()` permission system
+- **Dynamic Rendering**: Edit button only appears in DOM if user has permission
+
+**Files**:
+- `inc/link-pages/live/ajax/edit-permission.php` - CORS AJAX handler with preflight support
+- `inc/link-pages/live/assets/js/link-page-edit-button.js` - Permission check and button rendering
+- `assets/css/extrch-links.css` (lines 243-264) - Fixed position edit button styles
+
+**CORS Headers**:
+- `Access-Control-Allow-Origin: https://extrachill.link`
+- `Access-Control-Allow-Credentials: true`
+- `Access-Control-Allow-Methods: POST, GET, OPTIONS`
+- `Access-Control-Allow-Headers: Content-Type`
+
+**Integration Points**:
+- Hooked via `extrch_link_page_minimal_head` action (priority 10)
+- Localized script data: `ajax_url` (https://artist.extrachill.com/wp-admin/admin-ajax.php), `artist_id`
+- Requires WordPress authentication cookies accessible from extrachill.link domain
+
+**Cross-Domain Authentication**:
+- Relies on WordPress cookies with SameSite=None; Secure attributes for cross-domain access
+- Cookie configuration managed by extrachill-users plugin (`inc/auth/extrachill-link-auth.php`)
+- Edit button JavaScript sends credentials via `fetch()` with `credentials: 'include'` parameter
 
 ### Asset Management
 **Class**: `ExtraChillArtistPlatform_Assets` in `inc/core/artist-platform-assets.php`

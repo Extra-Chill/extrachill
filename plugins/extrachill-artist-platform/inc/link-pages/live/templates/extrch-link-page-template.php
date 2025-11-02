@@ -220,6 +220,8 @@ $body_bg_style = '';
     ?>
 
     <?php
-    // Edit icon rendered client-side via link-page-edit-permission.js for authenticated users
+    // Edit button rendered client-side via JavaScript
+    // AJAX check to artist.extrachill.com where WordPress cookies are validated
+    // JavaScript injects button if user has permission
     ?>
 </div>

@@ -21,24 +21,19 @@ function handle_link_click_tracking() {
 
     $link_page_id = apply_filters('ec_get_link_page_id', $_POST);
     $link_url = esc_url_raw( $_POST['link_url'] );
-    $user_ip = $_SERVER['REMOTE_ADDR'] ?? '';
-    $user_agent = $_SERVER['HTTP_USER_AGENT'] ?? '';
-    $referer = $_SERVER['HTTP_REFERER'] ?? '';
+    $today = current_time('Y-m-d');
 
-    $table_name = $wpdb->prefix . 'link_page_analytics';
+    $table_name = $wpdb->prefix . 'extrch_link_page_daily_link_clicks';
 
-    $wpdb->insert(
-        $table_name,
-        array(
-            'link_page_id' => $link_page_id,
-            'link_url' => $link_url,
-            'user_ip' => $user_ip,
-            'user_agent' => $user_agent,
-            'referer' => $referer,
-            'clicked_at' => current_time( 'mysql' )
-        ),
-        array( '%d', '%s', '%s', '%s', '%s', '%s' )
-    );
+    // Increment daily click count for this link
+    $wpdb->query($wpdb->prepare("
+        INSERT INTO {$table_name}
+            (link_page_id, stat_date, link_url, click_count)
+        VALUES
+            (%d, %s, %s, 1)
+        ON DUPLICATE KEY UPDATE
+            click_count = click_count + 1
+    ", $link_page_id, $today, $link_url));
 
     wp_die( 'success' );
 }
@@ -50,7 +45,7 @@ function handle_link_click_tracking() {
 function extrch_enqueue_public_tracking_script($link_page_id, $artist_id) {
     $theme_dir = EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR;
     $theme_uri = EXTRACHILL_ARTIST_PLATFORM_PLUGIN_URL;
-    $tracking_js_path = '/inc/link-pages/live/assets/js/link-page-public-tracking.js';
+    $tracking_js_path = 'inc/link-pages/live/assets/js/link-page-public-tracking.js';
 
     if (file_exists($theme_dir . $tracking_js_path)) {
         $script_handle = 'extrch-public-tracking';

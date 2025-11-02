@@ -151,6 +151,7 @@ function extrachill_handle_link_domain_routing( $template ) {
             $wp_query->is_page = true;
             $wp_query->is_singular = true;
             $wp_query->is_404 = false;
+            status_header(200);
             $wp_query->query_vars['pagename'] = 'manage-link-page';
             $wp_query->queried_object_id = $manage_page->ID;
             $wp_query->queried_object = $manage_page;
@@ -197,6 +198,7 @@ function extrachill_handle_link_domain_routing( $template ) {
             $wp_query->is_single = true;
             $wp_query->is_singular = true;
             $wp_query->is_404 = false;
+            status_header(200);
             $wp_query->query_vars['name'] = $default_slug;
             $wp_query->query_vars['post_type'] = 'artist_link_page';
             $wp_query->queried_object_id = $default_link_page_id;
@@ -224,7 +226,7 @@ function extrachill_handle_link_domain_routing( $template ) {
     if ( ! empty( $link_pages ) ) {
         $link_page_id = $link_pages[0];
         $link_page = get_post( $link_page_id );
-        
+
         $wp_query->posts = array( $link_page );
         $wp_query->post_count = 1;
         $wp_query->found_posts = 1;
@@ -232,6 +234,7 @@ function extrachill_handle_link_domain_routing( $template ) {
         $wp_query->is_single = true;
         $wp_query->is_singular = true;
         $wp_query->is_404 = false;
+        status_header(200);
         $wp_query->query_vars['name'] = $request_path;
         $wp_query->query_vars['post_type'] = 'artist_link_page';
         $wp_query->queried_object_id = $link_page_id;

@@ -87,8 +87,13 @@ $body_bg_style .= 'min-height:100vh;';
 <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-NXKDLFD"
             height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 <?php
-// Edit icon will be rendered by JavaScript only if user has permission
-// No server-side rendering for security - unauthorized users get zero HTML
+/**
+ * Edit button security model: Client-side only rendering with zero server-side HTML.
+ * JavaScript performs CORS permission check (extrachill.link → artist.extrachill.com)
+ * and renders button only if authorized. Unauthorized users receive no DOM elements.
+ * See: inc/link-pages/live/ajax/edit-permission.php and assets/js/link-page-edit-button.js
+ */
+
     // Pass $data explicitly to the template so overlay and all settings are available
     $extrch_link_page_template_data = $data;
     // Add the link_page_id to the $extrch_link_page_template_data array as well for good measure

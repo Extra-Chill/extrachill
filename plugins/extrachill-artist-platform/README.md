@@ -599,7 +599,8 @@ inc/
 │   ├── actions/
 │   │   ├── save.php                     # Centralized save operations
 │   │   ├── sync.php                     # Data synchronization
-│   │   └── add.php                      # Action hook registrations
+│   │   ├── add.php                      # Programmatic link addition API
+│   │   └── delete.php                   # Deletion operations
 │   ├── filters/
 │   │   ├── social-icons.php             # Social link management
 │   │   ├── fonts.php                    # Font configuration
@@ -607,10 +608,12 @@ inc/
 │   │   ├── templates.php                # Component template filtering
 │   │   ├── permissions.php              # Centralized permission system
 │   │   ├── data.php                     # Centralized data provider (ec_get_link_page_data)
-│   │   └── defaults.php                 # Default configurations
+│   │   ├── defaults.php                 # Default configurations
+│   │   ├── create.php                   # Creation operations
+│   │   └── upload.php                   # File upload handling
 │   └── templates/                       # Core template components
 ├── join/                             # Join flow system
-│   ├── join-flow.php                 # Registration handlers and login redirects
+│   ├── join-flow-init.php            # Join flow initialization
 │   ├── templates/
 │   │   └── join-flow-modal.php       # Account selection modal
 │   └── assets/
@@ -698,6 +701,8 @@ assets/
     └── artist-grid-pagination.js   # AJAX pagination for artist grid
 ```
 
+**Note**: Migration functionality is available in extrachill-admin-tools plugin (`inc/tools/artist-platform-migration.php`)
+
 ## Support
 
 For issues and feature requests, contact the development team or submit issues through the project repository.
@@ -760,9 +765,9 @@ Custom icons are defined in `assets/css/custom-social-icons.css` using SVG mask 
 **Files Using These Keys**:
 - ✅ `inc/core/filters/upload.php` line 160, 164 (WRITE)
 - ✅ `inc/artist-profiles/frontend/templates/single-artist_profile.php` line 93 (READ)
-- ✅ `inc/artist-profiles/frontend/templates/artist-profile-card.php` line 33 (READ)
+- ✅ `inc/artist-profiles/frontend/templates/artist-card.php` line 33 (READ)
 - ✅ `inc/artist-profiles/frontend/templates/manage-artist-profile-tabs/tab-info.php` line 95 (READ)
-- ✅ `inc/artist-profiles/frontend/templates/manage-artist-profiles.php` line 148, 150 (READ) - **FIXED 2025-10-09**
+- ✅ `inc/artist-profiles/frontend/templates/manage-artist-profiles.php` line 148, 150 (READ)
 
 ### Link Page Images
 
@@ -780,20 +785,10 @@ Custom icons are defined in `assets/css/custom-social-icons.css` using SVG mask 
 ### Migration Script References
 
 **Admin Tools Plugin**: `extrachill-admin-tools/inc/tools/artist-platform-migration.php`
-- Line 809-811: Collect `_artist_profile_header_image_id` from profiles
-- Line 819-820: Collect `_link_page_background_image_id` from link pages
-- Line 805-806: Collect `_thumbnail_id` from profiles (featured image)
-- Line 815-816: Collect `_thumbnail_id` from link pages (featured image)
-
-### Historical Issues (Resolved)
-
-**2025-10-09**: Fixed inconsistent meta keys that broke image associations after migration:
-- ❌ **WRONG**: `_artist_header_image_id` was being READ in `manage-artist-profiles.php`
-- ✅ **CORRECT**: `_artist_profile_header_image_id` is the actual key used everywhere else
-- ❌ **WRONG**: `_artist_profile_image_id` was being READ (completely incorrect key)
-- ✅ **CORRECT**: Should use WordPress native `get_post_thumbnail_id()`
-- ❌ **WRONG**: `_ec_background_image_id` was being checked in migration script
-- ✅ **CORRECT**: `_link_page_background_image_id` is the actual key
+- Migration functionality moved to extrachill-admin-tools plugin
+- Collects `_artist_profile_header_image_id` from profiles
+- Collects `_link_page_background_image_id` from link pages
+- Collects `_thumbnail_id` from profiles and link pages (featured images)
 
 **If keys need to be changed in the future**: Run a database migration to update all instances of the old key to the new key across `wp_postmeta` table.
 
