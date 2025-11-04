@@ -2,9 +2,8 @@
 /**
  * Events Homepage Template
  *
- * Complete homepage template for events.extrachill.com
- * Overrides theme homepage via extrachill_template_homepage filter
- * Displays homepage content from WordPress editor
+ * Displays static homepage content (Settings → Reading → A static page).
+ * Supports dm-events calendar block via WordPress editor.
  */
 
 if ( ! defined( 'ABSPATH' ) ) {

@@ -63,7 +63,7 @@ class ExtraChillEvents {
             require_once $autoload_file;
         }
 
-        require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'includes/class-dm-events-integration.php';
+        require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/dm-events-integration.php';
         require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/breadcrumb-integration.php';
     }
 
@@ -93,33 +93,75 @@ function extrachill_events() {
 extrachill_events();
 
 /**
- * Register homepage template override via theme's universal routing system.
- *
- * The extrachill_template_homepage filter is provided by theme's template-router.php
- * and enables plugins to completely override homepage templates at the routing level.
- *
- * Template Override Pattern (follows extrachill-chat and extrachill-artist-platform):
- * - Uses direct blog ID numbers for optimal performance
- * - WordPress blog-id-cache provides automatic performance optimization
- * - Conditional override only applies to events.extrachill.com (site #7)
- *
- * Homepage Implementation:
- * - Displays content from WordPress static homepage (Settings → Reading)
- * - Supports dm-events calendar block via WordPress editor
- * - Full-width container with header/footer integration
- */
-add_filter( 'extrachill_template_homepage', 'ec_events_override_homepage_template' );
-
-/**
- * Override homepage template for events.extrachill.com
+ * Override homepage template for events.extrachill.com (blog ID 7).
+ * Displays static homepage content with dm-events calendar block support.
  *
  * @param string $template Default template path from theme
  * @return string Template path to use
  */
 function ec_events_override_homepage_template( $template ) {
-	// Only override on events.extrachill.com using domain-based detection
 	if ( get_current_blog_id() === 7 ) {
 		return EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/templates/homepage.php';
 	}
 	return $template;
 }
+add_filter( 'extrachill_template_homepage', 'ec_events_override_homepage_template' );
+
+/**
+ * Override archive template on events.extrachill.com
+ *
+ * Replaces the theme's default archive template with plugin's archive template
+ * that displays the dm-events calendar block. This applies to all archive types:
+ * taxonomy archives, post type archives, date archives, and author archives.
+ *
+ * The theme's template router applies this filter when is_archive() returns true,
+ * which includes:
+ * - is_category() - Category archives
+ * - is_tag() - Tag archives
+ * - is_tax() - Custom taxonomy archives (festival, venue, location, etc.)
+ * - is_post_type_archive() - Post type archives (/events/)
+ * - is_author() - Author archives
+ * - is_date() - Date-based archives
+ *
+ * @hook extrachill_template_archive
+ * @param string $template Path to the default template file from theme
+ * @return string Path to archive template (plugin or theme)
+ */
+function ec_events_override_archive_template( $template ) {
+	// Only override on events.extrachill.com (blog ID 7)
+	$events_blog_id = 7; // events.extrachill.com
+	if ( get_current_blog_id() === $events_blog_id ) {
+		return EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/templates/archive.php';
+	}
+	return $template;
+}
+add_filter( 'extrachill_template_archive', 'ec_events_override_archive_template' );
+
+/**
+ * Redirect /events/ post type archive to homepage
+ *
+ * On events.extrachill.com, the homepage IS the main events page.
+ * The /events/ URL is redundant, so redirect to homepage for SEO consolidation.
+ *
+ * Uses 301 (permanent) redirect to tell search engines:
+ * - Homepage is the canonical URL for all events
+ * - /events/ URL permanently moved
+ * - Consolidates link equity to single URL
+ *
+ * @hook template_redirect
+ * @return void
+ */
+function ec_events_redirect_post_type_archive() {
+	// Only on events.extrachill.com (blog ID 7)
+	$events_blog_id = 7; // events.extrachill.com
+	if ( get_current_blog_id() !== $events_blog_id ) {
+		return;
+	}
+
+	// Redirect dm_events post type archive to homepage
+	if ( is_post_type_archive( 'dm_events' ) ) {
+		wp_redirect( home_url(), 301 );
+		exit;
+	}
+}
+add_action( 'template_redirect', 'ec_events_redirect_post_type_archive' );
