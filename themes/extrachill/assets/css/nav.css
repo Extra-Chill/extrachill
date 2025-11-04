@@ -422,8 +422,3 @@ body.search-only-open .search-wrap {
 	color: var(--muted-text);
 	border-bottom: .5px dotted var(--link-color);
 }
-
-.breadcrumb-title{
-	display: none;
-}
-  
