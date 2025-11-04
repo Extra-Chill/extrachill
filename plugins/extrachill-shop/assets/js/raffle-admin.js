@@ -1,7 +1,8 @@
 /**
- * Raffle Admin Field Conditional Display
+ * Raffle Field Visibility
  *
- * Shows/hides the "Max Raffle Tickets" field based on presence of "raffle" tag.
+ * Shows "Max Raffle Tickets" field only when product has "raffle" tag.
+ * Uses MutationObserver for real-time tag monitoring with 500ms polling fallback.
  *
  * @package ExtraChillShop
  */
@@ -9,9 +10,6 @@
 (function($) {
     'use strict';
 
-    /**
-     * Check if product has raffle tag
-     */
     function hasRaffleTag() {
         const tagInputs = $('.tagchecklist span a');
         for (let i = 0; i < tagInputs.length; i++) {
@@ -23,9 +21,6 @@
         return false;
     }
 
-    /**
-     * Toggle raffle field visibility
-     */
     function toggleRaffleField() {
         const $raffleField = $('.raffle-max-tickets-field');
 
@@ -36,14 +31,9 @@
         }
     }
 
-    /**
-     * Initialize on document ready
-     */
     $(document).ready(function() {
-        // Initial check
         toggleRaffleField();
 
-        // Monitor tag changes using MutationObserver
         const tagListContainer = document.querySelector('.tagchecklist');
 
         if (tagListContainer) {
@@ -57,7 +47,6 @@
             });
         }
 
-        // Fallback: Poll for changes every 500ms
         setInterval(toggleRaffleField, 500);
     });
 

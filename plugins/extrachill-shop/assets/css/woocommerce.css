@@ -1,16 +1,11 @@
 /**
- * WooCommerce Styles for ExtraChill Theme
- * 
- * Comprehensive styling for all WooCommerce pages including shop, 
- * single products, cart, checkout, and account pages.
- * 
- * @package ExtraChill
- * @since 1.0
+ * WooCommerce Styles
+ *
+ * Complete styling for shop, product, cart, checkout, and account pages.
+ *
+ * @package ExtraChillShop
+ * @since 1.0.0
  */
-
-/* ==========================================================================
-   WooCommerce Page Layout & Containers
-   ========================================================================== */
 
 .woocommerce-page .main-content,
 .woocommerce .main-content {
@@ -24,11 +19,6 @@
     display: block;
 }
 
-/* ==========================================================================
-   Shop Archive & Product Grid
-   ========================================================================== */
-
-/* Shop header and notices */
 .woocommerce .woocommerce-notices-wrapper {
     margin-bottom: 20px;
 }
@@ -50,7 +40,6 @@
     background: #fff;
 }
 
-/* Product grid layout */
 .woocommerce ul.products,
 .woocommerce-page ul.products {
     display: grid;
@@ -61,7 +50,6 @@
     list-style: none;
 }
 
-/* Remove clearfix pseudo-elements that interfere with CSS Grid */
 .woocommerce ul.products::before,
 .woocommerce ul.products::after,
 .woocommerce-page ul.products::before,
@@ -88,7 +76,6 @@
     box-shadow: var(--card-hover-shadow);
 }
 
-/* Product images */
 .woocommerce ul.products li.product .woocommerce-LoopProduct-link {
     display: block;
     text-decoration: none;
@@ -108,7 +95,6 @@
     opacity: 0.9;
 }
 
-/* Product titles */
 .woocommerce ul.products li.product .woocommerce-loop-product__title,
 .woocommerce ul.products li.product h2,
 .woocommerce ul.products li.product h3 {
@@ -132,7 +118,6 @@
     color: var(--link-color);
 }
 
-/* Product prices */
 .woocommerce ul.products li.product .price,
 .woocommerce-page ul.products li.product .price {
     font-size: 20px;
@@ -154,7 +139,6 @@
     color: var(--accent);
 }
 
-/* Add to cart buttons */
 .woocommerce ul.products li.product .button,
 .woocommerce ul.products li.product .add_to_cart_button {
     background: #0b5394;
@@ -182,7 +166,6 @@
     box-shadow: var(--card-hover-shadow);
 }
 
-/* Sale badges */
 .woocommerce ul.products li.product .onsale {
     position: absolute;
     top: 15px;
@@ -195,10 +178,6 @@
     font-weight: 600;
     z-index: 2;
 }
-
-/* ==========================================================================
-   Single Product Pages
-   ========================================================================== */
 
 .single-product .woocommerce div.product {
     display: grid;
@@ -236,7 +215,6 @@
     color: var(--muted-text);
 }
 
-/* Single product add to cart */
 .single-product .woocommerce div.product form.cart {
     margin-bottom: 30px;
 }
@@ -270,51 +248,6 @@
     background: #083b6c;
     transform: translateY(-1px);
 }
-
-/* Product tabs */
-.woocommerce .main-content .wc-tabs,
-.woocommerce .woocommerce-tabs {
-    margin-top: 40px;
-    border-top: 1px solid var(--border-color);
-    padding-top: 30px;
-}
-
-.woocommerce .woocommerce-tabs ul.tabs {
-    display: flex;
-    margin: 0 0 20px 0;
-    padding: 0;
-    border-bottom: 1px solid var(--border-color);
-    list-style: none;
-}
-
-.woocommerce .woocommerce-tabs ul.tabs li {
-    margin-right: 30px;
-}
-
-.woocommerce .woocommerce-tabs ul.tabs li a {
-    display: block;
-    padding: 15px 0;
-    font-weight: 600;
-    color: var(--muted-text);
-    text-decoration: none;
-    border-bottom: 2px solid transparent;
-    transition: all 0.3s ease;
-}
-
-.woocommerce .woocommerce-tabs ul.tabs li.active a,
-.woocommerce .woocommerce-tabs ul.tabs li a:hover {
-    color: var(--link-color);
-    border-bottom-color: var(--link-color);
-}
-
-.woocommerce .woocommerce-tabs .panel {
-    padding: 20px 0;
-    line-height: 1.6;
-}
-
-/* ==========================================================================
-   Cart Page
-   ========================================================================== */
 
 .woocommerce-cart .woocommerce table.cart {
     width: 100%;
@@ -361,10 +294,6 @@
     font-weight: 700;
 }
 
-/* ==========================================================================
-   Checkout Page
-   ========================================================================== */
-
 .woocommerce-checkout .woocommerce {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -405,10 +334,6 @@
     top: 20px;
 }
 
-/* ==========================================================================
-   Custom WooCommerce Secondary Header (Category Navigation)
-   ========================================================================== */
-
 .woocommerce-secondary-header {
     background-color: var(--accent-2);
     border-bottom: 2px solid;
@@ -441,10 +366,6 @@
     text-decoration: none;
 }
 
-/* ==========================================================================
-   Breadcrumbs
-   ========================================================================== */
-
 .woocommerce .woocommerce-breadcrumb,
 .woocommerce-breadcrumb {
     margin-bottom: 20px;
@@ -462,10 +383,6 @@
 .woocommerce-breadcrumb a:hover {
     text-decoration: underline;
 }
-
-/* ==========================================================================
-   Buttons & Forms
-   ========================================================================== */
 
 .woocommerce a.button,
 .woocommerce button.button,
@@ -507,10 +424,6 @@
     background: var(--accent);
     filter: brightness(0.8);
 }
-
-/* ==========================================================================
-   Responsive Design
-   ========================================================================== */
 
 @media (max-width: 768px) {
     .woocommerce-page .main-content,
@@ -564,27 +477,17 @@
     .single-product .woocommerce div.product .product_title {
         font-size: 24px;
     }
-    
-    .woocommerce .woocommerce-tabs ul.tabs {
-        flex-direction: column;
-        border-bottom: none;
-    }
-    
-    .woocommerce .woocommerce-tabs ul.tabs li {
-        margin-right: 0;
-        margin-bottom: 10px;
-    }
-    
-    .woocommerce .woocommerce-tabs ul.tabs li a {
-        padding: 10px 15px;
-        background: #f8f9fa;
-        border-radius: 4px;
-        border-bottom: none;
-    }
 }
 
-/* ==========================================================================
-   Dark Mode Support (if theme supports it)
-   ========================================================================== */
+/* Cart Icon Header Styling */
+svg.cart-top {
+    fill: #fff;
+    transition: fill 0.3s;
+    vertical-align: middle;
+    height: 1.15em;
+    width: 1.15em;
+}
 
-/* Dark mode styles now handled by CSS custom properties */
+svg.cart-top:hover {
+    fill: #53940b;
+}

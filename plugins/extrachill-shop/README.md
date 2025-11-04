@@ -11,14 +11,23 @@ The Extra Chill Shop plugin extends WooCommerce with ExtraChill-specific functio
 ### 🔐 Cross-Domain Ad-Free License System
 - **Multi-Domain Integration**: Purchases on shop site affect ad display on main site
 - **WordPress Multisite**: Native multisite authentication for seamless cross-domain user sessions
-- **License Management**: Automated license activation and validation
+- **License Management**: Automated license activation and validation via user meta
 - **Community Integration**: Links purchases to community usernames
+- **Clean Architecture**: Shop plugin handles WooCommerce UI, users plugin manages license data
+
+### 🎟️ Raffle Product System
+- **Tag-Based Activation**: Features only activate when product has "raffle" tag
+- **Admin Field**: Conditional "Max Raffle Tickets" field on WooCommerce inventory tab
+- **Frontend Progress Bar**: Visual countdown showing remaining tickets on product pages
+- **Color States**: High stock (>50%) green, medium (25-50%) yellow/orange, low (<25%) red urgency
+- **Smart Loading**: Assets only load when needed (admin screen or raffle products)
+- **Dark Mode Support**: Full dark mode styling with responsive design
+- **MutationObserver**: Real-time field visibility based on tag presence
 
 ### 🎨 Store Customization
 - **Unified Breadcrumbs**: Integrates with theme's breadcrumb system via filter for consistent "Extra Chill › Merch Store" structure
-- **Product Category Header**: Dynamic secondary navigation with product categories
 - **Cart Icon Integration**: Header cart icon linking to shop
-- **Comprehensive Styling**: 590 lines of WooCommerce CSS with responsive design
+- **Comprehensive Styling**: 492 lines of WooCommerce CSS with responsive design
 
 ### ⚡ WooCommerce Styling
 - **Product Grid**: CSS Grid layout with responsive breakpoints
@@ -34,21 +43,25 @@ The Extra Chill Shop plugin extends WooCommerce with ExtraChill-specific functio
 extrachill-shop/
 ├── extrachill-shop.php          # Main plugin file
 ├── inc/                         # Core functionality
-│   └── core/                    # Core plugin files
-│       ├── ad-free-license.php      # License purchase processing
-│       ├── assets.php               # Asset enqueuing
-│       ├── breadcrumb-integration.php # Breadcrumb customization
-│       └── database.php             # Database table creation
-├── templates/                   # Template files
-│   ├── archive-product.php          # Product archive template
-│   ├── cart-icon.php                # Header cart icon
-│   ├── content-single-product.php   # Product content
-│   ├── product-category-header.php  # Category navigation
-│   └── single-product.php           # Single product template
+│   ├── core/                    # Core plugin files
+│   │   ├── assets.php               # Asset enqueuing
+│   │   └── breadcrumb-integration.php # Breadcrumb customization
+│   ├── products/                # Product customizations
+│   │   ├── ad-free-license.php      # Ad-free license WooCommerce integration
+│   │   └── raffle/              # Raffle product features
+│   │       ├── admin-fields.php     # Conditional admin field
+│   │       └── frontend-counter.php # Progress bar display
+│   └── templates/               # Plugin templates
+│       ├── shop-homepage.php        # Shop homepage with product grid
+│       └── cart-icon.php            # Header cart icon
 ├── assets/                      # CSS/JS assets
-│   └── css/
-│       └── woocommerce.css      # WooCommerce styling
-└── languages/                   # Translation files
+│   ├── css/
+│   │   ├── woocommerce.css          # WooCommerce styling (492 lines)
+│   │   ├── raffle-frontend.css      # Raffle progress bar (135 lines)
+│   │   └── raffle-admin.css         # Raffle admin field (26 lines)
+│   └── js/
+│       └── raffle-admin.js          # Raffle field visibility (53 lines)
+├── .gitignore                   # Git ignore patterns
 ```
 
 ### Development Standards
@@ -111,26 +124,75 @@ composer run lint:fix           # Fix code style issues
 
 ## 💳 Ad-Free License System
 
-### Database Schema
-```sql
-extrachill_ad_free:
-├── id (int)                     # Primary key
-├── username (varchar)           # Community username (unique)
-├── date_purchased (datetime)    # Purchase timestamp
-└── order_id (int)              # WooCommerce order ID
+### User Meta Storage
+The plugin uses WordPress-native user meta for license storage (KISS principle, no custom tables):
+
+```php
+// Meta key: extrachill_ad_free_purchased
+// Meta value (array):
+array(
+  'purchased' => '2024-10-27 14:30:00',  // MySQL datetime
+  'order_id'  => 12345,                   // WooCommerce order ID
+  'username'  => 'johndoe'                // Community username
+)
 ```
 
 ### Integration Flow
-1. **Product Page**: User enters community username
-2. **Cart Process**: Username validation and storage
-3. **Order Completion**: License record creation
-4. **Cross-Domain Check**: Ad-free status verification
+1. **Product Page**: User enters community username (pre-filled if logged in)
+2. **Add to Cart**: Username saved to cart item data
+3. **Cart Display**: Username displayed with editable field
+4. **Checkout**: Username added to order item metadata
+5. **Payment Complete**: Order auto-completes (ad-free license only orders)
+6. **Order Completion**: Shop plugin calls `ec_create_ad_free_license()` from users plugin
+7. **Network-Wide Check**: `is_user_ad_free()` validates license via user meta
 
-### WordPress Multisite Integration
-- **Native Authentication**: WordPress multisite handles cross-domain sessions
-- **User Validation**: Direct user lookup across multisite network
-- **Performance**: Hardcoded blog IDs for optimization
-- **Security**: WordPress capability system for access control
+### Clean Architecture
+- **WordPress-Native Storage**: Uses user meta (accessible network-wide)
+- **Username → User ID Mapping**: Handled by `ec_create_ad_free_license()` in extrachill-users plugin
+- **Validation Function**: `is_user_ad_free()` in extrachill-users plugin (reads user meta)
+- **Creation Function**: `ec_create_ad_free_license()` in extrachill-users plugin (writes user meta)
+- **WooCommerce Integration**: Lives in extrachill-shop plugin (product fields, cart, checkout UI)
+- **Purchase Handler**: Calls extrachill-users creation function after order completion
+- **Clean Separation**: Users plugin owns data operations, shop plugin owns WooCommerce UI only
+
+## 🎟️ Raffle Product System
+
+### Tag-Based Activation
+Raffle features only activate when a product has the "raffle" tag:
+- Add "raffle" tag to any WooCommerce product to enable raffle functionality
+- Admin field and frontend counter appear automatically
+- Assets load conditionally only when needed
+
+### Admin Configuration
+**Max Raffle Tickets Field** (`inc/products/raffle/admin-fields.php`):
+- Appears on WooCommerce Inventory tab when product has "raffle" tag
+- Uses MutationObserver to detect tag changes in real-time
+- Field visibility controlled by JavaScript (`raffle-admin.js`)
+- Saves to `_raffle_max_tickets` post meta
+
+### Frontend Display
+**Progress Bar Counter** (`inc/products/raffle/frontend-counter.php`):
+- Displays on product pages with "raffle" tag (priority 25 on `woocommerce_single_product_summary`)
+- Shows remaining tickets out of max tickets (e.g., "45/100 tickets remaining")
+- Calculates percentage: `(remaining / max) * 100`
+- Color states based on stock level:
+  - **High Stock** (>50%): Green gradient (`--accent` to `--accent-3`)
+  - **Medium Stock** (25-50%): Yellow/orange gradient
+  - **Low Stock** (<25%): Red gradient with bold text for urgency
+
+### Conditional Asset Loading
+**Smart Loading Strategy** (`inc/core/assets.php`):
+- **Raffle Frontend CSS**: Only loads on product pages with "raffle" tag (checks `has_term()`)
+- **Raffle Admin CSS + JS**: Only loads on product edit screen (`post.php` and `post-new.php` hooks)
+- **Cache Busting**: Uses `filemtime()` for automatic version management
+- **File Existence Checks**: Verifies files exist before enqueuing
+
+### Responsive Design
+**Mobile Optimization**:
+- 768px breakpoint: Smaller icon and text, reduced padding
+- 480px breakpoint: Further size reduction, minimal spacing
+- Dark mode support via `prefers-color-scheme: dark`
+- Smooth transitions on progress bar fill
 
 ## 🎨 Store Customization
 
@@ -144,14 +206,6 @@ Extra Chill › Merch Store › Product Category › Product Name
 - Context-aware for shop, product, cart, checkout, account pages
 - Single source of truth matching platform standards
 
-### Product Category Header
-Dynamic secondary navigation showing product categories ordered by popularity:
-```php
-// Automatically displays on WooCommerce pages
-// Categories ordered by product count (DESC)
-// Hooks into extrachill_after_header
-```
-
 ### Cart Icon
 Simple cart icon in site header linking to shop page:
 ```php
@@ -162,10 +216,28 @@ Simple cart icon in site header linking to shop page:
 ## 🧪 Testing
 
 ### Manual Testing
+
+#### Ad-Free License System
 1. **Product Purchase Flow**: Complete ad-free license purchase
-2. **Cross-Domain Validation**: Verify ad removal on main site
-3. **User Authentication**: Test multisite login persistence
-4. **Styling**: Check WooCommerce pages render correctly
+2. **Username Validation**: Test cart and checkout username fields
+3. **Cross-Domain Validation**: Verify ad removal on main site via `is_user_ad_free()`
+4. **User Authentication**: Test multisite login persistence
+
+#### Raffle Product System
+1. **Tag Addition**: Add "raffle" tag to product, verify admin field appears
+2. **Tag Removal**: Remove "raffle" tag, verify admin field hides
+3. **Max Tickets Configuration**: Set max tickets value, verify saves correctly
+4. **Progress Bar Display**: Verify progress bar shows on raffle products
+5. **Color States**: Test high/medium/low stock color transitions
+6. **Asset Loading**: Verify raffle CSS only loads on raffle products
+7. **Admin Assets**: Verify admin CSS + JS only load on product edit screen
+
+#### Store Customization
+1. **Breadcrumbs**: Check breadcrumb display on all WooCommerce pages
+2. **Cart Icon**: Verify cart icon in header links to shop
+3. **Styling**: Check WooCommerce pages render correctly
+5. **Responsive Design**: Test all breakpoints (768px, 600px, 480px)
+6. **Dark Mode**: Verify dark mode styling works correctly
 
 ### Code Quality
 ```bash

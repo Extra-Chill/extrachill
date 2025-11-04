@@ -1,18 +1,14 @@
 <?php
 /**
- * Raffle Product Admin Fields
+ * Raffle Admin Field
  *
- * Adds conditional "Max Raffle Tickets" field to WooCommerce product inventory tab.
- * Field only displays when product has "raffle" tag.
+ * Conditional "Max Raffle Tickets" field in WooCommerce inventory tab.
+ * Visibility controlled by "raffle" product tag via JavaScript (assets/js/raffle-admin.js).
  *
  * @package ExtraChillShop
  */
 
 defined( 'ABSPATH' ) || exit;
-
-/**
- * Add Max Raffle Tickets field to WooCommerce Inventory tab
- */
 function extrachill_shop_add_raffle_max_tickets_field() {
     global $post;
 
@@ -37,9 +33,6 @@ function extrachill_shop_add_raffle_max_tickets_field() {
 }
 add_action( 'woocommerce_product_options_inventory_product_data', 'extrachill_shop_add_raffle_max_tickets_field' );
 
-/**
- * Save Max Raffle Tickets field value
- */
 function extrachill_shop_save_raffle_max_tickets_field( $product_id ) {
     $max_tickets = isset( $_POST['_raffle_max_tickets'] ) ? absint( $_POST['_raffle_max_tickets'] ) : '';
 

@@ -1,12 +1,10 @@
 /**
- * Raffle Frontend Progress Bar Styling
+ * Raffle Progress Bar
  *
- * Styles for raffle ticket counter and progress bar on product pages.
+ * Progress bar with color states: high-stock (>50%), medium-stock (25-50%), low-stock (<25%).
  *
  * @package ExtraChillShop
  */
-
-/* Container */
 .extrachill-raffle-progress {
     max-width: 600px;
     margin: 20px auto;
@@ -16,7 +14,6 @@
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
-/* Header with icon and text */
 .raffle-progress-header {
     display: flex;
     align-items: center;
@@ -24,21 +21,18 @@
     margin-bottom: 12px;
 }
 
-/* Ticket icon */
 .raffle-icon {
     font-size: 1.5rem;
     line-height: 1;
     color: var(--accent, #53940b);
 }
 
-/* Ticket count text */
 .raffle-text {
     font-size: 1rem;
     font-weight: 600;
     color: var(--text-color, #333);
 }
 
-/* Progress bar container */
 .raffle-progress-bar {
     width: 100%;
     height: 24px;
@@ -48,7 +42,6 @@
     position: relative;
 }
 
-/* Progress bar fill */
 .raffle-progress-fill {
     height: 100%;
     border-radius: 8px;
@@ -56,7 +49,6 @@
     position: relative;
 }
 
-/* High stock (>50%) - Green */
 .extrachill-raffle-progress.high-stock .raffle-progress-fill {
     background: linear-gradient(90deg, var(--accent, #53940b) 0%, var(--accent-3, #00c8e3) 100%);
 }
@@ -65,7 +57,6 @@
     color: var(--accent, #53940b);
 }
 
-/* Medium stock (25-50%) - Yellow/Orange */
 .extrachill-raffle-progress.medium-stock .raffle-progress-fill {
     background: linear-gradient(90deg, #f39c12 0%, #e67e22 100%);
 }
@@ -74,7 +65,6 @@
     color: #f39c12;
 }
 
-/* Low stock (<25%) - Red urgency */
 .extrachill-raffle-progress.low-stock .raffle-progress-fill {
     background: linear-gradient(90deg, #e74c3c 0%, #c0392b 100%);
 }
@@ -88,7 +78,6 @@
     font-weight: 700;
 }
 
-/* Dark mode support */
 @media (prefers-color-scheme: dark) {
     .extrachill-raffle-progress {
         background: var(--card-background, #1a1a1a);
@@ -103,7 +92,6 @@
     }
 }
 
-/* Mobile responsive */
 @media screen and (max-width: 768px) {
     .extrachill-raffle-progress {
         margin: 16px 12px;

@@ -57,12 +57,12 @@ class ExtraChillShop {
         require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/products/raffle/frontend-counter.php';
 
         // Core functionality
+        require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/core/woocommerce-templates.php';
         require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/core/breadcrumb-integration.php';
         require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/core/assets.php';
 
         // Templates
-        require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'templates/cart-icon.php';
-        require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'templates/product-category-header.php';
+        require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/templates/cart-icon.php';
     }
 
     public function load_textdomain() {
@@ -95,3 +95,22 @@ function extrachill_shop() {
 
 // Start the plugin
 extrachill_shop();
+
+/**
+ * Override homepage template for shop.extrachill.com
+ *
+ * Uses theme's extrachill_template_homepage filter (same pattern as chat/events/stream plugins).
+ * Works regardless of Settings → Reading configuration.
+ *
+ * @param string $template Current template path
+ * @return string Modified template path for shop homepage
+ */
+function extrachill_shop_override_homepage( $template ) {
+	// Only override on shop.extrachill.com (blog ID 3)
+	if ( get_current_blog_id() !== 3 ) {
+		return $template;
+	}
+
+	return EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/templates/shop-homepage.php';
+}
+add_filter( 'extrachill_template_homepage', 'extrachill_shop_override_homepage', 10 );

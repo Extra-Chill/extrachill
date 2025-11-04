@@ -1,26 +1,15 @@
 <?php
 /**
- * WooCommerce Ad-Free License Integration for ExtraChill Shop Plugin
+ * Ad-Free License WooCommerce Integration
  *
- * Handles WooCommerce UI integration for ad-free license purchases.
- * License creation delegated to extrachill-users plugin.
+ * Handles product field, cart validation, and order completion.
+ * Delegates license creation to extrachill-users plugin via ec_create_ad_free_license().
  *
  * @package ExtraChillShop
  * @since 1.0.0
  */
 
-// Exit if accessed directly
-if (!defined('ABSPATH')) {
-    exit;
-}
-
-/**
- * Handle ad-free purchase when order is completed
- *
- * Delegates license creation to extrachill-users plugin.
- *
- * @param int $order_id WooCommerce order ID
- */
+defined( 'ABSPATH' ) || exit;
 add_action('woocommerce_order_status_completed','extrachill_shop_handle_ad_free_purchase',10,1);
 function extrachill_shop_handle_ad_free_purchase($order_id) {
     $product_id = 90123;
@@ -32,14 +21,11 @@ function extrachill_shop_handle_ad_free_purchase($order_id) {
             continue;
         }
 
-        // Get community username from order meta
         $username = trim($item->get_meta('community_username',true) ?: $item->get_meta('Community Username',true));
         if(empty($username)) {
             error_log("❌ No username meta for Order #{$order_id}");
             continue;
         }
-
-        // Delegate license creation to users plugin
         if (!function_exists('ec_create_ad_free_license')) {
             error_log("❌ ec_create_ad_free_license() not found - extrachill-users plugin required");
             continue;

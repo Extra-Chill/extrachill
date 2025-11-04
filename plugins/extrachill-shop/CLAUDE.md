@@ -10,13 +10,29 @@ The **Extra Chill Shop** plugin provides WooCommerce integration and e-commerce 
 
 ### Cross-Domain Ad-Free License System
 - **Purchase Processing**: Handles ad-free license purchases via WooCommerce order completion hook
-- **Database Storage**: Custom `extrachill_ad_free` table tracks licenses by community username
+- **WordPress-Native Storage**: Uses user meta (no custom tables)
 - **Product Integration**: Community username field on product page (Product ID: 90123)
 - **Cart Validation**: Username validation throughout checkout flow
 - **Auto-Completion**: Ad-free license orders auto-complete after payment
 - **Cross-Site Validation**: Works with `is_user_ad_free()` function in extrachill-users plugin
+- **Clean Separation**: Shop plugin handles WooCommerce UI, users plugin manages license data
 
-**Implementation**: `inc/core/ad-free-license.php` (149 lines)
+**Implementation**: `inc/products/ad-free-license.php` (141 lines)
+
+### Raffle Product System
+- **Tag-Based Activation**: Features only activate when product has "raffle" tag
+- **Admin Field**: Conditional "Max Raffle Tickets" field on WooCommerce inventory tab
+- **Frontend Counter**: Progress bar showing remaining tickets on product pages
+- **Progress States**: Visual color states - high stock (>50%) green, medium (25-50%) yellow/orange, low (<25%) red urgency
+- **Dark Mode Support**: Full dark mode styling with responsive design
+- **Conditional Loading**: Assets only load when needed (admin screen or raffle products)
+
+**Implementation**:
+- `inc/products/raffle/admin-fields.php` (45 lines) - Admin field with conditional display
+- `inc/products/raffle/frontend-counter.php` (61 lines) - Progress bar display
+- `assets/css/raffle-admin.css` (26 lines) - Admin field visibility styling
+- `assets/css/raffle-frontend.css` (135 lines) - Progress bar with color states and responsive design
+- `assets/js/raffle-admin.js` (53 lines) - MutationObserver for tag-based field visibility
 
 ### Breadcrumb Integration
 - **Theme Integration**: Uses theme's unified `extrachill_breadcrumbs()` system via `extrachill_breadcrumbs_override_trail` filter
@@ -25,7 +41,7 @@ The **Extra Chill Shop** plugin provides WooCommerce integration and e-commerce 
 - **Context-Aware**: Shop, product, cart, checkout, account page breadcrumbs
 - **Single Source of Truth**: Same breadcrumb architecture as bbPress and other plugins
 
-**Implementation**: `inc/core/breadcrumb-integration.php` (77 lines)
+**Implementation**: `inc/core/breadcrumb-integration.php` (180 lines)
 
 ### Cart Icon
 - **Header Integration**: Simple cart icon in site header
@@ -33,56 +49,93 @@ The **Extra Chill Shop** plugin provides WooCommerce integration and e-commerce 
 - **Shop Link**: Links to WooCommerce shop page
 - **FontAwesome SVG**: Uses theme's FontAwesome sprite
 
-**Implementation**: `templates/cart-icon.php` (35 lines)
+**Implementation**: `inc/templates/cart-icon.php` (29 lines)
 
-### Product Category Header
-- **Secondary Navigation**: Category navigation below main header
-- **WooCommerce Pages**: Displays on shop, cart, checkout, and product pages
-- **Dynamic Categories**: Auto-generates links from product categories
-- **Sorted by Count**: Categories ordered by product count (most popular first)
-
-**Implementation**: `templates/product-category-header.php` (48 lines)
 
 ### WooCommerce Styling
-- **Comprehensive CSS**: 590 lines of WooCommerce styling
+- **Comprehensive CSS**: 513 lines of WooCommerce styling
 - **Product Grid**: CSS Grid layout with responsive breakpoints
 - **Responsive Design**: Mobile-optimized layouts (768px, 600px, 480px breakpoints)
 - **Theme Integration**: Uses theme's standard button colors (#0b5394 primary, #083b6c hover)
 - **Dark Mode Support**: Uses CSS custom properties from theme
 - **Complete Coverage**: Shop, product, cart, checkout, breadcrumbs, buttons
 
-**Implementation**: `assets/css/woocommerce.css` (590 lines)
+**Implementation**: `assets/css/woocommerce.css` (492 lines)
 
-### User Meta Storage
-- **No Custom Tables**: Uses WordPress-native user meta for ad-free licenses
-- **Meta Key**: `extrachill_ad_free_purchased` (array with purchased date, order_id, username)
-- **Migration Utility**: One-time migration from legacy table via URL parameter
+### Asset Management
+- **Conditional Loading**: WooCommerce CSS only loads on WooCommerce pages (including when shop is homepage)
+- **Raffle Frontend**: CSS only loads on product pages with "raffle" tag
+- **Raffle Admin**: CSS + JS only load on product edit screen
+- **Cache Busting**: Uses `filemtime()` for all assets
+- **File Existence Checks**: Verifies files exist before enqueuing
 
-**Implementation**: `inc/core/ad-free-license.php` (includes migration utility)
+**Implementation**: `inc/core/assets.php` (82 lines)
+
+### Hybrid Template System
+- **Hybrid Approach**: Combines theme's homepage override with WooCommerce template filters
+- **Shop Homepage**: Custom via `extrachill_template_homepage` filter (same as chat, events, stream)
+- **Single Products**: WooCommerce via `template_include` filter (priority 99)
+- **Template Parts**: WooCommerce via `woocommerce_locate_template` filter
+- **Best of Both**: Simple homepage control + full WooCommerce support elsewhere
+
+**Template Loading**:
+- Shop homepage uses `extrachill_template_homepage` filter (blog ID 3)
+- Single products, cart, and checkout use `template_include` filter (priority 99)
+- Template parts use `woocommerce_locate_template` filter (priority 10)
+
+**Template Files**:
+- `inc/templates/shop-homepage.php` (71 lines) - Shop homepage with breadcrumbs and product grid
+- `woocommerce/single-product.php` (62 lines) - Individual product page wrapper
+- `woocommerce/content-product.php` (67 lines) - Product cards in shop grid (used by homepage)
+- `woocommerce/content-single-product.php` (76 lines) - Single product content
+- `woocommerce/cart.php` (67 lines) - Cart page template
+- `woocommerce/checkout.php` (76 lines) - Checkout page template
+- `woocommerce/single-product/tabs/tabs.php` (29 lines) - Product tabs template
+
+**Template Filters**:
+- `extrachill_template_homepage` (priority 10, main plugin file) - Shop homepage only (blog ID 3)
+- `template_include` (priority 99, woocommerce-templates.php) - Single products, cart, and checkout pages
+- `woocommerce_locate_template` (priority 10, woocommerce-templates.php) - All template parts
 
 ## Architecture
 
 ### Plugin Structure
 ```
 extrachill-shop/
-├── extrachill-shop.php          # Main plugin file (singleton pattern)
+├── extrachill-shop.php          # Main plugin file (singleton + homepage override filter)
 ├── inc/
-│   └── core/                    # Core functionality
-│       ├── ad-free-license.php      # Ad-free license purchase processing & migration
-│       ├── assets.php               # CSS/JS enqueuing (conditional loading)
-│       └── breadcrumb-integration.php # Breadcrumb customization
-├── templates/                   # All template files
-│   ├── archive-product.php          # WooCommerce product archive template
-│   ├── cart-icon.php                # Header cart icon template
-│   ├── content-single-product.php   # Product content template
-│   ├── product-category-header.php  # Category navigation template
-│   └── single-product.php           # Single product template
+│   ├── core/                    # Core functionality
+│   │   ├── assets.php               # CSS/JS enqueuing (conditional loading)
+│   │   ├── breadcrumb-integration.php # Breadcrumb customization
+│   │   └── woocommerce-templates.php # WooCommerce template filters
+│   ├── products/                # Product customizations
+│   │   ├── ad-free-license.php      # Ad-free license WooCommerce integration
+│   │   └── raffle/              # Raffle product features
+│   │       ├── admin-fields.php     # Conditional admin field
+│   │       └── frontend-counter.php # Progress bar display
+│   └── templates/               # Plugin templates
+│       ├── shop-homepage.php        # Shop homepage with product grid
+│       └── cart-icon.php            # Header cart icon template
+├── woocommerce/                 # WooCommerce template overrides
+│   ├── single-product.php           # Single product page wrapper
+│   ├── content-product.php          # Product cards in shop grid (used by homepage)
+│   ├── content-single-product.php   # Single product content
+│   ├── cart.php                     # Cart page template
+│   ├── checkout.php                 # Checkout page template
+│   └── single-product/
+│       └── tabs/
+│           └── tabs.php             # Product tabs template
 ├── assets/
-│   └── css/
-│       └── woocommerce.css      # WooCommerce styling (590 lines)
+│   ├── css/
+│   │   ├── woocommerce.css          # WooCommerce styling (492 lines)
+│   │   ├── raffle-frontend.css      # Raffle progress bar (135 lines)
+│   │   └── raffle-admin.css         # Raffle admin field (26 lines)
+│   └── js/
+│       └── raffle-admin.js          # Raffle field visibility (53 lines)
 ├── composer.json                # Dev dependencies only (PHPCS, PHPUnit)
 ├── build.sh                     # Symlink to ../../.github/build.sh
 ├── .buildignore                 # Build exclusion patterns
+├── .gitignore                   # Git ignore patterns
 └── CLAUDE.md                    # This file
 ```
 
@@ -97,13 +150,17 @@ extrachill-shop/
 **Main Plugin File** (`extrachill-shop.php`):
 - Singleton pattern with private constructor
 - Defines plugin constants (VERSION, PLUGIN_FILE, PLUGIN_DIR, PLUGIN_URL, PLUGIN_BASENAME)
-- Loads 3 core includes via `load_includes()` method in `plugins_loaded` hook:
-  1. `inc/core/ad-free-license.php` - Purchase processing, validation, and migration
-  2. `inc/core/breadcrumb-integration.php` - Breadcrumb customization
-  3. `inc/core/assets.php` - Asset enqueuing
-- Loads 2 template files:
-  1. `templates/cart-icon.php` - Header cart icon
-  2. `templates/product-category-header.php` - Category navigation
+- Loads 7 includes via `load_includes()` method in `plugins_loaded` hook:
+  1. `inc/products/ad-free-license.php` - Ad-free license WooCommerce integration
+  2. `inc/products/raffle/admin-fields.php` - Raffle admin field
+  3. `inc/products/raffle/frontend-counter.php` - Raffle progress counter
+  4. `inc/core/woocommerce-templates.php` - WooCommerce template filters
+  5. `inc/core/breadcrumb-integration.php` - Breadcrumb customization
+  6. `inc/core/assets.php` - Asset enqueuing
+  7. `inc/templates/cart-icon.php` - Header cart icon
+- Homepage override filter registered after plugin initialization:
+  - `extrachill_template_homepage` filter at priority 10
+  - Returns `inc/templates/shop-homepage.php` on blog ID 3
 - Activation hook sets activation flag and flushes rewrite rules
 - Deactivation hook flushes rewrite rules
 
@@ -191,20 +248,24 @@ array(
 
 ## Integration with Main Theme
 
-The plugin integrates with the `extrachill` theme via WordPress action hooks:
+The plugin integrates with the `extrachill` theme via filters and action hooks:
 
 ### Theme Hooks Used
+- **`extrachill_template_homepage`** (priority 10): Homepage template override (same pattern as chat, events, stream)
 - **`extrachill_header_top_right`** (priority 25): Cart icon display
-- **`extrachill_after_header`**: Product category navigation
+- **`extrachill_breadcrumbs_root`**: Custom breadcrumb root ("Extra Chill › Merch Store")
+- **`extrachill_breadcrumbs_override_trail`**: Context-specific breadcrumb trails
+- **`extrachill_back_to_home_label`**: "← Back to Merch Store" label
 
-### Template System Integration
-The shop plugin relies on the theme's WooCommerce bypass in `inc/core/template-router.php`. The theme detects WooCommerce pages via `is_woocommerce()`, `is_cart()`, `is_checkout()`, and `is_account_page()` checks and returns templates unchanged, allowing WooCommerce's native template hierarchy to function. This follows the same bypass pattern as bbPress integration used by the community plugin.
+### Homepage Override Pattern
+The shop plugin uses the theme's `extrachill_template_homepage` filter to override the homepage on shop.extrachill.com (blog ID 3). This follows the same architectural pattern as chat, events, and stream plugins:
 
 **Key Implementation**:
-- Theme bypasses routing for all WooCommerce pages before `is_front_page()` check
-- Allows Shop page to be set as homepage via Settings → Reading without theme interference
-- WooCommerce handles all template loading using its own template hierarchy
-- Shop plugin provides CSS styling via `assets/css/woocommerce.css` (590 lines)
+- Single filter function checks blog ID 3 and returns custom template path
+- Works regardless of Settings → Reading configuration (static page or posts page)
+- Plugin has complete control over homepage rendering with custom WP_Query
+- WooCommerce templates still used for cart, checkout, account, and single product pages
+- Shop plugin provides CSS styling via `assets/css/woocommerce.css` (513 lines)
 
 ### CSS Custom Properties
 The WooCommerce CSS uses theme custom properties:
@@ -224,7 +285,6 @@ The WooCommerce CSS uses theme custom properties:
 
 ### Not Yet Implemented
 - **Advanced Asset Optimization**: No context detection helpers or safe wrapper functions
-- **Template Override System**: No comprehensive template override functionality beyond two basic templates
 - **Admin Settings Page**: No WP Admin interface for plugin settings
 - **Analytics Integration**: No purchase tracking or conversion analytics
 - **Error Logging**: Basic error_log() only, no structured logging system
@@ -253,8 +313,12 @@ The WooCommerce CSS uses theme custom properties:
 ### Testing Checklist
 - [ ] Ad-free license purchase flow end-to-end
 - [ ] Username validation in cart and checkout
-- [ ] Database record creation on order completion
 - [ ] Cross-domain license validation with `is_user_ad_free()`
+- [ ] Raffle admin field visibility (only shows when "raffle" tag present)
+- [ ] Raffle progress bar display on raffle products
+- [ ] Raffle progress bar color states (high/medium/low stock)
+- [ ] Raffle frontend CSS loading (only on raffle products)
+- [ ] Raffle admin assets loading (only on product edit screen)
 - [ ] Breadcrumb display on all WooCommerce pages
 - [ ] Cart icon display in header
 - [ ] Product category navigation rendering
