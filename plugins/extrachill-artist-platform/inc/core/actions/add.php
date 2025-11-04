@@ -1,19 +1,13 @@
 <?php
 /**
- * Add Operations for Artist Link Pages
+ * Programmatic Link Addition API
  *
- * Provides programmatic interface for adding content to link pages via WordPress actions.
- * Works alongside existing save system - does not replace current form submission flow.
+ * WordPress action-based interface for adding links to artist link pages.
+ * Provides sanitization, validation, and AJAX wrapper for external integrations.
  */
 
 defined( 'ABSPATH' ) || exit;
 
-/**
- * Sanitize link data structure
- *
- * @param array $link_data Raw link data from any source (AJAX, form, API, chat)
- * @return array Sanitized link data ready for storage
- */
 function ec_sanitize_link_data( $link_data ) {
 	$sanitized = array();
 

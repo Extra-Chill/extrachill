@@ -69,3 +69,23 @@ function ec_artist_profile_breadcrumb_override( $custom_trail ) {
     return '<span>' . esc_html( $artist_name ) . '</span>';
 }
 add_filter( 'extrachill_breadcrumbs_override_trail', 'ec_artist_profile_breadcrumb_override' );
+
+/**
+ * Override back-to-home link label for artist platform pages
+ *
+ * Changes "Back to Extra Chill" to "Back to Artist Platform" on artist pages.
+ * Uses theme's extrachill_back_to_home_label filter.
+ *
+ * @param string $label Default back-to-home link label
+ * @param string $url   Back-to-home link URL
+ * @return string Modified label
+ */
+function ec_artist_platform_back_to_home_label( $label, $url ) {
+    // Don't override on homepage (homepage should say "Back to Extra Chill")
+    if ( is_front_page() ) {
+        return $label;
+    }
+
+    return '← Back to Artist Platform';
+}
+add_filter( 'extrachill_back_to_home_label', 'ec_artist_platform_back_to_home_label', 10, 2 );

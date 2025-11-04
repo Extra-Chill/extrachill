@@ -1,7 +1,9 @@
 <?php
 /**
- * Centralized data functions for artist profiles, link pages, and following system.
- * ec_get_link_page_data() serves as single source of truth for all link page data access.
+ * Centralized Data Functions
+ *
+ * Single source of truth for artist profile and link page data.
+ * ec_get_link_page_data() provides complete link page data with live preview support.
  */
 
 function ec_get_forum_for_artist( $artist_id ) {

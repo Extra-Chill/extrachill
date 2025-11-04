@@ -1,39 +1,29 @@
 <?php
 /**
  * Background AJAX Handlers
- * 
- * Handles all background-related AJAX operations for the link page management interface.
- * Registered via wp_ajax hooks in this file.
+ *
+ * WordPress native AJAX with nonce verification, file validation, and cleanup.
+ * Handles background image uploads with proper security checks.
  */
 
 defined( 'ABSPATH' ) || exit;
 
-/**
- * AJAX handler for background image uploads
- * 
- * Called by background.js when users upload background images.
- * Handles file validation, upload, and cleanup of old images.
- */
 function extrch_upload_background_image_ajax() {
-    // Check nonce - use the same nonce as the main form
     if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'bp_save_link_page_action')) {
         wp_send_json_error('Invalid nonce');
         return;
     }
-    
-    // Check if user is logged in
+
     if (!is_user_logged_in()) {
         wp_send_json_error('User not logged in');
         return;
     }
-    
-    // Check if file was uploaded
+
     if (empty($_FILES['link_page_background_image_upload']['tmp_name'])) {
         wp_send_json_error('No file uploaded');
         return;
     }
-    
-    // Get link page ID directly from AJAX data (sent by background.js:221)
+
     $link_page_id = absint($_POST['link_page_id']);
     
     if (!$link_page_id || get_post_type($link_page_id) !== 'artist_link_page') {

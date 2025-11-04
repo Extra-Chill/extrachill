@@ -15,9 +15,9 @@
  * Requires PHP: 7.4
  * Requires Plugins: bbpress
  *
- * Architecture: Site-activated on artist.extrachill.com with extrachill.link domain mapping.
- * Link pages accessible at extrachill.link/{artist-slug} via top-level rewrite rules.
- * Dependencies: bbPress for forum integration, extrachill-users for artist profile functions.
+ * Architecture: Singleton pattern with 50+ direct require_once includes.
+ * Centralized filters (inc/core/filters/) and actions (inc/core/actions/) per CLAUDE.md patterns.
+ * Dependencies: bbPress (enforced), extrachill-users (artist profile functions).
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -31,7 +31,6 @@ if ( ! defined( 'EXTRCH_LINKPAGE_DEV' ) ) {
     define( 'EXTRCH_LINKPAGE_DEV', false );
 }
 
-// Load Composer autoloader for dependencies (Endroid QR Code)
 if ( file_exists( EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'vendor/autoload.php' ) ) {
     require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'vendor/autoload.php';
 }

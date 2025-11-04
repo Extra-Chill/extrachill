@@ -1,14 +1,13 @@
 <?php
 /**
- * Centralized permission system for artist platform
+ * Centralized Permission System
+ *
+ * Single source of truth for artist platform permissions.
+ * Provides AJAX-aware permission helpers and WordPress capability filtering.
  */
 
 /**
- * Check if user can manage artist profile
- *
- * @param int|null $user_id   User ID (defaults to current user)
- * @param int|null $artist_id Artist profile post ID
- * @return bool               True if user can manage artist
+ * Check if user can manage artist (post author, roster member, or admin)
  */
 function ec_can_manage_artist( $user_id = null, $artist_id = null ) {
     if ( ! $user_id ) {
@@ -19,18 +18,15 @@ function ec_can_manage_artist( $user_id = null, $artist_id = null ) {
         return false;
     }
 
-    // Admin always has access
     if ( user_can( $user_id, 'manage_options' ) ) {
         return true;
     }
 
-    // Check if user is post author (primary owner)
     $post = get_post( $artist_id );
     if ( $post && (int) $post->post_author === (int) $user_id ) {
         return true;
     }
 
-    // Check if user is in member list (additional access via meta)
     $user_artist_ids = get_user_meta( $user_id, '_artist_profile_ids', true );
     if ( ! is_array( $user_artist_ids ) ) {
         $user_artist_ids = array();
@@ -40,12 +36,6 @@ function ec_can_manage_artist( $user_id = null, $artist_id = null ) {
 }
 
 
-/**
- * AJAX permission check for artist management
- *
- * @param array $post_data AJAX request data
- * @return bool            True if current user can manage artist
- */
 function ec_ajax_can_manage_artist( $post_data ) {
     $artist_id = isset( $post_data['artist_id'] ) ? (int) $post_data['artist_id'] : 0;
     if ( ! $artist_id ) {
@@ -55,12 +45,6 @@ function ec_ajax_can_manage_artist( $post_data ) {
     return ec_can_manage_artist( get_current_user_id(), $artist_id );
 }
 
-/**
- * AJAX permission check for link page management
- *
- * @param array $post_data AJAX request data
- * @return bool            True if current user can manage link page
- */
 function ec_ajax_can_manage_link_page( $post_data ) {
     $link_page_id = isset( $post_data['link_page_id'] ) ? (int) $post_data['link_page_id'] : 0;
     if ( ! $link_page_id ) {
@@ -75,40 +59,16 @@ function ec_ajax_can_manage_link_page( $post_data ) {
     return ec_can_manage_artist( get_current_user_id(), $artist_id );
 }
 
-/**
- * AJAX permission check for admin capabilities
- *
- * @param array $post_data AJAX request data (unused but required for consistency)
- * @return bool            True if current user has admin capabilities
- */
 function ec_ajax_is_admin( $post_data ) {
     return current_user_can( 'manage_options' );
 }
 
-/**
- * AJAX permission check for artist profile creation
- *
- * Note: ec_can_create_artist_profiles() is provided by extrachill-users plugin (network-activated)
- *
- * @param array $post_data AJAX request data (unused but required for consistency)
- * @return bool            True if current user can create artist profiles
- */
 function ec_ajax_can_create_artists( $post_data ) {
     return ec_can_create_artist_profiles( get_current_user_id() );
 }
 
 /**
- * Extends WordPress capabilities with custom artist permissions including forum-specific bbPress access control
- *
- * Dynamically grants custom capabilities for artist profile management and bbPress forum access
- * based on user ownership and settings. Handles artist profile post type permissions and
- * forum-specific permissions for artist-linked forums.
- *
- * @param array   $allcaps Array of user capabilities
- * @param array   $caps    Required capabilities for the request
- * @param array   $args    Arguments for the capability check (includes object ID)
- * @param WP_User $user    User object
- * @return array           Modified capabilities array
+ * WordPress capability filtering for artist permissions and bbPress forum access
  */
 function ec_filter_user_capabilities( $allcaps, $caps, $args, $user ) {
     $user_id = $user->ID;

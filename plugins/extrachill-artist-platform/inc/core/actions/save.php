@@ -1,33 +1,17 @@
 <?php
 /**
  * Centralized Save System
- * 
- * Unified save operations for artist profiles and link pages with centralized
- * data preparation, file handling, and security validation.
- * 
- * Architecture:
- * - Preparation functions sanitize and validate form data  
- * - Handler functions execute saves with proper error handling
- * - File upload functions manage attachments with cleanup
- * - Admin post handlers provide secure form endpoints
+ *
+ * WordPress native form processing with data preparation, file handling, and security validation.
+ * Preparation functions sanitize, handler functions execute, action hooks trigger sync.
  */
 
 defined( 'ABSPATH' ) || exit;
 
-// Include file upload functions
 require_once plugin_dir_path( __FILE__ ) . '../filters/upload.php';
 
 /**
- * Central function to handle all link page save operations
- *
- * Processes and saves link page data including links, CSS variables, 
- * advanced settings, social icons, and file uploads. Triggers post-save 
- * synchronization via action hooks.
- *
- * @param int $link_page_id The link page ID
- * @param array $save_data Array of prepared save data
- * @param array $files_data $_FILES array if applicable
- * @return bool|WP_Error True on success, WP_Error on failure
+ * Handle link page save operations (links, CSS, settings, files)
  */
 function ec_handle_link_page_save( $link_page_id, $save_data = array(), $files_data = array() ) {
     
@@ -119,10 +103,8 @@ function ec_handle_link_page_save( $link_page_id, $save_data = array(), $files_d
  * @return void
  */
 function ec_handle_link_page_save_completion( $link_page_id ) {
-    // Get associated artist profile ID
     $artist_id = apply_filters('ec_get_artist_id', $link_page_id);
     if ( $artist_id && get_post_type( $artist_id ) === 'artist_profile' ) {
-        // Trigger sync action directly
         do_action( 'ec_artist_platform_sync', $artist_id );
     }
 }
@@ -130,18 +112,11 @@ add_action( 'ec_link_page_save', 'ec_handle_link_page_save_completion', 10, 1 );
 
 
 /**
- * Process individual social icon form fields into structured array
- *
- * Converts form field arrays (social_type[], social_url[]) into
- * structured social icons data for storage. Skips empty entries.
- *
- * @param array $post_data $_POST array containing form fields
- * @return array Structured social icons array
+ * Process social icon form fields (social_type[], social_url[]) into structured array
  */
 function ec_process_social_form_fields( $post_data ) {
     $social_data = array();
-    
-    // Check for social types and URLs
+
     $social_types = isset( $post_data['social_type'] ) ? $post_data['social_type'] : array();
     $social_urls = isset( $post_data['social_url'] ) ? $post_data['social_url'] : array();
     

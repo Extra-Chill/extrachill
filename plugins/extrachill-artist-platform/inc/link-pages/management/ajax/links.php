@@ -1,9 +1,10 @@
 <?php
 /**
- * Links AJAX Handlers - Template rendering for link management and live preview.
+ * Links AJAX Handlers
+ *
+ * WordPress native AJAX patterns with nonce verification and permission checks.
+ * All handlers use ec_ajax_can_manage_link_page() for centralized permission validation.
  */
-
-// Register links AJAX actions using WordPress native patterns
 add_action( 'wp_ajax_render_link_item_editor', 'ec_ajax_render_link_item_editor' );
 add_action( 'wp_ajax_render_link_section_editor', 'ec_ajax_render_link_section_editor' );
 add_action( 'wp_ajax_render_link_template', 'ec_ajax_render_link_template' );
@@ -49,8 +50,8 @@ function ec_ajax_render_link_item_editor() {
         ) );
 
         $preview_html = ec_render_template( 'single-link', array(
-            'link_url' => $sanitized_link_data['link_url'] ?: '',
-            'link_text' => $sanitized_link_data['link_text'] ?: '',
+            'link_url' => $sanitized_link_data['link_url'] ?? '',
+            'link_text' => $sanitized_link_data['link_text'] ?? '',
             'link_classes' => 'extrch-link-page-link',
             'youtube_embed' => false
         ) );
