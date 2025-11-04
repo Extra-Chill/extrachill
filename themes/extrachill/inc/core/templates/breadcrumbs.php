@@ -60,8 +60,6 @@ if (!function_exists('extrachill_breadcrumbs')) {
             if ($top_tag) {
                 echo ' › <a href="' . get_tag_link($top_tag->term_id) . '">' . $top_tag->name . '</a>';
             }
-
-            echo '<span class="breadcrumb-title"> › ' . get_the_title($post->ID) . '</span>';
         }
         elseif (is_singular() && !is_singular(array('post', 'page', 'product'))) {
             $post_type = get_post_type();
@@ -79,7 +77,10 @@ if (!function_exists('extrachill_breadcrumbs')) {
                 $parent_url = get_permalink($parent_id);
                 echo '<a href="' . $parent_url . '">' . $parent_title . '</a> › ';
             }
-            echo '<span>' . get_the_title() . '</span>';
+        }
+
+        if (is_singular() && !is_front_page()) {
+            echo '<span class="breadcrumb-title"> › ' . get_the_title() . '</span>';
         }
         elseif (is_post_type_archive()) {
             $post_type = get_post_type();
