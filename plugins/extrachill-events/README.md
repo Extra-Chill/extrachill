@@ -46,6 +46,7 @@ WordPress plugin providing seamless integration between ExtraChill themes and po
   - Festival badges: `taxonomy-badge festival-badge festival-{slug}`
   - Location badges: `taxonomy-badge location-badge location-{slug}`
   - Other taxonomies: Base `taxonomy-badge` class
+- **Button Styling**: Maps modal buttons (primary/secondary) and ticket buttons to theme's button styling classes
 - **Breadcrumb Override**: Replaces dm-events breadcrumbs with theme's `display_breadcrumbs()` function via dm_events_breadcrumbs filter
 - **Related Events Display**: Shows related events by festival and venue taxonomies using theme's `extrachill_display_related_posts()` function (events.extrachill.com only)
 - **Theme Hook Bridging**: Bridges dm_events_before_single_event and dm_events_after_single_event to theme's extrachill_before_body_content and extrachill_after_body_content hooks
@@ -55,6 +56,8 @@ WordPress plugin providing seamless integration between ExtraChill themes and po
 **Integration Hooks**:
 - `dm_events_badge_wrapper_classes` - Adds theme wrapper classes
 - `dm_events_badge_classes` - Adds festival/location-specific badge classes
+- `dm_events_modal_button_classes` - Adds theme button classes to modal buttons
+- `dm_events_ticket_button_classes` - Adds theme button classes to ticket button
 - `dm_events_breadcrumbs` - Overrides with theme breadcrumbs
 - `dm_events_related_events` - Displays related events by taxonomy
 - `dm_events_before_single_event` - Bridges to theme before content hook

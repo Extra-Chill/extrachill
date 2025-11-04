@@ -120,6 +120,7 @@ function ec_events_override_homepage_template( $template ) {
 - **Badge Styling Integration**: Maps dm-events taxonomy badges to ExtraChill's badge class structure via dm_events_badge_wrapper_classes and dm_events_badge_classes filters
 - **Festival-Specific Colors**: Enables custom festival colors (Bonnaroo, Coachella) from theme's badge-colors.css
 - **Location Styling**: Converts venue taxonomies to location styling for regional color coding
+- **Button Styling Integration**: Maps dm-events modal and ticket buttons to theme's button styling classes via dm_events_modal_button_classes and dm_events_ticket_button_classes filters
 - **Breadcrumb Override**: Replaces dm-events breadcrumbs with theme's breadcrumb system via dm_events_breadcrumbs filter
 - **Related Events Display**: Shows related events by festival and venue taxonomies using theme's related posts function on events.extrachill.com (blog ID 7)
 - **Theme Hook Bridging**: Bridges dm_events_before_single_event and dm_events_after_single_event to theme's extrachill_before_body_content and extrachill_after_body_content hooks
@@ -136,6 +137,8 @@ function ec_events_override_homepage_template( $template ) {
 **Integration Hooks**:
 - **dm_events_badge_wrapper_classes** - Adds `taxonomy-badges` wrapper class for theme styling
 - **dm_events_badge_classes** - Adds `taxonomy-badge` base class and festival/location-specific classes
+- **dm_events_modal_button_classes** - Adds theme button classes to modal buttons (primary/secondary)
+- **dm_events_ticket_button_classes** - Adds theme button classes to ticket purchase button
 - **dm_events_breadcrumbs** - Overrides breadcrumbs with theme's `display_breadcrumbs()` function
 - **dm_events_related_events** - Displays related events using theme's `extrachill_display_related_posts()` function
 - **dm_events_before_single_event** - Bridges to theme's `extrachill_before_body_content` hook
@@ -167,11 +170,12 @@ function ec_events_override_homepage_template( $template ) {
 
 ### Breadcrumb Integration System
 
-**Four Core Functions** (`inc/core/breadcrumb-integration.php`):
+**Five Core Functions** (`inc/core/breadcrumb-integration.php`):
 1. **`ec_events_breadcrumb_root()`** - Customizes root breadcrumb link
 2. **`ec_events_breadcrumb_trail_homepage()`** - Homepage-specific trail override
 3. **`ec_events_breadcrumb_trail_archives()`** - Archive page trail customization
-4. **`ec_events_back_to_home_label()`** - Back-to-home link text modification
+4. **`ec_events_breadcrumb_trail_single()`** - Single event page trail customization
+5. **`ec_events_back_to_home_label()`** - Back-to-home link text modification
 
 **Filter Hooks Used**:
 - **`extrachill_breadcrumbs_root`** - Modifies root breadcrumb structure
@@ -188,12 +192,12 @@ function ec_events_override_homepage_template( $template ) {
 - **Taxonomy Archives**: "Extra Chill → Events → [Term Name]"
 - **Post Type Archives**: "Extra Chill → Events" (rarely seen due to redirect to homepage)
 - **Single Events**: "Extra Chill → Events → [Event Title]" (via dm-events integration)
-- **Implementation**: `ec_events_breadcrumb_trail_archives()` filters `extrachill_breadcrumbs_override_trail`
+- **Implementation**: `ec_events_breadcrumb_trail_archives()` and `ec_events_breadcrumb_trail_single()` filter `extrachill_breadcrumbs_override_trail`
 
 **Back-to-Home Label Customization**:
 - **Context**: Changes "Back to Extra Chill" to "Back to Events" on event pages
 - **Scope**: Only applies to non-homepage pages on events.extrachill.com (blog ID 7)
-- **Implementation**: `ec_events_back_to_home_label()` filters `extrachill_back_to_home_label` (lines 103-116)
+- **Implementation**: `ec_events_back_to_home_label()` filters `extrachill_back_to_home_label`
 - **Homepage Exception**: Homepage retains "Back to Extra Chill" to link to main site
 
 ## Technical Implementation

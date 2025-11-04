@@ -2,8 +2,8 @@
 /**
  * Events Breadcrumb Integration
  *
- * Provides "Extra Chill → Events" breadcrumb root for events.extrachill.com (blog ID 7).
- * Homepage shows just "Events", other pages include full trail.
+ * Custom breadcrumb system for events.extrachill.com (blog ID 7) providing
+ * "Extra Chill → Events" root, context-aware trails, and modified navigation labels.
  *
  * @package ExtraChillEvents
  * @since 1.0.0
@@ -14,8 +14,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * @param string $root_link Default root breadcrumb link HTML
- * @return string Modified root link
+ * Customize breadcrumb root for events site
+ *
+ * Homepage shows only "Extra Chill" link, other pages add "→ Events".
+ * Only applies on blog ID 7 (events.extrachill.com).
+ *
+ * @hook extrachill_breadcrumbs_root
+ * @param string $root_link Default root breadcrumb link HTML from theme
+ * @return string Modified root link with events context
+ * @since 1.0.0
  */
 function ec_events_breadcrumb_root( $root_link ) {
 	if ( get_current_blog_id() !== 7 ) {
@@ -31,8 +38,15 @@ function ec_events_breadcrumb_root( $root_link ) {
 add_filter( 'extrachill_breadcrumbs_root', 'ec_events_breadcrumb_root' );
 
 /**
- * @param string $custom_trail Existing custom trail from other plugins
- * @return string Breadcrumb trail HTML
+ * Override breadcrumb trail for homepage
+ *
+ * Homepage shows just "Events" as trail (root already provides "Extra Chill" link).
+ * Only applies on blog ID 7 (events.extrachill.com) homepage.
+ *
+ * @hook extrachill_breadcrumbs_override_trail
+ * @param string|false $custom_trail Existing custom trail from other filters
+ * @return string|false Custom trail for homepage, unchanged otherwise
+ * @since 1.0.0
  */
 function ec_events_breadcrumb_trail_homepage( $custom_trail ) {
 	if ( get_current_blog_id() !== 7 ) {
@@ -50,27 +64,24 @@ add_filter( 'extrachill_breadcrumbs_override_trail', 'ec_events_breadcrumb_trail
 /**
  * Override breadcrumb trail for archive pages
  *
- * Provides context-aware breadcrumbs for taxonomy archives and post type archives.
- * Works in conjunction with ec_events_breadcrumb_root() which provides the
- * "Extra Chill › Events" prefix.
+ * Provides context-aware trails for taxonomy and post type archives.
+ * Root function already provides "Extra Chill → Events" prefix.
+ * Only applies on blog ID 7 (events.extrachill.com).
  *
- * Breadcrumb patterns:
- * - Homepage: "Events"
- * - Taxonomy archive: "Extra Chill › Events › [Term Name]"
- * - Post type archive: "Extra Chill › Events" (rarely seen due to redirect)
- * - Single event: "Extra Chill › Events › [Event Title]" (unchanged)
+ * Resulting patterns:
+ * - Taxonomy archive: "Extra Chill → Events → [Term Name]"
+ * - Post type archive: "Extra Chill → Events" (rarely seen due to redirect)
  *
  * @hook extrachill_breadcrumbs_override_trail
- * @param string|false $custom_trail Custom breadcrumb trail or false
- * @return string|false Custom trail for archives, or false to use default
+ * @param string|false $custom_trail Custom breadcrumb trail from other filters
+ * @return string|false Custom trail for archives, unchanged otherwise
+ * @since 1.0.0
  */
 function ec_events_breadcrumb_trail_archives( $custom_trail ) {
 	if ( get_current_blog_id() !== 7 ) {
 		return $custom_trail;
 	}
 
-	// Taxonomy archives: Show term name only
-	// Root breadcrumb already provides "Extra Chill › Events" via ec_events_breadcrumb_root()
 	if ( is_tax() ) {
 		$term = get_queried_object();
 		if ( $term && isset( $term->name ) ) {
@@ -78,35 +89,60 @@ function ec_events_breadcrumb_trail_archives( $custom_trail ) {
 		}
 	}
 
-	// Post type archive: Show "Events"
-	// Shouldn't reach here due to redirect, but handle gracefully
 	if ( is_post_type_archive( 'dm_events' ) ) {
 		return '<span>Events</span>';
 	}
 
-	// Return false to use default theme breadcrumb logic
 	return $custom_trail;
 }
 add_filter( 'extrachill_breadcrumbs_override_trail', 'ec_events_breadcrumb_trail_archives' );
 
 /**
- * Override back-to-home link label for events pages
+ * Override breadcrumb trail for single event posts
  *
- * Changes "Back to Extra Chill" to "Back to Events" on events pages.
- * Uses theme's extrachill_back_to_home_label filter.
+ * Skips post type archive link since homepage serves as the archive.
+ * Root function already provides "Extra Chill → Events" prefix.
  * Only applies on blog ID 7 (events.extrachill.com).
  *
- * @param string $label Default back-to-home link label
- * @param string $url   Back-to-home link URL
- * @return string Modified label
+ * Resulting pattern:
+ * - Single event: "Extra Chill → Events → [Event Title]"
+ *
+ * @hook extrachill_breadcrumbs_override_trail
+ * @param string|false $custom_trail Custom breadcrumb trail from other filters
+ * @return string|false Custom trail for single events, unchanged otherwise
+ * @since 1.0.0
+ */
+function ec_events_breadcrumb_trail_single( $custom_trail ) {
+	if ( get_current_blog_id() !== 7 ) {
+		return $custom_trail;
+	}
+
+	if ( is_singular( 'dm_events' ) ) {
+		return '<span class="breadcrumb-title">' . get_the_title() . '</span>';
+	}
+
+	return $custom_trail;
+}
+add_filter( 'extrachill_breadcrumbs_override_trail', 'ec_events_breadcrumb_trail_single' );
+
+/**
+ * Override back-to-home link label for event pages
+ *
+ * Changes "Back to Extra Chill" to "Back to Events" on non-homepage pages.
+ * Homepage keeps default label pointing to main site.
+ * Only applies on blog ID 7 (events.extrachill.com).
+ *
+ * @hook extrachill_back_to_home_label
+ * @param string $label Default back-to-home link label from theme
+ * @param string $url Back-to-home link URL
+ * @return string Modified label for event pages, unchanged for homepage
+ * @since 1.0.0
  */
 function ec_events_back_to_home_label( $label, $url ) {
-	// Only apply on events.extrachill.com (blog ID 7)
 	if ( get_current_blog_id() !== 7 ) {
 		return $label;
 	}
 
-	// Don't override on homepage (homepage should say "Back to Extra Chill")
 	if ( is_front_page() ) {
 		return $label;
 	}

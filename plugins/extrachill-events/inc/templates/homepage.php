@@ -2,8 +2,12 @@
 /**
  * Events Homepage Template
  *
- * Displays static homepage content (Settings → Reading → A static page).
- * Supports dm-events calendar block via WordPress editor.
+ * Displays static homepage content from WordPress Settings → Reading → "A static page"
+ * configuration. Supports dm-events calendar block placement via block editor.
+ * Only applies on blog ID 7 (events.extrachill.com).
+ *
+ * @package ExtraChillEvents
+ * @since 1.0.0
  */
 
 if ( ! defined( 'ABSPATH' ) ) {

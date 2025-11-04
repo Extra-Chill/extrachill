@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Extra Chill Events
  * Plugin URI: https://extrachill.com
- * Description: Event calendar integration with homepage template override for events.extrachill.com.
+ * Description: Calendar integration with template overrides, dm-events badge/button styling, breadcrumb system, and related events for events.extrachill.com.
  * Version: 1.0.0
  * Author: Chris Huber
  * Author URI: https://chubes.net
@@ -29,11 +29,25 @@ define('EXTRACHILL_EVENTS_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('EXTRACHILL_EVENTS_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('EXTRACHILL_EVENTS_PLUGIN_FILE', __FILE__);
 
+/**
+ * ExtraChillEvents
+ *
+ * Singleton class managing dm-events integration with homepage/archive template
+ * overrides, badge/button styling, breadcrumb system, and SEO redirects for
+ * events.extrachill.com (blog ID 7).
+ *
+ * @since 1.0.0
+ */
 class ExtraChillEvents {
 
     private static $instance = null;
     private $integrations = array();
 
+    /**
+     * Get singleton instance
+     *
+     * @return ExtraChillEvents
+     */
     public static function get_instance() {
         if (null === self::$instance) {
             self::$instance = new self();
@@ -57,6 +71,12 @@ class ExtraChillEvents {
         load_plugin_textdomain('extrachill-events', false, dirname(plugin_basename(__FILE__)) . '/languages');
     }
 
+    /**
+     * Load plugin dependencies via direct includes
+     *
+     * Composer autoloader exists for development dependencies only.
+     * All plugin code uses direct require_once includes.
+     */
     private function load_dependencies() {
         $autoload_file = EXTRACHILL_EVENTS_PLUGIN_DIR . 'vendor/autoload.php';
         if (file_exists($autoload_file)) {
@@ -67,6 +87,11 @@ class ExtraChillEvents {
         require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/breadcrumb-integration.php';
     }
 
+    /**
+     * Initialize event plugin integrations
+     *
+     * Conditionally loads DmEventsIntegration if dm-events plugin is active.
+     */
     private function init_integrations() {
         if (class_exists('DmEvents\Core\Taxonomy_Badges')) {
             $this->integrations['dm_events'] = new ExtraChillEvents\DmEventsIntegration();
@@ -93,11 +118,15 @@ function extrachill_events() {
 extrachill_events();
 
 /**
- * Override homepage template for events.extrachill.com (blog ID 7).
- * Displays static homepage content with dm-events calendar block support.
+ * Override homepage template for events.extrachill.com
  *
+ * Replaces theme homepage with static page content plus dm-events calendar block.
+ * Only applies on blog ID 7 (events.extrachill.com).
+ *
+ * @hook extrachill_template_homepage
  * @param string $template Default template path from theme
- * @return string Template path to use
+ * @return string Plugin template path for events site, theme template otherwise
+ * @since 1.0.0
  */
 function ec_events_override_homepage_template( $template ) {
 	if ( get_current_blog_id() === 7 ) {
@@ -110,27 +139,18 @@ add_filter( 'extrachill_template_homepage', 'ec_events_override_homepage_templat
 /**
  * Override archive template on events.extrachill.com
  *
- * Replaces the theme's default archive template with plugin's archive template
- * that displays the dm-events calendar block. This applies to all archive types:
- * taxonomy archives, post type archives, date archives, and author archives.
- *
- * The theme's template router applies this filter when is_archive() returns true,
- * which includes:
- * - is_category() - Category archives
- * - is_tag() - Tag archives
- * - is_tax() - Custom taxonomy archives (festival, venue, location, etc.)
- * - is_post_type_archive() - Post type archives (/events/)
- * - is_author() - Author archives
- * - is_date() - Date-based archives
+ * Unified archive template renders dm-events calendar block with automatic
+ * taxonomy filtering based on archive context. Applies to all archive types
+ * including taxonomy, post type, date, and author archives.
+ * Only applies on blog ID 7 (events.extrachill.com).
  *
  * @hook extrachill_template_archive
- * @param string $template Path to the default template file from theme
- * @return string Path to archive template (plugin or theme)
+ * @param string $template Default template path from theme
+ * @return string Plugin template path for events site, theme template otherwise
+ * @since 1.0.0
  */
 function ec_events_override_archive_template( $template ) {
-	// Only override on events.extrachill.com (blog ID 7)
-	$events_blog_id = 7; // events.extrachill.com
-	if ( get_current_blog_id() === $events_blog_id ) {
+	if ( get_current_blog_id() === 7 ) {
 		return EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/templates/archive.php';
 	}
 	return $template;
@@ -138,27 +158,21 @@ function ec_events_override_archive_template( $template ) {
 add_filter( 'extrachill_template_archive', 'ec_events_override_archive_template' );
 
 /**
- * Redirect /events/ post type archive to homepage
+ * Redirect /events/ post type archive to homepage for SEO consolidation
  *
- * On events.extrachill.com, the homepage IS the main events page.
- * The /events/ URL is redundant, so redirect to homepage for SEO consolidation.
- *
- * Uses 301 (permanent) redirect to tell search engines:
- * - Homepage is the canonical URL for all events
- * - /events/ URL permanently moved
- * - Consolidates link equity to single URL
+ * Homepage serves as canonical events URL on events.extrachill.com.
+ * 301 redirect consolidates link equity and prevents duplicate content.
+ * Only applies on blog ID 7 (events.extrachill.com).
  *
  * @hook template_redirect
  * @return void
+ * @since 1.0.0
  */
 function ec_events_redirect_post_type_archive() {
-	// Only on events.extrachill.com (blog ID 7)
-	$events_blog_id = 7; // events.extrachill.com
-	if ( get_current_blog_id() !== $events_blog_id ) {
+	if ( get_current_blog_id() !== 7 ) {
 		return;
 	}
 
-	// Redirect dm_events post type archive to homepage
 	if ( is_post_type_archive( 'dm_events' ) ) {
 		wp_redirect( home_url(), 301 );
 		exit;

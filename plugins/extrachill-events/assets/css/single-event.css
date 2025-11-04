@@ -1,14 +1,14 @@
 /**
  * Single Event Page Enhancements
  *
- * Enhances dm-events blocks on single event pages with ExtraChill theme styling.
- * Provides card treatment and theme integration for event details display.
+ * Card treatment for dm-events event info grid using theme CSS custom properties
+ * (--background-color, --border-color, --card-shadow). Mobile-optimized adjustments
+ * for responsive design.
  *
  * @package ExtraChillEvents
  * @since 1.0.0
  */
 
-/* Event Info Grid - Card Treatment */
 .dm-event-details .event-info-grid {
     background: var(--background-color);
     border: 1px solid var(--border-color);
@@ -18,12 +18,9 @@
     margin-bottom: 1.5rem;
 }
 
-/* Responsive adjustments */
 @media (max-width: 768px) {
     .dm-event-details .event-info-grid {
         padding: 1.2em;
         border-radius: 10px;
     }
 }
-
-/* Future single event enhancements go here */
