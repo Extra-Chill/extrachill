@@ -153,3 +153,30 @@ function extrachill_community_breadcrumb_trail( $custom_trail ) {
 	return $custom_trail;
 }
 add_filter( 'extrachill_breadcrumbs_override_trail', 'extrachill_community_breadcrumb_trail' );
+
+/**
+ * Override back-to-home link label for community pages
+ *
+ * Changes "Back to Extra Chill" to "Back to Community" on community pages.
+ * Uses theme's extrachill_back_to_home_label filter.
+ * Only applies on blog ID 2 (community.extrachill.com).
+ *
+ * @param string $label Default back-to-home link label
+ * @param string $url   Back-to-home link URL
+ * @return string Modified label
+ * @since 1.0.0
+ */
+function extrachill_community_back_to_home_label( $label, $url ) {
+	// Only apply on community.extrachill.com (blog ID 2)
+	if ( get_current_blog_id() !== 2 ) {
+		return $label;
+	}
+
+	// Don't override on homepage (homepage should say "Back to Extra Chill")
+	if ( is_front_page() ) {
+		return $label;
+	}
+
+	return '← Back to Community';
+}
+add_filter( 'extrachill_back_to_home_label', 'extrachill_community_back_to_home_label', 10, 2 );

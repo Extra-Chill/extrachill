@@ -107,7 +107,7 @@ if ( $is_artist || $is_professional ) :
                         $artist_url = 'https://artist.extrachill.com/' . $artist_post->post_name . '/';
                 ?>
                     <li class="user-artist-item">
-                        <a href="<?php echo esc_url( $artist_url ); ?>" class="user-artist-link">
+                        <a href="<?php echo esc_url( $artist_url ); ?>" class="button-3 button-small">
                             <?php echo esc_html( $artist_post->post_title ); ?>
                         </a>
                     </li>
