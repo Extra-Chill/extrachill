@@ -71,7 +71,14 @@ global $post, $live_reviews_posts, $interviews_posts;
             <a class="home-3x3-archive-link button-3 button-small" href="https://community.extrachill.com/recent">View All</a>
           </div>
           <div class="home-3x3-list home-3x3-community-list">
-            <?php include get_template_directory() . '/inc/home/templates/community-activity.php'; ?>
+            <?php
+            extrachill_render_community_activity(array(
+                'render_wrapper' => false,
+                'item_class'     => 'home-3x3-card home-3x3-community-card',
+                'empty_class'    => 'home-3x3-card home-3x3-empty',
+                'limit'          => 5,
+            ));
+            ?>
           </div>
         </div>
       </div>

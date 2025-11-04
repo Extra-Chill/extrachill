@@ -1,9 +1,8 @@
 <?php
 /**
- * Share Button Component - Clean Function-Only Pattern
+ * Share Button Component
  *
- * Interactive share component with dropdown for Facebook, Twitter/X, email, and copy link.
- * Follows clean sidebar architecture with function-only approach and action hooks.
+ * Interactive dropdown for Facebook, Twitter/X, email, and copy link.
  *
  * @package ExtraChill
  * @since 69.57
@@ -11,35 +10,23 @@
 
 if ( ! function_exists( 'extrachill_share_button' ) ) :
     /**
-     * Display share button component
+     * Display share button
      *
-     * Interactive share component with dropdown for social media sharing.
-     * Includes JavaScript for toggle functionality and clipboard copy with fallback.
-     *
-     * @param array $args Optional. Array of arguments for share button.
-     *                   - share_url: URL to be shared (defaults to current permalink)
-     *                   - share_title: Title to be shared (defaults to current post title)
-     *                   - share_description: Description for sharing (optional)
-     *                   - share_image: Featured image URL (optional)
-     * @since 69.57
+     * @param array $args Optional arguments (share_url, share_title)
      */
     function extrachill_share_button( $args = array() ) {
-        // Extract variables from the arguments array
         if ( isset( $args ) && is_array( $args ) ) {
             extract( $args );
         }
 
-        // Ensure $share_url is a string (use the first element if it's an array)
         if ( isset( $share_url ) && is_array( $share_url ) ) {
             $share_url = reset( $share_url );
         }
 
-        // Ensure $share_title is a string (use the first element if it's an array)
         if ( isset( $share_title ) && is_array( $share_title ) ) {
             $share_title = reset( $share_title );
         }
 
-        // Default values (can be overridden via $args)
         $share_url   = isset( $share_url ) ? esc_url( $share_url ) : get_permalink();
         $share_title = isset( $share_title ) ? esc_attr( $share_title ) : get_the_title();
 
@@ -49,14 +36,12 @@ if ( ! function_exists( 'extrachill_share_button' ) ) :
         ?>
         <div class="share-button-container">
 
-            <!-- Main Share Button (Icon) -->
             <button class="share-button button-2 button-small">
                 <svg>
                     <use href="<?php echo esc_attr( get_template_directory_uri() . '/assets/fonts/fontawesome.svg?v=' . $svg_version ); ?>#share"></use>
                 </svg> Share
             </button>
 
-            <!-- Share Options Dropdown (initially hidden) -->
             <div class="share-options" style="display: none;">
                 <ul class="share-options-list">
                     <li class="share-option facebook">
@@ -121,5 +106,4 @@ if ( ! function_exists( 'extrachill_share_button' ) ) :
     }
 endif;
 
-// Hook registration for share button
 add_action( 'extrachill_share_button', 'extrachill_share_button', 10 );

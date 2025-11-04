@@ -2,8 +2,9 @@
 /**
  * Template Router
  *
- * Routes templates via template_include filter with plugin override via extrachill_template_* filters.
- * Plugins use direct blog ID numbers for conditional overrides.
+ * WordPress native routing via template_include filter with plugin extensibility.
+ * Filter hooks (extrachill_template_*) allow complete template override by plugins.
+ * Bypasses bbPress/WooCommerce for native template systems, respects custom page templates.
  *
  * @package ExtraChill
  * @since 69.58
@@ -16,8 +17,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 add_filter( 'template_include', 'extrachill_route_templates' );
 
 /**
- * Routes templates via WordPress conditional tags with extrachill_template_* filters for plugin override.
- * bbPress and WooCommerce templates bypass routing for native template systems.
+ * Route templates with plugin override filters
+ *
+ * @param string $template Default template path from WordPress
+ * @return string Template path to use
  */
 function extrachill_route_templates( $template ) {
 
@@ -25,7 +28,6 @@ function extrachill_route_templates( $template ) {
 		return $template;
 	}
 
-	// WooCommerce bypass - allow WooCommerce to handle its own templates
 	if ( function_exists( 'is_woocommerce' ) && ( is_woocommerce() || is_cart() || is_checkout() || is_account_page() ) ) {
 		return $template;
 	}

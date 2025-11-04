@@ -2,18 +2,17 @@
 /**
  * Artist Profile Link Integration
  *
- * Connects artist taxonomy archives with artist profile pages on artist.extrachill.com
- * by detecting slug matches and displaying navigation buttons.
+ * Displays navigation button on artist taxonomy archives linking to matching profiles on artist.extrachill.com (blog ID 4).
  *
  * @package ExtraChill
  * @since 69.59
  */
 
 /**
- * Query artist.extrachill.com for matching artist profile by slug
+ * Query artist.extrachill.com for matching artist profile by slug (blog ID 4)
  *
- * @param string $slug Artist slug to search for
- * @return array|false Array with 'id' and 'permalink' if found, false otherwise
+ * @param string $slug
+ * @return array|false Array with 'id' and 'permalink', or false
  */
 function extrachill_get_artist_profile_by_slug( $slug ) {
     if ( empty( $slug ) ) {
@@ -53,8 +52,6 @@ function extrachill_get_artist_profile_by_slug( $slug ) {
 
 /**
  * Display artist profile button on artist taxonomy archives
- *
- * Hooked into extrachill_archive_filter_bar action.
  */
 function extrachill_display_artist_profile_button() {
     if ( ! is_tax( 'artist' ) ) {

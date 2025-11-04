@@ -5,7 +5,7 @@
  * Bottom navigation links for the flyout menu system.
  *
  * @package ExtraChill
- * @since 69.57
+ * @since 69.60
  */
 ?>
 

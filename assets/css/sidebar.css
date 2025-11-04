@@ -9,41 +9,13 @@
 	flex-direction: column;
 }
 
-/* Community Activity Widget */
-.extrachill-recent-activity {
-	font-size: 15px;
-	border-top: 1px solid #d4d4d4;
-}
-
+/* Sidebar Recent Posts */
 .my-recent-posts {
 	text-align: center;
 }
 
 h2.recent-title {
 	font-size: 22px;
-}
-
-.extrachill-recent-activity ul {
-	margin: inherit;
-	max-width: 100%;
-	display: flex;
-	flex-wrap: wrap;
-}
-
-.extrachill-recent-activity ul li {
-	border-bottom: 1px solid #d4d4d4;
-	width: max-content;
-	padding: 5px 0;
-	list-style: none;
-}
-
-.extrachill-recent-activity a#visit button {
-	margin-top: 10px;
-	margin-bottom: 10px;
-}
-
-.extrachill-recent-activity #topic {
-	border-bottom: 1px solid var(--accent);
 }
 
 /* Sidebar Card Layout */
@@ -145,30 +117,4 @@ h2.recent-title {
 	border-bottom: 2px solid #79c031;
 	box-shadow: none;
 	text-align: left;
-}
-
-/* Sidebar Community Activity Cards */
-.sidebar-activity-card {
-	background: var(--background-color);
-	border-radius: 10px;
-	box-shadow: 0 1px 4px rgba(0,0,0,0.04);
-	padding: 0.7em 0.7em 0.7em 0.7em;
-	font-size: 0.98em;
-	display: block;
-	min-width: 0;
-	transition: box-shadow 0.2s;
-	margin: 0 5px;
-}
-
-.sidebar-activity-card:hover {
-	box-shadow: 0 4px 16px rgba(83,148,11,0.10);
-}
-
-.sidebar-activity-empty {
-	color: var(--muted-text);
-	font-style: italic;
-	background: none;
-	box-shadow: none;
-	text-align: center;
-	padding: 1em;
 }

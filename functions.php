@@ -1,11 +1,12 @@
 <?php
 /**
- * ExtraChill Theme Setup
+ * ExtraChill Theme Bootstrap
  *
- * Template routing via template_include filter in inc/core/template-router.php.
+ * WordPress multisite theme serving all 9 sites with direct require_once loading pattern.
+ * Uses centralized template routing (template-router.php) and conditional asset loading (assets.php).
  *
  * @package ExtraChill
- * @since 69.58
+ * @since 69.60
  */
 
 include_once(ABSPATH . 'wp-admin/includes/plugin.php');
@@ -14,21 +15,15 @@ add_theme_support( 'responsive-embeds' );
 add_theme_support( 'wp-block-styles' );
 add_theme_support( 'align-wide' );
 
-/**
- * Enable WordPress native conditional block asset loading.
- * WordPress 5.8+ feature for classic themes - loads block styles only when blocks are present.
- * Site-wide optimization affecting all core blocks, plugin blocks, and custom blocks.
- * For classic themes, styles load in footer via print_late_styles().
- */
 add_filter('should_load_separate_core_block_assets', '__return_true');
 
-add_action('after_setup_theme', 'extrachill_setup');
 if (!function_exists('extrachill_setup')):
     function extrachill_setup()
     {
         load_theme_textdomain('extrachill', get_template_directory() . '/languages');
         add_theme_support('automatic-feed-links');
         add_theme_support('post-thumbnails');
+        add_theme_support('woocommerce');
         add_theme_support('title-tag');
         add_post_type_support('page', 'excerpt');
 
@@ -53,6 +48,7 @@ if (!function_exists('extrachill_setup')):
         ));
     }
 endif;
+add_action('after_setup_theme', 'extrachill_setup');
 
 function extrachill_unregister_image_sizes() {
     remove_image_size('thumbnail');
@@ -67,6 +63,7 @@ require_once(EXTRACHILL_INCLUDES_DIR . '/core/templates/pagination.php');
 require_once(EXTRACHILL_INCLUDES_DIR . '/core/templates/no-results.php');
 require_once(EXTRACHILL_INCLUDES_DIR . '/core/templates/share.php');
 require_once(EXTRACHILL_INCLUDES_DIR . '/core/templates/social-links.php');
+require_once(EXTRACHILL_INCLUDES_DIR . '/core/templates/community-activity.php');
 require_once(EXTRACHILL_INCLUDES_DIR . '/core/templates/taxonomy-badges.php');
 
 require_once(EXTRACHILL_INCLUDES_DIR . '/core/actions.php');
@@ -211,6 +208,8 @@ function add_custom_favicon() {
 
     $favicon_url = get_site_url() . '/favicon.ico';
     echo '<link rel="icon" href="' . esc_url($favicon_url) . '" type="image/x-icon" />';
+    echo '<link rel="apple-touch-icon" href="' . esc_url($favicon_url) . '" />';
+    echo '<link rel="apple-touch-icon-precomposed" href="' . esc_url($favicon_url) . '" />';
 }
 add_action('wp_head', 'add_custom_favicon');
 

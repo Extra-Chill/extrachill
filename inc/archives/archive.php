@@ -33,9 +33,6 @@ get_header(); ?>
         <?php extrachill_pagination(null, 'archive'); ?>
     </div><!-- .full-width-breakout -->
 
-    <div class="back-home-link-container">
-        <a href="<?php echo esc_url(home_url('/')); ?>" class="back-home-link">← Back Home</a>
-    </div>
 
 <?php else : ?>
     <?php extrachill_no_results(); ?>

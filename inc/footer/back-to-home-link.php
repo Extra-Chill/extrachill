@@ -1,13 +1,12 @@
 <?php
 /**
- * Universal Back to Home Navigation Link
+ * Universal Back to Home Navigation
  *
- * Displays smart navigation button before footer on all pages except main homepage.
- * - Main homepage: No button
- * - Subsite homepages: Link to main site
- * - All other pages: Link to current site homepage
+ * Smart navigation: subsite homepages link to main site, other pages link to current site homepage.
+ * Hidden on main site homepage.
  *
  * @package ExtraChill
+ * @since 69.59
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -15,24 +14,23 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Display smart navigation button with conditional logic.
+ * Display smart navigation button
  */
 function extrachill_display_back_to_home_link() {
-	// No button on main site homepage
 	if ( is_main_site() && is_front_page() ) {
 		return;
 	}
 
-	// Determine URL and label based on context
 	if ( ! is_main_site() && is_front_page() ) {
-		// Subsite homepages link to main site
 		$url   = 'https://extrachill.com';
-		$label = '← Back to Main Site';
+		$label = '← Back to Extra Chill';
 	} else {
-		// All other pages link to current site homepage
 		$url   = home_url();
-		$label = '← Back to Home';
+		$label = '← Back to Extra Chill';
 	}
+
+	// Allow plugins to override the label (e.g., "Back to Community", "Back to Merch Store")
+	$label = apply_filters( 'extrachill_back_to_home_label', $label, $url );
 
 	?>
 	<div class="back-to-home-container">

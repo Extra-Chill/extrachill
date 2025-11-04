@@ -3,7 +3,7 @@
  * Single Post Template
  *
  * @package ExtraChill
- * @since 69.58
+ * @since 69.60
  */
 
 get_header(); ?>

@@ -2,12 +2,11 @@
 /**
  * Archive Filter Bar
  *
- * Technical Implementation:
- * - Dynamic URL construction: Auto-detects archive type and builds appropriate base URL
- * - JavaScript sorting: Client-side URL parameter management for sort state persistence
+ * Provides sorting dropdown and category/artist filters for archive pages.
+ * Hook: extrachill_archive_filter_bar allows plugins to inject navigation buttons.
  *
  * @package ExtraChill
- * @since 69.58
+ * @since 69.59
  */
 
 add_action('extrachill_archive_above_posts', 'extrachill_archive_filter_bar', 10);
@@ -39,7 +38,6 @@ function extrachill_archive_filter_bar() {
 
     echo '<div id="extrachill-custom-sorting">';
 
-    // Allow plugins to inject navigational buttons/links (appear on right side)
     do_action( 'extrachill_archive_filter_bar' );
 
     if (is_page_template('page-templates/all-posts.php')) {

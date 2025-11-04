@@ -2,12 +2,11 @@
 /**
  * Archive Header
  *
- * Displays archive title, taxonomy descriptions, and author bios.
- * Supports categories, tags, custom taxonomies, post type archives, authors, and date archives.
- * Provides extrachill_after_author_bio action hook for plugin extensibility on author archives.
+ * Displays archive titles, descriptions, and author bios.
+ * Hook: extrachill_after_author_bio fires on author archives (passes $author_id parameter).
  *
  * @package ExtraChill
- * @since 69.58
+ * @since 69.60
  */
 ?>
 
@@ -19,10 +18,8 @@
         } elseif (is_tag()) {
             single_tag_title();
         } elseif (is_tax()) {
-            // Custom taxonomy archives (Artist, Venue, Festival, etc.)
             single_term_title();
         } elseif (is_post_type_archive()) {
-            // Custom post type archives
             post_type_archive_title();
         } elseif (is_author()) {
             the_post();

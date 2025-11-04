@@ -127,6 +127,11 @@ if (!function_exists('extrachill_breadcrumbs')) {
         elseif (is_search()) {
             echo '<span>Search Results</span>';
         }
+        elseif (is_author()) {
+            $author = get_queried_object();
+            echo '<span>Author</span> › ';
+            echo '<span>' . esc_html($author->display_name) . '</span>';
+        }
         else {
             echo '<span>Archives</span>';
         }
