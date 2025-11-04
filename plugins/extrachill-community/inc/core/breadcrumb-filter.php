@@ -92,7 +92,7 @@ function extrachill_community_breadcrumb_trail( $custom_trail ) {
 		return $custom_trail;
 	}
 
-	// Single topic: Community › Parent Forum › Forum Name › Topic Name
+	// Single topic
 	if ( function_exists( 'bbp_is_single_topic' ) && bbp_is_single_topic() ) {
 		$topic_id = bbp_get_topic_id();
 		$forum_id = bbp_get_topic_forum_id( $topic_id );
@@ -111,11 +111,9 @@ function extrachill_community_breadcrumb_trail( $custom_trail ) {
 				}
 			}
 
-			// Add current forum
-			$trail .= '<a href="' . esc_url( bbp_get_forum_permalink( $forum_id ) ) . '">' . esc_html( bbp_get_forum_title( $forum_id ) ) . '</a> › ';
+			$trail .= '<a href="' . esc_url( bbp_get_forum_permalink( $forum_id ) ) . '">' . esc_html( bbp_get_forum_title( $forum_id ) ) . '</a>';
 		}
 
-		$trail .= '<span>' . esc_html( bbp_get_topic_title( $topic_id ) ) . '</span>';
 		return $trail;
 	}
 
@@ -143,11 +141,6 @@ function extrachill_community_breadcrumb_trail( $custom_trail ) {
 	// User profile: Community › Username
 	if ( function_exists( 'bbp_is_single_user' ) && bbp_is_single_user() ) {
 		return '<span>' . esc_html( bbp_get_displayed_user_field( 'display_name' ) ) . '</span>';
-	}
-
-	// Custom page: Community › Page Name
-	if ( is_page() ) {
-		return '<span>' . esc_html( get_the_title() ) . '</span>';
 	}
 
 	return $custom_trail;
