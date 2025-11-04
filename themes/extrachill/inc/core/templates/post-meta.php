@@ -2,13 +2,11 @@
 /**
  * Post Meta Display
  *
- * Technical Implementation:
- * - Profile URLs: Uses ec_get_user_profile_url() from extrachill-users plugin with /u/ slug fallback
- * - Forum posts: Conditional formatting for multisite community posts with forum context
- * - Co-Authors Plus: Graceful fallback to native WordPress author links when plugin inactive
+ * Displays publication date, author, and last updated information.
+ * Supports forum posts, Co-Authors Plus, and extrachill-users plugin integration.
  *
  * @package ExtraChill
- * @since 69.58
+ * @since 69.60
  */
 
 if ( ! function_exists( 'extrachill_entry_meta' ) ) :

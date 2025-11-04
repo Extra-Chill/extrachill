@@ -6,7 +6,7 @@
  * and social links. Uses action hooks for plugin extensibility.
  *
  * @package ExtraChill
- * @since 69.57
+ * @since 69.60
  */
 
 $svg_path = get_template_directory() . '/assets/fonts/fontawesome.svg';

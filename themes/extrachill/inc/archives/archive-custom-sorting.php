@@ -2,19 +2,15 @@
 /**
  * Archive Custom Sorting Component
  *
- * Provides both frontend UI and backend query modification for archive post sorting.
- * Handles URL-based sorting via 'sort' GET parameter with 'oldest' or 'recent' values.
- * Includes modern artist taxonomy filtering for specific categories.
+ * URL-based sorting via 'sort' parameter: 'oldest', 'recent', 'random', 'popular'.
+ * Artist taxonomy filtering for specific categories via 'artist' parameter.
  *
  * @package ExtraChill
- * @since 1.0
+ * @since 69.59
  */
 
 /**
  * Generate artist dropdown filter for current category
- * Uses modern artist taxonomy to create dropdown filter with descriptive default option
- *
- * @since 1.0
  */
 function extrachill_artist_filter_dropdown() {
     $current_artist = get_query_var('artist');
@@ -55,13 +51,11 @@ function extrachill_artist_filter_dropdown() {
 }
 
 /**
- * Modify main query to support URL-based sorting and artist filtering on archive pages
- * Responds to 'sort' GET parameter with 'oldest', 'recent', 'random', or 'popular' values
- * Responds to 'artist' GET parameter for artist taxonomy filtering
+ * Modify main query for archive sorting and artist filtering
  *
- * @param WP_Query $query The WordPress query object
- * @return void
- * @since 1.0
+ * Sorting options via 'sort' parameter: 'oldest', 'recent', 'random', 'popular' (uses ec_post_views meta).
+ *
+ * @param WP_Query $query
  */
 function extrachill_sort_posts($query) {
     if (!is_admin() && $query->is_main_query() && is_archive()) {

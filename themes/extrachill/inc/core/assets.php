@@ -2,10 +2,11 @@
 /**
  * Asset Management
  *
- * Conditional loading with filemtime() cache busting. Root CSS priority 5, dependent styles priority 10+.
+ * Conditional asset loading with filemtime() versioning per WordPress convention.
+ * File existence checks before enqueuing, context-aware loading throughout.
  *
  * @package ExtraChill
- * @since 69.57
+ * @since 69.60
  */
 
 function extrachill_enqueue_navigation_assets() {
@@ -167,7 +168,6 @@ function extrachill_enqueue_search_styles() {
 add_action('wp_enqueue_scripts', 'extrachill_enqueue_search_styles', 20);
 
 function extrachill_enqueue_sidebar_styles() {
-    // Only load on pages that have sidebars
     if ( is_singular( array( 'post', 'newsletter', 'festival_wire' ) ) || is_404() ) {
         $sidebar_override = apply_filters( 'extrachill_sidebar_content', false );
 

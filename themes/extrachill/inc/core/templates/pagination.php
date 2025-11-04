@@ -2,12 +2,10 @@
 /**
  * Pagination
  *
- * Technical Implementation:
- * - URL preservation: Maintains GET parameters across pagination using add_args
- * - Dynamic formatting: Adjusts URL format based on existing query string presence
+ * Native WordPress pagination with GET parameter preservation.
  *
  * @package ExtraChill
- * @since 69.58
+ * @since 69.59
  */
 
 if (!defined('ABSPATH')) {

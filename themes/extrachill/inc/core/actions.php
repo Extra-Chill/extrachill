@@ -1,11 +1,12 @@
 <?php
 /**
- * ExtraChill Theme Custom Action Hooks
+ * Centralized Action Hook Registration
  *
- * Centralized registration of theme template action hooks.
+ * Default handlers for extensible template hooks throughout theme.
+ * Plugins can override by hooking at different priorities or replacing handlers.
  *
  * @package ExtraChill
- * @since 69.57
+ * @since 69.60
  */
 
 function extrachill_default_footer_main_content() {

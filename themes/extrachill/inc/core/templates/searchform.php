@@ -1,9 +1,6 @@
 <?php
 /**
- * Search Form Template Component
- *
- * Provides centralized search form functionality with modern function-based approach.
- * Replaces WordPress's archaic get_search_form() pattern with organized architecture.
+ * Search Form Template
  *
  * @package ExtraChill
  * @since 69.57
@@ -11,11 +8,6 @@
 
 /**
  * Display search form
- *
- * Outputs the theme's search form HTML with proper escaping and accessibility.
- *
- * @return void
- * @since 69.57
  */
 if (!function_exists('extrachill_search_form')) {
     function extrachill_search_form() {

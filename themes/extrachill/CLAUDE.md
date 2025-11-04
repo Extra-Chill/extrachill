@@ -11,15 +11,15 @@ The ExtraChill theme is a custom WordPress theme serving as the frontend for an 
 ## Architecture & Core Components
 
 ### Modular File Structure
-The theme uses a clean, modular architecture organized in the `/inc/` directory with **47 total PHP files**:
+The theme uses a clean, modular architecture organized in the `/inc/` directory with **49 total PHP files**:
 - **archives/**: Archive page functionality (8 files total)
   - Core archive files (7 files): archive.php, archive-header.php, archive-filter-bar.php, archive-custom-sorting.php, archive-child-terms-dropdown.php, post-card.php, artist-profile-link.php
   - **archives/search/**: Search header template (1 file): search-header.php (loaded via extrachill_search_header action hook, used by extrachill-search plugin)
 - **core/**: Essential WordPress functionality (7 core files + 2 subdirectories)
   - Core files (7): actions.php, assets.php, custom-taxonomies.php, yoast-stuff.php, view-counts.php, rewrite.php, template-router.php
-  - **core/templates/**: Shared template components (9 files): post-meta.php, pagination.php, no-results.php, share.php, social-links.php, taxonomy-badges.php, breadcrumbs.php, searchform.php, 404.php
+  - **core/templates/**: Shared template components (10 files): post-meta.php, pagination.php, no-results.php, share.php, social-links.php, taxonomy-badges.php, breadcrumbs.php, searchform.php, 404.php, community-activity.php
   - **core/editor/**: Custom embeds (3 files): bandcamp-embeds.php, instagram-embeds.php, spotify-embeds.php
-- **footer/**: Footer navigation functionality (2 files): footer-bottom-menu.php, footer-main-menu.php
+- **footer/**: Footer navigation and back-to-home functionality (3 files): footer-bottom-menu.php, footer-main-menu.php, back-to-home-link.php
 - **header/**: Navigation functionality (4 files): navigation.php, navigation-menu.php, nav-bottom-menu.php, nav-main-menu.php
 - **home/**: Homepage-specific components and template sections (8 files total: 1 core + 7 templates)
   - homepage-queries.php
@@ -32,7 +32,7 @@ The theme uses a clean, modular architecture organized in the `/inc/` directory 
 - **Festival Wire Integration**: Homepage ticker display for Festival Wire posts (handled by ExtraChill News Wire plugin)
 
 ### WordPress Multisite Network Integration
-The ExtraChill theme serves **all eight sites in the WordPress multisite network**:
+The ExtraChill theme serves **all nine sites in the WordPress multisite network**:
 - **extrachill.com** - Main music journalism and content site
 - **community.extrachill.com** - Community forums and user hub
 - **shop.extrachill.com** - E-commerce platform with WooCommerce
@@ -41,15 +41,17 @@ The ExtraChill theme serves **all eight sites in the WordPress multisite network
 - **artist.extrachill.com** - Artist platform and profiles
 - **events.extrachill.com** - Event calendar hub powered by Data Machine
 - **stream.extrachill.com** - Live streaming platform (Phase 1 non-functional UI)
+- **newsletter.extrachill.com** - Newsletter management and archive hub with homepage-as-archive pattern
 
 **Site-Specific Configuration**: Each site uses the same theme with different plugin integrations and template overrides via `extrachill_template_*` filters
 
 **Multisite Plugin Integration**: Multisite functionality provided by network-activated plugins:
 - **Cross-Site Search**: extrachill-search plugin provides `extrachill_multisite_search()` function (only plugin using `get_sites()`)
 - **User Profile URLs**: extrachill-users plugin provides `ec_get_user_profile_url()` for intelligent routing
-- **Community Activity**: Theme directly queries bbPress data via `switch_to_blog()` with hardcoded blog ID 2
-- **Direct Database Access**: Theme uses WordPress native `WP_Query` for bbPress topics/replies
-- **Hardcoded Blog IDs**: Theme uses blog ID 2 for community.extrachill.com, blog ID 4 for artist.extrachill.com
+- **Shared Community Activity Helper**: Centralized reusable library at `/inc/core/templates/community-activity.php` provides `extrachill_get_community_activity_items()` and `extrachill_render_community_activity()` functions
+- **Multi-Site Activity Queries**: Queries both community.extrachill.com (blog ID 2) and artist.extrachill.com (blog ID 4) for bbPress topics/replies
+- **Activity Integration**: Merges activities from both sites into unified, sorted list with 10-minute caching
+- **Direct Database Access**: Theme uses WordPress native `WP_Query` for bbPress topics/replies via `switch_to_blog()`
 - **WordPress Object Cache**: 10-minute caching via `wp_cache_get()` and `wp_cache_set()`
 - **Network-Wide Security**: Admin access control provided by extrachill-multisite plugin
 
@@ -218,7 +220,7 @@ wp rewrite flush
 ### Core Theme Files
 - **`inc/core/template-router.php`** - WordPress native template routing via `template_include` filter with custom page template support
 - **`index.php`** - Emergency fallback template (minimal functionality)
-- **`functions.php`** - Main theme setup, asset loading, and module includes (25 direct includes from 47 total PHP files in /inc/)
+- **`functions.php`** - Main theme setup, asset loading, and module includes (27 direct includes from 49 total PHP files in /inc/)
 - **`inc/core/assets.php`** - Centralized asset management with conditional loading
 - **`inc/single/comments.php`** - Comment system with community integration
 - **`inc/core/templates/post-meta.php`** - Post meta display template
@@ -228,7 +230,7 @@ wp rewrite flush
 - **`assets/css/root.css`** - CSS custom properties and theme variables
 
 ### Complete Include File Structure
-**Core Shared Templates (9 files)**:
+**Core Shared Templates (10 files)**:
 - `inc/core/templates/post-meta.php` - Post metadata display
 - `inc/core/templates/pagination.php` - Native WordPress pagination
 - `inc/core/templates/no-results.php` - No results found template
@@ -238,6 +240,7 @@ wp rewrite flush
 - `inc/core/templates/breadcrumbs.php` - Breadcrumb navigation
 - `inc/core/templates/searchform.php` - Search form template
 - `inc/core/templates/404.php` - 404 error page template
+- `inc/core/templates/community-activity.php` - Shared community activity helper library
 
 **Core Functionality (7 files)**:
 - `inc/core/actions.php` - Centralized WordPress action hooks
@@ -271,24 +274,24 @@ wp rewrite flush
 **Multisite Integration**:
 - Cross-site search provided by extrachill-search plugin (network-activated)
 - User profile URL resolution provided by extrachill-users plugin (network-activated)
-- Community activity widgets directly query bbPress data via `switch_to_blog()`
-- Theme manually constructs forum URLs: `https://community.extrachill.com/r/{forum-slug}`
+- Shared community activity helper library (`inc/core/templates/community-activity.php`) provides reusable functions for activity display
+- Community activity queries both community.extrachill.com (blog ID 2) and artist.extrachill.com (blog ID 4) via `switch_to_blog()`
 - WordPress object cache used for 10-minute activity caching
 - Function existence checks for `ec_get_user_profile_url()` from extrachill-users plugin
 
 **Sidebar Functionality (2 files)**:
 - `inc/sidebar/recent-posts.php` - Recent posts sidebar widget
-- `inc/sidebar/community-activity.php` - Direct bbPress query widget with blog switching and manual URL construction
+- `inc/sidebar/community-activity.php` - Sidebar widget calling `extrachill_render_community_activity()` with sidebar-specific styling
 
 **Archive Functionality (8 files total)**:
 - `inc/archives/archive.php` - Main archive template
-- `inc/archives/archive-header.php` - Archive page header component
-- `inc/archives/archive-filter-bar.php` - Archive filtering interface with randomization and sorting
+- `inc/archives/archive-header.php` - Archive page header component with author bio hook
+- `inc/archives/archive-filter-bar.php` - Archive filtering interface with 4-option sorting (recent, oldest, random, popular)
 - `inc/archives/archive-child-terms-dropdown.php` - Child terms dropdown
-- `inc/archives/archive-custom-sorting.php` - Custom archive sorting functions
-- `inc/archives/artist-profile-link.php` - Artist profile link component
+- `inc/archives/archive-custom-sorting.php` - Custom archive sorting functions with view count support
+- `inc/archives/artist-profile-link.php` - Artist profile integration linking to artist.extrachill.com profiles
 - `inc/archives/post-card.php` - Post card template
-- **Search subdirectory (1 file)**: search-header.php
+- **archives/search/** subdirectory (1 file): search-header.php (loaded via extrachill_search_header action hook)
 
 **Single Post/Page Functionality (4 files)**:
 - `inc/single/single-post.php` - Single post functionality
@@ -296,9 +299,10 @@ wp rewrite flush
 - `inc/single/comments.php` - Comment system
 - `inc/single/related-posts.php` - Related posts functionality
 
-**Footer Navigation (2 files)**:
-- `inc/footer/footer-bottom-menu.php` - Footer bottom menu functionality
-- `inc/footer/footer-main-menu.php` - Footer main menu functionality
+**Footer Navigation (3 files)**:
+- `inc/footer/footer-main-menu.php` - Main footer menu with hierarchical structure
+- `inc/footer/footer-bottom-menu.php` - Legal/policy links below copyright
+- `inc/footer/back-to-home-link.php` - Universal back-to-home navigation with smart logic (main homepage: no button, subsite homepages: link to main site, all other pages: link to current site homepage)
 
 **Header/Navigation (4 files)**:
 - `inc/header/navigation.php` - Core navigation functionality
@@ -313,7 +317,7 @@ wp rewrite flush
 - `inc/home/templates/section-more-recent-posts.php` - Recent posts section
 - `inc/home/templates/section-extrachill-link.php` - extrachill.link promo section with join CTA linking to https://extrachill.link/join
 - `inc/home/templates/section-about.php` - About section
-- `inc/home/templates/community-activity.php` - Direct bbPress query with blog switching for 3x3 grid display
+- `inc/home/templates/community-activity.php` - Legacy wrapper calling `extrachill_render_community_activity()` with 3x3 grid styling (deprecated 69.60)
 - `inc/home/templates/front-page.php` - Front page template
 
 
@@ -387,6 +391,11 @@ wp rewrite flush
     - **Usage**: Plugins add navigational buttons for archive-specific actions (e.g., view artist profile, browse location)
     - **Example Integration**: Theme displays "View Artist Profile" button on artist taxonomy archives
     - **Styling**: Plugins handle their own wrapper divs and styling (no automatic container)
+- **Universal Navigation Hook**: Back-to-home navigation integration:
+  - `extrachill_above_footer` - Fires before footer on all pages
+    - **Context**: Available on all page types throughout the site
+    - **Usage**: Display universal navigation elements (e.g., back-to-home button with smart logic)
+    - **Example Integration**: Theme displays context-aware back-to-home button (hidden on main homepage, links to main site on subsite homepages, links to current site homepage on all other pages)
 
 ### Performance Features
 - **Modular Asset Loading**: CSS/JS loaded only when needed based on page context
@@ -426,8 +435,9 @@ EXTRACHILL_INCLUDES_DIR - Inc directory path for modular includes
 - **Template Router Migration**: Moved routing logic from `index.php` to dedicated router file for proper WordPress integration
 - **Emergency Fallback**: `index.php` now serves as minimal emergency fallback only
 - **Multisite Plugin Migration**: All multisite functionality moved to extrachill-multisite plugin for network activation
-- **Core Templates Directory**: Created `/inc/core/templates/` for shared template components (9 files)
+- **Core Templates Directory**: Created `/inc/core/templates/` for shared template components (10 files)
 - **Sidebar Directory**: Created `/inc/sidebar/` for sidebar-specific functionality (2 files)
+- **Community Activity Refactor**: Centralized shared helper library in `inc/core/templates/community-activity.php` with reusable `extrachill_get_community_activity_items()` and `extrachill_render_community_activity()` functions
 - **Native Pagination System**: Added comprehensive pagination system replacing wp-pagenavi plugin
   - Located at `inc/core/templates/pagination.php`
   - Professional count display with context-aware navigation
@@ -441,7 +451,12 @@ EXTRACHILL_INCLUDES_DIR - Inc directory path for modular includes
 - **Asset Management**: Centralized in `inc/core/assets.php` with conditional loading
 - **Authentication Simplification**: Native WordPress multisite authentication via extrachill-multisite plugin
 - **Performance Optimization**: Modular CSS architecture and selective loading
-- **File Structure Cleanup**: Streamlined to 47 modular PHP files with improved organization (25 directly loaded in functions.php)
+- **File Structure Cleanup**: Streamlined to 49 modular PHP files with improved organization (27 directly loaded in functions.php)
+- **Font File Cleanup**: Removed legacy font files (Libre Franklin, PT Serif, Wilco Loft Sans, Lobster, owfont) for performance optimization
+- **WooCommerce Template Router Support**: Added `is_woocommerce()` bypass in template router for native WooCommerce template handling
+- **Archive Sorting Enhancement**: Archive filter bar upgraded to 4-option dropdown (recent, oldest, random, popular by view count) replacing previous 2-option system with separate randomize button
+- **Artist Profile Integration**: New artist-profile-link.php component queries artist.extrachill.com (blog ID 4) for matching artist profiles and displays "View Artist Profile" button on artist taxonomy archives via `extrachill_archive_filter_bar` hook
+- **Universal Back-to-Home Navigation**: New back-to-home-link.php component with smart logic (main homepage: hidden, subsite homepages: link to main site, all other pages: link to current site homepage) via `extrachill_above_footer` hook
 - **Custom Page Template Support**: Router automatically respects custom page templates assigned via WordPress admin
 - **Button Style Standardization**: Unified button classes across the entire ecosystem
 - **View Counting System**: Universal post view tracking with `ec_get_post_views()`, `ec_the_post_views()`, and `ec_track_post_views()`
@@ -449,8 +464,6 @@ EXTRACHILL_INCLUDES_DIR - Inc directory path for modular includes
 - **Sticky Header Filter**: `extrachill_enable_sticky_header` filter allows plugins to control sticky header behavior
 - **Event Integration Update**: Replaced dm-events integration with extrachill-events plugin
 - **Search Plugin Integration**: Theme provides search header and CSS, extrachill-search plugin provides main template via filter override
-- **View Counting System**: Post view count tracking functionality
-- **Custom Rewrite Rules**: Enhanced URL rewriting system
 - **Shared Components**: Reusable tab interface system with CSS and JavaScript
 
 ## Important Notes

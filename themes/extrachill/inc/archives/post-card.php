@@ -2,13 +2,10 @@
 /**
  * Post Card Template
  *
- * Technical Implementation:
- * - Multisite search support: Detects cross-site thumbnail data via $post->_thumbnail
- * - Forum posts: Conditional formatting for forum posts via $post->_is_forum_post flag
- * - Dynamic permalinks: Uses $post->permalink when available for cross-site links
+ * Archive post card with support for multisite search and forum posts.
  *
  * @package ExtraChill
- * @since 69.58
+ * @since 69.60
  */
 
 $featured_image_size = 'medium_large';

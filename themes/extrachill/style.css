@@ -1104,3 +1104,63 @@ button.button-large {
   margin-bottom: 1.5em;
 }
 
+/* Community Activity Widget */
+.community-activity-list,
+.extrachill-recent-activity {
+	font-size: 15px;
+	border-top: 1px solid #d4d4d4;
+}
+
+.community-activity-list ul,
+.extrachill-recent-activity ul {
+	margin: inherit;
+	max-width: 100%;
+	display: flex;
+	flex-wrap: wrap;
+}
+
+.community-activity-list ul li,
+.extrachill-recent-activity ul li {
+	border-bottom: 1px solid #d4d4d4;
+	width: max-content;
+	padding: 5px 0;
+	list-style: none;
+}
+
+.community-activity-list a#visit button,
+.extrachill-recent-activity a#visit button {
+	margin-top: 10px;
+	margin-bottom: 10px;
+}
+
+.community-activity-list #topic,
+.extrachill-recent-activity #topic {
+	border-bottom: 1px solid var(--accent);
+}
+
+/* Community Activity Cards */
+.community-activity-empty {
+	color: var(--muted-text);
+	font-style: italic;
+	background: none;
+	box-shadow: none;
+	text-align: center;
+	padding: 1em;
+}
+
+.sidebar-activity-card {
+	background: var(--background-color);
+	border-radius: 10px;
+	box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+	padding: 0.7em 0.7em 0.7em 0.7em;
+	font-size: 0.98em;
+	display: block;
+	min-width: 0;
+	transition: box-shadow 0.2s;
+	margin: 5px 0;
+}
+
+.sidebar-activity-card:hover {
+	box-shadow: 0 4px 16px rgba(83,148,11,0.10);
+}
+
