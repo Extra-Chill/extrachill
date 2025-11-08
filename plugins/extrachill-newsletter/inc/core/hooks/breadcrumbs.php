@@ -66,26 +66,46 @@ add_filter( 'extrachill_breadcrumbs_override_trail', 'newsletter_breadcrumb_trai
 /**
  * Newsletter breadcrumb format for single posts
  *
- * Links to newsletter.extrachill.com (homepage-as-archive).
- *
  * @param string $custom_trail Existing custom trail from other plugins
- * @return string Breadcrumb trail HTML
+ * @return string Empty string
  * @since 1.0.0
  */
 function newsletter_customize_breadcrumbs( $custom_trail ) {
-	// Only apply on newsletter.extrachill.com (blog ID 9)
 	if ( get_current_blog_id() !== 9 ) {
 		return $custom_trail;
 	}
 
-	// Only modify on newsletter single posts
 	if ( ! is_singular( 'newsletter' ) ) {
 		return $custom_trail;
 	}
 
-	// Build breadcrumb trail (root already has "Extra Chill › Newsletter")
-	$post_title = get_the_title();
-
-	return '<span>' . esc_html( $post_title ) . '</span>';
+	return '';
 }
 add_filter( 'extrachill_breadcrumbs_override_trail', 'newsletter_customize_breadcrumbs' );
+
+/**
+ * Override back-to-home link label for newsletter pages
+ *
+ * Changes "Back to Extra Chill" to "Back to Newsletter" on newsletter pages.
+ * Uses theme's extrachill_back_to_home_label filter.
+ * Only applies on blog ID 9 (newsletter.extrachill.com).
+ *
+ * @param string $label Default back-to-home link label
+ * @param string $url   Back-to-home link URL
+ * @return string Modified label
+ * @since 1.0.0
+ */
+function newsletter_back_to_home_label( $label, $url ) {
+	// Only apply on newsletter.extrachill.com (blog ID 9)
+	if ( get_current_blog_id() !== 9 ) {
+		return $label;
+	}
+
+	// Don't override on homepage (homepage should say "Back to Extra Chill")
+	if ( is_front_page() ) {
+		return $label;
+	}
+
+	return '← Back to Newsletter';
+}
+add_filter( 'extrachill_back_to_home_label', 'newsletter_back_to_home_label', 10, 2 );

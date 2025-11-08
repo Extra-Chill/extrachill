@@ -152,7 +152,7 @@ All endpoints include security verification, input sanitization, and rate limiti
 # Create production ZIP
 ./build.sh
 
-# Output: /build/extrachill-newsletter/ directory and /build/extrachill-newsletter.zip file
+# Output: Only /build/extrachill-newsletter.zip file (unzip when directory access needed)
 ```
 
 ### File Structure
