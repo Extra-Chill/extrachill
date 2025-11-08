@@ -12,7 +12,7 @@ if ( ! function_exists( 'extrachill_share_button' ) ) :
     /**
      * Display share button
      *
-     * @param array $args Optional arguments (share_url, share_title)
+     * @param array $args Optional arguments (share_url, share_title, button_size)
      */
     function extrachill_share_button( $args = array() ) {
         if ( isset( $args ) && is_array( $args ) ) {
@@ -27,8 +27,9 @@ if ( ! function_exists( 'extrachill_share_button' ) ) :
             $share_title = reset( $share_title );
         }
 
-        $share_url   = isset( $share_url ) ? esc_url( $share_url ) : get_permalink();
-        $share_title = isset( $share_title ) ? esc_attr( $share_title ) : get_the_title();
+        $share_url    = isset( $share_url ) ? esc_url( $share_url ) : get_permalink();
+        $share_title  = isset( $share_title ) ? esc_attr( $share_title ) : get_the_title();
+        $button_size  = isset( $button_size ) ? esc_attr( $button_size ) : 'button-small';
 
         $svg_file_path = get_template_directory() . '/assets/fonts/fontawesome.svg';
         $svg_version   = file_exists( $svg_file_path ) ? filemtime( $svg_file_path ) : time();
@@ -36,7 +37,7 @@ if ( ! function_exists( 'extrachill_share_button' ) ) :
         ?>
         <div class="share-button-container">
 
-            <button class="share-button button-2 button-small">
+            <button class="share-button button-2 <?php echo esc_attr( $button_size ); ?>">
                 <svg>
                     <use href="<?php echo esc_attr( get_template_directory_uri() . '/assets/fonts/fontawesome.svg?v=' . $svg_version ); ?>#share"></use>
                 </svg> Share

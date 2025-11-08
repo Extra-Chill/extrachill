@@ -32,16 +32,16 @@ The theme uses a clean, modular architecture organized in the `/inc/` directory 
 - **Festival Wire Integration**: Homepage ticker display for Festival Wire posts (handled by ExtraChill News Wire plugin)
 
 ### WordPress Multisite Network Integration
-The ExtraChill theme serves **all nine sites in the WordPress multisite network**:
-- **extrachill.com** - Main music journalism and content site
-- **community.extrachill.com** - Community forums and user hub
-- **shop.extrachill.com** - E-commerce platform with WooCommerce
-- **app.extrachill.com** - Mobile API backend (planning stage)
-- **chat.extrachill.com** - AI chatbot system with ChatGPT-style interface
-- **artist.extrachill.com** - Artist platform and profiles
-- **events.extrachill.com** - Event calendar hub powered by Data Machine
-- **stream.extrachill.com** - Live streaming platform (Phase 1 non-functional UI)
-- **newsletter.extrachill.com** - Newsletter management and archive hub with homepage-as-archive pattern
+The ExtraChill theme serves **all ten sites in the WordPress multisite network**:
+- **extrachill.com** - Main music journalism and content site (Blog ID 1)
+- **community.extrachill.com** - Community forums and user hub (Blog ID 2)
+- **shop.extrachill.com** - E-commerce platform with WooCommerce (Blog ID 3)
+- **artist.extrachill.com** - Artist platform and profiles (Blog ID 4)
+- **chat.extrachill.com** - AI chatbot system with ChatGPT-style interface (Blog ID 5)
+- **events.extrachill.com** - Event calendar hub powered by Data Machine (Blog ID 7)
+- **newsletter.extrachill.com** - Newsletter management and archive hub with homepage-as-archive pattern (Blog ID 8)
+- **stream.extrachill.com** - Live streaming platform (Phase 1 UI) (Blog ID 9)
+- **horoscope.extrachill.com** - Wook-themed daily horoscopes via Data Machine AI (Blog ID 10)
 
 **Site-Specific Configuration**: Each site uses the same theme with different plugin integrations and template overrides via `extrachill_template_*` filters
 

@@ -195,20 +195,11 @@ svg.menu-toggle{
 	fill: #53940b;
 }
 
-button.search svg:hover{
-	fill:#fff;
-}
-
 h1.site-title, p.site-title {
     display: flex;
     line-height: 1.25;
     align-content: center;
     margin: 10px 0;
-}
-
-button.search{
-	padding:8px;
-	margin-left:3px;
 }
 
 .menu-item-has-children > a {
@@ -264,6 +255,9 @@ header#masthead.site-header {
 	text-align: center;
 	display: flex;
     justify-content: center;
+    max-width: 800px;
+    width: 90%;
+    margin: 0 auto;
 }
 
 /* Old search form style - might not be used by menu search */
@@ -367,14 +361,6 @@ body.search-only-open .search-section {
     width: 100%;
     margin: 0 auto; /* Center the search section */
 }
-
-/* Optimize search input width within the search section */
-body.search-only-open .search-wrap {
-    max-width: 800px; /* Reasonable max width for search input */
-    width: 90%; /* Responsive width with padding */
-    margin: 0 auto; /* Center the search wrap */
-}
-
 
 /* Footer links within the menu */
 .menu-footer-links{

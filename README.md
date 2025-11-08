@@ -34,7 +34,7 @@ ExtraChill is a modern, performance-optimized WordPress theme designed specifica
 - **Component Styles**: Dedicated files for badges (`badge-colors.css`), editor styles (`editor-style.css`), search results (`search.css`), shared tabs (`shared-tabs.css`)
 
 ### 🤝 Community Integration
-- **WordPress Multisite**: Native cross-domain authentication and user management across nine sites
+- **WordPress Multisite**: Native cross-domain authentication and user management across ten sites
 - **Shared Community Activity Helper**: Centralized reusable library (`inc/core/templates/community-activity.php`) provides `extrachill_get_community_activity_items()` and `extrachill_render_community_activity()` functions
 - **Multi-Site Activity Queries**: Queries BOTH community.extrachill.com (blog ID 2) AND artist.extrachill.com (blog ID 4) for bbPress topics/replies
 - **Activity Integration**: Merges activities from both sites into unified, chronologically sorted list with 10-minute caching
