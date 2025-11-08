@@ -120,11 +120,13 @@ function ec_events_override_homepage_template( $template ) {
 - **Badge Styling Integration**: Maps dm-events taxonomy badges to ExtraChill's badge class structure via dm_events_badge_wrapper_classes and dm_events_badge_classes filters
 - **Festival-Specific Colors**: Enables custom festival colors (Bonnaroo, Coachella) from theme's badge-colors.css
 - **Location Styling**: Converts venue taxonomies to location styling for regional color coding
+- **Taxonomy Exclusion**: Excludes venue and artist taxonomies from badge display via dm_events_excluded_taxonomies filter (venue has 9 meta fields displayed separately, artist prevents redundant display)
 - **Button Styling Integration**: Maps dm-events modal and ticket buttons to theme's button styling classes via dm_events_modal_button_classes and dm_events_ticket_button_classes filters
+- **Share Button Integration**: Renders share button alongside ticket button in flexbox container via dm_events_action_buttons hook (events.extrachill.com only)
 - **Breadcrumb Override**: Replaces dm-events breadcrumbs with theme's breadcrumb system via dm_events_breadcrumbs filter
 - **Related Events Display**: Shows related events by festival and venue taxonomies using theme's related posts function on events.extrachill.com (blog ID 7)
 - **Theme Hook Bridging**: Bridges dm_events_before_single_event and dm_events_after_single_event to theme's extrachill_before_body_content and extrachill_after_body_content hooks
-- **CSS Integration**: Enqueues theme's single-post.css and plugin's single-event.css for event pages
+- **CSS Integration**: Enqueues theme's single-post.css, sidebar.css, and plugin's single-event.css for event pages
 - **Post Meta Management**: Hides post meta display for dm_events post type
 - **Backward Compatibility**: Preserves original plugin classes while adding theme enhancements
 
@@ -137,22 +139,25 @@ function ec_events_override_homepage_template( $template ) {
 **Integration Hooks**:
 - **dm_events_badge_wrapper_classes** - Adds `taxonomy-badges` wrapper class for theme styling
 - **dm_events_badge_classes** - Adds `taxonomy-badge` base class and festival/location-specific classes
+- **dm_events_excluded_taxonomies** - Excludes venue and artist taxonomies from badge display
 - **dm_events_modal_button_classes** - Adds theme button classes to modal buttons (primary/secondary)
 - **dm_events_ticket_button_classes** - Adds theme button classes to ticket purchase button
 - **dm_events_breadcrumbs** - Overrides breadcrumbs with theme's `display_breadcrumbs()` function
 - **dm_events_related_events** - Displays related events using theme's `extrachill_display_related_posts()` function
 - **dm_events_before_single_event** - Bridges to theme's `extrachill_before_body_content` hook
 - **dm_events_after_single_event** - Bridges to theme's `extrachill_after_body_content` hook
+- **dm_events_action_buttons** - Renders share button alongside ticket button in flexbox container (events.extrachill.com only)
 
 ### Single Event Template Integration
 **Integration Flow** (without template override):
 1. **Badge Enhancement**: dm-events renders badges → extrachill-events filters add theme classes → theme CSS applies styling
 2. **Breadcrumb Override**: dm-events calls breadcrumb filter → extrachill-events returns theme breadcrumbs
 3. **Theme Hooks**: dm-events fires template hooks → extrachill-events bridges to theme hooks for notices/content injection
-4. **Related Events**: dm-events fires related events hook → extrachill-events displays related events by taxonomy (events.extrachill.com only)
-5. **CSS Integration**: Plugin enqueues theme and custom styles for single event pages
-6. **Post Meta Management**: Hides post meta for dm_events post type
-7. **Complete Integration**: Works seamlessly without modifying dm-events template files
+4. **Share Button Integration**: dm-events fires action buttons hook → extrachill-events renders share button with `button-2 button-large` styling in flexbox container (events.extrachill.com only)
+5. **Related Events**: dm-events fires related events hook → extrachill-events displays related events by taxonomy (events.extrachill.com only)
+6. **CSS Integration**: Plugin enqueues theme and custom styles for single event pages including flexbox action button container
+7. **Post Meta Management**: Hides post meta for dm_events post type
+8. **Complete Integration**: Works seamlessly without modifying dm-events template files
 
 ### Template Override System
 **Homepage Override** (events.extrachill.com only):
@@ -220,18 +225,20 @@ function ec_events_override_homepage_template( $template ) {
 - **Location**: `assets/css/`
 - **Files**:
   - `calendar.css` - Homepage calendar enhancements (minimal placeholder for future enhancements)
-  - `single-event.css` - Single event page styling with .event-info-grid card treatment
+  - `single-event.css` - Single event page styling with .event-info-grid card treatment and .event-action-buttons flexbox container
 
 **Conditional Loading** (`inc/core/dm-events-integration.php`):
-- **Single Events**: `enqueue_single_post_styles()` - Loads theme's single-post.css and plugin's single-event.css on `is_singular('dm_events')`
+- **Single Events**: `enqueue_single_post_styles()` - Loads theme's single-post.css, sidebar.css, and plugin's single-event.css on `is_singular('dm_events')`
 - **Homepage Calendar**: `enqueue_calendar_styles()` - Loads calendar.css on events.extrachill.com homepage (`is_front_page()` + blog ID 7)
 - **Cache Busting**: All styles use `filemtime()` for automatic cache invalidation
 - **Dependencies**: Plugin styles depend on `extrachill-style` for CSS custom properties
 
 **Single Event Styling** (`assets/css/single-event.css`):
 - **Card Treatment**: .event-info-grid receives background, border, border-radius, padding, box-shadow
+- **Action Buttons Container**: .event-action-buttons flexbox container centers ticket and share buttons below event info
+- **Flexbox Layout**: Side-by-side buttons with 1rem gap, stacks vertically on mobile (max-width: 768px)
 - **CSS Custom Properties**: Uses theme variables (--background-color, --border-color, --card-shadow)
-- **Responsive Design**: Mobile-optimized padding and border-radius adjustments
+- **Responsive Design**: Mobile-optimized padding, border-radius, and button layout adjustments
 
 **Calendar Styling** (`assets/css/calendar.css`):
 - **Placeholder Status**: Minimal file for future calendar enhancements
@@ -286,6 +293,14 @@ public function add_badge_classes($badge_classes, $taxonomy_slug, $term, $post_i
 
     return $badge_classes;
 }
+
+// Exclude venue and artist taxonomies from badge display
+add_filter('dm_events_excluded_taxonomies', array($this, 'exclude_venue_taxonomy'));
+public function exclude_venue_taxonomy($excluded) {
+    $excluded[] = 'venue';   // Venue has 9 meta fields displayed separately
+    $excluded[] = 'artist';  // Prevents redundant display with artist metadata
+    return $excluded;
+}
 ```
 
 **Breadcrumb Override**:
@@ -324,6 +339,29 @@ public function before_single_event() {
 add_action('dm_events_after_single_event', array($this, 'after_single_event'));
 public function after_single_event() {
     do_action('extrachill_after_body_content');
+}
+```
+
+**Share Button Integration** (events.extrachill.com only):
+```php
+add_action('dm_events_action_buttons', array($this, 'render_share_button'), 10, 2);
+public function render_share_button($post_id, $ticket_url) {
+    // Only display on events.extrachill.com
+    if (get_current_blog_id() !== 7) {
+        return;
+    }
+
+    // Check if share button function exists
+    if (!function_exists('extrachill_share_button')) {
+        return;
+    }
+
+    // Share button with event URL and title, large size to match ticket button
+    extrachill_share_button(array(
+        'share_url' => get_permalink($post_id),
+        'share_title' => get_the_title($post_id),
+        'button_size' => 'button-large'
+    ));
 }
 ```
 

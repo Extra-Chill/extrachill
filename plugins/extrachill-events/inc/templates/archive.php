@@ -2,9 +2,8 @@
 /**
  * Events Archive Template
  *
- * Unified archive template rendering dm-events calendar block with automatic
- * taxonomy filtering. Handles taxonomy, post type, date, and author archives.
- * Calendar block detects archive context and filters events accordingly.
+ * Renders dm-events calendar block with automatic context-aware filtering.
+ * Handles all archive types (taxonomy, post type, date, author).
  * Only applies on blog ID 7 (events.extrachill.com).
  *
  * @package ExtraChillEvents

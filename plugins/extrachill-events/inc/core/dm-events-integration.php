@@ -34,6 +34,7 @@ class DmEventsIntegration {
         if (class_exists('DmEvents\Core\Taxonomy_Badges')) {
             add_filter('dm_events_badge_wrapper_classes', array($this, 'add_wrapper_classes'), 10, 2);
             add_filter('dm_events_badge_classes', array($this, 'add_badge_classes'), 10, 4);
+            add_filter('dm_events_excluded_taxonomies', array($this, 'exclude_venue_taxonomy'));
         }
 
         if (class_exists('DmEvents\Core\Breadcrumbs')) {
@@ -46,6 +47,7 @@ class DmEventsIntegration {
         add_action('dm_events_related_events', array($this, 'display_related_events'), 10, 1);
         add_action('dm_events_before_single_event', array($this, 'before_single_event'));
         add_action('dm_events_after_single_event', array($this, 'after_single_event'));
+        add_action('dm_events_action_buttons', array($this, 'render_share_button'), 10, 2);
 
         add_filter('extrachill_post_meta', array($this, 'hide_post_meta_for_events'), 10, 3);
 
@@ -97,6 +99,23 @@ class DmEventsIntegration {
         }
 
         return $badge_classes;
+    }
+
+    /**
+     * Exclude venue and artist taxonomies from badge display
+     *
+     * Venue taxonomy displayed separately via dedicated metadata fields.
+     * Artist taxonomy excluded to prevent redundant display with artist-specific metadata.
+     *
+     * @hook dm_events_excluded_taxonomies
+     * @param array $excluded Array of taxonomy slugs to exclude
+     * @return array Enhanced exclusion array with venue and artist taxonomies
+     * @since 1.0.0
+     */
+    public function exclude_venue_taxonomy($excluded) {
+        $excluded[] = 'venue';
+        $excluded[] = 'artist';
+        return $excluded;
     }
 
     /**
@@ -231,8 +250,10 @@ class DmEventsIntegration {
     /**
      * Enqueue single event page styles
      *
-     * Loads theme's single-post.css and plugin's single-event.css
-     * for dm_events post type pages only.
+     * Loads three CSS files for dm_events post type:
+     * 1. Theme's single-post.css (post layout and typography)
+     * 2. Theme's sidebar.css (sidebar styling)
+     * 3. Plugin's single-event.css (event-specific card treatment and action buttons)
      *
      * @hook wp_enqueue_scripts
      * @return void
@@ -253,6 +274,17 @@ class DmEventsIntegration {
                 $theme_uri . '/assets/css/single-post.css',
                 array('extrachill-style'),
                 filemtime($single_post_css)
+            );
+        }
+
+        $sidebar_css = $theme_dir . '/assets/css/sidebar.css';
+
+        if (file_exists($sidebar_css)) {
+            wp_enqueue_style(
+                'extrachill-sidebar',
+                $theme_uri . '/assets/css/sidebar.css',
+                array('extrachill-root', 'extrachill-style'),
+                filemtime($sidebar_css)
             );
         }
 
@@ -292,5 +324,33 @@ class DmEventsIntegration {
                 filemtime($calendar_css)
             );
         }
+    }
+
+    /**
+     * Render share button in event action buttons container
+     *
+     * Displays share button alongside ticket button using flexbox container.
+     * Only applies on blog ID 7 (events.extrachill.com).
+     *
+     * @hook dm_events_action_buttons
+     * @param int $post_id Event post ID
+     * @param string $ticket_url Ticket URL (may be empty)
+     * @return void
+     * @since 1.0.0
+     */
+    public function render_share_button($post_id, $ticket_url) {
+        if (get_current_blog_id() !== 7) {
+            return;
+        }
+
+        if (!function_exists('extrachill_share_button')) {
+            return;
+        }
+
+        extrachill_share_button(array(
+            'share_url' => get_permalink($post_id),
+            'share_title' => get_the_title($post_id),
+            'button_size' => 'button-large'
+        ));
     }
 }

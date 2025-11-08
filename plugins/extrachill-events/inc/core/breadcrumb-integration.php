@@ -16,7 +16,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Customize breadcrumb root for events site
  *
- * Homepage shows only "Extra Chill" link, other pages add "→ Events".
+ * Produces "Extra Chill" root on homepage, "Extra Chill → Events" on other pages.
  * Only applies on blog ID 7 (events.extrachill.com).
  *
  * @hook extrachill_breadcrumbs_root
@@ -40,7 +40,7 @@ add_filter( 'extrachill_breadcrumbs_root', 'ec_events_breadcrumb_root' );
 /**
  * Override breadcrumb trail for homepage
  *
- * Homepage shows just "Events" as trail (root already provides "Extra Chill" link).
+ * Produces "Events" trail on homepage. Root function provides "Extra Chill" link.
  * Only applies on blog ID 7 (events.extrachill.com) homepage.
  *
  * @hook extrachill_breadcrumbs_override_trail
@@ -64,13 +64,12 @@ add_filter( 'extrachill_breadcrumbs_override_trail', 'ec_events_breadcrumb_trail
 /**
  * Override breadcrumb trail for archive pages
  *
- * Provides context-aware trails for taxonomy and post type archives.
- * Root function already provides "Extra Chill → Events" prefix.
- * Only applies on blog ID 7 (events.extrachill.com).
+ * Produces taxonomy-specific or post type archive trails. Root function provides
+ * "Extra Chill → Events" prefix. Only applies on blog ID 7 (events.extrachill.com).
  *
- * Resulting patterns:
- * - Taxonomy archive: "Extra Chill → Events → [Term Name]"
- * - Post type archive: "Extra Chill → Events" (rarely seen due to redirect)
+ * Output patterns:
+ * - Taxonomy: "Extra Chill → Events → [Term Name]"
+ * - Post type: "Extra Chill → Events"
  *
  * @hook extrachill_breadcrumbs_override_trail
  * @param string|false $custom_trail Custom breadcrumb trail from other filters
@@ -100,12 +99,10 @@ add_filter( 'extrachill_breadcrumbs_override_trail', 'ec_events_breadcrumb_trail
 /**
  * Override breadcrumb trail for single event posts
  *
- * Skips post type archive link since homepage serves as the archive.
- * Root function already provides "Extra Chill → Events" prefix.
+ * Produces event title trail. Root function provides "Extra Chill → Events" prefix.
  * Only applies on blog ID 7 (events.extrachill.com).
  *
- * Resulting pattern:
- * - Single event: "Extra Chill → Events → [Event Title]"
+ * Output pattern: "Extra Chill → Events → [Event Title]"
  *
  * @hook extrachill_breadcrumbs_override_trail
  * @param string|false $custom_trail Custom breadcrumb trail from other filters
@@ -128,8 +125,8 @@ add_filter( 'extrachill_breadcrumbs_override_trail', 'ec_events_breadcrumb_trail
 /**
  * Override back-to-home link label for event pages
  *
- * Changes "Back to Extra Chill" to "Back to Events" on non-homepage pages.
- * Homepage keeps default label pointing to main site.
+ * Produces "Back to Events" on non-homepage pages. Homepage retains default
+ * "Back to Extra Chill" label pointing to main site.
  * Only applies on blog ID 7 (events.extrachill.com).
  *
  * @hook extrachill_back_to_home_label

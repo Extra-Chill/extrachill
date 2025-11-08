@@ -6,9 +6,9 @@ WordPress plugin providing seamless integration between ExtraChill themes and po
 
 - **Homepage Template Override**: Custom homepage template for events.extrachill.com (blog ID 7) displaying static page content with dm-events calendar block support
 - **Archive Template Override**: Unified archive template for all taxonomy and post type archives on events.extrachill.com
-- **DM Events Integration**: Complete integration with badge styling, breadcrumb override, related events display, and theme hook bridging
+- **DM Events Integration**: Complete integration with badge styling, taxonomy exclusion, button styling, share button rendering, breadcrumb override, related events display, and theme hook bridging
 - **Breadcrumb Integration**: Custom breadcrumb system with "Extra Chill → Events" root for events.extrachill.com
-- **CSS Integration**: Automatic enqueuing of theme and plugin styles for single events and calendar pages
+- **CSS Integration**: Automatic enqueuing of theme and plugin styles (single-post.css, sidebar.css, single-event.css) for single events and calendar pages
 - **Post Meta Management**: Hides post meta for dm_events post type
 - **SEO Optimization**: Redirects /events/ post type archive to homepage for SEO consolidation
 
@@ -46,22 +46,26 @@ WordPress plugin providing seamless integration between ExtraChill themes and po
   - Festival badges: `taxonomy-badge festival-badge festival-{slug}`
   - Location badges: `taxonomy-badge location-badge location-{slug}`
   - Other taxonomies: Base `taxonomy-badge` class
+- **Taxonomy Exclusion**: Excludes venue and artist taxonomies from badge display (venue has 9 meta fields displayed separately, artist prevents redundant display)
 - **Button Styling**: Maps modal buttons (primary/secondary) and ticket buttons to theme's button styling classes
+- **Share Button Integration**: Renders share button alongside ticket button in flexbox container (events.extrachill.com only)
 - **Breadcrumb Override**: Replaces dm-events breadcrumbs with theme's `display_breadcrumbs()` function via dm_events_breadcrumbs filter
 - **Related Events Display**: Shows related events by festival and venue taxonomies using theme's `extrachill_display_related_posts()` function (events.extrachill.com only)
 - **Theme Hook Bridging**: Bridges dm_events_before_single_event and dm_events_after_single_event to theme's extrachill_before_body_content and extrachill_after_body_content hooks
 - **Post Meta Hiding**: Removes post meta display for dm_events post type
-- **CSS Integration**: Enqueues theme's single-post.css and plugin's single-event.css for event pages
+- **CSS Integration**: Enqueues theme's single-post.css, sidebar.css, and plugin's single-event.css for event pages
 
 **Integration Hooks**:
 - `dm_events_badge_wrapper_classes` - Adds theme wrapper classes
 - `dm_events_badge_classes` - Adds festival/location-specific badge classes
+- `dm_events_excluded_taxonomies` - Excludes venue and artist taxonomies from badge display
 - `dm_events_modal_button_classes` - Adds theme button classes to modal buttons
 - `dm_events_ticket_button_classes` - Adds theme button classes to ticket button
 - `dm_events_breadcrumbs` - Overrides with theme breadcrumbs
 - `dm_events_related_events` - Displays related events by taxonomy
 - `dm_events_before_single_event` - Bridges to theme before content hook
 - `dm_events_after_single_event` - Bridges to theme after content hook
+- `dm_events_action_buttons` - Renders share button alongside ticket button
 
 ## Template Overrides
 
@@ -111,7 +115,7 @@ composer run lint:php
 # Build production package
 ./build.sh
 
-# Output: /build/extrachill-events/ directory and /build/extrachill-events.zip file
+# Output: Only /build/extrachill-events.zip file (unzip when directory access needed)
 ```
 
 ## Architecture
@@ -129,7 +133,12 @@ composer run lint:php
 
 ### CSS Assets
 - **Asset Directory**: `assets/css/`
-- **Files**: `calendar.css` (homepage calendar enhancements), `single-event.css` (single event page card treatment)
+- **Files**:
+  - `calendar.css` - Homepage calendar enhancements (minimal placeholder for future enhancements)
+  - `single-event.css` - Single event page styling with .event-info-grid card treatment and .event-action-buttons flexbox container
+- **Conditional Loading**:
+  - Single events load theme's single-post.css, sidebar.css, and plugin's single-event.css
+  - Homepage calendar loads calendar.css (events.extrachill.com only)
 - **Integration**: Theme CSS custom properties, conditional loading, automatic cache busting via filemtime()
 
 ## License

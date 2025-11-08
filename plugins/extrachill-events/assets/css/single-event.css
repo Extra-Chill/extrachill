@@ -1,9 +1,9 @@
 /**
  * Single Event Page Enhancements
  *
- * Card treatment for dm-events event info grid using theme CSS custom properties
- * (--background-color, --border-color, --card-shadow). Mobile-optimized adjustments
- * for responsive design.
+ * Card treatment for dm-events event info grid and flexbox action button container
+ * using theme CSS custom properties (--background-color, --border-color, --card-shadow).
+ * Mobile-optimized adjustments for responsive design.
  *
  * @package ExtraChillEvents
  * @since 1.0.0
@@ -18,9 +18,32 @@
     margin-bottom: 1.5rem;
 }
 
+/* Event Action Buttons Container (Ticket + Share) */
+.dm-event-details .event-action-buttons {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+/* Ensure share button container fits in flexbox */
+.dm-event-details .event-action-buttons .share-button-container {
+    margin: 0;
+}
+
+.dm-event-details .event-action-buttons .share-button {
+    margin: 0;
+}
+
 @media (max-width: 768px) {
     .dm-event-details .event-info-grid {
         padding: 1.2em;
         border-radius: 10px;
+    }
+
+    .dm-event-details .event-action-buttons {
+        flex-direction: column;
+        gap: 0.75rem;
     }
 }
