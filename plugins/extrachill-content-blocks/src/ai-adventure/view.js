@@ -63,7 +63,7 @@ const AIAdventureGame = ( { attributes, innerBlocks } ) => {
 			const transitionContext = storyLog.slice(-2);
 
 			const response = await apiFetch({
-				path: '/extrachill-blocks/v1/adventure',
+				path: '/extrachill/v1/ai-adventure',
 				method: 'POST',
 				data: {
 					isIntroduction: true,
@@ -141,7 +141,7 @@ const AIAdventureGame = ( { attributes, innerBlocks } ) => {
 			const prevStoryProgression = [...storyProgression];
 
 			const response = await apiFetch({
-				path: '/extrachill-blocks/v1/adventure',
+				path: '/extrachill/v1/ai-adventure',
 				method: 'POST',
 				data: {
 					playerInput: currentInput,

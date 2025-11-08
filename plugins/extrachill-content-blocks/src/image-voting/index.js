@@ -6,7 +6,6 @@ const { TextControl, Button } = wp.components;
 const { MediaUpload } = wp.blockEditor;
 const { createElement, useEffect } = wp.element;
 
-// Function to create a unique ID for each block
 function createUniqueID(prefix = '') {
     return `${prefix}-${Date.now()}-${Math.round(Math.random() * 1000000)}`;
 }
@@ -40,7 +39,6 @@ registerBlockType('extrachill-blocks/image-voting', {
     edit: function (props) {
         const { attributes, setAttributes } = props;
 
-        // Set a unique ID if not already set
         useEffect(() => {
             if (attributes.uniqueBlockId === '') {
                 const uniqueBlockId = createUniqueID('block-');
@@ -48,15 +46,16 @@ registerBlockType('extrachill-blocks/image-voting', {
             }
         }, []);
 
-        // Function to handle image selection
         const onSelectImage = (media) => {
             setAttributes({ mediaID: media.id, mediaURL: media.url });
         };
 
         return createElement(
             'div',
-            { className: 'extrachill-blocks-image-voting-editor' },
-            // Image wrapper with 4:5 aspect ratio preview
+            {
+                className: 'extrachill-blocks-image-voting-editor',
+                'data-type': 'extrachill-blocks/image-voting'
+            },
             attributes.mediaURL ?
                 createElement('div', { className: 'extrachill-blocks-image-wrapper-editor' },
                     createElement('img', {
@@ -72,15 +71,7 @@ registerBlockType('extrachill-blocks/image-voting', {
                         )
                     )
                 )
-                : createElement('div', {
-                    className: 'extrachill-blocks-image-wrapper-editor',
-                    style: { display: 'flex', alignItems: 'center', justifyContent: 'center' }
-                },
-                    createElement('div', { className: 'extrachill-blocks-no-image-placeholder' },
-                        'No image selected'
-                    )
-                ),
-            // Editor controls below image
+                : null,
             createElement('div', { className: 'extrachill-blocks-image-voting-editor-controls' },
                 createElement(TextControl, {
                     label: 'Block Title',
@@ -102,5 +93,5 @@ registerBlockType('extrachill-blocks/image-voting', {
             )
         );
     },
-    save: () => null // Dynamic block rendered via render.php
+    save: () => null
 });

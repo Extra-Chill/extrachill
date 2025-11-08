@@ -3,11 +3,13 @@
 .extrachill-blocks-image-voting-editor {
 	max-width: 100%;
 	padding: 0;
-	border: 1px solid #ddd;
+	border: 1px solid var(--border-color, #ddd);
 	border-radius: 8px;
-	background: #fff;
-	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+	background: var(--background-color, #fff);
+	box-shadow: var(--card-shadow, 0 2px 4px rgba(0, 0, 0, 0.1));
 	overflow: hidden;
+	cursor: default;
+	position: relative;
 }
 
 /* Image Wrapper - 4:5 Aspect Ratio (matches frontend) */
@@ -16,8 +18,9 @@
 	width: 100%;
 	padding-bottom: 125%; /* 4:5 aspect ratio */
 	overflow: hidden;
-	background: #f5f5f5;
-	border-bottom: 1px solid #ddd;
+	background: var(--card-background, #f5f5f5);
+	border-bottom: 1px solid var(--border-color, #ddd);
+	pointer-events: none;
 }
 
 /* Selected Image Preview */
@@ -71,7 +74,8 @@
 /* Editor Controls Area */
 .extrachill-blocks-image-voting-editor-controls {
 	padding: 24px;
-	background: #fff;
+	background: var(--background-color, #fff);
+	pointer-events: auto;
 }
 
 /* Block Title Input Field */
@@ -88,7 +92,7 @@
 /* Vote Count Display */
 .extrachill-blocks-image-voting-editor p {
 	font-size: 14px;
-	color: #757575;
+	color: var(--muted-text, #757575);
 	margin: 12px 0 0 0;
 }
 
@@ -97,13 +101,4 @@
 	margin-top: 12px;
 }
 
-/* Placeholder State (no image selected) */
-.extrachill-blocks-no-image-placeholder {
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	height: 100%;
-	color: #757575;
-	font-size: 14px;
-	text-align: center;
-}
+/* Note: Placeholder removed - no longer needed */

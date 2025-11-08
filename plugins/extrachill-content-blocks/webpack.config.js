@@ -1,9 +1,6 @@
 /**
- * Custom webpack configuration extends @wordpress/scripts defaults
- *
- * CopyWebpackPlugin handles files wp-scripts doesn't auto-copy:
- * - Block index.php files (custom REST endpoints, asset enqueuing)
- * - Trivia assets/ directory (manual enqueuing required due to non-standard structure)
+ * Custom webpack extends @wordpress/scripts defaults
+ * CopyWebpackPlugin: Block index.php files + trivia assets/ directory
  */
 const defaultConfig = require('@wordpress/scripts/config/webpack.config');
 const CopyWebpackPlugin = require('copy-webpack-plugin');

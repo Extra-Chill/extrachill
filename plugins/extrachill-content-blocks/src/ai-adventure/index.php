@@ -1,14 +1,7 @@
 <?php
-/**
- * AI Adventure Block initialization
- * REST endpoint: /wp-json/extrachill-blocks/v1/adventure
- */
-
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
-
-require_once __DIR__ . '/includes/api-handler.php';
 
 if ( ! function_exists( 'extrachill_blocks_render_ai_adventure_block' ) ) {
     function extrachill_blocks_render_ai_adventure_block( $attributes, $content, $block ) {

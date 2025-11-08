@@ -36,9 +36,6 @@ if (!defined('EXTRACHILL_BLOCKS_VERSION')) {
     define('EXTRACHILL_BLOCKS_VERSION', '1.0.0');
 }
 
-/**
- * Register all blocks via automatic discovery from build/ directory
- */
 function extrachill_blocks_register_all_blocks() {
     $block_json_files = glob(EXTRACHILL_BLOCKS_PATH . 'build/**/block.json');
 
@@ -88,28 +85,15 @@ function extrachill_blocks_enqueue_shared_styles() {
 }
 add_action('wp_enqueue_scripts', 'extrachill_blocks_enqueue_shared_styles');
 
+/**
+ * Attach block styles via wp_add_inline_style() to WordPress core handles.
+ * WordPress 5.8+ recommended pattern - styles only load when blocks render.
+ */
 function extrachill_blocks_enqueue_block_assets() {
-    $has_blocks = false;
-    $block_checks = [
-        'extrachill-blocks/trivia',
-        'extrachill-blocks/image-voting',
-        'extrachill-blocks/rapper-name-generator',
-        'extrachill-blocks/band-name-generator',
-        'extrachill-blocks/ai-adventure',
-        'extrachill-blocks/ai-adventure-path',
-        'extrachill-blocks/ai-adventure-step'
-    ];
-
-    foreach ($block_checks as $block_name) {
-        if (has_block($block_name)) {
-            $has_blocks = true;
-            break;
-        }
-    }
-
-    if (!$has_blocks) {
+    if (is_admin()) {
         return;
     }
+
     $blocks_to_check = [
         'trivia' => 'extrachill-blocks/trivia',
         'image-voting' => 'extrachill-blocks/image-voting',
@@ -123,13 +107,15 @@ function extrachill_blocks_enqueue_block_assets() {
     foreach ($blocks_to_check as $block_slug => $block_name) {
         if (has_block($block_name)) {
             $style_path = EXTRACHILL_BLOCKS_PATH . "build/{$block_slug}/style-index.css";
+
             if (file_exists($style_path)) {
-                wp_enqueue_style(
-                    "extrachill-blocks-{$block_slug}",
-                    EXTRACHILL_BLOCKS_URL . "build/{$block_slug}/style-index.css",
-                    array(),
-                    filemtime($style_path)
-                );
+                $handle = (
+                    function_exists('wp_should_load_separate_core_block_assets') &&
+                    wp_should_load_separate_core_block_assets()
+                ) ? 'wp-block-library' : 'wp-block-library';
+
+                $styles = file_get_contents($style_path);
+                wp_add_inline_style($handle, $styles);
             }
         }
     }
@@ -148,9 +134,8 @@ register_activation_hook(__FILE__, 'extrachill_blocks_activate');
 register_deactivation_hook(__FILE__, 'extrachill_blocks_deactivate');
 
 /**
- * Register newsletter integration for image voting block.
- * Allows admin to configure Sendy list ID and enable/disable via ExtraChill Newsletter settings.
- * Actual subscription handled via extrachill_multisite_subscribe() bridge function in index.php.
+ * Register newsletter integration for image voting block
+ * Admin configures Sendy list ID via ExtraChill Newsletter settings
  */
 add_filter('newsletter_form_integrations', 'extrachill_blocks_register_newsletter_integration');
 function extrachill_blocks_register_newsletter_integration($integrations) {

@@ -1,9 +1,4 @@
 <?php
-/**
- * AI Adventure prompt construction
- * All LLM prompts for introduction, conversation, and progression analysis
- */
-
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }

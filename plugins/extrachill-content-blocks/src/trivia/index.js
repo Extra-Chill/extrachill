@@ -2,6 +2,7 @@ import { registerBlockType } from '@wordpress/blocks';
 import { useBlockProps, RichText, InspectorControls } from '@wordpress/block-editor';
 import { PanelBody, TextControl, TextareaControl, Button } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
+import './editor.scss';
 
 registerBlockType('extrachill-blocks/trivia', {
 	edit: ({ attributes, setAttributes }) => {

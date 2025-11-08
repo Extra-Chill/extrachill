@@ -126,7 +126,6 @@ The plugin uses WordPress standard automatic block discovery:
 ### Trivia Block (`src/trivia/`)
 - Interactive multiple-choice questions with real-time scoring
 - Server-side rendering with dynamic content
-- REST API integration for attempt logging (`/wp-json/extrachill-blocks/v1/trivia/log-attempt`)
 - Customizable result messages and scoring ranges
 - Special asset structure with `/assets/css/` and `/assets/js/` subdirectories
 - Custom webpack handling to copy static assets to `build/trivia/assets/`
@@ -138,10 +137,14 @@ The plugin uses WordPress standard automatic block discovery:
 - Email capture with duplicate vote prevention
 - Vote data stored in WordPress post content (block attributes)
 - AJAX-powered voting system via `wp_ajax_extrachill_blocks_image_vote`
-- REST API for vote count retrieval
+- REST API for vote count retrieval (`/wp-json/extrachill/v1/image-voting/vote-count/{post_id}/{instance_id}`, provided by extrachill-api)
 - Newsletter integration via `newsletter_form_integrations` filter
 - Uses `extrachill_multisite_subscribe()` bridge function for newsletter subscriptions
 - Frontend JavaScript via `viewScript: "file:./view.js"` in block.json
+- **Block Instance Identification**: Uses `uniqueBlockId` attribute (block.json lines 26-29) for tracking individual block instances
+- **Unique ID Generation**: JavaScript creates unique ID on block insert via `createUniqueID()` (index.js lines 9-12, 44-48)
+- **Server-Side Matching**: PHP matches block instances using `uniqueBlockId` attribute (index.php lines 53, 92, render.php line 26)
+- **Architecture Decision**: Explicit attribute-based identification replaced computed MD5 approach for reliability
 - Community engagement features
 
 ### Generator Blocks (`src/*-name-generator/`)
@@ -156,8 +159,8 @@ The plugin uses WordPress standard automatic block discovery:
 - **ai-adventure-path**: Story path/branch block
 - **ai-adventure-step**: Individual story step with triggers
 - AI-powered storytelling via ExtraChill AI Client plugin (provider: openai, model: gpt-5-nano)
-- REST API endpoint: `/wp-json/extrachill-blocks/v1/adventure`
-- REST routes self-registered in `includes/api-handler.php` via `rest_api_init` hook
+- REST API endpoint: `/wp-json/extrachill/v1/ai-adventure` (provided by extrachill-api)
+- REST routes registered centrally via the extrachill-api plugin
 - Nested block structure for complex branching narratives
 - Real-time AI-generated responses and story progression
 - Frontend JavaScript via `viewScript: "file:./view.js"` in block.json
@@ -211,14 +214,22 @@ block.json files must use these exact references for wp-scripts:
   5. Creates `/build/extrachill-blocks.zip` from clean directory
   6. Restores dev dependencies with `composer install`
 - **Output**: Both clean directory AND zip file in `/build/` (non-versioned, CLAUDE.md compliant)
-- **File Exclusion**: `.buildignore` excludes `src/`, `blocks/`, `node_modules/`, docs, dev files
+- **File Exclusion**: `.buildignore` excludes `src/`, `node_modules/`, docs, dev files
 
 ## Asset Management
 
-The plugin uses a hybrid asset loading approach combining WordPress block.json automation with manual enqueuing for special cases:
+The plugin uses a hybrid asset loading approach combining WordPress block.json automation, inline styles, and manual enqueuing for special cases:
+
+### Inline Style Loading Pattern (WordPress 5.8+)
+- **Implementation**: `extrachill_blocks_enqueue_block_assets()` function (lines 91-131 in extrachill-blocks.php)
+- **Attachment Strategy**: Block styles attached to WordPress core `wp-block-library` handle using `wp_add_inline_style()`
+- **Conditional Loading**: Styles only load when blocks are rendered via `has_block()` checks
+- **WordPress 5.8+ Pattern**: Recommended approach for custom block styles in modern WordPress
+- **Blocks Using This Pattern**: All blocks with compiled `style-index.css` files (image-voting, ai-adventure, generators)
+- **Benefits**: Eliminates separate HTTP requests, automatic loading with WordPress core styles
 
 ### Standard Asset Loading (Most Blocks)
-- **Automatic Enqueuing**: block.json properties (`editorScript`, `viewScript`, `style`) trigger automatic WordPress enqueuing
+- **Automatic Enqueuing**: block.json properties (`editorScript`, `viewScript`) trigger automatic WordPress enqueuing
 - **Generated Handles**: WordPress creates predictable handles (e.g., `extrachill-blocks-image-voting-view-script-0`)
 - **Dependency Management**: `.asset.php` files provide automatic WordPress package dependencies
 - **Used By**: image-voting, ai-adventure, generator blocks
@@ -230,10 +241,9 @@ The plugin uses a hybrid asset loading approach combining WordPress block.json a
 - **Reason**: Trivia block uses Chart.js and standalone frontend scripts not compiled by wp-scripts
 
 ### Shared Patterns
-- **Conditional Loading**: Assets only load when blocks are present via `has_block()` checks
 - **Cache Busting**: Uses `filemtime()` for automatic versioning across all enqueued assets
 - **Script Localization**: AJAX endpoints and nonces passed via `wp_localize_script()`
-- **Performance**: Modular loading prevents unnecessary requests
+- **Performance**: Conditional loading prevents unnecessary requests
 
 ## Data Storage
 
@@ -269,7 +279,7 @@ The plugin uses the **ExtraChill AI Client** plugin for centralized AI provider 
 - **AI Request Filter**: Uses `ai_request` filter from ai-http-client library
 - **Network-Wide API Keys**: Managed centrally via ExtraChill AI Client plugin (Network Admin → Settings → AI Client)
 - **Model Changes**: Update `api-handler.php` constants and redeploy plugin to change provider or model
-- **REST API**: `/wp-json/extrachill-blocks/v1/adventure` - AI Adventure game endpoint
+- **REST API**: `/wp-json/extrachill/v1/ai-adventure` - AI Adventure game endpoint (via extrachill-api)
 - **Agentic Capabilities**: Full support for tools/function calling via ai-http-client (not currently used)
 - **Multi-Provider Support**: Library supports OpenAI, Anthropic, Google Gemini, Grok, OpenRouter
 - **Security**: Input sanitization, output escaping, capability checks

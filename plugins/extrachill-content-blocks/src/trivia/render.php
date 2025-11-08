@@ -1,15 +1,11 @@
 <?php
-/**
- * Trivia block render callback
- */
-
 if (!defined('ABSPATH')) {
     exit;
 }
 
 $question = isset($attributes['question']) ? $attributes['question'] : '';
 $options = isset($attributes['options']) ? $attributes['options'] : array('', '');
-$correct_answer = isset($attributes['correctAnswer']) ? $attributes['correctAnswer'] : 0;
+$correct_answer = isset($attributes['correctAnswer']) ? intval($attributes['correctAnswer']) : 0;
 $answer_justification = isset($attributes['answerJustification']) ? $attributes['answerJustification'] : '';
 $block_id = isset($attributes['blockId']) ? $attributes['blockId'] : uniqid('trivia_');
 $result_messages = isset($attributes['resultMessages']) ? $attributes['resultMessages'] : array(
@@ -23,11 +19,6 @@ $score_ranges = isset($attributes['scoreRanges']) ? $attributes['scoreRanges'] :
     'good' => 70,
     'okay' => 50
 );
-
-$question = wp_kses_post($question);
-$options = array_map('sanitize_text_field', $options);
-$correct_answer = intval($correct_answer);
-$answer_justification = wp_kses_post($answer_justification);
 
 if (empty($question) || empty(array_filter($options))) {
     return '';
@@ -46,7 +37,7 @@ ob_start();
 ?>
 <div <?php echo $wrapper_attributes; ?>>
     <div class="trivia-block__question">
-        <h3><?php echo $question; ?></h3>
+        <h3><?php echo wp_kses_post($question); ?></h3>
     </div>
     <div class="trivia-block__options">
         <?php foreach ($options as $index => $option) : ?>
@@ -65,7 +56,7 @@ ob_start();
     <?php if (!empty($answer_justification)) : ?>
         <div class="trivia-block__justification" style="display: none;">
             <div class="trivia-block__justification-content">
-                <?php echo $answer_justification; ?>
+                <?php echo wp_kses_post($answer_justification); ?>
             </div>
         </div>
     <?php endif; ?>

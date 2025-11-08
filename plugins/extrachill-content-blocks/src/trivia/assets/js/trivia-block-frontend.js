@@ -1,6 +1,6 @@
 /**
  * Trivia Block frontend JavaScript
- * Handles interactions, scoring, feedback, and analytics logging
+ * Handles interactions, scoring, and feedback
  */
 
 (function() {
@@ -124,7 +124,6 @@
         }
 
         updateScoreDisplay();
-        logAttempt(blockId, selectedIndex, isCorrect);
 
         if (triviaState.answeredQuestions.size === triviaState.totalQuestions) {
             showFinalResults();
@@ -236,34 +235,6 @@
                 }, 600);
             }, 800);
         }
-    }
-
-    function logAttempt(blockId, selectedOption, isCorrect) {
-        if (!window.triviaBlockAjax) {
-            return;
-        }
-
-        const data = {
-            block_id: blockId,
-            selected_option: selectedOption,
-            is_correct: isCorrect
-        };
-
-        fetch(window.triviaBlockAjax.restUrl + 'log-attempt', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-WP-Nonce': window.triviaBlockAjax.nonce
-            },
-            body: JSON.stringify(data)
-        })
-        .then(response => response.json())
-        .then(data => {
-            console.log('Attempt logged:', data);
-        })
-        .catch(error => {
-            console.log('Error logging attempt:', error);
-        });
     }
 
     function resetTrivia() {
