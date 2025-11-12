@@ -362,6 +362,15 @@ body.search-only-open .search-section {
     margin: 0 auto; /* Center the search section */
 }
 
+/* Allow clicks through to page content when search-only is open */
+body.search-only-open #primary-menu {
+    pointer-events: none; /* Container doesn't block clicks */
+}
+
+body.search-only-open .search-section {
+    pointer-events: auto; /* But search form itself is interactive */
+}
+
 /* Footer links within the menu */
 .menu-footer-links{
 	min-height: 40px;
