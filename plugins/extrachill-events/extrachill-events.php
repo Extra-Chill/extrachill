@@ -2,11 +2,11 @@
 /**
  * Plugin Name: Extra Chill Events
  * Plugin URI: https://extrachill.com
- * Description: Calendar integration with template overrides, dm-events badge/button styling, breadcrumb system, and related events for events.extrachill.com.
+ * Description: Calendar integration with template overrides, datamachine-events badge/button styling, breadcrumb system, and related events for events.extrachill.com.
  * Version: 1.0.0
  * Author: Chris Huber
  * Author URI: https://chubes.net
- * Requires Plugins: data-machine, dm-events
+ * Requires Plugins: datamachine, datamachine-events
  * License: GPL v2 or later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain: extrachill-events
@@ -32,7 +32,7 @@ define('EXTRACHILL_EVENTS_PLUGIN_FILE', __FILE__);
 /**
  * ExtraChillEvents
  *
- * Singleton class managing dm-events integration with homepage/archive template
+ * Singleton class managing datamachine-events integration with homepage/archive template
  * overrides, badge/button styling, breadcrumb system, and SEO redirects for
  * events.extrachill.com (blog ID 7).
  *
@@ -83,18 +83,18 @@ class ExtraChillEvents {
             require_once $autoload_file;
         }
 
-        require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/dm-events-integration.php';
+        require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/datamachine-events-integration.php';
         require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/breadcrumb-integration.php';
     }
 
     /**
      * Initialize event plugin integrations
      *
-     * Conditionally loads DmEventsIntegration if dm-events plugin is active.
+     * Conditionally loads DataMachineEventsIntegration if datamachine-events plugin is active.
      */
     private function init_integrations() {
-        if (class_exists('DmEvents\Core\Taxonomy_Badges')) {
-            $this->integrations['dm_events'] = new ExtraChillEvents\DmEventsIntegration();
+        if (class_exists('DataMachineEvents\Core\Taxonomy_Badges')) {
+            $this->integrations['datamachine_events'] = new ExtraChillEvents\DataMachineEventsIntegration();
         }
     }
 
@@ -120,7 +120,7 @@ extrachill_events();
 /**
  * Override homepage template for events.extrachill.com
  *
- * Replaces theme homepage with static page content plus dm-events calendar block.
+ * Replaces theme homepage with static page content plus datamachine-events calendar block.
  * Only applies on blog ID 7 (events.extrachill.com).
  *
  * @hook extrachill_template_homepage
@@ -139,7 +139,7 @@ add_filter( 'extrachill_template_homepage', 'ec_events_override_homepage_templat
 /**
  * Override archive template on events.extrachill.com
  *
- * Unified archive template renders dm-events calendar block with automatic
+ * Unified archive template renders datamachine-events calendar block with automatic
  * taxonomy filtering based on archive context. Applies to all archive types
  * including taxonomy, post type, date, and author archives.
  * Only applies on blog ID 7 (events.extrachill.com).
@@ -173,7 +173,7 @@ function ec_events_redirect_post_type_archive() {
 		return;
 	}
 
-	if ( is_post_type_archive( 'dm_events' ) ) {
+	if ( is_post_type_archive( 'datamachine_events' ) ) {
 		wp_redirect( home_url(), 301 );
 		exit;
 	}

@@ -88,7 +88,7 @@ function ec_events_breadcrumb_trail_archives( $custom_trail ) {
 		}
 	}
 
-	if ( is_post_type_archive( 'dm_events' ) ) {
+	if ( is_post_type_archive( 'datamachine_events' ) ) {
 		return '<span>Events</span>';
 	}
 
@@ -114,7 +114,7 @@ function ec_events_breadcrumb_trail_single( $custom_trail ) {
 		return $custom_trail;
 	}
 
-	if ( is_singular( 'dm_events' ) ) {
+	if ( is_singular( 'datamachine_events' ) ) {
 		return '<span class="breadcrumb-title">' . get_the_title() . '</span>';
 	}
 

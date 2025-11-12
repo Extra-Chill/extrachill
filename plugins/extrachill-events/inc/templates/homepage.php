@@ -3,7 +3,7 @@
  * Events Homepage Template
  *
  * Renders static homepage content configured via Settings → Reading → "A static page".
- * Supports dm-events calendar block via WordPress editor.
+ * Supports datamachine-events calendar block via WordPress editor.
  * Only applies on blog ID 7 (events.extrachill.com).
  *
  * @package ExtraChillEvents

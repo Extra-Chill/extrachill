@@ -2,7 +2,7 @@
 /**
  * DM Events Integration
  *
- * Complete dm-events integration: badge/button class mapping, breadcrumb override,
+ * Complete datamachine-events integration: badge/button class mapping, breadcrumb override,
  * related events, theme hook bridging, CSS enqueuing, and post meta management.
  *
  * @package ExtraChillEvents
@@ -16,38 +16,38 @@ if (!defined('ABSPATH')) {
 }
 
 /**
- * DmEventsIntegration
+ * DataMachineEventsIntegration
  *
- * Bridges dm-events plugin with ExtraChill theme via filters and actions.
+ * Bridges datamachine-events plugin with ExtraChill theme via filters and actions.
  * Enhances badge styling, button classes, breadcrumbs, and related events
- * without modifying dm-events templates.
+ * without modifying datamachine-events templates.
  *
  * @since 1.0.0
  */
-class DmEventsIntegration {
+class DataMachineEventsIntegration {
 
     public function __construct() {
         $this->init_hooks();
     }
 
     private function init_hooks() {
-        if (class_exists('DmEvents\Core\Taxonomy_Badges')) {
-            add_filter('dm_events_badge_wrapper_classes', array($this, 'add_wrapper_classes'), 10, 2);
-            add_filter('dm_events_badge_classes', array($this, 'add_badge_classes'), 10, 4);
-            add_filter('dm_events_excluded_taxonomies', array($this, 'exclude_venue_taxonomy'));
+        if (class_exists('DataMachineEvents\Core\Taxonomy_Badges')) {
+            add_filter('datamachine_events_badge_wrapper_classes', array($this, 'add_wrapper_classes'), 10, 2);
+            add_filter('datamachine_events_badge_classes', array($this, 'add_badge_classes'), 10, 4);
+            add_filter('datamachine_events_excluded_taxonomies', array($this, 'exclude_venue_taxonomy'));
         }
 
-        if (class_exists('DmEvents\Core\Breadcrumbs')) {
-            add_filter('dm_events_breadcrumbs', array($this, 'override_breadcrumbs'), 10, 2);
+        if (class_exists('DataMachineEvents\Core\Breadcrumbs')) {
+            add_filter('datamachine_events_breadcrumbs', array($this, 'override_breadcrumbs'), 10, 2);
         }
 
-        add_filter('dm_events_modal_button_classes', array($this, 'add_modal_button_classes'), 10, 2);
-        add_filter('dm_events_ticket_button_classes', array($this, 'add_ticket_button_classes'), 10, 1);
+        add_filter('datamachine_events_modal_button_classes', array($this, 'add_modal_button_classes'), 10, 2);
+        add_filter('datamachine_events_ticket_button_classes', array($this, 'add_ticket_button_classes'), 10, 1);
 
-        add_action('dm_events_related_events', array($this, 'display_related_events'), 10, 1);
-        add_action('dm_events_before_single_event', array($this, 'before_single_event'));
-        add_action('dm_events_after_single_event', array($this, 'after_single_event'));
-        add_action('dm_events_action_buttons', array($this, 'render_share_button'), 10, 2);
+        add_action('datamachine_events_related_events', array($this, 'display_related_events'), 10, 1);
+        add_action('datamachine_events_before_single_event', array($this, 'before_single_event'));
+        add_action('datamachine_events_after_single_event', array($this, 'after_single_event'));
+        add_action('datamachine_events_action_buttons', array($this, 'render_share_button'), 10, 2);
 
         add_filter('extrachill_post_meta', array($this, 'hide_post_meta_for_events'), 10, 3);
 
@@ -58,8 +58,8 @@ class DmEventsIntegration {
     /**
      * Add theme-compatible wrapper class to badge container
      *
-     * @hook dm_events_badge_wrapper_classes
-     * @param array $wrapper_classes Default wrapper classes from dm-events
+     * @hook datamachine_events_badge_wrapper_classes
+     * @param array $wrapper_classes Default wrapper classes from datamachine-events
      * @param int $post_id Event post ID
      * @return array Enhanced wrapper classes with theme compatibility
      * @since 1.0.0
@@ -75,8 +75,8 @@ class DmEventsIntegration {
      * Enables custom colors from theme's badge-colors.css via taxonomy-specific
      * classes (e.g., festival-bonnaroo, location-charleston).
      *
-     * @hook dm_events_badge_classes
-     * @param array $badge_classes Default badge classes from dm-events
+     * @hook datamachine_events_badge_classes
+     * @param array $badge_classes Default badge classes from datamachine-events
      * @param string $taxonomy_slug Taxonomy name (festival, venue, location, etc.)
      * @param \WP_Term $term The taxonomy term object
      * @param int $post_id Event post ID
@@ -107,7 +107,7 @@ class DmEventsIntegration {
      * Venue taxonomy displayed separately via dedicated metadata fields.
      * Artist taxonomy excluded to prevent redundant display with artist-specific metadata.
      *
-     * @hook dm_events_excluded_taxonomies
+     * @hook datamachine_events_excluded_taxonomies
      * @param array $excluded Array of taxonomy slugs to exclude
      * @return array Enhanced exclusion array with venue and artist taxonomies
      * @since 1.0.0
@@ -119,14 +119,14 @@ class DmEventsIntegration {
     }
 
     /**
-     * Add theme button classes to dm-events modal buttons
+     * Add theme button classes to datamachine-events modal buttons
      *
      * Maps WordPress admin button classes (button-primary/secondary) to theme
      * button styling classes. Primary buttons get button-1 (blue accent) with
      * large size, secondary buttons get button-3 (neutral) with medium size.
      *
-     * @hook dm_events_modal_button_classes
-     * @param array $classes Default button classes from dm-events
+     * @hook datamachine_events_modal_button_classes
+     * @param array $classes Default button classes from datamachine-events
      * @param string $button_type Button type ('primary' or 'secondary')
      * @return array Enhanced button classes with theme styling
      * @since 1.0.0
@@ -146,13 +146,13 @@ class DmEventsIntegration {
     }
 
     /**
-     * Add theme button classes to dm-events ticket button
+     * Add theme button classes to datamachine-events ticket button
      *
      * Applies primary theme button styling (button-1) with large size
      * to ticket purchase links for prominent call-to-action appearance.
      *
-     * @hook dm_events_ticket_button_classes
-     * @param array $classes Default button classes from dm-events
+     * @hook datamachine_events_ticket_button_classes
+     * @param array $classes Default button classes from datamachine-events
      * @return array Enhanced button classes with theme styling
      * @since 1.0.0
      */
@@ -163,12 +163,12 @@ class DmEventsIntegration {
     }
 
     /**
-     * Override dm-events breadcrumbs with theme breadcrumb system
+     * Override datamachine-events breadcrumbs with theme breadcrumb system
      *
-     * Replaces dm-events breadcrumbs with theme's display_breadcrumbs() function
+     * Replaces datamachine-events breadcrumbs with theme's display_breadcrumbs() function
      * for consistent breadcrumb styling across site.
      *
-     * @hook dm_events_breadcrumbs
+     * @hook datamachine_events_breadcrumbs
      * @param string|null $breadcrumbs Plugin's default breadcrumb HTML
      * @param int $post_id Event post ID
      * @return string|null Theme breadcrumb HTML if available, otherwise plugin default
@@ -190,7 +190,7 @@ class DmEventsIntegration {
      * Uses theme's related posts function to show events from same festival/venue.
      * Only applies on blog ID 7 (events.extrachill.com).
      *
-     * @hook dm_events_related_events
+     * @hook datamachine_events_related_events
      * @param int $event_id Event post ID
      * @return void
      * @since 1.0.0
@@ -207,9 +207,9 @@ class DmEventsIntegration {
     }
 
     /**
-     * Bridge dm-events before-event hook to theme's before-content hook
+     * Bridge datamachine-events before-event hook to theme's before-content hook
      *
-     * @hook dm_events_before_single_event
+     * @hook datamachine_events_before_single_event
      * @return void
      * @since 1.0.0
      */
@@ -218,9 +218,9 @@ class DmEventsIntegration {
     }
 
     /**
-     * Bridge dm-events after-event hook to theme's after-content hook
+     * Bridge datamachine-events after-event hook to theme's after-content hook
      *
-     * @hook dm_events_after_single_event
+     * @hook datamachine_events_after_single_event
      * @return void
      * @since 1.0.0
      */
@@ -229,19 +229,19 @@ class DmEventsIntegration {
     }
 
     /**
-     * Hide post meta for dm_events post type
+     * Hide post meta for datamachine_events post type
      *
-     * Event meta handled by dm-events plugin, prevents duplicate display.
+     * Event meta handled by datamachine-events plugin, prevents duplicate display.
      *
      * @hook extrachill_post_meta
      * @param string $default_meta Default post meta HTML from theme
      * @param int $post_id Post ID
      * @param string $post_type Post type
-     * @return string Empty for dm_events, unchanged for other post types
+     * @return string Empty for datamachine_events, unchanged for other post types
      * @since 1.0.0
      */
     public function hide_post_meta_for_events($default_meta, $post_id, $post_type) {
-        if ($post_type === 'dm_events') {
+        if ($post_type === 'datamachine_events') {
             return '';
         }
         return $default_meta;
@@ -250,7 +250,7 @@ class DmEventsIntegration {
     /**
      * Enqueue single event page styles
      *
-     * Loads three CSS files for dm_events post type:
+     * Loads three CSS files for datamachine_events post type:
      * 1. Theme's single-post.css (post layout and typography)
      * 2. Theme's sidebar.css (sidebar styling)
      * 3. Plugin's single-event.css (event-specific card treatment and action buttons)
@@ -260,7 +260,7 @@ class DmEventsIntegration {
      * @since 1.0.0
      */
     public function enqueue_single_post_styles() {
-        if (!is_singular('dm_events')) {
+        if (!is_singular('datamachine_events')) {
             return;
         }
 
@@ -332,7 +332,7 @@ class DmEventsIntegration {
      * Displays share button alongside ticket button using flexbox container.
      * Only applies on blog ID 7 (events.extrachill.com).
      *
-     * @hook dm_events_action_buttons
+     * @hook datamachine_events_action_buttons
      * @param int $post_id Event post ID
      * @param string $ticket_url Ticket URL (may be empty)
      * @return void
