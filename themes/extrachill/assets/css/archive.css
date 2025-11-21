@@ -83,16 +83,10 @@ a.card-link-target:hover,
   border: 1px solid var(--border-color);
 }
 
-/* Archive filter bar button styling */
+/* Archive filter bar button styling - buttons should use .button-1 class in HTML */
 #extrachill-custom-sorting button {
-  background-color: var(--button-bg);
-  color: var(--button-text);
   font-weight: 500;
   cursor: pointer;
-}
-
-#extrachill-custom-sorting button:hover {
-  background-color: var(--button-hover-bg);
 }
 
 /*
@@ -144,34 +138,24 @@ a.card-link-target:hover,
     margin-bottom: 1.5em;
 }
 
+/* Back home link - should use .button-1 class in HTML */
 .back-home-link {
     display: inline-block;
-    padding: var(--button-padding-medium);
-    font-size: var(--button-font-size-medium);
-    font-weight: 700;
-    color: var(--button-text);
-    background-color: var(--button-bg);
-    border-radius: 8px;
     text-decoration: none;
-    transition: background-color 0.2s, transform 0.2s;
+    transition: transform 0.2s;
     box-shadow: 0 2px 8px rgba(0,0,0,0.08);
 }
 
 .back-home-link:hover,
 .back-home-link:focus {
-    background-color: var(--button-hover-bg);
     transform: translateY(-2px);
-    color: var(--button-text);
     outline: none;
 }
 
 
-/* Archive-specific button styling improvements */
+/* Archive-specific button styling - buttons should use .button-1 class in HTML */
 .archive-card .read-more-button {
-    padding: var(--button-padding-medium);
-    border-radius: 8px; /* Rounder corners to match site button standards */
-    font-size: var(--button-font-size-medium);
-    font-weight: 500; /* Medium weight for better visual hierarchy */
+    font-weight: 500;
 }
 
 /* Archive and Search Styles (moved from style.css) */
@@ -252,14 +236,8 @@ a.card-link-target:hover,
 .page-template-all-posts .page-header .page-title {
 	margin-bottom: 0;
 }
+/* View all button - should use .button-1 class in HTML */
 .view-all-button, .all-link {
-    background-color: var(--button-bg);
-    color: var(--button-text);
     padding: 3px 8px;
     font-size: 14px;
-    border-radius: 3px;
-}
-.view-all-button:hover, .all-link:hover {
-	background-color: var(--button-hover-bg);
-	color: var(--button-text);
 }

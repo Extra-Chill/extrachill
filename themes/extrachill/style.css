@@ -158,7 +158,7 @@ table {
 
 th {
 	font-weight: bold;
-	border: 1px solid #EAEAEA;
+	border: 1px solid var(--border-color);
 }
 .post tbody tr td {
     font-size: 12px;
@@ -231,7 +231,7 @@ pre {
 	margin-bottom: 20px;
 	overflow: auto;
 	padding: 20px;
-	border: 1px solid #EAEAEA;
+	border: 1px solid var(--border-color);
   font-family: 'Helvetica', Arial, sans-serif;
 	font-size: 14px;
 	line-height: 1.4;
@@ -257,7 +257,7 @@ address {
 }
 
 hr {
-	border-color: #eaeaea;
+	border-color: var(--border-color);
 	border-style: solid none none;
 	border-width: 1px 0 0;
 	height: 0;
@@ -983,118 +983,16 @@ Notice System - 3 Tiers Using Theme Colors
 }
 
 .notice-error {
-  background-color: var(--card-background);
-  border-left-color: #dc3232;
+   background-color: var(--card-background);
+   border-left-color: var(--error-color);
 }
 
 /*--------------------------------------------------------------
-Button System - Explicit Color + Size Classes
+Button System - Moved to root.css
+Button classes (.button-1, .button-2, .button-3, .button-danger)
+and size classes (.button-small, .button-medium, .button-large)
+are now defined in root.css as single source of truth
 --------------------------------------------------------------*/
-
-/* Base styles shared by ALL button colors */
-.button-1, .button-2, .button-3, .button-danger,
-a.button-1, a.button-2, a.button-3, a.button-danger,
-input.button-1, input.button-2, input.button-3, input.button-danger,
-button.button-1, button.button-2, button.button-3, button.button-danger {
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-  display: inline-block;
-  text-decoration: none;
-  transition: background-color 0.3s ease;
-  line-height: 1.4;
-  color: #fff;
-}
-
-/* Button-1: Primary/Accent */
-.button-1,
-a.button-1,
-input.button-1,
-button.button-1 {
-  background-color: #0b5394;
-}
-
-.button-1:hover,
-a.button-1:hover,
-input.button-1:hover,
-button.button-1:hover {
-  background-color: #083b6c;
-  text-decoration: none;
-}
-
-/* Button-2: Green/Secondary */
-.button-2,
-a.button-2,
-input.button-2,
-button.button-2 {
-  background-color: #53940b;
-}
-
-.button-2:hover,
-a.button-2:hover,
-input.button-2:hover,
-button.button-2:hover {
-  background-color: #3d6b08;
-}
-
-/* Button-3: Neutral/Tertiary */
-.button-3,
-a.button-3,
-input.button-3,
-button.button-3 {
-  background-color: var(--card-background);
-  border: 1px solid var(--border-color);
-  color: var(--muted-text);
-}
-
-.button-3:hover,
-a.button-3:hover,
-input.button-3:hover,
-button.button-3:hover {
-  background-color: var(--border-color);
-}
-
-/* Button-Danger: Red/Destructive */
-.button-danger,
-a.button-danger,
-input.button-danger,
-button.button-danger {
-  background-color: var(--error-color, #dc3232);
-  color: #fff;
-}
-
-.button-danger:hover,
-a.button-danger:hover,
-input.button-danger:hover,
-button.button-danger:hover {
-  background-color: var(--error-color, #dc3232);
-  opacity: 0.8;
-}
-
-/* Size Variants */
-.button-small,
-a.button-small,
-input.button-small,
-button.button-small {
-  padding: 6px 12px;
-  font-size: 13px;
-}
-
-.button-medium,
-a.button-medium,
-input.button-medium,
-button.button-medium {
-  padding: 8px 16px;
-  font-size: 14px;
-}
-
-.button-large,
-a.button-large,
-input.button-large,
-button.button-large {
-  padding: 12px 24px;
-  font-size: 16px;
-}
 
 /* Back to Home Link */
 .back-to-home-container {
@@ -1107,7 +1005,7 @@ button.button-large {
 .community-activity-list,
 .extrachill-recent-activity {
 	font-size: 15px;
-	border-top: 1px solid #d4d4d4;
+	border-top: 1px solid var(--border-color);
 }
 
 .community-activity-list ul,
@@ -1120,7 +1018,7 @@ button.button-large {
 
 .community-activity-list ul li,
 .extrachill-recent-activity ul li {
-	border-bottom: 1px solid #d4d4d4;
+	border-bottom: 1px solid var(--border-color);
 	width: max-content;
 	padding: 5px 0;
 	list-style: none;

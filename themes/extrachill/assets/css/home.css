@@ -125,7 +125,7 @@
 }
 .home-3x3-title:hover,
 .home-3x3-title:focus {
-    color: var(--button-bg);
+    color: var(--link-hover-color);
     text-decoration: underline;
 }
 .home-3x3-meta {
@@ -207,7 +207,7 @@
 }
 .home-more-recent-title:hover,
 .home-more-recent-title:focus {
-    color: var(--button-bg);
+    color: var(--link-hover-color);
     text-decoration: underline;
 }
 .home-more-recent-meta {

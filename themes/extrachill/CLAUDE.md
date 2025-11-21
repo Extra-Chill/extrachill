@@ -236,7 +236,7 @@ wp rewrite flush
 - `inc/core/templates/no-results.php` - No results found template
 - `inc/core/templates/share.php` - Social sharing functionality
 - `inc/core/templates/social-links.php` - Social media links
-- `inc/core/templates/taxonomy-badges.php` - Taxonomy badge display
+- `inc/core/templates/taxonomy-badges.php` - Taxonomy badge display with 3-term limit per taxonomy (smart selection by post count, then alphabetical)
 - `inc/core/templates/breadcrumbs.php` - Breadcrumb navigation
 - `inc/core/templates/searchform.php` - Search form template
 - `inc/core/templates/404.php` - 404 error page template

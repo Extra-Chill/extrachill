@@ -20,13 +20,13 @@ h2.recent-title {
 
 /* Sidebar Card Layout */
 .sidebar-card {
-	background: var(--card-background, #181818);
+	background: var(--card-background);
 	border-radius: 14px;
 	box-shadow: 0 2px 12px rgba(0,0,0,0.10);
 	margin-bottom: 2em;
 	padding: 1.5em 1.2em 1.2em 1.2em;
 	transition: box-shadow 0.18s;
-	border: 1px solid var(--border-color, #333);
+	border: 1px solid var(--border-color);
 }
 
 @media (max-width: 700px) {
@@ -47,28 +47,28 @@ h2.recent-title {
 }
 
 .sidebar-tax-link {
-	color: var(--accent, #79c031);
+	color: var(--accent);
 	text-decoration: underline;
 	font-weight: 700;
 }
 
 .sidebar-tax-link:hover {
-	color: var(--button-hover-bg, #003466);
+	color: #083b6c;
 	text-decoration: underline;
 }
 
 .my-recent-posts .post:not(:last-child) {
 	margin-bottom: 1.3em;
 	padding-bottom: 1.1em;
-	border-bottom: 1px solid var(--border-color, #333);
+	border-bottom: 1px solid var(--border-color);
 }
 
 /* Sidebar Mini Card Styles for Festival Wire */
 .my-recent-posts .mini-card {
-	background: var(--card-background, #191d1a);
+	background: var(--card-background);
 	border-radius: 10px;
 	box-shadow: 0 2px 8px rgba(83,148,11,0.07);
-	border: 1.5px solid var(--border-color, #333);
+	border: 1.5px solid var(--border-color);
 	padding: 1.1em 1em 0.7em 1em;
 	margin-bottom: 1.1em;
 	transition: box-shadow 0.18s, background 0.18s;
@@ -77,7 +77,7 @@ h2.recent-title {
 }
 
 .my-recent-posts .mini-card:hover {
-	background: var(--button-hover-bg, #232323);
+	/* Hover background - consider using button classes if these become clickable elements */
 	box-shadow: 0 4px 16px rgba(83,148,11,0.13);
 }
 
@@ -85,12 +85,12 @@ h2.recent-title {
 	font-size: 1.08em;
 	font-weight: 700;
 	margin: 0.2em 0 0.1em 0;
-	color: var(--link-color, #79c031);
+	color: var(--link-color);
 	letter-spacing: 0.01em;
 }
 
 .my-recent-posts .mini-card .recent-title a {
-	color: var(--link-color, #79c031);
+	color: var(--link-color);
 	text-decoration: none;
 	transition: color 0.18s;
 }
@@ -104,7 +104,7 @@ h2.recent-title {
 
 /* Sidebar Widget Title Contrast */
 .my-recent-posts .widget-title.sidebar-recent-title-margin {
-	background: var(--card-background, #191d1a);
+	background: var(--card-background);
 	color: var(--text-color);
 	border-radius: 8px 8px 0 0;
 	font-family: 'Loft Sans', 'Montserrat', 'Arial', sans-serif;
@@ -114,7 +114,7 @@ h2.recent-title {
 	text-transform: uppercase;
 	padding: 0.6em 0.7em 0.4em 0.7em;
 	margin-bottom: 0.7em;
-	border-bottom: 2px solid #79c031;
+	border-bottom: 2px solid var(--accent);
 	box-shadow: none;
 	text-align: left;
 }
