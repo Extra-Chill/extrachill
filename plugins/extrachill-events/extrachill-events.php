@@ -9,8 +9,7 @@
  * Requires Plugins: datamachine, datamachine-events
  * License: GPL v2 or later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
- * Text Domain: extrachill-events
- * Domain Path: /languages
+ * Text Domain: datamachine-events
  * Requires at least: 5.0
  * Tested up to: 6.4
  * Requires PHP: 7.4
@@ -20,14 +19,14 @@
  * @since 1.0.0
  */
 
-if (!defined('ABSPATH')) {
-    exit;
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
 }
 
-define('EXTRACHILL_EVENTS_VERSION', '1.0.0');
-define('EXTRACHILL_EVENTS_PLUGIN_DIR', plugin_dir_path(__FILE__));
-define('EXTRACHILL_EVENTS_PLUGIN_URL', plugin_dir_url(__FILE__));
-define('EXTRACHILL_EVENTS_PLUGIN_FILE', __FILE__);
+define( 'EXTRACHILL_EVENTS_VERSION', '1.0.0' );
+define( 'EXTRACHILL_EVENTS_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
+define( 'EXTRACHILL_EVENTS_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
+define( 'EXTRACHILL_EVENTS_PLUGIN_FILE', __FILE__ );
 
 /**
  * ExtraChillEvents
@@ -40,79 +39,79 @@ define('EXTRACHILL_EVENTS_PLUGIN_FILE', __FILE__);
  */
 class ExtraChillEvents {
 
-    private static $instance = null;
-    private $integrations = array();
+	private static $instance = null;
+	private $integrations    = array();
 
-    /**
-     * Get singleton instance
-     *
-     * @return ExtraChillEvents
-     */
-    public static function get_instance() {
-        if (null === self::$instance) {
-            self::$instance = new self();
-        }
-        return self::$instance;
-    }
+	/**
+	 * Get singleton instance
+	 *
+	 * @return ExtraChillEvents
+	 */
+	public static function get_instance() {
+		if ( null === self::$instance ) {
+			self::$instance = new self();
+		}
+		return self::$instance;
+	}
 
-    private function __construct() {
-        $this->init_hooks();
-        $this->load_dependencies();
-        $this->init_integrations();
-    }
+	private function __construct() {
+		$this->init_hooks();
+		$this->load_dependencies();
+		$this->init_integrations();
+	}
 
-    private function init_hooks() {
-        add_action('plugins_loaded', array($this, 'load_textdomain'));
-        register_activation_hook(__FILE__, array($this, 'activate'));
-        register_deactivation_hook(__FILE__, array($this, 'deactivate'));
-    }
+	private function init_hooks() {
+		add_action( 'plugins_loaded', array( $this, 'load_textdomain' ) );
+		register_activation_hook( __FILE__, array( $this, 'activate' ) );
+		register_deactivation_hook( __FILE__, array( $this, 'deactivate' ) );
+	}
 
-    public function load_textdomain() {
-        load_plugin_textdomain('extrachill-events', false, dirname(plugin_basename(__FILE__)) . '/languages');
-    }
+	public function load_textdomain() {
+		load_plugin_textdomain( 'datamachine-events' );
+	}
 
-    /**
-     * Load plugin dependencies via direct includes
-     *
-     * Composer autoloader exists for development dependencies only.
-     * All plugin code uses direct require_once includes.
-     */
-    private function load_dependencies() {
-        $autoload_file = EXTRACHILL_EVENTS_PLUGIN_DIR . 'vendor/autoload.php';
-        if (file_exists($autoload_file)) {
-            require_once $autoload_file;
-        }
+	/**
+	 * Load plugin dependencies via direct includes
+	 *
+	 * Composer autoloader exists for development dependencies only.
+	 * All plugin code uses direct require_once includes.
+	 */
+	private function load_dependencies() {
+		$autoload_file = EXTRACHILL_EVENTS_PLUGIN_DIR . 'vendor/autoload.php';
+		if ( file_exists( $autoload_file ) ) {
+			require_once $autoload_file;
+		}
 
-        require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/datamachine-events-integration.php';
-        require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/breadcrumb-integration.php';
-    }
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/datamachine-events-integration.php';
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/breadcrumb-integration.php';
+	}
 
-    /**
-     * Initialize event plugin integrations
-     *
-     * Conditionally loads DataMachineEventsIntegration if datamachine-events plugin is active.
-     */
-    private function init_integrations() {
-        if (class_exists('DataMachineEvents\Core\Taxonomy_Badges')) {
-            $this->integrations['datamachine_events'] = new ExtraChillEvents\DataMachineEventsIntegration();
-        }
-    }
+	/**
+	 * Initialize event plugin integrations
+	 *
+	 * Conditionally loads DataMachineEventsIntegration if datamachine-events plugin is active.
+	 */
+	private function init_integrations() {
+		if ( class_exists( 'DataMachineEvents\Core\Taxonomy_Badges' ) ) {
+			$this->integrations['datamachine_events'] = new ExtraChillEvents\DataMachineEventsIntegration();
+		}
+	}
 
-    public function activate() {
-        flush_rewrite_rules();
-    }
+	public function activate() {
+		flush_rewrite_rules();
+	}
 
-    public function deactivate() {
-        flush_rewrite_rules();
-    }
+	public function deactivate() {
+		flush_rewrite_rules();
+	}
 
-    public function get_integrations() {
-        return $this->integrations;
-    }
+	public function get_integrations() {
+		return $this->integrations;
+	}
 }
 
 function extrachill_events() {
-    return ExtraChillEvents::get_instance();
+	return ExtraChillEvents::get_instance();
 }
 
 extrachill_events();

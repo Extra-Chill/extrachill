@@ -9,7 +9,7 @@
  * @since 1.0.0
  */
 
-.dm-event-details .event-info-grid {
+.datamachine-event-details .event-info-grid {
     background: var(--background-color);
     border: 1px solid var(--border-color);
     border-radius: 12px;
@@ -19,7 +19,7 @@
 }
 
 /* Event Action Buttons Container (Ticket + Share) */
-.dm-event-details .event-action-buttons {
+.datamachine-event-details .event-action-buttons {
     display: flex;
     justify-content: center;
     align-items: center;
@@ -28,21 +28,21 @@
 }
 
 /* Ensure share button container fits in flexbox */
-.dm-event-details .event-action-buttons .share-button-container {
+.datamachine-event-details .event-action-buttons .share-button-container {
     margin: 0;
 }
 
-.dm-event-details .event-action-buttons .share-button {
+.datamachine-event-details .event-action-buttons .share-button {
     margin: 0;
 }
 
 @media (max-width: 768px) {
-    .dm-event-details .event-info-grid {
+    .datamachine-event-details .event-info-grid {
         padding: 1.2em;
         border-radius: 10px;
     }
 
-    .dm-event-details .event-action-buttons {
+    .datamachine-event-details .event-action-buttons {
         flex-direction: column;
         gap: 0.75rem;
     }

@@ -298,6 +298,17 @@ class DataMachineEventsIntegration {
                 filemtime($single_event_css)
             );
         }
+
+        $share_css = get_template_directory() . '/assets/css/share.css';
+
+        if (file_exists($share_css)) {
+            wp_enqueue_style(
+                'extrachill-share',
+                get_template_directory_uri() . '/assets/css/share.css',
+                array('extrachill-style'),
+                filemtime($share_css)
+            );
+        }
     }
 
     /**
