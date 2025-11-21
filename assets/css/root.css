@@ -12,6 +12,9 @@
     --accent-2: #36454F;
     --accent-2-rgb: 54, 69, 79; /* RGB for #36454F */
     --accent-3: #00c8e3;
+    /* State Colors */
+    --error-color: #dc3232;
+    --success-color: #28a745;
     /* Notices */
     --notice-bg: #c8e6c9;
     --notice-border: #0b5394; /* Same as link-color for consistency */
@@ -42,6 +45,9 @@
         --accent-2: #a8c0d0;
         --accent-2-rgb: 168, 192, 208; /* RGB for #a8c0d0 */
         --accent-3:#00e0ff;  /* brighter electric blue accent */
+        /* State Colors */
+        --error-color: #ff6b6b;
+        --success-color: #46b450;
         /* Notices */
         --notice-bg: #1e1e1e;
         --notice-border: #444;
@@ -55,4 +61,114 @@
         --focus-border-color: #8aa6bf;
         --focus-box-shadow: 0 0 0 3px rgba(138, 166, 191, 0.2);
     }
+}
+
+/*--------------------------------------------------------------
+Button System - Explicit Color + Size Classes
+Single source of truth for all button styling across the platform
+--------------------------------------------------------------*/
+
+/* Base styles shared by ALL button colors */
+.button-1, .button-2, .button-3, .button-danger,
+a.button-1, a.button-2, a.button-3, a.button-danger,
+input.button-1, input.button-2, input.button-3, input.button-danger,
+button.button-1, button.button-2, button.button-3, button.button-danger {
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  display: inline-block;
+  text-decoration: none;
+  transition: background-color 0.3s ease;
+  line-height: 1.4;
+  color: #fff;
+}
+
+/* Button-1: Primary/Accent */
+.button-1,
+a.button-1,
+input.button-1,
+button.button-1 {
+  background-color: #0b5394;
+}
+
+.button-1:hover,
+a.button-1:hover,
+input.button-1:hover,
+button.button-1:hover {
+  background-color: #083b6c;
+  text-decoration: none;
+}
+
+/* Button-2: Green/Secondary */
+.button-2,
+a.button-2,
+input.button-2,
+button.button-2 {
+  background-color: #53940b;
+}
+
+.button-2:hover,
+a.button-2:hover,
+input.button-2:hover,
+button.button-2:hover {
+  background-color: #3d6b08;
+}
+
+/* Button-3: Neutral/Tertiary */
+.button-3,
+a.button-3,
+input.button-3,
+button.button-3 {
+  background-color: var(--card-background);
+  border: 1px solid var(--border-color);
+  color: var(--muted-text);
+}
+
+.button-3:hover,
+a.button-3:hover,
+input.button-3:hover,
+button.button-3:hover {
+  background-color: var(--border-color);
+}
+
+/* Button-Danger: Red/Destructive */
+.button-danger,
+a.button-danger,
+input.button-danger,
+button.button-danger {
+  background-color: var(--error-color);
+  color: #fff;
+}
+
+.button-danger:hover,
+a.button-danger:hover,
+input.button-danger:hover,
+button.button-danger:hover {
+  background-color: var(--error-color);
+  opacity: 0.8;
+}
+
+/* Size Variants */
+.button-small,
+a.button-small,
+input.button-small,
+button.button-small {
+  padding: 6px 12px;
+  font-size: 13px;
+}
+
+.button-medium,
+a.button-medium,
+input.button-medium,
+button.button-medium {
+  padding: 8px 16px;
+  font-size: 14px;
+}
+
+.button-large,
+a.button-large,
+input.button-large,
+button.button-large {
+  padding: 12px 24px;
+  font-size: 16px;
 } 

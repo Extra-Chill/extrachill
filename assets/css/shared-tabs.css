@@ -11,7 +11,7 @@
 }
 
 .shared-tab-item {
-  border: 1px solid var(--border-color, #e0e4ea);
+  border: 1px solid var(--border-color);
   border-radius: 8px;
   margin-bottom: 1em; /* Spacing between accordion items */
   overflow: hidden; /* Clip content for rounded corners */
@@ -22,10 +22,10 @@
 }
 
 .shared-tab-button {
-  background: var(--card-background, #fff);
-  color: var(--text-color, #333);
+  background: var(--card-background);
+  color: var(--text-color);
   border: none;
-  border-bottom: 1px solid var(--border-color, #e0e4ea);
+  border-bottom: 1px solid var(--border-color);
   padding: 0.9em 1.2em;
   font-size: 1.05em;
   font-weight: 600;
@@ -65,18 +65,18 @@
 
 
 .shared-tab-button.active {
-  background: var(--background-color, #f9f9f9);
-  color: var(--link-color, #0073aa);
+  background: var(--background-color);
+  color: var(--link-color);
   /* border-bottom-color: transparent; /* Hide border when content is shown directly below if desired */
 }
 
 .shared-tab-button:not(.active):hover {
-  background: var(--muted-text, #f0f0f0);
-  color: var(--background-color, #333); /* Check if this color contrast is good */
+  background: var(--muted-text);
+  color: var(--background-color); /* Check if this color contrast is good */
 }
 
 .shared-tab-pane {
-  background: var(--background-color, #f9f9f9);
+  background: var(--background-color);
   box-shadow: none;
   padding: 1em 1.2em; /* More padding for content usually */
   margin-bottom: 0;
@@ -104,7 +104,7 @@
   }
 
   .shared-tab-button {
-    border: 1px solid var(--border-color, #e0e4ea);
+    border: 1px solid var(--border-color);
     border-bottom: none; /* Tab buttons sit on top of the content area */
     border-radius: 8px 8px 0 0;
     padding: 0.7em 1.4em;
@@ -114,16 +114,16 @@
     width: auto; /* Allow button to size to its content */
     text-align: center;
     margin-right: 0.4em;
-    background: var(--card-background, #fff);
-    color: var(--text-color, #333);
+    background: var(--card-background);
+    color: var(--text-color);
     z-index: 2; /* Ensure tabs are above the content area border */
-    border-bottom: 1px solid var(--border-color, #e0e4ea); /* Default bottom border for non-active tabs */
+    border-bottom: 1px solid var(--border-color); /* Default bottom border for non-active tabs */
   }
 
   .shared-tab-button.active {
-    background: var(--background-color, #f9f9f9); /* Usually the same as content area bg */
-    color: var(--link-color, #0073aa);
-    border-bottom: 1px solid var(--background-color, #f9f9f9); /* Active tab's bottom border blends with content area */
+    background: var(--background-color); /* Usually the same as content area bg */
+    color: var(--link-color);
+    border-bottom: 1px solid var(--background-color); /* Active tab's bottom border blends with content area */
     z-index: 3; /* Active tab slightly more prominent */
   }
   
@@ -140,10 +140,10 @@
   }
 
   .shared-desktop-tab-content-area {
-    background: var(--background-color, #f9f9f9);
-    border: 1px solid var(--border-color, #e0e4ea);
+    background: var(--background-color);
+    border: 1px solid var(--border-color);
     border-radius: 0 8px 8px 8px; /* Rounded corners, except top-left if first tab is active */
-    /* box-shadow: var(--card-shadow, 0 1px 1px rgba(0,0,0,.04)); */
+    /* box-shadow: var(--card-shadow); */
     padding: 1.5em 1.2em;
     margin-bottom: 0.5em;
     position: relative;

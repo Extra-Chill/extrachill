@@ -92,27 +92,43 @@ function extrachill_display_taxonomy_badges( $post_id = null, $args = array() ) 
               continue;
           }
 
-        foreach ( $terms as $term ) {
-            $term_slug = sanitize_html_class( $term->slug );
-            $badge_class = $taxonomy . '-badge';
+         // Limit to maximum 3 terms per taxonomy with smart selection
+         if ( count( $terms ) > 3 ) {
+             // Sort by post count (descending), then alphabetically (ascending)
+             usort( $terms, function( $a, $b ) {
+                 // Primary sort: higher post count first
+                 if ( $a->count !== $b->count ) {
+                     return $b->count - $a->count;
+                 }
+                 // Secondary sort: alphabetical by name
+                 return strcmp( $a->name, $b->name );
+             } );
 
-            // Add taxonomy-specific class modifier for categories (maintains CSS compatibility)
-            if ( $taxonomy === 'category' ) {
-                $badge_class .= ' category-' . $term_slug . '-badge';
-            } else {
-                $badge_class .= ' ' . $taxonomy . '-' . $term_slug;
-            }
+             // Take only the top 3 terms
+             $terms = array_slice( $terms, 0, 3 );
+         }
 
-            // Use manually constructed cross-site link if available, otherwise use get_term_link()
-            $term_link = isset( $term->cross_site_link ) ? $term->cross_site_link : get_term_link( $term );
+         foreach ( $terms as $term ) {
+             $term_slug = sanitize_html_class( $term->slug );
+             $badge_class = $taxonomy . '-badge';
 
-            $badges_html .= sprintf(
-                '<a href="%s" class="taxonomy-badge %s">%s</a>',
-                esc_url( $term_link ),
-                esc_attr( $badge_class ),
-                esc_html( $term->name )
-            );
-        }
+             // Add taxonomy-specific class modifier for categories (maintains CSS compatibility)
+             if ( $taxonomy === 'category' ) {
+                 $badge_class .= ' category-' . $term_slug . '-badge';
+             } else {
+                 $badge_class .= ' ' . $taxonomy . '-' . $term_slug;
+             }
+
+             // Use manually constructed cross-site link if available, otherwise use get_term_link()
+             $term_link = isset( $term->cross_site_link ) ? $term->cross_site_link : get_term_link( $term );
+
+             $badges_html .= sprintf(
+                 '<a href="%s" class="taxonomy-badge %s">%s</a>',
+                 esc_url( $term_link ),
+                 esc_attr( $badge_class ),
+                 esc_html( $term->name )
+             );
+         }
     }
 
     // Restore current blog if we switched

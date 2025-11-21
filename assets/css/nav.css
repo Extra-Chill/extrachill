@@ -76,7 +76,7 @@ body.sticky-header #masthead {
 
 #primary-menu li {
     background-color: #000;
-    border-top: 1px solid #888;
+    border-top: 1px solid var(--border-color);
     text-align: center;
 	color: #fff;
 }
@@ -271,7 +271,7 @@ header#masthead.site-header {
 
 /* Styles for the top search icon/form area */
 .search-form-top {
-	border: 1px solid #eaeaea;
+	border: 1px solid var(--border-color);
 	display: none;
 	padding: 10px;
 	position: absolute;
@@ -374,7 +374,7 @@ body.search-only-open .search-section {
 /* Footer links within the menu */
 .menu-footer-links{
 	min-height: 40px;
-    border-top: 1px solid #888; /* Add border like other menu items */
+    border-top: 1px solid var(--border-color); /* Add border like other menu items */
     background-color: #000; /* Match menu background */
     text-align: center;
     color: #fff;

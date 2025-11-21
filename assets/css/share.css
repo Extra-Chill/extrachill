@@ -9,12 +9,9 @@
  */
 
 .share-button {
-    /* Button sizing via explicit classes in HTML */
-    background-color: var(--button-bg);
     cursor: pointer;
     display: flex;
     align-items: center;
-    border-radius: 3px;
     gap: 5px;
     margin: 20px 0px;
 }
@@ -23,6 +20,19 @@
     width: 1em;
     height: 1em;
     fill: currentColor;
+}
+
+button.share-button {
+    display: flex;
+}
+
+.share-options{
+    margin: 0;
+}
+
+ul.share-options-list {
+    margin: 0;
+    list-style: none;
 }
 
 /* Share button styling */

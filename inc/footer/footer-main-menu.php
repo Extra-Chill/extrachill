@@ -101,7 +101,7 @@
                         <a href="https://extrachill.com/festival/">Extra Chill Fest</a>
                     </li>
                     <li class="menu-item">
-                        <a href="https://extrachill.com/extra-chill-presents/">Extra Chill Presents</a>
+                        <a href="https://extrachill.com/category/extra-chill-presents/">Extra Chill Presents</a>
                     </li>
                     <li class="menu-item">
                         <a href="https://extrachill.com/about/in-the-press/">In the Press</a>
