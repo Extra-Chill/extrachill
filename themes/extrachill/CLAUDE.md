@@ -39,8 +39,8 @@ The ExtraChill theme serves **all ten sites in the WordPress multisite network**
 - **artist.extrachill.com** - Artist platform and profiles (Blog ID 4)
 - **chat.extrachill.com** - AI chatbot system with ChatGPT-style interface (Blog ID 5)
 - **events.extrachill.com** - Event calendar hub powered by Data Machine (Blog ID 7)
-- **newsletter.extrachill.com** - Newsletter management and archive hub with homepage-as-archive pattern (Blog ID 8)
-- **stream.extrachill.com** - Live streaming platform (Phase 1 UI) (Blog ID 9)
+- **stream.extrachill.com** - Live streaming platform (Phase 1 UI) (Blog ID 8)
+- **newsletter.extrachill.com** - Newsletter management and archive hub with homepage-as-archive pattern (Blog ID 9)
 - **horoscope.extrachill.com** - Wook-themed daily horoscopes via Data Machine AI (Blog ID 10)
 
 **Site-Specific Configuration**: Each site uses the same theme with different plugin integrations and template overrides via `extrachill_template_*` filters

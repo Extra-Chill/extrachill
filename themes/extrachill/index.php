@@ -6,7 +6,7 @@
  * inc/core/template-router.php via WordPress's template_include filter.
  *
  * @package ExtraChill
- * @since 69.58
+ * @since 1.0.0
  */
 
 get_header();

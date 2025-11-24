@@ -6,7 +6,7 @@
  * Supports categories, locations, festivals, artists, and venues with consistent styling.
  *
  * @package ExtraChill
- * @since 69.57
+ * @since 1.0.0
  */
 
 /**

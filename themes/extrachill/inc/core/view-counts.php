@@ -5,7 +5,7 @@
  * Tracks post views using WordPress post meta. Excludes editors/admins and previews.
  *
  * @package ExtraChill
- * @since 69.58
+ * @since 1.0.0
  */
 
 if (!defined('ABSPATH')) {

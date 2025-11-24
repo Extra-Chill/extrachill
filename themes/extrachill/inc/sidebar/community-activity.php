@@ -5,7 +5,7 @@
  * Displays recent community activity using shared helper from inc/core/templates/community-activity.php.
  *
  * @package ExtraChill
- * @since 69.57
+ * @since 1.0.0
  */
 
 if ( ! function_exists( 'extrachill_sidebar_community_activity' ) ) :
@@ -29,6 +29,9 @@ if ( ! function_exists( 'extrachill_sidebar_community_activity' ) ) :
             'items'          => $activities,
         ));
 
+        echo '</div>';
+        echo '<div class="widget-button-wrapper">';
+        echo '<a href="https://community.extrachill.com/recent" class="button-2 button-medium">View All</a>';
         echo '</div>';
         echo '</div>';
         echo '</div>';

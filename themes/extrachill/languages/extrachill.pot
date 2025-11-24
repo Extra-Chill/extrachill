@@ -2,7 +2,7 @@
 # This file is distributed under the same license as the Extra Chill theme.
 msgid ""
 msgstr ""
-"Project-Id-Version: Extra Chill 69.57\n"
+"Project-Id-Version: Extra Chill 1.0.0\n"
 "Report-Msgid-Bugs-To: https://github.com/Extra-Chill/main-site\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"

@@ -356,7 +356,7 @@ define('WP_DEBUG_LOG', true);
 define('SCRIPT_DEBUG', true);
 ```
 
-## Recent Changes (v69.57+)
+## Recent Changes (v1.0.0+)
 
 ### New Modular Architecture
 - **WordPress Native Template Routing**: Implemented `inc/core/template-router.php` using `template_include` filter
@@ -430,7 +430,7 @@ This theme is proprietary software developed for ExtraChill.com. All rights rese
 
 ## Changelog
 
-### Version 69.58+
+### Version 1.0.0+
 - **WordPress Native Template Routing**: Implemented `inc/core/template-router.php` using `template_include` filter
 - **Template Router Migration**: Moved routing logic from `index.php` to dedicated router file
 - **Emergency Fallback**: `index.php` now serves as minimal emergency fallback only
@@ -461,6 +461,6 @@ This theme is proprietary software developed for ExtraChill.com. All rights rese
 
 **Theme**: ExtraChill
 **Author**: Chubes
-**Version**: 69.58
+**Version**: 1.0.0
 **WordPress**: 5.0+
 **License**: Proprietary

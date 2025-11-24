@@ -3,7 +3,7 @@
  * Search Form Template
  *
  * @package ExtraChill
- * @since 69.57
+ * @since 1.0.0
  */
 
 /**

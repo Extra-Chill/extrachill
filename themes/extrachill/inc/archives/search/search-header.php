@@ -5,7 +5,7 @@
  * Displays search query in page title.
  *
  * @package ExtraChill
- * @since 69.58
+ * @since 1.0.0
  */
 
 $search_query = get_search_query();

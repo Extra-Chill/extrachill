@@ -5,7 +5,7 @@
  * Displays navigation button on artist taxonomy archives linking to matching profiles on artist.extrachill.com (blog ID 4).
  *
  * @package ExtraChill
- * @since 69.59
+ * @since 1.0.0
  */
 
 /**

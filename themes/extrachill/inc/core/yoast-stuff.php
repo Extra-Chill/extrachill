@@ -7,7 +7,7 @@
  * and dedicated image sitemap entries.
  *
  * @package ExtraChill
- * @since 69.58
+ * @since 1.0.0
  */
 
 /**

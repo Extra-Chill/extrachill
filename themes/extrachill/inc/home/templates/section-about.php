@@ -3,7 +3,7 @@
  * Homepage About Section
  *
  * @package ExtraChill
- * @since 69.58
+ * @since 1.0.0
  */
 ?>
 <div class="home-about-box">

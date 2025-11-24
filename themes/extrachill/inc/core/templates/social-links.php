@@ -6,7 +6,7 @@
  * Follows clean sidebar architecture with function-only approach and action hooks.
  *
  * @package ExtraChill
- * @since 69.57
+ * @since 1.0.0
  */
 
 if ( ! function_exists( 'extrachill_social_links' ) ) :
@@ -16,7 +16,7 @@ if ( ! function_exists( 'extrachill_social_links' ) ) :
      * Centralized social media configuration for consistent display across theme.
      * Uses FontAwesome SVG sprite with cache busting.
      *
-     * @since 69.57
+     * @since 1.0.0
      */
     function extrachill_social_links() {
         // ExtraChill social media platform configuration

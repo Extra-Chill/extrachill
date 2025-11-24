@@ -5,7 +5,7 @@
  * Native WordPress pagination with GET parameter preservation.
  *
  * @package ExtraChill
- * @since 69.59
+ * @since 1.0.0
  */
 
 if (!defined('ABSPATH')) {

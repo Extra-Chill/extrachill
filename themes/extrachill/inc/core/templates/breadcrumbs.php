@@ -8,7 +8,7 @@
  * - Hierarchical taxonomies: Full ancestor chain display for parent/child relationships
  *
  * @package ExtraChill
- * @since 69.57
+ * @since 1.0.0
  */
 
 if (!defined('ABSPATH')) {
@@ -17,10 +17,6 @@ if (!defined('ABSPATH')) {
 
 if (!function_exists('extrachill_breadcrumbs')) {
     function extrachill_breadcrumbs() {
-        if (function_exists('override_display_breadcrumbs') && override_display_breadcrumbs()) {
-            return;
-        }
-
         echo '<nav class="breadcrumbs" itemprop="breadcrumb">';
 
         // Allow plugins to override the root breadcrumb link
