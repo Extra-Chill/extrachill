@@ -5,7 +5,7 @@
  * Pre-fetches homepage content into global variables for template consumption.
  *
  * @package ExtraChill
- * @since 69.58
+ * @since 1.0.0
  */
 
 if ( ! defined( 'ABSPATH' ) ) {

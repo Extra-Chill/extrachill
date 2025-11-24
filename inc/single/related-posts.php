@@ -5,7 +5,7 @@
  * Displays related posts from artist or venue taxonomy with 1-hour caching.
  *
  * @package ExtraChill
- * @since 69.58
+ * @since 1.0.0
  */
 
 /**
@@ -15,11 +15,13 @@
  * @param int    $post_id Current post to exclude
  */
 function extrachill_display_related_posts( $taxonomy, $post_id ) {
-        static $displayed_posts = array();
+	static $displayed_posts = array();
 
-        if ( ! in_array( $taxonomy, array( 'artist', 'venue' ), true ) ) {
-                return;
-        }
+	$allowed_taxonomies = apply_filters( 'extrachill_related_posts_allowed_taxonomies', array( 'artist', 'venue' ), get_post_type( $post_id ) );
+
+	if ( ! in_array( $taxonomy, $allowed_taxonomies, true ) ) {
+		return;
+	}
 
         $terms = get_the_terms( $post_id, $taxonomy );
         if ( ! $terms || is_wp_error( $terms ) ) {
@@ -31,25 +33,31 @@ function extrachill_display_related_posts( $taxonomy, $post_id ) {
         $term_link = get_term_link( $term );
         $term_name = esc_html( $term->name );
 
-        $cache_key          = $taxonomy . '_posts_' . $term_id . '_' . $post_id;
-        $related_posts_data = get_transient( $cache_key );
+	$cache_key          = $taxonomy . '_posts_' . $term_id . '_' . $post_id;
+	$related_posts_data = get_transient( $cache_key );
 
-        if ( false === $related_posts_data ) {
-                $related_posts = new WP_Query(
-                        array(
-                                'post_type'      => 'post',
-                                'posts_per_page' => 3,
-                                'post_status'    => 'publish',
-                                'tax_query'      => array(
-                                        array(
-                                                'taxonomy' => $taxonomy,
-                                                'field'    => 'term_id',
-                                                'terms'    => $term_id,
-                                        ),
-                                ),
-                                'post__not_in'   => array( $post_id ),
-                        )
-                );
+	if ( false === $related_posts_data ) {
+		$tax_query = array(
+			array(
+				'taxonomy' => $taxonomy,
+				'field'    => 'term_id',
+				'terms'    => $term_id,
+			),
+		);
+
+		$tax_query = apply_filters( 'extrachill_related_posts_tax_query', $tax_query, $taxonomy, $term_id, $post_id, get_post_type( $post_id ) );
+
+		$query_args = array(
+			'post_type'      => 'post',
+			'posts_per_page' => 3,
+			'post_status'    => 'publish',
+			'tax_query'      => $tax_query,
+			'post__not_in'   => array( $post_id ),
+		);
+
+		$query_args = apply_filters( 'extrachill_related_posts_query_args', $query_args, $taxonomy, $post_id, get_post_type( $post_id ) );
+
+		$related_posts = new WP_Query( $query_args );
 
                 $related_posts_data = $related_posts->posts;
                 set_transient( $cache_key, $related_posts_data, 3600 );

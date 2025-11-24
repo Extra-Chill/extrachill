@@ -6,7 +6,7 @@
  * Hook: extrachill_archive_filter_bar allows plugins to inject navigation buttons.
  *
  * @package ExtraChill
- * @since 69.59
+ * @since 1.0.0
  */
 
 add_action('extrachill_archive_above_posts', 'extrachill_archive_filter_bar', 10);
@@ -52,9 +52,7 @@ function extrachill_archive_filter_bar() {
         echo '</div>';
     }
 
-    if (function_exists('extrachill_child_terms_dropdown_html')) {
-        echo extrachill_child_terms_dropdown_html();
-    }
+    echo extrachill_child_terms_dropdown_html();
 
     if (is_category('song-meanings')) {
         extrachill_artist_filter_dropdown();

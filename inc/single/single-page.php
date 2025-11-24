@@ -6,7 +6,7 @@
  * Loaded via template_include filter in inc/core/template-router.php.
  *
  * @package ExtraChill
- * @since 69.58
+ * @since 1.0.0
  */
 
 get_header(); ?>

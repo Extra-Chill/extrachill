@@ -6,7 +6,7 @@
  * Hidden on main site homepage.
  *
  * @package ExtraChill
- * @since 69.59
+ * @since 1.0.0
  */
 
 if ( ! defined( 'ABSPATH' ) ) {

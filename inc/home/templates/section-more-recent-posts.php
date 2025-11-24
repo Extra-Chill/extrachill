@@ -7,7 +7,7 @@
  * - Global variables: $more_recent_posts from homepage-queries.php
  *
  * @package ExtraChill
- * @since 69.58
+ * @since 1.0.0
  */
 
 global $post, $more_recent_posts;

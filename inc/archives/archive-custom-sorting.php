@@ -6,7 +6,7 @@
  * Artist taxonomy filtering for specific categories via 'artist' parameter.
  *
  * @package ExtraChill
- * @since 69.59
+ * @since 1.0.0
  */
 
 /**

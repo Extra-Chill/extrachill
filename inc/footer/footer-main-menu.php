@@ -6,7 +6,7 @@
  * Direct HTML control for optimal performance and easy maintenance.
  *
  * @package ExtraChill
- * @since 69.57
+ * @since 1.0.0
  */
 ?>
 

@@ -5,7 +5,7 @@
  * Displays personalized welcome message for logged-in users.
  *
  * @package ExtraChill
- * @since 69.58
+ * @since 1.0.0
  */
 
 $username = '';

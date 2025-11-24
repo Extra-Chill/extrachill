@@ -7,7 +7,7 @@
  * - Global variables: $live_reviews_posts, $interviews_posts from homepage-queries.php
  *
  * @package ExtraChill
- * @since 69.58
+ * @since 1.0.0
  */
 
 global $post, $live_reviews_posts, $interviews_posts;

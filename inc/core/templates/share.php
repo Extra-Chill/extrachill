@@ -5,7 +5,7 @@
  * Interactive dropdown for Facebook, Twitter/X, email, and copy link.
  *
  * @package ExtraChill
- * @since 69.57
+ * @since 1.0.0
  */
 
 if ( ! function_exists( 'extrachill_share_button' ) ) :

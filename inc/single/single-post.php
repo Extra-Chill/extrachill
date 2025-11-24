@@ -61,8 +61,11 @@ get_header(); ?>
     require_once get_template_directory() . '/inc/single/related-posts.php';
 
     $post_id = get_the_ID();
-    extrachill_display_related_posts('artist', $post_id);
-    extrachill_display_related_posts('venue', $post_id);
+    $related_taxonomies = apply_filters( 'extrachill_related_posts_taxonomies', array( 'artist', 'venue' ), $post_id, get_post_type() );
+
+    foreach ( $related_taxonomies as $taxonomy ) {
+        extrachill_display_related_posts( $taxonomy, $post_id );
+    }
     ?>
 </aside>
 </section><!-- .main-content -->

@@ -6,7 +6,7 @@
  * Clean HTML structure without WordPress menu system overhead.
  *
  * @package ExtraChill
- * @since 69.57
+ * @since 1.0.0
  */
 ?>
 

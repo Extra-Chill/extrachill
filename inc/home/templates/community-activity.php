@@ -3,7 +3,7 @@
  * Legacy include for homepage community activity.
  *
  * @package ExtraChill
- * @since 69.57
+ * @since 1.0.0
  * @deprecated 69.60 Use extrachill_render_community_activity() directly.
  */
 

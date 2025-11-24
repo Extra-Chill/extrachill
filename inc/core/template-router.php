@@ -7,7 +7,7 @@
  * Bypasses bbPress/WooCommerce for native template systems, respects custom page templates.
  *
  * @package ExtraChill
- * @since 69.58
+ * @since 1.0.0
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
