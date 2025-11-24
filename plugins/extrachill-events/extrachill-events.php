@@ -83,7 +83,9 @@ class ExtraChillEvents {
 		}
 
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/datamachine-events-integration.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/breadcrumb-integration.php';
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/single-event/breadcrumbs.php';
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/single-event/related-events.php';
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/single-event/share-button.php';
 	}
 
 	/**
@@ -92,7 +94,7 @@ class ExtraChillEvents {
 	 * Conditionally loads DataMachineEventsIntegration if datamachine-events plugin is active.
 	 */
 	private function init_integrations() {
-		if ( class_exists( 'DataMachineEvents\Core\Taxonomy_Badges' ) ) {
+		if ( class_exists( 'DataMachineEvents\Core\Event_Post_Type' ) ) {
 			$this->integrations['datamachine_events'] = new ExtraChillEvents\DataMachineEventsIntegration();
 		}
 	}

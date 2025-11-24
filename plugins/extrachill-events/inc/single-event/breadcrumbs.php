@@ -1,9 +1,8 @@
 <?php
 /**
- * Events Breadcrumb Integration
+ * Single Event Breadcrumbs
  *
- * Custom breadcrumb system for events.extrachill.com (blog ID 7) providing
- * "Extra Chill → Events" root, context-aware trails, and modified navigation labels.
+ * Handles breadcrumb overrides for single event pages.
  *
  * @package ExtraChillEvents
  * @since 0.1.0
@@ -12,6 +11,28 @@
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
+
+/**
+ * Override datamachine-events breadcrumbs with theme breadcrumb system
+ *
+ * Replaces datamachine-events breadcrumbs with theme's extrachill_breadcrumbs() function
+ * for consistent breadcrumb styling across site.
+ *
+ * @hook datamachine_events_breadcrumbs
+ * @param string|null $breadcrumbs Plugin's default breadcrumb HTML
+ * @param int $post_id Event post ID
+ * @return string Theme breadcrumb HTML
+ * @since 0.1.0
+ */
+function ec_events_override_breadcrumbs( $breadcrumbs, $post_id ) {
+	if ( function_exists( 'extrachill_breadcrumbs' ) ) {
+		ob_start();
+		extrachill_breadcrumbs();
+		return ob_get_clean();
+	}
+	return $breadcrumbs;
+}
+add_filter( 'datamachine_events_breadcrumbs', 'ec_events_override_breadcrumbs', 10, 2 );
 
 /**
  * Customize breadcrumb root for events site
