@@ -6,7 +6,7 @@
  * related events, theme hook bridging, CSS enqueuing, and post meta management.
  *
  * @package ExtraChillEvents
- * @since 1.0.0
+ * @since 0.1.0
  */
 
 namespace ExtraChillEvents;
@@ -22,7 +22,7 @@ if (!defined('ABSPATH')) {
  * Enhances badge styling, button classes, breadcrumbs, and related events
  * without modifying datamachine-events templates.
  *
- * @since 1.0.0
+ * @since 0.1.0
  */
 class DataMachineEventsIntegration {
 
@@ -44,9 +44,11 @@ class DataMachineEventsIntegration {
         add_filter('datamachine_events_modal_button_classes', array($this, 'add_modal_button_classes'), 10, 2);
         add_filter('datamachine_events_ticket_button_classes', array($this, 'add_ticket_button_classes'), 10, 1);
 
-        add_action('datamachine_events_related_events', array($this, 'display_related_events'), 10, 1);
-        add_action('datamachine_events_before_single_event', array($this, 'before_single_event'));
-        add_action('datamachine_events_after_single_event', array($this, 'after_single_event'));
+        add_filter('extrachill_related_posts_taxonomies', array($this, 'filter_event_taxonomies'), 10, 3);
+        add_filter('extrachill_related_posts_allowed_taxonomies', array($this, 'allow_event_taxonomies'), 10, 2);
+        add_filter('extrachill_related_posts_query_args', array($this, 'filter_event_query_args'), 10, 4);
+        add_filter('extrachill_related_posts_tax_query', array($this, 'exclude_venue_from_location'), 10, 5);
+
         add_action('datamachine_events_action_buttons', array($this, 'render_share_button'), 10, 2);
 
         add_filter('extrachill_post_meta', array($this, 'hide_post_meta_for_events'), 10, 3);
@@ -62,7 +64,7 @@ class DataMachineEventsIntegration {
      * @param array $wrapper_classes Default wrapper classes from datamachine-events
      * @param int $post_id Event post ID
      * @return array Enhanced wrapper classes with theme compatibility
-     * @since 1.0.0
+     * @since 0.1.0
      */
     public function add_wrapper_classes($wrapper_classes, $post_id) {
         $wrapper_classes[] = 'taxonomy-badges';
@@ -81,7 +83,7 @@ class DataMachineEventsIntegration {
      * @param \WP_Term $term The taxonomy term object
      * @param int $post_id Event post ID
      * @return array Enhanced badge classes with taxonomy-specific styling
-     * @since 1.0.0
+     * @since 0.1.0
      */
     public function add_badge_classes($badge_classes, $taxonomy_slug, $term, $post_id) {
         $badge_classes[] = 'taxonomy-badge';
@@ -110,7 +112,7 @@ class DataMachineEventsIntegration {
      * @hook datamachine_events_excluded_taxonomies
      * @param array $excluded Array of taxonomy slugs to exclude
      * @return array Enhanced exclusion array with venue and artist taxonomies
-     * @since 1.0.0
+     * @since 0.1.0
      */
     public function exclude_venue_taxonomy($excluded) {
         $excluded[] = 'venue';
@@ -129,7 +131,7 @@ class DataMachineEventsIntegration {
      * @param array $classes Default button classes from datamachine-events
      * @param string $button_type Button type ('primary' or 'secondary')
      * @return array Enhanced button classes with theme styling
-     * @since 1.0.0
+     * @since 0.1.0
      */
     public function add_modal_button_classes($classes, $button_type) {
         switch ($button_type) {
@@ -154,7 +156,7 @@ class DataMachineEventsIntegration {
      * @hook datamachine_events_ticket_button_classes
      * @param array $classes Default button classes from datamachine-events
      * @return array Enhanced button classes with theme styling
-     * @since 1.0.0
+     * @since 0.1.0
      */
     public function add_ticket_button_classes($classes) {
         $classes[] = 'button-1';
@@ -165,67 +167,130 @@ class DataMachineEventsIntegration {
     /**
      * Override datamachine-events breadcrumbs with theme breadcrumb system
      *
-     * Replaces datamachine-events breadcrumbs with theme's display_breadcrumbs() function
+     * Replaces datamachine-events breadcrumbs with theme's extrachill_breadcrumbs() function
      * for consistent breadcrumb styling across site.
      *
      * @hook datamachine_events_breadcrumbs
      * @param string|null $breadcrumbs Plugin's default breadcrumb HTML
      * @param int $post_id Event post ID
-     * @return string|null Theme breadcrumb HTML if available, otherwise plugin default
-     * @since 1.0.0
+     * @return string Theme breadcrumb HTML
+     * @since 0.1.0
      */
     public function override_breadcrumbs($breadcrumbs, $post_id) {
-        if (function_exists('display_breadcrumbs')) {
-            ob_start();
-            display_breadcrumbs();
-            return ob_get_clean();
-        }
-
-        return $breadcrumbs;
+        ob_start();
+        extrachill_breadcrumbs();
+        return ob_get_clean();
     }
 
     /**
-     * Display related events by festival and venue taxonomies
+     * Use venue and location taxonomies for event posts
      *
-     * Uses theme's related posts function to show events from same festival/venue.
-     * Only applies on blog ID 7 (events.extrachill.com).
+     * Order matters:
+     * 1. venue - Shows upcoming events at same venue
+     * 2. location - Shows upcoming events in same location (different venues)
      *
-     * @hook datamachine_events_related_events
-     * @param int $event_id Event post ID
-     * @return void
-     * @since 1.0.0
+     * @hook extrachill_related_posts_taxonomies
+     * @param array  $taxonomies Default taxonomies (artist, venue)
+     * @param int    $post_id    Current post ID
+     * @param string $post_type  Current post type
+     * @return array Modified taxonomies for event posts
+     * @since 0.1.0
      */
-    public function display_related_events($event_id) {
-        if (get_current_blog_id() !== 7) {
-            return;
+    public function filter_event_taxonomies($taxonomies, $post_id, $post_type) {
+        if (get_current_blog_id() === 7 && $post_type === 'datamachine_events') {
+            return array('venue', 'location');
         }
-
-        if (function_exists('extrachill_display_related_posts')) {
-            extrachill_display_related_posts('festival', $event_id);
-            extrachill_display_related_posts('venue', $event_id);
-        }
+        return $taxonomies;
     }
 
     /**
-     * Bridge datamachine-events before-event hook to theme's before-content hook
+     * Allow location taxonomy in related posts whitelist
      *
-     * @hook datamachine_events_before_single_event
-     * @return void
-     * @since 1.0.0
+     * @hook extrachill_related_posts_allowed_taxonomies
+     * @param array  $allowed   Default allowed taxonomies
+     * @param string $post_type Current post type
+     * @return array Modified allowed taxonomies
+     * @since 0.1.0
      */
-    public function before_single_event() {
-        do_action('extrachill_before_body_content');
+    public function allow_event_taxonomies($allowed, $post_type) {
+        if ($post_type === 'datamachine_events') {
+            return array_merge($allowed, array('location'));
+        }
+        return $allowed;
     }
 
     /**
-     * Bridge datamachine-events after-event hook to theme's after-content hook
+     * Modify query for event posts: change post type and add upcoming events filter
      *
-     * @hook datamachine_events_after_single_event
-     * @return void
-     * @since 1.0.0
+     * Only shows future events by adding meta_query comparing event datetime
+     * to current datetime. Orders by event date ascending (soonest first).
+     *
+     * @hook extrachill_related_posts_query_args
+     * @param array  $query_args Default query args
+     * @param string $taxonomy   Current taxonomy being queried
+     * @param int    $post_id    Current post ID
+     * @param string $post_type  Current post type
+     * @return array Modified query args for event posts
+     * @since 0.1.0
      */
-    public function after_single_event() {
-        do_action('extrachill_after_body_content');
+    public function filter_event_query_args($query_args, $taxonomy, $post_id, $post_type) {
+        if (get_current_blog_id() !== 7 || $post_type !== 'datamachine_events') {
+            return $query_args;
+        }
+
+        $query_args['post_type'] = 'datamachine_events';
+
+        $query_args['meta_query'] = array(
+            array(
+                'key'     => '_datamachine_event_datetime',
+                'value'   => current_time('mysql'),
+                'compare' => '>=',
+                'type'    => 'DATETIME',
+            ),
+        );
+
+        $query_args['meta_key'] = '_datamachine_event_datetime';
+        $query_args['orderby']  = 'meta_value';
+        $query_args['order']    = 'ASC';
+
+        return $query_args;
+    }
+
+    /**
+     * Exclude same venue when showing location-based related events
+     *
+     * When displaying location-based related events, exclude events at the same venue
+     * to provide variety. This prevents showing duplicate venue events in both sections.
+     *
+     * @hook extrachill_related_posts_tax_query
+     * @param array  $tax_query Tax query array
+     * @param string $taxonomy  Current taxonomy being queried
+     * @param int    $term_id   Current term ID
+     * @param int    $post_id   Current post ID
+     * @param string $post_type Current post type
+     * @return array Modified tax query with venue exclusion for location queries
+     * @since 0.1.0
+     */
+    public function exclude_venue_from_location($tax_query, $taxonomy, $term_id, $post_id, $post_type) {
+        if (get_current_blog_id() !== 7 || $post_type !== 'datamachine_events' || $taxonomy !== 'location') {
+            return $tax_query;
+        }
+
+        $venue_terms = get_the_terms($post_id, 'venue');
+        if (!$venue_terms || is_wp_error($venue_terms)) {
+            return $tax_query;
+        }
+
+        $venue_term_ids = wp_list_pluck($venue_terms, 'term_id');
+        
+        $tax_query[] = array(
+            'taxonomy' => 'venue',
+            'field'    => 'term_id',
+            'terms'    => $venue_term_ids,
+            'operator' => 'NOT IN',
+        );
+
+        return $tax_query;
     }
 
     /**
@@ -238,7 +303,7 @@ class DataMachineEventsIntegration {
      * @param int $post_id Post ID
      * @param string $post_type Post type
      * @return string Empty for datamachine_events, unchanged for other post types
-     * @since 1.0.0
+     * @since 0.1.0
      */
     public function hide_post_meta_for_events($default_meta, $post_id, $post_type) {
         if ($post_type === 'datamachine_events') {
@@ -257,7 +322,7 @@ class DataMachineEventsIntegration {
      *
      * @hook wp_enqueue_scripts
      * @return void
-     * @since 1.0.0
+     * @since 0.1.0
      */
     public function enqueue_single_post_styles() {
         if (!is_singular('datamachine_events')) {
@@ -318,7 +383,7 @@ class DataMachineEventsIntegration {
      *
      * @hook wp_enqueue_scripts
      * @return void
-     * @since 1.0.0
+     * @since 0.1.0
      */
     public function enqueue_calendar_styles() {
         if (get_current_blog_id() !== 7 || !is_front_page()) {
@@ -347,14 +412,10 @@ class DataMachineEventsIntegration {
      * @param int $post_id Event post ID
      * @param string $ticket_url Ticket URL (may be empty)
      * @return void
-     * @since 1.0.0
+     * @since 0.1.0
      */
     public function render_share_button($post_id, $ticket_url) {
         if (get_current_blog_id() !== 7) {
-            return;
-        }
-
-        if (!function_exists('extrachill_share_button')) {
             return;
         }
 

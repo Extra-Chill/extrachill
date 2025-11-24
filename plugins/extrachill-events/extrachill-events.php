@@ -3,7 +3,7 @@
  * Plugin Name: Extra Chill Events
  * Plugin URI: https://extrachill.com
  * Description: Calendar integration with template overrides, datamachine-events badge/button styling, breadcrumb system, and related events for events.extrachill.com.
- * Version: 1.0.0
+ * Version: 0.1.0
  * Author: Chris Huber
  * Author URI: https://chubes.net
  * Requires Plugins: datamachine, datamachine-events
@@ -16,14 +16,14 @@
  * Network: false
  *
  * @package ExtraChillEvents
- * @since 1.0.0
+ * @since 0.1.0
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'EXTRACHILL_EVENTS_VERSION', '1.0.0' );
+define( 'EXTRACHILL_EVENTS_VERSION', '0.1.0' );
 define( 'EXTRACHILL_EVENTS_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'EXTRACHILL_EVENTS_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'EXTRACHILL_EVENTS_PLUGIN_FILE', __FILE__ );
@@ -35,7 +35,7 @@ define( 'EXTRACHILL_EVENTS_PLUGIN_FILE', __FILE__ );
  * overrides, badge/button styling, breadcrumb system, and SEO redirects for
  * events.extrachill.com (blog ID 7).
  *
- * @since 1.0.0
+ * @since 0.1.0
  */
 class ExtraChillEvents {
 
@@ -125,7 +125,7 @@ extrachill_events();
  * @hook extrachill_template_homepage
  * @param string $template Default template path from theme
  * @return string Plugin template path for events site, theme template otherwise
- * @since 1.0.0
+ * @since 0.1.0
  */
 function ec_events_override_homepage_template( $template ) {
 	if ( get_current_blog_id() === 7 ) {
@@ -146,7 +146,7 @@ add_filter( 'extrachill_template_homepage', 'ec_events_override_homepage_templat
  * @hook extrachill_template_archive
  * @param string $template Default template path from theme
  * @return string Plugin template path for events site, theme template otherwise
- * @since 1.0.0
+ * @since 0.1.0
  */
 function ec_events_override_archive_template( $template ) {
 	if ( get_current_blog_id() === 7 ) {
@@ -165,7 +165,7 @@ add_filter( 'extrachill_template_archive', 'ec_events_override_archive_template'
  *
  * @hook template_redirect
  * @return void
- * @since 1.0.0
+ * @since 0.1.0
  */
 function ec_events_redirect_post_type_archive() {
 	if ( get_current_blog_id() !== 7 ) {

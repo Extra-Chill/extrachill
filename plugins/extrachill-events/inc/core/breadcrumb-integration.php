@@ -6,7 +6,7 @@
  * "Extra Chill → Events" root, context-aware trails, and modified navigation labels.
  *
  * @package ExtraChillEvents
- * @since 1.0.0
+ * @since 0.1.0
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -22,7 +22,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @hook extrachill_breadcrumbs_root
  * @param string $root_link Default root breadcrumb link HTML from theme
  * @return string Modified root link with events context
- * @since 1.0.0
+ * @since 0.1.0
  */
 function ec_events_breadcrumb_root( $root_link ) {
 	if ( get_current_blog_id() !== 7 ) {
@@ -46,7 +46,7 @@ add_filter( 'extrachill_breadcrumbs_root', 'ec_events_breadcrumb_root' );
  * @hook extrachill_breadcrumbs_override_trail
  * @param string|false $custom_trail Existing custom trail from other filters
  * @return string|false Custom trail for homepage, unchanged otherwise
- * @since 1.0.0
+ * @since 0.1.0
  */
 function ec_events_breadcrumb_trail_homepage( $custom_trail ) {
 	if ( get_current_blog_id() !== 7 ) {
@@ -74,7 +74,7 @@ add_filter( 'extrachill_breadcrumbs_override_trail', 'ec_events_breadcrumb_trail
  * @hook extrachill_breadcrumbs_override_trail
  * @param string|false $custom_trail Custom breadcrumb trail from other filters
  * @return string|false Custom trail for archives, unchanged otherwise
- * @since 1.0.0
+ * @since 0.1.0
  */
 function ec_events_breadcrumb_trail_archives( $custom_trail ) {
 	if ( get_current_blog_id() !== 7 ) {
@@ -107,7 +107,7 @@ add_filter( 'extrachill_breadcrumbs_override_trail', 'ec_events_breadcrumb_trail
  * @hook extrachill_breadcrumbs_override_trail
  * @param string|false $custom_trail Custom breadcrumb trail from other filters
  * @return string|false Custom trail for single events, unchanged otherwise
- * @since 1.0.0
+ * @since 0.1.0
  */
 function ec_events_breadcrumb_trail_single( $custom_trail ) {
 	if ( get_current_blog_id() !== 7 ) {
@@ -133,7 +133,7 @@ add_filter( 'extrachill_breadcrumbs_override_trail', 'ec_events_breadcrumb_trail
  * @param string $label Default back-to-home link label from theme
  * @param string $url Back-to-home link URL
  * @return string Modified label for event pages, unchanged for homepage
- * @since 1.0.0
+ * @since 0.1.0
  */
 function ec_events_back_to_home_label( $label, $url ) {
 	if ( get_current_blog_id() !== 7 ) {
