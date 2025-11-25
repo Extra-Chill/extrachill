@@ -18,10 +18,7 @@
 ================================================== */
 :root {
     /* Error and Success States */
-    --error-color: #dc3232;
-    --error-bg: #fef7f7;
-    --error-border: #dc3232;
-    --success-color: #155724;
+
 
     /* Brand Colors */
     --brand-blue: #003466;
@@ -170,7 +167,7 @@ span.bbp-admin-links {
 .bbp-reply-form {
     background-color: var(--card-background);
     border-radius: 10px;
-    box-shadow: var(--border-color, 0 4px 10px rgba(0, 0, 0, 0.05));
+    box-shadow: var(--border-color));
     max-width: 800px;
     margin: 30px auto;
     border: 1px solid var(--border-color);
@@ -297,7 +294,7 @@ i.fa-solid {
 
 i.fa-regular.fa-circle-up:hover,
 i.fa-solid:hover {
-    color: var(--button-hover-bg);
+    color: #083b6c;
 }
 
 /* ==================================================
@@ -366,13 +363,8 @@ i.fa-solid:hover {
 }
 
 /* ==================================================
-   Buttons
+   Buttons - Use .button-1, .button-2, .button-3 classes in HTML
 ================================================== */
-button:hover,
-a.button:hover {
-    background-color: var(--button-hover-bg);
-}
-
 button,
 a.button,
 input[type=button],
@@ -381,7 +373,6 @@ input[type=submit],
 .settings-button {
     font-size: 15px;
     border-radius: 5px;
-    background-color: var(--button-bg);
 }
 
 .bbp-reply-author .extrachill-edit-profile-button,
@@ -390,19 +381,6 @@ input[type=submit],
     font-size: 12px;
     padding: 5px 12px;
     margin-left: 0;
-    background-color: var(--button-bg);
-}
-
-a.settings-button {
-    background-color: var(--button-bg);
-}
-
-.extrachill-edit-profile-button {
-    background-color: var(--button-bg);
-}
-
-.settings-button:hover {
-    background-color: var(--button-hover-bg);
 }
 
 .extrachill-edit-profile-button,
@@ -754,7 +732,7 @@ p.private-forums {
 }
 
 .wp-editor-container .mce-toolbar .mce-btn:hover {
-    background-color: var(--button-hover-bg);
+    /* Button hover styling - TinyMCE specific */
 }
 
 .wp-editor-container .mce-btn .mce-txt {
@@ -834,5 +812,5 @@ p.private-forums {
 .bbp-template-notice.error,
 .bbp-template-notice.warning {
     background-color: var(--card-background);
-    border-left-color: #dc3232;
+    border-left-color: var(--error-color);
 }

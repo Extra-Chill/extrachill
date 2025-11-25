@@ -10,9 +10,7 @@
     /* Slightly lighter gray for borders so they're less prominent */
     --border-color: #ddd;
     
-    /* Buttons in light mode: deep blue, with a slightly darker hover */
-    --button-bg: #0b5394;
-    --button-hover-bg: #083b6c;
+
 
     /* Component-Specific Variables */
     --header-bg: #000;
@@ -53,9 +51,7 @@
         /* Darker border for separation */
         --border-color: #555;
         
-        /* Keep the button as green, with a slightly darker hover for subtle transitions */
-		--button-bg: #0b5394;
-		--button-hover-bg: #083b6c;
+
 
         /* Component-Specific Variables */
         --header-bg: #000;
@@ -147,7 +143,7 @@ body.mce-content-body button,
 body.mce-content-body input[type="button"],
 body.mce-content-body input[type="submit"],
 body.mce-content-body input[type="reset"] {
-    background-color: var(--button-bg);
+    background-color: #0b5394;
     color: #fff;
     padding: 10px 20px;
     border: none;
@@ -159,7 +155,7 @@ body.mce-content-body button:hover,
 body.mce-content-body input[type="button"]:hover,
 body.mce-content-body input[type="submit"]:hover,
 body.mce-content-body input[type="reset"]:hover {
-    background-color: var(--button-hover-bg);
+    background-color: #083b6c;
 }
 
 /* Style the formatselect dropdown menu */

@@ -92,12 +92,12 @@ composer install
 **Core (6 files)**:
 - `inc/core/assets.php`, `bbpress-templates.php`, `breadcrumb-filter.php`, `page-templates.php`, `bbpress-spam-adjustments.php`, `sidebar.php`
 
-**Content (5 files)**:
+**Content (6 files)**:
 - `inc/content/editor/tinymce-customization.php`, `editor/tinymce-image-uploads.php`
-- `inc/content/content-filters.php`, `recent-feed.php`, `main-site-comments.php`
+- `inc/content/content-filters.php`, `recent-feed.php`, `main-site-comments.php`, `subforum-button-classes.php`
 
-**Social (12 files)**:
-- `inc/social/upvote.php`, `user-mention-api.php`, `forum-badges.php`
+**Social (11 files)**:
+- `inc/social/upvote.php`, `forum-badges.php`
 - `inc/social/rank-system/point-calculation.php`, `rank-system/chill-forums-rank.php`
 - `inc/social/notifications/notification-bell.php`, `notification-card.php`, `notification-handler.php`
 - `inc/social/notifications/notification-cleanup.php`, `capture-replies.php`, `capture-mentions.php`, `notifications-content.php`
@@ -111,6 +111,8 @@ composer install
 - `inc/home/latest-post.php`, `actions.php`, `homepage-forum-display.php`, `artist-platform-buttons.php`
 
 **Total: 33 files loaded in init function**
+
+**Deprecated file** (empty stub, not loaded): `inc/social/user-mention-api.php` - Moved to extrachill-api plugin
 
 **Moved to extrachill-users plugin**: Avatar system (custom-avatar.php, upload-custom-avatar.php, custom-avatar.js), online-users-count.php, user-avatar-menu.php
 
@@ -188,7 +190,7 @@ Custom templates in `bbpress/` directory provide enhanced forum functionality:
 7. **Performance Optimization** - Conditional loading and selective script enqueuing
 
 ### Forum Features Architecture
-1. **Organized Structure** - Features grouped by functionality: core (6), content (5), social (12), user-profiles (6), home (4)
+1. **Organized Structure** - Features grouped by functionality: core (6), content (6), social (11), user-profiles (6), home (4)
 2. **Conditional Loading** - Context-aware CSS/JS loading for performance
 3. **bbPress Integration** - Custom templates via `inc/core/bbpress-templates.php` routing, breadcrumb customization via `bbp_breadcrumbs` filter
 4. **Hook-Based Components** - Homepage and settings use action hooks for extensibility

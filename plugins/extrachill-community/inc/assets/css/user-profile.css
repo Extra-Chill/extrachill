@@ -101,7 +101,6 @@
 .bbp-user-profile .bbp-user-display-name {
     font-size: 2.5rem;
     font-weight: bold;
-    color: var(--text-color);
     margin-bottom: 0.5rem;
     line-height: 1.1;
     display: flex;
@@ -129,12 +128,9 @@
 }
 
 
-/* Styling for <a> tags as buttons within the user actions area */
+/* Styling for <a> tags as buttons - should use .button-1 class in HTML */
 .bbp-user-profile .bbp-user-actions-area a.settings-button,
 .bbp-user-profile .bbp-user-actions-area a.extrachill-edit-profile-button {
-    /* Button sizing via explicit classes in HTML */
-    background-color: var(--button-bg);
-    color: #fff;
     border-radius: 5px;
     border: none;
     cursor: pointer;
@@ -143,12 +139,6 @@
     display: inline-block;
     line-height: normal;
     vertical-align: middle;
-}
-
-.bbp-user-profile .bbp-user-actions-area a.settings-button:hover,
-.bbp-user-profile .bbp-user-actions-area a.extrachill-edit-profile-button:hover {
-    background-color: var(--button-hover-bg);
-    color: #fff;
 }
 
 /* New Social Links Styles */
@@ -171,7 +161,7 @@
 }
 
 .social-link:hover {
-    color: var(--button-hover-bg);
+    color: #083b6c;
 }
 
 .social-link.website:hover {

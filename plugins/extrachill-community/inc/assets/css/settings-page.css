@@ -71,18 +71,18 @@ input[type="email"]#new_email:focus {
     margin-top: 0;
     margin-bottom: 1em;
     font-size: 1.4em;
-    color: var(--text-color, #333);
-    border-bottom: 1px solid var(--border-color, #eee);
+    color: var(--text-color);
+    border-bottom: var(--border-color);
     padding-bottom: 0.6em;
 }
 
 .shared-tab-pane form fieldset, /* Adjusted selector */
 .settings-tab-pane form fieldset /* Keep for backward compatibility */ {
-    border: 1px solid var(--border-color, #eee);
+    border: 1px solid var(--border-color);
     padding: 15px;
     margin-bottom: 20px;
     border-radius: 3px;
-    background-color: var(--card-background, #fcfcfc); /* Slight distinction for fieldset */
+    background-color: var(--card-background); /* Slight distinction for fieldset */
 }
 
 .shared-tab-pane form fieldset p, /* Adjusted selector */
@@ -107,17 +107,17 @@ input[type="email"]#new_email:focus {
 .settings-tab-pane form select {
     width: 100%;
     padding: 8px;
-    border: 1px solid var(--border-color, #ccc);
+    border: 1px solid var(--border-color);
     border-radius: 3px;
-    box-sizing: border-box; 
-    max-width: 400px; 
-    background-color: var(--background-color, #fff);
-    color: var(--text-color, #333);
+    box-sizing: border-box;
+    max-width: 400px;
+    background-color: var(--background-color);
+    color: var(--text-color);
 }
 
 .shared-tab-pane form input[type="email"][disabled], /* Adjusted selector */
 .settings-tab-pane form input[type="email"][disabled] {
-    background-color: var(--background-color, #f0f0f0);
+    background-color: var(--background-color);
     cursor: not-allowed;
 }
 
@@ -146,23 +146,13 @@ input[type="email"]#new_email:focus {
     border-left-width: 4px;
     border-left-style: solid;
     border-radius: 4px;
-    background-color: var(--card-background, #fff);
+    background-color: var(--card-background);
 }
 .settings-errors .error p, .settings-success .message p {
     margin:0;
 }
 
-.settings-errors .error {
-    border-left-color: var(--notice-error-border, #dc3232);
-    background-color: var(--notice-error-bg, #fef7f7);
-    color: var(--notice-error-text, #721c24);
-}
 
-.settings-success .message {
-    border-left-color: var(--notice-success-border, #46b450);
-    background-color: var(--notice-success-bg, #e6ffed);
-    color: var(--notice-success-text, #155724);
-}
 
 /* Subscriptions Tab Specifics - apply within .shared-tab-pane */
 .shared-tab-pane .followed-bands-settings, /* Adjusted selector */
@@ -175,7 +165,7 @@ input[type="email"]#new_email:focus {
 .shared-tab-pane .followed-bands-settings li, /* Adjusted selector */
 .settings-tab-pane .followed-bands-settings li {
     padding: 10px 0;
-    border-bottom: 1px solid var(--border-color-light, #eee);
+    border-bottom: 1px solid var(--border-color);
     display: flex; /* For aligning checkbox and label */
     align-items: center;
 }
@@ -201,7 +191,7 @@ input[type="email"]#new_email:focus {
 .shared-tab-pane .followed-bands-settings li a, /* Adjusted selector */
 .settings-tab-pane .followed-bands-settings li a {
     text-decoration: none;
-    color: var(--link-color, #0073aa);
+    color: var(--link-color);
 }
 
 /* Link hover handled by theme */
@@ -209,7 +199,7 @@ input[type="email"]#new_email:focus {
 .shared-tab-pane .description, /* Adjusted selector */
 .settings-tab-pane .description {
     font-size: 0.9em;
-    color: var(--text-muted, #777);
+    color: var(--muted-text);
     margin-top: 5px;
     display: block; /* Ensure it takes full width below input */
 }

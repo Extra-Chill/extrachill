@@ -23,7 +23,7 @@ define('EXTRACHILL_COMMUNITY_PLUGIN_URL', plugin_dir_url(__FILE__));
 
 /**
  * Loads 33 feature files via direct require_once.
- * Load order: core (6) → content (5) → social (12) → user-profiles (6) → home (4).
+ * Load order: core (6) → content (6) → social (11) → user-profiles (6) → home (4).
  * Templates loaded via hooks: forum-home-header, forum-homepage, recently-active.
  * Note: Avatar functionality moved to extrachill-users plugin for network-wide availability.
  */
@@ -44,9 +44,8 @@ function extrachill_community_init() {
     require_once plugin_dir_path(__FILE__) . 'inc/content/main-site-comments.php';
     require_once plugin_dir_path(__FILE__) . 'inc/content/subforum-button-classes.php';
 
-    // Social features (12 files)
+    // Social features (11 files)
     require_once plugin_dir_path(__FILE__) . 'inc/social/upvote.php';
-    require_once plugin_dir_path(__FILE__) . 'inc/social/user-mention-api.php';
     require_once plugin_dir_path(__FILE__) . 'inc/social/forum-badges.php';
     require_once plugin_dir_path(__FILE__) . 'inc/social/rank-system/point-calculation.php';
     require_once plugin_dir_path(__FILE__) . 'inc/social/rank-system/chill-forums-rank.php';

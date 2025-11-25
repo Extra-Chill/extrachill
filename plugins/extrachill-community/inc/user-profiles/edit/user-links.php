@@ -85,7 +85,7 @@ function extrachill_enqueue_user_links_assets() {
     wp_enqueue_script(
         'manage-user-profile-links',
         EXTRACHILL_COMMUNITY_PLUGIN_URL . '/inc/assets/js/manage-user-profile-links.js',
-        array('jquery'),
+        array(),
         filemtime(EXTRACHILL_COMMUNITY_PLUGIN_DIR . '/inc/assets/js/manage-user-profile-links.js'),
         true
     );

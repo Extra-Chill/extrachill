@@ -1,62 +1,69 @@
 /**
- * Upvote System AJAX Handler
+ * Upvote System Handler
  *
  * Handles upvoting/downvoting of forum topics and replies with optimistic UI updates
  * and server-side validation.
  */
 
-jQuery(document).ready(function($) {
-    $('body').on('click', '.upvote-icon', function(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        
+document.addEventListener('DOMContentLoaded', function() {
+	document.addEventListener('click', function(e) {
+		const upvoteIcon = e.target.closest('.upvote-icon');
+		if (!upvoteIcon) return;
 
-        var $this = $(this);
-        var post_id = $this.data('post-id'); 
-        var post_type = $this.data('type');
-        var nonce = extrachill_ajax.nonce;
-        var community_user_id = extrachill_ajax.user_id;
+		e.preventDefault();
+		e.stopPropagation();
 
-        if (!post_id || !nonce || !post_type) {
-            console.error('Post ID, nonce, or post type is missing.');
-            console.log('Debug info:', {post_id: post_id, nonce: nonce, post_type: post_type});
-            return;
-        }
+		const postId = upvoteIcon.dataset.postId;
+		const postType = upvoteIcon.dataset.type;
+		const restNonce = extrachillCommunity.restNonce;
 
-        var isUpvoted = $this.find('i').hasClass('fa-solid');
-        var action = isUpvoted ? 'remove_upvote' : 'upvote';
-        var $countSpan = $this.closest('.upvote').find('.upvote-count');
-        var currentCount = parseInt($countSpan.text(), 10) || 0;
+		if (!postId || !restNonce || !postType) {
+			console.error('Post ID, nonce, or post type is missing.');
+			console.log('Debug info:', {postId: postId, nonce: restNonce, postType: postType});
+			return;
+		}
 
-        var updatedCount = isUpvoted ? currentCount - 1 : currentCount + 1;
-        $countSpan.text(updatedCount);
-        $this.find('i').toggleClass('fa-solid fa-regular');
+		const icon = upvoteIcon.querySelector('i');
+		const isUpvoted = icon.classList.contains('fa-solid');
+		const upvoteContainer = upvoteIcon.closest('.upvote');
+		const countSpan = upvoteContainer.querySelector('.upvote-count');
+		const currentCount = parseInt(countSpan.textContent, 10) || 0;
 
-        var ajaxUrl = extrachill_ajax.ajaxurl;
-        var ajaxData = {
-            action: 'handle_upvote',
-            post_id: post_id,
-            type: post_type,
-            nonce: nonce,
-            community_user_id: community_user_id
-        };
+		// Optimistic UI update
+		const updatedCount = isUpvoted ? currentCount - 1 : currentCount + 1;
+		countSpan.textContent = updatedCount;
+		icon.classList.toggle('fa-solid');
+		icon.classList.toggle('fa-regular');
 
-        $.ajax({
-            url: ajaxUrl,
-            type: 'post',
-            data: ajaxData,
-            success: function(response) {
-                if (!response.success) {
-                    $countSpan.text(currentCount);
-                    $this.find('i').toggleClass('fa-solid fa-regular');
-                    console.error('Error: ' + response.data.message);
-                }
-            },
-            error: function(jqXHR, textStatus, errorThrown) {
-                $countSpan.text(currentCount);
-                $this.find('i').toggleClass('fa-solid fa-regular');
-                console.error('AJAX error: ' + textStatus + ', ' + errorThrown);
-            }
-        });
-    });
+		// Send request to REST API
+		fetch('/wp-json/extrachill/v1/community/upvote', {
+			method: 'POST',
+			credentials: 'same-origin',
+			headers: {
+				'Content-Type': 'application/json',
+				'X-WP-Nonce': restNonce
+			},
+			body: JSON.stringify({
+				post_id: parseInt(postId, 10),
+				type: postType
+			})
+		})
+		.then(response => response.json())
+		.then(data => {
+			if (!data.success) {
+				// Rollback on error
+				countSpan.textContent = currentCount;
+				icon.classList.toggle('fa-solid');
+				icon.classList.toggle('fa-regular');
+				console.error('Error: ' + (data.message || 'Unknown error'));
+			}
+		})
+		.catch(error => {
+			// Rollback on network error
+			countSpan.textContent = currentCount;
+			icon.classList.toggle('fa-solid');
+			icon.classList.toggle('fa-regular');
+			console.error('Network error:', error);
+		});
+	});
 });

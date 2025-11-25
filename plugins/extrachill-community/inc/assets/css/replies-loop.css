@@ -59,7 +59,7 @@
     box-shadow: var(--card-shadow);
     margin-bottom: 1.5rem;
     width: 100%;
-    margin-left: calc(var(--depth, 0) * 2rem);
+    margin-left: calc(var(--depth) * 2rem);
     position: relative;
     transition: box-shadow 0.2s ease-in-out;
     border: 1px solid var(--border-color);
@@ -379,10 +379,10 @@ span.bbp-topic-post-date {
     align-items: baseline;
 }
 
+/* Jump to latest button - should use .button-1 class in HTML */
 button#jump-to-latest {
     padding: 4px 10px;
     font-size: 12px;
-    background-color: var(--button-bg);
     cursor: pointer;
 }
 

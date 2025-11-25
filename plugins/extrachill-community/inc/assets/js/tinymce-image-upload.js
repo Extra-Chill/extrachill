@@ -41,38 +41,42 @@
                 function uploadImage(file, editor) {
                     var formData = new FormData();
                     formData.append('image', file);
-                    formData.append('nonce', customTinymcePlugin.nonce);
-                    formData.append('action', 'handle_tinymce_image_upload');
 
                     // Add a loading indicator here
                     var loader = document.createElement('div');
                     loader.innerHTML = '<div style="text-align:center;color: #53940b;"><i class="fa fa-spinner fa-spin fa-2x"></i> Image loading, please wait...</div>';
                     editor.getContainer().appendChild(loader);
 
-                    jQuery.ajax({
-                        url: customTinymcePlugin.ajaxUrl,
-                        type: 'POST',
-                        data: formData,
-                        processData: false,
-                        contentType: false,
-                        success: function(response) {
-                            if (response.success) {
-                                // Insert the image wrapped in a paragraph, then add an extra blank paragraph.
-                                var content = '<p><img src="' + response.data.url + '" style="max-width:50%;" class="uploaded-image" /></p><p><br /></p>';
-                                editor.insertContent(content);
-                                editor.focus();
-                                // Collapse the selection to the end of the content so the cursor is in the new blank paragraph.
-                                editor.selection.collapse(false);
-                            } else {
-                                console.error("Upload failed:", response.data.message);
-                            }
-                            
-                            // Remove loading indicator
-                            loader.parentNode.removeChild(loader);
+                    fetch('/wp-json/extrachill/v1/community/upload-image', {
+                        method: 'POST',
+                        credentials: 'same-origin',
+                        headers: {
+                            'X-WP-Nonce': customTinymcePlugin.restNonce
                         },
-                        error: function(xhr, status, error) {
-                            console.error("AJAX error:", status, error);
-                            // Remove loading indicator
+                        body: formData
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // Insert the image wrapped in a paragraph, then add an extra blank paragraph.
+                            var content = '<p><img src="' + data.url + '" style="max-width:50%;" class="uploaded-image" /></p><p><br /></p>';
+                            editor.insertContent(content);
+                            editor.focus();
+                            // Collapse the selection to the end of the content so the cursor is in the new blank paragraph.
+                            editor.selection.collapse(false);
+                        } else {
+                            console.error("Upload failed:", data.message || 'Unknown error');
+                        }
+
+                        // Remove loading indicator
+                        if (loader.parentNode) {
+                            loader.parentNode.removeChild(loader);
+                        }
+                    })
+                    .catch(error => {
+                        console.error("Upload error:", error);
+                        // Remove loading indicator
+                        if (loader.parentNode) {
                             loader.parentNode.removeChild(loader);
                         }
                     });

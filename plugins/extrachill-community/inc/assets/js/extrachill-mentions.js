@@ -380,63 +380,66 @@ if (typeof window.extrachillMentionsPluginLoaded === 'undefined') {
     })(); // IIFE
 
 // Handle clicks on the bbPress Reply link (existing functionality preserved)
-jQuery(document).ready(function($) {
-    $(document).on('click', '.bbp-reply-to-link', function(e) {
+document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('click', function(e) {
+        const replyLink = e.target.closest('.bbp-reply-to-link');
+        if (!replyLink) return;
+
         e.preventDefault();
 
-        var href = $(this).attr('href');
-        var replyToIdMatch = href.match(/bbp_reply_to=(\d+)/);
-        var replyToId = replyToIdMatch ? replyToIdMatch[1] : null;
+        const href = replyLink.getAttribute('href');
+        const replyToIdMatch = href.match(/bbp_reply_to=(\d+)/);
+        const replyToId = replyToIdMatch ? replyToIdMatch[1] : null;
 
         if (!replyToId) {
             return false;
         }
 
-        var replyElement = $('.bbp-reply-content[data-reply-id="' + replyToId + '"]');
-        if (replyElement.length === 0) {
+        const replyElement = document.querySelector('.bbp-reply-content[data-reply-id="' + replyToId + '"]');
+        if (!replyElement) {
             return false;
         }
 
-        var replyCard = replyElement.closest('.bbp-reply-card');
-        if (replyCard.length === 0) {
+        const replyCard = replyElement.closest('.bbp-reply-card');
+        if (!replyCard) {
             return false;
         }
 
-        var authorLink = replyCard.find('.bbp-reply-header .bbp-author-name');
-        if (authorLink.length === 0) {
+        const authorLink = replyCard.querySelector('.bbp-reply-header .bbp-author-name');
+        if (!authorLink) {
             return false;
         }
 
-        var authorUrl = authorLink.attr('href');
-        var replySlug = null;
+        const authorUrl = authorLink.getAttribute('href');
+        let replySlug = null;
         if (authorUrl) {
-            var parts = authorUrl.replace(/\/+$/, '').split('/');
+            const parts = authorUrl.replace(/\/+$/, '').split('/');
             replySlug = parts.pop();
         }
         if (!replySlug) {
             return false;
         }
 
-        var mentionHtml = '@' + replySlug;
+        const mentionHtml = '@' + replySlug;
 
-        var replyContent = $('#bbp_reply_content');
-        if (replyContent.length) {
+        const replyContent = document.getElementById('bbp_reply_content');
+        if (replyContent) {
             if (typeof tinyMCE !== 'undefined' && tinyMCE.get('bbp_reply_content') && !tinyMCE.get('bbp_reply_content').isHidden()) {
-                var editor = tinyMCE.get('bbp_reply_content');
+                const editor = tinyMCE.get('bbp_reply_content');
                 editor.focus();
                 editor.execCommand('mceInsertContent', false, mentionHtml);
                 editor.selection.select(editor.getBody(), true);
                 editor.selection.collapse(false);
             } else {
                 replyContent.focus();
-                var currentVal = replyContent.val();
-                var cursorPos = replyContent.prop('selectionStart');
-                var textBefore = currentVal.substring(0, cursorPos);
-                var textAfter = currentVal.substring(cursorPos);
-                replyContent.val(textBefore + mentionHtml + textAfter);
-                var newCursorPos = cursorPos + mentionHtml.length;
-                replyContent.prop('selectionStart', newCursorPos);
-                replyContent.prop('selectionEnd', newCursorPos);
+                const currentVal = replyContent.value;
+                const cursorPos = replyContent.selectionStart;
+                const textBefore = currentVal.substring(0, cursorPos);
+                const textAfter = currentVal.substring(cursorPos);
+                replyContent.value = textBefore + mentionHtml + textAfter;
+                const newCursorPos = cursorPos + mentionHtml.length;
+                replyContent.selectionStart = newCursorPos;
+                replyContent.selectionEnd = newCursorPos;
             }
         }
 
