@@ -19,7 +19,6 @@ CLAUDE.md
 AGENTS.md
 .buildignore
 build.sh
-docs/
 
 # WordPress documentation sync (contains application password)
 docs/.docs-sync.json
