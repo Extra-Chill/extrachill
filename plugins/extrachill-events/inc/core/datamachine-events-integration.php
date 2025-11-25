@@ -34,11 +34,12 @@ class DataMachineEventsIntegration {
         if (class_exists('DataMachineEvents\Blocks\Calendar\Taxonomy_Badges')) {
             add_filter('datamachine_events_badge_wrapper_classes', array($this, 'add_wrapper_classes'), 10, 2);
             add_filter('datamachine_events_badge_classes', array($this, 'add_badge_classes'), 10, 4);
-            add_filter('datamachine_events_excluded_taxonomies', array($this, 'exclude_venue_taxonomy'));
+            add_filter('datamachine_events_excluded_taxonomies', array($this, 'exclude_taxonomies'), 10, 2);
         }
 
         add_filter('datamachine_events_modal_button_classes', array($this, 'add_modal_button_classes'), 10, 2);
         add_filter('datamachine_events_ticket_button_classes', array($this, 'add_ticket_button_classes'), 10, 1);
+        add_filter('datamachine_events_more_info_button_classes', array($this, 'add_more_info_button_classes'), 10, 1);
 
         add_filter('extrachill_post_meta', array($this, 'hide_post_meta_for_events'), 10, 3);
 
@@ -87,24 +88,31 @@ class DataMachineEventsIntegration {
                 $badge_classes[] = 'location-badge';
                 $badge_classes[] = 'location-' . esc_attr($term->slug);
                 break;
+
+            case 'venue':
+                $badge_classes[] = 'venue-badge';
+                $badge_classes[] = 'venue-' . esc_attr($term->slug);
+                break;
         }
 
         return $badge_classes;
     }
 
     /**
-     * Exclude venue and artist taxonomies from badge display
+     * Exclude taxonomies from badge and modal display
      *
-     * Venue taxonomy displayed separately via dedicated metadata fields.
      * Artist taxonomy excluded to prevent redundant display with artist-specific metadata.
+     * Context parameter allows selective exclusion:
+     * - No context check = exclude from all contexts
+     * - Check specific context = exclude only from that context (e.g., $context === 'badge')
      *
      * @hook datamachine_events_excluded_taxonomies
-     * @param array $excluded Array of taxonomy slugs to exclude
-     * @return array Enhanced exclusion array with venue and artist taxonomies
+     * @param array  $excluded Array of taxonomy slugs to exclude
+     * @param string $context  Context identifier: 'badge', 'modal'
+     * @return array Enhanced exclusion array with artist taxonomy
      * @since 0.1.0
      */
-    public function exclude_venue_taxonomy($excluded) {
-        $excluded[] = 'venue';
+    public function exclude_taxonomies($excluded, $context = '') {
         $excluded[] = 'artist';
         return $excluded;
     }
@@ -150,6 +158,23 @@ class DataMachineEventsIntegration {
     public function add_ticket_button_classes($classes) {
         $classes[] = 'button-1';
         $classes[] = 'button-large';
+        return $classes;
+    }
+
+    /**
+     * Add theme button classes to datamachine-events more info button
+     *
+     * Applies neutral theme button styling (button-3) with small size
+     * to calendar card "More Info" links for secondary call-to-action appearance.
+     *
+     * @hook datamachine_events_more_info_button_classes
+     * @param array $classes Default button classes from datamachine-events
+     * @return array Enhanced button classes with theme styling
+     * @since 0.1.0
+     */
+    public function add_more_info_button_classes($classes) {
+        $classes[] = 'button-3';
+        $classes[] = 'button-small';
         return $classes;
     }
 
