@@ -4,7 +4,7 @@
  *
  * @package ExtraChill
  * @since 1.0.0
- * @deprecated 69.60 Use extrachill_render_community_activity() directly.
+ * @deprecated 1.0.0 Use extrachill_render_community_activity() directly.
  */
 
 extrachill_render_community_activity(array(

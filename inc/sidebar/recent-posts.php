@@ -6,7 +6,7 @@
  * Shows contextual posts based on current page type.
  *
  * @package ExtraChill
- * @since 69.60
+ * @since 1.0.0
  */
 
 if ( ! function_exists( 'extrachill_sidebar_recent_posts' ) ) :

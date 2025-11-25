@@ -7,7 +7,7 @@
  * All include REST API support for block editor integration.
  *
  * @package ExtraChill
- * @since 69.60
+ * @since 1.0.0
  */
 function extra_chill_register_custom_taxonomies() {
     if (!taxonomy_exists('location')) {

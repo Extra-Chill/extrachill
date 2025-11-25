@@ -5,7 +5,7 @@
  * Archive post card with support for multisite search and forum posts.
  *
  * @package ExtraChill
- * @since 69.60
+ * @since 1.0.0
  */
 
 $featured_image_size = 'medium_large';

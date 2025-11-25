@@ -5,7 +5,7 @@
  * Forces blank category base to keep category archives at root level (e.g., /news/).
  *
  * @package ExtraChill
- * @since 69.60
+ * @since 1.0.0
  */
 
 function extrachill_force_category_base() {

@@ -6,7 +6,7 @@
  * Hook: extrachill_after_author_bio fires on author archives (passes $author_id parameter).
  *
  * @package ExtraChill
- * @since 69.60
+ * @since 1.0.0
  */
 ?>
 
