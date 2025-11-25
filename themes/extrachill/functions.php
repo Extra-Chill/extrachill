@@ -6,7 +6,7 @@
  * Uses centralized template routing (template-router.php) and conditional asset loading (assets.php).
  *
  * @package ExtraChill
- * @since 69.60
+ * @since 1.0.0
  */
 
 include_once(ABSPATH . 'wp-admin/includes/plugin.php');
@@ -141,27 +141,6 @@ function wpse_cleantags_add_noindex( $robots ) {
 
     return $robots;
 }
-
-function add_target_blank_to_external_links($content) {
-    $home_url = home_url();
-    $content = preg_replace_callback(
-        '@<a\s[^>]*href=([\'"])(.+?)\1[^>]*>@i',
-        function($matches) use ($home_url) {
-            if (strpos($matches[2], '#') === 0) {
-                return $matches[0];
-            }
-            if (strpos($matches[2], $home_url) === false) {
-                return str_replace('<a', '<a target="_blank" rel="noopener noreferrer"', $matches[0]);
-            } else {
-                return $matches[0];
-            }
-        },
-        $content
-    );
-
-    return $content;
-}
-add_filter('the_content', 'add_target_blank_to_external_links');
 
 if ( is_plugin_active('co-authors-plus/co-authors-plus.php') ) {
     add_action( 'rest_api_init', 'custom_register_coauthors' );
