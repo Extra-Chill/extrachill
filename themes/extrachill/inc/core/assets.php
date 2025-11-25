@@ -6,7 +6,7 @@
  * File existence checks before enqueuing, context-aware loading throughout.
  *
  * @package ExtraChill
- * @since 69.60
+ * @since 1.0.0
  */
 
 function extrachill_enqueue_navigation_assets() {

@@ -6,7 +6,7 @@
  * Supports forum posts, Co-Authors Plus, and extrachill-users plugin integration.
  *
  * @package ExtraChill
- * @since 69.60
+ * @since 1.0.0
  */
 
 if ( ! function_exists( 'extrachill_entry_meta' ) ) :

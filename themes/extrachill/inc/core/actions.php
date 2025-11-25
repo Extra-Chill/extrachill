@@ -6,7 +6,7 @@
  * Plugins can override by hooking at different priorities or replacing handlers.
  *
  * @package ExtraChill
- * @since 69.60
+ * @since 1.0.0
  */
 
 function extrachill_default_footer_main_content() {

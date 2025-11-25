@@ -194,7 +194,7 @@ extrachill/
 │   │       ├── section-more-recent-posts.php
 │   │       ├── section-extrachill-link.php
 │   │       ├── section-about.php
-│   │       ├── community-activity.php  # Legacy wrapper (deprecated 69.60)
+│   │       ├── community-activity.php  # Legacy wrapper (deprecated 1.0.0)
 │   │       └── front-page.php
 │   ├── sidebar/                # Sidebar functionality (2 files)
 │   │   ├── recent-posts.php
