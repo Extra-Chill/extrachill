@@ -26,16 +26,6 @@ function ec_events_enqueue_related_assets() {
 	if ( wp_style_is( 'wp-block-datamachine-events-calendar', 'registered' ) ) {
 		wp_enqueue_style( 'wp-block-datamachine-events-calendar' );
 	}
-
-	// Enqueue Carousel List styles
-	if ( defined( 'DATAMACHINE_EVENTS_PLUGIN_URL' ) && defined( 'DATAMACHINE_EVENTS_PLUGIN_DIR' ) ) {
-		wp_enqueue_style(
-			'datamachine-events-carousel-list',
-			DATAMACHINE_EVENTS_PLUGIN_URL . 'inc/Blocks/Calendar/DisplayStyles/CarouselList/carousel-list.css',
-			array( 'datamachine-events-root' ),
-			filemtime( DATAMACHINE_EVENTS_PLUGIN_DIR . 'inc/Blocks/Calendar/DisplayStyles/CarouselList/carousel-list.css' )
-		);
-	}
 }
 add_action( 'wp_enqueue_scripts', 'ec_events_enqueue_related_assets' );
 
@@ -163,35 +153,45 @@ function ec_events_render_related_posts( $taxonomy, $post_id ) {
 	$related_posts = new WP_Query( $query_args );
 
 	if ( $related_posts->have_posts() ) :
-		\DataMachineEvents\Blocks\Calendar\Template_Loader::init();
 		?>
-		<div class="related-tax-section datamachine-events-calendar">
+		<div class="related-tax-section">
 			<h3 class="related-tax-header">More from <a href="<?php echo esc_url( $term_link ); ?>" class="sidebar-tax-link"><?php echo $term_name; ?></a></h3>
 			
-			<div class="datamachine-events-content">
-				<div class="datamachine-date-group">
-					<div class="datamachine-events-wrapper">
-						<?php
-						while ( $related_posts->have_posts() ) :
-							$related_posts->the_post();
-							$post = get_post();
-							
-							$event_data = \DataMachineEvents\Blocks\Calendar\Calendar_Query::parse_event_data( $post );
-							
-							if ( $event_data ) {
-								$display_vars = \DataMachineEvents\Blocks\Calendar\Calendar_Query::build_display_vars( $event_data );
-								
-								\DataMachineEvents\Blocks\Calendar\Template_Loader::include_template( 'event-item', array(
-									'event_post'   => $post,
-									'event_data'   => $event_data,
-									'display_vars' => $display_vars,
-								) );
-							}
-						endwhile;
-						wp_reset_postdata();
-						?>
-					</div>
-				</div>
+			<div class="related-tax-grid">
+				<?php
+				while ( $related_posts->have_posts() ) :
+					$related_posts->the_post();
+					$post = get_post();
+					
+					$event_data = \DataMachineEvents\Blocks\Calendar\Calendar_Query::parse_event_data( $post );
+					$image_url  = get_the_post_thumbnail_url( $post, 'medium' );
+					
+					// Format date: "Fri, Nov 26 @ 8:00 PM"
+					$date_str = '';
+					if ( ! empty( $event_data['start_date'] ) ) {
+						$date_obj = new DateTime( $event_data['start_date'] );
+						$date_str = $date_obj->format( 'D, M j @ g:i A' );
+					}
+					
+					// Append venue name if we are in location view
+					$meta_text = $date_str;
+					if ( $taxonomy === 'location' && ! empty( $event_data['venue'] ) ) {
+						$meta_text .= ' • ' . $event_data['venue']->name;
+					}
+					?>
+					<a href="<?php the_permalink(); ?>" class="related-tax-card">
+						<?php if ( $image_url ) : ?>
+							<span class="related-tax-thumb">
+								<img src="<?php echo esc_url( $image_url ); ?>" alt="<?php echo esc_attr( get_the_title() ); ?>" loading="lazy">
+							</span>
+						<?php endif; ?>
+						<span class="related-tax-title"><?php the_title(); ?></span>
+						<span class="related-tax-meta"><?php echo esc_html( $meta_text ); ?></span>
+					</a>
+					<?php
+				endwhile;
+				wp_reset_postdata();
+				?>
 			</div>
 		</div>
 		<?php
