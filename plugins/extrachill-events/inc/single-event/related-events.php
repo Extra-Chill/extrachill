@@ -13,6 +13,33 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
+ * Enqueue assets for related events
+ *
+ * @since 0.1.1
+ */
+function ec_events_enqueue_related_assets() {
+	if ( ! is_singular( 'datamachine_events' ) ) {
+		return;
+	}
+
+	// Ensure core block styles are loaded since we are manually rendering components
+	if ( wp_style_is( 'wp-block-datamachine-events-calendar', 'registered' ) ) {
+		wp_enqueue_style( 'wp-block-datamachine-events-calendar' );
+	}
+
+	// Enqueue Carousel List styles
+	if ( defined( 'DATAMACHINE_EVENTS_PLUGIN_URL' ) && defined( 'DATAMACHINE_EVENTS_PLUGIN_DIR' ) ) {
+		wp_enqueue_style(
+			'datamachine-events-carousel-list',
+			DATAMACHINE_EVENTS_PLUGIN_URL . 'inc/Blocks/Calendar/DisplayStyles/CarouselList/carousel-list.css',
+			array( 'datamachine-events-root' ),
+			filemtime( DATAMACHINE_EVENTS_PLUGIN_DIR . 'inc/Blocks/Calendar/DisplayStyles/CarouselList/carousel-list.css' )
+		);
+	}
+}
+add_action( 'wp_enqueue_scripts', 'ec_events_enqueue_related_assets' );
+
+/**
  * Use venue and location taxonomies for event posts
  *
  * Order matters:
@@ -78,16 +105,6 @@ add_filter( 'extrachill_override_related_posts_display', 'ec_events_override_rel
 function ec_events_render_related_posts( $taxonomy, $post_id ) {
 	if ( ! class_exists( '\DataMachineEvents\Blocks\Calendar\Template_Loader' ) || ! class_exists( '\DataMachineEvents\Blocks\Calendar\Calendar_Query' ) ) {
 		return;
-	}
-
-	// Enqueue styles
-	if ( defined( 'DATAMACHINE_EVENTS_PLUGIN_URL' ) && defined( 'DATAMACHINE_EVENTS_PLUGIN_DIR' ) ) {
-		wp_enqueue_style(
-			'datamachine-events-carousel-list',
-			DATAMACHINE_EVENTS_PLUGIN_URL . 'inc/Blocks/Calendar/DisplayStyles/CarouselList/carousel-list.css',
-			array( 'datamachine-events-root' ),
-			filemtime( DATAMACHINE_EVENTS_PLUGIN_DIR . 'inc/Blocks/Calendar/DisplayStyles/CarouselList/carousel-list.css' )
-		);
 	}
 
 	// Get terms
