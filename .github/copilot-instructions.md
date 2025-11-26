@@ -33,8 +33,8 @@ Purpose: Enable an AI agent to make high‑quality, production‑safe contributi
 - Community functionality moved to ExtraChill Community plugin and ExtraChill Multisite plugin. Theme includes function existence checks for multisite plugin functions with graceful fallback when unavailable.
 
 ## 7. Security & Output
-- Maintain consistent escaping: `esc_html()`, `esc_attr()`, `esc_url()`, and nonce/capability checks for AJAX. Follow existing external link modification filter when adjusting link behaviors.
-- External links auto-get `target="_blank" rel="noopener noreferrer"`; do not duplicate that logic elsewhere.
+- Maintain consistent escaping: `esc_html()`, `esc_attr()`, `esc_url()`, and nonce/capability checks for AJAX.
+- All output must use proper WordPress escaping functions.
 
 ## 8. Performance Practices
 - Preserve conditional body classes & style dequeues (emoji removal, admin style suppression). If adding new heavy assets, gate them by context early in `wp_enqueue_scripts` with low priority if foundational, higher if dependent.

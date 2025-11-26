@@ -11,7 +11,7 @@ The ExtraChill theme is a custom WordPress theme serving as the frontend for an 
 ## Architecture & Core Components
 
 ### Modular File Structure
-The theme uses a clean, modular architecture organized in the `/inc/` directory with **49 total PHP files**:
+The theme uses a clean, modular architecture organized in the `/inc/` directory with **48 total PHP files**:
 - **archives/**: Archive page functionality (8 files total)
   - Core archive files (7 files): archive.php, archive-header.php, archive-filter-bar.php, archive-custom-sorting.php, archive-child-terms-dropdown.php, post-card.php, artist-profile-link.php
   - **archives/search/**: Search header template (1 file): search-header.php (loaded via extrachill_search_header action hook, used by extrachill-search plugin)
@@ -20,7 +20,7 @@ The theme uses a clean, modular architecture organized in the `/inc/` directory 
   - **core/templates/**: Shared template components (10 files): post-meta.php, pagination.php, no-results.php, share.php, social-links.php, taxonomy-badges.php, breadcrumbs.php, searchform.php, 404.php, community-activity.php
   - **core/editor/**: Custom embeds (3 files): bandcamp-embeds.php, instagram-embeds.php, spotify-embeds.php
 - **footer/**: Footer navigation and back-to-home functionality (3 files): footer-bottom-menu.php, footer-main-menu.php, back-to-home-link.php
-- **header/**: Navigation functionality (4 files): navigation.php, navigation-menu.php, nav-bottom-menu.php, nav-main-menu.php
+- **header/**: Navigation functionality (3 files): navigation-menu.php, nav-bottom-menu.php, nav-main-menu.php
 - **home/**: Homepage-specific components and template sections (8 files total: 1 core + 7 templates)
   - homepage-queries.php
   - **templates/**: 7 template files (hero.php, section-3x3-grid.php, section-more-recent-posts.php, section-extrachill-link.php, section-about.php, community-activity.php, front-page.php)
@@ -32,7 +32,7 @@ The theme uses a clean, modular architecture organized in the `/inc/` directory 
 - **Festival Wire Integration**: Homepage ticker display for Festival Wire posts (handled by ExtraChill News Wire plugin)
 
 ### WordPress Multisite Network Integration
-The ExtraChill theme serves **all ten sites in the WordPress multisite network**:
+The ExtraChill theme serves **all 10 sites in the WordPress multisite network**:
 - **extrachill.com** - Main music journalism and content site (Blog ID 1)
 - **community.extrachill.com** - Community forums and user hub (Blog ID 2)
 - **shop.extrachill.com** - E-commerce platform with WooCommerce (Blog ID 3)
@@ -163,7 +163,7 @@ The theme implements template routing via WordPress's native `template_include` 
 
 ### CSS Architecture
 - **Root Variables**: Global CSS custom properties in `assets/css/root.css`
-- **Modular Loading**: Page-specific CSS files (11 total: `home.css`, `archive.css`, `single-post.css`, `nav.css`, `badge-colors.css`, `editor-style.css`, `search.css`, `shared-tabs.css`, `share.css`, `sidebar.css`, `root.css`)
+- **Modular Loading**: Page-specific CSS files (11 total in assets/css/: `root.css`, `home.css`, `archive.css`, `single-post.css`, `nav.css`, `badge-colors.css`, `editor-style.css`, `search.css`, `shared-tabs.css`, `share.css`, `sidebar.css`)
 - **Component Styles**: Separate files for badges, editor styles, search results, shared tab interfaces, share buttons, and sidebar components
 - **Performance Loading**: Conditional CSS enqueuing based on page context
 - **Dependency Management**: Proper CSS loading order with root.css loading first
@@ -196,7 +196,7 @@ For production deployment, use the build script:
 - Creates `build/extrachill.zip` non-versioned deployment package
 - Restores development dependencies: `composer install`
 
-**Output**: Both `build/extrachill/` directory AND `build/extrachill.zip` file exist simultaneously
+**Output**: `/build/extrachill.zip` file only (unzip when directory access needed)
 
 ### Common Development Tasks
 ```bash
@@ -220,7 +220,7 @@ wp rewrite flush
 ### Core Theme Files
 - **`inc/core/template-router.php`** - WordPress native template routing via `template_include` filter with custom page template support
 - **`index.php`** - Emergency fallback template (minimal functionality)
-- **`functions.php`** - Main theme setup, asset loading, and module includes (27 direct includes from 49 total PHP files in /inc/)
+- **`functions.php`** - Main theme setup, asset loading, and module includes (28 direct includes from 48 total PHP files in /inc/)
 - **`inc/core/assets.php`** - Centralized asset management with conditional loading
 - **`inc/single/comments.php`** - Comment system with community integration
 - **`inc/core/templates/post-meta.php`** - Post meta display template
@@ -304,11 +304,10 @@ wp rewrite flush
 - `inc/footer/footer-bottom-menu.php` - Legal/policy links below copyright
 - `inc/footer/back-to-home-link.php` - Universal back-to-home navigation with smart logic (main homepage: no button, subsite homepages: link to main site, all other pages: link to current site homepage)
 
-**Header/Navigation (4 files)**:
-- `inc/header/navigation.php` - Core navigation functionality
-- `inc/header/navigation-menu.php` - Navigation menu functionality
-- `inc/header/nav-bottom-menu.php` - Bottom navigation menu
-- `inc/header/nav-main-menu.php` - Main navigation menu
+**Header/Navigation (3 files)**:
+- `inc/header/navigation-menu.php` - Navigation menu container with flyout structure
+- `inc/header/nav-bottom-menu.php` - Bottom navigation links (About, Contact)
+- `inc/header/nav-main-menu.php` - Main navigation items
 
 **Homepage Components (8 files)**:
 - `inc/home/homepage-queries.php` - Homepage query functions
@@ -317,7 +316,7 @@ wp rewrite flush
 - `inc/home/templates/section-more-recent-posts.php` - Recent posts section
 - `inc/home/templates/section-extrachill-link.php` - extrachill.link promo section with join CTA linking to https://extrachill.link/join
 - `inc/home/templates/section-about.php` - About section
-- `inc/home/templates/community-activity.php` - Legacy wrapper calling `extrachill_render_community_activity()` with 3x3 grid styling (deprecated 69.60)
+- `inc/home/templates/community-activity.php` - Legacy wrapper calling `extrachill_render_community_activity()` with 3x3 grid styling (deprecated 1.0.0)
 - `inc/home/templates/front-page.php` - Front page template
 
 
@@ -412,7 +411,6 @@ wp rewrite flush
 - **Nonce Verification**: AJAX requests protected with nonce verification
 - **Capability Checks**: Admin functions protected with proper capability checks
 - **No Hardcoded Secrets**: No API keys or credentials in codebase
-- **External Links**: Automatic `target="_blank"` and `rel="noopener noreferrer"` for security
 
 ## Theme Constants
 
@@ -451,7 +449,7 @@ EXTRACHILL_INCLUDES_DIR - Inc directory path for modular includes
 - **Asset Management**: Centralized in `inc/core/assets.php` with conditional loading
 - **Authentication Simplification**: Native WordPress multisite authentication via extrachill-multisite plugin
 - **Performance Optimization**: Modular CSS architecture and selective loading
-- **File Structure Cleanup**: Streamlined to 49 modular PHP files with improved organization (27 directly loaded in functions.php)
+- **File Structure Cleanup**: Streamlined to 48 modular PHP files with improved organization (28 directly loaded in functions.php)
 - **Font File Cleanup**: Removed legacy font files (Libre Franklin, PT Serif, Wilco Loft Sans, Lobster, owfont) for performance optimization
 - **WooCommerce Template Router Support**: Added `is_woocommerce()` bypass in template router for native WooCommerce template handling
 - **Archive Sorting Enhancement**: Archive filter bar upgraded to 4-option dropdown (recent, oldest, random, popular by view count) replacing previous 2-option system with separate randomize button

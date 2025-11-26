@@ -2,8 +2,8 @@
 
 This directory contains technical deep-dive documentation for the ExtraChill theme.
 
-**For architectural patterns and development guidelines**, see [../CLAUDE.md](../CLAUDE.md)
-**For quick overview and installation**, see [../README.md](../README.md)
+**For architectural patterns and development guidelines**, see ../CLAUDE.md
+**For quick overview and installation**, see ../README.md
 
 ---
 
@@ -13,7 +13,7 @@ Comprehensive user-facing documentation for the ExtraChill WordPress theme.
 
 ExtraChill is a custom WordPress theme serving a music community ecosystem across a multisite network. The theme powers all ten sites in the Extra Chill Platform multisite network with plugin integration architecture and modern WordPress features.
 
-**Version**: 69.58
+**Version**: 1.0.1
 **Author**: Chubes
 **Text Domain**: extrachill
 
@@ -23,7 +23,7 @@ ExtraChill is a custom WordPress theme serving a music community ecosystem acros
 
 - **WordPress Native Routing**: Uses `template_include` filter for proper WordPress integration with custom page template support
 - **Hook-Based Extensibility**: Action and filter hooks throughout for plugin integration
-- **Modular Organization**: 49 modular PHP files in `/inc` directory (27 directly loaded in functions.php)
+- **Modular Organization**: 48 modular PHP files in `/inc` directory (28 directly loaded in functions.php)
 - **Performance Focused**: Conditional asset loading, hardcoded menus, cache busting
 - **Multisite Integration**: Seamless integration with WordPress multisite network
 
@@ -50,10 +50,10 @@ extrachill/
 │   ├── home/                     # Homepage components
 │   ├── single/                   # Single post/page templates
 │   ├── archives/                 # Archive functionality
-│   │   └── search/              # Multisite search system
+│   │   └── search/              # Search header template (main template provided by extrachill-search plugin)
 │   └── sidebar/                  # Sidebar widgets
 └── assets/                       # CSS, JavaScript, fonts
-    ├── css/                      # 9 modular CSS files
+    ├── css/                      # 11 modular CSS files
     ├── js/                       # JavaScript functionality
     └── fonts/                    # FontAwesome SVG sprite
 ```
@@ -109,35 +109,35 @@ extrachill_breadcrumbs();
 
 ### Core Features
 
-- **[Template Routing System](template-routing.md)** - WordPress native template routing with plugin override capability
-- **[Action Hooks Reference](action-hooks.md)** - All action hooks for plugin integration
-- **[Filter Hooks Reference](filter-hooks.md)** - All filter hooks for customization
-- **[Theme Constants and Functions](theme-constants-functions.md)** - Core constants, configuration, utility functions
+- **Template Routing System** - WordPress native template routing with plugin override capability
+- **Action Hooks Reference** - All action hooks for plugin integration
+- **Filter Hooks Reference** - All filter hooks for customization
+- **Theme Constants and Functions** - Core constants, configuration, utility functions
 
 ### Taxonomies and Content
 
-- **[Custom Taxonomies](custom-taxonomies.md)** - Location, Festival, Artist, Venue taxonomies
-- **[View Counting System](view-counting.md)** - Universal post view tracking
-- **[Category Rewrite System](category-rewrite-system.md)** - Clean category URLs without /category/ prefix
+- **Custom Taxonomies** - Location, Festival, Artist, Venue taxonomies
+- **View Counting System** - Universal post view tracking
+- **Category Rewrite System** - Clean category URLs without /category/ prefix
 
 ### Navigation and Menus
 
-- **[Navigation System](navigation-system.md)** - Hook-based navigation with hardcoded menu performance
-- **[Archive Functionality](archive-functionality.md)** - Filtering, sorting, and archive features
-- **[Search System](search-system.md)** - Multisite search with cross-site results
+- **Navigation System** - Hook-based navigation with hardcoded menu performance
+- **Archive Functionality** - Filtering, sorting, and archive features
+- **Search System** - Multisite search with cross-site results
 
 ### Assets and Performance
 
-- **[Asset Loading System](asset-loading.md)** - Conditional CSS/JS loading with cache busting
-- **[Custom Embeds](custom-embeds.md)** - Bandcamp, Spotify, Instagram embed support
+- **Asset Loading System** - Conditional CSS/JS loading with cache busting
+- **Custom Embeds** - Bandcamp, Spotify, Instagram embed support
 
 ### Template Components
 
-- **[Template Components](template-components.md)** - Pagination, breadcrumbs, post meta, social links, share buttons
+- **Template Components** - Pagination, breadcrumbs, post meta, social links, share buttons
 
 ### Multisite Integration
 
-- **[Multisite Integration](multisite-integration.md)** - WordPress multisite network integration
+- **Multisite Integration** - WordPress multisite network integration
 
 ## Key Features
 
@@ -184,7 +184,7 @@ All taxonomies include REST API support and block editor integration.
 
 ### Asset Management
 
-- 9 modular CSS files loaded conditionally
+- 11 modular CSS files loaded conditionally
 - Cache busting via `filemtime()`
 - Root CSS variables for global theming
 - JavaScript conditional loading
@@ -231,7 +231,7 @@ All taxonomies include REST API support and block editor integration.
 
 ## Multisite Network
 
-Theme serves all ten sites in the Extra Chill Platform network:
+Theme serves all 10 sites in the Extra Chill Platform network:
 
 1. **extrachill.com** - Main music journalism and content site (Blog ID 1)
 2. **community.extrachill.com** - Community forums and user hub (Blog ID 2)
@@ -239,8 +239,8 @@ Theme serves all ten sites in the Extra Chill Platform network:
 4. **artist.extrachill.com** - Artist platform and profiles (Blog ID 4)
 5. **chat.extrachill.com** - AI chatbot system with ChatGPT-style interface (Blog ID 5)
 6. **events.extrachill.com** - Event calendar hub powered by Data Machine (Blog ID 7)
-7. **newsletter.extrachill.com** - Newsletter management and archive hub (Blog ID 8)
-8. **stream.extrachill.com** - Live streaming platform (Phase 1 UI) (Blog ID 9)
+7. **stream.extrachill.com** - Live streaming platform (Phase 1 UI) (Blog ID 8)
+8. **newsletter.extrachill.com** - Newsletter management and archive hub (Blog ID 9)
 9. **horoscope.extrachill.com** - Wook-themed daily horoscopes via Data Machine AI (Blog ID 10)
 
 Each site uses the same theme with different plugin integrations and template overrides via `extrachill_template_*` filters. Cross-site features handled by network-activated plugins (extrachill-multisite, extrachill-search, extrachill-users). Theme directly queries bbPress data for community activity with graceful fallback.
@@ -281,7 +281,6 @@ Each site uses the same theme with different plugin integrations and template ov
 ## Security Features
 
 - Password-protected post hiding
-- External link `target="_blank"` with `rel="noopener noreferrer"`
 - Input sanitization throughout
 - Output escaping via WordPress functions
 - Nonce verification (plugin integration)

@@ -2,12 +2,11 @@
 
 Multisite search functionality with cross-site result integration.
 
-## Search Template
+## Search Architecture
 
-**Location**: `/inc/archives/search/search.php`
-**Filter**: `extrachill_template_search`
-
-Dedicated search results template with multisite support.
+**Main Search Template**: Provided by extrachill-search plugin via `extrachill_template_search` filter
+**Search Header Template**: `/inc/archives/search/search-header.php` (provided by theme)
+**Search Styling**: `/assets/css/search.css` (provided by theme)
 
 ## Search Components
 

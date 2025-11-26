@@ -404,7 +404,7 @@ extrachill_render_community_activity( array(
 
 - **Sidebar Widget**: `/inc/sidebar/community-activity.php` - Calls shared helper with sidebar styling
 - **Homepage 3x3 Grid**: `/inc/home/templates/section-3x3-grid.php` - Calls shared helper with grid styling
-- **Legacy Wrapper**: `/inc/home/templates/community-activity.php` - Deprecated wrapper (v69.60+)
+- **Legacy Wrapper**: `/inc/home/templates/community-activity.php` - Deprecated wrapper (v1.0.0+)
 
 ### Output Format
 

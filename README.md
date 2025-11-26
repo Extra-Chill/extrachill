@@ -34,7 +34,7 @@ ExtraChill is a modern, performance-optimized WordPress theme designed specifica
 - **Component Styles**: Dedicated files for badges (`badge-colors.css`), editor styles (`editor-style.css`), search results (`search.css`), shared tabs (`shared-tabs.css`)
 
 ### 🤝 Community Integration
-- **WordPress Multisite**: Native cross-domain authentication and user management across ten sites
+- **WordPress Multisite**: Native cross-domain authentication and user management across 10 sites
 - **Shared Community Activity Helper**: Centralized reusable library (`inc/core/templates/community-activity.php`) provides `extrachill_get_community_activity_items()` and `extrachill_render_community_activity()` functions
 - **Multi-Site Activity Queries**: Queries BOTH community.extrachill.com (blog ID 2) AND artist.extrachill.com (blog ID 4) for bbPress topics/replies
 - **Activity Integration**: Merges activities from both sites into unified, chronologically sorted list with 10-minute caching
@@ -88,9 +88,9 @@ The theme supports direct file editing for development with no build step requir
 cd wp-content/themes/extrachill
 
 # Edit files directly
-# CSS files are in /assets/css/ (11 files: root.css, home.css, archive.css, single-post.css, nav.css, badge-colors.css, editor-style.css, search.css, shared-tabs.css, share.css, sidebar.css)
+# CSS files are in /assets/css/ (11 CSS files: root.css, home.css, archive.css, single-post.css, nav.css, badge-colors.css, editor-style.css, search.css, shared-tabs.css, share.css, sidebar.css)
 # JavaScript files are in /assets/js/ (4 files: nav-menu.js, reading-progress.js, chill-custom.js, shared-tabs.js)
-# PHP files use modular include structure in /inc/ directory (49 total files, 27 directly loaded in functions.php)
+# PHP files use modular include structure in /inc/ directory (48 total files, 28 directly loaded in functions.php)
 
 # Check for syntax errors
 php -l functions.php
@@ -111,8 +111,7 @@ For production deployment, use the build script to create clean ZIP packages:
 ./build.sh
 
 # Output will be in build/ directory:
-# - build/extrachill/ (clean production directory)
-# - build/extrachill.zip (deployable ZIP file)
+# - build/extrachill.zip (deployable ZIP file only - unzip when directory access needed)
 ```
 
 #### Build Process Features
@@ -144,7 +143,7 @@ extrachill/
 │   │   ├── chill-custom.js     # Custom functionality
 │   │   └── shared-tabs.js      # Shared tab interface
 │   └── fonts/                  # Local web fonts
-├── inc/                        # Modular PHP functionality (49 files total, 27 directly loaded)
+├── inc/                        # Modular PHP functionality (48 files total, 28 directly loaded)
 │   ├── archives/               # Archive page functionality (8 files)
 │   │   ├── archive.php
 │   │   ├── archive-header.php
@@ -194,7 +193,7 @@ extrachill/
 │   │       ├── section-more-recent-posts.php
 │   │       ├── section-extrachill-link.php
 │   │       ├── section-about.php
-│   │       ├── community-activity.php  # Legacy wrapper (deprecated 1.0.0)
+│   │       ├── community-activity.php  # Legacy wrapper (deprecated)
 │   │       └── front-page.php
 │   ├── sidebar/                # Sidebar functionality (2 files)
 │   │   ├── recent-posts.php
@@ -255,11 +254,11 @@ The theme follows a modular architecture with clear separation of concerns:
 - **Archive functionality** in `/inc/archives/` (7 core files + search subdirectory with 1 file = 8 total files)
 - **Search integration** in `/inc/archives/search/` (1 file: search-header.php used via extrachill_search_header hook by extrachill-search plugin)
 - **Footer navigation** in `/inc/footer/` (3 footer files: main menu, bottom menu, back-to-home navigation)
-- **Header navigation system** in `/inc/header/` (4 navigation files)
+- **Header navigation system** in `/inc/header/` (3 navigation files)
 - **Homepage components** in `/inc/home/` (8 homepage files: 1 core + 7 templates)
 - **Sidebar functionality** in `/inc/sidebar/` (2 sidebar files)
 - **Single post/page features** in `/inc/single/` (4 single files)
-- **Total**: 49 PHP files in `/inc/` directory with 27 directly loaded in functions.php
+- **Total**: 48 PHP files in `/inc/` directory with 28 directly loaded in functions.php
 
 ### Hook-Based Menu System
 
@@ -290,7 +289,6 @@ The system uses action hooks registered in `inc/core/actions.php` to load hardco
 - **Input sanitization**: All inputs sanitized
 - **Nonce verification**: AJAX requests protected
 - **Capability checks**: Admin functions secured
-- **External link security**: Automatic security attributes
 
 ## Customization
 
@@ -388,7 +386,7 @@ define('SCRIPT_DEBUG', true);
 
 ### Performance Improvements
 - **Asset Directory Migration**: Moved all assets from `css/` and `js/` to `assets/css/` and `assets/js/`
-- **CSS Modularization**: 9 dedicated CSS files with conditional loading:
+- **CSS Modularization**: 11 dedicated CSS files with conditional loading:
   - `assets/css/root.css` - CSS custom properties
   - `assets/css/home.css` - Homepage styles
   - `assets/css/archive.css` - Archive page styles
@@ -398,10 +396,12 @@ define('SCRIPT_DEBUG', true);
   - `assets/css/editor-style.css` - Block editor styles
   - `assets/css/search.css` - Search results styles
   - `assets/css/shared-tabs.css` - Shared tab interface
+  - `assets/css/share.css` - Social share buttons
+  - `assets/css/sidebar.css` - Sidebar components
 - **Streamlined asset loading**: Conditional CSS/JS enqueuing based on page context via `inc/core/assets.php`
 - **Memory optimization**: Efficient resource management through selective loading and admin style dequeuing
 - **Multisite optimization**: Plugin architecture with function existence checks and caching
-- **Template consolidation**: 49 modular PHP files replace monolithic template structure (27 directly loaded in functions.php)
+- **Template consolidation**: 48 modular PHP files replace monolithic template structure (28 directly loaded in functions.php)
 - **Font file cleanup**: Removed legacy font files (Libre Franklin, PT Serif, Wilco Loft Sans, Lobster, owfont) for performance optimization
 - **WooCommerce template router support**: Added `is_woocommerce()` bypass in template router for native WooCommerce template handling
 - **Search plugin integration**: Theme provides search header template and CSS, extrachill-search plugin provides main template
@@ -434,7 +434,7 @@ This theme is proprietary software developed for ExtraChill.com. All rights rese
 - **WordPress Native Template Routing**: Implemented `inc/core/template-router.php` using `template_include` filter
 - **Template Router Migration**: Moved routing logic from `index.php` to dedicated router file
 - **Emergency Fallback**: `index.php` now serves as minimal emergency fallback only
-- **Modular Architecture**: 49 PHP files organized in 7 directories with clear separation of concerns (27 directly loaded in functions.php)
+- **Modular Architecture**: 48 PHP files organized in 7 directories with clear separation of concerns (28 directly loaded in functions.php)
 - **Community Activity Refactor**: Centralized shared helper library with reusable functions for multi-site activity display
 - **Archive Sorting Enhancement**: Upgraded to 4-option dropdown (recent, oldest, random, popular by view count)
 - **Artist Profile Integration**: Displays "View Artist Profile" button on artist archives when matching profile exists on artist.extrachill.com
