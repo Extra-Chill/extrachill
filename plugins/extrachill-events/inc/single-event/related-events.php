@@ -172,12 +172,6 @@ function ec_events_render_related_posts( $taxonomy, $post_id ) {
 						$date_obj = new DateTime( $event_data['start_date'] );
 						$date_str = $date_obj->format( 'D, M j @ g:i A' );
 					}
-					
-					// Append venue name if we are in location view
-					$meta_text = $date_str;
-					if ( $taxonomy === 'location' && ! empty( $event_data['venue'] ) ) {
-						$meta_text .= ' • ' . $event_data['venue']->name;
-					}
 					?>
 					<a href="<?php the_permalink(); ?>" class="related-tax-card">
 						<?php if ( $image_url ) : ?>
@@ -186,7 +180,7 @@ function ec_events_render_related_posts( $taxonomy, $post_id ) {
 							</span>
 						<?php endif; ?>
 						<span class="related-tax-title"><?php the_title(); ?></span>
-						<span class="related-tax-meta"><?php echo esc_html( $meta_text ); ?></span>
+						<span class="related-tax-meta"><?php echo esc_html( $date_str ); ?></span>
 					</a>
 					<?php
 				endwhile;
