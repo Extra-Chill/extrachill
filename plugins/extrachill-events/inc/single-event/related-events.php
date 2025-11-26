@@ -52,77 +52,132 @@ function ec_events_allow_related_taxonomies( $allowed, $post_type ) {
 add_filter( 'extrachill_related_posts_allowed_taxonomies', 'ec_events_allow_related_taxonomies', 10, 2 );
 
 /**
- * Modify query for event posts: change post type and add upcoming events filter
+ * Override related posts display for datamachine_events
  *
- * Only shows future events by adding meta_query comparing event datetime
- * to current datetime. Orders by event date ascending (soonest first).
- *
- * @hook extrachill_related_posts_query_args
- * @param array  $query_args Default query args
- * @param string $taxonomy   Current taxonomy being queried
- * @param int    $post_id    Current post ID
- * @param string $post_type  Current post type
- * @return array Modified query args for event posts
- * @since 0.1.0
+ * @param bool   $override Whether to override default display
+ * @param string $taxonomy Taxonomy being queried
+ * @param int    $post_id  Current post ID
+ * @return bool
  */
-function ec_events_filter_related_query_args( $query_args, $taxonomy, $post_id, $post_type ) {
-	if ( get_current_blog_id() !== 7 || $post_type !== 'datamachine_events' ) {
-		return $query_args;
+function ec_events_override_related_posts( $override, $taxonomy, $post_id ) {
+	if ( get_post_type( $post_id ) === 'datamachine_events' ) {
+		return true;
+	}
+	return $override;
+}
+add_filter( 'extrachill_override_related_posts_display', 'ec_events_override_related_posts', 10, 3 );
+
+/**
+ * Render custom related events display
+ *
+ * Uses Data Machine Events calendar templates to render event cards.
+ *
+ * @param string $taxonomy Taxonomy being queried
+ * @param int    $post_id  Current post ID
+ */
+function ec_events_render_related_posts( $taxonomy, $post_id ) {
+	if ( ! class_exists( '\DataMachineEvents\Blocks\Calendar\Template_Loader' ) || ! class_exists( '\DataMachineEvents\Blocks\Calendar\Calendar_Query' ) ) {
+		return;
 	}
 
-	$query_args['post_type'] = 'datamachine_events';
+	// Enqueue styles
+	if ( defined( 'DATAMACHINE_EVENTS_PLUGIN_URL' ) && defined( 'DATAMACHINE_EVENTS_PLUGIN_DIR' ) ) {
+		wp_enqueue_style(
+			'datamachine-events-carousel-list',
+			DATAMACHINE_EVENTS_PLUGIN_URL . 'inc/Blocks/Calendar/DisplayStyles/CarouselList/carousel-list.css',
+			array( 'datamachine-events-root' ),
+			filemtime( DATAMACHINE_EVENTS_PLUGIN_DIR . 'inc/Blocks/Calendar/DisplayStyles/CarouselList/carousel-list.css' )
+		);
+	}
 
-	$query_args['meta_query'] = array(
+	// Get terms
+	$terms = get_the_terms( $post_id, $taxonomy );
+	if ( ! $terms || is_wp_error( $terms ) ) {
+		return;
+	}
+
+	$term      = $terms[0];
+	$term_id   = $term->term_id;
+	$term_link = get_term_link( $term );
+	$term_name = esc_html( $term->name );
+
+	// Build query args
+	$tax_query = array(
 		array(
-			'key'     => '_datamachine_event_datetime',
-			'value'   => current_time( 'mysql' ),
-			'compare' => '>=',
-			'type'    => 'DATETIME',
+			'taxonomy' => $taxonomy,
+			'field'    => 'term_id',
+			'terms'    => $term_id,
 		),
 	);
 
-	$query_args['meta_key'] = '_datamachine_event_datetime';
-	$query_args['orderby']  = 'meta_value';
-	$query_args['order']    = 'ASC';
-
-	return $query_args;
-}
-add_filter( 'extrachill_related_posts_query_args', 'ec_events_filter_related_query_args', 10, 4 );
-
-/**
- * Exclude same venue when showing location-based related events
- *
- * When displaying location-based related events, exclude events at the same venue
- * to provide variety. This prevents showing duplicate venue events in both sections.
- *
- * @hook extrachill_related_posts_tax_query
- * @param array  $tax_query Tax query array
- * @param string $taxonomy  Current taxonomy being queried
- * @param int    $term_id   Current term ID
- * @param int    $post_id   Current post ID
- * @param string $post_type Current post type
- * @return array Modified tax query with venue exclusion for location queries
- * @since 0.1.0
- */
-function ec_events_exclude_venue_from_location( $tax_query, $taxonomy, $term_id, $post_id, $post_type ) {
-	if ( get_current_blog_id() !== 7 || $post_type !== 'datamachine_events' || $taxonomy !== 'location' ) {
-		return $tax_query;
+	// Exclude same venue when showing location-based related events
+	if ( $taxonomy === 'location' ) {
+		$venue_terms = get_the_terms( $post_id, 'venue' );
+		if ( $venue_terms && ! is_wp_error( $venue_terms ) ) {
+			$venue_term_ids = wp_list_pluck( $venue_terms, 'term_id' );
+			$tax_query[]    = array(
+				'taxonomy' => 'venue',
+				'field'    => 'term_id',
+				'terms'    => $venue_term_ids,
+				'operator' => 'NOT IN',
+			);
+		}
 	}
 
-	$venue_terms = get_the_terms( $post_id, 'venue' );
-	if ( ! $venue_terms || is_wp_error( $venue_terms ) ) {
-		return $tax_query;
-	}
-
-	$venue_term_ids = wp_list_pluck( $venue_terms, 'term_id' );
-
-	$tax_query[] = array(
-		'taxonomy' => 'venue',
-		'field'    => 'term_id',
-		'terms'    => $venue_term_ids,
-		'operator' => 'NOT IN',
+	$query_args = array(
+		'post_type'      => 'datamachine_events',
+		'posts_per_page' => 3,
+		'post_status'    => 'publish',
+		'tax_query'      => $tax_query,
+		'post__not_in'   => array( $post_id ),
+		'meta_key'       => '_datamachine_event_datetime',
+		'orderby'        => 'meta_value',
+		'order'          => 'ASC',
+		'meta_query'     => array(
+			array(
+				'key'     => '_datamachine_event_datetime',
+				'value'   => current_time( 'mysql' ),
+				'compare' => '>=',
+				'type'    => 'DATETIME',
+			),
+		),
 	);
 
-	return $tax_query;
+	$related_posts = new WP_Query( $query_args );
+
+	if ( $related_posts->have_posts() ) :
+		\DataMachineEvents\Blocks\Calendar\Template_Loader::init();
+		?>
+		<div class="related-tax-section datamachine-events-calendar">
+			<h3 class="related-tax-header">More from <a href="<?php echo esc_url( $term_link ); ?>" class="sidebar-tax-link"><?php echo $term_name; ?></a></h3>
+			
+			<div class="datamachine-events-content">
+				<div class="datamachine-date-group">
+					<div class="datamachine-events-wrapper">
+						<?php
+						while ( $related_posts->have_posts() ) :
+							$related_posts->the_post();
+							$post = get_post();
+							
+							$event_data = \DataMachineEvents\Blocks\Calendar\Calendar_Query::parse_event_data( $post );
+							
+							if ( $event_data ) {
+								$display_vars = \DataMachineEvents\Blocks\Calendar\Calendar_Query::build_display_vars( $event_data );
+								
+								\DataMachineEvents\Blocks\Calendar\Template_Loader::include_template( 'event-item', array(
+									'event_post'   => $post,
+									'event_data'   => $event_data,
+									'display_vars' => $display_vars,
+								) );
+							}
+						endwhile;
+						wp_reset_postdata();
+						?>
+					</div>
+				</div>
+			</div>
+		</div>
+		<?php
+	endif;
 }
-add_filter( 'extrachill_related_posts_tax_query', 'ec_events_exclude_venue_from_location', 10, 5 );
+add_action( 'extrachill_custom_related_posts_display', 'ec_events_render_related_posts', 10, 2 );
