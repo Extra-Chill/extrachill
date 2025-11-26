@@ -6,7 +6,7 @@ Conditional CSS/JS loading with automatic cache busting via file modification ti
 
 **Location**: `inc/core/assets.php`
 
-The theme uses 9 modular CSS files loaded conditionally based on page context:
+The theme uses 11 modular CSS files loaded conditionally based on page context:
 
 | File | Context | Dependencies | Priority |
 |------|---------|--------------|----------|
@@ -19,6 +19,8 @@ The theme uses 9 modular CSS files loaded conditionally based on page context:
 | `archive.css` | Archives/Search | root.css, style.css | 20 |
 | `search.css` | Search results | root.css, style.css | 20 |
 | `shared-tabs.css` | Pages only | None | Default |
+| `share.css` | Single posts | None | Default |
+| `sidebar.css` | Sidebar areas | None | Default |
 | `editor-style.css` | Block editor | root.css | Admin only |
 
 ## Cache Busting
@@ -199,6 +201,8 @@ add_filter( 'extrachill_enable_sticky_header', '__return_false' );
     archive.css           # Archive page styles
     search.css            # Search result styles
     shared-tabs.css       # Tab interface styles
+    share.css             # Social share buttons
+    sidebar.css           # Sidebar component styles
     editor-style.css      # Block editor styles
   /js/
     nav-menu.js           # Navigation functionality

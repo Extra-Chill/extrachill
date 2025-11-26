@@ -23,6 +23,11 @@ function extrachill_display_related_posts( $taxonomy, $post_id ) {
 		return;
 	}
 
+	if ( apply_filters( 'extrachill_override_related_posts_display', false, $taxonomy, $post_id ) ) {
+		do_action( 'extrachill_custom_related_posts_display', $taxonomy, $post_id );
+		return;
+	}
+
         $terms = get_the_terms( $post_id, $taxonomy );
         if ( ! $terms || is_wp_error( $terms ) ) {
                 return;

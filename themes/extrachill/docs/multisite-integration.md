@@ -4,7 +4,7 @@ Integration with WordPress multisite network and the extrachill-multisite plugin
 
 ## Network Overview
 
-ExtraChill theme serves **all ten sites** in the WordPress multisite network:
+ExtraChill theme serves **all 10 sites** in the WordPress multisite network:
 
 1. **extrachill.com** - Main music journalism and content site (Blog ID 1)
 2. **community.extrachill.com** - Community forums and user hub (Blog ID 2)

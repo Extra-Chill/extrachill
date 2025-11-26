@@ -35,8 +35,10 @@ Override archive template.
 ### extrachill_template_search
 Override search results template.
 
-**Parameters**: `$template` (string) - Default: `/inc/archives/search/search.php`
+**Parameters**: `$template` (string) - Default: Provided by extrachill-search plugin
 **Returns**: Template file path
+
+**Note**: The main search template is provided by the extrachill-search plugin (network-activated). The theme provides `/inc/archives/search/search-header.php` for the search header component and `/assets/css/search.css` for styling.
 
 ### extrachill_template_404
 Override 404 error template.

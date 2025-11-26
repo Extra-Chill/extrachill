@@ -231,34 +231,7 @@ function filter_yoast_sitemap_images($images, $post_id) {
 add_filter('wpseo_sitemap_urlimages', 'filter_yoast_sitemap_images', 10, 2);
 ```
 
-## Content Filters
-
-### External Link Targeting
-
-```php
-function add_target_blank_to_external_links($content) {
-    $home_url = home_url();
-    $content = preg_replace_callback(
-        '@<a\s[^>]*href=([\'"])(.+?)\1[^>]*>@i',
-        function($matches) use ($home_url) {
-            if (strpos($matches[2], '#') === 0) {
-                return $matches[0]; // Skip anchor links
-            }
-            if (strpos($matches[2], $home_url) === false) {
-                return str_replace('<a', '<a target="_blank" rel="noopener noreferrer"', $matches[0]);
-            }
-            return $matches[0];
-        },
-        $content
-    );
-    return $content;
-}
-add_filter('the_content', 'add_target_blank_to_external_links');
-```
-
-**Effect**: External links open in new tab with security attributes
-
-### Content Cleanup
+## Content Cleanup
 
 ```php
 // Remove inline margins from content

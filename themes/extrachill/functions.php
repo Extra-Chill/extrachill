@@ -2,7 +2,7 @@
 /**
  * ExtraChill Theme Bootstrap
  *
- * WordPress multisite theme serving all 9 sites with direct require_once loading pattern.
+ * WordPress multisite theme serving all 10 sites with direct require_once loading pattern.
  * Uses centralized template routing (template-router.php) and conditional asset loading (assets.php).
  *
  * @package ExtraChill

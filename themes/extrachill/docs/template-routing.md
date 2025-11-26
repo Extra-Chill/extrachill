@@ -16,7 +16,7 @@ The `extrachill_route_templates()` function routes all page types to modular tem
 | Single Post | `/inc/single/single-post.php` | `extrachill_template_single_post` | |
 | Page | `/inc/single/single-page.php` | `extrachill_template_page` | Only when no custom template assigned |
 | Archives | `/inc/archives/archive.php` | `extrachill_template_archive` | |
-| Search | `/inc/archives/search/search.php` | `extrachill_template_search` | |
+| Search | extrachill-search plugin template | `extrachill_template_search` | Plugin provides main template |
 | 404 Error | `/inc/core/templates/404.php` | `extrachill_template_404` | |
 | Unknown Types | `/inc/core/templates/404.php` | `extrachill_template_fallback` | |
 
