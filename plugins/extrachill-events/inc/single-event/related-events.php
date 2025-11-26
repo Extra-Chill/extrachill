@@ -26,6 +26,14 @@ function ec_events_enqueue_related_assets() {
 	if ( wp_style_is( 'wp-block-datamachine-events-calendar', 'registered' ) ) {
 		wp_enqueue_style( 'wp-block-datamachine-events-calendar' );
 	}
+
+	// Enqueue custom related events styles
+	wp_enqueue_style(
+		'ec-related-events',
+		EXTRACHILL_EVENTS_PLUGIN_URL . 'assets/css/related-events.css',
+		array(),
+		filemtime( EXTRACHILL_EVENTS_PLUGIN_DIR . 'assets/css/related-events.css' )
+	);
 }
 add_action( 'wp_enqueue_scripts', 'ec_events_enqueue_related_assets' );
 
@@ -157,31 +165,63 @@ function ec_events_render_related_posts( $taxonomy, $post_id ) {
 		<div class="related-tax-section">
 			<h3 class="related-tax-header">More from <a href="<?php echo esc_url( $term_link ); ?>" class="sidebar-tax-link"><?php echo $term_name; ?></a></h3>
 			
-			<div class="related-tax-grid">
+			<div class="ec-related-events-grid">
 				<?php
 				while ( $related_posts->have_posts() ) :
 					$related_posts->the_post();
 					$post = get_post();
 					
 					$event_data = \DataMachineEvents\Blocks\Calendar\Calendar_Query::parse_event_data( $post );
-					$image_url  = get_the_post_thumbnail_url( $post, 'medium' );
+					$image_url  = get_the_post_thumbnail_url( $post, 'medium_large' );
 					
-					// Format date: "Fri, Nov 26 @ 8:00 PM"
+					// Format date and time
 					$date_str = '';
+					$time_str = '';
+					
 					if ( ! empty( $event_data['start_date'] ) ) {
 						$date_obj = new DateTime( $event_data['start_date'] );
-						$date_str = $date_obj->format( 'D, M j @ g:i A' );
+						$date_str = $date_obj->format( 'D, M j, Y' );
+						$time_str = $date_obj->format( 'g:i A' );
 					}
 					?>
-					<a href="<?php the_permalink(); ?>" class="related-tax-card">
+					<div class="ec-related-event-card">
 						<?php if ( $image_url ) : ?>
-							<span class="related-tax-thumb">
-								<img src="<?php echo esc_url( $image_url ); ?>" alt="<?php echo esc_attr( get_the_title() ); ?>" loading="lazy">
-							</span>
+							<div class="ec-related-event-thumb">
+								<a href="<?php the_permalink(); ?>">
+									<img src="<?php echo esc_url( $image_url ); ?>" alt="<?php echo esc_attr( get_the_title() ); ?>" loading="lazy">
+								</a>
+							</div>
 						<?php endif; ?>
-						<span class="related-tax-title"><?php the_title(); ?></span>
-						<span class="related-tax-meta"><?php echo esc_html( $date_str ); ?></span>
-					</a>
+						
+						<div class="ec-related-event-content">
+							<?php
+							if ( class_exists( '\DataMachineEvents\Blocks\Calendar\Taxonomy_Badges' ) ) {
+								echo \DataMachineEvents\Blocks\Calendar\Taxonomy_Badges::render_taxonomy_badges( $post->ID );
+							}
+							?>
+							<h4 class="ec-related-event-title">
+								<a href="<?php the_permalink(); ?>"><?php the_title(); ?></a>
+							</h4>
+							
+							<div class="ec-related-event-meta">
+								<?php if ( $date_str ) : ?>
+									<div class="ec-related-meta-item">
+										<i class="far fa-calendar"></i>
+										<span><?php echo esc_html( $date_str ); ?></span>
+									</div>
+								<?php endif; ?>
+								
+								<?php if ( $time_str ) : ?>
+									<div class="ec-related-meta-item">
+										<i class="far fa-clock"></i>
+										<span><?php echo esc_html( $time_str ); ?></span>
+									</div>
+								<?php endif; ?>
+
+								<a href="<?php the_permalink(); ?>" class="datamachine-more-info-button button-3 button-small">More Info</a>
+							</div>
+						</div>
+					</div>
 					<?php
 				endwhile;
 				wp_reset_postdata();

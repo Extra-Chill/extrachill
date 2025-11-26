@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.2] - 2025-11-26
+
+### Added
+- Added `assets/css/related-events.css` for dedicated related events styling.
+- Added taxonomy badges to related events cards using `Taxonomy_Badges::render_taxonomy_badges`.
+- Added "More Info" button to related events cards.
+- Added date and time icons to related events metadata.
+
+### Changed
+- Refactored related events HTML structure to use `ec-related-event-card` components.
+- Updated related events thumbnail size from `medium` to `medium_large`.
+- Changed related events date formatting to separate date (`D, M j, Y`) and time (`g:i A`).
+- Moved asset enqueue logic from theme to plugin in `inc/single-event/related-events.php`.
+
 ## [0.1.1] - 2025-11-26
 
 ### Added
