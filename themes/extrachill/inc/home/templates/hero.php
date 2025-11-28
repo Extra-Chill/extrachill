@@ -52,6 +52,11 @@ if ( is_user_logged_in() ) {
            class="button-3 button-medium">
             <?php esc_html_e( 'Artists', 'extrachill' ); ?>
         </a>
+
+        <a href="<?php echo esc_url( 'https://events.extrachill.com' ); ?>"
+           class="button-1 button-medium">
+            <?php esc_html_e( 'Events', 'extrachill' ); ?>
+        </a>
     </div>
 </section>
 </div><!-- .full-width-breakout --> 

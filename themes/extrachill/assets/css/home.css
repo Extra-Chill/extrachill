@@ -39,6 +39,7 @@
     display: flex;
     justify-content: center;
     gap: 20px;
+    flex-wrap: wrap;
 }
 
 /* Media query for screens smaller than 450px */
@@ -49,6 +50,10 @@
 
     #hero-section h3 {
         font-size: 1em; /* Reduced font size for mobile */
+    }
+
+    .hero-buttons-container {
+        gap: 12px;
     }
 }
 
