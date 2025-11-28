@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.4] - 2025-11-28
+
+### Added
+- Added Events Calendar link to main navigation menu before Festival Wire.
+- Added Events Calendar link to footer menu in "The Latest" column.
+- Added Events button to homepage hero section.
+
+### Changed
+- Default taxonomy badge colors changed to black and white for neutral styling.
+
 ## [1.0.3] - 2025-11-26
 
 ### Removed

@@ -20,6 +20,9 @@
                         <a href="https://extrachill.com/festival-wire">Festival Wire</a>
                     </li>
                     <li class="menu-item">
+                        <a href="https://events.extrachill.com">Events Calendar</a>
+                    </li>
+                    <li class="menu-item">
                         <a href="https://extrachill.com/category/interviews/">Interviews</a>
                     </li>
                     <li class="menu-item">
