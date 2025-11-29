@@ -53,7 +53,7 @@ h2.recent-title {
 }
 
 .sidebar-tax-link:hover {
-	color: #083b6c;
+	color: var(--link-hover-color);
 	text-decoration: underline;
 }
 

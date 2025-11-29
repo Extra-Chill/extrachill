@@ -100,7 +100,7 @@ function extrachill_display_related_posts( $taxonomy, $post_id ) {
 
         if ( $related_posts->have_posts() ) : ?>
                 <div class="related-tax-section">
-                        <h3 class="related-tax-header">More from <a href="<?php echo esc_url( $term_link ); ?>" class="sidebar-tax-link"><?php echo $term_name; ?></a></h3>
+                        <h3 class="related-tax-header">More from <a href="<?php echo esc_url( $term_link ); ?>"><?php echo $term_name; ?></a></h3>
                         <div class="related-tax-grid">
                                 <?php
                                 while ( $related_posts->have_posts() ) :

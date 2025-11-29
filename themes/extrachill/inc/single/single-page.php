@@ -21,23 +21,14 @@ get_header(); ?>
         <?php
         extrachill_breadcrumbs();
         ?>
-        <header class="entry-header">
-            <h1 class="entry-title">
+        <header>
+            <h1>
                 <?php the_title(); ?>
             </h1>
         </header>
 
         <div class="entry-content">
-            <?php
-            the_content();
-
-            wp_link_pages( array(
-                'before'      => '<div style="clear: both;"></div><div class="pagination clearfix">' . __( 'Pages:', 'extrachill' ),
-                'after'       => '</div>',
-                'link_before' => '<span>',
-                'link_after'  => '</span>',
-            ) );
-            ?>
+            <?php the_content(); ?>
         </div>
 
         <div class="entry-footer">

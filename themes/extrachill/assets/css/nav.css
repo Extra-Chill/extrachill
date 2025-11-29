@@ -43,7 +43,7 @@ body.sticky-header #masthead {
     left: 0;
     width: 0;
     height: 5px;
-    background-color: #53940b; /* The green fill color */
+    background-color: var(--accent);
     z-index: 9999; /* Ensure it appears above other elements within the header */
     transition: width 0.25s ease-out;
 }
@@ -93,7 +93,7 @@ body.sticky-header #masthead {
 }
 
 #primary-menu .sub-menu {
-    border-left: 3px solid #53940b;
+    border-left: 3px solid var(--accent);
     max-height: 0;
     overflow: hidden;
     transition: max-height 0.3s ease, padding 0.3s ease;
@@ -120,7 +120,7 @@ body.sticky-header #masthead {
 }
 
 .menu-toggle-container:hover {
-    background-color: #53940b;
+    background-color: var(--accent);
     transition: background-color 0.1s;
 }
 
@@ -191,8 +191,8 @@ svg.menu-toggle{
 	margin: 15px;
 }
 
-.search-top:hover, .search-top:hover {
-	fill: #53940b;
+.search-top:hover {
+	fill: var(--accent);
 }
 
 h1.site-title, p.site-title {
@@ -294,7 +294,7 @@ header#masthead.site-header {
 }
 
 .search-section{
-	border-bottom: 0 solid #53940b; /* Start with border-width of 0 */
+	border-bottom: 0 solid var(--accent);
 }
 
 /* Show search section only when search icon is clicked */
@@ -416,4 +416,5 @@ body.search-only-open .search-section {
 .breadcrumbs a {
 	color: var(--muted-text);
 	border-bottom: .5px dotted var(--link-color);
+    text-decoration: none;
 }

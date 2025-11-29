@@ -43,7 +43,6 @@
   font-family: 'Loft Sans', sans-serif;
   font-size: 1.5em;
   font-weight: 800;
-  color: var(--accent);
   margin-bottom: 1.2em;
   margin-top: 0;
   letter-spacing: 0.01em;
@@ -88,9 +87,14 @@
   font-weight: 700;
   margin-bottom: 0.2em;
   margin-top: 0.2em;
-  color: var(--link-color);
+  color: var(--post-title-link-color);
   transition: color 0.18s;
   word-break: break-word;
+}
+.related-tax-card:hover .related-tax-title {
+  color: var(--post-title-link-hover-color);
+  text-decoration: underline;
+  text-decoration-color: var(--link-color);
 }
 .related-tax-meta {
   font-size: 0.98em;
@@ -129,11 +133,6 @@ border-bottom: 2px solid var(--accent);
 	margin-bottom: 0;
 }
 
-/* Entry Title Styles */
-.entry-title {
-    display: inline; /* This makes the title inline with the preceding elements */
-}
-
 /* Comments Styles */
 #comments {
 	border-top: 1px solid var(--border-color);
@@ -142,7 +141,7 @@ border-bottom: 2px solid var(--accent);
 
 #comments i {
 	font-size: 16px;
-	color: #AAAAAA;
+	color: var(--muted-text);
 	padding-right: 10px;
 }
 
@@ -266,18 +265,18 @@ border-bottom: 2px solid var(--accent);
 #respond form p.form-allowed-tags {
 	font-size: 16px;
 	line-height: 1;
-	color: #5e5e5e;
+	color: var(--muted-text);
 	display: none;
 }
 
 .required {
-	color: red;
+	color: var(--error-color);
 }
 
 .comments svg {
 height: 1em;
 width: 1em;
-fill: #36454f;
+fill: var(--accent-2);
 }
 
 span.comments a{
@@ -290,7 +289,7 @@ span.comments .fa {
 
 /* Responsive adjustments for single posts */
 @media (max-width: 768px) {
-    h1.entry-title {
+    .single h1 {
         font-size: 26px;
         line-height: 1.6;
     }

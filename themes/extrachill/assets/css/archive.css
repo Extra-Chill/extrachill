@@ -18,38 +18,34 @@
   position: relative;
 }
 
-.archive-card a.entry-title-link {
-  display: block;
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  z-index: 10;
-  background: none;
-  pointer-events: auto;
-  text-indent: 0;
-  color: inherit;
-  text-decoration: none;
-}
-.archive-card a.entry-title-link:hover {
-  text-decoration: underline;
-}
-
 .archive-card .archive-post,
-.archive-card .entry-title,
+.archive-card h2,
 .archive-card .featured-image {
   position: relative;
   z-index: 1;
 }
 
+.archive-card h2 {
+  margin: 0;
+}
+
+.archive-card .taxonomy-badges {
+  position: relative;
+  z-index: 2;
+}
+
+.artist-profile-link-container {
+  float: right;
+  margin-left: 1em;
+}
+
 .archive-card:hover {
   box-shadow: 0 8px 24px rgba(83,148,11,0.10);
   transform: translateY(-4px) scale(1.01);
-  /* No background color change */
 }
 
-.archive-card .entry-title a {
-  color: var(--text-color);
+.archive-card h2 a {
+  color: var(--post-title-link-color);
   text-decoration: none;
   transition: color 0.18s, text-decoration 0.18s;
   position: relative;
@@ -58,9 +54,10 @@
 }
 
 a.card-link-target:hover,
-.archive-card .entry-title a:focus {
-  color: var(--link-color);
+.archive-card h2 a:focus {
+  color: var(--post-title-link-hover-color);
   text-decoration: underline;
+  text-decoration-color: var(--link-color);
 }
 
 @media (max-width: 900px) {
@@ -195,7 +192,7 @@ a.card-link-target:hover,
 	margin-top: 25px;
 }
 
-.archive .entry-header, .search .entry-header{
+.archive header, .search header {
 	margin-top: 10px;
 }
 
@@ -206,10 +203,6 @@ a.card-link-target:hover,
 		font-size: 24px;
 	}
 
-/* Taxonomy Description */
-.taxonomy-description{
-	font-size: 16px;
-}
 
 /* Taxonomy badge base styles moved to style.css for global availability */
 

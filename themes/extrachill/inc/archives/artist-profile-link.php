@@ -70,7 +70,7 @@ function extrachill_display_artist_profile_button() {
     }
 
     ?>
-    <div class="artist-profile-link-container" style="float: right; margin-left: 1em;">
+    <div class="artist-profile-link-container">
         <a href="<?php echo esc_url( $artist_profile['permalink'] ); ?>"
            class="button-2 button-medium"
            rel="noopener">

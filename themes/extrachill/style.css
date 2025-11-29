@@ -1,12 +1,12 @@
 /*
 Theme Name: Extra Chill
 Author: Chubes
-Version: 1.0.4
+Version: 1.0.5
 Text Domain: extrachill
 */
 
 /*
- * Color variables and dark mode overrides have been moved to assets/css/root.css
+ * Color variables and dark mode overrides: assets/css/root.css
  * All theme variables are globally available from that file.
  */
 
@@ -79,17 +79,12 @@ embed, iframe, object {
 
 
 
-h1, h2, h3, h4, h5, h6, .entry-title {
+h1, h2, h3, h4, h5, h6 {
 	color: var(--text-color);
 	font-weight: normal;
 	font-family: "Loft Sans", sans-serif;
 	line-height: 1.4;
 	margin: 20px 0;
-
-}
-
-h1 a, h2 a, h3 a, h4 a, h5 a, h6 a, .entry-title a{
-	color: var(--text-color);
 }
 
 h1 {
@@ -124,10 +119,6 @@ body, button, input, select, textarea {
 }
 
 
-.wp-block-button a:hover{
-	color: #ffffff;
-}
-
 p {
     margin: 20px 0;
 }
@@ -160,11 +151,6 @@ th {
 	font-weight: bold;
 	border: 1px solid var(--border-color);
 }
-.post tbody tr td {
-    font-size: 12px;
-    line-height: 0;
-color:#999;
-}
 
 /*
 ====> 3.3 Lists
@@ -174,7 +160,6 @@ ul {
 }
 
 ol {
-	list-style: none;
 	list-style: decimal;
 }
 
@@ -227,12 +212,12 @@ cite, em, i {
 font-style:italic;
 }
 pre {
-	background-color: #fff;
+	background-color: var(--background-color);
 	margin-bottom: 20px;
 	overflow: auto;
 	padding: 20px;
 	border: 1px solid var(--border-color);
-  font-family: 'Helvetica', Arial, sans-serif;
+	font-family: 'Helvetica', Arial, sans-serif;
 	font-size: 14px;
 	line-height: 1.4;
 	white-space: pre-wrap;
@@ -412,45 +397,6 @@ input[type="radio"]:disabled {
 }
 
 
-input[type="reset"], input[type="button"], input[type="submit"] {
-	background-color: var(--accent);
-	margin-bottom: 30px;
-	font-size: 16px;
-}
-
-/* Minimal element type fallback for areas we don't control */
-button, input[type="reset"], input[type="button"], input[type="submit"] {
-	background-color: #0b5394;
-	color: #fff;
-	padding: 8px 16px;
-	border: none;
-	border-radius: 5px;
-	font-size: 14px;
-	cursor: pointer;
-	transition: background-color 0.3s ease;
-}
-
-button:hover, input[type="reset"]:hover, input[type="button"]:hover, input[type="submit"]:hover {
-	background-color: #083b6c;
-}
-
-.wp-block-button__link {
-	background-color: #0b5394;
-	border-radius:12px;
-	color: #fff;
-    box-shadow: none;
-    text-decoration: none;
-    padding: calc(0.667em + 2px) calc(1.333em + 2px);
-}
-
-.wp-block-button__link:hover{
-	background-color: #083b6c;
-}
-button:hover{
-	background-color: #083b6c;
-}
-
-
 /*--------------------------------------------------------------
 5.0 Navigation
 --------------------------------------------------------------*/
@@ -459,11 +405,7 @@ button:hover{
 --------------------------------------------------------------*/
 a {
 	color: var(--link-color);
-	text-decoration: none;
-}
-
-p a {
-  text-decoration: underline;
+	text-decoration: underline;
 }
 
 /* Universal link hover behavior - single source of truth for entire platform */
@@ -561,6 +503,7 @@ text-decoration: none;
 }
 a.author.url.fn, .forum-meta a {
   border-bottom: .5px dotted var(--link-color);
+  text-decoration: none;
 }
 
 #updated-date {
@@ -705,14 +648,6 @@ body {
 }
 
 
-#content .post .article-content, #content .post .single-title-above {
-	padding: 0;
-}
-
-#content .post .article-content .below-entry-meta .post-views, #content .post .single-title-above .below-entry-meta .post-views {
-	padding-right: 10px;
-}
-
 .entry-content ul {
 	list-style: square;
 	margin-bottom: 25px;	
@@ -742,18 +677,6 @@ body {
 	cursor: pointer;
 	font-size: 18px;
 }
-
-input[type="reset"]:active, input[type="button"]:active, input[type="submit"]:active {
-	box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.3);
-}
-
-
-/* =PAGINATION
------------------------------------------------ */
-
-/*
-====> 13.7 Comments (moved to single-post.css)
---------------------------------------------------------------*/
 
 /*
 ====> 13.8 Footer
@@ -881,16 +804,8 @@ padding:3px;
 16.0 Responsive Structure
 --------------------------------------------------------------*/
 .mobile-only {
-    display: none;  /* by default hide image */
+    display: none;
 }
-@media screen and (min-width: 980px) {
-	.related-posts-wrapper.style-two .related-posts-thumbnail {
-		width: 50%;
-	}
-	
-
-}
-
 
 @media screen and (max-width: 768px) {
 	.mobile-only {

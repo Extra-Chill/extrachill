@@ -9,12 +9,12 @@
 
 /* Search Header */
 .page-title .search-query {
-	color: var(--color-primary);
+	color: var(--link-color);
 }
 
 .search-results-count {
 	font-size: 1rem;
-	color: var(--color-text-secondary);
+	color: var(--muted-text);
 	margin-top: 0.5rem;
 	font-weight: 400;
 }
@@ -23,14 +23,14 @@
 .multisite-search-result {
 	margin-bottom: 2rem;
 	padding: 1.5rem;
-	background: var(--color-background-secondary);
+	background: var(--card-background);
 	border-radius: 8px;
 	transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .multisite-search-result:hover {
 	transform: translateY(-2px);
-	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+	box-shadow: var(--card-hover-shadow);
 }
 
 /* Site Badge */
@@ -48,14 +48,14 @@
 }
 
 .multisite-search-result .post-title a {
-	color: var(--color-text);
+	color: var(--text-color);
 	text-decoration: none;
 }
 
 .multisite-search-result .post-meta {
 	margin-bottom: 1rem;
 	font-size: 0.875rem;
-	color: var(--color-text-secondary);
+	color: var(--muted-text);
 }
 
 .multisite-search-result .post-excerpt {
@@ -70,14 +70,14 @@
 /* Read More Link */
 .multisite-search-result .read-more {
 	display: inline-block;
-	color: var(--color-primary);
+	color: var(--link-color);
 	text-decoration: none;
 	font-weight: 600;
 	transition: color 0.2s ease;
 }
 
 .multisite-search-result .read-more:hover {
-	color: var(--color-primary-hover);
+	color: var(--link-hover-color);
 }
 
 /* No Results */
@@ -93,11 +93,11 @@
 
 .no-results p {
 	margin-bottom: 1.5rem;
-	color: var(--color-text-secondary);
+	color: var(--muted-text);
 }
 
 .no-results a {
-	color: var(--color-primary);
+	color: var(--link-color);
 	text-decoration: none;
 }
 
