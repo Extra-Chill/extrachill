@@ -37,6 +37,7 @@ class DataMachineEventsIntegration {
             add_filter('datamachine_events_excluded_taxonomies', array($this, 'exclude_taxonomies'), 10, 2);
         }
 
+        add_filter('datamachine_events_taxonomy_dependencies', array($this, 'configure_taxonomy_dependencies'));
         add_filter('datamachine_events_modal_button_classes', array($this, 'add_modal_button_classes'), 10, 2);
         add_filter('datamachine_events_ticket_button_classes', array($this, 'add_ticket_button_classes'), 10, 1);
         add_filter('datamachine_events_more_info_button_classes', array($this, 'add_more_info_button_classes'), 10, 1);
@@ -115,6 +116,22 @@ class DataMachineEventsIntegration {
     public function exclude_taxonomies($excluded, $context = '') {
         $excluded[] = 'artist';
         return $excluded;
+    }
+
+    /**
+     * Configure taxonomy dependencies for cascading filters
+     *
+     * Venue filter options are filtered based on selected location filter.
+     * When a location is selected, only venues with events in that location are shown.
+     *
+     * @hook datamachine_events_taxonomy_dependencies
+     * @param array $dependencies Taxonomy dependency mappings
+     * @return array Modified dependencies with venue depending on location
+     * @since 0.1.3
+     */
+    public function configure_taxonomy_dependencies($dependencies) {
+        $dependencies['venue'] = 'location';
+        return $dependencies;
     }
 
     /**

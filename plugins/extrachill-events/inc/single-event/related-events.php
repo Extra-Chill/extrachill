@@ -160,12 +160,14 @@ function ec_events_render_related_posts( $taxonomy, $post_id ) {
 
 	$related_posts = new WP_Query( $query_args );
 
+	$preposition = ( $taxonomy === 'venue' ) ? 'at' : 'in';
+
 	if ( $related_posts->have_posts() ) :
 		?>
 		<div class="related-tax-section">
-			<h3 class="related-tax-header">More from <a href="<?php echo esc_url( $term_link ); ?>" class="sidebar-tax-link"><?php echo $term_name; ?></a></h3>
+			<h3 class="related-tax-header">More <?php echo esc_html( $preposition ); ?> <a href="<?php echo esc_url( $term_link ); ?>"><?php echo $term_name; ?></a></h3>
 			
-			<div class="ec-related-events-grid">
+			<div class="related-tax-grid">
 				<?php
 				while ( $related_posts->have_posts() ) :
 					$related_posts->the_post();
@@ -178,48 +180,47 @@ function ec_events_render_related_posts( $taxonomy, $post_id ) {
 					$date_str = '';
 					$time_str = '';
 					
-					if ( ! empty( $event_data['start_date'] ) ) {
-						$date_obj = new DateTime( $event_data['start_date'] );
-						$date_str = $date_obj->format( 'D, M j, Y' );
-						$time_str = $date_obj->format( 'g:i A' );
+					if ( ! empty( $event_data['startDate'] ) ) {
+						$start_time = ! empty( $event_data['startTime'] ) ? $event_data['startTime'] : '00:00:00';
+						$date_obj   = new DateTime( $event_data['startDate'] . ' ' . $start_time, wp_timezone() );
+						$date_str   = $date_obj->format( 'D, M j, Y' );
+						$time_str   = $date_obj->format( 'g:i A' );
 					}
 					?>
-					<div class="ec-related-event-card">
+					<div class="related-tax-card">
 						<?php if ( $image_url ) : ?>
-							<div class="ec-related-event-thumb">
+							<div class="related-tax-thumb">
 								<a href="<?php the_permalink(); ?>">
 									<img src="<?php echo esc_url( $image_url ); ?>" alt="<?php echo esc_attr( get_the_title() ); ?>" loading="lazy">
 								</a>
 							</div>
 						<?php endif; ?>
 						
-						<div class="ec-related-event-content">
-							<?php
-							if ( class_exists( '\DataMachineEvents\Blocks\Calendar\Taxonomy_Badges' ) ) {
-								echo \DataMachineEvents\Blocks\Calendar\Taxonomy_Badges::render_taxonomy_badges( $post->ID );
-							}
-							?>
-							<h4 class="ec-related-event-title">
-								<a href="<?php the_permalink(); ?>"><?php the_title(); ?></a>
-							</h4>
+						<?php
+						if ( class_exists( '\DataMachineEvents\Blocks\Calendar\Taxonomy_Badges' ) ) {
+							echo \DataMachineEvents\Blocks\Calendar\Taxonomy_Badges::render_taxonomy_badges( $post->ID );
+						}
+						?>
+						<h4 class="related-tax-title">
+							<a href="<?php the_permalink(); ?>"><?php the_title(); ?></a>
+						</h4>
+						
+						<div class="related-tax-meta">
+							<?php if ( $date_str ) : ?>
+								<div class="ec-related-meta-item">
+									<i class="far fa-calendar"></i>
+									<span><?php echo esc_html( $date_str ); ?></span>
+								</div>
+							<?php endif; ?>
 							
-							<div class="ec-related-event-meta">
-								<?php if ( $date_str ) : ?>
-									<div class="ec-related-meta-item">
-										<i class="far fa-calendar"></i>
-										<span><?php echo esc_html( $date_str ); ?></span>
-									</div>
-								<?php endif; ?>
-								
-								<?php if ( $time_str ) : ?>
-									<div class="ec-related-meta-item">
-										<i class="far fa-clock"></i>
-										<span><?php echo esc_html( $time_str ); ?></span>
-									</div>
-								<?php endif; ?>
+							<?php if ( $time_str ) : ?>
+								<div class="ec-related-meta-item">
+									<i class="far fa-clock"></i>
+									<span><?php echo esc_html( $time_str ); ?></span>
+								</div>
+							<?php endif; ?>
 
-								<a href="<?php the_permalink(); ?>" class="datamachine-more-info-button button-3 button-small">More Info</a>
-							</div>
+							<a href="<?php the_permalink(); ?>" class="datamachine-more-info-button button-3 button-small">More Info</a>
 						</div>
 					</div>
 					<?php

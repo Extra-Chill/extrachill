@@ -3,7 +3,25 @@
 All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0/).
+
+## [0.1.3] - 2025-11-29
+
+### Added
+- Added taxonomy dependency configuration for cascading venue/location filters in calendar block
+- Added proper semantic HTML5 structure to homepage template with article and header elements
+- Added contextual prepositions to related events headers ("More at" for venues, "More in" for locations)
+
+### Changed
+- Refactored related events CSS to use theme's existing grid layout instead of custom implementation
+- Updated homepage template to include proper page title and improved content hierarchy
+- Improved date/time handling in related events to use WordPress timezone settings
+- Enhanced event data field consistency by using `startDate`/`startTime` schema
+- Simplified CSS by leveraging theme's existing `related-tax-grid` and `related-tax-card` classes
+
+### Fixed
+- Fixed date parsing in related events to properly handle timezone conversion
+- Improved button positioning in related events cards for better visual hierarchy
 
 ## [0.1.2] - 2025-11-26
 

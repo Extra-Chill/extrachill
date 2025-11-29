@@ -19,19 +19,27 @@ get_header();
 extrachill_breadcrumbs();
 ?>
 
-<div class="events-calendar-container full-width-content">
-	<?php
-	$homepage_id = get_option( 'page_on_front' );
+<article class="events-homepage">
+	<div class="inside-article">
+		<header>
+			<h1 class="page-title"><?php esc_html_e( 'Events Calendar', 'extrachill-events' ); ?></h1>
+		</header>
 
-	if ( $homepage_id ) {
-		$homepage = get_post( $homepage_id );
-		if ( $homepage ) {
-			echo apply_filters( 'the_content', $homepage->post_content );
-		}
-	}
-	?>
-</div>
+		<div class="entry-content" itemprop="text">
+			<div class="events-calendar-container full-width-content">
+				<?php
+				$homepage_id = get_option( 'page_on_front' );
 
-<?php
-get_footer();
-?>
+				if ( $homepage_id ) {
+					$homepage = get_post( $homepage_id );
+					if ( $homepage ) {
+						echo apply_filters( 'the_content', $homepage->post_content );
+					}
+				}
+				?>
+			</div>
+		</div><!-- .entry-content -->
+	</div><!-- .inside-article -->
+</article><!-- .events-homepage -->
+
+<?php get_footer(); ?>

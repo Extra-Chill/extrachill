@@ -1,108 +1,46 @@
-/* Related Events Grid Layout */
+/* Related Events - Event-specific styling only */
 
-.ec-related-events-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 1.5rem;
-    margin-top: 1.5rem;
+/* Ensure event titles use the standard post title link color */
+.related-tax-title a {
+  color: var(--post-title-link-color);
+  text-decoration: none;
 }
 
-.ec-related-event-card {
-    display: flex;
-    flex-direction: column;
-    background: var(--card-background, #fff);
-    border: 1px solid var(--border-color, #e2e8f0);
-    border-radius: 12px;
-    overflow: hidden;
-    text-decoration: none;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-    height: 100%;
+.related-tax-title a:hover {
+  color: var(--post-title-link-hover-color);
+  text-decoration: underline;
+  text-decoration-color: var(--link-color);
 }
 
-.ec-related-event-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 10px 20px rgba(0,0,0,0.05);
-    text-decoration: none;
-}
-
-.ec-related-event-thumb {
-    position: relative;
-    padding-top: 56.25%; /* 16:9 */
-    background: var(--background-color, #f7fafc);
-    overflow: hidden;
-    border-bottom: 1px solid var(--border-color, #e2e8f0);
-}
-
-.ec-related-event-thumb img {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    transition: transform 0.3s ease;
-}
-
-.ec-related-event-card:hover .ec-related-event-thumb img {
-    transform: scale(1.05);
-}
-
-.ec-related-event-content {
-    padding: 1.25rem;
-    display: flex;
-    flex-direction: column;
-    flex-grow: 1;
-}
-
-.ec-related-event-title {
-    font-family: 'Loft Sans', sans-serif;
-    font-size: 1.1rem;
-    font-weight: 700;
-    margin: 0 0 0.75rem 0;
-    line-height: 1.3;
-}
-
-.ec-related-event-title a {
-    color: var(--text-color, #2d3748);
-    text-decoration: none;
-    transition: color 0.2s ease;
-}
-
-.ec-related-event-title a:hover {
-    color: var(--link-color, #3182ce);
-}
-
-.ec-related-event-meta {
-    margin-top: auto;
-    font-size: 0.9rem;
-    color: var(--muted-text, #718096);
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-}
-
+/* Event meta items with icons */
 .ec-related-meta-item {
-    display: flex;
-    align-items: center;
-    gap: 0.6rem;
-    line-height: 1.2;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  margin-bottom: 0.3em;
+  color: var(--muted-text);
 }
 
 .ec-related-meta-item i {
-    width: 16px;
-    text-align: center;
-    color: var(--accent, #3182ce);
-    font-size: 0.9em;
+  width: 1.2em;
+  text-align: center;
+  color: var(--muted-text);
 }
 
-@media (max-width: 900px) {
-    .ec-related-events-grid {
-        grid-template-columns: repeat(2, 1fr);
-    }
+/* Ensure the meta container takes up available space to push button down */
+.related-tax-card .related-tax-meta {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  margin-top: 0.5em;
 }
 
-@media (max-width: 600px) {
-    .ec-related-events-grid {
-        grid-template-columns: 1fr;
-    }
+/* Button positioning in event cards */
+.related-tax-meta .datamachine-more-info-button {
+  align-self: flex-start;
+  width: fit-content;
+  margin-top: auto; /* Pushes button to bottom of meta container */
+  padding-top: 0.4em;
+  padding-bottom: 0.4em;
 }
