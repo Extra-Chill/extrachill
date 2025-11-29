@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.5] - 2025-11-29
+
+### Changed
+- Improved CSS variable consistency across all stylesheets by replacing hardcoded colors with CSS custom properties
+- Simplified template structures in post cards, comments, search forms, and single post/page headers
+- Enhanced accessibility by removing absolute positioning overlays from archive card titles
+- Streamlined taxonomy badge display by removing unnecessary wrapper styles
+- Updated artist profile button container to use CSS classes instead of inline styles
+- Added venue badge colors for The Bounty Bar and Lo-Fi Brewing venues
+- Cleaned up CSS comments and improved code organization in root.css
+- Standardized color variable usage throughout navigation, search, sidebar, and single post stylesheets
+
 ## [1.0.4] - 2025-11-28
 
 ### Added

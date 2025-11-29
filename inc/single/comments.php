@@ -85,7 +85,7 @@ endif;
         </h2>
 
         <?php if ( get_comment_pages_count() > 1 && get_option( 'page_comments' ) ) : ?>
-        <nav id="comment-nav-above" class="comment-navigation clearfix" role="navigation">
+        <nav id="comment-nav-above" class="comment-navigation" role="navigation">
             <h4 class="screen-reader-text"><?php _e( 'Comment navigation', 'extrachill' ); ?></h4>
             <div class="nav-previous"><?php previous_comments_link( __( '&larr; Older Comments', 'extrachill' ) ); ?></div>
             <div class="nav-next"><?php next_comments_link( __( 'Newer Comments &rarr;', 'extrachill' ) ); ?></div>
@@ -102,7 +102,7 @@ endif;
         </ul><!-- .comment-list -->
 
         <?php if ( get_comment_pages_count() > 1 && get_option( 'page_comments' ) ) : ?>
-        <nav id="comment-nav-below" class="comment-navigation clearfix" role="navigation">
+        <nav id="comment-nav-below" class="comment-navigation" role="navigation">
             <h4 class="screen-reader-text"><?php _e( 'Comment navigation', 'extrachill' ); ?></h4>
             <div class="nav-previous"><?php previous_comments_link( __( '&larr; Older Comments', 'extrachill' ) ); ?></div>
             <div class="nav-next"><?php next_comments_link( __( 'Newer Comments &rarr;', 'extrachill' ) ); ?></div>
@@ -122,6 +122,7 @@ endif;
             'title_reply' => __('Leave a Comment', 'extrachill'),
             'comment_notes_before' => '',
             'comment_notes_after' => '',
+            'class_submit' => 'button-1 button-medium',
         ));
     } else {
         echo '<h3>' . __('Login or Register to Comment', 'extrachill') . '</h3>';

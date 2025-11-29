@@ -24,25 +24,16 @@ get_header(); ?>
     ?>
 
 
-    <header class="entry-header" id="postvote">
+    <header id="postvote">
         <?php do_action( 'extrachill_above_post_title' ); ?>
-        <h1 class="entry-title">
+        <h1>
             <?php the_title(); ?>
         </h1>
     </header>
     <?php extrachill_entry_meta(); ?>
 
     <div class="entry-content">
-        <?php
-        the_content();
-
-        wp_link_pages(array(
-            'before'      => '<div style="clear: both;"></div><div class="pagination clearfix">' . __('Pages:', 'extrachill'),
-            'after'       => '</div>',
-            'link_before' => '<span>',
-            'link_after'  => '</span>',
-        ));
-        ?>
+        <?php the_content(); ?>
     </div>
 
     <?php do_action('extrachill_after_post_content'); ?>

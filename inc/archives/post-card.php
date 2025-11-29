@@ -14,11 +14,7 @@ $featured_image_size = 'medium_large';
 <div class="archive-card">
     <article id="post-<?php the_ID(); ?>" <?php post_class(); ?>>
         <?php do_action( 'extrachill_archive_above_tax_badges' ); ?>
-        <?php
-        extrachill_display_taxonomy_badges( get_the_ID(), array(
-            'wrapper_style' => 'position: relative; z-index: 2;'
-        ) );
-        ?>
+        <?php extrachill_display_taxonomy_badges( get_the_ID() ); ?>
 
         <?php
         if ( isset( $post->_thumbnail ) && ! empty( $post->_thumbnail['thumbnail_url'] ) ) {
@@ -50,8 +46,8 @@ $featured_image_size = 'medium_large';
         <?php } ?>
 
         <div class="archive-post">
-            <header class="entry-header">
-                <h2 class="entry-title" style="margin: 0; position: relative;">
+            <header>
+                <h2>
                     <a href="<?php echo isset($post->permalink) ? esc_url($post->permalink) : the_permalink(); ?>" class="card-link-target" title="<?php the_title_attribute(); ?>"><?php the_title(); ?></a>
                 </h2>
             </header>
