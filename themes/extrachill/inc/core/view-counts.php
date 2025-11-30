@@ -2,7 +2,8 @@
 /**
  * Universal View Counting System
  *
- * Tracks post views using WordPress post meta. Excludes editors/admins and previews.
+ * Tracks post views using WordPress post meta via async REST API.
+ * Excludes editors/admins and previews. Asset loading in inc/core/assets.php.
  *
  * @package ExtraChill
  * @since 1.0.0
@@ -13,7 +14,7 @@ if (!defined('ABSPATH')) {
 }
 
 /**
- * Track post views on singular pages
+ * Track post views (called by REST API endpoint)
  */
 function ec_track_post_views($post_id) {
 	if (!$post_id || is_preview()) {
@@ -27,12 +28,6 @@ function ec_track_post_views($post_id) {
 	$views = (int) get_post_meta($post_id, 'ec_post_views', true);
 	update_post_meta($post_id, 'ec_post_views', $views + 1);
 }
-
-add_action('wp_head', function() {
-	if (is_singular()) {
-		ec_track_post_views(get_the_ID());
-	}
-});
 
 /**
  * Get view count for any post

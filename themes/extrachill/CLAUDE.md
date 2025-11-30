@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-The ExtraChill theme is a custom WordPress theme serving as the frontend for an independent music ecosystem that includes a blog, community forums, and content management. The theme powers both extrachill.com and community.extrachill.com, with community functionality provided by the extrachill-community plugin and e-commerce handled by the extrachill-shop plugin. Features include custom music event listings, festival coverage, community integration, and journalistic written content about the music industry.
+The ExtraChill theme is a custom WordPress theme (v1.0.6) serving as frontend for Extra Chill Platform multisite network. The theme powers all 10 sites in network (extrachill.com, community.extrachill.com, shop.extrachill.com, artist.extrachill.com, chat.extrachill.com, events.extrachill.com, stream.extrachill.com, newsletter.extrachill.com, horoscope.extrachill.com) with conditional asset loading and template overrides. Community functionality provided by extrachill-community plugin, e-commerce by extrachill-shop plugin, and specialized functionality by various site-specific plugins. Features include custom music event listings, festival coverage, community integration, and journalistic written content about music industry.
 
 **Current Status**: Fully converted from ColorMag Pro with performance optimizations and modern WordPress features.
 
