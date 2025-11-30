@@ -1,0 +1,44 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 2,
+	"name": "extrachill/event-submission",
+	"title": "Event Submission Form",
+	"category": "widgets",
+	"icon": "calendar-alt",
+	"description": "Frontend form that routes event details into a Data Machine flow.",
+	"keywords": ["events", "calendar", "submission"],
+	"textdomain": "datamachine-events",
+	"attributes": {
+		"headline": {
+			"type": "string",
+			"default": "Submit an Event"
+		},
+		"description": {
+			"type": "string",
+			"default": "Share your show details and we'll review them for the events calendar."
+		},
+		"flowId": {
+			"type": "string",
+			"default": ""
+		},
+		"successMessage": {
+			"type": "string",
+			"default": "Thanks! We'll review your submission and reach out if we need anything else."
+		},
+		"buttonLabel": {
+			"type": "string",
+			"default": "Send Submission"
+		}
+	},
+	"supports": {
+		"html": false,
+		"align": false,
+		"spacing": {
+			"margin": ["top", "bottom"]
+		}
+	},
+	"editorScript": "file:./index.js",
+	"render": "file:./render.php",
+	"style": "file:./style.css",
+	"viewScript": "file:./view.js"
+}

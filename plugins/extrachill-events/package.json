@@ -1,0 +1,15 @@
+{
+	"name": "extrachill-events",
+	"version": "0.1.4",
+	"description": "ExtraChill Events block tooling",
+	"private": true,
+	"scripts": {
+		"build": "npm run build:event-submission && npm run copy:block-files",
+		"build:event-submission": "wp-scripts build blocks/event-submission/src/index.js --output-path=build/event-submission",
+		"copy:block-files": "cp blocks/event-submission/block.json blocks/event-submission/render.php blocks/event-submission/style.css blocks/event-submission/view.js build/event-submission/",
+		"start": "wp-scripts start blocks/event-submission/src/index.js --output-path=build/event-submission"
+	},
+	"devDependencies": {
+		"@wordpress/scripts": "^27.1.0"
+	}
+}

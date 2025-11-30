@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0/).
 
+## [0.1.4] - 2025-11-30
+
+### Added
+- Added Event Submission Block (`extrachill/event-submission`) for frontend event submissions routed through Data Machine flows
+- Added block editor interface with configurable headline, description, Flow ID, success message, and button label
+- Added frontend form with fields: contact name, email, event title, date, time, venue, city, lineup, ticket link, additional details, and flyer upload
+- Added Cloudflare Turnstile integration for spam protection via `ec_enqueue_turnstile_script()` and `ec_render_turnstile_widget()` functions
+- Added REST API submission handler with FormData support for file uploads
+- Added package.json with `@wordpress/scripts` build tooling for block compilation
+- Added responsive form styling using CSS custom properties from theme
+
 ## [0.1.3] - 2025-11-29
 
 ### Added
