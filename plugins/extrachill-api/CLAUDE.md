@@ -39,8 +39,10 @@ extrachill-api/
         │   ├── ai-adventure.php (AI Adventure block endpoint)
         │   ├── image-voting.php (Image voting block endpoint)
         │   └── trivia.php (Trivia block endpoint)
-        └── community/
-            └── user-mentions.php (User search for mentions)
+        ├── community/
+        │   └── user-mentions.php (User search for mentions)
+        └── events/
+            └── event-submissions.php (Event submission proxy)
 ```
 
 ## Current Endpoints
@@ -95,9 +97,43 @@ All endpoints are under the `extrachill/v1` namespace.
 
 **Dependencies**: extrachill-ai-client (network-activated)
 
+### 4. Event Submission Flow Proxy
+
+**Endpoint**: `POST /wp-json/extrachill/v1/event-submissions`
+
+**Purpose**: Accept public event submissions, validate Cloudflare Turnstile tokens, store flyers via Data Machine file storage, create a Data Machine job, and queue the configured flow.
+
+**Parameters**:
+- `flow_id` (int, required) – Target Data Machine flow ID (defined in block attributes)
+- `contact_name`, `contact_email`, `event_title`, `event_date` (required strings)
+- Optional context fields (`event_time`, `venue_name`, `event_city`, `event_lineup`, `event_link`, `notes`)
+- `flyer` (file, optional) – Uploaded flyer image stored via Data Machine repository helpers
+- `turnstile_response` (string, required) – Cloudflare Turnstile token validated through extrachill-multisite helpers
+
+**Security & Flow**:
+1. Validates Turnstile token using `ec_verify_turnstile_response()` from extrachill-multisite
+2. Sanitizes submission payload and (optionally) stores the flyer in Data Machine’s `FileStorage`
+3. Creates a Data Machine job + merges submission metadata via `datamachine_merge_engine_data()`
+4. Queues `datamachine_run_flow_now` through Action Scheduler
+5. Fires `extrachill_event_submission` action with submission + job context for downstream automation
+
+**File**: `inc/routes/events/event-submissions.php`
+
+**Used By**: `extrachill-events` plugin’s Event Submission block + front-end form handlers
+
 ## Integration Patterns
 
 ### For Plugin Developers
+**Event Submission Hook**:
+
+```php
+add_action( 'extrachill_event_submission', function( array $submission, array $context ) {
+    // $submission contains sanitized fields + optional flyer metadata
+    // $context includes flow_id, job_id, action_id, flow_name
+} );
+```
+
+Triggered after a submission is queued so platform plugins (notifications, analytics, moderation) can react without duplicating REST logic.
 
 **Adding New Endpoints**:
 

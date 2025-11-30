@@ -35,6 +35,12 @@ POST /wp-json/extrachill/v1/ai-adventure
 ```
 Generate AI-powered adventure story segments.
 
+### Event Submissions (Events)
+```
+POST /wp-json/extrachill/v1/event-submissions
+```
+Validate public event submissions, verify Cloudflare Turnstile tokens, store optional flyers via Data Machine file storage, and queue the configured Data Machine flow. Returns `{ success: true, job_id }` when the flow is scheduled.
+
 ## Installation
 
 ### Requirements
@@ -126,11 +132,13 @@ extrachill-api/
 ├── .buildignore               # Build exclusions
 └── inc/
     └── routes/
-    ├── blocks/            # Block-related endpoints
+    ├── blocks/
     │   ├── ai-adventure.php
     │   └── image-voting.php
-        └── community/         # Community-related endpoints
-            └── user-mentions.php
+    ├── community/
+    │   └── user-mentions.php
+    └── events/
+        └── event-submissions.php
 ```
 
 ## Development
@@ -177,6 +185,9 @@ curl -X GET "http://site.local/wp-json/extrachill/v1/users/search?search=test"
 **extrachill-community**:
 - User search for @mentions
 
+**extrachill-events**:
+- Event submission block posts to the new `/event-submissions` route
+
 ### Planned Migrations
 
 Future endpoints to replace admin-ajax.php handlers:
@@ -214,6 +225,23 @@ All endpoints implement WordPress REST API security standards:
 - extrachill-ai-client (for AI Adventure endpoint)
 - extrachill-blocks (primary endpoint consumer)
 - extrachill-community (user search consumer)
+- extrachill-events (event submission consumer)
+- extrachill-multisite (Turnstile helpers for event submissions)
+
+## Hooks
+
+### `extrachill_event_submission`
+
+Fires after a submission is validated, optional flyer stored, and a Data Machine job is queued.
+
+```php
+add_action( 'extrachill_event_submission', function( array $submission, array $context ) {
+    // $submission contains sanitized form data + optional flyer metadata
+    // $context includes flow_id, job_id, action_id, flow_name
+} );
+```
+
+Use the hook to notify editors, trigger Slack alerts, or log analytics without reimplementing REST validation.
 
 ## Documentation
 
@@ -233,6 +261,12 @@ For issues, questions, or feature requests related to the Extra Chill Platform:
 GPL v2 or later
 
 ## Changelog
+
+### 0.1.1
+- Added event submissions endpoint with Cloudflare Turnstile validation
+- Added extrachill_event_submission action hook
+- Updated documentation for new endpoint and hook
+- Added docs/CHANGELOG.md as changelog source of truth
 
 ### 0.1.0
 - Initial release
