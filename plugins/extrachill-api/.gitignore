@@ -1,0 +1,8 @@
+node_modules/
+vendor/
+.DS_Store
+build/
+composer.lock
+package-lock.json
+*.log
+.phpunit.result.cache
