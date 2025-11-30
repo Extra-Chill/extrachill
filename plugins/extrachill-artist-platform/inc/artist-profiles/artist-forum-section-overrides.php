@@ -1,15 +1,15 @@
 <?php
 /**
- * Forum Section Overrides for Band Profile
+ * Forum Section Overrides for Artist Profile
  *
- * Provides functions to fetch override values for the forum section title and bio on the band profile page.
+ * Provides functions to fetch override values for the forum section title and bio on the artist profile page.
  *
  * @package extra-chill-community
  */
 
 if ( ! function_exists( 'bp_get_forum_section_title_and_bio' ) ) {
     /**
-     * Get the forum section title and bio for a band profile, using overrides if set.
+     * Get the forum section title and bio for an artist profile, using overrides if set.
      *
      * @param int $artist_profile_id The artist_profile post ID.
      * @return array [ 'title' => string, 'bio' => string ]

@@ -59,7 +59,7 @@ The plugin provides comprehensive integration with the extrachill.link domain fo
 
 #### Join Flow System
 **Location**: `inc/join/`
-- **Complete onboarding flow**: User registration → automatic artist profile creation → automatic link page creation
+- **Complete join flow onboarding**: Join flow registration (extrachill.link/join) → automatic artist profile creation → automatic link page creation → guided link page setup
 - **Entry Point**: extrachill.link/join redirects to artist.extrachill.com/login/?from_join=true via sunrise.php
 - **Modal interface**: `inc/join/templates/join-flow-modal.php` - Existing vs new account selection
 - **Integration point**: Hooks into `extrachill_below_login_register_form` action from extrachill-users plugin

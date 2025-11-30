@@ -24,18 +24,18 @@
         }
 
         const artistId = extrchEditButton.artist_id;
-        const ajaxUrl = extrchEditButton.ajax_url;
+        const apiUrl = extrchEditButton.api_url;
 
-        fetch(ajaxUrl, {
-            method: 'POST',
+        // Construct URL with query parameters
+        const url = new URL(apiUrl);
+        url.searchParams.append('artist_id', artistId);
+
+        fetch(url, {
+            method: 'GET',
             credentials: 'include',
             headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-            },
-            body: new URLSearchParams({
-                action: 'check_link_page_edit_permission',
-                artist_id: artistId
-            })
+                'Content-Type': 'application/json',
+            }
         })
         .then(response => response.json())
         .then(data => {

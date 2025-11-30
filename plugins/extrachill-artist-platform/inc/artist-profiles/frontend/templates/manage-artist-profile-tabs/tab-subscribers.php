@@ -74,7 +74,7 @@ $subscribers_csv_export_nonce = wp_create_nonce( 'export_artist_subscribers_csv_
                 <?php // Subscriber data will be inserted here by JavaScript ?>
             </tbody>
         </table>
-         <p class="no-subscribers-message hidden"><?php esc_html_e( 'This band does not have any email subscribers yet.', 'extrachill-artist-platform' ); ?></p>
+         <p class="no-subscribers-message hidden"><?php esc_html_e( 'This artist does not have any email subscribers yet.', 'extrachill-artist-platform' ); ?></p>
          <p class="error-message hidden" style="color: red;"><?php esc_html_e( 'Could not load subscribers.', 'extrachill-artist-platform' ); ?></p>
     </div>
 </div> 

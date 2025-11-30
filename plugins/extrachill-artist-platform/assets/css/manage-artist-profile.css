@@ -243,7 +243,7 @@
 .entry-content:not(:first-child), .entry-summary:not(:first-child), .page-content:not(:first-child){
     margin-top: 0 !important;
 }
-.entry-header{
+header {
     margin: 0 !important;
 }
 
@@ -272,7 +272,7 @@ ul.bp-members-list li {
     align-items: center;
     gap: 10px;
     padding: 8px 0;
-    border-bottom: 1px solid var(--border-color, #eee);
+    border-bottom: 1px solid var(--border-color);
 }
 
 ul.bp-members-list li:last-child {
@@ -281,7 +281,7 @@ ul.bp-members-list li:last-child {
 
 ul.bp-members-list li.no-members {
     font-style: italic;
-    color: var(--muted-text, #777);
+    color: var(--muted-text);
 }
 
 ul.bp-members-list li img.avatar {
@@ -298,9 +298,9 @@ ul.bp-members-list li button.bp-cancel-add-button {
     padding: 2px 6px;
     line-height: 1;
     min-height: unset;
-    background-color: var(--button-secondary-bg, #f0f0f0);
-    color: var(--button-secondary-text, #555);
-    border: 1px solid var(--border-color, #ccc);
+    background-color: var(--button-secondary-bg);
+    color: var(--button-secondary-text);
+    border: 1px solid var(--border-color);
     border-radius: 3px;
     cursor: pointer;
     flex-shrink: 0;
@@ -308,9 +308,9 @@ ul.bp-members-list li button.bp-cancel-add-button {
 
 ul.bp-members-list li button.bp-remove-member-button:hover,
 ul.bp-members-list li button.bp-cancel-add-button:hover {
-    background-color: var(--accent-hover, #e04040);
+    background-color: var(--accent-hover);
     color: #fff;
-    border-color: var(--accent-hover, #e04040);
+    border-color: var(--accent-hover);
 }
 
 /* Style for members marked for removal */
@@ -322,7 +322,7 @@ ul.bp-members-list li.marked-for-removal {
 /* Search Results Styling */
 .bp-search-results {
     margin-top: 5px;
-    border: 1px solid var(--border-color, #ccc);
+    border: 1px solid var(--border-color);
     max-height: 200px;
     overflow-y: auto;
     background-color: #fff; /* Will be overridden by dark mode if applicable */
@@ -338,7 +338,7 @@ ul.bp-members-list li.marked-for-removal {
 
 .bp-search-results li {
     padding: 8px 12px;
-    border-bottom: 1px solid var(--separator-color, #eee);
+    border-bottom: 1px solid var(--separator-color);
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -356,7 +356,7 @@ ul.bp-members-list li.marked-for-removal {
 .bp-search-results p {
     padding: 8px 12px;
     margin: 0;
-    color: var(--muted-text, #777);
+    color: var(--muted-text);
 }
 
 /* Pending Add List */
@@ -390,31 +390,31 @@ input[name="bp_member_search_security_frontend"] {
 /* Dark Mode specific styles for AJAX search results */
 @media (prefers-color-scheme: dark) {
     .bp-search-results {
-        background-color: var(--card-background, #2a2a2a); 
-        border-color: var(--border-color, #555); 
+        background-color: var(--card-background); 
+        border-color: var(--border-color); 
     }
 
     .bp-search-results ul.bp-search-results-list li {
-        border-bottom-color: var(--border-color, #444); 
-        color: var(--text-color, #e5e5e5); 
+        border-bottom-color: var(--border-color); 
+        color: var(--text-color); 
     }
 
     .bp-search-results ul.bp-search-results-list li:hover {
-        background-color: var(--button-hover-bg, #083b6c); 
+        background-color: var(--button-hover-bg); 
         color: #fff; 
     }
 
     /* .bp-search-results button.bp-select-artist-button is expected to inherit button styles */
 
     .bp-search-results p {
-        color: var(--muted-text, #b0b0b0); 
+        color: var(--muted-text); 
     }
 }
 
 .bp-add-member-form {
     padding: 15px;
-    border: 1px solid var(--border-color, #ccc); 
-    background-color: var(--background-color, #f9f9f9); 
+    border: 1px solid var(--border-color); 
+    background-color: var(--background-color); 
     border-radius: 4px;
     max-width: 450px;
 }
@@ -439,10 +439,10 @@ input[name="bp_member_search_security_frontend"] {
     width: 100%;
     max-width: 300px; 
     padding: 8px;
-    border: 1px solid var(--gp-border-color-2, #bbb);
+    border: 1px solid var(--gp-border-color-2);
     border-radius: 3px;
-    background-color: var(--gp-input-background-color, #fff);
-    color: var(--gp-input-text-color, #333);
+    background-color: var(--gp-input-background-color);
+    color: var(--gp-input-text-color);
 }
 
 .bp-add-member-form #bp-ajax-add-roster-member-button {
@@ -464,7 +464,7 @@ input[name="bp_member_search_security_frontend"] {
     align-items: center;
     margin-bottom: 10px;
     padding: 5px 0;
-    border-bottom: 1px solid var(--gp-border-color-1, #eee);
+    border-bottom: 1px solid var(--gp-border-color-1);
 }
 #bp-unified-roster-list li:last-child {
     border-bottom: none;
@@ -477,7 +477,7 @@ input[name="bp_member_search_security_frontend"] {
 
 #bp-unified-roster-list .member-status-label {
     font-size: 0.9em;
-    color: var(--gp-gray-text-color, #777);
+    color: var(--gp-gray-text-color);
     margin-right: 10px;
 }
 
@@ -490,11 +490,11 @@ input[name="bp_member_search_security_frontend"] {
 
 #bp-unified-roster-list .member-actions .bp-remove-member-button,
 #bp-unified-roster-list .member-actions .bp-ajax-remove-plaintext-member {
-    color: var(--gp-error-color, #d9534f); 
+    color: var(--gp-error-color); 
 }
 #bp-unified-roster-list .member-actions .bp-remove-member-button:hover,
 #bp-unified-roster-list .member-actions .bp-ajax-remove-plaintext-member:hover {
-    color: var(--gp-error-hover-color, #c9302c);
+    color: var(--gp-error-hover-color);
 }
 
 #bp-unified-roster-list .bp-member-linked .member-name {

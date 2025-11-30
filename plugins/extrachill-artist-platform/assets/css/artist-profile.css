@@ -22,14 +22,14 @@
 .artist-notice-success {
     border-left-color: #46b450; /* From single-artist_profile.php inline style */
     /* Specific background for success if needed, or rely on .artist-notice for general background */
-    /* background-color: var(--notice-bg-success, #e6ffed); */ /* Example if you define --notice-bg-success */
+    /* background-color: var(--notice-bg-success); */ /* Example if you define --notice-bg-success */
 }
 
 /* Error notice specific styling (already used on manage page, good to define here too) */
 .artist-notice-error {
-    border-left-color: #dc3232; /* Standard error red */
+    border-left-color: var(--error-color); /* Standard error red */
     background-color: #fef7f7; /* From manage-artist-profile.php inline style */
-    /* background-color: var(--notice-bg-error, #ffebee); */ /* Example if you define --notice-bg-error */
+    /* background-color: var(--notice-bg-error); */ /* Example if you define --notice-bg-error */
 }
 
 :root {
@@ -43,7 +43,7 @@
     gap: 20px; /* Space between image and details */
     margin-bottom: 1.5em; /* Space below the header */
     padding-bottom: 1.5em;
-    border-bottom: 1px solid var(--border-color, #ddd); /* Separator */
+    border-bottom: 1px solid var(--border-color); /* Separator */
 }
 
 .artist-profile-image {
@@ -56,7 +56,7 @@
     height: auto;
     display: block; /* Remove extra space below image */
     border-radius: 5px; /* Optional rounded corners */
-    border: 1px solid var(--border-color, #ddd);
+    border: 1px solid var(--border-color);
 }
 
 .artist-profile-details {
@@ -64,7 +64,7 @@
     min-width: 200px; /* Prevent excessive squishing */
 }
 
-.artist-profile-details .entry-title {
+.artist-profile-details h1 {
     margin-top: 0; /* Remove default top margin if needed */
     margin-bottom: 0.3em;
 }
@@ -72,11 +72,11 @@
 .artist-profile-details p {
     margin-bottom: 0.5em; /* Consistent spacing for meta details */
     font-size: 0.95em;
-    color: var(--muted-text, #555);
+    color: var(--muted-text);
 }
 
 .artist-profile-details p strong {
-    color: var(--text-color, #333);
+    color: var(--text-color);
     margin-right: 5px;
 }
 
@@ -88,20 +88,20 @@
 }
 
 .artist-social-links a {
-    color: var(--text-color, #333);
+    color: var(--text-color);
     text-decoration: none;
     transition: color 0.2s ease;
 }
 
 .artist-social-links a:hover {
-    color: var(--accent, #53940b); /* Use theme accent color */
+    color: var(--accent); /* Use theme accent color */
 }
 
 /* Artist Forum Section Styling (Basic Wrapper) */
 .artist-forum-section {
     margin-top: 2em;
     padding-top: 1.5em;
-    border-top: 1px solid var(--border-color, #ddd); /* Separator */
+    border-top: 1px solid var(--border-color); /* Separator */
 }
 
 .artist-forum-title,
@@ -147,7 +147,7 @@
     position: relative; /* For overlay and button positioning */
     background-size: cover;
     background-position: center center;
-    color: var(--header-text, #fff); /* Use header text color (often white/light) */
+    color: var(--header-text); /* Use header text color (often white/light) */
     border-radius: 5px; /* Optional: subtle rounding */
     overflow: hidden; /* Ensure overlay respects border-radius */
     border: 1px solid var(--border-color); /* Professional border using theme variable */
@@ -158,7 +158,7 @@
     /* Use card background for consistency with theme */
     background-color: var(--card-background);
     /* Ensure text contrast on default background */
-    color: var(--header-text, #fff);
+    color: var(--header-text);
 }
 
 .artist-hero-overlay {
@@ -210,19 +210,19 @@
 }
 
 .artist-hero-title {
-    color: var(--header-text, #fff) !important; /* Ensure contrast with overlay/image */
+    color: var(--header-text) !important; /* Ensure contrast with overlay/image */
     margin-bottom: 15px;
     font-size: 2.5em; /* Larger title */
 }
 
 .artist-meta-info {
-    color: var(--header-text, #eee); /* Light color for meta, adjust if needed */
+    color: var(--header-text); /* Light color for meta, adjust if needed */
     opacity: 0.9; /* Slightly less prominent than title */
     margin-bottom: 15px;
 }
 
 .artist-meta-info strong {
-    color: var(--header-text, #fff); /* Ensure contrast */
+    color: var(--header-text); /* Ensure contrast */
     opacity: 1;
 }
 
@@ -234,7 +234,7 @@
 /* Replace attribute selector with a dedicated class for the separator */
 .artist-meta-info .artist-meta-separator {
     margin: 0 10px;
-    color: var(--header-text, #ccc);
+    color: var(--header-text);
     opacity: 0.7;
 }
 
@@ -246,14 +246,14 @@
 }
 
 .artist-social-links a {
-    color: var(--header-text, #fff) !important; /* Ensure contrast */
+    color: var(--header-text) !important; /* Ensure contrast */
     text-decoration: none;
     transition: opacity 0.2s ease;
 }
 
 .artist-social-links a:hover {
     opacity: 0.8;
-    color: var(--header-text, #fff) !important; /* Keep color, change opacity */
+    color: var(--header-text) !important; /* Keep color, change opacity */
 }
 
 /* Edit Button Styling */
@@ -269,14 +269,14 @@
     padding: 8px 15px; 
     font-size: 0.9em;
     border-radius: 4px; /* Add rounded corners - adjust if needed for theme consistency */
-    /* Use button variables for consistency */
-    background-color: var(--button-bg, #0b5394);
+    /* Use button-1 colors for consistency */
+    background-color: #0b5394;
     color: #fff; /* Assuming button text is usually white */
     border: none; /* Assuming no border based on style.css */
 }
 
 .artist-edit-button-container .button:hover {
-    background-color: var(--button-hover-bg, #083b6c);
+    background-color: #083b6c;
     color: #fff;
 }
 
@@ -368,7 +368,7 @@
     margin-top: 0; /* Remove top margin if it's the first element in the column */
     margin-bottom: 0.75em;
     font-size: 1.4em;
-    /* border-bottom: 1px solid var(--border-color, #ddd); */ /* Optional separator for titles */
+    /* border-bottom: 1px solid var(--border-color); */ /* Optional separator for titles */
     /* padding-bottom: 0.3em; */
 }
 
@@ -402,14 +402,14 @@
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    background-color: var(--card-background, #fff);
+    background-color: var(--card-background);
     padding: 25px;
     border-radius: 8px;
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
     z-index: 1050;
     width: 90%;
     max-width: 450px;
-    border: 1px solid var(--border-color, #ddd);
+    border: 1px solid var(--border-color);
 }
 
 #artist-follow-consent-modal .artist-modal-content {
@@ -420,29 +420,29 @@
     margin-top: 0;
     margin-bottom: 15px;
     font-size: 1.5em;
-    color: var(--text-color, #333);
+    color: var(--text-color);
 }
 
 #artist-follow-consent-modal p {
     margin-bottom: 15px;
     font-size: 1em;
     line-height: 1.5;
-    color: var(--text-color, #555);
+    color: var(--text-color);
 }
 
 #artist-follow-consent-modal .artist-modal-consent-option {
     margin-bottom: 20px;
     padding: 10px;
-    background-color: var(--background-color, #f9f9f9);
+    background-color: var(--background-color);
     border-radius: 4px;
-    border: 1px solid var(--border-color, #eee);
+    border: 1px solid var(--border-color);
 }
 
 #artist-follow-consent-modal .artist-modal-consent-option label {
     display: flex; /* Changed to flex for better alignment */
     align-items: flex-start; /* Align items to the start of the flex container */
     font-size: 0.95em;
-    color: var(--text-color, #444);
+    color: var(--text-color);
     cursor: pointer;
 }
 
@@ -467,22 +467,22 @@
 }
 
 #artist-follow-consent-modal .artist-modal-actions .artist-modal-confirm {
-    background-color: var(--accent, #0073aa); /* Using var(--accent) if available, else WordPress blue */
+    background-color: var(--accent); /* Using var(--accent) if available, else WordPress blue */
     color: #fff;
 }
 
 #artist-follow-consent-modal .artist-modal-actions .artist-modal-confirm:hover {
-    background-color: var(--accent-dark, #005a87); /* Darker shade for hover */
+    background-color: var(--accent-dark); /* Darker shade for hover */
 }
 
 #artist-follow-consent-modal .artist-modal-actions .artist-modal-cancel {
-    background-color: var(--button-secondary-bg, #f0f0f0); /* Light gray for cancel */
-    color: var(--button-secondary-text, #333);
-    border: 1px solid var(--border-color, #ccc);
+    background-color: var(--button-secondary-bg); /* Light gray for cancel */
+    color: var(--button-secondary-text);
+    border: 1px solid var(--border-color);
 }
 
 #artist-follow-consent-modal .artist-modal-actions .artist-modal-cancel:hover {
-    background-color: var(--button-secondary-hover-bg, #e0e0e0);
+    background-color: var(--button-secondary-hover-bg);
 }
 
 /* Mobile Responsive Styles */
@@ -509,7 +509,7 @@
 }
 
 .artist-manage-button {
-    background-color: var(--accent, #53940b);
+    background-color: var(--accent);
     color: #fff;
     padding: 8px 15px;
     border-radius: 4px;
@@ -518,8 +518,8 @@
     transition: background-color 0.2s ease;
 }
 
+/* Artist manage button - should use .button-1 class in HTML */
 .artist-manage-button:hover {
-    background-color: var(--button-hover-bg);
     color: #fff;
 }
 
@@ -534,7 +534,7 @@
 
 .artist-follower-count {
     font-size: 0.95em;
-    color: var(--header-text, #eee);
+    color: var(--header-text);
 }
 
 .artist-follow-button,
@@ -547,19 +547,20 @@
 }
 
 .artist-follow-button {
-    background-color: var(--accent, #53940b);
+    background-color: var(--accent);
     color: #fff;
     border: none;
     cursor: pointer;
 }
 
+/* Artist follow button - should use .button-2 class in HTML */
 .artist-follow-button:hover {
-    background-color: var(--button-hover-bg);
+    /* Hover styles from button class */
 }
 
 .artist-own-indicator {
     font-style: italic;
-    color: var(--header-text, #ccc);
+    color: var(--header-text);
     font-size: 0.9em;
 }
 
@@ -569,7 +570,7 @@
 }
 
 .artist-public-link-display a {
-    color: var(--header-text, #fff);
+    color: var(--header-text);
     text-decoration: none;
     font-size: 1.1em;
     opacity: 0.9;

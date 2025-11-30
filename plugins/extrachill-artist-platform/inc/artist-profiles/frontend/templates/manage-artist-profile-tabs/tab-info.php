@@ -39,7 +39,7 @@ $current_header_image_id = $current_header_image_id ?? null;
         ?>
             <a href="<?php echo esc_url( $manage_url ); ?>" class="button-2 button-medium"><?php echo esc_html( $label ); ?></a>
         <?php else : // Create mode or conditions not met for edit mode button ?>
-            <a href="#" class="button-2 button-medium disabled" style="pointer-events: none; opacity: 0.6;" title="<?php esc_attr_e( 'Save your band profile first. A link page will be created automatically.', 'extrachill-artist-platform' ); ?>" onclick="return false;">
+            <a href="#" class="button-2 button-medium disabled" style="pointer-events: none; opacity: 0.6;" title="<?php esc_attr_e( 'Save your artist profile first, then use this button to create your link page.', 'extrachill-artist-platform' ); ?>" onclick="return false;">
                 <?php esc_html_e( 'Create Link Page', 'extrachill-artist-platform' ); ?>
             </a>
         <?php endif; ?>
@@ -83,10 +83,10 @@ $current_header_image_id = $current_header_image_id ?? null;
         <?php if ( !$edit_mode && !empty($prefill_user_avatar_id) ) : ?>
             <input type="hidden" name="prefill_user_avatar_id" value="<?php echo esc_attr( $prefill_user_avatar_id ); ?>">
         <?php endif; ?>
-        <p class="description"><?php echo $edit_mode ? esc_html__( 'This picture is also used for your Extrachill.link page. ', 'extrachill-artist-platform' ) : esc_html__( 'Upload an image for your band profile (e.g., logo, band photo). Your user avatar will be used if no image is uploaded.', 'extrachill-artist-platform' ); ?></p>
+        <p class="description"><?php echo $edit_mode ? esc_html__( 'This picture is also used for your Extrachill.link page. ', 'extrachill-artist-platform' ) : esc_html__( 'Upload an image for your artist profile (e.g., logo, artist photo). Your user avatar will be used if no image is uploaded.', 'extrachill-artist-platform' ); ?></p>
     </div>
 
-    <!-- Band Header Image -->
+    <!-- Artist Header Image -->
     <div class="form-group">
         <label><?php esc_html_e( 'Artist Forum Header Image', 'extrachill-artist-platform' ); ?></label>
         
@@ -114,12 +114,12 @@ $current_header_image_id = $current_header_image_id ?? null;
         </div>
 
         <input type="file" id="artist_header_image" name="artist_header_image" accept="image/*">
-        <p class="description"><?php esc_html_e( 'Recommended aspect ratio: 16:9. This image appears at the top of your band\'s public profile page.', 'extrachill-artist-platform' ); ?></p>
+        <p class="description"><?php esc_html_e( 'Recommended aspect ratio: 16:9. This image appears at the top of your artist\'s public profile page.', 'extrachill-artist-platform' ); ?></p>
     </div>
 
-    <!-- Band Name -->
+    <!-- Artist Name -->
     <div class="form-group">
-        <label for="artist_title"><?php esc_html_e( 'Band Name *', 'extrachill-artist-platform' ); ?></label>
+        <label for="artist_title"><?php esc_html_e( 'Artist Name *', 'extrachill-artist-platform' ); ?></label>
         <input type="text" id="artist_title" name="artist_title" required value="<?php echo esc_attr( $display_artist_name ); ?>">
     </div>
 

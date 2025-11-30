@@ -37,12 +37,7 @@ get_header(); ?>
 
 <?php
 // --- Display Success Notices ---
-$is_join_flow = isset($_GET['from_join']) && $_GET['from_join'] === 'true';
-
-if ($is_join_flow) {
-    // Welcome message for new join flow users
-    echo '<div class="notice notice-success"><p>' . esc_html__('Welcome to Extra Chill! Your link page has been created and is ready to customize.', 'extrachill-artist-platform') . '</p></div>';
-} elseif (isset($_GET['bp_link_page_updated']) && $_GET['bp_link_page_updated'] === '1') {
+if (isset($_GET['bp_link_page_updated']) && $_GET['bp_link_page_updated'] === '1') {
     // Regular update success message for existing users
     echo '<div class="notice notice-success"><p>' . esc_html__('Link page updated successfully!', 'extrachill-artist-platform') . '</p></div>';
 }
@@ -85,26 +80,24 @@ $data = ec_get_link_page_data( $artist_id, $link_page_id );
 ?>
 <?php
 // Display breadcrumbs using theme system with custom override
-if (function_exists('extrachill_breadcrumbs')) {
-    // Override the breadcrumb trail for manage link page
-    add_filter('extrachill_breadcrumbs_override_trail', function($trail) {
-        $artist_id = apply_filters('ec_get_artist_id', $_GET);
-        if (!$artist_id) return $trail;
-        
-        $artist_post = get_post($artist_id);
-        if (!$artist_post) return $trail;
-        
-        $manage_page = get_page_by_path('manage-artist-profiles');
-        $manage_artist_profile_url = $manage_page 
-            ? add_query_arg('artist_id', $artist_id, get_permalink($manage_page))
-            : site_url('/manage-artist-profiles/?artist_id=' . $artist_id);
-        
-        return '<a href="' . esc_url($manage_artist_profile_url) . '">' . esc_html($artist_post->post_title) . '</a> › ' .
-               '<span>' . esc_html__('Manage Link Page', 'extrachill-artist-platform') . '</span>';
-    });
-    
-    extrachill_breadcrumbs();
-}
+// Override the breadcrumb trail for manage link page
+add_filter('extrachill_breadcrumbs_override_trail', function($trail) {
+    $artist_id = apply_filters('ec_get_artist_id', $_GET);
+    if (!$artist_id) return $trail;
+
+    $artist_post = get_post($artist_id);
+    if (!$artist_post) return $trail;
+
+    $manage_page = get_page_by_path('manage-artist-profiles');
+    $manage_artist_profile_url = $manage_page
+        ? add_query_arg('artist_id', $artist_id, get_permalink($manage_page))
+        : site_url('/manage-artist-profiles/?artist_id=' . $artist_id);
+
+    return '<a href="' . esc_url($manage_artist_profile_url) . '">' . esc_html($artist_post->post_title) . '</a> › ' .
+           '<span>' . esc_html__('Manage Link Page', 'extrachill-artist-platform') . '</span>';
+});
+
+extrachill_breadcrumbs();
 ?>
 <h1 class="manage-link-page-title">
     <?php echo esc_html__('Manage Link Page for ', 'extrachill-artist-platform') . esc_html(get_the_title($artist_id)); ?>
@@ -191,8 +184,13 @@ if ($link_page_id && get_post_type($link_page_id) === 'artist_link_page') {
                         // Display this notice if the user just completed the new user join flow (registered + created artist)
                         // Assumes from_join=true is passed after successful artist creation redirect
                         if ( isset( $_GET['from_join'] ) && $_GET['from_join'] === 'true' ) {
-                            echo '<div class="notice notice-info" style="margin-top: 15px; margin-bottom: 15px;">';
-                            echo '<p>' . esc_html__( 'Welcome to your new Extrachill.link! Your Artist Profile info (Name, Bio, Picture) is synced here. Use the tabs to add links and customize your page appearance.', 'extrachill-artist-platform' ) . '</p>';
+                            $artist_slug = $artist_post ? $artist_post->post_name : '';
+                            $link_page_url = $artist_slug ? 'extrachill.link/' . $artist_slug : 'extrachill.link';
+                            echo '<div class="notice notice-success" style="margin-top: 15px; margin-bottom: 15px;">';
+                            echo '<p>' . sprintf(
+                                esc_html__( 'Welcome to Extra Chill! Your link page has been created at %s. Your artist profile info (name, bio, picture) syncs here automatically. Use the tabs above to add links and customize your page appearance.', 'extrachill-artist-platform' ),
+                                '<strong>' . esc_html( $link_page_url ) . '</strong>'
+                            ) . '</p>';
                             echo '</div>';
                         }
                         // --- END Join Flow Guidance Notice (New User) ---

@@ -4,7 +4,7 @@
 .extrch-share-trigger {
     border: none;
     background-color: transparent; /* All triggers transparent by default */
-    color: var(--link-page-text-color, #e5e5e5);
+    color: var(--link-page-text-color);
     cursor: pointer;
     padding: 0; /* Remove default padding, specific triggers will add their own */
     font-size: 1em; /* Base size, can be overridden */
@@ -133,7 +133,7 @@ body button.extrch-share-item-trigger:active {
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: var(--link-page-overlay-color, rgba(0, 0, 0, 0.6)); /* Use theme variable */
+    background-color: var(--link-page-overlay-color)); /* Use theme variable */
     z-index: 1000;
     opacity: 0;
     transition: opacity 0.3s ease-in-out;
@@ -150,7 +150,7 @@ body button.extrch-share-item-trigger:active {
     transform: translate(-50%, -50%) scale(0.95);
     background-color: var(--link-page-card-bg-color); /* Use theme background */
     border: 1px solid var(--link-page-button-border-color);
-    color: var(--link-page-text-color, #fff); /* Use theme text color */
+    color: var(--link-page-text-color); /* Use theme text color */
     padding: 25px;
     border-radius: 16px; /* Rounded corners like Linktree */
     z-index: 1001;
@@ -202,14 +202,14 @@ body button.extrch-share-item-trigger:active {
     background: none;
     border: none;
     font-size: 2em;
-    color: var(--link-page-muted-text-color, #aaa); /* Use theme muted text color, or consider --link-page-text-color with lower opacity */
+    color: var(--link-page-muted-text-color); /* Use theme muted text color, or consider --link-page-text-color with lower opacity */
     cursor: pointer;
     padding: 0;
     line-height: 1;
 }
 
 .extrch-share-modal-close:hover {
-    color: var(--link-page-text-color, #fff); /* Hover to main text color */
+    color: var(--link-page-text-color); /* Hover to main text color */
 }
 
 /* Modal Header */
@@ -224,21 +224,21 @@ body button.extrch-share-item-trigger:active {
     object-fit: cover;
     margin: 0 auto 10px auto;
     display: block;
-    border: 2px solid var(--link-page-button-bg-color, #fff); /* Optional border using button color */
+    border: 2px solid var(--link-page-button-bg-color); /* Optional border using button color */
 }
 
 .extrch-share-modal-main-title {
-    font-family: var(--link-page-title-font-family, 'WilcoLoftSans', sans-serif);
+    font-family: var(--link-page-title-font-family);
     font-size: 1.6em;
     font-weight: 700;
     margin: 0 0 5px 0;
-    color: var(--link-page-text-color, #fff);
+    color: var(--link-page-text-color);
 }
 
 .extrch-share-modal-subtitle {
-    font-family: var(--link-page-body-font-family, 'Helvetica', sans-serif);
+    font-family: var(--link-page-body-font-family);
     font-size: 0.95em;
-    color: var(--link-page-muted-text-color, #aaa);
+    color: var(--link-page-muted-text-color);
     margin: 0;
     word-break: break-all;
 }
@@ -259,8 +259,8 @@ body button.extrch-share-item-trigger:active {
     background: none;
     border: none;
     padding: 0;
-    color: var(--link-page-text-color, #fff);
-    font-family: var(--link-page-body-font-family, 'Helvetica', sans-serif);
+    color: var(--link-page-text-color);
+    font-family: var(--link-page-body-font-family);
     cursor: pointer;
     text-decoration: none; /* For <a> tags */
     width: 70px; /* Width for each item */
@@ -270,8 +270,8 @@ body button.extrch-share-item-trigger:active {
     width: 50px; /* Circular icon size */
     height: 50px;
     border-radius: 50%;
-    background-color: var(--link-page-card-bg-color, #333); /* Darker circle background */
-    border: 1px solid var(--link-page-button-border-color, #444); /* Subtle border */
+    background-color: var(--link-page-card-bg-color); /* Darker circle background */
+    border: 1px solid var(--link-page-button-border-color); /* Subtle border */
     display: flex;
     align-items: center;
     justify-content: center;
@@ -281,13 +281,13 @@ body button.extrch-share-item-trigger:active {
 }
 
 .extrch-share-option-button:hover .extrch-share-option-icon {
-    background-color: var(--link-page-button-bg-color, #007bff); /* Use button color for hover */
-    border-color: var(--link-page-button-hover-bg-color, #0056b3);
+    background-color: var(--link-page-button-bg-color); /* Use button color for hover */
+    border-color: var(--link-page-button-hover-bg-color);
 }
 
 .extrch-share-option-label {
     font-size: 0.8em;
-    color: var(--link-page-muted-text-color, #ccc);
+    color: var(--link-page-muted-text-color);
     text-align: center;
 }
 
@@ -323,7 +323,7 @@ body button.extrch-share-item-trigger:active {
     box-shadow: 0 1px 3px rgba(0,0,0,0.2);
     opacity: 0.85;
     transition-property: opacity, background-color;
-    color: var(--link-page-text-color, #e5e5e5);
+    color: var(--link-page-text-color);
     border: none;
     z-index: 2;
 }

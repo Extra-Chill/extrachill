@@ -45,7 +45,7 @@
 
 /* Fallback gradient when no background image */
 .artist-hero-section:not([style*='background-image']) {
-  background: linear-gradient(135deg, var(--accent) 0%, var(--button-hover-bg) 100%);
+  background: linear-gradient(135deg, var(--accent) 0%, #083b6c 100%);
 }
 
 /* Dark overlay for text readability */

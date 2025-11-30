@@ -42,7 +42,6 @@ access_log
 .cache/
 
 # Documentation sync tracking
-docs-sync.json
 docs/.docs-sync.json
 
 # Environment files
@@ -71,4 +70,3 @@ CLAUDE.md
 AGENTS.md
 .buildignore
 build.sh
-docs/

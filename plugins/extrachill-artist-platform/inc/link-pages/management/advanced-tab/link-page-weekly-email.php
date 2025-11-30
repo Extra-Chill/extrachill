@@ -489,7 +489,7 @@ function extrch_generate_consolidated_performance_email_html( $user_display_name
         .top-links a { color: #0b5394; text-decoration:none; }
         .top-links a:hover { text-decoration:underline; }
         .cta-button { display: inline-block; background-color: #0b5394; color: #ffffff !important; padding: 10px 20px; text-decoration: none !important; border-radius: 5px; margin-top: 10px; margin-right:10px; font-weight: bold; }
-        .cta-button:hover { background-color: #083b6c; } /* Using button-hover-bg from root.css */
+        .cta-button:hover { background-color: #083b6c; } /* Using button-1 hover color */
         .footer { text-align: center; margin-top: 20px; padding-top: 15px; border-top: 1px solid #dddddd; font-size: 0.9em; color: #6b7280; }
         .footer a { color: #0b5394; text-decoration:none; }
         .footer a:hover { text-decoration:underline; }

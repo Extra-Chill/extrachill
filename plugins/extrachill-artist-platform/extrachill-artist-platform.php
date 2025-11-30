@@ -3,7 +3,7 @@
  * Plugin Name: Extra Chill Artist Platform
  * Plugin URI: https://extrachill.com
  * Description: Artist platform for musicians with profiles, link pages, analytics, and subscriber management.
- * Version: 1.0.0
+ * Version: 1.0.1
  * Author: Chris Huber
  * Author URI: https://chubes.net
  * License: GPL v2 or later

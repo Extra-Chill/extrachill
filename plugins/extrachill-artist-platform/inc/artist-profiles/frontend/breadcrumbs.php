@@ -52,21 +52,15 @@ add_filter( 'extrachill_breadcrumbs_override_trail', 'ec_artist_platform_breadcr
 /**
  * Override breadcrumb trail for artist profiles
  *
- * Hooks into theme's breadcrumb system to provide proper breadcrumb trail:
- * Artist Platform › Artist Name
- *
  * @param string $custom_trail Existing custom trail from other plugins
- * @return string Modified breadcrumb trail HTML
+ * @return string Empty string
  */
 function ec_artist_profile_breadcrumb_override( $custom_trail ) {
-    // Only override on artist profile singles
     if ( ! is_singular( 'artist_profile' ) ) {
         return $custom_trail;
     }
 
-    $artist_name = get_the_title();
-
-    return '<span>' . esc_html( $artist_name ) . '</span>';
+    return '';
 }
 add_filter( 'extrachill_breadcrumbs_override_trail', 'ec_artist_profile_breadcrumb_override' );
 

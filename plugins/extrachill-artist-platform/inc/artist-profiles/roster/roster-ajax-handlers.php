@@ -105,7 +105,7 @@ function bp_ajax_invite_member_by_email() {
         if ( is_string( $new_invitation_result ) ) {
             switch ( $new_invitation_result ) {
                 case 'error_already_pending':
-                    $error_message = __( 'An invitation has already been sent to this email address for this band.', 'extrachill-artist-platform' );
+                    $error_message = __( 'An invitation has already been sent to this email address for this artist.', 'extrachill-artist-platform' );
                     break;
             }
         }

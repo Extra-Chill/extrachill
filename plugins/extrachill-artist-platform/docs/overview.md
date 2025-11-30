@@ -1,4 +1,11 @@
-# Extra Chill Artist Platform
+# Extra Chill Artist Platform - Technical Documentation
+
+This directory contains technical deep-dive documentation for the Artist Platform plugin.
+
+**For architectural patterns and development guidelines**, see [../CLAUDE.md](../CLAUDE.md)
+**For quick overview and installation**, see [../README.md](../README.md)
+
+---
 
 Comprehensive WordPress plugin providing complete artist platform functionality for the Extra Chill community. Enables artists to create profiles, link pages, manage subscribers, and integrate with forums.
 
@@ -24,7 +31,7 @@ The platform consists of two primary custom post types:
 - **Subscription System**: Email collection with artist association
 
 ### Advanced Features
-- **Cross-Domain Authentication**: WordPress multisite native authentication across `.extrachill.com` subdomains (legacy session tokens maintained for compatibility)
+- **Cross-Domain Authentication**: WordPress multisite native authentication across `.extrachill.com` subdomains and extrachill.link domain
 - **Link Expiration**: Time-based link scheduling and lifecycle management
 - **Forum Integration**: bbPress integration with artist-specific forum sections
 - **Asset Management**: Context-aware loading with file existence checks

@@ -12,7 +12,7 @@ body {
 
 .extrch-link-page-container {
   font-family: var(--link-page-body-font-family); /* Moved from body */
-  /* background: var(--link-page-background-color, #1a1a1a); */ /* REMOVED background shorthand */
+  /* background: var(--link-page-background-color); */ /* REMOVED background shorthand */
   color: var(--link-page-text-color); /* Moved from body - default text color for the page */
   width: 100%;
   min-height: 100vh; /* Ensure container takes full viewport height */

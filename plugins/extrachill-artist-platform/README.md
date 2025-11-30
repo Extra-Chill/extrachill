@@ -7,7 +7,7 @@ A comprehensive WordPress plugin that provides artist profile management, link p
 ### 🚀 Join Flow System
 - Complete onboarding flow: user registration → artist profile → link page creation
 - Modal interface for existing vs new account selection
-- Automatic artist profile and link page creation on registration
+- Automatic artist profile and link page creation during join flow registration (extrachill.link/join)
 - Roster membership auto-assignment for profile owners
 - Forum creation integration with bbPress
 - Transient-based post-registration redirect tracking
@@ -723,7 +723,7 @@ npm run build
 
 ### Build Features
 
-- **Automated Packaging**: Creates `/build/extrachill-artist-platform/` directory and `/build/extrachill-artist-platform.zip` file
+- **Automated Packaging**: Creates `/build/extrachill-artist-platform.zip` file only (unzip when directory access needed)
 - **File Filtering**: Excludes development files via `.buildignore`
 - **Version Extraction**: Automatically reads version from main plugin file
 - **Structure Validation**: Ensures plugin integrity before packaging

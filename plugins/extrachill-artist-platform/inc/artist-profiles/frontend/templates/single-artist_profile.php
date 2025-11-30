@@ -128,7 +128,7 @@ get_header(); ?>
                                         </div>
                                     <?php endif; ?>
                                     <div class="artist-hero-text-content">
-                                        <h1 class="artist-hero-title entry-title" itemprop="headline"><?php echo esc_html( get_the_title( $artist_profile_id ) ); ?></h1>
+                                        <h1 class="artist-hero-title" itemprop="headline"><?php echo esc_html( get_the_title( $artist_profile_id ) ); ?></h1>
 
                                         <?php if ( ! empty( $genre ) || ! empty( $local_city ) ) : ?>
                                             <p class="artist-meta-info">

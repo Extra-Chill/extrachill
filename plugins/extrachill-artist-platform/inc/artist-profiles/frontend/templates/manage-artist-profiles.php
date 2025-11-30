@@ -15,9 +15,7 @@ get_header(); ?>
             <div class="breadcrumb-notice-container">
                 <?php
                 // Add breadcrumbs here
-                if ( function_exists( 'extrachill_breadcrumbs' ) ) {
-                    extrachill_breadcrumbs();
-                }
+                extrachill_breadcrumbs();
                 ?>
 
                 <?php
@@ -58,9 +56,9 @@ get_header(); ?>
 
             <article id="post-<?php the_ID(); ?>" <?php post_class(); ?>>
                 <div class="inside-article">
-                    <header class="entry-header">
+                    <header>
                         <?php // Display appropriate title based on mode - will be set later ?>
-                    </header><!-- .entry-header -->
+                    </header>
 
                     <div class="entry-content" itemprop="text">
                         <?php
@@ -209,7 +207,7 @@ get_header(); ?>
                             
                             <?php 
                             // Set the H1 title of the page dynamically
-                            echo '<h1 class="entry-title page-title">' . esc_html( $form_title ) . '</h1>'; 
+                            echo '<h1 class="page-title">' . esc_html( $form_title ) . '</h1>'; 
                             ?>
 
                             <?php
@@ -262,7 +260,7 @@ get_header(); ?>
                                                 // Display this notice if the user arrived from the join flow and is in create mode
                                                 if ( isset($_GET['from_join']) && $_GET['from_join'] === 'true' && ! $edit_mode ) {
                                                     echo '<div class="notice notice-info">';
-                                                    echo '<p>' . esc_html__( 'Welcome to the Extra Chill link page setup! To create your link page, you first need to create an Artist Profile. Fill out the details below to get started.', 'extrachill-artist-platform' ) . '</p>';
+                                                    echo '<p>' . esc_html__( 'Welcome to Extra Chill! Fill out your artist profile details below. When you save, we\'ll help you set up your extrachill.link page.', 'extrachill-artist-platform' ) . '</p>';
                                                     echo '</div>';
                                                 }
                                                 // --- END Join Flow Guidance Notice ---

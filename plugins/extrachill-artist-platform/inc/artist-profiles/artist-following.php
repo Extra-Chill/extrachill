@@ -1,6 +1,6 @@
 <?php
 /**
- * Band Following Feature
+ * Artist Following Feature
  *
  * Handles the logic for users following artist profiles.
  */
@@ -8,10 +8,10 @@
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Follow a band.
+ * Follow an artist.
  *
  * @param int $user_id User ID initiating the follow.
- * @param int $artist_id Band Profile Post ID to follow.
+ * @param int $artist_id Artist Profile Post ID to follow.
  * @param bool $share_email_consent Whether to share email consent.
  * @return bool True on success, false on failure.
  */
@@ -59,7 +59,7 @@ function bp_follow_band( $user_id, $artist_id, $share_email_consent = false ) {
 
     } else {
         // If consent is NOT given (e.g. during initial follow without checkbox, or a direct call with false)
-        // ensure no 'platform_follow_consent' record exists for this user/band.
+        // ensure no 'platform_follow_consent' record exists for this user/artist.
         // This is important if a user previously consented and then re-follows without consent.
         $table_name = $wpdb->prefix . 'artist_subscribers';
         $wpdb->delete(
@@ -83,15 +83,15 @@ function bp_follow_band( $user_id, $artist_id, $share_email_consent = false ) {
         do_action('bp_user_follow_consent_updated', $user_id, $artist_id, $share_email_consent);
     }
 
-    // Check if the user is generally following the band (regardless of email consent)
+    // Check if the user is generally following the artist (regardless of email consent)
     return in_array( $artist_id, get_user_meta( $user_id, '_followed_artist_profile_ids', true ) );
 }
 
 /**
- * Unfollow a band.
+ * Unfollow an artist.
  *
  * @param int $user_id User ID initiating the unfollow.
- * @param int $artist_id Band Profile Post ID to unfollow.
+ * @param int $artist_id Artist Profile Post ID to unfollow.
  * @return bool True on success, false on failure.
  */
 function bp_unfollow_band( $user_id, $artist_id ) {
@@ -141,10 +141,10 @@ function bp_unfollow_band( $user_id, $artist_id ) {
 }
 
 /**
- * Check if a user is following a specific band.
+ * Check if a user is following a specific artist.
  *
  * @param int $user_id User ID.
- * @param int $artist_id Band Profile Post ID.
+ * @param int $artist_id Artist Profile Post ID.
  * @return bool True if following, false otherwise.
  */
 function bp_is_user_following_band( $user_id, $artist_id ) {
@@ -164,9 +164,9 @@ function bp_is_user_following_band( $user_id, $artist_id ) {
 }
 
 /**
- * Get the follower count for a band.
+ * Get the follower count for an artist.
  *
- * @param int $artist_id Band Profile Post ID.
+ * @param int $artist_id Artist Profile Post ID.
  * @return int Follower count.
  */
 function bp_get_artist_follower_count( $artist_id ) {
@@ -179,10 +179,10 @@ function bp_get_artist_follower_count( $artist_id ) {
 }
 
 /**
- * Update the follower count meta for a band.
+ * Update the follower count meta for an artist.
  * This function queries users to get the accurate count.
  *
- * @param int $artist_id Band Profile Post ID.
+ * @param int $artist_id Artist Profile Post ID.
  * @param bool $force Whether to force the update even if recently updated (future use).
  * @return bool True if count was updated, false otherwise.
  */
@@ -235,8 +235,8 @@ function bp_ajax_toggle_follow_artist_handler() {
     // error_log("Follow AJAX: user_id={$user_id}, artist_id={$artist_id}");
 
     if ( ! $artist_id || get_post_type( $artist_id ) !== 'artist_profile' ) {
-        // error_log('Follow AJAX: Invalid band specified');
-        wp_send_json_error( array( 'message' => __( 'Invalid band specified.', 'extrachill-artist-platform' ) ) );
+        // error_log('Follow AJAX: Invalid artist specified');
+        wp_send_json_error( array( 'message' => __( 'Invalid artist specified.', 'extrachill-artist-platform' ) ) );
     }
 
     // Determine action
@@ -277,9 +277,9 @@ function bp_ajax_toggle_follow_artist_handler() {
 // --- Functions to get follower/following lists (implement as needed) ---
 
 /**
- * Get users following a specific band.
+ * Get users following a specific artist.
  *
- * @param int $artist_id Band Profile Post ID.
+ * @param int $artist_id Artist Profile Post ID.
  * @param array $args WP_User_Query arguments.
  * @return array Array of WP_User objects.
  * @return WP_User_Query WP_User_Query object.
@@ -346,7 +346,7 @@ function bp_get_user_followed_bands( $user_id, $args = array() ) {
     return $query->get_posts();
 }
 
-// --- AJAX Handler for User Band Subscription Settings ---
+// --- AJAX Handler for User Artist Subscription Settings ---
 
 add_action( 'wp_ajax_update_user_artist_subscriptions', 'bp_ajax_update_user_artist_subscriptions_handler' );
 
@@ -404,7 +404,7 @@ function bp_ajax_update_user_artist_subscriptions_handler() {
 
     foreach ( $currently_subscribed_artist_ids as $subscribed_artist_id ) {
         if ( ! in_array( $subscribed_artist_id, $bands_consented ) ) {
-            // If a currently subscribed band is not in the new list of consented bands, remove it.
+            // If a currently subscribed artist is not in the new list of consented artists, remove it.
             $wpdb->delete(
                 $table_name,
                 array(

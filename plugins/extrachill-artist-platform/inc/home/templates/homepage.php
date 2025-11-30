@@ -15,9 +15,9 @@ extrachill_breadcrumbs();
 
 <article class="artist-platform-homepage">
 	<div class="inside-article">
-		<header class="entry-header">
-			<h1 class="entry-title page-title"><?php esc_html_e( 'Artist Platform', 'extrachill-artist-platform' ); ?></h1>
-		</header><!-- .entry-header -->
+		<header>
+			<h1 class="page-title"><?php esc_html_e( 'Artist Platform', 'extrachill-artist-platform' ); ?></h1>
+		</header>
 
 		<div class="entry-content" itemprop="text">
 			<?php

@@ -100,12 +100,12 @@
 }
 
 .primary-action-card {
-  background: var(--card-background, #fff);
-  border: 1px solid var(--border-color, #e0e4ea);
+  background: var(--card-background);
+  border: 1px solid var(--border-color);
   border-radius: 10px;
   padding: 2.5em 2em;
   text-align: center;
-  box-shadow: var(--card-shadow, 0 2px 8px rgba(0,0,0,0.1));
+  box-shadow: var(--card-shadow);
   max-width: 400px;
   width: 100%;
 }

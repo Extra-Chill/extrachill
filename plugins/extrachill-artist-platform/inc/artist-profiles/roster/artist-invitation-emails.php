@@ -1,6 +1,6 @@
 <?php
 /**
- * Band Invitation Email Functions
+ * Artist Invitation Email Functions
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -9,24 +9,24 @@ require_once dirname( __FILE__ ) . '/../admin/user-linking.php'; // For bp_add_a
 require_once dirname( __FILE__ ) . '/roster-data-functions.php'; // For bp_get_pending_invitations, bp_remove_pending_invitation
 
 /**
- * Sends an invitation email to a potential band member.
+ * Sends an invitation email to a potential artist member.
  *
  * @param string $recipient_email The email address of the invitee.
- * @param string $artist_name The name of the band.
+ * @param string $artist_name The name of the artist.
  * @param string $member_display_name The display name for the member (as initially entered).
  * @param string $invitation_token The unique token for the invitation.
- * @param int    $artist_id The ID of the band.
+ * @param int    $artist_id The ID of the artist.
  * @param string $invitation_status Status of the invitation (e.g., 'invited_new_user', 'invited_existing_artist').
  * @return bool True if the email was sent successfully, false otherwise.
  */
 function bp_send_artist_invitation_email( $recipient_email, $artist_name, $member_display_name, $invitation_token, $artist_id, $invitation_status ) {
-    $inviter_display = 'A band member';
+    $inviter_display = 'An artist member';
     if ( is_user_logged_in() ) {
         $inviter = wp_get_current_user();
         $inviter_display = $inviter->display_name ? $inviter->display_name : $inviter->user_login;
     }
     if ( ! is_email( $recipient_email ) ) {
-        error_log( 'Band Invitation Email: Invalid recipient email: ' . $recipient_email );
+        error_log( 'Artist Invitation Email: Invalid recipient email: ' . $recipient_email );
         return false;
     }
 
@@ -62,11 +62,11 @@ function bp_send_artist_invitation_email( $recipient_email, $artist_name, $membe
     }
     $message_lines[] = '';
     // Main invitation line
-    $message_lines[] = sprintf( __( '%1$s has invited you to join the band \'%2$s\' on %3$s.', 'extrachill-artist-platform' ), esc_html($inviter_display), esc_html( $artist_name ), get_bloginfo( 'name' ) );
+    $message_lines[] = sprintf( __( '%1$s has invited you to join the artist \'%2$s\' on %3$s.', 'extrachill-artist-platform' ), esc_html($inviter_display), esc_html( $artist_name ), get_bloginfo( 'name' ) );
     if ( $invitation_status === 'invited_new_user' ) {
         $message_lines[] = __( 'To accept this invitation and create your account, please click the link below:', 'extrachill-artist-platform' );
     } else {
-        $message_lines[] = __( 'To accept this invitation and join the band, please click the link below:', 'extrachill-artist-platform' );
+        $message_lines[] = __( 'To accept this invitation and join the artist, please click the link below:', 'extrachill-artist-platform' );
     }
     $message_lines[] = $invitation_link;
     $message_lines[] = '';
@@ -93,7 +93,7 @@ function bp_send_artist_invitation_email( $recipient_email, $artist_name, $membe
         if ( isset( $phpmailer ) ) {
             if ( !empty( $phpmailer->ErrorInfo ) ) {
                 $ts_mail_errors[] = $phpmailer->ErrorInfo;
-                error_log( 'Band Invitation Email Error (PHPMailer): ' . $phpmailer->ErrorInfo );
+                error_log( 'Artist Invitation Email Error (PHPMailer): ' . $phpmailer->ErrorInfo );
             }
         }
         // Email sending failed - wp_mail() returned false
@@ -113,7 +113,7 @@ function bp_handle_invitation_acceptance() {
         $redirect_url = get_permalink( $artist_id );
 
         if ( ! $redirect_url ) {
-            // Fallback if band profile doesn't exist for some reason
+            // Fallback if artist profile doesn't exist for some reason
             $redirect_url = home_url('/');
         }
 
@@ -156,7 +156,7 @@ function bp_handle_invitation_acceptance() {
             exit;
         }
 
-        // 4. Link User to Band & Remove Pending Invite
+        // 4. Link User to Artist & Remove Pending Invite
         if ( bp_add_artist_membership( $user_id, $artist_id ) ) {
             // Use the specific ID of the invitation for removal
             if ( bp_remove_pending_invitation( $artist_id, $valid_invite['id'] ) ) {
@@ -169,7 +169,7 @@ function bp_handle_invitation_acceptance() {
                 exit;
             }
         } else {
-            // Failed to add band membership
+            // Failed to add artist membership
             wp_safe_redirect( add_query_arg( array( 'invite_error' => 'membership_failed' ), $redirect_url ) );
             exit;
         }

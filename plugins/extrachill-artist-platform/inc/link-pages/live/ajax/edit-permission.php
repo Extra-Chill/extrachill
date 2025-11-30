@@ -1,58 +1,10 @@
 <?php
 /**
- * Edit Permission Check AJAX Handler
+ * Edit Permission Button Enqueue
  *
- * CORS endpoint for cross-domain permission validation from extrachill.link to artist.extrachill.com.
- * Validates WordPress authentication cookies (SameSite=None; Secure configured by extrachill-users plugin)
- * and returns edit permission status with management URL if authorized.
+ * Enqueues client-side edit button script with localized data.
+ * Permission check is performed via REST API (extrachill-api).
  */
-
-add_action( 'wp_ajax_check_link_page_edit_permission', 'ec_check_link_page_edit_permission' );
-add_action( 'wp_ajax_nopriv_check_link_page_edit_permission', 'ec_check_link_page_edit_permission' );
-
-/**
- * Validates user permission to edit link page via CORS request
- *
- * Handles preflight OPTIONS requests and validates edit permissions for link pages.
- * Requires WordPress authentication cookies with SameSite=None; Secure attributes.
- * Cookie configuration managed by extrachill-users plugin (inc/auth/extrachill-link-auth.php).
- *
- * @return void Outputs JSON response and exits
- */
-function ec_check_link_page_edit_permission() {
-	header( 'Access-Control-Allow-Origin: https://extrachill.link' );
-	header( 'Access-Control-Allow-Credentials: true' );
-	header( 'Access-Control-Allow-Methods: POST, GET, OPTIONS' );
-	header( 'Access-Control-Allow-Headers: Content-Type' );
-	header( 'Content-Type: application/json' );
-
-	if ( $_SERVER['REQUEST_METHOD'] === 'OPTIONS' ) {
-		http_response_code( 200 );
-		exit;
-	}
-
-	$artist_id = isset( $_POST['artist_id'] ) ? intval( $_POST['artist_id'] ) : 0;
-
-	if ( ! $artist_id ) {
-		wp_send_json_error( array( 'message' => 'Missing artist_id' ) );
-		return;
-	}
-
-	$current_user_id = get_current_user_id();
-	$can_edit = false;
-	$manage_url = '';
-
-	if ( $current_user_id && ec_can_manage_artist( $current_user_id, $artist_id ) ) {
-		$can_edit = true;
-		$manage_url = home_url( '/manage-link-page/?artist_id=' . $artist_id );
-	}
-
-	wp_send_json_success( array(
-		'can_edit'    => $can_edit,
-		'manage_url'  => $manage_url,
-		'user_id'     => $current_user_id,
-	) );
-}
 
 /**
  * Enqueues client-side edit button script with localized data
@@ -65,8 +17,8 @@ function ec_check_link_page_edit_permission() {
  * @return void
  */
 function extrch_enqueue_edit_button_script( $link_page_id, $artist_id ) {
-	$plugin_dir = EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR;
-	$plugin_url = EXTRACHILL_ARTIST_PLATFORM_PLUGIN_URL;
+	$plugin_dir  = EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR;
+	$plugin_url  = EXTRACHILL_ARTIST_PLATFORM_PLUGIN_URL;
 	$script_path = 'inc/link-pages/live/assets/js/link-page-edit-button.js';
 
 	if ( file_exists( $plugin_dir . $script_path ) ) {
@@ -80,8 +32,8 @@ function extrch_enqueue_edit_button_script( $link_page_id, $artist_id ) {
 		);
 
 		wp_localize_script( $script_handle, 'extrchEditButton', array(
-			'ajax_url'   => 'https://artist.extrachill.com/wp-admin/admin-ajax.php',
-			'artist_id'  => $artist_id,
+			'api_url'   => rest_url( 'extrachill/v1/artist/permissions' ),
+			'artist_id' => $artist_id,
 		) );
 	} else {
 		error_log( 'Error: link-page-edit-button.js not found.' );

@@ -1,6 +1,6 @@
 <?php
 /**
- * Data functions for managing band roster plaintext members and pending invitations.
+ * Data functions for managing artist roster plaintext members and pending invitations.
  */
 
 // Exit if accessed directly
@@ -9,7 +9,7 @@ defined( 'ABSPATH' ) || exit;
 // --- Pending Invitation Functions ---
 
 /**
- * Get pending invitations for a band.
+ * Get pending invitations for an artist.
  * @param int $artist_id
  * @return array Array of pending invitation objects/arrays
  */
@@ -27,7 +27,7 @@ function bp_generate_invite_token() {
 }
 
 /**
- * Adds a pending invitation for a band.
+ * Adds a pending invitation for an artist.
  * Checks if the email belongs to an existing user and if that user is an artist.
  * (Does not send email yet).
  * @param int $artist_id
@@ -43,7 +43,7 @@ function bp_add_pending_invitation( $artist_id, $display_name, $email ) { // Rem
 
     $invitations = bp_get_pending_invitations( $artist_id );
 
-    // Check if email already has a pending invite for this band
+    // Check if email already has a pending invite for this artist
     foreach ( $invitations as $invite ) {
         if ( isset( $invite['email'] ) && strtolower($invite['email']) === strtolower($email) ) {
             return 'error_already_pending'; // Specific error for already pending
