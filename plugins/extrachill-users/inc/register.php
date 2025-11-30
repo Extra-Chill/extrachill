@@ -105,7 +105,7 @@ function extrachill_registration_form_shortcode( $attributes = array() ) {
         </div>
 
         <div class="registration-submit-section">
-            <input type="submit" name="extrachill_register" value="Join Now">
+            <input type="submit" name="extrachill_register" class="button-1 button-medium" value="Join Now">
         </div>
 
         <?php echo ec_render_turnstile_widget(); ?>
@@ -181,6 +181,9 @@ function extrachill_handle_registration() {
             $extrachill_registration_errors[] = 'Registration error: ' . $error_messages;
             return;
         }
+
+        update_user_meta($user_id, 'registration_page', sanitize_text_field($_SERVER['REQUEST_URI']));
+        update_user_meta($user_id, 'registration_timestamp', current_time('mysql'));
 
         if (!empty($extrachill_registration_errors)) {
             $register_url = home_url('/login/');

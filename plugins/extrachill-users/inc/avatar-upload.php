@@ -2,50 +2,77 @@
 /**
  * Custom Avatar Upload System
  *
- * AJAX upload handler, bbPress profile edit form field, and conditional asset loading.
+ * Business logic, bbPress profile edit form field, and conditional asset loading.
  * Stores attachment ID in custom_avatar_id user meta.
+ * Business logic called by REST API endpoint in extrachill-api plugin.
  *
  * @package ExtraChill\Users
  */
 
-add_action('wp_ajax_custom_avatar_upload', 'extrachill_custom_avatar_upload');
-function extrachill_custom_avatar_upload() {
-    if (!function_exists('wp_handle_upload')) {
-        require_once(ABSPATH . 'wp-admin/includes/file.php');
-    }
+/**
+ * Process avatar upload for a user.
+ *
+ * Validates file type, handles upload, creates attachment, and updates user meta.
+ * Called by REST API endpoint in extrachill-api plugin.
+ *
+ * @param int   $user_id User ID to upload avatar for.
+ * @param array $files   Uploaded files array from $_FILES or $request->get_file_params().
+ * @return array|WP_Error Success array with 'url' and 'attachment_id' or WP_Error on failure.
+ */
+function extrachill_process_avatar_upload($user_id, $files) {
+	if (!$user_id || !get_userdata($user_id)) {
+		return new WP_Error('invalid_user', 'Invalid user ID');
+	}
 
-    $uploadedfile = $_FILES['custom_avatar'];
-    $allowed_types = array('image/jpeg', 'image/png', 'image/gif', 'image/webp');
-    $file_type = wp_check_filetype_and_ext($uploadedfile['tmp_name'], $uploadedfile['name']);
-    if (!in_array($file_type['type'], $allowed_types)) {
-        wp_send_json_error(array('message' => 'Error: Invalid file type. Only JPG, PNG, GIF, and WebP files are allowed.'));
-        return;
-    }
+	if (!isset($files['file']) || empty($files['file']['name'])) {
+		return new WP_Error('no_file', 'No file uploaded');
+	}
 
-    $upload_overrides = array('test_form' => false);
-    $movefile = wp_handle_upload($uploadedfile, $upload_overrides);
+	$uploaded_file = $files['file'];
+	$allowed_types = array('image/jpeg', 'image/png', 'image/gif', 'image/webp');
+	$file_type = wp_check_filetype_and_ext($uploaded_file['tmp_name'], $uploaded_file['name']);
 
-    if ($movefile && !isset($movefile['error'])) {
-        $attachment = array(
-            'guid'           => $movefile['url'],
-            'post_mime_type' => $movefile['type'],
-            'post_title'     => preg_replace('/\.[^.]+$/', '', basename($movefile['file'])),
-            'post_content'   => '',
-            'post_status'    => 'inherit'
-        );
+	if (!in_array($file_type['type'], $allowed_types)) {
+		return new WP_Error(
+			'invalid_file_type',
+			'Invalid file type. Only JPG, PNG, GIF, and WebP files are allowed.'
+		);
+	}
 
-        $attach_id = wp_insert_attachment($attachment, $movefile['file']);
+	if (!function_exists('wp_handle_upload')) {
+		require_once(ABSPATH . 'wp-admin/includes/file.php');
+	}
 
-        require_once(ABSPATH . 'wp-admin/includes/image.php');
-        $attach_data = wp_generate_attachment_metadata($attach_id, $movefile['file']);
-        wp_update_attachment_metadata($attach_id, $attach_data);
+	$upload_overrides = array('test_form' => false);
+	$movefile = wp_handle_upload($uploaded_file, $upload_overrides);
 
-        update_user_option(get_current_user_id(), 'custom_avatar_id', $attach_id, true);
+	if (!$movefile || isset($movefile['error'])) {
+		return new WP_Error(
+			'upload_failed',
+			isset($movefile['error']) ? $movefile['error'] : 'Unknown upload error'
+		);
+	}
 
-        wp_send_json_success(array('url' => wp_get_attachment_url($attach_id)));
-    } else {
-        wp_send_json_error(array('message' => isset($movefile['error']) ? $movefile['error'] : 'Unknown error'));
-    }
+	$attachment = array(
+		'guid'           => $movefile['url'],
+		'post_mime_type' => $movefile['type'],
+		'post_title'     => preg_replace('/\.[^.]+$/', '', basename($movefile['file'])),
+		'post_content'   => '',
+		'post_status'    => 'inherit'
+	);
+
+	$attach_id = wp_insert_attachment($attachment, $movefile['file']);
+
+	require_once(ABSPATH . 'wp-admin/includes/image.php');
+	$attach_data = wp_generate_attachment_metadata($attach_id, $movefile['file']);
+	wp_update_attachment_metadata($attach_id, $attach_data);
+
+	update_user_option($user_id, 'custom_avatar_id', $attach_id, true);
+
+	return array(
+		'url' => wp_get_attachment_url($attach_id),
+		'attachment_id' => $attach_id
+	);
 }
 
 /**
@@ -75,21 +102,18 @@ function extrachill_render_avatar_upload_field() {
  * Enqueue avatar upload assets on bbPress profile edit pages.
  */
 function extrachill_enqueue_avatar_upload_assets() {
-    if (!function_exists('bbp_is_single_user_edit') || !bbp_is_single_user_edit()) {
-        return;
-    }
+	if (!function_exists('bbp_is_single_user_edit') || !bbp_is_single_user_edit()) {
+		return;
+	}
 
-    wp_enqueue_script(
-        'extrachill-avatar-upload',
-        EXTRACHILL_USERS_PLUGIN_URL . 'assets/js/avatar-upload.js',
-        array('jquery'),
-        filemtime(EXTRACHILL_USERS_PLUGIN_DIR . 'assets/js/avatar-upload.js'),
-        true
-    );
+	wp_enqueue_script(
+		'extrachill-avatar-upload',
+		EXTRACHILL_USERS_PLUGIN_URL . 'assets/js/avatar-upload.js',
+		array(),
+		filemtime(EXTRACHILL_USERS_PLUGIN_DIR . 'assets/js/avatar-upload.js'),
+		true
+	);
 
-    wp_localize_script('extrachill-avatar-upload', 'extrachillCustomAvatar', array(
-        'ajaxurl' => admin_url('admin-ajax.php'),
-        'nonce' => wp_create_nonce('extrachill_custom_avatar_nonce')
-    ));
+	wp_enqueue_script('wp-api');
 }
 add_action('wp_enqueue_scripts', 'extrachill_enqueue_avatar_upload_assets');

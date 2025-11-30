@@ -52,7 +52,7 @@ function extrachill_display_login_form( $attributes = array() ) {
 
             <input type="hidden" name="redirect_to" value="<?php echo esc_attr( $redirect_url ); ?>">
 
-            <input type="submit" id="wp-submit" class="button" value="Log In">
+            <input type="submit" id="wp-submit" class="button-2 button-medium" value="Log In">
         </form>
 
         <p class="login-signup-link">Not a member? <a href="#tab-register" class="js-switch-to-register">Sign up here</a></p>

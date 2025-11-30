@@ -1,6 +1,8 @@
 # ExtraChill Users
 
-Network-activated WordPress plugin providing comprehensive user management for the ExtraChill Platform multisite network. Handles authentication, registration, password reset, cross-site user management, team member system, profile URL resolution, network-wide avatar menu, custom avatars, and online user tracking across all 9 sites.
+**THE SINGLE SOURCE OF TRUTH FOR USER MANAGEMENT** - Network-activated WordPress plugin providing all user-related functionality for the ExtraChill Platform multisite network. This plugin is the centralized authority for authentication, registration, password reset, cross-site user management, team member system, profile URL resolution, network-wide avatar menu, custom avatars, and online user tracking across all 10 sites.
+
+User management functionality was migrated here from extrachill-multisite plugin to follow the single responsibility principle. All user-specific features, authentication flows, and user data operations are consolidated in this plugin.
 
 ## Plugin Information
 
@@ -19,7 +21,9 @@ Network-activated WordPress plugin providing comprehensive user management for t
 ## Architecture
 
 ### Plugin Purpose
-Comprehensive user management system for the ExtraChill multisite network providing authentication, registration, password reset, team member management, profile URL resolution, custom avatars, online user tracking, and network-wide avatar menu functionality. Extracted from extrachill-multisite plugin to follow single responsibility principle - this plugin handles all user-specific logic while extrachill-multisite focuses on multisite infrastructure.
+**Single Source of Truth for User Management** - This plugin is the centralized authority for all user-related functionality across the ExtraChill multisite network. Comprehensive user management system providing authentication, registration, password reset, team member management, profile URL resolution, custom avatars, online user tracking, and network-wide avatar menu functionality.
+
+**Migration History**: User management features were extracted from extrachill-multisite plugin to follow the single responsibility principle. This plugin now handles ALL user-specific logic while extrachill-multisite focuses solely on multisite infrastructure (Cloudflare Turnstile and network admin menu).
 
 ### Plugin Loading Pattern
 - **Procedural WordPress Pattern**: Uses direct `require_once` includes for all plugin functionality
@@ -107,7 +111,7 @@ Comprehensive user management system for the ExtraChill multisite network provid
 #### Online Users Tracking (`inc/online-users.php`, `inc/online-users-display.php`)
 
 **Network-Wide Activity Tracking**:
-- Records user activity across all 9 sites in the multisite network
+- Records user activity across all 10 sites in the multisite network
 - Centralized data storage on community.extrachill.com as single source of truth
 - 15-minute activity window for "online" status determination
 - Updates `last_active` user meta via `wp` action hook on all sites
@@ -490,7 +494,7 @@ try {
 ### Build System
 - **Universal Build Script**: Symlinked to shared build script at `../../.github/build.sh`
 - **Auto-Detection**: Script auto-detects network plugin from `Network: true` header
-- **Production Build**: Creates `/build/extrachill-users/` directory and `/build/extrachill-users.zip` file (non-versioned)
+- **Production Build**: Creates `/build/extrachill-users.zip` file only (unzip when directory access needed)
 - **Composer Integration**: Production builds use `composer install --no-dev`, restores dev dependencies after
 - **File Exclusion**: `.buildignore` rsync patterns exclude development files
 - **Structure Validation**: Ensures network plugin integrity before packaging
@@ -579,7 +583,7 @@ try {
 **Purpose**: Network-wide activity tracking and online user statistics
 
 **Key Features**:
-- Tracks user activity across all 9 sites in the multisite network
+- Tracks user activity across all 10 sites in the multisite network
 - Centralized storage on community.extrachill.com
 - Transient caching for performance optimization
 - "Most ever online" tracking with date
@@ -621,7 +625,7 @@ composer run test
 ```
 
 ### Build Output
-- **Production Package**: `/build/extrachill-users/` directory and `/build/extrachill-users.zip` file
+- **Production Package**: `/build/extrachill-users.zip` file only (unzip when directory access needed)
 - **Network Plugin**: Must be installed in network plugins directory
 - **File Exclusions**: Development files, vendor/, .git/, build tools excluded
 

@@ -2,12 +2,12 @@
 /**
  * Plugin Name: Extra Chill Users
  * Plugin URI: https://extrachill.com
- * Description: Network-activated user management system for the ExtraChill Platform multisite network. Handles authentication (login/register/password reset), user creation, team members, profile URL resolution, custom avatars, avatar menu, online user tracking, comment auto-approval, and ad-free license management.
- * Version: 1.1.0
+ * Description: Single source of truth for user management across the ExtraChill Platform network. Handles authentication, user creation, team members, profile URL resolution, custom avatars, avatar menu, online user tracking, and ad-free licenses.
+ * Version: 1.1.1
  * Author: Chris Huber
  * Author URI: https://chubes.net
  * Network: true
- * Requires Plugins: extrachill-multisite
+ * Requires Plugins: extrachill-multisite, extrachill-api
  * Requires at least: 5.0
  * Tested up to: 6.4
  * Requires PHP: 7.4
@@ -19,7 +19,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'EXTRACHILL_USERS_VERSION', '1.1.0' );
+define( 'EXTRACHILL_USERS_VERSION', '1.1.1' );
 define( 'EXTRACHILL_USERS_PLUGIN_FILE', __FILE__ );
 define( 'EXTRACHILL_USERS_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'EXTRACHILL_USERS_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
@@ -40,10 +40,6 @@ function extrachill_users_register_blocks() {
 	register_block_type( __DIR__ . '/build/password-reset' );
 }
 
-/**
- * Attach block styles to WordPress core block handles using inline styles.
- * WordPress 5.8+ recommended pattern for conditional block style loading.
- */
 function extrachill_users_enqueue_block_styles() {
 	if ( is_admin() ) {
 		return;

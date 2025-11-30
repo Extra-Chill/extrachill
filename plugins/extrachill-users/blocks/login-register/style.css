@@ -63,26 +63,12 @@
     box-shadow: var(--focus-box-shadow);
 }
 
-/* Submit Button */
-.login-register-form input[type="submit"] {
-    /* Button sizing via explicit classes in HTML */
-    background-color: var(--accent);
-    color: #ffffff;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    transition: background-color 0.2s ease-in-out;
-}
-
-/* Submit Button Hover */
-.login-register-form input[type="submit"]:hover {
-    background-color: var(--button-hover-bg);
-}
+/* Submit Button - Styling handled by button-2 class from theme */
 
 /* Error Message Styles */
 .login-register-errors {
     background-color: #ffecec; /* Light Mode */
-    border-left: 4px solid #f44336;
+    border-left: 4px solid var(--error-color);
     padding: 10px 15px;
     border-radius: 6px;
     color: #c53030;
@@ -106,16 +92,10 @@
         color: var(--text-color);
     }
 
-
-    /* Submit Button Hover */
-    .login-register-form input[type="submit"]:hover {
-        background-color: var(--button-hover-bg);
-    }
-
     /* Error Message in Dark Mode */
     .login-register-errors {
         background-color: #330000; /* Darker error background */
-        border-left: 4px solid #f44336;
+        border-left: 4px solid var(--error-color);
         color: #ffcccc;
     }
 }

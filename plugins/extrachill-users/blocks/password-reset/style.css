@@ -84,7 +84,7 @@
 /* Error Message Styles */
 .password-reset-error {
     background-color: #ffecec;
-    border-left: 4px solid #f44336;
+    border-left: 4px solid var(--error-color);
     padding: 15px 20px;
     border-radius: 6px;
     color: #c53030;
@@ -107,7 +107,7 @@
     /* Error Message in Dark Mode */
     .password-reset-error {
         background-color: #330000;
-        border-left: 4px solid #f44336;
+        border-left: 4px solid var(--error-color);
         color: #ffcccc;
     }
 }
