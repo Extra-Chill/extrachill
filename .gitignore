@@ -12,7 +12,6 @@ vendor/
 *.swp
 
 # Additional build and development files
-composer.lock
 package-lock.json
 .claude/
 CLAUDE.md
