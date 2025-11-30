@@ -10,11 +10,13 @@
   background-color: var(--card-background);
   color: var(--link-color);
   border: 1px solid var(--border-color);
+  transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
 }
 
 .taxonomy-badge:hover {
   background-color: #083b6c;
   color: #fff;
+  transform: translateY(-1px);
 }
 
 /* === Festival Badges === */
@@ -275,5 +277,9 @@
 .taxonomy-badge.venue-lo-fi-brewing {
 	background-color: #E2205F;
 	color: #f8f8f8;
+}
+.taxonomy-badge.venue-charleston-tin-roof {
+	background-color: #17b9bb;
+	color: #fff;
 }
 

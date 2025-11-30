@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.6] - 2025-11-30
+
+### Added
+- Async view tracking system using REST API with navigator.sendBeacon() and fetch keepalive for reliable client-side analytics
+- Charleston Tin Roof venue badge color support
+- Smooth hover transitions and subtle lift animation for taxonomy badges
+
+### Changed
+- Enhanced view counting system documentation to reflect async implementation
+- Updated multisite network documentation with comprehensive site details
+- Improved taxonomy badge user experience with CSS transitions
+
+### Technical
+- Added assets/js/view-tracking.js for client-side view tracking
+- Modified inc/core/assets.php to conditionally load view tracking script
+- Updated inc/core/view-counts.php to remove wp_head hook in favor of async tracking
+
 ## [1.0.5] - 2025-11-29
 
 ### Changed

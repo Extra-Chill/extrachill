@@ -1,15 +1,21 @@
 # ExtraChill WordPress Theme
 
-A custom WordPress theme powering the ExtraChill music ecosystem, featuring blog content, community integration, festival coverage, and e-commerce functionality.
+A custom WordPress theme (v1.0.5) powering the ExtraChill Platform multisite network with 10 interconnected sites, featuring blog content, community integration, festival coverage, and e-commerce functionality.
 
 ## Overview
 
-ExtraChill is a modern, performance-optimized WordPress theme designed specifically for the independent music community. It serves as the frontend for a comprehensive music ecosystem that includes:
+ExtraChill is a modern, performance-optimized WordPress theme (v1.0.5) designed specifically for the Extra Chill Platform multisite network. It serves as the frontend for all 10 interconnected sites:
 
-- **Main Blog**: Music journalism, artist features, and industry coverage
-- **Community Forum**: Integration with bbPress for user discussions
-- **Festival Wire**: Homepage ticker integration (functionality provided by ExtraChill News Wire plugin)
-- **Merch Store**: WooCommerce integration for merchandise sales
+- **extrachill.com** (Blog ID 1): Music journalism, artist features, and industry coverage
+- **community.extrachill.com** (Blog ID 2): Community forums with bbPress integration
+- **shop.extrachill.com** (Blog ID 3): E-commerce with WooCommerce integration
+- **artist.extrachill.com** (Blog ID 4): Artist platform and profiles
+- **chat.extrachill.com** (Blog ID 5): AI chatbot interface
+- **events.extrachill.com** (Blog ID 7): Event calendar hub
+- **stream.extrachill.com** (Blog ID 8): Live streaming platform
+- **newsletter.extrachill.com** (Blog ID 9): Newsletter management and archive
+- **horoscope.extrachill.com** (Blog ID 10): Daily horoscopes
+- **extrachill.link**: Artist link pages (domain-mapped to artist.extrachill.com)
 
 ## Key Features
 
