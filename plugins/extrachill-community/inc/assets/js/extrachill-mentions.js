@@ -385,15 +385,18 @@ document.addEventListener('DOMContentLoaded', function() {
         const replyLink = e.target.closest('.bbp-reply-to-link');
         if (!replyLink) return;
 
-        e.preventDefault();
-
-        const href = replyLink.getAttribute('href');
-        const replyToIdMatch = href.match(/bbp_reply_to=(\d+)/);
-        const replyToId = replyToIdMatch ? replyToIdMatch[1] : null;
+        const replyToId = replyLink.dataset.replyId;
 
         if (!replyToId) {
-            return false;
+            const replyForm = document.getElementById('new-post');
+            if (replyForm) {
+                e.preventDefault();
+                replyForm.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+            return;
         }
+
+        e.preventDefault();
 
         const replyElement = document.querySelector('.bbp-reply-content[data-reply-id="' + replyToId + '"]');
         if (!replyElement) {
@@ -441,6 +444,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 replyContent.selectionStart = newCursorPos;
                 replyContent.selectionEnd = newCursorPos;
             }
+        }
+
+        const replyForm = document.getElementById('new-post');
+        if (replyForm) {
+            replyForm.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
 
         return false;

@@ -49,59 +49,11 @@ defined( 'ABSPATH' ) || exit;
                     <?php
 $bbp = bbpress();
 $reply_id  = bbp_get_reply_id();
-// Get topic ID from global when set (multisite recent feed), otherwise use bbPress function
-$topic_id  = !empty($bbp->current_topic_id) ? $bbp->current_topic_id : bbp_get_topic_id();
+$topic_id  = ! empty( $bbp->current_topic_id ) ? $bbp->current_topic_id : bbp_get_topic_id();
 $current_post_id = get_the_ID();
-$current_post_type = get_post_type($current_post_id);
-
+$current_post_type = get_post_type( $current_post_id );
 $is_lead_topic = ( $reply_id === $topic_id ) || ( $current_post_type === bbp_get_topic_post_type() );
-
-if ( $is_lead_topic ) {
-    if ( $topic_id && ! bbp_is_topic_closed( $topic_id ) ) {
-        $reply_link = bbp_get_topic_reply_link( array(
-            'id'         => $topic_id,
-            'reply_text' => __( 'Reply', 'bbpress' )
-        ) );
-    }
-
-    if ( $topic_id && current_user_can( 'edit_topic', $topic_id ) ) {
-        $edit_link = bbp_get_topic_edit_link( array(
-            'id'        => $topic_id,
-            'edit_text' => __( 'Edit', 'bbpress' )
-        ) );
-    }
-
-} else {
-    if ( $current_post_type === bbp_get_reply_post_type() ) {
-        $reply_topic_id = bbp_get_reply_topic_id( $reply_id );
-        if ( $reply_topic_id && ! bbp_is_topic_closed( $reply_topic_id ) ) {
-            $reply_link = bbp_get_reply_to_link( array(
-                'id'         => $reply_id,
-                'reply_text' => __( 'Reply', 'bbpress' )
-            ) );
-        }
-
-        if ( current_user_can( 'edit_reply', $reply_id ) ) {
-            $edit_link = bbp_get_reply_edit_link( array(
-                'id'        => $reply_id,
-                'edit_text' => __( 'Edit', 'bbpress' )
-            ) );
-        }
-    }
-}
 ?>
-<div class="bbp-reply-meta-top">
-    <?php if ( ! empty( $reply_link ) ) : ?>
-        <?php echo $reply_link; ?>
-    <?php endif; ?>
-
-    <?php if ( ! empty( $edit_link ) ) : ?>
-        <?php echo $edit_link; ?>
-    <?php endif; ?>
-</div>
-
-
-
 
                 </div>
 
@@ -230,17 +182,49 @@ if ( $is_lead_topic ) {
                 <?php do_action( 'bbp_theme_after_reply_content' ); ?>
 
             </div><!-- .bbp-reply-content -->
-            <?php if ( current_user_can( 'manage_options' ) ) : ?>
-            <div class="bbp-reply-meta-right">
-                    <div class="bbp-reply-ip"><?php bbp_author_ip( bbp_get_reply_id() ); ?></div>
-                    <?php do_action( 'bbp_theme_before_reply_admin_links' ); ?>
-                    <?php bbp_reply_admin_links(); ?>
-                    <?php do_action( 'bbp_theme_after_reply_admin_links' ); ?>
-                </div>
-                <?php endif; ?>
         </div>
 
     </div><!-- .bbp-reply-content-area -->
+
+    <?php if ( is_user_logged_in() ) : ?>
+    <div class="bbp-reply-footer">
+        <?php if ( current_user_can( 'manage_options' ) ) : ?>
+            <div class="bbp-reply-admin-actions">
+                <?php bbp_reply_admin_links(); ?>
+            </div>
+        <?php endif; ?>
+
+        <div class="bbp-reply-user-actions">
+            <?php
+            if ( $is_lead_topic ) {
+                if ( $topic_id && current_user_can( 'edit_topic', $topic_id ) ) {
+                    $edit_url = bbp_get_topic_edit_url( $topic_id );
+                    echo '<a href="' . esc_url( $edit_url ) . '" class="button-3 button-small">' . esc_html__( 'Edit', 'bbpress' ) . '</a>';
+                }
+            } else {
+                $reply = bbp_get_reply( $reply_id );
+                if ( $reply && current_user_can( 'edit_reply', $reply_id ) && ! bbp_past_edit_lock( $reply->post_date_gmt ) ) {
+                    $edit_url = bbp_get_reply_edit_url( $reply_id );
+                    echo '<a href="' . esc_url( $edit_url ) . '" class="button-3 button-small">' . esc_html__( 'Edit', 'bbpress' ) . '</a>';
+                }
+            }
+
+            if ( $is_lead_topic ) {
+                if ( $topic_id && ! bbp_is_topic_closed( $topic_id ) && bbp_current_user_can_access_create_reply_form() ) {
+                    $reply_url = remove_query_arg( array( 'bbp_reply_to', '_wpnonce' ) ) . '#new-post';
+                    echo '<a href="' . esc_url( $reply_url ) . '" class="bbp-reply-to-link button-3 button-small">' . esc_html__( 'Reply', 'bbpress' ) . '</a>';
+                }
+            } else {
+                $reply_topic_id = bbp_get_reply_topic_id( $reply_id );
+                if ( $reply_topic_id && ! bbp_is_topic_closed( $reply_topic_id ) && bbp_current_user_can_access_create_reply_form() ) {
+                    $reply_url = bbp_get_reply_url( $reply_id ) . '#new-post';
+                    echo '<a href="' . esc_url( $reply_url ) . '" class="bbp-reply-to-link button-3 button-small" data-reply-id="' . esc_attr( $reply_id ) . '">' . esc_html__( 'Reply', 'bbpress' ) . '</a>';
+                }
+            }
+            ?>
+        </div>
+    </div>
+    <?php endif; ?>
 
     <?php do_action( 'bbp_template_after_reply_content' ); ?>
 </div><!-- #bbp-reply-card-<?php bbp_reply_id(); ?> -->

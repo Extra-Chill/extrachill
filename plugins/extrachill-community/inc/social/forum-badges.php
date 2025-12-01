@@ -8,6 +8,7 @@
  * @package ExtraChillCommunity
  */
 
+
 /**
  * Render a forum badge with inline SVG icon
  *

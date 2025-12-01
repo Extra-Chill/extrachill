@@ -187,3 +187,18 @@ function ec_reduce_topic_spam_for_music($is_spam, $topic_id = 0, $anonymous_data
     return ec_reduce_spam_sensitivity_for_music_content($is_spam, $topic_content);
 }
 add_filter('bbp_is_topic_spam', 'ec_reduce_topic_spam_for_music', 5, 6);
+
+/**
+ * Remove Edit and Reply from admin links since they are handled separately in the reply footer.
+ *
+ * @param array $links Admin links array.
+ * @param int   $id    Reply or topic ID.
+ * @return array Filtered links array.
+ */
+function ec_filter_admin_links( $links, $id ) {
+    unset( $links['edit'] );
+    unset( $links['reply'] );
+    return $links;
+}
+add_filter( 'bbp_reply_admin_links', 'ec_filter_admin_links', 10, 2 );
+add_filter( 'bbp_topic_admin_links', 'ec_filter_admin_links', 10, 2 );

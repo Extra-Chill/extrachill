@@ -63,7 +63,7 @@ function extrachill_enqueue_settings_page_assets() {
     wp_enqueue_script(
         'extrachill-shared-tabs',
         get_template_directory_uri() . '/assets/js/shared-tabs.js',
-        array('jquery'),
+        array(),
         filemtime(get_template_directory() . '/assets/js/shared-tabs.js'),
         true
     );
