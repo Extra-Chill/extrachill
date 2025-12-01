@@ -2,7 +2,7 @@
  * Upvote System Handler
  *
  * Handles upvoting/downvoting of forum topics and replies with optimistic UI updates
- * and server-side validation.
+ * and server-side validation. Uses SVG sprite icons from extrachill.svg.
  */
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -23,17 +23,21 @@ document.addEventListener('DOMContentLoaded', function() {
 			return;
 		}
 
-		const icon = upvoteIcon.querySelector('i');
-		const isUpvoted = icon.classList.contains('fa-solid');
+		const useElement = upvoteIcon.querySelector('use');
+		const isUpvoted = upvoteIcon.dataset.upvoted === 'true';
 		const upvoteContainer = upvoteIcon.closest('.upvote');
 		const countSpan = upvoteContainer.querySelector('.upvote-count');
 		const currentCount = parseInt(countSpan.textContent, 10) || 0;
 
+		// Get base URL from current href
+		const currentHref = useElement.getAttribute('href');
+		const baseUrl = currentHref.substring(0, currentHref.lastIndexOf('#'));
+
 		// Optimistic UI update
 		const updatedCount = isUpvoted ? currentCount - 1 : currentCount + 1;
 		countSpan.textContent = updatedCount;
-		icon.classList.toggle('fa-solid');
-		icon.classList.toggle('fa-regular');
+		upvoteIcon.dataset.upvoted = isUpvoted ? 'false' : 'true';
+		useElement.setAttribute('href', baseUrl + '#' + (isUpvoted ? 'circle-up-outline' : 'circle-up'));
 
 		// Send request to REST API
 		fetch('/wp-json/extrachill/v1/community/upvote', {
@@ -53,16 +57,16 @@ document.addEventListener('DOMContentLoaded', function() {
 			if (!data.success) {
 				// Rollback on error
 				countSpan.textContent = currentCount;
-				icon.classList.toggle('fa-solid');
-				icon.classList.toggle('fa-regular');
+				upvoteIcon.dataset.upvoted = isUpvoted ? 'true' : 'false';
+				useElement.setAttribute('href', baseUrl + '#' + (isUpvoted ? 'circle-up' : 'circle-up-outline'));
 				console.error('Error: ' + (data.message || 'Unknown error'));
 			}
 		})
 		.catch(error => {
 			// Rollback on network error
 			countSpan.textContent = currentCount;
-			icon.classList.toggle('fa-solid');
-			icon.classList.toggle('fa-regular');
+			upvoteIcon.dataset.upvoted = isUpvoted ? 'true' : 'false';
+			useElement.setAttribute('href', baseUrl + '#' + (isUpvoted ? 'circle-up' : 'circle-up-outline'));
 			console.error('Network error:', error);
 		});
 	});

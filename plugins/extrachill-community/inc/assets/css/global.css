@@ -13,12 +13,12 @@
 /* ==================================================
    Notification Bell
 ================================================== */
-i.fa-solid.fa-bell {
+.notification-bell-svg {
     color: #fff;
     font-size: 1.25rem;
 }
 
-i.fa-solid.fa-bell:hover {
+.notification-bell-icon a:hover .notification-bell-svg {
     color: var(--link-color);
 }
 

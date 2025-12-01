@@ -21,9 +21,10 @@ defined( 'ABSPATH' ) || exit;
                     <?php
                     $user_id = get_current_user_id();
                     $topic_id = bbp_get_topic_id();
-                    // Determine icon class based on user's upvote status
+                    // Determine icon based on user's upvote status
                     $upvoted_posts = get_user_meta($user_id, 'upvoted_posts', true);
-                    $icon_class = is_array($upvoted_posts) && in_array($topic_id, $upvoted_posts) ? 'fa-solid' : 'fa-regular';
+                    $is_upvoted = is_array($upvoted_posts) && in_array($topic_id, $upvoted_posts);
+                    $icon_id = $is_upvoted ? 'circle-up' : 'circle-up-outline';
 
                     // Fetch the upvote count.
                     $upvote_count = get_upvote_count($topic_id); // Ensure this function is adapted to your setup
@@ -36,8 +37,9 @@ defined( 'ABSPATH' ) || exit;
                         <div class="upvote">
                             <span class="upvote-icon" 
                                   data-post-id="<?php echo esc_attr($topic_id); ?>" 
-                                  data-type="topic">
-                                <i class="<?php echo esc_attr($icon_class); ?> fa-circle-up"></i>
+                                  data-type="topic"
+                                  data-upvoted="<?php echo $is_upvoted ? 'true' : 'false'; ?>">
+                                <?php echo ec_icon($icon_id); ?>
                             </span>
                             <span class="upvote-count"><?php echo esc_html($display_upvote_count); ?></span>
                         </div> 

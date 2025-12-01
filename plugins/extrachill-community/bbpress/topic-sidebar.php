@@ -13,11 +13,13 @@ defined( 'ABSPATH' ) || exit;
 $recent_topic_ids = array();
 $recent_topics_query_for_exclusion = new WP_Query( array(
     'post_type'      => 'topic',
-    'posts_per_page' => 3, // Keep this low, just need IDs for exclusion
-    'orderby'        => 'modified',
+    'posts_per_page' => 3,
+    'orderby'        => 'meta_value',
+    'meta_key'       => '_bbp_last_active_time',
+    'meta_type'      => 'DATETIME',
     'order'          => 'DESC',
     'post__not_in'   => array( get_the_ID() ),
-    'fields'         => 'ids', // Only fetch IDs
+    'fields'         => 'ids',
 ) );
 
 if ( $recent_topics_query_for_exclusion->have_posts() ) {
@@ -36,11 +38,12 @@ if ( $recent_topics_query_for_exclusion->have_posts() ) {
             <?php
             $recent_topics_query = new WP_Query( array(
                 'post_type'      => 'topic',
-                'posts_per_page' => 6, // Fetch more to filter
-                'orderby'        => 'modified',
+                'posts_per_page' => 6,
+                'orderby'        => 'meta_value',
+                'meta_key'       => '_bbp_last_active_time',
+                'meta_type'      => 'DATETIME',
                 'order'          => 'DESC',
                 'post__not_in'   => array( get_the_ID() ),
-                // No 'fields' => 'ids' here, need full post objects
             ) );
 
             if ( $recent_topics_query->have_posts() ) { // Use curly braces

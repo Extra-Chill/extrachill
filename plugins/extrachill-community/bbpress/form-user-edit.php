@@ -28,7 +28,7 @@ defined( 'ABSPATH' ) || exit;
 
 	<!-- About Section -->
 	<div class="bbp-user-profile-card">
-		<h2 class="entry-title"><?php bbp_is_user_home_edit()
+		<h2><?php bbp_is_user_home_edit()
 			? esc_html_e( 'About', 'bbpress' )
 			: esc_html_e( 'About the user', 'bbpress' );
 		?></h2>
@@ -40,7 +40,7 @@ defined( 'ABSPATH' ) || exit;
 
 	<!-- Your Links Section (Dynamic) -->
 	<div class="bbp-user-profile-card">
-		<h2 class="entry-title"><?php esc_html_e( 'Your Links', 'bbpress' ); ?></h2>
+		<h2><?php esc_html_e( 'Your Links', 'bbpress' ); ?></h2>
 		<?php extrachill_render_user_links_field(); ?>
 	</div>
 
@@ -52,12 +52,12 @@ defined( 'ABSPATH' ) || exit;
 	if ($is_artist_profile || $is_professional_profile) : 
 	?>
 	<div class="bbp-user-profile-card">
-		<h2 class="entry-title"><?php esc_html_e('Artist Profiles', 'extra-chill-community'); ?></h2>
+		<h2><?php esc_html_e('Artist Profiles', 'extra-chill-community'); ?></h2>
 		<fieldset class="bbp-form">
 
 			<!-- Artist Profiles Section -->
 			<div class="form-group your-bands-section">
-				<h4 class="entry-title"><?php esc_html_e( 'Your Artist Profiles', 'extra-chill-community' ); ?></h4>
+				<h4><?php esc_html_e( 'Your Artist Profiles', 'extra-chill-community' ); ?></h4>
 				<p><?php esc_html_e( 'Manage your artist\'s presence, showcase music, share stories, and connect with fans.', 'extra-chill-community'); ?></p>
 				<?php
 				$user_id = bbp_get_displayed_user_id();
@@ -106,7 +106,7 @@ defined( 'ABSPATH' ) || exit;
 	<?php // User Role Section ?>
 	<?php if ( ! bbp_is_user_home_edit() && current_user_can( 'promote_user', bbp_get_displayed_user_id() ) ) : ?>
 	<div class="bbp-user-profile-card">
-		<h2 class="entry-title"><?php esc_html_e( 'User Role', 'bbpress' ) ?></h2>
+		<h2><?php esc_html_e( 'User Role', 'bbpress' ) ?></h2>
 
 		<fieldset class="bbp-form">
 

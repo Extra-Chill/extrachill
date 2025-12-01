@@ -114,6 +114,34 @@ function extrachill_community_breadcrumb_trail( $custom_trail ) {
 			$trail .= '<a href="' . esc_url( bbp_get_forum_permalink( $forum_id ) ) . '">' . esc_html( bbp_get_forum_title( $forum_id ) ) . '</a>';
 		}
 
+		$trail .= ' › <span class="breadcrumb-title">' . esc_html( bbp_get_topic_title( $topic_id ) ) . '</span>';
+
+		return $trail;
+	}
+
+	// Single reply: Community › Parent Forums › Forum Name › Topic Name
+	if ( function_exists( 'bbp_is_single_reply' ) && bbp_is_single_reply() ) {
+		$reply_id = bbp_get_reply_id();
+		$topic_id = bbp_get_reply_topic_id( $reply_id );
+		$forum_id = bbp_get_topic_forum_id( $topic_id );
+		$trail    = '';
+
+		if ( $forum_id ) {
+			$ancestors = bbp_get_forum_ancestors( $forum_id );
+
+			if ( ! empty( $ancestors ) ) {
+				$ancestors = array_reverse( $ancestors );
+
+				foreach ( $ancestors as $ancestor_id ) {
+					$trail .= '<a href="' . esc_url( bbp_get_forum_permalink( $ancestor_id ) ) . '">' . esc_html( bbp_get_forum_title( $ancestor_id ) ) . '</a> › ';
+				}
+			}
+
+			$trail .= '<a href="' . esc_url( bbp_get_forum_permalink( $forum_id ) ) . '">' . esc_html( bbp_get_forum_title( $forum_id ) ) . '</a>';
+		}
+
+		$trail .= ' › <span class="breadcrumb-title">' . esc_html( bbp_get_topic_title( $topic_id ) ) . '</span>';
+
 		return $trail;
 	}
 

@@ -3,7 +3,7 @@
  * User Verification System
  *
  * Admin-only interface for managing user artist and professional status.
- * Restricted to wp-admin to prevent frontend data conflicts with artist platform plugin.
+ * Restricted to wp-admin administrators to prevent frontend data conflicts.
  *
  * Meta Fields:
  * - user_is_artist: Boolean ('1' or '0') - Artist account status
@@ -15,33 +15,28 @@
  */
 
 function extrachill_add_user_role_fields($user) {
-    // Only render these fields in wp-admin, not on bbPress frontend
-    if (!is_admin()) {
+    if (!is_admin() || !current_user_can('manage_options')) {
         return;
     }
 
-    $is_admin = current_user_can('administrator');
     $artist = get_user_meta($user->ID, 'user_is_artist', true) == '1';
     $professional = get_user_meta($user->ID, 'user_is_professional', true) == '1';
-
     ?>
-    <div class="hideme">
-        <h3><?php _e("Extra User Information", "extra-chill-community"); ?></h3>
-        <table class="form-table">
-            <tr>
-                <th><label for="user_is_artist"><?php _e("Artist Status"); ?></label></th>
-                <td>
-                    <input type="checkbox" name="user_is_artist" id="user_is_artist" value="1" <?php checked($artist, true); ?>>
-                </td>
-            </tr>
-            <tr>
-                <th><label for="user_is_professional"><?php _e("Industry Professional Status"); ?></label></th>
-                <td>
-                    <input type="checkbox" name="user_is_professional" id="user_is_professional" value="1" <?php checked($professional, true); ?>>
-                </td>
-            </tr>
-        </table>
-    </div>
+    <h3><?php _e("Extra User Information", "extra-chill-community"); ?></h3>
+    <table class="form-table">
+        <tr>
+            <th><label for="user_is_artist"><?php _e("Artist Status"); ?></label></th>
+            <td>
+                <input type="checkbox" name="user_is_artist" id="user_is_artist" value="1" <?php checked($artist, true); ?>>
+            </td>
+        </tr>
+        <tr>
+            <th><label for="user_is_professional"><?php _e("Industry Professional Status"); ?></label></th>
+            <td>
+                <input type="checkbox" name="user_is_professional" id="user_is_professional" value="1" <?php checked($professional, true); ?>>
+            </td>
+        </tr>
+    </table>
     <?php
 }
 

@@ -66,10 +66,10 @@ function extrachill_render_user_links_field() {
         $dynamic_links = array();
     }
     ?>
-    <div id="user-dynamic-links-container" data-nonce="<?php echo esc_attr(wp_create_nonce('user_dynamic_link_nonce')); ?>">
+    <div id="user-dynamic-links-container" data-nonce="<?php echo esc_attr(wp_create_nonce('user_dynamic_link_nonce')); ?>" data-sprite-url="<?php echo esc_url(get_template_directory_uri() . '/assets/fonts/extrachill.svg'); ?>">
         <p class="description"><?php esc_html_e('Add links to your website, social media, streaming, etc.', 'bbpress'); ?></p>
         <div id="user-links-list"></div>
-        <button type="button" id="user-add-link-button" class="button button-2"><i class="fas fa-plus"></i> <?php esc_html_e('Add Link', 'bbpress'); ?></button>
+        <button type="button" id="user-add-link-button" class="button button-2"><?php echo ec_icon('plus'); ?> <?php esc_html_e('Add Link', 'bbpress'); ?></button>
     </div>
     <?php
 }
@@ -97,19 +97,19 @@ function extrachill_enqueue_user_links_assets() {
         $existing_links = array();
     }
 
-    // Define available link types
+    // Define available link types (icon = extrachill.svg symbol ID)
     $link_types = array(
-        'website' => array('label' => 'Website', 'icon' => 'fas fa-globe'),
-        'facebook' => array('label' => 'Facebook', 'icon' => 'fab fa-facebook'),
-        'instagram' => array('label' => 'Instagram', 'icon' => 'fab fa-instagram'),
-        'twitter' => array('label' => 'Twitter', 'icon' => 'fab fa-twitter'),
-        'youtube' => array('label' => 'YouTube', 'icon' => 'fab fa-youtube'),
-        'tiktok' => array('label' => 'TikTok', 'icon' => 'fab fa-tiktok'),
-        'spotify' => array('label' => 'Spotify', 'icon' => 'fab fa-spotify'),
-        'soundcloud' => array('label' => 'SoundCloud', 'icon' => 'fab fa-soundcloud'),
-        'bandcamp' => array('label' => 'Bandcamp', 'icon' => 'fab fa-bandcamp'),
-        'github' => array('label' => 'GitHub', 'icon' => 'fab fa-github'),
-        'other' => array('label' => 'Other', 'icon' => 'fas fa-link', 'has_custom_label' => true)
+        'website' => array('label' => 'Website', 'icon' => 'globe'),
+        'facebook' => array('label' => 'Facebook', 'icon' => 'facebook'),
+        'instagram' => array('label' => 'Instagram', 'icon' => 'instagram'),
+        'twitter' => array('label' => 'Twitter', 'icon' => 'x-twitter'),
+        'youtube' => array('label' => 'YouTube', 'icon' => 'youtube'),
+        'tiktok' => array('label' => 'TikTok', 'icon' => 'tiktok'),
+        'spotify' => array('label' => 'Spotify', 'icon' => 'spotify'),
+        'soundcloud' => array('label' => 'SoundCloud', 'icon' => 'soundcloud'),
+        'bandcamp' => array('label' => 'Bandcamp', 'icon' => 'bandcamp'),
+        'github' => array('label' => 'GitHub', 'icon' => 'github'),
+        'other' => array('label' => 'Other', 'icon' => 'link', 'has_custom_label' => true)
     );
 
     // Localize script with data

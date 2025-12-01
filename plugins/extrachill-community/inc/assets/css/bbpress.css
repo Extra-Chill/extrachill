@@ -287,13 +287,12 @@ ul {
     gap: 6px;
 }
 
-i.fa-regular.fa-circle-up,
-i.fa-solid {
+.upvote-icon .ec-icon {
     color: var(--accent);
+    cursor: pointer;
 }
 
-i.fa-regular.fa-circle-up:hover,
-i.fa-solid:hover {
+.upvote-icon .ec-icon:hover {
     color: #083b6c;
 }
 
@@ -311,34 +310,28 @@ i.fa-solid:hover {
 /* ==================================================
    User Badges and Roles
 ================================================== */
-.user-is-artist::after {
-    font-family: "FontAwesome";
-    content: '\f7a6';
+.user-is-artist,
+.extrachill-team-member,
+.user-is-professional {
     margin-right: 5px;
-    color: var(--artist-badge-color);
-}
-
-.extrachill-team-member::after {
-    font-family: "FontAwesome";
-    content: '\f7ad';
-    margin-right: 5px;
-    color: var(--team-badge-color);
-}
-
-.user-is-professional::after {
-    font-family: "FontAwesome";
-    content: '\f8d9';
-    margin-right: 5px;
-    color: var(--professional-badge-color);
-}
-
-/* CSS-only tooltips for data-title attributes */
-[data-title] {
     position: relative;
     cursor: help;
 }
 
-[data-title]::after {
+.user-is-artist .ec-icon {
+    color: var(--artist-badge-color);
+}
+
+.extrachill-team-member .ec-icon {
+    color: var(--team-badge-color);
+}
+
+.user-is-professional .ec-icon {
+    color: var(--professional-badge-color);
+}
+
+/* CSS-only tooltips for data-title attributes */
+[data-title]::before {
     content: attr(data-title);
     position: absolute;
     bottom: 100%;
@@ -358,7 +351,7 @@ i.fa-solid:hover {
     z-index: 1000;
 }
 
-[data-title]:hover::after {
+[data-title]:hover::before {
     opacity: 1;
 }
 

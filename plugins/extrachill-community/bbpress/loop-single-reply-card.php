@@ -24,7 +24,8 @@ defined( 'ABSPATH' ) || exit;
                 $user_id       = get_current_user_id();
                 $reply_id      = bbp_get_reply_id();
                 $upvoted_posts = get_user_meta($user_id, 'upvoted_posts', true);
-                $icon_class    = ( is_array($upvoted_posts) && in_array($reply_id, $upvoted_posts ) ) ? 'fa-solid' : 'fa-regular';
+                $is_upvoted    = is_array($upvoted_posts) && in_array($reply_id, $upvoted_posts);
+                $icon_id       = $is_upvoted ? 'circle-up' : 'circle-up-outline';
 
                 $upvote_count = get_upvote_count($reply_id);
                 $display_upvote_count = $upvote_count + 1;
@@ -35,8 +36,9 @@ defined( 'ABSPATH' ) || exit;
                         <span class="upvote-icon"
                               data-post-id="<?php echo esc_attr($reply_id); ?>"
                               data-type="reply"
+                              data-upvoted="<?php echo $is_upvoted ? 'true' : 'false'; ?>"
                               <?php if (!empty($main_site_post_id)) echo 'data-main-site-post-id="' . esc_attr($main_site_post_id) . '"'; ?>>
-                            <i class="<?php echo esc_attr($icon_class); ?> fa-circle-up"></i>
+                            <?php echo ec_icon($icon_id); ?>
                         </span>
                         <span class="upvote-count"><?php echo esc_html($display_upvote_count); ?></span>
                     </div>

@@ -105,17 +105,17 @@ wp_reset_postdata(); // Reset the global post object
     }
 
     $platform_icons = array(
-        'website' => 'fas fa-globe',
-        'facebook' => 'fab fa-facebook',
-        'instagram' => 'fab fa-instagram',
-        'twitter' => 'fab fa-twitter',
-        'youtube' => 'fab fa-youtube',
-        'tiktok' => 'fab fa-tiktok',
-        'spotify' => 'fab fa-spotify',
-        'soundcloud' => 'fab fa-soundcloud',
-        'bandcamp' => 'fab fa-bandcamp',
-        'github' => 'fab fa-github',
-        'other' => 'fas fa-link'
+        'website' => 'globe',
+        'facebook' => 'facebook',
+        'instagram' => 'instagram',
+        'twitter' => 'x-twitter',
+        'youtube' => 'youtube',
+        'tiktok' => 'tiktok',
+        'spotify' => 'spotify',
+        'soundcloud' => 'soundcloud',
+        'bandcamp' => 'bandcamp',
+        'github' => 'github',
+        'other' => 'link'
     );
     ?>
 
@@ -126,7 +126,7 @@ wp_reset_postdata(); // Reset the global post object
             $type_key = isset($link['type_key']) ? $link['type_key'] : 'other';
             $url = isset($link['url']) ? $link['url'] : '';
             $custom_label = isset($link['custom_label']) ? $link['custom_label'] : '';
-            $icon_class = isset($platform_icons[$type_key]) ? $platform_icons[$type_key] : 'fas fa-link';
+            $icon_id = isset($platform_icons[$type_key]) ? $platform_icons[$type_key] : 'link';
 
             if (empty($url)) {
                 continue;
@@ -139,7 +139,7 @@ wp_reset_postdata(); // Reset the global post object
                target="_blank"
                rel="noopener"
                title="<?php echo $title_attr; ?>">
-                <i class="<?php echo esc_attr($icon_class); ?>"></i>
+                <?php echo ec_icon($icon_id); ?>
             </a>
         <?php endforeach; ?>
     </div><!-- .bbp-user-links-inline -->

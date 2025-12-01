@@ -48,7 +48,7 @@ function extrachill_render_notification_card($notification) {
     // Determine icon and message based on type
     switch ($type) {
         case 'reply':
-            $icon = 'fa-reply';
+            $icon_id = 'reply';
             $message = sprintf(
                 '<a href="%s">%s</a> replied to your topic "<a href="%s">%s</a>"',
                 esc_url($actor_profile_link),
@@ -59,7 +59,7 @@ function extrachill_render_notification_card($notification) {
             break;
 
         case 'mention':
-            $icon = 'fa-at';
+            $icon_id = 'at';
             $message = sprintf(
                 '<a href="%s">%s</a> mentioned you in "<a href="%s">%s</a>"',
                 esc_url($actor_profile_link),
@@ -71,7 +71,7 @@ function extrachill_render_notification_card($notification) {
 
         default:
             // Generic notification card for unknown types
-            $icon = 'fa-bell';
+            $icon_id = 'bell';
             $message = sprintf(
                 '<a href="%s">%s</a> sent you a notification about "<a href="%s">%s</a>"',
                 esc_url($actor_profile_link),
@@ -86,7 +86,7 @@ function extrachill_render_notification_card($notification) {
     return sprintf(
         '<div class="notification-card">
             <div class="notification-card-header">
-                <span class="notification-type-icon"><i class="fas %s"></i></span>
+                <span class="notification-type-icon">%s</span>
                 <span class="notification-timestamp">%s</span>
             </div>
             <div class="notification-card-body">
@@ -94,7 +94,7 @@ function extrachill_render_notification_card($notification) {
                 <div class="notification-message">%s</div>
             </div>
         </div>',
-        esc_attr($icon),
+        ec_icon($icon_id),
         $time_formatted,
         $avatar,
         $message
