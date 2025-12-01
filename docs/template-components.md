@@ -218,9 +218,9 @@ Home › Locations › Colorado › Denver
 
 ### Icon Source
 
-FontAwesome SVG sprite with cache busting:
-```
-/assets/fonts/fontawesome.svg?v={filemtime}
+Uses `ec_icon()` helper with extrachill.svg sprite:
+```php
+<?php echo ec_icon('facebook'); ?>
 ```
 
 ### Usage

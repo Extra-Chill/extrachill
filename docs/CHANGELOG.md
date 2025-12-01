@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.8] - 2025-12-01
+
+### Added
+- Cache busting for SVG icon sprites with filemtime() versioning
+
+### Changed
+- Improved mobile responsiveness for archive card titles
+- Optimized homepage card padding for better visual hierarchy
+- Enhanced breadcrumb display logic for pages vs posts
+- Updated community forum navigation URLs
+- Added frontend jQuery dequeue for performance optimization
+- Improved CSS selector specificity for full-width-breakout elements
+
+### Technical
+- Updated icon system documentation to reflect ec_icon() helper usage
+- Updated asset loading documentation for SVG sprite changes
+
 ## [1.0.7] - 2025-11-30
 
 ### Added

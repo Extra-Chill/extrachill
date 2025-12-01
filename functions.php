@@ -213,3 +213,13 @@ function extrachill_add_sticky_header_class( $classes ) {
     return $classes;
 }
 add_filter( 'body_class', 'extrachill_add_sticky_header_class' );
+
+function extrachill_dequeue_jquery_frontend() {
+    if ( is_admin() ) {
+        return;
+    }
+
+    wp_dequeue_script( 'jquery' );
+    wp_deregister_script( 'jquery' );
+}
+add_action( 'wp_enqueue_scripts', 'extrachill_dequeue_jquery_frontend', 100 );

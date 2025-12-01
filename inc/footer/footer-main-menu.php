@@ -76,13 +76,13 @@
                         <a href="https://community.extrachill.com/r/local-scenes">Local Scenes</a>
                     </li>
                     <li class="menu-item">
-                        <a href="https://community.extrachill.com/r/music-discovery">Music Discussion</a>
+                        <a href="https://community.extrachill.com/r/music-discussion">Music Discussion</a>
                     </li>
                     <li class="menu-item">
-                        <a href="https://community.extrachill.com/r/music-festivals">Music Festivals</a>
+                        <a href="https://community.extrachill.com/r/music-discussion/music-festivals">Music Festivals</a>
                     </li>
                     <li class="menu-item">
-                        <a href="https://community.extrachill.com/r/music-industry">Music Industry</a>
+                        <a href="https://community.extrachill.com/r/music-discussion/music-industry">Music Industry</a>
                     </li>
                 </ul>
             </li>

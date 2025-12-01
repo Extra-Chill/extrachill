@@ -148,13 +148,11 @@ Magnifying glass icon triggers search:
 
 ```php
 <div class="search-icon">
-    <svg class="search-top">
-        <use href="<?php echo get_template_directory_uri(); ?>/assets/fonts/fontawesome.svg?v=...#magnifying-glass-solid"></use>
-    </svg>
+    <?php echo ec_icon('search', 'search-top'); ?>
 </div>
 ```
 
-**Icon Source**: FontAwesome SVG sprite with cache busting
+**Icon Source**: `ec_icon()` helper with extrachill.svg sprite
 
 ## Plugin Extension
 

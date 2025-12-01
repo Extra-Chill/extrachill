@@ -60,6 +60,12 @@ a.card-link-target:hover,
   text-decoration-color: var(--link-color);
 }
 
+@media (max-width: 768px) {
+  .archive-card h2 a {
+    font-size: 18px;
+  }
+}
+
 @media (max-width: 900px) {
   .archive-card {
     padding: 1em 0.7em;
@@ -189,16 +195,9 @@ a.card-link-target:hover,
 	margin-top: 25px;
 }
 
-.archive header, .search header {
-	margin-top: 10px;
+.archive .post h2 {
+	padding-bottom: 5px;
 }
-
-.archive .post h2{
-		padding-bottom: 5px;
-	}
-	.search h2, .archive h2{
-		font-size: 24px;
-	}
 
 
 /* Taxonomy badge base styles moved to style.css for global availability */
