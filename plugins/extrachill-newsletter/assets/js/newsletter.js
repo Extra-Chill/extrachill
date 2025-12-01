@@ -7,7 +7,7 @@
  * @since 1.0.0
  */
 
-(function($) {
+(function() {
     'use strict';
 
     function initArchiveForm() {
@@ -28,22 +28,23 @@
             submitButton.disabled = true;
             submitButton.textContent = 'Subscribing...';
 
-            // Prepare form data
-            const formData = new FormData();
-            formData.append('action', 'submit_newsletter_form');
-            formData.append('email', emailInput.value);
-            formData.append('nonce', nonceField.value);
-
-            // Send AJAX request
-            fetch(newsletterParams?.ajaxurl || '/wp-admin/admin-ajax.php', {
+            // Send REST API request
+            fetch('/wp-json/extrachill/v1/newsletter/subscribe', {
                 method: 'POST',
                 credentials: 'same-origin',
-                body: formData
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-WP-Nonce': newsletterParams.restNonce
+                },
+                body: JSON.stringify({
+                    email: emailInput.value,
+                    context: 'archive'
+                })
             })
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    alert('Subscription successful! Check your email.');
+                    alert(data.message || 'Subscription successful! Check your email.');
                     emailInput.value = '';
 
                     // Update localStorage to coordinate with popup script
@@ -52,7 +53,7 @@
                         localStorage.setItem('lastSubscribedTime', Date.now().toString());
                     }
                 } else {
-                    alert('Error: ' + (data.data || 'Subscription failed'));
+                    alert('Error: ' + (data.message || 'Subscription failed'));
                 }
             })
             .catch(error => {
@@ -87,27 +88,25 @@
             submitButton.textContent = 'Subscribing...';
             feedback.style.display = 'none';
 
-            // Prepare form data
-            const formData = new FormData();
-            formData.append('action', 'subscribe_to_sendy_home');
-            formData.append('email', emailInput.value);
-            formData.append('nonce', nonceField ? nonceField.value : '');
-
-            // Use localized AJAX URL from plugin
-            const ajaxUrl = newsletterParams?.ajaxurl ||
-                           '/wp-admin/admin-ajax.php';
-
-            fetch(ajaxUrl, {
+            // Send REST API request
+            fetch('/wp-json/extrachill/v1/newsletter/subscribe', {
                 method: 'POST',
                 credentials: 'same-origin',
-                body: formData
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-WP-Nonce': newsletterParams.restNonce
+                },
+                body: JSON.stringify({
+                    email: emailInput.value,
+                    context: 'homepage'
+                })
             })
             .then(response => response.json())
             .then(data => {
                 feedback.style.display = 'block';
 
                 if (data.success) {
-                    feedback.textContent = data.data || 'Successfully subscribed!';
+                    feedback.textContent = data.message || 'Successfully subscribed!';
                     feedback.style.color = '#28a745';
                     feedback.className = 'newsletter-feedback success';
                     emailInput.value = '';
@@ -118,7 +117,7 @@
                         localStorage.setItem('lastSubscribedTime', Date.now().toString());
                     }
                 } else {
-                    feedback.textContent = data.data || 'Subscription failed. Please try again.';
+                    feedback.textContent = data.message || 'Subscription failed. Please try again.';
                     feedback.style.color = '#dc3545';
                     feedback.className = 'newsletter-feedback error';
                 }
@@ -166,23 +165,25 @@
             submitButton.textContent = 'Subscribing...';
             feedback.style.display = 'none';
 
-            // Prepare form data
-            const formData = new FormData();
-            formData.append('action', 'subscribe_to_sendy');
-            formData.append('email', emailInput.value);
-            formData.append('subscribe_nonce', nonceField ? nonceField.value : '');
-
-            fetch(newsletterParams?.ajaxurl || '/wp-admin/admin-ajax.php', {
+            // Send REST API request
+            fetch('/wp-json/extrachill/v1/newsletter/subscribe', {
                 method: 'POST',
                 credentials: 'same-origin',
-                body: formData
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-WP-Nonce': newsletterParams.restNonce
+                },
+                body: JSON.stringify({
+                    email: emailInput.value,
+                    context: 'navigation'
+                })
             })
             .then(response => response.json())
             .then(data => {
                 feedback.style.display = 'block';
 
                 if (data.success) {
-                    feedback.textContent = data.data || 'Successfully subscribed!';
+                    feedback.textContent = data.message || 'Successfully subscribed!';
                     feedback.style.color = '#28a745';
                     emailInput.value = '';
 
@@ -192,7 +193,7 @@
                         localStorage.setItem('lastSubscribedTime', Date.now().toString());
                     }
                 } else {
-                    feedback.textContent = data.data || 'Subscription failed. Please try again.';
+                    feedback.textContent = data.message || 'Subscription failed. Please try again.';
                     feedback.style.color = '#dc3545';
                 }
             })
@@ -230,23 +231,25 @@
             submitButton.textContent = 'Subscribing...';
             feedback.style.display = 'none';
 
-            // Prepare form data
-            const formData = new FormData();
-            formData.append('action', 'submit_newsletter_content_form');
-            formData.append('email', emailInput.value);
-            formData.append('nonce', nonceField.value);
-
-            fetch(newsletterParams?.ajaxurl || '/wp-admin/admin-ajax.php', {
+            // Send REST API request
+            fetch('/wp-json/extrachill/v1/newsletter/subscribe', {
                 method: 'POST',
                 credentials: 'same-origin',
-                body: formData
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-WP-Nonce': newsletterParams.restNonce
+                },
+                body: JSON.stringify({
+                    email: emailInput.value,
+                    context: 'content'
+                })
             })
             .then(response => response.json())
             .then(data => {
                 feedback.style.display = 'block';
 
                 if (data.success) {
-                    feedback.textContent = data.data || 'Successfully subscribed!';
+                    feedback.textContent = data.message || 'Successfully subscribed!';
                     feedback.style.color = '#28a745';
                     emailInput.value = '';
 
@@ -256,7 +259,7 @@
                         localStorage.setItem('lastSubscribedTime', Date.now().toString());
                     }
                 } else {
-                    feedback.textContent = data.data || 'Subscription failed. Please try again.';
+                    feedback.textContent = data.message || 'Subscription failed. Please try again.';
                     feedback.style.color = '#dc3545';
                 }
             })
@@ -294,23 +297,25 @@
             submitButton.textContent = 'Subscribing...';
             feedback.style.display = 'none';
 
-            // Prepare form data
-            const formData = new FormData();
-            formData.append('action', 'submit_newsletter_footer_form');
-            formData.append('email', emailInput.value);
-            formData.append('nonce', nonceField.value);
-
-            fetch(newsletterParams?.ajaxurl || '/wp-admin/admin-ajax.php', {
+            // Send REST API request
+            fetch('/wp-json/extrachill/v1/newsletter/subscribe', {
                 method: 'POST',
                 credentials: 'same-origin',
-                body: formData
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-WP-Nonce': newsletterParams.restNonce
+                },
+                body: JSON.stringify({
+                    email: emailInput.value,
+                    context: 'footer'
+                })
             })
             .then(response => response.json())
             .then(data => {
                 feedback.style.display = 'block';
 
                 if (data.success) {
-                    feedback.textContent = data.data || 'Successfully subscribed!';
+                    feedback.textContent = data.message || 'Successfully subscribed!';
                     feedback.style.color = '#28a745';
                     emailInput.value = '';
 
@@ -320,7 +325,7 @@
                         localStorage.setItem('lastSubscribedTime', Date.now().toString());
                     }
                 } else {
-                    feedback.textContent = data.data || 'Subscription failed. Please try again.';
+                    feedback.textContent = data.message || 'Subscription failed. Please try again.';
                     feedback.style.color = '#dc3545';
                 }
             })
@@ -337,66 +342,7 @@
             });
         });
     }
-    function initShortcodeForms() {
-        const shortcodeForms = document.querySelectorAll('.newsletter-shortcode-form');
 
-        shortcodeForms.forEach(form => {
-            form.addEventListener('submit', function(e) {
-                e.preventDefault();
-
-                const emailInput = form.querySelector('input[name="email"]');
-                const submitButton = form.querySelector('.newsletter-submit-button');
-                const feedback = form.querySelector('.newsletter-form-feedback');
-                const nonceField = form.querySelector('input[name="newsletter_nonce_field"]');
-                const listField = form.querySelector('input[name="list"]');
-
-                if (!emailInput || !submitButton || !feedback) return;
-
-                // Disable button and show loading state
-                const originalText = submitButton.textContent;
-                submitButton.disabled = true;
-                submitButton.textContent = 'Subscribing...';
-                feedback.style.display = 'none';
-
-                // Prepare form data
-                const formData = new FormData();
-                formData.append('action', 'submit_newsletter_shortcode_form');
-                formData.append('email', emailInput.value);
-                formData.append('list', listField ? listField.value : 'archive');
-                formData.append('newsletter_nonce_field', nonceField ? nonceField.value : '');
-
-                fetch(newsletterParams?.ajaxurl || '/wp-admin/admin-ajax.php', {
-                    method: 'POST',
-                    credentials: 'same-origin',
-                    body: formData
-                })
-                .then(response => response.json())
-                .then(data => {
-                    feedback.style.display = 'block';
-
-                    if (data.success) {
-                        feedback.textContent = data.data || 'Successfully subscribed!';
-                        feedback.className = 'newsletter-form-feedback success';
-                        emailInput.value = '';
-                    } else {
-                        feedback.textContent = data.data || 'Subscription failed. Please try again.';
-                        feedback.className = 'newsletter-form-feedback error';
-                    }
-                })
-                .catch(error => {
-                    console.error('Newsletter shortcode error:', error);
-                    feedback.style.display = 'block';
-                    feedback.textContent = 'An error occurred. Please try again.';
-                    feedback.className = 'newsletter-form-feedback error';
-                })
-                .finally(() => {
-                    // Reset button
-                    submitButton.disabled = false;
-                    submitButton.textContent = originalText;
-                });
-            });
-        });
-    }
     function isValidEmail(email) {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         return emailRegex.test(email);
@@ -458,37 +404,41 @@
             // Get Turnstile response if present
             const turnstileResponse = window.turnstile ? window.turnstile.getResponse() : '';
 
-            // Prepare data for AJAX
-            const formData = new FormData();
-            formData.append('action', 'newsletter_festival_wire_tip_submission');
-            formData.append('content', content);
-            if (!isCommunityMember) {
-                formData.append('email', email);
-            }
-            formData.append('cf-turnstile-response', turnstileResponse);
-
-            // Add nonce if present
-            const nonceField = form.querySelector('input[name="newsletter_festival_tip_nonce_field"]');
-            if (nonceField) {
-                formData.append('newsletter_festival_tip_nonce_field', nonceField.value);
-            }
-
             // Disable submit button and show loading state
             submitButton.disabled = true;
             const originalText = submitButton.textContent;
             submitButton.textContent = 'Submitting...';
             messageDiv.innerHTML = '';
 
-            // Submit via AJAX
-            fetch(newsletterParams?.ajaxurl || '/wp-admin/admin-ajax.php', {
+            // Prepare request body
+            const requestBody = {
+                context: 'festival_wire_tip'
+            };
+
+            // Only include email for non-community members (newsletter subscription)
+            if (!isCommunityMember && email) {
+                requestBody.email = email;
+            }
+
+            // Include Turnstile response if present
+            if (turnstileResponse) {
+                requestBody.turnstile_response = turnstileResponse;
+            }
+
+            // Submit via REST API
+            fetch('/wp-json/extrachill/v1/newsletter/subscribe', {
                 method: 'POST',
                 credentials: 'same-origin',
-                body: formData
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-WP-Nonce': newsletterParams.restNonce
+                },
+                body: JSON.stringify(requestBody)
             })
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    showTipMessage(data.data.message || 'Thank you for your tip!', 'success');
+                    showTipMessage(data.message || 'Thank you for your tip!', 'success');
 
                     // Reset form
                     form.reset();
@@ -504,7 +454,7 @@
                         window.turnstile.reset();
                     }
                 } else {
-                    showTipMessage(data.data.message || 'There was an error submitting your tip. Please try again.', 'error');
+                    showTipMessage(data.message || 'There was an error submitting your tip. Please try again.', 'error');
                 }
             })
             .catch(error => {
@@ -533,7 +483,6 @@
         initNavigationForm();
         initContentForm();
         initFooterForm();
-        initShortcodeForms();
         initFestivalTipForm();
         const newsletterForms = document.querySelectorAll('.newsletter-form, .newsletter-shortcode-form');
         newsletterForms.forEach(form => {
@@ -542,15 +491,15 @@
                 emailInput.addEventListener('blur', function() {
                     if (this.value && !isValidEmail(this.value)) {
                         this.setCustomValidity('Please enter a valid email address');
-                        this.style.borderColor = '#dc3545';
+                        this.classList.add('error-border');
                     } else {
                         this.setCustomValidity('');
-                        this.style.borderColor = '';
+                        this.classList.remove('error-border');
                     }
                 });
 
                 emailInput.addEventListener('input', function() {
-                    if (this.style.borderColor === 'rgb(220, 53, 69)') {
+                    if (this.style.borderColor) {
                         this.style.borderColor = '';
                     }
                 });
@@ -573,7 +522,4 @@
         version: '1.0.0'
     };
 
-})(jQuery || function(selector) {
-    // Fallback if jQuery is not available
-    return document.querySelector(selector);
-});
+})();

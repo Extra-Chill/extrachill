@@ -13,10 +13,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 function newsletter_enqueue_frontend_assets() {
-	// Forms CSS - loaded globally for navigation and other forms
+	// Forms CSS - registered for on-demand loading when forms render
 	$forms_css_path = EXTRACHILL_NEWSLETTER_PLUGIN_DIR . 'assets/css/newsletter-forms.css';
 	if ( file_exists( $forms_css_path ) ) {
-		wp_enqueue_style(
+		wp_register_style(
 			'extrachill-newsletter-forms',
 			EXTRACHILL_NEWSLETTER_PLUGIN_URL . 'assets/css/newsletter-forms.css',
 			array(),
@@ -24,10 +24,10 @@ function newsletter_enqueue_frontend_assets() {
 		);
 	}
 
-	// Sidebar CSS - loaded globally since sidebar appears on all pages
+	// Sidebar CSS - registered for on-demand loading when sidebar renders
 	$sidebar_css_path = EXTRACHILL_NEWSLETTER_PLUGIN_DIR . 'assets/css/sidebar.css';
 	if ( file_exists( $sidebar_css_path ) ) {
-		wp_enqueue_style(
+		wp_register_style(
 			'extrachill-newsletter-sidebar',
 			EXTRACHILL_NEWSLETTER_PLUGIN_URL . 'assets/css/sidebar.css',
 			array(),
@@ -54,13 +54,13 @@ function newsletter_enqueue_frontend_assets() {
 		}
 	}
 
-	// Main JavaScript
+	// Main JavaScript - registered for on-demand loading when newsletter UI renders
 	$newsletter_js_path = EXTRACHILL_NEWSLETTER_PLUGIN_DIR . 'assets/js/newsletter.js';
 	if ( file_exists( $newsletter_js_path ) ) {
-		wp_enqueue_script(
+		wp_register_script(
 			'extrachill-newsletter',
 			EXTRACHILL_NEWSLETTER_PLUGIN_URL . 'assets/js/newsletter.js',
-			array( 'jquery' ),
+			array( 'wp-api' ),
 			filemtime( $newsletter_js_path ),
 			true
 		);
@@ -69,12 +69,7 @@ function newsletter_enqueue_frontend_assets() {
 			'extrachill-newsletter',
 			'newsletterParams',
 			array(
-				'ajaxurl' => admin_url( 'admin-ajax.php' ),
-				'newsletter_nonce' => wp_create_nonce( 'newsletter_nonce' ),
-				'newsletter_popup_nonce' => wp_create_nonce( 'newsletter_popup_nonce' ),
-				'subscribe_to_sendy_home_nonce' => wp_create_nonce( 'subscribe_to_sendy_home_nonce' ),
-				'newsletter_content_nonce' => wp_create_nonce( 'newsletter_content_nonce' ),
-				'newsletter_footer_nonce' => wp_create_nonce( 'newsletter_footer_nonce' ),
+				'restNonce' => wp_create_nonce( 'wp_rest' ),
 			)
 		);
 	}

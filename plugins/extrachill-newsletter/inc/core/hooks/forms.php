@@ -22,6 +22,9 @@ function extrachill_newsletter_archive_form() {
 		return;
 	}
 
+	wp_enqueue_script( 'extrachill-newsletter' );
+	wp_enqueue_style( 'extrachill-newsletter-forms' );
+
 	include EXTRACHILL_NEWSLETTER_TEMPLATES_DIR . 'archive-form.php';
 }
 add_action( 'extrachill_archive_below_description', 'extrachill_newsletter_archive_form', 10 );
@@ -30,6 +33,9 @@ function extrachill_newsletter_homepage_hero_form() {
 	if ( empty( $settings['enable_archive'] ) ) {
 		return;
 	}
+
+	wp_enqueue_script( 'extrachill-newsletter' );
+	wp_enqueue_style( 'extrachill-newsletter-forms' );
 
 	include EXTRACHILL_NEWSLETTER_TEMPLATES_DIR . 'archive-form.php';
 }

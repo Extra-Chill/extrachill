@@ -2,21 +2,21 @@
 /**
  * Plugin Name: Extra Chill Newsletter
  * Description: Complete newsletter system with Sendy integration for email campaigns and subscriptions. Provides custom newsletter post type, multiple subscription forms, email template generation, and admin management tools.
- * Version: 1.0.0
+ * Version: 1.0.1
  * Author: Chris Huber
  * Network: true
  * Text Domain: extrachill-newsletter
  * Domain Path: /languages
  *
  * @package ExtraChillNewsletter
- * @since 1.0.0
+ * @since 1.0.1
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'EXTRACHILL_NEWSLETTER_VERSION', '1.0.0' );
+define( 'EXTRACHILL_NEWSLETTER_VERSION', '1.0.1' );
 define( 'EXTRACHILL_NEWSLETTER_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'EXTRACHILL_NEWSLETTER_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'EXTRACHILL_NEWSLETTER_INC_DIR', EXTRACHILL_NEWSLETTER_PLUGIN_DIR . 'inc/' );
@@ -26,7 +26,7 @@ define( 'EXTRACHILL_NEWSLETTER_ASSETS_URL', EXTRACHILL_NEWSLETTER_PLUGIN_URL . '
 /**
  * Check if current site is the newsletter site
  *
- * @since 1.0.0
+ * @since 1.0.1
  * @return bool True if on newsletter.extrachill.com (blog ID 9)
  */
 function is_newsletter_site() {
@@ -37,9 +37,6 @@ function is_newsletter_site() {
 require_once EXTRACHILL_NEWSLETTER_INC_DIR . 'core/assets.php';
 require_once EXTRACHILL_NEWSLETTER_INC_DIR . 'core/sendy-api.php';
 require_once EXTRACHILL_NEWSLETTER_INC_DIR . 'core/templates/email-template.php';
-
-// AJAX handlers (network-wide)
-require_once EXTRACHILL_NEWSLETTER_INC_DIR . 'ajax/handlers.php';
 
 // Hook integrations (network-wide)
 require_once EXTRACHILL_NEWSLETTER_INC_DIR . 'core/hooks/breadcrumbs.php';
@@ -135,6 +132,9 @@ function display_newsletter_navigation_form() {
 		return;
 	}
 
+	wp_enqueue_script( 'extrachill-newsletter' );
+	wp_enqueue_style( 'extrachill-newsletter-forms' );
+
 	include EXTRACHILL_NEWSLETTER_TEMPLATES_DIR . 'navigation-form.php';
 }
 add_action( 'extrachill_navigation_before_social_links', 'display_newsletter_navigation_form' );
@@ -148,6 +148,9 @@ function display_newsletter_content_form() {
 	if (empty($settings['enable_content'])) {
 		return;
 	}
+
+	wp_enqueue_script( 'extrachill-newsletter' );
+	wp_enqueue_style( 'extrachill-newsletter-forms' );
 
 	include EXTRACHILL_NEWSLETTER_TEMPLATES_DIR . 'content-form.php';
 }
@@ -164,6 +167,9 @@ function display_newsletter_footer_form() {
 			return;
 		}
 	}
+
+	wp_enqueue_script( 'extrachill-newsletter' );
+	wp_enqueue_style( 'extrachill-newsletter-forms' );
 
 	include EXTRACHILL_NEWSLETTER_TEMPLATES_DIR . 'footer-form.php';
 }
@@ -183,6 +189,9 @@ function display_newsletter_homepage_form() {
 	if (empty($settings['enable_homepage'])) {
 		return;
 	}
+
+	wp_enqueue_script( 'extrachill-newsletter' );
+	wp_enqueue_style( 'extrachill-newsletter-forms' );
 
 	include EXTRACHILL_NEWSLETTER_TEMPLATES_DIR . 'homepage-section.php';
 }
@@ -272,6 +281,9 @@ function newsletter_display_festival_wire_tip_form() {
 		return;
 	}
 
+	wp_enqueue_script( 'extrachill-newsletter' );
+	wp_enqueue_style( 'extrachill-newsletter-forms' );
+
 	include EXTRACHILL_NEWSLETTER_TEMPLATES_DIR . 'festival-wire-tip-form.php';
 }
 add_action('extrachill_after_news_wire', 'newsletter_display_festival_wire_tip_form');
@@ -295,6 +307,9 @@ function newsletter_render_integration_form($context, $integration) {
 	if (!newsletter_integration_enabled($integration['enable_key'])) {
 		return;
 	}
+
+	wp_enqueue_script( 'extrachill-newsletter' );
+	wp_enqueue_style( 'extrachill-newsletter-forms' );
 
 	$template_candidates = array(
 		"newsletter-form-{$context}.php",

@@ -13,7 +13,7 @@
 
 .newsletter-connection-test {
     background: #f1f1f1;
-    border: 1px solid #ccd0d4;
+    border: 1px solid var(--border-color);
     border-radius: 4px;
     padding: 20px;
     margin: 20px 0;
@@ -39,7 +39,7 @@
 .newsletter-help-section {
     margin-top: 30px;
     padding-top: 20px;
-    border-top: 1px solid #ccd0d4;
+    border-top: 1px solid var(--border-color);
 }
 
 .newsletter-help-section h3 {
@@ -50,7 +50,7 @@
 
 .help-box {
     background: #fff;
-    border: 1px solid #c3c4c7;
+    border: 1px solid var(--border-color);
     border-radius: 4px;
     padding: 20px;
     margin-bottom: 20px;
@@ -96,13 +96,13 @@
 .status-indicator.configured {
     background: #d4edda;
     color: #155724;
-    border: 1px solid #c3e6cb;
+    border: 1px solid var(--success-color);
 }
 
 .status-indicator.not-configured {
     background: #f8d7da;
     color: #721c24;
-    border: 1px solid #f5c6cb;
+    border: 1px solid var(--error-color);
 }
 
 #status-info p {
@@ -160,14 +160,14 @@
 
 .form-table > tbody > tr:first-of-type th,
 .form-table > tbody > tr:first-of-type td {
-    border-top: 1px solid #c3c4c7;
+    border-top: 1px solid var(--border-color);
     padding-top: 25px;
 }
 
 h2:not(:first-child) {
     margin-top: 40px;
     padding-top: 20px;
-    border-top: 1px solid #c3c4c7;
+    border-top: 1px solid var(--border-color);
 }
 
 /* Section descriptions */

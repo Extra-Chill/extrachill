@@ -114,14 +114,25 @@ The plugin integrates with themes via action hooks:
 - `newsletter_homepage_hero` - Newsletter homepage hero form (newsletter site homepage only)
 
 #### Asset Loading Strategy
-Centralized in `inc/core/assets.php` with conditional loading:
-- **Forms CSS**: Loaded globally for navigation and other forms (`assets/css/newsletter-forms.css`)
-- **Sidebar CSS**: Loaded globally for sidebar widgets (`assets/css/sidebar.css`)
-- **Newsletter CSS**: Loaded conditionally on newsletter/festival pages (`assets/css/newsletter.css`)
+Centralized in `inc/core/assets.php` with on-demand loading:
+
+**Registered Handles** (registered on `wp_enqueue_scripts`, enqueued only when components render):
+- `extrachill-newsletter` - Main JavaScript with REST nonce localization
+- `extrachill-newsletter-forms` - Forms CSS for subscription forms
+- `extrachill-newsletter-sidebar` - Sidebar CSS for recent newsletters widget
+
+**On-Demand Enqueuing**: Assets are registered globally but enqueued only when:
+- **Sidebar template** (`recent-newsletters.php`) renders with posts
+- **Form display functions** render subscription forms (navigation, content, footer, homepage, archive, festival wire tip)
+- **Dynamic integration forms** render via `newsletter_render_integration_form()`
+
+**Conditional Page CSS**:
+- **Newsletter CSS**: Enqueued only on newsletter/festival wire archive and single pages (`assets/css/newsletter.css`)
 - **Admin CSS**: Loaded only on newsletter post edit screens (`assets/css/admin.css`)
-- **Global JavaScript**: Loaded site-wide with AJAX localization and nonces (`assets/js/newsletter.js`)
-- **File-based Versioning**: Uses `filemtime()` for cache busting on all assets
-- **Theme Integration**: Forces theme archive CSS on newsletter homepage when needed
+
+**File-based Versioning**: Uses `filemtime()` for cache busting on all assets
+
+**Theme Integration**: Forces theme archive CSS on newsletter homepage when needed
 
 ### Sendy Integration Architecture
 

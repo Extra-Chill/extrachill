@@ -13,10 +13,10 @@
    ========================================================================== */
 
 .newsletter-card {
-    background: var(--card-background, #181818);
+    background: var(--card-background);
     border-radius: 14px;
     box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-    border: 1px solid var(--border-color, #333);
+    border: 1px solid var(--border-color);
     padding: 1.5em 1.2em 1.2em 1.2em;
     margin-bottom: 2em;
     width: 100%;
@@ -39,8 +39,8 @@
 }
 
 .newsletter-subscribe-form {
-    background: var(--card-background, #f8f9fa);
-    border: 1px solid var(--border-color, #dee2e6);
+    background: var(--card-background);
+    border: 1px solid var(--border-color);
     border-radius: 8px;
     padding: 2em;
     margin: 2em 0;
@@ -73,20 +73,20 @@
 .newsletter-actions {
     margin-top: 2em;
     padding-top: 1.5em;
-    border-top: 1px solid var(--border-color, #e9ecef);
+    border-top: 1px solid var(--border-color);
 }
 
 .newsletter-subscribe-cta {
     text-align: center;
     margin-bottom: 1.5em;
     padding: 1em;
-    background: var(--card-background, #f8f9fa);
+    background: var(--card-background);
     border-radius: 6px;
-    border: 1px solid var(--border-color, #e9ecef);
+    border: 1px solid var(--border-color);
 }
 
 .newsletter-subscribe-cta a {
-    color: var(--accent, #53940b);
+    color: var(--accent);
     text-decoration: none;
     font-weight: 600;
 }
@@ -97,7 +97,7 @@
 }
 
 .newsletter-archive-link a {
-    color: var(--accent, #53940b);
+    color: var(--accent);
     text-decoration: none;
     font-weight: 500;
 }
@@ -105,7 +105,7 @@
 /* Newsletter Navigation */
 .newsletter-navigation {
     margin-top: 3em;
-    border-top: 2px solid var(--border-color, #e9ecef);
+    border-top: 2px solid var(--border-color);
     padding-top: 2em;
 }
 
@@ -127,20 +127,20 @@
 .newsletter-navigation a {
     display: block;
     padding: 1em;
-    background: var(--card-background, #f8f9fa);
-    border: 1px solid var(--border-color, #e9ecef);
+    background: var(--card-background);
+    border: 1px solid var(--border-color);
     border-radius: 6px;
     text-decoration: none;
     transition: background-color 0.2s;
 }
 
 .newsletter-navigation a:hover {
-    background: var(--border-color, #e9ecef);
+    background: var(--border-color);
 }
 
 .newsletter-navigation .meta-nav {
     font-size: 0.85em;
-    color: var(--muted-text, #666);
+    color: var(--muted-text);
     text-transform: uppercase;
     letter-spacing: 0.5px;
     display: block;
@@ -157,8 +157,8 @@
    ========================================================================== */
 
 .newsletter-subscription-form {
-    background: var(--card-background, #f8f9fa);
-    border: 1px solid var(--border-color, #e9ecef);
+    background: var(--card-background);
+    border: 1px solid var(--border-color);
     border-radius: 8px;
     padding: 2em;
     margin: 2em 0;
