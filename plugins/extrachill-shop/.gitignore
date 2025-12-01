@@ -31,4 +31,4 @@ CLAUDE.md
 AGENTS.md
 .buildignore
 build.sh
-docs/
+docs/.docs-sync.json

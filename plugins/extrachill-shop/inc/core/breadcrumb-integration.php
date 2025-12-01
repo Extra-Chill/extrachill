@@ -114,9 +114,7 @@ add_filter( 'extrachill_breadcrumbs_override_trail', 'extrachill_shop_breadcrumb
  * Hooked to woocommerce_before_main_content at priority 5 (before WooCommerce default at 20).
  */
 function extrachill_shop_display_breadcrumbs() {
-	if ( function_exists( 'extrachill_breadcrumbs' ) ) {
-		extrachill_breadcrumbs();
-	}
+	extrachill_breadcrumbs();
 }
 add_action( 'woocommerce_before_main_content', 'extrachill_shop_display_breadcrumbs', 5 );
 
@@ -145,9 +143,7 @@ function extrachill_shop_display_breadcrumbs_fallback() {
 	}
 
 	if ( is_woocommerce() || is_cart() || is_checkout() || is_account_page() ) {
-		if ( function_exists( 'extrachill_breadcrumbs' ) ) {
-			extrachill_breadcrumbs();
-		}
+		extrachill_breadcrumbs();
 	}
 }
 add_action( 'extrachill_before_body_content', 'extrachill_shop_display_breadcrumbs_fallback', 5 );

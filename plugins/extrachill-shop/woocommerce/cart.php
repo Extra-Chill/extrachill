@@ -13,9 +13,7 @@ defined( 'ABSPATH' ) || exit;
 get_header();
 
 // Breadcrumbs
-if ( function_exists( 'extrachill_breadcrumbs' ) ) {
-	extrachill_breadcrumbs();
-}
+extrachill_breadcrumbs();
 ?>
 
 <div class="woocommerce">

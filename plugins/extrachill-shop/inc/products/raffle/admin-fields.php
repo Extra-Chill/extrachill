@@ -34,7 +34,11 @@ function extrachill_shop_add_raffle_max_tickets_field() {
 add_action( 'woocommerce_product_options_inventory_product_data', 'extrachill_shop_add_raffle_max_tickets_field' );
 
 function extrachill_shop_save_raffle_max_tickets_field( $product_id ) {
-    $max_tickets = isset( $_POST['_raffle_max_tickets'] ) ? absint( $_POST['_raffle_max_tickets'] ) : '';
+	if ( ! current_user_can( 'edit_product', $product_id ) ) {
+		return;
+	}
+
+	$max_tickets = isset( $_POST['_raffle_max_tickets'] ) ? absint( $_POST['_raffle_max_tickets'] ) : '';
 
     if ( $max_tickets ) {
         update_post_meta( $product_id, '_raffle_max_tickets', $max_tickets );

@@ -9,7 +9,7 @@
     max-width: 600px;
     margin: 20px auto;
     padding: 16px;
-    background: var(--card-background, #fff);
+    background: var(--card-background);
     border-radius: 8px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
@@ -24,13 +24,13 @@
 .raffle-icon {
     font-size: 1.5rem;
     line-height: 1;
-    color: var(--accent, #53940b);
+    color: var(--accent);
 }
 
 .raffle-text {
     font-size: 1rem;
     font-weight: 600;
-    color: var(--text-color, #333);
+    color: var(--text-color);
 }
 
 .raffle-progress-bar {
@@ -50,11 +50,11 @@
 }
 
 .extrachill-raffle-progress.high-stock .raffle-progress-fill {
-    background: linear-gradient(90deg, var(--accent, #53940b) 0%, var(--accent-3, #00c8e3) 100%);
+    background: linear-gradient(90deg, var(--accent) 0%, var(--accent-3) 100%);
 }
 
 .extrachill-raffle-progress.high-stock .raffle-icon {
-    color: var(--accent, #53940b);
+    color: var(--accent);
 }
 
 .extrachill-raffle-progress.medium-stock .raffle-progress-fill {
@@ -80,7 +80,7 @@
 
 @media (prefers-color-scheme: dark) {
     .extrachill-raffle-progress {
-        background: var(--card-background, #1a1a1a);
+        background: var(--card-background);
     }
 
     .raffle-progress-bar {
@@ -88,7 +88,7 @@
     }
 
     .raffle-text {
-        color: var(--text-color, #fff);
+        color: var(--text-color);
     }
 }
 

@@ -15,9 +15,7 @@ defined( 'ABSPATH' ) || exit;
 get_header();
 
 // Breadcrumbs
-if ( function_exists( 'extrachill_breadcrumbs' ) ) {
-	extrachill_breadcrumbs();
-}
+extrachill_breadcrumbs();
 
 // Query products
 $paged = get_query_var( 'paged' ) ? get_query_var( 'paged' ) : 1;
