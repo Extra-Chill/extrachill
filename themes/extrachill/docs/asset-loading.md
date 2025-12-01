@@ -210,5 +210,5 @@ add_filter( 'extrachill_enable_sticky_header', '__return_false' );
     chill-custom.js       # Archive interactions
     shared-tabs.js        # Tab interface logic
   /fonts/
-    fontawesome.svg       # Icon sprite (with cache busting)
+    extrachill.svg        # Icon sprite
 ```

@@ -73,12 +73,14 @@ if (!function_exists('extrachill_breadcrumbs')) {
                 $parent_url = get_permalink($parent_id);
                 echo '<a href="' . $parent_url . '">' . $parent_title . '</a> › ';
             }
+            echo '<span class="breadcrumb-title">' . get_the_title() . '</span>';
         }
 
-        if (is_singular() && !is_front_page()) {
+        if (is_page()) {
+            // Pages fully handled above, skip this chain
+        } elseif (is_singular() && !is_front_page()) {
             echo '<span class="breadcrumb-title"> › ' . get_the_title() . '</span>';
-        }
-        elseif (is_post_type_archive()) {
+        } elseif (is_post_type_archive()) {
             $post_type = get_post_type();
             $post_type_obj = get_post_type_object($post_type);
 
