@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.0.2] - 2025-12-01
+
+### Added
+- New reply card footer with improved action button layout
+- Better separation of admin and user actions in reply cards
+
+### Changed
+- Major refactoring of reply card UI with action buttons moved to footer
+- Removed jQuery dependency from shared-tabs script for better performance
+- Updated CSS styling to support new reply card layout
+
+### Fixed
+- Improved reply link handling in mentions system
+- Removed duplicate edit/reply links from admin area
+
 ## [1.0.1] - 2025-11-30
 
 ### Added
