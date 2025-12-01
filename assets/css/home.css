@@ -1,13 +1,11 @@
 /*
  * Home Page Styles (home.css)
- * Add all homepage-specific styles here.
  */
-
 
 #hero-section {
     padding: 40px 0;
-    background-color: var(--background-color); /* Fallback for browsers that don't support gradients */
-    background-image: linear-gradient(to bottom, var(--card-background), var(--background-color)); /* Slightly stronger light gray to white gradient */
+    background-color: var(--background-color);
+    background-image: linear-gradient(to bottom, var(--card-background), var(--background-color));
     text-align: center;
     margin-top: 10px;
 }
@@ -261,7 +259,6 @@
     margin-top: 0;
     letter-spacing: 0.01em;
 }
-
 
 .home-3x3-thumb img,
 .home-more-recent-thumb img {
@@ -519,4 +516,3 @@
 	color: #fff;
 	font-size: 16px;
 }
-

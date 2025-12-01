@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.7] - 2025-11-30
+
+### Added
+- SVG icon system with `ec_icon()` helper function
+- Enhanced taxonomy badge hover effects and transitions
+
+### Changed
+- Refactored badge styling from `badge-colors.css` to comprehensive `taxonomy-badges.css`
+- Updated multisite documentation to reflect 8 active sites
+- Removed FontAwesome CDN dependency in favor of SVG sprites
+- Cleaned up redundant CSS rules and improved consistency
+
+### Technical
+- Added `inc/core/icons.php` for centralized icon management
+- Updated asset loading to conditionally load taxonomy badges CSS
+- Removed fontawesome.svg and updated extrachill.svg sprite
+
 ## [1.0.6] - 2025-11-30
 
 ### Added

@@ -30,20 +30,14 @@ if ( ! function_exists( 'extrachill_share_button' ) ) :
         $share_url    = isset( $share_url ) ? esc_url( $share_url ) : get_permalink();
         $share_title  = isset( $share_title ) ? esc_attr( $share_title ) : get_the_title();
         $button_size  = isset( $button_size ) ? esc_attr( $button_size ) : 'button-small';
-
-        $svg_file_path = get_template_directory() . '/assets/fonts/fontawesome.svg';
-        $svg_version   = file_exists( $svg_file_path ) ? filemtime( $svg_file_path ) : time();
-
         ?>
         <div class="share-button-container">
 
             <button class="share-button button-2 <?php echo esc_attr( $button_size ); ?>">
-                <svg>
-                    <use href="<?php echo esc_attr( get_template_directory_uri() . '/assets/fonts/fontawesome.svg?v=' . $svg_version ); ?>#share"></use>
-                </svg> Share
+                <?php echo ec_icon('share'); ?> Share
             </button>
 
-            <div class="share-options" style="display: none;">
+            <div class="share-options">
                 <ul class="share-options-list">
                     <li class="share-option facebook">
                         <a href="https://www.facebook.com/sharer.php?u=<?php echo esc_url( $share_url ); ?>" target="_blank" rel="noopener noreferrer">Facebook</a>

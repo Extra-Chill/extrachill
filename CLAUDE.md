@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-The ExtraChill theme is a custom WordPress theme (v1.0.6) serving as frontend for Extra Chill Platform multisite network. The theme powers all 10 sites in network (extrachill.com, community.extrachill.com, shop.extrachill.com, artist.extrachill.com, chat.extrachill.com, events.extrachill.com, stream.extrachill.com, newsletter.extrachill.com, horoscope.extrachill.com) with conditional asset loading and template overrides. Community functionality provided by extrachill-community plugin, e-commerce by extrachill-shop plugin, and specialized functionality by various site-specific plugins. Features include custom music event listings, festival coverage, community integration, and journalistic written content about music industry.
+The ExtraChill theme is a custom WordPress theme (v1.0.6) serving as frontend for Extra Chill Platform multisite network. The theme powers all 8 active sites (Blog IDs 1–5, 7–9) with conditional asset loading and template overrides; horoscope.extrachill.com is planned as Blog ID 10 but not yet provisioned. Community functionality provided by extrachill-community plugin, e-commerce by extrachill-shop plugin, and specialized functionality by various site-specific plugins. Features include custom music event listings, festival coverage, community integration, and journalistic written content about music industry.
 
 **Current Status**: Fully converted from ColorMag Pro with performance optimizations and modern WordPress features.
 
@@ -32,7 +32,7 @@ The theme uses a clean, modular architecture organized in the `/inc/` directory 
 - **Festival Wire Integration**: Homepage ticker display for Festival Wire posts (handled by ExtraChill News Wire plugin)
 
 ### WordPress Multisite Network Integration
-The ExtraChill theme serves **all 10 sites in the WordPress multisite network**:
+The ExtraChill theme serves **all 8 active sites in the WordPress multisite network** (Blog IDs 1–5, 7–9). Horoscope site (planned Blog ID 10) is in development and not yet provisioned.
 - **extrachill.com** - Main music journalism and content site (Blog ID 1)
 - **community.extrachill.com** - Community forums and user hub (Blog ID 2)
 - **shop.extrachill.com** - E-commerce platform with WooCommerce (Blog ID 3)
@@ -41,7 +41,6 @@ The ExtraChill theme serves **all 10 sites in the WordPress multisite network**:
 - **events.extrachill.com** - Event calendar hub powered by Data Machine (Blog ID 7)
 - **stream.extrachill.com** - Live streaming platform (Phase 1 UI) (Blog ID 8)
 - **newsletter.extrachill.com** - Newsletter management and archive hub with homepage-as-archive pattern (Blog ID 9)
-- **horoscope.extrachill.com** - Wook-themed daily horoscopes via Data Machine AI (Blog ID 10)
 
 **Site-Specific Configuration**: Each site uses the same theme with different plugin integrations and template overrides via `extrachill_template_*` filters
 

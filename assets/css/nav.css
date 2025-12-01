@@ -13,45 +13,62 @@ nav li > ul, nav li > ol {
    ========================================================================== */
 #site-title {
 	padding-bottom: 0;
-	line-height: .5;
-	padding-top: 0px;
+	line-height: 1;
+	padding-top: 0;
 }
 
 .site-title a {
-	text-transform:none;
+	text-transform: none;
 	font-family: "Lobster", sans-serif;
-	float:left;
 	font-weight: 100;
 	color: #fff;
 	text-decoration: none;
 	font-size: 36px;
 }
 
+@media (max-width: 768px) {
+	.site-title a {
+		font-size: 34px;
+	}
+}
+
+@media (max-width: 425px) {
+	.site-title a {
+		font-size: 32px;
+	}
+}
+
+@media (max-width: 350px) {
+	.site-title a {
+		font-size: 27px;
+	}
+}
+
 #masthead {
-    z-index: 1000; /* Ensure it stays on top of other content */
-    background-color: #000; /* Ensure the background is not transparent */
+    z-index: 1000;
+    background-color: #000;
 }
 
 body.sticky-header #masthead {
     position: sticky;
-    top: 0; /* Stick to the top of the viewport */
+    top: 0;
 }
 
 #masthead #reading-progress {
     position: absolute;
-    bottom: -1px; /* Align the progress bar at the bottom of the header */
+    bottom: -1px;
     left: 0;
     width: 0;
     height: 5px;
     background-color: var(--accent);
-    z-index: 9999; /* Ensure it appears above other elements within the header */
+    z-index: 9999;
     transition: width 0.25s ease-out;
 }
 
 /* Main menu hidden by default */
 #primary-menu {
     position: absolute;
-    top: 100%; /* Positioned off-screen initially */
+    top: 100%;
     left: 0;
     width: 100%;
     z-index: 999999;
@@ -71,7 +88,7 @@ body.sticky-header #masthead {
     width: 100%;
     height: 100vh;
     overflow-y: auto;
-    z-index: 1000; /* Ensure the menu appears above other elements */
+    z-index: 1000;
 }
 
 #primary-menu li {
@@ -177,13 +194,13 @@ svg.submenu-indicator {
 }
 
 svg.search-top{
-	height: 1.15em; /* Adjust based on actual size requirement */
+	height: 1.15em;
     width: 1.15em;
 }
 
 svg.submenu-indicator{
 	margin: 0 -20px;
-	height: 1em; /* Adjust based on actual size requirement */
+	height: 1em;
     width: 1em;
 }
 
@@ -203,19 +220,19 @@ h1.site-title, p.site-title {
 }
 
 .menu-item-has-children > a {
-    position: relative; /* Ensures submenu indicator is positioned relative to this link */
+    position: relative;
 }
 
 #primary-menu .sub-menu.submenu-open {
     display: block;
-    max-height: 500px; /* Set a reasonable max height for open submenus */
-    padding-top: 10px; /* Adjust padding if needed */
+    max-height: 500px;
+    padding-top: 10px;
 }
 
 .submenu-indicator {
     position: absolute;
-    top: 50%; /* Center vertically */
-    right: 0; /* Align to the far right within the link area */
+    top: 50%;
+    right: 0;
     transform: translateY(-50%);
 }
 
@@ -241,14 +258,8 @@ header#masthead.site-header {
     padding: 10px 0;
 }
 
-
 /* Search Styles (within menu context)
    ========================================================================== */
-
-/* Styles for the search form itself (if needed, based on searchform.php) */
-.search-form {
-    /* Add specific styles if needed */
-}
 
 .search-wrap{
 	padding: 15px;
@@ -260,7 +271,6 @@ header#masthead.site-header {
     margin: 0 auto;
 }
 
-/* Old search form style - might not be used by menu search */
 #search-form input[type="submit"] {
 	border-radius: 0;
 	margin-left: -8px;
@@ -312,7 +322,7 @@ header#masthead.site-header {
 .menu-items.menu-open {
     transform: translateX(0);
 	overflow-y: auto;
-    max-height: 100vh; /* Ensure menu occupies the full viewport height */
+    max-height: 100vh;
 }
 
 /* Transform search icon to "X" when search is open */
@@ -326,17 +336,17 @@ input.s {
 	padding: 4px 54px 4px 10px;
 	height: 45px;
 	margin: 0;
-    background-color: var(--card-background); /* Match form input style */
-    border: 1px solid var(--border-color); /* Match form input style */
-    border-radius: 3px; /* Match form input style */
-    font-size: 14px; /* Match form input style */
-    color: var(--text-color); /* Match form input style */
+    background-color: var(--card-background);
+    border: 1px solid var(--border-color);
+    border-radius: 3px;
+    font-size: 14px;
+    color: var(--text-color);
 }
 
 input.s:focus {
 	padding-left: 10px;
 	text-indent: 0;
-    border: 1px solid var(--focus-border-color); /* Match form input style */
+    border: 1px solid var(--focus-border-color);
 }
 
 /* Prevent background scrolling when full menu is open */
@@ -344,41 +354,28 @@ body.menu-open {
     overflow: clip;
 }
 
-/* Allow page interaction when only search is open */
-body.search-only-open {
-    /* No overflow restriction - page remains interactive */
-}
-
-/* When only search is open, ensure search section spans full width while maintaining clickable background */
 body.search-only-open #primary-menu {
-    width: 100%; /* Allow full width for search section */
+    width: 100%;
     right: 0;
     left: 0;
+    pointer-events: none;
 }
 
-/* Ensure search section takes full available width */
 body.search-only-open .search-section {
     width: 100%;
-    margin: 0 auto; /* Center the search section */
-}
-
-/* Allow clicks through to page content when search-only is open */
-body.search-only-open #primary-menu {
-    pointer-events: none; /* Container doesn't block clicks */
-}
-
-body.search-only-open .search-section {
-    pointer-events: auto; /* But search form itself is interactive */
+    margin: 0 auto;
+    pointer-events: auto;
 }
 
 /* Footer links within the menu */
 .menu-footer-links{
 	min-height: 40px;
-    border-top: 1px solid var(--border-color); /* Add border like other menu items */
-    background-color: #000; /* Match menu background */
+    border-top: 1px solid var(--border-color);
+    background-color: #000;
     text-align: center;
     color: #fff;
 }
+
 .menu-footer-links a{
 	margin: 0 10px;
     color: #fff;
@@ -386,13 +383,14 @@ body.search-only-open .search-section {
     line-height: 2.5em;
 	font-size: 19px;
 }
-#menu-footer-bottom{ /* Style for the very bottom links if needed */
+
+#menu-footer-bottom{
 	display: flex;
 	margin: auto;
 	font-size: .9em;
 	justify-content: center;
 	border: none;
-    background-color: #000; /* Match menu background */
+    background-color: #000;
 }
 #extra-footer #menu-footer-bottom .menu-item a{
 	border: none;

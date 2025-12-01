@@ -1,7 +1,7 @@
 /*
 Theme Name: Extra Chill
 Author: Chubes
-Version: 1.0.6
+Version: 1.0.7
 Text Domain: extrachill
 */
 
@@ -55,7 +55,6 @@ a:focus {
 	outline: none;
 }
 
-
 embed, iframe, object {
 	max-width: 100%;
 }
@@ -65,10 +64,9 @@ embed, iframe, object {
     src: url('assets/fonts/WilcoLoftSans-Treble.woff2') format('woff2');
     font-style: normal;
     font-weight: 100 900; 
-	font-display: swap;
+    font-display: swap;
 }
 
-/* Lobster */
 @font-face {
     font-family: 'Lobster';
     src: url('assets/fonts/Lobster2.woff2') format('woff2');
@@ -76,8 +74,6 @@ embed, iframe, object {
     font-style: normal;
     font-display: swap;
 }
-
-
 
 h1, h2, h3, h4, h5, h6 {
 	color: var(--text-color);
@@ -118,7 +114,6 @@ body, button, input, select, textarea {
 	word-wrap: break-word;
 }
 
-
 p {
     margin: 20px 0;
 }
@@ -140,7 +135,6 @@ sub {
 }
 
 table {
-	/* tables still need 'cellspacing="0"' in the markup */
 	border-collapse: collapse;
 	border-spacing: 0;
 	margin: 0 0 1.5em;
@@ -162,7 +156,6 @@ ul {
 ol {
 	list-style: decimal;
 }
-
 
 /*
 ====> 3.4 Blockquote
@@ -265,15 +258,6 @@ dd {
 /*--------------------------------------------------------------
 4.0 Forms
 --------------------------------------------------------------*/
-
-
-input[type="text"], input[type="email"], input[type="search"], input[type="password"] {
-	appearance: none !important;
-}
-
-textarea {
-	appearance: none !important;
-}
 
 input[type="text"], input[type="email"], input[type="url"], input[type="password"] {
 	border: 1px solid var(--border-color);
@@ -610,14 +594,11 @@ body {
 .extrachill-content:not(:has(.sidebar)) {
 	display: block;
 }
-.instagram-media{
-	margin:auto !important;
-}
 
 /* Full-width breakout utility - breaks out of .extrachill-content container */
-.full-width-breakout {
+.extrachill-content .full-width-breakout {
 	width: 100vw;
-	max-width: 100vw !important;
+	max-width: 100vw;
 	margin-left: 50%;
 	transform: translateX(-50%);
 	padding-left: max(1.5em, env(safe-area-inset-left));
@@ -647,12 +628,10 @@ body {
 	font-size: 28px;
 }
 
-
 .entry-content ul {
 	list-style: square;
 	margin-bottom: 25px;	
 	margin-left:30px;
-
 }
 
 .entry-content ol {
@@ -664,7 +643,6 @@ body {
 	font-size: inherit;
 	margin:10px 0;
 }
-
 
 /*
 ====> 13.6 Pagination
@@ -769,7 +747,6 @@ text-decoration: none;
 padding:3px;
 }
 
-
 .footer-copyright {
 	padding: 25px 0 15px 0;
     text-align: center;
@@ -779,26 +756,10 @@ padding:3px;
 	padding: 25px;
 }
 @media (max-width: 768px) {
-	.site-title a {
-		font-size: 34px;
-	}
-
 	.wp-block-embed{
 		text-align: center;
 	}
 }
-
-@media (max-width: 425px) {
-	.site-title a {
-		font-size: 32px;
-	}
-}
-@media (max-width: 350px) {
-	.site-title a {
-		font-size: 27px;
-	}
-}
-
 
 /*--------------------------------------------------------------
 16.0 Responsive Structure
@@ -809,7 +770,7 @@ padding:3px;
 
 @media screen and (max-width: 768px) {
 	.mobile-only {
-		display: block; /* show image on small screens */
+		display: block;
 	}
 	.extrachill-content {
 		grid-template-columns: 1fr; /* single column on mobile */
@@ -825,7 +786,6 @@ padding:3px;
 /*--------------------------------------------------------------
 18.0 single post pagination
 --------------------------------------------------------------*/
-/* image captions*/
 .wp-block-image{
 	text-align: center;
 }
@@ -838,19 +798,7 @@ div.article-container :before {
     display: inline;
 }
 
-
-
-
-
-
-
-
-
-
-
-/* Forum post and read-more buttons use explicit button classes in HTML */
-
-/* Taxonomy Badges - Global Base Styles */
+/* Taxonomy Badges Container */
 .taxonomy-badges {
   display: flex;
   flex-wrap: wrap;
@@ -859,19 +807,6 @@ div.article-container :before {
   align-items: center;
   position: relative;
   z-index: 2;
-}
-.taxonomy-badge {
-  font-size: 0.75rem;
-  padding: 0.25rem 0.75rem;
-  border-radius: 50px;
-  font-weight: 500;
-  line-height: 1;
-  text-decoration: none;
-  display: inline-block;
-  transition: background 0.18s, color 0.18s;
-}
-.taxonomy-badge:hover {
-  text-decoration: none;
 }
 
 /*--------------------------------------------------------------

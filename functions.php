@@ -68,6 +68,7 @@ require_once(EXTRACHILL_INCLUDES_DIR . '/core/templates/taxonomy-badges.php');
 
 require_once(EXTRACHILL_INCLUDES_DIR . '/core/actions.php');
 require_once(EXTRACHILL_INCLUDES_DIR . '/core/assets.php');
+require_once(EXTRACHILL_INCLUDES_DIR . '/core/icons.php');
 require_once(EXTRACHILL_INCLUDES_DIR . '/core/view-counts.php');
 require_once(EXTRACHILL_INCLUDES_DIR . '/core/rewrite.php');
 require_once(EXTRACHILL_INCLUDES_DIR . '/core/template-router.php');

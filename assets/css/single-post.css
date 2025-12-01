@@ -34,6 +34,11 @@
   }
 }
 
+/* Instagram Embed Centering */
+.entry-content .instagram-media {
+	margin: auto;
+}
+
 /* Related Taxonomies Section (moved from style.css) */
 .related-tax-section {
   margin: 3em auto 2em auto;

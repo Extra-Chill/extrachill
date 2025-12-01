@@ -11,7 +11,7 @@ Comprehensive user-facing documentation for the ExtraChill WordPress theme.
 
 ## Overview
 
-ExtraChill is a custom WordPress theme serving a music community ecosystem across a multisite network. The theme powers all ten sites in the Extra Chill Platform multisite network with plugin integration architecture and modern WordPress features.
+ExtraChill is a custom WordPress theme serving a music community ecosystem across a multisite network. The theme powers all 8 active sites (Blog IDs 1–5, 7–9) in the Extra Chill Platform network, with horoscope.extrachill.com planned as Blog ID 10.
 
 **Version**: 1.0.6
 **Author**: Chubes
@@ -231,7 +231,7 @@ All taxonomies include REST API support and block editor integration.
 
 ## Multisite Network
 
-Theme serves all 10 sites in the Extra Chill Platform network:
+Theme serves all 8 active sites in the Extra Chill Platform network (Blog ID 6 unused; horoscope.extrachill.com planned for future Blog ID 10):
 
 1. **extrachill.com** - Main music journalism and content site (Blog ID 1)
 2. **community.extrachill.com** - Community forums and user hub (Blog ID 2)
@@ -241,7 +241,6 @@ Theme serves all 10 sites in the Extra Chill Platform network:
 6. **events.extrachill.com** - Event calendar hub powered by Data Machine (Blog ID 7)
 7. **stream.extrachill.com** - Live streaming platform (Phase 1 UI) (Blog ID 8)
 8. **newsletter.extrachill.com** - Newsletter management and archive hub (Blog ID 9)
-9. **horoscope.extrachill.com** - Wook-themed daily horoscopes via Data Machine AI (Blog ID 10)
 
 Each site uses the same theme with different plugin integrations and template overrides via `extrachill_template_*` filters. Cross-site features handled by network-activated plugins (extrachill-multisite, extrachill-search, extrachill-users). Theme directly queries bbPress data for community activity with graceful fallback.
 

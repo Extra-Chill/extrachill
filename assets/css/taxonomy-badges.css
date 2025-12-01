@@ -1,12 +1,18 @@
 /*
- * Badge Colors
- * Organized by: Festivals, Locations, Categories
- *
- * Move all badge color rules here for maintainability and modularity.
+ * Taxonomy Badges
+ * Single source of truth for all badge styles (structure + colors)
+ * Organized by: Base, Festivals, Locations, Categories, Venues
  */
 
-/* === Default Badge Colors (Fallback) === */
+/* === Base Badge Styles === */
 .taxonomy-badge {
+  font-size: 0.75rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 50px;
+  font-weight: 500;
+  line-height: 1;
+  text-decoration: none;
+  display: inline-block;
   background-color: var(--card-background);
   color: var(--link-color);
   border: 1px solid var(--border-color);
@@ -17,6 +23,7 @@
   background-color: #083b6c;
   color: #fff;
   transform: translateY(-1px);
+  text-decoration: none;
 }
 
 /* === Festival Badges === */
@@ -78,40 +85,39 @@
 	color: #fff;
 }
 
-/* Added Festival Badges */
 .taxonomy-badge.festival-outside-lands {
-	background-color: #C84B31; /* Golden Gate Orange/Red */
+	background-color: #C84B31;
 	color: #fff;
 }
 
 .taxonomy-badge.festival-shambhala {
-	background-color: #9B59B6; /* Vibrant Purple */
+	background-color: #9B59B6;
 	color: #fff;
 }
 
 .taxonomy-badge.festival-new-orleans-jazz-heritage-festival {
-	background-color: #DAA520; /* Mardi Gras Gold */
-	color: #3A1F3F; /* Dark Purple Text */
+	background-color: #DAA520;
+	color: #3A1F3F;
 }
 
 .taxonomy-badge.festival-electric-daisy-carnival {
-	background-color: #FF00FF; /* Vibrant Electric Pink */
+	background-color: #FF00FF;
 	color: #ffffff;
 }
 
 .taxonomy-badge.festival-burning-man {
-	background-color: #8B4513; /* Desert Sand Brown */
-	color: #FFA500; /* Flame Orange */
+	background-color: #8B4513;
+	color: #FFA500;
 }
 
 .taxonomy-badge.festival-farm-aid {
-	background-color: #228B22; /* Farm Green */
-	color: #FFFF00; /* Bright Yellow */
+	background-color: #228B22;
+	color: #FFFF00;
 }
 
 .taxonomy-badge.festival-hopscotch-festival {
-	background-color: #6B73FF; /* Indie Purple/Blue */
-	color: #ffffff; /* White text */
+	background-color: #6B73FF;
+	color: #ffffff;
 }
 
 .taxonomy-badge.festival-boogieman-fest {
@@ -149,8 +155,8 @@
 	color: #fff;
 }
 .taxonomy-badge.location-charlotte {
-	background-color: #1D1160; /* Hornets Purple */
-	color: #00B6B1; /* Hornets Teal */
+	background-color: #1D1160;
+	color: #00B6B1;
 }
 .taxonomy-badge.location-chicago {
 	background-color:#41B6E6;
@@ -201,7 +207,7 @@
 	color: #000;
 }
 .taxonomy-badge.location-las-vegas {
-	background-color: #FFBF00; /* Vegas Gold */
+	background-color: #FFBF00;
 	color: #000000;
 }
 .taxonomy-badge.location-new-jersey {
@@ -282,4 +288,3 @@
 	background-color: #17b9bb;
 	color: #fff;
 }
-
