@@ -1,10 +1,10 @@
 # ExtraChill WordPress Theme
 
-A custom WordPress theme (v1.0.5) powering the ExtraChill Platform multisite network with 10 interconnected sites, featuring blog content, community integration, festival coverage, and e-commerce functionality.
+A custom WordPress theme (v1.0.7) powering the ExtraChill Platform multisite network with 8 active interconnected sites (Blog ID 6 unused), featuring blog content, community integration, festival coverage, and e-commerce functionality. Horoscope site is planned for future Blog ID 10.
 
 ## Overview
 
-ExtraChill is a modern, performance-optimized WordPress theme (v1.0.5) designed specifically for the Extra Chill Platform multisite network. It serves as the frontend for all 10 interconnected sites:
+ExtraChill is a modern, performance-optimized WordPress theme (v1.0.7) designed specifically for the Extra Chill Platform multisite network. It serves as the frontend for all 8 active interconnected sites (Blog ID 6 unused) with horoscope.extrachill.com planned for future Blog ID 10:
 
 - **extrachill.com** (Blog ID 1): Music journalism, artist features, and industry coverage
 - **community.extrachill.com** (Blog ID 2): Community forums with bbPress integration
@@ -14,7 +14,6 @@ ExtraChill is a modern, performance-optimized WordPress theme (v1.0.5) designed 
 - **events.extrachill.com** (Blog ID 7): Event calendar hub
 - **stream.extrachill.com** (Blog ID 8): Live streaming platform
 - **newsletter.extrachill.com** (Blog ID 9): Newsletter management and archive
-- **horoscope.extrachill.com** (Blog ID 10): Daily horoscopes
 - **extrachill.link**: Artist link pages (domain-mapped to artist.extrachill.com)
 
 ## Key Features
@@ -40,7 +39,7 @@ ExtraChill is a modern, performance-optimized WordPress theme (v1.0.5) designed 
 - **Component Styles**: Dedicated files for badges (`badge-colors.css`), editor styles (`editor-style.css`), search results (`search.css`), shared tabs (`shared-tabs.css`)
 
 ### 🤝 Community Integration
-- **WordPress Multisite**: Native cross-domain authentication and user management across 10 sites
+- **WordPress Multisite**: Native cross-domain authentication and user management across 8 active sites
 - **Shared Community Activity Helper**: Centralized reusable library (`inc/core/templates/community-activity.php`) provides `extrachill_get_community_activity_items()` and `extrachill_render_community_activity()` functions
 - **Multi-Site Activity Queries**: Queries BOTH community.extrachill.com (blog ID 2) AND artist.extrachill.com (blog ID 4) for bbPress topics/replies
 - **Activity Integration**: Merges activities from both sites into unified, chronologically sorted list with 10-minute caching
@@ -467,6 +466,6 @@ This theme is proprietary software developed for ExtraChill.com. All rights rese
 
 **Theme**: ExtraChill
 **Author**: Chubes
-**Version**: 1.0.0
+**Version**: 1.0.7
 **WordPress**: 5.0+
 **License**: Proprietary

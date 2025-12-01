@@ -1,9 +1,8 @@
 <?php
 /**
- * Social Links Component - Clean Function-Only Pattern
+ * Social Links Component
  *
- * Displays ExtraChill social media links with FontAwesome SVG icons.
- * Follows clean sidebar architecture with function-only approach and action hooks.
+ * Displays ExtraChill social media links with SVG sprite icons.
  *
  * @package ExtraChill
  * @since 1.0.0
@@ -12,18 +11,12 @@
 if ( ! function_exists( 'extrachill_social_links' ) ) :
     /**
      * Display ExtraChill social media links
-     *
-     * Centralized social media configuration for consistent display across theme.
-     * Uses FontAwesome SVG sprite with cache busting.
-     *
-     * @since 1.0.0
      */
     function extrachill_social_links() {
-        // ExtraChill social media platform configuration
         $social_links = [
             [
                 'url'   => 'https://facebook.com/extrachill',
-                'icon'  => 'facebook-f',
+                'icon'  => 'facebook',
                 'label' => 'Facebook',
             ],
             [
@@ -53,19 +46,13 @@ if ( ! function_exists( 'extrachill_social_links' ) ) :
             ],
         ];
 
-        // FontAwesome SVG sprite with cache busting via file modification time
-        $svg_file_path = get_template_directory() . '/assets/fonts/fontawesome.svg';
-        $svg_version = file_exists( $svg_file_path ) ? filemtime( $svg_file_path ) : time();
         ?>
-
         <div class="social-links">
             <ul>
                 <?php foreach ( $social_links as $social ): ?>
                     <li>
                         <a href="<?php echo esc_url( $social['url'] ); ?>" target="_blank" aria-label="<?php echo esc_attr( $social['label'] ); ?>">
-                            <svg class="social-icon-svg">
-                                <use href="<?php echo get_template_directory_uri(); ?>/assets/fonts/fontawesome.svg?v=<?php echo $svg_version; ?>#<?php echo esc_attr( $social['icon'] ); ?>"></use>
-                            </svg>
+                            <?php echo ec_icon( $social['icon'], 'social-icon-svg' ); ?>
                         </a>
                     </li>
                 <?php endforeach; ?>

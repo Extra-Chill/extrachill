@@ -149,8 +149,7 @@ a.card-link-target:hover,
     outline: none;
 }
 
-
-/* Archive-specific button styling - buttons should use .button-1 class in HTML */
+/* Archive-specific button styling */
 .archive-card .read-more-button {
     font-weight: 500;
 }
@@ -164,10 +163,8 @@ a.card-link-target:hover,
 .archive .below-entry-meta-left .meta-top-row, .search .below-entry-meta-left .meta-top-row {
     display: block;
     gap: 4px; /* Space between date and author */
-    margin-bottom: 4px; /* Space below the first row */
+    margin-bottom: 4px;
 }
-
-
 
 .archive .below-entry-meta, .search .below-entry-meta, .single-related-posts .below-entry-meta {
 	border: none;

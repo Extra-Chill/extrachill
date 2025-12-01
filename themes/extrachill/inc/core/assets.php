@@ -15,7 +15,7 @@ function extrachill_enqueue_navigation_assets() {
         wp_enqueue_style(
             'extrachill-nav-styles',
             get_theme_file_uri('/assets/css/nav.css'),
-            array(),
+            array('extrachill-root'),
             filemtime( $nav_css_path ),
             'all'
         );
@@ -34,10 +34,7 @@ function extrachill_enqueue_navigation_assets() {
 }
 add_action('wp_enqueue_scripts', 'extrachill_enqueue_navigation_assets');
 
-function extrachill_enqueue_fontawesome() {
-    wp_enqueue_style('font-awesome', '//cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css');
-}
-add_action('wp_enqueue_scripts', 'extrachill_enqueue_fontawesome');
+
 
 function extrachill_enqueue_archive_scripts() {
     if (is_archive()) {
@@ -96,18 +93,18 @@ function extrachill_enqueue_root_styles() {
 }
 add_action( 'wp_enqueue_scripts', 'extrachill_enqueue_root_styles', 5 );
 
-function extrachill_enqueue_main_styles() {
-    $badge_colors_path = get_stylesheet_directory() . '/assets/css/badge-colors.css';
-    if ( file_exists( $badge_colors_path ) ) {
+function extrachill_enqueue_taxonomy_badges() {
+    $taxonomy_badges_path = get_stylesheet_directory() . '/assets/css/taxonomy-badges.css';
+    if ( file_exists( $taxonomy_badges_path ) ) {
         wp_enqueue_style(
-            'badge-colors',
-            get_stylesheet_directory_uri() . '/assets/css/badge-colors.css',
+            'extrachill-taxonomy-badges',
+            get_stylesheet_directory_uri() . '/assets/css/taxonomy-badges.css',
             array('extrachill-root'),
-            filemtime( $badge_colors_path )
+            filemtime( $taxonomy_badges_path )
         );
     }
 }
-add_action( 'wp_enqueue_scripts', 'extrachill_enqueue_main_styles', 10 );
+add_action( 'wp_enqueue_scripts', 'extrachill_enqueue_taxonomy_badges', 10 );
 
 function extrachill_modify_default_style() {
     wp_dequeue_style('extrachill-style');
@@ -197,7 +194,7 @@ function extrachill_register_shared_tabs() {
     wp_register_script(
         'extrachill-shared-tabs',
         get_template_directory_uri() . '/assets/js/shared-tabs.js',
-        array( 'jquery' ),
+        array(),
         filemtime( get_template_directory() . '/assets/js/shared-tabs.js' ),
         true
     );

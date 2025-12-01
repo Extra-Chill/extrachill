@@ -9,12 +9,7 @@
  * @since 1.0.0
  */
 
-$svg_path = get_template_directory() . '/assets/fonts/fontawesome.svg';
-$svg_version = file_exists($svg_path) ? filemtime($svg_path) : '';
-
 add_action('extrachill_header_top_right', function() {
-    $svg_path = get_template_directory() . '/assets/fonts/fontawesome.svg';
-    $svg_version = file_exists($svg_path) ? filemtime($svg_path) : '';
     ?>
     <nav id="site-navigation" class="main-navigation" role="navigation" aria-label="Main Navigation">
         <button class="menu-toggle-container" role="button" aria-expanded="false" tabindex="0" aria-label="Toggle Menu">
@@ -40,9 +35,7 @@ add_action('extrachill_header_top_right', function() {
     </nav>
 
     <div class="search-icon header-right-icon">
-        <svg class="search-top">
-            <use href="<?php echo get_template_directory_uri(); ?>/assets/fonts/fontawesome.svg<?php echo $svg_version ? '?v=' . $svg_version : ''; ?>#magnifying-glass-solid"></use>
-        </svg>
+        <?php echo ec_icon('search', 'search-top'); ?>
     </div>
     <?php
 }, 10);

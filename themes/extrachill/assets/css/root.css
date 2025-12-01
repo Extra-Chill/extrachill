@@ -145,4 +145,22 @@ input.button-large,
 button.button-large {
   padding: 12px 24px;
   font-size: 16px;
+}
+
+/* SVG Icon System */
+.ec-icon {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  vertical-align: -0.125em;
+  fill: currentColor;
+}
+
+@keyframes ec-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.ec-icon-spin {
+  animation: ec-spin 1s linear infinite;
 } 
