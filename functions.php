@@ -81,6 +81,7 @@ require_once(EXTRACHILL_INCLUDES_DIR . '/sidebar/recent-posts.php');
 require_once(EXTRACHILL_INCLUDES_DIR . '/sidebar/community-activity.php');
 
 require_once(EXTRACHILL_INCLUDES_DIR . '/footer/back-to-home-link.php');
+require_once(EXTRACHILL_INCLUDES_DIR . '/footer/online-users-stats.php');
 
 function extrachill_remove_menu_admin_pages() {
     remove_submenu_page('themes.php', 'nav-menus.php');

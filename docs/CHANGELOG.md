@@ -3,7 +3,24 @@
 All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0/).
+
+## [1.0.9] - 2025-12-02
+
+### Added
+- Online Users Stats widget displaying network-wide online users count and total members in footer
+- Intelligent taxonomy badge display ordering system with defined priority sequence
+- Susto artist badge with custom color scheme (#20B3A9 background, #F4FFFF text)
+
+### Changed
+- Improved archive card title line height for better readability
+- Enhanced taxonomy badge organization with systematic sorting (category, location, festival, venue, artist, post_tag)
+- Updated documentation to reflect current version
+
+### Technical
+- Added `inc/footer/online-users-stats.php` for community statistics display
+- Enhanced `inc/core/templates/taxonomy-badges.php` with sorting algorithm
+- Integrated online users stats via `extrachill_before_footer` action hook
 
 ## [1.0.8] - 2025-12-01
 

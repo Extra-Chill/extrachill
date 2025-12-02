@@ -52,6 +52,23 @@ function extrachill_display_taxonomy_badges( $post_id = null, $args = array() ) 
     $post_type = get_post_type( $post_id );
     $taxonomies = get_object_taxonomies( $post_type );
 
+    // Define display order for taxonomy badges
+    $taxonomy_order = array(
+        'category' => 1,
+        'location' => 2,
+        'festival' => 3,
+        'venue'    => 4,
+        'artist'   => 5,
+        'post_tag' => 99,
+    );
+
+    // Sort taxonomies by defined order (unlisted = 50, before post_tag)
+    usort( $taxonomies, function( $a, $b ) use ( $taxonomy_order ) {
+        $order_a = isset( $taxonomy_order[ $a ] ) ? $taxonomy_order[ $a ] : 50;
+        $order_b = isset( $taxonomy_order[ $b ] ) ? $taxonomy_order[ $b ] : 50;
+        return $order_a - $order_b;
+    } );
+
      // Process each taxonomy dynamically
      foreach ( $taxonomies as $taxonomy ) {
          // Exclude author taxonomy from badge system
