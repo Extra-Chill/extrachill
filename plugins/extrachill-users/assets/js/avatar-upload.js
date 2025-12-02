@@ -7,6 +7,8 @@ document.addEventListener('DOMContentLoaded', function() {
 		return;
 	}
 
+	const spriteUrl = (typeof ecAvatarUpload !== 'undefined') ? ecAvatarUpload.spriteUrl : '';
+
 	uploadInput.addEventListener('change', function(e) {
 		const file = this.files[0];
 		if (!file) {
@@ -17,7 +19,7 @@ document.addEventListener('DOMContentLoaded', function() {
 		formData.append('file', file);
 
 		uploadInput.disabled = true;
-		messageContainer.innerHTML = '<p style="text-align: center;"><i class="fa fa-spinner fa-spin fa-2x"></i> Uploading avatar, please wait...</p>';
+		messageContainer.innerHTML = '<p style="text-align: center;"><svg class="ec-icon ec-icon-spin" style="width: 2em; height: 2em;"><use href="' + spriteUrl + '#spinner"></use></svg> Uploading avatar, please wait...</p>';
 
 		fetch('/wp-json/extrachill/v1/users/avatar', {
 			method: 'POST',

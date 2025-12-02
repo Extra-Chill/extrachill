@@ -5,7 +5,7 @@
  * Network-wide license validation and creation via user meta.
  *
  * @package ExtraChill\Users
- * @since 1.0.0
+ * @since 0.1.0
  */
 
 /**
@@ -14,7 +14,7 @@
  * Checks user meta for ad-free license purchase.
  * Works with logged-in users or username lookup.
  *
- * @since 1.0.0
+ * @since 0.1.0
  * @param array|null $userDetails Optional user details with 'username' key
  * @return bool True if user has ad-free license
  */
@@ -53,7 +53,7 @@ function is_user_ad_free($userDetails = null) {
  * Central function for license creation regardless of which site/plugin initiates purchase.
  * Stores license in user meta for network-wide availability.
  *
- * @since 1.1.0
+ * @since 0.1.0
  * @param string $username Community username
  * @param array $order_data Order details array with 'order_id' and optional 'timestamp'
  * @return bool|WP_Error True on success, WP_Error on failure

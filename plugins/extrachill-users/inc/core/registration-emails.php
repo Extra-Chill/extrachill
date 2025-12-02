@@ -25,7 +25,7 @@ function extrachill_notify_admin_new_user($user_id) {
     $message .= "Username: " . $username . "\n";
     $message .= "Email: " . $email . "\n";
     $message .= "User ID: " . $user_id . "\n";
-    $message .= "Registration Page: " . ($registration_page ? esc_url(home_url($registration_page)) : 'Unknown') . "\n";
+    $message .= "Registration Page: " . ($registration_page ? esc_url($registration_page) : 'Unknown') . "\n";
     $message .= "Artist: " . (isset($_POST['user_is_artist']) && $_POST['user_is_artist'] == '1' ? 'Yes' : 'No') . "\n";
     $message .= "Professional: " . (isset($_POST['user_is_professional']) && $_POST['user_is_professional'] == '1' ? 'Yes' : 'No') . "\n";
     $message .= "\nUser Profile: " . ec_get_user_profile_url($user_id, $email);

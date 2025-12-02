@@ -21,11 +21,12 @@ add_filter( 'extrachill_create_community_user', 'ec_multisite_create_community_u
  */
 function ec_multisite_create_community_user( $user_id, $registration_data ) {
 	// Extract registration data
-	$username           = isset( $registration_data['username'] ) ? $registration_data['username'] : '';
-	$password           = isset( $registration_data['password'] ) ? $registration_data['password'] : '';
-	$email              = isset( $registration_data['email'] ) ? $registration_data['email'] : '';
-	$user_is_artist     = isset( $registration_data['user_is_artist'] ) ? $registration_data['user_is_artist'] : false;
+	$username             = isset( $registration_data['username'] ) ? $registration_data['username'] : '';
+	$password             = isset( $registration_data['password'] ) ? $registration_data['password'] : '';
+	$email                = isset( $registration_data['email'] ) ? $registration_data['email'] : '';
+	$user_is_artist       = isset( $registration_data['user_is_artist'] ) ? $registration_data['user_is_artist'] : false;
 	$user_is_professional = isset( $registration_data['user_is_professional'] ) ? $registration_data['user_is_professional'] : false;
+	$registration_page    = isset( $registration_data['registration_page'] ) ? $registration_data['registration_page'] : '';
 
 	// Validate required fields
 	if ( empty( $username ) || empty( $password ) || empty( $email ) ) {
@@ -49,6 +50,7 @@ function ec_multisite_create_community_user( $user_id, $registration_data ) {
 	if ( ! is_wp_error( $user_id ) ) {
 		update_user_meta( $user_id, 'user_is_artist', $user_is_artist ? '1' : '0' );
 		update_user_meta( $user_id, 'user_is_professional', $user_is_professional ? '1' : '0' );
+		update_user_meta( $user_id, 'registration_page', $registration_page );
 	}
 
 	// Restore original blog context if we switched

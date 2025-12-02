@@ -1,13 +1,13 @@
 # ExtraChill Users
 
-**THE SINGLE SOURCE OF TRUTH FOR USER MANAGEMENT** - Network-activated WordPress plugin providing all user-related functionality for the ExtraChill Platform multisite network. This plugin is the centralized authority for authentication, registration, password reset, cross-site user management, team member system, profile URL resolution, network-wide avatar menu, custom avatars, and online user tracking across all 10 sites.
+**THE SINGLE SOURCE OF TRUTH FOR USER MANAGEMENT** - Network-activated WordPress plugin providing all user-related functionality for the ExtraChill Platform multisite network. This plugin is the centralized authority for authentication, registration, password reset, cross-site user management, team member system, profile URL resolution, network-wide avatar menu, custom avatars, and online user tracking across all 8 active sites (Blog IDs 1–5, 7–9) with horoscope planned for Blog ID 10.
 
 User management functionality was migrated here from extrachill-multisite plugin to follow the single responsibility principle. All user-specific features, authentication flows, and user data operations are consolidated in this plugin.
 
 ## Plugin Information
 
 - **Name**: Extra Chill Users
-- **Version**: 1.1.0
+- **Version**: 0.1.1
 - **Text Domain**: `extrachill-users`
 - **Author**: Chris Huber
 - **Author URI**: https://chubes.net
@@ -47,91 +47,41 @@ User management functionality was migrated here from extrachill-multisite plugin
 - `extrachill_hide_admin_bar_for_non_admins()` - Hides admin bar for non-admin users
 - `extrachill_prevent_admin_auth_redirect()` - Filters login redirect to prevent wp-admin access
 
-#### Authentication System (`inc/login.php`, `inc/register.php`, `inc/logout.php`)
+#### Authentication System (`inc/auth/{login,register,password-reset,logout}.php` with supporting logic in `inc/core/`)
 
-**Login System** (`inc/login.php`):
-- Custom login form with error handling and validation
-- Redirects wp-login.php access to custom `/login/` page for non-logged-in users
-- Login failure handling with user-friendly error messages
-- Success redirects with `?login=success` parameter for universal success notices
-- Preserves `redirect_to` parameter for post-login routing
-- Uses WordPress native authentication via wp-login.php POST submission
+**Auth Handlers (inc/auth/)**:
+- `inc/auth/login.php` monitors failed login attempts, intercepts `authenticate`, and routes wp-login.php access through the `/login/` UI without exposing wp-admin.
+- `inc/auth/register.php` validates registration submissions (Turnstile, roster invites, newsletter integration) and delegates user creation to the core helpers before auto-logging the user via `EC_Redirect_Handler`.
+- `inc/auth/password-reset.php` verifies `admin-post.php` submissions through `EC_Redirect_Handler::from_post()`, enforces nonces, and keeps the email/request/reset flow inside the custom UI while relying on WordPress reset helpers.
+- `inc/auth/logout.php` filters logout URLs and processes custom logout requests with nonce verification so redirects stay consistent.
 
-**Registration System** (`inc/register.php`):
-- Custom registration form with user type selection (artist/professional checkboxes)
-- Cloudflare Turnstile captcha integration via `ec_render_turnstile_widget()` and `ec_verify_turnstile_response()` from extrachill-multisite
-- Creates users on community.extrachill.com via `extrachill_create_community_user` filter
-- Newsletter subscription integration via `extrachill_multisite_subscribe($email, 'registration')` function from extrachill-newsletter plugin
-- Roster invitation acceptance during registration (extrachill-artist-platform integration)
-- Auto-login after successful registration with auth cookie
-- Success redirects with `?registration=success` parameter for universal success notices
-- Universal success notices displayed via `extrachill_before_body_content` theme hook
+**Business Logic (`inc/core/`)**:
+- `inc/core/user-creation.php` remains the single source of truth for community-extrachill.com user creation and artist/professional metadata.
+- `inc/core/registration-emails.php` sends branded HTML welcome messages immediately after registration.
+- `inc/core/online-users.php` records network-wide activity for online status, notices, and dashboard widgets.
 
-**Logout System** (`inc/logout.php`):
-- Not implemented as separate file - WordPress native logout functionality used
+**Block Forms**:
+- The compiled `build/login-register` block renders the login/register interfaces (tabs, Turnstile widget, roster invites, `source_url`/`success_redirect_url`, and universal notices) and posts to `admin-post.php` routes handled by the auth handlers.
+- The compiled `build/password-reset` block renders the email request and reset forms inline, posts to the `admin-post.php` endpoints secured by `EC_Redirect_Handler`, and keeps users on the same UI while WordPress resets their password.
 
-**Newsletter Integration**:
-- Registers 'registration' context via `newsletter_form_integrations` filter
-- Zero hardcoded Sendy credentials - all configuration via extrachill-newsletter admin UI
-- Subscription handled via extrachill-newsletter plugin function during registration
-
-**Roster Invitation Flow**:
-- Detects `?action=bp_accept_invite&token=...&artist_id=...` URL parameters
-- Validates invitation token against pending invitations via `bp_get_pending_invitations()`
-- Pre-fills email field for invited users
-- Displays invitation notice message during registration
-- Automatically joins invited user to artist roster after registration via `bp_add_artist_membership()`
-- Removes pending invitation via `bp_remove_pending_invitation()`
-- Redirects to artist profile page after successful registration with invitation
-
-#### Password Reset System (`inc/password-reset.php`)
-
-**Custom Password Reset Flow**:
-- Filters `lostpassword_url` to point to https://community.extrachill.com/reset-password/
-- Two-step process: email submission → password reset form
-- Uses WordPress native functions internally (`get_password_reset_key()`, `check_password_reset_key()`, `reset_password()`)
-- Custom UI that never exposes wp-admin or wp-login.php
-- 24-hour expiration for reset links (WordPress default)
-- Auto-login after successful password reset
-- Redirect to homepage with `?password-reset=success` parameter
-
-**Email Request Form**:
-- User enters email address
-- Security-conscious messaging (doesn't reveal if account exists)
-- Sends HTML email with reset link to community.extrachill.com/reset-password/?action=reset&key=...&login=...
-- Transient-based success/error message display
-
-**Password Reset Form**:
-- Validates reset key using `check_password_reset_key()`
-- Password confirmation with 8-character minimum
-- Sets new password via `reset_password()`
-- Auto-login via `wp_set_auth_cookie()`
-- Invalid/expired links redirect to request form with error message
-
-#### Online Users Tracking (`inc/online-users.php`, `inc/online-users-display.php`)
+#### Online Users Tracking (`inc/core/online-users.php`)
 
 **Network-Wide Activity Tracking**:
-- Records user activity across all 10 sites in the multisite network
-- Centralized data storage on community.extrachill.com as single source of truth
+- Records user activity across all 8 active sites in the multisite network (Blog IDs 1–5, 7–9)
+- Centralized data storage on community.extrachill.com as the single source of truth
 - 15-minute activity window for "online" status determination
-- Updates `last_active` user meta via `wp` action hook on all sites
+- Updates `last_active` user meta via the `wp` action hook on all sites
 
 **Performance Optimizations**:
 - Transient caching for online user counts (5-minute cache)
-- Per-user activity update throttling (15-minute minimum between updates)
+- Per-user activity update throttling (at least 15 minutes between updates)
 - Cached "most ever online" check (5-minute cache)
 - Total members count cached for 24 hours
 
 **Most Ever Online Tracking**:
-- Tracks highest concurrent user count with date
+- Tracks highest concurrent user count with recorded date
 - Stored in `most_ever_online` option on community.extrachill.com
 - Format: `array('count' => 123, 'date' => 'm/d/Y')`
-
-**Display Widget** (`inc/online-users-display.php`):
-- Shows network-wide "Online Now" count with green indicator
-- Shows "Total Members" count
-- Styled stats card with Font Awesome icons
-- Queries community.extrachill.com for consistent data
 
 #### Custom Avatar System (`inc/avatar-display.php`, `inc/avatar-upload.php`)
 
@@ -209,7 +159,7 @@ User management functionality was migrated here from extrachill-multisite plugin
 6. Restore original blog context
 7. Return user_id or WP_Error
 
-**Used By**: Registration system in this plugin (`inc/register.php`) for network-wide user creation
+**Used By**: Registration handler (`inc/auth/register.php`) for network-wide user creation
 
 #### Artist Profile Functions (`inc/artist-profiles.php`)
 **Purpose**: Network-wide canonical functions for user-artist profile relationships
@@ -398,13 +348,15 @@ extrachill-users/
 │   ├── author-links.php           (profile URL resolution)
 │   ├── user-creation.php          (community user creation filter)
 │   ├── artist-profiles.php        (artist profile functions - network-wide canonical)
-│   ├── login.php                  (login system)
-│   ├── register.php               (registration system)
-│   ├── logout.php                 (logout system - minimal/placeholder)
-│   ├── password-reset.php         (password reset system)
-│   ├── registration-emails.php    (welcome email system)
-│   ├── online-users.php           (activity tracking)
-│   ├── online-users-display.php   (online stats widget)
+│   ├── auth/
+│   │   ├── login.php              (login handler with `EC_Redirect_Handler`)
+│   │   ├── register.php           (registration handler with newsletter, roster require)
+│   │   ├── logout.php             (custom logout handler)
+│   │   └── password-reset.php     (password reset handler)
+│   ├── core/
+│   │   ├── online-users.php       (activity tracking)
+│   │   ├── registration-emails.php (welcome email system)
+│   │   └── user-creation.php      (community user creation filter)
 │   ├── avatar-display.php         (custom avatar display)
 │   ├── avatar-upload.php          (avatar upload functionality)
 │   ├── avatar-menu.php            (avatar menu display)
@@ -470,18 +422,18 @@ try {
 4. `inc/user-creation.php` - User creation filter
 5. `inc/artist-profiles.php` - Artist profile functions (network-wide canonical)
 6. `inc/assets.php` - Asset management
-7. `inc/login.php` - Login system
-8. `inc/register.php` - Registration system
-9. `inc/logout.php` - Logout system
-10. `inc/registration-emails.php` - Welcome email system
-11. `inc/password-reset.php` - Password reset system
-12. `inc/online-users.php` - Activity tracking
+ 7. `inc/auth/login.php` - Login handler (EC_Redirect_Handler)
+ 8. `inc/auth/register.php` - Registration handler with newsletter and roster invite handling
+ 9. `inc/auth/logout.php` - Custom logout handler
+10. `inc/core/registration-emails.php` - Welcome email system
+11. `inc/auth/password-reset.php` - Password reset handler
+12. `inc/core/online-users.php` - Activity tracking
 13. `inc/avatar-display.php` - Avatar display (loads network-wide)
 14. `inc/avatar-upload.php` - Avatar upload (loads network-wide)
 15. `inc/avatar-menu.php` - Avatar menu (loads network-wide)
-16. `inc/online-users-display.php` - Online stats widget
-17. `inc/comment-auto-approval.php` - Comment auto-approval system
-18. `inc/ad-free-license.php` - Ad-free license validation
+16. `inc/comment-auto-approval.php` - Comment auto-approval system
+17. `inc/ad-free-license.php` - Ad-free license validation
+
 
 ## Development Standards
 
@@ -547,7 +499,7 @@ try {
 - bbPress integration requires users on community site
 - Cross-domain authentication via WordPress multisite
 
-**Integration**: Registration system in this plugin (`inc/register.php`) calls `apply_filters('extrachill_create_community_user', ...)` during registration
+**Integration**: Registration handler (`inc/auth/register.php`) calls `apply_filters('extrachill_create_community_user', ...)` during registration
 
 ### Profile URL Resolution
 **Purpose**: Intelligently route users to correct profile URLs based on account location
@@ -583,7 +535,7 @@ try {
 **Purpose**: Network-wide activity tracking and online user statistics
 
 **Key Features**:
-- Tracks user activity across all 10 sites in the multisite network
+- Tracks user activity across all 8 active sites in the multisite network (Blog IDs 1–5, 7–9)
 - Centralized storage on community.extrachill.com
 - Transient caching for performance optimization
 - "Most ever online" tracking with date

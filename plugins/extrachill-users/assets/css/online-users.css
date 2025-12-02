@@ -28,13 +28,14 @@
 	gap: 0.75rem;
 }
 
-.online-stat i {
-	font-size: 1.5rem;
-	color: var(--accent);
+.online-stat .ec-icon {
+	width: 1.5rem;
+	height: 1.5rem;
+	fill: var(--accent);
 }
 
-.online-stat .online-indicator {
-	color: #10b981;
+.online-stat .ec-icon.online-indicator {
+	fill: #10b981;
 	animation: pulse 2s ease-in-out infinite;
 }
 

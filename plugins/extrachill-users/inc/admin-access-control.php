@@ -6,7 +6,7 @@
  * Preserves AJAX functionality while redirecting unauthorized users to homepage.
  *
  * @package ExtraChill\Users
- * @since 1.0.0
+ * @since 0.1.0
  */
 
 function extrachill_redirect_admin() {

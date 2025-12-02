@@ -114,6 +114,10 @@ function extrachill_enqueue_avatar_upload_assets() {
 		true
 	);
 
+	wp_localize_script('extrachill-avatar-upload', 'ecAvatarUpload', array(
+		'spriteUrl' => get_template_directory_uri() . '/assets/fonts/extrachill.svg'
+	));
+
 	wp_enqueue_script('wp-api');
 }
 add_action('wp_enqueue_scripts', 'extrachill_enqueue_avatar_upload_assets');
