@@ -195,8 +195,10 @@ a.card-link-target:hover,
 	margin-top: 25px;
 }
 
-.archive .post h2 {
+.archive .post h2,
+.archive-card h2 {
 	padding-bottom: 5px;
+	line-height: 1.3;
 }
 
 

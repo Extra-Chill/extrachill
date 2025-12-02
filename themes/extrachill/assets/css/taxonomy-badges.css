@@ -288,3 +288,9 @@
 	background-color: #17b9bb;
 	color: #fff;
 }
+
+/* === Artist Badges === */
+.taxonomy-badge.artist-susto {
+	background-color: #20B3A9;
+	color: #F4FFFF;
+}
