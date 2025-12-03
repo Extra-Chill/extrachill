@@ -63,22 +63,36 @@ $success_attr = esc_attr( $success_message ? wp_strip_all_tags( $success_message
 		>
 			<input type="hidden" name="flow_id" value="<?php echo esc_attr( $flow_id ); ?>" />
 
-			<div class="ec-event-submission__grid">
-				<div class="ec-event-submission__field">
-					<label for="<?php echo esc_attr( $form_id ); ?>-contact-name">
-						<?php esc_html_e( 'Your Name', 'datamachine-events' ); ?>
-						<span aria-hidden="true">*</span>
-					</label>
-					<input type="text" name="contact_name" id="<?php echo esc_attr( $form_id ); ?>-contact-name" required />
+			<?php if ( is_user_logged_in() ) : ?>
+				<div class="ec-event-submission__user-info">
+					<?php
+					printf(
+						/* translators: %s: user display name */
+						esc_html__( 'Submitting as %s', 'datamachine-events' ),
+						'<strong>' . esc_html( wp_get_current_user()->display_name ) . '</strong>'
+					);
+					?>
 				</div>
+			<?php endif; ?>
 
-				<div class="ec-event-submission__field">
-					<label for="<?php echo esc_attr( $form_id ); ?>-contact-email">
-						<?php esc_html_e( 'Contact Email', 'datamachine-events' ); ?>
-						<span aria-hidden="true">*</span>
-					</label>
-					<input type="email" name="contact_email" id="<?php echo esc_attr( $form_id ); ?>-contact-email" required />
-				</div>
+			<div class="ec-event-submission__grid">
+				<?php if ( ! is_user_logged_in() ) : ?>
+					<div class="ec-event-submission__field">
+						<label for="<?php echo esc_attr( $form_id ); ?>-contact-name">
+							<?php esc_html_e( 'Your Name', 'datamachine-events' ); ?>
+							<span aria-hidden="true">*</span>
+						</label>
+						<input type="text" name="contact_name" id="<?php echo esc_attr( $form_id ); ?>-contact-name" required />
+					</div>
+
+					<div class="ec-event-submission__field">
+						<label for="<?php echo esc_attr( $form_id ); ?>-contact-email">
+							<?php esc_html_e( 'Contact Email', 'datamachine-events' ); ?>
+							<span aria-hidden="true">*</span>
+						</label>
+						<input type="email" name="contact_email" id="<?php echo esc_attr( $form_id ); ?>-contact-email" required />
+					</div>
+				<?php endif; ?>
 
 				<div class="ec-event-submission__field">
 					<label for="<?php echo esc_attr( $form_id ); ?>-event-title">

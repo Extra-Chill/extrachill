@@ -1,34 +1,44 @@
 /* Frontend + editor shared styles */
 .ec-event-submission {
-	border: 1px solid var(--border-color, #e5e7eb);
+	border: 1px solid var(--border-color);
 	border-radius: 12px;
-	background: var(--card-background, #ffffff);
+	background: var(--card-background);
 	padding: 32px;
 	max-width: 760px;
 	margin-left: auto;
 	margin-right: auto;
-	box-shadow: var(--card-shadow, 0 10px 25px rgba(15, 23, 42, 0.06));
+	box-shadow: var(--card-shadow);
 }
 
 .ec-event-submission__headline {
 	margin-top: 0;
 	margin-bottom: 8px;
 	font-size: 1.75rem;
-	color: var(--text-color, #0f172a);
+	color: var(--text-color);
 }
 
 .ec-event-submission__description {
 	margin-bottom: 24px;
-	color: var(--muted-text, #475569);
+	color: var(--muted-text);
+}
+
+.ec-event-submission__user-info {
+	padding: 12px 16px;
+	margin-bottom: 20px;
+	border-radius: 8px;
+	background: var(--notice-bg);
+	border: 1px solid var(--notice-border);
+	color: var(--text-color);
+	font-size: 0.95rem;
 }
 
 .ec-event-submission__notice {
 	padding: 12px 16px;
 	margin-bottom: 20px;
 	border-radius: 8px;
-	background: #fff7ed;
-	border: 1px solid #fdba74;
-	color: #9a3412;
+	background: var(--notice-bg);
+	border: 1px solid var(--notice-border);
+	color: var(--text-color);
 	font-size: 0.95rem;
 }
 
@@ -47,27 +57,28 @@
 
 .ec-event-submission__field label {
 	font-weight: 600;
-	color: var(--text-color, #0f172a);
+	color: var(--text-color);
 	font-size: 0.95rem;
 }
 
 .ec-event-submission__field input,
 .ec-event-submission__field textarea {
 	width: 100%;
-	border: 1px solid var(--border-color, #e2e8f0);
+	border: 1px solid var(--border-color);
 	border-radius: 8px;
 	padding: 10px 12px;
 	font-size: 1rem;
 	font-family: inherit;
-	background: var(--background-color, #fff);
+	color: var(--text-color);
+	background: var(--background-color);
 	transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .ec-event-submission__field input:focus,
 .ec-event-submission__field textarea:focus {
 	outline: none;
-	border-color: var(--link-color, #2563eb);
-	box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+	border-color: var(--focus-border-color);
+	box-shadow: var(--focus-box-shadow);
 }
 
 .ec-event-submission__field--full,
@@ -93,11 +104,11 @@
 .ec-event-submission__status {
 	min-height: 20px;
 	font-size: 0.95rem;
-	color: var(--muted-text, #475569);
+	color: var(--success-color);
 }
 
 .ec-event-submission__status.is-error {
-	color: #b91c1c;
+	color: var(--error-color);
 }
 
 .ec-event-submission__form.is-loading {
@@ -118,21 +129,22 @@
 
 /* Editor preview styles */
 .ec-event-submission-editor {
-	border: 1px solid #d4d4d8;
+	border: 1px solid var(--border-color);
 	border-radius: 12px;
 	padding: 24px;
-	background: #fff;
+	background: var(--card-background);
 }
 
 .ec-event-submission-editor__headline {
 	margin-top: 0;
 	margin-bottom: 12px;
+	color: var(--text-color);
 }
 
 .ec-event-submission-editor__description {
 	margin-top: 0;
 	margin-bottom: 16px;
-	color: #475569;
+	color: var(--muted-text);
 }
 
 .ec-event-submission-editor__preview {
@@ -143,7 +155,8 @@
 
 .ec-event-submission-editor__field {
 	height: 38px;
-	background: #f1f5f9;
+	background: var(--background-color);
+	border: 1px solid var(--border-color);
 	border-radius: 6px;
 }
 

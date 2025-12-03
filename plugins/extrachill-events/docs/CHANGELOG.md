@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0/).
 
+## [0.1.5] - 2025-12-02
+
+### Added
+- Added block registration function for event-submission block from build directory
+- Added user info display in event submission form for logged-in users
+
+### Changed
+- Migrated related events icons from FontAwesome to theme's ec_icon() system
+- Enhanced event submission form UX by conditionally showing contact fields only for non-logged-in users
+- Restructured event submission form grid layout
+
+### Removed
+- Removed FontAwesome-specific CSS rules for related events icons
+
 ## [0.1.4] - 2025-11-30
 
 ### Added

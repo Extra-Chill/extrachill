@@ -5,7 +5,7 @@ WordPress plugin providing seamless integration between ExtraChill themes and po
 ## Plugin Information
 
 - **Name**: ExtraChill Events
-- **Version**: 0.1.4
+- **Version**: 0.1.5
 - **Text Domain**: `extrachill-events`
 - **Author**: Chris Huber
 - **Author URI**: https://chubes.net

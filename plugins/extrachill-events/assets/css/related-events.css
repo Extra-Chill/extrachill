@@ -22,12 +22,6 @@
   color: var(--muted-text);
 }
 
-.ec-related-meta-item i {
-  width: 1.2em;
-  text-align: center;
-  color: var(--muted-text);
-}
-
 /* Ensure the meta container takes up available space to push button down */
 .related-tax-card .related-tax-meta {
   display: flex;

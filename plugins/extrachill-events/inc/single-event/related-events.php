@@ -208,14 +208,14 @@ function ec_events_render_related_posts( $taxonomy, $post_id ) {
 						<div class="related-tax-meta">
 							<?php if ( $date_str ) : ?>
 								<div class="ec-related-meta-item">
-									<i class="far fa-calendar"></i>
+									<?php echo ec_icon('calendar'); ?>
 									<span><?php echo esc_html( $date_str ); ?></span>
 								</div>
 							<?php endif; ?>
 							
 							<?php if ( $time_str ) : ?>
 								<div class="ec-related-meta-item">
-									<i class="far fa-clock"></i>
+									<?php echo ec_icon('clock'); ?>
 									<span><?php echo esc_html( $time_str ); ?></span>
 								</div>
 							<?php endif; ?>
