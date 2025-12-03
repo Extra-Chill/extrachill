@@ -3,22 +3,15 @@
  * Handles interaction for the Festival Wire feature
  */
 
-(function($) {
+(function() {
     'use strict';
 
-    let currentPage = 1; // Keep track of the current page loaded for AJAX
-    let isLoading = false; // Prevent multiple simultaneous AJAX requests
+    let currentPage = 1;
+    let isLoading = false;
 
-    // Document ready
-    $(document).ready(function() {
-        // Filter functionality
+    document.addEventListener('DOMContentLoaded', function() {
         initFestivalFilter();
-        
-
-        // Load more posts functionality
-        initLoadMore(); 
-
-        // Initialize FAQ Accordion
+        initLoadMore();
         initFaqAccordion();
     });
 
@@ -26,163 +19,142 @@
      * Initialize the Festival Filter functionality
      */
     function initFestivalFilter() {
-        const filterButton = $('#festival-filter-button');
-        const festivalSelect = $('#festival-filter');
-        const locationSelect = $('#location-filter');
+        const filterButton = document.getElementById('festival-filter-button');
+        const festivalSelect = document.getElementById('festival-filter');
+        const locationSelect = document.getElementById('location-filter');
 
-        // Handle filter button click
-        filterButton.on('click', function(e) {
+        if (!filterButton || !festivalSelect || !locationSelect) {
+            return;
+        }
+
+        filterButton.addEventListener('click', function(e) {
             e.preventDefault();
             applyFestivalFilter();
         });
 
-        // Also trigger on Enter key in dropdowns
-        festivalSelect.on('keyup', function(e) {
+        festivalSelect.addEventListener('keyup', function(e) {
             if (e.key === 'Enter') {
                 e.preventDefault();
                 applyFestivalFilter();
             }
         });
 
-        locationSelect.on('keyup', function(e) {
+        locationSelect.addEventListener('keyup', function(e) {
             if (e.key === 'Enter') {
                 e.preventDefault();
                 applyFestivalFilter();
             }
         });
 
-        /**
-         * Apply the festival filter
-         */
         function applyFestivalFilter() {
-            const selectedFestival = festivalSelect.val();
-            const selectedLocation = locationSelect.val();
-            
-            // If both filters are set to "all", just reload the page without parameters
+            const selectedFestival = festivalSelect.value;
+            const selectedLocation = locationSelect.value;
+
             if (selectedFestival === 'all' && selectedLocation === 'all') {
                 window.location.href = window.location.pathname;
                 return;
             }
-            
-            // Create the filter URL with selected parameters
+
             const filterUrl = new URL(window.location.href);
-            
-            // Clear existing parameters
+
             filterUrl.searchParams.delete('festival');
             filterUrl.searchParams.delete('location');
-            
-            // Add parameters if not "all"
+
             if (selectedFestival !== 'all') {
                 filterUrl.searchParams.set('festival', selectedFestival);
             }
-            
+
             if (selectedLocation !== 'all') {
                 filterUrl.searchParams.set('location', selectedLocation);
             }
-            
-            // Navigate to the filtered URL
+
             window.location.href = filterUrl.toString();
         }
 
-        // Pre-select the current filters if present in URL
         function preSelectCurrentFilters() {
             const urlParams = new URLSearchParams(window.location.search);
-            
-            // Check festival parameter
+
             const currentFestival = urlParams.get('festival');
             if (currentFestival) {
-                festivalSelect.val(currentFestival);
+                festivalSelect.value = currentFestival;
             }
-            
-            // Check location parameter
+
             const currentLocation = urlParams.get('location');
             if (currentLocation) {
-                locationSelect.val(currentLocation);
+                locationSelect.value = currentLocation;
             }
         }
-        
-        // Call this on page load
+
         preSelectCurrentFilters();
     }
-    
 
     /**
-     * Initialize Load More functionality for the archive page.
+     * Initialize Load More functionality for the archive page
      */
     function initLoadMore() {
-        const loadMoreButton = $('#festival-wire-load-more');
-        const postsContainer = $('#festival-wire-posts-container'); // Ensure this ID exists in archive-festival-wire.php
+        const loadMoreButton = document.getElementById('festival-wire-load-more');
+        const postsContainer = document.getElementById('festival-wire-posts-container');
 
-        // Check if required elements and parameters exist. Only run on archive pages where these are expected.
-        if (loadMoreButton.length === 0 || postsContainer.length === 0 || typeof festivalWireParams === 'undefined' || !festivalWireParams.load_more_nonce) {
-             // If the button exists but other parts don't, hide it silently.
-             if (loadMoreButton.length > 0) {
-                 loadMoreButton.hide();
-             }
-            // console.log('Load More prerequisites not met.'); // Optional: for debugging
+        if (!loadMoreButton || !postsContainer || typeof festivalWireParams === 'undefined' || !festivalWireParams.load_more_nonce) {
+            if (loadMoreButton) {
+                loadMoreButton.style.display = 'none';
+            }
             return;
         }
 
-        // Hide button immediately if there are no more pages initially
         if (currentPage >= festivalWireParams.max_pages) {
-            loadMoreButton.hide();
+            loadMoreButton.style.display = 'none';
             return;
         }
 
-        loadMoreButton.on('click', function() {
+        loadMoreButton.addEventListener('click', function() {
             if (isLoading) {
-                return; // Prevent multiple clicks while loading
+                return;
             }
 
             isLoading = true;
-            currentPage++; // Increment page number for the next set of posts
+            currentPage++;
 
-            // Optional: Change button text or show a spinner
-            const originalButtonText = loadMoreButton.text();
-            loadMoreButton.text('Loading...');
-            loadMoreButton.prop('disabled', true);
+            const originalButtonText = loadMoreButton.textContent;
+            loadMoreButton.textContent = 'Loading...';
+            loadMoreButton.disabled = true;
 
-            $.ajax({
-                url: festivalWireParams.ajaxurl,
-                type: 'POST',
-                data: {
-                    action: 'load_more_festival_wire', // Matches the PHP action hook
+            fetch(festivalWireParams.ajaxurl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: new URLSearchParams({
+                    action: 'load_more_festival_wire',
                     nonce: festivalWireParams.load_more_nonce,
                     page: currentPage,
-                    query_vars: festivalWireParams.query_vars // Pass the original query vars JSON string
-                },
-                success: function(response) {
-                    if (response && response.trim() !== '') {
-                         // Append new posts
-                         postsContainer.append(response);
+                    query_vars: festivalWireParams.query_vars
+                })
+            })
+            .then(response => response.text())
+            .then(function(responseText) {
+                if (responseText && responseText.trim() !== '') {
+                    postsContainer.insertAdjacentHTML('beforeend', responseText);
 
-                         // Check if it was the last page
-                         if (currentPage >= festivalWireParams.max_pages) {
-                            loadMoreButton.hide(); // Hide button if no more pages
-                         } else {
-                             // Restore button state if more pages exist
-                            loadMoreButton.text(originalButtonText);
-                            loadMoreButton.prop('disabled', false);
-                         }
+                    if (currentPage >= festivalWireParams.max_pages) {
+                        loadMoreButton.style.display = 'none';
                     } else {
-                        // No posts returned or empty response, assume end of content
-                        loadMoreButton.hide();
+                        loadMoreButton.textContent = originalButtonText;
+                        loadMoreButton.disabled = false;
                     }
-                },
-                error: function(jqXHR, textStatus, errorThrown) {
-                    console.error('Error loading more posts:', textStatus, errorThrown);
-                    // Restore button state on error
-                    loadMoreButton.text(originalButtonText);
-                    loadMoreButton.prop('disabled', false);
-                    // Optional: Show an error message to the user on the page
-                    // postsContainer.append('<p class="error">Could not load more posts. Please try again later.</p>');
-                },
-                complete: function() {
-                    isLoading = false; // Allow next request
-                    // Ensure button is re-enabled unless it was hidden
-                    if (currentPage < festivalWireParams.max_pages) {
-                         loadMoreButton.prop('disabled', false);
-                    }
+                } else {
+                    loadMoreButton.style.display = 'none';
+                }
+            })
+            .catch(function(error) {
+                console.error('Error loading more posts:', error);
+                loadMoreButton.textContent = originalButtonText;
+                loadMoreButton.disabled = false;
+            })
+            .finally(function() {
+                isLoading = false;
+                if (currentPage < festivalWireParams.max_pages) {
+                    loadMoreButton.disabled = false;
                 }
             });
         });
@@ -192,30 +164,28 @@
      * Initialize FAQ Accordion functionality
      */
     function initFaqAccordion() {
-        const accordionContainer = $('.faq-accordion');
-        console.log('initFaqAccordion called. Found container:', accordionContainer.length);
-        if (accordionContainer.length === 0) {
-            return; // Exit if FAQ section not found
+        const accordionContainer = document.querySelector('.faq-accordion');
+        if (!accordionContainer) {
+            return;
         }
 
-        accordionContainer.find('.faq-question').on('click', function() {
-            console.log('FAQ question clicked:', this);
-            const $button = $(this);
-            const $answer = $('#' + $button.attr('aria-controls'));
-            console.log('Target answer element:', $answer.length > 0 ? $answer[0] : 'Not found');
-            const isExpanded = $button.attr('aria-expanded') === 'true';
-            console.log('Current expanded state:', isExpanded);
+        const faqQuestions = accordionContainer.querySelectorAll('.faq-question');
 
-            // Toggle the current item
-            $button.attr('aria-expanded', !isExpanded);
-            $answer.prop('hidden', isExpanded);
-            console.log('Toggled state. New expanded:', !isExpanded, 'New hidden prop:', isExpanded);
+        faqQuestions.forEach(function(button) {
+            button.addEventListener('click', function() {
+                const answerId = button.getAttribute('aria-controls');
+                const answer = document.getElementById(answerId);
 
-            // Optional: Close other items when one is opened (uncomment if desired)
-            /*
-            // ... existing code ...
-            */
+                if (!answer) {
+                    return;
+                }
+
+                const isExpanded = button.getAttribute('aria-expanded') === 'true';
+
+                button.setAttribute('aria-expanded', !isExpanded);
+                answer.hidden = isExpanded;
+            });
         });
     }
 
-})(jQuery);
+})();

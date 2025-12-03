@@ -6,7 +6,7 @@
  * taxonomies, and capabilities. Includes location taxonomy integration.
  *
  * @package ExtraChillNewsWire
- * @since 1.0.0
+ * @since 0.1.0
  */
 
 // Exit if accessed directly.
@@ -23,7 +23,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * - Archive and single page templates
  * - Category, festival, and data_source taxonomies
  *
- * @since 1.0.0
+ * @since 0.1.0
  */
 function register_festival_wire_cpt() {
 
@@ -91,7 +91,7 @@ add_action( 'init', 'register_festival_wire_cpt', 0 );
  * Registers existing location taxonomy for use with Festival Wire posts.
  * Location taxonomy is defined in the theme's core functionality.
  *
- * @since 1.0.0
+ * @since 0.1.0
  */
 function add_location_to_festival_wire() {
 	register_taxonomy_for_object_type( 'location', 'festival_wire' );

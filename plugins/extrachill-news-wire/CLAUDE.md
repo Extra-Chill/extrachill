@@ -138,7 +138,7 @@ The build system creates production-ready WordPress plugin packages:
 2. **File Exclusion**: Uses `.buildignore` patterns to exclude development files
 3. **Structure Validation**: Ensures all required plugin files are present
 4. **Production Optimization**: Clean directory structure for deployment
-5. **ZIP Creation**: Generates versioned ZIP file for WordPress installation
+5. **ZIP Creation**: Generates non-versioned ZIP file for WordPress installation
 
 Essential files for plugin functionality:
 - Main plugin file with proper WordPress headers

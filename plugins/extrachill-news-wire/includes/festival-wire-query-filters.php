@@ -9,7 +9,7 @@
  * - Homepage and feed exclusions
  *
  * @package ExtraChillNewsWire
- * @since 1.0.0
+ * @since 0.1.0
  */
 
 // Exit if accessed directly.
@@ -23,7 +23,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Registers festival, location, and data_source as valid query variables
  * for use in Festival Wire archive filtering and URL parameters.
  *
- * @since 1.0.0
+ * @since 0.1.0
  * @param array $query_vars Existing query variables
  * @return array Modified query variables array
  */
@@ -41,7 +41,7 @@ add_filter( 'query_vars', 'festival_wire_add_query_vars' );
  * Applies taxonomy filters on Festival Wire archive pages based on
  * URL query parameters. Supports multiple taxonomy filtering with AND logic.
  *
- * @since 1.0.0
+ * @since 0.1.0
  * @param WP_Query $query The WordPress query object
  * @return WP_Query Modified query object
  */
@@ -110,7 +110,7 @@ add_action( 'pre_get_posts', 'festival_wire_modify_archive_query' );
  * while excluding from homepage and custom feeds. Maintains content
  * discoverability across the site.
  *
- * @since 1.0.0
+ * @since 0.1.0
  * @param WP_Query $query The WordPress query object
  */
 function festival_wire_include_in_archives( $query ) {
@@ -163,8 +163,8 @@ function festival_wire_include_in_archives( $query ) {
         }
     }
 
-    // Include Festival Wire in category and tag archives
-    elseif ( ( $query->is_category() || $query->is_tag() ) && $query->is_main_query() ) {
+    // Include Festival Wire in category, tag, and author archives
+    elseif ( ( $query->is_category() || $query->is_tag() || $query->is_author() ) && $query->is_main_query() ) {
         $post_types = $query->get( 'post_type' );
 
         if ( empty($post_types) || $post_types === 'any' ) {
@@ -174,6 +174,18 @@ function festival_wire_include_in_archives( $query ) {
         } elseif ( is_array($post_types) && ! in_array( 'festival_wire', $post_types ) ) {
             $post_types[] = 'festival_wire';
             $query->set( 'post_type', $post_types );
+        }
+    }
+
+    // Exclude Festival Wire from location taxonomy archives
+    elseif ( is_tax('location') && $query->is_main_query() ) {
+        $post_types = $query->get( 'post_type' );
+
+        // Force post type to 'post' only for location archives
+        if ( empty($post_types) || (is_array($post_types) && in_array('festival_wire', $post_types)) ) {
+            $query->set( 'post_type', 'post' );
+        } elseif ( is_string($post_types) && $post_types === 'festival_wire' ) {
+            $query->set( 'post_type', 'post' );
         }
     }
 }

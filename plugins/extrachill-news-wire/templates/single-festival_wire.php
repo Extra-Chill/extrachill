@@ -5,39 +5,31 @@
  * @link https://developer.wordpress.org/themes/basics/template-hierarchy/#single-post
  *
  * @package ExtraChillNewsWire
- * @since 1.0.0
+ * @since 0.1.0
  */
 
 get_header(); ?>
+
+<?php do_action( 'extrachill_before_body_content' ); ?>
 
 	<div class="main-content">
 		<main id="main" class="site-main" role="main">
 
 		<?php
 		// Display breadcrumbs using theme function
-		if (function_exists('extrachill_breadcrumbs')) {
-			extrachill_breadcrumbs();
-		}
-		
+		extrachill_breadcrumbs();
+
 		while ( have_posts() ) : the_post();
 		?>
-			<article id="post-<?php the_ID(); ?>" <?php post_class( array( 'festival-wire-single-post', 'single-post' ) ); ?>>
-				<header class="entry-header">
-					<?php
-					// Display taxonomy badges using theme function
-					if ( function_exists('extrachill_display_taxonomy_badges') ) {
-						extrachill_display_taxonomy_badges( get_the_ID() );
-					}
-
-					// Display the title
-					the_title( '<h1 class="entry-title">', '</h1>' );
-					?>
-
-					<div class="entry-meta">
-						<span class="posted-on"><?php echo esc_html( get_the_date('F j, Y \a\t g:ia') ); ?></span>
-						<?php // Location is now displayed in the badges section above ?>
-					</div><!-- .entry-meta -->
-				</header><!-- .entry-header -->
+	
+<div class="single-post-card">
+<article id="post-<?php the_ID(); ?>" <?php post_class( array( 'festival-wire-single-post', 'single-post' ) ); ?>>
+	<?php do_action('extrachill_before_post_content'); ?>
+				<header>
+					<?php do_action( 'extrachill_above_post_title' ); ?>
+					<?php the_title( '<h1>', '</h1>' ); ?>
+				</header>
+				<?php extrachill_entry_meta(); ?>
 
 				<?php 
 				// Display featured image
@@ -66,6 +58,7 @@ get_header(); ?>
 					?>
 				</div><!-- .entry-content -->
 
+	<?php do_action('extrachill_after_post_content'); ?>
 				<footer class="entry-footer">
 					<?php
 					
@@ -82,9 +75,13 @@ get_header(); ?>
 					?>
 				</footer><!-- .entry-footer -->
 			</article><!-- #post-<?php the_ID(); ?> -->
+</div>
 
-			<?php
-			// Related festival wire posts (Cached)
+	<?php endwhile; // End of the loop. ?>
+
+<aside>
+	<?php
+	// Related festival wire posts (Cached)
 			$current_post_id = get_the_ID();
 			$current_festivals = get_the_terms(get_the_ID(), 'festival');
 			
@@ -107,9 +104,9 @@ get_header(); ?>
 				));
 				
 				if (!empty($related_posts)) {
-					echo '<div class="related-festival-wire">';
-					echo '<h2 class="related-wire-title">' . sprintf(esc_html__('Related %s News', 'extrachill'), esc_html($festival_name)) . '</h2>';
-					echo '<div class="festival-wire-grid">';
+					echo '<div class="related-tax-section related-festival-wire">';
+					echo '<h3 class="related-tax-header">' . sprintf(esc_html__('Related %s News', 'extrachill'), esc_html($festival_name)) . '</h3>';
+					echo '<div class="related-tax-grid festival-wire-grid">';
 
 					// Set up global post data for template parts
 					global $post;
@@ -136,14 +133,13 @@ get_header(); ?>
 					wp_reset_postdata();
 				}
 			}
-			?>
-		
-		<?php endwhile; // End of the loop. ?>
+	?>
+</aside>
 
-		<?php
-		// Newsletter plugin owns and displays the tip form
-		do_action('extrachill_after_news_wire');
-		?>
+<?php
+// Newsletter plugin owns and displays the tip form
+do_action('extrachill_after_news_wire');
+?>
 
 		<!-- Back to Archive Button -->
 		<div class="festival-wire-back-button-container">
@@ -153,7 +149,8 @@ get_header(); ?>
 		</main><!-- #main -->
 	</div><!-- .main-content -->
 
-<?php
-get_sidebar();
-?>
+<?php get_sidebar(); ?>
+
+<?php do_action( 'extrachill_after_body_content' ); ?>
+
 <?php get_footer(); ?> 

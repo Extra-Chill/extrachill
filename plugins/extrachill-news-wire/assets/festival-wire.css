@@ -109,7 +109,7 @@
 }
 
 .filter-button {
-    background-color: var(--button-bg);
+    background-color: #0b5394;
     color: #fff;
     padding: 0.75rem 1.25rem;
     border: none;
@@ -122,7 +122,7 @@
 }
 
 .filter-button:hover {
-    background-color: var(--button-hover-bg);
+    background-color: #083b6c;
 }
 
 .filter-reset {
@@ -228,21 +228,23 @@
     padding: 0.25rem 0.75rem;
 }
 
-.festival-wire-card .entry-title {
+.festival-wire-card h2 {
     font-size: 1.3rem;
     margin-top: 0;
     margin-bottom: 0.75rem;
     line-height: 1.4;
 }
 
-.festival-wire-card .entry-title a {
-    color: var(--text-color);
+.festival-wire-card h2 a {
+    color: var(--post-title-link-color);
     text-decoration: none;
     transition: color 0.2s ease;
 }
 
-.festival-wire-card .entry-title a:hover {
-    color: var(--link-color);
+.festival-wire-card h2 a:hover {
+    color: var(--post-title-link-hover-color);
+    text-decoration: underline;
+    text-decoration-color: var(--link-color);
 }
 
 .festival-wire-card .entry-meta {
@@ -266,7 +268,7 @@
 }
 
 /* Clickable Card Styles */
-.festival-wire-card .entry-title a.card-link-target::after {
+.festival-wire-card h2 a.card-link-target::after {
     content: "";
     position: absolute;
     top: 0;
@@ -276,49 +278,8 @@
     z-index: 1;
 }
 
-/* Single Post Styles */
-.festival-wire-single-post {
-    background-color: var(--card-background);
-    border-radius: 10px;
-    overflow: hidden;
-    box-shadow: var(--card-shadow);
-    margin-bottom: 2rem;
-    padding: 2rem;
-    border: 1px solid var(--border-color);
-}
-
-.festival-wire-single-post .entry-header {
-    margin-bottom: 1.5rem;
-}
-
-.festival-wire-single-post .entry-title {
-    font-size: 2.2rem;
-    margin: 0.75rem 0 1rem;
-    line-height: 1.3;
-    color: var(--text-color);
-}
-
-.festival-wire-single-post .entry-meta {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 1rem;
-    font-size: 0.95rem;
-    color: var(--muted-text);
-    margin-bottom: 0;
-}
-
-.festival-wire-single-post .post-author {
-    position: relative;
-}
-
-.festival-wire-single-post .post-author::before {
-    content: '•';
-    position: absolute;
-    left: -0.6rem;
-}
-
+/* Single Post Styles - Plugin-specific overrides only */
 .festival-wire-single-post .post-thumbnail {
-    margin: 0 -2rem 1.5rem;
     position: relative;
 }
 
@@ -338,84 +299,12 @@
     font-style: italic;
 }
 
-.festival-wire-single-post .entry-content p {
-    margin-bottom: 1.5rem;
-}
-
-.festival-wire-single-post .entry-content img {
-    max-width: 100%;
-    height: auto;
-    border-radius: 5px;
-}
-
-.festival-wire-single-post .entry-content a {
-    color: var(--link-color);
-    text-decoration: underline;
-}
-
-.festival-wire-single-post .entry-content a:hover {
-    color: var(--link-color);
-    text-decoration-color: var(--button-hover-bg);
-}
-
-.festival-wire-single-post .entry-content blockquote {
-    border-left: 4px solid var(--link-color);
-    padding: 0.5rem 0 0.5rem 1.5rem;
-    margin: 1.5rem 0;
-    font-style: italic;
-}
-
-.festival-wire-single-post .entry-footer {
-    margin-top: 2rem;
-    padding-top: 1.5rem;
-    border-top: 1px solid var(--border-color);
-}
-
-.festival-wire-single-post .post-tags {
-    color: var(--muted-text);
-}
-
-.festival-wire-single-post .post-tags a {
-    text-decoration: none;
-}
-
-.festival-wire-single-post .post-tags a:hover {
-    text-decoration: underline;
-}
-
-.festival-wire-single-post .edit-link {
-    display: inline-block;
-    margin-top: 1rem;
-    font-size: 0.9rem;
-}
-
 #festival-wire-load-more{
     display: flex;
     margin: auto;
 }
 
-.festival-wire-single-post .edit-link a {
-    color: var(--muted-text);
-    text-decoration: none;
-}
-
-.festival-wire-single-post .edit-link a:hover {
-    color: var(--link-color);
-    text-decoration: underline;
-}
-
-/* Related Festival Wire Posts */
-.related-festival-wire {
-    margin: 3rem 0;
-}
-
-.related-wire-title {
-    font-size: 1.8rem;
-    margin-bottom: 1.5rem;
-    color: var(--text-color);
-    padding-bottom: 0.5rem;
-    border-bottom: 2px solid var(--link-color);
-}
+/* Related Festival Wire Posts - inherits from theme .related-tax-section */
 
 
 /* Forum CTA Section */
@@ -448,7 +337,7 @@
 
 .forum-cta-link.button {
     display: inline-block;
-    background-color: var(--button-bg); /* Keep solid button */
+    background-color: #0b5394; /* Keep solid button */
     color: #fff;
     padding: 0.75rem 1.5rem;
     border-radius: 5px;
@@ -457,13 +346,13 @@
     font-weight: 500;
     transition: background-color 0.2s ease, color 0.2s ease; /* Added color transition */
     cursor: pointer;
-    border: 1px solid var(--button-bg); /* Ensure border matches background */
+    border: 1px solid #0b5394;
     margin-top: 0.5rem;
 }
 
 .forum-cta-link.button:hover {
-    background-color: var(--button-hover-bg);
-    border-color: var(--button-hover-bg); /* Match border color on hover */
+    background-color: #083b6c;
+    border-color: #083b6c;
     color: #fff;
     text-decoration: none;
 }
@@ -488,15 +377,9 @@
 }
 
 .wp-pagenavi .current {
-    background-color: var(--button-bg);
+    background-color: #0b5394;
     color: #fff;
-    border-color: var(--button-bg);
-}
-
-.wp-pagenavi a:hover {
-    background-color: var(--link-color);
-    color: #fff;
-    border-color: var(--link-color);
+    border-color: #0b5394;
 }
 
 /* Back to Archive Button Styling */
@@ -507,7 +390,7 @@
 
 .festival-wire-back-button-container .cm-back-button {
     display: inline-block; /* Allows margin/padding and centering */
-    background-color: var(--button-bg);
+    background-color: #0b5394;
     color: #fff;
     padding: 0.75rem 1.5rem; /* Match other theme buttons */
     border-radius: 5px; /* Match other theme buttons */
@@ -520,7 +403,7 @@
 }
 
 .festival-wire-back-button-container .cm-back-button:hover {
-    background-color: var(--button-hover-bg);
+    background-color: #083b6c;
     color: #fff; /* Keep text color white on hover */
     text-decoration: none;
 }
@@ -535,16 +418,8 @@
         font-size: 2.2rem;
     }
     
-    .festival-wire-single-post .entry-title {
+    .festival-wire-single-post h1 {
         font-size: 1.8rem;
-    }
-    
-    .festival-wire-single-post {
-        padding: 1.5rem;
-    }
-    
-    .festival-wire-single-post .post-thumbnail {
-        margin: 0 -1.5rem 1.5rem;
     }
 }
 
@@ -594,7 +469,7 @@
         width: 100%;
     }
     
-    .festival-wire-single-post .entry-title {
+    .festival-wire-single-post h1 {
         font-size: 1.6rem;
     }
     
@@ -608,7 +483,7 @@
         grid-template-columns: 1fr;
     }
     
-    .festival-wire-card .entry-title {
+    .festival-wire-card h2 {
         font-size: 1.2rem;
     }
     
@@ -616,16 +491,7 @@
         margin: 1rem 0;
     }
     
-    
-    .festival-wire-single-post {
-        padding: 1.25rem;
-    }
-    
-    .festival-wire-single-post .post-thumbnail {
-        margin: 0 -1.25rem 1.25rem;
-    }
-    
-    .festival-wire-single-post .entry-title {
+    .festival-wire-single-post h1 {
         font-size: 1.4rem;
     }
 }

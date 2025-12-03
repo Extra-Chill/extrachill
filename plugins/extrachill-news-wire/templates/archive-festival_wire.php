@@ -5,7 +5,7 @@
  * @link https://developer.wordpress.org/themes/basics/template-hierarchy/
  *
  * @package ExtraChillNewsWire
- * @since 1.0.0
+ * @since 0.1.0
  */
 
 get_header(); ?>
@@ -15,10 +15,8 @@ get_header(); ?>
 
 			<?php
 			// Display breadcrumbs
-			if (function_exists('extrachill_breadcrumbs')) {
-				extrachill_breadcrumbs();
-			}
-			
+			extrachill_breadcrumbs();
+
 			if ( have_posts() ) : ?>
 
 				<header class="page-header">
@@ -127,7 +125,7 @@ get_header(); ?>
                 <?php // Add Load More Button conditionally outside the container
                 global $wp_query;
                 if ( $wp_query->max_num_pages > 1 ) : ?>
-                    <button id="festival-wire-load-more" class="cm-load-more-button">Load More Posts</button>
+                    <button id="festival-wire-load-more" class="button-1 button-large">Load More Posts</button>
                 <?php endif; ?>
 
 				<?php
@@ -139,7 +137,7 @@ get_header(); ?>
 				<div class="forum-cta-container">
 					<h2 class="forum-cta-title">Join the Discussion!</h2>
 					<p class="forum-cta-description">Chat with fellow festival fans, share your experiences, and get the latest tips in our Music Festivals forum.</p>
-					<a href="<?php echo esc_url('https://community.extrachill.com/r/music-festivals'); ?>" class="forum-cta-link button" target="_blank" rel="noopener noreferrer">Visit the Forum</a>
+					<a href="<?php echo esc_url('https://community.extrachill.com/r/music-discussion/music-festivals'); ?>" class="forum-cta-link button" target="_blank" rel="noopener noreferrer">Visit the Forum</a>
 				</div>
 
 				<!-- Festival Wire FAQ Section -->

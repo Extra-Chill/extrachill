@@ -11,7 +11,7 @@
  * Used by: archive pages, AJAX load-more, related posts
  *
  * @package ExtraChillNewsWire
- * @since 1.0.0
+ * @since 0.1.0
  */
 ?>
 
@@ -34,13 +34,13 @@
 		}
 		?>
 		
-		<header class="entry-header">
+		<header>
             <?php 
             // Use different heading level for archive vs related? For now, h2 consistent with archive.
             // Added card-link-target for archive-like behavior if needed (adjust if only for archive)
-            the_title( sprintf( '<h2 class="entry-title"><a href="%s" class="card-link-target" rel="bookmark">', esc_url( get_permalink() ) ), '</a></h2>' ); 
+            the_title( sprintf( '<h2><a href="%s" class="card-link-target" rel="bookmark">', esc_url( get_permalink() ) ), '</a></h2>' ); 
             ?>
-		</header><!-- .entry-header -->
+		</header>
 
 		<div class="entry-meta">
 			<?php

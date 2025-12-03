@@ -9,7 +9,7 @@
  * - Sendy email list integration
  *
  * @package ExtraChillNewsWire
- * @since 1.0.0
+ * @since 0.1.0
  */
 
 // Exit if accessed directly.
@@ -23,7 +23,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Processes AJAX pagination requests on Festival Wire archive pages.
  * Validates nonce, sanitizes query parameters, and returns HTML content.
  *
- * @since 1.0.0
+ * @since 0.1.0
  */
 function festival_wire_load_more_handler() {
     // Security verification
@@ -111,7 +111,7 @@ add_action( 'wp_ajax_nopriv_load_more_festival_wire', 'festival_wire_load_more_h
  * - Cloudflare Turnstile anti-spam verification
  * - Email validation and Sendy list subscription
  *
- * @since 1.0.0
+ * @since 0.1.0
  */
 function process_festival_wire_tip_submission() {
 	// Security and rate limiting verification
@@ -229,7 +229,7 @@ add_action( 'wp_ajax_nopriv_festival_wire_tip_submission', 'process_festival_wir
  * Prevents spam by limiting submission frequency per IP address.
  * Uses WordPress transients for temporary storage.
  *
- * @since 1.0.0
+ * @since 0.1.0
  * @param string $ip The IP address to check
  * @return bool True if rate limited, false otherwise
  */
@@ -246,7 +246,7 @@ function is_rate_limited( $ip ) {
  * Creates temporary block for IP address to prevent rapid submissions.
  * Rate limit duration is 5 minutes (300 seconds).
  *
- * @since 1.0.0
+ * @since 0.1.0
  * @param string $ip The IP address to rate limit
  */
 function set_rate_limit( $ip ) {

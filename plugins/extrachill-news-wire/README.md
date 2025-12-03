@@ -130,7 +130,7 @@ Festival Wire posts support all standard WordPress features:
 cd extrachill-plugins/extrachill-news-wire
 ./build.sh
 
-# Output: /build/extrachill-news-wire/ directory and /build/extrachill-news-wire.zip file
+# Output: Only /build/extrachill-news-wire.zip file (unzip when directory access needed)
 ```
 
 ### WordPress Standards
@@ -144,7 +144,7 @@ cd extrachill-plugins/extrachill-news-wire
 - **WordPress**: 5.0+
 - **PHP**: 7.4+
 - **Tested up to**: WordPress 6.4
-- **Stable tag**: 1.0
+- **Stable tag**: 0.1.1
 
 ## Support
 
@@ -160,11 +160,4 @@ This plugin is developed for the ExtraChill platform. Please see the repository 
 
 ## Changelog
 
-### 1.0
-- Initial release
-- Extracted from ExtraChill theme
-- Complete Festival Wire functionality
-- Migration tools for tag and author management
-- Full template system implementation
-- AJAX-powered content loading
-- Community tip submission system
+See [docs/CHANGELOG.md](docs/CHANGELOG.md) for full version history.
