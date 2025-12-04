@@ -113,7 +113,7 @@ if (!empty($current_search)) {
         <form method="get" action="<?php echo esc_url(add_query_arg(null, null)); ?>">
             <input type="text" name="bbp_search" placeholder="Search topics..." value="<?php echo esc_attr($current_search); ?>">
             <input type="hidden" name="sort" value="<?php echo esc_attr($current_sort); ?>">
-            <button type="submit">Search</button>
+            <button type="submit" class="button-1 button-small">Search</button>
         </form>
     </div>
 </div>

@@ -58,17 +58,10 @@ if ($recent_feed && !empty($recent_feed['items'])) {
             <li class="bbp-body">
                 <?php
                 foreach ($feed_items as $feed_item) {
-                    $blog_id  = (int) $feed_item['blog_id'];
-                    $post     = $feed_item['post'];
-                    $switched = false;
+                    $post = $feed_item['post'];
 
                     if (!$post || !is_object($post)) {
                         continue;
-                    }
-
-                    if ($blog_id !== get_current_blog_id()) {
-                        switch_to_blog($blog_id);
-                        $switched = true;
                     }
 
                     setup_postdata($post);
@@ -78,7 +71,7 @@ if ($recent_feed && !empty($recent_feed['items'])) {
                     set_query_var('prefetch_author_name', $feed_item['author_name']);
                     set_query_var('prefetch_author_avatar_url', $feed_item['author_avatar_url']);
 
-                    // Set pre-fetched topic/forum data for multisite context
+                    // Set pre-fetched topic/forum data for template use
                     set_query_var('prefetch_topic_id', $feed_item['topic_id']);
                     set_query_var('prefetch_topic_url', $feed_item['topic_url']);
                     set_query_var('prefetch_topic_title', $feed_item['topic_title']);
@@ -91,9 +84,7 @@ if ($recent_feed && !empty($recent_feed['items'])) {
                     if ( $post->post_type === bbp_get_topic_post_type() ) {
                         $topic_id = $post->ID;
                     } else {
-                        // Get topic ID directly from post_parent to avoid bbp_get_topic_id() filter
                         $topic_id = (int) get_post_field( 'post_parent', $post->ID );
-                        // Fallback to meta if post_parent is empty
                         if ( empty( $topic_id ) ) {
                             $topic_id = (int) get_post_meta( $post->ID, '_bbp_topic_id', true );
                         }
@@ -109,10 +100,6 @@ if ($recent_feed && !empty($recent_feed['items'])) {
                     $bbp->current_forum_id = 0;
 
                     wp_reset_postdata();
-
-                    if ($switched) {
-                        restore_current_blog();
-                    }
                 }
 
                 wp_reset_postdata();

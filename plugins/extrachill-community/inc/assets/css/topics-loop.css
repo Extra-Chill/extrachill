@@ -174,22 +174,6 @@
     cursor: pointer;
 }
 
-/* Search Button Styling */
-.bbp-search-form button {
-    color: #ffffff;
-    padding: 6px 14px;
-    border: none;
-    border-radius: 5px;
-    font-size: 15px;
-    cursor: pointer;
-    transition: background-color 0.2s ease-in-out;
-}
-
-/* Hover for Search Button */
-.bbp-search-form button:hover {
-    background-color: var(--accent-2);
-}
-
 /* Focus States for Inputs */
 .bbp-search-form input[type="text"]:focus,
 .bbp-sorting-form select:focus {
@@ -218,27 +202,11 @@
         padding: 6px 8px;
         font-size: 14px;
     }
-    .bbp-search-form button,
-    .bbp-search-form input {
-        padding: 6px 8px;
-        font-size: 14px;
-        white-space: nowrap;
-    }
 }
 
 /* Styling for sticky topic cards */
 .bbp-topic-card.bbp-topic-card-sticky {
     border-left: 3px solid var(--accent-2); /* Accent-2 border */
-}
-
-.bbp-topic-card.bbp-topic-card-sticky .bbp-topic-header-inner:before {
-    content: "\f08d"; /* Font Awesome pin icon */
-    font-family: "Font Awesome 6 Free"; /* Or your Font Awesome font family */
-    font-weight: 900; /* Solid style for Font Awesome */
-    color: var(--accent-2); /* Use accent-2 color for the icon */
-    margin-right: 5px;
-    font-size: 0.8em;
-    vertical-align: middle;
 }
 
 .artist-forum-topics ol, .artist-forum-topics ul {

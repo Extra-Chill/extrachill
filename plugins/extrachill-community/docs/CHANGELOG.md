@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.0.3] - 2025-12-04
+
+### Added
+- Navigation integration with secondary header links for Recent, Local Scenes, and Music Discussion
+- New inc/core/nav.php file for community navigation features
+
+### Changed
+- Major refactoring of recent feed system to use single-blog queries instead of multisite cross-blog queries
+- Improved search button styling in topics loop with theme-consistent button classes
+- Updated homepage rendering to use action hooks for better extensibility
+- Updated documentation references from CLAUDE.md to AGENTS.md
+
+### Removed
+- CLAUDE.md documentation file (superseded by AGENTS.md)
+- Redundant CSS styling for search buttons and sticky topic icons
+
 ## [1.0.2] - 2025-12-01
 
 ### Added

@@ -6,7 +6,6 @@
  * Checks user permissions using ec_can_create_artist_profiles() from extrachill-artist-platform plugin.
  *
  * Links:
- * - Support Forum: artist.extrachill.com/extra-chill
  * - Artist Platform: artist.extrachill.com (for creators)
  * - Join Flow: artist.extrachill.com/login/#tab-register?from_join=true (for visitors)
  *
@@ -20,16 +19,12 @@ if (!defined('ABSPATH')) {
 /**
  * Add homepage buttons to the extrachill_community_home_after_forums hook
  *
- * Displays the Support Forum and Artist Platform buttons on the community homepage
+ * Displays the Artist Platform button on the community homepage
  * based on user login status and permissions. Links to artist.extrachill.com.
  */
 function ec_community_add_artist_platform_buttons() {
     ?>
     <div class="artist-platform-homepage-actions">
-        <a href="https://artist.extrachill.com/extra-chill" class="button-2 button-medium">
-            <?php esc_html_e('Support Forum', 'extra-chill-community'); ?>
-        </a>
-
         <?php if (is_user_logged_in()) :
             $current_user = wp_get_current_user();
             // Check if user can create artist profiles (function provided by extrachill-artist-platform plugin)

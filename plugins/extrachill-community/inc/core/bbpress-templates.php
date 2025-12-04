@@ -36,22 +36,17 @@ function extrachill_community_register_bbpress_templates() {
 add_action('bbp_register_theme_packages', 'extrachill_community_register_bbpress_templates');
 
 /**
- * Override homepage template for community site
+ * Render homepage content for community site
  *
- * Only applies to blog ID 2 (community.extrachill.com) to avoid multisite conflicts.
- *
- * @param string $template Current template path
- * @return string Modified template path
+ * Hooked via extrachill_homepage_content action.
  */
-function extrachill_community_homepage_template($template) {
-    // Only override on community.extrachill.com
-    if ( get_current_blog_id() === 2 ) {
-        return EXTRACHILL_COMMUNITY_PLUGIN_DIR . 'inc/home/forum-homepage.php';
+function extrachill_community_render_homepage() {
+    if ( get_current_blog_id() !== 2 ) {
+        return;
     }
-
-    return $template;
+    include EXTRACHILL_COMMUNITY_PLUGIN_DIR . 'inc/home/forum-homepage.php';
 }
-add_filter('extrachill_template_homepage', 'extrachill_community_homepage_template', 10);
+add_action('extrachill_homepage_content', 'extrachill_community_render_homepage', 10);
 
 /**
  * Suppress bbPress forum statistics notice

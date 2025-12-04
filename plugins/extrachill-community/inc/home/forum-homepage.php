@@ -1,10 +1,9 @@
 <?php
 /**
- * Community Forum Homepage Template
+ * Community Forum Homepage Content
  *
- * Template component loaded via extrachill_template_homepage filter (not via extrachill_community_init).
- * Provides the bbPress forum index as the homepage for community.extrachill.com.
- * Registered by inc/home/homepage-forum-display.php.
+ * Homepage content for community.extrachill.com.
+ * Hooked via extrachill_homepage_content action.
  *
  * @package ExtraChillCommunity
  */
@@ -12,8 +11,6 @@
 if (!defined('ABSPATH')) {
     exit;
 }
-
-get_header();
 
 extrachill_breadcrumbs();
 
@@ -26,5 +23,3 @@ do_action('extrachill_community_home_top');
 echo do_shortcode('[bbp-forum-index]');
 
 do_action('extrachill_community_home_after_forums');
-
-get_footer();
