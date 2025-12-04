@@ -128,15 +128,10 @@ get_header(); ?>
                     <button id="festival-wire-load-more" class="button-1 button-large">Load More Posts</button>
                 <?php endif; ?>
 
-				<?php
-				// Newsletter plugin owns and displays the tip form
-				do_action('extrachill_after_news_wire');
-				?>
-
 				<!-- Music Festivals Forum CTA -->
 				<div class="forum-cta-container">
 					<h2 class="forum-cta-title">Join the Discussion!</h2>
-					<p class="forum-cta-description">Chat with fellow festival fans, share your experiences, and get the latest tips in our Music Festivals forum.</p>
+					<p class="forum-cta-description">Chat with fellow festival fans, share your experiences, and get real-time updates in our Music Festivals forum.</p>
 					<a href="<?php echo esc_url('https://community.extrachill.com/r/music-discussion/music-festivals'); ?>" class="forum-cta-link button" target="_blank" rel="noopener noreferrer">Visit the Forum</a>
 				</div>
 
@@ -161,9 +156,10 @@ get_header(); ?>
 
 						<div class="faq-item">
 							<button class="faq-question" aria-expanded="false" aria-controls="faq-answer-3">Is it accurate?</button>
-							<div id="faq-answer-3" class="faq-answer" role="region" aria-labelledby="faq-question-3" hidden>
-								<p>We include fact-checking steps in our AI aggregation process and manually clean up entries that we notice are incorrect. However, due to the high volume of information and the nature of automated processing, occasional inaccuracies may slip through. If you spot something wrong, please let us know using the "Festival News Tip" form above – it helps us improve!</p>
-							</div>
+					<div id="faq-answer-3" class="faq-answer" role="region" aria-labelledby="faq-question-3" hidden>
+						<p>We include fact-checking steps in our AI aggregation process and manually clean up entries that we notice are incorrect. However, due to the high volume of information and the nature of automated processing, occasional inaccuracies may slip through. If you spot something wrong, post in the Music Festivals forum or contact us directly so we can verify and update the entry.</p>
+					</div>
+
 						</div>
 
 						<div class="faq-item">
@@ -193,12 +189,13 @@ get_header(); ?>
 							</div>
 						</div>
 						
-						<div class="faq-item">
-							<button class="faq-question" aria-expanded="false" aria-controls="faq-answer-7">I heard a rumor! Can I submit a tip?</button>
-							<div id="faq-answer-7" class="faq-answer" role="region" aria-labelledby="faq-question-7" hidden>
-								<p>Absolutely! We encourage community contributions. Use the "Have a Festival News Tip?" form found further up on this page to share any leads or information you have.</p>
-							</div>
+					<div class="faq-item">
+						<button class="faq-question" aria-expanded="false" aria-controls="faq-answer-7">How do I share corrections or leads?</button>
+						<div id="faq-answer-7" class="faq-answer" role="region" aria-labelledby="faq-question-7" hidden>
+							<p>Use the Music Festivals forum or contact the editorial team directly if you spot something that needs attention. We monitor community reports and update the Festival Wire accordingly.</p>
 						</div>
+					</div>
+
 
 						<div class="faq-item">
 							<button class="faq-question" aria-expanded="false" aria-controls="faq-answer-8">Why isn't [Specific Festival] listed?</button>

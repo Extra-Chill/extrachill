@@ -217,16 +217,6 @@
     z-index: 2;
 }
 
-.festival-tag.category-tag {
-    background-color: #44D62C;
-    color: #000;
-    border-radius: 50px;
-    border: 1px solid var(--border-color);
-    font-weight: 500;
-    line-height: 1;
-    font-size: 0.75rem;
-    padding: 0.25rem 0.75rem;
-}
 
 .festival-wire-card h2 {
     font-size: 1.3rem;
@@ -286,8 +276,6 @@
 .festival-wire-single-post .post-thumbnail img {
     width: 100%;
     height: auto;
-    max-height: 500px;
-    object-fit: cover;
     margin-bottom: 0;
 }
 

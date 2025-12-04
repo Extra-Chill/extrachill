@@ -21,7 +21,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * - Gutenberg editor support
  * - REST API integration
  * - Archive and single page templates
- * - Category, festival, and data_source taxonomies
+ * - Festival and location taxonomies
  *
  * @since 0.1.0
  */
@@ -29,9 +29,9 @@ function register_festival_wire_cpt() {
 
 	// Post type labels for admin interface
 	$labels = array(
-		        'name'                  => _x( 'Festival Wire', 'Post Type General Name', 'extrachill' ),
-        'singular_name'         => _x( 'Festival Wire', 'Post Type Singular Name', 'extrachill' ),
-        'menu_name'             => __( 'Festival Wire', 'extrachill' ),
+	'name'                  => _x( 'Festival Wire', 'Post Type General Name', 'extrachill' ),
+	'singular_name'         => _x( 'Festival Wire', 'Post Type Singular Name', 'extrachill' ),
+	'menu_name'             => __( 'Festival Wire', 'extrachill' ),
         'name_admin_bar'        => __( 'Festival Wire', 'extrachill' ),
         'archives'              => __( 'Festival Wire Archives', 'extrachill' ),
         'attributes'            => __( 'Festival Wire Attributes', 'extrachill' ),
@@ -63,7 +63,8 @@ function register_festival_wire_cpt() {
         'description'           => __( 'News feed for music festivals', 'extrachill' ),
 		'labels'                => $labels,
 		'supports'              => array( 'title', 'editor', 'excerpt', 'author', 'thumbnail', 'revisions', 'custom-fields' ),
-		'taxonomies'            => array( 'category', 'festival', 'data_source' ),
+		'taxonomies'			=> array( 'festival' ),
+
 		'hierarchical'          => false,
 		'public'                => true,
 		'show_ui'               => true,

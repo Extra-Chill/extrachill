@@ -136,10 +136,6 @@ get_header(); ?>
 	?>
 </aside>
 
-<?php
-// Newsletter plugin owns and displays the tip form
-do_action('extrachill_after_news_wire');
-?>
 
 		<!-- Back to Archive Button -->
 		<div class="festival-wire-back-button-container">

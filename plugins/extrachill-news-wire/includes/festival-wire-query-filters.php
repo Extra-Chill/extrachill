@@ -20,7 +20,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Add custom query variables for Festival Wire filtering
  *
- * Registers festival, location, and data_source as valid query variables
+ * Registers festival and location as valid query variables
  * for use in Festival Wire archive filtering and URL parameters.
  *
  * @since 0.1.0
@@ -30,7 +30,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 function festival_wire_add_query_vars( $query_vars ) {
 	$query_vars[] = 'festival';
 	$query_vars[] = 'location';
-	$query_vars[] = 'data_source';
 	return $query_vars;
 }
 add_filter( 'query_vars', 'festival_wire_add_query_vars' );
@@ -69,19 +68,9 @@ function festival_wire_modify_archive_query( $query ) {
 		$location = get_query_var( 'location' );
 		if ( ! empty( $location ) ) {
 			$tax_query_clauses[] = array(
-				'taxonomy' => 'location',
+					'taxonomy' => 'location',
 				'field'    => 'slug',
 				'terms'    => $location,
-			);
-		}
-
-		// Data source taxonomy filtering
-		$data_source = get_query_var( 'data_source' );
-		if ( ! empty( $data_source ) ) {
-			$tax_query_clauses[] = array(
-				'taxonomy' => 'data_source',
-				'field'    => 'slug',
-				'terms'    => $data_source,
 			);
 		}
 
@@ -106,7 +95,7 @@ add_action( 'pre_get_posts', 'festival_wire_modify_archive_query' );
 /**
  * Include Festival Wire posts in WordPress archives and search
  *
- * Integrates Festival Wire posts into search results, category/tag archives,
+ * Integrates Festival Wire posts into search results and author archives,
  * while excluding from homepage and custom feeds. Maintains content
  * discoverability across the site.
  *
@@ -163,14 +152,17 @@ function festival_wire_include_in_archives( $query ) {
         }
     }
 
-    // Include Festival Wire in category, tag, and author archives
-    elseif ( ( $query->is_category() || $query->is_tag() || $query->is_author() ) && $query->is_main_query() ) {
+	// Include Festival Wire in author archives only
+	elseif ( $query->is_author() && $query->is_main_query() ) {
+
+
         $post_types = $query->get( 'post_type' );
 
-        if ( empty($post_types) || $post_types === 'any' ) {
-            $query->set( 'post_type', array( 'post', 'festival_wire' ) );
-        } elseif ( is_string($post_types) && $post_types == 'post' ) {
-            $query->set( 'post_type', array( 'post', 'festival_wire' ) );
+		if ( empty( $post_types ) || $post_types === 'any' ) {
+			$query->set( 'post_type', array( 'post', 'festival_wire' ) );
+		} elseif ( is_string( $post_types ) && $post_types === 'post' ) {
+			$query->set( 'post_type', array( 'post', 'festival_wire' ) );
+
         } elseif ( is_array($post_types) && ! in_array( 'festival_wire', $post_types ) ) {
             $post_types[] = 'festival_wire';
             $query->set( 'post_type', $post_types );
@@ -178,15 +170,16 @@ function festival_wire_include_in_archives( $query ) {
     }
 
     // Exclude Festival Wire from location taxonomy archives
-    elseif ( is_tax('location') && $query->is_main_query() ) {
-        $post_types = $query->get( 'post_type' );
+	elseif ( is_tax( 'location' ) && $query->is_main_query() ) {
+		$post_types = $query->get( 'post_type' );
 
-        // Force post type to 'post' only for location archives
-        if ( empty($post_types) || (is_array($post_types) && in_array('festival_wire', $post_types)) ) {
-            $query->set( 'post_type', 'post' );
-        } elseif ( is_string($post_types) && $post_types === 'festival_wire' ) {
-            $query->set( 'post_type', 'post' );
-        }
-    }
+		// Force post type to 'post' only for location archives
+		if ( empty( $post_types ) || ( is_array( $post_types ) && in_array( 'festival_wire', $post_types, true ) ) ) {
+			$query->set( 'post_type', 'post' );
+		} elseif ( is_string( $post_types ) && $post_types === 'festival_wire' ) {
+			$query->set( 'post_type', 'post' );
+		}
+	}
+
 }
 add_action( 'pre_get_posts', 'festival_wire_include_in_archives' ); 

@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.2.0] - 2025-12-04
+
+### Removed
+- Category and data_source taxonomy support from Festival Wire post type
+
+### Changed
+- Author archive integration is the only remaining cross-post-type inclusion for Festival Wire queries
+
+### Fixed
+- Category archive listings can no longer pull festival_wire posts
+
 ## [0.1.1] - 2025-12-03
 
 ### Removed

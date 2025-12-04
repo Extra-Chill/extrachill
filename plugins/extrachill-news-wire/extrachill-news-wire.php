@@ -1,8 +1,8 @@
 <?php
 /**
  * Plugin Name: Extra Chill News Wire
- * Description: Festival Wire custom post type and functionality for music festival coverage. Provides fast-loading archive with AJAX pagination, community tip submission system, and template overrides.
- * Version: 0.1.1
+ * Description: Festival Wire custom post type and functionality for music festival coverage with fast-loading archives and template overrides.
+ * Version: 0.2.0
  * Author: Chris Huber
  * Text Domain: extrachill
  * Domain Path: /languages
@@ -53,10 +53,9 @@ function enqueue_festival_wire_assets() {
 			true
 		);
 
-		// AJAX localization for load-more and tip submission
+		// AJAX localization for load-more
 		$localize_params = array(
 			'ajaxurl'         => admin_url( 'admin-ajax.php' ),
-				'tip_nonce'       => wp_create_nonce( 'festival_wire_tip_nonce' ),
 				'load_more_nonce' => wp_create_nonce( 'festival_wire_load_more_nonce' ),
 				'query_vars'      => json_encode( $wp_query->query_vars ),
 				'max_pages'       => $wp_query->max_num_pages
@@ -69,7 +68,7 @@ function enqueue_festival_wire_assets() {
 			);
 		}
 	} elseif ( is_singular( 'festival_wire' ) ) {
-		// Single pages: Load CSS, JS, and tip form functionality
+		// Single pages: Load CSS only
 		$css_file_path = plugin_dir_path(__FILE__) . 'assets/festival-wire.css';
 		$css_file_uri  = plugin_dir_url(__FILE__) . 'assets/festival-wire.css';
 		if ( file_exists( $css_file_path ) ) {
@@ -78,29 +77,6 @@ function enqueue_festival_wire_assets() {
 				$css_file_uri,
 				array(),
 				filemtime( $css_file_path )
-			);
-		}
-		// Festival Wire JavaScript for single pages
-		$js_file_path = plugin_dir_path(__FILE__) . 'assets/festival-wire.js';
-		$js_file_uri  = plugin_dir_url(__FILE__) . 'assets/festival-wire.js';
-		if ( file_exists( $js_file_path ) ) {
-		wp_enqueue_script(
-			'extrachill-festival-wire',
-			$js_file_uri,
-			array(),
-			filemtime( $js_file_path ),
-			true
-		);
-
-		// AJAX localization for tip submission on single pages
-		$localize_params = array(
-			'ajaxurl'   => admin_url( 'admin-ajax.php' ),
-				'tip_nonce' => wp_create_nonce( 'festival_wire_tip_nonce' ),
-			);
-			wp_localize_script(
-				'extrachill-festival-wire',
-				'festivalWireParams',
-				$localize_params
 			);
 		}
 	}
@@ -138,19 +114,3 @@ function ec_news_wire_override_single_template( $template ) {
 
 
 
-function festival_wire_register_newsletter_integration($integrations) {
-	if (!function_exists('extrachill_multisite_subscribe')) {
-		return $integrations;
-	}
-
-	$integrations['festival_wire_tip'] = array(
-		'label' => __('Festival Wire Tip Form', 'extrachill'),
-		'description' => __('Newsletter subscription for festival tip submitters', 'extrachill'),
-		'list_id_key' => 'festival_wire_list_id',
-		'enable_key' => 'enable_festival_wire_tip',
-		'plugin' => 'extrachill-news-wire'
-	);
-
-	return $integrations;
-}
-add_filter('newsletter_form_integrations', 'festival_wire_register_newsletter_integration');
