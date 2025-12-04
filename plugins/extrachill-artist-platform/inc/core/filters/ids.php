@@ -54,16 +54,6 @@ function ec_get_artist_id( $context = null ) {
             return $artist_id;
         }
         
-        // If it's a forum, check if it's an artist forum and get associated artist ID
-        if ( $post_type === 'forum' && function_exists('bbp_get_forum_post_type') ) {
-            $is_artist_forum = get_post_meta( $id, '_is_artist_profile_forum', true );
-            if ( $is_artist_forum ) {
-                $artist_id = get_post_meta( $id, '_associated_artist_profile_id', true );
-                $artist_id = $artist_id ? (int) $artist_id : 0;
-                return $artist_id;
-            }
-        }
-        
         if ( $post_type === false ) { // Likely a user ID
             $user_artist_ids = ec_get_artists_for_user( $id );
             if ( ! empty( $user_artist_ids ) ) {

@@ -25,9 +25,6 @@ get_header(); ?>
 
                 $artist_profile_id = get_the_ID();
 
-                $forum_id = get_post_meta( $artist_profile_id, '_artist_forum_id', true );
-                $allow_public_topics = get_post_meta( $artist_profile_id, '_allow_public_topic_creation', true );
-
                 // Get additional artist meta
                 $genre = get_post_meta( $artist_profile_id, '_genre', true );
                 $local_city = get_post_meta( $artist_profile_id, '_local_city', true );
@@ -251,13 +248,14 @@ get_header(); ?>
                         <div class="entry-content" itemprop="text">
                             <?php
                             // --- Artist Bio Section ---
-                            // Use forum section override logic
-                            $forum_section = bp_get_forum_section_title_and_bio( $artist_profile_id );
+                            $artist_name = get_the_title( $artist_profile_id );
+                            $artist_bio = get_post_field( 'post_content', $artist_profile_id );
+                            
                             echo '<div class="artist-bio-section">';
-                            echo '<h2 class="section-title">' . esc_html( $forum_section['title'] ) . '</h2>';
-                            if ( ! empty( $forum_section['bio'] ) ) {
+                            echo '<h2 class="section-title">' . esc_html( sprintf( __( 'About %s', 'extrachill-artist-platform' ), $artist_name ) ) . '</h2>';
+                            if ( ! empty( $artist_bio ) ) {
                                 echo '<div class="artist-bio">';
-                                echo wpautop( $forum_section['bio'] );
+                                echo wpautop( $artist_bio );
                                 echo '</div>';
                             } else {
                                 echo '<p>' . __( 'No biography available yet.', 'extrachill-artist-platform' ) . '</p>';
@@ -272,157 +270,6 @@ get_header(); ?>
                                 }
                             }
                             // --- End Blog Coverage Button ---
-
-                            // --- Display Artist Forum Section ---
-                            // Removed function_exists check for bbp_topic_index
-                            if ( ! empty( $forum_id ) ) {
-
-                                echo '<div class="artist-forum-section">';
-                                echo '<div id="bbpress-forums" class="bbpress-wrapper">';
-                                // Update Forum Title to include Artist Name
-
-                                // --- Sorting & Search UI (Adapted from loop-topics.php) ---
-                                $current_sort = $_GET['sort'] ?? 'default';
-                                $current_search = $_GET['bbp_search'] ?? '';
-
-                                echo '<div class="sorting-search">';
-
-                                // Sorting Form 
-                                echo '<div class="bbp-sorting-form">';
-                                echo '<form id="sortingForm" method="get">';
-                                // Preserve existing query args (like the artist profile URL itself)
-                                foreach ($_GET as $key => $value) {
-                                    if ($key !== 'sort' && $key !== 'bbp_search') {
-                                        echo '<input type="hidden" name="' . esc_attr($key) . '" value="' . esc_attr($value) . '">' . "\n";
-                                    }
-                                }
-                                echo '<label for="sortSelect" class="screen-reader-text">Sort Topics:</label>'; // Accessibility
-                                echo '<select name="sort" id="sortSelect" onchange="this.form.submit()">'; // Submit on change
-                                echo '<option value="default" ' . selected($current_sort, 'default', false) . '>Sort by Recent</option>';
-                                echo '<option value="upvotes" ' . selected($current_sort, 'upvotes', false) . '>Sort by Upvotes</option>';
-                                // Note: 'popular' sort might need adjustment if not using replies within artist forums
-                                // echo '<option value="popular" ' . selected($current_sort, 'popular', false) . '>Sort by Popular</option>'; 
-                                echo '</select>';
-                                if (!empty($current_search)) {
-                                    echo '<input type="hidden" name="bbp_search" value="' . esc_attr($current_search) . '">';
-                                }
-                                echo '</form>';
-                                echo '</div>';
-
-                                // Search Form
-                                echo '<div class="bbp-search-form">';
-                                echo '<form method="get">';
-                                // Preserve existing query args
-                                foreach ($_GET as $key => $value) {
-                                    if ($key !== 'sort' && $key !== 'bbp_search') {
-                                        echo '<input type="hidden" name="' . esc_attr($key) . '" value="' . esc_attr($value) . '">' . "\n";
-                                    }
-                                }
-                                echo '<label for="bbp_search" class="screen-reader-text">Search Topics:</label>'; // Accessibility
-                                echo '<input type="text" name="bbp_search" id="bbp_search" placeholder="Search topics..." value="' . esc_attr($current_search) . '">';
-                                echo '<input type="hidden" name="sort" value="' . esc_attr($current_sort) . '">';
-                                echo '<button type="submit">Search</button>';
-                                echo '</form>';
-                                echo '</div>';
-
-                                echo '</div>'; // .sorting-search
-                                // --- End Sorting & Search UI ---
-
-                                // Check permissions for creating topics (needed later for the form)
-                                $can_create_topics = current_user_can( 'publish_topics', $forum_id );
-                                $public_can_post = ( $allow_public_topics === '1' && current_user_can('bbp_topic_creatable') );
-
-                                // --- Display Topic List ---
-                                echo '<div class="artist-forum-topics">';
-                                
-                                // Prepare topic query args
-                                $topic_args = array(
-                                    'post_parent' => $forum_id,
-                                    'show_stickies' => true, // Changed to show sticky posts
-                                    // Add sorting/search parameters
-                                    'posts_per_page' => get_option('_bbp_topics_per_page', 15), // Use bbPress setting
-                                    'paged'          => bbp_get_paged(),
-                                    // 'post_status' => array('publish', 'closed'), // Let bbp_has_topics handle status based on user caps
-                                );
-
-                                // Apply sorting logic 
-                                if ($current_sort === 'upvotes') {
-                                    $topic_args['meta_key'] = 'upvote_count'; // Assuming you have this meta key
-                                    $topic_args['orderby']  = 'meta_value_num';
-                                    $topic_args['order']    = 'DESC';
-                                } else { // Default: sort by recent activity
-                                    $topic_args['orderby']  = 'meta_value';
-                                    $topic_args['meta_key'] = '_bbp_last_active_time';
-                                    $topic_args['meta_type'] = 'DATETIME'; // Important for correct sorting
-                                    $topic_args['order']    = 'DESC';
-                                }
-
-                                // Apply search logic
-                                if (!empty($current_search)) {
-                                    $topic_args['s'] = sanitize_text_field($current_search);
-                                }
-
-                                if ( bbp_has_topics( $topic_args ) ) :
-                                    
-                                    // Add pagination before the loop
-                                    bbp_get_template_part('pagination', 'topics'); 
-                                    
-                                    ?>
-                                    <ul id="bbp-forum-<?php echo esc_attr( $forum_id ); ?>" class="bbp-topics">
-                                        <?php /* REMOVE THE HEADER ROW
-                                        <li class="bbp-header">
-                                            <ul class="forum-titles">
-                                                <li class="bbp-topic-title"><?php esc_html_e( 'Topic', 'bbpress' ); ?></li>
-                                                <li class="bbp-topic-voice-count"><?php esc_html_e( 'Voices', 'bbpress' ); ?></li>
-                                                <li class="bbp-topic-reply-count"><?php bbp_show_lead_topic() ? esc_html_e( 'Replies', 'bbpress' ) : esc_html_e( 'Posts', 'bbpress' ); ?></li>
-                                                <li class="bbp-topic-freshness"><?php esc_html_e( 'Freshness', 'bbpress' ); ?></li>
-                                            </ul>
-                                        </li>
-                                        */ ?>
-
-                                        <li class="bbp-body"> <?php // This might also need removal later if cards have their own wrapper ?>
-                                            <?php while ( bbp_topics() ) : bbp_the_topic(); ?>
-                                                <?php bbp_get_template_part( 'loop', 'single-topic-card' ); // <-- Use custom card layout ?>
-                                            <?php endwhile; ?>
-                                        </li>
-
-                                        <?php /* REMOVE THE FOOTER ROW
-                                        <li class="bbp-footer">
-                                            <div class="tr">
-                                                <p>
-                                                    <span class="td colspan<?php echo ( bbp_is_user_home() && ( bbp_is_favorites() || bbp_is_subscriptions() ) ) ? '5' : '4'; ?>">&nbsp;</span>
-                                                </p>
-                                            </div>
-                                        </li>
-                                        */ ?>
-                                    </ul><!-- #bbp-forum-<?php bbp_forum_id(); ?> -->
-                                    <?php
-                                    
-                                    // Add pagination after the loop
-                                    bbp_get_template_part('pagination', 'topics'); 
-
-                                else :
-                                    // No topics found - Custom message
-                                    $artist_name = esc_html( get_the_title( $artist_profile_id ) );
-                                    $custom_no_topics_message = sprintf(
-                                        esc_html__( 'This space is for %s to connect with their community! If you\'re part of the artist, why not start a new topic? Share your latest news, upcoming gigs, or just say hello to your fans.', 'extrachill-artist-platform' ),
-                                        $artist_name
-                                    );
-                                    echo '<div class="notice notice-info"><p>' . $custom_no_topics_message . '</p></div>';
-                                endif; // end bbp_has_topics()
-                                echo '</div>'; // .artist-forum-topics
-                                // --- End Display Topic List ---
-                                
-                                // --- Show "New Topic" form AFTER list (if user can post) ---
-                                if ( $can_create_topics || $public_can_post ) {
-                                    bbp_get_template_part( 'form', 'topic' );
-                                }
-                                // --- End New Topic Form --- 
-
-                                echo '</div>'; // #bbpress-forums
-                                echo '</div>'; // .artist-forum-section
-                            }
-                            // --- End Artist Forum Section --- 
                             ?>
                         </div><!-- .entry-content -->
 

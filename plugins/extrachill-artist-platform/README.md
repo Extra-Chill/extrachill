@@ -733,7 +733,7 @@ npm run build
 ### Build Configuration
 
 The build process excludes:
-- Development documentation (README.md, CLAUDE.md)
+- Development documentation (README.md, AGENTS.md)
 - Version control files (.git/, .gitignore)
 - Development tools (build.sh, package.json, .buildignore)
 - Testing files and temporary artifacts

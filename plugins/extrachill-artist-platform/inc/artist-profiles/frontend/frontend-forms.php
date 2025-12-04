@@ -94,15 +94,6 @@ function bp_handle_create_artist_profile_submission() {
 
     // --- Link Creator as Member --- 
     bp_add_artist_membership( get_current_user_id(), $new_artist_id );
-    
-    // --- Trigger Forum Creation ---
-    // Explicitly call the forum creation function to ensure it runs immediately
-    // after the artist profile is created and before redirection.
-    $new_artist_post = get_post($new_artist_id); // Get the newly created post object
-    if ($new_artist_post) {
-        // Pass the new post ID, the post object, and false for $update (since it's a new post)
-        bp_create_artist_forum_on_save( $new_artist_id, $new_artist_post, false );
-    }
 
     // --- Redirect after successful creation ---
     $manage_page = get_page_by_path('manage-artist-profiles');

@@ -105,29 +105,6 @@ function ec_filter_user_capabilities( $allcaps, $caps, $args, $user ) {
             if ( in_array( $cap, $post_caps ) ) {
                 $allcaps[$cap] = true;
             }
-            
-            $artist_forum_id = get_post_meta( $object_id, '_artist_forum_id', true );
-            if ( $artist_forum_id && isset( $args[2] ) && $args[2] == $artist_forum_id ) {
-                $forum_caps = array(
-                    'spectate', 'participate', 'read_private_forums', 'publish_topics', 'edit_topics',
-                    'publish_replies', 'edit_replies', 'delete_topics', 'delete_replies',
-                    'moderate', 'throttle', 'assign_topic_tags', 'edit_topic_tags',
-                    'edit_others_topics', 'edit_others_replies', 'delete_others_topics', 'delete_others_replies'
-                );
-                if ( in_array( $cap, $forum_caps ) ) {
-                    $allcaps[$cap] = true;
-                }
-            }
-        }
-
-        if ( $cap === 'publish_topics' ) {
-            $artist_forum_id = get_post_meta( $object_id, '_artist_forum_id', true );
-            if ( $artist_forum_id && isset( $args[2] ) && $args[2] == $artist_forum_id ) {
-                $allow_public_creation = get_post_meta( $object_id, '_allow_public_topic_creation', true );
-                if ( $allow_public_creation !== '1' && ! ec_can_manage_artist( $user_id, $object_id ) && ! user_can( $user_id, 'manage_options' ) ) {
-                    return $allcaps;
-                }
-            }
         }
     }
     

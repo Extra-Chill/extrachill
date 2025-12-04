@@ -134,11 +134,10 @@ get_header(); ?>
                                 // Fetch existing meta for pre-filling
                                 $current_genre = get_post_meta( $target_artist_id, '_genre', true );
                                 $current_local_city = get_post_meta( $target_artist_id, '_local_city', true );
-                                $current_website_url = get_post_meta( $target_artist_id, '_website_url', true );
-                                $current_spotify_url = get_post_meta( $target_artist_id, '_spotify_url', true );
-                                $current_apple_music_url = get_post_meta( $target_artist_id, '_apple_music_url', true );
-                                $current_bandcamp_url = get_post_meta( $target_artist_id, '_bandcamp_url', true );
-                                $current_allow_public_topics = get_post_meta( $target_artist_id, '_allow_public_topic_creation', true );
+                                                $current_website_url = get_post_meta( $target_artist_id, '_website_url', true );
+                                                $current_spotify_url = get_post_meta( $target_artist_id, '_spotify_url', true );
+                                                $current_apple_music_url = get_post_meta( $target_artist_id, '_apple_music_url', true );
+                                                $current_bandcamp_url = get_post_meta( $target_artist_id, '_bandcamp_url', true );
 
                                 // Populate form fields from existing post
                                 $artist_post_title = $artist_post->post_title;
@@ -166,11 +165,10 @@ get_header(); ?>
                                 // Initialize variables for create mode (will be pre-filled with user data below)
                                 $current_genre = '';
                                 $current_local_city = '';
-                                $current_website_url = '';
-                                $current_spotify_url = '';
-                                $current_apple_music_url = '';
-                                $current_bandcamp_url = '';
-                                $current_allow_public_topics = '';
+                                                $current_website_url = '';
+                                                $current_spotify_url = '';
+                                                $current_apple_music_url = '';
+                                                $current_bandcamp_url = '';
                                 $artist_post = (object) ['post_title' => '', 'post_content' => '']; // Mock post object for value fields
 
                             } else {
@@ -311,21 +309,6 @@ get_header(); ?>
                                             <div id="manage-artist-profile-followers-content" class="shared-tab-pane">
                                                 <?php 
                                                 echo ec_render_template('manage-artist-profile-tab-subscribers', array(
-                                                    'target_artist_id' => $target_artist_id
-                                                ));
-                                                ?>
-                                            </div>
-                                        </div>
-
-                                        <!-- Item 4: Forum -->
-                                        <div class="shared-tab-item">
-                                            <button type="button" class="shared-tab-button" data-tab="manage-artist-profile-forum-content">
-                                                <?php esc_html_e( 'Forum', 'extrachill-artist-platform' ); ?>
-                                                <span class="shared-tab-arrow"></span>
-                                            </button>
-                                            <div id="manage-artist-profile-forum-content" class="shared-tab-pane">
-                                                <?php 
-                                                echo ec_render_template('manage-artist-profile-tab-forum', array(
                                                     'target_artist_id' => $target_artist_id
                                                 ));
                                                 ?>

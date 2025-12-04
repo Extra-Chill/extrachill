@@ -6,15 +6,6 @@
  * ec_get_link_page_data() provides complete link page data with live preview support.
  */
 
-function ec_get_forum_for_artist( $artist_id ) {
-    if ( ! $artist_id || get_post_type( $artist_id ) !== 'artist_profile' ) {
-        return false;
-    }
-
-    $forum_id = get_post_meta( $artist_id, '_artist_forum_id', true );
-    return $forum_id ? (int) $forum_id : false;
-}
-
 function ec_is_user_artist_member( $user_id = null, $artist_id = null ) {
     if ( ! $user_id ) {
         $user_id = get_current_user_id();

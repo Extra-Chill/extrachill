@@ -421,10 +421,7 @@ function ec_handle_artist_profile_save( $artist_id, $save_data = array(), $files
     // Handle meta data updates
     $meta_fields = array(
         'genre' => '_genre',
-        'local_city' => '_local_city',
-        'allow_public_topic_creation' => '_allow_public_topic_creation',
-        'forum_section_title_override' => '_forum_section_title_override',
-        'forum_section_bio_override' => '_forum_section_bio_override'
+        'local_city' => '_local_city'
     );
 
     foreach ( $meta_fields as $key => $meta_key ) {
@@ -522,24 +519,6 @@ function ec_prepare_artist_profile_save_data( $post_data ) {
     // Local Scene (City)
     if ( isset( $post_data['local_city'] ) ) {
         $save_data['local_city'] = sanitize_text_field( $post_data['local_city'] );
-    }
-
-    // Forum Settings - Convert checkbox logic
-    if ( isset( $post_data['restrict_public_topics'] ) ) {
-        $save_data['allow_public_topic_creation'] = '0'; // Checkbox checked means restrict
-    } else {
-        $save_data['allow_public_topic_creation'] = '1'; // Not checked means allow
-    }
-
-    // Forum Section Overrides
-    if ( isset( $post_data['forum_section_title_override'] ) ) {
-        $forum_title = sanitize_text_field( $post_data['forum_section_title_override'] );
-        $save_data['forum_section_title_override'] = ! empty( $forum_title ) ? $forum_title : '';
-    }
-
-    if ( isset( $post_data['forum_section_bio_override'] ) ) {
-        $forum_bio = wp_kses_post( wp_unslash( $post_data['forum_section_bio_override'] ) );
-        $save_data['forum_section_bio_override'] = ! empty( $forum_bio ) ? $forum_bio : '';
     }
 
     // Member Management
