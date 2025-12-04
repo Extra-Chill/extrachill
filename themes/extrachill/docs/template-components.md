@@ -336,7 +336,7 @@ Centralized shared helper library for displaying bbPress activity from multiple 
 
 ### Features
 
-- **Multi-Site Queries**: Fetches activities from BOTH community.extrachill.com (blog ID 2) AND artist.extrachill.com (blog ID 4)
+- **Community Queries**: Fetches activities from community.extrachill.com (blog ID 2)
 - **Chronological Merging**: Combines activities from both sites into unified timeline
 - **Configurable Rendering**: Customizable HTML structure and CSS classes
 - **WordPress Object Cache**: 10-minute caching for optimal performance
@@ -404,7 +404,7 @@ extrachill_render_community_activity( array(
 
 - **Sidebar Widget**: `/inc/sidebar/community-activity.php` - Calls shared helper with sidebar styling
 - **Homepage 3x3 Grid**: `/inc/home/templates/section-3x3-grid.php` - Calls shared helper with grid styling
-- **Legacy Wrapper**: `/inc/home/templates/community-activity.php` - Deprecated wrapper (v1.0.0+)
+- **Legacy Wrapper**: `/inc/home/templates/community-activity.php` - Deprecated wrapper (v1.1.1+)
 
 ### Output Format
 
@@ -421,7 +421,7 @@ extrachill_render_community_activity( array(
 
 ### Caching
 
-Activities cached for 10 minutes using WordPress object cache with key `extrachill_community_activity_all`. Cache contains merged results from both community and artist sites.
+Activities cached for 10 minutes using WordPress object cache with key `extrachill_community_activity_all`. Cache contains results from community site.
 
 ## Component Integration
 

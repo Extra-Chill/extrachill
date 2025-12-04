@@ -17,4 +17,6 @@ do_action( 'extrachill_before_body_content' );
 <?php
 do_action( 'extrachill_homepage_content' );
 
+do_action( 'extrachill_after_homepage_content' );
+
 get_footer();

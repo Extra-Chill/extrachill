@@ -51,7 +51,26 @@ Provides flyout menu HTML with hooks for content injection:
 - About
 - Contact
 
-### 4. Footer Navigation
+### 4. Secondary Header Navigation
+
+**Filter**: `extrachill_secondary_header_items`
+**Template**: `/inc/header/secondary-header.php`
+**Location**: Renders below main header when items are provided
+
+**Usage**: Plugins can add secondary navigation items:
+
+```php
+add_filter( 'extrachill_secondary_header_items', function( $items ) {
+    $items[] = array(
+        'url'      => '/announcements',
+        'label'    => 'Announcements',
+        'priority' => 5,
+    );
+    return $items;
+} );
+```
+
+### 5. Footer Navigation
 
 **Main Footer Hook**: `extrachill_footer_main_content`
 **Template**: `/inc/footer/footer-main-menu.php`

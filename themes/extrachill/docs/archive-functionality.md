@@ -200,6 +200,13 @@ $links_html = paginate_links(array(
 ));
 ```
 
+## Blog Archive Functionality
+
+**Query Var**: `extrachill_blog_archive`
+**Purpose**: Provides blog archive functionality without requiring custom page templates
+**CSS Loading**: Archive styles load when `get_query_var('extrachill_blog_archive')` returns true
+**Template**: Uses standard archive template with query modifications
+
 ## Archive Types
 
 ### Category Archives

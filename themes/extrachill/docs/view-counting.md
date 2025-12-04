@@ -8,7 +8,7 @@ Universal post view tracking for all singular post types using WordPress post me
 
 ### ec_track_post_views( $post_id )
 
-Tracks post views automatically on page load.
+Tracks post views via REST API endpoint.
 
 **Parameters**:
 - `$post_id` (int) - Post ID to track
@@ -19,7 +19,7 @@ Tracks post views automatically on page load.
 
 **Storage**: Post meta key `ec_post_views`
 
-**Auto-Trigger**: Runs on `wp_head` for all singular pages
+**Auto-Trigger**: Called by REST API endpoint `extrachill/v1/analytics/view`
 
 ### ec_get_post_views( $post_id )
 
@@ -59,15 +59,11 @@ $view_text = ec_the_post_views( null, false );
 
 ## Automatic Tracking
 
-View tracking runs automatically:
+View tracking runs asynchronously via client-side JavaScript:
 
-```php
-add_action('wp_head', function() {
-    if (is_singular()) {
-        ec_track_post_views(get_the_ID());
-    }
-});
-```
+**Location**: `assets/js/view-tracking.js`
+**Endpoint**: `extrachill/v1/analytics/view`
+**Method**: Async beacon with fallback to fetch
 
 **Triggers On**:
 - Single posts
@@ -81,6 +77,21 @@ add_action('wp_head', function() {
 - Admin users
 - Post editors
 - Preview requests
+
+**Client-Side Implementation**:
+```javascript
+// Uses navigator.sendBeacon() with fetch() fallback
+if (navigator.sendBeacon) {
+    navigator.sendBeacon(endpoint, data);
+} else {
+    fetch(endpoint, {
+        method: 'POST',
+        body: data,
+        headers: {'Content-Type': 'application/json'},
+        keepalive: true
+    });
+}
+```
 
 ## Using in Templates
 
