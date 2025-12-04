@@ -4,7 +4,7 @@
  * Handles Chart.js-powered analytics visualization for link page management.
  * Features event-driven initialization, real-time data fetching, and responsive charts.
  * 
- * Dependencies: Chart.js, jQuery
+ * Dependencies: Chart.js
  * Event Integration: Listens for 'analyticsTabActivated' custom event
  * AJAX Endpoint: 'extrch_fetch_link_page_analytics'
  */
@@ -35,23 +35,29 @@
         showLoading(true);
         showError(null); // Clear previous errors
 
-        const data = {
-            action: 'extrch_fetch_link_page_analytics', // Define this AJAX action
-            nonce: extraChillArtistPlatform.nonce, // Use nonce from localized config
-            link_page_id: extraChillArtistPlatform.linkPageData.link_page_id, // Use link_page_id from localized config
-            date_range: dateRangeSelect ? dateRangeSelect.value : '30', // Default to 30 days
-        };
+        // --- Real AJAX Call using fetch ---
+        const formData = new FormData();
+        formData.append('action', 'extrch_fetch_link_page_analytics');
+        formData.append('nonce', extraChillArtistPlatform.nonce);
+        formData.append('link_page_id', extraChillArtistPlatform.linkPageData.link_page_id);
+        formData.append('date_range', dateRangeSelect ? dateRangeSelect.value : '30');
 
-        // --- Real AJAX Call ---
-        jQuery.post(extraChillArtistPlatform.ajaxUrl, data, function(response) {
+        fetch(extraChillArtistPlatform.ajaxUrl, {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(response => {
             if (response.success) {
                 updateUI(response.data);
             } else {
                 showError(response?.data?.message || 'Failed to load analytics data.');
             }
-        }).fail(function(jqXHR, textStatus, errorThrown) {
+        })
+        .catch(() => {
             showError('Error communicating with server. See console for details.');
-        }).always(function() {
+        })
+        .finally(() => {
             showLoading(false);
         });
         // --- End Real AJAX Call --- //

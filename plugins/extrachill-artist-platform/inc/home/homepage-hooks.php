@@ -13,23 +13,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Override homepage template for artist.extrachill.com
+ * Render homepage content for artist.extrachill.com
  *
- * Uses WordPress native template_include filter via theme's universal routing system.
- * The extrachill_template_homepage filter is provided by theme's template-router.php.
- *
- * @param string $template Default template path from theme
- * @return string Modified template path
+ * Hooked via extrachill_homepage_content action.
  */
-function ec_artist_platform_override_homepage( $template ) {
-    // Only override on artist.extrachill.com using blog ID
-    if ( get_current_blog_id() === 4 ) {
-        return EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/home/templates/homepage.php';
-    }
-
-    return $template;
+function ec_artist_platform_render_homepage() {
+    include EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/home/templates/homepage.php';
 }
-add_filter( 'extrachill_template_homepage', 'ec_artist_platform_override_homepage' );
+add_action( 'extrachill_homepage_content', 'ec_artist_platform_render_homepage' );
 
 /**
  * Render the homepage hero section

@@ -2,7 +2,7 @@
  * Artist Grid Pagination
  *
  * Handles AJAX pagination for artist grid on homepage.
- * Uses WordPress native AJAX patterns with smooth transitions.
+ * Uses fetch API with smooth transitions.
  *
  * @package ExtraChillArtistPlatform
  */
@@ -52,54 +52,55 @@
 			gridContainer.style.pointerEvents = 'none';
 			paginationDiv.style.opacity = '0.5';
 
-			// Make AJAX request using jQuery (available in WordPress)
-			jQuery.ajax({
-				url: extraChillArtistPlatform.ajaxUrl,
-				type: 'POST',
-				data: {
-					action: 'ec_load_artist_page',
-					nonce: extraChillArtistPlatform.nonce,
-					page: page,
-					exclude_user_artists: excludeUser
-				},
-				success: function(response) {
-					if (response.success && response.data) {
-						// Replace grid content
-						gridContainer.outerHTML = response.data.html;
+			// Build form data for POST request
+			const formData = new FormData();
+			formData.append('action', 'ec_load_artist_page');
+			formData.append('nonce', extraChillArtistPlatform.nonce);
+			formData.append('page', page);
+			formData.append('exclude_user_artists', excludeUser);
 
-						// Replace pagination
-						paginationDiv.innerHTML = response.data.pagination_html;
+			fetch(extraChillArtistPlatform.ajaxUrl, {
+				method: 'POST',
+				body: formData
+			})
+			.then(response => response.json())
+			.then(response => {
+				if (response.success && response.data) {
+					// Replace grid content
+					gridContainer.outerHTML = response.data.html;
 
-						// Smooth scroll to top of section
-						featuredSection.scrollIntoView({
-							behavior: 'smooth',
-							block: 'start'
-						});
+					// Replace pagination
+					paginationDiv.innerHTML = response.data.pagination_html;
 
-						// Remove loading state from new elements
-						const newGridContainer = featuredSection.querySelector('.artist-cards-grid');
-						const newPaginationDiv = featuredSection.querySelector('.artist-grid-pagination');
+					// Smooth scroll to top of section
+					featuredSection.scrollIntoView({
+						behavior: 'smooth',
+						block: 'start'
+					});
 
-						if (newGridContainer) {
-							newGridContainer.style.opacity = '1';
-							newGridContainer.style.pointerEvents = 'auto';
-						}
-						if (newPaginationDiv) {
-							newPaginationDiv.style.opacity = '1';
-						}
-					} else {
-						// Error handling - restore state
-						gridContainer.style.opacity = '1';
-						gridContainer.style.pointerEvents = 'auto';
-						paginationDiv.style.opacity = '1';
+					// Remove loading state from new elements
+					const newGridContainer = featuredSection.querySelector('.artist-cards-grid');
+					const newPaginationDiv = featuredSection.querySelector('.artist-grid-pagination');
+
+					if (newGridContainer) {
+						newGridContainer.style.opacity = '1';
+						newGridContainer.style.pointerEvents = 'auto';
 					}
-				},
-				error: function() {
-					// AJAX error - restore state
+					if (newPaginationDiv) {
+						newPaginationDiv.style.opacity = '1';
+					}
+				} else {
+					// Error handling - restore state
 					gridContainer.style.opacity = '1';
 					gridContainer.style.pointerEvents = 'auto';
 					paginationDiv.style.opacity = '1';
 				}
+			})
+			.catch(() => {
+				// Fetch error - restore state
+				gridContainer.style.opacity = '1';
+				gridContainer.style.pointerEvents = 'auto';
+				paginationDiv.style.opacity = '1';
 			});
 		}
 	};

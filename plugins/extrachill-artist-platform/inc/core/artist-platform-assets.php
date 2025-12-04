@@ -117,7 +117,7 @@ class ExtraChillArtistPlatform_Assets {
             wp_enqueue_script(
                 'extrachill-artist-platform-home',
                 $plugin_url . 'assets/js/artist-platform-home.js',
-                array( 'jquery' ),
+                array(),
                 $this->get_asset_version( 'assets/js/artist-platform-home.js' ),
                 true
             );
@@ -125,7 +125,7 @@ class ExtraChillArtistPlatform_Assets {
             wp_enqueue_script(
                 'extrachill-artist-grid-pagination',
                 $plugin_url . 'assets/js/artist-grid-pagination.js',
-                array( 'jquery', 'extrachill-artist-platform' ),
+                array( 'extrachill-artist-platform' ),
                 $this->get_asset_version( 'assets/js/artist-grid-pagination.js' ),
                 true
             );
@@ -157,7 +157,7 @@ class ExtraChillArtistPlatform_Assets {
         wp_enqueue_script( 
             'extrachill-artist-platform', 
             $plugin_url . 'assets/js/artist-platform.js', 
-            array( 'jquery' ), 
+            array(), 
             $this->get_asset_version( 'assets/js/artist-platform.js' ), 
             true
         );
@@ -233,7 +233,7 @@ class ExtraChillArtistPlatform_Assets {
         wp_enqueue_script(
             'extrachill-link-tracking',
             $plugin_url . 'inc/link-pages/live/assets/js/link-page-public-tracking.js',
-            array( 'jquery' ),
+            array(),
             $this->get_asset_version( 'inc/link-pages/live/assets/js/link-page-public-tracking.js' ),
             true
         );
@@ -241,7 +241,7 @@ class ExtraChillArtistPlatform_Assets {
         wp_enqueue_script(
             'extrachill-share-modal',
             $plugin_url . 'inc/link-pages/live/assets/js/extrch-share-modal.js',
-            array( 'jquery' ),
+            array(),
             $this->get_asset_version( 'inc/link-pages/live/assets/js/extrch-share-modal.js' ),
             true
         );
@@ -249,7 +249,7 @@ class ExtraChillArtistPlatform_Assets {
         wp_enqueue_script(
             'extrachill-subscribe',
             $plugin_url . 'inc/link-pages/live/assets/js/link-page-subscribe.js',
-            array( 'jquery' ),
+            array(),
             $this->get_asset_version( 'inc/link-pages/live/assets/js/link-page-subscribe.js' ),
             true
         );
@@ -257,7 +257,7 @@ class ExtraChillArtistPlatform_Assets {
         wp_enqueue_script(
             'extrachill-youtube-embed',
             $plugin_url . 'inc/link-pages/live/assets/js/link-page-youtube-embed.js',
-            array( 'jquery' ),
+            array(),
             $this->get_asset_version( 'inc/link-pages/live/assets/js/link-page-youtube-embed.js' ),
             true
         );
@@ -283,8 +283,11 @@ class ExtraChillArtistPlatform_Assets {
     private function enqueue_artist_profile_management_assets() {
         $plugin_url = EXTRACHILL_ARTIST_PLATFORM_PLUGIN_URL;
 
+        // Font Awesome for artist platform management interfaces (isolated from theme)
+        wp_enqueue_style( 'font-awesome', '//cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css' );
+
         wp_enqueue_style( 'extrachill-shared-tabs', get_template_directory_uri() . '/assets/css/shared-tabs.css', array(), filemtime( get_template_directory() . '/assets/css/shared-tabs.css' ) );
-        wp_enqueue_script( 'extrachill-shared-tabs', get_template_directory_uri() . '/assets/js/shared-tabs.js', array( 'jquery' ), filemtime( get_template_directory() . '/assets/js/shared-tabs.js' ), true );
+        wp_enqueue_script( 'extrachill-shared-tabs', get_template_directory_uri() . '/assets/js/shared-tabs.js', array(), filemtime( get_template_directory() . '/assets/js/shared-tabs.js' ), true );
 
         wp_enqueue_style(
             'extrachill-artist-switcher',
@@ -313,7 +316,7 @@ class ExtraChillArtistPlatform_Assets {
         wp_enqueue_script(
             'extrachill-manage-artist-profiles',
             $plugin_url . 'inc/artist-profiles/assets/js/manage-artist-profiles.js',
-            array( 'jquery' ),
+            array(),
             $this->get_asset_version( 'inc/artist-profiles/assets/js/manage-artist-profiles.js' ),
             true
         );
@@ -324,7 +327,7 @@ class ExtraChillArtistPlatform_Assets {
         wp_enqueue_script( 
             'extrachill-artist-subscribers', 
             $plugin_url . 'inc/artist-profiles/assets/js/manage-artist-subscribers.js', 
-            array( 'jquery' ), 
+            array(), 
             $this->get_asset_version( 'inc/artist-profiles/assets/js/manage-artist-subscribers.js' ), 
             true 
         );
@@ -333,9 +336,12 @@ class ExtraChillArtistPlatform_Assets {
     private function enqueue_link_page_management_assets() {
         $plugin_url = EXTRACHILL_ARTIST_PLATFORM_PLUGIN_URL;
 
+        // Font Awesome for artist platform management interfaces (isolated from theme)
+        wp_enqueue_style( 'font-awesome', '//cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css' );
+
         // Enqueue shared tabs for management interface
         wp_enqueue_style( 'extrachill-shared-tabs', get_template_directory_uri() . '/assets/css/shared-tabs.css', array(), filemtime( get_template_directory() . '/assets/css/shared-tabs.css' ) );
-        wp_enqueue_script( 'extrachill-shared-tabs', get_template_directory_uri() . '/assets/js/shared-tabs.js', array( 'jquery' ), filemtime( get_template_directory() . '/assets/js/shared-tabs.js' ), true );
+        wp_enqueue_script( 'extrachill-shared-tabs', get_template_directory_uri() . '/assets/js/shared-tabs.js', array(), filemtime( get_template_directory() . '/assets/js/shared-tabs.js' ), true );
 
         // Core assets are handled by individual enqueue methods below
 
@@ -433,7 +439,7 @@ class ExtraChillArtistPlatform_Assets {
         wp_enqueue_script( 
             'extrachill-sortable-system', 
             $plugin_url . 'inc/link-pages/management/assets/js/sortable.js', 
-            array( 'jquery', 'sortable-js' ), 
+            array( 'sortable-js' ), 
             $this->get_asset_version( 'inc/link-pages/management/assets/js/sortable.js' ), 
             true 
         );
@@ -447,7 +453,7 @@ class ExtraChillArtistPlatform_Assets {
 
         foreach ( $management_scripts as $script ) {
             // Analytics script needs Chart.js dependency
-            $dependencies = array( 'jquery', 'sortable-js', 'extrachill-sortable-system' );
+            $dependencies = array( 'sortable-js', 'extrachill-sortable-system' );
             if ( $script === 'analytics' ) {
                 $dependencies[] = 'chart-js';
             }
@@ -472,7 +478,7 @@ class ExtraChillArtistPlatform_Assets {
             wp_enqueue_script( 
                 "extrachill-link-page-{$script}", 
                 $plugin_url . "inc/link-pages/management/live-preview/assets/js/{$script}.js", 
-                array( 'jquery' ), 
+                array(), 
                 $this->get_asset_version( "inc/link-pages/management/live-preview/assets/js/{$script}.js" ), 
                 true 
             );

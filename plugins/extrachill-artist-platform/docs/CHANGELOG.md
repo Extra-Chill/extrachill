@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.2] - 2025-12-04
+
+### Changed
+- Modernized JavaScript architecture: Converted jQuery AJAX calls to fetch API in artist-grid-pagination.js, manage-artist-profiles.js, analytics.js, and socials.js
+- Complete refactor of manage-artist-profiles.js from jQuery to vanilla JavaScript with IIFE pattern
+- Improved code organization: Moved plugin activation/deactivation hooks into class methods
+- Removed redundant artist-members-admin.js legacy file
+- Updated version constant and CSS version to align with plugin header
+
+### Technical Improvements
+- Eliminated jQuery dependency in core management interfaces
+- Enhanced performance through native JavaScript APIs
+- Better adherence to architectural principles
+- Improved code maintainability and encapsulation
+
 ## [1.0.1] - 2025-11-29
 
 ### Fixed

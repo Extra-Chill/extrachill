@@ -178,19 +178,17 @@ function ec_clear_join_flow_completion_data( $user_id ) {
  * to the manage-link-page with their newly created artist profile.
  * Hooked to 'registration_redirect' filter.
  *
- * @param string $redirect_to Default redirect URL
- * @param object $requested_redirect_to Requested redirect
- * @param object $user WP_User object of the logged-in user
+ * @param string        $redirect_to Default redirect URL
+ * @param int|WP_Error  $user_id     User ID if successful, WP_Error otherwise
  * @return string Modified redirect URL for join flow users, original URL otherwise
  */
-function ec_handle_join_flow_registration_redirect( $redirect_to, $requested_redirect_to, $user ) {
-	// Only handle if we have a valid user
-	if ( ! $user || is_wp_error( $user ) ) {
+function ec_handle_join_flow_registration_redirect( $redirect_to, $user_id ) {
+	if ( ! $user_id || is_wp_error( $user_id ) ) {
 		return $redirect_to;
 	}
 
 	// Check if this user has join flow completion data
-	$completion_data = ec_get_join_flow_completion_data( $user->ID );
+	$completion_data = ec_get_join_flow_completion_data( $user_id );
 
 	if ( ! $completion_data || empty( $completion_data['artist_id'] ) ) {
 		// Not a join flow registration, return original redirect
@@ -198,15 +196,15 @@ function ec_handle_join_flow_registration_redirect( $redirect_to, $requested_red
 	}
 
 	// Get the redirect URL for join flow users
-	$join_flow_redirect = ec_get_join_flow_redirect_url( $user->ID, $completion_data['artist_id'] );
+	$join_flow_redirect = ec_get_join_flow_redirect_url( $user_id, $completion_data['artist_id'] );
 
 	// Clear the transient data after successful redirect
-	ec_clear_join_flow_completion_data( $user->ID );
+	ec_clear_join_flow_completion_data( $user_id );
 
 	// Return the join flow redirect URL
 	return $join_flow_redirect;
 }
-add_filter( 'registration_redirect', 'ec_handle_join_flow_registration_redirect', 10, 3 );
+add_filter( 'registration_redirect', 'ec_handle_join_flow_registration_redirect', 10, 2 );
 
 /**
  * Handle existing user page load redirect when visiting login page with from_join parameter

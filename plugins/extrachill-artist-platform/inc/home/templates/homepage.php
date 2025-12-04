@@ -1,14 +1,12 @@
 <?php
 /**
- * Artist Platform Homepage Template
+ * Artist Platform Homepage Content
  *
- * Homepage template for artist.extrachill.com (site #4 in multisite network).
- * Displays dashboard for logged-in artists or welcome screen for visitors.
+ * Homepage content for artist.extrachill.com.
+ * Hooked via extrachill_homepage_content action.
  *
  * @package ExtraChillArtistPlatform
  */
-
-get_header();
 
 extrachill_breadcrumbs();
 ?>
@@ -101,5 +99,3 @@ extrachill_breadcrumbs();
 		</div><!-- .entry-content -->
 	</div><!-- .inside-article -->
 </article><!-- .artist-platform-homepage -->
-
-<?php get_footer(); ?>

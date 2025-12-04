@@ -159,15 +159,21 @@
                         url: ''
                     };
                     
-                    jQuery.post(extraChillArtistPlatform.ajaxUrl, {
-                        action: 'render_social_item_editor',
-                        link_page_id: linkPageId,
-                        index: index,
-                        social_data: socialData,
-                        available_options: filteredSocialTypesArray,
-                        current_socials: currentSocials,
-                        nonce: extraChillArtistPlatform.nonce
-                    }, function(response) {
+                    const formData = new FormData();
+                    formData.append('action', 'render_social_item_editor');
+                    formData.append('link_page_id', linkPageId);
+                    formData.append('index', index);
+                    formData.append('social_data', JSON.stringify(socialData));
+                    formData.append('available_options', JSON.stringify(filteredSocialTypesArray));
+                    formData.append('current_socials', JSON.stringify(currentSocials));
+                    formData.append('nonce', extraChillArtistPlatform.nonce);
+
+                    fetch(extraChillArtistPlatform.ajaxUrl, {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(response => response.json())
+                    .then(response => {
                         if (response.success && response.data.html) {
                             socialListEl.insertAdjacentHTML('beforeend', response.data.html);
                             
@@ -181,8 +187,9 @@
                         } else {
                             console.error('Failed to render social item:', response.data ? response.data.message : 'Unknown error');
                         }
-                    }).fail(function() {
-                        console.error('AJAX request failed for social item rendering');
+                    })
+                    .catch(() => {
+                        console.error('Fetch request failed for social item rendering');
                     });
                 } else {
                     if (filteredSocialTypesArray.length === 0) {
