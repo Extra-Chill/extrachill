@@ -2,8 +2,8 @@
 /**
  * Homepage Template
  *
- * Hook-based homepage with plugin override capability and modular content sections.
- * Loaded via template_include filter in inc/core/template-router.php.
+ * Generic container for homepage content. Plugins hook into extrachill_homepage_content
+ * to provide site-specific homepage content for each network site.
  *
  * @package ExtraChill
  * @since 1.0.0
@@ -12,29 +12,9 @@
 get_header();
 
 do_action( 'extrachill_before_body_content' );
-
-$custom_homepage_content = apply_filters( 'extrachill_homepage_content', false );
-
-if ( $custom_homepage_content !== false ) {
-    echo $custom_homepage_content;
-} else {
-
-    require_once get_template_directory() . '/inc/home/homepage-queries.php';
-
-
-    ?>
-    <div id="mediavine-settings" data-blocklist-all="1"></div>
-    <?php do_action( 'extrachill_homepage_hero' ); ?>
-    <?php do_action( 'extrachill_homepage_after_hero' ); ?>
-    <?php do_action( 'extrachill_homepage_content_top' ); ?>
-    <?php do_action( 'extrachill_homepage_content_middle' ); ?>
-    <?php do_action( 'extrachill_homepage_content_bottom' ); ?>
-    <div class="home-final">
-        <?php do_action( 'extrachill_home_final_left' ); ?>
-        <?php do_action( 'extrachill_home_final_right' ); ?>
-    </div>
-    <?php
-}
+?>
+<div id="mediavine-settings" data-blocklist-all="1"></div>
+<?php
+do_action( 'extrachill_homepage_content' );
 
 get_footer();
-?>

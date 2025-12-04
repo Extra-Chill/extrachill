@@ -21,13 +21,13 @@
     <a href="https://extrachill.com/all">Blog</a>
 </li>
 <li class="menu-item">
+    <a href="https://events.extrachill.com">Events Calendar</a>
+</li>
+<li class="menu-item">
     <a href="https://community.extrachill.com">Community</a>
 </li>
 <li class="menu-item">
     <a href="https://artist.extrachill.com">Artist Platform</a>
-</li>
-<li class="menu-item">
-    <a href="https://events.extrachill.com">Events Calendar</a>
 </li>
 <li class="menu-item">
     <a href="https://extrachill.com/festival-wire/">Festival Wire</a>

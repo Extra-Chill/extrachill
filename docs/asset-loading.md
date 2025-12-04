@@ -1,40 +1,62 @@
 # Asset Loading System
 
-Conditional CSS/JS loading with automatic cache busting via file modification times.
+Conditional CSS/JS loading with `filemtime()` cache busting comes from `/inc/core/assets.php`, which guards every enqueue with `file_exists()` checks and context-aware logic.
 
 ## CSS Architecture
 
-**Location**: `inc/core/assets.php`
+| File | Context | Entry Point |
+|------|---------|-------------|
+| `assets/css/root.css` | All pages | `extrachill_enqueue_root_styles()` (priority 5)
+| `style.css` | All pages | `extrachill_modify_default_style()` (priority 20) replaces the default WordPress style
+| `assets/css/taxonomy-badges.css` | All pages that render taxonomy badges | `extrachill_enqueue_taxonomy_badges()` (priority 10)
+| `assets/css/single-post.css` | Posts, newsletter, festival_wire | `extrachill_enqueue_single_post_styles()` (priority 20)
+| `assets/css/archive.css` | Archive, search, and `/page-templates/all-posts.php` | `extrachill_enqueue_archive_styles()` (priority 20)
+| `assets/css/search.css` | Search results | `extrachill_enqueue_search_styles()` (priority 20)
+| `assets/css/sidebar.css` | Sidebar-enabled singular/post templates, 404 pages | `extrachill_enqueue_sidebar_styles()` (priority 20; only when `extrachill_sidebar_content` filter returns `false`)
+| `assets/css/shared-tabs.css` | Shared tab components | Registered via `extrachill_register_shared_tabs()` (priority 5)
+| `assets/css/nav.css` | Navigation flyout | `extrachill_enqueue_navigation_assets()`
+| `assets/css/editor-style.css` | Block editor | `extrachill_enqueue_admin_styles()` (via `admin_enqueue_scripts` when editing posts)
 
-The theme uses 11 modular CSS files loaded conditionally based on page context:
+## JavaScript Architecture
 
-| File | Context | Dependencies | Priority |
-|------|---------|--------------|----------|
-| `root.css` | All pages | None | 5 |
-| `style.css` | All pages | root.css | 20 |
-| `badge-colors.css` | All pages | root.css | 10 |
-| `nav.css` | All pages | None | Default |
-| `home.css` | Homepage only | None | Default |
-| `single-post.css` | Single posts | root.css, style.css | 20 |
-| `archive.css` | Archives/Search | root.css, style.css | 20 |
-| `search.css` | Search results | root.css, style.css | 20 |
-| `shared-tabs.css` | Pages only | None | Default |
-| `share.css` | Single posts | None | Default |
-| `sidebar.css` | Sidebar areas | None | Default |
-| `editor-style.css` | Block editor | root.css | Admin only |
+| Script | Context | Entry Point |
+|--------|---------|-------------|
+| `assets/js/nav-menu.js` | Navigation flyout toggle and search focus | `extrachill_enqueue_navigation_assets()`
+| `assets/js/chill-custom.js` | Archive-specific interactions | `extrachill_enqueue_archive_scripts()` when `is_archive()`
+| `assets/js/reading-progress.js` | Reading progress indicator | `extrachill_enqueue_reading_progress()` (skips when `extrachill_enable_sticky_header` filter returns false)
+| `assets/js/shared-tabs.js` | Shared tab components with desktop/mobile logic | Registered alongside `shared-tabs.css` in `extrachill_register_shared_tabs()`
+| `assets/js/view-tracking.js` | View tracking beacon for singular public posts | `extrachill_enqueue_view_tracking()` (only for public, non-preview singulars; skips users who can edit others’ posts)
 
-## Cache Busting
+### Navigation Assets
 
-All assets use `filemtime()` for automatic version numbering:
+`extrachill_enqueue_navigation_assets()` loads `nav.css`/`nav-menu.js` on every page and relies on `filemtime()` for versions so deployment changes flush caches without touching `functions.php`.
 
-```php
-wp_enqueue_style(
-    'extrachill-root',
-    get_stylesheet_directory_uri() . '/assets/css/root.css',
-    array(),
-    filemtime( get_stylesheet_directory() . '/assets/css/root.css' )
-);
-```
+### Shared Tabs & Sidebar Assets
+
+`extrachill_register_shared_tabs()` leaves the shared tab styles/scripts registered so templates or plugins can enqueue them when needed; the JavaScript manages desktop and accordion behaviors, hash updates, and emits the `sharedTabActivated` event for integrations.
+
+Sidebar assets (including `sidebar.css`) load via `extrachill_enqueue_sidebar_styles()` only when no `extrachill_sidebar_content` override replaces the sidebar, ensuring widgets render styled content without extra overhead.
+
+### View Tracking
+
+`extrachill_enqueue_view_tracking()` bundles `view-tracking.js` and localizes the `ecViewTracking` object with the current `postId` and `rest_url('extrachill/v1/analytics/view')`. The script is skipped for previewing content and logged-in editors to avoid skewing analytics.
+
+## Admin/Editor Styles
+
+`extrachill_enqueue_admin_styles()` enqueues `root.css` and `editor-style.css` for post editing screens (`post.php`, `post-new.php`), mirroring the frontend design tokens for a consistent editing experience.
+
+## Cache Busting & Priorities
+
+Every style and script uses `filemtime()` on the source file for the version argument, so browsers refresh when files change. The enqueue priorities (5, 10, 20) guarantee root variables load before dependent styles, and the navigation/styles enqueues avoid redundant loading by checking for contextual flags (e.g., `is_archive()`, `is_search()`, post types).
+
+## Performance Benefits
+
+- **Conditional Loading**: CSS/JS only executes when necessary (archive styles on archives, sidebar styles when widgets appear)
+- **Dependency Safety**: Root variables come first, ensuring derived styles inherit the correct custom properties
+- **Cache Busting**: Files emit new version numbers whenever their modification time changes
+- **Minimal Overhead**: Each enqueue guards file existence to avoid 404s
+- **Shared Components**: Shared tabs and view tracking scripts are registered centrally so downstream templates can opt in while keeping their behaviors consistent
+
 
 **Benefit**: Browser cache automatically invalidates when files change.
 

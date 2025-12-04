@@ -61,24 +61,7 @@ function extrachill_enqueue_reading_progress() {
 }
 add_action('wp_enqueue_scripts', 'extrachill_enqueue_reading_progress');
 
-function extrachill_enqueue_home_styles() {
-    if ( is_front_page() ) {
-        $template_override = apply_filters( 'extrachill_template_homepage', false );
 
-        if ( ! $template_override ) {
-            $css_path = get_stylesheet_directory() . '/assets/css/home.css';
-            if ( file_exists( $css_path ) ) {
-                wp_enqueue_style(
-                    'extrachill-home',
-                    get_stylesheet_directory_uri() . '/assets/css/home.css',
-                    array(),
-                    filemtime( $css_path )
-                );
-            }
-        }
-    }
-}
-add_action( 'wp_enqueue_scripts', 'extrachill_enqueue_home_styles' );
 
 function extrachill_enqueue_root_styles() {
     $css_path = get_stylesheet_directory() . '/assets/css/root.css';

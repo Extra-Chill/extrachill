@@ -3,7 +3,8 @@
  * Template Router
  *
  * WordPress native routing via template_include filter with plugin extensibility.
- * Filter hooks (extrachill_template_*) allow complete template override by plugins.
+ * Homepage uses extrachill_homepage_content action for plugin content injection.
+ * Other templates use extrachill_template_* filters for complete template override.
  * Bypasses bbPress/WooCommerce for native template systems, respects custom page templates.
  *
  * @package ExtraChill
@@ -33,9 +34,7 @@ function extrachill_route_templates( $template ) {
 	}
 
 	if ( is_front_page() || is_home() ) {
-		$template = apply_filters( 'extrachill_template_homepage',
-			get_template_directory() . '/inc/home/templates/front-page.php'
-		);
+		$template = get_template_directory() . '/inc/home/templates/front-page.php';
 
 	} elseif ( is_single() ) {
 		$template = apply_filters( 'extrachill_template_single_post',

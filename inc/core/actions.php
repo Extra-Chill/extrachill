@@ -29,30 +29,7 @@ function extrachill_default_navigation_bottom_menu() {
 }
 add_action('extrachill_navigation_bottom_menu', 'extrachill_default_navigation_bottom_menu', 10);
 
-function extrachill_default_homepage_hero() {
-    include get_template_directory() . '/inc/home/templates/hero.php';
-}
-add_action( 'extrachill_homepage_hero', 'extrachill_default_homepage_hero', 10 );
 
-function extrachill_default_homepage_content_top() {
-    include get_template_directory() . '/inc/home/templates/section-3x3-grid.php';
-}
-add_action( 'extrachill_homepage_content_top', 'extrachill_default_homepage_content_top', 10 );
-
-function extrachill_default_homepage_content_middle() {
-    include get_template_directory() . '/inc/home/templates/section-more-recent-posts.php';
-}
-add_action( 'extrachill_homepage_content_middle', 'extrachill_default_homepage_content_middle', 10 );
-
-function extrachill_default_homepage_content_bottom() {
-    include get_template_directory() . '/inc/home/templates/section-extrachill-link.php';
-}
-add_action( 'extrachill_homepage_content_bottom', 'extrachill_default_homepage_content_bottom', 10 );
-
-function extrachill_default_final_left() {
-    include get_template_directory() . '/inc/home/templates/section-about.php';
-}
-add_action( 'extrachill_home_final_left', 'extrachill_default_final_left', 10 );
 
 function extrachill_hook_taxonomy_badges_above_title() {
     extrachill_display_taxonomy_badges( get_the_ID() );
@@ -73,3 +50,8 @@ function extrachill_default_search_header() {
     include get_template_directory() . '/inc/archives/search/search-header.php';
 }
 add_action( 'extrachill_search_header', 'extrachill_default_search_header', 10 );
+
+function extrachill_render_secondary_header() {
+    include get_template_directory() . '/inc/header/secondary-header.php';
+}
+add_action( 'extrachill_after_header', 'extrachill_render_secondary_header', 5 );
