@@ -1,7 +1,7 @@
 /*
 Theme Name: Extra Chill
 Author: Chubes
-Version: 1.1.1
+Version: 1.1.2
 Text Domain: extrachill
 */
 
@@ -813,8 +813,8 @@ div.article-container :before {
 Notice System - 3 Tiers Using Theme Colors
 --------------------------------------------------------------*/
 .notice {
-  padding: 1em 1.5em;
-  margin: 0 auto 1.5em auto;
+  padding: 1rem 1.5rem;
+  margin: 1.5rem auto 1.5rem auto;
   max-width: 1200px;
   border-radius: 4px;
   border-left: 4px solid;
@@ -836,13 +836,6 @@ Notice System - 3 Tiers Using Theme Colors
    background-color: var(--card-background);
    border-left-color: var(--error-color);
 }
-
-/*--------------------------------------------------------------
-Button System - Moved to root.css
-Button classes (.button-1, .button-2, .button-3, .button-danger)
-and size classes (.button-small, .button-medium, .button-large)
-are now defined in root.css as single source of truth
---------------------------------------------------------------*/
 
 /* Back to Home Link */
 .back-to-home-container {

@@ -154,20 +154,20 @@ add_action( 'extrachill_footer_main_content', function() {
 add_action( 'extrachill_below_copyright', function() {
     echo '<div>Additional legal links</div>';
 }, 15 );
+
+// Add online users stats
+add_action( 'extrachill_before_footer', function() {
+    // Online users widget displays automatically
+}, 10 );
 ```
 
 ## Homepage Hooks
 
 ```php
-// Override hero section
-add_action( 'extrachill_homepage_hero', function() {
-    include MY_PLUGIN_DIR . '/templates/custom-hero.php';
-}, 5 ); // Priority 5 = before default
-
-// Add content after hero
-add_action( 'extrachill_homepage_content_top', function() {
-    echo '<div>Custom content</div>';
-}, 15 );
+// Add homepage content
+add_action( 'extrachill_homepage_content', function() {
+    include MY_PLUGIN_DIR . '/templates/homepage-section.php';
+}, 10 );
 ```
 
 ## Archive Hooks
@@ -205,6 +205,26 @@ add_filter( 'extrachill_enable_sticky_header', function( $enabled ) {
 add_filter( 'custom_bandcamp_embed', function( $embed_code, $matches ) {
     return str_replace( 'width: 400px', 'width: 100%', $embed_code );
 }, 10, 2 );
+
+// Add secondary header items
+add_filter( 'extrachill_secondary_header_items', function( $items ) {
+    $items[] = array(
+        'url'      => '/announcements',
+        'label'    => 'Announcements',
+        'priority' => 5,
+    );
+    return $items;
+} );
+
+// Customize footer bottom menu
+add_filter( 'extrachill_footer_bottom_menu_items', function( $items ) {
+    $items[] = array(
+        'url'      => '/terms',
+        'label'    => 'Terms of Service',
+        'priority' => 15,
+    );
+    return $items;
+} );
 ```
 
 ## Query Modifications

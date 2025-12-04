@@ -56,8 +56,8 @@ if ( function_exists( 'extrachill_multisite_search' ) ) {
 
 **Architecture**:
 - **Centralized Helper**: `extrachill_get_community_activity_items()` and `extrachill_render_community_activity()` functions provide reusable library
-- **Multi-Site Queries**: Queries BOTH community.extrachill.com (blog ID 2) AND artist.extrachill.com (blog ID 4) for bbPress topics/replies
-- **Activity Merging**: Combines activities from both sites into unified, chronologically sorted list
+- **Community Queries**: Queries community.extrachill.com (blog ID 2) for bbPress topics/replies
+- **Activity Display**: Displays community activities with 10-minute caching
 - Direct `WP_Query` for bbPress topics and replies
 - Uses `switch_to_blog()` and `restore_current_blog()` for cross-site access
 - Manual forum URL construction: `https://community.extrachill.com/r/{forum-slug}`
@@ -201,7 +201,7 @@ Provided by extrachill-multisite plugin:
 
 ### 3. Community Activity Components
 **Location**: `/inc/core/templates/community-activity.php`
-**Integration**: Centralized shared helper library with reusable `extrachill_get_community_activity_items()` and `extrachill_render_community_activity()` functions. Queries BOTH blog ID 2 (community) and blog ID 4 (artist) for bbPress activities via `switch_to_blog()`, merges chronologically, and provides configurable rendering. Wrapped in `/inc/sidebar/community-activity.php` (sidebar styling) and `/inc/home/templates/section-3x3-grid.php` (grid styling).
+**Integration**: Centralized shared helper library with reusable `extrachill_get_community_activity_items()` and `extrachill_render_community_activity()` functions. Queries community.extrachill.com (blog ID 2) for bbPress activities via `switch_to_blog()` with 10-minute caching. Wrapped in `/inc/sidebar/community-activity.php` (sidebar styling) and `/inc/home/templates/section-3x3-grid.php` (grid styling).
 
 ### 5. Search Site Badges
 **Location**: `/inc/archives/search/search-site-badge.php`
@@ -209,7 +209,7 @@ Provided by extrachill-multisite plugin:
 
 ## Direct Database Access Pattern
 
-Theme **directly accesses** bbPress data from BOTH community and artist sites for activity widgets using WordPress multisite functions:
+Theme **directly accesses** bbPress data from community.extrachill.com for activity widgets using WordPress multisite functions:
 
 **Multi-Site Pattern**:
 ```php

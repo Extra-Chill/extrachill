@@ -56,6 +56,15 @@ add_action( 'extrachill_above_footer', function() {
 }, 20 );
 ```
 
+### extrachill_before_footer
+Online users stats display.
+
+**Default Handler**: `extrachill_display_online_users_stats()`
+**Default Template**: `/inc/footer/online-users-stats.php`
+**Priority**: 10
+
+**Requirements**: Requires `ec_get_online_users_count()` from extrachill-users plugin
+
 ### extrachill_footer_main_content
 Main footer menu with hierarchical structure.
 
@@ -72,40 +81,21 @@ Legal/policy links below copyright.
 
 ## Homepage Hooks
 
-### extrachill_homepage_hero
-Hero section display.
+### extrachill_homepage_content
+Homepage content container.
 
-**Default Handler**: `extrachill_default_homepage_hero()`
-**Default Template**: `/inc/home/templates/hero.php`
+**Default Handler**: None (plugins provide content)
+**Default Template**: `/inc/home/templates/front-page.php`
 **Priority**: 10
 
-### extrachill_homepage_content_top
-3x3 grid section.
+**Usage**: Single hook for homepage content. Plugins provide site-specific homepage sections.
 
-**Default Handler**: `extrachill_default_homepage_content_top()`
-**Default Template**: `/inc/home/templates/section-3x3-grid.php`
-**Priority**: 10
-
-### extrachill_homepage_content_middle
-Recent posts section.
-
-**Default Handler**: `extrachill_default_homepage_content_middle()`
-**Default Template**: `/inc/home/templates/section-more-recent-posts.php`
-**Priority**: 10
-
-### extrachill_homepage_content_bottom
-ExtraChill link section.
-
-**Default Handler**: `extrachill_default_homepage_content_bottom()`
-**Default Template**: `/inc/home/templates/section-extrachill-link.php`
-**Priority**: 10
-
-### extrachill_home_final_left
-About section.
-
-**Default Handler**: `extrachill_default_final_left()`
-**Default Template**: `/inc/home/templates/section-about.php`
-**Priority**: 10
+```php
+add_action( 'extrachill_homepage_content', function() {
+    // Custom homepage content
+    include MY_PLUGIN_DIR . '/templates/homepage-section.php';
+} );
+```
 
 ## Single Post Hooks
 

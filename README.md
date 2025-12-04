@@ -1,10 +1,12 @@
 # ExtraChill WordPress Theme
 
-A custom WordPress theme (v1.1.1) powering the ExtraChill Platform multisite network with 8 active interconnected sites (Blog ID 6 unused), featuring blog content, community integration, festival coverage, and e-commerce functionality. Horoscope site is planned for future Blog ID 10.
+A custom WordPress theme (v1.1.2) powering the ExtraChill Platform multisite network with 8 active interconnected sites (Blog ID 6 unused), featuring blog content, community integration, festival coverage, and e-commerce functionality. Horoscope site is planned for future Blog ID 10.
+
+> **Platform alignment**: All theme documentation reflects the live 1.1.2 release announced in `style.css`; this README stays in lockstep with root repo docs when future releases ship.
 
 ## Overview
 
-ExtraChill is a modern, performance-optimized WordPress theme (v1.1.1) designed specifically for the Extra Chill Platform multisite network. It serves as the frontend for all 8 active interconnected sites (Blog ID 6 unused) with horoscope.extrachill.com planned for future Blog ID 10:
+ExtraChill is a modern, performance-optimized WordPress theme (v1.1.2) designed specifically for the Extra Chill Platform multisite network. It serves as the frontend for all 8 active interconnected sites (Blog ID 6 unused) with horoscope.extrachill.com planned for future Blog ID 10:
 
 - **extrachill.com** (Blog ID 1): Music journalism, artist features, and industry coverage
 - **community.extrachill.com** (Blog ID 2): Community forums with bbPress integration
@@ -471,6 +473,6 @@ This theme is proprietary software developed for ExtraChill.com. All rights rese
 
 **Theme**: ExtraChill
 **Author**: Chubes
-**Version**: 1.1.1
+**Version**: 1.1.2
 **WordPress**: 5.0+
 **License**: Proprietary

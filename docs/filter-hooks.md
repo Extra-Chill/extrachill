@@ -68,6 +68,18 @@ Inject items into the secondary header bar rendered by `inc/header/secondary-hea
 - `priority` (int, optional, default `10`)
 - `rel` (string, optional)
 
+**Example**:
+```php
+add_filter( 'extrachill_secondary_header_items', function( $items ) {
+    $items[] = array(
+        'url'      => '/announcements',
+        'label'    => 'Announcements',
+        'priority' => 5,
+    );
+    return $items;
+} );
+```
+
 ### `extrachill_sidebar_content`
 Override the default sidebar markup (loaded from `sidebar.php`). Returning `false` keeps the theme’s sidebar and enqueues `assets/css/sidebar.css`; any string or `true` value short-circuits the sidebar rendering and stops the sidebar CSS from enqueuing in `inc/core/assets.php`.
 
@@ -79,6 +91,24 @@ Adjust the legal/policy links rendered by `inc/footer/footer-bottom-menu.php`.
 
 **Parameters**: `$items` (array) – Default array includes Affiliate Disclosure and Privacy Policy links.
 **Returns**: Array of footer link items (same structure as secondary header items).
+
+**Item structure**:
+- `url` (string, required)
+- `label` (string, required)
+- `priority` (int, optional, default `10`)
+- `rel` (string, optional)
+
+**Example**:
+```php
+add_filter( 'extrachill_footer_bottom_menu_items', function( $items ) {
+    $items[] = array(
+        'url'      => '/terms-of-service',
+        'label'    => 'Terms of Service',
+        'priority' => 15,
+    );
+    return $items;
+} );
+```
 
 ### `extrachill_back_to_home_label`
 Replace the “Back to Extra Chill” copy used by `inc/footer/back-to-home-link.php`’s smart navigation button.
