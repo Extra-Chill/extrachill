@@ -126,6 +126,11 @@ function extrachill_display_taxonomy_badges( $post_id = null, $args = array() ) 
          }
 
          foreach ( $terms as $term ) {
+             $skip_term = apply_filters('extrachill_taxonomy_badges_skip_term', false, $term, $taxonomy, $post_id);
+             if ($skip_term) {
+                 continue;
+             }
+
              $term_slug = sanitize_html_class( $term->slug );
              $badge_class = $taxonomy . '-badge';
 

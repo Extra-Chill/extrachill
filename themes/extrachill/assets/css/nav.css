@@ -416,3 +416,25 @@ body.search-only-open .search-section {
 	border-bottom: .5px dotted var(--link-color);
     text-decoration: none;
 }
+
+/* Secondary Header Navigation
+   ========================================================================== */
+.secondary-header {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+    padding: 6px 1rem;
+    background-color: var(--card-background);
+    font-size: 13px;
+}
+
+.secondary-header a {
+    color: var(--text-color);
+    text-decoration: none;
+}
+
+.secondary-header a:hover {
+    text-decoration: underline;
+}

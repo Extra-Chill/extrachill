@@ -161,6 +161,72 @@ Provides cross-site search functionality.
 **Required Plugin**: extrachill-multisite
 **Returns**: Array of search results from multiple sites
 
+## Secondary Header Filter
+
+### extrachill_secondary_header_items
+Add navigation items to the secondary header bar below the main header.
+
+**Parameters**: `$items` (array) - Default: empty array
+**Returns**: Array of navigation items
+
+**Item Structure**:
+- `url` (string, required) - Link URL
+- `label` (string, required) - Link text
+- `priority` (int, optional) - Sort order, lower numbers appear first (default: 10)
+
+**Location**: Rendered via `extrachill_after_header` action at priority 5
+
+**Behavior**: Secondary header only renders when items exist. Does not follow sticky header — remains static at top of page.
+
+**Example**:
+```php
+add_filter( 'extrachill_secondary_header_items', function( $items ) {
+    $items[] = array(
+        'url'      => home_url( '/upcoming/' ),
+        'label'    => 'Upcoming Events',
+        'priority' => 5,
+    );
+    $items[] = array(
+        'url'      => home_url( '/submit/' ),
+        'label'    => 'Submit Event',
+        'priority' => 10,
+    );
+    return $items;
+} );
+```
+
+## Footer Bottom Menu Filter
+
+### extrachill_footer_bottom_menu_items
+Add or modify legal/policy links in the footer bottom menu.
+
+**Parameters**: `$items` (array) - Default includes Affiliate Disclosure and Privacy Policy
+**Returns**: Array of navigation items
+
+**Item Structure**:
+- `url` (string, required) - Link URL
+- `label` (string, required) - Link text
+- `priority` (int, optional) - Sort order, lower numbers appear first (default: 10)
+- `rel` (string, optional) - Link rel attribute (e.g., 'privacy-policy')
+
+**Location**: Rendered in footer via `inc/footer/footer-bottom-menu.php`
+
+**Default Items**:
+- Affiliate Disclosure (priority 10)
+- Privacy Policy (priority 20, rel="privacy-policy")
+
+**Example**:
+```php
+add_filter( 'extrachill_footer_bottom_menu_items', function( $items ) {
+    $items[] = array(
+        'url'      => home_url( '/shipping-and-returns/' ),
+        'label'    => 'Shipping & Returns Policy',
+        'priority' => 30,
+    );
+    return $items;
+} );
+```
+
 ## Using Filters
 
 **Override Template**:

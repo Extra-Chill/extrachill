@@ -1,10 +1,10 @@
 # ExtraChill WordPress Theme
 
-A custom WordPress theme (v1.0.9) powering the ExtraChill Platform multisite network with 8 active interconnected sites (Blog ID 6 unused), featuring blog content, community integration, festival coverage, and e-commerce functionality. Horoscope site is planned for future Blog ID 10.
+A custom WordPress theme (v1.1.0) powering the ExtraChill Platform multisite network with 8 active interconnected sites (Blog ID 6 unused), featuring blog content, community integration, festival coverage, and e-commerce functionality. Horoscope site is planned for future Blog ID 10.
 
 ## Overview
 
-ExtraChill is a modern, performance-optimized WordPress theme (v1.0.9) designed specifically for the Extra Chill Platform multisite network. It serves as the frontend for all 8 active interconnected sites (Blog ID 6 unused) with horoscope.extrachill.com planned for future Blog ID 10:
+ExtraChill is a modern, performance-optimized WordPress theme (v1.1.0) designed specifically for the Extra Chill Platform multisite network. It serves as the frontend for all 8 active interconnected sites (Blog ID 6 unused) with horoscope.extrachill.com planned for future Blog ID 10:
 
 - **extrachill.com** (Blog ID 1): Music journalism, artist features, and industry coverage
 - **community.extrachill.com** (Blog ID 2): Community forums with bbPress integration
@@ -277,18 +277,26 @@ The theme features a sophisticated hook-based menu system that replaces WordPres
 The system uses action hooks registered in `inc/core/actions.php` to load hardcoded menu templates, allowing both performance optimization and plugin extensibility without the overhead of WordPress's menu system.
 
 ### Performance Features
+ 
+ - **WordPress native routing**: Template routing via `template_include` filter in `inc/core/template-router.php`
+ - **Modular asset loading**: CSS/JS loaded only when needed based on page context via `inc/core/assets.php`
+ - **Native pagination system**: Lightweight WordPress pagination in `inc/core/templates/pagination.php`
+ - **Memory optimization**: Efficient resource usage tracking and admin style dequeuing
+ - **Query optimization**: Direct database queries for multisite integration
+ - **Asset optimization**: SVG support, emoji script removal, unnecessary image size removal
+ - **Conditional loading**: WooCommerce styles, admin styles, and plugin styles loaded only when needed
+ - **Shared tab components**: `shared-tabs.css`/`shared-tabs.js` registered centrally to keep accordion/tabs consistent across templates while letting plugins enqueue via filters
+ - **View count tracking**: Universal post view counting system with editor/admin exclusion in `inc/core/view-counts.php`
+ - **Permalink optimization**: Category base rewriting for consistent multisite URLs in `inc/core/rewrite.php`
+ 
+ ### Shared UI Components
+ 
+ - **Shared tabs**: `inc/core/assets.php` registers `shared-tabs.css` and `shared-tabs.js`; templates can enqueue them via `extrachill_enqueue_shared_tabs()` or through plugin overrides while the JavaScript manages desktop/mobile layouts, hash updates, and custom event dispatching (`sharedTabActivated`)
+ - **View tracking script**: `inc/core/assets.php` enqueues `view-tracking.js` only for public singular content, skipping editors and previewers, and localizes `ecViewTracking` with `postId` and the `extrachill/v1/analytics/view` REST endpoint for downstream analytics consumption
+ - **Sidebar extension**: `sidebar.php` supports `extrachill_sidebar_content` filter for full replacements and `extrachill_sidebar_top/middle/bottom` actions for hook-based widgets like recent posts and community activity; `inc/core/assets.php` conditions `sidebar.css` only when those hooks render post-related content
+ 
+ ### Security Implementation
 
-- **WordPress native routing**: Template routing via `template_include` filter in `inc/core/template-router.php`
-- **Modular asset loading**: CSS/JS loaded only when needed based on page context via `inc/core/assets.php`
-- **Native pagination system**: Lightweight WordPress pagination in `inc/core/templates/pagination.php`
-- **Memory optimization**: Efficient resource usage tracking and admin style dequeuing
-- **Query optimization**: Direct database queries for multisite integration
-- **Asset optimization**: SVG support, emoji script removal, unnecessary image size removal
-- **Conditional loading**: WooCommerce styles, admin styles, and plugin styles loaded only when needed
-- **View count tracking**: Universal post view counting system with editor/admin exclusion in `inc/core/view-counts.php`
-- **Permalink optimization**: Category base rewriting for consistent multisite URLs in `inc/core/rewrite.php`
-
-### Security Implementation
 
 - **Output escaping**: All output properly escaped
 - **Input sanitization**: All inputs sanitized
@@ -466,6 +474,6 @@ This theme is proprietary software developed for ExtraChill.com. All rights rese
 
 **Theme**: ExtraChill
 **Author**: Chubes
-**Version**: 1.0.9
+**Version**: 1.1.0
 **WordPress**: 5.0+
 **License**: Proprietary

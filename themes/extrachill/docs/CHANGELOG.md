@@ -5,6 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0/).
 
+## [1.1.0] - 2025-12-04
+
+### Changed
+- **Homepage System Refactor**: Complete architectural shift from theme-provided homepage sections to plugin-provided content via single `extrachill_homepage_content` action hook
+- **Navigation Restructure**: Reordered main navigation menu and completely restructured footer menu with Network/Explore/About organization
+- **Template Router**: Removed homepage template filter override capability for cleaner plugin integration
+- **Secondary Header System**: New extensible secondary header component with `extrachill_secondary_header_items` filter
+- **Footer Bottom Menu**: Converted to filter-based system with `extrachill_footer_bottom_menu_items` filter
+- **Taxonomy Badges**: Added `extrachill_taxonomy_badges_skip_term` filter for term exclusion control
+
+### Removed
+- Homepage section templates: hero.php, section-3x3-grid.php, section-about.php, section-extrachill-link.php, section-more-recent-posts.php
+- Homepage queries functionality (homepage-queries.php)
+- Home.css stylesheet (homepage styles now plugin responsibility)
+- Default homepage action handlers from actions.php
+
+### Added
+- Secondary header component (`inc/header/secondary-header.php`) with priority-based item sorting
+- Enhanced filter documentation for new extensibility points
+- Updated asset loading and action hooks documentation
+
+### Technical
+- Simplified front-page.php template to single action hook container
+- Removed home.css enqueuing from asset loading system
+- Added secondary header rendering via `extrachill_after_header` action
+
 ## [1.0.9] - 2025-12-02
 
 ### Added
