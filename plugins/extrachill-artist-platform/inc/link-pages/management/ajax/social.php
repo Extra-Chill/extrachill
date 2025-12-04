@@ -22,9 +22,16 @@ function ec_ajax_render_social_item_editor() {
         }
 
         $index = isset( $_POST['index'] ) ? (int) $_POST['index'] : 0;
-        $social_data = isset( $_POST['social_data'] ) ? (array) $_POST['social_data'] : array();
-        $available_options = isset( $_POST['available_options'] ) ? (array) $_POST['available_options'] : array();
-        $current_socials = isset( $_POST['current_socials'] ) ? (array) $_POST['current_socials'] : array();
+        
+        // Decode JSON strings from JavaScript - these are sent via JSON.stringify()
+        $social_data = isset( $_POST['social_data'] ) ? json_decode( wp_unslash( $_POST['social_data'] ), true ) : array();
+        $available_options = isset( $_POST['available_options'] ) ? json_decode( wp_unslash( $_POST['available_options'] ), true ) : array();
+        $current_socials = isset( $_POST['current_socials'] ) ? json_decode( wp_unslash( $_POST['current_socials'] ), true ) : array();
+        
+        // Ensure arrays on decode failure
+        $social_data = is_array( $social_data ) ? $social_data : array();
+        $available_options = is_array( $available_options ) ? $available_options : array();
+        $current_socials = is_array( $current_socials ) ? $current_socials : array();
 
         $sanitized_social_data = array();
         if ( isset( $social_data['type'] ) ) {

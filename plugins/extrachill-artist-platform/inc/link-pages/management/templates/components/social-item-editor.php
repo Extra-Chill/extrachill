@@ -69,9 +69,9 @@ foreach ($available_options as $option) {
            placeholder="Profile URL" 
            value="<?php echo esc_attr($social_url); ?>">
     
-    <a href="#" 
-       class="bp-remove-social-btn bp-remove-item-link ml-auto" 
-       title="Remove Social Icon">
-        &times;
-    </a>
+    <button type="button" 
+            class="button-danger button-small bp-remove-social-btn ml-auto" 
+            title="Remove Social Icon">
+        <i class="fas fa-trash-can"></i>
+    </button>
 </div>

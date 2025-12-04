@@ -120,11 +120,9 @@ function ec_process_social_form_fields( $post_data ) {
     $social_types = isset( $post_data['social_type'] ) ? $post_data['social_type'] : array();
     $social_urls = isset( $post_data['social_url'] ) ? $post_data['social_url'] : array();
     
-    // Process each social icon
-    $social_count = max( count( $social_types ), count( $social_urls ) );
-    
-    for ( $social_idx = 0; $social_idx < $social_count; $social_idx++ ) {
-        $social_type = isset( $social_types[$social_idx] ) ? sanitize_text_field( $social_types[$social_idx] ) : '';
+    // Process each social icon - use foreach to preserve DOM/submission order
+    foreach ( $social_types as $social_idx => $social_type ) {
+        $social_type = sanitize_text_field( $social_type );
         $social_url = isset( $social_urls[$social_idx] ) ? esc_url_raw( wp_unslash( $social_urls[$social_idx] ) ) : '';
         
         // Skip empty social icons
@@ -166,12 +164,10 @@ function ec_process_link_form_fields( $post_data ) {
     $link_expires = isset( $post_data['link_expires_at'] ) ? $post_data['link_expires_at'] : array();
     $link_ids = isset( $post_data['link_id'] ) ? $post_data['link_id'] : array();
     
-    // Process each section
-    $section_count = max( count( $section_titles ), count( $link_texts ), 1 );
-    
-    for ( $section_idx = 0; $section_idx < $section_count; $section_idx++ ) {
+    // Process each section - use foreach to preserve DOM/submission order
+    foreach ( $section_titles as $section_idx => $section_title_value ) {
         $section_data = array(
-            'section_title' => isset( $section_titles[$section_idx] ) ? sanitize_text_field( wp_unslash( $section_titles[$section_idx] ) ) : '',
+            'section_title' => sanitize_text_field( wp_unslash( $section_title_value ) ),
             'links' => array()
         );
         

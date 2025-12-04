@@ -63,7 +63,6 @@ Features:
 1. **Info Tab**: Basic profile information and biography
 2. **Profile Managers Tab**: Roster and member management
 3. **Subscribers Tab**: Email subscriber management and export
-4. **Forum Tab**: bbPress forum integration settings
 
 ## Profile Information Management
 
@@ -120,7 +119,6 @@ Displays:
 - Profile header with image and basic info
 - Biography content
 - Social links
-- Associated forum (if exists)
 - Follow/subscription options
 
 ### Artist Grid System
@@ -233,7 +231,6 @@ update_post_meta($link_page_id, '_associated_artist_profile_id', $artist_id);
 
 Artist activity tracked for grid sorting:
 
-- Forum post activity (bbPress integration)
 - Link page activity (last updated dates)
 - Profile update timestamps
 - Social engagement metrics

@@ -9,13 +9,11 @@ A comprehensive WordPress plugin that provides artist profile management, link p
 - Modal interface for existing vs new account selection
 - Automatic artist profile and link page creation during join flow registration (extrachill.link/join)
 - Roster membership auto-assignment for profile owners
-- Forum creation integration with bbPress
 - Transient-based post-registration redirect tracking
 
 ### 🎵 Artist Profiles
 - Custom post type for artist/band profiles with comprehensive meta data
 - Activity-based artist grid display with smart sorting and AJAX pagination
-- Forum integration with bbPress for artist-specific discussions
 - Blog coverage integration linking profiles to main site taxonomy archives
 - Roster management with email invitation system and role assignment
 - Artist directory with user exclusion logic for personalized views
@@ -52,9 +50,8 @@ A comprehensive WordPress plugin that provides artist profile management, link p
 - Email marketing workflow integration with export status tracking
 
 ### 🔔 Notification System
-- **Forum activity notifications**: Artist members receive notifications for topics and replies in their artist forums
+- **Artist platform notifications**: Artist platform activity notifications
 - **Custom notification cards**: Specialized rendering via extrachill-community plugin integration
-- **Notification types**: New topics (`new_artist_topic`) and replies (`new_artist_reply`) in artist forums
 - **Smart filtering**: Excludes notification author from recipient list automatically
 - **Visual card system**: Font Awesome icons with formatted timestamps and actor avatars
 
@@ -69,9 +66,9 @@ A comprehensive WordPress plugin that provides artist profile management, link p
 ## Requirements
 
 - **WordPress**: 5.0 or higher (tested up to 6.4)
-- **PHP**: 7.4 or higher  
+- **PHP**: 7.4 or higher
 - **Theme**: Extrachill theme
-- **Required Plugin**: bbPress (for forum features)
+- **Required Plugin**: extrachill-users (for user management)
 
 ## Installation
 
@@ -209,7 +206,7 @@ ec_display_artist_cards_grid( 24, true );
 $data = ec_display_artist_cards_grid( 24, true, 1, true );
 // Returns: array with 'html', 'pagination_html', 'current_page', 'total_pages', 'total_artists'
 
-// Get comprehensive activity timestamp (profile, link page, forum activity)
+// Get comprehensive activity timestamp (profile, link page activity)
 $activity_timestamp = ec_get_artist_profile_last_activity_timestamp( $artist_id );
 
 // Template integration with context-aware rendering
@@ -362,7 +359,7 @@ document.dispatchEvent(new CustomEvent('backgroundChanged', {
 
 // Links management dispatches comprehensive link data
 document.dispatchEvent(new CustomEvent('linksChanged', {
-    detail: { 
+    detail: {
         links: linkData,
         order: newOrder,
         visibility: visibilityStates
@@ -418,7 +415,7 @@ The plugin creates several custom tables with complete schema:
 #### Analytics Tables
 ```sql
 -- Daily page view aggregates
-CREATE TABLE {prefix}_extrch_link_page_daily_views (
+CREATE TABLE wp_extrch_link_page_daily_views (
     view_id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
     link_page_id bigint(20) unsigned NOT NULL,
     stat_date date NOT NULL,
@@ -428,26 +425,33 @@ CREATE TABLE {prefix}_extrch_link_page_daily_views (
 );
 
 -- Daily link click aggregates
-CREATE TABLE {prefix}_extrch_link_page_daily_link_clicks (
+CREATE TABLE wp_extrch_link_page_daily_link_clicks (
     click_id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
     link_page_id bigint(20) unsigned NOT NULL,
     stat_date date NOT NULL,
     link_url varchar(2083) NOT NULL,
     click_count bigint(20) unsigned NOT NULL DEFAULT 0,
     PRIMARY KEY (click_id),
-    UNIQUE KEY unique_daily_link_click (link_page_id, stat_date, link_url(191))
+    UNIQUE KEY unique_daily_link_click (link_page_id, stat_date, link_url(191)),
+    KEY link_page_date (link_page_id, stat_date)
 );
 
 -- Artist subscriber data
-CREATE TABLE {prefix}_artist_subscribers (
+CREATE TABLE wp_artist_subscribers (
     subscriber_id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+    user_id BIGINT(20) UNSIGNED NULL,
     artist_profile_id BIGINT(20) UNSIGNED NOT NULL,
     subscriber_email VARCHAR(255) NOT NULL,
     username VARCHAR(60) NULL DEFAULT NULL,
+    source VARCHAR(50) NOT NULL DEFAULT 'platform_follow_consent',
     subscribed_at DATETIME NOT NULL,
     exported TINYINT(1) NOT NULL DEFAULT 0,
     PRIMARY KEY (subscriber_id),
-    UNIQUE KEY email_artist (subscriber_email, artist_profile_id)
+    UNIQUE KEY email_artist (subscriber_email, artist_profile_id),
+    KEY artist_profile_id (artist_profile_id),
+    KEY exported (exported),
+    KEY user_id (user_id),
+    KEY user_artist_source (user_id, artist_profile_id, source)
 );
 ```
 
@@ -466,7 +470,7 @@ Link page configuration stored as post meta:
 ### 🎯 Advanced Features
 
 - **Event-Driven JavaScript Architecture**: CustomEvent-based communication between management and preview modules
-- **Artist Grid System**: Activity-based sorting with forum integration and comprehensive timestamp calculation
+- **Artist Grid System**: Activity-based sorting with comprehensive timestamp calculation
 - **Drag-and-Drop Interface**: SortableJS-powered link reordering with real-time live preview updates
 - **Link Expiration System**: Time-based link scheduling with automatic deactivation and preview integration
 - **Artist Context Switching**: Multi-artist management with seamless state preservation
@@ -620,7 +624,7 @@ inc/
 │       ├── css/join-flow.css         # Join flow styles
 │       └── js/join-flow-ui.js        # Modal interaction handling
 ├── notifications/                    # Notification system
-│   ├── artist-notifications.php        # Forum activity notifications
+│   ├── artist-notifications.php        # Artist platform notifications
 │   └── artist-notification-cards.php   # Notification card rendering
 ├── home/                            # Homepage functionality
 │   ├── homepage-hooks.php              # Centralized hook registrations
@@ -646,7 +650,6 @@ inc/
 │   │   ├── manage-roster-ui.php
 │   │   ├── roster-ajax-handlers.php
 │   │   └── roster-data-functions.php
-│   ├── artist-forums.php            # Forum integration
 │   ├── artist-following.php         # Follow system
 │   ├── blog-coverage.php            # Main site taxonomy archive linking
 │   └── subscribe-data-functions.php # Artist subscription data

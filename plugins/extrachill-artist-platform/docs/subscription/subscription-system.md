@@ -134,64 +134,85 @@ const SubscriptionManager = {
     init: function() {
         this.bindEvents();
     },
-    
+
     bindEvents: function() {
         // Modal triggers
-        $(document).on('click', '.subscribe-trigger-icon', this.openModal.bind(this));
-        $(document).on('click', '.close-modal', this.closeModal.bind(this));
-        
+        document.addEventListener('click', (e) => {
+            if (e.target.matches('.subscribe-trigger-icon')) {
+                this.openModal(e);
+            } else if (e.target.matches('.close-modal')) {
+                this.closeModal(e);
+            }
+        });
+
         // Form submissions
-        $(document).on('submit', '.subscribe-form', this.handleSubscription.bind(this));
+        document.addEventListener('submit', (e) => {
+            if (e.target.matches('.subscribe-form')) {
+                this.handleSubscription(e);
+            }
+        });
     },
-    
+
     openModal: function(e) {
         e.preventDefault();
-        $('#subscribe-modal').fadeIn();
+        const modal = document.getElementById('subscribe-modal');
+        if (modal) modal.style.display = 'block';
     },
-    
+
     closeModal: function(e) {
         e.preventDefault();
-        $('#subscribe-modal').fadeOut();
+        const modal = document.getElementById('subscribe-modal');
+        if (modal) modal.style.display = 'none';
     },
-    
+
     handleSubscription: function(e) {
         e.preventDefault();
-        
-        const form = $(e.target);
-        const email = form.find('input[name="subscriber_email"]').val();
-        const artistId = form.find('input[name="artist_id"]').val();
-        const source = form.find('input[name="source"]').val();
-        
-        $.ajax({
-            url: subscribe_ajax.ajax_url,
-            type: 'POST',
-            data: {
+
+        const form = e.target;
+        const email = form.querySelector('input[name="subscriber_email"]').value;
+        const artistId = form.querySelector('input[name="artist_id"]').value;
+        const source = form.querySelector('input[name="source"]').value;
+
+        fetch(subscribe_ajax.ajax_url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: new URLSearchParams({
                 action: 'extrch_link_page_subscribe',
                 subscriber_email: email,
                 artist_id: artistId,
                 source: source,
                 nonce: subscribe_ajax.nonce
-            },
-            success: function(response) {
-                if (response.success) {
-                    form.hide();
-                    $('.subscribe-message').html('<p class="success">' + response.data.message + '</p>');
-                    
-                    // Close modal after delay if modal form
-                    if (source === 'modal_form') {
-                        setTimeout(function() {
-                            $('#subscribe-modal').fadeOut();
-                        }, 2000);
-                    }
-                } else {
-                    $('.subscribe-message').html('<p class="error">' + response.data.message + '</p>');
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                form.style.display = 'none';
+                const messageEl = document.querySelector('.subscribe-message');
+                if (messageEl) {
+                    messageEl.innerHTML = '<p class="success">' + data.message + '</p>';
+                }
+
+                // Close modal after delay if modal form
+                if (source === 'modal_form') {
+                    setTimeout(() => {
+                        const modal = document.getElementById('subscribe-modal');
+                        if (modal) modal.style.display = 'none';
+                    }, 2000);
+                }
+            } else {
+                const messageEl = document.querySelector('.subscribe-message');
+                if (messageEl) {
+                    messageEl.innerHTML = '<p class="error">' + data.message + '</p>';
                 }
             }
         });
     }
 };
 
-document.addEventListener('DOMContentLoaded', SubscriptionManager.init.bind(SubscriptionManager));
+document.addEventListener('DOMContentLoaded', () => SubscriptionManager.init());
 ```
 
 ## Server-Side Processing

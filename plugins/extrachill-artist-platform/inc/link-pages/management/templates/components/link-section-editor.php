@@ -43,12 +43,12 @@ $links = $section_data['links'] ?? array();
                data-sidx="<?php echo esc_attr($sidx); ?>">
         
         <div class="bp-section-actions-group ml-auto">
-            <a href="#" 
-               class="bp-remove-link-section-btn bp-remove-item-link" 
-               data-sidx="<?php echo esc_attr($sidx); ?>" 
-               title="Remove Section">
-                &times;
-            </a>
+            <button type="button" 
+                    class="button-danger button-small bp-remove-link-section-btn" 
+                    data-sidx="<?php echo esc_attr($sidx); ?>" 
+                    title="Remove Section">
+                <i class="fas fa-trash-can"></i>
+            </button>
         </div>
     </div>
     

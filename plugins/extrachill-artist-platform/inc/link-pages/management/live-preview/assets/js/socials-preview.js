@@ -104,20 +104,18 @@
         }
     }
 
-    function removeSocialIconFromPreview(socialData) {
+    function removeSocialIconFromPreview(socialData, index) {
         const previewEl = document.querySelector('.manage-link-page-preview-live .extrch-link-page-preview-container');
         if (!previewEl) return;
 
         const socialsContainer = previewEl.querySelector('.extrch-link-page-socials');
         if (!socialsContainer) return;
 
-        // Find and remove the matching social icon
-        const socialIcons = socialsContainer.querySelectorAll('a[href]');
-        socialIcons.forEach(icon => {
-            if (icon.href === socialData.url) {
-                icon.remove();
-            }
-        });
+        // Remove by index position (more reliable than URL matching)
+        const socialIcons = socialsContainer.querySelectorAll('a');
+        if (typeof index === 'number' && index >= 0 && socialIcons[index]) {
+            socialIcons[index].remove();
+        }
 
         // Remove container if empty
         if (socialsContainer.children.length === 0) {
@@ -199,7 +197,7 @@
 
     document.addEventListener('socialIconDeleted', function(e) {
         if (e.detail && e.detail.socialData) {
-            removeSocialIconFromPreview(e.detail.socialData);
+            removeSocialIconFromPreview(e.detail.socialData, e.detail.index);
         }
     });
 

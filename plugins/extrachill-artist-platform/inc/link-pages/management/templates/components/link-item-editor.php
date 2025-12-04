@@ -69,7 +69,9 @@ $item_classes = 'bp-link-item';
     
     <!-- Expiration icon will be added dynamically via JavaScript when enabled -->
     
-    <a href="#" class="bp-remove-link-btn bp-remove-item-link ml-auto" title="Remove Link">
-        &times;
-    </a>
+    <button type="button" 
+            class="button-danger button-small bp-remove-link-btn ml-auto" 
+            title="Remove Link">
+        <i class="fas fa-trash-can"></i>
+    </button>
 </div>

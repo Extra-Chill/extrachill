@@ -116,6 +116,10 @@
                 e.preventDefault();
                 const row = e.target.closest('.bp-social-row');
                 if (row) {
+                    // Get index before removing (for preview sync)
+                    const allRows = Array.from(socialListEl.querySelectorAll('.bp-social-row'));
+                    const rowIndex = allRows.indexOf(row);
+                    
                     const typeSelect = row.querySelector('select[name^="social_type["]');
                     const urlInput = row.querySelector('input[name^="social_url["]');
                     const socialData = {
@@ -126,7 +130,8 @@
                     row.remove();
                     document.dispatchEvent(new CustomEvent('socialIconDeleted', {
                         detail: { 
-                            socialData: socialData
+                            socialData: socialData,
+                            index: rowIndex
                         }
                     }));
                 }

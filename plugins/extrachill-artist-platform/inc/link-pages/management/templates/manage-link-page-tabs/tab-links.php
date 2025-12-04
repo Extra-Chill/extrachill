@@ -56,7 +56,7 @@ require_once dirname(dirname(__DIR__)) . '/advanced-tab/link-expiration.php';
                         <?php endforeach; ?>
                     </select>
                     <input type="url" class="bp-social-url-input" name="social_url[<?php echo esc_attr($idx); ?>]" placeholder="Profile URL" value="<?php echo esc_attr($social['url'] ?? ''); ?>">
-                    <a href="#" class="bp-remove-social-btn bp-remove-item-link ml-auto" title="Remove Social Icon">&times;</a>
+                    <button type="button" class="button-danger button-small bp-remove-social-btn ml-auto" title="Remove Social Icon"><i class="fas fa-trash-can"></i></button>
                 </div>
             <?php endforeach; ?>
         </div>
@@ -92,7 +92,7 @@ require_once dirname(dirname(__DIR__)) . '/advanced-tab/link-expiration.php';
                         <span class="bp-section-drag-handle drag-handle"><i class="fas fa-grip-vertical"></i></span>
                         <input type="text" class="bp-link-section-title" name="link_section_title[<?php echo esc_attr($sidx); ?>]" placeholder="Section Title (optional)" value="<?php echo esc_attr($section['section_title'] ?? ''); ?>" data-sidx="<?php echo esc_attr($sidx); ?>">
                         <div class="bp-section-actions-group ml-auto">
-                            <a href="#" class="bp-remove-link-section-btn bp-remove-item-link" data-sidx="<?php echo esc_attr($sidx); ?>" title="Remove Section">&times;</a>
+                            <button type="button" class="button-danger button-small bp-remove-link-section-btn" data-sidx="<?php echo esc_attr($sidx); ?>" title="Remove Section"><i class="fas fa-trash-can"></i></button>
                         </div>
                     </div>
                     <div class="bp-link-list">
@@ -107,7 +107,7 @@ require_once dirname(dirname(__DIR__)) . '/advanced-tab/link-expiration.php';
                                 <input type="hidden" name="link_id[<?php echo esc_attr($sidx); ?>][<?php echo esc_attr($lidx); ?>]" value="<?php echo esc_attr($link['id'] ?? ''); ?>">
                                 <input type="hidden" name="link_expires_at[<?php echo esc_attr($sidx); ?>][<?php echo esc_attr($lidx); ?>]" value="<?php echo esc_attr($link['expires_at'] ?? ''); ?>">
                                 <!-- Expiration icon will be added dynamically via JavaScript when enabled -->
-                                <a href="#" class="bp-remove-link-btn bp-remove-item-link ml-auto" title="Remove Link">&times;</a>
+                                <button type="button" class="button-danger button-small bp-remove-link-btn ml-auto" title="Remove Link"><i class="fas fa-trash-can"></i></button>
                             </div>
                         <?php endforeach; ?>
                     </div>

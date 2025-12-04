@@ -30,13 +30,13 @@ Core functions for roster data management:
 
 ```php
 // Get linked members for artist
-$members = bp_get_linked_members($artist_id);
+$members = ec_get_linked_members($artist_id);
 
 // Get pending invitations
-$pending = bp_get_pending_invitations($artist_id);
+$pending = ec_get_pending_invitations($artist_id);
 
 // Check invitation status
-$status = bp_get_invitation_status($email, $artist_id);
+$status = ec_get_invitation_status($email, $artist_id);
 ```
 
 ### AJAX Handlers
@@ -109,21 +109,21 @@ function handle_add_member_request() {
     if (!ec_ajax_can_manage_artist($_POST)) {
         wp_send_json_error('Insufficient permissions');
     }
-    
+
     $email = sanitize_email($_POST['member_email']);
     $artist_id = (int) $_POST['artist_id'];
-    
+
     // Check if user exists
     $user = get_user_by('email', $email);
-    
+
     if ($user) {
         // Link existing user to artist
-        link_user_to_artist($user->ID, $artist_id);
+        ec_link_user_to_artist($user->ID, $artist_id);
     } else {
         // Send invitation email
-        send_artist_invitation_email($email, $artist_id, []);
+        ec_send_artist_invitation_email($email, $artist_id, []);
     }
-    
+
     wp_send_json_success();
 }
 ```
@@ -132,10 +132,10 @@ function handle_add_member_request() {
 
 ```php
 // Remove member from artist
-function remove_member_from_artist($user_id, $artist_id) {
+function ec_remove_member_from_artist($user_id, $artist_id) {
     // Get current artist IDs for user
     $artist_ids = get_user_meta($user_id, '_artist_profile_ids', true);
-    
+
     if (is_array($artist_ids)) {
         // Remove artist ID from user's list
         $artist_ids = array_diff($artist_ids, [$artist_id]);

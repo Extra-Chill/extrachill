@@ -85,6 +85,7 @@
   align-items: center;
   gap: 10px;
   justify-content: center;
+  width: max-content;
 }
 .bp-link-page-url-text {
   font-size: 1.1em;
@@ -135,9 +136,6 @@
 .bp-link-page-save-btn-wrap {
   margin: 2em 0;
 }
-.bp-link-page-save-btn {
-  /* No extra styles needed, but class for future-proofing */
-}
 
 */
 .customize-placeholder {
@@ -183,7 +181,7 @@
   width: 96vw;
   margin: 10vh auto;
   border-radius: 8px;
-  box-shadow: var(--card-hover-shadow));
+  box-shadow: var(--card-hover-shadow);
   position: relative;
   display: flex;
   flex-direction: column;
@@ -452,30 +450,18 @@ i.fa-solid.fa-qrcode:hover {
         flex-wrap: nowrap !important; /* Ensure actions stay in one line */
     }
 
-    /* Styles for individual buttons and the remove link within the new group */
+    /* Styles for buttons within the section actions group */
     .link-page-content-card .bp-link-section-header .bp-section-actions-group > .button,
     .link-page-content-card .bp-link-section-header .bp-section-actions-group > .bp-remove-link-section-btn {
         width: auto !important;
         flex: 0 0 auto !important;
         min-width: 0 !important;
-        padding: 5px 8px !important;
+        padding: 6px 10px !important;
         margin: 0 !important; 
         line-height: 1 !important;
-        display: inline-flex !important; /* for button content alignment */
+        display: inline-flex !important;
         align-items: center;
         justify-content: center;
-    }
-    
-    .link-page-content-card .bp-link-section-header .bp-section-actions-group > .bp-remove-link-section-btn {
-        text-decoration: none !important;
-        color: red !important;
-        /* margin-left: auto; /* No longer needed here, parent group handles alignment */
-    }
-
-    .link-page-content-card .bp-link-section-header .bp-section-actions-group > .button {
-         background-color: var(--button-bg) !important;
-         color: var(--header-text) !important; 
-         border: 1px solid transparent !important;
     }
 
     /* If icons are <i> tags */
@@ -528,10 +514,6 @@ i.fa-solid.fa-qrcode:hover {
 }
 
 /* Enhancements for Link Sections */
-.link-page-content-card .bp-link-section {
-  /* margin-bottom: 2em; (already there) */
-}
-
 .link-page-content-card .bp-link-section-header {
   /* display: flex; (already there) */
   /* align-items: center; (already there) */
@@ -574,15 +556,12 @@ i.fa-solid.fa-qrcode:hover {
   user-select: none;
 }
 
-/* Common remove link style */
-.bp-remove-item-link {
-  color: #dc3545 !important; /* A common red color for deletion, !important to override potential specificity issues if needed */
-  text-decoration: none !important;
-  font-weight: bold;
-  font-size: 1.2em; /* Make it a bit larger for easier clicking */
-}
-.bp-remove-item-link:hover {
-  color: #a71d2a !important;
+/* Delete button styles - icon-only buttons using theme's button-danger */
+.bp-remove-social-btn,
+.bp-remove-link-btn,
+.bp-remove-link-section-btn {
+  flex-shrink: 0;
+  padding: 6px 10px;
 }
 
 /* Modal Styles - bp-link-expiration-modal is already styled (line 317+) */
@@ -634,15 +613,6 @@ i.fa-solid.fa-qrcode:hover {
 .sortable-ghost {
   opacity: 0.4;
   background-color: #e0e0e0;
-}
-
-.sortable-chosen {
-  /* Styles for the item when it's picked up, if needed */
-  /* For example, slightly larger or different shadow */
-}
-
-.sortable-drag {
-  /* Styles for the actual element being dragged, often not needed if ghost is styled well */
 }
 
 /* Jump to Preview Button */
