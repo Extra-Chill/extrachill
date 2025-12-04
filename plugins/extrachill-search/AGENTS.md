@@ -1,6 +1,6 @@
 # ExtraChill Search
 
-Network-activated WordPress plugin providing centralized multisite search functionality for the ExtraChill Platform. Searches across all eight sites in the WordPress multisite network and displays unified results.
+Network-activated WordPress plugin providing centralized multisite search functionality for the ExtraChill Platform. Searches across all 8 active sites (Blog IDs 1–5, 7–9) in the WordPress multisite network and displays unified results. Horoscope site (Blog ID 10) is planned but not yet live.
 
 ## Plugin Information
 
@@ -41,7 +41,7 @@ Network-activated WordPress plugin providing centralized multisite search functi
 **404 Override System** (`extrachill-search.php`):
 - **`fix_search_404()` method**: Intercepts 404 errors on paginated search queries
 - **`template_redirect` hook**: Executes at priority 1 before template loading
-- **Network-Wide Fix**: Resolves pagination 404s across all 8 network sites (previously only worked on extrachill.com)
+- **Network-Wide Fix**: Resolves pagination 404s across all 8 active network sites (previously only worked on extrachill.com)
 - **Intelligent Detection**: Checks for 404 status with search query parameter (`s`), not relying on `is_search()`
 - **Result Verification**: Runs `extrachill_multisite_search()` to verify multisite results exist for current page
 - **Query Override**: Sets `$wp_query->is_404 = false` and `$wp_query->is_search = true` when results found
@@ -78,15 +78,15 @@ WordPress native search only checks the current site for results. When paginatin
 ## WordPress Multisite Integration
 
 ### Network Sites Covered
-The plugin searches across all eight sites in the ExtraChill Platform network:
-1. **extrachill.com** - Main music journalism site
-2. **community.extrachill.com** - Community forums (bbPress)
-3. **shop.extrachill.com** - E-commerce (WooCommerce)
-4. **app.extrachill.com** - Mobile API backend (planning stage)
-5. **chat.extrachill.com** - AI chatbot interface
-6. **artist.extrachill.com** - Artist platform and profiles
-7. **events.extrachill.com** - Event calendar hub
-8. **stream.extrachill.com** - Live streaming platform (Phase 1 non-functional UI)
+The plugin searches across all 8 active sites in the Extra Chill Platform network (Blog IDs 1–5, 7–9). Horoscope site (Blog ID 10) is planned but not yet live:
+1. **extrachill.com** - Main music journalism site (Blog ID 1)
+2. **community.extrachill.com** - Community forums (bbPress) (Blog ID 2)
+3. **shop.extrachill.com** - E-commerce (WooCommerce) (Blog ID 3)
+4. **artist.extrachill.com** - Artist platform and profiles (Blog ID 4)
+5. **chat.extrachill.com** - AI chatbot interface (Blog ID 5)
+6. **events.extrachill.com** - Event calendar hub (Blog ID 7)
+7. **stream.extrachill.com** - Live streaming platform (Phase 1 UI) (Blog ID 8)
+8. **newsletter.extrachill.com** - Newsletter management hub (Blog ID 9)
 
 ### Native WordPress Functions Used
 - **`switch_to_blog()`**: Cross-site database access
@@ -117,7 +117,7 @@ extrachill-search/
 │   └── search.php                  # Search results template
 ├── build.sh                        # Symlink to universal build script
 ├── .buildignore                    # Production build exclusions
-├── CLAUDE.md                       # This documentation file
+├── AGENTS.md                       # This documentation file
 └── README.md                       # GitHub standard format documentation
 ```
 
@@ -237,7 +237,7 @@ The plugin uses a weighted relevance scoring system (via `extrachill_calculate_s
 ### Universal Build Script
 - **Symlinked to**: `../../.github/build.sh`
 - **Auto-Detection**: Script automatically detects network plugin from `Network: true` header
-- **Production Build**: Creates `/build/extrachill-search/` directory and `/build/extrachill-search.zip` file (non-versioned)
+- **Production Build**: Creates `/build/extrachill-search.zip` file only (unzip when directory access needed)
 - **Composer Integration**: Production builds use `composer install --no-dev`, restores dev dependencies after
 - **File Exclusion**: `.buildignore` rsync patterns exclude development files
 - **Structure Validation**: Ensures network plugin integrity before packaging

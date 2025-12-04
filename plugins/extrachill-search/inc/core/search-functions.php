@@ -2,7 +2,7 @@
 /**
  * Core Search Functions for ExtraChill Search Plugin
  *
- * Provides network-wide search across all eight sites using domain-based resolution
+ * Provides network-wide search across all nine sites using domain-based resolution
  * and WordPress native multisite functions with automatic blog-id-cache.
  *
  * @package ExtraChill\Search

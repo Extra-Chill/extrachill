@@ -185,7 +185,7 @@ extrachill-search/
 │   └── search.php                  # Search results template
 ├── build.sh                        # Production build script
 ├── .buildignore                    # Build exclusions
-├── CLAUDE.md                       # Developer documentation
+├── AGENTS.md                       # Developer documentation
 └── README.md                       # This file
 ```
 
@@ -196,7 +196,7 @@ extrachill-search/
 # Create production ZIP file
 ./build.sh
 
-# Output: /build/extrachill-search/ directory and /build/extrachill-search.zip file
+# Output: Only /build/extrachill-search.zip file (unzip when directory access needed)
 ```
 
 ### Development Commands
@@ -211,7 +211,7 @@ wp eval 'print_r(extrachill_multisite_search("test"));'
 ## Support
 
 - **Issues**: [GitHub Issues](https://github.com/Extra-Chill/extrachill-search/issues)
-- **Documentation**: See CLAUDE.md for detailed developer documentation
+- **Documentation**: See AGENTS.md for detailed developer documentation
 - **Website**: [Extra Chill Platform](https://extrachill.com)
 
 ## Author

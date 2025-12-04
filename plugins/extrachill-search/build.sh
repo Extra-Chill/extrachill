@@ -84,7 +84,7 @@ fi
 # Copy project files to build directory
 print_status "Copying project files to build directory..."
 mkdir -p "build/${PROJECT_NAME}/"
-rsync -av --exclude='build/' --exclude='.git/' --exclude='node_modules/' --exclude='vendor/' --exclude='composer.lock' --exclude='package-lock.json' --exclude='.DS_Store' --exclude='CLAUDE.md' --exclude='README.md' --exclude='.buildignore' --exclude='build.sh' --exclude='phpunit.xml' --exclude='tests/' --exclude='docs/' . "build/${PROJECT_NAME}/"
+rsync -av --exclude='build/' --exclude='.git/' --exclude='node_modules/' --exclude='vendor/' --exclude='composer.lock' --exclude='package-lock.json' --exclude='.DS_Store' --exclude='AGENTS.md' --exclude='README.md' --exclude='.buildignore' --exclude='build.sh' --exclude='phpunit.xml' --exclude='tests/' --exclude='docs/' . "build/${PROJECT_NAME}/"
 print_success "Project files copied successfully"
 
 # Validate build structure
@@ -98,14 +98,19 @@ print_success "Build structure validation passed"
 # Create production ZIP file
 print_status "Creating production ZIP file..."
 cd build/
-zip -r "${PROJECT_NAME}.zip" "${PROJECT_NAME}/"
+zip -r "${PROJECT_NAME}.zip" "${PROJECT_NAME}/" -q
 cd ..
-print_success "Production ZIP created: build/${PROJECT_NAME}.zip ($(du -h "build/${PROJECT_NAME}.zip" | cut -f1))"
 
-# Archive contents summary
-print_status "Archive contents summary:"
-echo "Total files: $(unzip -l "build/${PROJECT_NAME}.zip" | grep -c "^ ")"
-echo "Archive size: $(du -h "build/${PROJECT_NAME}.zip" | cut -f1)"
+# Get archive info
+local file_size=$(du -h "build/${PROJECT_NAME}.zip" | cut -f1)
+local total_files=$(unzip -l "build/${PROJECT_NAME}.zip" | tail -1 | awk '{print $2}')
+
+print_success "Production ZIP created: build/${PROJECT_NAME}.zip ($file_size, $total_files files)"
+
+# Clean up intermediate directory now that ZIP is created
+print_status "Cleaning up intermediate build directory..."
+rm -rf "build/${PROJECT_NAME}"
+print_success "Intermediate directory removed (production files are in ZIP)"
 
 # Restore development dependencies
 print_status "Restoring development dependencies..."
@@ -116,8 +121,7 @@ fi
 
 print_success "Build process completed successfully!"
 print_success "Production package: build/${PROJECT_NAME}.zip"
-print_success "Clean production directory: build/${PROJECT_NAME}/"
-
-print_status "Both clean directory AND zip file exist in /build/"
+echo ""
+print_status "Need production files? Simply unzip the archive!"
 
 print_status "Build complete!"
