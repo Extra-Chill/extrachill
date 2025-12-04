@@ -1,10 +1,10 @@
 # ExtraChill WordPress Theme
 
-A custom WordPress theme (v1.1.0) powering the ExtraChill Platform multisite network with 8 active interconnected sites (Blog ID 6 unused), featuring blog content, community integration, festival coverage, and e-commerce functionality. Horoscope site is planned for future Blog ID 10.
+A custom WordPress theme (v1.1.1) powering the ExtraChill Platform multisite network with 8 active interconnected sites (Blog ID 6 unused), featuring blog content, community integration, festival coverage, and e-commerce functionality. Horoscope site is planned for future Blog ID 10.
 
 ## Overview
 
-ExtraChill is a modern, performance-optimized WordPress theme (v1.1.0) designed specifically for the Extra Chill Platform multisite network. It serves as the frontend for all 8 active interconnected sites (Blog ID 6 unused) with horoscope.extrachill.com planned for future Blog ID 10:
+ExtraChill is a modern, performance-optimized WordPress theme (v1.1.1) designed specifically for the Extra Chill Platform multisite network. It serves as the frontend for all 8 active interconnected sites (Blog ID 6 unused) with horoscope.extrachill.com planned for future Blog ID 10:
 
 - **extrachill.com** (Blog ID 1): Music journalism, artist features, and industry coverage
 - **community.extrachill.com** (Blog ID 2): Community forums with bbPress integration
@@ -208,8 +208,6 @@ extrachill/
 │       ├── related-posts.php
 │       ├── single-post.php
 │       └── single-page.php
-└── page-templates/             # Custom page templates
-    └── all-posts.php
 ```
 
 ### Adding New Features
@@ -243,8 +241,7 @@ The theme implements template routing via WordPress's native `template_include` 
 - **WordPress Native Integration**: Uses `template_include` filter for proper integration with WordPress core
 - **Router File**: All routing logic centralized in `inc/core/template-router.php`
 - **Emergency Fallback**: `index.php` serves as minimal emergency fallback only
-- **Custom Page Template Support**: Router automatically detects and respects custom page templates assigned via WordPress admin (e.g., `page-templates/all-posts.php`)
-- **Plugin Override Support**: Filter hooks allow plugins to completely override template files at routing level (except when custom page templates are assigned)
+- **Plugin Override Support**: Filter hooks allow plugins to completely override template files at routing level
 - **Supported Routes**: `extrachill_template_homepage`, `extrachill_template_single_post`, `extrachill_template_page` (only when no custom template assigned), `extrachill_template_archive`, `extrachill_template_search`, `extrachill_template_404`, `extrachill_template_fallback`
 - **Performance Benefits**: Efficient routing while maintaining WordPress compatibility
 - **Extensibility**: Filter system allows complete template customization
@@ -425,7 +422,7 @@ define('SCRIPT_DEBUG', true);
 
 ### Getting Help
 
-- Check the [CLAUDE.md](CLAUDE.md) file for detailed technical information
+- Check the [AGENTS.md](AGENTS.md) file for detailed technical information
 - Review error logs in `/wp-content/debug.log`
 - Inspect browser console for JavaScript errors
 
@@ -474,6 +471,6 @@ This theme is proprietary software developed for ExtraChill.com. All rights rese
 
 **Theme**: ExtraChill
 **Author**: Chubes
-**Version**: 1.1.0
+**Version**: 1.1.1
 **WordPress**: 5.0+
 **License**: Proprietary

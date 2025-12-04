@@ -111,10 +111,8 @@ add_filter( 'extrachill_template_single_post', function( $template ) {
     return MY_PLUGIN_DIR . '/custom-single.php';
 } );
 
-// Override page template (only when no custom template assigned)
+// Override page template
 add_filter( 'extrachill_template_page', function( $template ) {
-    // Note: This filter does NOT fire when a custom page template
-    // is assigned via WordPress admin (e.g., page-templates/all-posts.php)
     return MY_PLUGIN_DIR . '/custom-page.php';
 } );
 
@@ -386,21 +384,6 @@ add_filter( 'extrachill_template_archive', function( $template ) {
     }
     return $template;
 } );
-```
-
-### Using Custom Page Templates
-```php
-// Create custom page template in /page-templates/
-/**
- * Template Name: All Posts
- * Description: Displays all posts
- */
-
-// Router automatically detects and respects custom templates
-// assigned via WordPress admin - no plugin code needed!
-
-// Note: extrachill_template_page filter does NOT fire
-// when custom page template is assigned
 ```
 
 ### Sticky Header Control

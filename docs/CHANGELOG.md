@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0/).
 
+## [1.1.1] - 2025-12-04
+
+### Changed
+- **Archive System Refactor**: Replaced custom page template system with query var-based blog archive functionality
+- **Community Activity Optimization**: Simplified activity queries to only fetch from community.extrachill.com
+- **Asset Loading**: Updated archive CSS loading conditions to use `extrachill_blog_archive` query var
+
+### Removed
+- `page-templates/all-posts.php` custom page template
+- `CLAUDE.md` development guidance file
+- Page template specific CSS styles
+
+### Technical
+- Replaced `is_page_template('page-templates/all-posts.php')` checks with `get_query_var('extrachill_blog_archive')`
+- Updated archive filter bar to use `/all/` URL structure
+- Simplified community activity data fetching logic
+
 ## [1.1.0] - 2025-12-04
 
 ### Changed

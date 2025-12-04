@@ -118,7 +118,7 @@ function extrachill_enqueue_single_post_styles() {
 add_action('wp_enqueue_scripts', 'extrachill_enqueue_single_post_styles', 20);
 
 function extrachill_enqueue_archive_styles() {
-    if ( is_archive() || is_search() || is_page_template('page-templates/all-posts.php') ) {
+    if ( is_archive() || is_search() || get_query_var('extrachill_blog_archive') ) {
         $css_path = get_stylesheet_directory() . '/assets/css/archive.css';
         if ( file_exists( $css_path ) ) {
             wp_enqueue_style(

@@ -58,7 +58,7 @@ function extrachill_artist_filter_dropdown() {
  * @param WP_Query $query
  */
 function extrachill_sort_posts($query) {
-    if (!is_admin() && $query->is_main_query() && is_archive()) {
+    if (!is_admin() && $query->is_main_query() && (is_archive() || get_query_var('extrachill_blog_archive'))) {
         $sort = isset($_GET['sort']) ? $_GET['sort'] : '';
 
         switch ($sort) {

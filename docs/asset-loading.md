@@ -10,7 +10,7 @@ Conditional CSS/JS loading with `filemtime()` cache busting comes from `/inc/cor
 | `style.css` | All pages | `extrachill_modify_default_style()` (priority 20) replaces the default WordPress style
 | `assets/css/taxonomy-badges.css` | All pages that render taxonomy badges | `extrachill_enqueue_taxonomy_badges()` (priority 10)
 | `assets/css/single-post.css` | Posts, newsletter, festival_wire | `extrachill_enqueue_single_post_styles()` (priority 20)
-| `assets/css/archive.css` | Archive, search, and `/page-templates/all-posts.php` | `extrachill_enqueue_archive_styles()` (priority 20)
+| `assets/css/archive.css` | Archive, search, and blog archive (`/all`) | `extrachill_enqueue_archive_styles()` (priority 20)
 | `assets/css/search.css` | Search results | `extrachill_enqueue_search_styles()` (priority 20)
 | `assets/css/sidebar.css` | Sidebar-enabled singular/post templates, 404 pages | `extrachill_enqueue_sidebar_styles()` (priority 20; only when `extrachill_sidebar_content` filter returns `false`)
 | `assets/css/shared-tabs.css` | Shared tab components | Registered via `extrachill_register_shared_tabs()` (priority 5)
@@ -99,7 +99,7 @@ Loads single post styles.
 ### extrachill_enqueue_archive_styles()
 Loads archive page styles.
 
-**Condition**: `is_archive() || is_search() || is_page_template('page-templates/all-posts.php')`
+**Condition**: `is_archive() || is_search() || get_query_var('extrachill_blog_archive')`
 **File**: `/assets/css/archive.css`
 **Dependencies**: `extrachill-root`, `extrachill-style`
 
