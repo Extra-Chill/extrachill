@@ -2,7 +2,7 @@
 
 This directory contains technical deep-dive documentation for the ExtraChill theme.
 
-**For architectural patterns and development guidelines**, see ../CLAUDE.md
+**For architectural patterns and development guidelines**, see ../AGENTS.md
 **For quick overview and installation**, see ../README.md
 
 ---

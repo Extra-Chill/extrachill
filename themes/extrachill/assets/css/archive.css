@@ -216,19 +216,3 @@ a.card-link-target:hover,
     margin-bottom: 0.7rem;
   }
 }
-
-/* Page Template Styles (all-posts.php) */
-.page-template-all-posts .page-header {
-	display: flex;
-	justify-content: space-between;
-	align-items: flex-end;
-	border-bottom: 2px solid var(--accent);
-}
-.page-template-all-posts .page-header .page-title {
-	margin-bottom: 0;
-}
-/* View all button - should use .button-1 class in HTML */
-.view-all-button, .all-link {
-    padding: 3px 8px;
-    font-size: 14px;
-}

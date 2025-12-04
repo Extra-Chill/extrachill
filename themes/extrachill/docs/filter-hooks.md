@@ -1,221 +1,216 @@
 # Filter Hooks Reference
 
-Theme filters for customizing functionality and output.
+Theme filters for customizing functionality, layout, and embeds while keeping the centralized template router and shared components intact.
 
 ## Template Routing Filters
 
-All template routing filters receive the default template path and must return a template path.
+All routing filters receive the default template path (often defined in `inc/core/template-router.php`) and must return a fully qualified template path. Filters bypassed for custom page templates, WooCommerce, and bbPress templates.
 
-### extrachill_template_homepage
-Override homepage template.
+### `extrachill_template_homepage`
+Override the front-page template that normally loads `inc/home/templates/front-page.php`.
 
-**Parameters**: `$template` (string) - Default: `/inc/home/templates/front-page.php`
-**Returns**: Template file path
+**Parameters**: `$template` (string) – Default path to the front-page template.
+**Returns**: Template file path.
 
-### extrachill_template_single_post
-Override single post template.
+### `extrachill_template_single_post`
+Provide a replacement for the single post template (`inc/single/single-post.php`).
 
-**Parameters**: `$template` (string) - Default: `/inc/single/single-post.php`
-**Returns**: Template file path
+**Parameters**: `$template` (string) – Default single post template path.
+**Returns**: Template file path.
 
-### extrachill_template_page
-Override page template (only when no custom template assigned).
+### `extrachill_template_page`
+Customize the page template used when WordPress does not already load a custom page template via the admin UI.
 
-**Parameters**: `$template` (string) - Default: `/inc/single/single-page.php`
-**Returns**: Template file path
+**Parameters**: `$template` (string) – Default `inc/single/single-page.php` path.
+**Returns**: Template file path. This filter never fires when a custom page template slug exists.
 
-**Important**: This filter does NOT fire when a custom page template is assigned via WordPress admin. Custom page templates (e.g., `page-templates/all-posts.php`) bypass this filter entirely, allowing WordPress's native template system to work naturally.
+### `extrachill_template_archive`
+Override the archive template (`inc/archives/archive.php`).
 
-### extrachill_template_archive
-Override archive template.
+**Parameters**: `$template` (string) – Default archive template path.
+**Returns**: Template file path.
 
-**Parameters**: `$template` (string) - Default: `/inc/archives/archive.php`
-**Returns**: Template file path
+### `extrachill_template_search`
+Swap in a custom search results template while still allowing the `extrachill-search` network plugin to control the search structure.
 
-### extrachill_template_search
-Override search results template.
+**Parameters**: `$template` (string) – Default `inc/archives/search/search.php` path.
+**Returns**: Template file path.
 
-**Parameters**: `$template` (string) - Default: Provided by extrachill-search plugin
-**Returns**: Template file path
+### `extrachill_template_404`
+Point to a custom 404 template (`inc/core/templates/404.php`).
 
-**Note**: The main search template is provided by the extrachill-search plugin (network-activated). The theme provides `/inc/archives/search/search-header.php` for the search header component and `/assets/css/search.css` for styling.
+**Parameters**: `$template` (string) – Default 404 path.
+**Returns**: Template file path.
 
-### extrachill_template_404
-Override 404 error template.
+### `extrachill_template_fallback`
+Catch-all for unexpected request types; defaults to `inc/core/templates/404.php`.
 
-**Parameters**: `$template` (string) - Default: `/inc/core/templates/404.php`
-**Returns**: Template file path
+**Parameters**: `$template` (string) – Default fallback path.
+**Returns**: Template file path.
 
-### extrachill_template_fallback
-Override fallback template for unknown page types.
+## Layout & Navigation Filters
 
-**Parameters**: `$template` (string) - Default: `/inc/core/templates/404.php`
-**Returns**: Template file path
+### `extrachill_enable_sticky_header`
+Controls the presence of the `sticky-header` body class and the reading progress script. Toggled in `functions.php` and checked before enqueueing `assets/js/reading-progress.js` in `inc/core/assets.php`.
 
-## Post Meta Filter
+**Parameters**: `$enabled` (bool) – Default `true`.
+**Returns**: Boolean.
 
-### extrachill_post_meta
-Customize post metadata display.
+### `extrachill_secondary_header_items`
+Inject items into the secondary header bar rendered by `inc/header/secondary-header.php` (hooked to `extrachill_after_header` at priority 5). The secondary header only renders when this filter returns at least one item.
+
+**Parameters**: `$items` (array) – Default: `[]`.
+**Returns**: Array of navigation items.
+
+**Item structure** (same format used in `inc/header/secondary-header.php`):
+- `url` (string, required)
+- `label` (string, required)
+- `priority` (int, optional, default `10`)
+- `rel` (string, optional)
+
+### `extrachill_sidebar_content`
+Override the default sidebar markup (loaded from `sidebar.php`). Returning `false` keeps the theme’s sidebar and enqueues `assets/css/sidebar.css`; any string or `true` value short-circuits the sidebar rendering and stops the sidebar CSS from enqueuing in `inc/core/assets.php`.
+
+**Parameters**: None – filter is evaluated without arguments.
+**Returns**: `false` to retain default sidebar, otherwise truthy sidebar HTML or `true` to skip the default markup.
+
+### `extrachill_footer_bottom_menu_items`
+Adjust the legal/policy links rendered by `inc/footer/footer-bottom-menu.php`.
+
+**Parameters**: `$items` (array) – Default array includes Affiliate Disclosure and Privacy Policy links.
+**Returns**: Array of footer link items (same structure as secondary header items).
+
+### `extrachill_back_to_home_label`
+Replace the “Back to Extra Chill” copy used by `inc/footer/back-to-home-link.php`’s smart navigation button.
 
 **Parameters**:
-- `$default_meta` (string) - Default metadata HTML
-- `$post_id` (int) - Post ID
-- `$post_type` (string) - Post type
+- `$label` (string) – Default label text.
+- `$url` (string) – URL the button links to (main site home or current site home).
+**Returns**: String label text.
 
-**Returns**: Modified HTML string
+### `extrachill_breadcrumbs_root`
+Set the root breadcrumb link that defaults to `<a href="{home_url()}">Extra Chill</a>` inside `inc/core/templates/breadcrumbs.php`.
 
-**Example**:
-```php
-add_filter( 'extrachill_post_meta', function( $meta, $post_id, $post_type ) {
-    if ( $post_type === 'custom_type' ) {
-        return '<div>Custom meta</div>';
-    }
-    return $meta;
-}, 10, 3 );
-```
+**Parameters**: `$root_link` (string) – Default root HTML.
+**Returns**: HTML string representing the root breadcrumb link.
 
-## Sticky Header Filter
+### `extrachill_breadcrumbs_override_trail`
+Provide a full breadcrumb trail (overrides the theme’s fallback trail). When non-empty, the theme skips the built-in trail logic and prints the provided markup.
 
-### extrachill_enable_sticky_header
-Control sticky header behavior across the entire site.
+**Parameters**: `$custom_trail` (string) – Default: empty string.
+**Returns**: Breadcrumb HTML.
 
-**Parameters**: `$enabled` (bool) - Default: `true`
-**Returns**: Boolean
+### `extrachill_taxonomy_badges_skip_term`
+Skips rendering of specific taxonomy badges in `inc/core/templates/taxonomy-badges.php`, useful to hide placeholder or archive terms.
 
-**Location**: Applied in `functions.php` via `extrachill_add_sticky_header_class()` function
+**Parameters**:
+- `$skip_term` (bool) – Default `false`.
+- `$term` (WP_Term)
+- `$taxonomy` (string)
+- `$post_id` (int)
+**Returns**: Boolean; return `true` to prevent the badge from rendering.
 
-**Effects**:
-- Adds `sticky-header` CSS class to `<body>` element when enabled
-- Controls reading progress script enqueuing in `inc/core/assets.php`
-- Affects navigation bar behavior and positioning
+## Content Filters
 
-**Use Cases**:
-- Disable on landing pages for full-screen layouts
-- Disable on mobile devices to save screen space
-- Conditional enabling based on user preferences
-- Disable for specific post types or page templates
+### `extrachill_post_meta`
+Modify the post meta markup rendered from `inc/core/templates/post-meta.php`.
 
-**Examples**:
-```php
-// Disable sticky header globally
-add_filter( 'extrachill_enable_sticky_header', '__return_false' );
+**Parameters**:
+- `$default_meta` (string) – Default HTML string.
+- `$post_id` (int)
+- `$post_type` (string)
+**Returns**: HTML string.
 
-// Disable on specific pages
-add_filter( 'extrachill_enable_sticky_header', function( $enabled ) {
-    return ! is_page( array( 'landing', 'splash' ) );
-} );
+### Related Posts Filters (used together in `inc/single/related-posts.php`)
 
-// Disable on mobile devices
-add_filter( 'extrachill_enable_sticky_header', function( $enabled ) {
-    return ! wp_is_mobile();
-} );
+#### `extrachill_related_posts_taxonomies`
+Choose which taxonomies the related-posts query should consider.
 
-// Disable for non-logged-in users
-add_filter( 'extrachill_enable_sticky_header', function( $enabled ) {
-    return is_user_logged_in();
-} );
+**Parameters**:
+- `$taxonomies` (array) – Default `['artist', 'venue']`.
+- `$post_id` (int)
+**Returns**: Array of taxonomy slugs.
 
-// Enable only on single posts
-add_filter( 'extrachill_enable_sticky_header', function( $enabled ) {
-    return is_single();
-} );
-```
+#### `extrachill_related_posts_allowed_taxonomies`
+Limit which taxonomies can be used when querying related posts.
 
-## Category Base Filter
+**Parameters**:
+- `$allowed_taxonomies` (array) – Default `['artist', 'venue']`.
+- `$post_type` (string)
+**Returns**: Array of taxonomy slugs.
 
-### pre_option_category_base
-Force blank category base for root-level URLs.
+#### `extrachill_related_posts_query_args`
+Modify the primary WP_Query arguments used to fetch related posts.
 
-**Managed By**: `extrachill_force_category_base()`
-**Returns**: Empty string
+**Parameters**:
+- `$query_args` (array)
+- `$taxonomy` (string)
+- `$post_id` (int)
+- `$post_type` (string)
+**Returns**: Array of query args.
 
-**Effect**: Category archives appear at `example.com/news/` instead of `example.com/category/news/`
+#### `extrachill_related_posts_tax_query`
+Alter the taxonomy query inside `extrachill_related_posts()` before it is merged into `$query_args`.
 
-### pre_update_option_category_base
-Prevent category base updates.
+**Parameters**:
+- `$tax_query` (array)
+- `$taxonomy` (string)
+- `$term_id` (int)
+- `$post_id` (int)
+- `$post_type` (string)
+**Returns**: Tax query array.
 
-**Managed By**: `extrachill_force_category_base()`
-**Returns**: Empty string
+#### `extrachill_override_related_posts_display`
+Prevent the default related-posts block from rendering when truthy.
+
+**Parameters**:
+- `$override` (bool) – Default `false`.
+- `$taxonomy` (string)
+- `$post_id` (int)
+**Returns**: Boolean.
+
+## Rewrite & Network Filters
+
+### `pre_option_category_base` / `pre_update_option_category_base`
+Forced empty category base for root URLs (`example.com/news/` rather than `/category/news/`) by `inc/core/rewrite.php`’s `extrachill_force_category_base()` helper.
+
+**Parameters**: None (WordPress passes the option name internally).
+**Returns**: Empty string.
+
+### `extrachill_multisite_search`
+Provided by the `extrachill-multisite` plugin, returns an array of shared search results from every site in the network.
+
+**Parameters**: Depends on the plugin implementation.
+**Returns**: Array of search results.
 
 ## Embed Filters
 
-### custom_bandcamp_embed
-Customize Bandcamp embed output.
+### `custom_bandcamp_embed`
+Adjust Bandcamp embed markup generated in `inc/core/editor/bandcamp-embeds.php`.
 
 **Parameters**:
-- `$embed_code` (string) - Generated embed HTML
-- `$matches` (array) - URL regex matches
-- `$attr` (array) - Embed attributes
-- `$url` (string) - Original URL
-- `$rawattr` (string) - Raw attributes
+- `$embed_code` (string)
+- `$matches` (array)
+- `$attr` (array)
+- `$url` (string)
+- `$rawattr` (string)
+**Returns**: String of embed HTML.
 
-**Returns**: Modified embed HTML
+### `custom_instagram_embed`
+Modify Instagram embeds handled in `inc/core/editor/instagram-embeds.php`.
 
-## Multisite Plugin Filters
+**Parameters**:
+- `$embed` (string)
+- `$matches` (array)
+- `$attr` (array)
+- `$url` (string)
+- `$rawattr` (string)
+**Returns**: String of embed HTML.
 
-These filters require the extrachill-multisite plugin:
+## Example Usage
 
-### extrachill_multisite_search
-Provides cross-site search functionality.
+Subclass and document filter footprints before shipping any customizations.
 
-**Required Plugin**: extrachill-multisite
-**Returns**: Array of search results from multiple sites
-
-## Secondary Header Filter
-
-### extrachill_secondary_header_items
-Add navigation items to the secondary header bar below the main header.
-
-**Parameters**: `$items` (array) - Default: empty array
-**Returns**: Array of navigation items
-
-**Item Structure**:
-- `url` (string, required) - Link URL
-- `label` (string, required) - Link text
-- `priority` (int, optional) - Sort order, lower numbers appear first (default: 10)
-
-**Location**: Rendered via `extrachill_after_header` action at priority 5
-
-**Behavior**: Secondary header only renders when items exist. Does not follow sticky header — remains static at top of page.
-
-**Example**:
-```php
-add_filter( 'extrachill_secondary_header_items', function( $items ) {
-    $items[] = array(
-        'url'      => home_url( '/upcoming/' ),
-        'label'    => 'Upcoming Events',
-        'priority' => 5,
-    );
-    $items[] = array(
-        'url'      => home_url( '/submit/' ),
-        'label'    => 'Submit Event',
-        'priority' => 10,
-    );
-    return $items;
-} );
-```
-
-## Footer Bottom Menu Filter
-
-### extrachill_footer_bottom_menu_items
-Add or modify legal/policy links in the footer bottom menu.
-
-**Parameters**: `$items` (array) - Default includes Affiliate Disclosure and Privacy Policy
-**Returns**: Array of navigation items
-
-**Item Structure**:
-- `url` (string, required) - Link URL
-- `label` (string, required) - Link text
-- `priority` (int, optional) - Sort order, lower numbers appear first (default: 10)
-- `rel` (string, optional) - Link rel attribute (e.g., 'privacy-policy')
-
-**Location**: Rendered in footer via `inc/footer/footer-bottom-menu.php`
-
-**Default Items**:
-- Affiliate Disclosure (priority 10)
-- Privacy Policy (priority 20, rel="privacy-policy")
-
-**Example**:
 ```php
 add_filter( 'extrachill_footer_bottom_menu_items', function( $items ) {
     $items[] = array(
@@ -225,33 +220,8 @@ add_filter( 'extrachill_footer_bottom_menu_items', function( $items ) {
     );
     return $items;
 } );
-```
 
-## Using Filters
-
-**Override Template**:
-```php
-add_filter( 'extrachill_template_archive', function( $template ) {
-    if ( is_category( 'special' ) ) {
-        return MY_PLUGIN_DIR . '/templates/special-archive.php';
-    }
-    return $template;
-} );
-```
-
-**Modify Output**:
-```php
-add_filter( 'extrachill_post_meta', function( $meta, $post_id, $post_type ) {
-    // Add custom fields
-    $meta .= '<div>Custom: ' . get_post_meta( $post_id, 'custom', true ) . '</div>';
-    return $meta;
-}, 10, 3 );
-```
-
-**Conditional Behavior**:
-```php
 add_filter( 'extrachill_enable_sticky_header', function( $enabled ) {
-    // Disable on mobile
-    return ! wp_is_mobile();
+    return is_single();
 } );
 ```

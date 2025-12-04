@@ -36,6 +36,8 @@
             printf(__('Month: %s', 'extrachill'), get_the_date('F Y'));
         } elseif (is_year()) {
             printf(__('Year: %s', 'extrachill'), get_the_date('Y'));
+        } elseif (get_query_var('extrachill_blog_archive')) {
+            _e('The Latest', 'extrachill');
         } else {
             _e('Archives', 'extrachill');
         }
