@@ -1,0 +1,1 @@
+This plugin provides functionality specific to the extrachill.com main blog, that is only needed on the blog site but none of the other websites. 
