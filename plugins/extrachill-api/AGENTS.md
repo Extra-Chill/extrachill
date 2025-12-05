@@ -41,8 +41,10 @@ extrachill-api/
         │   └── trivia.php (Trivia block endpoint)
         ├── community/
         │   └── user-mentions.php (User search for mentions)
-        └── events/
-            └── event-submissions.php (Event submission proxy)
+        ├── events/
+        │   └── event-submissions.php (Event submission proxy)
+        └── tools/
+            └── qr-code.php (QR code generator)
 ```
 
 ## Current Endpoints
@@ -119,7 +121,35 @@ All endpoints are under the `extrachill/v1` namespace.
 
 **File**: `inc/routes/events/event-submissions.php`
 
-**Used By**: `extrachill-events` plugin’s Event Submission block + front-end form handlers
+**Used By**: `extrachill-events` plugin's Event Submission block + front-end form handlers
+
+### 5. QR Code Generator
+
+**Endpoint**: `POST /wp-json/extrachill/v1/tools/qr-code`
+
+**Purpose**: Generate high-resolution print-ready QR codes for any URL.
+
+**Parameters**:
+- `url` (string, required) - The URL to encode in the QR code
+- `size` (int, optional) - QR code size in pixels (default: 1000, max: 2000)
+
+**Response**:
+```json
+{
+    "success": true,
+    "image_url": "data:image/png;base64,...",
+    "url": "https://example.com",
+    "size": 1000
+}
+```
+
+**Permission**: Public (no authentication required)
+
+**File**: `inc/routes/tools/qr-code.php`
+
+**Used By**: extrachill-admin-tools plugin (QR Code Generator tool)
+
+**Dependencies**: Endroid QR Code library (Composer dependency)
 
 ## Integration Patterns
 
@@ -321,10 +351,10 @@ curl -X GET "http://site.local/wp-json/extrachill/v1/users/search?search=test" \
 ## Cross-References
 
 **Platform Documentation**:
-- [Root CLAUDE.md - Architectural Patterns](../../CLAUDE.md#architectural-patterns)
-- [extrachill-blocks CLAUDE.md](../extrachill-blocks/CLAUDE.md) - Endpoint consumers
-- [extrachill-community CLAUDE.md](../extrachill-community/CLAUDE.md) - User search integration
-- [extrachill-ai-client CLAUDE.md](../extrachill-ai-client/CLAUDE.md) - AI provider integration
+- [Root AGENTS.md - Architectural Patterns](../../AGENTS.md#architectural-patterns)
+- [extrachill-blocks AGENTS.md](../extrachill-blocks/AGENTS.md) - Endpoint consumers
+- [extrachill-community AGENTS.md](../extrachill-community/AGENTS.md) - User search integration
+- [extrachill-ai-client AGENTS.md](../extrachill-ai-client/AGENTS.md) - AI provider integration
 
 **Related Files**:
 - `/.github/build.sh` - Shared build script (symlinked)

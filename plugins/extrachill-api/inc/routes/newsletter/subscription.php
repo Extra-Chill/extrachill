@@ -29,11 +29,6 @@ function extrachill_api_register_newsletter_subscription_route() {
 				'type'              => 'string',
 				'sanitize_callback' => 'sanitize_text_field',
 			),
-			'turnstile_response' => array(
-				'required'          => false,
-				'type'              => 'string',
-				'sanitize_callback' => 'sanitize_text_field',
-			),
 		),
 	));
 }
@@ -41,7 +36,6 @@ function extrachill_api_register_newsletter_subscription_route() {
 function extrachill_api_newsletter_subscribe_handler($request) {
 	$email = $request->get_param('email');
 	$context = $request->get_param('context');
-	$turnstile_response = $request->get_param('turnstile_response');
 
 	if (!function_exists('extrachill_multisite_subscribe')) {
 		return new WP_Error(
@@ -49,25 +43,6 @@ function extrachill_api_newsletter_subscribe_handler($request) {
 			'Newsletter subscription function not available. Please ensure extrachill-newsletter plugin is activated.',
 			array('status' => 500)
 		);
-	}
-
-	if ($context === 'festival_wire_tip' && $turnstile_response) {
-		if (!function_exists('ec_verify_turnstile_response')) {
-			return new WP_Error(
-				'turnstile_missing',
-				'Turnstile verification function not available.',
-				array('status' => 500)
-			);
-		}
-
-		$turnstile_verified = ec_verify_turnstile_response($turnstile_response);
-		if (!$turnstile_verified) {
-			return new WP_Error(
-				'turnstile_failed',
-				'Security verification failed. Please try again.',
-				array('status' => 403)
-			);
-		}
 	}
 
 	$result = extrachill_multisite_subscribe($email, $context);

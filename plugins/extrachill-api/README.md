@@ -245,8 +245,8 @@ Use the hook to notify editors, trigger Slack alerts, or log analytics without r
 
 ## Documentation
 
-- **[CLAUDE.md](CLAUDE.md)** - Comprehensive technical documentation for AI agents
-- **[Root CLAUDE.md](../../CLAUDE.md)** - Platform-wide architectural patterns
+- **[AGENTS.md](AGENTS.md)** - Comprehensive technical documentation for AI agents
+- **[Root AGENTS.md](../../AGENTS.md)** - Platform-wide architectural patterns
 - **[WordPress REST API Handbook](https://developer.wordpress.org/rest-api/)** - Official REST API documentation
 
 ## Support
@@ -261,6 +261,14 @@ For issues, questions, or feature requests related to the Extra Chill Platform:
 GPL v2 or later
 
 ## Changelog
+
+### 0.1.2
+- Added QR code generator endpoint moved from extrachill-admin-tools plugin
+- Added analytics, artist permissions, community features, and user avatar endpoints
+- Enhanced event submissions with auto-population for logged-in users
+- Simplified newsletter subscriptions by removing Turnstile verification
+- Added comprehensive AGENTS.md documentation file
+- Added Endroid QR Code library dependency
 
 ### 0.1.1
 - Added event submissions endpoint with Cloudflare Turnstile validation

@@ -75,7 +75,14 @@ function extrachill_api_handle_event_submission( WP_REST_Request $request ) {
 	}
 
 	if ( function_exists( 'datamachine_merge_engine_data' ) ) {
-		datamachine_merge_engine_data( $job_id, array( 'submission' => $submission ) );
+		$engine_data = array( 'submission' => $submission );
+
+		// Store image path directly in engine for AI vision processing
+		if ( $stored_flyer && ! empty( $stored_flyer['stored_path'] ) ) {
+			$engine_data['image_file_path'] = $stored_flyer['stored_path'];
+		}
+
+		datamachine_merge_engine_data( $job_id, $engine_data );
 	}
 
 	if ( ! function_exists( 'as_schedule_single_action' ) ) {
@@ -102,20 +109,34 @@ function extrachill_api_handle_event_submission( WP_REST_Request $request ) {
 }
 
 function extrachill_api_extract_submission_fields( WP_REST_Request $request ) {
-	$contact_name  = sanitize_text_field( $request->get_param( 'contact_name' ) );
-	$contact_email = sanitize_email( $request->get_param( 'contact_email' ) );
-	$event_title   = sanitize_text_field( $request->get_param( 'event_title' ) );
-	$event_date    = sanitize_text_field( $request->get_param( 'event_date' ) );
+	$user_id = get_current_user_id();
 
-	if ( empty( $contact_name ) || empty( $contact_email ) || empty( $event_title ) || empty( $event_date ) ) {
-		return new WP_Error( 'missing_fields', __( 'Name, email, title, and date are required.', 'extrachill-api' ), array( 'status' => 400 ) );
+	if ( $user_id ) {
+		$current_user  = wp_get_current_user();
+		$contact_name  = $current_user->display_name;
+		$contact_email = $current_user->user_email;
+	} else {
+		$contact_name  = sanitize_text_field( $request->get_param( 'contact_name' ) );
+		$contact_email = sanitize_email( $request->get_param( 'contact_email' ) );
+
+		if ( empty( $contact_name ) || empty( $contact_email ) ) {
+			return new WP_Error( 'missing_fields', __( 'Name and email are required.', 'extrachill-api' ), array( 'status' => 400 ) );
+		}
+
+		if ( ! is_email( $contact_email ) ) {
+			return new WP_Error( 'invalid_email', __( 'Enter a valid email address.', 'extrachill-api' ), array( 'status' => 400 ) );
+		}
 	}
 
-	if ( ! is_email( $contact_email ) ) {
-		return new WP_Error( 'invalid_email', __( 'Enter a valid email address.', 'extrachill-api' ), array( 'status' => 400 ) );
+	$event_title = sanitize_text_field( $request->get_param( 'event_title' ) );
+	$event_date  = sanitize_text_field( $request->get_param( 'event_date' ) );
+
+	if ( empty( $event_title ) || empty( $event_date ) ) {
+		return new WP_Error( 'missing_fields', __( 'Event title and date are required.', 'extrachill-api' ), array( 'status' => 400 ) );
 	}
 
 	return array(
+		'user_id'       => $user_id,
 		'contact_name'  => $contact_name,
 		'contact_email' => $contact_email,
 		'event_title'   => $event_title,
