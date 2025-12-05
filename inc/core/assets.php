@@ -184,6 +184,24 @@ function extrachill_register_shared_tabs() {
 }
 add_action( 'wp_enqueue_scripts', 'extrachill_register_shared_tabs', 5 );
 
+function extrachill_register_share_assets() {
+    wp_register_style(
+        'extrachill-share',
+        get_template_directory_uri() . '/assets/css/share.css',
+        array(),
+        filemtime( get_template_directory() . '/assets/css/share.css' )
+    );
+
+    wp_register_script(
+        'extrachill-share',
+        get_template_directory_uri() . '/assets/js/share.js',
+        array(),
+        filemtime( get_template_directory() . '/assets/js/share.js' ),
+        true
+    );
+}
+add_action( 'wp_enqueue_scripts', 'extrachill_register_share_assets', 5 );
+
 function extrachill_enqueue_admin_styles($hook) {
     if ($hook == 'post.php' || $hook == 'post-new.php') {
         $root_css_path = get_stylesheet_directory() . '/assets/css/root.css';

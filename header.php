@@ -57,3 +57,4 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 <?php do_action('extrachill_after_header'); ?>
 
 <main class="extrachill-content">
+<?php do_action( 'extrachill_notices' ); ?>
