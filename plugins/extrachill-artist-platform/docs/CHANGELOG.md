@@ -5,24 +5,6 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.1.1] - 2025-12-04
-
-### Fixed
-- Form processing order preservation in social icons and link sections
-- JSON data handling in AJAX social icon management
-- CSS syntax error in management interface styles
-- Social icon deletion index tracking for preview synchronization
-
-### Changed
-- Improved remove buttons in link and social editors (proper buttons with icons)
-- Enhanced AJAX data validation and sanitization
-
-### Technical Improvements
-- Better DOM order preservation during form submissions
-- Improved JavaScript-AJAX data exchange reliability
-- Minor CSS layout improvements
-- Comprehensive documentation cleanup removing outdated forum references
-
 ## [1.1.2] - 2025-12-04
 
 ### Added
@@ -45,6 +27,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added debounced data attribute updates for better performance
 - Enhanced asset localization for QR code functionality
 - Improved code quality with better escaping and error handling
+
+## [1.1.1] - 2025-12-04
+
+### Fixed
+- Form processing order preservation in social icons and link sections
+- JSON data handling in AJAX social icon management
+- CSS syntax error in management interface styles
+- Social icon deletion index tracking for preview synchronization
+
+### Changed
+- Improved remove buttons in link and social editors (proper buttons with icons)
+- Enhanced AJAX data validation and sanitization
+
+### Technical Improvements
+- Better DOM order preservation during form submissions
+- Improved JavaScript-AJAX data exchange reliability
+- Minor CSS layout improvements
+- Comprehensive documentation cleanup removing outdated forum references
 
 ## [1.1.0] - 2025-12-04
 
