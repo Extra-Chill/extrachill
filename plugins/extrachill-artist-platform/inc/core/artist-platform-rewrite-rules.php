@@ -283,7 +283,7 @@ function extrachill_handle_artist_profile_routing( $template ) {
 
     // Skip empty paths and known WordPress paths
     if ( empty( $request_path ) ||
-         in_array( $request_path, ['wp-login', 'wp-admin', 'admin', 'artists'], true ) ) {
+         in_array( $request_path, ['wp-login', 'wp-admin', 'admin'], true ) ) {
         return $template;
     }
 

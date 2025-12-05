@@ -214,15 +214,9 @@
         return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
     }
 
-    document.addEventListener('artistFollowersTabActivated', function(e) {
-        if (
-            e.detail &&
-            e.detail.tabPaneElement &&
-            e.detail.tabPaneElement.classList.contains('subscribers-tab-content')
-        ) {
-            if (!isLoaded) {
-                fetchSubscribers(1);
-            }
+    document.addEventListener('sharedTabActivated', function(e) {
+        if (e.detail?.tabPaneElement?.classList.contains('subscribers-tab-content') && !isLoaded) {
+            fetchSubscribers(1);
         }
     });
 

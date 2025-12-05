@@ -121,14 +121,6 @@ class ExtraChillArtistPlatform_Assets {
                 $this->get_asset_version( 'assets/js/artist-platform-home.js' ),
                 true
             );
-
-            wp_enqueue_script(
-                'extrachill-artist-grid-pagination',
-                $plugin_url . 'assets/js/artist-grid-pagination.js',
-                array( 'extrachill-artist-platform' ),
-                $this->get_asset_version( 'assets/js/artist-grid-pagination.js' ),
-                true
-            );
         }
 
         if ( $this->is_bbpress_user_profile() ) {
@@ -465,7 +457,7 @@ class ExtraChillArtistPlatform_Assets {
         $management_scripts = array(
             'colors', 'fonts', 'links', 'analytics', 
             'background', 'info', 'profile-image', 'qrcode', 'sizing', 
-            'socials', 'subscribe', 'ui-utils', 'advanced'
+            'socials', 'subscribe', 'ui-utils', 'advanced', 'jump-to-preview'
         );
 
         foreach ( $management_scripts as $script ) {

@@ -5,6 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.5] - 2025-12-05
+
+### Added
+- Artist profile archive page at `/artists/` with dedicated template and routing
+- Mobile-only jump-to-preview navigation button for link page management
+- "Browse All Artists" links on homepage featured artist sections
+
+### Changed
+- Replaced AJAX pagination system with theme's native pagination for better consistency
+- Updated artist grid display: 24 artists per page on archive, 12 on homepage
+- Migrated error handling to use theme's notice system (`extrachill_set_notice()`)
+- Standardized responsive breakpoint to 768px across all components
+- Improved homepage layout with better navigation to full artist directory
+
+### Removed
+- AJAX pagination JavaScript (`artist-grid-pagination.js`) and handlers
+- Legacy artist directory template (`artist-directory.php`)
+- Obsolete forum activity tracking code (cleanup after bbPress removal)
+
+### Technical Improvements
+- Added archive template support in core template routing system
+- Enhanced breadcrumb integration for artist profile archive pages
+- Cleaned up event listeners and removed references to deleted following system
+- Improved mobile user experience with contextual navigation buttons
+
 ## [1.1.4] - 2025-12-05
 
 ### Added

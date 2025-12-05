@@ -110,9 +110,18 @@
         
         if (html) {
             sectionsListEl.insertAdjacentHTML('beforeend', html);
+            scheduleDataAttributeUpdate();
+            document.dispatchEvent(new CustomEvent('linksectionadded', {
+                detail: { sectionIndex, title: '' }
+            }));
+        }
+    }
+    
+    function removeSection(sectionElement) {
+        if (!sectionElement) return;
+        
+        const sectionIndex = getSectionIndex(sectionElement);
         sectionElement.remove();
-        scheduleDataAttributeUpdate();
-
         scheduleDataAttributeUpdate();
         document.dispatchEvent(new CustomEvent('linksectiondeleted', {
             detail: { sectionIndex }

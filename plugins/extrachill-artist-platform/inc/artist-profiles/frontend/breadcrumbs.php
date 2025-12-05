@@ -50,6 +50,24 @@ function ec_artist_platform_breadcrumb_trail_homepage( $custom_trail ) {
 add_filter( 'extrachill_breadcrumbs_override_trail', 'ec_artist_platform_breadcrumb_trail_homepage', 5 );
 
 /**
+ * Override breadcrumb trail for artist profile archive
+ *
+ * Displays "Artists" (no link) on the archive page.
+ * Priority 6 to run after homepage but before single artist profile.
+ *
+ * @param string $custom_trail Existing custom trail from other plugins
+ * @return string Breadcrumb trail HTML
+ */
+function ec_artist_profile_archive_breadcrumb_trail( $custom_trail ) {
+	if ( ! is_post_type_archive( 'artist_profile' ) ) {
+		return $custom_trail;
+	}
+
+	return '<span>Artists</span>';
+}
+add_filter( 'extrachill_breadcrumbs_override_trail', 'ec_artist_profile_archive_breadcrumb_trail', 6 );
+
+/**
  * Override breadcrumb trail for artist profiles
  *
  * @param string $custom_trail Existing custom trail from other plugins

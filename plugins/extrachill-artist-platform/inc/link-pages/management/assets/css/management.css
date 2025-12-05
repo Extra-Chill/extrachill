@@ -296,7 +296,7 @@ i.fa-solid.fa-qrcode:hover {
     background-color: var(--card-background);
     border: 1px solid var(--border-color);
     border-radius: 8px; /* Consistent with tab structure */
-    padding: 1em 1.2em; /* Consistent with tab content padding */
+    padding: .75rem; /* Consistent with tab content padding */
     margin-bottom: 1.5em; /* Space between cards */
     box-shadow: var(--card-shadow);
     overflow: hidden; /* Important for containing flowing children */
@@ -619,9 +619,8 @@ i.fa-solid.fa-qrcode:hover {
   background-color: #e0e0e0;
 }
 
-/* Jump to Preview Button */
+/* Jump to Preview Button - Mobile only navigation between edit/preview sections */
 .extrch-jump-to-preview-btn {
-    display: none; /* Hidden by default, shown by JS via 'visible' class */
     position: fixed;
     bottom: 20px;
     right: 20px;
@@ -635,13 +634,13 @@ i.fa-solid.fa-qrcode:hover {
     box-shadow: 0 2px 5px rgba(0,0,0,0.2);
     width: 50px; 
     height: 50px; 
-    text-align: center; /* Fallback if flex fails, but primarily for inline content */
-    transition: opacity 0.3s ease, visibility 0.3s ease;
-    opacity: 0;
-    visibility: hidden;
     display: flex; 
     align-items: center;
     justify-content: center;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
 }
 .extrch-jump-to-preview-btn:focus{
     background-color: var(--button-bg);
@@ -685,13 +684,7 @@ i.fa-solid.fa-qrcode:hover {
 .extrch-jump-to-preview-btn.visible {
     opacity: 1;
     visibility: visible;
-}
-
-/* Only make it potentially visible on smaller screens */
-@media (max-width: 768px) { /* Adjust breakpoint as needed */
-    /* The button's default 'display: none' is overridden by JS adding 'visible' class,
-       so we don't need to set 'display: block' or 'flex' here directly in the media query.
-       The JS will control its actual appearance based on viewport and scroll. */
+    pointer-events: auto;
 }
 
 .grid-container{

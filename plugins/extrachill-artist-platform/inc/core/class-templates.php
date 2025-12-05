@@ -34,6 +34,7 @@ class ExtraChillArtistPlatform_PageTemplates {
     private function init_hooks() {
         add_filter( 'template_include', array( $this, 'load_artist_link_page_template' ), 10 );
         add_filter( 'extrachill_template_page', array( $this, 'load_artist_platform_page_templates' ), 10 );
+        add_filter( 'extrachill_template_archive', array( $this, 'load_artist_profile_archive_template' ), 10 );
         add_action( 'template_redirect', array( $this, 'setup_artist_platform_page_context' ) );
 
         // Register plugin templates with WordPress
@@ -68,6 +69,25 @@ class ExtraChillArtistPlatform_PageTemplates {
     }
 
     /**
+     * Load artist profile archive template
+     *
+     * Hooks into theme's extrachill_template_archive filter to provide
+     * custom archive template for artist_profile post type.
+     *
+     * @param string $template Current template path from theme router
+     * @return string Modified template path
+     */
+    public function load_artist_profile_archive_template( $template ) {
+        if ( is_post_type_archive( 'artist_profile' ) ) {
+            $plugin_template = EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/artist-profiles/frontend/templates/archive-artist_profile.php';
+            if ( file_exists( $plugin_template ) ) {
+                return $plugin_template;
+            }
+        }
+        return $template;
+    }
+
+    /**
      * Load artist platform page templates
      *
      * Integrates with theme's template router to serve plugin templates.
@@ -88,7 +108,6 @@ class ExtraChillArtistPlatform_PageTemplates {
         $template_map = array(
             'manage-artist-profiles.php' => 'inc/artist-profiles/frontend/templates/manage-artist-profiles.php',
             'manage-link-page.php'       => 'inc/link-pages/management/templates/manage-link-page.php',
-            'artist-directory.php'       => 'inc/artist-profiles/frontend/templates/artist-directory.php'
         );
 
         if ( isset( $template_map[ $page_template ] ) ) {
@@ -114,14 +133,12 @@ class ExtraChillArtistPlatform_PageTemplates {
         $artist_platform_templates = array(
             'manage-artist-profiles.php' => __( 'Manage Artist Profile', 'extrachill-artist-platform' ),
             'manage-link-page.php'    => __( 'Manage Link Page', 'extrachill-artist-platform' ),
-            'artist-directory.php'      => __( 'Artist Directory', 'extrachill-artist-platform' )
         );
 
         // Only add templates if they exist in the plugin - check new locations
         $template_map = array(
             'manage-artist-profiles.php' => 'inc/artist-profiles/frontend/templates/manage-artist-profiles.php',
             'manage-link-page.php' => 'inc/link-pages/management/templates/manage-link-page.php',
-            'artist-directory.php' => 'inc/artist-profiles/frontend/templates/artist-directory.php'
         );
         
         foreach ( $artist_platform_templates as $template_file => $template_name ) {
@@ -159,7 +176,6 @@ class ExtraChillArtistPlatform_PageTemplates {
         $artist_platform_templates = array(
             'manage-artist-profiles.php',
             'manage-link-page.php',
-            'artist-directory.php'
         );
 
         // If this page uses a artist platform template, ensure proper context

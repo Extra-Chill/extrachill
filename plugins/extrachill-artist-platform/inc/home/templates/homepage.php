@@ -29,10 +29,15 @@ extrachill_breadcrumbs();
 					<div class="artist-platform-welcome">
 						<?php do_action( 'extrachill_artist_home_hero', $current_user, $is_logged_in, $can_create_artists, $user_artist_ids ); ?>
 
-						<div class="featured-artists-section">
-							<h3><?php esc_html_e( 'Active Artists', 'extrachill-artist-platform' ); ?></h3>
-							<?php ec_display_artist_cards_grid( 24, false ); ?>
+					<div class="featured-artists-section">
+						<h3><?php esc_html_e( 'Active Artists', 'extrachill-artist-platform' ); ?></h3>
+						<?php ec_display_artist_cards_grid( 12, false, false ); ?>
+						<div class="browse-all-artists">
+							<a href="<?php echo esc_url( home_url( '/artists/' ) ); ?>" class="button-2 button-medium">
+								<?php esc_html_e( 'Browse All Artists', 'extrachill-artist-platform' ); ?>
+							</a>
 						</div>
+					</div>
 					</div>
 
 				<?php elseif ( empty( $user_artist_ids ) ) : ?>
@@ -55,10 +60,15 @@ extrachill_breadcrumbs();
 							</div>
 						<?php endif; ?>
 
-						<div class="featured-artists-section">
-							<h3><?php esc_html_e( 'Discover Artists', 'extrachill-artist-platform' ); ?></h3>
-							<?php ec_display_artist_cards_grid( 24, false ); ?>
+					<div class="featured-artists-section">
+						<h3><?php esc_html_e( 'Discover Artists', 'extrachill-artist-platform' ); ?></h3>
+						<?php ec_display_artist_cards_grid( 12, false, false ); ?>
+						<div class="browse-all-artists">
+							<a href="<?php echo esc_url( home_url( '/artists/' ) ); ?>" class="button-2 button-medium">
+								<?php esc_html_e( 'Browse All Artists', 'extrachill-artist-platform' ); ?>
+							</a>
 						</div>
+					</div>
 					</div>
 
 				<?php else : ?>
@@ -88,11 +98,16 @@ extrachill_breadcrumbs();
 							home_url( '/manage-artist-profiles/' );
 						?>
 
-						<?php do_action( 'extrachill_above_artist_grid', $user_artist_ids ); ?>
-						<div class="featured-artists-section">
-							<h3><?php esc_html_e( 'Discover Other Artists', 'extrachill-artist-platform' ); ?></h3>
-							<?php ec_display_artist_cards_grid( 24, true ); ?>
+					<?php do_action( 'extrachill_above_artist_grid', $user_artist_ids ); ?>
+					<div class="featured-artists-section">
+						<h3><?php esc_html_e( 'Discover Other Artists', 'extrachill-artist-platform' ); ?></h3>
+						<?php ec_display_artist_cards_grid( 12, true, false ); ?>
+						<div class="browse-all-artists">
+							<a href="<?php echo esc_url( home_url( '/artists/' ) ); ?>" class="button-2 button-medium">
+								<?php esc_html_e( 'Browse All Artists', 'extrachill-artist-platform' ); ?>
+							</a>
 						</div>
+					</div>
 					</div>
 			<?php endif; ?>
 

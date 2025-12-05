@@ -209,3 +209,9 @@
 .artist-grid-pagination .extrachill-pagination {
   margin-top: 0;
 }
+
+/* Browse All Artists link */
+.browse-all-artists {
+  text-align: center;
+  margin-top: 2em;
+}

@@ -5,7 +5,7 @@
  * Handles accordion/tabs mode switching, tab state persistence, and URL copying.
  * 
  * Features:
- * - Responsive tab/accordion switching (769px breakpoint) 
+ * - Responsive tab/accordion switching (768px breakpoint) 
  * - localStorage tab state persistence
  * - Tab-specific module initialization
  * - Copy link page URL functionality
@@ -15,7 +15,7 @@
     const tabs = document.querySelectorAll('.manage-link-page-tab');
     const tabContents = document.querySelectorAll('.manage-link-page-tab-content');
     const activeTabStorageKey = 'activeLinkPageTab';
-    const desktopBreakpoint = 769; // px, matches CSS
+    const desktopBreakpoint = 768; // px, matches CSS
     let currentLayoutMode = getLayoutMode();
     let desktopTabContentArea = null; // Will hold the #desktop-tab-content-area div
     const originalContentLocations = new Map(); // To store original parent and next sibling for each content panel

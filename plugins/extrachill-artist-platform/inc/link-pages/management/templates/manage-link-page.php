@@ -55,12 +55,12 @@ if ( ! $artist_id ) {
 $artist_post = get_post( $artist_id );
 if ( ! $artist_post || $artist_post->post_type !== 'artist_profile' ) {
 	// Invalid artist_id - show error page with user's artists
+	extrachill_set_notice( __( 'Artist not found.', 'extrachill-artist-platform' ), 'error' );
 	get_header();
 	?>
 	<div class="main-content">
 		<main id="main" class="site-main">
 			<?php do_action( 'extrachill_before_body_content' ); ?>
-			<div class="notice notice-error"><p><?php esc_html_e( 'Artist not found.', 'extrachill-artist-platform' ); ?></p></div>
 			<?php if ( ! empty( $user_artists ) ) : ?>
 				<p><?php esc_html_e( 'Select one of your artists:', 'extrachill-artist-platform' ); ?></p>
 				<ul class="artist-list">
@@ -83,12 +83,12 @@ if ( ! $artist_post || $artist_post->post_type !== 'artist_profile' ) {
 // --- Permission Check ---
 if ( ! ec_can_manage_artist( $current_user_id, $artist_id ) ) {
 	// No permission - show error page with artists they CAN manage
+	extrachill_set_notice( __( 'You do not have permission to manage this artist.', 'extrachill-artist-platform' ), 'error' );
 	get_header();
 	?>
 	<div class="main-content">
 		<main id="main" class="site-main">
 			<?php do_action( 'extrachill_before_body_content' ); ?>
-			<div class="notice notice-error"><p><?php esc_html_e( 'You do not have permission to manage this artist.', 'extrachill-artist-platform' ); ?></p></div>
 			<?php if ( ! empty( $user_artists ) ) : ?>
 				<p><?php esc_html_e( 'Select one of your artists:', 'extrachill-artist-platform' ); ?></p>
 				<ul class="artist-list">
@@ -114,12 +114,12 @@ $link_page_id = apply_filters( 'ec_get_link_page_id', $artist_id );
 if ( ! $link_page_id || get_post_type( $link_page_id ) !== 'artist_link_page' ) {
 	$creation_result = ec_create_link_page( $artist_id );
 	if ( is_wp_error( $creation_result ) ) {
+		extrachill_set_notice( __( 'Could not create link page: ', 'extrachill-artist-platform' ) . $creation_result->get_error_message(), 'error' );
 		get_header();
 		?>
 		<div class="main-content">
 			<main id="main" class="site-main">
 				<?php do_action( 'extrachill_before_body_content' ); ?>
-				<div class="notice notice-error"><p><?php echo esc_html__( 'Could not create link page: ', 'extrachill-artist-platform' ) . esc_html( $creation_result->get_error_message() ); ?></p></div>
 				<?php do_action( 'extrachill_after_body_content' ); ?>
 			</main>
 		</div>
