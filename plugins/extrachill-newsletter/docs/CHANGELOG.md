@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.4] - 2025-12-05
+
+### Changed
+- Improved JavaScript error handling with better HTTP response validation and specific error messages
+- Enhanced user feedback by always clearing email field and setting localStorage on successful subscription
+- Refactored script localization to occur after enqueuing for better code organization
+
+### Fixed
+- Removed console error logging for cleaner production code
+- Improved form submission reliability with consistent success handling
+
 ## [0.1.3] - 2025-12-04
 
 ### Added

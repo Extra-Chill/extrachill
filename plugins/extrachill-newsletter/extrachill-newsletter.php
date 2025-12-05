@@ -2,21 +2,21 @@
 /**
  * Plugin Name: Extra Chill Newsletter
  * Description: Complete newsletter system with Sendy integration for email campaigns and subscriptions. Provides custom newsletter post type, multiple subscription forms, email template generation, and admin management tools.
- * Version: 0.1.3
+ * Version: 0.1.4
  * Author: Chris Huber
  * Network: true
  * Text Domain: extrachill-newsletter
  * Domain Path: /languages
  *
  * @package ExtraChillNewsletter
- * @since 0.1.3
+ * @since 0.1.4
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'EXTRACHILL_NEWSLETTER_VERSION', '0.1.3' );
+define( 'EXTRACHILL_NEWSLETTER_VERSION', '0.1.4' );
 define( 'EXTRACHILL_NEWSLETTER_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'EXTRACHILL_NEWSLETTER_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'EXTRACHILL_NEWSLETTER_INC_DIR', EXTRACHILL_NEWSLETTER_PLUGIN_DIR . 'inc/' );
@@ -209,6 +209,15 @@ function extrachill_render_newsletter_form( $context ) {
 	// Enqueue assets
 	wp_enqueue_script( 'extrachill-newsletter' );
 	wp_enqueue_style( 'extrachill-newsletter-forms' );
+
+	// Localize script after enqueueing (must be done when script is enqueued)
+	wp_localize_script(
+		'extrachill-newsletter',
+		'newsletterParams',
+		array(
+			'restNonce' => wp_create_nonce( 'wp_rest' ),
+		)
+	);
 
 	// Render generic template
 	include EXTRACHILL_NEWSLETTER_TEMPLATES_DIR . 'generic-form.php';

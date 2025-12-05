@@ -194,6 +194,13 @@ The plugin follows WordPress best practices:
 
 ## Changelog
 
+### Version 0.1.4
+- Improved JavaScript error handling with better HTTP response validation and specific error messages
+- Enhanced user feedback by always clearing email field and setting localStorage on successful subscription
+- Refactored script localization to occur after enqueuing for better code organization
+- Removed console error logging for cleaner production code
+- Improved form submission reliability with consistent success handling
+
 ### Version 0.1.3
 - Initial release with organized modular architecture
 - Extracted newsletter functionality from ExtraChill theme

@@ -62,14 +62,6 @@ function newsletter_enqueue_frontend_assets() {
 			filemtime( $newsletter_js_path ),
 			true
 		);
-
-		wp_localize_script(
-			'extrachill-newsletter',
-			'newsletterParams',
-			array(
-				'restNonce' => wp_create_nonce( 'wp_rest' ),
-			)
-		);
 	}
 }
 add_action( 'wp_enqueue_scripts', 'newsletter_enqueue_frontend_assets' );

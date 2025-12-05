@@ -41,27 +41,29 @@
                 context: context
             })
         })
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                return response.json().then(err => Promise.reject(err));
+            }
+            return response.json();
+        })
         .then(data => {
             if (feedback) {
                 feedback.style.display = 'block';
-                feedback.textContent = data.message || (data.success ? 'Successfully subscribed!' : 'Subscription failed.');
-                feedback.className = 'newsletter-feedback ' + (data.success ? 'success' : 'error');
+                feedback.textContent = data.message || 'Successfully subscribed!';
+                feedback.className = 'newsletter-feedback success';
             }
 
-            if (data.success) {
-                emailInput.value = '';
-                if (window.localStorage) {
-                    localStorage.setItem('subscribed', 'true');
-                    localStorage.setItem('lastSubscribedTime', Date.now().toString());
-                }
+            emailInput.value = '';
+            if (window.localStorage) {
+                localStorage.setItem('subscribed', 'true');
+                localStorage.setItem('lastSubscribedTime', Date.now().toString());
             }
         })
         .catch(error => {
-            console.error('Newsletter subscription error:', error);
             if (feedback) {
                 feedback.style.display = 'block';
-                feedback.textContent = 'An error occurred. Please try again.';
+                feedback.textContent = error.message || 'An error occurred. Please try again.';
                 feedback.className = 'newsletter-feedback error';
             }
         })
