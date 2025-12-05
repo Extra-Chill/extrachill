@@ -2,21 +2,21 @@
 /**
  * Plugin Name: Extra Chill Newsletter
  * Description: Complete newsletter system with Sendy integration for email campaigns and subscriptions. Provides custom newsletter post type, multiple subscription forms, email template generation, and admin management tools.
- * Version: 1.0.1
+ * Version: 0.1.2
  * Author: Chris Huber
  * Network: true
  * Text Domain: extrachill-newsletter
  * Domain Path: /languages
  *
  * @package ExtraChillNewsletter
- * @since 1.0.1
+ * @since 0.1.2
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'EXTRACHILL_NEWSLETTER_VERSION', '1.0.1' );
+define( 'EXTRACHILL_NEWSLETTER_VERSION', '0.1.2' );
 define( 'EXTRACHILL_NEWSLETTER_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'EXTRACHILL_NEWSLETTER_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'EXTRACHILL_NEWSLETTER_INC_DIR', EXTRACHILL_NEWSLETTER_PLUGIN_DIR . 'inc/' );
@@ -26,7 +26,7 @@ define( 'EXTRACHILL_NEWSLETTER_ASSETS_URL', EXTRACHILL_NEWSLETTER_PLUGIN_URL . '
 /**
  * Check if current site is the newsletter site
  *
- * @since 1.0.1
+ * @since 0.1.2
  * @return bool True if on newsletter.extrachill.com (blog ID 9)
  */
 function is_newsletter_site() {
@@ -275,18 +275,6 @@ function newsletter_register_default_integrations($integrations) {
 	return $integrations;
 }
 add_filter('newsletter_form_integrations', 'newsletter_register_default_integrations');
-
-function newsletter_display_festival_wire_tip_form() {
-	if (!newsletter_integration_enabled('enable_festival_wire_tip')) {
-		return;
-	}
-
-	wp_enqueue_script( 'extrachill-newsletter' );
-	wp_enqueue_style( 'extrachill-newsletter-forms' );
-
-	include EXTRACHILL_NEWSLETTER_TEMPLATES_DIR . 'festival-wire-tip-form.php';
-}
-add_action('extrachill_after_news_wire', 'newsletter_display_festival_wire_tip_form');
 
 function newsletter_init_integration_actions() {
 	$integrations = get_newsletter_integrations();

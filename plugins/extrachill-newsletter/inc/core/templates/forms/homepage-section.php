@@ -21,7 +21,7 @@ if ( ! is_front_page() ) {
         <?php _e('Stories, reflections, and music industry insights from the underground.', 'extrachill-newsletter'); ?>
     </p>
 
-    <form id="homepageNewsletterForm" class="newsletter-form newsletter-horizontal-form">
+    <form data-newsletter-form data-newsletter-context="homepage" class="newsletter-form newsletter-horizontal-form">
         <label for="newsletter-email-home" class="sr-only">
             <?php _e('Email address for newsletter', 'extrachill-newsletter'); ?>
         </label>
@@ -33,12 +33,9 @@ if ( ! is_front_page() ) {
             placeholder="<?php esc_attr_e('Your email for the inside scoop...', 'extrachill-newsletter'); ?>"
             aria-label="<?php esc_attr_e('Email address', 'extrachill-newsletter'); ?>"
         >
-        <input type="hidden" name="action" value="subscribe_to_sendy_home">
-        <?php wp_nonce_field('subscribe_to_sendy_home_nonce', 'subscribe_to_sendy_home_nonce_field'); ?>
         <button type="submit"><?php _e('Get the Letter', 'extrachill-newsletter'); ?></button>
+        <p data-newsletter-feedback class="newsletter-feedback" style="display:none;" aria-live="polite"></p>
     </form>
-
-    <p class="newsletter-feedback" style="display:none;" aria-live="polite"></p>
 
     <div class="newsletter-homepage-links">
         <?php $archive_url = get_post_type_archive_link('newsletter'); ?>

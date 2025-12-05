@@ -151,7 +151,7 @@
     min-width: 200px;
 }
 
-/* Complex form layout (festival tip form with multiple fields) */
+/* Complex form layout for multi-field forms */
 .newsletter-form.newsletter-complex-form {
     flex-direction: column;
     max-width: 500px;

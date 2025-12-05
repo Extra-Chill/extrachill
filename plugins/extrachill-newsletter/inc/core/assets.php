@@ -35,12 +35,10 @@ function newsletter_enqueue_frontend_assets() {
 		);
 	}
 
-	// Newsletter page CSS - loaded only on newsletter/festival wire pages
+	// Newsletter page CSS - loaded only on newsletter pages
 	$load_newsletter_css = ( get_current_blog_id() === 9 && is_front_page() ) ||
 	                       is_post_type_archive( 'newsletter' ) ||
-	                       is_singular( 'newsletter' ) ||
-	                       is_post_type_archive( 'festival_wire' ) ||
-	                       is_singular( 'festival_wire' );
+	                       is_singular( 'newsletter' );
 
 	if ( $load_newsletter_css ) {
 		$newsletter_css_path = EXTRACHILL_NEWSLETTER_PLUGIN_DIR . 'assets/css/newsletter.css';

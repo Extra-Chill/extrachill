@@ -7,7 +7,6 @@ A comprehensive WordPress plugin for newsletter management and Sendy integration
 - **Custom Newsletter Post Type**: Complete newsletter management with archive and single page templates
 - **Sendy Integration**: Full API integration for campaign creation, updates, and subscription management
 - **Multiple Subscription Forms**: Archive page, homepage, navigation menu, content, and footer forms
-- **Festival Wire Tip System**: Community-driven festival tip submissions with anti-spam protection
 - **Template Override System**: Plugin-provided templates that override theme templates
 - **AJAX-Powered Forms**: Seamless subscription experience without page reloads
 - **Integration System**: Declarative form registration via WordPress filters
@@ -66,7 +65,6 @@ The plugin supports multiple subscription contexts through a declarative registr
 - **Archive**: Newsletter archive page subscription
 - **Content**: Newsletter form after post content
 - **Footer**: Newsletter form above site footer
-- **Festival Wire Tip**: Festival tip submission with newsletter signup
 
 ### Theme Integration
 
@@ -95,7 +93,6 @@ The plugin provides multiple subscription forms that integrate via WordPress hoo
 - **Navigation Menu**: Automatically integrates with theme navigation
 - **Content**: Newsletter form displayed after post content
 - **Footer**: Newsletter form displayed above site footer
-- **Festival Wire Tip**: Festival tip submission form with newsletter signup
 
 All forms use the centralized `extrachill_multisite_subscribe()` function for consistent subscription handling.
 
@@ -119,7 +116,6 @@ The plugin registers these AJAX endpoints for form handling:
 - `submit_newsletter_popup_form` - Popup subscription (backend infrastructure exists, no frontend display)
 - `submit_newsletter_content_form` - Content form subscription
 - `submit_newsletter_footer_form` - Footer form subscription
-- `newsletter_festival_wire_tip_submission` - Festival wire tip submission
 - `push_newsletter_to_sendy_ajax` - Admin campaign management
 
 All endpoints include security verification, input sanitization, and rate limiting where appropriate.
@@ -132,7 +128,6 @@ All endpoints include security verification, input sanitization, and rate limiti
 - `extrachill_home_final_right` - Homepage subscription form (main blog only)
 - `extrachill_after_post_content` - Content subscription form (network-wide)
 - `extrachill_above_footer` - Footer subscription form (network-wide)
-- `extrachill_after_news_wire` - Festival wire tip form (network-wide)
 - `extrachill_sidebar_bottom` - Recent newsletters sidebar widget (network-wide)
 - `extrachill_archive_below_description` - Archive page subscription form (archive pages)
 - `newsletter_homepage_hero` - Newsletter homepage hero form (newsletter site homepage only)
@@ -181,8 +176,7 @@ extrachill-newsletter/
 │   │           ├── content-form.php         # Post content form
 │   │           ├── footer-form.php          # Footer form
 │   │           ├── homepage-section.php     # Homepage section template
-│   │           ├── archive-form.php         # Archive page form
-│   │           └── festival-wire-tip-form.php # Festival tip form
+│   │           └── archive-form.php         # Archive page form
 │   └── ajax/
 │       └── handlers.php               # AJAX request handlers
 ├── assets/
@@ -213,7 +207,7 @@ The plugin follows WordPress best practices:
 
 ## Changelog
 
-### Version 1.0.0
+### Version 0.1.0
 - Initial release with organized modular architecture
 - Extracted newsletter functionality from ExtraChill theme
 - Complete Sendy integration with centralized API configuration

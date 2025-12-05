@@ -26,7 +26,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 				</p>
 			</div>
 
-			<form id="footerNewsletterForm" class="newsletter-form newsletter-section-form">
+			<form data-newsletter-form data-newsletter-context="footer" class="newsletter-form newsletter-section-form">
 				<div class="newsletter-form-group">
 					<label for="newsletter-email-footer" class="sr-only">
 						<?php _e('Email address for newsletter', 'extrachill-newsletter'); ?>
@@ -39,13 +39,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 						placeholder="<?php esc_attr_e('Your email for music industry insights', 'extrachill-newsletter'); ?>"
 						aria-label="<?php esc_attr_e('Email address', 'extrachill-newsletter'); ?>"
 					>
-					<input type="hidden" name="action" value="submit_newsletter_footer_form">
-					<?php wp_nonce_field('newsletter_footer_nonce', 'nonce'); ?>
 					<button type="submit"><?php _e('Get the Letter', 'extrachill-newsletter'); ?></button>
 				</div>
+				<p data-newsletter-feedback class="newsletter-feedback" style="display:none;" aria-live="polite"></p>
 			</form>
-
-			<p class="newsletter-feedback" style="display:none;" aria-live="polite"></p>
 
 			<div class="newsletter-footer-links">
 				<?php $archive_url = get_post_type_archive_link('newsletter'); ?>

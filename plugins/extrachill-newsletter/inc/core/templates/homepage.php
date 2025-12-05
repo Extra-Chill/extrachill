@@ -1,28 +1,25 @@
 <?php
 /**
- * Newsletter Archive Template
+ * Newsletter Homepage Content
  *
- * Used for newsletter.extrachill.com homepage (homepage-as-archive pattern).
- * Displays all published newsletters with subscription form integration.
+ * Homepage content for newsletter.extrachill.com (homepage-as-archive pattern).
+ * Hooked via extrachill_homepage_content action.
  *
  * @package ExtraChillNewsletter
  * @since 1.0.0
  */
 
-get_header(); ?>
+do_action('extrachill_before_body_content');
 
-<div id="mediavine-settings" data-blocklist-all="1"></div>
+if (have_posts()) :
+    extrachill_breadcrumbs();
 
-<?php do_action('extrachill_before_body_content'); ?>
+    do_action('extrachill_archive_header');
 
-<?php if (have_posts()) : ?>
-    <?php extrachill_breadcrumbs(); ?>
+    do_action('newsletter_homepage_hero');
 
-    <?php do_action('extrachill_archive_header'); ?>
-
-    <?php do_action('newsletter_homepage_hero'); ?>
-
-    <?php do_action('extrachill_archive_above_posts'); ?>
+    do_action('extrachill_archive_above_posts');
+    ?>
     <div class="full-width-breakout">
         <div class="article-container">
             <?php global $post_i; $post_i = 1; ?>
@@ -38,6 +35,4 @@ get_header(); ?>
     <?php extrachill_no_results(); ?>
 <?php endif; ?>
 
-<?php do_action('extrachill_after_body_content'); ?>
-
-<?php get_footer(); ?>
+<?php do_action('extrachill_after_body_content');

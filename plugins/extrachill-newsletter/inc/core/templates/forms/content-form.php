@@ -30,7 +30,7 @@ if ( ! is_single() ) {
 			</p>
 		</div>
 
-		<form id="contentNewsletterForm" class="newsletter-form newsletter-section-form">
+		<form data-newsletter-form data-newsletter-context="content" class="newsletter-form newsletter-section-form">
 			<div class="newsletter-form-group">
 				<label for="newsletter-email-content" class="sr-only">
 					<?php _e('Email address for newsletter', 'extrachill-newsletter'); ?>
@@ -43,13 +43,10 @@ if ( ! is_single() ) {
 					placeholder="<?php esc_attr_e('Enter your email address', 'extrachill-newsletter'); ?>"
 					aria-label="<?php esc_attr_e('Email address', 'extrachill-newsletter'); ?>"
 				>
-				<input type="hidden" name="action" value="submit_newsletter_content_form">
-				<?php wp_nonce_field('newsletter_content_nonce', 'nonce'); ?>
 				<button type="submit"><?php _e('Subscribe', 'extrachill-newsletter'); ?></button>
 			</div>
+			<p data-newsletter-feedback class="newsletter-feedback" style="display:none;" aria-live="polite"></p>
 		</form>
-
-		<p class="newsletter-feedback" style="display:none;" aria-live="polite"></p>
 
 		<div class="newsletter-content-links">
 			<?php $archive_url = get_post_type_archive_link('newsletter'); ?>

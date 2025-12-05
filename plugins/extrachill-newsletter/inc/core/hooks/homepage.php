@@ -13,15 +13,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-function newsletter_override_homepage( $template ) {
-	// Only override on newsletter.extrachill.com (blog ID 9)
-	if ( get_current_blog_id() === 9 ) {
-		return EXTRACHILL_NEWSLETTER_PLUGIN_DIR . 'inc/core/templates/homepage.php';
+function newsletter_render_homepage() {
+	if ( get_current_blog_id() !== 9 ) {
+		return;
 	}
-
-	return $template;
+	include EXTRACHILL_NEWSLETTER_PLUGIN_DIR . 'inc/core/templates/homepage.php';
 }
-add_filter( 'extrachill_template_homepage', 'newsletter_override_homepage' );
+add_action( 'extrachill_homepage_content', 'newsletter_render_homepage' );
 function newsletter_homepage_query( $query ) {
 	// Only modify main query on newsletter site homepage
 	if ( ! is_admin() && $query->is_main_query() && is_front_page() && get_current_blog_id() === 9 ) {
