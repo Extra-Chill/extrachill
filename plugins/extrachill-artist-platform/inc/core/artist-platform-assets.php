@@ -341,6 +341,13 @@ class ExtraChillArtistPlatform_Assets {
             $this->get_asset_version( 'inc/artist-profiles/assets/js/manage-artist-subscribers.js' ), 
             true 
         );
+
+        // Provide REST API settings for subscribers script
+        wp_localize_script(
+            'extrachill-artist-subscribers',
+            'wpApiSettings',
+            array( 'nonce' => wp_create_nonce( 'wp_rest' ) )
+        );
     }
 
     private function enqueue_link_page_management_assets() {
@@ -632,11 +639,9 @@ class ExtraChillArtistPlatform_Assets {
         $final_artist_id = $artist_id ?: $artist_profile_id_from_user;
 
         $data_to_pass = array(
-            'ajaxUrl'       => admin_url( 'admin-ajax.php' ),
+            'restUrl'         => rest_url( 'extrachill/v1' ),
+            'nonce'           => wp_create_nonce( 'wp_rest' ),
             'artistProfileId' => $final_artist_id,
-            'ajaxAddNonce'  => wp_create_nonce( 'bp_ajax_add_roster_member_nonce' ),
-            'ajaxRemovePlaintextNonce' => wp_create_nonce( 'bp_ajax_remove_plaintext_member_nonce' ),
-            'ajaxInviteMemberByEmailNonce' => wp_create_nonce( 'bp_ajax_invite_member_by_email_nonce' ),
             'i18n' => array(
                 'confirmRemoveMember' => __('Are you sure you want to remove "%s" from the roster listing?', 'extrachill-artist-platform'),
                 'enterEmail' => __('Please enter an email address.', 'extrachill-artist-platform'),

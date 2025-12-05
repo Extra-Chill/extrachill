@@ -22,7 +22,6 @@ Key meta fields stored for artist profiles:
 - `_artist_profile_ids`: Linked user accounts
 - `_artist_profile_social_links`: Social media links
 - `_artist_forum_id`: Associated bbPress forum ID
-- `_followed_artist_profile_ids`: User follow relationships
 
 ### Usage Patterns
 

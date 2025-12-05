@@ -612,3 +612,62 @@ body.bp-modal-open {
 .shared-desktop-tab-content-area .shared-tab-pane:not(.is-active-pane) {
     display: none !important; /* Use !important to ensure this overrides any other potential display rules */
 }
+
+/* === Profile Managers Tab Styles === */
+
+.shared-tab-pane .artist-profile-content-card > .notice {
+    margin-bottom: 1.5em;
+}
+
+.profile-managers-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.profile-managers-list li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px;
+    border: 1px solid var(--border-color);
+    margin: 4px 0;
+}
+
+.profile-managers-list .manager-email {
+    color: var(--muted-text);
+}
+
+.profile-managers-list .manager-you-label {
+    color: var(--muted-text);
+    font-style: italic;
+}
+
+.add-manager-section {
+    margin-top: 20px;
+}
+
+.add-manager-section h4 {
+    margin-bottom: 0.5em;
+}
+
+.add-manager-description {
+    color: var(--muted-text);
+    font-size: 14px;
+    margin-bottom: 0.5em;
+}
+
+.add-manager-form {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.add-manager-form input[type="text"] {
+    flex: 1;
+    max-width: 300px;
+}
+
+#user-search-results {
+    margin-top: 10px;
+}

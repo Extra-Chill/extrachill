@@ -119,7 +119,6 @@ Displays:
 - Profile header with image and basic info
 - Biography content
 - Social links
-- Follow/subscription options
 
 ### Artist Grid System
 
@@ -134,8 +133,7 @@ Location: `inc/artist-profiles/frontend/artist-grid.php`
  */
 $grid_html = render_activity_based_artist_grid([
     'posts_per_page' => 12,
-    'exclude_user_artists' => true,
-    'show_follow_buttons' => true
+    'exclude_user_artists' => true
 ]);
 ```
 
@@ -154,24 +152,6 @@ $is_member = ec_is_user_artist_member($user_id, $artist_id);
 
 // Get all owned artist IDs
 $artist_ids = ec_get_user_artist_ids($user_id);
-```
-
-### Artist Following System
-
-Location: `inc/artist-profiles/artist-following.php`
-
-```php
-// Follow artist
-function follow_artist($user_id, $artist_id) {
-    $followed = ec_get_user_followed_artists($user_id);
-    if (!in_array($artist_id, $followed)) {
-        $followed[] = $artist_id;
-        update_user_meta($user_id, '_followed_artist_profile_ids', $followed);
-    }
-}
-
-// Check follow status
-$is_following = ec_is_user_following_artist($user_id, $artist_id);
 ```
 
 ## Profile Permissions

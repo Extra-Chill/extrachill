@@ -5,6 +5,34 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.4] - 2025-12-05
+
+### Added
+- Artist access approval redirect handler for join flow email confirmations
+- Profile managers tab with user search and management functionality
+- REST API endpoints for subscriber management and roster invitations
+- Client-side CSV generation for subscriber exports
+
+### Changed
+- Migrated subscriber management from AJAX to REST API endpoints
+- Migrated roster member invitations from AJAX to REST API endpoints
+- Improved error handling using WordPress notices instead of query parameters
+- Updated JavaScript to use fetch API with JSON payloads
+- Enhanced asset localization for REST API integration
+- Cleaned up profile management templates with proper CSS classes
+
+### Removed
+- Complete artist following system (functions, templates, CSS, database fields)
+- AJAX handlers for subscriber and roster management
+- Query parameter-based error messaging
+- Legacy follow-related UI components and modals
+
+### Technical Improvements
+- Better separation of concerns between frontend and API layers
+- Enhanced code maintainability with REST API integration
+- Improved form validation and error handling
+- Streamlined codebase by removing unused following functionality
+
 ## [1.1.3] - 2025-12-04
 
 ### Changed

@@ -77,16 +77,6 @@ $profiles = ec_get_user_artist_profiles($user_id);
 $is_member = ec_is_user_artist_member($user_id, $artist_id);
 ```
 
-### Artist Following System
-
-```php
-// Get followed artists
-$followed = ec_get_user_followed_artists($user_id);
-
-// Check follow status
-$is_following = ec_is_user_following_artist($user_id, $artist_id);
-```
-
 ## Data Relationships
 
 ### Artist-Link Page Connection

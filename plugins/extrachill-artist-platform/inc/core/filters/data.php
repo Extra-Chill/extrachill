@@ -19,36 +19,6 @@ function ec_is_user_artist_member( $user_id = null, $artist_id = null ) {
     return in_array( (int) $artist_id, $user_artist_ids );
 }
 
-function ec_get_user_followed_artists( $user_id = null ) {
-    if ( ! $user_id ) {
-        $user_id = get_current_user_id();
-    }
-
-    if ( ! $user_id ) {
-        return array();
-    }
-
-    $followed_ids = get_user_meta( $user_id, '_followed_artist_profile_ids', true );
-    if ( ! is_array( $followed_ids ) ) {
-        return array();
-    }
-
-    return array_map( 'intval', $followed_ids );
-}
-
-function ec_is_user_following_artist( $user_id = null, $artist_id = null ) {
-    if ( ! $user_id ) {
-        $user_id = get_current_user_id();
-    }
-
-    if ( ! $user_id || ! $artist_id ) {
-        return false;
-    }
-
-    $followed_artists = ec_get_user_followed_artists( $user_id );
-    return in_array( (int) $artist_id, $followed_artists );
-}
-
 function ec_get_link_page_for_artist( $artist_id ) {
     if ( ! $artist_id || get_post_type( $artist_id ) !== 'artist_profile' ) {
         return false;

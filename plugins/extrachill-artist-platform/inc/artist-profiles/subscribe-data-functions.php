@@ -289,3 +289,103 @@ function extrachill_handle_artist_subscribe( $result, $artist_id, $email ) {
 	return true;
 }
 add_filter( 'extrachill_artist_subscribe', 'extrachill_handle_artist_subscribe', 10, 3 );
+
+/**
+ * Handle fetching artist subscribers via REST API filter
+ *
+ * Hooked into 'extrachill_get_artist_subscribers' filter from extrachill-api plugin.
+ * Returns paginated subscriber data.
+ *
+ * @param mixed $result    Previous filter result (null if no handler has run).
+ * @param int   $artist_id The artist profile post ID.
+ * @param array $args      Query arguments (page, per_page).
+ * @return array|WP_Error Subscriber data array on success, WP_Error on failure.
+ */
+function extrachill_handle_get_artist_subscribers( $result, $artist_id, $args ) {
+	if ( is_wp_error( $result ) || is_array( $result ) ) {
+		return $result;
+	}
+
+	$page     = isset( $args['page'] ) ? max( 1, absint( $args['page'] ) ) : 1;
+	$per_page = isset( $args['per_page'] ) ? max( 1, absint( $args['per_page'] ) ) : 20;
+	$offset   = ( $page - 1 ) * $per_page;
+
+	$subscribers = extrch_get_artist_subscribers( $artist_id, array(
+		'limit'  => $per_page,
+		'offset' => $offset,
+	) );
+
+	global $wpdb;
+	$table = $wpdb->prefix . 'artist_subscribers';
+	$total = $wpdb->get_var(
+		$wpdb->prepare( "SELECT COUNT(*) FROM $table WHERE artist_profile_id = %d", $artist_id )
+	);
+
+	return array(
+		'subscribers' => $subscribers,
+		'total'       => intval( $total ),
+		'per_page'    => $per_page,
+		'page'        => $page,
+	);
+}
+add_filter( 'extrachill_get_artist_subscribers', 'extrachill_handle_get_artist_subscribers', 10, 3 );
+
+/**
+ * Handle exporting artist subscribers via REST API filter
+ *
+ * Hooked into 'extrachill_export_artist_subscribers' filter from extrachill-api plugin.
+ * Returns all subscriber data for client-side CSV generation.
+ *
+ * @param mixed $result           Previous filter result (null if no handler has run).
+ * @param int   $artist_id        The artist profile post ID.
+ * @param bool  $include_exported Whether to include already exported subscribers.
+ * @return array|WP_Error Subscriber data array on success, WP_Error on failure.
+ */
+function extrachill_handle_export_artist_subscribers( $result, $artist_id, $include_exported ) {
+	if ( is_wp_error( $result ) || is_array( $result ) ) {
+		return $result;
+	}
+
+	$exported_filter = $include_exported ? null : 0;
+
+	$subscribers = extrch_get_artist_subscribers( $artist_id, array(
+		'limit'    => -1,
+		'exported' => $exported_filter,
+	) );
+
+	$subscriber_ids_to_mark = array();
+	$export_data = array();
+
+	foreach ( $subscribers as $subscriber ) {
+		$is_exported = isset( $subscriber->exported ) && $subscriber->exported == 1;
+
+		$export_data[] = array(
+			'email'         => $subscriber->subscriber_email,
+			'username'      => $subscriber->username ?? '',
+			'subscribed_at' => $subscriber->subscribed_at,
+			'exported'      => $is_exported,
+		);
+
+		if ( ! $is_exported && ! $include_exported ) {
+			$subscriber_ids_to_mark[] = $subscriber->subscriber_id;
+		}
+	}
+
+	if ( ! $include_exported && ! empty( $subscriber_ids_to_mark ) ) {
+		global $wpdb;
+		$table      = $wpdb->prefix . 'artist_subscribers';
+		$ids_string = implode( ', ', array_map( 'absint', $subscriber_ids_to_mark ) );
+		$wpdb->query( "UPDATE $table SET exported = 1 WHERE subscriber_id IN ($ids_string)" );
+	}
+
+	$artist_name = get_the_title( $artist_id );
+
+	return array(
+		'subscribers'  => $export_data,
+		'artist_name'  => $artist_name,
+		'export_date'  => current_time( 'Y-m-d' ),
+		'total'        => count( $export_data ),
+		'marked_count' => count( $subscriber_ids_to_mark ),
+	);
+}
+add_filter( 'extrachill_export_artist_subscribers', 'extrachill_handle_export_artist_subscribers', 10, 3 );

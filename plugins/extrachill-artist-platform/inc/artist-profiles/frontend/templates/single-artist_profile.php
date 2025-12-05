@@ -43,42 +43,6 @@ get_header(); ?>
 
                 <article id="post-<?php the_ID(); ?>" <?php post_class(); ?> >
                     <div class="inside-article">
-                        <?php
-                        // --- Display Invitation Acceptance/Error Messages ---
-                        if ( isset( $_GET['invite_accepted'] ) && $_GET['invite_accepted'] === '1' ) {
-                            $invite_success_message = __( 'Invitation accepted! You are now a member of this artist.', 'extrachill-artist-platform' );
-                            if ( isset( $_GET['invite_warning'] ) && $_GET['invite_warning'] === 'cleanup_failed' ) {
-                                $invite_success_message .= ' ' . __( '(A small cleanup task for the invitation record encountered an issue, but your membership is confirmed. Please contact an admin if you notice any problems.)', 'extrachill-artist-platform' );
-                            }
-                            echo '<div class="artist-notice artist-notice-success">';
-                            echo '<p>' . esc_html( $invite_success_message ) . '</p>';
-                            echo '</div>';
-                        } elseif ( isset( $_GET['invite_error'] ) ) {
-                            $error_code = sanitize_key( $_GET['invite_error'] );
-                            $invite_error_message = '';
-                            switch ( $error_code ) {
-                                case 'invalid_token':
-                                    $invite_error_message = __( 'The invitation link is invalid or has expired. Please request a new invitation.', 'extrachill-artist-platform' );
-                                    break;
-                                case 'not_artist':
-                                    $invite_error_message = __( 'Your account is not recognized as an artist account. Please contact support if you believe this is an error.', 'extrachill-artist-platform' );
-                                    break;
-                                case 'membership_failed':
-                                    $invite_error_message = __( 'There was an error adding you to the artist. Please try again or contact support.', 'extrachill-artist-platform' );
-                                    break;
-                                default:
-                                    $invite_error_message = __( 'An unknown error occurred while processing your invitation.', 'extrachill-artist-platform' );
-                            }
-                            if ( ! empty( $invite_error_message ) ) {
-                                echo '<div class="artist-notice artist-notice-error">';
-                                echo '<p>' . esc_html( $invite_error_message ) . '</p>';
-                                echo '</div>';
-                            }
-                        }
-
-                        // Removed default generate_before_content hook to place header manually
-                        ?>
-
                         <?php 
                         // Prepare for Hero Section
                         $hero_background_style = '';
@@ -151,46 +115,6 @@ get_header(); ?>
                                     'icon_class' => 'extrch-social-icon'
                                 ) );
                                 ?>
-
-                                <?php 
-                                // --- Artist Follow Button & Count --- 
-                                if ( function_exists('bp_get_artist_follower_count') && function_exists('bp_is_user_following_artist') ) : 
-                                    $follower_count = bp_get_artist_follower_count( $artist_profile_id );
-                                    $is_following = is_user_logged_in() ? bp_is_user_following_artist( get_current_user_id(), $artist_profile_id ) : false;
-                                    $follow_button_text = $is_following ? __( 'Following', 'extrachill-artist-platform' ) : __( 'Follow', 'extrachill-artist-platform' );
-                                    $follow_button_action = $is_following ? 'unfollow' : 'follow';
-                                ?>
-                                <div class="artist-follow-section">
-                                    <span class="artist-follower-count" id="artist-follower-count-<?php echo esc_attr($artist_profile_id); ?>">
-                                        <?php echo sprintf( _n( '%s follower', '%s followers', $follower_count, 'extrachill-artist-platform' ), number_format_i18n( $follower_count ) ); ?>
-                                    </span>
-                                    <?php if ( is_user_logged_in() ) : ?>
-                                        <?php 
-                                        // Check if the artist profile being viewed belongs to the current user - CANNOT FOLLOW OWN ARTIST
-                                        $is_own_artist = false;
-                                        $user_artists = ec_get_artists_for_user( get_current_user_id() );
-                                        if ( in_array($artist_profile_id, $user_artists) ) {
-                                            $is_own_artist = true;
-                                        }
-                                        ?>
-                                        <?php if ( ! $is_own_artist ): ?>
-                                            <button type="button" class="button-2 button-small artist-follow-button" 
-                                                    data-action="<?php echo esc_attr( $follow_button_action ); ?>" 
-                                                    data-artist-id="<?php echo esc_attr( $artist_profile_id ); ?>">
-                                                <?php echo esc_html( $follow_button_text ); ?>
-                                            </button>
-                                        <?php else: ?>
-                                            <?php // Optionally show a disabled button or nothing if it's their own artist ?>
-                                            <span class="artist-own-indicator">(<?php esc_html_e('Your Artist', 'extrachill-artist-platform'); ?>)</span>
-                                        <?php endif; ?>
-                                    <?php else : // User not logged in ?>
-                                        <a href="<?php echo esc_url( site_url('/login') ); ?>" class="button-2 button-small artist-follow-login-button">
-                                            <?php esc_html_e( 'Follow', 'extrachill-artist-platform' ); ?>
-                                        </a>
-                                    <?php endif; ?>
-                                </div>
-                                <?php endif; // End check for functions exist ?>
-                                <?php // --- End Artist Follow Button --- ?>
 
                                 <?php
                                 // --- Display Artist Link Page URL (New) ---

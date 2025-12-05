@@ -1,36 +1,6 @@
 /**
- * CSS for Single Artist Profiles (single-artist_profile.php) and related notices.
+ * CSS for Single Artist Profiles (single-artist_profile.php).
  */
-
-/* Base notice styling */
-.artist-notice {
-    padding: 12px; /* Consolidated from inline styles */
-    margin-bottom: 20px;
-    border-left-width: 4px;
-    border-left-style: solid;
-    border-radius: 4px; /* Optional: add a little rounding */
-    background-color: var(--card-background); /* Use a general card/notice background */
-    color: var(--text-color);
-}
-
-.artist-notice p {
-    margin: 0;
-    padding: 0;
-}
-
-/* Success notice specific styling */
-.artist-notice-success {
-    border-left-color: #46b450; /* From single-artist_profile.php inline style */
-    /* Specific background for success if needed, or rely on .artist-notice for general background */
-    /* background-color: var(--notice-bg-success); */ /* Example if you define --notice-bg-success */
-}
-
-/* Error notice specific styling (already used on manage page, good to define here too) */
-.artist-notice-error {
-    border-left-color: var(--error-color); /* Standard error red */
-    background-color: #fef7f7; /* From manage-artist-profile.php inline style */
-    /* background-color: var(--notice-bg-error); */ /* Example if you define --notice-bg-error */
-}
 
 :root {
     /* Define any specific variables if needed, or rely on GeneratePress/global variables */
@@ -386,105 +356,6 @@
     /* Columns will take full width naturally when flex-direction is column */
 } 
 
-/* --- Follow Consent Modal Styles --- */
-.artist-follow-modal-backdrop {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.6);
-    z-index: 1040; /* Ensure it's above other content but below .artist-modal if it has higher */
-}
-
-#artist-follow-consent-modal.artist-modal {
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background-color: var(--card-background);
-    padding: 25px;
-    border-radius: 8px;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-    z-index: 1050;
-    width: 90%;
-    max-width: 450px;
-    border: 1px solid var(--border-color);
-}
-
-#artist-follow-consent-modal .artist-modal-content {
-    /* Styles for the content area within the modal */
-}
-
-#artist-follow-consent-modal .artist-modal-title {
-    margin-top: 0;
-    margin-bottom: 15px;
-    font-size: 1.5em;
-    color: var(--text-color);
-}
-
-#artist-follow-consent-modal p {
-    margin-bottom: 15px;
-    font-size: 1em;
-    line-height: 1.5;
-    color: var(--text-color);
-}
-
-#artist-follow-consent-modal .artist-modal-consent-option {
-    margin-bottom: 20px;
-    padding: 10px;
-    background-color: var(--background-color);
-    border-radius: 4px;
-    border: 1px solid var(--border-color);
-}
-
-#artist-follow-consent-modal .artist-modal-consent-option label {
-    display: flex; /* Changed to flex for better alignment */
-    align-items: flex-start; /* Align items to the start of the flex container */
-    font-size: 0.95em;
-    color: var(--text-color);
-    cursor: pointer;
-}
-
-#artist-follow-consent-modal .artist-modal-consent-option input[type="checkbox"] {
-    margin-right: 10px;
-    margin-top: 3px; /* Adjust to align checkbox with text */
-    flex-shrink: 0; /* Prevent checkbox from shrinking */
-}
-
-#artist-follow-consent-modal .artist-modal-actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: 10px;
-}
-
-#artist-follow-consent-modal .artist-modal-actions .button {
-    padding: 10px 15px;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-weight: bold;
-}
-
-#artist-follow-consent-modal .artist-modal-actions .artist-modal-confirm {
-    background-color: var(--accent); /* Using var(--accent) if available, else WordPress blue */
-    color: #fff;
-}
-
-#artist-follow-consent-modal .artist-modal-actions .artist-modal-confirm:hover {
-    background-color: var(--accent-dark); /* Darker shade for hover */
-}
-
-#artist-follow-consent-modal .artist-modal-actions .artist-modal-cancel {
-    background-color: var(--button-secondary-bg); /* Light gray for cancel */
-    color: var(--button-secondary-text);
-    border: 1px solid var(--border-color);
-}
-
-#artist-follow-consent-modal .artist-modal-actions .artist-modal-cancel:hover {
-    background-color: var(--button-secondary-hover-bg);
-}
-
 /* Mobile Responsive Styles */
 @media (max-width: 768px) {
     .artist-hero-top-row {
@@ -521,47 +392,6 @@
 /* Artist manage button - should use .button-1 class in HTML */
 .artist-manage-button:hover {
     color: #fff;
-}
-
-/* --- Artist Follow Section --- */
-.artist-follow-section {
-    margin-top: 1.5em;
-    display: flex;
-    align-items: center;
-    gap: 15px;
-    flex-wrap: wrap;
-}
-
-.artist-follower-count {
-    font-size: 0.95em;
-    color: var(--header-text);
-}
-
-.artist-follow-button,
-.artist-follow-login-button {
-    padding: 8px 15px;
-    border-radius: 4px;
-    text-decoration: none;
-    font-size: 0.9em;
-    transition: all 0.2s ease;
-}
-
-.artist-follow-button {
-    background-color: var(--accent);
-    color: #fff;
-    border: none;
-    cursor: pointer;
-}
-
-/* Artist follow button - should use .button-2 class in HTML */
-.artist-follow-button:hover {
-    /* Hover styles from button class */
-}
-
-.artist-own-indicator {
-    font-style: italic;
-    color: var(--header-text);
-    font-size: 0.9em;
 }
 
 /* --- Artist Public Link Display --- */

@@ -15,7 +15,7 @@ $artist_post_title = $artist_post_title ?? '';
 ?>
 
 <div class="artist-profile-content-card">
-    <div class="notice notice-info" style="margin-bottom: 1.5em;">
+    <div class="notice notice-info">
         <p><?php esc_html_e( "Profile managers can moderate the artist's forum, edit this artist profile, and manage the associated Extrachill.link page.", 'extrachill-artist-platform' ); ?></p>
     </div>
     <?php 
@@ -38,15 +38,15 @@ $artist_post_title = $artist_post_title ?? '';
         <h3><?php esc_html_e( 'Current Profile Managers', 'extrachill-artist-platform' ); ?></h3>
         
         <?php if ( ! empty( $current_managers ) ) : ?>
-            <ul class="profile-managers-list" style="list-style: none; padding: 0;">
+            <ul class="profile-managers-list">
                 <?php foreach ( $current_managers as $manager ) : 
                     $user_info = get_userdata( $manager->ID );
                     if ( $user_info ) :
                 ?>
-                    <li style="display: flex; justify-content: space-between; align-items: center; padding: 8px; border: 1px solid #ddd; margin: 4px 0;">
+                    <li>
                         <span>
                             <strong><?php echo esc_html( $user_info->display_name ); ?></strong>
-                            <span style="color: #666;">(<?php echo esc_html( $user_info->user_email ); ?>)</span>
+                            <span class="manager-email">(<?php echo esc_html( $user_info->user_email ); ?>)</span>
                         </span>
                         <?php if ( $user_info->ID !== $current_user_id ) : ?>
                             <button type="button" class="button-2 button-small remove-manager-btn" 
@@ -55,7 +55,7 @@ $artist_post_title = $artist_post_title ?? '';
                                 <?php esc_html_e( 'Remove', 'extrachill-artist-platform' ); ?>
                             </button>
                         <?php else : ?>
-                            <span style="color: #666; font-style: italic;"><?php esc_html_e( '(You)', 'extrachill-artist-platform' ); ?></span>
+                            <span class="manager-you-label"><?php esc_html_e( '(You)', 'extrachill-artist-platform' ); ?></span>
                         <?php endif; ?>
                     </li>
                 <?php endif; endforeach; ?>
@@ -64,19 +64,18 @@ $artist_post_title = $artist_post_title ?? '';
             <p><?php esc_html_e( 'No additional profile managers assigned.', 'extrachill-artist-platform' ); ?></p>
         <?php endif; ?>
         
-        <div style="margin-top: 20px;">
+        <div class="add-manager-section">
             <h4><?php esc_html_e( 'Add Profile Manager', 'extrachill-artist-platform' ); ?></h4>
-            <p style="color: #666; font-size: 14px;"><?php esc_html_e( 'Search for a user by username or email to add them as a profile manager.', 'extrachill-artist-platform' ); ?></p>
+            <p class="add-manager-description"><?php esc_html_e( 'Search for a user by username or email to add them as a profile manager.', 'extrachill-artist-platform' ); ?></p>
             
-            <div style="display: flex; gap: 10px; align-items: center;">
-                <input type="text" id="user-search-input" placeholder="<?php esc_attr_e( 'Username or email...', 'extrachill-artist-platform' ); ?>" 
-                       style="flex: 1; max-width: 300px;" />
+            <div class="add-manager-form">
+                <input type="text" id="user-search-input" placeholder="<?php esc_attr_e( 'Username or email...', 'extrachill-artist-platform' ); ?>" />
                 <button type="button" id="add-manager-btn" class="button-2 button-medium" 
                         data-artist-id="<?php echo esc_attr( $target_artist_id ); ?>">
                     <?php esc_html_e( 'Add Manager', 'extrachill-artist-platform' ); ?>
                 </button>
             </div>
-            <div id="user-search-results" style="margin-top: 10px;"></div>
+            <div id="user-search-results"></div>
         </div>
         
         <?php
@@ -85,4 +84,4 @@ $artist_post_title = $artist_post_title ?? '';
         echo '<p>' . esc_html__('Profile manager access is available when editing an existing artist profile.', 'extrachill-artist-platform') . '</p>';
     endif; 
     ?>
-</div> 
+</div>

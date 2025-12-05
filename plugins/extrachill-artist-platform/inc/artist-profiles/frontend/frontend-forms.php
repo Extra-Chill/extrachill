@@ -20,13 +20,15 @@ function bp_handle_create_artist_profile_submission() {
 
     // Verify the nonce
     if ( ! wp_verify_nonce( $_POST['bp_create_artist_profile_nonce'], 'bp_create_artist_profile_action' ) ) {
-        wp_safe_redirect( add_query_arg( 'bp_error', 'nonce_failure', $redirect_base_url ) );
+        extrachill_set_notice( __( 'Security check failed. Please try again.', 'extrachill-artist-platform' ), 'error' );
+        wp_safe_redirect( $redirect_base_url );
         exit;
     }
 
     // Check user permission
     if ( ! ec_can_create_artist_profiles( get_current_user_id() ) ) {
-        wp_safe_redirect( add_query_arg( 'bp_error', 'permission_denied_create', $redirect_base_url ) );
+        extrachill_set_notice( __( 'You do not have permission to create an artist profile.', 'extrachill-artist-platform' ), 'error' );
+        wp_safe_redirect( $redirect_base_url );
         exit;
     }
 
@@ -35,7 +37,8 @@ function bp_handle_create_artist_profile_submission() {
     
     // Title validation (required)
     if ( empty( $save_data['post_title'] ) ) {
-        wp_safe_redirect( add_query_arg( 'bp_error', 'title_required', $redirect_base_url ) );
+        extrachill_set_notice( __( 'Artist Name is required.', 'extrachill-artist-platform' ), 'error' );
+        wp_safe_redirect( $redirect_base_url );
         exit;
     }
 
@@ -50,7 +53,8 @@ function bp_handle_create_artist_profile_submission() {
     $existing_artist = $existing_artists_query->posts ? true : false;
 
     if ( $existing_artist ) {
-        wp_safe_redirect( add_query_arg( 'bp_error', 'duplicate_title', $redirect_base_url ) );
+        extrachill_set_notice( __( 'An artist profile with this name already exists. Please choose a different name.', 'extrachill-artist-platform' ), 'error' );
+        wp_safe_redirect( $redirect_base_url );
         exit;
     }
 
@@ -78,7 +82,8 @@ function bp_handle_create_artist_profile_submission() {
     $new_artist_id = wp_insert_post( $artist_data, true );
 
     if ( is_wp_error( $new_artist_id ) ) {
-        wp_safe_redirect( add_query_arg( 'bp_error', 'creation_failed', $redirect_base_url ) );
+        extrachill_set_notice( __( 'Failed to create artist profile. Please try again.', 'extrachill-artist-platform' ), 'error' );
+        wp_safe_redirect( $redirect_base_url );
         exit;
     }
 
@@ -88,7 +93,8 @@ function bp_handle_create_artist_profile_submission() {
     if ( is_wp_error( $result ) ) {
         // Clean up the created post on save failure
         wp_delete_post( $new_artist_id, true );
-        wp_safe_redirect( add_query_arg( 'bp_error', 'save_failed', $redirect_base_url ) );
+        extrachill_set_notice( __( 'Failed to save artist profile data. Please try again.', 'extrachill-artist-platform' ), 'error' );
+        wp_safe_redirect( $redirect_base_url );
         exit;
     }
 
@@ -149,18 +155,21 @@ function bp_handle_edit_artist_profile_submission() {
 
     // Verify the nonce
     if ( ! wp_verify_nonce( $_POST['bp_edit_artist_profile_nonce'], 'bp_edit_artist_profile_action' ) ) {
-        wp_safe_redirect( add_query_arg( 'bp_error', 'nonce_failure', $error_redirect_url ) );
+        extrachill_set_notice( __( 'Security check failed. Please try again.', 'extrachill-artist-platform' ), 'error' );
+        wp_safe_redirect( $error_redirect_url );
         exit;
     }
 
     if ( ! $artist_id || get_post_type( $artist_id ) !== 'artist_profile' ) {
-         wp_safe_redirect( add_query_arg( 'bp_error', 'invalid_artist_id', $redirect_base_url ) ); // Redirect to base if ID is bad
-         exit;
+        extrachill_set_notice( __( 'Invalid artist profile ID provided.', 'extrachill-artist-platform' ), 'error' );
+        wp_safe_redirect( $redirect_base_url );
+        exit;
     }
 
     // Check user permission to edit *this specific post*
     if ( ! ec_can_manage_artist( get_current_user_id(), $artist_id ) ) {
-        wp_safe_redirect( add_query_arg( 'bp_error', 'permission_denied_edit', $error_redirect_url ) );
+        extrachill_set_notice( __( 'You do not have permission to edit this artist profile.', 'extrachill-artist-platform' ), 'error' );
+        wp_safe_redirect( $error_redirect_url );
         exit;
     }
 
@@ -169,7 +178,8 @@ function bp_handle_edit_artist_profile_submission() {
     
     // Title validation (required)
     if ( empty( $save_data['post_title'] ) ) {
-        wp_safe_redirect( add_query_arg( 'bp_error', 'title_required', $error_redirect_url ) );
+        extrachill_set_notice( __( 'Artist Name is required.', 'extrachill-artist-platform' ), 'error' );
+        wp_safe_redirect( $error_redirect_url );
         exit;
     }
 
@@ -186,7 +196,8 @@ function bp_handle_edit_artist_profile_submission() {
         $existing_artist = $existing_artists_query->posts ? true : false;
 
         if ( $existing_artist ) {
-            wp_safe_redirect( add_query_arg( 'bp_error', 'duplicate_title', $error_redirect_url ) );
+            extrachill_set_notice( __( 'An artist profile with this name already exists. Please choose a different name.', 'extrachill-artist-platform' ), 'error' );
+            wp_safe_redirect( $error_redirect_url );
             exit;
         }
     }
@@ -195,12 +206,10 @@ function bp_handle_edit_artist_profile_submission() {
     $result = ec_handle_artist_profile_save( $artist_id, $save_data, $_FILES );
     
     if ( is_wp_error( $result ) ) {
-        wp_safe_redirect( add_query_arg( 'bp_error', 'update_failed', $error_redirect_url ) );
+        extrachill_set_notice( __( 'Failed to update artist profile. Please try again.', 'extrachill-artist-platform' ), 'error' );
+        wp_safe_redirect( $error_redirect_url );
         exit;
     }
-
-    // Check if member management was performed
-    $members_meta_changed_flag = isset( $save_data['remove_member_ids'] ) && ! empty( $save_data['remove_member_ids'] );
 
     // Set success notice
     extrachill_set_notice( __( 'Artist profile updated successfully!', 'extrachill-artist-platform' ), 'success' );
@@ -212,10 +221,6 @@ function bp_handle_edit_artist_profile_submission() {
     $redirect_url = $artist_id > 0 
         ? add_query_arg( 'artist_id', $artist_id, $manage_page_url )
         : $manage_page_url;
-
-    if ( $members_meta_changed_flag ) { 
-        $redirect_url = add_query_arg( 'members_changed', '1', $redirect_url ); 
-    }
 
     wp_safe_redirect( $redirect_url ); 
     exit;

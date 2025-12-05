@@ -4,16 +4,16 @@
 (function() {
     'use strict';
 
-    const ajaxUrl = typeof bpManageMembersData !== 'undefined' ? bpManageMembersData.ajaxUrl : null;
-    const artistProfileId = typeof bpManageMembersData !== 'undefined' ? bpManageMembersData.artistProfileId : null;
-    const ajaxAddNonce = typeof bpManageMembersData !== 'undefined' ? (bpManageMembersData.ajaxAddNonce || '') : '';
-    const ajaxRemovePlaintextNonce = typeof bpManageMembersData !== 'undefined' ? (bpManageMembersData.ajaxRemovePlaintextNonce || '') : '';
+    const config = typeof apManageMembersData !== 'undefined' ? apManageMembersData : null;
+    const restUrl = config ? config.restUrl : null;
+    const artistProfileId = config ? config.artistProfileId : null;
+    const i18n = config ? config.i18n : {};
 
     const initializedTabs = new Set();
 
     document.addEventListener('DOMContentLoaded', function() {
-        if (typeof bpManageMembersData === 'undefined') {
-            console.error('bpManageMembersData is not defined. Ensure it is localized.');
+        if (!config) {
+            console.error('apManageMembersData is not defined. Ensure it is localized.');
         }
 
         initializeArtistImagePreviews(document);
@@ -83,97 +83,52 @@
                 const inviteEmail = newMemberEmailInput ? newMemberEmailInput.value.trim() : '';
 
                 if (!inviteEmail) {
-                    alert('Please enter an email address.');
+                    alert(i18n.enterEmail || 'Please enter an email address.');
                     if (newMemberEmailInput) newMemberEmailInput.focus();
                     return;
                 }
 
                 button.disabled = true;
-                button.textContent = 'Sending...';
+                button.textContent = i18n.sendingInvitation || 'Sending...';
 
-                fetch(ajaxUrl, {
+                fetch(`${restUrl}/artist/roster/invite`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                    body: new URLSearchParams({
-                        action: 'bp_ajax_invite_member_by_email',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-WP-Nonce': config.nonce
+                    },
+                    credentials: 'same-origin',
+                    body: JSON.stringify({
                         artist_id: artistProfileId,
-                        invite_email: inviteEmail,
-                        nonce: bpManageMembersData.ajaxInviteMemberByEmailNonce
+                        email: inviteEmail
                     })
                 })
                 .then(response => response.json())
-                .then(function(response) {
-                    if (response.success && response.data && response.data.updated_roster_item_html) {
+                .then(function(data) {
+                    if (data.success !== false && !data.code) {
                         const unifiedRosterList = rosterTabContentElement.querySelector(unifiedRosterListSelector);
                         const noMembers = unifiedRosterList ? unifiedRosterList.querySelector('.no-members') : null;
                         if (noMembers) noMembers.remove();
-                        if (unifiedRosterList) {
-                            unifiedRosterList.insertAdjacentHTML('beforeend', response.data.updated_roster_item_html);
+
+                        if (unifiedRosterList && data.user_id) {
+                            const rosterItemHtml = renderRosterItem(data);
+                            unifiedRosterList.insertAdjacentHTML('beforeend', rosterItemHtml);
                         }
+
                         if (newMemberEmailInput) {
                             newMemberEmailInput.value = '';
                             newMemberEmailInput.focus();
                         }
                     } else {
-                        alert('Error: ' + (response.data && response.data.message ? response.data.message : 'Could not send invitation.'));
+                        alert('Error: ' + (data.message || i18n.errorSendingInvitation || 'Could not send invitation.'));
                     }
                 })
                 .catch(function() {
-                    alert('An error occurred while sending the invitation. Please try again.');
+                    alert(i18n.errorAjax || 'An error occurred while sending the invitation. Please try again.');
                 })
                 .finally(function() {
                     button.disabled = false;
-                    button.textContent = 'Send Invitation';
-                });
-                return;
-            }
-
-            // Remove plaintext member
-            if (target.matches('.bp-ajax-remove-plaintext-member') || target.closest('.bp-ajax-remove-plaintext-member')) {
-                e.preventDefault();
-                const link = target.matches('.bp-ajax-remove-plaintext-member') ? target : target.closest('.bp-ajax-remove-plaintext-member');
-                const listItem = link.closest('li');
-                const plaintextId = link.dataset.ptid;
-                const memberNameEl = listItem ? listItem.querySelector('.member-name') : null;
-                const memberName = memberNameEl ? memberNameEl.textContent : '';
-
-                if (!plaintextId || !confirm(`Are you sure you want to remove "${memberName}" from the roster listing?`)) return;
-
-                listItem.style.opacity = '0.5';
-
-                fetch(ajaxUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                    body: new URLSearchParams({
-                        action: 'bp_ajax_remove_plaintext_member_action',
-                        artist_id: artistProfileId,
-                        plaintext_member_id: plaintextId,
-                        nonce: ajaxRemovePlaintextNonce
-                    })
-                })
-                .then(response => response.json())
-                .then(function(response) {
-                    if (response.success) {
-                        listItem.style.transition = 'opacity 0.3s';
-                        listItem.style.opacity = '0';
-                        setTimeout(function() {
-                            listItem.remove();
-                            const actualUnifiedRosterList = rosterTabContentElement.querySelector(unifiedRosterListSelector);
-                            if (actualUnifiedRosterList) {
-                                const remainingItems = actualUnifiedRosterList.querySelectorAll('li:not(.no-members)');
-                                if (remainingItems.length === 0) {
-                                    actualUnifiedRosterList.insertAdjacentHTML('beforeend', '<li class="no-members">No members listed for this artist yet.</li>');
-                                }
-                            }
-                        }, 300);
-                    } else {
-                        alert('Error: ' + (response.data || 'Could not remove listing.'));
-                        listItem.style.opacity = '1';
-                    }
-                })
-                .catch(function() {
-                    alert('An error occurred. Please try again.');
-                    listItem.style.opacity = '1';
+                    button.textContent = i18n.sendInvitation || 'Send Invitation';
                 });
                 return;
             }
@@ -255,6 +210,40 @@
                 }
             });
         }
+    }
+
+    /**
+     * Renders a roster item from REST API response data
+     */
+    function renderRosterItem(data) {
+        const displayName = data.display_name || data.email;
+        const avatarUrl = data.avatar_url || '';
+        const profileUrl = data.profile_url || '#';
+        const status = data.status || 'pending';
+        const userId = data.user_id || '';
+
+        let statusLabel = '';
+        if (status === 'pending') {
+            statusLabel = '<span class="member-status-label pending">(Invitation Pending)</span>';
+        }
+
+        let avatarHtml = '';
+        if (avatarUrl) {
+            avatarHtml = `<img src="${avatarUrl}" alt="${displayName}" class="roster-member-avatar" width="40" height="40">`;
+        }
+
+        return `
+            <li class="roster-member-item" data-user-id="${userId}" data-status="${status}">
+                <div class="roster-member-info">
+                    ${avatarHtml}
+                    <a href="${profileUrl}" class="member-name" target="_blank">${displayName}</a>
+                    ${statusLabel}
+                </div>
+                <button type="button" class="bp-remove-member-button button-link-delete" title="Remove member">
+                    <span class="dashicons dashicons-no-alt"></span>
+                </button>
+            </li>
+        `;
     }
 
 })();

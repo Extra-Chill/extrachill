@@ -12,25 +12,7 @@ get_header(); ?>
 		<main id="main" class="site-main">
 			<?php do_action( 'extrachill_before_body_content' ); ?>
 
-            <div class="breadcrumb-notice-container">
-                <?php
-                // Add breadcrumbs here
-                extrachill_breadcrumbs();
-                ?>
-
-                <?php
-                // --- Display Error Message (if any) ---
-                // This error message block displays programmatically set $error_message values
-                // for inline validation errors (not redirect-based notices).
-                if ( ! empty( $error_message ) ) {
-                    echo '<div class="notice notice-error">';
-                    echo '<p>' . esc_html( $error_message ) . '</p>';
-                    echo '</div>';
-                }
-                ?>
-            </div>
-
-            <?php // Removed Redundant Join Flow Guidance Notice ?>
+            <?php extrachill_breadcrumbs(); ?>
 
             <article id="post-<?php the_ID(); ?>" <?php post_class(); ?>>
                 <div class="inside-article">
@@ -59,33 +41,6 @@ get_header(); ?>
                         $nonce_name = '';
                         $submit_value = '';
                         $submit_name = '';
-                        $error_message = ''; // Variable to hold potential error message for this page, distinct from redirect errors
-
-                        // --- Check for Error Messages from Redirect ---
-                        if ( isset( $_GET['bp_error'] ) ) {
-                            $error_code = sanitize_key( $_GET['bp_error'] );
-                            switch ( $error_code ) {
-                                case 'nonce_failure':
-                                    $error_message = __( 'Security check failed. Please try again.', 'extrachill-artist-platform' );
-                                    break;
-                                case 'permission_denied_create':
-                                    $error_message = __( 'You do not have permission to create an artist profile.', 'extrachill-artist-platform' );
-                                    break;
-                                case 'permission_denied_edit':
-                                    $error_message = __( 'You do not have permission to edit this artist profile.', 'extrachill-artist-platform' );
-                                    break;
-                                case 'title_required':
-                                    $error_message = __( 'Artist Name (Title) is required.', 'extrachill-artist-platform' );
-                                    break;
-                                case 'duplicate_title':
-                                    $error_message = __( 'An artist profile with this name already exists. Please choose a different name.', 'extrachill-artist-platform' );
-                                    break;
-                                case 'invalid_artist_id':
-                                    $error_message = __( 'Invalid artist profile ID provided.', 'extrachill-artist-platform' );
-                                    break;
-                                // Add other potential error codes here
-                            }
-                        }
 
                         // --- Determine Mode (Create or Edit) --- 
                         if ( isset( $_GET['artist_id'] ) ) {
@@ -207,13 +162,6 @@ get_header(); ?>
                                     <input type="hidden" name="from_join" value="true">
                                 <?php endif; ?>
 
-                                <!-- ERROR MESSAGE INSIDE FORM -->
-                                <?php if ( ! empty( $error_message ) ) : ?>
-                                    <div class="notice notice-error">
-                                        <p><?php echo esc_html( $error_message ); ?></p>
-                                    </div>
-                                <?php endif; ?>
-
                                 <!-- TOP SUBMIT BUTTON -->
                                 <?php if ( ! $edit_mode ) : ?>
                                     <div class="form-group submit-group">
@@ -302,13 +250,8 @@ get_header(); ?>
                         endif; // end $can_proceed
 
                         // Handle case where edit mode was requested but artist profile not found
-                        // Only show this if there wasn't a more specific error already displayed
-                        if ( isset( $_GET['artist_id'] ) && ! $edit_mode && empty($error_message) ) {
-                             // Check if the specific error was 'invalid_artist_id' which we already handled
-                             $specific_error = isset($_GET['bp_error']) && sanitize_key($_GET['bp_error']) === 'invalid_artist_id';
-                             if (!$specific_error) {
-                                echo '<p>' . __( 'Artist profile not found or you do not have permission to view it here.', 'extrachill-artist-platform' ) . '</p>';
-                             }
+                        if ( isset( $_GET['artist_id'] ) && ! $edit_mode ) {
+                            echo '<p>' . __( 'Artist profile not found or you do not have permission to view it here.', 'extrachill-artist-platform' ) . '</p>';
                         }
                         ?>
                     </div><!-- .entry-content -->

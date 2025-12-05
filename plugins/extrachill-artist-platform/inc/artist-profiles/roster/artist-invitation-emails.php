@@ -152,25 +152,32 @@ function bp_handle_invitation_acceptance() {
         }
 
         if ( ! $valid_invite ) {
-            wp_safe_redirect( add_query_arg( array( 'invite_error' => 'invalid_token' ), $redirect_url ) );
+            extrachill_set_notice(
+                __( 'The invitation link is invalid or has expired. Please request a new invitation.', 'extrachill-artist-platform' ),
+                'error'
+            );
+            wp_safe_redirect( $redirect_url );
             exit;
         }
 
         // 4. Link User to Artist & Remove Pending Invite
         if ( bp_add_artist_membership( $user_id, $artist_id ) ) {
             // Use the specific ID of the invitation for removal
-            if ( bp_remove_pending_invitation( $artist_id, $valid_invite['id'] ) ) {
-                wp_safe_redirect( add_query_arg( array( 'invite_accepted' => '1' ), $redirect_url ) );
-                exit;
-            } else {
-                // Failed to remove invite, but user was added. Log this.
-                // User added successfully but failed to remove pending invite
-                wp_safe_redirect( add_query_arg( array( 'invite_accepted' => '1', 'invite_warning' => 'cleanup_failed' ), $redirect_url ) );
-                exit;
+            if ( ! bp_remove_pending_invitation( $artist_id, $valid_invite['id'] ) ) {
+                error_log( 'Invitation cleanup failed for artist ID ' . $artist_id . ', user ID ' . $user_id );
             }
+            extrachill_set_notice(
+                __( 'Invitation accepted! You are now a manager of this artist.', 'extrachill-artist-platform' ),
+                'success'
+            );
+            wp_safe_redirect( $redirect_url );
+            exit;
         } else {
-            // Failed to add artist membership
-            wp_safe_redirect( add_query_arg( array( 'invite_error' => 'membership_failed' ), $redirect_url ) );
+            extrachill_set_notice(
+                __( 'There was an error adding you to the artist. Please try again or contact support.', 'extrachill-artist-platform' ),
+                'error'
+            );
+            wp_safe_redirect( $redirect_url );
             exit;
         }
     }

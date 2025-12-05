@@ -650,7 +650,6 @@ inc/
 │   │   ├── manage-roster-ui.php
 │   │   ├── roster-ajax-handlers.php
 │   │   └── roster-data-functions.php
-│   ├── artist-following.php         # Follow system
 │   ├── blog-coverage.php            # Main site taxonomy archive linking
 │   └── subscribe-data-functions.php # Artist subscription data
 ├── link-pages/                      # Link page system
