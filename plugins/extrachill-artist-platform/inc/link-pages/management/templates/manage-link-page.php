@@ -144,31 +144,7 @@ $data = ec_get_link_page_data( $artist_id, $link_page_id );
 
 // Fonts are now handled directly in the tab template
 ?>
-<?php
-// Display breadcrumbs using theme system with custom override
-// Override the breadcrumb trail for manage link page
-add_filter('extrachill_breadcrumbs_override_trail', function($trail) {
-    $artist_id = apply_filters('ec_get_artist_id', $_GET);
-    if (!$artist_id) return $trail;
-
-    $artist_post = get_post($artist_id);
-    if (!$artist_post) return $trail;
-
-    $manage_page = get_page_by_path('manage-artist-profiles');
-    $manage_artist_profile_url = $manage_page
-        ? add_query_arg('artist_id', $artist_id, get_permalink($manage_page))
-        : site_url('/manage-artist-profiles/?artist_id=' . $artist_id);
-
-    return '<a href="' . esc_url($manage_artist_profile_url) . '">' . esc_html($artist_post->post_title) . '</a> › ' .
-           '<span>' . esc_html__('Manage Link Page', 'extrachill-artist-platform') . '</span>';
-});
-
-extrachill_breadcrumbs();
-?>
-<h1 class="manage-link-page-title">
-    <?php echo esc_html__('Manage Link Page for ', 'extrachill-artist-platform') . esc_html(get_the_title($artist_id)); ?>
-</h1>
-<?php
+<?php extrachill_breadcrumbs(); ?><?php
 // --- Artist Switcher (Shared Component) ---
 // Filter accessible artists to only those with valid link pages
 $current_user_id_for_switcher = get_current_user_id();

@@ -3,7 +3,7 @@
  * Programmatic Link Addition API
  *
  * WordPress action-based interface for adding links to artist link pages.
- * Provides sanitization, validation, and AJAX wrapper for external integrations.
+ * Provides sanitization, validation, and action hook for external integrations.
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -141,38 +141,3 @@ function ec_action_artist_add_link( $link_page_id, $link_data, $user_id ) {
 
 // Register the action handler
 add_action( 'ec_artist_add_link', 'ec_action_artist_add_link', 10, 3 );
-
-/**
- * AJAX handler for adding links via action
- *
- * Provides AJAX interface to ec_artist_add_link action for UI and external systems.
- */
-function ec_ajax_artist_add_link() {
-	check_ajax_referer( 'ec_ajax_nonce', 'nonce' );
-
-	if ( ! ec_ajax_can_manage_link_page( $_POST ) ) {
-		wp_send_json_error( array( 'message' => 'Unauthorized' ) );
-	}
-
-	$link_page_id = absint( $_POST['link_page_id'] ?? 0 );
-	$link_data = $_POST['link_data'] ?? array();
-	$user_id = get_current_user_id();
-
-	// Call the action - captures result via reference
-	$result = null;
-	add_action( 'ec_artist_add_link', function( $lp_id, $data, $uid ) use ( &$result ) {
-		$result = ec_action_artist_add_link( $lp_id, $data, $uid );
-	}, 10, 3 );
-
-	do_action( 'ec_artist_add_link', $link_page_id, $link_data, $user_id );
-
-	if ( is_wp_error( $result ) ) {
-		wp_send_json_error( array(
-			'message' => $result->get_error_message(),
-			'code' => $result->get_error_code()
-		) );
-	}
-
-	wp_send_json_success( $result );
-}
-add_action( 'wp_ajax_ec_artist_add_link', 'ec_ajax_artist_add_link' );

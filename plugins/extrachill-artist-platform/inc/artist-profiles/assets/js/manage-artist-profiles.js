@@ -103,28 +103,29 @@
                         email: inviteEmail
                     })
                 })
-                .then(response => response.json())
+                .then(response => {
+                    if (!response.ok) {
+                        return response.json().then(err => Promise.reject(err));
+                    }
+                    return response.json();
+                })
                 .then(function(data) {
-                    if (data.success !== false && !data.code) {
-                        const unifiedRosterList = rosterTabContentElement.querySelector(unifiedRosterListSelector);
-                        const noMembers = unifiedRosterList ? unifiedRosterList.querySelector('.no-members') : null;
-                        if (noMembers) noMembers.remove();
+                    const unifiedRosterList = rosterTabContentElement.querySelector(unifiedRosterListSelector);
+                    const noMembers = unifiedRosterList ? unifiedRosterList.querySelector('.no-members') : null;
+                    if (noMembers) noMembers.remove();
 
-                        if (unifiedRosterList && data.user_id) {
-                            const rosterItemHtml = renderRosterItem(data);
-                            unifiedRosterList.insertAdjacentHTML('beforeend', rosterItemHtml);
-                        }
+                    if (unifiedRosterList && data.invitation && data.invitation.user_id) {
+                        const rosterItemHtml = renderRosterItem(data.invitation);
+                        unifiedRosterList.insertAdjacentHTML('beforeend', rosterItemHtml);
+                    }
 
-                        if (newMemberEmailInput) {
-                            newMemberEmailInput.value = '';
-                            newMemberEmailInput.focus();
-                        }
-                    } else {
-                        alert('Error: ' + (data.message || i18n.errorSendingInvitation || 'Could not send invitation.'));
+                    if (newMemberEmailInput) {
+                        newMemberEmailInput.value = '';
+                        newMemberEmailInput.focus();
                     }
                 })
-                .catch(function() {
-                    alert(i18n.errorAjax || 'An error occurred while sending the invitation. Please try again.');
+                .catch(function(error) {
+                    alert('Error: ' + (error.message || i18n.errorSendingInvitation || 'Could not send invitation.'));
                 })
                 .finally(function() {
                     button.disabled = false;

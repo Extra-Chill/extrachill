@@ -16,10 +16,6 @@ get_header(); ?>
 
             <article id="post-<?php the_ID(); ?>" <?php post_class(); ?>>
                 <div class="inside-article">
-                    <header>
-                        <?php // Display appropriate title based on mode - will be set later ?>
-                    </header>
-
                     <div class="entry-content" itemprop="text">
                         <?php
                         // Initialize variables
@@ -134,11 +130,6 @@ get_header(); ?>
                         $display_header_image_url = $edit_mode ? $current_header_image_url : ''; // Header image not prefilled
 
                         if ( $can_proceed ) :
-                            ?>
-                            
-                            <?php 
-                            // Set the H1 title of the page dynamically
-                            echo '<h1 class="page-title">' . esc_html( $form_title ) . '</h1>'; 
                             ?>
 
                             <?php

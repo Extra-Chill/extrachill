@@ -6,7 +6,7 @@
  * 
  * Dependencies: Chart.js
  * Event Integration: Listens for 'analyticsTabActivated' custom event
- * AJAX Endpoint: 'extrch_fetch_link_page_analytics'
+ * REST Endpoint: GET /extrachill/v1/analytics/link-page
  */
 
 (function() {
@@ -35,32 +35,32 @@
         showLoading(true);
         showError(null); // Clear previous errors
 
-        // --- Real AJAX Call using fetch ---
-        const formData = new FormData();
-        formData.append('action', 'extrch_fetch_link_page_analytics');
-        formData.append('nonce', extraChillArtistPlatform.nonce);
-        formData.append('link_page_id', extraChillArtistPlatform.linkPageData.link_page_id);
-        formData.append('date_range', dateRangeSelect ? dateRangeSelect.value : '30');
+        // Build REST API URL with query parameters
+        const linkPageId = extraChillArtistPlatform.linkPageData.link_page_id;
+        const dateRange = dateRangeSelect ? dateRangeSelect.value : '30';
+        const url = `${extraChillArtistPlatform.restUrl}/analytics/link-page?link_page_id=${linkPageId}&date_range=${dateRange}`;
 
-        fetch(extraChillArtistPlatform.ajaxUrl, {
-            method: 'POST',
-            body: formData
-        })
-        .then(response => response.json())
-        .then(response => {
-            if (response.success) {
-                updateUI(response.data);
-            } else {
-                showError(response?.data?.message || 'Failed to load analytics data.');
+        fetch(url, {
+            method: 'GET',
+            headers: {
+                'X-WP-Nonce': extraChillArtistPlatform.restNonce
             }
         })
-        .catch(() => {
-            showError('Error communicating with server. See console for details.');
+        .then(response => {
+            if (!response.ok) {
+                return response.json().then(err => { throw err; });
+            }
+            return response.json();
+        })
+        .then(data => {
+            updateUI(data);
+        })
+        .catch(error => {
+            showError(error.message || 'Failed to load analytics data.');
         })
         .finally(() => {
             showLoading(false);
         });
-        // --- End Real AJAX Call --- //
     }
 
     function updateUI(data) {

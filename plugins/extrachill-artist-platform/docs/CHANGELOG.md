@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.6] - 2025-12-05
+
+### Added
+- Breadcrumb navigation for artist profile and link page management interfaces
+- REST API nonce support for enhanced security in JavaScript requests
+
+### Changed
+- Migrated analytics data provision from AJAX to filter hooks for better integration
+- Refactored link template rendering to remove AJAX dependencies
+- Improved JavaScript error handling across fetch requests in artist profiles and subscription forms
+- Standardized error propagation with Promise.reject() for better debugging
+
+### Removed
+- AJAX handlers for link template rendering and analytics fetching
+- Redundant AJAX wrapper for programmatic link addition
+
+### Technical Improvements
+- Enhanced navigation UX with contextual breadcrumb trails
+- Better separation of concerns between frontend and API layers
+- Improved code maintainability with REST API integration
+- More robust error handling preventing silent failures
+
 ## [1.1.5] - 2025-12-05
 
 ### Added

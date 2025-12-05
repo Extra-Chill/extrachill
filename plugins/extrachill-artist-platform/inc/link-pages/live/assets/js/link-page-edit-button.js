@@ -39,8 +39,8 @@
         })
         .then(response => response.json())
         .then(data => {
-            if (data.success && data.data.can_edit) {
-                renderEditButton(data.data.manage_url);
+            if (data.can_edit) {
+                renderEditButton(data.manage_url);
             }
         })
         .catch(error => {

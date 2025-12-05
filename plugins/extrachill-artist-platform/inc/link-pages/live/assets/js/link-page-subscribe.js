@@ -79,28 +79,25 @@ document.addEventListener('DOMContentLoaded', function() {
                 email: emailInput.value
             })
         })
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                return response.json().then(err => Promise.reject(err));
+            }
+            return response.json();
+        })
         .then(data => {
-            if (data.success) {
-                if (formMessage) {
-                    formMessage.textContent = data.message || 'Success!';
-                    formMessage.style.color = 'green';
-                }
-                form.reset();
-                if (form.id === 'extrch-subscribe-form-modal') {
-                    setTimeout(closeSubscribeModal, 2000);
-                }
-            } else {
-                if (formMessage) {
-                    formMessage.textContent = data.message || 'An error occurred.';
-                    formMessage.style.color = 'red';
-                }
+            if (formMessage) {
+                formMessage.textContent = data.message || 'Success!';
+                formMessage.style.color = 'green';
+            }
+            form.reset();
+            if (form.id === 'extrch-subscribe-form-modal') {
+                setTimeout(closeSubscribeModal, 2000);
             }
         })
         .catch(error => {
-            console.error('Error:', error);
             if (formMessage) {
-                formMessage.textContent = 'An unexpected error occurred.';
+                formMessage.textContent = error.message || 'An unexpected error occurred.';
                 formMessage.style.color = 'red';
             }
         })

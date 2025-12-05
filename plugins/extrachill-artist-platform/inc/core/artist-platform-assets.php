@@ -176,6 +176,7 @@ class ExtraChillArtistPlatform_Assets {
             'restUrl' => rest_url( 'extrachill/v1' ),
             'artistSlug' => $artist_slug,
             'nonce' => wp_create_nonce( 'ec_ajax_nonce' ),
+            'restNonce' => wp_create_nonce( 'wp_rest' ),
             'linkPageData' => $link_page_data,
             'fonts' => $fonts_data,
             'linkExpirationEnabled' => $link_page_data['settings']['link_expiration_enabled'] ?? false,

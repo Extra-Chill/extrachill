@@ -96,13 +96,13 @@
         try {
             const data = await fetchQrCode(currentUrl, 300);
 
-            if (data.success && data.image_url) {
+            if (data.image_url) {
                 loadingMessage.style.display = 'none';
                 qrImageElement.src = data.image_url;
                 qrImageElement.style.display = 'block';
                 if (actionsContainer) actionsContainer.style.display = 'block';
             } else {
-                showError(data.message || 'Failed to generate QR code.');
+                showError('Failed to generate QR code.');
             }
         } catch (error) {
             showError(error.message || 'Request failed.');
@@ -119,7 +119,7 @@
         try {
             const data = await fetchQrCode(currentUrl, 1000);
 
-            if (data.success && data.image_url) {
+            if (data.image_url) {
                 const link = document.createElement('a');
                 link.href = data.image_url;
                 link.download = getArtistSlug() + '-qr-code.png';
