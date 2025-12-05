@@ -95,19 +95,31 @@ function bp_handle_create_artist_profile_submission() {
     // --- Link Creator as Member --- 
     bp_add_artist_membership( get_current_user_id(), $new_artist_id );
 
-    // --- Redirect after successful creation ---
+    // --- Build action URLs for success notice ---
+    $artist_profile_url = get_permalink( $new_artist_id );
+    $manage_link_page = get_page_by_path( 'manage-link-page' );
+    $link_page_url = $manage_link_page 
+        ? add_query_arg( 'artist_id', $new_artist_id, get_permalink( $manage_link_page ) )
+        : null;
+
+    // Build actions array for notice
+    $actions = array(
+        array( 'label' => __( 'View Artist Profile', 'extrachill-artist-platform' ), 'url' => $artist_profile_url ),
+    );
+    if ( $link_page_url ) {
+        $actions[] = array( 'label' => __( 'Manage Link Page', 'extrachill-artist-platform' ), 'url' => $link_page_url );
+    }
+
+    extrachill_set_notice(
+        __( 'Artist profile created successfully!', 'extrachill-artist-platform' ),
+        'success',
+        array( 'actions' => $actions )
+    );
+
+    // --- Redirect to the manage artist profile page ---
     $manage_page = get_page_by_path('manage-artist-profiles');
     $manage_page_url = $manage_page ? get_permalink($manage_page) : home_url('/manage-artist-profiles/');
-    $query_args = array(
-        'bp_success' => 'created',
-        'new_artist_id' => $new_artist_id
-    );
-    
-    // Ensure the user is redirected to the newly created artist's edit view within the manage page
-    $redirect_url = add_query_arg( 'artist_id', $new_artist_id, $manage_page_url ); 
-    $redirect_url = add_query_arg( $query_args, $redirect_url );
-
-    wp_safe_redirect( $redirect_url );
+    wp_safe_redirect( add_query_arg( 'artist_id', $new_artist_id, $manage_page_url ) );
     exit;
 
 }
@@ -190,21 +202,22 @@ function bp_handle_edit_artist_profile_submission() {
     // Check if member management was performed
     $members_meta_changed_flag = isset( $save_data['remove_member_ids'] ) && ! empty( $save_data['remove_member_ids'] );
 
+    // Set success notice
+    extrachill_set_notice( __( 'Artist profile updated successfully!', 'extrachill-artist-platform' ), 'success' );
+
     // --- Redirect to the manage artist profile page --- 
     $manage_page = get_page_by_path('manage-artist-profiles');
     $manage_page_url = $manage_page ? get_permalink($manage_page) : home_url('/manage-artist-profiles/');
-    $query_args = ['bp_success' => 'updated'];
-
-    // Always include artist_id in the redirect to ensure the user returns to editing the same artist profile
-    if ( $artist_id > 0 ) {
-        $query_args['artist_id'] = $artist_id;
-    }
+    
+    $redirect_url = $artist_id > 0 
+        ? add_query_arg( 'artist_id', $artist_id, $manage_page_url )
+        : $manage_page_url;
 
     if ( $members_meta_changed_flag ) { 
-        $query_args['members_changed'] = '1'; 
+        $redirect_url = add_query_arg( 'members_changed', '1', $redirect_url ); 
     }
 
-    wp_safe_redirect( add_query_arg( $query_args, $manage_page_url ) ); 
+    wp_safe_redirect( $redirect_url ); 
     exit;
 
 }

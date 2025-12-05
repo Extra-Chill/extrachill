@@ -50,7 +50,7 @@ function extrch_link_page_custom_head( $artist_id, $link_page_id ) {
     $subscribe_js_path = 'inc/link-pages/live/assets/js/link-page-subscribe.js';
     if (file_exists($theme_dir . $subscribe_js_path)) {
         echo '<script src="' . esc_url($theme_uri . $subscribe_js_path) . '?ver=' . esc_attr(filemtime($theme_dir . $subscribe_js_path)) . '" defer></script>';
-        echo '<script>var ajaxurl = "' . esc_url(admin_url('admin-ajax.php')) . '";</script>';
+        echo '<script>var extrchSubscribeData = { restUrl: "' . esc_url(rest_url('extrachill/v1/artist/subscribe')) . '" };</script>';
     }
 
     echo '<style>body{margin:0;padding:0;}</style>';

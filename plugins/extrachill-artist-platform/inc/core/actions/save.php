@@ -564,27 +564,29 @@ function ec_admin_post_save_link_page() {
     $result = ec_handle_link_page_save( $link_page_id, $save_data, $_FILES );
     
     if ( is_wp_error( $result ) ) {
-        // Handle upload errors with proper redirects
+        // Handle upload errors with centralized notice system
         $error_data = $result->get_error_data();
-        if ( isset( $error_data['error_code'] ) ) {
-            $redirect_args = array( 'artist_id' => $artist_id, 'bp_link_page_error' => $error_data['error_code'] );
-        } else {
-            $redirect_args = array( 'artist_id' => $artist_id, 'bp_link_page_error' => 'general' );
-        }
+        $error_messages = array(
+            'background_image_size' => __( 'Background image file size exceeds the 5MB limit.', 'extrachill-artist-platform' ),
+            'profile_image_size'    => __( 'Profile image file size exceeds the 5MB limit.', 'extrachill-artist-platform' ),
+            'upload_failed'         => __( 'Profile image upload failed. Please try again.', 'extrachill-artist-platform' ),
+            'general'               => __( 'An error occurred while saving. Please try again.', 'extrachill-artist-platform' ),
+        );
+        $error_code = isset( $error_data['error_code'] ) ? $error_data['error_code'] : 'general';
+        $message = isset( $error_messages[ $error_code ] ) ? $error_messages[ $error_code ] : $error_messages['general'];
+        extrachill_set_notice( $message, 'error' );
+        
         $manage_page = get_page_by_path( 'manage-link-page' );
         $base_url = $manage_page ? get_permalink( $manage_page ) : home_url( '/manage-link-page/' );
-        $redirect_url = add_query_arg( $redirect_args, $base_url );
-        wp_safe_redirect( $redirect_url );
+        wp_safe_redirect( add_query_arg( 'artist_id', $artist_id, $base_url ) );
         exit;
     }
     
-    // Redirect back with success message
-    $redirect_args = array( 'artist_id' => $artist_id, 'bp_link_page_updated' => '1' );
+    // Success - set notice and redirect
+    extrachill_set_notice( __( 'Link page updated successfully!', 'extrachill-artist-platform' ), 'success' );
     $manage_page = get_page_by_path( 'manage-link-page' );
     $base_url = $manage_page ? get_permalink( $manage_page ) : home_url( '/manage-link-page/' );
-    $redirect_url = add_query_arg( $redirect_args, $base_url );
-    
-    wp_safe_redirect( $redirect_url );
+    wp_safe_redirect( add_query_arg( 'artist_id', $artist_id, $base_url ) );
     exit;
 }
 add_action( 'template_redirect', 'ec_handle_link_page_form_submission' );

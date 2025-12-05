@@ -2,77 +2,143 @@
 /**
  * Template Name: Manage Artist Link Page
  * Description: Frontend management for an artist's extrch.co link page (Linktree-style).
+ *
+ * Decision tree for access control (handled before get_header):
+ * 1. Not logged in → Redirect to /login/ with redirect_to
+ * 2. No artist_id param:
+ *    - User has 0 artists + can create → Show "Create Artist Profile" CTA
+ *    - User has 0 artists + can't create → Show "Artist profiles are for artists and professionals"
+ *    - User has 1+ artists → Redirect with ?artist_id={latest_artist_id}
+ * 3. Invalid artist_id → Show "Artist not found" with user's actual artists
+ * 4. No permission → Show "You don't have permission" with artists they CAN manage
+ * 5. Valid artist + permission → Auto-create link page if needed, show management UI
  */
 
 defined( 'ABSPATH' ) || exit;
 
-// --- Permission and Artist ID Check ---
-$current_user_id = get_current_user_id();
-$artist_id = apply_filters('ec_get_artist_id', $_GET);
-$artist_post = $artist_id ? get_post($artist_id) : null;
+// --- Authentication Check (before any output) ---
+if ( ! is_user_logged_in() ) {
+	extrachill_set_notice( __( 'Log in to manage your link page.', 'extrachill-artist-platform' ), 'info' );
+	$redirect_url = add_query_arg( 'redirect_to', rawurlencode( $_SERVER['REQUEST_URI'] ), home_url( '/login/' ) );
+	wp_safe_redirect( $redirect_url );
+	exit;
+}
 
-// Link page includes are now loaded directly in the main bootstrap
+$current_user_id = get_current_user_id();
+$artist_id       = apply_filters( 'ec_get_artist_id', $_GET );
+$user_artists    = ec_get_artists_for_user( $current_user_id );
+
+// --- No artist_id Parameter ---
+if ( ! $artist_id ) {
+	if ( empty( $user_artists ) ) {
+		// User has no artists - check if they can create one
+		if ( ec_can_create_artist_profiles( $current_user_id ) ) {
+			// Can create - redirect to artist creation
+			extrachill_set_notice( __( 'Create an artist profile to get started with your link page.', 'extrachill-artist-platform' ), 'info' );
+			wp_safe_redirect( site_url( '/manage-artist-profiles/' ) );
+			exit;
+		} else {
+			// Cannot create - show informational message
+			extrachill_set_notice( __( 'Artist profiles are for artists and music professionals.', 'extrachill-artist-platform' ), 'info' );
+			wp_safe_redirect( site_url( '/artists/' ) );
+			exit;
+		}
+	} else {
+		// User has artists - redirect to latest
+		$latest_artist_id = ec_get_latest_artist_for_user( $current_user_id );
+		wp_safe_redirect( add_query_arg( 'artist_id', $latest_artist_id, get_permalink() ) );
+		exit;
+	}
+}
+
+// --- Validate Artist ID ---
+$artist_post = get_post( $artist_id );
+if ( ! $artist_post || $artist_post->post_type !== 'artist_profile' ) {
+	// Invalid artist_id - show error page with user's artists
+	get_header();
+	?>
+	<div class="main-content">
+		<main id="main" class="site-main">
+			<?php do_action( 'extrachill_before_body_content' ); ?>
+			<div class="notice notice-error"><p><?php esc_html_e( 'Artist not found.', 'extrachill-artist-platform' ); ?></p></div>
+			<?php if ( ! empty( $user_artists ) ) : ?>
+				<p><?php esc_html_e( 'Select one of your artists:', 'extrachill-artist-platform' ); ?></p>
+				<ul class="artist-list">
+					<?php foreach ( $user_artists as $user_artist_id ) : ?>
+						<?php $user_artist_post = get_post( $user_artist_id ); ?>
+						<?php if ( $user_artist_post ) : ?>
+							<li><a href="<?php echo esc_url( add_query_arg( 'artist_id', $user_artist_id, get_permalink() ) ); ?>"><?php echo esc_html( $user_artist_post->post_title ); ?></a></li>
+						<?php endif; ?>
+					<?php endforeach; ?>
+				</ul>
+			<?php endif; ?>
+			<?php do_action( 'extrachill_after_body_content' ); ?>
+		</main>
+	</div>
+	<?php
+	get_footer();
+	return;
+}
+
+// --- Permission Check ---
+if ( ! ec_can_manage_artist( $current_user_id, $artist_id ) ) {
+	// No permission - show error page with artists they CAN manage
+	get_header();
+	?>
+	<div class="main-content">
+		<main id="main" class="site-main">
+			<?php do_action( 'extrachill_before_body_content' ); ?>
+			<div class="notice notice-error"><p><?php esc_html_e( 'You do not have permission to manage this artist.', 'extrachill-artist-platform' ); ?></p></div>
+			<?php if ( ! empty( $user_artists ) ) : ?>
+				<p><?php esc_html_e( 'Select one of your artists:', 'extrachill-artist-platform' ); ?></p>
+				<ul class="artist-list">
+					<?php foreach ( $user_artists as $user_artist_id ) : ?>
+						<?php $user_artist_post = get_post( $user_artist_id ); ?>
+						<?php if ( $user_artist_post ) : ?>
+							<li><a href="<?php echo esc_url( add_query_arg( 'artist_id', $user_artist_id, get_permalink() ) ); ?>"><?php echo esc_html( $user_artist_post->post_title ); ?></a></li>
+						<?php endif; ?>
+					<?php endforeach; ?>
+				</ul>
+			<?php endif; ?>
+			<?php do_action( 'extrachill_after_body_content' ); ?>
+		</main>
+	</div>
+	<?php
+	get_footer();
+	return;
+}
 
 // --- Auto-Create Link Page if Needed ---
-$link_page_id = apply_filters('ec_get_link_page_id', $artist_id);
+$link_page_id = apply_filters( 'ec_get_link_page_id', $artist_id );
 
-if (!$link_page_id || get_post_type($link_page_id) !== 'artist_link_page') {
-    // No link page exists for this artist - create one
-    $creation_result = ec_create_link_page($artist_id);
-    if (is_wp_error($creation_result)) {
-        echo '<div class="notice notice-error"><p>' . esc_html__('Could not create link page: ', 'extrachill-artist-platform') . esc_html($creation_result->get_error_message()) . '</p></div>';
-        get_footer();
-        return;
-    }
-    $link_page_id = $creation_result;
+if ( ! $link_page_id || get_post_type( $link_page_id ) !== 'artist_link_page' ) {
+	$creation_result = ec_create_link_page( $artist_id );
+	if ( is_wp_error( $creation_result ) ) {
+		get_header();
+		?>
+		<div class="main-content">
+			<main id="main" class="site-main">
+				<?php do_action( 'extrachill_before_body_content' ); ?>
+				<div class="notice notice-error"><p><?php echo esc_html__( 'Could not create link page: ', 'extrachill-artist-platform' ) . esc_html( $creation_result->get_error_message() ); ?></p></div>
+				<?php do_action( 'extrachill_after_body_content' ); ?>
+			</main>
+		</div>
+		<?php
+		get_footer();
+		return;
+	}
+	$link_page_id = $creation_result;
 }
 
-// Google Fonts now loaded via WordPress enqueue system in asset management
-
-get_header(); ?>
+// --- All Checks Passed - Render Management UI ---
+get_header();
+?>
 
 <div class="main-content">
-    <main id="main" class="site-main">
-        <?php do_action( 'extra_chill_before_main_content' ); ?>
+	<main id="main" class="site-main">
+		<?php do_action( 'extrachill_before_body_content' ); ?>
 
 <?php
-// --- Display Success Notices ---
-if (isset($_GET['bp_link_page_updated']) && $_GET['bp_link_page_updated'] === '1') {
-    // Regular update success message for existing users
-    echo '<div class="notice notice-success"><p>' . esc_html__('Link page updated successfully!', 'extrachill-artist-platform') . '</p></div>';
-}
-
-// --- Display Error Notices ---
-if (isset($_GET['bp_link_page_error'])) {
-    $error_type = sanitize_key($_GET['bp_link_page_error']);
-    if ($error_type === 'background_image_size') {
-        echo '<div class="notice notice-error"><p>' . esc_html__('Error: Background image file size exceeds the 5MB limit.', 'extrachill-artist-platform') . '</p></div>';
-    } elseif ($error_type === 'profile_image_size') {
-        echo '<div class="notice notice-error"><p>' . esc_html__('Error: Profile image file size exceeds the 5MB limit.', 'extrachill-artist-platform') . '</p></div>';
-    } elseif ($error_type === 'upload_failed') {
-        echo '<div class="notice notice-error"><p>' . esc_html__('Error: Profile image upload failed. Please try again.', 'extrachill-artist-platform') . '</p></div>';
-    } elseif ($error_type === 'general') {
-        echo '<div class="notice notice-error"><p>' . esc_html__('Error: An error occurred while saving. Please try again.', 'extrachill-artist-platform') . '</p></div>';
-    }
-    // Add other error types here if needed in the future
-}
-
-// --- Permission and Artist ID Check ---
-$current_user_id = get_current_user_id();
-$artist_id = apply_filters('ec_get_artist_id', $_GET);
-$artist_post = $artist_id ? get_post($artist_id) : null;
-
-if (!$artist_post || $artist_post->post_type !== 'artist_profile') {
-    echo '<div class="notice notice-error"><p>' . esc_html__('Invalid artist profile.', 'extrachill-artist-platform') . '</p></div>';
-    get_footer();
-    return;
-}
-if (!ec_can_manage_artist(get_current_user_id(), $artist_id)) {
-    echo '<div class="notice notice-error"><p>' . esc_html__('You do not have permission to manage this artist link page.', 'extrachill-artist-platform') . '</p></div>';
-    get_footer();
-    return;
-}
-
 // --- Canonical Data Fetch ---
 $data = ec_get_link_page_data( $artist_id, $link_page_id );
 
@@ -183,29 +249,6 @@ if ($link_page_id && get_post_type($link_page_id) === 'artist_link_page') {
                     </button>
                     <div class="shared-tab-pane" id="manage-link-page-tab-info">
                         <?php
-                        // --- START Join Flow Guidance Notice (New User) ---
-                        // Display this notice if the user just completed the new user join flow (registered + created artist)
-                        // Assumes from_join=true is passed after successful artist creation redirect
-                        if ( isset( $_GET['from_join'] ) && $_GET['from_join'] === 'true' ) {
-                            $artist_slug = $artist_post ? $artist_post->post_name : '';
-                            $link_page_url = $artist_slug ? 'extrachill.link/' . $artist_slug : 'extrachill.link';
-                            echo '<div class="notice notice-success" style="margin-top: 15px; margin-bottom: 15px;">';
-                            echo '<p>' . sprintf(
-                                esc_html__( 'Welcome to Extra Chill! Your link page has been created at %s. Your artist profile info (name, bio, picture) syncs here automatically. Use the tabs above to add links and customize your page appearance.', 'extrachill-artist-platform' ),
-                                '<strong>' . esc_html( $link_page_url ) . '</strong>'
-                            ) . '</p>';
-                            echo '</div>';
-                        }
-                        // --- END Join Flow Guidance Notice (New User) ---
-
-                        // --- START Join Flow Success Notice (Existing User Redirect - Moved) ---
-                        if ( isset( $_GET['from_join_success'] ) && $_GET['from_join_success'] === 'existing_user_link_page' ) {
-                            echo '<div class="notice notice-success" style="margin-top: 15px; margin-bottom: 15px;">';
-                            echo '<p>' . esc_html__( 'Welcome back! You\'ve been redirected to manage your extrachill.link page.', 'extrachill-artist-platform' ) . '</p>';
-                            echo '</div>';
-                        }
-                        // --- END Join Flow Success Notice (Existing User Redirect - Moved) ---
-
                         echo ec_render_template('manage-link-page-tab-info', array(
                             'artist_id' => $artist_id,
                             'data' => $data
@@ -316,7 +359,7 @@ extrch_render_link_expiration_modal();
     <i class="directional-arrow fas fa-arrow-down"></i> <!-- Default/initial directional arrow -->
 </button>
 
-        <?php do_action( 'extra_chill_after_main_content' ); ?>
+        <?php do_action( 'extrachill_after_body_content' ); ?>
     </main><!-- #main -->
 </div><!-- .main-content -->
 

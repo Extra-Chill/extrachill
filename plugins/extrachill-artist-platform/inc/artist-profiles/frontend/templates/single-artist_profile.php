@@ -11,7 +11,7 @@ get_header(); ?>
             /**
              * Custom hook for before main content.
              */
-            do_action( 'extra_chill_before_main_content' );
+            do_action( 'extrachill_before_body_content' );
 
             // --- Display Breadcrumbs ---
             // Moved to be a direct child of <main>, before the while loop and <article>
@@ -292,7 +292,7 @@ get_header(); ?>
              *
              * @since 0.1
              */
-            do_action( 'extra_chill_after_main_content' );
+            do_action( 'extrachill_after_body_content' );
             ?>
         </main><!-- #main -->
     </div><!-- .main-content -->

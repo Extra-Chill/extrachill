@@ -10,7 +10,7 @@ get_header(); ?>
 
 	<div class="main-content">
 		<main id="main" class="site-main">
-			<?php do_action( 'extra_chill_before_main_content' ); ?>
+			<?php do_action( 'extrachill_before_body_content' ); ?>
 
             <div class="breadcrumb-notice-container">
                 <?php
@@ -19,32 +19,10 @@ get_header(); ?>
                 ?>
 
                 <?php
-                // --- Success Message Check (after creation redirect) ---
-                if ( isset( $_GET['bp_success'] ) && $_GET['bp_success'] === 'created' && isset( $_GET['new_artist_id'] ) ) {
-                    $created_artist_id = apply_filters('ec_get_artist_id', $_GET);
-                    $created_artist_profile_url = get_permalink( $created_artist_id );
-                    $created_link_page_id = apply_filters('ec_get_link_page_id', $_GET);
-                    $manage_link_page_url_base = home_url('/manage-link-page/');
-
-                    if ( $created_artist_profile_url ) {
-                        echo '<div class="notice notice-success">';
-                        echo '<p>' . esc_html__( 'Artist profile created successfully!', 'extrachill-artist-platform' ) . '</p>';
-                        echo '<p>';
-                        echo '<a href="' . esc_url( $created_artist_profile_url ) . '" class="button-2 button-medium">' . esc_html__( 'View Artist Profile', 'extrachill-artist-platform' ) . '</a>';
-                        if ( $created_link_page_id && $manage_link_page_url_base ) {
-                            $manage_link_page_url = add_query_arg( 'artist_id', $created_artist_id, $manage_link_page_url_base );
-                            echo ' ' . '<a href="' . esc_url( $manage_link_page_url ) . '" class="button-2 button-medium">' . esc_html__( 'Manage extrachill.link Page', 'extrachill-artist-platform' ) . '</a>';
-                        }
-                        echo '</p>';
-                        echo '</div>';
-                    }
-                }
-
                 // --- Display Error Message (if any) ---
-                // This error message block combines $_GET['bp_error'] parsing (done earlier in the script)
-                // with other programmatically set $error_message values.
+                // This error message block displays programmatically set $error_message values
+                // for inline validation errors (not redirect-based notices).
                 if ( ! empty( $error_message ) ) {
-                    // Add a simple CSS class for styling potential errors
                     echo '<div class="notice notice-error">';
                     echo '<p>' . esc_html( $error_message ) . '</p>';
                     echo '</div>';
@@ -254,15 +232,6 @@ get_header(); ?>
                                             </button>
                                             <div id="manage-artist-profile-info-content" class="shared-tab-pane">
                                                 <?php
-                                                // --- START Join Flow Guidance Notice (Create Artist Profile) ---
-                                                // Display this notice if the user arrived from the join flow and is in create mode
-                                                if ( isset($_GET['from_join']) && $_GET['from_join'] === 'true' && ! $edit_mode ) {
-                                                    echo '<div class="notice notice-info">';
-                                                    echo '<p>' . esc_html__( 'Welcome to Extra Chill! Fill out your artist profile details below. When you save, we\'ll help you set up your extrachill.link page.', 'extrachill-artist-platform' ) . '</p>';
-                                                    echo '</div>';
-                                                }
-                                                // --- END Join Flow Guidance Notice ---
-
                                                 echo ec_render_template('manage-artist-profile-tab-info', array(
                                                     'edit_mode' => (bool) $edit_mode,
                                                     'target_artist_id' => (int) $target_artist_id,
@@ -346,7 +315,7 @@ get_header(); ?>
                 </div><!-- .inside-article -->
             </article><!-- #post-## -->
 
-			<?php do_action( 'extra_chill_after_main_content' ); ?>
+			<?php do_action( 'extrachill_after_body_content' ); ?>
 		</main><!-- #main -->
 	</div><!-- .main-content -->
 

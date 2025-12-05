@@ -2,11 +2,9 @@
 /**
  * Link Page Subscription Functions
  * 
- * AJAX handlers and functionality specific to link page subscriptions.
- * Handles public subscription forms on link pages.
+ * Functionality specific to link page subscriptions.
+ * Public subscription handling via REST API (extrachill-api plugin).
+ * Template rendering via ExtraChill_Live_Preview_Handler class.
  */
 
 defined( 'ABSPATH' ) || exit;
-
-
-// AJAX handlers registered via wp_ajax hooks in inc/link-pages/management/ajax/subscribe.php

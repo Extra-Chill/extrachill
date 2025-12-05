@@ -241,11 +241,12 @@ function ec_join_flow_login_page_redirect() {
 			$link_page_manage_page = get_page_by_path( 'manage-link-page' );
 
 			if ( $link_page_manage_page ) {
+				extrachill_set_notice(
+					__( 'Welcome back! Manage your link page below.', 'extrachill-artist-platform' ),
+					'success'
+				);
 				$target_url = add_query_arg(
-					array(
-						'artist_id' => $most_recent_artist_id,
-						'from_join_success' => 'existing_user_link_page'
-					),
+					array( 'artist_id' => $most_recent_artist_id ),
 					get_permalink( $link_page_manage_page )
 				);
 				wp_redirect( $target_url );
@@ -256,10 +257,12 @@ function ec_join_flow_login_page_redirect() {
 	} else {
 		$manage_artist_page = get_page_by_path( 'manage-artist-profiles' );
 		if ( $manage_artist_page ) {
+			extrachill_set_notice(
+				__( 'Create an artist profile to get started with your link page.', 'extrachill-artist-platform' ),
+				'info'
+			);
 			$target_url = add_query_arg(
-				array(
-					'from_join' => 'true'
-				),
+				array( 'from_join' => 'true' ),
 				get_permalink( $manage_artist_page )
 			);
 			wp_redirect( $target_url );
@@ -321,11 +324,12 @@ function ec_join_flow_login_redirect( $redirect_to, $requested_redirect_to, $use
 			$link_page_manage_page = get_page_by_path( 'manage-link-page' );
 
 			if ( $link_page_manage_page ) {
+				extrachill_set_notice(
+					__( 'Welcome back! Manage your link page below.', 'extrachill-artist-platform' ),
+					'success'
+				);
 				$target_url = add_query_arg(
-					array(
-						'artist_id' => $most_recent_artist_id,
-						'from_join_success' => 'existing_user_link_page'
-					),
+					array( 'artist_id' => $most_recent_artist_id ),
 					get_permalink( $link_page_manage_page )
 				);
 				return $target_url;
@@ -335,10 +339,12 @@ function ec_join_flow_login_redirect( $redirect_to, $requested_redirect_to, $use
 	} else {
 		$manage_artist_page = get_page_by_path( 'manage-artist-profiles' );
 		if ( $manage_artist_page ) {
+			extrachill_set_notice(
+				__( 'Create an artist profile to get started with your link page.', 'extrachill-artist-platform' ),
+				'info'
+			);
 			$target_url = add_query_arg(
-				array(
-					'from_join' => 'true'
-				),
+				array( 'from_join' => 'true' ),
 				get_permalink( $manage_artist_page )
 			);
 			return $target_url;

@@ -227,3 +227,65 @@ function extrch_export_artist_subscribers_csv() {
 }
 
 // AJAX handlers registered individually via wp_ajax hooks in respective modules
+
+/**
+ * Handle artist subscription via REST API filter
+ *
+ * Hooked into 'extrachill_artist_subscribe' filter from extrachill-api plugin.
+ * Performs the actual database insert for new subscribers.
+ *
+ * @param mixed  $result    Previous filter result (null if no handler has run).
+ * @param int    $artist_id The artist profile post ID.
+ * @param string $email     The subscriber's sanitized email address.
+ * @return true|WP_Error True on success, WP_Error on failure.
+ */
+function extrachill_handle_artist_subscribe( $result, $artist_id, $email ) {
+	// If a previous handler already processed this, pass through
+	if ( is_wp_error( $result ) || $result === true ) {
+		return $result;
+	}
+
+	global $wpdb;
+	$table = $wpdb->prefix . 'artist_subscribers';
+
+	// Check for existing subscription
+	$exists = $wpdb->get_var(
+		$wpdb->prepare(
+			"SELECT COUNT(*) FROM $table WHERE artist_profile_id = %d AND subscriber_email = %s",
+			$artist_id,
+			$email
+		)
+	);
+
+	if ( $exists ) {
+		return new WP_Error(
+			'already_subscribed',
+			__( 'You are already subscribed to this artist.', 'extrachill-artist-platform' ),
+			array( 'status' => 409 )
+		);
+	}
+
+	// Insert new subscriber
+	$inserted = $wpdb->insert(
+		$table,
+		array(
+			'artist_profile_id' => $artist_id,
+			'subscriber_email'  => $email,
+			'username'          => '',
+			'subscribed_at'     => current_time( 'mysql', 1 ),
+			'exported'          => 0,
+		),
+		array( '%d', '%s', '%s', '%s', '%d' )
+	);
+
+	if ( ! $inserted ) {
+		return new WP_Error(
+			'subscription_failed',
+			__( 'Could not save your subscription. Please try again later.', 'extrachill-artist-platform' ),
+			array( 'status' => 500 )
+		);
+	}
+
+	return true;
+}
+add_filter( 'extrachill_artist_subscribe', 'extrachill_handle_artist_subscribe', 10, 3 );

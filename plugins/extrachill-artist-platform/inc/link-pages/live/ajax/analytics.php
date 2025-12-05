@@ -1,116 +1,65 @@
 <?php
 /**
- * Link click analytics tracking for public link pages
+ * Link click analytics for public link pages
  *
- * Page views are now handled by theme-level ec_post_views system.
- * This file only handles link-specific click analytics.
+ * Page views are handled by theme-level ec_post_views system.
+ * Link clicks are tracked via REST API (extrachill-api plugin) which fires
+ * the 'extrachill_link_click_recorded' action handled here.
  */
 
-add_action( 'wp_ajax_link_page_click_tracking', 'handle_link_click_tracking' );
-add_action( 'wp_ajax_nopriv_link_page_click_tracking', 'handle_link_click_tracking' );
+add_action( 'extrachill_link_click_recorded', 'extrachill_handle_link_click_db_write', 10, 2 );
 
 /**
- * Normalizes tracked URLs by removing auto-generated analytics parameters.
+ * Writes link click data to the daily aggregation table
  *
- * Strips _gl, _ga, and _ga_* query parameters injected by Google Analytics
- * cross-domain linking while preserving affiliate IDs and custom query strings.
- *
- * @param string $url The URL to normalize.
- * @return string The normalized URL with auto-generated params removed.
+ * @param int    $link_page_id   The link page post ID.
+ * @param string $link_url       The clicked URL (already normalized by API).
  */
-function extrch_normalize_tracked_url( $url ) {
-    if ( empty( $url ) ) {
-        return $url;
-    }
-
-    $parsed = wp_parse_url( $url );
-    if ( ! isset( $parsed['query'] ) || empty( $parsed['query'] ) ) {
-        return $url;
-    }
-
-    parse_str( $parsed['query'], $query_params );
-
-    // Remove Google Analytics auto-generated parameters
-    $params_to_strip = array( '_gl', '_ga' );
-    foreach ( $params_to_strip as $param ) {
-        unset( $query_params[ $param ] );
-    }
-
-    // Remove any _ga_* parameters (e.g., _ga_L362LLL9KM)
-    foreach ( array_keys( $query_params ) as $key ) {
-        if ( strpos( $key, '_ga_' ) === 0 ) {
-            unset( $query_params[ $key ] );
-        }
-    }
-
-    // Rebuild URL
-    $scheme = isset( $parsed['scheme'] ) ? $parsed['scheme'] . '://' : '';
-    $host = isset( $parsed['host'] ) ? $parsed['host'] : '';
-    $port = isset( $parsed['port'] ) ? ':' . $parsed['port'] : '';
-    $path = isset( $parsed['path'] ) ? $parsed['path'] : '';
-    $query = ! empty( $query_params ) ? '?' . http_build_query( $query_params ) : '';
-    $fragment = isset( $parsed['fragment'] ) ? '#' . $parsed['fragment'] : '';
-
-    return $scheme . $host . $port . $path . $query . $fragment;
-}
-
-/**
- * Records link click events to daily aggregation table
- */
-function handle_link_click_tracking() {
-    if ( ! isset( $_POST['link_page_id'] ) || ! isset( $_POST['link_url'] ) ) {
-        wp_die( 'Invalid request', 'Error', array( 'response' => 400 ) );
-    }
-
+function extrachill_handle_link_click_db_write( $link_page_id, $link_url ) {
     global $wpdb;
 
-    $link_page_id = apply_filters('ec_get_link_page_id', $_POST);
-    $link_url = extrch_normalize_tracked_url( esc_url_raw( wp_unslash( $_POST['link_url'] ) ) );
-    $today = current_time('Y-m-d');
-
+    $today      = current_time( 'Y-m-d' );
     $table_name = $wpdb->prefix . 'extrch_link_page_daily_link_clicks';
 
-    // Increment daily click count for this link
-    $wpdb->query($wpdb->prepare("
-        INSERT INTO {$table_name}
+    $wpdb->query( $wpdb->prepare(
+        "INSERT INTO {$table_name}
             (link_page_id, stat_date, link_url, click_count)
         VALUES
             (%d, %s, %s, 1)
         ON DUPLICATE KEY UPDATE
-            click_count = click_count + 1
-    ", $link_page_id, $today, $link_url));
-
-    wp_die( 'success' );
+            click_count = click_count + 1",
+        $link_page_id,
+        $today,
+        $link_url
+    ) );
 }
 
 
 /**
  * Enqueues tracking script for link page analytics
  */
-function extrch_enqueue_public_tracking_script($link_page_id, $artist_id) {
-    $theme_dir = EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR;
-    $theme_uri = EXTRACHILL_ARTIST_PLATFORM_PLUGIN_URL;
+function extrch_enqueue_public_tracking_script( $link_page_id, $artist_id ) {
+    $plugin_dir = EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR;
+    $plugin_uri = EXTRACHILL_ARTIST_PLATFORM_PLUGIN_URL;
     $tracking_js_path = 'inc/link-pages/live/assets/js/link-page-public-tracking.js';
 
-    if (file_exists($theme_dir . $tracking_js_path)) {
-        $script_handle = 'extrch-public-tracking';
-        wp_enqueue_script(
-            $script_handle,
-            $theme_uri . $tracking_js_path,
-            array(),
-            filemtime($theme_dir . $tracking_js_path),
-            true
-        );
-
-        // Localize data for the script
-        wp_localize_script($script_handle, 'extrchTrackingData', array(
-            'ajax_url' => admin_url('admin-ajax.php'),
-            'link_page_id' => $link_page_id,
-            'nonce' => wp_create_nonce('extrch_link_page_tracking_nonce')
-        ));
-    } else {
-        error_log('Error: link-page-public-tracking.js not found.');
+    if ( ! file_exists( $plugin_dir . $tracking_js_path ) ) {
+        return;
     }
+
+    $script_handle = 'extrch-public-tracking';
+    wp_enqueue_script(
+        $script_handle,
+        $plugin_uri . $tracking_js_path,
+        array(),
+        filemtime( $plugin_dir . $tracking_js_path ),
+        true
+    );
+
+    wp_localize_script( $script_handle, 'extrchTrackingData', array(
+        'restUrl'     => rest_url( 'extrachill/v1/analytics/link-click' ),
+        'link_page_id' => $link_page_id,
+    ) );
 }
 add_action('extrch_link_page_minimal_head', 'extrch_enqueue_public_tracking_script', 10, 2);
 

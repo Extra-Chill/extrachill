@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.3] - 2025-12-04
+
+### Changed
+- Migrated subscription forms from admin-ajax.php to REST API endpoints
+- Migrated analytics tracking from admin-ajax.php to REST API endpoints
+- Updated JavaScript to use fetch API with JSON payloads
+- Removed nonces from subscription forms, using data attributes instead
+- Enhanced access control and error handling in link page management
+- Standardized hook names from `extra_chill_*` to `extrachill_*`
+- Added live preview support for subscription templates
+
+### Removed
+- AJAX handlers for subscription and analytics tracking
+- `inc/link-pages/management/ajax/subscribe.php` file
+
+### Technical Improvements
+- Improved form validation and error handling
+- Better separation of concerns between frontend and API layers
+- Enhanced code maintainability with REST API integration
+
 ## [1.1.2] - 2025-12-04
 
 ### Added
