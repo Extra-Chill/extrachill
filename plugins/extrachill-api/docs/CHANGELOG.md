@@ -2,6 +2,12 @@
 
 All notable changes to the ExtraChill API plugin are documented here. This file is the single source of truth for release history.
 
+## 0.1.3
+
+### Added
+- Analytics link-click tracking endpoint (`POST /extrachill/v1/analytics/link-click`) for tracking artist link page clicks with URL normalization
+- Artist subscription endpoint (`POST /extrachill/v1/artist/subscribe`) for handling artist update subscriptions
+
 ## 0.1.2
 
 ### Added

@@ -262,6 +262,10 @@ GPL v2 or later
 
 ## Changelog
 
+### 0.1.3
+- Added analytics link-click tracking endpoint for artist link pages
+- Added artist subscription endpoint for update notifications
+
 ### 0.1.2
 - Added QR code generator endpoint moved from extrachill-admin-tools plugin
 - Added analytics, artist permissions, community features, and user avatar endpoints
