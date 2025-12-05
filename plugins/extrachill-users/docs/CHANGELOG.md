@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.2.1] - 2025-12-05
+
+### Added
+- `ec_get_latest_artist_for_user()` function to determine most recently active artist profile based on link page modification times
+- `ec_get_link_page_count_for_user()` function to count link pages across all user artist profiles
+- Enhanced logged-in user display in login/register block with avatar card and improved action buttons
+- Comprehensive AGENTS.md documentation file consolidating all architectural and development information
+- Dynamic avatar menu labels that adapt based on number of artists and link pages
+
+### Changed
+- Improved error handling in avatar upload JavaScript with better fetch API response processing
+- Refactored avatar menu system to leverage new artist utility functions for cleaner code
+- Enhanced EC_Redirect_Handler integration with theme notice system for consistent messaging
+- Simplified registration form by removing redundant explanatory text from checkboxes
+- Updated README.md to reference new AGENTS.md documentation and highlight v0.2.0 features
+
+### Fixed
+- Removed redundant message displays from password reset forms to prevent duplicate notifications
+- Streamlined login/register block by removing unused notice rendering code
+
+### Documentation
+- Migrated from CLAUDE.md to comprehensive AGENTS.md with complete plugin architecture documentation
+
 ## [0.2.0] - 2025-12-02
 
 ### Version Reset & Strategy

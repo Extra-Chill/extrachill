@@ -1,12 +1,12 @@
 # Extra Chill Users
 
-Network-activated user management system for the ExtraChill Platform. Handles user creation, authentication, team members, profile URLs, avatar menu, and password reset.
+Network-activated user management system for the ExtraChill Platform. Handles user creation, authentication, team members, profile URLs, avatar menu, password reset, and the EC_Redirect_Handler-powered auth flow introduced in v0.2.0.
 
 ## Features
 
-- User registration and login with Turnstile captcha
-- Password reset functionality with email-based flow
-- Avatar upload and display system with bbPress integration
+- User registration and login with Turnstile captcha via EC_Redirect_Handler orchestration
+- Password reset functionality with email-based flow rendered by Gutenberg blocks
+- Avatar upload and display system with bbPress integration and REST-compatible handlers
 - Online users tracking across network with performance optimizations
 - Team members management with manual override support
 - Artist profile relationship functions (network-wide canonical)
@@ -14,7 +14,7 @@ Network-activated user management system for the ExtraChill Platform. Handles us
 - Network-wide avatar menu with plugin extensibility via filter
 - Ad-free license validation system
 - Comment auto-approval for logged-in users
-- Gutenberg blocks for login/register and password reset
+- Gutenberg blocks for login/register and password reset (login + reset flows render blocks directly)
 - Newsletter subscription integration during registration
 - Admin access control (wp-admin restriction for non-admins)
 
@@ -33,4 +33,4 @@ Network-activated user management system for the ExtraChill Platform. Handles us
 
 ## Development
 
-See CLAUDE.md for detailed development documentation.
+See AGENTS.md and docs/CHANGELOG.md for detailed development documentation and the 0.2.0 version reset rationale.

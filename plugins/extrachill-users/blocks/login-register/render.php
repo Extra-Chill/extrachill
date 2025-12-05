@@ -7,18 +7,19 @@
 
 if ( is_user_logged_in() ) {
 	$current_user = wp_get_current_user();
-	$profile_url  = function_exists( 'ec_get_user_profile_url' )
-		? ec_get_user_profile_url( $current_user->ID, $current_user->user_email )
-		: home_url();
+	$profile_url  = 'https://community.extrachill.com/u/' . $current_user->user_nicename . '/';
 	?>
-	<div class="login-already-logged-in-message">
-		<p><strong>You're already logged in as <?php echo esc_html( $current_user->display_name ); ?></strong></p>
-		<p>What would you like to do?</p>
-		<p>
-			<a href="<?php echo esc_url( home_url() ); ?>" class="button-1 button-medium">Go to Homepage</a>
-			<a href="<?php echo esc_url( $profile_url ); ?>" class="button-1 button-medium">View Profile</a>
-			<a href="<?php echo esc_url( wp_logout_url( home_url() ) ); ?>" class="button-3 button-medium">Log Out</a>
-		</p>
+	<div class="login-already-logged-in-card">
+		<div class="logged-in-avatar">
+			<?php echo get_avatar( $current_user->ID, 80 ); ?>
+		</div>
+		<h3><?php echo esc_html( $current_user->display_name ); ?></h3>
+		<p class="logged-in-status"><?php esc_html_e( 'You are logged in', 'extrachill-users' ); ?></p>
+		<div class="logged-in-actions">
+			<a href="<?php echo esc_url( $profile_url ); ?>" class="button-1 button-medium"><?php esc_html_e( 'View Profile', 'extrachill-users' ); ?></a>
+			<a href="<?php echo esc_url( home_url() ); ?>" class="button-2 button-medium"><?php esc_html_e( 'Go to Homepage', 'extrachill-users' ); ?></a>
+			<a href="<?php echo esc_url( wp_logout_url( home_url() ) ); ?>" class="button-3 button-medium"><?php esc_html_e( 'Log Out', 'extrachill-users' ); ?></a>
+		</div>
 	</div>
 	<?php
 	return;
@@ -36,7 +37,6 @@ $current_url = set_url_scheme(
 );
 
 $login_redirect_url = ! empty( $attributes['redirectUrl'] ) ? esc_url( $attributes['redirectUrl'] ) : $current_url;
-$login_message      = EC_Redirect_Handler::get_message( 'ec_login' );
 
 $invite_token                   = null;
 $invite_artist_id               = null;
@@ -64,7 +64,6 @@ if ( isset( $_GET['action'] ) && 'bp_accept_invite' === $_GET['action'] && isset
 	}
 }
 
-$register_message = EC_Redirect_Handler::get_message( 'ec_registration' );
 ?>
 
 <div class="shared-tabs-component">
@@ -79,18 +78,6 @@ $register_message = EC_Redirect_Handler::get_message( 'ec_registration' );
 				<div class="login-register-form">
 					<h2><?php esc_html_e( 'Login to Extra Chill', 'extrachill-users' ); ?></h2>
 					<p><?php esc_html_e( 'Welcome back! Log in to your account.', 'extrachill-users' ); ?></p>
-
-					<?php if ( $login_message ) : ?>
-						<div class="notice notice-<?php echo 'error' === $login_message['type'] ? 'error' : 'success'; ?>">
-							<?php if ( 'error' === $login_message['type'] ) : ?>
-								<strong><?php esc_html_e( 'Error:', 'extrachill-users' ); ?></strong>
-							<?php endif; ?>
-							<?php echo esc_html( $login_message['text'] ); ?>
-							<?php if ( 'error' === $login_message['type'] ) : ?>
-								<a href="https://community.extrachill.com/reset-password/"><?php esc_html_e( 'Forgot your password?', 'extrachill-users' ); ?></a>
-							<?php endif; ?>
-						</div>
-					<?php endif; ?>
 
 					<form id="loginform" action="<?php echo esc_url( site_url( 'wp-login.php', 'login_post' ) ); ?>" method="post">
 						<?php EC_Redirect_Handler::render_hidden_fields( 'tab-login' ); ?>
@@ -123,17 +110,8 @@ $register_message = EC_Redirect_Handler::get_message( 'ec_registration' );
 					<p>Sign up to connect with music lovers, artists, and professionals in the online music scene! It's free and easy.</p>
 
 					<?php if ( ! empty( $artist_name_for_invite_message ) && ! empty( $invite_token ) ) : ?>
-						<div class="notice notice-invite">
+						<div class="notice notice-info">
 							<p><?php echo sprintf( esc_html__( 'You have been invited to join the artist \'%s\'! Please complete your registration below to accept.', 'extrachill-users' ), esc_html( $artist_name_for_invite_message ) ); ?></p>
-						</div>
-					<?php endif; ?>
-
-					<?php if ( $register_message ) : ?>
-						<div class="notice notice-<?php echo 'error' === $register_message['type'] ? 'error' : 'success'; ?>">
-							<?php if ( 'error' === $register_message['type'] ) : ?>
-								<strong><?php esc_html_e( 'Error:', 'extrachill-users' ); ?></strong>
-							<?php endif; ?>
-							<?php echo esc_html( $register_message['text'] ); ?>
 						</div>
 					<?php endif; ?>
 
@@ -165,14 +143,12 @@ $register_message = EC_Redirect_Handler::get_message( 'ec_registration' );
 							<label>
 								<input type="checkbox" id="user_is_fan" checked disabled> <?php esc_html_e( 'I love music', 'extrachill-users' ); ?>
 							</label>
-							<label>
-								<input type="checkbox" name="user_is_artist" id="user_is_artist" value="1"> <?php esc_html_e( 'I am a musician', 'extrachill-users' ); ?>
-								<small>(<?php esc_html_e( 'required for artist profiles and link pages', 'extrachill-users' ); ?>)</small>
-							</label>
-							<label>
-								<input type="checkbox" name="user_is_professional" id="user_is_professional" value="1"> <?php esc_html_e( 'I work in the music industry', 'extrachill-users' ); ?>
-								<small>(<?php esc_html_e( 'required for artist profiles and link pages', 'extrachill-users' ); ?>)</small>
-							</label>
+						<label>
+							<input type="checkbox" name="user_is_artist" id="user_is_artist" value="1"> <?php esc_html_e( 'I am a musician', 'extrachill-users' ); ?>
+						</label>
+						<label>
+							<input type="checkbox" name="user_is_professional" id="user_is_professional" value="1"> <?php esc_html_e( 'I work in the music industry', 'extrachill-users' ); ?>
+						</label>
 						</div>
 
 						<div class="registration-submit-section">

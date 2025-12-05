@@ -93,10 +93,17 @@ class EC_Redirect_Handler {
 	/**
 	 * Store message in transient.
 	 *
+	 * Uses theme notice system if available, falls back to own transient.
+	 *
 	 * @param string $text Message text
 	 * @param string $type Message type (error|success)
 	 */
 	private function set_message( string $text, string $type ): void {
+		if ( function_exists( 'extrachill_set_notice' ) ) {
+			extrachill_set_notice( $text, $type );
+			return;
+		}
+
 		set_transient(
 			$this->transient_prefix . '_message',
 			array(

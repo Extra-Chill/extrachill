@@ -34,63 +34,40 @@ function extrachill_display_user_avatar_menu() {
 
                 <?php
                 $user_artist_ids = ec_get_artists_for_user( $current_user_id );
+                $artist_count    = count( $user_artist_ids );
 
                 $base_manage_url = 'https://artist.extrachill.com/manage-artist-profiles/';
 
-                if ( ! empty( $user_artist_ids ) ) {
-                    $final_manage_url = $base_manage_url;
-                    $latest_artist_id = 0;
-                    $latest_modified_timestamp = 0;
+                if ( $artist_count > 0 ) {
+                    $latest_artist_id = ec_get_latest_artist_for_user( $current_user_id );
+                    $link_page_count  = ec_get_link_page_count_for_user( $current_user_id );
 
-                    switch_to_blog( 4 );
-                        try {
-                            foreach ( $user_artist_ids as $artist_id ) {
-                                // Find link page for this artist profile
-                                $link_pages = get_posts( array(
-                                    'post_type' => 'artist_link_page',
-                                    'meta_key' => '_associated_artist_profile_id',
-                                    'meta_value' => (string) $artist_id,
-                                    'posts_per_page' => 1,
-                                    'fields' => 'ids'
-                                ) );
-
-                                if ( ! empty( $link_pages ) ) {
-                                    $link_page_id = (int) $link_pages[0];
-                                    $post_modified_gmt = get_post_field( 'post_modified_gmt', $link_page_id, 'raw' );
-                                    if ( $post_modified_gmt ) {
-                                        $current_timestamp = strtotime( $post_modified_gmt );
-                                        if ( $current_timestamp > $latest_modified_timestamp ) {
-                                            $latest_modified_timestamp = $current_timestamp;
-                                            $latest_artist_id = $artist_id;
-                                        }
-                                    }
-                                }
-                            }
-                        } finally {
-                            restore_current_blog();
-                        }
-
-                    if ( $latest_artist_id > 0 ) {
-                        $final_manage_url = add_query_arg( 'artist_id', $latest_artist_id, $base_manage_url );
-                    }
+                    $final_manage_url = add_query_arg( 'artist_id', $latest_artist_id, $base_manage_url );
+                    $artist_label     = $artist_count === 1
+                        ? esc_html__( 'Manage Artist', 'extrachill-users' )
+                        : esc_html__( 'Manage Artists', 'extrachill-users' );
 
                     printf(
                         '<li><a href="%s">%s</a></li>',
                         esc_url( $final_manage_url ),
-                        esc_html__( 'Manage Artist Profile(s)', 'extrachill-users' )
+                        $artist_label
                     );
 
-                    $base_link_page_manage_url = 'https://artist.extrachill.com/manage-link-page/';
-                    $final_link_page_manage_url = $base_link_page_manage_url;
+                    $base_link_page_manage_url  = 'https://artist.extrachill.com/manage-link-page/';
+                    $final_link_page_manage_url = add_query_arg( 'artist_id', $latest_artist_id, $base_link_page_manage_url );
 
-                    if ( $latest_artist_id > 0 ) {
-                        $final_link_page_manage_url = add_query_arg( 'artist_id', $latest_artist_id, $base_link_page_manage_url );
+                    if ( $link_page_count === 0 ) {
+                        $link_page_label = esc_html__( 'Create Link Page', 'extrachill-users' );
+                    } elseif ( $link_page_count === 1 ) {
+                        $link_page_label = esc_html__( 'Manage Link Page', 'extrachill-users' );
+                    } else {
+                        $link_page_label = esc_html__( 'Manage Link Pages', 'extrachill-users' );
                     }
 
                     printf(
                         '<li><a href="%s">%s</a></li>',
                         esc_url( $final_link_page_manage_url ),
-                        esc_html__( 'Manage Link Page(s)', 'extrachill-users' )
+                        $link_page_label
                     );
                 } elseif ( function_exists( 'ec_can_create_artist_profiles' ) && ec_can_create_artist_profiles( $current_user_id ) ) {
                     printf(

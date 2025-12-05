@@ -120,3 +120,48 @@
 .cf-turnstile {
     margin-top: 20px;
 }
+
+/* --- Already Logged In Card --- */
+.login-already-logged-in-card {
+    background: var(--card-background);
+    border-radius: 14px;
+    box-shadow: var(--card-shadow);
+    padding: 2em;
+    border: 1px solid var(--border-color);
+    text-align: center;
+    max-width: 400px;
+    margin: 30px auto;
+}
+
+.login-already-logged-in-card .logged-in-avatar {
+    margin-bottom: 1em;
+}
+
+.login-already-logged-in-card .logged-in-avatar img {
+    border-radius: 50%;
+    width: 80px;
+    height: 80px;
+}
+
+.login-already-logged-in-card h3 {
+    color: var(--text-color);
+    margin: 0 0 0.25em 0;
+    font-size: 1.5em;
+}
+
+.login-already-logged-in-card .logged-in-status {
+    color: var(--muted-text);
+    margin: 0 0 1.5em 0;
+    font-size: 0.95em;
+}
+
+.login-already-logged-in-card .logged-in-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75em;
+}
+
+.login-already-logged-in-card .logged-in-actions a {
+    width: 100%;
+    box-sizing: border-box;
+}

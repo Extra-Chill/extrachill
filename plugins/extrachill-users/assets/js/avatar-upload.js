@@ -28,19 +28,24 @@ document.addEventListener('DOMContentLoaded', function() {
 			},
 			body: formData
 		})
-		.then(response => response.json())
+		.then(response => {
+			if (!response.ok) {
+				return response.json().then(err => Promise.reject(err));
+			}
+			return response.json();
+		})
 		.then(data => {
-			if (data.success && data.url) {
+			if (data.url) {
 				messageContainer.innerHTML = '<p>Avatar uploaded successfully!</p>';
 				avatarThumbnail.innerHTML = '<h4>Current Avatar</h4><p>This is the avatar you currently have set. Upload a new image to change it.</p><img src="' + data.url + '" alt="Avatar" style="max-width: 100px; max-height: 100px;" />';
 			} else {
-				const errorMessage = data.message || 'There was an error uploading the avatar.';
-				messageContainer.innerHTML = '<p>' + errorMessage + '</p>';
+				messageContainer.innerHTML = '<p>There was an error uploading the avatar.</p>';
 			}
 			uploadInput.disabled = false;
 		})
 		.catch(error => {
-			messageContainer.innerHTML = '<p>There was an error uploading the avatar.</p>';
+			const errorMessage = error.message || 'There was an error uploading the avatar.';
+			messageContainer.innerHTML = '<p>' + errorMessage + '</p>';
 			uploadInput.disabled = false;
 		});
 	});

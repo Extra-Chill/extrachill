@@ -38,20 +38,10 @@ if ( $action === 'reset' && ! empty( $key ) && ! empty( $login ) ) {
 		return;
 	}
 
-	$message = EC_Redirect_Handler::get_message( 'ec_password_reset' );
 	?>
 	<div class="password-reset-form">
 		<h2><?php esc_html_e( 'Set New Password', 'extrachill-users' ); ?></h2>
 		<p><?php esc_html_e( 'Enter your new password below.', 'extrachill-users' ); ?></p>
-
-		<?php if ( $message ) : ?>
-			<div class="notice notice-<?php echo 'error' === $message['type'] ? 'error' : 'success'; ?>">
-				<?php if ( 'error' === $message['type'] ) : ?>
-					<strong><?php esc_html_e( 'Error:', 'extrachill-users' ); ?></strong>
-				<?php endif; ?>
-				<?php echo esc_html( $message['text'] ); ?>
-			</div>
-		<?php endif; ?>
 
 		<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
 			<input type="hidden" name="action" value="ec_reset_password">
@@ -71,20 +61,10 @@ if ( $action === 'reset' && ! empty( $key ) && ! empty( $login ) ) {
 	</div>
 	<?php
 } else {
-	$message = EC_Redirect_Handler::get_message( 'ec_password_reset' );
 	?>
 	<div class="password-reset-form">
 		<h2><?php esc_html_e( 'Reset Your Password', 'extrachill-users' ); ?></h2>
 		<p><?php esc_html_e( 'Enter your email address and we\'ll send you a link to reset your password.', 'extrachill-users' ); ?></p>
-
-		<?php if ( $message ) : ?>
-			<div class="notice notice-<?php echo 'error' === $message['type'] ? 'error' : 'success'; ?>">
-				<?php if ( 'error' === $message['type'] ) : ?>
-					<strong><?php esc_html_e( 'Error:', 'extrachill-users' ); ?></strong>
-				<?php endif; ?>
-				<?php echo esc_html( $message['text'] ); ?>
-			</div>
-		<?php endif; ?>
 
 		<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
 			<input type="hidden" name="action" value="ec_password_reset_request">

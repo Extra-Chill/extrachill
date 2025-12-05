@@ -7,7 +7,7 @@ User management functionality was migrated here from extrachill-multisite plugin
 ## Plugin Information
 
 - **Name**: Extra Chill Users
-- **Version**: 0.1.1
+- **Version**: 0.2.1
 - **Text Domain**: `extrachill-users`
 - **Author**: Chris Huber
 - **Author URI**: https://chubes.net
@@ -380,7 +380,7 @@ extrachill-users/
 ├── composer.json                  (dev dependencies)
 ├── build.sh                       (symlink to ../../.github/build.sh)
 ├── .buildignore                   (build exclusions)
-└── CLAUDE.md                      (architectural documentation)
+└── AGENTS.md                      (architectural documentation)
 ```
 
 ## Technical Implementation

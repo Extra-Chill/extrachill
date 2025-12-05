@@ -89,3 +89,94 @@ function ec_can_create_artist_profiles( $user_id = null ) {
 	       get_user_meta( $user_id, 'user_is_artist', true ) === '1' ||
 	       get_user_meta( $user_id, 'user_is_professional', true ) === '1';
 }
+
+/**
+ * Get the most recently active artist ID for a user
+ *
+ * Determines which artist the user has most recently worked on
+ * based on link page modification time. Falls back to first artist
+ * if no link pages exist.
+ *
+ * @param int|null $user_id User ID (defaults to current user)
+ * @return int Artist profile ID, or 0 if none found
+ */
+function ec_get_latest_artist_for_user( $user_id = null ) {
+	$user_artists = ec_get_artists_for_user( $user_id );
+
+	if ( empty( $user_artists ) ) {
+		return 0;
+	}
+
+	$latest_artist_id          = 0;
+	$latest_modified_timestamp = 0;
+
+	switch_to_blog( 4 );
+	try {
+		foreach ( $user_artists as $artist_id ) {
+			$link_pages = get_posts( array(
+				'post_type'      => 'artist_link_page',
+				'meta_key'       => '_associated_artist_profile_id',
+				'meta_value'     => (string) $artist_id,
+				'posts_per_page' => 1,
+				'fields'         => 'ids',
+			) );
+
+			if ( ! empty( $link_pages ) ) {
+				$link_page_id      = (int) $link_pages[0];
+				$post_modified_gmt = get_post_field( 'post_modified_gmt', $link_page_id, 'raw' );
+				if ( $post_modified_gmt ) {
+					$current_timestamp = strtotime( $post_modified_gmt );
+					if ( $current_timestamp > $latest_modified_timestamp ) {
+						$latest_modified_timestamp = $current_timestamp;
+						$latest_artist_id          = $artist_id;
+					}
+				}
+			}
+		}
+	} finally {
+		restore_current_blog();
+	}
+
+	// Fall back to first artist if no link pages found
+	return $latest_artist_id > 0 ? $latest_artist_id : reset( $user_artists );
+}
+
+/**
+ * Get count of link pages for a user's artists
+ *
+ * Counts how many link pages exist across all of a user's artist profiles.
+ *
+ * @param int|null $user_id User ID (defaults to current user)
+ * @return int Count of link pages
+ */
+function ec_get_link_page_count_for_user( $user_id = null ) {
+	$user_artists = ec_get_artists_for_user( $user_id );
+
+	if ( empty( $user_artists ) ) {
+		return 0;
+	}
+
+	$link_page_count = 0;
+
+	switch_to_blog( 4 );
+	try {
+		foreach ( $user_artists as $artist_id ) {
+			$link_pages = get_posts( array(
+				'post_type'      => 'artist_link_page',
+				'post_status'    => 'publish',
+				'meta_key'       => '_associated_artist_profile_id',
+				'meta_value'     => (string) $artist_id,
+				'posts_per_page' => 1,
+				'fields'         => 'ids',
+			) );
+
+			if ( ! empty( $link_pages ) ) {
+				$link_page_count++;
+			}
+		}
+	} finally {
+		restore_current_blog();
+	}
+
+	return $link_page_count;
+}
