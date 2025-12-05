@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0/).
 
+## [1.1.3] - 2025-12-04
+
+### Added
+- Share button JavaScript functionality with clipboard copy and social sharing
+- Centralized notice system for user feedback across the platform
+
+### Changed
+- Improved shared tabs CSS padding for better mobile display
+- Updated archive filter bar to use query vars instead of page templates
+- Enhanced documentation across multiple files for accuracy
+- Minor code formatting improvements in core files
+
+### Technical
+- Added assets/js/share.js for share button interactions
+- Added inc/core/notices.php for unified notice display
+- Updated share template to use new JavaScript functionality
+- Comprehensive documentation updates in 12+ files
+
 ## [1.1.2] - 2025-12-04
 
 ### Added

@@ -59,33 +59,22 @@ function extrachill_archive_filter_bar() {
     } elseif (is_category('music-history')) {
         extrachill_artist_filter_dropdown();
     }
+    $current_sort = isset( $_GET['sort'] ) ? sanitize_key( $_GET['sort'] ) : 'recent';
+    $sort_options = array(
+        'recent'  => 'Sort by Recent',
+        'oldest'  => 'Sort by Oldest',
+        'random'  => 'Sort by Random',
+        'popular' => 'Sort by Most Popular',
+    );
+
     echo '<div id="custom-sorting-dropdown">';
-    echo '<select id="post-sorting" name="post_sorting" onchange="window.location.href=\'' . esc_url($archive_link) . '?sort=\'+this.value;">';
-    echo '<option value="recent">Sort by Recent</option>';
-    echo '<option value="oldest">Sort by Oldest</option>';
-    echo '<option value="random">Sort by Random</option>';
-    echo '<option value="popular">Sort by Most Popular</option>';
+    echo '<select id="post-sorting" name="post_sorting" onchange="window.location.href=\'' . esc_url( $archive_link ) . '?sort=\'+this.value;">';
+    foreach ( $sort_options as $value => $label ) {
+        $selected = ( $current_sort === $value ) ? ' selected' : '';
+        echo '<option value="' . esc_attr( $value ) . '"' . $selected . '>' . esc_html( $label ) . '</option>';
+    }
     echo '</select>';
     echo '</div>';
 
     echo '</div>';
-
-    ?>
-    <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        var sortingDropdown = document.getElementById('post-sorting');
-        var urlParams = new URLSearchParams(window.location.search);
-        var sort = urlParams.get('sort');
-
-        if (sort) {
-            sortingDropdown.value = sort;
-        }
-
-        sortingDropdown.addEventListener('change', function() {
-            var selectedOption = this.value;
-            window.location.href = '?sort=' + selectedOption;
-        });
-    });
-    </script>
-    <?php
 }

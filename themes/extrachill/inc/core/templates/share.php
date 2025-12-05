@@ -2,7 +2,8 @@
 /**
  * Share Button Component
  *
- * Interactive dropdown for Facebook, Twitter/X, email, and copy link.
+ * Self-contained share button with dropdown for Facebook, Twitter/X, email, and copy link.
+ * Automatically enqueues required CSS and JS assets when called.
  *
  * @package ExtraChill
  * @since 1.0.0
@@ -15,6 +16,9 @@ if ( ! function_exists( 'extrachill_share_button' ) ) :
      * @param array $args Optional arguments (share_url, share_title, button_size)
      */
     function extrachill_share_button( $args = array() ) {
+        wp_enqueue_style( 'extrachill-share' );
+        wp_enqueue_script( 'extrachill-share' );
+
         if ( isset( $args ) && is_array( $args ) ) {
             extract( $args );
         }
@@ -46,57 +50,14 @@ if ( ! function_exists( 'extrachill_share_button' ) ) :
                         <a href="https://twitter.com/intent/tweet?url=<?php echo esc_url( $share_url ); ?>&text=<?php echo esc_attr( $share_title ); ?>" target="_blank" rel="noopener noreferrer">X</a>
                     </li>
                     <li class="share-option email">
-                        <a href="mailto:?subject=<?php echo esc_attr( $share_title ); ?>&body=Check out this event: <?php echo esc_url( $share_url ); ?>">Email</a>
+                        <a href="mailto:?subject=<?php echo esc_attr( $share_title ); ?>&body=Check out this: <?php echo esc_url( $share_url ); ?>">Email</a>
                     </li>
                     <li class="share-option copy-link">
-                        <a id="copy-link-button" onclick="copyLinkToClipboard('<?php echo esc_url( $share_url ); ?>');">Copy Link</a>
+                        <a href="#" data-share-url="<?php echo esc_url( $share_url ); ?>">Copy Link</a>
                     </li>
                 </ul>
             </div>
         </div>
-
-        <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const shareButton = document.querySelector('.share-button-container .share-button');
-            const shareOptions = document.querySelector('.share-button-container .share-options');
-
-            if (shareButton && shareOptions) {
-                shareButton.addEventListener('click', function() {
-                    shareOptions.style.display = shareOptions.style.display === 'block' ? 'none' : 'block';
-                });
-
-                // Close share options when clicking outside the container
-                document.addEventListener('click', function(event) {
-                    if (!shareButton.contains(event.target) && !shareOptions.contains(event.target)) {
-                        shareOptions.style.display = 'none';
-                    }
-                });
-            }
-        });
-
-        function copyLinkToClipboard(url) {
-            if (navigator.clipboard && navigator.clipboard.writeText) {
-                navigator.clipboard.writeText(url)
-                    .then(() => {
-                        const copyButton = document.getElementById('copy-link-button');
-                        if (copyButton) {
-                            copyButton.textContent = 'Copied!';
-                            setTimeout(() => { copyButton.textContent = 'Copy Link'; }, 2000); // Revert text after 2 seconds
-                        }
-                    })
-                    .catch(err => {
-                        console.error('Failed to copy link: ', err);
-                        promptFallback(url);
-                    });
-            } else {
-                promptFallback(url);
-            }
-        }
-
-        function promptFallback(url) {
-            window.prompt('Copy this link:', url);
-        }
-        </script>
         <?php
     }
 endif;
