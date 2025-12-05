@@ -1,8 +1,8 @@
 # ExtraChill WordPress Theme
 
-A custom WordPress theme (v1.1.2) powering the ExtraChill Platform multisite network with 8 active interconnected sites (Blog ID 6 unused), featuring blog content, community integration, festival coverage, and e-commerce functionality. Horoscope site is planned for future Blog ID 10.
+A custom WordPress theme (v1.1.2) powering the Extra Chill Platform multisite network with 8 active interconnected sites (Blog ID 6 unused), featuring hook-based homepage content, community integrations, and multisite-aware navigation. Horoscope site is planned for future Blog ID 10.
 
-> **Platform alignment**: All theme documentation reflects the live 1.1.2 release announced in `style.css`; this README stays in lockstep with root repo docs when future releases ship.
+> **Platform alignment**: Documentation reflects the live 1.1.2 release announced in `style.css` and `docs/CHANGELOG.md` and must stay in lockstep with future releases.
 
 ## Overview
 
@@ -21,35 +21,32 @@ ExtraChill is a modern, performance-optimized WordPress theme (v1.1.2) designed 
 ## Key Features
 
 ### 🎵 Music-Focused Content Management
-- **Custom Taxonomies**: Artist, Venue, and Festival organization with REST API support
-- **Festival Wire Integration**: Homepage ticker display for festival coverage (requires ExtraChill News Wire plugin)
-- **Newsletter Integration**: Newsletter functionality provided by ExtraChill Newsletter Plugin
-- **Contact Forms**: Contact form functionality provided by ExtraChill Contact Plugin
-- **Search Integration**: Search header template and CSS provided by theme, main template provided by extrachill-search plugin
+- **Custom Taxonomies**: Artist, Venue, Festival, and Location organization with REST API support
+- **Festival Wire Output**: ExtraChill News Wire plugin renders ticker/feed blocks through theme hooks; core theme only supplies shared CSS tokens
+- **Homepage Content Delivery**: Front page is one container powered by `extrachill_homepage_content` (primary content) and `extrachill_after_homepage_content` (footer/CTA slot)
+- **Search Integration**: Theme ships the search header template and CSS while the extrachill-search plugin owns the multisite loop, result badges, and aggregation logic
 
 ### 🚀 Performance Optimizations
-- **Conditional Asset Loading**: CSS/JS loaded only when needed based on page context
-- **Modular CSS Architecture**: Page-specific stylesheets (home.css, archive.css, single-post.css, nav.css)
-- **Image Optimization**: Unnecessary WordPress image sizes removed
-- **Memory Management**: Efficient resource usage with memory tracking
-- **Multisite Optimization**: Direct database queries replace REST API calls for better performance
+- **Conditional Asset Loading**: CSS/JS load only when their contexts require them (archives, search, sidebar, shared tabs, footer stats, etc.)
+- **Modular CSS Architecture**: Ten page/component-specific stylesheets (`root`, `archive`, `single-post`, `nav`, `taxonomy-badges`, `editor-style`, `search`, `shared-tabs`, `share`, `sidebar`)
+- **Image Optimization**: Unused WordPress image sizes removed for leaner uploads
+- **View Tracking**: Async REST-powered view counting with script enqueued only on public singular content
+- **Multisite Optimization**: Direct `switch_to_blog()` access and cached lookups keep network features fast
 
 ### 🎨 Modern Design System
-- **Modular CSS Architecture**: Component-based styling with CSS custom properties in `assets/css/`
 - **CSS Variables**: Global design tokens in `assets/css/root.css`
-- **Responsive Design**: Mobile-first approach with flexible layouts
-- **Component Styles**: Dedicated files for badges (`badge-colors.css`), editor styles (`editor-style.css`), search results (`search.css`), shared tabs (`shared-tabs.css`)
+- **Component Styles**: Dedicated files for navigation, badges, search, shared tabs, share buttons, sidebar widgets, and editor styles (all depend on the root handle)
+- **Responsive Design**: Mobile-first layouts, sticky header toggle, secondary header filter, and accessible navigation/flyout controls
 
 ### 🤝 Community Integration
-- **WordPress Multisite**: Native cross-domain authentication and user management across 8 active sites
-- **Shared Community Activity Helper**: Centralized reusable library (`inc/core/templates/community-activity.php`) provides `extrachill_get_community_activity_items()` and `extrachill_render_community_activity()` functions
-- **Multi-Site Activity Queries**: Queries BOTH community.extrachill.com (blog ID 2) AND artist.extrachill.com (blog ID 4) for bbPress topics/replies
-- **Activity Integration**: Merges activities from both sites into unified, chronologically sorted list with 10-minute caching
-- **Activity Feeds**: Two widgets (sidebar and homepage) calling shared helper with different styling configurations
+- **WordPress Multisite**: Theme powers 8 active network sites with shared routing and navigation patterns
+- **Shared Community Activity Helper**: Centralized library (`inc/core/templates/community-activity.php`) exposes `extrachill_get_community_activity_items()` and `extrachill_render_community_activity()`
+- **Community Data Source**: Queries community.extrachill.com (Blog ID 2) for bbPress topics/replies with 10-minute caching and renders default sidebar/homepage widgets
+- **Activity Feeds**: Sidebar widget plus plugin-provided homepage blocks consume the same helper for consistent markup
 - **Multisite Search**: Cross-site search via extrachill-search plugin with `extrachill_multisite_search()`
-- **Profile URL Resolution**: Intelligent routing via extrachill-users plugin `ec_get_user_profile_url()`
-- **Direct Database Access**: Theme uses WordPress native WP_Query via `switch_to_blog()` for optimal performance
-- **Fallback Handling**: Graceful degradation when network plugins unavailable
+- **Profile URL Resolution**: extrachill-users plugin supplies `ec_get_user_profile_url()` for community links
+- **Online Users Widget**: `extrachill_before_footer` renders online/total counts from extrachill-users data
+- **Graceful Degradation**: Hooks and function_exists checks keep templates stable if network plugins are inactive
 
 ## Installation
 
@@ -95,8 +92,8 @@ The theme supports direct file editing for development with no build step requir
 cd wp-content/themes/extrachill
 
 # Edit files directly
-# CSS files are in /assets/css/ (11 CSS files: root.css, home.css, archive.css, single-post.css, nav.css, badge-colors.css, editor-style.css, search.css, shared-tabs.css, share.css, sidebar.css)
-# JavaScript files are in /assets/js/ (4 files: nav-menu.js, reading-progress.js, chill-custom.js, shared-tabs.js)
+# CSS files are in /assets/css/ (10 CSS files: root.css, archive.css, single-post.css, nav.css, taxonomy-badges.css, editor-style.css, search.css, shared-tabs.css, share.css, sidebar.css)
+# JavaScript files are in /assets/js/ (5 files: nav-menu.js, reading-progress.js, chill-custom.js, shared-tabs.js, view-tracking.js)
 # PHP files use modular include structure in /inc/ directory (48 total files, 28 directly loaded in functions.php)
 
 # Check for syntax errors
@@ -134,13 +131,12 @@ For production deployment, use the build script to create clean ZIP packages:
 extrachill/
 ├── index.php                   # Emergency fallback template (minimal functionality)
 ├── assets/                     # Theme assets directory
-│   ├── css/                    # Modular CSS files (11 files)
+│   ├── css/                    # Modular CSS files (10 files)
 │   │   ├── root.css            # CSS custom properties
-│   │   ├── home.css            # Homepage styles
 │   │   ├── archive.css         # Archive page styles
 │   │   ├── single-post.css     # Single post styles
 │   │   ├── nav.css             # Navigation styles
-│   │   ├── badge-colors.css    # Taxonomy badge colors
+│   │   ├── taxonomy-badges.css # Taxonomy badge colors
 │   │   ├── editor-style.css    # Block editor styles
 │   │   ├── search.css          # Search results styles
 │   │   └── shared-tabs.css     # Shared tab interface styles
@@ -148,7 +144,8 @@ extrachill/
 │   │   ├── nav-menu.js         # Navigation menu functionality
 │   │   ├── reading-progress.js # Reading progress indicator
 │   │   ├── chill-custom.js     # Custom functionality
-│   │   └── shared-tabs.js      # Shared tab interface
+│   │   ├── shared-tabs.js      # Shared tab interface
+│   │   └── view-tracking.js    # Async REST-powered view tracking
 │   └── fonts/                  # Local web fonts
 ├── inc/                        # Modular PHP functionality (48 files total, 28 directly loaded)
 │   ├── archives/               # Archive page functionality (8 files)
@@ -193,15 +190,8 @@ extrachill/
 │   │   ├── nav-bottom-menu.php
 │   │   └── nav-main-menu.php
 │   ├── home/                   # Homepage components (8 files: 1 + 7 templates)
-│   │   ├── homepage-queries.php
-│   │   └── templates/          # Homepage template sections (7 files)
-│   │       ├── hero.php
-│   │       ├── section-3x3-grid.php
-│   │       ├── section-more-recent-posts.php
-│   │       ├── section-extrachill-link.php
-│   │       ├── section-about.php
-│   │       ├── community-activity.php  # Legacy wrapper (deprecated)
-│   │       └── front-page.php
+│   │   └── templates/
+│   │       └── front-page.php   # Single hook container
 │   ├── sidebar/                # Sidebar functionality (2 files)
 │   │   ├── recent-posts.php
 │   │   └── community-activity.php
@@ -322,9 +312,8 @@ Add custom styles through:
 The theme provides extensive hooks for customization:
 
 ```php
-// Customize homepage content sections
-add_action('extrachill_homepage_hero', 'custom_hero_section');
-add_action('extrachill_homepage_content_top', 'custom_content_section');
+// Output homepage content via the single hook container
+add_action('extrachill_homepage_content', 'custom_homepage_block', 20);
 
 // Override page template (only when no custom page template assigned)
 add_filter('extrachill_template_page', function($template) {
@@ -334,8 +323,8 @@ add_filter('extrachill_template_page', function($template) {
 // Disable sticky header
 add_filter('extrachill_enable_sticky_header', '__return_false');
 
-// Add custom functionality to final homepage section
-add_action('extrachill_home_final_left', 'custom_final_section');
+// Append CTA below homepage content
+add_action('extrachill_after_homepage_content', 'custom_homepage_cta', 15);
 ```
 
 ## Troubleshooting
@@ -400,7 +389,6 @@ define('SCRIPT_DEBUG', true);
 - **Asset Directory Migration**: Moved all assets from `css/` and `js/` to `assets/css/` and `assets/js/`
 - **CSS Modularization**: 11 dedicated CSS files with conditional loading:
   - `assets/css/root.css` - CSS custom properties
-  - `assets/css/home.css` - Homepage styles
   - `assets/css/archive.css` - Archive page styles
   - `assets/css/single-post.css` - Single post styles
   - `assets/css/nav.css` - Navigation styles

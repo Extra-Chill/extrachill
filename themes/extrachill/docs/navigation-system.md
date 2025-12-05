@@ -12,7 +12,7 @@ The theme uses action hooks for menu content, eliminating WordPress menu databas
 
 ### 1. Container Structure
 
-Provides flyout menu HTML with hooks for content injection:
+Provides flyout menu HTML with hooks for content injection; secondary header renders separately when plugins supply items.
 
 ```php
 <nav id="site-navigation" class="main-navigation">
@@ -38,10 +38,13 @@ Provides flyout menu HTML with hooks for content injection:
 **Hook**: `extrachill_navigation_main_menu`
 **Template**: `/inc/header/nav-main-menu.php`
 **Default Items**:
+- Login (when logged out)
+- Home
+- Blog (/all/)
+- Events Calendar
 - Community
-- Calendar
+- Artist Platform
 - Festival Wire
-- Blog Content
 
 ### 3. Bottom Navigation Content
 
@@ -78,9 +81,9 @@ add_filter( 'extrachill_secondary_header_items', function( $items ) {
 
 **Bottom Footer Hook**: `extrachill_below_copyright`
 **Template**: `/inc/footer/footer-bottom-menu.php`
-**Content**: Legal/policy links
+**Content**: Legal/policy links filtered via `extrachill_footer_bottom_menu_items`
 
-### 5. Universal Back-to-Home Navigation
+### 6. Universal Back-to-Home Navigation
 
 **Hook**: `extrachill_above_footer`
 **Template**: `/inc/footer/back-to-home-link.php`
@@ -132,11 +135,17 @@ Search form integrated into navigation flyout:
 **Function**: `extrachill_search_form()`
 **Location**: `/inc/core/templates/searchform.php`
 
+## Secondary Header Filter
+
+**Filter**: `extrachill_secondary_header_items`
+**Location**: `/inc/header/secondary-header.php`
+**Usage**: Return an array of associative arrays with `url`, `label`, and optional `priority`. Items render when the array is non-empty, allowing plugins to surface context-specific CTAs without editing templates.
+
 ## Social Links Integration
 
 Social media icons appear in navigation menu:
 
-```php
+```
 <li class="menu-social-links">
     <?php do_action( 'extrachill_social_links' ); ?>
 </li>
@@ -144,7 +153,8 @@ Social media icons appear in navigation menu:
 
 **Function**: `extrachill_social_links()`
 **Location**: `/inc/core/templates/social-links.php`
-**Icons**: Facebook, Twitter/X, Instagram, YouTube, Pinterest, GitHub
+**Icons**: Facebook, Twitter/X, Instagram, YouTube, Pinterest, GitHub (extensible via hook)
+
 
 ## Hamburger Toggle
 
@@ -181,14 +191,14 @@ Plugins can add menu items via hooks:
 // Add custom menu item to main menu
 add_action( 'extrachill_navigation_main_menu', function() {
     echo '<li><a href="/custom">Custom Link</a></li>';
-}, 15 ); // Priority 15 = after defaults
+}, 15 );
 
-// Add content before social links
+// Insert divider before social links
 add_action( 'extrachill_navigation_before_social_links', function() {
     echo '<li class="divider"></li>';
 } );
 
-// Add footer menu section
+// Append footer menu section
 add_action( 'extrachill_footer_main_content', function() {
     echo '<div class="custom-footer-section">...</div>';
 }, 20 );
