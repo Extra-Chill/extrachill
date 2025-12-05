@@ -44,11 +44,10 @@ function extrachill_api_community_upload_image_handler($request) {
 
 	$result = extrachill_process_tinymce_image_upload($_FILES['image'], $user_id);
 
-	if ($result['success']) {
-		return rest_ensure_response(array(
-			'success' => true,
-			'url' => $result['url']
-		));
+	if ( $result['success'] ) {
+		return rest_ensure_response( array(
+			'url' => $result['url'],
+		) );
 	} else {
 		return new WP_Error(
 			'upload_failed',

@@ -43,5 +43,5 @@ function extrachill_api_view_count_handler($request) {
 
 	ec_track_post_views($post_id);
 
-	return rest_ensure_response(array('success' => true));
+	return rest_ensure_response( array( 'recorded' => true ) );
 }

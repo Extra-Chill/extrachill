@@ -101,5 +101,5 @@ function extrachill_api_link_click_handler( $request ) {
 	 */
 	do_action( 'extrachill_link_click_recorded', $link_page_id, $normalized_url );
 
-	return rest_ensure_response( array( 'success' => true ) );
+	return rest_ensure_response( array( 'tracked' => true ) );
 }

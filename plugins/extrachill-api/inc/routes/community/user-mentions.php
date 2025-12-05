@@ -26,7 +26,11 @@ function extrachill_user_mention_search_endpoint( WP_REST_Request $request ) {
     $term = $request->get_param( 'term' );
 
     if ( empty( $term ) ) {
-        return new WP_REST_Response( array( 'error' => 'Search term is required.' ), 400 );
+        return new WP_Error(
+            'missing_search_term',
+            'Search term is required.',
+            array( 'status' => 400 )
+        );
     }
 
     $users_query = new WP_User_Query( array(

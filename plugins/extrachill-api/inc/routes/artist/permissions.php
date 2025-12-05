@@ -51,13 +51,9 @@ function ec_api_check_artist_permissions( WP_REST_Request $request ) {
 		$manage_url = home_url( '/manage-link-page/?artist_id=' . $artist_id );
 	}
 
-	// Return structure matching wp_send_json_success for compatibility
-	return new WP_REST_Response( array(
-		'success' => true,
-		'data'    => array(
-			'can_edit'   => $can_edit,
-			'manage_url' => $manage_url,
-			'user_id'    => $current_user_id,
-		),
-	), 200 );
+	return rest_ensure_response( array(
+		'can_edit'   => $can_edit,
+		'manage_url' => $manage_url,
+		'user_id'    => $current_user_id,
+	) );
 }

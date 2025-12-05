@@ -47,11 +47,10 @@ function extrachill_api_newsletter_subscribe_handler($request) {
 
 	$result = extrachill_multisite_subscribe($email, $context);
 
-	if ($result['success']) {
-		return rest_ensure_response(array(
-			'success' => true,
-			'message' => $result['message']
-		));
+	if ( $result['success'] ) {
+		return rest_ensure_response( array(
+			'message' => $result['message'],
+		) );
 	} else {
 		return new WP_Error(
 			'subscription_failed',

@@ -136,7 +136,6 @@ All endpoints are under the `extrachill/v1` namespace.
 **Response**:
 ```json
 {
-    "success": true,
     "image_url": "data:image/png;base64,...",
     "url": "https://example.com",
     "size": 1000
@@ -150,6 +149,64 @@ All endpoints are under the `extrachill/v1` namespace.
 **Used By**: extrachill-admin-tools plugin (QR Code Generator tool)
 
 **Dependencies**: Endroid QR Code library (Composer dependency)
+
+## Response Contract
+
+All endpoints follow a standardized response format:
+
+### Success Responses (HTTP 200)
+
+Return data directly without wrappers:
+
+```php
+return rest_ensure_response( array(
+    'message' => 'Operation completed',
+    'url'     => $url,
+    // ... other data properties
+) );
+```
+
+**Fire-and-forget endpoints** use semantic keys:
+- `analytics/link-click`: `{ "tracked": true }`
+- `analytics/view`: `{ "recorded": true }`
+
+### Error Responses (HTTP 4xx/5xx)
+
+Use `WP_Error` with appropriate status codes:
+
+```php
+return new WP_Error(
+    'error_code',
+    'Human-readable error message',
+    array( 'status' => 400 )
+);
+```
+
+**Standard status codes**:
+- `400` - Bad Request (validation errors, invalid input)
+- `403` - Forbidden (permission denied, security check failed)
+- `404` - Not Found (resource doesn't exist)
+- `500` - Server Error (missing dependencies, failed operations)
+
+### JavaScript Consumption Pattern
+
+```javascript
+fetch(endpoint, options)
+    .then(response => {
+        if (!response.ok) {
+            return response.json().then(err => Promise.reject(err));
+        }
+        return response.json();
+    })
+    .then(data => {
+        // Access data directly: data.url, data.message, etc.
+    })
+    .catch(error => {
+        // error.message contains error text
+    });
+```
+
+**Key principle**: No `success` key in responses. HTTP status codes determine success/failure. Data properties are accessed directly.
 
 ## Integration Patterns
 

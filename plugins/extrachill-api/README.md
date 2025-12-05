@@ -262,6 +262,14 @@ GPL v2 or later
 
 ## Changelog
 
+### 0.1.4
+- Added artist roster management endpoints (roster invite, subscribers pagination, subscribers export)
+- Added chat functionality endpoints (history clear, message send)
+- Added analytics link-page tracking endpoint
+- Added comprehensive user documentation under docs/
+- Updated link click analytics response format to {'tracked': true}
+- Minor updates to existing route files for consistency
+
 ### 0.1.3
 - Added analytics link-click tracking endpoint for artist link pages
 - Added artist subscription endpoint for update notifications

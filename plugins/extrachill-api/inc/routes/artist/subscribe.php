@@ -78,7 +78,6 @@ function extrachill_api_artist_subscribe_handler( $request ) {
 	}
 
 	return rest_ensure_response( array(
-		'success' => true,
 		'message' => __( 'Thank you for subscribing!', 'extrachill-api' ),
 	) );
 }

@@ -45,9 +45,8 @@ function extrachill_api_avatar_upload_handler($request) {
 		);
 	}
 
-	return rest_ensure_response(array(
-		'success' => true,
-		'url' => $result['url'],
-		'attachment_id' => $result['attachment_id']
-	));
+	return rest_ensure_response( array(
+		'url'           => $result['url'],
+		'attachment_id' => $result['attachment_id'],
+	) );
 }

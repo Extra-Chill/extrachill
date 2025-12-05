@@ -132,14 +132,11 @@ function extrachill_api_generate_qr_code( $request ) {
         $result   = $writer->write( $qr_code );
         $data_uri = $result->getDataUri();
 
-        return rest_ensure_response(
-            array(
-                'success'   => true,
-                'image_url' => $data_uri,
-                'url'       => $url,
-                'size'      => $size,
-            )
-        );
+        return rest_ensure_response( array(
+            'image_url' => $data_uri,
+            'url'       => $url,
+            'size'      => $size,
+        ) );
 
     } catch ( Exception $e ) {
         return new WP_Error(

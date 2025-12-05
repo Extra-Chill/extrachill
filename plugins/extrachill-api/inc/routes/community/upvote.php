@@ -53,13 +53,12 @@ function extrachill_api_community_upvote_handler($request) {
 
 	$result = extrachill_process_upvote($post_id, $type, $user_id);
 
-	if ($result['success']) {
-		return rest_ensure_response(array(
-			'success' => true,
-			'message' => $result['message'],
+	if ( $result['success'] ) {
+		return rest_ensure_response( array(
+			'message'   => $result['message'],
 			'new_count' => $result['new_count'],
-			'upvoted' => $result['upvoted']
-		));
+			'upvoted'   => $result['upvoted'],
+		) );
 	} else {
 		return new WP_Error(
 			'upvote_failed',

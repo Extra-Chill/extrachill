@@ -2,6 +2,39 @@
 
 All notable changes to the ExtraChill API plugin are documented here. This file is the single source of truth for release history.
 
+## 0.1.4
+
+### Added
+- Artist roster management endpoints (`POST /extrachill/v1/artist/roster/invite`, `GET /extrachill/v1/artist/subscribers`, `GET /extrachill/v1/artist/subscribers/export`) for managing artist team members and subscribers
+- Chat functionality endpoints (`DELETE /extrachill/v1/chat/history`, `POST /extrachill/v1/chat/message`) for AI chat interactions
+- Analytics link-page tracking endpoint (`POST /extrachill/v1/analytics/link-page`) for authenticated page analytics
+- Comprehensive user documentation under `docs/` covering all API endpoints and components
+
+### Changed
+- **BREAKING**: Standardized API response contract across all endpoints
+  - Removed `success: true` wrappers from all responses
+  - Fire-and-forget endpoints now use semantic keys (`tracked`, `recorded`)
+  - Flattened nested `data` wrapper in `artist/permissions` endpoint
+  - Errors now use `WP_Error` exclusively (fixed `user-mentions.php` non-standard error)
+- Updated 10 JavaScript consumers across 6 plugins to use new response pattern
+- JavaScript now checks HTTP status (`response.ok`) instead of `data.success`
+- Link click analytics response format changed to `{'tracked': true}` for semantic consistency
+- Minor updates to existing route files for consistency and performance
+
+### Migration Notes
+JavaScript consumers must update from:
+```javascript
+.then(data => { if (data.success) { ... } })
+```
+To:
+```javascript
+.then(response => {
+    if (!response.ok) return response.json().then(err => Promise.reject(err));
+    return response.json();
+})
+.then(data => { /* access data.property directly */ })
+```
+
 ## 0.1.3
 
 ### Added

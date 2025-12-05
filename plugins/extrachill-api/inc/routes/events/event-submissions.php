@@ -102,7 +102,6 @@ function extrachill_api_handle_event_submission( WP_REST_Request $request ) {
 	) );
 
 	return rest_ensure_response( array(
-		'success' => true,
 		'message' => __( 'Thanks! We queued your submission for review.', 'extrachill-api' ),
 		'job_id'  => $job_id,
 	) );

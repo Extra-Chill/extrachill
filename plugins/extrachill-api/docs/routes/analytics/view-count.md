@@ -1,0 +1,32 @@
+# Async View Count Endpoint
+
+## Route
+`POST /wp-json/extrachill/v1/analytics/view`
+
+## Purpose
+Captures post view events asynchronously. Useful for blocks and templates that want lightweight analytics without blocking page rendering.
+
+## Request Body
+| Field | Type | Required | Notes |
+| --- | --- | --- | --- |
+| `post_id` | integer | Yes | Target WordPress post ID. Must be a positive integer. |
+
+## Processing Steps
+1. Validates the payload via REST schema.
+2. Confirms `ec_track_post_views()` exists (provided by the consuming theme/plugin). Returns `500 function_missing` if unavailable.
+3. Calls `ec_track_post_views( $post_id )` to increment counters.
+
+## Response
+```
+{ "success": true }
+```
+
+## Usage Pattern
+Send the request via `fetch` after the page loads:
+```js
+fetch('/wp-json/extrachill/v1/analytics/view', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ post_id: 123 })
+});
+```
