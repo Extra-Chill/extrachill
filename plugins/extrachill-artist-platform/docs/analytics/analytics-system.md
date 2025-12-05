@@ -161,6 +161,27 @@ add_action('wp_ajax_link_page_click_tracking', 'link_page_click_tracking');
 add_action('wp_ajax_nopriv_link_page_click_tracking', 'link_page_click_tracking');
 ```
 
+## URL Normalization
+
+Link click URLs are automatically normalized before storage to prevent analytics clutter from auto-generated tracking parameters. This keeps the dashboard readable while preserving intentional query strings like affiliate IDs.
+
+### Stripped Parameters
+
+The following Google Analytics cross-domain linking parameters are removed:
+- `_gl` - Google Linker parameter
+- `_ga` - Google Analytics client ID
+- `_ga_*` - Google Analytics measurement ID parameters (e.g., `_ga_L362LLL9KM`)
+
+### Implementation
+
+**Client-side** (`inc/link-pages/live/assets/js/link-page-public-tracking.js`):
+- `normalizeTrackedUrl()` strips parameters before sending the beacon request
+
+**Server-side** (`inc/link-pages/live/ajax/analytics.php`):
+- `extrch_normalize_tracked_url()` provides redundant sanitization before database insert
+
+Both implementations preserve all other query parameters (affiliate IDs, custom campaign params, etc.).
+
 ## Data Aggregation
 
 ### Page View Recording

@@ -23,6 +23,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Minor CSS layout improvements
 - Comprehensive documentation cleanup removing outdated forum references
 
+## [1.1.2] - 2025-12-04
+
+### Added
+- Navigation integration with secondary header artist management links
+- URL normalization for analytics to strip Google Analytics auto-generated parameters
+- High-resolution QR code download functionality (1000px)
+
+### Changed
+- Refactored QR code system to use REST API instead of AJAX
+- Improved artist directory button logic and labeling
+- Enhanced management interface layout with full-width breakout
+- Updated analytics documentation with URL normalization details
+- Shortened button labels for consistency ("Manage Artist" vs "Manage Artist Profile")
+
+### Removed
+- Legacy QR code AJAX handler (qrcode.php)
+- Redundant manage-link-page.css file (consolidated into management.css)
+
+### Technical Improvements
+- Added debounced data attribute updates for better performance
+- Enhanced asset localization for QR code functionality
+- Improved code quality with better escaping and error handling
+
 ## [1.1.0] - 2025-12-04
 
 ### Removed

@@ -7,7 +7,18 @@
     let sectionsListEl, addSectionBtn;
     let initialized = false;
     let clickHandler = null;
+    let reindexScheduled = false;
     
+    function scheduleDataAttributeUpdate() {
+        if (reindexScheduled) {
+            return;
+        }
+        reindexScheduled = true;
+        requestAnimationFrame(() => {
+            updateDataAttributes();
+            reindexScheduled = false;
+        });
+    }
     
     /**
      * AJAX template rendering with server-side validation
@@ -99,17 +110,10 @@
         
         if (html) {
             sectionsListEl.insertAdjacentHTML('beforeend', html);
-            document.dispatchEvent(new CustomEvent('linksectionadded', {
-                detail: { sectionIndex, title: '' }
-            }));
-        }
-    }
-    
-    function removeSection(sectionElement) {
-        if (!sectionElement) return;
-        
-        const sectionIndex = getSectionIndex(sectionElement);
         sectionElement.remove();
+        scheduleDataAttributeUpdate();
+
+        scheduleDataAttributeUpdate();
         document.dispatchEvent(new CustomEvent('linksectiondeleted', {
             detail: { sectionIndex }
         }));
@@ -148,6 +152,7 @@
 
                 const newElement = editorTarget?.lastElementChild;
                 if (newElement) {
+                    scheduleDataAttributeUpdate();
                     document.dispatchEvent(new CustomEvent('linkElementAdded', {
                         detail: { element: newElement }
                     }));
@@ -165,6 +170,7 @@
         const linkIndex = getLinkIndex(linkElement);
         
         linkElement.remove();
+        scheduleDataAttributeUpdate();
         document.dispatchEvent(new CustomEvent('linkdeleted', {
             detail: { sectionIndex, linkIndex }
         }));
@@ -230,6 +236,7 @@
             sectionIndex++;
         });
     }
+    
     
     // Event Listeners
     

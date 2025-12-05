@@ -1,91 +1,159 @@
-// --- QR Code Modal Functionality ---
+/**
+ * QR Code Modal - REST API Integration
+ *
+ * Generates QR codes via extrachill-api REST endpoint.
+ * Displays 300px preview, offers 1000px download for print.
+ */
 (function() {
+    'use strict';
+
     const qrButton = document.getElementById('bp-get-qr-code-btn');
     const qrModal = document.getElementById('bp-qr-code-modal');
-    const qrModalClose = qrModal ? qrModal.querySelector('.bp-modal-close') : null;
+    if (!qrButton || !qrModal) return;
+
+    const qrModalClose = qrModal.querySelector('.bp-modal-close');
     const qrImageContainer = document.getElementById('bp-qr-code-modal-image-container');
     const qrImageElement = qrImageContainer ? qrImageContainer.querySelector('img') : null;
     const loadingMessage = qrImageContainer ? qrImageContainer.querySelector('.loading-message') : null;
-    const errorMessageElement = document.createElement('p'); // For displaying errors
+    const actionsContainer = qrModal.querySelector('.bp-qr-code-actions');
+    const downloadButton = document.getElementById('bp-download-qr-hires');
+
+    if (!qrImageElement || !loadingMessage) return;
+
+    const errorMessageElement = document.createElement('p');
     errorMessageElement.className = 'notice notice-error';
     errorMessageElement.style.display = 'none';
-    if (qrImageContainer) {
-        qrImageContainer.appendChild(errorMessageElement);
+    qrImageContainer.appendChild(errorMessageElement);
+
+    let currentUrl = '';
+
+    function getPublicUrl() {
+        const publicUrlElement = document.querySelector('.bp-link-page-url-text');
+        return publicUrlElement ? publicUrlElement.href : '';
+    }
+
+    function getRestEndpoint() {
+        if (typeof extraChillArtistPlatform !== 'undefined' && extraChillArtistPlatform.restUrl) {
+            return extraChillArtistPlatform.restUrl + '/tools/qr-code';
+        }
+        return '/wp-json/extrachill/v1/tools/qr-code';
+    }
+
+    function getArtistSlug() {
+        if (typeof extraChillArtistPlatform !== 'undefined' && extraChillArtistPlatform.artistSlug) {
+            return extraChillArtistPlatform.artistSlug;
+        }
+        return 'link-page';
+    }
+
+    async function fetchQrCode(url, size) {
+        const response = await fetch(getRestEndpoint(), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url, size })
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.message || 'Failed to generate QR code');
+        }
+
+        return response.json();
     }
 
     function showModal() {
-        if (qrModal) qrModal.style.display = 'block';
+        qrModal.style.display = 'block';
     }
 
     function hideModal() {
-        if (qrModal) qrModal.style.display = 'none';
-        if (qrImageElement) qrImageElement.style.display = 'none'; // Hide image
-        if (loadingMessage) loadingMessage.style.display = 'block'; // Reset loading message
-        errorMessageElement.style.display = 'none'; // Hide error message
+        qrModal.style.display = 'none';
+        qrImageElement.style.display = 'none';
+        loadingMessage.style.display = 'block';
+        if (actionsContainer) actionsContainer.style.display = 'none';
+        errorMessageElement.style.display = 'none';
         errorMessageElement.textContent = '';
     }
 
-    if (qrButton && qrModal && qrModalClose && qrImageElement && loadingMessage) {
-        qrButton.addEventListener('click', function() {
-            showModal();
-            loadingMessage.style.display = 'block';
-            qrImageElement.style.display = 'none';
-            errorMessageElement.style.display = 'none';
-
-            const ajaxData = new FormData();
-            ajaxData.append('action', 'extrch_generate_qrcode');
-            ajaxData.append('nonce', extraChillArtistPlatform.nonce); 
-            ajaxData.append('link_page_id', extraChillArtistPlatform.linkPageData.link_page_id);
-
-            // Get the public URL from the element on the page
-            const publicUrlElement = document.querySelector('.bp-link-page-url-text');
-            const publicUrl = publicUrlElement ? publicUrlElement.href : '';
-             if (publicUrl) {
-                ajaxData.append('url', publicUrl);
-             } else {
-                 loadingMessage.style.display = 'none';
-                 errorMessageElement.textContent = 'Public URL for QR code is not available.';
-                 errorMessageElement.style.display = 'block';
-                 console.error('Public URL for QR code is not available.');
-                 return;
-             }
-
-            fetch(extraChillArtistPlatform.ajaxUrl, {
-                method: 'POST',
-                body: ajaxData
-            })
-            .then(response => response.json())
-            .then(data => {
-                loadingMessage.style.display = 'none';
-                if (data.success && data.data.image_url) {
-                    qrImageElement.src = data.data.image_url;
-                    qrImageElement.style.display = 'block';
-                } else {
-                    errorMessageElement.textContent = data.data && data.data.message ? data.data.message : 'An unknown error occurred.';
-                    errorMessageElement.style.display = 'block';
-                }
-            })
-            .catch(error => {
-                loadingMessage.style.display = 'none';
-                errorMessageElement.textContent = 'Request failed: ' + error;
-                errorMessageElement.style.display = 'block';
-                console.error('Error fetching QR code:', error);
-            });
-        });
-
-        qrModalClose.addEventListener('click', hideModal);
-
-        // Close modal if clicked outside the modal content
-        qrModal.addEventListener('click', function(event) {
-            if (event.target === qrModal) {
-                hideModal();
-            }
-        });
-    } else {
-        if (!qrButton) console.error('QR Code button not found.');
-        if (!qrModal) console.error('QR Code modal not found.');
-        if (!qrModalClose) console.error('QR Code modal close button not found.');
-        if (!qrImageElement) console.error('QR Code modal image element not found.');
-        if (!loadingMessage) console.error('QR Code modal loading message not found.');
+    function showError(message) {
+        loadingMessage.style.display = 'none';
+        errorMessageElement.textContent = message;
+        errorMessageElement.style.display = 'block';
     }
-})(); 
+
+    async function loadPreviewQrCode() {
+        currentUrl = getPublicUrl();
+
+        if (!currentUrl) {
+            showError('Public URL for QR code is not available.');
+            return;
+        }
+
+        loadingMessage.style.display = 'block';
+        qrImageElement.style.display = 'none';
+        if (actionsContainer) actionsContainer.style.display = 'none';
+        errorMessageElement.style.display = 'none';
+
+        try {
+            const data = await fetchQrCode(currentUrl, 300);
+
+            if (data.success && data.image_url) {
+                loadingMessage.style.display = 'none';
+                qrImageElement.src = data.image_url;
+                qrImageElement.style.display = 'block';
+                if (actionsContainer) actionsContainer.style.display = 'block';
+            } else {
+                showError(data.message || 'Failed to generate QR code.');
+            }
+        } catch (error) {
+            showError(error.message || 'Request failed.');
+        }
+    }
+
+    async function downloadHighResQrCode() {
+        if (!currentUrl || !downloadButton) return;
+
+        downloadButton.disabled = true;
+        const originalText = downloadButton.innerHTML;
+        downloadButton.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Generating...';
+
+        try {
+            const data = await fetchQrCode(currentUrl, 1000);
+
+            if (data.success && data.image_url) {
+                const link = document.createElement('a');
+                link.href = data.image_url;
+                link.download = getArtistSlug() + '-qr-code.png';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            } else {
+                alert('Failed to generate high-resolution QR code.');
+            }
+        } catch (error) {
+            alert('Error: ' + (error.message || 'Request failed.'));
+        } finally {
+            downloadButton.disabled = false;
+            downloadButton.innerHTML = originalText;
+        }
+    }
+
+    // Event listeners
+    qrButton.addEventListener('click', function() {
+        showModal();
+        loadPreviewQrCode();
+    });
+
+    if (qrModalClose) {
+        qrModalClose.addEventListener('click', hideModal);
+    }
+
+    qrModal.addEventListener('click', function(event) {
+        if (event.target === qrModal) {
+            hideModal();
+        }
+    });
+
+    if (downloadButton) {
+        downloadButton.addEventListener('click', downloadHighResQrCode);
+    }
+})();

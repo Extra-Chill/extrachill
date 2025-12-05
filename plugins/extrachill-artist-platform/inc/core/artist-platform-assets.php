@@ -165,6 +165,14 @@ class ExtraChillArtistPlatform_Assets {
         $current_artist_id = apply_filters('ec_get_artist_id', $_GET);
         $link_page_data = $current_artist_id > 0 ? ec_get_link_page_data( $current_artist_id ) : array();
 
+        $artist_slug = '';
+        if ( $current_artist_id > 0 ) {
+            $artist_post = get_post( $current_artist_id );
+            if ( $artist_post ) {
+                $artist_slug = $artist_post->post_name;
+            }
+        }
+
         $fonts_data = array();
         if ( class_exists( 'ExtraChillArtistPlatform_Fonts' ) ) {
             $font_manager = ExtraChillArtistPlatform_Fonts::instance();
@@ -173,6 +181,8 @@ class ExtraChillArtistPlatform_Assets {
 
         wp_localize_script( 'extrachill-artist-platform', 'extraChillArtistPlatform', array(
             'ajaxUrl' => admin_url( 'admin-ajax.php' ),
+            'restUrl' => rest_url( 'extrachill/v1' ),
+            'artistSlug' => $artist_slug,
             'nonce' => wp_create_nonce( 'ec_ajax_nonce' ),
             'linkPageData' => $link_page_data,
             'fonts' => $fonts_data,

@@ -51,7 +51,7 @@ function ec_add_artist_card_management_buttons( $artist_id ) {
     ?>
     <?php if ( $manage_artist_url ) : ?>
         <a href="<?php echo esc_url( $manage_artist_url ); ?>" class="button-2 button-medium" data-action-button>
-            <?php esc_html_e( 'Manage Artist Profile', 'extrachill-artist-platform' ); ?>
+            <?php esc_html_e( 'Manage Artist', 'extrachill-artist-platform' ); ?>
         </a>
     <?php endif; ?>
 

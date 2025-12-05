@@ -27,13 +27,24 @@ get_header(); ?>
                         <?php 
                         $current_user_id = get_current_user_id();
                         $user_artist_ids = ec_get_artists_for_user( $current_user_id );
-                        $is_artist_or_pro = ( get_user_meta( $current_user_id, 'user_is_artist', true ) === '1' || 
-                                              get_user_meta( $current_user_id, 'user_is_professional', true ) === '1' );
+                        $artist_count    = count( $user_artist_ids );
                         
-                        if ( !empty($user_artist_ids) || $is_artist_or_pro ) : ?>
+                        if ( $artist_count > 0 ) :
+                            $latest_artist_id = ec_get_latest_artist_for_user( $current_user_id );
+                            $manage_url       = home_url( '/manage-artist-profiles/?artist_id=' . $latest_artist_id );
+                            $artist_label     = $artist_count === 1
+                                ? esc_html__( 'Manage Artist', 'extrachill-artist-platform' )
+                                : esc_html__( 'Manage Artists', 'extrachill-artist-platform' );
+                        ?>
                             <div class="artist-directory-actions">
-                                <a href="<?php echo home_url('/manage-artist-profiles/'); ?>" class="button-2 button-medium">
-                                    <?php echo !empty($user_artist_ids) ? 'Manage My Artists' : 'Create Artist Profile'; ?>
+                                <a href="<?php echo esc_url( $manage_url ); ?>" class="button-2 button-medium">
+                                    <?php echo $artist_label; ?>
+                                </a>
+                            </div>
+                        <?php elseif ( ec_can_create_artist_profiles( $current_user_id ) ) : ?>
+                            <div class="artist-directory-actions">
+                                <a href="<?php echo esc_url( home_url( '/manage-artist-profiles/' ) ); ?>" class="button-2 button-medium">
+                                    <?php esc_html_e( 'Create Artist Profile', 'extrachill-artist-platform' ); ?>
                                 </a>
                             </div>
                         <?php endif; ?>

@@ -146,23 +146,26 @@ if ($link_page_id && get_post_type($link_page_id) === 'artist_link_page') {
     // Change button to display Font Awesome QR code icon
     echo '<button type="button" id="bp-get-qr-code-btn" class="button-2 button-small" title="' . esc_attr__("Get QR Code", "extrachill-artist-platform") . '" style="margin-left: 0.5em;"><i class="fa-solid fa-qrcode"></i></button>';
     echo '</div>';
-    echo '<div id="bp-qr-code-container" style="margin-top: 1em; text-align: left;"></div>'; // Existing Container for QR code (can be repurposed or removed if modal is sufficient)
     // --- QR Code Modal ---
     echo '<div id="bp-qr-code-modal" class="bp-modal" style="display:none;">';
     echo '  <div class="bp-modal-content">';
     echo '    <span class="bp-modal-close">&times;</span>';
-    echo '    <h2>' . esc_html__("Your Link Page QR Code", "extrachill-artist-platform") . '</h2>';
+    echo '    <h2>' . esc_html__( 'Your Link Page QR Code', 'extrachill-artist-platform' ) . '</h2>';
     echo '    <div id="bp-qr-code-modal-image-container">';
-    echo '      <p class="loading-message">' . esc_html__("Loading QR Code...", "extrachill-artist-platform") . '</p>';
-    echo '      <img src="" alt="' . esc_attr__("Link Page QR Code", "extrachill-artist-platform") . '" style="display:none; max-width: 100%; height: auto;" />';
+    echo '      <p class="loading-message">' . esc_html__( 'Loading QR Code...', 'extrachill-artist-platform' ) . '</p>';
+    echo '      <img src="" alt="' . esc_attr__( 'Link Page QR Code', 'extrachill-artist-platform' ) . '" />';
     echo '    </div>';
-    echo '    <p class="bp-modal-instructions">' . esc_html__("Right-click or long-press the image to save it.", "extrachill-artist-platform") . '</p>';
+    echo '    <div class="bp-qr-code-actions" style="display:none;">';
+    echo '      <button type="button" id="bp-download-qr-hires" class="button-2">';
+    echo '        <i class="fa-solid fa-download"></i> ' . esc_html__( 'Download for Print', 'extrachill-artist-platform' );
+    echo '      </button>';
+    echo '    </div>';
     echo '  </div>';
     echo '</div>';
     // --- End QR Code Modal ---
 }
 ?>
-<div class="manage-link-page-flex">
+<div class="manage-link-page-flex full-width-breakout">
     <div class="manage-link-page-edit shared-tabs-component">
         <form method="post" id="bp-manage-link-page-form" enctype="multipart/form-data" action="">
             <?php wp_nonce_field('bp_save_link_page_action', 'bp_save_link_page_nonce'); ?>

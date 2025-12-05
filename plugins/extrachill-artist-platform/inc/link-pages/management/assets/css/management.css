@@ -79,13 +79,14 @@
   border: 1.5px solid var(--border-color);
 }
 
-.bp-link-page-url {
+.notice.bp-link-page-url {
   margin-bottom: 1.5em;
   display: flex;
   align-items: center;
   gap: 10px;
   justify-content: center;
   width: max-content;
+  max-width: 100%;
 }
 .bp-link-page-url-text {
   font-size: 1.1em;
@@ -263,9 +264,9 @@
 }
 
 #bp-qr-code-modal-image-container img {
-    display: block; /* Initially none, set by JS */
+    display: block;
     margin: 1em auto;
-    max-width: 90%; /* Ensure it fits within modal padding */
+    max-width: 90%;
     height: auto;
     border: 1px solid #eee;
 }
@@ -275,16 +276,19 @@
     margin: 1em 0;
     padding: 0.5em;
 }
-i.fa-solid.fa-qrcode {
-  color: #fff;
-}
-i.fa-solid.fa-qrcode:hover {
-  color: #fff;
-}
-.bp-modal-instructions {
-    font-size: 0.9em;
-    color: var(--muted-text);
+
+.bp-qr-code-actions {
     margin-top: 1em;
+    padding-top: 1em;
+    border-top: 1px solid var(--border-color);
+}
+
+i.fa-solid.fa-qrcode {
+    color: #fff;
+}
+
+i.fa-solid.fa-qrcode:hover {
+    color: #fff;
 }
 
 /* Styles for Content Cards within Tabs */

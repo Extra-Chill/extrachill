@@ -10,6 +10,51 @@ add_action( 'wp_ajax_link_page_click_tracking', 'handle_link_click_tracking' );
 add_action( 'wp_ajax_nopriv_link_page_click_tracking', 'handle_link_click_tracking' );
 
 /**
+ * Normalizes tracked URLs by removing auto-generated analytics parameters.
+ *
+ * Strips _gl, _ga, and _ga_* query parameters injected by Google Analytics
+ * cross-domain linking while preserving affiliate IDs and custom query strings.
+ *
+ * @param string $url The URL to normalize.
+ * @return string The normalized URL with auto-generated params removed.
+ */
+function extrch_normalize_tracked_url( $url ) {
+    if ( empty( $url ) ) {
+        return $url;
+    }
+
+    $parsed = wp_parse_url( $url );
+    if ( ! isset( $parsed['query'] ) || empty( $parsed['query'] ) ) {
+        return $url;
+    }
+
+    parse_str( $parsed['query'], $query_params );
+
+    // Remove Google Analytics auto-generated parameters
+    $params_to_strip = array( '_gl', '_ga' );
+    foreach ( $params_to_strip as $param ) {
+        unset( $query_params[ $param ] );
+    }
+
+    // Remove any _ga_* parameters (e.g., _ga_L362LLL9KM)
+    foreach ( array_keys( $query_params ) as $key ) {
+        if ( strpos( $key, '_ga_' ) === 0 ) {
+            unset( $query_params[ $key ] );
+        }
+    }
+
+    // Rebuild URL
+    $scheme = isset( $parsed['scheme'] ) ? $parsed['scheme'] . '://' : '';
+    $host = isset( $parsed['host'] ) ? $parsed['host'] : '';
+    $port = isset( $parsed['port'] ) ? ':' . $parsed['port'] : '';
+    $path = isset( $parsed['path'] ) ? $parsed['path'] : '';
+    $query = ! empty( $query_params ) ? '?' . http_build_query( $query_params ) : '';
+    $fragment = isset( $parsed['fragment'] ) ? '#' . $parsed['fragment'] : '';
+
+    return $scheme . $host . $port . $path . $query . $fragment;
+}
+
+/**
  * Records link click events to daily aggregation table
  */
 function handle_link_click_tracking() {
@@ -20,7 +65,7 @@ function handle_link_click_tracking() {
     global $wpdb;
 
     $link_page_id = apply_filters('ec_get_link_page_id', $_POST);
-    $link_url = esc_url_raw( $_POST['link_url'] );
+    $link_url = extrch_normalize_tracked_url( esc_url_raw( wp_unslash( $_POST['link_url'] ) ) );
     $today = current_time('Y-m-d');
 
     $table_name = $wpdb->prefix . 'extrch_link_page_daily_link_clicks';

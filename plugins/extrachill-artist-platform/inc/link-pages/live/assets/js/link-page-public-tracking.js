@@ -14,14 +14,40 @@
     const { ajax_url, link_page_id } = extrchTrackingData;
 
     /**
+     * Strips auto-generated Google Analytics parameters from URLs.
+     * Removes _gl, _ga, and _ga_* query params while preserving affiliate IDs and custom params.
+     */
+    function normalizeTrackedUrl(url) {
+        try {
+            const urlObj = new URL(url);
+            const paramsToStrip = ['_gl', '_ga'];
+            
+            paramsToStrip.forEach(param => urlObj.searchParams.delete(param));
+            
+            // Remove any _ga_* parameters
+            const keysToRemove = [];
+            urlObj.searchParams.forEach((value, key) => {
+                if (key.startsWith('_ga_')) {
+                    keysToRemove.push(key);
+                }
+            });
+            keysToRemove.forEach(key => urlObj.searchParams.delete(key));
+            
+            return urlObj.toString();
+        } catch (e) {
+            return url;
+        }
+    }
+
+    /**
      * Sends link click tracking data to the backend
-     * Uses legacy handle_link_click_tracking AJAX handler
      */
     function trackLinkClick(linkUrl) {
+        const normalizedUrl = normalizeTrackedUrl(linkUrl);
         const formData = new FormData();
         formData.append('action', 'link_page_click_tracking');
         formData.append('link_page_id', link_page_id);
-        formData.append('link_url', linkUrl);
+        formData.append('link_url', normalizedUrl);
 
         // Use sendBeacon for better reliability during page unload
         if (navigator.sendBeacon) {
