@@ -1,10 +1,9 @@
 <?php
 /**
- * Events Homepage Template
+ * Events Homepage Content
  *
- * Renders static homepage content configured via Settings → Reading → "A static page".
- * Supports datamachine-events calendar block via WordPress editor.
- * Only applies on blog ID 7 (events.extrachill.com).
+ * Homepage content for events.extrachill.com.
+ * Hooked via extrachill_homepage_content action.
  *
  * @package ExtraChillEvents
  * @since 0.1.0
@@ -13,8 +12,6 @@
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
-
-get_header();
 
 extrachill_breadcrumbs();
 ?>
@@ -41,5 +38,3 @@ extrachill_breadcrumbs();
 		</div><!-- .entry-content -->
 	</div><!-- .inside-article -->
 </article><!-- .events-homepage -->
-
-<?php get_footer(); ?>

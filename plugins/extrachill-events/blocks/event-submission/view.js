@@ -75,7 +75,7 @@
 
 			const payload = await response.json().catch(() => ({}));
 
-			if (!response.ok || payload.success === false) {
+			if (!response.ok) {
 				const message = payload?.message || 'We could not process your submission. Please try again.';
 				throw new Error(message);
 			}

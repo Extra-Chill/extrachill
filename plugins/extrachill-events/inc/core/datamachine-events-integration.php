@@ -37,12 +37,12 @@ class DataMachineEventsIntegration {
             add_filter('datamachine_events_excluded_taxonomies', array($this, 'exclude_taxonomies'), 10, 2);
         }
 
-        add_filter('datamachine_events_taxonomy_dependencies', array($this, 'configure_taxonomy_dependencies'));
         add_filter('datamachine_events_modal_button_classes', array($this, 'add_modal_button_classes'), 10, 2);
         add_filter('datamachine_events_ticket_button_classes', array($this, 'add_ticket_button_classes'), 10, 1);
         add_filter('datamachine_events_more_info_button_classes', array($this, 'add_more_info_button_classes'), 10, 1);
 
         add_filter('extrachill_post_meta', array($this, 'hide_post_meta_for_events'), 10, 3);
+        add_filter('extrachill_taxonomy_badges_skip_term', array($this, 'skip_duplicate_promoter'), 10, 4);
 
         add_action('wp_enqueue_scripts', array($this, 'enqueue_single_post_styles'));
         add_action('wp_enqueue_scripts', array($this, 'enqueue_calendar_styles'));
@@ -116,22 +116,6 @@ class DataMachineEventsIntegration {
     public function exclude_taxonomies($excluded, $context = '') {
         $excluded[] = 'artist';
         return $excluded;
-    }
-
-    /**
-     * Configure taxonomy dependencies for cascading filters
-     *
-     * Venue filter options are filtered based on selected location filter.
-     * When a location is selected, only venues with events in that location are shown.
-     *
-     * @hook datamachine_events_taxonomy_dependencies
-     * @param array $dependencies Taxonomy dependency mappings
-     * @return array Modified dependencies with venue depending on location
-     * @since 0.1.3
-     */
-    public function configure_taxonomy_dependencies($dependencies) {
-        $dependencies['venue'] = 'location';
-        return $dependencies;
     }
 
     /**
@@ -266,16 +250,6 @@ class DataMachineEventsIntegration {
             );
         }
 
-        $share_css = get_template_directory() . '/assets/css/share.css';
-
-        if (file_exists($share_css)) {
-            wp_enqueue_style(
-                'extrachill-share',
-                get_template_directory_uri() . '/assets/css/share.css',
-                array('extrachill-style'),
-                filemtime($share_css)
-            );
-        }
     }
 
     /**
@@ -302,5 +276,36 @@ class DataMachineEventsIntegration {
                 filemtime($calendar_css)
             );
         }
+    }
+
+    /**
+     * Skip promoter badge if name matches venue name
+     *
+     * Prevents redundant display when promoter and venue are the same entity.
+     * Mirrors logic from datamachine-events Calendar block Taxonomy_Badges.
+     *
+     * @hook extrachill_taxonomy_badges_skip_term
+     * @param bool $skip Whether to skip this term
+     * @param WP_Term $term The term being rendered
+     * @param string $taxonomy The taxonomy slug
+     * @param int $post_id The post ID
+     * @return bool True to skip promoter matching venue, unchanged otherwise
+     */
+    public function skip_duplicate_promoter($skip, $term, $taxonomy, $post_id) {
+        if ($taxonomy !== 'promoter') {
+            return $skip;
+        }
+
+        $venue_terms = get_the_terms($post_id, 'venue');
+        if (!$venue_terms || is_wp_error($venue_terms)) {
+            return $skip;
+        }
+
+        $venue_name = $venue_terms[0]->name;
+        if (strcasecmp(trim($term->name), trim($venue_name)) === 0) {
+            return true;
+        }
+
+        return $skip;
     }
 }

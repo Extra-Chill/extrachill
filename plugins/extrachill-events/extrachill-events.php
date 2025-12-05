@@ -3,7 +3,7 @@
  * Plugin Name: Extra Chill Events
  * Plugin URI: https://extrachill.com
  * Description: Calendar integration with template overrides, datamachine-events badge/button styling, breadcrumb system, and related events for events.extrachill.com.
- * Version: 0.1.5
+ * Version: 0.1.6
  * Author: Chris Huber
  * Author URI: https://chubes.net
  * Requires Plugins: datamachine, datamachine-events
@@ -83,6 +83,7 @@ class ExtraChillEvents {
 		}
 
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/datamachine-events-integration.php';
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/nav.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/single-event/breadcrumbs.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/single-event/related-events.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/single-event/share-button.php';
@@ -131,23 +132,16 @@ function extrachill_events_register_blocks() {
 add_action( 'init', 'extrachill_events_register_blocks' );
 
 /**
- * Override homepage template for events.extrachill.com
+ * Render homepage content for events.extrachill.com
  *
- * Replaces theme homepage with static page content plus datamachine-events calendar block.
- * Only applies on blog ID 7 (events.extrachill.com).
+ * Hooked via extrachill_homepage_content action.
  *
- * @hook extrachill_template_homepage
- * @param string $template Default template path from theme
- * @return string Plugin template path for events site, theme template otherwise
  * @since 0.1.0
  */
-function ec_events_override_homepage_template( $template ) {
-	if ( get_current_blog_id() === 7 ) {
-		return EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/templates/homepage.php';
-	}
-	return $template;
+function ec_events_render_homepage() {
+	include EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/templates/homepage.php';
 }
-add_filter( 'extrachill_template_homepage', 'ec_events_override_homepage_template' );
+add_action( 'extrachill_homepage_content', 'ec_events_render_homepage' );
 
 /**
  * Override archive template on events.extrachill.com

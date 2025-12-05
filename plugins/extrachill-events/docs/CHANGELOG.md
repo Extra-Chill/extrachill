@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0/).
 
+## [0.1.6] - 2025-12-05
+
+### Added
+- Added navigation integration with "Submit Event" link in secondary header
+- Added promoter badge skipping when promoter name matches venue name
+
+### Changed
+- Improved event submission form error handling
+- Converted homepage rendering from template override to content hook
+- Moved share.css enqueue responsibility to theme
+
+### Removed
+- Removed taxonomy dependencies configuration
+- Removed duplicate CLAUDE.md documentation file
+
 ## [0.1.5] - 2025-12-02
 
 ### Added
