@@ -6,7 +6,7 @@
  * Provides centralized configuration and subscription bridge.
  *
  * @package ExtraChillNewsletter
- * @since 1.0.0
+ * @since 0.1.0
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -35,19 +35,15 @@ function get_sendy_config() {
 	);
 }
 
-function get_newsletter_integrations() {
-	return apply_filters( 'newsletter_form_integrations', array() );
-}
-
-function newsletter_integration_enabled( $enable_key ) {
-	$settings = get_site_option( 'extrachill_newsletter_settings', array() );
-	return ! empty( $settings[ $enable_key ] );
-}
-
 /**
  * Subscribe email address via Sendy API
  *
- * Validates integration, retrieves list ID from network settings, makes API request.
+ * Validates integration context exists and list ID is configured,
+ * then makes subscription request to Sendy.
+ *
+ * @param string $email   Email address to subscribe.
+ * @param string $context Form context (homepage, navigation, content, archive).
+ * @return array Success status and message.
  */
 function extrachill_multisite_subscribe( $email, $context ) {
 	$integrations = get_newsletter_integrations();
@@ -60,14 +56,6 @@ function extrachill_multisite_subscribe( $email, $context ) {
 	}
 
 	$integration = $integrations[ $context ];
-
-	if ( ! newsletter_integration_enabled( $integration['enable_key'] ) ) {
-		return array(
-			'success' => false,
-			'message' => __( 'Newsletter integration is disabled', 'extrachill-newsletter' ),
-		);
-	}
-
 	$settings = get_site_option( 'extrachill_newsletter_settings', array() );
 	$list_id = isset( $settings[ $integration['list_id_key'] ] ) ? $settings[ $integration['list_id_key'] ] : '';
 

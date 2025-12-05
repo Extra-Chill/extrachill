@@ -5,7 +5,7 @@
  * Customizes breadcrumb display for newsletter single posts.
  *
  * @package ExtraChillNewsletter
- * @since 1.0.0
+ * @since 0.1.0
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -20,7 +20,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * @param string $root_link Default root breadcrumb link HTML
  * @return string Modified root link
- * @since 1.0.0
+ * @since 0.1.0
  */
 function newsletter_breadcrumb_root( $root_link ) {
 	// Only apply on newsletter.extrachill.com (blog ID 9)
@@ -46,7 +46,7 @@ add_filter( 'extrachill_breadcrumbs_root', 'newsletter_breadcrumb_root' );
  *
  * @param string $custom_trail Existing custom trail from other plugins
  * @return string Breadcrumb trail HTML
- * @since 1.0.0
+ * @since 0.1.0
  */
 function newsletter_breadcrumb_trail_homepage( $custom_trail ) {
 	// Only apply on newsletter.extrachill.com (blog ID 9)
@@ -68,7 +68,7 @@ add_filter( 'extrachill_breadcrumbs_override_trail', 'newsletter_breadcrumb_trai
  *
  * @param string $custom_trail Existing custom trail from other plugins
  * @return string Empty string
- * @since 1.0.0
+ * @since 0.1.0
  */
 function newsletter_customize_breadcrumbs( $custom_trail ) {
 	if ( get_current_blog_id() !== 9 ) {
@@ -93,7 +93,7 @@ add_filter( 'extrachill_breadcrumbs_override_trail', 'newsletter_customize_bread
  * @param string $label Default back-to-home link label
  * @param string $url   Back-to-home link URL
  * @return string Modified label
- * @since 1.0.0
+ * @since 0.1.0
  */
 function newsletter_back_to_home_label( $label, $url ) {
 	// Only apply on newsletter.extrachill.com (blog ID 9)

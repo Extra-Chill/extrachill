@@ -2,41 +2,33 @@
 /**
  * Newsletter Form Hook Handlers
  *
- * Handles subscription form display via theme action hooks.
+ * Handles subscription form display on newsletter archive pages.
+ * Uses the generic extrachill_render_newsletter_form action.
  *
  * @package ExtraChillNewsletter
- * @since 1.0.0
+ * @since 0.1.0
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Display newsletter form on archive page below description
+ */
 function extrachill_newsletter_archive_form() {
 	if ( ! is_post_type_archive( 'newsletter' ) ) {
 		return;
 	}
 
-	$settings = get_site_option( 'extrachill_newsletter_settings', array() );
-	if ( empty( $settings['enable_archive'] ) ) {
-		return;
-	}
-
-	wp_enqueue_script( 'extrachill-newsletter' );
-	wp_enqueue_style( 'extrachill-newsletter-forms' );
-
-	include EXTRACHILL_NEWSLETTER_TEMPLATES_DIR . 'archive-form.php';
+	do_action( 'extrachill_render_newsletter_form', 'archive' );
 }
 add_action( 'extrachill_archive_below_description', 'extrachill_newsletter_archive_form', 10 );
+
+/**
+ * Display newsletter form in homepage hero section (newsletter site only)
+ */
 function extrachill_newsletter_homepage_hero_form() {
-	$settings = get_site_option( 'extrachill_newsletter_settings', array() );
-	if ( empty( $settings['enable_archive'] ) ) {
-		return;
-	}
-
-	wp_enqueue_script( 'extrachill-newsletter' );
-	wp_enqueue_style( 'extrachill-newsletter-forms' );
-
-	include EXTRACHILL_NEWSLETTER_TEMPLATES_DIR . 'archive-form.php';
+	do_action( 'extrachill_render_newsletter_form', 'archive' );
 }
 add_action( 'newsletter_homepage_hero', 'extrachill_newsletter_homepage_hero_form', 10 );

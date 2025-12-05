@@ -6,11 +6,10 @@ A comprehensive WordPress plugin for newsletter management and Sendy integration
 
 - **Custom Newsletter Post Type**: Complete newsletter management with archive and single page templates
 - **Sendy Integration**: Full API integration for campaign creation, updates, and subscription management
-- **Multiple Subscription Forms**: Archive page, homepage, navigation menu, content, and footer forms
+- **Decoupled Subscription Forms**: Generic form template with context-based presets
 - **Template Override System**: Plugin-provided templates that override theme templates
-- **AJAX-Powered Forms**: Seamless subscription experience without page reloads
+- **REST API-Powered Forms**: Seamless subscription experience without page reloads
 - **Integration System**: Declarative form registration via WordPress filters
-- **Security Features**: Cloudflare Turnstile anti-spam, rate limiting, and nonce verification
 - **Responsive Design**: Mobile-optimized forms and layouts
 - **Admin Integration**: Campaign management meta box with push-to-Sendy functionality
 
@@ -48,7 +47,6 @@ A comprehensive WordPress plugin for newsletter management and Sendy integration
 The plugin provides a comprehensive admin settings interface for configuration. Navigate to **Newsletter → Settings** on newsletter.extrachill.com to configure:
 
 - **Global Sendy Settings**: API key, Sendy URL, from email, reply-to email, brand ID
-- **Integration Management**: Enable/disable specific newsletter subscription contexts
 - **List ID Configuration**: Sendy list IDs for each integration context
 
 All settings are stored network-wide in `get_site_option('extrachill_newsletter_settings')` and accessible from all sites in the multisite network.
@@ -59,20 +57,22 @@ All settings are stored network-wide in `get_site_option('extrachill_newsletter_
 
 The plugin supports multiple subscription contexts through a declarative registration system:
 
-- **Navigation**: Navigation menu subscription form
-- **Homepage**: Main homepage subscription form
-- **Popup**: Modal popup subscription (backend infrastructure only - no frontend display currently implemented)
-- **Archive**: Newsletter archive page subscription
-- **Content**: Newsletter form after post content
-- **Footer**: Newsletter form above site footer
+- **Navigation**: Navigation menu subscription form (network-wide, handled by newsletter plugin)
+- **Homepage**: Main homepage subscription form (called by blog plugin)
+- **Archive**: Newsletter archive page subscription (newsletter site only)
+- **Content**: Newsletter form after post content (called by theme)
 
 ### Theme Integration
 
-The plugin includes a homepage section that can be displayed by adding this to your theme:
+The plugin provides a decoupled action hook for rendering newsletter forms:
 
 ```php
-do_action('extrachill_newsletter_homepage_section');
+// Render newsletter form for a specific context
+do_action( 'extrachill_render_newsletter_form', 'homepage' );
+do_action( 'extrachill_render_newsletter_form', 'content' );
 ```
+
+Context presets are defined in `extrachill_get_newsletter_context_presets()` and can be customized via the `extrachill_newsletter_form_args` filter.
 
 ## Usage
 
@@ -86,55 +86,48 @@ do_action('extrachill_newsletter_homepage_section');
 
 ### Subscription Forms
 
-The plugin provides multiple subscription forms that integrate via WordPress hooks:
+The plugin uses a decoupled architecture where forms are rendered via the `extrachill_render_newsletter_form` action:
 
-- **Archive Page**: Automatically displays on the newsletter archive page
-- **Homepage**: Main homepage subscription form
-- **Navigation Menu**: Automatically integrates with theme navigation
-- **Content**: Newsletter form displayed after post content
-- **Footer**: Newsletter form displayed above site footer
+- **Navigation**: Handled by newsletter plugin (network-wide on every page)
+- **Archive**: Handled by newsletter plugin (newsletter site archive pages)
+- **Homepage**: Called by blog plugin via `do_action('extrachill_render_newsletter_form', 'homepage')`
+- **Content**: Called by theme via `do_action('extrachill_render_newsletter_form', 'content')`
 
-All forms use the centralized `extrachill_multisite_subscribe()` function for consistent subscription handling.
+All forms use the generic template (`generic-form.php`) with context-specific presets for heading, description, layout, and styling.
 
 
 
 ### Template Customization
 
-The plugin uses its own templates but allows theme overrides. To customize form templates:
+The plugin uses a single generic form template (`generic-form.php`) with context-based presets. To customize form appearance:
 
-1. Copy templates from `plugins/extrachill-newsletter/inc/core/templates/forms/`
-2. Place them in your theme's root directory
-3. Modify as needed (plugin templates will be used as fallback)
+1. Use the `extrachill_newsletter_form_args` filter to modify preset values
+2. Override CSS styles in your theme targeting `.newsletter-form-wrapper` classes
 
-## AJAX Endpoints
+## REST API Endpoint
 
-The plugin registers these AJAX endpoints for form handling:
+The plugin provides subscription functionality via REST API (endpoint registered in `extrachill-api` plugin):
 
-- `submit_newsletter_form` - Archive page subscription
-- `subscribe_to_sendy_home` - Homepage subscription
-- `subscribe_to_sendy` - Navigation subscription
-- `submit_newsletter_popup_form` - Popup subscription (backend infrastructure exists, no frontend display)
-- `submit_newsletter_content_form` - Content form subscription
-- `submit_newsletter_footer_form` - Footer form subscription
-- `push_newsletter_to_sendy_ajax` - Admin campaign management
+- `POST /wp-json/extrachill/v1/newsletter/subscribe` - Newsletter subscription
+  - Parameters: `email` (required), `context` (required)
+  - Delegates to `extrachill_multisite_subscribe()` for Sendy integration
 
-All endpoints include security verification, input sanitization, and rate limiting where appropriate.
+Admin functionality:
+- `push_newsletter_to_sendy_ajax` - Admin campaign management (AJAX)
 
 ## Hooks and Filters
 
 ### Actions
+- `extrachill_render_newsletter_form` - Main action to render newsletter form (accepts context parameter)
 - `extrachill_navigation_before_social_links` - Navigation menu subscription form (network-wide)
 - `extrachill_home_grid_bottom_right` - Latest newsletters grid display (main blog only)
-- `extrachill_home_final_right` - Homepage subscription form (main blog only)
-- `extrachill_after_post_content` - Content subscription form (network-wide)
-- `extrachill_above_footer` - Footer subscription form (network-wide)
 - `extrachill_sidebar_bottom` - Recent newsletters sidebar widget (network-wide)
 - `extrachill_archive_below_description` - Archive page subscription form (archive pages)
 - `newsletter_homepage_hero` - Newsletter homepage hero form (newsletter site homepage only)
-- `newsletter_subscription_logged` - After subscription attempt logging
 
 ### Filters
 - `newsletter_form_integrations` - Register newsletter integration contexts
+- `extrachill_newsletter_form_args` - Customize form arguments per context
 - `extrachill_template_homepage` - Homepage template override (newsletter site)
 - `extrachill_post_meta` - Customize post meta display for newsletters
 - `extrachill_breadcrumbs_override_trail` - Customize breadcrumb trail for newsletters
@@ -156,29 +149,23 @@ All endpoints include security verification, input sanitization, and rate limiti
 extrachill-newsletter/
 ├── extrachill-newsletter.php          # Main plugin file
 ├── inc/
-│   ├── core/
-│   │   ├── assets.php                 # Centralized asset management
-│   │   ├── sendy-api.php              # Sendy API integration
-│   │   ├── newsletter-post-type.php   # Custom post type registration
-│   │   ├── newsletter-settings.php    # Admin settings page
-│   │   ├── hooks/
-│   │   │   ├── breadcrumbs.php        # Breadcrumb customization
-│   │   │   ├── forms.php              # Archive form hooks
-│   │   │   ├── homepage.php           # Homepage override hooks
-│   │   │   ├── post-meta.php          # Post meta customization
-│   │   │   └── sidebar.php            # Sidebar widget hooks
-│   │   └── templates/
-│   │       ├── homepage.php           # Homepage template override
-│   │       ├── email-template.php     # Email HTML generation
-│   │       ├── recent-newsletters.php # Sidebar widget template
-│   │       └── forms/
-│   │           ├── navigation-form.php      # Navigation menu form
-│   │           ├── content-form.php         # Post content form
-│   │           ├── footer-form.php          # Footer form
-│   │           ├── homepage-section.php     # Homepage section template
-│   │           └── archive-form.php         # Archive page form
-│   └── ajax/
-│       └── handlers.php               # AJAX request handlers
+│   └── core/
+│       ├── assets.php                 # Centralized asset management
+│       ├── sendy-api.php              # Sendy API integration
+│       ├── newsletter-post-type.php   # Custom post type registration
+│       ├── newsletter-settings.php    # Admin settings page
+│       ├── hooks/
+│       │   ├── breadcrumbs.php        # Breadcrumb customization
+│       │   ├── forms.php              # Archive form hooks
+│       │   ├── homepage.php           # Homepage override hooks
+│       │   ├── post-meta.php          # Post meta customization
+│       │   └── sidebar.php            # Sidebar widget hooks
+│       └── templates/
+│           ├── homepage.php           # Homepage template override
+│           ├── email-template.php     # Email HTML generation
+│           ├── recent-newsletters.php # Sidebar widget template
+│           └── forms/
+│               └── generic-form.php   # Generic form template (all contexts)
 ├── assets/
 │   ├── css/
 │   │   ├── newsletter.css             # Newsletter page styles

@@ -6,7 +6,7 @@
  * Dynamically discovers registered integrations via filter.
  *
  * @package ExtraChillNewsletter
- * @since 1.0.0
+ * @since 0.1.0
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -45,10 +45,9 @@ function ec_newsletter_handle_settings_save() {
 	$settings['reply_to'] = isset( $_POST['reply_to'] ) ? sanitize_email( wp_unslash( $_POST['reply_to'] ) ) : 'chubes@extrachill.com';
 	$settings['brand_id'] = isset( $_POST['brand_id'] ) ? sanitize_text_field( wp_unslash( $_POST['brand_id'] ) ) : '1';
 
-	// Dynamic integration fields
+	// Integration Sendy list IDs
 	$integrations = get_newsletter_integrations();
 	foreach ( $integrations as $context => $integration ) {
-		$settings[ $integration['enable_key'] ] = ! empty( $_POST[ $integration['enable_key'] ] ) ? 1 : 0;
 		$settings[ $integration['list_id_key'] ] = isset( $_POST[ $integration['list_id_key'] ] ) ? sanitize_text_field( wp_unslash( $_POST[ $integration['list_id_key'] ] ) ) : '';
 	}
 
@@ -67,6 +66,7 @@ function ec_newsletter_handle_settings_save() {
 	wp_redirect( $redirect_url );
 	exit;
 }
+
 function ec_newsletter_render_settings_page() {
 	$settings = get_newsletter_settings();
 	$integrations = get_newsletter_integrations();
@@ -156,57 +156,22 @@ function ec_newsletter_render_settings_page() {
 
 			<!-- Integration Configuration -->
 			<h2><?php _e( 'Form Integrations', 'extrachill-newsletter' ); ?></h2>
-			<p class="description"><?php _e( 'Configure newsletter subscription forms from this site and other sites across the network.', 'extrachill-newsletter' ); ?></p>
-
-			<?php if ( !empty( $integrations ) ): ?>
-			<div class="card" style="margin-bottom: 20px;">
-				<h3><?php _e( 'Registered Integrations:', 'extrachill-newsletter' ); ?></h3>
-				<ul>
-					<?php foreach ( $integrations as $context => $integration ):
-						$enabled = newsletter_integration_enabled( $integration['enable_key'] );
-						$status = $enabled ? __( 'Enabled', 'extrachill-newsletter' ) : __( 'Disabled', 'extrachill-newsletter' );
-						$status_class = $enabled ? 'enabled' : 'disabled';
-					?>
-					<li>
-						<strong><?php echo esc_html( $integration['label'] ); ?></strong>
-						<span class="integration-status <?php echo esc_attr( $status_class ); ?>">(<?php echo esc_html( $status ); ?>)</span>
-						<br><em><?php echo esc_html( $integration['description'] ); ?></em>
-						<?php if ( !empty( $integration['plugin'] ) ): ?>
-						<br><small><?php printf( __( 'Provided by: %s', 'extrachill-newsletter' ), esc_html( $integration['plugin'] ) ); ?></small>
-						<?php endif; ?>
-					</li>
-					<?php endforeach; ?>
-				</ul>
-			</div>
-			<?php endif; ?>
+			<p class="description"><?php _e( 'Configure Sendy list IDs for each subscription form context.', 'extrachill-newsletter' ); ?></p>
 
 			<table class="form-table">
 				<tbody>
 					<?php foreach ( $integrations as $context => $integration ): ?>
 					<tr>
-						<th scope="row"><?php echo esc_html( $integration['label'] ); ?></th>
+						<th scope="row">
+							<label for="<?php echo esc_attr( $integration['list_id_key'] ); ?>"><?php echo esc_html( $integration['label'] ); ?></label>
+						</th>
 						<td>
-							<label>
-								<input type="checkbox"
-									   name="<?php echo esc_attr( $integration['enable_key'] ); ?>"
-									   value="1"
-									   <?php checked( ! empty( $settings[ $integration['enable_key'] ] ) ); ?> />
-								<?php printf( __( 'Enable %s', 'extrachill-newsletter' ), esc_html( $integration['label'] ) ); ?>
-							</label>
-							<?php if ( ! empty( $integration['description'] ) ): ?>
-							<p class="description"><?php echo esc_html( $integration['description'] ); ?></p>
-							<?php endif; ?>
-							<br>
-							<label for="<?php echo esc_attr( $integration['list_id_key'] ); ?>"><?php _e( 'List ID:', 'extrachill-newsletter' ); ?></label>
 							<input type="text"
 								   id="<?php echo esc_attr( $integration['list_id_key'] ); ?>"
 								   name="<?php echo esc_attr( $integration['list_id_key'] ); ?>"
 								   value="<?php echo esc_attr( $settings[ $integration['list_id_key'] ] ?? '' ); ?>"
 								   class="regular-text" />
-							<p class="description"><?php printf( __( 'Sendy list ID for %s subscriptions.', 'extrachill-newsletter' ), esc_html( $integration['label'] ) ); ?></p>
-							<?php if ( ! empty( $integration['plugin'] ) ): ?>
-							<p class="description"><small><?php printf( __( 'Provided by: %s', 'extrachill-newsletter' ), esc_html( $integration['plugin'] ) ); ?></small></p>
-							<?php endif; ?>
+							<p class="description"><?php echo esc_html( $integration['description'] ); ?></p>
 						</td>
 					</tr>
 					<?php endforeach; ?>
@@ -216,40 +181,9 @@ function ec_newsletter_render_settings_page() {
 			<?php submit_button( __( 'Save Newsletter Settings', 'extrachill-newsletter' ) ); ?>
 		</form>
 	</div>
-
-	<style>
-		.card {
-			background: #fff;
-			border: 1px solid #ccd0d4;
-			border-radius: 4px;
-			padding: 20px;
-			margin: 20px 0;
-		}
-		.card h3 {
-			margin-top: 0;
-		}
-		.card ul {
-			list-style: none;
-			padding-left: 0;
-		}
-		.card li {
-			padding: 10px 0;
-			border-bottom: 1px solid #eee;
-		}
-		.card li:last-child {
-			border-bottom: none;
-		}
-		.integration-status.enabled {
-			color: #46b450;
-			font-weight: bold;
-		}
-		.integration-status.disabled {
-			color: #dc3232;
-			font-weight: bold;
-		}
-	</style>
 	<?php
 }
+
 function get_newsletter_settings() {
 	$defaults = array(
 		'sendy_api_key' => '',
@@ -260,10 +194,9 @@ function get_newsletter_settings() {
 		'brand_id' => '1',
 	);
 
-	// Add defaults for registered integrations
+	// Add defaults for registered integrations (list IDs only)
 	$integrations = get_newsletter_integrations();
 	foreach ( $integrations as $context => $integration ) {
-		$defaults[ $integration['enable_key'] ] = 1; // Enable by default
 		$defaults[ $integration['list_id_key'] ] = '';
 	}
 

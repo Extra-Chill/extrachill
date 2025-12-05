@@ -5,7 +5,7 @@
  * Provides consistent styling aligned with the extrachill theme's root CSS variables.
  *
  * @package ExtraChillNewsletter
- * @since 2.0.0
+ * @since 0.1.0
  */
 
 /* ==========================================================================
@@ -30,7 +30,7 @@
     padding: 0.75em 1em;
     border: 1px solid var(--border-color);
     border-radius: 4px;
-    background: var(--input-background));
+    background: var(--input-background);
     font-size: 1em;
     font-family: inherit;
     box-sizing: border-box;
@@ -120,6 +120,61 @@
 /* ==========================================================================
    Layout Variants - Context-Specific Patterns
    ========================================================================== */
+
+/* Generic form wrapper */
+.newsletter-form-wrapper {
+    /* Base wrapper styles - context classes provide specifics */
+}
+
+/* Generic form header */
+.newsletter-form-header {
+    text-align: center;
+    margin-bottom: 1.5em;
+}
+
+.newsletter-form-heading {
+    font-weight: 600;
+    margin-bottom: 0.5em;
+}
+
+.newsletter-form-wrapper h2.newsletter-form-heading {
+    font-size: 1.5em;
+}
+
+.newsletter-form-wrapper h3.newsletter-form-heading {
+    font-size: 1.3em;
+}
+
+/* Generic form group (input + button inline) */
+.newsletter-form-group {
+    display: flex;
+    gap: 0.5em;
+    justify-content: center;
+    align-items: center;
+    max-width: 400px;
+    margin: 0 auto;
+}
+
+.newsletter-form-group input[type="email"] {
+    flex: 1;
+}
+
+/* Generic archive link */
+.newsletter-archive-link {
+    margin-top: 1em;
+    text-align: center;
+}
+
+.newsletter-archive-link a {
+    color: var(--accent);
+    text-decoration: none;
+    font-size: 0.95em;
+    font-weight: 500;
+}
+
+.newsletter-archive-link a:hover {
+    text-decoration: underline;
+}
 
 /* Inline form layout (navigation, compact forms) */
 .newsletter-form.newsletter-inline-form {
@@ -228,7 +283,7 @@
     transform: scale(1.012);
 }
 
-.home-newsletter-header {
+.home-newsletter-signup .newsletter-form-heading {
     text-align: center;
     font-family: 'Loft Sans', sans-serif;
     font-size: 1.8em;
@@ -237,7 +292,7 @@
     text-shadow: 0 2px 8px rgba(83,148,11,0.04);
 }
 
-.home-newsletter-subhead {
+.home-newsletter-signup .newsletter-form-description {
     text-align: center;
     font-family: 'Loft Sans', sans-serif;
     font-size: 1.2em;
@@ -725,11 +780,11 @@
         padding: 2em 1.5em;
     }
 
-    .home-newsletter-header {
+    .home-newsletter-signup .newsletter-form-heading {
         font-size: 1.5em;
     }
 
-    .home-newsletter-subhead {
+    .home-newsletter-signup .newsletter-form-description {
         font-size: 1.1em;
     }
 

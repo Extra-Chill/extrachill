@@ -5,7 +5,7 @@
  * Forms must use data-newsletter-form and data-newsletter-context attributes.
  *
  * @package ExtraChillNewsletter
- * @since 1.1.0
+ * @since 0.1.2
  */
 
 (function() {

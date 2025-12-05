@@ -6,7 +6,7 @@
  * Hooked via extrachill_homepage_content action.
  *
  * @package ExtraChillNewsletter
- * @since 1.0.0
+ * @since 0.1.0
  */
 
 do_action('extrachill_before_body_content');

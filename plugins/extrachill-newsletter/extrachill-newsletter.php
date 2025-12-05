@@ -126,76 +126,104 @@ function display_newsletter_grid_section() {
 }
 add_action( 'extrachill_home_grid_bottom_right', 'display_newsletter_grid_section' );
 
-function display_newsletter_navigation_form() {
-	$settings = get_site_option('extrachill_newsletter_settings', array());
-	if (empty($settings['enable_navigation'])) {
-		return;
-	}
+/**
+ * Get newsletter form context presets
+ *
+ * Returns array of preset configurations for each known form context.
+ * Presets define heading, description, layout, and other display options.
+ *
+ * @since 0.1.2
+ * @return array Context presets keyed by context slug
+ */
+function extrachill_get_newsletter_context_presets() {
+	return array(
+		'homepage' => array(
+			'wrapper_class'     => 'home-newsletter-signup newsletter-homepage-section',
+			'heading'           => __( 'A Note from the Editor', 'extrachill-newsletter' ),
+			'heading_level'     => 'h2',
+			'description'       => __( 'Stories, reflections, and music industry insights from the underground.', 'extrachill-newsletter' ),
+			'layout'            => 'horizontal',
+			'placeholder'       => __( 'Your email for the inside scoop...', 'extrachill-newsletter' ),
+			'button_text'       => __( 'Get the Letter', 'extrachill-newsletter' ),
+			'show_archive_link' => true,
+			'archive_link_text' => __( 'Browse past newsletters', 'extrachill-newsletter' ),
+			'use_form_group'    => false,
+		),
+		'navigation' => array(
+			'wrapper_element'   => 'li',
+			'wrapper_class'     => 'menu-newsletter',
+			'heading'           => null,
+			'description'       => null,
+			'layout'            => 'inline',
+			'placeholder'       => __( 'Enter your email', 'extrachill-newsletter' ),
+			'button_text'       => __( 'Subscribe', 'extrachill-newsletter' ),
+			'show_archive_link' => true,
+			'archive_link_text' => __( 'See past newsletters', 'extrachill-newsletter' ),
+			'use_form_group'    => false,
+		),
+		'content' => array(
+			'wrapper_class'     => 'newsletter-content-section',
+			'heading'           => __( 'Stay Connected with Extra Chill', 'extrachill-newsletter' ),
+			'heading_level'     => 'h3',
+			'description'       => __( 'Get stories, reflections, and music industry insights delivered to your inbox.', 'extrachill-newsletter' ),
+			'layout'            => 'section',
+			'placeholder'       => __( 'Enter your email address', 'extrachill-newsletter' ),
+			'button_text'       => __( 'Subscribe', 'extrachill-newsletter' ),
+			'show_archive_link' => true,
+			'archive_link_text' => __( 'Browse past newsletters', 'extrachill-newsletter' ),
+			'use_form_group'    => true,
+		),
+		'archive' => array(
+			'wrapper_class'     => 'newsletter-subscription-form',
+			'heading'           => __( 'Subscribe to Our Newsletter', 'extrachill-newsletter' ),
+			'heading_level'     => 'h2',
+			'description'       => __( 'Get independent music journalism with personality delivered to your inbox.', 'extrachill-newsletter' ),
+			'layout'            => 'section',
+			'placeholder'       => __( 'Enter your email', 'extrachill-newsletter' ),
+			'button_text'       => __( 'Subscribe', 'extrachill-newsletter' ),
+			'show_archive_link' => false,
+			'use_form_group'    => false,
+		),
+	);
+}
 
+/**
+ * Render a newsletter form for the specified context
+ *
+ * Main action handler for extrachill_render_newsletter_form hook.
+ * Retrieves preset for context, applies filter for customization,
+ * enqueues assets, and includes generic template.
+ *
+ * @since 0.1.2
+ * @param string $context The form context slug (e.g., 'homepage', 'content')
+ */
+function extrachill_render_newsletter_form( $context ) {
+	$presets = extrachill_get_newsletter_context_presets();
+
+	// Get preset for this context, or empty array for unknown contexts
+	$args = isset( $presets[ $context ] ) ? $presets[ $context ] : array();
+
+	// Allow customization via filter
+	$args = apply_filters( 'extrachill_newsletter_form_args', $args, $context );
+
+	// Enqueue assets
 	wp_enqueue_script( 'extrachill-newsletter' );
 	wp_enqueue_style( 'extrachill-newsletter-forms' );
 
-	include EXTRACHILL_NEWSLETTER_TEMPLATES_DIR . 'navigation-form.php';
+	// Render generic template
+	include EXTRACHILL_NEWSLETTER_TEMPLATES_DIR . 'generic-form.php';
 }
-add_action( 'extrachill_navigation_before_social_links', 'display_newsletter_navigation_form' );
+add_action( 'extrachill_render_newsletter_form', 'extrachill_render_newsletter_form' );
 
-function display_newsletter_content_form() {
-	if (is_front_page()) {
-		return;
-	}
-
-	$settings = get_site_option('extrachill_newsletter_settings', array());
-	if (empty($settings['enable_content'])) {
-		return;
-	}
-
-	wp_enqueue_script( 'extrachill-newsletter' );
-	wp_enqueue_style( 'extrachill-newsletter-forms' );
-
-	include EXTRACHILL_NEWSLETTER_TEMPLATES_DIR . 'content-form.php';
-}
-add_action( 'extrachill_after_post_content', 'display_newsletter_content_form' );
-
-function display_newsletter_footer_form() {
-	$settings = get_site_option('extrachill_newsletter_settings', array());
-	if (empty($settings['enable_footer'])) {
-		return;
-	}
-
-	if (is_front_page()) {
-		if (has_action('extrachill_home_final_right')) {
-			return;
-		}
-	}
-
-	wp_enqueue_script( 'extrachill-newsletter' );
-	wp_enqueue_style( 'extrachill-newsletter-forms' );
-
-	include EXTRACHILL_NEWSLETTER_TEMPLATES_DIR . 'footer-form.php';
-}
-add_action( 'extrachill_above_footer', 'display_newsletter_footer_form' );
-
-function display_newsletter_homepage_form() {
-	// Only show on main blog, not on newsletter site
-	if (is_newsletter_site()) {
-		return;
-	}
-
-	if (!is_front_page()) {
-		return;
-	}
-
-	$settings = get_site_option('extrachill_newsletter_settings', array());
-	if (empty($settings['enable_homepage'])) {
-		return;
-	}
-
-	wp_enqueue_script( 'extrachill-newsletter' );
-	wp_enqueue_style( 'extrachill-newsletter-forms' );
-
-	include EXTRACHILL_NEWSLETTER_TEMPLATES_DIR . 'homepage-section.php';
-}
-add_action( 'extrachill_home_final_right', 'display_newsletter_homepage_form' );
+/**
+ * Display navigation newsletter form (network-wide exception)
+ *
+ * Navigation form is handled directly by newsletter plugin since it
+ * appears on every page across the network.
+ */
+add_action( 'extrachill_navigation_before_social_links', function() {
+	do_action( 'extrachill_render_newsletter_form', 'navigation' );
+});
 
 function extrachill_newsletter_activate() {
 	flush_rewrite_rules();
@@ -208,135 +236,53 @@ function extrachill_newsletter_deactivate() {
 register_deactivation_hook( __FILE__, 'extrachill_newsletter_deactivate' );
 
 /**
- * Register default newsletter integration contexts via filter system
+ * Register newsletter integration contexts for Sendy list mapping
  *
  * Integration contexts registered:
  * - navigation: Site navigation menu subscription form
  * - homepage: Main homepage subscription section
- * - popup: Modal popup subscription (backend only, no frontend display)
  * - archive: Newsletter archive page subscription
  * - content: After post content subscription
- * - footer: Above footer subscription
  *
  * Settings configured via Newsletter → Settings on newsletter.extrachill.com:
- * - Enable/disable toggle per integration
  * - Sendy list ID per integration
  * - Global Sendy API configuration
  */
-function newsletter_register_default_integrations($integrations) {
+function newsletter_register_default_integrations( $integrations ) {
 	$integrations['navigation'] = array(
-		'label' => __('Navigation Menu Form', 'extrachill-newsletter'),
-		'description' => __('Newsletter subscription in site navigation', 'extrachill-newsletter'),
+		'label'       => __( 'Navigation Menu Form', 'extrachill-newsletter' ),
+		'description' => __( 'Newsletter subscription in site navigation', 'extrachill-newsletter' ),
 		'list_id_key' => 'navigation_list_id',
-		'enable_key' => 'enable_navigation',
-		'plugin' => 'extrachill-newsletter'
 	);
 
 	$integrations['homepage'] = array(
-		'label' => __('Homepage Newsletter Form', 'extrachill-newsletter'),
-		'description' => __('Main homepage subscription form', 'extrachill-newsletter'),
+		'label'       => __( 'Homepage Newsletter Form', 'extrachill-newsletter' ),
+		'description' => __( 'Main homepage subscription form', 'extrachill-newsletter' ),
 		'list_id_key' => 'homepage_list_id',
-		'enable_key' => 'enable_homepage',
-		'plugin' => 'extrachill-newsletter'
-	);
-
-	$integrations['popup'] = array(
-		'label' => __('Newsletter Popup Form', 'extrachill-newsletter'),
-		'description' => __('Modal popup newsletter subscription', 'extrachill-newsletter'),
-		'list_id_key' => 'popup_list_id',
-		'enable_key' => 'enable_popup',
-		'plugin' => 'extrachill-newsletter'
 	);
 
 	$integrations['archive'] = array(
-		'label' => __('Archive Page Form', 'extrachill-newsletter'),
-		'description' => __('Newsletter archive page subscription', 'extrachill-newsletter'),
+		'label'       => __( 'Archive Page Form', 'extrachill-newsletter' ),
+		'description' => __( 'Newsletter archive page subscription', 'extrachill-newsletter' ),
 		'list_id_key' => 'archive_list_id',
-		'enable_key' => 'enable_archive',
-		'plugin' => 'extrachill-newsletter'
 	);
 
 	$integrations['content'] = array(
-		'label' => __('Content Form', 'extrachill-newsletter'),
-		'description' => __('Newsletter form after post content', 'extrachill-newsletter'),
+		'label'       => __( 'Content Form', 'extrachill-newsletter' ),
+		'description' => __( 'Newsletter form after post content', 'extrachill-newsletter' ),
 		'list_id_key' => 'content_list_id',
-		'enable_key' => 'enable_content',
-		'plugin' => 'extrachill-newsletter'
-	);
-
-	$integrations['footer'] = array(
-		'label' => __('Footer Form', 'extrachill-newsletter'),
-		'description' => __('Newsletter form above site footer', 'extrachill-newsletter'),
-		'list_id_key' => 'footer_list_id',
-		'enable_key' => 'enable_footer',
-		'plugin' => 'extrachill-newsletter'
 	);
 
 	return $integrations;
 }
-add_filter('newsletter_form_integrations', 'newsletter_register_default_integrations');
+add_filter( 'newsletter_form_integrations', 'newsletter_register_default_integrations' );
 
-function newsletter_init_integration_actions() {
-	$integrations = get_newsletter_integrations();
-
-	foreach ($integrations as $context => $integration) {
-		add_action("newsletter_display_{$context}", function($email = null) use ($context, $integration) {
-			if ($email) {
-				return extrachill_multisite_subscribe($email, $context);
-			} else {
-				newsletter_render_integration_form($context, $integration);
-			}
-		});
-	}
-}
-add_action('init', 'newsletter_init_integration_actions', 20); // Run after integrations are registered
-
-function newsletter_render_integration_form($context, $integration) {
-	if (!newsletter_integration_enabled($integration['enable_key'])) {
-		return;
-	}
-
-	wp_enqueue_script( 'extrachill-newsletter' );
-	wp_enqueue_style( 'extrachill-newsletter-forms' );
-
-	$template_candidates = array(
-		"newsletter-form-{$context}.php",
-		'newsletter-form-default.php'
-	);
-
-	$template_loaded = false;
-
-	foreach ($template_candidates as $template_name) {
-		$theme_template = locate_template($template_name);
-		if ($theme_template) {
-			include $theme_template;
-			$template_loaded = true;
-			break;
-		}
-
-		$plugin_template = EXTRACHILL_NEWSLETTER_TEMPLATES_DIR . $template_name;
-		if (file_exists($plugin_template)) {
-			include $plugin_template;
-			$template_loaded = true;
-			break;
-		}
-	}
-
-	if (!$template_loaded) {
-		newsletter_render_fallback_form($context, $integration);
-	}
-}
-
-function newsletter_render_fallback_form($context, $integration) {
-	?>
-	<div class="newsletter-form newsletter-form-<?php echo esc_attr($context); ?>">
-		<h3><?php echo esc_html($integration['label']); ?></h3>
-		<p><?php echo esc_html($integration['description']); ?></p>
-		<form class="newsletter-subscription-form" data-context="<?php echo esc_attr($context); ?>">
-			<input type="email" name="email" placeholder="<?php _e('Enter your email', 'extrachill-newsletter'); ?>" required />
-			<button type="submit"><?php _e('Subscribe', 'extrachill-newsletter'); ?></button>
-		</form>
-	</div>
-	<?php
+/**
+ * Get all registered newsletter integrations
+ *
+ * @return array Integrations keyed by context slug
+ */
+function get_newsletter_integrations() {
+	return apply_filters( 'newsletter_form_integrations', array() );
 }
 
