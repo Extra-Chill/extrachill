@@ -52,22 +52,21 @@ document.addEventListener('DOMContentLoaded', function() {
 				type: postType
 			})
 		})
-		.then(response => response.json())
-		.then(data => {
-			if (!data.success) {
-				// Rollback on error
-				countSpan.textContent = currentCount;
-				upvoteIcon.dataset.upvoted = isUpvoted ? 'true' : 'false';
-				useElement.setAttribute('href', baseUrl + '#' + (isUpvoted ? 'circle-up' : 'circle-up-outline'));
-				console.error('Error: ' + (data.message || 'Unknown error'));
+		.then(response => {
+			if (!response.ok) {
+				return response.json().then(err => Promise.reject(err));
 			}
+			return response.json();
+		})
+		.then(data => {
+			// Server confirmed - UI already updated optimistically
 		})
 		.catch(error => {
-			// Rollback on network error
+			// Rollback on error
 			countSpan.textContent = currentCount;
 			upvoteIcon.dataset.upvoted = isUpvoted ? 'true' : 'false';
 			useElement.setAttribute('href', baseUrl + '#' + (isUpvoted ? 'circle-up' : 'circle-up-outline'));
-			console.error('Network error:', error);
+			console.error('Error: ' + (error.message || 'Unknown error'));
 		});
 	});
 });

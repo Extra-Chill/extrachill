@@ -55,27 +55,26 @@
                         },
                         body: formData
                     })
-                    .then(response => response.json())
+                    .then(response => {
+                        if (!response.ok) {
+                            return response.json().then(err => Promise.reject(err));
+                        }
+                        return response.json();
+                    })
                     .then(data => {
-                        if (data.success) {
-                            // Insert the image wrapped in a paragraph, then add an extra blank paragraph.
+                        if (data.url) {
                             var content = '<p><img src="' + data.url + '" style="max-width:50%;" class="uploaded-image" /></p><p><br /></p>';
                             editor.insertContent(content);
                             editor.focus();
-                            // Collapse the selection to the end of the content so the cursor is in the new blank paragraph.
                             editor.selection.collapse(false);
-                        } else {
-                            console.error("Upload failed:", data.message || 'Unknown error');
                         }
 
-                        // Remove loading indicator
                         if (loader.parentNode) {
                             loader.parentNode.removeChild(loader);
                         }
                     })
                     .catch(error => {
-                        console.error("Upload error:", error);
-                        // Remove loading indicator
+                        console.error("Upload error:", error.message || error);
                         if (loader.parentNode) {
                             loader.parentNode.removeChild(loader);
                         }

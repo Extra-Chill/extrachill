@@ -176,12 +176,39 @@ function extrachill_community_handle_settings_form() {
         }
     }
 
-    // --- Feedback & Redirect ---
-    if (!empty($errors)) {
-        set_transient('user_settings_errors_' . $user_id, $errors, 60);
+    // --- Artist Access Request ---
+    if (isset($_POST['request_artist_access']) && isset($_POST['artist_access_type'])) {
+        $access_type = sanitize_text_field(wp_unslash($_POST['artist_access_type']));
+
+        if (!in_array($access_type, array('artist', 'professional'), true)) {
+            $errors[] = __('Please select a valid access type.', 'extra-chill-community');
+        } else {
+            $has_artist = get_user_meta($user_id, 'user_is_artist', true) === '1';
+            $has_professional = get_user_meta($user_id, 'user_is_professional', true) === '1';
+
+            if ($has_artist || $has_professional) {
+                $errors[] = __('You already have artist platform access.', 'extra-chill-community');
+            } else {
+                $request_data = array(
+                    'type' => $access_type,
+                    'requested_at' => time(),
+                    'user_email' => $current_wp_user->user_email,
+                );
+                update_user_meta($user_id, 'artist_access_request', $request_data);
+
+                extrachill_send_artist_access_request_email($user_id, $current_wp_user, $access_type);
+
+                $success_messages[] = __('Your request has been submitted. An administrator will review it shortly.', 'extra-chill-community');
+            }
+        }
     }
-    if (!empty($success_messages)) {
-        set_transient('user_settings_success_' . $user_id, $success_messages, 60);
+
+    // --- Feedback & Redirect ---
+    foreach ($errors as $error) {
+        extrachill_set_notice($error, 'error');
+    }
+    foreach ($success_messages as $message) {
+        extrachill_set_notice($message, 'success');
     }
 
     $current_tab_hash = isset($_POST['current_tab_hash']) ? sanitize_text_field(wp_unslash($_POST['current_tab_hash'])) : '';
@@ -199,3 +226,53 @@ function extrachill_community_handle_settings_form() {
     }
 }
 add_action('template_redirect', 'extrachill_community_handle_settings_form', 5);
+
+/**
+ * Send artist access request notification email to admin
+ *
+ * @param int     $user_id     User ID requesting access.
+ * @param WP_User $user        User object.
+ * @param string  $access_type Type of access requested ('artist' or 'professional').
+ */
+function extrachill_send_artist_access_request_email($user_id, $user, $access_type) {
+    $admin_email = get_option('admin_email');
+    $type_label = $access_type === 'artist'
+        ? __('I am a musician', 'extra-chill-community')
+        : __('I work in the music industry', 'extra-chill-community');
+
+    $approve_url = add_query_arg(
+        array(
+            'action'  => 'ec_approve_artist_access_email',
+            'user_id' => $user_id,
+            'type'    => $access_type,
+            'nonce'   => wp_create_nonce('ec_approve_artist_access_' . $user_id),
+        ),
+        admin_url('admin-ajax.php')
+    );
+
+    $admin_tools_url = admin_url('tools.php?page=extrachill-admin-tools#artist-access-requests');
+
+    $subject = sprintf(
+        /* translators: %s: user display name */
+        __('Artist Access Request - %s', 'extra-chill-community'),
+        $user->display_name
+    );
+
+    $message = sprintf(
+        /* translators: 1: display name, 2: email, 3: request type label, 4: approve URL, 5: admin tools URL */
+        __(
+            "%1\$s (%2\$s) has requested artist platform access.\n\n" .
+            "Request type: %3\$s\n\n" .
+            "Approve this request:\n%4\$s\n\n" .
+            "Manage all requests:\n%5\$s",
+            'extra-chill-community'
+        ),
+        $user->display_name,
+        $user->user_email,
+        $type_label,
+        $approve_url,
+        $admin_tools_url
+    );
+
+    wp_mail($admin_email, $subject, $message);
+}

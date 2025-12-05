@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.0.5] - 2025-12-05
+
+### Added
+- New artist platform access tab in user settings with request system
+- Admin email notifications for artist access requests
+- Artist access request form with artist/professional type selection
+
+### Changed
+- Improved error handling in TinyMCE image upload JavaScript
+- Enhanced error handling and response validation in upvote system
+- Refactored settings form handler to use notice system instead of transients
+
+### Fixed
+- Better error handling for failed AJAX requests in image upload and upvoting
+
 ## [1.0.4] - 2025-12-04
 
 ### Added

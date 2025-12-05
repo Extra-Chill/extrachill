@@ -13,6 +13,8 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+require_once __DIR__ . '/tabs/artist-access-tab.php';
+
 function extrachill_community_render_settings_content() {
     if (!is_page('settings')) {
         return;
@@ -25,27 +27,6 @@ function extrachill_community_render_settings_content() {
 
     $current_user = wp_get_current_user();
     $user_id = $current_user->ID;
-
-    $settings_errors = get_transient('user_settings_errors_' . $user_id);
-    if ($settings_errors) {
-        delete_transient('user_settings_errors_' . $user_id);
-        echo '<div class="settings-errors notice notice-error is-dismissible">';
-        foreach ($settings_errors as $error) {
-            echo '<p>' . esc_html($error) . '</p>';
-        }
-        echo '</div>';
-    }
-
-    $settings_success = get_transient('user_settings_success_' . $user_id);
-    if ($settings_success) {
-        delete_transient('user_settings_success_' . $user_id);
-        echo '<div class="settings-success notice notice-success is-dismissible">';
-        foreach ($settings_success as $message) {
-            echo '<p>' . esc_html($message) . '</p>';
-        }
-        echo '</div>';
-    }
-
     $new_email_data = get_user_meta($user_id, '_new_user_email', true);
     ?>
 
@@ -219,6 +200,17 @@ function extrachill_community_render_settings_content() {
                                     <p><?php esc_html_e('You are not currently following any bands.', 'extra-chill-community'); ?></p>
                                 <?php endif; ?>
                             </div>
+                        </div>
+                    </div>
+
+                    <!-- Artist Platform Tab -->
+                    <div class="shared-tab-item">
+                        <button type="button" class="shared-tab-button" data-tab="tab-artist-platform">
+                            <?php esc_html_e('Artist Platform', 'extra-chill-community'); ?>
+                            <span class="shared-tab-arrow"></span>
+                        </button>
+                        <div id="tab-artist-platform" class="shared-tab-pane">
+                            <?php extrachill_render_artist_access_tab($user_id); ?>
                         </div>
                     </div>
 
