@@ -26,6 +26,17 @@ function extrachill_newsletter_archive_form() {
 add_action( 'extrachill_archive_below_description', 'extrachill_newsletter_archive_form', 10 );
 
 /**
+ * Display newsletter form after single post content
+ */
+function extrachill_newsletter_after_post_content() {
+	if ( ! is_single() ) {
+		return;
+	}
+	do_action( 'extrachill_render_newsletter_form', 'content' );
+}
+add_action( 'extrachill_after_post_content', 'extrachill_newsletter_after_post_content' );
+
+/**
  * Display newsletter form in homepage hero section (newsletter site only)
  */
 function extrachill_newsletter_homepage_hero_form() {

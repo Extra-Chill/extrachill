@@ -194,7 +194,7 @@ The plugin follows WordPress best practices:
 
 ## Changelog
 
-### Version 0.1.0
+### Version 0.1.3
 - Initial release with organized modular architecture
 - Extracted newsletter functionality from ExtraChill theme
 - Complete Sendy integration with centralized API configuration
