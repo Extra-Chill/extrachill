@@ -110,18 +110,6 @@ function modular_bbpress_styles() {
         );
     }
 
-    // Load share button styles from theme on single topic pages
-    if (bbp_is_single_topic()) {
-        $share_css_path = get_template_directory() . '/assets/css/share.css';
-        if (file_exists($share_css_path)) {
-            wp_enqueue_style(
-                'extrachill-share',
-                get_template_directory_uri() . '/assets/css/share.css',
-                array('extrachill-bbpress'),
-                filemtime($share_css_path)
-            );
-        }
-    }
 }
 add_action('wp_enqueue_scripts', 'modular_bbpress_styles');
 

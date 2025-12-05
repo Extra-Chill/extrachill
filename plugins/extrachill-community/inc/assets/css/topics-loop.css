@@ -74,6 +74,9 @@
         margin-right: 0;
     }
 }
+.bbp-forum-description {
+    margin-bottom: 15px;
+}
 
 /* Mobile Styles (1 column) */
 @media (max-width: 767px) {
@@ -162,11 +165,51 @@
 .bbp-sorting-form select,
 .bbp-search-form input[type="text"] {
     padding: 6px 12px;
+    height: 38px;
     border-radius: 5px;
     border: 1px solid var(--border-color);
     background-color: var(--background-color);
     font-size: 15px;
     color: var(--text-color);
+    box-sizing: border-box;
+}
+
+/* Search Icon Button */
+.bbp-search-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 38px;
+    width: 38px;
+    padding: 0;
+    border: 1px solid var(--border-color);
+    border-radius: 5px;
+    background-color: var(--card-background);
+    cursor: pointer;
+    transition: border-color 0.2s ease, background-color 0.2s ease;
+    flex-shrink: 0;
+}
+
+.bbp-search-button:hover {
+    border-color: var(--accent);
+    background-color: var(--background-color);
+}
+
+.bbp-search-button:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(83, 148, 11, 0.2);
+}
+
+svg.bbp-search-icon {
+    height: 1em;
+    width: 1em;
+    fill: var(--text-color);
+    transition: fill 0.2s ease;
+}
+
+.bbp-search-button:hover svg.bbp-search-icon {
+    fill: var(--accent);
 }
 
 /* Dropdown Cursor Pointer */

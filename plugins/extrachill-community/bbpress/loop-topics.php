@@ -113,7 +113,9 @@ if (!empty($current_search)) {
         <form method="get" action="<?php echo esc_url(add_query_arg(null, null)); ?>">
             <input type="text" name="bbp_search" placeholder="Search topics..." value="<?php echo esc_attr($current_search); ?>">
             <input type="hidden" name="sort" value="<?php echo esc_attr($current_sort); ?>">
-            <button type="submit" class="button-1 button-small">Search</button>
+            <button type="submit" class="bbp-search-button" aria-label="<?php esc_attr_e('Search', 'extra-chill-community'); ?>">
+                <?php echo function_exists('ec_icon') ? ec_icon('search', 'bbp-search-icon') : esc_html__('Search', 'extra-chill-community'); ?>
+            </button>
         </form>
     </div>
 </div>

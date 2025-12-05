@@ -125,38 +125,19 @@ if ( $is_artist || $is_professional ) :
         // Management buttons - only show if viewing own profile or user is admin
         if ( bbp_get_displayed_user_id() == get_current_user_id() || current_user_can( 'manage_options' ) ) :
             $current_user_id_for_card_buttons = get_current_user_id();
+            $artist_count = is_array( $user_artist_ids ) ? count( $user_artist_ids ) : 0;
             $base_manage_artists_url_card = 'https://artist.extrachill.com/manage-artist-profiles/';
-            $base_manage_link_page_url_card = 'https://artist.extrachill.com/manage-link-page/';
 
             echo '<div class="user-artist-management-actions">';
 
-            if ( !empty($user_artist_ids) && is_array($user_artist_ids) ) :
-                // User has artist profiles - find most recently updated one
-                $latest_artist_id_card = 0;
-                $latest_modified_timestamp_card = 0;
-
-                switch_to_blog( 4 );
-                foreach ( $user_artist_ids as $artist_id_item_card ) {
-                    $artist_id_int_card = absint($artist_id_item_card);
-                    if ( $artist_id_int_card > 0 ) {
-                        $post_modified_gmt_card = get_post_field( 'post_modified_gmt', $artist_id_int_card, 'raw' );
-                        if ( $post_modified_gmt_card ) {
-                            $current_timestamp_card = strtotime( $post_modified_gmt_card );
-                            if ( $current_timestamp_card > $latest_modified_timestamp_card ) {
-                                $latest_modified_timestamp_card = $current_timestamp_card;
-                                $latest_artist_id_card = $artist_id_int_card;
-                            }
-                        }
-                    }
-                }
-                restore_current_blog();
-
-                $final_manage_artists_url_card = $base_manage_artists_url_card;
-                if ( $latest_artist_id_card > 0 ) {
-                    $final_manage_artists_url_card = add_query_arg( 'artist_id', $latest_artist_id_card, $base_manage_artists_url_card );
-                }
+            if ( $artist_count > 0 ) :
+                $latest_artist_id_card        = ec_get_latest_artist_for_user( $current_user_id_for_card_buttons );
+                $final_manage_artists_url_card = add_query_arg( 'artist_id', $latest_artist_id_card, $base_manage_artists_url_card );
+                $artist_label = $artist_count === 1
+                    ? esc_html__( 'Manage Artist', 'extra-chill-community' )
+                    : esc_html__( 'Manage Artists', 'extra-chill-community' );
             ?>
-                <a href="<?php echo esc_url( $final_manage_artists_url_card ); ?>" class="button-1 button-small"><?php esc_html_e( 'Manage Artist(s)', 'extra-chill-community' ); ?></a>
+                <a href="<?php echo esc_url( $final_manage_artists_url_card ); ?>" class="button-1 button-small"><?php echo $artist_label; ?></a>
             <?php else : // No artist profiles, but user can create ?>
                 <a href="<?php echo esc_url( $base_manage_artists_url_card ); ?>" class="button-1 button-small"><?php esc_html_e( 'Create Artist Profile', 'extra-chill-community' ); ?></a>
             <?php endif;

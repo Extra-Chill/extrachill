@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.0.4] - 2025-12-04
+
+### Added
+- Enhanced search button with icon and improved accessibility in topics loop
+- Better artist management UI with dynamic labeling based on profile count
+
+### Changed
+- Simplified artist platform button logic to show consistent CTA for all users
+- Improved form styling and search button design in topics loop
+- Refactored artist profile management to use centralized function for latest artist retrieval
+
+### Removed
+- Unused share button CSS loading from theme integration
+
 ## [1.0.3] - 2025-12-04
 
 ### Added
