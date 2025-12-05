@@ -69,10 +69,13 @@
                     <li class="menu-item">
                         <a href="https://extrachill.com/contact/">Contact Us</a>
                     </li>
-                    <li class="menu-item">
-                        <a href="https://extrachill.com/about/in-the-press/">In the Press</a>
-                    </li>
-                </ul>
+                     <li class="menu-item">
+                         <a href="https://extrachill.com/about/in-the-press/">In the Press</a>
+                     </li>
+                     <li class="menu-item">
+                         <a href="https://extrachill.com/contribute">Contribute</a>
+                     </li>
+                 </ul>
             </li>
         </ul>
     </div>

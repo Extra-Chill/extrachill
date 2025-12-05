@@ -48,12 +48,12 @@ Provides:
 | Parameter | Values | Effect |
 |-----------|--------|--------|
 | `sort` | `recent`, `oldest`, `random`, `popular` | Sort order |
-| `artist` | artist-slug | Filter by artist taxonomy |
+| `artist` | artist-slug | Filter by artist taxonomy (Song Meanings + Music History)
 
 ### Sort Dropdown
 
 ```html
-<select id="post-sorting" onchange="window.location.href='?sort='+this.value;">
+<select id="post-sorting" name="post_sorting">
     <option value="recent">Sort by Recent</option>
     <option value="oldest">Sort by Oldest</option>
     <option value="random">Sort by Random</option>
@@ -75,36 +75,40 @@ All four options available in a single dropdown for unified user experience:
 ### Query Modification
 
 ```php
-function extrachill_sort_posts($query) {
-    if (!is_admin() && $query->is_main_query() && is_archive()) {
-        $sort = isset($_GET['sort']) ? $_GET['sort'] : '';
+function extrachill_sort_posts( $query ) {
+    if ( is_admin() || ! $query->is_main_query() ) {
+        return;
+    }
 
-        switch ($sort) {
-            case 'oldest':
-                $query->set('orderby', 'date');
-                $query->set('order', 'ASC');
-                break;
-            case 'random':
-                $query->set('orderby', 'rand');
-                break;
-            case 'popular':
-                $query->set('meta_key', 'ec_post_views');
-                $query->set('orderby', 'meta_value_num');
-                $query->set('order', 'DESC');
-                break;
-            case 'recent':
-            default:
-                break; // WordPress default
-        }
+    if ( ! is_archive() && ! get_query_var( 'extrachill_blog_archive' ) ) {
+        return;
+    }
 
-        // Handle artist filtering
-        $artist = get_query_var('artist');
-        if (!empty($artist)) {
-            $query->set('artist', $artist);
-        }
+    $sort = isset( $_GET['sort'] ) ? sanitize_key( $_GET['sort'] ) : '';
+
+    switch ( $sort ) {
+        case 'oldest':
+            $query->set( 'orderby', 'date' );
+            $query->set( 'order', 'ASC' );
+            break;
+        case 'random':
+            $query->set( 'orderby', 'rand' );
+            break;
+        case 'popular':
+            $query->set( 'meta_key', 'ec_post_views' );
+            $query->set( 'orderby', 'meta_value_num' );
+            $query->set( 'order', 'DESC' );
+            break;
+        default:
+            break;
+    }
+
+    $artist = get_query_var( 'artist' );
+    if ( ! empty( $artist ) ) {
+        $query->set( 'artist', $artist );
     }
 }
-add_action('pre_get_posts', 'extrachill_sort_posts');
+add_action( 'pre_get_posts', 'extrachill_sort_posts' );
 ```
 
 ## Artist Filtering
@@ -114,30 +118,49 @@ add_action('pre_get_posts', 'extrachill_sort_posts');
 ### Artist Filter Dropdown
 
 ```php
-function extrachill_artist_filter_dropdown($filter_heading) {
-    // Get artists with posts in current category
-    $artists = get_terms(array(
-        'taxonomy' => 'artist',
-        'hide_empty' => true,
-        'object_ids' => get_posts(...) // Posts in category
-    ));
+function extrachill_artist_filter_dropdown() {
+    $current_artist = get_query_var( 'artist' );
+    $category_id    = get_queried_object_id();
+    $archive_link   = get_category_link( $category_id );
 
-    // Generate dropdown
-    echo '<select id="artist-filter-dropdown">';
-    echo '<option value="' . $archive_link . '">View All</option>';
-    foreach ($artists as $artist) {
-        echo '<option value="?artist=' . $artist->slug . '">' . $artist->name . '</option>';
+    $artists = get_terms( array(
+        'taxonomy'   => 'artist',
+        'orderby'    => 'name',
+        'order'      => 'ASC',
+        'hide_empty' => true,
+        'object_ids' => get_posts( array(
+            'post_type'   => 'post',
+            'post_status' => 'publish',
+            'category'    => $category_id,
+            'numberposts' => -1,
+            'fields'      => 'ids',
+        ) ),
+    ) );
+
+    if ( empty( $artists ) || is_wp_error( $artists ) ) {
+        return;
     }
-    echo '</select>';
+
+    echo '<div id="artist-filters">';
+    echo '<select id="artist-filter-dropdown" onchange="window.location.href=this.value;">';
+
+    $selected = empty( $current_artist ) ? ' selected' : '';
+    echo '<option value="' . esc_url( $archive_link ) . '"' . $selected . '>All Artists</option>';
+
+    foreach ( $artists as $artist ) {
+        $artist_url = add_query_arg( 'artist', $artist->slug, $archive_link );
+        $selected   = ( $artist->slug === $current_artist ) ? ' selected' : '';
+        echo '<option value="' . esc_url( $artist_url ) . '"' . $selected . '>' . esc_html( $artist->name ) . '</option>';
+    }
+
+    echo '</select></div>';
 }
 ```
 
 **Display Logic**:
 ```php
-if (is_category('song-meanings')) {
-    extrachill_artist_filter_dropdown('Filter By Artist');
-} elseif (is_category('music-history')) {
-    extrachill_artist_filter_dropdown('Filter By Artist');
+if ( is_category( 'song-meanings' ) || is_category( 'music-history' ) ) {
+    extrachill_artist_filter_dropdown();
 }
 ```
 
@@ -203,7 +226,7 @@ $links_html = paginate_links(array(
 ## Blog Archive Functionality
 
 **Query Var**: `extrachill_blog_archive`
-**Purpose**: Provides blog archive functionality without requiring custom page templates
+**Purpose**: Provides blog archive functionality without requiring custom page templates (replaces legacy /all/ template)
 **CSS Loading**: Archive styles load when `get_query_var('extrachill_blog_archive')` returns true
 **Template**: Uses standard archive template with query modifications
 
@@ -256,7 +279,7 @@ Template: Archive template via router
 // Before filter bar
 do_action( 'extrachill_archive_before_filter_bar' );
 
-// Filter bar displays automatically
+// Filter bar displays automatically via extrachill_archive_above_posts
 extrachill_archive_filter_bar();
 
 // After filter bar
@@ -300,8 +323,6 @@ extrachill_pagination();
 
 ## Plugin Integration
 
-Plugins can modify archive behavior:
-
 ```php
 // Add custom navigation button to filter bar
 add_action( 'extrachill_archive_filter_bar', function() {
@@ -322,11 +343,12 @@ add_action( 'extrachill_after_author_bio', function( $author_id ) {
 
 // Modify query
 add_action( 'pre_get_posts', function( $query ) {
-    if ( is_category( 'special' ) && $query->is_main_query() ) {
+    if ( $query->is_main_query() && is_category( 'special' ) ) {
         $query->set( 'posts_per_page', 20 );
     }
 } );
 ```
+
 
 ## Performance Considerations
 

@@ -76,8 +76,8 @@ extrachill_search_form();
 
 ### Community Activity
 ```php
-// Get activity items from both community (blog 2) and artist (blog 4) sites
-$items = extrachill_get_community_activity_items( 5 ); // Returns array of activity items
+// Get activity items from community.extrachill.com (blog 2)
+$items = extrachill_get_community_activity_items( 5 );
 
 // Render with default styling
 extrachill_render_community_activity();
@@ -130,10 +130,10 @@ add_filter( 'extrachill_template_search', function( $template ) {
 ## Navigation Hooks
 
 ```php
-// Add main navigation item
+// Add main navigation item (after default network links)
 add_action( 'extrachill_navigation_main_menu', function() {
     echo '<li><a href="/custom">Custom Link</a></li>';
-}, 15 ); // Priority 15 = after defaults
+}, 15 );
 
 // Add bottom navigation item
 add_action( 'extrachill_navigation_bottom_menu', function() {
@@ -143,7 +143,7 @@ add_action( 'extrachill_navigation_bottom_menu', function() {
 // Add content before social links
 add_action( 'extrachill_navigation_before_social_links', function() {
     echo '<li class="divider"></li>';
-} );
+}, 15 );
 
 // Add footer content
 add_action( 'extrachill_footer_main_content', function() {
@@ -155,10 +155,7 @@ add_action( 'extrachill_below_copyright', function() {
     echo '<div>Additional legal links</div>';
 }, 15 );
 
-// Add online users stats
-add_action( 'extrachill_before_footer', function() {
-    // Online users widget displays automatically
-}, 10 );
+// Online users widget already hooked at priority 10 (no custom action needed)
 ```
 
 ## Homepage Hooks
@@ -168,6 +165,11 @@ add_action( 'extrachill_before_footer', function() {
 add_action( 'extrachill_homepage_content', function() {
     include MY_PLUGIN_DIR . '/templates/homepage-section.php';
 }, 10 );
+
+// Append CTA after homepage content
+add_action( 'extrachill_after_homepage_content', function() {
+    include MY_PLUGIN_DIR . '/templates/homepage-cta.php';
+}, 20 );
 ```
 
 ## Archive Hooks
@@ -178,10 +180,10 @@ add_action( 'extrachill_archive_header', function() {
     echo '<div>Custom archive header</div>';
 }, 15 );
 
-// Add content above posts
+// Add content above posts (before filter bar renders)
 add_action( 'extrachill_archive_above_posts', function() {
     echo '<div>Custom filter</div>';
-}, 5 ); // Before default filter bar
+}, 5 );
 ```
 
 ## Content Filters

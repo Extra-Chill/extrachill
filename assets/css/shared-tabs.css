@@ -60,7 +60,7 @@
 .shared-tab-pane {
   background: var(--background-color);
   box-shadow: none;
-  padding: 1em 1.2em;
+  padding: .75em;
   margin-bottom: 0;
   display: none;
 }

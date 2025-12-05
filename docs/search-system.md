@@ -30,12 +30,11 @@ Displays:
 - Search query
 - Result counts
 - Search form
+- Optional filter slot via `extrachill_search_header` action priorities >10
 
 ### Site Badges
 
-**Location**: `/inc/archives/search/search-site-badge.php`
-
-Displays site identification for cross-site results (requires extrachill-multisite plugin).
+Rendered by the extrachill-search plugin when multisite results are available to identify each network source.
 
 ## Multisite Search
 

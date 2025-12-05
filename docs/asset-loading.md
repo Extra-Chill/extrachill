@@ -9,7 +9,7 @@ Conditional CSS/JS loading with `filemtime()` cache busting comes from `/inc/cor
 | `assets/css/root.css` | All pages | `extrachill_enqueue_root_styles()` (priority 5)
 | `style.css` | All pages | `extrachill_modify_default_style()` (priority 20) replaces the default WordPress style
 | `assets/css/taxonomy-badges.css` | All pages that render taxonomy badges | `extrachill_enqueue_taxonomy_badges()` (priority 10)
-| `assets/css/single-post.css` | Posts, newsletter, festival_wire | `extrachill_enqueue_single_post_styles()` (priority 20)
+| `assets/css/single-post.css` | Posts, newsletter | `extrachill_enqueue_single_post_styles()` (priority 20)
 | `assets/css/archive.css` | Archive, search, and blog archive (`/all`) | `extrachill_enqueue_archive_styles()` (priority 20)
 | `assets/css/search.css` | Search results | `extrachill_enqueue_search_styles()` (priority 20)
 | `assets/css/sidebar.css` | Sidebar-enabled singular/post templates, 404 pages | `extrachill_enqueue_sidebar_styles()` (priority 20; only when `extrachill_sidebar_content` filter returns `false`)
@@ -83,11 +83,6 @@ Loads main theme stylesheet.
 **Dependencies**: `extrachill-root`
 **Hook**: `wp_enqueue_scripts`
 
-### extrachill_enqueue_home_styles()
-Loads homepage-specific styles.
-
-**Condition**: `is_front_page()`
-**File**: `/assets/css/home.css`
 
 ### extrachill_enqueue_single_post_styles()
 Loads single post styles.
@@ -111,11 +106,10 @@ Loads search result styles.
 **Dependencies**: `extrachill-root`, `extrachill-style`
 
 ### extrachill_enqueue_shared_tabs()
-Loads tab interface styles and scripts.
+Registers shared tab styles and scripts so templates or plugins can enqueue them on demand.
 
-**Condition**: `is_page()`
 **Files**: `shared-tabs.css`, `shared-tabs.js`
-**Dependencies**: jQuery (for JS)
+**Dependencies**: `extrachill-root` for CSS, `wp-polyfill` and vanilla JS for scripts (no jQuery)
 
 ## JavaScript Loading
 
@@ -187,7 +181,7 @@ function extrachill_enqueue_admin_styles($hook) {
 All enqueue functions check file existence before loading:
 
 ```php
-$css_path = get_stylesheet_directory() . '/assets/css/home.css';
+$css_path = get_stylesheet_directory() . '/assets/css/archive.css';
 if ( file_exists( $css_path ) ) {
     wp_enqueue_style( ... );
 }
@@ -216,9 +210,8 @@ add_filter( 'extrachill_enable_sticky_header', '__return_false' );
   /css/
     root.css              # CSS variables, theme colors
     style.css             # Main stylesheet (loaded via get_stylesheet_uri)
-    badge-colors.css      # Taxonomy badge colors
+    taxonomy-badges.css   # Taxonomy badge colors
     nav.css               # Navigation styles
-    home.css              # Homepage styles
     single-post.css       # Single post styles
     archive.css           # Archive page styles
     search.css            # Search result styles

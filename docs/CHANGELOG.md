@@ -21,7 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Technical
 - Added action hook integration in `inc/home/templates/front-page.php`
 - Updated CSS units from em to rem for better consistency
-- Comprehensive documentation updates across 9 files in `/docs/` directory
+- Comprehensive documentation updates across 12 files, including root README and `/docs/`
 
 ## [1.1.1] - 2025-12-04
 

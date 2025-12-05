@@ -7,7 +7,7 @@ The theme registers four music-focused custom taxonomies with REST API support f
 | Taxonomy | Type | Hierarchical | Slug | REST API | Applies To |
 |----------|------|--------------|------|----------|------------|
 | Location | Custom | Yes | `/location/` | Yes | Posts |
-| Festival | Custom | No | `/festival/` | Yes | Posts, Festival Wire |
+| Festival | Custom | No | `/festival/` | Yes | Posts |
 | Artist | Custom | No | `/artist/` | Yes | Posts |
 | Venue | Custom | No | `/venue/` | Yes | Posts |
 
@@ -34,7 +34,7 @@ Hierarchical taxonomy for geographical organization.
 
 Non-hierarchical taxonomy for festival tags.
 
-**Applies To**: Posts and Festival Wire custom post type
+**Applies To**: Posts only
 
 **URL Structure**:
 ```

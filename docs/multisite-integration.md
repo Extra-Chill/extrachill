@@ -56,7 +56,7 @@ if ( function_exists( 'extrachill_multisite_search' ) ) {
 
 **Architecture**:
 - **Centralized Helper**: `extrachill_get_community_activity_items()` and `extrachill_render_community_activity()` functions provide reusable library
-- **Community Queries**: Queries community.extrachill.com (blog ID 2) for bbPress topics/replies
+- **Community Queries**: Queries community.extrachill.com (blog ID 2) for bbPress topics/replies (artist site queries removed in 1.1.1)
 - **Activity Display**: Displays community activities with 10-minute caching
 - Direct `WP_Query` for bbPress topics and replies
 - Uses `switch_to_blog()` and `restore_current_blog()` for cross-site access
@@ -65,23 +65,21 @@ if ( function_exists( 'extrachill_multisite_search' ) ) {
 - 10-minute WordPress object cache (`wp_cache_get()` / `wp_cache_set()`)
 
 **Blog ID Resolution**:
-```php
+```
 // Hardcoded blog IDs for performance
 $community_blog_id = 2; // community.extrachill.com
-$artist_blog_id = 4;    // artist.extrachill.com
 
-foreach (array($community_blog_id, $artist_blog_id) as $blog_id) {
-    switch_to_blog($blog_id);
-    // Query bbPress data from each site
-    restore_current_blog();
-}
-// Merge and sort chronologically
+switch_to_blog( $community_blog_id );
+// Query bbPress data
+restore_current_blog();
 ```
+
 
 **URL Patterns**:
 - Forums: `https://community.extrachill.com/r/{forum-slug}` (NOT `/forums/forum/`)
 - User profiles: `https://community.extrachill.com/u/{username}` (via `ec_get_user_profile_url()`)
 - Topics: Standard `get_permalink()` works for topic URLs
+- Total member counts: Pulled from Blog ID 2 via `count_users()` when rendering online stats
 
 ## Theme-Level Multisite Functions
 
@@ -89,8 +87,8 @@ Theme uses centralized shared helper library for community activity display:
 
 **Shared Helper Functions**:
 
-```php
-// Get activity items from both community and artist sites
+```
+// Get activity items from community.extrachill.com (blog 2)
 $items = extrachill_get_community_activity_items(5);
 
 // Render activity with custom styling options
@@ -102,10 +100,10 @@ extrachill_render_community_activity(array(
 ```
 
 **Data Function**: `extrachill_get_community_activity_items( $limit )`
-- Queries both blog ID 2 (community) and blog ID 4 (artist) for bbPress activities
-- Merges results chronologically
+- Queries blog ID 2 (community) for bbPress activities
 - Returns array of activity items with full metadata
 - 10-minute WordPress object cache
+
 
 **Render Function**: `extrachill_render_community_activity( $args )`
 - Customizable HTML structure and CSS classes
@@ -192,8 +190,8 @@ Provided by extrachill-multisite plugin:
 ## Theme Multisite Integration Points
 
 ### 1. Search Template
-**Location**: `/inc/archives/search/search.php`
-**Integration**: Calls `extrachill_multisite_search()` from extrachill-search plugin
+**Location**: Provided by extrachill-search plugin via `extrachill_template_search`
+**Integration**: Theme still outputs search header + assets before handing loop control to plugin
 
 ### 2. Post Meta Display
 **Location**: `/inc/core/templates/post-meta.php`
@@ -201,47 +199,37 @@ Provided by extrachill-multisite plugin:
 
 ### 3. Community Activity Components
 **Location**: `/inc/core/templates/community-activity.php`
-**Integration**: Centralized shared helper library with reusable `extrachill_get_community_activity_items()` and `extrachill_render_community_activity()` functions. Queries community.extrachill.com (blog ID 2) for bbPress activities via `switch_to_blog()` with 10-minute caching. Wrapped in `/inc/sidebar/community-activity.php` (sidebar styling) and `/inc/home/templates/section-3x3-grid.php` (grid styling).
+**Integration**: Centralized shared helper library with reusable `extrachill_get_community_activity_items()` and `extrachill_render_community_activity()` functions. Queries community.extrachill.com (blog ID 2) for bbPress activities via `switch_to_blog()` with 10-minute caching. Sidebar rendering lives in `/inc/sidebar/community-activity.php`; homepage grids now live in plugins via `extrachill_homepage_content`.
 
 ### 5. Search Site Badges
-**Location**: `/inc/archives/search/search-site-badge.php`
-**Integration**: Identifies result source in multisite search
+**Integration**: extrachill-search plugin injects badges alongside each multisite result entry so users know which network site provided the content
 
 ## Direct Database Access Pattern
 
 Theme **directly accesses** bbPress data from community.extrachill.com for activity widgets using WordPress multisite functions:
 
 **Multi-Site Pattern**:
-```php
+```
 // Direct blog switching with hardcoded blog IDs
 $community_blog_id = 2; // community.extrachill.com
-$artist_blog_id = 4;    // artist.extrachill.com
 
-$all_activities = array();
+switch_to_blog( $community_blog_id );
 
-foreach (array($community_blog_id, $artist_blog_id) as $blog_id) {
-    switch_to_blog($blog_id);
+// Direct WP_Query for bbPress data
+$query = new WP_Query(array(
+    'post_type' => array('topic', 'reply'),
+    // ... query args
+));
 
-    // Direct WP_Query for bbPress data
-    $query = new WP_Query(array(
-        'post_type' => array('topic', 'reply'),
-        // ... query args
-    ));
+// Collect activities
+// ...
 
-    // Collect activities from this site
-    // ...
-
-    restore_current_blog();
-}
-
-// Merge and sort chronologically
-usort($all_activities, function($a, $b) {
-    return strtotime($b['date_time']) - strtotime($a['date_time']);
-});
+restore_current_blog();
 
 // Manual URL construction
 $forum_url = 'https://community.extrachill.com/r/' . get_post_field('post_name', $forum_id);
 ```
+
 
 ## Graceful Degradation
 
@@ -274,12 +262,10 @@ Theme functions without network plugins:
 - Search results: Plugin-managed caching
 
 **Efficiency**:
-- **Multi-Site Queries**: Single cached result contains activities from both community and artist sites
+- **Single-Site Query**: Cached result contains activities from community.extrachill.com (blog 2)
 - Direct WP_Query for bbPress data (no plugin abstraction layer)
 - Hardcoded blog ID numbers (maximum performance, no lookup overhead)
 - WordPress object cache for merged query results
-- Efficient blog switching (only 2 sites queried)
-- Chronological merge operation after data collection
 - Manual URL construction (no bbPress function overhead)
 
 **Architecture Benefits**:
@@ -290,13 +276,12 @@ Theme functions without network plugins:
 
 ## Why This Architecture
 
-**Multi-Site Activity Display**: Unified activity feed from both community and artist platforms
+**Community Activity Display**: Unified activity feed sourced from community.extrachill.com
 **Centralized Helper Library**: Reusable functions eliminate code duplication across widgets
 **Direct Database Access**: Theme directly queries bbPress data for optimal performance
 **WordPress Native Functions**: Uses core multisite functions (no abstraction overhead)
-**Hardcoded Blog IDs**: Direct integer usage for both sites eliminates lookup overhead
-**Chronological Merging**: Activities sorted across sites for unified timeline
+**Hardcoded Blog IDs**: Direct integer usage eliminates lookup overhead
 **Manual URL Construction**: Avoids bbPress function calls for forum URLs
 **Plugin Integration**: Leverages extrachill-users for intelligent profile routing
-**Caching Strategy**: WordPress object cache provides 10-minute merged result caching
+**Caching Strategy**: WordPress object cache provides 10-minute cached results
 **Performance**: Eliminates plugin abstraction layers for community activity display
