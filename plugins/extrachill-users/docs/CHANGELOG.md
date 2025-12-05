@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.2.2] - 2025-12-05
+
+### Fixed
+- Improved avatar upload nonce handling by using dedicated REST nonce instead of wpApiSettings
+- Removed unnecessary wp-api script enqueue from avatar upload assets
+
 ## [0.2.1] - 2025-12-05
 
 ### Added

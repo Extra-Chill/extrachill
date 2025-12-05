@@ -24,7 +24,7 @@ document.addEventListener('DOMContentLoaded', function() {
 		fetch('/wp-json/extrachill/v1/users/avatar', {
 			method: 'POST',
 			headers: {
-				'X-WP-Nonce': wpApiSettings.nonce
+				'X-WP-Nonce': ecAvatarUpload.restNonce
 			},
 			body: formData
 		})
