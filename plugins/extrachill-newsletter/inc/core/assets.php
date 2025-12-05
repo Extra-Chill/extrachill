@@ -16,7 +16,7 @@ function newsletter_enqueue_frontend_assets() {
 	// Forms CSS - registered for on-demand loading when forms render
 	$forms_css_path = EXTRACHILL_NEWSLETTER_PLUGIN_DIR . 'assets/css/newsletter-forms.css';
 	if ( file_exists( $forms_css_path ) ) {
-		wp_register_style(
+		wp_enqueue_style(
 			'extrachill-newsletter-forms',
 			EXTRACHILL_NEWSLETTER_PLUGIN_URL . 'assets/css/newsletter-forms.css',
 			array(),
@@ -55,12 +55,20 @@ function newsletter_enqueue_frontend_assets() {
 	// Main JavaScript - registered for on-demand loading when newsletter UI renders
 	$newsletter_js_path = EXTRACHILL_NEWSLETTER_PLUGIN_DIR . 'assets/js/newsletter.js';
 	if ( file_exists( $newsletter_js_path ) ) {
-		wp_register_script(
+		wp_enqueue_script(
 			'extrachill-newsletter',
 			EXTRACHILL_NEWSLETTER_PLUGIN_URL . 'assets/js/newsletter.js',
-			array( 'wp-api' ),
+			array(),
 			filemtime( $newsletter_js_path ),
 			true
+		);
+
+		wp_localize_script(
+			'extrachill-newsletter',
+			'newsletterParams',
+			array(
+				'restNonce' => wp_create_nonce( 'wp_rest' ),
+			)
 		);
 	}
 }

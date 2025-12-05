@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [0.1.4] - 2025-12-05
+## [0.1.5] - 2025-12-05
+
+### Changed
+- Centralized asset loading by moving script enqueueing and localization to `inc/core/assets.php`
+- Improved JavaScript error handling with validation for required REST nonce parameters
+
+### Fixed
+- Enhanced code organization for better maintainability of asset management
+
 
 ### Changed
 - Improved JavaScript error handling with better HTTP response validation and specific error messages

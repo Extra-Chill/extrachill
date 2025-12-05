@@ -194,6 +194,11 @@ The plugin follows WordPress best practices:
 
 ## Changelog
 
+### Version 0.1.5
+- Centralized asset loading by moving script enqueueing and localization to `inc/core/assets.php`
+- Improved JavaScript error handling with validation for required REST nonce parameters
+- Enhanced code organization for better maintainability of asset management
+
 ### Version 0.1.4
 - Improved JavaScript error handling with better HTTP response validation and specific error messages
 - Enhanced user feedback by always clearing email field and setting localStorage on successful subscription

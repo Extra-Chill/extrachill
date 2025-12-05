@@ -11,6 +11,11 @@
 (function() {
     'use strict';
 
+    if (!window.newsletterParams || !newsletterParams.restNonce) {
+        console.error('extrachill-newsletter: newsletterParams missing, aborting form handler.');
+        return;
+    }
+
     function findFeedback(form) {
         return form.querySelector('[data-newsletter-feedback]') ||
                form.parentNode.querySelector('[data-newsletter-feedback]');
