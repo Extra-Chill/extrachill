@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.0.7] - 2025-12-05
+
+### Changed
+- Refactored TinyMCE image upload JavaScript to remove IIFE wrapper for cleaner initialization
+- Added proper script dependencies to extrachill-mentions and custom-tinymce-plugin scripts
+- Improved button styling in user settings with button-1 and button-large classes for better theme consistency
+
+### Fixed
+- Ensured proper script loading order with correct dependency declarations
+- Simplified TinyMCE image upload plugin initialization (removed internal retry logic)
+
 ## [1.0.6] - 2025-12-05
 
 ### Added
