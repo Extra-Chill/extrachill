@@ -3,11 +3,11 @@ document.addEventListener('DOMContentLoaded', function() {
 	const messageContainer = document.getElementById('custom-avatar-upload-message');
 	const avatarThumbnail = document.getElementById('avatar-thumbnail');
 
-	if (!uploadInput) {
+	if (!uploadInput || typeof ecAvatarUpload === 'undefined') {
 		return;
 	}
 
-	const spriteUrl = (typeof ecAvatarUpload !== 'undefined') ? ecAvatarUpload.spriteUrl : '';
+	const spriteUrl = ecAvatarUpload.spriteUrl || '';
 
 	uploadInput.addEventListener('change', function(e) {
 		const file = this.files[0];
@@ -17,11 +17,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
 		const formData = new FormData();
 		formData.append('file', file);
+		formData.append('context', 'user_avatar');
+		formData.append('target_id', ecAvatarUpload.userId);
 
 		uploadInput.disabled = true;
 		messageContainer.innerHTML = '<p style="text-align: center;"><svg class="ec-icon ec-icon-spin" style="width: 2em; height: 2em;"><use href="' + spriteUrl + '#spinner"></use></svg> Uploading avatar, please wait...</p>';
 
-		fetch('/wp-json/extrachill/v1/users/avatar', {
+		fetch('/wp-json/extrachill/v1/media', {
 			method: 'POST',
 			headers: {
 				'X-WP-Nonce': ecAvatarUpload.restNonce

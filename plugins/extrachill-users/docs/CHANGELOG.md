@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.2.3] - 2025-12-05
+
+### Changed
+- Refactored avatar upload system to use unified REST media endpoint (`/wp-json/extrachill/v1/media`) instead of dedicated user avatar endpoint
+- Removed `extrachill_process_avatar_upload()` function from `inc/avatar-upload.php` - processing logic now handled by unified media endpoint in extrachill-api plugin
+- Updated avatar upload JavaScript to include context and target_id parameters for unified endpoint
+- Enhanced error handling in avatar upload script with additional safety checks
+
+### Technical
+- Consolidated media upload handling across plugins for better maintainability
+- Updated `inc/avatar-upload.php` to focus solely on UI rendering and asset loading
+
 ## [0.2.2] - 2025-12-05
 
 ### Fixed
