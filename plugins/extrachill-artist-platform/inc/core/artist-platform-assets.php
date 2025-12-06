@@ -190,22 +190,29 @@ class ExtraChillArtistPlatform_Assets {
 
     public function enqueue_admin_assets( $hook ) {
         $plugin_url = EXTRACHILL_ARTIST_PLATFORM_PLUGIN_URL;
+        $plugin_dir = EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR;
 
         if ( $this->is_artist_platform_admin_page( $hook ) ) {
-            wp_enqueue_style( 
-                'extrachill-artist-platform-admin', 
-                $plugin_url . 'assets/css/admin.css', 
-                array(), 
-                $this->get_asset_version( 'assets/css/admin.css' )
-            );
+            $admin_css = 'assets/css/admin.css';
+            if ( file_exists( $plugin_dir . $admin_css ) ) {
+                wp_enqueue_style( 
+                    'extrachill-artist-platform-admin', 
+                    $plugin_url . $admin_css, 
+                    array(), 
+                    $this->get_asset_version( $admin_css )
+                );
+            }
 
-            wp_enqueue_script( 
-                'extrachill-artist-platform-admin', 
-                $plugin_url . 'assets/js/admin.js', 
-                array( 'jquery' ), 
-                $this->get_asset_version( 'assets/js/admin.js' ), 
-                true 
-            );
+            $admin_js = 'assets/js/admin.js';
+            if ( file_exists( $plugin_dir . $admin_js ) ) {
+                wp_enqueue_script( 
+                    'extrachill-artist-platform-admin', 
+                    $plugin_url . $admin_js, 
+                    array( 'jquery' ), 
+                    $this->get_asset_version( $admin_js ), 
+                    true 
+                );
+            }
         }
     }
 

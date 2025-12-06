@@ -3,7 +3,7 @@
  * Plugin Name: Extra Chill Artist Platform
  * Plugin URI: https://extrachill.com
  * Description: Artist platform for musicians with profiles, link pages, analytics, and subscriber management.
- * Version: 1.1.7
+ * Version: 1.1.8
  * Author: Chris Huber
  * Author URI: https://chubes.net
  * License: GPL v2 or later
@@ -20,7 +20,7 @@
  */
 
 defined( 'ABSPATH' ) || exit;
-define( 'EXTRACHILL_ARTIST_PLATFORM_VERSION', '1.1.7' );
+define( 'EXTRACHILL_ARTIST_PLATFORM_VERSION', '1.1.8' );
 define( 'EXTRACHILL_ARTIST_PLATFORM_PLUGIN_FILE', __FILE__ );
 define( 'EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'EXTRACHILL_ARTIST_PLATFORM_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
@@ -52,6 +52,7 @@ class ExtraChillArtistPlatform {
 
 
     private function init_hooks() {
+        add_action( 'init', 'extrachill_artist_platform_register_blocks' );
         add_action( 'init', array( $this, 'init' ), 15 );
         add_action( 'plugins_loaded', array( $this, 'load_textdomain' ) );
         register_activation_hook( __FILE__, array( $this, 'activate' ) );
@@ -132,8 +133,6 @@ class ExtraChillArtistPlatform {
         require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/core/filters/data.php';
         require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/core/nav.php';
 
-        require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/blocks/link-page-editor.php';
-
         ExtraChillArtistPlatform_PageTemplates::instance();
         ExtraChillArtistPlatform_Assets::instance();
         ExtraChillArtistPlatform_SocialLinks::instance();
@@ -169,3 +168,10 @@ function extrachill_artist_platform() {
 }
 
 extrachill_artist_platform();
+
+/**
+ * Register Gutenberg blocks from build directory.
+ */
+function extrachill_artist_platform_register_blocks() {
+    register_block_type( __DIR__ . '/build/blocks/link-page-editor' );
+}
