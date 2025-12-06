@@ -2,6 +2,34 @@
 
 All notable changes to the ExtraChill API plugin are documented here. This file is the single source of truth for release history.
 
+## 0.1.6
+
+### Added
+- **Artist Analytics Endpoint**: `GET /wp-json/extrachill/v1/artists/{id}/analytics` for retrieving link page analytics with configurable date range
+  - Replaces legacy `/analytics/link-page` endpoint with artist-centric routing
+  - Supports `date_range` parameter (default: 30 days) for flexible analytics queries
+  - Uses filter hook `extrachill_get_link_page_analytics` for analytics data retrieval
+- **Shop Products Endpoints**: Complete WooCommerce product CRUD operations for artists
+  - `GET /wp-json/extrachill/v1/shop/products` - List user's artist products
+  - `POST /wp-json/extrachill/v1/shop/products` - Create product linked to artist
+  - `GET /wp-json/extrachill/v1/shop/products/{id}` - Get single product
+  - `PUT /wp-json/extrachill/v1/shop/products/{id}` - Update product (partial updates)
+  - `DELETE /wp-json/extrachill/v1/shop/products/{id}` - Delete product (trash)
+  - Products created on Blog ID 3 (shop.extrachill.com) and linked to artist profiles via meta
+  - Comprehensive image and gallery management support
+  - Stock quantity and sale price support
+- **Artist Links Endpoint Enhancements**:
+  - Added support for `socials` field in PUT requests (array of {type, url} objects)
+  - Added support for `background_image_id` and `profile_image_id` in PUT requests
+  - New settings fields: `overlay_enabled`, `google_tag_manager_id`, `profile_image_shape`
+
+### Changed
+- **Artist Links Endpoint Refactoring**: Now uses canonical `ec_get_link_page_data()` function
+  - Removed internal `extrachill_api_build_links_response()` function (delegated to canonical source)
+  - Simplifies data transformation and ensures single source of truth
+  - Endpoint now returns data directly from `ec_get_link_page_data()` for GET and PUT requests
+- Updated permissions model for shop products (requires artist status for create/update/delete)
+
 ## 0.1.5
 
 ### Added

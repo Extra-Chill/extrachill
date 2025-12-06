@@ -1,9 +1,9 @@
 <?php
 /**
- * Plugin Name: ExtraChill API
+ * Plugin Name: Extra Chill API
  * Plugin URI: https://extrachill.com
  * Description: Central REST API infrastructure for the Extra Chill multisite network.
- * Version: 0.1.5
+ * Version: 0.1.6
  * Author: Extra Chill
  * Author URI: https://extrachill.com
  * Network: true

@@ -262,6 +262,12 @@ GPL v2 or later
 
 ## Changelog
 
+### 0.1.6
+- Added artist analytics endpoint for link page performance tracking
+- Added shop products CRUD endpoints for WooCommerce product management
+- Enhanced artist links endpoint with socials, image ID, and new settings support
+- Refactored artist links to use canonical data retrieval function
+
 ### 0.1.5
 - Added Artist API endpoints for comprehensive artist data management
 - Added unified media upload endpoint for centralized image handling across all contexts

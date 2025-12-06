@@ -86,12 +86,12 @@ function extrachill_api_artist_links_permission_check( WP_REST_Request $request 
 }
 
 /**
- * GET handler - retrieve link page data
+ * GET handler - retrieve link page data via canonical ec_get_link_page_data()
  */
 function extrachill_api_artist_links_get_handler( WP_REST_Request $request ) {
 	$artist_id = $request->get_param( 'id' );
 
-	if ( ! function_exists( 'ec_get_link_page_for_artist' ) ) {
+	if ( ! function_exists( 'ec_get_link_page_data' ) ) {
 		return new WP_Error(
 			'dependency_missing',
 			'Link page functions not available.',
@@ -99,9 +99,9 @@ function extrachill_api_artist_links_get_handler( WP_REST_Request $request ) {
 		);
 	}
 
-	$link_page_id = ec_get_link_page_for_artist( $artist_id );
+	$data = ec_get_link_page_data( $artist_id );
 
-	if ( ! $link_page_id ) {
+	if ( empty( $data ) || empty( $data['link_page_id'] ) ) {
 		return new WP_Error(
 			'no_link_page',
 			'No link page exists for this artist.',
@@ -109,11 +109,19 @@ function extrachill_api_artist_links_get_handler( WP_REST_Request $request ) {
 		);
 	}
 
-	return rest_ensure_response( extrachill_api_build_links_response( $link_page_id ) );
+	return rest_ensure_response( $data );
 }
 
 /**
  * PUT handler - update link page data (partial updates)
+ *
+ * Accepts the canonical payload shape emitted by ec_get_link_page_data():
+ * - links (array of sections)
+ * - css_vars (object)
+ * - settings (object)
+ * - socials (array of {type, url})
+ * - background_image_id (int, optional)
+ * - profile_image_id (int, optional - stored on artist)
  */
 function extrachill_api_artist_links_put_handler( WP_REST_Request $request ) {
 	$artist_id = $request->get_param( 'id' );
@@ -187,6 +195,28 @@ function extrachill_api_artist_links_put_handler( WP_REST_Request $request ) {
 		$save_data = array_merge( $save_data, $sanitized_settings );
 	}
 
+	// Socials - pass to save handler as social_icons
+	if ( isset( $body['socials'] ) ) {
+		if ( ! is_array( $body['socials'] ) ) {
+			return new WP_Error(
+				'invalid_format',
+				'socials must be an array.',
+				array( 'status' => 400 )
+			);
+		}
+		$save_data['social_icons'] = extrachill_api_sanitize_socials( $body['socials'] );
+	}
+
+	// Background image ID (stored on link page)
+	if ( isset( $body['background_image_id'] ) ) {
+		$save_data['background_image_id'] = absint( $body['background_image_id'] );
+	}
+
+	// Profile image ID (stored on artist as thumbnail)
+	if ( isset( $body['profile_image_id'] ) ) {
+		$save_data['profile_image_id'] = absint( $body['profile_image_id'] );
+	}
+
 	// Use existing save handler (no file uploads via REST)
 	$result = ec_handle_link_page_save( $link_page_id, $save_data );
 
@@ -198,59 +228,8 @@ function extrachill_api_artist_links_put_handler( WP_REST_Request $request ) {
 		);
 	}
 
-	return rest_ensure_response( extrachill_api_build_links_response( $link_page_id ) );
-}
-
-/**
- * Build link page response data
- */
-function extrachill_api_build_links_response( $link_page_id ) {
-	$all_meta = get_post_meta( $link_page_id );
-
-	// Links
-	$links = array();
-	if ( isset( $all_meta['_link_page_links'][0] ) ) {
-		$links_raw = maybe_unserialize( $all_meta['_link_page_links'][0] );
-		if ( is_array( $links_raw ) ) {
-			$links = $links_raw;
-		}
-	}
-
-	// CSS vars
-	$css_vars = array();
-	if ( isset( $all_meta['_link_page_custom_css_vars'][0] ) ) {
-		$css_vars_raw = maybe_unserialize( $all_meta['_link_page_custom_css_vars'][0] );
-		if ( is_array( $css_vars_raw ) ) {
-			$css_vars = $css_vars_raw;
-		}
-	}
-
-	// Settings
-	$settings = array(
-		'link_expiration_enabled'      => isset( $all_meta['_link_expiration_enabled'][0] ) && $all_meta['_link_expiration_enabled'][0] === '1',
-		'weekly_notifications_enabled' => isset( $all_meta['_link_page_enable_weekly_notifications'][0] ) && $all_meta['_link_page_enable_weekly_notifications'][0] === '1',
-		'redirect_enabled'             => isset( $all_meta['_link_page_redirect_enabled'][0] ) && $all_meta['_link_page_redirect_enabled'][0] === '1',
-		'redirect_target_url'          => $all_meta['_link_page_redirect_target_url'][0] ?? '',
-		'youtube_embed_enabled'        => ! isset( $all_meta['_enable_youtube_inline_embed'][0] ) || $all_meta['_enable_youtube_inline_embed'][0] !== '0',
-		'meta_pixel_id'                => $all_meta['_link_page_meta_pixel_id'][0] ?? '',
-		'google_tag_id'                => $all_meta['_link_page_google_tag_id'][0] ?? '',
-		'subscribe_display_mode'       => $all_meta['_link_page_subscribe_display_mode'][0] ?? 'icon_modal',
-		'subscribe_description'        => $all_meta['_link_page_subscribe_description'][0] ?? '',
-		'social_icons_position'        => $all_meta['_link_page_social_icons_position'][0] ?? 'above',
-	);
-
-	// Background image
-	$background_image_id  = isset( $all_meta['_link_page_background_image_id'][0] ) ? (int) $all_meta['_link_page_background_image_id'][0] : null;
-	$background_image_url = $background_image_id ? wp_get_attachment_image_url( $background_image_id, 'large' ) : null;
-
-	return array(
-		'id'                   => (int) $link_page_id,
-		'links'                => $links,
-		'css_vars'             => $css_vars,
-		'settings'             => $settings,
-		'background_image_id'  => $background_image_id,
-		'background_image_url' => $background_image_url,
-	);
+	// Return fresh data from canonical source
+	return rest_ensure_response( ec_get_link_page_data( $artist_id, $link_page_id ) );
 }
 
 /**
@@ -343,6 +322,7 @@ function extrachill_api_sanitize_link_settings( $settings ) {
 		'weekly_notifications_enabled',
 		'redirect_enabled',
 		'youtube_embed_enabled',
+		'overlay_enabled',
 	);
 
 	foreach ( $bool_fields as $field ) {
@@ -356,15 +336,48 @@ function extrachill_api_sanitize_link_settings( $settings ) {
 		'redirect_target_url',
 		'meta_pixel_id',
 		'google_tag_id',
+		'google_tag_manager_id',
 		'subscribe_display_mode',
 		'subscribe_description',
 		'social_icons_position',
+		'profile_image_shape',
 	);
 
 	foreach ( $string_fields as $field ) {
 		if ( isset( $settings[ $field ] ) ) {
 			$sanitized[ $field ] = sanitize_text_field( wp_unslash( $settings[ $field ] ) );
 		}
+	}
+
+	return $sanitized;
+}
+
+/**
+ * Sanitize socials array for REST input
+ */
+function extrachill_api_sanitize_socials( $socials ) {
+	if ( ! is_array( $socials ) ) {
+		return array();
+	}
+
+	$sanitized = array();
+
+	foreach ( $socials as $social ) {
+		if ( ! is_array( $social ) ) {
+			continue;
+		}
+
+		$type = isset( $social['type'] ) ? sanitize_text_field( wp_unslash( $social['type'] ) ) : '';
+		$url  = isset( $social['url'] ) ? esc_url_raw( wp_unslash( $social['url'] ) ) : '';
+
+		if ( empty( $type ) || empty( $url ) ) {
+			continue;
+		}
+
+		$sanitized[] = array(
+			'type' => $type,
+			'url'  => $url,
+		);
 	}
 
 	return $sanitized;
