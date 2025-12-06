@@ -35,6 +35,14 @@ extrachill-api/
 ├── extrachill-api.php (Main plugin file with singleton class)
 └── inc/
     └── routes/
+        ├── artist/
+        │   ├── artist.php (Core artist data endpoint)
+        │   ├── links.php (Link page data endpoint)
+        │   ├── socials.php (Social links endpoint)
+        │   ├── permissions.php (Permission check endpoint)
+        │   ├── roster.php (Artist roster endpoint)
+        │   ├── subscribe.php (Artist subscription endpoint)
+        │   └── subscribers.php (Subscriber management endpoint)
         ├── blocks/
         │   ├── ai-adventure.php (AI Adventure block endpoint)
         │   ├── image-voting.php (Image voting block endpoint)
@@ -43,6 +51,8 @@ extrachill-api/
         │   └── user-mentions.php (User search for mentions)
         ├── events/
         │   └── event-submissions.php (Event submission proxy)
+        ├── media/
+        │   └── upload.php (Unified media upload endpoint)
         └── tools/
             └── qr-code.php (QR code generator)
 ```
@@ -149,6 +159,213 @@ All endpoints are under the `extrachill/v1` namespace.
 **Used By**: extrachill-admin-tools plugin (QR Code Generator tool)
 
 **Dependencies**: Endroid QR Code library (Composer dependency)
+
+### 6. Unified Media Upload
+
+**Endpoint**: `POST/DELETE /wp-json/extrachill/v1/media`
+
+**Purpose**: Centralized image upload and management for all platform contexts. Handles upload, assignment, old image cleanup, and deletion.
+
+**Methods**:
+- `POST` - Upload and assign image (automatically deletes old image when replaced)
+- `DELETE` - Remove assignment AND delete attachment from media library
+
+**Parameters**:
+- `context` (string, required) - Upload context determining storage location
+- `target_id` (int, required for most contexts) - Target entity ID
+- `file` (file, POST only) - Image file (JPG, PNG, GIF, WebP; max 5MB)
+
+**Supported Contexts**:
+
+| Context | target_id | Storage Location |
+|---------|-----------|------------------|
+| `user_avatar` | user_id | `custom_avatar_id` user meta |
+| `artist_profile` | artist_id | Artist post thumbnail |
+| `artist_header` | artist_id | `_artist_profile_header_image_id` meta |
+| `link_page_profile` | artist_id | Artist thumbnail + `_link_page_profile_image_id` on link page |
+| `link_page_background` | artist_id | `_link_page_background_image_id` on link page |
+| `content_embed` | optional post_id | Attachment only (no meta assignment) |
+
+**Permission Logic**:
+- `user_avatar`: Current user must match `target_id`
+- Artist contexts: Uses `ec_can_manage_artist()` from extrachill-artist-platform
+- `content_embed`: Any logged-in user
+
+**POST Response**:
+```json
+{
+    "attachment_id": 123,
+    "url": "https://example.com/wp-content/uploads/image.jpg",
+    "context": "user_avatar",
+    "target_id": 1
+}
+```
+
+**DELETE Response**:
+```json
+{
+    "deleted": true,
+    "context": "user_avatar",
+    "target_id": 1
+}
+```
+
+**File**: `inc/routes/media/upload.php`
+
+**Used By**:
+- extrachill-users (avatar upload on bbPress profile edit)
+- extrachill-community (TinyMCE image embed)
+- Future: React-based Link Page Editor
+
+**Dependencies**: extrachill-artist-platform (for artist context permission checks)
+
+## Artist API
+
+Foundational REST API for artist data management. Provides three endpoints that serve as the canonical access layer for all artist-related operations.
+
+### 7. Artist Core Data
+
+**Endpoint**: `GET/PUT /wp-json/extrachill/v1/artists/{id}`
+
+**Purpose**: Retrieve and update core artist profile data.
+
+**GET Response**:
+```json
+{
+  "id": 123,
+  "name": "Artist Name",
+  "slug": "artist-slug",
+  "bio": "Artist bio text",
+  "profile_image_id": 456,
+  "profile_image_url": "https://...",
+  "header_image_id": 789,
+  "header_image_url": "https://...",
+  "link_page_id": 101
+}
+```
+
+**PUT Request** (partial updates supported):
+```json
+{
+  "name": "New Artist Name",
+  "bio": "Updated bio"
+}
+```
+
+**PUT Response**: Returns updated artist data (same structure as GET)
+
+**Permission**: `ec_can_manage_artist()` - user must be artist owner or admin
+
+**File**: `inc/routes/artist/artist.php`
+
+**Notes**:
+- Images managed via `/media` endpoint with `artist_profile` or `artist_header` context
+- `link_page_id` is read-only
+
+---
+
+### 8. Artist Social Links
+
+**Endpoint**: `GET/PUT /wp-json/extrachill/v1/artists/{id}/socials`
+
+**Purpose**: Retrieve and update social icon links (Instagram, Spotify, etc.).
+
+**GET Response**:
+```json
+{
+  "social_links": [
+    {"type": "instagram", "url": "https://instagram.com/artist"},
+    {"type": "spotify", "url": "https://open.spotify.com/artist/..."}
+  ]
+}
+```
+
+**PUT Request** (full replacement):
+```json
+{
+  "social_links": [
+    {"type": "instagram", "url": "https://instagram.com/artist"},
+    {"type": "tiktok", "url": "https://tiktok.com/@artist"}
+  ]
+}
+```
+
+**PUT Response**: Returns updated social links (same structure as GET)
+
+**Permission**: `ec_can_manage_artist()`
+
+**File**: `inc/routes/artist/socials.php`
+
+**Notes**:
+- Uses `extrachill_artist_platform_social_links()` manager
+- PUT is full replacement (sending `[]` clears all socials)
+- Social links stored on artist profile, displayed on link page
+
+---
+
+### 9. Artist Link Page Data
+
+**Endpoint**: `GET/PUT /wp-json/extrachill/v1/artists/{id}/links`
+
+**Purpose**: Retrieve and update link page presentation data (button links, styling, settings).
+
+**GET Response**:
+```json
+{
+  "id": 101,
+  "links": [
+    {
+      "section_title": "Music",
+      "links": [
+        {"id": "link_123", "link_text": "Spotify", "link_url": "https://..."}
+      ]
+    }
+  ],
+  "css_vars": {
+    "--link-page-button-bg-color": "#ffffff",
+    "--link-page-text-color": "#000000"
+  },
+  "settings": {
+    "link_expiration_enabled": false,
+    "weekly_notifications_enabled": false,
+    "redirect_enabled": false,
+    "redirect_target_url": "",
+    "youtube_embed_enabled": true,
+    "meta_pixel_id": "",
+    "google_tag_id": "",
+    "subscribe_display_mode": "icon_modal",
+    "subscribe_description": "",
+    "social_icons_position": "above"
+  },
+  "background_image_id": 202,
+  "background_image_url": "https://..."
+}
+```
+
+**PUT Request** (partial updates supported):
+```json
+{
+  "links": [...],
+  "css_vars": {"--link-page-button-bg-color": "#ff0000"},
+  "settings": {"youtube_embed_enabled": false}
+}
+```
+
+**PUT Response**: Returns updated link page data (same structure as GET)
+
+**Permission**: `ec_can_manage_artist()`
+
+**File**: `inc/routes/artist/links.php`
+
+**Update Behavior**:
+- `links`: Full replacement (sending `[]` clears all sections)
+- `css_vars`: Merged with existing values
+- `settings`: Merged with existing values (only provided fields updated)
+
+**Notes**:
+- Returns 404 if artist has no link page
+- Background image managed via `/media` endpoint with `link_page_background` context
+- Uses `ec_handle_link_page_save()` for write operations
 
 ## Response Contract
 
@@ -391,7 +608,7 @@ curl -X GET "http://site.local/wp-json/extrachill/v1/users/search?search=test" \
 ## Future Roadmap
 
 **Planned Endpoints**:
-1. Artist platform analytics endpoints
+1. Artist shop data (`/artists/{id}/shop`) - WooCommerce integration
 2. Newsletter subscription management
 3. Community voting and reactions
 4. Admin tools background operations

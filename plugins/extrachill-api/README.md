@@ -262,6 +262,12 @@ GPL v2 or later
 
 ## Changelog
 
+### 0.1.5
+- Added Artist API endpoints for comprehensive artist data management
+- Added unified media upload endpoint for centralized image handling across all contexts
+- Replaced legacy upload endpoints with consolidated media management system
+- Added comprehensive API documentation for new endpoints
+
 ### 0.1.4
 - Added artist roster management endpoints (roster invite, subscribers pagination, subscribers export)
 - Added chat functionality endpoints (history clear, message send)

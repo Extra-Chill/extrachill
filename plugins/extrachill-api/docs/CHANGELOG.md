@@ -2,6 +2,27 @@
 
 All notable changes to the ExtraChill API plugin are documented here. This file is the single source of truth for release history.
 
+## 0.1.5
+
+### Added
+- **Artist API Endpoints**: Complete artist data management system
+  - `GET/PUT /wp-json/extrachill/v1/artists/{id}` - Core artist profile data (name, bio, images, link_page_id)
+  - `GET/PUT /wp-json/extrachill/v1/artists/{id}/socials` - Social media links management
+  - `GET/PUT /wp-json/extrachill/v1/artists/{id}/links` - Link page presentation data (links, CSS variables, settings)
+- **Unified Media Upload Endpoint**: `POST/DELETE /wp-json/extrachill/v1/media`
+  - Centralized image upload and management for all platform contexts
+  - Supports user avatars, artist profiles, link pages, and content embeds
+  - Automatic old image cleanup and permission-based access control
+  - File validation (JPG, PNG, GIF, WebP; max 5MB)
+- Comprehensive API documentation in AGENTS.md for all new endpoints
+
+### Removed
+- Legacy `inc/routes/community/upload-image.php` endpoint (replaced by unified media endpoint)
+- Legacy `inc/routes/users/avatar-upload.php` endpoint (replaced by unified media endpoint)
+
+### Changed
+- Updated roadmap to reflect completed artist API implementation
+
 ## 0.1.4
 
 ### Added
