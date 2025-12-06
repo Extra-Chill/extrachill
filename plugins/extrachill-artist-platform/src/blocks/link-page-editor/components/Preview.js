@@ -5,13 +5,17 @@
  * Renders exactly as the link page will appear on the frontend.
  */
 
-import { useEffect, useMemo } from '@wordpress/element';
-import { usePreview } from '../context/PreviewContext';
+import { useEffect, useMemo, useRef } from '@wordpress/element';
 import { useEditor } from '../context/EditorContext';
 
 export default function Preview() {
-	const { computedStyles, previewData } = usePreview();
-	const { linkPageCssUrl, socialIconsCssUrl } = useEditor();
+	const {
+		computedStyles,
+		previewData,
+		googleFontsUrl,
+		linkPageCssUrl,
+		socialIconsCssUrl,
+	} = useEditor();
 
 	const {
 		name,
@@ -24,6 +28,8 @@ export default function Preview() {
 		overlayEnabled,
 		backgroundType,
 	} = previewData;
+
+	const googleFontLinkRef = useRef( null );
 
 	// Load production CSS for preview
 	useEffect( () => {
@@ -49,6 +55,33 @@ export default function Preview() {
 			}
 		}
 	}, [ linkPageCssUrl, socialIconsCssUrl ] );
+
+	// Load Google Fonts dynamically when fonts change
+	useEffect( () => {
+		const linkId = 'ec-google-fonts-preview';
+
+		if ( googleFontsUrl ) {
+			let link = document.getElementById( linkId );
+
+			if ( ! link ) {
+				link = document.createElement( 'link' );
+				link.id = linkId;
+				link.rel = 'stylesheet';
+				document.head.appendChild( link );
+				googleFontLinkRef.current = link;
+			}
+
+			if ( link.href !== googleFontsUrl ) {
+				link.href = googleFontsUrl;
+			}
+		} else {
+			const existingLink = document.getElementById( linkId );
+			if ( existingLink ) {
+				existingLink.remove();
+				googleFontLinkRef.current = null;
+			}
+		}
+	}, [ googleFontsUrl ] );
 
 	const socialIconsAbove = socialsPosition === 'above';
 
@@ -133,7 +166,7 @@ export default function Preview() {
 	// Profile image classes based on shape
 	const profileImgClasses = [
 		'extrch-link-page-profile-img',
-		`shape-${ profileShape || 'circle' }`,
+		`shape-${ profileShape }`,
 		! profileImageUrl ? 'no-image' : '',
 	]
 		.filter( Boolean )
@@ -152,7 +185,7 @@ export default function Preview() {
 			<div className="ec-preview-indicator">Live Preview</div>
 			<div
 				className="extrch-link-page-container extrch-link-page-preview-container"
-				data-bg-type={ backgroundType || 'color' }
+				data-bg-type={ backgroundType }
 				style={ containerStyle }
 			>
 				<div className={ wrapperClasses }>

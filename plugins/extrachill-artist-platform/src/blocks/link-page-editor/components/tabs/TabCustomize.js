@@ -10,12 +10,15 @@ import { __ } from '@wordpress/i18n';
 import { useEditor } from '../../context/EditorContext';
 import ColorPicker from '../shared/ColorPicker';
 import ImageUploader from '../shared/ImageUploader';
+import { DEFAULT_TITLE_FONT, DEFAULT_BODY_FONT } from '../../utils/fonts';
 
 export default function TabCustomize() {
 	const {
 		artistId,
 		cssVars,
 		updateCssVars,
+		rawFontValues,
+		updateFontValue,
 		settings,
 		updateSettings,
 		backgroundImageUrl,
@@ -111,13 +114,10 @@ export default function TabCustomize() {
 					<select
 						id="ec-title-font"
 						className="ec-field__select"
-						value={ cssVars?.[ '--link-page-title-font-family' ] || '' }
-						onChange={ ( e ) =>
-							handleCssVarChange( '--link-page-title-font-family', e.target.value )
-						}
+						value={ rawFontValues?.title_font || DEFAULT_TITLE_FONT }
+						onChange={ ( e ) => updateFontValue( 'title', e.target.value ) }
 					>
-						<option value="">{ __( 'Default', 'extrachill-artist-platform' ) }</option>
-						{ ( fonts || [] ).map( ( font ) => (
+						{ fonts.map( ( font ) => (
 							<option key={ font.value } value={ font.value }>
 								{ font.label }
 							</option>
@@ -154,13 +154,10 @@ export default function TabCustomize() {
 					<select
 						id="ec-body-font"
 						className="ec-field__select"
-						value={ cssVars?.[ '--link-page-body-font-family' ] || '' }
-						onChange={ ( e ) =>
-							handleCssVarChange( '--link-page-body-font-family', e.target.value )
-						}
+						value={ rawFontValues?.body_font || DEFAULT_BODY_FONT }
+						onChange={ ( e ) => updateFontValue( 'body', e.target.value ) }
 					>
-						<option value="">{ __( 'Default', 'extrachill-artist-platform' ) }</option>
-						{ ( fonts || [] ).map( ( font ) => (
+						{ fonts.map( ( font ) => (
 							<option key={ font.value } value={ font.value }>
 								{ font.label }
 							</option>

@@ -9,7 +9,10 @@ import { useState, useEffect, useCallback } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
 import apiFetch from '@wordpress/api-fetch';
 
+const getConfig = () => window.ecLinkPageEditorConfig || {};
+
 export default function QRCodeModal( { isOpen, onClose, publicUrl, artistSlug } ) {
+	const config = getConfig();
 	const [ imageUrl, setImageUrl ] = useState( null );
 	const [ isLoading, setIsLoading ] = useState( false );
 	const [ isDownloading, setIsDownloading ] = useState( false );
@@ -127,13 +130,17 @@ export default function QRCodeModal( { isOpen, onClose, publicUrl, artistSlug } 
 						>
 							{ isDownloading ? (
 								<>
-									<i className="fa-solid fa-spinner fa-spin"></i>
+									<svg className="ec-icon ec-icon--spin">
+										<use href={ `${ config.iconSpriteUrl }#spinner` }></use>
+									</svg>
 									{ ' ' }
 									{ __( 'Generating...', 'extrachill-artist-platform' ) }
 								</>
 							) : (
 								<>
-									<i className="fa-solid fa-download"></i>
+									<svg className="ec-icon">
+										<use href={ `${ config.iconSpriteUrl }#download` }></use>
+									</svg>
 									{ ' ' }
 									{ __( 'Download for Print', 'extrachill-artist-platform' ) }
 								</>

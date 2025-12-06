@@ -1,45 +1,52 @@
 /**
- * Public Link Page Tracking - Link Click Analytics
+ * Public Link Page Tracking - Views and Link Clicks
  *
- * Tracks link clicks via REST API. URL normalization (GA param stripping)
- * is handled server-side by the API endpoint.
+ * Tracks page views and link clicks for artist link pages via REST API.
+ * Views: Fires on page load, tracked to both all-time counter and 90-day rolling table.
+ * Clicks: Fires on link click, URL normalization handled server-side.
  */
 
 (function() {
     'use strict';
 
-    if (typeof extrchTrackingData === 'undefined' || !extrchTrackingData.restUrl || !extrchTrackingData.link_page_id) {
+    if (typeof extrchTrackingData === 'undefined' || !extrchTrackingData.link_page_id) {
         return;
     }
 
-    const { restUrl, link_page_id } = extrchTrackingData;
+    const { clickRestUrl, viewRestUrl, link_page_id } = extrchTrackingData;
 
-    function trackLinkClick(linkUrl) {
-        const data = JSON.stringify({
-            link_page_id: link_page_id,
-            link_url: linkUrl
-        });
-
+    function sendBeacon(url, data) {
+        const jsonData = JSON.stringify(data);
         if (navigator.sendBeacon) {
-            const blob = new Blob([data], { type: 'application/json' });
-            navigator.sendBeacon(restUrl, blob);
+            navigator.sendBeacon(url, new Blob([jsonData], { type: 'application/json' }));
         } else {
-            fetch(restUrl, {
+            fetch(url, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: data,
+                body: jsonData,
                 keepalive: true
             }).catch(() => {});
         }
     }
 
-    const linkContainer = document.querySelector('.extrch-link-page-content-wrapper');
-    if (linkContainer) {
-        linkContainer.addEventListener('click', (event) => {
-            const linkElement = event.target.closest('a');
-            if (linkElement && linkElement.href && !linkElement.classList.contains('extrch-link-page-edit-btn')) {
-                trackLinkClick(linkElement.href);
-            }
-        });
+    // Track page view on load
+    if (viewRestUrl) {
+        sendBeacon(viewRestUrl, { post_id: link_page_id });
+    }
+
+    // Track link clicks
+    if (clickRestUrl) {
+        const linkContainer = document.querySelector('.extrch-link-page-content-wrapper');
+        if (linkContainer) {
+            linkContainer.addEventListener('click', (event) => {
+                const linkElement = event.target.closest('a');
+                if (linkElement && linkElement.href && !linkElement.classList.contains('extrch-link-page-edit-btn')) {
+                    sendBeacon(clickRestUrl, {
+                        link_page_id: link_page_id,
+                        link_url: linkElement.href
+                    });
+                }
+            });
+        }
     }
 })();

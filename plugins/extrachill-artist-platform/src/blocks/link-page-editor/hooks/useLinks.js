@@ -1,7 +1,7 @@
 /**
  * useLinks Hook
  *
- * Manages link page data (links, settings, cssVars).
+ * Manages link page data (links, settings, cssVars, rawFontValues).
  */
 
 import { useState, useEffect, useCallback } from '@wordpress/element';
@@ -11,6 +11,10 @@ export default function useLinks( artistId ) {
 	const [ links, setLinks ] = useState( [] );
 	const [ settings, setSettings ] = useState( {} );
 	const [ cssVars, setCssVars ] = useState( {} );
+	const [ rawFontValues, setRawFontValues ] = useState( {
+		title_font: '',
+		body_font: '',
+	} );
 	const [ backgroundImageId, setBackgroundImageId ] = useState( null );
 	const [ backgroundImageUrl, setBackgroundImageUrl ] = useState( null );
 	const [ isLoading, setIsLoading ] = useState( true );
@@ -30,6 +34,7 @@ export default function useLinks( artistId ) {
 			setLinks( data.links || [] );
 			setSettings( data.settings || {} );
 			setCssVars( data.css_vars || {} );
+			setRawFontValues( data.raw_font_values || { title_font: '', body_font: '' } );
 			setBackgroundImageId( data.background_image_id || null );
 			setBackgroundImageUrl( data.background_image_url || null );
 		} catch ( err ) {
@@ -54,6 +59,7 @@ export default function useLinks( artistId ) {
 				setLinks( updated.links || [] );
 				setSettings( updated.settings || {} );
 				setCssVars( updated.css_vars || {} );
+				setRawFontValues( updated.raw_font_values || { title_font: '', body_font: '' } );
 				setBackgroundImageId( updated.background_image_id || null );
 				setBackgroundImageUrl( updated.background_image_url || null );
 				return updated;
@@ -77,6 +83,10 @@ export default function useLinks( artistId ) {
 		setCssVars( ( prev ) => ( { ...prev, ...newCssVars } ) );
 	}, [] );
 
+	const updateLocalRawFontValues = useCallback( ( newRawFontValues ) => {
+		setRawFontValues( ( prev ) => ( { ...prev, ...newRawFontValues } ) );
+	}, [] );
+
 	const updateBackgroundImage = useCallback( ( id, url ) => {
 		setBackgroundImageId( id );
 		setBackgroundImageUrl( url );
@@ -86,6 +96,7 @@ export default function useLinks( artistId ) {
 		links,
 		settings,
 		cssVars,
+		rawFontValues,
 		backgroundImageId,
 		backgroundImageUrl,
 		isLoading,
@@ -95,6 +106,7 @@ export default function useLinks( artistId ) {
 		updateLocalLinks,
 		updateLocalSettings,
 		updateLocalCssVars,
+		updateLocalRawFontValues,
 		updateBackgroundImage,
 	};
 }

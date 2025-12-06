@@ -118,6 +118,10 @@ export default function Editor() {
 		<div className="ec-editor">
 			<div className="ec-editor__header">
 				<div className="ec-editor__header-left">
+					<LinkPageUrl
+						publicUrl={ publicUrl }
+						onQRCodeClick={ () => setIsQRModalOpen( true ) }
+					/>
 					{ userArtists.length > 1 && (
 						<select
 							className="ec-editor__artist-switcher"
@@ -131,10 +135,6 @@ export default function Editor() {
 							) ) }
 						</select>
 					) }
-					<LinkPageUrl
-						publicUrl={ publicUrl }
-						onQRCodeClick={ () => setIsQRModalOpen( true ) }
-					/>
 				</div>
 
 				<div className="ec-editor__header-right">

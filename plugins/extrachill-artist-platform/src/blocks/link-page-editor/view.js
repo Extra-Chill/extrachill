@@ -6,7 +6,6 @@
 
 import { createRoot } from '@wordpress/element';
 import { EditorProvider } from './context/EditorContext';
-import { PreviewProvider } from './context/PreviewContext';
 import Editor from './components/Editor';
 
 document.addEventListener( 'DOMContentLoaded', () => {
@@ -28,9 +27,7 @@ document.addEventListener( 'DOMContentLoaded', () => {
 
 	root.render(
 		<EditorProvider artistId={ artistId }>
-			<PreviewProvider>
-				<Editor />
-			</PreviewProvider>
+			<Editor />
 		</EditorProvider>
 	);
 } );

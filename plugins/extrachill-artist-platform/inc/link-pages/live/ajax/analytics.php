@@ -1,13 +1,40 @@
 <?php
 /**
- * Link click analytics for public link pages
+ * Link Page Analytics - Views and Click Tracking
  *
- * Page views are handled by theme-level ec_post_views system.
- * Link clicks are tracked via REST API (extrachill-api plugin) which fires
- * the 'extrachill_link_click_recorded' action handled here.
+ * Handles analytics tracking for public link pages:
+ * - Page views: Tracked on load via REST API, stored in both ec_post_views (all-time)
+ *   and extrch_link_page_daily_views table (90-day rolling).
+ * - Link clicks: Tracked on click via REST API, stored in extrch_link_page_daily_link_clicks table.
+ *
+ * Both use the same pattern: JS beacon → REST endpoint → action hook → direct table write.
  */
 
+add_action( 'extrachill_link_page_view_recorded', 'extrachill_handle_link_page_view_db_write', 10, 1 );
 add_action( 'extrachill_link_click_recorded', 'extrachill_handle_link_click_db_write', 10, 2 );
+
+/**
+ * Writes page view data to the daily views table
+ *
+ * @param int $link_page_id The link page post ID.
+ */
+function extrachill_handle_link_page_view_db_write( $link_page_id ) {
+    global $wpdb;
+
+    $today      = current_time( 'Y-m-d' );
+    $table_name = $wpdb->prefix . 'extrch_link_page_daily_views';
+
+    $wpdb->query( $wpdb->prepare(
+        "INSERT INTO {$table_name}
+            (link_page_id, stat_date, view_count)
+        VALUES
+            (%d, %s, 1)
+        ON DUPLICATE KEY UPDATE
+            view_count = view_count + 1",
+        $link_page_id,
+        $today
+    ) );
+}
 
 /**
  * Writes link click data to the daily aggregation table
@@ -36,7 +63,7 @@ function extrachill_handle_link_click_db_write( $link_page_id, $link_url ) {
 
 
 /**
- * Enqueues tracking script for link page analytics
+ * Enqueues tracking script for link page analytics (views and clicks)
  */
 function extrch_enqueue_public_tracking_script( $link_page_id, $artist_id ) {
     $plugin_dir = EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR;
@@ -57,7 +84,8 @@ function extrch_enqueue_public_tracking_script( $link_page_id, $artist_id ) {
     );
 
     wp_localize_script( $script_handle, 'extrchTrackingData', array(
-        'restUrl'     => rest_url( 'extrachill/v1/analytics/link-click' ),
+        'clickRestUrl' => rest_url( 'extrachill/v1/analytics/link-click' ),
+        'viewRestUrl'  => rest_url( 'extrachill/v1/analytics/view' ),
         'link_page_id' => $link_page_id,
     ) );
 }
@@ -67,7 +95,6 @@ add_action('extrch_link_page_minimal_head', 'extrch_enqueue_public_tracking_scri
  * Prunes analytics data older than 90 days
  *
  * Removes old records from both daily views and link clicks tables.
- * Page views tracked via ec_post_views are aggregated daily before pruning.
  */
 function extrch_prune_old_analytics_data() {
     global $wpdb;
@@ -113,75 +140,4 @@ add_action('init', 'extrch_schedule_analytics_pruning_cron');
 
 function extrch_unschedule_analytics_pruning_cron() {
     wp_clear_scheduled_hook('extrch_daily_analytics_prune_event');
-}
-
-/**
- * Aggregates daily view counts from ec_post_views into analytics table
- *
- * Calculates daily increments by comparing current totals with historical data.
- */
-function extrch_aggregate_daily_link_page_views() {
-    global $wpdb;
-
-    $link_pages = get_posts(array(
-        'post_type' => 'artist_link_page',
-        'posts_per_page' => -1,
-        'fields' => 'ids',
-        'post_status' => 'any'
-    ));
-
-    $today = current_time('Y-m-d');
-    $table_name = $wpdb->prefix . 'extrch_link_page_daily_views';
-    $aggregated = 0;
-
-    foreach ($link_pages as $link_page_id) {
-        // Get current total from universal counter
-        $current_total = (int) get_post_meta($link_page_id, 'ec_post_views', true);
-
-        // Get cumulative total from daily table (all records before today)
-        $historical_total = $wpdb->get_var($wpdb->prepare("
-            SELECT COALESCE(SUM(view_count), 0)
-            FROM {$table_name}
-            WHERE link_page_id = %d
-            AND stat_date < %s
-        ", $link_page_id, $today));
-
-        // Calculate daily increment
-        $daily_increment = $current_total - (int)$historical_total;
-
-        // Only insert if there's an increment
-        if ($daily_increment > 0) {
-            // Use REPLACE to handle re-runs on same day
-            $wpdb->replace(
-                $table_name,
-                array(
-                    'link_page_id' => $link_page_id,
-                    'stat_date' => $today,
-                    'view_count' => $daily_increment
-                ),
-                array('%d', '%s', '%d')
-            );
-            $aggregated++;
-        }
-    }
-
-    error_log("[EXTRCH Analytics Aggregation] Aggregated daily views for {$aggregated} link pages.");
-}
-add_action('extrch_daily_analytics_aggregate_event', 'extrch_aggregate_daily_link_page_views');
-
-/**
- * Schedules daily analytics aggregation cron event
- */
-function extrch_schedule_analytics_aggregation_cron() {
-    if (!wp_next_scheduled('extrch_daily_analytics_aggregate_event')) {
-        wp_schedule_event(time(), 'daily', 'extrch_daily_analytics_aggregate_event');
-    }
-}
-add_action('init', 'extrch_schedule_analytics_aggregation_cron');
-
-/**
- * Unschedules analytics aggregation cron event
- */
-function extrch_unschedule_analytics_aggregation_cron() {
-    wp_clear_scheduled_hook('extrch_daily_analytics_aggregate_event');
 }

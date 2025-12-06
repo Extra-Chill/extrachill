@@ -5,6 +5,43 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.10] - 2025-12-06
+
+### Added
+- Page view tracking for link pages via REST API (previously only tracked clicks)
+- SVG icon sprite system for block editor components replacing Font Awesome dependency
+- Dedicated `src/blocks/link-page-editor/utils/fonts.js` utility module for centralized font management
+- Dynamic Google Fonts loading in Preview component based on selected fonts
+
+### Changed
+- Refactored block editor state management: consolidated preview computation into EditorContext
+- Simplified analytics tracking: direct database writes on track event instead of background aggregation
+- Updated LinkPageUrl and QRCodeModal components to use SVG sprites instead of Font Awesome icons
+- Enhanced Preview component with proper font stack resolution and dynamic Google Fonts loading
+- Refactored TabCustomize with improved font value handling and proper defaults
+- Simplified breadcrumb navigation: removed community.extrachill.com link from breadcrumb trail
+- Improved link-page-public-tracking.js with unified `sendBeacon()` helper for both view and click events
+- Reordered block editor header elements for better UX (LinkPageUrl now appears before artist switcher)
+
+### Removed
+- PreviewContext.js merged into EditorContext.js for simplified state management
+- Analytics aggregation cron system (extrch_daily_analytics_aggregate_event)
+- Daily view aggregation logic that calculated increments from total counts
+- Aggregation-related functions: `extrch_aggregate_daily_link_page_views()`, `extrch_schedule_analytics_aggregation_cron()`, `extrch_unschedule_analytics_aggregation_cron()`
+- Font Awesome icons from LinkPageUrl and QRCodeModal components
+
+### Technical Improvements
+- Consolidated state management with unified EditorContext providing all preview and editor state
+- Improved analytics data flow with direct `INSERT ON DUPLICATE KEY UPDATE` writes
+- Better separation of concerns with dedicated fonts utility module
+- Enhanced preview styling with proper CSS variable defaults and font stack resolution
+- Cleaner component composition with svg icon sprite system
+- Simplified plugin deactivation hooks to only handle pruning cron
+- More efficient analytics pipeline without background aggregation delays
+
+### Block Version
+- Gutenberg block remains at version 0.1.0 (independent from plugin version)
+
 ## [1.1.9] - 2025-12-06
 
 ### Added

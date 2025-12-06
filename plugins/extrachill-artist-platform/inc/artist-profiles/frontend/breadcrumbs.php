@@ -12,7 +12,7 @@
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Change breadcrumb root to "Extra Chill → Community → Artist Platform"
+ * Change breadcrumb root to "Extra Chill › Artist Platform"
  *
  * Uses theme's extrachill_breadcrumbs_root filter to override the root link.
  *
@@ -20,13 +20,13 @@ defined( 'ABSPATH' ) || exit;
  * @return string Modified root link
  */
 function ec_artist_platform_breadcrumb_root( $root_link ) {
-	// On homepage, "Extra Chill → Community" (trail will add "Artist Platform")
+	// On homepage, just "Extra Chill" (trail will add "Artist Platform")
 	if ( is_front_page() ) {
-		return '<a href="https://extrachill.com">Extra Chill</a> › <a href="https://community.extrachill.com">Community</a>';
+		return '<a href="https://extrachill.com">Extra Chill</a>';
 	}
 
-	// On other pages, "Extra Chill → Community → Artist Platform"
-	return '<a href="https://extrachill.com">Extra Chill</a> › <a href="https://community.extrachill.com">Community</a> › <a href="' . esc_url( home_url() ) . '">Artist Platform</a>';
+	// On other pages, "Extra Chill › Artist Platform"
+	return '<a href="https://extrachill.com">Extra Chill</a> › <a href="' . esc_url( home_url() ) . '">Artist Platform</a>';
 }
 add_filter( 'extrachill_breadcrumbs_root', 'ec_artist_platform_breadcrumb_root' );
 

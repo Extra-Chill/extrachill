@@ -7,11 +7,14 @@
 
 import { __ } from '@wordpress/i18n';
 
+const getConfig = () => window.ecLinkPageEditorConfig || {};
+
 export default function LinkPageUrl( { publicUrl, onQRCodeClick } ) {
 	if ( ! publicUrl ) {
 		return null;
 	}
 
+	const config = getConfig();
 	const displayUrl = publicUrl.replace( /^https?:\/\//, '' );
 
 	return (
@@ -30,7 +33,9 @@ export default function LinkPageUrl( { publicUrl, onQRCodeClick } ) {
 				onClick={ onQRCodeClick }
 				title={ __( 'Get QR Code', 'extrachill-artist-platform' ) }
 			>
-				<i className="fa-solid fa-qrcode"></i>
+				<svg className="ec-icon">
+					<use href={ `${ config.iconSpriteUrl }#qrcode` }></use>
+				</svg>
 			</button>
 		</div>
 	);

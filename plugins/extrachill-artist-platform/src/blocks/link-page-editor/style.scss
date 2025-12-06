@@ -84,6 +84,27 @@
 	font-size: 14px;
 }
 
+/* SVG Icon Styles */
+.ec-icon {
+	width: 1em;
+	height: 1em;
+	fill: currentColor;
+	vertical-align: middle;
+}
+
+.ec-icon--spin {
+	animation: ec-spin 1s linear infinite;
+}
+
+@keyframes ec-spin {
+	from {
+		transform: rotate(0deg);
+	}
+	to {
+		transform: rotate(360deg);
+	}
+}
+
 /* Link Page URL Section */
 .ec-editor__link-url {
 	display: flex;
@@ -855,7 +876,9 @@
 	transition: opacity 0.3s ease;
 
 	&:focus {
-		background-color: var(--button-bg);
+		background-color: var(--accent);
+		outline: 2px solid #fff;
+		outline-offset: 2px;
 	}
 
 	&:hover {
@@ -886,12 +909,14 @@
 
 		&.arrow-down {
 			bottom: 6px;
+			top: auto;
 			left: 50%;
 			transform: translateX(-50%);
 		}
 
 		&.arrow-up {
 			top: 6px;
+			bottom: auto;
 			left: 50%;
 			transform: translateX(-50%);
 		}

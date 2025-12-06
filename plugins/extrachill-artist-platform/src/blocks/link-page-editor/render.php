@@ -95,14 +95,15 @@ if ( function_exists( 'extrachill_artist_platform_social_links' ) ) {
 
 // Localize configuration data
 $config = array(
-	'artistId'       => (int) $artist_id,
-	'userArtists'    => $user_artists_data,
-	'restUrl'        => rest_url( 'extrachill/v1/' ),
-	'nonce'          => wp_create_nonce( 'wp_rest' ),
-	'fonts'          => $fonts_data,
-	'socialTypes'    => $social_types,
-	'linkPageCssUrl' => EXTRACHILL_ARTIST_PLATFORM_PLUGIN_URL . 'assets/css/extrch-links.css',
+	'artistId'          => (int) $artist_id,
+	'userArtists'       => $user_artists_data,
+	'restUrl'           => rest_url( 'extrachill/v1/' ),
+	'nonce'             => wp_create_nonce( 'wp_rest' ),
+	'fonts'             => $fonts_data,
+	'socialTypes'       => $social_types,
+	'linkPageCssUrl'    => EXTRACHILL_ARTIST_PLATFORM_PLUGIN_URL . 'assets/css/extrch-links.css',
 	'socialIconsCssUrl' => EXTRACHILL_ARTIST_PLATFORM_PLUGIN_URL . 'assets/css/custom-social-icons.css',
+	'iconSpriteUrl'     => get_template_directory_uri() . '/assets/fonts/extrachill.svg',
 );
 
 // Enqueue the frontend script with localized data
