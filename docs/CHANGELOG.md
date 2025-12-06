@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0/).
 
+## [1.1.6] - 2025-12-06
+
+### Changed
+- **View Tracking**: Removed editor/admin user capability exclusion to enable view counting for all user roles
+- Updated docblock in `inc/core/view-counts.php` to reflect view tracking applies to all users, not just visitors
+- Removed capability check guard in `extrachill_enqueue_view_tracking()` function in `inc/core/assets.php`
+
+### Technical
+- Modified `inc/core/assets.php` to allow editors and admins to participate in view count statistics
+- Updated `inc/core/view-counts.php` function `ec_track_post_views()` to remove `current_user_can('edit_others_posts')` check
+- View tracking now applies uniformly across all user roles for more accurate metrics collection
+
 ## [1.1.5] - 2025-12-05
 
 ### Added

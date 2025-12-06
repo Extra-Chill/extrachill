@@ -3,7 +3,7 @@
  * Universal View Counting System
  *
  * Tracks post views using WordPress post meta via async REST API.
- * Excludes editors/admins and previews. Asset loading in inc/core/assets.php.
+ * Excludes previews. Asset loading in inc/core/assets.php.
  *
  * @package ExtraChill
  * @since 1.0.0
@@ -18,10 +18,6 @@ if (!defined('ABSPATH')) {
  */
 function ec_track_post_views($post_id) {
 	if (!$post_id || is_preview()) {
-		return;
-	}
-
-	if (current_user_can('edit_others_posts')) {
 		return;
 	}
 

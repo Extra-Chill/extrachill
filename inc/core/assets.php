@@ -232,10 +232,6 @@ function extrachill_enqueue_view_tracking() {
         return;
     }
 
-    if (current_user_can('edit_others_posts')) {
-        return;
-    }
-
     $js_path = get_template_directory() . '/assets/js/view-tracking.js';
     if (!file_exists($js_path)) {
         return;
