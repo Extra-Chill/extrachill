@@ -2,7 +2,7 @@
  * TabAdvanced Component
  *
  * Advanced settings matching canonical tab-advanced.php:
- * - General Settings: link expiration, weekly notifications, redirect, YouTube embed
+ * - General Settings: link expiration, redirect, YouTube embed
  * - Subscription Settings: display mode, description
  * - Tracking Pixels: Meta Pixel ID, Google Tag ID
  */
@@ -71,22 +71,6 @@ export default function TabAdvanced() {
 				</label>
 				<p className="ec-field__help">
 					{ __( 'When enabled, you can set expiration dates for individual links in the "Links" tab. Expired links will be deleted automatically.', 'extrachill-artist-platform' ) }
-				</p>
-			</div>
-
-			<div className="ec-field">
-				<label className="ec-checkbox">
-					<input
-						type="checkbox"
-						checked={ settings?.weekly_notifications_enabled || false }
-						onChange={ ( e ) =>
-							handleChange( 'weekly_notifications_enabled', e.target.checked )
-						}
-					/>
-					{ __( 'Enable Weekly Performance Email', 'extrachill-artist-platform' ) }
-				</label>
-				<p className="ec-field__help">
-					{ __( 'Receive a weekly summary of your link page performance via email.', 'extrachill-artist-platform' ) }
 				</p>
 			</div>
 

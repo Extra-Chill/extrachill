@@ -5,6 +5,38 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.9] - 2025-12-06
+
+### Added
+- New `JumpToPreview` component for mobile-optimized block editor navigation
+- New `LinkPageUrl` component for displaying canonical link page URLs in editor
+- New `QRCodeModal` component for QR code generation and display in block editor
+- Enhanced Preview component with comprehensive data synchronization
+- Improved block editor styling with SCSS refactoring (542 lines updated)
+
+### Changed
+- Refactored Editor component with simplified state management and improved props handling
+- Enhanced block render output with better error handling and data validation
+- Updated various tab components (TabAdvanced, TabCustomize, TabInfo, TabLinks) with improved form handling
+- Improved ImageUploader with better error handling and progress feedback
+- Refactored EditorContext and PreviewContext for cleaner state management
+- Updated advanced settings documentation to reflect removed weekly email feature
+
+### Removed
+- Removed `link-page-weekly-email.php` file (612 lines) - weekly email functionality no longer supported
+- Removed weekly email UI from advanced settings tab
+- Removed obsolete weekly email references from save system
+
+### Technical Improvements
+- Better separation of concerns in block component architecture
+- Enhanced error handling throughout block editor interface
+- Improved state synchronization between editor and preview panels
+- Cleaner component composition and prop management
+- Reduced code duplication in block editor styling
+
+### Block Version
+- Updated Gutenberg block version from 1.0.0 to 0.1.0 (initial feature version after base implementation)
+
 ## [1.1.8] - 2025-12-06
 
 ### Changed

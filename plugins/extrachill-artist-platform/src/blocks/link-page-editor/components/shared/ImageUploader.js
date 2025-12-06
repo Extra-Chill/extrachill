@@ -48,7 +48,7 @@ export default function ImageUploader( {
 					<div className="ec-image-uploader__actions">
 						<button
 							type="button"
-							className="button-2"
+							className="button-2 button-small"
 							onClick={ handleButtonClick }
 							disabled={ isUploading }
 						>
@@ -58,7 +58,7 @@ export default function ImageUploader( {
 						</button>
 						<button
 							type="button"
-							className="button-2 button-2--danger"
+							className="button-danger button-small"
 							onClick={ onRemove }
 							disabled={ isUploading }
 						>
@@ -70,7 +70,7 @@ export default function ImageUploader( {
 				<div className="ec-image-uploader__empty">
 					<button
 						type="button"
-						className="button-2"
+						className="button-2 button-small"
 						onClick={ handleButtonClick }
 						disabled={ isUploading }
 					>

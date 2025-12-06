@@ -38,8 +38,8 @@ export default function TabInfo() {
 	const handleImageUpload = useCallback(
 		async ( file ) => {
 			const result = await uploadMedia( 'artist_profile', artistId, file );
-			if ( result?.id && result?.url ) {
-				setProfileImage( result.id, result.url );
+			if ( result?.attachment_id && result?.url ) {
+				setProfileImage( result.attachment_id, result.url );
 			}
 		},
 		[ artistId, uploadMedia, setProfileImage ]

@@ -652,6 +652,123 @@ public function enqueue_management_assets() {
 }
 ```
 
+## React Component Architecture (Gutenberg Block)
+
+**Location**: `src/blocks/link-page-editor/`
+
+Modern React-based components for Gutenberg block editor providing complete link page editing interface.
+
+### Component Organization
+
+**Main Components**:
+```
+src/blocks/link-page-editor/
+├── components/
+│   ├── Editor.js                 # Main editor container with tab management
+│   ├── Preview.js                # Live preview rendering
+│   ├── JumpToPreview.js          # Mobile navigation button
+│   ├── tabs/
+│   │   ├── TabInfo.js            # Artist info and biography
+│   │   ├── TabLinks.js           # Link management with drag-and-drop
+│   │   ├── TabCustomize.js       # Styling (fonts, colors, backgrounds)
+│   │   ├── TabAdvanced.js        # Advanced settings
+│   │   ├── TabAnalytics.js       # Analytics dashboard
+│   │   └── TabSocials.js         # Social platform integration
+│   └── shared/
+│       ├── ColorPicker.js        # Color selection component
+│       ├── ImageUploader.js      # Media library integration
+│       ├── DraggableList.js      # Drag-and-drop list component
+│       ├── LinkPageUrl.js        # Display canonical URL
+│       └── QRCodeModal.js        # QR code generation and download
+├── context/
+│   ├── EditorContext.js          # Editor state management
+│   └── PreviewContext.js         # Preview state management
+├── hooks/
+│   ├── useArtist.js              # Artist data and metadata hook
+│   ├── useLinks.js               # Link management hook
+│   ├── useMediaUpload.js         # Media upload handler hook
+│   └── useSocials.js             # Social platform hook
+└── api/
+    └── client.js                 # Centralized REST API client
+```
+
+### Context API Usage
+
+**EditorContext**: Manages editor state including active tab, form data, and UI state
+
+```javascript
+// Usage in components
+const { currentTab, setCurrentTab, formData } = useContext( EditorContext );
+```
+
+**PreviewContext**: Manages preview data and real-time updates
+
+```javascript
+// Usage in Preview component
+const { previewData, updatePreviewData } = useContext( PreviewContext );
+```
+
+### Custom Hooks Pattern
+
+**useArtist Hook**: Fetches and manages artist data
+
+```javascript
+const { artist, loading, error } = useArtist( artistId );
+```
+
+**useLinks Hook**: Manages link data and updates
+
+```javascript
+const { links, addLink, removeLink, reorderLinks } = useLinks( linkPageId );
+```
+
+**useMediaUpload Hook**: Handles media library uploads
+
+```javascript
+const { uploadImage, isUploading } = useMediaUpload();
+```
+
+**useSocials Hook**: Manages social platform links
+
+```javascript
+const { socials, addSocial, removeSocial, updateSocial } = useSocials( linkPageId );
+```
+
+### REST API Integration
+
+**Client.js**: Centralized API client for all block requests
+
+```javascript
+// Usage example
+const response = await apiClient.post( '/extrachill/v1/link-pages/{id}/links', {
+    link_text: 'My Link',
+    link_url: 'https://example.com'
+} );
+
+// Image upload
+const imageResponse = await apiClient.uploadMedia( file );
+```
+
+### Webpack Build Configuration
+
+**webpack.config.js**: Compiles React components and SCSS
+
+```javascript
+// Development build with watch mode
+npm run dev
+
+// Production build
+npm run build
+
+// Lint JavaScript
+npm run lint
+
+// Format code
+npm run format
+```
+
+**Output**: Compiled assets available at `build/blocks/link-page-editor/`
+
 ## Browser Compatibility
 
 ### Modern API Usage with Fallbacks

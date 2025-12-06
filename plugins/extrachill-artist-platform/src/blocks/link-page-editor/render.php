@@ -28,7 +28,7 @@ if ( ! function_exists( 'ec_get_artists_for_user' ) ) {
 	return;
 }
 
-$user_artists = ec_get_artists_for_user( $current_user_id );
+$user_artists = ec_get_artists_for_user( $current_user_id, true );
 
 // No artists - show creation prompt
 if ( empty( $user_artists ) ) {
@@ -65,6 +65,7 @@ foreach ( $user_artists as $ua_id ) {
 		$user_artists_data[] = array(
 			'id'   => (int) $ua_id,
 			'name' => $artist_post->post_title,
+			'slug' => $artist_post->post_name,
 		);
 	}
 }
@@ -73,7 +74,7 @@ foreach ( $user_artists as $ua_id ) {
 $fonts_data = array();
 if ( class_exists( 'ExtraChillArtistPlatform_Fonts' ) ) {
 	$fonts_manager = ExtraChillArtistPlatform_Fonts::instance();
-	$fonts_data    = $fonts_manager->get_all_fonts();
+	$fonts_data    = $fonts_manager->get_supported_fonts();
 }
 
 // Get social link types and transform to array format for React
@@ -94,12 +95,14 @@ if ( function_exists( 'extrachill_artist_platform_social_links' ) ) {
 
 // Localize configuration data
 $config = array(
-	'artistId'     => (int) $artist_id,
-	'userArtists'  => $user_artists_data,
-	'restUrl'      => rest_url( 'extrachill/v1/' ),
-	'nonce'        => wp_create_nonce( 'wp_rest' ),
-	'fonts'        => $fonts_data,
-	'socialTypes'  => $social_types,
+	'artistId'       => (int) $artist_id,
+	'userArtists'    => $user_artists_data,
+	'restUrl'        => rest_url( 'extrachill/v1/' ),
+	'nonce'          => wp_create_nonce( 'wp_rest' ),
+	'fonts'          => $fonts_data,
+	'socialTypes'    => $social_types,
+	'linkPageCssUrl' => EXTRACHILL_ARTIST_PLATFORM_PLUGIN_URL . 'assets/css/extrch-links.css',
+	'socialIconsCssUrl' => EXTRACHILL_ARTIST_PLATFORM_PLUGIN_URL . 'assets/css/custom-social-icons.css',
 );
 
 // Enqueue the frontend script with localized data

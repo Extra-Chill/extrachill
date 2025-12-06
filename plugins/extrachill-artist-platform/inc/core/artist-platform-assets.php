@@ -58,29 +58,6 @@ class ExtraChillArtistPlatform_Assets {
                 array(),
                 $this->get_asset_version( 'assets/css/artist-profile.css' )
             );
-
-            if ( defined( 'EXTRACHILL_COMMUNITY_PLUGIN_URL' ) && defined( 'EXTRACHILL_COMMUNITY_PLUGIN_DIR' ) ) {
-                wp_enqueue_style(
-                    'extrachill-bbpress',
-                    EXTRACHILL_COMMUNITY_PLUGIN_URL . '/inc/assets/css/bbpress.css',
-                    array(),
-                    filemtime( EXTRACHILL_COMMUNITY_PLUGIN_DIR . '/inc/assets/css/bbpress.css' )
-                );
-
-                wp_enqueue_style(
-                    'topics-loop',
-                    EXTRACHILL_COMMUNITY_PLUGIN_URL . '/inc/assets/css/topics-loop.css',
-                    array( 'extrachill-bbpress' ),
-                    filemtime( EXTRACHILL_COMMUNITY_PLUGIN_DIR . '/inc/assets/css/topics-loop.css' )
-                );
-
-                wp_enqueue_style(
-                    'replies-loop',
-                    EXTRACHILL_COMMUNITY_PLUGIN_URL . '/inc/assets/css/replies-loop.css',
-                    array( 'extrachill-bbpress' ),
-                    filemtime( EXTRACHILL_COMMUNITY_PLUGIN_DIR . '/inc/assets/css/replies-loop.css' )
-                );
-            }
         }
 
         if ( $this->is_artist_directory_page() ) {
@@ -120,22 +97,6 @@ class ExtraChillArtistPlatform_Assets {
                 array(),
                 $this->get_asset_version( 'assets/js/artist-platform-home.js' ),
                 true
-            );
-        }
-
-        if ( $this->is_bbpress_user_profile() ) {
-            wp_enqueue_style(
-                'extrachill-artist-card',
-                $plugin_url . 'assets/css/artist-card.css',
-                array(),
-                $this->get_asset_version( 'assets/css/artist-card.css' )
-            );
-
-            wp_enqueue_style(
-                'extrachill-artist-platform-home',
-                $plugin_url . 'assets/css/artist-platform-home.css',
-                array( 'extrachill-artist-card' ),
-                $this->get_asset_version( 'assets/css/artist-platform-home.css' )
             );
         }
 
@@ -606,14 +567,6 @@ class ExtraChillArtistPlatform_Assets {
     }
 
 
-
-    private function is_bbpress_user_profile() {
-        if ( ! function_exists( 'bbp_is_single_user' ) ) {
-            return false;
-        }
-        
-        return bbp_is_single_user() || bbp_is_user_home();
-    }
 
     private function is_artist_platform_admin_page( $hook ) {
         global $post_type;

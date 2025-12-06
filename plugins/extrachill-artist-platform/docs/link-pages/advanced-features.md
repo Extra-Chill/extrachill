@@ -418,10 +418,7 @@ $advanced_settings = [
     
     // Subscription
     'subscribe_display_mode' => 'icon_modal',
-    'subscribe_description' => '',
-    
-    // Notifications
-    'weekly_notifications_enabled' => false
+    'subscribe_description' => ''
 ];
 ```
 

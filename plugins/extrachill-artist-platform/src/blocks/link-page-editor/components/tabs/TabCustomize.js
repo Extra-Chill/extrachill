@@ -63,8 +63,8 @@ export default function TabCustomize() {
 	const handleBackgroundUpload = useCallback(
 		async ( file ) => {
 			const result = await uploadMedia( 'link_page_background', artistId, file );
-			if ( result?.id && result?.url ) {
-				updateBackgroundImage( result.id, result.url );
+			if ( result?.attachment_id && result?.url ) {
+				updateBackgroundImage( result.attachment_id, result.url );
 			}
 		},
 		[ artistId, uploadMedia, updateBackgroundImage ]

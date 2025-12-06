@@ -99,3 +99,97 @@ The system implements custom rewrite rules:
 ## Registration Process
 
 Both post types are registered via `extrachill_init_post_types()` hooked to `init` with priority 5, ensuring early availability for dependent systems.
+
+## REST API Support
+
+Both post types have REST API support for programmatic access:
+
+### Artist Profile REST API
+
+```javascript
+// Get all artist profiles
+GET /wp-json/wp/v2/artist_profile
+
+// Get specific artist profile
+GET /wp-json/wp/v2/artist_profile/{id}
+
+// Create artist profile (requires authentication)
+POST /wp-json/wp/v2/artist_profile
+
+// Update artist profile
+POST /wp-json/wp/v2/artist_profile/{id}
+
+// Delete artist profile
+DELETE /wp-json/wp/v2/artist_profile/{id}
+```
+
+### Link Page REST API
+
+```javascript
+// Get all link pages
+GET /wp-json/wp/v2/artist_link_page
+
+// Get specific link page
+GET /wp-json/wp/v2/artist_link_page/{id}
+
+// Create link page (requires authentication)
+POST /wp-json/wp/v2/artist_link_page
+
+// Update link page
+POST /wp-json/wp/v2/artist_link_page/{id}
+
+// Delete link page
+DELETE /wp-json/wp/v2/artist_link_page/{id}
+```
+
+### Custom REST Endpoints
+
+The plugin provides additional custom REST endpoints for specialized operations:
+
+```javascript
+// Analytics data
+GET /wp-json/extrachill/v1/analytics/{link_page_id}
+
+// Subscribe to artist
+POST /wp-json/extrachill/v1/subscribe/{artist_id}
+
+// QR code generation
+POST /wp-json/extrachill/v1/qrcode/{link_page_id}
+
+// Subscriber management
+GET /wp-json/extrachill/v1/subscribers/{artist_id}
+POST /wp-json/extrachill/v1/subscribers/{artist_id}
+DELETE /wp-json/extrachill/v1/subscribers/{subscriber_id}
+
+// Roster management
+GET /wp-json/extrachill/v1/roster/{artist_id}
+POST /wp-json/extrachill/v1/roster/{artist_id}/invite
+DELETE /wp-json/extrachill/v1/roster/{roster_member_id}
+```
+
+### Authentication
+
+REST API endpoints require proper authentication:
+
+```javascript
+// WordPress nonce for authenticated requests
+const nonce = document.querySelector( '_wpnonce' ).value;
+
+// Include in request headers
+headers: {
+    'X-WP-Nonce': nonce
+}
+```
+
+### Gutenberg Block Integration
+
+The Gutenberg block editor (`src/blocks/link-page-editor/`) uses REST API for all operations:
+
+```javascript
+// Block automatically handles REST communication
+// via centralized API client at src/blocks/link-page-editor/api/client.js
+
+// Automatic nonce inclusion
+// Error handling and validation
+// Data serialization/deserialization
+```

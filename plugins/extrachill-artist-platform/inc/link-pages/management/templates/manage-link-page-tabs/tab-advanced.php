@@ -12,7 +12,6 @@ $settings = isset($data['settings']) ? $data['settings'] : array();
 
 // Extract settings with defaults (centralized system returns proper booleans)
 $link_expiration_enabled = $settings['link_expiration_enabled'] ?? false;
-$weekly_notifications_enabled = $settings['weekly_notifications_enabled'] ?? false;
 $redirect_enabled = $settings['redirect_enabled'] ?? false;
 $redirect_target_url = $settings['redirect_target_url'] ?? '';
 $is_youtube_embed_actually_enabled = $settings['youtube_embed_enabled'] ?? true;
@@ -29,12 +28,6 @@ $meta_pixel_id = $settings['meta_pixel_id'] ?? '';
             <?php esc_html_e('Enable Link Expiration Dates', 'extrachill-artist-platform'); ?>
         </label>
         <p class="description" style="margin:0.5em 0 1.5em 1.8em; color:#888; font-size:0.97em;"><?php esc_html_e('When enabled, you can set expiration dates for individual links in the "Links" tab. Expired links will be deleted automatically.', 'extrachill-artist-platform'); ?></p>
-
-        <label style="display:flex;align-items:center;gap:0.5em;font-weight:600;">
-            <input type="checkbox" name="link_page_enable_weekly_notifications" id="bp-enable-weekly-notifications" value="1" <?php checked($weekly_notifications_enabled); ?> />
-            <?php esc_html_e('Enable Weekly Performance Email', 'extrachill-artist-platform'); ?>
-        </label>
-        <p class="description" style="margin:0.5em 0 1.5em 1.8em; color:#aaa; font-size:0.97em;"><?php esc_html_e('Receive a weekly summary of your link page performance via email.', 'extrachill-artist-platform'); ?></p>
 
         <label style="display:flex;align-items:center;gap:0.5em;font-weight:600;">
             <input type="checkbox" name="link_page_redirect_enabled" id="bp-enable-temporary-redirect" value="1" <?php checked($redirect_enabled); ?> />

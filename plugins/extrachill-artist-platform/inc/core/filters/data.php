@@ -115,7 +115,6 @@ function ec_get_link_page_data( $artist_id, $link_page_id = null, $overrides = a
         'socials' => array(),
         'settings' => array(
             'link_expiration_enabled' => false,
-            'weekly_notifications_enabled' => false,
             'redirect_enabled' => false,
             'redirect_target_url' => '',
             'youtube_embed_enabled' => true,
@@ -172,7 +171,6 @@ function ec_get_link_page_data( $artist_id, $link_page_id = null, $overrides = a
         $data['socials'] = $artist_social_links;
     }
     $data['settings']['link_expiration_enabled'] = isset( $all_meta['_link_expiration_enabled'][0] ) && $all_meta['_link_expiration_enabled'][0] === '1';
-    $data['settings']['weekly_notifications_enabled'] = isset( $all_meta['_link_page_enable_weekly_notifications'][0] ) && $all_meta['_link_page_enable_weekly_notifications'][0] === '1';
     $data['settings']['redirect_enabled'] = isset( $all_meta['_link_page_redirect_enabled'][0] ) && $all_meta['_link_page_redirect_enabled'][0] === '1';
     $data['settings']['redirect_target_url'] = $all_meta['_link_page_redirect_target_url'][0] ?? '';
     $data['settings']['youtube_embed_enabled'] = ! isset( $all_meta['_enable_youtube_inline_embed'][0] ) || $all_meta['_enable_youtube_inline_embed'][0] !== '0';

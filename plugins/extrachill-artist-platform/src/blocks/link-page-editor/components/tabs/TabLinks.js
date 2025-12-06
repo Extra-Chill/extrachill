@@ -283,21 +283,21 @@ export default function TabLinks() {
 						<div className="ec-expiration-modal__actions">
 							<button
 								type="button"
-								className="ec-expiration-modal__save"
+								className="button-2 button-small"
 								onClick={ saveExpiration }
 							>
 								{ __( 'Save', 'extrachill-artist-platform' ) }
 							</button>
 							<button
 								type="button"
-								className="ec-expiration-modal__clear"
+								className="button-danger button-small"
 								onClick={ clearExpiration }
 							>
 								{ __( 'Clear', 'extrachill-artist-platform' ) }
 							</button>
 							<button
 								type="button"
-								className="ec-expiration-modal__cancel"
+								className="button-3 button-small"
 								onClick={ closeExpirationModal }
 							>
 								{ __( 'Cancel', 'extrachill-artist-platform' ) }

@@ -32,7 +32,6 @@ function ec_handle_link_page_save( $link_page_id, $save_data = array(), $files_d
     // Advanced settings (Advanced tab fields only)
     $advanced_fields = array(
         'link_expiration_enabled' => '_link_expiration_enabled',
-        'weekly_notifications_enabled' => '_link_page_enable_weekly_notifications',
         'redirect_enabled' => '_link_page_redirect_enabled',
         'redirect_target_url' => '_link_page_redirect_target_url',
         'youtube_embed_enabled' => '_enable_youtube_inline_embed',
@@ -351,7 +350,6 @@ function ec_prepare_link_page_save_data( $post_data ) {
 
     // Advanced settings
     $save_data['link_expiration_enabled'] = isset( $post_data['link_expiration_enabled_advanced'] ) && $post_data['link_expiration_enabled_advanced'] == '1' ? '1' : '0';
-    $save_data['weekly_notifications_enabled'] = isset( $post_data['link_page_enable_weekly_notifications'] ) && $post_data['link_page_enable_weekly_notifications'] == '1' ? '1' : '0';
     $save_data['redirect_enabled'] = isset( $post_data['link_page_redirect_enabled'] ) && $post_data['link_page_redirect_enabled'] == '1' ? '1' : '0';
     
     if ( $save_data['redirect_enabled'] === '1' && isset( $post_data['link_page_redirect_target_url'] ) ) {

@@ -2,6 +2,12 @@
 
 Comprehensive link page creation and management system with live preview, drag-and-drop interface, and advanced customization options.
 
+**Note**: The plugin provides two interfaces for link page management:
+1. **Gutenberg Block Editor** (Modern) - React-based block in WordPress editor. [See Gutenberg Block Documentation](gutenberg-block-editor.md)
+2. **Traditional PHP Management** - Classic admin interface at `/manage-link-page`
+
+Both interfaces offer identical functionality and save to the same data structure.
+
 ## System Architecture
 
 Link pages provide artists with customizable landing pages featuring:

@@ -23,6 +23,7 @@ A comprehensive WordPress plugin that provides artist profile management, link p
 
 ### 🔗 Link Pages
 - Custom link page creation with comprehensive management interface
+- Dual-interface system: Gutenberg block editor and traditional PHP management interface
 - Real-time live preview with event-driven JavaScript architecture and dedicated live preview handler
 - Drag-and-drop link reordering with SortableJS integration and live preview updates
 - Programmatic link addition API via WordPress actions for external integrations
@@ -136,6 +137,42 @@ $data = ec_get_link_page_data($artist_id, $link_page_id);
 
 // Core features include live preview, social platform integration,
 // analytics dashboard, subscription management, and permission system
+```
+
+### React-Based Gutenberg Block
+
+The plugin includes a complete React-based Gutenberg block for link page editing:
+
+```javascript
+// Block location: src/blocks/link-page-editor/
+// Compiled to: build/blocks/link-page-editor/
+
+// Registered in main plugin initialization
+function extrachill_artist_platform_register_blocks() {
+    register_block_type( __DIR__ . '/build/blocks/link-page-editor' );
+}
+add_action( 'init', 'extrachill_artist_platform_register_blocks' );
+```
+
+**Features**:
+- **React Components**: Tab-based interface with TabInfo, TabLinks, TabCustomize, TabAdvanced, TabAnalytics, TabSocials
+- **Live Preview**: Real-time preview of link page changes using Context API
+- **REST API Integration**: Centralized API client for data operations
+- **Custom Hooks**: useArtist, useLinks, useMediaUpload, useSocials
+- **Context Providers**: EditorContext and PreviewContext for state management
+- **Build Process**: Webpack compilation via `npm run build` with wp-scripts
+- **Mobile Support**: Jump-to-preview button for mobile navigation
+
+**Building the Block**:
+```bash
+# Development build with watch mode
+npm run dev
+
+# Production build
+npm run build
+
+# Build output location
+build/blocks/link-page-editor/
 ```
 
 ### AJAX System
@@ -470,6 +507,7 @@ Link page configuration stored as post meta:
 ### 🎯 Advanced Features
 
 - **Event-Driven JavaScript Architecture**: CustomEvent-based communication between management and preview modules
+- **Gutenberg Block Editor**: Modern React-based interface for WordPress block editor with full feature parity
 - **Artist Grid System**: Activity-based sorting with comprehensive timestamp calculation
 - **Drag-and-Drop Interface**: SortableJS-powered link reordering with real-time live preview updates
 - **Link Expiration System**: Time-based link scheduling with automatic deactivation and preview integration
@@ -741,6 +779,42 @@ The build process excludes:
 - Testing files and temporary artifacts
 - Node modules (node_modules/)
 - Note: WordPress plugins include vendor/ directory with production dependencies (end users don't have Composer access)
+
+## Build System & Webpack Configuration
+
+The plugin includes a comprehensive build system with Webpack for compiling React/Gutenberg blocks:
+
+**Build Files**:
+- `webpack.config.js` - Webpack configuration for block compilation
+- `package.json` - NPM scripts and dependencies
+- `build.sh` - Symlinked to universal build script
+
+**Build Commands**:
+```bash
+# Development build with watch mode
+npm run dev
+
+# Production build
+npm run build
+```
+
+**Webpack Configuration**:
+- Compiles React components in `src/blocks/`
+- Processes SCSS files for styling
+- Generates assets to `build/blocks/` directory
+- Integrates with WordPress block registration via `block.json`
+
+**NPM Scripts**:
+```json
+{
+  "scripts": {
+    "build": "wp-scripts build",
+    "dev": "wp-scripts start",
+    "lint": "wp-scripts lint-js src",
+    "format": "wp-scripts format"
+  }
+}
+```
 
 ## Custom CSS System
 

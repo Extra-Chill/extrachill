@@ -152,6 +152,8 @@ export function EditorProvider( { artistId: initialArtistId, children } ) {
 			userArtists: config.userArtists || [],
 			fonts: config.fonts || [],
 			socialTypes: config.socialTypes || [],
+			linkPageCssUrl: config.linkPageCssUrl || '',
+			socialIconsCssUrl: config.socialIconsCssUrl || '',
 
 			saveAll,
 			switchArtist,
@@ -176,6 +178,8 @@ export function EditorProvider( { artistId: initialArtistId, children } ) {
 			config.userArtists,
 			config.fonts,
 			config.socialTypes,
+			config.linkPageCssUrl,
+			config.socialIconsCssUrl,
 			saveAll,
 			switchArtist,
 			markDirty,

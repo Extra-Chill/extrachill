@@ -4,7 +4,7 @@
  * Main editor layout with tab navigation, artist switcher, and save button.
  */
 
-import { useState, useCallback } from '@wordpress/element';
+import { useState, useCallback, useMemo } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
 import { useEditor } from '../context/EditorContext';
 import Preview from './Preview';
@@ -14,6 +14,9 @@ import TabSocials from './tabs/TabSocials';
 import TabCustomize from './tabs/TabCustomize';
 import TabAdvanced from './tabs/TabAdvanced';
 import TabAnalytics from './tabs/TabAnalytics';
+import JumpToPreview from './JumpToPreview';
+import LinkPageUrl from './shared/LinkPageUrl';
+import QRCodeModal from './shared/QRCodeModal';
 
 const TABS = [
 	{ id: 'info', label: __( 'Info', 'extrachill-artist-platform' ) },
@@ -35,11 +38,26 @@ export default function Editor() {
 		saveError,
 		hasUnsavedChanges,
 		userArtists,
+		artist,
 		saveAll,
 		switchArtist,
 	} = useEditor();
 
 	const [ saveSuccess, setSaveSuccess ] = useState( false );
+	const [ isQRModalOpen, setIsQRModalOpen ] = useState( false );
+
+	const currentArtist = useMemo( () => {
+		return userArtists.find( ( a ) => a.id === artistId );
+	}, [ userArtists, artistId ] );
+
+	const publicUrl = useMemo( () => {
+		const slug = artist?.slug || currentArtist?.slug;
+		return slug ? `https://extrachill.link/${ slug }` : null;
+	}, [ artist?.slug, currentArtist?.slug ] );
+
+	const manageArtistUrl = useMemo( () => {
+		return `/manage-artist-profiles/?artist_id=${ artistId }`;
+	}, [ artistId ] );
 
 	const handleSave = useCallback( async () => {
 		setSaveSuccess( false );
@@ -106,13 +124,17 @@ export default function Editor() {
 							value={ artistId }
 							onChange={ handleArtistChange }
 						>
-							{ userArtists.map( ( artist ) => (
-								<option key={ artist.id } value={ artist.id }>
-									{ artist.name }
+							{ userArtists.map( ( a ) => (
+								<option key={ a.id } value={ a.id }>
+									{ a.name }
 								</option>
 							) ) }
 						</select>
 					) }
+					<LinkPageUrl
+						publicUrl={ publicUrl }
+						onQRCodeClick={ () => setIsQRModalOpen( true ) }
+					/>
 				</div>
 
 				<div className="ec-editor__header-right">
@@ -124,9 +146,15 @@ export default function Editor() {
 							{ __( 'Saved!', 'extrachill-artist-platform' ) }
 						</span>
 					) }
+					<a
+						href={ manageArtistUrl }
+						className="ec-editor__manage-artist button-2 button-medium"
+					>
+						{ __( 'Manage Artist', 'extrachill-artist-platform' ) }
+					</a>
 					<button
 						type="button"
-						className="button-1"
+						className="button-1 button-medium"
 						onClick={ handleSave }
 						disabled={ isSaving || ! hasUnsavedChanges }
 					>
@@ -136,6 +164,13 @@ export default function Editor() {
 					</button>
 				</div>
 			</div>
+
+			<QRCodeModal
+				isOpen={ isQRModalOpen }
+				onClose={ () => setIsQRModalOpen( false ) }
+				publicUrl={ publicUrl }
+				artistSlug={ artist?.slug || currentArtist?.slug }
+			/>
 
 			<div className="ec-editor__body">
 				<div className="ec-editor__sidebar">
@@ -159,10 +194,11 @@ export default function Editor() {
 					</div>
 				</div>
 
-				<div className="ec-editor__preview-container">
-					<Preview />
-				</div>
+			<div className="ec-editor__preview-container">
+				<Preview />
 			</div>
 		</div>
+		<JumpToPreview />
+	</div>
 	);
 }

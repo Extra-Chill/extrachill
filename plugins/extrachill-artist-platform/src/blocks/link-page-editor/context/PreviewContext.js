@@ -89,12 +89,15 @@ export function PreviewProvider( { children } ) {
 			name: artist?.name || '',
 			bio: artist?.bio || '',
 			profileImageUrl: artist?.profile_image_url || '',
+			profileShape: settings?.profile_image_shape || 'circle',
 			links: links || [],
 			socials: socials || [],
 			socialsPosition: settings?.social_icons_position || 'above',
 			subscribeDisplayMode: settings?.subscribe_display_mode || 'icon_modal',
+			overlayEnabled: cssVars?.overlay !== '0',
+			backgroundType: cssVars?.[ '--link-page-background-type' ] || 'color',
 		} ),
-		[ artist, links, socials, settings ]
+		[ artist, links, socials, settings, cssVars ]
 	);
 
 	const value = useMemo(

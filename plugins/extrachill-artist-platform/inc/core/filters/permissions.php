@@ -68,7 +68,7 @@ function ec_ajax_can_create_artists( $post_data ) {
 }
 
 /**
- * WordPress capability filtering for artist permissions and bbPress forum access
+ * WordPress capability filtering for artist permissions
  */
 function ec_filter_user_capabilities( $allcaps, $caps, $args, $user ) {
     $user_id = $user->ID;
