@@ -2,6 +2,34 @@
 
 All notable changes to the ExtraChill API plugin are documented here. This file is the single source of truth for release history.
 
+## 0.1.7
+
+### Added
+- **Stripe Connect Endpoints** (Conceptual/Untested - Foundation for Payment Integration)
+  - `POST /wp-json/extrachill/v1/shop/stripe-connect/account` - Create/manage connected Stripe account
+  - `GET /wp-json/extrachill/v1/shop/stripe-connect/status` - Retrieve account connection status and verification state
+  - `POST /wp-json/extrachill/v1/shop/stripe-connect/onboarding-link` - Generate Stripe onboarding URL for account setup
+  - `POST /wp-json/extrachill/v1/shop/stripe-connect/dashboard-link` - Generate Stripe dashboard access link
+  - Account creation, status checking, and dashboard link generation
+  - User meta storage for Stripe account IDs (`_stripe_connect_account_id`, `_stripe_connect_status`)
+  - Permission callbacks requiring logged-in user with artist status
+  - Integration with extrachill-shop plugin for account management functions
+- **Comprehensive Route Documentation**: Added 14 new markdown documentation files under `docs/routes/`
+  - Detailed endpoint documentation for all route categories
+  - Request/response examples and parameter specifications
+  - Supports API discovery and developer reference
+
+### Changed
+- **Artist Links Endpoint Cleanup**: Removed `weekly_notifications_enabled` from settings boolean fields
+  - This field is no longer supported in link page settings sanitization
+  - Any existing data using this field will be ignored on updates
+
+### Technical Notes
+- Stripe Connect endpoints are **conceptual and untested** - intended as foundation for future shop payment integration
+- Endpoints depend on `extrachill_shop_user_is_artist()`, `extrachill_shop_create_stripe_account()`, `extrachill_shop_get_account_status()`, and related shop plugin functions
+- Functions will return appropriate errors if shop plugin or Stripe integration is not available
+- Requires extended testing and security review before production use
+
 ## 0.1.6
 
 ### Added

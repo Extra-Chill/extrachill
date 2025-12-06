@@ -34,25 +34,43 @@ ExtraChill_API_Plugin::get_instance();
 extrachill-api/
 ├── extrachill-api.php (Main plugin file with singleton class)
 └── inc/
+    ├── auth/
+    │   └── extrachill-link-auth.php (Cross-domain authentication)
     └── routes/
+        ├── analytics/
+        │   ├── link-click.php (Track link page clicks)
+        │   ├── link-page.php (Track link page views)
+        │   └── view-count.php (Track content views)
         ├── artist/
-        │   ├── artist.php (Core artist data endpoint)
-        │   ├── links.php (Link page data endpoint)
-        │   ├── socials.php (Social links endpoint)
-        │   ├── permissions.php (Permission check endpoint)
-        │   ├── roster.php (Artist roster endpoint)
-        │   ├── subscribe.php (Artist subscription endpoint)
-        │   └── subscribers.php (Subscriber management endpoint)
+        │   ├── analytics.php (Artist link page analytics)
+        │   ├── artist.php (Core artist data CRUD)
+        │   ├── links.php (Link page data management)
+        │   ├── socials.php (Social links management)
+        │   ├── permissions.php (Permission check)
+        │   ├── roster.php (Roster invite management)
+        │   ├── subscribe.php (Subscription signup)
+        │   └── subscribers.php (Subscriber management)
         ├── blocks/
-        │   ├── ai-adventure.php (AI Adventure block endpoint)
-        │   ├── image-voting.php (Image voting block endpoint)
-        │   └── trivia.php (Trivia block endpoint)
+        │   ├── ai-adventure.php (AI adventure story generation)
+        │   ├── band-name.php (Band name generator)
+        │   ├── image-voting.php (Image voting vote counts)
+        │   ├── image-voting-vote.php (Vote on images)
+        │   └── rapper-name.php (Rapper name generator)
+        ├── chat/
+        │   ├── history.php (Clear chat history)
+        │   └── message.php (Send/receive chat messages)
         ├── community/
+        │   ├── upvote.php (Topic/reply upvotes)
         │   └── user-mentions.php (User search for mentions)
         ├── events/
         │   └── event-submissions.php (Event submission proxy)
         ├── media/
-        │   └── upload.php (Unified media upload endpoint)
+        │   └── upload.php (Unified media upload)
+        ├── newsletter/
+        │   └── subscription.php (Newsletter subscription)
+        ├── shop/
+        │   ├── products.php (WooCommerce product CRUD)
+        │   └── stripe-connect.php (Stripe Connect management)
         └── tools/
             └── qr-code.php (QR code generator)
 ```
@@ -61,22 +79,422 @@ extrachill-api/
 
 All endpoints are under the `extrachill/v1` namespace.
 
-### 1. User Search (Community Mentions)
+### Analytics Endpoints
 
-**Endpoint**: `GET /wp-json/extrachill/v1/users/search`
+#### 1. Link Click Tracking
 
-**Purpose**: Search users for @mentions in community posts and comments.
+**Endpoint**: `POST /wp-json/extrachill/v1/analytics/link-click`
+
+**Purpose**: Track clicks on artist link pages with URL normalization and context.
 
 **Parameters**:
-- `search` (string, required) - Search term for username/display name
-- Implements WordPress nonce verification
-- Returns user ID, display name, and avatar URL
+- `link_url` (string, required) - The URL that was clicked
+- `source_page` (string, optional) - The link page slug that hosted the click
 
-**File**: `inc/routes/community/user-mentions.php`
+**Response**: `{ "tracked": true }`
 
-**Used By**: extrachill-community plugin for @mention functionality
+**File**: `inc/routes/analytics/link-click.php`
 
-### 2. Image Voting Vote Count
+**Used By**: extrachill-blocks plugin (Link Page block analytics)
+
+#### 2. Link Page View Tracking
+
+**Endpoint**: `POST /wp-json/extrachill/v1/analytics/link-page`
+
+**Purpose**: Track page views for artist link pages with authentication.
+
+**Parameters**:
+- `artist_id` (int, required) - The artist whose link page was viewed
+- `referrer` (string, optional) - HTTP referrer
+
+**Response**: `{ "recorded": true }`
+
+**Permission**: Requires logged-in user
+
+**File**: `inc/routes/analytics/link-page.php`
+
+**Used By**: extrachill-blocks plugin (Link Page analytics)
+
+#### 3. Content View Tracking
+
+**Endpoint**: `POST /wp-json/extrachill/v1/analytics/view-count`
+
+**Purpose**: Track views for any content type across the platform.
+
+**Parameters**:
+- `post_id` (int, required) - The post being viewed
+- `view_type` (string, optional) - Category of view (e.g., 'embed', 'preview')
+
+**Response**: `{ "recorded": true }`
+
+**File**: `inc/routes/analytics/view-count.php`
+
+**Used By**: Various platform plugins for content tracking
+
+### Artist API
+
+Foundational REST API for artist data management. Provides comprehensive endpoints for profile, links, socials, analytics, and business operations.
+
+#### 4. Artist Core Data
+
+**Endpoint**: `GET/PUT /wp-json/extrachill/v1/artists/{id}`
+
+**Purpose**: Retrieve and update core artist profile data.
+
+**GET Response**:
+```json
+{
+  "id": 123,
+  "name": "Artist Name",
+  "slug": "artist-slug",
+  "bio": "Artist bio text",
+  "profile_image_id": 456,
+  "profile_image_url": "https://...",
+  "header_image_id": 789,
+  "header_image_url": "https://...",
+  "link_page_id": 101
+}
+```
+
+**PUT Request** (partial updates supported):
+```json
+{
+  "name": "New Artist Name",
+  "bio": "Updated bio"
+}
+```
+
+**PUT Response**: Returns updated artist data (same structure as GET)
+
+**Permission**: `ec_can_manage_artist()` - user must be artist owner or admin
+
+**File**: `inc/routes/artist/artist.php`
+
+**Notes**:
+- Images managed via `/media` endpoint with `artist_profile` or `artist_header` context
+- `link_page_id` is read-only
+
+#### 5. Artist Social Links
+
+**Endpoint**: `GET/PUT /wp-json/extrachill/v1/artists/{id}/socials`
+
+**Purpose**: Retrieve and update social icon links (Instagram, Spotify, etc.).
+
+**GET Response**:
+```json
+{
+  "social_links": [
+    {"type": "instagram", "url": "https://instagram.com/artist"},
+    {"type": "spotify", "url": "https://open.spotify.com/artist/..."}
+  ]
+}
+```
+
+**PUT Request** (full replacement):
+```json
+{
+  "social_links": [
+    {"type": "instagram", "url": "https://instagram.com/artist"},
+    {"type": "tiktok", "url": "https://tiktok.com/@artist"}
+  ]
+}
+```
+
+**PUT Response**: Returns updated social links (same structure as GET)
+
+**Permission**: `ec_can_manage_artist()`
+
+**File**: `inc/routes/artist/socials.php`
+
+**Notes**:
+- Uses `extrachill_artist_platform_social_links()` manager
+- PUT is full replacement (sending `[]` clears all socials)
+- Social links stored on artist profile, displayed on link page
+
+#### 6. Artist Link Page Data
+
+**Endpoint**: `GET/PUT /wp-json/extrachill/v1/artists/{id}/links`
+
+**Purpose**: Retrieve and update link page presentation data (button links, styling, settings).
+
+**GET Response**:
+```json
+{
+  "id": 101,
+  "links": [
+    {
+      "section_title": "Music",
+      "links": [
+        {"id": "link_123", "link_text": "Spotify", "link_url": "https://..."}
+      ]
+    }
+  ],
+  "css_vars": {
+    "--link-page-button-bg-color": "#ffffff",
+    "--link-page-text-color": "#000000"
+  },
+  "settings": {
+    "link_expiration_enabled": false,
+    "redirect_enabled": false,
+    "redirect_target_url": "",
+    "youtube_embed_enabled": true,
+    "meta_pixel_id": "",
+    "google_tag_id": "",
+    "subscribe_display_mode": "icon_modal",
+    "subscribe_description": "",
+    "social_icons_position": "above"
+  },
+  "background_image_id": 202,
+  "background_image_url": "https://..."
+}
+```
+
+**PUT Request** (partial updates supported):
+```json
+{
+  "links": [...],
+  "css_vars": {"--link-page-button-bg-color": "#ff0000"},
+  "settings": {"youtube_embed_enabled": false}
+}
+```
+
+**PUT Response**: Returns updated link page data (same structure as GET)
+
+**Permission**: `ec_can_manage_artist()`
+
+**File**: `inc/routes/artist/links.php`
+
+**Update Behavior**:
+- `links`: Full replacement (sending `[]` clears all sections)
+- `css_vars`: Merged with existing values
+- `settings`: Merged with existing values (only provided fields updated)
+
+**Notes**:
+- Returns 404 if artist has no link page
+- Background image managed via `/media` endpoint with `link_page_background` context
+- Uses `ec_handle_link_page_save()` for write operations
+
+#### 7. Artist Analytics
+
+**Endpoint**: `GET /wp-json/extrachill/v1/artists/{id}/analytics`
+
+**Purpose**: Retrieve link page performance analytics with configurable date range.
+
+**Parameters**:
+- `date_range` (int, optional) - Number of days to analyze (default: 30)
+
+**Response**:
+```json
+{
+  "artist_id": 123,
+  "date_range": 30,
+  "total_views": 1250,
+  "total_clicks": 342,
+  "top_links": [
+    {"url": "https://spotify.com/...", "clicks": 156},
+    {"url": "https://instagram.com/...", "clicks": 98}
+  ]
+}
+```
+
+**Permission**: `ec_can_manage_artist()`
+
+**File**: `inc/routes/artist/analytics.php`
+
+**Notes**:
+- Replaces legacy `/analytics/link-page` endpoint with artist-centric routing
+- Uses filter hook `extrachill_get_link_page_analytics` for analytics data retrieval
+
+#### 8. Artist Permissions Check
+
+**Endpoint**: `GET /wp-json/extrachill/v1/artist/permissions`
+
+**Purpose**: Check if current user can manage an artist profile.
+
+**Parameters**:
+- `artist_id` (int, required) - Artist profile ID to check permissions against
+
+**Response**:
+```json
+{
+  "can_manage": true,
+  "artist_id": 123
+}
+```
+
+**File**: `inc/routes/artist/permissions.php`
+
+**Notes**:
+- Returns boolean `can_manage` property
+- Accessible to any logged-in user (permission check returns user status)
+
+#### 9. Artist Roster Invite
+
+**Endpoint**: `POST /wp-json/extrachill/v1/artist/roster/invite`
+
+**Purpose**: Invite members to an artist roster for collaborative management.
+
+**Parameters**:
+- `artist_id` (int, required) - Artist profile ID
+- `email` (string, required) - Email of person to invite
+
+**Response**:
+```json
+{
+  "success": true,
+  "message": "Invitation sent successfully"
+}
+```
+
+**Permission**: User must be artist owner
+
+**File**: `inc/routes/artist/roster.php`
+
+**Notes**:
+- Fires filter hook for invitation handling by consuming plugins
+
+#### 10. Artist Subscribers List
+
+**Endpoint**: `GET /wp-json/extrachill/v1/artist/subscribers`
+
+**Purpose**: Retrieve paginated list of artist subscribers.
+
+**Parameters**:
+- `artist_id` (int, required) - Artist profile ID
+- `page` (int, optional) - Page number (default: 1)
+- `per_page` (int, optional) - Results per page (default: 20)
+
+**Response**:
+```json
+{
+  "subscribers": [
+    {"id": 1, "email": "fan@example.com", "subscribed_date": "2025-01-15"},
+    {"id": 2, "email": "another@example.com", "subscribed_date": "2025-01-14"}
+  ],
+  "total": 45,
+  "page": 1,
+  "per_page": 20
+}
+```
+
+**Permission**: User must be artist owner
+
+**File**: `inc/routes/artist/subscribers.php`
+
+#### 11. Artist Subscribers Export
+
+**Endpoint**: `GET /wp-json/extrachill/v1/artist/subscribers/export`
+
+**Purpose**: Export subscriber list as CSV for email marketing integration.
+
+**Parameters**:
+- `artist_id` (int, required) - Artist profile ID
+
+**Response**: CSV file download
+
+**Permission**: User must be artist owner
+
+**File**: `inc/routes/artist/subscribers.php`
+
+#### 12. Artist Subscribe (Public)
+
+**Endpoint**: `POST /wp-json/extrachill/v1/artist/subscribe`
+
+**Purpose**: Allow fans to subscribe to artist updates from public link pages.
+
+**Parameters**:
+- `artist_id` (int, required) - Artist profile ID
+- `email` (string, required) - Subscriber email address
+
+**Response**:
+```json
+{
+  "success": true,
+  "message": "Thank you for subscribing!"
+}
+```
+
+**Permission**: Public (no authentication required)
+
+**File**: `inc/routes/artist/subscribe.php`
+
+**Notes**:
+- Fires `extrachill_artist_subscribe` filter for consuming plugins to handle storage
+
+### Block Generators (AI)
+
+#### 13. Band Name Generator
+
+**Endpoint**: `POST /wp-json/extrachill/v1/blocks/band-name`
+
+**Purpose**: Generate band name suggestions using AI.
+
+**Parameters**:
+- `input` (string, required) - Prompt or seed text for name generation
+- `genre` (string, optional) - Music genre for context-aware generation
+- `number_of_words` (int, optional) - Word count preference
+
+**Response**: AI-generated band names
+
+**Permission**: Public
+
+**File**: `inc/routes/blocks/band-name.php`
+
+**Used By**: extrachill-blocks plugin (Band Name Generator block)
+
+#### 14. Rapper Name Generator
+
+**Endpoint**: `POST /wp-json/extrachill/v1/blocks/rapper-name`
+
+**Purpose**: Generate rapper name suggestions using AI.
+
+**Parameters**:
+- `input` (string, required) - Prompt or seed text
+- `gender` (string, optional) - Gender for name style
+- `style` (string, optional) - Rap style preference
+
+**Response**: AI-generated rapper names
+
+**Permission**: Public
+
+**File**: `inc/routes/blocks/rapper-name.php`
+
+**Used By**: extrachill-blocks plugin (Rapper Name Generator block)
+
+#### 15. AI Adventure Story Generation
+
+**Endpoint**: `POST /wp-json/extrachill/v1/ai-adventure`
+
+**Purpose**: Generate AI-powered adventure story segments with branching narratives.
+
+**Parameters**:
+- `isIntroduction` (boolean, optional) - Whether to trigger introduction flow
+- `characterName` (string, optional) - Player character name
+- `adventureTitle` (string, optional) - Story title
+- `playerInput` (string, optional) - Latest user choice/action
+- `storyProgression` (array, optional) - Prior narrative segments
+- `conversationHistory` (array, optional) - Dialogue history
+- Additional context parameters for story state management
+
+**Response**:
+```json
+{
+  "narrative": "Story prose or empty when progressing to next step",
+  "nextStepId": "trigger destination id or null"
+}
+```
+
+**Permission**: Public
+
+**File**: `inc/routes/blocks/ai-adventure.php`
+
+**Used By**: extrachill-blocks plugin (AI Adventure block)
+
+**Dependencies**: extrachill-ai-client (network-activated)
+
+### Image Voting Block
+
+#### 16. Get Image Voting Results
 
 **Endpoint**: `GET /wp-json/extrachill/v1/image-voting/vote-count/{post_id}/{instance_id}`
 
@@ -85,31 +503,129 @@ All endpoints are under the `extrachill/v1` namespace.
 **Parameters**:
 - `post_id` (int, required) - WordPress post ID containing the block
 - `instance_id` (string, required) - Unique block instance identifier
-- Returns vote counts per image option
+
+**Response**: Vote counts per image option
 
 **File**: `inc/routes/blocks/image-voting.php`
 
 **Used By**: extrachill-blocks plugin (Image Voting block)
 
-### 3. AI Adventure Story Generation
+#### 17. Vote on Images
 
-**Endpoint**: `POST /wp-json/extrachill/v1/ai-adventure`
+**Endpoint**: `POST /wp-json/extrachill/v1/image-voting/vote`
 
-**Purpose**: Generate AI-powered adventure story segments.
+**Purpose**: Cast a vote in an image voting block instance.
 
 **Parameters**:
-- `action` (string, required) - User action/choice in the story
-- `history` (array, optional) - Previous story segments for context
-- Requires extrachill-ai-client plugin for AI provider access
-- Returns generated story segment and options for next action
+- `post_id` (int, required) - Post containing the block
+- `instance_id` (string, required) - Block instance ID
+- `image_id` (string, required) - Image option being voted for
 
-**File**: `inc/routes/blocks/ai-adventure.php`
+**Response**: Updated vote totals for that instance
 
-**Used By**: extrachill-blocks plugin (AI Adventure block)
+**Permission**: Public (anonymous voting supported)
 
-**Dependencies**: extrachill-ai-client (network-activated)
+**File**: `inc/routes/blocks/image-voting-vote.php`
 
-### 4. Event Submission Flow Proxy
+**Used By**: extrachill-blocks plugin (Image Voting block)
+
+### Chat Endpoints
+
+#### 18. Send Chat Message
+
+**Endpoint**: `POST /wp-json/extrachill/v1/chat/message`
+
+**Purpose**: Send a message to the AI chat and receive a response.
+
+**Parameters**:
+- `message` (string, required) - User message content
+
+**Response**:
+```json
+{
+  "response": "AI response text",
+  "conversation_id": "abc123"
+}
+```
+
+**Permission**: Requires logged-in user
+
+**File**: `inc/routes/chat/message.php`
+
+**Used By**: extrachill-chat plugin for AI chat functionality
+
+#### 19. Clear Chat History
+
+**Endpoint**: `DELETE /wp-json/extrachill/v1/chat/history`
+
+**Purpose**: Clear conversation history for the current user.
+
+**Parameters**: None
+
+**Response**:
+```json
+{
+  "cleared": true,
+  "message": "Chat history cleared"
+}
+```
+
+**Permission**: Requires logged-in user
+
+**File**: `inc/routes/chat/history.php`
+
+**Used By**: extrachill-chat plugin (Chat settings)
+
+### Community Endpoints
+
+#### 20. User Search (Mentions)
+
+**Endpoint**: `GET /wp-json/extrachill/v1/users/search`
+
+**Purpose**: Search users for @mentions in community posts and comments.
+
+**Parameters**:
+- `search` (string, required) - Search term for username/display name
+
+**Response**:
+```json
+[
+  {"username": "chris", "slug": "chris"},
+  {"username": "chrissy", "slug": "chrissy"}
+]
+```
+
+**File**: `inc/routes/community/user-mentions.php`
+
+**Used By**: extrachill-community plugin for @mention functionality
+
+#### 21. Community Upvote
+
+**Endpoint**: `POST /wp-json/extrachill/v1/community/upvote`
+
+**Purpose**: Upvote community forum topics or replies.
+
+**Parameters**:
+- `post_id` (int, required) - Topic or reply post ID
+- `type` (string, required) - One of: 'topic', 'reply'
+
+**Response**:
+```json
+{
+  "upvoted": true,
+  "vote_count": 42
+}
+```
+
+**Permission**: Requires logged-in user
+
+**File**: `inc/routes/community/upvote.php`
+
+**Used By**: extrachill-community plugin (voting system)
+
+### Event Submissions
+
+#### 22. Event Submission Flow Proxy
 
 **Endpoint**: `POST /wp-json/extrachill/v1/event-submissions`
 
@@ -124,7 +640,7 @@ All endpoints are under the `extrachill/v1` namespace.
 
 **Security & Flow**:
 1. Validates Turnstile token using `ec_verify_turnstile_response()` from extrachill-multisite
-2. Sanitizes submission payload and (optionally) stores the flyer in Data Machine’s `FileStorage`
+2. Sanitizes submission payload and (optionally) stores the flyer in Data Machine's `FileStorage`
 3. Creates a Data Machine job + merges submission metadata via `datamachine_merge_engine_data()`
 4. Queues `datamachine_run_flow_now` through Action Scheduler
 5. Fires `extrachill_event_submission` action with submission + job context for downstream automation
@@ -133,34 +649,9 @@ All endpoints are under the `extrachill/v1` namespace.
 
 **Used By**: `extrachill-events` plugin's Event Submission block + front-end form handlers
 
-### 5. QR Code Generator
+### Media Management
 
-**Endpoint**: `POST /wp-json/extrachill/v1/tools/qr-code`
-
-**Purpose**: Generate high-resolution print-ready QR codes for any URL.
-
-**Parameters**:
-- `url` (string, required) - The URL to encode in the QR code
-- `size` (int, optional) - QR code size in pixels (default: 1000, max: 2000)
-
-**Response**:
-```json
-{
-    "image_url": "data:image/png;base64,...",
-    "url": "https://example.com",
-    "size": 1000
-}
-```
-
-**Permission**: Public (no authentication required)
-
-**File**: `inc/routes/tools/qr-code.php`
-
-**Used By**: extrachill-admin-tools plugin (QR Code Generator tool)
-
-**Dependencies**: Endroid QR Code library (Composer dependency)
-
-### 6. Unified Media Upload
+#### 23. Unified Media Upload
 
 **Endpoint**: `POST/DELETE /wp-json/extrachill/v1/media`
 
@@ -219,153 +710,125 @@ All endpoints are under the `extrachill/v1` namespace.
 
 **Dependencies**: extrachill-artist-platform (for artist context permission checks)
 
-## Artist API
+### Newsletter
 
-Foundational REST API for artist data management. Provides three endpoints that serve as the canonical access layer for all artist-related operations.
+#### 24. Newsletter Subscription
 
-### 7. Artist Core Data
+**Endpoint**: `POST /wp-json/extrachill/v1/newsletter/subscription`
 
-**Endpoint**: `GET/PUT /wp-json/extrachill/v1/artists/{id}`
+**Purpose**: Subscribe users to newsletter mailing list.
 
-**Purpose**: Retrieve and update core artist profile data.
+**Parameters**:
+- `email` (string, required) - Subscriber email address
 
-**GET Response**:
+**Response**:
 ```json
 {
-  "id": 123,
-  "name": "Artist Name",
-  "slug": "artist-slug",
-  "bio": "Artist bio text",
-  "profile_image_id": 456,
-  "profile_image_url": "https://...",
-  "header_image_id": 789,
-  "header_image_url": "https://...",
-  "link_page_id": 101
+  "subscribed": true,
+  "message": "Thank you for subscribing to our newsletter!"
 }
 ```
 
-**PUT Request** (partial updates supported):
+**Permission**: Public
+
+**File**: `inc/routes/newsletter/subscription.php`
+
+**Used By**: extrachill-newsletter plugin
+
+### Shop (WooCommerce)
+
+#### 25. Shop Products CRUD
+
+**Endpoint**: 
+- `GET /wp-json/extrachill/v1/shop/products` - List user's artist products
+- `POST /wp-json/extrachill/v1/shop/products` - Create product
+- `GET /wp-json/extrachill/v1/shop/products/{id}` - Get single product
+- `PUT /wp-json/extrachill/v1/shop/products/{id}` - Update product
+- `DELETE /wp-json/extrachill/v1/shop/products/{id}` - Delete product (trash)
+
+**Purpose**: Complete WooCommerce product CRUD operations for artists.
+
+**GET Collection Response**:
 ```json
 {
-  "name": "New Artist Name",
-  "bio": "Updated bio"
-}
-```
-
-**PUT Response**: Returns updated artist data (same structure as GET)
-
-**Permission**: `ec_can_manage_artist()` - user must be artist owner or admin
-
-**File**: `inc/routes/artist/artist.php`
-
-**Notes**:
-- Images managed via `/media` endpoint with `artist_profile` or `artist_header` context
-- `link_page_id` is read-only
-
----
-
-### 8. Artist Social Links
-
-**Endpoint**: `GET/PUT /wp-json/extrachill/v1/artists/{id}/socials`
-
-**Purpose**: Retrieve and update social icon links (Instagram, Spotify, etc.).
-
-**GET Response**:
-```json
-{
-  "social_links": [
-    {"type": "instagram", "url": "https://instagram.com/artist"},
-    {"type": "spotify", "url": "https://open.spotify.com/artist/..."}
-  ]
-}
-```
-
-**PUT Request** (full replacement):
-```json
-{
-  "social_links": [
-    {"type": "instagram", "url": "https://instagram.com/artist"},
-    {"type": "tiktok", "url": "https://tiktok.com/@artist"}
-  ]
-}
-```
-
-**PUT Response**: Returns updated social links (same structure as GET)
-
-**Permission**: `ec_can_manage_artist()`
-
-**File**: `inc/routes/artist/socials.php`
-
-**Notes**:
-- Uses `extrachill_artist_platform_social_links()` manager
-- PUT is full replacement (sending `[]` clears all socials)
-- Social links stored on artist profile, displayed on link page
-
----
-
-### 9. Artist Link Page Data
-
-**Endpoint**: `GET/PUT /wp-json/extrachill/v1/artists/{id}/links`
-
-**Purpose**: Retrieve and update link page presentation data (button links, styling, settings).
-
-**GET Response**:
-```json
-{
-  "id": 101,
-  "links": [
+  "products": [
     {
-      "section_title": "Music",
-      "links": [
-        {"id": "link_123", "link_text": "Spotify", "link_url": "https://..."}
-      ]
+      "id": 456,
+      "name": "Album Name",
+      "price": "9.99",
+      "stock": 100,
+      "image_id": 789,
+      "artist_id": 123
     }
   ],
-  "css_vars": {
-    "--link-page-button-bg-color": "#ffffff",
-    "--link-page-text-color": "#000000"
-  },
-  "settings": {
-    "link_expiration_enabled": false,
-    "weekly_notifications_enabled": false,
-    "redirect_enabled": false,
-    "redirect_target_url": "",
-    "youtube_embed_enabled": true,
-    "meta_pixel_id": "",
-    "google_tag_id": "",
-    "subscribe_display_mode": "icon_modal",
-    "subscribe_description": "",
-    "social_icons_position": "above"
-  },
-  "background_image_id": 202,
-  "background_image_url": "https://..."
+  "total": 5,
+  "page": 1
 }
 ```
 
-**PUT Request** (partial updates supported):
-```json
-{
-  "links": [...],
-  "css_vars": {"--link-page-button-bg-color": "#ff0000"},
-  "settings": {"youtube_embed_enabled": false}
-}
-```
+**Permission**: User must have artist status to create/update/delete
 
-**PUT Response**: Returns updated link page data (same structure as GET)
-
-**Permission**: `ec_can_manage_artist()`
-
-**File**: `inc/routes/artist/links.php`
-
-**Update Behavior**:
-- `links`: Full replacement (sending `[]` clears all sections)
-- `css_vars`: Merged with existing values
-- `settings`: Merged with existing values (only provided fields updated)
+**File**: `inc/routes/shop/products.php`
 
 **Notes**:
-- Returns 404 if artist has no link page
-- Background image managed via `/media` endpoint with `link_page_background` context
-- Uses `ec_handle_link_page_save()` for write operations
+- Products created on Blog ID 3 (shop.extrachill.com)
+- Linked to artist profiles via `_artist_profile_id` meta
+- Comprehensive image and gallery management support
+- Stock quantity and sale price support
+
+#### 26. Stripe Connect Management
+
+**Endpoint**: 
+- `GET /wp-json/extrachill/v1/shop/stripe` - Get Stripe connection status
+- `POST /wp-json/extrachill/v1/shop/stripe/connect` - Connect Stripe account
+- `DELETE /wp-json/extrachill/v1/shop/stripe/disconnect` - Disconnect Stripe account
+- `POST /wp-json/extrachill/v1/shop/stripe/webhook` - Handle Stripe webhooks
+
+**Purpose**: Manage Stripe Connect authentication and payment processing for artist shops.
+
+**Response**:
+```json
+{
+  "connected": true,
+  "account_id": "acct_...",
+  "email": "artist@example.com"
+}
+```
+
+**Permission**: Varies by operation
+
+**File**: `inc/routes/shop/stripe-connect.php`
+
+**Used By**: extrachill-shop plugin for payment processing
+
+### Tools
+
+#### 27. QR Code Generator
+
+**Endpoint**: `POST /wp-json/extrachill/v1/tools/qr-code`
+
+**Purpose**: Generate high-resolution print-ready QR codes for any URL.
+
+**Parameters**:
+- `url` (string, required) - The URL to encode in the QR code
+- `size` (int, optional) - QR code size in pixels (default: 1000, max: 2000)
+
+**Response**:
+```json
+{
+    "image_url": "data:image/png;base64,...",
+    "url": "https://example.com",
+    "size": 1000
+}
+```
+
+**Permission**: Public (no authentication required)
+
+**File**: `inc/routes/tools/qr-code.php`
+
+**Used By**: extrachill-admin-tools plugin (QR Code Generator tool)
+
+**Dependencies**: Endroid QR Code library (Composer dependency)
 
 ## Response Contract
 

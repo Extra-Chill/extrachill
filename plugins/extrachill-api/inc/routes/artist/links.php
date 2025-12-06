@@ -319,7 +319,6 @@ function extrachill_api_sanitize_link_settings( $settings ) {
 	// Boolean fields (stored as '1' or '0')
 	$bool_fields = array(
 		'link_expiration_enabled',
-		'weekly_notifications_enabled',
 		'redirect_enabled',
 		'youtube_embed_enabled',
 		'overlay_enabled',

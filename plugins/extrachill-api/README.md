@@ -17,29 +17,58 @@ The ExtraChill API plugin provides a centralized, versioned REST API infrastruct
 
 ## Current Endpoints
 
-### User Search (Community)
-```
-GET /wp-json/extrachill/v1/users/search?search={term}
-```
-Search users for @mentions in community posts and comments.
+The plugin provides 27 endpoints across 9 feature categories, all under the `extrachill/v1` namespace:
 
-### Image Voting (Blocks)
-```
-GET /wp-json/extrachill/v1/image-voting/vote-count/{post_id}/{instance_id}
-```
-Retrieve vote counts for image voting block instances.
+### Analytics Endpoints (3)
+- `POST /analytics/link-click` - Track link page clicks
+- `POST /analytics/link-page` - Track link page views (authenticated)
+- `POST /analytics/view-count` - Track content views
 
-### AI Adventure (Blocks)
-```
-POST /wp-json/extrachill/v1/ai-adventure
-```
-Generate AI-powered adventure story segments.
+### Artist API (9)
+- `GET/PUT /artists/{id}` - Core artist profile data
+- `GET/PUT /artists/{id}/socials` - Social media links
+- `GET/PUT /artists/{id}/links` - Link page data
+- `GET /artists/{id}/analytics` - Link page analytics
+- `GET /artist/permissions` - Check artist permissions
+- `POST /artist/roster/invite` - Invite roster members
+- `GET /artist/subscribers` - List subscribers with pagination
+- `GET /artist/subscribers/export` - Export subscribers as CSV
+- `POST /artist/subscribe` - Public subscription signup
 
-### Event Submissions (Events)
-```
-POST /wp-json/extrachill/v1/event-submissions
-```
-Validate public event submissions, verify Cloudflare Turnstile tokens, store optional flyers via Data Machine file storage, and queue the configured Data Machine flow. Returns `{ success: true, job_id }` when the flow is scheduled.
+### Block Generators (3)
+- `POST /blocks/band-name` - AI band name generation
+- `POST /blocks/rapper-name` - AI rapper name generation
+- `POST /ai-adventure` - AI adventure story generation
+
+### Image Voting (2)
+- `GET /image-voting/vote-count/{post_id}/{instance_id}` - Get vote counts
+- `POST /image-voting/vote` - Cast a vote
+
+### Chat Endpoints (2)
+- `POST /chat/message` - Send chat message (authenticated)
+- `DELETE /chat/history` - Clear chat history (authenticated)
+
+### Community Endpoints (2)
+- `GET /users/search` - Search users for @mentions
+- `POST /community/upvote` - Upvote topics or replies (authenticated)
+
+### Event Submissions (1)
+- `POST /event-submissions` - Submit event with optional flyer
+
+### Media Management (1)
+- `POST/DELETE /media` - Upload and manage images across all contexts
+
+### Newsletter (1)
+- `POST /newsletter/subscription` - Subscribe to newsletter
+
+### Shop Integration (2)
+- `GET/POST/PUT/DELETE /shop/products` - Product CRUD operations
+- `GET/POST/DELETE /shop/stripe` - Stripe Connect management
+
+### Tools (1)
+- `POST /tools/qr-code` - Generate QR codes
+
+See [AGENTS.md](AGENTS.md) for complete endpoint documentation with request/response examples.
 
 ## Installation
 
@@ -130,15 +159,48 @@ extrachill-api/
 ├── build.sh                    # Production build script (symlink)
 ├── composer.json               # Dependencies and scripts
 ├── .buildignore               # Build exclusions
+├── AGENTS.md                  # Technical documentation for AI agents
+├── README.md                  # This file
 └── inc/
+    ├── auth/
+    │   └── extrachill-link-auth.php    # Cross-domain authentication
     └── routes/
-    ├── blocks/
-    │   ├── ai-adventure.php
-    │   └── image-voting.php
-    ├── community/
-    │   └── user-mentions.php
-    └── events/
-        └── event-submissions.php
+        ├── analytics/                  # Analytics tracking endpoints
+        │   ├── link-click.php
+        │   ├── link-page.php
+        │   └── view-count.php
+        ├── artist/                     # Artist API endpoints
+        │   ├── analytics.php
+        │   ├── artist.php
+        │   ├── links.php
+        │   ├── permissions.php
+        │   ├── roster.php
+        │   ├── socials.php
+        │   ├── subscribe.php
+        │   └── subscribers.php
+        ├── blocks/                     # AI block generators
+        │   ├── ai-adventure.php
+        │   ├── band-name.php
+        │   ├── image-voting.php
+        │   ├── image-voting-vote.php
+        │   └── rapper-name.php
+        ├── chat/                       # Chat functionality
+        │   ├── history.php
+        │   └── message.php
+        ├── community/                  # Community features
+        │   ├── upvote.php
+        │   └── user-mentions.php
+        ├── events/                     # Event management
+        │   └── event-submissions.php
+        ├── media/                      # Media upload
+        │   └── upload.php
+        ├── newsletter/                 # Newsletter
+        │   └── subscription.php
+        ├── shop/                       # WooCommerce integration
+        │   ├── products.php
+        │   └── stripe-connect.php
+        └── tools/                      # Utilities
+            └── qr-code.php
 ```
 
 ## Development
