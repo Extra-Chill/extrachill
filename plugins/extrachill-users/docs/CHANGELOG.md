@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.2.4] - 2025-12-05
+
+### Changed
+- Relocated avatar upload UI functionality to extrachill-community plugin for better architectural separation of concerns
+- Removed `inc/avatar-upload.php` file (avatar upload UI now provided by extrachill-community plugin)
+- Removed `assets/js/avatar-upload.js` (avatar upload JavaScript now provided by extrachill-community plugin)
+- Updated plugin initialization to remove require_once for avatar-upload.php
+- Refactored include file loading order in main plugin file to prioritize authentication handlers
+
+### Refactoring
+- Consolidated avatar handling: extrachill-users provides network-wide display logic, extrachill-community provides upload UI
+- Both plugins now use unified REST API endpoint `/wp-json/extrachill/v1/media` from extrachill-api for all avatar operations
+- Cleaner separation of concerns between plugins following KISS (Keep It Simple, Stupid) principle
+- Reduced modular organization from 18 to 17 include files
+
+### Documentation
+- Updated AGENTS.md to reflect consolidated avatar system architecture
+- Updated plugin loading order documentation to reflect include file reorganization
+- Clarified that avatar upload interface now lives exclusively in extrachill-community plugin
+- Added note that both plugins use centralized REST API endpoint for upload operations
+
 ## [0.2.3] - 2025-12-05
 
 ### Changed

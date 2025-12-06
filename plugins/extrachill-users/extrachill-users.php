@@ -3,7 +3,7 @@
  * Plugin Name: Extra Chill Users
  * Plugin URI: https://extrachill.com
  * Description: Single source of truth for user management across the ExtraChill Platform network. Handles authentication, user creation, team members, profile URL resolution, custom avatars, avatar menu, online user tracking, and ad-free licenses.
- * Version: 0.2.3
+ * Version: 0.2.4
  * Author: Chris Huber
  * Author URI: https://chubes.net
  * Network: true
@@ -19,7 +19,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'EXTRACHILL_USERS_VERSION', '0.2.3' );
+define( 'EXTRACHILL_USERS_VERSION', '0.2.4' );
 define( 'EXTRACHILL_USERS_PLUGIN_FILE', __FILE__ );
 define( 'EXTRACHILL_USERS_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'EXTRACHILL_USERS_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
@@ -89,7 +89,6 @@ function extrachill_users_init() {
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/artist-profiles.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/assets.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/avatar-display.php';
-	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/avatar-upload.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/avatar-menu.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/comment-auto-approval.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/ad-free-license.php';

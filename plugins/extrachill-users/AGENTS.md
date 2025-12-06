@@ -29,7 +29,7 @@ User management functionality was migrated here from extrachill-multisite plugin
 - **Procedural WordPress Pattern**: Uses direct `require_once` includes for all plugin functionality
 - **Network Plugin Structure**: Network-activated plugin providing functionality across all multisite installations
 - **Gutenberg Blocks**: Registers login/register and password reset blocks via `register_block_type()`
-- **Modular Organization**: 18 include files organized by functionality domain
+- **Modular Organization**: 17 include files organized by functionality domain
 
 ### Core Features
 
@@ -83,7 +83,7 @@ User management functionality was migrated here from extrachill-multisite plugin
 - Stored in `most_ever_online` option on community.extrachill.com
 - Format: `array('count' => 123, 'date' => 'm/d/Y')`
 
-#### Custom Avatar System (`inc/avatar-display.php`, `inc/avatar-upload.php`)
+#### Custom Avatar Display System (`inc/avatar-display.php`)
 
 **Avatar Display** (`inc/avatar-display.php`):
 - Filters `pre_get_avatar` to provide custom avatars before Gravatar
@@ -93,17 +93,12 @@ User management functionality was migrated here from extrachill-multisite plugin
 - Automatic fallback to Gravatar if no custom avatar set
 - Returns null to let WordPress handle Gravatar fallback
 
-**Avatar Upload** (`inc/avatar-upload.php`):
-- Integration with bbPress profile edit page
-- Custom upload field in bbPress edit profile form
-- Stores attachment ID in `custom_avatar_id` user meta
-- File validation and size restrictions
-- Updates existing avatar when new one uploaded
-
 **Migration Utility**:
 - `generate_custom_avatar_ids()` function for legacy `custom_avatar` URL migration
 - Converts old URL-based avatars to attachment ID system
 - Admin-only utility via `?generate_custom_avatar_ids=1` URL parameter
+
+**Note**: Avatar upload UI moved to extrachill-community plugin (`inc/user-profiles/edit/avatar-upload.php`) as it's specific to bbPress profile edit integration. This plugin provides network-wide display logic; community plugin provides the upload interface. Both use the centralized REST API (`/wp-json/extrachill/v1/media`) for actual upload operations.
 
 #### Gutenberg Blocks
 
@@ -275,7 +270,6 @@ function my_plugin_avatar_menu( $menu_items, $user_id ) {
 - `assets/css/avatar-menu.css` - Avatar dropdown styling
 - `assets/css/online-users.css` - Online users widget styling
 - `assets/js/avatar-menu.js` - Avatar dropdown functionality
-- `assets/js/avatar-upload.js` - Avatar upload functionality
 
 **Loading Pattern**:
 - Avatar menu assets load network-wide
@@ -357,8 +351,7 @@ extrachill-users/
 │   │   ├── online-users.php       (activity tracking)
 │   │   ├── registration-emails.php (welcome email system)
 │   │   └── user-creation.php      (community user creation filter)
-│   ├── avatar-display.php         (custom avatar display)
-│   ├── avatar-upload.php          (avatar upload functionality)
+│   ├── avatar-display.php         (custom avatar display - network-wide)
 │   ├── avatar-menu.php            (avatar menu display)
 │   ├── comment-auto-approval.php  (comment auto-approval for logged-in users)
 │   ├── ad-free-license.php        (ad-free license validation)
@@ -368,8 +361,7 @@ extrachill-users/
 │   │   ├── avatar-menu.css        (avatar menu styles)
 │   │   └── online-users.css       (online users widget styles)
 │   └── js/
-│       ├── avatar-menu.js         (avatar menu JavaScript)
-│       └── avatar-upload.js       (avatar upload JavaScript)
+│       └── avatar-menu.js         (avatar menu JavaScript)
 ├── blocks/
 │   ├── login-register/            (Login/Register Gutenberg block source)
 │   └── password-reset/            (Password Reset Gutenberg block source)
@@ -416,23 +408,25 @@ try {
 - `build/password-reset` - Password Reset block
 
 **Include Loading Order** (via `extrachill_users_init()`):
-1. `inc/team-members.php` - Team member functions
-2. `inc/admin-access-control.php` - Admin access restriction
-3. `inc/author-links.php` - Profile URL resolution
-4. `inc/user-creation.php` - User creation filter
-5. `inc/artist-profiles.php` - Artist profile functions (network-wide canonical)
-6. `inc/assets.php` - Asset management
- 7. `inc/auth/login.php` - Login handler (EC_Redirect_Handler)
- 8. `inc/auth/register.php` - Registration handler with newsletter and roster invite handling
- 9. `inc/auth/logout.php` - Custom logout handler
-10. `inc/core/registration-emails.php` - Welcome email system
-11. `inc/auth/password-reset.php` - Password reset handler
-12. `inc/core/online-users.php` - Activity tracking
-13. `inc/avatar-display.php` - Avatar display (loads network-wide)
-14. `inc/avatar-upload.php` - Avatar upload (loads network-wide)
+1. `inc/auth/class-redirect-handler.php` - Redirect handler class
+2. `inc/auth/login.php` - Login handler (EC_Redirect_Handler)
+3. `inc/auth/register.php` - Registration handler with newsletter and roster invite handling
+4. `inc/auth/logout.php` - Custom logout handler
+5. `inc/auth/password-reset.php` - Password reset handler
+6. `inc/core/online-users.php` - Activity tracking
+7. `inc/core/registration-emails.php` - Welcome email system
+8. `inc/core/user-creation.php` - User creation filter
+9. `inc/team-members.php` - Team member functions
+10. `inc/admin-access-control.php` - Admin access restriction
+11. `inc/author-links.php` - Profile URL resolution
+12. `inc/artist-profiles.php` - Artist profile functions (network-wide canonical)
+13. `inc/assets.php` - Asset management
+14. `inc/avatar-display.php` - Avatar display (loads network-wide)
 15. `inc/avatar-menu.php` - Avatar menu (loads network-wide)
 16. `inc/comment-auto-approval.php` - Comment auto-approval system
 17. `inc/ad-free-license.php` - Ad-free license validation
+
+**Note**: Avatar upload UI moved to extrachill-community plugin for bbPress integration
 
 
 ## Development Standards
