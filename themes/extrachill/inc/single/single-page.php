@@ -31,13 +31,6 @@ get_header(); ?>
             <?php the_content(); ?>
         </div>
 
-        <div class="entry-footer">
-            <?php
-            // Edit button always shown - option removed
-            edit_post_link( __( 'Edit', 'extrachill' ), '<span class="edit-link">', '</span>' );
-            ?>
-        </div>
-
         <?php do_action( 'extrachill_after_page_content' ); ?>
     </article>
 
