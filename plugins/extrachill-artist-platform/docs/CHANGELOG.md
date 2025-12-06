@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.7] - 2025-12-05
+
+### Added
+- Gutenberg block for link page editor management with React-based UI
+- REST API image handling for background and profile image uploads
+- New styling options: social icons positioning and profile image shape
+- Google Tag Manager ID tracking support
+- Webpack build configuration for Gutenberg block compilation
+- WordPress build scripts integration for block asset compilation
+
+### Changed
+- Enhanced save system to handle REST API image ID assignments
+- Improved image meta handling with direct ID assignment from media library
+- Updated build configuration to include compiled block assets
+
+### Removed
+- Featured link highlighting feature and associated settings
+
+### Technical Improvements
+- Added modern React-based UI for link page editing alongside existing PHP management
+- Improved build process with wp-scripts for block compilation
+- Enhanced REST API integration for image uploads
+- Better separation of concerns with block-based component architecture
+
 ## [1.1.6] - 2025-12-05
 
 ### Added

@@ -35,12 +35,14 @@ function ec_handle_link_page_save( $link_page_id, $save_data = array(), $files_d
         'weekly_notifications_enabled' => '_link_page_enable_weekly_notifications',
         'redirect_enabled' => '_link_page_redirect_enabled',
         'redirect_target_url' => '_link_page_redirect_target_url',
-        'highlighting_enabled' => '_link_page_enable_highlighting',
         'youtube_embed_enabled' => '_enable_youtube_inline_embed',
         'meta_pixel_id' => '_link_page_meta_pixel_id',
         'google_tag_id' => '_link_page_google_tag_id',
+        'google_tag_manager_id' => '_link_page_google_tag_manager_id',
         'subscribe_display_mode' => '_link_page_subscribe_display_mode',
-        'subscribe_description' => '_link_page_subscribe_description'
+        'subscribe_description' => '_link_page_subscribe_description',
+        'social_icons_position' => '_link_page_social_icons_position',
+        'profile_image_shape' => '_link_page_profile_img_shape',
     );
 
     foreach ( $advanced_fields as $key => $meta_key ) {
@@ -72,6 +74,37 @@ function ec_handle_link_page_save( $link_page_id, $save_data = array(), $files_d
                 // Don't fail entire save for social issues
             }
         }
+    }
+
+    // Handle background image ID assignment (REST API - no file upload)
+    if ( isset( $save_data['background_image_id'] ) ) {
+        $bg_id = absint( $save_data['background_image_id'] );
+        if ( $bg_id > 0 ) {
+            update_post_meta( $link_page_id, '_link_page_background_image_id', $bg_id );
+        } else {
+            delete_post_meta( $link_page_id, '_link_page_background_image_id' );
+        }
+    }
+
+    // Handle profile image ID assignment (REST API - stored on artist as thumbnail)
+    if ( isset( $save_data['profile_image_id'] ) ) {
+        $artist_id = apply_filters( 'ec_get_artist_id', $link_page_id );
+        if ( $artist_id ) {
+            $profile_id = absint( $save_data['profile_image_id'] );
+            if ( $profile_id > 0 ) {
+                set_post_thumbnail( $artist_id, $profile_id );
+            } else {
+                delete_post_thumbnail( $artist_id );
+            }
+        }
+    }
+
+    // Handle overlay_enabled via css_vars
+    if ( isset( $save_data['overlay_enabled'] ) ) {
+        $css_vars = get_post_meta( $link_page_id, '_link_page_custom_css_vars', true );
+        $css_vars = is_array( $css_vars ) ? $css_vars : array();
+        $css_vars['overlay'] = $save_data['overlay_enabled'] === '1' ? '1' : '0';
+        update_post_meta( $link_page_id, '_link_page_custom_css_vars', $css_vars );
     }
 
     /**
@@ -325,8 +358,6 @@ function ec_prepare_link_page_save_data( $post_data ) {
         $save_data['redirect_target_url'] = esc_url_raw( wp_unslash( $post_data['link_page_redirect_target_url'] ) );
     }
 
-    $save_data['highlighting_enabled'] = isset( $post_data['link_page_enable_highlighting'] ) && $post_data['link_page_enable_highlighting'] == '1' ? '1' : '0';
-    
     // YouTube embed (inverted logic - checkbox disables feature)
     $save_data['youtube_embed_enabled'] = isset( $post_data['disable_youtube_inline_embed'] ) && $post_data['disable_youtube_inline_embed'] == '1' ? '0' : '1';
 

@@ -22,7 +22,7 @@ docs/
 *~
 
 # Build artifacts and distribution
-build/
+# Note: build/ is NOT excluded - it contains compiled Gutenberg blocks from wp-scripts
 *.zip
 *.tar.gz
 
@@ -42,6 +42,9 @@ yarn-debug.log*
 yarn-error.log*
 package-lock.json
 yarn.lock
+
+# React source files (build/ output is included)
+src/
 
 # PHP dependencies (vendor/ included with production dependencies for distribution)
 # Note: WordPress plugins must include vendor/ since end users don't have Composer access

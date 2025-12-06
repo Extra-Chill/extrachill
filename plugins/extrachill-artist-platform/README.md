@@ -30,7 +30,7 @@ A comprehensive WordPress plugin that provides artist profile management, link p
 - YouTube video embed support with toggle control and preview
 - QR code generation with download functionality
 - Native Web Share API integration with social media fallbacks
-- Featured link highlighting and link expiration scheduling
+- Link expiration scheduling with automatic deactivation
 - Social platform integration with 15+ platforms including Apple Music, Bandcamp, Bluesky, Pinterest, and more
 - Comprehensive social link management with smart icon validation and URL sanitization
 - Comprehensive click analytics with Chart.js dashboard and automatic data pruning
