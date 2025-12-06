@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.0.6] - 2025-12-05
+
+### Added
+- New avatar upload UI component for bbPress profile editing (avatar-upload.php)
+- Avatar upload JavaScript using unified REST API endpoint
+
+### Changed
+- Refactored TinyMCE image upload to use unified REST endpoint (/wp-json/extrachill/v1/media)
+- Removed admin-ajax handlers for image uploads (moved to REST API)
+- Updated plugin file count documentation (34 files total: core 7, content 6, social 11, user-profiles 7, home 4)
+
+### Fixed
+- Better REST API integration for media uploads across all contexts (content embeds, user avatars)
+
 ## [1.0.5] - 2025-12-05
 
 ### Added

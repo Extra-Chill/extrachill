@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Extra Chill Community
  * Description: bbPress extension plugin providing community and forum functionality for the Extra Chill platform.
- * Version: 1.0.5
+ * Version: 1.0.6
  * Author: Chris Huber
  * Author URI: https://chubes.net
  * License: GPL v2 or later
@@ -22,10 +22,10 @@ define('EXTRACHILL_COMMUNITY_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('EXTRACHILL_COMMUNITY_PLUGIN_URL', plugin_dir_url(__FILE__));
 
 /**
- * Loads 33 feature files via direct require_once.
- * Load order: core (6) → content (6) → social (11) → user-profiles (6) → home (4).
+ * Loads 34 feature files via direct require_once.
+ * Load order: core (7) → content (6) → social (11) → user-profiles (7) → home (4).
  * Templates loaded via hooks: forum-home-header, forum-homepage, recently-active.
- * Note: Avatar functionality moved to extrachill-users plugin for network-wide availability.
+ * Note: Avatar display functionality in extrachill-users plugin; upload UI here for bbPress integration.
  */
 function extrachill_community_init() {
     // Core functionality (6 files)
@@ -58,13 +58,14 @@ function extrachill_community_init() {
     require_once plugin_dir_path(__FILE__) . 'inc/social/notifications/capture-mentions.php';
     require_once plugin_dir_path(__FILE__) . 'inc/social/notifications/notifications-content.php';
 
-    // User profile features (6 files) - avatar system moved to extrachill-users plugin
+    // User profile features (7 files)
     require_once plugin_dir_path(__FILE__) . 'inc/user-profiles/custom-user-profile.php';
     require_once plugin_dir_path(__FILE__) . 'inc/user-profiles/verification.php';
     require_once plugin_dir_path(__FILE__) . 'inc/user-profiles/settings/settings-content.php';
     require_once plugin_dir_path(__FILE__) . 'inc/user-profiles/settings/settings-form-handler.php';
     require_once plugin_dir_path(__FILE__) . 'inc/user-profiles/edit/user-links.php';
     require_once plugin_dir_path(__FILE__) . 'inc/user-profiles/edit/user-info.php';
+    require_once plugin_dir_path(__FILE__) . 'inc/user-profiles/edit/avatar-upload.php';
 
     // Homepage features (4 files)
     require_once plugin_dir_path(__FILE__) . 'inc/home/latest-post.php';

@@ -40,14 +40,15 @@
 
                 function uploadImage(file, editor) {
                     var formData = new FormData();
-                    formData.append('image', file);
+                    formData.append('file', file);
+                    formData.append('context', 'content_embed');
 
                     // Add a loading indicator here
                     var loader = document.createElement('div');
                     loader.innerHTML = '<div style="text-align:center;color: #53940b;"><i class="fa fa-spinner fa-spin fa-2x"></i> Image loading, please wait...</div>';
                     editor.getContainer().appendChild(loader);
 
-                    fetch('/wp-json/extrachill/v1/community/upload-image', {
+                    fetch('/wp-json/extrachill/v1/media', {
                         method: 'POST',
                         credentials: 'same-origin',
                         headers: {
