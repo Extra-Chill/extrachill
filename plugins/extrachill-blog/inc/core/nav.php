@@ -21,7 +21,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 function extrachill_blog_secondary_header_items( $items ) {
 	$items[] = array(
-		'url'      => home_url( '/all/' ),
+		'url'      => home_url( '/blog/' ),
 		'label'    => __( 'Latest', 'extrachill-blog' ),
 		'priority' => 5,
 	);

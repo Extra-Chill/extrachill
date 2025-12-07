@@ -12,9 +12,11 @@ global $more_recent_posts;
 	<h2 class="home-more-recent-header">More Recent Posts</h2>
 	<div class="home-more-recent-row">
 	<?php
+	global $post;
 	if ( ! empty( $more_recent_posts ) ) :
 		foreach ( $more_recent_posts as $recent_post ) :
-			setup_postdata( $recent_post );
+			$post = $recent_post;
+			setup_postdata( $post );
 			?>
 		<a href="<?php the_permalink(); ?>" class="home-more-recent-card home-more-recent-card-link" aria-label="<?php the_title_attribute(); ?>">
 			<?php if ( has_post_thumbnail() ) : ?>
@@ -31,6 +33,6 @@ global $more_recent_posts;
 			<?php endif; ?>
 	</div>
 	<div class="home-more-recent-footer">
-	<a href="/all" class="home-more-recent-viewall button-3 button-small">View All</a>
+	<a href="/blog" class="home-more-recent-viewall button-3 button-small">View All</a>
 	</div>
 </div>

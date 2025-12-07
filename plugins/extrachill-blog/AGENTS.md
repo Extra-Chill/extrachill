@@ -5,7 +5,7 @@ WordPress plugin providing blog-specific functionality for extrachill.com (Blog 
 ## Overview
 
 **Plugin Name**: Extra Chill Blog
-**Version**: 0.2.0
+**Version**: 0.2.2
 **Network**: false (site-activated on Blog ID 1 only)
 **Purpose**: Blog-specific homepage, navigation, and archive functionality for the main Extra Chill content site
 

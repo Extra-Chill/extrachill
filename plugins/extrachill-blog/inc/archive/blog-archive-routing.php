@@ -2,7 +2,7 @@
 /**
  * Blog Archive Routing
  *
- * Provides /all URL for main blog archive on extrachill.com (Blog ID 1).
+ * Provides /blog URL for main blog archive on extrachill.com (Blog ID 1).
  * Excludes AI-generated content (author ID 39) from main listing.
  * Sorting handled by theme's archive-custom-sorting.php via $_GET['sort'] parameter.
  *
@@ -15,11 +15,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Register /all rewrite rules
+ * Register /blog rewrite rules
  */
 function extrachill_blog_register_archive_rewrite() {
-	add_rewrite_rule( '^all/?$', 'index.php?extrachill_blog_archive=1', 'top' );
-	add_rewrite_rule( '^all/page/([0-9]+)/?$', 'index.php?extrachill_blog_archive=1&paged=$matches[1]', 'top' );
+	add_rewrite_rule( '^blog/?$', 'index.php?extrachill_blog_archive=1', 'top' );
+	add_rewrite_rule( '^blog/page/([0-9]+)/?$', 'index.php?extrachill_blog_archive=1&paged=$matches[1]', 'top' );
 }
 add_action( 'init', 'extrachill_blog_register_archive_rewrite' );
 
