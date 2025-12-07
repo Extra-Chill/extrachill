@@ -1,12 +1,12 @@
 # ExtraChill WordPress Theme
 
-A custom WordPress theme (v1.1.7) powering the Extra Chill Platform multisite network with 8 active interconnected sites (Blog ID 6 unused), featuring hook-based homepage content, community integrations, and multisite-aware navigation. Horoscope site is planned for future Blog ID 10.
+A custom WordPress theme (v1.1.8) powering the Extra Chill Platform multisite network with 8 active interconnected sites (Blog ID 6 unused), featuring hook-based homepage content, community integrations, and multisite-aware navigation. Horoscope site is planned for future Blog ID 10.
 
-> **Platform alignment**: Documentation reflects the live 1.1.6 release announced in `style.css` and `docs/CHANGELOG.md` and must stay in lockstep with future releases.
+> **Platform alignment**: Documentation reflects the live 1.1.8 release announced in `style.css` and `docs/CHANGELOG.md` and must stay in lockstep with future releases.
 
 ## Overview
 
-ExtraChill is a modern, performance-optimized WordPress theme (v1.1.6) designed specifically for the Extra Chill Platform multisite network. It serves as the frontend for all 8 active interconnected sites (Blog ID 6 unused) with horoscope.extrachill.com planned for future Blog ID 10:
+ExtraChill is a modern, performance-optimized WordPress theme (v1.1.8) designed specifically for the Extra Chill Platform multisite network. It serves as the frontend for all 8 active interconnected sites (Blog ID 6 unused) with horoscope.extrachill.com planned for future Blog ID 10:
 
 - **extrachill.com** (Blog ID 1): Music journalism, artist features, and industry coverage
 - **community.extrachill.com** (Blog ID 2): Community forums with bbPress integration
@@ -25,18 +25,22 @@ ExtraChill is a modern, performance-optimized WordPress theme (v1.1.6) designed 
 - **Festival Wire Output**: ExtraChill News Wire plugin renders ticker/feed blocks through theme hooks; core theme only supplies shared CSS tokens
 - **Homepage Content Delivery**: Front page is one container powered by `extrachill_homepage_content` (primary content) and `extrachill_after_homepage_content` (footer/CTA slot)
 - **Search Integration**: Theme ships the search header template and CSS while the extrachill-search plugin owns the multisite loop, result badges, and aggregation logic
+- **Share System**: Integrated share buttons with clipboard copy and social sharing functionality
+- **Notice System**: Centralized user feedback system supporting multiple notices, anonymous user cookies, and action buttons
 
 ### 🚀 Performance Optimizations
-- **Conditional Asset Loading**: CSS/JS load only when their contexts require them (archives, search, sidebar, shared tabs, footer stats, etc.)
-- **Modular CSS Architecture**: Ten page/component-specific stylesheets (`root`, `archive`, `single-post`, `nav`, `taxonomy-badges`, `editor-style`, `search`, `shared-tabs`, `share`, `sidebar`)
+- **Conditional Asset Loading**: CSS/JS load only when their contexts require them (archives, search, sidebar, shared tabs, footer stats, notices, share buttons, etc.)
+- **Modular CSS Architecture**: Eleven page/component-specific stylesheets (`root`, `archive`, `single-post`, `nav`, `taxonomy-badges`, `editor-style`, `search`, `shared-tabs`, `share`, `sidebar`, `notice`)
 - **Image Optimization**: Unused WordPress image sizes removed for leaner uploads
 - **View Tracking**: Async REST-powered view counting with script enqueued only on public singular content
 - **Multisite Optimization**: Direct `switch_to_blog()` access and cached lookups keep network features fast
+- **Enhanced Pagination**: Array-based pagination support for custom queries with dynamic item labels
 
 ### 🎨 Modern Design System
 - **CSS Variables**: Global design tokens in `assets/css/root.css`
-- **Component Styles**: Dedicated files for navigation, badges, search, shared tabs, share buttons, sidebar widgets, and editor styles (all depend on the root handle)
-- **Responsive Design**: Mobile-first layouts, sticky header toggle, secondary header filter, and accessible navigation/flyout controls
+- **Component Styles**: Dedicated files for navigation, badges, search, shared tabs, share buttons, sidebar widgets, notices, and editor styles (all depend on the root handle)
+- **Responsive Design**: Mobile-first layouts, sticky header toggle, secondary header filter, network dropdown, and accessible navigation/flyout controls
+- **Icon System**: QR code and download icons added to SVG sprite system
 
 ### 🤝 Community Integration
 - **WordPress Multisite**: Theme powers 8 active network sites with shared routing and navigation patterns
@@ -46,6 +50,7 @@ ExtraChill is a modern, performance-optimized WordPress theme (v1.1.6) designed 
 - **Multisite Search**: Cross-site search via extrachill-search plugin with `extrachill_multisite_search()`
 - **Profile URL Resolution**: extrachill-users plugin supplies `ec_get_user_profile_url()` for community links
 - **Online Users Widget**: `extrachill_before_footer` renders online/total counts from extrachill-users data
+- **Network Dropdown**: Integrated network site navigation dropdown
 - **Graceful Degradation**: Hooks and function_exists checks keep templates stable if network plugins are inactive
 
 ## Installation
@@ -67,13 +72,13 @@ ExtraChill is a modern, performance-optimized WordPress theme (v1.1.6) designed 
    - Activate through WordPress admin
 
 3. **Configure recommended plugins**:
-   - ExtraChill Multisite (network-activated - core multisite functionality)
-   - ExtraChill Search (network-activated - cross-site search)
-   - ExtraChill Users (network-activated - user profile URL resolution and avatar menu)
-   - ExtraChill News Wire (Festival Wire functionality)
-   - ExtraChill Newsletter (newsletter functionality)
-   - ExtraChill Contact (contact form functionality)
-   - ExtraChill Events (event management functionality)
+    - **ExtraChill Multisite** (network-activated - core multisite functionality, cross-domain authentication)
+    - **ExtraChill Search** (network-activated - cross-site search with site badges)
+    - **ExtraChill Users** (network-activated - user profile URL resolution, avatar menu, team member management)
+    - **ExtraChill News Wire** (Festival Wire functionality and ticker/feed blocks)
+    - **ExtraChill Newsletter** (newsletter management and archive functionality)
+    - **ExtraChill Contact** (contact form functionality)
+    - **ExtraChill Events** (event calendar and management functionality)
 
 4. **Initial setup**:
    ```bash
@@ -92,8 +97,8 @@ The theme supports direct file editing for development with no build step requir
 cd wp-content/themes/extrachill
 
 # Edit files directly
-# CSS files are in /assets/css/ (10 CSS files: root.css, archive.css, single-post.css, nav.css, taxonomy-badges.css, editor-style.css, search.css, shared-tabs.css, share.css, sidebar.css)
-# JavaScript files are in /assets/js/ (5 files: nav-menu.js, reading-progress.js, chill-custom.js, shared-tabs.js, view-tracking.js)
+# CSS files are in /assets/css/ (11 CSS files: root.css, archive.css, single-post.css, nav.css, taxonomy-badges.css, editor-style.css, search.css, shared-tabs.css, share.css, sidebar.css, notice.css)
+# JavaScript files are in /assets/js/ (6 files: nav-menu.js, reading-progress.js, chill-custom.js, shared-tabs.js, view-tracking.js, share.js)
 # PHP files use modular include structure in /inc/ directory (48 total files, 28 directly loaded in functions.php)
 
 # Check for syntax errors
@@ -131,7 +136,7 @@ For production deployment, use the build script to create clean ZIP packages:
 extrachill/
 ├── index.php                   # Emergency fallback template (minimal functionality)
 ├── assets/                     # Theme assets directory
-│   ├── css/                    # Modular CSS files (10 files)
+│   ├── css/                    # Modular CSS files (11 files)
 │   │   ├── root.css            # CSS custom properties
 │   │   ├── archive.css         # Archive page styles
 │   │   ├── single-post.css     # Single post styles
@@ -139,13 +144,17 @@ extrachill/
 │   │   ├── taxonomy-badges.css # Taxonomy badge colors
 │   │   ├── editor-style.css    # Block editor styles
 │   │   ├── search.css          # Search results styles
-│   │   └── shared-tabs.css     # Shared tab interface styles
-│   ├── js/                     # JavaScript files (4 files)
+│   │   ├── shared-tabs.css     # Shared tab interface styles
+│   │   ├── share.css           # Social share buttons
+│   │   ├── sidebar.css         # Sidebar components
+│   │   └── notice.css          # Notice system styles
+│   ├── js/                     # JavaScript files (6 files)
 │   │   ├── nav-menu.js         # Navigation menu functionality
 │   │   ├── reading-progress.js # Reading progress indicator
 │   │   ├── chill-custom.js     # Custom functionality
 │   │   ├── shared-tabs.js      # Shared tab interface
-│   │   └── view-tracking.js    # Async REST-powered view tracking
+│   │   ├── view-tracking.js    # Async REST-powered view tracking
+│   │   └── share.js            # Share button interactions
 │   └── fonts/                  # Local web fonts
 ├── inc/                        # Modular PHP functionality (48 files total, 28 directly loaded)
 │   ├── archives/               # Archive page functionality (8 files)
@@ -242,14 +251,14 @@ The theme implements template routing via WordPress's native `template_include` 
 
 The theme follows a modular architecture with clear separation of concerns:
 
-- **Core WordPress functionality** in `/inc/core/` (7 core files + 2 subdirectories = 20 total files)
-- **Shared template components** in `/inc/core/templates/` (10 reusable templates including 404.php and community-activity.php)
+- **Core WordPress functionality** in `/inc/core/` (8 core files + 2 subdirectories = 21 total files)
+- **Shared template components** in `/inc/core/templates/` (11 reusable templates including 404.php, community-activity.php, and notices.php)
 - **Custom embeds** in `/inc/core/editor/` (3 embed types: Bandcamp, Spotify, Instagram)
 - **Archive functionality** in `/inc/archives/` (7 core files + search subdirectory with 1 file = 8 total files)
 - **Search integration** in `/inc/archives/search/` (1 file: search-header.php used via extrachill_search_header hook by extrachill-search plugin)
-- **Footer navigation** in `/inc/footer/` (3 footer files: main menu, bottom menu, back-to-home navigation)
-- **Header navigation system** in `/inc/header/` (3 navigation files)
-- **Homepage components** in `/inc/home/` (8 homepage files: 1 core + 7 templates)
+- **Footer navigation** in `/inc/footer/` (4 footer files: main menu, bottom menu, back-to-home navigation, online users stats)
+- **Header navigation system** in `/inc/header/` (4 navigation files including secondary header)
+- **Homepage components** in `/inc/home/` (1 homepage file: front-page.php)
 - **Sidebar functionality** in `/inc/sidebar/` (2 sidebar files)
 - **Single post/page features** in `/inc/single/` (4 single files)
 - **Total**: 48 PHP files in `/inc/` directory with 28 directly loaded in functions.php
@@ -266,23 +275,26 @@ The theme features a sophisticated hook-based menu system that replaces WordPres
 The system uses action hooks registered in `inc/core/actions.php` to load hardcoded menu templates, allowing both performance optimization and plugin extensibility without the overhead of WordPress's menu system.
 
 ### Performance Features
+
+  - **WordPress native routing**: Template routing via `template_include` filter in `inc/core/template-router.php`
+  - **Modular asset loading**: CSS/JS loaded only when needed based on page context via `inc/core/assets.php`
+  - **Native pagination system**: Lightweight WordPress pagination in `inc/core/templates/pagination.php` with array-based support
+  - **Memory optimization**: Efficient resource usage tracking and admin style dequeuing
+  - **Query optimization**: Direct database queries for multisite integration
+  - **Asset optimization**: SVG support, emoji script removal, unnecessary image size removal
+  - **Conditional loading**: WooCommerce styles, admin styles, and plugin styles loaded only when needed
+  - **Shared tab components**: `shared-tabs.css`/`shared-tabs.js` registered centrally to keep accordion/tabs consistent across templates while letting plugins enqueue via filters
+  - **View count tracking**: Universal post view counting system with editor/admin exclusion in `inc/core/view-counts.php`
+  - **Permalink optimization**: Category base rewriting for consistent multisite URLs in `inc/core/rewrite.php`
+  - **Notice system**: Efficient user feedback with cookie-based dismissal tracking
  
- - **WordPress native routing**: Template routing via `template_include` filter in `inc/core/template-router.php`
- - **Modular asset loading**: CSS/JS loaded only when needed based on page context via `inc/core/assets.php`
- - **Native pagination system**: Lightweight WordPress pagination in `inc/core/templates/pagination.php`
- - **Memory optimization**: Efficient resource usage tracking and admin style dequeuing
- - **Query optimization**: Direct database queries for multisite integration
- - **Asset optimization**: SVG support, emoji script removal, unnecessary image size removal
- - **Conditional loading**: WooCommerce styles, admin styles, and plugin styles loaded only when needed
- - **Shared tab components**: `shared-tabs.css`/`shared-tabs.js` registered centrally to keep accordion/tabs consistent across templates while letting plugins enqueue via filters
- - **View count tracking**: Universal post view counting system with editor/admin exclusion in `inc/core/view-counts.php`
- - **Permalink optimization**: Category base rewriting for consistent multisite URLs in `inc/core/rewrite.php`
- 
- ### Shared UI Components
- 
- - **Shared tabs**: `inc/core/assets.php` registers `shared-tabs.css` and `shared-tabs.js`; templates can enqueue them via `extrachill_enqueue_shared_tabs()` or through plugin overrides while the JavaScript manages desktop/mobile layouts, hash updates, and custom event dispatching (`sharedTabActivated`)
- - **View tracking script**: `inc/core/assets.php` enqueues `view-tracking.js` only for public singular content, skipping editors and previewers, and localizes `ecViewTracking` with `postId` and the `extrachill/v1/analytics/view` REST endpoint for downstream analytics consumption
- - **Sidebar extension**: `sidebar.php` supports `extrachill_sidebar_content` filter for full replacements and `extrachill_sidebar_top/middle/bottom` actions for hook-based widgets like recent posts and community activity; `inc/core/assets.php` conditions `sidebar.css` only when those hooks render post-related content
+  ### Shared UI Components
+
+  - **Shared tabs**: `inc/core/assets.php` registers `shared-tabs.css` and `shared-tabs.js`; templates can enqueue them via `extrachill_enqueue_shared_tabs()` or through plugin overrides while the JavaScript manages desktop/mobile layouts, hash updates, and custom event dispatching (`sharedTabActivated`)
+  - **View tracking script**: `inc/core/assets.php` enqueues `view-tracking.js` only for public singular content, skipping editors and previewers, and localizes `ecViewTracking` with `postId` and the `extrachill/v1/analytics/view` REST endpoint for downstream analytics consumption
+  - **Sidebar extension**: `sidebar.php` supports `extrachill_sidebar_content` filter for full replacements and `extrachill_sidebar_top/middle/bottom` actions for hook-based widgets like recent posts and community activity; `inc/core/assets.php` conditions `sidebar.css` only when those hooks render post-related content
+  - **Share buttons**: `inc/core/templates/share.php` provides social sharing with clipboard copy and fallback support
+  - **Notice system**: `inc/core/notices.php` enables multiple notices with cookie-based dismissal and action buttons
  
  ### Security Implementation
 
@@ -325,6 +337,15 @@ add_filter('extrachill_enable_sticky_header', '__return_false');
 
 // Append CTA below homepage content
 add_action('extrachill_after_homepage_content', 'custom_homepage_cta', 15);
+
+// Display notices
+do_action('extrachill_notices');
+
+// Customize share button
+extrachill_share_button(array(
+    'share_url' => 'https://example.com',
+    'share_title' => 'Custom Title'
+));
 ```
 
 ## Troubleshooting
@@ -355,58 +376,7 @@ define('WP_DEBUG_LOG', true);
 define('SCRIPT_DEBUG', true);
 ```
 
-## Recent Changes (v1.0.0+)
 
-### New Modular Architecture
-- **WordPress Native Template Routing**: Implemented `inc/core/template-router.php` using `template_include` filter
-- **Template Router Migration**: Moved routing logic from `index.php` to dedicated router file for proper WordPress integration
-- **Emergency Fallback**: `index.php` now serves as minimal emergency fallback only
-- **Core Templates Directory**: Created `/inc/core/templates/` for 10 shared template components
-- **Sidebar Directory**: Created `/inc/sidebar/` for sidebar-specific functionality
-- **Community Activity Refactor**: Centralized shared helper library in `inc/core/templates/community-activity.php` with reusable `extrachill_get_community_activity_items()` and `extrachill_render_community_activity()` functions
-- **Multi-Site Activity**: Queries both community.extrachill.com (blog ID 2) and artist.extrachill.com (blog ID 4) for unified activity display
-- **Multisite Plugin Separation**: Functionality distributed across extrachill-multisite, extrachill-search, and extrachill-users
-- **Native Pagination System**: Replaced wp-pagenavi plugin with lightweight, native WordPress pagination
-  - Located at `inc/core/templates/pagination.php`
-  - Professional post count display with context-aware navigation
-  - Proper URL parameter handling for filtered views
-  - Context-specific styling support
-
-### System Removals (15+ Files Deleted)
-- **Template Override System**: Replaced with WordPress native routing via template-router.php
-- **Event Submission System**: Complete removal of event submission functionality
-- **Location System**: Complete elimination of unused location browsing functionality
-- **Session Token System**: Completely removed in favor of native WordPress multisite authentication
-- **WordPress Menu Management**: Replaced with hook-based system for performance and extensibility
-- **WooCommerce Files**: All WooCommerce templates and CSS removed, moved to ExtraChill Shop plugin
-- **Community Files**: Removed community-comments.php, community-session.php, extrachill-upvotes.php, forum-search.php, multisite-forum-search.php
-- **Legacy Templates**: Removed content-page.php, content-single.php, content.php, comments.php, no-results.php, page.php, search.php, searchform.php, single.php
-- **Legacy CSS**: Removed all-locations.css, woocommerce.css
-- **Legacy PHP**: Removed breadcrumbs.php, recent-posts-in-sidebar.php, location-filter.php, contextual-search-excerpt.php
-- **Multisite Functions**: Moved all multisite functionality to extrachill-multisite plugin
-
-### Performance Improvements
-- **Asset Directory Migration**: Moved all assets from `css/` and `js/` to `assets/css/` and `assets/js/`
-- **CSS Modularization**: 11 dedicated CSS files with conditional loading:
-  - `assets/css/root.css` - CSS custom properties
-  - `assets/css/archive.css` - Archive page styles
-  - `assets/css/single-post.css` - Single post styles
-  - `assets/css/nav.css` - Navigation styles
-  - `assets/css/badge-colors.css` - Taxonomy badge colors
-  - `assets/css/editor-style.css` - Block editor styles
-  - `assets/css/search.css` - Search results styles
-  - `assets/css/shared-tabs.css` - Shared tab interface
-  - `assets/css/share.css` - Social share buttons
-  - `assets/css/sidebar.css` - Sidebar components
-- **Streamlined asset loading**: Conditional CSS/JS enqueuing based on page context via `inc/core/assets.php`
-- **Memory optimization**: Efficient resource management through selective loading and admin style dequeuing
-- **Multisite optimization**: Plugin architecture with function existence checks and caching
-- **Template consolidation**: 48 modular PHP files replace monolithic template structure (28 directly loaded in functions.php)
-- **Font file cleanup**: Removed legacy font files (Libre Franklin, PT Serif, Wilco Loft Sans, Lobster, owfont) for performance optimization
-- **WooCommerce template router support**: Added `is_woocommerce()` bypass in template router for native WooCommerce template handling
-- **Search plugin integration**: Theme provides search header template and CSS, extrachill-search plugin provides main template
-- **View counting**: Universal post view tracking with `ec_get_post_views()`, `ec_the_post_views()`, and `ec_track_post_views()`
-- **Permalink consistency**: Category base rewriting for consistent multisite URL structures
 
 ## Support and Contributing
 
@@ -430,32 +400,7 @@ This theme is proprietary software developed for ExtraChill.com. All rights rese
 
 ## Changelog
 
-### Version 1.0.0+
-- **WordPress Native Template Routing**: Implemented `inc/core/template-router.php` using `template_include` filter
-- **Template Router Migration**: Moved routing logic from `index.php` to dedicated router file
-- **Emergency Fallback**: `index.php` now serves as minimal emergency fallback only
-- **Modular Architecture**: 48 PHP files organized in 7 directories with clear separation of concerns (28 directly loaded in functions.php)
-- **Community Activity Refactor**: Centralized shared helper library with reusable functions for multi-site activity display
-- **Archive Sorting Enhancement**: Upgraded to 4-option dropdown (recent, oldest, random, popular by view count)
-- **Artist Profile Integration**: Displays "View Artist Profile" button on artist archives when matching profile exists on artist.extrachill.com
-- **Universal Back-to-Home Navigation**: Smart context-aware navigation (hidden on main homepage, links to main site on subsite homepages, links to current site homepage on all other pages)
-- **Custom Page Template Support**: Router respects custom page templates assigned via WordPress admin
-- **Button Style Standardization**: Unified button classes across the entire ecosystem
-- **Asset Migration**: Complete move from legacy `css/` and `js/` to `assets/css/` and `assets/js/`
-- **Template System**: 10 shared template components in `/inc/core/templates/` (including 404.php and community-activity.php)
-- **Multisite Plugin Migration**: All multisite functionality moved to extrachill-multisite plugin for network activation
-- **Font File Cleanup**: Removed legacy font files for performance optimization
-- **WooCommerce Template Router Support**: Added native WooCommerce template handling bypass
-- **Search Plugin Integration**: Theme provides search header template and CSS, extrachill-search plugin provides main template via filter override
-- **Native Pagination**: Custom pagination system replacing wp-pagenavi plugin
-- **Plugin Migrations**: Newsletter, contact forms, Festival Wire, and multisite functionality moved to dedicated plugins
-- **System Removals**: 15+ legacy files eliminated (event submission, location filtering, session tokens, override system)
-- **Performance Optimization**: Conditional loading, memory optimization, plugin architecture integration
-- **WordPress Standards**: Native multisite authentication, WordPress native template routing via `template_include` filter
-- **View Count Tracking**: Universal post view counting with editor/admin exclusion
-- **Permalink Optimization**: Category base rewriting for consistent multisite URL structures
-- **Sticky Header Control**: `extrachill_enable_sticky_header` filter for plugin customization
-- **Shared Components**: Reusable tab interface system with CSS and JavaScript
+See [docs/CHANGELOG.md](docs/CHANGELOG.md) for full version history.
 
 ---
 

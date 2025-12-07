@@ -288,6 +288,64 @@ extrachill_share_button( array(
 - Clipboard copy with "Copied!" feedback
 - Fallback prompt for unsupported browsers
 - External links open in new tab
+- JavaScript interactions via `share.js`
+
+## Notice System Component
+
+**Location**: `/inc/core/notices.php`
+**Functions**: `extrachill_add_notice()`, `extrachill_display_notices()`
+**Hook**: `extrachill_notices`
+
+### Parameters for extrachill_add_notice()
+
+```php
+extrachill_add_notice( $type, $message, $options = array() );
+```
+
+Where `$options` can include:
+```php
+$options = array(
+    'dismissible' => true,                    // Allow dismissal
+    'action_url'  => '/dashboard',            // Action button URL
+    'action_text' => 'Go to Dashboard',       // Action button text
+    'cookie_key'  => 'custom_notice_key',     // Cookie dismissal key
+    'priority'    => 10,                      // Display priority
+);
+```
+
+### Notice Types
+
+- `success` - Green success notices
+- `error` - Red error notices
+- `warning` - Yellow warning notices
+- `info` - Blue informational notices
+
+### Usage
+
+```php
+// Simple notice
+extrachill_add_notice( 'success', 'Settings saved successfully!' );
+
+// Dismissible notice with action
+extrachill_add_notice( 'warning', 'Please update your profile', array(
+    'dismissible' => true,
+    'action_url'  => '/profile',
+    'action_text' => 'Update Profile',
+    'cookie_key'  => 'profile_update_notice'
+) );
+
+// Display all notices
+do_action( 'extrachill_notices' );
+```
+
+### Features
+
+- Multiple notice support
+- Cookie-based dismissal tracking
+- Action buttons for user guidance
+- Priority-based ordering
+- Anonymous user cookie support
+- Automatic cleanup of expired notices
 
 ## No Results Component
 
@@ -431,3 +489,4 @@ All components designed for:
 - **Flexibility**: Configurable via parameters/filters
 - **Accessibility**: ARIA labels, semantic HTML
 - **Performance**: Efficient database queries
+- **JavaScript Enhancement**: Interactive features with graceful degradation

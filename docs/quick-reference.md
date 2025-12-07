@@ -66,6 +66,16 @@ extrachill_share_button( array(
     'share_url'   => 'https://example.com',
     'share_title' => 'Custom Title',
 ) );
+
+// Add notice
+extrachill_add_notice( 'success', 'Operation completed!', array(
+    'dismissible' => true,
+    'action_url'  => '/dashboard',
+    'action_text' => 'Go to Dashboard'
+) );
+
+// Display notices
+do_action( 'extrachill_notices' );
 ```
 
 ### Search Form

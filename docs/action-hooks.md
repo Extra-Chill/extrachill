@@ -108,6 +108,21 @@ Footer/action slot rendered immediately after homepage content.
 ```php
 add_action( 'extrachill_after_homepage_content', 'my_plugin_homepage_cta', 20 );
 ```
+
+### extrachill_notices
+Centralized notice system for user feedback across the platform.
+
+**Default Handler**: `extrachill_display_notices()`
+**Default Template**: `/inc/core/notices.php`
+**Priority**: 10
+
+**Usage**: Display multiple notices with cookie-based dismissal and action buttons.
+
+```php
+add_action( 'extrachill_notices', function() {
+    extrachill_add_notice( 'success', 'Operation completed successfully!' );
+} );
+```
 ## Single Post Hooks
 
 ### extrachill_above_post_title
@@ -194,11 +209,13 @@ Displays: Facebook, Twitter/X, Instagram, YouTube, Pinterest, GitHub
 ## Share Button Hook
 
 ### extrachill_share_button
-Share button component.
+Share button component with clipboard copy and social sharing.
 
 **Default Handler**: `extrachill_share_button()`
 **Location**: `/inc/core/templates/share.php`
 **Priority**: 10
+
+**Features**: Facebook, Twitter/X, Email, Copy Link with clipboard API fallback
 
 ## Priority Guidelines
 

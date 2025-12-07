@@ -18,7 +18,7 @@
     <a href="https://extrachill.com">Home</a>
 </li>
 <li class="menu-item">
-    <a href="https://extrachill.com/all">Blog</a>
+    <a href="https://extrachill.com/blog">Blog</a>
 </li>
 <li class="menu-item">
     <a href="https://events.extrachill.com">Events Calendar</a>

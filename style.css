@@ -1,7 +1,7 @@
 /*
 Theme Name: Extra Chill
 Author: Chubes
-Version: 1.1.7
+Version: 1.1.8
 Text Domain: extrachill
 */
 
@@ -691,6 +691,7 @@ text-decoration: none;
     padding: 0 15px;
     box-sizing: border-box;
     margin-bottom: 20px;
+    text-align: center;
 }
 
 .footer-menu-column .footer-column-menu { /* This targets the UL */

@@ -13,7 +13,7 @@ Comprehensive user-facing documentation for the ExtraChill WordPress theme.
 
 ExtraChill is a custom WordPress theme serving a music community ecosystem across a multisite network. The theme powers all 8 active sites (Blog IDs 1–5, 7–9) in the Extra Chill Platform network, with horoscope.extrachill.com planned as Blog ID 10.
 
-**Version**: 1.1.2
+**Version**: 1.1.8
 **Author**: Chubes
 **Text Domain**: extrachill
 
@@ -24,8 +24,8 @@ ExtraChill is a custom WordPress theme serving a music community ecosystem acros
 - **WordPress Native Routing**: Uses `template_include` filter for proper WordPress integration with custom page template support
 - **Hook-Based Extensibility**: Action and filter hooks throughout for plugin integration
 - **Modular Organization**: 48 modular PHP files in `/inc` directory (28 directly loaded in functions.php)
-- **Performance Focused**: Conditional asset loading, hardcoded menus, cache busting
-- **Multisite Integration**: Seamless integration with WordPress multisite network
+- **Performance Focused**: Conditional asset loading, hardcoded menus, cache busting, notice system, share buttons
+- **Multisite Integration**: Seamless integration with WordPress multisite network including network dropdown
 
 ### File Structure
 
@@ -43,6 +43,7 @@ extrachill/
 │   │   ├── view-counts.php      # Post view tracking
 │   │   ├── rewrite.php          # URL rewrite rules
 │   │   ├── yoast-stuff.php      # Yoast SEO integration
+│   │   ├── notices.php          # Notice system
 │   │   ├── templates/           # Shared template components
 │   │   └── editor/              # Custom embeds (Bandcamp, Spotify, Instagram)
 │   ├── header/                   # Navigation system
@@ -55,7 +56,7 @@ extrachill/
 └── assets/                       # CSS, JavaScript, fonts
     ├── css/                      # 11 modular CSS files
     ├── js/                       # JavaScript functionality
-    └── fonts/                    # FontAwesome SVG sprite
+    └── fonts/                    # FontAwesome SVG sprite with QR/download icons
 ```
 
 ## Quick Start
@@ -168,11 +169,12 @@ All taxonomies include REST API support and block editor integration.
 
 ### Archive Features
 
-- Post sorting (recent/oldest)
+- Post sorting (recent/oldest/popular)
 - Randomization button
 - Artist filtering (category-specific)
 - Child term dropdowns
 - URL parameter preservation
+- Enhanced pagination with array-based support
 
 ### Search Features
 
@@ -181,14 +183,15 @@ All taxonomies include REST API support and block editor integration.
 - Community forum search integration
 - Site badges for result identification
 - 10-minute result caching
+- Share buttons on search results
 
 ### Asset Management
 
 - 11 modular CSS files loaded conditionally
 - Cache busting via `filemtime()`
 - Root CSS variables for global theming
-- JavaScript conditional loading
-- FontAwesome SVG sprite with versioning
+- JavaScript conditional loading including share.js and notice interactions
+- FontAwesome SVG sprite with versioning and QR/download icons
 
 ### Embed Support
 
@@ -237,12 +240,12 @@ Theme serves all 8 active sites in the Extra Chill Platform network (Blog ID 6 u
 2. **community.extrachill.com** - Community forums and user hub (Blog ID 2)
 3. **shop.extrachill.com** - E-commerce platform with WooCommerce (Blog ID 3)
 4. **artist.extrachill.com** - Artist platform and profiles (Blog ID 4)
-5. **chat.extrachill.com** - AI chatbot system with ChatGPT-style interface (Blog ID 5)
+5. **chat.extrachill.com** - AI chatbot system (Blog ID 5)
 6. **events.extrachill.com** - Event calendar hub powered by Data Machine (Blog ID 7)
 7. **stream.extrachill.com** - Live streaming platform (Phase 1 UI) (Blog ID 8)
 8. **newsletter.extrachill.com** - Newsletter management and archive hub (Blog ID 9)
 
-Each site uses the same theme with different plugin integrations and template overrides via `extrachill_template_*` filters. Cross-site features handled by network-activated plugins (extrachill-multisite, extrachill-search, extrachill-users). Theme directly queries bbPress data for community activity with graceful fallback.
+Each site uses the same theme with different plugin integrations and template overrides via `extrachill_template_*` filters. Cross-site features handled by network-activated plugins (extrachill-multisite, extrachill-search, extrachill-users). Theme directly queries bbPress data for community activity with graceful fallback. Network dropdown provides seamless site navigation.
 
 ## Theme Support
 
@@ -276,6 +279,8 @@ Each site uses the same theme with different plugin integrations and template ov
 - Admin style prevention on frontend
 - Image size optimization
 - View count tracking with editor exclusion
+- Notice system with cookie-based dismissal
+- Share button interactions with clipboard API
 
 ## Security Features
 

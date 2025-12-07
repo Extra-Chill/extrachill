@@ -15,7 +15,7 @@ Tracks post views via REST API endpoint.
 
 **Exclusions**:
 - Preview requests (`is_preview()`)
-- Users who can edit posts (`current_user_can('edit_posts')`)
+- Users who can edit posts (`current_user_can('edit_posts')`) - Note: This exclusion was removed in v1.1.6 to enable view counting for all user roles
 
 **Storage**: Post meta key `ec_post_views`
 
@@ -64,7 +64,6 @@ View tracking runs asynchronously via client-side JavaScript:
 **Location**: `assets/js/view-tracking.js`
 **Endpoint**: `extrachill/v1/analytics/view`
 **Method**: Async beacon with fallback to fetch
-
 **Triggers On**:
 - Single posts
 - Pages
@@ -74,9 +73,11 @@ View tracking runs asynchronously via client-side JavaScript:
 - Archive pages
 - Search results
 - Homepage
-- Admin users
+- Admin users (editors and admins excluded)
 - Post editors
 - Preview requests
+
+**Note**: View tracking now applies uniformly across all user roles for more accurate metrics collection (changed in v1.1.6)
 
 **Client-Side Implementation**:
 ```javascript

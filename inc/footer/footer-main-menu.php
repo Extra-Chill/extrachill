@@ -17,7 +17,7 @@
                 <a href="https://extrachill.com">Network</a>
                 <ul class="sub-menu">
                     <li class="menu-item">
-                        <a href="https://extrachill.com/all">Blog</a>
+                        <a href="https://extrachill.com/blog">Blog</a>
                     </li>
                     <li class="menu-item">
                         <a href="https://community.extrachill.com">Community</a>
@@ -26,10 +26,13 @@
                         <a href="https://events.extrachill.com">Events</a>
                     </li>
                     <li class="menu-item">
-                        <a href="https://artist.extrachill.com">Artists</a>
+                        <a href="https://artist.extrachill.com">Artist Platform</a>
                     </li>
                     <li class="menu-item">
                         <a href="https://newsletter.extrachill.com">Newsletter</a>
+                    </li>
+                    <li class="menu-item">
+                        <a href="https://shop.extrachill.com">Shop</a>
                     </li>
                 </ul>
             </li>
@@ -39,7 +42,7 @@
     <div class="footer-menu-column">
         <ul class="footer-column-menu">
             <li class="menu-item menu-item-has-children">
-                <a href="https://extrachill.com/all">Explore</a>
+                <a href="https://extrachill.com/blog">Explore</a>
                 <ul class="sub-menu">
                     <li class="menu-item">
                         <a href="https://extrachill.com/category/interviews/">Interviews</a>

@@ -11,19 +11,22 @@ Purpose: Enable an AI agent to make high‑quality, production‑safe contributi
 - Add new feature modules in an appropriate `inc/<area>/` file; include them from `functions.php` (or an existing aggregator file) only if needed globally. Consider future conditional requires.
 - Always enqueue assets with dynamic versioning: `filemtime( $path )` and narrow page conditions (e.g. `is_front_page()`, `is_singular('post')`).
 - Root CSS variables must load first (`assets/css/root.css`) → other styles depend on handle `extrachill-root`. If adding a stylesheet, declare dependency on that handle.
-- Page/context-specific CSS: archive → `assets/css/archive.css`, single post → `assets/css/single-post.css`, home → `assets/css/home.css`, navigation → `assets/css/nav.css`.
-- Do NOT resurrect removed CSS concatenation/inline “optimization” (comment notes memory issues). Keep individual files.
-- Use local fonts in `/fonts/`; don't introduce external font CDNs.
+- Page/context-specific CSS: archive → `assets/css/archive.css`, single post → `assets/css/single-post.css`, home → `assets/css/home.css`, navigation → `assets/css/nav.css`, notices → `assets/css/notice.css`.
+- Do NOT resurrect removed CSS concatenation/inline "optimization" (comment notes memory issues). Keep individual files.
+- Use local fonts in `/fonts/`; don't introduce external font CDNs. QR code and download icons added to SVG sprite system.
 - Image sizes: custom policy removes many defaults; avoid relying on `thumbnail` or WooCommerce sizes—check existing sizes before using.
 
 ## 3. Custom Data Structures & Content Types
 - All custom taxonomies (festival, artist, venue, location) registered in `inc/core/custom-taxonomies.php`.
 - Custom Post Types: Newsletter functionality completely handled by ExtraChill Newsletter Plugin (no theme templates). Festival Wire custom post type handled by ExtraChill News Wire plugin. Follow existing arg patterns (REST enabled, non-hierarchical unless needed, slug = lowercase snake/hyphen form).
-- When adding CPT/taxonomies: after deploy, requires `wp rewrite flush` (document in PR description—don’t add automatic flush in code).
+- Notice system: Centralized user feedback with cookie-based dismissal in `inc/core/notices.php`.
+- Share system: Social sharing with clipboard API in `inc/core/templates/share.php` and `assets/js/share.js`.
+- When adding CPT/taxonomies: after deploy, requires `wp rewrite flush` (document in PR description—don't add automatic flush in code).
 
 ## 4. Asset & Script Patterns
-- JS enqueue examples: archive pages (`chill-custom.js`), single post (`community-comments.js`). Copy these patterns for new scoped scripts with localized AJAX objects.
+- JS enqueue examples: archive pages (`chill-custom.js`), single post (`community-comments.js`), share buttons (`share.js`). Copy these patterns for new scoped scripts with localized AJAX objects.
 - Lightbox loading: Conditional DOM inspection pattern in `enqueue_custom_lightbox_script()`—mirror that approach for other content-driven enhancements.
+- Notice system: Cookie-based dismissal with `extrachill_add_notice()` and `extrachill_display_notices()`.
 - Admin/editor styling: Editor styles added via `add_editor_style()` and admin enqueue (`extrachill_enqueue_admin_styles`). New editor styling should extend `editor-style.css` not replace it.
 
 ## 5. E-commerce Integration (Plugin-Based)
@@ -46,10 +49,10 @@ Purpose: Enable an AI agent to make high‑quality, production‑safe contributi
 - No JS bundler—submit plain ES5/ESNext compatible with target browsers (WordPress standards). Avoid adding a bundler unless explicitly approved.
 
 ## 10. Adding Features (Example Flow)
-1. Create `inc/<domain>/<feature>.php` (e.g. `inc/home/templates/new-homepage-section.php`).
+1. Create `inc/<domain>/<feature>.php` (e.g. `inc/home/templates/new-homepage-section.php` or `inc/core/notices.php` for new systems).
 2. Wire require in `functions.php` (no auto-include functionality exists - manual requires needed).
-3. Enqueue any CSS/JS conditionally with `filemtime()` versioning.
-4. Add filters/actions exposing extension points (prefix with `extrachill_`).
+3. Enqueue any CSS/JS conditionally with `filemtime()` versioning (e.g., `notice.css`, `share.js`).
+4. Add filters/actions exposing extension points (prefix with `extrachill_`, e.g., `extrachill_notices`, `extrachill_share_button`).
 5. Update README or this instructions file only if pattern divergent.
 
 ## 11. Patterns to Copy

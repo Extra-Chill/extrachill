@@ -199,6 +199,20 @@ Prevent the default related-posts block from rendering when truthy.
 - `$post_id` (int)
 **Returns**: Boolean.
 
+#### `extrachill_notice_dismissal_cookie`
+Customize notice dismissal cookie settings.
+
+**Parameters**:
+- `$cookie_settings` (array) – Default cookie configuration
+**Returns**: Array of cookie settings.
+
+#### `extrachill_share_button_platforms`
+Modify available share button platforms.
+
+**Parameters**:
+- `$platforms` (array) – Default array of social platforms
+**Returns**: Array of platform configurations.
+
 ## Rewrite & Network Filters
 
 ### `pre_option_category_base` / `pre_update_option_category_base`
