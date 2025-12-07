@@ -1,0 +1,83 @@
+/**
+ * Extra Chill Docs Styles
+ *
+ * Uses theme CSS variables from root.css for consistent styling.
+ *
+ * @package ExtraChillDocs
+ * @since 0.1.0
+ */
+
+/* Homepage Layout */
+.docs-homepage {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: var(--spacing-lg);
+}
+
+.docs-intro {
+    text-align: center;
+    margin-bottom: var(--spacing-xl);
+}
+
+.docs-intro h1 {
+    margin-bottom: var(--spacing-sm);
+}
+
+.docs-intro p {
+    color: var(--muted-text);
+    font-size: 1.1rem;
+}
+
+/* Category Grid */
+.docs-category-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: var(--spacing-lg);
+}
+
+/* Category Cards */
+.docs-category-card {
+    display: flex;
+    flex-direction: column;
+    background: var(--card-background);
+    border-radius: var(--border-radius);
+    padding: var(--spacing-lg);
+    text-decoration: none;
+    color: var(--text-color);
+    box-shadow: var(--card-shadow);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.docs-category-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.docs-category-card h2 {
+    margin: 0 0 var(--spacing-sm) 0;
+    font-size: 1.25rem;
+    color: var(--accent);
+}
+
+.docs-category-description {
+    flex-grow: 1;
+    margin: 0 0 var(--spacing-md) 0;
+    color: var(--text-color);
+    line-height: 1.5;
+}
+
+.docs-category-count {
+    font-size: 0.875rem;
+    color: var(--muted-text);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .docs-homepage {
+        padding: var(--spacing-md);
+    }
+
+    .docs-category-grid {
+        grid-template-columns: 1fr;
+    }
+}

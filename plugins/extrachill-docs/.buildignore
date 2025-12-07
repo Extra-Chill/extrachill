@@ -1,0 +1,13 @@
+vendor/
+node_modules/
+.git/
+.github/
+tests/
+.DS_Store
+.claude/
+composer.lock
+package-lock.json
+phpunit.xml.dist
+.phpcs.xml.dist
+AGENTS.md
+README.md
