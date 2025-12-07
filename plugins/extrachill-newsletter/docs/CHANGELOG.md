@@ -18,15 +18,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Improved visual consistency of newsletter forms across different display contexts
 
 ## [0.1.4] - 2025-12-05
-## [0.1.5] - 2025-12-05
-
-### Changed
-- Centralized asset loading by moving script enqueueing and localization to `inc/core/assets.php`
-- Improved JavaScript error handling with validation for required REST nonce parameters
-
-### Fixed
-- Enhanced code organization for better maintainability of asset management
-
 
 ### Changed
 - Improved JavaScript error handling with better HTTP response validation and specific error messages
@@ -36,6 +27,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Removed console error logging for cleaner production code
 - Improved form submission reliability with consistent success handling
+
+## [0.1.5] - 2025-12-05
+
+### Changed
+- Centralized asset loading by moving script enqueueing and localization to `inc/core/assets.php`
+- Improved JavaScript error handling with validation for required REST nonce parameters
+
+### Fixed
+- Enhanced code organization for better maintainability of asset management
 
 ## [0.1.3] - 2025-12-04
 
