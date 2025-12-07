@@ -324,56 +324,7 @@ GPL v2 or later
 
 ## Changelog
 
-### 0.1.8
-- Reorganized block-related endpoints under `/blocks/` namespace for better API organization
-- Enhanced analytics view-count endpoint with specific link page tracking via `extrachill_link_page_view_recorded` action hook
-- Updated documentation and route registrations to reflect new endpoint paths
-
-### 0.1.6
-- Added artist analytics endpoint for link page performance tracking
-- Added shop products CRUD endpoints for WooCommerce product management
-- Enhanced artist links endpoint with socials, image ID, and new settings support
-- Refactored artist links to use canonical data retrieval function
-
-### 0.1.5
-- Added Artist API endpoints for comprehensive artist data management
-- Added unified media upload endpoint for centralized image handling across all contexts
-- Replaced legacy upload endpoints with consolidated media management system
-- Added comprehensive API documentation for new endpoints
-
-### 0.1.4
-- Added artist roster management endpoints (roster invite, subscribers pagination, subscribers export)
-- Added chat functionality endpoints (history clear, message send)
-- Added analytics link-page tracking endpoint
-- Added comprehensive user documentation under docs/
-- Updated link click analytics response format to {'tracked': true}
-- Minor updates to existing route files for consistency
-
-### 0.1.3
-- Added analytics link-click tracking endpoint for artist link pages
-- Added artist subscription endpoint for update notifications
-
-### 0.1.2
-- Added QR code generator endpoint moved from extrachill-admin-tools plugin
-- Added analytics, artist permissions, community features, and user avatar endpoints
-- Enhanced event submissions with auto-population for logged-in users
-- Simplified newsletter subscriptions by removing Turnstile verification
-- Added comprehensive AGENTS.md documentation file
-- Added Endroid QR Code library dependency
-
-### 0.1.1
-- Added event submissions endpoint with Cloudflare Turnstile validation
-- Added extrachill_event_submission action hook
-- Updated documentation for new endpoint and hook
-- Added docs/CHANGELOG.md as changelog source of truth
-
-### 0.1.0
-- Initial release
-- Automatic route discovery system
-- Community user search endpoint
-- Blocks endpoints (image voting, AI adventure)
-- Network activation support
-- WordPress REST API standards compliance
+See [docs/CHANGELOG.md](docs/CHANGELOG.md) for full version history.
 
 ---
 

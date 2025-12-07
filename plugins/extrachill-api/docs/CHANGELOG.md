@@ -2,6 +2,23 @@
 
 All notable changes to the ExtraChill API plugin are documented here. This file is the single source of truth for release history.
 
+## 0.1.9
+
+### Added
+- **User Management APIs**: Complete user profile and relationship management system
+  - `GET /wp-json/extrachill/v1/users/{id}` - User profile data with permission-based field access
+  - `GET/POST/DELETE /wp-json/extrachill/v1/users/{id}/artists` - User-artist relationship management
+  - Enhanced `GET /wp-json/extrachill/v1/users/search` with admin and mentions contexts
+- **Admin Management APIs**: Administrative tools for platform management
+  - `POST /wp-json/extrachill/v1/admin/ad-free-license/grant` - Grant ad-free licenses by username/email
+  - `DELETE /wp-json/extrachill/v1/admin/ad-free-license/{user_id}` - Revoke ad-free licenses
+  - `POST /wp-json/extrachill/v1/admin/team-members/sync` - Sync team member status across network
+  - `PUT /wp-json/extrachill/v1/admin/team-members/{user_id}` - Manual team member status management
+- **Route Reorganization**: Moved user search from community to users namespace with enhancements
+
+### Changed
+- **Documentation**: Centralized changelog in docs/CHANGELOG.md, removed from README.md
+
 ## 0.1.7
 
 ### Added
