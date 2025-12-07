@@ -6,15 +6,15 @@
  * @since 0.1.0
  */
 
-global $post, $more_recent_posts;
+global $more_recent_posts;
 ?>
 <div class="home-more-recent-container">
 	<h2 class="home-more-recent-header">More Recent Posts</h2>
 	<div class="home-more-recent-row">
 	<?php
 	if ( ! empty( $more_recent_posts ) ) :
-		foreach ( $more_recent_posts as $post ) :
-			setup_postdata( $post );
+		foreach ( $more_recent_posts as $recent_post ) :
+			setup_postdata( $recent_post );
 			?>
 		<a href="<?php the_permalink(); ?>" class="home-more-recent-card home-more-recent-card-link" aria-label="<?php the_title_attribute(); ?>">
 			<?php if ( has_post_thumbnail() ) : ?>

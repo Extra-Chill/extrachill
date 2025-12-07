@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.1] - 2025-12-07
+
+### Added
+- Newsletter subscription form integration in homepage 3x3 grid
+- Recent newsletters display from newsletter.extrachill.com (blog ID 9)
+- Comprehensive README.md with features and development documentation
+
+### Changed
+- Replaced community activity section with newsletter-focused content
+- Simplified extrachill.link promo section (removed features list, streamlined design)
+- Reorganized homepage layout (moved extrachill.link promo to final section)
+- Updated homepage CSS for new layout structure (renamed classes, adjusted spacing)
+- Updated build artifacts and vendor metadata
+
+### Removed
+- Community activity rendering from homepage 3x3 grid
+- Extrachill.link features list and expanded card styling
+
 ## [0.2.0] - 2025-12-05
 
 ### Added

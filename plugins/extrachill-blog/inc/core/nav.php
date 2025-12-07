@@ -16,7 +16,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Add category quick links to secondary header
  *
  * @hook extrachill_secondary_header_items
- * @param array $items Current secondary header items
+ * @param array $items Current secondary header items.
  * @return array Items with blog category links added
  */
 function extrachill_blog_secondary_header_items( $items ) {

@@ -22,12 +22,11 @@ function extrachill_blog_render_homepage() {
 	include EXTRACHILL_BLOG_PLUGIN_DIR . 'inc/home/templates/hero.php';
 	include EXTRACHILL_BLOG_PLUGIN_DIR . 'inc/home/templates/section-3x3-grid.php';
 	include EXTRACHILL_BLOG_PLUGIN_DIR . 'inc/home/templates/section-more-recent-posts.php';
-	include EXTRACHILL_BLOG_PLUGIN_DIR . 'inc/home/templates/section-extrachill-link.php';
 	?>
 	<div class="home-final">
 		<?php
 		include EXTRACHILL_BLOG_PLUGIN_DIR . 'inc/home/templates/section-about.php';
-		do_action( 'extrachill_render_newsletter_form', 'homepage' );
+		include EXTRACHILL_BLOG_PLUGIN_DIR . 'inc/home/templates/section-extrachill-link.php';
 		?>
 	</div>
 	<?php

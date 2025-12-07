@@ -1,24 +1,20 @@
 <?php
 /**
- * Homepage extrachill.link Promo Section
+ * Homepage extrachill.link Promo Card
+ *
+ * Renders inside home-final section alongside the About box.
  *
  * @package ExtraChillBlog
  * @since 0.1.0
  */
+
 ?>
-<section class="home-extrachill-link-container" aria-labelledby="extrachill-link-header">
-	<div class="home-extrachill-link-card">
-	<h2 class="home-extrachill-link-header" id="extrachill-link-header">Introducing extrachill.link</h2>
+<div class="home-extrachill-link-box" aria-labelledby="extrachill-link-header">
+	<h2 class="home-extrachill-link-header" id="extrachill-link-header">extrachill.link</h2>
 	<p class="home-extrachill-link-subhead">
-		The free, customizable "link in bio" tool for musicians, artists, and creators—fully integrated with the Extra Chill Artist Platform.
+		A free link page for independent artists. Share your music, connect with fans, and make it yours.
 	</p>
-	<ul class="home-extrachill-link-features">
-		<li>Unlimited links & social icons</li>
-		<li>Custom branding & design</li>
-		<li>Analytics & QR code</li>
-		<li>Free for all artists</li>
-		<li>Seamless integration with your artist profile</li>
-	</ul>
-	<a href="https://extrachill.link/join" class="button-1 button-large" target="_blank" rel="noopener">Create Your Free Link Page</a>
+	<div class="home-extrachill-link-cta">
+		<a href="https://extrachill.link/join" class="button-1 button-medium" target="_blank" rel="noopener">Get Your Link Page</a>
 	</div>
-</section>
+</div>

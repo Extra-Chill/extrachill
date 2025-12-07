@@ -5,6 +5,7 @@
  * @package ExtraChillBlog
  * @since 0.1.0
  */
+
 ?>
 <div class="home-about-box">
 	<h2 class="home-about-header">About Extra Chill</h2>

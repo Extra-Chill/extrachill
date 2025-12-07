@@ -18,6 +18,7 @@ if ( is_user_logged_in() ) {
 		<?php
 		if ( $username ) {
 			printf(
+				/* translators: %s: user display name */
 				esc_html__( 'Welcome back, %s', 'extrachill-blog' ),
 				esc_html( $username )
 			);

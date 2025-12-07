@@ -28,11 +28,11 @@ $interviews_posts   = get_posts(
 );
 
 $exclude_ids = array();
-foreach ( $live_reviews_posts as $post ) {
-	$exclude_ids[] = $post->ID;
+foreach ( $live_reviews_posts as $live_review_post ) {
+	$exclude_ids[] = $live_review_post->ID;
 }
-foreach ( $interviews_posts as $post ) {
-	$exclude_ids[] = $post->ID;
+foreach ( $interviews_posts as $interview_post ) {
+	$exclude_ids[] = $interview_post->ID;
 }
 
 $more_recent_posts = get_posts(
