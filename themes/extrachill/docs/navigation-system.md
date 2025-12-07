@@ -12,7 +12,7 @@ The theme uses action hooks for menu content, eliminating WordPress menu databas
 
 ### 1. Container Structure
 
-Provides flyout menu HTML with hooks for content injection; secondary header renders separately when plugins supply items.
+Provides flyout menu HTML with hooks for content injection; secondary header renders separately when plugins supply items. Network dropdown integrated for multisite navigation.
 
 ```php
 <nav id="site-navigation" class="main-navigation">
@@ -60,7 +60,7 @@ Provides flyout menu HTML with hooks for content injection; secondary header ren
 **Template**: `/inc/header/secondary-header.php`
 **Location**: Renders below main header when items are provided
 
-**Usage**: Plugins can add secondary navigation items:
+**Usage**: Plugins can add secondary navigation items. Network dropdown provides seamless site switching:
 
 ```php
 add_filter( 'extrachill_secondary_header_items', function( $items ) {
@@ -237,6 +237,7 @@ Edit menu items directly in template files:
 **CSS**: `/assets/css/nav.css`
 **JavaScript**: `/assets/js/nav-menu.js`
 **Loading**: All pages via `extrachill_enqueue_navigation_assets()`
+**Additional**: Network dropdown styles integrated into navigation system
 
 ## Benefits
 

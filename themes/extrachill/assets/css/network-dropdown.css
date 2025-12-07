@@ -1,0 +1,82 @@
+/**
+ * Network Dropdown Styles
+ *
+ * Styles for the network site-switcher dropdown in homepage breadcrumbs.
+ * Follows the same patterns as share.css for consistency.
+ *
+ * @package ExtraChill
+ * @since 1.1.8
+ */
+
+.network-dropdown {
+	position: relative;
+	display: inline-block;
+}
+
+.network-dropdown-toggle {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	padding: 0;
+	margin: 0;
+	background: none;
+	border: none;
+	font: inherit;
+	color: inherit;
+	cursor: pointer;
+}
+
+.network-dropdown-toggle:hover {
+	color: var(--link-color);
+}
+
+.network-dropdown-toggle:focus {
+	outline: none;
+}
+
+.network-dropdown-toggle .ec-icon {
+	width: 0.8em;
+	height: 0.8em;
+	transition: transform 0.2s ease;
+}
+
+.network-dropdown[aria-expanded="true"] .network-dropdown-toggle .ec-icon {
+	transform: rotate(180deg);
+}
+
+.network-dropdown-menu {
+	display: none;
+	position: absolute;
+	top: 100%;
+	left: 0;
+	background-color: var(--card-background);
+	border: 1px solid var(--border-color);
+	border-radius: 3px;
+	box-shadow: 2px 2px 5px var(--card-shadow);
+	z-index: 9999;
+	min-width: 140px;
+	list-style: none;
+}
+
+.network-dropdown-menu[aria-hidden="false"] {
+	display: block;
+}
+
+.network-dropdown-menu li {
+	margin: 0;
+	padding: 0;
+}
+
+.network-dropdown-menu li a {
+	display: block;
+	padding: 6px 14px;
+	color: var(--text-color);
+	text-decoration: none;
+	white-space: nowrap;
+}
+
+.network-dropdown-menu li a:hover,
+.network-dropdown-menu li a:focus {
+	background-color: var(--accent-2);
+	color: #fff;
+}

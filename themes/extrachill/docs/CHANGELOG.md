@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0/).
 
+## [1.1.8] - 2025-12-07
+
+### Added
+- Network dropdown component for multisite navigation in homepage breadcrumbs
+- QR code and download icons to SVG sprite system
+
+### Changed
+- Restructured footer menu with Network/Explore/About organization
+- Reordered main navigation menu and added Events Calendar link
+- Updated archive filter bar to use query vars instead of page templates
+
+### Technical
+- Added `inc/core/templates/network-dropdown.php` with multisite site switcher functionality
+- Added `assets/css/network-dropdown.css` for dropdown styling
+- Added `assets/js/network-dropdown.js` for toggle and accessibility handling
+- Updated footer menu structure in `inc/footer/footer-main-menu.php`
+- Updated main navigation in `inc/header/nav-main-menu.php`
+- Modified archive filter bar in `inc/archives/archive-filter-bar.php` to use query vars
+
 ## [1.1.7] - 2025-12-06
 
 ### Added

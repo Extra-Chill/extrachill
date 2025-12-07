@@ -19,7 +19,7 @@ function extrachill_archive_filter_bar() {
     $archive_link = '';
 
     if (get_query_var('extrachill_blog_archive')) {
-        $archive_link = home_url('/all/');
+        $archive_link = home_url('/blog/');
     } elseif (is_category()) {
         $archive_link = get_category_link(get_queried_object_id());
     } elseif (is_tag()) {

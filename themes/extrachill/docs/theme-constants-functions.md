@@ -92,6 +92,8 @@ Theme supports:
 - Block styles
 - Wide alignment
 - Editor styles (4 CSS files)
+- Share buttons in editor
+- Notice system integration
 
 ```php
 add_theme_support( 'responsive-embeds' );
@@ -158,6 +160,10 @@ add_action( 'wp_enqueue_scripts', 'wpshapere_remove_dashicons_wordpress' );
 ```
 
 **Benefit**: Reduces CSS load for non-admin users
+
+### Notice System Performance
+
+Notice dismissal uses efficient cookie-based tracking with minimal JavaScript overhead. Notices are only loaded when displayed, preventing unnecessary asset loading.
 
 ### Admin Styles Prevention
 

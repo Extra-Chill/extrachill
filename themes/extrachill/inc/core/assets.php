@@ -202,6 +202,35 @@ function extrachill_register_share_assets() {
 }
 add_action( 'wp_enqueue_scripts', 'extrachill_register_share_assets', 5 );
 
+function extrachill_enqueue_network_dropdown_assets() {
+    // Only load where network dropdown is rendered (subsite homepages, main blog archive)
+    if ( ! is_front_page() && ! get_query_var( 'extrachill_blog_archive' ) ) {
+        return;
+    }
+
+    $css_path = get_template_directory() . '/assets/css/network-dropdown.css';
+    if ( file_exists( $css_path ) ) {
+        wp_enqueue_style(
+            'extrachill-network-dropdown',
+            get_template_directory_uri() . '/assets/css/network-dropdown.css',
+            array( 'extrachill-root' ),
+            filemtime( $css_path )
+        );
+    }
+
+    $js_path = get_template_directory() . '/assets/js/network-dropdown.js';
+    if ( file_exists( $js_path ) ) {
+        wp_enqueue_script(
+            'extrachill-network-dropdown',
+            get_template_directory_uri() . '/assets/js/network-dropdown.js',
+            array(),
+            filemtime( $js_path ),
+            true
+        );
+    }
+}
+add_action( 'wp_enqueue_scripts', 'extrachill_enqueue_network_dropdown_assets', 10 );
+
 function extrachill_enqueue_admin_styles($hook) {
     if ($hook == 'post.php' || $hook == 'post-new.php') {
         $root_css_path = get_stylesheet_directory() . '/assets/css/root.css';
