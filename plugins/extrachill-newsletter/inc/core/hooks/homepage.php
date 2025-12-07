@@ -40,7 +40,7 @@ function newsletter_override_archive_header() {
 		<h1 class="page-title">Extra Chill Newsletters</h1>
 	</header>
 	<div class="taxonomy-description">
-		<p>Independent music journalism with personality. Explore our newsletter archive below.</p>
+		<p>Original music journalism from the underground.</p>
 	</div>
 	<?php
 

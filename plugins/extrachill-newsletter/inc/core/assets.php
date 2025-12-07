@@ -74,8 +74,8 @@ function newsletter_enqueue_frontend_assets() {
 }
 add_action( 'wp_enqueue_scripts', 'newsletter_enqueue_frontend_assets' );
 function newsletter_enqueue_admin_assets( $hook ) {
-	global $post_type;
-	if ( 'newsletter' !== $post_type ) {
+	// Only load on the newsletter settings page
+	if ( ! isset( $_GET['page'] ) || 'newsletter-settings' !== $_GET['page'] ) {
 		return;
 	}
 

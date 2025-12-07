@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.6] - 2025-12-07
+
+### Changed
+- Refined homepage newsletter form styling for better grid integration with reduced padding and compact layout
+- Updated homepage form preset to use simpler "Subscribe" heading and shorter description
+- Removed standalone newsletter grid display function (now handled by blog plugin)
+- Modified admin asset loading to only enqueue on newsletter settings page
+- Updated newsletter archive description for more concise messaging
+
+### Fixed
+- Improved visual consistency of newsletter forms across different display contexts
+
 ## [0.1.4] - 2025-12-05
 ## [0.1.5] - 2025-12-05
 

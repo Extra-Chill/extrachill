@@ -194,6 +194,14 @@ The plugin follows WordPress best practices:
 
 ## Changelog
 
+### Version 0.1.6
+- Refined homepage newsletter form styling for better grid integration with reduced padding and compact layout
+- Updated homepage form preset to use simpler "Subscribe" heading and shorter description
+- Removed standalone newsletter grid display function (now handled by blog plugin)
+- Modified admin asset loading to only enqueue on newsletter settings page
+- Updated newsletter archive description for more concise messaging
+- Improved visual consistency of newsletter forms across different display contexts
+
 ### Version 0.1.5
 - Centralized asset loading by moving script enqueueing and localization to `inc/core/assets.php`
 - Improved JavaScript error handling with validation for required REST nonce parameters
