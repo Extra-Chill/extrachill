@@ -4,7 +4,6 @@
  *
  * Image voting endpoint for ExtraChill Blocks.
  * Delegates to business logic in extrachill-blocks plugin.
- * Note: GET endpoint /extrachill/v1/image-voting/vote-count/{post_id}/{instance_id} remains in image-voting.php
  */
 
 if (!defined('ABSPATH')) {

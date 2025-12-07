@@ -41,7 +41,13 @@ function extrachill_api_view_count_handler($request) {
 		);
 	}
 
+	// Track all-time views (theme system)
 	ec_track_post_views($post_id);
+
+	// For link pages, also fire action for 90-day daily table tracking
+	if (get_post_type($post_id) === 'artist_link_page') {
+		do_action('extrachill_link_page_view_recorded', $post_id);
+	}
 
 	return rest_ensure_response( array( 'recorded' => true ) );
 }

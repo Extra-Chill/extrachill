@@ -1,6 +1,6 @@
 <?php
 /**
- * REST route: /wp-json/extrachill/v1/image-voting/vote-count/{post_id}/{instance_id}
+ * REST route: GET /wp-json/extrachill/v1/blocks/image-voting/vote-count/{post_id}/{instance_id}
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -10,7 +10,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 add_action( 'extrachill_api_register_routes', 'extrachill_api_register_image_voting_routes' );
 
 function extrachill_api_register_image_voting_routes() {
-    register_rest_route( 'extrachill/v1', '/image-voting/vote-count/(?P<post_id>\d+)/(?P<instance_id>[a-zA-Z0-9\-]+)', array(
+    register_rest_route( 'extrachill/v1', '/blocks/image-voting/vote-count/(?P<post_id>\d+)/(?P<instance_id>[a-zA-Z0-9\-]+)', array(
         'methods'             => WP_REST_Server::READABLE,
         'callback'            => 'extrachill_api_image_voting_get_vote_count',
         'permission_callback' => '__return_true',

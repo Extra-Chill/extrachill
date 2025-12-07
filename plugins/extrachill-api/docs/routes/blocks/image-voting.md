@@ -1,7 +1,7 @@
 # Image Voting Vote Count Endpoint
 
 ## Route
-`GET /wp-json/extrachill/v1/image-voting/vote-count/{post_id}/{instance_id}`
+`GET /wp-json/extrachill/v1/blocks/image-voting/vote-count/{post_id}/{instance_id}`
 
 ## Purpose
 Returns the latest vote tally for a specific Image Voting block instance embedded in a post. Frontend blocks poll this endpoint to keep live tallies without re-rendering the entire page.

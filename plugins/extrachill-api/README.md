@@ -324,6 +324,11 @@ GPL v2 or later
 
 ## Changelog
 
+### 0.1.8
+- Reorganized block-related endpoints under `/blocks/` namespace for better API organization
+- Enhanced analytics view-count endpoint with specific link page tracking via `extrachill_link_page_view_recorded` action hook
+- Updated documentation and route registrations to reflect new endpoint paths
+
 ### 0.1.6
 - Added artist analytics endpoint for link page performance tracking
 - Added shop products CRUD endpoints for WooCommerce product management

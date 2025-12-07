@@ -463,7 +463,7 @@ Foundational REST API for artist data management. Provides comprehensive endpoin
 
 #### 15. AI Adventure Story Generation
 
-**Endpoint**: `POST /wp-json/extrachill/v1/ai-adventure`
+**Endpoint**: `POST /wp-json/extrachill/v1/blocks/ai-adventure`
 
 **Purpose**: Generate AI-powered adventure story segments with branching narratives.
 
@@ -496,7 +496,7 @@ Foundational REST API for artist data management. Provides comprehensive endpoin
 
 #### 16. Get Image Voting Results
 
-**Endpoint**: `GET /wp-json/extrachill/v1/image-voting/vote-count/{post_id}/{instance_id}`
+**Endpoint**: `GET /wp-json/extrachill/v1/blocks/image-voting/vote-count/{post_id}/{instance_id}`
 
 **Purpose**: Retrieve vote counts for image voting block instances.
 
@@ -512,7 +512,7 @@ Foundational REST API for artist data management. Provides comprehensive endpoin
 
 #### 17. Vote on Images
 
-**Endpoint**: `POST /wp-json/extrachill/v1/image-voting/vote`
+**Endpoint**: `POST /wp-json/extrachill/v1/blocks/image-voting/vote`
 
 **Purpose**: Cast a vote in an image voting block instance.
 

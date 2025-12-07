@@ -58,7 +58,7 @@ The response includes the vote status and updated totals for all options in the 
 - Voting is enabled on all sites in the network without authentication
 
 ## Related Endpoints
-- `GET /image-voting/vote-count/{post_id}/{instance_id}` - Retrieve current vote counts without voting
+- `GET /blocks/image-voting/vote-count/{post_id}/{instance_id}` - Retrieve current vote counts without voting
 
 ## Usage Examples
 

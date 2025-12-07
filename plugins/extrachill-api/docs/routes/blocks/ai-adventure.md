@@ -1,7 +1,7 @@
 # AI Adventure Endpoint
 
 ## Route
-`POST /wp-json/extrachill/v1/ai-adventure`
+`POST /wp-json/extrachill/v1/blocks/ai-adventure`
 
 ## Purpose
 Powers the ExtraChill Blocks “AI Adventure” block by proxying structured story prompts to the AI provider defined in the extrachill-ai-client ecosystem.

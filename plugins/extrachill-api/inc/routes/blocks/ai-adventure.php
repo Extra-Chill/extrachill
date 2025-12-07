@@ -1,6 +1,6 @@
 <?php
 /**
- * REST route: /wp-json/extrachill/v1/ai-adventure
+ * REST route: POST /wp-json/extrachill/v1/blocks/ai-adventure
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -10,7 +10,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 add_action( 'extrachill_api_register_routes', 'extrachill_api_register_ai_adventure_route' );
 
 function extrachill_api_register_ai_adventure_route() {
-    register_rest_route( 'extrachill/v1', '/ai-adventure', array(
+    register_rest_route( 'extrachill/v1', '/blocks/ai-adventure', array(
         'methods'             => WP_REST_Server::CREATABLE,
         'callback'            => array( 'ExtraChill_API_AI_Adventure', 'handle_request' ),
         'permission_callback' => '__return_true',
