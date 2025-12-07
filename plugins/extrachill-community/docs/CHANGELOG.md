@@ -1,5 +1,28 @@
 # Changelog
 
+## [1.0.8] - 2025-12-06
+
+### Added
+- New cache invalidation system (cache-invalidation.php) that automatically clears caches on bbPress events
+- Comprehensive transient management for leaderboard, user points, forum stats, and recent feeds
+- Edge cache purging support for Breeze/Varnish caching engines
+- New `extrachill_get_leaderboard_users()` function with 5-minute transient caching for performance
+- New `extrachill_get_leaderboard_total_users()` function with built-in caching
+- Content cleanup permission check system to allow moderators/keymasters to bypass automatic content cleanup
+- Enhanced TinyMCE editor dependency management with explicit script dependencies
+
+### Changed
+- Refactored asset loading in assets.php with improved editor dependency handling
+- Extracted TinyMCE editor initialization to use inline scripts instead of wp_localize_script
+- Simplified mentions.js reply click handler with cleaner data attribute usage
+- Moved leaderboard caching logic from template to point-calculation.php for better code organization
+- Improved permission handling for content cleanup with `ec_can_bypass_content_cleanup()` function
+
+### Fixed
+- TinyMCE editor now properly enqueues all required WordPress dependencies (editor, utils, underscore, wp-i18n, etc.)
+- Editor availability detection now properly checks for function existence before calling bbPress conditionals
+- Leaderboard pagination now benefits from proper caching and performance optimization
+
 ## [1.0.7] - 2025-12-05
 
 ### Changed

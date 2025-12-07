@@ -41,11 +41,20 @@ tinymce.PluginManager.add('local_upload_plugin', function(editor) {
         loader.innerHTML = '<div style="text-align:center;color: #53940b;"><i class="fa fa-spinner fa-spin fa-2x"></i> Image loading, please wait...</div>';
         editor.getContainer().appendChild(loader);
 
+        var editorContext = window.extrachillCommunityEditor || {};
+        if (!editorContext.restNonce) {
+            console.error('TinyMCE upload aborted: missing REST nonce.');
+            if (loader.parentNode) {
+                loader.parentNode.removeChild(loader);
+            }
+            return;
+        }
+
         fetch('/wp-json/extrachill/v1/media', {
             method: 'POST',
             credentials: 'same-origin',
             headers: {
-                'X-WP-Nonce': customTinymcePlugin.restNonce
+                'X-WP-Nonce': editorContext.restNonce
             },
             body: formData
         })

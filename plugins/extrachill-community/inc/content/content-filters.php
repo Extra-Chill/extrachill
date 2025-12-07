@@ -135,7 +135,33 @@ function ec_clean_bbpress_content($content) {
 add_filter('bbp_get_reply_content', 'ec_clean_bbpress_content', 25);
 add_filter('bbp_get_topic_content', 'ec_clean_bbpress_content', 25);
 
+function ec_can_bypass_content_cleanup() {
+    $user_id = get_current_user_id();
+
+    if (!$user_id) {
+        return false;
+    }
+
+    if (user_can($user_id, 'unfiltered_html') || current_user_can('moderate')) {
+        return true;
+    }
+
+    if (function_exists('bbp_is_user_keymaster') && bbp_is_user_keymaster($user_id)) {
+        return true;
+    }
+
+    if (function_exists('bbp_is_user_moderator') && bbp_is_user_moderator($user_id)) {
+        return true;
+    }
+
+    return false;
+}
+
 function ec_clean_content_before_save($content) {
+    if (ec_can_bypass_content_cleanup()) {
+        return $content;
+    }
+
     return ec_clean_apple_word_markup($content);
 }
 

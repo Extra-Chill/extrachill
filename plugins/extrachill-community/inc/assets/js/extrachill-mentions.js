@@ -379,79 +379,31 @@ if (typeof window.extrachillMentionsPluginLoaded === 'undefined') {
 
     })(); // IIFE
 
-// Handle clicks on the bbPress Reply link (existing functionality preserved)
+// Handle clicks on the bbPress Reply link
 document.addEventListener('DOMContentLoaded', function() {
     document.addEventListener('click', function(e) {
         const replyLink = e.target.closest('.bbp-reply-to-link');
         if (!replyLink) return;
 
-        const replyToId = replyLink.dataset.replyId;
-
-        if (!replyToId) {
-            const replyForm = document.getElementById('new-post');
-            if (replyForm) {
-                e.preventDefault();
-                replyForm.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }
-            return;
-        }
-
         e.preventDefault();
+        e.stopPropagation();
 
-        const replyElement = document.querySelector('.bbp-reply-content[data-reply-id="' + replyToId + '"]');
-        if (!replyElement) {
-            return false;
-        }
-
-        const replyCard = replyElement.closest('.bbp-reply-card');
-        if (!replyCard) {
-            return false;
-        }
-
-        const authorLink = replyCard.querySelector('.bbp-reply-header .bbp-author-name');
-        if (!authorLink) {
-            return false;
-        }
-
-        const authorUrl = authorLink.getAttribute('href');
-        let replySlug = null;
-        if (authorUrl) {
-            const parts = authorUrl.replace(/\/+$/, '').split('/');
-            replySlug = parts.pop();
-        }
-        if (!replySlug) {
-            return false;
-        }
-
-        const mentionHtml = '@' + replySlug;
-
-        const replyContent = document.getElementById('bbp_reply_content');
-        if (replyContent) {
-            if (typeof tinyMCE !== 'undefined' && tinyMCE.get('bbp_reply_content') && !tinyMCE.get('bbp_reply_content').isHidden()) {
-                const editor = tinyMCE.get('bbp_reply_content');
-                editor.focus();
-                editor.execCommand('mceInsertContent', false, mentionHtml);
-                editor.selection.select(editor.getBody(), true);
-                editor.selection.collapse(false);
-            } else {
-                replyContent.focus();
-                const currentVal = replyContent.value;
-                const cursorPos = replyContent.selectionStart;
-                const textBefore = currentVal.substring(0, cursorPos);
-                const textAfter = currentVal.substring(cursorPos);
-                replyContent.value = textBefore + mentionHtml + textAfter;
-                const newCursorPos = cursorPos + mentionHtml.length;
-                replyContent.selectionStart = newCursorPos;
-                replyContent.selectionEnd = newCursorPos;
-            }
-        }
-
+        const replySlug = replyLink.dataset.replySlug;
         const replyForm = document.getElementById('new-post');
+        const editor = (typeof tinyMCE !== 'undefined') ? tinyMCE.get('bbp_reply_content') : null;
+
+        // Scroll to reply form
         if (replyForm) {
             replyForm.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
 
-        return false;
+        // Insert @mention
+        if (replySlug && editor && !editor.isHidden()) {
+            editor.focus();
+            editor.execCommand('mceInsertContent', false, '@' + replySlug + ' ');
+            editor.selection.select(editor.getBody(), true);
+            editor.selection.collapse(false);
+        }
     });
 });
 

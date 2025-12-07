@@ -209,17 +209,13 @@ $is_lead_topic = ( $reply_id === $topic_id ) || ( $current_post_type === bbp_get
                 }
             }
 
-            if ( $is_lead_topic ) {
-                if ( $topic_id && ! bbp_is_topic_closed( $topic_id ) && bbp_current_user_can_access_create_reply_form() ) {
-                    $reply_url = remove_query_arg( array( 'bbp_reply_to', '_wpnonce' ) ) . '#new-post';
-                    echo '<a href="' . esc_url( $reply_url ) . '" class="bbp-reply-to-link button-3 button-small">' . esc_html__( 'Reply', 'bbpress' ) . '</a>';
-                }
-            } else {
-                $reply_topic_id = bbp_get_reply_topic_id( $reply_id );
-                if ( $reply_topic_id && ! bbp_is_topic_closed( $reply_topic_id ) && bbp_current_user_can_access_create_reply_form() ) {
-                    $reply_url = bbp_get_reply_url( $reply_id ) . '#new-post';
-                    echo '<a href="' . esc_url( $reply_url ) . '" class="bbp-reply-to-link button-3 button-small" data-reply-id="' . esc_attr( $reply_id ) . '">' . esc_html__( 'Reply', 'bbpress' ) . '</a>';
-                }
+            $can_reply = $is_lead_topic
+                ? ( $topic_id && ! bbp_is_topic_closed( $topic_id ) && bbp_current_user_can_access_create_reply_form() )
+                : ( bbp_get_reply_topic_id( $reply_id ) && ! bbp_is_topic_closed( bbp_get_reply_topic_id( $reply_id ) ) && bbp_current_user_can_access_create_reply_form() );
+
+            if ( $can_reply ) {
+                $author_slug = basename( untrailingslashit( $author_url ) );
+                echo '<a href="#" class="bbp-reply-to-link button-3 button-small" data-reply-slug="' . esc_attr( $author_slug ) . '">' . esc_html__( 'Reply', 'bbpress' ) . '</a>';
             }
             ?>
         </div>

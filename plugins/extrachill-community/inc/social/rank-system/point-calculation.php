@@ -98,6 +98,73 @@ function extrachill_queue_points_recalculation($post_id) {
     update_option('extrachill_points_recalculation_queue', $queue);
 }
 
+/**
+ * Retrieve leaderboard users with caching.
+ *
+ * @param int $items_per_page Number per page.
+ * @param int $offset Offset for pagination.
+ * @return array
+ */
+function extrachill_get_leaderboard_users($items_per_page = 25, $offset = 0) {
+    $cache_key = 'extrachill_leaderboard_users';
+    $cache = get_transient($cache_key);
+
+    if ($cache && isset($cache['items'][$items_per_page][$offset])) {
+        return $cache['items'][$items_per_page][$offset];
+    }
+
+    $args = array(
+        'orderby' => 'meta_value_num',
+        'meta_key' => 'extrachill_total_points',
+        'order' => 'DESC',
+        'number' => $items_per_page,
+        'offset' => $offset,
+    );
+
+    $user_query = new WP_User_Query($args);
+    $results = $user_query->get_results();
+
+    if (!$cache) {
+        $cache = array(
+            'items' => array(),
+        );
+    }
+
+    if (!isset($cache['items'][$items_per_page])) {
+        $cache['items'][$items_per_page] = array();
+    }
+
+    $cache['items'][$items_per_page][$offset] = $results;
+    set_transient($cache_key, $cache, MINUTE_IN_SECONDS * 5);
+
+    return $results;
+}
+
+/**
+ * Get total leaderboard users count with caching.
+ *
+ * @return int
+ */
+function extrachill_get_leaderboard_total_users() {
+    $cache_key = 'extrachill_leaderboard_total_users';
+    $total = get_transient($cache_key);
+
+    if (false !== $total) {
+        return (int) $total;
+    }
+
+    $user_query = new WP_User_Query(array(
+        'orderby' => 'meta_value_num',
+        'meta_key' => 'extrachill_total_points',
+        'fields' => 'ID',
+    ));
+
+    $total = $user_query->get_total();
+    set_transient($cache_key, $total, MINUTE_IN_SECONDS * 5);
+
+    return (int) $total;
+}
+
 // Schedule the processing (if not already scheduled)
 if (!wp_next_scheduled('extrachill_daily_points_recalculation')) {
     wp_schedule_event(time(), 'hourly', 'extrachill_daily_points_recalculation');

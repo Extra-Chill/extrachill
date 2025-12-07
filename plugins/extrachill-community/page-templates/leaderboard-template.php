@@ -43,27 +43,9 @@ $items_per_page = 25; // Adjust as needed
 $current_page = max(1, get_query_var('paged', 1));
 $offset = ($current_page - 1) * $items_per_page;
 
-// Adjust the user query to fetch users ordered by points
-$args = [
-    'orderby' => 'meta_value_num',
-    'meta_key' => 'extrachill_total_points',
-    'order' => 'DESC',
-    'number' => $items_per_page,
-    'offset' => $offset, 
-];
-
-
-// Fetch users with adjusted query
-$user_query = new WP_User_Query($args);
-
-// Total users for pagination
-$total_users = $user_query->get_total();
-
-// Number of pages
+$users = extrachill_get_leaderboard_users($items_per_page, $offset);
+$total_users = extrachill_get_leaderboard_total_users();
 $total_pages = ceil($total_users / $items_per_page);
-
-// Users
-$users = $user_query->get_results();
 
 // REMOVED Newest member section
 

@@ -176,18 +176,62 @@ function enqueue_content_expand_script() {
 }
 add_action( 'wp_enqueue_scripts', 'enqueue_content_expand_script' );
 
-function enqueue_custom_tinymce_plugin_scripts() {
-    if (is_bbpress() && (bbp_is_single_topic() || bbp_is_single_reply() || bbp_is_topic_edit() || bbp_is_reply_edit() || bbp_is_single_forum())) {
-        $script_version = filemtime(EXTRACHILL_COMMUNITY_PLUGIN_DIR . '/inc/assets/js/tinymce-image-upload.js');
-
-        wp_enqueue_script('custom-tinymce-plugin', EXTRACHILL_COMMUNITY_PLUGIN_URL . '/inc/assets/js/tinymce-image-upload.js', array('editor', 'wp-i18n', 'utils'), $script_version, true);
-
-        wp_localize_script('custom-tinymce-plugin', 'customTinymcePlugin', array(
-            'restNonce' => wp_create_nonce('wp_rest')
-        ));
+function extrachill_community_bbpress_editor_is_active() {
+    if ( ! function_exists('bbp_is_single_topic') || ! is_bbpress() ) {
+        return false;
     }
+
+    return bbp_is_single_topic() || bbp_is_single_reply() || bbp_is_topic_edit() || bbp_is_reply_edit() || bbp_is_single_forum();
 }
-add_action('wp_enqueue_scripts', 'enqueue_custom_tinymce_plugin_scripts');
+
+function extrachill_enqueue_bbpress_editor_dependencies() {
+    if ( ! extrachill_community_bbpress_editor_is_active() ) {
+        return;
+    }
+
+    if ( function_exists('wp_enqueue_editor') ) {
+        wp_enqueue_editor();
+    }
+
+    if ( ! wp_script_is( 'editor', 'enqueued' ) ) {
+        wp_enqueue_script( 'editor' );
+    }
+
+    if ( ! wp_script_is( 'jquery', 'enqueued' ) ) {
+        wp_register_script( 'jquery', includes_url( '/js/jquery/jquery.min.js' ), array(), false, true );
+        wp_enqueue_script( 'jquery' );
+    }
+
+    wp_enqueue_script( 'jquery-ui-dialog' );
+    wp_enqueue_style( 'wp-jquery-ui-dialog' );
+
+    wp_enqueue_script( 'utils' );
+    wp_enqueue_script( 'underscore' );
+    wp_enqueue_script( 'wp-util' );
+    wp_enqueue_script( 'wp-i18n' );
+    wp_enqueue_script( 'wp-hooks' );
+    wp_enqueue_script( 'wp-dom-ready' );
+    wp_enqueue_script( 'thickbox' );
+    wp_enqueue_style( 'thickbox' );
+    wp_enqueue_script( 'wplink' );
+}
+add_action('wp_enqueue_scripts', 'extrachill_enqueue_bbpress_editor_dependencies', 110);
+
+function enqueue_custom_tinymce_plugin_nonce() {
+    if (!extrachill_community_bbpress_editor_is_active()) {
+        return;
+    }
+
+    $nonce = wp_create_nonce('wp_rest');
+    $inline_data = sprintf(
+        'window.extrachillCommunityEditor = { restNonce: "%s" };',
+        esc_js( $nonce )
+    );
+
+    wp_add_inline_script( 'editor', $inline_data, 'before' );
+}
+add_action('wp_enqueue_scripts', 'enqueue_custom_tinymce_plugin_nonce', 115);
+
 
 function extrachill_dequeue_bbpress_default_styles() {
     wp_dequeue_style('bbp-default');

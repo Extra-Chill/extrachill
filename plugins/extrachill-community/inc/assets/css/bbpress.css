@@ -167,7 +167,7 @@ span.bbp-admin-links {
 .bbp-reply-form {
     background-color: var(--card-background);
     border-radius: 10px;
-    box-shadow: var(--border-color));
+    box-shadow: var(--border-color);
     max-width: 800px;
     margin: 30px auto;
     border: 1px solid var(--border-color);

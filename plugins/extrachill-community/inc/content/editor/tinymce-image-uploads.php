@@ -33,7 +33,8 @@ add_action(
 );
 
 function register_custom_tinymce_plugin($plugin_array) {
-	$plugin_array['local_upload_plugin'] = EXTRACHILL_COMMUNITY_PLUGIN_URL . '/inc/assets/js/tinymce-image-upload.js';
+	$version = filemtime(EXTRACHILL_COMMUNITY_PLUGIN_DIR . '/inc/assets/js/tinymce-image-upload.js');
+	$plugin_array['local_upload_plugin'] = EXTRACHILL_COMMUNITY_PLUGIN_URL . '/inc/assets/js/tinymce-image-upload.js?ver=' . $version;
 	return $plugin_array;
 }
 add_filter('mce_external_plugins', 'register_custom_tinymce_plugin');
