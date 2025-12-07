@@ -67,6 +67,15 @@ function ec_artist_platform_secondary_header_items( $items ) {
 			'label'    => $link_page_label,
 			'priority' => 20,
 		);
+
+		// Analytics Link (priority 30) - only if user has link pages
+		if ( $link_page_count > 0 ) {
+			$items[] = array(
+				'url'      => home_url( '/analytics/' ),
+				'label'    => __( 'Analytics', 'extrachill-artist-platform' ),
+				'priority' => 30,
+			);
+		}
 	}
 
 	return $items;

@@ -103,15 +103,17 @@ $config = array(
 	'socialTypes'       => $social_types,
 	'linkPageCssUrl'    => EXTRACHILL_ARTIST_PLATFORM_PLUGIN_URL . 'assets/css/extrch-links.css',
 	'socialIconsCssUrl' => EXTRACHILL_ARTIST_PLATFORM_PLUGIN_URL . 'assets/css/custom-social-icons.css',
-	'iconSpriteUrl'     => get_template_directory_uri() . '/assets/fonts/extrachill.svg',
+	'iconSpriteUrl'     => get_template_directory_uri() . '/assets/fonts/extrachill.svg?v=' . filemtime( get_template_directory() . '/assets/fonts/extrachill.svg' ),
 );
 
 // Enqueue the frontend script with localized data
+$asset_file = include EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'build/blocks/link-page-editor/view.asset.php';
+
 wp_enqueue_script(
 	'ec-link-page-editor-frontend',
 	EXTRACHILL_ARTIST_PLATFORM_PLUGIN_URL . 'build/blocks/link-page-editor/view.js',
-	array( 'wp-element', 'wp-api-fetch', 'wp-i18n', 'wp-components' ),
-	filemtime( EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'build/blocks/link-page-editor/view.js' ),
+	$asset_file['dependencies'],
+	$asset_file['version'],
 	true
 );
 

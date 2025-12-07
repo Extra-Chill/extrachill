@@ -13,6 +13,10 @@ module.exports = {
 			'./src/blocks/link-page-editor/index.js',
 		'blocks/link-page-editor/view':
 			'./src/blocks/link-page-editor/view.js',
+		'blocks/link-page-analytics/index':
+			'./src/blocks/link-page-analytics/index.js',
+		'blocks/link-page-analytics/view':
+			'./src/blocks/link-page-analytics/view.js',
 	},
 	output: {
 		...defaultConfig.output,

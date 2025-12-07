@@ -38,11 +38,28 @@ $user_artist_ids    = isset( $user_artist_ids ) ? $user_artist_ids : array();
         </div>
     </div>
 
-<?php elseif ( empty( $user_artist_ids ) ) : ?>
-    <!-- Logged In, No Artists - Welcome -->
+<?php elseif ( empty( $user_artist_ids ) && $can_create_artists ) : ?>
+    <!-- Logged In, No Artists, CAN Create -->
     <div class="artist-home-hero">
         <h2><?php printf( esc_html__( 'Welcome, %s!', 'extrachill-artist-platform' ), esc_html( $current_user->display_name ) ); ?></h2>
         <p><?php esc_html_e( 'Ready to get started with your artist journey? Create your first artist profile to unlock all platform features.', 'extrachill-artist-platform' ); ?></p>
+        <div class="welcome-actions">
+            <a href="<?php echo esc_url( home_url( '/manage-artist-profiles/' ) ); ?>" class="button-1 button-large">
+                <?php esc_html_e( 'Create Artist Profile', 'extrachill-artist-platform' ); ?>
+            </a>
+        </div>
+    </div>
+
+<?php elseif ( empty( $user_artist_ids ) ) : ?>
+    <!-- Logged In, No Artists, CANNOT Create -->
+    <div class="artist-home-hero">
+        <h2><?php printf( esc_html__( 'Welcome, %s!', 'extrachill-artist-platform' ), esc_html( $current_user->display_name ) ); ?></h2>
+        <p><?php esc_html_e( 'Request artist access to create profiles and custom link pages on extrachill.link.', 'extrachill-artist-platform' ); ?></p>
+        <div class="welcome-actions">
+            <a href="https://community.extrachill.com/settings/#tab-artist-platform" class="button-1 button-large">
+                <?php esc_html_e( 'Request Artist Access', 'extrachill-artist-platform' ); ?>
+            </a>
+        </div>
     </div>
 
 <?php else : ?>

@@ -1,0 +1,35 @@
+/**
+ * Link Page Analytics Block - Editor Styles
+ */
+
+.ec-analytics-editor-placeholder {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	padding: 40px 20px;
+	background: #f0f0f0;
+	border: 2px dashed #ccc;
+	border-radius: 8px;
+	text-align: center;
+
+	.dashicons {
+		font-size: 48px;
+		width: 48px;
+		height: 48px;
+		color: #1e1e1e;
+		margin-bottom: 16px;
+	}
+
+	p {
+		margin: 0 0 8px;
+		font-size: 18px;
+		font-weight: 600;
+		color: #1e1e1e;
+	}
+
+	small {
+		color: #757575;
+		font-size: 13px;
+	}
+}

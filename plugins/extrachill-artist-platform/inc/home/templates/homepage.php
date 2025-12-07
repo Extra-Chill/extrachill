@@ -13,10 +13,6 @@ extrachill_breadcrumbs();
 
 <article class="artist-platform-homepage">
 	<div class="inside-article">
-		<header>
-			<h1 class="page-title"><?php esc_html_e( 'Artist Platform', 'extrachill-artist-platform' ); ?></h1>
-		</header>
-
 		<div class="entry-content" itemprop="text">
 			<?php
 			$current_user     = wp_get_current_user();
@@ -43,22 +39,6 @@ extrachill_breadcrumbs();
 				<?php elseif ( empty( $user_artist_ids ) ) : ?>
 					<div class="artist-platform-getting-started">
 						<?php do_action( 'extrachill_artist_home_hero', $current_user, $is_logged_in, $can_create_artists, $user_artist_ids ); ?>
-
-						<?php if ( $can_create_artists ) : ?>
-							<div class="getting-started-actions">
-								<div class="primary-action-card">
-									<h3><?php esc_html_e( 'Create Your First Artist Profile', 'extrachill-artist-platform' ); ?></h3>
-									<p><?php esc_html_e( 'Start by creating your artist profile. You can always add more details later.', 'extrachill-artist-platform' ); ?></p>
-									<a href="<?php echo esc_url( home_url( '/manage-artist-profiles/' ) ); ?>" class="button-1 button-large" data-action-button>
-										<?php esc_html_e( 'Create Artist Profile', 'extrachill-artist-platform' ); ?>
-									</a>
-								</div>
-							</div>
-						<?php else : ?>
-							<div class="notice notice-info">
-								<p><?php esc_html_e( 'To create artist profiles, you need artist or professional membership. Contact us to upgrade your account.', 'extrachill-artist-platform' ); ?></p>
-							</div>
-						<?php endif; ?>
 
 					<div class="featured-artists-section">
 						<h3><?php esc_html_e( 'Discover Artists', 'extrachill-artist-platform' ); ?></h3>

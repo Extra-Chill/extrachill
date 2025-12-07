@@ -13,7 +13,6 @@ import TabLinks from './tabs/TabLinks';
 import TabSocials from './tabs/TabSocials';
 import TabCustomize from './tabs/TabCustomize';
 import TabAdvanced from './tabs/TabAdvanced';
-import TabAnalytics from './tabs/TabAnalytics';
 import JumpToPreview from './JumpToPreview';
 import LinkPageUrl from './shared/LinkPageUrl';
 import QRCodeModal from './shared/QRCodeModal';
@@ -24,7 +23,6 @@ const TABS = [
 	{ id: 'socials', label: __( 'Socials', 'extrachill-artist-platform' ) },
 	{ id: 'customize', label: __( 'Customize', 'extrachill-artist-platform' ) },
 	{ id: 'advanced', label: __( 'Advanced', 'extrachill-artist-platform' ) },
-	{ id: 'analytics', label: __( 'Analytics', 'extrachill-artist-platform' ) },
 ];
 
 export default function Editor() {
@@ -54,10 +52,6 @@ export default function Editor() {
 		const slug = artist?.slug || currentArtist?.slug;
 		return slug ? `https://extrachill.link/${ slug }` : null;
 	}, [ artist?.slug, currentArtist?.slug ] );
-
-	const manageArtistUrl = useMemo( () => {
-		return `/manage-artist-profiles/?artist_id=${ artistId }`;
-	}, [ artistId ] );
 
 	const handleSave = useCallback( async () => {
 		setSaveSuccess( false );
@@ -105,11 +99,9 @@ export default function Editor() {
 				return <TabSocials />;
 			case 'customize':
 				return <TabCustomize />;
-			case 'advanced':
-				return <TabAdvanced />;
-			case 'analytics':
-				return <TabAnalytics />;
-			default:
+		case 'advanced':
+			return <TabAdvanced />;
+		default:
 				return <TabInfo />;
 		}
 	};
@@ -146,12 +138,6 @@ export default function Editor() {
 							{ __( 'Saved!', 'extrachill-artist-platform' ) }
 						</span>
 					) }
-					<a
-						href={ manageArtistUrl }
-						className="ec-editor__manage-artist button-2 button-medium"
-					>
-						{ __( 'Manage Artist', 'extrachill-artist-platform' ) }
-					</a>
 					<button
 						type="button"
 						className="button-1 button-medium"

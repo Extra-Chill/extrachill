@@ -5,7 +5,7 @@
  * Renders exactly as the link page will appear on the frontend.
  */
 
-import { useEffect, useMemo, useRef } from '@wordpress/element';
+import { useEffect, useMemo, useRef, Fragment } from '@wordpress/element';
 import { useEditor } from '../context/EditorContext';
 
 export default function Preview() {
@@ -120,18 +120,15 @@ export default function Preview() {
 		}
 
 		return (
-			<div className="extrch-link-page-links">
+			<>
 				{ links.map( ( section, sectionIndex ) => (
-					<div
-						key={ section.id || sectionIndex }
-						className="extrch-link-page-section"
-					>
+					<Fragment key={ section.id || sectionIndex }>
 						{ section.section_title && (
 							<div className="extrch-link-page-section-title">
 								{ section.section_title }
 							</div>
 						) }
-						<div className="extrch-link-page-links-container">
+						<div className="extrch-link-page-links">
 							{ section.links?.map( ( link, linkIndex ) => (
 								<a
 									key={ link.id || linkIndex }
@@ -146,9 +143,9 @@ export default function Preview() {
 								</a>
 							) ) }
 						</div>
-					</div>
+					</Fragment>
 				) ) }
-			</div>
+			</>
 		);
 	};
 
@@ -182,7 +179,6 @@ export default function Preview() {
 
 	return (
 		<div className="ec-preview-wrapper">
-			<div className="ec-preview-indicator">Live Preview</div>
 			<div
 				className="extrch-link-page-container extrch-link-page-preview-container"
 				data-bg-type={ backgroundType }

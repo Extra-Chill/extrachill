@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.11] - 2025-12-07
+
+### Added
+- New Gutenberg block for link page analytics with dedicated analytics dashboard
+- Analytics navigation link in secondary header for users with link pages
+- Enhanced homepage hero with differentiated messaging for artist creation permissions
+
+### Changed
+- Refactored link page editor block: removed analytics tab (now separate block), manage artist link, and live preview indicator
+- Improved mobile responsiveness in link page editor with better tablet/mobile layouts
+- Updated asset loading in block render.php to use proper dependency management
+- Enhanced webpack configuration to support new analytics block
+
+### Fixed
+- Improved homepage user experience with clearer calls-to-action based on permissions
+
 ## [1.1.10] - 2025-12-06
 
 ### Added
