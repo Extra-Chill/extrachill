@@ -45,42 +45,57 @@ if ( empty( $user_artists ) ) {
 	return;
 }
 
-// Get the artist to view (latest by default)
-$artist_id = function_exists( 'ec_get_latest_artist_for_user' )
-	? ec_get_latest_artist_for_user( $current_user_id )
-	: reset( $user_artists );
+// Build user artists data for switcher (only artists with link pages)
+$user_artists_data = array();
+$user_artist_ids_with_link_pages = array();
+
+foreach ( $user_artists as $ua_id ) {
+    $artist_post = get_post( $ua_id );
+    if ( ! $artist_post || $artist_post->post_status !== 'publish' ) {
+        continue;
+    }
+
+    $link_page_id = function_exists( 'ec_get_link_page_for_artist' )
+        ? ec_get_link_page_for_artist( $ua_id )
+        : 0;
+
+    if ( $link_page_id && get_post_status( $link_page_id ) === 'publish' ) {
+        $user_artists_data[] = array(
+            'id'   => (int) $ua_id,
+            'name' => $artist_post->post_title,
+            'slug' => $artist_post->post_name,
+        );
+        $user_artist_ids_with_link_pages[] = (int) $ua_id;
+    }
+}
+
+// No link pages yet for this user
+if ( empty( $user_artists_data ) ) {
+    echo '<div class="notice notice-info">';
+    echo '<p>' . esc_html__( 'Create a link page to start tracking analytics.', 'extrachill-artist-platform' ) . '</p>';
+    echo '<a href="' . esc_url( site_url( '/manage-link-page/' ) ) . '" class="button-1">' . esc_html__( 'Create Link Page', 'extrachill-artist-platform' ) . '</a>';
+    echo '</div>';
+    return;
+}
+
+// Get the artist to view (prefer latest with a link page)
+$artist_id = 0;
+if ( function_exists( 'ec_get_latest_artist_for_user' ) ) {
+    $latest_artist_id = ec_get_latest_artist_for_user( $current_user_id );
+    if ( $latest_artist_id && in_array( (int) $latest_artist_id, $user_artist_ids_with_link_pages, true ) ) {
+        $artist_id = (int) $latest_artist_id;
+    }
+}
 
 if ( ! $artist_id ) {
-	echo '<div class="notice notice-error">';
-	echo '<p>' . esc_html__( 'Could not determine which artist to view.', 'extrachill-artist-platform' ) . '</p>';
-	echo '</div>';
-	return;
+    $artist_id = (int) $user_artists_data[0]['id'];
 }
 
-// Check if artist has a link page
-$link_page_id = function_exists( 'ec_get_link_page_for_artist' )
-	? ec_get_link_page_for_artist( $artist_id )
-	: 0;
-
-if ( ! $link_page_id ) {
-	echo '<div class="notice notice-info">';
-	echo '<p>' . esc_html__( 'Create a link page to start tracking analytics.', 'extrachill-artist-platform' ) . '</p>';
-	echo '<a href="' . esc_url( site_url( '/manage-link-page/' ) ) . '" class="button-1">' . esc_html__( 'Create Link Page', 'extrachill-artist-platform' ) . '</a>';
-	echo '</div>';
-	return;
-}
-
-// Build user artists data for switcher
-$user_artists_data = array();
-foreach ( $user_artists as $ua_id ) {
-	$artist_post = get_post( $ua_id );
-	if ( $artist_post && $artist_post->post_status === 'publish' ) {
-		$user_artists_data[] = array(
-			'id'   => (int) $ua_id,
-			'name' => $artist_post->post_title,
-			'slug' => $artist_post->post_name,
-		);
-	}
+if ( ! $artist_id ) {
+    echo '<div class="notice notice-error">';
+    echo '<p>' . esc_html__( 'Could not determine which artist to view.', 'extrachill-artist-platform' ) . '</p>';
+    echo '</div>';
+    return;
 }
 
 // Localize configuration data

@@ -25,6 +25,8 @@ function ec_handle_link_page_save( $link_page_id, $save_data = array(), $files_d
     }
 
     if ( isset( $save_data['css_vars'] ) && is_array( $save_data['css_vars'] ) ) {
+        // Prevent card background color from being stored as configurable
+        unset( $save_data['css_vars']['--link-page-card-bg-color'] );
         update_post_meta( $link_page_id, '_link_page_custom_css_vars', $save_data['css_vars'] );
         
     }

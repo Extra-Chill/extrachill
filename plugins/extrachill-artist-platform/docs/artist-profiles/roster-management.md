@@ -182,48 +182,35 @@ function ec_remove_member_from_artist($user_id, $artist_id) {
 
 ## JavaScript Integration
 
-### AJAX Operations
+### REST API Operations
 
 Location: `inc/artist-profiles/assets/js/manage-artist-profiles.js`
 
-```javascript
-// Add member via AJAX
-function addArtistMember(email) {
-    $.ajax({
-        url: ajaxurl,
-        type: 'POST',
-        data: {
-            action: 'add_artist_member',
-            member_email: email,
-            artist_id: currentArtistId,
-            nonce: ajax_nonce
-        },
-        success: function(response) {
-            if (response.success) {
-                refreshRosterList();
-            }
-        }
-    });
-}
+Roster management uses REST API with fetch API for modern data handling:
 
-// Remove member via AJAX  
-function removeMember(userId) {
-    $.ajax({
-        url: ajaxurl,
-        type: 'POST',
-        data: {
-            action: 'remove_artist_member',
-            user_id: userId,
-            artist_id: currentArtistId,
-            nonce: ajax_nonce
-        },
-        success: function(response) {
-            if (response.success) {
-                refreshRosterList();
-            }
-        }
-    });
-}
+```javascript
+// Add member via REST API
+const response = await fetch( `/wp-json/extrachill/v1/artists/${artistId}/members`, {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: {
+        'Content-Type': 'application/json',
+        'X-WP-Nonce': wpApiNonce
+    },
+    body: JSON.stringify({
+        email: memberEmail,
+        role: 'member'
+    })
+});
+
+// Remove member via REST API
+const removeResponse = await fetch( `/wp-json/extrachill/v1/artists/${artistId}/members/${userId}`, {
+    method: 'DELETE',
+    credentials: 'same-origin',
+    headers: {
+        'X-WP-Nonce': wpApiNonce
+    }
+});
 ```
 
 ## Security Features

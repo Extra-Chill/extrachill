@@ -62,7 +62,7 @@ function extrch_create_subscribers_table() {
 
 ### Inline Form
 
-Location: `inc/link-pages/templates/subscribe-inline-form.php`
+Location: `inc/link-pages/live/templates/subscribe-inline-form.php`
 
 Embedded form within link page content:
 
@@ -84,7 +84,7 @@ Embedded form within link page content:
 
 ### Modal Form
 
-Location: `inc/link-pages/templates/subscribe-modal.php`
+Location: `inc/link-pages/live/templates/subscribe-modal.php`
 
 Modal popup triggered by button or icon:
 
@@ -326,45 +326,26 @@ Features:
 
 Location: `inc/artist-profiles/assets/js/manage-artist-subscribers.js`
 
+Subscriber management uses REST API with fetch API for modern data handling:
+
 ```javascript
-const SubscriberManager = {
-    init: function() {
-        this.bindEvents();
-        this.loadSubscribers();
-    },
-    
-    bindEvents: function() {
-        $('#export-subscribers').on('click', this.exportSubscribers.bind(this));
-        $('#filter-source').on('change', this.filterBySource.bind(this));
-        $(document).on('click', '.remove-subscriber', this.removeSubscriber.bind(this));
-    },
-    
-    loadSubscribers: function() {
-        const artistId = $('#artist-id').val();
-        const page = $('#current-page').val() || 1;
-        const source = $('#filter-source').val();
-        
-        $.ajax({
-            url: ajaxurl,
-            type: 'POST',
-            data: {
-                action: 'get_artist_subscribers',
-                artist_id: artistId,
-                page: page,
-                source: source,
-                nonce: subscriber_nonce
-            },
-            success: this.renderSubscribers.bind(this)
-        });
-    },
-    
-    exportSubscribers: function() {
-        const artistId = $('#artist-id').val();
-        const exportUrl = admin_url + '?action=export_subscribers&artist_id=' + artistId + '&nonce=' + subscriber_nonce;
-        window.location = exportUrl;
+// Fetch subscribers via REST API
+const response = await fetch( `/wp-json/extrachill/v1/subscribers/${artistId}`, {
+    method: 'GET',
+    credentials: 'same-origin',
+    headers: {
+        'X-WP-Nonce': wpApiNonce
     }
-};
+});
+
+const subscribers = await response.json();
 ```
+
+Features:
+- Subscriber list with pagination
+- Export functionality via CSV download
+- Bulk actions
+- Source filtering
 
 ## Export Functionality
 

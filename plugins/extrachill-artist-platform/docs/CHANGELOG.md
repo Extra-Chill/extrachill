@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.1] - 2025-12-08
+
+### Added
+- New `ec_get_artist_profile_data()` function providing centralized single source of truth for artist profile data
+- Artist profile data function with support for live preview overrides
+- Comprehensive artist profile data management including images, social links, and all metadata fields
+
+### Fixed
+- Fixed SQL query column reference in `ec_get_artist_subscribers()` function (subscription_date → subscribed_at)
+- Enforced link page card background color to always use default (prevents misconfigured background colors in card elements)
+
+### Changed
+- Enhanced `ec_get_link_page_data()` to enforce card background color validation
+- Refactored artist profile image meta key handling with standardized access patterns
+- Updated documentation to reflect removal of legacy PHP event-driven architecture
+- Removed references to legacy live preview event-driven system from README
+- Removed references to bbPress integration from installation instructions
+- Cleaned up JavaScript architecture documentation to focus on React-based Gutenberg blocks
+
+### Removed
+- `live-preview-system.md` documentation (functionality superseded by React Context system)
+- Legacy event-driven JavaScript architecture references from README and documentation
+- Outdated JavaScript patterns documentation for old management interface
+
 ## [1.2.0] - 2025-12-08
 
 ### Added

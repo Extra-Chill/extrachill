@@ -363,49 +363,6 @@ function extrachill_redirect_artist_link_page_cpt_to_custom_domain() {
     }
 }
 
-/**
- * Redirects direct forum access to associated artist profile page.
- * Ensures artist profile is the single source of truth for forum content.
- */
-function extrachill_redirect_artist_forum_to_profile() {
-    // Only redirect on single forum pages
-    if (!function_exists('bbp_is_single_forum') || !bbp_is_single_forum()) {
-        return;
-    }
-    
-    $forum_id = bbp_get_forum_id();
-    if (empty($forum_id)) {
-        return;
-    }
-    
-    // Check if this is an artist forum
-    $is_artist_forum = get_post_meta($forum_id, '_is_artist_profile_forum', true);
-    if (!$is_artist_forum) {
-        return;
-    }
-    
-    // Get associated artist profile ID
-    $artist_profile_id = apply_filters('ec_get_artist_id', $forum_id);
-    if (empty($artist_profile_id)) {
-        return;
-    }
-    
-    // Validate artist profile exists and is published
-    $artist_post = get_post($artist_profile_id);
-    if (!$artist_post || $artist_post->post_status !== 'publish') {
-        return;
-    }
-    
-    // Redirect to artist profile (301 for SEO)
-    $artist_url = get_permalink($artist_profile_id);
-    if ($artist_url) {
-        wp_redirect(esc_url_raw($artist_url), 301);
-        exit;
-    }
-}
-
-
-
 // Hook into WordPress
 add_action( 'init', 'extrachill_init_rewrite_rules', 25 );
 add_filter( 'query_vars', 'extrachill_add_query_vars' );
@@ -413,4 +370,3 @@ add_filter( 'redirect_canonical', 'extrachill_prevent_canonical_redirect_for_lin
 add_filter( 'template_include', 'extrachill_handle_artist_profile_routing', 5 );
 add_filter( 'template_include', 'extrachill_handle_link_domain_routing' );
 add_action( 'template_redirect', 'extrachill_redirect_artist_link_page_cpt_to_custom_domain' );
-add_action( 'template_redirect', 'extrachill_redirect_artist_forum_to_profile', 10 );

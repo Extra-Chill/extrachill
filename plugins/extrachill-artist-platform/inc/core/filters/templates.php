@@ -93,10 +93,6 @@ function ec_template_handler( $output, $template_name, $args = array() ) {
             'file' => 'inc/artist-profiles/frontend/templates/manage-artist-profile-tabs/tab-subscribers.php',
             'required' => array( 'target_artist_id' )
         ),
-        'manage-artist-profile-tab-forum' => array(
-            'file' => 'inc/artist-profiles/frontend/templates/manage-artist-profile-tabs/tab-forum.php',
-            'required' => array( 'target_artist_id' )
-        ),
         // Live Preview Template
         'link-page-live-preview' => array(
             'file' => 'inc/link-pages/management/live-preview/preview.php',

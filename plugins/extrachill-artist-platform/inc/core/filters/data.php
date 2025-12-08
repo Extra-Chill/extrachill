@@ -79,11 +79,11 @@ function ec_get_artist_subscribers( $artist_id, $args = array() ) {
         $where_clause .= " AND (exported = 0 OR exported IS NULL)";
     }
 
-    $sql = $wpdb->prepare(
-        "SELECT * FROM {$table_name} {$where_clause} ORDER BY subscription_date DESC LIMIT %d OFFSET %d",
-        $args['per_page'],
-        $offset
-    );
+	$sql = $wpdb->prepare(
+		"SELECT * FROM {$table_name} {$where_clause} ORDER BY subscribed_at DESC LIMIT %d OFFSET %d",
+		$args['per_page'],
+		$offset
+	);
 
     return $wpdb->get_results( $sql );
 }
@@ -139,6 +139,9 @@ function ec_get_link_page_data( $artist_id, $link_page_id = null, $overrides = a
 
     $default_css_vars = ec_get_link_page_defaults_for( 'styles' );
     $data['css_vars'] = array_merge( $default_css_vars, $css_vars_raw );
+
+    // Ensure card background color is always the default (not configurable)
+    $data['css_vars']['--link-page-card-bg-color'] = $default_css_vars['--link-page-card-bg-color'];
 
     $data['css_vars']['--link-page-button-hover-text-color'] = $data['css_vars']['--link-page-link-text-color'];
 
@@ -234,6 +237,77 @@ function ec_get_link_page_data( $artist_id, $link_page_id = null, $overrides = a
     }
 
     return apply_filters( 'extrch_get_link_page_data', $display_data, $artist_id, $link_page_id, $overrides );
+}
+
+/**
+ * Single source of truth for artist profile data.
+ * Centralizes meta access, normalization, and derived display fields.
+ */
+function ec_get_artist_profile_data( $artist_id, $overrides = array() ) {
+    if ( ! $artist_id || get_post_type( $artist_id ) !== 'artist_profile' ) {
+        return array();
+    }
+
+    $meta = get_post_meta( $artist_id );
+
+    $social_links = $meta['_artist_profile_social_links'][0] ?? array();
+    $social_links = maybe_unserialize( $social_links );
+    if ( ! is_array( $social_links ) || empty( $social_links ) ) {
+        $social_json = $meta['_artist_social_links_json'][0] ?? '';
+        $decoded = $social_json ? json_decode( $social_json, true ) : array();
+        if ( is_array( $decoded ) ) {
+            $social_links = $decoded;
+        } else {
+            $social_links = array();
+        }
+    }
+
+    $header_image_id = $meta['_artist_profile_header_image_id'][0] ?? '';
+    $profile_image_id = get_post_thumbnail_id( $artist_id ) ?: '';
+
+    $data = array(
+        'artist_id' => (int) $artist_id,
+        'title' => get_the_title( $artist_id ) ?: '',
+        'bio' => ( get_post( $artist_id )->post_content ?? '' ),
+        'genre' => $meta['_genre'][0] ?? '',
+        'local_city' => $meta['_local_city'][0] ?? '',
+        'website_url' => $meta['_website_url'][0] ?? '',
+        'spotify_url' => $meta['_spotify_url'][0] ?? '',
+        'apple_music_url' => $meta['_apple_music_url'][0] ?? '',
+        'bandcamp_url' => $meta['_bandcamp_url'][0] ?? '',
+        'social_links' => $social_links,
+        'header_image_id' => $header_image_id,
+        'header_image_url' => $header_image_id ? wp_get_attachment_url( $header_image_id ) : '',
+        'profile_image_id' => $profile_image_id,
+        'profile_image_url' => $profile_image_id ? get_the_post_thumbnail_url( $artist_id, 'large' ) : '',
+    );
+
+    if ( isset( $overrides['title'] ) ) {
+        $data['title'] = $overrides['title'];
+    }
+    if ( isset( $overrides['bio'] ) ) {
+        $data['bio'] = $overrides['bio'];
+    }
+    if ( isset( $overrides['header_image_id'] ) ) {
+        $data['header_image_id'] = $overrides['header_image_id'];
+        $data['header_image_url'] = $overrides['header_image_id'] ? wp_get_attachment_url( $overrides['header_image_id'] ) : '';
+    }
+    if ( isset( $overrides['profile_image_id'] ) ) {
+        $data['profile_image_id'] = $overrides['profile_image_id'];
+        $data['profile_image_url'] = $overrides['profile_image_id'] ? wp_get_attachment_url( $overrides['profile_image_id'] ) : '';
+    }
+    if ( isset( $overrides['social_links'] ) && is_array( $overrides['social_links'] ) ) {
+        $data['social_links'] = $overrides['social_links'];
+    }
+
+    $field_overrides = array( 'genre', 'local_city', 'website_url', 'spotify_url', 'apple_music_url', 'bandcamp_url' );
+    foreach ( $field_overrides as $field_key ) {
+        if ( isset( $overrides[ $field_key ] ) ) {
+            $data[ $field_key ] = $overrides[ $field_key ];
+        }
+    }
+
+    return $data;
 }
 
 function ec_generate_css_variables_style_block( $css_vars, $element_id = 'link-page-custom-vars' ) {

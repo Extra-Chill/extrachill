@@ -6,290 +6,55 @@ Comprehensive advanced functionality for link pages including expiration, redire
 
 ### Time-Based Link Management
 
-Location: `inc/link-pages/management/advanced-tab/link-expiration.php`
+Location: `src/blocks/link-page-editor/components/tabs/TabAdvanced.js`
 
 Features:
 - Schedule link activation/deactivation
 - Automatic expiration handling
 - Bulk expiration management
-- Expiration notifications
+- Expiration notifications via Gutenberg block editor interface
 
 ### Configuration Options
 
 ```php
 // Expiration settings stored in link page meta
 $expiration_settings = [
-    '_link_expiration_enabled' => true,
-    '_link_expiration_date' => '2024-12-31 23:59:59',
-    '_link_expiration_action' => 'hide', // 'hide', 'redirect', 'message'
-    '_link_expiration_message' => 'This link page has expired',
-    '_link_expiration_redirect_url' => 'https://example.com/expired'
+    'link_expiration_enabled' => true,
+    'link_expiration_date' => '2024-12-31 23:59:59',
+    'link_expiration_action' => 'hide' // 'hide', 'redirect', 'message'
 ];
-```
-
-### JavaScript Interface
-
-Location: `inc/link-pages/management/assets/js/link-expiration.js`
-
-```javascript
-const LinkExpirationManager = {
-    init: function() {
-        this.bindEvents();
-        this.initDatePicker();
-    },
-    
-    bindEvents: function() {
-        $('#link-expiration-enabled').on('change', this.toggleExpirationSettings.bind(this));
-        $('#expiration-date').on('change', this.updateExpirationPreview.bind(this));
-    },
-    
-    toggleExpirationSettings: function(e) {
-        const isEnabled = e.target.checked;
-        $('.expiration-settings').toggle(isEnabled);
-        
-        // Update preview
-        document.dispatchEvent(new CustomEvent('expirationChanged', {
-            detail: { enabled: isEnabled }
-        }));
-    }
-};
-```
-
-### Preview Integration
-
-Location: `inc/link-pages/management/live-preview/assets/js/link-expiration-preview.js`
-
-```javascript
-// Update preview based on expiration settings
-document.addEventListener('expirationChanged', function(e) {
-    const previewFrame = document.getElementById('live-preview-iframe');
-    const previewDoc = previewFrame.contentDocument;
-    
-    if (e.detail.enabled) {
-        // Show expiration indicator in preview
-        const indicator = previewDoc.createElement('div');
-        indicator.className = 'expiration-indicator';
-        indicator.textContent = 'Expires: ' + e.detail.date;
-        previewDoc.body.appendChild(indicator);
-    }
-});
 ```
 
 ## Redirect System
 
 ### Temporary Redirects
 
-Location: `inc/link-pages/management/advanced-tab/temporary-redirect.php`
+Location: `src/blocks/link-page-editor/components/tabs/TabAdvanced.js`
 
-Implements 302 redirects to external URLs:
-
-```php
-function handle_link_page_redirect($link_page_id) {
-    $redirect_enabled = get_post_meta($link_page_id, '_link_page_redirect_enabled', true);
-    $redirect_url = get_post_meta($link_page_id, '_link_page_redirect_target_url', true);
-    
-    if ($redirect_enabled && $redirect_url) {
-        // Track redirect for analytics
-        do_action('extrch_track_redirect', $link_page_id, $redirect_url);
-        
-        // Perform redirect
-        wp_redirect($redirect_url, 302);
-        exit;
-    }
-}
-```
-
-### Redirect Configuration
-
-```php
-// Redirect settings
-$redirect_settings = [
-    '_link_page_redirect_enabled' => true,
-    '_link_page_redirect_target_url' => 'https://external-site.com',
-    '_link_page_redirect_delay' => 0, // Seconds delay
-    '_link_page_redirect_message' => 'Redirecting...'
-];
-```
+Configuration via Gutenberg block editor for 302 redirects to external URLs
 
 ## YouTube Integration
 
 ### Inline Video Embedding
 
-Location: `inc/link-pages/management/advanced-tab/youtube-embed-control.php`
+Location: `src/blocks/link-page-editor/components/tabs/TabAdvanced.js`
 
-Automatic detection and embedding of YouTube links:
-
-```php
-function process_youtube_links($links) {
-    foreach ($links as &$link) {
-        if (is_youtube_url($link['link_url'])) {
-            $video_id = extract_youtube_video_id($link['link_url']);
-            $link['youtube_embed'] = [
-                'video_id' => $video_id,
-                'thumbnail' => "https://img.youtube.com/vi/{$video_id}/maxresdefault.jpg",
-                'embed_url' => "https://www.youtube.com/embed/{$video_id}"
-            ];
-        }
-    }
-    return $links;
-}
-
-function is_youtube_url($url) {
-    return preg_match('/(?:youtube\.com|youtu\.be)/', $url);
-}
-
-function extract_youtube_video_id($url) {
-    preg_match('/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/', $url, $matches);
-    return isset($matches[1]) ? $matches[1] : null;
-}
-```
-
-### YouTube Player Integration
-
-Location: `inc/link-pages/live/assets/js/link-page-youtube-embed.js`
-
-```javascript
-const YouTubeManager = {
-    init: function() {
-        this.processYouTubeLinks();
-        this.bindEvents();
-    },
-    
-    processYouTubeLinks: function() {
-        const youtubeLinks = document.querySelectorAll('a[href*="youtube.com"], a[href*="youtu.be"]');
-        
-        youtubeLinks.forEach(link => {
-            if (this.shouldEmbedVideo(link)) {
-                this.createEmbedPlayer(link);
-            }
-        });
-    },
-    
-    createEmbedPlayer: function(link) {
-        const videoId = this.extractVideoId(link.href);
-        const embedContainer = document.createElement('div');
-        embedContainer.className = 'youtube-embed-container';
-        embedContainer.innerHTML = `
-            <iframe src="https://www.youtube.com/embed/${videoId}" 
-                    frameborder="0" 
-                    allowfullscreen></iframe>
-        `;
-        
-        link.parentNode.insertBefore(embedContainer, link.nextSibling);
-    }
-};
-```
+Configuration via Gutenberg block editor to enable YouTube video embedding with automatic detection
 
 ## Analytics Tracking
 
-### Meta Pixel Integration
-
-Location: `inc/link-pages/management/advanced-tab/meta-pixel-tracking.php`
-
-```php
-function render_meta_pixel_code($pixel_id) {
-    if (empty($pixel_id)) return;
-    
-    ?>
-    <!-- Meta Pixel Code -->
-    <script>
-    !function(f,b,e,v,n,t,s)
-    {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
-    n.callMethod.apply(n,arguments):n.queue.push(arguments)};
-    if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
-    n.queue=[];t=b.createElement(e);t.async=!0;
-    t.src=v;s=b.getElementsByTagName(e)[0];
-    s.parentNode.insertBefore(t,s)}(window, document,'script',
-    'https://connect.facebook.net/en_US/fbevents.js');
-    fbq('init', '<?php echo esc_js($pixel_id); ?>');
-    fbq('track', 'PageView');
-    </script>
-    <?php
-}
-```
-
-### Google Tag Manager Integration
-
-Location: `inc/link-pages/management/advanced-tab/google-tag-tracking.php`
-
-```php
-function render_gtm_code($gtm_id) {
-    if (empty($gtm_id)) return;
-    
-    ?>
-    <!-- Google Tag Manager -->
-    <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
-    new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
-    j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
-    'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
-    })(window,document,'script','dataLayer','<?php echo esc_js($gtm_id); ?>');</script>
-    <?php
-}
-```
-
-### Custom Analytics Events
-
-```javascript
-// Track link clicks with custom events
-function trackLinkClick(linkUrl, linkText) {
-    // Google Analytics 4
-    if (typeof gtag !== 'undefined') {
-        gtag('event', 'link_click', {
-            'link_url': linkUrl,
-            'link_text': linkText,
-            'page_title': document.title
-        });
-    }
-    
-    // Meta Pixel
-    if (typeof fbq !== 'undefined') {
-        fbq('track', 'Lead', {
-            'content_name': linkText,
-            'content_category': 'Link Click'
-        });
-    }
-}
-```
+Analytics integration configured via Gutenberg block editor with support for:
 
 ## Subscription Settings
 
 ### Email Collection Configuration
 
-Location: `inc/link-pages/management/advanced-tab/subscription-settings.php`
+Location: `src/blocks/link-page-editor/components/tabs/TabAdvanced.js`
 
-```php
-// Subscription display modes
-$subscription_modes = [
-    'icon_modal' => 'Icon with Modal',
-    'inline_form' => 'Inline Form',
-    'button_modal' => 'Button with Modal',
-    'disabled' => 'Disabled'
-];
-
-// Subscription settings
-$subscription_settings = [
-    '_link_page_subscribe_display_mode' => 'icon_modal',
-    '_link_page_subscribe_description' => 'Join our mailing list',
-    '_link_page_subscribe_button_text' => 'Subscribe',
-    '_link_page_subscribe_success_message' => 'Thanks for subscribing!'
-];
-```
-
-### Subscription Form Templates
-
-Templates adapt based on display mode:
-
-```php
-// Modal subscription form
-if ($subscribe_display_mode === 'icon_modal') {
-    include 'templates/subscribe-modal.php';
-}
-
-// Inline subscription form  
-if ($subscribe_display_mode === 'inline_form') {
-    include 'templates/subscribe-inline-form.php';
-}
-```
+Configuration via Gutenberg block editor for:
+- Subscription display modes (icon modal, inline form, button modal, disabled)
+- Custom subscription messaging
+- Button text customization
 
 ## QR Code Generation
 
@@ -335,43 +100,17 @@ const QRCodeManager = {
 };
 ```
 
-## Weekly Email Notifications
+## QR Code Generation
 
-### Automated Email Reports
+QR code generation is handled via REST API in the Gutenberg block editor with the `QRCodeModal` component.
 
-Location: `inc/link-pages/management/advanced-tab/link-page-weekly-email.php`
+Location: `src/blocks/link-page-editor/components/shared/QRCodeModal.js`
 
-```php
-function send_weekly_link_page_report($artist_id) {
-    $link_page_id = ec_get_link_page_for_artist($artist_id);
-    if (!$link_page_id) return;
-    
-    // Get weekly analytics
-    $analytics = get_link_page_weekly_analytics($link_page_id);
-    
-    // Get artist email
-    $artist_email = get_artist_notification_email($artist_id);
-    
-    // Prepare email content
-    $subject = sprintf('Weekly Report for %s', get_the_title($artist_id));
-    $message = build_weekly_report_email($analytics);
-    
-    // Send email
-    wp_mail($artist_email, $subject, $message, [
-        'Content-Type: text/html; charset=UTF-8'
-    ]);
-}
-
-// Schedule weekly emails
-function schedule_weekly_reports() {
-    if (!wp_next_scheduled('send_weekly_reports')) {
-        wp_schedule_event(time(), 'weekly', 'send_weekly_reports');
-    }
-}
-add_action('wp', 'schedule_weekly_reports');
-```
-
-## Advanced Settings Integration
+Features:
+- High-resolution QR code output (1000px)
+- REST API-powered generation
+- PNG download functionality
+- Modal interface in Gutenberg editor
 
 ### Settings Data Structure
 

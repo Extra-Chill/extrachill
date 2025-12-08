@@ -103,10 +103,7 @@ if (isset($data['profile_img_shape'])) {
     }
 }
 
-$overlay_enabled = true;
-if (isset($data['overlay'])) {
-    $overlay_enabled = $data['overlay'] === '1';
-}
+$overlay_enabled = isset($data['css_vars']['overlay']) ? $data['css_vars']['overlay'] === '1' : true;
 $wrapper_class = 'extrch-link-page-content-wrapper' . ($overlay_enabled ? '' : ' no-overlay');
 
 // Ensure all variables used in data attributes are defined in the scope

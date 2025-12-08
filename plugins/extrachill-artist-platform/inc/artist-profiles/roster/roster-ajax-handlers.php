@@ -104,7 +104,7 @@ function extrachill_handle_invite_member( $result, $artist_id, $email ) {
 	if ( $existing_user_id ) {
 		$user_info = get_userdata( $existing_user_id );
 		if ( $user_info ) {
-			$profile_url = function_exists( 'bbp_get_user_profile_url' ) ? bbp_get_user_profile_url( $user_info->ID ) : '';
+			$profile_url = '';
 			$avatar_url  = get_avatar_url( $user_info->ID, array( 'size' => 60 ) );
 
 			$response['existing_user'] = array(

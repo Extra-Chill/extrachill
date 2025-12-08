@@ -22,13 +22,11 @@ A comprehensive WordPress plugin that provides artist profile management, link p
 - Unified artist card component for consistent display across pages
 
 ### 🔗 Link Pages
-- Custom link page creation with comprehensive management interface
-- Dual-interface system: Gutenberg block editor and traditional PHP management interface
-- Real-time live preview with event-driven JavaScript architecture and dedicated live preview handler
-- Drag-and-drop link reordering with SortableJS integration and live preview updates
-- Programmatic link addition API via WordPress actions for external integrations
+- Custom link page creation with comprehensive management interface via Gutenberg block editor
+- Modern React-based editing interface with live preview
+- Drag-and-drop link reordering with dnd-kit integration
 - Advanced styling system with custom fonts, colors, backgrounds, and profile image management
-- YouTube video embed support with toggle control and preview
+- YouTube video embed support with toggle control
 - QR code generation with download functionality
 - Native Web Share API integration with social media fallbacks
 - Link expiration scheduling with automatic deactivation
@@ -75,7 +73,7 @@ A comprehensive WordPress plugin that provides artist profile management, link p
 
 1. Upload the plugin folder to `/wp-content/plugins/`
 2. Activate the plugin through the WordPress admin
-3. Ensure the extrachill theme and bbPress plugin are active
+3. Ensure the extrachill theme is active
 4. Configure plugin settings as needed
 
 ## Usage
@@ -129,13 +127,10 @@ ExtraChillArtistPlatform_Assets::instance();
 // Social link management with comprehensive platform support
 ExtraChillArtistPlatform_SocialLinks::instance();
 
-// Live preview processing
-ExtraChill_Live_Preview_Handler::instance();
-
 // Centralized data provider function
 $data = ec_get_link_page_data($artist_id, $link_page_id);
 
-// Core features include live preview, social platform integration,
+// Core features include social platform integration,
 // analytics dashboard, subscription management, and permission system
 ```
 
@@ -183,15 +178,9 @@ The plugin uses a modular AJAX system organized by functionality:
 // Live (Public) AJAX Actions: inc/link-pages/live/ajax/
 add_action( 'wp_ajax_extrch_record_link_event', 'extrch_record_link_event_ajax' );
 add_action( 'wp_ajax_nopriv_extrch_record_link_event', 'extrch_record_link_event_ajax' );
-add_action( 'wp_ajax_link_page_click_tracking', 'handle_link_click_tracking' );
-add_action( 'wp_ajax_nopriv_link_page_click_tracking', 'handle_link_click_tracking' );
 
-// Management (Admin) AJAX Actions: inc/link-pages/management/ajax/
-add_action( 'wp_ajax_render_link_item_editor', 'ec_ajax_render_link_item_editor' );
-add_action( 'wp_ajax_render_social_item_editor', 'ec_ajax_render_social_item_editor' );
-add_action( 'wp_ajax_extrch_fetch_link_page_analytics', 'extrch_fetch_link_page_analytics_ajax' );
-add_action( 'wp_ajax_extrch_link_page_subscribe', 'extrch_link_page_subscribe_ajax_handler' );
-add_action( 'wp_ajax_nopriv_extrch_link_page_subscribe', 'extrch_link_page_subscribe_ajax_handler' );
+// Management (Admin) AJAX Actions via REST API: src/blocks/link-page-editor/api/client.js
+// All management operations go through WordPress REST API
 ```
 
 ### Permission System
@@ -381,64 +370,14 @@ class ExtraChillArtistPlatform_Assets {
 
 ### JavaScript Development
 
+The plugin uses React via Gutenberg blocks for management, and vanilla JavaScript for public link page functionality:
+
 ```javascript
-// Event-driven module communication with standardized patterns
-// Management modules dispatch events, preview modules listen
+// Gutenberg Block (React-based management interface)
+// Location: src/blocks/link-page-editor/
 
-// Background management dispatches changes
-document.dispatchEvent(new CustomEvent('backgroundChanged', {
-    detail: { backgroundData: newBackgroundData }
-}));
-
-// Links management dispatches comprehensive link data
-document.dispatchEvent(new CustomEvent('linksChanged', {
-    detail: {
-        links: linkData,
-        order: newOrder,
-        visibility: visibilityStates
-    }
-}));
-
-// Preview modules listen for specific events
-document.addEventListener('backgroundChanged', function(e) {
-    updatePreviewBackground(e.detail.backgroundData);
-});
-
-document.addEventListener('linksChanged', function(e) {
-    updatePreviewLinks(e.detail.links);
-    updateLinkOrder(e.detail.order);
-});
-
-// Social icons with live preview integration
-document.addEventListener('socialIconsChanged', function(e) {
-    updatePreviewSocials(e.detail.socials);
-});
-
-// Drag-and-drop with SortableJS integration
-const sortable = Sortable.create(linkList, {
-    animation: 150,
-    onEnd: function(evt) {
-        // Dispatch reorder event for live preview
-        document.dispatchEvent(new CustomEvent('linksReordered', {
-            detail: { newOrder: getNewOrder() }
-        }));
-    }
-});
-
-// Profile image management with live preview
-document.addEventListener('profileImageChanged', function(e) {
-    updatePreviewProfileImage(e.detail.imageData);
-});
-
-// Social platform integration
-document.addEventListener('socialIconsChanged', function(e) {
-    updatePreviewSocials(e.detail.socials);
-});
-
-// Join flow modal handling
-document.addEventListener('DOMContentLoaded', function() {
-    // Modal interactions for account selection
-});
+// Public link page functionality (vanilla JavaScript)
+// Click tracking, subscription forms, YouTube embeds, share modal
 ```
 
 ### Database Structure
@@ -502,7 +441,6 @@ Link page configuration stored as post meta:
 
 ### 🎯 Advanced Features
 
-- **Event-Driven JavaScript Architecture**: CustomEvent-based communication between management and preview modules
 - **Gutenberg Block Editor**: Modern React-based interface for WordPress block editor with full feature parity
 - **Artist Grid System**: Activity-based sorting with comprehensive timestamp calculation
 - **Drag-and-Drop Interface**: SortableJS-powered link reordering with real-time live preview updates
@@ -609,7 +547,7 @@ $permission_callbacks = [
 ## Troubleshooting
 
 ### Theme Compatibility Issues
-Ensure the extrachill theme and bbPress plugin are active.
+Ensure the extrachill theme is active.
 
 ### Link Page Not Loading
 Check that rewrite rules are flushed by deactivating and reactivating the plugin.
@@ -623,8 +561,8 @@ Ensure user has proper role assignments and check permission functions in `inc/c
 ### Roster Invitations Not Sending
 Check that WordPress can send emails and verify SMTP configuration. Review invitation tokens in database if needed.
 
-### Live Preview Not Updating
-Check browser console for JavaScript errors. Verify that event-driven communication between management and preview modules is working correctly.
+### Gutenberg Block Not Loading
+Ensure Webpack build has been run: `npm run build`. Check browser console for errors.
 
 ### File Structure
 ```
@@ -671,7 +609,6 @@ inc/
 │   ├── admin/                       # Admin meta boxes, user linking
 │   ├── frontend/                    # Public forms, directory
 │   │   ├── artist-grid.php         # Artist grid display functions
-│   │   ├── artist-grid-ajax.php    # AJAX pagination handler
 │   │   ├── breadcrumbs.php         # Theme breadcrumb filter integration
 │   │   └── templates/              # Artist profile templates
 │   │       ├── single-artist_profile.php
@@ -687,20 +624,6 @@ inc/
 │   ├── blog-coverage.php            # Main site taxonomy archive linking
 │   └── subscribe-data-functions.php # Artist subscription data
 ├── link-pages/                      # Link page system
-│   ├── management/                  # Legacy PHP management interface (removed; superseded by Gutenberg block)
-│   │   ├── ajax/                   # Modular AJAX handlers
-│   │   │   ├── links.php              # Link section management
-│   │   │   ├── social.php             # Social icon management
-│   │   │   ├── analytics.php          # Admin analytics dashboard
-│   │   │   ├── background.php         # Background image uploads
-│   │   │   ├── qrcode.php             # QR code generation
-│   │   │   └── subscribe.php          # Subscription templates
-│   │   ├── advanced-tab/           # Advanced features (tracking, redirects)
-│   │   ├── live-preview/           # Live preview functionality
-│   │   │   ├── class-live-preview-handler.php  # Live preview handler (ExtraChill_Live_Preview_Handler)
-│   │   │   └── assets/js/          # Live preview JavaScript modules
-│   │   └── templates/              # Legacy templates removed
-│   │       └── components/         # Modular UI components
 │   ├── live/                       # Live page functionality
 │   │   ├── ajax/                   # Public AJAX handlers
 │   │   │   ├── analytics.php          # Public tracking and data pruning
@@ -849,7 +772,6 @@ Custom icons are defined in `assets/css/custom-social-icons.css` using SVG mask 
 
 **Files Using These Keys**:
 - ✅ `inc/core/filters/upload.php` line 61 (background WRITE), line 95 (profile reference WRITE)
-- ✅ `inc/link-pages/management/ajax/background.php` line 81 (background WRITE)
 - ✅ `inc/core/actions/sync.php` line 135, 139 (profile reference sync)
 
 ### Migration Script References

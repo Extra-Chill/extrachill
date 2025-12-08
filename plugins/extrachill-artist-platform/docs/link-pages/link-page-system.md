@@ -2,8 +2,6 @@
 
 Comprehensive link page creation and management system with live preview, drag-and-drop interface, and advanced customization options.
 
-**Note**: Link page management now uses the Gutenberg block on the `/manage-link-page` page (no query params). The legacy PHP interface has been removed.
-
 ## System Architecture
 
 Link pages provide artists with customizable landing pages featuring:
@@ -72,122 +70,47 @@ $css_variables = [
 
 ## Management Interface
 
-### Template Structure
+The management interface is a **Gutenberg block editor component** (React-based) located at `src/blocks/link-page-editor/`.
 
-Location: `inc/link-pages/management/templates/manage-link-page.php`
+### Tab Structure
 
-Tabbed interface with sections:
-1. **Info**: Basic information and biography
-2. **Links**: Link management with drag-and-drop
-3. **Customize**: Styling and appearance options
-4. **Analytics**: View tracking and link clicks
-5. **Advanced**: Expiration, redirects, tracking codes
+The editor provides a tabbed interface with five sections:
 
-### Tab Components
+1. **TabInfo** (`components/tabs/TabInfo.js`): Basic information and biography editing
+2. **TabLinks** (`components/tabs/TabLinks.js`): Link management with drag-and-drop reordering
+3. **TabCustomize** (`components/tabs/TabCustomize.js`): Styling and appearance options (fonts, colors)
+4. **TabAnalytics** (`components/tabs/TabAnalytics.js`): View tracking and link click analytics
+5. **TabAdvanced** (`components/tabs/TabAdvanced.js`): Advanced features (expiration, redirects, tracking codes)
 
-Each tab loads specific functionality:
+### Block Architecture
 
-```php
-// Tab templates location
-inc/link-pages/management/templates/manage-link-page-tabs/
-├── tab-info.php          // Basic info editing
-├── tab-links.php         // Link management
-├── tab-customize.php     // Styling options  
-├── tab-analytics.php     // Analytics dashboard
-└── tab-advanced.php      // Advanced features
-```
+The Gutenberg block provides:
+- **React Components**: Modern UI built with React
+- **Live Preview**: Real-time preview panel showing changes
+- **REST API Integration**: All data operations via REST API (not AJAX)
+- **File Upload**: Media upload and attachment management
+- **State Management**: Context API for component state sharing
+
+See [Gutenberg Block Editor documentation](./gutenberg-block-editor.md) for implementation details.
 
 ## Live Preview System
 
-### Real-Time Updates
-
-Location: `inc/link-pages/management/live-preview/`
-
-Features:
-- Instant preview of changes
-- No page refresh required
-- CSS variable injection
-- DOM element updates
-
-### Preview Handler
-
-Class: `ExtraChill_Live_Preview_Handler`
-
-```php
-// Handle preview updates
-public function handle_preview_update() {
-    $link_page_id = $_POST['link_page_id'];
-    $artist_id = $_POST['artist_id'];
-    
-    // Get updated data with overrides
-    $preview_data = $this->prepare_preview_data($link_page_id, $artist_id, $_POST);
-    
-    // Generate preview HTML
-    $preview_html = $this->generate_preview_html($preview_data);
-    
-    wp_send_json_success(['html' => $preview_html]);
-}
-```
-
-### JavaScript Preview Modules
-
-Event-driven architecture with specialized modules:
-
-```javascript
-// Management modules dispatch events
-document.dispatchEvent(new CustomEvent('infoChanged', {
-    detail: { title: newTitle, bio: newBio }
-}));
-
-// Preview modules listen and update
-document.addEventListener('infoChanged', function(e) {
-    updatePreviewInfo(e.detail);
-});
-```
-
-Preview modules include:
-- `info-preview.js` - Title and bio updates
-- `links-preview.js` - Link structure changes
-- `colors-preview.js` - Color scheme updates
-- `background-preview.js` - Background changes
-- `fonts-preview.js` - Typography updates
+**Note**: The Gutenberg block editor provides integrated live preview via the Preview component. There is no separate live preview infrastructure.
 
 ## Link Management
 
-### Drag-and-Drop Interface
+### Gutenberg Block Interface
 
-Location: `inc/link-pages/management/assets/js/sortable.js`
+Primary location: `src/blocks/link-page-editor/components/tabs/TabLinks.js`
 
 Features:
-- SortableJS integration
-- Touch-friendly mobile support
+- React-based link management
+- Drag-and-drop reordering via dnd-kit
+- Add/edit/delete link functionality
 - Real-time preview updates
-- Persistent ordering
+- REST API integration
 
-```javascript
-// Initialize sortable interface
-const sortable = new Sortable(linkContainer, {
-    animation: 150,
-    ghostClass: 'sortable-ghost',
-    chosenClass: 'sortable-chosen',
-    dragClass: 'sortable-drag',
-    onEnd: function(evt) {
-        // Update order and preview
-        updateLinkOrder();
-        triggerPreviewUpdate();
-    }
-});
-```
-
-### Management Interface
-
-Legacy PHP management (templates, assets, AJAX) has been removed. Link page management is now handled solely by the Gutenberg block on `/manage-link-page` using REST.
-
-## Styling System
-
-### Color Management
-
-Location: `inc/link-pages/management/assets/js/colors.js`
+Location: `src/blocks/link-page-editor/components/shared/ColorPicker.js`
 
 Color picker interface for:
 - Background colors
@@ -197,7 +120,7 @@ Color picker interface for:
 
 ### Font Management
 
-Location: `inc/link-pages/management/assets/js/fonts.js`
+Location: `src/blocks/link-page-editor/components/tabs/TabCustomize.js`
 
 Integration with Google Fonts:
 - Title font selection
@@ -207,13 +130,12 @@ Integration with Google Fonts:
 
 ### Background Options
 
-Location: `inc/link-pages/management/assets/js/background.js`
+Location: `src/blocks/link-page-editor/components/tabs/TabCustomize.js`
 
 Background types:
 - Solid colors
 - Gradient backgrounds
 - Image uploads
-- Video backgrounds
 
 ## Public Link Pages
 
@@ -287,63 +209,26 @@ Inline YouTube video embedding:
 
 Class: `ExtraChillArtistPlatform_Assets`
 
-```php
-// Conditional asset loading
-public function enqueue_link_page_assets($template_context) {
-    if ($template_context === 'management') {
-        wp_enqueue_script('link-page-management');
-        wp_enqueue_style('link-page-management');
-    }
-    
-    if ($template_context === 'public') {
-        wp_enqueue_script('link-page-public');
-        wp_enqueue_style('link-page-public');
-    }
-}
-```
-
-### File Organization
-
-JavaScript modules organized by functionality:
-
-```
-inc/link-pages/management/assets/js/
-├── info.js                 // Basic info management
-├── links.js               // Link CRUD operations
-├── colors.js              // Color picker interface
-├── fonts.js               // Font selection
-├── background.js          // Background management
-├── sizing.js              // Layout controls
-├── socials.js             // Social link management
-├── advanced.js            // Advanced features
-├── analytics.js           // Analytics dashboard
-└── ui-utils.js            // Utility functions
-```
+All assets loaded based on page context:
+- **Join flow assets**: Only on login page with `from_join` parameter
+- **Public link page assets**: Only on public link pages
+- **Gutenberg block assets**: Auto-enqueued via block registration
 
 ## Data Persistence
 
 ### Save System
 
-Location: `inc/core/actions/save.php`
+Location: `src/blocks/link-page-editor/api/client.js` (REST API-based)
 
-Centralized save operations:
+All save operations handled through Gutenberg block:
 
-```php
-function ec_handle_link_page_save($link_page_id, $form_data) {
-    // Process links data
-    if (isset($form_data['link_page_links_json'])) {
-        $links = json_decode($form_data['link_page_links_json'], true);
-        update_post_meta($link_page_id, '_link_page_links', $links);
-    }
-    
-    // Process CSS variables
-    if (isset($form_data['css_vars'])) {
-        update_post_meta($link_page_id, '_link_page_custom_css_vars', $form_data['css_vars']);
-    }
-    
-    // Process advanced settings
-    update_post_meta($link_page_id, '_link_expiration_enabled', $form_data['link_expiration_enabled']);
-}
+```javascript
+// Save via REST API
+const response = await apiClient.post( `/extrachill/v1/link-pages/${linkPageId}`, {
+    links: formData.links,
+    css_vars: formData.css_vars,
+    settings: formData.settings
+});
 ```
 
 ### Data Synchronization

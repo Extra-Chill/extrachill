@@ -24,15 +24,14 @@ The platform consists of two primary custom post types:
 
 ### Management Systems
 - **Join Flow**: Complete user onboarding with automatic artist profile and link page creation
-- **Link Page Editors**: Dual-interface system with Gutenberg block editor (React) and traditional PHP management
-- **Live Preview**: Real-time preview system for link page customization
+- **Link Page Editor**: Gutenberg block editor (React-based) for link page management
 - **Roster Management**: Band member invitation and role assignment system
 - **Social Integration**: 15+ social platform support with comprehensive validation
 - **Analytics**: Daily aggregated page views and link click tracking
 - **Subscription System**: Email collection with artist association
 
 ### Advanced Features
-- **Gutenberg Block Editor**: Modern React-based block for link page management with full feature parity to traditional interface
+- **Gutenberg Block Editor**: Modern React-based block for link page management with comprehensive feature set
 - **Cross-Domain Authentication**: WordPress multisite native authentication across `.extrachill.com` subdomains and extrachill.link domain
 - **Link Expiration**: Time-based link scheduling and lifecycle management
 - **Asset Management**: Context-aware loading with file existence checks
@@ -69,11 +68,10 @@ Compiled assets available at `build/blocks/link-page-editor/` for block registra
 
 ## JavaScript Architecture
 
-Event-driven modular system using IIFE patterns with standardized CustomEvent communication between management and preview modules. Features responsive tab interfaces, drag-and-drop link reordering, and native Web Share API integration.
+Gutenberg block-based system using React components. Modern JavaScript patterns with REST API integration for data operations. Features responsive tab interfaces, drag-and-drop link reordering, and native Web Share API integration.
 
 ## Dependencies
 
 - WordPress 5.0+ (tested up to 6.4)
 - PHP 7.4+
 - Extrachill theme with Extra Chill Community plugin (enforced)
-- bbPress plugin for forum integration

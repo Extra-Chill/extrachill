@@ -21,7 +21,6 @@ The Extra Chill Artist Platform registers two custom post types that form the fo
 Key meta fields stored for artist profiles:
 - `_artist_profile_ids`: Linked user accounts
 - `_artist_profile_social_links`: Social media links
-- `_artist_forum_id`: Associated bbPress forum ID
 
 ### Usage Patterns
 
@@ -102,9 +101,13 @@ Both post types are registered via `extrachill_init_post_types()` hooked to `ini
 
 ## REST API Support
 
-Both post types have REST API support for programmatic access:
+Both post types have REST API support for programmatic access. The plugin provides custom REST endpoints via the **extrachill-api** plugin for specialized operations like analytics, subscriptions, QR code generation, and roster management.
 
-### Artist Profile REST API
+For complete REST API documentation including custom endpoints, see the extrachill-api plugin documentation.
+
+### WordPress REST Endpoints
+
+Standard WordPress REST endpoints are available for both post types:
 
 ```javascript
 // Get all artist profiles
@@ -113,58 +116,11 @@ GET /wp-json/wp/v2/artist_profile
 // Get specific artist profile
 GET /wp-json/wp/v2/artist_profile/{id}
 
-// Create artist profile (requires authentication)
-POST /wp-json/wp/v2/artist_profile
-
-// Update artist profile
-POST /wp-json/wp/v2/artist_profile/{id}
-
-// Delete artist profile
-DELETE /wp-json/wp/v2/artist_profile/{id}
-```
-
-### Link Page REST API
-
-```javascript
 // Get all link pages
 GET /wp-json/wp/v2/artist_link_page
 
 // Get specific link page
 GET /wp-json/wp/v2/artist_link_page/{id}
-
-// Create link page (requires authentication)
-POST /wp-json/wp/v2/artist_link_page
-
-// Update link page
-POST /wp-json/wp/v2/artist_link_page/{id}
-
-// Delete link page
-DELETE /wp-json/wp/v2/artist_link_page/{id}
-```
-
-### Custom REST Endpoints
-
-The plugin provides additional custom REST endpoints for specialized operations:
-
-```javascript
-// Analytics data
-GET /wp-json/extrachill/v1/analytics/{link_page_id}
-
-// Subscribe to artist
-POST /wp-json/extrachill/v1/subscribe/{artist_id}
-
-// QR code generation
-POST /wp-json/extrachill/v1/qrcode/{link_page_id}
-
-// Subscriber management
-GET /wp-json/extrachill/v1/subscribers/{artist_id}
-POST /wp-json/extrachill/v1/subscribers/{artist_id}
-DELETE /wp-json/extrachill/v1/subscribers/{subscriber_id}
-
-// Roster management
-GET /wp-json/extrachill/v1/roster/{artist_id}
-POST /wp-json/extrachill/v1/roster/{artist_id}/invite
-DELETE /wp-json/extrachill/v1/roster/{roster_member_id}
 ```
 
 ### Authentication

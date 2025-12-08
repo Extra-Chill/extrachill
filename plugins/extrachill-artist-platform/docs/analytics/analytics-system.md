@@ -68,54 +68,7 @@ add_action('admin_init', 'extrch_create_or_update_analytics_table');
 
 Location: `inc/link-pages/live/assets/js/link-page-public-tracking.js`
 
-```javascript
-const AnalyticsTracker = {
-    init: function() {
-        this.trackPageView();
-        this.bindLinkClicks();
-    },
-    
-    trackPageView: function() {
-        if (!linkPageId) return;
-        
-        $.ajax({
-            url: extrch_ajax.ajax_url,
-            type: 'POST',
-            data: {
-                action: 'extrch_record_link_event',
-                event_type: 'page_view',
-                link_page_id: linkPageId,
-                nonce: extrch_ajax.nonce
-            }
-        });
-    },
-    
-    bindLinkClicks: function() {
-        $(document).on('click', 'a.link-button', function(e) {
-            const linkUrl = this.href;
-            const linkText = $(this).text();
-            
-            // Track click
-            $.ajax({
-                url: extrch_ajax.ajax_url,
-                type: 'POST',
-                data: {
-                    action: 'link_page_click_tracking',
-                    link_url: linkUrl,
-                    link_text: linkText,
-                    link_page_id: linkPageId,
-                    nonce: extrch_ajax.nonce
-                }
-            });
-            
-            // Allow natural navigation
-            return true;
-        });
-    }
-};
-
-document.addEventListener('DOMContentLoaded', AnalyticsTracker.init.bind(AnalyticsTracker));
-```
+Tracks page views and link clicks using sendBeacon API for reliable delivery
 
 ### Server-Side Tracking
 
@@ -227,7 +180,15 @@ function record_link_click($link_page_id, $link_url) {
 
 ### Management Interface
 
-Legacy manage-link-page analytics templates and AJAX have been removed. Analytics is handled via the block and REST endpoints.
+Analytics displayed via REST API in Gutenberg block editor with `TabAnalytics` component:
+
+Location: `src/blocks/link-page-editor/components/tabs/TabAnalytics.js`
+
+Features:
+- Chart.js-powered visual analytics
+- Daily view aggregation
+- Link click tracking and breakdown
+- Date range filtering
 
 ### Data Queries
 
@@ -275,136 +236,19 @@ function get_link_click_data($link_page_id, $date_range) {
 }
 ```
 
-## Chart.js Integration
+### Chart.js Integration
 
-### Dashboard JavaScript
-
-Location: `inc/link-pages/management/assets/js/analytics.js`
-
-```javascript
-const AnalyticsDashboard = {
-    charts: {},
-    
-    init: function() {
-        this.bindEvents();
-        this.loadAnalyticsData();
-    },
-    
-    bindEvents: function() {
-        $('#analytics-date-range').on('change', this.onDateRangeChange.bind(this));
-        $('#export-analytics').on('click', this.exportAnalytics.bind(this));
-    },
-    
-    loadAnalyticsData: function() {
-        const linkPageId = $('#link-page-id').val();
-        const dateRange = $('#analytics-date-range').val();
-        
-        $.ajax({
-            url: ajaxurl,
-            type: 'POST',
-            data: {
-                action: 'extrch_fetch_link_page_analytics',
-                link_page_id: linkPageId,
-                date_range: dateRange,
-                nonce: analytics_nonce
-            },
-            success: this.renderCharts.bind(this)
-        });
-    },
-    
-    renderCharts: function(response) {
-        if (!response.success) return;
-        
-        const data = response.data;
-        
-        // Page views chart
-        this.renderPageViewsChart(data.page_views);
-        
-        // Link clicks chart
-        this.renderLinkClicksChart(data.link_clicks);
-        
-        // Update summary
-        this.updateSummary(data.summary);
-    },
-    
-    renderPageViewsChart: function(pageViewData) {
-        const ctx = document.getElementById('page-views-chart');
-        
-        // Destroy existing chart
-        if (this.charts.pageViews) {
-            this.charts.pageViews.destroy();
-        }
-        
-        this.charts.pageViews = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: pageViewData.map(d => d.date),
-                datasets: [{
-                    label: 'Page Views',
-                    data: pageViewData.map(d => d.views),
-                    borderColor: 'rgb(75, 192, 192)',
-                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
-                    tension: 0.1
-                }]
-            },
-            options: {
-                responsive: true,
-                scales: {
-                    y: {
-                        beginAtZero: true
-                    }
-                }
-            }
-        });
-    }
-};
-
-// Initialize when analytics tab is shown
-document.addEventListener('tabShown', function(e) {
-    if (e.detail.tab === 'analytics') {
-        AnalyticsDashboard.init();
-    }
-});
-```
+Charts are rendered directly in the Gutenberg block editor via React components
 
 ## Data Pruning
 
 ### Automatic Cleanup
 
-Analytics system includes automatic data pruning to prevent excessive database growth:
+Analytics system includes automatic data pruning via scheduled cron job:
 
-```php
-/**
- * Prune old analytics data
- */
-function prune_analytics_data() {
-    global $wpdb;
-    
-    // Keep data for 2 years (configurable)
-    $cutoff_date = date('Y-m-d', strtotime('-2 years'));
-    
-    // Prune page views
-    $views_table = $wpdb->prefix . 'extrch_link_page_daily_views';
-    $wpdb->query($wpdb->prepare("
-        DELETE FROM {$views_table} WHERE stat_date < %s
-    ", $cutoff_date));
-    
-    // Prune link clicks
-    $clicks_table = $wpdb->prefix . 'extrch_link_page_daily_link_clicks';
-    $wpdb->query($wpdb->prepare("
-        DELETE FROM {$clicks_table} WHERE stat_date < %s
-    ", $cutoff_date));
-}
+Location: `inc/database/link-page-analytics-db.php`
 
-// Schedule monthly pruning
-function schedule_analytics_pruning() {
-    if (!wp_next_scheduled('prune_analytics_data')) {
-        wp_schedule_event(time(), 'monthly', 'prune_analytics_data');
-    }
-}
-add_action('wp', 'schedule_analytics_pruning');
-add_action('prune_analytics_data', 'prune_analytics_data');
-```
+The pruning cron runs monthly to maintain database performance by removing data older than the configured retention period (default: 90 days)
 
 ## Performance Optimization
 
@@ -448,52 +292,13 @@ function get_top_performing_links($link_page_id, $date_range, $limit = 10) {
 
 ## Export Functionality
 
-### CSV Export
-
-```php
-function export_analytics_csv($link_page_id, $date_range) {
-    $page_views = get_page_view_data($link_page_id, $date_range);
-    $link_clicks = get_link_click_data($link_page_id, $date_range);
-    
-    // Set headers for CSV download
-    header('Content-Type: text/csv');
-    header('Content-Disposition: attachment; filename="analytics-' . $link_page_id . '-' . date('Y-m-d') . '.csv"');
-    
-    $output = fopen('php://output', 'w');
-    
-    // Write page views data
-    fputcsv($output, ['Date', 'Page Views']);
-    foreach ($page_views as $row) {
-        fputcsv($output, [$row['date'], $row['views']]);
-    }
-    
-    fclose($output);
-    exit;
-}
-```
+Analytics data can be exported via REST API endpoints for integration with external reporting tools
 
 ## Integration Points
 
 ### Third-Party Analytics
 
-Analytics system integrates with external services:
-
-```javascript
-// Send data to Google Analytics
-function sendToGA(eventData) {
-    if (typeof gtag !== 'undefined') {
-        gtag('event', 'page_view', {
-            'custom_parameter': eventData.link_page_id
-        });
-    }
-}
-
-// Send data to Meta Pixel
-function sendToMetaPixel(eventData) {
-    if (typeof fbq !== 'undefined') {
-        fbq('track', 'ViewContent', {
-            'content_ids': [eventData.link_page_id]
-        });
-    }
-}
-```
+The plugin integrates with external analytics services via:
+- Google Tag Manager (GTM) tracking codes configured in TabAdvanced
+- Meta Pixel (Facebook) integration for conversion tracking
+- Custom event tracking via REST API endpoints

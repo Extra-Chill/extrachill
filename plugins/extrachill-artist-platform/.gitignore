@@ -67,6 +67,5 @@ build/
 # Additional build and development files
 .claude/
 CLAUDE.md
-AGENTS.md
 .buildignore
 build.sh

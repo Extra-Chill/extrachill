@@ -112,14 +112,11 @@ echo $css_block;
 
 ## Live Preview Integration
 
-Templates support live preview override system:
+The Gutenberg block editor in `src/blocks/link-page-editor/` provides live preview of changes through React components. The `Preview.js` component displays real-time updates as artists make changes to their link pages.
 
 ```php
-// Preview template with overrides
-include 'inc/link-pages/management/live-preview/preview.php';
-
-// Uses override data from form changes
-$preview_data = ec_get_link_page_data($artist_id, $link_page_id, $overrides);
+// Preview data uses same function as templates
+$preview_data = ec_get_link_page_data($artist_id, $link_page_id);
 ```
 
 ## Template Arguments

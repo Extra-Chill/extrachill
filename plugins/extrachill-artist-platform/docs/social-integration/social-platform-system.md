@@ -400,186 +400,29 @@ public function remove_social_link($artist_id, $link_id) {
 
 Legacy manage-link-page social AJAX and components have been removed. Social management flows through the block and REST.
 
+## Block-Based Social Management
 
-### Social Item Editor Component
+The Gutenberg block provides social platform management through the **TabSocials** component:
 
-Location: `inc/link-pages/management/templates/components/social-item-editor.php`
+**Location**: `src/blocks/link-page-editor/components/tabs/TabSocials.js`
 
-```php
-<div class="social-item-editor" data-social-id="<?php echo esc_attr($social_data['id']); ?>">
-    <div class="social-item-header">
-        <i class="<?php echo esc_attr($social_manager->get_platform_icon($social_data['type'])); ?>"></i>
-        <span class="platform-name"><?php echo esc_html($social_manager->get_platform_label($social_data['type'])); ?></span>
-        <button type="button" class="remove-social-item" data-social-id="<?php echo esc_attr($social_data['id']); ?>">
-            <i class="fas fa-trash"></i>
-        </button>
-    </div>
-    
-    <div class="social-item-fields">
-        <label for="social-url-<?php echo esc_attr($social_data['id']); ?>">URL:</label>
-        <input type="url" 
-               id="social-url-<?php echo esc_attr($social_data['id']); ?>"
-               name="social_links[<?php echo esc_attr($social_data['id']); ?>][url]"
-               value="<?php echo esc_attr($social_data['url']); ?>"
-               placeholder="Enter URL"
-               required>
-        
-        <?php if ($social_manager->platform_supports_custom_label($social_data['type'])): ?>
-            <label for="social-label-<?php echo esc_attr($social_data['id']); ?>">Label:</label>
-            <input type="text"
-                   id="social-label-<?php echo esc_attr($social_data['id']); ?>"
-                   name="social_links[<?php echo esc_attr($social_data['id']); ?>][label]"
-                   value="<?php echo esc_attr($social_data['label']); ?>"
-                   placeholder="Enter label">
-        <?php endif; ?>
-    </div>
-</div>
-```
-
-### JavaScript Social Management
-
-Location: `inc/link-pages/management/assets/js/socials.js`
-
-```javascript
-const SocialsManager = {
-    init: function() {
-        this.bindEvents();
-    },
-    
-    bindEvents: function() {
-        $('#add-social-link').on('click', this.showAddSocialForm.bind(this));
-        $(document).on('click', '.remove-social-item', this.removeSocialItem.bind(this));
-        $(document).on('change', '.social-item-fields input', this.updateSocialPreview.bind(this));
-    },
-    
-    showAddSocialForm: function() {
-        const availablePlatforms = this.getAvailablePlatforms();
-        let optionsHtml = '';
-        
-        availablePlatforms.forEach(platform => {
-            optionsHtml += `<option value="${platform.type}">${platform.label}</option>`;
-        });
-        
-        const formHtml = `
-            <div id="add-social-form" class="add-social-form">
-                <select id="social-platform-select">
-                    <option value="">Select Platform</option>
-                    ${optionsHtml}
-                </select>
-                <input type="url" id="social-url-input" placeholder="Enter URL">
-                <input type="text" id="social-label-input" placeholder="Label (for custom links)" style="display:none;">
-                <button type="button" id="confirm-add-social">Add</button>
-                <button type="button" id="cancel-add-social">Cancel</button>
-            </div>
-        `;
-        
-        $('#social-links-container').append(formHtml);
-        $('#social-platform-select').focus();
-        
-        this.bindAddFormEvents();
-    },
-    
-    addSocialLink: function(type, url, label) {
-        $.ajax({
-            url: ajaxurl,
-            type: 'POST',
-            data: {
-                action: 'add_social_link',
-                artist_id: artistId,
-                social_type: type,
-                social_url: url,
-                social_label: label,
-                nonce: socialNonce
-            },
-            success: function(response) {
-                if (response.success) {
-                    // Update social links display
-                    this.refreshSocialLinks();
-                    
-                    // Update preview
-                    document.dispatchEvent(new CustomEvent('socialsChanged', {
-                        detail: { socialLinks: this.getCurrentSocialLinks() }
-                    }));
-                } else {
-                    alert('Error: ' + response.data.message);
-                }
-            }.bind(this)
-        });
-    }
-};
-```
+**Features**:
+- Add/remove social platform links
+- URL validation for each platform
+- Custom label support (for custom links)
+- Real-time preview updates
+- REST API integration via `src/blocks/link-page-editor/api/client.js`
 
 ## Rendering System
 
-### Template Functions
+Social links are rendered on the public link page template at `inc/link-pages/live/templates/extrch-link-page-template.php`.
 
-```php
-/**
- * Render single social icon
- */
-function ec_render_social_icon($social_data, $social_manager = null) {
-    if (!$social_manager) {
-        $social_manager = ExtraChillArtistPlatform_SocialLinks::instance();
-    }
-    
-    $template_args = [
-        'social_data' => $social_data,
-        'social_manager' => $social_manager
-    ];
-    
-    return ec_render_template('social-icon', $template_args);
-}
+**Social Icon Integration**:
+- Uses `ExtraChillArtistPlatform_SocialLinks` class for platform data
+- Font Awesome icons with fallback support
+- Custom social icons via `assets/css/custom-social-icons.css` (SVG mask technique)
+- Automatic protocol handling and URL validation
 
-/**
- * Render social icons container
- */
-function ec_render_social_icons_container($social_links, $position = 'above', $social_manager = null) {
-    if (!$social_manager) {
-        $social_manager = ExtraChillArtistPlatform_SocialLinks::instance();
-    }
-    
-    $template_args = [
-        'social_links' => $social_links,
-        'position' => $position,
-        'social_manager' => $social_manager
-    ];
-    
-    return ec_render_template('social-icons-container', $template_args);
-}
-```
-
-### Social Icon Template
-
-Location: `inc/link-pages/templates/social-icon.php`
-
-```php
-<?php if (!empty($social_data['url'])): ?>
-    <a href="<?php echo esc_url($social_data['url']); ?>" 
-       class="social-icon <?php echo esc_attr($social_data['type']); ?>"
-       target="_blank"
-       rel="noopener noreferrer"
-       title="<?php echo esc_attr($social_data['label'] ?: $social_manager->get_platform_label($social_data['type'])); ?>">
-        <i class="<?php echo esc_attr($social_manager->get_platform_icon($social_data['type'])); ?>"></i>
-        <?php if (!empty($social_data['label']) && $social_data['type'] === 'custom'): ?>
-            <span class="social-label"><?php echo esc_html($social_data['label']); ?></span>
-        <?php endif; ?>
-    </a>
-<?php endif; ?>
-```
-
-### Social Icons Container Template
-
-Location: `inc/link-pages/templates/social-icons-container.php`
-
-```php
-<?php if (!empty($social_links)): ?>
-    <div class="social-icons-container <?php echo esc_attr($position); ?>">
-        <?php foreach ($social_links as $social_link): ?>
-            <?php echo ec_render_social_icon($social_link, $social_manager); ?>
-        <?php endforeach; ?>
-    </div>
-<?php endif; ?>
-```
 
 ## Custom Link Support
 
