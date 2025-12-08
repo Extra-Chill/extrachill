@@ -72,7 +72,7 @@ function extrachill_docs_seed_platforms() {
 		'community'       => array(
 			'name' => 'Extra Chill Community',
 		),
-		'events'          => array(
+		'events-calendar'          => array(
 			'name' => 'Extra Chill Events',
 		),
 		'stream'          => array(

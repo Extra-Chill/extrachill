@@ -36,6 +36,8 @@ function extrachill_docs_render_homepage_cards() {
 	if ( empty( $platforms ) || is_wp_error( $platforms ) ) {
 		return;
 	}
+
+	extrachill_breadcrumbs();
 	?>
 	<div class="docs-homepage">
 		<div class="docs-intro">

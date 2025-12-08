@@ -3,6 +3,8 @@
 ## Overview
 User-facing documentation platform for the Extra Chill network. Deployed on docs.extrachill.com (Blog ID 10). Uses `ec_doc` custom post type with `ec_doc_platform` taxonomy for clean `/platform-slug/doc-slug/` URLs. Homepage displays dynamic platform cards for documentation navigation.
 
+The public `GET /wp-json/extrachill/v1/docs-info` endpoint returns docs metadata plus the main-site About page content (blog 1, slug `about`) and only taxonomy terms that have published posts, with counts per term.
+
 ## Architecture
 
 ### Custom Post Type

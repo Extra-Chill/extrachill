@@ -1,3 +1,17 @@
+# 0.2.3 - Dec 8, 2025
+
+### Added
+- Homepage intro section with title and description for better user experience
+- Breadcrumb navigation integration on documentation homepage
+
+### Changed
+- Reorganized homepage rendering code from `inc/home/` to `inc/core/homepage.php` for better file structure
+- Updated 'events' platform taxonomy slug to 'events-calendar' for improved URL clarity
+- Updated AGENTS.md with REST API endpoint documentation
+
+### Maintenance
+- Updated Composer dependencies
+
 # 0.2.2 - Dec 7, 2025
 
 ### Added
