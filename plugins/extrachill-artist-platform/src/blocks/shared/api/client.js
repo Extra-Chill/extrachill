@@ -29,9 +29,9 @@ export const getSocials = ( artistId ) =>
 export const updateSocials = ( artistId, data ) =>
 	put( `extrachill/v1/artists/${ artistId }/socials`, data );
 
-// Analytics (link page scoped)
-export const getAnalytics = ( linkPageId, dateRange = 30 ) =>
-	get( `extrachill/v1/analytics/${ linkPageId }?date_range=${ dateRange }` );
+// Analytics (artist scoped via API plugin)
+export const getAnalytics = ( artistId, dateRange = 30 ) =>
+	get( `extrachill/v1/artists/${ artistId }/analytics?date_range=${ dateRange }` );
 
 // Media
 export const uploadMedia = ( context, targetId, file ) => {

@@ -113,7 +113,7 @@ function bp_display_manage_members_section( $artist_id, $current_user_id ) {
                     </label>
                     <input type="email" id="bp-new-member-email-input" name="bp_new_member_email" style="width: 100%; max-width: 300px; margin-bottom:10px;">
                 </div>
-                <button type="button" id="bp-ajax-invite-member-button" class="button-2 button-medium"><?php esc_html_e('Send Invitation', 'extrachill-artist-platform'); ?></button>
+                <button type="button" id="bp-send-invite-member-button" class="button-2 button-medium"><?php esc_html_e('Send Invitation', 'extrachill-artist-platform'); ?></button>
                 <a href="#" id="bp-cancel-add-member-form-link" style="margin-left: 10px; display: inline-block; vertical-align: middle;">
                     <?php esc_html_e('Cancel', 'extrachill-artist-platform'); ?>
                 </a>

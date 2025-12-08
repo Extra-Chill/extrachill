@@ -68,50 +68,76 @@ add_action('admin_init', 'extrch_create_or_update_analytics_table');
 
 Location: `inc/link-pages/live/assets/js/link-page-public-tracking.js`
 
-Tracks page views and link clicks using sendBeacon API for reliable delivery
+Tracks page views and link clicks using sendBeacon API for reliable delivery with Fetch API fallback
 
 ### Server-Side Tracking
 
-Location: `inc/link-pages/live/ajax/analytics.php`
+Location: `inc/link-pages/live/ajax/analytics.php` - REST API endpoint enqueuer
+
+The analytics system receives tracking data via REST API requests:
 
 ```php
 /**
- * Record page view event
+ * Record page view event via REST API
  */
 function extrch_record_link_event() {
-    if (!wp_verify_nonce($_POST['nonce'], 'extrch_public_ajax_nonce')) {
-        wp_die('Security check failed');
-    }
-    
-    $link_page_id = (int) $_POST['link_page_id'];
-    $event_type = sanitize_text_field($_POST['event_type']);
+    // REST API endpoint handler receives data
+    $link_page_id = (int) $request->get_param('link_page_id');
+    $event_type = sanitize_text_field($request->get_param('event_type'));
     
     if ($event_type === 'page_view') {
         record_page_view($link_page_id);
     }
     
-    wp_send_json_success();
+    return rest_ensure_response(['success' => true]);
 }
-add_action('wp_ajax_extrch_record_link_event', 'extrch_record_link_event');
-add_action('wp_ajax_nopriv_extrch_record_link_event', 'extrch_record_link_event');
 
 /**
- * Record link click event
+ * Record link click event via REST API
  */
-function link_page_click_tracking() {
-    if (!wp_verify_nonce($_POST['nonce'], 'extrch_public_ajax_nonce')) {
-        wp_die('Security check failed');
-    }
-    
-    $link_page_id = (int) $_POST['link_page_id'];
-    $link_url = esc_url_raw($_POST['link_url']);
+function link_page_click_tracking($request) {
+    // REST API endpoint handler receives data
+    $link_page_id = (int) $request->get_param('link_page_id');
+    $link_url = esc_url_raw($request->get_param('link_url'));
     
     record_link_click($link_page_id, $link_url);
     
-    wp_send_json_success();
+    return rest_ensure_response(['success' => true]);
 }
-add_action('wp_ajax_link_page_click_tracking', 'link_page_click_tracking');
-add_action('wp_ajax_nopriv_link_page_click_tracking', 'link_page_click_tracking');
+```
+
+### Client-Side Fetch Integration
+
+Location: `inc/link-pages/live/assets/js/link-page-public-tracking.js`
+
+Public tracking uses Fetch API with sendBeacon fallback:
+
+```javascript
+// Track page view via Fetch API with sendBeacon fallback
+function trackPageView(linkPageId) {
+    const data = new FormData();
+    data.append('link_page_id', linkPageId);
+    data.append('event_type', 'page_view');
+    
+    // Use sendBeacon for reliability
+    navigator.sendBeacon(
+        `/wp-json/extrachill/v1/analytics/track`,
+        data
+    );
+}
+
+// Track link click via Fetch API
+function trackLinkClick(linkPageId, linkUrl) {
+    fetch('/wp-json/extrachill/v1/analytics/track', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            link_page_id: linkPageId,
+            event_type: 'link_click',
+            link_url: linkUrl
+        })
+    });
+}
 ```
 
 ## URL Normalization

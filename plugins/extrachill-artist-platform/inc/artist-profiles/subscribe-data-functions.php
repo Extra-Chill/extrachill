@@ -3,7 +3,7 @@
  * Artist Profile Subscriber Data Functions
  * 
  * Backend functions for fetching and managing artist profile subscriber data.
- * Handles subscriber management, AJAX requests, and CSV exports for artist profiles.
+ * Handles subscriber management and CSV exports for artist profiles.
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -72,7 +72,8 @@ function extrch_get_artist_subscribers( $artist_id, $args = array() ) {
 }
 
 /**
- * AJAX handler to fetch subscriber data for an artist.
+ * REST API handler to fetch subscriber data for an artist.
+ * Note: This function is legacy and not actively used. REST API handlers are implemented via filter hooks.
  */
 function extrch_fetch_artist_subscribers_ajax() {
     // Check for required parameters
@@ -119,7 +120,7 @@ function extrch_fetch_artist_subscribers_ajax() {
     }
 
         wp_send_json_error( array( 'message' => __( 'Could not fetch subscriber data.', 'extrachill-artist-platform' ) ) );
-    wp_die(); // Always include wp_die() at the end of AJAX handlers
+    wp_die(); // wp_die() ensures proper response termination
 }
 
 /**
@@ -222,11 +223,11 @@ function extrch_export_artist_subscribers_csv() {
          $wpdb->query("UPDATE $table_name SET exported = 1 WHERE subscriber_id IN ($ids_string)");
     }
 
-    // For AJAX, just exit after sending output
+    // For form submissions, exit after sending output
     exit; // Or let the function naturally end
 }
 
-// AJAX handlers registered individually via wp_ajax hooks in respective modules
+// REST API handlers registered individually via filter hooks in respective modules
 
 /**
  * Handle artist subscription via REST API filter

@@ -30,16 +30,16 @@ The `extrachill.link` domain provides public access to artist link pages while m
 
 ## Edit Icon System (CORS Authentication)
 
-Client-side permission checking with cross-domain AJAX to artist.extrachill.com:
+Client-side permission checking with cross-domain REST API requests to artist.extrachill.com:
 
 **Files**:
-- AJAX Handler: `inc/link-pages/live/ajax/edit-permission.php`
+- REST API Enqueuer: `inc/link-pages/live/ajax/edit-permission.php`
 - JavaScript: `inc/link-pages/live/assets/js/link-page-edit-button.js`
 - Styles: `assets/css/extrch-links.css` (lines 243-264)
 
 **Flow**:
 1. User views link page on `extrachill.link/{artist-slug}`
-2. JavaScript makes CORS request to `artist.extrachill.com/wp-admin/admin-ajax.php`
+2. JavaScript makes CORS request to `artist.extrachill.com/wp-json/extrachill/v1/edit-permission`
 3. Server validates user permission via `ec_can_manage_artist()`
 4. Edit button rendered if permission granted (JavaScript-only, no server HTML)
 

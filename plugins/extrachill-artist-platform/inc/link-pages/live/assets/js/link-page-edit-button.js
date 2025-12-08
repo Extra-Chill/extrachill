@@ -12,7 +12,7 @@
     /**
      * Performs CORS permission check and renders edit button if authorized
      *
-     * Makes fetch request with credentials to artist.extrachill.com AJAX endpoint.
+     * Makes fetch request with credentials to artist.extrachill.com REST API endpoint.
      * WordPress cookies with SameSite=None; Secure are sent via credentials: 'include'.
      * Only renders button if server validates permission via ec_can_manage_artist().
      *

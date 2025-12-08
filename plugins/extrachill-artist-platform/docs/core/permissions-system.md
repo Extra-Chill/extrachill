@@ -25,44 +25,6 @@ $can_manage = ec_can_manage_artist($user_id, $artist_id);
 2. **Artist Membership**: Users linked to artist profile via `_artist_profile_ids` meta
 3. **Security Validation**: All checks validate user and artist ID existence
 
-## AJAX Permission Helpers
-
-### Artist Management in AJAX
-
-```php
-/**
- * AJAX-specific artist management check
- * 
- * @param array $post_data POST data from AJAX request
- * @return bool Permission result
- */
-$can_manage = ec_ajax_can_manage_artist($_POST);
-```
-
-### Link Page Management in AJAX
-
-```php
-/**
- * AJAX-specific link page management check
- * 
- * @param array $post_data POST data from AJAX request
- * @return bool Permission result
- */
-$can_manage = ec_ajax_can_manage_link_page($_POST);
-```
-
-### Admin Capabilities Check
-
-```php
-/**
- * Check admin capabilities in AJAX context
- * 
- * @param array $post_data POST data from AJAX request
- * @return bool True if user has admin capabilities
- */
-$is_admin = ec_ajax_can_admin($_POST);
-```
-
 ## Artist Profile Creation
 
 ### User Artist Profile Limits
@@ -92,24 +54,33 @@ if (ec_can_manage_artist(get_current_user_id(), $artist_id)) {
 }
 ```
 
-### AJAX Handler Security
+### REST API Security
+
+All management operations use the WordPress REST API with proper nonce verification and permission checks:
 
 ```php
-// Standard AJAX permission pattern
-function handle_ajax_request() {
-    // Verify nonce
-    if (!wp_verify_nonce($_POST['nonce'], 'ajax_nonce')) {
-        wp_die('Security check failed');
+// REST API permission validation
+function rest_api_permission_check($request) {
+    // Check user authentication
+    if (!is_user_logged_in()) {
+        return false;
     }
     
-    // Check permissions
-    if (!ec_ajax_can_manage_artist($_POST)) {
-        wp_send_json_error('Insufficient permissions');
+    // Check artist management permissions
+    $artist_id = $request->get_param('artist_id');
+    if (!ec_can_manage_artist(get_current_user_id(), $artist_id)) {
+        return false;
     }
     
-    // Process request
-    // ...
+    return true;
 }
+
+// Register REST endpoint with permission check
+register_rest_route('extrachill/v1', '/artists/(?P<artist_id>\d+)', [
+    'methods' => 'POST',
+    'callback' => 'rest_api_handler',
+    'permission_callback' => 'rest_api_permission_check'
+]);
 ```
 
 ### Gutenberg Block Management
@@ -204,16 +175,16 @@ if ($is_valid && ec_can_manage_link_page($_REQUEST)) {
 
 ### Nonce Verification
 
-All forms and AJAX requests use WordPress nonce system:
+All REST API requests and forms use WordPress nonce system:
 
 ```php
 // Form nonce generation
 wp_nonce_field('save_action', 'save_action_nonce');
 
-// AJAX nonce generation
-wp_localize_script('ajax-script', 'ajax_object', [
-    'ajax_url' => admin_url('admin-ajax.php'),
-    'nonce' => wp_create_nonce('ajax_nonce')
+// REST API nonce generation
+wp_localize_script('block-script', 'wpApiSettings', [
+    'rest_url' => rest_url('/'),
+    'nonce' => wp_create_nonce('wp_rest')
 ]);
 ```
 

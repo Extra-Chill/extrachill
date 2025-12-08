@@ -130,10 +130,8 @@ class ExtraChillArtistPlatform_Assets {
         }
 
         wp_localize_script( 'extrachill-artist-platform', 'extraChillArtistPlatform', array(
-            'ajaxUrl' => admin_url( 'admin-ajax.php' ),
             'restUrl' => rest_url( 'extrachill/v1' ),
             'artistSlug' => $artist_slug,
-            'nonce' => wp_create_nonce( 'ec_ajax_nonce' ),
             'restNonce' => wp_create_nonce( 'wp_rest' ),
             'linkPageData' => $link_page_data,
             'fonts' => $fonts_data,
@@ -141,7 +139,7 @@ class ExtraChillArtistPlatform_Assets {
             'nonces' => array(),
             'analyticsConfig' => array(
                 'trackingEnabled' => true,
-                'trackingEndpoint' => admin_url( 'admin-ajax.php' )
+                'trackingEndpoint' => rest_url( 'extrachill/v1/analytics' )
             )
         ) );
     }

@@ -351,7 +351,7 @@ class ExtraChillArtistPlatform_Fonts {
         if ( 'post.php' === $pagenow || 'page.php' === $pagenow || isset( $_GET['artist_id'] ) ) {
             wp_localize_script( 'extrachill-manage-link-page-fonts', 'extrchFontData', array(
                 'fonts' => $this->get_supported_fonts(),
-                'ajaxurl' => admin_url( 'admin-ajax.php' )
+                'restUrl' => rest_url( 'extrachill/v1' )
             ) );
         }
     }

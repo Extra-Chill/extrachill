@@ -16,11 +16,10 @@ document.addEventListener( 'DOMContentLoaded', () => {
 	}
 
 	const artistId = parseInt( container.dataset.artistId, 10 ) || 0;
-	const linkPageId = parseInt( container.dataset.linkPageId, 10 ) || 0;
 
 	const root = createRoot( container );
 	root.render(
-		<AnalyticsProvider initialArtistId={ artistId } initialLinkPageId={ linkPageId }>
+		<AnalyticsProvider initialArtistId={ artistId }>
 			<Analytics />
 		</AnalyticsProvider>
 	);

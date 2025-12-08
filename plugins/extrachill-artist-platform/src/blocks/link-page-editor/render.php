@@ -119,15 +119,18 @@ if ( function_exists( 'extrachill_artist_platform_social_links' ) ) {
 	$social_manager = extrachill_artist_platform_social_links();
 	$raw_types      = $social_manager->get_supported_types();
 	
-	// Transform associative array to indexed array with id/label for React
-	foreach ( $raw_types as $type_id => $type_data ) {
-		$social_types[] = array(
-			'id'    => $type_id,
-			'label' => $type_data['label'],
-			'icon'  => isset( $type_data['icon'] ) ? $type_data['icon'] : '',
-		);
-	}
+    // Transform associative array to indexed array with id/label/icon_class for React
+    foreach ( $raw_types as $type_id => $type_data ) {
+        $icon_value = isset( $type_data['icon'] ) ? $type_data['icon'] : '';
+        $social_types[] = array(
+            'id'         => $type_id,
+            'label'      => $type_data['label'],
+            'icon'       => $icon_value,
+            'icon_class' => $icon_value,
+        );
+    }
 }
+
 
 // Localize configuration data
 $config = array(

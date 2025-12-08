@@ -13,7 +13,7 @@ A comprehensive WordPress plugin that provides artist profile management, link p
 
 ### 🎵 Artist Profiles
 - Custom post type for artist/band profiles with comprehensive meta data
-- Activity-based artist grid display with smart sorting and AJAX pagination
+- Activity-based artist grid display with smart sorting and context-aware rendering
 - Blog coverage integration linking profiles to main site taxonomy archives
 - Roster management with email invitation system and role assignment
 - Artist directory with user exclusion logic for personalized views
@@ -39,10 +39,10 @@ A comprehensive WordPress plugin that provides artist profile management, link p
 - Chart.js-powered visual analytics with date filtering
 - Real-time click tracking with automatic data pruning
 - Export capabilities for comprehensive data analysis
-- Public tracking via AJAX with privacy-conscious data collection
+- Public tracking via REST API with privacy-conscious data collection
 
 ### 👥 Subscription Management
-- Modal and inline subscription forms with AJAX processing
+- Modal and inline subscription forms with REST API processing
 - Artist-specific subscriber lists with export tracking
 - Database-backed subscriber management with deduplication
 - Link page and artist profile subscription integration
@@ -58,7 +58,7 @@ A comprehensive WordPress plugin that provides artist profile management, link p
 - Centralized access control via `inc/core/filters/permissions.php`
 - Role-based artist profile management with granular permissions
 - Server-side permission validation with context-aware checks
-- AJAX permission validation with comprehensive nonce verification
+- REST API permission validation with comprehensive nonce verification
 - Template-level permission checks using native WordPress authentication
 - Cross-domain authentication managed by extrachill-multisite plugin
 
@@ -201,17 +201,14 @@ build/blocks/link-page-analytics/
 build/blocks/artist-profile-manager/
 ```
 
-### AJAX System
+### Public Tracking (REST API)
 
-The plugin uses a modular AJAX system organized by functionality:
+The plugin uses REST API for all public tracking operations:
 
 ```php
-// Live (Public) AJAX Actions: inc/link-pages/live/ajax/
-add_action( 'wp_ajax_extrch_record_link_event', 'extrch_record_link_event_ajax' );
-add_action( 'wp_ajax_nopriv_extrch_record_link_event', 'extrch_record_link_event_ajax' );
-
-// Management (Admin) AJAX Actions via REST API: src/blocks/link-page-editor/api/client.js
-// All management operations go through WordPress REST API
+// Public Tracking Endpoints: inc/link-pages/live/ajax/
+// REST API registration for analytics and permission checking
+// All tracking uses sendBeacon() or fetch() with REST endpoints
 ```
 
 ### Permission System
@@ -224,8 +221,8 @@ if ( ec_can_manage_artist( get_current_user_id(), $artist_id ) ) {
     // User has permission to manage this artist
 }
 
-if ( ec_ajax_can_manage_link_page() ) {
-    // AJAX context: User can manage link pages
+if ( ec_can_manage_link_page( get_current_user_id(), $link_page_id ) ) {
+    // User can manage link pages
 }
 
 // Template-level permission checks
@@ -253,13 +250,13 @@ $preview_data = ec_get_link_page_data( $artist_id, $link_page_id, $override_data
 
 ### Artist Grid Display
 
-Activity-based artist sorting with AJAX pagination and comprehensive timestamp calculation:
+Activity-based artist sorting with context-aware rendering and pagination:
 
 ```php
 // Display artist grid with current user's artists excluded
 ec_display_artist_cards_grid( 24, true );
 
-// Display with AJAX data return (for pagination)
+// Display with pagination data return
 $data = ec_display_artist_cards_grid( 24, true, 1, true );
 // Returns: array with 'html', 'pagination_html', 'current_page', 'total_pages', 'total_artists'
 
@@ -342,26 +339,35 @@ add_filter( 'ec_validate_link_data', function( $valid, $link_data ) {
 }, 10, 2 );
 ```
 
-### Adding Custom AJAX Actions
+### Adding Custom REST API Actions
 
-The plugin uses WordPress native AJAX patterns with modular organization:
+The plugin uses WordPress native REST API patterns for extensibility:
 
 ```php
-// Register AJAX actions using WordPress native patterns
-add_action( 'wp_ajax_custom_action', 'my_custom_handler' );
-add_action( 'wp_ajax_nopriv_custom_action', 'my_custom_handler' ); // For public access
+// Register custom REST routes for your functionality
+register_rest_route( 'your-namespace/v1', '/custom-action', array(
+    'methods'             => 'POST',
+    'callback'            => 'my_custom_handler',
+    'permission_callback' => 'ec_can_manage_artist',
+    'args'                => array(
+        'artist_id' => array(
+            'type'     => 'integer',
+            'required' => true,
+        ),
+    ),
+) );
 
-function my_custom_handler() {
-    // Security checks
-    check_ajax_referer( 'custom_nonce_action', 'nonce' );
+function my_custom_handler( $request ) {
+    // Get parameters from request
+    $artist_id = $request->get_param( 'artist_id' );
 
     // Permission validation using centralized system
-    if ( ! ec_ajax_can_manage_artist() ) {
-        wp_send_json_error( 'Insufficient permissions' );
+    if ( ! ec_can_manage_artist( get_current_user_id(), $artist_id ) ) {
+        return new WP_Error( 'forbidden', 'Insufficient permissions', array( 'status' => 403 ) );
     }
 
-    // Your custom AJAX logic
-    wp_send_json_success( array( 'message' => 'Success!' ) );
+    // Your custom logic
+    return rest_ensure_response( array( 'message' => 'Success!' ) );
 }
 ```
 
@@ -478,7 +484,7 @@ Link page configuration stored as post meta:
 - **Link Expiration System**: Time-based link scheduling with automatic deactivation and preview integration
 - **Artist Context Switching**: Multi-artist management with seamless state preservation
 - **Centralized Data Provider**: Single source of truth via `ec_get_link_page_data()` with live preview support
-- **Component Templates**: Modular UI components with AJAX-driven rendering
+- **Component Templates**: Modular UI components with context-aware rendering
 - **Permission System**: Centralized access control with context-aware validation
 - **Save System**: WordPress-native form processing with comprehensive data preparation and validation
 
@@ -566,12 +572,12 @@ if ( ec_can_manage_artist( get_current_user_id(), $artist_id ) ) {
     // User has permission
 }
 
-// Permission callbacks used in AJAX registry
+// Permission callbacks used in REST API
 $permission_callbacks = [
-    'ec_ajax_can_manage_artist',
-    'ec_ajax_can_manage_link_page', 
-    'ec_ajax_is_admin',
-    'ec_ajax_can_create_artists'
+    'ec_can_manage_artist',
+    'ec_can_manage_link_page', 
+    'current_user_can'
+];
 ];
 ```
 
@@ -584,7 +590,7 @@ Ensure the extrachill theme is active.
 Check that rewrite rules are flushed by deactivating and reactivating the plugin.
 
 ### Analytics Not Tracking
-Verify that JavaScript is not blocked and check browser console for errors. Check that AJAX endpoints are accessible.
+Verify that JavaScript is not blocked and check browser console for errors. Check that REST API endpoints are accessible.
 
 ### Permission Issues
 Ensure user has proper role assignments and check permission functions in `inc/core/filters/permissions.php`.
@@ -650,15 +656,15 @@ inc/
 │   ├── roster/                      # Band member management
 │   │   ├── artist-invitation-emails.php
 │   │   ├── manage-roster-ui.php
-│   │   ├── roster-ajax-handlers.php
+│   │   ├── roster-filter-handlers.php
 │   │   └── roster-data-functions.php
 │   ├── blog-coverage.php            # Main site taxonomy archive linking
 │   └── subscribe-data-functions.php # Artist subscription data
 ├── link-pages/                      # Link page system
 │   ├── live/                       # Live page functionality
-│   │   ├── ajax/                   # Public AJAX handlers
+│   │   ├── ajax/                   # Public REST API modules
 │   │   │   ├── analytics.php          # Public tracking and data pruning
-│   │   │   └── edit-permission.php    # Live permission editing
+│   │   │   └── edit-permission.php    # Live permission checking
 │   │   ├── assets/js/               # Public JavaScript modules
 │   │   └── templates/              # Public link page templates
 │   │       ├── single-artist_link_page.php
@@ -685,8 +691,7 @@ assets/
 └── js/
     ├── artist-switcher.js           # Artist context switching
     ├── artist-platform.js           # Core plugin functionality
-    ├── artist-platform-home.js     # Homepage-specific features
-    └── artist-grid-pagination.js   # AJAX pagination for artist grid
+    └── artist-platform-home.js     # Homepage-specific features
 ```
 
 **Note**: Migration functionality is available in extrachill-admin-tools plugin (`inc/tools/artist-platform-migration.php`)

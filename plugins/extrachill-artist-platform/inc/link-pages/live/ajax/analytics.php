@@ -13,10 +13,11 @@
 add_action( 'extrachill_link_page_view_recorded', 'extrachill_handle_link_page_view_db_write', 10, 1 );
 add_action( 'extrachill_link_click_recorded', 'extrachill_handle_link_click_db_write', 10, 2 );
 
+// Analytics REST API routes live in extrachill-api plugin.
+// This file only handles database writes triggered by existing hooks.
+
 /**
  * Writes page view data to the daily views table
- *
- * @param int $link_page_id The link page post ID.
  */
 function extrachill_handle_link_page_view_db_write( $link_page_id ) {
     global $wpdb;

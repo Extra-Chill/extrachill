@@ -173,17 +173,16 @@ const SubscriptionManager = {
         const artistId = form.querySelector('input[name="artist_id"]').value;
         const source = form.querySelector('input[name="source"]').value;
 
-        fetch(subscribe_ajax.ajax_url, {
+        fetch('/wp-json/extrachill/v1/subscribe', {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
+                'Content-Type': 'application/json',
+                'X-WP-Nonce': document.querySelector('[data-nonce-field]').value
             },
-            body: new URLSearchParams({
-                action: 'extrch_link_page_subscribe',
+            body: JSON.stringify({
                 subscriber_email: email,
                 artist_id: artistId,
-                source: source,
-                nonce: subscribe_ajax.nonce
+                source: source
             })
         })
         .then(response => response.json())
@@ -338,12 +337,6 @@ const response = await fetch( `/wp-json/extrachill/v1/subscribers/${artistId}`, 
 
 const subscribers = await response.json();
 ```
-
-Features:
-- Subscriber list with pagination
-- Export functionality via CSV download
-- Bulk actions
-- Source filtering
 
 ## Export Functionality
 

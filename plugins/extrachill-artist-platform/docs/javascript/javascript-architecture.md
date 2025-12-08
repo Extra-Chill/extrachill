@@ -85,7 +85,7 @@ Complete artist profile management interface providing profile editing, roster m
 ### Artist Profile Management
 
 **Location**: `inc/artist-profiles/assets/js/`
-- `manage-artist-profiles.js` - Profile editing, image previews, roster management with AJAX
+- `manage-artist-profiles.js` - Profile editing, image previews, roster management with REST API
 - `manage-artist-subscribers.js` - Subscriber list management
 - `artist-members-admin.js` - Backend member administration
 
@@ -95,7 +95,6 @@ Complete artist profile management interface providing profile editing, roster m
 - `artist-switcher.js` - Artist selection dropdown for switching contexts
 - `artist-platform.js` - Core plugin functionality
 - `artist-platform-home.js` - Homepage-specific features
-- `artist-grid-pagination.js` - AJAX pagination for artist grid with smooth transitions
 
 ### Join Flow Interface
 
@@ -127,13 +126,6 @@ Complex data structures handled via:
 - **Gutenberg block attributes** (primary modern approach)
 - **JSON meta fields** (persistent storage)
 
-### AJAX Integration
-
-**WordPress Native Patterns**:
-- `add_action('wp_ajax_*')` for action-based handlers
-- Nonce verification in each handler
-- Centralized permission checks via `inc/core/filters/permissions.php`
-
 ## Build System
 
 **Webpack Configuration** (`webpack.config.js`):
@@ -162,12 +154,6 @@ Assets loaded based on context:
 - **Join flow assets**: Only on login page with `from_join` parameter
 - **Management assets**: Only on artist/link page management pages
 - **Public assets**: Only on public link pages
-
-### AJAX Optimization
-
-- Nonce-based security
-- Debounced updates for real-time features
-- Centralized error handling
 
 ### Code Splitting
 

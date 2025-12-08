@@ -76,9 +76,9 @@
             }
 
             // Invite member by email
-            if (target.matches('#bp-ajax-invite-member-button') || target.closest('#bp-ajax-invite-member-button')) {
+            if (target.matches('#bp-send-invite-member-button') || target.closest('#bp-send-invite-member-button')) {
                 e.preventDefault();
-                const button = target.matches('#bp-ajax-invite-member-button') ? target : target.closest('#bp-ajax-invite-member-button');
+                const button = target.matches('#bp-send-invite-member-button') ? target : target.closest('#bp-send-invite-member-button');
                 const newMemberEmailInput = rosterTabContentElement.querySelector('#bp-new-member-email-input');
                 const inviteEmail = newMemberEmailInput ? newMemberEmailInput.value.trim() : '';
 

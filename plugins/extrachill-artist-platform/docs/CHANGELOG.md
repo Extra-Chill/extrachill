@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.3] - 2025-12-08
+
+### Changed
+- **REST API Migration**: Completed migration from AJAX to REST API across entire codebase
+- **Analytics Architecture**: Changed analytics from link-page-scoped to artist-scoped API endpoints
+- **API Client Consolidation**: Unified shared API client with improved error handling and artist-scoped analytics
+- **Permission System**: Added REST API-aware permission extraction functions for better security
+- **Asset Management**: Standardized on REST API endpoints, removed legacy AJAX references
+- **Social Links**: Enhanced data structure with icon_class field and improved ID generation for React components
+
+### Removed
+- Legacy AJAX endpoint references and AJAX-specific code paths
+- Deprecated AJAX handlers and button IDs
+- Outdated AJAX documentation and examples
+
+### Documentation
+- Updated all documentation files to reflect REST API architecture
+- Removed AJAX-specific patterns and legacy references
+- Enhanced cross-domain authentication and permission system documentation
+- Clarified modern WordPress REST API integration patterns
+
 ## [1.2.2] - 2025-12-08
 
 ### Fixed
@@ -289,8 +310,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Technical Improvements
 - Better separation of concerns between frontend and API layers
-- Enhanced code maintainability with REST API integration
+- Improved code maintainability with REST API integration
 - Improved form validation and error handling
+- **Note**: All AJAX handlers migrated to REST API starting in v1.1.3
 - Streamlined codebase by removing unused following functionality
 
 ## [1.1.3] - 2025-12-04
@@ -390,6 +412,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Enhanced performance through native JavaScript APIs
 - Better adherence to architectural principles
 - Improved code maintainability and encapsulation
+- **Note**: Migration from jQuery AJAX to REST API completed in subsequent versions
 
 ## [1.0.1] - 2025-11-29
 

@@ -7,14 +7,14 @@
 import { useState, useEffect, useCallback } from '@wordpress/element';
 import { getAnalytics } from '../../shared/api/client';
 
-export default function useAnalytics( linkPageId ) {
+export default function useAnalytics( artistId ) {
 	const [ dateRange, setDateRange ] = useState( 30 );
 	const [ analytics, setAnalytics ] = useState( null );
 	const [ isLoading, setIsLoading ] = useState( true );
 	const [ error, setError ] = useState( null );
 
 	const fetchAnalytics = useCallback( async () => {
-		if ( ! linkPageId ) {
+		if ( ! artistId ) {
 			return;
 		}
 
@@ -22,14 +22,14 @@ export default function useAnalytics( linkPageId ) {
 		setError( null );
 
 		try {
-			const data = await getAnalytics( linkPageId, dateRange );
+			const data = await getAnalytics( artistId, dateRange );
 			setAnalytics( data );
 		} catch ( err ) {
 			setError( err.message || 'Failed to load analytics' );
 		} finally {
 			setIsLoading( false );
 		}
-	}, [ linkPageId, dateRange ] );
+	}, [ artistId, dateRange ] );
 
 	useEffect( () => {
 		fetchAnalytics();

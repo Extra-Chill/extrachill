@@ -32,7 +32,7 @@ This replaces the legacy PHP-based roster UI for a modern, integrated experience
 
 Location: `inc/artist-profiles/roster/roster-data-functions.php`
 
-Core functions for roster data management (used by both block and AJAX handlers):
+Core functions for roster data management:
 
 ```php
 // Get linked members for artist
@@ -44,18 +44,6 @@ $pending = ec_get_pending_invitations($artist_id);
 // Check invitation status
 $status = ec_get_invitation_status($email, $artist_id);
 ```
-
-### AJAX Handlers
-
-Location: `inc/artist-profiles/roster/roster-ajax-handlers.php`
-
-Handles AJAX roster operations (legacy interface support):
-- Add member invitations
-- Remove members
-- Process invitation responses
-- Update member roles
-
-**Note**: Modern block-based interface uses REST API instead of AJAX for management operations.
 
 ## Invitation System
 
@@ -111,16 +99,16 @@ $invitation_data = [
 ### Adding Members
 
 ```php
-// AJAX handler for adding members
-function handle_add_member_request() {
+// Block REST API handler for adding members
+function handle_add_member_request($request) {
     // Verify permissions
-    if (!ec_ajax_can_manage_artist($_POST)) {
-        wp_send_json_error('Insufficient permissions');
+    $artist_id = (int) $request->get_param('artist_id');
+    if (!ec_can_manage_artist(get_current_user_id(), $artist_id)) {
+        return rest_ensure_response(['error' => 'Insufficient permissions'], 403);
     }
 
-    $email = sanitize_email($_POST['member_email']);
-    $artist_id = (int) $_POST['artist_id'];
-
+    $email = sanitize_email($request->get_param('member_email'));
+    
     // Check if user exists
     $user = get_user_by('email', $email);
 
@@ -132,7 +120,7 @@ function handle_add_member_request() {
         ec_send_artist_invitation_email($email, $artist_id, []);
     }
 
-    wp_send_json_success();
+    return rest_ensure_response(['success' => true]);
 }
 ```
 
@@ -220,17 +208,6 @@ const removeResponse = await fetch( `/wp-json/extrachill/v1/artists/${artistId}/
         'X-WP-Nonce': wpApiNonce
     }
 });
-```
-
-### Legacy AJAX Operations
-
-Location: `inc/artist-profiles/assets/js/manage-artist-profiles.js`
-
-Legacy AJAX handlers (retained for compatibility with older admin interfaces):
-
-```javascript
-// Legacy AJAX operations (deprecated)
-// Modern block-based interface uses REST API instead
 ```
 
 ## Security Features

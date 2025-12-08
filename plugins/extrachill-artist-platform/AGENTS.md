@@ -54,7 +54,7 @@ The plugin provides comprehensive integration with the extrachill.link domain fo
 **Public Template Integration**:
 - **Template File**: inc/link-pages/live/templates/extrch-link-page-template.php
 - **Powered By Footer**: Includes "Powered by Extra Chill" with link to https://extrachill.link
-- **Edit Icon System**: Client-side permission check with CORS AJAX to artist.extrachill.com (see Edit Icon System section)
+- **Edit Icon System**: Client-side permission check with CORS REST API to artist.extrachill.com (see Edit Icon System section)
 - **Share Modal Integration**: Share URLs use extrachill.link canonical URLs (inc/link-pages/live/assets/js/extrch-share-modal.js)
 
 ### Key Features
@@ -116,7 +116,7 @@ The plugin provides comprehensive integration with the extrachill.link domain fo
 **Location**: `inc/artist-profiles/roster/`
 - Band member invitation system with email notifications (`inc/artist-profiles/roster/artist-invitation-emails.php`)
 - Pending invitation tracking and management (`inc/artist-profiles/roster/manage-roster-ui.php`)
-- REST API-powered roster management via extrachill-api plugin filter hooks (`inc/artist-profiles/roster/roster-ajax-handlers.php`)
+- REST API-powered roster management via extrachill-api plugin filter hooks (`inc/artist-profiles/roster/roster-filter-handlers.php`)
 - Token-based invitation acceptance system
 - Data functions and validation (`inc/artist-profiles/roster/roster-data-functions.php`)
 
@@ -140,12 +140,12 @@ The plugin provides comprehensive integration with the extrachill.link domain fo
 
 **Architecture**:
 - **Client-Side Permission Check**: JavaScript-only rendering with zero server-side HTML for security
-- **CORS Request Flow**: extrachill.link → artist.extrachill.com AJAX with credentials
+- **CORS Request Flow**: extrachill.link → artist.extrachill.com REST API with credentials
 - **Permission Validation**: Uses `ec_can_manage_artist()` permission system
 - **Dynamic Rendering**: Edit button only appears in DOM if user has permission
 
 **Files**:
-- `inc/link-pages/live/ajax/edit-permission.php` - CORS AJAX handler with preflight support
+- `inc/link-pages/live/ajax/edit-permission.php` - REST API endpoint enqueuer with CORS support
 - `inc/link-pages/live/assets/js/link-page-edit-button.js` - Permission check and button rendering
 - `assets/css/extrch-links.css` (lines 243-264) - Fixed position edit button styles
 
@@ -157,7 +157,7 @@ The plugin provides comprehensive integration with the extrachill.link domain fo
 
 **Integration Points**:
 - Hooked via `extrch_link_page_minimal_head` action (priority 10)
-- Localized script data: `ajax_url` (https://artist.extrachill.com/wp-admin/admin-ajax.php), `artist_id`
+- Localized script data: `api_url` (REST endpoint), `artist_id`
 - Requires WordPress authentication cookies accessible from extrachill.link domain
 
 **Cross-Domain Authentication**:
@@ -300,7 +300,6 @@ add_action( 'init', 'extrachill_artist_platform_register_blocks' );
 - `artist-switcher.js` - Artist selection dropdown for switching contexts
 - `artist-platform.js` - Core plugin functionality
 - `artist-platform-home.js` - Homepage-specific features
-- `artist-grid-pagination.js` - AJAX pagination for artist grid with smooth transitions
 
 **Join Flow Interface**: `inc/join/assets/js/`
 - `join-flow-ui.js` - Modal handling for existing vs new account selection
@@ -518,14 +517,14 @@ add_action( 'extrachill_below_login_register_form', 'ec_render_join_flow_modal' 
 - REST API integration for all data operations via `src/blocks/link-page-editor/api/client.js`
 - All management operations handled through Gutenberg block editor, no traditional PHP AJAX handlers
 
-**Public Tracking (AJAX)**: Lightweight modules for live page tracking
+**Public Tracking (REST API)**: Lightweight modules for live page tracking
 - Located in `inc/link-pages/live/ajax/` for public-facing operations
 - **analytics.php**: Public tracking and analytics data with data pruning
 - **edit-permission.php**: Real-time permission checking for live link pages
 
 **Permission System**: Server-side permission validation
 - Permission checks centralized via `inc/core/filters/permissions.php`
-- Context-aware permission validation for REST API and public AJAX endpoints
+- Context-aware permission validation for REST API endpoints
 - `ec_can_manage_artist()`, `ec_can_create_artist_profiles()` for general contexts
 - Unified permission logic with proper nonce/authentication verification
 
@@ -555,7 +554,6 @@ add_action( 'extrachill_below_login_register_form', 'ec_render_join_flow_modal' 
 
 2. **Component Templates** (`inc/core/filters/templates.php`)
    - Modular UI component rendering
-   - AJAX-driven template fragments
    - Template filtering and customization
 
 **Template Directories**:
@@ -620,7 +618,7 @@ add_action( 'extrachill_below_login_register_form', 'ec_render_join_flow_modal' 
 ## Development Standards
 
 ### Security Practices
-- **Nonce verification**: All forms and AJAX requests use WordPress nonce system
+- **Nonce verification**: All forms and REST API requests use WordPress nonce system
 - **Input sanitization**: `wp_unslash()` before all sanitization functions
 - **Data validation**: Type checking and allowlist validation for enums
 - **Output escaping**: `esc_html()`, `esc_attr()`, `esc_url()` for all output

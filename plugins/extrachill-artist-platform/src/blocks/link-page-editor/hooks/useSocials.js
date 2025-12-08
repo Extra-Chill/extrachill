@@ -9,9 +9,9 @@ import { getSocials, updateSocials, getConfig } from '../../shared/api/client';
 
 const normalizeSocials = ( socialLinks ) =>
 	( socialLinks || [] )
-		.filter( ( social ) => social && social.id && social.type && social.icon_class )
-		.map( ( social ) => ( {
-			id: String( social.id ),
+		.filter( ( social ) => social && social.type && social.icon_class )
+		.map( ( social, index ) => ( {
+			id: social.id ? String( social.id ) : `social-temp-${ index }`,
 			type: social.type,
 			url: social.url || '',
 			icon_class: social.icon_class,

@@ -11,7 +11,7 @@
  * @param bool   $powered_by (optional, default true)
  */
 
-// If $data is not already set by the caller (e.g., AJAX handler or direct include with params), then fetch it.
+// If $data is not already set by the caller (e.g., REST API handler or direct include with params), then fetch it.
 if ( ! isset( $data ) || ! is_array( $data ) ) {
     // Resolve IDs using centralized helpers with sensible fallbacks
     if ( ! isset( $link_page_id ) || ! is_numeric( $link_page_id ) ) {
@@ -218,7 +218,7 @@ $body_bg_style = '';
 
     <?php
     // Edit button rendered client-side via JavaScript
-    // AJAX check to artist.extrachill.com where WordPress cookies are validated
+    // REST API check to artist.extrachill.com where WordPress cookies are validated
     // JavaScript injects button if user has permission
     ?>
 </div>
