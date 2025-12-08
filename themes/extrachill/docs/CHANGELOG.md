@@ -5,6 +5,39 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0/).
 
+## [1.2.0] - 2025-12-07
+
+### Added
+- Network dropdown component for multisite navigation in homepage breadcrumbs
+- QR code and download icons to SVG sprite system
+- User, close, and chevron-down icons to SVG sprite system
+
+### Changed
+- Completely removed hamburger menu system and navigation toggle functionality
+- Restructured footer menu with Network/Explore/About organization
+- Reordered main navigation menu and added Events Calendar link
+- Updated archive filter bar to use query vars instead of page templates
+- Renamed `inc/header/navigation-menu.php` to `inc/header/header-search.php` for accurate naming
+- Removed empty navigation template files `nav-main-menu.php` and `nav-bottom-menu.php`
+- Cleaned up navigation hook documentation for removed functionality
+- Streamlined SVG icon sprite by removing unused symbols (cart, reply, bell, etc.)
+- Updated multisite site count from 8 to 9 active sites in documentation
+
+### Removed
+- Hamburger menu toggle container and associated JavaScript
+- Navigation menu items container and menu toggle functionality
+- Unused SVG icons from sprite system
+
+### Technical
+- Added `inc/core/templates/network-dropdown.php` with multisite site switcher functionality
+- Added `assets/css/network-dropdown.css` for dropdown styling
+- Added `assets/js/network-dropdown.js` for toggle and accessibility handling
+- Updated footer menu structure in `inc/footer/footer-main-menu.php`
+- Updated main navigation in `inc/header/nav-main-menu.php`
+- Modified archive filter bar in `inc/archives/archive-filter-bar.php` to use query vars
+- Refactored `assets/js/nav-menu.js` to remove hamburger menu logic and focus on search panel
+- Updated SVG sprite opening tag for better compatibility
+
 ## [1.1.8] - 2025-12-07
 
 ### Added
@@ -15,6 +48,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Restructured footer menu with Network/Explore/About organization
 - Reordered main navigation menu and added Events Calendar link
 - Updated archive filter bar to use query vars instead of page templates
+- Renamed `inc/header/navigation-menu.php` to `inc/header/header-search.php` for accurate naming
+- Removed empty navigation template files `nav-main-menu.php` and `nav-bottom-menu.php`
+- Cleaned up navigation hook documentation for removed functionality
 
 ### Technical
 - Added `inc/core/templates/network-dropdown.php` with multisite site switcher functionality
@@ -192,7 +228,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Refactored badge styling from `badge-colors.css` to comprehensive `taxonomy-badges.css`
-- Updated multisite documentation to reflect 8 active sites
+- Updated multisite documentation to reflect 9 active sites
 - Removed FontAwesome CDN dependency in favor of SVG sprites
 - Cleaned up redundant CSS rules and improved consistency
 

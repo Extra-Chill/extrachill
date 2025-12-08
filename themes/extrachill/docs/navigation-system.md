@@ -6,7 +6,7 @@ Hook-based navigation architecture with hardcoded menu performance and plugin ex
 
 The theme uses action hooks for menu content, eliminating WordPress menu database queries while maintaining extensibility.
 
-**Core File**: `inc/header/navigation-menu.php`
+**Core File**: `inc/header/header-search.php`
 
 ## Components
 
@@ -33,28 +33,7 @@ Provides flyout menu HTML with hooks for content injection; secondary header ren
 </nav>
 ```
 
-### 2. Main Navigation Content
-
-**Hook**: `extrachill_navigation_main_menu`
-**Template**: `/inc/header/nav-main-menu.php`
-**Default Items**:
-- Login (when logged out)
-- Home
-- Blog (/all/)
-- Events Calendar
-- Community
-- Artist Platform
-- Festival Wire
-
-### 3. Bottom Navigation Content
-
-**Hook**: `extrachill_navigation_bottom_menu`
-**Template**: `/inc/header/nav-bottom-menu.php`
-**Default Items**:
-- About
-- Contact
-
-### 4. Secondary Header Navigation
+### 2. Secondary Header Navigation
 
 **Filter**: `extrachill_secondary_header_items`
 **Template**: `/inc/header/secondary-header.php`
@@ -226,8 +205,6 @@ add_action('customize_register', 'extrachill_remove_customizer_menus', 20);
 
 Edit menu items directly in template files:
 
-**Main Menu**: `/inc/header/nav-main-menu.php`
-**Bottom Menu**: `/inc/header/nav-bottom-menu.php`
 **Footer Main**: `/inc/footer/footer-main-menu.php`
 **Footer Bottom**: `/inc/footer/footer-bottom-menu.php`
 **Back-to-Home**: `/inc/footer/back-to-home-link.php`

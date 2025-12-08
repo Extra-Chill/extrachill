@@ -32,7 +32,7 @@ function extrachill_get_dropdown_network_sites() {
 			'url'   => 'https://community.extrachill.com',
 		),
 		array(
-			'label' => 'Events',
+			'label' => 'Events Calendar',
 			'url'   => 'https://events.extrachill.com',
 		),
 		array(
