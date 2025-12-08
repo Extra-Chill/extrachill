@@ -10,17 +10,6 @@
  */
 
 function extrachill_enqueue_navigation_assets() {
-    $nav_css_path = get_theme_file_path('/assets/css/nav.css');
-    if ( file_exists( $nav_css_path ) ) {
-        wp_enqueue_style(
-            'extrachill-nav-styles',
-            get_theme_file_uri('/assets/css/nav.css'),
-            array('extrachill-root'),
-            filemtime( $nav_css_path ),
-            'all'
-        );
-    }
-
     $nav_js_path = get_template_directory() . '/assets/js/nav-menu.js';
     if ( file_exists( $nav_js_path ) ) {
         wp_enqueue_script(

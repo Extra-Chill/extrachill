@@ -12,12 +12,12 @@
 function extrachill_default_footer_main_content() {
     include get_template_directory() . '/inc/footer/footer-main-menu.php';
 }
-add_action('extrachill_footer_main_content', 'extrachill_default_footer_main_content', 10);
+add_action( 'extrachill_footer_main_content', 'extrachill_default_footer_main_content', 10 );
 
 function extrachill_default_below_copyright() {
     include get_template_directory() . '/inc/footer/footer-bottom-menu.php';
 }
-add_action('extrachill_below_copyright', 'extrachill_default_below_copyright', 10);
+add_action( 'extrachill_below_copyright', 'extrachill_default_below_copyright', 10 );
 
 function extrachill_hook_taxonomy_badges_above_title() {
 

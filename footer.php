@@ -19,6 +19,8 @@
         <?php do_action('extrachill_footer_main_content'); ?>
     </div>
 
+    <?php do_action('extrachill_footer_below_menu'); ?>
+
     <div class="footer-copyright">
         &copy; <?php echo date( 'Y' ); ?> <a href="https://extrachill.com">Extra Chill</a>. All rights reserved.
     </div>

@@ -5,6 +5,33 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0/).
 
+## [1.2.1] - 2025-12-07
+
+### Added
+- Complete search overlay system with modal, close button, and accessibility features
+- Site masthead with sticky header and reading progress indicator
+- Secondary header navigation component with responsive design
+- Enhanced breadcrumb styling and network dropdown integration
+- Footer newsletter repositioned below menu columns
+- New footer "About" menu column with contact and press links
+
+### Changed
+- Restructured footer menu layout with Network/Explore/About organization
+- Improved input field styling by removing bottom margins
+- Updated breadcrumb logic to target specific network dropdown spans
+- Enhanced footer menu spacing and responsive behavior
+
+### Removed
+- nav.css stylesheet (consolidated into root.css)
+- Unused navigation asset enqueuing
+
+### Technical
+- Added comprehensive search overlay CSS in style.css
+- Added secondary header navigation styles
+- Updated footer-main-menu.php with new structure and newsletter hook
+- Modified breadcrumb template for improved network dropdown targeting
+- Cleaned up asset loading in inc/core/assets.php
+
 ## [1.2.0] - 2025-12-07
 
 ### Added
