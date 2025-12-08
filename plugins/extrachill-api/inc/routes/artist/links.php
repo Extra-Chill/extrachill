@@ -164,10 +164,12 @@ function extrachill_api_artist_links_put_handler( WP_REST_Request $request ) {
 				array( 'status' => 400 )
 			);
 		}
-		$save_data['links'] = extrachill_api_sanitize_links( $body['links'] );
-	}
+        $save_data['links'] = extrachill_api_sanitize_links( $body['links'], $link_page_id );
+    }
 
-	// CSS vars - merge with existing
+
+    // CSS vars - merge with existing
+
 	if ( isset( $body['css_vars'] ) ) {
 		if ( ! is_array( $body['css_vars'] ) ) {
 			return new WP_Error(
@@ -204,8 +206,9 @@ function extrachill_api_artist_links_put_handler( WP_REST_Request $request ) {
 				array( 'status' => 400 )
 			);
 		}
-		$save_data['social_icons'] = extrachill_api_sanitize_socials( $body['socials'] );
-	}
+        $save_data['social_icons'] = extrachill_api_sanitize_socials( $body['socials'], $link_page_id );
+    }
+
 
 	// Background image ID (stored on link page)
 	if ( isset( $body['background_image_id'] ) ) {
@@ -235,22 +238,32 @@ function extrachill_api_artist_links_put_handler( WP_REST_Request $request ) {
 /**
  * Sanitize links array (full replacement)
  */
-function extrachill_api_sanitize_links( $links ) {
+function extrachill_api_sanitize_links( $links, $link_page_id = 0 ) {
 	if ( ! is_array( $links ) ) {
 		return array();
 	}
 
 	$sanitized = array();
 
-	foreach ( $links as $section ) {
-		if ( ! is_array( $section ) ) {
-			continue;
-		}
+    foreach ( $links as $section ) {
+        if ( ! is_array( $section ) ) {
+            continue;
+        }
 
-		$sanitized_section = array(
-			'section_title' => isset( $section['section_title'] ) ? sanitize_text_field( wp_unslash( $section['section_title'] ) ) : '',
-			'links'         => array(),
-		);
+        $section_id = isset( $section['id'] ) ? sanitize_text_field( $section['id'] ) : '';
+        if ( $link_page_id && extrachill_api_needs_id_assignment( $section_id ) ) {
+            $section_id = extrachill_api_get_next_id( $link_page_id, 'section' );
+        } elseif ( $link_page_id ) {
+            extrachill_api_sync_counter_from_id( $link_page_id, 'section', $section_id );
+        }
+
+
+        $sanitized_section = array(
+            'id'            => $section_id,
+            'section_title' => isset( $section['section_title'] ) ? sanitize_text_field( wp_unslash( $section['section_title'] ) ) : '',
+            'links'         => array(),
+        );
+
 
 		if ( isset( $section['links'] ) && is_array( $section['links'] ) ) {
 			foreach ( $section['links'] as $link ) {
@@ -258,11 +271,19 @@ function extrachill_api_sanitize_links( $links ) {
 					continue;
 				}
 
-				$sanitized_link = array(
-					'link_text' => isset( $link['link_text'] ) ? sanitize_text_field( wp_unslash( $link['link_text'] ) ) : '',
-					'link_url'  => isset( $link['link_url'] ) ? esc_url_raw( wp_unslash( $link['link_url'] ) ) : '',
-					'id'        => isset( $link['id'] ) ? sanitize_text_field( $link['id'] ) : 'link_' . time() . '_' . wp_rand(),
-				);
+                $link_id = isset( $link['id'] ) ? sanitize_text_field( $link['id'] ) : '';
+                if ( $link_page_id && extrachill_api_needs_id_assignment( $link_id ) ) {
+                    $link_id = extrachill_api_get_next_id( $link_page_id, 'link' );
+                } elseif ( $link_page_id ) {
+                    extrachill_api_sync_counter_from_id( $link_page_id, 'link', $link_id );
+                }
+
+                $sanitized_link = array(
+                    'id'        => $link_id,
+                    'link_text' => isset( $link['link_text'] ) ? sanitize_text_field( wp_unslash( $link['link_text'] ) ) : '',
+                    'link_url'  => isset( $link['link_url'] ) ? esc_url_raw( wp_unslash( $link['link_url'] ) ) : '',
+                );
+
 
 				// Optional expiration
 				if ( isset( $link['expires_at'] ) && ! empty( $link['expires_at'] ) ) {
@@ -354,14 +375,21 @@ function extrachill_api_sanitize_link_settings( $settings ) {
 /**
  * Sanitize socials array for REST input
  */
-function extrachill_api_sanitize_socials( $socials ) {
+function extrachill_api_sanitize_socials( $socials, $link_page_id = 0 ) {
 	if ( ! is_array( $socials ) ) {
 		return array();
 	}
 
 	$sanitized = array();
 
-	foreach ( $socials as $social ) {
+    foreach ( $socials as $social ) {
+        $social_id = isset( $social['id'] ) ? sanitize_text_field( $social['id'] ) : '';
+        if ( $link_page_id && extrachill_api_needs_id_assignment( $social_id ) ) {
+            $social_id = extrachill_api_get_next_id( $link_page_id, 'social' );
+        } elseif ( $link_page_id ) {
+            extrachill_api_sync_counter_from_id( $link_page_id, 'social', $social_id );
+        }
+
 		if ( ! is_array( $social ) ) {
 			continue;
 		}
@@ -373,10 +401,12 @@ function extrachill_api_sanitize_socials( $socials ) {
 			continue;
 		}
 
-		$sanitized[] = array(
-			'type' => $type,
-			'url'  => $url,
-		);
+        $sanitized[] = array(
+            'id'   => $social_id,
+            'type' => $type,
+            'url'  => $url,
+        );
+
 	}
 
 	return $sanitized;

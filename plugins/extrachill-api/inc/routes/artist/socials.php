@@ -109,6 +109,32 @@ function extrachill_api_artist_socials_put_handler( WP_REST_Request $request ) {
 		);
 	}
 
+	if ( ! function_exists( 'ec_get_link_page_for_artist' ) ) {
+		return new WP_Error(
+			'dependency_missing',
+			'Link page functions not available.',
+			array( 'status' => 500 )
+		);
+	}
+
+	$link_page_id = ec_get_link_page_for_artist( $artist_id );
+
+	if ( ! $link_page_id ) {
+		return new WP_Error(
+			'no_link_page',
+			'No link page exists for this artist.',
+			array( 'status' => 404 )
+		);
+	}
+
+	if ( empty( $body ) ) {
+		return new WP_Error(
+			'empty_body',
+			'No data provided.',
+			array( 'status' => 400 )
+		);
+	}
+
 	// Validate social_links is present
 	if ( ! isset( $body['social_links'] ) ) {
 		return new WP_Error(
@@ -126,10 +152,19 @@ function extrachill_api_artist_socials_put_handler( WP_REST_Request $request ) {
 		);
 	}
 
+	$sanitized_socials = extrachill_api_sanitize_socials( $body['social_links'], $link_page_id );
+
+	if ( empty( $sanitized_socials ) && ! empty( $body['social_links'] ) ) {
+		return new WP_Error(
+			'validation_failed',
+			'No valid social links found.',
+			array( 'status' => 400 )
+		);
+	}
+
 	$social_manager = extrachill_artist_platform_social_links();
 
-	// Save uses the manager's built-in sanitization
-	$result = $social_manager->save( $artist_id, $body['social_links'] );
+	$result = $social_manager->save( $artist_id, $sanitized_socials );
 
 	if ( is_wp_error( $result ) ) {
 		return new WP_Error(

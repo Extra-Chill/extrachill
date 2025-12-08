@@ -2,6 +2,25 @@
 
 All notable changes to the ExtraChill API plugin are documented here. This file is the single source of truth for release history.
 
+## 0.2.0
+
+### Added
+- **Documentation Sync System**: New endpoint for syncing markdown documentation to WordPress posts
+  - `POST /wp-json/extrachill/v1/sync/doc` - Sync documentation content with hash-based change detection
+  - Controller class `ExtraChill_Docs_Sync_Controller` for handling documentation synchronization
+  - Markdown to HTML conversion using Parsedown library
+  - Platform taxonomy management for organizing documentation
+- **Link Page ID Generation**: Persistent ID assignment system for link page elements
+  - New utility functions in `inc/utils/id-generator.php` for generating unique IDs
+  - Enhanced artist links and socials endpoints to use persistent ID assignment
+  - Counter-based ID generation with format `{link_page_id}-{type}-{index}`
+  - Automatic ID synchronization to prevent conflicts
+
+### Changed
+- **Artist Links Endpoint**: Enhanced with persistent ID generation for sections, links, and socials
+- **Artist Socials Endpoint**: Updated sanitization to include link page ID context
+- **Dependencies**: Added `erusev/parsedown: ^1.7` for markdown processing
+
 ## 0.1.9
 
 ### Added
