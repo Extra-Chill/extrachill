@@ -66,20 +66,23 @@
 
     <div class="footer-menu-column">
         <ul class="footer-column-menu">
-            <li class="menu-item menu-item-has-children">
-                <a href="https://extrachill.com/about/">About</a>
-                <ul class="sub-menu">
-                    <li class="menu-item">
-                        <a href="https://extrachill.com/contact/">Contact Us</a>
-                    </li>
-                    <li class="menu-item">
-                        <a href="https://extrachill.com/about/in-the-press/">In the Press</a>
-                    </li>
-                    <li class="menu-item">
-                        <a href="https://extrachill.com/contribute">Contribute</a>
-                    </li>
-                </ul>
-            </li>
+             <li class="menu-item menu-item-has-children">
+                 <a href="https://extrachill.com/about/">About</a>
+                 <ul class="sub-menu">
+                     <li class="menu-item">
+                         <a href="https://docs.extrachill.com">Documentation</a>
+                     </li>
+                     <li class="menu-item">
+                         <a href="https://extrachill.com/contact/">Contact Us</a>
+                     </li>
+                     <li class="menu-item">
+                         <a href="https://extrachill.com/about/in-the-press/">In the Press</a>
+                     </li>
+                     <li class="menu-item">
+                         <a href="https://extrachill.com/contribute">Contribute</a>
+                     </li>
+                 </ul>
+             </li>
         </ul>
     </div>
 </div>

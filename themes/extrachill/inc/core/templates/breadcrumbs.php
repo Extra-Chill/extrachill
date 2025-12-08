@@ -102,7 +102,6 @@ if (!function_exists('extrachill_breadcrumbs')) {
             echo '<span>' . single_cat_title('', false) . '</span>';
         }
         elseif (is_tag()) {
-            echo '<a href="' . home_url('/all-tags') . '">Tags</a> › ';
             echo '<span>' . single_tag_title('', false) . '</span>';
         }
         elseif (is_tax()) {

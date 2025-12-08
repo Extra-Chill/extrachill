@@ -47,6 +47,10 @@ function extrachill_get_dropdown_network_sites() {
 			'label' => 'Shop',
 			'url'   => 'https://shop.extrachill.com',
 		),
+		array(
+			'label' => 'Documentation',
+			'url'   => 'https://docs.extrachill.com',
+		),
 	);
 
 	return $sites;

@@ -242,7 +242,7 @@ Breadcrumb: Home › Parent Category › Current Category
 
 URL: `/tag/tag-slug/`
 Template: Archive template via router
-Breadcrumb: Home › Tags › Current Tag
+Breadcrumb: Home › Current Tag
 
 ### Taxonomy Archives
 
