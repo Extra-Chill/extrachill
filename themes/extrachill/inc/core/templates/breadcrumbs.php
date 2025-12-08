@@ -26,8 +26,8 @@ if (!function_exists('extrachill_breadcrumbs')) {
         // Allow plugins to override the default breadcrumb trail
         $custom_trail = apply_filters('extrachill_breadcrumbs_override_trail', '');
         if (!empty($custom_trail)) {
-            // Auto-wrap simple span trails with network dropdown
-            if ( preg_match( '/^<span>(.+)<\/span>$/', $custom_trail, $matches ) ) {
+            // Only wrap spans with explicit network-dropdown-target class
+            if ( preg_match( '/^<span class="network-dropdown-target">(.+)<\/span>$/', $custom_trail, $matches ) ) {
                 echo extrachill_network_dropdown( $matches[1] );
             } else {
                 echo $custom_trail;
