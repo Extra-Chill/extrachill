@@ -70,11 +70,18 @@ foreach ( $user_artists as $ua_id ) {
 	}
 }
 
-// Get fonts for dropdown
-$fonts_data = array();
+// Get fonts for dropdown and local font CSS for defaults
+$fonts_data      = array();
+$local_fonts_css = '';
 if ( class_exists( 'ExtraChillArtistPlatform_Fonts' ) ) {
-	$fonts_manager = ExtraChillArtistPlatform_Fonts::instance();
-	$fonts_data    = $fonts_manager->get_supported_fonts();
+	$fonts_manager   = ExtraChillArtistPlatform_Fonts::instance();
+	$fonts_data      = $fonts_manager->get_supported_fonts();
+	$local_fonts_css = $fonts_manager->get_local_fonts_css(
+		array(
+			ExtraChillArtistPlatform_Fonts::DEFAULT_TITLE_FONT,
+			ExtraChillArtistPlatform_Fonts::DEFAULT_BODY_FONT,
+		)
+	);
 }
 
 // Get social link types and transform to array format for React
@@ -100,6 +107,7 @@ $config = array(
 	'restUrl'           => rest_url( 'extrachill/v1/' ),
 	'nonce'             => wp_create_nonce( 'wp_rest' ),
 	'fonts'             => $fonts_data,
+	'localFontsCss'     => $local_fonts_css,
 	'socialTypes'       => $social_types,
 	'linkPageCssUrl'    => EXTRACHILL_ARTIST_PLATFORM_PLUGIN_URL . 'assets/css/extrch-links.css',
 	'socialIconsCssUrl' => EXTRACHILL_ARTIST_PLATFORM_PLUGIN_URL . 'assets/css/custom-social-icons.css',

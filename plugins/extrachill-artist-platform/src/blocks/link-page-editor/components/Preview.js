@@ -15,6 +15,7 @@ export default function Preview() {
 		googleFontsUrl,
 		linkPageCssUrl,
 		socialIconsCssUrl,
+		localFontsCss,
 	} = useEditor();
 
 	const {
@@ -55,6 +56,30 @@ export default function Preview() {
 			}
 		}
 	}, [ linkPageCssUrl, socialIconsCssUrl ] );
+
+	// Inject local font CSS (e.g., WilcoLoftSans) when provided
+	useEffect( () => {
+		const styleId = 'ec-local-fonts-css';
+
+		if ( localFontsCss ) {
+			let styleTag = document.getElementById( styleId );
+
+			if ( ! styleTag ) {
+				styleTag = document.createElement( 'style' );
+				styleTag.id = styleId;
+				document.head.appendChild( styleTag );
+			}
+
+			if ( styleTag.textContent !== localFontsCss ) {
+				styleTag.textContent = localFontsCss;
+			}
+		} else {
+			const existing = document.getElementById( styleId );
+			if ( existing ) {
+				existing.remove();
+			}
+		}
+	}, [ localFontsCss ] );
 
 	// Load Google Fonts dynamically when fonts change
 	useEffect( () => {

@@ -42,7 +42,7 @@ add_filter( 'extrachill_breadcrumbs_root', 'ec_artist_platform_breadcrumb_root' 
 function ec_artist_platform_breadcrumb_trail_homepage( $custom_trail ) {
 	// Only on front page (homepage)
 	if ( is_front_page() ) {
-		return '<span>Artist Platform</span>';
+		return '<span class="network-dropdown-target">Artist Platform</span>';
 	}
 
 	return $custom_trail;
@@ -63,7 +63,7 @@ function ec_artist_profile_archive_breadcrumb_trail( $custom_trail ) {
 		return $custom_trail;
 	}
 
-	return '<span>Artists</span>';
+	return '<span class="network-dropdown-target">Artists</span>';
 }
 add_filter( 'extrachill_breadcrumbs_override_trail', 'ec_artist_profile_archive_breadcrumb_trail', 6 );
 
