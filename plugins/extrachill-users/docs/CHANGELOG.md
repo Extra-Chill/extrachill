@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.3.0] - 2025-12-07
+
+### Added
+- Avatar menu now displays for logged-out users with login/register links
+- Comprehensive accessibility improvements to avatar menu (ARIA attributes, keyboard navigation, screen reader support)
+- Default user icon display for logged-out state using ec_icon() function
+
+### Changed
+- Refactored avatar menu from link-based to button-based toggle with proper semantic markup
+- Removed redundant headings and descriptions from login/register block forms
+- Reduced form container margins for better spacing (30px → 10px)
+- Updated AGENTS.md to reflect 9 active sites (Blog IDs 1–5, 7–10) with docs at Blog ID 10
+
+### Accessibility
+- Added aria-expanded attribute to avatar menu toggle button
+- Implemented keyboard support (Enter/Space) for menu activation
+- Added screen reader text for menu toggle
+- Enhanced focus management and visual focus indicators
+- Added role="menu" to dropdown container
+
 ## [0.2.4] - 2025-12-05
 
 ### Changed
@@ -115,7 +135,7 @@
 
 ### Fixed
 - Removed jQuery dependency from avatar upload JavaScript
-- Updated site count references from 9 to 8 active sites (note: horoscope planned for Blog ID 10) in documentation
+- Updated site count references to 9 active sites (docs at Blog ID 10; horoscope planned for Blog ID 11) in documentation
 
 ### Dependencies
 - Added extrachill-api as required plugin

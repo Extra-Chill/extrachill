@@ -3,7 +3,7 @@
  * Plugin Name: Extra Chill Users
  * Plugin URI: https://extrachill.com
  * Description: Single source of truth for user management across the ExtraChill Platform network. Handles authentication, user creation, team members, profile URL resolution, custom avatars, avatar menu, online user tracking, and ad-free licenses.
- * Version: 0.2.4
+ * Version: 0.3.0
  * Author: Chris Huber
  * Author URI: https://chubes.net
  * Network: true

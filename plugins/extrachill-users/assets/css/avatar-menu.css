@@ -11,12 +11,22 @@
     position: relative;
 }
 
-.user-avatar-link {
-    display: block;
+.user-avatar-toggle {
+    border: none;
+    background: transparent;
+    padding: 0;
+    display: flex;
+    align-items: center;
     cursor: pointer;
+    color: inherit;
 }
 
-.user-avatar-link img.avatar {
+.user-avatar-toggle:focus-visible {
+    outline: 2px solid var(--focus-border-color);
+    outline-offset: 2px;
+}
+
+.user-avatar-toggle img.avatar {
     width: 40px;
     height: 40px;
     border-radius: 50%;
@@ -25,8 +35,25 @@
     transition: opacity 0.2s ease;
 }
 
-.user-avatar-link:hover img.avatar {
+.user-avatar-toggle:hover img.avatar {
     opacity: 0.8;
+}
+
+.avatar-default-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 1px solid var(--accent-2);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--card-background);
+    color: var(--accent-2);
+}
+
+.avatar-default-icon .ec-icon {
+    width: 18px;
+    height: 18px;
 }
 
 .user-dropdown-menu {
@@ -37,7 +64,7 @@
     border: 1px solid var(--border-color);
     border-radius: 8px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    min-width: 200px;
+    min-width: 220px;
     opacity: 0;
     visibility: hidden;
     transform: translateY(-10px);
@@ -75,13 +102,11 @@
     background-color: var(--card-background);
 }
 
-.user-dropdown-menu a:has(.log-out),
-.user-dropdown-menu .log-out {
+.user-dropdown-menu .log-out-link {
     color: var(--error-color);
 }
 
-.user-dropdown-menu a:hover:has(.log-out),
-.user-dropdown-menu .log-out:hover {
+.user-dropdown-menu .log-out-link:hover {
     background-color: var(--card-background);
     color: var(--error-color);
 }
@@ -92,4 +117,15 @@
         right: -1rem;
         min-width: 180px;
     }
+}
+
+.user-avatar-container .screen-reader-text {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    border: 0;
 }

@@ -76,8 +76,6 @@ if ( isset( $_GET['action'] ) && 'bp_accept_invite' === $_GET['action'] && isset
 			</button>
 			<div id="tab-login" class="shared-tab-pane active">
 				<div class="login-register-form">
-					<h2><?php esc_html_e( 'Login to Extra Chill', 'extrachill-users' ); ?></h2>
-					<p><?php esc_html_e( 'Welcome back! Log in to your account.', 'extrachill-users' ); ?></p>
 
 					<form id="loginform" action="<?php echo esc_url( site_url( 'wp-login.php', 'login_post' ) ); ?>" method="post">
 						<?php EC_Redirect_Handler::render_hidden_fields( 'tab-login' ); ?>
@@ -106,8 +104,6 @@ if ( isset( $_GET['action'] ) && 'bp_accept_invite' === $_GET['action'] && isset
 			</button>
 			<div id="tab-register" class="shared-tab-pane">
 				<div class="login-register-form">
-					<h2>Join the Extra Chill Community</h2>
-					<p>Sign up to connect with music lovers, artists, and professionals in the online music scene! It's free and easy.</p>
 
 					<?php if ( ! empty( $artist_name_for_invite_message ) && ! empty( $invite_token ) ) : ?>
 						<div class="notice notice-info">

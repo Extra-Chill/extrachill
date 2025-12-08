@@ -1,13 +1,13 @@
 # ExtraChill Users
 
-**THE SINGLE SOURCE OF TRUTH FOR USER MANAGEMENT** - Network-activated WordPress plugin providing all user-related functionality for the ExtraChill Platform multisite network. This plugin is the centralized authority for authentication, registration, password reset, cross-site user management, team member system, profile URL resolution, network-wide avatar menu, custom avatars, and online user tracking across all 8 active sites (Blog IDs 1–5, 7–9) with horoscope planned for Blog ID 10.
+**THE SINGLE SOURCE OF TRUTH FOR USER MANAGEMENT** - Network-activated WordPress plugin providing all user-related functionality for the ExtraChill Platform multisite network. This plugin is the centralized authority for authentication, registration, password reset, cross-site user management, team member system, profile URL resolution, network-wide avatar menu, custom avatars, and online user tracking across all 9 active sites (Blog IDs 1–5, 7–10) with docs at Blog ID 10; horoscope planned for Blog ID 11.
 
 User management functionality was migrated here from extrachill-multisite plugin to follow the single responsibility principle. All user-specific features, authentication flows, and user data operations are consolidated in this plugin.
 
 ## Plugin Information
 
 - **Name**: Extra Chill Users
-- **Version**: 0.2.3
+- **Version**: 0.3.0
 - **Text Domain**: `extrachill-users`
 - **Author**: Chris Huber
 - **Author URI**: https://chubes.net
@@ -67,7 +67,7 @@ User management functionality was migrated here from extrachill-multisite plugin
 #### Online Users Tracking (`inc/core/online-users.php`)
 
 **Network-Wide Activity Tracking**:
-- Records user activity across all 8 active sites in the multisite network (Blog IDs 1–5, 7–9)
+- Records user activity across all 9 active sites in the multisite network (Blog IDs 1–5, 7–10)
 - Centralized data storage on community.extrachill.com as the single source of truth
 - 15-minute activity window for "online" status determination
 - Updates `last_active` user meta via the `wp` action hook on all sites
@@ -529,7 +529,7 @@ try {
 **Purpose**: Network-wide activity tracking and online user statistics
 
 **Key Features**:
-- Tracks user activity across all 8 active sites in the multisite network (Blog IDs 1–5, 7–9)
+- Tracks user activity across all 9 active sites in the multisite network (Blog IDs 1–5, 7–10)
 - Centralized storage on community.extrachill.com
 - Transient caching for performance optimization
 - "Most ever online" tracking with date

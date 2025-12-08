@@ -12,7 +12,7 @@
     border-radius: 8px;
     box-shadow: var(--card-shadow);
     max-width: 600px;
-    margin: 30px auto;
+    margin: 10px auto;
     font-family: 'Arial', sans-serif;
     border: 1px solid var(--border-color);
 }
