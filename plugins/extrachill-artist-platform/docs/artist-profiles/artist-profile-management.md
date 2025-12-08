@@ -1,6 +1,6 @@
 # Artist Profile Management
 
-Comprehensive system for creating, managing, and displaying artist profiles with roster management and forum integration.
+Comprehensive system for creating, managing, and displaying artist profiles with roster management.
 
 ## Artist Profile Creation
 
@@ -20,7 +20,6 @@ $profile_data = [
 // Associated metadata
 $meta_data = [
     '_artist_profile_social_links' => $social_links_array,
-    '_artist_forum_id' => $forum_id,
     '_artist_profile_ids' => $linked_user_ids
 ];
 ```
@@ -198,18 +197,6 @@ $current_count = count(ec_get_user_artist_ids($user_id));
 ```
 
 ## Integration Points
-
-### Forum Integration
-
-Artist profiles can be linked to bbPress forums:
-
-```php
-// Get associated forum
-$forum_id = ec_get_forum_for_artist($artist_id);
-
-// Create artist-specific forum section
-create_artist_forum_section($artist_id, $forum_data);
-```
 
 ### Link Page Association
 

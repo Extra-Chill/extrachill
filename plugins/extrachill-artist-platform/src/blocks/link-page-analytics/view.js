@@ -4,11 +4,21 @@
  * Mounts the React analytics app when the block is rendered on the frontend.
  */
 
+import apiFetch, { createRootURLMiddleware, createNonceMiddleware } from '@wordpress/api-fetch';
 import { createRoot } from '@wordpress/element';
 import { AnalyticsProvider } from './context/AnalyticsContext';
 import Analytics from './components/Analytics';
 
-document.addEventListener( 'DOMContentLoaded', () => {
+// Configure apiFetch with REST root and nonce from localized config
+const config = window.ecLinkPageAnalyticsConfig || {};
+if ( config.restUrl ) {
+	apiFetch.use( createRootURLMiddleware( config.restUrl ) );
+}
+if ( config.nonce ) {
+	apiFetch.use( createNonceMiddleware( config.nonce ) );
+}
+
+window.addEventListener( 'DOMContentLoaded', () => {
 	const container = document.getElementById( 'ec-link-page-analytics-root' );
 
 	if ( ! container ) {
@@ -24,3 +34,4 @@ document.addEventListener( 'DOMContentLoaded', () => {
 		</AnalyticsProvider>
 	);
 } );
+

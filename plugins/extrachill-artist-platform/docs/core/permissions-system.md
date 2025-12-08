@@ -1,6 +1,6 @@
 # Permissions System
 
-Centralized permission management providing consistent access control across all platform components.
+Centralized permission management providing consistent access control across all platform components. All permission checks are defined in a single source of truth for security, maintainability, and consistency.
 
 ## Core Permission Functions
 
@@ -19,11 +19,82 @@ Primary permission check for artist management capabilities.
 $can_manage = ec_can_manage_artist($user_id, $artist_id);
 ```
 
-### Permission Logic
+**Permission Logic** (`inc/core/filters/permissions.php`):
 
 1. **Administrator Override**: Users with `manage_options` capability can manage all artists
-2. **Artist Membership**: Users linked to artist profile via `_artist_profile_ids` meta
-3. **Security Validation**: All checks validate user and artist ID existence
+2. **Post Author**: Post author of the artist profile
+3. **Roster Membership**: Users linked to artist profile via `_artist_profile_ids` user meta
+4. **Security Validation**: All checks validate user and artist ID existence
+
+## REST API Permission Helpers
+
+The permissions system includes context-aware helper functions for REST API endpoints:
+
+### ec_get_permission_artist_id()
+
+Extracts and validates artist ID from request data:
+
+```php
+/**
+ * Extract artist ID from request data and validate permissions
+ * 
+ * @param array $data Request data (POST, GET, or other)
+ * @return int Artist ID if user can manage, 0 otherwise
+ */
+function ec_get_permission_artist_id( $data ) {
+    $artist_id = isset( $data['artist_id'] ) ? (int) $data['artist_id'] : 0;
+    if ( ! $artist_id ) {
+        return 0;
+    }
+    return ec_can_manage_artist( get_current_user_id(), $artist_id ) ? $artist_id : 0;
+}
+```
+
+### ec_get_permission_link_page_id()
+
+Extracts link page ID and validates that user can manage the associated artist:
+
+```php
+/**
+ * Extract link page ID from request data and validate permissions
+ * 
+ * @param array $data Request data (POST, GET, or other)
+ * @return int|false Artist ID if user can manage link page, false otherwise
+ */
+function ec_get_permission_link_page_id( $data ) {
+    $link_page_id = isset( $data['link_page_id'] ) ? (int) $data['link_page_id'] : 0;
+    if ( ! $link_page_id ) {
+        return false;
+    }
+    
+    $artist_id = apply_filters('ec_get_artist_id', $link_page_id);
+    if ( ! $artist_id ) {
+        return false;
+    }
+    
+    return ec_can_manage_artist( get_current_user_id(), $artist_id ) ? $artist_id : false;
+}
+```
+
+### ec_get_permission_is_admin()
+
+Checks if current user is administrator:
+
+```php
+function ec_get_permission_is_admin( $data ) {
+    return current_user_can( 'manage_options' );
+}
+```
+
+### ec_get_permission_can_create_artists()
+
+Checks if user can create new artist profiles:
+
+```php
+function ec_get_permission_can_create_artists( $data ) {
+    return ec_can_create_artist_profiles( get_current_user_id() );
+}
+```
 
 ## Artist Profile Creation
 
@@ -38,6 +109,10 @@ $can_manage = ec_can_manage_artist($user_id, $artist_id);
  */
 $can_create = ec_can_create_artist_profiles($user_id);
 ```
+
+**Logic**:
+- Administrators: Always allowed
+- Regular users: Limited by configuration (typically 5 profiles per user)
 
 ## Permission Usage Patterns
 
@@ -59,16 +134,16 @@ if (ec_can_manage_artist(get_current_user_id(), $artist_id)) {
 All management operations use the WordPress REST API with proper nonce verification and permission checks:
 
 ```php
-// REST API permission validation
+// REST API permission validation in Gutenberg blocks
 function rest_api_permission_check($request) {
     // Check user authentication
     if (!is_user_logged_in()) {
         return false;
     }
     
-    // Check artist management permissions
-    $artist_id = $request->get_param('artist_id');
-    if (!ec_can_manage_artist(get_current_user_id(), $artist_id)) {
+    // Extract and validate artist ID from request
+    $artist_id = ec_get_permission_artist_id( $request->get_json_params() );
+    if ( ! $artist_id ) {
         return false;
     }
     
@@ -85,15 +160,16 @@ register_rest_route('extrachill/v1', '/artists/(?P<artist_id>\d+)', [
 
 ### Gutenberg Block Management
 
-Artist profile editing is handled via the Gutenberg block editor:
+Artist profile and link page editing is handled via Gutenberg block editor:
 
 ```php
-// Block-based artist profile management (primary interface)
+// Block-based management (primary interface)
 // Location: src/blocks/artist-profile-manager/
+// Location: src/blocks/link-page-editor/
 // Block provides tab-based interface for:
 // - Profile information editing
 // - Roster/member management
-// - Subscriber management (via TabSubscribers)
+// - Subscriber management
 
 // Permissions automatically validated in block REST endpoints
 // Uses ec_can_manage_artist() for access control
@@ -101,20 +177,81 @@ Artist profile editing is handled via the Gutenberg block editor:
 
 ### Form Submission Security
 
+All form submissions include nonce verification and permission checks:
+
 ```php
 // Admin post handlers
 function handle_form_submission() {
     // Verify nonce
     check_admin_referer('save_action_nonce');
     
-    // Check permissions
-    if (!ec_can_manage_artist(get_current_user_id(), $artist_id)) {
+    // Extract and validate artist ID
+    $artist_id = ec_get_permission_artist_id( $_POST );
+    if ( ! $artist_id ) {
         wp_die('Access denied');
     }
     
     // Process form data
     // ...
 }
+```
+
+## WordPress Capability Integration
+
+### Custom Capabilities
+
+The system registers custom capabilities that are dynamically granted based on permission checks:
+
+```php
+/**
+ * WordPress capability filtering for artist permissions
+ */
+function ec_filter_user_capabilities( $allcaps, $caps, $args, $user ) {
+    $user_id = $user->ID;
+    $cap     = $args[0];
+    $object_id = isset( $args[2] ) ? $args[2] : null;
+    
+    // Allow create_artist_profiles capability
+    if ( $cap === 'create_artist_profiles' ) {
+        if ( ec_can_create_artist_profiles( $user_id ) ) {
+            $allcaps[$cap] = true;
+        }
+        return $allcaps;
+    }
+    
+    // Allow manage_artist_members capability
+    if ( $cap === 'manage_artist_members' && $object_id ) {
+        if ( ec_can_manage_artist( $user_id, $object_id ) ) {
+            $allcaps[$cap] = true;
+        }
+        return $allcaps;
+    }
+    
+    // Allow view_artist_link_page_analytics capability
+    if ( $cap === 'view_artist_link_page_analytics' && $object_id ) {
+        if ( get_post_type( $object_id ) === 'artist_link_page' ) {
+            $artist_id = apply_filters('ec_get_artist_id', $object_id);
+            if ( $artist_id && ec_can_manage_artist( $user_id, $artist_id ) ) {
+                $allcaps[$cap] = true;
+            }
+        }
+        return $allcaps;
+    }
+    
+    // Allow post editing capabilities for artist profiles
+    if ( $object_id && get_post_type( $object_id ) === 'artist_profile' ) {
+        if ( ec_can_manage_artist( $user_id, $object_id ) ) {
+            $post_caps = array( 'edit_post', 'delete_post', 'read_post', 'publish_post', 'manage_artist_members' );
+            if ( in_array( $cap, $post_caps ) ) {
+                $allcaps[$cap] = true;
+            }
+        }
+    }
+    
+    return $allcaps;
+}
+
+add_filter( 'user_has_cap', 'ec_filter_user_capabilities', 10, 4 );
 ```
 
 ## User-Artist Relationships
@@ -132,7 +269,7 @@ $artist_profile_ids = get_user_meta($user_id, '_artist_profile_ids', true);
 ### Membership Management
 
 ```php
-// Add user to artist
+// Add user to artist (called by join-flow and roster invitations)
 function add_user_to_artist($user_id, $artist_id) {
     $current_ids = get_user_meta($user_id, '_artist_profile_ids', true);
     if (!is_array($current_ids)) {
@@ -152,22 +289,6 @@ function remove_user_from_artist($user_id, $artist_id) {
         $current_ids = array_diff($current_ids, [$artist_id]);
         update_user_meta($user_id, '_artist_profile_ids', $current_ids);
     }
-}
-```
-
-## Cross-Domain Authentication
-
-### Session Validation
-
-Cross-domain authentication for `.extrachill.com` subdomains handled via server-side session validation:
-
-```php
-// Session token validation
-$is_valid = validate_extrch_session_token($token);
-
-// Template-level permission checks
-if ($is_valid && ec_can_manage_link_page($_REQUEST)) {
-    // Allow access to management interface
 }
 ```
 
@@ -209,3 +330,16 @@ echo esc_html($title);
 echo esc_url($link_url);
 echo esc_attr($css_class);
 ```
+
+## Legacy AJAX Functions (Deprecated)
+
+The following functions are provided for backward compatibility but are deprecated. Use the new REST API functions instead:
+
+```php
+function ec_ajax_can_manage_artist( $post_data ) { /* ... */ }
+function ec_ajax_can_manage_link_page( $post_data ) { /* ... */ }
+function ec_ajax_is_admin( $post_data ) { /* ... */ }
+function ec_ajax_can_create_artists( $post_data ) { /* ... */ }
+```
+
+**Note**: These are for backward compatibility only. All new code should use the REST API permission helpers and core permission functions.

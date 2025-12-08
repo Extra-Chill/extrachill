@@ -103,7 +103,6 @@ $data = ec_get_artist_profile_data($artist_id, $overrides);
     
     // Associated resources
     'link_page_id' => 456,
-    'forum_id' => 789,
     
     // Roster/member information
     'roster_members' => [
@@ -132,9 +131,6 @@ $is_member = ec_is_user_artist_member($user_id, $artist_id);
 ```php
 // Get link page for artist
 $link_page_id = ec_get_link_page_for_artist($artist_id);
-
-// Get forum for artist
-$forum_id = ec_get_forum_for_artist($artist_id);
 ```
 
 ## CSS Variables System

@@ -14,7 +14,121 @@ add_action( 'extrachill_link_page_view_recorded', 'extrachill_handle_link_page_v
 add_action( 'extrachill_link_click_recorded', 'extrachill_handle_link_click_db_write', 10, 2 );
 
 // Analytics REST API routes live in extrachill-api plugin.
-// This file only handles database writes triggered by existing hooks.
+// This file handles analytics data access and public tracking writes.
+// The artist platform supplies analytics data to the API via filter.
+
+add_filter( 'extrachill_get_link_page_analytics', 'extrachill_provide_link_page_analytics', 10, 3 );
+
+/**
+ * Supplies link page analytics data to the extrachill-api endpoint.
+ *
+ * @param mixed $data         Prior filter value (unused).
+ * @param int   $link_page_id Link page post ID.
+ * @param int   $date_range   Number of days to include (1-90).
+ * @return array|WP_Error
+ */
+function extrachill_provide_link_page_analytics( $data, $link_page_id, $date_range ) {
+	global $wpdb;
+
+	$link_page_id = absint( $link_page_id );
+	if ( ! $link_page_id ) {
+		return new WP_Error( 'invalid_link_page', 'Invalid or missing link page ID.', array( 'status' => 400 ) );
+	}
+
+	$range = absint( $date_range );
+	$range = $range ? $range : 30;
+	$range = max( 1, min( 90, $range ) );
+
+	$today       = current_time( 'Y-m-d' );
+	$start_stamp = strtotime( $today . ' -' . ( $range - 1 ) . ' days' );
+	$start_date  = gmdate( 'Y-m-d', $start_stamp );
+
+	$views_table  = $wpdb->prefix . 'extrch_link_page_daily_views';
+	$clicks_table = $wpdb->prefix . 'extrch_link_page_daily_link_clicks';
+
+	$views = $wpdb->get_results(
+		$wpdb->prepare(
+			"SELECT stat_date, view_count FROM {$views_table} WHERE link_page_id = %d AND stat_date BETWEEN %s AND %s ORDER BY stat_date ASC",
+			$link_page_id,
+			$start_date,
+			$today
+		)
+	);
+
+	$clicks = $wpdb->get_results(
+		$wpdb->prepare(
+			"SELECT stat_date, SUM(click_count) AS click_count FROM {$clicks_table} WHERE link_page_id = %d AND stat_date BETWEEN %s AND %s GROUP BY stat_date ORDER BY stat_date ASC",
+			$link_page_id,
+			$start_date,
+			$today
+		)
+	);
+
+	$top_links = $wpdb->get_results(
+		$wpdb->prepare(
+			"SELECT link_url, SUM(click_count) AS total_clicks FROM {$clicks_table} WHERE link_page_id = %d AND stat_date BETWEEN %s AND %s GROUP BY link_url ORDER BY total_clicks DESC LIMIT 20",
+			$link_page_id,
+			$start_date,
+			$today
+		)
+	);
+
+	$view_map  = array();
+	$click_map = array();
+
+	foreach ( $views as $row ) {
+		$view_map[ $row->stat_date ] = (int) $row->view_count;
+	}
+
+	foreach ( $clicks as $row ) {
+		$click_map[ $row->stat_date ] = (int) $row->click_count;
+	}
+
+	$labels       = array();
+	$view_series  = array();
+	$click_series = array();
+
+	for ( $i = 0; $i < $range; $i++ ) {
+		$date          = gmdate( 'Y-m-d', strtotime( $start_date . ' +' . $i . ' days' ) );
+		$labels[]      = $date;
+		$view_series[] = isset( $view_map[ $date ] ) ? $view_map[ $date ] : 0;
+		$click_series[] = isset( $click_map[ $date ] ) ? $click_map[ $date ] : 0;
+	}
+
+	$total_views  = array_sum( $view_series );
+	$total_clicks = array_sum( $click_series );
+
+	$formatted_top_links = array_map(
+		static function( $row ) {
+			return array(
+				'identifier' => $row->link_url,
+				'clicks'     => (int) $row->total_clicks,
+			);
+		},
+		$top_links
+	);
+
+	return array(
+		'summary'    => array(
+			'total_views'  => $total_views,
+			'total_clicks' => $total_clicks,
+		),
+		'chart_data' => array(
+			'labels'   => $labels,
+			'datasets' => array(
+				array(
+					'label' => 'Page Views',
+					'data'  => $view_series,
+				),
+				array(
+					'label' => 'Link Clicks',
+					'data'  => $click_series,
+				),
+			),
+		),
+		'top_links'  => $formatted_top_links,
+	);
+}
 
 /**
  * Writes page view data to the daily views table

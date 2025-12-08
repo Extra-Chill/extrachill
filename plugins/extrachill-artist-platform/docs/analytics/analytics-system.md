@@ -1,6 +1,16 @@
 # Analytics System
 
-Comprehensive analytics tracking for link pages with daily aggregation, click tracking, and dashboard reporting.
+Comprehensive analytics tracking for link pages with daily aggregation, click tracking, and dashboard reporting. Analytics data is provided by the artist-platform plugin via filter hooks that feed into the extrachill-api plugin's REST endpoints.
+
+## Architecture Overview
+
+Analytics tracking follows a three-stage pattern:
+
+1. **Client-side**: JavaScript beacon on public link pages
+2. **Server-side**: REST API endpoints in extrachill-api plugin
+3. **Plugin hook**: Artist platform provides data via `extrachill_get_link_page_analytics` filter
+
+**Key Integration**: REST API routes and endpoints live in the **extrachill-api plugin**, not this plugin. This plugin provides analytics data access and handles the tracking writes to the database.
 
 ## Database Architecture
 
@@ -36,33 +46,18 @@ CREATE TABLE wp_extrch_link_page_daily_link_clicks (
 
 Location: `inc/database/link-page-analytics-db.php`
 
-```php
-/**
- * Create or update analytics tables using dbDelta
- */
-function extrch_create_or_update_analytics_table() {
-    $current_db_version = get_option('extrch_analytics_db_version');
-    
-    if ($current_db_version === EXTRCH_ANALYTICS_DB_VERSION) {
-        return; // Database is up to date
-    }
-    
-    global $wpdb;
-    require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
-    
-    // Create both tables
-    dbDelta($sql_views);
-    dbDelta($sql_clicks);
-    
-    // Update version
-    update_option('extrch_analytics_db_version', EXTRCH_ANALYTICS_DB_VERSION);
-}
-
-// Hook to admin_init for automatic updates
-add_action('admin_init', 'extrch_create_or_update_analytics_table');
-```
+Creates and maintains analytics tables with WordPress dbDelta.
 
 ## Public Tracking
+
+### Tracking Flow
+
+The tracking flow follows this pattern:
+
+1. **JavaScript sends beacon**: Public link page JavaScript sends tracking data via sendBeacon/Fetch
+2. **REST API receives**: extrachill-api plugin REST endpoints receive tracking requests
+3. **Action hook fired**: REST endpoint fires action hooks with tracking data
+4. **Plugin writes to database**: This plugin's action handlers write to analytics tables
 
 ### Client-Side Tracking
 
@@ -70,75 +65,49 @@ Location: `inc/link-pages/live/assets/js/link-page-public-tracking.js`
 
 Tracks page views and link clicks using sendBeacon API for reliable delivery with Fetch API fallback
 
-### Server-Side Tracking
+### Server-Side Data Provider
 
-Location: `inc/link-pages/live/ajax/analytics.php` - REST API endpoint enqueuer
+Location: `inc/link-pages/live/analytics.php`
 
-The analytics system receives tracking data via REST API requests:
+This file provides two key functions:
+
+1. **Action handlers** - Hook into tracking events fired by extrachill-api:
+   - `extrachill_link_page_view_recorded` - Writes page views to database
+   - `extrachill_link_click_recorded` - Writes link clicks to database
+
+2. **Data provider filter** - `extrachill_get_link_page_analytics` filter supplies analytics data to the API:
 
 ```php
-/**
- * Record page view event via REST API
- */
-function extrch_record_link_event() {
-    // REST API endpoint handler receives data
-    $link_page_id = (int) $request->get_param('link_page_id');
-    $event_type = sanitize_text_field($request->get_param('event_type'));
-    
-    if ($event_type === 'page_view') {
-        record_page_view($link_page_id);
-    }
-    
-    return rest_ensure_response(['success' => true]);
-}
+add_filter( 'extrachill_get_link_page_analytics', 'extrachill_provide_link_page_analytics', 10, 3 );
 
 /**
- * Record link click event via REST API
+ * Supplies link page analytics data to the extrachill-api endpoint.
+ * Called when extrachill-api plugin queries for analytics data.
+ *
+ * @param mixed $data         Prior filter value (unused).
+ * @param int   $link_page_id Link page post ID.
+ * @param int   $date_range   Number of days to include (1-90).
+ * @return array|WP_Error Analytics data structure
  */
-function link_page_click_tracking($request) {
-    // REST API endpoint handler receives data
-    $link_page_id = (int) $request->get_param('link_page_id');
-    $link_url = esc_url_raw($request->get_param('link_url'));
-    
-    record_link_click($link_page_id, $link_url);
-    
-    return rest_ensure_response(['success' => true]);
+function extrachill_provide_link_page_analytics( $data, $link_page_id, $date_range ) {
+    // Query analytics tables and return data
+    // This data is returned to the REST API response
 }
 ```
 
-### Client-Side Fetch Integration
+### Action Hook Handlers
 
-Location: `inc/link-pages/live/assets/js/link-page-public-tracking.js`
+The plugin handles the actual database writes:
 
-Public tracking uses Fetch API with sendBeacon fallback:
+```php
+// Called when page view is recorded
+add_action( 'extrachill_link_page_view_recorded', 'extrachill_handle_link_page_view_db_write', 10, 1 );
 
-```javascript
-// Track page view via Fetch API with sendBeacon fallback
-function trackPageView(linkPageId) {
-    const data = new FormData();
-    data.append('link_page_id', linkPageId);
-    data.append('event_type', 'page_view');
-    
-    // Use sendBeacon for reliability
-    navigator.sendBeacon(
-        `/wp-json/extrachill/v1/analytics/track`,
-        data
-    );
-}
-
-// Track link click via Fetch API
-function trackLinkClick(linkPageId, linkUrl) {
-    fetch('/wp-json/extrachill/v1/analytics/track', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            link_page_id: linkPageId,
-            event_type: 'link_click',
-            link_url: linkUrl
-        })
-    });
-}
+// Called when link click is recorded
+add_action( 'extrachill_link_click_recorded', 'extrachill_handle_link_click_db_write', 10, 2 );
 ```
+
+These action hooks are fired by the extrachill-api plugin when it receives tracking data from the client.
 
 ## URL Normalization
 
@@ -156,17 +125,21 @@ The following Google Analytics cross-domain linking parameters are removed:
 **Client-side** (`inc/link-pages/live/assets/js/link-page-public-tracking.js`):
 - `normalizeTrackedUrl()` strips parameters before sending the beacon request
 
-**Server-side** (`inc/link-pages/live/ajax/analytics.php`):
+**Server-side** (`inc/link-pages/live/analytics.php`):
 - `extrch_normalize_tracked_url()` provides redundant sanitization before database insert
 
 Both implementations preserve all other query parameters (affiliate IDs, custom campaign params, etc.).
 
-## Data Aggregation
+## Data Recording
 
 ### Page View Recording
 
+Page views are recorded when the `extrachill_link_page_view_recorded` action is fired by extrachill-api:
+
 ```php
-function record_page_view($link_page_id) {
+add_action( 'extrachill_link_page_view_recorded', 'extrachill_handle_link_page_view_db_write', 10, 1 );
+
+function extrachill_handle_link_page_view_db_write( $link_page_id ) {
     global $wpdb;
     
     $table_name = $wpdb->prefix . 'extrch_link_page_daily_views';
@@ -185,8 +158,12 @@ function record_page_view($link_page_id) {
 
 ### Link Click Recording
 
+Link clicks are recorded when the `extrachill_link_click_recorded` action is fired by extrachill-api:
+
 ```php
-function record_link_click($link_page_id, $link_url) {
+add_action( 'extrachill_link_click_recorded', 'extrachill_handle_link_click_db_write', 10, 2 );
+
+function extrachill_handle_link_click_db_write( $link_page_id, $link_url ) {
     global $wpdb;
     
     $table_name = $wpdb->prefix . 'extrch_link_page_daily_link_clicks';
@@ -223,8 +200,8 @@ Dedicated Gutenberg block providing comprehensive analytics interface for link p
 - **Analytics.js**: Main analytics dashboard component with chart rendering
 - **ArtistSwitcher.js**: Artist context switching interface
 - **AnalyticsContext.js**: Context for analytics data management
-- **useAnalytics.js**: Custom hook for analytics data and queries
-- **API Client**: REST API integration for analytics data endpoints
+- **useAnalytics.js**: Custom hook for analytics data queries
+- **API Client**: REST API integration via `src/blocks/shared/api/client.js`
 
 **Block Registration**:
 ```php
@@ -351,6 +328,6 @@ Analytics data can be exported via REST API endpoints for integration with exter
 ### Third-Party Analytics
 
 The plugin integrates with external analytics services via:
-- Google Tag Manager (GTM) tracking codes configured in TabAdvanced
+- Google Tag Manager (GTM) tracking codes configured in TabAdvanced (link-page-editor block)
 - Meta Pixel (Facebook) integration for conversion tracking
-- Custom event tracking via REST API endpoints
+- Custom event tracking via action hooks and filters

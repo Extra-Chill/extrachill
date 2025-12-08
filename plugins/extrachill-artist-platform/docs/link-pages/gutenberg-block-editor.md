@@ -1,10 +1,10 @@
 # Gutenberg Block Editor for Link Pages
 
-Complete React-based Gutenberg block providing modern interface for link page editing with feature parity to traditional PHP management interface.
+Complete React-based Gutenberg block providing modern interface for link page editing.
 
 ## Overview
 
-The Gutenberg block editor offers a streamlined, intuitive interface for artists to create and customize their link pages directly within the WordPress block editor. It provides all functionality of the traditional management interface with a modern React component architecture.
+The Gutenberg block editor provides a streamlined, intuitive interface for artists to create and customize their link pages directly within the WordPress block editor.
 
 **Location**: `src/blocks/link-page-editor/`
 

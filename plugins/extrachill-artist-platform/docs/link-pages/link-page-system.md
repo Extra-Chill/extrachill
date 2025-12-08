@@ -234,12 +234,12 @@ All assets loaded based on page context:
 
 ### Save System
 
-Location: `src/blocks/link-page-editor/api/client.js` (REST API-based)
+Location: REST API integration via `src/blocks/link-page-editor/`
 
-All save operations handled through Gutenberg block:
+All save operations handled through the Gutenberg block editor exclusively:
 
 ```javascript
-// Save via REST API
+// Save via REST API (Gutenberg block)
 const response = await apiClient.post( `/extrachill/v1/link-pages/${linkPageId}`, {
     links: formData.links,
     css_vars: formData.css_vars,
@@ -247,6 +247,8 @@ const response = await apiClient.post( `/extrachill/v1/link-pages/${linkPageId}`
     social_links: formData.social_links
 });
 ```
+
+**No traditional PHP form handlers exist** - all management operations use the Gutenberg block editor with REST API.
 
 ### Data Synchronization
 

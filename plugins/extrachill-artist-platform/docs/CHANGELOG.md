@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.4] - 2025-12-08
+
+### Changed
+- Refactored analytics system to use action hooks from extrachill-api plugin instead of direct REST endpoints
+- Moved analytics tracking handlers from AJAX files to unified analytics.php with filter-based data provision
+- Updated all documentation to reflect new analytics architecture and remove legacy forum integration references
+- Enhanced permissions system documentation with new helper functions
+
+### Removed
+- Legacy analytics REST endpoint files (inc/link-pages/live/ajax/analytics.php, edit-permission.php)
+- Forum integration references throughout codebase and documentation
+- Unused query variable `is_extrch_preview_iframe`
+
 ## [1.2.3] - 2025-12-08
 
 ### Changed
@@ -71,7 +84,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Cleaned up JavaScript architecture documentation to focus on React-based Gutenberg blocks
 
 ### Removed
-- `live-preview-system.md` documentation (functionality superseded by React Context system)
 - Legacy event-driven JavaScript architecture references from README and documentation
 - Outdated JavaScript patterns documentation for old management interface
 

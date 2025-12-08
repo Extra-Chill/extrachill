@@ -206,9 +206,12 @@ build/blocks/artist-profile-manager/
 The plugin uses REST API for all public tracking operations:
 
 ```php
-// Public Tracking Endpoints: inc/link-pages/live/ajax/
-// REST API registration for analytics and permission checking
-// All tracking uses sendBeacon() or fetch() with REST endpoints
+// Public Tracking Modules: inc/link-pages/live/
+// REST API endpoints defined in extrachill-api plugin
+// This plugin provides:
+// - Data via extrachill_get_link_page_analytics filter
+// - Action hooks for tracking writes: extrachill_link_page_view_recorded, extrachill_link_click_recorded
+// - Database writes to analytics tables
 ```
 
 ### Permission System

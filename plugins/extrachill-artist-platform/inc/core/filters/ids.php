@@ -221,7 +221,6 @@ function ec_get_link_page_id( $context = null ) {
 add_filter( 'query_vars', function( $vars ) {
     $vars[] = 'ec_get_artist_id';
     $vars[] = 'ec_get_link_page_id';
-    $vars[] = 'is_extrch_preview_iframe';
     return $vars;
 } );
 

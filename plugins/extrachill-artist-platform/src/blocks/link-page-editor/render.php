@@ -125,7 +125,6 @@ if ( function_exists( 'extrachill_artist_platform_social_links' ) ) {
         $social_types[] = array(
             'id'         => $type_id,
             'label'      => $type_data['label'],
-            'icon'       => $icon_value,
             'icon_class' => $icon_value,
         );
     }

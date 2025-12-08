@@ -60,8 +60,9 @@ Dual template architecture:
 **Location**: `src/blocks/`
 
 Three React-based Gutenberg blocks providing complete platform management:
-- **link-page-editor**: Complete link page editing interface with feature parity to legacy PHP interface
-  - Includes TabInfo, TabLinks, TabCustomize, TabAdvanced, TabAnalytics (moved to separate block), TabSocials
+- **link-page-editor**: Complete link page editing interface
+  - Includes TabInfo, TabLinks, TabCustomize, TabAdvanced, TabSocials
+  - Analytics functionality moved to separate block in v1.1.11+
   - Live preview with Context API state management
   - REST API integration for all data operations
   - Webpack-based build process with wp-scripts tooling

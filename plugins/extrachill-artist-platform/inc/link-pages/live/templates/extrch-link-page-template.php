@@ -67,24 +67,16 @@ $link_sections = isset($data['link_sections']) && is_array($data['link_sections'
 
 $initial_container_style_attr = '';
 $container_classes = 'extrch-link-page-container'; // Base class
-$is_preview_iframe_context = (bool) get_query_var('is_extrch_preview_iframe', false); // This query var should be set in management/live-preview/preview.php
+$is_preview_iframe_context = false;
 
-if ( $is_preview_iframe_context ) {
-    $container_classes .= ' extrch-link-page-preview-container'; // Add preview-specific class
-    // For the preview iframe, ensure it behaves as a flex container filling height.
-    // All other styles (background, colors, fonts) are applied via CSS variables injected
-    // into the iframe's :root by preview.php.
-    $initial_container_style_attr = ' style="display:flex; flex-direction:column; height:100%; min-height:100%; box-sizing:border-box;"';
-} else {
-    // For the public page (single-artist_link_page.php)
-    // The .extrch-link-page-container's background should be handled by css/extrch-links.css.
-    // It might be transparent (if body has the main bg) or a card color (using a CSS var).
-    // We no longer apply $data['background_style'] directly here for the public page,
-    // nor do we append CSS variable definitions to its inline style.
-    // If a specific inline style is ever needed for the public container beyond what CSS can do,
-    // it would be constructed carefully here, but typically it won't be for background.
-    // For now, no inline style is applied to the public page container from this template.
-}
+// For the public page (single-artist_link_page.php)
+// The .extrch-link-page-container's background should be handled by css/extrch-links.css.
+// It might be transparent (if body has the main bg) or a card color (using a CSS var).
+// We no longer apply $data['background_style'] directly here for the public page,
+// nor do we append CSS variable definitions to its inline style.
+// If a specific inline style is ever needed for the public container beyond what CSS can do,
+// it would be constructed carefully here, but typically it won't be for background.
+// For now, no inline style is applied to the public page container from this template.
 
 // Note: The $data['css_vars'] are outputted as a :root style block in single-artist_link_page.php
 // and are used by extrch-links.css. They are not applied as inline styles here.

@@ -105,10 +105,13 @@ The plugin provides comprehensive integration with the extrachill.link domain fo
 - Export tracking and management capabilities
 
 #### Analytics System
-**Files**: `inc/database/link-page-analytics-db.php`, `inc/link-pages/live/ajax/analytics.php`
-- **Page View Tracking**: Real-time tracking via theme-level `ec_post_views` system (WordPress post meta)
-- **Daily Aggregation**: Scheduled cron calculates daily view deltas and populates `{prefix}_extrch_link_page_daily_views` table
-- **Link Click Tracking**: Direct tracking to `{prefix}_extrch_link_page_daily_link_clicks` table via sendBeacon
+**Files**: `inc/database/link-page-analytics-db.php`, `inc/link-pages/live/analytics.php`
+- **Architecture**: REST API endpoints in extrachill-api plugin; this plugin provides data via filter and handles database writes
+- **Page View Tracking**: JavaScript beacon on public link pages → extrachill-api REST endpoint → action hook → database write
+- **Link Click Tracking**: JavaScript beacon with link URL → extrachill-api REST endpoint → action hook → database write
+- **Data Provider**: `extrachill_get_link_page_analytics` filter supplies analytics data to extrachill-api endpoints
+- **Action Hooks**: `extrachill_link_page_view_recorded`, `extrachill_link_click_recorded` for handling tracking writes
+- **Data Tables**: Daily views and link clicks stored in `{prefix}_extrch_link_page_daily_views` and `{prefix}_extrch_link_page_daily_link_clicks` tables
 - **Data Retention**: Automatic 90-day pruning of daily analytics tables
 - **Dashboard**: Chart.js-powered analytics block `src/blocks/link-page-analytics/` with daily breakdown charts (v1.1.11+)
 
@@ -252,10 +255,11 @@ Complete artist profile management interface:
 - **TabSubscribers**: Email subscriber list and export
 
 **REST API Integration** (All Blocks):
-- `client.js`: Centralized API client for all block requests
+- `client.js`: Unified API client for all block requests located at `src/blocks/shared/api/client.js`
+- Single source of truth for REST API calls across all blocks
 - Handles image uploads, saves, and data fetching
 - Automatic nonce handling and error management
-- Located in each block's `api/` directory
+- Used by link-page-editor, link-page-analytics, and artist-profile-manager blocks
 
 **Build Configuration**:
 - **Webpack**: `webpack.config.js` - Compiles React and SCSS for all blocks
