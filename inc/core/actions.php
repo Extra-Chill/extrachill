@@ -19,19 +19,8 @@ function extrachill_default_below_copyright() {
 }
 add_action('extrachill_below_copyright', 'extrachill_default_below_copyright', 10);
 
-function extrachill_default_navigation_main_menu() {
-    include get_template_directory() . '/inc/header/nav-main-menu.php';
-}
-add_action('extrachill_navigation_main_menu', 'extrachill_default_navigation_main_menu', 10);
-
-function extrachill_default_navigation_bottom_menu() {
-    include get_template_directory() . '/inc/header/nav-bottom-menu.php';
-}
-add_action('extrachill_navigation_bottom_menu', 'extrachill_default_navigation_bottom_menu', 10);
-
-
-
 function extrachill_hook_taxonomy_badges_above_title() {
+
     extrachill_display_taxonomy_badges( get_the_ID() );
 }
 add_action( 'extrachill_above_post_title', 'extrachill_hook_taxonomy_badges_above_title' );

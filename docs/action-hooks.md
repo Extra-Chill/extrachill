@@ -7,30 +7,9 @@ The theme provides action hooks for plugin integration and customization through
 ### extrachill_header_top_right
 Populates the header area with the hamburger/navigation template, search icon, and related flyout markup.
 
-**Location**: `inc/header/navigation-menu.php`
+**Location**: `inc/header/header-search.php`
 **Default Handler**: Anonymous function loaded at priority 10
 **Outputs**: `<nav id="site-navigation" ...>...</nav>` plus the search icon, so plugins can replace the entire navigation block by unhooking this action.
-
-### extrachill_navigation_main_menu
-Main navigation menu content (login link + network hubs).
-
-**Default Handler**: `extrachill_default_navigation_main_menu()`
-**Default Template**: `/inc/header/nav-main-menu.php`
-**Priority**: 10
-
-```php
-// Add custom menu item
-add_action( 'extrachill_navigation_main_menu', function() {
-    echo '<li><a href="/custom">Custom Link</a></li>';
-}, 15 );
-```
-
-### extrachill_navigation_bottom_menu
-Bottom navigation menu (About, Contact).
-
-**Default Handler**: `extrachill_default_navigation_bottom_menu()`
-**Default Template**: `/inc/header/nav-bottom-menu.php`
-**Priority**: 10
 
 ### extrachill_navigation_before_social_links
 Hook before social links in navigation.
