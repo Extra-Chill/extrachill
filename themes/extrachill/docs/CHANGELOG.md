@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0/).
 
+## [1.2.4] - 2025-12-08
+
+### Added
+- Expanded SVG icon sprite system with comprehensive UI and social media icons (chevron-down, share, cart, reply, bell, circle, users, at, plus, globe, link, video, calendar, clock, guitar, briefcase, igloo, facebook, instagram, x-twitter, youtube, pinterest, github, tiktok, spotify, soundcloud, bandcamp, twitch, qrcode)
+
+### Changed
+- Improved multisite flexibility by replacing hardcoded blog IDs with dynamic `ec_get_blog_id()` function calls in artist profile link and online users stats components
+
+### Technical
+- Updated `assets/fonts/extrachill.svg` with 30+ new icon symbols for enhanced UI capabilities
+- Modified `inc/archives/artist-profile-link.php` to use `ec_get_blog_id('artist')` instead of hardcoded blog ID 4
+- Modified `inc/footer/online-users-stats.php` to use `ec_get_blog_id('community')` instead of hardcoded blog ID 2
+
 ## [1.2.3] - 2025-12-07
 
 ### Changed
