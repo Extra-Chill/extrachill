@@ -2,7 +2,7 @@
 /**
  * Registration Email System
  *
- * Sends HTML welcome email and admin notification on user_register action hook.
+ * Sends HTML welcome email on user_register hook and admin notification on extrachill_new_user_registered hook.
  *
  * @package ExtraChill\Users
  */
@@ -10,16 +10,16 @@
 /**
  * Send admin notification on new user registration.
  *
- * @param int $user_id User ID
+ * @param int    $user_id          User ID
+ * @param string $registration_page The page where registration occurred
  */
-function extrachill_notify_admin_new_user($user_id) {
+function extrachill_notify_admin_new_user($user_id, $registration_page) {
     $user_data = get_userdata($user_id);
     $username = $user_data->user_login;
     $email = $user_data->user_email;
 
     $admin_email = get_option('admin_email');
     $subject = "New User Registration Notification";
-    $registration_page = get_user_meta($user_id, 'registration_page', true);
     $artist_flag = isset($_POST['user_is_artist']) ? wp_unslash($_POST['user_is_artist']) : '';
     $professional_flag = isset($_POST['user_is_professional']) ? wp_unslash($_POST['user_is_professional']) : '';
 
@@ -27,7 +27,7 @@ function extrachill_notify_admin_new_user($user_id) {
     $message .= "Username: " . $username . "\n";
     $message .= "Email: " . $email . "\n";
     $message .= "User ID: " . $user_id . "\n";
-    $message .= "Registration Page: " . ($registration_page ? esc_url($registration_page) : 'Missing registration_page meta') . "\n";
+    $message .= "Registration Page: " . ($registration_page ? esc_url($registration_page) : 'Unknown') . "\n";
     $message .= "Artist: " . ($artist_flag === '1' ? 'Yes' : 'No') . "\n";
     $message .= "Professional: " . ($professional_flag === '1' ? 'Yes' : 'No') . "\n";
     $message .= "\nUser Profile: " . ec_get_user_profile_url($user_id, $email);
@@ -35,7 +35,7 @@ function extrachill_notify_admin_new_user($user_id) {
     wp_mail($admin_email, $subject, $message);
 }
 
-add_action( 'user_register', 'extrachill_notify_admin_new_user', 10, 1 );
+add_action( 'extrachill_new_user_registered', 'extrachill_notify_admin_new_user', 10, 2 );
 
 /**
  * Send welcome email to new user.
