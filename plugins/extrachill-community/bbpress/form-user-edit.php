@@ -68,21 +68,23 @@ defined( 'ABSPATH' ) || exit;
 					?>
 					<ul class="user-artist-list">
 						<?php
-						switch_to_blog( 4 ); // Switch to artist.extrachill.com for post data
-						foreach ( $artist_profile_ids as $artist_id ) :
-							$artist_post = get_post( $artist_id );
-							if ( $artist_post ) :
-								$artist_url = 'https://artist.extrachill.com/' . $artist_post->post_name . '/';
-								?>
-								<li>
-									<a href="<?php echo esc_url( $artist_url ); ?>" class="button-3 button-small">
-										<?php echo esc_html( $artist_post->post_title ); ?>
-									</a>
-								</li>
-							<?php
-							endif;
-						endforeach;
-						restore_current_blog(); // Restore to community site
+                        $artist_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'artist' ) : 4;
+                        switch_to_blog( $artist_blog_id );
+                        foreach ( $artist_profile_ids as $artist_id ) :
+                            $artist_post = get_post( $artist_id );
+                            if ( $artist_post ) :
+                                $artist_url = 'https://artist.extrachill.com/' . $artist_post->post_name . '/';
+                                ?>
+                                <li>
+                                    <a href="<?php echo esc_url( $artist_url ); ?>" class="button-3 button-small">
+                                        <?php echo esc_html( $artist_post->post_title ); ?>
+                                    </a>
+                                </li>
+                            <?php
+                            endif;
+                        endforeach;
+                        restore_current_blog();
+
 						?>
 					</ul>
                     <?php

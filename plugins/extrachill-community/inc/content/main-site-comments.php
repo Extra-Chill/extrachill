@@ -25,9 +25,15 @@ if (!function_exists('display_main_site_comments_for_user')) {
         $user_info = get_userdata($community_user_id);
         $user_nicename = $user_info ? $user_info->user_nicename : 'Unknown User';
 
-        switch_to_blog( 1 );
+		$main_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'main' ) : null;
+		if ( ! $main_blog_id ) {
+			return '<div class="bbpress-comments-error">Main site not configured.</div>';
+		}
 
-        $user_comments = get_comments(array(
+		switch_to_blog( $main_blog_id );
+
+		$user_comments = get_comments(array(
+
             'user_id' => $community_user_id,
             'status' => 'approve',
             'order' => 'DESC',
@@ -84,8 +90,14 @@ if (!function_exists('get_user_main_site_comment_count')) {
             return 0;
         }
 
-        switch_to_blog( 1 );
-        $count = get_comments(array(
+		$main_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'main' ) : null;
+		if ( ! $main_blog_id ) {
+			return 0;
+		}
+
+		switch_to_blog( $main_blog_id );
+		$count = get_comments(array(
+
             'user_id' => $user_id,
             'count' => true,
             'status' => 'approve'

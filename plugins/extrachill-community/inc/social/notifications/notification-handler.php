@@ -55,14 +55,16 @@ function extrachill_handle_notification($user_ids, $notification_data) {
         'read'               => false,
     ]);
 
-    // Switch to community site for centralized notification storage
-    $current_blog_id = get_current_blog_id();
-    $switched = false;
+	// Switch to community site for centralized notification storage
+	$current_blog_id   = get_current_blog_id();
+	$community_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'community' ) : null;
+	$switched          = false;
 
-    if ( $current_blog_id !== 2 ) {
-        switch_to_blog( 2 );
-        $switched = true;
-    }
+	if ( $community_blog_id && $current_blog_id !== $community_blog_id ) {
+		switch_to_blog( $community_blog_id );
+		$switched = true;
+	}
+
 
     try {
         // Add notification to each user's meta on community site

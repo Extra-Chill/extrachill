@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.10] - 2025-12-08
+
+### Changed
+- Replaced hardcoded blog IDs with dynamic lookups using `ec_get_blog_id()` function across all multisite integration points
+- Added null safety checks and error handling for blog ID resolution
+- Improved multisite configuration flexibility for artist platform, main site, and community site integrations
+
 ## [1.0.9] - 2025-12-07
 
 ### Added

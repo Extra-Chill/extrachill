@@ -3,7 +3,7 @@
  * Custom User Profile Display
  *
  * Extends bbPress user profiles with cross-site data aggregation from main site.
- * Uses switch_to_blog(1) to access extrachill.com (blog ID 1) post counts and comments.
+ * Uses the canonical blog ID provider to access extrachill.com (main site) post counts and comments.
  *
  * Cross-Site Data:
  * - User post count from main site (displayed as "articles")
@@ -18,7 +18,9 @@
 function display_main_site_post_count_on_profile() {
     $user_id = bbp_get_displayed_user_id();
 
-    switch_to_blog( 1 );
+    $main_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'main' ) : 1;
+
+    switch_to_blog( $main_blog_id );
     $post_count = count_user_posts($user_id, 'post', true);
     restore_current_blog();
 

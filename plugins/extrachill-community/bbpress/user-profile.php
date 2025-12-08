@@ -99,10 +99,14 @@ if ( $is_artist || $is_professional ) :
         </h2>
         <?php if ( !empty($user_artist_ids) ) : ?>
             <ul class="user-artist-list">
-                <?php
-                switch_to_blog( 4 ); // Switch to artist.extrachill.com for post data
-                foreach ( $user_artist_ids as $user_artist_id ) :
-                    $artist_post = get_post( $user_artist_id );
+				<?php
+				$artist_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'artist' ) : null;
+				if ( $artist_blog_id ) {
+					switch_to_blog( $artist_blog_id ); // Switch to artist.extrachill.com for post data
+				}
+				foreach ( $user_artist_ids as $user_artist_id ) :
+					$artist_post = get_post( $user_artist_id );
+
                     if ( $artist_post ) :
                         $artist_url = 'https://artist.extrachill.com/' . $artist_post->post_name . '/';
                 ?>

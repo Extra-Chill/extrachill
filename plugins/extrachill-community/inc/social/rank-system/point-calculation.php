@@ -8,11 +8,11 @@
  * - Topics: 2 points (bbp_get_user_topic_count)
  * - Replies: 2 points (bbp_get_user_reply_count)
  * - Upvotes received: 0.5 points per upvote
- * - Main site posts: 10 points each (from blog ID 1)
+ * - Main site posts: 10 points each (from main site blog ID)
  *
  * Performance:
  * - 1-hour transient caching per user
- * - Cross-site queries use switch_to_blog(1) for main site access
+ * - Cross-site queries use canonical blog ID provider for main site access
  * - Always restores blog context with restore_current_blog()
  *
  * Used by leaderboard page template and user profile display.
@@ -64,11 +64,17 @@ function extrachill_get_user_total_points($user_id) {
 
     $follower_points = 0;
 
-    // Get main site post count for points calculation
-    switch_to_blog( 1 );
-    $main_site_post_count = count_user_posts($user_id, 'post', true);
-    restore_current_blog();
-    $main_site_post_points = $main_site_post_count * 10;
+	// Get main site post count for points calculation
+	$main_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'main' ) : null;
+	if ( $main_blog_id ) {
+		switch_to_blog( $main_blog_id );
+		$main_site_post_count = count_user_posts($user_id, 'post', true);
+		restore_current_blog();
+	} else {
+		$main_site_post_count = 0;
+	}
+	$main_site_post_points = $main_site_post_count * 10;
+
 
     // Calculate total points
     $total_points = $bbpress_points + $upvote_points + $follower_points + $main_site_post_points;

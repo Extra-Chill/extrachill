@@ -30,8 +30,10 @@ function extrachill_mark_notifications_as_read() {
     $current_blog_id = get_current_blog_id();
     $switched = false;
 
-    if ( $current_blog_id !== 2 ) {
-        switch_to_blog( 2 );
+    $community_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'community' ) : 2;
+
+    if ( $current_blog_id !== $community_blog_id ) {
+        switch_to_blog( $community_blog_id );
         $switched = true;
     }
 
