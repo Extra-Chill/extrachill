@@ -57,7 +57,7 @@
 
 /* Submit Button */
 .custom-contact-form .submit-button {
-    background-color: var(--button-bg);
+    background-color: #0b5394;
     color: var(--header-text);
     padding: 12px 30px;
     border: none;
@@ -69,7 +69,7 @@
 }
 
 .custom-contact-form .submit-button:hover {
-    background-color: var(--button-hover-bg);
+    background-color: #083b6c;
 }
 
 .custom-contact-form .submit-button:focus {

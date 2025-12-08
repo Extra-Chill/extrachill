@@ -26,12 +26,8 @@ function custom_contact_form_shortcode() {
             <select name="contact_subject" id="contact_subject" class="input-text" required>
                 <option value="">Select a subject</option>
                 <option value="General Inquiry">General Inquiry</option>
-                <option value="Press/Media">Press/Media</option>
                 <option value="Partnership/Collaboration">Partnership/Collaboration</option>
-                <option value="Artist Platform Support">Artist Platform Support</option>
                 <option value="Shop/Store Support">Shop/Store Support</option>
-                <option value="Community Forum Support">Community Forum Support</option>
-                <option value="Account/Login Support">Account/Login Support</option>
                 <option value="Technical Issue">Technical Issue</option>
                 <option value="Other">Other</option>
             </select>
@@ -57,22 +53,31 @@ add_shortcode('ec_custom_contact_form', 'custom_contact_form_shortcode');
 
 function handle_ec_contact_form_submission() {
     if (!wp_verify_nonce($_POST['ec_contact_form_nonce'], 'ec_contact_form_action')) {
-        $redirect_url = add_query_arg('nonce_failed', '1', wp_get_referer());
-        wp_redirect($redirect_url);
+        extrachill_set_notice(
+            __( 'Security verification failed. Please try again.', 'extrachill-contact' ),
+            'error'
+        );
+        wp_redirect(home_url('/contact-us/'));
         exit;
     }
 
     $turnstile_response = isset( $_POST['cf-turnstile-response'] ) ? wp_unslash( $_POST['cf-turnstile-response'] ) : '';
 
     if ( empty( $turnstile_response ) ) {
-        $redirect_url = add_query_arg('captcha_failed', '1', wp_get_referer());
-        wp_redirect($redirect_url);
+        extrachill_set_notice(
+            __( 'Captcha verification failed. Please complete the captcha and try again.', 'extrachill-contact' ),
+            'error'
+        );
+        wp_redirect(home_url('/contact-us/'));
         exit;
     }
 
     if (!ec_verify_turnstile_response($turnstile_response)) {
-        $redirect_url = add_query_arg('captcha_failed', '1', wp_get_referer());
-        wp_redirect($redirect_url);
+        extrachill_set_notice(
+            __( 'Captcha verification failed. Please complete the captcha and try again.', 'extrachill-contact' ),
+            'error'
+        );
+        wp_redirect(home_url('/contact-us/'));
         exit;
     }
 
@@ -86,8 +91,11 @@ function handle_ec_contact_form_submission() {
 
     sync_to_sendy($email);
 
-    $redirect_url = add_query_arg('contact_success', '1', wp_get_referer());
-    wp_redirect($redirect_url);
+    extrachill_set_notice(
+        __( 'Your message has been sent successfully. We\'ll get back to you soon.', 'extrachill-contact' ),
+        'success'
+    );
+    wp_redirect(home_url('/contact-us/'));
     exit;
 }
 add_action('admin_post_ec_contact_form_action', 'handle_ec_contact_form_submission');
@@ -178,23 +186,3 @@ function wp_surgeon_enqueue_turnstile_script() {
 }
 add_action('wp_enqueue_scripts', 'wp_surgeon_enqueue_turnstile_script');
 
-function display_contact_success_message() {
-    if (isset($_GET['contact_success']) && $_GET['contact_success'] == '1') {
-        echo '<div class="contact-success-message" style="background: #d4edda; color: #155724; padding: 15px; border: 1px solid #c3e6cb; border-radius: 4px; margin: 20px 0;">
-                <strong>Thank you!</strong> Your message has been sent successfully. We\'ll get back to you soon.
-              </div>';
-    }
-
-    if (isset($_GET['nonce_failed']) && $_GET['nonce_failed'] == '1') {
-        echo '<div class="contact-error-message" style="background: #f8d7da; color: #721c24; padding: 15px; border: 1px solid #f5c6cb; border-radius: 4px; margin: 20px 0;">
-                <strong>Error:</strong> Security verification failed. Please try again.
-              </div>';
-    }
-
-    if (isset($_GET['captcha_failed']) && $_GET['captcha_failed'] == '1') {
-        echo '<div class="contact-error-message" style="background: #f8d7da; color: #721c24; padding: 15px; border: 1px solid #f5c6cb; border-radius: 4px; margin: 20px 0;">
-                <strong>Error:</strong> Captcha verification failed. Please complete the captcha and try again.
-              </div>';
-    }
-}
-add_action('wp_head', 'display_contact_success_message');

@@ -2,6 +2,11 @@
 
 A WordPress plugin that provides contact form functionality with Sendy newsletter integration and HTML email templates for the ExtraChill platform.
 
+## Development Status
+
+- **Maintained**: The contact form plugin is stable; ongoing maintenance focuses on keeping the Sendy/Turnstile integrations synced with platform-wide credentials.
+- **Security-first**: Nonce/Turnstile checks and escape/escaping logic are prioritized before any feature shifts.
+
 ## Features
 
 - **Contact Form Shortcode**: `[ec_custom_contact_form]` provides a complete contact form
@@ -120,7 +125,7 @@ CSS is conditionally loaded only on pages containing the contact form.
 # Create production ZIP package
 ./build.sh
 
-# Output: /build/extrachill-contact/ directory and /build/extrachill-contact.zip file
+# Output: Only /build/extrachill-contact.zip file (unzip when directory access needed)
 ```
 
 ### File Structure
@@ -133,7 +138,7 @@ extrachill-contact/
 │   └── contact-form.css           # Styling
 ├── build.sh                       # Build script
 ├── .buildignore                   # Build exclusions
-├── CLAUDE.md                      # AI agent documentation
+├── AGENTS.md                      # AI agent documentation
 └── README.md                      # This file
 ```
 
@@ -173,14 +178,7 @@ Works with any WordPress theme that supports shortcodes. No template modificatio
 
 ## Changelog
 
-### v1.0.0
-- Initial release
-- Contact form with shortcode support
-- HTML email templates with Extra Chill branding
-- Sendy newsletter integration
-- Cloudflare Turnstile protection
-- Responsive CSS styling
-- Build system for production deployment
+See [docs/CHANGELOG.md](docs/CHANGELOG.md) for full version history.
 
 ## License
 
