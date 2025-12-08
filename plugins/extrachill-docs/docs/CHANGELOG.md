@@ -1,3 +1,17 @@
+# 0.2.2 - Dec 7, 2025
+
+### Added
+- Breadcrumb integration for docs pages with "Extra Chill → Documentation" navigation
+- Theme filter hooks for custom breadcrumb trails on homepage
+
+### Changed
+- Updated AGENTS.md with current architecture and file structure documentation
+- Removed outdated artist platform documentation files
+- Minor formatting updates to main plugin file
+
+### Maintenance
+- Updated Composer dependencies
+
 # 0.2.1 - Dec 7, 2025
 
 ### Changed

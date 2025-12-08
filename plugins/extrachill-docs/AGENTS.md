@@ -57,6 +57,7 @@ Platforms without published documentation are not displayed on the homepage.
 - Hooks into `extrachill_homepage_content` action for homepage rendering
 - Uses theme CSS variables from root.css (--card-background, --accent, --spacing-*, etc.)
 - Theme handles ec_doc archive and single templates automatically
+- Breadcrumb integration provides "Extra Chill → Documentation" navigation with network dropdown
 
 ## Content Guidelines
 - Write for non-technical users
