@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0/).
 
+## [1.2.2] - 2025-12-07
+
+### Changed
+- Simplified tag archive breadcrumbs by removing "Tags ›" prefix
+- Added Documentation site to network dropdown navigation
+- Added Documentation link to footer menu under About section
+- Cleaned up footer newsletter CSS styles
+
+### Technical
+- Updated breadcrumb logic in `inc/core/templates/breadcrumbs.php`
+- Added docs.extrachill.com to network dropdown in `inc/core/templates/network-dropdown.php`
+- Modified footer menu structure in `inc/footer/footer-main-menu.php`
+- Streamlined footer newsletter styles in `style.css`
+
 ## [1.2.1] - 2025-12-07
 
 ### Added
