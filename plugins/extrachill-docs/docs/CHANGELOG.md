@@ -1,3 +1,15 @@
+# 0.2.0 - Dec 7, 2025
+
+### Added
+- Documentation sync system for publishing user docs to WordPress
+- Bash sync script (`scripts/sync.sh`) with environment variable support
+- PHP upload script (`scripts/upload.php`) with frontmatter parsing
+- WordPress REST API client (`scripts/WordPressClient.php`) for authenticated requests
+- File finder utility (`scripts/FileFinder.php`) for recursive markdown discovery
+- User documentation structure (`ec_docs/`) as source of truth
+- Artist platform guides: link page creation and advanced features
+- Documentation guidelines and sync process instructions
+
 # 0.1.1 - Dec 7, 2024
 
 ### Changed
