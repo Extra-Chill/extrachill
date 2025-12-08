@@ -17,7 +17,7 @@ Tells extrachill.link whether the logged-in user can edit a specific artist prof
   "success": true,
   "data": {
     "can_edit": bool,
-    "manage_url": "https://artist.extrachill.com/manage-link-page/?artist_id=123",
+    "manage_url": "https://artist.extrachill.com/manage-link-page/",
     "user_id": 45
   }
 }

@@ -48,7 +48,7 @@ function ec_api_check_artist_permissions( WP_REST_Request $request ) {
 
 	if ( $current_user_id && function_exists( 'ec_can_manage_artist' ) && ec_can_manage_artist( $current_user_id, $artist_id ) ) {
 		$can_edit   = true;
-		$manage_url = home_url( '/manage-link-page/?artist_id=' . $artist_id );
+		$manage_url = home_url( '/manage-link-page/' );
 	}
 
 	return rest_ensure_response( array(

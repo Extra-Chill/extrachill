@@ -21,6 +21,32 @@ All notable changes to the ExtraChill API plugin are documented here. This file 
 - **Artist Socials Endpoint**: Updated sanitization to include link page ID context
 - **Dependencies**: Added `erusev/parsedown: ^1.7` for markdown processing
 
+## 0.2.1
+
+### Added
+- **Artist Creation Endpoint**: `POST /wp-json/extrachill/v1/artists` for creating new artist profiles
+  - Supports `name`, `bio`, `local_city`, and `genre` fields
+  - Automatic user-artist relationship linking via BuddyPress integration
+  - Permission checks using `ec_can_create_artist_profiles()` function
+- **Artist Profile Enhancements**: Extended artist data model with new fields
+  - Added `local_city` and `genre` support in GET/PUT `/artists/{id}` endpoints
+  - Enhanced PUT handler to support `profile_image_id` and `header_image_id` updates
+  - Updated response builder to include new metadata fields
+- **Roster Management System**: Complete artist team management under `/artists/{id}/roster` namespace
+  - `GET /artists/{id}/roster` - List roster members and pending invites
+  - `POST /artists/{id}/roster` - Invite new members (nested version of legacy endpoint)
+  - `DELETE /artists/{id}/roster/{user_id}` - Remove roster members
+  - `DELETE /artists/{id}/roster/invites/{invite_id}` - Cancel pending invites
+  - Enhanced invite handler to support both legacy and nested route formats
+
+### Changed
+- **Artist Permissions Endpoint**: Updated `manage_url` to remove artist_id parameter
+  - Changed from `/?artist_id=X` to base `/manage-link-page/` URL
+  - Updated documentation to reflect the URL simplification
+- **Dynamic Blog ID Handling**: Replaced hardcoded blog ID with dynamic function
+  - Changed `switch_to_blog(4)` to `ec_get_blog_id('artist')` in user-artist relationships
+  - Added proper error handling when artist blog ID is not available
+
 ## 0.1.9
 
 ### Added

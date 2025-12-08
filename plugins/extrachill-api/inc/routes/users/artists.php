@@ -147,7 +147,10 @@ function extrachill_api_user_artists_get_handler( WP_REST_Request $request ) {
 	$artists    = array();
 
 	if ( ! empty( $artist_ids ) ) {
-		switch_to_blog( 4 );
+		$artist_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'artist' ) : null;
+		if ( $artist_blog_id ) {
+			switch_to_blog( $artist_blog_id );
+		}
 		try {
 			foreach ( $artist_ids as $artist_id ) {
 				$artist = get_post( $artist_id );
@@ -191,9 +194,13 @@ function extrachill_api_user_artists_post_handler( WP_REST_Request $request ) {
 	}
 
 	// Verify artist exists
-	switch_to_blog( 4 );
-	$artist_exists = get_post_type( $artist_id ) === 'artist_profile';
-	restore_current_blog();
+	$artist_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'artist' ) : null;
+	$artist_exists  = false;
+	if ( $artist_blog_id ) {
+		switch_to_blog( $artist_blog_id );
+		$artist_exists = get_post_type( $artist_id ) === 'artist_profile';
+		restore_current_blog();
+	}
 
 	if ( ! $artist_exists ) {
 		return new WP_Error(
