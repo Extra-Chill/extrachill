@@ -9,7 +9,7 @@ import { __ } from '@wordpress/i18n';
 import { useEditor } from '../../context/EditorContext';
 import DraggableList from '../shared/DraggableList';
 
-const createTempId = (prefix) =>
+const createTempId = ( prefix ) =>
 	`temp-${ prefix }-${ Date.now() }-${ Math.random().toString( 36 ).slice( 2, 8 ) }`;
 
 export default function TabSocials() {
@@ -25,15 +25,21 @@ export default function TabSocials() {
 
 	const addSocial = useCallback(
 		( type ) => {
+			const socialTypeInfo = socialTypes.find( ( t ) => t.id === type );
+			if ( ! socialTypeInfo || ! socialTypeInfo.icon_class ) {
+				return;
+			}
+
 			const newSocial = {
 				id: createTempId( 'social' ),
 				type,
 				url: '',
+				icon_class: socialTypeInfo.icon_class,
 			};
 			updateSocials( [ ...socials, newSocial ] );
 			setShowAddModal( false );
 		},
-		[ socials, updateSocials ]
+		[ socials, socialTypes, updateSocials ]
 	);
 
 	const removeSocial = useCallback(
@@ -61,16 +67,23 @@ export default function TabSocials() {
 	);
 
 	const renderSocialItem = ( social, index ) => {
-		const socialTypeInfo = socialTypes?.find( ( t ) => t.id === social.type );
-		const label = socialTypeInfo?.label || social.type;
-		const rowKey = social.id || `social-${ index }`;
-		
+		const socialTypeInfo = socialTypes.find( ( t ) => t.id === social.type );
+		if ( ! socialTypeInfo || ! social.icon_class ) {
+			return null;
+		}
+
+		const label = socialTypeInfo.label;
+		const iconClass = social.icon_class;
+		const rowKey = social.id;
+
 		return (
 			<div key={ rowKey } className="ec-social-item">
 				<span className="ec-social-item__drag-handle">
 					<span className="dashicons dashicons-menu"></span>
 				</span>
-				<span className={ `ec-social-item__icon ec-social-icon--${ social.type }` }></span>
+				<span className="ec-social-item__icon">
+					<i className={ iconClass } aria-hidden="true"></i>
+				</span>
 				<input
 					type="url"
 					className="ec-social-item__url"

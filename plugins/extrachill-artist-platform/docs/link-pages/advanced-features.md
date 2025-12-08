@@ -293,28 +293,8 @@ if ($subscribe_display_mode === 'inline_form') {
 
 ## QR Code Generation
 
-### Dynamic QR Code Creation
+Legacy manage-link-page QR code AJAX and JS have been removed with the PHP management interface. QR handling is expected via the block/REST flow.
 
-Location: `inc/link-pages/management/ajax/qrcode.php`
-
-```php
-function generate_link_page_qr_code() {
-    $link_page_id = (int) $_POST['link_page_id'];
-    $link_page_url = get_permalink($link_page_id);
-    
-    // Generate QR code using external service or library
-    $qr_code_url = generate_qr_code_url($link_page_url, [
-        'size' => '300x300',
-        'format' => 'png',
-        'error_correction' => 'M'
-    ]);
-    
-    wp_send_json_success([
-        'qr_code_url' => $qr_code_url,
-        'download_url' => add_query_arg(['download' => '1'], $qr_code_url)
-    ]);
-}
-```
 
 ### QR Code Interface
 

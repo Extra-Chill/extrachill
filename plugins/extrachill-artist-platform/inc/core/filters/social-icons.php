@@ -41,8 +41,8 @@ class ExtraChillArtistPlatform_SocialLinks {
     public function get_supported_types() {
         if ( null === $this->supported_types ) {
             $this->supported_types = array(
-                'apple_music' => array( 
-                    'label' => __( 'Apple Music', 'extrachill-artist-platform' ), 
+                'apple_music' => array(
+                    'label' => __( 'Apple Music', 'extrachill-artist-platform' ),
                     'icon' => 'fab fa-apple',
                     'base_url' => 'music.apple.com'
                 ),

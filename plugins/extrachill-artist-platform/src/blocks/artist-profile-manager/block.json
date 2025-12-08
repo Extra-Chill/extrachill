@@ -1,0 +1,23 @@
+{
+  "$schema": "https://schemas.wp.org/trunk/block.json",
+  "apiVersion": 3,
+  "name": "extrachill-artist-platform/artist-profile-manager",
+  "version": "0.1.1",
+  "title": "Artist Profile Manager",
+  "category": "widgets",
+  "icon": "id-alt",
+  "description": "Manage artist profiles with images, roster, and subscribers.",
+  "textdomain": "extrachill-artist-platform",
+  "attributes": {},
+  "supports": {
+    "html": false,
+    "multiple": false,
+    "reusable": false,
+    "inserter": true
+  },
+  "editorScript": "file:./index.js",
+  "editorStyle": "file:./index.css",
+  "style": "file:./style-index.css",
+  "viewScript": "file:./view.js",
+  "render": "file:./render.php"
+}

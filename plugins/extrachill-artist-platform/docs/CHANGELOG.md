@@ -5,6 +5,33 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2025-12-08
+
+### Added
+- New `artist-profile-manager` Gutenberg block for comprehensive artist profile management with React-based frontend interface
+- Complete Gutenberg-based management system replacing legacy PHP interfaces
+- Enhanced block registration system with artist-profile-manager block support
+
+### Removed
+- Entire legacy PHP management interface for link pages (`inc/link-pages/management/` except `link-expiration.php`)
+- All legacy management AJAX handlers, templates, and assets (50+ files removed)
+- Traditional manage-link-page PHP interface (superseded by Gutenberg blocks)
+- Legacy advanced-tab includes except link expiration cron
+- Empty subscribe helper functions
+
+### Changed
+- Plugin initialization to register new artist-profile-manager block
+- Asset management system (removed legacy management asset loading)
+- Link expiration system simplified to cron-only functionality
+- Documentation updates reflecting new Gutenberg-first architecture
+- Code cleanups and improvements across multiple core files
+- README.md updated to reflect removal of legacy management interface
+
+### Block Versions
+- `link-page-editor`: 0.1.2 (unchanged)
+- `link-page-analytics`: 0.1.2 (unchanged)
+- `artist-profile-manager`: 0.1.1 (new block)
+
 ## [1.1.13] - 2025-12-07
 
 ### Enhanced
@@ -253,7 +280,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 - Legacy QR code AJAX handler (qrcode.php)
-- Redundant manage-link-page.css file (consolidated into management.css)
+- Traditional manage-link-page PHP interface, assets, and AJAX endpoints (block now handles management at /manage-link-page)
 
 ### Technical Improvements
 - Added debounced data attribute updates for better performance

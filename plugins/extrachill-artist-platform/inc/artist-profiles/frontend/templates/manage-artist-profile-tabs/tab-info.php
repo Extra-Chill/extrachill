@@ -34,7 +34,7 @@ $current_header_image_id = $current_header_image_id ?? null;
         // Link Page Management Button
         if ( $edit_mode && $target_artist_id > 0 ) : 
             $link_page_id = apply_filters('ec_get_link_page_id', $target_artist_id);
-            $manage_url = add_query_arg( array( 'artist_id' => $target_artist_id ), site_url( '/manage-link-page/' ) );
+            $manage_url = site_url( '/manage-link-page/' );
             $label = ( ! empty( $link_page_id ) && get_post_status( $link_page_id ) ) ? __( 'Manage Link Page', 'extrachill-artist-platform' ) : __( 'Create Link Page', 'extrachill-artist-platform' );
         ?>
             <a href="<?php echo esc_url( $manage_url ); ?>" class="button-2 button-medium"><?php echo esc_html( $label ); ?></a>
@@ -141,31 +141,5 @@ $current_header_image_id = $current_header_image_id ?? null;
     </div>
 </div>
 
-<?php /* Remove Social Icons card - Managed on Link Page now
-<div class="artist-profile-content-card">
-    <!-- Social Icons Section -->
-    <div id="bp-social-icons-section">
-        <h2 style="margin-bottom: 0.5em;"><?php esc_html_e( 'Social Icons', 'extrachill-artist-platform' ); ?></h2>
-        <p class="description extrch-sync-info" style="margin-top: -0.5em; margin-bottom: 1em;"><small><?php esc_html_e( 'These icons are also used for your Extrachill.link page and are managed there.', 'extrachill-artist-platform' ); ?></small></p>
-        <?php 
-        // This was already in manage-artist-profile.php, ensuring it's here.
-        // $artist_profile_social_links_data is expected to be set in parent scope.
-        // if ( ! is_array( $artist_profile_social_links_data ) ) {
-        //     $artist_profile_social_links_data = array();
-        // }
-        ?>
-        // <input type="hidden" name="artist_profile_social_links_json" id="artist_profile_social_links_json" value="<?php echo esc_attr(json_encode($artist_profile_social_links_data)); ?>">
-        
-        <div id="bp-social-icons-list">
-            <!-- JS will render the list of social icons here -->
-        </div>
-        <button type="button" id="bp-add-social-icon-btn" class="button-2 button-medium bp-add-social-icon-btn">
-            <i class="fas fa-plus"></i> <?php esc_html_e('Add Social Icon', 'extrachill-artist-platform'); ?>
-        </button>
-    </div>
-</div>
-*/ ?>
 
-<?php /* Original commented out section for Extrachill.link management button - already moved and handled.
-// ... existing code ...
-*/ ?> 
+

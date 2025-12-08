@@ -58,6 +58,7 @@ const DEFAULT_CSS_VARS = {
 export function EditorProvider( { artistId: initialArtistId, children } ) {
 	const config = window.ecLinkPageEditorConfig || {};
 	const fonts = config.fonts || [];
+	const localFontsCss = config.localFontsCss || '';
 
 	const [ artistId, setArtistId ] = useState( initialArtistId );
 	const [ activeTab, setActiveTab ] = useState( 'info' );
@@ -278,6 +279,9 @@ export function EditorProvider( { artistId: initialArtistId, children } ) {
 			socialTypes: config.socialTypes || [],
 			linkPageCssUrl: config.linkPageCssUrl || '',
 			socialIconsCssUrl: config.socialIconsCssUrl || '',
+			shareModalCssUrl: config.shareModalCssUrl || '',
+			fontAwesomeUrl: config.fontAwesomeUrl || '',
+			localFontsCss,
 
 			// Preview-related computed values
 			computedStyles,
@@ -309,6 +313,9 @@ export function EditorProvider( { artistId: initialArtistId, children } ) {
 			config.socialTypes,
 			config.linkPageCssUrl,
 			config.socialIconsCssUrl,
+			config.shareModalCssUrl,
+			config.fontAwesomeUrl,
+			localFontsCss,
 			computedStyles,
 			previewData,
 			googleFontsUrl,

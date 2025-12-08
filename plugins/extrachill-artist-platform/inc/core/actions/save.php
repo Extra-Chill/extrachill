@@ -607,7 +607,7 @@ function ec_admin_post_save_link_page() {
         
         $manage_page = get_page_by_path( 'manage-link-page' );
         $base_url = $manage_page ? get_permalink( $manage_page ) : home_url( '/manage-link-page/' );
-        wp_safe_redirect( add_query_arg( 'artist_id', $artist_id, $base_url ) );
+        wp_safe_redirect( $base_url );
         exit;
     }
     
@@ -615,7 +615,7 @@ function ec_admin_post_save_link_page() {
     extrachill_set_notice( __( 'Link page updated successfully!', 'extrachill-artist-platform' ), 'success' );
     $manage_page = get_page_by_path( 'manage-link-page' );
     $base_url = $manage_page ? get_permalink( $manage_page ) : home_url( '/manage-link-page/' );
-    wp_safe_redirect( add_query_arg( 'artist_id', $artist_id, $base_url ) );
+    wp_safe_redirect( $base_url );
     exit;
 }
 add_action( 'template_redirect', 'ec_handle_link_page_form_submission' );

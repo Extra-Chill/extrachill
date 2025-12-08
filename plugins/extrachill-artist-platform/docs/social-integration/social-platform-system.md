@@ -398,34 +398,8 @@ public function remove_social_link($artist_id, $link_id) {
 
 ## Management Interface
 
-### AJAX Social Management
+Legacy manage-link-page social AJAX and components have been removed. Social management flows through the block and REST.
 
-Location: `inc/link-pages/management/ajax/social.php`
-
-```php
-/**
- * Render social item editor
- */
-function render_social_item_editor() {
-    if (!wp_verify_nonce($_POST['nonce'], 'extrch_link_page_ajax_nonce')) {
-        wp_die('Security check failed');
-    }
-    
-    if (!ec_ajax_can_manage_artist($_POST)) {
-        wp_send_json_error('Insufficient permissions');
-    }
-    
-    $social_data = $_POST['social_data'];
-    $social_manager = ExtraChillArtistPlatform_SocialLinks::instance();
-    
-    ob_start();
-    include EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/management/templates/components/social-item-editor.php';
-    $html = ob_get_clean();
-    
-    wp_send_json_success(['html' => $html]);
-}
-add_action('wp_ajax_render_social_item_editor', 'render_social_item_editor');
-```
 
 ### Social Item Editor Component
 

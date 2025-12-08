@@ -5,7 +5,7 @@
  */
 
 import { useState, useCallback } from '@wordpress/element';
-import { uploadMedia, deleteMedia } from '../api/client';
+import { uploadMedia, deleteMedia, getConfig } from '../../shared/api/client';
 
 export default function useMediaUpload() {
 	const [ isUploading, setIsUploading ] = useState( false );
@@ -14,6 +14,13 @@ export default function useMediaUpload() {
 	const upload = useCallback( async ( context, targetId, file ) => {
 		setIsUploading( true );
 		setError( null );
+
+		const config = getConfig();
+		const currentUser = config.currentUser || {};
+		if ( currentUser.artist_id && currentUser.artist_id !== targetId ) {
+			setIsUploading( false );
+			return null;
+		}
 
 		try {
 			const result = await uploadMedia( context, targetId, file );
@@ -29,6 +36,13 @@ export default function useMediaUpload() {
 	const remove = useCallback( async ( context, targetId ) => {
 		setIsUploading( true );
 		setError( null );
+
+		const config = getConfig();
+		const currentUser = config.currentUser || {};
+		if ( currentUser.artist_id && currentUser.artist_id !== targetId ) {
+			setIsUploading( false );
+			return null;
+		}
 
 		try {
 			const result = await deleteMedia( context, targetId );

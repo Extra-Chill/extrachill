@@ -140,31 +140,6 @@ function extrachill_handle_link_domain_routing( $template ) {
         return $template;
     }
 
-    // Handle manage-link-page requests (admin interface)
-    if ( $request_path === 'manage-link-page' ) {
-        $manage_page = get_page_by_path( 'manage-link-page' );
-        if ( $manage_page ) {
-            $wp_query->posts = array( $manage_page );
-            $wp_query->post_count = 1;
-            $wp_query->found_posts = 1;
-            $wp_query->max_num_pages = 1;
-            $wp_query->is_page = true;
-            $wp_query->is_singular = true;
-            $wp_query->is_404 = false;
-            status_header(200);
-            $wp_query->query_vars['pagename'] = 'manage-link-page';
-            $wp_query->queried_object_id = $manage_page->ID;
-            $wp_query->queried_object = $manage_page;
-
-            $template_to_load = EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/management/templates/manage-link-page.php';
-            if ( file_exists( $template_to_load ) ) {
-                return $template_to_load;
-            }
-        } else {
-            status_header( 404 );
-            return get_404_template();
-        }
-    }
 
     // Handle root domain request or extra-chill request
     $is_root_or_extra_chill = ( empty( $request_path ) || $request_path === 'extra-chill' );
@@ -285,6 +260,16 @@ function extrachill_handle_artist_profile_routing( $template ) {
     if ( empty( $request_path ) ||
          in_array( $request_path, ['wp-login', 'wp-admin', 'admin'], true ) ) {
         return $template;
+    }
+
+    // Handle artist profile archive (/artists/)
+    if ( $request_path === 'artists' ) {
+        $wp_query->query_vars['post_type'] = 'artist_profile';
+        $wp_query->is_archive = true;
+        $wp_query->is_post_type_archive = true;
+        $wp_query->query_vars['post_type_archive'] = 'artist_profile';
+
+        return apply_filters( 'extrachill_template_archive', '' );
     }
 
     // Query for artist profile by slug

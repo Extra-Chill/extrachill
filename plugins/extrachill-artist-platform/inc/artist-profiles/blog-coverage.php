@@ -22,10 +22,16 @@ function extrachill_artist_get_taxonomy_by_slug( $slug ) {
         return false;
     }
 
-    switch_to_blog( 1 );
+	$main_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'main' ) : null;
+	if ( ! $main_blog_id ) {
+		return false;
+	}
 
-    try {
-        $term = get_term_by( 'slug', $slug, 'artist' );
+	switch_to_blog( $main_blog_id );
+
+	try {
+		$term = get_term_by( 'slug', $slug, 'artist' );
+
 
         if ( $term && ! is_wp_error( $term ) ) {
             $archive_link = get_term_link( $term );

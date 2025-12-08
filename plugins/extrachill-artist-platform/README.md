@@ -363,10 +363,6 @@ class ExtraChillArtistPlatform_Assets {
             // Loads from inc/artist-profiles/assets/
         }
 
-        if ( $this->is_manage_link_page_page() ) {
-            $this->enqueue_link_page_management_assets();
-            // Loads from inc/link-pages/management/assets/
-        }
 
         // File existence checks and cache busting via filemtime()
         // Global assets loaded from assets/ directory
@@ -691,7 +687,7 @@ inc/
 │   ├── blog-coverage.php            # Main site taxonomy archive linking
 │   └── subscribe-data-functions.php # Artist subscription data
 ├── link-pages/                      # Link page system
-│   ├── management/                  # Management interface
+│   ├── management/                  # Legacy PHP management interface (removed; superseded by Gutenberg block)
 │   │   ├── ajax/                   # Modular AJAX handlers
 │   │   │   ├── links.php              # Link section management
 │   │   │   ├── social.php             # Social icon management
@@ -703,10 +699,8 @@ inc/
 │   │   ├── live-preview/           # Live preview functionality
 │   │   │   ├── class-live-preview-handler.php  # Live preview handler (ExtraChill_Live_Preview_Handler)
 │   │   │   └── assets/js/          # Live preview JavaScript modules
-│   │   └── templates/              # Management templates
-│   │       ├── manage-link-page.php
-│   │       ├── components/         # Modular UI components
-│   │       └── manage-link-page-tabs/
+│   │   └── templates/              # Legacy templates removed
+│   │       └── components/         # Modular UI components
 │   ├── live/                       # Live page functionality
 │   │   ├── ajax/                   # Public AJAX handlers
 │   │   │   ├── analytics.php          # Public tracking and data pruning

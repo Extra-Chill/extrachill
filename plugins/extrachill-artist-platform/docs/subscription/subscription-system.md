@@ -217,45 +217,7 @@ document.addEventListener('DOMContentLoaded', () => SubscriptionManager.init());
 
 ## Server-Side Processing
 
-### AJAX Handler
-
-Location: `inc/link-pages/management/ajax/subscribe.php`
-
-```php
-/**
- * Handle link page subscription
- */
-function extrch_link_page_subscribe() {
-    // Verify nonce
-    if (!wp_verify_nonce($_POST['nonce'], 'extrch_public_ajax_nonce')) {
-        wp_send_json_error(['message' => 'Security check failed']);
-    }
-    
-    $email = sanitize_email($_POST['subscriber_email']);
-    $artist_id = (int) $_POST['artist_id'];
-    $source = sanitize_text_field($_POST['source']);
-    
-    // Validate inputs
-    if (!is_email($email)) {
-        wp_send_json_error(['message' => 'Please enter a valid email address']);
-    }
-    
-    if (!$artist_id || get_post_type($artist_id) !== 'artist_profile') {
-        wp_send_json_error(['message' => 'Invalid artist profile']);
-    }
-    
-    // Add subscriber
-    $result = add_artist_subscriber($email, $artist_id, $source);
-    
-    if ($result['success']) {
-        wp_send_json_success(['message' => 'Thank you for subscribing!']);
-    } else {
-        wp_send_json_error(['message' => $result['message']]);
-    }
-}
-add_action('wp_ajax_extrch_link_page_subscribe', 'extrch_link_page_subscribe');
-add_action('wp_ajax_nopriv_extrch_link_page_subscribe', 'extrch_link_page_subscribe');
-```
+Legacy manage-link-page subscription AJAX has been removed with the PHP management interface. Subscription handling remains via core subscriber data functions and block/REST flows.
 
 ### Data Functions
 

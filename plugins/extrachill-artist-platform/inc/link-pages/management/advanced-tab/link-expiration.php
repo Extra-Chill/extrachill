@@ -1,5 +1,7 @@
 <?php
-// Link Expiration Cron Cleanup for extrch.co Link Pages
+/**
+ * Link Expiration Cron Cleanup for extrch.link Link Pages
+ */
 add_action('extrch_cleanup_expired_links_event', function() {
     $args = array(
         'post_type'      => 'artist_link_page',
@@ -10,16 +12,22 @@ add_action('extrch_cleanup_expired_links_event', function() {
     $link_pages = get_posts($args);
     $now = current_time('timestamp');
     foreach ($link_pages as $link_page_id) {
-        // Use centralized data system (single source of truth)
         $artist_id = apply_filters('ec_get_artist_id', $link_page_id);
-        if (!$artist_id) continue;
-        
+        if (!$artist_id) {
+            continue;
+        }
+
         $data = ec_get_link_page_data($artist_id, $link_page_id);
         $expiration_enabled = $data['settings']['link_expiration_enabled'] ?? false;
-        if (!$expiration_enabled) continue;
-        
+        if (!$expiration_enabled) {
+            continue;
+        }
+
         $links = $data['links'] ?? [];
-        if (!is_array($links)) continue;
+        if (!is_array($links)) {
+            continue;
+        }
+
         $changed = false;
         foreach ($links as $section_idx => &$section) {
             if (isset($section['links']) && is_array($section['links'])) {
@@ -42,7 +50,6 @@ add_action('extrch_cleanup_expired_links_event', function() {
         }));
         if ($changed) {
             update_post_meta($link_page_id, '_link_page_links', $links);
-            // Fire save hook for consistency with centralized system
             do_action('ec_link_page_save', $link_page_id);
         }
     }
@@ -50,26 +57,3 @@ add_action('extrch_cleanup_expired_links_event', function() {
 if (!wp_next_scheduled('extrch_cleanup_expired_links_event')) {
     wp_schedule_event(time(), 'hourly', 'extrch_cleanup_expired_links_event');
 }
-
-/**
- * Outputs the Link Expiration Modal markup for the Manage Link Page.
- * Call this function in the links tab template to include the modal in the DOM.
- */
-function extrch_render_link_expiration_modal() {
-    ?>
-    <div id="bp-link-expiration-modal" class="bp-link-expiration-modal" style="display:none;">
-        <div class="bp-link-expiration-modal-inner">
-            <h3 class="bp-link-expiration-modal-title"><?php esc_html_e('Set Link Expiration', 'extrachill-artist-platform'); ?></h3>
-            <label class="bp-link-expiration-modal-label">
-                <?php esc_html_e('Expiration Date/Time:', 'extrachill-artist-platform'); ?><br>
-                <input type="datetime-local" id="bp-link-expiration-datetime" class="bp-link-expiration-datetime">
-            </label>
-            <div class="bp-link-expiration-modal-actions">
-                <button type="button" class="button-2 button-medium" id="bp-save-link-expiration"><?php esc_html_e('Save', 'extrachill-artist-platform'); ?></button>
-                <button type="button" class="button-2 button-medium" id="bp-clear-link-expiration"><?php esc_html_e('Clear', 'extrachill-artist-platform'); ?></button>
-                <button type="button" class="button-3 button-medium" id="bp-cancel-link-expiration"><?php esc_html_e('Cancel', 'extrachill-artist-platform'); ?></button>
-            </div>
-        </div>
-    </div>
-    <?php
-} 

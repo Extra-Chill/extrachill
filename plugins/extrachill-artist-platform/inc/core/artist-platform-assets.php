@@ -47,9 +47,6 @@ class ExtraChillArtistPlatform_Assets {
             $this->enqueue_artist_profile_management_assets();
         }
 
-        if ( $this->is_manage_link_page_page() ) {
-            $this->enqueue_link_page_management_assets();
-        }
 
         if ( $this->is_artist_profile_page() ) {
             wp_enqueue_style(
@@ -311,160 +308,6 @@ class ExtraChillArtistPlatform_Assets {
         );
     }
 
-    private function enqueue_link_page_management_assets() {
-        $plugin_url = EXTRACHILL_ARTIST_PLATFORM_PLUGIN_URL;
-
-        // Font Awesome for artist platform management interfaces (isolated from theme)
-        wp_enqueue_style( 'font-awesome', '//cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css' );
-
-        // Enqueue shared tabs for management interface
-        wp_enqueue_style( 'extrachill-shared-tabs', get_template_directory_uri() . '/assets/css/shared-tabs.css', array(), filemtime( get_template_directory() . '/assets/css/shared-tabs.css' ) );
-        wp_enqueue_script( 'extrachill-shared-tabs', get_template_directory_uri() . '/assets/js/shared-tabs.js', array(), filemtime( get_template_directory() . '/assets/js/shared-tabs.js' ), true );
-
-        // Core assets are handled by individual enqueue methods below
-
-        // Enqueue artist-switcher CSS (dependency)
-        wp_enqueue_style(
-            'extrachill-artist-switcher',
-            $plugin_url . 'assets/css/components/artist-switcher.css',
-            array(),
-            $this->get_asset_version( 'assets/css/components/artist-switcher.css' )
-        );
-
-        // Management interface styles
-        wp_enqueue_style(
-            'extrachill-manage-link-page',
-            $plugin_url . 'inc/link-pages/management/assets/css/management.css',
-            array(),
-            $this->get_asset_version( 'inc/link-pages/management/assets/css/management.css' )
-        );
-
-        // Custom social icons styles for management interface
-        wp_enqueue_style( 
-            'extrachill-custom-social-icons', 
-            $plugin_url . 'assets/css/custom-social-icons.css', 
-            array( 'extrachill-manage-link-page' ), 
-            $this->get_asset_version( 'assets/css/custom-social-icons.css' )
-        );
-
-        // Live preview CSS removed - iframe loads styles independently
-        // This prevents management page styles from interfering with preview iframe
-
-        // Share modal CSS - dependency updated since we removed link-page-public enqueue
-        wp_enqueue_style( 
-            'extrachill-share-modal', 
-            $plugin_url . 'assets/css/extrch-share-modal.css', 
-            array( 'extrachill-manage-link-page' ), 
-            $this->get_asset_version( 'assets/css/extrch-share-modal.css' )
-        );
-
-        // Enqueue Chart.js for analytics visualization (UMD build for global use)
-        wp_enqueue_script( 
-            'chart-js', 
-            'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js', 
-            array(), 
-            '4.4.0', 
-            true 
-        );
-
-        // Enqueue SortableJS for drag and drop functionality
-        wp_enqueue_script(
-            'sortable-js',
-            'https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js',
-            array(),
-            '1.15.2',
-            true
-        );
-
-        // Enqueue artist-switcher JS (shared component)
-        wp_enqueue_script(
-            'extrachill-artist-switcher-js',
-            $plugin_url . 'assets/js/artist-switcher.js',
-            array(),
-            $this->get_asset_version( 'assets/js/artist-switcher.js' ),
-            true
-        );
-
-
-        // Get current artist ID for centralized data loading
-        $current_artist_id = apply_filters('ec_get_artist_id', $_GET);
-        
-        // Get comprehensive link page data using centralized data provider function
-        $link_page_data = $current_artist_id > 0 ? ec_get_link_page_data( $current_artist_id ) : array();
-        
-        // Prepare JavaScript configuration with comprehensive data
-        $js_config = array(
-            // AJAX configuration
-            'ajax_url' => admin_url( 'admin-ajax.php' ),
-            'nonce' => wp_create_nonce( 'ec_ajax_nonce' ),
-            'fetch_link_title_nonce' => wp_create_nonce( 'fetch_link_meta_title_nonce' ),
-            
-            // Supported types from existing filter
-            'supportedLinkTypes' => extrachill_artist_platform_social_links()->get_supported_types(),
-            
-            // Comprehensive link page data from centralized data provider
-            'linkPageData' => $link_page_data
-        );
-        
-        // Localize comprehensive data for JavaScript modules (use colors script as localization target)
-        wp_localize_script( 
-            'extrachill-manage-link-page-colors', 
-            'extrchLinkPageConfig', 
-            $js_config
-        );
-
-        // Enqueue centralized sortable system (required by management modules)
-        wp_enqueue_script( 
-            'extrachill-sortable-system', 
-            $plugin_url . 'inc/link-pages/management/assets/js/sortable.js', 
-            array( 'sortable-js' ), 
-            $this->get_asset_version( 'inc/link-pages/management/assets/js/sortable.js' ), 
-            true 
-        );
-
-        // Individual management modules (self-contained, no orchestrator needed)
-        $management_scripts = array(
-            'colors', 'fonts', 'links', 'analytics', 
-            'background', 'info', 'profile-image', 'qrcode', 'sizing', 
-            'socials', 'subscribe', 'ui-utils', 'advanced', 'jump-to-preview'
-        );
-
-        foreach ( $management_scripts as $script ) {
-            // Analytics script needs Chart.js dependency
-            $dependencies = array( 'sortable-js', 'extrachill-sortable-system' );
-            if ( $script === 'analytics' ) {
-                $dependencies[] = 'chart-js';
-            }
-            
-            wp_enqueue_script( 
-                "extrachill-manage-link-page-{$script}", 
-                $plugin_url . "inc/link-pages/management/assets/js/{$script}.js", 
-                $dependencies, 
-                $this->get_asset_version( "inc/link-pages/management/assets/js/{$script}.js" ), 
-                true 
-            );
-        }
-
-        // Load preview modules separately
-        $preview_scripts = array(
-            'links-preview', 'info-preview', 'profile-image-preview', 'socials-preview', 'subscribe-preview',
-            'background-preview', 'colors-preview', 'fonts-preview',
-            'sizing-preview', 'overlay-preview', 'sorting-preview'
-        );
-
-        foreach ( $preview_scripts as $script ) {
-            wp_enqueue_script( 
-                "extrachill-link-page-{$script}", 
-                $plugin_url . "inc/link-pages/management/live-preview/assets/js/{$script}.js", 
-                array(), 
-                $this->get_asset_version( "inc/link-pages/management/live-preview/assets/js/{$script}.js" ), 
-                true 
-            );
-        }
-        
-        // Enqueue Google Fonts for current link page
-        $this->enqueue_link_page_google_fonts();
-    }
 
     private function enqueue_link_page_google_fonts() {
         // Get current artist and link page IDs
@@ -537,11 +380,6 @@ class ExtraChillArtistPlatform_Assets {
                  strpos( get_page_template_slug(), 'manage-artist-profiles' ) !== false );
     }
 
-    private function is_manage_link_page_page() {
-        return is_page() && 
-               ( get_page_template_slug() === 'manage-link-page.php' || 
-                 strpos( get_page_template_slug(), 'manage-link-page' ) !== false );
-    }
 
     private function is_artist_directory_page() {
         return is_page() && 

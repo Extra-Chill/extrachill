@@ -107,7 +107,6 @@ class ExtraChillArtistPlatform_PageTemplates {
 
         $template_map = array(
             'manage-artist-profiles.php' => 'inc/artist-profiles/frontend/templates/manage-artist-profiles.php',
-            'manage-link-page.php'       => 'inc/link-pages/management/templates/manage-link-page.php',
         );
 
         if ( isset( $template_map[ $page_template ] ) ) {
@@ -132,13 +131,11 @@ class ExtraChillArtistPlatform_PageTemplates {
     public function register_artist_platform_templates( $templates ) {
         $artist_platform_templates = array(
             'manage-artist-profiles.php' => __( 'Manage Artist Profile', 'extrachill-artist-platform' ),
-            'manage-link-page.php'    => __( 'Manage Link Page', 'extrachill-artist-platform' ),
         );
 
         // Only add templates if they exist in the plugin - check new locations
         $template_map = array(
             'manage-artist-profiles.php' => 'inc/artist-profiles/frontend/templates/manage-artist-profiles.php',
-            'manage-link-page.php' => 'inc/link-pages/management/templates/manage-link-page.php',
         );
         
         foreach ( $artist_platform_templates as $template_file => $template_name ) {
@@ -175,7 +172,6 @@ class ExtraChillArtistPlatform_PageTemplates {
         
         $artist_platform_templates = array(
             'manage-artist-profiles.php',
-            'manage-link-page.php',
         );
 
         // If this page uses a artist platform template, ensure proper context

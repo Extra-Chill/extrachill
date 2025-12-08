@@ -106,7 +106,6 @@ function ec_get_join_flow_redirect_url( $user_id, $artist_id ) {
 	$manage_link_page_url = $link_page ? get_permalink( $link_page ) : home_url( '/manage-link-page/' );
 
 	$redirect_url = add_query_arg( array(
-		'artist_id' => $artist_id,
 		'from_join' => 'true'
 	), $manage_link_page_url );
 
@@ -245,11 +244,7 @@ function ec_join_flow_login_page_redirect() {
 					__( 'Welcome back! Manage your link page below.', 'extrachill-artist-platform' ),
 					'success'
 				);
-				$target_url = add_query_arg(
-					array( 'artist_id' => $most_recent_artist_id ),
-					get_permalink( $link_page_manage_page )
-				);
-				wp_redirect( $target_url );
+				wp_redirect( get_permalink( $link_page_manage_page ) );
 				exit;
 			}
 		}
@@ -328,11 +323,7 @@ function ec_join_flow_login_redirect( $redirect_to, $requested_redirect_to, $use
 					__( 'Welcome back! Manage your link page below.', 'extrachill-artist-platform' ),
 					'success'
 				);
-				$target_url = add_query_arg(
-					array( 'artist_id' => $most_recent_artist_id ),
-					get_permalink( $link_page_manage_page )
-				);
-				return $target_url;
+				return get_permalink( $link_page_manage_page );
 			}
 		}
 		wp_reset_postdata();

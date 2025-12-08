@@ -2,11 +2,7 @@
 
 Comprehensive link page creation and management system with live preview, drag-and-drop interface, and advanced customization options.
 
-**Note**: The plugin provides two interfaces for link page management:
-1. **Gutenberg Block Editor** (Modern) - React-based block in WordPress editor. [See Gutenberg Block Documentation](gutenberg-block-editor.md)
-2. **Traditional PHP Management** - Classic admin interface at `/manage-link-page`
-
-Both interfaces offer identical functionality and save to the same data structure.
+**Note**: Link page management now uses the Gutenberg block on the `/manage-link-page` page (no query params). The legacy PHP interface has been removed.
 
 ## System Architecture
 
@@ -183,28 +179,9 @@ const sortable = new Sortable(linkContainer, {
 });
 ```
 
-### Link Editor Components
+### Management Interface
 
-Location: `inc/link-pages/management/templates/components/`
-
-- `link-item-editor.php` - Individual link editing
-- `link-section-editor.php` - Section management
-- `social-item-editor.php` - Social link editing
-
-### AJAX Link Operations
-
-Location: `inc/link-pages/management/ajax/links.php`
-
-```php
-// Render link item editor
-function render_link_item_editor() {
-    $link_data = $_POST['link_data'];
-    ob_start();
-    include 'components/link-item-editor.php';
-    $html = ob_get_clean();
-    wp_send_json_success(['html' => $html]);
-}
-```
+Legacy PHP management (templates, assets, AJAX) has been removed. Link page management is now handled solely by the Gutenberg block on `/manage-link-page` using REST.
 
 ## Styling System
 

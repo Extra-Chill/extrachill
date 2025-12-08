@@ -4,7 +4,7 @@
  * Main editor layout with tab navigation, artist switcher, and save button.
  */
 
-import { useState, useCallback, useMemo } from '@wordpress/element';
+import { useState, useCallback, useMemo, useEffect } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
 import { useEditor } from '../context/EditorContext';
 import Preview from './Preview';
@@ -39,6 +39,8 @@ export default function Editor() {
 		artist,
 		saveAll,
 		switchArtist,
+		socialIconsCssUrl,
+		fontAwesomeUrl,
 	} = useEditor();
 
 	const [ saveSuccess, setSaveSuccess ] = useState( false );
@@ -52,6 +54,32 @@ export default function Editor() {
 		const slug = artist?.slug || currentArtist?.slug;
 		return slug ? `https://extrachill.link/${ slug }` : null;
 	}, [ artist?.slug, currentArtist?.slug ] );
+
+	useEffect( () => {
+		const ensureLink = ( id, href ) => {
+			if ( ! href ) {
+				return;
+			}
+
+			const existing = document.getElementById( id );
+			if ( existing && existing.href === href ) {
+				return;
+			}
+
+			if ( existing && existing.parentNode ) {
+				existing.parentNode.removeChild( existing );
+			}
+
+			const link = document.createElement( 'link' );
+			link.id = id;
+			link.rel = 'stylesheet';
+			link.href = href;
+			document.head.appendChild( link );
+		};
+
+		ensureLink( 'ec-social-icons-editor-css', socialIconsCssUrl );
+		ensureLink( 'ec-font-awesome-editor-css', fontAwesomeUrl );
+	}, [ socialIconsCssUrl, fontAwesomeUrl ] );
 
 	const handleSave = useCallback( async () => {
 		setSaveSuccess( false );

@@ -37,7 +37,6 @@ inc/link-pages/live/templates/
 └── extrch-link-page-template.php
 
 inc/link-pages/management/templates/
-├── manage-link-page.php
 └── components/
     ├── link-item-editor.php
     └── social-item-editor.php

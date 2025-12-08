@@ -5,7 +5,7 @@
  */
 
 import { useState, useEffect, useCallback } from '@wordpress/element';
-import { getArtist, updateArtist } from '../api/client';
+import { getArtist, updateArtist, getConfig } from '../../shared/api/client';
 
 export default function useArtist( artistId ) {
 	const [ artist, setArtist ] = useState( null );
@@ -14,6 +14,14 @@ export default function useArtist( artistId ) {
 
 	const fetchArtist = useCallback( async () => {
 		if ( ! artistId ) {
+			setIsLoading( false );
+			return;
+		}
+
+		const config = getConfig();
+
+		const currentUser = config.currentUser || {};
+		if ( currentUser.artist_id && currentUser.artist_id !== artistId ) {
 			setIsLoading( false );
 			return;
 		}
@@ -38,6 +46,12 @@ export default function useArtist( artistId ) {
 	const update = useCallback(
 		async ( data ) => {
 			if ( ! artistId ) {
+				return;
+			}
+
+			const config = getConfig();
+			const currentUser = config.currentUser || {};
+			if ( currentUser.artist_id && currentUser.artist_id !== artistId ) {
 				return;
 			}
 

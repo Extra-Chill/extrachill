@@ -81,26 +81,6 @@ function ec_template_handler( $output, $template_name, $args = array() ) {
             'required' => array( 'artist_id' )
         ),
         // Management Tab Templates
-        'manage-link-page-tab-info' => array(
-            'file' => 'inc/link-pages/management/templates/manage-link-page-tabs/tab-info.php',
-            'required' => array( 'artist_id', 'data' )
-        ),
-        'manage-link-page-tab-links' => array(
-            'file' => 'inc/link-pages/management/templates/manage-link-page-tabs/tab-links.php',
-            'required' => array( 'data' )
-        ),
-        'manage-link-page-tab-customize' => array(
-            'file' => 'inc/link-pages/management/templates/manage-link-page-tabs/tab-customize.php',
-            'required' => array( 'data' )
-        ),
-        'manage-link-page-tab-advanced' => array(
-            'file' => 'inc/link-pages/management/templates/manage-link-page-tabs/tab-advanced.php',
-            'required' => array( 'data' )
-        ),
-        'manage-link-page-tab-analytics' => array(
-            'file' => 'inc/link-pages/management/templates/manage-link-page-tabs/tab-analytics.php',
-            'required' => array( 'data' )
-        ),
         'manage-artist-profile-tab-info' => array(
             'file' => 'inc/artist-profiles/frontend/templates/manage-artist-profile-tabs/tab-info.php',
             'required' => array( 'edit_mode', 'target_artist_id', 'display_artist_name', 'display_artist_bio', 'display_profile_image_url', 'display_header_image_url' )

@@ -52,7 +52,7 @@ function ec_artist_platform_secondary_header_items( $items ) {
 	if ( $artist_count > 0 ) {
 		$latest_artist_id = ec_get_latest_artist_for_user( $user_id );
 		$link_page_count  = ec_get_link_page_count_for_user( $user_id );
-		$link_page_url    = home_url( '/manage-link-page/?artist_id=' . $latest_artist_id );
+		$link_page_url    = home_url( '/manage-link-page/' );
 
 		if ( $link_page_count === 0 ) {
 			$link_page_label = __( 'Create Link Page', 'extrachill-artist-platform' );

@@ -77,34 +77,29 @@ body .extrch-share-page-trigger:active {
 
 
 /* Hover for item trigger: subtle background - specific for preview and general contexts */
-.manage-link-page-preview-live .extrch-share-item-trigger:hover, /* Preview context */
-.extrch-link-page-container .extrch-share-item-trigger:hover, /* General link page container */ button.extrch-share-item-trigger:hover, div.extrch-link-page-header-content > button:hover { /* Fallback with body prefix */
-    color: var(--link-page-text-color) !important; /* Ensure text color consistency */
+.extrch-link-page-container .extrch-share-item-trigger:hover, button.extrch-share-item-trigger:hover, div.extrch-link-page-header-content > button:hover {
+    color: var(--link-page-text-color) !important;
     opacity: 1 !important;
-    box-shadow: none !important; /* Ensure no unwanted shadows appear on hover */
-    background-color:transparent !important;
-
+    box-shadow: none !important;
+    background-color: transparent !important;
 }
 
-/* Active for item trigger: slightly more pronounced - specific for preview and general contexts */
-.manage-link-page-preview-live button.extrch-share-item-trigger:active,
 .extrch-link-page-container button.extrch-share-item-trigger:active,
 body button.extrch-share-item-trigger:active {
-    color: var(--link-page-text-color) !important; /* Ensure text color consistency */
+    color: var(--link-page-text-color) !important;
     opacity: 1 !important;
     transform: scale(0.95);
-    box-shadow: none !important; /* Ensure no unwanted shadows appear on active */
-    background-color:transparent !important;
+    box-shadow: none !important;
+    background-color: transparent !important;
 }
-/* Active for item trigger: slightly more pronounced - specific for preview and general contexts */
-.manage-link-page-preview-live button.extrch-share-item-trigger:focus,
+
 .extrch-link-page-container button.extrch-share-item-trigger:focus,
 body button.extrch-share-item-trigger:active {
-    color: var(--link-page-text-color) !important; /* Ensure text color consistency */
+    color: var(--link-page-text-color) !important;
     opacity: 1 !important;
     transform: scale(0.95);
-    box-shadow: none !important; /* Ensure no unwanted shadows appear on active */
-    background-color:transparent !important;
+    box-shadow: none !important;
+    background-color: transparent !important;
 }
 
 .extrch-share-item-trigger i {

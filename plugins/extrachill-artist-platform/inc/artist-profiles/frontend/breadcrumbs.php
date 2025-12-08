@@ -63,7 +63,7 @@ function ec_artist_profile_archive_breadcrumb_trail( $custom_trail ) {
 		return $custom_trail;
 	}
 
-	return '<span class="network-dropdown-target">Artists</span>';
+	return '<span>Artists</span>';
 }
 add_filter( 'extrachill_breadcrumbs_override_trail', 'ec_artist_profile_archive_breadcrumb_trail', 6 );
 
@@ -98,38 +98,6 @@ function ec_manage_artist_profiles_breadcrumb_trail( $custom_trail ) {
 }
 add_filter( 'extrachill_breadcrumbs_override_trail', 'ec_manage_artist_profiles_breadcrumb_trail', 8 );
 
-/**
- * Override breadcrumb trail for manage link page
- *
- * Displays artist name linked to profile management, then link page indicator.
- * Priority 9 to run after manage artist profiles breadcrumb.
- *
- * @param string $custom_trail Existing custom trail from other plugins
- * @return string Breadcrumb trail HTML
- */
-function ec_manage_link_page_breadcrumb_trail( $custom_trail ) {
-	if ( ! is_page( 'manage-link-page' ) ) {
-		return $custom_trail;
-	}
-
-	$artist_id = apply_filters( 'ec_get_artist_id', $_GET );
-	if ( ! $artist_id ) {
-		return $custom_trail;
-	}
-
-	$artist_post = get_post( $artist_id );
-	if ( ! $artist_post ) {
-		return $custom_trail;
-	}
-
-	$manage_page = get_page_by_path( 'manage-artist-profiles' );
-	$manage_artist_profile_url = $manage_page
-		? add_query_arg( 'artist_id', $artist_id, get_permalink( $manage_page ) )
-		: site_url( '/manage-artist-profiles/?artist_id=' . $artist_id );
-
-	return '<a href="' . esc_url( $manage_artist_profile_url ) . '">' . esc_html( $artist_post->post_title ) . '</a> › <span>Manage Link Page</span>';
-}
-add_filter( 'extrachill_breadcrumbs_override_trail', 'ec_manage_link_page_breadcrumb_trail', 9 );
 
 /**
  * Override breadcrumb trail for artist profiles

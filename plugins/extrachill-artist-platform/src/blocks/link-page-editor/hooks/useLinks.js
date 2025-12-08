@@ -5,7 +5,7 @@
  */
 
 import { useState, useEffect, useCallback } from '@wordpress/element';
-import { getLinks, updateLinks } from '../api/client';
+import { getLinks, updateLinks, getConfig } from '../../shared/api/client';
 
 export default function useLinks( artistId ) {
 	const [ links, setLinks ] = useState( [] );
@@ -22,6 +22,13 @@ export default function useLinks( artistId ) {
 
 	const fetchLinks = useCallback( async () => {
 		if ( ! artistId ) {
+			setIsLoading( false );
+			return;
+		}
+
+		const config = getConfig();
+		const currentUser = config.currentUser || {};
+		if ( currentUser.artist_id && currentUser.artist_id !== artistId ) {
 			setIsLoading( false );
 			return;
 		}
@@ -51,6 +58,12 @@ export default function useLinks( artistId ) {
 	const update = useCallback(
 		async ( data ) => {
 			if ( ! artistId ) {
+				return;
+			}
+
+			const config = getConfig();
+			const currentUser = config.currentUser || {};
+			if ( currentUser.artist_id && currentUser.artist_id !== artistId ) {
 				return;
 			}
 

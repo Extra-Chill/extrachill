@@ -5,7 +5,7 @@
  */
 
 import { useState, useEffect, useCallback } from '@wordpress/element';
-import { getAnalytics } from '../api/client';
+import { getAnalytics } from '../../shared/api/client';
 
 export default function useAnalytics( artistId ) {
 	const [ dateRange, setDateRange ] = useState( 30 );

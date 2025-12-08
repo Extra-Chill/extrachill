@@ -65,7 +65,7 @@ $link_page_id = function_exists( 'ec_get_link_page_for_artist' )
 if ( ! $link_page_id ) {
 	echo '<div class="notice notice-info">';
 	echo '<p>' . esc_html__( 'Create a link page to start tracking analytics.', 'extrachill-artist-platform' ) . '</p>';
-	echo '<a href="' . esc_url( site_url( '/manage-link-page/?artist_id=' . $artist_id ) ) . '" class="button-1">' . esc_html__( 'Create Link Page', 'extrachill-artist-platform' ) . '</a>';
+	echo '<a href="' . esc_url( site_url( '/manage-link-page/' ) ) . '" class="button-1">' . esc_html__( 'Create Link Page', 'extrachill-artist-platform' ) . '</a>';
 	echo '</div>';
 	return;
 }

@@ -122,30 +122,16 @@ export default function QRCodeModal( { isOpen, onClose, publicUrl, artistSlug } 
 
 				{ imageUrl && ! isLoading && (
 					<div className="ec-qr-modal__actions">
-						<button
-							type="button"
-							className="button-2"
-							onClick={ handleDownload }
-							disabled={ isDownloading }
-						>
-							{ isDownloading ? (
-								<>
-									<svg className="ec-icon ec-icon--spin">
-										<use href={ `${ config.iconSpriteUrl }#spinner` }></use>
-									</svg>
-									{ ' ' }
-									{ __( 'Generating...', 'extrachill-artist-platform' ) }
-								</>
-							) : (
-								<>
-									<svg className="ec-icon">
-										<use href={ `${ config.iconSpriteUrl }#download` }></use>
-									</svg>
-									{ ' ' }
-									{ __( 'Download for Print', 'extrachill-artist-platform' ) }
-								</>
-							) }
-						</button>
+                        <button
+                            type="button"
+                            className="button-2"
+                            onClick={ handleDownload }
+                            disabled={ isDownloading }
+                        >
+                            { isDownloading
+                                ? __( 'Generating...', 'extrachill-artist-platform' )
+                                : __( 'Download for Print', 'extrachill-artist-platform' ) }
+                        </button>
 					</div>
 				) }
 			</div>

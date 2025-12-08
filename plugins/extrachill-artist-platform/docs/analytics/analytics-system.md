@@ -227,48 +227,7 @@ function record_link_click($link_page_id, $link_url) {
 
 ### Management Interface
 
-Location: `inc/link-pages/management/templates/manage-link-page-tabs/tab-analytics.php`
-
-Dashboard features:
-- Interactive charts via Chart.js
-- Date range selection
-- Page view trends
-- Top performing links
-- Export functionality
-
-### AJAX Data Provider
-
-Location: `inc/link-pages/management/ajax/analytics.php`
-
-```php
-/**
- * Fetch analytics data for dashboard
- */
-function extrch_fetch_link_page_analytics() {
-    if (!wp_verify_nonce($_POST['nonce'], 'extrch_link_page_ajax_nonce')) {
-        wp_die('Security check failed');
-    }
-    
-    $link_page_id = (int) $_POST['link_page_id'];
-    $date_range = sanitize_text_field($_POST['date_range']);
-    
-    // Validate permissions
-    if (!ec_ajax_can_manage_link_page($_POST)) {
-        wp_send_json_error('Insufficient permissions');
-    }
-    
-    // Get analytics data
-    $analytics_data = [
-        'page_views' => get_page_view_data($link_page_id, $date_range),
-        'link_clicks' => get_link_click_data($link_page_id, $date_range),
-        'top_links' => get_top_performing_links($link_page_id, $date_range),
-        'summary' => get_analytics_summary($link_page_id, $date_range)
-    ];
-    
-    wp_send_json_success($analytics_data);
-}
-add_action('wp_ajax_extrch_fetch_link_page_analytics', 'extrch_fetch_link_page_analytics');
-```
+Legacy manage-link-page analytics templates and AJAX have been removed. Analytics is handled via the block and REST endpoints.
 
 ### Data Queries
 

@@ -244,8 +244,7 @@
 .ec-editor__tab-content {
 	flex: 1;
 	padding: 24px;
-	overflow-y: auto;
-	max-height: 500px;
+	overflow: visible;
 }
 
 /* Preview Container */

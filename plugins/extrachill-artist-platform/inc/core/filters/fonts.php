@@ -347,17 +347,12 @@ class ExtraChillArtistPlatform_Fonts {
     public function localize_font_data() {
         global $pagenow;
         
-        // Only localize on manage link page
-        if ( 'post.php' === $pagenow || 'page.php' === $pagenow || 
-             ( isset( $_GET['page'] ) && strpos( $_GET['page'], 'manage-link-page' ) !== false ) ||
-             ( isset( $_GET['artist_id'] ) ) ) {
-            
-            // Localize to the fonts script handle
+        // Only localize on block editors and artist contexts
+        if ( 'post.php' === $pagenow || 'page.php' === $pagenow || isset( $_GET['artist_id'] ) ) {
             wp_localize_script( 'extrachill-manage-link-page-fonts', 'extrchFontData', array(
                 'fonts' => $this->get_supported_fonts(),
                 'ajaxurl' => admin_url( 'admin-ajax.php' )
             ) );
-            
         }
     }
 

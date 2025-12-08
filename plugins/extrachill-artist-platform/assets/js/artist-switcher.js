@@ -2,8 +2,6 @@
  * Artist Switcher Module - Shared Component
  * 
  * Handles artist switching functionality across all management pages.
- * Replaces inline JavaScript from manage-link-page.php and manage-artist-profiles.php.
- * 
  * Supports both switcher variants:
  * - link-page-artist-switcher-select (Link Page Management)
  * - artist-switcher-select (Artist Profile Management)

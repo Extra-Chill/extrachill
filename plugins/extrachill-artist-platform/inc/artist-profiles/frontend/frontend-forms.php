@@ -104,9 +104,7 @@ function bp_handle_create_artist_profile_submission() {
     // --- Build action URLs for success notice ---
     $artist_profile_url = get_permalink( $new_artist_id );
     $manage_link_page = get_page_by_path( 'manage-link-page' );
-    $link_page_url = $manage_link_page 
-        ? add_query_arg( 'artist_id', $new_artist_id, get_permalink( $manage_link_page ) )
-        : null;
+    $link_page_url = $manage_link_page ? get_permalink( $manage_link_page ) : null;
 
     // Build actions array for notice
     $actions = array(

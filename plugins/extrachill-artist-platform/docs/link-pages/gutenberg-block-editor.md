@@ -332,31 +332,9 @@ const cssVariables = {
 };
 ```
 
-## Dual Interface Strategy
+## Management Interface
 
-### Gutenberg Block vs Traditional PHP
-
-Both interfaces provide identical functionality:
-
-**Gutenberg Block** (Modern):
-- React-based components
-- Modern UX patterns
-- Inline editing
-- Visual tab navigation
-
-**Traditional PHP** (Classic):
-- Server-rendered UI
-- Admin interface
-- Form-based editing
-- Accessible at `/manage-link-page`
-
-### User Choice
-
-Artists can choose their preferred editing interface:
-- Use Gutenberg block editor for modern workflow
-- Use traditional interface for familiar admin experience
-- Both save to same data structure
-- Feature parity between interfaces
+Link page management now uses the Gutenberg block on the `/manage-link-page` page (no query params). The legacy PHP interface has been removed.
 
 ## Integration with WordPress
 
