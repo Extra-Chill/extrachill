@@ -11,8 +11,8 @@ import useAnalytics from '../hooks/useAnalytics';
 import ArtistSwitcher from './ArtistSwitcher';
 
 export default function Analytics() {
-	const { artistId, userArtists, switchArtist } = useAnalyticsContext();
-	const { analytics, dateRange, setDateRange, isLoading, error } = useAnalytics( artistId );
+	const { artistId, linkPageId, userArtists, switchArtist } = useAnalyticsContext();
+	const { analytics, dateRange, setDateRange, isLoading, error } = useAnalytics( linkPageId );
 	const chartRef = useRef( null );
 	const chartInstance = useRef( null );
 

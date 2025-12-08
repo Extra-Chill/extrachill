@@ -6,9 +6,15 @@ The plugin uses modern JavaScript patterns organized by functionality across dif
 
 ### Gutenberg Block System (React)
 
+**Location**: `src/blocks/`
+
+Modern React-based components providing three specialized Gutenberg blocks for comprehensive platform management:
+
+#### 1. Link Page Editor Block
+
 **Location**: `src/blocks/link-page-editor/`
 
-Modern React-based components for Gutenberg block editor providing complete link page editing interface.
+Complete React-based component for Gutenberg block editor providing link page editing interface with live preview.
 
 **Component Structure**:
 - **Editor.js**: Main editor container managing tabs and state
@@ -19,36 +25,53 @@ Modern React-based components for Gutenberg block editor providing complete link
   - `TabLinks.js`: Link management with drag-and-drop reordering
   - `TabCustomize.js`: Styling options (fonts, colors, backgrounds)
   - `TabAdvanced.js`: Advanced settings (tracking, expiration, YouTube)
-  - `TabAnalytics.js`: Analytics dashboard with charts
   - `TabSocials.js`: Social platform link management
-- **Shared Components** (`shared/`):
-  - `ColorPicker.js`: Color selection interface
-  - `ImageUploader.js`: Media upload handler
-  - `DraggableList.js`: Drag-and-drop list component
-  - `LinkPageUrl.js`: Display canonical link page URL
-  - `QRCodeModal.js`: QR code generation and download
+- **Shared Components** (`shared/`): ColorPicker, ImageUploader, DraggableList, LinkPageUrl, QRCodeModal
+- **Context System**: EditorContext and PreviewContext for state management
+- **Custom Hooks**: useArtist, useLinks, useMediaUpload, useSocials
+- **REST API Integration**: Centralized API client for all block requests
 
-**Context System** (`context/`):
-- **EditorContext.js**: Manages editor state and tab navigation
-- **PreviewContext.js**: Manages preview data and live updates
+#### 2. Link Page Analytics Block
 
-**Custom Hooks** (`hooks/`):
-- `useArtist.js`: Hook for artist data and metadata
-- `useLinks.js`: Hook for link management and updates
-- `useMediaUpload.js`: Hook for media upload handling
-- `useSocials.js`: Hook for social platform management
+**Location**: `src/blocks/link-page-analytics/`
 
-**REST API Integration** (`api/`):
-- `client.js`: Centralized API client for all block requests
-- Handles image uploads, link page saves, and data fetching
-- Automatic nonce handling and error management
+Separate analytics dashboard block providing comprehensive performance metrics for link pages.
+
+**Features**:
+- Chart.js-powered analytics dashboard
+- Daily page view aggregation
+- Link click tracking and breakdown
+- Date range filtering
+- Visual performance metrics
+- Standalone block registration for dedicated analytics interface
+
+**Component Structure**:
+- **Analytics.js**: Main analytics dashboard component
+- **ArtistSwitcher.js**: Artist context switching for multi-artist management
+- **Context System**: AnalyticsContext for data management
+- **Custom Hooks**: useAnalytics for analytics data
+- **REST API Integration**: API client for analytics data endpoints
+
+#### 3. Artist Profile Manager Block
+
+**Location**: `src/blocks/artist-profile-manager/`
+
+Complete artist profile management interface providing profile editing, roster management, and subscriber administration.
+
+**Features**:
+- Artist information and biography editing
+- Profile image upload and management
+- Roster/member management with invitation system
+- Subscriber list management and export
+- Social link management
+- Tab-based interface for organized management
 
 **Build Configuration**:
-- **Webpack**: `webpack.config.js` - Compiles React and SCSS
+- **Webpack**: `webpack.config.js` - Compiles React and SCSS for all three blocks
 - **wp-scripts**: WordPress build tooling for React/Webpack integration
-- **Compiled Output**: `build/blocks/link-page-editor/` - Generated assets
-- **Asset Enqueuing**: Auto-detected via `register_block_type()` manifest
-- **Build Process**: `npm run build` compiles source to production bundle
+- **Compiled Output**: `build/blocks/*/` - Generated assets for each block
+- **Asset Enqueuing**: Auto-detected via `register_block_type()` manifest for each block
+- **Build Process**: `npm run build` compiles all blocks to production bundle
 
 ### Public Interface Scripts
 

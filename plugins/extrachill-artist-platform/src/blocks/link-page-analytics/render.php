@@ -99,8 +99,19 @@ if ( ! $artist_id ) {
 }
 
 // Localize configuration data
+$link_page_id = ec_get_link_page_for_artist( $artist_id );
+
+if ( ! $link_page_id || get_post_status( $link_page_id ) !== 'publish' ) {
+    echo '<div class="notice notice-info">';
+    echo '<p>' . esc_html__( 'Create a link page to start tracking analytics.', 'extrachill-artist-platform' ) . '</p>';
+    echo '<a href="' . esc_url( site_url( '/manage-link-page/' ) ) . '" class="button-1">' . esc_html__( 'Create Link Page', 'extrachill-artist-platform' ) . '</a>';
+    echo '</div>';
+    return;
+}
+
 $config = array(
 	'artistId'    => (int) $artist_id,
+	'linkPageId'  => (int) $link_page_id,
 	'userArtists' => $user_artists_data,
 	'restUrl'     => rest_url( 'extrachill/v1/' ),
 	'nonce'       => wp_create_nonce( 'wp_rest' ),
@@ -125,5 +136,5 @@ $wrapper_attributes = get_block_wrapper_attributes( array(
 ) );
 
 echo '<div ' . $wrapper_attributes . '>';
-echo '<div id="ec-link-page-analytics-root" data-artist-id="' . esc_attr( $artist_id ) . '"></div>';
+echo '<div id="ec-link-page-analytics-root" data-artist-id="' . esc_attr( $artist_id ) . '" data-link-page-id="' . esc_attr( $link_page_id ) . '"></div>';
 echo '</div>';

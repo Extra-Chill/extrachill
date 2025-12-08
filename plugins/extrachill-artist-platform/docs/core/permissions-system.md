@@ -112,6 +112,22 @@ function handle_ajax_request() {
 }
 ```
 
+### Gutenberg Block Management
+
+Artist profile editing is handled via the Gutenberg block editor:
+
+```php
+// Block-based artist profile management (primary interface)
+// Location: src/blocks/artist-profile-manager/
+// Block provides tab-based interface for:
+// - Profile information editing
+// - Roster/member management
+// - Subscriber management (via TabSubscribers)
+
+// Permissions automatically validated in block REST endpoints
+// Uses ec_can_manage_artist() for access control
+```
+
 ### Form Submission Security
 
 ```php

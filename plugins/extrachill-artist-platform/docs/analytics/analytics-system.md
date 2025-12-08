@@ -178,17 +178,43 @@ function record_link_click($link_page_id, $link_url) {
 
 ## Analytics Dashboard
 
+### Link Page Analytics Block
+
+**Location**: `src/blocks/link-page-analytics/`
+
+Dedicated Gutenberg block providing comprehensive analytics interface for link page performance tracking and analysis.
+
+**Block Features**:
+- Chart.js-powered analytics dashboard
+- Daily page view aggregation with visual charts
+- Link click tracking and breakdown by URL
+- Date range filtering for custom time periods
+- Visual performance metrics and trends
+- Artist context switching for multi-artist users
+- Responsive design for desktop and mobile viewing
+
+**Component Architecture**:
+- **Analytics.js**: Main analytics dashboard component with chart rendering
+- **ArtistSwitcher.js**: Artist context switching interface
+- **AnalyticsContext.js**: Context for analytics data management
+- **useAnalytics.js**: Custom hook for analytics data and queries
+- **API Client**: REST API integration for analytics data endpoints
+
+**Block Registration**:
+```php
+// Registered separately from link-page-editor block
+register_block_type( __DIR__ . '/build/blocks/link-page-analytics' );
+```
+
+**Version History**:
+- **v1.1.11+**: Analytics moved to separate dedicated block for better organization and performance
+- **v1.2.0+**: Enhanced block with artist switching and improved data visualization
+
 ### Management Interface
 
-Analytics displayed via REST API in Gutenberg block editor with `TabAnalytics` component:
+Analytics displayed via REST API in dedicated Gutenberg analytics block with `Analytics` component:
 
-Location: `src/blocks/link-page-editor/components/tabs/TabAnalytics.js`
-
-Features:
-- Chart.js-powered visual analytics
-- Daily view aggregation
-- Link click tracking and breakdown
-- Date range filtering
+Location: `src/blocks/link-page-analytics/components/Analytics.js`
 
 ### Data Queries
 

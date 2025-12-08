@@ -1,15 +1,17 @@
 # Link Page System
 
-Comprehensive link page creation and management system with live preview, drag-and-drop interface, and advanced customization options.
+Comprehensive link page creation and management system with Gutenberg block editor, live preview, drag-and-drop interface, and advanced customization options.
 
 ## System Architecture
 
 Link pages provide artists with customizable landing pages featuring:
-- Drag-and-drop link management
-- Real-time live preview
-- Advanced styling options
-- Analytics tracking
-- Social media integration
+- Gutenberg block editor for management (React-based, primary interface)
+- Drag-and-drop link management within the block
+- Real-time live preview via Preview component
+- Advanced styling options with CSS variables
+- Analytics tracking and visualization
+- Social media integration (15+ platforms)
+- Accessible at `extrachill.link/{artist-slug}`
 
 ## Link Page Structure
 
@@ -70,17 +72,22 @@ $css_variables = [
 
 ## Management Interface
 
-The management interface is a **Gutenberg block editor component** (React-based) located at `src/blocks/link-page-editor/`.
+The management interface is **exclusively a Gutenberg block editor component** (React-based) located at `src/blocks/link-page-editor/`. There is no legacy PHP management interface.
+
+Link pages are edited directly in the WordPress block editor when editing an `artist_link_page` post.
 
 ### Tab Structure
 
-The editor provides a tabbed interface with five sections:
+The editor provides a tabbed interface with six sections:
 
 1. **TabInfo** (`components/tabs/TabInfo.js`): Basic information and biography editing
 2. **TabLinks** (`components/tabs/TabLinks.js`): Link management with drag-and-drop reordering
 3. **TabCustomize** (`components/tabs/TabCustomize.js`): Styling and appearance options (fonts, colors)
-4. **TabAnalytics** (`components/tabs/TabAnalytics.js`): View tracking and link click analytics
-5. **TabAdvanced** (`components/tabs/TabAdvanced.js`): Advanced features (expiration, redirects, tracking codes)
+4. **TabAdvanced** (`components/tabs/TabAdvanced.js`): Advanced features (expiration, redirects, tracking codes)
+5. **TabSocials** (`components/tabs/TabSocials.js`): Social platform link management (15+ platforms)
+6. **TabAnalytics** (`components/tabs/TabAnalytics.js`): View tracking and link click analytics (moved to separate analytics block in v1.1.11+)
+
+**Note**: As of v1.1.11+, TabAnalytics functionality is primarily provided by the separate `link-page-analytics` Gutenberg block, though TabAnalytics may remain in the editor for reference.
 
 ### Block Architecture
 
@@ -90,12 +97,17 @@ The Gutenberg block provides:
 - **REST API Integration**: All data operations via REST API (not AJAX)
 - **File Upload**: Media upload and attachment management
 - **State Management**: Context API for component state sharing
+- **Mobile Support**: Jump-to-preview button for mobile navigation
 
 See [Gutenberg Block Editor documentation](./gutenberg-block-editor.md) for implementation details.
 
 ## Live Preview System
 
-**Note**: The Gutenberg block editor provides integrated live preview via the Preview component. There is no separate live preview infrastructure.
+The Gutenberg block editor includes an integrated live preview via the Preview component. Changes made in the editor tabs are reflected in real-time in the preview panel. The Preview component uses:
+- React Context API for state management
+- CSS variable application from TabCustomize
+- Responsive preview sizing
+- Real-time rendering of all changes
 
 ## Link Management
 
@@ -109,6 +121,8 @@ Features:
 - Add/edit/delete link functionality
 - Real-time preview updates
 - REST API integration
+
+### Color Picker
 
 Location: `src/blocks/link-page-editor/components/shared/ColorPicker.js`
 
@@ -145,15 +159,16 @@ Location: `inc/link-pages/live/templates/single-artist_link_page.php`
 
 Features:
 - Responsive design
-- Social sharing
-- Analytics tracking
-- Session validation
+- Social sharing via native Web Share API with fallbacks
+- Analytics tracking (page views and click tracking)
+- Session validation for edit button visibility (CORS-based)
 
 ### URL Structure
 
 Link pages use top-level URL routing:
-- Format: `/{slug}`
-- Example: `https://extrachill.com/artist-name`
+- Format: `extrachill.link/{slug}`
+- Example: `https://extrachill.link/artist-name`
+- Backend: Served from artist.extrachill.com (blog ID 4)
 
 ### Template Data
 
@@ -176,17 +191,18 @@ extract($data);
 
 ### Link Expiration
 
-Location: `inc/link-pages/management/advanced-tab/link-expiration.php`
+Location: `src/blocks/link-page-editor/components/tabs/TabAdvanced.js` (editor UI)
+Backend: Cron-based implementation at `inc/core/actions/link-expiration-cron.php`
 
 Features:
 - Time-based link scheduling
-- Automatic deactivation
+- Automatic deactivation via scheduled cron job
 - Expiration notifications
 - Bulk expiration management
 
 ### Redirect System
 
-Location: `inc/link-pages/management/advanced-tab/temporary-redirect.php`
+Location: `src/blocks/link-page-editor/components/tabs/TabAdvanced.js`
 
 Temporary redirect functionality:
 - 302 redirects to external URLs
@@ -195,7 +211,7 @@ Temporary redirect functionality:
 
 ### YouTube Integration
 
-Location: `inc/link-pages/management/advanced-tab/youtube-embed-control.php`
+Location: `src/blocks/link-page-editor/components/tabs/TabAdvanced.js` (editor UI)
 
 Inline YouTube video embedding:
 - Automatic video detection
@@ -210,9 +226,9 @@ Inline YouTube video embedding:
 Class: `ExtraChillArtistPlatform_Assets`
 
 All assets loaded based on page context:
-- **Join flow assets**: Only on login page with `from_join` parameter
+- **Block assets**: Auto-enqueued via block registration
 - **Public link page assets**: Only on public link pages
-- **Gutenberg block assets**: Auto-enqueued via block registration
+- **Join flow assets**: Only on login page with `from_join` parameter
 
 ## Data Persistence
 
@@ -227,7 +243,8 @@ All save operations handled through Gutenberg block:
 const response = await apiClient.post( `/extrachill/v1/link-pages/${linkPageId}`, {
     links: formData.links,
     css_vars: formData.css_vars,
-    settings: formData.settings
+    settings: formData.settings,
+    social_links: formData.social_links
 });
 ```
 
@@ -239,3 +256,4 @@ Automatic synchronization:
 - Cross-system data consistency
 - Cache invalidation
 - Template data updates
+- Artist profile-link page relationship synchronization

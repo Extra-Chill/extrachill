@@ -44,13 +44,6 @@ The editor uses a tabbed interface with the following sections:
 - Custom redirect settings
 - Subscription form settings
 
-#### TabAnalytics
-- Chart.js-powered analytics dashboard
-- Daily page view aggregation
-- Link click tracking and breakdown
-- Date range filtering
-- Visual performance metrics
-
 #### TabSocials
 - 15+ social platform integration
 - Add and manage social links
@@ -99,8 +92,9 @@ Each tab component handles specific functionality:
 - **TabLinks.js**: Link management with drag-and-drop
 - **TabCustomize.js**: Styling and appearance
 - **TabAdvanced.js**: Advanced settings and tracking
-- **TabAnalytics.js**: Analytics visualization
 - **TabSocials.js**: Social media integration
+
+**Note**: Analytics dashboard moved to separate **Link Page Analytics Block** (`src/blocks/link-page-analytics/`) starting in v1.1.11. This provides a dedicated, standalone analytics interface outside the main editor.
 
 ### Shared Components
 
@@ -219,7 +213,7 @@ const { socials, addSocial, removeSocial, updateSocial } = useSocials( linkPageI
 
 ### API Client
 
-**Location**: `src/blocks/link-page-editor/api/client.js`
+**Location**: `src/blocks/link-page-editor/`
 
 Centralized API client for all block requests with automatic nonce handling and error management.
 

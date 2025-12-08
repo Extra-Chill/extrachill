@@ -8,9 +8,10 @@ import { createContext, useContext, useState, useCallback } from '@wordpress/ele
 
 const AnalyticsContext = createContext( null );
 
-export function AnalyticsProvider( { initialArtistId, children } ) {
+export function AnalyticsProvider( { initialArtistId, initialLinkPageId, children } ) {
 	const config = window.ecLinkPageAnalyticsConfig || {};
 	const [ artistId, setArtistId ] = useState( initialArtistId || config.artistId );
+	const [ linkPageId, setLinkPageId ] = useState( initialLinkPageId || config.linkPageId || 0 );
 
 	const userArtists = config.userArtists || [];
 
@@ -18,6 +19,8 @@ export function AnalyticsProvider( { initialArtistId, children } ) {
 		( newArtistId ) => {
 			if ( newArtistId && newArtistId !== artistId ) {
 				setArtistId( newArtistId );
+				// Link page will be resolved server-side on reload; keep local id zeroed to avoid stale calls
+				setLinkPageId( 0 );
 			}
 		},
 		[ artistId ]
@@ -25,6 +28,7 @@ export function AnalyticsProvider( { initialArtistId, children } ) {
 
 	const value = {
 		artistId,
+		linkPageId,
 		userArtists,
 		switchArtist,
 		restUrl: config.restUrl || '',

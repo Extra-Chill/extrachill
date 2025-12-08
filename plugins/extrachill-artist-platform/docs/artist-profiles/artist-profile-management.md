@@ -47,22 +47,38 @@ update_user_meta($user_id, '_artist_profile_ids', $user_artist_ids);
 
 ## Management Interface
 
-### Frontend Management Template
+### Gutenberg Block Editor
 
-Location: `inc/artist-profiles/frontend/templates/manage-artist-profiles.php`
+**Location**: `src/blocks/artist-profile-manager/`
 
-Features:
-- Tabbed interface for different management areas
-- Profile information editing
-- Roster/member management
-- Subscriber management
-- Forum integration settings
+Modern React-based Gutenberg block providing complete artist profile management interface with tab-based organization.
 
-### Tab Structure
+**Block Features**:
+- Artist information and biography editing
+- Profile image upload and management
+- Social link management (integrated with social platform system)
+- Roster/member management with team member invitations
+- Subscriber list management and export functionality
+- Context-aware data synchronization via REST API
 
-1. **Info Tab**: Basic profile information and biography
-2. **Profile Managers Tab**: Roster and member management
-3. **Subscribers Tab**: Email subscriber management and export
+**Tab Structure**:
+1. **TabInfo**: Artist name, biography, profile image, and metadata
+2. **TabSocials**: Social platform link management with icon validation
+3. **TabMembers/Roster**: Band member invitation and role management
+4. **TabSubscribers**: Email subscriber list management and export
+
+**Architecture**:
+- **Block Registration**: Registered on `artist_profile` post type via `register_block_type( __DIR__ . '/build/blocks/artist-profile-manager' )`
+- **REST API Integration**: All management operations via REST API with centralized permission validation
+- **React Components**: Tab-based interface with reusable shared components
+- **Build Process**: Webpack compilation via `npm run build`
+- **Asset Enqueuing**: Auto-detected via block.json manifest
+
+### Legacy Frontend Template (Deprecated)
+
+Previous location: `inc/artist-profiles/frontend/templates/manage-artist-profiles.php` (no longer used)
+
+Management now exclusively handled via Gutenberg block editor. Legacy PHP template has been removed in favor of modern React-based block interface.
 
 ## Profile Information Management
 

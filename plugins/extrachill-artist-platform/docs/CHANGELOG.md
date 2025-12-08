@@ -5,6 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.2] - 2025-12-08
+
+### Fixed
+- Fixed analytics data fetching hook to use `linkPageId` parameter instead of `artistId` for correct query resolution
+- Corrected API parameter passing in analytics block hooks and components
+
+### Changed
+- Consolidated duplicate API client implementations into unified `src/blocks/shared/api/client.js`
+- Removed redundant `api/client.js` from individual blocks (link-page-analytics, link-page-editor) in favor of shared implementation
+- Enhanced analytics block render.php with improved artist resolution and configuration handling
+- Improved block configuration localization with proper nonce and REST URL setup
+
+### Added
+- New reusable link page template components for improved rendering modularity
+  - `link-section.php` - Section title and link grouping component
+  - `single-link.php` - Individual link rendering with YouTube embed support
+  - `social-icon.php` - Social icon rendering component
+  - `social-icons-container.php` - Social links grouping container
+- Enhanced template system with improved component organization
+
+### Documentation
+- Updated AGENTS.md to clarify API client consolidation and shared implementation pattern
+- Enhanced architecture documentation to reflect unified API client approach across all blocks
+- Clarified REST API integration patterns in block documentation
+
 ## [1.2.1] - 2025-12-08
 
 ### Added

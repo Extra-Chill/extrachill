@@ -6,13 +6,18 @@ Comprehensive advanced functionality for link pages including expiration, redire
 
 ### Time-Based Link Management
 
-Location: `src/blocks/link-page-editor/components/tabs/TabAdvanced.js`
+Location: `src/blocks/link-page-editor/components/tabs/TabAdvanced.js` (editor UI)
 
 Features:
 - Schedule link activation/deactivation
-- Automatic expiration handling
+- Automatic expiration handling via cron job
 - Bulk expiration management
 - Expiration notifications via Gutenberg block editor interface
+
+**Backend Implementation**: `inc/core/actions/link-expiration-cron.php`
+- Scheduled WordPress cron job runs daily
+- Automatically deactivates expired links based on configured dates
+- Can be manually triggered via action hook
 
 ### Configuration Options
 
@@ -31,19 +36,25 @@ $expiration_settings = [
 
 Location: `src/blocks/link-page-editor/components/tabs/TabAdvanced.js`
 
-Configuration via Gutenberg block editor for 302 redirects to external URLs
+Configuration via Gutenberg block editor for 302 redirects to external URLs. When enabled, a redirect target URL sends visitors to an external site instead of displaying the link page.
 
 ## YouTube Integration
 
 ### Inline Video Embedding
 
-Location: `src/blocks/link-page-editor/components/tabs/TabAdvanced.js`
+Location: `src/blocks/link-page-editor/components/tabs/TabAdvanced.js` (editor UI)
 
-Configuration via Gutenberg block editor to enable YouTube video embedding with automatic detection
+Configuration via Gutenberg block editor to enable YouTube video embedding with automatic detection. Public rendering handled by `inc/link-pages/live/assets/js/link-page-youtube-embed.js`.
 
 ## Analytics Tracking
 
 Analytics integration configured via Gutenberg block editor with support for:
+
+- Google Tag Manager (GTM) tracking IDs
+- Meta Pixel (Facebook) conversion tracking
+- Custom event tracking via REST API endpoints
+- Real-time click tracking via sendBeacon API
+- Page view tracking with automatic daily aggregation
 
 ## Subscription Settings
 
@@ -55,50 +66,7 @@ Configuration via Gutenberg block editor for:
 - Subscription display modes (icon modal, inline form, button modal, disabled)
 - Custom subscription messaging
 - Button text customization
-
-## QR Code Generation
-
-Legacy manage-link-page QR code AJAX and JS have been removed with the PHP management interface. QR handling is expected via the block/REST flow.
-
-
-### QR Code Interface
-
-Location: `inc/link-pages/management/assets/js/qrcode.js`
-
-```javascript
-const QRCodeManager = {
-    init: function() {
-        this.bindEvents();
-    },
-    
-    bindEvents: function() {
-        $('#generate-qr-code').on('click', this.generateQRCode.bind(this));
-        $('#download-qr-code').on('click', this.downloadQRCode.bind(this));
-    },
-    
-    generateQRCode: function() {
-        const linkPageId = $('#link-page-id').val();
-        
-        $.ajax({
-            url: ajaxurl,
-            type: 'POST',
-            data: {
-                action: 'generate_qr_code',
-                link_page_id: linkPageId,
-                nonce: qr_nonce
-            },
-            success: function(response) {
-                if (response.success) {
-                    $('#qr-code-display').html(
-                        `<img src="${response.data.qr_code_url}" alt="QR Code">`
-                    );
-                    $('#download-qr-code').attr('href', response.data.download_url);
-                }
-            }
-        });
-    }
-};
-```
+- Email collection via modal or inline forms
 
 ## QR Code Generation
 
@@ -108,7 +76,7 @@ Location: `src/blocks/link-page-editor/components/shared/QRCodeModal.js`
 
 Features:
 - High-resolution QR code output (1000px)
-- REST API-powered generation
+- REST API-powered generation via extrachill-api plugin
 - PNG download functionality
 - Modal interface in Gutenberg editor
 

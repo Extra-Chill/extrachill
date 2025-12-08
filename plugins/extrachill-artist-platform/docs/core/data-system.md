@@ -64,6 +64,54 @@ Returns structured data array:
 
 ## Artist Data Functions
 
+### ec_get_artist_profile_data()
+
+Single source of truth for all artist profile data. Provides comprehensive artist information with CSS variables and additional metadata.
+
+```php
+/**
+ * Get comprehensive artist profile data
+ * 
+ * @param int $artist_id Artist profile post ID
+ * @param array $overrides Live preview override data (optional)
+ * @return array Comprehensive artist profile data
+ */
+$data = ec_get_artist_profile_data($artist_id, $overrides);
+```
+
+**Data Structure**:
+
+```php
+[
+    // Basic IDs and metadata
+    'artist_id' => 123,
+    'artist_name' => 'Artist Name',
+    'biography' => 'Artist biography content',
+    'profile_image_url' => 'https://...',
+    
+    // CSS Variables for artist styling
+    'css_vars' => [
+        '--artist-card-background-color' => '#ffffff',
+        '--artist-card-text-color' => '#000000',
+        // ... complete CSS variable set
+    ],
+    
+    // Social links
+    'social_links' => [
+        ['type' => 'spotify', 'url' => '...', 'label' => '...']
+    ],
+    
+    // Associated resources
+    'link_page_id' => 456,
+    'forum_id' => 789,
+    
+    // Roster/member information
+    'roster_members' => [
+        ['user_id' => 1, 'user_login' => 'username', 'role' => 'admin']
+    ]
+]
+```
+
 ### User Artist Relationships
 
 ```php

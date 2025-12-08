@@ -217,8 +217,6 @@ document.addEventListener('DOMContentLoaded', () => SubscriptionManager.init());
 
 ## Server-Side Processing
 
-Legacy manage-link-page subscription AJAX has been removed with the PHP management interface. Subscription handling remains via core subscriber data functions and block/REST flows.
-
 ### Data Functions
 
 Location: `inc/artist-profiles/subscribe-data-functions.php`

@@ -7,6 +7,8 @@ import apiFetch from '@wordpress/api-fetch';
 const getConfig = () =>
 	window.ecArtistPlatformConfig || window.ecLinkPageEditorConfig || {};
 
+export { getConfig };
+
 const get = ( path ) => apiFetch( { path, method: 'GET' } );
 const post = ( path, data ) => apiFetch( { path, method: 'POST', data } );
 const put = ( path, data ) => apiFetch( { path, method: 'PUT', data } );
@@ -27,9 +29,9 @@ export const getSocials = ( artistId ) =>
 export const updateSocials = ( artistId, data ) =>
 	put( `extrachill/v1/artists/${ artistId }/socials`, data );
 
-// Analytics
-export const getAnalytics = ( artistId, dateRange = 30 ) =>
-	get( `extrachill/v1/artists/${ artistId }/analytics?date_range=${ dateRange }` );
+// Analytics (link page scoped)
+export const getAnalytics = ( linkPageId, dateRange = 30 ) =>
+	get( `extrachill/v1/analytics/${ linkPageId }?date_range=${ dateRange }` );
 
 // Media
 export const uploadMedia = ( context, targetId, file ) => {

@@ -25,91 +25,28 @@ class ExtraChillArtistPlatform_SocialLinks {
 
 ### Supported Platforms
 
-```php
-public function get_supported_types() {
-    return [
-        'apple_music' => [
-            'label' => 'Apple Music',
-            'icon' => 'fab fa-apple',
-            'base_url' => 'music.apple.com'
-        ],
-        'bandcamp' => [
-            'label' => 'Bandcamp',
-            'icon' => 'fab fa-bandcamp',
-            'base_url' => 'bandcamp.com'
-        ],
-        'bluesky' => [
-            'label' => 'Bluesky',
-            'icon' => 'fa-brands fa-bluesky',
-            'base_url' => 'bsky.app'
-        ],
-        'custom' => [
-            'label' => 'Custom Link',
-            'icon' => 'fas fa-link',
-            'has_custom_label' => true
-        ],
-        'facebook' => [
-            'label' => 'Facebook',
-            'icon' => 'fab fa-facebook-f',
-            'base_url' => 'facebook.com'
-        ],
-        'github' => [
-            'label' => 'GitHub',
-            'icon' => 'fab fa-github',
-            'base_url' => 'github.com'
-        ],
-        'instagram' => [
-            'label' => 'Instagram',
-            'icon' => 'fab fa-instagram',
-            'base_url' => 'instagram.com'
-        ],
-        'patreon' => [
-            'label' => 'Patreon',
-            'icon' => 'fab fa-patreon',
-            'base_url' => 'patreon.com'
-        ],
-        'pinterest' => [
-            'label' => 'Pinterest',
-            'icon' => 'fab fa-pinterest',
-            'base_url' => 'pinterest.com'
-        ],
-        'soundcloud' => [
-            'label' => 'SoundCloud',
-            'icon' => 'fab fa-soundcloud',
-            'base_url' => 'soundcloud.com'
-        ],
-        'spotify' => [
-            'label' => 'Spotify',
-            'icon' => 'fab fa-spotify',
-            'base_url' => 'open.spotify.com'
-        ],
-        'tiktok' => [
-            'label' => 'TikTok',
-            'icon' => 'fab fa-tiktok',
-            'base_url' => 'tiktok.com'
-        ],
-        'twitch' => [
-            'label' => 'Twitch',
-            'icon' => 'fab fa-twitch',
-            'base_url' => 'twitch.tv'
-        ],
-        'twitter' => [
-            'label' => 'Twitter/X',
-            'icon' => 'fab fa-x-twitter',
-            'base_url' => 'x.com'
-        ],
-        'youtube' => [
-            'label' => 'YouTube',
-            'icon' => 'fab fa-youtube',
-            'base_url' => 'youtube.com'
-        ]
-    ];
-}
-```
+The system supports 15+ social platforms including:
+- Apple Music
+- Bandcamp
+- Bluesky
+- Facebook
+- GitHub
+- Instagram
+- Patreon
+- Pinterest
+- SoundCloud
+- Spotify
+- TikTok
+- Twitch
+- Twitter/X
+- YouTube
+- Custom links with user-defined labels
 
 ## URL Validation System
 
 ### Smart URL Processing
+
+The system provides intelligent URL validation with automatic protocol addition and comprehensive validation:
 
 ```php
 /**
@@ -396,10 +333,6 @@ public function remove_social_link($artist_id, $link_id) {
 }
 ```
 
-## Management Interface
-
-Legacy manage-link-page social AJAX and components have been removed. Social management flows through the block and REST.
-
 ## Block-Based Social Management
 
 The Gutenberg block provides social platform management through the **TabSocials** component:
@@ -422,7 +355,6 @@ Social links are rendered on the public link page template at `inc/link-pages/li
 - Font Awesome icons with fallback support
 - Custom social icons via `assets/css/custom-social-icons.css` (SVG mask technique)
 - Automatic protocol handling and URL validation
-
 
 ## Custom Link Support
 

@@ -82,31 +82,37 @@ A comprehensive WordPress plugin that provides artist profile management, link p
 
 1. Navigate to **Artist Profiles** in the WordPress admin
 2. Click **Add New** to create a new artist profile
-3. Fill in artist information and upload images
-4. Configure forum settings and roster members
-5. Set up profile managers and permissions
-6. Publish the profile
+3. Fill in artist information using the artist-profile-manager block:
+   - **Info Tab**: Artist name, biography, and profile image
+   - **Socials Tab**: Add social platform links
+   - **Members Tab**: Invite band members via email
+   - **Subscribers Tab**: View and manage email subscribers
+4. Publish the profile
 
 ### Managing Band Rosters
 
-1. Access the artist profile management interface
-2. Navigate to the **Profile Managers** tab
+1. Edit an artist profile in the WordPress admin
+2. Navigate to the **Members** tab in the artist-profile-manager block
 3. Send email invitations to band members
 4. Track pending invitations and confirmations
-5. Assign roles and permissions to roster members
+5. Manage member roles and permissions
 
 ### Managing Link Pages
 
-1. Visit the artist profile management page
-2. Navigate to the **Link Page** tab
-3. Add links, customize appearance, and configure settings
-4. Use the live preview to see changes in real-time
-5. Save your changes
+1. Edit a link page in the WordPress admin (or create a new one)
+2. Use the link-page-editor block to manage your link page:
+   - **Info Tab**: Artist info and biography
+   - **Links Tab**: Add and organize your links with drag-and-drop
+   - **Customize Tab**: Style your page with fonts, colors, backgrounds
+   - **Advanced Tab**: Configure tracking, expiration, YouTube embeds
+   - **Socials Tab**: Add social platform links
+3. Use the live preview to see changes in real-time
+4. Save your changes
 
 ### Viewing Analytics
 
-1. Access the artist profile management interface
-2. Click on the **Analytics** tab
+1. Edit a link page in the WordPress admin
+2. Click the **Analytics** tab in the link-page-analytics block
 3. View click data, popular links, and engagement metrics
 4. Use date filters to analyze specific time periods
 
@@ -134,31 +140,54 @@ $data = ec_get_link_page_data($artist_id, $link_page_id);
 // analytics dashboard, subscription management, and permission system
 ```
 
-### React-Based Gutenberg Block
+### React-Based Gutenberg Blocks
 
-The plugin includes a complete React-based Gutenberg block for link page editing:
+The plugin includes three React-based Gutenberg blocks for comprehensive platform management:
 
+**1. Link Page Editor Block** (`src/blocks/link-page-editor/`)
+- Modern interface for creating and editing artist link pages
+- Tab-based components: TabInfo, TabLinks, TabCustomize, TabAdvanced, TabSocials
+- Live preview with real-time updates
+- Drag-and-drop link reordering
+- Advanced styling with custom fonts, colors, and backgrounds
+- Social platform integration with 15+ platforms
+
+**2. Link Page Analytics Block** (`src/blocks/link-page-analytics/`)
+- Dedicated analytics dashboard for tracking link page performance
+- Chart.js-powered visual analytics with date filtering
+- Daily page view and link click aggregation
+- Artist context switching for multi-artist management
+
+**3. Artist Profile Manager Block** (`src/blocks/artist-profile-manager/`)
+- Complete artist profile management interface
+- Tabs for profile info, social links, roster members, and subscribers
+- Email-based roster member invitations
+- Subscriber management and export functionality
+
+**Block Registration**:
 ```javascript
-// Block location: src/blocks/link-page-editor/
-// Compiled to: build/blocks/link-page-editor/
+// Block location: src/blocks/*/
+// Compiled to: build/blocks/*/
 
 // Registered in main plugin initialization
 function extrachill_artist_platform_register_blocks() {
     register_block_type( __DIR__ . '/build/blocks/link-page-editor' );
+    register_block_type( __DIR__ . '/build/blocks/link-page-analytics' );
+    register_block_type( __DIR__ . '/build/blocks/artist-profile-manager' );
 }
 add_action( 'init', 'extrachill_artist_platform_register_blocks' );
 ```
 
 **Features**:
-- **React Components**: Tab-based interface with TabInfo, TabLinks, TabCustomize, TabAdvanced, TabAnalytics, TabSocials
-- **Live Preview**: Real-time preview of link page changes using Context API
+- **React Components**: Tab-based interfaces with context-specific functionality
+- **Live Preview**: Real-time preview in link page editor (Editor and Preview components)
 - **REST API Integration**: Centralized API client for data operations
-- **Custom Hooks**: useArtist, useLinks, useMediaUpload, useSocials
-- **Context Providers**: EditorContext and PreviewContext for state management
+- **Custom Hooks**: useArtist, useLinks, useMediaUpload, useSocials, useAnalytics
+- **Context Providers**: EditorContext, PreviewContext, AnalyticsContext for state management
 - **Build Process**: Webpack compilation via `npm run build` with wp-scripts
-- **Mobile Support**: Jump-to-preview button for mobile navigation
+- **Mobile Support**: Jump-to-preview button and responsive design
 
-**Building the Block**:
+**Building the Blocks**:
 ```bash
 # Development build with watch mode
 npm run dev
@@ -168,6 +197,8 @@ npm run build
 
 # Build output location
 build/blocks/link-page-editor/
+build/blocks/link-page-analytics/
+build/blocks/artist-profile-manager/
 ```
 
 ### AJAX System

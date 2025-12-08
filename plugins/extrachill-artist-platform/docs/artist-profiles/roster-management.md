@@ -11,22 +11,28 @@ The roster management system enables:
 - Pending invitation tracking
 - Member removal and permissions
 
-## Core Components
+## Management Interface
 
-### Management Interface
+**Modern Block-Based Interface** (Primary)
 
-Location: `inc/artist-profiles/roster/manage-roster-ui.php`
+Artist roster management is now handled via the Gutenberg block editor:
 
-Displays unified roster list showing:
-- **Linked Members**: Users with active account connections
-- **Pending Invitations**: Email invitations awaiting acceptance
-- **Member Actions**: Add, remove, and manage member roles
+**Location**: `src/blocks/artist-profile-manager/`
+
+The artist profile manager block includes a **TabMembers** component providing:
+- Unified roster list showing linked members and pending invitations
+- Add member form with email validation
+- Member action buttons (remove, role management)
+- Real-time member list updates via REST API
+- Invitation status tracking
+
+This replaces the legacy PHP-based roster UI for a modern, integrated experience.
 
 ### Data Functions
 
 Location: `inc/artist-profiles/roster/roster-data-functions.php`
 
-Core functions for roster data management:
+Core functions for roster data management (used by both block and AJAX handlers):
 
 ```php
 // Get linked members for artist
@@ -43,11 +49,13 @@ $status = ec_get_invitation_status($email, $artist_id);
 
 Location: `inc/artist-profiles/roster/roster-ajax-handlers.php`
 
-Handles dynamic roster operations:
+Handles AJAX roster operations (legacy interface support):
 - Add member invitations
 - Remove members
 - Process invitation responses
 - Update member roles
+
+**Note**: Modern block-based interface uses REST API instead of AJAX for management operations.
 
 ## Invitation System
 
@@ -184,11 +192,12 @@ function ec_remove_member_from_artist($user_id, $artist_id) {
 
 ### REST API Operations
 
-Location: `inc/artist-profiles/assets/js/manage-artist-profiles.js`
+**Block-Based Interface** (Primary)
 
-Roster management uses REST API with fetch API for modern data handling:
+Location: `src/blocks/artist-profile-manager/` - React components handle all REST API communication
 
 ```javascript
+// Block REST API operations
 // Add member via REST API
 const response = await fetch( `/wp-json/extrachill/v1/artists/${artistId}/members`, {
     method: 'POST',
@@ -211,6 +220,17 @@ const removeResponse = await fetch( `/wp-json/extrachill/v1/artists/${artistId}/
         'X-WP-Nonce': wpApiNonce
     }
 });
+```
+
+### Legacy AJAX Operations
+
+Location: `inc/artist-profiles/assets/js/manage-artist-profiles.js`
+
+Legacy AJAX handlers (retained for compatibility with older admin interfaces):
+
+```javascript
+// Legacy AJAX operations (deprecated)
+// Modern block-based interface uses REST API instead
 ```
 
 ## Security Features

@@ -13,33 +13,41 @@ Comprehensive WordPress plugin providing complete artist platform functionality 
 
 The platform consists of two primary custom post types:
 - **artist_profile**: Artist/band profiles with archive at `/artists/` and individual pages at `/artists/{slug}`
-- **artist_link_page**: Link pages with top-level slug structure at `/{slug}`
+- **artist_link_page**: Link pages with top-level slug structure at `/{slug}` (accessible at `extrachill.link/{artist-slug}`)
 
 ## Core Components
 
 ### Custom Post Types
 - Artist profiles with comprehensive metadata support
-- Link pages with drag-and-drop link management
+- Link pages with drag-and-drop link management via Gutenberg blocks
 - Built-in thumbnail support and custom fields
 
 ### Management Systems
 - **Join Flow**: Complete user onboarding with automatic artist profile and link page creation
-- **Link Page Editor**: Gutenberg block editor (React-based) for link page management
-- **Roster Management**: Band member invitation and role assignment system
+- **Link Page Editor Block**: Gutenberg block editor (React-based) for link page management
+- **Artist Profile Manager Block**: Gutenberg block editor (React-based) for artist profile management
+- **Link Page Analytics Block**: Dedicated analytics dashboard via Gutenberg block
+- **Roster Management**: Band member invitation and role assignment system (managed via REST API)
 - **Social Integration**: 15+ social platform support with comprehensive validation
-- **Analytics**: Daily aggregated page views and link click tracking
+- **Analytics**: Daily aggregated page views and link click tracking with REST API access
 - **Subscription System**: Email collection with artist association
 
 ### Advanced Features
-- **Gutenberg Block Editor**: Modern React-based block for link page management with comprehensive feature set
-- **Cross-Domain Authentication**: WordPress multisite native authentication across `.extrachill.com` subdomains and extrachill.link domain
-- **Link Expiration**: Time-based link scheduling and lifecycle management
-- **Asset Management**: Context-aware loading with file existence checks
-- **Webpack Build System**: Automated React component and SCSS compilation for Gutenberg block
+- **Three Gutenberg Blocks**: Modern React-based blocks for complete platform management
+  - `link-page-editor`: Full link page editing with all features
+  - `artist-profile-manager`: Artist profile management and metadata
+  - `link-page-analytics`: Analytics dashboard with Chart.js visualization
+- **Cross-Domain Authentication**: WordPress multisite native authentication across `.extrachill.com` subdomains and `extrachill.link` domain
+- **Link Expiration**: Time-based link scheduling and lifecycle management (cron-based)
+- **Asset Management**: Context-aware loading with file existence checks and timestamp cache busting
+- **Webpack Build System**: Automated React component and SCSS compilation for Gutenberg blocks
 
 ## Data Architecture
 
-The system uses a centralized data approach with `ec_get_link_page_data()` as the single source of truth for all link page configuration, CSS variables, links, and social data. This replaces scattered `get_post_meta()` calls and provides consistent data access across templates, AJAX handlers, and asset management.
+The system uses a centralized data approach with multiple functions as single sources of truth:
+- **`ec_get_link_page_data()`**: Comprehensive link page configuration, CSS variables, links, and social data
+- **`ec_get_artist_profile_data()`**: Complete artist profile metadata and settings
+- These replace scattered `get_post_meta()` calls and provide consistent data access across templates, blocks, and API endpoints
 
 ## Template System
 
@@ -47,16 +55,26 @@ Dual template architecture:
 1. **Page Templates**: Full page routing via `ExtraChillArtistPlatform_PageTemplates` class
 2. **Component Templates**: Modular UI components via `ec_render_template()` system
 
-## Gutenberg Block Editor
+## Gutenberg Block System
 
-**Location**: `src/blocks/link-page-editor/`
+**Location**: `src/blocks/`
 
-React-based Gutenberg block providing complete link page editing interface with feature parity to traditional PHP management interface. Includes:
-- Tab-based UI with TabInfo, TabLinks, TabCustomize, TabAdvanced, TabAnalytics, TabSocials components
-- Live preview with Context API state management
-- REST API integration for all data operations
-- Custom React hooks: useArtist, useLinks, useMediaUpload, useSocials
-- Webpack-based build process with wp-scripts tooling
+Three React-based Gutenberg blocks providing complete platform management:
+- **link-page-editor**: Complete link page editing interface with feature parity to legacy PHP interface
+  - Includes TabInfo, TabLinks, TabCustomize, TabAdvanced, TabAnalytics (moved to separate block), TabSocials
+  - Live preview with Context API state management
+  - REST API integration for all data operations
+  - Webpack-based build process with wp-scripts tooling
+
+- **link-page-analytics**: Dedicated analytics dashboard
+  - Chart.js-powered visualization
+  - Daily page views and link click tracking
+  - REST API integration
+
+- **artist-profile-manager**: Artist profile management
+  - Profile information editing
+  - Roster/member management
+  - REST API integration
 
 **Build Process**:
 ```bash
@@ -64,14 +82,15 @@ npm run build  # Production build
 npm run dev    # Development with watch mode
 ```
 
-Compiled assets available at `build/blocks/link-page-editor/` for block registration.
+Compiled assets available at `build/blocks/` for automatic block registration.
 
 ## JavaScript Architecture
 
-Gutenberg block-based system using React components. Modern JavaScript patterns with REST API integration for data operations. Features responsive tab interfaces, drag-and-drop link reordering, and native Web Share API integration.
+Gutenberg block-based system using React components. Modern JavaScript patterns with REST API integration for data operations. Features responsive tab interfaces, drag-and-drop link reordering via dnd-kit, native Web Share API integration, and touch-friendly mobile support.
 
 ## Dependencies
 
 - WordPress 5.0+ (tested up to 6.4)
 - PHP 7.4+
-- Extrachill theme with Extra Chill Community plugin (enforced)
+- Required Plugin: extrachill-users (for artist profile functions)
+- Extrachill theme (enforced for proper styling)

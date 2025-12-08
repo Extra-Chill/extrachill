@@ -53,7 +53,7 @@ export default function useSocials( artistId ) {
 	}, [ fetchSocials ] );
 
 	const update = useCallback(
-		async ( data ) => {
+		async ( socialLinks ) => {
 			if ( ! artistId ) {
 				return;
 			}
@@ -63,7 +63,6 @@ export default function useSocials( artistId ) {
 			if ( currentUser.artist_id && currentUser.artist_id !== artistId ) {
 				return;
 			}
-
 
 			try {
 				const updated = await updateSocials( artistId, {

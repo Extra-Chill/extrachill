@@ -82,9 +82,12 @@ The plugin provides comprehensive integration with the extrachill.link domain fo
   - **Gutenberg Block Editor**: `src/blocks/link-page-editor/` - React-based block for Gutenberg
     - **Block Registration**: Registered in main plugin init via `register_block_type( __DIR__ . '/build/blocks/link-page-editor' )`
     - **Block Location**: Appears in Gutenberg editor for artist_link_page post type
-    - **React Components**: Tab-based interface with TabInfo, TabLinks, TabCustomize, TabAdvanced, TabAnalytics, TabSocials
+    - **React Components**: Tab-based interface with TabInfo, TabLinks, TabCustomize, TabAdvanced, TabSocials
     - **Build Process**: Webpack compilation via `npm run build` with wp-scripts
     - **API Client**: REST API integration via `src/blocks/link-page-editor/api/client.js`
+  - **Analytics Dashboard**: Separate dedicated block `src/blocks/link-page-analytics/` (v1.1.11+)
+    - **Block Registration**: Separate `register_block_type()` for analytics block
+    - **Features**: Chart.js-powered analytics, daily aggregation, link click tracking
 - **Advanced Features**: `inc/link-pages/management/advanced-tab/` - Tracking, redirects, link expiration, YouTube embeds
 - **Component Templates**: `inc/link-pages/management/templates/components/` - Modular UI components
 - **Subscription Templates**: `inc/link-pages/live/templates/` - Email collection forms and modals
@@ -96,7 +99,7 @@ The plugin provides comprehensive integration with the extrachill.link domain fo
 **Locations**: `inc/artist-profiles/`, `inc/link-pages/live/templates/`, `inc/database/`
 - Email collection with artist association (`inc/artist-profiles/subscribe-data-functions.php`)
 - Database table: `{prefix}_artist_subscribers` (`inc/database/subscriber-db.php`)
-- AJAX-driven subscription forms with modal support
+- REST API-driven subscription forms with modal support
 - Inline and modal subscription interfaces (`inc/link-pages/live/templates/`)
 - Link page subscription functions (`inc/link-pages/subscribe-functions.php`)
 - Export tracking and management capabilities
@@ -107,14 +110,13 @@ The plugin provides comprehensive integration with the extrachill.link domain fo
 - **Daily Aggregation**: Scheduled cron calculates daily view deltas and populates `{prefix}_extrch_link_page_daily_views` table
 - **Link Click Tracking**: Direct tracking to `{prefix}_extrch_link_page_daily_link_clicks` table via sendBeacon
 - **Data Retention**: Automatic 90-day pruning of daily analytics tables
-- **Dashboard**: Chart.js-powered analytics with daily breakdown charts
-- **Block Component**: `src/blocks/link-page-editor/components/tabs/TabAnalytics.js`
+- **Dashboard**: Chart.js-powered analytics block `src/blocks/link-page-analytics/` with daily breakdown charts (v1.1.11+)
 
 #### Roster Management System
 **Location**: `inc/artist-profiles/roster/`
 - Band member invitation system with email notifications (`inc/artist-profiles/roster/artist-invitation-emails.php`)
 - Pending invitation tracking and management (`inc/artist-profiles/roster/manage-roster-ui.php`)
-- AJAX-powered roster UI with role assignment (`inc/artist-profiles/roster/roster-ajax-handlers.php`)
+- REST API-powered roster management via extrachill-api plugin filter hooks (`inc/artist-profiles/roster/roster-ajax-handlers.php`)
 - Token-based invitation acceptance system
 - Data functions and validation (`inc/artist-profiles/roster/roster-data-functions.php`)
 
@@ -173,9 +175,13 @@ The plugin provides comprehensive integration with the extrachill.link domain fo
 
 #### Gutenberg Block System
 
-**Location**: `src/blocks/link-page-editor/`
+**Location**: `src/blocks/`
 
-Complete React-based Gutenberg block for link page editing with dual-interface system:
+Modern React-based Gutenberg blocks providing comprehensive platform management interface with three specialized blocks:
+
+**1. Link Page Editor Block** (`src/blocks/link-page-editor/`)
+
+Complete React-based Gutenberg block for link page editing with live preview:
 
 **Block Structure**:
 - **Block Entry**: `src/blocks/link-page-editor/index.js` - Block registration and setup
@@ -193,7 +199,6 @@ Complete React-based Gutenberg block for link page editing with dual-interface s
   - `TabLinks.js`: Link management with drag-and-drop reordering
   - `TabCustomize.js`: Styling options (fonts, colors, backgrounds)
   - `TabAdvanced.js`: Advanced settings (tracking, expiration, YouTube)
-  - `TabAnalytics.js`: Analytics dashboard with charts
   - `TabSocials.js`: Social platform link management
 - **Shared Components** (`shared/`):
   - `ColorPicker.js`: Color selection interface
@@ -212,32 +217,72 @@ Complete React-based Gutenberg block for link page editing with dual-interface s
 - `useMediaUpload.js`: Hook for media upload handling
 - `useSocials.js`: Hook for social platform management
 
-**REST API Integration** (`api/`):
+**2. Link Page Analytics Block** (`src/blocks/link-page-analytics/`)
+
+Dedicated Gutenberg block providing comprehensive analytics interface:
+
+**Features**:
+- Chart.js-powered analytics dashboard
+- Daily page view aggregation
+- Link click tracking and breakdown
+- Date range filtering
+- Artist context switching for multi-artist management
+
+**Components**:
+- **Analytics.js**: Main analytics dashboard component
+- **ArtistSwitcher.js**: Artist context switching interface
+- **AnalyticsContext.js**: Context for analytics data management
+- **Custom Hooks**: useAnalytics for analytics queries
+
+**3. Artist Profile Manager Block** (`src/blocks/artist-profile-manager/`)
+
+Complete artist profile management interface:
+
+**Features**:
+- Artist information and biography editing
+- Profile image upload and management
+- Social link management (integrated with social platform system)
+- Roster/member management with team invitations
+- Subscriber list management and export
+
+**Tab Structure**:
+- **TabInfo**: Artist name, biography, profile image
+- **TabSocials**: Social platform link management
+- **TabMembers**: Band member invitation and management
+- **TabSubscribers**: Email subscriber list and export
+
+**REST API Integration** (All Blocks):
 - `client.js`: Centralized API client for all block requests
-- Handles image uploads, link page saves, and data fetching
+- Handles image uploads, saves, and data fetching
 - Automatic nonce handling and error management
+- Located in each block's `api/` directory
 
 **Build Configuration**:
-- **Webpack**: `webpack.config.js` - Compiles React and SCSS
+- **Webpack**: `webpack.config.js` - Compiles React and SCSS for all blocks
 - **wp-scripts**: WordPress build tooling for React/Webpack integration
-- **Compiled Output**: `build/blocks/link-page-editor/` - Generated assets
+- **Compiled Output**: `build/blocks/*/` - Generated assets for each block
 - **Asset Enqueuing**: Auto-detected via `register_block_type()` manifest
-- **Build Process**: `npm run build` compiles source to production bundle
+- **Build Process**: `npm run build` compiles all blocks to production bundle
 
 **Block Registration**:
 ```php
 // Registered in extrachill-artist-platform.php
 function extrachill_artist_platform_register_blocks() {
     register_block_type( __DIR__ . '/build/blocks/link-page-editor' );
+    register_block_type( __DIR__ . '/build/blocks/link-page-analytics' );
+    register_block_type( __DIR__ . '/build/blocks/artist-profile-manager' );
 }
 add_action( 'init', 'extrachill_artist_platform_register_blocks' );
 ```
 
 **Block-Based Architecture**:
 - **Gutenberg Block Editor**: Modern React-based interface for WordPress block editor (primary)
-- **Management Location**: Link pages are edited via Gutenberg editor on `artist_link_page` post type
+- **Management Locations**: 
+  - Artist profiles: `artist_profile` post type via artist-profile-manager block
+  - Link pages: `artist_link_page` post type via link-page-editor block
+  - Analytics: Separate dedicated analytics block for comprehensive tracking
 - **REST API**: All management operations via REST API, not traditional AJAX
-- **Unified Data**: Block uses same data structure and save system as underlying platform
+- **Unified Data**: Blocks use centralized data functions (ec_get_link_page_data, ec_get_artist_profile_data)
 
 #### Public Link Page Scripts
 - `link-page-public-tracking.js` - Analytics and click tracking
@@ -247,7 +292,7 @@ add_action( 'init', 'extrachill_artist_platform_register_blocks' );
 - `link-page-edit-button.js` - CORS-based permission checking for edit button visibility
 
 **Artist Profile Management**: `inc/artist-profiles/assets/js/`
-- `manage-artist-profiles.js` - Profile editing, image previews, roster management with AJAX
+- `manage-artist-profiles.js` - Profile editing, image previews, roster management with REST API
 - `manage-artist-subscribers.js` - Subscriber list management
 - `artist-members-admin.js` - Backend member administration
 
@@ -331,7 +376,6 @@ CREATE TABLE {prefix}_artist_subscribers (
 - WordPress action-based link addition: `do_action('ec_artist_add_link', $link_page_id, $link_data, $user_id)`
 - Sanitization filter: `apply_filters('ec_sanitize_link_data', $link_data)` - Cleans link text, URL, expiration, and ID
 - Validation filter: `apply_filters('ec_validate_link_data', true, $link_data)` - Validates required fields and URL format
-- AJAX interface: `wp_ajax_ec_artist_add_link` - Provides AJAX wrapper for UI and external systems
 - Success/failure action hooks: `ec_artist_link_added`, `ec_artist_link_add_failed` - For logging, notifications, webhooks
 - Permission validation: Uses existing `ec_can_manage_artist()` permission system
 - Data integration: Works with centralized `ec_get_link_page_data()` and `ec_handle_link_page_save()` functions
@@ -469,25 +513,21 @@ add_action( 'extrachill_below_login_register_form', 'ec_render_join_flow_modal' 
 - **Immediate validation**: Server-side sanitization and validation
 - **Standard patterns**: Follows WordPress form processing conventions
 
-**AJAX System Architecture**: WordPress-native modular system with standardized patterns
-- **WordPress Native Patterns**: Uses standard `add_action('wp_ajax_*')` throughout codebase
-- **Centralized Permissions**: Permission helpers in `inc/core/filters/permissions.php`
-  - `ec_ajax_can_manage_artist()`, `ec_ajax_can_manage_link_page()` for AJAX contexts  
-  - `ec_can_manage_artist()`, `ec_can_create_artist_profiles()` for general contexts
-  - Unified permission logic with proper nonce verification in each handler
-
-**Live (Public) AJAX Modules**: `inc/link-pages/live/ajax/`
-- **analytics.php**: Public tracking and analytics data with data pruning
-- **edit-permission.php**: Real-time permission editing for live link pages
-
 **Management Interface**: Gutenberg block editor (React-based)
 - Modern React components with tab-based interface in `src/blocks/link-page-editor/`
 - REST API integration for all data operations via `src/blocks/link-page-editor/api/client.js`
 - All management operations handled through Gutenberg block editor, no traditional PHP AJAX handlers
 
+**Public Tracking (AJAX)**: Lightweight modules for live page tracking
+- Located in `inc/link-pages/live/ajax/` for public-facing operations
+- **analytics.php**: Public tracking and analytics data with data pruning
+- **edit-permission.php**: Real-time permission checking for live link pages
+
 **Permission System**: Server-side permission validation
 - Permission checks centralized via `inc/core/filters/permissions.php`
-- Context-aware permission validation for AJAX and REST API endpoints
+- Context-aware permission validation for REST API and public AJAX endpoints
+- `ec_can_manage_artist()`, `ec_can_create_artist_profiles()` for general contexts
+- Unified permission logic with proper nonce/authentication verification
 
 #### Centralized Data System
 **Core File**: `inc/core/filters/data.php`
@@ -496,7 +536,7 @@ add_action( 'extrachill_below_login_register_form', 'ec_render_join_flow_modal' 
 - Supports live preview overrides and extensive data validation
 - Provides comprehensive data for CSS variables, links, social icons, and advanced settings
 - Applies WordPress filters for extensibility (`extrch_get_link_page_data`)
-- Used throughout templates, AJAX handlers, and asset management
+- Used throughout templates, REST API endpoints, and asset management
 
 #### Data Synchronization
 **Files**: `inc/core/actions/sync.php`, `inc/core/filters/data.php`
@@ -523,7 +563,7 @@ add_action( 'extrachill_below_login_register_form', 'ec_render_join_flow_modal' 
   - `single-artist_profile.php` - Artist profile single page
   - `artist-directory.php` - Artist directory archive
   - `artist-card.php` - Reusable artist card component (renamed from artist-profile-card.php)
-  - `manage-artist-profiles.php` - Profile management interface
+  - `manage-artist-profile-tabs/` - Legacy tab templates (replaced by artist-profile-manager block)
 - **Homepage Templates**: `inc/home/templates/`
   - `homepage.php` - Main homepage template override
   - `hero.php` - Hero section with user-state-aware messaging

@@ -29,17 +29,31 @@ Templates are organized by functionality:
 inc/artist-profiles/frontend/templates/
 ├── archive-artist_profile.php
 ├── single-artist_profile.php
-├── artist-profile-card.php
-└── manage-artist-profiles.php
+├── artist-card.php
+└── manage-artist-profile-tabs/
+    ├── tab-info.php
+    ├── tab-members.php
+    ├── tab-subscribers.php
+    ├── tab-social-links.php
+    └── manage-artist-profile-modal.php
 
 inc/link-pages/live/templates/
 ├── single-artist_link_page.php
-└── extrch-link-page-template.php
+├── extrch-link-page-template.php
+├── subscribe-inline-form.php
+├── subscribe-modal.php
+├── extrch-share-modal.php
+└── link-page-head.php
 
 inc/link-pages/management/templates/
 └── components/
     ├── link-item-editor.php
     └── social-item-editor.php
+    
+inc/home/templates/
+├── homepage.php
+├── hero.php
+└── your-artists.php
 ```
 
 ## Component Templates
@@ -112,11 +126,17 @@ echo $css_block;
 
 ## Live Preview Integration
 
-The Gutenberg block editor in `src/blocks/link-page-editor/` provides live preview of changes through React components. The `Preview.js` component displays real-time updates as artists make changes to their link pages.
+The Gutenberg block editors in `src/blocks/` (link-page-editor, artist-profile-manager, link-page-analytics) provide live preview of changes through React components. Each block's Preview or Analytics component displays real-time updates as artists make changes.
+
+**Block-Based Management**:
+- **Artist Profiles**: Managed via `src/blocks/artist-profile-manager/` React block with tab-based interface
+- **Link Pages**: Edited via `src/blocks/link-page-editor/` React block with live preview
+- **Analytics**: Viewed via `src/blocks/link-page-analytics/` dedicated analytics block
 
 ```php
 // Preview data uses same function as templates
 $preview_data = ec_get_link_page_data($artist_id, $link_page_id);
+$artist_data = ec_get_artist_profile_data($artist_id);
 ```
 
 ## Template Arguments

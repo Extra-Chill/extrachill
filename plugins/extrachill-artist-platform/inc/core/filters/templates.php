@@ -39,37 +39,24 @@ function ec_template_handler( $output, $template_name, $args = array() ) {
     // Template validation and file mapping
     $template_map = array(
         'single-link' => array(
-            'file' => 'inc/link-pages/management/templates/components/single-link.php',
+            'file' => 'inc/link-pages/live/templates/components/single-link.php',
             'required' => array()
         ),
         'link-section' => array(
-            'file' => 'inc/link-pages/management/templates/components/link-section.php',
+            'file' => 'inc/link-pages/live/templates/components/link-section.php',
             'required' => array( 'links' )
         ),
         'social-icon' => array(
-            'file' => 'inc/link-pages/management/templates/components/social-icon.php',
+            'file' => 'inc/link-pages/live/templates/components/social-icon.php',
             'required' => array( 'social_data' )
         ),
         'social-icons-container' => array(
-            'file' => 'inc/link-pages/management/templates/components/social-icons-container.php',
+            'file' => 'inc/link-pages/live/templates/components/social-icons-container.php',
             'required' => array( 'social_links' )
         ),
         'artist-switcher' => array(
             'file' => 'inc/core/templates/artist-switcher.php',
             'required' => array()
-        ),
-        // Admin/Management Templates
-        'link-item-editor' => array(
-            'file' => 'inc/link-pages/management/templates/components/link-item-editor.php',
-            'required' => array( 'sidx', 'lidx' )
-        ),
-        'link-section-editor' => array(
-            'file' => 'inc/link-pages/management/templates/components/link-section-editor.php', 
-            'required' => array( 'sidx' )
-        ),
-        'social-item-editor' => array(
-            'file' => 'inc/link-pages/management/templates/components/social-item-editor.php',
-            'required' => array( 'index' )
         ),
         // Subscription Templates
         'subscribe-inline-form' => array(
@@ -93,12 +80,6 @@ function ec_template_handler( $output, $template_name, $args = array() ) {
             'file' => 'inc/artist-profiles/frontend/templates/manage-artist-profile-tabs/tab-subscribers.php',
             'required' => array( 'target_artist_id' )
         ),
-        // Live Preview Template
-        'link-page-live-preview' => array(
-            'file' => 'inc/link-pages/management/live-preview/preview.php',
-            'required' => array( 'preview_data' )
-        )
-        ,
         // Share Modal Template (used by both live link page and preview)
         'share-modal' => array(
             'file' => 'inc/link-pages/live/templates/extrch-share-modal.php',
