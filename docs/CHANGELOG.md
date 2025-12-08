@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0/).
 
+## [1.2.3] - 2025-12-07
+
+### Changed
+- Centralized theme version constant for consistent cache busting across assets
+- Updated icon sprite versioning to use EXTRACHILL_THEME_VERSION instead of filemtime()
+- Cleaned up documentation duplication in asset-loading.md
+
+### Technical
+- Added EXTRACHILL_THEME_VERSION constant in functions.php
+- Modified ec_icon() function in inc/core/icons.php to use theme version for cache busting
+- Removed duplicate asset directory structure sections from docs/asset-loading.md
+
 ## [1.2.2] - 2025-12-07
 
 ### Changed

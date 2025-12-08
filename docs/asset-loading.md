@@ -238,24 +238,3 @@ assets/
   /fonts/
     extrachill.svg        # Icon sprite with QR/download icons
 ```
-/assets/
-  /css/
-    root.css              # CSS variables, theme colors
-    style.css             # Main stylesheet (loaded via get_stylesheet_uri)
-    taxonomy-badges.css   # Taxonomy badge colors
-    nav.css               # Navigation styles
-    single-post.css       # Single post styles
-    archive.css           # Archive page styles
-    search.css            # Search result styles
-    shared-tabs.css       # Tab interface styles
-    share.css             # Social share buttons
-    sidebar.css           # Sidebar component styles
-    editor-style.css      # Block editor styles
-  /js/
-    nav-menu.js           # Navigation functionality
-    reading-progress.js   # Sticky header progress
-    chill-custom.js       # Archive interactions
-    shared-tabs.js        # Tab interface logic
-  /fonts/
-    extrachill.svg        # Icon sprite
-```
