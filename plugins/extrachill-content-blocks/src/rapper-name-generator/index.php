@@ -101,38 +101,3 @@ function extrachill_blocks_generate_rapper_name($input, $style = "", $gender = "
             }
     }
 }
-
-add_action('wp_ajax_extrachill_blocks_rapper_name', 'extrachill_blocks_rapper_name_handler');
-add_action('wp_ajax_nopriv_extrachill_blocks_rapper_name', 'extrachill_blocks_rapper_name_handler');
-
-function extrachill_blocks_rapper_name_handler() {
-    check_ajax_referer('extrachill_blocks_rapper_nonce', 'nonce');
-
-    $input = sanitize_text_field(wp_unslash($_POST['input']));
-    $gender = sanitize_text_field(wp_unslash($_POST['gender']));
-    $style = sanitize_text_field(wp_unslash($_POST['style']));
-    $numberOfWords = absint($_POST['number_of_words']);
-
-    if (empty($input)) {
-        wp_send_json_error(array('message' => 'Please enter your name'));
-    }
-
-    $generatedName = extrachill_blocks_generate_rapper_name($input, $style, $gender, $numberOfWords);
-
-    wp_send_json_success(array('name' => $generatedName));
-}
-
-add_action('wp_enqueue_scripts', 'extrachill_blocks_rapper_name_localize_script', 20);
-
-function extrachill_blocks_rapper_name_localize_script() {
-    if (has_block('extrachill-blocks/rapper-name-generator')) {
-        wp_localize_script(
-            'extrachill-blocks-rapper-name-generator-view-script',
-            'extraChillRapperNameGenerator',
-            array(
-                'ajaxurl' => admin_url('admin-ajax.php'),
-                'nonce' => wp_create_nonce('extrachill_blocks_rapper_nonce')
-            )
-        );
-    }
-}

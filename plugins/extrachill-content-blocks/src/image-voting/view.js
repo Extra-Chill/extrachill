@@ -1,6 +1,6 @@
-import $ from 'jquery';
+import apiFetch from '@wordpress/api-fetch';
 
-$(document).ready(function() {
+document.addEventListener('DOMContentLoaded', function() {
 	const STORAGE_KEY = 'extrachill_voter_email';
 
 	function getSavedEmail() {
@@ -11,141 +11,139 @@ $(document).ready(function() {
 		localStorage.setItem(STORAGE_KEY, email);
 	}
 
-	function markAsVoted($button) {
-		$button
-			.removeClass('button-1')
-			.addClass('button-2')
-			.prop('disabled', true)
-			.text('Voted ✓');
+	function markAsVoted(button) {
+		button.classList.remove('button-1');
+		button.classList.add('button-2');
+		button.disabled = true;
+		button.textContent = 'Voted ✓';
 	}
 
-	function showMessage($container, message, type) {
-		const $messageBox = $container.find('.extrachill-voting-message');
+	function showMessage(container, message, type) {
+		const messageBox = container.querySelector('.extrachill-voting-message');
 		const isError = type === 'error';
 
-		$messageBox
-			.removeClass('message-error message-info')
-			.addClass(isError ? 'message-error' : 'message-info')
-			.text(message)
-			.fadeIn(200);
+		messageBox.classList.remove('message-error', 'message-info');
+		messageBox.classList.add(isError ? 'message-error' : 'message-info');
+		messageBox.textContent = message;
+		messageBox.classList.add('fade-in');
+		messageBox.style.display = 'block';
 
 		setTimeout(() => {
-			$messageBox.fadeOut(400);
+			messageBox.classList.remove('fade-in');
+			messageBox.classList.add('fade-out');
+			setTimeout(() => {
+				messageBox.style.display = 'none';
+				messageBox.classList.remove('fade-out');
+			}, 400);
 		}, 3500);
 	}
 
-	function submitVote($container, email) {
-		const $button = $container.find('.extrachill-blocks-image-voting-button');
-		const $voteCount = $container.find('.vote-number');
-		const instanceId = $button.data('block-instance-id');
-		const postId = $container.data('post-id');
+	async function submitVote(container, email) {
+		const button = container.querySelector('.extrachill-blocks-image-voting-button');
+		const voteCount = container.querySelector('.vote-number');
+		const instanceId = button.dataset.blockInstanceId;
+		const postId = container.dataset.postId;
+		const form = container.querySelector('.extrachill-blocks-image-voting-form');
 
-		$button.prop('disabled', true).text('Voting...');
+		button.disabled = true;
+		button.textContent = 'Voting...';
 
-		$.ajax({
-			url: extraChillBlocksImageVoting.ajaxurl,
-			type: 'POST',
-			data: {
-				action: 'extrachill_blocks_image_vote',
-				nonce: extraChillBlocksImageVoting.nonce,
-				post_id: postId,
-				instance_id: instanceId,
-				email_address: email
-			},
-			success: function(response) {
-				if (response.success) {
-					saveEmail(email);
-					$voteCount.text(response.data.vote_count);
-					markAsVoted($button);
-					$container.find('.extrachill-blocks-image-voting-form').hide();
-				} else {
-					if (response.data && response.data.code === 'already_voted') {
-						markAsVoted($button);
-						$container.find('.extrachill-blocks-image-voting-form').hide();
-					} else {
-						$button.prop('disabled', false).text('Vote');
-						showMessage($container, response.data.message || 'An error occurred', 'error');
-					}
+		try {
+			const response = await apiFetch({
+				path: '/extrachill/v1/blocks/image-voting/vote',
+				method: 'POST',
+				data: {
+					post_id: parseInt(postId, 10),
+					instance_id: instanceId,
+					email_address: email
 				}
-			},
-			error: function() {
-				$button.prop('disabled', false).text('Vote');
-				showMessage($container, 'Network error. Please try again.', 'error');
+			});
+
+			saveEmail(email);
+			voteCount.textContent = response.vote_count;
+			markAsVoted(button);
+			form.style.display = 'none';
+		} catch (error) {
+			if (error.code === 'already_voted') {
+				markAsVoted(button);
+				form.style.display = 'none';
+			} else {
+				button.disabled = false;
+				button.textContent = 'Vote';
+				showMessage(container, error.message || 'An error occurred', 'error');
 			}
-		});
+		}
 	}
 
-	$('.extrachill-blocks-image-voting-container').each(function() {
-		const $container = $(this);
-		const $button = $container.find('.extrachill-blocks-image-voting-button');
-		const $form = $container.find('.extrachill-blocks-image-voting-form');
-		const $emailInput = $form.find('.extrachill-blocks-email-input');
-		const $submitBtn = $form.find('.extrachill-blocks-submit-vote');
+	document.querySelectorAll('.extrachill-blocks-image-voting-container').forEach(function(container) {
+		const button = container.querySelector('.extrachill-blocks-image-voting-button');
+		const form = container.querySelector('.extrachill-blocks-image-voting-form');
+		const emailInput = form.querySelector('.extrachill-blocks-email-input');
+		const submitBtn = form.querySelector('.extrachill-blocks-submit-vote');
 		const savedEmail = getSavedEmail();
 
-		const voters = JSON.parse($container.attr('data-voters') || '[]');
+		const voters = JSON.parse(container.getAttribute('data-voters') || '[]');
 		const hasVoted = savedEmail && voters.includes(savedEmail);
 
 		if (hasVoted) {
-			markAsVoted($button);
-			$form.hide();
+			markAsVoted(button);
+			form.style.display = 'none';
 		}
 
 		if (savedEmail) {
-			$emailInput.val(savedEmail);
+			emailInput.value = savedEmail;
 		}
 
-		$button.on('click', function() {
+		button.addEventListener('click', function() {
 			if (hasVoted) {
 				return;
 			}
 
 			if (savedEmail) {
-				submitVote($container, savedEmail);
+				submitVote(container, savedEmail);
 			} else {
-				$form.show();
-				$emailInput.focus();
+				form.style.display = 'block';
+				emailInput.focus();
 			}
 		});
 
-		$submitBtn.on('click', function() {
-			const email = $emailInput.val().trim();
+		submitBtn.addEventListener('click', function() {
+			const email = emailInput.value.trim();
 
 			if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-				showMessage($container, 'Please enter a valid email address', 'error');
+				showMessage(container, 'Please enter a valid email address', 'error');
 				return;
 			}
 
-			submitVote($container, email);
+			submitVote(container, email);
 		});
 
-		$emailInput.on('keypress', function(e) {
-			if (e.which === 13) {
+		emailInput.addEventListener('keypress', function(e) {
+			if (e.key === 'Enter') {
 				e.preventDefault();
-				$submitBtn.click();
+				submitBtn.click();
 			}
 		});
 	});
 
-	const $blocks = $('.extrachill-blocks-image-voting-container');
+	// Sort voting blocks by vote count
+	const blocks = Array.from(document.querySelectorAll('.extrachill-blocks-image-voting-container'));
 
-	if ($blocks.length <= 1) {
+	if (blocks.length <= 1) {
 		return;
 	}
 
 	const blocksByParent = new Map();
-	$blocks.each(function(index) {
-		const $block = $(this);
-		const $parent = $block.parent();
-		const parentKey = $parent.get(0);
+	blocks.forEach(function(block, index) {
+		const parent = block.parentElement;
 
-		if (!blocksByParent.has(parentKey)) {
-			blocksByParent.set(parentKey, []);
+		if (!blocksByParent.has(parent)) {
+			blocksByParent.set(parent, []);
 		}
 
-		const voteCount = parseInt($block.find('.vote-number').text(), 10) || 0;
-		blocksByParent.get(parentKey).push({
-			element: $block,
+		const voteCount = parseInt(block.querySelector('.vote-number').textContent, 10) || 0;
+		blocksByParent.get(parent).push({
+			element: block,
 			voteCount: voteCount,
 			originalIndex: index
 		});
@@ -163,11 +161,9 @@ $(document).ready(function() {
 			return a.originalIndex - b.originalIndex;
 		});
 
-		blocksData.forEach(data => data.element.detach());
-
-		const $parent = $(parentElement);
+		blocksData.forEach(data => data.element.remove());
 		blocksData.forEach(data => {
-			$parent.append(data.element);
+			parentElement.appendChild(data.element);
 		});
 	});
 });

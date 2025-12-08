@@ -2,86 +2,89 @@
  * Band Name Generator Block - Frontend View Script
  */
 
-import $ from 'jquery';
+import apiFetch from '@wordpress/api-fetch';
 
-$(document).ready(function() {
-    $('.extrachill-blocks-generator-form[data-generator-type="band"]').each(function() {
-        const $form = $(this);
-        const $container = $form.closest('.extrachill-blocks-band-name-generator');
-        const $button = $form.find('button[type="submit"]');
-        const $resultContainer = $container.find('.extrachill-blocks-generator-result');
-        const $messageContainer = $container.find('.extrachill-generator-message');
+document.addEventListener('DOMContentLoaded', function() {
+	document.querySelectorAll('.extrachill-blocks-generator-form[data-generator-type="band"]').forEach(function(form) {
+		const container = form.closest('.extrachill-blocks-band-name-generator');
+		const button = form.querySelector('button[type="submit"]');
+		const resultContainer = container.querySelector('.extrachill-blocks-generator-result');
+		const messageContainer = container.querySelector('.extrachill-generator-message');
 
-        $form.on('submit', function(e) {
-            e.preventDefault();
+		// Store original button text
+		if (!button.dataset.originalText) {
+			button.dataset.originalText = button.textContent;
+		}
 
-            const input = $form.find('#input').val().trim();
-            const genre = $form.find('#genre').val();
-            const numberOfWords = $form.find('#number_of_words').val();
-            const firstThe = $form.find('input[name="first-the"]').is(':checked') ? 'true' : 'false';
-            const andThe = $form.find('input[name="and-the"]').is(':checked') ? 'true' : 'false';
+		form.addEventListener('submit', async function(e) {
+			e.preventDefault();
 
-            if (!input) {
-                showMessage('Please enter your name or word', 'error');
-                return;
-            }
+			const input = form.querySelector('#input').value.trim();
+			const genre = form.querySelector('#genre').value;
+			const numberOfWords = parseInt(form.querySelector('#number_of_words').value, 10);
+			const firstThe = form.querySelector('input[name="first-the"]').checked;
+			const andThe = form.querySelector('input[name="and-the"]').checked;
 
-            // Disable button and show loading state
-            $button.prop('disabled', true).text('Generating...');
+			if (!input) {
+				showMessage('Please enter your name or word', 'error');
+				return;
+			}
 
-            $.ajax({
-                url: extraChillBandNameGenerator.ajaxurl,
-                type: 'POST',
-                data: {
-                    action: 'extrachill_blocks_band_name',
-                    nonce: extraChillBandNameGenerator.nonce,
-                    input: input,
-                    genre: genre,
-                    number_of_words: numberOfWords,
-                    first_the: firstThe,
-                    and_the: andThe
-                },
-                success: function(response) {
-                    if (response.success) {
-                        displayResult(response.data.name);
-                    } else {
-                        showMessage(response.data.message || 'An error occurred', 'error');
-                        $button.prop('disabled', false).text($button.data('original-text') || 'Generate Band Name');
-                    }
-                },
-                error: function() {
-                    showMessage('Network error. Please try again.', 'error');
-                    $button.prop('disabled', false).text($button.data('original-text') || 'Generate Band Name');
-                }
-            });
-        });
+			// Disable button and show loading state
+			button.disabled = true;
+			button.textContent = 'Generating...';
 
-        function displayResult(name) {
-            $resultContainer.html('<div class="generated-name-wrap">Your band name is:<br><div class="actual-name">' + name + '</div></div>');
-            $resultContainer.fadeIn(300);
-            $button.prop('disabled', false).text($button.data('original-text') || 'Generate Band Name');
-        }
+			try {
+				const response = await apiFetch({
+					path: '/extrachill/v1/blocks/band-name',
+					method: 'POST',
+					data: {
+						input,
+						genre,
+						number_of_words: numberOfWords,
+						first_the: firstThe,
+						and_the: andThe
+					}
+				});
 
-        function showMessage(message, type) {
-            if (!$messageContainer.length) {
-                return;
-            }
+				if (response.name) {
+					displayResult(response.name);
+				}
+			} catch (error) {
+				showMessage(error.message || 'An error occurred', 'error');
+				button.disabled = false;
+				button.textContent = button.dataset.originalText || 'Generate Band Name';
+			}
+		});
 
-            const isError = type === 'error';
-            $messageContainer
-                .removeClass('message-error message-info')
-                .addClass(isError ? 'message-error' : 'message-info')
-                .text(message)
-                .fadeIn(200);
+		function displayResult(name) {
+			resultContainer.innerHTML = '<div class="generated-name-wrap">Your band name is:<br><div class="actual-name">' + name + '</div></div>';
+			resultContainer.classList.add('fade-in');
+			resultContainer.style.display = 'block';
+			button.disabled = false;
+			button.textContent = button.dataset.originalText || 'Generate Band Name';
+		}
 
-            setTimeout(() => {
-                $messageContainer.fadeOut(400);
-            }, 3500);
-        }
+		function showMessage(message, type) {
+			if (!messageContainer) {
+				return;
+			}
 
-        // Store original button text
-        if (!$button.data('original-text')) {
-            $button.data('original-text', $button.text());
-        }
-    });
+			const isError = type === 'error';
+			messageContainer.classList.remove('message-error', 'message-info');
+			messageContainer.classList.add(isError ? 'message-error' : 'message-info');
+			messageContainer.textContent = message;
+			messageContainer.classList.add('fade-in');
+			messageContainer.style.display = 'block';
+
+			setTimeout(() => {
+				messageContainer.classList.remove('fade-in');
+				messageContainer.classList.add('fade-out');
+				setTimeout(() => {
+					messageContainer.style.display = 'none';
+					messageContainer.classList.remove('fade-out');
+				}, 400);
+			}, 3500);
+		}
+	});
 });

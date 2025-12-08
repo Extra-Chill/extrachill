@@ -87,39 +87,3 @@ function extrachill_blocks_generate_band_name($input, $genre, $numberOfWords, $a
 
     return $bandName;
 }
-
-add_action('wp_ajax_extrachill_blocks_band_name', 'extrachill_blocks_band_name_handler');
-add_action('wp_ajax_nopriv_extrachill_blocks_band_name', 'extrachill_blocks_band_name_handler');
-
-function extrachill_blocks_band_name_handler() {
-    check_ajax_referer('extrachill_blocks_band_nonce', 'nonce');
-
-    $input = sanitize_text_field(wp_unslash($_POST['input']));
-    $genre = sanitize_text_field(wp_unslash($_POST['genre']));
-    $numberOfWords = absint($_POST['number_of_words']);
-    $addTheStart = isset($_POST['first_the']) && $_POST['first_the'] === 'true';
-    $addAndTheMiddle = isset($_POST['and_the']) && $_POST['and_the'] === 'true';
-
-    if (empty($input)) {
-        wp_send_json_error(array('message' => 'Please enter your name or word'));
-    }
-
-    $generatedName = extrachill_blocks_generate_band_name($input, $genre, $numberOfWords, $addTheStart, $addAndTheMiddle);
-
-    wp_send_json_success(array('name' => $generatedName));
-}
-
-add_action('wp_enqueue_scripts', 'extrachill_blocks_band_name_localize_script', 20);
-
-function extrachill_blocks_band_name_localize_script() {
-    if (has_block('extrachill-blocks/band-name-generator')) {
-        wp_localize_script(
-            'extrachill-blocks-band-name-generator-view-script',
-            'extraChillBandNameGenerator',
-            array(
-                'ajaxurl' => admin_url('admin-ajax.php'),
-                'nonce' => wp_create_nonce('extrachill_blocks_band_nonce')
-            )
-        );
-    }
-}

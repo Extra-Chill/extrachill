@@ -3,35 +3,35 @@
 /* Theme Integration - Same as frontend for consistency */
 :root {
 	/* Trivia-specific variables that inherit from theme */
-	--trivia-card-bg: var(--card-background, #f8fafc);
-	--trivia-border: var(--border-color, #ddd);
-	--trivia-text: var(--text-color, #000);
-	--trivia-muted-text: var(--muted-text, #6b7280);
-	--trivia-accent: var(--accent, #53940b);
-	--trivia-link-color: var(--link-color, #0b5394);
-	--trivia-button-bg: var(--button-bg, #0b5394);
-	--trivia-button-hover: var(--button-hover-bg, #083b6c);
-	--trivia-shadow: var(--card-shadow, 0 2px 6px rgba(0, 0, 0, 0.08));
-	--trivia-hover-shadow: var(--card-hover-shadow, 0 4px 12px rgba(0, 0, 0, 0.1));
-	--trivia-focus-border: var(--focus-border-color, #53940b);
-	--trivia-focus-shadow: var(--focus-box-shadow, 0 0 0 3px rgba(83, 148, 11, 0.2));
-	--trivia-notice-bg: var(--notice-bg, #c8e6c9);
-	--trivia-notice-border: var(--notice-border, #0b5394);
+	--trivia-card-bg: var(--card-background);
+	--trivia-border: var(--border-color);
+	--trivia-text: var(--text-color);
+	--trivia-muted-text: var(--muted-text);
+	--trivia-accent: var(--accent);
+	--trivia-link-color: var(--link-color);
+	--trivia-button-bg: #0b5394;
+	--trivia-button-hover: #083b6c;
+	--trivia-shadow: var(--card-shadow);
+	--trivia-hover-shadow: var(--card-hover-shadow);
+	--trivia-focus-border: var(--focus-border-color);
+	--trivia-focus-shadow: var(--focus-box-shadow);
+	--trivia-notice-bg: var(--notice-bg);
+	--trivia-notice-border: var(--notice-border);
 }
 
 /* Dark mode support in editor */
 @media (prefers-color-scheme: dark) {
 	:root {
-		--trivia-card-bg: var(--card-background, #2a2a2a);
-		--trivia-border: var(--border-color, #555);
-		--trivia-text: var(--text-color, #e5e5e5);
-		--trivia-muted-text: var(--muted-text, #b0b0b0);
-		--trivia-shadow: var(--card-shadow, 0 1px 3px rgba(0, 0, 0, 0.5));
-		--trivia-hover-shadow: var(--card-hover-shadow, 0 4px 12px rgba(0, 0, 0, 0.4));
-		--trivia-focus-border: var(--focus-border-color, #8aa6bf);
-		--trivia-focus-shadow: var(--focus-box-shadow, 0 0 0 3px rgba(138, 166, 191, 0.2));
-		--trivia-notice-bg: var(--notice-bg, #1e1e1e);
-		--trivia-notice-border: var(--notice-border, #444);
+		--trivia-card-bg: var(--card-background);
+		--trivia-border: var(--border-color);
+		--trivia-text: var(--text-color);
+		--trivia-muted-text: var(--muted-text);
+		--trivia-shadow: var(--card-shadow);
+		--trivia-hover-shadow: var(--card-hover-shadow);
+		--trivia-focus-border: var(--focus-border-color);
+		--trivia-focus-shadow: var(--focus-box-shadow);
+		--trivia-notice-bg: var(--notice-bg);
+		--trivia-notice-border: var(--notice-border);
 	}
 }
 

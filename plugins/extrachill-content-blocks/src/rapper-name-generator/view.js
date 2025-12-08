@@ -2,84 +2,87 @@
  * Rapper Name Generator Block - Frontend View Script
  */
 
-import $ from 'jquery';
+import apiFetch from '@wordpress/api-fetch';
 
-$(document).ready(function() {
-    $('.extrachill-blocks-generator-form[data-generator-type="rapper"]').each(function() {
-        const $form = $(this);
-        const $container = $form.closest('.extrachill-blocks-rapper-name-generator');
-        const $button = $form.find('button[type="submit"]');
-        const $resultContainer = $container.find('.extrachill-blocks-generator-result');
-        const $messageContainer = $container.find('.extrachill-generator-message');
+document.addEventListener('DOMContentLoaded', function() {
+	document.querySelectorAll('.extrachill-blocks-generator-form[data-generator-type="rapper"]').forEach(function(form) {
+		const container = form.closest('.extrachill-blocks-rapper-name-generator');
+		const button = form.querySelector('button[type="submit"]');
+		const resultContainer = container.querySelector('.extrachill-blocks-generator-result');
+		const messageContainer = container.querySelector('.extrachill-generator-message');
 
-        $form.on('submit', function(e) {
-            e.preventDefault();
+		// Store original button text
+		if (!button.dataset.originalText) {
+			button.dataset.originalText = button.textContent;
+		}
 
-            const input = $form.find('#input').val().trim();
-            const gender = $form.find('#gender').val();
-            const style = $form.find('#style').val();
-            const numberOfWords = $form.find('#number_of_words').val();
+		form.addEventListener('submit', async function(e) {
+			e.preventDefault();
 
-            if (!input) {
-                showMessage('Please enter your name', 'error');
-                return;
-            }
+			const input = form.querySelector('#input').value.trim();
+			const gender = form.querySelector('#gender').value;
+			const style = form.querySelector('#style').value;
+			const numberOfWords = parseInt(form.querySelector('#number_of_words').value, 10);
 
-            // Disable button and show loading state
-            $button.prop('disabled', true).text('Generating...');
+			if (!input) {
+				showMessage('Please enter your name', 'error');
+				return;
+			}
 
-            $.ajax({
-                url: extraChillRapperNameGenerator.ajaxurl,
-                type: 'POST',
-                data: {
-                    action: 'extrachill_blocks_rapper_name',
-                    nonce: extraChillRapperNameGenerator.nonce,
-                    input: input,
-                    gender: gender,
-                    style: style,
-                    number_of_words: numberOfWords
-                },
-                success: function(response) {
-                    if (response.success) {
-                        displayResult(response.data.name);
-                    } else {
-                        showMessage(response.data.message || 'An error occurred', 'error');
-                        $button.prop('disabled', false).text($button.data('original-text') || 'Generate Rapper Name');
-                    }
-                },
-                error: function() {
-                    showMessage('Network error. Please try again.', 'error');
-                    $button.prop('disabled', false).text($button.data('original-text') || 'Generate Rapper Name');
-                }
-            });
-        });
+			// Disable button and show loading state
+			button.disabled = true;
+			button.textContent = 'Generating...';
 
-        function displayResult(name) {
-            $resultContainer.html('<div class="generated-name-wrap">Your rapper name is:<br><div class="actual-name">' + name + '</div></div>');
-            $resultContainer.fadeIn(300);
-            $button.prop('disabled', false).text($button.data('original-text') || 'Generate Rapper Name');
-        }
+			try {
+				const response = await apiFetch({
+					path: '/extrachill/v1/blocks/rapper-name',
+					method: 'POST',
+					data: {
+						input,
+						gender,
+						style,
+						number_of_words: numberOfWords
+					}
+				});
 
-        function showMessage(message, type) {
-            if (!$messageContainer.length) {
-                return;
-            }
+				if (response.name) {
+					displayResult(response.name);
+				}
+			} catch (error) {
+				showMessage(error.message || 'An error occurred', 'error');
+				button.disabled = false;
+				button.textContent = button.dataset.originalText || 'Generate Rapper Name';
+			}
+		});
 
-            const isError = type === 'error';
-            $messageContainer
-                .removeClass('message-error message-info')
-                .addClass(isError ? 'message-error' : 'message-info')
-                .text(message)
-                .fadeIn(200);
+		function displayResult(name) {
+			resultContainer.innerHTML = '<div class="generated-name-wrap">Your rapper name is:<br><div class="actual-name">' + name + '</div></div>';
+			resultContainer.classList.add('fade-in');
+			resultContainer.style.display = 'block';
+			button.disabled = false;
+			button.textContent = button.dataset.originalText || 'Generate Rapper Name';
+		}
 
-            setTimeout(() => {
-                $messageContainer.fadeOut(400);
-            }, 3500);
-        }
+		function showMessage(message, type) {
+			if (!messageContainer) {
+				return;
+			}
 
-        // Store original button text
-        if (!$button.data('original-text')) {
-            $button.data('original-text', $button.text());
-        }
-    });
+			const isError = type === 'error';
+			messageContainer.classList.remove('message-error', 'message-info');
+			messageContainer.classList.add(isError ? 'message-error' : 'message-info');
+			messageContainer.textContent = message;
+			messageContainer.classList.add('fade-in');
+			messageContainer.style.display = 'block';
+
+			setTimeout(() => {
+				messageContainer.classList.remove('fade-in');
+				messageContainer.classList.add('fade-out');
+				setTimeout(() => {
+					messageContainer.style.display = 'none';
+					messageContainer.classList.remove('fade-out');
+				}, 400);
+			}, 3500);
+		}
+	});
 });
