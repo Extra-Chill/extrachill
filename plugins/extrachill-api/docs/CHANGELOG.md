@@ -2,6 +2,27 @@
 
 All notable changes to the ExtraChill API plugin are documented here. This file is the single source of truth for release history.
 
+## 0.2.3
+
+### Added
+- **About Page Content in Docs Info**: Added `about` field to `/docs-info` response containing About page metadata from main site
+  - New `extrachill_api_docs_info_collect_about()` function retrieves About page from blog ID 1
+  - Response includes page ID, slug, title, URL, and processed content
+  - Proper error handling with 500 response if About page not found
+
+### Fixed
+- **Artist Socials Icon Class Enrichment**: Fixed potential error when rendering social link icons
+  - Added stricter validation to skip social links without required `id` field
+  - Prevents calling `get_icon_class()` on invalid or malformed social link entries
+  - Improves overall reliability of social link rendering
+
+### Changed
+- **Taxonomy Data Collection Performance**: Refactored `extrachill_api_docs_info_collect_post_types()` for improved efficiency
+  - Consolidated separate queries for all terms and assigned terms into single efficient query
+  - Now calculates term post counts directly in the query using GROUP BY and HAVING clause
+  - Simplified response structure to include term post count inline
+  - Reduced code complexity by ~50 lines while maintaining functionality
+
 ## 0.2.2
 
 ### Changed

@@ -34,6 +34,12 @@ function extrachill_api_docs_info_handler() {
 
     $post_types = extrachill_api_docs_info_collect_post_types();
 
+    $about = extrachill_api_docs_info_collect_about();
+
+    if ( is_wp_error( $about ) ) {
+        return $about;
+    }
+
     return rest_ensure_response(
         array(
             'site'        => array(
@@ -44,9 +50,37 @@ function extrachill_api_docs_info_handler() {
                 'url'     => home_url( '/' ),
             ),
             'generated_at' => gmdate( 'c' ),
+            'about'        => $about,
             'post_types'   => $post_types,
         )
     );
+}
+
+/**
+ * Loads About page content from the main site (blog ID 1).
+ *
+ * @return array|WP_Error
+ */
+function extrachill_api_docs_info_collect_about() {
+    try {
+        switch_to_blog( 1 );
+
+        $about = get_page_by_path( 'about' );
+
+        if ( ! $about || 'publish' !== $about->post_status ) {
+            return new WP_Error( 'about_not_found', 'About page not found on main site.', array( 'status' => 500 ) );
+        }
+
+        return array(
+            'id'      => (int) $about->ID,
+            'slug'    => 'about',
+            'title'   => get_the_title( $about ),
+            'url'     => get_permalink( $about ),
+            'content' => apply_filters( 'the_content', $about->post_content ),
+        );
+    } finally {
+        restore_current_blog();
+    }
 }
 
 /**
@@ -68,7 +102,6 @@ function extrachill_api_docs_info_collect_post_types() {
         $taxonomies = get_object_taxonomies( $post_type, 'objects' );
 
         foreach ( $taxonomies as $tax_obj ) {
-            // Total terms in taxonomy.
             $total_terms = (int) wp_count_terms(
                 array(
                     'taxonomy'   => $tax_obj->name,
@@ -76,59 +109,42 @@ function extrachill_api_docs_info_collect_post_types() {
                 )
             );
 
-            // Distinct term_taxonomy_ids assigned to posts of this post type (publish only).
-            $assigned_term_tax_ids = $wpdb->get_col(
+            $terms_with_counts = $wpdb->get_results(
                 $wpdb->prepare(
-                    "SELECT DISTINCT tr.term_taxonomy_id
-                     FROM {$wpdb->term_relationships} tr
-                     INNER JOIN {$wpdb->term_taxonomy} tt ON tt.term_taxonomy_id = tr.term_taxonomy_id
+                    "SELECT t.term_id, t.slug, t.name, COUNT(p.ID) AS post_count
+                     FROM {$wpdb->terms} t
+                     INNER JOIN {$wpdb->term_taxonomy} tt ON tt.term_id = t.term_id AND tt.taxonomy = %s
+                     INNER JOIN {$wpdb->term_relationships} tr ON tr.term_taxonomy_id = tt.term_taxonomy_id
                      INNER JOIN {$wpdb->posts} p ON p.ID = tr.object_id
-                     WHERE p.post_type = %s AND p.post_status = 'publish' AND tt.taxonomy = %s",
-                    $post_type,
-                    $tax_obj->name
-                )
+                     WHERE p.post_type = %s AND p.post_status = 'publish'
+                     GROUP BY t.term_id, t.slug, t.name
+                     HAVING post_count > 0",
+                    $tax_obj->name,
+                    $post_type
+                ),
+                ARRAY_A
             );
 
-            $assigned_term_count = is_array( $assigned_term_tax_ids ) ? count( $assigned_term_tax_ids ) : 0;
+            $assigned_term_count = is_array( $terms_with_counts ) ? count( $terms_with_counts ) : 0;
 
-            // Slugs for all terms in taxonomy (non-empty list, hide_empty=false).
-            $terms_all = get_terms(
-                array(
-                    'taxonomy'   => $tax_obj->name,
-                    'hide_empty' => false,
-                    'fields'     => 'slugs',
-                )
-            );
+            $terms = array();
 
-            // Slugs for terms actually assigned to this post type (publish posts only).
-            $terms_assigned = array();
-
-            if ( ! empty( $assigned_term_tax_ids ) ) {
-                $term_tax_ids_sql = implode( ',', array_map( 'absint', $assigned_term_tax_ids ) );
-
-                $assigned_term_ids = $wpdb->get_col( "SELECT term_id FROM {$wpdb->term_taxonomy} WHERE term_taxonomy_id IN ($term_tax_ids_sql)" );
-
-                if ( ! empty( $assigned_term_ids ) ) {
-                    $terms_assigned = get_terms(
-                        array(
-                            'taxonomy'   => $tax_obj->name,
-                            'include'    => array_map( 'absint', $assigned_term_ids ),
-                            'hide_empty' => false,
-                            'fields'     => 'slugs',
-                        )
-                    );
-                }
+            foreach ( $terms_with_counts as $term_row ) {
+                $terms[] = array(
+                    'slug'  => $term_row['slug'],
+                    'name'  => $term_row['name'],
+                    'count' => (int) $term_row['post_count'],
+                );
             }
 
             $tax_data[] = array(
-                'slug'                    => $tax_obj->name,
-                'label'                   => $tax_obj->label,
-                'hierarchical'            => (bool) $tax_obj->hierarchical,
-                'public'                  => (bool) $tax_obj->public,
-                'total_term_count'        => $total_terms,
-                'assigned_term_count'     => $assigned_term_count,
-                'terms'                   => is_array( $terms_all ) ? array_values( $terms_all ) : array(),
-                'assigned_terms'          => is_array( $terms_assigned ) ? array_values( $terms_assigned ) : array(),
+                'slug'                => $tax_obj->name,
+                'label'               => $tax_obj->label,
+                'hierarchical'        => (bool) $tax_obj->hierarchical,
+                'public'              => (bool) $tax_obj->public,
+                'total_term_count'    => $total_terms,
+                'assigned_term_count' => $assigned_term_count,
+                'terms'               => $terms,
             );
         }
 
