@@ -18,11 +18,10 @@ function ec_icon($icon_id, $class = '') {
     static $sprite_url = null;
 
     if ($sprite_url === null) {
-        $sprite_path = get_template_directory() . '/assets/fonts/extrachill.svg';
-        $version = file_exists($sprite_path) ? filemtime($sprite_path) : '';
         $sprite_url = get_template_directory_uri() . '/assets/fonts/extrachill.svg';
-        if ($version) {
-            $sprite_url .= '?v=' . $version;
+
+        if ( defined( 'EXTRACHILL_THEME_VERSION' ) && EXTRACHILL_THEME_VERSION ) {
+            $sprite_url .= '?v=' . urlencode( EXTRACHILL_THEME_VERSION );
         }
     }
 
