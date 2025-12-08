@@ -181,14 +181,24 @@ function extrachill_api_artist_socials_put_handler( WP_REST_Request $request ) {
  * Build social links response data
  */
 function extrachill_api_build_socials_response( $artist_id ) {
-	$social_links = array();
+    $social_links = array();
 
-	if ( function_exists( 'extrachill_artist_platform_social_links' ) ) {
-		$social_manager = extrachill_artist_platform_social_links();
-		$social_links   = $social_manager->get( $artist_id );
-	}
+    if ( function_exists( 'extrachill_artist_platform_social_links' ) ) {
+        $social_manager = extrachill_artist_platform_social_links();
+        $social_links   = $social_manager->get( $artist_id );
 
-	return array(
-		'social_links' => is_array( $social_links ) ? $social_links : array(),
-	);
+        // Enrich each link with icon_class for frontend rendering
+        if ( is_array( $social_links ) ) {
+            foreach ( $social_links as $index => $social_link ) {
+                if ( is_array( $social_link ) && ! empty( $social_link['type'] ) ) {
+                    $social_links[ $index ]['icon_class'] = $social_manager->get_icon_class( $social_link['type'], $social_link );
+                }
+            }
+        }
+    }
+
+    return array(
+        'social_links' => is_array( $social_links ) ? $social_links : array(),
+    );
 }
+

@@ -37,6 +37,9 @@ extrachill-api/
     ├── auth/
     │   └── extrachill-link-auth.php (Cross-domain authentication)
     └── routes/
+        ├── admin/
+        │   ├── ad-free-license.php (Ad-free license management)
+        │   └── team-members.php (Team member sync and management)
         ├── analytics/
         │   ├── link-click.php (Track link page clicks)
         │   ├── link-page.php (Track link page views)
@@ -62,6 +65,8 @@ extrachill-api/
         ├── community/
         │   ├── upvote.php (Topic/reply upvotes)
         │   └── user-mentions.php (User search for mentions)
+        ├── docs/
+        │   └── docs-info.php (Documentation endpoint info)
         ├── events/
         │   └── event-submissions.php (Event submission proxy)
         ├── media/
@@ -71,8 +76,12 @@ extrachill-api/
         ├── shop/
         │   ├── products.php (WooCommerce product CRUD)
         │   └── stripe-connect.php (Stripe Connect management)
-        └── tools/
-            └── qr-code.php (QR code generator)
+        ├── tools/
+        │   └── qr-code.php (QR code generator)
+        └── users/
+            ├── artists.php (User artist relationships)
+            ├── search.php (User search endpoint)
+            └── users.php (User profile endpoint)
 ```
 
 ## Current Endpoints
@@ -623,9 +632,313 @@ Foundational REST API for artist data management. Provides comprehensive endpoin
 
 **Used By**: extrachill-community plugin (voting system)
 
+### Admin Endpoints
+
+#### 22. Ad-Free License Grant
+
+**Endpoint**: `POST /wp-json/extrachill/v1/admin/ad-free-license/grant`
+
+**Purpose**: Grant an ad-free license to a user by username or email address.
+
+**Permission**: Requires `manage_options` capability (network administrators only)
+
+**Parameters**:
+- `user_identifier` (string, required) - Username or email address of the user to grant license to
+
+**Response** (HTTP 200):
+```json
+{
+  "message": "Ad-free license granted to artist_name",
+  "user_id": 123,
+  "username": "artist_name",
+  "email": "artist@example.com"
+}
+```
+
+**Error Responses**:
+- `400` - Missing identifier or invalid request
+- `404` - User not found
+- `409` - User already has an ad-free license
+- `403` - Permission denied (not a network administrator)
+
+**File**: `inc/routes/admin/ad-free-license.php`
+
+**Notes**:
+- Accepts either username or email as identifier
+- Stores license data as `extrachill_ad_free_purchased` user meta
+
+#### 23. Ad-Free License Revoke
+
+**Endpoint**: `DELETE /wp-json/extrachill/v1/admin/ad-free-license/{user_id}`
+
+**Purpose**: Revoke an ad-free license from a user.
+
+**Permission**: Requires `manage_options` capability (network administrators only)
+
+**Parameters**:
+- `user_id` (integer, required) - The user ID to revoke license from
+
+**Response** (HTTP 200):
+```json
+{
+  "message": "Ad-free license revoked for artist_name",
+  "user_id": 123,
+  "username": "artist_name"
+}
+```
+
+**Error Responses**:
+- `400` - Missing user ID
+- `404` - User not found or user doesn't have an ad-free license
+- `403` - Permission denied (not a network administrator)
+
+**File**: `inc/routes/admin/ad-free-license.php`
+
+#### 24. Team Members Sync
+
+**Endpoint**: `POST /wp-json/extrachill/v1/admin/team-members/sync`
+
+**Purpose**: Synchronize team member status for all network users based on main site account presence.
+
+**Permission**: Requires `manage_options` capability (network administrators only)
+
+**Parameters**: None
+
+**Response** (HTTP 200):
+```json
+{
+  "total_users": 45,
+  "users_updated": 12,
+  "users_skipped_override": 3,
+  "users_with_main_site_account": 15
+}
+```
+
+**File**: `inc/routes/admin/team-members.php`
+
+**Notes**:
+- Automatically detects users with main site accounts
+- Respects manual override status
+- Updates `extrachill_team` meta
+
+#### 25. Manage Team Member Status
+
+**Endpoint**: `PUT /wp-json/extrachill/v1/admin/team-members/{user_id}`
+
+**Purpose**: Manually manage team member status for a specific user.
+
+**Permission**: Requires `manage_options` capability (network administrators only)
+
+**Parameters**:
+- `user_id` (integer, required) - The user ID to manage
+- `action` (string, required) - One of: `force_add`, `force_remove`, `reset_auto`
+
+**Response** (HTTP 200):
+```json
+{
+  "message": "User forced to team member.",
+  "user_id": 123,
+  "is_team_member": true,
+  "source": "Manual: Add"
+}
+```
+
+**File**: `inc/routes/admin/team-members.php`
+
+**Notes**:
+- `force_add`: User set as team member with manual override
+- `force_remove`: User set as non-team member with manual override
+- `reset_auto`: User status determined by automatic sync logic
+
+### User Management Endpoints
+
+#### 26. User Profile
+
+**Endpoint**: `GET /wp-json/extrachill/v1/users/{id}`
+
+**Purpose**: Retrieve comprehensive user profile data with permission-based field visibility.
+
+**Permission**: User must be logged in. Can view own profile or another user's limited public profile.
+
+**Parameters**:
+- `id` (integer, required) - The user ID to retrieve
+
+**Response** (HTTP 200):
+```json
+{
+  "id": 123,
+  "display_name": "Chris Huber",
+  "username": "chris",
+  "slug": "chris",
+  "avatar_url": "https://...",
+  "profile_url": "https://...",
+  "is_team_member": true,
+  "last_active": 1704067200,
+  "email": "chris@example.com",
+  "has_ad_free_license": true,
+  "is_artist": true,
+  "is_professional": false,
+  "can_create_artists": true,
+  "artist_count": 5,
+  "registered": "2024-01-01T12:00:00+00:00"
+}
+```
+
+**File**: `inc/routes/users/users.php`
+
+**Notes**:
+- Full data (email, license status, artist count) only for own profile or admins
+- Public fields (name, avatar, profile URL) visible to all logged-in users
+
+#### 27. User Search
+
+**Endpoint**: `GET /wp-json/extrachill/v1/users/search`
+
+**Purpose**: Find users by search term for mentions, autocomplete, or admin relationship management.
+
+**Permission**: 
+- `mentions` context: Public access
+- `admin` context: Requires `manage_options` capability
+
+**Parameters**:
+- `term` (string, required) - Search query term
+- `context` (string, optional) - Search context: `mentions` (default) or `admin`
+
+**Response - Mentions Context** (HTTP 200):
+```json
+[
+  {
+    "id": 1,
+    "username": "chris",
+    "slug": "chris"
+  }
+]
+```
+
+**Response - Admin Context** (HTTP 200):
+```json
+[
+  {
+    "id": 1,
+    "display_name": "Chris Huber",
+    "username": "chris",
+    "email": "chris@example.com",
+    "avatar_url": "https://..."
+  }
+]
+```
+
+**File**: `inc/routes/users/search.php`
+
+**Notes**:
+- Mentions context: Lightweight response for @mention autocomplete
+- Admin context: Full user data for relationship management
+
+#### 28. User Artists
+
+**Endpoint**: `GET/POST/DELETE /wp-json/extrachill/v1/users/{id}/artists`
+
+**Purpose**: Manage the relationship between users and artist profiles they manage.
+
+**GET Response** (HTTP 200):
+```json
+[
+  {
+    "id": 456,
+    "name": "The Cool Band",
+    "slug": "cool-band",
+    "profile_image_url": "https://..."
+  }
+]
+```
+
+**POST Parameters** (admin only):
+- `artist_id` (integer, required) - The artist profile post ID to add
+
+**POST Response** (HTTP 200):
+```json
+{
+  "success": true,
+  "message": "Artist relationship added.",
+  "user_id": 123,
+  "artist_id": 456
+}
+```
+
+**DELETE Endpoint**: `/wp-json/extrachill/v1/users/{id}/artists/{artist_id}`
+
+**Permission**: 
+- GET: User can view own artists or admin can view any user's artists
+- POST/DELETE: Admin only
+
+**File**: `inc/routes/users/artists.php`
+
+### Documentation Endpoints
+
+#### 29. Documentation Info
+
+**Endpoint**: `GET /wp-json/extrachill/v1/docs-info`
+
+**Purpose**: Retrieve metadata about platform features for documentation generation and feature discovery.
+
+**Permission**: Public access (no authentication required)
+
+**Parameters**:
+- `feature` (string, optional) - Limit response to specific feature key (e.g., 'events')
+
+**Response** (HTTP 200):
+```json
+{
+  "features": {
+    "events": {
+      "site": {
+        "blog_id": 7,
+        "domain": "events.extrachill.com",
+        "path": "/"
+      },
+      "post_type": "datamachine_events",
+      "taxonomies": [...]
+    }
+  },
+  "generated_at": "2024-01-15T12:00:00+00:00"
+}
+```
+
+**File**: `inc/routes/docs/docs-info.php`
+
+**Notes**:
+- Returns all available features if no specific feature requested
+- Provides dynamic taxonomy counts and structure
+- Used by documentation agents for auto-generation
+
+#### 30. Documentation Sync
+
+**Endpoint**: `POST /wp-json/extrachill/v1/sync/doc`
+
+**Purpose**: Sync documentation from source .md files to documentation platform.
+
+**Permission**: Requires `edit_posts` capability
+
+**Parameters**:
+- `source_file` (string, required) - Source file path
+- `title` (string, required) - Documentation title
+- `content` (string, required) - Documentation content
+- `platform_slug` (string, required) - Platform identifier
+- `slug` (string, required) - Documentation page slug
+- `excerpt` (string, optional) - Short description
+- `filesize` (integer, required) - Source file size
+- `timestamp` (string, required) - File timestamp
+- `force` (boolean, optional) - Force update if already exists
+
+**File**: `inc/routes/docs-sync-routes.php`
+
+**Notes**:
+- Handled by docs-sync controller
+- Supports force syncing for updates
+
 ### Event Submissions
 
-#### 22. Event Submission Flow Proxy
+#### 31. Event Submission Flow Proxy
 
 **Endpoint**: `POST /wp-json/extrachill/v1/event-submissions`
 
@@ -651,7 +964,7 @@ Foundational REST API for artist data management. Provides comprehensive endpoin
 
 ### Media Management
 
-#### 23. Unified Media Upload
+#### 32. Unified Media Upload
 
 **Endpoint**: `POST/DELETE /wp-json/extrachill/v1/media`
 
@@ -712,7 +1025,7 @@ Foundational REST API for artist data management. Provides comprehensive endpoin
 
 ### Newsletter
 
-#### 24. Newsletter Subscription
+#### 33. Newsletter Subscription
 
 **Endpoint**: `POST /wp-json/extrachill/v1/newsletter/subscription`
 
@@ -737,7 +1050,7 @@ Foundational REST API for artist data management. Provides comprehensive endpoin
 
 ### Shop (WooCommerce)
 
-#### 25. Shop Products CRUD
+#### 34. Shop Products CRUD
 
 **Endpoint**: 
 - `GET /wp-json/extrachill/v1/shop/products` - List user's artist products
@@ -776,7 +1089,7 @@ Foundational REST API for artist data management. Provides comprehensive endpoin
 - Comprehensive image and gallery management support
 - Stock quantity and sale price support
 
-#### 26. Stripe Connect Management
+#### 35. Stripe Connect Management
 
 **Endpoint**: 
 - `GET /wp-json/extrachill/v1/shop/stripe` - Get Stripe connection status
@@ -803,7 +1116,7 @@ Foundational REST API for artist data management. Provides comprehensive endpoin
 
 ### Tools
 
-#### 27. QR Code Generator
+#### 36. QR Code Generator
 
 **Endpoint**: `POST /wp-json/extrachill/v1/tools/qr-code`
 

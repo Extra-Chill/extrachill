@@ -17,7 +17,7 @@ The ExtraChill API plugin provides a centralized, versioned REST API infrastruct
 
 ## Current Endpoints
 
-The plugin provides 27 endpoints across 9 feature categories, all under the `extrachill/v1` namespace:
+The plugin provides 36 endpoints across 13 feature categories, all under the `extrachill/v1` namespace:
 
 ### Analytics Endpoints (3)
 - `POST /analytics/link-click` - Track link page clicks
@@ -38,11 +38,11 @@ The plugin provides 27 endpoints across 9 feature categories, all under the `ext
 ### Block Generators (3)
 - `POST /blocks/band-name` - AI band name generation
 - `POST /blocks/rapper-name` - AI rapper name generation
-- `POST /ai-adventure` - AI adventure story generation
+- `POST /blocks/ai-adventure` - AI adventure story generation
 
 ### Image Voting (2)
-- `GET /image-voting/vote-count/{post_id}/{instance_id}` - Get vote counts
-- `POST /image-voting/vote` - Cast a vote
+- `GET /blocks/image-voting/vote-count/{post_id}/{instance_id}` - Get vote counts
+- `POST /blocks/image-voting/vote` - Cast a vote
 
 ### Chat Endpoints (2)
 - `POST /chat/message` - Send chat message (authenticated)
@@ -52,11 +52,26 @@ The plugin provides 27 endpoints across 9 feature categories, all under the `ext
 - `GET /users/search` - Search users for @mentions
 - `POST /community/upvote` - Upvote topics or replies (authenticated)
 
+### Admin Endpoints (4)
+- `POST /admin/ad-free-license/grant` - Grant ad-free license
+- `DELETE /admin/ad-free-license/{user_id}` - Revoke ad-free license
+- `POST /admin/team-members/sync` - Sync team members
+- `PUT /admin/team-members/{user_id}` - Manage team member status
+
+### User Management (3)
+- `GET /users/{id}` - Get user profile
+- `GET /users/search` - Search users (admin context)
+- `GET/POST/DELETE /users/{id}/artists` - Manage user-artist relationships
+
+### Documentation (2)
+- `GET /docs-info` - Documentation metadata
+- `POST /sync/doc` - Sync documentation
+
 ### Event Submissions (1)
 - `POST /event-submissions` - Submit event with optional flyer
 
 ### Media Management (1)
-- `POST/DELETE /media` - Upload and manage images across all contexts
+- `POST/DELETE /media` - Upload and manage images
 
 ### Newsletter (1)
 - `POST /newsletter/subscription` - Subscribe to newsletter
@@ -165,6 +180,9 @@ extrachill-api/
     ├── auth/
     │   └── extrachill-link-auth.php    # Cross-domain authentication
     └── routes/
+        ├── admin/                      # Network admin endpoints
+        │   ├── ad-free-license.php
+        │   └── team-members.php
         ├── analytics/                  # Analytics tracking endpoints
         │   ├── link-click.php
         │   ├── link-page.php
@@ -190,6 +208,8 @@ extrachill-api/
         ├── community/                  # Community features
         │   ├── upvote.php
         │   └── user-mentions.php
+        ├── docs/                       # Documentation endpoints
+        │   └── docs-info.php
         ├── events/                     # Event management
         │   └── event-submissions.php
         ├── media/                      # Media upload
@@ -199,8 +219,12 @@ extrachill-api/
         ├── shop/                       # WooCommerce integration
         │   ├── products.php
         │   └── stripe-connect.php
-        └── tools/                      # Utilities
-            └── qr-code.php
+        ├── tools/                      # Utilities
+        │   └── qr-code.php
+        └── users/                      # User management
+            ├── artists.php
+            ├── search.php
+            └── users.php
 ```
 
 ## Development
@@ -241,14 +265,24 @@ curl -X GET "http://site.local/wp-json/extrachill/v1/users/search?search=test"
 ### Current Plugin Integrations
 
 **extrachill-blocks**:
-- Image voting vote counts
+- Image voting vote counts and voting
 - AI Adventure story generation
+- Band/Rapper name generators
 
 **extrachill-community**:
 - User search for @mentions
+- Community upvoting
 
 **extrachill-events**:
-- Event submission block posts to the new `/event-submissions` route
+- Event submission block posts to the `/event-submissions` route
+
+**extrachill-users**:
+- Avatar upload via media endpoint
+- User profile and search functionality
+
+**extrachill-shop**:
+- Product CRUD operations
+- Stripe Connect management
 
 ### Planned Migrations
 

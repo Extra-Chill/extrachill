@@ -2,6 +2,19 @@
 
 All notable changes to the ExtraChill API plugin are documented here. This file is the single source of truth for release history.
 
+## 0.2.2
+
+### Changed
+- **Documentation Reorganization**: Consolidated and restructured all endpoint documentation
+  - Moved from scattered route markdown files to organized feature-area structure
+  - Updated `docs/routes/` with comprehensive endpoint documentation for all 36 endpoints
+  - Improved documentation formatting and organization by feature category
+- **AGENTS.md Updates**: Enhanced technical documentation with complete admin, user management, and docs endpoint specifications
+- **README.md Updates**: Corrected endpoint count (36 total across 13 feature categories) and improved feature descriptions
+
+### Removed
+- Legacy documentation files replaced by centralized, organized structure
+
 ## 0.2.0
 
 ### Added
