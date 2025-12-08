@@ -1,3 +1,21 @@
+# 0.2.4 - Dec 8, 2025
+
+### Added
+- Custom URL structure `/{platform-slug}/{doc-slug}/` with new rewrite rules system
+- Theme integration filters to hide author meta and related posts for documentation posts
+- Enhanced breadcrumb navigation with dynamic blog ID detection and support for single docs and platform archives
+- "Getting Started on the Artist Platform" user documentation guide
+- 'blog' platform to default platform seeding
+
+### Changed
+- Simplified platform seeding by removing descriptions and streamlining data structure
+- Disabled default post type/taxonomy rewrites in favor of custom rewrite rules
+- Improved sync script `.env` parsing to properly handle quoted values
+- Updated breadcrumb functions to use dynamic blog ID instead of hardcoded values
+
+### Maintenance
+- Updated Composer dependencies
+
 # 0.2.3 - Dec 8, 2025
 
 ### Added

@@ -3,7 +3,7 @@
         'name' => 'extrachill/extrachill-docs',
         'pretty_version' => 'dev-main',
         'version' => 'dev-main',
-        'reference' => '2d78aa06ebd76e0b1af8f1fed963af4c0462f00f',
+        'reference' => 'b5b435b4a7caa4dd2a72d8f79cf9096d49ccd48b',
         'type' => 'wordpress-plugin',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -22,7 +22,7 @@
         'extrachill/extrachill-docs' => array(
             'pretty_version' => 'dev-main',
             'version' => 'dev-main',
-            'reference' => '2d78aa06ebd76e0b1af8f1fed963af4c0462f00f',
+            'reference' => 'b5b435b4a7caa4dd2a72d8f79cf9096d49ccd48b',
             'type' => 'wordpress-plugin',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),

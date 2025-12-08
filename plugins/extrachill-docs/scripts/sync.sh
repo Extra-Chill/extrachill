@@ -13,9 +13,13 @@ ENV_FILE="$PLUGIN_ROOT/.env"
 
 # Load environment variables from plugin root .env if it exists
 if [ -f "$ENV_FILE" ]; then
-    set -a
-    source "$ENV_FILE"
-    set +a
+    while IFS='=' read -r key value; do
+        # Skip empty lines and comments
+        [[ -z "$key" || "$key" =~ ^[[:space:]]*# ]] && continue
+        # Remove quotes from value if present
+        value=$(echo "$value" | sed 's/^"\(.*\)"$/\1/' | sed "s/^'\(.*\)'$/\1/")
+        export "$key=$value"
+    done < "$ENV_FILE"
 fi
 
 # Verify password is set

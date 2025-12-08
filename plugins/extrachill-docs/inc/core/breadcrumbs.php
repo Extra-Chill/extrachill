@@ -24,8 +24,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @since 0.2.1
  */
 function extrachill_docs_breadcrumb_root( $root_link ) {
-	// Only apply on docs.extrachill.com (blog ID 10).
-	if ( get_current_blog_id() !== 10 ) {
+	$docs_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'docs' ) : null;
+	if ( ! $docs_blog_id || get_current_blog_id() !== $docs_blog_id ) {
 		return $root_link;
 	}
 
@@ -49,8 +49,8 @@ add_filter( 'extrachill_breadcrumbs_root', 'extrachill_docs_breadcrumb_root' );
  * @since 0.2.1
  */
 function extrachill_docs_breadcrumb_trail_homepage( $custom_trail ) {
-	// Only apply on docs.extrachill.com (blog ID 10).
-	if ( get_current_blog_id() !== 10 ) {
+	$docs_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'docs' ) : null;
+	if ( ! $docs_blog_id || get_current_blog_id() !== $docs_blog_id ) {
 		return $custom_trail;
 	}
 
@@ -62,3 +62,67 @@ function extrachill_docs_breadcrumb_trail_homepage( $custom_trail ) {
 	return $custom_trail;
 }
 add_filter( 'extrachill_breadcrumbs_override_trail', 'extrachill_docs_breadcrumb_trail_homepage', 5 );
+
+/**
+ * Override breadcrumb trail for single ec_doc posts
+ *
+ * Displays "Platform Name › Doc Title" for individual documentation articles.
+ *
+ * @param string $custom_trail Existing custom trail from other plugins.
+ * @return string Breadcrumb trail HTML.
+ * @since 0.2.5
+ */
+function extrachill_docs_breadcrumb_trail_single( $custom_trail ) {
+	if ( ! empty( $custom_trail ) ) {
+		return $custom_trail;
+	}
+
+	$docs_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'docs' ) : null;
+	if ( ! $docs_blog_id || get_current_blog_id() !== $docs_blog_id ) {
+		return $custom_trail;
+	}
+
+	if ( ! is_singular( 'ec_doc' ) ) {
+		return $custom_trail;
+	}
+
+	$post  = get_queried_object();
+	$terms = get_the_terms( $post->ID, 'ec_doc_platform' );
+
+	if ( $terms && ! is_wp_error( $terms ) ) {
+		$platform      = reset( $terms );
+		$platform_link = get_term_link( $platform );
+		$trail         = '<a href="' . esc_url( $platform_link ) . '">' . esc_html( $platform->name ) . '</a>';
+		$trail        .= ' › <span class="breadcrumb-title">' . esc_html( get_the_title() ) . '</span>';
+		return $trail;
+	}
+
+	return '<span class="breadcrumb-title">' . esc_html( get_the_title() ) . '</span>';
+}
+add_filter( 'extrachill_breadcrumbs_override_trail', 'extrachill_docs_breadcrumb_trail_single', 10 );
+
+/**
+ * Override breadcrumb trail for ec_doc_platform taxonomy archives
+ *
+ * @param string $custom_trail Existing custom trail from other plugins.
+ * @return string Breadcrumb trail HTML.
+ * @since 0.2.5
+ */
+function extrachill_docs_breadcrumb_trail_platform( $custom_trail ) {
+	if ( ! empty( $custom_trail ) ) {
+		return $custom_trail;
+	}
+
+	$docs_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'docs' ) : null;
+	if ( ! $docs_blog_id || get_current_blog_id() !== $docs_blog_id ) {
+		return $custom_trail;
+	}
+
+	if ( ! is_tax( 'ec_doc_platform' ) ) {
+		return $custom_trail;
+	}
+
+	$term = get_queried_object();
+	return '<span>' . esc_html( $term->name ) . '</span>';
+}
+add_filter( 'extrachill_breadcrumbs_override_trail', 'extrachill_docs_breadcrumb_trail_platform', 10 );

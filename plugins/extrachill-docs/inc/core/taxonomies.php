@@ -44,11 +44,7 @@ function extrachill_docs_register_taxonomy() {
 		'show_in_nav_menus' => true,
 		'show_tagcloud'     => false,
 		'query_var'         => true,
-		'rewrite'           => array(
-			'slug'         => '',
-			'with_front'   => false,
-			'hierarchical' => true,
-		),
+		'rewrite'           => false,
 		'show_in_rest'      => true,
 	);
 
@@ -66,42 +62,20 @@ function extrachill_docs_seed_platforms() {
 	extrachill_docs_register_taxonomy();
 
 	$platforms = array(
-		'artist-platform' => array(
-			'name' => 'Extra Chill Artist Platform',
-		),
-		'community'       => array(
-			'name' => 'Extra Chill Community',
-		),
-		'events-calendar'          => array(
-			'name' => 'Extra Chill Events',
-		),
-		'stream'          => array(
-			'name' => 'Extra Chill Stream',
-		),
-		'newsletter'      => array(
-			'name' => 'Extra Chill Newsletter',
-		),
-		'shop'            => array(
-			'name' => 'Extra Chill Shop',
-		),
-		'chat'            => array(
-			'name' => 'Extra Chill Chat',
-		),
-		'horoscopes'      => array(
-			'name' => 'Extra Chill Horoscopes',
-		),
+		'artist-platform' => 'Artist Platform',
+		'community'       => 'Community',
+		'events-calendar' => 'Events',
+		'stream'          => 'Stream',
+		'newsletter'      => 'Newsletter',
+		'shop'            => 'Shop',
+		'chat'            => 'Chat',
+		'blog'            => 'Blog',
+		'horoscopes'      => 'Horoscopes',
 	);
 
-	foreach ( $platforms as $slug => $data ) {
+	foreach ( $platforms as $slug => $name ) {
 		if ( ! term_exists( $slug, 'ec_doc_platform' ) ) {
-			wp_insert_term(
-				$data['name'],
-				'ec_doc_platform',
-				array(
-					'slug'        => $slug,
-					'description' => $data['description'],
-				)
-			);
+			wp_insert_term( $name, 'ec_doc_platform', array( 'slug' => $slug ) );
 		}
 	}
 }
