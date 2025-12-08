@@ -1,16 +1,21 @@
 # ExtraChill News Wire
 
-WordPress plugin providing festival and music news wire functionality with custom post types, AJAX features, and migration tools.
+WordPress plugin providing festival and music news wire functionality with custom post types, native pagination, and migration tools.
+
+## Development Status
+
+- **Active Refinement**: News Wire is being hardened after extraction from the theme; template overrides, pagination, and taxonomy migration tools still receive updates before the 0.3.0 release.
+- **Testing Focus**: Work continues on improving migration reporting and verifying front-end templates in multisite contexts.
 
 ## Overview
 
-ExtraChill News Wire is a standalone WordPress plugin extracted from the ExtraChill theme. It provides comprehensive festival news coverage functionality including custom post types, real-time content loading, content tip submission forms, and administrative migration tools.
+ExtraChill News Wire is a standalone WordPress plugin extracted from the ExtraChill theme. It provides comprehensive festival news coverage functionality including custom post types, native WordPress pagination, content tip submission forms, and administrative migration tools.
 
 ## Features
 
 ### Core Functionality
 - **Festival Wire Custom Post Type**: Dedicated content management for festival news and coverage
-- **Real-time Content Loading**: AJAX-powered infinite scroll and dynamic content updates
+- **Native Pagination**: Standard WordPress pagination using the theme's `extrachill_pagination()` function
 - **Tip Submission System**: Community-driven content submission with Turnstile verification
 - **Custom Taxonomies**: Festival, category, and data source taxonomy support
 - **Template System**: Complete template hierarchy for archive and single post display
@@ -95,10 +100,9 @@ Templates automatically override theme templates when present.
 extrachill-news-wire/
 ├── assets/                      # CSS and JavaScript files
 │   ├── festival-wire.css       # Plugin styles
-│   └── festival-wire.js        # AJAX functionality
+│   └── festival-wire.js        # Filter and FAQ accordion functionality
 ├── includes/                    # Core functionality
 │   ├── festival-wire-post-type.php    # Custom post type registration
-│   ├── festival-wire-ajax.php         # AJAX handlers
 │   └── festival-wire-query-filters.php # Query modifications
 ├── templates/                   # Template files
 ├── build.sh                     # Production build script
@@ -144,7 +148,7 @@ cd extrachill-plugins/extrachill-news-wire
 - **WordPress**: 5.0+
 - **PHP**: 7.4+
 - **Tested up to**: WordPress 6.4
-- **Stable tag**: 0.2.0
+- **Stable tag**: 0.2.1
 
 ## Support
 

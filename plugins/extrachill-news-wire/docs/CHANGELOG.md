@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.2.1] - 2025-12-05
+
+### Changed
+- Replaced AJAX "Load More" button with native WordPress pagination using theme's `extrachill_pagination()` function
+- Archive pages now use standard `?paged=2` URLs for better SEO and simpler architecture
+
+### Removed
+- Deleted `includes/festival-wire-ajax.php` - AJAX load more handler no longer needed
+- Removed `initLoadMore()` function from `festival-wire.js`
+- Removed AJAX localization (`festivalWireParams`) from asset enqueue
+
 ## [0.2.0] - 2025-12-04
 
 ### Removed

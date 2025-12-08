@@ -59,21 +59,6 @@ get_header(); ?>
 				</div><!-- .entry-content -->
 
 	<?php do_action('extrachill_after_post_content'); ?>
-				<footer class="entry-footer">
-					<?php
-					
-					// Edit post link for logged in users
-					edit_post_link(
-						sprintf(
-							/* translators: %s: Name of current post. Only visible to screen readers. */
-							esc_html__( 'Edit %s', 'extrachill' ),
-							'<span class="screen-reader-text">' . get_the_title() . '</span>'
-						),
-						'<span class="edit-link">',
-						'</span>'
-					);
-					?>
-				</footer><!-- .entry-footer -->
 			</article><!-- #post-<?php the_ID(); ?> -->
 </div>
 

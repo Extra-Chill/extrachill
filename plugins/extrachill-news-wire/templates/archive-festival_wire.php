@@ -122,11 +122,7 @@ get_header(); ?>
 					?>
 				</div><!-- .festival-wire-grid-container -->
 
-                <?php // Add Load More Button conditionally outside the container
-                global $wp_query;
-                if ( $wp_query->max_num_pages > 1 ) : ?>
-                    <button id="festival-wire-load-more" class="button-1 button-large">Load More Posts</button>
-                <?php endif; ?>
+                <?php extrachill_pagination( null, 'festival-wire', 'post' ); ?>
 
 				<!-- Music Festivals Forum CTA -->
 				<div class="forum-cta-container">

@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Extra Chill News Wire
  * Description: Festival Wire custom post type and functionality for music festival coverage with fast-loading archives and template overrides.
- * Version: 0.2.0
+ * Version: 0.2.1
  * Author: Chris Huber
  * Text Domain: extrachill
  * Domain Path: /languages
@@ -20,13 +20,12 @@ define( 'FESTIVAL_WIRE_INCLUDE_DIR', FESTIVAL_WIRE_PLUGIN_DIR . 'includes/' );
 define( 'FESTIVAL_WIRE_TEMPLATE_DIR', FESTIVAL_WIRE_PLUGIN_DIR . 'templates/' );
 
 require_once FESTIVAL_WIRE_INCLUDE_DIR . 'festival-wire-post-type.php';
-require_once FESTIVAL_WIRE_INCLUDE_DIR . 'festival-wire-ajax.php';
 require_once FESTIVAL_WIRE_INCLUDE_DIR . 'festival-wire-query-filters.php';
 
 function enqueue_festival_wire_assets() {
 	global $wp_query;
 
-	// Archive pages: Load CSS, JS, and AJAX functionality
+	// Archive pages: Load CSS and JS
 	if ( is_post_type_archive( 'festival_wire' ) ) {
 
 		// Main Festival Wire CSS
@@ -41,30 +40,16 @@ function enqueue_festival_wire_assets() {
 			);
 		}
 
-		// Festival Wire JavaScript with AJAX support
+		// Festival Wire JavaScript (filters and FAQ accordion)
 		$js_file_path = plugin_dir_path(__FILE__) . 'assets/festival-wire.js';
 		$js_file_uri  = plugin_dir_url(__FILE__) . 'assets/festival-wire.js';
 		if ( file_exists( $js_file_path ) ) {
-		wp_enqueue_script(
-			'extrachill-festival-wire',
-			$js_file_uri,
-			array(),
-			filemtime( $js_file_path ),
-			true
-		);
-
-		// AJAX localization for load-more
-		$localize_params = array(
-			'ajaxurl'         => admin_url( 'admin-ajax.php' ),
-				'load_more_nonce' => wp_create_nonce( 'festival_wire_load_more_nonce' ),
-				'query_vars'      => json_encode( $wp_query->query_vars ),
-				'max_pages'       => $wp_query->max_num_pages
-			);
-
-			wp_localize_script(
+			wp_enqueue_script(
 				'extrachill-festival-wire',
-				'festivalWireParams',
-				$localize_params
+				$js_file_uri,
+				array(),
+				filemtime( $js_file_path ),
+				true
 			);
 		}
 	} elseif ( is_singular( 'festival_wire' ) ) {

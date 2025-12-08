@@ -1,17 +1,13 @@
 /**
  * Festival Wire JavaScript
- * Handles interaction for the Festival Wire feature
+ * Handles filters and FAQ accordion for the Festival Wire archive.
  */
 
 (function() {
     'use strict';
 
-    let currentPage = 1;
-    let isLoading = false;
-
     document.addEventListener('DOMContentLoaded', function() {
         initFestivalFilter();
-        initLoadMore();
         initFaqAccordion();
     });
 
@@ -86,78 +82,6 @@
         }
 
         preSelectCurrentFilters();
-    }
-
-    /**
-     * Initialize Load More functionality for the archive page
-     */
-    function initLoadMore() {
-        const loadMoreButton = document.getElementById('festival-wire-load-more');
-        const postsContainer = document.getElementById('festival-wire-posts-container');
-
-        if (!loadMoreButton || !postsContainer || typeof festivalWireParams === 'undefined' || !festivalWireParams.load_more_nonce) {
-            if (loadMoreButton) {
-                loadMoreButton.style.display = 'none';
-            }
-            return;
-        }
-
-        if (currentPage >= festivalWireParams.max_pages) {
-            loadMoreButton.style.display = 'none';
-            return;
-        }
-
-        loadMoreButton.addEventListener('click', function() {
-            if (isLoading) {
-                return;
-            }
-
-            isLoading = true;
-            currentPage++;
-
-            const originalButtonText = loadMoreButton.textContent;
-            loadMoreButton.textContent = 'Loading...';
-            loadMoreButton.disabled = true;
-
-            fetch(festivalWireParams.ajaxurl, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body: new URLSearchParams({
-                    action: 'load_more_festival_wire',
-                    nonce: festivalWireParams.load_more_nonce,
-                    page: currentPage,
-                    query_vars: festivalWireParams.query_vars
-                })
-            })
-            .then(response => response.text())
-            .then(function(responseText) {
-                if (responseText && responseText.trim() !== '') {
-                    postsContainer.insertAdjacentHTML('beforeend', responseText);
-
-                    if (currentPage >= festivalWireParams.max_pages) {
-                        loadMoreButton.style.display = 'none';
-                    } else {
-                        loadMoreButton.textContent = originalButtonText;
-                        loadMoreButton.disabled = false;
-                    }
-                } else {
-                    loadMoreButton.style.display = 'none';
-                }
-            })
-            .catch(function(error) {
-                console.error('Error loading more posts:', error);
-                loadMoreButton.textContent = originalButtonText;
-                loadMoreButton.disabled = false;
-            })
-            .finally(function() {
-                isLoading = false;
-                if (currentPage < festivalWireParams.max_pages) {
-                    loadMoreButton.disabled = false;
-                }
-            });
-        });
     }
 
     /**
