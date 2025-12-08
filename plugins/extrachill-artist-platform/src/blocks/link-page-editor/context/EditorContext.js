@@ -65,6 +65,7 @@ export function EditorProvider( { artistId: initialArtistId, children } ) {
 	const [ isSaving, setIsSaving ] = useState( false );
 	const [ saveError, setSaveError ] = useState( null );
 	const [ hasUnsavedChanges, setHasUnsavedChanges ] = useState( false );
+	const [ dirtySections, setDirtySections ] = useState( new Set() );
 
 	const artistData = useArtist( artistId );
 	const linksData = useLinks( artistId );
@@ -76,8 +77,15 @@ export function EditorProvider( { artistId: initialArtistId, children } ) {
 
 	const error = artistData.error || linksData.error || socialsData.error;
 
-	const markDirty = useCallback( () => {
+	const markDirty = useCallback( ( section ) => {
 		setHasUnsavedChanges( true );
+		if ( section ) {
+			setDirtySections( ( prev ) => {
+				const newSet = new Set( prev );
+				newSet.add( section );
+				return newSet;
+			} );
+		}
 	}, [] );
 
 	const saveAll = useCallback( async () => {
@@ -85,22 +93,39 @@ export function EditorProvider( { artistId: initialArtistId, children } ) {
 		setSaveError( null );
 
 		try {
-			await Promise.all( [
-				artistData.update( {
-					name: artistData.artist?.name,
-					bio: artistData.artist?.bio,
-					profile_image_id: artistData.artist?.profile_image_id,
-				} ),
-				linksData.update( {
-					links: linksData.links,
-					settings: linksData.settings,
-					css_vars: linksData.cssVars,
-					background_image_id: linksData.backgroundImageId,
-				} ),
-				socialsData.update( socialsData.socials ),
-			] );
+			const promises = [];
+
+			if ( dirtySections.has( 'artist' ) ) {
+				promises.push(
+					artistData.update( {
+						name: artistData.artist?.name,
+						bio: artistData.artist?.bio,
+						profile_image_id: artistData.artist?.profile_image_id,
+					} )
+				);
+			}
+
+			if ( dirtySections.has( 'links' ) ) {
+				promises.push(
+					linksData.update( {
+						links: linksData.links,
+						settings: linksData.settings,
+						css_vars: linksData.cssVars,
+						background_image_id: linksData.backgroundImageId,
+					} )
+				);
+			}
+
+			if ( dirtySections.has( 'socials' ) ) {
+				promises.push( socialsData.update( socialsData.socials ) );
+			}
+
+			if ( promises.length > 0 ) {
+				await Promise.all( promises );
+			}
 
 			setHasUnsavedChanges( false );
+			setDirtySections( new Set() );
 			return true;
 		} catch ( err ) {
 			setSaveError( err.message || 'Failed to save changes' );
@@ -112,6 +137,7 @@ export function EditorProvider( { artistId: initialArtistId, children } ) {
 		artistData,
 		linksData,
 		socialsData,
+		dirtySections,
 	] );
 
 	const switchArtist = useCallback(
@@ -143,7 +169,7 @@ export function EditorProvider( { artistId: initialArtistId, children } ) {
 
 			linksData.updateLocalRawFontValues( { [ rawKey ]: value } );
 			linksData.updateLocalCssVars( { [ cssKey ]: value } );
-			markDirty();
+			markDirty( 'links' );
 		},
 		[ linksData, markDirty ]
 	);
@@ -228,15 +254,15 @@ export function EditorProvider( { artistId: initialArtistId, children } ) {
 			artist: artistData.artist,
 			setName: ( name ) => {
 				artistData.setName( name );
-				markDirty();
+				markDirty( 'artist' );
 			},
 			setBio: ( bio ) => {
 				artistData.setBio( bio );
-				markDirty();
+				markDirty( 'artist' );
 			},
 			setProfileImage: ( id, url ) => {
 				artistData.setProfileImage( id, url );
-				markDirty();
+				markDirty( 'artist' );
 			},
 
 			links: linksData.links,
@@ -247,26 +273,26 @@ export function EditorProvider( { artistId: initialArtistId, children } ) {
 			backgroundImageUrl: linksData.backgroundImageUrl,
 			updateLinks: ( newLinks ) => {
 				linksData.updateLocalLinks( newLinks );
-				markDirty();
+				markDirty( 'links' );
 			},
 			updateSettings: ( newSettings ) => {
 				linksData.updateLocalSettings( newSettings );
-				markDirty();
+				markDirty( 'links' );
 			},
 			updateCssVars: ( newCssVars ) => {
 				linksData.updateLocalCssVars( newCssVars );
-				markDirty();
+				markDirty( 'links' );
 			},
 			updateFontValue,
 			updateBackgroundImage: ( id, url ) => {
 				linksData.updateBackgroundImage( id, url );
-				markDirty();
+				markDirty( 'links' );
 			},
 
 			socials: socialsData.socials,
 			updateSocials: ( newSocials ) => {
 				socialsData.updateLocalSocials( newSocials );
-				markDirty();
+				markDirty( 'socials' );
 			},
 
 			uploadMedia: mediaUpload.upload,

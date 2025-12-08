@@ -170,7 +170,7 @@ export default function Editor() {
 						type="button"
 						className="button-1 button-medium"
 						onClick={ handleSave }
-						disabled={ isSaving || ! hasUnsavedChanges }
+						disabled={ isSaving }
 					>
 						{ isSaving
 							? __( 'Saving...', 'extrachill-artist-platform' )

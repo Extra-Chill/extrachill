@@ -393,7 +393,8 @@ class ExtraChillArtistPlatform_Assets {
         // Artist platform homepage on artist.extrachill.com (site #4)
         $is_home_page = false;
         if ( is_front_page() || is_home() ) {
-            $is_home_page = get_current_blog_id() === 4;
+            $artist_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'artist' ) : null;
+            $is_home_page   = $artist_blog_id && get_current_blog_id() === $artist_blog_id;
         }
 
         // Artist profiles archive page (/artists)

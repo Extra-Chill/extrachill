@@ -7,6 +7,18 @@ import apiFetch from '@wordpress/api-fetch';
 const getConfig = () =>
 	window.ecArtistPlatformConfig || window.ecLinkPageEditorConfig || {};
 
+// Configure apiFetch middleware to include nonce from config
+apiFetch.use( ( options, next ) => {
+	const config = getConfig();
+	if ( config.nonce && ! options.headers?.['X-WP-Nonce'] ) {
+		options.headers = {
+			...options.headers,
+			'X-WP-Nonce': config.nonce,
+		};
+	}
+	return next( options );
+} );
+
 export { getConfig };
 
 const get = ( path ) => apiFetch( { path, method: 'GET' } );

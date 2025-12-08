@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.5] - 2025-12-08
+
+### Changed
+- Enhanced asset management with dynamic blog ID resolution for improved multisite compatibility
+- Improved save button UX by removing disabled state when no unsaved changes exist
+- Added selective saving system that only saves modified sections for better performance
+- Implemented automatic nonce middleware in API client for enhanced security
+
+### Technical Improvements
+- Better multisite support with dynamic blog ID detection
+- Reduced API calls through dirty section tracking
+- Improved user experience with always-available save functionality
+- Enhanced security with automatic nonce handling
+
 ## [1.2.4] - 2025-12-08
 
 ### Changed
