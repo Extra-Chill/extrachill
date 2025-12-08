@@ -24,8 +24,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @since 1.0.0
  */
 function extrachill_community_breadcrumb_root( $root_link ) {
-	// Only apply on community.extrachill.com (blog ID 2)
-	if ( get_current_blog_id() !== 2 ) {
+	$community_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'community' ) : null;
+	if ( ! $community_blog_id || get_current_blog_id() !== $community_blog_id ) {
 		return $root_link;
 	}
 
@@ -82,8 +82,8 @@ add_filter( 'extrachill_breadcrumbs_override_trail', 'extrachill_community_bread
  * @since 1.0.0
  */
 function extrachill_community_breadcrumb_trail( $custom_trail ) {
-	// Only apply on community.extrachill.com (blog ID 2)
-	if ( get_current_blog_id() !== 2 ) {
+	$community_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'community' ) : null;
+	if ( ! $community_blog_id || get_current_blog_id() !== $community_blog_id ) {
 		return $custom_trail;
 	}
 
@@ -188,10 +188,12 @@ add_filter( 'extrachill_breadcrumbs_override_trail', 'extrachill_community_bread
  * @since 1.0.0
  */
 function extrachill_community_back_to_home_label( $label, $url ) {
-	// Only apply on community.extrachill.com (blog ID 2)
-	if ( get_current_blog_id() !== 2 ) {
+	$community_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'community' ) : null;
+	if ( ! $community_blog_id || get_current_blog_id() !== $community_blog_id ) {
 		return $label;
 	}
+
+
 
 	// Don't override on homepage (homepage should say "Back to Extra Chill")
 	if ( is_front_page() ) {

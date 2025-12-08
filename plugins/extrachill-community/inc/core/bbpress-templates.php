@@ -41,9 +41,11 @@ add_action('bbp_register_theme_packages', 'extrachill_community_register_bbpress
  * Hooked via extrachill_homepage_content action.
  */
 function extrachill_community_render_homepage() {
-    if ( get_current_blog_id() !== 2 ) {
+    $community_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'community' ) : null;
+    if ( ! $community_blog_id || get_current_blog_id() !== $community_blog_id ) {
         return;
     }
+
     include EXTRACHILL_COMMUNITY_PLUGIN_DIR . 'inc/home/forum-homepage.php';
 }
 add_action('extrachill_homepage_content', 'extrachill_community_render_homepage', 10);

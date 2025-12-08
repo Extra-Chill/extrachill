@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.0.11] - 2025-12-08
+
+### Changed
+- Replaced hardcoded blog IDs with dynamic lookups using `ec_get_blog_id()` function across all multisite integration points
+- Added null safety checks and error handling for blog ID resolution in user profile editing, template routing, breadcrumb navigation, mention notifications, and notification cleanup
+- Improved multisite configuration flexibility for artist platform, main site, and community site integrations
+- Enhanced error handling in cross-site data aggregation and blog switching operations
+
+### Added
+- Comprehensive documentation for core plugin features and forum badges system
+- Enhanced CSS styling for reply cards and content truncation in recent activity feeds
+
 ## [1.0.10] - 2025-12-08
 
 ### Changed

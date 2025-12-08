@@ -91,6 +91,7 @@
     gap: 1rem;
     background: linear-gradient(to bottom, var(--card-background), var(--background-color));
     padding: 16px;
+    border-radius: 8px;
 }
 
 /* Reset header padding */

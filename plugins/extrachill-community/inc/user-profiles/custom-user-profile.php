@@ -18,11 +18,17 @@
 function display_main_site_post_count_on_profile() {
     $user_id = bbp_get_displayed_user_id();
 
-    $main_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'main' ) : 1;
+    $main_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'main' ) : null;
+    if ( ! $main_blog_id ) {
+        return;
+    }
 
     switch_to_blog( $main_blog_id );
-    $post_count = count_user_posts($user_id, 'post', true);
-    restore_current_blog();
+    try {
+        $post_count = count_user_posts( $user_id, 'post', true );
+    } finally {
+        restore_current_blog();
+    }
 
     if ($post_count > 0) {
         $user_info = get_userdata($user_id);

@@ -33,9 +33,6 @@ Badges display after username in user profile headers via `bbp_theme_after_user_
 ### User Details Menu
 Badges appear in user profile menu items via `bbp_template_after_user_details_menu_items` hook.
 
-### Recently Active Users
-Badges visible in homepage recently active users section.
-
 ## Badge Management
 
 ### Administrator Control

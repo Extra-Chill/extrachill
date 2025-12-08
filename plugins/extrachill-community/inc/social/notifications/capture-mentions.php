@@ -61,7 +61,10 @@ function extrachill_capture_mention_notifications($post_id, $topic_id, $forum_id
                 $current_blog_id = get_current_blog_id();
                 $switched = false;
 
-                $community_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'community' ) : 2;
+                $community_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'community' ) : null;
+                if ( ! $community_blog_id ) {
+                    return;
+                }
 
                 if ( $current_blog_id !== $community_blog_id ) {
                     switch_to_blog( $community_blog_id );

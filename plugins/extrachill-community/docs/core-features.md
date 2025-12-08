@@ -9,7 +9,7 @@ Enhanced bbPress template loading with plugin-provided templates.
 
 **Template Registration:**
 - Hook: `bbp_register_theme_packages` registers custom template stack
-- Location: `bbpress/` directory with 70+ custom template files
+- Location: `bbpress/` directory with 30+ custom template files
 - Priority: Enables bbPress to find plugin templates over theme defaults
 
 **Template Categories:**
@@ -17,8 +17,9 @@ Enhanced bbPress template loading with plugin-provided templates.
 - **Loop Templates**: `loop-forums.php`, `loop-topics.php`, `loop-replies.php`
 - **Card Templates**: Individual forum/topic/reply display components
 - **Form Templates**: `form-topic.php`, `form-reply.php` with TinyMCE integration
-- **Pagination**: Custom pagination for topics and replies
+- **Pagination**: Custom pagination for topics, replies, and search
 - **User Templates**: Enhanced profile and details templates
+- **Additional Templates**: Archive views, search results, topic tags, forum management
 
 ### Homepage Override
 Blog-specific homepage template routing for community site.

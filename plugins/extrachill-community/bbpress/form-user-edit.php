@@ -68,7 +68,10 @@ defined( 'ABSPATH' ) || exit;
 					?>
 					<ul class="user-artist-list">
 						<?php
-                        $artist_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'artist' ) : 4;
+                        $artist_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'artist' ) : null;
+                        if ( ! $artist_blog_id ) {
+                            continue;
+                        }
                         switch_to_blog( $artist_blog_id );
                         foreach ( $artist_profile_ids as $artist_id ) :
                             $artist_post = get_post( $artist_id );
