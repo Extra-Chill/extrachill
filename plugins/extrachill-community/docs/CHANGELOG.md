@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.0.9] - 2025-12-07
+
+### Added
+- REST nonce setup in TinyMCE editor for improved security (`window.extrachillCommunityEditor` object)
+
+### Changed
+- Consolidated editor script loading in assets.php (removed duplicate enqueues and separate nonce function)
+- Added `network-dropdown-target` CSS class to homepage breadcrumb for enhanced navigation
+
+### Fixed
+- Optimized TinyMCE editor dependency loading and nonce handling
+
 ## [1.0.8] - 2025-12-06
 
 ### Added

@@ -87,8 +87,14 @@ function extrachill_output_tinymce_setup_script() {
     if (!is_bbpress()) {
         return;
     }
+
+    $rest_nonce = wp_create_nonce('wp_rest');
     ?>
     <script type="text/javascript">
+    window.extrachillCommunityEditor = {
+        restNonce: "<?php echo esc_js( $rest_nonce ); ?>"
+    };
+
     window.extrachillTinymceSetup = function(editor) {
         var debounceTimer;
         var saveDelay = 1500;

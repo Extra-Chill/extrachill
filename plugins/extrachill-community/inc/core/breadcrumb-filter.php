@@ -56,9 +56,9 @@ function extrachill_community_breadcrumb_trail_homepage( $custom_trail ) {
 	}
 
 	// Only on front page (homepage)
-	if ( is_front_page() ) {
-		return '<span>Community</span>';
-	}
+ 	if ( is_front_page() ) {
+ 		return '<span class="network-dropdown-target">Community</span>';
+ 	}
 
 	return $custom_trail;
 }

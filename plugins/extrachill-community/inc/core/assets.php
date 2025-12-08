@@ -193,10 +193,6 @@ function extrachill_enqueue_bbpress_editor_dependencies() {
         wp_enqueue_editor();
     }
 
-    if ( ! wp_script_is( 'editor', 'enqueued' ) ) {
-        wp_enqueue_script( 'editor' );
-    }
-
     if ( ! wp_script_is( 'jquery', 'enqueued' ) ) {
         wp_register_script( 'jquery', includes_url( '/js/jquery/jquery.min.js' ), array(), false, true );
         wp_enqueue_script( 'jquery' );
@@ -217,20 +213,6 @@ function extrachill_enqueue_bbpress_editor_dependencies() {
 }
 add_action('wp_enqueue_scripts', 'extrachill_enqueue_bbpress_editor_dependencies', 110);
 
-function enqueue_custom_tinymce_plugin_nonce() {
-    if (!extrachill_community_bbpress_editor_is_active()) {
-        return;
-    }
-
-    $nonce = wp_create_nonce('wp_rest');
-    $inline_data = sprintf(
-        'window.extrachillCommunityEditor = { restNonce: "%s" };',
-        esc_js( $nonce )
-    );
-
-    wp_add_inline_script( 'editor', $inline_data, 'before' );
-}
-add_action('wp_enqueue_scripts', 'enqueue_custom_tinymce_plugin_nonce', 115);
 
 
 function extrachill_dequeue_bbpress_default_styles() {
