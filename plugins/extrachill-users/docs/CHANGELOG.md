@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.3.1] - 2025-12-08
+
+### Changed
+- Replaced hardcoded blog IDs with dynamic `ec_get_blog_id()` lookups across all multisite operations for improved maintainability
+- Enhanced security in redirect handler with proper `wp_unslash()` usage on REQUEST_URI
+- Added validation for registration source URL with user-friendly error messaging
+- Improved admin notification emails with better artist/professional flag handling
+- Reordered user meta updates to prioritize registration page tracking
+
+### Technical
+- Refactored blog switching in: artist-profiles.php, author-links.php, avatar-display.php, online-users.php, user-creation.php, team-members.php
+- Added fallback handling for missing `ec_get_blog_id()` function to maintain backward compatibility
+
 ## [0.3.0] - 2025-12-07
 
 ### Added

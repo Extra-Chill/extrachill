@@ -44,14 +44,21 @@ function extrachill_handle_registration() {
 		$redirect->error( __( 'An account already exists with this username or email.', 'extrachill-users' ) );
 	}
 
-	$registration_data = array(
-		'username'             => $username,
-		'password'             => $password,
-		'email'                => $email,
-		'user_is_artist'       => isset( $_POST['user_is_artist'] ),
-		'user_is_professional' => isset( $_POST['user_is_professional'] ),
-		'registration_page'    => isset( $_POST['source_url'] ) ? esc_url_raw( wp_unslash( $_POST['source_url'] ) ) : '',
-	);
+    $registration_page = isset( $_POST['source_url'] ) ? esc_url_raw( wp_unslash( $_POST['source_url'] ) ) : '';
+
+    if ( empty( $registration_page ) ) {
+        $redirect->error( __( 'Registration source is missing. Please reload and try again.', 'extrachill-users' ) );
+    }
+
+    $registration_data = array(
+        'username'             => $username,
+        'password'             => $password,
+        'email'                => $email,
+        'user_is_artist'       => isset( $_POST['user_is_artist'] ),
+        'user_is_professional' => isset( $_POST['user_is_professional'] ),
+        'registration_page'    => $registration_page,
+    );
+
 
 	$user_id = apply_filters( 'extrachill_create_community_user', false, $registration_data );
 

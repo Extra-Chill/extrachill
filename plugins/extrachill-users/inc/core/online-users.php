@@ -27,7 +27,10 @@ function ec_record_user_activity() {
 
 		// Throttle updates to every 15 minutes (900 seconds)
 		// Check and set transients on community site for consistency
-		switch_to_blog( 2 );
+		$community_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'community' ) : null;
+		if ( $community_blog_id ) {
+			switch_to_blog( $community_blog_id );
+		}
 		try {
 			$last_update = get_transient( $user_activity_cache_key );
 
@@ -57,9 +60,11 @@ function ec_get_online_users_count() {
 	global $wpdb;
 
 	$transient_key     = 'online_users_count';
-	$community_blog_id = 2;
+	$community_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'community' ) : null;
 
-	switch_to_blog( $community_blog_id );
+	if ( $community_blog_id ) {
+		switch_to_blog( $community_blog_id );
+	}
 	try {
 		$online_users_count = get_transient( $transient_key );
 

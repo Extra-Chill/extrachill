@@ -33,7 +33,12 @@ function ec_get_artists_for_user( $user_id = null, $admin_override = false ) {
 
 	// Admin override: return ALL artists (only for management contexts)
 	if ( $admin_override && user_can( $user_id, 'manage_options' ) ) {
-		switch_to_blog( 4 );
+		$artist_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'artist' ) : null;
+		if ( ! $artist_blog_id ) {
+			return array();
+		}
+
+		switch_to_blog( $artist_blog_id );
 		try {
 			$artist_posts = get_posts( array(
 				'post_type'   => 'artist_profile',
@@ -54,7 +59,12 @@ function ec_get_artists_for_user( $user_id = null, $admin_override = false ) {
 		return array();
 	}
 
-	switch_to_blog( 4 );
+	$artist_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'artist' ) : null;
+	if ( ! $artist_blog_id ) {
+		return array();
+	}
+
+	switch_to_blog( $artist_blog_id );
 	try {
 		$published_artists = array();
 		foreach ( $user_artist_ids as $artist_id ) {
@@ -110,7 +120,12 @@ function ec_get_latest_artist_for_user( $user_id = null ) {
 	$latest_artist_id          = 0;
 	$latest_modified_timestamp = 0;
 
-	switch_to_blog( 4 );
+	$artist_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'artist' ) : null;
+	if ( ! $artist_blog_id ) {
+		return 0;
+	}
+
+	switch_to_blog( $artist_blog_id );
 	try {
 		foreach ( $user_artists as $artist_id ) {
 			$link_pages = get_posts( array(
@@ -158,7 +173,12 @@ function ec_get_link_page_count_for_user( $user_id = null ) {
 
 	$link_page_count = 0;
 
-	switch_to_blog( 4 );
+	$artist_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'artist' ) : null;
+	if ( ! $artist_blog_id ) {
+		return 0;
+	}
+
+	switch_to_blog( $artist_blog_id );
 	try {
 		foreach ( $user_artists as $artist_id ) {
 			$link_pages = get_posts( array(

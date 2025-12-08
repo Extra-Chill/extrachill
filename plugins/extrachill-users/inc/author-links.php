@@ -20,33 +20,44 @@
  * @return string User profile URL
  */
 function ec_get_user_profile_url( $user_id, $user_email = '' ) {
-    if ( $user_id > 0 && function_exists( 'ec_has_main_site_account' ) && ec_has_main_site_account( $user_id ) ) {
+		if ( $user_id > 0 && function_exists( 'ec_has_main_site_account' ) && ec_has_main_site_account( $user_id ) ) {
 
-        switch_to_blog( 1 );
-        $author_url = get_author_posts_url( $user_id );
-        restore_current_blog();
-        return $author_url;
-    }
+		$main_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'main' ) : null;
+		if ( $main_blog_id ) {
+			switch_to_blog( $main_blog_id );
+			$author_url = get_author_posts_url( $user_id );
+			restore_current_blog();
+			return $author_url;
+		}
+	}
 
-    if ( ! empty( $user_email ) ) {
-        switch_to_blog( 2 );
-        $community_user = get_user_by( 'email', $user_email );
-        restore_current_blog();
+	if ( ! empty( $user_email ) ) {
+		$community_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'community' ) : null;
+		if ( $community_blog_id ) {
+			switch_to_blog( $community_blog_id );
+			$community_user = get_user_by( 'email', $user_email );
+			restore_current_blog();
+		}
 
-        if ( $community_user && ! empty( $community_user->user_nicename ) ) {
-            return 'https://community.extrachill.com/u/' . $community_user->user_nicename;
-        }
-    }
-
-    if ( $user_id > 0 ) {
-        switch_to_blog( 2 );
-        $community_user = get_userdata( $user_id );
-        restore_current_blog();
 
         if ( $community_user && ! empty( $community_user->user_nicename ) ) {
             return 'https://community.extrachill.com/u/' . $community_user->user_nicename;
         }
     }
+
+	if ( $user_id > 0 ) {
+		$community_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'community' ) : null;
+		if ( $community_blog_id ) {
+			switch_to_blog( $community_blog_id );
+			$community_user = get_userdata( $user_id );
+			restore_current_blog();
+		}
+
+		if ( isset( $community_user ) && $community_user && ! empty( $community_user->user_nicename ) ) {
+			return 'https://community.extrachill.com/u/' . $community_user->user_nicename;
+		}
+	}
+
 
     return get_author_posts_url( $user_id );
 }
@@ -128,9 +139,12 @@ function ec_display_author_community_link( $author_id ) {
 	}
 
 
-	switch_to_blog( 2 );
-	$community_user = get_userdata( $author_id );
-	restore_current_blog();
+	$community_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'community' ) : null;
+	if ( $community_blog_id ) {
+		switch_to_blog( $community_blog_id );
+		$community_user = get_userdata( $author_id );
+		restore_current_blog();
+	}
 
 	if ( ! $community_user || empty( $community_user->user_nicename ) ) {
 		return;

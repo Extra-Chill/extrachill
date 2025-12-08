@@ -38,20 +38,22 @@ function ec_multisite_create_community_user( $user_id, $registration_data ) {
 	$switched          = false;
 
 	// Switch to community site only if we're not already there
-	if ( $current_blog_id !== 2 ) {
-		switch_to_blog( 2 );
+	$community_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'community' ) : null;
+	if ( $community_blog_id && $current_blog_id !== $community_blog_id ) {
+		switch_to_blog( $community_blog_id );
 		$switched = true;
 	}
 
 	// Create user on community site
 	$user_id = wp_create_user( $username, $password, $email );
 
-	// If user creation successful, set user meta
-	if ( ! is_wp_error( $user_id ) ) {
-		update_user_meta( $user_id, 'user_is_artist', $user_is_artist ? '1' : '0' );
-		update_user_meta( $user_id, 'user_is_professional', $user_is_professional ? '1' : '0' );
-		update_user_meta( $user_id, 'registration_page', $registration_page );
-	}
+    // If user creation successful, set user meta before any hooks rely on it
+    if ( ! is_wp_error( $user_id ) ) {
+        update_user_meta( $user_id, 'registration_page', $registration_page );
+        update_user_meta( $user_id, 'user_is_artist', $user_is_artist ? '1' : '0' );
+        update_user_meta( $user_id, 'user_is_professional', $user_is_professional ? '1' : '0' );
+    }
+
 
 	// Restore original blog context if we switched
 	if ( $switched ) {

@@ -31,32 +31,39 @@ function extrachill_custom_avatar($avatar, $id_or_email, $args) {
     }
 
     if ($user && is_object($user)) {
+        $community_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'community' ) : 2;
+
         // Switch to community site where avatars are stored
-        switch_to_blog(2);
+        switch_to_blog( $community_blog_id );
 
-            try {
-                $custom_avatar_id = get_user_option('custom_avatar_id', $user->ID);
+        try {
+            $custom_avatar_id = get_user_option('custom_avatar_id', $user->ID);
 
-                if ($custom_avatar_id && wp_attachment_is_image($custom_avatar_id)) {
-                    $thumbnail_src = wp_get_attachment_image_url($custom_avatar_id, 'thumbnail');
+            if ($custom_avatar_id && wp_attachment_is_image($custom_avatar_id)) {
+                $thumbnail_src = wp_get_attachment_image_url($custom_avatar_id, 'thumbnail');
 
-                    if ($thumbnail_src) {
-                        $size = isset($args['size']) ? (int) $args['size'] : 96;
-                        $alt = isset($args['alt']) ? $args['alt'] : '';
+                if ($thumbnail_src) {
+                    $size = isset($args['size']) ? (int) $args['size'] : 96;
+                    $alt = isset($args['alt']) ? $args['alt'] : '';
 
-                        $avatar_html = sprintf(
-                            '<img src="%1$s" alt="%2$s" width="%3$d" height="%3$d" class="avatar avatar-%3$d photo" />',
-                            esc_url($thumbnail_src),
-                            esc_attr($alt),
-                            $size
-                        );
+                    $avatar_html = sprintf(
+                        '<img src="%1$s" alt="%2$s" width="%3$d" height="%3$d" class="avatar avatar-%3$d photo" />',
+                        esc_url($thumbnail_src),
+                        esc_attr($alt),
+                        $size
+                    );
 
-                        return $avatar_html;
-                    }
+                    return $avatar_html;
                 }
-            } finally {
-                restore_current_blog();
             }
+        } finally {
+            restore_current_blog();
+        }
+    }
+
+    return null;
+
+
     }
 
     return null;

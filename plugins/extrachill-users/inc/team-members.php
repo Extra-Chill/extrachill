@@ -51,12 +51,18 @@ function ec_has_main_site_account($user_id) {
 
     $has_account = false;
 
-    try {
-        switch_to_blog( 1 );
-        $has_account = is_user_member_of_blog( $user_id, 1 );
-    } finally {
-        restore_current_blog();
-    }
+	$main_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'main' ) : null;
+	if ( ! $main_blog_id ) {
+		return false;
+	}
+
+	try {
+		switch_to_blog( $main_blog_id );
+		$has_account = is_user_member_of_blog( $user_id, $main_blog_id );
+	} finally {
+		restore_current_blog();
+	}
+
 
     return $has_account;
 }
