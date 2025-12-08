@@ -62,11 +62,6 @@ function extrachill_custom_avatar($avatar, $id_or_email, $args) {
     }
 
     return null;
-
-
-    }
-
-    return null;
 }
 add_filter('pre_get_avatar', 'extrachill_custom_avatar', 10, 3);
 
