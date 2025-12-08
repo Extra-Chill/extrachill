@@ -22,7 +22,12 @@ function extrachill_display_online_users_stats() {
 
 	$online_users_count = ec_get_online_users_count();
 
-	switch_to_blog( 2 );
+	$community_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'community' ) : null;
+	if ( ! $community_blog_id ) {
+		return;
+	}
+
+	switch_to_blog( $community_blog_id );
 	$total_members = get_transient( 'total_members_count' );
 	if ( false === $total_members ) {
 		$user_count_data = count_users();

@@ -19,10 +19,16 @@ function extrachill_get_artist_profile_by_slug( $slug ) {
         return false;
     }
 
-    switch_to_blog( 4 );
+	$artist_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'artist' ) : null;
+	if ( ! $artist_blog_id ) {
+		return false;
+	}
 
-    try {
-        $args = array(
+	switch_to_blog( $artist_blog_id );
+
+	try {
+		$args = array(
+
             'post_type'      => 'artist_profile',
             'post_status'    => 'publish',
             'name'           => $slug,
