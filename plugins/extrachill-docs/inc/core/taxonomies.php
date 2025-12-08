@@ -66,45 +66,29 @@ function extrachill_docs_seed_platforms() {
 	extrachill_docs_register_taxonomy();
 
 	$platforms = array(
-		'getting-started' => array(
-			'name'        => 'Getting Started',
-			'description' => 'New to Extra Chill? Start here to learn the basics.',
-		),
 		'artist-platform' => array(
-			'name'        => 'Extra Chill Artist Platform',
-			'description' => 'Create your artist profile, link pages, and grow your audience.',
+			'name' => 'Extra Chill Artist Platform',
 		),
 		'community'       => array(
-			'name'        => 'Extra Chill Community',
-			'description' => 'Connect with fellow music lovers in our forums.',
+			'name' => 'Extra Chill Community',
 		),
 		'events'          => array(
-			'name'        => 'Extra Chill Events',
-			'description' => 'Find and share music events happening near you.',
+			'name' => 'Extra Chill Events',
 		),
 		'stream'          => array(
-			'name'        => 'Extra Chill Stream',
-			'description' => 'Watch and broadcast live music streams.',
+			'name' => 'Extra Chill Stream',
 		),
 		'newsletter'      => array(
-			'name'        => 'Extra Chill Newsletter',
-			'description' => 'Stay updated with our curated music news.',
+			'name' => 'Extra Chill Newsletter',
 		),
 		'shop'            => array(
-			'name'        => 'Extra Chill Shop',
-			'description' => 'Browse and purchase music merchandise.',
+			'name' => 'Extra Chill Shop',
 		),
 		'chat'            => array(
-			'name'        => 'Extra Chill Chat',
-			'description' => 'Get help from our AI assistant.',
+			'name' => 'Extra Chill Chat',
 		),
 		'horoscopes'      => array(
-			'name'        => 'Extra Chill Horoscopes',
-			'description' => 'Daily wook-themed horoscopes for the music community.',
-		),
-		'account'         => array(
-			'name'        => 'Your Account',
-			'description' => 'Manage your profile, settings, and preferences.',
+			'name' => 'Extra Chill Horoscopes',
 		),
 	);
 

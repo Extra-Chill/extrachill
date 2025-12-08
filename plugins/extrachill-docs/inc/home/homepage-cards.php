@@ -17,8 +17,8 @@ add_action( 'extrachill_homepage_content', 'extrachill_docs_render_homepage_card
 /**
  * Renders platform cards grid on the homepage.
  *
- * Dynamically displays all ec_doc_platform terms with their descriptions and doc counts.
- * Platforms without docs are still shown to indicate available documentation areas.
+ * Dynamically displays ec_doc_platform terms that have published documentation.
+ * Only platforms with content are shown to keep the homepage focused and useful.
  *
  * @since 0.1.0
  * @return void
@@ -27,7 +27,7 @@ function extrachill_docs_render_homepage_cards() {
 	$platforms = get_terms(
 		array(
 			'taxonomy'   => 'ec_doc_platform',
-			'hide_empty' => false,
+			'hide_empty' => true,
 			'orderby'    => 'name',
 			'order'      => 'ASC',
 		)

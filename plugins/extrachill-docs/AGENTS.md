@@ -41,8 +41,7 @@ extrachill-docs/
 ```
 
 ## Default Platforms
-Seeded on activation with descriptions:
-- Getting Started
+Seeded on activation (all planned network platforms):
 - Extra Chill Artist Platform
 - Extra Chill Community
 - Extra Chill Events
@@ -51,7 +50,8 @@ Seeded on activation with descriptions:
 - Extra Chill Shop
 - Extra Chill Chat
 - Extra Chill Horoscopes
-- Your Account
+
+Platforms without published documentation are not displayed on the homepage.
 
 ## Theme Integration
 - Hooks into `extrachill_homepage_content` action for homepage rendering

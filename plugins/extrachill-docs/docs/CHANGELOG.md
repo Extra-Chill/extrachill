@@ -1,3 +1,11 @@
+# 0.2.1 - Dec 7, 2025
+
+### Changed
+- Simplified platform seeding by removing descriptions and unused platforms (Getting Started, Your Account)
+- Updated homepage to only display platforms with published documentation for cleaner navigation
+- Added .gitignore to exclude build/, vendor/, and .env files
+- Updated AGENTS.md documentation to reflect platform changes
+
 # 0.2.0 - Dec 7, 2025
 
 ### Added
