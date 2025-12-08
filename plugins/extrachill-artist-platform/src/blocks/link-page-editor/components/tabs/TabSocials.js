@@ -9,6 +9,9 @@ import { __ } from '@wordpress/i18n';
 import { useEditor } from '../../context/EditorContext';
 import DraggableList from '../shared/DraggableList';
 
+const createTempId = (prefix) =>
+	`temp-${ prefix }-${ Date.now() }-${ Math.random().toString( 36 ).slice( 2, 8 ) }`;
+
 export default function TabSocials() {
 	const { socials, socialTypes, updateSocials, settings, updateSettings } = useEditor();
 	const [ showAddModal, setShowAddModal ] = useState( false );
@@ -23,6 +26,7 @@ export default function TabSocials() {
 	const addSocial = useCallback(
 		( type ) => {
 			const newSocial = {
+				id: createTempId( 'social' ),
 				type,
 				url: '',
 			};
@@ -59,9 +63,10 @@ export default function TabSocials() {
 	const renderSocialItem = ( social, index ) => {
 		const socialTypeInfo = socialTypes?.find( ( t ) => t.id === social.type );
 		const label = socialTypeInfo?.label || social.type;
+		const rowKey = social.id || `social-${ index }`;
 		
 		return (
-			<div key={ `social-${ index }` } className="ec-social-item">
+			<div key={ rowKey } className="ec-social-item">
 				<span className="ec-social-item__drag-handle">
 					<span className="dashicons dashicons-menu"></span>
 				</span>

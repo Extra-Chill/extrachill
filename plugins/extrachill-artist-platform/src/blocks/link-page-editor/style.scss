@@ -376,10 +376,11 @@
 }
 
 .ec-draggable {
-	transition: opacity 0.2s;
+	transition: transform 0.15s ease, box-shadow 0.15s ease;
 
 	&.is-dragging {
-		opacity: 0.5;
+		transform: scale(1.01);
+		box-shadow: 0 6px 16px rgba(0, 0, 0, 0.18);
 	}
 }
 

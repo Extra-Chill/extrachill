@@ -292,8 +292,12 @@ class ExtraChillArtistPlatform_SocialLinks {
 
         $normalized = array(
             'type' => sanitize_key( $link['type'] ),
-            'url' => $url
+            'url'  => $url,
         );
+
+        if ( ! empty( $link['id'] ) ) {
+            $normalized['id'] = sanitize_text_field( wp_unslash( $link['id'] ) );
+        }
 
         // Handle custom labels
         if ( ! empty( $supported_types[ $link['type'] ]['has_custom_label'] ) && ! empty( $link['custom_label'] ) ) {

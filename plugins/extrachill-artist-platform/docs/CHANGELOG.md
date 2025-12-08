@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.12] - 2025-12-07
+
+### Enhanced
+- Improved drag-and-drop visual feedback in link page editor (scale effect with shadow instead of opacity)
+- Added unique temporary ID generation for new links, sections, and social items in Gutenberg block editor
+- Enhanced social link data handling with optional ID field support
+- Improved React component keys for better rendering performance in link and social management tabs
+
 ## [1.1.11] - 2025-12-07
 
 ### Added

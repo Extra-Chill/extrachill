@@ -9,6 +9,9 @@ import { __ } from '@wordpress/i18n';
 import { useEditor } from '../../context/EditorContext';
 import DraggableList from '../shared/DraggableList';
 
+const createTempId = (prefix) =>
+	`temp-${ prefix }-${ Date.now() }-${ Math.random().toString( 36 ).slice( 2, 8 ) }`;
+
 export default function TabLinks() {
 	const { links, updateLinks, settings } = useEditor();
 	const [ expandedSections, setExpandedSections ] = useState( {} );
@@ -37,7 +40,7 @@ export default function TabLinks() {
 
 	const addSection = useCallback( () => {
 		const newSection = {
-			id: `section-${ Date.now() }`,
+			id: createTempId( 'section' ),
 			section_title: '',
 			links: [],
 		};
@@ -64,7 +67,7 @@ export default function TabLinks() {
 	const addLink = useCallback(
 		( sectionIndex ) => {
 			const newLink = {
-				id: `link-${ Date.now() }`,
+				id: createTempId( 'link' ),
 				link_text: '',
 				link_url: '',
 				expires_at: '',
@@ -135,9 +138,10 @@ export default function TabLinks() {
 
 	const renderLink = ( link, linkIndex, sectionIndex ) => {
 		const hasExpiration = link.expires_at && link.expires_at.length > 0;
+		const linkKey = link.id || `link-${ sectionIndex }-${ linkIndex }`;
 
 		return (
-			<div key={ link.id } className="ec-link-item">
+			<div key={ linkKey } className="ec-link-item">
 				<div className="ec-link-item__drag-handle">
 					<span className="dashicons dashicons-menu"></span>
 				</div>
@@ -191,7 +195,7 @@ export default function TabLinks() {
 		const isExpanded = expandedSections[ sectionId ] !== false;
 
 		return (
-			<div key={ sectionId } className="ec-section">
+			<div key={ sectionId } className="ec-section" data-section-id={ sectionId }>
 				<div className="ec-section__header">
 					<span className="ec-section__drag-handle">
 						<span className="dashicons dashicons-menu"></span>
