@@ -26,10 +26,8 @@ function extrachill_display_user_avatar_menu() {
 
     if ( $is_logged_in ) {
         $avatar_markup = get_avatar( $current_user_id, 40 );
-    } elseif ( function_exists( 'ec_icon' ) ) {
-        $avatar_markup = ec_icon( 'user', 'avatar-default-icon' );
     } else {
-        $avatar_markup = '<span class="avatar-default-icon" aria-hidden="true"></span>';
+        $avatar_markup = ec_icon( 'user', 'avatar-default-icon' );
     }
     ?>
     <div class="user-avatar-container header-right-icon">

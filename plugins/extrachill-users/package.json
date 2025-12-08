@@ -1,6 +1,6 @@
 {
   "name": "extrachill-users",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "User management system for ExtraChill Platform",
   "scripts": {
     "build": "npm run build:blocks && npm run copy:block-files",

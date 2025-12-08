@@ -55,10 +55,15 @@ function ec_multisite_create_community_user( $user_id, $registration_data ) {
     }
 
 
-	// Restore original blog context if we switched
-	if ( $switched ) {
-		restore_current_blog();
-	}
+    // Restore original blog context if we switched
+    if ( $switched ) {
+        restore_current_blog();
+    }
 
-	return $user_id;
+    if ( ! is_wp_error( $user_id ) ) {
+        do_action( 'extrachill_new_user_registered', $user_id, $registration_page );
+    }
+
+    return $user_id;
 }
+

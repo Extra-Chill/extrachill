@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.3.2] - 2025-12-08
+
+### Added
+- `extrachill_new_user_registered` action hook fired after successful user creation for plugin extensibility
+
+### Changed
+- Removed fallback handling for `ec_icon()` function in avatar menu system - now always uses `ec_icon('user', 'avatar-default-icon')`
+- Eliminated redundant fallback code following architectural principles
+
+### Fixed
+- PHP syntax error in avatar-display.php (removed unmatched closing brace)
+
 ## [0.3.1] - 2025-12-08
 
 ### Changed
