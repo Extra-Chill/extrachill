@@ -3,10 +3,9 @@
  * WooCommerce Template Integration
  *
  * Provides minimal WooCommerce template overrides for single products and template parts.
- * Shop homepage uses theme's extrachill_template_homepage filter instead of template_include.
  *
  * Architecture:
- * - Shop Homepage: Handled by extrachill_template_homepage filter (see main plugin file)
+ * - Shop Homepage: Handled by extrachill_homepage_content action (see main plugin file)
  * - Single Products: Handled by template_include filter (this file)
  * - Template Parts: Handled by woocommerce_locate_template filter (this file)
  * - Cart/Checkout: Use WooCommerce defaults with woocommerce_locate_template support
@@ -20,9 +19,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /**
  * Override single product template from plugin
- *
- * Shop homepage is handled by extrachill_template_homepage filter,
- * but single products need this template_include filter.
  *
  * @param string $template Current template path
  * @return string Modified template path for single product pages

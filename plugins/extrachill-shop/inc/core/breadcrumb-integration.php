@@ -5,8 +5,8 @@
  * Provides custom breadcrumb trails for WooCommerce pages.
  * Follows the same pattern as community and events plugins.
  *
- * Structure: Extra Chill › Merch Store › [Context]
- * - Root: "Extra Chill › Merch Store" (via extrachill_breadcrumbs_root filter)
+ * Structure: Extra Chill › Shop › [Context]
+ * - Root: "Extra Chill › Shop" (via extrachill_breadcrumbs_root filter)
  * - Trail: Product/Cart/Checkout context (via extrachill_breadcrumbs_override_trail filter)
  *
  * @package ExtraChillShop
@@ -19,21 +19,49 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Override breadcrumb root for shop site
  *
- * Sets root breadcrumb to "Extra Chill › Merch Store" on shop.extrachill.com.
+ * Sets root breadcrumb to "Extra Chill › Shop" on shop.extrachill.com.
  *
  * @param string $root_link Default root link
  * @return string Modified root link
  */
 function extrachill_shop_breadcrumb_root( $root_link ) {
-	// Only override on shop.extrachill.com (blog ID 3)
-	if ( get_current_blog_id() !== 3 ) {
+	$shop_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'shop' ) : null;
+	if ( ! $shop_blog_id || get_current_blog_id() !== $shop_blog_id ) {
 		return $root_link;
 	}
 
-	// Root structure: Extra Chill › Merch Store
-	return '<a href="https://extrachill.com">Extra Chill</a> › <a href="' . esc_url( home_url() ) . '">Merch Store</a>';
+	// On homepage, just "Extra Chill" (trail will add "Shop")
+	if ( is_front_page() ) {
+		return '<a href="https://extrachill.com">Extra Chill</a>';
+	}
+
+	// Root structure: Extra Chill › Shop
+	return '<a href="https://extrachill.com">Extra Chill</a> › <a href="' . esc_url( home_url() ) . '">Shop</a>';
 }
 add_filter( 'extrachill_breadcrumbs_root', 'extrachill_shop_breadcrumb_root' );
+
+/**
+ * Override breadcrumb trail for shop homepage
+ *
+ * Displays just "Shop" (no link) on the homepage to enable network dropdown.
+ * Priority 5 to run before the WooCommerce trail function.
+ *
+ * @param string $custom_trail Existing custom trail from other plugins
+ * @return string Breadcrumb trail HTML
+ */
+function extrachill_shop_breadcrumb_trail_homepage( $custom_trail ) {
+	$shop_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'shop' ) : null;
+	if ( ! $shop_blog_id || get_current_blog_id() !== $shop_blog_id ) {
+		return $custom_trail;
+	}
+
+	if ( is_front_page() ) {
+		return '<span class="network-dropdown-target">Shop</span>';
+	}
+
+	return $custom_trail;
+}
+add_filter( 'extrachill_breadcrumbs_override_trail', 'extrachill_shop_breadcrumb_trail_homepage', 5 );
 
 /**
  * Override breadcrumb trail for WooCommerce pages
@@ -45,8 +73,8 @@ add_filter( 'extrachill_breadcrumbs_root', 'extrachill_shop_breadcrumb_root' );
  * @return string Modified trail
  */
 function extrachill_shop_breadcrumb_trail( $trail ) {
-	// Only override on shop.extrachill.com (blog ID 3)
-	if ( get_current_blog_id() !== 3 ) {
+	$shop_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'shop' ) : null;
+	if ( ! $shop_blog_id || get_current_blog_id() !== $shop_blog_id ) {
 		return $trail;
 	}
 
@@ -132,8 +160,8 @@ remove_action( 'woocommerce_before_main_content', 'woocommerce_breadcrumb', 20 )
  * Uses theme's extrachill_before_body_content hook at priority 5.
  */
 function extrachill_shop_display_breadcrumbs_fallback() {
-	// Only on shop.extrachill.com (blog ID 3)
-	if ( get_current_blog_id() !== 3 ) {
+	$shop_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'shop' ) : null;
+	if ( ! $shop_blog_id || get_current_blog_id() !== $shop_blog_id ) {
 		return;
 	}
 
@@ -160,8 +188,8 @@ add_action( 'extrachill_before_body_content', 'extrachill_shop_display_breadcrum
  * @return string Modified label
  */
 function extrachill_shop_back_to_home_label( $label, $url ) {
-	// Only apply on shop.extrachill.com (blog ID 3)
-	if ( get_current_blog_id() !== 3 ) {
+	$shop_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'shop' ) : null;
+	if ( ! $shop_blog_id || get_current_blog_id() !== $shop_blog_id ) {
 		return $label;
 	}
 
@@ -170,6 +198,6 @@ function extrachill_shop_back_to_home_label( $label, $url ) {
 		return $label;
 	}
 
-	return '← Back to Merch Store';
+	return '← Back to Shop';
 }
 add_filter( 'extrachill_back_to_home_label', 'extrachill_shop_back_to_home_label', 10, 2 );

@@ -3,7 +3,7 @@
         'name' => 'extrachill/shop',
         'pretty_version' => 'dev-main',
         'version' => 'dev-main',
-        'reference' => 'e2efbe8c84787734c09bf386a5bf5389d2ff2811',
+        'reference' => 'd3cd5c2f91470ff979773b5b35e816a4ff1ddd75',
         'type' => 'wordpress-plugin',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -22,7 +22,7 @@
         'extrachill/shop' => array(
             'pretty_version' => 'dev-main',
             'version' => 'dev-main',
-            'reference' => 'e2efbe8c84787734c09bf386a5bf5389d2ff2811',
+            'reference' => 'd3cd5c2f91470ff979773b5b35e816a4ff1ddd75',
             'type' => 'wordpress-plugin',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),
@@ -270,6 +270,15 @@
             'install_path' => __DIR__ . '/../squizlabs/php_codesniffer',
             'aliases' => array(),
             'dev_requirement' => true,
+        ),
+        'stripe/stripe-php' => array(
+            'pretty_version' => 'v13.18.0',
+            'version' => '13.18.0.0',
+            'reference' => '02abb043b103766f4ed920642ae56ffdc58c7467',
+            'type' => 'library',
+            'install_path' => __DIR__ . '/../stripe/stripe-php',
+            'aliases' => array(),
+            'dev_requirement' => false,
         ),
         'theseer/tokenizer' => array(
             'pretty_version' => '1.2.3',

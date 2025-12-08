@@ -1,18 +1,14 @@
 <?php
 /**
- * Shop Homepage Template
+ * Shop Homepage Content
  *
- * Overrides the homepage for shop.extrachill.com using the theme's
- * extrachill_template_homepage filter (same pattern as chat, events, stream plugins).
- *
- * Displays products in a grid using WooCommerce's content-product.php template.
+ * Homepage content for shop.extrachill.com.
+ * Hooked via extrachill_homepage_content action.
  *
  * @package ExtraChillShop
  */
 
 defined( 'ABSPATH' ) || exit;
-
-get_header();
 
 // Breadcrumbs
 extrachill_breadcrumbs();
@@ -65,5 +61,3 @@ else :
 	</div>
 	<?php
 endif;
-
-get_footer();

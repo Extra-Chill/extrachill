@@ -6,6 +6,11 @@ WordPress plugin providing WooCommerce integration and e-commerce functionality 
 
 The Extra Chill Shop plugin extends WooCommerce with ExtraChill-specific functionality, including a unique cross-domain ad-free license system that allows purchases on `shop.extrachill.com` to disable ads on `extrachill.com`.
 
+## Development Status
+
+- **Active Development**: The shop plugin is still evolving, especially around cross-domain ad-free licensing and raffle workflows. Expect interface adjustments, layout refinements, and configuration tweaks before the next production-ready release.
+- **Deployment Guidance**: Use staging sites for verification; ongoing work includes deeper shop-theme integration, performance tuning, and documentation of new helper hooks.
+
 ## ✨ Key Features
 
 ### 🔐 Cross-Domain Ad-Free License System
@@ -27,7 +32,7 @@ The Extra Chill Shop plugin extends WooCommerce with ExtraChill-specific functio
 ### 🎨 Store Customization
 - **Unified Breadcrumbs**: Integrates with theme's breadcrumb system via filter for consistent "Extra Chill › Merch Store" structure
 - **Cart Icon Integration**: Header cart icon linking to shop
-- **Comprehensive Styling**: 492 lines of WooCommerce CSS with responsive design
+- **Comprehensive Styling**: 492 lines of WooCommerce CSS with responsive design (matched to current asset)
 
 ### ⚡ WooCommerce Styling
 - **Product Grid**: CSS Grid layout with responsive breakpoints

@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] - 2025-12-08
+
+### Added
+- **Artist Marketplace System**: Complete artist marketplace with taxonomy integration, cross-site artist profile lookups, and artist store URLs
+- **Stripe Connect Integration**: Full Stripe Express account management, onboarding flows, webhook handling, and payment processing (**⚠️ NOT YET TESTED**)
+- **Artist Dashboard**: My Account endpoints for artists to manage products, orders, and Stripe settings
+- **Commission System**: Platform commission rate configuration with per-product overrides and WooCommerce settings integration
+- **Navigation**: Product category navigation functionality
+- **Dependencies**: Added Stripe PHP SDK (^13.0)
+
+### Changed
+- **Homepage Template**: Updated to use action hook instead of filter for better theme integration
+- **Breadcrumbs**: Labels updated from "Merch Store" to "Shop" with dynamic blog ID lookups
+- **Asset Loading**: Added conditional CSS loading for artist dashboard
+
+### Technical Details
+- Added 8 new include files for marketplace functionality
+- Cross-site artist profile integration with multisite support
+- WooCommerce settings integration for commission rate management
+- Artist dashboard CSS asset loading on account pages
+- Dynamic blog ID lookups using ec_get_blog_id() function
+
 ## [0.1.0] - 2025-12-01
 
 ### Added

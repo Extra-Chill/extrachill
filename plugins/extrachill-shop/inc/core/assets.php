@@ -27,6 +27,28 @@ function extrachill_shop_enqueue_assets() {
     }
 }
 
+add_action( 'wp_enqueue_scripts', 'extrachill_shop_enqueue_artist_dashboard_assets' );
+function extrachill_shop_enqueue_artist_dashboard_assets() {
+    if ( ! is_account_page() ) {
+        return;
+    }
+
+    if ( ! function_exists( 'extrachill_shop_user_is_artist' ) || ! extrachill_shop_user_is_artist() ) {
+        return;
+    }
+
+    $css_file = EXTRACHILL_SHOP_PLUGIN_DIR . 'assets/css/artist-dashboard.css';
+
+    if ( file_exists( $css_file ) ) {
+        wp_enqueue_style(
+            'extrachill-shop-artist-dashboard',
+            EXTRACHILL_SHOP_PLUGIN_URL . 'assets/css/artist-dashboard.css',
+            array(),
+            filemtime( $css_file )
+        );
+    }
+}
+
 add_action( 'wp_enqueue_scripts', 'extrachill_shop_enqueue_raffle_frontend_assets' );
 function extrachill_shop_enqueue_raffle_frontend_assets() {
     global $post;
