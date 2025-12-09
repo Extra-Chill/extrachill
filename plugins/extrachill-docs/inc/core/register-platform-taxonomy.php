@@ -12,7 +12,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-add_action( 'init', 'extrachill_docs_register_taxonomy' );
+add_action( 'init', 'extrachill_docs_register_platform_taxonomy' );
 
 /**
  * Registers the ec_doc_platform taxonomy.
@@ -20,7 +20,7 @@ add_action( 'init', 'extrachill_docs_register_taxonomy' );
  * @since 0.1.0
  * @return void
  */
-function extrachill_docs_register_taxonomy() {
+function extrachill_docs_register_platform_taxonomy() {
 	$labels = array(
 		'name'              => 'Platforms',
 		'singular_name'     => 'Platform',
@@ -49,33 +49,4 @@ function extrachill_docs_register_taxonomy() {
 	);
 
 	register_taxonomy( 'ec_doc_platform', array( 'ec_doc' ), $args );
-}
-
-/**
- * Seeds default platform terms on plugin activation.
- *
- * @since 0.1.0
- * @return void
- */
-function extrachill_docs_seed_platforms() {
-	// Ensure taxonomy is registered before seeding.
-	extrachill_docs_register_taxonomy();
-
-	$platforms = array(
-		'artist-platform' => 'Artist Platform',
-		'community'       => 'Community',
-		'events-calendar' => 'Events',
-		'stream'          => 'Stream',
-		'newsletter'      => 'Newsletter',
-		'shop'            => 'Shop',
-		'chat'            => 'Chat',
-		'blog'            => 'Blog',
-		'horoscopes'      => 'Horoscopes',
-	);
-
-	foreach ( $platforms as $slug => $name ) {
-		if ( ! term_exists( $slug, 'ec_doc_platform' ) ) {
-			wp_insert_term( $name, 'ec_doc_platform', array( 'slug' => $slug ) );
-		}
-	}
 }

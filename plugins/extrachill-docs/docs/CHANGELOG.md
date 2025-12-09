@@ -1,3 +1,14 @@
+# 0.3.1 - Dec 9, 2025
+
+### Changed
+- Simplified table of contents to h2-only headers for cleaner navigation
+- Split taxonomy registration into focused files for better code organization
+- Updated CSS styling for improved visual consistency
+
+### Maintenance
+- Cleaned up Composer dependencies and autoload files
+- Removed outdated documentation files via sync process
+
 # 0.3.0 - Dec 9, 2025
 
 ### Added

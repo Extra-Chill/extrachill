@@ -25,9 +25,9 @@ function extrachill_docs_generate_sidebar( $post_id ) {
 		return '';
 	}
 
-	// Extract headers with IDs.
+	// Extract h2 headers with IDs.
 	preg_match_all(
-		'/<(h[2-6])[^>]*id=["\']([^"\']+)["\'][^>]*>(.*?)<\/\1>/i',
+		'/<h2[^>]*id=["\']([^"\']+)["\'][^>]*>(.*?)<\/h2>/i',
 		$content,
 		$matches,
 		PREG_SET_ORDER
@@ -37,13 +37,12 @@ function extrachill_docs_generate_sidebar( $post_id ) {
 		return '';
 	}
 
-	// Build flat array of headers.
+	// Build array of headers.
 	$headers = [];
 	foreach ( $matches as $match ) {
 		$headers[] = [
-			'level' => (int) substr( $match[1], 1 ),
-			'id'    => $match[2],
-			'text'  => wp_strip_all_tags( $match[3] ),
+			'id'   => $match[1],
+			'text' => wp_strip_all_tags( $match[2] ),
 		];
 	}
 
@@ -72,9 +71,8 @@ function extrachill_docs_build_toc_list( $headers ) {
 
 	foreach ( $headers as $header ) {
 		$html .= sprintf(
-			'<li><a href="#%s" class="docs-toc-link" data-level="%d">%s</a></li>',
+			'<li><a href="#%s" class="docs-toc-link">%s</a></li>',
 			esc_attr( $header['id'] ),
-			$header['level'],
 			esc_html( $header['text'] )
 		);
 	}
