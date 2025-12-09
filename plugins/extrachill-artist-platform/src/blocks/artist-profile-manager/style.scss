@@ -8,8 +8,6 @@
   gap: var(--spacing-md);
 }
 
-
-
 .ec-apm__tabs {
   display: inline-flex;
   gap: var(--spacing-sm);
@@ -37,7 +35,6 @@
   }
 }
 
-.ec-apm__form,
 .ec-apm__panel {
   border: 1px solid var(--border-color);
   border-radius: var(--border-radius-lg);
@@ -46,7 +43,7 @@
   display: grid;
   gap: var(--spacing-md);
 
-  h2, h3 {
+  h3 {
     margin: 0;
     font-family: var(--font-family-heading);
   }
@@ -58,6 +55,36 @@
   align-items: center;
   gap: var(--spacing-md);
   flex-wrap: wrap;
+  padding-bottom: var(--spacing-md);
+  border-bottom: 1px solid var(--border-color);
+
+  h2 {
+    margin: 0;
+    font-family: var(--font-family-heading);
+  }
+}
+
+.ec-apm__header-left {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  flex-wrap: wrap;
+}
+
+.ec-apm__header-right {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.ec-apm__save-error {
+  color: var(--error-color);
+  font-size: var(--font-size-sm);
+}
+
+.ec-apm__save-success {
+  color: var(--success-color);
+  font-size: var(--font-size-sm);
 }
 
 .ec-apm__field {
@@ -69,9 +96,13 @@
     color: var(--text-color);
   }
 
-  input,
+  input:not([type="file"]),
   textarea {
     width: 100%;
+  }
+
+  > .button-danger {
+    width: max-content;
   }
 }
 
@@ -79,10 +110,6 @@
   max-width: 220px;
   border-radius: var(--border-radius-lg);
   border: 1px solid var(--border-color);
-}
-
-.ec-apm__error {
-  color: var(--error-color);
 }
 
 .ec-apm__inline {
@@ -122,12 +149,6 @@
   margin-left: var(--spacing-sm);
   font-size: var(--font-size-sm);
   color: var(--muted-text);
-}
-
-.ec-apm__actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: var(--spacing-sm);
 }
 
 .ec-apm__footer {

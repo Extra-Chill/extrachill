@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.9] - 2025-12-09
+
+### Changed
+- Enhanced join flow modal with CSS variables and conditional rendering to prevent unstyled HTML
+- Refactored artist profile manager block with centralized form state and improved save feedback
+- Updated artist profile CSS for better link display consistency
+- Removed unused asset dependencies from join flow
+- Improved responsive design and theming in join flow components
+
 ## [1.2.8] - 2025-12-09
 
 ### Added

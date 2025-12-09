@@ -12,7 +12,6 @@ import {
 	exportSubscribers,
 	uploadMedia,
 	deleteMedia,
-	getArtistPermissions,
 } from '../shared/api/client';
 import ArtistSwitcher from '../shared/components/ArtistSwitcher';
 
@@ -50,88 +49,49 @@ const TabNav = ({ tabs, active, onChange }) => (
 
 
 
-const InfoTab = ({ artist, onSave, saving, prefill, canCreate, selectedId, linkPageId }) => {
-	const [name, setName] = useState(artist?.name || prefill.artist_name || '');
-	const [bio, setBio] = useState(artist?.bio || prefill.artist_bio || '');
-	const [localCity, setLocalCity] = useState(artist?.local_city || '');
-	const [genre, setGenre] = useState(artist?.genre || '');
-	const [profileImage, setProfileImage] = useState(artist?.profile_image_url || prefill.avatar_thumb || '');
-	const [headerImage, setHeaderImage] = useState(artist?.header_image_url || '');
-	const [profileImageId, setProfileImageId] = useState(artist?.profile_image_id || prefill.avatar_id || null);
-	const [headerImageId, setHeaderImageId] = useState(artist?.header_image_id || null);
-
-	useEffect(() => {
-		setName(artist?.name || prefill.artist_name || '');
-		setBio(artist?.bio || prefill.artist_bio || '');
-		setLocalCity(artist?.local_city || '');
-		setGenre(artist?.genre || '');
-		setProfileImage(artist?.profile_image_url || prefill.avatar_thumb || '');
-		setHeaderImage(artist?.header_image_url || '');
-		setProfileImageId(artist?.profile_image_id || prefill.avatar_id || null);
-		setHeaderImageId(artist?.header_image_id || null);
-	// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [ artist?.id ]);
-
+const InfoTab = ({ formState, setFormState, selectedId }) => {
 	const handleFileUpload = async (file, contextKey) => {
 		const response = await uploadMedia('artist', selectedId || 0, file);
 		if (contextKey === 'profile') {
-			setProfileImage(response?.url || '');
-			setProfileImageId(response?.id || null);
+			setFormState((prev) => ({
+				...prev,
+				profileImage: response?.url || '',
+				profileImageId: response?.id || null,
+			}));
 		}
 		if (contextKey === 'header') {
-			setHeaderImage(response?.url || '');
-			setHeaderImageId(response?.id || null);
+			setFormState((prev) => ({
+				...prev,
+				headerImage: response?.url || '',
+				headerImageId: response?.id || null,
+			}));
 		}
 	};
 
 	const handleRemoveImage = async (contextKey) => {
-		if (contextKey === 'profile' && profileImageId) {
-			await deleteMedia('artist', profileImageId);
-			setProfileImage('');
-			setProfileImageId(null);
+		if (contextKey === 'profile' && formState.profileImageId) {
+			await deleteMedia('artist', formState.profileImageId);
+			setFormState((prev) => ({
+				...prev,
+				profileImage: '',
+				profileImageId: null,
+			}));
 		}
-		if (contextKey === 'header' && headerImageId) {
-			await deleteMedia('artist', headerImageId);
-			setHeaderImage('');
-			setHeaderImageId(null);
+		if (contextKey === 'header' && formState.headerImageId) {
+			await deleteMedia('artist', formState.headerImageId);
+			setFormState((prev) => ({
+				...prev,
+				headerImage: '',
+				headerImageId: null,
+			}));
 		}
 	};
-
-	const handleSubmit = (e) => {
-		e.preventDefault();
-		onSave({
-			name,
-			bio,
-			local_city: localCity,
-			genre,
-			profile_image_id: profileImageId,
-			header_image_id: headerImageId,
-		});
-	};
-
-	const linkButtonLabel = linkPageId ? 'Manage Link Page' : 'Create Link Page';
 
 	return (
-		<form className="ec-apm__form" onSubmit={handleSubmit}>
-			<div className="ec-apm__header">
-				<h2>Artist Info</h2>
-				<button
-					type="button"
-					className={`button-2 button-medium${linkPageId ? '' : ' disabled'}`}
-					disabled={!linkPageId}
-					onClick={() => {
-						if (linkPageId) {
-							window.location.href = `${window.location.origin}/manage-link-page/`;
-						}
-					}}
-				>
-					{linkButtonLabel}
-				</button>
-			</div>
-
+		<div className="ec-apm__panel">
 			<label className="ec-apm__field">
 				<span>Profile Picture</span>
-				{profileImage && <img src={profileImage} alt="Profile" className="ec-apm__image-preview" />}
+				{formState.profileImage && <img src={formState.profileImage} alt="Profile" className="ec-apm__image-preview" />}
 				<input
 					type="file"
 					accept="image/*"
@@ -140,7 +100,7 @@ const InfoTab = ({ artist, onSave, saving, prefill, canCreate, selectedId, linkP
 						if (file) handleFileUpload(file, 'profile');
 					}}
 				/>
-				{profileImage && (
+				{formState.profileImage && (
 					<button type="button" className="button-danger button-small" onClick={() => handleRemoveImage('profile')}>
 						Remove
 					</button>
@@ -149,7 +109,7 @@ const InfoTab = ({ artist, onSave, saving, prefill, canCreate, selectedId, linkP
 
 			<label className="ec-apm__field">
 				<span>Header Image</span>
-				{headerImage && <img src={headerImage} alt="Header" className="ec-apm__image-preview" />}
+				{formState.headerImage && <img src={formState.headerImage} alt="Header" className="ec-apm__image-preview" />}
 				<input
 					type="file"
 					accept="image/*"
@@ -158,7 +118,7 @@ const InfoTab = ({ artist, onSave, saving, prefill, canCreate, selectedId, linkP
 						if (file) handleFileUpload(file, 'header');
 					}}
 				/>
-				{headerImage && (
+				{formState.headerImage && (
 					<button type="button" className="button-danger button-small" onClick={() => handleRemoveImage('header')}>
 						Remove
 					</button>
@@ -167,30 +127,41 @@ const InfoTab = ({ artist, onSave, saving, prefill, canCreate, selectedId, linkP
 
 			<label className="ec-apm__field">
 				<span>Artist Name *</span>
-				<input value={name} onChange={(e) => setName(e.target.value)} required />
+				<input
+					type="text"
+					value={formState.name}
+					onChange={(e) => setFormState((prev) => ({ ...prev, name: e.target.value }))}
+					required
+				/>
 			</label>
 
 			<label className="ec-apm__field">
 				<span>City / Region</span>
-				<input value={localCity} onChange={(e) => setLocalCity(e.target.value)} />
+				<input
+					type="text"
+					value={formState.localCity}
+					onChange={(e) => setFormState((prev) => ({ ...prev, localCity: e.target.value }))}
+				/>
 			</label>
 
 			<label className="ec-apm__field">
 				<span>Genre</span>
-				<input value={genre} onChange={(e) => setGenre(e.target.value)} />
+				<input
+					type="text"
+					value={formState.genre}
+					onChange={(e) => setFormState((prev) => ({ ...prev, genre: e.target.value }))}
+				/>
 			</label>
 
 			<label className="ec-apm__field">
 				<span>Artist Bio</span>
-				<textarea value={bio} onChange={(e) => setBio(e.target.value)} rows={6} />
+				<textarea
+					value={formState.bio}
+					onChange={(e) => setFormState((prev) => ({ ...prev, bio: e.target.value }))}
+					rows={6}
+				/>
 			</label>
-
-			<div className="ec-apm__actions">
-				<button type="submit" className="button-1 button-medium" disabled={saving}>
-					{saving ? (selectedId ? 'Saving…' : 'Creating…') : selectedId ? 'Save' : 'Create Artist'}
-				</button>
-			</div>
-		</form>
+		</div>
 	);
 };
 
@@ -384,6 +355,17 @@ const SubscribersTab = ({ artistId }) => {
 	);
 };
 
+const getInitialFormState = (artist, prefill) => ({
+	name: artist?.name || prefill?.artist_name || '',
+	bio: artist?.bio || prefill?.artist_bio || '',
+	localCity: artist?.local_city || '',
+	genre: artist?.genre || '',
+	profileImage: artist?.profile_image_url || prefill?.avatar_thumb || '',
+	headerImage: artist?.header_image_url || '',
+	profileImageId: artist?.profile_image_id || prefill?.avatar_id || null,
+	headerImageId: artist?.header_image_id || null,
+});
+
 const App = () => {
 	const config = useConfig();
 	const [activeTab, setActiveTab] = useState('info');
@@ -391,10 +373,10 @@ const App = () => {
 	const [artist, setArtist] = useState(null);
 	const [loading, setLoading] = useState(false);
 	const [saving, setSaving] = useState(false);
+	const [saveSuccess, setSaveSuccess] = useState(false);
 	const [error, setError] = useState('');
-	const [permissions, setPermissions] = useState(null);
-	const [creatingArtistId, setCreatingArtistId] = useState(0);
 	const [artists, setArtists] = useState(config.userArtists);
+	const [formState, setFormState] = useState(() => getInitialFormState(null, config.prefill));
 
 	const tabs = [
 		{ id: 'info', label: 'Info' },
@@ -402,19 +384,18 @@ const App = () => {
 		{ id: 'subscribers', label: 'Subscribers' },
 	];
 
-
 	const loadArtist = async (id) => {
 		if (!id) {
 			setArtist(null);
+			setFormState(getInitialFormState(null, config.prefill));
 			return;
 		}
 		setLoading(true);
 		try {
 			const data = await getArtist(id);
 			setArtist(data);
+			setFormState(getInitialFormState(data, config.prefill));
 			setError('');
-			const perms = await getArtistPermissions(id);
-			setPermissions(perms || null);
 		} catch (err) {
 			setError(err?.message || 'Could not load artist.');
 		} finally {
@@ -429,22 +410,41 @@ const App = () => {
 	// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [ config.selectedId ]);
 
-	const handleSave = async (payload) => {
+	const handleSave = async () => {
+		if (!formState.name.trim()) {
+			setError('Artist name is required.');
+			return;
+		}
+
 		setSaving(true);
+		setSaveSuccess(false);
+		setError('');
+
+		const payload = {
+			name: formState.name,
+			bio: formState.bio,
+			local_city: formState.localCity,
+			genre: formState.genre,
+			profile_image_id: formState.profileImageId,
+			header_image_id: formState.headerImageId,
+		};
+
 		try {
 			if (selectedId) {
 				const updated = await updateArtist(selectedId, payload);
 				setArtist(updated);
-				setError('');
+				setFormState(getInitialFormState(updated, config.prefill));
+				setSaveSuccess(true);
+				setTimeout(() => setSaveSuccess(false), 3000);
 			} else if (config.canCreate) {
 				const created = await createArtist(payload);
 				setArtist(created);
 				const createdId = created?.id || 0;
 				setSelectedId(createdId);
-				setArtists([...artists, created]);
-				setCreatingArtistId(createdId);
-				setError('');
-				setActiveTab('managers');
+				setArtists([...artists, { id: createdId, name: created.name, slug: created.slug }]);
+				setFormState(getInitialFormState(created, config.prefill));
+				setSaveSuccess(true);
+				setTimeout(() => setSaveSuccess(false), 3000);
 			}
 		} catch (err) {
 			setError(err?.message || 'Save failed.');
@@ -452,7 +452,6 @@ const App = () => {
 			setSaving(false);
 		}
 	};
-
 
 	const handleSelect = (id) => {
 		setSelectedId(id || 0);
@@ -466,20 +465,41 @@ const App = () => {
 		return tabs;
 	}, [ selectedId ]);
 
+	const artistName = formState.name || (selectedId ? '' : 'New Artist');
+	const saveButtonLabel = saving
+		? (selectedId ? 'Saving…' : 'Creating…')
+		: (selectedId ? 'Save' : 'Create Artist');
+
 	return (
 		<div className="ec-apm">
-			<ArtistSwitcher
-				artists={artists}
-				selectedId={selectedId}
-				onChange={handleSelect}
-				showCreateOption={config.canCreate}
-				showLabel={true}
-				hideIfSingle={false}
-				emptyStateMessage="Artist profiles are for artists and music professionals."
-			/>
+			<div className="ec-apm__header">
+				<div className="ec-apm__header-left">
+					<h2>{artistName}</h2>
+					<ArtistSwitcher
+						artists={artists}
+						selectedId={selectedId}
+						onChange={handleSelect}
+						showCreateOption={config.canCreate}
+						showLabel={false}
+						hideIfSingle={false}
+						emptyStateMessage="Artist profiles are for artists and music professionals."
+					/>
+				</div>
+				<div className="ec-apm__header-right">
+					{error && <span className="ec-apm__save-error">{error}</span>}
+					{saveSuccess && <span className="ec-apm__save-success">Saved!</span>}
+					<button
+						type="button"
+						className="button-1 button-medium"
+						onClick={handleSave}
+						disabled={saving}
+					>
+						{saveButtonLabel}
+					</button>
+				</div>
+			</div>
 
 			{loading && <p>Loading artist…</p>}
-			{error && <p className="ec-apm__error">{error}</p>}
 
 			{!selectedId && config.canCreate && (
 				<div className="notice notice-info">
@@ -491,13 +511,9 @@ const App = () => {
 
 			{activeTab === 'info' && (
 				<InfoTab
-					artist={artist}
-					onSave={handleSave}
-					saving={saving}
-					prefill={config.prefill}
-					canCreate={config.canCreate}
+					formState={formState}
+					setFormState={setFormState}
 					selectedId={selectedId}
-					linkPageId={artist?.link_page_id || null}
 				/>
 			)}
 

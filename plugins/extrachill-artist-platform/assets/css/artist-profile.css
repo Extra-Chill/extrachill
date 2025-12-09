@@ -402,7 +402,6 @@
 .artist-public-link-display a {
     color: var(--header-text);
     text-decoration: none;
-    font-size: 1.1em;
     opacity: 0.9;
     transition: opacity 0.2s ease;
 }

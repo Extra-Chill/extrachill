@@ -14,8 +14,14 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * Render join flow modal via community plugin action hook
+ *
+ * Only renders when from_join parameter is present to prevent
+ * unstyled modal HTML from appearing on regular login pages.
  */
 function ec_render_join_flow_modal() {
+	if ( ! isset( $_GET['from_join'] ) || $_GET['from_join'] !== 'true' ) {
+		return;
+	}
 	require EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/join/templates/join-flow-modal.php';
 }
 add_action( 'extrachill_below_login_register_form', 'ec_render_join_flow_modal' );

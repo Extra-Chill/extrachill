@@ -461,7 +461,7 @@ class ExtraChillArtistPlatform_Assets {
             wp_enqueue_style(
                 'ec-join-flow',
                 $plugin_url . $css_path,
-                array( 'extrachill-shared-tabs' ),
+                array(),
                 $this->get_asset_version( $css_path )
             );
         }
@@ -470,7 +470,7 @@ class ExtraChillArtistPlatform_Assets {
             wp_enqueue_script(
                 'ec-join-flow-ui',
                 $plugin_url . $js_path,
-                array( 'extrachill-shared-tabs' ),
+                array(),
                 $this->get_asset_version( $js_path ),
                 true
             );
