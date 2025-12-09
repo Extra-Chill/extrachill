@@ -31,6 +31,12 @@ function extrachill_api_register_link_click_route() {
 				'type'              => 'string',
 				'sanitize_callback' => 'esc_url_raw',
 			),
+			'link_text'    => array(
+				'required'          => false,
+				'type'              => 'string',
+				'default'           => '',
+				'sanitize_callback' => 'sanitize_text_field',
+			),
 		),
 	) );
 }
@@ -89,6 +95,7 @@ function extrachill_api_normalize_tracked_url( $url ) {
 function extrachill_api_link_click_handler( $request ) {
 	$link_page_id = $request->get_param( 'link_page_id' );
 	$link_url     = $request->get_param( 'link_url' );
+	$link_text    = $request->get_param( 'link_text' );
 
 	// Normalize URL to strip GA parameters
 	$normalized_url = extrachill_api_normalize_tracked_url( $link_url );
@@ -96,10 +103,11 @@ function extrachill_api_link_click_handler( $request ) {
 	/**
 	 * Fires when a link click is recorded.
 	 *
-	 * @param int    $link_page_id The link page post ID.
+	 * @param int    $link_page_id   The link page post ID.
 	 * @param string $normalized_url The clicked URL with GA params stripped.
+	 * @param string $link_text      The link text at time of click.
 	 */
-	do_action( 'extrachill_link_click_recorded', $link_page_id, $normalized_url );
+	do_action( 'extrachill_link_click_recorded', $link_page_id, $normalized_url, $link_text );
 
 	return rest_ensure_response( array( 'tracked' => true ) );
 }

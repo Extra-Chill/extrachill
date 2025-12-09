@@ -2,6 +2,25 @@
 
 All notable changes to the ExtraChill API plugin are documented here. This file is the single source of truth for release history.
 
+## 0.2.4
+
+### Added
+- **Link Text Tracking**: Enhanced link click analytics to capture link text at time of click
+  - Added optional `link_text` parameter to `POST /analytics/link-click` endpoint
+  - Updated `extrachill_link_click_recorded` action hook to include link text
+  - Improves analytics granularity for link page performance tracking
+
+### Changed
+- **Dynamic Blog ID Handling**: Replaced hardcoded blog IDs with dynamic function calls
+  - Documentation sync controller now uses `ec_get_blog_id( 'docs' )` instead of hardcoded ID 10
+  - Docs info endpoint now uses `ec_get_blog_id( 'main' )` instead of hardcoded ID 1
+  - Added proper error handling when blog IDs are not available
+  - Improves maintainability and multisite compatibility
+- **TOC Anchor Linking**: Added automatic header ID generation for documentation content
+  - New `add_header_ids()` method in docs sync controller generates unique IDs for h2-h6 headers
+  - Enables table of contents anchor linking in rendered documentation
+  - Handles duplicate header text with incremental numbering
+
 ## 0.2.3
 
 ### Added

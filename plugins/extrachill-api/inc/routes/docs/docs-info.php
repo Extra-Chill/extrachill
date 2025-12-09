@@ -62,8 +62,13 @@ function extrachill_api_docs_info_handler() {
  * @return array|WP_Error
  */
 function extrachill_api_docs_info_collect_about() {
+    $main_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'main' ) : null;
+    if ( ! $main_blog_id ) {
+        return new WP_Error( 'about_not_found', 'Main site blog ID not available.', array( 'status' => 500 ) );
+    }
+
     try {
-        switch_to_blog( 1 );
+        switch_to_blog( $main_blog_id );
 
         $about = get_page_by_path( 'about' );
 
