@@ -140,15 +140,14 @@ li.bbp-body div.hentry {
 
 /* General Author Name Styling */
 .bbp-reply-card .bbp-author-name { /* Keep original for topic pages */
-    font-weight: bold;
-    font-size: 1rem;
-    color: var(--text-color);
-    text-decoration: none;
+	font-weight: bold;
+	font-size: var(--font-size-base);
+	color: var(--text-color);
+	text-decoration: none;
 }
 
 .bbp-reply-revision-log .bbp-author-name { /* Keep specific revision log style */
-    font-weight: inherit;
-    font-size: inherit;
+	font-weight: inherit;
 }
 
 /* Badges & Role */

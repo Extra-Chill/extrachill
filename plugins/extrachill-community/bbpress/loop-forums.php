@@ -30,13 +30,11 @@ $args = array(
     'posts_per_page' => -1,
 );
 if ( bbp_has_forums( $args ) ) : ?>
-    <ul id="forums-list-homepage" class="bbp-forums">
-        <li class="bbp-body">
-            <?php while ( bbp_forums() ) : bbp_the_forum(); ?>
-                <?php bbp_get_template_part( 'loop', 'single-forum-card' ); ?>
-            <?php endwhile; ?>
-        </li>
-    </ul>
+    <div id="forums-list-homepage" class="bbp-forums-grid">
+        <?php while ( bbp_forums() ) : bbp_the_forum(); ?>
+            <?php bbp_get_template_part( 'loop', 'single-forum-card' ); ?>
+        <?php endwhile; ?>
+    </div>
 <?php else : ?>
     <p>No forums are currently set to display on the homepage.</p>
 <?php endif; ?>

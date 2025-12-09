@@ -100,9 +100,9 @@ body.mce-content-body h6 {
 
 /* Paragraphs and form text */
 body.mce-content-body p {
-    font-size: 16px;
-    line-height: 1.5;
-    margin-bottom: 15px;
+	font-size: var(--font-size-base);
+	line-height: 1.5;
+	margin-bottom: 15px;
 }
 
 /* Links */
@@ -146,10 +146,10 @@ body.mce-content-body input[type="reset"] {
     background-color: #0b5394;
     color: #fff;
     padding: 10px 20px;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 16px;
+	border: none;
+	border-radius: 4px;
+	cursor: pointer;
+	font-size: var(--font-size-base);
 }
 body.mce-content-body button:hover,
 body.mce-content-body input[type="button"]:hover,

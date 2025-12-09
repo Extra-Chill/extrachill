@@ -79,8 +79,8 @@
 
 /* Empty state message */
 .bbpress-comments-list p {
-    color: var(--muted-text);
-    font-size: 1rem;
+	color: var(--muted-text);
+	font-size: var(--font-size-base);
 }
 
 /* Ensure blog comment cards have proper spacing */
@@ -90,9 +90,9 @@
 
 /* Mobile responsiveness */
 @media (max-width: 768px) {
-    .blog-comment-post-title {
-        font-size: 1rem;
-        padding: 8px 12px;
+	.blog-comment-post-title {
+		font-size: var(--font-size-base);
+		padding: 8px 12px;
     }
 
     .blog-comment-post-title b {

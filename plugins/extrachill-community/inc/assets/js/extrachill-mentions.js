@@ -386,7 +386,7 @@ if (typeof window.extrachillMentionsPluginLoaded === 'undefined') {
 if (typeof window.extrachillReplyHandlerLoaded === 'undefined') {
     window.extrachillReplyHandlerLoaded = true;
 
-    document.addEventListener('DOMContentLoaded', function() {
+    function initReplyHandler() {
         document.addEventListener('click', function(e) {
             const replyLink = e.target.closest('.bbp-reply-to-link');
             if (!replyLink) return;
@@ -403,13 +403,19 @@ if (typeof window.extrachillReplyHandlerLoaded === 'undefined') {
                 replyForm.scrollIntoView({ behavior: 'smooth', block: 'start' });
             }
 
-            // Insert @mention
+            // Insert @mention and position cursor after the space
             if (replySlug && editor && !editor.isHidden()) {
                 editor.focus();
-                editor.execCommand('mceInsertContent', false, '@' + replySlug + ' ');
                 editor.selection.select(editor.getBody(), true);
                 editor.selection.collapse(false);
+                editor.execCommand('mceInsertContent', false, '@' + replySlug + ' ');
             }
         });
-    });
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initReplyHandler);
+    } else {
+        initReplyHandler();
+    }
 }

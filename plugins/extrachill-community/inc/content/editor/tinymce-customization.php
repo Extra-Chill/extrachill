@@ -58,6 +58,14 @@ function bbp_load_custom_autosave_plugin($plugins) {
 }
 add_filter('mce_external_plugins', 'bbp_load_custom_autosave_plugin');
 
+function bbp_load_mentions_plugin($plugins) {
+    if (is_bbpress()) {
+        $plugins['extrachillmentionssocial'] = EXTRACHILL_COMMUNITY_PLUGIN_URL . '/inc/assets/js/extrachill-mentions.js';
+    }
+    return $plugins;
+}
+add_filter('mce_external_plugins', 'bbp_load_mentions_plugin');
+
 /**
  * Autosave triggers 1.5s after typing stops, clears draft on form submission
  */
@@ -77,13 +85,6 @@ function bbp_autosave_tinymce_settings($init) {
         $init['paste_retain_style_properties'] = '';
 
         $init['setup'] = 'extrachillTinymceSetup';
-
-        // Activate mentions autocomplete plugin
-        if (!empty($init['plugins'])) {
-            $init['plugins'] .= ',extrachillmentionssocial';
-        } else {
-            $init['plugins'] = 'extrachillmentionssocial';
-        }
     }
     return $init;
 }

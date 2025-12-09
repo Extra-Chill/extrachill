@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.0.13] - 2025-12-09
+
+### Changed
+- Improved forum display layout: converted from ul/li structure to CSS Grid for better responsive design
+- Standardized CSS font sizes using CSS custom properties (var(--font-size-base)) across all stylesheets
+- Enhanced JavaScript initialization with improved DOM ready state handling for reply functionality
+- Consolidated CSS indentation and color variable usage for consistency
+- Removed jQuery dependency from mentions script and improved TinyMCE plugin loading
+
+### Fixed
+- Better responsive design for forum cards on mobile and tablet devices
+- Improved CSS Grid layout for homepage forum display
+
 ## [1.0.12] - 2025-12-08
 
 ### Added
