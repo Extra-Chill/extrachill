@@ -31,11 +31,13 @@ function extrachill_docs_breadcrumb_root( $root_link ) {
 
 	// On homepage, just "Extra Chill" (trail will add "Documentation").
 	if ( is_front_page() ) {
-		return '<a href="https://extrachill.com">Extra Chill</a>';
+		$main_site_url = ec_get_site_url( 'main' );
+		return '<a href="' . esc_url( $main_site_url ) . '">Extra Chill</a>';
 	}
 
 	// On other pages, include "Documentation" in root.
-	return '<a href="https://extrachill.com">Extra Chill</a> › <a href="' . esc_url( home_url() ) . '">Documentation</a>';
+	$main_site_url = ec_get_site_url( 'main' );
+	return '<a href="' . esc_url( $main_site_url ) . '">Extra Chill</a> › <a href="' . esc_url( home_url() ) . '">Documentation</a>';
 }
 add_filter( 'extrachill_breadcrumbs_root', 'extrachill_docs_breadcrumb_root' );
 

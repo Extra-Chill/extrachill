@@ -38,3 +38,27 @@ add_filter(
 	10,
 	3
 );
+
+// Override sidebar content for documentation posts.
+add_filter(
+	'extrachill_sidebar_content',
+	function( $sidebar_content ) {
+		if ( is_singular( 'ec_doc' ) ) {
+			return extrachill_docs_generate_sidebar( get_the_ID() );
+		}
+		return $sidebar_content;
+	}
+);
+
+// Override back-to-home label for documentation site.
+add_filter(
+	'extrachill_back_to_home_label',
+	function( $label, $url ) {
+		if ( is_singular( 'ec_doc' ) || is_post_type_archive( 'ec_doc' ) || is_tax( 'ec_doc_platform' ) ) {
+			return '← Back to Documentation';
+		}
+		return $label;
+	},
+	10,
+	2
+);

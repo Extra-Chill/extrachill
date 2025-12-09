@@ -1,3 +1,18 @@
+# 0.2.5 - Dec 8, 2025
+
+### Added
+- Related documentation sidebar displaying posts from the same platform
+- Enhanced CSS styling with design tokens for improved visual consistency
+- Dynamic site URL support in breadcrumb navigation
+- Custom back-to-home label for documentation pages
+
+### Changed
+- Updated breadcrumb functions to use dynamic blog ID detection
+- Improved theme integration with sidebar content filters
+
+### Maintenance
+- Updated Composer dependencies
+
 # 0.2.4 - Dec 8, 2025
 
 ### Added
