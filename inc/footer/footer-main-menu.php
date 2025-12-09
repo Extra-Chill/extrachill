@@ -42,22 +42,22 @@
     <div class="footer-menu-column">
         <ul class="footer-column-menu">
             <li class="menu-item menu-item-has-children">
-                <a href="<?php echo esc_url( $main_site_url ); ?>/blog">Explore</a>
+                <a href="<?php echo esc_url( ec_get_site_url( 'main' ) ); ?>/blog">Explore</a>
                 <ul class="sub-menu">
                     <li class="menu-item">
-                        <a href="<?php echo esc_url( $main_site_url ); ?>/category/interviews/">Interviews</a>
+                        <a href="<?php echo esc_url( ec_get_site_url( 'main' ) ); ?>/category/interviews/">Interviews</a>
                     </li>
                     <li class="menu-item">
-                        <a href="<?php echo esc_url( $main_site_url ); ?>/category/live-music-reviews/">Live Reviews</a>
+                        <a href="<?php echo esc_url( ec_get_site_url( 'main' ) ); ?>/category/live-music-reviews/">Live Reviews</a>
                     </li>
                     <li class="menu-item">
-                        <a href="<?php echo esc_url( $main_site_url ); ?>/festival-wire">Festival Wire</a>
+                        <a href="<?php echo esc_url( ec_get_site_url( 'main' ) ); ?>/festival-wire">Festival Wire</a>
                     </li>
                     <li class="menu-item">
-                        <a href="<?php echo esc_url( $main_site_url ); ?>/category/song-meanings/">Song Meanings</a>
+                        <a href="<?php echo esc_url( ec_get_site_url( 'main' ) ); ?>/category/song-meanings/">Song Meanings</a>
                     </li>
                     <li class="menu-item">
-                        <a href="<?php echo esc_url( $main_site_url ); ?>/category/music-news/">Music News</a>
+                        <a href="<?php echo esc_url( ec_get_site_url( 'main' ) ); ?>/category/music-news/">Music News</a>
                     </li>
                 </ul>
             </li>
@@ -67,19 +67,19 @@
     <div class="footer-menu-column">
         <ul class="footer-column-menu">
              <li class="menu-item menu-item-has-children">
-                 <a href="<?php echo esc_url( $main_site_url ); ?>/about/">About</a>
+                 <a href="<?php echo esc_url( ec_get_site_url( 'main' ) ); ?>/about/">About</a>
                  <ul class="sub-menu">
                       <li class="menu-item">
                           <a href="<?php echo esc_url( ec_get_site_url( 'docs' ) ); ?>">Documentation</a>
                       </li>
                      <li class="menu-item">
-                         <a href="<?php echo esc_url( $main_site_url ); ?>/contact/">Contact Us</a>
+                         <a href="<?php echo esc_url( ec_get_site_url( 'main' ) ); ?>/contact/">Contact Us</a>
                      </li>
                      <li class="menu-item">
-                         <a href="<?php echo esc_url( $main_site_url ); ?>/about/in-the-press/">In the Press</a>
+                         <a href="<?php echo esc_url( ec_get_site_url( 'main' ) ); ?>/about/in-the-press/">In the Press</a>
                      </li>
                      <li class="menu-item">
-                         <a href="<?php echo esc_url( $main_site_url ); ?>/contribute">Contribute</a>
+                         <a href="<?php echo esc_url( ec_get_site_url( 'main' ) ); ?>/contribute">Contribute</a>
                      </li>
                  </ul>
              </li>

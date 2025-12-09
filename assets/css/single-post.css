@@ -19,18 +19,9 @@
 
 @media (max-width: 900px) {
   .single-post-card {
-    padding: var(--spacing-md) var(--spacing-sm);
+    padding: var(--spacing-md);
     margin: var(--spacing-md) auto;
     max-width: 98vw;
-  }
-}
-
-@media (max-width: 768px) {
-  .single-post-card {
-    margin-left: calc(-1 * max(0.75em, env(safe-area-inset-left)));
-    margin-right: calc(-1 * max(0.75em, env(safe-area-inset-right)));
-    width: calc(100% + max(0.75em, env(safe-area-inset-left)) + max(0.75em, env(safe-area-inset-right)));
-    max-width: none;
   }
 }
 

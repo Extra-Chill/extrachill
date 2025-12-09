@@ -1,7 +1,7 @@
 /*
 Theme Name: Extra Chill
 Author: Chubes
-Version: 1.2.5
+Version: 1.2.6
 Text Domain: extrachill
 */
 
@@ -501,7 +501,6 @@ a.author.url.fn, .forum-meta a {
 
 .error-404 {
 	padding-bottom: var(--spacing-lg);
-	text-align: center;
 }
 
 .error-404 .search-wrap {

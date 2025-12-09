@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0/).
 
+## [1.2.6] - 2025-12-09
+
+### Changed
+- Refined color scheme with updated accent colors and button styling
+- Improved responsive layout for single post cards on mobile devices
+- Enhanced taxonomy badge padding for better visual consistency
+- Updated footer menu to use centralized URL generation functions
+- Added conditional page title display for template flexibility
+- Minor CSS cleanup in 404 error page styling
+
+### Added
+- Documentation for data contracts and integration patterns
+
+### Technical
+- Modified CSS variables in root.css for improved color consistency
+- Updated footer-main-menu.php to use ec_get_site_url() for multisite compatibility
+- Added extrachill_show_page_title filter support in single-page.php
+
 ## [1.2.5] - 2025-12-08
 
 ### Changed
