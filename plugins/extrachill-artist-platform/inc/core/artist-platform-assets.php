@@ -414,24 +414,20 @@ class ExtraChillArtistPlatform_Assets {
 
     private function localize_artist_profile_data() {
         $current_user_id = get_current_user_id();
-        $artist_id = apply_filters('ec_get_artist_id', $_GET);
-        $artist_profile_id_from_user = 0;
+        $artist_profile_id = 0;
 
-        if ( ! $artist_id && $current_user_id ) {
-            // Attempt to get the artist_id from user meta if not in URL
-            $user_artist_profiles = get_user_meta( $current_user_id, 'artist_profile_ids', true );
+        if ( $current_user_id ) {
+            // Get user's first artist profile for management interface (blocks-based approach)
+            $user_artist_profiles = get_user_meta( $current_user_id, '_artist_profile_ids', true );
             if ( ! empty( $user_artist_profiles ) && is_array( $user_artist_profiles ) ) {
-                $artist_profile_id_from_user = reset( $user_artist_profiles );
+                $artist_profile_id = reset( $user_artist_profiles );
             }
         }
-        
-        // Prioritize URL param, then user meta, then 0
-        $final_artist_id = $artist_id ?: $artist_profile_id_from_user;
 
         $data_to_pass = array(
             'restUrl'         => rest_url( 'extrachill/v1' ),
             'nonce'           => wp_create_nonce( 'wp_rest' ),
-            'artistProfileId' => $final_artist_id,
+            'artistProfileId' => $artist_profile_id,
             'i18n' => array(
                 'confirmRemoveMember' => __('Are you sure you want to remove "%s" from the roster listing?', 'extrachill-artist-platform'),
                 'enterEmail' => __('Please enter an email address.', 'extrachill-artist-platform'),

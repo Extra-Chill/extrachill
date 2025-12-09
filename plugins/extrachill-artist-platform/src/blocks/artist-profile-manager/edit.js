@@ -5,8 +5,8 @@
  */
 
 import { __ } from '@wordpress/i18n';
-import { useBlockProps, Notice } from '@wordpress/block-editor';
-import { Placeholder } from '@wordpress/components';
+import { useBlockProps } from '@wordpress/block-editor';
+import { Placeholder, Notice } from '@wordpress/components';
 import metadata from './block.json';
 
 export default function Edit() {
