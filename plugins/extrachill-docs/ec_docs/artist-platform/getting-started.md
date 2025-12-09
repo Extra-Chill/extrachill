@@ -66,7 +66,7 @@ Once registered, you'll see your Artist Profile setup. Here's what to fill in:
 
 ### Genre and Location
 
-- Select your primary **Genre** from the available options
+- Enter your primary **Genre** (optional)
 - Add your **Location** (city/state or country)
 - These help fans discover you in the artist directory
 
@@ -285,22 +285,6 @@ Your link page can include a subscription form to collect fan email addresses.
 - Share new music releases with your fans
 - Announce tour dates and events
 - Keep your audience engaged between releases
-
----
-
-## Key URLs to Remember
-
-Here are the important addresses you'll use:
-
-| Page | URL |
-|------|-----|
-| **Join the Platform** | https://extrachill.link/join |
-| **Your Link Page** | https://extrachill.link/your-artist-name |
-| **Artist Dashboard** | https://artist.extrachill.com |
-| **Manage Your Profile** | https://artist.extrachill.com/manage-artist-profiles |
-| **Manage Your Link Page** | https://artist.extrachill.com/manage-link-page |
-| **View All Artists** | https://artist.extrachill.com/artists |
-| **Community Forums** | https://community.extrachill.com |
 
 ---
 

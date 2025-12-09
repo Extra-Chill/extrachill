@@ -3,7 +3,7 @@
  * Plugin Name: Extra Chill Docs
  * Plugin URI: https://docs.extrachill.com
  * Description: User-facing documentation for the Extra Chill platform.
- * Version: 0.2.5
+ * Version: 0.3.0
  * Author: Chris Huber
  * Author URI: https://chubes.net
  * License: GPL v2 or later
@@ -19,14 +19,14 @@
  * Homepage displays dynamic platform cards for documentation navigation.
  *
  * @package ExtraChillDocs
- * @since 0.2.5
+ * @since 0.3.0
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'EXTRACHILL_DOCS_VERSION', '0.2.5' );
+define( 'EXTRACHILL_DOCS_VERSION', '0.3.0' );
 define( 'EXTRACHILL_DOCS_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'EXTRACHILL_DOCS_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 

@@ -20,14 +20,14 @@ function extrachill_docs_add_rewrite_rules() {
 	add_rewrite_rule(
 		'^([^/]+)/?$',
 		'index.php?ec_doc_platform=$matches[1]',
-		'bottom'
+		'top'
 	);
 
 	// Single doc: /{platform-slug}/{doc-slug}/
 	add_rewrite_rule(
 		'^([^/]+)/([^/]+)/?$',
 		'index.php?ec_doc=$matches[2]&ec_doc_platform=$matches[1]',
-		'bottom'
+		'top'
 	);
 }
 add_action( 'init', 'extrachill_docs_add_rewrite_rules', 20 );

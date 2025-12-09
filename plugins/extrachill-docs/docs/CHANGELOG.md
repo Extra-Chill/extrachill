@@ -1,3 +1,21 @@
+# 0.3.0 - Dec 9, 2025
+
+### Added
+- Dynamic table of contents sidebar with scroll tracking and smooth scrolling
+- Recent documentation preview in homepage platform cards
+- TOC JavaScript for progressive enhancement on documentation pages
+- Platform-based related posts for documentation articles
+
+### Changed
+- Homepage platform cards now show recent articles instead of just counts
+- Replaced related docs sidebar with table of contents on single doc pages
+- Improved documentation upload script with H1 header title parsing
+- Updated getting started guide content
+- Changed rewrite rule priorities to 'top' for better precedence
+
+### Maintenance
+- Updated Composer dependencies
+
 # 0.2.5 - Dec 8, 2025
 
 ### Added

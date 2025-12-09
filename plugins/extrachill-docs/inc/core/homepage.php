@@ -47,21 +47,42 @@ function extrachill_docs_render_homepage_cards() {
 
 		<div class="docs-category-grid">
 			<?php foreach ( $platforms as $platform ) : ?>
-				<a href="<?php echo esc_url( get_term_link( $platform ) ); ?>" class="docs-category-card">
+				<?php
+				$recent_docs = get_posts(
+					array(
+						'post_type'      => 'ec_doc',
+						'posts_per_page' => 3,
+						'tax_query'      => array(
+							array(
+								'taxonomy' => 'ec_doc_platform',
+								'terms'    => $platform->term_id,
+							),
+						),
+					)
+				);
+				?>
+				<div class="docs-category-card">
 					<h2><?php echo esc_html( $platform->name ); ?></h2>
 					<?php if ( ! empty( $platform->description ) ) : ?>
 						<p class="docs-category-description"><?php echo esc_html( $platform->description ); ?></p>
 					<?php endif; ?>
-					<span class="docs-category-count">
+					<?php if ( ! empty( $recent_docs ) ) : ?>
+						<ul class="docs-recent-list">
+							<?php foreach ( $recent_docs as $doc ) : ?>
+								<li><a href="<?php echo esc_url( get_permalink( $doc ) ); ?>"><?php echo esc_html( $doc->post_title ); ?></a></li>
+							<?php endforeach; ?>
+						</ul>
+					<?php endif; ?>
+					<a href="<?php echo esc_url( get_term_link( $platform ) ); ?>" class="docs-view-all">
 						<?php
 						printf(
 							/* translators: %d: number of articles */
-							esc_html( _n( '%d article', '%d articles', $platform->count, 'extrachill-docs' ) ),
+							esc_html( _n( 'See all %d article →', 'See all %d articles →', $platform->count, 'extrachill-docs' ) ),
 							intval( $platform->count )
 						);
 						?>
-					</span>
-				</a>
+					</a>
+				</div>
 			<?php endforeach; ?>
 		</div>
 	</div>

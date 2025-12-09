@@ -1,12 +1,12 @@
 <?php
 /**
  * Theme Integration Filters
- * 
+ *
  * Modifies theme behavior for documentation posts (ec_doc post type).
- * Hides author meta and related posts sections.
+ * Hides author meta, enables platform-based related posts, overrides sidebar with TOC.
  *
  * @package ExtraChillDocs
- * @since 0.2.4
+ * @since 0.3.0
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -26,17 +26,43 @@ add_filter(
 	3
 );
 
-// Hide related posts for documentation posts.
+// Allow ec_doc_platform taxonomy for related posts on ec_doc.
+add_filter(
+	'extrachill_related_posts_allowed_taxonomies',
+	function( $allowed, $post_type ) {
+		if ( $post_type === 'ec_doc' ) {
+			return [ 'ec_doc_platform' ];
+		}
+		return $allowed;
+	},
+	10,
+	2
+);
+
+// Use ec_doc_platform taxonomy for related posts on ec_doc.
 add_filter(
 	'extrachill_related_posts_taxonomies',
 	function( $taxonomies, $post_id, $post_type ) {
 		if ( $post_type === 'ec_doc' ) {
-			return []; // Return empty array to disable related posts.
+			return [ 'ec_doc_platform' ];
 		}
 		return $taxonomies;
 	},
 	10,
 	3
+);
+
+// Query ec_doc post type for related posts on ec_doc.
+add_filter(
+	'extrachill_related_posts_query_args',
+	function( $args, $taxonomy, $post_id, $post_type ) {
+		if ( $post_type === 'ec_doc' ) {
+			$args['post_type'] = 'ec_doc';
+		}
+		return $args;
+	},
+	10,
+	4
 );
 
 // Override sidebar content for documentation posts.
