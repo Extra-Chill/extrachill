@@ -16,19 +16,6 @@ if (!defined('ABSPATH')) {
 $GLOBALS['extrachill_notifications_cache'] = null;
 
 /**
- * Format notification message
- *
- * Wrapper function for backward compatibility.
- * Delegates to extrachill_render_notification_card() for actual rendering.
- *
- * @param array $notification Notification data array
- * @return string Formatted HTML for notification card
- */
-function extrachill_format_notification_message($notification) {
-    return extrachill_render_notification_card($notification);
-}
-
-/**
  * Display notifications page content
  *
  * Renders new and previously viewed notifications for the current user.
@@ -75,7 +62,7 @@ function extrachill_display_notifications() {
         if (!empty($new_notifications)) {
             echo '<h2>New Notifications</h2><div class="extrachill-notifications">';
             foreach ($new_notifications as $notification) {
-                echo extrachill_format_notification_message($notification);
+                echo extrachill_render_notification_card($notification);
             }
             echo '</div>';
         }
@@ -90,7 +77,7 @@ function extrachill_display_notifications() {
         if (!empty($old_notifications)) {
             echo '<h2>Previously Viewed</h2><div class="extrachill-notifications">';
             foreach ($old_notifications as $notification) {
-                echo extrachill_format_notification_message($notification);
+                echo extrachill_render_notification_card($notification);
             }
             echo '</div>';
         }

@@ -57,7 +57,7 @@ function extrachill_display_notification_bell() {
     }
     ?>
     <div class="notification-bell-icon header-right-icon">
-        <a href="https://community.extrachill.com/notifications" title="Notifications">
+        <a href="<?php echo esc_url( ec_get_site_url( 'community' ) . '/notifications' ); ?>" title="Notifications">
             <?php echo ec_icon('bell', 'notification-bell-svg'); ?>
             <?php if ($unread_count > 0) : ?>
                 <span class="notification-count"><?php echo $unread_count; ?></span>

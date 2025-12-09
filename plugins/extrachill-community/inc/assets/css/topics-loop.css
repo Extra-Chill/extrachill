@@ -36,12 +36,6 @@
     color: var(--muted-text);
 }
 
-.bbp-author-link {
-    display: flex;
-    align-items: center;
-    margin-top: 5px;
-}
-
 .bbp-topic-stats,
 .bbp-topic-freshness {
     font-size: 14px;
@@ -55,8 +49,6 @@
 }
 
 .bbp-topic-meta {
-    display: flex;
-    align-items: center;
     font-size: 13px;
 }
 

@@ -9,24 +9,6 @@
 // Exit if accessed directly
 defined( 'ABSPATH' ) || exit;
 
-// First, get the Recently Active topics IDs (used for exclusion in Most Active)
-$recent_topic_ids = array();
-$recent_topics_query_for_exclusion = new WP_Query( array(
-    'post_type'      => 'topic',
-    'posts_per_page' => 3,
-    'orderby'        => 'meta_value',
-    'meta_key'       => '_bbp_last_active_time',
-    'meta_type'      => 'DATETIME',
-    'order'          => 'DESC',
-    'post__not_in'   => array( get_the_ID() ),
-    'fields'         => 'ids',
-) );
-
-if ( $recent_topics_query_for_exclusion->have_posts() ) {
-    $recent_topic_ids = $recent_topics_query_for_exclusion->posts;
-}
-// No need to reset postdata as we only fetched IDs
-
 ?>
 
 <aside class="topic-sidebar">

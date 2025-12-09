@@ -1,5 +1,24 @@
 # Changelog
 
+## [1.0.12] - 2025-12-08
+
+### Added
+- New bbpress-ui.js file consolidating bbPress UI handlers (jump-to-latest, sort auto-submit, TinyMCE autosave)
+- Enhanced multisite configuration with improved error handling for blog ID resolution
+- Consolidated TinyMCE editor setup with better dependency management
+
+### Changed
+- Major JavaScript architecture refactoring: separated reply handlers, removed jQuery dependencies
+- Removed inline JavaScript from bbpress.php template, moved to dedicated bbpress-ui.js
+- Updated plugin file counts: 36 total files loaded (core: 8, content: 6, social: 11, user-profiles: 7, home: 4)
+- Improved content filtering with Apple/Word markup cleanup
+- Enhanced multisite blog switching with null safety checks
+
+### Removed
+- Deprecated user-mention-api.php file (moved to extrachill-api plugin)
+- Admin-ajax upvote handler (consolidated to REST API)
+- Duplicate TinyMCE setup functions and jQuery dependency checks
+
 ## [1.0.11] - 2025-12-08
 
 ### Changed

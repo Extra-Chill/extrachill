@@ -78,61 +78,13 @@ function bbp_autosave_tinymce_settings($init) {
 
         $init['setup'] = 'extrachillTinymceSetup';
 
+        // Activate mentions autocomplete plugin
+        if (!empty($init['plugins'])) {
+            $init['plugins'] .= ',extrachillmentionssocial';
+        } else {
+            $init['plugins'] = 'extrachillmentionssocial';
+        }
     }
     return $init;
 }
 add_filter('tiny_mce_before_init', 'bbp_autosave_tinymce_settings');
-
-function extrachill_output_tinymce_setup_script() {
-    if (!is_bbpress()) {
-        return;
-    }
-
-    $rest_nonce = wp_create_nonce('wp_rest');
-    ?>
-    <script type="text/javascript">
-    window.extrachillCommunityEditor = {
-        restNonce: "<?php echo esc_js( $rest_nonce ); ?>"
-    };
-
-    window.extrachillTinymceSetup = function(editor) {
-        var debounceTimer;
-        var saveDelay = 1500;
-        editor.on('input keyup', function(e) {
-            var nonTriggerKeys = [ 33, 34, 35, 36, 37, 38, 39, 40 ];
-            if (e && e.keyCode && nonTriggerKeys.includes(e.keyCode)) {
-                 return;
-            }
-
-            if (editor.plugins.autosave && typeof editor.plugins.autosave.storeDraft === 'function') {
-                clearTimeout(debounceTimer);
-                debounceTimer = setTimeout(function() {
-                    if (!editor.removed) {
-                        try {
-                             editor.plugins.autosave.storeDraft();
-                        } catch (saveError) {
-                             console.error('TinyMCE autosave error:', saveError);
-                        }
-                    }
-                }, saveDelay);
-            }
-        });
-        var form = editor.getElement().closest('form');
-        if (form) {
-            form.addEventListener('submit', function() {
-                if (editor.plugins.autosave && typeof editor.plugins.autosave.removeDraft === 'function') {
-                    if (!editor.removed) {
-                         try {
-                              editor.plugins.autosave.removeDraft(false);
-                         } catch (clearError) {
-                              console.error('TinyMCE clear draft error:', clearError);
-                         }
-                    }
-                }
-            }, false);
-        }
-    };
-    </script>
-    <?php
-}
-add_action('wp_footer', 'extrachill_output_tinymce_setup_script', 99);

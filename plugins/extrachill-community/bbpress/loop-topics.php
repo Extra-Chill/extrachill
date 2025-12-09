@@ -144,14 +144,3 @@ if ( ! empty( $current_query ) && $current_query->max_num_pages > 1 ) {
 	extrachill_pagination( $current_query, 'bbpress' );
 }
 do_action('bbp_template_after_topics_loop');
-?>
-
-<script>
-document.addEventListener('DOMContentLoaded', () => {
-    if (document.getElementById('sortSelect')) { 
-        document.getElementById('sortSelect').addEventListener('change', () => {
-            document.getElementById('sortingForm').submit();
-        });
-    }
-});
-</script>

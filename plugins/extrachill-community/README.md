@@ -2,7 +2,7 @@
 
 A WordPress plugin for the Extra Chill community platform providing forum enhancements, cross-domain authentication, and bbPress integration. Works with the extrachill theme to provide community functionality for community.extrachill.com.
 
-**Version**: 1.0.11
+**Version**: 1.0.12
 
 ## Overview
 
@@ -169,11 +169,10 @@ function modular_bbpress_styles() {
 
 **JavaScript Architecture** (6 files in inc/assets/js/):
 ```php
-// Loaded via assets.php (4 files):
+// Loaded via assets.php (3 files):
 // - upvote.js (bbPress and recent page)
-// - extrachill-mentions.js (bbPress only)
+// - extrachill-mentions.js (bbPress only, includes reply button handler)
 // - content-expand.js (recent page, blog comments feed)
-// - tinymce-image-upload.js (bbPress only)
 
 // Loaded independently by feature modules (2 files):
 // - manage-user-profile-links.js (by inc/user-profiles/edit/user-links.php)
@@ -181,7 +180,7 @@ function modular_bbpress_styles() {
 
 // Removed files:
 // - custom-avatar.js (moved to extrachill-users plugin)
-// - utilities.js (deleted from codebase)
+// - utilities.js, tinymce-image-upload.js (deleted from codebase)
 ```
 
 ### Database Schema
@@ -322,7 +321,7 @@ wp_ajax_handle_tinymce_image_upload    // TinyMCE image uploads
 # 2. Forum Features: Core (8), content (6), social (11), user-profiles (7), home (4)
 # 3. Cross-Domain Integration: WordPress multisite authentication
 # 4. bbPress Integration: Custom templates, breadcrumb filter, stylesheet conflicts, functionality
-# 5. JavaScript Components: 4 via assets.php, 2 independent loaders
+# 5. JavaScript Components: 3 via assets.php, 2 independent loaders
 # 6. User Management: Profiles, settings, verification, notifications
 # 7. Social Features: Upvoting, badges, rank system (2 files)
 # 8. Notification System: 7 notification files in inc/social/notifications/
@@ -356,7 +355,7 @@ define('EXTRACHILL_API_URL', 'https://community.extrachill.com');
 - **Explicit Loading Architecture**: 36 files loaded in init function (NO master loader file)
 - **Organized Structure**: Core (8), content (6), social (11), user-profiles (7), home (4)
 - **WordPress Native**: Full compliance with WordPress plugin development standards
-- **Performance Focused**: Conditional asset loading, dynamic versioning, modular CSS (11 files), 6 JS files (4 via assets.php, 2 independent)
+- **Performance Focused**: Conditional asset loading, dynamic versioning, modular CSS (11 files), 6 JS files (3 via assets.php, 2 independent)
 - **Cross-Domain Ready**: WordPress multisite native authentication exclusively (migration complete)
 - **Hook-Based Components**: Homepage and settings use action hooks for extensibility
 - **Filter System**: ec_avatar_menu_items filter provided by extrachill-users plugin for cross-plugin integration

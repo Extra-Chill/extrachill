@@ -21,7 +21,7 @@ function extrachill_render_avatar_upload_field() {
             <?php
                 $thumbnail_src = wp_get_attachment_image_url($custom_avatar_id, 'thumbnail');
                 if($thumbnail_src): ?>
-            <img src="<?php echo esc_url($thumbnail_src); ?>" alt="Current Avatar" style="max-width: 100px; max-height: 100px;" />
+            <img src="<?php echo esc_url($thumbnail_src); ?>" alt="Current Avatar" />
                 <?php endif; ?>
         <?php endif; ?>
     </div>

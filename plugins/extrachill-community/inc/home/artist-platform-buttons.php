@@ -17,7 +17,7 @@ if (!defined('ABSPATH')) {
 function ec_community_add_artist_platform_buttons() {
     ?>
     <div class="artist-platform-homepage-actions">
-        <a href="https://artist.extrachill.com/" class="button-2 button-large">
+        <a href="<?php echo esc_url( ec_get_site_url( 'artist' ) ); ?>" class="button-2 button-large">
             <?php esc_html_e('Artist Platform', 'extra-chill-community'); ?>
         </a>
     </div>

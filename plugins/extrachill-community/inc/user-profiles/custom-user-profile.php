@@ -33,7 +33,8 @@ function display_main_site_post_count_on_profile() {
     if ($post_count > 0) {
         $user_info = get_userdata($user_id);
         $author_slug = $user_info ? $user_info->user_nicename : null;
-        $author_url = "https://extrachill.com/author/{$author_slug}/"; // Adjust URL structure as needed
+        $main_site_url = function_exists( 'ec_get_site_url' ) ? ec_get_site_url( 'main' ) : 'https://extrachill.com';
+        $author_url = $main_site_url . "/author/{$author_slug}/"; // Adjust URL structure as needed
 
         echo "<p><b>Extra Chill Articles:</b> $post_count <a href='" . esc_url($author_url) . "'>(View All)</a></p>";
     }
@@ -72,16 +73,6 @@ function display_music_fan_details() {
 
 // Hook the display functions to run after bbPress is loaded
 add_action('bbp_init', 'display_music_fan_details');
-
-// =============================================================================
-// bbPress User Role & Title Customization (moved from bbpress-customization.php)
-// =============================================================================
-
-// Utility function to get the edit profile URL
-function extrachill_get_edit_profile_url($user_id, $profile_type) {
-    // This function should return the URL for editing the specified profile type.
-    return home_url("/edit-profile/?profile_type={$profile_type}&user_id={$user_id}");
-}
 
 // Load the function after bbPress is fully loaded
 add_action( 'after_setup_theme', 'override_bbp_user_role_after_bbp_load' );

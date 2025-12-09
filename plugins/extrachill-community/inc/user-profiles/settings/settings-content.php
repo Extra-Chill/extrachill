@@ -215,10 +215,10 @@ function extrachill_community_render_settings_content() {
                     </div>
 
                 </div>
-                <div class="shared-desktop-tab-content-area" style="display: none;"></div>
+                <div class="shared-desktop-tab-content-area"></div>
             </div>
 
-            <div class="user-settings-save-button-container" style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #eee;">
+            <div class="user-settings-save-button-container">
                 <input type="submit" name="submit_user_settings" class="button-1 button-large" value="<?php esc_attr_e('Save All Settings', 'extra-chill-community'); ?>">
             </div>
         </form>

@@ -379,34 +379,37 @@ if (typeof window.extrachillMentionsPluginLoaded === 'undefined') {
 
     })(); // IIFE
 
-// Handle clicks on the bbPress Reply link
-document.addEventListener('DOMContentLoaded', function() {
-    document.addEventListener('click', function(e) {
-        const replyLink = e.target.closest('.bbp-reply-to-link');
-        if (!replyLink) return;
+}
 
-        e.preventDefault();
-        e.stopPropagation();
+// Reply button handler - separate from TinyMCE plugin guard
+// This needs to run even if TinyMCE isn't available (for scrolling to form)
+if (typeof window.extrachillReplyHandlerLoaded === 'undefined') {
+    window.extrachillReplyHandlerLoaded = true;
 
-        const replySlug = replyLink.dataset.replySlug;
-        const replyForm = document.getElementById('new-post');
-        const editor = (typeof tinyMCE !== 'undefined') ? tinyMCE.get('bbp_reply_content') : null;
+    document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('click', function(e) {
+            const replyLink = e.target.closest('.bbp-reply-to-link');
+            if (!replyLink) return;
 
-        // Scroll to reply form
-        if (replyForm) {
-            replyForm.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
+            e.preventDefault();
+            e.stopPropagation();
 
-        // Insert @mention
-        if (replySlug && editor && !editor.isHidden()) {
-            editor.focus();
-            editor.execCommand('mceInsertContent', false, '@' + replySlug + ' ');
-            editor.selection.select(editor.getBody(), true);
-            editor.selection.collapse(false);
-        }
+            const replySlug = replyLink.dataset.replySlug;
+            const replyForm = document.getElementById('new-post');
+            const editor = (typeof tinyMCE !== 'undefined') ? tinyMCE.get('bbp_reply_content') : null;
+
+            // Scroll to reply form
+            if (replyForm) {
+                replyForm.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+
+            // Insert @mention
+            if (replySlug && editor && !editor.isHidden()) {
+                editor.focus();
+                editor.execCommand('mceInsertContent', false, '@' + replySlug + ' ');
+                editor.selection.select(editor.getBody(), true);
+                editor.selection.collapse(false);
+            }
+        });
     });
-});
-
-} else {
-    console.log('Extrachill mentions plugin already loaded');
 }

@@ -2,26 +2,8 @@
 /**
  * Content Filters
  *
- * bbPress content transformation: extrachill.com dofollow links, Twitter/X embed handling, inline style stripping.
+ * bbPress content transformation: Twitter/X embed handling, inline style stripping, Apple/Word markup cleanup.
  */
-
-function custom_bbp_make_dofollow_links($content) {
-    $dom = new DOMDocument();
-    @$dom->loadHTML('<?xml encoding="UTF-8">' . $content, LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
-
-    $links = $dom->getElementsByTagName('a');
-    foreach ($links as $link) {
-        $href = $link->getAttribute('href');
-        if (strpos($href, 'https://extrachill.com') !== false) {
-            $link->removeAttribute('rel'); // Remove the rel attribute entirely
-        }
-    }
-
-    $html = $dom->saveHTML();
-    // This is where you ensure the doctype and html/body tags are not improperly added to your fragment
-    $html = preg_replace(array('/^<!DOCTYPE.+?>/', '/<html>/i', '/<\/html>/i', '/<body>/i', '/<\/body>/i'), array('', '', '', '', ''), $html);
-    return trim($html);
-}
 
 function embed_tweets($content) {
     $pattern = '/https?:\/\/(?:www\.)?(twitter\.com|x\.com)\/(?:#!\/)?(\w+)\/status(?:es)?\/(\d+)/i';

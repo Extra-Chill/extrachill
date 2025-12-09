@@ -30,7 +30,7 @@ function extrachill_render_artist_access_tab( $user_id ) {
 			<p><strong><?php esc_html_e( 'You have artist platform access!', 'extra-chill-community' ); ?></strong></p>
 			<p><?php esc_html_e( 'You can create artist profiles and link pages on extrachill.link.', 'extra-chill-community' ); ?></p>
 			<p>
-				<a href="https://artist.extrachill.com/manage-artist-profiles/" class="button">
+				<a href="<?php echo esc_url( ec_get_site_url( 'artist' ) . '/manage-artist-profiles/' ); ?>" class="button">
 					<?php esc_html_e( 'Manage Your Artist Profiles', 'extra-chill-community' ); ?>
 				</a>
 			</p>

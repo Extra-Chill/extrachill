@@ -109,10 +109,10 @@ $author_role = $user_info ? bbp_get_user_display_role( $author_id ) : '';
                     $truncated_content = extrachill_truncate_html_content( $comment_content, $truncate_length );
                     echo '<div class="content-preview">' . wp_kses_post( $truncated_content ) . '</div>';
 
-                    echo '<div class="content-full collapsed" style="height: 0; overflow: hidden;">' . wp_kses_post( $comment_content ) . '</div>';
-                    echo '<button class="read-more-toggle" onclick="toggleContentExpansion(' . esc_js( $comment_id ) . ', this)">';
+                    echo '<div class="content-full collapsed">' . wp_kses_post( $comment_content ) . '</div>';
+                    echo '<button class="read-more-toggle" data-reply-id="' . esc_attr( $comment_id ) . '">';
                     echo '<span class="read-more-text">Show More</span>';
-                    echo '<span class="read-less-text" style="display: none;">Show Less</span>';
+                    echo '<span class="read-less-text">Show Less</span>';
                     echo '</button>';
                     echo '</div>';
                 } else {

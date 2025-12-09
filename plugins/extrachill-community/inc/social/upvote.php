@@ -74,30 +74,6 @@ function extrachill_process_upvote($post_id, $type, $user_id) {
 	}
 }
 
-/**
- * Admin-ajax handler for upvote action (thin routing layer)
- */
-function handle_upvote_action() {
-	$post_id = isset($_POST['post_id']) ? intval($_POST['post_id']) : 0;
-	$type = isset($_POST['type']) ? sanitize_text_field($_POST['type']) : '';
-	$user_id = get_current_user_id();
-
-	if (!check_ajax_referer('upvote_nonce', 'nonce', false)) {
-		wp_send_json_error(array('message' => 'Security check failed'));
-		return;
-	}
-
-	$result = extrachill_process_upvote($post_id, $type, $user_id);
-
-	if ($result['success']) {
-		wp_send_json_success($result);
-	} else {
-		wp_send_json_error($result);
-	}
-
-	wp_die();
-}
-
 function get_upvote_count($post_id) {
 	$count = get_post_meta($post_id, 'upvote_count', true);
 	return is_numeric($count) ? intval($count) : 0;

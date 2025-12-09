@@ -31,11 +31,13 @@ function extrachill_community_breadcrumb_root( $root_link ) {
 
 	// On homepage, just "Extra Chill" (trail will add "Community")
 	if ( is_front_page() ) {
-		return '<a href="https://extrachill.com">Extra Chill</a>';
+		$main_site_url = ec_get_site_url( 'main' );
+		return '<a href="' . esc_url( $main_site_url ) . '">Extra Chill</a>';
 	}
 
 	// On other pages, include "Community" in root
-	return '<a href="https://extrachill.com">Extra Chill</a> › <a href="' . esc_url( home_url() ) . '">Community</a>';
+	$main_site_url = ec_get_site_url( 'main' );
+	return '<a href="' . esc_url( $main_site_url ) . '">Extra Chill</a> › <a href="' . esc_url( home_url() ) . '">Community</a>';
 }
 add_filter( 'extrachill_breadcrumbs_root', 'extrachill_community_breadcrumb_root' );
 
@@ -50,8 +52,8 @@ add_filter( 'extrachill_breadcrumbs_root', 'extrachill_community_breadcrumb_root
  * @since 1.0.0
  */
 function extrachill_community_breadcrumb_trail_homepage( $custom_trail ) {
-	// Only apply on community.extrachill.com (blog ID 2)
-	if ( get_current_blog_id() !== 2 ) {
+	$community_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'community' ) : null;
+	if ( ! $community_blog_id || get_current_blog_id() !== $community_blog_id ) {
 		return $custom_trail;
 	}
 

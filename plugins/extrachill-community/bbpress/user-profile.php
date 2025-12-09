@@ -68,7 +68,7 @@ $is_professional   = get_user_meta( $displayed_user_id, 'user_is_professional', 
     $comment_count = function_exists('get_user_main_site_comment_count') ? get_user_main_site_comment_count($user_id) : 0;
 
     if ($comment_count > 0) {
-        $comments_url = "https://community.extrachill.com/blog-comments?user_id={$user_id}";
+        $comments_url = ec_get_site_url( 'community' ) . "/blog-comments?user_id={$user_id}";
         echo '<p class="bbp-user-main-site-comment-count"><b>Main Site Comments:</b> ' . $comment_count . ' <a href="' . esc_url($comments_url) . '">(View All)</a></p>';
     } else {
         echo '<p class="bbp-user-main-site-comment-count"><b>Main Site Comments:</b> ' . $comment_count . '</p>';
@@ -108,7 +108,7 @@ if ( $is_artist || $is_professional ) :
 					$artist_post = get_post( $user_artist_id );
 
                     if ( $artist_post ) :
-                        $artist_url = 'https://artist.extrachill.com/' . $artist_post->post_name . '/';
+                        $artist_url = ec_get_site_url( 'artist' ) . '/' . $artist_post->post_name . '/';
                 ?>
                     <li class="user-artist-item">
                         <a href="<?php echo esc_url( $artist_url ); ?>" class="button-3 button-small">
@@ -130,7 +130,7 @@ if ( $is_artist || $is_professional ) :
         if ( bbp_get_displayed_user_id() == get_current_user_id() || current_user_can( 'manage_options' ) ) :
             $current_user_id_for_card_buttons = get_current_user_id();
             $artist_count = is_array( $user_artist_ids ) ? count( $user_artist_ids ) : 0;
-            $base_manage_artists_url_card = 'https://artist.extrachill.com/manage-artist-profiles/';
+            $base_manage_artists_url_card = ec_get_site_url( 'artist' ) . '/manage-artist-profiles/';
 
             echo '<div class="user-artist-management-actions">';
 

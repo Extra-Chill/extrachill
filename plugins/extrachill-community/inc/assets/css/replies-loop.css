@@ -44,6 +44,10 @@
     border-radius: 2px;
 }
 
+.read-more-toggle .read-less-text {
+    display: none;
+}
+
 /* Ensure images always display on own line */
 .bbp-reply-content img,
 .bbp-topic-content img {
@@ -248,13 +252,6 @@ span.bbp-topic-post-date {
 
 .bbp-reply-permalink:hover {
     color: var(--accent);
-}
-
-/* Admin Meta Section */
-.bbp-meta {
-    display: flex;
-    align-items: baseline;
-    line-height: 1.3;
 }
 
 /* Reset background for headers */

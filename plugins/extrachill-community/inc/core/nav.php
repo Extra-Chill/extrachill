@@ -23,17 +23,17 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 function extrachill_community_secondary_header_items( $items ) {
     $items[] = array(
-        'url'      => 'https://community.extrachill.com/recent',
+        'url'      => ec_get_site_url( 'community' ) . '/recent',
         'label'    => __( 'Recent', 'extra-chill-community' ),
         'priority' => 5,
     );
     $items[] = array(
-        'url'      => 'https://community.extrachill.com/r/local-scenes',
+        'url'      => ec_get_site_url( 'community' ) . '/r/local-scenes',
         'label'    => __( 'Local Scenes', 'extra-chill-community' ),
         'priority' => 10,
     );
     $items[] = array(
-        'url'      => 'https://community.extrachill.com/r/music-discussion',
+        'url'      => ec_get_site_url( 'community' ) . '/r/music-discussion',
         'label'    => __( 'Music Discussion', 'extra-chill-community' ),
         'priority' => 15,
     );

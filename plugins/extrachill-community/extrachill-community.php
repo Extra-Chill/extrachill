@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Extra Chill Community
  * Description: bbPress extension plugin providing community and forum functionality for the Extra Chill platform.
- * Version: 1.0.11
+ * Version: 1.0.12
  * Author: Chris Huber
  * Author URI: https://chubes.net
  * License: GPL v2 or later
@@ -22,8 +22,8 @@ define('EXTRACHILL_COMMUNITY_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('EXTRACHILL_COMMUNITY_PLUGIN_URL', plugin_dir_url(__FILE__));
 
 /**
- * Loads 34 feature files via direct require_once.
- * Load order: core (7) → content (6) → social (11) → user-profiles (7) → home (4).
+ * Loads 36 feature files via direct require_once.
+ * Load order: core (8) → content (6) → social (11) → user-profiles (7) → home (4).
  * Templates loaded via hooks: forum-home-header, forum-homepage, recently-active.
  * Note: Avatar display functionality in extrachill-users plugin; upload UI here for bbPress integration.
  */

@@ -166,27 +166,16 @@ body.mce-content-body input[type="reset"]:hover {
 }
 
 /* Override default TinyMCE styles */
-.mce-menu .mce-menu-item:hover,
-.mce-menu .mce-menu-item.mce-active,
+.mce-menu,
+.mce-menu .mce-menu-item,
 .mce-listbox,
 .mce-listbox button {
-    background-color: var(--background-color) !important;
-    color: var(--text-color) !important;
-}
-
-.mce-listbox .mce-listbox-item.mce-active,
-.mce-listbox .mce-listbox-item:hover {
-    background-color: var(--accent-2) !important;
-    color: var(--header-text) !important;
-}
-
-/* Style the formatselect dropdown menu */
-.mce-menu,
-.mce-listbox .mce-listbox-item {
-    color: var(--text-color);
     background-color: var(--background-color);
+    color: var(--text-color);
 }
 
+.mce-menu .mce-menu-item:hover,
+.mce-menu .mce-menu-item.mce-active,
 .mce-listbox .mce-listbox-item.mce-active,
 .mce-listbox .mce-listbox-item:hover {
     background-color: var(--accent-2);

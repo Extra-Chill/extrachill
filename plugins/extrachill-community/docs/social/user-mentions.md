@@ -1,6 +1,6 @@
 # User Mentions
 
-@username mention system with autocomplete search for referencing users in forum content.
+@username mention system with autocomplete search and reply button integration for referencing users in forum content.
 
 ## Creating Mentions
 
@@ -52,6 +52,12 @@ Search terms sanitized with `sanitize_text_field()` before database query.
 
 ### Result Filtering
 Search limited to existing WordPress users only.
+
+## Reply Button Integration
+
+Reply buttons in forum threads automatically insert @mentions when clicked, scrolling to the reply form and pre-filling the mention for easy responses.
+
+**Implementation**: Reply button handler runs independently of TinyMCE availability, ensuring functionality even when the rich text editor is not loaded.
 
 ## Usage Patterns
 

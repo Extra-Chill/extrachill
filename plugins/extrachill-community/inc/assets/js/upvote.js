@@ -18,8 +18,6 @@ document.addEventListener('DOMContentLoaded', function() {
 		const restNonce = extrachillCommunity.restNonce;
 
 		if (!postId || !restNonce || !postType) {
-			console.error('Post ID, nonce, or post type is missing.');
-			console.log('Debug info:', {postId: postId, nonce: restNonce, postType: postType});
 			return;
 		}
 
@@ -57,9 +55,6 @@ document.addEventListener('DOMContentLoaded', function() {
 				return response.json().then(err => Promise.reject(err));
 			}
 			return response.json();
-		})
-		.then(data => {
-			// Server confirmed - UI already updated optimistically
 		})
 		.catch(error => {
 			// Rollback on error

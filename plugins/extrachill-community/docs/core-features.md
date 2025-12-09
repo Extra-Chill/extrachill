@@ -61,14 +61,14 @@ Modular script loading with conditional enqueuing.
 
 **Script Categories:**
 - **upvote.js**: Content voting system
-- **extrachill-mentions.js**: User mention autocomplete
+- **extrachill-mentions.js**: User mention autocomplete with reply button handler
 - **content-expand.js**: Dynamic content expansion
-- **tinymce-image-upload.js**: Image upload integration
 - **manage-user-profile-links.js**: Profile link management
+- **avatar-upload.js**: Avatar upload via REST API
 
 **Loading Strategy:**
-- 4 scripts loaded via centralized `assets.php`
-- 1 script loaded independently by feature module
+- 3 scripts loaded via centralized `assets.php`
+- 2 scripts loaded independently by feature modules
 - Cache busting via `filemtime()` versioning
 
 ### Default Stylesheet Dequeuing

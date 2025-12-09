@@ -171,12 +171,12 @@ function extrachill_get_leaderboard_total_users() {
     return (int) $total;
 }
 
-// Schedule the processing (if not already scheduled)
-if (!wp_next_scheduled('extrachill_daily_points_recalculation')) {
-    wp_schedule_event(time(), 'hourly', 'extrachill_daily_points_recalculation');
+// Schedule hourly points recalculation processing
+if (!wp_next_scheduled('extrachill_hourly_points_recalculation')) {
+    wp_schedule_event(time(), 'hourly', 'extrachill_hourly_points_recalculation');
 }
 
-add_action('extrachill_daily_points_recalculation', 'extrachill_process_points_recalculation_queue');
+add_action('extrachill_hourly_points_recalculation', 'extrachill_process_points_recalculation_queue');
 
 /**
  * Process queued user point recalculations via WP Cron
@@ -244,9 +244,7 @@ function extrachill_display_user_points($user_id) {
     return $total_points;
 }
 
-// add_action('bbp_theme_after_reply_author_details', 'extrachill_add_rank_and_points_to_reply');
 
-// Asset enqueue moved to inc/core/assets.php for centralized management
 
 /**
  * Increment or decrement user points by specified amount

@@ -61,22 +61,18 @@ defined( 'ABSPATH' ) || exit;
 				<p><?php esc_html_e( 'Manage your artist\'s presence, showcase music, share stories, and connect with fans.', 'extra-chill-community'); ?></p>
 				<?php
 				$user_id = bbp_get_displayed_user_id();
-				// Use canonical function from extrachill-users plugin
 				$artist_profile_ids = function_exists('ec_get_artists_for_user') ? ec_get_artists_for_user( $user_id ) : array();
+				$artist_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'artist' ) : null;
 
-				if ( ! empty( $artist_profile_ids ) ) :
+				if ( ! empty( $artist_profile_ids ) && $artist_blog_id ) :
+					switch_to_blog( $artist_blog_id );
 					?>
 					<ul class="user-artist-list">
 						<?php
-                        $artist_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'artist' ) : null;
-                        if ( ! $artist_blog_id ) {
-                            continue;
-                        }
-                        switch_to_blog( $artist_blog_id );
                         foreach ( $artist_profile_ids as $artist_id ) :
                             $artist_post = get_post( $artist_id );
                             if ( $artist_post ) :
-                                $artist_url = 'https://artist.extrachill.com/' . $artist_post->post_name . '/';
+                                $artist_url = ec_get_site_url( 'artist' ) . '/' . $artist_post->post_name . '/';
                                 ?>
                                 <li>
                                     <a href="<?php echo esc_url( $artist_url ); ?>" class="button-3 button-small">
@@ -92,13 +88,13 @@ defined( 'ABSPATH' ) || exit;
 					</ul>
                     <?php
                     // Link to create *another* profile on artist.extrachill.com
-					printf( '<p><a href="%s" class="button-1 button-medium">%s</a></p>', esc_url( 'https://artist.extrachill.com/manage-artist-profiles/' ), esc_html__( 'Create Another Artist Profile', 'extra-chill-community' ) );
+					printf( '<p><a href="%s" class="button-1 button-medium">%s</a></p>', esc_url( ec_get_site_url( 'artist' ) . '/manage-artist-profiles/' ), esc_html__( 'Create Another Artist Profile', 'extra-chill-community' ) );
                     ?>
 				<?php else : ?>
 					<p><?php esc_html_e( "You haven't created or joined any artist profiles yet.", 'extra-chill-community' ); ?></p>
                     <?php
                     // Link to create the first profile on artist.extrachill.com
-					printf( '<p><a href="%s" class="button-1 button-medium">%s</a></p>', esc_url( 'https://artist.extrachill.com/manage-artist-profiles/' ), esc_html__( 'Create Artist Profile', 'extra-chill-community' ) );
+					printf( '<p><a href="%s" class="button-1 button-medium">%s</a></p>', esc_url( ec_get_site_url( 'artist' ) . '/manage-artist-profiles/' ), esc_html__( 'Create Artist Profile', 'extra-chill-community' ) );
                     ?>
 				<?php endif; ?>
 			</div>

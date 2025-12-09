@@ -20,21 +20,4 @@ if (have_posts()) :
         the_content();
     endwhile;
 endif;
-?>
-
-<script type="text/javascript">
-document.addEventListener('DOMContentLoaded', function() {
-    var jumpButton = document.querySelector('#jump-to-latest');
-
-    if (jumpButton) {
-        jumpButton.addEventListener('click', function() {
-            var latestReplyUrl = this.getAttribute('data-latest-reply-url');
-            if (latestReplyUrl) {
-                window.location.href = latestReplyUrl;
-            }
-        });
-    }
-});
-</script>
-
-<?php get_footer(); ?>
+get_footer();

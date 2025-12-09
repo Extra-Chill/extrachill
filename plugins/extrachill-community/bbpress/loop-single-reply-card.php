@@ -36,8 +36,7 @@ defined( 'ABSPATH' ) || exit;
                         <span class="upvote-icon"
                               data-post-id="<?php echo esc_attr($reply_id); ?>"
                               data-type="reply"
-                              data-upvoted="<?php echo $is_upvoted ? 'true' : 'false'; ?>"
-                              <?php if (!empty($main_site_post_id)) echo 'data-main-site-post-id="' . esc_attr($main_site_post_id) . '"'; ?>>
+                              data-upvoted="<?php echo $is_upvoted ? 'true' : 'false'; ?>">
                             <?php echo ec_icon($icon_id); ?>
                         </span>
                         <span class="upvote-count"><?php echo esc_html($display_upvote_count); ?></span>
@@ -166,10 +165,10 @@ $is_lead_topic = ( $reply_id === $topic_id ) || ( $current_post_type === bbp_get
                         $truncated_content = extrachill_truncate_html_content( $content, $truncate_length );
                         echo '<div class="content-preview">' . $truncated_content . '</div>';
                         
-                        echo '<div class="content-full collapsed" style="height: 0; overflow: hidden;">' . $content . '</div>';
-                        echo '<button class="read-more-toggle" onclick="toggleContentExpansion(' . $reply_id . ', this)">';
+                        echo '<div class="content-full collapsed">' . $content . '</div>';
+                        echo '<button class="read-more-toggle" data-reply-id="' . esc_attr($reply_id) . '">';
                         echo '<span class="read-more-text">Show More</span>';
-                        echo '<span class="read-less-text" style="display: none;">Show Less</span>';
+                        echo '<span class="read-less-text">Show Less</span>';
                         echo '</button>';
                         echo '</div>';
                     } else {

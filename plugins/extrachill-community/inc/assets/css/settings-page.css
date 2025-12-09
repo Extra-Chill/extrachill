@@ -204,4 +204,16 @@ input[type="email"]#new_email:focus {
     display: block; /* Ensure it takes full width below input */
 }
 
-/* Old responsive CSS for tabs removed - handled by shared-tabs.css */ 
+/* Old responsive CSS for tabs removed - handled by shared-tabs.css */
+
+/* Hidden desktop content area - JS handles content placement */
+.shared-desktop-tab-content-area {
+    display: none;
+}
+
+/* Save button container */
+.user-settings-save-button-container {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid #eee;
+}
