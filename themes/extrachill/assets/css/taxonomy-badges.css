@@ -7,7 +7,7 @@
 /* === Base Badge Styles === */
 .taxonomy-badge {
   font-size: var(--font-size-sm);
-  padding: var(--spacing-xs) var(--spacing-sm);
+  padding: var(--spacing-sm);
   border-radius: var(--border-radius-pill);
   font-weight: 500;
   line-height: 1;

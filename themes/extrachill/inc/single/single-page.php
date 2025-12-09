@@ -21,11 +21,13 @@ get_header(); ?>
         <?php
         extrachill_breadcrumbs();
         ?>
-        <header>
-            <h1>
-                <?php the_title(); ?>
-            </h1>
-        </header>
+        <?php if ( apply_filters( 'extrachill_show_page_title', true, get_the_ID() ) ) : ?>
+            <header>
+                <h1>
+                    <?php the_title(); ?>
+                </h1>
+            </header>
+        <?php endif; ?>
 
         <div class="entry-content">
             <?php the_content(); ?>

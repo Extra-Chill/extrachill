@@ -76,11 +76,11 @@
         --accent: #53940b;
         --accent-2: #a8c0d0;
         --accent-2-rgb: 168, 192, 208;
-        --accent-3: #00e0ff;
+        --accent-3: #0b5394;
         --error-color: #ff6b6b;
         --success-color: #46b450;
         --link-color-hover: #1a6bb8;
-        --accent-hover: #6ab812;
+        --accent-hover: #1a6bb8;
         --notice-bg: #1e1e1e;
         --notice-border: #444;
         --card-background: #2a2a2a;
@@ -112,7 +112,7 @@ button.button-1, button.button-2, button.button-3, button.button-danger {
 a.button-1,
 input.button-1,
 button.button-1 {
-  background-color: var(--link-color);
+  background-color: var(--accent-3);
 }
 
 .button-1:hover,
