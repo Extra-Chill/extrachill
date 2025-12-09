@@ -56,7 +56,7 @@ $user_artist_ids    = isset( $user_artist_ids ) ? $user_artist_ids : array();
         <h2><?php printf( esc_html__( 'Welcome, %s!', 'extrachill-artist-platform' ), esc_html( $current_user->display_name ) ); ?></h2>
         <p><?php esc_html_e( 'Request artist access to create profiles and custom link pages on extrachill.link.', 'extrachill-artist-platform' ); ?></p>
         <div class="welcome-actions">
-            <a href="https://community.extrachill.com/settings/#tab-artist-platform" class="button-1 button-large">
+            <a href="<?php echo esc_url( ec_get_site_url( 'community' ) . '/settings/#tab-artist-platform' ); ?>" class="button-1 button-large">
                 <?php esc_html_e( 'Request Artist Access', 'extrachill-artist-platform' ); ?>
             </a>
         </div>

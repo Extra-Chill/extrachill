@@ -75,7 +75,7 @@ const ArtistSwitcher = ({ artists, selectedId, onChange, canCreate }) => {
 	);
 };
 
-const InfoTab = ({ artist, onSave, saving, prefill, canCreate, selectedId, linkPageId, creating }) => {
+const InfoTab = ({ artist, onSave, saving, prefill, canCreate, selectedId, linkPageId }) => {
 	const [name, setName] = useState(artist?.name || prefill.artist_name || '');
 	const [bio, setBio] = useState(artist?.bio || prefill.artist_bio || '');
 	const [localCity, setLocalCity] = useState(artist?.local_city || '');
@@ -463,7 +463,6 @@ const App = () => {
 				setArtist(updated);
 				setError('');
 			} else if (config.canCreate) {
-				setCreating(true);
 				const created = await createArtist(payload);
 				setArtist(created);
 				const createdId = created?.id || 0;
@@ -477,7 +476,6 @@ const App = () => {
 			setError(err?.message || 'Save failed.');
 		} finally {
 			setSaving(false);
-			setCreating(false);
 		}
 	};
 
@@ -523,7 +521,6 @@ const App = () => {
 					canCreate={config.canCreate}
 					selectedId={selectedId}
 					linkPageId={artist?.link_page_id || null}
-					creating={creating}
 				/>
 			)}
 

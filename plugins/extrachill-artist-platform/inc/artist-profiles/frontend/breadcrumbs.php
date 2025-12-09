@@ -22,11 +22,13 @@ defined( 'ABSPATH' ) || exit;
 function ec_artist_platform_breadcrumb_root( $root_link ) {
 	// On homepage, just "Extra Chill" (trail will add "Artist Platform")
 	if ( is_front_page() ) {
-		return '<a href="https://extrachill.com">Extra Chill</a>';
+		$main_site_url = ec_get_site_url( 'main' );
+		return '<a href="' . esc_url( $main_site_url ) . '">Extra Chill</a>';
 	}
 
 	// On other pages, "Extra Chill › Artist Platform"
-	return '<a href="https://extrachill.com">Extra Chill</a> › <a href="' . esc_url( home_url() ) . '">Artist Platform</a>';
+	$main_site_url = ec_get_site_url( 'main' );
+	return '<a href="' . esc_url( $main_site_url ) . '">Extra Chill</a> › <a href="' . esc_url( home_url() ) . '">Artist Platform</a>';
 }
 add_filter( 'extrachill_breadcrumbs_root', 'ec_artist_platform_breadcrumb_root' );
 

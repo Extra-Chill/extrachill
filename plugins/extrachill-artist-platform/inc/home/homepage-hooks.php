@@ -44,9 +44,10 @@ add_action( 'extrachill_artist_home_hero', 'ec_render_artist_home_hero', 10, 4 )
  */
 function ec_render_support_buttons() {
     ?>
+    <?php $main_site_url = ec_get_site_url( 'main' ); ?>
     <div class="welcome-actions">
-        <a href="https://community.extrachill.com/r/tech-support" class="button-1 button-large"><?php esc_html_e( 'Support Forum', 'extrachill-artist-platform' ); ?></a>
-        <a href="https://extrachill.com/contact-us" class="button-1 button-large"><?php esc_html_e( 'Contact', 'extrachill-artist-platform' ); ?></a>
+        <a href="<?php echo esc_url( ec_get_site_url( 'community' ) . '/r/tech-support' ); ?>" class="button-1 button-large"><?php esc_html_e( 'Support Forum', 'extrachill-artist-platform' ); ?></a>
+        <a href="<?php echo esc_url( $main_site_url ); ?>/contact-us" class="button-1 button-large"><?php esc_html_e( 'Contact', 'extrachill-artist-platform' ); ?></a>
     </div>
     <?php
 }

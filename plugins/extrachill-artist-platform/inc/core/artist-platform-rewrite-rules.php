@@ -132,7 +132,7 @@ function extrachill_handle_link_domain_routing( $template ) {
 
     // Handle join redirect
     if ( $request_path === 'join' ) {
-        $redirect_url = 'https://artist.extrachill.com/login/?from_join=true';
+        $redirect_url = ec_get_site_url( 'artist' ) . '/login/?from_join=true';
         if ( ! headers_sent() ) {
             wp_redirect( esc_url_raw( $redirect_url ), 301 );
             exit;

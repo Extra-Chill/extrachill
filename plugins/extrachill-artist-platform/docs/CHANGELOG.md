@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.7] - 2025-12-08
+
+### Changed
+- **Breadcrumb System**: Replace hardcoded URLs with dynamic `ec_get_site_url()` calls for multisite compatibility
+- **Rewrite Rules**: Update join flow redirect to use dynamic artist site URL
+- **Homepage Integration**: Use dynamic URLs for community and main site links in hero and support sections
+- **Artist Profile Manager Block**: Remove unused `creating` state and props from React components
+
+### Technical Improvements
+- Improved multisite compatibility with dynamic site URL resolution
+- Cleaned up unused code in artist profile manager block
+
 ## [1.2.6] - 2025-12-08
 
 ### Changed
