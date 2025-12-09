@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0/).
 
+## [1.2.7] - 2025-12-09
+
+### Changed
+- Updated error color variable for improved visual consistency
+- Added border styling to post content H2 headings for better hierarchy
+- Improved form input styling with consistent padding and color properties
+- Enhanced textarea styling with proper spacing and line height
+
+### Technical
+- Modified --error-color in assets/css/root.css from #ff6b6b to #ef4444
+- Added .entry-content h2 styling in assets/css/single-post.css
+- Updated form input and textarea styles in style.css for better consistency
+
 ## [1.2.6] - 2025-12-09
 
 ### Changed
