@@ -14,6 +14,7 @@ import {
 	deleteMedia,
 	getArtistPermissions,
 } from '../shared/api/client';
+import ArtistSwitcher from '../shared/components/ArtistSwitcher';
 
 const useConfig = () => {
 	const config = window.ecArtistPlatformConfig || {};
@@ -47,33 +48,7 @@ const TabNav = ({ tabs, active, onChange }) => (
 	</div>
 );
 
-const ArtistSwitcher = ({ artists, selectedId, onChange, canCreate }) => {
-	if (!artists.length && !canCreate) {
-		return (
-			<div className="ec-apm__notice">
-				<p>Artist profiles are for artists and music professionals.</p>
-			</div>
-		);
-	}
 
-	return (
-		<div className="ec-apm__switcher">
-			<label htmlFor="ec-apm-switcher-select">Your Artists</label>
-			<select
-				id="ec-apm-switcher-select"
-				value={selectedId || ''}
-				onChange={(e) => onChange(Number(e.target.value))}
-			>
-				<option value="">Create new artist</option>
-				{artists.map((artist) => (
-					<option key={artist.id} value={artist.id}>
-						{artist.name}
-					</option>
-				))}
-			</select>
-		</div>
-	);
-};
 
 const InfoTab = ({ artist, onSave, saving, prefill, canCreate, selectedId, linkPageId }) => {
 	const [name, setName] = useState(artist?.name || prefill.artist_name || '');
@@ -166,7 +141,7 @@ const InfoTab = ({ artist, onSave, saving, prefill, canCreate, selectedId, linkP
 					}}
 				/>
 				{profileImage && (
-					<button type="button" className="button-link-delete" onClick={() => handleRemoveImage('profile')}>
+					<button type="button" className="button-danger button-small" onClick={() => handleRemoveImage('profile')}>
 						Remove
 					</button>
 				)}
@@ -184,7 +159,7 @@ const InfoTab = ({ artist, onSave, saving, prefill, canCreate, selectedId, linkP
 					}}
 				/>
 				{headerImage && (
-					<button type="button" className="button-link-delete" onClick={() => handleRemoveImage('header')}>
+					<button type="button" className="button-danger button-small" onClick={() => handleRemoveImage('header')}>
 						Remove
 					</button>
 				)}
@@ -211,10 +186,9 @@ const InfoTab = ({ artist, onSave, saving, prefill, canCreate, selectedId, linkP
 			</label>
 
 			<div className="ec-apm__actions">
-		<button type="submit" className="button-1" disabled={saving}>
-			{saving ? (selectedId ? 'Saving…' : 'Creating…') : selectedId ? 'Save' : 'Create Artist'}
-		</button>
-
+				<button type="submit" className="button-1 button-medium" disabled={saving}>
+					{saving ? (selectedId ? 'Saving…' : 'Creating…') : selectedId ? 'Save' : 'Create Artist'}
+				</button>
 			</div>
 		</form>
 	);
@@ -298,7 +272,7 @@ const ManagersTab = ({ artistId }) => {
 					onChange={(e) => setEmail(e.target.value)}
 					placeholder="Invite by email"
 				/>
-				<button type="button" className="button-1" onClick={invite} disabled={loading || !email}>
+				<button type="button" className="button-1 button-medium" onClick={invite} disabled={loading || !email}>
 					Send Invite
 				</button>
 			</div>
@@ -309,7 +283,7 @@ const ManagersTab = ({ artistId }) => {
 							<strong>{member.display_name}</strong>
 							{member.status && <span className="ec-apm__pill">{member.status}</span>}
 						</div>
-						<button type="button" className="button-link-delete" onClick={() => remove(member.user_id)}>
+						<button type="button" className="button-danger button-small" onClick={() => remove(member.user_id)}>
 							Remove
 						</button>
 					</div>
@@ -320,7 +294,7 @@ const ManagersTab = ({ artistId }) => {
 							<strong>{invite.email}</strong>
 							<span className="ec-apm__pill">Pending</span>
 						</div>
-						<button type="button" className="button-link-delete" onClick={() => cancelInvite(invite.invite_id)}>
+						<button type="button" className="button-danger button-small" onClick={() => cancelInvite(invite.invite_id)}>
 							Cancel
 						</button>
 					</div>
@@ -391,17 +365,17 @@ const SubscribersTab = ({ artistId }) => {
 				{!loading && subs.length === 0 && <p>No subscribers yet.</p>}
 			</div>
 			<div className="ec-apm__footer">
-				<button type="button" className="button-2" onClick={exportCsv} disabled={!subs.length}>
+				<button type="button" className="button-2 button-medium" onClick={exportCsv} disabled={!subs.length}>
 					Export CSV
 				</button>
 				<div className="ec-apm__pagination">
-					<button type="button" onClick={() => load(Math.max(1, page - 1))} disabled={page <= 1}>
+					<button type="button" className="button-3 button-small" onClick={() => load(Math.max(1, page - 1))} disabled={page <= 1}>
 						Prev
 					</button>
 					<span>
 						Page {page} of {totalPages}
 					</span>
-					<button type="button" onClick={() => load(Math.min(totalPages, page + 1))} disabled={page >= totalPages}>
+					<button type="button" className="button-3 button-small" onClick={() => load(Math.min(totalPages, page + 1))} disabled={page >= totalPages}>
 						Next
 					</button>
 				</div>
@@ -498,14 +472,17 @@ const App = () => {
 				artists={artists}
 				selectedId={selectedId}
 				onChange={handleSelect}
-				canCreate={config.canCreate}
+				showCreateOption={config.canCreate}
+				showLabel={true}
+				hideIfSingle={false}
+				emptyStateMessage="Artist profiles are for artists and music professionals."
 			/>
 
 			{loading && <p>Loading artist…</p>}
 			{error && <p className="ec-apm__error">{error}</p>}
 
 			{!selectedId && config.canCreate && (
-				<div className="ec-apm__notice">
+				<div className="notice notice-info">
 					<p>Start by entering artist info, then save to create the profile.</p>
 				</div>
 			)}

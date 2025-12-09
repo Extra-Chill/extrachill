@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.8] - 2025-12-09
+
+### Added
+- Link text tracking in analytics for enhanced click reporting granularity
+- Shared ArtistSwitcher component to reduce code duplication across blocks
+- New page title filter for improved template system extensibility
+
+### Changed
+- Enhanced database schema with link_text column in daily link clicks table
+- Migrated CSS styles to theme design system variables for UI consistency
+- Updated button classes and responsive design across management blocks
+- Improved component prop naming for consistency (selectedId vs artistId)
+
+### Technical Improvements
+- Updated analytics tracking to capture link text alongside URLs
+- Enhanced JavaScript beacon to include link text in click events
+- Improved block styling with shared SCSS imports
+
 ## [1.2.7] - 2025-12-08
 
 ### Changed

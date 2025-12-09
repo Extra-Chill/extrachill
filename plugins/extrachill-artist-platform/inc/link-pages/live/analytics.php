@@ -11,7 +11,7 @@
  */
 
 add_action( 'extrachill_link_page_view_recorded', 'extrachill_handle_link_page_view_db_write', 10, 1 );
-add_action( 'extrachill_link_click_recorded', 'extrachill_handle_link_click_db_write', 10, 2 );
+add_action( 'extrachill_link_click_recorded', 'extrachill_handle_link_click_db_write', 10, 3 );
 
 // Analytics REST API routes live in extrachill-api plugin.
 // This file handles analytics data access and public tracking writes.
@@ -66,7 +66,7 @@ function extrachill_provide_link_page_analytics( $data, $link_page_id, $date_ran
 
 	$top_links = $wpdb->get_results(
 		$wpdb->prepare(
-			"SELECT link_url, SUM(click_count) AS total_clicks FROM {$clicks_table} WHERE link_page_id = %d AND stat_date BETWEEN %s AND %s GROUP BY link_url ORDER BY total_clicks DESC LIMIT 20",
+			"SELECT link_url, link_text, SUM(click_count) AS total_clicks FROM {$clicks_table} WHERE link_page_id = %d AND stat_date BETWEEN %s AND %s GROUP BY link_url, link_text ORDER BY total_clicks DESC LIMIT 20",
 			$link_page_id,
 			$start_date,
 			$today
@@ -101,6 +101,7 @@ function extrachill_provide_link_page_analytics( $data, $link_page_id, $date_ran
 	$formatted_top_links = array_map(
 		static function( $row ) {
 			return array(
+				'text'       => $row->link_text,
 				'identifier' => $row->link_url,
 				'clicks'     => (int) $row->total_clicks,
 			);
@@ -154,10 +155,11 @@ function extrachill_handle_link_page_view_db_write( $link_page_id ) {
 /**
  * Writes link click data to the daily aggregation table
  *
- * @param int    $link_page_id   The link page post ID.
- * @param string $link_url       The clicked URL (already normalized by API).
+ * @param int    $link_page_id The link page post ID.
+ * @param string $link_url     The clicked URL (already normalized by API).
+ * @param string $link_text    The link text at time of click.
  */
-function extrachill_handle_link_click_db_write( $link_page_id, $link_url ) {
+function extrachill_handle_link_click_db_write( $link_page_id, $link_url, $link_text = '' ) {
     global $wpdb;
 
     $today      = current_time( 'Y-m-d' );
@@ -165,14 +167,15 @@ function extrachill_handle_link_click_db_write( $link_page_id, $link_url ) {
 
     $wpdb->query( $wpdb->prepare(
         "INSERT INTO {$table_name}
-            (link_page_id, stat_date, link_url, click_count)
+            (link_page_id, stat_date, link_url, link_text, click_count)
         VALUES
-            (%d, %s, %s, 1)
+            (%d, %s, %s, %s, 1)
         ON DUPLICATE KEY UPDATE
             click_count = click_count + 1",
         $link_page_id,
         $today,
-        $link_url
+        $link_url,
+        $link_text
     ) );
 }
 

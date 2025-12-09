@@ -1,0 +1,46 @@
+/**
+ * Shared ArtistSwitcher Component Styles
+ *
+ * Uses theme design system from extrachill/assets/css/root.css
+ */
+
+.ec-artist-switcher {
+	display: flex;
+	flex-direction: column;
+	gap: var(--spacing-sm);
+
+	label {
+		font-weight: 600;
+		color: var(--text-color);
+	}
+
+	select {
+		padding: var(--spacing-sm) var(--spacing-md);
+		border-radius: var(--border-radius-sm);
+		border: 1px solid var(--border-color);
+		background: var(--card-background);
+		color: var(--text-color);
+		font-size: var(--font-size-base);
+		min-width: 150px;
+		cursor: pointer;
+
+		&:hover {
+			border-color: var(--accent);
+		}
+
+		&:focus {
+			outline: none;
+			border-color: var(--accent);
+		}
+	}
+}
+
+@media (max-width: 480px) {
+	.ec-artist-switcher {
+		width: 100%;
+
+		select {
+			width: 100%;
+		}
+	}
+}

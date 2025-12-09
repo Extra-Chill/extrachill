@@ -106,9 +106,9 @@ export default function Analytics() {
 				<div className="ec-analytics__header-left">
 					<h2>{ __( 'Link Page Analytics', 'extrachill-artist-platform' ) }</h2>
 					<ArtistSwitcher
-						artistId={ artistId }
-						userArtists={ userArtists }
-						onSwitch={ switchArtist }
+						artists={ userArtists }
+						selectedId={ artistId }
+						onChange={ switchArtist }
 					/>
 				</div>
 				<select

@@ -7,6 +7,7 @@
 import { useState, useCallback, useMemo, useEffect } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
 import { useEditor } from '../context/EditorContext';
+import ArtistSwitcher from '../../shared/components/ArtistSwitcher';
 import Preview from './Preview';
 import TabInfo from './tabs/TabInfo';
 import TabLinks from './tabs/TabLinks';
@@ -91,8 +92,7 @@ export default function Editor() {
 	}, [ saveAll ] );
 
 	const handleArtistChange = useCallback(
-		( e ) => {
-			const newId = parseInt( e.target.value, 10 );
+		( newId ) => {
 			if ( newId && newId !== artistId ) {
 				switchArtist( newId );
 			}
@@ -142,19 +142,11 @@ export default function Editor() {
 						publicUrl={ publicUrl }
 						onQRCodeClick={ () => setIsQRModalOpen( true ) }
 					/>
-					{ userArtists.length > 1 && (
-						<select
-							className="ec-editor__artist-switcher"
-							value={ artistId }
-							onChange={ handleArtistChange }
-						>
-							{ userArtists.map( ( a ) => (
-								<option key={ a.id } value={ a.id }>
-									{ a.name }
-								</option>
-							) ) }
-						</select>
-					) }
+					<ArtistSwitcher
+						artists={ userArtists }
+						selectedId={ artistId }
+						onChange={ handleArtistChange }
+					/>
 				</div>
 
 				<div className="ec-editor__header-right">

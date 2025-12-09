@@ -9,7 +9,7 @@
 
 defined('ABSPATH') || exit;
 
-define('EXTRCH_ANALYTICS_DB_VERSION', '1.1');
+define('EXTRCH_ANALYTICS_DB_VERSION', '1.2');
 define('EXTRCH_ANALYTICS_DB_VERSION_OPTION', 'extrch_analytics_db_version');
 
 /**
@@ -43,9 +43,10 @@ function extrch_create_or_update_analytics_table() {
         link_page_id bigint(20) unsigned NOT NULL,
         stat_date date NOT NULL,
         link_url varchar(2083) NOT NULL,
+        link_text varchar(255) NOT NULL DEFAULT '',
         click_count bigint(20) unsigned NOT NULL DEFAULT 0,
         PRIMARY KEY  (click_id),
-        UNIQUE KEY unique_daily_link_click (link_page_id, stat_date, link_url(191)),
+        UNIQUE KEY unique_daily_link_click (link_page_id, stat_date, link_url(191), link_text(100)),
         KEY link_page_date (link_page_id, stat_date)
     ) {$charset_collate};";
 

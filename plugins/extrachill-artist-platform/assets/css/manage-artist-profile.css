@@ -382,9 +382,9 @@ input[name="bp_member_search_security_frontend"] {
 }
 
 @media (max-width: 768px) {
-    .artist-profile-content-card a.button{
-        font-size: 14px;
-    }
+	.artist-profile-content-card a.button{
+		font-size: var(--font-size-sm);
+	}
 }
 
 /* Dark Mode specific styles for AJAX search results */
@@ -652,9 +652,9 @@ body.bp-modal-open {
 }
 
 .add-manager-description {
-    color: var(--muted-text);
-    font-size: 14px;
-    margin-bottom: 0.5em;
+	color: var(--muted-text);
+	font-size: var(--font-size-sm);
+	margin-bottom: 0.5em;
 }
 
 .add-manager-form {

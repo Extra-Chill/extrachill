@@ -41,9 +41,13 @@
             linkContainer.addEventListener('click', (event) => {
                 const linkElement = event.target.closest('a');
                 if (linkElement && linkElement.href && !linkElement.classList.contains('extrch-link-page-edit-btn')) {
+                    const linkTextEl = linkElement.querySelector('.extrch-link-page-link-text');
+                    const linkText = linkTextEl ? linkTextEl.textContent.trim() : '';
+
                     sendBeacon(clickRestUrl, {
                         link_page_id: link_page_id,
-                        link_url: linkElement.href
+                        link_url: linkElement.href,
+                        link_text: linkText
                     });
                 }
             });

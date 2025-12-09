@@ -5,6 +5,8 @@
  * Uses CSS variables from root.css for brand consistency.
  */
 
+@import '../shared/styles/artist-switcher';
+
 .ec-link-page-editor {
 	width: 100%;
 	max-width: 1400px;
@@ -64,15 +66,7 @@
 	gap: 16px;
 }
 
-.ec-editor__artist-switcher {
-	padding: 8px 12px;
-	border-radius: 6px;
-	border: 1px solid var(--border-color);
-	background: var(--card-background);
-	color: var(--text-color);
-	font-size: 14px;
-	min-width: 200px;
-}
+
 
 .ec-editor__save-error {
 	color: var(--error-color);
@@ -817,9 +811,7 @@
 		flex-wrap: wrap;
 	}
 
-	.ec-editor__artist-switcher {
-		min-width: 100%;
-	}
+
 
 	.ec-editor__tabs {
 		padding: 12px;
