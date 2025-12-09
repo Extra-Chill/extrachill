@@ -6,9 +6,9 @@
 
 /* === Base Badge Styles === */
 .taxonomy-badge {
-  font-size: 0.75rem;
-  padding: 0.25rem 0.75rem;
-  border-radius: 50px;
+  font-size: var(--font-size-sm);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--border-radius-pill);
   font-weight: 500;
   line-height: 1;
   text-decoration: none;
@@ -20,8 +20,8 @@
 }
 
 .taxonomy-badge:hover {
-  background-color: #083b6c;
-  color: #fff;
+  background-color: var(--link-color-hover);
+  color: var(--button-text-color);
   transform: translateY(-1px);
   text-decoration: none;
 }

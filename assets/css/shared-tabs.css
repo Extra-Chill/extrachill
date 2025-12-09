@@ -2,8 +2,8 @@
 
 .shared-tab-item {
   border: 1px solid var(--border-color);
-  border-radius: 8px;
-  margin-bottom: 1em;
+  border-radius: var(--border-radius-md);
+  margin-bottom: var(--spacing-md);
   overflow: hidden;
 }
 
@@ -16,7 +16,7 @@
   color: var(--text-color);
   border: none;
   border-bottom: 1px solid var(--border-color);
-  padding: 0.9em 1.2em;
+  padding: var(--spacing-sm) var(--spacing-md);
   font-size: 1.05em;
   font-weight: 600;
   cursor: pointer;
@@ -36,7 +36,7 @@
 .shared-tab-button .shared-tab-arrow {
   transition: transform 0.2s ease-in-out;
   font-size: 0.8em;
-  margin-left: 10px;
+  margin-left: var(--spacing-sm);
 }
 
 .shared-tab-button .shared-tab-arrow::before {
@@ -60,7 +60,7 @@
 .shared-tab-pane {
   background: var(--background-color);
   box-shadow: none;
-  padding: .75em;
+  padding: var(--spacing-sm);
   margin-bottom: 0;
   display: none;
 }
@@ -85,14 +85,14 @@
   .shared-tab-button {
     border: 1px solid var(--border-color);
     border-bottom: none;
-    border-radius: 8px 8px 0 0;
-    padding: 0.7em 1.4em;
+    border-radius: var(--border-radius-md) var(--border-radius-md) 0 0;
+    padding: var(--spacing-sm) var(--spacing-md);
     font-size: 1em;
     position: relative;
     top: 1px;
     width: auto;
     text-align: center;
-    margin-right: 0.4em;
+    margin-right: var(--spacing-xs);
     background: var(--card-background);
     color: var(--text-color);
     z-index: 2;
@@ -118,9 +118,9 @@
   .shared-desktop-tab-content-area {
     background: var(--background-color);
     border: 1px solid var(--border-color);
-    border-radius: 0 8px 8px 8px;
-    padding: 1.5em 1.2em;
-    margin-bottom: 0.5em;
+    border-radius: 0 var(--border-radius-md) var(--border-radius-md) var(--border-radius-md);
+    padding: var(--spacing-lg) var(--spacing-md);
+    margin-bottom: var(--spacing-sm);
     position: relative;
     z-index: 1;
     clear: both;

@@ -31,7 +31,7 @@ if ( ! function_exists( 'extrachill_sidebar_community_activity' ) ) :
 
         echo '</div>';
         echo '<div class="widget-button-wrapper">';
-        echo '<a href="https://community.extrachill.com/recent" class="button-2 button-medium">View All</a>';
+        echo '<a href="' . esc_url( ec_get_site_url( 'community' ) . '/recent' ) . '" class="button-2 button-medium">View All</a>';
         echo '</div>';
         echo '</div>';
         echo '</div>';

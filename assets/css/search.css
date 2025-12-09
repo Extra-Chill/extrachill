@@ -13,18 +13,18 @@
 }
 
 .search-results-count {
-	font-size: 1rem;
+	font-size: var(--font-size-base);
 	color: var(--muted-text);
-	margin-top: 0.5rem;
+	margin-top: var(--spacing-sm);
 	font-weight: 400;
 }
 
 /* Search Results Container */
 .multisite-search-result {
-	margin-bottom: 2rem;
-	padding: 1.5rem;
+	margin-bottom: var(--spacing-lg);
+	padding: var(--spacing-lg);
 	background: var(--card-background);
-	border-radius: 8px;
+	border-radius: var(--border-radius-md);
 	transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
@@ -35,16 +35,16 @@
 
 /* Site Badge */
 .site-badge {
-	margin-bottom: 0.75rem;
-	font-size: 0.875rem;
+	margin-bottom: var(--spacing-sm);
+	font-size: var(--font-size-sm);
 	font-weight: 600;
 	display: inline-block;
 }
 
 /* Search Result Content */
 .multisite-search-result .post-title {
-	font-size: 1.5rem;
-	margin-bottom: 0.5rem;
+	font-size: var(--font-size-xl);
+	margin-bottom: var(--spacing-sm);
 }
 
 .multisite-search-result .post-title a {
@@ -53,13 +53,13 @@
 }
 
 .multisite-search-result .post-meta {
-	margin-bottom: 1rem;
-	font-size: 0.875rem;
+	margin-bottom: var(--spacing-md);
+	font-size: var(--font-size-sm);
 	color: var(--muted-text);
 }
 
 .multisite-search-result .post-excerpt {
-	margin-bottom: 1rem;
+	margin-bottom: var(--spacing-md);
 	line-height: 1.6;
 }
 
@@ -83,16 +83,16 @@
 /* No Results */
 .no-results {
 	text-align: center;
-	padding: 3rem 1rem;
+	padding: var(--spacing-xl) var(--spacing-md);
 }
 
 .no-results h2 {
-	margin-bottom: 1rem;
-	font-size: 1.75rem;
+	margin-bottom: var(--spacing-md);
+	font-size: var(--font-size-2xl);
 }
 
 .no-results p {
-	margin-bottom: 1.5rem;
+	margin-bottom: var(--spacing-lg);
 	color: var(--muted-text);
 }
 
@@ -104,14 +104,14 @@
 /* Responsive Design */
 @media (max-width: 768px) {
 	.multisite-search-result {
-		padding: 1rem;
+		padding: var(--spacing-md);
 	}
 
 	.multisite-search-result .post-title {
-		font-size: 1.25rem;
+		font-size: var(--font-size-lg);
 	}
 
 	.site-badge {
-		font-size: 0.75rem;
+		font-size: var(--font-size-sm);
 	}
 }

@@ -9,14 +9,16 @@
  * @since 1.0.0
  */
 
+$main_site_url = function_exists( 'ec_get_site_url' ) ? ec_get_site_url( 'main' ) : 'https://extrachill.com';
+
 $default_items = array(
 	array(
-		'url'      => 'https://extrachill.com/affiliate-disclosure/',
+		'url'      => $main_site_url . '/affiliate-disclosure/',
 		'label'    => 'Affiliate Disclosure',
 		'priority' => 10,
 	),
 	array(
-		'url'      => 'https://extrachill.com/privacy-policy/',
+		'url'      => $main_site_url . '/privacy-policy/',
 		'label'    => 'Privacy Policy',
 		'rel'      => 'privacy-policy',
 		'priority' => 20,

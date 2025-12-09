@@ -32,9 +32,13 @@ if (!function_exists('extrachill_get_community_activity_items')) {
 
         if ($activities === false) {
             $current_blog_id = get_current_blog_id();
-            $community_blog_id = 2; // community.extrachill.com
+            $community_blog_id = function_exists('ec_get_blog_id') ? ec_get_blog_id('community') : null;
             $query_limit = 10;
             $activities = array();
+
+            if (!$community_blog_id) {
+                return array_slice($activities, 0, $limit);
+            }
 
             $switched = false;
             if ($community_blog_id !== $current_blog_id) {
