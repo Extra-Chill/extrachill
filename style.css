@@ -1,7 +1,7 @@
 /*
 Theme Name: Extra Chill
 Author: Chubes
-Version: 1.2.6
+Version: 1.2.7
 Text Domain: extrachill
 */
 
@@ -265,6 +265,8 @@ input[type="text"], input[type="email"], input[type="url"], input[type="password
 	background-color: var(--card-background);
 	border-radius: var(--border-radius-sm);
 	font-size: var(--font-size-base);
+	color: var(--text-color);
+	padding: var(--spacing-sm) var(--spacing-md);
 }
 
 select {
@@ -279,13 +281,12 @@ select {
 }
 
 textarea {
-	padding: 1%;
+	padding: var(--spacing-sm) var(--spacing-md);
 	border: 1px solid var(--border-color);
-	line-height: 20px;
-	width: 95%;
-	margin: 0 0 var(--spacing-xl);
+	line-height: 1.5;
 	background-color: var(--card-background);
 	border-radius: var(--border-radius-sm);
+	color: var(--text-color);
 }
 
 input[type="text"]:focus, input[type="email"]:focus, input[type="url"]:focus, input[type="search"]:focus, input[type="password"]:focus, select:focus {
