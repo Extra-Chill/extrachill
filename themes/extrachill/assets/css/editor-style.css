@@ -22,13 +22,13 @@
 .wp-block[data-type="core/post-title"],
 .wp-block[data-type="core/post-title"] .wp-block-post-title,
 .block-editor-block-list__layout .wp-block[data-type="core/post-title"] {
-    font-family: "Loft Sans", sans-serif !important;
-    font-size: 32px !important;
+    font-family: var(--font-family-heading) !important;
+    font-size: var(--font-size-3xl) !important;
     line-height: 1.4 !important;
     color: var(--text-color) !important;
     background: transparent !important;
     font-weight: 700 !important;
-    margin: 20px auto !important;
+    margin: var(--spacing-lg) auto !important;
     border: none !important;
     outline: none !important;
     box-shadow: none !important;
@@ -46,7 +46,7 @@
 .edit-post-visual-editor .editor-post-title {
     margin-left: auto !important;
     margin-right: auto !important;
-    max-width: 840px !important; /* Match typical content width */
+    max-width: var(--content-width) !important;
     width: 100% !important;
     box-sizing: border-box !important;
 }
@@ -70,27 +70,27 @@
 .edit-post-visual-editor__content-area .editor-post-title {
     margin-left: auto !important;
     margin-right: auto !important;
-    max-width: 840px !important;
+    max-width: var(--content-width) !important;
 }
 
 /* Fix heading sizes in editor to match theme */
 .edit-post-visual-editor .wp-block h1,
-.wp-block h1 { font-size: 32px !important; line-height: 1.4 !important; }
+.wp-block h1 { font-size: var(--font-size-3xl) !important; line-height: 1.4 !important; }
 
 .edit-post-visual-editor .wp-block h2,
-.wp-block h2 { font-size: 28px !important; line-height: 1.4 !important; }
+.wp-block h2 { font-size: var(--font-size-2xl) !important; line-height: 1.4 !important; }
 
 .edit-post-visual-editor .wp-block h3,
-.wp-block h3 { font-size: 24px !important; line-height: 1.4 !important; }
+.wp-block h3 { font-size: var(--font-size-xl) !important; line-height: 1.4 !important; }
 
 .edit-post-visual-editor .wp-block h4,
-.wp-block h4 { font-size: 20px !important; line-height: 1.4 !important; }
+.wp-block h4 { font-size: var(--font-size-lg) !important; line-height: 1.4 !important; }
 
 .edit-post-visual-editor .wp-block h5,
-.wp-block h5 { font-size: 18px !important; line-height: 1.4 !important; }
+.wp-block h5 { font-size: var(--font-size-body) !important; line-height: 1.4 !important; }
 
 .edit-post-visual-editor .wp-block h6,
-.wp-block h6 { font-size: 16px !important; line-height: 1.4 !important; }
+.wp-block h6 { font-size: var(--font-size-base) !important; line-height: 1.4 !important; }
 
 /* All headings should use the theme font */
 .edit-post-visual-editor .wp-block h1,
@@ -105,10 +105,10 @@
 .wp-block h4,
 .wp-block h5,
 .wp-block h6 {
-    font-family: "Loft Sans", sans-serif !important;
+    font-family: var(--font-family-heading) !important;
     color: var(--text-color) !important;
     font-weight: 700 !important;
-    margin: 20px 0 !important;
+    margin: var(--spacing-lg) 0 !important;
 }
 
 /* Ensure proper background and text contrast for the main editor */
@@ -152,10 +152,10 @@
 /* General paragraph and content styling */
 .edit-post-visual-editor .wp-block-paragraph,
 .wp-block-paragraph {
-    font-size: 19px !important;
+    font-size: var(--font-size-body) !important;
     line-height: 1.9 !important;
     color: var(--text-color) !important;
-    font-family: 'Helvetica', 'Open Sans', serif !important;
+    font-family: var(--font-family-body) !important;
 }
 
 /* Ensure links are visible */
@@ -184,8 +184,8 @@
     background-color: var(--background-color) !important;
     color: var(--text-color) !important;
     border: 1px solid var(--border-color) !important;
-    padding: 8px !important;
-    border-radius: 3px !important;
+    padding: var(--spacing-sm) !important;
+    border-radius: var(--border-radius-sm) !important;
 }
 
 /* Additional specificity for dark mode form fields */
@@ -208,7 +208,7 @@
 .editor-styles-wrapper .editor-post-title {
     margin-left: auto !important;
     margin-right: auto !important;
-    max-width: 840px !important;
+    max-width: var(--content-width) !important;
     position: relative !important;
     left: auto !important;
     right: auto !important;
@@ -217,11 +217,11 @@
 
 /* Force the main editor container to center content properly */
 .block-editor-writing-flow {
-    max-width: 840px !important;
+    max-width: var(--content-width) !important;
     margin-left: auto !important;
     margin-right: auto !important;
-    padding-left: 12px !important;
-    padding-right: 12px !important;
+    padding-left: var(--spacing-md) !important;
+    padding-right: var(--spacing-md) !important;
 }
 
 /* Additional aggressive targeting for the title input */
@@ -245,7 +245,7 @@ body .edit-post-visual-editor .editor-post-title__input {
 .editor-styles-wrapper .wp-block-post-content ul,
 .editor-styles-wrapper .wp-block ul {
     list-style: square outside !important;
-    margin: 0 0 25px 30px !important;
+    margin: 0 0 var(--spacing-lg) var(--spacing-xl) !important;
     padding: 0 !important;
 }
 
@@ -253,7 +253,7 @@ body .edit-post-visual-editor .editor-post-title__input {
 .editor-styles-wrapper .wp-block-post-content ol,
 .editor-styles-wrapper .wp-block ol {
     list-style: decimal outside !important;
-    margin: 0 0 30px 30px !important;
+    margin: 0 0 var(--spacing-xl) var(--spacing-xl) !important;
     padding: 0 0 0 0 !important;
 }
 
@@ -262,16 +262,16 @@ body .edit-post-visual-editor .editor-post-title__input {
 .editor-styles-wrapper ul ol,
 .editor-styles-wrapper ol ul,
 .editor-styles-wrapper ol ol {
-    margin-left: 25px !important;
-    margin-top: 10px !important;
-    margin-bottom: 10px !important;
+    margin-left: var(--spacing-lg) !important;
+    margin-top: var(--spacing-sm) !important;
+    margin-bottom: var(--spacing-sm) !important;
 }
 
 /* List item spacing consistent with frontend */
 .editor-styles-wrapper li {
     line-height: inherit !important;
     font-size: inherit !important;
-    margin: 10px 0 !important;
+    margin: var(--spacing-sm) 0 !important;
 }
 
 /* Avoid interfering with navigation or special block list styles (e.g., menus) */

@@ -10,6 +10,11 @@
     --accent-3: #00c8e3;
     --error-color: #dc3232;
     --success-color: #28a745;
+    --link-color-hover: #083b6c;
+    --accent-hover: #3d6b08;
+    --button-text-color: #fff;
+    --header-background: #000;
+    --header-text-color: #fff;
     --notice-bg: #c8e6c9;
     --notice-border: #0b5394;
     --card-background: #f8fafc;
@@ -20,6 +25,45 @@
     --focus-box-shadow: 0 0 0 3px rgba(83, 148, 11, 0.2);
     --post-title-link-color: var(--text-color);
     --post-title-link-hover-color: var(--text-color);
+
+    /* Font Families */
+    --font-family-heading: "Loft Sans", sans-serif;
+    --font-family-body: 'Helvetica', 'Open Sans', serif;
+    --font-family-brand: "Lobster", sans-serif;
+    --font-family-mono: 'Helvetica', Arial, sans-serif;
+
+    /* Font Sizes */
+    --font-size-xs: 0.625rem;
+    --font-size-sm: 0.8125rem;
+    --font-size-base: 1rem;
+    --font-size-body: 1.125rem;
+    --font-size-lg: 1.25rem;
+    --font-size-xl: 1.5rem;
+    --font-size-2xl: 1.75rem;
+    --font-size-3xl: 2rem;
+    --font-size-brand: 2.25rem;
+
+    /* Border Radius */
+    --border-radius-sm: 5px;
+    --border-radius-md: 8px;
+    --border-radius-lg: 10px;
+    --border-radius-xl: 14px;
+    --border-radius-pill: 50px;
+    --border-radius-circle: 50%;
+
+    /* Container Widths */
+    --container-width: 1200px;
+    --content-width: 800px;
+    --container-wide: 1600px;
+    --sidebar-width: 380px;
+    --form-width: 500px;
+
+    /* Spacing Scale */
+    --spacing-xs: 0.25rem;
+    --spacing-sm: 0.5rem;
+    --spacing-md: 1rem;
+    --spacing-lg: 1.5rem;
+    --spacing-xl: 2rem;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -35,6 +79,8 @@
         --accent-3: #00e0ff;
         --error-color: #ff6b6b;
         --success-color: #46b450;
+        --link-color-hover: #1a6bb8;
+        --accent-hover: #6ab812;
         --notice-bg: #1e1e1e;
         --notice-border: #444;
         --card-background: #2a2a2a;
@@ -53,27 +99,27 @@ a.button-1, a.button-2, a.button-3, a.button-danger,
 input.button-1, input.button-2, input.button-3, input.button-danger,
 button.button-1, button.button-2, button.button-3, button.button-danger {
   border: none;
-  border-radius: 5px;
+  border-radius: var(--border-radius-sm);
   cursor: pointer;
   display: inline-block;
   text-decoration: none;
   transition: background-color 0.3s ease;
   line-height: 1.4;
-  color: #fff;
+  color: var(--button-text-color);
 }
 
 .button-1,
 a.button-1,
 input.button-1,
 button.button-1 {
-  background-color: #0b5394;
+  background-color: var(--link-color);
 }
 
 .button-1:hover,
 a.button-1:hover,
 input.button-1:hover,
 button.button-1:hover {
-  background-color: #083b6c;
+  background-color: var(--link-color-hover);
   text-decoration: none;
 }
 
@@ -81,14 +127,14 @@ button.button-1:hover {
 a.button-2,
 input.button-2,
 button.button-2 {
-  background-color: #53940b;
+  background-color: var(--accent);
 }
 
 .button-2:hover,
 a.button-2:hover,
 input.button-2:hover,
 button.button-2:hover {
-  background-color: #3d6b08;
+  background-color: var(--accent-hover);
 }
 
 .button-3,
@@ -112,7 +158,7 @@ a.button-danger,
 input.button-danger,
 button.button-danger {
   background-color: var(--error-color);
-  color: #fff;
+  color: var(--button-text-color);
 }
 
 .button-danger:hover,
@@ -127,24 +173,24 @@ button.button-danger:hover {
 a.button-small,
 input.button-small,
 button.button-small {
-  padding: 6px 12px;
-  font-size: 13px;
+  padding: var(--spacing-sm) var(--spacing-md);
+  font-size: var(--font-size-sm);
 }
 
 .button-medium,
 a.button-medium,
 input.button-medium,
 button.button-medium {
-  padding: 8px 16px;
-  font-size: 14px;
+  padding: var(--spacing-sm) var(--spacing-md);
+  font-size: var(--font-size-base);
 }
 
 .button-large,
 a.button-large,
 input.button-large,
 button.button-large {
-  padding: 12px 24px;
-  font-size: 16px;
+  padding: var(--spacing-md) var(--spacing-lg);
+  font-size: var(--font-size-body);
 }
 
 /* SVG Icon System */

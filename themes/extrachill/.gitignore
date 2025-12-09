@@ -15,7 +15,6 @@ vendor/
 package-lock.json
 .claude/
 CLAUDE.md
-AGENTS.md
 .buildignore
 build.sh
 

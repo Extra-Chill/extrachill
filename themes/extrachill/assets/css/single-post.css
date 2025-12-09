@@ -7,20 +7,20 @@
 
 .single-post-card {
   background: var(--card-background);
-  border-radius: 18px;
+  border-radius: var(--border-radius-xl);
   box-shadow: 0 2px 8px rgba(0,0,0,0.04); /* very subtle shadow */
   border: 1.5px solid var(--border-color);
-  padding: 2.5em 2em 2em 2em;
-  margin: 2em auto;
-  max-width: 800px;
+  padding: var(--spacing-xl) var(--spacing-lg) var(--spacing-lg) var(--spacing-lg);
+  margin: var(--spacing-lg) auto;
+  max-width: var(--content-width);
   width: 100%;
   box-sizing: border-box;
 }
 
 @media (max-width: 900px) {
   .single-post-card {
-    padding: 1.2em 0.7em;
-    margin: 1.2em auto;
+    padding: var(--spacing-md) var(--spacing-sm);
+    margin: var(--spacing-md) auto;
     max-width: 98vw;
   }
 }
@@ -41,14 +41,14 @@
 
 /* Related Taxonomies Section (moved from style.css) */
 .related-tax-section {
-  margin: 3em auto 2em auto;
-  max-width: 1200px;
+  margin: var(--spacing-xl) auto var(--spacing-lg) auto;
+  max-width: var(--container-width);
 }
 .related-tax-header {
-  font-family: 'Loft Sans', sans-serif;
-  font-size: 1.5em;
+  font-family: var(--font-family-heading);
+  font-size: var(--font-size-xl);
   font-weight: 800;
-  margin-bottom: 1.2em;
+  margin-bottom: var(--spacing-md);
   margin-top: 0;
   letter-spacing: 0.01em;
   text-align: left;
@@ -56,14 +56,14 @@
 .related-tax-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 2em;
+  gap: var(--spacing-lg);
   width: 100%;
 }
 .related-tax-card {
   background: var(--card-background);
-  border-radius: 14px;
+  border-radius: var(--border-radius-xl);
   box-shadow: 0 2px 12px rgba(0,0,0,0.10);
-  padding: 1.2em 1em 0.9em 1em;
+  padding: var(--spacing-md) var(--spacing-md) var(--spacing-sm) var(--spacing-md);
   display: flex;
   flex-direction: column;
   min-width: 0;
@@ -80,18 +80,18 @@
   width: 100%;
   height: 160px;
   object-fit: cover;
-  border-radius: 10px;
+  border-radius: var(--border-radius-lg);
   box-shadow: 0 1px 4px rgba(0,0,0,0.07);
-  margin-bottom: 0.7em;
+  margin-bottom: var(--spacing-sm);
   background: var(--card-background);
   display: block;
 }
 .related-tax-title {
-  font-family: 'Loft Sans', sans-serif;
-  font-size: 1.08em;
+  font-family: var(--font-family-heading);
+  font-size: var(--font-size-body);
   font-weight: 700;
-  margin-bottom: 0.2em;
-  margin-top: 0.2em;
+  margin-bottom: var(--spacing-xs);
+  margin-top: var(--spacing-xs);
   color: var(--post-title-link-color);
   transition: color 0.18s;
   word-break: break-word;
@@ -109,7 +109,7 @@
 @media (max-width: 900px) {
   .related-tax-grid {
     grid-template-columns: 1fr;
-    gap: 1.2em;
+    gap: var(--spacing-md);
   }
 }
 
@@ -117,7 +117,7 @@
 
 
 .single .below-entry-meta{
-	margin: 15px auto;
+	margin: var(--spacing-md) auto;
 	border-bottom: .5px dotted var(--border-color);
 }
 
@@ -127,7 +127,7 @@
 
 .single .article-content .below-entry-meta {
 border-bottom: 2px solid var(--accent);
-  margin-bottom: 10px;
+  margin-bottom: var(--spacing-sm);
 }
 
 .single .related-posts div.below-entry-meta {
@@ -141,17 +141,17 @@ border-bottom: 2px solid var(--accent);
 /* Comments Styles */
 #comments {
 	border-top: 1px solid var(--border-color);
-	padding-top: 15px;
+	padding-top: var(--spacing-md);
 }
 
 #comments i {
-	font-size: 16px;
+	font-size: var(--font-size-base);
 	color: var(--muted-text);
-	padding-right: 10px;
+	padding-right: var(--spacing-sm);
 }
 
 .comments-title {
-	font-size: 24px;
+	font-size: var(--font-size-xl);
 }
 
 .comment-content a {
@@ -159,7 +159,7 @@ border-bottom: 2px solid var(--accent);
 }
 
 .comment-navigation {
-	margin-bottom: 15px;
+	margin-bottom: var(--spacing-md);
 }
 
 .bypostauthor {
@@ -167,45 +167,45 @@ border-bottom: 2px solid var(--accent);
 }
 
 #comments .comments-title {
-	margin-bottom: 10px;
+	margin-bottom: var(--spacing-sm);
 }
 
 .avatar {
-	border-radius: 50%;
+	border-radius: var(--border-radius-circle);
 	float: left;
 }
 
 .comments-area article header {
-	margin: 0 0 5px;
+	margin: 0 0 var(--spacing-sm);
 	overflow: hidden;
 	position: relative;
 }
 
 .comments-area .comment-author-link span {
-	margin-left: 10px;
-	padding: 0 5px;
-	background-color: #003466;
-	color: #FFFFFF;
-	border-radius: 3px;
+	margin-left: var(--spacing-sm);
+	padding: 0 var(--spacing-sm);
+	background-color: var(--link-color-hover);
+	color: var(--button-text-color);
+	border-radius: var(--border-radius-sm);
 }
 
 .comment-edit-link{
-	margin-left:10px;
+	margin-left: var(--spacing-sm);
 }
 
 .comment-content {
-	padding: 15px 15px 30px;
+	padding: var(--spacing-md) var(--spacing-md) var(--spacing-xl);
 	background-color: var(--card-background);
 	border: 1px solid var(--border-color);
-	border-radius: 2px;
+	border-radius: var(--border-radius-sm);
 }
 
 .comment {
-	margin-bottom: 20px;
+	margin-bottom: var(--spacing-lg);
 }
 
 .comment ul, .comment ol {
-	margin: 0 0 20px 20px;
+	margin: 0 0 var(--spacing-lg) var(--spacing-lg);
 }
 
 .comment ul {
@@ -217,19 +217,19 @@ border-bottom: 2px solid var(--accent);
 }
 
 .comment-list {
-	margin-bottom: 25px;
+	margin-bottom: var(--spacing-lg);
 	list-style-type: none;
 	padding: 0;
 }
 
 .comment-list .children {
-	margin-left: 20px;
+	margin-left: var(--spacing-lg);
 	list-style-type: none;
 	padding: 0;
 }
 
 .nav-previous, .nav-next {
-	margin-bottom: 15px;
+	margin-bottom: var(--spacing-md);
 }
 
 .nav-previous a {
@@ -242,16 +242,14 @@ border-bottom: 2px solid var(--accent);
 
 /* Comment Form */
 #respond h3#reply-title {
-	font-size: 22px;
-	line-height: 28px;
+	font-size: var(--font-size-lg);
+	line-height: var(--font-size-2xl);
 }
 
 #respond h3#reply-title #cancel-comment-reply-link {
-	margin-left: 10px;
-	margin-left: 1rem;
+	margin-left: var(--spacing-md);
 	font-weight: normal;
-	font-size: 16px;
-	font-size: 1.6rem;
+	font-size: var(--font-size-base);
 }
 
 #respond form label {
@@ -261,14 +259,14 @@ border-bottom: 2px solid var(--accent);
 
 #respond form input[type="text"], #respond form textarea {
 	box-sizing: border-box;
-	font-size: 16px;
+	font-size: var(--font-size-base);
 	line-height: 1.5;
-	padding: 10px;
+	padding: var(--spacing-sm);
 	width: 100%;
 }
 
 #respond form p.form-allowed-tags {
-	font-size: 16px;
+	font-size: var(--font-size-base);
 	line-height: 1;
 	color: var(--muted-text);
 	display: none;
@@ -286,10 +284,10 @@ fill: var(--accent-2);
 
 span.comments a{
   border-bottom: .5px dotted var(--link-color);
-  margin-left: 6px;
+  margin-left: var(--spacing-sm);
 }
 span.comments .fa {
-	font-size: 12px;
+	font-size: var(--font-size-sm);
 }
 
 /* Responsive adjustments for single posts */

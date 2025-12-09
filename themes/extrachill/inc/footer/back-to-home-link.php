@@ -22,7 +22,7 @@ function extrachill_display_back_to_home_link() {
 	}
 
 	if ( ! is_main_site() && is_front_page() ) {
-		$url   = 'https://extrachill.com';
+		$url   = function_exists( 'ec_get_site_url' ) ? ec_get_site_url( 'main' ) : 'https://extrachill.com';
 		$label = '← Back to Extra Chill';
 	} else {
 		$url   = home_url();

@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0/).
 
+## [1.2.5] - 2025-12-08
+
+### Changed
+- Major CSS architecture refactor to use CSS custom properties for improved maintainability
+- Added comprehensive design tokens for fonts, spacing, colors, and typography
+- Restructured footer menu navigation and improved accessibility
+- Added AGENTS.md development guidelines for coding standards
+
+### Technical
+- Refactored all CSS files to consume variables from root.css
+- Added font family, size, and spacing variables for consistent theming
+- Updated .gitignore to include AGENTS.md in version control
+
 ## [1.2.4] - 2025-12-08
 
 ### Added

@@ -25,31 +25,31 @@ function extrachill_get_dropdown_network_sites() {
 	$sites = array(
 		array(
 			'label' => 'Blog',
-			'url'   => 'https://extrachill.com/blog',
+			'url'   => ec_get_site_url( 'main' ) . '/blog',
 		),
 		array(
 			'label' => 'Community',
-			'url'   => 'https://community.extrachill.com',
+			'url'   => ec_get_site_url( 'community' ),
 		),
 		array(
 			'label' => 'Events Calendar',
-			'url'   => 'https://events.extrachill.com',
+			'url'   => ec_get_site_url( 'events' ),
 		),
 		array(
 			'label' => 'Artist Platform',
-			'url'   => 'https://artist.extrachill.com',
+			'url'   => ec_get_site_url( 'artist' ),
 		),
 		array(
 			'label' => 'Newsletter',
-			'url'   => 'https://newsletter.extrachill.com',
+			'url'   => ec_get_site_url( 'newsletter' ),
 		),
 		array(
 			'label' => 'Shop',
-			'url'   => 'https://shop.extrachill.com',
+			'url'   => ec_get_site_url( 'shop' ),
 		),
 		array(
 			'label' => 'Documentation',
-			'url'   => 'https://docs.extrachill.com',
+			'url'   => ec_get_site_url( 'docs' ),
 		),
 	);
 

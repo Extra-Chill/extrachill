@@ -22,7 +22,8 @@
     <?php do_action('extrachill_footer_below_menu'); ?>
 
     <div class="footer-copyright">
-        &copy; <?php echo date( 'Y' ); ?> <a href="https://extrachill.com">Extra Chill</a>. All rights reserved.
+        <?php $main_site_url = function_exists( 'ec_get_site_url' ) ? ec_get_site_url( 'main' ) : 'https://extrachill.com'; ?>
+        &copy; <?php echo date( 'Y' ); ?> <a href="<?php echo esc_url( $main_site_url ); ?>">Extra Chill</a>. All rights reserved.
     </div>
 
     <?php do_action('extrachill_below_copyright'); ?>

@@ -135,6 +135,9 @@ if (!function_exists('extrachill_breadcrumbs')) {
             echo '<span>Author</span> › ';
             echo '<span>' . esc_html($author->display_name) . '</span>';
         }
+        elseif (is_404()) {
+            echo '<span>Page Not Found</span>';
+        }
         else {
             echo '<span>Archives</span>';
         }

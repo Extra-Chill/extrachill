@@ -13,51 +13,51 @@
 <div class="footer-menus">
     <div class="footer-menu-column">
         <ul class="footer-column-menu">
-            <li class="menu-item menu-item-has-children">
-                <a href="https://extrachill.com">Network</a>
-                <ul class="sub-menu">
-                    <li class="menu-item">
-                        <a href="https://extrachill.com/blog">Blog</a>
-                    </li>
-                    <li class="menu-item">
-                        <a href="https://community.extrachill.com">Community</a>
-                    </li>
-                    <li class="menu-item">
-                        <a href="https://events.extrachill.com">Events Calendar</a>
-                    </li>
-                    <li class="menu-item">
-                        <a href="https://artist.extrachill.com">Artist Platform</a>
-                    </li>
-                    <li class="menu-item">
-                        <a href="https://newsletter.extrachill.com">Newsletter</a>
-                    </li>
-                    <li class="menu-item">
-                        <a href="https://shop.extrachill.com">Shop</a>
-                    </li>
-                </ul>
-            </li>
+             <li class="menu-item menu-item-has-children">
+                 <a href="<?php echo esc_url( ec_get_site_url( 'main' ) ); ?>">Network</a>
+                 <ul class="sub-menu">
+                     <li class="menu-item">
+                         <a href="<?php echo esc_url( ec_get_site_url( 'main' ) ); ?>/blog">Blog</a>
+                     </li>
+                     <li class="menu-item">
+                         <a href="<?php echo esc_url( ec_get_site_url( 'community' ) ); ?>">Community</a>
+                     </li>
+                     <li class="menu-item">
+                         <a href="<?php echo esc_url( ec_get_site_url( 'events' ) ); ?>">Events Calendar</a>
+                     </li>
+                     <li class="menu-item">
+                         <a href="<?php echo esc_url( ec_get_site_url( 'artist' ) ); ?>">Artist Platform</a>
+                     </li>
+                     <li class="menu-item">
+                         <a href="<?php echo esc_url( ec_get_site_url( 'newsletter' ) ); ?>">Newsletter</a>
+                     </li>
+                     <li class="menu-item">
+                         <a href="<?php echo esc_url( ec_get_site_url( 'shop' ) ); ?>">Shop</a>
+                     </li>
+                 </ul>
+             </li>
         </ul>
     </div>
 
     <div class="footer-menu-column">
         <ul class="footer-column-menu">
             <li class="menu-item menu-item-has-children">
-                <a href="https://extrachill.com/blog">Explore</a>
+                <a href="<?php echo esc_url( $main_site_url ); ?>/blog">Explore</a>
                 <ul class="sub-menu">
                     <li class="menu-item">
-                        <a href="https://extrachill.com/category/interviews/">Interviews</a>
+                        <a href="<?php echo esc_url( $main_site_url ); ?>/category/interviews/">Interviews</a>
                     </li>
                     <li class="menu-item">
-                        <a href="https://extrachill.com/category/live-music-reviews/">Live Reviews</a>
+                        <a href="<?php echo esc_url( $main_site_url ); ?>/category/live-music-reviews/">Live Reviews</a>
                     </li>
                     <li class="menu-item">
-                        <a href="https://extrachill.com/festival-wire">Festival Wire</a>
+                        <a href="<?php echo esc_url( $main_site_url ); ?>/festival-wire">Festival Wire</a>
                     </li>
                     <li class="menu-item">
-                        <a href="https://extrachill.com/category/song-meanings/">Song Meanings</a>
+                        <a href="<?php echo esc_url( $main_site_url ); ?>/category/song-meanings/">Song Meanings</a>
                     </li>
                     <li class="menu-item">
-                        <a href="https://extrachill.com/category/music-news/">Music News</a>
+                        <a href="<?php echo esc_url( $main_site_url ); ?>/category/music-news/">Music News</a>
                     </li>
                 </ul>
             </li>
@@ -67,19 +67,19 @@
     <div class="footer-menu-column">
         <ul class="footer-column-menu">
              <li class="menu-item menu-item-has-children">
-                 <a href="https://extrachill.com/about/">About</a>
+                 <a href="<?php echo esc_url( $main_site_url ); ?>/about/">About</a>
                  <ul class="sub-menu">
+                      <li class="menu-item">
+                          <a href="<?php echo esc_url( ec_get_site_url( 'docs' ) ); ?>">Documentation</a>
+                      </li>
                      <li class="menu-item">
-                         <a href="https://docs.extrachill.com">Documentation</a>
+                         <a href="<?php echo esc_url( $main_site_url ); ?>/contact/">Contact Us</a>
                      </li>
                      <li class="menu-item">
-                         <a href="https://extrachill.com/contact/">Contact Us</a>
+                         <a href="<?php echo esc_url( $main_site_url ); ?>/about/in-the-press/">In the Press</a>
                      </li>
                      <li class="menu-item">
-                         <a href="https://extrachill.com/about/in-the-press/">In the Press</a>
-                     </li>
-                     <li class="menu-item">
-                         <a href="https://extrachill.com/contribute">Contribute</a>
+                         <a href="<?php echo esc_url( $main_site_url ); ?>/contribute">Contribute</a>
                      </li>
                  </ul>
              </li>
