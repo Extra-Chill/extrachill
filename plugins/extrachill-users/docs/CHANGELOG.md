@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.3.3] - 2025-12-08
+
+### Changed
+- Replaced all hardcoded site URLs with dynamic `ec_get_site_url()` function calls for improved maintainability
+- Updated CSS to use CSS variables for font sizes instead of hardcoded values
+- Enhanced avatar display system with null safety checks for community blog ID
+- Simplified avatar menu icon rendering by removing unused CSS classes
+
+### Added
+- New user management system overview documentation (`docs/user-management.md`)
+
+### Technical
+- Refactored URL handling in: login-register block, password reset system, author links, avatar menu, and registration emails
+- Improved CSS maintainability with variable-based font sizing
+
 ## [0.3.2] - 2025-12-08
 
 ### Added

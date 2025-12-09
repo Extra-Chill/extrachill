@@ -39,21 +39,9 @@
     opacity: 0.8;
 }
 
-.avatar-default-icon {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    border: 1px solid var(--accent-2);
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    background: var(--card-background);
-    color: var(--accent-2);
-}
-
-.avatar-default-icon .ec-icon {
-    width: 18px;
-    height: 18px;
+.user-avatar-toggle .ec-icon {
+    width: 1em;
+    height: 1em;
 }
 
 .user-dropdown-menu {
@@ -95,7 +83,7 @@
     color: var(--text-color);
     text-decoration: none;
     transition: background-color 0.15s ease;
-    font-size: 0.95rem;
+    font-size: var(--font-size-base);
 }
 
 .user-dropdown-menu a:hover {

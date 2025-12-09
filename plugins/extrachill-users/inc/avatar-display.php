@@ -30,8 +30,11 @@ function extrachill_custom_avatar($avatar, $id_or_email, $args) {
         $user = get_user_by('email', $id_or_email);
     }
 
-    if ($user && is_object($user)) {
-        $community_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'community' ) : 2;
+    if ( $user && is_object( $user ) ) {
+        $community_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'community' ) : null;
+        if ( ! $community_blog_id ) {
+            return null;
+        }
 
         // Switch to community site where avatars are stored
         switch_to_blog( $community_blog_id );

@@ -7,7 +7,7 @@
 
 if ( is_user_logged_in() ) {
 	$current_user = wp_get_current_user();
-	$profile_url  = 'https://community.extrachill.com/u/' . $current_user->user_nicename . '/';
+	$profile_url  = ec_get_site_url( 'community' ) . '/u/' . $current_user->user_nicename . '/';
 	?>
 	<div class="login-already-logged-in-card">
 		<div class="logged-in-avatar">

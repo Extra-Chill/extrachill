@@ -41,7 +41,7 @@ function ec_get_user_profile_url( $user_id, $user_email = '' ) {
 
 
         if ( $community_user && ! empty( $community_user->user_nicename ) ) {
-            return 'https://community.extrachill.com/u/' . $community_user->user_nicename;
+            return ec_get_site_url( 'community' ) . '/u/' . $community_user->user_nicename;
         }
     }
 
@@ -54,7 +54,7 @@ function ec_get_user_profile_url( $user_id, $user_email = '' ) {
 		}
 
 		if ( isset( $community_user ) && $community_user && ! empty( $community_user->user_nicename ) ) {
-			return 'https://community.extrachill.com/u/' . $community_user->user_nicename;
+			return ec_get_site_url( 'community' ) . '/u/' . $community_user->user_nicename;
 		}
 	}
 
@@ -105,7 +105,7 @@ function ec_customize_comment_form_logged_in( $defaults ) {
 	}
 
 	$user = wp_get_current_user();
-	$profile_edit_url = 'https://community.extrachill.com/u/' . $user->user_nicename . '/edit';
+	$profile_edit_url = ec_get_site_url( 'community' ) . '/u/' . $user->user_nicename . '/edit';
 	$logout_url = wp_logout_url( home_url() );
 
 	$defaults['logged_in_as'] = sprintf(
@@ -150,7 +150,7 @@ function ec_display_author_community_link( $author_id ) {
 		return;
 	}
 
-	$community_profile_url = 'https://community.extrachill.com/u/' . $community_user->user_nicename . '/';
+	$community_profile_url = ec_get_site_url( 'community' ) . '/u/' . $community_user->user_nicename . '/';
 
 	echo '<div class="author-community-link">';
 	echo '<a href="' . esc_url( $community_profile_url ) . '" class="button-2 button-medium">' . esc_html__( 'View Community Profile', 'extrachill-users' ) . '</a>';

@@ -17,7 +17,7 @@ defined( 'ABSPATH' ) || exit;
  * @return string Modified lost password URL
  */
 function ec_custom_lostpassword_url( $lostpassword_url, $redirect ) {
-	return 'https://community.extrachill.com/reset-password/';
+	return ec_get_site_url( 'community' ) . '/reset-password/';
 }
 add_filter( 'lostpassword_url', 'ec_custom_lostpassword_url', 10, 2 );
 
@@ -122,7 +122,7 @@ function ec_send_password_reset_email( $user, $reset_key ) {
 			'key'    => $reset_key,
 			'login'  => rawurlencode( $user->user_login ),
 		),
-		'https://community.extrachill.com/reset-password/'
+		ec_get_site_url( 'community' ) . '/reset-password/'
 	);
 
 	$subject  = __( 'Password Reset Request - Extra Chill', 'extrachill-users' );

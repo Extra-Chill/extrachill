@@ -27,7 +27,7 @@ function extrachill_display_user_avatar_menu() {
     if ( $is_logged_in ) {
         $avatar_markup = get_avatar( $current_user_id, 40 );
     } else {
-        $avatar_markup = ec_icon( 'user', 'avatar-default-icon' );
+        $avatar_markup = ec_icon( 'user' );
     }
     ?>
     <div class="user-avatar-container header-right-icon">
@@ -39,14 +39,14 @@ function extrachill_display_user_avatar_menu() {
         <div class="user-dropdown-menu" role="menu">
             <ul>
                 <?php if ( $is_logged_in && $current_user ) : ?>
-                    <li><a href="https://community.extrachill.com/u/<?php echo esc_attr( $current_user->user_login ); ?>/"><?php esc_html_e( 'View Profile', 'extrachill-users' ); ?></a></li>
-                    <li><a href="https://community.extrachill.com/u/<?php echo esc_attr( $current_user->user_login ); ?>/edit/">Edit Profile</a></li>
+                    <li><a href="<?php echo esc_url( ec_get_site_url( 'community' ) . '/u/' . $current_user->user_login . '/' ); ?>"><?php esc_html_e( 'View Profile', 'extrachill-users' ); ?></a></li>
+                    <li><a href="<?php echo esc_url( ec_get_site_url( 'community' ) . '/u/' . $current_user->user_login . '/edit/' ); ?>">Edit Profile</a></li>
 
                     <?php
                     $user_artist_ids = ec_get_artists_for_user( $current_user_id );
                     $artist_count    = count( $user_artist_ids );
 
-                    $base_manage_url = 'https://artist.extrachill.com/manage-artist-profiles/';
+                    $base_manage_url = ec_get_site_url( 'artist' ) . '/manage-artist-profiles/';
 
                     if ( $artist_count > 0 ) {
                         $latest_artist_id = ec_get_latest_artist_for_user( $current_user_id );
@@ -63,7 +63,7 @@ function extrachill_display_user_avatar_menu() {
                             $artist_label
                         );
 
-                        $base_link_page_manage_url  = 'https://artist.extrachill.com/manage-link-page/';
+                        $base_link_page_manage_url  = ec_get_site_url( 'artist' ) . '/manage-link-page/';
                         $final_link_page_manage_url = add_query_arg( 'artist_id', $latest_artist_id, $base_link_page_manage_url );
 
                         if ( $link_page_count === 0 ) {
@@ -114,7 +114,7 @@ function extrachill_display_user_avatar_menu() {
                     }
                     ?>
 
-                    <li><a href="https://community.extrachill.com/settings/"><?php esc_html_e( 'Settings', 'extrachill-users' ); ?></a></li>
+                    <li><a href="<?php echo esc_url( ec_get_site_url( 'community' ) . '/settings/' ); ?>"><?php esc_html_e( 'Settings', 'extrachill-users' ); ?></a></li>
                     <li><a class="log-out-link" href="<?php echo esc_url( wp_logout_url( home_url() ) ); ?>"><?php esc_html_e( 'Log Out', 'extrachill-users' ); ?></a></li>
                 <?php else : ?>
                     <li><a href="<?php echo esc_url( $login_url ); ?>"><?php esc_html_e( 'Log In', 'extrachill-users' ); ?></a></li>

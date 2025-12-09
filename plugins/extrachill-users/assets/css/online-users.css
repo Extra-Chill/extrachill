@@ -56,14 +56,14 @@
 }
 
 .stat-value {
-	font-size: 1.5rem;
+	font-size: var(--font-size-xl);
 	font-weight: 700;
 	color: var(--text-primary);
 	line-height: 1;
 }
 
 .stat-label {
-	font-size: 0.875rem;
+	font-size: var(--font-size-sm);
 	color: var(--text-secondary);
 	text-transform: uppercase;
 	letter-spacing: 0.5px;
