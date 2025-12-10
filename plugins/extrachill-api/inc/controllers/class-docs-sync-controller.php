@@ -39,7 +39,6 @@ class ExtraChill_Docs_Sync_Controller {
 		$timestamp     = $params['timestamp'];
 		$force         = $params['force'];
 		$slug          = $params['slug'];
-		$excerpt       = $params['excerpt'];
 
 		// Convert Markdown to HTML before storing.
 		require_once EXTRACHILL_API_PATH . 'vendor/autoload.php';
@@ -52,10 +51,10 @@ class ExtraChill_Docs_Sync_Controller {
 		// Resolve internal .md links to ec_doc permalinks.
 		$html_content = self::resolve_internal_links( $html_content );
 
-		// 2. Calculate hash to detect changes.
-		$hash = hash( 'sha256', $content . $title . $platform_slug . $excerpt );
+		// Calculate hash to detect changes.
+		$hash = hash( 'sha256', $content . $title . $platform_slug );
 
-		// 3. Find existing post by source_file meta.
+		// Find existing post by source_file meta.
 		$existing_post = self::get_post_by_source_file( $source_file );
 
 		if ( $existing_post ) {
@@ -81,12 +80,11 @@ class ExtraChill_Docs_Sync_Controller {
 			return $term_id;
 		}
 
-		// 5. Insert/Update Post.
+		// Insert/Update Post.
 		$post_data = [
 			'ID'           => $post_id,
 			'post_title'   => $title,
 			'post_content' => $html_content,
-			'post_excerpt' => $excerpt,
 			'post_name'    => $slug,
 			'post_status'  => 'publish',
 			'post_type'    => 'ec_doc',

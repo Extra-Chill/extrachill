@@ -2,6 +2,15 @@
 
 All notable changes to the ExtraChill API plugin are documented here. This file is the single source of truth for release history.
 
+## 0.2.7
+
+### Changed
+- **Documentation Sync Excerpt Removal**: Removed excerpt parameter support from docs sync endpoint
+  - Removed `excerpt` parameter from `POST /wp-json/extrachill/v1/sync/doc` endpoint validation
+  - Removed `post_excerpt` from documentation post data insertion
+  - Updated hash calculation to exclude excerpt for change detection
+  - Simplifies documentation sync API by removing unused excerpt functionality
+
 ## 0.2.6
 
 ### Added

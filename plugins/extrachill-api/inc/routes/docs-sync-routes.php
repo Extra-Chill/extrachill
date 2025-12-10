@@ -38,11 +38,6 @@ add_action( 'rest_api_init', function() {
 				'type'              => 'string',
 				'sanitize_callback' => 'sanitize_title',
 			],
-			'excerpt'       => [
-				'required'          => false,
-				'type'              => 'string',
-				'sanitize_callback' => 'sanitize_text_field',
-			],
 			'filesize'      => [
 				'required'          => true,
 				'type'              => 'integer',
