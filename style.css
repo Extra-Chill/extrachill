@@ -1,7 +1,7 @@
 /*
 Theme Name: Extra Chill
 Author: Chubes
-Version: 1.2.7
+Version: 1.2.8
 Text Domain: extrachill
 */
 
@@ -668,7 +668,7 @@ body {
 }
 
 .entry-content ul {
-	list-style: square;
+	list-style: disc;
 	margin-bottom: var(--spacing-lg);	
 	margin-left: var(--spacing-xl);
 }
