@@ -32,28 +32,30 @@ function extrachill_api_register_docs_info_routes() {
 function extrachill_api_docs_info_handler() {
     $site = get_site();
 
-    $post_types = extrachill_api_docs_info_collect_post_types();
+	$post_types = extrachill_api_docs_info_collect_post_types();
+	$pages      = extrachill_api_docs_info_collect_pages();
 
-    $about = extrachill_api_docs_info_collect_about();
+	$about = extrachill_api_docs_info_collect_about();
 
-    if ( is_wp_error( $about ) ) {
-        return $about;
-    }
+	if ( is_wp_error( $about ) ) {
+		return $about;
+	}
 
-    return rest_ensure_response(
-        array(
-            'site'        => array(
-                'blog_id' => get_current_blog_id(),
-                'domain'  => isset( $site->domain ) ? $site->domain : '',
-                'path'    => isset( $site->path ) ? $site->path : '/',
-                'name'    => get_bloginfo( 'name' ),
-                'url'     => home_url( '/' ),
-            ),
-            'generated_at' => gmdate( 'c' ),
-            'about'        => $about,
-            'post_types'   => $post_types,
-        )
-    );
+	return rest_ensure_response(
+		array(
+			'site'        => array(
+				'blog_id' => get_current_blog_id(),
+				'domain'  => isset( $site->domain ) ? $site->domain : '',
+				'path'    => isset( $site->path ) ? $site->path : '/',
+				'name'    => get_bloginfo( 'name' ),
+				'url'     => home_url( '/' ),
+			),
+			'generated_at' => gmdate( 'c' ),
+			'about'        => $about,
+			'post_types'   => $post_types,
+			'pages'        => $pages,
+		)
+	);
 }
 
 /**
@@ -86,6 +88,34 @@ function extrachill_api_docs_info_collect_about() {
     } finally {
         restore_current_blog();
     }
+}
+
+/**
+ * Collects published pages with title and URL.
+ *
+ * @return array
+ */
+function extrachill_api_docs_info_collect_pages() {
+	$pages = get_posts(
+		array(
+			'post_type'      => 'page',
+			'post_status'    => 'publish',
+			'posts_per_page' => -1,
+			'orderby'        => 'title',
+			'order'          => 'ASC',
+		)
+	);
+
+	$data = array();
+
+	foreach ( $pages as $page ) {
+		$data[] = array(
+			'title' => get_the_title( $page ),
+			'url'   => get_permalink( $page ),
+		);
+	}
+
+	return $data;
 }
 
 /**

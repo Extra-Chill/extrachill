@@ -338,11 +338,11 @@ function extrachill_api_sanitize_link_settings( $settings ) {
 	$sanitized = array();
 
 	// Boolean fields (stored as '1' or '0')
+	// Note: overlay_enabled is not included here - overlay is stored via css_vars.overlay
 	$bool_fields = array(
 		'link_expiration_enabled',
 		'redirect_enabled',
 		'youtube_embed_enabled',
-		'overlay_enabled',
 	);
 
 	foreach ( $bool_fields as $field ) {

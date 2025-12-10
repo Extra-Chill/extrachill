@@ -140,9 +140,8 @@ class ExtraChill_Docs_Sync_Controller {
 		$used_ids = [];
 
 		return preg_replace_callback(
-			'/<(h[2-6])([^>]*)>(.*?)<\/\1>/i',
+			'/<(h2)([^>]*)>(.*?)<\/h2>/i',
 			function( $matches ) use ( &$used_ids ) {
-				$tag   = $matches[1];
 				$attrs = $matches[2];
 				$text  = $matches[3];
 
@@ -164,7 +163,7 @@ class ExtraChill_Docs_Sync_Controller {
 				}
 				$used_ids[] = $id;
 
-				return sprintf( '<%s%s id="%s">%s</%s>', $tag, $attrs, esc_attr( $id ), $text, $tag );
+				return sprintf( '<h2%s id="%s">%s</h2>', $attrs, esc_attr( $id ), $text );
 			},
 			$html
 		);

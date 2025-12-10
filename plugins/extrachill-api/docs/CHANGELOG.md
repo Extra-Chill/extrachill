@@ -2,6 +2,27 @@
 
 All notable changes to the ExtraChill API plugin are documented here. This file is the single source of truth for release history.
 
+## 0.2.5
+
+### Added
+- **Pages Collection in Docs Info**: Added `pages` field to `/docs-info` endpoint response
+  - New `extrachill_api_docs_info_collect_pages()` function collects published pages with title and URL
+  - Provides documentation agents with site structure visibility for accurate linking
+  - Pages sorted alphabetically by title
+
+### Fixed
+- **Header ID Generation**: Fixed TOC anchor linking to generate IDs for h2 tags only
+  - Previously attempted h2-h6, now correctly limited to h2 headers
+  - Prevents invalid ID generation for unsupported header levels
+- **Artist Links Overlay Setting**: Corrected overlay_enabled handling in link page settings
+  - Removed from boolean fields array as overlay is now stored via css_vars.overlay
+  - Prevents incorrect boolean conversion of overlay settings
+
+### Changed
+- **Documentation Updates**: Enhanced docs-info.md with pages collection details
+  - Added comprehensive documentation for the new pages field
+  - Improved API reference with usage examples
+
 ## 0.2.4
 
 ### Added

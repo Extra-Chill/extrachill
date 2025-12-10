@@ -79,8 +79,39 @@ GET /wp-json/extrachill/v1/docs-info
 ```
 
 **Response Fields**:
-- `features` - Object containing feature metadata (key varies by feature)
+- `site` - Site metadata (blog_id, domain, path, name, url)
+- `about` - About page content from main site
+- `post_types` - Object containing post type metadata with taxonomies and counts
+- `pages` - Array of published pages with title and URL
 - `generated_at` - ISO 8601 timestamp when response was generated
+
+---
+
+## Pages Collection
+
+The `pages` array includes all published pages on the current site, providing documentation agents with visibility into site structure and available URLs.
+
+**Response Structure**:
+```json
+{
+  "pages": [
+    {
+      "title": "Submit an Event",
+      "url": "https://events.extrachill.com/submit/"
+    },
+    {
+      "title": "Calendar",
+      "url": "https://events.extrachill.com/calendar/"
+    }
+  ]
+}
+```
+
+**Fields**:
+- `title` - Page title
+- `url` - Full permalink URL
+
+**Usage**: Documentation agents use this data to discover available pages and link to them accurately in generated user guides.
 
 ---
 
