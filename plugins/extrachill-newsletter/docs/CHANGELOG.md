@@ -15,6 +15,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Removed duplicate array keys in newsletter context presets that were causing configuration conflicts
 
+## [0.1.9] - 2025-12-10
+
+### Changed
+- Refactored plugin loading to use `plugins_loaded` hook with priority 20 for improved multisite dependency management
+- Improved activation/deactivation handling with transient-based rewrite rule flushing for better performance
+
+### Fixed
+- Removed unnecessary screen reader label from newsletter form template for cleaner markup
+
 ## [0.1.7] - 2025-12-09
 
 ### Changed

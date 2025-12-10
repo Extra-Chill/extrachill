@@ -62,9 +62,7 @@ $heading_tag   = tag_escape( $args['heading_level'] );
 
 	<form data-newsletter-form data-newsletter-context="<?php echo esc_attr( $context ); ?>" class="newsletter-form <?php echo esc_attr( $layout_class ); ?>">
 
-		<label for="<?php echo esc_attr( $input_id ); ?>" class="sr-only">
-			<?php esc_html_e( 'Email address for newsletter', 'extrachill-newsletter' ); ?>
-		</label>
+
 		<input
 			type="email"
 			id="<?php echo esc_attr( $input_id ); ?>"

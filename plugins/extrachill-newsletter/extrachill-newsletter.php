@@ -2,21 +2,21 @@
 /**
  * Plugin Name: Extra Chill Newsletter
  * Description: Complete newsletter system with Sendy integration for email campaigns and subscriptions. Provides custom newsletter post type, multiple subscription forms, email template generation, and admin management tools.
- * Version: 0.1.8
+ * Version: 0.1.9
  * Author: Chris Huber
  * Network: true
  * Text Domain: extrachill-newsletter
  * Domain Path: /languages
  *
  * @package ExtraChillNewsletter
- * @since 0.1.8
+ * @since 0.1.9
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'EXTRACHILL_NEWSLETTER_VERSION', '0.1.8' );
+define( 'EXTRACHILL_NEWSLETTER_VERSION', '0.1.9' );
 define( 'EXTRACHILL_NEWSLETTER_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'EXTRACHILL_NEWSLETTER_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'EXTRACHILL_NEWSLETTER_INC_DIR', EXTRACHILL_NEWSLETTER_PLUGIN_DIR . 'inc/' );
@@ -46,14 +46,19 @@ require_once EXTRACHILL_NEWSLETTER_INC_DIR . 'core/hooks/homepage.php';
 require_once EXTRACHILL_NEWSLETTER_INC_DIR . 'core/hooks/post-meta.php';
 require_once EXTRACHILL_NEWSLETTER_INC_DIR . 'core/hooks/sidebar.php';
 
-// Newsletter site only
-if ( is_newsletter_site() ) {
-	require_once EXTRACHILL_NEWSLETTER_INC_DIR . 'core/newsletter-post-type.php';
+/**
+ * Load newsletter-site-only components after multisite dependencies are available.
+ * Fires on plugins_loaded priority 20 (after extrachill-multisite loads at priority 10).
+ */
+add_action( 'plugins_loaded', function() {
+	if ( is_newsletter_site() ) {
+		require_once EXTRACHILL_NEWSLETTER_INC_DIR . 'core/newsletter-post-type.php';
 
-	if ( is_admin() ) {
-		require_once EXTRACHILL_NEWSLETTER_INC_DIR . 'core/newsletter-settings.php';
+		if ( is_admin() ) {
+			require_once EXTRACHILL_NEWSLETTER_INC_DIR . 'core/newsletter-settings.php';
+		}
 	}
-}
+}, 20 );
 
 function newsletter_customize_post_meta( $default_meta, $post_id, $post_type ) {
 	if ( $post_type !== 'newsletter' ) {
@@ -177,10 +182,23 @@ add_action( 'extrachill_navigation_before_social_links', function() {
 	do_action( 'extrachill_render_newsletter_form', 'navigation' );
 });
 
+/**
+ * Set transient to trigger rewrite flush after post type is registered.
+ */
 function extrachill_newsletter_activate() {
-	flush_rewrite_rules();
+	set_transient( 'extrachill_newsletter_flush_rewrite', true, 60 );
 }
 register_activation_hook( __FILE__, 'extrachill_newsletter_activate' );
+
+/**
+ * Flush rewrite rules after post type registration if activation transient exists.
+ */
+add_action( 'init', function() {
+	if ( get_transient( 'extrachill_newsletter_flush_rewrite' ) ) {
+		delete_transient( 'extrachill_newsletter_flush_rewrite' );
+		flush_rewrite_rules();
+	}
+}, 20 );
 
 function extrachill_newsletter_deactivate() {
 	flush_rewrite_rules();
