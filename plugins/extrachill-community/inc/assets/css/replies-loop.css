@@ -378,13 +378,6 @@ span.bbp-topic-post-date {
     align-items: baseline;
 }
 
-/* Jump to latest button - should use .button-1 class in HTML */
-button#jump-to-latest {
-    padding: 4px 10px;
-    font-size: var(--font-size-xs);
-    cursor: pointer;
-}
-
 span.bbp-admin-links {
     float: right;
     color: #ddd;

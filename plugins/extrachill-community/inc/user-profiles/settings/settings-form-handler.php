@@ -22,8 +22,15 @@ function extrachill_community_handle_settings_form() {
 
     $user_id = get_current_user_id();
 
-    // Check if settings form was submitted
-    if (!isset($_POST['submit_user_settings']) || !isset($_POST['_wpnonce_update_user_settings'])) {
+    // Check if any settings form action was submitted
+    $is_settings_save = isset($_POST['submit_user_settings']);
+    $is_artist_access_request = isset($_POST['request_artist_access']);
+
+    if (!$is_settings_save && !$is_artist_access_request) {
+        return;
+    }
+
+    if (!isset($_POST['_wpnonce_update_user_settings'])) {
         return;
     }
 
@@ -34,6 +41,47 @@ function extrachill_community_handle_settings_form() {
 
     $errors = array();
     $success_messages = array();
+    $current_wp_user = wp_get_current_user();
+
+    // --- Artist Access Request (separate action, processed first) ---
+    if ($is_artist_access_request && isset($_POST['artist_access_type'])) {
+        $access_type = sanitize_text_field(wp_unslash($_POST['artist_access_type']));
+
+        if (!in_array($access_type, array('artist', 'professional'), true)) {
+            $errors[] = __('Please select a valid access type.', 'extra-chill-community');
+        } else {
+            $has_artist = get_user_meta($user_id, 'user_is_artist', true) === '1';
+            $has_professional = get_user_meta($user_id, 'user_is_professional', true) === '1';
+
+            if ($has_artist || $has_professional) {
+                $errors[] = __('You already have artist platform access.', 'extra-chill-community');
+            } else {
+                $request_data = array(
+                    'type' => $access_type,
+                    'requested_at' => time(),
+                    'user_email' => $current_wp_user->user_email,
+                );
+                update_user_meta($user_id, 'artist_access_request', $request_data);
+
+                extrachill_send_artist_access_request_email($user_id, $current_wp_user, $access_type);
+
+                $success_messages[] = __('Your request has been submitted. An administrator will review it shortly.', 'extra-chill-community');
+            }
+        }
+
+        // Artist access request is a standalone action - skip general settings processing
+        foreach ($errors as $error) {
+            extrachill_set_notice($error, 'error');
+        }
+        foreach ($success_messages as $message) {
+            extrachill_set_notice($message, 'success');
+        }
+
+        wp_redirect(add_query_arg(array('settings-updated' => 'true'), get_permalink()) . '#tab-artist-platform');
+        exit;
+    }
+
+    // --- General Settings Save (only when submit_user_settings is clicked) ---
     $update_args = array('ID' => $user_id);
 
     // --- Account Details ---
@@ -48,7 +96,6 @@ function extrachill_community_handle_settings_form() {
     }
 
     $personal_info_changed = false;
-    $current_wp_user = wp_get_current_user();
 
     if (array_key_exists('first_name', $update_args) && $update_args['first_name'] !== $current_wp_user->first_name) {
         $personal_info_changed = true;
@@ -173,33 +220,6 @@ function extrachill_community_handle_settings_form() {
             }
 
             $success_messages[] = __('Subscription preferences updated.', 'extra-chill-community');
-        }
-    }
-
-    // --- Artist Access Request ---
-    if (isset($_POST['request_artist_access']) && isset($_POST['artist_access_type'])) {
-        $access_type = sanitize_text_field(wp_unslash($_POST['artist_access_type']));
-
-        if (!in_array($access_type, array('artist', 'professional'), true)) {
-            $errors[] = __('Please select a valid access type.', 'extra-chill-community');
-        } else {
-            $has_artist = get_user_meta($user_id, 'user_is_artist', true) === '1';
-            $has_professional = get_user_meta($user_id, 'user_is_professional', true) === '1';
-
-            if ($has_artist || $has_professional) {
-                $errors[] = __('You already have artist platform access.', 'extra-chill-community');
-            } else {
-                $request_data = array(
-                    'type' => $access_type,
-                    'requested_at' => time(),
-                    'user_email' => $current_wp_user->user_email,
-                );
-                update_user_meta($user_id, 'artist_access_request', $request_data);
-
-                extrachill_send_artist_access_request_email($user_id, $current_wp_user, $access_type);
-
-                $success_messages[] = __('Your request has been submitted. An administrator will review it shortly.', 'extra-chill-community');
-            }
         }
     }
 

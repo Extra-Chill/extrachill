@@ -38,16 +38,19 @@ defined( 'ABSPATH' ) || exit;
 
     <div class="bbp-forum-freshness">
         <?php 
-        $freshness_link = bbp_get_forum_freshness_link();
-        if ( $freshness_link ) {
-            echo '<p class="bbp-forum-last-active-time">'. $freshness_link .'</p>';
+        $forum_id = bbp_get_forum_id();
+        $active_id = bbp_get_forum_last_active_id($forum_id);
+        $last_active_time = bbp_get_forum_last_active_time($forum_id);
+        
+        if ($last_active_time && $active_id) {
+            $link_url = bbp_is_reply($active_id) ? bbp_get_reply_url($active_id) : bbp_get_topic_permalink($active_id);
+            echo '<p class="bbp-forum-last-active-time"><a href="' . esc_url($link_url) . '">' . esc_html($last_active_time) . '</a></p>';
         }
         ?>
         <p class="bbp-topic-meta">
             <?php 
-            $forum_last_active_id = bbp_get_forum_last_active_id();
-            if ( $forum_last_active_id ) {
-                echo bbp_get_author_link( array( 'post_id' => $forum_last_active_id, 'type' => 'both', 'size' => 14 ) ); 
+            if ($active_id) {
+                echo bbp_get_author_link(array('post_id' => $active_id, 'type' => 'both', 'size' => 14)); 
             }
             ?>
         </p>

@@ -10,19 +10,6 @@
     box-sizing: border-box;
 }
 
-.community-latest-post ul {
-    margin: inherit;
-    max-width: 100%;
-    display: flex;
-    flex-wrap: wrap;
-}
-
-.community-latest-post ul li {
-    border-bottom: 1px solid var(--border-color);
-    width: max-content;
-    padding: 5px 0;
-    list-style: none;
-}
 
 .community-latest-post a {
     text-decoration: none;

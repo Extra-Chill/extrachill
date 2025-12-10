@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.0.16] - 2025-12-10
+
+### Changed
+- Improved forum freshness display with direct timestamp resolution and proper author link handling
+- Refactored forum freshness calculation to use recursive timestamp checking across subforum hierarchies
+- Enhanced cache invalidation to update parent forum last active times when subforum activity occurs
+- Separated artist access request processing from general settings form handling
+- Removed unused CSS for community latest post lists and jump-to-latest button
+
+### Fixed
+- Better forum hierarchy freshness detection and display
+- Improved settings form processing flow and validation
+
 ## [1.0.15] - 2025-12-10
 
 ### Changed

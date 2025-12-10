@@ -84,6 +84,7 @@ function extrachill_handle_forum_cache_invalidation($post_id) {
     extrachill_clear_user_points_cache($user_ids);
     extrachill_clear_forum_related_transients($topic_id, $forum_id);
     extrachill_purge_forum_edge_cache($topic_id, $forum_id);
+    extrachill_update_parent_forum_last_active_times($forum_id);
 }
 
 /**
@@ -193,5 +194,37 @@ function extrachill_purge_forum_edge_cache($topic_id, $forum_id) {
 
     if (function_exists('breeze_purge_cache')) {
         breeze_purge_cache();
+    }
+}
+
+/**
+ * Update parent forum last active times when subforum activity occurs.
+ *
+ * When a topic/reply is created in a subforum, walks up the forum hierarchy
+ * and updates the _bbp_last_active_time meta field for all parent forums.
+ *
+ * @param int $forum_id The forum ID where activity occurred.
+ */
+function extrachill_update_parent_forum_last_active_times($forum_id) {
+    if (empty($forum_id) || !function_exists('bbp_update_forum_last_active_time')) {
+        return;
+    }
+
+    $current_forum_id = $forum_id;
+    
+    // Walk up the forum hierarchy
+    while ($current_forum_id) {
+        // Update this forum's last active time
+        bbp_update_forum_last_active_time($current_forum_id);
+        
+        // Get the parent forum ID
+        $parent_id = wp_get_post_parent_id($current_forum_id);
+        
+        // Stop if we've reached the top level (no parent) or if parent is the same (loop prevention)
+        if ($parent_id === $current_forum_id || $parent_id === 0) {
+            break;
+        }
+        
+        $current_forum_id = $parent_id;
     }
 }
