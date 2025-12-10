@@ -244,7 +244,7 @@ body .edit-post-visual-editor .editor-post-title__input {
 .editor-styles-wrapper .block-editor-block-list__layout ul,
 .editor-styles-wrapper .wp-block-post-content ul,
 .editor-styles-wrapper .wp-block ul {
-    list-style: square outside !important;
+    list-style: disc outside !important;
     margin: 0 0 var(--spacing-lg) var(--spacing-xl) !important;
     padding: 0 !important;
 }

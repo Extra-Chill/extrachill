@@ -220,30 +220,7 @@ function extrachill_enqueue_network_dropdown_assets() {
 }
 add_action( 'wp_enqueue_scripts', 'extrachill_enqueue_network_dropdown_assets', 10 );
 
-function extrachill_enqueue_admin_styles($hook) {
-    if ($hook == 'post.php' || $hook == 'post-new.php') {
-        $root_css_path = get_stylesheet_directory() . '/assets/css/root.css';
-        if (file_exists($root_css_path)) {
-            wp_enqueue_style(
-                'extrachill-admin-root',
-                get_stylesheet_directory_uri() . '/assets/css/root.css',
-                array(),
-                filemtime($root_css_path)
-            );
-        }
 
-        $admin_css_path = get_stylesheet_directory() . '/assets/css/editor-style.css';
-        if (file_exists($admin_css_path)) {
-            wp_enqueue_style(
-                'extrachill-admin-editor',
-                get_stylesheet_directory_uri() . '/assets/css/editor-style.css',
-                array('extrachill-admin-root'),
-                filemtime($admin_css_path)
-            );
-        }
-    }
-}
-add_action('admin_enqueue_scripts', 'extrachill_enqueue_admin_styles');
 
 function extrachill_enqueue_view_tracking() {
     if (!is_singular() || is_preview()) {

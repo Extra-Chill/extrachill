@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0/).
 
+## [1.2.8] - 2025-12-09
+
+### Changed
+- Updated accent-2 color variable for improved visual consistency
+- Standardized list-style from square to disc across editor and frontend styles
+- Removed unused admin styles enqueuing function
+- Updated README platform alignment documentation
+
+### Technical
+- Modified --accent-2 in assets/css/root.css from #a8c0d0 to #9fc5e8
+- Changed list-style in assets/css/editor-style.css and style.css from square to disc
+- Removed extrachill_enqueue_admin_styles function from inc/core/assets.php
+- Updated README.md version references from 1.2.7 to 1.2.8
+
 ## [1.2.7] - 2025-12-09
 
 ### Changed
