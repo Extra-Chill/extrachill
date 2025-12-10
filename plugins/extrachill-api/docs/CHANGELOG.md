@@ -2,6 +2,16 @@
 
 All notable changes to the ExtraChill API plugin are documented here. This file is the single source of truth for release history.
 
+## 0.2.6
+
+### Added
+- **Internal Link Resolution**: Enhanced documentation sync controller with automatic .md link resolution
+  - New `resolve_internal_links()` method converts internal .md file references to ec_doc permalinks
+  - Processes HTML content after markdown conversion to find and resolve `<a href="file.md">` links
+  - Uses `get_post_by_source_file()` to find matching documentation posts by source file path
+  - Maintains original link if no matching post is found (graceful degradation)
+  - Improves documentation navigation by enabling proper internal linking between docs
+
 ## 0.2.5
 
 ### Added

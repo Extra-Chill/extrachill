@@ -49,6 +49,9 @@ class ExtraChill_Docs_Sync_Controller {
 		// Add IDs to headers for TOC anchor linking.
 		$html_content = self::add_header_ids( $html_content );
 
+		// Resolve internal .md links to ec_doc permalinks.
+		$html_content = self::resolve_internal_links( $html_content );
+
 		// 2. Calculate hash to detect changes.
 		$hash = hash( 'sha256', $content . $title . $platform_slug . $excerpt );
 
@@ -164,6 +167,38 @@ class ExtraChill_Docs_Sync_Controller {
 				$used_ids[] = $id;
 
 				return sprintf( '<h2%s id="%s">%s</h2>', $attrs, esc_attr( $id ), $text );
+			},
+			$html
+		);
+	}
+
+	/**
+	 * Resolve internal .md links to ec_doc permalinks.
+	 *
+	 * @param string $html HTML content with potential .md links.
+	 * @return string HTML with resolved internal links.
+	 */
+	private static function resolve_internal_links( $html ) {
+		return preg_replace_callback(
+			'/<a\s+([^>]*?)href=["\']([^"\']+\.md)["\']([^>]*)>/i',
+			function ( $matches ) {
+				$before_href = $matches[1];
+				$href        = $matches[2];
+				$after_href  = $matches[3];
+
+				// Normalize path: strip leading slash.
+				$source_file = ltrim( $href, '/' );
+
+				// Find post by source file.
+				$post = self::get_post_by_source_file( $source_file );
+
+				if ( $post ) {
+					$permalink = get_permalink( $post->ID );
+					return sprintf( '<a %shref="%s"%s>', $before_href, esc_url( $permalink ), $after_href );
+				}
+
+				// Return unchanged if no matching post found.
+				return $matches[0];
 			},
 			$html
 		);
