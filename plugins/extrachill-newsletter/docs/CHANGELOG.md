@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.7] - 2025-12-09
+
+### Changed
+- Replaced hardcoded blog IDs and URLs with dynamic functions for improved multisite flexibility
+- Updated `is_newsletter_site()` and asset loading to use `ec_get_blog_id('newsletter')`
+- Refactored breadcrumb and homepage hooks to use dynamic site URL functions
+- Updated email templates to use `ec_get_site_url()` for logo and footer links
+- Cleaned up newsletter forms CSS by removing unused festival wire, popup, and shortcode styles
+- Simplified form button styling and removed redundant font-size declarations
+- Added consistent button classes to form submit buttons
+- Updated README to reference changelog file instead of inline version history
+
 ## [0.1.6] - 2025-12-07
 
 ### Changed

@@ -35,10 +35,12 @@ function newsletter_enqueue_frontend_assets() {
 		);
 	}
 
-	// Newsletter page CSS - loaded only on newsletter pages
-	$load_newsletter_css = ( get_current_blog_id() === 9 && is_front_page() ) ||
-	                       is_post_type_archive( 'newsletter' ) ||
-	                       is_singular( 'newsletter' );
+    // Newsletter page CSS - loaded only on newsletter pages
+    $newsletter_blog_id  = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'newsletter' ) : null;
+    $load_newsletter_css = ( $newsletter_blog_id && get_current_blog_id() === $newsletter_blog_id && is_front_page() ) ||
+                           is_post_type_archive( 'newsletter' ) ||
+                           is_singular( 'newsletter' );
+
 
 	if ( $load_newsletter_css ) {
 		$newsletter_css_path = EXTRACHILL_NEWSLETTER_PLUGIN_DIR . 'assets/css/newsletter.css';
@@ -97,7 +99,8 @@ add_action( 'admin_enqueue_scripts', 'newsletter_enqueue_admin_assets' );
  * Newsletter homepage (blog ID 9) uses archive layout but is_front_page() prevents normal loading.
  */
 function newsletter_enqueue_theme_archive_css() {
-	if ( get_current_blog_id() === 9 && is_front_page() ) {
+	$newsletter_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'newsletter' ) : null;
+	if ( $newsletter_blog_id && get_current_blog_id() === $newsletter_blog_id && is_front_page() ) {
 		$archive_css = get_template_directory() . '/assets/css/archive.css';
 		if ( file_exists( $archive_css ) ) {
 			wp_enqueue_style(

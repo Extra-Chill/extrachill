@@ -45,7 +45,8 @@ function prepare_newsletter_email_content($post) {
 	$content = preg_replace('/<li([^>]*)>/i', '<li$1 style="margin: 10px 0;">', $content);
 
 	// Add Extra Chill logo header
-	$logo = '<a href="https://extrachill.com" style="text-align: center; display: block; margin: 20px auto;border-bottom:2px solid #53940b;"><img src="https://extrachill.com/wp-content/uploads/2023/09/extra-chill-logo-no-bg-1.png" alt="Extra Chill Logo" style="padding-bottom:10px;max-width: 60px; height: auto; display: block; margin: 0 auto;"></a>';
+	$main_site_url = ec_get_site_url( 'main' );
+	$logo = '<a href="' . esc_url( $main_site_url ) . '" style="text-align: center; display: block; margin: 20px auto;border-bottom:2px solid #53940b;"><img src="' . esc_url( $main_site_url ) . '/wp-content/uploads/2023/09/extra-chill-logo-no-bg-1.png" alt="Extra Chill Logo" style="padding-bottom:10px;max-width: 60px; height: auto; display: block; margin: 0 auto;"></a>';
 	$content = $logo . $content;
 
 	$subject = $post->post_title;
@@ -70,7 +71,7 @@ function generate_email_html_template($subject, $content, $unsubscribe_link) {
     <div style="background: #fff; border: 1px solid #000; max-width: 600px; margin: 20px auto; padding: 0 20px; box-sizing: border-box;">
         {$content}
         <footer style="text-align: center; padding-top: 20px; font-size: 16px; line-height: 1.5em;">
-            <p>Read this newsletter & all others on the web at <a href="https://newsletter.extrachill.com">newsletter.extrachill.com</a></p>
+            <p>Read this newsletter & all others on the web at <a href="<?php echo esc_url( ec_get_site_url( 'newsletter' ) ); ?>"><?php echo esc_html( ec_get_site_url( 'newsletter' ) ); ?></a></p>
             <p>You received this email because you've connected with Extra Chill in some way over the years. Thanks for supporting independent music.</p>
             {$unsubscribe_link}
         </footer>

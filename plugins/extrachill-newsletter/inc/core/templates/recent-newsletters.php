@@ -13,7 +13,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Switch to newsletter site to query newsletters
-switch_to_blog( 9 );
+$newsletter_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'newsletter' ) : null;
+if ( ! $newsletter_blog_id ) {
+	return;
+}
+
+switch_to_blog( $newsletter_blog_id );
 
 $newsletter_args = array(
 	'post_type' => 'newsletter',
@@ -40,7 +45,7 @@ if ( $newsletter_query->have_posts() ) :
 				$newsletter_id = get_the_ID();
 
 				// Switch back to newsletter site for permalink generation
-				switch_to_blog( 9 );
+				switch_to_blog( $newsletter_blog_id );
 				$newsletter_permalink = get_permalink( $newsletter_id );
 				$newsletter_title = get_the_title( $newsletter_id );
 				$newsletter_date = get_the_date( '', $newsletter_id );
@@ -54,7 +59,7 @@ if ( $newsletter_query->have_posts() ) :
 				</li>
 			<?php endwhile; ?>
 		</ul>
-		<a href="https://newsletter.extrachill.com" class="view-all-link">
+		<a href="<?php echo esc_url( ec_get_site_url( 'newsletter' ) ); ?>" class="view-all-link">
 			<?php esc_html_e( 'View All Newsletters', 'extrachill-newsletter' ); ?> →
 		</a>
 	</div>

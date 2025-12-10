@@ -23,18 +23,20 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @since 0.1.0
  */
 function newsletter_breadcrumb_root( $root_link ) {
-	// Only apply on newsletter.extrachill.com (blog ID 9)
-	if ( get_current_blog_id() !== 9 ) {
+	$newsletter_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'newsletter' ) : null;
+	if ( ! $newsletter_blog_id || get_current_blog_id() !== $newsletter_blog_id ) {
 		return $root_link;
 	}
 
 	// On homepage, just "Extra Chill" (trail will add "Newsletter")
 	if ( is_front_page() ) {
-		return '<a href="https://extrachill.com">Extra Chill</a>';
+		$main_site_url = ec_get_site_url( 'main' );
+		return '<a href="' . esc_url( $main_site_url ) . '">Extra Chill</a>';
 	}
 
 	// On other pages, include "Newsletter" in root
-	return '<a href="https://extrachill.com">Extra Chill</a> › <a href="' . esc_url( home_url() ) . '">Newsletter</a>';
+	$main_site_url = ec_get_site_url( 'main' );
+	return '<a href="' . esc_url( $main_site_url ) . '">Extra Chill</a> › <a href="' . esc_url( home_url() ) . '">Newsletter</a>';
 }
 add_filter( 'extrachill_breadcrumbs_root', 'newsletter_breadcrumb_root' );
 
@@ -49,14 +51,14 @@ add_filter( 'extrachill_breadcrumbs_root', 'newsletter_breadcrumb_root' );
  * @since 0.1.0
  */
 function newsletter_breadcrumb_trail_homepage( $custom_trail ) {
-	// Only apply on newsletter.extrachill.com (blog ID 9)
-	if ( get_current_blog_id() !== 9 ) {
+	$newsletter_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'newsletter' ) : null;
+	if ( ! $newsletter_blog_id || get_current_blog_id() !== $newsletter_blog_id ) {
 		return $custom_trail;
 	}
 
 	// Only on front page (homepage)
 	if ( is_front_page() ) {
-		return '<span>Newsletter</span>';
+		return '<span class="network-dropdown-target">Newsletter</span>';
 	}
 
 	return $custom_trail;
@@ -71,7 +73,8 @@ add_filter( 'extrachill_breadcrumbs_override_trail', 'newsletter_breadcrumb_trai
  * @since 0.1.0
  */
 function newsletter_customize_breadcrumbs( $custom_trail ) {
-	if ( get_current_blog_id() !== 9 ) {
+	$newsletter_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'newsletter' ) : null;
+	if ( ! $newsletter_blog_id || get_current_blog_id() !== $newsletter_blog_id ) {
 		return $custom_trail;
 	}
 
@@ -96,8 +99,8 @@ add_filter( 'extrachill_breadcrumbs_override_trail', 'newsletter_customize_bread
  * @since 0.1.0
  */
 function newsletter_back_to_home_label( $label, $url ) {
-	// Only apply on newsletter.extrachill.com (blog ID 9)
-	if ( get_current_blog_id() !== 9 ) {
+	$newsletter_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'newsletter' ) : null;
+	if ( ! $newsletter_blog_id || get_current_blog_id() !== $newsletter_blog_id ) {
 		return $label;
 	}
 

@@ -194,43 +194,7 @@ The plugin follows WordPress best practices:
 
 ## Changelog
 
-### Version 0.1.6
-- Refined homepage newsletter form styling for better grid integration with reduced padding and compact layout
-- Updated homepage form preset to use simpler "Subscribe" heading and shorter description
-- Removed standalone newsletter grid display function (now handled by blog plugin)
-- Modified admin asset loading to only enqueue on newsletter settings page
-- Updated newsletter archive description for more concise messaging
-- Improved visual consistency of newsletter forms across different display contexts
-
-### Version 0.1.5
-- Centralized asset loading by moving script enqueueing and localization to `inc/core/assets.php`
-- Improved JavaScript error handling with validation for required REST nonce parameters
-- Enhanced code organization for better maintainability of asset management
-
-### Version 0.1.4
-- Improved JavaScript error handling with better HTTP response validation and specific error messages
-- Enhanced user feedback by always clearing email field and setting localStorage on successful subscription
-- Refactored script localization to occur after enqueuing for better code organization
-- Removed console error logging for cleaner production code
-- Improved form submission reliability with consistent success handling
-
-### Version 0.1.3
-- Initial release with organized modular architecture
-- Extracted newsletter functionality from ExtraChill theme
-- Complete Sendy integration with centralized API configuration
-- Multiple subscription forms (navigation, homepage, archive, content, footer)
-- Template override system with plugin fallback
-- Homepage-as-archive pattern for newsletter.extrachill.com
-- Admin campaign management with push-to-Sendy functionality
-- Integration system with declarative form registration
-- Enhanced security with nonce verification and input sanitization
-- Festival wire tip submission system with anti-spam protection
-- Cloudflare Turnstile integration for spam prevention
-- Rate limiting for tip submissions
-- Centralized asset management with conditional loading
-- Custom breadcrumb and post meta customization
-- Sidebar widget for recent newsletters
-- Responsive design and mobile optimization
+See [docs/CHANGELOG.md](docs/CHANGELOG.md) for full version history.
 
 ## Support
 

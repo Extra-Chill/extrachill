@@ -78,7 +78,7 @@ $heading_tag   = tag_escape( $args['heading_level'] );
 			placeholder="<?php echo esc_attr( $args['placeholder'] ); ?>"
 			aria-label="<?php esc_attr_e( 'Email address', 'extrachill-newsletter' ); ?>"
 		>
-		<button type="submit"><?php echo esc_html( $args['button_text'] ); ?></button>
+		<button type="submit" class="button-2 button-medium"><?php echo esc_html( $args['button_text'] ); ?></button>
 
 		<?php if ( $args['use_form_group'] ) : ?>
 			</div>
