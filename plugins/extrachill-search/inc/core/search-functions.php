@@ -23,44 +23,31 @@ function extrachill_get_network_site_map() {
 		return $site_map;
 	}
 
-	$site_map = array(
-		1 => array(
-			'name' => 'Extra Chill',
-			'url'  => 'extrachill.com',
-		),
-		2 => array(
-			'name' => 'Extra Chill Community',
-			'url'  => 'community.extrachill.com',
-		),
-		3 => array(
-			'name' => 'Extra Chill Shop',
-			'url'  => 'shop.extrachill.com',
-		),
-		4 => array(
-			'name' => 'Extra Chill Artist Platform',
-			'url'  => 'artist.extrachill.com',
-		),
-		5 => array(
-			'name' => 'Extra Chill Chat',
-			'url'  => 'chat.extrachill.com',
-		),
-		6 => array(
-			'name' => 'Extra Chill App Backend',
-			'url'  => 'app.extrachill.com',
-		),
-		7 => array(
-			'name' => 'Extra Chill Events',
-			'url'  => 'events.extrachill.com',
-		),
-		8 => array(
-			'name' => 'Extra Chill Stream',
-			'url'  => 'stream.extrachill.com',
-		),
-		9 => array(
-			'name' => 'Extra Chill Newsletter',
-			'url'  => 'newsletter.extrachill.com',
-		),
-	);
+	// Use canonical source from extrachill-multisite plugin
+	if ( ! function_exists( 'ec_get_domain_map' ) ) {
+		return array();
+	}
+
+	$domain_map = ec_get_domain_map();
+	$site_map = array();
+
+	foreach ( $domain_map as $domain => $blog_id ) {
+		// Skip duplicate mappings (extrachill.link, www.extrachill.link)
+		if ( isset( $site_map[ $blog_id ] ) ) {
+			continue;
+		}
+
+		// Verify blog exists before adding to map
+		$blog_details = get_blog_details( $blog_id );
+		if ( ! $blog_details ) {
+			continue;
+		}
+
+		$site_map[ $blog_id ] = array(
+			'name' => $blog_details->blogname,
+			'url'  => $domain,
+		);
+	}
 
 	$site_map = apply_filters( 'extrachill_search_site_map', $site_map );
 

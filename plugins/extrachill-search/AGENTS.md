@@ -5,7 +5,7 @@ Network-activated WordPress plugin providing centralized multisite search functi
 ## Plugin Information
 
 - **Name**: ExtraChill Search
-- **Version**: 0.1.1
+- **Version**: 0.1.2
 - **Text Domain**: `extrachill-search`
 - **Author**: Chris Huber
 - **Author URI**: https://chubes.net

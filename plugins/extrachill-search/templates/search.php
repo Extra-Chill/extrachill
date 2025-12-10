@@ -62,10 +62,6 @@ $posts_per_page = get_option( 'posts_per_page', 10 );
 		?>
 	</div><!-- .full-width-breakout -->
 
-	<div class="back-home-link-container">
-		<a href="<?php echo esc_url( home_url( '/' ) ); ?>" class="back-home-link">← Back Home</a>
-	</div>
-
 <?php else : ?>
 	<?php extrachill_breadcrumbs(); ?>
 	<?php do_action( 'extrachill_search_header' ); ?>

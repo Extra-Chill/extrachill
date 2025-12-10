@@ -3,7 +3,7 @@
  * Plugin Name: ExtraChill Search
  * Plugin URI: https://extrachill.com
  * Description: Network-wide search across all nine sites using domain-based resolution
- * Version: 0.1.1
+ * Version: 0.1.2
  * Author: Chris Huber
  * Author URI: https://chubes.net
  * Network: true
@@ -14,7 +14,7 @@
  * Domain Path: /languages
  *
  * @package ExtraChill\Search
- * @version 0.1.1
+ * @version 0.1.2
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -23,7 +23,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class ExtraChill_Search_Plugin {
 
-    const VERSION = '0.1.0';
+    const VERSION = '0.1.2';
 
     private static $instance = null;
 
@@ -51,29 +51,11 @@ class ExtraChill_Search_Plugin {
     private function includes() {
         $includes_dir = plugin_dir_path( __FILE__ ) . 'inc/';
 
-        if ( file_exists( $includes_dir . 'core/search-functions.php' ) ) {
-            require_once $includes_dir . 'core/search-functions.php';
-        }
-
-        if ( file_exists( $includes_dir . 'core/search-algorithm.php' ) ) {
-            require_once $includes_dir . 'core/search-algorithm.php';
-        }
-
-        if ( file_exists( $includes_dir . 'core/taxonomy-functions.php' ) ) {
-            require_once $includes_dir . 'core/taxonomy-functions.php';
-        }
-
-        if ( file_exists( $includes_dir . 'core/filter-pagination.php' ) ) {
-            require_once $includes_dir . 'core/filter-pagination.php';
-        }
-
-        if ( file_exists( $includes_dir . 'templates/template-functions.php' ) ) {
-            require_once $includes_dir . 'templates/template-functions.php';
-        }
-
-        if ( file_exists( $includes_dir . 'templates/site-badge.php' ) ) {
-            require_once $includes_dir . 'templates/site-badge.php';
-        }
+        require_once $includes_dir . 'core/search-functions.php';
+        require_once $includes_dir . 'core/search-algorithm.php';
+        require_once $includes_dir . 'core/taxonomy-functions.php';
+        require_once $includes_dir . 'templates/template-functions.php';
+        require_once $includes_dir . 'templates/site-badge.php';
     }
 
     public function activate() {

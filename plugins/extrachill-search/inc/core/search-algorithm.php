@@ -31,13 +31,15 @@ function extrachill_word_level_search_fallback( $search_term, $blog_ids, $args )
 	$site_post_types = extrachill_get_site_post_types();
 
 	foreach ( $blog_ids as $blog_id ) {
+		// Verify blog exists before switching to prevent state corruption
+		$blog_details = get_blog_details( $blog_id );
+		if ( ! $blog_details ) {
+			continue;
+		}
+
 		switch_to_blog( $blog_id );
 
 		try {
-			$blog_details = get_blog_details( $blog_id );
-			if ( ! $blog_details ) {
-				continue;
-			}
 
 			$post_types = isset( $site_post_types[ $blog_id ] )
 				? $site_post_types[ $blog_id ]
@@ -200,15 +202,15 @@ function extrachill_multisite_search( $search_term, $site_urls = array(), $args 
 	$site_post_types = extrachill_get_site_post_types();
 
 	foreach ( $blog_ids as $blog_id ) {
+		// Verify blog exists before switching to prevent state corruption
+		$blog_details = get_blog_details( $blog_id );
+		if ( ! $blog_details ) {
+			continue;
+		}
+
 		switch_to_blog( $blog_id );
 
 		try {
-			$blog_details = get_blog_details( $blog_id );
-
-			if ( ! $blog_details ) {
-				continue;
-			}
-
 			$post_types = isset( $site_post_types[ $blog_id ] )
 				? $site_post_types[ $blog_id ]
 				: array( 'post', 'page' );
