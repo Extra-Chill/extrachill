@@ -31,7 +31,7 @@ print_warning() {
 
 # Project details
 PROJECT_NAME="extrachill-search"
-PROJECT_VERSION="1.0.0"
+PROJECT_VERSION="0.1.0"
 PROJECT_TYPE="plugin"
 
 print_status "Universal WordPress Build Script"
@@ -58,7 +58,7 @@ print_status "Extracting project metadata..."
 if [ -f "${PROJECT_NAME}.php" ]; then
     PROJECT_VERSION=$(grep -o "Version: [0-9]\+\.[0-9]\+\.[0-9]\+" "${PROJECT_NAME}.php" | grep -o "[0-9]\+\.[0-9]\+\.[0-9]\+" | head -1)
     if [ -z "$PROJECT_VERSION" ]; then
-        PROJECT_VERSION="1.0.0"
+        PROJECT_VERSION="0.1.0"
     fi
 fi
 print_success "Project: ${PROJECT_NAME} v${PROJECT_VERSION}"

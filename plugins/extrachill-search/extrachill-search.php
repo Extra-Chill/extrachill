@@ -3,7 +3,7 @@
  * Plugin Name: ExtraChill Search
  * Plugin URI: https://extrachill.com
  * Description: Network-wide search across all nine sites using domain-based resolution
- * Version: 1.0.0
+ * Version: 0.1.0
  * Author: Chris Huber
  * Author URI: https://chubes.net
  * Network: true
@@ -14,7 +14,7 @@
  * Domain Path: /languages
  *
  * @package ExtraChill\Search
- * @version 1.0.0
+ * @version 0.1.0
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -23,7 +23,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class ExtraChill_Search_Plugin {
 
-    const VERSION = '1.0.0';
+    const VERSION = '0.1.0';
 
     private static $instance = null;
 
@@ -61,6 +61,10 @@ class ExtraChill_Search_Plugin {
 
         if ( file_exists( $includes_dir . 'core/taxonomy-functions.php' ) ) {
             require_once $includes_dir . 'core/taxonomy-functions.php';
+        }
+
+        if ( file_exists( $includes_dir . 'core/filter-pagination.php' ) ) {
+            require_once $includes_dir . 'core/filter-pagination.php';
         }
 
         if ( file_exists( $includes_dir . 'templates/template-functions.php' ) ) {

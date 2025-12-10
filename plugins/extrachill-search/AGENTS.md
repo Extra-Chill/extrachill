@@ -1,11 +1,11 @@
 # ExtraChill Search
 
-Network-activated WordPress plugin providing centralized multisite search functionality for the ExtraChill Platform. Searches across all 8 active sites (Blog IDs 1–5, 7–9) in the WordPress multisite network and displays unified results. Horoscope site (Blog ID 10) is planned but not yet live.
+Network-activated WordPress plugin providing centralized multisite search functionality for the ExtraChill Platform. Searches across all 9 active sites (Blog IDs 1–5, 7–10) in the WordPress multisite network and displays unified results. docs.extrachill.com at Blog ID 10; horoscope site (Blog ID 11) is planned but not yet live.
 
 ## Plugin Information
 
 - **Name**: ExtraChill Search
-- **Version**: 1.0.0
+- **Version**: 0.1.0
 - **Text Domain**: `extrachill-search`
 - **Author**: Chris Huber
 - **Author URI**: https://chubes.net
@@ -78,7 +78,7 @@ WordPress native search only checks the current site for results. When paginatin
 ## WordPress Multisite Integration
 
 ### Network Sites Covered
-The plugin searches across all 8 active sites in the Extra Chill Platform network (Blog IDs 1–5, 7–9). Horoscope site (Blog ID 10) is planned but not yet live:
+The plugin searches across all 9 active sites in the Extra Chill Platform network (Blog IDs 1–5, 7–10). docs.extrachill.com at Blog ID 10; horoscope site (Blog ID 11) is planned but not yet live:
 1. **extrachill.com** - Main music journalism site (Blog ID 1)
 2. **community.extrachill.com** - Community forums (bbPress) (Blog ID 2)
 3. **shop.extrachill.com** - E-commerce (WooCommerce) (Blog ID 3)
@@ -87,6 +87,7 @@ The plugin searches across all 8 active sites in the Extra Chill Platform networ
 6. **events.extrachill.com** - Event calendar hub (Blog ID 7)
 7. **stream.extrachill.com** - Live streaming platform (Phase 1 UI) (Blog ID 8)
 8. **newsletter.extrachill.com** - Newsletter management hub (Blog ID 9)
+9. **docs.extrachill.com** - Documentation hub (Blog ID 10)
 
 ### Native WordPress Functions Used
 - **`switch_to_blog()`**: Cross-site database access

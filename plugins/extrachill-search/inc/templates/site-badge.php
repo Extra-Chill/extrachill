@@ -5,7 +5,7 @@
  * Displays site badge for multisite search results.
  *
  * @package ExtraChill\Search
- * @since 1.0.0
+ * @since 0.1.0
  */
 
 /**
