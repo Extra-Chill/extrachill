@@ -49,22 +49,18 @@ function extrachill_display_user_avatar_menu() {
                     $base_manage_url = ec_get_site_url( 'artist' ) . '/manage-artist-profiles/';
 
                     if ( $artist_count > 0 ) {
-                        $latest_artist_id = ec_get_latest_artist_for_user( $current_user_id );
-                        $link_page_count  = ec_get_link_page_count_for_user( $current_user_id );
-
-                        $final_manage_url = add_query_arg( 'artist_id', $latest_artist_id, $base_manage_url );
-                        $artist_label     = $artist_count === 1
+                        $link_page_count = ec_get_link_page_count_for_user( $current_user_id );
+                        $artist_label    = $artist_count === 1
                             ? esc_html__( 'Manage Artist', 'extrachill-users' )
                             : esc_html__( 'Manage Artists', 'extrachill-users' );
 
                         printf(
                             '<li><a href="%s">%s</a></li>',
-                            esc_url( $final_manage_url ),
+                            esc_url( $base_manage_url ),
                             $artist_label
                         );
 
-                        $base_link_page_manage_url  = ec_get_site_url( 'artist' ) . '/manage-link-page/';
-                        $final_link_page_manage_url = add_query_arg( 'artist_id', $latest_artist_id, $base_link_page_manage_url );
+                        $link_page_manage_url = ec_get_site_url( 'artist' ) . '/manage-link-page/';
 
                         if ( $link_page_count === 0 ) {
                             $link_page_label = esc_html__( 'Create Link Page', 'extrachill-users' );
@@ -76,7 +72,7 @@ function extrachill_display_user_avatar_menu() {
 
                         printf(
                             '<li><a href="%s">%s</a></li>',
-                            esc_url( $final_link_page_manage_url ),
+                            esc_url( $link_page_manage_url ),
                             $link_page_label
                         );
                     } elseif ( function_exists( 'ec_can_create_artist_profiles' ) && ec_can_create_artist_profiles( $current_user_id ) ) {

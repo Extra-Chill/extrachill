@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.4] - 2025-12-10
+
+### Added
+- Validation requiring artist or professional selection in join flow registration
+
+### Changed
+- Simplified avatar menu management URLs by removing pre-selection of latest artist
+
 ## [0.3.3] - 2025-12-08
 
 ### Changed

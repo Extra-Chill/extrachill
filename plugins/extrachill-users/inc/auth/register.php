@@ -44,6 +44,15 @@ function extrachill_handle_registration() {
 		$redirect->error( __( 'An account already exists with this username or email.', 'extrachill-users' ) );
 	}
 
+	// Join flow requires artist or professional selection
+	if ( isset( $_POST['from_join'] ) && $_POST['from_join'] === 'true' ) {
+		if ( ! isset( $_POST['user_is_artist'] ) && ! isset( $_POST['user_is_professional'] ) ) {
+			$redirect->error(
+				__( 'To create your extrachill.link page, please select "I am a musician" or "I work in the music industry".', 'extrachill-artist-platform' )
+			);
+		}
+	}
+
     $registration_page = isset( $_POST['source_url'] ) ? esc_url_raw( wp_unslash( $_POST['source_url'] ) ) : '';
 
     if ( empty( $registration_page ) ) {
