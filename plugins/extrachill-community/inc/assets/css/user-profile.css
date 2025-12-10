@@ -2,13 +2,8 @@
 
 /* --- User Band Management Actions --- */
 .user-artist-management-actions {
-    text-align: right;
-    margin-top: 15px;
-}
-
-/* --- User Profile Edit Button --- */
-.extrachill-edit-profile-button {
-    margin-left: 10px;
+	text-align: right;
+	margin-top: 15px;
 }
 
 /* User Profile Header */
@@ -21,7 +16,7 @@
 .forum-title-with-icon {
     margin-bottom: 10px;
     margin-top: 5px;
-    font-size: 15px;
+    font-size: var(--font-size-sm);
 }
 
 .user-profile-header {
@@ -40,7 +35,7 @@
 .bbp-user-artist-details p, 
 .bbp-user-professional-details p {
     margin: 0;
-    font-size: 15px;
+    font-size: var(--font-size-sm);
 }
 
 .user-profile-activity, 
@@ -99,7 +94,7 @@
 
 /* Profile Display Name */
 .bbp-user-profile .bbp-user-display-name {
-    font-size: 2.5rem;
+    font-size: var(--font-size-3xl);
     font-weight: bold;
     margin-bottom: 0.5rem;
     line-height: 1.1;
@@ -122,24 +117,11 @@
 
 /* User Actions Area */
 .bbp-user-profile .bbp-user-actions-area {
-    position: absolute;
-    top: 2rem;
-    right: 2rem;
+	position: absolute;
+	top: 2rem;
+	right: 2rem;
 }
 
-
-/* Styling for <a> tags as buttons - should use .button-1 class in HTML */
-.bbp-user-profile .bbp-user-actions-area a.settings-button,
-.bbp-user-profile .bbp-user-actions-area a.extrachill-edit-profile-button {
-    border-radius: 5px;
-    border: none;
-    cursor: pointer;
-    transition: background-color 0.2s ease-in-out;
-    text-decoration: none;
-    display: inline-block;
-    line-height: normal;
-    vertical-align: middle;
-}
 
 /* New Social Links Styles */
 .bbp-user-links-inline {
@@ -155,7 +137,7 @@
 
 .social-link {
     color: var(--accent-2);
-    font-size: 1.5rem;
+    font-size: var(--font-size-xl);
     transition: color 0.2s ease;
     text-decoration: none;
 }
@@ -209,7 +191,7 @@
     color: var(--accent-2);
     text-decoration: none;
     font-weight: 500;
-    font-size: 14px;
+    font-size: var(--font-size-sm);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -218,7 +200,7 @@
 
 .user-mini-role,
 .user-mini-rank {
-    font-size: 11px;
+    font-size: var(--font-size-xs);
     color: var(--muted-text);
     line-height: 1.3;
 }
@@ -292,7 +274,7 @@
 
     /* Let the username & badges center-align on mobile */
     .bbp-user-profile .bbp-user-display-name {
-        font-size: 1.8rem; /* Slightly smaller for mobile */
+        font-size: var(--font-size-xl); /* Slightly smaller for mobile */
         justify-content: center;
         flex-wrap: wrap;   /* If text/badges are wide, allow wrap */
         text-align: center;

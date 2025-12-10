@@ -135,13 +135,11 @@ if ( $is_artist || $is_professional ) :
             echo '<div class="user-artist-management-actions">';
 
             if ( $artist_count > 0 ) :
-                $latest_artist_id_card        = ec_get_latest_artist_for_user( $current_user_id_for_card_buttons );
-                $final_manage_artists_url_card = add_query_arg( 'artist_id', $latest_artist_id_card, $base_manage_artists_url_card );
                 $artist_label = $artist_count === 1
                     ? esc_html__( 'Manage Artist', 'extra-chill-community' )
                     : esc_html__( 'Manage Artists', 'extra-chill-community' );
             ?>
-                <a href="<?php echo esc_url( $final_manage_artists_url_card ); ?>" class="button-1 button-small"><?php echo $artist_label; ?></a>
+                <a href="<?php echo esc_url( $base_manage_artists_url_card ); ?>" class="button-1 button-small"><?php echo $artist_label; ?></a>
             <?php else : // No artist profiles, but user can create ?>
                 <a href="<?php echo esc_url( $base_manage_artists_url_card ); ?>" class="button-1 button-small"><?php esc_html_e( 'Create Artist Profile', 'extra-chill-community' ); ?></a>
             <?php endif;

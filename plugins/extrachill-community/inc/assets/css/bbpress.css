@@ -41,7 +41,7 @@
    Breadcrumbs
 ================================================== */
 div.bbp-breadcrumb {
-    font-size: 13px;
+    font-size: var(--font-size-sm);
     color: var(--muted-text);
     margin-top: 20px;
     margin-bottom: 25px;
@@ -80,7 +80,7 @@ div.bbp-topic-header,
    Forum and Topic Titles
 ================================================== */
 .bbp-topic-title {
-    font-size: 20px;
+    font-size: var(--font-size-lg);
     font-weight: bold;
     display: block;
     margin-bottom: 5px;
@@ -91,7 +91,7 @@ a.bbp-topic-title {
 }
 
 a.bbp-forum-title {
-    font-size: 20px;
+    font-size: var(--font-size-lg);
 }
 
 /* ==================================================
@@ -112,7 +112,7 @@ span.bbp-admin-links a {
 .bbp-reply-permalink {
     display: flex;
     flex-direction: row-reverse;
-    font-size: 13px;
+    font-size: var(--font-size-sm);
     color: var(--muted-text);
     text-decoration: none;
     transition: color 0.2s ease;
@@ -146,7 +146,7 @@ span.bbp-admin-links {
    Quote Links
 ================================================== */
 .bbp-links-with-quote {
-    font-size: 10px;
+    font-size: var(--font-size-xs);
     color: var(--muted-text);
     text-transform: uppercase;
 }
@@ -175,9 +175,9 @@ span.bbp-admin-links {
 
 .bbp-topic-form legend,
 .bbp-reply-form legend {
-    font-size: 22px;
-    font-weight: bold;
-    padding: 20px 0;
+	font-size: var(--font-size-xl);
+	font-weight: bold;
+	padding: 20px 0;
 }
 
 .bbp-topic-form input[type="text"],
@@ -191,7 +191,7 @@ span.bbp-admin-links {
     border-radius: 8px;
     border: 1px solid var(--border-color);
     margin-bottom: 15px;
-    font-size: 15px;
+    font-size: var(--font-size-sm);
     box-sizing: border-box;
     transition: border-color 0.2s ease-in-out;
     background-color: var(--background-color);
@@ -229,7 +229,7 @@ span.bbp-admin-links {
 }
 
 .bbp-form-posting-tips {
-    font-size: 14px;
+    font-size: var(--font-size-sm);
     padding-bottom: 5px;
 }
 
@@ -282,7 +282,7 @@ ul {
 ================================================== */
 .upvote {
     display: flex;
-    font-size: 1.2rem;
+    font-size: var(--font-size-lg);
     gap: 6px;
 }
 
@@ -303,7 +303,7 @@ ul {
 }
 
 .rankpoints {
-    font-size: 14px;
+    font-size: var(--font-size-sm);
 }
 
 /* ==================================================
@@ -342,7 +342,7 @@ ul {
     background: var(--background-color);
     border: 1px solid var(--border-color);
     border-radius: 5px;
-    font-size: 14px;
+    font-size: var(--font-size-sm);
     white-space: nowrap;
     opacity: 0;
     pointer-events: none;
@@ -358,32 +358,6 @@ ul {
    Buttons - Use .button-1, .button-2, .button-3 classes in HTML
 ================================================== */
 button,
-a.button,
-input[type=button],
-input[type=reset],
-input[type=submit],
-.settings-button {
-    font-size: 15px;
-    border-radius: 5px;
-}
-
-.bbp-reply-author .extrachill-edit-profile-button,
-.bbp-reply-author .extrachill-non-logged-in-follow-button,
-.settings-button {
-    font-size: 12px;
-    padding: 5px 12px;
-    margin-left: 0;
-}
-
-.extrachill-edit-profile-button,
-.extrachill-view-profile-button,
-.extrachill-non-logged-in-follow-button,
-.settings-button {
-    border-radius: 5px;
-    padding: 3px 6px;
-    font-size: 12px;
-}
-
 /* ==================================================
    Avatar and Notification Menu
 ================================================== */
@@ -416,13 +390,13 @@ span.gp-icon.icon-search:hover {
 .bbp-forum-topic-count,
 .bbp-forum-reply-count,
 .bbp-forum-artistcount {
-    font-size: 15px;
+    font-size: var(--font-size-sm);
 }
 
 .bbp-topic-freshness,
 .bbp-topic-voice-count,
 .bbp-topic-reply-count {
-    font-size: 15px;
+    font-size: var(--font-size-sm);
 }
 
 .bbp-forum-freshness a {
@@ -468,7 +442,7 @@ label {
 
 #bbpress-forums .bbp-forum-info .bbp-forum-content,
 #bbpress-forums p.bbp-topic-meta {
-    font-size: 14px;
+    font-size: var(--font-size-sm);
 }
 
 #bbpress-forums div.bbp-forum-author .bbp-author-name,
@@ -562,7 +536,7 @@ p.private-forums {
 }
 
 .forum-titles li {
-    font-size: 14px;
+    font-size: var(--font-size-sm);
 }
 
 .tabs li {
@@ -602,7 +576,7 @@ p.private-forums {
     }
 
     #bbpress-forums div.bbp-reply-author .bbp-author-name {
-        font-size: 15px;
+        font-size: var(--font-size-sm);
     }
 
     iframe {
@@ -622,20 +596,20 @@ p.private-forums {
     }
 
     h2 {
-        font-size: 28px;
+        font-size: var(--font-size-2xl);
     }
 
     h3 {
-        font-size: 24px;
+        font-size: var(--font-size-xl);
     }
 
-    h4 {
-        font-size: 21px;
-    }
+	h4 {
+		font-size: var(--font-size-lg);
+	}
 
-    h5 {
-        font-size: 19px;
-    }
+	h5 {
+		font-size: var(--font-size-body);
+	}
 
 	a.bbp-forum-title {
 	}

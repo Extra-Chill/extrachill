@@ -241,7 +241,7 @@ li.bbp-body div.hentry {
 .bbp-reply-post-date,
 span.bbp-topic-post-date {
     float: none;
-    font-size: 13px;
+    font-size: var(--font-size-sm);
     color: var(--muted-text);
 }
 
@@ -291,12 +291,12 @@ span.bbp-topic-post-date {
 }
 
 .topic-sidebar h3 {
-    font-size: 1.1rem;
+    font-size: var(--font-size-body);
     margin-bottom: 0.1rem;
 }
 
 .topic-sidebar h2 {
-    font-size: 1.4rem;
+    font-size: var(--font-size-lg);
     margin-bottom: 1rem;
 }
 
@@ -327,13 +327,13 @@ span.bbp-topic-post-date {
     border-radius: 4px;
     margin-bottom: 1rem;
     padding: 1rem;
-    font-size: 0.9rem;
+    font-size: var(--font-size-sm);
     border: 1px solid var(--border-color);
     box-shadow: var(--card-shadow);
 }
 
 .topic-card-sidebar a.post-title  {
-    font-size: 20px;
+    font-size: var(--font-size-lg);
     font-weight: bold;
 }
 
@@ -353,17 +353,17 @@ span.bbp-topic-post-date {
 }
 
 .topic-card-sidebar .bbp-author-name {
-    font-size: 0.9rem;
+    font-size: var(--font-size-sm);
 }
 
 .topic-card-sidebar .bbp-reply-post-date,
 .topic-card-sidebar span.bbp-topic-post-date {
-    font-size: 0.7rem;
+    font-size: var(--font-size-xs);
     color: var(--muted-text);
 }
 
 .topic-views {
-    font-size: 13px;
+    font-size: var(--font-size-sm);
     color: var(--muted-text);
 }
 
@@ -383,7 +383,7 @@ span.bbp-topic-post-date {
 /* Jump to latest button - should use .button-1 class in HTML */
 button#jump-to-latest {
     padding: 4px 10px;
-    font-size: 12px;
+    font-size: var(--font-size-xs);
     cursor: pointer;
 }
 
@@ -394,12 +394,12 @@ span.bbp-admin-links {
 span.bbp-admin-links a {
     color: #707070;
     font-weight: 400;
-    font-size: 10px;
+    font-size: var(--font-size-xs);
     text-transform: uppercase;
     text-decoration: none;
 }
 span.bbp-author-ip {
-    font-size: 11px;
+    font-size: var(--font-size-xs);
     font-weight: 700;
     word-wrap: break-word;
     color: #747474;
@@ -410,7 +410,7 @@ span.bbp-author-ip {
     width: 100%;
     margin: 10px 0 0 0;
     padding: 8px 0 0;
-    font-size: 11px;
+    font-size: var(--font-size-xs);
     color: var(--muted-text);
     opacity: 0.8;
 }

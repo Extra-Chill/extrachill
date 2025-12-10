@@ -14,8 +14,8 @@
    Notification Bell
 ================================================== */
 .notification-bell-svg {
-    color: #fff;
-    font-size: 1.25rem;
+	color: #fff;
+	font-size: var(--font-size-lg);
 }
 
 .notification-bell-icon a:hover .notification-bell-svg {
@@ -41,12 +41,12 @@
 }
 
 .notification-count {
-    position: absolute;
-    top: -5px;
-    right: -5px;
-    background-color: var(--error-color);
-    color: #fff;
-    border-radius: 50%;
-    padding: 0 5px;
-    font-size: 12px;
+	position: absolute;
+	top: -5px;
+	right: -5px;
+	background-color: var(--error-color);
+	color: #fff;
+	border-radius: 50%;
+	padding: 0 5px;
+	font-size: var(--font-size-xs);
 }

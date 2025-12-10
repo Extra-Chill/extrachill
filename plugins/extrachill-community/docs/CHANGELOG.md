@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.0.14] - 2025-12-09
+
+### Changed
+- Standardized CSS font sizes using CSS custom properties across all stylesheets for better consistency
+- Improved CSS indentation and formatting consistency
+
+### Fixed
+- Removed unused variables in artist management URL construction in user profile template
+
 ## [1.0.13] - 2025-12-09
 
 ### Changed

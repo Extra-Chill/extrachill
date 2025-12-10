@@ -30,13 +30,13 @@
 
 
 .bbp-topic-content {
-    font-size: 15px;
+    font-size: var(--font-size-sm);
     color: var(--muted-text);
 }
 
 .bbp-topic-stats,
 .bbp-topic-freshness {
-    font-size: 14px;
+    font-size: var(--font-size-sm);
     color: var(--muted-text);
 }
 
@@ -47,7 +47,7 @@
 }
 
 .bbp-topic-meta {
-    font-size: 13px;
+    font-size: var(--font-size-sm);
 }
 
 /* Desktop Styles (3 columns) */
@@ -159,7 +159,7 @@
     border-radius: 5px;
     border: 1px solid var(--border-color);
     background-color: var(--background-color);
-    font-size: 15px;
+    font-size: var(--font-size-sm);
     color: var(--text-color);
     box-sizing: border-box;
 }
@@ -233,7 +233,7 @@ svg.bbp-search-icon {
     .bbp-search-form input[type="text"] {
         width: 100%;
         padding: 6px 8px;
-        font-size: 14px;
+        font-size: var(--font-size-sm);
     }
 }
 

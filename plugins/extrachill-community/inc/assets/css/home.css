@@ -5,7 +5,7 @@
     border: 2px solid var(--notice-border);
     padding: 12px;
     border-radius: 5px;
-    font-size: 15px;
+    font-size: var(--font-size-sm);
     margin-bottom: 15px;
     box-sizing: border-box;
 }
@@ -57,14 +57,14 @@
 }
 
 .bbp-forum-title {
-    font-size: 20px;
+    font-size: var(--font-size-lg);
     font-weight: bold;
     display: block;
     margin-bottom: 5px;
 }
 
 .bbp-forum-content {
-    font-size: 15px;
+    font-size: var(--font-size-sm);
     color: var(--muted-text);
 }
 
@@ -105,7 +105,7 @@ ul.recently-active-topic-row {
     background-color: var(--card-background);
     border-radius: 4px;
     padding: 2rem;
-    font-size: 0.9rem;
+    font-size: var(--font-size-sm);
     border: 1px solid var(--border-color);
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
     margin-bottom: 0; /* No bottom margin needed if horizontal */
@@ -120,7 +120,7 @@ ul.recently-active-topic-row {
    3) Heading style
    ========================================= */
 .recently-active-topic-row .topic-card-row h3 {
-    font-size: 1.1rem;
+    font-size: var(--font-size-body);
     margin-bottom: 1rem;
     color: var(--heading-color);
     font-weight: bold;
@@ -162,7 +162,7 @@ ul.recently-active-topic-row {
 }
 
 .forum-badges {
-    font-size: 0.9rem;
+    font-size: var(--font-size-sm);
 }
 
 .user-custom-title {
@@ -176,7 +176,7 @@ ul.recently-active-topic-row {
 }
 
 #bbpress-forums .bbp-forums-list .bbp-forum{
-    font-size: .9rem;
+    font-size: var(--font-size-sm);
     list-style: none;
 }
 
@@ -275,7 +275,7 @@ ul.recently-active-topic-row {
 .artist-homepage-activity,
 .artist-homepage-views {
     margin: 4px 0;
-    font-size: 13px;
+    font-size: var(--font-size-sm);
     color: var(--muted-text);
     line-height: 1.5;
 }
@@ -297,7 +297,7 @@ ul.recently-active-topic-row {
     display: flex;
     align-items: center;
     gap: 6px;
-    font-size: 12px;
+    font-size: var(--font-size-xs);
     color: var(--muted-text);
 }
 
@@ -358,7 +358,7 @@ ul.recently-active-topic-row {
     }
     
     .artist-homepage-latest-topic {
-        font-size: 11px;
+        font-size: var(--font-size-xs);
     }
     
     .artist-platform-homepage-footer {

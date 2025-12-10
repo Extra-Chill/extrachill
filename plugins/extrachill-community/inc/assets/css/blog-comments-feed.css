@@ -22,7 +22,7 @@
 
 /* Blog post title section - shows which post was commented on */
 .blog-comment-post-title {
-    font-size: 1.1rem;
+    font-size: var(--font-size-body);
     font-weight: 600;
     color: var(--text-color);
     margin-bottom: 0.5rem;
@@ -34,7 +34,7 @@
 .blog-comment-post-title b {
     color: var(--muted-text);
     font-weight: 500;
-    font-size: 0.9rem;
+    font-size: var(--font-size-sm);
 }
 
 .blog-comment-post-title a {
@@ -48,7 +48,7 @@
 
 /* Main site link styling - replaces reply/edit links */
 .blog-comment-main-site-link {
-    font-size: 0.9rem;
+    font-size: var(--font-size-sm);
     color: var(--link-color);
     padding: 8px 12px;
     background: rgba(var(--accent-rgb), 0.1);
@@ -66,7 +66,7 @@
 
 /* Feed header styling */
 .bbpress-comments-list h3 {
-    font-size: 1.5rem;
+    font-size: var(--font-size-xl);
     margin-bottom: 1.5rem;
     color: var(--text-color);
 }
@@ -96,15 +96,15 @@
     }
 
     .blog-comment-post-title b {
-        font-size: 0.85rem;
+        font-size: var(--font-size-sm);
     }
 
     .blog-comment-main-site-link {
-        font-size: 0.85rem;
+        font-size: var(--font-size-sm);
         padding: 6px 10px;
     }
 
     .bbpress-comments-list h3 {
-        font-size: 1.3rem;
+        font-size: var(--font-size-lg);
     }
 }

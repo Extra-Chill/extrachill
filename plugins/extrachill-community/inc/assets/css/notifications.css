@@ -24,7 +24,7 @@
 }
 
 .notification-timestamp {
-    font-size: 13px;
+    font-size: var(--font-size-sm);
     color: #777;
 }
 
@@ -42,7 +42,7 @@
 
 .notification-message {
     flex: 1;
-    font-size: 15px;
+    font-size: var(--font-size-sm);
     line-height: 1.4;
 }
 

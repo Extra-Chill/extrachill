@@ -121,7 +121,7 @@ body.mce-content-body textarea,
 body.mce-content-body select {
     width: 100%;
     padding: 10px;
-    font-size: 15px;
+    font-size: var(--font-size-sm);
     border: 1px solid var(--border-color);
     border-radius: 4px;
     background-color: var(--card-background);
@@ -268,7 +268,7 @@ select {
 ================================================== */
 .mentions-dropdown {
     font-family: "WilcoLoftSans", sans-serif;
-    font-size: 14px;
+    font-size: var(--font-size-sm);
     line-height: 1.4;
     position: absolute;
     z-index: 10000;
@@ -333,7 +333,7 @@ select {
     justify-content: center;
     color: white;
     font-weight: bold;
-    font-size: 14px;
+    font-size: var(--font-size-sm);
 }
 
 .mentions-user-info {
@@ -351,7 +351,7 @@ select {
 }
 
 .mentions-login {
-    font-size: 12px;
+    font-size: var(--font-size-xs);
     color: var(--muted-text);
     white-space: nowrap;
     overflow: hidden;
