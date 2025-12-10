@@ -442,6 +442,12 @@
     }
 }
 
+@media (max-width: 600px) {
+    .home-newsletter-signup {
+        padding: var(--spacing-xl) calc(var(--spacing-lg) * 1.333);
+    }
+}
+
 .home-header {
 	display: flex;
 	justify-content: space-between;
@@ -476,5 +482,49 @@
 	width: 100%;
 	margin-top: 5px;
 	color: #fff;
-	font-size: 16px;
+	font-size: var(--font-size-base);
+}
+
+/* ==========================================================================
+   Homepage Newsletter Form Styles
+   ========================================================================== */
+
+.newsletter-grid-section {
+    padding: 0;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+}
+
+.newsletter-grid-section .newsletter-form-heading {
+    text-align: center;
+    font-family: 'Loft Sans', sans-serif;
+    font-weight: 800;
+    color: var(--accent);
+    margin-bottom: calc(var(--spacing-sm) * 0.6);
+    background: var(--card-background);
+    border-left: 4px solid var(--accent);
+    padding: var(--spacing-xs) calc(var(--spacing-md) * 0.8);
+    border-radius: 0 var(--border-radius-md) var(--border-radius-md) 0;
+    display: inline-block;
+}
+
+.newsletter-grid-section .newsletter-form-header {
+    text-align: left;
+    margin-bottom: var(--spacing-md);
+}
+
+.newsletter-grid-section .newsletter-form-description {
+    text-align: left;
+    color: var(--muted-text);
+    margin-bottom: var(--spacing-md);
+    line-height: 1.5;
+}
+
+.newsletter-grid-section .newsletter-form {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: calc(var(--spacing-md) * 0.75);
+    max-width: 100%;
 }

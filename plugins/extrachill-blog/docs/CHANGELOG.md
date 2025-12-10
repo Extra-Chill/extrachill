@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.3] - 2025-12-10
+
+### Added
+- .gitignore file to exclude build/ and vendor/ directories
+- Responsive CSS styles for newsletter signup form on mobile devices
+- Comprehensive newsletter grid section styles with proper typography and layout
+
+### Changed
+- Replaced hardcoded blog IDs with dynamic ec_get_blog_id() function calls for better multisite compatibility
+- Replaced hardcoded URLs with ec_get_site_url() function calls in hero section navigation
+- Updated newsletter archive link to use dynamic site URL function
+- Added network-dropdown-target class to blog breadcrumb for enhanced navigation
+
+### Fixed
+- Proper blog switching logic with conditional restore_current_blog() to prevent errors when blog ID functions are unavailable
+
 ## [0.2.2] - 2025-12-07
 
 ### Added

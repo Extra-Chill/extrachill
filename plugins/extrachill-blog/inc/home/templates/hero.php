@@ -37,17 +37,17 @@ if ( is_user_logged_in() ) {
 	</h3>
 
 	<div class="hero-buttons-container">
-		<a href="<?php echo esc_url( 'https://community.extrachill.com' ); ?>"
+		<a href="<?php echo esc_url( ec_get_site_url( 'community' ) ); ?>"
 			class="button-2 button-medium">
 			<?php esc_html_e( 'Community', 'extrachill-blog' ); ?>
 		</a>
 
-		<a href="<?php echo esc_url( 'https://artist.extrachill.com' ); ?>"
+		<a href="<?php echo esc_url( ec_get_site_url( 'artist' ) ); ?>"
 			class="button-3 button-medium">
 			<?php esc_html_e( 'Artist Platform', 'extrachill-blog' ); ?>
 		</a>
 
-		<a href="<?php echo esc_url( 'https://events.extrachill.com' ); ?>"
+		<a href="<?php echo esc_url( ec_get_site_url( 'events' ) ); ?>"
 			class="button-1 button-medium">
 			<?php esc_html_e( 'Events Calendar', 'extrachill-blog' ); ?>
 		</a>

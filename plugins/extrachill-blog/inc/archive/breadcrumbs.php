@@ -23,12 +23,13 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @return string Breadcrumb trail HTML
  */
 function extrachill_blog_breadcrumb_trail( $custom_trail ) {
-	if ( get_current_blog_id() !== 1 ) {
+	$main_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'main' ) : null;
+	if ( ! $main_blog_id || get_current_blog_id() !== $main_blog_id ) {
 		return $custom_trail;
 	}
 
 	if ( get_query_var( 'extrachill_blog_archive' ) ) {
-		return '<span>Blog</span>';
+		return '<span class="network-dropdown-target">Blog</span>';
 	}
 
 	return $custom_trail;

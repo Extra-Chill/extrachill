@@ -78,11 +78,14 @@ global $live_reviews_posts, $interviews_posts;
 		<div class="home-3x3-stacked-section">
 			<div class="home-3x3-header">
 				<span class="home-3x3-label">Recent Newsletters</span>
-				<a class="home-3x3-archive-link button-3 button-small" href="https://newsletter.extrachill.com">View All</a>
+				<a class="home-3x3-archive-link button-3 button-small" href="<?php echo esc_url( ec_get_site_url( 'newsletter' ) ); ?>">View All</a>
 			</div>
 			<div class="home-3x3-list">
 			<?php
-			switch_to_blog( 9 );
+			$newsletter_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'newsletter' ) : null;
+			if ( $newsletter_blog_id ) {
+				switch_to_blog( $newsletter_blog_id );
+			}
 			$newsletter_posts = get_posts(
 				array(
 					'numberposts' => 3,
@@ -106,7 +109,7 @@ global $live_reviews_posts, $interviews_posts;
 				?>
 				<div class="home-3x3-card home-3x3-empty">No newsletters yet.</div>
 			<?php endif; ?>
-			<?php restore_current_blog(); ?>
+			<?php if ( $newsletter_blog_id ) { restore_current_blog(); } ?>
 			</div>
 		</div>
 	</div>
