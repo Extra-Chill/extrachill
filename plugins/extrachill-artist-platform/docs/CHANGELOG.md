@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.11] - 2025-12-09
+
+### Changed
+- **Cleanup**: Removed legacy artist_id query parameters from artist profile management links and homepage card actions
+- **Cleanup**: Removed unused variables and legacy code from homepage template related to smart URL generation
+- **Cleanup**: Simplified artist profile single template by removing duplicate edit button code
+
 ## [1.2.10] - 2025-12-09
 
 ### Changed

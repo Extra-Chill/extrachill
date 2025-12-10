@@ -70,9 +70,8 @@ get_header(); ?>
                                     if ( ec_can_manage_artist( get_current_user_id(), $artist_profile_id ) ) :
                                         $manage_artist_url = get_permalink( get_page_by_path( 'manage-artist-profiles' ) );
                                         if ( $manage_artist_url ) {
-                                            $manage_artist_url_with_id = add_query_arg( 'artist_id', $artist_profile_id, $manage_artist_url );
                                             echo '<div class="artist-profile-actions">';
-                                            echo '<a href="' . esc_url( $manage_artist_url_with_id ) . '" class="button-2 button-medium artist-manage-button">Manage Artist</a>';
+                                            echo '<a href="' . esc_url( $manage_artist_url ) . '" class="button-2 button-medium artist-manage-button">Manage Artist</a>';
                                             echo '</div>';
                                         }
                                     endif;
@@ -145,17 +144,6 @@ get_header(); ?>
                                 // --- End Display Artist Link Page URL (New) ---
                                 ?>
 
-                                <?php /* Moved edit button container 
-                                <?php if ( current_user_can( 'edit_post', $artist_profile_id ) ) : ?>
-                                    <?php 
-                                    $manage_page = get_page_by_path( 'manage-artist-profiles' ); // Corrected slug
-                                    if ( $manage_page ) { // Check if page exists before using its ID
-                                        $edit_url = add_query_arg( 'artist_id', $artist_profile_id, get_permalink( $manage_page->ID ) );
-                                        echo '<p class="artist-edit-link"><a href="' . esc_url( $edit_url ) . '" class="button-2 button-small">' . __( 'Edit Artist Profile', 'extrachill-artist-platform' ) . '</a></p>';
-                                    }
-                                    ?>
-                                <?php endif; ?>
-                                */ ?>
                             </div>
                         </div>
 

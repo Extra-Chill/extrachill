@@ -55,29 +55,6 @@ extrachill_breadcrumbs();
 					<div class="artist-platform-dashboard">
 						<?php do_action( 'extrachill_artist_home_hero', $current_user, $is_logged_in, $can_create_artists, $user_artist_ids ); ?>
 
-						<?php
-						$latest_artist_id             = 0;
-						$latest_modified_timestamp = 0;
-
-						foreach ( $user_artist_ids as $artist_id ) {
-							$artist_id_int = absint( $artist_id );
-							if ( $artist_id_int > 0 ) {
-								$post_modified_gmt = get_post_field( 'post_modified_gmt', $artist_id_int, 'raw' );
-								if ( $post_modified_gmt ) {
-									$current_timestamp = strtotime( $post_modified_gmt );
-									if ( $current_timestamp > $latest_modified_timestamp ) {
-										$latest_modified_timestamp = $current_timestamp;
-										$latest_artist_id          = $artist_id_int;
-									}
-								}
-							}
-						}
-
-						$smart_manage_url = $latest_artist_id > 0 ?
-							add_query_arg( 'artist_id', $latest_artist_id, home_url( '/manage-artist-profiles/' ) ) :
-							home_url( '/manage-artist-profiles/' );
-						?>
-
 					<?php do_action( 'extrachill_above_artist_grid', $user_artist_ids ); ?>
 					<div class="featured-artists-section">
 						<h3><?php esc_html_e( 'Discover Other Artists', 'extrachill-artist-platform' ); ?></h3>

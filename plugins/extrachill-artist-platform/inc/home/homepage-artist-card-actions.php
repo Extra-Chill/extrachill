@@ -38,14 +38,8 @@ function ec_add_artist_card_management_buttons( $artist_id ) {
     $manage_artist_page = get_page_by_path( 'manage-artist-profiles' );
     $manage_link_page = get_page_by_path( 'manage-link-page' );
 
-    // Build URLs with artist_id parameter
-    $manage_artist_url = $manage_artist_page ?
-        add_query_arg( 'artist_id', $artist_id, get_permalink( $manage_artist_page ) ) :
-        '';
-
-    $manage_link_url = $manage_link_page ?
-        add_query_arg( 'artist_id', $artist_id, get_permalink( $manage_link_page ) ) :
-        '';
+    $manage_artist_url = $manage_artist_page ? get_permalink( $manage_artist_page ) : '';
+    $manage_link_url = $manage_link_page ? get_permalink( $manage_link_page ) : '';
 
     // Output management buttons
     ?>
