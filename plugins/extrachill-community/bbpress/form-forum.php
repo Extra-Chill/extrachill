@@ -70,7 +70,7 @@ if ( bbp_is_forum_edit() ) : ?>
 					<?php do_action( 'bbp_theme_before_forum_form_title' ); ?>
 
 					<p>
-						<label for="bbp_forum_title"><?php printf( esc_html__( 'Forum Name (Maximum Length: %d):', 'bbpress' ), bbp_get_title_max_length() ); ?></label><br />
+						<label for="bbp_forum_title"><?php printf( esc_html__( 'Forum Name (Maximum Length: %d):', 'bbpress' ), bbp_get_title_max_length() ); ?></label>
 						<input type="text" id="bbp_forum_title" value="<?php bbp_form_forum_title(); ?>" size="40" name="bbp_forum_title" maxlength="<?php bbp_title_max_length(); ?>" />
 					</p>
 
@@ -89,7 +89,7 @@ if ( bbp_is_forum_edit() ) : ?>
 						<?php do_action( 'bbp_theme_before_forum_form_mods' ); ?>
 
 						<p>
-							<label for="bbp_moderators"><?php esc_html_e( 'Forum Moderators:', 'bbpress' ); ?></label><br />
+							<label for="bbp_moderators"><?php esc_html_e( 'Forum Moderators:', 'bbpress' ); ?></label>
 							<input type="text" value="<?php bbp_form_forum_moderators(); ?>" size="40" name="bbp_moderators" id="bbp_moderators" />
 						</p>
 
@@ -100,7 +100,7 @@ if ( bbp_is_forum_edit() ) : ?>
 					<?php do_action( 'bbp_theme_before_forum_form_type' ); ?>
 
 					<p>
-						<label for="bbp_forum_type"><?php esc_html_e( 'Forum Type:', 'bbpress' ); ?></label><br />
+						<label for="bbp_forum_type"><?php esc_html_e( 'Forum Type:', 'bbpress' ); ?></label>
 						<?php bbp_form_forum_type_dropdown(); ?>
 					</p>
 
@@ -109,7 +109,7 @@ if ( bbp_is_forum_edit() ) : ?>
 					<?php do_action( 'bbp_theme_before_forum_form_status' ); ?>
 
 					<p>
-						<label for="bbp_forum_status"><?php esc_html_e( 'Status:', 'bbpress' ); ?></label><br />
+						<label for="bbp_forum_status"><?php esc_html_e( 'Status:', 'bbpress' ); ?></label>
 						<?php bbp_form_forum_status_dropdown(); ?>
 					</p>
 
@@ -118,7 +118,7 @@ if ( bbp_is_forum_edit() ) : ?>
 					<?php do_action( 'bbp_theme_before_forum_visibility_status' ); ?>
 
 					<p>
-						<label for="bbp_forum_visibility"><?php esc_html_e( 'Visibility:', 'bbpress' ); ?></label><br />
+						<label for="bbp_forum_visibility"><?php esc_html_e( 'Visibility:', 'bbpress' ); ?></label>
 						<?php bbp_form_forum_visibility_dropdown(); ?>
 					</p>
 
@@ -127,7 +127,7 @@ if ( bbp_is_forum_edit() ) : ?>
 					<?php do_action( 'bbp_theme_before_forum_form_parent' ); ?>
 
 					<p>
-						<label for="bbp_forum_parent_id"><?php esc_html_e( 'Parent Forum:', 'bbpress' ); ?></label><br />
+						<label for="bbp_forum_parent_id"><?php esc_html_e( 'Parent Forum:', 'bbpress' ); ?></label>
 
 						<?php
 							bbp_dropdown( array(

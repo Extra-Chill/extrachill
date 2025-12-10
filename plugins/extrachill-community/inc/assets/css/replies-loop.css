@@ -146,9 +146,7 @@ li.bbp-body div.hentry {
 	text-decoration: none;
 }
 
-.bbp-reply-revision-log .bbp-author-name { /* Keep specific revision log style */
-	font-weight: inherit;
-}
+
 
 /* Badges & Role */
 .forum-badges {
@@ -405,39 +403,62 @@ span.bbp-author-ip {
     color: #747474;
 }
 
-#bbpress-forums .bbp-reply-content ul.bbp-reply-revision-log, #bbpress-forums .bbp-reply-content ul.bbp-topic-revision-log, #bbpress-forums .bbp-topic-content ul.bbp-topic-revision-log {
-    border-top: 1px solid var(--border-color);
-    width: 100%;
-    margin: 10px 0 0 0;
-    padding: 8px 0 0;
-    font-size: var(--font-size-xs);
-    color: var(--muted-text);
-    opacity: 0.8;
-}
-#bbpress-forums div.bbp-reply-content ul li, #bbpress-forums div.bbp-topic-content ul li {
+/* Content Lists (excluding revision logs) */
+#bbpress-forums div.bbp-reply-content ul li,
+#bbpress-forums div.bbp-topic-content ul li {
     list-style-type: disc;
 }
-#bbpress-forums div.bbp-reply-content ol, #bbpress-forums div.bbp-reply-content ul, #bbpress-forums div.bbp-topic-content ol, #bbpress-forums div.bbp-topic-content ul {
+
+#bbpress-forums div.bbp-reply-content ol,
+#bbpress-forums div.bbp-reply-content ul,
+#bbpress-forums div.bbp-topic-content ol,
+#bbpress-forums div.bbp-topic-content ul {
     margin: 0 15px 15px;
     padding: 0;
 }
 
-#bbpress-forums .bbp-reply-content ul.bbp-reply-revision-log li, #bbpress-forums .bbp-reply-content ul.bbp-topic-revision-log li, #bbpress-forums .bbp-topic-content ul.bbp-topic-revision-log li {
-    list-style-type: none;
-    display: flex;
-    align-items: center;
-    margin-bottom: 4px;
+/* Revision Log (Edit History Footer) */
+#bbpress-forums ul.bbp-reply-revision-log,
+#bbpress-forums ul.bbp-topic-revision-log {
+    border-top: 1px solid var(--border-color);
+    margin: 10px 0 0 0;
+    padding: 8px 0 0;
+    list-style: none;
 }
 
-/* Revision Log Avatar Styling */
-#bbpress-forums .bbp-reply-content ul.bbp-reply-revision-log img.avatar,
-#bbpress-forums .bbp-topic-content ul.bbp-topic-revision-log img.avatar {
+#bbpress-forums ul.bbp-reply-revision-log li,
+#bbpress-forums ul.bbp-topic-revision-log li {
+    list-style: none;
+    margin: 0 0 6px 0;
+    padding: 0;
+    font-size: var(--font-size-xs);
+    color: var(--muted-text);
+    line-height: 1.4;
+}
+
+#bbpress-forums ul.bbp-reply-revision-log .bbp-author-link,
+#bbpress-forums ul.bbp-topic-revision-log .bbp-author-link {
+    display: inline;
+    font-size: var(--font-size-xs);
+    font-weight: normal;
+}
+
+#bbpress-forums ul.bbp-reply-revision-log .bbp-author-name,
+#bbpress-forums ul.bbp-topic-revision-log .bbp-author-name {
+    font-size: var(--font-size-xs);
+    font-weight: normal;
+}
+
+#bbpress-forums ul.bbp-reply-revision-log img.avatar,
+#bbpress-forums ul.bbp-topic-revision-log img.avatar {
     width: 16px;
     height: 16px;
+    max-width: 16px;
+    max-height: 16px;
     border-radius: 50%;
     display: inline-block;
     vertical-align: middle;
-    margin-right: 5px;
+    margin-right: 4px;
     border: 1px solid var(--border-color);
 }
 

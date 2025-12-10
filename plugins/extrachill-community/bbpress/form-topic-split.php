@@ -78,17 +78,17 @@ defined( 'ABSPATH' ) || exit;
 								<?php if ( bbp_is_subscriptions_active() ) : ?>
 
 									<input name="bbp_topic_subscribers" id="bbp_topic_subscribers" type="checkbox" value="1" checked="checked" />
-									<label for="bbp_topic_subscribers"><?php esc_html_e( 'Copy subscribers to the new topic', 'bbpress' ); ?></label><br />
+									<label for="bbp_topic_subscribers"><?php esc_html_e( 'Copy subscribers to the new topic', 'bbpress' ); ?></label>
 
 								<?php endif; ?>
 
 								<input name="bbp_topic_favoriters" id="bbp_topic_favoriters" type="checkbox" value="1" checked="checked" />
-								<label for="bbp_topic_favoriters"><?php esc_html_e( 'Copy favoriters to the new topic', 'bbpress' ); ?></label><br />
+								<label for="bbp_topic_favoriters"><?php esc_html_e( 'Copy favoriters to the new topic', 'bbpress' ); ?></label>
 
 								<?php if ( bbp_allow_topic_tags() ) : ?>
 
 									<input name="bbp_topic_tags" id="bbp_topic_tags" type="checkbox" value="1" checked="checked" />
-									<label for="bbp_topic_tags"><?php esc_html_e( 'Copy topic tags to the new topic', 'bbpress' ); ?></label><br />
+									<label for="bbp_topic_tags"><?php esc_html_e( 'Copy topic tags to the new topic', 'bbpress' ); ?></label>
 
 								<?php endif; ?>
 

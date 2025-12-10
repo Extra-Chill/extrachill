@@ -18,3 +18,14 @@ function extrachill_subforum_button_classes( $classes, $forum_id ) {
     $classes[] = 'button-small';
     return $classes;
 }
+
+/**
+ * Hide topic and reply counts from subforum listings.
+ * These counts (displayed as "12, 18") are not user-friendly.
+ */
+add_filter( 'bbp_after_list_forums_parse_args', 'extrachill_hide_subforum_counts' );
+function extrachill_hide_subforum_counts( $r ) {
+    $r['show_topic_count'] = false;
+    $r['show_reply_count'] = false;
+    return $r;
+}

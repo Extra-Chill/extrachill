@@ -20,8 +20,6 @@ if ( ! bbp_is_single_forum() ) : ?>
 
 	<?php bbp_topic_tag_list( bbp_get_topic_id() ); ?>
 
-	<?php bbp_single_topic_description( array( 'topic_id' => bbp_get_topic_id() ) ); ?>
-
 	<?php bbp_get_template_part( 'alert', 'topic-lock' ); ?>
 
 <?php endif; ?>
@@ -84,7 +82,7 @@ if ( ! bbp_is_single_forum() ) : ?>
 					<?php if ( ! ( bbp_use_wp_editor() || current_user_can( 'unfiltered_html' ) ) ) : ?>
 
 						<p class="form-allowed-tags">
-							<label><?php printf( esc_html__( 'You may use these %s tags and attributes:', 'bbpress' ), '<abbr title="HyperText Markup Language">HTML</abbr>' ); ?></label><br />
+							<label><?php printf( esc_html__( 'You may use these %s tags and attributes:', 'bbpress' ), '<abbr title="HyperText Markup Language">HTML</abbr>' ); ?></label>
 							<code><?php bbp_allowed_tags(); ?></code>
 						</p>
 
@@ -96,7 +94,7 @@ if ( ! bbp_is_single_forum() ) : ?>
 						<?php do_action( 'bbp_theme_before_topic_form_forum' ); ?>
 
 						<p>
-							<label for="bbp_forum_id"><?php esc_html_e( 'Forum:', 'bbpress' ); ?></label><br />
+							<label for="bbp_forum_id"><?php esc_html_e( 'Forum:', 'bbpress' ); ?></label>
 							<?php
 								bbp_dropdown( array(
 									'show_none' => esc_html__( '&mdash; No forum &mdash;', 'bbpress' ),
@@ -115,7 +113,7 @@ if ( ! bbp_is_single_forum() ) : ?>
 
 						<p>
 
-							<label for="bbp_stick_topic"><?php esc_html_e( 'Topic Type:', 'bbpress' ); ?></label><br />
+							<label for="bbp_stick_topic"><?php esc_html_e( 'Topic Type:', 'bbpress' ); ?></label>
 
 							<?php bbp_form_topic_type_dropdown(); ?>
 
@@ -127,7 +125,7 @@ if ( ! bbp_is_single_forum() ) : ?>
 
 						<p>
 
-							<label for="bbp_topic_status"><?php esc_html_e( 'Topic Status:', 'bbpress' ); ?></label><br />
+							<label for="bbp_topic_status"><?php esc_html_e( 'Topic Status:', 'bbpress' ); ?></label>
 
 							<?php bbp_form_topic_status_dropdown(); ?>
 
@@ -166,11 +164,11 @@ if ( ! bbp_is_single_forum() ) : ?>
 						<fieldset class="bbp-form">
 							<legend>
 								<input name="bbp_log_topic_edit" id="bbp_log_topic_edit" type="checkbox" value="1" <?php bbp_form_topic_log_edit(); ?> />
-								<label for="bbp_log_topic_edit"><?php esc_html_e( 'Keep a log of this edit:', 'bbpress' ); ?></label><br />
+								<label for="bbp_log_topic_edit"><?php esc_html_e( 'Keep a log of this edit:', 'bbpress' ); ?></label>
 							</legend>
 
 							<div>
-								<label for="bbp_topic_edit_reason"><?php printf( esc_html__( 'Optional reason for editing:', 'bbpress' ), bbp_get_current_user_name() ); ?></label><br />
+								<label for="bbp_topic_edit_reason"><?php printf( esc_html__( 'Optional reason for editing:', 'bbpress' ), bbp_get_current_user_name() ); ?></label>
 								<input type="text" value="<?php bbp_form_topic_edit_reason(); ?>" size="40" name="bbp_topic_edit_reason" id="bbp_topic_edit_reason" />
 							</div>
 						</fieldset>

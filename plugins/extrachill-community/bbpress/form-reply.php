@@ -77,7 +77,7 @@ if ( bbp_is_reply_edit() ) : ?>
 					<?php if ( ! ( bbp_use_wp_editor() || current_user_can( 'unfiltered_html' ) ) ) : ?>
 
 						<p class="form-allowed-tags">
-							<label><?php esc_html_e( 'You may use these <abbr title="HyperText Markup Language">HTML</abbr> tags and attributes:','bbpress' ); ?></label><br />
+							<label><?php esc_html_e( 'You may use these <abbr title="HyperText Markup Language">HTML</abbr> tags and attributes:','bbpress' ); ?></label>
 							<code><?php bbp_allowed_tags(); ?></code>
 						</p>
 
@@ -88,7 +88,7 @@ if ( bbp_is_reply_edit() ) : ?>
 						<?php do_action( 'bbp_theme_before_reply_form_tags' ); ?>
 
 						<p>
-							<label for="bbp_topic_tags"><?php esc_html_e( 'Tags:', 'bbpress' ); ?></label><br />
+							<label for="bbp_topic_tags"><?php esc_html_e( 'Tags:', 'bbpress' ); ?></label>
 							<input type="text" value="<?php bbp_form_topic_tags(); ?>" size="40" name="bbp_topic_tags" id="bbp_topic_tags" <?php disabled( bbp_is_topic_spam() ); ?> />
 						</p>
 
@@ -127,7 +127,7 @@ if ( bbp_is_reply_edit() ) : ?>
 							<?php do_action( 'bbp_theme_before_reply_form_reply_to' ); ?>
 
 							<p class="form-reply-to">
-								<label for="bbp_reply_to"><?php esc_html_e( 'Reply To:', 'bbpress' ); ?></label><br />
+								<label for="bbp_reply_to"><?php esc_html_e( 'Reply To:', 'bbpress' ); ?></label>
 								<?php bbp_reply_to_dropdown(); ?>
 							</p>
 
@@ -136,7 +136,7 @@ if ( bbp_is_reply_edit() ) : ?>
 							<?php do_action( 'bbp_theme_before_reply_form_status' ); ?>
 
 							<p>
-								<label for="bbp_reply_status"><?php esc_html_e( 'Reply Status:', 'bbpress' ); ?></label><br />
+								<label for="bbp_reply_status"><?php esc_html_e( 'Reply Status:', 'bbpress' ); ?></label>
 								<?php bbp_form_reply_status_dropdown(); ?>
 							</p>
 
@@ -151,11 +151,11 @@ if ( bbp_is_reply_edit() ) : ?>
 							<fieldset class="bbp-form">
 								<legend>
 									<input name="bbp_log_reply_edit" id="bbp_log_reply_edit" type="checkbox" value="1" <?php bbp_form_reply_log_edit(); ?> />
-									<label for="bbp_log_reply_edit"><?php esc_html_e( 'Keep a log of this edit:', 'bbpress' ); ?></label><br />
+									<label for="bbp_log_reply_edit"><?php esc_html_e( 'Keep a log of this edit:', 'bbpress' ); ?></label>
 								</legend>
 
 								<div>
-									<label for="bbp_reply_edit_reason"><?php printf( esc_html__( 'Optional reason for editing:', 'bbpress' ), bbp_get_current_user_name() ); ?></label><br />
+									<label for="bbp_reply_edit_reason"><?php printf( esc_html__( 'Optional reason for editing:', 'bbpress' ), bbp_get_current_user_name() ); ?></label>
 									<input type="text" value="<?php bbp_form_reply_edit_reason(); ?>" size="40" name="bbp_reply_edit_reason" id="bbp_reply_edit_reason" />
 								</div>
 							</fieldset>

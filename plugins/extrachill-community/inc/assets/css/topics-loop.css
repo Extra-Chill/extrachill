@@ -245,3 +245,11 @@ svg.bbp-search-icon {
 .artist-forum-topics ol, .artist-forum-topics ul {
 	margin: 0;
 }
+
+/* Topic Card Author Avatar */
+.bbp-topic-card .bbp-author-avatar img {
+    width: 24px;
+    height: 24px;
+    object-fit: cover;
+    vertical-align: middle;
+}

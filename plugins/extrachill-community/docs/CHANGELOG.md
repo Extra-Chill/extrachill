@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.0.15] - 2025-12-10
+
+### Changed
+- Improved bbPress form layouts by removing line breaks from form labels for better responsive design
+- Enhanced CSS styling for form controls and focus states across bbPress forms
+- Simplified content filtering by removing Apple/Word markup cleanup functionality
+- Added topic edit breadcrumb support for improved navigation
+- Hidden topic and reply counts from subforum listings for cleaner UI
+
+### Fixed
+- Better responsive design for bbPress form elements
+
 ## [1.0.14] - 2025-12-09
 
 ### Changed

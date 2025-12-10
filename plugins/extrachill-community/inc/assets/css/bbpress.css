@@ -187,15 +187,7 @@ span.bbp-admin-links {
 .bbp-topic-form select,
 .bbp-reply-form select {
     width: 100%;
-    padding: 12px 15px;
-    border-radius: 8px;
-    border: 1px solid var(--border-color);
-    margin-bottom: 15px;
-    font-size: var(--font-size-sm);
     box-sizing: border-box;
-    transition: border-color 0.2s ease-in-out;
-    background-color: var(--background-color);
-    color: var(--text-color);
 }
 
 .bbp-topic-form input[type="text"]:focus,
@@ -204,8 +196,7 @@ span.bbp-admin-links {
 .bbp-reply-form textarea:focus,
 .bbp-topic-form select:focus,
 .bbp-reply-form select:focus {
-    outline: none;
-    border-color: var(--accent);
+    border-color: var(--focus-border-color);
     box-shadow: var(--focus-box-shadow);
 }
 
@@ -213,12 +204,22 @@ span.bbp-admin-links {
     margin-top: 10px;
 }
 
-.bbp-topic-form label,
-.bbp-reply-form label {
-    font-weight: 500;
-    color: var(--muted-text);
+/* Form Layout - bbPress Specific */
+.bbp-form label {
     display: block;
-    margin-bottom: 8px;
+    margin-bottom: 0.5rem;
+}
+
+.bbp-form p {
+    margin-bottom: 1rem;
+}
+
+/* Inline labels for checkboxes and radios */
+.bbp-form input[type="checkbox"] + label,
+.bbp-form input[type="radio"] + label {
+    display: inline;
+    margin-bottom: 0;
+    margin-left: 0.25rem;
 }
 
 .form-allowed-tags code {
@@ -256,25 +257,44 @@ blockquote {
     list-style: disc;
 }
 
-#bbpress-forums ul,
-#bbpress-forums.bbpress-wrapper ul {
-    background: 0 0;
-    list-style: none;
-    margin: 0;
-    padding: 0;
-}
-
 ol,
 ul {
     margin: 0 0 1.5em 1em;
 }
 
-#bbpress-forums ul .bbp-forums-list {
-    padding: 0 8px;
+/* Subforum button grid inside forum cards */
+.bbp-forum-info .bbp-forums-list {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 8px;
-    margin: 15px 0;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: var(--spacing-sm);
+    margin-top: var(--spacing-md);
+    padding: 0;
+    list-style: none;
+}
+
+.bbp-forums-list .bbp-forum {
+    margin: 0;
+    width: 100%;
+    text-align: center;
+}
+
+/* Subforums grid on single forum pages */
+[id^="forums-list-subforums-"] {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 var(--spacing-lg) 0;
+}
+
+[id^="forums-list-subforums-"] > .bbp-body {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: var(--spacing-md);
+    width: 100%;
+}
+
+[id^="forums-list-subforums-"] .bbp-forum-card {
+    margin: 0;
+    height: auto;
 }
 
 /* ==================================================

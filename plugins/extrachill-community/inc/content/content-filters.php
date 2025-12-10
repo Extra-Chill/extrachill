@@ -2,7 +2,7 @@
 /**
  * Content Filters
  *
- * bbPress content transformation: Twitter/X embed handling, inline style stripping, Apple/Word markup cleanup.
+ * bbPress content transformation: Twitter/X embed handling, inline style stripping.
  */
 
 function embed_tweets($content) {
@@ -49,109 +49,6 @@ function strip_img_inline_styles($content) {
 add_filter('the_content', 'strip_img_inline_styles', 20);
 add_filter('bbp_get_reply_content', 'strip_img_inline_styles', 20);
 add_filter('bbp_get_topic_content', 'strip_img_inline_styles', 20);
-
-/**
- * Removes Apple/Word-specific classes and curly quotes from pasted content
- */
-function ec_clean_apple_word_markup($content) {
-    if (empty($content) || !is_string($content) || stripos($content, 'class=') === false) {
-        return $content;
-    }
-
-    $content = html_entity_decode($content, ENT_QUOTES | ENT_HTML5, 'UTF-8');
-
-    if (empty($content) || !is_string($content)) {
-        return $content;
-    }
-
-    $quote_chars = '["' . "\xE2\x80\x9C" . "\xE2\x80\x9D" . "\xE2\x80\xB3" . "\xE2\x80\x9F" . ']';
-
-    $content = preg_replace('/<span class=' . $quote_chars . 'Apple-converted-space' . $quote_chars . '[^>]*>(\s*)<\/span>/i', '$1', $content);
-    $content = preg_replace('/<span class=' . $quote_chars . 's\d+' . $quote_chars . '[^>]*>(.*?)<\/span>/i', '$1', $content);
-    $content = preg_replace('/<p class=' . $quote_chars . 'p\d+' . $quote_chars . '[^>]*>/i', '<p>', $content);
-    $content = preg_replace('/<(p|span|div) class=' . $quote_chars . '[^' . $quote_chars . ']*Apple[^' . $quote_chars . ']*' . $quote_chars . '[^>]*>/i', '<$1>', $content);
-    $content = preg_replace('/<span class=' . $quote_chars . '[^' . $quote_chars . ']*' . $quote_chars . '[^>]*>(.*?)<\/span>/i', '$1', $content);
-    $content = preg_replace('/<p class=' . $quote_chars . '[ps]\d+' . $quote_chars . '[^>]*>/i', '<p>', $content);
-    $content = preg_replace('/<span class=' . $quote_chars . '[ps]\d+' . $quote_chars . '[^>]*>(.*?)<\/span>/i', '$1', $content);
-    $content = preg_replace('/\s+class=' . $quote_chars . $quote_chars . '\s*/', ' ', $content);
-
-    $word_chars = [
-        "\xE2\x80\x9C" => '"',
-        "\xE2\x80\x9D" => '"',
-        "\xE2\x80\x98" => "'",
-        "\xE2\x80\x99" => "'",
-        "\xE2\x80\x93" => '-',
-        "\xE2\x80\x94" => '-',
-        "\xE2\x80\xA6" => '...',
-        "\xE2\x80\xB3" => '"',
-        "\xE2\x80\x9F" => '"'
-    ];
-
-    if (!empty($content) && is_string($content)) {
-        foreach ($word_chars as $word_char => $replacement) {
-            $content = str_replace($word_char, $replacement, $content);
-        }
-        $content = preg_replace('/\s+/', ' ', $content);
-        $content = preg_replace('/(<\/p>)\s*(<p>)/i', '$1$2', $content);
-        $content = trim($content);
-    }
-
-    return $content;
-}
-
-function ec_clean_bbpress_content($content) {
-    $has_markup = (
-        strpos($content, 'class="') !== false ||
-        strpos($content, 'class="') !== false ||
-        strpos($content, 'Apple-converted-space') !== false ||
-        strpos($content, 'class="p1') !== false ||
-        strpos($content, 'class="s1') !== false
-    );
-
-    if ($has_markup) {
-        $content = ec_clean_apple_word_markup($content);
-    }
-    return $content;
-}
-
-add_filter('bbp_get_reply_content', 'ec_clean_bbpress_content', 25);
-add_filter('bbp_get_topic_content', 'ec_clean_bbpress_content', 25);
-
-function ec_can_bypass_content_cleanup() {
-    $user_id = get_current_user_id();
-
-    if (!$user_id) {
-        return false;
-    }
-
-    if (user_can($user_id, 'unfiltered_html') || current_user_can('moderate')) {
-        return true;
-    }
-
-    if (function_exists('bbp_is_user_keymaster') && bbp_is_user_keymaster($user_id)) {
-        return true;
-    }
-
-    if (function_exists('bbp_is_user_moderator') && bbp_is_user_moderator($user_id)) {
-        return true;
-    }
-
-    return false;
-}
-
-function ec_clean_content_before_save($content) {
-    if (ec_can_bypass_content_cleanup()) {
-        return $content;
-    }
-
-    return ec_clean_apple_word_markup($content);
-}
-
-add_filter('bbp_new_topic_pre_content', 'ec_clean_content_before_save');
-add_filter('bbp_new_reply_pre_content', 'ec_clean_content_before_save');
-add_filter('bbp_edit_topic_pre_content', 'ec_clean_content_before_save');
-add_filter('bbp_edit_reply_pre_content', 'ec_clean_content_before_save');
-
 
 /**
  * Truncates HTML at character limit while preserving tags and word boundaries
@@ -238,4 +135,59 @@ function ec_display_forum_description() {
     }
 }
 add_action( 'bbp_template_before_single_forum', 'ec_display_forum_description' );
+
+function ec_get_forum_freshness_with_subforums($forum_id) {
+    // Get forum's own freshness (bypass our filter to prevent recursion)
+    remove_filter('bbp_get_forum_last_active_time', 'ec_get_forum_last_active_time_with_subforums', 10);
+    $forum_freshness = bbp_get_forum_last_active_time($forum_id);
+    add_filter('bbp_get_forum_last_active_time', 'ec_get_forum_last_active_time_with_subforums', 10, 2);
+
+    // Get all subforums recursively
+    $subforums = bbp_get_forum_subforums($forum_id);
+
+    // Check each subforum's freshness
+    foreach ($subforums as $subforum) {
+        $subforum_freshness = ec_get_forum_freshness_with_subforums($subforum->ID);
+        if ($subforum_freshness > $forum_freshness) {
+            $forum_freshness = $subforum_freshness;
+        }
+    }
+
+    return $forum_freshness;
+}
+
+function ec_get_forum_last_active_id_with_subforums($forum_id) {
+    // Get forum's own last active ID (bypass our filter to prevent recursion)
+    remove_filter('bbp_get_forum_last_active_id', 'ec_get_forum_last_active_id_with_subforums_filter', 10);
+    $forum_last_active_id = bbp_get_forum_last_active_id($forum_id);
+    add_filter('bbp_get_forum_last_active_id', 'ec_get_forum_last_active_id_with_subforums_filter', 10, 2);
+
+    // Get all subforums recursively
+    $subforums = bbp_get_forum_subforums($forum_id);
+
+    // Check each subforum's last active ID
+    foreach ($subforums as $subforum) {
+        $subforum_last_active_id = ec_get_forum_last_active_id_with_subforums($subforum->ID);
+        if ($subforum_last_active_id) {
+            // Compare timestamps to find the most recent
+            $forum_time = get_post_field('post_date', $forum_last_active_id);
+            $subforum_time = get_post_field('post_date', $subforum_last_active_id);
+            if ($subforum_time > $forum_time) {
+                $forum_last_active_id = $subforum_last_active_id;
+            }
+        }
+    }
+
+    return $forum_last_active_id;
+}
+
+add_filter('bbp_get_forum_last_active_time', 'ec_get_forum_last_active_time_with_subforums', 10, 2);
+function ec_get_forum_last_active_time_with_subforums($time, $forum_id) {
+    return ec_get_forum_freshness_with_subforums($forum_id);
+}
+
+add_filter('bbp_get_forum_last_active_id', 'ec_get_forum_last_active_id_with_subforums_filter', 10, 2);
+function ec_get_forum_last_active_id_with_subforums_filter($id, $forum_id) {
+    return ec_get_forum_last_active_id_with_subforums($forum_id);
+}
 
