@@ -2,21 +2,21 @@
 /**
  * Plugin Name: Extra Chill Newsletter
  * Description: Complete newsletter system with Sendy integration for email campaigns and subscriptions. Provides custom newsletter post type, multiple subscription forms, email template generation, and admin management tools.
- * Version: 0.1.7
+ * Version: 0.1.8
  * Author: Chris Huber
  * Network: true
  * Text Domain: extrachill-newsletter
  * Domain Path: /languages
  *
  * @package ExtraChillNewsletter
- * @since 0.1.7
+ * @since 0.1.8
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'EXTRACHILL_NEWSLETTER_VERSION', '0.1.7' );
+define( 'EXTRACHILL_NEWSLETTER_VERSION', '0.1.8' );
 define( 'EXTRACHILL_NEWSLETTER_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'EXTRACHILL_NEWSLETTER_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'EXTRACHILL_NEWSLETTER_INC_DIR', EXTRACHILL_NEWSLETTER_PLUGIN_DIR . 'inc/' );
@@ -107,19 +107,17 @@ function extrachill_get_newsletter_context_presets() {
 			'placeholder'       => __( 'Your email address', 'extrachill-newsletter' ),
 			'button_text'       => __( 'Subscribe', 'extrachill-newsletter' ),
 			'show_archive_link' => false,
-			'use_form_group'    => false,
 		),
 		'navigation' => array(
-			'wrapper_element'   => 'li',
 			'wrapper_class'     => 'menu-newsletter',
 			'heading'           => null,
+			'heading_level'     => 'h3',
 			'description'       => null,
 			'layout'            => 'inline',
 			'placeholder'       => __( 'Enter your email', 'extrachill-newsletter' ),
 			'button_text'       => __( 'Subscribe', 'extrachill-newsletter' ),
 			'show_archive_link' => true,
 			'archive_link_text' => __( 'See past newsletters', 'extrachill-newsletter' ),
-			'use_form_group'    => false,
 		),
 		'content' => array(
 			'wrapper_class'     => 'newsletter-content-section',
@@ -131,7 +129,6 @@ function extrachill_get_newsletter_context_presets() {
 			'button_text'       => __( 'Subscribe', 'extrachill-newsletter' ),
 			'show_archive_link' => true,
 			'archive_link_text' => __( 'Browse past newsletters', 'extrachill-newsletter' ),
-			'use_form_group'    => true,
 		),
 		'archive' => array(
 			'wrapper_class'     => 'newsletter-subscription-form',
@@ -142,7 +139,6 @@ function extrachill_get_newsletter_context_presets() {
 			'placeholder'       => __( 'Enter your email', 'extrachill-newsletter' ),
 			'button_text'       => __( 'Subscribe', 'extrachill-newsletter' ),
 			'show_archive_link' => false,
-			'use_form_group'    => false,
 		),
 	);
 }

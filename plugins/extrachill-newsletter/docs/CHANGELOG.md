@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.8] - 2025-12-10
+
+### Changed
+- Refactored newsletter forms CSS to use design system variables for consistent spacing and styling
+- Updated JavaScript feedback messages to use WordPress admin notice classes for better integration
+- Cleaned up generic form template by removing unused form group logic
+
+### Fixed
+- Removed duplicate array keys in newsletter context presets that were causing configuration conflicts
+
 ## [0.1.7] - 2025-12-09
 
 ### Changed

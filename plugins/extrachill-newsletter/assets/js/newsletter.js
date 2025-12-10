@@ -56,7 +56,7 @@
             if (feedback) {
                 feedback.style.display = 'block';
                 feedback.textContent = data.message || 'Successfully subscribed!';
-                feedback.className = 'newsletter-feedback success';
+                feedback.className = 'notice notice-success';
             }
 
             emailInput.value = '';
@@ -69,7 +69,7 @@
             if (feedback) {
                 feedback.style.display = 'block';
                 feedback.textContent = error.message || 'An error occurred. Please try again.';
-                feedback.className = 'newsletter-feedback error';
+                feedback.className = 'notice notice-error';
             }
         })
         .finally(() => {

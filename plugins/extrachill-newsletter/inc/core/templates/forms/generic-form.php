@@ -24,7 +24,6 @@ $defaults = array(
 	'button_text'        => __( 'Subscribe', 'extrachill-newsletter' ),
 	'show_archive_link'  => false,
 	'archive_link_text'  => __( 'Browse past newsletters', 'extrachill-newsletter' ),
-	'use_form_group'     => false,
 );
 
 $args = wp_parse_args( $args, $defaults );
@@ -63,10 +62,6 @@ $heading_tag   = tag_escape( $args['heading_level'] );
 
 	<form data-newsletter-form data-newsletter-context="<?php echo esc_attr( $context ); ?>" class="newsletter-form <?php echo esc_attr( $layout_class ); ?>">
 
-		<?php if ( $args['use_form_group'] ) : ?>
-			<div class="newsletter-form-group">
-		<?php endif; ?>
-
 		<label for="<?php echo esc_attr( $input_id ); ?>" class="sr-only">
 			<?php esc_html_e( 'Email address for newsletter', 'extrachill-newsletter' ); ?>
 		</label>
@@ -80,11 +75,7 @@ $heading_tag   = tag_escape( $args['heading_level'] );
 		>
 		<button type="submit" class="button-2 button-medium"><?php echo esc_html( $args['button_text'] ); ?></button>
 
-		<?php if ( $args['use_form_group'] ) : ?>
-			</div>
-		<?php endif; ?>
-
-		<p data-newsletter-feedback class="newsletter-feedback" style="display:none;" aria-live="polite"></p>
+		<p data-newsletter-feedback class="notice" style="display:none;" aria-live="polite"></p>
 
 		<?php if ( $args['show_archive_link'] ) : ?>
 			<?php $archive_url = get_post_type_archive_link( 'newsletter' ); ?>
