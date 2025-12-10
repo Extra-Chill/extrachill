@@ -73,11 +73,7 @@ Modern React-based Gutenberg block providing complete artist profile management 
 - **Build Process**: Webpack compilation via `npm run build`
 - **Asset Enqueuing**: Auto-detected via block.json manifest
 
-### Legacy Frontend Template (Deprecated)
 
-Previous location: `inc/artist-profiles/frontend/templates/manage-artist-profiles.php` (no longer used)
-
-Management now exclusively handled via Gutenberg block editor. Legacy PHP template has been removed in favor of modern React-based block interface.
 
 ## Profile Information Management
 

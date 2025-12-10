@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.10] - 2025-12-09
+
+### Changed
+- **Refactor**: Completed removal of legacy PHP-based artist profile management interface, enforcing exclusive Gutenberg block usage (Artist Profile Manager block)
+- **Removed**: Deleted deprecated files and functions for legacy management templates, including frontend forms, tab templates, and associated JavaScript/CSS assets
+- **Cleanup**: Simplified asset enqueuing, template loading, navigation, and breadcrumb logic by removing legacy code paths
+- **Fixed**: Corrected version define constant to match plugin header
+
 ## [1.2.9] - 2025-12-09
 
 ### Changed

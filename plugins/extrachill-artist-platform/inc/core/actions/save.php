@@ -100,14 +100,6 @@ function ec_handle_link_page_save( $link_page_id, $save_data = array(), $files_d
         }
     }
 
-    // Handle overlay_enabled via css_vars
-    if ( isset( $save_data['overlay_enabled'] ) ) {
-        $css_vars = get_post_meta( $link_page_id, '_link_page_custom_css_vars', true );
-        $css_vars = is_array( $css_vars ) ? $css_vars : array();
-        $css_vars['overlay'] = $save_data['overlay_enabled'] === '1' ? '1' : '0';
-        update_post_meta( $link_page_id, '_link_page_custom_css_vars', $css_vars );
-    }
-
     /**
      * Fires when a link page needs post-save processing.
      * 

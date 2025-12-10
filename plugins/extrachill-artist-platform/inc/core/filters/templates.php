@@ -67,19 +67,6 @@ function ec_template_handler( $output, $template_name, $args = array() ) {
             'file' => 'inc/link-pages/live/templates/subscribe-modal.php',
             'required' => array( 'artist_id' )
         ),
-        // Management Tab Templates
-        'manage-artist-profile-tab-info' => array(
-            'file' => 'inc/artist-profiles/frontend/templates/manage-artist-profile-tabs/tab-info.php',
-            'required' => array( 'edit_mode', 'target_artist_id', 'display_artist_name', 'display_artist_bio', 'display_profile_image_url', 'display_header_image_url' )
-        ),
-        'manage-artist-profile-tab-profile-managers' => array(
-            'file' => 'inc/artist-profiles/frontend/templates/manage-artist-profile-tabs/tab-profile-managers.php',
-            'required' => array( 'target_artist_id', 'artist_post_title' )
-        ),
-        'manage-artist-profile-tab-subscribers' => array(
-            'file' => 'inc/artist-profiles/frontend/templates/manage-artist-profile-tabs/tab-subscribers.php',
-            'required' => array( 'target_artist_id' )
-        ),
         // Share Modal Template (used by both live link page and preview)
         'share-modal' => array(
             'file' => 'inc/link-pages/live/templates/extrch-share-modal.php',

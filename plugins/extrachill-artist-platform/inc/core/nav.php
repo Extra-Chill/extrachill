@@ -29,14 +29,12 @@ function ec_artist_platform_secondary_header_items( $items ) {
 
 	// Artist Profile Link (priority 10)
 	if ( $artist_count > 0 ) {
-		$latest_artist_id = ec_get_latest_artist_for_user( $user_id );
-		$manage_url       = home_url( '/manage-artist-profiles/?artist_id=' . $latest_artist_id );
-		$artist_label     = $artist_count === 1
+		$artist_label = $artist_count === 1
 			? __( 'Manage Artist', 'extrachill-artist-platform' )
 			: __( 'Manage Artists', 'extrachill-artist-platform' );
 
 		$items[] = array(
-			'url'      => $manage_url,
+			'url'      => home_url( '/manage-artist-profiles/' ),
 			'label'    => $artist_label,
 			'priority' => 10,
 		);

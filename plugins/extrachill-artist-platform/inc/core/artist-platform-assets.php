@@ -43,11 +43,6 @@ class ExtraChillArtistPlatform_Assets {
             $this->enqueue_link_page_assets();
         }
 
-        if ( $this->is_manage_artist_profile_page() ) {
-            $this->enqueue_artist_profile_management_assets();
-        }
-
-
         if ( $this->is_artist_profile_page() ) {
             wp_enqueue_style(
                 'extrachill-artist-profile',
@@ -246,67 +241,6 @@ class ExtraChillArtistPlatform_Assets {
         }
     }
 
-    private function enqueue_artist_profile_management_assets() {
-        $plugin_url = EXTRACHILL_ARTIST_PLATFORM_PLUGIN_URL;
-
-        // Font Awesome for artist platform management interfaces (isolated from theme)
-        wp_enqueue_style( 'font-awesome', '//cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css' );
-
-        wp_enqueue_style( 'extrachill-shared-tabs', get_template_directory_uri() . '/assets/css/shared-tabs.css', array(), filemtime( get_template_directory() . '/assets/css/shared-tabs.css' ) );
-        wp_enqueue_script( 'extrachill-shared-tabs', get_template_directory_uri() . '/assets/js/shared-tabs.js', array(), filemtime( get_template_directory() . '/assets/js/shared-tabs.js' ), true );
-
-        wp_enqueue_style(
-            'extrachill-artist-switcher',
-            $plugin_url . 'assets/css/components/artist-switcher.css',
-            array(),
-            $this->get_asset_version( 'assets/css/components/artist-switcher.css' )
-        );
-
-        wp_enqueue_style(
-            'extrachill-manage-artist-profile',
-            $plugin_url . 'assets/css/manage-artist-profile.css',
-            array(),
-            $this->get_asset_version( 'assets/css/manage-artist-profile.css' )
-        );
-
-        // Enqueue artist-switcher JS (shared component)
-        wp_enqueue_script(
-            'extrachill-artist-switcher-js',
-            $plugin_url . 'assets/js/artist-switcher.js',
-            array(),
-            $this->get_asset_version( 'assets/js/artist-switcher.js' ),
-            true
-        );
-
-        // Enqueue manage-artist-profiles JS (main)
-        wp_enqueue_script(
-            'extrachill-manage-artist-profiles',
-            $plugin_url . 'inc/artist-profiles/assets/js/manage-artist-profiles.js',
-            array(),
-            $this->get_asset_version( 'inc/artist-profiles/assets/js/manage-artist-profiles.js' ),
-            true
-        );
-
-        // Localize script data for artist profile management
-        $this->localize_artist_profile_data();
-
-        wp_enqueue_script( 
-            'extrachill-artist-subscribers', 
-            $plugin_url . 'inc/artist-profiles/assets/js/manage-artist-subscribers.js', 
-            array(), 
-            $this->get_asset_version( 'inc/artist-profiles/assets/js/manage-artist-subscribers.js' ), 
-            true 
-        );
-
-        // Provide REST API settings for subscribers script
-        wp_localize_script(
-            'extrachill-artist-subscribers',
-            'wpApiSettings',
-            array( 'nonce' => wp_create_nonce( 'wp_rest' ) )
-        );
-    }
-
-
     private function enqueue_link_page_google_fonts() {
         // Get current artist and link page IDs
         $artist_id = apply_filters('ec_get_artist_id', $_GET);
@@ -372,13 +306,6 @@ class ExtraChillArtistPlatform_Assets {
                ( isset( $_GET['artist_link_page'] ) && ! empty( $_GET['artist_link_page'] ) );
     }
 
-    private function is_manage_artist_profile_page() {
-        return is_page() && 
-               ( get_page_template_slug() === 'manage-artist-profiles.php' || 
-                 strpos( get_page_template_slug(), 'manage-artist-profiles' ) !== false );
-    }
-
-
     private function is_artist_directory_page() {
         return is_page() && 
                ( get_page_template_slug() === 'artist-directory.php' || 
@@ -410,36 +337,6 @@ class ExtraChillArtistPlatform_Assets {
         
         return in_array( $post_type, array( 'artist_profile', 'artist_link_page' ) ) ||
                in_array( $hook, array( 'edit.php', 'post.php', 'post-new.php' ) );
-    }
-
-    private function localize_artist_profile_data() {
-        $current_user_id = get_current_user_id();
-        $artist_profile_id = 0;
-
-        if ( $current_user_id ) {
-            // Get user's first artist profile for management interface (blocks-based approach)
-            $user_artist_profiles = get_user_meta( $current_user_id, '_artist_profile_ids', true );
-            if ( ! empty( $user_artist_profiles ) && is_array( $user_artist_profiles ) ) {
-                $artist_profile_id = reset( $user_artist_profiles );
-            }
-        }
-
-        $data_to_pass = array(
-            'restUrl'         => rest_url( 'extrachill/v1' ),
-            'nonce'           => wp_create_nonce( 'wp_rest' ),
-            'artistProfileId' => $artist_profile_id,
-            'i18n' => array(
-                'confirmRemoveMember' => __('Are you sure you want to remove "%s" from the roster listing?', 'extrachill-artist-platform'),
-                'enterEmail' => __('Please enter an email address.', 'extrachill-artist-platform'),
-                'sendingInvitation' => __('Sending...', 'extrachill-artist-platform'),
-                'sendInvitation' => __('Send Invitation', 'extrachill-artist-platform'),
-                'errorSendingInvitation' => __('Error: Could not send invitation.', 'extrachill-artist-platform'),
-                'errorAjax' => __('An error occurred. Please try again.', 'extrachill-artist-platform'),
-                'errorRemoveListing' => __('Error: Could not remove listing.', 'extrachill-artist-platform')
-            )
-        );
-
-        wp_localize_script( 'extrachill-manage-artist-profiles', 'apManageMembersData', $data_to_pass );
     }
 
     /**

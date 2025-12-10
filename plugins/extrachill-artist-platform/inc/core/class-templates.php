@@ -29,16 +29,11 @@ class ExtraChillArtistPlatform_PageTemplates {
     /**
      * Initialize template-related WordPress hooks
      *
-     * Sets up filters for custom template loading and registration.
+     * Sets up filters for custom template loading for post types.
      */
     private function init_hooks() {
         add_filter( 'template_include', array( $this, 'load_artist_link_page_template' ), 10 );
-        add_filter( 'extrachill_template_page', array( $this, 'load_artist_platform_page_templates' ), 10 );
         add_filter( 'extrachill_template_archive', array( $this, 'load_artist_profile_archive_template' ), 10 );
-        add_action( 'template_redirect', array( $this, 'setup_artist_platform_page_context' ) );
-
-        // Register plugin templates with WordPress
-        add_filter( 'theme_page_templates', array( $this, 'register_artist_platform_templates' ) );
     }
 
     /**
@@ -85,108 +80,5 @@ class ExtraChillArtistPlatform_PageTemplates {
             }
         }
         return $template;
-    }
-
-    /**
-     * Load artist platform page templates
-     *
-     * Integrates with theme's template router to serve plugin templates.
-     * Hooks into extrachill_template_page filter provided by theme's routing system.
-     *
-     * @param string $template Current template path from theme router
-     * @return string Modified template path
-     */
-    public function load_artist_platform_page_templates( $template ) {
-        global $post;
-
-        if ( ! $post || ! is_page() ) {
-            return $template;
-        }
-
-        $page_template = get_page_template_slug( $post );
-
-        $template_map = array(
-            'manage-artist-profiles.php' => 'inc/artist-profiles/frontend/templates/manage-artist-profiles.php',
-        );
-
-        if ( isset( $template_map[ $page_template ] ) ) {
-            $plugin_template = EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . $template_map[ $page_template ];
-            if ( file_exists( $plugin_template ) ) {
-                return $plugin_template;
-            }
-        }
-
-        return $template;
-    }
-
-    /**
-     * Register artist platform templates with WordPress
-     * 
-     * Makes them appear in the page template dropdown in admin.
-     * Only registers templates that actually exist in the plugin directory.
-     * 
-     * @param array $templates Existing page templates
-     * @return array Modified templates array
-     */
-    public function register_artist_platform_templates( $templates ) {
-        $artist_platform_templates = array(
-            'manage-artist-profiles.php' => __( 'Manage Artist Profile', 'extrachill-artist-platform' ),
-        );
-
-        // Only add templates if they exist in the plugin - check new locations
-        $template_map = array(
-            'manage-artist-profiles.php' => 'inc/artist-profiles/frontend/templates/manage-artist-profiles.php',
-        );
-        
-        foreach ( $artist_platform_templates as $template_file => $template_name ) {
-            if ( isset( $template_map[ $template_file ] ) ) {
-                $template_path = EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . $template_map[ $template_file ];
-                if ( file_exists( $template_path ) ) {
-                    $templates[ $template_file ] = $template_name;
-                }
-            }
-        }
-
-        return $templates;
-    }
-
-    /**
-     * Setup proper query context for artist platform page templates
-     * 
-     * Prevents "invalid query" errors by establishing proper post data
-     * and query context for artist platform templates. Ensures WordPress
-     * knows these are valid page requests.
-     * 
-     * @return void
-     */
-    public function setup_artist_platform_page_context() {
-        global $post, $wp_query;
-
-        // Only run on frontend page views
-        if ( is_admin() || ! is_page() || is_archive() || is_post_type_archive() ) {
-            return;
-        }
-
-        // Check if this page is using a artist platform template
-        $page_template = get_page_template_slug( $post );
-        
-        $artist_platform_templates = array(
-            'manage-artist-profiles.php',
-        );
-
-        // If this page uses a artist platform template, ensure proper context
-        if ( in_array( $page_template, $artist_platform_templates ) ) {
-            // Ensure the post is properly set up in the global query
-            if ( $post && $post->ID ) {
-                $wp_query->queried_object = $post;
-                $wp_query->queried_object_id = $post->ID;
-                $wp_query->is_page = true;
-                $wp_query->is_singular = true;
-                $wp_query->is_404 = false;
-                
-                // Set up post data properly
-                setup_postdata( $post );
-            }
-        }
     }
 }

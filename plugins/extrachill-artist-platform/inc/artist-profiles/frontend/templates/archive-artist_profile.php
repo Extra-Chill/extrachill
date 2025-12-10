@@ -31,14 +31,12 @@ get_header();
     $artist_count    = count( $user_artist_ids );
 
     if ( $artist_count > 0 ) :
-        $latest_artist_id = ec_get_latest_artist_for_user( $current_user_id );
-        $manage_url       = home_url( '/manage-artist-profiles/?artist_id=' . $latest_artist_id );
-        $artist_label     = $artist_count === 1
+        $artist_label = $artist_count === 1
             ? esc_html__( 'Manage Artist', 'extrachill-artist-platform' )
             : esc_html__( 'Manage Artists', 'extrachill-artist-platform' );
         ?>
         <div class="artist-directory-actions">
-            <a href="<?php echo esc_url( $manage_url ); ?>" class="button-2 button-medium">
+            <a href="<?php echo esc_url( home_url( '/manage-artist-profiles/' ) ); ?>" class="button-2 button-medium">
                 <?php echo $artist_label; ?>
             </a>
         </div>

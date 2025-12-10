@@ -70,38 +70,6 @@ function ec_artist_profile_archive_breadcrumb_trail( $custom_trail ) {
 add_filter( 'extrachill_breadcrumbs_override_trail', 'ec_artist_profile_archive_breadcrumb_trail', 6 );
 
 /**
- * Override breadcrumb trail for manage artist profiles page
- *
- * Displays artist name with edit context, or create mode text.
- * Priority 8 to run after archive breadcrumb.
- *
- * @param string $custom_trail Existing custom trail from other plugins
- * @return string Breadcrumb trail HTML
- */
-function ec_manage_artist_profiles_breadcrumb_trail( $custom_trail ) {
-	if ( ! is_page( 'manage-artist-profiles' ) ) {
-		return $custom_trail;
-	}
-
-	$artist_id = apply_filters( 'ec_get_artist_id', $_GET );
-
-	// Create mode - no artist selected
-	if ( ! $artist_id ) {
-		return '<span>Create Artist Profile</span>';
-	}
-
-	// Edit mode - show artist name linked to profile, then edit indicator
-	$artist_post = get_post( $artist_id );
-	if ( ! $artist_post ) {
-		return $custom_trail;
-	}
-
-	return '<a href="' . esc_url( get_permalink( $artist_id ) ) . '">' . esc_html( $artist_post->post_title ) . '</a> › <span>Edit Profile</span>';
-}
-add_filter( 'extrachill_breadcrumbs_override_trail', 'ec_manage_artist_profiles_breadcrumb_trail', 8 );
-
-
-/**
  * Override breadcrumb trail for artist profiles
  *
  * @param string $custom_trail Existing custom trail from other plugins

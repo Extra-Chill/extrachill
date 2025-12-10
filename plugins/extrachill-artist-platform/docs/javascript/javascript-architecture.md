@@ -84,15 +84,14 @@ Complete artist profile management interface providing profile editing, roster m
 
 ### Artist Profile Management
 
+Artist profile management is handled exclusively via the Artist Profile Manager block (`src/blocks/artist-profile-manager/`).
+
 **Location**: `inc/artist-profiles/assets/js/`
-- `manage-artist-profiles.js` - Profile editing, image previews, roster management with REST API
-- `manage-artist-subscribers.js` - Subscriber list management
 - `artist-members-admin.js` - Backend member administration
 
 ### Global Components
 
 **Location**: `assets/js/`
-- `artist-switcher.js` - Artist selection dropdown for switching contexts
 - `artist-platform.js` - Core plugin functionality
 - `artist-platform-home.js` - Homepage-specific features
 
