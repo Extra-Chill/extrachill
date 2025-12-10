@@ -126,38 +126,6 @@ function ec_get_join_flow_redirect_url( $user_id, $artist_id ) {
 }
 
 /**
- * Validates join flow registration requirements
- *
- * Currently a placeholder for future validation needs.
- * Theme handles checkbox validation via JavaScript.
- *
- * @param WP_Error $errors               Registration error object
- * @param string   $sanitized_user_login User login after sanitization
- * @param string   $user_email           User email
- * @return WP_Error Modified errors object
- */
-function ec_validate_join_flow_requirements( $errors, $sanitized_user_login, $user_email ) {
-	// Join flow validation is currently handled by theme JavaScript
-	// This function is available for future server-side validation needs
-
-	if ( ec_is_join_flow_registration() ) {
-		// Future: Add any server-side validation for join flow registrations
-
-		/**
-		 * Allows plugins to add join flow validation errors
-		 *
-		 * @param WP_Error $errors               Current registration errors
-		 * @param string   $sanitized_user_login Sanitized user login
-		 * @param string   $user_email           User email
-		 */
-		$errors = apply_filters( 'ec_join_flow_validation_errors', $errors, $sanitized_user_login, $user_email );
-	}
-
-	return $errors;
-}
-add_filter( 'registration_errors', 'ec_validate_join_flow_requirements', 10, 3 );
-
-/**
  * Get join flow completion data for a user
  *
  * @param int $user_id The user ID

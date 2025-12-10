@@ -226,29 +226,7 @@
     color: var(--header-text) !important; /* Keep color, change opacity */
 }
 
-/* Edit Button Styling */
-.artist-edit-button-container {
-    position: absolute;
-    top: 15px; /* Adjusted from inline style */
-    right: 15px; /* Adjusted from inline style */
-    z-index: 3; /* Above content */
-}
 
-.artist-edit-button-container .button {
-    /* Inherit theme button styles, maybe add specifics */
-    padding: 8px 15px; 
-    font-size: 0.9em;
-    border-radius: 4px; /* Add rounded corners - adjust if needed for theme consistency */
-    /* Use button-1 colors for consistency */
-    background-color: #0b5394;
-    color: #fff; /* Assuming button text is usually white */
-    border: none; /* Assuming no border based on style.css */
-}
-
-.artist-edit-button-container .button:hover {
-    background-color: #083b6c;
-    color: #fff;
-}
 
 /* --- End Artist Hero Section Styles --- */ 
 
