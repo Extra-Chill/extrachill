@@ -1,0 +1,117 @@
+/**
+ * New Topic Modal Styles
+ *
+ * Responsive modal for creating forum topics from the community homepage.
+ * Desktop: centered modal with max-width. Mobile: full-screen experience.
+ */
+
+.new-topic-modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    z-index: 1000;
+}
+
+.new-topic-modal {
+    display: none;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: var(--card-background);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-md);
+    box-shadow: var(--card-shadow);
+    z-index: 1001;
+    max-width: 700px;
+    width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-sizing: border-box;
+}
+
+.new-topic-modal-content {
+    padding: var(--spacing-lg);
+    position: relative;
+}
+
+.new-topic-modal-close {
+    position: absolute;
+    top: var(--spacing-md);
+    right: var(--spacing-md);
+    background: none;
+    border: none;
+    font-size: 2rem;
+    line-height: 1;
+    color: var(--muted-text);
+    cursor: pointer;
+    padding: var(--spacing-xs);
+    min-width: 44px;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.2s ease;
+}
+
+.new-topic-modal-close:hover,
+.new-topic-modal-close:focus {
+    color: var(--text-color);
+}
+
+.new-topic-modal.is-open,
+.new-topic-modal-overlay.is-open {
+    display: block;
+}
+
+body.new-topic-modal-open {
+    overflow: hidden;
+}
+
+.new-topic-modal .bbp-topic-form {
+    margin: 0;
+}
+
+.new-topic-modal .bbp-topic-form fieldset {
+    border: none;
+    padding: 0;
+    margin: 0;
+}
+
+.new-topic-modal .bbp-topic-form legend {
+    font-family: var(--font-family-heading);
+    font-size: var(--font-size-xl);
+    font-weight: 600;
+    margin-bottom: var(--spacing-md);
+    padding: 0;
+    color: var(--text-color);
+}
+
+@media (max-width: 768px) {
+    .new-topic-modal {
+        width: 100%;
+        height: 100%;
+        max-width: none;
+        max-height: none;
+        border-radius: 0;
+        top: 0;
+        left: 0;
+        transform: none;
+    }
+
+    .new-topic-modal-content {
+        padding: var(--spacing-md);
+        padding-top: var(--spacing-xl);
+        min-height: 100%;
+        box-sizing: border-box;
+    }
+
+    .new-topic-modal-close {
+        top: var(--spacing-sm);
+        right: var(--spacing-sm);
+    }
+}

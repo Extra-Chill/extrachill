@@ -183,7 +183,16 @@ function enqueue_content_expand_script() {
 add_action( 'wp_enqueue_scripts', 'enqueue_content_expand_script' );
 
 function extrachill_community_bbpress_editor_is_active() {
-    if ( ! function_exists('bbp_is_single_topic') || ! is_bbpress() ) {
+    if (!function_exists('bbp_is_single_topic')) {
+        return false;
+    }
+
+    // Homepage needs editor for the New Topic modal
+    if (is_front_page()) {
+        return true;
+    }
+
+    if (!is_bbpress()) {
         return false;
     }
 
@@ -221,3 +230,28 @@ function extrachill_dequeue_bbpress_default_styles() {
     wp_deregister_style('bbp-default');
 }
 add_action('wp_enqueue_scripts', 'extrachill_dequeue_bbpress_default_styles', 15);
+
+function extrachill_enqueue_new_topic_modal_assets() {
+    if (!is_front_page()) {
+        return;
+    }
+
+    $css_path = EXTRACHILL_COMMUNITY_PLUGIN_DIR . '/inc/home/assets/css/new-topic-modal.css';
+    $js_path = EXTRACHILL_COMMUNITY_PLUGIN_DIR . '/inc/home/assets/js/new-topic-modal.js';
+
+    wp_enqueue_style(
+        'extrachill-new-topic-modal',
+        EXTRACHILL_COMMUNITY_PLUGIN_URL . '/inc/home/assets/css/new-topic-modal.css',
+        array(),
+        filemtime($css_path)
+    );
+
+    wp_enqueue_script(
+        'extrachill-new-topic-modal',
+        EXTRACHILL_COMMUNITY_PLUGIN_URL . '/inc/home/assets/js/new-topic-modal.js',
+        array(),
+        filemtime($js_path),
+        true
+    );
+}
+add_action('wp_enqueue_scripts', 'extrachill_enqueue_new_topic_modal_assets');
