@@ -3,10 +3,16 @@
  * TinyMCE Editor Customization
  *
  * Customizes TinyMCE editor for bbPress forms with styling and functionality enhancements.
+ * Skipped when Blocks Everywhere plugin is active (Gutenberg replaces TinyMCE).
  *
  * @package ExtraChillCommunity
  * @subpackage ForumFeatures\Content\Editor
  */
+
+include_once ABSPATH . 'wp-admin/includes/plugin.php';
+if (is_plugin_active('blocks-everywhere/blocks-everywhere.php')) {
+	return;
+}
 
 function bbp_enable_visual_editor($args = array()) {
     $args['tinymce'] = array('content_css' => EXTRACHILL_COMMUNITY_PLUGIN_URL . '/inc/assets/css/tinymce-editor.css');

@@ -22,8 +22,8 @@ define('EXTRACHILL_COMMUNITY_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('EXTRACHILL_COMMUNITY_PLUGIN_URL', plugin_dir_url(__FILE__));
 
 /**
- * Loads 36 feature files via direct require_once.
- * Load order: core (8) → content (6) → social (11) → user-profiles (7) → home (4).
+ * Loads 37 feature files via direct require_once.
+ * Load order: core (8) → content (7) → social (11) → user-profiles (7) → home (4).
  * Templates loaded via hooks: forum-home-header, forum-homepage, recently-active.
  * Note: Avatar display functionality in extrachill-users plugin; upload UI here for bbPress integration.
  */
@@ -38,9 +38,10 @@ function extrachill_community_init() {
     require_once plugin_dir_path(__FILE__) . 'inc/core/nav.php';
     require_once plugin_dir_path(__FILE__) . 'inc/core/cache-invalidation.php';
 
-    // Content features (6 files)
+    // Content features (7 files)
     require_once plugin_dir_path(__FILE__) . 'inc/content/editor/tinymce-customization.php';
     require_once plugin_dir_path(__FILE__) . 'inc/content/editor/tinymce-image-uploads.php';
+    require_once plugin_dir_path(__FILE__) . 'inc/content/editor/blocks-everywhere.php';
     require_once plugin_dir_path(__FILE__) . 'inc/content/content-filters.php';
     require_once plugin_dir_path(__FILE__) . 'inc/content/recent-feed.php';
     require_once plugin_dir_path(__FILE__) . 'inc/content/main-site-comments.php';
