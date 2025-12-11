@@ -3,7 +3,7 @@
  * Plugin Name: Extra Chill Artist Platform
  * Plugin URI: https://extrachill.com
  * Description: Artist platform for musicians with profiles, link pages, analytics, and subscriber management.
- * Version: 1.2.12
+ * Version: 1.2.13
  * Author: Chris Huber
  * Author URI: https://chubes.net
  * License: GPL v2 or later
@@ -20,7 +20,7 @@
  */
 
 defined( 'ABSPATH' ) || exit;
-define( 'EXTRACHILL_ARTIST_PLATFORM_VERSION', '1.2.12' );
+define( 'EXTRACHILL_ARTIST_PLATFORM_VERSION', '1.2.13' );
 define( 'EXTRACHILL_ARTIST_PLATFORM_PLUGIN_FILE', __FILE__ );
 define( 'EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'EXTRACHILL_ARTIST_PLATFORM_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
@@ -126,6 +126,7 @@ class ExtraChillArtistPlatform {
     }
 
     public static function activate() {
+        require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/database/link-page-analytics-db.php';
         extrch_create_or_update_analytics_table();
         flush_rewrite_rules();
         update_option( 'extrachill_artist_platform_activated', true );

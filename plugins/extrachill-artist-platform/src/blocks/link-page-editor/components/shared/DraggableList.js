@@ -4,7 +4,7 @@
  * Wraps dnd-kit for drag-and-drop list reordering.
  */
 
-import { useCallback } from '@wordpress/element';
+import { useCallback, useMemo } from '@wordpress/element';
 import {
 	DndContext,
 	closestCenter,
@@ -37,13 +37,36 @@ function SortableItem( { id, children } ) {
 		transition,
 	};
 
+	const wrappedListeners = useMemo( () => {
+		const handlers = {};
+		if ( ! listeners ) {
+			return handlers;
+		}
+
+		for ( const key in listeners ) {
+			handlers[ key ] = ( event ) => {
+				// Prevent drag activation on interactive elements
+				if (
+					event.target.tagName.match(
+						/^(INPUT|TEXTAREA|SELECT|BUTTON)$/i
+					) ||
+					event.target.isContentEditable
+				) {
+					return;
+				}
+				listeners[ key ]( event );
+			};
+		}
+		return handlers;
+	}, [ listeners ] );
+
 	return (
 		<div
 			ref={ setNodeRef }
 			style={ style }
 			className={ `ec-draggable ${ isDragging ? 'is-dragging' : '' }` }
 			{ ...attributes }
-			{ ...listeners }
+			{ ...wrappedListeners }
 		>
 			{ children }
 		</div>
