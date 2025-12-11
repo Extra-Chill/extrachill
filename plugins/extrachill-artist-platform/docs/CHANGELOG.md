@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2025-12-11
+
+### Added
+- **Artist Creator Block**: New dedicated Gutenberg block for artist profile creation with permission checks and user prefill
+- **Automatic Page Creation**: Plugin now creates required management pages (`create-artist`, `manage-artist-profiles`, `manage-link-page`) on activation/upgrade
+- **User Search for Roster**: Enhanced roster management with search dropdown for finding and inviting artist-capable users
+- **Auto-Link Page Creation**: Link Page Editor automatically creates link pages for artists that don't have them
+
+### Changed
+- **Simplified Join Flow**: Removed automatic artist profile and link page creation on user registration - now redirects to dedicated creation page
+- **Separated Workflows**: Artist creation and management are now completely separate processes with dedicated interfaces
+- **Navigation Updates**: All "create artist" links now point to dedicated `/create-artist/` page instead of management interface
+- **Bio Decoupling**: Removed automatic syncing of bio content between artist profiles and link pages
+- **Permission Relocation**: Core `ec_can_manage_artist()` function moved to extrachill-users plugin for better architecture
+
+### Technical Improvements
+- **Enhanced UI/UX**: Sticky preview containers, consistent button styling, improved search interfaces
+- **Build System**: Added webpack configuration for new artist-creator block
+- **API Enhancements**: Added user search endpoints and improved client-side error handling
+- **Code Organization**: Better separation of concerns between creation and management functionality
+
 ## [1.2.13] - 2025-12-10
 
 ### Fixed

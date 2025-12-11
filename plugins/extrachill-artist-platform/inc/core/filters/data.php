@@ -193,7 +193,7 @@ function ec_get_link_page_data( $artist_id, $link_page_id = null, $overrides = a
 
     $display_data = array(
         'display_title' => (isset($overrides['artist_profile_title']) && $overrides['artist_profile_title'] !== '') ? $overrides['artist_profile_title'] : ($artist_id ? get_the_title($artist_id) : ''),
-        'bio' => (isset($overrides['link_page_bio_text']) && $overrides['link_page_bio_text'] !== '') ? $overrides['link_page_bio_text'] : ($artist_id ? (get_post($artist_id)->post_content ?? '') : ''),
+        'bio' => (isset($overrides['link_page_bio_text']) && $overrides['link_page_bio_text'] !== '') ? $overrides['link_page_bio_text'] : ($all_meta['_link_page_bio_text'][0] ?? ''),
         'profile_img_url' => (isset($overrides['profile_img_url']) && $overrides['profile_img_url'] !== '') ? $overrides['profile_img_url'] : ($artist_id ? (get_the_post_thumbnail_url($artist_id, 'large') ?: '') : ''),
         'social_links' => isset($overrides['social_links']) ? $overrides['social_links'] : $data['socials'],
         'socials' => $data['socials'],

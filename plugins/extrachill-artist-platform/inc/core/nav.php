@@ -40,7 +40,7 @@ function ec_artist_platform_secondary_header_items( $items ) {
 		);
 	} elseif ( ec_can_create_artist_profiles( $user_id ) ) {
 		$items[] = array(
-			'url'      => home_url( '/manage-artist-profiles/' ),
+			'url'      => home_url( '/create-artist/' ),
 			'label'    => __( 'Create Artist Profile', 'extrachill-artist-platform' ),
 			'priority' => 10,
 		);

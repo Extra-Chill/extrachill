@@ -1,39 +1,10 @@
 <?php
 /**
- * Centralized Permission System
+ * Artist Platform Permission Helpers
  *
- * Single source of truth for artist platform permissions.
- * Provides permission helpers and WordPress capability filtering.
+ * Provides permission helpers and WordPress capability filtering for artist-platform specific contexts.
+ * Core permission function ec_can_manage_artist() is defined in extrachill-users plugin (network-activated).
  */
-
-/**
- * Check if user can manage artist (post author, roster member, or admin)
- */
-function ec_can_manage_artist( $user_id = null, $artist_id = null ) {
-    if ( ! $user_id ) {
-        $user_id = get_current_user_id();
-    }
-
-    if ( ! $user_id || ! $artist_id ) {
-        return false;
-    }
-
-    if ( user_can( $user_id, 'manage_options' ) ) {
-        return true;
-    }
-
-    $post = get_post( $artist_id );
-    if ( $post && (int) $post->post_author === (int) $user_id ) {
-        return true;
-    }
-
-    $user_artist_ids = get_user_meta( $user_id, '_artist_profile_ids', true );
-    if ( ! is_array( $user_artist_ids ) ) {
-        $user_artist_ids = array();
-    }
-
-    return in_array( (int) $artist_id, array_map( 'intval', $user_artist_ids ) );
-}
 
 /**
  * Extract artist ID from request data

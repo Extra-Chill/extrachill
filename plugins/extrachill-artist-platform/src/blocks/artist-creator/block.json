@@ -1,0 +1,23 @@
+{
+  "$schema": "https://schemas.wp.org/trunk/block.json",
+  "apiVersion": 3,
+  "name": "extrachill-artist-platform/artist-creator",
+  "version": "0.1.0",
+  "title": "Artist Creator",
+  "category": "widgets",
+  "icon": "plus-alt",
+  "description": "Simple form for creating a new artist profile.",
+  "textdomain": "extrachill-artist-platform",
+  "attributes": {},
+  "supports": {
+    "html": false,
+    "multiple": false,
+    "reusable": false,
+    "inserter": true
+  },
+  "editorScript": "file:./index.js",
+  "editorStyle": "file:./index.css",
+  "style": "file:./style-index.css",
+  "viewScript": "file:./view.js",
+  "render": "file:./render.php"
+}

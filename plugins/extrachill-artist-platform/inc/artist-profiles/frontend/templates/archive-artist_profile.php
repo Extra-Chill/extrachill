@@ -42,7 +42,7 @@ get_header();
         </div>
     <?php elseif ( ec_can_create_artist_profiles( $current_user_id ) ) : ?>
         <div class="artist-directory-actions">
-            <a href="<?php echo esc_url( home_url( '/manage-artist-profiles/' ) ); ?>" class="button-2 button-medium">
+            <a href="<?php echo esc_url( home_url( '/create-artist/' ) ); ?>" class="button-2 button-medium">
                 <?php esc_html_e( 'Create Artist Profile', 'extrachill-artist-platform' ); ?>
             </a>
         </div>

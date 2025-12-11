@@ -1,19 +1,39 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useRef, useCallback } from 'react';
 import { render } from '@wordpress/element';
 import {
 	getArtist,
-	createArtist,
 	updateArtist,
 	getRoster,
 	inviteRosterMember,
 	removeRosterMember,
 	cancelRosterInvite,
+	searchArtistCapableUsers,
 	getSubscribers,
 	exportSubscribers,
 	uploadMedia,
 	deleteMedia,
 } from '../shared/api/client';
 import ArtistSwitcher from '../shared/components/ArtistSwitcher';
+
+const isValidEmail = (email) => {
+	return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+};
+
+const useDebounce = (value, delay) => {
+	const [debouncedValue, setDebouncedValue] = useState(value);
+
+	useEffect(() => {
+		const handler = setTimeout(() => {
+			setDebouncedValue(value);
+		}, delay);
+
+		return () => {
+			clearTimeout(handler);
+		};
+	}, [value, delay]);
+
+	return debouncedValue;
+};
 
 const useConfig = () => {
 	const config = window.ecArtistPlatformConfig || {};
@@ -23,9 +43,7 @@ const useConfig = () => {
 			nonce: config.nonce,
 			userArtists: Array.isArray(config.userArtists) ? config.userArtists : [],
 			selectedId: config.selectedId || 0,
-			canCreate: !!config.canCreate,
-			fromJoin: !!config.fromJoin,
-			prefill: config.prefill || {},
+			artistSiteUrl: config.artistSiteUrl || '',
 			assets: config.assets || {},
 		}),
 		[ config ]
@@ -169,8 +187,15 @@ const ManagersTab = ({ artistId }) => {
 	const [loading, setLoading] = useState(false);
 	const [roster, setRoster] = useState([]);
 	const [invites, setInvites] = useState([]);
-	const [email, setEmail] = useState('');
+	const [inputValue, setInputValue] = useState('');
+	const [selectedEmail, setSelectedEmail] = useState('');
 	const [error, setError] = useState('');
+	const [searchResults, setSearchResults] = useState([]);
+	const [showDropdown, setShowDropdown] = useState(false);
+	const [searching, setSearching] = useState(false);
+	const containerRef = useRef(null);
+
+	const debouncedSearch = useDebounce(inputValue, 300);
 
 	const load = async () => {
 		setLoading(true);
@@ -191,14 +216,77 @@ const ManagersTab = ({ artistId }) => {
 			load();
 		}
 	// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [ artistId ]);
+	}, [artistId]);
+
+	// Search for artist-capable users when input changes
+	useEffect(() => {
+		const search = async () => {
+			if (debouncedSearch.length < 2) {
+				setSearchResults([]);
+				setShowDropdown(false);
+				return;
+			}
+
+			setSearching(true);
+			try {
+				const results = await searchArtistCapableUsers(debouncedSearch, artistId);
+				setSearchResults(Array.isArray(results) ? results : []);
+				setShowDropdown(true);
+			} catch (err) {
+				setSearchResults([]);
+			} finally {
+				setSearching(false);
+			}
+		};
+
+		// Only search if we haven't selected a user (inputValue differs from selectedEmail)
+		if (inputValue !== selectedEmail) {
+			search();
+		}
+	}, [debouncedSearch, artistId, inputValue, selectedEmail]);
+
+	// Close dropdown when clicking outside
+	useEffect(() => {
+		const handleClickOutside = (event) => {
+			if (containerRef.current && !containerRef.current.contains(event.target)) {
+				setShowDropdown(false);
+			}
+		};
+
+		document.addEventListener('mousedown', handleClickOutside);
+		return () => document.removeEventListener('mousedown', handleClickOutside);
+	}, []);
+
+	const handleInputChange = (e) => {
+		const value = e.target.value;
+		setInputValue(value);
+		setSelectedEmail('');
+		setError('');
+	};
+
+	const handleSelectUser = (user) => {
+		setInputValue(user.email);
+		setSelectedEmail(user.email);
+		setShowDropdown(false);
+		setSearchResults([]);
+	};
 
 	const invite = async () => {
-		if (!email) return;
+		const emailToInvite = selectedEmail || inputValue.trim();
+
+		if (!emailToInvite) return;
+
+		if (!isValidEmail(emailToInvite)) {
+			setError('Please enter a valid email address.');
+			return;
+		}
+
 		setLoading(true);
+		setError('');
 		try {
-			await inviteRosterMember(artistId, email);
-			setEmail('');
+			await inviteRosterMember(artistId, emailToInvite);
+			setInputValue('');
+			setSelectedEmail('');
 			await load();
 		} catch (err) {
 			setError(err?.message || 'Error sending invite.');
@@ -219,7 +307,7 @@ const ManagersTab = ({ artistId }) => {
 		}
 	};
 
-	const cancelInvite = async (inviteId) => {
+	const handleCancelInvite = async (inviteId) => {
 		setLoading(true);
 		try {
 			await cancelRosterInvite(artistId, inviteId);
@@ -237,35 +325,71 @@ const ManagersTab = ({ artistId }) => {
 			{loading && <p>Loading…</p>}
 			{error && <p className="ec-apm__error">{error}</p>}
 			<div className="ec-apm__inline">
-				<input
-					type="email"
-					value={email}
-					onChange={(e) => setEmail(e.target.value)}
-					placeholder="Invite by email"
-				/>
-				<button type="button" className="button-1 button-medium" onClick={invite} disabled={loading || !email}>
+				<div className="ec-apm__search-container" ref={containerRef}>
+					<input
+						type="text"
+						value={inputValue}
+						onChange={handleInputChange}
+						onFocus={() => searchResults.length > 0 && setShowDropdown(true)}
+						placeholder="Search users or enter email"
+						autoComplete="off"
+					/>
+					{showDropdown && searchResults.length > 0 && (
+						<div className="ec-apm__search-dropdown">
+							{searchResults.map((user) => (
+								<button
+									key={user.id}
+									type="button"
+									className="ec-apm__search-result"
+									onClick={() => handleSelectUser(user)}
+								>
+									{user.avatar_url && (
+										<img src={user.avatar_url} alt="" className="ec-apm__search-avatar" />
+									)}
+									<div className="ec-apm__search-info">
+										<span className="ec-apm__search-name">{user.display_name}</span>
+										<span className="ec-apm__search-email">{user.email}</span>
+									</div>
+								</button>
+							))}
+						</div>
+					)}
+					{searching && <span className="ec-apm__search-loading">Searching…</span>}
+				</div>
+				<button
+					type="button"
+					className="button-1 button-medium"
+					onClick={invite}
+					disabled={loading || !inputValue.trim()}
+				>
 					Send Invite
 				</button>
 			</div>
 			<div className="ec-apm__list">
 				{roster.map((member) => (
-					<div key={member.user_id} className="ec-apm__list-item">
+					<div key={member.id} className="ec-apm__list-item">
 						<div>
-							<strong>{member.display_name}</strong>
+							{member.profile_url ? (
+								<a href={member.profile_url} target="_blank" rel="noopener noreferrer">
+									<strong>{member.display_name}</strong>
+								</a>
+							) : (
+								<strong>{member.display_name}</strong>
+							)}
 							{member.status && <span className="ec-apm__pill">{member.status}</span>}
 						</div>
-						<button type="button" className="button-danger button-small" onClick={() => remove(member.user_id)}>
+						<button type="button" className="button-danger button-small" onClick={() => remove(member.id)}>
 							Remove
 						</button>
 					</div>
 				))}
-				{invites.map((invite) => (
-					<div key={invite.invite_id} className="ec-apm__list-item">
+				{invites.map((inv) => (
+					<div key={inv.id} className="ec-apm__list-item">
 						<div>
-							<strong>{invite.email}</strong>
+							<strong>{inv.email}</strong>
 							<span className="ec-apm__pill">Pending</span>
 						</div>
-						<button type="button" className="button-danger button-small" onClick={() => cancelInvite(invite.invite_id)}>
+						<button type="button" className="button-danger button-small" onClick={() => handleCancelInvite(inv.id)}>
 							Cancel
 						</button>
 					</div>
@@ -355,28 +479,27 @@ const SubscribersTab = ({ artistId }) => {
 	);
 };
 
-const getInitialFormState = (artist, prefill) => ({
-	name: artist?.name || prefill?.artist_name || '',
-	bio: artist?.bio || prefill?.artist_bio || '',
+const getInitialFormState = (artist) => ({
+	name: artist?.name || '',
+	bio: artist?.bio || '',
 	localCity: artist?.local_city || '',
 	genre: artist?.genre || '',
-	profileImage: artist?.profile_image_url || prefill?.avatar_thumb || '',
+	profileImage: artist?.profile_image_url || '',
 	headerImage: artist?.header_image_url || '',
-	profileImageId: artist?.profile_image_id || prefill?.avatar_id || null,
+	profileImageId: artist?.profile_image_id || null,
 	headerImageId: artist?.header_image_id || null,
 });
 
 const App = () => {
 	const config = useConfig();
 	const [activeTab, setActiveTab] = useState('info');
-	const [selectedId, setSelectedId] = useState(config.selectedId || 0);
+	const [selectedId, setSelectedId] = useState(Number(config.selectedId) || 0);
 	const [artist, setArtist] = useState(null);
 	const [loading, setLoading] = useState(false);
 	const [saving, setSaving] = useState(false);
 	const [saveSuccess, setSaveSuccess] = useState(false);
 	const [error, setError] = useState('');
-	const [artists, setArtists] = useState(config.userArtists);
-	const [formState, setFormState] = useState(() => getInitialFormState(null, config.prefill));
+	const [formState, setFormState] = useState(() => getInitialFormState(null));
 
 	const tabs = [
 		{ id: 'info', label: 'Info' },
@@ -385,16 +508,16 @@ const App = () => {
 	];
 
 	const loadArtist = async (id) => {
-		if (!id) {
+		if (!id || id <= 0) {
 			setArtist(null);
-			setFormState(getInitialFormState(null, config.prefill));
+			setFormState(getInitialFormState(null));
 			return;
 		}
 		setLoading(true);
 		try {
 			const data = await getArtist(id);
 			setArtist(data);
-			setFormState(getInitialFormState(data, config.prefill));
+			setFormState(getInitialFormState(data));
 			setError('');
 		} catch (err) {
 			setError(err?.message || 'Could not load artist.');
@@ -411,6 +534,11 @@ const App = () => {
 	}, [ config.selectedId ]);
 
 	const handleSave = async () => {
+		if (!selectedId) {
+			setError('No artist selected.');
+			return;
+		}
+
 		if (!formState.name.trim()) {
 			setError('Artist name is required.');
 			return;
@@ -430,22 +558,11 @@ const App = () => {
 		};
 
 		try {
-			if (selectedId) {
-				const updated = await updateArtist(selectedId, payload);
-				setArtist(updated);
-				setFormState(getInitialFormState(updated, config.prefill));
-				setSaveSuccess(true);
-				setTimeout(() => setSaveSuccess(false), 3000);
-			} else if (config.canCreate) {
-				const created = await createArtist(payload);
-				setArtist(created);
-				const createdId = created?.id || 0;
-				setSelectedId(createdId);
-				setArtists([...artists, { id: createdId, name: created.name, slug: created.slug }]);
-				setFormState(getInitialFormState(created, config.prefill));
-				setSaveSuccess(true);
-				setTimeout(() => setSaveSuccess(false), 3000);
-			}
+			const updated = await updateArtist(selectedId, payload);
+			setArtist(updated);
+			setFormState(getInitialFormState(updated));
+			setSaveSuccess(true);
+			setTimeout(() => setSaveSuccess(false), 3000);
 		} catch (err) {
 			setError(err?.message || 'Save failed.');
 		} finally {
@@ -454,21 +571,18 @@ const App = () => {
 	};
 
 	const handleSelect = (id) => {
-		setSelectedId(id || 0);
-		loadArtist(id || 0);
+		const numId = Number(id) || 0;
+		setSelectedId(numId);
+		if (numId > 0) {
+			loadArtist(numId);
+		} else {
+			setArtist(null);
+			setFormState(getInitialFormState(null));
+		}
 	};
 
-	const currentTabs = useMemo(() => {
-		if (!selectedId) {
-			return [ tabs[0] ];
-		}
-		return tabs;
-	}, [ selectedId ]);
-
-	const artistName = formState.name || (selectedId ? '' : 'New Artist');
-	const saveButtonLabel = saving
-		? (selectedId ? 'Saving…' : 'Creating…')
-		: (selectedId ? 'Save' : 'Create Artist');
+	const artistName = formState.name || '';
+	const saveButtonLabel = saving ? 'Saving…' : 'Save';
 
 	return (
 		<div className="ec-apm">
@@ -476,38 +590,41 @@ const App = () => {
 				<div className="ec-apm__header-left">
 					<h2>{artistName}</h2>
 					<ArtistSwitcher
-						artists={artists}
+						artists={config.userArtists}
 						selectedId={selectedId}
 						onChange={handleSelect}
-						showCreateOption={config.canCreate}
+						showCreateOption={false}
 						showLabel={false}
 						hideIfSingle={false}
-						emptyStateMessage="Artist profiles are for artists and music professionals."
 					/>
 				</div>
-				<div className="ec-apm__header-right">
-					{error && <span className="ec-apm__save-error">{error}</span>}
-					{saveSuccess && <span className="ec-apm__save-success">Saved!</span>}
-					<button
-						type="button"
-						className="button-1 button-medium"
-						onClick={handleSave}
-						disabled={saving}
+			<div className="ec-apm__header-right">
+				{error && <span className="ec-apm__save-error">{error}</span>}
+				{saveSuccess && <span className="ec-apm__save-success">Saved!</span>}
+				{artist?.slug && config.artistSiteUrl && (
+					<a
+						href={`${config.artistSiteUrl}/${artist.slug}`}
+						className="button-3 button-medium"
+						target="_blank"
+						rel="noopener noreferrer"
 					>
-						{saveButtonLabel}
-					</button>
-				</div>
+						View Profile
+					</a>
+				)}
+				<button
+					type="button"
+					className="button-1 button-medium"
+					onClick={handleSave}
+					disabled={saving || !selectedId}
+				>
+					{saveButtonLabel}
+				</button>
+			</div>
 			</div>
 
 			{loading && <p>Loading artist…</p>}
 
-			{!selectedId && config.canCreate && (
-				<div className="notice notice-info">
-					<p>Start by entering artist info, then save to create the profile.</p>
-				</div>
-			)}
-
-			<TabNav tabs={currentTabs} active={activeTab} onChange={setActiveTab} />
+			<TabNav tabs={tabs} active={activeTab} onChange={setActiveTab} />
 
 			{activeTab === 'info' && (
 				<InfoTab

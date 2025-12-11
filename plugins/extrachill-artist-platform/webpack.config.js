@@ -21,6 +21,10 @@ module.exports = {
 			'./src/blocks/artist-profile-manager/index.js',
 		'blocks/artist-profile-manager/view':
 			'./src/blocks/artist-profile-manager/view.js',
+		'blocks/artist-creator/index':
+			'./src/blocks/artist-creator/index.js',
+		'blocks/artist-creator/view':
+			'./src/blocks/artist-creator/view.js',
 	},
 	output: {
 		...defaultConfig.output,

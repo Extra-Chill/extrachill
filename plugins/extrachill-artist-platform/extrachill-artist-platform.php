@@ -3,7 +3,7 @@
  * Plugin Name: Extra Chill Artist Platform
  * Plugin URI: https://extrachill.com
  * Description: Artist platform for musicians with profiles, link pages, analytics, and subscriber management.
- * Version: 1.2.13
+ * Version: 1.3.0
  * Author: Chris Huber
  * Author URI: https://chubes.net
  * License: GPL v2 or later
@@ -20,7 +20,7 @@
  */
 
 defined( 'ABSPATH' ) || exit;
-define( 'EXTRACHILL_ARTIST_PLATFORM_VERSION', '1.2.13' );
+define( 'EXTRACHILL_ARTIST_PLATFORM_VERSION', '1.3.0' );
 define( 'EXTRACHILL_ARTIST_PLATFORM_PLUGIN_FILE', __FILE__ );
 define( 'EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'EXTRACHILL_ARTIST_PLATFORM_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
@@ -157,4 +157,57 @@ function extrachill_artist_platform_register_blocks() {
     register_block_type( __DIR__ . '/build/blocks/link-page-editor' );
     register_block_type( __DIR__ . '/build/blocks/link-page-analytics' );
     register_block_type( __DIR__ . '/build/blocks/artist-profile-manager' );
+    register_block_type( __DIR__ . '/build/blocks/artist-creator' );
 }
+
+/**
+ * Create required pages for the artist platform
+ *
+ * Creates pages with appropriate blocks if they don't already exist.
+ * Called on plugin activation and admin_init with version check.
+ */
+function extrachill_artist_platform_create_pages() {
+    $pages = array(
+        'create-artist' => array(
+            'title'   => 'Create Artist',
+            'content' => '<!-- wp:extrachill-artist-platform/artist-creator /-->',
+        ),
+        'manage-artist-profiles' => array(
+            'title'   => 'Manage Artist Profiles',
+            'content' => '<!-- wp:extrachill-artist-platform/artist-profile-manager /-->',
+        ),
+        'manage-link-page' => array(
+            'title'   => 'Manage Link Page',
+            'content' => '<!-- wp:extrachill-artist-platform/link-page-editor /-->',
+        ),
+    );
+
+    foreach ( $pages as $slug => $page_data ) {
+        $existing_page = get_page_by_path( $slug );
+        if ( ! $existing_page ) {
+            wp_insert_post( array(
+                'post_title'   => $page_data['title'],
+                'post_name'    => $slug,
+                'post_content' => $page_data['content'],
+                'post_status'  => 'publish',
+                'post_type'    => 'page',
+            ) );
+        }
+    }
+}
+
+/**
+ * Run page creation on admin_init with version check
+ *
+ * Ensures pages are created on plugin upgrades, not just fresh activations.
+ */
+function extrachill_artist_platform_maybe_create_pages() {
+    $current_version = EXTRACHILL_ARTIST_PLATFORM_VERSION;
+    $stored_version = get_option( 'extrachill_artist_platform_pages_version', '0' );
+
+    if ( version_compare( $stored_version, $current_version, '<' ) ) {
+        extrachill_artist_platform_create_pages();
+        update_option( 'extrachill_artist_platform_pages_version', $current_version );
+    }
+}
+add_action( 'admin_init', 'extrachill_artist_platform_maybe_create_pages' );

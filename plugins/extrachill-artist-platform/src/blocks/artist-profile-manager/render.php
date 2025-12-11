@@ -53,45 +53,13 @@ foreach ( $user_artists as $artist_id ) {
     }
 }
 
-// Join-flow flag (preserve minimal flag without URL reliance in frontend state)
-$from_join = isset( $_GET['from_join'] ) && 'true' === sanitize_text_field( wp_unslash( $_GET['from_join'] ) );
-
-// Permission gating: allow create if user can create; allow edit if managing selected artist
-$can_create = ec_can_create_artist_profiles( $current_user_id );
-$can_manage_selected = $selected_artist_id && function_exists( 'ec_can_manage_artist' )
-    ? ec_can_manage_artist( $current_user_id, $selected_artist_id )
-    : false;
-
-if ( empty( $user_artists_data ) && ! $can_create ) {
-    echo '<div class="notice notice-info">';
-    echo '<p>' . esc_html__( 'Artist profiles are for artists and music professionals.', 'extrachill-artist-platform' ) . '</p>';
-    echo '</div>';
-    return;
-}
-
-// Prefill data for create mode
-$prefill = array();
-if ( ! $selected_artist_id ) {
-    $current_user = wp_get_current_user();
-    if ( $current_user && $current_user->ID ) {
-        $prefill['artist_name'] = $current_user->display_name;
-        $prefill['artist_bio']  = get_user_meta( $current_user->ID, 'description', true );
-        $prefill['avatar_id']   = get_user_meta( $current_user->ID, 'custom_avatar_id', true );
-        if ( $prefill['avatar_id'] ) {
-            $prefill['avatar_thumb'] = wp_get_attachment_image_url( $prefill['avatar_id'], 'thumbnail' );
-        }
-    }
-}
-
-// Build config payload for frontend
+// Build config payload for frontend (management-only, no creation)
 $config = array(
     'restUrl'       => rest_url( 'extrachill/v1/' ),
     'nonce'         => wp_create_nonce( 'wp_rest' ),
     'userArtists'   => $user_artists_data,
-    'selectedId'    => $can_manage_selected ? (int) $selected_artist_id : 0,
-    'canCreate'     => (bool) $can_create,
-    'fromJoin'      => (bool) $from_join,
-    'prefill'       => $prefill,
+    'selectedId'    => (int) $selected_artist_id,
+    'artistSiteUrl' => home_url(),
     'assets'        => array(
         'linkPageCssUrl'     => EXTRACHILL_ARTIST_PLATFORM_PLUGIN_URL . 'assets/css/extrch-links.css',
         'socialIconsCssUrl'  => EXTRACHILL_ARTIST_PLATFORM_PLUGIN_URL . 'assets/css/custom-social-icons.css',
@@ -121,6 +89,6 @@ $wrapper_attributes = get_block_wrapper_attributes( array(
 
 echo '<div ' . $wrapper_attributes . '>';
 // data-selected-id allows hydration without relying on URL params
-$selected_attr = $can_manage_selected ? (int) $selected_artist_id : 0;
+$selected_attr = (int) $selected_artist_id;
 echo '<div id="ec-artist-profile-manager-root" data-selected-id="' . esc_attr( $selected_attr ) . '"></div>';
 echo '</div>';

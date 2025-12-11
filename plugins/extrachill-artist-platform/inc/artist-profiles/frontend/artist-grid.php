@@ -78,7 +78,7 @@ function ec_display_artist_cards_grid( $limit = 24, $exclude_user_artists = fals
         echo '<div class="no-artists-found">';
         echo '<p>' . esc_html__( 'No artists have joined the platform yet.', 'extrachill-artist-platform' ) . '</p>';
         if ( is_user_logged_in() && ec_can_create_artist_profiles( get_current_user_id() ) ) {
-            echo '<p><a href="' . esc_url( home_url( '/manage-artist-profiles/' ) ) . '" class="button">';
+            echo '<p><a href="' . esc_url( home_url( '/create-artist/' ) ) . '" class="button">';
             echo esc_html__( 'Create the First Artist Profile', 'extrachill-artist-platform' );
             echo '</a></p>';
         }

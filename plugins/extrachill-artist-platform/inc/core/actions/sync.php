@@ -119,13 +119,6 @@ function ec_perform_complete_sync( $artist_id, $link_page_id ) {
         update_post_meta( $link_page_id, '_link_page_display_title', $artist_title );
     }
 
-    // Sync Bio (Content)
-    $artist_bio = $artist_post->post_content;
-    $current_link_bio = $data['bio'] ?? '';
-    if ( $current_link_bio !== $artist_bio ) {
-        update_post_meta( $link_page_id, '_link_page_bio_text', $artist_bio );
-    }
-
     // Sync Profile Picture (Featured Image)
     $artist_thumbnail_id = get_post_thumbnail_id( $artist_id );
     $current_link_thumbnail_id = $data['settings']['profile_image_id'] ?? '';
@@ -143,7 +136,6 @@ function ec_perform_complete_sync( $artist_id, $link_page_id ) {
     
     // Use centralized data that might have been updated independently (already retrieved above)
     $link_page_title = $data['display_title'] ?? '';
-    $link_page_bio = $data['bio'] ?? '';
     $link_page_thumbnail_id = $data['settings']['profile_image_id'] ?? '';
 
     $artist_update_data = array( 'ID' => $artist_id );
@@ -152,12 +144,6 @@ function ec_perform_complete_sync( $artist_id, $link_page_id ) {
     // Sync title back to artist profile if link page has different data
     if ( ! empty( $link_page_title ) && $link_page_title !== $artist_post->post_title ) {
         $artist_update_data['post_title'] = $link_page_title;
-        $needs_artist_update = true;
-    }
-
-    // Sync bio back to artist profile if link page has different data
-    if ( ! empty( $link_page_bio ) && $link_page_bio !== $artist_post->post_content ) {
-        $artist_update_data['post_content'] = $link_page_bio;
         $needs_artist_update = true;
     }
 
@@ -193,7 +179,6 @@ function ec_sync_on_meta_update( $meta_id, $object_id, $meta_key, $meta_value ) 
     // Only sync on relevant link page meta keys
     $sync_keys = array(
         '_link_page_display_title',
-        '_link_page_bio_text',
         '_link_page_profile_image_id'
     );
     

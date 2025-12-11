@@ -76,6 +76,18 @@ export const removeRosterMember = ( artistId, userId ) =>
 export const cancelRosterInvite = ( artistId, inviteId ) =>
 	del( `extrachill/v1/artists/${ artistId }/roster/invites/${ inviteId }` );
 
+// User search
+export const searchArtistCapableUsers = ( term, excludeArtistId ) => {
+	const params = new URLSearchParams( {
+		term,
+		context: 'artist-capable',
+	} );
+	if ( excludeArtistId ) {
+		params.append( 'exclude_artist_id', excludeArtistId );
+	}
+	return get( `extrachill/v1/users/search?${ params.toString() }` );
+};
+
 // Subscribers
 export const getSubscribers = ( artistId, page = 1, perPage = 20 ) =>
 	get(
@@ -107,6 +119,7 @@ export default {
 	inviteRosterMember,
 	removeRosterMember,
 	cancelRosterInvite,
+	searchArtistCapableUsers,
 	getSubscribers,
 	exportSubscribers,
 	getArtistPermissions,

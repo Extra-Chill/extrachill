@@ -30,12 +30,23 @@ if ( ! function_exists( 'ec_get_artists_for_user' ) ) {
 
 $user_artists = ec_get_artists_for_user( $current_user_id, true );
 
+// Auto-create link pages for any artists that don't have them yet
+if ( function_exists( 'ec_create_link_page' ) && function_exists( 'ec_get_link_page_for_artist' ) ) {
+	foreach ( $user_artists as $artist_id ) {
+		$existing_link_page_id = ec_get_link_page_for_artist( $artist_id );
+		if ( ! $existing_link_page_id ) {
+			// Create link page for this artist
+			ec_create_link_page( $artist_id );
+		}
+	}
+}
+
 // No artists - show creation prompt
 if ( empty( $user_artists ) ) {
 	if ( function_exists( 'ec_can_create_artist_profiles' ) && ec_can_create_artist_profiles( $current_user_id ) ) {
 		echo '<div class="notice notice-info">';
 		echo '<p>' . esc_html__( 'Create an artist profile to get started with your link page.', 'extrachill-artist-platform' ) . '</p>';
-		echo '<a href="' . esc_url( site_url( '/manage-artist-profiles/' ) ) . '" class="button-1">' . esc_html__( 'Create Artist Profile', 'extrachill-artist-platform' ) . '</a>';
+		echo '<a href="' . esc_url( site_url( '/create-artist/' ) ) . '" class="button-1">' . esc_html__( 'Create Artist Profile', 'extrachill-artist-platform' ) . '</a>';
 		echo '</div>';
 	} else {
 		echo '<div class="notice notice-info">';
@@ -69,11 +80,10 @@ foreach ( $user_artists as $ua_id ) {
     }
 }
 
-// No link pages yet for this user
+// No link pages yet for this user (should not happen due to auto-creation above)
 if ( empty( $user_artists_data ) ) {
-    echo '<div class="notice notice-info">';
-    echo '<p>' . esc_html__( 'Create a link page for your artist profile to use this editor.', 'extrachill-artist-platform' ) . '</p>';
-    echo '<a href="' . esc_url( site_url( '/manage-link-page/' ) ) . '" class="button-1">' . esc_html__( 'Create Link Page', 'extrachill-artist-platform' ) . '</a>';
+    echo '<div class="notice notice-error">';
+    echo '<p>' . esc_html__( 'Unable to create link page. Please try refreshing the page or contact support.', 'extrachill-artist-platform' ) . '</p>';
     echo '</div>';
     return;
 }

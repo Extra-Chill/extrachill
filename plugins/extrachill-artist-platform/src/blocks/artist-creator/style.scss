@@ -1,0 +1,87 @@
+/**
+ * Artist Creator - Frontend Styles
+ */
+
+.ec-artist-creator {
+	max-width: var(--form-width);
+	margin: 0 auto;
+}
+
+.ec-artist-creator-form {
+	background-color: var(--card-background);
+	padding: var(--spacing-xl);
+	border-radius: var(--border-radius-lg);
+	box-shadow: var(--card-shadow);
+	border: 1px solid var(--border-color);
+
+	h2 {
+		margin-top: 0;
+		margin-bottom: 0.5rem;
+	}
+
+	.ec-artist-creator-intro {
+		color: var(--muted-text);
+		margin-bottom: 2rem;
+	}
+}
+
+.ec-artist-creator-field {
+	margin-bottom: 1.5rem;
+
+	label {
+		display: block;
+		margin-bottom: 0.5rem;
+		font-weight: 500;
+
+		.required {
+			color: var(--error-color);
+		}
+	}
+
+	input[type="text"],
+	textarea {
+		width: 100%;
+	}
+
+	input[type="file"] {
+		margin-top: 0.5rem;
+	}
+}
+
+.ec-artist-creator-image-preview {
+	display: flex;
+	align-items: center;
+	gap: 1rem;
+	margin-bottom: 0.5rem;
+
+	img {
+		width: 80px;
+		height: 80px;
+		object-fit: cover;
+		border-radius: 50%;
+		border: 2px solid var(--border-color);
+	}
+}
+
+.ec-artist-creator-error {
+	color: var(--error-color);
+	padding: 0.75rem;
+	background: rgba(220, 50, 50, 0.1);
+	border-radius: 4px;
+	margin-bottom: 1rem;
+}
+
+.ec-artist-creator-actions {
+	margin-top: 2rem;
+
+	button {
+		min-width: 200px;
+	}
+}
+
+.ec-artist-creator__actions {
+	display: flex;
+	gap: 1rem;
+	margin-top: 1rem;
+	flex-wrap: wrap;
+}

@@ -40,7 +40,6 @@
 	gap: 0;
 	background: var(--card-background);
 	border-radius: 8px;
-	overflow: hidden;
 	min-height: 600px;
 	border: 1px solid var(--border-color);
 }
@@ -244,10 +243,14 @@
 /* Preview Container */
 .ec-editor__preview-container {
 	display: flex;
-	align-items: center;
+	align-items: flex-start;
 	justify-content: center;
-	padding: 24px;
+	padding: var(--spacing-lg);
 	background: var(--card-background);
+	position: sticky;
+	top: var(--spacing-lg);
+	align-self: start;
+	height: fit-content;
 }
 
 /* Tab Shared Styles */
@@ -792,7 +795,11 @@
 	}
 
 	.ec-editor__preview-container {
-		padding: 24px 16px;
+		padding: var(--spacing-lg) var(--spacing-md);
+		position: static;
+		top: auto;
+		align-self: auto;
+		height: auto;
 	}
 }
 
