@@ -52,7 +52,7 @@ add_action( 'wp_enqueue_scripts', 'ec_events_enqueue_related_assets' );
  * @since 0.1.0
  */
 function ec_events_filter_related_taxonomies( $taxonomies, $post_id, $post_type ) {
-	if ( get_current_blog_id() === 7 && $post_type === 'datamachine_events' ) {
+	if ( $post_type === 'datamachine_events' ) {
 		return array( 'venue', 'location' );
 	}
 	return $taxonomies;

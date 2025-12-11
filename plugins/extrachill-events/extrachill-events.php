@@ -3,7 +3,7 @@
  * Plugin Name: Extra Chill Events
  * Plugin URI: https://extrachill.com
  * Description: Calendar integration with template overrides, datamachine-events badge/button styling, breadcrumb system, and related events for events.extrachill.com.
- * Version: 0.1.6
+ * Version: 0.1.7
  * Author: Chris Huber
  * Author URI: https://chubes.net
  * Requires Plugins: datamachine, datamachine-events
@@ -157,7 +157,8 @@ add_action( 'extrachill_homepage_content', 'ec_events_render_homepage' );
  * @since 0.1.0
  */
 function ec_events_override_archive_template( $template ) {
-	if ( get_current_blog_id() === 7 ) {
+	$events_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'events' ) : null;
+	if ( $events_blog_id && get_current_blog_id() === $events_blog_id ) {
 		return EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/templates/archive.php';
 	}
 	return $template;
@@ -176,7 +177,8 @@ add_filter( 'extrachill_template_archive', 'ec_events_override_archive_template'
  * @since 0.1.0
  */
 function ec_events_redirect_post_type_archive() {
-	if ( get_current_blog_id() !== 7 ) {
+	$events_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'events' ) : null;
+	if ( ! $events_blog_id || get_current_blog_id() !== $events_blog_id ) {
 		return;
 	}
 

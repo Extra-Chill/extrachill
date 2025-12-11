@@ -262,7 +262,8 @@ class DataMachineEventsIntegration {
      * @since 0.1.0
      */
     public function enqueue_calendar_styles() {
-        if (get_current_blog_id() !== 7 || !is_front_page()) {
+        $events_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'events' ) : null;
+        if ( ! $events_blog_id || get_current_blog_id() !== $events_blog_id || ! is_front_page() ) {
             return;
         }
 

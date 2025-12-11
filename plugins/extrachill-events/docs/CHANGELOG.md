@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0/).
 
+## [0.1.7] - 2025-12-11
+
+### Changed
+- Replaced hardcoded blog ID 7 with ec_get_blog_id('events') for better multisite maintainability
+- Updated breadcrumb labels to "Events Calendar" for improved user clarity
+- Improved breadcrumb system with dynamic site URLs and network dropdown integration
+- Updated event submission form CSS to use theme variables instead of hardcoded values
+- Removed unnecessary blog ID checks in related events filter for broader compatibility
+
 ## [0.1.6] - 2025-12-05
 
 ### Added

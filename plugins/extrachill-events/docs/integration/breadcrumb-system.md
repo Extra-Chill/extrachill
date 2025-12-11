@@ -17,7 +17,7 @@ extrachill_breadcrumbs_root
 - **Other Pages**: `<a href="https://extrachill.com">Extra Chill</a> › <a href="[site-url]">Events</a>`
 
 **Blog ID Check:**
-Only applies when `get_current_blog_id() === 7` (events.extrachill.com)
+Only applies when `get_current_blog_id() === ec_get_blog_id('events')` (events.extrachill.com)
 
 ### 2. ec_events_breadcrumb_trail_homepage()
 Overrides breadcrumb trail for homepage.
@@ -38,7 +38,7 @@ Extra Chill › Events
 ```
 
 **Blog ID Check:**
-Only applies when `get_current_blog_id() === 7` AND `is_front_page()`
+Only applies when `get_current_blog_id() === ec_get_blog_id('events')` AND `is_front_page()`
 
 ### 3. ec_events_breadcrumb_trail_archives()
 Overrides breadcrumb trail for archive pages.
@@ -63,7 +63,7 @@ Full breadcrumb: `Extra Chill › Events › [Term Name]`
 Full breadcrumb: `Extra Chill › Events`
 
 **Blog ID Check:**
-Only applies when `get_current_blog_id() === 7`
+Only applies when `get_current_blog_id() === ec_get_blog_id('events')`
 
 ### 4. ec_events_breadcrumb_trail_single()
 Overrides breadcrumb trail for single event posts.
@@ -84,7 +84,7 @@ Extra Chill › Events › [Event Title]
 ```
 
 **Blog ID Check:**
-Only applies when `get_current_blog_id() === 7` AND `is_singular('datamachine_events')`
+Only applies when `get_current_blog_id() === ec_get_blog_id('events')` AND `is_singular('datamachine_events')`
 
 ### 5. ec_events_back_to_home_label()
 Modifies back-to-home link label.
@@ -99,7 +99,7 @@ extrachill_back_to_home_label
 - **Homepage**: Default theme label (`← Back to Extra Chill`)
 
 **Blog ID Check:**
-Only applies when `get_current_blog_id() === 7` AND NOT `is_front_page()`
+Only applies when `get_current_blog_id() === ec_get_blog_id('events')` AND NOT `is_front_page()`
 
 ## Breadcrumb Examples
 

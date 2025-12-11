@@ -13,7 +13,7 @@ The plugin filters the theme's `extrachill_display_related_posts()` function to 
 ### Blog ID Targeting
 Only applies when:
 ```php
-get_current_blog_id() === 7  // events.extrachill.com
+get_current_blog_id() === ec_get_blog_id('events')  // events.extrachill.com
 ```
 
 ## Filter Integration
@@ -33,7 +33,7 @@ Array of taxonomy slugs: `array('venue', 'location')`
 **Implementation:**
 ```php
 public function filter_event_taxonomies($taxonomies, $post_id, $post_type) {
-    if (get_current_blog_id() === 7 && $post_type === 'datamachine_events') {
+    if (get_current_blog_id() === ec_get_blog_id('events') && $post_type === 'datamachine_events') {
         return array('venue', 'location');
     }
     return $taxonomies;

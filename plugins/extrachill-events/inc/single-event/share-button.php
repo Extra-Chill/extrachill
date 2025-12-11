@@ -25,10 +25,6 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @since 0.1.0
  */
 function ec_events_render_share_button( $post_id, $ticket_url ) {
-	if ( get_current_blog_id() !== 7 ) {
-		return;
-	}
-
 	if ( function_exists( 'extrachill_share_button' ) ) {
 		extrachill_share_button( array(
 			'share_url'   => get_permalink( $post_id ),

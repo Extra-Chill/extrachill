@@ -19,7 +19,7 @@ Plugin template path for blog ID 7, unchanged otherwise
 add_filter('extrachill_template_homepage', 'ec_events_override_homepage_template');
 
 function ec_events_override_homepage_template($template) {
-    if (get_current_blog_id() === 7) {
+    if (get_current_blog_id() === ec_get_blog_id('events')) {
         return EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/templates/homepage.php';
     }
     return $template;
@@ -46,7 +46,7 @@ Plugin template path for blog ID 7, unchanged otherwise
 add_filter('extrachill_template_archive', 'ec_events_override_archive_template');
 
 function ec_events_override_archive_template($template) {
-    if (get_current_blog_id() === 7) {
+    if (get_current_blog_id() === ec_get_blog_id('events')) {
         return EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/templates/archive.php';
     }
     return $template;
@@ -207,7 +207,7 @@ Array of taxonomy slugs: `array('venue', 'location')`
 add_filter('extrachill_related_posts_taxonomies', array($this, 'filter_event_taxonomies'), 10, 3);
 
 public function filter_event_taxonomies($taxonomies, $post_id, $post_type) {
-    if (get_current_blog_id() === 7 && $post_type === 'datamachine_events') {
+    if (get_current_blog_id() === ec_get_blog_id('events') && $post_type === 'datamachine_events') {
         return array('venue', 'location');
     }
     return $taxonomies;

@@ -9,7 +9,7 @@ The plugin hooks into datamachine-events' `datamachine_events_action_buttons` ac
 ### Blog ID Targeting
 Only applies when:
 ```php
-get_current_blog_id() === 7  // events.extrachill.com
+get_current_blog_id() === ec_get_blog_id('events')  // events.extrachill.com
 ```
 
 ## Action Hook

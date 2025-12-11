@@ -14,7 +14,7 @@ inc/templates/homepage.php
 ### Blog ID Check
 Only applies when:
 ```php
-get_current_blog_id() === 7  // events.extrachill.com
+get_current_blog_id() === ec_get_blog_id('events')  // events.extrachill.com
 ```
 
 ## Template Structure
@@ -95,7 +95,7 @@ Plugin template path for blog ID 7, unchanged template path otherwise.
 ### Implementation
 ```php
 function ec_events_override_homepage_template( $template ) {
-    if ( get_current_blog_id() === 7 ) {
+    if ( get_current_blog_id() === ec_get_blog_id('events') ) {
         return EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/templates/homepage.php';
     }
     return $template;

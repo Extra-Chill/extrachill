@@ -46,15 +46,13 @@ add_filter( 'datamachine_events_breadcrumbs', 'ec_events_override_breadcrumbs', 
  * @since 0.1.0
  */
 function ec_events_breadcrumb_root( $root_link ) {
-	if ( get_current_blog_id() !== 7 ) {
-		return $root_link;
-	}
-
 	if ( is_front_page() ) {
-		return '<a href="https://extrachill.com">Extra Chill</a>';
+		$main_site_url = ec_get_site_url( 'main' );
+		return '<a href="' . esc_url( $main_site_url ) . '">Extra Chill</a>';
 	}
 
-	return '<a href="https://extrachill.com">Extra Chill</a> › <a href="' . esc_url( home_url() ) . '">Events</a>';
+	$main_site_url = ec_get_site_url( 'main' );
+	return '<a href="' . esc_url( $main_site_url ) . '">Extra Chill</a> › <a href="' . esc_url( home_url() ) . '">Events Calendar</a>';
 }
 add_filter( 'extrachill_breadcrumbs_root', 'ec_events_breadcrumb_root' );
 
@@ -70,12 +68,8 @@ add_filter( 'extrachill_breadcrumbs_root', 'ec_events_breadcrumb_root' );
  * @since 0.1.0
  */
 function ec_events_breadcrumb_trail_homepage( $custom_trail ) {
-	if ( get_current_blog_id() !== 7 ) {
-		return $custom_trail;
-	}
-
 	if ( is_front_page() ) {
-		return '<span>Events</span>';
+		return '<span class="network-dropdown-target">Events Calendar</span>';
 	}
 
 	return $custom_trail;
@@ -98,10 +92,6 @@ add_filter( 'extrachill_breadcrumbs_override_trail', 'ec_events_breadcrumb_trail
  * @since 0.1.0
  */
 function ec_events_breadcrumb_trail_archives( $custom_trail ) {
-	if ( get_current_blog_id() !== 7 ) {
-		return $custom_trail;
-	}
-
 	if ( is_tax() ) {
 		$term = get_queried_object();
 		if ( $term && isset( $term->name ) ) {
@@ -110,7 +100,7 @@ function ec_events_breadcrumb_trail_archives( $custom_trail ) {
 	}
 
 	if ( is_post_type_archive( 'datamachine_events' ) ) {
-		return '<span>Events</span>';
+		return '<span class="network-dropdown-target">Events Calendar</span>';
 	}
 
 	return $custom_trail;
@@ -131,10 +121,6 @@ add_filter( 'extrachill_breadcrumbs_override_trail', 'ec_events_breadcrumb_trail
  * @since 0.1.0
  */
 function ec_events_breadcrumb_trail_single( $custom_trail ) {
-	if ( get_current_blog_id() !== 7 ) {
-		return $custom_trail;
-	}
-
 	if ( is_singular( 'datamachine_events' ) ) {
 		return '<span class="breadcrumb-title">' . get_the_title() . '</span>';
 	}
@@ -157,14 +143,11 @@ add_filter( 'extrachill_breadcrumbs_override_trail', 'ec_events_breadcrumb_trail
  * @since 0.1.0
  */
 function ec_events_back_to_home_label( $label, $url ) {
-	if ( get_current_blog_id() !== 7 ) {
-		return $label;
-	}
-
 	if ( is_front_page() ) {
 		return $label;
 	}
 
-	return '← Back to Events';
+	return '�0 Back to Events Calendar';
 }
 add_filter( 'extrachill_back_to_home_label', 'ec_events_back_to_home_label', 10, 2 );
+

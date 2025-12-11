@@ -47,7 +47,7 @@ Convenience function providing global access to the plugin's singleton instance.
 add_filter('extrachill_template_homepage', 'ec_events_override_homepage_template');
 
 function ec_events_override_homepage_template($template) {
-    if (get_current_blog_id() === 7) {
+    if (get_current_blog_id() === ec_get_blog_id('events')) {
         return EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/templates/homepage.php';
     }
     return $template;
@@ -80,7 +80,7 @@ Theme's universal routing system when determining homepage template
 add_filter('extrachill_template_archive', 'ec_events_override_archive_template');
 
 function ec_events_override_archive_template($template) {
-    if (get_current_blog_id() === 7) {
+    if (get_current_blog_id() === ec_get_blog_id('events')) {
         return EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/templates/archive.php';
     }
     return $template;

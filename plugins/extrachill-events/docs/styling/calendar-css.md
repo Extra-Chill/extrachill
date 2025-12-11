@@ -27,7 +27,7 @@ The file currently contains minimal placeholder content with no active styles:
 
 Only loads when:
 ```php
-get_current_blog_id() === 7 && is_front_page()
+get_current_blog_id() === ec_get_blog_id('events') && is_front_page()
 ```
 
 **Breakdown:**

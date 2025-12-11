@@ -156,7 +156,7 @@ require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/breadcrumb-integration.php
 
 ### Template Override
 ```php
-if (get_current_blog_id() === 7) {
+if (get_current_blog_id() === ec_get_blog_id('events')) {
     return EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/templates/homepage.php';
 }
 ```
