@@ -63,6 +63,37 @@ composer install
 - **File Exclusion**: `.buildignore` rsync patterns exclude development files
 - **Composer Integration**: Uses `composer install --no-dev` for production, restores dev dependencies after
 
+## Branch Strategy
+
+### Main Branch
+The `main` branch contains stable, production-ready code. All production builds should be created from this branch.
+
+### Experimental Branches
+
+#### `experimental/blocks-everywhere`
+Experimental integration with the [Blocks Everywhere](https://wordpress.org/plugins/blocks-everywhere/) plugin, which enables Gutenberg block editor for bbPress forums.
+
+**Status**: Experimental - not production-ready. The Blocks Everywhere plugin has compatibility issues with recent WordPress versions.
+
+**Changes from main**:
+- Adds `inc/content/editor/blocks-everywhere.php` - Blocks Everywhere filter integration
+- Modifies TinyMCE files to skip loading when Blocks Everywhere is active
+- Adds require_once in main plugin file
+
+**Building for testing**:
+```bash
+git checkout experimental/blocks-everywhere
+./build.sh
+```
+
+**Building for production**:
+```bash
+git checkout main
+./build.sh
+```
+
+**Future**: If Blocks Everywhere becomes stable and compatible, this integration may be merged into main.
+
 ## Architecture Principles
 
 ### 1. Plugin Architecture
@@ -109,8 +140,8 @@ composer install
 - `inc/user-profiles/settings/settings-content.php`, `settings/settings-form-handler.php`
 - `inc/user-profiles/edit/user-links.php`, `edit/user-info.php`, `edit/avatar-upload.php`
 
-**Home (4 files)**:
-- `inc/home/latest-post.php`, `actions.php`, `homepage-forum-display.php`, `artist-platform-buttons.php`
+**Home (5 files)**:
+- `inc/home/latest-post.php`, `actions.php`, `homepage-forum-display.php`, `artist-platform-buttons.php`, `new-topic-modal.php`
 
 **Total: 36 files loaded in init function**
 
@@ -148,7 +179,7 @@ composer install
 - `inc/user-profiles/settings/settings-content.php` - Settings page content rendering via hook
 - `inc/user-profiles/settings/settings-form-handler.php` - Form processing and validation
 
-### JavaScript Architecture (7 files in inc/assets/js/)
+### JavaScript Architecture (8 files in inc/assets/js/)
 
 **Loaded via assets.php (4 files)**:
 - `upvote.js` - Content upvoting system (bbPress and recent page)
@@ -156,10 +187,11 @@ composer install
 - `bbpress-ui.js` - Forum UI interactions: jump-to-latest, sort auto-submit, TinyMCE autosave (bbPress only)
 - `content-expand.js` - Content expansion functionality (recent page, blog comments feed)
 
-**Loaded independently by feature modules (3 files)**:
+**Loaded independently by feature modules (4 files)**:
 - `manage-user-profile-links.js` - Profile links editor (loaded by `inc/user-profiles/edit/user-links.php`)
 - `avatar-upload.js` - Avatar upload via REST API (loaded by `inc/user-profiles/edit/avatar-upload.php`)
 - `tinymce-image-upload.js` - TinyMCE image upload plugin (loaded via `mce_external_plugins` filter in `inc/content/editor/tinymce-image-uploads.php`)
+- `new-topic-modal.js` - New topic modal trigger and close handlers (loaded by `inc/core/assets.php` on front page)
 
 **Removed files**: utilities.js (deleted)
 
@@ -226,7 +258,7 @@ Custom templates in `bbpress/` directory provide enhanced forum functionality:
 ### JavaScript
 - **Direct File Inclusion** - No build system, direct file loading
 - **jQuery Dependencies** - All custom scripts depend on jQuery
-- **7 Files Total** - 4 via assets.php centrally, 3 via feature modules independently
+- **8 Files Total** - 4 via assets.php centrally, 4 via feature modules independently
 - **Dynamic Versioning** - `filemtime()` cache busting
 
 ## Database Tables
