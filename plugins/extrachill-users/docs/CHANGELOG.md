@@ -8,6 +8,19 @@
 ### Changed
 - Simplified avatar menu management URLs by removing pre-selection of latest artist
 
+## [0.3.5] - 2025-12-11
+
+### Added
+- `ec_can_manage_artist()` function for network-wide artist profile permission checking
+
+### Changed
+- Updated avatar menu "Create Artist Profile" link to use dynamic site URL resolution
+- Enhanced welcome email with improved link organization and added help resources (Contact Us, Tech Support)
+
+### Technical
+- Improved URL maintainability in avatar menu system
+- Enhanced user onboarding experience in registration emails
+
 ## [0.3.3] - 2025-12-08
 
 ### Changed

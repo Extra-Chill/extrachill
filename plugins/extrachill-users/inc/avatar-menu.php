@@ -78,7 +78,7 @@ function extrachill_display_user_avatar_menu() {
                     } elseif ( function_exists( 'ec_can_create_artist_profiles' ) && ec_can_create_artist_profiles( $current_user_id ) ) {
                         printf(
                             '<li><a href="%s">%s</a></li>',
-                            esc_url( $base_manage_url ),
+                            esc_url( ec_get_site_url( 'artist' ) . '/create-artist/' ),
                             esc_html__( 'Create Artist Profile', 'extrachill-users' )
                         );
                     }

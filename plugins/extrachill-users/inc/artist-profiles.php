@@ -157,6 +157,55 @@ function ec_get_latest_artist_for_user( $user_id = null ) {
 }
 
 /**
+ * Check if user can manage a specific artist profile
+ *
+ * Network-wide permission check for artist management. Returns true if user is:
+ * - An administrator (manage_options capability)
+ * - The post author of the artist profile
+ * - Listed in the user's _artist_profile_ids meta (roster member)
+ *
+ * @param int|null $user_id   User ID (defaults to current user)
+ * @param int|null $artist_id Artist profile post ID
+ * @return bool               True if user can manage the artist
+ */
+function ec_can_manage_artist( $user_id = null, $artist_id = null ) {
+	if ( ! $user_id ) {
+		$user_id = get_current_user_id();
+	}
+
+	if ( ! $user_id || ! $artist_id ) {
+		return false;
+	}
+
+	// Admins can manage any artist
+	if ( user_can( $user_id, 'manage_options' ) ) {
+		return true;
+	}
+
+	// Check if user owns this artist via user meta
+	$user_artist_ids = get_user_meta( $user_id, '_artist_profile_ids', true );
+	if ( is_array( $user_artist_ids ) && in_array( (int) $artist_id, array_map( 'intval', $user_artist_ids ), true ) ) {
+		return true;
+	}
+
+	// Check if user is post author (requires blog switch for cross-site check)
+	$artist_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'artist' ) : null;
+	if ( $artist_blog_id ) {
+		switch_to_blog( $artist_blog_id );
+		try {
+			$post = get_post( $artist_id );
+			if ( $post && (int) $post->post_author === (int) $user_id ) {
+				return true;
+			}
+		} finally {
+			restore_current_blog();
+		}
+	}
+
+	return false;
+}
+
+/**
  * Get count of link pages for a user's artists
  *
  * Counts how many link pages exist across all of a user's artist profiles.
