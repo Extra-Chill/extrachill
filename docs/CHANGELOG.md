@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0/).
 
+## [1.2.9] - 2025-12-11
+
+### Changed
+- Removed back home button styles from archive pages for cleaner design
+- Improved editor title positioning and list styling for better content editing experience
+- Updated card background color for improved visual hierarchy
+- Enhanced 404 error page with breadcrumbs, documentation and tech support links
+- Simplified pagination format for cleaner URLs
+- Added Tech Support forum link to footer menu
+- Updated form input backgrounds and error page link styling
+
+### Technical
+- Removed unused back home button styles from `assets/css/archive.css`
+- Updated editor styles in `assets/css/editor-style.css` for better title centering and list display
+- Changed `--card-background` from `#f8fafc` to `#f1f5f9` in `assets/css/root.css`
+- Added `wp_dequeue_style( 'wp-block-library-theme' )` in `functions.php`
+- Modified `inc/core/templates/404.php` to include breadcrumbs and helpful links
+- Simplified pagination in `inc/core/templates/pagination.php` by removing format and add_args
+- Added Tech Support link in `inc/footer/footer-main-menu.php`
+- Updated form styles and added error-404-links in `style.css`
+
 ## [1.2.8] - 2025-12-09
 
 ### Changed
