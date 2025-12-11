@@ -119,7 +119,20 @@ function extrachill_api_artist_permission_check( WP_REST_Request $request ) {
 
 	$artist_id = $request->get_param( 'id' );
 
-	if ( get_post_type( $artist_id ) !== 'artist_profile' ) {
+	$artist_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'artist' ) : null;
+	if ( ! $artist_blog_id ) {
+		return new WP_Error(
+			'dependency_missing',
+			'Multisite not configured.',
+			array( 'status' => 500 )
+		);
+	}
+
+	switch_to_blog( $artist_blog_id );
+	$post_type = get_post_type( $artist_id );
+	restore_current_blog();
+
+	if ( $post_type !== 'artist_profile' ) {
 		return new WP_Error(
 			'invalid_artist',
 			'Artist not found.',
@@ -165,6 +178,17 @@ function extrachill_api_artist_post_handler( WP_REST_Request $request ) {
 	$local_city   = $request->get_param( 'local_city' );
 	$genre        = $request->get_param( 'genre' );
 
+	$artist_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'artist' ) : null;
+	if ( ! $artist_blog_id ) {
+		return new WP_Error(
+			'dependency_missing',
+			'Multisite not configured.',
+			array( 'status' => 500 )
+		);
+	}
+
+	switch_to_blog( $artist_blog_id );
+
 	$post_data = array(
 		'post_title'   => sanitize_text_field( wp_unslash( $name ) ),
 		'post_content' => $bio ? wp_kses_post( wp_unslash( $bio ) ) : '',
@@ -176,6 +200,7 @@ function extrachill_api_artist_post_handler( WP_REST_Request $request ) {
 	$artist_id = wp_insert_post( $post_data, true );
 
 	if ( is_wp_error( $artist_id ) ) {
+		restore_current_blog();
 		return new WP_Error(
 			'create_failed',
 			$artist_id->get_error_message(),
@@ -197,7 +222,9 @@ function extrachill_api_artist_post_handler( WP_REST_Request $request ) {
 		}
 	}
 
-	// Link user to artist
+	restore_current_blog();
+
+	// Link user to artist (runs outside blog context - uses user meta which is network-wide)
 	if ( function_exists( 'bp_add_artist_membership' ) ) {
 		bp_add_artist_membership( $current_user, $artist_id );
 	}
@@ -219,6 +246,17 @@ function extrachill_api_artist_put_handler( WP_REST_Request $request ) {
 			array( 'status' => 400 )
 		);
 	}
+
+	$artist_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'artist' ) : null;
+	if ( ! $artist_blog_id ) {
+		return new WP_Error(
+			'dependency_missing',
+			'Multisite not configured.',
+			array( 'status' => 500 )
+		);
+	}
+
+	switch_to_blog( $artist_blog_id );
 
 	$post_data = array( 'ID' => $artist_id );
 	$has_updates = false;
@@ -280,6 +318,7 @@ function extrachill_api_artist_put_handler( WP_REST_Request $request ) {
 		$result = wp_update_post( $post_data, true );
 
 		if ( is_wp_error( $result ) ) {
+			restore_current_blog();
 			return new WP_Error(
 				'update_failed',
 				$result->get_error_message(),
@@ -288,6 +327,8 @@ function extrachill_api_artist_put_handler( WP_REST_Request $request ) {
 		}
 	}
 
+	restore_current_blog();
+
 	return rest_ensure_response( extrachill_api_build_artist_response( $artist_id ) );
 }
 
@@ -295,6 +336,12 @@ function extrachill_api_artist_put_handler( WP_REST_Request $request ) {
  * Build artist response data
  */
 function extrachill_api_build_artist_response( $artist_id ) {
+	$artist_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'artist' ) : null;
+
+	if ( $artist_blog_id ) {
+		switch_to_blog( $artist_blog_id );
+	}
+
 	$artist = get_post( $artist_id );
 
 	$local_city = get_post_meta( $artist_id, '_local_city', true );
@@ -310,8 +357,12 @@ function extrachill_api_build_artist_response( $artist_id ) {
 
 	// Link page ID
 	$link_page_id = null;
-	if ( function_exists( 'ec_get_link_page_for_artist' ) ) {
-		$link_page_id = ec_get_link_page_for_artist( $artist_id );
+	if ( function_exists( 'ec_get_link_page_id' ) ) {
+		$link_page_id = ec_get_link_page_id( $artist_id );
+	}
+
+	if ( $artist_blog_id ) {
+		restore_current_blog();
 	}
 
 	return array(

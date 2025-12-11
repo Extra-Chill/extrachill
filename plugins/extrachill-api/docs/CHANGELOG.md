@@ -2,6 +2,58 @@
 
 All notable changes to the ExtraChill API plugin are documented here. This file is the single source of truth for release history.
 
+## 0.2.8
+
+### Added
+- **Shop Orders & Earnings API**: New comprehensive endpoints for artist order and earnings management
+  - `GET /wp-json/extrachill/v1/shop/orders` - List orders containing user's artist products with filtering by status and limit
+  - `GET /wp-json/extrachill/v1/shop/earnings` - Get earnings summary statistics (total orders, earnings, pending payout, completed sales)
+  - Includes artist payout calculations with configurable commission rates
+  - Proper permission checks requiring artist status or admin access
+- **Product Image Upload Support**: Extended media upload endpoint to support WooCommerce product images
+  - Added `product_image` context to `POST/DELETE /wp-json/extrachill/v1/media` endpoints
+  - Uploads images to shop site media library and sets as product featured images
+  - Automatic cleanup of old product images when replaced
+  - Permission validation ensures users can only manage images for products they own
+- **Artist-Capable User Search**: Enhanced user search with new context for roster management
+  - Added `artist-capable` context to `GET /wp-json/extrachill/v1/users/search` endpoint
+  - Filters users who can create artist profiles (user_is_artist, user_is_professional, or team members)
+  - Added `exclude_artist_id` parameter to exclude existing roster members
+  - Supports roster invite workflows by finding eligible users
+
+### Changed
+- **Dynamic Blog ID Handling**: Comprehensive refactor to replace hardcoded blog IDs with dynamic function calls
+  - Replaced hardcoded blog IDs with `ec_get_blog_id('artist')`, `ec_get_blog_id('shop')`, etc. across all endpoints
+  - Added proper error handling when blog IDs are not available
+  - Improves maintainability and multisite compatibility
+- **Enhanced Multisite Switching**: Added proper `switch_to_blog()`/`restore_current_blog()` calls throughout codebase
+  - Artist endpoints now properly switch to artist blog for post operations
+  - Shop endpoints switch to shop blog for WooCommerce operations
+  - Stripe Connect endpoints switch to shop blog for Stripe SDK access
+  - Prevents cross-blog data contamination and ensures correct context
+- **Artist Taxonomy Synchronization**: Automatic sync of artist taxonomy terms with product operations
+  - Products now automatically get assigned to artist taxonomy terms matching artist slugs
+  - Ensures proper categorization and filtering in WooCommerce shop
+  - Handles term creation and assignment during product creation/updates
+- **Shop Products Refactor**: Complete overhaul of products endpoint for improved architecture
+  - Replaced shop plugin function dependencies with direct WooCommerce API calls
+  - Enhanced permission checks using artist ownership validation
+  - Improved product listing with proper meta queries for artist filtering
+  - New products now start as 'pending' status for review workflow
+- **Stripe Connect Improvements**: Enhanced Stripe integration with dynamic blog handling
+  - All Stripe operations now properly switch to shop blog context
+  - Improved error handling and response consistency
+  - Better integration with WooCommerce and Stripe SDK
+- **Artist Profile URL Generation**: Updated roster endpoint to use centralized profile URL function
+  - Changed from `bbp_get_user_profile_url()` to `ec_get_user_profile_url()` with email parameter
+  - Ensures consistent profile URL generation across platform
+
+### Technical Notes
+- All endpoints now include comprehensive error handling for multisite configuration issues
+- Permission checks enhanced to use dynamic artist ownership validation
+- Database queries optimized with proper prepared statements and meta queries
+- Backward compatibility maintained while improving architectural consistency
+
 ## 0.2.7
 
 ### Changed
