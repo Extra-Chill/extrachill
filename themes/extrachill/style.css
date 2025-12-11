@@ -1,7 +1,7 @@
 /*
 Theme Name: Extra Chill
 Author: Chubes
-Version: 1.2.8
+Version: 1.2.9
 Text Domain: extrachill
 */
 
@@ -262,7 +262,7 @@ dd {
 
 input[type="text"], input[type="email"], input[type="url"], input[type="password"] {
 	border: 1px solid var(--border-color);
-	background-color: var(--card-background);
+	background-color: var(--background-color);
 	border-radius: var(--border-radius-sm);
 	font-size: var(--font-size-base);
 	color: var(--text-color);
@@ -274,7 +274,7 @@ select {
 	border: 1px solid var(--border-color);
 	line-height: 1.4;
 	width: max-content;
-	background-color: var(--card-background);
+	background-color: var(--background-color);
 	border-radius: var(--border-radius-md);
 	font-size: var(--font-size-base);
 	color: var(--text-color);
@@ -284,7 +284,7 @@ textarea {
 	padding: var(--spacing-sm) var(--spacing-md);
 	border: 1px solid var(--border-color);
 	line-height: 1.5;
-	background-color: var(--card-background);
+	background-color: var(--background-color);
 	border-radius: var(--border-radius-sm);
 	color: var(--text-color);
 }
@@ -504,6 +504,14 @@ a.author.url.fn, .forum-meta a {
 	padding-bottom: var(--spacing-lg);
 }
 
+.error-404 .page-content {
+	max-width: var(--form-width);
+	margin: 0 auto;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+}
+
 .error-404 .search-wrap {
 	display: flex;
 	justify-content: center;
@@ -545,6 +553,22 @@ a.author.url.fn, .forum-meta a {
 	width: 1em;
 	height: 1em;
 	fill: var(--button-text-color);
+}
+
+/* 404 Error Links */
+.error-404-links {
+	display: flex;
+	flex-direction: column;
+	gap: var(--spacing-md);
+	align-items: center;
+	margin-top: var(--spacing-lg);
+}
+
+@media (min-width: 600px) {
+	.error-404-links {
+		flex-direction: row;
+		justify-content: center;
+	}
 }
 
 /*--------------------------------------------------------------
@@ -657,15 +681,7 @@ body {
 	min-width: 0; /* prevents grid overflow */
 }
 
-/* =PAGE HEADER TITLE
------------------------------------------------ */
-.page-header .page-title {
-	margin-bottom: var(--spacing-sm);
-	padding-bottom: 0;
-	border-bottom: 1px solid var(--accent);
-	width: max-content;
-	font-size: var(--font-size-2xl);
-}
+
 
 .entry-content ul {
 	list-style: disc;

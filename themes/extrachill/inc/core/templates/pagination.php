@@ -72,18 +72,9 @@ function extrachill_pagination( $query_or_data = null, $context = 'default', $it
     $big = 999999999;
     $base_url = str_replace( $big, '%#%', esc_url( get_pagenum_link( $big ) ) );
 
-    if ( ! empty( $_GET ) ) {
-        $format = '&paged=%#%';
-        if ( strpos( $base_url, '?' ) === false ) {
-            $format = '?paged=%#%';
-        }
-    } else {
-        $format = '?paged=%#%';
-    }
-
     $links_html = paginate_links( array(
         'base'      => $base_url,
-        'format'    => $format,
+        'format'    => '',
         'total'     => $total_pages,
         'current'   => $current_page,
         'prev_text' => '&laquo; Previous',
@@ -91,7 +82,6 @@ function extrachill_pagination( $query_or_data = null, $context = 'default', $it
         'type'      => 'list',
         'end_size'  => 1,
         'mid_size'  => 2,
-        'add_args'  => $_GET
     ) );
 
     // Add button-2 class to pagination links and current page

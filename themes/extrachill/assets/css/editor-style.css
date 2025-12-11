@@ -28,7 +28,7 @@
     color: var(--text-color) !important;
     background: transparent !important;
     font-weight: 700 !important;
-    margin: var(--spacing-lg) auto !important;
+    margin: var(--spacing-lg) 0 !important;
     border: none !important;
     outline: none !important;
     box-shadow: none !important;
@@ -36,19 +36,19 @@
     width: 100% !important;
     padding-left: 0 !important;
     padding-right: 0 !important;
+    box-sizing: border-box !important;
 }
 
-/* Target the editor title wrapper specifically - this is likely the issue */
-.editor-post-title,
-.editor-post-title__block,
-.wp-block-post-title,
-.block-editor-block-list__layout > .wp-block[data-type="core/post-title"],
-.edit-post-visual-editor .editor-post-title {
-    margin-left: auto !important;
-    margin-right: auto !important;
+/* Title wrapper: constrain like content blocks */
+.editor-styles-wrapper .editor-visual-editor__post-title-wrapper,
+.editor-styles-wrapper .edit-post-visual-editor__post-title-wrapper {
     max-width: var(--content-width) !important;
     width: 100% !important;
     box-sizing: border-box !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    padding-left: var(--spacing-lg) !important;
+    padding-right: var(--spacing-lg) !important;
 }
 
 /* Force the title input to not be positioned absolutely or fixed */
@@ -62,16 +62,11 @@
     margin-left: 0 !important;
     margin-right: 0 !important;
     width: 100% !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
 }
 
-/* Target the specific editor layout containers */
-.block-editor-writing-flow .editor-post-title,
-.block-editor-writing-flow .wp-block-post-title,
-.edit-post-visual-editor__content-area .editor-post-title {
-    margin-left: auto !important;
-    margin-right: auto !important;
-    max-width: var(--content-width) !important;
-}
+
 
 /* Fix heading sizes in editor to match theme */
 .edit-post-visual-editor .wp-block h1,
@@ -79,6 +74,8 @@
 
 .edit-post-visual-editor .wp-block h2,
 .wp-block h2 { font-size: var(--font-size-2xl) !important; line-height: 1.4 !important; }
+
+
 
 .edit-post-visual-editor .wp-block h3,
 .wp-block h3 { font-size: var(--font-size-xl) !important; line-height: 1.4 !important; }
@@ -200,29 +197,29 @@
     }
 }
 
-/* AGGRESSIVE TITLE POSITIONING FIX - Override WordPress core positioning */
-.interface-interface-skeleton__content .edit-post-visual-editor .editor-post-title,
-.interface-interface-skeleton__content .editor-post-title,
-.block-editor-editor-skeleton__content .editor-post-title,
-.edit-post-layout__content .editor-post-title,
-.editor-styles-wrapper .editor-post-title {
-    margin-left: auto !important;
-    margin-right: auto !important;
-    max-width: var(--content-width) !important;
-    position: relative !important;
-    left: auto !important;
-    right: auto !important;
-    transform: none !important;
+
+
+/* Fill editor background and defer width to inner layout */
+.editor-styles-wrapper {
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+    padding: var(--spacing-xl) 0 var(--spacing-lg) 0;
+    background-color: var(--background-color);
+    box-sizing: border-box;
 }
 
-/* Force the main editor container to center content properly */
-.block-editor-writing-flow {
+/* Content width constraint - apply to individual blocks like WordPress 6.3+ iframed editor */
+.editor-styles-wrapper .is-root-container > .wp-block {
     max-width: var(--content-width) !important;
     margin-left: auto !important;
     margin-right: auto !important;
-    padding-left: var(--spacing-md) !important;
-    padding-right: var(--spacing-md) !important;
+    padding-left: var(--spacing-lg) !important;
+    padding-right: var(--spacing-lg) !important;
+    box-sizing: border-box !important;
 }
+
+
 
 /* Additional aggressive targeting for the title input */
 body .editor-post-title__input,
@@ -238,31 +235,24 @@ body .edit-post-visual-editor .editor-post-title__input {
 } 
 
 /* === List Styles (restore bullets/numbers removed by global reset in style.css) === */
-/* The global theme reset sets ul/ol to list-style: none; and removes margins. On the frontend
-   bullets are reintroduced within .entry-content. Inside the editor there is no .entry-content
-   wrapper, so we explicitly scope list styles to the editable content area to match frontend. */
-.editor-styles-wrapper .block-editor-block-list__layout ul,
-.editor-styles-wrapper .wp-block-post-content ul,
-.editor-styles-wrapper .wp-block ul {
-    list-style: disc outside !important;
-    margin: 0 0 var(--spacing-lg) var(--spacing-xl) !important;
-    padding: 0 !important;
+/* Target WordPress list blocks directly with padding-inline-start for proper marker alignment */
+.editor-styles-wrapper .wp-block-list {
+    list-style-position: outside !important;
+    padding-inline-start: var(--spacing-xl) !important;
+    margin-bottom: var(--spacing-lg) !important;
 }
 
-.editor-styles-wrapper .block-editor-block-list__layout ol,
-.editor-styles-wrapper .wp-block-post-content ol,
-.editor-styles-wrapper .wp-block ol {
-    list-style: decimal outside !important;
-    margin: 0 0 var(--spacing-xl) var(--spacing-xl) !important;
-    padding: 0 0 0 0 !important;
+.editor-styles-wrapper ul.wp-block-list {
+    list-style-type: disc !important;
+}
+
+.editor-styles-wrapper ol.wp-block-list {
+    list-style-type: decimal !important;
 }
 
 /* Nested lists: indent slightly but not compound excessively */
-.editor-styles-wrapper ul ul,
-.editor-styles-wrapper ul ol,
-.editor-styles-wrapper ol ul,
-.editor-styles-wrapper ol ol {
-    margin-left: var(--spacing-lg) !important;
+.editor-styles-wrapper .wp-block-list .wp-block-list {
+    padding-inline-start: var(--spacing-lg) !important;
     margin-top: var(--spacing-sm) !important;
     margin-bottom: var(--spacing-sm) !important;
 }

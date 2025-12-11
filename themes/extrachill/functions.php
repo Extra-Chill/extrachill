@@ -209,6 +209,7 @@ function extrachill_prevent_admin_styles_on_frontend() {
         wp_dequeue_style( 'co-authors-plus-image-style' );
     }
 
+    wp_dequeue_style( 'wp-block-library-theme' );
 }
 add_action( 'wp_enqueue_scripts', 'extrachill_prevent_admin_styles_on_frontend', 100 );
 
