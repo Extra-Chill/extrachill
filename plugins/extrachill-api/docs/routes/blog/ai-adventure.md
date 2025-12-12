@@ -1,14 +1,14 @@
 # AI Adventure Endpoint
 
 ## Route
-`POST /wp-json/extrachill/v1/blocks/ai-adventure`
+`POST /wp-json/extrachill/v1/blog/ai-adventure`
 
 ## Purpose
-Powers the ExtraChill Blocks “AI Adventure” block by proxying structured story prompts to the AI provider defined in the extrachill-ai-client ecosystem.
+Powers the ExtraChill Blog "AI Adventure" block by proxying structured story prompts to the AI provider defined in the extrachill-ai-client ecosystem.
 
 ## Dependencies
-- `EXTRACHILL_BLOCKS_PATH` must be defined so the route can include `src/ai-adventure/includes/prompt-builder.php`.
-- `ExtraChill_Blocks_Prompt_Builder` supplies all prompt templates.
+- `EXTRACHILL_BLOG_PLUGIN_DIR` must be defined so the route can include `src/blocks/ai-adventure/includes/prompt-builder.php`.
+- `ExtraChill_Blog_Prompt_Builder` supplies all prompt templates.
 - AI calls are delegated via `apply_filters( 'chubes_ai_request', $payload, 'openai' )`.
 
 ## Request Body
@@ -33,7 +33,7 @@ All parameters are provided as JSON:
 1. Validates prompt builder availability, returning a `500` error if missing.
 2. Sanitizes every field before use.
 3. When `isIntroduction` is true:
-   - Builds introduction messages via `ExtraChill_Blocks_Prompt_Builder::build_introduction_messages()`.
+   - Builds introduction messages via `ExtraChill_Blog_Prompt_Builder::build_introduction_messages()`.
    - Sends payload to the AI filter with `model = gpt-5-nano`.
    - Returns `{ "narrative": "..." }`.
 4. Otherwise, it:
@@ -58,10 +58,10 @@ All parameters are provided as JSON:
 ## Failure Modes
 | Code | Status | Description |
 | --- | --- | --- |
-| `extrachill_blocks_missing` | 500 | Blocks plugin not available.
+| `extrachill_blog_missing` | 500 | Blog plugin not available.
 | `prompt_builder_missing` / `prompt_builder_unavailable` | 500 | Prompt builder file/class missing.
 | `chubes_ai_request_failed` | 500 | Upstream AI provider returned an error.
 
 ## Usage Guidelines
-- Always send JSON with proper camelCase keys to match the block’s front end.
+- Always send JSON with proper camelCase keys to match the block's front end.
 - Preserve prior `storyProgression` and `conversationHistory` arrays client-side; the endpoint expects clients to manage state between turns.

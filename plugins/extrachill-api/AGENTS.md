@@ -6,7 +6,7 @@ Network-activated REST API infrastructure for the Extra Chill Platform multisite
 
 **Network Activation**: Required - All endpoints available on every site in the multisite network.
 
-**Production Status**: Active and serving endpoints for extrachill-blocks plugin.
+**Production Status**: Active and serving endpoints for extrachill-blog plugin.
 
 ## Architecture
 
@@ -22,7 +22,7 @@ ExtraChill_API_Plugin::get_instance();
 - Recursively scans `inc/routes/` directory for PHP files
 - Loads each route file via `require_once`
 - Route files self-register endpoints using WordPress REST API
-- Supports nested directory organization (`inc/routes/blocks/`, `inc/routes/community/`)
+- Supports nested directory organization (`inc/routes/blog/`, `inc/routes/community/`)
 
 **Action Hooks**:
 - `extrachill_api_bootstrap` - Fires during `plugins_loaded` for initialization
@@ -53,7 +53,7 @@ extrachill-api/
         │   ├── roster.php (Roster invite management)
         │   ├── subscribe.php (Subscription signup)
         │   └── subscribers.php (Subscriber management)
-        ├── blocks/
+        ├── blog/
         │   ├── ai-adventure.php (AI adventure story generation)
         │   ├── band-name.php (Band name generator)
         │   ├── image-voting.php (Image voting vote counts)
@@ -63,8 +63,7 @@ extrachill-api/
         │   ├── history.php (Clear chat history)
         │   └── message.php (Send/receive chat messages)
         ├── community/
-        │   ├── upvote.php (Topic/reply upvotes)
-        │   └── user-mentions.php (User search for mentions)
+            │   └── upvote.php (Topic/reply upvotes)
         ├── docs/
         │   └── docs-info.php (Documentation endpoint info)
         ├── events/
@@ -447,13 +446,13 @@ Foundational REST API for artist data management. Provides comprehensive endpoin
 
 **Permission**: Public
 
-**File**: `inc/routes/blocks/band-name.php`
+**File**: `inc/routes/blog/band-name.php`
 
-**Used By**: extrachill-blocks plugin (Band Name Generator block)
+**Used By**: extrachill-blog plugin (Band Name Generator block)
 
 #### 14. Rapper Name Generator
 
-**Endpoint**: `POST /wp-json/extrachill/v1/blocks/rapper-name`
+**Endpoint**: `POST /wp-json/extrachill/v1/blog/rapper-name`
 
 **Purpose**: Generate rapper name suggestions using AI.
 
@@ -466,13 +465,13 @@ Foundational REST API for artist data management. Provides comprehensive endpoin
 
 **Permission**: Public
 
-**File**: `inc/routes/blocks/rapper-name.php`
+**File**: `inc/routes/blog/rapper-name.php`
 
-**Used By**: extrachill-blocks plugin (Rapper Name Generator block)
+**Used By**: extrachill-blog plugin (Rapper Name Generator block)
 
 #### 15. AI Adventure Story Generation
 
-**Endpoint**: `POST /wp-json/extrachill/v1/blocks/ai-adventure`
+**Endpoint**: `POST /wp-json/extrachill/v1/blog/ai-adventure`
 
 **Purpose**: Generate AI-powered adventure story segments with branching narratives.
 
@@ -495,9 +494,9 @@ Foundational REST API for artist data management. Provides comprehensive endpoin
 
 **Permission**: Public
 
-**File**: `inc/routes/blocks/ai-adventure.php`
+**File**: `inc/routes/blog/ai-adventure.php`
 
-**Used By**: extrachill-blocks plugin (AI Adventure block)
+**Used By**: extrachill-blog plugin (AI Adventure block)
 
 **Dependencies**: extrachill-ai-client (network-activated)
 
@@ -505,7 +504,7 @@ Foundational REST API for artist data management. Provides comprehensive endpoin
 
 #### 16. Get Image Voting Results
 
-**Endpoint**: `GET /wp-json/extrachill/v1/blocks/image-voting/vote-count/{post_id}/{instance_id}`
+**Endpoint**: `GET /wp-json/extrachill/v1/blog/image-voting/vote-count/{post_id}/{instance_id}`
 
 **Purpose**: Retrieve vote counts for image voting block instances.
 
@@ -515,13 +514,13 @@ Foundational REST API for artist data management. Provides comprehensive endpoin
 
 **Response**: Vote counts per image option
 
-**File**: `inc/routes/blocks/image-voting.php`
+**File**: `inc/routes/blog/image-voting.php`
 
-**Used By**: extrachill-blocks plugin (Image Voting block)
+**Used By**: extrachill-blog plugin (Image Voting block)
 
 #### 17. Vote on Images
 
-**Endpoint**: `POST /wp-json/extrachill/v1/blocks/image-voting/vote`
+**Endpoint**: `POST /wp-json/extrachill/v1/blog/image-voting/vote`
 
 **Purpose**: Cast a vote in an image voting block instance.
 
@@ -534,9 +533,9 @@ Foundational REST API for artist data management. Provides comprehensive endpoin
 
 **Permission**: Public (anonymous voting supported)
 
-**File**: `inc/routes/blocks/image-voting-vote.php`
+**File**: `inc/routes/blog/image-voting-vote.php`
 
-**Used By**: extrachill-blocks plugin (Image Voting block)
+**Used By**: extrachill-blog plugin (Image Voting block)
 
 ### Chat Endpoints
 
@@ -587,16 +586,18 @@ Foundational REST API for artist data management. Provides comprehensive endpoin
 
 ### Community Endpoints
 
-#### 20. User Search (Mentions)
+#### 20. User Search
 
 **Endpoint**: `GET /wp-json/extrachill/v1/users/search`
 
-**Purpose**: Search users for @mentions in community posts and comments.
+**Purpose**: Find users by search term for mentions, autocomplete, or admin relationship management.
 
 **Parameters**:
-- `search` (string, required) - Search term for username/display name
+- `term` (string, required) - Search query term
+- `context` (string, optional) - Search context: `mentions` (default), `admin`, or `artist-capable`
+- `exclude_artist_id` (int, optional) - Exclude existing roster members (artist-capable context only)
 
-**Response**:
+**Response - Mentions Context** (HTTP 200):
 ```json
 [
   {"username": "chris", "slug": "chris"},
@@ -604,7 +605,36 @@ Foundational REST API for artist data management. Provides comprehensive endpoin
 ]
 ```
 
-**File**: `inc/routes/community/user-mentions.php`
+**Response - Admin Context** (HTTP 200):
+```json
+[
+  {
+    "id": 1,
+    "display_name": "Chris Huber",
+    "username": "chris",
+    "email": "chris@example.com",
+    "avatar_url": "https://..."
+  }
+]
+```
+
+**Response - Artist-Capable Context** (HTTP 200):
+```json
+[
+  {
+    "id": 1,
+    "display_name": "Chris Huber",
+    "username": "chris",
+    "email": "chris@example.com",
+    "avatar_url": "https://...",
+    "profile_url": "https://..."
+  }
+]
+```
+
+**Permission**: Varies by context
+
+**File**: `inc/routes/users/search.php`
 
 **Used By**: extrachill-community plugin for @mention functionality
 
@@ -621,8 +651,9 @@ Foundational REST API for artist data management. Provides comprehensive endpoin
 **Response**:
 ```json
 {
-  "upvoted": true,
-  "vote_count": 42
+  "message": "Thanks for voting!",
+  "new_count": 42,
+  "upvoted": true
 }
 ```
 
@@ -796,9 +827,10 @@ Foundational REST API for artist data management. Provides comprehensive endpoin
 
 **Purpose**: Find users by search term for mentions, autocomplete, or admin relationship management.
 
-**Permission**: 
+**Permission**:
 - `mentions` context: Public access
 - `admin` context: Requires `manage_options` capability
+- `artist-capable` context: Requires logged-in user who can create artist profiles
 
 **Parameters**:
 - `term` (string, required) - Search query term
@@ -824,6 +856,20 @@ Foundational REST API for artist data management. Provides comprehensive endpoin
     "username": "chris",
     "email": "chris@example.com",
     "avatar_url": "https://..."
+  }
+]
+```
+
+**Response - Artist-Capable Context** (HTTP 200):
+```json
+[
+  {
+    "id": 1,
+    "display_name": "Chris Huber",
+    "username": "chris",
+    "email": "chris@example.com",
+    "avatar_url": "https://...",
+    "profile_url": "https://..."
   }
 ]
 ```
@@ -988,6 +1034,7 @@ Foundational REST API for artist data management. Provides comprehensive endpoin
 | `artist_header` | artist_id | `_artist_profile_header_image_id` meta |
 | `link_page_profile` | artist_id | Artist thumbnail + `_link_page_profile_image_id` on link page |
 | `link_page_background` | artist_id | `_link_page_background_image_id` on link page |
+| `product_image` | product_id | WooCommerce product image (uploads to shop site) |
 | `content_embed` | optional post_id | Attachment only (no meta assignment) |
 
 **Permission Logic**:
@@ -1091,7 +1138,7 @@ Foundational REST API for artist data management. Provides comprehensive endpoin
 
 #### 35. Stripe Connect Management
 
-**Endpoint**: 
+**Endpoint**:
 - `GET /wp-json/extrachill/v1/shop/stripe` - Get Stripe connection status
 - `POST /wp-json/extrachill/v1/shop/stripe/connect` - Connect Stripe account
 - `DELETE /wp-json/extrachill/v1/shop/stripe/disconnect` - Disconnect Stripe account
@@ -1114,9 +1161,70 @@ Foundational REST API for artist data management. Provides comprehensive endpoin
 
 **Used By**: extrachill-shop plugin for payment processing
 
+#### 36. Shop Orders List
+
+**Endpoint**: `GET /wp-json/extrachill/v1/shop/orders`
+
+**Purpose**: List orders containing products from artists the user manages, with filtering and pagination.
+
+**Parameters**:
+- `limit` (int, optional) - Number of orders to return (default: 50)
+- `status` (array, optional) - Order statuses to include (default: ['completed', 'processing', 'on-hold', 'pending'])
+
+**Response**:
+```json
+[
+  {
+    "order_id": 123,
+    "order_number": "WC-123",
+    "status": "completed",
+    "date_created": "2025-01-15T10:30:00+00:00",
+    "items": [
+      {
+        "product_id": 456,
+        "name": "Album Name",
+        "quantity": 1,
+        "line_total": 9.99,
+        "artist_payout": 8.99
+      }
+    ],
+    "artist_total": 8.99,
+    "payout_status": "eligible"
+  }
+]
+```
+
+**Permission**: User must be logged in and have artist status
+
+**File**: `inc/routes/shop/orders.php`
+
+**Used By**: extrachill-shop plugin for artist order management
+
+#### 37. Shop Earnings Summary
+
+**Endpoint**: `GET /wp-json/extrachill/v1/shop/earnings`
+
+**Purpose**: Get earnings summary statistics for all products from artists the user manages.
+
+**Response**:
+```json
+{
+  "total_orders": 25,
+  "total_earnings": 249.75,
+  "pending_payout": 49.95,
+  "completed_sales": 20
+}
+```
+
+**Permission**: User must be logged in and have artist status
+
+**File**: `inc/routes/shop/orders.php`
+
+**Used By**: extrachill-shop plugin for earnings dashboard
+
 ### Tools
 
-#### 36. QR Code Generator
+#### 38. QR Code Generator
 
 **Endpoint**: `POST /wp-json/extrachill/v1/tools/qr-code`
 

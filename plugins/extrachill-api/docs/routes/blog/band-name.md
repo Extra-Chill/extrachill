@@ -1,10 +1,10 @@
 # Band Name Generator Endpoint
 
 ## Route
-`POST /wp-json/extrachill/v1/blocks/band-name`
+`POST /wp-json/extrachill/v1/blog/band-name`
 
 ## Purpose
-Generate band name suggestions using AI. This endpoint powers the ExtraChill Blocks "Band Name Generator" block, providing AI-powered creative suggestions for music artists.
+Generate band name suggestions using AI. This endpoint powers the ExtraChill Blog "Band Name Generator" block, providing AI-powered creative suggestions for music artists.
 
 ## Permission
 - **POST**: Public (no authentication required)
@@ -49,21 +49,21 @@ The response contains an array of generated band names tailored to the input cri
 | `ai_error` | 500 | AI provider returned an error or timed out |
 
 ## Implementation Notes
-- This endpoint delegates to the extrachill-blocks plugin's AI generation logic
+- This endpoint delegates to the extrachill-blog plugin's AI generation logic
 - The AI provider is accessed through the `extrachill-ai-client` plugin's filter system
 - Input is sanitized before sending to the AI provider
 - Generation is typically fast but may take a few seconds depending on API response time
 - Results are diverse and creative, suitable for brainstorming band names
 
 ## Related Endpoints
-- `POST /blocks/rapper-name` - Generate rapper names instead
-- `POST /ai-adventure` - Generate adventure story segments
+- `POST /blog/rapper-name` - Generate rapper names instead
+- `POST /blog/ai-adventure` - Generate adventure story segments
 
 ## Usage Examples
 
 ### Basic Band Name Generation
 ```bash
-curl -X POST "http://site.local/wp-json/extrachill/v1/blocks/band-name" \
+curl -X POST "http://site.local/wp-json/extrachill/v1/blog/band-name" \
   -H "Content-Type: application/json" \
   -d '{
     "input": "experimental electronic music"
@@ -72,7 +72,7 @@ curl -X POST "http://site.local/wp-json/extrachill/v1/blocks/band-name" \
 
 ### Generate with Genre and Word Count Preference
 ```bash
-curl -X POST "http://site.local/wp-json/extrachill/v1/blocks/band-name" \
+curl -X POST "http://site.local/wp-json/extrachill/v1/blog/band-name" \
   -H "Content-Type: application/json" \
   -d '{
     "input": "heavy metal influences with modern production",
@@ -83,7 +83,7 @@ curl -X POST "http://site.local/wp-json/extrachill/v1/blocks/band-name" \
 
 ### Generate Rock Band Names
 ```bash
-curl -X POST "http://site.local/wp-json/extrachill/v1/blocks/band-name" \
+curl -X POST "http://site.local/wp-json/extrachill/v1/blog/band-name" \
   -H "Content-Type: application/json" \
   -d '{
     "input": "80s rock revival with modern twist",
@@ -93,4 +93,4 @@ curl -X POST "http://site.local/wp-json/extrachill/v1/blocks/band-name" \
 ```
 
 ## Frontend Integration
-The ExtraChill Blocks "Band Name Generator" block calls this endpoint when users click a "Generate Names" button, displaying the results in real-time.
+The ExtraChill Blog "Band Name Generator" block calls this endpoint when users click a "Generate Names" button, displaying the results in real-time.

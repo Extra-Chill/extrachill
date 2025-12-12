@@ -36,9 +36,10 @@ add_action( 'rest_api_init', function () {
 function ec_api_check_artist_permissions( WP_REST_Request $request ) {
 	// Handle CORS for extrachill.link
 	$origin = get_http_origin();
-	if ( $origin === 'https://extrachill.link' ) {
-		header( 'Access-Control-Allow-Origin: https://extrachill.link' );
+	if ( in_array( $origin, array( 'https://extrachill.link', 'https://www.extrachill.link' ), true ) ) {
+		header( 'Access-Control-Allow-Origin: ' . $origin );
 		header( 'Access-Control-Allow-Credentials: true' );
+		header( 'Vary: Origin' );
 	}
 
 	$artist_id       = $request->get_param( 'artist_id' );

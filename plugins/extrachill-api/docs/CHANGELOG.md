@@ -2,6 +2,43 @@
 
 All notable changes to the ExtraChill API plugin are documented here. This file is the single source of truth for release history.
 
+## 0.3.0
+
+### Changed
+- **BREAKING: Blocks to Blog Refactoring**: Major architectural reorganization renaming "blocks" to "blog" throughout the codebase
+  - Moved `inc/routes/blocks/` directory to `inc/routes/blog/`
+  - Moved `docs/routes/blocks/` directory to `docs/routes/blog/`
+  - Updated all endpoint URLs from `/blocks/*` to `/blog/*` (affects band-name, rapper-name, ai-adventure, image-voting endpoints)
+  - Renamed functions from `extrachill_blocks_*` to `extrachill_blog_*`
+  - Updated plugin references from "extrachill-blocks" to "extrachill-blog"
+  - Updated production status and documentation references
+- **Enhanced CORS Support**: Extended artist permissions endpoint to allow both `extrachill.link` and `www.extrachill.link` origins
+  - Added `www.extrachill.link` to allowed CORS origins
+  - Improved CORS header handling with proper `Vary: Origin` header
+
+### Added
+- **Shop Orders & Earnings API**: New comprehensive endpoints for artist order and earnings management
+  - `GET /wp-json/extrachill/v1/shop/orders` - List orders containing user's artist products with filtering by status and limit
+  - `GET /wp-json/extrachill/v1/shop/earnings` - Get earnings summary statistics (total orders, earnings, pending payout, completed sales)
+  - Includes artist payout calculations with configurable commission rates
+  - Proper permission checks requiring artist status or admin access
+- **Artist-Capable User Search**: Enhanced user search with new context for roster management
+  - Added `artist-capable` context to `GET /wp-json/extrachill/v1/users/search` endpoint
+  - Filters users who can create artist profiles (user_is_artist, user_is_professional, or team members)
+  - Added `exclude_artist_id` parameter to exclude existing roster members
+  - Supports roster invite workflows by finding eligible users
+- **Product Image Upload Support**: Extended media upload endpoint to support WooCommerce product images
+  - Added `product_image` context to `POST/DELETE /wp-json/extrachill/v1/media` endpoints
+  - Uploads images to shop site media library and sets as product featured images
+  - Automatic cleanup of old product images when replaced
+  - Permission validation ensures users can only manage images for products they own
+
+### Technical Notes
+- **Migration Required**: All client applications calling `/blocks/*` endpoints must update to `/blog/*` URLs
+- All endpoints now include comprehensive error handling for multisite configuration issues
+- Permission checks enhanced to use dynamic artist ownership validation
+- Database queries optimized with proper prepared statements and meta queries
+
 ## 0.2.8
 
 ### Added

@@ -58,7 +58,7 @@ The response includes the vote status and updated totals for all options in the 
 - Voting is enabled on all sites in the network without authentication
 
 ## Related Endpoints
-- `GET /blocks/image-voting/vote-count/{post_id}/{instance_id}` - Retrieve current vote counts without voting
+- `GET /blog/image-voting/vote-count/{post_id}/{instance_id}` - Retrieve current vote counts without voting
 
 ## Usage Examples
 
@@ -85,7 +85,7 @@ curl -X POST "http://site.local/wp-json/extrachill/v1/image-voting/vote" \
 ```
 
 ## Frontend Integration
-The ExtraChill Blocks "Image Voting" block calls this endpoint when a visitor clicks an image option, updating the vote display in real-time without page reload.
+The ExtraChill Blog "Image Voting" block calls this endpoint when a visitor clicks an image option, updating the vote display in real-time without page reload.
 
 ## Vote Persistence
 - Votes are attributed to the visitor (typically by IP or session)

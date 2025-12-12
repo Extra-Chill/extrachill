@@ -1,21 +1,21 @@
 <?php
 /**
- * REST route: POST /wp-json/extrachill/v1/blocks/band-name
+ * REST route: POST /wp-json/extrachill/v1/blog/band-name
  *
- * Band name generator endpoint for ExtraChill Blocks.
- * Delegates to business logic in extrachill-blocks plugin.
+ * Band name generator endpoint for ExtraChill Blog.
+ * Delegates to business logic in extrachill-blog plugin.
  */
 
 if (!defined('ABSPATH')) {
 	exit;
 }
 
-add_action('extrachill_api_register_routes', 'extrachill_api_register_blocks_band_name_route');
+add_action('extrachill_api_register_routes', 'extrachill_api_register_blog_band_name_route');
 
-function extrachill_api_register_blocks_band_name_route() {
-	register_rest_route('extrachill/v1', '/blocks/band-name', array(
+function extrachill_api_register_blog_band_name_route() {
+	register_rest_route('extrachill/v1', '/blog/band-name', array(
 		'methods'             => WP_REST_Server::CREATABLE,
-		'callback'            => 'extrachill_api_blocks_band_name_handler',
+		'callback'            => 'extrachill_api_blog_band_name_handler',
 		'permission_callback' => '__return_true',
 		'args'                => array(
 			'input' => array(
@@ -41,7 +41,7 @@ function extrachill_api_register_blocks_band_name_route() {
 	));
 }
 
-function extrachill_api_blocks_band_name_handler($request) {
+function extrachill_api_blog_band_name_handler($request) {
 	$input = $request->get_param('input');
 	$genre = $request->get_param('genre');
 	$number_of_words = $request->get_param('number_of_words');
@@ -56,15 +56,15 @@ function extrachill_api_blocks_band_name_handler($request) {
 		);
 	}
 
-	if (!function_exists('extrachill_blocks_generate_band_name')) {
+	if (!function_exists('extrachill_blog_generate_band_name')) {
 		return new WP_Error(
 			'function_missing',
-			'Band name generator function not available. Please ensure extrachill-blocks plugin is activated.',
+			'Band name generator function not available. Please ensure extrachill-blog plugin is activated.',
 			array('status' => 500)
 		);
 	}
 
-	$generated_name = extrachill_blocks_generate_band_name($input, $genre, $number_of_words, $first_the, $and_the);
+	$generated_name = extrachill_blog_generate_band_name($input, $genre, $number_of_words, $first_the, $and_the);
 
 	return rest_ensure_response(array(
 		'name' => $generated_name

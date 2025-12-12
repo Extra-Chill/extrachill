@@ -15,8 +15,9 @@ Search for users by username, email, or display name with context-aware response
 - `admin` context: Requires `manage_options` capability
 
 **Parameters**:
-- `term` (string, required) - Search query term (minimum 1 character for mentions, 2 for admin)
-- `context` (string, optional) - Search context: `mentions` (default) or `admin`
+- `term` (string, required) - Search query term (minimum 1 character for mentions, 2 for admin/artist-capable)
+- `context` (string, optional) - Search context: `mentions` (default), `admin`, or `artist-capable`
+- `exclude_artist_id` (int, optional) - Exclude existing roster members (artist-capable context only)
 
 **Request Examples**:
 
@@ -66,15 +67,29 @@ GET /wp-json/extrachill/v1/users/search?term=chris@example.com&context=admin
 ]
 ```
 
+**Response - Artist-Capable Context** (HTTP 200):
+```json
+[
+  {
+    "id": 1,
+    "display_name": "Chris Huber",
+    "username": "chris",
+    "email": "chris@example.com",
+    "avatar_url": "https://example.com/wp-content/uploads/avatar.jpg",
+    "profile_url": "https://example.com/profile/chris"
+  }
+]
+```
+
 **Search Behavior**:
 
-| Aspect | Mentions | Admin |
-|--------|----------|-------|
-| Min characters | 1 | 2 |
-| Max results | 10 | 20 |
-| Search columns | user_login, user_nicename | user_login, user_email, display_name |
-| Response fields | id, username, slug | id, display_name, username, email, avatar_url |
-| Sorting | By display_name ASC | By display_name ASC |
+| Aspect | Mentions | Admin | Artist-Capable |
+|--------|----------|-------|---------------|
+| Min characters | 1 | 2 | 2 |
+| Max results | 10 | 20 | 10 |
+| Search columns | user_login, user_nicename | user_login, user_email, display_name | user_login, user_email, display_name |
+| Response fields | id, username, slug | id, display_name, username, email, avatar_url | id, display_name, username, email, avatar_url, profile_url |
+| Sorting | By display_name ASC | By display_name ASC | By display_name ASC |
 
 **Error Responses**:
 - `400` - Missing search term or invalid request
@@ -152,6 +167,13 @@ $users = json_decode( wp_remote_retrieve_body( $response ), true );
 - Admin-only access for security
 - Returns full user data including email and avatar
 - Useful for finding users by email or display name
+
+**Artist-Capable Context**:
+- Designed for roster management and artist team building
+- Requires logged-in user who can create artist profiles
+- Filters users who can be added to artist rosters
+- Excludes existing roster members when `exclude_artist_id` is provided
+- Returns profile URL for easy access to user profiles
 
 **Performance**:
 - Results limited to 10 (mentions) or 20 (admin) to prevent large datasets

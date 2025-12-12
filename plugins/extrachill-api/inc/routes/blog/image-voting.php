@@ -1,18 +1,18 @@
 <?php
 /**
- * REST route: GET /wp-json/extrachill/v1/blocks/image-voting/vote-count/{post_id}/{instance_id}
+ * REST route: GET /wp-json/extrachill/v1/blog/image-voting/vote-count/{post_id}/{instance_id}
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-add_action( 'extrachill_api_register_routes', 'extrachill_api_register_image_voting_routes' );
+add_action( 'extrachill_api_register_routes', 'extrachill_api_register_blog_image_voting_routes' );
 
-function extrachill_api_register_image_voting_routes() {
-    register_rest_route( 'extrachill/v1', '/blocks/image-voting/vote-count/(?P<post_id>\d+)/(?P<instance_id>[a-zA-Z0-9\-]+)', array(
+function extrachill_api_register_blog_image_voting_routes() {
+    register_rest_route( 'extrachill/v1', '/blog/image-voting/vote-count/(?P<post_id>\d+)/(?P<instance_id>[a-zA-Z0-9\-]+)', array(
         'methods'             => WP_REST_Server::READABLE,
-        'callback'            => 'extrachill_api_image_voting_get_vote_count',
+        'callback'            => 'extrachill_api_blog_image_voting_get_vote_count',
         'permission_callback' => '__return_true',
         'args'                => array(
             'post_id'    => array(
@@ -25,7 +25,7 @@ function extrachill_api_register_image_voting_routes() {
     ) );
 }
 
-function extrachill_api_image_voting_get_vote_count( WP_REST_Request $request ) {
+function extrachill_api_blog_image_voting_get_vote_count( WP_REST_Request $request ) {
     $post_id     = absint( $request->get_param( 'post_id' ) );
     $instance_id = sanitize_text_field( $request->get_param( 'instance_id' ) );
 
@@ -42,7 +42,7 @@ function extrachill_api_image_voting_get_vote_count( WP_REST_Request $request ) 
     $vote_count = 0;
 
     foreach ( $blocks as $block ) {
-        if ( 'extrachill-blocks/image-voting' !== ( $block['blockName'] ?? '' ) ) {
+        if ( 'extrachill/image-voting' !== ( $block['blockName'] ?? '' ) ) {
             continue;
         }
 

@@ -22,7 +22,6 @@ Records an upvote (or removes it, depending on the helper implementation) for fo
 4. On success the endpoint responds with:
 ```json
 {
-  "success": true,
   "message": "Thanks for voting!",
   "new_count": 42,
   "upvoted": true

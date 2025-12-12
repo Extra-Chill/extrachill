@@ -1,7 +1,7 @@
 # Image Voting Vote Count Endpoint
 
 ## Route
-`GET /wp-json/extrachill/v1/blocks/image-voting/vote-count/{post_id}/{instance_id}`
+`GET /wp-json/extrachill/v1/blog/image-voting/vote-count/{post_id}/{instance_id}`
 
 ## Purpose
 Returns the latest vote tally for a specific Image Voting block instance embedded in a post. Frontend blocks poll this endpoint to keep live tallies without re-rendering the entire page.
@@ -15,7 +15,7 @@ Returns the latest vote tally for a specific Image Voting block instance embedde
 ## Processing Steps
 1. Validates `post_id` and `instance_id`. Missing or invalid IDs return `400` errors.
 2. Calls `get_post()` to ensure the post exists; non-existent posts yield `404 post_not_found`.
-3. Parses the post content with `parse_blocks()` and locates the `extrachill-blocks/image-voting` block whose `uniqueBlockId` matches the provided `instance_id`.
+3. Parses the post content with `parse_blocks()` and locates the `extrachill/image-voting` block whose `uniqueBlockId` matches the provided `instance_id`.
 4. Reads the stored `voteCount` attribute (defaults to `0` if not present).
 5. Responds with `{ "vote_count": <int> }`.
 
@@ -34,10 +34,10 @@ Returns the latest vote tally for a specific Image Voting block instance embedde
 # Image Voting Submission Endpoint
 
 ## Route
-`POST /wp-json/extrachill/v1/blocks/image-voting/vote`
+`POST /wp-json/extrachill/v1/blog/image-voting/vote`
 
 ## Purpose
-Records a vote for a specific Image Voting block instance. The endpoint hands off validation, deduplication, and storage to `extrachill_blocks_process_image_vote()` so the logic matches the original extrachill-blocks behavior.
+Records a vote for a specific Image Voting block instance. The endpoint hands off validation, deduplication, and storage to `extrachill_blog_process_image_vote()` so the logic matches the original extrachill-blog behavior.
 
 ## Request Body
 | Field | Type | Required | Notes |
@@ -48,7 +48,7 @@ Records a vote for a specific Image Voting block instance. The endpoint hands of
 
 ## Processing Steps
 1. REST schema enforces required args, numeric IDs, and valid email format.
-2. The handler confirms `extrachill_blocks_process_image_vote()` exists; if not, returns `500 function_missing`.
+2. The handler confirms `extrachill_blog_process_image_vote()` exists; if not, returns `500 function_missing`.
 3. Delegates to the helper, which returns a result array describing success/failure.
 4. On success, responds with:
 ```json

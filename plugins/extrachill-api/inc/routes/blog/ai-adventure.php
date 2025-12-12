@@ -1,23 +1,23 @@
 <?php
 /**
- * REST route: POST /wp-json/extrachill/v1/blocks/ai-adventure
+ * REST route: POST /wp-json/extrachill/v1/blog/ai-adventure
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-add_action( 'extrachill_api_register_routes', 'extrachill_api_register_ai_adventure_route' );
+add_action( 'extrachill_api_register_routes', 'extrachill_api_register_blog_ai_adventure_route' );
 
-function extrachill_api_register_ai_adventure_route() {
-    register_rest_route( 'extrachill/v1', '/blocks/ai-adventure', array(
+function extrachill_api_register_blog_ai_adventure_route() {
+    register_rest_route( 'extrachill/v1', '/blog/ai-adventure', array(
         'methods'             => WP_REST_Server::CREATABLE,
-        'callback'            => array( 'ExtraChill_API_AI_Adventure', 'handle_request' ),
+        'callback'            => array( 'ExtraChill_API_Blog_AI_Adventure', 'handle_request' ),
         'permission_callback' => '__return_true',
     ) );
 }
 
-class ExtraChill_API_AI_Adventure {
+class ExtraChill_API_Blog_AI_Adventure {
     public static function handle_request( WP_REST_Request $request ) {
         $dependency_check = self::ensure_prompt_builder_available();
 
@@ -28,7 +28,7 @@ class ExtraChill_API_AI_Adventure {
         $params = $request->get_json_params();
 
         $game_params = self::extract_and_sanitize_params( $params );
-        $progression_section = ExtraChill_Blocks_Prompt_Builder::build_progression_section( $game_params['progression_history'] );
+        $progression_section = ExtraChill_Blog_Prompt_Builder::build_progression_section( $game_params['progression_history'] );
 
         if ( ! empty( $game_params['is_introduction'] ) ) {
             return self::handle_introduction_request( $game_params );
@@ -38,11 +38,11 @@ class ExtraChill_API_AI_Adventure {
     }
 
     private static function ensure_prompt_builder_available() {
-        if ( ! defined( 'EXTRACHILL_BLOCKS_PATH' ) ) {
-            return new WP_Error( 'extrachill_blocks_missing', 'ExtraChill Blocks plugin is required for AI adventure.', array( 'status' => 500 ) );
+        if ( ! defined( 'EXTRACHILL_BLOG_PLUGIN_DIR' ) ) {
+            return new WP_Error( 'extrachill_blog_missing', 'ExtraChill Blog plugin is required for AI adventure.', array( 'status' => 500 ) );
         }
 
-        $builder_path = EXTRACHILL_BLOCKS_PATH . 'src/ai-adventure/includes/prompt-builder.php';
+        $builder_path = EXTRACHILL_BLOG_PLUGIN_DIR . 'src/blocks/ai-adventure/includes/prompt-builder.php';
 
         if ( ! file_exists( $builder_path ) ) {
             return new WP_Error( 'prompt_builder_missing', 'AI adventure prompt builder not found.', array( 'status' => 500 ) );
@@ -50,7 +50,7 @@ class ExtraChill_API_AI_Adventure {
 
         require_once $builder_path;
 
-        if ( ! class_exists( 'ExtraChill_Blocks_Prompt_Builder' ) ) {
+        if ( ! class_exists( 'ExtraChill_Blog_Prompt_Builder' ) ) {
             return new WP_Error( 'prompt_builder_unavailable', 'AI adventure prompt builder class unavailable.', array( 'status' => 500 ) );
         }
 
@@ -75,7 +75,7 @@ class ExtraChill_API_AI_Adventure {
     }
 
     private static function handle_introduction_request( $params ) {
-        $messages = ExtraChill_Blocks_Prompt_Builder::build_introduction_messages( $params );
+        $messages = ExtraChill_Blog_Prompt_Builder::build_introduction_messages( $params );
 
         $response = apply_filters( 'chubes_ai_request', array(
             'messages' => $messages,
@@ -92,7 +92,7 @@ class ExtraChill_API_AI_Adventure {
     }
 
     private static function handle_conversation_turn( $params, $progression_section ) {
-        $conversation_messages = ExtraChill_Blocks_Prompt_Builder::build_conversation_messages( $params, $progression_section );
+        $conversation_messages = ExtraChill_Blog_Prompt_Builder::build_conversation_messages( $params, $progression_section );
 
         $response = apply_filters( 'chubes_ai_request', array(
             'messages' => $conversation_messages,
@@ -119,7 +119,7 @@ class ExtraChill_API_AI_Adventure {
     }
 
     private static function analyze_progression( $params, $progression_section ) {
-        $progression_messages = ExtraChill_Blocks_Prompt_Builder::build_progression_messages( $params, $progression_section, $params['triggers'] );
+        $progression_messages = ExtraChill_Blog_Prompt_Builder::build_progression_messages( $params, $progression_section, $params['triggers'] );
 
         $response = apply_filters( 'chubes_ai_request', array(
             'messages' => $progression_messages,

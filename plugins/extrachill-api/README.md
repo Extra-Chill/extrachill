@@ -17,7 +17,7 @@ The ExtraChill API plugin provides a centralized, versioned REST API infrastruct
 
 ## Current Endpoints
 
-The plugin provides 36 endpoints across 13 feature categories, all under the `extrachill/v1` namespace:
+The plugin provides 38 endpoints across 13 feature categories, all under the `extrachill/v1` namespace:
 
 ### Analytics Endpoints (3)
 - `POST /analytics/link-click` - Track link page clicks
@@ -76,9 +76,11 @@ The plugin provides 36 endpoints across 13 feature categories, all under the `ex
 ### Newsletter (1)
 - `POST /newsletter/subscription` - Subscribe to newsletter
 
-### Shop Integration (2)
+### Shop Integration (4)
 - `GET/POST/PUT/DELETE /shop/products` - Product CRUD operations
 - `GET/POST/DELETE /shop/stripe` - Stripe Connect management
+- `GET /shop/orders` - List artist orders
+- `GET /shop/earnings` - Get earnings summary
 
 ### Tools (1)
 - `POST /tools/qr-code` - Generate QR codes
@@ -196,7 +198,7 @@ extrachill-api/
         │   ├── socials.php
         │   ├── subscribe.php
         │   └── subscribers.php
-        ├── blocks/                     # AI block generators
+         ├── blog/                       # AI block generators
         │   ├── ai-adventure.php
         │   ├── band-name.php
         │   ├── image-voting.php
