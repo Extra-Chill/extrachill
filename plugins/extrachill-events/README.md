@@ -1,6 +1,6 @@
 # ExtraChill Events
 
-WordPress plugin providing seamless integration between ExtraChill themes and popular event plugins. Replaces previous datamachine-events integration with a flexible architecture supporting multiple event management plugins within the ExtraChill ecosystem.
+WordPress plugin providing seamless integration between Extra Chill and Data Machine Events.
 
 ## Features
 
