@@ -44,24 +44,10 @@ foreach ( $platforms as $platform_dir ) {
 		$timestamp     = filemtime( $file_path );
 		$slug          = basename( $file_path, '.md' );
 
-		// Title priority: H1 header > Frontmatter > filename slug
-		$title   = ucfirst( str_replace( '-', ' ', $slug ) );
-		$excerpt = '';
+		// Title: H1 header > filename slug
+		$title = ucfirst( str_replace( '-', ' ', $slug ) );
 
-		// Parse YAML frontmatter (if present)
-		if ( preg_match( '/^---\s+(.*?)\s+---/s', $content, $matches ) ) {
-			$frontmatter = $matches[1];
-			$content     = trim( str_replace( $matches[0], '', $content ) );
-
-			if ( preg_match( '/title:\s*(.*)/', $frontmatter, $t ) ) {
-				$title = trim( $t[1] );
-			}
-			if ( preg_match( '/excerpt:\s*(.*)/', $frontmatter, $e ) ) {
-				$excerpt = trim( $e[1] );
-			}
-		}
-
-		// Extract H1 header as title (takes precedence) and strip from content
+		// Extract H1 header as title and strip from content
 		if ( preg_match( '/^#\s+(.+)$/m', $content, $h1_match ) ) {
 			$title   = trim( $h1_match[1] );
 			$content = trim( preg_replace( '/^#\s+.+$/m', '', $content, 1 ) );
@@ -75,7 +61,6 @@ foreach ( $platforms as $platform_dir ) {
 				'title'         => $title,
 				'content'       => $content,
 				'platform_slug' => $platform_slug,
-				'excerpt'       => $excerpt,
 				'filesize'      => $filesize,
 				'timestamp'     => date( 'c', $timestamp ),
 				'force'         => $force,
