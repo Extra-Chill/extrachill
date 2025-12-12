@@ -19,33 +19,40 @@
      * @return {void}
      */
     function checkEditPermission() {
-        if (typeof extrchEditButton === 'undefined' || !extrchEditButton.artist_id) {
+        const body = document.body;
+        const artistId = body && body.dataset ? body.dataset.extrchArtistId : '';
+        const apiUrl = body && body.dataset ? body.dataset.extrchPermissionsApiUrl : '';
+
+        if (!artistId || !apiUrl) {
             return;
         }
 
-        const artistId = extrchEditButton.artist_id;
-        const apiUrl = extrchEditButton.api_url;
+        const artistIdInt = parseInt(artistId, 10);
+        if (!Number.isFinite(artistIdInt) || artistIdInt <= 0) {
+            return;
+        }
 
-        // Construct URL with query parameters
         const url = new URL(apiUrl);
-        url.searchParams.append('artist_id', artistId);
+        url.searchParams.set('artist_id', String(artistIdInt));
 
         fetch(url, {
             method: 'GET',
-            credentials: 'include',
-            headers: {
-                'Content-Type': 'application/json',
-            }
+            credentials: 'include'
         })
-        .then(response => response.json())
-        .then(data => {
-            if (data.can_edit) {
-                renderEditButton(data.manage_url);
+        .then((response) => {
+            if (!response.ok) {
+                return null;
             }
+            return response.json();
         })
-        .catch(error => {
-            console.error('[Edit Button] Error:', error);
-        });
+        .then((data) => {
+            if (!data || data.can_edit !== true || !data.manage_url) {
+                return;
+            }
+
+            renderEditButton(data.manage_url);
+        })
+        .catch(() => {});
     }
 
     /**

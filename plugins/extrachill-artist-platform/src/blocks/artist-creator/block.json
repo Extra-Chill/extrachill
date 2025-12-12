@@ -1,7 +1,7 @@
 {
   "$schema": "https://schemas.wp.org/trunk/block.json",
   "apiVersion": 3,
-  "name": "extrachill-artist-platform/artist-creator",
+  "name": "extrachill/artist-creator",
   "version": "0.1.0",
   "title": "Artist Creator",
   "category": "widgets",

@@ -80,7 +80,16 @@ $body_bg_style .= 'min-height:100vh;';
     }
     ?>
 </head>
-<body class="extrch-link-page"<?php if ($body_bg_style) echo ' style="' . esc_attr( $body_bg_style ) . '"'; ?>>
+<?php
+$permissions_api_url = '';
+if ( function_exists( 'ec_get_site_url' ) ) {
+    $artist_site_url = ec_get_site_url( 'artist' );
+    if ( $artist_site_url ) {
+        $permissions_api_url = $artist_site_url . '/wp-json/extrachill/v1/artist/permissions';
+    }
+}
+?>
+<body class="extrch-link-page"<?php if ($body_bg_style) echo ' style="' . esc_attr( $body_bg_style ) . '"'; ?> data-extrch-artist-id="<?php echo esc_attr( (string) absint( $artist_id ) ); ?>" data-extrch-permissions-api-url="<?php echo esc_url( $permissions_api_url ); ?>">
 <?php
 // Google Tag Manager (noscript)
 ?>
@@ -89,9 +98,12 @@ $body_bg_style .= 'min-height:100vh;';
 <?php
 /**
  * Edit button security model: Client-side only rendering with zero server-side HTML.
- * JavaScript performs CORS permission check (extrachill.link → artist.extrachill.com)
- * and renders button only if authorized. Unauthorized users receive no DOM elements.
- * See: inc/link-pages/live/ajax/edit-permission.php and assets/js/link-page-edit-button.js
+ * JavaScript performs a credentialed CORS permission check (extrachill.link → artist.extrachill.com)
+ * and renders the button only if authorized.
+ *
+ * Related:
+ * - JS: inc/link-pages/live/assets/js/link-page-edit-button.js
+ * - REST endpoint: extrachill-api/inc/routes/artist/permissions.php
  */
 
     // Pass $data explicitly to the template so overlay and all settings are available

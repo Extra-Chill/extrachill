@@ -53,6 +53,11 @@ function extrch_link_page_custom_head( $artist_id, $link_page_id ) {
         echo '<script>var extrchSubscribeData = { restUrl: "' . esc_url(rest_url('extrachill/v1/artist/subscribe')) . '" };</script>';
     }
 
+    $edit_button_js_path = 'inc/link-pages/live/assets/js/link-page-edit-button.js';
+    if ( file_exists( $theme_dir . $edit_button_js_path ) ) {
+        echo '<script src="' . esc_url( $theme_uri . $edit_button_js_path ) . '?ver=' . esc_attr( filemtime( $theme_dir . $edit_button_js_path ) ) . '" defer></script>';
+    }
+
     echo '<style>body{margin:0;padding:0;}</style>';
 
     $data = ec_get_link_page_data( $artist_id, $link_page_id );

@@ -223,22 +223,6 @@ class ExtraChillArtistPlatform_Assets {
             true
         );
 
-        wp_enqueue_script(
-            'extrachill-link-page-edit-permission',
-            $plugin_url . 'inc/link-pages/live/assets/js/link-page-edit-permission.js',
-            array(),
-            $this->get_asset_version( 'inc/link-pages/live/assets/js/link-page-edit-permission.js' ),
-            true
-        );
-
-        global $artist_id;
-        if ( isset( $artist_id ) && $artist_id ) {
-            wp_localize_script(
-                'extrachill-link-page-edit-permission',
-                'extrchEditPermission',
-                array( 'artistId' => $artist_id )
-            );
-        }
     }
 
     private function enqueue_link_page_google_fonts() {

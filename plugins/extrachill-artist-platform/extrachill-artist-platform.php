@@ -3,7 +3,7 @@
  * Plugin Name: Extra Chill Artist Platform
  * Plugin URI: https://extrachill.com
  * Description: Artist platform for musicians with profiles, link pages, analytics, and subscriber management.
- * Version: 1.3.0
+ * Version: 1.3.1
  * Author: Chris Huber
  * Author URI: https://chubes.net
  * License: GPL v2 or later
@@ -20,7 +20,7 @@
  */
 
 defined( 'ABSPATH' ) || exit;
-define( 'EXTRACHILL_ARTIST_PLATFORM_VERSION', '1.3.0' );
+define( 'EXTRACHILL_ARTIST_PLATFORM_VERSION', '1.3.1' );
 define( 'EXTRACHILL_ARTIST_PLATFORM_PLUGIN_FILE', __FILE__ );
 define( 'EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'EXTRACHILL_ARTIST_PLATFORM_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
@@ -170,15 +170,15 @@ function extrachill_artist_platform_create_pages() {
     $pages = array(
         'create-artist' => array(
             'title'   => 'Create Artist',
-            'content' => '<!-- wp:extrachill-artist-platform/artist-creator /-->',
+            'content' => '<!-- wp:extrachill/artist-creator /-->',
         ),
         'manage-artist-profiles' => array(
             'title'   => 'Manage Artist Profiles',
-            'content' => '<!-- wp:extrachill-artist-platform/artist-profile-manager /-->',
+            'content' => '<!-- wp:extrachill/artist-profile-manager /-->',
         ),
         'manage-link-page' => array(
             'title'   => 'Manage Link Page',
-            'content' => '<!-- wp:extrachill-artist-platform/link-page-editor /-->',
+            'content' => '<!-- wp:extrachill/link-page-editor /-->',
         ),
     );
 
