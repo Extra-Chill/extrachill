@@ -1,0 +1,20 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "extrachill/contact-form",
+	"version": "2.0.0",
+	"title": "Contact Form",
+	"category": "widgets",
+	"icon": "email",
+	"description": "Contact form with Turnstile protection and newsletter integration.",
+	"keywords": ["contact", "form", "email"],
+	"supports": {
+		"html": false,
+		"multiple": false
+	},
+	"textdomain": "extrachill-contact",
+	"editorScript": "file:./editor.js",
+	"render": "file:./render.php",
+	"viewScript": "file:../../assets/contact-form.iife.js",
+	"viewStyle": "file:../../assets/contact-form.css"
+}
