@@ -5,9 +5,15 @@
  * Registers TinyMCE plugin and button for image uploads.
  * Disables large thumbnail generation for performance.
  * Upload logic handled by unified REST endpoint: POST /wp-json/extrachill/v1/media
+ * Skipped when Blocks Everywhere plugin is active (Gutenberg replaces TinyMCE).
  *
  * @package ExtraChillCommunity
  */
+
+include_once ABSPATH . 'wp-admin/includes/plugin.php';
+if (is_plugin_active('blocks-everywhere/blocks-everywhere.php')) {
+	return;
+}
 
 $thumb_names = array( '1536x1536', '2048x2048' );
 
