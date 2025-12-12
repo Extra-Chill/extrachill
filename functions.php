@@ -90,6 +90,12 @@ require_once(EXTRACHILL_INCLUDES_DIR . '/footer/online-users-stats.php');
 
 function extrachill_remove_menu_admin_pages() {
     remove_submenu_page('themes.php', 'nav-menus.php');
+
+    // Hide Posts and Comments menus on all sites except main blog (ID 1)
+    if (get_current_blog_id() !== 1) {
+        remove_menu_page('edit.php');
+        remove_menu_page('edit-comments.php');
+    }
 }
 add_action('admin_menu', 'extrachill_remove_menu_admin_pages', 999);
 
@@ -223,6 +229,11 @@ add_filter( 'body_class', 'extrachill_add_sticky_header_class' );
 
 function extrachill_dequeue_jquery_frontend() {
     if ( is_admin() ) {
+        return;
+    }
+
+    $should_dequeue = apply_filters( 'extrachill_dequeue_jquery_frontend', true );
+    if ( ! $should_dequeue ) {
         return;
     }
 
