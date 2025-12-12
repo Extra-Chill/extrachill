@@ -1,110 +1,81 @@
-# Getting Started on the Artist Platform
+# Getting Started with the Artist Platform
 
-The Extra Chill Artist Platform lets you create a professional artist profile and a customizable link page at extrachill.link. Share all your music, social accounts, and merch in one place.
-
-## Quick Start
-
-1. **Join** - Go to extrachill.link/join to create your account and artist profile
-2. **Customize** - Build your link page with your music links, social accounts, and branding
-3. **Share** - Your link page lives at extrachill.link/your-artist-name
+The Extra Chill Artist Platform helps musicians create professional online presence with customizable link pages and artist profiles.
 
 ## Creating Your Artist Profile
 
-Your artist profile is your foundation on Extra Chill. When you join through extrachill.link/join, your profile and link page are created automatically.
+To get started with the Artist Platform:
 
-To edit your profile after creation:
+1. **Visit the Join Page**: Go to [extrachill.link/join](https://extrachill.link/join)
+2. **Choose Account Type**: Select whether to create a new Extra Chill account or use an existing one
+3. **Complete Your Profile**: Fill in your artist information including name, biography, and profile image
+4. **Automatic Setup**: Your artist profile and link page are created automatically
 
-1. Go to artist.extrachill.com and log in
-2. Click **Manage Artist Profiles**
-3. Update your artist name, biography, profile image, genre, and location
-4. Save your changes
+## Your Link Page
 
-Your profile appears in the Artist Directory where fans can discover you.
+After joining, you'll have a professional link page at `extrachill.link/your-artist-name` that includes:
 
-## Building Your Link Page
+- Links to your music platforms (Spotify, Apple Music, Bandcamp, etc.)
+- Social media profiles
+- Website and booking information
+- Customizable design and branding
 
-Your link page at extrachill.link/your-artist-name is where you send fans to find everything about you.
+## Managing Your Content
 
-### Adding Links
+### Accessing Management Tools
 
-1. Go to **Manage Link Page**
-2. Open the **Links** tab
-3. Click **Add Link** and enter:
-   - Link title (e.g., "Listen on Spotify")
-   - URL
-   - Icon
-4. Drag and drop to reorder your links
+1. Visit [artist.extrachill.com](https://artist.extrachill.com) and log in
+2. Navigate to your artist profile or link page management
+3. Use the visual editor to customize your content
 
-You can organize links into sections like "Music," "Connect," or "Shop."
+### Customizing Your Link Page
 
-### Connecting Social Accounts
+- **Add Links**: Include streaming platforms, social media, and websites
+- **Design Options**: Choose colors, fonts, and background images
+- **Link Organization**: Group links into sections and reorder them
+- **Advanced Features**: Set link expiration dates and tracking options
 
-1. Open the **Socials** tab
-2. Add links to your profiles on Instagram, TikTok, Spotify, Apple Music, Bandcamp, SoundCloud, YouTube, and more
-3. Social icons display prominently on your link page
+### Managing Subscribers
 
-### Customizing the Design
+- Collect email addresses from your link page visitors
+- View subscriber analytics and engagement
+- Export subscriber lists for email marketing
 
-The **Customize** tab lets you personalize:
+## Artist Profiles
 
-- Background color or image
-- Button colors
-- Text and accent colors
-- Fonts
-- Profile image shape
+Your artist profile on artist.extrachill.com showcases your work and connects you with the community:
 
-### Advanced Features
+- **Profile Display**: Professional presentation of your artist information
+- **Blog Coverage**: Links to articles and features about your music
+- **Community Integration**: Connect with fans and other artists
 
-The **Advanced** tab includes:
+## Additional Features
 
-- **Link expiration** - Schedule links to deactivate on specific dates
-- **YouTube embeds** - Showcase videos directly on your page
-- **Analytics tracking** - See page views and link clicks
+### Analytics
 
-## Viewing Analytics
+Track how your link page performs:
+- Page views and visitor statistics
+- Link click tracking
+- Subscriber growth
 
-Track how fans engage with your link page:
+### Social Media Integration
 
-1. Go to the **Analytics** page
-2. View daily page views and see which links get clicked most
+Connect all your social platforms:
+- Instagram, Twitter/X, Facebook, TikTok
+- YouTube, Twitch, Patreon
+- Music platforms like SoundCloud and Spotify
 
-Use this data to optimize your link order and focus on what resonates with fans.
+## Need Help?
 
-## Managing Band Members
+If you need assistance with the Artist Platform:
 
-Add collaborators who can help manage your profile and link page:
+- Contact us at [extrachill.com/contact](https://extrachill.com/contact/)
+- Ask questions in the [Tech Support forum](https://community.extrachill.com/r/tech-support)
+- Check the [Artist Platform FAQ](faq.md) (coming soon)
 
-1. Go to **Manage Artist Profiles**
-2. Select your artist
-3. Open the **Members** tab
-4. Click **Invite Member** and enter their email
+## Terms and Guidelines
 
-Invited members can edit your profile, manage links, and view analytics.
-
-## Collecting Subscriber Emails
-
-Build your mailing list through your link page:
-
-1. Add an email signup link to your link page
-2. Fans can subscribe to hear from you
-3. View and export your subscriber list in the **Subscribers** tab of your artist profile
-
-## Sharing Your Link Page
-
-Your link page URL is **extrachill.link/your-artist-name**
-
-Share it in your Instagram bio, TikTok profile, email signature, and everywhere else you connect with fans. Generate a QR code from your link page editor to use on merchandise or posters.
-
-## Key Info
-
-- Your Extra Chill account works across all Extra Chill sites (Community Forum, Shop, Artist Platform)
-- Artist profiles and link pages are public
-- Your subscriber list and analytics are private
-- You can change your artist name and URL slug anytime in your profile settings
-
-## Support
-
-If you have questions or run into issues:
-
-- Visit our [Support Forum](https://community.extrachill.com/r/tech-support)
-- [Contact us](https://extrachill.com/contact/)
+- Link pages are provided as part of the Extra Chill community
+- Content must comply with our community guidelines
+- Commercial use is allowed with proper attribution
+- Extra Chill reserves the right to moderate content
