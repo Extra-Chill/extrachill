@@ -141,7 +141,7 @@ if ( $is_artist || $is_professional ) :
             ?>
                 <a href="<?php echo esc_url( $base_manage_artists_url_card ); ?>" class="button-1 button-small"><?php echo $artist_label; ?></a>
             <?php else : // No artist profiles, but user can create ?>
-                <a href="<?php echo esc_url( $base_manage_artists_url_card ); ?>" class="button-1 button-small"><?php esc_html_e( 'Create Artist Profile', 'extra-chill-community' ); ?></a>
+                <a href="<?php echo esc_url( ec_get_site_url( 'artist' ) . '/create-artist/' ); ?>" class="button-1 button-small"><?php esc_html_e( 'Create Artist Profile', 'extra-chill-community' ); ?></a>
             <?php endif;
 
             echo '</div>'; // End .user-artist-management-actions

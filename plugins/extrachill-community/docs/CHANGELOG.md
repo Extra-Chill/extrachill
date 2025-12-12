@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.0.17] - 2025-12-11
+
+### Added
+- Plugin activation handler that auto-creates the core community pages and starter forums
+- New Topic modal on the homepage (CSS + JS + template component) for creating bbPress topics without leaving the forum archive
+- Blocks Everywhere compatibility layer to enable Gutenberg for bbPress when the Blocks Everywhere plugin is active
+
+### Changed
+- Homepage now enqueues modal assets on the front page and treats the editor as active for modal usage
+- Avatar upload UI now displays the current avatar using `get_avatar()`
+- User profile templates now link to the artist platform "create artist" flow when eligible
+- Image inline-style stripping now removes DOMDocument XML preamble output
+
 ## [1.0.16] - 2025-12-10
 
 ### Changed

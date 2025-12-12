@@ -10,7 +10,7 @@ This plugin is part of the Extra Chill Platform, a WordPress multisite network s
 
 **Plugin Information:**
 - **Name**: Extra Chill Community
-- **Version**: 1.0.11
+- **Version**: 1.0.17
 - **Text Domain**: `extra-chill-community`
 - **Author**: Chris Huber
 - **Author URI**: https://chubes.net
@@ -50,6 +50,27 @@ composer install
 
 # Note: No npm build system - uses direct file inclusion
 ```
+
+### Automatic Setup on Activation
+When the plugin is activated, it automatically creates required pages and forums:
+
+**Pages Created** (5 total):
+- Settings page (`/settings`) - Account management, email, password, subscriptions
+- Notifications page (`/notifications`) - User notification display
+- Recent Activity page (`/recent`) - Community activity feed (uses "Recent Activity Feed" template)
+- Leaderboard page (`/leaderboard`) - User rankings (uses "Leaderboard" template)
+- Blog Comments page (`/blog-comments`) - Main blog comments (uses "Main Blog Comments Feed" template)
+
+**Forums Created** (2 total):
+- Local Scenes (`/r/local-scenes`) - Discuss local music scenes
+- Music Discussion (`/r/music-discussion`) - General music discussion
+
+**Activation Logic** (`inc/core/activation.php`):
+- Registered via `register_activation_hook()` in main plugin file
+- Checks if bbPress is active before proceeding
+- Skips page/forum creation if slug already exists (prevents duplicates)
+- Assigns page templates automatically
+- No deletion on deactivation - pages remain for user content
 
 ### Development Notes
 - **No Asset Compilation** - Direct file inclusion without npm/webpack compilation

@@ -12,18 +12,11 @@
  * Render avatar upload form field.
  */
 function extrachill_render_avatar_upload_field() {
-    $custom_avatar_id = get_user_option('custom_avatar_id');
     ?>
     <div id="avatar-thumbnail">
         <h4>Current Avatar</h4>
         <p>This is the avatar you currently have set. Upload a new image to change it.</p>
-        <?php if ($custom_avatar_id && wp_attachment_is_image($custom_avatar_id)): ?>
-            <?php
-                $thumbnail_src = wp_get_attachment_image_url($custom_avatar_id, 'thumbnail');
-                if($thumbnail_src): ?>
-            <img src="<?php echo esc_url($thumbnail_src); ?>" alt="Current Avatar" />
-                <?php endif; ?>
-        <?php endif; ?>
+        <?php echo get_avatar( get_current_user_id(), 100 ); ?>
     </div>
     <label for="custom-avatar-upload"><?php esc_html_e( 'Upload New Avatar', 'extra-chill-community' ); ?></label>
     <input type='file' id='custom-avatar-upload' name='custom_avatar' accept='image/*'>

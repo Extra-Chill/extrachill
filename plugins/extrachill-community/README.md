@@ -2,7 +2,7 @@
 
 A WordPress plugin for the Extra Chill community platform providing forum enhancements, cross-domain authentication, and bbPress integration. Works with the extrachill theme to provide community functionality for community.extrachill.com.
 
-**Version**: 1.0.16
+**Version**: 1.0.17
 
 ## Overview
 
@@ -24,6 +24,23 @@ composer install
 # Activate plugin in WordPress admin
 # Plugin integrates with extrachill theme
 ```
+
+### Automatic Setup
+
+When you activate the plugin, it automatically creates all required pages and forums for you:
+
+**Pages Created** (5 total):
+- **Settings** (`/settings`) - Account settings, email, password, subscriptions
+- **Notifications** (`/notifications`) - User notification display
+- **Recent Activity** (`/recent`) - Community activity feed
+- **Leaderboard** (`/leaderboard`) - User rankings and points
+- **Blog Comments** (`/blog-comments`) - Main blog comments aggregation
+
+**Forums Created** (2 total):
+- **Local Scenes** (`/r/local-scenes`) - Discuss local music scenes
+- **Music Discussion** (`/r/music-discussion`) - General music discussion
+
+No manual page creation needed - everything is ready to use immediately after activation!
 
 ### Plugin Structure
 

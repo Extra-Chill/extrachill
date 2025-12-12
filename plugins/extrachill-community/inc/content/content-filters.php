@@ -43,6 +43,8 @@ function strip_img_inline_styles($content) {
         $img->removeAttribute('style');
     }
     $html = $dom->saveHTML();
+    $html = preg_replace('/^<\?xml[^>]*\?>/', '', $html);
+    $html = preg_replace('/<!--\?xml[^>]*\?-->/', '', $html);
     $html = preg_replace(array('/^<!DOCTYPE.+?>/', '/<html>/i', '/<\/html>/i', '/<body>/i', '/<\/body>/i'), array('', '', '', '', ''), $html);
     return trim($html);
 }

@@ -12,6 +12,7 @@ function extrachill_enable_blocks_everywhere_bbpress($enabled) {
 	if (!is_plugin_active('blocks-everywhere/blocks-everywhere.php')) {
 		return $enabled;
 	}
+
 	return true;
 }
 
@@ -20,5 +21,6 @@ function extrachill_enable_blocks_everywhere_bbpress_admin($enabled) {
 	if (!is_plugin_active('blocks-everywhere/blocks-everywhere.php')) {
 		return $enabled;
 	}
+
 	return true;
 }
