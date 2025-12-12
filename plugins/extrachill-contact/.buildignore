@@ -14,6 +14,8 @@ package-lock.json
 composer.lock
 webpack.config.js
 gulpfile.js
+vite.config.ts
+tsconfig.json
 
 # Documentation and development files
 README.md

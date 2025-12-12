@@ -1,0 +1,154 @@
+/**
+ * ContactForm Component Styles
+ *
+ * Uses Extra Chill design system CSS variables from root.css.
+ * Fallback values match Extra Chill light mode defaults.
+ */
+
+.ec-contact-form {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: var(--spacing-lg, 2rem);
+  background: var(--card-background, #f1f5f9);
+  border: 1px solid var(--border-color, #ddd);
+  border-radius: var(--border-radius-sm, 5px);
+}
+
+.ec-contact-form__group {
+  margin-bottom: var(--spacing-md, 1rem);
+}
+
+.ec-contact-form__label {
+  display: block;
+  margin-bottom: var(--spacing-sm, 0.5rem);
+  font-weight: 600;
+  color: var(--text-color, #000);
+}
+
+.ec-contact-form__label::after {
+  content: " *";
+  color: var(--accent, #53940b);
+  font-weight: bold;
+}
+
+.ec-contact-form__input,
+.ec-contact-form__select,
+.ec-contact-form__textarea {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--border-color, #ddd);
+  border-radius: var(--border-radius-sm, 5px);
+  font-size: var(--font-size-base, 1rem);
+  line-height: 1.5;
+  transition: border-color 0.3s ease;
+  box-sizing: border-box;
+  background: var(--background-color, #fff);
+  color: var(--text-color, #000);
+}
+
+.ec-contact-form__input:focus,
+.ec-contact-form__select:focus,
+.ec-contact-form__textarea:focus {
+  border-color: var(--focus-border-color, #53940b);
+  outline: none;
+  box-shadow: var(--focus-box-shadow, 0 0 0 3px rgba(83, 148, 11, 0.2));
+}
+
+.ec-contact-form__textarea {
+  resize: vertical;
+  min-height: 120px;
+}
+
+.ec-contact-form__notice {
+  font-size: var(--font-size-sm, 0.8125rem);
+  color: var(--muted-text, #6b7280);
+  margin-bottom: var(--spacing-md, 1rem);
+}
+
+.ec-contact-form__turnstile {
+  margin: var(--spacing-md, 1rem) 0;
+  display: flex;
+  justify-content: center;
+}
+
+.ec-contact-form__submit {
+  background-color: var(--accent, #53940b);
+  color: var(--button-text-color, #fff);
+  padding: 0.75rem 2rem;
+  border: none;
+  border-radius: var(--border-radius-sm, 5px);
+  font-size: var(--font-size-base, 1rem);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.3s ease, opacity 0.3s ease;
+  width: 100%;
+}
+
+.ec-contact-form__submit:hover:not(:disabled) {
+  background-color: var(--accent-hover, #3d6b08);
+}
+
+.ec-contact-form__submit:focus {
+  outline: 2px solid var(--accent, #53940b);
+  outline-offset: 2px;
+}
+
+.ec-contact-form__submit:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+/* Notice styles - matches theme .notice pattern */
+.ec-contact-form__feedback {
+  padding: var(--spacing-md, 1rem) var(--spacing-lg, 1.5rem);
+  margin-bottom: var(--spacing-lg, 1.5rem);
+  border-radius: var(--border-radius-sm, 5px);
+  border-left: 4px solid;
+  background-color: var(--card-background, #f1f5f9);
+}
+
+.ec-contact-form__feedback--error {
+  border-left-color: var(--error-color, #dc3232);
+}
+
+.ec-contact-form__feedback--success {
+  border-left-color: var(--accent, #53940b);
+}
+
+.ec-contact-form__feedback p {
+  margin: 0 0 var(--spacing-md, 1rem) 0;
+  color: var(--text-color, #000);
+}
+
+.ec-contact-form__feedback p:last-child {
+  margin-bottom: 0;
+}
+
+/* Success state action button */
+.ec-contact-form__action {
+  display: inline-block;
+  padding: 0.75rem 1.5rem;
+  background-color: var(--accent, #53940b);
+  color: var(--button-text-color, #fff);
+  text-decoration: none;
+  border-radius: var(--border-radius-sm, 5px);
+  font-weight: 600;
+  transition: background-color 0.3s ease;
+}
+
+.ec-contact-form__action:hover {
+  background-color: var(--accent-hover, #3d6b08);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .ec-contact-form {
+    padding: var(--spacing-md, 1rem);
+  }
+
+  .ec-contact-form__input,
+  .ec-contact-form__select,
+  .ec-contact-form__textarea {
+    font-size: 16px; /* Prevents zoom on iOS */
+  }
+}

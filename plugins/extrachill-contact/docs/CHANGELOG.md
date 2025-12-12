@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## v2.0.1
+- **React Frontend Implementation**: Added complete TypeScript/React frontend with ContactForm component
+- **Build System**: Implemented Vite-based build pipeline for compiling React components to IIFE bundles
+- **Component Architecture**: Created reusable ContactForm component with Turnstile integration, form validation, and state management
+- **Styling System**: Added CSS with Extra Chill design system variables and responsive design
+- **TypeScript Integration**: Full type safety with interfaces for props, data structures, and component states
+- **WordPress Integration**: Auto-mounting system for seamless integration with Gutenberg blocks
+
 ## v2.0.0
 - **Major architectural overhaul**: Converted from shortcode-based to Gutenberg block-based contact form
 - **Technology shift**: Implemented React-based frontend with REST API backend for headless architecture

@@ -5,7 +5,7 @@ WordPress plugin providing contact form functionality with Sendy newsletter inte
 ## Plugin Information
 
 - **Name**: Extra Chill Contact
-- **Version**: 2.0.0
+- **Version**: 2.0.1
 - **Text Domain**: `extrachill-contact`
 - **Author**: Chris Huber
 - **Author URI**: https://chubes.net
@@ -36,6 +36,12 @@ The plugin provides a complete contact form via Gutenberg block:
 ```
 extrachill-contact/
 ├── extrachill-contact.php          # Main plugin file
+├── src/                            # TypeScript/React source
+│   ├── ContactForm.tsx             # Main React component
+│   ├── ContactForm.css             # Component styles (source)
+│   ├── types.ts                    # TypeScript interfaces
+│   ├── wordpress.tsx               # WordPress auto-mount entry
+│   └── index.ts                    # Package exports
 ├── includes/
 │   ├── email-functions.php         # Email handling functions
 │   └── rest-api.php               # REST API endpoints
@@ -44,11 +50,14 @@ extrachill-contact/
 │       ├── block.json             # Block registration
 │       ├── render.php             # Frontend rendering
 │       └── editor.js              # Block editor interface
-├── assets/
-│   ├── contact-form.css           # Form styling
-│   └── contact-form.iife.js       # React form component
-└── docs/
-    └── CHANGELOG.md
+├── assets/                         # Built output (from Vite)
+│   ├── contact-form.css           # Compiled styles
+│   └── contact-form.iife.js       # Compiled React component
+├── docs/
+│   └── CHANGELOG.md
+├── package.json                    # Build tooling (Vite)
+├── vite.config.ts                  # Vite configuration
+└── tsconfig.json                   # TypeScript configuration
 ```
 
 ### Loading Pattern
@@ -160,8 +169,16 @@ if (function_exists('extrachill_newsletter_subscribe')) {
 
 ### Build System
 - **Universal Build Script**: Symlinked to `../../.github/build.sh`
-- **Production Build**: Creates clean ZIP package
+- **Vite Build**: TypeScript/React source compiled to IIFE bundle
+- **Production Build**: Creates clean ZIP package (excludes `src/`, build configs)
 - **File Exclusions**: Development files excluded via `.buildignore`
+
+### Frontend Build
+```bash
+npm install        # Install dev dependencies
+npm run build      # Compile src/ to assets/
+npm run dev        # Watch mode for development
+```
 
 ## Dependencies
 
@@ -198,6 +215,5 @@ if (function_exists('extrachill_newsletter_subscribe')) {
 
 **Related Files**:
 - `/.github/build.sh` - Shared build script
-- `composer.json` - Development dependencies
-- `.buildignore` - Build exclusions</content>
-<parameter name="filePath">extrachill-plugins/extrachill-contact/AGENTS.md
+- `package.json` - Frontend build tooling
+- `.buildignore` - Build exclusions

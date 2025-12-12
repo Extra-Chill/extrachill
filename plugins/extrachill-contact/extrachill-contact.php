@@ -3,7 +3,7 @@
  * Plugin Name: Extra Chill Contact
  * Plugin URI: https://extrachill.com
  * Description: Contact form block with Sendy newsletter integration and HTML email templates. Provides Gutenberg block with Cloudflare Turnstile protection and automatic newsletter subscription.
- * Version: 2.0.0
+ * Version: 2.0.1
  * Author: Chris Huber
  * Author URI: https://chubes.net
  * License: GPL v2 or later
@@ -17,7 +17,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'EXTRACHILL_CONTACT_VERSION', '2.0.0' );
+define( 'EXTRACHILL_CONTACT_VERSION', '2.0.1' );
 define( 'EXTRACHILL_CONTACT_PLUGIN_FILE', __FILE__ );
 define( 'EXTRACHILL_CONTACT_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'EXTRACHILL_CONTACT_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
