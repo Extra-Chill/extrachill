@@ -3,7 +3,7 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-class ExtraChill_Blocks_Prompt_Builder {
+class ExtraChill_Blog_Prompt_Builder {
 
     const BASE_SYSTEM_PROMPT = 'You have a dual role in an interactive text-based adventure game. You are both the narrator and an immersive character.
 

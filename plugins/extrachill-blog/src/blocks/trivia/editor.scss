@@ -1,5 +1,85 @@
-/**
- * Trivia Block Editor Styles
- * Imports existing comprehensive editor stylesheet
- */
-@import './assets/css/trivia-block-editor.css';
+/* Trivia Block Editor Styles */
+
+.extrachill-blocks-trivia-editor {
+	box-sizing: border-box;
+	max-width: 100%;
+	margin: var(--spacing-lg, 1.5rem) 0;
+	padding: var(--spacing-xl, 2rem);
+	border: 1px solid var(--border-color, #dcdcde);
+	border-radius: var(--border-radius-md, 8px);
+	background: var(--card-background, #fff);
+	box-shadow: var(--card-shadow, 0 1px 2px rgba(0, 0, 0, 0.08));
+	color: var(--text-color, #111);
+}
+
+.extrachill-blocks-trivia-editor * {
+	box-sizing: border-box;
+}
+
+.extrachill-blocks-trivia-editor .components-base-control {
+	margin-bottom: var(--spacing-md, 1rem);
+}
+
+.extrachill-blocks-trivia-editor .components-base-control__label,
+.extrachill-blocks-trivia-editor .trivia-options > label {
+	display: block;
+	font-weight: 600;
+	margin-bottom: var(--spacing-xs, 0.5rem);
+	color: var(--text-color, #111);
+}
+
+.extrachill-blocks-trivia-editor .components-text-control__input,
+.extrachill-blocks-trivia-editor .components-textarea-control__input {
+	background: transparent;
+	border: 2px dashed var(--border-color, #dcdcde);
+	border-radius: var(--border-radius-sm, 6px);
+	padding: var(--spacing-sm, 0.75rem) var(--spacing-md, 1rem);
+	color: var(--text-color, #111);
+	font-size: var(--font-size-base, 1rem);
+	line-height: 1.4;
+}
+
+.extrachill-blocks-trivia-editor .components-text-control__input:focus,
+.extrachill-blocks-trivia-editor .components-textarea-control__input:focus {
+	border-color: var(--focus-border-color, #0b5394);
+	box-shadow: var(--focus-box-shadow, 0 0 0 1px #0b5394);
+	outline: none;
+}
+
+.extrachill-blocks-trivia-editor .trivia-options {
+	margin-top: var(--spacing-sm, 0.75rem);
+}
+
+.extrachill-blocks-trivia-editor .trivia-option-row {
+	display: flex;
+	gap: var(--spacing-sm, 0.75rem);
+	align-items: flex-end;
+}
+
+.extrachill-blocks-trivia-editor .trivia-option-row .components-base-control {
+	flex: 1;
+	margin-bottom: 0;
+}
+
+.extrachill-blocks-trivia-editor .components-button.is-primary {
+	background: var(--accent-3, #0b5394);
+	border-color: var(--accent-3, #0b5394);
+	color: var(--button-text-color, #fff);
+	border-radius: var(--border-radius-sm, 6px);
+	padding: 0.5rem 1rem;
+}
+
+.extrachill-blocks-trivia-editor .components-button.is-destructive,
+.extrachill-blocks-trivia-editor .components-button.is-destructive:hover {
+	border-color: var(--error-color, #d63638);
+}
+
+.extrachill-blocks-trivia-editor .trivia-preview-note {
+	margin: var(--spacing-lg, 1.5rem) 0 0 0;
+	padding: var(--spacing-md, 1rem);
+	background: var(--notice-bg, rgba(0, 0, 0, 0.03));
+	border: 1px solid var(--notice-border, rgba(0, 0, 0, 0.08));
+	border-radius: var(--border-radius-sm, 6px);
+	color: var(--muted-text, #555);
+	font-size: var(--font-size-sm, 0.9rem);
+}

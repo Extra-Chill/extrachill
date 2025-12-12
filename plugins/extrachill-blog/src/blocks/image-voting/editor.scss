@@ -1,25 +1,42 @@
 /* Image Voting Block Editor Styles */
 
 .extrachill-blocks-image-voting-editor {
-	max-width: 100%;
+	box-sizing: border-box;
+	width: 100%;
+	max-width: var(--wp--style--global--content-size, var(--content-width, 800px));
+	margin-left: auto;
+	margin-right: auto;
 	padding: 0;
-	border: 1px solid var(--border-color);
-	border-radius: 8px;
-	background: var(--background-color);
-	box-shadow: var(--card-shadow);
+	border: 1px solid var(--border-color, #dcdcde);
+	border-radius: var(--border-radius-md, 8px);
+	background: var(--background-color, #fff);
+	box-shadow: var(--card-shadow, 0 1px 2px rgba(0, 0, 0, 0.08));
 	overflow: hidden;
 	cursor: default;
 	position: relative;
 }
 
-/* Image Wrapper - 4:5 Aspect Ratio (matches frontend) */
+.wp-block-extrachill-image-voting.alignwide .extrachill-blocks-image-voting-editor {
+	max-width: var(--wp--style--global--wide-size, var(--container-width, 1200px));
+}
+
+.wp-block-extrachill-image-voting.alignfull .extrachill-blocks-image-voting-editor {
+	max-width: 100%;
+}
+
+.extrachill-blocks-image-voting-editor * {
+	box-sizing: border-box;
+}
+
+/* Image Wrapper - 4:5 Aspect Ratio (constrained for editor) */
 .extrachill-blocks-image-wrapper-editor {
 	position: relative;
 	width: 100%;
-	padding-bottom: 125%; /* 4:5 aspect ratio */
+	aspect-ratio: 4 / 5;
+	max-height: 400px;
 	overflow: hidden;
-	background: var(--card-background);
-	border-bottom: 1px solid var(--border-color);
+	background: var(--card-background, #fff);
+	border-bottom: 1px solid var(--border-color, #dcdcde);
 	pointer-events: none;
 }
 
@@ -30,6 +47,7 @@
 	left: 0;
 	width: 100%;
 	height: 100%;
+	max-width: 100%;
 	object-fit: cover;
 	display: block;
 }
@@ -74,8 +92,9 @@
 /* Editor Controls Area */
 .extrachill-blocks-image-voting-editor-controls {
 	padding: 24px;
-	background: var(--background-color);
+	background: var(--background-color, #fff);
 	pointer-events: auto;
+	overflow: hidden;
 }
 
 /* Block Title Input Field */

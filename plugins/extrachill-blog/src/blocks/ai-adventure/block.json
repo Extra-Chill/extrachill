@@ -32,6 +32,7 @@
 	"viewScript": "file:./view.js",
 	"editorStyle": "file:./index.css",
 	"style": "file:./style-index.css",
+	"render": "file:./render.php",
 	"providesContext": {
 		"extrachill/adventurePrompt": "adventurePrompt"
 	}

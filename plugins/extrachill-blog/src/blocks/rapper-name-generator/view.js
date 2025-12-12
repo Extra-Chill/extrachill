@@ -35,7 +35,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 			try {
 				const response = await apiFetch({
-					path: '/extrachill/v1/blocks/rapper-name',
+					path: '/extrachill/v1/blog/rapper-name',
 					method: 'POST',
 					data: {
 						input,

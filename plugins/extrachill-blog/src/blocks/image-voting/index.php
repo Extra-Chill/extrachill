@@ -1,7 +1,7 @@
 <?php
 /**
  * Image Voting Block initialization
- * REST endpoint: /wp-json/extrachill/v1/blocks/image-voting/vote
+ * REST endpoint: /wp-json/extrachill/v1/blog/image-voting/vote
  * Newsletter integration: extrachill_multisite_subscribe() bridge function
  */
 
@@ -17,7 +17,7 @@ if (!defined('ABSPATH')) {
  * @param string $email_address Voter's email address
  * @return array Response array with success status, message, and vote_count
  */
-function extrachill_blocks_process_image_vote($post_id, $instance_id, $email_address) {
+function extrachill_blog_process_image_vote($post_id, $instance_id, $email_address) {
 	$post = get_post($post_id);
 	if (!$post) {
 		return array(

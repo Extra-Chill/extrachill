@@ -1,59 +1,61 @@
 <?php
-if (!defined('ABSPATH')) {
-    exit;
+/**
+ * Image Voting block render template.
+ */
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
 }
 
-$title = isset($attributes['blockTitle']) ? $attributes['blockTitle'] : 'Vote for this image';
-$vote_count = isset($attributes['voteCount']) ? (int) $attributes['voteCount'] : 0;
-$media_id = isset($attributes['mediaID']) ? (int) $attributes['mediaID'] : 0;
-$media_url = isset($attributes['mediaURL']) ? $attributes['mediaURL'] : '';
+$title      = isset( $attributes['blockTitle'] ) ? $attributes['blockTitle'] : 'Vote for this image';
+$vote_count = isset( $attributes['voteCount'] ) ? (int) $attributes['voteCount'] : 0;
+$media_id   = isset( $attributes['mediaID'] ) ? (int) $attributes['mediaID'] : 0;
+$media_url  = isset( $attributes['mediaURL'] ) ? $attributes['mediaURL'] : '';
 
-if ($media_id && empty($media_url)) {
-    $media_url = wp_get_attachment_url($media_id);
+if ( $media_id && empty( $media_url ) ) {
+	$media_url = wp_get_attachment_url( $media_id );
 }
 
 $post_id = get_the_ID();
-if (!$post_id && is_admin()) {
-    global $post;
-    $post_id = isset($post->ID) ? $post->ID : 0;
+if ( ! $post_id && is_admin() ) {
+	global $post;
+	$post_id = isset( $post->ID ) ? $post->ID : 0;
 }
 
-$block_instance_id = $attributes['uniqueBlockId'];
-$voters = isset($attributes['voters']) ? $attributes['voters'] : array();
+$block_instance_id = isset( $attributes['uniqueBlockId'] ) ? $attributes['uniqueBlockId'] : '';
+$voters            = isset( $attributes['voters'] ) ? $attributes['voters'] : array();
 
-$wrapper_attributes = get_block_wrapper_attributes([
-    'class' => 'extrachill-blocks-image-voting-container',
-    'data-block-instance-id' => esc_attr($block_instance_id),
-    'data-post-id' => esc_attr($post_id),
-    'data-voters' => esc_attr(wp_json_encode($voters))
-]);
-
-ob_start();
+$wrapper_attributes = get_block_wrapper_attributes(
+	array(
+		'class'                => 'extrachill-blocks-image-voting-container',
+		'data-block-instance-id' => esc_attr( $block_instance_id ),
+		'data-post-id'           => esc_attr( $post_id ),
+		'data-voters'            => esc_attr( wp_json_encode( $voters ) ),
+	)
+);
 ?>
-<div <?php echo $wrapper_attributes; ?>>
-    <?php if (!empty($media_url)): ?>
-        <div class="extrachill-blocks-image-wrapper">
-            <img class="extrachill-blocks-image-voting-image" src="<?php echo esc_url($media_url); ?>" alt="<?php echo esc_attr($title); ?>" />
-            <div class="extrachill-blocks-overlay-badges">
-                <span class="extrachill-blocks-vote-badge">
-                    Votes: <span class="vote-number"><?php echo esc_html($vote_count); ?></span>
-                </span>
-                <h2 class="extrachill-blocks-title-badge"><?php echo esc_html($title); ?></h2>
-            </div>
-        </div>
-    <?php endif; ?>
-    <div class="extrachill-blocks-image-voting-content">
-        <?php if (!is_admin()): ?>
-            <button class="extrachill-blocks-image-voting-button button-1 button-large" data-block-instance-id="<?php echo esc_attr($block_instance_id); ?>">
-                Vote
-            </button>
-            <div class="extrachill-blocks-image-voting-form" style="display: none;">
-                <input type="email" class="extrachill-blocks-email-input" placeholder="Enter your email to vote" required>
-                <button class="extrachill-blocks-submit-vote button-1 button-medium">Submit Vote</button>
-                <div class="extrachill-voting-message" style="display: none;"></div>
-            </div>
-        <?php endif; ?>
-    </div>
+<div <?php echo $wrapper_attributes; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>>
+	<?php if ( ! empty( $media_url ) ) : ?>
+		<div class="extrachill-blocks-image-wrapper">
+			<img class="extrachill-blocks-image-voting-image" src="<?php echo esc_url( $media_url ); ?>" alt="<?php echo esc_attr( $title ); ?>" />
+			<div class="extrachill-blocks-overlay-badges">
+				<span class="extrachill-blocks-vote-badge">
+					<?php esc_html_e( 'Votes:', 'extrachill-blog' ); ?> <span class="vote-number"><?php echo esc_html( $vote_count ); ?></span>
+				</span>
+				<h2 class="extrachill-blocks-title-badge"><?php echo esc_html( $title ); ?></h2>
+			</div>
+		</div>
+	<?php endif; ?>
+	<div class="extrachill-blocks-image-voting-content">
+		<?php if ( ! is_admin() ) : ?>
+			<button class="extrachill-blocks-image-voting-button button-1 button-large" data-block-instance-id="<?php echo esc_attr( $block_instance_id ); ?>">
+				<?php esc_html_e( 'Vote', 'extrachill-blog' ); ?>
+			</button>
+			<div class="extrachill-blocks-image-voting-form" style="display: none;">
+				<input type="email" class="extrachill-blocks-email-input" placeholder="<?php esc_attr_e( 'Enter your email to vote', 'extrachill-blog' ); ?>" required>
+				<button class="extrachill-blocks-submit-vote button-1 button-medium"><?php esc_html_e( 'Submit Vote', 'extrachill-blog' ); ?></button>
+				<div class="extrachill-voting-message" style="display: none;"></div>
+			</div>
+		<?php endif; ?>
+	</div>
 </div>
-<?php
-return ob_get_clean();

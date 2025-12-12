@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.1] - 2025-12-12
+
+### Added
+- Comprehensive block documentation in `docs/blocks.md` with usage guides for all 7 Gutenberg blocks
+- Server-side rendering support with `render.php` files for all blocks
+- Client-side interactivity with `view.js` scripts for enhanced user experiences
+- Package dependency locking with `package-lock.json`
+
+### Changed
+- Migrated all blocks from `index.php` to `render.php` for proper WordPress server-side rendering
+- Enhanced AGENTS.md with detailed block descriptions and build process documentation
+- Updated README.md to highlight Gutenberg blocks functionality
+- Simplified webpack configuration by removing unnecessary copy operations
+- Removed legacy assets directories and old block structure files
+
+### Fixed
+- Improved block asset management and loading performance
+- Better separation of server-side and client-side block functionality
+
 ## [0.3.0] - 2025-12-11
 
 ### Added
@@ -15,14 +34,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Trivia block with interactive questions and scoring
 - AI Adventure block with branching text-based adventure game
 - AI Adventure Path and Step components for adventure game structure
-- Custom webpack configuration for block builds
+- Webpack configuration extending @wordpress/scripts defaults
 - Package.json with WordPress scripts dependencies
 - Enhanced newsletter form styling with input and button styles
-- Block registration and asset enqueueing system in main plugin file
+- Block registration system supporting both development and production environments
 
 ### Changed
 - Updated plugin description to include Gutenberg blocks functionality
-- Enhanced .gitignore to exclude node_modules/
+- Enhanced .gitignore to exclude node_modules/, vendor/, and build/ directories
 - Updated AGENTS.md with comprehensive block documentation
 
 ## [0.2.3] - 2025-12-10

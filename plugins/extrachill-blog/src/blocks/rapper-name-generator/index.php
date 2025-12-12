@@ -1,7 +1,7 @@
 <?php
 /**
  * Rapper Name Generator Block initialization
- * AJAX action: extrachill_blocks_rapper_name
+ * REST endpoint: /wp-json/extrachill/v1/blog/rapper-name
  */
 
 if (!defined('ABSPATH')) {
@@ -11,7 +11,7 @@ if (!defined('ABSPATH')) {
 /**
  * Generate rapper name based on user input and preferences
  */
-function extrachill_blocks_generate_rapper_name($input, $style = "", $gender = "", $numberOfWords = 2) {
+function extrachill_blog_generate_rapper_name($input, $style = "", $gender = "", $numberOfWords = 2) {
     $firstWordsMale = array( "MC", "Lil", "King", "Sir", "Big", "Duke", "Roc", "Gangsta", "Teflon", "Doc", "Rap", "Hakim", "Trigga", "G", "Scar", "Monsta", "Beast", "Thug", "Gangster", "Killer", "Havoc", "Rogue", "Jae", "Young", "Bruza", "El", "Los", "General", "Fast", "Grand", "Mr.", "Loco", "Ice", "Bold", "Cool", "Raw", "The", "Rebel", "Mischievous", "Mister", "Mista", "Tiny", "Samurai", "Señor", "Gold", "Mac", "Wiz", "Da", "Prince", "Dr.", "Doctor", "Jah", "Quick", "Tough", "Sensei", "De La", "Homie", "Lyrical", "Viceroy", "Czar", "Earl", "Supreme", "Pharoah", "Sultan", "Kaiser", "Shah", "Count", "Heavy", "Action", "LL", "Kid", "Long", "Short", "Wide", "Skinny", "Boogie", "Swift", "Don", "Biz", "Kool", "Schoolboy", "Boss", "Captain", "Comrade" );
 
     $firstWordsFemale = array( "Queen", "Diva", "Angel", "MC", "Lil", "Lady", "Bad", "Boss", "Baddie", "Diamond", "Empress", "Goddess", "Majesty","Star", "Phoenix", "Mystic", "Radiant", "Glitter", "Glam", "Sparkle", "Miss", "Empyrean", "Ms.", "Starry", "Baby", "Divine", "Radiant", "Fab", "Shimmer", "Gorgeous", "Glimmer", "Radiant", "Vibrant", "Fierce", "Lush", "Pearl", "Candy", "Pretty", "Cardi", "Hot", "Haze", "Rose", "Las", "Feminine", "Witch", "Pink", "Lavender", "Sassy", "Juuls", "Honey", "Coco", "Chica", "Luxe", "Flygirl", "Missy", "Homegirl", "Daisy", "Violet", "Spicy", "Mama", "Angel" );

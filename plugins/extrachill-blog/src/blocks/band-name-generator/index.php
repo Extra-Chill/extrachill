@@ -1,7 +1,7 @@
 <?php
 /**
  * Band Name Generator Block initialization
- * AJAX action: extrachill_blocks_band_name
+ * REST endpoint: /wp-json/extrachill/v1/blog/band-name
  */
 
 if (!defined('ABSPATH')) {
@@ -11,7 +11,7 @@ if (!defined('ABSPATH')) {
 /**
  * Generate band name based on user input and preferences
  */
-function extrachill_blocks_generate_band_name($input, $genre, $numberOfWords, $addTheStart, $addAndTheMiddle) {
+function extrachill_blog_generate_band_name($input, $genre, $numberOfWords, $addTheStart, $addAndTheMiddle) {
     $rockWords = array("Electric", "Guitar", "Power", "Rockin'", "Riff", "Thunder", "Metal", "Sonic", "Blues", "Soul", "Live", "Wire", "Peppers", "Fighters", "Pumpkins", "Third", "Eye", "Blind", "Melon", "Smashing", "Queens", "Heartbreak", "Low", "Deep", "Little", "Rolling", "Stone", "Age", "Kings", "American", "Wildflower", "Keys", "Black", "Eagle", "Steely", "Garage", "Street", "Pearl", "Peppers", "Super", "Twisted", "Sister", "Zeppelin", "Led", "Halen", "Van", "Lightning", "Who", "Roses", "Guns", "Cream", "Experience", "Doors", "Rocket", "Dark", "Axe", "Mother", "Steel", "Heartbreak", "Twin", "Cherry", "Star", "Vinyl", "Kick", "Red", "Radio", "Transistor", "Transmission", "Stereo", "Airwaves", "Breakdown", "Driving", "Jukebox", "Velvet", "Revolver", "New", "New-Age", "Hotel", "Heaven", "Heavenly", "Easy", "Band", "Alive", "Breaking", "Broken", "Speakers", "Busted", "Burst", "Blast", "Blown-Out", "Airplane", "Hits", "Records", "Voltage", "Stone", "Pilots", "Temple", "Operators", "Static", "League", "Revival", "Tangerine", "Dire", "American", "Wolf", "Wings", "Motley", "Angel", "Grand", "Cross", "Thin" );
 
     $countryWords = array("Bayou", "Tractor", "Mud", "Boots", "Fishing", "Fishermen", "Angler", "Pickup", "Hay", "Rodeo", "Redneck", "Cowboy", "Ranch", "Cattle", "Saddle", "Rodeo", "Deere", "Whitetail", "Lasso", "Yeehaw", "Holler", "Hoot", "Trail", "Ride", "Moonshine", "Whiskey", "Four-Wheel", "Lifted", "Truck", "Wheels", "Corn", "Yonder", "Backwoods", "Alabama", "Virgina", "Georgia", "Southern", "Holler", "South", "Gator", "Turnpike", "Road", "Truckers", "Rodeo", "Ragweed", "Beer", "Bottle", "Carolina", "Hill", "Hillbilly", "Avenue", "Shotgun", "Rifle", "Range", "Prairie", "Swamp", "Rattlers", "Snakeskin", "Texas", "Gentlemen", "Seersucker", "Rollers", "River", "Stream", "Strings", "Boys", "Grit", "Blackberry", "Dusty", "Lady", "Ramblin'", "Ramblers", "Band", "Proud", "Old", "Yonder", "Bo", "Cattle", "Traveler", "Blues", "Smokin'", "Coal", "Mountain", "Wild", "Town", "Ridge", "Oak", "Gritty", "Cardinal", "Magnolia", "Willow", "Cypress", "Cedar", "Thicket", "Thistle", "Sweetgrass", "Situation", "Tobacco", "Fried", "Drifters", "Stomp", "Painters", "Rattle", "Motor", "Oil", "Motel", "Cookout", "Fish-Fry", "Riverboat", "Farmers", "Farm", "Homestead", "Diesel", "Engine", "Motor", "Rusty", "Rowdy", "Barstool", "Country", "Backwoods", "Backcountry", "Tennessee", "Nashville", "Canyon", "Rangers", "Drive-By", "Hollers", "Freedom", "Bobcat", "Hunting", "Tires", "Trailer", "Double-Wide", "Chewing", "Pluckin'", "Roadhouse", "Camp", "Backyard", "Driveway", "Barn", "Mama", "Show", "Crow", "Medicine","Working", "Hard", "Line", "County", "Nowhere", "Gal", "Born", "Crossroads", "Crosstown", "Crosscreek", "Creek", "Steeple", "Gamblers", "Gamblin'", "Lowcountry", "Boiled" );

@@ -1,0 +1,82 @@
+# Development files and directories to exclude from plugin distribution
+
+# Version control
+.git/
+.gitignore
+.gitattributes
+
+# Development documentation
+README.md
+AGENTS.md
+*.md
+docs/
+
+# Development configuration
+.claude/
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Build artifacts and distribution
+# Note: build/ is NOT excluded - it contains compiled Gutenberg blocks from wp-scripts
+*.zip
+*.tar.gz
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Node modules and package managers
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+yarn.lock
+
+# React source files (build/ output is included)
+src/
+
+# Logs and temporary files
+*.log
+*.tmp
+*.temp
+error_log
+access_log
+
+# Backup files
+*.backup
+*.bak
+*~
+
+# Cache directories
+.cache/
+cache/
+
+# Environment files
+.env
+.env.local
+.env.production
+.env.staging
+
+# Development build tools
+build.sh
+package.json
+webpack.config.js
+.buildignore
+
+# Testing files
+tests/
+phpunit.xml
+phpunit.xml.dist
+.phpunit.result.cache
+
+# Composer lock
+composer.lock

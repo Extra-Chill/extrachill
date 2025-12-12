@@ -50,7 +50,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 		try {
 			const response = await apiFetch({
-				path: '/extrachill/v1/blocks/image-voting/vote',
+				path: '/extrachill/v1/blog/image-voting/vote',
 				method: 'POST',
 				data: {
 					post_id: parseInt(postId, 10),
