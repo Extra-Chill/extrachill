@@ -1,0 +1,29 @@
+{
+   "apiVersion": 2,
+   "version": "1.1.0",
+   "name": "extrachill/rapper-name-generator",
+  "title": "Rapper Name Generator",
+  "icon": "microphone",
+  "category": "widgets",
+  "description": "Generate random rapper names with this interactive block.",
+  "textdomain": "extrachill-blog",
+  "attributes": {
+    "title": {
+      "type": "string",
+      "default": "Rapper Name Generator"
+    },
+    "buttonText": {
+      "type": "string",
+      "default": "Generate Rapper Name"
+    }
+  },
+  "supports": {
+    "html": false,
+    "align": true
+  },
+  "editorScript": "file:./index.js",
+  "editorStyle": "file:./index.css",
+  "style": "file:./style-index.css",
+  "viewScript": "file:./view.js",
+  "render": "file:./render.php"
+}

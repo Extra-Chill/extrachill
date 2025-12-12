@@ -5,7 +5,7 @@ WordPress plugin providing blog-specific functionality for extrachill.com (Blog 
 ## Overview
 
 **Plugin Name**: Extra Chill Blog
-**Version**: 0.2.3
+**Version**: 0.3.0
 **Network**: false (site-activated on Blog ID 1 only)
 **Purpose**: Blog-specific homepage, navigation, and archive functionality for the main Extra Chill content site
 
@@ -18,6 +18,17 @@ WordPress plugin providing blog-specific functionality for extrachill.com (Blog 
 - About section integration
 - Extra Chill Link promo section (marketing for artist link pages at extrachill.link)
 - 3x3 content grid for featured posts
+
+### Gutenberg Blocks
+- **Band Name Generator**: Interactive block for generating random band names
+- **Rapper Name Generator**: Interactive block for generating random rapper names
+- **Image Voting**: Community voting block with email capture
+- **Trivia**: Interactive trivia questions with scoring
+- **AI Adventure**: Text-based adventure game with branching paths
+- **AI Adventure Path**: Path component for adventure games
+- **AI Adventure Step**: Step component for adventure games
+
+All blocks use the `extrachill/` namespace and are built with @wordpress/scripts.
 
 ### Navigation
 - Secondary header navigation specific to blog site

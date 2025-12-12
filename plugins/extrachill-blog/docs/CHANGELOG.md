@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2025-12-11
+
+### Added
+- Complete Gutenberg blocks system with 7 interactive community engagement blocks
+- Band Name Generator block for random band name generation
+- Rapper Name Generator block for random rapper name generation
+- Image Voting block with email capture functionality
+- Trivia block with interactive questions and scoring
+- AI Adventure block with branching text-based adventure game
+- AI Adventure Path and Step components for adventure game structure
+- Custom webpack configuration for block builds
+- Package.json with WordPress scripts dependencies
+- Enhanced newsletter form styling with input and button styles
+- Block registration and asset enqueueing system in main plugin file
+
+### Changed
+- Updated plugin description to include Gutenberg blocks functionality
+- Enhanced .gitignore to exclude node_modules/
+- Updated AGENTS.md with comprehensive block documentation
+
 ## [0.2.3] - 2025-12-10
 
 ### Added

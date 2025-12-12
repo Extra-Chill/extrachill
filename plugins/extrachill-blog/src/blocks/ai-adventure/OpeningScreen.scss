@@ -1,0 +1,53 @@
+.ai-adventure-opening-screen {
+  background: #111;
+  color: #39ff14;
+  min-height: 400px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #39ff14;
+  border-radius: 8px;
+  padding: 2rem;
+  margin: 2rem auto;
+  max-width: 700px;
+  box-shadow: 0 0 24px #0f0a, 0 0 2px #39ff14;
+}
+
+.ai-adventure-opening-title {
+  font-family: 'IBM Plex Mono', 'Courier New', Courier, monospace;
+  font-size: 2.2rem;
+  font-weight: bold;
+  color: #39ff14;
+  margin-bottom: 1.5rem;
+  text-align: center;
+  text-shadow: 0 0 8px #39ff14;
+}
+
+.ai-adventure-opening-description {
+  font-family: 'IBM Plex Mono', 'Courier New', Courier, monospace;
+  font-size: 1.2rem;
+  color: #39ff14;
+  margin-bottom: 2.5rem;
+  text-align: center;
+  font-style: italic;
+}
+
+.ai-adventure-opening-button {
+  background: #111;
+  color: #39ff14;
+  border: 2px solid #39ff14;
+  border-radius: 4px;
+  font-family: 'IBM Plex Mono', 'Courier New', Courier, monospace;
+  font-size: 1.1rem;
+  padding: 0.7rem 2.2rem;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+  margin-top: 1.5rem;
+}
+
+.ai-adventure-opening-button:hover {
+  background: #39ff14;
+  color: #111;
+  border-color: #39ff14;
+} 

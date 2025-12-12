@@ -528,3 +528,18 @@
     gap: calc(var(--spacing-md) * 0.75);
     max-width: 100%;
 }
+
+.newsletter-grid-section input[type="email"] {
+    padding: 0.7em 1em;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    width: 100%;
+    background: var(--background-color);
+}
+
+.newsletter-grid-section button[type="submit"] {
+    padding: 0.7em 1.5em;
+    border-radius: 6px;
+    font-weight: 600;
+    width: 100%;
+}
