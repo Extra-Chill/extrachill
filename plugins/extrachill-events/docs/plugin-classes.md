@@ -96,7 +96,10 @@ $plugin = ExtraChillEvents::get_instance();
 **Files Loaded:**
 1. `vendor/autoload.php` (if exists, for development dependencies)
 2. `inc/core/datamachine-events-integration.php`
-3. `inc/core/breadcrumb-integration.php`
+3. `inc/core/nav.php`
+4. `inc/single-event/breadcrumbs.php`
+5. `inc/single-event/related-events.php`
+6. `inc/single-event/share-button.php`
 
 **Note:** Composer autoloader exists for development dependencies only (PHPUnit, PHPCS). All plugin code uses direct `require_once` includes.
 
@@ -109,7 +112,7 @@ $plugin = ExtraChillEvents::get_instance();
 
 **Detection Logic:**
 ```php
-if (class_exists('DataMachineEvents\Core\Taxonomy_Badges')) {
+if (class_exists('DataMachineEvents\Core\Event_Post_Type')) {
     $this->integrations['datamachine_events'] = new ExtraChillEvents\DataMachineEventsIntegration();
 }
 ```
@@ -424,8 +427,8 @@ $plugin = ExtraChillEvents::get_instance();
 ### DataMachineEventsIntegration
 ```php
 // Instantiated by ExtraChillEvents::init_integrations()
-if (class_exists('DataMachineEvents\Core\Taxonomy_Badges')) {
-    new ExtraChillEvents\DataMachineEventsIntegration();
+if (class_exists('DataMachineEvents\Core\Event_Post_Type')) {
+    $this->integrations['datamachine_events'] = new ExtraChillEvents\DataMachineEventsIntegration();
 }
 ```
 

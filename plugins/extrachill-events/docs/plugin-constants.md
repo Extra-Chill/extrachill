@@ -4,13 +4,13 @@ WordPress constants defined by the ExtraChill Events plugin.
 
 ## EXTRACHILL_EVENTS_VERSION
 
-**Value:** `0.1.0`
+**Value:** `0.1.7`
 
 **Purpose:** Plugin version number for cache busting and compatibility checks
 
 **Usage:**
 ```php
-define('EXTRACHILL_EVENTS_VERSION', '0.1.0');
+define('EXTRACHILL_EVENTS_VERSION', '0.1.7');
 ```
 
 **Example:**
@@ -151,7 +151,7 @@ plugin_dir_url(__FILE__)
 
 ### Including Files
 ```php
-require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/breadcrumb-integration.php';
+require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/single-event/breadcrumbs.php';
 ```
 
 ### Template Override

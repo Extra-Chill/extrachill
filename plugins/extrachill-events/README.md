@@ -1,16 +1,19 @@
 # ExtraChill Events
 
-WordPress plugin providing seamless integration between Extra Chill and Data Machine Events.
+<WordPress plugin providing seamless integration between Extra Chill and Data Machine Events.
 
 ## Features
 
-- **Homepage Template Override**: Custom homepage template for events.extrachill.com (blog ID 7) displaying static page content with datamachine-events calendar block support
+- **Homepage Content Rendering**: Custom homepage content for events.extrachill.com displaying static page content with datamachine-events calendar block support
 - **Archive Template Override**: Unified archive template for all taxonomy and post type archives on events.extrachill.com
+- **Event Submission Block**: Frontend form for collecting event submissions routed to Data Machine flows
+- **Navigation Integration**: "Submit Event" link in secondary header navigation
 - **DM Events Integration**: Complete integration with badge styling, taxonomy exclusion, button styling, share button rendering, breadcrumb override, related events display, and theme hook bridging
-- **Breadcrumb Integration**: Custom breadcrumb system with "Extra Chill → Events" root for events.extrachill.com
+- **Breadcrumb Integration**: Custom breadcrumb system with "Extra Chill → Events Calendar" root for events.extrachill.com
 - **CSS Integration**: Automatic enqueuing of theme and plugin styles (single-post.css, sidebar.css, single-event.css) for single events and calendar pages
 - **Post Meta Management**: Hides post meta for datamachine_events post type
 - **SEO Optimization**: Redirects /events/ post type archive to homepage for SEO consolidation
+- **Build Process**: NPM-based block compilation with @wordpress/scripts
 
 ## Installation
 
@@ -69,11 +72,32 @@ WordPress plugin providing seamless integration between Extra Chill and Data Mac
 
 ## Template Overrides
 
-### Homepage Template (`inc/templates/homepage.php`)
+### Homepage Content (`inc/templates/homepage.php`)
 - Displays content from WordPress static homepage (Settings → Reading → "A static page")
 - Renders homepage post content via `apply_filters('the_content', $homepage->post_content)`
 - Supports datamachine-events calendar block and any other blocks via WordPress editor
 - Includes breadcrumb display and full-width container
+
+### Archive Template (`inc/templates/archive.php`)
+- Unified template for all archive pages on events.extrachill.com
+- Displays datamachine-events calendar block with automatic taxonomy filtering
+- Used for taxonomy archives (/festival/bonnaroo/, /venue/ryman/), post type archives, and date archives
+- Includes breadcrumb display and full-width container
+
+## Event Submission Block
+
+### Block Configuration
+- **Name**: `extrachill/event-submission`
+- **Attributes**: headline, description, flowId, successMessage, buttonLabel
+- **Form Fields**: Event title, date, time, venue, city, lineup, ticket link, additional details, flyer upload
+- **Security**: Cloudflare Turnstile integration
+- **Submission**: Routes to Data Machine flows via REST API
+
+### Form Features
+- **Conditional Fields**: Contact information hidden for logged-in users
+- **File Upload**: Supports JPG, PNG, WebP, PDF formats
+- **Validation**: Client and server-side validation
+- **Responsive**: Mobile-friendly grid layout
 
 ### Archive Template (`inc/templates/archive.php`)
 - Unified template for all archive pages on events.extrachill.com
@@ -105,12 +129,17 @@ cd extrachill-plugins/extrachill-events
 
 # Install dependencies
 composer install
+npm install
 
 # Run tests
 composer test
 
 # Code linting
 composer run lint:php
+
+# Block development
+npm run start  # Development mode with hot reloading
+npm run build  # Production build of blocks
 
 # Build production package
 ./build.sh
@@ -124,6 +153,7 @@ composer run lint:php
 - **Direct `require_once` Pattern**: All plugin classes loaded via manual `require_once` statements (NO PSR-4 autoloading)
 - **Class-Based Structure**: Object-oriented plugin architecture with singleton pattern
 - **Composer Autoloader**: ONLY for development dependencies (PHPUnit, PHPCS)
+- **Block Compilation**: NPM-based build system using @wordpress/scripts for event-submission block
 
 ### Core Classes
 - **ExtraChillEvents**: Main plugin class managing initialization, template overrides, and SEO redirects

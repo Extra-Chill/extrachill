@@ -29,33 +29,27 @@ Convenience function providing global access to the plugin's singleton instance.
 
 ---
 
-## ec_events_override_homepage_template()
+## ec_events_render_homepage()
 
-**Purpose:** Override homepage template for events.extrachill.com
+**Purpose:** Render homepage content for events.extrachill.com
 
-**Hook:** `extrachill_template_homepage`
+**Hook:** `extrachill_homepage_content`
 
-**Parameters:**
-- `$template` (string): Default template path from theme
+**Parameters:** None
 
-**Return Value:**
-- Plugin template path for blog ID 7
-- Unchanged template path otherwise
+**Return Value:** None (includes template file)
 
 **Usage:**
 ```php
-add_filter('extrachill_template_homepage', 'ec_events_override_homepage_template');
+add_action('extrachill_homepage_content', 'ec_events_render_homepage');
 
-function ec_events_override_homepage_template($template) {
-    if (get_current_blog_id() === ec_get_blog_id('events')) {
-        return EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/templates/homepage.php';
-    }
-    return $template;
+function ec_events_render_homepage() {
+    include EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/templates/homepage.php';
 }
 ```
 
 **When Called:**
-Theme's universal routing system when determining homepage template
+Theme's homepage content hook
 
 **Template Rendered:**
 `inc/templates/homepage.php` - Displays static page content with calendar block support
@@ -146,7 +140,7 @@ WordPress `template_redirect` action, before template rendering
 - `$root_link` (string): Default root breadcrumb link HTML from theme
 
 **Return Value:**
-- Modified root link with events context for blog ID 7
+- Modified root link with events context for events site
 - Unchanged root link otherwise
 
 **Usage:**
@@ -154,21 +148,19 @@ WordPress `template_redirect` action, before template rendering
 add_filter('extrachill_breadcrumbs_root', 'ec_events_breadcrumb_root');
 
 function ec_events_breadcrumb_root($root_link) {
-    if (get_current_blog_id() !== 7) {
-        return $root_link;
-    }
-    
     if (is_front_page()) {
-        return '<a href="https://extrachill.com">Extra Chill</a>';
+        $main_site_url = ec_get_site_url('main');
+        return '<a href="' . esc_url($main_site_url) . '">Extra Chill</a>';
     }
-    
-    return '<a href="https://extrachill.com">Extra Chill</a> › <a href="' . esc_url(home_url()) . '">Events</a>';
+
+    $main_site_url = ec_get_site_url('main');
+    return '<a href="' . esc_url($main_site_url) . '">Extra Chill</a> › <a href="' . esc_url(home_url()) . '">Events Calendar</a>';
 }
 ```
 
 **Output:**
 - **Homepage:** `Extra Chill`
-- **Other Pages:** `Extra Chill › Events`
+- **Other Pages:** `Extra Chill › Events Calendar`
 
 ---
 
@@ -182,7 +174,7 @@ function ec_events_breadcrumb_root($root_link) {
 - `$custom_trail` (string|false): Existing custom trail from other filters
 
 **Return Value:**
-- Custom trail for homepage on blog ID 7
+- Custom trail for homepage on events site
 - Unchanged trail otherwise
 
 **Usage:**
@@ -190,20 +182,16 @@ function ec_events_breadcrumb_root($root_link) {
 add_filter('extrachill_breadcrumbs_override_trail', 'ec_events_breadcrumb_trail_homepage');
 
 function ec_events_breadcrumb_trail_homepage($custom_trail) {
-    if (get_current_blog_id() !== 7) {
-        return $custom_trail;
-    }
-    
     if (is_front_page()) {
-        return '<span>Events</span>';
+        return '<span class="network-dropdown-target">Events Calendar</span>';
     }
-    
+
     return $custom_trail;
 }
 ```
 
 **Output:**
-`Extra Chill › Events` (root + trail)
+`Extra Chill › Events Calendar` (root + trail)
 
 ---
 
@@ -217,7 +205,7 @@ function ec_events_breadcrumb_trail_homepage($custom_trail) {
 - `$custom_trail` (string|false): Custom breadcrumb trail from other filters
 
 **Return Value:**
-- Custom trail for archives on blog ID 7
+- Custom trail for archives on events site
 - Unchanged trail otherwise
 
 **Usage:**
@@ -225,28 +213,24 @@ function ec_events_breadcrumb_trail_homepage($custom_trail) {
 add_filter('extrachill_breadcrumbs_override_trail', 'ec_events_breadcrumb_trail_archives');
 
 function ec_events_breadcrumb_trail_archives($custom_trail) {
-    if (get_current_blog_id() !== 7) {
-        return $custom_trail;
-    }
-    
     if (is_tax()) {
         $term = get_queried_object();
         if ($term && isset($term->name)) {
             return '<span>' . esc_html($term->name) . '</span>';
         }
     }
-    
+
     if (is_post_type_archive('datamachine_events')) {
-        return '<span>Events</span>';
+        return '<span class="network-dropdown-target">Events Calendar</span>';
     }
-    
+
     return $custom_trail;
 }
 ```
 
 **Output:**
-- **Taxonomy:** `Extra Chill › Events › [Term Name]`
-- **Post Type:** `Extra Chill › Events`
+- **Taxonomy:** `Extra Chill › Events Calendar › [Term Name]`
+- **Post Type:** `Extra Chill › Events Calendar`
 
 ---
 
@@ -260,7 +244,7 @@ function ec_events_breadcrumb_trail_archives($custom_trail) {
 - `$custom_trail` (string|false): Custom breadcrumb trail from other filters
 
 **Return Value:**
-- Custom trail for single events on blog ID 7
+- Custom trail for single events on events site
 - Unchanged trail otherwise
 
 **Usage:**
@@ -268,20 +252,16 @@ function ec_events_breadcrumb_trail_archives($custom_trail) {
 add_filter('extrachill_breadcrumbs_override_trail', 'ec_events_breadcrumb_trail_single');
 
 function ec_events_breadcrumb_trail_single($custom_trail) {
-    if (get_current_blog_id() !== 7) {
-        return $custom_trail;
-    }
-    
     if (is_singular('datamachine_events')) {
         return '<span class="breadcrumb-title">' . get_the_title() . '</span>';
     }
-    
+
     return $custom_trail;
 }
 ```
 
 **Output:**
-`Extra Chill › Events › [Event Title]`
+`Extra Chill › Events Calendar › [Event Title]`
 
 ---
 
@@ -296,7 +276,7 @@ function ec_events_breadcrumb_trail_single($custom_trail) {
 - `$url` (string): Back-to-home link URL
 
 **Return Value:**
-- Modified label for event pages on blog ID 7
+- Modified label for event pages on events site
 - Unchanged label for homepage or other sites
 
 **Usage:**
@@ -304,37 +284,95 @@ function ec_events_breadcrumb_trail_single($custom_trail) {
 add_filter('extrachill_back_to_home_label', 'ec_events_back_to_home_label', 10, 2);
 
 function ec_events_back_to_home_label($label, $url) {
-    if (get_current_blog_id() !== 7) {
-        return $label;
-    }
-    
     if (is_front_page()) {
         return $label;
     }
-    
-    return '← Back to Events';
+
+    return '← Back to Events Calendar';
 }
 ```
 
 **Output:**
-- **Event Pages:** `← Back to Events`
+- **Event Pages:** `← Back to Events Calendar`
 - **Homepage:** Default theme label (e.g., `← Back to Extra Chill`)
+
+---
+
+## extrachill_events_register_blocks()
+
+**Purpose:** Register event-submission block from build directory
+
+**Hook:** `init`
+
+**Parameters:** None
+
+**Return Value:** None
+
+**Usage:**
+```php
+add_action('init', 'extrachill_events_register_blocks');
+
+function extrachill_events_register_blocks() {
+    register_block_type(EXTRACHILL_EVENTS_PLUGIN_DIR . 'build/event-submission');
+}
+```
+
+**When Called:**
+WordPress initialization
+
+**Block Registered:**
+`extrachill/event-submission` - Frontend event submission form block
+
+---
+
+## extrachill_events_secondary_header_items()
+
+**Purpose:** Add submit event link to secondary header
+
+**Hook:** `extrachill_secondary_header_items`
+
+**Parameters:**
+- `$items` (array): Current secondary header items
+
+**Return Value:** array
+
+**Usage:**
+```php
+add_filter('extrachill_secondary_header_items', 'extrachill_events_secondary_header_items');
+
+function extrachill_events_secondary_header_items($items) {
+    $items[] = array(
+        'url' => home_url('/submit/'),
+        'label' => __('Submit Event', 'extrachill-events'),
+        'priority' => 10,
+    );
+    return $items;
+}
+```
+
+**Output:**
+Adds "Submit Event" link to secondary header navigation
 
 ## Function Organization
 
 ### Main Plugin File
 - `extrachill_events()`
-- `ec_events_override_homepage_template()`
+- `extrachill_events_register_blocks()`
+- `ec_events_render_homepage()`
 - `ec_events_override_archive_template()`
 - `ec_events_redirect_post_type_archive()`
 
 ### Breadcrumb Integration File
+- `ec_events_override_breadcrumbs()`
 - `ec_events_breadcrumb_root()`
 - `ec_events_breadcrumb_trail_homepage()`
 - `ec_events_breadcrumb_trail_archives()`
 - `ec_events_breadcrumb_trail_single()`
 - `ec_events_back_to_home_label()`
 
+### Navigation Integration File
+- `extrachill_events_secondary_header_items()`
+
 ## Naming Convention
 
-All global functions use `ec_events_` prefix to avoid naming conflicts with other plugins.
+All global functions use `ec_events_` or `extrachill_events_` prefix to avoid naming conflicts with other plugins.
