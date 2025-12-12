@@ -2,6 +2,16 @@
 
 All notable changes to the ExtraChill API plugin are documented here. This file is the single source of truth for release history.
 
+## 0.3.1
+
+### Added
+- **Contact Form Submission Endpoint**: New contact form endpoint with Turnstile verification and email integration
+  - `POST /wp-json/extrachill/v1/contact/submit` - Handle contact form submissions with security verification
+  - Validates Cloudflare Turnstile tokens for spam protection
+  - Sends admin notification emails and user confirmation emails
+  - Integrates with Sendy newsletter system for email list management
+  - Comprehensive input validation and sanitization
+
 ## 0.3.0
 
 ### Changed

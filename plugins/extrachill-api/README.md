@@ -17,7 +17,7 @@ The ExtraChill API plugin provides a centralized, versioned REST API infrastruct
 
 ## Current Endpoints
 
-The plugin provides 38 endpoints across 13 feature categories, all under the `extrachill/v1` namespace:
+The plugin provides 39 endpoints across 13 feature categories, all under the `extrachill/v1` namespace:
 
 ### Analytics Endpoints (3)
 - `POST /analytics/link-click` - Track link page clicks
