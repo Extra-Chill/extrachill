@@ -64,6 +64,7 @@ function extrachill_enqueue_root_styles() {
     }
 }
 add_action( 'wp_enqueue_scripts', 'extrachill_enqueue_root_styles', 5 );
+add_action( 'enqueue_block_assets', 'extrachill_enqueue_root_styles', 5 );
 
 function extrachill_enqueue_taxonomy_badges() {
     $taxonomy_badges_path = get_stylesheet_directory() . '/assets/css/taxonomy-badges.css';
