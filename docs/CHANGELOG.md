@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0/).
 
+## [1.2.12] - 2025-12-13
+
+### Added
+- Enhanced post meta system with configurable components and improved forum post handling
+- New filters: `extrachill_post_meta_parts` and `extrachill_post_meta_published_prefix`
+
+### Changed
+- Major refactor of post meta display logic with better security and structure
+- Improved block editor CSS variable support
+
+### Technical
+- Refactored `inc/core/templates/post-meta.php` with comprehensive improvements
+- Enhanced escaping and output sanitization in post meta functions
+
 ## [1.2.11] - 2025-12-13
 
 ### Added
