@@ -17,7 +17,7 @@ The ExtraChill API plugin provides a centralized, versioned REST API infrastruct
 
 ## Current Endpoints
 
-The plugin provides 39 endpoints across 13 feature categories, all under the `extrachill/v1` namespace:
+The plugin provides 43 endpoints across 15 feature categories, all under the `extrachill/v1` namespace:
 
 ### Analytics Endpoints (3)
 - `POST /analytics/link-click` - Track link page clicks
@@ -48,9 +48,17 @@ The plugin provides 39 endpoints across 13 feature categories, all under the `ex
 - `POST /chat/message` - Send chat message (authenticated)
 - `DELETE /chat/history` - Clear chat history (authenticated)
 
-### Community Endpoints (2)
+### Community Endpoints (3)
 - `GET /users/search` - Search users for @mentions
 - `POST /community/upvote` - Upvote topics or replies (authenticated)
+- `GET/POST/DELETE /community/drafts` - Manage bbPress drafts (authenticated)
+
+### Contact (1)
+- `POST /contact/submit` - Submit contact form with Turnstile verification
+
+### Activity Endpoints (2)
+- `GET /activity` - Activity feed with filtering and pagination (authenticated)
+- `GET /object` - Object resolver for posts, comments, and artists (authenticated)
 
 ### Admin Endpoints (4)
 - `POST /admin/ad-free-license/grant` - Grant ad-free license
@@ -73,8 +81,9 @@ The plugin provides 39 endpoints across 13 feature categories, all under the `ex
 ### Media Management (1)
 - `POST/DELETE /media` - Upload and manage images
 
-### Newsletter (1)
+### Newsletter (2)
 - `POST /newsletter/subscription` - Subscribe to newsletter
+- `POST /newsletter/campaign/push` - Push newsletter to Sendy
 
 ### Shop Integration (4)
 - `GET/POST/PUT/DELETE /shop/products` - Product CRUD operations
@@ -198,7 +207,10 @@ extrachill-api/
         │   ├── socials.php
         │   ├── subscribe.php
         │   └── subscribers.php
-         ├── blog/                       # AI block generators
+        ├── activity/                   # Activity feed and object resolver
+        │   ├── feed.php
+        │   └── object.php
+        ├── blog/                       # AI block generators
         │   ├── ai-adventure.php
         │   ├── band-name.php
         │   ├── image-voting.php
@@ -209,7 +221,9 @@ extrachill-api/
         │   └── message.php
         ├── community/                  # Community features
         │   ├── upvote.php
-        │   └── user-mentions.php
+        │   └── drafts.php
+        ├── contact/                    # Contact form
+        │   └── submit.php
         ├── docs/                       # Documentation endpoints
         │   └── docs-info.php
         ├── events/                     # Event management
@@ -217,7 +231,8 @@ extrachill-api/
         ├── media/                      # Media upload
         │   └── upload.php
         ├── newsletter/                 # Newsletter
-        │   └── subscription.php
+        │   ├── subscription.php
+        │   └── campaign.php
         ├── shop/                       # WooCommerce integration
         │   ├── products.php
         │   └── stripe-connect.php
@@ -274,6 +289,7 @@ curl -X GET "http://site.local/wp-json/extrachill/v1/users/search?search=test"
 **extrachill-community**:
 - User search for @mentions
 - Community upvoting
+- Draft management for topics and replies
 
 **extrachill-events**:
 - Event submission block posts to the `/event-submissions` route
@@ -285,6 +301,10 @@ curl -X GET "http://site.local/wp-json/extrachill/v1/users/search?search=test"
 **extrachill-shop**:
 - Product CRUD operations
 - Stripe Connect management
+
+**extrachill-newsletter**:
+- Newsletter subscription endpoint
+- Campaign push to Sendy
 
 ### Planned Migrations
 

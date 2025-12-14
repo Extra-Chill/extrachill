@@ -337,9 +337,11 @@ function extrachill_api_artist_put_handler( WP_REST_Request $request ) {
  */
 function extrachill_api_build_artist_response( $artist_id ) {
 	$artist_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'artist' ) : null;
+	$did_switch     = false;
 
-	if ( $artist_blog_id ) {
+	if ( $artist_blog_id && get_current_blog_id() !== $artist_blog_id ) {
 		switch_to_blog( $artist_blog_id );
+		$did_switch = true;
 	}
 
 	$artist = get_post( $artist_id );
@@ -361,7 +363,7 @@ function extrachill_api_build_artist_response( $artist_id ) {
 		$link_page_id = ec_get_link_page_id( $artist_id );
 	}
 
-	if ( $artist_blog_id ) {
+	if ( $did_switch ) {
 		restore_current_blog();
 	}
 

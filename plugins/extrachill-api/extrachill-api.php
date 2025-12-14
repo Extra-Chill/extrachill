@@ -3,7 +3,7 @@
  * Plugin Name: Extra Chill API
  * Plugin URI: https://extrachill.com
  * Description: Central REST API infrastructure for the Extra Chill multisite network.
- * Version: 0.3.1
+ * Version: 0.4.0
  * Author: Extra Chill
  * Author URI: https://extrachill.com
  * Network: true
@@ -24,6 +24,16 @@ if ( ! defined( 'EXTRACHILL_API_PATH' ) ) {
 
 if ( ! defined( 'EXTRACHILL_API_URL' ) ) {
     define( 'EXTRACHILL_API_URL', plugin_dir_url( __FILE__ ) );
+}
+
+register_activation_hook( __FILE__, 'extrachill_api_activate' );
+
+function extrachill_api_activate() {
+    require_once EXTRACHILL_API_PATH . 'inc/activity/db.php';
+
+    if ( function_exists( 'extrachill_api_activity_install_table' ) ) {
+        extrachill_api_activity_install_table();
+    }
 }
 
 final class ExtraChill_API_Plugin {
@@ -62,6 +72,17 @@ final class ExtraChill_API_Plugin {
     public function boot() {
         require_once EXTRACHILL_API_PATH . 'inc/auth/extrachill-link-auth.php';
         require_once EXTRACHILL_API_PATH . 'inc/utils/id-generator.php';
+        require_once EXTRACHILL_API_PATH . 'inc/utils/bbpress-drafts.php';
+
+		if ( file_exists( EXTRACHILL_API_PATH . 'inc/activity/db.php' ) ) {
+			require_once EXTRACHILL_API_PATH . 'inc/activity/db.php';
+			require_once EXTRACHILL_API_PATH . 'inc/activity/schema.php';
+			require_once EXTRACHILL_API_PATH . 'inc/activity/storage.php';
+			require_once EXTRACHILL_API_PATH . 'inc/activity/emitter.php';
+			require_once EXTRACHILL_API_PATH . 'inc/activity/emitters.php';
+		}
+
+
         do_action( 'extrachill_api_bootstrap' );
     }
 

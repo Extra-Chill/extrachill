@@ -5,7 +5,7 @@
  * GET /wp-json/extrachill/v1/users/search - Search users by term
  *
  * Contexts:
- * - mentions (default): Public, lightweight response for @mentions autocomplete
+ * - mentions (default): Logged-in only, lightweight response for @mentions autocomplete
  * - admin: Admin-only, full user data for relationship management
  * - artist-capable: Users who can create artist profiles (for roster invites)
  */
@@ -43,28 +43,17 @@ function extrachill_api_register_user_search_routes() {
 	) );
 }
 
-/**
- * Permission check for user search endpoint
- *
- * - mentions context: Public access (for @mentions in forums)
- * - admin context: Requires manage_options capability
- * - artist-capable context: Requires logged-in user who can create artist profiles
- */
-function extrachill_api_user_search_permission_check( WP_REST_Request $request ) {
-	$context = $request->get_param( 'context' );
+	/**
+	 * Permission check for user search endpoint
+	 *
+	 * - mentions context: Requires logged-in user
+	 * - admin context: Requires manage_options capability
+	 * - artist-capable context: Requires logged-in user who can create artist profiles
+	 */
+	function extrachill_api_user_search_permission_check( WP_REST_Request $request ) {
+		$context = $request->get_param( 'context' );
 
-	if ( $context === 'admin' ) {
-		if ( ! current_user_can( 'manage_options' ) ) {
-			return new WP_Error(
-				'rest_forbidden',
-				'Admin access required.',
-				array( 'status' => 403 )
-			);
-		}
-	}
-
-	if ( $context === 'artist-capable' ) {
-		if ( ! is_user_logged_in() ) {
+		if ( $context === 'mentions' && ! is_user_logged_in() ) {
 			return new WP_Error(
 				'rest_forbidden',
 				'Must be logged in.',
@@ -72,17 +61,36 @@ function extrachill_api_user_search_permission_check( WP_REST_Request $request )
 			);
 		}
 
-		if ( ! function_exists( 'ec_can_create_artist_profiles' ) || ! ec_can_create_artist_profiles( get_current_user_id() ) ) {
-			return new WP_Error(
-				'rest_forbidden',
-				'Cannot manage artist profiles.',
-				array( 'status' => 403 )
-			);
+		if ( $context === 'admin' ) {
+			if ( ! current_user_can( 'manage_options' ) ) {
+				return new WP_Error(
+					'rest_forbidden',
+					'Admin access required.',
+					array( 'status' => 403 )
+				);
+			}
 		}
-	}
 
-	return true;
-}
+		if ( $context === 'artist-capable' ) {
+			if ( ! is_user_logged_in() ) {
+				return new WP_Error(
+					'rest_forbidden',
+					'Must be logged in.',
+					array( 'status' => 401 )
+				);
+			}
+
+			if ( ! function_exists( 'ec_can_create_artist_profiles' ) || ! ec_can_create_artist_profiles( get_current_user_id() ) ) {
+				return new WP_Error(
+					'rest_forbidden',
+					'Cannot manage artist profiles.',
+					array( 'status' => 403 )
+				);
+			}
+		}
+
+		return true;
+	}
 
 /**
  * Search handler - find users by term
@@ -139,10 +147,16 @@ function extrachill_api_user_search_handler( WP_REST_Request $request ) {
 			);
 		} else {
 			// Mentions context - lightweight response
+			$profile_url = function_exists( 'ec_get_user_profile_url' )
+				? ec_get_user_profile_url( $user->ID, $user->user_email )
+				: '';
+
 			$users_data[] = array(
-				'id'       => $user->ID,
-				'username' => $user->user_login,
-				'slug'     => $user->user_nicename,
+				'id'          => $user->ID,
+				'username'    => $user->user_login,
+				'slug'        => $user->user_nicename,
+				'avatar_url'  => get_avatar_url( $user->ID, array( 'size' => 32 ) ),
+				'profile_url' => $profile_url,
 			);
 		}
 	}

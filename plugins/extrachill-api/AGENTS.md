@@ -37,6 +37,9 @@ extrachill-api/
     ├── auth/
     │   └── extrachill-link-auth.php (Cross-domain authentication)
     └── routes/
+        ├── activity/
+        │   ├── feed.php (Activity feed with filtering)
+        │   └── object.php (Object resolver for posts/comments/artists)
         ├── admin/
         │   ├── ad-free-license.php (Ad-free license management)
         │   └── team-members.php (Team member sync and management)
@@ -63,7 +66,10 @@ extrachill-api/
         │   ├── history.php (Clear chat history)
         │   └── message.php (Send/receive chat messages)
         ├── community/
-            │   └── upvote.php (Topic/reply upvotes)
+        │   ├── drafts.php (bbPress draft management)
+        │   └── upvote.php (Topic/reply upvotes)
+        ├── contact/
+        │   └── submit.php (Contact form submission)
         ├── docs/
         │   └── docs-info.php (Documentation endpoint info)
         ├── events/
@@ -71,6 +77,7 @@ extrachill-api/
         ├── media/
         │   └── upload.php (Unified media upload)
         ├── newsletter/
+        │   ├── campaign.php (Newsletter campaign push to Sendy)
         │   └── subscription.php (Newsletter subscription)
         ├── shop/
         │   ├── products.php (WooCommerce product CRUD)
@@ -663,9 +670,226 @@ Foundational REST API for artist data management. Provides comprehensive endpoin
 
 **Used By**: extrachill-community plugin (voting system)
 
+### Contact Form Submission
+
+#### 22. Contact Form Submission
+
+**Endpoint**: `POST /wp-json/extrachill/v1/contact/submit`
+
+**Purpose**: Process contact form submissions with Cloudflare Turnstile verification, send notification emails, and manage newsletter subscriptions.
+
+**Parameters**:
+- `name` (string, required) - Contact's full name
+- `email` (string, required) - Contact's email address (validated)
+- `subject` (string, required) - Email subject line
+- `message` (string, required) - Contact message content
+- `turnstile_response` (string, required) - Cloudflare Turnstile token
+
+**Response** (HTTP 200):
+```json
+{
+  "success": true,
+  "message": "Your message has been sent successfully. We'll get back to you soon."
+}
+```
+
+**Permission**: Public (no authentication required)
+
+**File**: `inc/routes/contact/submit.php`
+
+**Notes**:
+- Validates Turnstile token using `ec_verify_turnstile_response()`
+- Sends admin notification via `ec_contact_send_admin_email()`
+- Sends user confirmation via `ec_contact_send_user_confirmation()`
+- Syncs email to newsletter via `ec_contact_sync_to_sendy()`
+
+### Activity Endpoints
+
+#### 23. Activity Feed
+
+**Endpoint**: `GET /wp-json/extrachill/v1/activity`
+
+**Purpose**: Retrieve paginated activity feed with configurable filtering and visibility controls.
+
+**Parameters**:
+- `cursor` (integer, optional) - Pagination cursor for keyset pagination
+- `limit` (integer, optional) - Number of items to return
+- `blog_id` (integer, optional) - Filter by specific blog
+- `actor_id` (integer, optional) - Filter by activity actor (user ID)
+- `visibility` (string, optional) - Filter by visibility: `public` (default) or `private` (requires admin)
+- `types` (array, optional) - Array of activity type strings to include
+
+**Response**:
+```json
+{
+  "activities": [
+    {
+      "id": 123,
+      "blog_id": 1,
+      "actor_id": 456,
+      "type": "post_published",
+      "object_type": "post",
+      "object_id": 789,
+      "timestamp": "2025-01-15T10:30:00Z",
+      "visibility": "public",
+      "data": {}
+    }
+  ],
+  "cursor": 124,
+  "has_more": true
+}
+```
+
+**Permission**: Requires logged-in user; private visibility requires `manage_options` capability
+
+**File**: `inc/routes/activity/feed.php`
+
+**Notes**:
+- Uses `extrachill_api_activity_query()` for retrieval
+- Supports keyset pagination via `cursor` parameter
+- Visibility filtering prevents unauthorized access to private activity
+
+#### 24. Object Resolver
+
+**Endpoint**: `GET /wp-json/extrachill/v1/object`
+
+**Purpose**: Resolve and retrieve data for different object types (posts, comments, artists) with context-aware permission checks.
+
+**Parameters**:
+- `object_type` (string, required) - Object type: `post`, `comment`, or `artist`
+- `blog_id` (integer, required) - Blog ID containing the object
+- `id` (string, required) - Object identifier (post ID, comment ID, or artist ID)
+
+**Response - Post**:
+```json
+{
+  "object_type": "post",
+  "blog_id": 1,
+  "id": 789,
+  "post_type": "post",
+  "status": "publish",
+  "title": "Post Title",
+  "excerpt": "Post excerpt text",
+  "content": "<p>Full HTML content</p>",
+  "author_id": 456,
+  "permalink": "https://example.com/post-title/",
+  "date_gmt": "2025-01-15T10:30:00+00:00"
+}
+```
+
+**Response - Comment**:
+```json
+{
+  "object_type": "comment",
+  "blog_id": 1,
+  "id": 456,
+  "post_id": 789,
+  "author_id": 123,
+  "content": "Comment text",
+  "date_gmt": "2025-01-15T10:30:00+00:00"
+}
+```
+
+**Response - Artist**:
+```json
+{
+  "object_type": "artist",
+  "blog_id": 1,
+  "id": 101,
+  "artist": {
+    "id": 101,
+    "name": "Artist Name",
+    "slug": "artist-slug",
+    "bio": "Artist biography",
+    "profile_image_url": "https://..."
+  }
+}
+```
+
+**Permission**: Requires logged-in user
+
+**File**: `inc/routes/activity/object.php`
+
+**Permission Model**:
+- Post: Requires `edit_post` capability OR post must be published
+- Comment: Requires `edit_comment` capability OR comment must be approved OR user must be comment author
+- Artist: Requires `ec_can_manage_artist()`
+
+**Notes**:
+- Automatically switches to specified blog context before resolving objects
+- Restores original blog context after resolution via try/finally
+
+### Community Drafts
+
+#### 25. Community Drafts
+
+**Endpoint**: `GET/POST/DELETE /wp-json/extrachill/v1/community/drafts`
+
+**Purpose**: Manage bbPress topic and reply drafts with context-aware storage and retrieval.
+
+**GET Parameters**:
+- `type` (string, required) - Draft type: `topic` or `reply`
+- `forum_id` (integer, optional) - Forum ID for topic drafts
+- `topic_id` (integer, optional) - Topic ID for reply drafts
+- `reply_to` (integer, optional) - Reply-to comment ID
+- `prefer_unassigned` (boolean, optional) - For topics, fallback to unassigned forum draft
+
+**GET Response**:
+```json
+{
+  "draft": {
+    "type": "topic",
+    "blog_id": 1,
+    "forum_id": 5,
+    "topic_id": 0,
+    "title": "Draft topic title",
+    "content": "Draft content in progress"
+  }
+}
+```
+
+**POST Parameters**:
+- `type` (string, required) - Draft type: `topic` or `reply`
+- `forum_id` (integer, optional) - Forum ID for topic drafts
+- `topic_id` (integer, optional) - Topic ID for reply drafts
+- `reply_to` (integer, optional) - Reply-to comment ID
+- `title` (string, optional) - Draft title
+- `content` (string, optional) - Draft content
+
+**POST Response**:
+```json
+{
+  "saved": true,
+  "draft": {
+    "type": "topic",
+    "blog_id": 1,
+    "forum_id": 5,
+    "title": "New Discussion Topic",
+    "content": "<p>Starting a new discussion...</p>"
+  }
+}
+```
+
+**DELETE Response**:
+```json
+{
+  "deleted": true
+}
+```
+
+**Permission**: Requires logged-in user
+
+**File**: `inc/routes/community/drafts.php`
+
+**Notes**:
+- Uses `extrachill_api_bbpress_draft_get()` for retrieval
+- Uses `extrachill_api_bbpress_draft_upsert()` for save/update
+- Uses `extrachill_api_bbpress_draft_delete()` for deletion
+- Topic drafts require `forum_id`; reply drafts require `topic_id`
+
 ### Admin Endpoints
 
-#### 22. Ad-Free License Grant
+#### 26. Ad-Free License Grant
 
 **Endpoint**: `POST /wp-json/extrachill/v1/admin/ad-free-license/grant`
 
@@ -698,7 +922,7 @@ Foundational REST API for artist data management. Provides comprehensive endpoin
 - Accepts either username or email as identifier
 - Stores license data as `extrachill_ad_free_purchased` user meta
 
-#### 23. Ad-Free License Revoke
+#### 27. Ad-Free License Revoke
 
 **Endpoint**: `DELETE /wp-json/extrachill/v1/admin/ad-free-license/{user_id}`
 
@@ -725,7 +949,7 @@ Foundational REST API for artist data management. Provides comprehensive endpoin
 
 **File**: `inc/routes/admin/ad-free-license.php`
 
-#### 24. Team Members Sync
+#### 28. Team Members Sync
 
 **Endpoint**: `POST /wp-json/extrachill/v1/admin/team-members/sync`
 
@@ -752,7 +976,7 @@ Foundational REST API for artist data management. Provides comprehensive endpoin
 - Respects manual override status
 - Updates `extrachill_team` meta
 
-#### 25. Manage Team Member Status
+#### 29. Manage Team Member Status
 
 **Endpoint**: `PUT /wp-json/extrachill/v1/admin/team-members/{user_id}`
 
@@ -783,7 +1007,7 @@ Foundational REST API for artist data management. Provides comprehensive endpoin
 
 ### User Management Endpoints
 
-#### 26. User Profile
+#### 30. User Profile
 
 **Endpoint**: `GET /wp-json/extrachill/v1/users/{id}`
 
@@ -821,7 +1045,7 @@ Foundational REST API for artist data management. Provides comprehensive endpoin
 - Full data (email, license status, artist count) only for own profile or admins
 - Public fields (name, avatar, profile URL) visible to all logged-in users
 
-#### 27. User Search
+#### 31. User Search
 
 **Endpoint**: `GET /wp-json/extrachill/v1/users/search`
 
@@ -880,7 +1104,7 @@ Foundational REST API for artist data management. Provides comprehensive endpoin
 - Mentions context: Lightweight response for @mention autocomplete
 - Admin context: Full user data for relationship management
 
-#### 28. User Artists
+#### 32. User Artists
 
 **Endpoint**: `GET/POST/DELETE /wp-json/extrachill/v1/users/{id}/artists`
 
@@ -921,7 +1145,7 @@ Foundational REST API for artist data management. Provides comprehensive endpoin
 
 ### Documentation Endpoints
 
-#### 29. Documentation Info
+#### 33. Documentation Info
 
 **Endpoint**: `GET /wp-json/extrachill/v1/docs-info`
 
@@ -957,7 +1181,7 @@ Foundational REST API for artist data management. Provides comprehensive endpoin
 - Provides dynamic taxonomy counts and structure
 - Used by documentation agents for auto-generation
 
-#### 30. Documentation Sync
+#### 34. Documentation Sync
 
 **Endpoint**: `POST /wp-json/extrachill/v1/sync/doc`
 
@@ -984,7 +1208,7 @@ Foundational REST API for artist data management. Provides comprehensive endpoin
 
 ### Event Submissions
 
-#### 31. Event Submission Flow Proxy
+#### 35. Event Submission Flow Proxy
 
 **Endpoint**: `POST /wp-json/extrachill/v1/event-submissions`
 
@@ -1010,7 +1234,7 @@ Foundational REST API for artist data management. Provides comprehensive endpoin
 
 ### Media Management
 
-#### 32. Unified Media Upload
+#### 36. Unified Media Upload
 
 **Endpoint**: `POST/DELETE /wp-json/extrachill/v1/media`
 
@@ -1072,7 +1296,7 @@ Foundational REST API for artist data management. Provides comprehensive endpoin
 
 ### Newsletter
 
-#### 33. Newsletter Subscription
+#### 37. Newsletter Subscription
 
 **Endpoint**: `POST /wp-json/extrachill/v1/newsletter/subscription`
 
@@ -1095,9 +1319,35 @@ Foundational REST API for artist data management. Provides comprehensive endpoin
 
 **Used By**: extrachill-newsletter plugin
 
+#### 38. Newsletter Campaign Push
+
+**Endpoint**: `POST /wp-json/extrachill/v1/newsletter/campaign/push`
+
+**Purpose**: Push newsletter posts to Sendy email service for campaign distribution.
+
+**Parameters**:
+- `post_id` (integer, required) - Newsletter post ID to push
+
+**Response** (HTTP 200):
+```json
+{
+  "message": "Successfully pushed to Sendy!",
+  "campaign_id": "c1234567890abc"
+}
+```
+
+**Permission**: Requires `edit_posts` capability
+
+**File**: `inc/routes/newsletter/campaign.php`
+
+**Notes**:
+- Prepares email content using `prepare_newsletter_email_content()`
+- Pushes campaign via `send_newsletter_campaign_to_sendy()`
+- Stores campaign ID on post for tracking
+
 ### Shop (WooCommerce)
 
-#### 34. Shop Products CRUD
+#### 39. Shop Products CRUD
 
 **Endpoint**: 
 - `GET /wp-json/extrachill/v1/shop/products` - List user's artist products
@@ -1136,7 +1386,7 @@ Foundational REST API for artist data management. Provides comprehensive endpoin
 - Comprehensive image and gallery management support
 - Stock quantity and sale price support
 
-#### 35. Stripe Connect Management
+#### 40. Stripe Connect Management
 
 **Endpoint**:
 - `GET /wp-json/extrachill/v1/shop/stripe` - Get Stripe connection status
@@ -1161,7 +1411,7 @@ Foundational REST API for artist data management. Provides comprehensive endpoin
 
 **Used By**: extrachill-shop plugin for payment processing
 
-#### 36. Shop Orders List
+#### 41. Shop Orders List
 
 **Endpoint**: `GET /wp-json/extrachill/v1/shop/orders`
 
@@ -1200,7 +1450,7 @@ Foundational REST API for artist data management. Provides comprehensive endpoin
 
 **Used By**: extrachill-shop plugin for artist order management
 
-#### 37. Shop Earnings Summary
+#### 42. Shop Earnings Summary
 
 **Endpoint**: `GET /wp-json/extrachill/v1/shop/earnings`
 
@@ -1224,7 +1474,7 @@ Foundational REST API for artist data management. Provides comprehensive endpoin
 
 ### Tools
 
-#### 38. QR Code Generator
+#### 43. QR Code Generator
 
 **Endpoint**: `POST /wp-json/extrachill/v1/tools/qr-code`
 

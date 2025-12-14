@@ -256,6 +256,7 @@ function extrachill_api_media_upload_handler( WP_REST_Request $request ) {
 	// Create attachment
 	$attachment = array(
 		'guid'           => $upload_result['url'],
+		'post_author'    => get_current_user_id(),
 		'post_mime_type' => $upload_result['type'],
 		'post_title'     => preg_replace( '/\.[^.]+$/', '', basename( $upload_result['file'] ) ),
 		'post_content'   => '',
@@ -275,6 +276,10 @@ function extrachill_api_media_upload_handler( WP_REST_Request $request ) {
 	$attach_data = wp_generate_attachment_metadata( $attachment_id, $upload_result['file'] );
 	wp_update_attachment_metadata( $attachment_id, $attach_data );
 
+	if ( $context === 'content_embed' && ! $target_id ) {
+		update_post_meta( $attachment_id, '_extrachill_content_embed_pending_parent', 1 );
+	}
+
 	// Assign to target based on context
 	$old_attachment_id = extrachill_api_media_assign( $context, $target_id, $attachment_id );
 
@@ -288,6 +293,7 @@ function extrachill_api_media_upload_handler( WP_REST_Request $request ) {
 		'url'           => wp_get_attachment_url( $attachment_id ),
 		'context'       => $context,
 		'target_id'     => $target_id,
+		'attachment'    => wp_prepare_attachment_for_js( $attachment_id ),
 	) );
 }
 

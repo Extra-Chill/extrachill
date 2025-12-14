@@ -2,6 +2,88 @@
 
 All notable changes to the ExtraChill API plugin are documented here. This file is the single source of truth for release history.
 
+## 0.4.0
+
+### Added
+
+- **Activity Feed System**: Complete activity tracking and retrieval infrastructure
+  - `GET /wp-json/extrachill/v1/activity` - Retrieve paginated activity feed with advanced filtering
+  - Supports keyset pagination via `cursor` parameter for efficient large result sets
+  - Filtering by `blog_id`, `actor_id`, `visibility` (public/private), and activity `types`
+  - Visibility controls: public activities visible to all; private activities require `manage_options` capability
+  - Database table creation via `extrachill_api_activity_install_table()` on plugin activation
+  - Complete activity schema with id, blog_id, actor_id, type, object_type, object_id, timestamp, visibility, data fields
+  - Storage layer handles create, read, update, delete operations with proper parameterized queries
+  - Emitter system with extensibility hooks for consuming plugins to emit activity events
+
+- **Object Resolver Endpoint**: Unified data resolution for posts, comments, and artists
+  - `GET /wp-json/extrachill/v1/object` - Resolve and retrieve data for different object types
+  - Supports three object types: `post`, `comment`, `artist`
+  - Automatic blog context switching for multisite compatibility
+  - Context-aware permission checks:
+    - Posts: Requires `edit_post` capability OR post must be published
+    - Comments: Requires `edit_comment` capability OR comment must be approved OR user must be comment author
+    - Artists: Requires `ec_can_manage_artist()`
+  - Returns normalized response format across all object types with consistent structure
+  - Graceful error handling for missing or inaccessible objects
+
+- **Community Drafts Management**: bbPress topic and reply draft persistence
+  - `GET /wp-json/extrachill/v1/community/drafts` - Retrieve draft by context (topic or reply)
+  - `POST /wp-json/extrachill/v1/community/drafts` - Save or update draft content
+  - `DELETE /wp-json/extrachill/v1/community/drafts` - Remove saved draft
+  - Supports both topic drafts (via `forum_id`) and reply drafts (via `topic_id`)
+  - Optional reply context with `reply_to` parameter for nested replies
+  - Fallback to unassigned forum drafts for topics via `prefer_unassigned` parameter
+  - Utility functions for draft management with user-scoped storage
+
+- **Newsletter Campaign Push**: Publishing endpoint for Sendy email service integration
+  - `POST /wp-json/extrachill/v1/newsletter/campaign/push` - Push newsletter posts to Sendy
+  - Converts post content to email-friendly HTML format
+  - Stores campaign ID on post for tracking and auditing
+  - Requires `edit_posts` capability for security
+  - Integrates with `send_newsletter_campaign_to_sendy()` helper function
+
+### Changed
+
+- **Plugin Initialization**: Added activation hook for database table creation
+  - New `extrachill_api_activate()` function registers with WordPress activation hook
+  - Automatically creates activity table on first plugin activation
+  - Ensures database schema exists before endpoints try to use it
+  - Graceful handling if table already exists
+
+- **Core Bootstrap Process**: Extended plugin boot to initialize activity system
+  - Added activity system initialization in `boot()` method
+  - Loads database, schema, storage, emitter, and emitters modules
+  - Only loads activity modules if files exist (graceful degradation)
+  - Improved separation of concerns with modular loading
+
+### Fixed
+
+- **Artist Permissions Endpoint**: Enhanced CORS handling for link domain variants
+  - Improved CORS header handling for `extrachill.link` and `www.extrachill.link` domains
+  - Proper `Vary: Origin` header for cache compatibility
+
+- **Media Upload**: Enhanced context validation and error handling
+  - Improved validation for upload contexts
+  - Better error messages for invalid operations
+
+- **User Search**: Enhanced artist-capable context filtering
+  - Improved user filtering for artist-capable context
+  - Better support for roster management workflows
+
+- **Artist Profile**: Minor enhancements to data handling
+  - Improved response serialization
+  - Better error handling for missing data
+
+### Technical Notes
+
+- **Database**: Activity system creates `{wp_prefix}extrachill_activity` table with proper indexes on blog_id, actor_id, timestamp, visibility
+- **Activation**: Plugin now requires activation to initialize database. Install via WordPress admin or `wp plugin activate extrachill-api --network`
+- **Extensibility**: Activity emitters provide filter hooks for consuming plugins to emit custom activity events
+- **Performance**: Activity feed uses keyset pagination (cursor-based) for efficient handling of large datasets
+- **Security**: Activity visibility properly enforced at query level, not post-processing
+- **Backward Compatibility**: All changes are additive; no breaking changes to existing endpoints
+
 ## 0.3.1
 
 ### Added

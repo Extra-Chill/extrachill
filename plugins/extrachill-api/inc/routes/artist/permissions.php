@@ -13,14 +13,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 add_action( 'rest_api_init', function () {
 	register_rest_route( 'extrachill/v1', '/artist/permissions', array(
-		'methods'             => array( 'GET', 'POST' ),
+		'methods'             => 'GET',
 		'callback'            => 'ec_api_check_artist_permissions',
 		'permission_callback' => '__return_true', // Public endpoint, auth handled via cookies
 		'args'                => array(
 			'artist_id' => array(
 				'required'          => true,
 				'validate_callback' => function( $param ) {
-					return is_numeric( $param );
+					return is_numeric( $param ) && (int) $param > 0;
 				},
 			),
 		),
@@ -42,12 +42,12 @@ function ec_api_check_artist_permissions( WP_REST_Request $request ) {
 		header( 'Vary: Origin' );
 	}
 
-	$artist_id       = $request->get_param( 'artist_id' );
+	$artist_id       = absint( $request->get_param( 'artist_id' ) );
 	$current_user_id = get_current_user_id();
 	$can_edit        = false;
 	$manage_url      = '';
 
-	if ( $current_user_id && function_exists( 'ec_can_manage_artist' ) && ec_can_manage_artist( $current_user_id, $artist_id ) ) {
+	if ( $artist_id && $current_user_id && function_exists( 'ec_can_manage_artist' ) && ec_can_manage_artist( $current_user_id, $artist_id ) ) {
 		$can_edit   = true;
 		$manage_url = home_url( '/manage-link-page/' );
 	}
