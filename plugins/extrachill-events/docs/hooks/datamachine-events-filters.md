@@ -83,31 +83,46 @@ datamachine-events taxonomy badge renderer when building individual badge classe
 
 ### datamachine_events_excluded_taxonomies
 
-**Purpose:** Exclude venue and artist taxonomies from badge display
+**Purpose:** Control taxonomy visibility for badges vs filter modal
+
+This integration uses the `$context` parameter (passed by datamachine-events as `'badge'` or `'modal'`) to keep the calendar UI focused:
+- **Badge context (`'badge'`)**: exclude `artist` taxonomy from event badges.
+- **Modal context (`'modal'`)**: exclude everything except `location`, so the taxonomy filter modal only shows location.
 
 **Parameters:**
 - `$excluded` (array): Array of taxonomy slugs to exclude
+- `$context` (string): Context identifier: `'badge'` or `'modal'`
 
 **Return Value:**
-Enhanced exclusion array with venue and artist taxonomies
+Enhanced exclusion array scoped by context
 
 **Usage:**
 ```php
-add_filter('datamachine_events_excluded_taxonomies', array($this, 'exclude_venue_taxonomy'));
+add_filter('datamachine_events_excluded_taxonomies', array($this, 'exclude_taxonomies'), 10, 2);
 
-public function exclude_venue_taxonomy($excluded) {
-    $excluded[] = 'venue';
+public function exclude_taxonomies($excluded, $context = '') {
     $excluded[] = 'artist';
-    return $excluded;
+
+    if ($context !== 'modal') {
+        return array_values(array_unique($excluded));
+    }
+
+    $taxonomies = get_object_taxonomies(\DataMachineEvents\Core\Event_Post_Type::POST_TYPE, 'names');
+    foreach ($taxonomies as $taxonomy_slug) {
+        if ($taxonomy_slug === 'location') {
+            continue;
+        }
+
+        $excluded[] = $taxonomy_slug;
+    }
+
+    return array_values(array_unique($excluded));
 }
 ```
 
 **When Fired:**
-datamachine-events taxonomy badge renderer when determining which taxonomies to display
-
-**Why Exclude:**
-- **Venue:** Displayed separately via 9 dedicated metadata fields
-- **Artist:** Prevents redundant display with artist-specific metadata
+- datamachine-events badge renderer (context: `'badge'`)
+- datamachine-events filter modal / filters endpoint (context: `'modal'`)
 
 ## Button Filters
 

@@ -49,9 +49,7 @@ $success_attr = esc_attr( $success_message ? wp_strip_all_tags( $success_message
 		<?php endif; ?>
 
 		<?php if ( empty( $flow_id ) ) : ?>
-			<div class="ec-event-submission__notice">
-				<?php esc_html_e( 'Flow ID missing. Update the block settings so submissions can be processed.', 'datamachine-events' ); ?>
-			</div>
+			<?php extrachill_set_notice( __( 'Flow ID missing. Update the block settings so submissions can be processed.', 'datamachine-events' ), 'error' ); ?>
 		<?php endif; ?>
 
 		<form

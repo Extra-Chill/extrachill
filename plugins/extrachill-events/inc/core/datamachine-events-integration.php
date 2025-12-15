@@ -31,7 +31,7 @@ class DataMachineEventsIntegration {
     }
 
     private function init_hooks() {
-        if (class_exists('DataMachineEvents\Blocks\Calendar\Taxonomy_Badges')) {
+        if (class_exists('DataMachineEvents\\Blocks\\Calendar\\Taxonomy_Badges')) {
             add_filter('datamachine_events_badge_wrapper_classes', array($this, 'add_wrapper_classes'), 10, 2);
             add_filter('datamachine_events_badge_classes', array($this, 'add_badge_classes'), 10, 4);
             add_filter('datamachine_events_excluded_taxonomies', array($this, 'exclude_taxonomies'), 10, 2);
@@ -103,19 +103,38 @@ class DataMachineEventsIntegration {
      * Exclude taxonomies from badge and modal display
      *
      * Artist taxonomy excluded to prevent redundant display with artist-specific metadata.
-     * Context parameter allows selective exclusion:
-     * - No context check = exclude from all contexts
-     * - Check specific context = exclude only from that context (e.g., $context === 'badge')
      *
      * @hook datamachine_events_excluded_taxonomies
      * @param array  $excluded Array of taxonomy slugs to exclude
      * @param string $context  Context identifier: 'badge', 'modal'
-     * @return array Enhanced exclusion array with artist taxonomy
+     * @return array Enhanced exclusion array
      * @since 0.1.0
      */
     public function exclude_taxonomies($excluded, $context = '') {
         $excluded[] = 'artist';
-        return $excluded;
+
+        if ($context !== 'modal') {
+            return array_values(array_unique($excluded));
+        }
+
+        if (!class_exists('DataMachineEvents\\Core\\Event_Post_Type')) {
+            return array_values(array_unique($excluded));
+        }
+
+        $taxonomies = get_object_taxonomies(\DataMachineEvents\Core\Event_Post_Type::POST_TYPE, 'names');
+        if (empty($taxonomies) || is_wp_error($taxonomies)) {
+            return array_values(array_unique($excluded));
+        }
+
+        foreach ($taxonomies as $taxonomy_slug) {
+            if ($taxonomy_slug === 'location') {
+                continue;
+            }
+
+            $excluded[] = $taxonomy_slug;
+        }
+
+        return array_values(array_unique($excluded));
     }
 
     /**

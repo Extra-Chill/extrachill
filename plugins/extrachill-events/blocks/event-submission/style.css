@@ -32,15 +32,7 @@
 	font-size: 0.95rem;
 }
 
-.ec-event-submission__notice {
-	padding: 12px 16px;
-	margin-bottom: 20px;
-	border-radius: 8px;
-	background: var(--notice-bg);
-	border: 1px solid var(--notice-border);
-	color: var(--text-color);
-	font-size: 0.95rem;
-}
+
 
 .ec-event-submission__grid {
 	display: grid;
@@ -61,25 +53,7 @@
 	font-size: 0.95rem;
 }
 
-.ec-event-submission__field input,
-.ec-event-submission__field textarea {
-	width: 100%;
-	border: 1px solid var(--border-color);
-	border-radius: 8px;
-	padding: 10px 12px;
-	font-size: var(--font-size-base);
-	font-family: inherit;
-	color: var(--text-color);
-	background: var(--background-color);
-	transition: border-color 0.2s ease, box-shadow 0.2s ease;
-}
-
-.ec-event-submission__field input:focus,
-.ec-event-submission__field textarea:focus {
-	outline: none;
-	border-color: var(--focus-border-color);
-	box-shadow: var(--focus-box-shadow);
-}
+/* Input styling now uses theme form tokens */
 
 .ec-event-submission__field--full,
 .ec-event-submission__field--file {

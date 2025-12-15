@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0/).
 
+## [0.2.0] - 2025-12-14
+
+### Added
+- Weekly roundup automation handlers for Data Machine integration (SlideGenerator, WeeklyRoundupHandler, RoundupPublishHandler, RoundupPublishSettings) - enables automated post generation with carousel images
+- Comprehensive AGENTS.md documentation file with plugin architecture, features, and integration details
+- API documentation for REST endpoints (`docs/api/rest-endpoints.md`)
+- Event submission block documentation (`docs/blocks/event-submission.md`)
+
+### Changed
+- Updated README.md with improved feature descriptions, build commands, and development workflow
+- Enhanced documentation for build process, plugin classes, functions, and constants
+- Updated .gitignore to remove CLAUDE.md, AGENTS.md, build.sh, docs/.docs-sync.json
+
 ## [0.1.7] - 2025-12-11
 
 ### Changed

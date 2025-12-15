@@ -3,7 +3,7 @@
  * Plugin Name: Extra Chill Events
  * Plugin URI: https://extrachill.com
  * Description: Calendar integration with template overrides, datamachine-events badge/button styling, breadcrumb system, and related events for events.extrachill.com.
- * Version: 0.1.7
+ * Version: 0.2.0
  * Author: Chris Huber
  * Author URI: https://chubes.net
  * Requires Plugins: datamachine, datamachine-events
@@ -23,7 +23,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'EXTRACHILL_EVENTS_VERSION', '0.1.7' );
+define( 'EXTRACHILL_EVENTS_VERSION', '0.2.0' );
 define( 'EXTRACHILL_EVENTS_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'EXTRACHILL_EVENTS_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'EXTRACHILL_EVENTS_PLUGIN_FILE', __FILE__ );
@@ -87,6 +87,26 @@ class ExtraChillEvents {
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/single-event/breadcrumbs.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/single-event/related-events.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/single-event/share-button.php';
+
+		$this->load_datamachine_handlers();
+	}
+
+	/**
+	 * Load Data Machine handlers if datamachine plugin is active
+	 */
+	private function load_datamachine_handlers() {
+		if ( ! class_exists( 'DataMachine\Core\Steps\Fetch\Handlers\FetchHandler' ) ) {
+			return;
+		}
+
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/handlers/weekly-roundup/SlideGenerator.php';
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/handlers/weekly-roundup/WeeklyRoundupSettings.php';
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/handlers/weekly-roundup/WeeklyRoundupHandler.php';
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/handlers/weekly-roundup/RoundupPublishSettings.php';
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/handlers/weekly-roundup/RoundupPublishHandler.php';
+
+		new \ExtraChillEvents\Handlers\WeeklyRoundup\WeeklyRoundupHandler();
+		new \ExtraChillEvents\Handlers\WeeklyRoundup\RoundupPublishHandler();
 	}
 
 	/**

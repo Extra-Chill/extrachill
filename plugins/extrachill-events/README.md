@@ -49,7 +49,7 @@
   - Festival badges: `taxonomy-badge festival-badge festival-{slug}`
   - Location badges: `taxonomy-badge location-badge location-{slug}`
   - Other taxonomies: Base `taxonomy-badge` class
-- **Taxonomy Exclusion**: Excludes venue and artist taxonomies from badge display (venue has 9 meta fields displayed separately, artist prevents redundant display)
+- **Taxonomy Exclusion**: Filter modal only shows `location`; badges exclude `artist`
 - **Button Styling**: Maps modal buttons (primary/secondary) and ticket buttons to theme's button styling classes
 - **Share Button Integration**: Renders share button alongside ticket button in flexbox container (events.extrachill.com only)
 - **Breadcrumb Override**: Replaces datamachine-events breadcrumbs with theme's `display_breadcrumbs()` function via datamachine_events_breadcrumbs filter
