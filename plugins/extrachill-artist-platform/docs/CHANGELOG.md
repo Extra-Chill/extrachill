@@ -18,6 +18,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Cleaner separation of concerns in edit button implementation
 - Improved data attribute usage for client-side functionality
 
+## [1.4.0] - 2025-12-14
+
+### Added
+- **Artist Shop Manager Block**: New comprehensive Gutenberg block for artists to manage shop products with full CRUD operations, media uploads, and management interface
+- **Flow Documentation**: Added detailed flow diagrams for join flow and roster invitation processes
+- **Integration Examples**: Comprehensive documentation for API, community, and newsletter integrations
+
+### Changed
+- **Font Name Standardization**: Corrected font name from "WilcoLoftSans" to "Loft Sans" across CSS, JavaScript, and configuration files
+- **Artist Grid Optimization**: Improved sorting performance with ID-only queries and better activity calculation
+- **API Client Enhancement**: Extended shared API client to support artist shop manager configuration
+- **Responsive Design**: Enhanced artist card grid responsiveness with improved breakpoints
+- **Media Upload Fixes**: Corrected upload context parameters in artist creator and profile manager blocks
+- **API URL Construction**: Improved REST API URL building with proper prefix handling
+- **Template Cleanup**: Removed redundant user-specific logic from artist archive template
+
+### Technical Improvements
+- **Webpack Configuration**: Added build support for artist-shop-manager block
+- **Block Registration**: Registered new artist shop manager block in plugin initialization
+- **Management Pages**: Added automatic creation of "manage-shop" page during plugin activation
+
 ## [1.3.0] - 2025-12-11
 
 ### Added
@@ -244,7 +265,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.1.13] - 2025-12-07
 
 ### Enhanced
-- Added local font CSS injection support in Gutenberg block editor preview for custom fonts like WilcoLoftSans
+- Added local font CSS injection support in Gutenberg block editor preview for custom fonts like Loft Sans
 - Enhanced breadcrumb navigation with network dropdown target classes for improved UI interaction
 - Improved block editor render.php with local fonts CSS generation and configuration
 

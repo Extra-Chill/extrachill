@@ -69,26 +69,33 @@ const TabNav = ({ tabs, active, onChange }) => (
 
 const InfoTab = ({ formState, setFormState, selectedId }) => {
 	const handleFileUpload = async (file, contextKey) => {
-		const response = await uploadMedia('artist', selectedId || 0, file);
+		const context = contextKey === 'header' ? 'artist_header' : 'artist_profile';
+		const response = await uploadMedia(context, selectedId || 0, file);
+		const attachmentId = response?.attachment_id || null;
+
 		if (contextKey === 'profile') {
 			setFormState((prev) => ({
 				...prev,
 				profileImage: response?.url || '',
-				profileImageId: response?.id || null,
+				profileImageId: attachmentId,
 			}));
 		}
 		if (contextKey === 'header') {
 			setFormState((prev) => ({
 				...prev,
 				headerImage: response?.url || '',
-				headerImageId: response?.id || null,
+				headerImageId: attachmentId,
 			}));
 		}
 	};
 
 	const handleRemoveImage = async (contextKey) => {
+		if (!selectedId) {
+			return;
+		}
+
 		if (contextKey === 'profile' && formState.profileImageId) {
-			await deleteMedia('artist', formState.profileImageId);
+			await deleteMedia('artist_profile', selectedId);
 			setFormState((prev) => ({
 				...prev,
 				profileImage: '',
@@ -96,7 +103,7 @@ const InfoTab = ({ formState, setFormState, selectedId }) => {
 			}));
 		}
 		if (contextKey === 'header' && formState.headerImageId) {
-			await deleteMedia('artist', formState.headerImageId);
+			await deleteMedia('artist_header', selectedId);
 			setFormState((prev) => ({
 				...prev,
 				headerImage: '',

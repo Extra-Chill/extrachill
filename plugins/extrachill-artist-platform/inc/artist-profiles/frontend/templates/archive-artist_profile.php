@@ -24,30 +24,7 @@ get_header();
     <p><?php esc_html_e( 'Discover amazing artists, connect with them, and join their community discussions.', 'extrachill-artist-platform' ); ?></p>
 </div>
 
-<?php if ( is_user_logged_in() ) : ?>
-    <?php
-    $current_user_id = get_current_user_id();
-    $user_artist_ids = ec_get_artists_for_user( $current_user_id );
-    $artist_count    = count( $user_artist_ids );
 
-    if ( $artist_count > 0 ) :
-        $artist_label = $artist_count === 1
-            ? esc_html__( 'Manage Artist', 'extrachill-artist-platform' )
-            : esc_html__( 'Manage Artists', 'extrachill-artist-platform' );
-        ?>
-        <div class="artist-directory-actions">
-            <a href="<?php echo esc_url( home_url( '/manage-artist-profiles/' ) ); ?>" class="button-2 button-medium">
-                <?php echo $artist_label; ?>
-            </a>
-        </div>
-    <?php elseif ( ec_can_create_artist_profiles( $current_user_id ) ) : ?>
-        <div class="artist-directory-actions">
-            <a href="<?php echo esc_url( home_url( '/create-artist/' ) ); ?>" class="button-2 button-medium">
-                <?php esc_html_e( 'Create Artist Profile', 'extrachill-artist-platform' ); ?>
-            </a>
-        </div>
-    <?php endif; ?>
-<?php endif; ?>
 
 <?php
 do_action( 'extrachill_archive_above_posts' );

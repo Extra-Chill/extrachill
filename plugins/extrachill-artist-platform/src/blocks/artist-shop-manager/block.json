@@ -1,0 +1,23 @@
+{
+  "$schema": "https://schemas.wp.org/trunk/block.json",
+  "apiVersion": 3,
+  "name": "extrachill/artist-shop-manager",
+  "version": "0.1.0",
+  "title": "Artist Shop Manager",
+  "category": "widgets",
+  "icon": "cart",
+  "description": "Manage your products on the Extra Chill shop.",
+  "textdomain": "extrachill-artist-platform",
+  "attributes": {},
+  "supports": {
+    "html": false,
+    "multiple": false,
+    "reusable": false,
+    "inserter": true
+  },
+  "editorScript": "file:./index.js",
+  "editorStyle": "file:./index.css",
+  "style": "file:./style-index.css",
+  "viewScript": "file:./view.js",
+  "render": "file:./render.php"
+}

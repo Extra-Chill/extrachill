@@ -53,7 +53,7 @@ function ec_display_artist_cards_grid( $limit = 24, $exclude_user_artists = fals
     // Get current page from query var
     $current_page = max( 1, get_query_var( 'paged', 1 ) );
 
-    // Get all published artist profiles
+    // Get all published artist profiles for sorting (only IDs for efficiency)
     $args = array(
         'post_type'              => 'artist_profile',
         'post_status'            => 'publish',
@@ -101,44 +101,51 @@ function ec_display_artist_cards_grid( $limit = 24, $exclude_user_artists = fals
         return $b['activity'] - $a['activity'];
     });
 
+    // Extract sorted IDs
+    $sorted_artist_ids = wp_list_pluck( $artists_with_activity, 'id' );
+
     // Calculate pagination
-    $total_artists = count( $artists_with_activity );
+    $total_artists = count( $sorted_artist_ids );
     $total_pages   = ceil( $total_artists / $limit );
     $current_page  = max( 1, min( $current_page, $total_pages ) );
     $offset        = ( $current_page - 1 ) * $limit;
 
     // Get artists for current page
-    $paged_artists = array_slice( $artists_with_activity, $offset, $limit );
+    $paged_artist_ids = array_slice( $sorted_artist_ids, $offset, $limit );
+
+    // Create WP_Query for proper pagination support
+    $query_args = array(
+        'post_type'      => 'artist_profile',
+        'post_status'    => 'publish',
+        'post__in'       => $paged_artist_ids,
+        'orderby'        => 'post__in', // Preserve our custom sorting
+        'posts_per_page' => count( $paged_artist_ids ),
+        'paged'          => $current_page,
+    );
+
+    $artists_query = new WP_Query( $query_args );
 
     // Render artist cards grid
     echo '<div class="artist-cards-grid">';
 
-    foreach ( $paged_artists as $artist_data ) {
-        $artist_id   = $artist_data['id'];
-        $artist_post = get_post( $artist_id );
-
-        if ( $artist_post ) {
-            global $post;
-            $post = $artist_post;
-            setup_postdata( $post );
+    if ( $artists_query->have_posts() ) {
+        while ( $artists_query->have_posts() ) {
+            $artists_query->the_post();
             include EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/artist-profiles/frontend/templates/artist-card.php';
-            wp_reset_postdata();
         }
+        wp_reset_postdata();
     }
 
     echo '</div>';
 
-    // Render pagination using theme's function
+    // Render pagination using theme's function with WP_Query
     if ( $show_pagination && $total_pages > 1 ) {
-        extrachill_pagination(
-            array(
-                'current_page' => $current_page,
-                'total_pages'  => $total_pages,
-                'total_items'  => $total_artists,
-                'per_page'     => $limit,
-            ),
-            'artist-archive',
-            'artist'
-        );
+        // Create a mock WP_Query object for pagination
+        $pagination_query = new WP_Query();
+        $pagination_query->max_num_pages = $total_pages;
+        $pagination_query->found_posts = $total_artists;
+        $pagination_query->query_vars['posts_per_page'] = $limit;
+
+        extrachill_pagination( $pagination_query, 'artist-archive', 'artist' );
     }
 }

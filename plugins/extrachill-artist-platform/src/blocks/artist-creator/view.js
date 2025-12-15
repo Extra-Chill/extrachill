@@ -29,11 +29,11 @@ const App = () => {
 
 	const handleFileUpload = async ( file ) => {
 		try {
-			const response = await uploadMedia( 'artist', 0, file );
+			const response = await uploadMedia( 'artist_profile', 0, file );
 			setFormState( ( prev ) => ( {
 				...prev,
 				profileImage: response?.url || '',
-				profileImageId: response?.id || null,
+				profileImageId: response?.attachment_id || null,
 			} ) );
 		} catch ( err ) {
 			setError( 'Failed to upload image.' );

@@ -5,7 +5,10 @@
 import apiFetch from '@wordpress/api-fetch';
 
 const getConfig = () =>
-	window.ecArtistPlatformConfig || window.ecLinkPageEditorConfig || {};
+	window.ecArtistPlatformConfig ||
+	window.ecLinkPageEditorConfig ||
+	window.ecArtistShopManagerConfig ||
+	{};
 
 // Configure apiFetch middleware to include nonce from config
 apiFetch.use( ( options, next ) => {
@@ -99,6 +102,14 @@ export const exportSubscribers = ( artistId, includeExported = false ) => {
 	return get( `extrachill/v1/artist/subscribers/export?artist_id=${ artistId }${ flag }` );
 };
 
+// Shop products
+export const listShopProducts = () => get( 'extrachill/v1/shop/products' );
+export const createShopProduct = ( data ) => post( 'extrachill/v1/shop/products', data );
+export const updateShopProduct = ( productId, data ) =>
+	put( `extrachill/v1/shop/products/${ productId }`, data );
+export const deleteShopProduct = ( productId ) =>
+	del( `extrachill/v1/shop/products/${ productId }` );
+
 // Permissions
 export const getArtistPermissions = ( artistId ) =>
 	get( `extrachill/v1/artist/permissions?artist_id=${ artistId }` );
@@ -122,5 +133,9 @@ export default {
 	searchArtistCapableUsers,
 	getSubscribers,
 	exportSubscribers,
+	listShopProducts,
+	createShopProduct,
+	updateShopProduct,
+	deleteShopProduct,
 	getArtistPermissions,
 };

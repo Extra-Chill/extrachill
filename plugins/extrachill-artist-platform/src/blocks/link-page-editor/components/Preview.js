@@ -64,7 +64,7 @@ export default function Preview() {
 		ensureLink( 'ec-font-awesome-preview-css', fontAwesomeUrl );
 	}, [ linkPageCssUrl, socialIconsCssUrl, shareModalCssUrl, fontAwesomeUrl ] );
 
-	// Inject local font CSS (e.g., WilcoLoftSans) when provided
+	// Inject local font CSS (e.g., Loft Sans) when provided
 	useEffect( () => {
 		const styleId = 'ec-local-fonts-css';
 

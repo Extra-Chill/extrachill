@@ -43,7 +43,7 @@ function ec_get_link_page_defaults() {
             'overlay'                                   => '1',
             
             // Typography
-            '--link-page-title-font-family'             => 'WilcoLoftSans',
+            '--link-page-title-font-family'             => 'Loft Sans',
             '--link-page-title-font-size'               => '2.1em',
             '--link-page-body-font-family'              => 'Helvetica',
             // Body font size removed - uses theme default font size

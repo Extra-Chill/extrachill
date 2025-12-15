@@ -85,7 +85,7 @@ $permissions_api_url = '';
 if ( function_exists( 'ec_get_site_url' ) ) {
     $artist_site_url = ec_get_site_url( 'artist' );
     if ( $artist_site_url ) {
-        $permissions_api_url = $artist_site_url . '/wp-json/extrachill/v1/artist/permissions';
+        $permissions_api_url = rtrim( $artist_site_url, '/' ) . '/' . rest_get_url_prefix() . '/extrachill/v1/artist/permissions';
     }
 }
 ?>

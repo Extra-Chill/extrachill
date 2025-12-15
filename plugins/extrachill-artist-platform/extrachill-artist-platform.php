@@ -3,7 +3,7 @@
  * Plugin Name: Extra Chill Artist Platform
  * Plugin URI: https://extrachill.com
  * Description: Artist platform for musicians with profiles, link pages, analytics, and subscriber management.
- * Version: 1.3.1
+ * Version: 1.4.0
  * Author: Chris Huber
  * Author URI: https://chubes.net
  * License: GPL v2 or later
@@ -158,6 +158,7 @@ function extrachill_artist_platform_register_blocks() {
     register_block_type( __DIR__ . '/build/blocks/link-page-analytics' );
     register_block_type( __DIR__ . '/build/blocks/artist-profile-manager' );
     register_block_type( __DIR__ . '/build/blocks/artist-creator' );
+    register_block_type( __DIR__ . '/build/blocks/artist-shop-manager' );
 }
 
 /**
@@ -179,6 +180,10 @@ function extrachill_artist_platform_create_pages() {
         'manage-link-page' => array(
             'title'   => 'Manage Link Page',
             'content' => '<!-- wp:extrachill/link-page-editor /-->',
+        ),
+        'manage-shop' => array(
+            'title'   => 'Manage Shop',
+            'content' => '<!-- wp:extrachill/artist-shop-manager /-->',
         ),
     );
 

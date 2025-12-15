@@ -6,7 +6,7 @@
  * Uses fonts array from ecLinkPageEditorConfig.fonts.
  */
 
-export const DEFAULT_TITLE_FONT = 'WilcoLoftSans';
+export const DEFAULT_TITLE_FONT = 'Loft Sans';
 export const DEFAULT_BODY_FONT = 'Helvetica';
 export const DEFAULT_FONT_STACK = "'Helvetica', Arial, sans-serif";
 

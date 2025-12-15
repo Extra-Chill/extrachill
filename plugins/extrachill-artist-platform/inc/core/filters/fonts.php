@@ -35,7 +35,7 @@ class ExtraChillArtistPlatform_Fonts {
      * 
      * @since 1.1.0
      */
-    const DEFAULT_TITLE_FONT = 'WilcoLoftSans';
+    const DEFAULT_TITLE_FONT = 'Loft Sans';
     const DEFAULT_BODY_FONT = 'Helvetica';
     const DEFAULT_FONT_STACK = "'Helvetica', Arial, sans-serif";
 
@@ -91,9 +91,9 @@ class ExtraChillArtistPlatform_Fonts {
                     'google_font_param' => 'local_default',
                 ),
                 array(
-                    'value' => 'WilcoLoftSans',
-                    'label' => 'Wilco Loft Sans',
-                    'stack' => "'WilcoLoftSans', Helvetica, Arial, sans-serif",
+                    'value' => 'Loft Sans',
+                    'label' => 'Loft Sans',
+                    'stack' => "'Loft Sans', Helvetica, Arial, sans-serif",
                     'google_font_param' => 'local_default',
                 ),
                 array(
@@ -285,58 +285,76 @@ class ExtraChillArtistPlatform_Fonts {
         if ( empty( $font_values ) || ! is_array( $font_values ) ) {
             return '';
         }
-        
+
         $local_fonts_css = '';
         $fonts = $this->get_supported_fonts();
-        
+
         foreach ( $font_values as $font_value ) {
-            // Skip empty values
-            if ( empty( $font_value ) ) {
+            $normalized_value = $this->normalize_font_value( $font_value );
+            if ( empty( $normalized_value ) ) {
                 continue;
             }
-            
-            // Find font in supported fonts list
+
             $font_config = null;
             foreach ( $fonts as $font ) {
-                if ( $font['value'] === $font_value ) {
+                if ( $font['value'] === $normalized_value ) {
                     $font_config = $font;
                     break;
                 }
             }
-            
-            // Only process local fonts (not Google Fonts)
-            if ( $font_config && 
-                 isset( $font_config['google_font_param'] ) && 
+
+            if ( $font_config &&
+                 isset( $font_config['google_font_param'] ) &&
                  $font_config['google_font_param'] === 'local_default' ) {
-                
-                // Generate @font-face for specific local fonts
-                if ( $font_value === 'WilcoLoftSans' ) {
-                    $local_fonts_css .= $this->get_wilco_loft_sans_font_face();
+                if ( $normalized_value === 'Loft Sans' ) {
+                    $local_fonts_css .= $this->get_loft_sans_font_face();
                 }
-                // Add other local fonts here as needed
             }
         }
-        
+
         return $local_fonts_css;
     }
 
     /**
-     * Get @font-face definition for WilcoLoftSans
+     * Get @font-face definition for Loft Sans
      *
      * @since 1.1.0
      * @return string CSS @font-face definition
      */
-    private function get_wilco_loft_sans_font_face() {
+    private function get_loft_sans_font_face() {
         $theme_url = get_template_directory_uri();
 
         return "@font-face {
-    font-family: 'WilcoLoftSans';
+    font-family: 'Loft Sans';
     src: url('{$theme_url}/assets/fonts/WilcoLoftSans-Treble.woff2') format('woff2'),
          url('{$theme_url}/assets/fonts/WilcoLoftSans-Treble.woff') format('woff');
     font-weight: normal;
     font-style: normal;
     font-display: swap;
-}\n";
+ }\n";
+    }
+
+    /**
+     * Normalize a raw font value for comparisons.
+     *
+     * @since 1.1.0
+     * @param mixed $font_value Font value from storage.
+     * @return string Normalized font value.
+     */
+    private function normalize_font_value( $font_value ) {
+        if ( ! is_string( $font_value ) ) {
+            return '';
+        }
+
+        $font_value = trim( $font_value );
+        if ( $font_value === '' ) {
+            return '';
+        }
+
+        $primary = explode( ',', $font_value )[0];
+        $primary = trim( $primary );
+
+        return trim( $primary, " \t\n\r\0\x0B'\"" );
     }
 
     /**
