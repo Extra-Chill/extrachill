@@ -10,7 +10,7 @@
 <div class="home-about-box">
 	<h2 class="home-about-header">About Extra Chill</h2>
 	<div class="home-about-bio">
-	Founded in 2011 in Charleston, SC, and now local to Austin, TX, Extra Chill is an open-source, independent music platform. We value storytelling and believe in the power of community. Our platform is a meeting ground for artists, fans, and music industry professional.
+	Founded in 2011 in Charleston, SC, and now local to Austin, TX, Extra Chill is an open-source, independent music platform. We value storytelling and believe in the power of community. Our platform is a meeting ground for artists, fans, and music industry professionals.
 	</div>
 	<div class="home-about-links">
 	<a href="/about" class="home-about-link button-2 button-medium">Learn More About Extra Chill</a>
