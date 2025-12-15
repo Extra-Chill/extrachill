@@ -6,7 +6,7 @@ All data has a single source of truth located in PHP files on the server side.
 ## User Data
 - Stored in WordPress user meta and tables
 - Network-wide access via multisite functions
-- Centralized functions like `ec_get_user_profile_url()`
+- Centralized functions like `ec_get_user_profile_url()` and `ec_get_user_author_archive_url()`
 
 ## Content Data
 - WordPress native post types and taxonomies

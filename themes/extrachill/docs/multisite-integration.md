@@ -62,7 +62,7 @@ if ( function_exists( 'extrachill_multisite_search' ) ) {
 - Direct `WP_Query` for bbPress topics and replies
 - Uses `switch_to_blog()` and `restore_current_blog()` for cross-site access
 - Manual forum URL construction: `https://community.extrachill.com/r/{forum-slug}`
-- User profile URLs via `ec_get_user_profile_url()` from extrachill-users plugin
+- User profile URLs via `ec_get_user_profile_url()` from extrachill-users plugin (community-first)
 - 10-minute WordPress object cache (`wp_cache_get()` / `wp_cache_set()`)
 
 **Blog ID Resolution**:
@@ -78,7 +78,8 @@ restore_current_blog();
 
 **URL Patterns**:
 - Forums: `https://community.extrachill.com/r/{forum-slug}` (NOT `/forums/forum/`)
-- User profiles: `https://community.extrachill.com/u/{username}` (via `ec_get_user_profile_url()`)
+- User profiles: `https://community.extrachill.com/u/{username}` (via `ec_get_user_profile_url()`, community-first)
+- Author archives: `https://extrachill.com/author/{username}/` (via `ec_get_user_author_archive_url()`)
 - Topics: Standard `get_permalink()` works for topic URLs
 - Total member counts: Pulled from Blog ID 2 via `count_users()` when rendering online stats
 
@@ -130,8 +131,11 @@ Theme generates community links using standardized patterns:
 
 **User Profile Links** (via extrachill-users plugin):
 ```php
-// Intelligently routes to main site author page or bbPress profile
+// General profile links (mentions, avatar menu, “View Profile”) should resolve to community when possible.
 $user_profile_url = ec_get_user_profile_url( $user_id );
+
+// Article contexts (bylines, “More articles by…”) should use the explicit author archive helper.
+$user_author_archive_url = ec_get_user_author_archive_url( $user_id );
 ```
 
 **Forum Links** (manual construction):
@@ -196,7 +200,9 @@ Provided by extrachill-multisite plugin:
 
 ### 2. Post Meta Display
 **Location**: `/inc/core/templates/post-meta.php`
-**Integration**: Uses `ec_get_user_profile_url()` from extrachill-users plugin for author links
+**Integration**:
+- Uses `ec_get_user_author_archive_url()` for main site bylines
+- Uses `ec_get_user_profile_url()` for community/forum identity links
 
 ### 3. Community Activity Components
 **Location**: `/inc/core/templates/community-activity.php`

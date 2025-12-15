@@ -1,12 +1,12 @@
 # ExtraChill WordPress Theme
 
-A custom WordPress theme (v1.2.12) powering the Extra Chill Platform multisite network with 9 active interconnected sites (Blog ID 6 unused), featuring hook-based homepage content, community integrations, and multisite-aware navigation. Horoscope site is planned for future Blog ID 11.
+A custom WordPress theme (v1.2.13) powering the Extra Chill Platform multisite network with 9 active interconnected sites (Blog ID 6 unused), featuring hook-based homepage content, community integrations, and multisite-aware navigation. Horoscope site is planned for future Blog ID 11.
 
-> **Platform alignment**: Documentation reflects the live 1.2.12 release in `style.css` and must stay in lockstep with future releases.
+> **Platform alignment**: Documentation reflects the live 1.2.13 release in `style.css` and must stay in lockstep with future releases.
 
 ## Overview
 
-ExtraChill is a modern, performance-optimized WordPress theme (v1.2.12) designed specifically for the Extra Chill Platform multisite network. It serves as the frontend for all 9 active interconnected sites (Blog ID 6 unused) with docs.extrachill.com at Blog ID 10; horoscope.extrachill.com planned for future Blog ID 11:
+ExtraChill is a modern, performance-optimized WordPress theme (v1.2.13) designed specifically for the Extra Chill Platform multisite network. It serves as the frontend for all 9 active interconnected sites (Blog ID 6 unused) with docs.extrachill.com at Blog ID 10; horoscope.extrachill.com planned for future Blog ID 11:
 
 - **extrachill.com** (Blog ID 1): Music journalism, artist features, and industry coverage
 - **community.extrachill.com** (Blog ID 2): Community forums with bbPress integration
@@ -49,7 +49,7 @@ ExtraChill is a modern, performance-optimized WordPress theme (v1.2.12) designed
 - **Community Data Source**: Queries community.extrachill.com (Blog ID 2) for bbPress topics/replies with 10-minute caching and renders default sidebar/homepage widgets
 - **Activity Feeds**: Sidebar widget plus plugin-provided homepage blocks consume the same helper for consistent markup
 - **Multisite Search**: Cross-site search via extrachill-search plugin with `extrachill_multisite_search()`
-- **Profile URL Resolution**: extrachill-users plugin supplies `ec_get_user_profile_url()` for community links
+- **Profile URL Resolution**: extrachill-users plugin supplies `ec_get_user_profile_url()` (community-first) and `ec_get_user_author_archive_url()` for main-site bylines
 - **Online Users Widget**: `extrachill_before_footer` renders online/total counts from extrachill-users data
 - **Network Dropdown**: Integrated network site navigation dropdown
 - **Graceful Degradation**: Hooks and function_exists checks keep templates stable if network plugins are inactive
@@ -406,6 +406,6 @@ See [docs/CHANGELOG.md](docs/CHANGELOG.md) for full version history.
 
 **Theme**: ExtraChill
 **Author**: Chubes
-**Version**: 1.2.12
+**Version**: 1.2.13
 **WordPress**: 5.0+
 **License**: Proprietary

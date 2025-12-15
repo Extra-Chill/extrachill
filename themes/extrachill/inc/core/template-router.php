@@ -25,6 +25,10 @@ add_filter( 'template_include', 'extrachill_route_templates' );
  */
 function extrachill_route_templates( $template ) {
 
+	if ( function_exists( 'is_embed' ) && is_embed() ) {
+		return $template;
+	}
+
 	if ( function_exists( 'is_bbpress' ) && is_bbpress() ) {
 		return $template;
 	}

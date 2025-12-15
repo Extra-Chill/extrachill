@@ -217,7 +217,7 @@ All taxonomies include REST API support and block editor integration.
 - Multisite result integration with site badges
 
 **extrachill-users**:
-- User profile URL resolution via `ec_get_user_profile_url()`
+- Profile URL helpers (`ec_get_user_profile_url()`, `ec_get_user_author_archive_url()`)
 - Avatar menu system
 - Team member management
 

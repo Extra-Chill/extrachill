@@ -96,10 +96,14 @@ if ( ! function_exists( 'extrachill_entry_meta' ) ) :
 				echo ' ' . esc_html__( 'by', 'extrachill' ) . ' ';
 				if ( is_plugin_active( 'co-authors-plus/co-authors-plus.php' ) ) {
 					coauthors_posts_links();
-				} elseif ( function_exists( 'ec_get_user_profile_url' ) ) {
-						$author_id  = isset( $post->post_author ) ? $post->post_author : get_the_author_meta( 'ID' );
-						$author_url = ec_get_user_profile_url( $author_id );
+				} elseif ( function_exists( 'ec_get_user_author_archive_url' ) ) {
+					$author_id  = isset( $post->post_author ) ? $post->post_author : get_the_author_meta( 'ID' );
+					$author_url = ec_get_user_author_archive_url( $author_id );
+					if ( $author_url ) {
 						echo '<a href="' . esc_url( $author_url ) . '">' . esc_html( get_the_author() ) . '</a>';
+					} else {
+						the_author_posts_link();
+					}
 				} else {
 					the_author_posts_link();
 				}
@@ -114,9 +118,9 @@ if ( ! function_exists( 'extrachill_entry_meta' ) ) :
 			}
 		}
 
-			echo '</div>';
+		echo '</div>';
 
-			echo '</div>';
+		echo '</div>';
 
 		$default_meta = ob_get_clean();
 
