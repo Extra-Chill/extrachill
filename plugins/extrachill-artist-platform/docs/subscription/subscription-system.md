@@ -458,18 +458,9 @@ add_action('extrch_subscriber_added', 'sync_to_email_service', 10, 4);
 
 ### WordPress User Integration
 
-System links subscriptions to WordPress user accounts when available:
+Subscriber rows optionally store a `user_id` when the subscription is associated with a logged-in WordPress account.
 
-```php
-// Auto-subscribe when user follows artist
-function auto_subscribe_on_follow($user_id, $artist_id) {
-    $user = get_userdata($user_id);
-    if ($user) {
-        add_artist_subscriber($user->user_email, $artist_id, 'platform_follow_consent');
-    }
-}
-add_action('extrch_user_followed_artist', 'auto_subscribe_on_follow', 10, 2);
-```
+The artist platform does not implement an in-plugin "follow" UI or follow-to-subscribe automation. Integrations that want to subscribe users programmatically should call `add_artist_subscriber()` directly.
 
 ## Privacy Compliance
 

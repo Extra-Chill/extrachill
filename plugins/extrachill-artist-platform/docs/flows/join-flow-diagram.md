@@ -11,155 +11,44 @@ START: User visits extrachill.link/join
   │
   ├─ AUTHENTICATION
   │  ├─ User sees join flow modal (inc/join/templates/join-flow-modal.php)
-  │  ├─ Existing Account → Username/Password
-  │  └─ New Account → Email/Password/Confirm Password
+  │  ├─ Existing Account → login
+  │  └─ New Account → register
   │
-  ├─ USER ACCOUNT CREATION
-  │  ├─ [Existing] Retrieve user account from WordPress multisite
-  │  └─ [New] Create user account via wp_create_user()
-  │  │  └─ User created on community.extrachill.com (Blog ID 2)
-  │  │  └─ WordPress automatically replicates to network
-  │
-  ├─ ARTIST PROFILE CREATION (AUTOMATIC)
-  │  ├─ Function: ec_handle_join_flow_user_registration()
-  │  ├─ Create artist_profile custom post type
-  │  │  ├─ Title: User Display Name
-  │  │  ├─ Slug: Derived from username
-  │  │  └─ Status: Published
-  │  ├─ Store artist ID: 'artist_id' post meta
-  │  └─ Fire action: do_action('extrachill_artist_created', $artist_id, $user_id)
-  │
-  ├─ LINK PAGE CREATION (AUTOMATIC)
-  │  ├─ Function: ec_create_link_page_for_artist()
-  │  ├─ Create artist_link_page custom post type
-  │  ├─ Metadata:
-  │  │  ├─ Link to artist profile
-  │  │  ├─ Slug: artist slug (matches artist profile)
-  │  │  └─ Status: Draft (user completes setup)
-  │  └─ Fire action: do_action('extrachill_link_page_created', $link_page_id, $artist_id)
-  │
-  ├─ ROSTER SELF-LINK (AUTOMATIC)
-  │  ├─ Function: ec_add_user_to_artist_roster()
-  │  ├─ Add user as roster member of their own artist
-  │  ├─ Role: 'owner' (can manage link page)
-  │  └─ Access: User can edit link page from Gutenberg
-  │
-  ├─ COMMUNITY FORUM CREATION
-  │  ├─ Switch to Blog ID 2 (community.extrachill.com)
-  │  ├─ Create bbPress forum post type
-  │  ├─ Title: "{Artist Name} Forum"
-  │  ├─ Set user as forum moderator
-  │  └─ Store forum ID on artist meta: 'community_forum_id'
-  │
-  ├─ NEWSLETTER SUBSCRIPTION (OPTIONAL VIA HOOK)
-  │  ├─ Newsletter plugin listens to extrachill_artist_created hook
-  │  ├─ Subscribe artist to newsletter list
-  │  ├─ Send welcome email
-  │  └─ Store subscription status on artist meta
-  │
-  ├─ REDIRECT TO LINK PAGE SETUP
+  ├─ POST-AUTH ROUTING
   │  ├─ Function: ec_join_flow_login_redirect()
-  │  ├─ Retrieve stored transient: 'join_flow_completion_{user_id}'
-  │  ├─ Redirect to: /wp-admin/post.php?post={link_page_id}&action=edit
-  │  └─ Load link page editor block in Gutenberg
+  │  ├─ If user already has artists → redirect to /manage-link-page/
+  │  └─ Otherwise → redirect to /create-artist/
   │
-  ├─ GUIDED LINK PAGE SETUP
-  │  ├─ React-based block editor (src/blocks/link-page-editor/)
-  │  ├─ Tabs:
-  │  │  ├─ Info: Profile image, bio, genres
-  │  │  ├─ Links: Add Spotify, Instagram, YouTube, etc.
-  │  │  ├─ Customize: Colors, fonts, theme
-  │  │  ├─ Advanced: Analytics, tracking, expiration
-  │  │  └─ Socials: Social link configuration
-  │  └─ Live preview updates in real-time
+  ├─ ARTIST CREATION
+  │  ├─ User completes artist creation on /create-artist/
+  │  └─ Artist/link page creation is handled by the create-artist flow (outside the join modal)
   │
-  ├─ PUBLISH LINK PAGE
-  │  ├─ User publishes link page
-  │  ├─ Status changes from Draft → Published
-  │  ├─ Link page now live at: extrachill.link/{artist-slug}
-  │  └─ Fire action: do_action('extrachill_link_page_published', $link_page_id)
+  ├─ LINK PAGE EDITING
+  │  ├─ Link pages are edited in Gutenberg with the Link Page Editor block
+  │  └─ Public URLs resolve at extrachill.link/{artist-slug}
   │
-  ├─ CROSS-DOMAIN ACCESS SETUP
-  │  ├─ WordPress session authenticated for .extrachill.com domain
-  │  ├─ Cookies configured with SameSite=None; Secure attributes
-  │  ├─ User can access:
-  │  │  ├─ artist.extrachill.com (artist profiles, link pages)
-  │  │  ├─ community.extrachill.com (forums, roster)
-  │  │  └─ extrachill.link (public link page)
-  │  └─ Single sign-on across all sites
-  │
-  └─ COMPLETE: User can manage artist profile and link page
+  └─ COMPLETE: User can manage link page and artist profile
 
 ## Data Created During Join Flow
 
-```
-WordPress User (multisite)
-├─ user_login: username
-├─ user_email: email@example.com
-├─ display_name: Artist Name
-├─ user_url: community-first profile link (`ec_get_user_profile_url()`)
-├─ user_author_archive_url: main site author archive (`ec_get_user_author_archive_url()`, article contexts)
-└─ Metadata:
-   ├─ Artist ID association
-   └─ Join flow completion flag
-
-Artist Profile (artist_profile custom post type)
-├─ Title: Artist Name
-├─ Slug: artist-slug
-├─ Author: user_id
-├─ Status: Published
-├─ Content: (empty initially, can be filled later)
-└─ Metadata:
-   ├─ artist_bio: Biography
-   ├─ artist_image: Profile image ID
-   ├─ artist_genres: Associated genres
-   ├─ community_forum_id: Link to forum
-   ├─ newsletter_subscribed: Subscription status
-   └─ join_flow_created: True
-
-Link Page (artist_link_page custom post type)
-├─ Title: "{Artist Name} Links"
-├─ Slug: artist-slug
-├─ Author: user_id
-├─ Status: Draft (until published)
-├─ Content: Gutenberg blocks
-└─ Metadata:
-   ├─ artist_id: Reference to artist profile
-   ├─ link_items: Array of links (Spotify, etc.)
-   ├─ appearance: Colors, fonts, theme
-   └─ analytics: View count, click tracking
-
-Community Forum (forum custom post type on Blog ID 2)
-├─ Title: "{Artist Name} Forum"
-├─ Slug: artist-slug-forum
-├─ Author: user_id
-├─ Status: Published
-└─ Permissions:
-   ├─ Owner: Full moderation rights
-   └─ Members: Read/write access
+The join modal itself does not create artist/link page posts. It flags the session as a join flow entry and routes the user to the appropriate management page after authentication.
 
 ## Error Handling
 
 ```
 IF user account creation fails
-  ├─ Display error message
-  ├─ Allow retry
-  └─ Log error for admin review
+   ├─ Display error message
+   ├─ Allow retry
+   └─ Log error for admin review
 
 IF artist profile creation fails
-  ├─ Rollback user account (optional)
-  ├─ Display error message
-  └─ Log error for debugging
+   ├─ Display error message
+   └─ Log error for debugging
 
 IF link page creation fails
-  ├─ Notify user
-  ├─ Offer to create manually
-  └─ Log error
-
-IF forum creation fails
-  ├─ Continue without forum
-  ├─ Store error status
-  └─ Allow admin to retry
+   ├─ Notify user
+   ├─ Offer to create manually
+   └─ Log error
 ```
 
 ## Security Checks
@@ -186,29 +75,20 @@ IF forum creation fails
 
 ## Performance Optimizations
 
-1. **Transient Storage**
-   - Join flow completion data stored in transient
-   - Expires in 1 hour
-   - Allows session recovery if redirect fails
+1. **Modal-Only Entry Point**
+   - Join flow modal only renders with `from_join` parameter
+   - No HTML overhead on regular login pages
 
-2. **Deferred Hooks**
-   - Newsletter subscription fires asynchronously via action hook
-   - Doesn't block user creation
-   - Can retry if fails
+2. **Transient Storage**
+   - Join flow session flags stored during auth
+   - Allows state recovery if redirect fails
 
-3. **Blog Switching**
-   - Community forum creation uses switch_to_blog()
-   - Properly restored after operation
-   - Uses wp-cli for performance
-
-4. **Caching**
-   - Artist profile data cached via WordPress object cache
-   - Forum ID cached on post meta (no queries needed)
-   - User profile URL cached per session
+3. **Direct Redirect Pattern**
+   - Post-auth redirect to appropriate page (create-artist or manage-link-page)
+   - No intermediate processing steps
 
 ## Related Documentation
 
 - [Artist Platform AGENTS.md](../AGENTS.md) - Complete architecture
 - [Join Flow System](../AGENTS.md#join-flow-system) - Technical details
-- [Newsletter Integration](./artist-platform-with-newsletter.md) - Newsletter subscription
-- [Community Integration](./artist-platform-with-community.md) - Forum setup
+- [Artist Creator Block](../artist-profiles/artist-profile-management.md) - Profile creation workflow

@@ -81,15 +81,12 @@ $body_bg_style .= 'min-height:100vh;';
     ?>
 </head>
 <?php
-$permissions_api_url = '';
-if ( function_exists( 'ec_get_site_url' ) ) {
-    $artist_site_url = ec_get_site_url( 'artist' );
-    if ( $artist_site_url ) {
-        $permissions_api_url = rtrim( $artist_site_url, '/' ) . '/' . rest_get_url_prefix() . '/extrachill/v1/artist/permissions';
-    }
-}
+$permissions_api_url = rest_url( 'extrachill/v1/artist/permissions' );
+$subscribe_api_url = rest_url( 'extrachill/v1/artist/subscribe' );
+$tracking_click_url = rest_url( 'extrachill/v1/analytics/link-click' );
+$tracking_view_url = rest_url( 'extrachill/v1/analytics/view' );
 ?>
-<body class="extrch-link-page"<?php if ($body_bg_style) echo ' style="' . esc_attr( $body_bg_style ) . '"'; ?> data-extrch-artist-id="<?php echo esc_attr( (string) absint( $artist_id ) ); ?>" data-extrch-permissions-api-url="<?php echo esc_url( $permissions_api_url ); ?>">
+<body class="extrch-link-page"<?php if ($body_bg_style) echo ' style="' . esc_attr( $body_bg_style ) . '"'; ?> data-extrch-artist-id="<?php echo esc_attr( (string) absint( $artist_id ) ); ?>" data-extrch-link-page-id="<?php echo esc_attr( (string) absint( $link_page_id ) ); ?>" data-extrch-permissions-api-url="<?php echo esc_url( $permissions_api_url ); ?>" data-extrch-subscribe-api-url="<?php echo esc_url( $subscribe_api_url ); ?>" data-extrch-tracking-click-url="<?php echo esc_url( $tracking_click_url ); ?>" data-extrch-tracking-view-url="<?php echo esc_url( $tracking_view_url ); ?>">
 <?php
 // Google Tag Manager (noscript)
 ?>

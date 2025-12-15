@@ -24,7 +24,7 @@ The editor uses a tabbed interface with the following sections:
 
 #### TabLinks
 - Add, edit, and organize links
-- Drag-and-drop link reordering (SortableJS integration)
+- Drag-and-drop link reordering (dnd-kit integration)
 - Link text and URL editing
 - Section-based link organization
 - Real-time preview updates
@@ -112,7 +112,7 @@ Reusable components used across tabs:
 - Alt text management
 
 **DraggableList.js**: Drag-and-drop list component
-- SortableJS integration
+- dnd-kit integration (`@dnd-kit/core`, `@dnd-kit/sortable`)
 - Touch-friendly mobile support
 - Smooth animations
 - Reorder callbacks
@@ -213,7 +213,7 @@ const { socials, addSocial, removeSocial, updateSocial } = useSocials( linkPageI
 
 ### API Client
 
-**Location**: `src/blocks/link-page-editor/`
+**Location**: `src/blocks/shared/api/client.js`
 
 Centralized API client for all block requests with automatic nonce handling and error management.
 
@@ -256,7 +256,7 @@ Automatic error handling and user feedback:
 
 ```bash
 # Start development server with watch mode
-npm run dev
+npm run start
 
 # Watches src/blocks/ directory
 # Rebuilds on file changes
@@ -467,7 +467,7 @@ Requires:
 
 ### Modifying API Client
 
-1. Update `src/blocks/link-page-editor/api/client.js`
+1. Update `src/blocks/shared/api/client.js`
 2. Add new endpoint method
 3. Include nonce handling
 4. Document usage

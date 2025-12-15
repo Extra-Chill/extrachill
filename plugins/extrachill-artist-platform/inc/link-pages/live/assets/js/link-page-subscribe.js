@@ -69,7 +69,20 @@ document.addEventListener('DOMContentLoaded', function() {
             formMessage.style.color = '';
         }
 
-        fetch(extrchSubscribeData.restUrl, {
+        const subscribeApiUrl = document.body && document.body.dataset ? document.body.dataset.extrchSubscribeApiUrl : '';
+        if (!subscribeApiUrl) {
+            if (formMessage) {
+                formMessage.textContent = 'Subscription is temporarily unavailable.';
+                formMessage.style.color = 'red';
+            }
+            if (submitButton) {
+                submitButton.disabled = false;
+                submitButton.textContent = 'Subscribe';
+            }
+            return;
+        }
+
+        fetch(subscribeApiUrl, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'

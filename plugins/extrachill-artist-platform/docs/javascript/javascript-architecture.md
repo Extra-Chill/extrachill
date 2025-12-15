@@ -8,7 +8,7 @@ The plugin uses modern JavaScript patterns organized by functionality across dif
 
 **Location**: `src/blocks/`
 
-Modern React-based components providing three specialized Gutenberg blocks for comprehensive platform management:
+Modern React-based components providing five Gutenberg blocks for comprehensive platform management:
 
 #### 1. Link Page Editor Block
 
@@ -67,7 +67,7 @@ Complete artist profile management interface providing profile editing, roster m
 - Tab-based interface for organized management
 
 **Build Configuration**:
-- **Webpack**: `webpack.config.js` - Compiles React and SCSS for all three blocks
+- **Webpack**: `webpack.config.js` - Compiles React and SCSS for all blocks
 - **wp-scripts**: WordPress build tooling for React/Webpack integration
 - **Compiled Output**: `build/blocks/*/` - Generated assets for each block
 - **Asset Enqueuing**: Auto-detected via `register_block_type()` manifest for each block
@@ -115,7 +115,7 @@ Artist profile management is handled exclusively via the Artist Profile Manager 
 
 **Client Pattern** (Gutenberg blocks):
 ```javascript
-// Centralized API client in src/blocks/link-page-editor/api/client.js
+// Centralized API client in src/blocks/shared/api/client.js
 const response = await apiClient.post( '/extrachill/v1/link-pages/{id}', data );
 ```
 
@@ -135,7 +135,7 @@ Complex data structures handled via:
 **Build Commands**:
 ```bash
 npm run build    # Production bundle
-npm run dev      # Development with watch mode
+npm run start    # Development with watch mode
 npm run lint     # Code linting
 npm run format   # Code formatting
 ```

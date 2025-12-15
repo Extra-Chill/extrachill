@@ -9,11 +9,16 @@
 (function() {
     'use strict';
 
-    if (typeof extrchTrackingData === 'undefined' || !extrchTrackingData.link_page_id) {
+    const body = document.body;
+    const dataset = body && body.dataset ? body.dataset : null;
+
+    const clickRestUrl = dataset ? dataset.extrchTrackingClickUrl : '';
+    const viewRestUrl = dataset ? dataset.extrchTrackingViewUrl : '';
+    const linkPageId = dataset ? dataset.extrchLinkPageId : '';
+
+    if (!clickRestUrl || !viewRestUrl || !linkPageId) {
         return;
     }
-
-    const { clickRestUrl, viewRestUrl, link_page_id } = extrchTrackingData;
 
     function sendBeacon(url, data) {
         const jsonData = JSON.stringify(data);
@@ -31,7 +36,7 @@
 
     // Track page view on load
     if (viewRestUrl) {
-        sendBeacon(viewRestUrl, { post_id: link_page_id });
+        sendBeacon(viewRestUrl, { post_id: linkPageId });
     }
 
     // Track link clicks
@@ -45,7 +50,7 @@
                     const linkText = linkTextEl ? linkTextEl.textContent.trim() : '';
 
                     sendBeacon(clickRestUrl, {
-                        link_page_id: link_page_id,
+                        link_page_id: linkPageId,
                         link_url: linkElement.href,
                         link_text: linkText
                     });

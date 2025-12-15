@@ -11,7 +11,6 @@ Users remain authenticated across all `.extrachill.com` subdomains automatically
 **Coverage**:
 - Main site: `extrachill.com`
 - Artist site: `artist.extrachill.com`
-- Community site: `community.extrachill.com`
 
 ### Secondary: extrachill.link Domain Integration
 

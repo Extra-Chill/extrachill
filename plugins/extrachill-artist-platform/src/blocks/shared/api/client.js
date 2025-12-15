@@ -110,6 +110,14 @@ export const updateShopProduct = ( productId, data ) =>
 export const deleteShopProduct = ( productId ) =>
 	del( `extrachill/v1/shop/products/${ productId }` );
 
+// Shop payments (Stripe Connect)
+export const getStripeConnectStatus = ( artistId ) =>
+	get( `extrachill/v1/shop/stripe-connect/status?artist_id=${ artistId }` );
+export const createStripeConnectOnboardingLink = ( artistId ) =>
+	post( 'extrachill/v1/shop/stripe-connect/onboarding-link', { artist_id: artistId } );
+export const createStripeConnectDashboardLink = ( artistId ) =>
+	post( 'extrachill/v1/shop/stripe-connect/dashboard-link', { artist_id: artistId } );
+
 // Permissions
 export const getArtistPermissions = ( artistId ) =>
 	get( `extrachill/v1/artist/permissions?artist_id=${ artistId }` );
@@ -137,5 +145,8 @@ export default {
 	createShopProduct,
 	updateShopProduct,
 	deleteShopProduct,
+	getStripeConnectStatus,
+	createStripeConnectOnboardingLink,
+	createStripeConnectDashboardLink,
 	getArtistPermissions,
 };

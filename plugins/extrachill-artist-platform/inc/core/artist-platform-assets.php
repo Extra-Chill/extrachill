@@ -40,7 +40,7 @@ class ExtraChillArtistPlatform_Assets {
         $plugin_dir = EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR;
 
         if ( $this->is_link_page_context() ) {
-            $this->enqueue_link_page_assets();
+            return;
         }
 
         if ( $this->is_artist_profile_page() ) {

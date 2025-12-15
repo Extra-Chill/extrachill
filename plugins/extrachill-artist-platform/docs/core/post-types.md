@@ -143,7 +143,7 @@ The Gutenberg block editor (`src/blocks/link-page-editor/`) uses REST API for al
 
 ```javascript
 // Block automatically handles REST communication
-// via centralized API client at src/blocks/link-page-editor/api/client.js
+// via centralized API client at src/blocks/shared/api/client.js
 
 // Automatic nonce inclusion
 // Error handling and validation

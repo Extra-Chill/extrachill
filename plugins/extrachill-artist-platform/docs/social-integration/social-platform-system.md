@@ -344,7 +344,7 @@ The Gutenberg block provides social platform management through the **TabSocials
 - URL validation for each platform
 - Custom label support (for custom links)
 - Real-time preview updates
-- REST API integration via `src/blocks/link-page-editor/api/client.js`
+- REST API integration via `src/blocks/shared/api/client.js`
 
 ## Rendering System
 

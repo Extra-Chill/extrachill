@@ -108,6 +108,59 @@
 	justify-content: flex-end;
 }
 
+.ec-asm__file-input {
+	display: none;
+}
+
+.ec-asm__image {
+	display: grid;
+	gap: var(--spacing-sm);
+
+	h4 {
+		margin: 0;
+		font-size: var(--font-size-base);
+	}
+}
+
+.ec-asm__image-header {
+	display: grid;
+	gap: var(--spacing-sm);
+}
+
+.ec-asm__image .ec-asm__actions {
+	justify-content: flex-start;
+}
+
+.ec-asm__image-preview {
+	width: 128px;
+	height: 128px;
+	border-radius: var(--border-radius-md);
+	border: 1px solid var(--border-color);
+	object-fit: cover;
+}
+
+.ec-asm__stripe {
+	display: grid;
+	gap: var(--spacing-md);
+}
+
+.ec-asm__stripe-status {
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius-md);
+	background: var(--background-color);
+	padding: var(--spacing-md);
+
+	ul {
+		margin: var(--spacing-sm) 0 0;
+		padding-left: 1.2rem;
+		color: var(--muted-text);
+	}
+
+	li {
+		margin: 0;
+	}
+}
+
 .ec-asm__form {
 	display: grid;
 	gap: var(--spacing-md);
@@ -122,7 +175,8 @@
 		color: var(--text-color);
 	}
 
-	input:not([type="file"]),
+	input[type="text"],
+	input[type="number"],
 	textarea {
 		width: 100%;
 	}

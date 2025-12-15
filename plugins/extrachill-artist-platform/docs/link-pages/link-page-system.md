@@ -78,16 +78,15 @@ Link pages are edited directly in the WordPress block editor when editing an `ar
 
 ### Tab Structure
 
-The editor provides a tabbed interface with six sections:
+The editor provides a tabbed interface with five sections:
 
 1. **TabInfo** (`components/tabs/TabInfo.js`): Basic information and biography editing
 2. **TabLinks** (`components/tabs/TabLinks.js`): Link management with drag-and-drop reordering
 3. **TabCustomize** (`components/tabs/TabCustomize.js`): Styling and appearance options (fonts, colors)
 4. **TabAdvanced** (`components/tabs/TabAdvanced.js`): Advanced features (expiration, redirects, tracking codes)
 5. **TabSocials** (`components/tabs/TabSocials.js`): Social platform link management (15+ platforms)
-6. **TabAnalytics** (`components/tabs/TabAnalytics.js`): View tracking and link click analytics (moved to separate analytics block in v1.1.11+)
 
-**Note**: As of v1.1.11+, TabAnalytics functionality is primarily provided by the separate `link-page-analytics` Gutenberg block, though TabAnalytics may remain in the editor for reference.
+Analytics are provided by the separate `link-page-analytics` Gutenberg block.
 
 ### Block Architecture
 

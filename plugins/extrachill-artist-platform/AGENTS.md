@@ -61,17 +61,15 @@ The plugin provides comprehensive integration with the extrachill.link domain fo
 
 #### Join Flow System
 **Location**: `inc/join/`
-- **Complete join flow onboarding**: Join flow registration (extrachill.link/join) → automatic artist profile creation → automatic link page creation → guided link page setup
-- **Entry Point**: extrachill.link/join redirects to artist.extrachill.com/login/?from_join=true via sunrise.php
-- **Modal interface**: `inc/join/templates/join-flow-modal.php` - Existing vs new account selection
-- **Integration point**: Hooks into `extrachill_below_login_register_form` action from extrachill-users plugin
+- **Modal-Based Entry Point**: `extrachill.link/join` redirects to artist.extrachill.com/login/?from_join=true via sunrise.php
+- **Modal Interface**: `inc/join/templates/join-flow-modal.php` - Displays "Existing vs New Account" selection to users
+- **Integration Point**: Hooks into `extrachill_below_login_register_form` action from extrachill-users plugin
 - **Assets**: `inc/join/assets/css/join-flow.css`, `inc/join/assets/js/join-flow-ui.js`
-- **Registration handler**: `ec_handle_join_flow_user_registration()` - Creates artist profile and link page on user registration
-- **User detection**: `ec_is_join_flow_registration()` - Identifies join flow registrations via `from_join` parameter
-- **Login redirect**: `ec_join_flow_login_redirect()` - Handles post-login navigation for join flow users
-- **Roster integration**: Automatically links user as member of their own artist profile
-- **Transient tracking**: Stores completion data for post-registration redirect using `join_flow_completion_{user_id}` transients
-- **extrachill.link Integration**: Join flow creates link pages accessible at extrachill.link/{artist-slug}
+- **Request Detection**: `ec_is_join_flow_request()` - Identifies join flow sessions via `from_join` parameter
+- **Post-Auth Routing**: Redirects authenticated users to dedicated creation/management pages (not automatic profile creation)
+  - New users or users without artists → `/create-artist/` (artist-creator block)
+  - Existing users with artists → `/manage-link-page/` (link-page-editor block)
+- **Separated Workflows**: Artist creation and link page management now handled via dedicated blocks, not join flow
 
 #### Link Page System
 **Location**: `inc/link-pages/` and `src/blocks/link-page-editor/`
@@ -84,9 +82,9 @@ The plugin provides comprehensive integration with the extrachill.link domain fo
     - **Block Location**: Appears in Gutenberg editor for artist_link_page post type
     - **React Components**: Tab-based interface with TabInfo, TabLinks, TabCustomize, TabAdvanced, TabSocials
     - **Build Process**: Webpack compilation via `npm run build` with wp-scripts
-    - **API Client**: REST API integration via `src/blocks/link-page-editor/api/client.js`
-  - **Analytics Dashboard**: Separate dedicated block `src/blocks/link-page-analytics/` (v1.1.11+)
-    - **Block Registration**: Separate `register_block_type()` for analytics block
+    - **API Client**: REST API integration via `src/blocks/shared/api/client.js`
+  - **Analytics Dashboard**: Separate dedicated block `src/blocks/link-page-analytics/`
+    - **Block Registration**: Registered in main plugin init via `register_block_type( __DIR__ . '/build/blocks/link-page-analytics' )`
     - **Features**: Chart.js-powered analytics, daily aggregation, link click tracking
 - **Advanced Features**: `inc/link-pages/management/advanced-tab/` - Tracking, redirects, link expiration, YouTube embeds
 - **Component Templates**: `inc/link-pages/management/templates/components/` - Modular UI components
@@ -180,7 +178,7 @@ The plugin provides comprehensive integration with the extrachill.link domain fo
 
 **Location**: `src/blocks/`
 
-Modern React-based Gutenberg blocks providing comprehensive platform management interface with three specialized blocks:
+Modern React-based Gutenberg blocks providing comprehensive platform management interface with five specialized blocks:
 
 **1. Link Page Editor Block** (`src/blocks/link-page-editor/`)
 
@@ -254,6 +252,28 @@ Complete artist profile management interface:
 - **TabMembers**: Band member invitation and management
 - **TabSubscribers**: Email subscriber list and export
 
+**4. Artist Creator Block** (`src/blocks/artist-creator/`)
+
+Dedicated Gutenberg block for artist profile creation:
+
+**Features**:
+- Guided artist profile creation with user permission checks
+- Profile metadata initialization (name, biography, images)
+- User prefill from authenticated context
+- Automatic link page creation for new profiles
+- REST API integration for save operations
+
+**5. Artist Shop Manager Block** (`src/blocks/artist-shop-manager/`)
+
+Comprehensive shop product management interface:
+
+**Features**:
+- Shop product CRUD operations (create, read, update, delete)
+- Product media uploads and management
+- Shop configuration and display settings
+- Inventory tracking and management
+- REST API integration for all shop operations
+
 **REST API Integration** (All Blocks):
 - `client.js`: Unified API client for all block requests located at `src/blocks/shared/api/client.js`
 - Single source of truth for REST API calls across all blocks
@@ -275,30 +295,33 @@ function extrachill_artist_platform_register_blocks() {
     register_block_type( __DIR__ . '/build/blocks/link-page-editor' );
     register_block_type( __DIR__ . '/build/blocks/link-page-analytics' );
     register_block_type( __DIR__ . '/build/blocks/artist-profile-manager' );
+    register_block_type( __DIR__ . '/build/blocks/artist-creator' );
+    register_block_type( __DIR__ . '/build/blocks/artist-shop-manager' );
 }
 add_action( 'init', 'extrachill_artist_platform_register_blocks' );
 ```
 
 **Block-Based Architecture**:
 - **Gutenberg Block Editor**: Modern React-based interface for WordPress block editor (primary)
-- **Management Locations**: 
-  - Artist profiles: `artist_profile` post type via artist-profile-manager block
-  - Link pages: `artist_link_page` post type via link-page-editor block
-  - Analytics: Separate dedicated analytics block for comprehensive tracking
+- **Management Pages**: The plugin auto-creates standard pages that mount blocks (see `extrachill_artist_platform_create_pages()` in `extrachill-artist-platform.php`):
+  - `/create-artist/` (artist-creator)
+  - `/manage-artist-profiles/` (artist-profile-manager)
+  - `/manage-link-page/` (link-page-editor)
+  - `/manage-shop/` (artist-shop-manager)
+- **Post Type Editing Context**:
+  - Artist profiles: `artist_profile` post type (managed via artist-profile-manager)
+  - Link pages: `artist_link_page` post type (managed via link-page-editor)
+- **Analytics**: Separate `link-page-analytics` block for analytics dashboards
 - **REST API**: All management operations via REST API, not traditional AJAX
 - **Unified Data**: Blocks use centralized data functions (ec_get_link_page_data, ec_get_artist_profile_data)
 
 #### Public Link Page Scripts
+**Directory**: `inc/link-pages/live/assets/js/`
 - `link-page-public-tracking.js` - Analytics and click tracking
 - `link-page-subscribe.js` - Subscription form functionality
 - `link-page-youtube-embed.js` - YouTube video embed handling
 - `extrch-share-modal.js` - Native Web Share API with social fallbacks
 - `link-page-edit-button.js` - CORS-based permission checking for edit button visibility
-
-**Artist Profile Management**: `inc/artist-profiles/assets/js/`
-- `manage-artist-profiles.js` - Profile editing, image previews, roster management with REST API
-- `manage-artist-subscribers.js` - Subscriber list management
-- `artist-members-admin.js` - Backend member administration
 
 **Global Components**: `assets/js/`
 - `artist-switcher.js` - Artist selection dropdown for switching contexts
@@ -309,12 +332,12 @@ add_action( 'init', 'extrachill_artist_platform_register_blocks' );
 - `join-flow-ui.js` - Modal handling for existing vs new account selection
 
 **Key JavaScript Modules**:
-- `link-expiration.js` & `link-expiration-preview.js` - Time-based link scheduling and preview
-- `sortable.js` - SortableJS integration for drag-and-drop link reordering  
-- `sorting-preview.js` - Live preview for drag-and-drop operations
-- `subscribe-preview.js` - Live preview for subscription form changes
-- `profile-image.js` & `profile-image-preview.js` - Profile image upload and preview management
-- `analytics.js` - Chart.js-powered analytics dashboard with event-driven initialization
+- `join-flow-ui.js` - Join flow modal UI (login/register)
+- `link-page-public-tracking.js` - Link page view + click tracking
+- `link-page-subscribe.js` - Link page subscription form handling
+- `link-page-youtube-embed.js` - YouTube embed handling
+- `extrch-share-modal.js` - Share modal UI
+- `link-page-edit-button.js` - Edit button permission check + rendering
 
 ### Database Schema
 
@@ -409,7 +432,7 @@ Centralized hook registrations for artist platform homepage functionality using 
 
 **File**: `inc/join/join-flow.php`
 
-Integrates with extrachill-users plugin to provide artist platform onboarding.
+Integrates with extrachill-users plugin to provide artist platform onboarding via modal.
 
 **Action Hook Used**: `extrachill_below_login_register_form`
 
@@ -421,17 +444,13 @@ add_action( 'extrachill_below_login_register_form', 'ec_render_join_flow_modal' 
 **Provided Features**:
 - **Modal Interface**: Renders join flow modal for account selection (existing vs new)
 - **Asset Loading**: Conditional enqueuing of join flow CSS/JS when `from_join` parameter detected
-- **Registration Handler**: `ec_handle_join_flow_user_registration()` creates artist profile and link page post-registration
-- **Roster Integration**: Automatically links user to their own artist profile
-
-**URL Parameter Detection**:
-- Detects `from_join` parameter to trigger join flow interface
-- Uses transients for post-registration redirect tracking: `join_flow_completion_{user_id}`
+- **Post-Auth Routing**: Routes users to creation or management workflows based on artist status
+  - `/create-artist/` for profile creation (artist-creator block)
+  - `/manage-link-page/` for existing artists (link-page-editor block)
+- **URL Parameter Detection**: Detects `from_join` parameter to trigger join flow interface
 
 ### Cross-Site Functionality
 
-**Community Integration (community.extrachill.com)**:
-- Cross-domain navigation between community and artist sites
 
 **Main Site Integration (extrachill.com)**:
 - Artist profile display and navigation
@@ -496,11 +515,9 @@ add_action( 'extrachill_below_login_register_form', 'ec_render_join_flow_modal' 
 - Responsive grid layouts with context-aware rendering
 - Template integration via `ec_render_template()` system
 
-#### Frontend Forms & Permissions  
-**Files**: `inc/artist-profiles/frontend/frontend-forms.php`, `inc/core/filters/permissions.php`
-- Public form handling and validation
-- Centralized permission system with role-based access
-- Profile editing and management interfaces
+#### Permissions
+**File**: `inc/core/filters/permissions.php`
+- Centralized permission checks for managing artists and profiles
 
 #### Centralized Save System
 **Core Files**: `inc/core/actions/save.php`
@@ -518,7 +535,7 @@ add_action( 'extrachill_below_login_register_form', 'ec_render_join_flow_modal' 
 
 **Management Interface**: Gutenberg block editor (React-based)
 - Modern React components with tab-based interface in `src/blocks/link-page-editor/`
-- REST API integration for all data operations via `src/blocks/link-page-editor/api/client.js`
+- REST API integration for all data operations via `src/blocks/shared/api/client.js`
 - All management operations handled through Gutenberg block editor, no traditional PHP AJAX handlers
 
 **Public Tracking (REST API)**: Lightweight modules for live page tracking
@@ -613,7 +630,7 @@ add_action( 'extrachill_below_login_register_form', 'ec_render_join_flow_modal' 
 **NPM Integration**: `package.json` provides build scripts and development tooling
 
 **Block Build Process**: Webpack compilation for Gutenberg blocks
-- **Build Command**: `npm run build` or `npm run dev` for development
+- **Build Command**: `npm run build` or `npm run start` for development
 - **Webpack Config**: `webpack.config.js` - Compiles React components and styles
 - **Compiled Output**: `build/blocks/link-page-editor/` - Generated compiled assets
 - **Asset Integration**: Block assets enqueued via `register_block_type()` with auto-detected asset paths
@@ -647,39 +664,39 @@ add_action( 'extrachill_below_login_register_form', 'ec_render_join_flow_modal' 
 #### Key JavaScript Features
 - **React-Based Block Editor**: Gutenberg block components for link page management
 - **Responsive Tab System**: Editor.js provides tab management functionality for management interfaces
-- **Drag-and-Drop**: `sortable.js` - SortableJS integration with touch support
+- **Drag-and-Drop**: dnd-kit-based reordering (see `src/blocks/link-page-editor/components/shared/DraggableList.js`)
 - **REST API Integration**: Centralized API client for all data operations
 - **Modern APIs**: Native Web Share API with social media fallbacks
 - **Context-Aware Loading**: Asset management with conditional enqueuing based on page context
 - **Artist Context Switching**: Seamless multi-artist management with state preservation
 - **Join Flow Modals**: Modal-based user onboarding for account selection
 
- #### Save System Data Flow
- 1. **Gutenberg block editor** manages link page data and updates
- 2. **REST API client** sends updates to server via `src/blocks/link-page-editor/api/client.js`
- 3. **Security validation**: Nonce verification and permission checks
- 4. **Data persistence**: Meta updates and file uploads processed
- 5. **Sync trigger**: Action hooks trigger cross-system data synchronization
- 6. **User feedback**: Editor returns success/error messages
+#### Save System Data Flow
+1. **Gutenberg block editor** manages link page data and updates
+2. **REST API client** sends updates to server via `src/blocks/shared/api/client.js`
+3. **Security validation**: Nonce verification and permission checks
+4. **Data persistence**: Meta updates and file uploads processed
+5. **Sync trigger**: Action hooks trigger cross-system data synchronization
+6. **User feedback**: Editor returns success/error messages
 
- ### FORBIDDEN FALLBACK TYPES
- - Placeholder fallbacks for undefined data that should be required
- - Legacy fallbacks for removed functionality
- - Fallbacks that prevent code failure or hide broken functionality
- - Fallbacks that provide dual support for multiple methods
+### FORBIDDEN FALLBACK TYPES
+- Placeholder fallbacks for undefined data that should be required
+- Legacy fallbacks for removed functionality
+- Fallbacks that prevent code failure or hide broken functionality
+- Fallbacks that provide dual support for multiple methods
 
- ### Planning Standards (Plan Mode)
- - Create a specific and refined plan outlining all explicit changes exactly as they will be implemented
- - Plans must explicitly identify which files and functions to modify, create, or delete
- - When writing todos, always include excessive detail, intermediary steps, and files to modify/create
- - Plans MUST align with existing codebase patterns
- - All code review should be completed before you present the plan
+### Planning Standards (Plan Mode)
+- Create a specific and refined plan outlining all explicit changes exactly as they will be implemented
+- Plans must explicitly identify which files and functions to modify, create, or delete
+- When writing todos, always include excessive detail, intermediary steps, and files to modify/create
+- Plans MUST align with existing codebase patterns
+- All code review should be completed before you present the plan
 
- ### Special Rules
- - All AI models in the codebase are correct. Do not change them.
- - Verify all API documentation using the context7 mcp
+### Special Rules
+- All AI models in the codebase are correct. Do not change them.
+- Verify all API documentation using the context7 mcp
 
- ### Documentation Standards
- - Use concise inline docblocks at the top of files and/or critical functions to explain technicalities for developers
- - Inline comments are reserved strictly for nuanced behavior that is not obvious from the readable code
- - Actively remove outdated documentation, including references to deleted functionality
+### Documentation Standards
+- Use concise inline docblocks at the top of files and/or critical functions to explain technicalities for developers
+- Inline comments are reserved strictly for nuanced behavior that is not obvious from the readable code
+- Actively remove outdated documentation, including references to deleted functionality

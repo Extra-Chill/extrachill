@@ -1,29 +1,26 @@
 # Extra Chill Artist Platform
 
-A comprehensive WordPress plugin that provides artist profile management, link pages, and community features for musicians on the Extra Chill platform.
+A comprehensive WordPress plugin that provides artist profile management, link pages, and block-based management interfaces for musicians on the Extra Chill platform.
 
 ## Features
 
-### 🚀 Join Flow System
-- Complete onboarding flow: user registration → artist profile → link page creation
+### Join Flow System
+- Join entry via `from_join` parameter in the login/register UI
 - Modal interface for existing vs new account selection
-- Automatic artist profile and link page creation during join flow registration (extrachill.link/join)
-- Roster membership auto-assignment for profile owners
-- Transient-based post-registration redirect tracking
+- Post-auth routing to `/create-artist/` or `/manage-link-page/`
+- Transient-based join flow completion tracking
 
-### 🎵 Artist Profiles
+### Artist Profiles
 - Custom post type for artist/band profiles with comprehensive meta data
 - Activity-based artist grid display with smart sorting and context-aware rendering
 - Blog coverage integration linking profiles to main site taxonomy archives
 - Roster management with email invitation system and role assignment
 - Artist directory with user exclusion logic for personalized views
-- Profile manager assignment and centralized permissions
-- Following system with database-backed relationships
 - Unified artist card component for consistent display across pages
 
-### 🔗 Link Pages
-- Custom link page creation with comprehensive management interface via Gutenberg block editor
-- Modern React-based editing interface with live preview
+### Link Pages
+- Custom link page creation with management interface via Gutenberg blocks
+- React-based editing interface with live preview
 - Drag-and-drop link reordering with dnd-kit integration
 - Advanced styling system with custom fonts, colors, backgrounds, and profile image management
 - YouTube video embed support with toggle control
@@ -32,35 +29,28 @@ A comprehensive WordPress plugin that provides artist profile management, link p
 - Link expiration scheduling with automatic deactivation
 - Social platform integration with 15+ platforms including Apple Music, Bandcamp, Bluesky, Pinterest, and more
 - Comprehensive social link management with smart icon validation and URL sanitization
-- Comprehensive click analytics with Chart.js dashboard and automatic data pruning
 
-### 📊 Analytics Dashboard
+### Analytics Dashboard
 - Daily aggregation of page views and link clicks
 - Chart.js-powered visual analytics with date filtering
 - Real-time click tracking with automatic data pruning
 - Export capabilities for comprehensive data analysis
 - Public tracking via REST API with privacy-conscious data collection
 
-### 👥 Subscription Management
+### Subscription Management
 - Modal and inline subscription forms with REST API processing
 - Artist-specific subscriber lists with export tracking
 - Database-backed subscriber management with deduplication
 - Link page and artist profile subscription integration
 - Email marketing workflow integration with export status tracking
 
-### 🔔 Notification System
-- **Artist platform notifications**: Artist platform activity notifications
-- **Custom notification cards**: Specialized rendering via extrachill-community plugin integration
-- **Smart filtering**: Excludes notification author from recipient list automatically
-- **Visual card system**: Font Awesome icons with formatted timestamps and actor avatars
-
-### 🔐 Permission System
+### Permission System
 - Centralized access control via `inc/core/filters/permissions.php`
 - Role-based artist profile management with granular permissions
 - Server-side permission validation with context-aware checks
 - REST API permission validation with comprehensive nonce verification
 - Template-level permission checks using native WordPress authentication
-- Cross-domain authentication managed by extrachill-multisite plugin
+- Cross-domain authentication cookie configuration handled by extrachill-users plugin
 
 ## Requirements
 
@@ -142,7 +132,7 @@ $data = ec_get_link_page_data($artist_id, $link_page_id);
 
 ### React-Based Gutenberg Blocks
 
-The plugin includes three React-based Gutenberg blocks for comprehensive platform management:
+The plugin includes five React-based Gutenberg blocks for comprehensive platform management:
 
 **1. Link Page Editor Block** (`src/blocks/link-page-editor/`)
 - Modern interface for creating and editing artist link pages
@@ -174,9 +164,12 @@ function extrachill_artist_platform_register_blocks() {
     register_block_type( __DIR__ . '/build/blocks/link-page-editor' );
     register_block_type( __DIR__ . '/build/blocks/link-page-analytics' );
     register_block_type( __DIR__ . '/build/blocks/artist-profile-manager' );
+    register_block_type( __DIR__ . '/build/blocks/artist-creator' );
+    register_block_type( __DIR__ . '/build/blocks/artist-shop-manager' );
 }
 add_action( 'init', 'extrachill_artist_platform_register_blocks' );
 ```
+
 
 **Features**:
 - **React Components**: Tab-based interfaces with context-specific functionality
@@ -190,7 +183,7 @@ add_action( 'init', 'extrachill_artist_platform_register_blocks' );
 **Building the Blocks**:
 ```bash
 # Development build with watch mode
-npm run dev
+npm run start
 
 # Production build
 npm run build
@@ -199,6 +192,8 @@ npm run build
 build/blocks/link-page-editor/
 build/blocks/link-page-analytics/
 build/blocks/artist-profile-manager/
+build/blocks/artist-creator/
+build/blocks/artist-shop-manager/
 ```
 
 ### Public Tracking (REST API)
@@ -483,7 +478,7 @@ Link page configuration stored as post meta:
 
 - **Gutenberg Block Editor**: Modern React-based interface for WordPress block editor with full feature parity
 - **Artist Grid System**: Activity-based sorting with comprehensive timestamp calculation
-- **Drag-and-Drop Interface**: SortableJS-powered link reordering with real-time live preview updates
+- **Drag-and-Drop Interface**: dnd-kit-powered link reordering with real-time preview updates
 - **Link Expiration System**: Time-based link scheduling with automatic deactivation and preview integration
 - **Artist Context Switching**: Multi-artist management with seamless state preservation
 - **Centralized Data Provider**: Single source of truth via `ec_get_link_page_data()` with live preview support
@@ -635,9 +630,6 @@ inc/
 │   └── assets/
 │       ├── css/join-flow.css         # Join flow styles
 │       └── js/join-flow-ui.js        # Modal interaction handling
-├── notifications/                    # Notification system
-│   ├── artist-notifications.php        # Artist platform notifications
-│   └── artist-notification-cards.php   # Notification card rendering
 ├── home/                            # Homepage functionality
 │   ├── homepage-hooks.php              # Centralized hook registrations
 │   ├── homepage-artist-card-actions.php # Card rendering actions
@@ -748,7 +740,7 @@ The plugin includes a comprehensive build system with Webpack for compiling Reac
 **Build Commands**:
 ```bash
 # Development build with watch mode
-npm run dev
+npm run start
 
 # Production build
 npm run build
@@ -765,7 +757,7 @@ npm run build
 {
   "scripts": {
     "build": "wp-scripts build",
-    "dev": "wp-scripts start",
+    "start": "wp-scripts start",
     "lint": "wp-scripts lint-js src",
     "format": "wp-scripts format"
   }

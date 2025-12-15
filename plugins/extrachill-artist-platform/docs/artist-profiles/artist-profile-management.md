@@ -4,6 +4,27 @@ Comprehensive system for creating, managing, and displaying artist profiles with
 
 ## Artist Profile Creation
 
+### Artist Creator Block
+
+**Location**: `src/blocks/artist-creator/`
+
+Modern React-based Gutenberg block providing guided artist profile creation interface.
+
+**Block Features**:
+- Guided artist profile creation with user permission checks
+- Profile metadata initialization (name, biography, images)
+- User prefill from authenticated context
+- Automatic link page creation for new profiles
+- REST API integration for save operations
+- Post-auth routing context awareness
+
+**Integration Points**:
+- Accessible at `/create-artist/` management page
+- Automatically triggered by join flow for new/unpermissioned users
+- Uses centralized save system via `ec_handle_artist_profile_save()`
+
+**Block Registration**: Registered on `artist_profile` post type via `register_block_type( __DIR__ . '/build/blocks/artist-creator' )`
+
 ### Profile Data Structure
 
 Artist profiles store essential information:

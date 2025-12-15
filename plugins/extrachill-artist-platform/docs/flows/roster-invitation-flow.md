@@ -1,6 +1,6 @@
 # Roster Invitation Flow Diagram
 
-Flow showing how roster members are invited, accept invitations, and get synchronized with community forums.
+Flow showing how roster members are invited and accept invitations.
 
 ## Roster Invitation & Acceptance Flow
 
@@ -23,15 +23,9 @@ START: Artist owner invites roster member
   │  └─ Email Template: inc/artist-profiles/roster/artist-invitation-emails.php
   │
   ├─ INVITATION DATA STORED
-  │  ├─ Database Table: {prefix}_artist_invitations
-  │  ├─ Stored Fields:
-  │  │  ├─ artist_id: Target artist
-  │  │  ├─ recipient_email: Invited email
-  │  │  ├─ token: Unique acceptance token
-  │  │  ├─ status: 'pending' | 'accepted' | 'declined'
-  │  │  ├─ sent_date: Invitation timestamp
-  │  │  └─ expires_at: Token expiration
-  │  └─ Function: ec_create_roster_invitation()
+  │  ├─ Stored on artist profile post meta
+  │  ├─ Meta key: `_pending_invitations`
+  │  └─ Token + recipient email tracked per invitation
   │
   ├─ RECIPIENT RECEIVES EMAIL
   │  ├─ Email arrives from artist@extrachill.com
@@ -39,21 +33,14 @@ START: Artist owner invites roster member
   │  │  ├─ Personalized greeting
   │  │  ├─ Artist name and bio
   │  │  ├─ "Accept Invitation" button/link
-  │  │  └─ Link format: extrachill.link/roster-accept/{token}
+  │  │  └─ Link format: artist profile URL with query args (`action=bp_accept_invite&token=...&artist_id=...`)
   │  └─ Button also includes expiration warning if close to expiry
   │
   ├─ RECIPIENT CLICKS INVITATION LINK
-  │  ├─ Link redirects to: extrachill.link/roster-accept/{token}
-  │  ├─ sunrise.php maps to: artist.extrachill.com/roster-accept/{token}
-  │  ├─ Validate token:
-  │  │  ├─ Check token exists in database
-  │  │  ├─ Check status is 'pending'
-  │  │  └─ Check not expired
-  │  ├─ IF invalid/expired:
-  │  │  └─ Display error, offer to resend
-  │  └─ IF valid:
-  │     ├─ Check if recipient has account
-  │     └─ Proceed to acceptance
+  │  ├─ Link resolves to the artist profile URL
+  │  ├─ Query args include token + artist ID
+  │  ├─ Token validated against `_pending_invitations`
+  │  └─ Acceptance requires the invited user to be authenticated
   │
   ├─ ACCOUNT CHECK
   │  ├─ Query: user_exists($recipient_email)
@@ -61,39 +48,16 @@ START: Artist owner invites roster member
   │  │  ├─ Prompt login with pre-filled email
   │  │  └─ After login, auto-accept invitation
   │  └─ IF no account:
-  │     ├─ Show registration form
-  │     ├─ Create account on community.extrachill.com
-  │     └─ Auto-accept invitation after registration
+  │     ├─ User registers (site-managed)
+  │     └─ After login, invitation can be accepted
   │
   ├─ INVITATION ACCEPTANCE
-  │  ├─ Function: ec_accept_roster_invitation($token, $user_id)
-  │  ├─ Database Updates:
-  │  │  ├─ Set invitation status to 'accepted'
-  │  │  ├─ Record acceptance timestamp
-  │  │  └─ Store accepting user_id
-  │  ├─ Roster Membership Created:
-  │  │  ├─ Insert into artist_roster table
-  │  │  ├─ Fields:
-  │  │  │  ├─ artist_id: Target artist
-  │  │  │  ├─ user_id: Accepted member
-  │  │  │  ├─ role: 'member' (invited members get member role)
-  │  │  │  ├─ joined_date: Current timestamp
-  │  │  │  └─ status: 'active'
-  │  │  └─ Fire action: do_action('extrachill_roster_member_added', $artist_id, $user_id)
-  │  └─ Send confirmation email to inviter
-  │
-  ├─ FORUM SYNCHRONIZATION (AUTOMATIC)
-  │  ├─ Listener: add_action('extrachill_roster_member_added', ...)
-  │  ├─ Switch to Blog ID 2 (community.extrachill.com)
-  │  ├─ Get forum_id from artist meta: 'community_forum_id'
-  │  ├─ Add member to forum:
-  │  │  ├─ Function: bbp_add_user_to_group($user_id, $forum_id)
-  │  │  └─ Grant 'bbp_participant' role
-  │  ├─ Member can now:
-  │  │  ├─ View forum topics
-  │  │  ├─ Post replies
-  │  │  └─ Access member-only areas
-  │  └─ Member receives notification of forum access
+  │  ├─ Invitation acceptance is handled via query args on the artist profile page
+  │  ├─ Token lookup happens in `_pending_invitations`
+  │  ├─ On success:
+  │  │  ├─ User is linked to the artist roster
+  │  │  └─ Pending invite is removed from `_pending_invitations`
+  │  └─ Confirmation email is sent
   │
   ├─ LINK PAGE ACCESS GRANT
   │  ├─ Roster members (except owner) are 'editors'
@@ -110,7 +74,7 @@ START: Artist owner invites roster member
   │  ├─ Content:
   │  │  ├─ "{Member Name} accepted your roster invitation"
   │  │  ├─ Member now has access to shared areas
-  │  │  ├─ Link to forum
+  │  │  ├─ Link to artist profile
   │  │  └─ Option to remove member if needed
   │  └─ Function: ec_send_acceptance_notification()
   │
@@ -119,7 +83,7 @@ START: Artist owner invites roster member
   │  ├─ Content:
   │  │  ├─ Welcome to {Artist Name} roster
   │  │  ├─ Overview of permissions and access
-  │  │  ├─ Link to community forum
+  │  │  ├─ Link to artist profile
   │  │  ├─ Link to link page editor
   │  │  └─ Additional resources
   │  └─ Function: ec_send_roster_welcome_email()
@@ -127,10 +91,8 @@ START: Artist owner invites roster member
   ├─ ROSTER ACCESS UPDATE
   │  ├─ Member can immediately access:
   │  │  ├─ Shared link page in WordPress editor
-  │  │  ├─ Artist forum on community.extrachill.com
-  │  │  ├─ Link page analytics dashboard
-  │  │  └─ Roster member directory
-  │  └─ Single sign-on across sites via cookies
+  │  │  └─ Link page analytics dashboard
+  │  └─ Permissions are enforced by the centralized permission system
   │
   ├─ OPTIONAL: INVITATION DECLINED
   │  ├─ Member clicks "Decline" in email or link
@@ -156,55 +118,24 @@ START: Artist owner invites roster member
 ```
 WordPress User (multisite)
 ├─ Created OR Retrieved (if already exists)
-├─ Email: invited@example.com
-└─ Access Granted: artist.extrachill.com + community.extrachill.com
+└─ Email: invited@example.com
 
-Artist Invitations Table
-├─ artist_id: 123
-├─ recipient_email: invited@example.com
-├─ token: abc123def456... (unique, random)
-├─ status: 'accepted'
-├─ sent_date: 2024-01-15 10:30:00
-├─ accepted_date: 2024-01-15 14:22:00
-└─ invited_by_user_id: (owner)
-
-Artist Roster Table
-├─ artist_id: 123
-├─ user_id: (accepted member)
-├─ role: 'member' (or 'owner' for artist account holder)
-├─ joined_date: 2024-01-15 14:22:00
-└─ status: 'active'
-
-bbPress Forum Membership (Blog ID 2)
-├─ forum_id: (artist forum)
-├─ user_id: (accepted member)
-├─ role: 'bbp_participant'
-└─ access: Full forum read/write
+Artist Profile Post Meta
+├─ `_pending_invitations`: stores pending invite tokens + recipient emails
+└─ `_artist_roster_members`: stores accepted roster members
 ```
 
 ## Permission Levels After Acceptance
 
 ```
 OWNER (original artist creator)
-├─ Edit link page (all aspects)
-├─ Manage appearance and settings
-├─ Invite/remove roster members
-├─ View full analytics
-├─ Manage forum (moderator)
-└─ Delete link page
+├─ Manage link page
+├─ Manage artist profile
+└─ Invite/remove roster members
 
 MEMBER (invited roster member)
-├─ Edit link items (URLs, images, text)
-├─ View link page in draft/preview
-├─ View basic analytics
-├─ Post in artist forum
-├─ View roster members
-└─ Cannot:
-   ├─ Invite new members
-   ├─ Edit appearance/settings
-   ├─ Moderate forum
-   ├─ Change permissions
-   └─ Delete link page
+├─ Manage link page (as granted)
+└─ View roster members
 ```
 
 ## Error Handling

@@ -27,38 +27,9 @@ function extrch_link_page_custom_head( $artist_id, $link_page_id ) {
         echo '<link rel="apple-touch-icon" href="' . esc_url( $site_icon_url ) . '">';
     }
 
-    $theme_uri = EXTRACHILL_ARTIST_PLATFORM_PLUGIN_URL;
-    $theme_dir = EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR;
-
-    $extrch_links_css_path = 'assets/css/extrch-links.css';
-    $share_modal_css_path = 'assets/css/extrch-share-modal.css';
-
-    if ( file_exists( $theme_dir . $extrch_links_css_path ) ) {
-        echo '<link rel="stylesheet" href="' . esc_url( $theme_uri . $extrch_links_css_path ) . '?ver=' . esc_attr( filemtime( $theme_dir . $extrch_links_css_path ) ) . '">';
-    }
-    if ( file_exists( $theme_dir . $share_modal_css_path ) ) {
-        echo '<link rel="stylesheet" href="' . esc_url( $theme_uri . $share_modal_css_path ) . '?ver=' . esc_attr( filemtime( $theme_dir . $share_modal_css_path ) ) . '">';
-    }
-
-    echo '<link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">';
-
-    $share_modal_js_path = 'inc/link-pages/live/assets/js/extrch-share-modal.js';
-    if (file_exists($theme_dir . $share_modal_js_path)) {
-        echo '<script src="' . esc_url($theme_uri . $share_modal_js_path) . '?ver=' . esc_attr(filemtime($theme_dir . $share_modal_js_path)) . '" defer></script>';
-    }
-
-    $subscribe_js_path = 'inc/link-pages/live/assets/js/link-page-subscribe.js';
-    if (file_exists($theme_dir . $subscribe_js_path)) {
-        echo '<script src="' . esc_url($theme_uri . $subscribe_js_path) . '?ver=' . esc_attr(filemtime($theme_dir . $subscribe_js_path)) . '" defer></script>';
-        echo '<script>var extrchSubscribeData = { restUrl: "' . esc_url(rest_url('extrachill/v1/artist/subscribe')) . '" };</script>';
-    }
-
-    $edit_button_js_path = 'inc/link-pages/live/assets/js/link-page-edit-button.js';
-    if ( file_exists( $theme_dir . $edit_button_js_path ) ) {
-        echo '<script src="' . esc_url( $theme_uri . $edit_button_js_path ) . '?ver=' . esc_attr( filemtime( $theme_dir . $edit_button_js_path ) ) . '" defer></script>';
-    }
-
-    echo '<style>body{margin:0;padding:0;}</style>';
+    // Link page assets are enqueued via extrch_link_page_minimal_head.
+    // These templates bypass wp_head(), so styles are printed below
+    // via wp_print_styles() after the enqueue hook fires.
 
     $data = ec_get_link_page_data( $artist_id, $link_page_id );
     $final_vars = $data['css_vars'];
@@ -87,7 +58,8 @@ function extrch_link_page_custom_head( $artist_id, $link_page_id ) {
         echo '<style>' . $local_fonts_css . '</style>';
     }
 
-    do_action('extrch_link_page_minimal_head', $link_page_id, $artist_id);
+    do_action( 'extrch_link_page_minimal_head', $link_page_id, $artist_id );
+    wp_print_styles();
 
     $meta_pixel_id = $data['settings']['meta_pixel_id'] ?? '';
     if (!empty($meta_pixel_id) && ctype_digit($meta_pixel_id)) {

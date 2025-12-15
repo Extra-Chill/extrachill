@@ -180,34 +180,6 @@ function extrachill_handle_link_click_db_write( $link_page_id, $link_url, $link_
 }
 
 
-/**
- * Enqueues tracking script for link page analytics (views and clicks)
- */
-function extrch_enqueue_public_tracking_script( $link_page_id, $artist_id ) {
-    $plugin_dir = EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR;
-    $plugin_uri = EXTRACHILL_ARTIST_PLATFORM_PLUGIN_URL;
-    $tracking_js_path = 'inc/link-pages/live/assets/js/link-page-public-tracking.js';
-
-    if ( ! file_exists( $plugin_dir . $tracking_js_path ) ) {
-        return;
-    }
-
-    $script_handle = 'extrch-public-tracking';
-    wp_enqueue_script(
-        $script_handle,
-        $plugin_uri . $tracking_js_path,
-        array(),
-        filemtime( $plugin_dir . $tracking_js_path ),
-        true
-    );
-
-    wp_localize_script( $script_handle, 'extrchTrackingData', array(
-        'clickRestUrl' => rest_url( 'extrachill/v1/analytics/link-click' ),
-        'viewRestUrl'  => rest_url( 'extrachill/v1/analytics/view' ),
-        'link_page_id' => $link_page_id,
-    ) );
-}
-add_action('extrch_link_page_minimal_head', 'extrch_enqueue_public_tracking_script', 10, 2);
 
 /**
  * Prunes analytics data older than 90 days

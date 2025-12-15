@@ -3,8 +3,11 @@ import { render } from '@wordpress/element';
 import ArtistSwitcher from '../shared/components/ArtistSwitcher';
 import {
 	createShopProduct,
+	createStripeConnectDashboardLink,
+	createStripeConnectOnboardingLink,
 	deleteMedia,
 	deleteShopProduct,
+	getStripeConnectStatus,
 	listShopProducts,
 	updateShopProduct,
 	uploadMedia,
@@ -43,7 +46,6 @@ const emptyDraft = ( artistId ) => ( {
 	sale_price: '',
 	manage_stock: false,
 	stock_quantity: 0,
-	short_description: '',
 	description: '',
 } );
 
@@ -52,25 +54,35 @@ const ProductsTab = ( {
 	products,
 	loading,
 	error,
+	stripeStatus,
+	onOpenPayments,
 	onRefresh,
 } ) => {
 	const [ draft, setDraft ] = useState( emptyDraft( artistId ) );
 	const [ editingId, setEditingId ] = useState( 0 );
 	const [ saving, setSaving ] = useState( false );
 	const [ localError, setLocalError ] = useState( '' );
+	const [ showForm, setShowForm ] = useState( false );
+	const [ pendingImageFile, setPendingImageFile ] = useState( null );
 
 	useEffect( () => {
 		setDraft( emptyDraft( artistId ) );
 		setEditingId( 0 );
 		setLocalError( '' );
+		setShowForm( false );
+		setPendingImageFile( null );
 	}, [ artistId ] );
 
 	const artistProducts = useMemo( () => {
 		return products.filter( ( p ) => ( p.artist_id || 0 ) === ( artistId || 0 ) );
 	}, [ products, artistId ] );
 
+	const canReceivePayments = !! stripeStatus?.can_receive_payments;
+
 	const startEdit = ( product ) => {
 		setEditingId( product.id );
+		setShowForm( true );
+		setPendingImageFile( null );
 		setDraft( {
 			artist_id: product.artist_id || artistId,
 			name: product.name || '',
@@ -78,7 +90,6 @@ const ProductsTab = ( {
 			sale_price: product.sale_price || '',
 			manage_stock: !! product.manage_stock,
 			stock_quantity: product.stock_quantity || 0,
-			short_description: product.short_description || '',
 			description: product.description || '',
 		} );
 	};
@@ -87,6 +98,8 @@ const ProductsTab = ( {
 		setEditingId( 0 );
 		setDraft( emptyDraft( artistId ) );
 		setLocalError( '' );
+		setShowForm( false );
+		setPendingImageFile( null );
 	};
 
 	const save = async () => {
@@ -116,14 +129,20 @@ const ProductsTab = ( {
 				sale_price: draft.sale_price ? parseFloat( draft.sale_price ) : 0,
 				manage_stock: !! draft.manage_stock,
 				stock_quantity: draft.manage_stock ? parseInt( draft.stock_quantity, 10 ) || 0 : 0,
-				short_description: draft.short_description,
 				description: draft.description,
 			};
 
 			if ( editingId ) {
 				await updateShopProduct( editingId, payload );
+				if ( pendingImageFile ) {
+					await uploadFeatured( editingId, pendingImageFile );
+				}
 			} else {
-				await createShopProduct( payload );
+				const created = await createShopProduct( payload );
+				const createdId = created?.id;
+				if ( createdId && pendingImageFile ) {
+					await uploadFeatured( createdId, pendingImageFile );
+				}
 			}
 
 			await onRefresh();
@@ -177,12 +196,44 @@ const ProductsTab = ( {
 		}
 	};
 
+	const activeProduct = useMemo( () => {
+		if ( ! editingId ) {
+			return null;
+		}
+		return artistProducts.find( ( p ) => p.id === editingId ) || null;
+	}, [ artistProducts, editingId ] );
+
+	const onPickImageForDraft = ( e ) => {
+		const file = e.target.files?.[ 0 ];
+		setPendingImageFile( file || null );
+	};
+
+	const startNew = () => {
+		setShowForm( true );
+		setEditingId( 0 );
+		setDraft( emptyDraft( artistId ) );
+		setPendingImageFile( null );
+		setLocalError( '' );
+	};
+
 	return (
 		<div className="ec-asm__panel">
 			<h3>Products</h3>
 			{ loading && <p>Loading</p> }
 			{ error && <p className="notice notice-error">{ error }</p> }
 			{ localError && <div className="notice notice-error"><p>{ localError }</p></div> }
+			{ artistId && ! canReceivePayments && (
+				<div className="notice notice-info">
+					<p>
+						<strong>Note:</strong> Connect Stripe in the Payments tab before products can go live.
+					</p>
+					{ typeof onOpenPayments === 'function' && (
+						<button type="button" className="button-2 button-small" onClick={ onOpenPayments }>
+							Go to Payments
+						</button>
+					) }
+				</div>
+			) }
 
 			<div className="ec-asm__products">
 				{ artistProducts.map( ( product ) => (
@@ -197,7 +248,6 @@ const ProductsTab = ( {
 							<div className="ec-asm__muted">
 								${ product.sale_price || product.price } { product.status }
 							</div>
-
 						</div>
 						<div className="ec-asm__actions">
 							<button
@@ -207,29 +257,6 @@ const ProductsTab = ( {
 								disabled={ saving }
 							>
 								Edit
-							</button>
-							<label className="button-2 button-small">
-								<input
-									type="file"
-									accept="image/*"
-									onChange={ ( e ) => {
-										const file = e.target.files?.[ 0 ];
-										if ( file ) {
-											uploadFeatured( product.id, file );
-										}
-									} }
-									disabled={ saving }
-									style={ { display: 'none' } }
-								/>
-								Upload Image
-							</label>
-							<button
-								type="button"
-								className="button-2 button-small"
-								onClick={ () => removeFeatured( product.id ) }
-								disabled={ saving }
-							>
-								Remove Image
 							</button>
 							<button
 								type="button"
@@ -242,20 +269,61 @@ const ProductsTab = ( {
 						</div>
 					</div>
 				) ) }
-				{ ! loading && artistProducts.length === 0 && <p>No products yet.</p> }
 			</div>
 
-			<div className="ec-asm__panel">
-				<h3>{ editingId ? 'Edit Product' : 'New Product' }</h3>
-				<div className="ec-asm__form">
-					<label className="ec-asm__field">
-						<span>Name *</span>
-						<input
-							type="text"
-							value={ draft.name }
-							onChange={ ( e ) => setDraft( ( prev ) => ( { ...prev, name: e.target.value } ) ) }
-						/>
-					</label>
+			{ ! loading && artistProducts.length === 0 && ! showForm && (
+				<div className="ec-asm__panel">
+					<p>No products yet.</p>
+					<button type="button" className="button-1 button-medium" onClick={ startNew }>
+						Create your first product
+					</button>
+				</div>
+			) }
+
+			{ showForm && (
+				<div className="ec-asm__panel">
+					<h3>{ editingId ? 'Edit Product' : 'New Product' }</h3>
+					<div className="ec-asm__form">
+						<label className="ec-asm__field">
+							<span>Name *</span>
+							<input
+								type="text"
+								value={ draft.name }
+								onChange={ ( e ) => setDraft( ( prev ) => ( { ...prev, name: e.target.value } ) ) }
+							/>
+						</label>
+
+						<div className="ec-asm__image">
+							<h4>Product Image</h4>
+							<div className="ec-asm__actions">
+								<label className="button-2 button-small">
+									<input
+										className="ec-asm__file-input"
+										type="file"
+										accept="image/*"
+										onChange={ onPickImageForDraft }
+										disabled={ saving }
+									/>
+									{ editingId ? 'Upload / Replace Image' : 'Choose Image' }
+								</label>
+								{ editingId ? (
+									<button
+										type="button"
+										className="button-2 button-small"
+										onClick={ () => removeFeatured( editingId ) }
+										disabled={ saving }
+									>
+										Remove Image
+									</button>
+								) : null }
+							</div>
+							{ editingId && activeProduct?.image?.url ? (
+								<img className="ec-asm__image-preview" src={ activeProduct.image.url } alt="" />
+							) : null }
+							{ ! editingId && pendingImageFile ? (
+								<p className="ec-asm__muted">Selected: { pendingImageFile.name }</p>
+							) : null }
+						</div>
 
 					<div className="ec-asm__row">
 						<label className="ec-asm__field">
@@ -282,8 +350,7 @@ const ProductsTab = ( {
 						</label>
 					</div>
 
-					<label className="ec-asm__field">
-						<span>Manage Stock</span>
+					<label>
 						<input
 							type="checkbox"
 							checked={ !! draft.manage_stock }
@@ -294,6 +361,7 @@ const ProductsTab = ( {
 								} ) )
 							}
 						/>
+						Manage Stock
 					</label>
 
 					{ draft.manage_stock && (
@@ -308,17 +376,6 @@ const ProductsTab = ( {
 							/>
 						</label>
 					) }
-
-					<label className="ec-asm__field">
-						<span>Short Description</span>
-						<textarea
-							rows={ 3 }
-							value={ draft.short_description }
-							onChange={ ( e ) =>
-								setDraft( ( prev ) => ( { ...prev, short_description: e.target.value } ) )
-							}
-						/>
-					</label>
 
 					<label className="ec-asm__field">
 						<span>Description</span>
@@ -353,9 +410,86 @@ const ProductsTab = ( {
 					</div>
 				</div>
 			</div>
+			) }
 		</div>
 	);
 };
+
+const PaymentsTab = ( {
+	artistId,
+	status,
+	loading,
+	error,
+	onConnect,
+	onOpenDashboard,
+	onRefresh,
+} ) => {
+	const connected = !! status?.connected;
+	const canReceivePayments = !! status?.can_receive_payments;
+
+	return (
+		<div className="ec-asm__panel ec-asm__payments">
+			<h3>Payments</h3>
+			<p className="ec-asm__muted">
+				Products stay as drafts until your Stripe account can receive payments.
+			</p>
+
+			{ loading && <p>Loading</p> }
+			{ error && <div className="notice notice-error"><p>{ error }</p></div> }
+
+			{ artistId ? (
+				<div className="ec-asm__stripe">
+					<div className="ec-asm__stripe-status">
+						<div>
+							<strong>Status:</strong> { connected ? ( status?.status || 'connected' ) : 'not connected' }
+						</div>
+						{ connected ? (
+							<ul>
+								<li>Charges enabled: { status?.charges_enabled ? 'yes' : 'no' }</li>
+								<li>Payouts enabled: { status?.payouts_enabled ? 'yes' : 'no' }</li>
+								<li>Details submitted: { status?.details_submitted ? 'yes' : 'no' }</li>
+								<li>Can receive payments: { canReceivePayments ? 'yes' : 'no' }</li>
+							</ul>
+						) : null }
+					</div>
+
+					<div className="ec-asm__actions">
+						{ ! connected ? (
+							<button
+								type="button"
+								className="button-1 button-medium"
+								onClick={ onConnect }
+								disabled={ loading }
+							>
+								Connect Stripe
+							</button>
+						) : (
+							<button
+								type="button"
+								className="button-2 button-medium"
+								onClick={ onOpenDashboard }
+								disabled={ loading }
+							>
+								Open Stripe Dashboard
+							</button>
+						) }
+						<button
+							type="button"
+							className="button-2 button-medium"
+							onClick={ onRefresh }
+							disabled={ loading }
+						>
+							Refresh Status
+						</button>
+					</div>
+				</div>
+			) : (
+				<p>Select an artist to manage payments.</p>
+			) }
+		</div>
+	);
+};
+
 
 const App = () => {
 	const config = useConfig();
@@ -364,8 +498,17 @@ const App = () => {
 	const [ products, setProducts ] = useState( [] );
 	const [ loading, setLoading ] = useState( false );
 	const [ error, setError ] = useState( '' );
+	const [ stripeStatus, setStripeStatus ] = useState( null );
+	const [ stripeLoading, setStripeLoading ] = useState( false );
+	const [ stripeError, setStripeError ] = useState( '' );
 
-	const tabs = useMemo( () => [ { id: 'products', label: 'Products' } ], [] );
+	const tabs = useMemo(
+		() => [
+			{ id: 'products', label: 'Products' },
+			{ id: 'payments', label: 'Payments' },
+		],
+		[]
+	);
 
 	const load = useCallback( async () => {
 		setLoading( true );
@@ -380,13 +523,82 @@ const App = () => {
 		}
 	}, [] );
 
+	const loadStripe = useCallback( async () => {
+		if ( ! artistId ) {
+			setStripeStatus( null );
+			setStripeError( '' );
+			return;
+		}
+
+		setStripeLoading( true );
+		setStripeError( '' );
+		try {
+			const data = await getStripeConnectStatus( artistId );
+			setStripeStatus( data || null );
+		} catch ( err ) {
+			setStripeError( err?.message || 'Could not load Stripe status.' );
+			setStripeStatus( null );
+		} finally {
+			setStripeLoading( false );
+		}
+	}, [ artistId ] );
+
 	useEffect( () => {
 		load();
 	}, [ load ] );
 
+	useEffect( () => {
+		loadStripe();
+	}, [ loadStripe ] );
+
 	const onArtistChange = useCallback( ( newId ) => {
 		setArtistId( newId );
 	}, [] );
+
+	const openPaymentsTab = useCallback( () => {
+		setActiveTab( 'payments' );
+	}, [] );
+
+	const connectStripe = useCallback( async () => {
+		if ( ! artistId ) {
+			setStripeError( 'Select an artist first.' );
+			return;
+		}
+		setStripeLoading( true );
+		setStripeError( '' );
+		try {
+			const data = await createStripeConnectOnboardingLink( artistId );
+			const url = data?.url;
+			if ( ! url ) {
+				throw new Error( 'Onboarding link missing.' );
+			}
+			window.location.assign( url );
+		} catch ( err ) {
+			setStripeError( err?.message || 'Could not start Stripe onboarding.' );
+			setStripeLoading( false );
+		}
+	}, [ artistId ] );
+
+	const openStripeDashboard = useCallback( async () => {
+		if ( ! artistId ) {
+			setStripeError( 'Select an artist first.' );
+			return;
+		}
+		setStripeLoading( true );
+		setStripeError( '' );
+		try {
+			const data = await createStripeConnectDashboardLink( artistId );
+			const url = data?.url;
+			if ( ! url ) {
+				throw new Error( 'Dashboard link missing.' );
+			}
+			window.open( url, '_blank', 'noopener,noreferrer' );
+		} catch ( err ) {
+			setStripeError( err?.message || 'Could not open Stripe dashboard.' );
+		} finally {
+			setStripeLoading( false );
+		}
+	}, [ artistId ] );
 
 	return (
 		<div className="ec-asm">
@@ -408,7 +620,21 @@ const App = () => {
 					products={ products }
 					loading={ loading }
 					error={ error }
+					stripeStatus={ stripeStatus }
+					onOpenPayments={ openPaymentsTab }
 					onRefresh={ load }
+				/>
+			) }
+
+			{ activeTab === 'payments' && (
+				<PaymentsTab
+					artistId={ artistId }
+					status={ stripeStatus }
+					loading={ stripeLoading }
+					error={ stripeError }
+					onConnect={ connectStripe }
+					onOpenDashboard={ openStripeDashboard }
+					onRefresh={ loadStripe }
 				/>
 			) }
 		</div>

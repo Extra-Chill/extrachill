@@ -5,6 +5,33 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.1] - 2025-12-15
+
+### Added
+- **Stripe Connect Integration**: Artist Shop Manager now supports Stripe Connect payment onboarding with status checking and dashboard access
+- **Shop Product Images**: Featured image uploads for shop products with improved media handling
+- **Minimal Head Assets Module**: New centralized asset enqueuing system (`inc/link-pages/live/minimal-head-assets.php`) for public link page assets
+
+### Changed
+- **Asset Organization**: Refactored link page asset enqueuing from inline logic in `link-page-head.php` to dedicated `minimal-head-assets.php` module
+- **Shop Products Data**: Removed `short_description` field from shop product data structure (consolidated to `description`)
+- **Analytics Architecture**: Moved public tracking script enqueuing to minimal-head-assets module for better centralization
+- **API Client Extension**: Enhanced `src/blocks/shared/api/client.js` with Stripe Connect status and onboarding endpoints
+
+### Fixed
+- **Asset Enqueuing Order**: Link page styles now properly enqueued via `wp_print_styles()` after `extrch_link_page_minimal_head` hook fires
+- **Shop Product Creation**: Fixed image upload workflow to handle images for both new and existing products
+
+### Removed
+- **Legacy Edit Button Enqueuing**: Deleted `inc/link-pages/live/edit-button.php` (functionality consolidated into minimal-head-assets module)
+- **Public Tracking Enqueuing**: Removed `extrch_enqueue_public_tracking_script()` from analytics.php (now handled by minimal-head-assets)
+
+### Technical Improvements
+- **Better Separation of Concerns**: Public link page assets now centrally managed in single module
+- **Enhanced Shop Manager**: Improved product creation/update flow with Stripe Connect payment gating
+- **Code Organization**: Cleaner asset management reducing duplication and improving maintainability
+- **Documentation**: Removed out-of-scope community integration documentation (replaced with integration guidance)
+
 ## [1.3.1] - 2025-12-12
 
 ### Changed

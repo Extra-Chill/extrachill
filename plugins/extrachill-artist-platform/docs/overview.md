@@ -23,22 +23,26 @@ The platform consists of two primary custom post types:
 - Built-in thumbnail support and custom fields
 
 ### Management Systems
-- **Join Flow**: Complete user onboarding with automatic artist profile and link page creation
+- **Join Flow**: Login/register UX integration via `from_join` parameter with post-auth routing
 - **Link Page Editor Block**: Gutenberg block editor (React-based) for link page management
 - **Artist Profile Manager Block**: Gutenberg block editor (React-based) for artist profile management
 - **Link Page Analytics Block**: Dedicated analytics dashboard via Gutenberg block
-- **Roster Management**: Band member invitation and role assignment system (managed via REST API)
+- **Artist Creator Block**: Guided artist profile creation flow
+- **Artist Shop Manager Block**: Shop product management interface
+- **Roster Management**: Band member invitation and role assignment system
 - **Social Integration**: 15+ social platform support with comprehensive validation
 - **Analytics**: Daily aggregated page views and link click tracking with REST API access
 - **Subscription System**: Email collection with artist association
 
 ### Advanced Features
-- **Three Gutenberg Blocks**: Modern React-based blocks for complete platform management
+- **Five Gutenberg Blocks**: Modern React-based blocks for complete platform management
   - `link-page-editor`: Full link page editing with all features
   - `artist-profile-manager`: Artist profile management and metadata
   - `link-page-analytics`: Analytics dashboard with Chart.js visualization
-- **Cross-Domain Authentication**: WordPress multisite native authentication across `.extrachill.com` subdomains and `extrachill.link` domain
-- **Link Expiration**: Time-based link scheduling and lifecycle management (cron-based)
+  - `artist-creator`: Artist profile creation
+  - `artist-shop-manager`: Shop product management
+- **Cross-Domain Authentication**: WordPress multisite authentication across `.extrachill.com` subdomains and `extrachill.link`
+- **Link Expiration**: Time-based link scheduling and lifecycle management
 - **Asset Management**: Context-aware loading with file existence checks and timestamp cache busting
 - **Webpack Build System**: Automated React component and SCSS compilation for Gutenberg blocks
 
@@ -59,28 +63,27 @@ Dual template architecture:
 
 **Location**: `src/blocks/`
 
-Three React-based Gutenberg blocks providing complete platform management:
-- **link-page-editor**: Complete link page editing interface
+Five React-based Gutenberg blocks providing complete platform management:
+- **link-page-editor**: Link page editing interface
   - Includes TabInfo, TabLinks, TabCustomize, TabAdvanced, TabSocials
-  - Analytics functionality moved to separate block in v1.1.11+
   - Live preview with Context API state management
   - REST API integration for all data operations
-  - Webpack-based build process with wp-scripts tooling
 
 - **link-page-analytics**: Dedicated analytics dashboard
   - Chart.js-powered visualization
   - Daily page views and link click tracking
-  - REST API integration
 
 - **artist-profile-manager**: Artist profile management
-  - Profile information editing
-  - Roster/member management
-  - REST API integration
+  - Profile editing, roster management, subscribers
+
+- **artist-creator**: Artist profile creation flow
+
+- **artist-shop-manager**: Shop product management
 
 **Build Process**:
 ```bash
-npm run build  # Production build
-npm run dev    # Development with watch mode
+npm run build   # Production build
+npm run start   # Development with watch mode
 ```
 
 Compiled assets available at `build/blocks/` for automatic block registration.
