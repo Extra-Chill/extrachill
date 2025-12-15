@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0/).
 
+## [1.2.13] - 2025-12-15
+
+### Added
+- Complete WordPress embed styling system with theme variables and responsive design
+- Asset loading for embed iframes and blocks_everywhere plugin compatibility
+- Support for bbPress embed script loading
+- Number input type styling with spinner removal for better UX
+
+### Changed
+- Author link system now uses `ec_get_user_author_archive_url()` for article bylines with fallback
+- Notice background color refined to neutral gray for better visual hierarchy
+- Icon function code quality improvements and parameter spacing
+
+### Technical
+- Added `assets/css/embed.css` for embed iframe styling
+- Enhanced `inc/core/assets.php` with embed and iframe asset management
+- Updated template router to handle embed pages appropriately
+- Documentation updated to reflect new author URL function usage
+
 ## [1.2.12] - 2025-12-13
 
 ### Added

@@ -360,9 +360,13 @@ if ( function_exists( 'extrachill_multisite_search' ) ) {
     $results = extrachill_multisite_search( get_search_query() );
 }
 
-// User profile URL resolution (extrachill-users plugin)
+// User profile URL helpers (extrachill-users plugin)
 if ( function_exists( 'ec_get_user_profile_url' ) ) {
     $profile_url = ec_get_user_profile_url( $user_id );
+}
+
+if ( function_exists( 'ec_get_user_author_archive_url' ) ) {
+    $author_archive_url = ec_get_user_author_archive_url( $user_id );
 }
 
 // Shared community activity helper (queries both blog ID 2 and 4)

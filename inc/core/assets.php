@@ -50,7 +50,16 @@ function extrachill_enqueue_reading_progress() {
 }
 add_action('wp_enqueue_scripts', 'extrachill_enqueue_reading_progress');
 
+function extrachill_enqueue_wp_embed_for_bbpress() {
+    if ( is_admin() ) {
+        return;
+    }
 
+    if ( function_exists( 'is_bbpress' ) && is_bbpress() ) {
+        wp_enqueue_script( 'wp-embed' );
+    }
+}
+add_action( 'wp_enqueue_scripts', 'extrachill_enqueue_wp_embed_for_bbpress', 20 );
 
 function extrachill_enqueue_root_styles() {
     $css_path = get_stylesheet_directory() . '/assets/css/root.css';
@@ -65,6 +74,33 @@ function extrachill_enqueue_root_styles() {
 }
 add_action( 'wp_enqueue_scripts', 'extrachill_enqueue_root_styles', 5 );
 add_action( 'enqueue_block_assets', 'extrachill_enqueue_root_styles', 5 );
+
+function extrachill_enqueue_embed_iframe_styles() {
+    $root_css_path = get_stylesheet_directory() . '/assets/css/root.css';
+    if ( file_exists( $root_css_path ) ) {
+        if ( ! wp_style_is( 'extrachill-root', 'registered' ) ) {
+            wp_register_style(
+                'extrachill-root',
+                get_stylesheet_directory_uri() . '/assets/css/root.css',
+                array(),
+                filemtime( $root_css_path )
+            );
+        }
+
+        wp_enqueue_style( 'extrachill-root' );
+    }
+
+    $embed_css_path = get_stylesheet_directory() . '/assets/css/embed.css';
+    if ( file_exists( $embed_css_path ) ) {
+        wp_enqueue_style(
+            'extrachill-embed',
+            get_stylesheet_directory_uri() . '/assets/css/embed.css',
+            array( 'extrachill-root' ),
+            filemtime( $embed_css_path )
+        );
+    }
+}
+add_action( 'embed_head', 'extrachill_enqueue_embed_iframe_styles', 11 );
 
 function extrachill_enqueue_taxonomy_badges() {
     $taxonomy_badges_path = get_stylesheet_directory() . '/assets/css/taxonomy-badges.css';
@@ -91,6 +127,37 @@ function extrachill_modify_default_style() {
     );
 }
 add_action('wp_enqueue_scripts', 'extrachill_modify_default_style', 20);
+
+function extrachill_enqueue_blocks_everywhere_iframe_assets() {
+    $root_css_path = get_stylesheet_directory() . '/assets/css/root.css';
+    if ( file_exists( $root_css_path ) ) {
+        if ( ! wp_style_is( 'extrachill-root', 'registered' ) ) {
+            wp_register_style(
+                'extrachill-root',
+                get_stylesheet_directory_uri() . '/assets/css/root.css',
+                array(),
+                filemtime( $root_css_path )
+            );
+        }
+
+        wp_enqueue_style( 'extrachill-root' );
+    }
+
+    $theme_style_path = get_template_directory() . '/style.css';
+    if ( file_exists( $theme_style_path ) ) {
+        if ( ! wp_style_is( 'extrachill-style', 'registered' ) ) {
+            wp_register_style(
+                'extrachill-style',
+                get_stylesheet_uri(),
+                array( 'extrachill-root' ),
+                filemtime( $theme_style_path )
+            );
+        }
+
+        wp_enqueue_style( 'extrachill-style' );
+    }
+}
+add_action( 'blocks_everywhere_enqueue_iframe_assets', 'extrachill_enqueue_blocks_everywhere_iframe_assets' );
 
 function extrachill_enqueue_single_post_styles() {
     if ( is_singular( array( 'post', 'newsletter', 'festival_wire' ) ) ) {
