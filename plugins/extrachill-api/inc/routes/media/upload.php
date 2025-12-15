@@ -158,7 +158,6 @@ function extrachill_api_media_permission_check( WP_REST_Request $request ) {
 
 			$product = wc_get_product( $target_id );
 			if ( ! $product ) {
-				restore_current_blog();
 				return new WP_Error(
 					'product_not_found',
 					'Product not found.',
@@ -167,9 +166,9 @@ function extrachill_api_media_permission_check( WP_REST_Request $request ) {
 			}
 
 			// Check if product belongs to user's artist
-			$product_artist_id = $product->get_meta( '_artist_id' );
+			$product_artist_id = get_post_meta( $target_id, '_artist_profile_id', true );
 			if ( $product_artist_id && function_exists( 'ec_can_manage_artist' ) ) {
-				$can_manage = ec_can_manage_artist( $user_id, $product_artist_id );
+				$can_manage = ec_can_manage_artist( $user_id, (int) $product_artist_id );
 			}
 		} finally {
 			restore_current_blog();

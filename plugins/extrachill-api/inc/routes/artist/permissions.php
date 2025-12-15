@@ -11,21 +11,27 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-add_action( 'rest_api_init', function () {
-	register_rest_route( 'extrachill/v1', '/artist/permissions', array(
-		'methods'             => 'GET',
-		'callback'            => 'ec_api_check_artist_permissions',
-		'permission_callback' => '__return_true', // Public endpoint, auth handled via cookies
-		'args'                => array(
-			'artist_id' => array(
-				'required'          => true,
-				'validate_callback' => function( $param ) {
-					return is_numeric( $param ) && (int) $param > 0;
-				},
+add_action( 'extrachill_api_register_routes', 'extrachill_api_register_artist_permissions_route' );
+
+function extrachill_api_register_artist_permissions_route() {
+	register_rest_route(
+		'extrachill/v1',
+		'/artist/permissions',
+		array(
+			'methods'             => WP_REST_Server::READABLE,
+			'callback'            => 'ec_api_check_artist_permissions',
+			'permission_callback' => '__return_true',
+			'args'                => array(
+				'artist_id' => array(
+					'required'          => true,
+					'validate_callback' => function ( $param ) {
+						return is_numeric( $param ) && (int) $param > 0;
+					},
+				),
 			),
-		),
-	) );
-} );
+		)
+	);
+}
 
 /**
  * Check artist permissions
@@ -52,9 +58,11 @@ function ec_api_check_artist_permissions( WP_REST_Request $request ) {
 		$manage_url = home_url( '/manage-link-page/' );
 	}
 
-	return rest_ensure_response( array(
-		'can_edit'   => $can_edit,
-		'manage_url' => $manage_url,
-		'user_id'    => $current_user_id,
-	) );
+	return rest_ensure_response(
+		array(
+			'can_edit'   => $can_edit,
+			'manage_url' => $manage_url,
+			'user_id'    => $current_user_id,
+		)
+	);
 }

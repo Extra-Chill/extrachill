@@ -2,6 +2,47 @@
 
 All notable changes to the ExtraChill API plugin are documented here. This file is the single source of truth for release history.
 
+## 0.5.0
+
+### Added
+
+- **Authentication System Endpoints**: Complete token-based authentication infrastructure
+  - `POST /wp-json/extrachill/v1/auth/login` - User login with device tracking and token generation
+  - `POST /wp-json/extrachill/v1/auth/refresh` - Token refresh for continued authentication
+  - `POST /wp-json/extrachill/v1/auth/register` - User registration with Turnstile verification and automatic token setup
+  - Supports device identification, remember me functionality, and cookie-based sessions
+  - Integrates with extrachill-users plugin for token management and validation
+
+- **Stripe Webhook Integration**: Payment processing webhook handler
+  - `POST /wp-json/extrachill/v1/shop/stripe-webhook` - Centralized Stripe webhook endpoint
+  - Delegates processing to extrachill-shop plugin business logic
+  - Supports payment completion, failed payments, and subscription events
+
+- **Stream Status Endpoint**: Live streaming status monitoring
+  - `GET /wp-json/extrachill/v1/stream/status` - Retrieve current stream status and metadata
+  - Integrates with extrachill-stream plugin for status information
+  - Supports permission-based access control for stream management
+
+### Changed
+
+- **Route Registration Refactoring**: Standardized endpoint registration across the plugin
+  - Updated artist permissions, docs sync, and media upload endpoints to use `extrachill_api_register_routes` action
+  - Changed method constants to use `WP_REST_Server::READABLE` and `WP_REST_Server::CREATABLE`
+  - Improved consistency with plugin's singleton route discovery pattern
+
+- **Product Permission Fix**: Corrected artist ownership validation in media upload
+  - Fixed meta key reference from `_artist_id` to `_artist_profile_id` for product-artist relationships
+  - Added proper type casting for artist ID comparisons
+  - Improved error handling in multisite product permission checks
+
+### Technical Notes
+
+- **Authentication Flow**: New endpoints enable mobile app authentication and persistent sessions
+- **Payment Integration**: Webhook endpoint enables real-time payment processing and order fulfillment
+- **Stream Monitoring**: Status endpoint supports live streaming features and audience analytics
+- **Dependencies**: Authentication endpoints require extrachill-users plugin; Stripe webhook requires extrachill-shop plugin; Stream status requires extrachill-stream plugin
+- **Backward Compatibility**: All existing endpoints maintain their current behavior and contracts
+
 ## 0.4.0
 
 ### Added
