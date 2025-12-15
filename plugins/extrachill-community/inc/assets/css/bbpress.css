@@ -349,8 +349,10 @@ ul {
     color: var(--professional-badge-color);
 }
 
-/* CSS-only tooltips for data-title attributes */
-[data-title]::before {
+/* CSS-only tooltips for user badge elements */
+.user-is-artist[data-title]::before,
+.extrachill-team-member[data-title]::before,
+.user-is-professional[data-title]::before {
     content: attr(data-title);
     position: absolute;
     bottom: 100%;
@@ -370,7 +372,9 @@ ul {
     z-index: 1000;
 }
 
-[data-title]:hover::before {
+.user-is-artist[data-title]:hover::before,
+.extrachill-team-member[data-title]:hover::before,
+.user-is-professional[data-title]:hover::before {
     opacity: 1;
 }
 
@@ -597,10 +601,6 @@ p.private-forums {
 
     #bbpress-forums div.bbp-reply-author .bbp-author-name {
         font-size: var(--font-size-sm);
-    }
-
-    iframe {
-        max-height: 65vh;
     }
 }
 

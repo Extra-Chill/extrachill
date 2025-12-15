@@ -1,4 +1,4 @@
-# CLAUDE.md
+# AGENTS.md
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
@@ -10,7 +10,7 @@ This plugin is part of the Extra Chill Platform, a WordPress multisite network s
 
 **Plugin Information:**
 - **Name**: Extra Chill Community
-- **Version**: 1.0.17
+- **Version**: 1.1.0
 - **Text Domain**: `extra-chill-community`
 - **Author**: Chris Huber
 - **Author URI**: https://chubes.net

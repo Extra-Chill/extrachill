@@ -5,16 +5,16 @@ Enhanced user profile system with cross-site data integration, verification stat
 ## Custom User Profiles
 
 ### Cross-Site Data Aggregation
-User profiles display aggregated data from both community and main site (extrachill.com).
+User profiles display aggregated data from both community and main site (extrachill.com). The "Articles" section is only shown when the user has at least one published post on the main site.
 
 **Data Sources:**
-- **Main Site Posts**: Article count from blog ID 1 with author archive links
+- **Main Site Posts**: Article count from blog ID 1 with author archive link
 - **Community Activity**: Forum topics, replies, and rank information
 - **Cross-Site Comments**: Blog comment aggregation from main site
 - **Profile Links**: Custom social media and music platform links
 
 **Display Sections:**
-- **Articles**: Post count with link to `extrachill.com/author/{username}/`
+- **Articles**: Post count with link to the main site author archive (via `ec_get_user_author_archive_url()`)
 - **Forum Statistics**: Topics, replies, rank, and points
 - **Music Fan Details**: Favorite artists, concerts, and venues
 - **Social Links**: Dynamic profile links (website, social media, music platforms)

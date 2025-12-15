@@ -50,7 +50,15 @@ tinymce.PluginManager.add('local_upload_plugin', function(editor) {
             return;
         }
 
-        fetch('/wp-json/extrachill/v1/media', {
+        if (!editorContext.restUrl) {
+            console.error('TinyMCE upload aborted: missing REST root.');
+            if (loader.parentNode) {
+                loader.parentNode.removeChild(loader);
+            }
+            return;
+        }
+
+        fetch(new URL('extrachill/v1/media', editorContext.restUrl).toString(), {
             method: 'POST',
             credentials: 'same-origin',
             headers: {

@@ -23,7 +23,13 @@ document.addEventListener('DOMContentLoaded', function() {
 		uploadInput.disabled = true;
 		messageContainer.innerHTML = '<p style="text-align: center;"><svg class="ec-icon ec-icon-spin" style="width: 2em; height: 2em;"><use href="' + spriteUrl + '#spinner"></use></svg> Uploading avatar, please wait...</p>';
 
-		fetch('/wp-json/extrachill/v1/media', {
+		if (!ecAvatarUpload.restUrl) {
+			messageContainer.innerHTML = '<p>There was an error uploading the avatar.</p>';
+			uploadInput.disabled = false;
+			return;
+		}
+
+		fetch(new URL('extrachill/v1/media', ecAvatarUpload.restUrl).toString(), {
 			method: 'POST',
 			headers: {
 				'X-WP-Nonce': ecAvatarUpload.restNonce

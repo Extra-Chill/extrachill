@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.1.0] - 2025-12-14
+
+### Added
+- bbPress draft functionality with server-backed autosave for topics and replies
+- UTF-8 display name hotfix for WordPress 6.9+ compatibility
+- Enhanced TinyMCE autosave with improved draft handling and reduced save delay
+
+### Changed
+- Improved user profile author URL generation using centralized functions
+- Updated plugin file loading counts (39 total files)
+- Enhanced JavaScript initialization for better draft management
+
 ## [1.0.17] - 2025-12-11
 
 ### Added

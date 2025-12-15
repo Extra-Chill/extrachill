@@ -30,13 +30,13 @@ function display_main_site_post_count_on_profile() {
         restore_current_blog();
     }
 
-    if ($post_count > 0) {
-        $user_info = get_userdata($user_id);
-        $author_slug = $user_info ? $user_info->user_nicename : null;
-        $main_site_url = function_exists( 'ec_get_site_url' ) ? ec_get_site_url( 'main' ) : 'https://extrachill.com';
-        $author_url = $main_site_url . "/author/{$author_slug}/"; // Adjust URL structure as needed
+    if ( $post_count > 0 && function_exists( 'ec_get_user_author_archive_url' ) ) {
+        $author_url = ec_get_user_author_archive_url( $user_id );
+        if ( ! $author_url ) {
+            return;
+        }
 
-        echo "<p><b>Extra Chill Articles:</b> $post_count <a href='" . esc_url($author_url) . "'>(View All)</a></p>";
+        echo "<p><b>Extra Chill Articles:</b> $post_count <a href='" . esc_url( $author_url ) . "'>(View All)</a></p>";
     }
 }
 

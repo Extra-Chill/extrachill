@@ -43,6 +43,7 @@ function extrachill_enqueue_avatar_upload_assets() {
 	wp_localize_script('extrachill-avatar-upload', 'ecAvatarUpload', array(
 		'spriteUrl' => get_template_directory_uri() . '/assets/fonts/extrachill.svg',
 		'restNonce' => wp_create_nonce('wp_rest'),
+		'restUrl'   => rest_url(),
 		'userId'    => get_current_user_id(),
 	));
 }

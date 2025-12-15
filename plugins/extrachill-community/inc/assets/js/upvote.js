@@ -38,7 +38,11 @@ document.addEventListener('DOMContentLoaded', function() {
 		useElement.setAttribute('href', baseUrl + '#' + (isUpvoted ? 'circle-up-outline' : 'circle-up'));
 
 		// Send request to REST API
-		fetch('/wp-json/extrachill/v1/community/upvote', {
+		if (!extrachillCommunity.restUrl) {
+			return;
+		}
+
+		fetch(new URL('extrachill/v1/community/upvote', extrachillCommunity.restUrl).toString(), {
 			method: 'POST',
 			credentials: 'same-origin',
 			headers: {

@@ -6,35 +6,139 @@
 (function() {
     'use strict';
 
-    const trigger = document.getElementById('new-topic-modal-trigger');
+    const discussionTrigger = document.getElementById('new-topic-modal-trigger');
+    const shareMusicTrigger = document.getElementById('share-music-modal-trigger');
     const modal = document.getElementById('new-topic-modal');
     const overlay = document.getElementById('new-topic-modal-overlay');
     const closeButton = modal ? modal.querySelector('.new-topic-modal-close') : null;
 
-    if (!trigger || !modal || !overlay) {
+    if (!modal || !overlay) {
         return;
     }
 
+    const modalTitle = document.getElementById('new-topic-modal-title');
+    const modalDescription = document.getElementById('new-topic-modal-description');
+
     let editorInitialized = false;
+    let activeTrigger = null;
+    let originalForumId = null;
+
+    function getForumSelectWrapper() {
+        const forumSelect = document.getElementById('bbp_forum_id');
+        if (!forumSelect) {
+            return null;
+        }
+
+        return forumSelect.closest('p');
+    }
+
+    function setForumId(forumId) {
+        const forumSelect = document.getElementById('bbp_forum_id');
+        if (!forumSelect) {
+            return;
+        }
+
+        if (originalForumId === null) {
+            originalForumId = forumSelect.value;
+        }
+
+        forumSelect.value = String(forumId);
+        forumSelect.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+
+    function showForumDropdown() {
+        const wrapper = getForumSelectWrapper();
+        if (!wrapper) {
+            return;
+        }
+
+        wrapper.style.display = '';
+    }
+
+    function hideForumDropdown() {
+        const wrapper = getForumSelectWrapper();
+        if (!wrapper) {
+            return;
+        }
+
+        wrapper.style.display = 'none';
+    }
+
+    function setTopicTitlePlaceholder(placeholder) {
+        const titleInput = document.getElementById('bbp_topic_title');
+        if (!titleInput) {
+            return;
+        }
+
+        titleInput.setAttribute('placeholder', placeholder);
+    }
+
+    function setTopicContentPlaceholder(placeholder) {
+        const textarea = document.getElementById('bbp_topic_content');
+        if (!textarea) {
+            return;
+        }
+
+        textarea.setAttribute('placeholder', placeholder);
+    }
+
+    function setModalText(title, description) {
+        if (modalTitle) {
+            modalTitle.textContent = title;
+        }
+
+        if (modalDescription) {
+            modalDescription.textContent = description || '';
+        }
+    }
+
+    function applyMode(triggerEl) {
+        const mode = triggerEl && triggerEl.dataset ? triggerEl.dataset.modalMode : 'discussion';
+
+        if (mode === 'share_music') {
+            setModalText('Share Music', 'Drop a link to share music with the community.');
+            setTopicTitlePlaceholder('What are you sharing?');
+            setTopicContentPlaceholder('Paste a link and give us the scoop...');
+
+            const forumId = triggerEl.dataset.forumId;
+            if (forumId) {
+                setForumId(forumId);
+                hideForumDropdown();
+            }
+
+            return;
+        }
+
+        setModalText('Create Discussion', 'Start a new topic in the community.');
+        setTopicTitlePlaceholder('Title');
+        setTopicContentPlaceholder('');
+
+        showForumDropdown();
+
+        if (originalForumId !== null) {
+            setForumId(originalForumId);
+        }
+    }
 
     function openModal(e) {
         e.preventDefault();
+        activeTrigger = e.currentTarget;
+
         modal.classList.add('is-open');
         overlay.classList.add('is-open');
         document.body.classList.add('new-topic-modal-open');
 
-        // Initialize TinyMCE if not already done and wp.editor is available
         if (!editorInitialized && typeof wp !== 'undefined' && wp.editor) {
             initializeEditor();
         }
 
-        // Focus the first focusable element
+        applyMode(activeTrigger);
+
         const firstInput = modal.querySelector('input[type="text"], textarea');
         if (firstInput) {
             firstInput.focus();
         }
 
-        // Trap focus within modal
         document.addEventListener('keydown', trapFocus);
     }
 
@@ -43,7 +147,12 @@
         overlay.classList.remove('is-open');
         document.body.classList.remove('new-topic-modal-open');
         document.removeEventListener('keydown', trapFocus);
-        trigger.focus();
+
+        if (activeTrigger) {
+            activeTrigger.focus();
+        }
+
+        activeTrigger = null;
     }
 
     function initializeEditor() {
@@ -55,13 +164,16 @@
             return;
         }
 
-        // If TinyMCE is already initialized for this element, just show it
+        if (editorElement.closest('.blocks-everywhere')) {
+            editorInitialized = true;
+            return;
+        }
+
         if (typeof tinymce !== 'undefined' && tinymce.get(editorId)) {
             editorInitialized = true;
             return;
         }
 
-        // Initialize wp.editor if available
         if (typeof wp !== 'undefined' && wp.editor && wp.editor.initialize) {
             wp.editor.initialize(editorId, {
                 tinymce: {
@@ -105,8 +217,13 @@
         }
     }
 
-    // Event listeners
-    trigger.addEventListener('click', openModal);
+    if (discussionTrigger) {
+        discussionTrigger.addEventListener('click', openModal);
+    }
+
+    if (shareMusicTrigger) {
+        shareMusicTrigger.addEventListener('click', openModal);
+    }
 
     if (closeButton) {
         closeButton.addEventListener('click', closeModal);

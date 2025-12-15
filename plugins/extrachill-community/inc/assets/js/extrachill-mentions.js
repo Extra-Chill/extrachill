@@ -197,10 +197,21 @@ if (typeof window.extrachillMentionsPluginLoaded === 'undefined') {
                 `;
             }
 
-            // Make API call
-            const apiUrl = `/wp-json/extrachill/v1/users/search?term=${encodeURIComponent(term)}`;
+            const restRoot =
+                (window.extrachillCommunity && window.extrachillCommunity.restUrl) ||
+                (window.extrachillCommunityEditor && window.extrachillCommunityEditor.restUrl) ||
+                (window.wpApiSettings && window.wpApiSettings.root);
 
-            fetch(apiUrl)
+            if (!restRoot) {
+                console.error('extrachill-mentions: Missing REST root; aborting user search.');
+                renderResults([]);
+                return;
+            }
+
+            const apiUrl = new URL('extrachill/v1/users/search', restRoot);
+            apiUrl.searchParams.set('term', term);
+
+            fetch(apiUrl.toString())
                 .then(response => response.json())
                 .then(data => {
                     if (Array.isArray(data) && data.length > 0) {

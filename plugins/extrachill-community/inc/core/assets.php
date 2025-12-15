@@ -82,6 +82,33 @@ function enqueue_bbpress_global_styles() {
 }
 add_action('wp_enqueue_scripts', 'enqueue_bbpress_global_styles');
 
+function extrachill_community_enqueue_blocks_everywhere_iframe_assets() {
+    if ( ! function_exists( 'extrachill_community_bbpress_editor_is_active' ) ) {
+        return;
+    }
+
+    if ( ! extrachill_community_bbpress_editor_is_active() ) {
+        return;
+    }
+
+    $css_path = EXTRACHILL_COMMUNITY_PLUGIN_DIR . '/inc/assets/css/bbpress.css';
+    if ( ! file_exists( $css_path ) ) {
+        return;
+    }
+
+    if ( ! wp_style_is( 'extrachill-bbpress', 'registered' ) ) {
+        wp_register_style(
+            'extrachill-bbpress',
+            EXTRACHILL_COMMUNITY_PLUGIN_URL . '/inc/assets/css/bbpress.css',
+            array(),
+            filemtime( $css_path )
+        );
+    }
+
+    wp_enqueue_style( 'extrachill-bbpress' );
+}
+add_action( 'blocks_everywhere_enqueue_iframe_assets', 'extrachill_community_enqueue_blocks_everywhere_iframe_assets' );
+
 function modular_bbpress_styles() {
     if (bbp_is_forum_archive() || is_front_page() || is_home() || bbp_is_single_forum()) {
         wp_enqueue_style(
@@ -156,7 +183,8 @@ function extrachill_enqueue_scripts() {
     if ( is_bbpress() || is_page('recent') ) {
         wp_enqueue_script('extrachill-upvote', $stylesheet_dir_uri . '/inc/assets/js/upvote.js', array(), $upvote_script_version, true);
         wp_localize_script('extrachill-upvote', 'extrachillCommunity', array(
-            'restNonce' => wp_create_nonce('wp_rest')
+            'restNonce' => wp_create_nonce('wp_rest'),
+            'restUrl'   => rest_url(),
         ));
     }
 
@@ -166,7 +194,8 @@ function extrachill_enqueue_scripts() {
         $bbpress_ui_version = filemtime( $stylesheet_dir . '/inc/assets/js/bbpress-ui.js' );
         wp_enqueue_script('extrachill-bbpress-ui', $stylesheet_dir_uri . '/inc/assets/js/bbpress-ui.js', array(), $bbpress_ui_version, true);
         wp_localize_script('extrachill-bbpress-ui', 'extrachillCommunityEditor', array(
-            'restNonce' => wp_create_nonce('wp_rest')
+            'restNonce' => wp_create_nonce('wp_rest'),
+            'restUrl'   => rest_url(),
         ));
     }
 }
@@ -198,6 +227,19 @@ function extrachill_community_bbpress_editor_is_active() {
 
     return bbp_is_single_topic() || bbp_is_single_reply() || bbp_is_topic_edit() || bbp_is_reply_edit() || bbp_is_single_forum();
 }
+
+function extrachill_filter_dequeue_jquery_frontend( $should_dequeue ) {
+    if ( ! function_exists( 'extrachill_community_bbpress_editor_is_active' ) ) {
+        return $should_dequeue;
+    }
+
+    if ( extrachill_community_bbpress_editor_is_active() ) {
+        return false;
+    }
+
+    return $should_dequeue;
+}
+add_filter( 'extrachill_dequeue_jquery_frontend', 'extrachill_filter_dequeue_jquery_frontend' );
 
 function extrachill_enqueue_bbpress_editor_dependencies() {
     if ( ! extrachill_community_bbpress_editor_is_active() ) {

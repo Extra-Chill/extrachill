@@ -55,14 +55,6 @@ function bbp_customize_tinymce_buttons($buttons) {
 }
 add_filter('mce_buttons', 'bbp_customize_tinymce_buttons', 50);
 
-function bbp_load_custom_autosave_plugin($plugins) {
-    if (is_bbpress()) {
-        $autosave_plugin_url = EXTRACHILL_COMMUNITY_PLUGIN_URL . '/bbpress/autosave/plugin.min.js';
-        $plugins['autosave'] = $autosave_plugin_url;
-    }
-    return $plugins;
-}
-add_filter('mce_external_plugins', 'bbp_load_custom_autosave_plugin');
 
 function bbp_load_mentions_plugin($plugins) {
     if (is_bbpress()) {
@@ -73,16 +65,12 @@ function bbp_load_mentions_plugin($plugins) {
 add_filter('mce_external_plugins', 'bbp_load_mentions_plugin');
 
 /**
- * Autosave triggers 1.5s after typing stops, clears draft on form submission
+ * bbPress TinyMCE initialization
+ *
+ * Adds paste settings and wires the JS setup handler.
  */
 function bbp_autosave_tinymce_settings($init) {
     if (is_bbpress()) {
-        $init['autosave_ask_before_unload'] = false;
-        $init['autosave_interval'] = '999999s'; 
-        $init['autosave_prefix'] = 'bbp-tinymce-autosave-{path}{query}-{id}-';
-        $init['autosave_restore_when_empty'] = true;
-        $init['autosave_retention'] = '43200m';
-
         $init['paste_as_text'] = false;
         $init['paste_auto_cleanup_on_paste'] = true;
         $init['paste_remove_styles'] = true;

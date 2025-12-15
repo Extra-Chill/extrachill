@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Extra Chill Community
  * Description: bbPress extension plugin providing community and forum functionality for the Extra Chill platform.
- * Version: 1.0.17
+ * Version: 1.1.0
  * Author: Chris Huber
  * Author URI: https://chubes.net
  * License: GPL v2 or later
@@ -23,6 +23,7 @@ define('EXTRACHILL_COMMUNITY_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('EXTRACHILL_COMMUNITY_PLUGIN_FILE', __FILE__);
 
 require_once plugin_dir_path(__FILE__) . 'inc/core/activation.php';
+require_once plugin_dir_path(__FILE__) . 'inc/core/bbpress-utf8-hotfix.php';
 
 /**
  * Loads 37 feature files via direct require_once.
@@ -45,6 +46,7 @@ function extrachill_community_init() {
     require_once plugin_dir_path(__FILE__) . 'inc/content/editor/tinymce-customization.php';
     require_once plugin_dir_path(__FILE__) . 'inc/content/editor/tinymce-image-uploads.php';
     require_once plugin_dir_path(__FILE__) . 'inc/content/editor/blocks-everywhere.php';
+    require_once plugin_dir_path(__FILE__) . 'inc/content/editor/drafts.php';
     require_once plugin_dir_path(__FILE__) . 'inc/content/content-filters.php';
     require_once plugin_dir_path(__FILE__) . 'inc/content/recent-feed.php';
     require_once plugin_dir_path(__FILE__) . 'inc/content/main-site-comments.php';
