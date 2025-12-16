@@ -12,7 +12,6 @@ namespace ExtraChillEvents\Handlers\WeeklyRoundup;
 
 use DataMachine\Core\Steps\Fetch\Handlers\FetchHandler;
 use DataMachine\Core\Steps\HandlerRegistrationTrait;
-use DataMachine\Core\DataPacket;
 use DataMachineEvents\Blocks\Calendar\Calendar_Query;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -56,7 +55,7 @@ class WeeklyRoundupHandler extends FetchHandler {
 
 		if ( empty( $week_start_day ) || empty( $week_end_day ) ) {
 			$this->log( 'error', 'Weekly Roundup requires week_start_day and week_end_day' );
-			return $this->emptyResponse();
+			return [];
 		}
 
 		$date_range = $this->resolve_next_weekday_range( $week_start_day, $week_end_day );
@@ -75,7 +74,7 @@ class WeeklyRoundupHandler extends FetchHandler {
 					'location_term_id' => $location_term_id,
 				)
 			);
-			return $this->emptyResponse();
+			return [];
 		}
 
 		$total_events = $this->count_events( $day_groups );
@@ -97,7 +96,7 @@ class WeeklyRoundupHandler extends FetchHandler {
 
 		if ( empty( $image_paths ) ) {
 			$this->log( 'error', 'Failed to generate carousel images' );
-			return $this->emptyResponse();
+			return [];
 		}
 
 		$event_summary = $generator->build_event_summary( $day_groups );
@@ -108,29 +107,24 @@ class WeeklyRoundupHandler extends FetchHandler {
 		$this->log(
 			'info',
 			'Weekly Roundup complete',
-			array(
+			[
 				'slides_generated' => count( $image_paths ),
 				'total_events'     => $total_events,
-			)
+			]
 		);
 
-		$data_packet = new DataPacket(
-			array(
-				'title' => sprintf( '%s Events: %s', $location_name, $this->format_date_range( $date_start, $date_end ) ),
-				'body'  => $event_summary,
-			),
-			array(
+		return [
+			'title'    => sprintf( '%s Events: %s', $location_name, $this->format_date_range( $date_start, $date_end ) ),
+			'content'  => $event_summary,
+			'metadata' => [
 				'source_type' => 'weekly_roundup',
 				'location'    => $location_name,
 				'date_start'  => $date_start,
 				'date_end'    => $date_end,
 				'event_count' => $total_events,
 				'slide_count' => count( $image_paths ),
-			),
-			'weekly_roundup'
-		);
-
-		return $this->successResponse( array( $data_packet ) );
+			],
+		];
 	}
 
 	/**
