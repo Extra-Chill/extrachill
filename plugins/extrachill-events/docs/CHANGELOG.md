@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0/).
 
+## [0.2.1] - 2025-12-16
+
+### Added
+- Dynamic weekday-based date ranges for weekly roundup automation
+- `resolve_next_weekday_range()` method for automatic date calculation
+
+### Changed
+- WeeklyRoundupSettings: Replaced date pickers with weekday select dropdowns
+- Improved location options query to filter by actual upcoming events
+- Added fully qualified class names for better namespace compliance
+- Enhanced configuration validation and sanitization
+
+### Removed
+- `date_range_start` and `date_range_end` configuration fields (replaced with `week_start_day` and `week_end_day`)
+
 ## [0.2.0] - 2025-12-14
 
 ### Added

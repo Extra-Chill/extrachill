@@ -30,8 +30,8 @@ class WeeklyRoundupHandler extends FetchHandler {
 			'weekly_roundup',
 			'fetch',
 			self::class,
-			__( 'Weekly Event Roundup', 'extrachill-events' ),
-			__( 'Generate Instagram carousel images from local events by date range and location', 'extrachill-events' ),
+			\__( 'Weekly Event Roundup', 'extrachill-events' ),
+			\__( 'Generate Instagram carousel images from local events by weekday window and location', 'extrachill-events' ),
 			false,
 			null,
 			WeeklyRoundupSettings::class,
@@ -50,14 +50,18 @@ class WeeklyRoundupHandler extends FetchHandler {
 			)
 		);
 
-		$date_start       = $config['date_range_start'] ?? '';
-		$date_end         = $config['date_range_end'] ?? '';
+		$week_start_day   = $config['week_start_day'] ?? '';
+		$week_end_day     = $config['week_end_day'] ?? '';
 		$location_term_id = $config['location_term_id'] ?? 0;
 
-		if ( empty( $date_start ) || empty( $date_end ) ) {
-			$this->log( 'error', 'Weekly Roundup requires date_range_start and date_range_end' );
+		if ( empty( $week_start_day ) || empty( $week_end_day ) ) {
+			$this->log( 'error', 'Weekly Roundup requires week_start_day and week_end_day' );
 			return $this->emptyResponse();
 		}
+
+		$date_range = $this->resolve_next_weekday_range( $week_start_day, $week_end_day );
+		$date_start = $date_range['date_start'];
+		$date_end   = $date_range['date_end'];
 
 		$day_groups = $this->query_events( $date_start, $date_end, $location_term_id );
 
@@ -146,10 +150,25 @@ class WeeklyRoundupHandler extends FetchHandler {
 		}
 
 		$query_args   = Calendar_Query::build_query_args( $params );
-		$query        = new WP_Query( $query_args );
+		$query        = new \WP_Query( $query_args );
 		$paged_events = Calendar_Query::build_paged_events( $query );
 
 		return Calendar_Query::group_events_by_date( $paged_events );
+	}
+
+	private function resolve_next_weekday_range( string $week_start_day, string $week_end_day ): array {
+		$now       = new \DateTime( 'now', \wp_timezone() );
+		$start_obj = ( clone $now )->modify( 'next ' . $week_start_day )->setTime( 0, 0, 0 );
+		$end_obj   = ( clone $start_obj )->modify( 'next ' . $week_end_day )->setTime( 0, 0, 0 );
+
+		if ( $end_obj <= $start_obj ) {
+			$end_obj = $end_obj->modify( '+7 days' );
+		}
+
+		return array(
+			'date_start' => $start_obj->format( 'Y-m-d' ),
+			'date_end'   => $end_obj->format( 'Y-m-d' ),
+		);
 	}
 
 	/**
