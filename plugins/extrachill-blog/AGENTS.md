@@ -5,7 +5,7 @@ WordPress plugin providing blog-specific functionality for extrachill.com (Blog 
 ## Overview
 
 **Plugin Name**: Extra Chill Blog
-**Version**: 0.3.0
+**Version**: 0.3.2
 **Network**: false (site-activated on Blog ID 1 only)
 **Purpose**: Blog-specific homepage, navigation, and archive functionality for the main Extra Chill content site
 
@@ -37,6 +37,7 @@ All blocks use the `extrachill/` namespace and are built with @wordpress/scripts
 ### Archive System
 - Blog archive template override and routing
 - Category and taxonomy-specific archive handling
+- Artist taxonomy archive integration with artist profiles
 - Template hierarchy integration with theme
 - Breadcrumb integration for blog archive with network dropdown support
 

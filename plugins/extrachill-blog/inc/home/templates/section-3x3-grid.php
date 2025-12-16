@@ -18,22 +18,22 @@ global $live_reviews_posts, $interviews_posts;
 		</div>
 		<div class="home-3x3-list">
 		<?php
-		global $post;
 		if ( ! empty( $interviews_posts ) ) :
 			foreach ( $interviews_posts as $interview_post ) :
-				$post = $interview_post;
-				setup_postdata( $post );
+				$permalink = get_permalink( $interview_post->ID );
+				$title     = get_the_title( $interview_post->ID );
+				$date      = get_the_date( '', $interview_post->ID );
 				?>
-			<a href="<?php the_permalink(); ?>" class="home-3x3-card home-3x3-card-link" aria-label="<?php the_title_attribute(); ?>">
-				<?php if ( has_post_thumbnail() ) : ?>
-				<span class="home-3x3-thumb"><?php the_post_thumbnail( 'medium' ); ?></span>
+			<a href="<?php echo esc_url( $permalink ); ?>" class="home-3x3-card home-3x3-card-link" aria-label="<?php echo esc_attr( $title ); ?>">
+				<?php if ( has_post_thumbnail( $interview_post->ID ) ) : ?>
+				<span class="home-3x3-thumb"><?php echo get_the_post_thumbnail( $interview_post->ID, 'medium' ); ?></span>
 				<?php endif; ?>
-				<span class="home-3x3-title"><?php the_title(); ?></span>
-				<span class="home-3x3-meta"><?php echo get_the_date(); ?></span>
+				<span class="home-3x3-title"><?php echo esc_html( $title ); ?></span>
+				<span class="home-3x3-meta"><?php echo esc_html( $date ); ?></span>
 			</a>
 				<?php
 			endforeach;
-			wp_reset_postdata(); else :
+		else :
 				?>
 			<div class="home-3x3-card home-3x3-empty">No interviews yet.</div>
 					<?php endif; ?>
@@ -48,22 +48,22 @@ global $live_reviews_posts, $interviews_posts;
 		</div>
 		<div class="home-3x3-list">
 		<?php
-		global $post;
 		if ( ! empty( $live_reviews_posts ) ) :
 			foreach ( $live_reviews_posts as $live_review_post ) :
-				$post = $live_review_post;
-				setup_postdata( $post );
+				$permalink = get_permalink( $live_review_post->ID );
+				$title     = get_the_title( $live_review_post->ID );
+				$date      = get_the_date( '', $live_review_post->ID );
 				?>
-			<a href="<?php the_permalink(); ?>" class="home-3x3-card home-3x3-card-link" aria-label="<?php the_title_attribute(); ?>">
-				<?php if ( has_post_thumbnail() ) : ?>
-				<span class="home-3x3-thumb"><?php the_post_thumbnail( 'medium' ); ?></span>
+			<a href="<?php echo esc_url( $permalink ); ?>" class="home-3x3-card home-3x3-card-link" aria-label="<?php echo esc_attr( $title ); ?>">
+				<?php if ( has_post_thumbnail( $live_review_post->ID ) ) : ?>
+				<span class="home-3x3-thumb"><?php echo get_the_post_thumbnail( $live_review_post->ID, 'medium' ); ?></span>
 				<?php endif; ?>
-				<span class="home-3x3-title"><?php the_title(); ?></span>
-				<span class="home-3x3-meta"><?php echo get_the_date(); ?></span>
+				<span class="home-3x3-title"><?php echo esc_html( $title ); ?></span>
+				<span class="home-3x3-meta"><?php echo esc_html( $date ); ?></span>
 			</a>
 				<?php
 			endforeach;
-			wp_reset_postdata(); else :
+		else :
 				?>
 			<div class="home-3x3-card home-3x3-empty">No reviews yet.</div>
 					<?php endif; ?>
@@ -109,7 +109,11 @@ global $live_reviews_posts, $interviews_posts;
 				?>
 				<div class="home-3x3-card home-3x3-empty">No newsletters yet.</div>
 			<?php endif; ?>
-			<?php if ( $newsletter_blog_id ) { restore_current_blog(); } ?>
+			<?php
+			if ( $newsletter_blog_id ) {
+				restore_current_blog();
+			}
+			?>
 			</div>
 		</div>
 	</div>

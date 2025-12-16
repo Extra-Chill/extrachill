@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.2] - 2025-12-16
+
+### Added
+- Artist profile integration on taxonomy archives with cross-site profile linking to artist.extrachill.com
+- Co-Authors Plus integration with REST API support and selective style loading
+- Admin customizations removing navigation menus from theme customizer on blog sites
+- Comprehensive homepage system documentation in docs/homepage-system.md
+
+### Changed
+- Updated about section bio text to highlight open-source platform positioning
+- Simplified homepage about section CSS styling for cleaner presentation
+- Removed unused section-more-recent-posts.php template from homepage system
+
+### Fixed
+- Proper integration hooks for new core functionality
+
 ## [0.3.1] - 2025-12-12
 
 ### Added

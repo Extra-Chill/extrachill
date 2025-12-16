@@ -12,7 +12,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-global $live_reviews_posts, $interviews_posts, $more_recent_posts;
+global $live_reviews_posts, $interviews_posts;
 
 $live_reviews_posts = get_posts(
 	array(
@@ -24,24 +24,5 @@ $interviews_posts   = get_posts(
 	array(
 		'numberposts'   => 3,
 		'category_name' => 'interviews',
-	)
-);
-
-$exclude_ids = array();
-foreach ( $live_reviews_posts as $live_review_post ) {
-	$exclude_ids[] = $live_review_post->ID;
-}
-foreach ( $interviews_posts as $interview_post ) {
-	$exclude_ids[] = $interview_post->ID;
-}
-
-$more_recent_posts = get_posts(
-	array(
-		'numberposts'    => 4,
-		'post_type'      => 'post',
-		'post__not_in'   => $exclude_ids,
-		'author__not_in' => array( 39 ),
-		'orderby'        => 'date',
-		'order'          => 'DESC',
 	)
 );

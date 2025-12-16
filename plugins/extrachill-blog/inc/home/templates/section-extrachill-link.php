@@ -16,5 +16,6 @@
 	</p>
 	<div class="home-extrachill-link-cta">
 		<a href="https://extrachill.link/join" class="button-1 button-medium" target="_blank" rel="noopener">Get Your Link Page</a>
+		<a href="https://docs.extrachill.com/artist-platform/getting-started/" class="button-3 button-medium" target="_blank" rel="noopener">Learn More</a>
 	</div>
 </div>

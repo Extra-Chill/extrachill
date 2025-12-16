@@ -19,7 +19,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Displays "Blog" on the blog archive page to enable network dropdown.
  * Only applies on Blog ID 1 (extrachill.com) blog archive.
  *
- * @param string $custom_trail Existing custom trail from other plugins
+ * @param string $custom_trail Existing custom trail from other plugins.
+ *
  * @return string Breadcrumb trail HTML
  */
 function extrachill_blog_breadcrumb_trail( $custom_trail ) {

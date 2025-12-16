@@ -21,7 +21,6 @@ function extrachill_blog_render_homepage() {
 
 	include EXTRACHILL_BLOG_PLUGIN_DIR . 'inc/home/templates/hero.php';
 	include EXTRACHILL_BLOG_PLUGIN_DIR . 'inc/home/templates/section-3x3-grid.php';
-	include EXTRACHILL_BLOG_PLUGIN_DIR . 'inc/home/templates/section-more-recent-posts.php';
 	?>
 	<div class="home-final">
 		<?php
