@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0/).
 
+## [0.2.3] - 2025-12-16
+
+### Added
+- Slide title support with accent underline on first weekly roundup slide
+- Day-specific color coding for slide headers (unique colors for each day of week)
+- Automatic text wrapping for event titles and slide titles to prevent overflow
+- Time-based event sorting within daily slides
+- Title configuration field in WeeklyRoundupSettings
+
+### Changed
+- Enhanced slide height calculations to account for wrapped text and titles
+- Improved event metadata display with bullet separators instead of dashes
+- Refined slide layout spacing and typography hierarchy
+
 ## [0.2.2] - 2025-12-16
 
 ### Changed

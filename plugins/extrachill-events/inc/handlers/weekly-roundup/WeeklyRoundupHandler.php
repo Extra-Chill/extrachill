@@ -92,7 +92,8 @@ class WeeklyRoundupHandler extends FetchHandler {
 			'pipeline_id' => $pipeline_id,
 			'flow_id'     => $flow_id,
 		);
-		$image_paths     = $generator->generate_slides( $day_groups, $storage_context );
+		$title           = $config['title'] ?? '';
+		$image_paths     = $generator->generate_slides( $day_groups, $storage_context, $title );
 
 		if ( empty( $image_paths ) ) {
 			$this->log( 'error', 'Failed to generate carousel images' );

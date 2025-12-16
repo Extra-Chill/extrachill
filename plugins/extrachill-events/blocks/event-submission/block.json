@@ -2,7 +2,7 @@
 	"$schema": "https://schemas.wp.org/trunk/block.json",
 	"apiVersion": 2,
 	"name": "extrachill/event-submission",
-  "version": "0.2.1",
+  "version": "0.2.3",
 	"title": "Event Submission Form",
 	"category": "widgets",
 	"icon": "calendar-alt",

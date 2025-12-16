@@ -47,6 +47,13 @@ class WeeklyRoundupSettings {
 				'options'     => self::get_location_options(),
 				'default'     => $current_config['location_term_id'] ?? '',
 			),
+			'title'            => array(
+				'type'        => 'text',
+				'label'       => \__( 'Roundup Title', 'extrachill-events' ),
+				'description' => \__( 'Title displayed at top of first slide (e.g., "Charleston Weekend Roundup")', 'extrachill-events' ),
+				'required'    => false,
+				'default'     => $current_config['title'] ?? '',
+			),
 		);
 	}
 
@@ -66,6 +73,7 @@ class WeeklyRoundupSettings {
 			'week_start_day'   => in_array( $start_day, $allowed_days, true ) ? $start_day : '',
 			'week_end_day'     => in_array( $end_day, $allowed_days, true ) ? $end_day : '',
 			'location_term_id' => \absint( $raw_settings['location_term_id'] ?? 0 ),
+			'title'            => \sanitize_text_field( $raw_settings['title'] ?? '' ),
 		);
 	}
 
@@ -79,6 +87,7 @@ class WeeklyRoundupSettings {
 			'week_start_day'   => 'monday',
 			'week_end_day'     => 'sunday',
 			'location_term_id' => 0,
+			'title'            => '',
 		);
 	}
 
