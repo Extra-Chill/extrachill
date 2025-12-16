@@ -9,8 +9,6 @@
  * @since 1.0.0
  */
 
-include_once(ABSPATH . 'wp-admin/includes/plugin.php');
-
 add_theme_support( 'responsive-embeds' );
 add_theme_support( 'wp-block-styles' );
 add_theme_support( 'align-wide' );
@@ -58,7 +56,7 @@ add_action('init', 'extrachill_unregister_image_sizes', 99);
 
 define('EXTRACHILL_PARENT_DIR', get_template_directory());
 
-define('EXTRACHILL_THEME_VERSION', '1.2.5');
+define('EXTRACHILL_THEME_VERSION', '1.2.14');
 
 define('EXTRACHILL_INCLUDES_DIR', EXTRACHILL_PARENT_DIR . '/inc');
 require_once(EXTRACHILL_INCLUDES_DIR . '/core/templates/post-meta.php');
@@ -90,53 +88,28 @@ require_once(EXTRACHILL_INCLUDES_DIR . '/footer/online-users-stats.php');
 
 function extrachill_remove_menu_admin_pages() {
     remove_submenu_page('themes.php', 'nav-menus.php');
-
-    // Hide Posts and Comments menus on all sites except main blog (ID 1)
-    if (get_current_blog_id() !== 1) {
-        remove_menu_page('edit.php');
-        remove_menu_page('edit-comments.php');
-    }
 }
 add_action('admin_menu', 'extrachill_remove_menu_admin_pages', 999);
 
-function extrachill_remove_customizer_menus($wp_customize) {
-    $wp_customize->remove_panel('nav_menus');
-}
-add_action('customize_register', 'extrachill_remove_customizer_menus', 20);
-
 require_once(EXTRACHILL_INCLUDES_DIR . '/core/editor/bandcamp-embeds.php');
 require_once(EXTRACHILL_INCLUDES_DIR . '/core/editor/instagram-embeds.php');
-require_once(EXTRACHILL_INCLUDES_DIR . '/core/editor/spotify-embeds.php');
 
 require_once(EXTRACHILL_INCLUDES_DIR . '/archives/archive-child-terms-dropdown.php');
 require_once(EXTRACHILL_INCLUDES_DIR . '/archives/archive-custom-sorting.php');
 require_once(EXTRACHILL_INCLUDES_DIR . '/archives/archive-filter-bar.php');
-require_once(EXTRACHILL_INCLUDES_DIR . '/archives/artist-profile-link.php');
 
 require_once(EXTRACHILL_INCLUDES_DIR . '/core/templates/searchform.php');
 
-add_filter('the_content', function($content) {
-    return str_replace('margin-left: 1em; margin-right: 1em;', '', $content);
-});
-add_filter('auto_update_theme', '__return_false');
-
-function add_file_types_to_uploads($file_types)
-{
-    $new_filetypes['svg'] = 'image/svg+xml';
-    return array_merge($file_types, $new_filetypes);
+function extrachill_allow_svg_uploads( $file_types ) {
+    $file_types['svg'] = 'image/svg+xml';
+    return $file_types;
 }
-add_action('upload_mimes', 'add_file_types_to_uploads');
+add_filter( 'upload_mimes', 'extrachill_allow_svg_uploads' );
 
-function wpb_password_post_filter( $where = '' ) {
-    if (!is_single() && !is_admin()) {
-        $where .= " AND post_password = ''";
-    }
-    return $where;
-}
-add_filter( 'posts_where', 'wpb_password_post_filter' );
-
-add_filter( 'wp_robots', 'wpse_cleantags_add_noindex' );
-function wpse_cleantags_add_noindex( $robots ) {
+/**
+ * Noindex tags with fewer than 2 posts to avoid thin content indexing
+ */
+function extrachill_noindex_sparse_tags( $robots ) {
     global $wp_query;
 
     if ( is_tag() && $wp_query->found_posts < 2 ) {
@@ -146,56 +119,8 @@ function wpse_cleantags_add_noindex( $robots ) {
 
     return $robots;
 }
+add_filter( 'wp_robots', 'extrachill_noindex_sparse_tags' );
 
-if ( is_plugin_active('co-authors-plus/co-authors-plus.php') ) {
-    add_action( 'rest_api_init', 'custom_register_coauthors' );
-    function custom_register_coauthors() {
-        register_rest_field( 'post',
-            'coauthors',
-            array(
-                'get_callback'    => 'custom_get_coauthors',
-                'update_callback' => null,
-                'schema'          => null,
-            )
-        );
-    }
-
-    function custom_get_coauthors( $object, $field_name, $request ) {
-        $coauthors = get_coauthors($object['id']);
-
-        $authors = array();
-        if (!empty($coauthors)) {
-            foreach ($coauthors as $author) {
-                $authors[] = array(
-                    'display_name' => $author->display_name,
-                    'user_nicename' => $author->user_nicename
-                );
-            }
-        } else {
-            $default_author = get_userdata(get_post_field('post_author', $object['id']));
-            if ($default_author) {
-                $authors[] = array(
-                    'display_name' => $default_author->display_name,
-                    'user_nicename' => $default_author->user_nicename
-                );
-            }
-        }
-
-        return $authors;
-    }
-}
-
-function add_custom_favicon() {
-    if ( is_admin() ) {
-        return;
-    }
-
-    $favicon_url = get_site_url() . '/favicon.ico';
-    echo '<link rel="icon" href="' . esc_url($favicon_url) . '" type="image/x-icon" />';
-    echo '<link rel="apple-touch-icon" href="' . esc_url($favicon_url) . '" />';
-    echo '<link rel="apple-touch-icon-precomposed" href="' . esc_url($favicon_url) . '" />';
-}
-add_action('wp_head', 'add_custom_favicon');
 
 function extrachill_prevent_admin_styles_on_frontend() {
     if ( is_admin() ) {
@@ -207,13 +132,6 @@ function extrachill_prevent_admin_styles_on_frontend() {
     }
 
     wp_dequeue_style( 'imagify-admin-bar' );
-
-    if ( ! is_single() || ! is_plugin_active('co-authors-plus/co-authors-plus.php') ) {
-        wp_dequeue_style( 'co-authors-plus-coauthors-style' );
-        wp_dequeue_style( 'co-authors-plus-avatar-style' );
-        wp_dequeue_style( 'co-authors-plus-name-style' );
-        wp_dequeue_style( 'co-authors-plus-image-style' );
-    }
 
     wp_dequeue_style( 'wp-block-library-theme' );
 }

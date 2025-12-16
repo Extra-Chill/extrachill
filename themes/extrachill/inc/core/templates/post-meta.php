@@ -3,7 +3,8 @@
  * Post Meta Display
  *
  * Displays publication date, author, and last updated information.
- * Supports forum posts, Co-Authors Plus, and extrachill-users plugin integration.
+ * Supports forum posts with extrachill-users plugin integration.
+ * Filter: extrachill_post_meta_author allows plugins to override author display.
  *
  * @package ExtraChill
  * @since 1.0.0
@@ -94,16 +95,9 @@ if ( ! function_exists( 'extrachill_entry_meta' ) ) :
 
 			if ( $show_author ) {
 				echo ' ' . esc_html__( 'by', 'extrachill' ) . ' ';
-				if ( is_plugin_active( 'co-authors-plus/co-authors-plus.php' ) ) {
-					coauthors_posts_links();
-				} elseif ( function_exists( 'ec_get_user_author_archive_url' ) ) {
-					$author_id  = isset( $post->post_author ) ? $post->post_author : get_the_author_meta( 'ID' );
-					$author_url = ec_get_user_author_archive_url( $author_id );
-					if ( $author_url ) {
-						echo '<a href="' . esc_url( $author_url ) . '">' . esc_html( get_the_author() ) . '</a>';
-					} else {
-						the_author_posts_link();
-					}
+				$author_html = apply_filters( 'extrachill_post_meta_author', '', $post );
+				if ( $author_html ) {
+					echo wp_kses_post( $author_html );
 				} else {
 					the_author_posts_link();
 				}
