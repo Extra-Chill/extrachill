@@ -1,6 +1,6 @@
 # Extra Chill Users
 
-Network-activated user management system for the ExtraChill Platform. Handles user creation, authentication, team members, profile URLs, avatar menu, password reset, and the EC_Redirect_Handler-powered auth flow introduced in v0.2.0.
+Network-activated user management system for the ExtraChill Platform. Handles user creation, authentication, team members, profile URLs, avatar menu, password reset, and the EC_Redirect_Handler-powered auth flow.
 
 ## Features
 
@@ -14,14 +14,14 @@ Network-activated user management system for the ExtraChill Platform. Handles us
 - Network-wide avatar menu with plugin extensibility via filter
 - Ad-free license validation system
 - Comment auto-approval for logged-in users
-- Gutenberg blocks for login/register and password reset (login + reset flows render blocks directly)
+- Gutenberg blocks for login/register and password reset
 - Newsletter subscription integration during registration
 - Admin access control (wp-admin restriction for non-admins)
 
 ## Requirements
 
 - WordPress Multisite
-- Requires Plugins: extrachill-multisite
+- Requires Plugins: extrachill-multisite, extrachill-api (REST API infrastructure)
 - PHP 7.4+
 - WordPress 5.0+
 
@@ -31,6 +31,19 @@ Network-activated user management system for the ExtraChill Platform. Handles us
 2. Network activate the plugin
 3. Configure settings as needed
 
+## API Integration
+
+This plugin integrates with the ExtraChill API (`extrachill-api`) plugin for user profile and authentication endpoints:
+
+- **User Profiles** - `GET /wp-json/extrachill/v1/users/{id}` - Retrieve user profile data with permission-based field visibility
+- **User Search** - `GET /wp-json/extrachill/v1/users/search` - Find users for mentions or admin management
+- **User Leaderboard** - `GET /wp-json/extrachill/v1/users/leaderboard` - Rankings of users by points
+- **User Artists** - `GET/POST/DELETE /wp-json/extrachill/v1/users/{id}/artists` - Manage user-artist relationships
+- **Authentication** - `POST /wp-json/extrachill/v1/auth/{login,register,refresh}` - Token-based authentication system
+- **Media Upload** - `POST /wp-json/extrachill/v1/media` - Avatar upload via unified media endpoint
+
+See [AGENTS.md](AGENTS.md) for detailed development documentation.
+
 ## Development
 
-See AGENTS.md and docs/CHANGELOG.md for detailed development documentation and the 0.2.0 version reset rationale.
+See AGENTS.md and docs/CHANGELOG.md for detailed development documentation and version history.

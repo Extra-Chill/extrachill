@@ -7,13 +7,13 @@ User management functionality was migrated here from extrachill-multisite plugin
 ## Plugin Information
 
 - **Name**: Extra Chill Users
-- **Version**: 0.3.4
+- **Version**: 0.4.0
 - **Text Domain**: `extrachill-users`
 - **Author**: Chris Huber
 - **Author URI**: https://chubes.net
 - **License**: GPL v2 or later
 - **Network**: true (network activated across all sites)
-- **Requires Plugins**: extrachill-multisite
+- **Requires Plugins**: extrachill-multisite, extrachill-api
 - **Requires at least**: 5.0
 - **Tested up to**: 6.4
 - **Requires PHP**: 7.4
@@ -207,29 +207,34 @@ User management functionality was migrated here from extrachill-multisite plugin
 - `ec_customize_comment_form_logged_in( $defaults )` - Fix wp-admin profile links to route to community bbPress profile
 
 **Resolution Logic**:
-1. Check if user exists on main site (extrachill.com) → return author posts URL
-2. Try email lookup on community site → return bbPress profile URL
-3. Try user_id lookup on community site → return bbPress profile URL
-4. Ultimate fallback → standard author posts URL
+1. Try email lookup on community site → return bbPress profile URL
+2. Try user_id lookup on community site → return bbPress profile URL
+3. Fall back to main site author archive URL
+
+**New Helpers**:
+- `ec_get_user_community_profile_url( $user_id, $user_email = '' )` - Explicit community bbPress profile resolver
+- `ec_get_user_author_archive_url( $user_id )` - Explicit main site author archive resolver (always returns a URL when possible)
+
+**Usage Guidance**:
+- Use `ec_get_user_profile_url()` for general-purpose profile links (mentions, avatar menus, “View Profile”) so identity always resolves to the community bbPress profile when possible.
+- Use `ec_get_user_author_archive_url()` for article contexts (post bylines, “More articles by…”) where `/author/{slug}/` is desirable even if the user also has a community profile.
 
 **URL Formats**:
-- Main site users: `https://extrachill.com/author/username/`
-- Community users: `https://community.extrachill.com/u/username/`
+- Community profiles: `https://community.extrachill.com/u/username/`
+- Main site author archives: `https://extrachill.com/author/username/`
 
 **Bidirectional Profile Linking**:
-The plugin provides complete bidirectional linking between author archives and community profiles:
+The platform provides bidirectional linking between author archives and community profiles:
 
-1. **Community Profile → Author Archive** (existing):
-   - Community profile shows "View Posts" link to author archive
-   - Implemented in extrachill-community plugin
+1. **Community Profile → Author Archive**:
+   - Community profile can show an "Extra Chill Articles" link to the author archive.
+   - Gating (>= 1 published post) is handled in extrachill-community.
 
-2. **Author Archive → Community Profile** (new):
+2. **Author Archive → Community Profile**:
    - Function: `ec_display_author_community_link( $author_id )`
    - Hook: `extrachill_after_author_bio` (priority 10)
-   - Display: "View Community Profile" button (button-2 button-medium classes)
    - URL: `https://community.extrachill.com/u/{user_nicename}/`
    - Conditional: Only displays if user exists on community.extrachill.com
-   - Implementation: Uses multisite blog switching with proper error handling and user validation
 
 **Integration**: Used by theme for comment author links, user profile display, and bidirectional profile navigation
 
@@ -455,6 +460,7 @@ try {
 
 ### Plugin Dependencies
 - **extrachill-multisite**: Required for Turnstile captcha (`ec_render_turnstile_widget()`, `ec_verify_turnstile_response()`)
+- **extrachill-api**: Required for REST API infrastructure
 - **extrachill-newsletter**: Required for newsletter subscription (`extrachill_multisite_subscribe()` function)
 - **extrachill-artist-platform** (optional): Optional integration for roster invitation acceptance during registration (`bp_get_pending_invitations()`, `bp_add_artist_membership()`, `bp_remove_pending_invitation()`)
 

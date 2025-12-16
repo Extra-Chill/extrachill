@@ -100,7 +100,7 @@ function ec_handle_reset_password() {
 	}
 
 	reset_password( $user, $pass1 );
-	wp_set_auth_cookie( $user->ID );
+	wp_set_auth_cookie( $user->ID, true );
 
 	wp_safe_redirect( home_url() );
 	exit;

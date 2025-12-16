@@ -11,55 +11,89 @@
  */
 
 /**
- * Get user profile URL with intelligent multisite fallback.
+ * Get the community profile URL for a user.
  *
- * Resolution order: Main site author page → Community email lookup → Community ID lookup → Default author URL.
+ * @param int    $user_id User ID.
+ * @param string $user_email Optional. Email address for lookup.
+ * @return string Community profile URL or empty string.
+ */
+function ec_get_user_community_profile_url( $user_id, $user_email = '' ) {
+	$community_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'community' ) : null;
+	if ( ! $community_blog_id ) {
+		return '';
+	}
+
+	$user_id        = absint( $user_id );
+	$community_user = null;
+
+	switch_to_blog( $community_blog_id );
+	try {
+		if ( ! empty( $user_email ) ) {
+			$community_user = get_user_by( 'email', $user_email );
+		}
+
+		if ( ! $community_user && $user_id > 0 ) {
+			$community_user = get_userdata( $user_id );
+		}
+	} finally {
+		restore_current_blog();
+	}
+
+	if ( ! $community_user || empty( $community_user->user_nicename ) ) {
+		return '';
+	}
+
+	return ec_get_site_url( 'community' ) . '/u/' . $community_user->user_nicename;
+}
+
+/**
+ * Get the main-site author archive URL for a user.
  *
- * @param int    $user_id User ID
- * @param string $user_email Optional. User email for fallback lookup
- * @return string User profile URL
+ * @param int $user_id User ID.
+ * @return string Author archive URL or empty string.
+ */
+function ec_get_user_author_archive_url( $user_id ) {
+	$user_id = absint( $user_id );
+	if ( ! $user_id ) {
+		return '';
+	}
+
+	$main_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'main' ) : null;
+	if ( ! $main_blog_id ) {
+		return '';
+	}
+
+	switch_to_blog( $main_blog_id );
+	try {
+		$author_url = get_author_posts_url( $user_id );
+	} finally {
+		restore_current_blog();
+	}
+
+	return $author_url;
+}
+
+/**
+ * Get user profile URL.
+ *
+ * Resolution order: Community profile → Main site author archive → Default author URL.
+ *
+ * @param int    $user_id User ID.
+ * @param string $user_email Optional. User email for lookup.
+ * @return string User profile URL.
  */
 function ec_get_user_profile_url( $user_id, $user_email = '' ) {
-		if ( $user_id > 0 && function_exists( 'ec_has_main_site_account' ) && ec_has_main_site_account( $user_id ) ) {
-
-		$main_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'main' ) : null;
-		if ( $main_blog_id ) {
-			switch_to_blog( $main_blog_id );
-			$author_url = get_author_posts_url( $user_id );
-			restore_current_blog();
-			return $author_url;
-		}
+	$community_url = ec_get_user_community_profile_url( $user_id, $user_email );
+	if ( ! empty( $community_url ) ) {
+		return $community_url;
 	}
 
-	if ( ! empty( $user_email ) ) {
-		$community_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'community' ) : null;
-		if ( $community_blog_id ) {
-			switch_to_blog( $community_blog_id );
-			$community_user = get_user_by( 'email', $user_email );
-			restore_current_blog();
-		}
-
-
-        if ( $community_user && ! empty( $community_user->user_nicename ) ) {
-            return ec_get_site_url( 'community' ) . '/u/' . $community_user->user_nicename;
-        }
-    }
-
-	if ( $user_id > 0 ) {
-		$community_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'community' ) : null;
-		if ( $community_blog_id ) {
-			switch_to_blog( $community_blog_id );
-			$community_user = get_userdata( $user_id );
-			restore_current_blog();
-		}
-
-		if ( isset( $community_user ) && $community_user && ! empty( $community_user->user_nicename ) ) {
-			return ec_get_site_url( 'community' ) . '/u/' . $community_user->user_nicename;
-		}
+	$author_archive_url = ec_get_user_author_archive_url( $user_id );
+	if ( ! empty( $author_archive_url ) ) {
+		return $author_archive_url;
 	}
 
-
-    return get_author_posts_url( $user_id );
+	return get_author_posts_url( $user_id );
 }
 
 /**

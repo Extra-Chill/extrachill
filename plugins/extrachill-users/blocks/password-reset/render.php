@@ -27,15 +27,9 @@ if ( $action === 'reset' && ! empty( $key ) && ! empty( $login ) ) {
 	$user = check_password_reset_key( $key, $login );
 
 	if ( is_wp_error( $user ) ) {
-		?>
-		<div class="password-reset-form">
-			<div class="notice notice-error">
-				<?php esc_html_e( 'This password reset link is invalid or has expired. Please request a new one.', 'extrachill-users' ); ?>
-			</div>
-			<p><a href="<?php echo esc_url( home_url( '/reset-password/' ) ); ?>" class="button-1 button-medium"><?php esc_html_e( 'Request New Reset Link', 'extrachill-users' ); ?></a></p>
-		</div>
-		<?php
-		return;
+		extrachill_set_notice( __( 'This password reset link is invalid or has expired. Please request a new one.', 'extrachill-users' ), 'error' );
+		wp_redirect( home_url( '/reset-password/' ) );
+		exit;
 	}
 
 	?>

@@ -3,7 +3,7 @@
  * Plugin Name: Extra Chill Users
  * Plugin URI: https://extrachill.com
  * Description: Single source of truth for user management across the ExtraChill Platform network. Handles authentication, user creation, team members, profile URL resolution, custom avatars, avatar menu, online user tracking, and ad-free licenses.
- * Version: 0.3.5
+ * Version: 0.4.0
  * Author: Chris Huber
  * Author URI: https://chubes.net
  * Network: true
@@ -19,7 +19,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'EXTRACHILL_USERS_VERSION', '0.3.4' );
+define( 'EXTRACHILL_USERS_VERSION', '0.4.0' );
 define( 'EXTRACHILL_USERS_PLUGIN_FILE', __FILE__ );
 define( 'EXTRACHILL_USERS_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'EXTRACHILL_USERS_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
@@ -30,6 +30,11 @@ function extrachill_users_activate() {
 	if ( ! is_multisite() ) {
 		deactivate_plugins( plugin_basename( __FILE__ ) );
 		wp_die( 'Extra Chill Users plugin requires a WordPress multisite installation.' );
+	}
+
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/auth-tokens/db.php';
+	if ( function_exists( 'extrachill_users_install_refresh_token_table' ) ) {
+		extrachill_users_install_refresh_token_table();
 	}
 }
 
@@ -80,10 +85,13 @@ function extrachill_users_init() {
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/auth/register.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/auth/logout.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/auth/password-reset.php';
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/auth-tokens/service.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/core/online-users.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/core/registration-emails.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/core/user-creation.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/team-members.php';
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/badges/user-badges.php';
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/rank-system/rank-tiers.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/admin-access-control.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/author-links.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/artist-profiles.php';

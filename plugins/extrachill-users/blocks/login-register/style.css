@@ -38,46 +38,35 @@
     margin-bottom: 6px;
 }
 
-/* Input Styles */
+/* Input Styles - Using theme form tokens with auth-specific spacing */
 .login-register-form input[type="text"],
 .login-register-form input[type="email"],
 .login-register-form input[type="password"] {
-    width: 100%;
-    padding: 12px;
-    border: 1px solid var(--border-color);
-    border-radius: 6px;
-    font-size: 15px;
-    color: var(--text-color);
-    background-color: var(--background-color);
-    margin-bottom: 15px;
-    box-sizing: border-box;
-    transition: border-color 0.2s, box-shadow 0.2s;
+    margin-bottom: 15px; /* Auth-specific spacing */
 }
 
-/* Focus States */
-.login-register-form input[type="text"]:focus,
-.login-register-form input[type="email"]:focus,
-.login-register-form input[type="password"]:focus {
-    border-color: var(--focus-border-color);
-    outline: none;
-    box-shadow: var(--focus-box-shadow);
+/* Remember Me */
+.login-remember-me {
+    margin-bottom: 15px;
+}
+
+.login-remember-me label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 0;
+    font-weight: 400;
+}
+
+.login-remember-me input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    margin: 0;
 }
 
 /* Submit Button - Styling handled by button-2 class from theme */
 
-/* Error Message Styles */
-.login-register-errors {
-    background-color: #ffecec; /* Light Mode */
-    border-left: 4px solid var(--error-color);
-    padding: 10px 15px;
-    border-radius: 6px;
-    color: #c53030;
-    margin-top: 15px;
-}
 
-.login-register-errors .error {
-    margin: 0;
-}
 
 /* --- Dark Mode Overrides --- */
 @media (prefers-color-scheme: dark) {
@@ -92,12 +81,7 @@
         color: var(--text-color);
     }
 
-    /* Error Message in Dark Mode */
-    .login-register-errors {
-        background-color: #330000; /* Darker error background */
-        border-left: 4px solid var(--error-color);
-        color: #ffcccc;
-    }
+
 }
 
 /* --- Additional Notice and Form Element Styles --- */

@@ -10,7 +10,8 @@ Network-wide user management plugin providing authentication, profiles, and avat
 - User creation on community.extrachill.com
 
 ## Profile System
-- Profile URL resolution via `ec_get_user_profile_url()` function
+- General profile URL resolution (community-first) via `ec_get_user_profile_url()`
+- Main-site author archive URLs via `ec_get_user_author_archive_url()`
 - Custom user fields and metadata
 - Network-wide profile consistency
 

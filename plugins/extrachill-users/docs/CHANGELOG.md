@@ -1,5 +1,34 @@
 # Changelog
 
+## [0.4.0] - 2025-12-16
+
+### Added
+- Auth token system with JWT access tokens (15min TTL) and refresh tokens (30 days TTL)
+- Device-based authentication with UUID v4 device tracking
+- Network-wide refresh token storage in dedicated database table
+- User badges system for artists, professionals, and team members
+- Point-based rank system with 22 tiers from "Dew" to "Frozen Deep Space"
+- REST API integration for login, register, and token refresh endpoints
+- Mobile app authentication foundation with device management
+- "Remember me" checkbox in login form
+- Centralized notice system for authentication forms
+- Refresh token table auto-installation on plugin activation
+
+### Changed
+- Login and registration now use REST API instead of admin-post forms
+- Password reset auto-login now sets persistent auth cookie (matches registration)
+- Profile URL resolution now prioritizes community profiles over author archives
+- Authentication JavaScript completely rewritten for token-based auth
+- CSS cleaned up to rely on theme form tokens
+- Password reset error handling uses centralized notices and redirects
+
+### Technical
+- Added `inc/auth-tokens/` directory with database, service, and token helpers
+- Added `inc/badges/user-badges.php` for structured user badge resolution
+- Added `inc/rank-system/rank-tiers.php` for point-based ranking
+- Refactored profile URL functions with explicit community and author archive helpers
+- Updated plugin dependencies to include extrachill-api
+
 ## [0.3.4] - 2025-12-10
 
 ### Added

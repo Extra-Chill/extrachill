@@ -57,6 +57,11 @@ if ( isset( $_GET['action'] ) && 'bp_accept_invite' === $_GET['action'] && isset
 				$artist_post_for_invite   = get_post( $invite_artist_id );
 				if ( $artist_post_for_invite ) {
 					$artist_name_for_invite_message = $artist_post_for_invite->post_title;
+					// Set centralized notice for invitation
+					extrachill_set_notice(
+						sprintf( __( 'You have been invited to join the artist \'%s\'! Please complete your registration below to accept.', 'extrachill-users' ), $artist_name_for_invite_message ),
+						'info'
+					);
 				}
 				break;
 			}
@@ -86,6 +91,13 @@ if ( isset( $_GET['action'] ) && 'bp_accept_invite' === $_GET['action'] && isset
 						<label for="user_pass"><?php esc_html_e( 'Password', 'extrachill-users' ); ?></label>
 						<input type="password" name="pwd" id="user_pass" class="input" placeholder="<?php esc_attr_e( 'Your password', 'extrachill-users' ); ?>" required>
 
+						<div class="login-remember-me">
+							<label>
+								<input type="checkbox" name="rememberme" value="forever">
+								<?php esc_html_e( 'Remember me', 'extrachill-users' ); ?>
+							</label>
+						</div>
+
 						<input type="hidden" name="redirect_to" value="<?php echo esc_attr( $login_redirect_url ); ?>">
 
 						<input type="submit" id="wp-submit" class="button-2 button-medium" value="<?php esc_attr_e( 'Log In', 'extrachill-users' ); ?>">
@@ -104,12 +116,6 @@ if ( isset( $_GET['action'] ) && 'bp_accept_invite' === $_GET['action'] && isset
 			</button>
 			<div id="tab-register" class="shared-tab-pane">
 				<div class="login-register-form">
-
-					<?php if ( ! empty( $artist_name_for_invite_message ) && ! empty( $invite_token ) ) : ?>
-						<div class="notice notice-info">
-							<p><?php echo sprintf( esc_html__( 'You have been invited to join the artist \'%s\'! Please complete your registration below to accept.', 'extrachill-users' ), esc_html( $artist_name_for_invite_message ) ); ?></p>
-						</div>
-					<?php endif; ?>
 
 					<form action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" method="post">
 						<input type="hidden" name="action" value="extrachill_register_user">

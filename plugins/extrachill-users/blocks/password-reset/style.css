@@ -36,29 +36,11 @@
     margin-bottom: 6px;
 }
 
-/* Input Styles */
+/* Input Styles - Using theme form tokens with auth-specific spacing */
 .password-reset-form input[type="text"],
 .password-reset-form input[type="email"],
 .password-reset-form input[type="password"] {
-    width: 100%;
-    padding: 12px;
-    border: 1px solid var(--border-color);
-    border-radius: 6px;
-    font-size: 15px;
-    color: var(--text-color);
-    background-color: var(--background-color);
-    margin-bottom: 15px;
-    box-sizing: border-box;
-    transition: border-color 0.2s, box-shadow 0.2s;
-}
-
-/* Focus States */
-.password-reset-form input[type="text"]:focus,
-.password-reset-form input[type="email"]:focus,
-.password-reset-form input[type="password"]:focus {
-    border-color: var(--focus-border-color);
-    outline: none;
-    box-shadow: var(--focus-box-shadow);
+    margin-bottom: 15px; /* Auth-specific spacing */
 }
 
 /* Links */
@@ -71,25 +53,7 @@
     text-decoration: underline;
 }
 
-/* Success Message Styles */
-.password-reset-success {
-    background-color: var(--notice-bg);
-    border-left: 4px solid var(--notice-border);
-    padding: 15px 20px;
-    border-radius: 6px;
-    color: var(--text-color);
-    margin-bottom: 15px;
-}
 
-/* Error Message Styles */
-.password-reset-error {
-    background-color: #ffecec;
-    border-left: 4px solid var(--error-color);
-    padding: 15px 20px;
-    border-radius: 6px;
-    color: #c53030;
-    margin-bottom: 15px;
-}
 
 /* --- Dark Mode Overrides --- */
 @media (prefers-color-scheme: dark) {
@@ -104,10 +68,5 @@
         color: var(--text-color);
     }
 
-    /* Error Message in Dark Mode */
-    .password-reset-error {
-        background-color: #330000;
-        border-left: 4px solid var(--error-color);
-        color: #ffcccc;
-    }
+
 }

@@ -149,10 +149,10 @@ class EC_Redirect_Handler {
 	 * @param string $fragment Optional URL fragment for error redirects
 	 */
 	public static function render_hidden_fields( string $fragment = '' ): void {
-        $request_uri = isset( $_SERVER['REQUEST_URI'] ) ? wp_unslash( $_SERVER['REQUEST_URI'] ) : '/';
-        $current_url = set_url_scheme(
-            ( is_ssl() ? 'https://' : 'http://' ) . $_SERVER['HTTP_HOST'] . $request_uri
-        );
+		$request_uri = isset( $_SERVER['REQUEST_URI'] ) ? wp_unslash( $_SERVER['REQUEST_URI'] ) : '/';
+		$current_url = set_url_scheme(
+			( is_ssl() ? 'https://' : 'http://' ) . $_SERVER['HTTP_HOST'] . $request_uri
+		);
 
 		?>
 		<input type="hidden" name="source_url" value="<?php echo esc_url( $current_url ); ?>">
