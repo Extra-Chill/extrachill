@@ -21,7 +21,7 @@ CHANGELOG.md
 *~
 
 # Build artifacts and distribution
-build/
+# Note: build/ is NOT excluded - it contains compiled Gutenberg blocks from wp-scripts
 *.zip
 *.tar.gz
 

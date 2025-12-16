@@ -3,231 +3,256 @@
  *
  * Handles modal open/close, TinyMCE reinitialization, and accessibility.
  */
-(function() {
-    'use strict';
+( function () {
+	'use strict';
 
-    const discussionTrigger = document.getElementById('new-topic-modal-trigger');
-    const shareMusicTrigger = document.getElementById('share-music-modal-trigger');
-    const modal = document.getElementById('new-topic-modal');
-    const overlay = document.getElementById('new-topic-modal-overlay');
-    const closeButton = modal ? modal.querySelector('.new-topic-modal-close') : null;
+	const modal = document.getElementById( 'new-topic-modal' );
+	const overlay = document.getElementById( 'new-topic-modal-overlay' );
+	if ( ! modal || ! overlay ) {
+		return;
+	}
 
-    if (!modal || !overlay) {
-        return;
-    }
+	const discussionTrigger = document.getElementById(
+		'new-topic-modal-trigger'
+	);
+	const shareMusicTrigger = document.getElementById(
+		'share-music-modal-trigger'
+	);
+	const closeButton = modal.querySelector( '.new-topic-modal-close' );
 
-    const modalTitle = document.getElementById('new-topic-modal-title');
-    const modalDescription = document.getElementById('new-topic-modal-description');
+	const modalTitle = document.getElementById( 'new-topic-modal-title' );
+	const modalDescription = document.getElementById(
+		'new-topic-modal-description'
+	);
 
-    let editorInitialized = false;
-    let activeTrigger = null;
-    let originalForumId = null;
+	const { wp, tinymce } = window;
 
-    function getForumSelectWrapper() {
-        const forumSelect = document.getElementById('bbp_forum_id');
-        if (!forumSelect) {
-            return null;
-        }
+	let editorInitialized = false;
+	let activeTrigger = null;
+	let originalForumId = null;
 
-        return forumSelect.closest('p');
-    }
+	function getForumSelectWrapper() {
+		const forumSelect = document.getElementById( 'bbp_forum_id' );
+		if ( ! forumSelect ) {
+			return null;
+		}
 
-    function setForumId(forumId) {
-        const forumSelect = document.getElementById('bbp_forum_id');
-        if (!forumSelect) {
-            return;
-        }
+		return forumSelect.closest( 'p' );
+	}
 
-        if (originalForumId === null) {
-            originalForumId = forumSelect.value;
-        }
+	function setForumId( forumId ) {
+		const forumSelect = document.getElementById( 'bbp_forum_id' );
+		if ( ! forumSelect ) {
+			return;
+		}
 
-        forumSelect.value = String(forumId);
-        forumSelect.dispatchEvent(new Event('change', { bubbles: true }));
-    }
+		if ( originalForumId === null ) {
+			originalForumId = forumSelect.value;
+		}
 
-    function showForumDropdown() {
-        const wrapper = getForumSelectWrapper();
-        if (!wrapper) {
-            return;
-        }
+		forumSelect.value = String( forumId );
+		forumSelect.dispatchEvent( new Event( 'change', { bubbles: true } ) );
+	}
 
-        wrapper.style.display = '';
-    }
+	function showForumDropdown() {
+		const wrapper = getForumSelectWrapper();
+		if ( ! wrapper ) {
+			return;
+		}
 
-    function hideForumDropdown() {
-        const wrapper = getForumSelectWrapper();
-        if (!wrapper) {
-            return;
-        }
+		wrapper.style.display = '';
+	}
 
-        wrapper.style.display = 'none';
-    }
+	function hideForumDropdown() {
+		const wrapper = getForumSelectWrapper();
+		if ( ! wrapper ) {
+			return;
+		}
 
-    function setTopicTitlePlaceholder(placeholder) {
-        const titleInput = document.getElementById('bbp_topic_title');
-        if (!titleInput) {
-            return;
-        }
+		wrapper.style.display = 'none';
+	}
 
-        titleInput.setAttribute('placeholder', placeholder);
-    }
+	function setTopicTitlePlaceholder( placeholder ) {
+		const titleInput = document.getElementById( 'bbp_topic_title' );
+		if ( ! titleInput ) {
+			return;
+		}
 
-    function setTopicContentPlaceholder(placeholder) {
-        const textarea = document.getElementById('bbp_topic_content');
-        if (!textarea) {
-            return;
-        }
+		titleInput.setAttribute( 'placeholder', placeholder );
+	}
 
-        textarea.setAttribute('placeholder', placeholder);
-    }
+	function setTopicContentPlaceholder( placeholder ) {
+		const textarea = document.getElementById( 'bbp_topic_content' );
+		if ( ! textarea ) {
+			return;
+		}
 
-    function setModalText(title, description) {
-        if (modalTitle) {
-            modalTitle.textContent = title;
-        }
+		textarea.setAttribute( 'placeholder', placeholder );
+	}
 
-        if (modalDescription) {
-            modalDescription.textContent = description || '';
-        }
-    }
+	function setModalText( title, description ) {
+		if ( modalTitle ) {
+			modalTitle.textContent = title;
+		}
 
-    function applyMode(triggerEl) {
-        const mode = triggerEl && triggerEl.dataset ? triggerEl.dataset.modalMode : 'discussion';
+		if ( modalDescription ) {
+			modalDescription.textContent = description || '';
+		}
+	}
 
-        if (mode === 'share_music') {
-            setModalText('Share Music', 'Drop a link to share music with the community.');
-            setTopicTitlePlaceholder('What are you sharing?');
-            setTopicContentPlaceholder('Paste a link and give us the scoop...');
+	function applyMode( triggerEl ) {
+		const mode =
+			triggerEl && triggerEl.dataset
+				? triggerEl.dataset.modalMode
+				: 'discussion';
 
-            const forumId = triggerEl.dataset.forumId;
-            if (forumId) {
-                setForumId(forumId);
-                hideForumDropdown();
-            }
+		if ( mode === 'share_music' ) {
+			setModalText(
+				'Share Music',
+				'Drop a link to share music with the community.'
+			);
+			setTopicTitlePlaceholder( 'What are you sharing?' );
+			setTopicContentPlaceholder(
+				'Paste a link and give us the scoop...'
+			);
 
-            return;
-        }
+			const forumId = triggerEl.dataset.forumId;
+			if ( forumId ) {
+				setForumId( forumId );
+				hideForumDropdown();
+			}
 
-        setModalText('Create Discussion', 'Start a new topic in the community.');
-        setTopicTitlePlaceholder('Title');
-        setTopicContentPlaceholder('');
+			return;
+		}
 
-        showForumDropdown();
+		setModalText(
+			'Create Discussion',
+			'Start a new topic in the community.'
+		);
+		setTopicTitlePlaceholder( 'Title' );
+		setTopicContentPlaceholder( '' );
 
-        if (originalForumId !== null) {
-            setForumId(originalForumId);
-        }
-    }
+		showForumDropdown();
 
-    function openModal(e) {
-        e.preventDefault();
-        activeTrigger = e.currentTarget;
+		if ( originalForumId !== null ) {
+			setForumId( originalForumId );
+		}
+	}
 
-        modal.classList.add('is-open');
-        overlay.classList.add('is-open');
-        document.body.classList.add('new-topic-modal-open');
+	function openModal( e ) {
+		e.preventDefault();
+		activeTrigger = e.currentTarget;
 
-        if (!editorInitialized && typeof wp !== 'undefined' && wp.editor) {
-            initializeEditor();
-        }
+		modal.classList.add( 'is-open' );
+		overlay.classList.add( 'is-open' );
+		document.body.classList.add( 'new-topic-modal-open' );
 
-        applyMode(activeTrigger);
+		if ( ! editorInitialized && wp?.editor ) {
+			initializeEditor();
+		}
 
-        const firstInput = modal.querySelector('input[type="text"], textarea');
-        if (firstInput) {
-            firstInput.focus();
-        }
+		applyMode( activeTrigger );
 
-        document.addEventListener('keydown', trapFocus);
-    }
+		const firstInput = modal.querySelector(
+			'input[type="text"], textarea'
+		);
+		if ( firstInput ) {
+			firstInput.focus();
+		}
 
-    function closeModal() {
-        modal.classList.remove('is-open');
-        overlay.classList.remove('is-open');
-        document.body.classList.remove('new-topic-modal-open');
-        document.removeEventListener('keydown', trapFocus);
+		document.addEventListener( 'keydown', trapFocus );
+	}
 
-        if (activeTrigger) {
-            activeTrigger.focus();
-        }
+	function closeModal() {
+		modal.classList.remove( 'is-open' );
+		overlay.classList.remove( 'is-open' );
+		document.body.classList.remove( 'new-topic-modal-open' );
+		document.removeEventListener( 'keydown', trapFocus );
 
-        activeTrigger = null;
-    }
+		if ( activeTrigger ) {
+			activeTrigger.focus();
+		}
 
-    function initializeEditor() {
-        const editorId = 'bbp_topic_content';
-        const editorElement = document.getElementById(editorId);
+		activeTrigger = null;
+	}
 
-        if (!editorElement) {
-            editorInitialized = true;
-            return;
-        }
+	function initializeEditor() {
+		const editorId = 'bbp_topic_content';
+		const editorElement = document.getElementById( editorId );
 
-        if (editorElement.closest('.blocks-everywhere')) {
-            editorInitialized = true;
-            return;
-        }
+		if ( ! editorElement ) {
+			editorInitialized = true;
+			return;
+		}
 
-        if (typeof tinymce !== 'undefined' && tinymce.get(editorId)) {
-            editorInitialized = true;
-            return;
-        }
+		if ( editorElement.closest( '.blocks-everywhere' ) ) {
+			editorInitialized = true;
+			return;
+		}
 
-        if (typeof wp !== 'undefined' && wp.editor && wp.editor.initialize) {
-            wp.editor.initialize(editorId, {
-                tinymce: {
-                    wpautop: true,
-                    plugins: 'charmap,colorpicker,hr,lists,paste,tabfocus,textcolor,wordpress,wpautoresize,wpeditimage,wpemoji,wpgallery,wplink,wptextpattern',
-                    toolbar1: 'formatselect,bold,italic,bullist,numlist,blockquote,alignleft,aligncenter,alignright,link,wp_more,spellchecker,fullscreen,wp_adv',
-                    toolbar2: 'strikethrough,hr,forecolor,pastetext,removeformat,charmap,outdent,indent,undo,redo,wp_help'
-                },
-                quicktags: true,
-                mediaButtons: false
-            });
-        }
+		if ( tinymce?.get( editorId ) ) {
+			editorInitialized = true;
+			return;
+		}
 
-        editorInitialized = true;
-    }
+		if ( wp?.editor?.initialize ) {
+			wp.editor.initialize( editorId, {
+				tinymce: {
+					wpautop: true,
+					plugins:
+						'charmap,colorpicker,hr,lists,paste,tabfocus,textcolor,wordpress,wpautoresize,wpeditimage,wpemoji,wpgallery,wplink,wptextpattern',
+					toolbar1:
+						'formatselect,bold,italic,bullist,numlist,blockquote,alignleft,aligncenter,alignright,link,wp_more,spellchecker,fullscreen,wp_adv',
+					toolbar2:
+						'strikethrough,hr,forecolor,pastetext,removeformat,charmap,outdent,indent,undo,redo,wp_help',
+				},
+				quicktags: true,
+				mediaButtons: false,
+			} );
+		}
 
-    function trapFocus(e) {
-        if (e.key !== 'Tab') {
-            if (e.key === 'Escape') {
-                closeModal();
-            }
-            return;
-        }
+		editorInitialized = true;
+	}
 
-        const focusableElements = modal.querySelectorAll(
-            'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-        );
-        const firstElement = focusableElements[0];
-        const lastElement = focusableElements[focusableElements.length - 1];
+	function trapFocus( e ) {
+		if ( e.key !== 'Tab' ) {
+			if ( e.key === 'Escape' ) {
+				closeModal();
+			}
+			return;
+		}
 
-        if (e.shiftKey) {
-            if (document.activeElement === firstElement) {
-                lastElement.focus();
-                e.preventDefault();
-            }
-        } else {
-            if (document.activeElement === lastElement) {
-                firstElement.focus();
-                e.preventDefault();
-            }
-        }
-    }
+		const focusableElements = modal.querySelectorAll(
+			'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+		);
+		const firstElement = focusableElements[ 0 ];
+		const lastElement = focusableElements[ focusableElements.length - 1 ];
 
-    if (discussionTrigger) {
-        discussionTrigger.addEventListener('click', openModal);
-    }
+		const { activeElement } = modal.ownerDocument;
 
-    if (shareMusicTrigger) {
-        shareMusicTrigger.addEventListener('click', openModal);
-    }
+		if ( e.shiftKey && activeElement === firstElement ) {
+			lastElement.focus();
+			e.preventDefault();
+			return;
+		}
 
-    if (closeButton) {
-        closeButton.addEventListener('click', closeModal);
-    }
+		if ( ! e.shiftKey && activeElement === lastElement ) {
+			firstElement.focus();
+			e.preventDefault();
+		}
+	}
 
-    overlay.addEventListener('click', closeModal);
-})();
+	if ( discussionTrigger ) {
+		discussionTrigger.addEventListener( 'click', openModal );
+	}
+
+	if ( shareMusicTrigger ) {
+		shareMusicTrigger.addEventListener( 'click', openModal );
+	}
+
+	if ( closeButton ) {
+		closeButton.addEventListener( 'click', closeModal );
+	}
+
+	overlay.addEventListener( 'click', closeModal );
+} )();

@@ -1,5 +1,22 @@
 # Changelog
 
+## [1.1.1] - 2025-12-15
+
+### Added
+- New leaderboard Gutenberg block for enhanced WordPress editor integration
+- Block-based leaderboard page content with configurable per-page settings
+
+### Changed
+- Complete JavaScript modernization to ES6+ standards across all frontend components
+- Enhanced TinyMCE autosave functionality with improved draft handling and error management
+- Standardized WordPress coding standards throughout codebase (spacing, formatting)
+- Improved avatar upload UI with better error handling and user feedback
+- Updated build system to include Gutenberg block compilation
+
+### Fixed
+- Better error handling in JavaScript components with async/await patterns
+- Improved CSS styling for TinyMCE editor and user profile components
+
 ## [1.1.0] - 2025-12-14
 
 ### Added

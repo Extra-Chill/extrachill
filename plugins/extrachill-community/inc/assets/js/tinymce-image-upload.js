@@ -1,174 +1,196 @@
-tinymce.PluginManager.add('local_upload_plugin', function(editor) {
-    editor.addButton('image', {
-        title: 'Upload Image',
-        icon: 'image',
-        onclick: function() {
-            triggerFileInput();
-        },
-        onPostRender: function() {
-            var btn = this.getEl();
-            btn.ontouchend = function() {
-                triggerFileInput();
-            };
-        }
-    });
+( function () {
+	const { tinymce } = window;
+	if ( ! tinymce ) {
+		return;
+	}
 
-    function triggerFileInput() {
-        var input = document.createElement('input');
-        input.setAttribute('type', 'file');
-        input.setAttribute('accept', 'image/*');
-        input.style.display = 'none';
+	tinymce.PluginManager.add(
+		'local_upload_plugin',
+		function ( editorInstance ) {
+			editorInstance.addButton( 'image', {
+				title: 'Upload Image',
+				icon: 'image',
+				onclick() {
+					triggerFileInput();
+				},
+				onPostRender() {
+					const btn = this.getEl();
+					btn.ontouchend = function () {
+						triggerFileInput();
+					};
+				},
+			} );
 
-        document.body.appendChild(input);
+			function triggerFileInput() {
+				const input = document.createElement( 'input' );
+				input.setAttribute( 'type', 'file' );
+				input.setAttribute( 'accept', 'image/*' );
+				input.style.display = 'none';
 
-        input.onchange = function(e) {
-            var file = e.target.files[0];
-            if (file) {
-                uploadImage(file, editor);
-            }
-            document.body.removeChild(input);
-        };
+				document.body.appendChild( input );
 
-        input.click();
-    }
+				input.onchange = function ( e ) {
+					const file = e.target.files[ 0 ];
+					if ( file ) {
+						uploadImage( file, editorInstance );
+					}
+					document.body.removeChild( input );
+				};
 
-    function uploadImage(file, editor) {
-        var formData = new FormData();
-        formData.append('file', file);
-        formData.append('context', 'content_embed');
+				input.click();
+			}
 
-        var loader = document.createElement('div');
-        loader.innerHTML = '<div style="text-align:center;color: #53940b;"><i class="fa fa-spinner fa-spin fa-2x"></i> Image loading, please wait...</div>';
-        editor.getContainer().appendChild(loader);
+			function removeNode( node ) {
+				if ( node && node.parentNode ) {
+					node.parentNode.removeChild( node );
+				}
+			}
 
-        var editorContext = window.extrachillCommunityEditor || {};
-        if (!editorContext.restNonce) {
-            console.error('TinyMCE upload aborted: missing REST nonce.');
-            if (loader.parentNode) {
-                loader.parentNode.removeChild(loader);
-            }
-            return;
-        }
+			function uploadImage( file, editorInstanceForUpload ) {
+				const editorContext = window.extrachillCommunityEditor || {};
+				if ( ! editorContext.restNonce || ! editorContext.restUrl ) {
+					return;
+				}
 
-        if (!editorContext.restUrl) {
-            console.error('TinyMCE upload aborted: missing REST root.');
-            if (loader.parentNode) {
-                loader.parentNode.removeChild(loader);
-            }
-            return;
-        }
+				const formData = new FormData();
+				formData.append( 'file', file );
+				formData.append( 'context', 'content_embed' );
 
-        fetch(new URL('extrachill/v1/media', editorContext.restUrl).toString(), {
-            method: 'POST',
-            credentials: 'same-origin',
-            headers: {
-                'X-WP-Nonce': editorContext.restNonce
-            },
-            body: formData
-        })
-        .then(function(response) {
-            if (!response.ok) {
-                return response.json().then(function(err) {
-                    return Promise.reject(err);
-                });
-            }
-            return response.json();
-        })
-        .then(function(data) {
-            if (data.url) {
-                var content = '<p><img src="' + data.url + '" style="max-width:50%;" class="uploaded-image" /></p><p><br /></p>';
-                editor.insertContent(content);
-                editor.focus();
-                editor.selection.collapse(false);
-            }
+				const loader = document.createElement( 'div' );
+				loader.className = 'extrachill-editor-upload-notice';
+				loader.textContent = 'Image loading, please wait...';
+				editorInstanceForUpload.getContainer().appendChild( loader );
 
-            if (loader.parentNode) {
-                loader.parentNode.removeChild(loader);
-            }
-        })
-        .catch(function(error) {
-            console.error("Upload error:", error.message || error);
-            if (loader.parentNode) {
-                loader.parentNode.removeChild(loader);
-            }
-        });
-    }
+				fetch(
+					new URL(
+						'extrachill/v1/media',
+						editorContext.restUrl
+					).toString(),
+					{
+						method: 'POST',
+						credentials: 'same-origin',
+						headers: {
+							'X-WP-Nonce': editorContext.restNonce,
+						},
+						body: formData,
+					}
+				)
+					.then( function ( response ) {
+						if ( response.ok ) {
+							return response.json();
+						}
 
-    function removeOverlay() {
-        var container = editor.getContainer();
-        container.classList.remove('mce-drag-over');
-        var overlay = container.querySelector('.mce-drag-overlay');
-        if (overlay) {
-            container.removeChild(overlay);
-        }
-    }
+						return response.json().then( function ( err ) {
+							return Promise.reject( err );
+						} );
+					} )
+					.then( function ( data ) {
+						if ( data?.url ) {
+							const content = `<p><img src="${ data.url }" class="uploaded-image" /></p><p><br /></p>`;
+							editorInstanceForUpload.insertContent( content );
+							editorInstanceForUpload.focus();
+							editorInstanceForUpload.selection.collapse( false );
+						}
 
-    editor.on('dragover', function(e) {
-        e.preventDefault();
-        var container = editor.getContainer();
-        container.classList.add('mce-drag-over');
-        if (!container.querySelector('.mce-drag-overlay')) {
-            var overlay = document.createElement('div');
-            overlay.className = 'mce-drag-overlay';
-            overlay.innerText = 'Drop image to upload';
-            container.appendChild(overlay);
-        }
+						removeNode( loader );
+					} )
+					.catch( function () {
+						removeNode( loader );
+					} );
+			}
 
-        document.addEventListener('click', removeOverlay, { once: true });
-    });
+			function removeOverlay() {
+				const container = editorInstance.getContainer();
+				container.classList.remove( 'mce-drag-over' );
+				const overlay = container.querySelector( '.mce-drag-overlay' );
+				removeNode( overlay );
+			}
 
-    editor.on('dragleave dragend drop', function(e) {
-        removeOverlay();
-    });
+			editorInstance.on( 'dragover', function ( e ) {
+				e.preventDefault();
+				const container = editorInstance.getContainer();
+				container.classList.add( 'mce-drag-over' );
+				if ( ! container.querySelector( '.mce-drag-overlay' ) ) {
+					const overlay = document.createElement( 'div' );
+					overlay.className = 'mce-drag-overlay';
+					overlay.innerText = 'Drop image to upload';
+					container.appendChild( overlay );
+				}
 
-    editor.on('drop', function(e) {
-        e.preventDefault();
-        var dataTransfer = e.dataTransfer;
-        if (dataTransfer && dataTransfer.files && dataTransfer.files.length) {
-            var file = dataTransfer.files[0];
-            if (file.type.startsWith('image/')) {
-                uploadImage(file, editor);
-            } else {
-                console.error("Only image files are supported");
-            }
-        }
-    });
+				document.addEventListener( 'click', removeOverlay, {
+					once: true,
+				} );
+			} );
 
-    editor.on('paste', function(e) {
-        var clipboardData = e.clipboardData || window.clipboardData;
-        if (clipboardData && clipboardData.items) {
-            var items = clipboardData.items;
-            for (var i = 0; i < items.length; i++) {
-                var item = items[i];
-                if (item.type.indexOf("image") !== -1) {
-                    var file = item.getAsFile();
-                    if (file) {
-                        e.preventDefault();
-                        uploadImage(file, editor);
-                    }
-                }
-            }
-        }
-    });
+			editorInstance.on( 'dragleave dragend drop', function () {
+				removeOverlay();
+			} );
 
-    editor.on('focus', function() {
-        if (/Mobi|Android/i.test(navigator.userAgent)) {
-            document.addEventListener('paste', function(e) {
-                var clipboardData = e.clipboardData || window.clipboardData;
-                if (clipboardData && clipboardData.items) {
-                    var items = clipboardData.items;
-                    for (var i = 0; i < items.length; i++) {
-                        var item = items[i];
-                        if (item.type.indexOf("image") !== -1) {
-                            var file = item.getAsFile();
-                            if (file) {
-                                e.preventDefault();
-                                uploadImage(file, editor);
-                            }
-                        }
-                    }
-                }
-            }, { once: true });
-        }
-    });
-});
+			editorInstance.on( 'drop', function ( e ) {
+				e.preventDefault();
+				const dataTransfer = e.dataTransfer;
+				if ( ! dataTransfer?.files?.length ) {
+					return;
+				}
+
+				const file = dataTransfer.files[ 0 ];
+				if ( file?.type?.startsWith( 'image/' ) ) {
+					uploadImage( file, editorInstance );
+				}
+			} );
+
+			editorInstance.on( 'paste', function ( e ) {
+				const clipboardData = e.clipboardData || window.clipboardData;
+				if ( ! clipboardData?.items ) {
+					return;
+				}
+
+				const items = clipboardData.items;
+				for ( let i = 0; i < items.length; i++ ) {
+					const item = items[ i ];
+					if ( item.type.indexOf( 'image' ) !== -1 ) {
+						const file = item.getAsFile();
+						if ( file ) {
+							e.preventDefault();
+							uploadImage( file, editorInstance );
+						}
+					}
+				}
+			} );
+
+			editorInstance.on( 'focus', function () {
+				const { navigator } = window;
+				if (
+					! navigator ||
+					! /Mobi|Android/i.test( navigator.userAgent )
+				) {
+					return;
+				}
+
+				document.addEventListener(
+					'paste',
+					function ( e ) {
+						const clipboardData =
+							e.clipboardData || window.clipboardData;
+						if ( ! clipboardData?.items ) {
+							return;
+						}
+
+						const items = clipboardData.items;
+						for ( let i = 0; i < items.length; i++ ) {
+							const item = items[ i ];
+							if ( item.type.indexOf( 'image' ) !== -1 ) {
+								const file = item.getAsFile();
+								if ( file ) {
+									e.preventDefault();
+									uploadImage( file, editorInstance );
+								}
+							}
+						}
+					},
+					{ once: true }
+				);
+			} );
+		}
+	);
+} )();

@@ -1,432 +1,424 @@
 /**
  * Enhanced user mention autocomplete for TinyMCE editor
- * Provides real-time search and dropdown selection for @mentions
+ * Provides real-time search and dropdown selection for @mentions.
  */
 
-// Ensure this script runs only once
-if (typeof window.extrachillMentionsPluginLoaded === 'undefined') {
-    window.extrachillMentionsPluginLoaded = true;
+if ( typeof window.extrachillMentionsPluginLoaded === 'undefined' ) {
+	window.extrachillMentionsPluginLoaded = true;
 
-    // TinyMCE Plugin for Autocomplete
-    (function() {
-        // Check if TinyMCE is available
-        if (typeof tinymce === 'undefined') {
-            return;
-        }
+	( function () {
+		const { tinymce } = window;
+		const TEXT_NODE_TYPE = 3;
 
-        // Autocomplete state management
-        let mentionsState = {
-            dropdown: null,
-            isActive: false,
-            currentSearch: '',
-            selectedIndex: -1,
-            searchResults: [],
-            debounceTimeout: null,
-            currentRange: null,
-            mentionStart: 0,
-            editor: null
-        };
+		if ( ! tinymce ) {
+			return;
+		}
 
-        // Create and position dropdown element
-        function createDropdown(editor) {
-            if (mentionsState.dropdown) {
-                return mentionsState.dropdown;
-            }
+		const mentionsState = {
+			dropdown: null,
+			isActive: false,
+			currentSearch: '',
+			selectedIndex: -1,
+			searchResults: [],
+			debounceTimeout: null,
+			currentRange: null,
+			mentionStart: 0,
+			editor: null,
+		};
 
-            const dropdown = document.createElement('div');
-            dropdown.className = 'mentions-dropdown';
-            dropdown.style.cssText = `
-                position: absolute;
-                z-index: 10000;
-                max-height: 200px;
-                overflow-y: auto;
-                display: none;
-                background: var(--card-background);
-                border: 1px solid var(--border-color);
-                border-radius: 6px;
-                box-shadow: var(--card-shadow);
-                min-width: 200px;
-            `;
+		function createDropdown() {
+			if ( mentionsState.dropdown ) {
+				return mentionsState.dropdown;
+			}
 
-            document.body.appendChild(dropdown);
-            mentionsState.dropdown = dropdown;
-            return dropdown;
-        }
+			const dropdown = document.createElement( 'div' );
+			dropdown.className = 'mentions-dropdown';
+			document.body.appendChild( dropdown );
+			mentionsState.dropdown = dropdown;
+			return dropdown;
+		}
 
-        // Position dropdown relative to cursor using improved positioning logic
-        function positionDropdown(editor) {
-            if (!mentionsState.dropdown || !mentionsState.currentRange) return;
+		function positionDropdown( editor ) {
+			if ( ! mentionsState.dropdown || ! mentionsState.currentRange ) {
+				return;
+			}
 
-            try {
-                // Use TinyMCE's native selection methods for better positioning
-                const selection = editor.selection;
-                const range = selection.getRng();
+			try {
+				const selection = editor.selection;
+				const range = selection.getRng();
+				const rect = range.getBoundingClientRect();
 
-                // Get the bounding rect of the current selection
-                const rect = range.getBoundingClientRect();
-                const editorRect = editor.getContainer().getBoundingClientRect();
+				mentionsState.dropdown.style.left = `${ rect.left }px`;
+				mentionsState.dropdown.style.top = `${ rect.bottom + 5 }px`;
+			} catch {
+				const editorRect = editor
+					.getContainer()
+					.getBoundingClientRect();
+				mentionsState.dropdown.style.left = `${
+					editorRect.left + 20
+				}px`;
+				mentionsState.dropdown.style.top = `${ editorRect.top + 60 }px`;
+			}
+		}
 
-                // Position dropdown below the cursor
-                mentionsState.dropdown.style.left = rect.left + 'px';
-                mentionsState.dropdown.style.top = (rect.bottom + 5) + 'px';
+		function renderResults( results ) {
+			if ( ! mentionsState.dropdown ) {
+				return;
+			}
 
-            } catch (e) {
-                // Fallback positioning relative to editor
-                const editorRect = editor.getContainer().getBoundingClientRect();
-                mentionsState.dropdown.style.left = (editorRect.left + 20) + 'px';
-                mentionsState.dropdown.style.top = (editorRect.top + 60) + 'px';
-            }
-        }
+			mentionsState.searchResults = results;
+			mentionsState.selectedIndex = -1;
 
-        // Render search results in dropdown
-        function renderResults(results) {
-            if (!mentionsState.dropdown) return;
+			if ( results.length === 0 ) {
+				mentionsState.dropdown.innerHTML =
+					'<div class="mentions-item mentions-no-results">No users found</div>';
+				return;
+			}
 
-            mentionsState.searchResults = results;
-            mentionsState.selectedIndex = -1;
+			const html = results
+				.map(
+					( user, index ) =>
+						`<div class="mentions-item" data-index="${ index }" data-username="${ user.slug }">
+						<div class="mentions-avatar"><div class="avatar-placeholder"></div></div>
+						<div class="mentions-user-info">
+							<div class="mentions-username">@${ user.slug }</div>
+							<div class="mentions-login">${ user.username }</div>
+						</div>
+					</div>`
+				)
+				.join( '' );
 
-            if (results.length === 0) {
-                mentionsState.dropdown.innerHTML = `
-                    <div class="mentions-item mentions-no-results">
-                        No users found
-                    </div>
-                `;
-                return;
-            }
+			mentionsState.dropdown.innerHTML = html;
 
-            const html = results.map((user, index) => `
-                <div class="mentions-item" data-index="${index}" data-username="${user.slug}">
-                    <div class="mentions-avatar">
-                        <div class="avatar-placeholder"></div>
-                    </div>
-                    <div class="mentions-user-info">
-                        <div class="mentions-username">@${user.slug}</div>
-                        <div class="mentions-login">${user.username}</div>
-                    </div>
-                </div>
-            `).join('');
+			mentionsState.dropdown
+				.querySelectorAll( '.mentions-item' )
+				.forEach( ( item ) => {
+					item.addEventListener( 'click', function ( e ) {
+						const index = parseInt(
+							e.currentTarget.dataset.index,
+							10
+						);
+						if ( Number.isFinite( index ) ) {
+							selectMention( index );
+						}
+					} );
+				} );
+		}
 
-            mentionsState.dropdown.innerHTML = html;
+		function updateSelection() {
+			if ( ! mentionsState.dropdown ) {
+				return;
+			}
 
-            // Add click handlers
-            mentionsState.dropdown.querySelectorAll('.mentions-item').forEach(item => {
-                item.addEventListener('click', (e) => {
-                    const index = parseInt(e.currentTarget.dataset.index);
-                    if (!isNaN(index)) {
-                        selectMention(index);
-                    }
-                });
-            });
-        }
+			const items = mentionsState.dropdown.querySelectorAll(
+				'.mentions-item:not(.mentions-no-results)'
+			);
+			items.forEach( ( item, index ) => {
+				item.classList.toggle(
+					'selected',
+					index === mentionsState.selectedIndex
+				);
+			} );
+		}
 
-        // Update visual selection in dropdown
-        function updateSelection() {
-            if (!mentionsState.dropdown) return;
+		function selectMention( index ) {
+			if (
+				! mentionsState.editor ||
+				! mentionsState.searchResults[ index ]
+			) {
+				return;
+			}
 
-            const items = mentionsState.dropdown.querySelectorAll('.mentions-item:not(.mentions-no-results)');
-            items.forEach((item, index) => {
-                item.classList.toggle('selected', index === mentionsState.selectedIndex);
-            });
-        }
+			const user = mentionsState.searchResults[ index ];
+			const mention = `@${ user.slug }`;
 
-        // Select and insert mention
-        function selectMention(index) {
-            if (!mentionsState.editor || !mentionsState.searchResults[index]) return;
+			const editor = mentionsState.editor;
+			const selection = editor.selection;
+			selection.setRng( mentionsState.currentRange );
 
-            const user = mentionsState.searchResults[index];
-            const mention = `@${user.slug}`;
+			const range = selection.getRng();
+			const textNode = range.startContainer;
 
-            const editor = mentionsState.editor;
-            const selection = editor.selection;
+			if ( textNode.nodeType !== TEXT_NODE_TYPE ) {
+				hideDropdown();
+				return;
+			}
 
-            // Restore the range and select the @ and search term
-            selection.setRng(mentionsState.currentRange);
+			const beforeText = textNode.textContent.substring(
+				0,
+				mentionsState.mentionStart
+			);
+			const afterText = textNode.textContent.substring(
+				range.startOffset
+			);
+			textNode.textContent = `${ beforeText }${ mention } ${ afterText }`;
 
-            const range = selection.getRng();
-            const textNode = range.startContainer;
+			const newRange = editor.dom.createRng();
+			newRange.setStart(
+				textNode,
+				beforeText.length + mention.length + 1
+			);
+			newRange.setEnd( textNode, beforeText.length + mention.length + 1 );
+			selection.setRng( newRange );
 
-            if (textNode.nodeType === Node.TEXT_NODE) {
-                // Replace the @search with the full mention
-                const beforeText = textNode.textContent.substring(0, mentionsState.mentionStart);
-                const afterText = textNode.textContent.substring(range.startOffset);
+			hideDropdown();
+		}
 
-                textNode.textContent = beforeText + mention + ' ' + afterText;
+		function showDropdown( editor ) {
+			const dropdown = createDropdown();
+			dropdown.style.display = 'block';
+			positionDropdown( editor );
+			mentionsState.isActive = true;
+		}
 
-                // Position cursor after the mention
-                const newRange = editor.dom.createRng();
-                newRange.setStart(textNode, beforeText.length + mention.length + 1);
-                newRange.setEnd(textNode, beforeText.length + mention.length + 1);
-                selection.setRng(newRange);
-            }
+		function hideDropdown() {
+			if ( mentionsState.dropdown ) {
+				mentionsState.dropdown.style.display = 'none';
+			}
+			mentionsState.isActive = false;
+			mentionsState.currentSearch = '';
+			mentionsState.selectedIndex = -1;
+			mentionsState.searchResults = [];
+		}
 
-            hideDropdown();
-        }
+		function getRestRoot() {
+			return (
+				( window.extrachillCommunity &&
+					window.extrachillCommunity.restUrl ) ||
+				( window.extrachillCommunityEditor &&
+					window.extrachillCommunityEditor.restUrl ) ||
+				( window.wpApiSettings && window.wpApiSettings.root )
+			);
+		}
 
-        // Show dropdown
-        function showDropdown(editor) {
-            const dropdown = createDropdown(editor);
-            dropdown.style.display = 'block';
-            positionDropdown(editor);
-            mentionsState.isActive = true;
-        }
+		function searchUsers( term ) {
+			if ( ! term || term.length < 1 ) {
+				hideDropdown();
+				return;
+			}
 
-        // Hide dropdown
-        function hideDropdown() {
-            if (mentionsState.dropdown) {
-                mentionsState.dropdown.style.display = 'none';
-            }
-            mentionsState.isActive = false;
-            mentionsState.currentSearch = '';
-            mentionsState.selectedIndex = -1;
-            mentionsState.searchResults = [];
-        }
+			if ( mentionsState.dropdown ) {
+				mentionsState.dropdown.innerHTML =
+					'<div class="mentions-item mentions-loading">Searching...</div>';
+			}
 
-        // Search for users via REST API
-        function searchUsers(term) {
-            if (!term || term.length < 1) {
-                hideDropdown();
-                return;
-            }
+			const restRoot = getRestRoot();
+			if ( ! restRoot ) {
+				renderResults( [] );
+				return;
+			}
 
-            // Show loading state
-            if (mentionsState.dropdown) {
-                mentionsState.dropdown.innerHTML = `
-                    <div class="mentions-item mentions-loading">
-                        Searching...
-                    </div>
-                `;
-            }
+			const apiUrl = new URL( 'extrachill/v1/users/search', restRoot );
+			apiUrl.searchParams.set( 'term', term );
 
-            const restRoot =
-                (window.extrachillCommunity && window.extrachillCommunity.restUrl) ||
-                (window.extrachillCommunityEditor && window.extrachillCommunityEditor.restUrl) ||
-                (window.wpApiSettings && window.wpApiSettings.root);
+			fetch( apiUrl.toString() )
+				.then( function ( response ) {
+					return response.json();
+				} )
+				.then( function ( data ) {
+					renderResults( Array.isArray( data ) ? data : [] );
+				} )
+				.catch( function () {
+					renderResults( [] );
+				} );
+		}
 
-            if (!restRoot) {
-                console.error('extrachill-mentions: Missing REST root; aborting user search.');
-                renderResults([]);
-                return;
-            }
+		function debouncedSearch( term ) {
+			clearTimeout( mentionsState.debounceTimeout );
+			mentionsState.debounceTimeout = setTimeout( function () {
+				searchUsers( term );
+			}, 200 );
+		}
 
-            const apiUrl = new URL('extrachill/v1/users/search', restRoot);
-            apiUrl.searchParams.set('term', term);
+		function checkForMention( editor ) {
+			const selection = editor.selection;
+			const range = selection.getRng();
 
-            fetch(apiUrl.toString())
-                .then(response => response.json())
-                .then(data => {
-                    if (Array.isArray(data) && data.length > 0) {
-                        renderResults(data);
-                    } else {
-                        renderResults([]);
-                    }
-                })
-                .catch(error => {
-                    console.error('Error searching users:', error);
-                    renderResults([]);
-                });
-        }
+			if (
+				! range ||
+				! range.startContainer ||
+				range.startContainer.nodeType !== TEXT_NODE_TYPE
+			) {
+				if ( mentionsState.isActive ) {
+					hideDropdown();
+				}
+				return false;
+			}
 
-        // Debounced search function
-        function debouncedSearch(term) {
-            clearTimeout(mentionsState.debounceTimeout);
-            mentionsState.debounceTimeout = setTimeout(() => {
-                searchUsers(term);
-            }, 200);
-        }
+			const textNode = range.startContainer;
+			const cursorPos = range.startOffset;
+			const text = textNode.textContent;
 
-        // Check for @ mention pattern
-        function checkForMention(editor) {
-            const selection = editor.selection;
-            const range = selection.getRng();
+			let mentionStart = -1;
+			for ( let index = cursorPos - 1; index >= 0; index-- ) {
+				if ( text[ index ] === '@' ) {
+					if ( index === 0 || /\s/.test( text[ index - 1 ] ) ) {
+						mentionStart = index;
+						break;
+					}
+				}
+				if ( /\s/.test( text[ index ] ) ) {
+					break;
+				}
+			}
 
-            if (!range || !range.startContainer || range.startContainer.nodeType !== Node.TEXT_NODE) {
-                if (mentionsState.isActive) {
-                    hideDropdown();
-                }
-                return false;
-            }
+			if ( mentionStart === -1 ) {
+				if ( mentionsState.isActive ) {
+					hideDropdown();
+				}
+				return false;
+			}
 
-            const textNode = range.startContainer;
-            const cursorPos = range.startOffset;
-            const text = textNode.textContent;
+			const searchTerm = text.substring( mentionStart + 1, cursorPos );
+			if ( ! /^[a-zA-Z0-9_-]*$/.test( searchTerm ) ) {
+				if ( mentionsState.isActive ) {
+					hideDropdown();
+				}
+				return false;
+			}
 
-            // Find the last @ before cursor
-            let mentionStart = -1;
-            for (let i = cursorPos - 1; i >= 0; i--) {
-                if (text[i] === '@') {
-                    // Check if @ is at start or preceded by whitespace
-                    if (i === 0 || /\s/.test(text[i - 1])) {
-                        mentionStart = i;
-                        break;
-                    }
-                }
-                // Stop at whitespace
-                if (/\s/.test(text[i])) {
-                    break;
-                }
-            }
+			mentionsState.currentRange = range.cloneRange();
+			mentionsState.mentionStart = mentionStart;
+			mentionsState.currentSearch = searchTerm;
+			mentionsState.editor = editor;
 
-            if (mentionStart === -1) {
-                if (mentionsState.isActive) {
-                    hideDropdown();
-                }
-                return false;
-            }
+			showDropdown( editor );
+			debouncedSearch( searchTerm );
 
-            // Extract search term after @
-            const searchTerm = text.substring(mentionStart + 1, cursorPos);
+			return true;
+		}
 
-            // Check if search term contains only valid characters (letters, numbers, underscore, hyphen)
-            if (!/^[a-zA-Z0-9_-]*$/.test(searchTerm)) {
-                if (mentionsState.isActive) {
-                    hideDropdown();
-                }
-                return false;
-            }
+		function handleKeyDown( editor, e ) {
+			if ( ! mentionsState.isActive ) {
+				return;
+			}
 
-            // Store state
-            mentionsState.currentRange = range.cloneRange();
-            mentionsState.mentionStart = mentionStart;
-            mentionsState.currentSearch = searchTerm;
-            mentionsState.editor = editor;
+			switch ( e.keyCode ) {
+				case 27:
+					e.preventDefault();
+					hideDropdown();
+					break;
+				case 38:
+					e.preventDefault();
+					if ( mentionsState.searchResults.length > 0 ) {
+						if ( mentionsState.selectedIndex > 0 ) {
+							mentionsState.selectedIndex--;
+						} else {
+							mentionsState.selectedIndex =
+								mentionsState.searchResults.length - 1;
+						}
+						updateSelection();
+					}
+					break;
+				case 40:
+					e.preventDefault();
+					if ( mentionsState.searchResults.length > 0 ) {
+						if (
+							mentionsState.selectedIndex <
+							mentionsState.searchResults.length - 1
+						) {
+							mentionsState.selectedIndex++;
+						} else {
+							mentionsState.selectedIndex = 0;
+						}
+						updateSelection();
+					}
+					break;
+				case 13:
+					e.preventDefault();
+					if ( mentionsState.selectedIndex >= 0 ) {
+						selectMention( mentionsState.selectedIndex );
+					}
+					break;
+			}
+		}
 
-            // Show dropdown and search
-            showDropdown(editor);
-            debouncedSearch(searchTerm);
+		function setupMentionsPlugin( editor ) {
+			editor.on( 'keydown', function ( e ) {
+				handleKeyDown( editor, e );
+			} );
 
-            return true;
-        }
+			editor.on( 'keyup', function ( e ) {
+				const navKeys = [ 37, 38, 39, 40, 27, 13 ];
+				if ( navKeys.includes( e.keyCode ) ) {
+					return;
+				}
 
-        // Handle keyboard navigation
-        function handleKeyDown(editor, e) {
-            if (!mentionsState.isActive) {
-                return;
-            }
+				checkForMention( editor );
+			} );
 
-            switch (e.keyCode) {
-                case 27: // Escape
-                    e.preventDefault();
-                    hideDropdown();
-                    break;
+			editor.on( 'click', function () {
+				setTimeout( function () {
+					if (
+						mentionsState.isActive &&
+						! checkForMention( editor )
+					) {
+						hideDropdown();
+					}
+				}, 10 );
+			} );
 
-                case 38: // Up arrow
-                    e.preventDefault();
-                    if (mentionsState.searchResults.length > 0) {
-                        if (mentionsState.selectedIndex > 0) {
-                            mentionsState.selectedIndex--;
-                        } else {
-                            mentionsState.selectedIndex = mentionsState.searchResults.length - 1;
-                        }
-                        updateSelection();
-                    }
-                    break;
+			editor.on( 'blur', function () {
+				setTimeout( function () {
+					hideDropdown();
+				}, 150 );
+			} );
+		}
 
-                case 40: // Down arrow
-                    e.preventDefault();
-                    if (mentionsState.searchResults.length > 0) {
-                        if (mentionsState.selectedIndex < mentionsState.searchResults.length - 1) {
-                            mentionsState.selectedIndex++;
-                        } else {
-                            mentionsState.selectedIndex = 0;
-                        }
-                        updateSelection();
-                    }
-                    break;
-
-                case 13: // Enter
-                    e.preventDefault();
-                    if (mentionsState.selectedIndex >= 0) {
-                        selectMention(mentionsState.selectedIndex);
-                    }
-                    break;
-            }
-        }
-
-        // Setup mentions plugin logic
-        function setupMentionsPlugin(editor) {
-            // Keydown handler for navigation
-            editor.on('keydown', function(e) {
-                handleKeyDown(editor, e);
-            });
-
-            // Keyup handler for mention detection
-            editor.on('keyup', function(e) {
-                // Skip navigation keys
-                const navKeys = [37, 38, 39, 40, 27, 13];
-                if (navKeys.includes(e.keyCode)) {
-                    return;
-                }
-
-                checkForMention(editor);
-            });
-
-            // Click handler to hide dropdown
-            editor.on('click', function() {
-                setTimeout(() => {
-                    if (mentionsState.isActive && !checkForMention(editor)) {
-                        hideDropdown();
-                    }
-                }, 10);
-            });
-
-            // Blur handler to hide dropdown
-            editor.on('blur', function() {
-                setTimeout(() => {
-                    hideDropdown();
-                }, 150); // Delay to allow for dropdown clicks
-            });
-        }
-
-        // Add the plugin using PluginManager with unique name to avoid conflicts
-        try {
-            tinymce.PluginManager.add('extrachillmentionssocial', function(editor) {
-                editor.on('init', function() {
-                    setupMentionsPlugin(editor);
-                });
-            });
-        } catch (e) {
-            console.error('Error loading extrachill mentions social plugin:', e);
-        }
-
-    })(); // IIFE
-
+		tinymce.PluginManager.add(
+			'extrachillmentionssocial',
+			function ( editor ) {
+				editor.on( 'init', function () {
+					setupMentionsPlugin( editor );
+				} );
+			}
+		);
+	} )();
 }
 
-// Reply button handler - separate from TinyMCE plugin guard
-// This needs to run even if TinyMCE isn't available (for scrolling to form)
-if (typeof window.extrachillReplyHandlerLoaded === 'undefined') {
-    window.extrachillReplyHandlerLoaded = true;
+if ( typeof window.extrachillReplyHandlerLoaded === 'undefined' ) {
+	window.extrachillReplyHandlerLoaded = true;
 
-    function initReplyHandler() {
-        document.addEventListener('click', function(e) {
-            const replyLink = e.target.closest('.bbp-reply-to-link');
-            if (!replyLink) return;
+	function initReplyHandler() {
+		document.addEventListener( 'click', function ( e ) {
+			const replyLink = e.target.closest( '.bbp-reply-to-link' );
+			if ( ! replyLink ) {
+				return;
+			}
 
-            e.preventDefault();
-            e.stopPropagation();
+			e.preventDefault();
+			e.stopPropagation();
 
-            const replySlug = replyLink.dataset.replySlug;
-            const replyForm = document.getElementById('new-post');
-            const editor = (typeof tinyMCE !== 'undefined') ? tinyMCE.get('bbp_reply_content') : null;
+			const replySlug = replyLink.dataset.replySlug;
+			const replyForm = document.getElementById( 'new-post' );
+			const editorApi = window.tinyMCE;
+			const editor = editorApi
+				? editorApi.get( 'bbp_reply_content' )
+				: null;
 
-            // Scroll to reply form
-            if (replyForm) {
-                replyForm.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }
+			if ( replyForm ) {
+				replyForm.scrollIntoView( {
+					behavior: 'smooth',
+					block: 'start',
+				} );
+			}
 
-            // Insert @mention and position cursor after the space
-            if (replySlug && editor && !editor.isHidden()) {
-                editor.focus();
-                editor.selection.select(editor.getBody(), true);
-                editor.selection.collapse(false);
-                editor.execCommand('mceInsertContent', false, '@' + replySlug + ' ');
-            }
-        });
-    }
+			if ( replySlug && editor && ! editor.isHidden() ) {
+				editor.focus();
+				editor.selection.select( editor.getBody(), true );
+				editor.selection.collapse( false );
+				editor.execCommand(
+					'mceInsertContent',
+					false,
+					`@${ replySlug } `
+				);
+			}
+		} );
+	}
 
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initReplyHandler);
-    } else {
-        initReplyHandler();
-    }
+	if ( document.readyState === 'loading' ) {
+		document.addEventListener( 'DOMContentLoaded', initReplyHandler );
+	} else {
+		initReplyHandler();
+	}
 }

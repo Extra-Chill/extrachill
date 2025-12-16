@@ -30,16 +30,16 @@ function extrachill_enqueue_notification_styles() {
 add_action('wp_enqueue_scripts', 'extrachill_enqueue_notification_styles');
 
 function extrachill_enqueue_leaderboard_styles() {
-    if (is_page_template('page-templates/leaderboard-template.php')) {
+    if ( is_page_template( 'page-templates/leaderboard-template.php' ) ) {
         wp_enqueue_style(
             'extrachill-leaderboard',
             EXTRACHILL_COMMUNITY_PLUGIN_URL . '/inc/assets/css/leaderboard.css',
             array(),
-            filemtime(EXTRACHILL_COMMUNITY_PLUGIN_DIR . '/inc/assets/css/leaderboard.css')
+            filemtime( EXTRACHILL_COMMUNITY_PLUGIN_DIR . '/inc/assets/css/leaderboard.css' )
         );
     }
 }
-add_action('wp_enqueue_scripts', 'extrachill_enqueue_leaderboard_styles');
+add_action( 'wp_enqueue_scripts', 'extrachill_enqueue_leaderboard_styles' );
 
 function extrachill_enqueue_settings_page_assets() {
     if (!is_page('settings')) {

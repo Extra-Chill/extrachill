@@ -6,6 +6,56 @@
 	margin-top: 15px;
 }
 
+/* ==================================================
+   Profile link editor
+================================================== */
+
+#user-dynamic-links-container {
+	display: block;
+}
+
+#user-links-list {
+	margin-bottom: 1rem;
+}
+
+.user-dynamic-link-item {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.625rem;
+	padding: 0.625rem;
+	border: 1px solid var(--border-color);
+	margin-bottom: 0.625rem;
+	border-radius: 4px;
+	background: var(--card-background);
+}
+
+.user-dynamic-link-item .user-link-type,
+.user-dynamic-link-item .user-link-custom-label-wrapper,
+.user-dynamic-link-item .user-link-url {
+	flex: 1 1 150px;
+}
+
+.user-dynamic-link-item .user-link-url {
+	flex: 2 1 300px;
+}
+
+.user-dynamic-link-item .user-link-remove {
+	flex: 0 0 auto;
+	display: flex;
+	align-items: center;
+}
+
+.user-link-custom-label-wrapper[ data-visible='0' ] {
+	display: none;
+}
+
+.user-dynamic-link-item input[type='url'],
+.user-dynamic-link-item input[type='text'],
+.user-dynamic-link-item select {
+	width: 100%;
+	box-sizing: border-box;
+}
+
 /* User Profile Header */
 .user-profile-header h1 {
     margin-bottom: 10px;

@@ -1,0 +1,33 @@
+.extrachill-leaderboard__header {
+	margin-bottom: var(--spacing-md);
+}
+
+.extrachill-leaderboard__table {
+	width: 100%;
+	border-collapse: collapse;
+}
+
+.extrachill-leaderboard__table th,
+.extrachill-leaderboard__table td {
+	padding: var(--spacing-sm) var(--spacing-md);
+	border-bottom: 1px solid var(--border-color);
+	text-align: left;
+}
+
+.extrachill-leaderboard__pagination {
+	display: flex;
+	gap: var(--spacing-md);
+	align-items: center;
+	justify-content: space-between;
+	margin-top: var(--spacing-md);
+}
+
+.extrachill-leaderboard__page-label {
+	color: var(--muted-text);
+	font-size: var(--font-size-base);
+}
+
+.wp-block-extrachill-leaderboard button:disabled {
+	opacity: 0.6;
+	cursor: not-allowed;
+}

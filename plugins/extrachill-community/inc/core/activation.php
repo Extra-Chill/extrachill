@@ -83,8 +83,8 @@ function extrachill_create_community_pages() {
 		array(
 			'title'    => 'Leaderboard',
 			'slug'     => 'leaderboard',
-			'template' => 'page-templates/leaderboard-template.php',
-			'content'  => 'Community Leaderboard',
+			'template' => 'default',
+			'content'  => '<!-- wp:extrachill/leaderboard {"perPage":25} /-->',
 		),
 		array(
 			'title'    => 'Blog Comments',
@@ -97,7 +97,20 @@ function extrachill_create_community_pages() {
 	$created_page_ids = array();
 
 	foreach ($pages as $page_data) {
-		if (extrachill_page_exists_by_slug($page_data['slug'])) {
+		$existing_page = get_page_by_path( $page_data['slug'], OBJECT, 'page' );
+		if ( $existing_page ) {
+			if ( $page_data['slug'] !== 'leaderboard' ) {
+				continue;
+			}
+
+			update_post_meta( $existing_page->ID, '_wp_page_template', 'default' );
+			wp_update_post(
+				array(
+					'ID'           => $existing_page->ID,
+					'post_content' => $page_data['content'],
+				)
+			);
+
 			continue;
 		}
 
