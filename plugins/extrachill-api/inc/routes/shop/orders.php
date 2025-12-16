@@ -155,6 +155,11 @@ function extrachill_api_shop_orders_list_handler( WP_REST_Request $request ) {
 
 	switch_to_blog( $shop_blog_id );
 	try {
+		$wc_check = extrachill_api_require_woocommerce();
+		if ( is_wp_error( $wc_check ) ) {
+			return $wc_check;
+		}
+
 		if ( ! function_exists( 'wc_get_orders' ) ) {
 			return new WP_Error(
 				'dependency_missing',

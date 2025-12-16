@@ -3,7 +3,7 @@
  * Plugin Name: Extra Chill API
  * Plugin URI: https://extrachill.com
  * Description: Central REST API infrastructure for the Extra Chill multisite network.
- * Version: 0.5.0
+ * Version: 0.5.1
  * Author: Extra Chill
  * Author URI: https://extrachill.com
  * Network: true
@@ -73,6 +73,7 @@ final class ExtraChill_API_Plugin {
         require_once EXTRACHILL_API_PATH . 'inc/auth/extrachill-link-auth.php';
         require_once EXTRACHILL_API_PATH . 'inc/utils/id-generator.php';
         require_once EXTRACHILL_API_PATH . 'inc/utils/bbpress-drafts.php';
+		require_once EXTRACHILL_API_PATH . 'inc/utils/woocommerce.php';
 
 		if ( file_exists( EXTRACHILL_API_PATH . 'inc/activity/db.php' ) ) {
 			require_once EXTRACHILL_API_PATH . 'inc/activity/db.php';

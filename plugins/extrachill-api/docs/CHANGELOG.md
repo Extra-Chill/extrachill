@@ -2,6 +2,41 @@
 
 All notable changes to the ExtraChill API plugin are documented here. This file is the single source of truth for release history.
 
+## 0.5.1
+
+### Added
+
+- **Users Leaderboard Endpoint**: `GET /wp-json/extrachill/v1/users/leaderboard` - Public endpoint for paginated user leaderboards ranked by total points
+  - Supports optional badge and rank system integration with graceful degradation
+  - Includes user profile data, points, and position information
+  - Useful for community engagement and gamification features
+
+- **WooCommerce Utility**: `inc/utils/woocommerce.php` - Lazy-loading utility for WooCommerce functions in multisite contexts
+  - Ensures WC functions are available when switching between non-shop sites
+  - Prevents multisite compatibility issues with shop operations
+
+### Documentation
+
+- **Authentication Endpoints**: Added comprehensive documentation for login, refresh, and register endpoints
+  - Request/response examples and parameter specifications
+  - Integration details with extrachill-users plugin
+
+- **Stream Status Endpoint**: Added documentation for live streaming status monitoring
+  - Endpoint specifications and usage examples
+  - Permission and integration requirements
+
+### Updated
+
+- **Endpoint Count**: Updated README.md and AGENTS.md to reflect 50 total endpoints across 18 feature categories
+- **Directory Structure**: Enhanced AGENTS.md with complete route directory organization
+- **Shop Documentation**: Improved documentation for products, orders, and Stripe integration endpoints
+
+### Technical Notes
+
+- **Multisite Compatibility**: WooCommerce utility resolves context switching issues for shop operations
+- **Backward Compatibility**: All changes are additive with no breaking modifications
+- **Dependencies**: Leaderboard endpoint optionally integrates with badge/rank systems if available
+
 ## 0.5.0
 
 ### Added

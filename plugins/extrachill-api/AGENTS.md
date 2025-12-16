@@ -35,7 +35,10 @@ extrachill-api/
 ├── extrachill-api.php (Main plugin file with singleton class)
 └── inc/
     ├── auth/
-    │   └── extrachill-link-auth.php (Cross-domain authentication)
+    │   ├── extrachill-link-auth.php (Cross-domain authentication)
+    │   ├── login.php (User authentication with JWT tokens)
+    │   ├── refresh.php (Token refresh for continued sessions)
+    │   └── register.php (User registration with token generation)
     └── routes/
         ├── activity/
         │   ├── feed.php (Activity feed with filtering)
@@ -80,10 +83,14 @@ extrachill-api/
         │   ├── campaign.php (Newsletter campaign push to Sendy)
         │   └── subscription.php (Newsletter subscription)
         ├── shop/
+        │   ├── orders.php (Order listing and earnings)
         │   ├── products.php (WooCommerce product CRUD)
-        │   └── stripe-connect.php (Stripe Connect management)
+        │   ├── stripe-connect.php (Stripe Connect management)
+        │   └── stripe-webhook.php (Stripe webhook handler)
         ├── tools/
         │   └── qr-code.php (QR code generator)
+        ├── stream/
+        │   └── status.php (Stream status endpoint)
         └── users/
             ├── artists.php (User artist relationships)
             ├── search.php (User search endpoint)
@@ -1104,7 +1111,117 @@ Foundational REST API for artist data management. Provides comprehensive endpoin
 - Mentions context: Lightweight response for @mention autocomplete
 - Admin context: Full user data for relationship management
 
-#### 32. User Artists
+#### 32. User Search (Admin/Mentions Context)
+
+**Endpoint**: `GET /wp-json/extrachill/v1/users/search`
+
+**Purpose**: Find users by search term with context-aware filtering for mentions or admin relationship management.
+
+**Parameters**:
+- `term` (string, required) - Search query term
+- `context` (string, optional) - Search context: `mentions` (default), `admin`, or `artist-capable`
+- `exclude_artist_id` (int, optional) - Exclude existing roster members (artist-capable context only)
+
+**Response - Mentions Context** (HTTP 200):
+```json
+[
+  {
+    "id": 1,
+    "username": "chris",
+    "slug": "chris"
+  }
+]
+```
+
+**Response - Admin Context** (HTTP 200):
+```json
+[
+  {
+    "id": 1,
+    "display_name": "Chris Huber",
+    "username": "chris",
+    "email": "chris@example.com",
+    "avatar_url": "https://..."
+  }
+]
+```
+
+**Response - Artist-Capable Context** (HTTP 200):
+```json
+[
+  {
+    "id": 1,
+    "display_name": "Chris Huber",
+    "username": "chris",
+    "email": "chris@example.com",
+    "avatar_url": "https://...",
+    "profile_url": "https://..."
+  }
+]
+```
+
+**Permission**: Varies by context
+
+**File**: `inc/routes/users/search.php`
+
+**Used By**: extrachill-community plugin for @mention functionality
+
+**Notes**: This endpoint moved from community namespace to users namespace in v0.1.9 with enhanced context support
+
+#### 33. User Leaderboard
+
+**Endpoint**: `GET /wp-json/extrachill/v1/users/leaderboard`
+
+**Purpose**: Retrieve paginated leaderboard of top users ranked by total points with badges and rank information.
+
+**Parameters**:
+- `page` (int, optional) - Page number (default: 1)
+- `per_page` (int, optional) - Results per page (default: 25, max: 100)
+
+**Response** (HTTP 200):
+```json
+{
+  "items": [
+    {
+      "id": 123,
+      "display_name": "Chris Huber",
+      "username": "chris",
+      "slug": "chris",
+      "avatar_url": "https://...",
+      "profile_url": "https://...",
+      "registered": "2024-01-01T12:00:00+00:00",
+      "points": 1250,
+      "rank": "Gold Member",
+      "badges": ["verified", "contributor"],
+      "position": 1
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "per_page": 25,
+    "total": 156,
+    "total_pages": 7
+  }
+}
+```
+
+**Permission**: Public (no authentication required)
+
+**File**: `inc/routes/users/leaderboard.php`
+
+**Dependencies**: 
+- `ec_get_rank_for_points()` - Ranks users by points (optional, fallback to empty string)
+- `ec_get_user_badges()` - Retrieves user badges array (optional, fallback to empty array)
+- `ec_get_user_profile_url()` - Generates profile URLs (optional, fallback to author archive)
+
+**Data Source**: Queries users by `extrachill_total_points` user meta in descending order
+
+**Notes**: 
+- Useful for community engagement leaderboards, rankings, and gamification
+- Supports optional integration with badge and rank systems
+- Gracefully degrades if rank/badge functions not available
+
+#### 34. User Artists
 
 **Endpoint**: `GET/POST/DELETE /wp-json/extrachill/v1/users/{id}/artists`
 
@@ -1145,7 +1262,7 @@ Foundational REST API for artist data management. Provides comprehensive endpoin
 
 ### Documentation Endpoints
 
-#### 33. Documentation Info
+#### 35. Documentation Info
 
 **Endpoint**: `GET /wp-json/extrachill/v1/docs-info`
 
@@ -1181,7 +1298,7 @@ Foundational REST API for artist data management. Provides comprehensive endpoin
 - Provides dynamic taxonomy counts and structure
 - Used by documentation agents for auto-generation
 
-#### 34. Documentation Sync
+#### 36. Documentation Sync
 
 **Endpoint**: `POST /wp-json/extrachill/v1/sync/doc`
 
@@ -1208,7 +1325,7 @@ Foundational REST API for artist data management. Provides comprehensive endpoin
 
 ### Event Submissions
 
-#### 35. Event Submission Flow Proxy
+#### 37. Event Submission Flow Proxy
 
 **Endpoint**: `POST /wp-json/extrachill/v1/event-submissions`
 
@@ -1234,7 +1351,7 @@ Foundational REST API for artist data management. Provides comprehensive endpoin
 
 ### Media Management
 
-#### 36. Unified Media Upload
+#### 38. Unified Media Upload
 
 **Endpoint**: `POST/DELETE /wp-json/extrachill/v1/media`
 
@@ -1296,7 +1413,7 @@ Foundational REST API for artist data management. Provides comprehensive endpoin
 
 ### Newsletter
 
-#### 37. Newsletter Subscription
+#### 39. Newsletter Subscription
 
 **Endpoint**: `POST /wp-json/extrachill/v1/newsletter/subscription`
 
@@ -1319,7 +1436,7 @@ Foundational REST API for artist data management. Provides comprehensive endpoin
 
 **Used By**: extrachill-newsletter plugin
 
-#### 38. Newsletter Campaign Push
+#### 40. Newsletter Campaign Push
 
 **Endpoint**: `POST /wp-json/extrachill/v1/newsletter/campaign/push`
 
@@ -1347,7 +1464,7 @@ Foundational REST API for artist data management. Provides comprehensive endpoin
 
 ### Shop (WooCommerce)
 
-#### 39. Shop Products CRUD
+#### 41. Shop Products CRUD
 
 **Endpoint**: 
 - `GET /wp-json/extrachill/v1/shop/products` - List user's artist products
@@ -1386,7 +1503,7 @@ Foundational REST API for artist data management. Provides comprehensive endpoin
 - Comprehensive image and gallery management support
 - Stock quantity and sale price support
 
-#### 40. Stripe Connect Management
+#### 42. Stripe Connect Management
 
 **Endpoint**:
 - `GET /wp-json/extrachill/v1/shop/stripe` - Get Stripe connection status
@@ -1411,7 +1528,7 @@ Foundational REST API for artist data management. Provides comprehensive endpoin
 
 **Used By**: extrachill-shop plugin for payment processing
 
-#### 41. Shop Orders List
+#### 43. Shop Orders List
 
 **Endpoint**: `GET /wp-json/extrachill/v1/shop/orders`
 
@@ -1450,7 +1567,7 @@ Foundational REST API for artist data management. Provides comprehensive endpoin
 
 **Used By**: extrachill-shop plugin for artist order management
 
-#### 42. Shop Earnings Summary
+#### 44. Shop Earnings Summary
 
 **Endpoint**: `GET /wp-json/extrachill/v1/shop/earnings`
 
@@ -1474,7 +1591,7 @@ Foundational REST API for artist data management. Provides comprehensive endpoin
 
 ### Tools
 
-#### 43. QR Code Generator
+#### 45. QR Code Generator
 
 **Endpoint**: `POST /wp-json/extrachill/v1/tools/qr-code`
 
@@ -1500,6 +1617,100 @@ Foundational REST API for artist data management. Provides comprehensive endpoin
 **Used By**: extrachill-admin-tools plugin (QR Code Generator tool)
 
 **Dependencies**: Endroid QR Code library (Composer dependency)
+
+### Authentication Endpoints
+
+#### 46. User Login
+
+**Endpoint**: `POST /wp-json/extrachill/v1/auth/login`
+
+**Purpose**: Authenticate user credentials and generate JWT tokens for API access.
+
+**Parameters**:
+- `identifier` (string, required) - Username or email address
+- `password` (string, required) - User password
+- `device_id` (string, required) - UUID v4 device identifier
+- `device_name` (string, optional) - Human-readable device name
+- `remember` (boolean, optional) - Extend token expiry
+- `set_cookie` (boolean, optional) - Set WordPress authentication cookie
+
+**Response**: JWT access and refresh tokens with user data
+
+**Permission**: Public
+
+**File**: `inc/routes/auth/login.php`
+
+#### 47. Token Refresh
+
+**Endpoint**: `POST /wp-json/extrachill/v1/auth/refresh`
+
+**Purpose**: Generate new access token using a valid refresh token.
+
+**Parameters**:
+- `refresh_token` (string, required) - Valid refresh token
+- `device_id` (string, required) - UUID v4 device identifier
+- `remember` (boolean, optional) - Extend token expiry
+- `set_cookie` (boolean, optional) - Set WordPress authentication cookie
+
+**Response**: New JWT access and refresh tokens
+
+**Permission**: Public
+
+**File**: `inc/routes/auth/refresh.php`
+
+#### 48. User Registration
+
+**Endpoint**: `POST /wp-json/extrachill/v1/auth/register`
+
+**Purpose**: Register a new user account with optional artist profile creation.
+
+**Parameters**:
+- `username` (string, required) - Desired username
+- `email` (string, required) - Valid email address
+- `password` (string, required) - User password
+- `password_confirm` (string, required) - Password confirmation
+- `turnstile_response` (string, required) - Cloudflare Turnstile token
+- `device_id` (string, required) - UUID v4 device identifier
+- `user_is_artist` (boolean, optional) - Create artist profile
+- Additional optional parameters for device tracking and redirects
+
+**Response**: JWT tokens and user data
+
+**Permission**: Public
+
+**File**: `inc/routes/auth/register.php`
+
+### Shop Integration (continued)
+
+#### 49. Stripe Webhook Handler
+
+**Endpoint**: `POST /wp-json/extrachill/v1/shop/stripe-webhook`
+
+**Purpose**: Receive and process Stripe webhook notifications.
+
+**Parameters**: Webhook payload from Stripe
+
+**Response**: Webhook processing confirmation
+
+**Permission**: Public (Stripe signature verification)
+
+**File**: `inc/routes/shop/stripe-webhook.php`
+
+### Tools (continued)
+
+#### 50. Stream Status
+
+**Endpoint**: `GET /wp-json/extrachill/v1/stream/status`
+
+**Purpose**: Retrieve current streaming status and configuration.
+
+**Parameters**: None
+
+**Response**: Stream status, viewer count, and configuration data
+
+**Permission**: Requires logged-in user with stream access
+
+**File**: `inc/routes/stream/status.php`
 
 ## Response Contract
 
@@ -1734,10 +1945,25 @@ curl -X GET "http://site.local/wp-json/extrachill/v1/users/search?search=test" \
 **Network Dependencies**:
 - **extrachill-multisite**: Network-activated foundation (recommended)
 - **extrachill-ai-client**: Required for AI Adventure endpoint only
+- **extrachill-users**: Required for authentication endpoints (login, register, refresh) and token management
 
 **Optional Integration**:
-- **extrachill-blocks**: Primary consumer of current endpoints
-- **extrachill-community**: Uses user search endpoint
+- **extrachill-blocks**: Primary consumer of AI generation and voting endpoints
+- **extrachill-community**: Uses user search endpoint and community drafts
+- **extrachill-artist-platform**: Provides artist management functions and permission checks
+- **extrachill-shop**: Product and order management endpoints integration
+- **extrachill-events**: Event submission endpoint integration
+- **extrachill-newsletter**: Newsletter endpoints integration
+- **extrachill-chat**: Chat message endpoints integration
+
+**Endpoint-Specific Dependencies**:
+- **Authentication Endpoints (login, register, refresh)**: Requires extrachill-users plugin for token infrastructure
+- **AI Adventure Endpoint**: Requires extrachill-ai-client for AI provider integration
+- **Artist Endpoints**: Requires extrachill-artist-platform for artist data and permission management
+- **Media Upload**: Requires extrachill-artist-platform for artist context validation
+- **Shop Endpoints**: Requires WooCommerce and extrachill-shop plugin
+- **Event Submissions**: Requires Data Machine plugin and extrachill-multisite for Turnstile
+- **Activity Feed**: Optional integration with badge/rank systems if functions exist
 
 ## Future Roadmap
 

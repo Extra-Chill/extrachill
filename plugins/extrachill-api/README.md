@@ -17,7 +17,7 @@ The ExtraChill API plugin provides a centralized, versioned REST API infrastruct
 
 ## Current Endpoints
 
-The plugin provides 43 endpoints across 15 feature categories, all under the `extrachill/v1` namespace:
+The plugin provides 50 endpoints across 18 feature categories, all under the `extrachill/v1` namespace:
 
 ### Analytics Endpoints (3)
 - `POST /analytics/link-click` - Track link page clicks
@@ -66,9 +66,10 @@ The plugin provides 43 endpoints across 15 feature categories, all under the `ex
 - `POST /admin/team-members/sync` - Sync team members
 - `PUT /admin/team-members/{user_id}` - Manage team member status
 
-### User Management (3)
+### User Management (4)
 - `GET /users/{id}` - Get user profile
-- `GET /users/search` - Search users (admin context)
+- `GET /users/search` - Search users (multiple contexts)
+- `GET /users/leaderboard` - Get user leaderboard with rankings
 - `GET/POST/DELETE /users/{id}/artists` - Manage user-artist relationships
 
 ### Documentation (2)
@@ -85,11 +86,20 @@ The plugin provides 43 endpoints across 15 feature categories, all under the `ex
 - `POST /newsletter/subscription` - Subscribe to newsletter
 - `POST /newsletter/campaign/push` - Push newsletter to Sendy
 
-### Shop Integration (4)
+### Shop Integration (6)
 - `GET/POST/PUT/DELETE /shop/products` - Product CRUD operations
 - `GET/POST/DELETE /shop/stripe` - Stripe Connect management
 - `GET /shop/orders` - List artist orders
 - `GET /shop/earnings` - Get earnings summary
+- `POST /shop/stripe-webhook` - Stripe webhook handler
+
+### Authentication Endpoints (3)
+- `POST /auth/login` - User login with JWT tokens
+- `POST /auth/refresh` - Refresh access tokens
+- `POST /auth/register` - User registration with optional artist creation
+
+### Stream (1)
+- `GET /stream/status` - Check streaming status and configuration
 
 ### Tools (1)
 - `POST /tools/qr-code` - Generate QR codes
@@ -189,7 +199,10 @@ extrachill-api/
 ├── README.md                  # This file
 └── inc/
     ├── auth/
-    │   └── extrachill-link-auth.php    # Cross-domain authentication
+    │   ├── extrachill-link-auth.php    # Cross-domain authentication
+    │   ├── login.php                   # User login with JWT tokens
+    │   ├── refresh.php                 # Token refresh
+    │   └── register.php                # User registration
     └── routes/
         ├── admin/                      # Network admin endpoints
         │   ├── ad-free-license.php
@@ -234,8 +247,12 @@ extrachill-api/
         │   ├── subscription.php
         │   └── campaign.php
         ├── shop/                       # WooCommerce integration
+        │   ├── orders.php
         │   ├── products.php
-        │   └── stripe-connect.php
+        │   ├── stripe-connect.php
+        │   └── stripe-webhook.php
+        ├── stream/                     # Streaming functionality
+        │   └── status.php
         ├── tools/                      # Utilities
         │   └── qr-code.php
         └── users/                      # User management

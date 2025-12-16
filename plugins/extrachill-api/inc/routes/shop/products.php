@@ -2,9 +2,11 @@
 /**
  * Shop Products REST API Endpoints
  *
- * CRUD operations for artist products in the WooCommerce marketplace.
- * All operations internally switch to Blog ID 3 (shop.extrachill.com) for WooCommerce access.
- * Products are linked to artist profiles on Blog ID 4 via _artist_profile_id meta.
+ * CRUD operations for artist products stored on the shop site.
+ * All operations switch to the shop site blog context.
+ * Products use the WooCommerce "product" post type + standard meta keys, but this route avoids
+ * WooCommerce runtime objects so it remains predictable during REST dispatch.
+ * Products are linked to artist profiles via `_artist_profile_id` post meta.
  *
  * Routes:
  * - GET    /wp-json/extrachill/v1/shop/products           List user's artist products
@@ -153,6 +155,152 @@ function extrachill_api_shop_user_can_manage_artist( $artist_id, $user_id = null
 }
 
 /**
+ * REST arg schema for POST /shop/products.
+ */
+function extrachill_api_shop_products_create_args() {
+	return array(
+		'artist_id'          => array(
+			'required'          => true,
+			'type'              => 'integer',
+			'sanitize_callback' => 'absint',
+			'validate_callback' => function( $value ) {
+				return is_numeric( $value ) && (int) $value > 0;
+			},
+		),
+		'name'               => array(
+			'required'          => true,
+			'type'              => 'string',
+			'sanitize_callback' => 'sanitize_text_field',
+		),
+		'price'              => array(
+			'required'          => true,
+			'type'              => 'number',
+			'validate_callback' => function( $value ) {
+				return is_numeric( $value ) && (float) $value > 0;
+			},
+		),
+		'sale_price'         => array(
+			'required'          => false,
+			'type'              => 'number',
+			'validate_callback' => function( $value ) {
+				return $value === null || is_numeric( $value );
+			},
+		),
+		'description'        => array(
+			'required' => false,
+			'type'     => 'string',
+		),
+		'manage_stock'       => array(
+			'required'          => false,
+			'type'              => 'boolean',
+			'sanitize_callback' => 'rest_sanitize_boolean',
+		),
+		'stock_quantity'     => array(
+			'required'          => false,
+			'type'              => 'integer',
+			'sanitize_callback' => 'absint',
+			'validate_callback' => function( $value ) {
+				return is_numeric( $value ) && (int) $value >= 0;
+			},
+		),
+		'image_id'           => array(
+			'required'          => false,
+			'type'              => 'integer',
+			'sanitize_callback' => 'absint',
+			'validate_callback' => function( $value ) {
+				return is_numeric( $value ) && (int) $value >= 0;
+			},
+		),
+		'gallery_ids'        => array(
+			'required'          => false,
+			'type'              => 'array',
+			'items'             => array( 'type' => 'integer' ),
+			'sanitize_callback' => function( $value ) {
+				if ( ! is_array( $value ) ) {
+					return array();
+				}
+				return array_map( 'absint', $value );
+			},
+		),
+	);
+}
+
+/**
+ * REST arg schema for PUT /shop/products/{id}.
+ */
+function extrachill_api_shop_products_update_args() {
+	return array(
+		'artist_id'         => array(
+			'required'          => false,
+			'type'              => 'integer',
+			'sanitize_callback' => 'absint',
+			'validate_callback' => function( $value ) {
+				return $value === null || ( is_numeric( $value ) && (int) $value >= 0 );
+			},
+		),
+		'name'              => array(
+			'required'          => false,
+			'type'              => 'string',
+			'sanitize_callback' => 'sanitize_text_field',
+		),
+		'price'             => array(
+			'required'          => false,
+			'type'              => 'number',
+			'validate_callback' => function( $value ) {
+				return $value === null || is_numeric( $value );
+			},
+		),
+		'sale_price'        => array(
+			'required'          => false,
+			'type'              => 'number',
+			'validate_callback' => function( $value ) {
+				return $value === null || is_numeric( $value );
+			},
+		),
+		'description'       => array(
+			'required' => false,
+			'type'     => 'string',
+		),
+		'manage_stock'      => array(
+			'required'          => false,
+			'type'              => 'boolean',
+			'sanitize_callback' => 'rest_sanitize_boolean',
+		),
+		'stock_quantity'    => array(
+			'required'          => false,
+			'type'              => 'integer',
+			'sanitize_callback' => function( $value ) {
+				return is_numeric( $value ) ? (int) $value : null;
+			},
+			'validate_callback' => function( $value ) {
+				return $value === null || ( is_numeric( $value ) && (int) $value >= 0 );
+			},
+		),
+		'image_id'          => array(
+			'required'          => false,
+			'type'              => 'integer',
+			'sanitize_callback' => function( $value ) {
+				return is_numeric( $value ) ? absint( $value ) : null;
+			},
+		),
+		'gallery_ids'       => array(
+			'required'          => false,
+			'type'              => 'array',
+			'items'             => array( 'type' => 'integer' ),
+			'sanitize_callback' => function( $value ) {
+				if ( $value === null ) {
+					return null;
+				}
+				if ( ! is_array( $value ) ) {
+					return array();
+				}
+				return array_map( 'absint', $value );
+			},
+		),
+	);
+}
+
+/**
  * Permission check for collection routes (list, create).
  */
 function extrachill_api_shop_products_permission_check( WP_REST_Request $request ) {
@@ -193,21 +341,13 @@ function extrachill_api_shop_products_item_permission_check( WP_REST_Request $re
 		return $base_check;
 	}
 
-	$product_id   = $request->get_param( 'id' );
+	$product_id   = absint( $request->get_param( 'id' ) );
 	$shop_blog_id = extrachill_api_shop_get_blog_id();
 
 	switch_to_blog( $shop_blog_id );
 	try {
-		if ( ! function_exists( 'wc_get_product' ) ) {
-			return new WP_Error(
-				'dependency_missing',
-				'WooCommerce is not active on shop site.',
-				array( 'status' => 500 )
-			);
-		}
-
-		$product = wc_get_product( $product_id );
-		if ( ! $product ) {
+		$product_post = get_post( $product_id );
+		if ( ! $product_post || 'product' !== $product_post->post_type ) {
 			return new WP_Error(
 				'product_not_found',
 				'Product not found.',
@@ -215,21 +355,20 @@ function extrachill_api_shop_products_item_permission_check( WP_REST_Request $re
 			);
 		}
 
-		// Get artist ID from product meta
-		$artist_id = get_post_meta( $product_id, '_artist_profile_id', true );
+		if ( current_user_can( 'manage_options' ) ) {
+			return true;
+		}
+
+		$artist_id = absint( get_post_meta( $product_id, '_artist_profile_id', true ) );
 		if ( ! $artist_id ) {
-			// Admins can manage orphaned products
-			if ( current_user_can( 'manage_options' ) ) {
-				return true;
-			}
 			return new WP_Error(
 				'rest_forbidden',
-				'Product has no associated artist.',
+				'You do not have permission to manage this product.',
 				array( 'status' => 403 )
 			);
 		}
 
-		if ( ! extrachill_api_shop_user_can_manage_artist( (int) $artist_id ) ) {
+		if ( ! extrachill_api_shop_user_can_manage_artist( $artist_id ) ) {
 			return new WP_Error(
 				'rest_forbidden',
 				'You do not have permission to manage this product.',
@@ -244,99 +383,11 @@ function extrachill_api_shop_products_item_permission_check( WP_REST_Request $re
 }
 
 /**
- * Arguments for product creation.
- */
-function extrachill_api_shop_products_create_args() {
-	return array(
-		'artist_id'         => array(
-			'required'          => true,
-			'type'              => 'integer',
-			'sanitize_callback' => 'absint',
-		),
-		'name'              => array(
-			'required'          => true,
-			'type'              => 'string',
-			'sanitize_callback' => 'sanitize_text_field',
-		),
-		'description'       => array(
-			'required'          => false,
-			'type'              => 'string',
-			'default'           => '',
-		),
-		'short_description' => array(
-			'required'          => false,
-			'type'              => 'string',
-			'default'           => '',
-		),
-		'price'             => array(
-			'required'          => true,
-			'type'              => 'number',
-			'validate_callback' => function ( $value ) {
-				return is_numeric( $value ) && $value > 0;
-			},
-		),
-		'sale_price'        => array(
-			'required'          => false,
-			'type'              => 'number',
-			'default'           => 0,
-		),
-		'manage_stock'      => array(
-			'required'          => false,
-			'type'              => 'boolean',
-			'default'           => false,
-		),
-		'stock_quantity'    => array(
-			'required'          => false,
-			'type'              => 'integer',
-			'sanitize_callback' => 'absint',
-			'default'           => 0,
-		),
-		'image_id'          => array(
-			'required'          => false,
-			'type'              => 'integer',
-			'sanitize_callback' => 'absint',
-			'default'           => 0,
-		),
-		'gallery_ids'       => array(
-			'required'          => false,
-			'type'              => 'array',
-			'items'             => array( 'type' => 'integer' ),
-			'default'           => array(),
-		),
-	);
-}
-
-/**
- * Arguments for product update.
- */
-function extrachill_api_shop_products_update_args() {
-	$args = extrachill_api_shop_products_create_args();
-
-	// All fields optional for update
-	foreach ( $args as $key => $config ) {
-		$args[ $key ]['required'] = false;
-	}
-
-	$args['id'] = array(
-		'required'          => true,
-		'type'              => 'integer',
-		'sanitize_callback' => 'absint',
-	);
-
-	return $args;
-}
-
-/**
- * Handle GET /shop/products - List user's products.
+ * Handle GET /shop/products - List products.
  */
 function extrachill_api_shop_products_list_handler( WP_REST_Request $request ) {
 	$shop_blog_id = extrachill_api_shop_get_blog_id();
-	$user_id      = get_current_user_id();
-	$artist_ids   = extrachill_api_shop_get_user_artist_ids( $user_id );
-
-	if ( empty( $artist_ids ) && ! current_user_can( 'manage_options' ) ) {
-		return rest_ensure_response( array() );
-	}
+	$artist_ids   = extrachill_api_shop_get_user_artist_ids();
 
 	switch_to_blog( $shop_blog_id );
 	try {
@@ -346,8 +397,13 @@ function extrachill_api_shop_products_list_handler( WP_REST_Request $request ) {
 			'posts_per_page' => -1,
 		);
 
-		// Non-admins only see their own products
-		if ( ! empty( $artist_ids ) && ! current_user_can( 'manage_options' ) ) {
+
+		if ( ! current_user_can( 'manage_options' ) ) {
+			if ( empty( $artist_ids ) ) {
+				return rest_ensure_response( array() );
+			}
+
+			$artist_ids = array_map( 'absint', $artist_ids );
 			$query_args['meta_query'] = array(
 				array(
 					'key'     => '_artist_profile_id',
@@ -363,7 +419,11 @@ function extrachill_api_shop_products_list_handler( WP_REST_Request $request ) {
 		$response = array();
 
 		foreach ( $products as $product_post ) {
-			$response[] = extrachill_api_shop_products_build_response( $product_post->ID );
+			$product_response = extrachill_api_shop_products_build_response( $product_post->ID );
+			if ( is_wp_error( $product_response ) ) {
+				return $product_response;
+			}
+			$response[] = $product_response;
 		}
 
 		return rest_ensure_response( $response );
@@ -393,58 +453,24 @@ function extrachill_api_shop_products_create_handler( WP_REST_Request $request )
 
 	switch_to_blog( $shop_blog_id );
 	try {
-		if ( ! class_exists( 'WC_Product_Simple' ) ) {
-			return new WP_Error(
-				'dependency_missing',
-				'WooCommerce is not active on shop site.',
-				array( 'status' => 500 )
-			);
-		}
+		$description  = $request->get_param( 'description' );
+		$sale_price    = $request->get_param( 'sale_price' );
+		$manage_stock      = $request->get_param( 'manage_stock' );
+		$stock_quantity    = $request->get_param( 'stock_quantity' );
+		$image_id          = $request->get_param( 'image_id' );
+		$gallery_ids       = $request->get_param( 'gallery_ids' );
 
-		$product = new WC_Product_Simple();
-		$product->set_name( $name );
-		$product->set_regular_price( $price );
+		$product_id = wp_insert_post(
+			array(
+				'post_type'    => 'product',
+				'post_status'  => 'draft',
+				'post_title'   => $name,
+				'post_content' => $description ? wp_kses_post( wp_unslash( $description ) ) : '',
+			),
+			true
+		);
 
-		// Optional fields
-		$description = $request->get_param( 'description' );
-		if ( $description ) {
-			$product->set_description( wp_kses_post( wp_unslash( $description ) ) );
-		}
-
-		$short_description = $request->get_param( 'short_description' );
-		if ( $short_description ) {
-			$product->set_short_description( wp_kses_post( wp_unslash( $short_description ) ) );
-		}
-
-		$sale_price = $request->get_param( 'sale_price' );
-		if ( $sale_price > 0 && $sale_price < $price ) {
-			$product->set_sale_price( $sale_price );
-		}
-
-		$manage_stock = $request->get_param( 'manage_stock' );
-		$product->set_manage_stock( $manage_stock );
-		if ( $manage_stock ) {
-			$product->set_stock_quantity( $request->get_param( 'stock_quantity' ) );
-		}
-
-		$image_id = $request->get_param( 'image_id' );
-		if ( $image_id ) {
-			$product->set_image_id( $image_id );
-		}
-
-		$gallery_ids = $request->get_param( 'gallery_ids' );
-		if ( ! empty( $gallery_ids ) ) {
-			$gallery_ids = array_map( 'absint', $gallery_ids );
-			$gallery_ids = array_slice( $gallery_ids, 0, 4 );
-			$product->set_gallery_image_ids( $gallery_ids );
-		}
-
-		// New products start as pending for review
-		$product->set_status( 'pending' );
-
-		$product_id = $product->save();
-
-		if ( ! $product_id ) {
+		if ( is_wp_error( $product_id ) ) {
 			return new WP_Error(
 				'create_failed',
 				'Failed to create product.',
@@ -452,13 +478,38 @@ function extrachill_api_shop_products_create_handler( WP_REST_Request $request )
 			);
 		}
 
-		// Link to artist
 		update_post_meta( $product_id, '_artist_profile_id', $artist_id );
+		update_post_meta( $product_id, '_regular_price', (string) $price );
+		update_post_meta( $product_id, '_price', (string) $price );
 
-		// Sync artist taxonomy term
+		if ( is_numeric( $sale_price ) && (float) $sale_price > 0 && (float) $sale_price < (float) $price ) {
+			update_post_meta( $product_id, '_sale_price', (string) $sale_price );
+			update_post_meta( $product_id, '_price', (string) $sale_price );
+		} else {
+			delete_post_meta( $product_id, '_sale_price' );
+		}
+
+		update_post_meta( $product_id, '_manage_stock', $manage_stock ? 'yes' : 'no' );
+		update_post_meta( $product_id, '_stock', $manage_stock ? (string) absint( $stock_quantity ) : '' );
+		update_post_meta( $product_id, '_stock_status', 'instock' );
+
+		if ( $image_id ) {
+			set_post_thumbnail( $product_id, absint( $image_id ) );
+		}
+
+		if ( is_array( $gallery_ids ) && ! empty( $gallery_ids ) ) {
+			$gallery_ids = array_map( 'absint', $gallery_ids );
+			$gallery_ids = array_filter( $gallery_ids );
+			$gallery_ids = array_slice( $gallery_ids, 0, 4 );
+			update_post_meta( $product_id, '_product_image_gallery', implode( ',', $gallery_ids ) );
+		} else {
+			delete_post_meta( $product_id, '_product_image_gallery' );
+		}
+
 		extrachill_api_shop_sync_artist_taxonomy( $product_id, $artist_id );
 
-		return rest_ensure_response( extrachill_api_shop_products_build_response( $product_id ) );
+		$response = extrachill_api_shop_products_build_response( $product_id );
+		return is_wp_error( $response ) ? $response : rest_ensure_response( $response );
 	} finally {
 		restore_current_blog();
 	}
@@ -473,7 +524,8 @@ function extrachill_api_shop_products_get_handler( WP_REST_Request $request ) {
 
 	switch_to_blog( $shop_blog_id );
 	try {
-		return rest_ensure_response( extrachill_api_shop_products_build_response( $product_id ) );
+		$response = extrachill_api_shop_products_build_response( $product_id );
+		return is_wp_error( $response ) ? $response : rest_ensure_response( $response );
 	} finally {
 		restore_current_blog();
 	}
@@ -483,76 +535,100 @@ function extrachill_api_shop_products_get_handler( WP_REST_Request $request ) {
  * Handle PUT /shop/products/{id} - Update product.
  */
 function extrachill_api_shop_products_update_handler( WP_REST_Request $request ) {
-	$product_id   = $request->get_param( 'id' );
+	$product_id   = absint( $request->get_param( 'id' ) );
 	$shop_blog_id = extrachill_api_shop_get_blog_id();
 
 	switch_to_blog( $shop_blog_id );
 	try {
-		$product = wc_get_product( $product_id );
-
-		$name = $request->get_param( 'name' );
-		if ( $name ) {
-			$product->set_name( $name );
+		$product_post = get_post( $product_id );
+		if ( ! $product_post || 'product' !== $product_post->post_type ) {
+			return new WP_Error(
+				'product_not_found',
+				'Product not found.',
+				array( 'status' => 404 )
+			);
 		}
 
-		$price = $request->get_param( 'price' );
-		if ( $price !== null && $price > 0 ) {
-			$product->set_regular_price( $price );
+		$name = $request->get_param( 'name' );
+		if ( $name !== null ) {
+			wp_update_post(
+				array(
+					'ID'         => $product_id,
+					'post_title' => $name,
+				)
+			);
 		}
 
 		$description = $request->get_param( 'description' );
 		if ( $description !== null ) {
-			$product->set_description( wp_kses_post( wp_unslash( $description ) ) );
+			wp_update_post(
+				array(
+					'ID'           => $product_id,
+					'post_content' => wp_kses_post( wp_unslash( $description ) ),
+				)
+			);
 		}
 
-		$short_description = $request->get_param( 'short_description' );
-		if ( $short_description !== null ) {
-			$product->set_short_description( wp_kses_post( wp_unslash( $short_description ) ) );
+		$price = $request->get_param( 'price' );
+		if ( $price !== null && is_numeric( $price ) && (float) $price > 0 ) {
+			update_post_meta( $product_id, '_regular_price', (string) $price );
+			update_post_meta( $product_id, '_price', (string) $price );
 		}
 
 		$sale_price = $request->get_param( 'sale_price' );
 		if ( $sale_price !== null ) {
-			$current_price = $product->get_regular_price();
-			if ( $sale_price > 0 && $sale_price < $current_price ) {
-				$product->set_sale_price( $sale_price );
+			$current_regular = (float) get_post_meta( $product_id, '_regular_price', true );
+			if ( is_numeric( $sale_price ) && (float) $sale_price > 0 && (float) $sale_price < $current_regular ) {
+				update_post_meta( $product_id, '_sale_price', (string) $sale_price );
+				update_post_meta( $product_id, '_price', (string) $sale_price );
 			} else {
-				$product->set_sale_price( '' );
+				delete_post_meta( $product_id, '_sale_price' );
+				update_post_meta( $product_id, '_price', (string) $current_regular );
 			}
 		}
 
 		$manage_stock = $request->get_param( 'manage_stock' );
 		if ( $manage_stock !== null ) {
-			$product->set_manage_stock( $manage_stock );
+			update_post_meta( $product_id, '_manage_stock', $manage_stock ? 'yes' : 'no' );
 			if ( $manage_stock ) {
 				$stock_quantity = $request->get_param( 'stock_quantity' );
 				if ( $stock_quantity !== null ) {
-					$product->set_stock_quantity( $stock_quantity );
+					update_post_meta( $product_id, '_stock', (string) absint( $stock_quantity ) );
 				}
+			} else {
+				delete_post_meta( $product_id, '_stock' );
 			}
 		}
 
 		$image_id = $request->get_param( 'image_id' );
 		if ( $image_id !== null ) {
-			$product->set_image_id( $image_id ?: 0 );
+			if ( $image_id ) {
+				set_post_thumbnail( $product_id, absint( $image_id ) );
+			} else {
+				delete_post_thumbnail( $product_id );
+			}
 		}
 
 		$gallery_ids = $request->get_param( 'gallery_ids' );
 		if ( $gallery_ids !== null ) {
-			$gallery_ids = array_map( 'absint', $gallery_ids );
-			$gallery_ids = array_slice( $gallery_ids, 0, 4 );
-			$product->set_gallery_image_ids( $gallery_ids );
+			if ( is_array( $gallery_ids ) && ! empty( $gallery_ids ) ) {
+				$gallery_ids = array_map( 'absint', $gallery_ids );
+				$gallery_ids = array_filter( $gallery_ids );
+				$gallery_ids = array_slice( $gallery_ids, 0, 4 );
+				update_post_meta( $product_id, '_product_image_gallery', implode( ',', $gallery_ids ) );
+			} else {
+				delete_post_meta( $product_id, '_product_image_gallery' );
+			}
 		}
 
-		// Handle artist change (only if user can manage target artist)
 		$artist_id = $request->get_param( 'artist_id' );
 		if ( $artist_id !== null && extrachill_api_shop_user_can_manage_artist( $artist_id ) ) {
 			update_post_meta( $product_id, '_artist_profile_id', $artist_id );
 			extrachill_api_shop_sync_artist_taxonomy( $product_id, $artist_id );
 		}
 
-		$product->save();
-
-		return rest_ensure_response( extrachill_api_shop_products_build_response( $product_id ) );
+		$response = extrachill_api_shop_products_build_response( $product_id );
+		return is_wp_error( $response ) ? $response : rest_ensure_response( $response );
 	} finally {
 		restore_current_blog();
 	}
@@ -592,16 +668,29 @@ function extrachill_api_shop_products_delete_handler( WP_REST_Request $request )
  * Must be called within shop blog context.
  *
  * @param int $product_id Product ID.
- * @return array Product data.
+ * @return array|WP_Error Product data.
  */
 function extrachill_api_shop_products_build_response( $product_id ) {
-	$product   = wc_get_product( $product_id );
+	$product_post = get_post( $product_id );
+	if ( ! $product_post || 'product' !== $product_post->post_type ) {
+		return new WP_Error(
+			'product_not_found',
+			'Product not found.',
+			array( 'status' => 404 )
+		);
+	}
+
 	$artist_id = get_post_meta( $product_id, '_artist_profile_id', true );
 
-	$image_id  = $product->get_image_id();
-	$image_url = $image_id ? wp_get_attachment_image_url( $image_id, 'woocommerce_thumbnail' ) : '';
+	$image_id  = get_post_thumbnail_id( $product_id );
+	$image_url = $image_id ? wp_get_attachment_image_url( $image_id, 'medium' ) : '';
 
-	$gallery_ids  = $product->get_gallery_image_ids();
+	$gallery_raw = (string) get_post_meta( $product_id, '_product_image_gallery', true );
+	$gallery_ids = array();
+	if ( $gallery_raw ) {
+		$gallery_ids = array_filter( array_map( 'absint', explode( ',', $gallery_raw ) ) );
+	}
+
 	$gallery_urls = array();
 	foreach ( $gallery_ids as $gid ) {
 		$gallery_urls[] = array(
@@ -610,15 +699,19 @@ function extrachill_api_shop_products_build_response( $product_id ) {
 		);
 	}
 
+	$regular_price = get_post_meta( $product_id, '_regular_price', true );
+	$sale_price    = get_post_meta( $product_id, '_sale_price', true );
+	$manage_stock  = 'yes' === get_post_meta( $product_id, '_manage_stock', true );
+	$stock         = get_post_meta( $product_id, '_stock', true );
+
 	return array(
 		'id'                => $product_id,
-		'name'              => $product->get_name(),
-		'description'       => $product->get_description(),
-		'short_description' => $product->get_short_description(),
-		'price'             => $product->get_regular_price(),
-		'sale_price'        => $product->get_sale_price(),
-		'manage_stock'      => $product->get_manage_stock(),
-		'stock_quantity'    => $product->get_stock_quantity(),
+		'name'              => $product_post->post_title,
+		'description'       => $product_post->post_content,
+		'price'             => $regular_price,
+		'sale_price'        => $sale_price,
+		'manage_stock'      => $manage_stock,
+		'stock_quantity'    => $manage_stock ? ( $stock !== '' ? (int) $stock : 0 ) : null,
 		'status'            => get_post_status( $product_id ),
 		'permalink'         => get_permalink( $product_id ),
 		'artist_id'         => $artist_id ? (int) $artist_id : null,
