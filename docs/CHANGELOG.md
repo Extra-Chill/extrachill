@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0/).
 
+## [1.2.14] - 2025-12-15
+
+### Removed
+- Co-Authors Plus plugin integration from post meta and REST API
+- Custom favicon functionality
+- Content margin cleanup filter
+- Auto-update theme prevention
+- Password post filtering
+- Admin menu hiding for Posts/Comments on non-main sites
+- Customizer menu panel removal
+- Artist profile link component
+- Spotify embed support
+
+### Changed
+- Renamed SVG upload function for consistency
+- Renamed sparse tags noindex function for consistency
+- Added extrachill_post_meta_author filter for author display customization
+- Updated documentation to remove content cleanup examples
+
+### Technical
+- Cleaned up functions.php by removing deprecated functionality
+- Updated post-meta.php to use filter-based author display
+
 ## [1.2.13] - 2025-12-15
 
 ### Added

@@ -239,13 +239,6 @@ add_filter('wpseo_sitemap_urlimages', 'filter_yoast_sitemap_images', 10, 2);
 
 ## Content Cleanup
 
-```php
-// Remove inline margins from content
-add_filter('the_content', function($content) {
-    return str_replace('margin-left: 1em; margin-right: 1em;', '', $content);
-});
-```
-
 ## Sticky Header Control
 
 ### Body Class Filter
