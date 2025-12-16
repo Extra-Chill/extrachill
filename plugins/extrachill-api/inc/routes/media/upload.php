@@ -156,13 +156,8 @@ function extrachill_api_media_permission_check( WP_REST_Request $request ) {
 		try {
 			switch_to_blog( $shop_blog_id );
 
-			$wc_check = extrachill_api_require_woocommerce();
-			if ( is_wp_error( $wc_check ) ) {
-				return $wc_check;
-			}
-
-			$product = wc_get_product( $target_id );
-			if ( ! $product ) {
+			$product_post = get_post( $target_id );
+			if ( ! $product_post || 'product' !== $product_post->post_type ) {
 				return new WP_Error(
 					'product_not_found',
 					'Product not found.',

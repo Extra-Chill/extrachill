@@ -2,6 +2,23 @@
 
 All notable changes to the ExtraChill API plugin are documented here. This file is the single source of truth for release history.
 
+## 0.5.2
+
+### Removed
+
+- **WooCommerce Utility**: Deleted `inc/utils/woocommerce.php` - This hack attempted to force-load WooCommerce on non-shop sites, which is incorrect. WooCommerce is only active on shop.extrachill.com and shop operations should use REST API calls or direct database queries within `switch_to_blog()` context.
+
+- **Orders Endpoint**: Deleted `inc/routes/shop/orders.php` - This endpoint used WooCommerce functions (`wc_get_orders()`) incorrectly. Orders functionality will be re-implemented properly when the Orders tab is added to the artist dashboard.
+
+### Fixed
+
+- **Media Upload Permission Check**: Fixed `product_image` context in `inc/routes/media/upload.php` to use `get_post()` instead of `wc_get_product()` for product validation. This follows the same correct pattern used in `products.php`.
+
+### Technical Notes
+
+- Shop endpoints now consistently use standard WordPress functions (`get_post()`, `WP_Query`, `get_post_meta()`) within `switch_to_blog()` context
+- No WooCommerce runtime objects are required since we're working directly with the `product` post type and its meta keys
+
 ## 0.5.1
 
 ### Added
@@ -10,10 +27,6 @@ All notable changes to the ExtraChill API plugin are documented here. This file 
   - Supports optional badge and rank system integration with graceful degradation
   - Includes user profile data, points, and position information
   - Useful for community engagement and gamification features
-
-- **WooCommerce Utility**: `inc/utils/woocommerce.php` - Lazy-loading utility for WooCommerce functions in multisite contexts
-  - Ensures WC functions are available when switching between non-shop sites
-  - Prevents multisite compatibility issues with shop operations
 
 ### Documentation
 
@@ -27,13 +40,12 @@ All notable changes to the ExtraChill API plugin are documented here. This file 
 
 ### Updated
 
-- **Endpoint Count**: Updated README.md and AGENTS.md to reflect 50 total endpoints across 18 feature categories
+- **Endpoint Count**: Updated README.md and AGENTS.md to reflect current endpoint totals
 - **Directory Structure**: Enhanced AGENTS.md with complete route directory organization
-- **Shop Documentation**: Improved documentation for products, orders, and Stripe integration endpoints
+- **Shop Documentation**: Improved documentation for products and Stripe integration endpoints
 
 ### Technical Notes
 
-- **Multisite Compatibility**: WooCommerce utility resolves context switching issues for shop operations
 - **Backward Compatibility**: All changes are additive with no breaking modifications
 - **Dependencies**: Leaderboard endpoint optionally integrates with badge/rank systems if available
 

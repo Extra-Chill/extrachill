@@ -86,11 +86,9 @@ The plugin provides 50 endpoints across 18 feature categories, all under the `ex
 - `POST /newsletter/subscription` - Subscribe to newsletter
 - `POST /newsletter/campaign/push` - Push newsletter to Sendy
 
-### Shop Integration (6)
+### Shop Integration (4)
 - `GET/POST/PUT/DELETE /shop/products` - Product CRUD operations
 - `GET/POST/DELETE /shop/stripe` - Stripe Connect management
-- `GET /shop/orders` - List artist orders
-- `GET /shop/earnings` - Get earnings summary
 - `POST /shop/stripe-webhook` - Stripe webhook handler
 
 ### Authentication Endpoints (3)

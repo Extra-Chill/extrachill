@@ -83,7 +83,6 @@ extrachill-api/
         │   ├── campaign.php (Newsletter campaign push to Sendy)
         │   └── subscription.php (Newsletter subscription)
         ├── shop/
-        │   ├── orders.php (Order listing and earnings)
         │   ├── products.php (WooCommerce product CRUD)
         │   ├── stripe-connect.php (Stripe Connect management)
         │   └── stripe-webhook.php (Stripe webhook handler)
@@ -1528,70 +1527,9 @@ Foundational REST API for artist data management. Provides comprehensive endpoin
 
 **Used By**: extrachill-shop plugin for payment processing
 
-#### 43. Shop Orders List
-
-**Endpoint**: `GET /wp-json/extrachill/v1/shop/orders`
-
-**Purpose**: List orders containing products from artists the user manages, with filtering and pagination.
-
-**Parameters**:
-- `limit` (int, optional) - Number of orders to return (default: 50)
-- `status` (array, optional) - Order statuses to include (default: ['completed', 'processing', 'on-hold', 'pending'])
-
-**Response**:
-```json
-[
-  {
-    "order_id": 123,
-    "order_number": "WC-123",
-    "status": "completed",
-    "date_created": "2025-01-15T10:30:00+00:00",
-    "items": [
-      {
-        "product_id": 456,
-        "name": "Album Name",
-        "quantity": 1,
-        "line_total": 9.99,
-        "artist_payout": 8.99
-      }
-    ],
-    "artist_total": 8.99,
-    "payout_status": "eligible"
-  }
-]
-```
-
-**Permission**: User must be logged in and have artist status
-
-**File**: `inc/routes/shop/orders.php`
-
-**Used By**: extrachill-shop plugin for artist order management
-
-#### 44. Shop Earnings Summary
-
-**Endpoint**: `GET /wp-json/extrachill/v1/shop/earnings`
-
-**Purpose**: Get earnings summary statistics for all products from artists the user manages.
-
-**Response**:
-```json
-{
-  "total_orders": 25,
-  "total_earnings": 249.75,
-  "pending_payout": 49.95,
-  "completed_sales": 20
-}
-```
-
-**Permission**: User must be logged in and have artist status
-
-**File**: `inc/routes/shop/orders.php`
-
-**Used By**: extrachill-shop plugin for earnings dashboard
-
 ### Tools
 
-#### 45. QR Code Generator
+#### 43. QR Code Generator
 
 **Endpoint**: `POST /wp-json/extrachill/v1/tools/qr-code`
 
