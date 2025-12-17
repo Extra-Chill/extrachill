@@ -81,10 +81,11 @@ $body_bg_style .= 'min-height:100vh;';
     ?>
 </head>
 <?php
-$permissions_api_url = rest_url( 'extrachill/v1/artists/' . $artist_id . '/permissions' );
-$subscribe_api_url = rest_url( 'extrachill/v1/artists/' . $artist_id . '/subscribe' );
-$tracking_click_url = rest_url( 'extrachill/v1/analytics/link-click' );
-$tracking_view_url = rest_url( 'extrachill/v1/analytics/view' );
+$api_base = ec_get_site_url( 'artist' ) . '/wp-json/extrachill/v1';
+$permissions_api_url = $api_base . '/artists/' . $artist_id . '/permissions';
+$subscribe_api_url = $api_base . '/artists/' . $artist_id . '/subscribe';
+$tracking_click_url = $api_base . '/analytics/link-click';
+$tracking_view_url = $api_base . '/analytics/view';
 ?>
 <body class="extrch-link-page"<?php if ($body_bg_style) echo ' style="' . esc_attr( $body_bg_style ) . '"'; ?> data-extrch-artist-id="<?php echo esc_attr( (string) absint( $artist_id ) ); ?>" data-extrch-link-page-id="<?php echo esc_attr( (string) absint( $link_page_id ) ); ?>" data-extrch-permissions-api-url="<?php echo esc_url( $permissions_api_url ); ?>" data-extrch-subscribe-api-url="<?php echo esc_url( $subscribe_api_url ); ?>" data-extrch-tracking-click-url="<?php echo esc_url( $tracking_click_url ); ?>" data-extrch-tracking-view-url="<?php echo esc_url( $tracking_view_url ); ?>">
 <?php
