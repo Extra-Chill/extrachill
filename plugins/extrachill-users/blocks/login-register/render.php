@@ -43,12 +43,12 @@ $invite_artist_id               = null;
 $invited_email                  = '';
 $artist_name_for_invite_message = '';
 
-if ( isset( $_GET['action'] ) && 'bp_accept_invite' === $_GET['action'] && isset( $_GET['token'] ) && isset( $_GET['artist_id'] ) ) {
+if ( isset( $_GET['action'] ) && 'ec_accept_invite' === $_GET['action'] && isset( $_GET['token'] ) && isset( $_GET['artist_id'] ) ) {
 	$token_from_url     = sanitize_text_field( wp_unslash( $_GET['token'] ) );
 	$artist_id_from_url = absint( $_GET['artist_id'] );
 
-	if ( function_exists( 'bp_get_pending_invitations' ) ) {
-		$pending_invitations = bp_get_pending_invitations( $artist_id_from_url );
+	if ( function_exists( 'ec_get_pending_invitations' ) ) {
+		$pending_invitations = ec_get_pending_invitations( $artist_id_from_url );
 		foreach ( $pending_invitations as $invite ) {
 			if ( isset( $invite['token'] ) && $invite['token'] === $token_from_url && isset( $invite['status'] ) && 'invited_new_user' === $invite['status'] ) {
 				$invite_token             = $token_from_url;

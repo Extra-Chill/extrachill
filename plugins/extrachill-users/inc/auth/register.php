@@ -93,8 +93,8 @@ function extrachill_handle_registration() {
 	$invite_token_posted        = isset( $_POST['invite_token'] ) ? sanitize_text_field( wp_unslash( $_POST['invite_token'] ) ) : null;
 	$invite_artist_id_posted    = isset( $_POST['invite_artist_id'] ) ? absint( $_POST['invite_artist_id'] ) : null;
 
-	if ( $invite_token_posted && $invite_artist_id_posted && function_exists( 'bp_get_pending_invitations' ) && function_exists( 'bp_add_artist_membership' ) && function_exists( 'bp_remove_pending_invitation' ) ) {
-		$pending_invitations       = bp_get_pending_invitations( $invite_artist_id_posted );
+	if ( $invite_token_posted && $invite_artist_id_posted && function_exists( 'ec_get_pending_invitations' ) && function_exists( 'ec_add_artist_membership' ) && function_exists( 'ec_remove_pending_invitation' ) ) {
+		$pending_invitations       = ec_get_pending_invitations( $invite_artist_id_posted );
 		$valid_invite_data         = null;
 		$valid_invite_id_for_removal = null;
 
@@ -109,8 +109,8 @@ function extrachill_handle_registration() {
 		}
 
 		if ( $valid_invite_data ) {
-			if ( bp_add_artist_membership( $user_id, $invite_artist_id_posted ) ) {
-				bp_remove_pending_invitation( $invite_artist_id_posted, $valid_invite_id_for_removal );
+			if ( ec_add_artist_membership( $user_id, $invite_artist_id_posted ) ) {
+				ec_remove_pending_invitation( $invite_artist_id_posted, $valid_invite_id_for_removal );
 				$processed_invite_artist_id = $invite_artist_id_posted;
 			}
 		}

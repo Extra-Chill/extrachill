@@ -452,8 +452,8 @@ function extrachill_users_register_with_tokens( array $payload ) {
 	}
 
 	$processed_invite_artist_id = null;
-	if ( $invite_token && $invite_artist_id && function_exists( 'bp_get_pending_invitations' ) && function_exists( 'bp_add_artist_membership' ) && function_exists( 'bp_remove_pending_invitation' ) ) {
-		$pending_invitations         = bp_get_pending_invitations( $invite_artist_id );
+	if ( $invite_token && $invite_artist_id && function_exists( 'ec_get_pending_invitations' ) && function_exists( 'ec_add_artist_membership' ) && function_exists( 'ec_remove_pending_invitation' ) ) {
+		$pending_invitations         = ec_get_pending_invitations( $invite_artist_id );
 		$valid_invite_id_for_removal = null;
 
 		foreach ( $pending_invitations as $invite ) {
@@ -466,8 +466,8 @@ function extrachill_users_register_with_tokens( array $payload ) {
 		}
 
 		if ( $valid_invite_id_for_removal ) {
-			if ( bp_add_artist_membership( (int) $user_id, $invite_artist_id ) ) {
-				bp_remove_pending_invitation( $invite_artist_id, $valid_invite_id_for_removal );
+			if ( ec_add_artist_membership( (int) $user_id, $invite_artist_id ) ) {
+				ec_remove_pending_invitation( $invite_artist_id, $valid_invite_id_for_removal );
 				$processed_invite_artist_id = $invite_artist_id;
 			}
 		}

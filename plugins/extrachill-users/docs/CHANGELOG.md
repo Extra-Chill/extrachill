@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.4.1] - 2025-12-17
+
+### Added
+- Network-wide automatic login page creation on plugin activation
+- Fallback login page creation for new sites added after initial activation
+
+### Changed
+- Refactored plugin activation logic into dedicated `inc/core/activation.php` file
+- Replaced BuddyPress artist invitation functions with native ExtraChill functions (`ec_get_pending_invitations`, `ec_add_artist_membership`, `ec_remove_pending_invitation`)
+- Updated invitation URL parameter from `bp_accept_invite` to `ec_accept_invite`
+
+### Technical
+- Improved code organization by extracting activation logic to separate file
+- Removed BuddyPress dependency for artist invitation handling
+- Enhanced multisite setup automation with automatic login page creation
+
 ## [0.4.0] - 2025-12-16
 
 ### Added
