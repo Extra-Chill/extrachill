@@ -56,7 +56,7 @@ add_action('init', 'extrachill_unregister_image_sizes', 99);
 
 define('EXTRACHILL_PARENT_DIR', get_template_directory());
 
-define('EXTRACHILL_THEME_VERSION', '1.2.14');
+define('EXTRACHILL_THEME_VERSION', '1.3.0');
 
 define('EXTRACHILL_INCLUDES_DIR', EXTRACHILL_PARENT_DIR . '/inc');
 require_once(EXTRACHILL_INCLUDES_DIR . '/core/templates/post-meta.php');
@@ -88,15 +88,20 @@ require_once(EXTRACHILL_INCLUDES_DIR . '/footer/online-users-stats.php');
 
 function extrachill_remove_menu_admin_pages() {
     remove_submenu_page('themes.php', 'nav-menus.php');
+
+    if (get_current_blog_id() !== 1) {
+        remove_menu_page('edit.php');
+    }
 }
 add_action('admin_menu', 'extrachill_remove_menu_admin_pages', 999);
 
 require_once(EXTRACHILL_INCLUDES_DIR . '/core/editor/bandcamp-embeds.php');
 require_once(EXTRACHILL_INCLUDES_DIR . '/core/editor/instagram-embeds.php');
 
-require_once(EXTRACHILL_INCLUDES_DIR . '/archives/archive-child-terms-dropdown.php');
 require_once(EXTRACHILL_INCLUDES_DIR . '/archives/archive-custom-sorting.php');
-require_once(EXTRACHILL_INCLUDES_DIR . '/archives/archive-filter-bar.php');
+
+require_once(EXTRACHILL_INCLUDES_DIR . '/components/filter-bar.php');
+require_once(EXTRACHILL_INCLUDES_DIR . '/components/filter-bar-defaults.php');
 
 require_once(EXTRACHILL_INCLUDES_DIR . '/core/templates/searchform.php');
 

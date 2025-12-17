@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0/).
 
+## [1.3.0] - 2025-12-17
+
+### Added
+- Universal filter bar component system in `/inc/components/filter-bar.php` for extensible archive filtering with plugin hooks
+- Default filter bar items in `/inc/components/filter-bar-defaults.php` including category, child terms, artist, and sort dropdowns
+- New filter bar CSS in `/assets/css/filter-bar.css` with responsive design and proper theming integration
+- Admin menu cleanup: Hide Posts menu on non-main multisite blogs for improved admin UX
+
+### Changed
+- Refactored archive filtering system from hardcoded `/inc/archives/archive-filter-bar.php` and `/inc/archives/archive-child-terms-dropdown.php` to modular component-based architecture
+- Updated `functions.php` to load new component files and include multisite admin menu logic
+- Removed archive-specific sorting styles from `/assets/css/archive.css`
+
+### Removed
+- `/inc/archives/archive-child-terms-dropdown.php` (functionality relocated to components)
+- `/inc/archives/archive-filter-bar.php` (replaced with universal component system)
+
+### Technical
+- Added `extrachill_filter_bar_items` filter for plugin extensibility
+- Added `extrachill_archive_above_posts` action hook for filter bar placement
+- Maintained backward compatibility through existing filter hooks and archive functionality
+
 ## [1.2.14] - 2025-12-15
 
 ### Removed

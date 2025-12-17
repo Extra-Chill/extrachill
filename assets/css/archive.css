@@ -73,25 +73,6 @@ a.card-link-target:hover,
   }
 } 
 
-#extrachill-custom-sorting{
-  margin: var(--spacing-lg) 0;
-  display: flex;
-  gap: var(--spacing-sm);
-  align-items: center;
-  justify-content: space-around;
-  flex-wrap: wrap;
-  background-color: var(--card-background);
-  padding: var(--spacing-md);
-  border-radius: var(--border-radius-lg);
-  border: 1px solid var(--border-color);
-}
-
-/* Archive filter bar button styling - buttons should use .button-1 class in HTML */
-#extrachill-custom-sorting button {
-  font-weight: 500;
-  cursor: pointer;
-}
-
 /*
  * Archive & Search Page Styles
  */
