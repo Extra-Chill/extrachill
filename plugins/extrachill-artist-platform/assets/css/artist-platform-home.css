@@ -30,8 +30,6 @@
 
 .featured-artists-section h3 {
   text-align: center;
-  font-size: 1.8em;
-  font-weight: 600;
   margin-bottom: 2em;
   color: var(--text-color);
 }
@@ -84,9 +82,7 @@
   color: var(--text-color);
 }
 
-.no-artists-found p {
-  margin-bottom: 1.5em;
-}
+
 
 /* Getting Started Section */
 .inc-getting-started {
@@ -111,8 +107,6 @@
 }
 
 .primary-action-card h3 {
-  font-size: 1.4em;
-  font-weight: 600;
   margin-bottom: 1em;
   color: var(--text-color);
 }
@@ -128,9 +122,6 @@
 }
 
 .discover-section h3 {
-  font-size: 1.6em;
-  font-weight: 600;
-  margin-bottom: 1.5em;
   color: var(--text-color);
 }
 
@@ -152,9 +143,6 @@
 }
 
 .artist-profiles-section h3 {
-  font-size: 1.6em;
-  font-weight: 600;
-  margin-bottom: 1.5em;
   color: var(--text-color);
 }
 
@@ -245,26 +233,12 @@
     padding: 1.2em;
   }
 
-  .welcome-hero p,
-  .welcome-user p,
-  .dashboard-welcome p {
-    font-size: 1em;
-  }
-}
 
-/* Artist Grid Pagination */
-.artist-grid-pagination {
-  margin-top: 2em;
 }
 
 /* Loading state for artist grid */
 .artist-cards-grid {
   transition: opacity 0.3s ease;
-}
-
-/* Pagination inherits theme styles from .extrachill-pagination */
-.artist-grid-pagination .extrachill-pagination {
-  margin-top: 0;
 }
 
 /* Browse All Artists link */

@@ -108,6 +108,25 @@ export const updateShopProduct = ( productId, data ) =>
 export const deleteShopProduct = ( productId ) =>
 	del( `extrachill/v1/shop/products/${ productId }` );
 
+export const uploadShopProductImages = ( productId, files ) => {
+	const formData = new FormData();
+	( files || [] ).forEach( ( file ) => {
+		formData.append( 'files[]', file );
+	} );
+
+	return apiFetch( {
+		path: `extrachill/v1/shop/products/${ productId }/images`,
+		method: 'POST',
+		body: formData,
+	} );
+};
+
+export const deleteShopProductImage = ( productId, attachmentId ) =>
+	apiFetch( {
+		path: `extrachill/v1/shop/products/${ productId }/images/${ attachmentId }`,
+		method: 'DELETE',
+	} );
+
 // Shop payments (Stripe Connect) - calls shop site directly
 const shopFetch = ( path, options = {} ) => {
 	const config = getConfig();
@@ -145,6 +164,29 @@ export const createStripeConnectDashboardLink = ( artistId ) =>
 		body: JSON.stringify( { artist_id: artistId } ),
 	} );
 
+// Shop orders
+export const listShopOrders = ( artistId, status = 'all', page = 1 ) =>
+	shopFetch(
+		`shop/orders?artist_id=${ artistId }&status=${ status }&page=${ page }`,
+		{ method: 'GET' }
+	);
+
+export const updateShopOrderStatus = ( orderId, artistId, status, trackingNumber = null ) =>
+	shopFetch( `shop/orders/${ orderId }/status`, {
+		method: 'PUT',
+		body: JSON.stringify( {
+			artist_id: artistId,
+			status,
+			tracking_number: trackingNumber,
+		} ),
+	} );
+
+export const refundShopOrder = ( orderId, artistId ) =>
+	shopFetch( `shop/orders/${ orderId }/refund`, {
+		method: 'POST',
+		body: JSON.stringify( { artist_id: artistId } ),
+	} );
+
 // Permissions
 export const getArtistPermissions = ( artistId ) =>
 	get( `extrachill/v1/artists/${ artistId }/permissions` );
@@ -172,8 +214,13 @@ export default {
 	createShopProduct,
 	updateShopProduct,
 	deleteShopProduct,
+	uploadShopProductImages,
+	deleteShopProductImage,
 	getStripeConnectStatus,
 	createStripeConnectOnboardingLink,
 	createStripeConnectDashboardLink,
+	listShopOrders,
+	updateShopOrderStatus,
+	refundShopOrder,
 	getArtistPermissions,
 };

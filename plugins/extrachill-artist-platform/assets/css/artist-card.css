@@ -9,6 +9,10 @@
  */
 
 /* Artist Cards Grid Container */
+.artist-directory-grid {
+  grid-column: 1 / -1;
+}
+
 .artist-cards-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -97,8 +101,6 @@
 
 .artist-info-overlay .artist-name {
   margin: 0 0 0.2em 0;
-  font-size: 1.1em;
-  font-weight: 600;
 }
 
 .artist-info-overlay .artist-name a {
@@ -115,7 +117,6 @@
   display: flex;
   align-items: center;
   gap: 0.5em;
-  font-size: 0.85em;
   color: rgba(255,255,255,0.9);
   text-shadow: 0 1px 2px rgba(0,0,0,0.4);
   flex-wrap: wrap;
@@ -136,7 +137,6 @@
 
 .artist-card-bio p {
   margin: 0;
-  font-size: 0.95em;
   line-height: 1.5;
   color: var(--text-color);
   opacity: 0.9;
@@ -149,7 +149,6 @@
 }
 
 .artist-card-actions .button {
-  font-size: 0.9em;
   padding: 0.6em 1em;
 }
 
@@ -200,7 +199,5 @@
     font-size: 1em;
   }
 
-  .artist-info-overlay .artist-meta {
-    font-size: 0.8em;
-  }
+
 }

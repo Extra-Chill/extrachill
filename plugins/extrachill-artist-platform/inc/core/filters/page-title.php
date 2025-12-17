@@ -16,7 +16,7 @@ add_filter( 'extrachill_show_page_title', 'ec_hide_management_page_titles', 10, 
  * @return bool
  */
 function ec_hide_management_page_titles( $show, $post_id ) {
-	if ( is_page( 'manage-link-page' ) || is_page( 'manage-artist-profiles' ) || is_page( 'create-artist' ) ) {
+	if ( is_page( 'manage-link-page' ) || is_page( 'manage-artist-profiles' ) || is_page( 'create-artist' ) || is_page( 'manage-shop' ) ) {
 		return false;
 	}
 	return $show;

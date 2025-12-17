@@ -2,36 +2,42 @@
 /**
  * Artist Card Loop Template
  *
- * Displays artist profile card in WordPress loop context.
- * Used in homepage, directory, and archive pages.
+ * Displays an artist profile card.
  *
- * Works with standard WordPress loop - uses global $post.
+ * Supports two contexts:
+ * - WordPress loop (uses current post ID)
+ * - Explicit render via ec_render_template( 'artist-card', array( 'artist_id' => ... ) )
  *
  * @package ExtraChillArtistPlatform
  */
 
-// Get artist data from args or fallback to loop context
-$artist_id = isset($artist_id) ? $artist_id : get_the_ID();
-$artist_post = get_post($artist_id);
-$artist_name = $artist_post ? $artist_post->post_title : '';
-$artist_url = get_permalink($artist_id);
-$artist_bio = $artist_post ? $artist_post->post_content : '';
+defined( 'ABSPATH' ) || exit;
 
-// Get images
-$profile_image_id = get_post_thumbnail_id($artist_id);
-$profile_image_url = $profile_image_id ? wp_get_attachment_image_url($profile_image_id, 'thumbnail') : '';
-$header_image_id = get_post_meta($artist_id, '_artist_profile_header_image_id', true);
-$header_image_url = $header_image_id ? wp_get_attachment_image_url($header_image_id, 'large') : '';
-
-// Get meta data
-$genre = get_post_meta($artist_id, '_genre', true);
-$local_city = get_post_meta($artist_id, '_local_city', true);
-
-// Build inline style for hero background
-$hero_style = '';
-if ($header_image_url) {
-    $hero_style = 'background-image: url(' . esc_url($header_image_url) . ');';
+$template_artist_id = 0;
+if ( isset( $args ) && is_array( $args ) && array_key_exists( 'artist_id', $args ) ) {
+    $template_artist_id = absint( $args['artist_id'] );
 }
+
+$artist_id = $template_artist_id ? $template_artist_id : get_the_ID();
+
+$artist_post = get_post( $artist_id );
+if ( ! $artist_post ) {
+    return;
+}
+
+$artist_name = $artist_post->post_title;
+$artist_url  = get_permalink( $artist_id );
+$artist_bio  = $artist_post->post_content;
+
+$profile_image_id  = get_post_thumbnail_id( $artist_id );
+$profile_image_url = $profile_image_id ? wp_get_attachment_image_url( $profile_image_id, 'thumbnail' ) : '';
+$header_image_id   = get_post_meta( $artist_id, '_artist_profile_header_image_id', true );
+$header_image_url  = $header_image_id ? wp_get_attachment_image_url( absint( $header_image_id ), 'large' ) : '';
+
+$genre      = get_post_meta( $artist_id, '_genre', true );
+$local_city = get_post_meta( $artist_id, '_local_city', true );
+
+$hero_style = $header_image_url ? 'background-image: url(' . esc_url( $header_image_url ) . ');' : '';
 ?>
 
 <div class="artist-profile-card">

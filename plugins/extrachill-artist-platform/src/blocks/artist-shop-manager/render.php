@@ -38,10 +38,17 @@ $user_artists_data = array();
 foreach ( $user_artists as $artist_id ) {
     $artist_post = get_post( $artist_id );
     if ( $artist_post && $artist_post->post_status === 'publish' ) {
+        $stripe_account_id = (string) get_post_meta( $artist_id, '_stripe_connect_account_id', true );
+        $stripe_status     = (string) get_post_meta( $artist_id, '_stripe_connect_status', true );
+        $stripe_connected  = ! empty( $stripe_account_id );
+
         $user_artists_data[] = array(
-            'id'   => (int) $artist_id,
-            'name' => $artist_post->post_title,
-            'slug' => $artist_post->post_name,
+            'id'                 => (int) $artist_id,
+            'name'               => $artist_post->post_title,
+            'slug'               => $artist_post->post_name,
+            'stripe_connected'   => $stripe_connected,
+            'stripe_status'      => $stripe_status,
+            'can_receive_payments' => ( 'active' === $stripe_status ),
         );
     }
 }
@@ -54,7 +61,7 @@ $config = array(
     'restUrl'     => rest_url( 'extrachill/v1/' ),
     'shopRestUrl' => $shop_rest_url,
     'nonce'       => wp_create_nonce( 'wp_rest' ),
-    'userArtists' => $user_artists_data,
+    'userArtists' => array_values( $user_artists_data ),
     'selectedId'  => (int) $selected_id,
 );
 

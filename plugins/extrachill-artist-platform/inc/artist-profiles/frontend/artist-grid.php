@@ -88,10 +88,10 @@ function ec_display_artist_cards_grid( $limit = 24, $exclude_user_artists = fals
 
     // Create array with activity timestamps for sorting
     $artists_with_activity = array();
-    foreach ( $artist_ids as $artist_id ) {
-        $activity_timestamp = ec_get_artist_profile_last_activity_timestamp( $artist_id );
+    foreach ( $artist_ids as $artist_profile_id ) {
+        $activity_timestamp      = ec_get_artist_profile_last_activity_timestamp( $artist_profile_id );
         $artists_with_activity[] = array(
-            'id'       => $artist_id,
+            'id'       => $artist_profile_id,
             'activity' => $activity_timestamp ?: 0,
         );
     }
@@ -125,9 +125,9 @@ function ec_display_artist_cards_grid( $limit = 24, $exclude_user_artists = fals
 
     $artists_query = new WP_Query( $query_args );
 
-    // Render artist cards grid
-    echo '<div class="artist-cards-grid">';
+    echo '<div class="artist-directory-grid">';
 
+    echo '<div class="artist-cards-grid">';
     if ( $artists_query->have_posts() ) {
         while ( $artists_query->have_posts() ) {
             $artists_query->the_post();
@@ -135,17 +135,19 @@ function ec_display_artist_cards_grid( $limit = 24, $exclude_user_artists = fals
         }
         wp_reset_postdata();
     }
+    echo '</div>';
+
+    if ( $show_pagination && $total_pages > 1 ) {
+        $pagination_query                                = new WP_Query();
+        $pagination_query->max_num_pages                 = $total_pages;
+        $pagination_query->found_posts                   = $total_artists;
+        $pagination_query->query_vars['posts_per_page']  = $limit;
+
+        echo '<div class="artist-grid-pagination">';
+        extrachill_pagination( $pagination_query, 'artist-archive', 'artist' );
+        echo '</div>';
+    }
 
     echo '</div>';
 
-    // Render pagination using theme's function with WP_Query
-    if ( $show_pagination && $total_pages > 1 ) {
-        // Create a mock WP_Query object for pagination
-        $pagination_query = new WP_Query();
-        $pagination_query->max_num_pages = $total_pages;
-        $pagination_query->found_posts = $total_artists;
-        $pagination_query->query_vars['posts_per_page'] = $limit;
-
-        extrachill_pagination( $pagination_query, 'artist-archive', 'artist' );
-    }
 }
