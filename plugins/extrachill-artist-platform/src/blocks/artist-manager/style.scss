@@ -1,20 +1,20 @@
-// Artist Profile Manager Block Styles
+// Artist Manager Block Styles
 // Uses theme design system from extrachill/assets/css/root.css
 
 @import '../shared/styles/artist-switcher';
 
-.ec-apm {
+.ec-am {
   display: grid;
   gap: var(--spacing-md);
 }
 
-.ec-apm__tabs {
+.ec-am__tabs {
   display: inline-flex;
   gap: var(--spacing-sm);
   flex-wrap: wrap;
 }
 
-.ec-apm__tab {
+.ec-am__tab {
   border: 1px solid var(--border-color);
   background: var(--background-color);
   padding: var(--spacing-sm) var(--spacing-md);
@@ -35,7 +35,7 @@
   }
 }
 
-.ec-apm__panel {
+.ec-am__panel {
   border: 1px solid var(--border-color);
   border-radius: var(--border-radius-lg);
   padding: var(--spacing-md);
@@ -49,7 +49,7 @@
   }
 }
 
-.ec-apm__header {
+.ec-am__header {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -64,30 +64,30 @@
   }
 }
 
-.ec-apm__header-left {
+.ec-am__header-left {
   display: flex;
   align-items: center;
   gap: var(--spacing-md);
   flex-wrap: wrap;
 }
 
-.ec-apm__header-right {
+.ec-am__header-right {
   display: flex;
   align-items: center;
   gap: var(--spacing-sm);
 }
 
-.ec-apm__save-error {
+.ec-am__save-error {
   color: var(--error-color);
   font-size: var(--font-size-sm);
 }
 
-.ec-apm__save-success {
+.ec-am__save-success {
   color: var(--success-color);
   font-size: var(--font-size-sm);
 }
 
-.ec-apm__field {
+.ec-am__field {
   display: grid;
   gap: var(--spacing-sm);
 
@@ -106,20 +106,20 @@
   }
 }
 
-.ec-apm__image-preview {
+.ec-am__image-preview {
   max-width: 220px;
   border-radius: var(--border-radius-lg);
   border: 1px solid var(--border-color);
 }
 
-.ec-apm__inline {
+.ec-am__inline {
   display: flex;
   gap: var(--spacing-sm);
   flex-wrap: wrap;
   align-items: flex-start;
 }
 
-.ec-apm__search-container {
+.ec-am__search-container {
   position: relative;
   flex: 1;
   min-width: 200px;
@@ -129,7 +129,7 @@
   }
 }
 
-.ec-apm__search-dropdown {
+.ec-am__search-dropdown {
   position: absolute;
   top: 100%;
   left: 0;
@@ -144,7 +144,7 @@
   overflow-y: auto;
 }
 
-.ec-apm__search-result {
+.ec-am__search-result {
   display: flex;
   align-items: center;
   gap: var(--spacing-sm);
@@ -165,27 +165,27 @@
   }
 }
 
-.ec-apm__search-avatar {
+.ec-am__search-avatar {
   width: 32px;
   height: 32px;
   border-radius: var(--border-radius-circle);
   flex-shrink: 0;
 }
 
-.ec-apm__search-info {
+.ec-am__search-info {
   display: flex;
   flex-direction: column;
   gap: 2px;
   overflow: hidden;
 }
 
-.ec-apm__search-name {
+.ec-am__search-name {
   font-weight: 600;
   color: var(--text-color);
   font-size: var(--font-size-base);
 }
 
-.ec-apm__search-email {
+.ec-am__search-email {
   color: var(--muted-text);
   font-size: var(--font-size-sm);
   overflow: hidden;
@@ -193,7 +193,7 @@
   white-space: nowrap;
 }
 
-.ec-apm__search-loading {
+.ec-am__search-loading {
   position: absolute;
   top: 100%;
   left: 0;
@@ -202,12 +202,12 @@
   color: var(--muted-text);
 }
 
-.ec-apm__list {
+.ec-am__list {
   display: grid;
   gap: var(--spacing-sm);
 }
 
-.ec-apm__list-item {
+.ec-am__list-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -218,7 +218,7 @@
   gap: var(--spacing-sm);
 }
 
-.ec-apm__pill {
+.ec-am__pill {
   display: inline-flex;
   align-items: center;
   padding: var(--spacing-xs) var(--spacing-sm);
@@ -229,7 +229,7 @@
   color: var(--muted-text);
 }
 
-.ec-apm__footer {
+.ec-am__footer {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -237,7 +237,7 @@
   flex-wrap: wrap;
 }
 
-.ec-apm__pagination {
+.ec-am__pagination {
   display: inline-flex;
   gap: var(--spacing-sm);
   align-items: center;

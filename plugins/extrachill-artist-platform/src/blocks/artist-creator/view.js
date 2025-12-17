@@ -9,7 +9,7 @@ const useConfig = () => {
 			restUrl: config.restUrl,
 			nonce: config.nonce,
 			prefill: config.prefill || {},
-			manageArtistUrl: config.manageArtistUrl || '/manage-artist-profiles/',
+			manageArtistUrl: config.manageArtistUrl || '/manage-artist/',
 			createLinkPageUrl: config.createLinkPageUrl || '/manage-link-page/',
 		} ),
 		[ config ]

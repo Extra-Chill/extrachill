@@ -1,5 +1,5 @@
 /**
- * Artist Profile Manager - Edit
+ * Artist Manager - Edit
  * Placeholder view in the block editor. Actual UI renders on the frontend
  * for logged-in users with artist permissions.
  */
@@ -7,7 +7,6 @@
 import { __ } from '@wordpress/i18n';
 import { useBlockProps } from '@wordpress/block-editor';
 import { Placeholder, Notice } from '@wordpress/components';
-import metadata from './block.json';
 
 export default function Edit() {
 	const blockProps = useBlockProps();
@@ -16,9 +15,9 @@ export default function Edit() {
 		<div { ...blockProps }>
 			<Placeholder
 				icon="id-alt"
-				label={ __( 'Artist Profile Manager', 'extrachill-artist-platform' ) }
+				label={ __( 'Manage Artist', 'extrachill-artist-platform' ) }
 				instructions={ __(
-					'This block renders the artist profile manager on the frontend for authorized users.',
+					'This block renders the artist manager on the frontend for authorized users.',
 					'extrachill-artist-platform'
 				) }
 			>

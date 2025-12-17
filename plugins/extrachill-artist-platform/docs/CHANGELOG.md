@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.0] - 2025-12-17
+
+### Added
+- **Page Migration System**: Automatic migration of existing `manage-artist-profiles` pages to new `manage-artist` slug with updated block content
+- **Shared Component Library**: Centralized `DraggableList` component in `src/blocks/shared/components/` for better code reusability
+
+### Changed
+- **Block Name Standardization**: Renamed `artist-profile-manager` block to `artist-manager` and `link-page-analytics` to `artist-analytics` for consistency
+- **URL Structure Simplification**: Changed management page slug from `manage-artist-profiles` to `manage-artist` across all navigation and templates
+- **Join Flow Simplification**: Removed validation logic for artist/professional checkboxes in join flow UI for streamlined user experience
+- **Component Organization**: Moved shared components to centralized location and updated all import paths
+- **Block Version Updates**: Incremented block versions from 0.1.3 to 0.1.4 to reflect architectural improvements
+
+### Technical Improvements
+- **Webpack Configuration**: Updated build configuration to reflect new block names and shared component structure
+- **Code Consistency**: Standardized import paths and component references throughout the codebase
+- **Migration Safety**: Added version-aware page creation and migration logic to prevent conflicts during upgrades
+
 ## [1.4.4] - 2025-12-17
 
 ### Added

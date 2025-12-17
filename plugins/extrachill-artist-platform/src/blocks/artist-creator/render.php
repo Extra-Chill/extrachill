@@ -53,7 +53,7 @@ if ( function_exists( 'ec_get_artists_for_user' ) ) {
 				$artist_count
 			) . '</p>';
 		}
-		echo '<a href="' . esc_url( home_url( '/manage-artist-profiles/' ) ) . '" class="button-1 button-medium">' . esc_html__( 'Manage Artist Profiles', 'extrachill-artist-platform' ) . '</a>';
+		echo '<a href="' . esc_url( home_url( '/manage-artist/' ) ) . '" class="button-1 button-medium">' . esc_html__( 'Manage Artist', 'extrachill-artist-platform' ) . '</a>';
 		echo '</div>';
 	}
 }
@@ -74,7 +74,7 @@ $config = array(
     'restUrl'           => rest_url( 'extrachill/v1/' ),
     'nonce'             => wp_create_nonce( 'wp_rest' ),
     'prefill'           => $prefill,
-    'manageArtistUrl'   => home_url( '/manage-artist-profiles/' ),
+    'manageArtistUrl'   => home_url( '/manage-artist/' ),
     'createLinkPageUrl' => home_url( '/manage-link-page/' ),
 );
 

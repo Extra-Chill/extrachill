@@ -36,7 +36,7 @@ const useDebounce = (value, delay) => {
 };
 
 const useConfig = () => {
-	const config = window.ecArtistPlatformConfig || {};
+	const config = window.ecArtistManagerConfig || {};
 	return useMemo(
 		() => ({
 			restUrl: config.restUrl,
@@ -51,12 +51,12 @@ const useConfig = () => {
 };
 
 const TabNav = ({ tabs, active, onChange }) => (
-	<div className="ec-apm__tabs">
+	<div className="ec-am__tabs">
 		{tabs.map((tab) => (
 			<button
 				key={tab.id}
 				type="button"
-				className={`ec-apm__tab${active === tab.id ? ' is-active' : ''}`}
+				className={`ec-am__tab${active === tab.id ? ' is-active' : ''}`}
 				onClick={() => onChange(tab.id)}
 			>
 				{tab.label}
@@ -113,10 +113,10 @@ const InfoTab = ({ formState, setFormState, selectedId }) => {
 	};
 
 	return (
-		<div className="ec-apm__panel">
-			<label className="ec-apm__field">
+		<div className="ec-am__panel">
+			<label className="ec-am__field">
 				<span>Profile Picture</span>
-				{formState.profileImage && <img src={formState.profileImage} alt="Profile" className="ec-apm__image-preview" />}
+				{formState.profileImage && <img src={formState.profileImage} alt="Profile" className="ec-am__image-preview" />}
 				<input
 					type="file"
 					accept="image/*"
@@ -132,9 +132,9 @@ const InfoTab = ({ formState, setFormState, selectedId }) => {
 				)}
 			</label>
 
-			<label className="ec-apm__field">
+			<label className="ec-am__field">
 				<span>Header Image</span>
-				{formState.headerImage && <img src={formState.headerImage} alt="Header" className="ec-apm__image-preview" />}
+				{formState.headerImage && <img src={formState.headerImage} alt="Header" className="ec-am__image-preview" />}
 				<input
 					type="file"
 					accept="image/*"
@@ -150,7 +150,7 @@ const InfoTab = ({ formState, setFormState, selectedId }) => {
 				)}
 			</label>
 
-			<label className="ec-apm__field">
+			<label className="ec-am__field">
 				<span>Artist Name *</span>
 				<input
 					type="text"
@@ -160,7 +160,7 @@ const InfoTab = ({ formState, setFormState, selectedId }) => {
 				/>
 			</label>
 
-			<label className="ec-apm__field">
+			<label className="ec-am__field">
 				<span>City / Region</span>
 				<input
 					type="text"
@@ -169,7 +169,7 @@ const InfoTab = ({ formState, setFormState, selectedId }) => {
 				/>
 			</label>
 
-			<label className="ec-apm__field">
+			<label className="ec-am__field">
 				<span>Genre</span>
 				<input
 					type="text"
@@ -178,7 +178,7 @@ const InfoTab = ({ formState, setFormState, selectedId }) => {
 				/>
 			</label>
 
-			<label className="ec-apm__field">
+			<label className="ec-am__field">
 				<span>Artist Bio</span>
 				<textarea
 					value={formState.bio}
@@ -327,12 +327,12 @@ const ManagersTab = ({ artistId }) => {
 	};
 
 	return (
-		<div className="ec-apm__panel">
+		<div className="ec-am__panel">
 			<h3>Profile Managers</h3>
 			{loading && <p>Loading…</p>}
-			{error && <p className="ec-apm__error">{error}</p>}
-			<div className="ec-apm__inline">
-				<div className="ec-apm__search-container" ref={containerRef}>
+			{error && <p className="ec-am__error">{error}</p>}
+			<div className="ec-am__inline">
+				<div className="ec-am__search-container" ref={containerRef}>
 					<input
 						type="text"
 						value={inputValue}
@@ -342,26 +342,26 @@ const ManagersTab = ({ artistId }) => {
 						autoComplete="off"
 					/>
 					{showDropdown && searchResults.length > 0 && (
-						<div className="ec-apm__search-dropdown">
+						<div className="ec-am__search-dropdown">
 							{searchResults.map((user) => (
 								<button
 									key={user.id}
 									type="button"
-									className="ec-apm__search-result"
+									className="ec-am__search-result"
 									onClick={() => handleSelectUser(user)}
 								>
 									{user.avatar_url && (
-										<img src={user.avatar_url} alt="" className="ec-apm__search-avatar" />
+										<img src={user.avatar_url} alt="" className="ec-am__search-avatar" />
 									)}
-									<div className="ec-apm__search-info">
-										<span className="ec-apm__search-name">{user.display_name}</span>
-										<span className="ec-apm__search-email">{user.email}</span>
+									<div className="ec-am__search-info">
+										<span className="ec-am__search-name">{user.display_name}</span>
+										<span className="ec-am__search-email">{user.email}</span>
 									</div>
 								</button>
 							))}
 						</div>
 					)}
-					{searching && <span className="ec-apm__search-loading">Searching…</span>}
+					{searching && <span className="ec-am__search-loading">Searching…</span>}
 				</div>
 				<button
 					type="button"
@@ -372,9 +372,9 @@ const ManagersTab = ({ artistId }) => {
 					Send Invite
 				</button>
 			</div>
-			<div className="ec-apm__list">
+			<div className="ec-am__list">
 				{roster.map((member) => (
-					<div key={member.id} className="ec-apm__list-item">
+					<div key={member.id} className="ec-am__list-item">
 						<div>
 							{member.profile_url ? (
 								<a href={member.profile_url} target="_blank" rel="noopener noreferrer">
@@ -383,7 +383,7 @@ const ManagersTab = ({ artistId }) => {
 							) : (
 								<strong>{member.display_name}</strong>
 							)}
-							{member.status && <span className="ec-apm__pill">{member.status}</span>}
+							{member.status && <span className="ec-am__pill">{member.status}</span>}
 						</div>
 						<button type="button" className="button-danger button-small" onClick={() => remove(member.id)}>
 							Remove
@@ -391,10 +391,10 @@ const ManagersTab = ({ artistId }) => {
 					</div>
 				))}
 				{invites.map((inv) => (
-					<div key={inv.id} className="ec-apm__list-item">
+					<div key={inv.id} className="ec-am__list-item">
 						<div>
 							<strong>{inv.email}</strong>
-							<span className="ec-apm__pill">Pending</span>
+							<span className="ec-am__pill">Pending</span>
 						</div>
 						<button type="button" className="button-danger button-small" onClick={() => handleCancelInvite(inv.id)}>
 							Cancel
@@ -450,27 +450,27 @@ const SubscribersTab = ({ artistId }) => {
 	const totalPages = Math.max(1, Math.ceil(total / 20));
 
 	return (
-		<div className="ec-apm__panel">
+		<div className="ec-am__panel">
 			<h3>Subscribers</h3>
 			{loading && <p>Loading…</p>}
-			{error && <p className="ec-apm__error">{error}</p>}
-			<div className="ec-apm__list">
+			{error && <p className="ec-am__error">{error}</p>}
+			<div className="ec-am__list">
 				{subs.map((sub) => (
-					<div key={sub.subscriber_id} className="ec-apm__list-item">
+					<div key={sub.subscriber_id} className="ec-am__list-item">
 						<div>
 							<strong>{sub.subscriber_email}</strong>
-							{sub.username && <span className="ec-apm__pill">{sub.username}</span>}
+							{sub.username && <span className="ec-am__pill">{sub.username}</span>}
 						</div>
-						<span className="ec-apm__pill">{sub.subscribed_at}</span>
+						<span className="ec-am__pill">{sub.subscribed_at}</span>
 					</div>
 				))}
 				{!loading && subs.length === 0 && <p>No subscribers yet.</p>}
 			</div>
-			<div className="ec-apm__footer">
+			<div className="ec-am__footer">
 				<button type="button" className="button-2 button-medium" onClick={exportCsv} disabled={!subs.length}>
 					Export CSV
 				</button>
-				<div className="ec-apm__pagination">
+				<div className="ec-am__pagination">
 					<button type="button" className="button-3 button-small" onClick={() => load(Math.max(1, page - 1))} disabled={page <= 1}>
 						Prev
 					</button>
@@ -592,22 +592,19 @@ const App = () => {
 	const saveButtonLabel = saving ? 'Saving…' : 'Save';
 
 	return (
-		<div className="ec-apm">
-			<div className="ec-apm__header">
-				<div className="ec-apm__header-left">
+		<div className="ec-am">
+			<div className="ec-am__header">
+				<div className="ec-am__header-left">
 					<h2>{artistName}</h2>
 					<ArtistSwitcher
 						artists={config.userArtists}
 						selectedId={selectedId}
 						onChange={handleSelect}
-						showCreateOption={false}
-						showLabel={false}
-						hideIfSingle={false}
 					/>
 				</div>
-			<div className="ec-apm__header-right">
-				{error && <span className="ec-apm__save-error">{error}</span>}
-				{saveSuccess && <span className="ec-apm__save-success">Saved!</span>}
+			<div className="ec-am__header-right">
+				{error && <span className="ec-am__save-error">{error}</span>}
+				{saveSuccess && <span className="ec-am__save-success">Saved!</span>}
 				{artist?.slug && config.artistSiteUrl && (
 					<a
 						href={`${config.artistSiteUrl}/${artist.slug}`}
@@ -647,7 +644,7 @@ const App = () => {
 	);
 };
 
-const rootEl = document.getElementById('ec-artist-profile-manager-root');
+const rootEl = document.getElementById('ec-artist-manager-root');
 
 if (rootEl) {
 	render(<App />, rootEl);

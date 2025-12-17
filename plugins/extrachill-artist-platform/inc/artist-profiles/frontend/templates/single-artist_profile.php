@@ -68,7 +68,7 @@ get_header(); ?>
                                     // Display "Manage Artist Profile" button if the current user can manage members for this artist profile.
                                     // This uses the custom capability 'manage_artist_members'.
                                     if ( ec_can_manage_artist( get_current_user_id(), $artist_profile_id ) ) :
-                                        $manage_artist_url = get_permalink( get_page_by_path( 'manage-artist-profiles' ) );
+                                        $manage_artist_url = get_permalink( get_page_by_path( 'manage-artist' ) );
                                         if ( $manage_artist_url ) {
                                             echo '<div class="artist-profile-actions">';
                                             echo '<a href="' . esc_url( $manage_artist_url ) . '" class="button-2 button-medium artist-manage-button">Manage Artist</a>';

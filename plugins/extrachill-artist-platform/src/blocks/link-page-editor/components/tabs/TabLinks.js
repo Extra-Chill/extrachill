@@ -7,7 +7,7 @@
 import { useCallback, useState } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
 import { useEditor } from '../../context/EditorContext';
-import DraggableList from '../shared/DraggableList';
+import DraggableList from '../../../shared/components/DraggableList';
 
 const createTempId = (prefix) =>
 	`temp-${ prefix }-${ Date.now() }-${ Math.random().toString( 36 ).slice( 2, 8 ) }`;

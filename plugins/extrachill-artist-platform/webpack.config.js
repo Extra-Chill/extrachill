@@ -13,14 +13,14 @@ module.exports = {
 			'./src/blocks/link-page-editor/index.js',
 		'blocks/link-page-editor/view':
 			'./src/blocks/link-page-editor/view.js',
-		'blocks/link-page-analytics/index':
-			'./src/blocks/link-page-analytics/index.js',
-		'blocks/link-page-analytics/view':
-			'./src/blocks/link-page-analytics/view.js',
-		'blocks/artist-profile-manager/index':
-			'./src/blocks/artist-profile-manager/index.js',
-		'blocks/artist-profile-manager/view':
-			'./src/blocks/artist-profile-manager/view.js',
+		'blocks/artist-analytics/index':
+			'./src/blocks/artist-analytics/index.js',
+		'blocks/artist-analytics/view':
+			'./src/blocks/artist-analytics/view.js',
+		'blocks/artist-manager/index':
+			'./src/blocks/artist-manager/index.js',
+		'blocks/artist-manager/view':
+			'./src/blocks/artist-manager/view.js',
 		'blocks/artist-creator/index':
 			'./src/blocks/artist-creator/index.js',
 		'blocks/artist-creator/view':

@@ -3,7 +3,7 @@
  * Plugin Name: Extra Chill Artist Platform
  * Plugin URI: https://extrachill.com
  * Description: Artist platform for musicians with profiles, link pages, analytics, and subscriber management.
- * Version: 1.4.4
+ * Version: 1.5.0
  * Author: Chris Huber
  * Author URI: https://chubes.net
  * License: GPL v2 or later
@@ -20,7 +20,7 @@
  */
 
 defined( 'ABSPATH' ) || exit;
-define( 'EXTRACHILL_ARTIST_PLATFORM_VERSION', '1.4.3' );
+define( 'EXTRACHILL_ARTIST_PLATFORM_VERSION', '1.5.0' );
 define( 'EXTRACHILL_ARTIST_PLATFORM_PLUGIN_FILE', __FILE__ );
 define( 'EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'EXTRACHILL_ARTIST_PLATFORM_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
@@ -156,10 +156,29 @@ extrachill_artist_platform();
  */
 function extrachill_artist_platform_register_blocks() {
     register_block_type( __DIR__ . '/build/blocks/link-page-editor' );
-    register_block_type( __DIR__ . '/build/blocks/link-page-analytics' );
-    register_block_type( __DIR__ . '/build/blocks/artist-profile-manager' );
+    register_block_type( __DIR__ . '/build/blocks/artist-analytics' );
+    register_block_type( __DIR__ . '/build/blocks/artist-manager' );
     register_block_type( __DIR__ . '/build/blocks/artist-creator' );
     register_block_type( __DIR__ . '/build/blocks/artist-shop-manager' );
+}
+
+/**
+ * Migrate old page slugs to new naming convention.
+ *
+ * Renames manage-artist-profiles -> manage-artist and updates block content.
+ * Safe to run multiple times - checks if migration already complete.
+ */
+function extrachill_artist_platform_migrate_pages() {
+    // Migrate manage-artist-profiles -> manage-artist
+    $old_page = get_page_by_path( 'manage-artist-profiles' );
+    if ( $old_page ) {
+        wp_update_post( array(
+            'ID'           => $old_page->ID,
+            'post_name'    => 'manage-artist',
+            'post_title'   => 'Manage Artist',
+            'post_content' => '<!-- wp:extrachill/artist-manager /-->',
+        ) );
+    }
 }
 
 /**
@@ -174,9 +193,9 @@ function extrachill_artist_platform_create_pages() {
             'title'   => 'Create Artist',
             'content' => '<!-- wp:extrachill/artist-creator /-->',
         ),
-        'manage-artist-profiles' => array(
-            'title'   => 'Manage Artist Profiles',
-            'content' => '<!-- wp:extrachill/artist-profile-manager /-->',
+        'manage-artist' => array(
+            'title'   => 'Manage Artist',
+            'content' => '<!-- wp:extrachill/artist-manager /-->',
         ),
         'manage-link-page' => array(
             'title'   => 'Manage Link Page',
@@ -203,15 +222,16 @@ function extrachill_artist_platform_create_pages() {
 }
 
 /**
- * Run page creation on admin_init with version check
+ * Run page migration and creation on admin_init with version check
  *
- * Ensures pages are created on plugin upgrades, not just fresh activations.
+ * Ensures pages are migrated/created on plugin upgrades, not just fresh activations.
  */
 function extrachill_artist_platform_maybe_create_pages() {
     $current_version = EXTRACHILL_ARTIST_PLATFORM_VERSION;
     $stored_version = get_option( 'extrachill_artist_platform_pages_version', '0' );
 
     if ( version_compare( $stored_version, $current_version, '<' ) ) {
+        extrachill_artist_platform_migrate_pages();
         extrachill_artist_platform_create_pages();
         update_option( 'extrachill_artist_platform_pages_version', $current_version );
     }

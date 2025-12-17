@@ -36,7 +36,7 @@ function extrachill_get_excluded_slugs() {
 
     // Keep critical hardcoded exclusions for non-page URLs and plugin paths
     $static_exclusions = array(
-        'manage-artist-profiles',  // Management interface
+        'manage-artist',           // Management interface
         'manage-link-page',        // Link page management
         'join',                    // Join flow redirect (handled separately)
         'wp-login',

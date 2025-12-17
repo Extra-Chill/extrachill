@@ -1,5 +1,5 @@
 /**
- * Link Page Analytics Block - Frontend Entry
+ * Artist Analytics Block - Frontend Entry
  *
  * Mounts the React analytics app when the block is rendered on the frontend.
  */
@@ -10,7 +10,7 @@ import { AnalyticsProvider } from './context/AnalyticsContext';
 import Analytics from './components/Analytics';
 
 // Configure apiFetch with REST root and nonce from localized config
-const config = window.ecLinkPageAnalyticsConfig || {};
+const config = window.ecArtistAnalyticsConfig || {};
 if ( config.restUrl ) {
 	apiFetch.use( createRootURLMiddleware( config.restUrl ) );
 }
@@ -19,7 +19,7 @@ if ( config.nonce ) {
 }
 
 window.addEventListener( 'DOMContentLoaded', () => {
-	const container = document.getElementById( 'ec-link-page-analytics-root' );
+	const container = document.getElementById( 'ec-artist-analytics-root' );
 
 	if ( ! container ) {
 		return;
@@ -34,4 +34,3 @@ window.addEventListener( 'DOMContentLoaded', () => {
 		</AnalyticsProvider>
 	);
 } );
-

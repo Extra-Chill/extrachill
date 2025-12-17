@@ -8,7 +8,7 @@ import { useEffect, useRef, useCallback } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
 import { useAnalyticsContext } from '../context/AnalyticsContext';
 import useAnalytics from '../hooks/useAnalytics';
-import ArtistSwitcher from './ArtistSwitcher';
+import ArtistSwitcher from '../../shared/components/ArtistSwitcher';
 
 export default function Analytics() {
 	const { artistId, userArtists, switchArtist } = useAnalyticsContext();
@@ -83,7 +83,7 @@ export default function Analytics() {
 
 	if ( isLoading ) {
 		return (
-			<div className="ec-analytics ec-analytics--loading">
+			<div className="ec-aa ec-aa--loading">
 				<span className="spinner is-active"></span>
 				<p>{ __( 'Loading analytics...', 'extrachill-artist-platform' ) }</p>
 			</div>
@@ -92,7 +92,7 @@ export default function Analytics() {
 
 	if ( error ) {
 		return (
-			<div className="ec-analytics">
+			<div className="ec-aa">
 				<div className="notice notice-error">
 					<p>{ error }</p>
 				</div>
@@ -101,10 +101,10 @@ export default function Analytics() {
 	}
 
 	return (
-		<div className="ec-analytics">
-			<div className="ec-analytics__header">
-				<div className="ec-analytics__header-left">
-					<h2>{ __( 'Link Page Analytics', 'extrachill-artist-platform' ) }</h2>
+		<div className="ec-aa">
+			<div className="ec-aa__header">
+				<div className="ec-aa__header-left">
+					<h2>{ __( 'Artist Analytics', 'extrachill-artist-platform' ) }</h2>
 					<ArtistSwitcher
 						artists={ userArtists }
 						selectedId={ artistId }
@@ -114,7 +114,7 @@ export default function Analytics() {
 				<select
 					value={ dateRange }
 					onChange={ handleDateRangeChange }
-					className="ec-analytics__date-range"
+					className="ec-aa__date-range"
 				>
 					<option value={ 7 }>{ __( 'Last 7 days', 'extrachill-artist-platform' ) }</option>
 					<option value={ 30 }>{ __( 'Last 30 days', 'extrachill-artist-platform' ) }</option>
@@ -122,32 +122,32 @@ export default function Analytics() {
 				</select>
 			</div>
 
-			<div className="ec-analytics__stats">
-				<div className="ec-stat">
-					<span className="ec-stat__value">{ analytics?.summary?.total_views || 0 }</span>
-					<span className="ec-stat__label">{ __( 'Total Views', 'extrachill-artist-platform' ) }</span>
+			<div className="ec-aa__stats">
+				<div className="ec-aa__stat">
+					<span className="ec-aa__stat-value">{ analytics?.summary?.total_views || 0 }</span>
+					<span className="ec-aa__stat-label">{ __( 'Total Views', 'extrachill-artist-platform' ) }</span>
 				</div>
-				<div className="ec-stat">
-					<span className="ec-stat__value">{ analytics?.summary?.total_clicks || 0 }</span>
-					<span className="ec-stat__label">{ __( 'Total Clicks', 'extrachill-artist-platform' ) }</span>
+				<div className="ec-aa__stat">
+					<span className="ec-aa__stat-value">{ analytics?.summary?.total_clicks || 0 }</span>
+					<span className="ec-aa__stat-label">{ __( 'Total Clicks', 'extrachill-artist-platform' ) }</span>
 				</div>
-				<div className="ec-stat">
-					<span className="ec-stat__value">
+				<div className="ec-aa__stat">
+					<span className="ec-aa__stat-value">
 						{ analytics?.summary?.total_views
 							? `${ ( ( analytics.summary.total_clicks / analytics.summary.total_views ) * 100 ).toFixed( 1 ) }%`
 							: '0%' }
 					</span>
-					<span className="ec-stat__label">{ __( 'Click Rate', 'extrachill-artist-platform' ) }</span>
+					<span className="ec-aa__stat-label">{ __( 'Click Rate', 'extrachill-artist-platform' ) }</span>
 				</div>
 			</div>
 
-			<div className="ec-analytics__chart">
+			<div className="ec-aa__chart">
 				<canvas ref={ chartRef } height="300"></canvas>
 			</div>
 
-			<div className="ec-analytics__top-links">
+			<div className="ec-aa__top-links">
 				<h3>{ __( 'Top Links', 'extrachill-artist-platform' ) }</h3>
-				<table className="ec-analytics__table">
+				<table className="ec-aa__table">
 					<thead>
 						<tr>
 							<th>{ __( 'Link Text / URL', 'extrachill-artist-platform' ) }</th>
@@ -159,9 +159,9 @@ export default function Analytics() {
 							analytics.top_links.map( ( link, index ) => (
 								<tr key={ index }>
 									<td>
-										<span className="ec-top-link__title">{ link.text || link.identifier }</span>
+										<span className="ec-aa__link-title">{ link.text || link.identifier }</span>
 										{ link.identifier && (
-											<span className="ec-top-link__url">{ link.identifier }</span>
+											<span className="ec-aa__link-url">{ link.identifier }</span>
 										) }
 									</td>
 									<td>{ link.clicks }</td>
@@ -176,7 +176,7 @@ export default function Analytics() {
 				</table>
 			</div>
 
-			<p className="ec-analytics__note">
+			<p className="ec-aa__note">
 				{ __( 'Analytics data is updated daily. Data older than 90 days is automatically pruned.', 'extrachill-artist-platform' ) }
 			</p>
 		</div>

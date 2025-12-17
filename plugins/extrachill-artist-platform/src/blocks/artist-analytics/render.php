@@ -1,8 +1,8 @@
 <?php
 /**
- * Link Page Analytics Block - Server-Side Render
+ * Artist Analytics Block - Server-Side Render
  *
- * Renders the link page analytics React app on the frontend.
+ * Renders the artist analytics React app on the frontend.
  * Handles authentication, artist resolution, and data localization.
  */
 
@@ -117,23 +117,23 @@ $config = array(
 );
 
 // Enqueue the frontend script with localized data
-$asset_file = include EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'build/blocks/link-page-analytics/view.asset.php';
+$asset_file = include EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'build/blocks/artist-analytics/view.asset.php';
 
 wp_enqueue_script(
-	'ec-link-page-analytics-frontend',
-	EXTRACHILL_ARTIST_PLATFORM_PLUGIN_URL . 'build/blocks/link-page-analytics/view.js',
+	'ec-artist-analytics-frontend',
+	EXTRACHILL_ARTIST_PLATFORM_PLUGIN_URL . 'build/blocks/artist-analytics/view.js',
 	$asset_file['dependencies'],
 	$asset_file['version'],
 	true
 );
 
-wp_localize_script( 'ec-link-page-analytics-frontend', 'ecLinkPageAnalyticsConfig', $config );
+wp_localize_script( 'ec-artist-analytics-frontend', 'ecArtistAnalyticsConfig', $config );
 
 // Render mount point
 $wrapper_attributes = get_block_wrapper_attributes( array(
-	'class' => 'ec-link-page-analytics',
+	'class' => 'ec-artist-analytics',
 ) );
 
 echo '<div ' . $wrapper_attributes . '>';
-echo '<div id="ec-link-page-analytics-root" data-artist-id="' . esc_attr( $artist_id ) . '"></div>';
+echo '<div id="ec-artist-analytics-root" data-artist-id="' . esc_attr( $artist_id ) . '"></div>';
 echo '</div>';

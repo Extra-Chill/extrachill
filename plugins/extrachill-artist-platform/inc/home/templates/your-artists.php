@@ -35,7 +35,7 @@ if ( empty( $user_artist_ids ) ) {
             $artist_url = get_permalink( $artist_id );
             $profile_image_id = get_post_thumbnail_id( $artist_id );
             $profile_image_url = $profile_image_id ? wp_get_attachment_image_url( $profile_image_id, 'thumbnail' ) : '';
-            $manage_artist_page = get_page_by_path( 'manage-artist-profiles' );
+            $manage_artist_page = get_page_by_path( 'manage-artist' );
             $manage_link_page = get_page_by_path( 'manage-link-page' );
             $manage_artist_url = $manage_artist_page ? get_permalink( $manage_artist_page ) : '';
             $manage_link_url = $manage_link_page ? get_permalink( $manage_link_page ) : '';

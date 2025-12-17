@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import { render } from '@wordpress/element';
 import ArtistSwitcher from '../shared/components/ArtistSwitcher';
-import DraggableList from '../link-page-editor/components/shared/DraggableList';
+import DraggableList from '../shared/components/DraggableList';
 import {
 	createShopProduct,
 	createStripeConnectDashboardLink,

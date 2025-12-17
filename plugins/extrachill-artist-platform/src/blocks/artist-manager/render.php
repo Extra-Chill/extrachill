@@ -1,8 +1,8 @@
 <?php
 /**
- * Artist Profile Manager Block - Server-Side Render
+ * Artist Manager Block - Server-Side Render
  *
- * Renders the artist profile manager React app on the frontend for authorized users.
+ * Renders the artist manager React app on the frontend for authorized users.
  * Handles authentication, permissions, artist selection, and config localization.
  */
 
@@ -70,25 +70,25 @@ $config = array(
 );
 
 // Enqueue frontend script and styles
-$asset_file = include EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'build/blocks/artist-profile-manager/view.asset.php';
+$asset_file = include EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'build/blocks/artist-manager/view.asset.php';
 
 wp_enqueue_script(
-    'ec-artist-profile-manager-frontend',
-    EXTRACHILL_ARTIST_PLATFORM_PLUGIN_URL . 'build/blocks/artist-profile-manager/view.js',
+    'ec-artist-manager-frontend',
+    EXTRACHILL_ARTIST_PLATFORM_PLUGIN_URL . 'build/blocks/artist-manager/view.js',
     $asset_file['dependencies'],
     $asset_file['version'],
     true
 );
 
-wp_localize_script( 'ec-artist-profile-manager-frontend', 'ecArtistPlatformConfig', $config );
+wp_localize_script( 'ec-artist-manager-frontend', 'ecArtistManagerConfig', $config );
 
 // Render mount point
 $wrapper_attributes = get_block_wrapper_attributes( array(
-    'class' => 'ec-artist-profile-manager',
+    'class' => 'ec-artist-manager',
 ) );
 
 echo '<div ' . $wrapper_attributes . '>';
 // data-selected-id allows hydration without relying on URL params
 $selected_attr = (int) $selected_artist_id;
-echo '<div id="ec-artist-profile-manager-root" data-selected-id="' . esc_attr( $selected_attr ) . '"></div>';
+echo '<div id="ec-artist-manager-root" data-selected-id="' . esc_attr( $selected_attr ) . '"></div>';
 echo '</div>';

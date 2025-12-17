@@ -34,7 +34,7 @@ function ec_artist_platform_secondary_header_items( $items ) {
 			: __( 'Manage Artists', 'extrachill-artist-platform' );
 
 		$items[] = array(
-			'url'      => home_url( '/manage-artist-profiles/' ),
+			'url'      => home_url( '/manage-artist/' ),
 			'label'    => $artist_label,
 			'priority' => 10,
 		);
