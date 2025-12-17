@@ -13,7 +13,7 @@ defined( 'ABSPATH' ) || exit;
  * @param int $artist_id
  * @return array Array of pending invitation objects/arrays
  */
-function bp_get_pending_invitations( $artist_id ) {
+function ec_get_pending_invitations( $artist_id ) {
     $invitations = get_post_meta( $artist_id, '_pending_invitations', true );
     return is_array( $invitations ) ? $invitations : array();
 }
@@ -22,7 +22,7 @@ function bp_get_pending_invitations( $artist_id ) {
  * Generates a unique invitation token.
  * @return string The unique token.
  */
-function bp_generate_invite_token() {
+function ec_generate_invite_token() {
     return wp_generate_password( 32, false, false ); // 32 chars, no special chars
 }
 
@@ -36,12 +36,12 @@ function bp_generate_invite_token() {
  * @return bool|array|string False on general failure, new invitation entry array on success,
  *                             or a specific error string like 'error_not_artist' or 'error_already_pending'.
  */
-function bp_add_pending_invitation( $artist_id, $display_name, $email ) { // Removed $status_hint as it will be determined internally
+function ec_add_pending_invitation( $artist_id, $display_name, $email ) { // Removed $status_hint as it will be determined internally
     if ( empty( $email ) || !is_email( $email ) ) {
         return false; // General validation failure
     }
 
-    $invitations = bp_get_pending_invitations( $artist_id );
+    $invitations = ec_get_pending_invitations( $artist_id );
 
     // Check if email already has a pending invite for this artist
     foreach ( $invitations as $invite ) {
@@ -51,7 +51,7 @@ function bp_add_pending_invitation( $artist_id, $display_name, $email ) { // Rem
     }
 
     $new_invite_id = 'inv_' . wp_generate_password( 12, false );
-    $token = bp_generate_invite_token();
+    $token = ec_generate_invite_token();
     $final_status = '';
 
     $existing_user_id = email_exists( $email );
@@ -86,8 +86,8 @@ function bp_add_pending_invitation( $artist_id, $display_name, $email ) { // Rem
  * @param string $pending_invite_id The unique ID of the invitation entry.
  * @return bool True on success, false on failure.
  */
-function bp_remove_pending_invitation( $artist_id, $pending_invite_id ) {
-    $invitations = bp_get_pending_invitations( $artist_id );
+function ec_remove_pending_invitation( $artist_id, $pending_invite_id ) {
+    $invitations = ec_get_pending_invitations( $artist_id );
     $updated_invitations = array();
     $found = false;
     foreach ( $invitations as $invite ) {

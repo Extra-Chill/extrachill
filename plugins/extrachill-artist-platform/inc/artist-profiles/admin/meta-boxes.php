@@ -16,34 +16,34 @@ defined( 'ABSPATH' ) || exit;
 /**
  * Adds the meta box for artist profile settings.
  */
-function bp_add_artist_settings_meta_box() {
+function ec_add_artist_settings_meta_box() {
     add_meta_box(
-        'bp_artist_settings',                     // Unique ID
+        'ec_artist_settings',                     // Unique ID
         __( 'Artist Forum Settings', 'extrachill-artist-platform' ), // Box title
-        'bp_render_artist_settings_meta_box',   // Content callback function
+        'ec_render_artist_settings_meta_box',   // Content callback function
         'artist_profile',                    // Post type
         'side',                          // Context (normal, side, advanced)
         'low'                           // Priority
     );
 }
-add_action( 'add_meta_boxes', 'bp_add_artist_settings_meta_box' );
+add_action( 'add_meta_boxes', 'ec_add_artist_settings_meta_box' );
 
 /**
  * Renders the content of the artist settings meta box.
  *
  * @param WP_Post $post The current post object.
  */
-function bp_render_artist_settings_meta_box( $post ) {
+function ec_render_artist_settings_meta_box( $post ) {
     // Add a nonce field for security
-    wp_nonce_field( 'bp_save_artist_settings_meta', 'bp_artist_settings_nonce' );
+    wp_nonce_field( 'ec_save_artist_settings_meta', 'ec_artist_settings_nonce' );
 
     // Get the current value of the setting
     $allow_public = get_post_meta( $post->ID, '_allow_public_topic_creation', true );
 
     // Display the checkbox
     echo '<p>';
-    echo '<label for="bp_allow_public_topic_creation">';
-    echo '<input type="checkbox" id="bp_allow_public_topic_creation" name="bp_allow_public_topic_creation" value="1" ' . checked( $allow_public, '1', false ) . ' /> ';
+    echo '<label for="ec_allow_public_topic_creation">';
+    echo '<input type="checkbox" id="ec_allow_public_topic_creation" name="ec_allow_public_topic_creation" value="1" ' . checked( $allow_public, '1', false ) . ' /> ';
     echo __( 'Allow non-members to create topics in this artist\'s forum?', 'extrachill-artist-platform' );
     echo '</label>';
     echo '</p>';
@@ -57,9 +57,9 @@ function bp_render_artist_settings_meta_box( $post ) {
  *
  * @param int $post_id The ID of the post being saved.
  */
-function bp_save_artist_settings_meta( $post_id ) {
+function ec_save_artist_settings_meta( $post_id ) {
     // Check if nonce is set and valid.
-    if ( ! isset( $_POST['bp_artist_settings_nonce'] ) || ! wp_verify_nonce( $_POST['bp_artist_settings_nonce'], 'bp_save_artist_settings_meta' ) ) {
+    if ( ! isset( $_POST['ec_artist_settings_nonce'] ) || ! wp_verify_nonce( $_POST['ec_artist_settings_nonce'], 'ec_save_artist_settings_meta' ) ) {
         return;
     }
 
@@ -80,7 +80,7 @@ function bp_save_artist_settings_meta( $post_id ) {
     }
 
     // Check if the checkbox was checked
-    $new_value = isset( $_POST['bp_allow_public_topic_creation'] ) ? '1' : '0';
+    $new_value = isset( $_POST['ec_allow_public_topic_creation'] ) ? '1' : '0';
 
     // Update the post meta
     update_post_meta( $post_id, '_allow_public_topic_creation', $new_value );
@@ -90,7 +90,7 @@ function bp_save_artist_settings_meta( $post_id ) {
  *
  * @param int $artist_id The ID of the artist profile being saved.
  */
-function bp_save_artist_settings_meta_centralized( $artist_id ) {
+function ec_save_artist_settings_meta_centralized( $artist_id ) {
     if ( ! $artist_id || get_post_type( $artist_id ) !== 'artist_profile' ) {
         return;
     }
@@ -101,8 +101,8 @@ function bp_save_artist_settings_meta_centralized( $artist_id ) {
     }
 
     // Call the existing meta save function with the post object and update flag
-    bp_save_artist_settings_meta( $artist_id, $artist_post, true );
+    ec_save_artist_settings_meta( $artist_id, $artist_post, true );
 }
 
 // Hook into centralized save system only - no legacy save_post hook needed
-add_action( 'ec_artist_profile_save', 'bp_save_artist_settings_meta_centralized', 10, 1 );
+add_action( 'ec_artist_profile_save', 'ec_save_artist_settings_meta_centralized', 10, 1 );

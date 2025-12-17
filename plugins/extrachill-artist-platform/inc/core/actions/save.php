@@ -465,8 +465,8 @@ function ec_handle_artist_profile_save( $artist_id, $save_data = array(), $files
         
         foreach ( $user_ids_to_remove as $user_id_to_remove ) {
             if ( $user_id_to_remove > 0 && $user_id_to_remove !== $current_user_id ) { 
-                if ( function_exists( 'bp_remove_artist_membership' ) ) {
-                    bp_remove_artist_membership( $user_id_to_remove, $artist_id );
+                if ( function_exists( 'ec_remove_artist_membership' ) ) {
+                    ec_remove_artist_membership( $user_id_to_remove, $artist_id );
                 }
             }
         }
@@ -559,8 +559,8 @@ function ec_prepare_artist_profile_save_data( $post_data ) {
  */
 function ec_admin_post_save_link_page() {
     // Verify nonce
-    if ( ! isset( $_POST['bp_save_link_page_nonce'] ) || 
-         ! wp_verify_nonce( $_POST['bp_save_link_page_nonce'], 'bp_save_link_page_action' ) ) {
+    if ( ! isset( $_POST['ec_save_link_page_nonce'] ) ||
+         ! wp_verify_nonce( $_POST['ec_save_link_page_nonce'], 'ec_save_link_page_action' ) ) {
         wp_die( __( 'Security check failed.', 'extrachill-artist-platform' ) );
     }
     

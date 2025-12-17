@@ -29,7 +29,7 @@ function extrachill_handle_invite_member( $result, $artist_id, $email ) {
 	}
 
 	// Check if email is already linked to a member
-	$linked_members = bp_get_linked_members( $artist_id );
+	$linked_members = ec_get_linked_members( $artist_id );
 	if ( is_array( $linked_members ) ) {
 		foreach ( $linked_members as $linked_member_obj ) {
 			if ( isset( $linked_member_obj->ID ) ) {
@@ -46,7 +46,7 @@ function extrachill_handle_invite_member( $result, $artist_id, $email ) {
 	}
 
 	// Create the invitation
-	$new_invitation_result = bp_add_pending_invitation( $artist_id, '', $email );
+	$new_invitation_result = ec_add_pending_invitation( $artist_id, '', $email );
 
 	if ( is_string( $new_invitation_result ) ) {
 		switch ( $new_invitation_result ) {
@@ -78,7 +78,7 @@ function extrachill_handle_invite_member( $result, $artist_id, $email ) {
 	$artist_post = get_post( $artist_id );
 	$artist_name = $artist_post ? $artist_post->post_title : 'the artist';
 
-	bp_send_artist_invitation_email(
+	ec_send_artist_invitation_email(
 		$invite['email'],
 		$artist_name,
 		'',

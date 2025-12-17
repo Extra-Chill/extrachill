@@ -15,17 +15,17 @@ require_once dirname( __FILE__ ) . '/roster-data-functions.php'; // Include the 
  * @param int $artist_id The ID of the artist profile being managed.
  * @param int $current_user_id The ID of the user currently viewing/editing the page.
  */
-if (!function_exists('bp_display_manage_members_section')) {
-function bp_display_manage_members_section( $artist_id, $current_user_id ) {
+if (!function_exists('ec_display_manage_members_section')) {
+function ec_display_manage_members_section( $artist_id, $current_user_id ) {
     if ( ! $artist_id || ! $current_user_id ) {
         echo '<p>' . esc_html__( 'Cannot display member management: Missing artist or user information.', 'extrachill-artist-platform' ) . '</p>';
         return;
     }
 
     // Fetch all member types
-    $linked_members_raw = bp_get_linked_members( $artist_id ); // This function is from user-linking.php
+    $linked_members_raw = ec_get_linked_members( $artist_id ); // This function is from user-linking.php
     // Plaintext members functionality has been removed
-    $pending_invitations_raw = bp_get_pending_invitations( $artist_id ); // This function is now from roster-data-functions.php
+    $pending_invitations_raw = ec_get_pending_invitations( $artist_id ); // This function is now from roster-data-functions.php
 
     $linked_user_ids = [];
     $processed_emails = []; 
@@ -35,9 +35,9 @@ function bp_display_manage_members_section( $artist_id, $current_user_id ) {
     ?>
     <h2><?php esc_html_e( 'Artist Roster', 'extrachill-artist-platform' ); ?></h2>
     
-    <div id="bp-manage-members-section">
+    <div id="ec-manage-members-section">
         
-        <ul id="bp-unified-roster-list" class="bp-members-list">
+        <ul id="ec-unified-roster-list" class="ec-members-list">
             <?php 
             // 1. Display Linked Members
             if ( ! empty( $linked_members_raw ) ) :
@@ -48,12 +48,12 @@ function bp_display_manage_members_section( $artist_id, $current_user_id ) {
                         $linked_user_ids[] = $user_info->ID;
                         $processed_emails[] = strtolower($user_info->user_email);
             ?>
-                        <li data-user-id="<?php echo esc_attr( $user_info->ID ); ?>" class="bp-member-linked">
+                        <li data-user-id="<?php echo esc_attr( $user_info->ID ); ?>" class="ec-member-linked">
                             <?php echo get_avatar( $user_info->ID, 32 ); ?>
                             <span class="member-name"><?php echo esc_html( $user_info->display_name ); ?> (<?php echo esc_html( $user_info->user_login ); ?>)</span>
                             <span class="member-status-label">(Linked Account)</span>
                             <?php if ( $user_info->ID !== $current_user_id ) : ?>
-                                <button type="button" class="button-2 button-small bp-remove-member-button" data-user-id="<?php echo esc_attr( $user_info->ID ); ?>" title="<?php esc_attr_e( 'Remove this member from artist', 'extrachill-artist-platform' ); ?>">&times; <?php esc_html_e('Remove', 'extrachill-artist-platform'); ?></button>
+                                <button type="button" class="button-2 button-small ec-remove-member-button" data-user-id="<?php echo esc_attr( $user_info->ID ); ?>" title="<?php esc_attr_e( 'Remove this member from artist', 'extrachill-artist-platform' ); ?>">&times; <?php esc_html_e('Remove', 'extrachill-artist-platform'); ?></button>
                             <?php else: ?>
                                 <span class="is-current-user"><?php esc_html_e('You', 'extrachill-artist-platform'); ?></span>
                             <?php endif; ?>
@@ -85,7 +85,7 @@ function bp_display_manage_members_section( $artist_id, $current_user_id ) {
                             $status_text = __( 'Invited (Status: ', 'extrachill-artist-platform' ) . esc_html( $invite['status'] ) . ')';
                     }
             ?>
-                    <li data-invite-id="<?php echo esc_attr( $invite['id'] ); ?>" class="bp-member-pending-invite">
+                    <li data-invite-id="<?php echo esc_attr( $invite['id'] ); ?>" class="ec-member-pending-invite">
                         <span class="member-avatar-placeholder"></span> 
                         <span class="member-email"><?php echo esc_html( $invite['email'] ); ?></span>
                         <span class="member-status-label">(<?php echo esc_html( $status_text ); ?>: <?php echo esc_html( $invited_on_formatted ); ?>)</span>
@@ -103,25 +103,25 @@ function bp_display_manage_members_section( $artist_id, $current_user_id ) {
             <?php endif; ?>
         </ul>
 
-        <div id="bp-add-member-controls" style="margin-bottom: 20px;">
-            <a href="#" id="bp-show-add-member-form-link" class="button-2 button-medium"><?php esc_html_e('[+] Add Member', 'extrachill-artist-platform'); ?></a>
-            <div id="bp-add-member-form-area" class="bp-add-member-form" style="display: none; margin-top: 15px;">
+        <div id="ec-add-member-controls" style="margin-bottom: 20px;">
+            <a href="#" id="ec-show-add-member-form-link" class="button-2 button-medium"><?php esc_html_e('[+] Add Member', 'extrachill-artist-platform'); ?></a>
+            <div id="ec-add-member-form-area" class="ec-add-member-form" style="display: none; margin-top: 15px;">
                 <h4><?php esc_html_e('Invite New Member by Email', 'extrachill-artist-platform'); ?></h4>
                 <div class="form-group">
-                    <label for="bp-new-member-email-input" style="display:block; margin-bottom: 5px;">
+                    <label for="ec-new-member-email-input" style="display:block; margin-bottom: 5px;">
                         <?php esc_html_e( 'Email Address:', 'extrachill-artist-platform' ); ?>
                     </label>
-                    <input type="email" id="bp-new-member-email-input" name="bp_new_member_email" style="width: 100%; max-width: 300px; margin-bottom:10px;">
+                    <input type="email" id="ec-new-member-email-input" name="ec_new_member_email" style="width: 100%; max-width: 300px; margin-bottom:10px;">
                 </div>
-                <button type="button" id="bp-send-invite-member-button" class="button-2 button-medium"><?php esc_html_e('Send Invitation', 'extrachill-artist-platform'); ?></button>
-                <a href="#" id="bp-cancel-add-member-form-link" style="margin-left: 10px; display: inline-block; vertical-align: middle;">
+                <button type="button" id="ec-send-invite-member-button" class="button-2 button-medium"><?php esc_html_e('Send Invitation', 'extrachill-artist-platform'); ?></button>
+                <a href="#" id="ec-cancel-add-member-form-link" style="margin-left: 10px; display: inline-block; vertical-align: middle;">
                     <?php esc_html_e('Cancel', 'extrachill-artist-platform'); ?>
                 </a>
             </div>
         </div>
         
         <?php // Only remove_member_ids is needed now for main form submission for linked members ?>
-        <input type="hidden" name="remove_member_ids" id="bp-remove-member-ids-frontend" value="">
+        <input type="hidden" name="remove_member_ids" id="ec-remove-member-ids-frontend" value="">
     </div>
 
     <!-- Invitation Modal - Remove inline display:none -->

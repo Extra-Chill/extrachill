@@ -18,7 +18,7 @@ defined( 'ABSPATH' ) || exit;
  * @param int $artist_id   The ID of the artist_profile post.
  * @return bool True on success, false on failure or if already a member.
  */
-function bp_add_artist_membership( $user_id, $artist_id ) {
+function ec_add_artist_membership( $user_id, $artist_id ) {
     $user_id = absint( $user_id );
     $artist_id = absint( $artist_id );
 
@@ -68,7 +68,7 @@ function bp_add_artist_membership( $user_id, $artist_id ) {
  * @param int $artist_id   The ID of the artist_profile post.
  * @return bool True on success, false on failure.
  */
-function bp_remove_artist_membership( $user_id, $artist_id ) {
+function ec_remove_artist_membership( $user_id, $artist_id ) {
     $user_id = absint( $user_id );
     $artist_id = absint( $artist_id );
 
@@ -116,7 +116,7 @@ function bp_remove_artist_membership( $user_id, $artist_id ) {
  * @param int $artist_profile_id The ID of the artist profile CPT.
  * @return array Array of WP_User objects.
  */
-function bp_get_linked_members( $artist_profile_id ) {
+function ec_get_linked_members( $artist_profile_id ) {
     if ( ! $artist_profile_id ) {
         return array();
     }
@@ -152,7 +152,7 @@ function bp_get_linked_members( $artist_profile_id ) {
  * @param int $user_id The ID of the user.
  * @return array Array of artist profile post objects.
  */
-function bp_get_user_artist_memberships( $user_id ) {
+function ec_get_user_artist_memberships( $user_id ) {
     if ( ! $user_id ) {
         return array();
     }

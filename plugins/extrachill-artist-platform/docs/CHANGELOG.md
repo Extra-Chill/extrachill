@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.4] - 2025-12-17
+
+### Added
+- **Artist Roster Management**: Complete member invitation system with email notifications, pending invitation tracking, and REST API support
+- **User-Artist Relationships**: Bidirectional membership management with user linking and unlinking functionality
+- **Member Management UI**: Frontend interface for viewing linked members, pending invitations, and member removal
+- **Invitation Email System**: Automated email invitations for new and existing users to join artist rosters
+- **REST API Integration**: Filter handlers for member invitations via `extrachill_artist_invite_member` filter
+
+### Technical Improvements
+- Enhanced save system to handle member removal operations
+- Centralized roster data functions for invitation management
+- Improved admin meta boxes for artist settings and user linking
+
 ## [1.4.3] - 2025-12-17
 
 ### Added

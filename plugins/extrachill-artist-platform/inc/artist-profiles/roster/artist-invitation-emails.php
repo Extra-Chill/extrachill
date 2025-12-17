@@ -5,8 +5,8 @@
 
 defined( 'ABSPATH' ) || exit;
 
-require_once dirname( __FILE__ ) . '/../admin/user-linking.php'; // For bp_add_artist_membership
-require_once dirname( __FILE__ ) . '/roster-data-functions.php'; // For bp_get_pending_invitations, bp_remove_pending_invitation
+require_once dirname( __FILE__ ) . '/../admin/user-linking.php'; // For ec_add_artist_membership
+require_once dirname( __FILE__ ) . '/roster-data-functions.php'; // For ec_get_pending_invitations, ec_remove_pending_invitation
 
 /**
  * Sends an invitation email to a potential artist member.
@@ -19,7 +19,7 @@ require_once dirname( __FILE__ ) . '/roster-data-functions.php'; // For bp_get_p
  * @param string $invitation_status Status of the invitation (e.g., 'invited_new_user', 'invited_existing_artist').
  * @return bool True if the email was sent successfully, false otherwise.
  */
-function bp_send_artist_invitation_email( $recipient_email, $artist_name, $member_display_name, $invitation_token, $artist_id, $invitation_status ) {
+function ec_send_artist_invitation_email( $recipient_email, $artist_name, $member_display_name, $invitation_token, $artist_id, $invitation_status ) {
     $inviter_display = 'An artist member';
     if ( is_user_logged_in() ) {
         $inviter = wp_get_current_user();
@@ -34,13 +34,13 @@ function bp_send_artist_invitation_email( $recipient_email, $artist_name, $membe
     $invitation_base_url = home_url( '/' );
     if ( $invitation_status === 'invited_new_user' ) {
         $invitation_link = add_query_arg( array(
-            'action' => 'bp_accept_invite',
+            'action' => 'ec_accept_invite',
             'token' => $invitation_token,
             'artist_id' => $artist_id,
         ), trailingslashit( $invitation_base_url ) . 'register/' );
     } else {
         $invitation_link = add_query_arg( array(
-            'action' => 'bp_accept_invite',
+            'action' => 'ec_accept_invite',
             'token' => $invitation_token,
             'artist_id' => $artist_id
         ), get_permalink( $artist_id ) );
@@ -106,8 +106,8 @@ function bp_send_artist_invitation_email( $recipient_email, $artist_name, $membe
  * Placeholder function for handling the acceptance of an invitation.
  * This would be hooked to 'init' or 'template_redirect' to check for the token.
  */
-function bp_handle_invitation_acceptance() {
-    if ( isset( $_GET['action'] ) && $_GET['action'] === 'bp_accept_invite' && isset( $_GET['token'] ) && isset( $_GET['artist_id'] ) ) {
+function ec_handle_invitation_acceptance() {
+    if ( isset( $_GET['action'] ) && $_GET['action'] === 'ec_accept_invite' && isset( $_GET['token'] ) && isset( $_GET['artist_id'] ) ) {
         $token   = sanitize_text_field( $_GET['token'] );
         $artist_id = apply_filters('ec_get_artist_id', $_GET);
         $redirect_url = get_permalink( $artist_id );
@@ -130,8 +130,8 @@ function bp_handle_invitation_acceptance() {
         $current_user = wp_get_current_user();
         $user_id = $current_user->ID;
 
-        // 2. Verify token and artist_id: 
-        $pending_invitations = bp_get_pending_invitations( $artist_id );
+        // 2. Verify token and artist_id:
+        $pending_invitations = ec_get_pending_invitations( $artist_id );
         $valid_invite = null;
         $invite_key_to_remove = null;
 
@@ -161,9 +161,9 @@ function bp_handle_invitation_acceptance() {
         }
 
         // 4. Link User to Artist & Remove Pending Invite
-        if ( bp_add_artist_membership( $user_id, $artist_id ) ) {
+        if ( ec_add_artist_membership( $user_id, $artist_id ) ) {
             // Use the specific ID of the invitation for removal
-            if ( ! bp_remove_pending_invitation( $artist_id, $valid_invite['id'] ) ) {
+            if ( ! ec_remove_pending_invitation( $artist_id, $valid_invite['id'] ) ) {
                 error_log( 'Invitation cleanup failed for artist ID ' . $artist_id . ', user ID ' . $user_id );
             }
             extrachill_set_notice(
@@ -182,6 +182,6 @@ function bp_handle_invitation_acceptance() {
         }
     }
 }
-add_action( 'init', 'bp_handle_invitation_acceptance' );
+add_action( 'init', 'ec_handle_invitation_acceptance' );
 
  
