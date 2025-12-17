@@ -19,7 +19,7 @@ extrachill_breadcrumbs();
 <article class="events-homepage">
 	<div class="inside-article">
 		<header>
-			<h1 class="page-title"><?php esc_html_e( 'Events Calendar', 'extrachill-events' ); ?></h1>
+			<h1 class="page-title"><?php esc_html_e( 'Live Music Calendar', 'extrachill-events' ); ?></h1>
 		</header>
 
 		<div class="entry-content" itemprop="text">

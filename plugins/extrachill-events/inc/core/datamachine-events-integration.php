@@ -40,6 +40,7 @@ class DataMachineEventsIntegration {
         add_filter('datamachine_events_modal_button_classes', array($this, 'add_modal_button_classes'), 10, 2);
         add_filter('datamachine_events_ticket_button_classes', array($this, 'add_ticket_button_classes'), 10, 1);
         add_filter('datamachine_events_more_info_button_classes', array($this, 'add_more_info_button_classes'), 10, 1);
+        add_filter('datamachine_events_archive_title', array($this, 'filter_archive_title'), 10, 2);
 
         add_filter('extrachill_post_meta', array($this, 'hide_post_meta_for_events'), 10, 3);
         add_filter('extrachill_taxonomy_badges_skip_term', array($this, 'skip_duplicate_promoter'), 10, 4);
@@ -196,6 +197,21 @@ class DataMachineEventsIntegration {
         $classes[] = 'button-3';
         $classes[] = 'button-small';
         return $classes;
+    }
+
+    public function filter_archive_title($title, $context) {
+        $suffix = 'Events Calendar';
+
+        if ($title === $suffix) {
+            return 'Live Music Calendar';
+        }
+
+        if (strlen($title) > strlen($suffix) && substr($title, -strlen($suffix)) === $suffix) {
+            $prefix = rtrim(substr($title, 0, -strlen($suffix)));
+            return $prefix . ' Live Music Calendar';
+        }
+
+        return $title;
     }
 
     /**
