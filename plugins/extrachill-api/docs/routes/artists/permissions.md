@@ -1,7 +1,7 @@
 # Artist Permissions Endpoint
 
 ## Route
-`GET|POST /wp-json/extrachill/v1/artist/permissions`
+`GET /wp-json/extrachill/v1/artists/{id}/permissions`
 
 ## Purpose
 Tells extrachill.link whether the logged-in user can edit a specific artist profile, powering the client-side "Edit" button.
@@ -9,17 +9,14 @@ Tells extrachill.link whether the logged-in user can edit a specific artist prof
 ## Request Parameters
 | Field | Type | Required | Notes |
 | --- | --- | --- | --- |
-| `artist_id` | integer | Yes | Artist profile post ID. Can be provided via GET or POST.
+| `id` | integer | Yes | Artist profile post ID (in URL path)
 
 ## Response
-```
+```json
 {
-  "success": true,
-  "data": {
-    "can_edit": bool,
-    "manage_url": "https://artist.extrachill.com/manage-link-page/",
-    "user_id": 45
-  }
+  "can_edit": true,
+  "manage_url": "https://artist.extrachill.com/manage-link-page/",
+  "user_id": 45
 }
 ```
 - `can_edit` becomes `true` when `ec_can_manage_artist( current_user_id, artist_id )` returns true.
@@ -30,6 +27,9 @@ Tells extrachill.link whether the logged-in user can edit a specific artist prof
   - `Access-Control-Allow-Origin: https://extrachill.link`
   - `Access-Control-Allow-Credentials: true`
 so frontend fetches can include cookies.
+
+## File
+`inc/routes/artists/permissions.php`
 
 ## Usage Notes
 - Authentication relies on WordPress cookies; ensure the cross-domain cookie helper is active.

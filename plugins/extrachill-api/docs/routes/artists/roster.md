@@ -11,7 +11,7 @@ REST API endpoints for managing artist roster members and pending invitations.
 **Purpose**: Retrieve current roster members and pending invitations for an artist profile.
 
 **Parameters**:
-- `id` (integer, required) - Artist profile post ID
+- `id` (integer, required) - Artist profile post ID (in URL path)
 
 **Response** (HTTP 200):
 ```json
@@ -41,7 +41,7 @@ REST API endpoints for managing artist roster members and pending invitations.
 
 **Permission**: User must have permission to manage the artist (`ec_can_manage_artist()`)
 
-**File**: `inc/routes/artist/roster.php`
+**File**: `inc/routes/artists/roster.php`
 
 ### Invite Roster Member
 
@@ -50,7 +50,7 @@ REST API endpoints for managing artist roster members and pending invitations.
 **Purpose**: Send an invitation to join the artist roster.
 
 **Parameters**:
-- `id` (integer, required) - Artist profile post ID
+- `id` (integer, required) - Artist profile post ID (in URL path)
 - `email` (string, required) - Email address of person to invite
 
 **Response** (HTTP 200):
@@ -67,23 +67,7 @@ REST API endpoints for managing artist roster members and pending invitations.
 
 **Permission**: User must have permission to manage the artist
 
-**File**: `inc/routes/artist/roster.php`
-
-### Legacy Invite Endpoint
-
-**Endpoint**: `POST /wp-json/extrachill/v1/artist/roster/invite`
-
-**Purpose**: Legacy endpoint for inviting roster members (maintained for backwards compatibility).
-
-**Parameters**:
-- `artist_id` (integer, required) - Artist profile post ID
-- `email` (string, required) - Email address of person to invite
-
-**Response**: Same as nested endpoint above
-
-**Permission**: User must have permission to manage the artist
-
-**File**: `inc/routes/artist/roster.php`
+**File**: `inc/routes/artists/roster.php`
 
 ### Remove Roster Member
 
@@ -92,8 +76,8 @@ REST API endpoints for managing artist roster members and pending invitations.
 **Purpose**: Remove a user from the artist roster.
 
 **Parameters**:
-- `id` (integer, required) - Artist profile post ID
-- `user_id` (integer, required) - User ID to remove from roster
+- `id` (integer, required) - Artist profile post ID (in URL path)
+- `user_id` (integer, required) - User ID to remove from roster (in URL path)
 
 **Response** (HTTP 200):
 ```json
@@ -106,7 +90,7 @@ REST API endpoints for managing artist roster members and pending invitations.
 
 **Permission**: User must have permission to manage the artist
 
-**File**: `inc/routes/artist/roster.php`
+**File**: `inc/routes/artists/roster.php`
 
 ### Cancel Pending Invitation
 
@@ -115,8 +99,8 @@ REST API endpoints for managing artist roster members and pending invitations.
 **Purpose**: Cancel a pending roster invitation.
 
 **Parameters**:
-- `id` (integer, required) - Artist profile post ID
-- `invite_id` (string, required) - Invitation ID to cancel
+- `id` (integer, required) - Artist profile post ID (in URL path)
+- `invite_id` (string, required) - Invitation ID to cancel (in URL path)
 
 **Response** (HTTP 200):
 ```json
@@ -129,7 +113,7 @@ REST API endpoints for managing artist roster members and pending invitations.
 
 **Permission**: User must have permission to manage the artist
 
-**File**: `inc/routes/artist/roster.php`
+**File**: `inc/routes/artists/roster.php`
 
 ## Error Responses
 
@@ -165,6 +149,7 @@ REST API endpoints for managing artist roster members and pending invitations.
 - BuddyPress integration for roster management
 - `ec_can_manage_artist()` function for permission checks
 - `bp_get_linked_members()` and `bp_get_pending_invitations()` for data retrieval
+- `extrachill_artist_invite_member` filter for invitation handling
 
 ## Integration
 

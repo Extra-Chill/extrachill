@@ -29,11 +29,11 @@ The plugin provides 50 endpoints across 18 feature categories, all under the `ex
 - `GET/PUT /artists/{id}/socials` - Social media links
 - `GET/PUT /artists/{id}/links` - Link page data
 - `GET /artists/{id}/analytics` - Link page analytics
-- `GET /artist/permissions` - Check artist permissions
-- `POST /artist/roster/invite` - Invite roster members
-- `GET /artist/subscribers` - List subscribers with pagination
-- `GET /artist/subscribers/export` - Export subscribers as CSV
-- `POST /artist/subscribe` - Public subscription signup
+- `GET /artists/{id}/permissions` - Check artist permissions
+- `GET/POST/DELETE /artists/{id}/roster` - Roster member management
+- `GET /artists/{id}/subscribers` - List subscribers with pagination
+- `GET /artists/{id}/subscribers/export` - Export subscribers as CSV
+- `POST /artists/{id}/subscribe` - Public subscription signup
 
 ### Block Generators (3)
 - `POST /blocks/band-name` - AI band name generation
@@ -209,7 +209,7 @@ extrachill-api/
         │   ├── link-click.php
         │   ├── link-page.php
         │   └── view-count.php
-        ├── artist/                     # Artist API endpoints
+        ├── artists/                    # Artist API endpoints
         │   ├── analytics.php
         │   ├── artist.php
         │   ├── links.php
@@ -244,9 +244,8 @@ extrachill-api/
         ├── newsletter/                 # Newsletter
         │   ├── subscription.php
         │   └── campaign.php
-        ├── shop/                       # WooCommerce integration
-        │   ├── orders.php
-        │   ├── products.php
+         ├── shop/                       # WooCommerce integration
+         │   ├── products.php
         │   ├── stripe-connect.php
         │   └── stripe-webhook.php
         ├── stream/                     # Streaming functionality

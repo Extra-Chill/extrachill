@@ -13,7 +13,7 @@ Ensures WordPress authentication cookies include `SameSite=None; Secure` so auth
 
 ## User Impact
 - Logged-in creators stay authenticated while controlling link pages on `extrachill.link`.
-- REST fetches such as `/wp-json/extrachill/v1/artist/permissions` can include credentials without triggering browser cross-site restrictions.
+- REST fetches such as `/wp-json/extrachill/v1/artists/{id}/permissions` can include credentials without triggering browser cross-site restrictions.
 
 ## Operational Notes
 - Applies only to WordPress cookies, leaving third-party cookies untouched.

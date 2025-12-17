@@ -129,6 +129,5 @@ function extrachill_shop_handle_webhook($request) {
 - Processing errors logged for debugging
 
 **Related Endpoints**:
-- [Stripe Connect](stripe-connect.md) - Stripe account connection management
-- [Shop Orders](orders.md) - Order and payment management</content>
+- [Stripe Connect](stripe-connect.md) - Stripe account connection management</content>
 <parameter name="filePath">docs/routes/shop/stripe-webhook.md

@@ -222,6 +222,28 @@ function extrachill_api_shop_products_create_args() {
 				return array_map( 'absint', $value );
 			},
 		),
+		'sizes'              => array(
+			'required'          => false,
+			'type'              => 'array',
+			'items'             => array(
+				'type'       => 'object',
+				'properties' => array(
+					'name'  => array( 'type' => 'string' ),
+					'stock' => array( 'type' => 'integer' ),
+				),
+			),
+			'sanitize_callback' => function( $value ) {
+				if ( ! is_array( $value ) ) {
+					return array();
+				}
+				return array_map( function( $item ) {
+					return array(
+						'name'  => sanitize_text_field( $item['name'] ?? '' ),
+						'stock' => absint( $item['stock'] ?? 0 ),
+					);
+				}, $value );
+			},
+		),
 	);
 }
 
@@ -295,6 +317,31 @@ function extrachill_api_shop_products_update_args() {
 					return array();
 				}
 				return array_map( 'absint', $value );
+			},
+		),
+		'sizes'             => array(
+			'required'          => false,
+			'type'              => 'array',
+			'items'             => array(
+				'type'       => 'object',
+				'properties' => array(
+					'name'  => array( 'type' => 'string' ),
+					'stock' => array( 'type' => 'integer' ),
+				),
+			),
+			'sanitize_callback' => function( $value ) {
+				if ( $value === null ) {
+					return null;
+				}
+				if ( ! is_array( $value ) ) {
+					return array();
+				}
+				return array_map( function( $item ) {
+					return array(
+						'name'  => sanitize_text_field( $item['name'] ?? '' ),
+						'stock' => absint( $item['stock'] ?? 0 ),
+					);
+				}, $value );
 			},
 		),
 	);
@@ -506,6 +553,11 @@ function extrachill_api_shop_products_create_handler( WP_REST_Request $request )
 			delete_post_meta( $product_id, '_product_image_gallery' );
 		}
 
+		$sizes = $request->get_param( 'sizes' );
+		if ( is_array( $sizes ) && ! empty( $sizes ) ) {
+			extrachill_api_shop_setup_product_variations( $product_id, $sizes, $price, $sale_price );
+		}
+
 		extrachill_api_shop_sync_artist_taxonomy( $product_id, $artist_id );
 
 		$response = extrachill_api_shop_products_build_response( $product_id );
@@ -627,6 +679,13 @@ function extrachill_api_shop_products_update_handler( WP_REST_Request $request )
 			extrachill_api_shop_sync_artist_taxonomy( $product_id, $artist_id );
 		}
 
+		$sizes = $request->get_param( 'sizes' );
+		if ( $sizes !== null ) {
+			$current_price      = get_post_meta( $product_id, '_regular_price', true );
+			$current_sale_price = get_post_meta( $product_id, '_sale_price', true );
+			extrachill_api_shop_setup_product_variations( $product_id, $sizes, $current_price, $current_sale_price );
+		}
+
 		$response = extrachill_api_shop_products_build_response( $product_id );
 		return is_wp_error( $response ) ? $response : rest_ensure_response( $response );
 	} finally {
@@ -704,6 +763,18 @@ function extrachill_api_shop_products_build_response( $product_id ) {
 	$manage_stock  = 'yes' === get_post_meta( $product_id, '_manage_stock', true );
 	$stock         = get_post_meta( $product_id, '_stock', true );
 
+	$sizes = extrachill_api_shop_get_product_sizes( $product_id );
+
+	$stock_quantity = null;
+	if ( ! empty( $sizes ) ) {
+		$stock_quantity = array_reduce( $sizes, function( $sum, $size ) {
+			return $sum + ( is_numeric( $size['stock'] ) ? (int) $size['stock'] : 0 );
+		}, 0 );
+		$manage_stock = true;
+	} elseif ( $manage_stock ) {
+		$stock_quantity = $stock !== '' ? (int) $stock : 0;
+	}
+
 	return array(
 		'id'                => $product_id,
 		'name'              => $product_post->post_title,
@@ -711,7 +782,7 @@ function extrachill_api_shop_products_build_response( $product_id ) {
 		'price'             => $regular_price,
 		'sale_price'        => $sale_price,
 		'manage_stock'      => $manage_stock,
-		'stock_quantity'    => $manage_stock ? ( $stock !== '' ? (int) $stock : 0 ) : null,
+		'stock_quantity'    => $stock_quantity,
 		'status'            => get_post_status( $product_id ),
 		'permalink'         => get_permalink( $product_id ),
 		'artist_id'         => $artist_id ? (int) $artist_id : null,
@@ -720,6 +791,245 @@ function extrachill_api_shop_products_build_response( $product_id ) {
 			'url' => $image_url,
 		),
 		'gallery'           => $gallery_urls,
+		'sizes'             => $sizes,
+	);
+}
+
+/**
+ * Get product size variations with stock.
+ *
+ * Must be called within shop blog context.
+ *
+ * @param int $product_id Product ID.
+ * @return array Array of sizes with stock.
+ */
+function extrachill_api_shop_get_product_sizes( $product_id ) {
+	$product_type = wp_get_object_terms( $product_id, 'product_type', array( 'fields' => 'slugs' ) );
+	if ( is_wp_error( $product_type ) || ! in_array( 'variable', $product_type, true ) ) {
+		return array();
+	}
+
+	$variations = get_posts( array(
+		'post_type'   => 'product_variation',
+		'post_parent' => $product_id,
+		'post_status' => array( 'publish', 'private' ),
+		'numberposts' => -1,
+		'orderby'     => 'menu_order',
+		'order'       => 'ASC',
+	) );
+
+	$sizes = array();
+	foreach ( $variations as $variation ) {
+		$size_attr = get_post_meta( $variation->ID, 'attribute_pa_size', true );
+		if ( ! $size_attr ) {
+			continue;
+		}
+
+		$term = get_term_by( 'slug', $size_attr, 'pa_size' );
+		$size_name = $term ? $term->name : $size_attr;
+
+		$stock = get_post_meta( $variation->ID, '_stock', true );
+		$sizes[] = array(
+			'name'  => $size_name,
+			'stock' => $stock !== '' ? (int) $stock : 0,
+		);
+	}
+
+	return $sizes;
+}
+
+/**
+ * Set up product variations for sizes.
+ *
+ * Converts a simple product to variable if needed, creates/updates
+ * the pa_size attribute and variations for each size.
+ *
+ * Must be called within shop blog context.
+ *
+ * @param int        $product_id Product ID.
+ * @param array      $sizes      Array of size data: [ ['name' => 'S', 'stock' => 10], ... ]
+ * @param float|null $price      Regular price to apply to variations.
+ * @param float|null $sale_price Sale price to apply to variations (optional).
+ */
+function extrachill_api_shop_setup_product_variations( $product_id, $sizes, $price = null, $sale_price = null ) {
+	if ( empty( $sizes ) ) {
+		extrachill_api_shop_convert_to_simple_product( $product_id );
+		return;
+	}
+
+	extrachill_api_shop_ensure_size_attribute();
+
+	wp_set_object_terms( $product_id, 'variable', 'product_type' );
+
+	$size_slugs = array();
+	foreach ( $sizes as $size_data ) {
+		$size_name = $size_data['name'];
+		$term      = get_term_by( 'name', $size_name, 'pa_size' );
+		if ( ! $term ) {
+			$result = wp_insert_term( $size_name, 'pa_size' );
+			if ( ! is_wp_error( $result ) ) {
+				$term = get_term( $result['term_id'], 'pa_size' );
+			}
+		}
+		if ( $term ) {
+			$size_slugs[] = $term->slug;
+		}
+	}
+
+	wp_set_object_terms( $product_id, $size_slugs, 'pa_size' );
+
+	$product_attributes = array(
+		'pa_size' => array(
+			'name'         => 'pa_size',
+			'value'        => '',
+			'position'     => 0,
+			'is_visible'   => 1,
+			'is_variation' => 1,
+			'is_taxonomy'  => 1,
+		),
+	);
+	update_post_meta( $product_id, '_product_attributes', $product_attributes );
+
+	$existing_variations = get_posts( array(
+		'post_type'   => 'product_variation',
+		'post_parent' => $product_id,
+		'post_status' => array( 'publish', 'private', 'draft' ),
+		'numberposts' => -1,
+	) );
+
+	$existing_by_size = array();
+	foreach ( $existing_variations as $var ) {
+		$size_attr = get_post_meta( $var->ID, 'attribute_pa_size', true );
+		$existing_by_size[ $size_attr ] = $var->ID;
+	}
+
+	$updated_size_slugs = array();
+	$menu_order         = 0;
+
+	foreach ( $sizes as $size_data ) {
+		$size_name  = $size_data['name'];
+		$size_stock = absint( $size_data['stock'] );
+		$term       = get_term_by( 'name', $size_name, 'pa_size' );
+		if ( ! $term ) {
+			continue;
+		}
+
+		$size_slug            = $term->slug;
+		$updated_size_slugs[] = $size_slug;
+
+		if ( isset( $existing_by_size[ $size_slug ] ) ) {
+			$variation_id = $existing_by_size[ $size_slug ];
+			wp_update_post( array(
+				'ID'         => $variation_id,
+				'post_status' => 'publish',
+				'menu_order' => $menu_order,
+			) );
+		} else {
+			$variation_id = wp_insert_post( array(
+				'post_type'   => 'product_variation',
+				'post_parent' => $product_id,
+				'post_status' => 'publish',
+				'post_title'  => $size_name,
+				'menu_order'  => $menu_order,
+			) );
+			update_post_meta( $variation_id, 'attribute_pa_size', $size_slug );
+		}
+
+		if ( $price !== null ) {
+			update_post_meta( $variation_id, '_regular_price', (string) $price );
+			$effective_price = $price;
+
+			if ( is_numeric( $sale_price ) && (float) $sale_price > 0 && (float) $sale_price < (float) $price ) {
+				update_post_meta( $variation_id, '_sale_price', (string) $sale_price );
+				$effective_price = $sale_price;
+			} else {
+				delete_post_meta( $variation_id, '_sale_price' );
+			}
+
+			update_post_meta( $variation_id, '_price', (string) $effective_price );
+		}
+
+		update_post_meta( $variation_id, '_manage_stock', 'yes' );
+		update_post_meta( $variation_id, '_stock', (string) $size_stock );
+		update_post_meta( $variation_id, '_stock_status', $size_stock > 0 ? 'instock' : 'outofstock' );
+
+		$menu_order++;
+	}
+
+	foreach ( $existing_by_size as $size_slug => $variation_id ) {
+		if ( ! in_array( $size_slug, $updated_size_slugs, true ) ) {
+			wp_delete_post( $variation_id, true );
+		}
+	}
+
+	delete_transient( 'wc_product_children_' . $product_id );
+	delete_transient( 'wc_var_prices_' . $product_id );
+}
+
+/**
+ * Convert variable product back to simple product.
+ *
+ * Deletes all variations and resets product type.
+ *
+ * @param int $product_id Product ID.
+ */
+function extrachill_api_shop_convert_to_simple_product( $product_id ) {
+	$variations = get_posts( array(
+		'post_type'   => 'product_variation',
+		'post_parent' => $product_id,
+		'post_status' => array( 'publish', 'private', 'draft' ),
+		'numberposts' => -1,
+		'fields'      => 'ids',
+	) );
+
+	foreach ( $variations as $variation_id ) {
+		wp_delete_post( $variation_id, true );
+	}
+
+	wp_set_object_terms( $product_id, 'simple', 'product_type' );
+	delete_post_meta( $product_id, '_product_attributes' );
+	wp_delete_object_term_relationships( $product_id, 'pa_size' );
+
+	delete_transient( 'wc_product_children_' . $product_id );
+}
+
+/**
+ * Ensure pa_size attribute taxonomy exists.
+ */
+function extrachill_api_shop_ensure_size_attribute() {
+	if ( taxonomy_exists( 'pa_size' ) ) {
+		return;
+	}
+
+	$attribute_data = array(
+		'attribute_name'    => 'size',
+		'attribute_label'   => 'Size',
+		'attribute_type'    => 'select',
+		'attribute_orderby' => 'menu_order',
+		'attribute_public'  => 0,
+	);
+
+	global $wpdb;
+
+	$wpdb->insert(
+		$wpdb->prefix . 'woocommerce_attribute_taxonomies',
+		$attribute_data,
+		array( '%s', '%s', '%s', '%s', '%d' )
+	);
+
+	delete_transient( 'wc_attribute_taxonomies' );
+
+	register_taxonomy(
+		'pa_size',
+		'product',
+		array(
+			'label'        => 'Size',
+			'public'       => true,
+			'hierarchical' => false,
+			'show_ui'      => true,
+			'query_var'    => true,
+			'rewrite'      => array( 'slug' => 'size' ),
+		)
 	);
 }
 

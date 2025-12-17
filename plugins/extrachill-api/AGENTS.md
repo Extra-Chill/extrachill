@@ -50,7 +50,7 @@ extrachill-api/
         │   ├── link-click.php (Track link page clicks)
         │   ├── link-page.php (Track link page views)
         │   └── view-count.php (Track content views)
-        ├── artist/
+        ├── artists/
         │   ├── analytics.php (Artist link page analytics)
         │   ├── artist.php (Core artist data CRUD)
         │   ├── links.php (Link page data management)
@@ -189,7 +189,7 @@ Foundational REST API for artist data management. Provides comprehensive endpoin
 
 **Permission**: `ec_can_manage_artist()` - user must be artist owner or admin
 
-**File**: `inc/routes/artist/artist.php`
+**File**: `inc/routes/artists/artist.php`
 
 **Notes**:
 - Images managed via `/media` endpoint with `artist_profile` or `artist_header` context
@@ -225,7 +225,7 @@ Foundational REST API for artist data management. Provides comprehensive endpoin
 
 **Permission**: `ec_can_manage_artist()`
 
-**File**: `inc/routes/artist/socials.php`
+**File**: `inc/routes/artists/socials.php`
 
 **Notes**:
 - Uses `extrachill_artist_platform_social_links()` manager
@@ -283,7 +283,7 @@ Foundational REST API for artist data management. Provides comprehensive endpoin
 
 **Permission**: `ec_can_manage_artist()`
 
-**File**: `inc/routes/artist/links.php`
+**File**: `inc/routes/artists/links.php`
 
 **Update Behavior**:
 - `links`: Full replacement (sending `[]` clears all sections)
@@ -320,7 +320,7 @@ Foundational REST API for artist data management. Provides comprehensive endpoin
 
 **Permission**: `ec_can_manage_artist()`
 
-**File**: `inc/routes/artist/analytics.php`
+**File**: `inc/routes/artists/analytics.php`
 
 **Notes**:
 - Replaces legacy `/analytics/link-page` endpoint with artist-centric routing
@@ -328,60 +328,69 @@ Foundational REST API for artist data management. Provides comprehensive endpoin
 
 #### 8. Artist Permissions Check
 
-**Endpoint**: `GET /wp-json/extrachill/v1/artist/permissions`
+**Endpoint**: `GET /wp-json/extrachill/v1/artists/{id}/permissions`
 
 **Purpose**: Check if current user can manage an artist profile.
 
 **Parameters**:
-- `artist_id` (int, required) - Artist profile ID to check permissions against
+- `id` (int, required) - Artist profile ID (in URL path)
 
 **Response**:
 ```json
 {
-  "can_manage": true,
-  "artist_id": 123
+  "can_edit": true,
+  "manage_url": "https://...",
+  "user_id": 123
 }
 ```
 
-**File**: `inc/routes/artist/permissions.php`
+**File**: `inc/routes/artists/permissions.php`
 
 **Notes**:
-- Returns boolean `can_manage` property
-- Accessible to any logged-in user (permission check returns user status)
+- Returns boolean `can_edit` property and management URL
+- Accessible to any user (returns user permission status)
 
-#### 9. Artist Roster Invite
+#### 9. Artist Roster Management
 
-**Endpoint**: `POST /wp-json/extrachill/v1/artist/roster/invite`
+**Endpoints**:
+- `GET /wp-json/extrachill/v1/artists/{id}/roster` - List roster members and pending invites
+- `POST /wp-json/extrachill/v1/artists/{id}/roster` - Invite member by email
+- `DELETE /wp-json/extrachill/v1/artists/{id}/roster/{user_id}` - Remove roster member
+- `DELETE /wp-json/extrachill/v1/artists/{id}/roster/invites/{invite_id}` - Cancel pending invite
 
-**Purpose**: Invite members to an artist roster for collaborative management.
+**Purpose**: Manage artist roster for collaborative profile management.
 
-**Parameters**:
-- `artist_id` (int, required) - Artist profile ID
+**POST Parameters**:
+- `id` (int, required) - Artist profile ID (in URL path)
 - `email` (string, required) - Email of person to invite
 
-**Response**:
+**GET Response**:
 ```json
 {
-  "success": true,
-  "message": "Invitation sent successfully"
+  "members": [
+    {"id": 1, "display_name": "...", "username": "...", "email": "...", "avatar_url": "..."}
+  ],
+  "invites": [
+    {"id": "...", "email": "...", "status": "pending", "invited_on": 1234567890}
+  ]
 }
 ```
 
-**Permission**: User must be artist owner
+**Permission**: User must be able to manage artist (`ec_can_manage_artist()`)
 
-**File**: `inc/routes/artist/roster.php`
+**File**: `inc/routes/artists/roster.php`
 
 **Notes**:
-- Fires filter hook for invitation handling by consuming plugins
+- Fires `extrachill_artist_invite_member` filter for invitation handling
 
 #### 10. Artist Subscribers List
 
-**Endpoint**: `GET /wp-json/extrachill/v1/artist/subscribers`
+**Endpoint**: `GET /wp-json/extrachill/v1/artists/{id}/subscribers`
 
 **Purpose**: Retrieve paginated list of artist subscribers.
 
 **Parameters**:
-- `artist_id` (int, required) - Artist profile ID
+- `id` (int, required) - Artist profile ID (in URL path)
 - `page` (int, optional) - Page number (default: 1)
 - `per_page` (int, optional) - Results per page (default: 20)
 
@@ -398,46 +407,46 @@ Foundational REST API for artist data management. Provides comprehensive endpoin
 }
 ```
 
-**Permission**: User must be artist owner
+**Permission**: User must be able to manage artist (`ec_can_manage_artist()`)
 
-**File**: `inc/routes/artist/subscribers.php`
+**File**: `inc/routes/artists/subscribers.php`
 
 #### 11. Artist Subscribers Export
 
-**Endpoint**: `GET /wp-json/extrachill/v1/artist/subscribers/export`
+**Endpoint**: `GET /wp-json/extrachill/v1/artists/{id}/subscribers/export`
 
 **Purpose**: Export subscriber list as CSV for email marketing integration.
 
 **Parameters**:
-- `artist_id` (int, required) - Artist profile ID
+- `id` (int, required) - Artist profile ID (in URL path)
+- `include_exported` (bool, optional) - Include previously exported subscribers
 
-**Response**: CSV file download
+**Response**: Subscriber data for CSV generation
 
-**Permission**: User must be artist owner
+**Permission**: User must be able to manage artist (`ec_can_manage_artist()`)
 
-**File**: `inc/routes/artist/subscribers.php`
+**File**: `inc/routes/artists/subscribers.php`
 
 #### 12. Artist Subscribe (Public)
 
-**Endpoint**: `POST /wp-json/extrachill/v1/artist/subscribe`
+**Endpoint**: `POST /wp-json/extrachill/v1/artists/{id}/subscribe`
 
 **Purpose**: Allow fans to subscribe to artist updates from public link pages.
 
 **Parameters**:
-- `artist_id` (int, required) - Artist profile ID
+- `id` (int, required) - Artist profile ID (in URL path)
 - `email` (string, required) - Subscriber email address
 
 **Response**:
 ```json
 {
-  "success": true,
   "message": "Thank you for subscribing!"
 }
 ```
 
 **Permission**: Public (no authentication required)
 
-**File**: `inc/routes/artist/subscribe.php`
+**File**: `inc/routes/artists/subscribe.php`
 
 **Notes**:
 - Fires `extrachill_artist_subscribe` filter for consuming plugins to handle storage

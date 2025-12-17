@@ -1,6 +1,11 @@
 <?php
 /**
  * REST routes for artist roster management
+ *
+ * GET    /artists/{id}/roster                      - List roster members and pending invites
+ * POST   /artists/{id}/roster                      - Invite member by email
+ * DELETE /artists/{id}/roster/{user_id}            - Remove roster member
+ * DELETE /artists/{id}/roster/invites/{invite_id}  - Cancel pending invite
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -10,29 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 add_action( 'extrachill_api_register_routes', 'extrachill_api_register_artist_roster_routes' );
 
 function extrachill_api_register_artist_roster_routes() {
-	// Legacy invite endpoint (kept for compatibility)
-	register_rest_route( 'extrachill/v1', '/artist/roster/invite', array(
-		'methods'             => WP_REST_Server::CREATABLE,
-		'callback'            => 'extrachill_api_artist_roster_invite_handler',
-		'permission_callback' => 'is_user_logged_in',
-		'args'                => array(
-			'artist_id' => array(
-				'required'          => true,
-				'type'              => 'integer',
-				'validate_callback' => function ( $param ) {
-					return is_numeric( $param ) && $param > 0;
-				},
-				'sanitize_callback' => 'absint',
-			),
-			'email'     => array(
-				'required'          => true,
-				'type'              => 'string',
-				'sanitize_callback' => 'sanitize_email',
-			),
-		),
-	) );
-
-	// Nested roster endpoints under the artist resource
+	// Roster endpoints under the artist resource
 	register_rest_route( 'extrachill/v1', '/artists/(?P<id>\d+)/roster', array(
 		'methods'             => WP_REST_Server::READABLE,
 		'callback'            => 'extrachill_api_artist_roster_list_handler',
@@ -102,17 +85,14 @@ function extrachill_api_register_artist_roster_routes() {
 }
 
 /**
- * Handles artist roster invitation requests (legacy + nested)
+ * Handles artist roster invitation requests
  *
  * @param WP_REST_Request $request The request object.
  * @return WP_REST_Response|WP_Error
  */
 function extrachill_api_artist_roster_invite_handler( WP_REST_Request $request ) {
-	$artist_id = $request->get_param( 'artist_id' );
-	if ( ! $artist_id ) {
-		$artist_id = $request->get_param( 'id' );
-	}
-	$email = $request->get_param( 'email' );
+	$artist_id = $request->get_param( 'id' );
+	$email     = $request->get_param( 'email' );
 
 	if ( ! is_email( $email ) ) {
 		return new WP_Error(

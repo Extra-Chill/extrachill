@@ -9,4 +9,4 @@ Adds `SameSite=None; Secure` to every WordPress authentication cookie so REST re
 - Iterates over every `Set-Cookie` header, targets only values containing `wordpress_`, and appends `SameSite=None; Secure` unless already present.
 
 ## User Impact
-Users managing artist link pages on `extrachill.link` stay authenticated when the interface polls `/extrachill/v1/artist/permissions`, ensuring edit buttons reflect accurate access without forcing re-login.
+Users managing artist link pages on `extrachill.link` stay authenticated when the interface polls `/extrachill/v1/artists/{id}/permissions`, ensuring edit buttons reflect accurate access without forcing re-login.

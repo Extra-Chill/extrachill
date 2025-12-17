@@ -2,8 +2,8 @@
 /**
  * REST routes for artist subscribers management
  *
- * GET /wp-json/extrachill/v1/artist/subscribers - Fetch paginated subscribers
- * GET /wp-json/extrachill/v1/artist/subscribers/export - Fetch all subscribers for CSV export
+ * GET /wp-json/extrachill/v1/artists/{id}/subscribers - Fetch paginated subscribers
+ * GET /wp-json/extrachill/v1/artists/{id}/subscribers/export - Fetch all subscribers for CSV export
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -14,26 +14,23 @@ add_action( 'extrachill_api_register_routes', 'extrachill_api_register_artist_su
 
 function extrachill_api_register_artist_subscribers_routes() {
 	// Fetch paginated subscribers
-	register_rest_route( 'extrachill/v1', '/artist/subscribers', array(
+	register_rest_route( 'extrachill/v1', '/artists/(?P<id>\d+)/subscribers', array(
 		'methods'             => WP_REST_Server::READABLE,
 		'callback'            => 'extrachill_api_get_artist_subscribers_handler',
 		'permission_callback' => 'is_user_logged_in',
 		'args'                => array(
-			'artist_id' => array(
+			'id'       => array(
 				'required'          => true,
 				'type'              => 'integer',
-				'validate_callback' => function ( $param ) {
-					return is_numeric( $param ) && $param > 0;
-				},
 				'sanitize_callback' => 'absint',
 			),
-			'page'      => array(
+			'page'     => array(
 				'required'          => false,
 				'type'              => 'integer',
 				'default'           => 1,
 				'sanitize_callback' => 'absint',
 			),
-			'per_page'  => array(
+			'per_page' => array(
 				'required'          => false,
 				'type'              => 'integer',
 				'default'           => 20,
@@ -43,17 +40,14 @@ function extrachill_api_register_artist_subscribers_routes() {
 	) );
 
 	// Export all subscribers for CSV
-	register_rest_route( 'extrachill/v1', '/artist/subscribers/export', array(
+	register_rest_route( 'extrachill/v1', '/artists/(?P<id>\d+)/subscribers/export', array(
 		'methods'             => WP_REST_Server::READABLE,
 		'callback'            => 'extrachill_api_export_artist_subscribers_handler',
 		'permission_callback' => 'is_user_logged_in',
 		'args'                => array(
-			'artist_id'        => array(
+			'id'               => array(
 				'required'          => true,
 				'type'              => 'integer',
-				'validate_callback' => function ( $param ) {
-					return is_numeric( $param ) && $param > 0;
-				},
 				'sanitize_callback' => 'absint',
 			),
 			'include_exported' => array(
@@ -72,7 +66,7 @@ function extrachill_api_register_artist_subscribers_routes() {
  * @return WP_REST_Response|WP_Error
  */
 function extrachill_api_get_artist_subscribers_handler( WP_REST_Request $request ) {
-	$artist_id = $request->get_param( 'artist_id' );
+	$artist_id = $request->get_param( 'id' );
 	$page      = max( 1, $request->get_param( 'page' ) );
 	$per_page  = max( 1, min( 100, $request->get_param( 'per_page' ) ) );
 
@@ -129,7 +123,7 @@ function extrachill_api_get_artist_subscribers_handler( WP_REST_Request $request
  * @return WP_REST_Response|WP_Error
  */
 function extrachill_api_export_artist_subscribers_handler( WP_REST_Request $request ) {
-	$artist_id        = $request->get_param( 'artist_id' );
+	$artist_id        = $request->get_param( 'id' );
 	$include_exported = $request->get_param( 'include_exported' );
 
 	// Validate artist exists and is correct post type

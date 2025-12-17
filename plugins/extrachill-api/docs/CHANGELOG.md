@@ -2,6 +2,27 @@
 
 All notable changes to the ExtraChill API plugin are documented here. This file is the single source of truth for release history.
 
+## 0.6.0
+
+### Changed
+
+- **Artist API Endpoints**: Refactored all artist endpoints to use RESTful `/artists/{id}/` URL structure
+  - Changed `GET /artist/permissions` → `GET /artists/{id}/permissions`
+  - Changed `POST /artist/roster/invite` → `GET/POST/DELETE /artists/{id}/roster`
+  - Changed `GET /artist/subscribers` → `GET /artists/{id}/subscribers`
+  - Changed `POST /artist/subscribe` → `POST /artists/{id}/subscribe`
+  - Updated all artist endpoints to consistent `/artists/{id}/` pattern
+
+- **Response Structures**: Updated endpoint responses for better REST compliance
+  - Permissions endpoint now returns `can_edit`, `manage_url`, `user_id`
+  - Roster endpoint expanded to full CRUD operations with members/invites structure
+
+### Technical Notes
+
+- **Directory Structure**: Renamed `inc/routes/artist/` and `docs/routes/artist/` to `artists/` for consistency
+- **Backward Compatibility**: Breaking API changes - clients must update endpoint URLs
+- **Code Organization**: Moved route files to match new directory structure
+
 ## 0.5.2
 
 ### Removed
