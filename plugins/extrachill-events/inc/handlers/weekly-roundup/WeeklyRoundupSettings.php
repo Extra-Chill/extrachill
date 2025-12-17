@@ -9,19 +9,20 @@
 
 namespace ExtraChillEvents\Handlers\WeeklyRoundup;
 
+use DataMachine\Core\Steps\Settings\SettingsHandler;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-class WeeklyRoundupSettings {
+class WeeklyRoundupSettings extends SettingsHandler {
 
 	/**
 	 * Get handler configuration fields.
 	 *
-	 * @param array $current_config Current configuration values
 	 * @return array Field definitions
 	 */
-	public static function get_fields( array $current_config = array() ): array {
+	public static function get_fields(): array {
 		return array(
 			'week_start_day'   => array(
 				'type'        => 'select',
@@ -29,7 +30,7 @@ class WeeklyRoundupSettings {
 				'description' => \__( 'First weekday to include in the roundup window', 'extrachill-events' ),
 				'required'    => true,
 				'options'     => self::get_weekday_options(),
-				'default'     => $current_config['week_start_day'] ?? 'monday',
+				'default'     => 'monday',
 			),
 			'week_end_day'     => array(
 				'type'        => 'select',
@@ -37,7 +38,7 @@ class WeeklyRoundupSettings {
 				'description' => \__( 'Last weekday to include in the roundup window', 'extrachill-events' ),
 				'required'    => true,
 				'options'     => self::get_weekday_options(),
-				'default'     => $current_config['week_end_day'] ?? 'sunday',
+				'default'     => 'sunday',
 			),
 			'location_term_id' => array(
 				'type'        => 'select',
@@ -45,59 +46,24 @@ class WeeklyRoundupSettings {
 				'description' => \__( 'Filter events by location (optional)', 'extrachill-events' ),
 				'required'    => false,
 				'options'     => self::get_location_options(),
-				'default'     => $current_config['location_term_id'] ?? '',
+				'default'     => '',
 			),
 			'title'            => array(
 				'type'        => 'text',
 				'label'       => \__( 'Roundup Title', 'extrachill-events' ),
 				'description' => \__( 'Title displayed at top of first slide (e.g., "Charleston Weekend Roundup")', 'extrachill-events' ),
 				'required'    => false,
-				'default'     => $current_config['title'] ?? '',
+				'default'     => '',
 			),
-		);
-	}
-
-	/**
-	 * Sanitize handler settings.
-	 *
-	 * @param array $raw_settings Raw settings from form
-	 * @return array Sanitized settings
-	 */
-	public static function sanitize( array $raw_settings ): array {
-		$allowed_days = array_keys( self::get_weekday_options() );
-
-		$start_day = \sanitize_text_field( $raw_settings['week_start_day'] ?? '' );
-		$end_day   = \sanitize_text_field( $raw_settings['week_end_day'] ?? '' );
-
-		return array(
-			'week_start_day'   => in_array( $start_day, $allowed_days, true ) ? $start_day : '',
-			'week_end_day'     => in_array( $end_day, $allowed_days, true ) ? $end_day : '',
-			'location_term_id' => \absint( $raw_settings['location_term_id'] ?? 0 ),
-			'title'            => \sanitize_text_field( $raw_settings['title'] ?? '' ),
-		);
-	}
-
-	/**
-	 * Get default settings.
-	 *
-	 * @return array Default values
-	 */
-	public static function get_defaults(): array {
-		return array(
-			'week_start_day'   => 'monday',
-			'week_end_day'     => 'sunday',
-			'location_term_id' => 0,
-			'title'            => '',
 		);
 	}
 
 	/**
 	 * Check if handler requires authentication.
 	 *
-	 * @param array $current_config Current configuration
 	 * @return bool
 	 */
-	public static function requires_authentication( array $current_config = array() ): bool {
+	public static function requires_authentication(): bool {
 		return false;
 	}
 
