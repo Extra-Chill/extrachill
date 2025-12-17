@@ -2,6 +2,33 @@
 
 All notable changes to the ExtraChill API plugin are documented here. This file is the single source of truth for release history.
 
+## 0.6.2
+
+### Added
+
+- **Auth Logout Endpoint**: `POST /wp-json/extrachill/v1/auth/logout`
+  - Revokes refresh tokens for device-specific logout functionality
+  - Requires `device_id` parameter (UUID v4) to target specific device sessions
+  - Returns success status and confirmation message
+  - Depends on extrachill-users plugin for token management
+
+- **Auth Me Endpoint**: `GET /wp-json/extrachill/v1/auth/me`
+  - Returns authenticated user profile data including id, username, email, display_name, avatar_url, profile_url, and registered date
+  - Applies `extrachill_auth_me_response` filter for extensibility
+  - Requires valid authentication token
+
+### Removed
+
+- **Shop Catalog Endpoint**: Removed `GET /wp-json/extrachill/v1/shop/catalog`
+  - Public product browsing endpoint with filtering and sorting
+  - Functionality replaced by theme's filter bar component
+  - Associated documentation file also removed
+
+### Technical Notes
+
+- **Backward Compatibility**: All changes are additive with no breaking modifications
+- **Dependencies**: New auth endpoints require extrachill-users plugin for token management
+
 ## 0.6.1
 
 ### Changed
