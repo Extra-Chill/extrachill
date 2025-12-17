@@ -87,7 +87,7 @@ extrachill-shop/
 1. Upload plugin files to `/wp-content/plugins/extrachill-shop/`
 2. Activate plugin on shop.extrachill.com
 3. Configure WooCommerce settings as needed
-4. Set up ad-free license product (ID: 90123)
+4. Ad-free license product is auto-created/maintained (SKU: `ec-ad-free-license`, price: $20)
 5. Set shop page as homepage: Settings → Reading → "A static page" → Homepage: "Shop"
 
 ### Development Setup

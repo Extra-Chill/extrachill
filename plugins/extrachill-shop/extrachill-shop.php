@@ -3,7 +3,7 @@
  * Plugin Name: Extra Chill Shop
  * Plugin URI: https://extrachill.com
  * Description: WooCommerce integration and e-commerce functionality for the Extra Chill platform. Features cross-domain ad-free license system, custom breadcrumbs, product category navigation, and comprehensive WooCommerce styling.
- * Version: 0.2.0
+ * Version: 0.3.0
  * Author: Chris Huber
  * Author URI: https://chubes.net
  * License: GPL v2 or later
@@ -17,7 +17,7 @@
  */
 
 defined( 'ABSPATH' ) || exit;
-define( 'EXTRACHILL_SHOP_VERSION', '0.2.0' );
+define( 'EXTRACHILL_SHOP_VERSION', '0.3.0' );
 define( 'EXTRACHILL_SHOP_PLUGIN_FILE', __FILE__ );
 define( 'EXTRACHILL_SHOP_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'EXTRACHILL_SHOP_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
@@ -52,6 +52,7 @@ class ExtraChillShop {
 
     private function load_includes() {
         // Product customizations
+        require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/products/ad-free-license-product.php';
         require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/products/ad-free-license.php';
         require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/products/raffle/admin-fields.php';
         require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/products/raffle/frontend-counter.php';
@@ -61,23 +62,19 @@ class ExtraChillShop {
         require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/core/breadcrumb-integration.php';
         require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/core/assets.php';
         require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/core/nav.php';
+        require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/core/filters/button-classes.php';
 
         // Artist marketplace
         require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/core/artist-taxonomy.php';
         require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/core/artist-product-meta.php';
         require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/core/commission-settings.php';
+        require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/core/artist-storefront-manage-button.php';
 
         // Stripe Connect integration
         require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/stripe/stripe-connect.php';
         require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/stripe/checkout-handler.php';
         require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/stripe/webhooks.php';
-
-        // Artist dashboard
-        require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/artist-dashboard/endpoints.php';
-        require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/artist-dashboard/products-list.php';
-        require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/artist-dashboard/product-form.php';
-        require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/artist-dashboard/orders.php';
-        require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/artist-dashboard/settings.php';
+        require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/stripe/payment-integration.php';
 
         // Templates
         require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/templates/cart-icon.php';
@@ -93,6 +90,7 @@ class ExtraChillShop {
 
     public function activate() {
         update_option( 'extrachill_shop_activated', true );
+        update_option( 'extrachill_shop_needs_ad_free_product_sync', 1 );
         flush_rewrite_rules();
     }
 

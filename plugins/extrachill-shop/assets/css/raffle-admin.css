@@ -21,6 +21,6 @@
     content: "🎟️";
     display: inline-block;
     margin-right: 4px;
-    font-size: 14px;
+    font-size: var(--font-size-sm);
     vertical-align: middle;
 }

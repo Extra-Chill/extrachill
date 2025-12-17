@@ -32,11 +32,13 @@ function extrachill_shop_breadcrumb_root( $root_link ) {
 
 	// On homepage, just "Extra Chill" (trail will add "Shop")
 	if ( is_front_page() ) {
-		return '<a href="https://extrachill.com">Extra Chill</a>';
+		$main_site_url = ec_get_site_url( 'main' );
+		return '<a href="' . esc_url( $main_site_url ) . '">Extra Chill</a>';
 	}
 
 	// Root structure: Extra Chill › Shop
-	return '<a href="https://extrachill.com">Extra Chill</a> › <a href="' . esc_url( home_url() ) . '">Shop</a>';
+	$main_site_url = ec_get_site_url( 'main' );
+	return '<a href="' . esc_url( $main_site_url ) . '">Extra Chill</a> › <a href="' . esc_url( home_url() ) . '">Shop</a>';
 }
 add_filter( 'extrachill_breadcrumbs_root', 'extrachill_shop_breadcrumb_root' );
 

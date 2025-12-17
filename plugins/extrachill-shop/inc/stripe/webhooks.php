@@ -15,23 +15,6 @@
 
 defined( 'ABSPATH' ) || exit;
 
-/**
- * Register webhook endpoint.
- *
- * Endpoint: /wp-json/extrachill/v1/shop/stripe-webhook
- */
-function extrachill_shop_register_webhook_endpoint() {
-	register_rest_route(
-		'extrachill/v1',
-		'/shop/stripe-webhook',
-		array(
-			'methods'             => 'POST',
-			'callback'            => 'extrachill_shop_handle_webhook',
-			'permission_callback' => '__return_true',
-		)
-	);
-}
-add_action( 'rest_api_init', 'extrachill_shop_register_webhook_endpoint' );
 
 /**
  * Handle incoming Stripe webhook.
@@ -51,12 +34,17 @@ function extrachill_shop_handle_webhook( $request ) {
 		return new WP_Error( 'missing_signature', 'Missing Stripe signature.', array( 'status' => 400 ) );
 	}
 
-	if ( ! defined( 'STRIPE_WEBHOOK_SECRET' ) || empty( STRIPE_WEBHOOK_SECRET ) ) {
+	$webhook_secret = apply_filters(
+		'extrachill_stripe_webhook_secret',
+		defined( 'STRIPE_WEBHOOK_SECRET' ) ? STRIPE_WEBHOOK_SECRET : ''
+	);
+
+	if ( empty( $webhook_secret ) ) {
 		return new WP_Error( 'webhook_secret_missing', 'Webhook secret not configured.', array( 'status' => 500 ) );
 	}
 
 	try {
-		$event = \Stripe\Webhook::constructEvent( $payload, $sig_header, STRIPE_WEBHOOK_SECRET );
+		$event = \Stripe\Webhook::constructEvent( $payload, $sig_header, $webhook_secret );
 	} catch ( \UnexpectedValueException $e ) {
 		return new WP_Error( 'invalid_payload', 'Invalid payload.', array( 'status' => 400 ) );
 	} catch ( \Stripe\Exception\SignatureVerificationException $e ) {

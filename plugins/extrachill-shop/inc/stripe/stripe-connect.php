@@ -30,7 +30,12 @@ function extrachill_shop_stripe_init() {
 		return true;
 	}
 
-	if ( ! defined( 'STRIPE_SECRET_KEY' ) || empty( STRIPE_SECRET_KEY ) ) {
+	$secret_key = apply_filters(
+		'extrachill_stripe_secret_key',
+		defined( 'STRIPE_SECRET_KEY' ) ? STRIPE_SECRET_KEY : ''
+	);
+
+	if ( empty( $secret_key ) ) {
 		return false;
 	}
 
@@ -42,7 +47,7 @@ function extrachill_shop_stripe_init() {
 
 	require_once $autoloader;
 
-	\Stripe\Stripe::setApiKey( STRIPE_SECRET_KEY );
+	\Stripe\Stripe::setApiKey( $secret_key );
 	\Stripe\Stripe::setApiVersion( '2023-10-16' );
 
 	$initialized = true;
@@ -55,8 +60,16 @@ function extrachill_shop_stripe_init() {
  * @return bool True if Stripe keys are configured.
  */
 function extrachill_shop_stripe_is_configured() {
-	return defined( 'STRIPE_SECRET_KEY' ) && ! empty( STRIPE_SECRET_KEY )
-		&& defined( 'STRIPE_PUBLISHABLE_KEY' ) && ! empty( STRIPE_PUBLISHABLE_KEY );
+	$secret_key = apply_filters(
+		'extrachill_stripe_secret_key',
+		defined( 'STRIPE_SECRET_KEY' ) ? STRIPE_SECRET_KEY : ''
+	);
+	$publishable_key = apply_filters(
+		'extrachill_stripe_publishable_key',
+		defined( 'STRIPE_PUBLISHABLE_KEY' ) ? STRIPE_PUBLISHABLE_KEY : ''
+	);
+
+	return ! empty( $secret_key ) && ! empty( $publishable_key );
 }
 
 /**
@@ -65,19 +78,24 @@ function extrachill_shop_stripe_is_configured() {
  * @return string|false Publishable key or false if not configured.
  */
 function extrachill_shop_get_stripe_publishable_key() {
-	if ( ! defined( 'STRIPE_PUBLISHABLE_KEY' ) ) {
-		return false;
-	}
-	return STRIPE_PUBLISHABLE_KEY;
+	$publishable_key = apply_filters(
+		'extrachill_stripe_publishable_key',
+		defined( 'STRIPE_PUBLISHABLE_KEY' ) ? STRIPE_PUBLISHABLE_KEY : ''
+	);
+
+	return ! empty( $publishable_key ) ? $publishable_key : false;
 }
 
 /**
- * Create a Stripe Express connected account for a user.
+ * Create a Stripe Express connected account for an artist profile.
  *
- * @param int $user_id WordPress user ID.
+ * Account metadata and status are stored on the artist_profile post (artist blog).
+ * The Stripe account is created using the artist owner's email (post_author).
+ *
+ * @param int $artist_profile_id Artist profile post ID.
  * @return array{success: bool, account_id?: string, error?: string}
  */
-function extrachill_shop_create_stripe_account( $user_id ) {
+function extrachill_shop_create_stripe_account( $artist_profile_id ) {
 	if ( ! extrachill_shop_stripe_init() ) {
 		return array(
 			'success' => false,
@@ -85,56 +103,112 @@ function extrachill_shop_create_stripe_account( $user_id ) {
 		);
 	}
 
-	$user = get_userdata( $user_id );
-	if ( ! $user ) {
+	$artist_profile_id = absint( $artist_profile_id );
+	if ( ! $artist_profile_id ) {
 		return array(
 			'success' => false,
-			'error'   => 'User not found.',
+			'error'   => 'Artist profile ID is required.',
 		);
 	}
 
-	// Check if user already has an account.
-	$existing_account = get_user_meta( $user_id, '_stripe_connect_account_id', true );
-	if ( ! empty( $existing_account ) ) {
+	if ( ! function_exists( 'ec_get_blog_id' ) ) {
 		return array(
-			'success'    => true,
-			'account_id' => $existing_account,
+			'success' => false,
+			'error'   => 'Artist blog is not available.',
 		);
+	}
+
+	$artist_blog_id = ec_get_blog_id( 'artist' );
+	if ( ! $artist_blog_id ) {
+		return array(
+			'success' => false,
+			'error'   => 'Artist blog is not available.',
+		);
+	}
+
+	$current_blog = get_current_blog_id();
+
+	$existing_account = '';
+	$owner_user_id    = 0;
+	$owner_email      = '';
+
+	switch_to_blog( $artist_blog_id );
+	try {
+		$artist = get_post( $artist_profile_id );
+		if ( ! $artist || 'artist_profile' !== $artist->post_type ) {
+			return array(
+				'success' => false,
+				'error'   => 'Artist profile not found.',
+			);
+		}
+
+		$existing_account = (string) get_post_meta( $artist_profile_id, '_stripe_connect_account_id', true );
+		if ( $existing_account ) {
+			return array(
+				'success'    => true,
+				'account_id' => $existing_account,
+			);
+		}
+
+		$owner_user_id = (int) $artist->post_author;
+		$owner         = get_userdata( $owner_user_id );
+		if ( ! $owner ) {
+			return array(
+				'success' => false,
+				'error'   => 'Artist owner user not found.',
+			);
+		}
+
+		$owner_email = (string) $owner->user_email;
+	} finally {
+		restore_current_blog();
+	}
+
+	if ( get_current_blog_id() !== $current_blog ) {
+		switch_to_blog( $current_blog );
 	}
 
 	try {
 		$account = \Stripe\Account::create(
 			array(
 				'type'         => 'express',
-				'email'        => $user->user_email,
+				'email'        => $owner_email,
 				'capabilities' => array(
 					'card_payments' => array( 'requested' => true ),
 					'transfers'     => array( 'requested' => true ),
 				),
 				'business_type' => 'individual',
 				'metadata'      => array(
-					'wordpress_user_id' => $user_id,
-					'platform'          => 'extrachill',
+					'wordpress_user_id'     => $owner_user_id,
+					'artist_profile_id'     => $artist_profile_id,
+					'platform'              => 'extrachill',
 				),
 			)
 		);
-
-		// Store account ID.
-		update_user_meta( $user_id, '_stripe_connect_account_id', $account->id );
-		update_user_meta( $user_id, '_stripe_connect_status', 'pending' );
-		update_user_meta( $user_id, '_stripe_connect_onboarding_complete', '0' );
-
-		return array(
-			'success'    => true,
-			'account_id' => $account->id,
-		);
-
 	} catch ( \Stripe\Exception\ApiErrorException $e ) {
 		return array(
 			'success' => false,
 			'error'   => $e->getMessage(),
 		);
 	}
+
+	switch_to_blog( $artist_blog_id );
+	try {
+		update_post_meta( $artist_profile_id, '_stripe_connect_account_id', $account->id );
+		update_post_meta( $artist_profile_id, '_stripe_connect_status', 'pending' );
+		update_post_meta( $artist_profile_id, '_stripe_connect_onboarding_complete', '0' );
+	} finally {
+		restore_current_blog();
+	}
+
+	if ( get_current_blog_id() !== $current_blog ) {
+		switch_to_blog( $current_blog );
+	}
+
+	return array(
+		'success'    => true,
+		'account_id' => $account->id,
+	);
 }
 
 /**
@@ -152,7 +226,15 @@ function extrachill_shop_create_account_link( $account_id, $type = 'account_onbo
 		);
 	}
 
-	$return_url  = wc_get_account_endpoint_url( 'artist-settings' );
+	$return_url = function_exists( 'ec_get_site_url' ) ? ec_get_site_url( 'artist' ) : null;
+	if ( ! $return_url ) {
+		return array(
+			'success' => false,
+			'error'   => 'Artist site URL is not available.',
+		);
+	}
+
+	$return_url  = trailingslashit( $return_url ) . 'manage-shop/';
 	$refresh_url = add_query_arg( 'stripe_refresh', '1', $return_url );
 
 	try {
@@ -272,21 +354,19 @@ function extrachill_shop_account_can_receive_payments( $account_id ) {
 /**
  * Update local account status cache from Stripe webhook data.
  *
+ * Stripe account status is cached on the artist_profile post (artist blog) using
+ * the connected account ID.
+ *
  * @param string $account_id Stripe account ID.
  * @param array  $account_data Account data from webhook.
  */
 function extrachill_shop_update_account_status_cache( $account_id, $account_data ) {
-	global $wpdb;
+	if ( ! function_exists( 'ec_get_blog_id' ) ) {
+		return;
+	}
 
-	// Find user with this account ID.
-	$user_id = $wpdb->get_var(
-		$wpdb->prepare(
-			"SELECT user_id FROM {$wpdb->usermeta} WHERE meta_key = '_stripe_connect_account_id' AND meta_value = %s LIMIT 1",
-			$account_id
-		)
-	);
-
-	if ( ! $user_id ) {
+	$artist_blog_id = ec_get_blog_id( 'artist' );
+	if ( ! $artist_blog_id ) {
 		return;
 	}
 
@@ -297,47 +377,62 @@ function extrachill_shop_update_account_status_cache( $account_id, $account_data
 		$status = 'restricted';
 	}
 
-	update_user_meta( $user_id, '_stripe_connect_status', $status );
+	$current_blog = get_current_blog_id();
+	switch_to_blog( $artist_blog_id );
+	try {
+		global $wpdb;
+		$artist_profile_id = $wpdb->get_var(
+			$wpdb->prepare(
+				"SELECT post_id FROM {$wpdb->postmeta} WHERE meta_key = '_stripe_connect_account_id' AND meta_value = %s LIMIT 1",
+				$account_id
+			)
+		);
 
-	$onboarding_complete = ( ! empty( $account_data['details_submitted'] ) ) ? '1' : '0';
-	update_user_meta( $user_id, '_stripe_connect_onboarding_complete', $onboarding_complete );
+		if ( ! $artist_profile_id ) {
+			return;
+		}
+
+		update_post_meta( (int) $artist_profile_id, '_stripe_connect_status', $status );
+
+		$onboarding_complete = ( ! empty( $account_data['details_submitted'] ) ) ? '1' : '0';
+		update_post_meta( (int) $artist_profile_id, '_stripe_connect_onboarding_complete', $onboarding_complete );
+	} finally {
+		restore_current_blog();
+	}
+
+	if ( get_current_blog_id() !== $current_blog ) {
+		switch_to_blog( $current_blog );
+	}
 }
 
 /**
  * Get the Stripe account ID for a specific artist.
  *
- * Artists are linked to users, so this looks up the user who owns the artist
- * and returns their connected Stripe account.
- *
- * @param int $artist_profile_id Artist profile post ID (from Blog ID 4).
+ * @param int $artist_profile_id Artist profile post ID.
  * @return string|false Stripe account ID or false if not found.
  */
 function extrachill_shop_get_artist_stripe_account( $artist_profile_id ) {
-	// Switch to artist site to get artist data.
-	$current_blog = get_current_blog_id();
-	$artist_blog  = 4;
-
-	if ( $current_blog !== $artist_blog ) {
-		switch_to_blog( $artist_blog );
+	if ( ! function_exists( 'ec_get_blog_id' ) ) {
+		return false;
 	}
 
+	$artist_blog_id = ec_get_blog_id( 'artist' );
+	if ( ! $artist_blog_id ) {
+		return false;
+	}
+
+	switch_to_blog( $artist_blog_id );
 	try {
 		$artist = get_post( $artist_profile_id );
 		if ( ! $artist || 'artist_profile' !== $artist->post_type ) {
 			return false;
 		}
 
-		$user_id = $artist->post_author;
-
+		$account_id = (string) get_post_meta( $artist_profile_id, '_stripe_connect_account_id', true );
+		return $account_id ? $account_id : false;
 	} finally {
-		if ( $current_blog !== $artist_blog ) {
-			restore_current_blog();
-		}
+		restore_current_blog();
 	}
-
-	$account_id = get_user_meta( $user_id, '_stripe_connect_account_id', true );
-
-	return ! empty( $account_id ) ? $account_id : false;
 }
 
 /**

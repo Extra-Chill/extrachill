@@ -18,6 +18,39 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
+ * Remove default WooCommerce single product hooks
+ *
+ * We provide our own gallery and summary layout in content-single-product.php,
+ * so we remove the default hooks that output duplicate/conflicting content.
+ */
+add_action( 'init', 'extrachill_shop_remove_default_product_hooks' );
+function extrachill_shop_remove_default_product_hooks() {
+	// Remove default gallery (we have our own)
+	remove_action( 'woocommerce_before_single_product_summary', 'woocommerce_show_product_images', 20 );
+
+	// Remove default sale flash (we handle it in our template)
+	remove_action( 'woocommerce_before_single_product_summary', 'woocommerce_show_product_sale_flash', 10 );
+
+	// Remove default title (we output it directly)
+	remove_action( 'woocommerce_single_product_summary', 'woocommerce_template_single_title', 5 );
+
+	// Remove default rating (we'll handle if needed)
+	remove_action( 'woocommerce_single_product_summary', 'woocommerce_template_single_rating', 10 );
+
+	// Remove default price (we output it directly)
+	remove_action( 'woocommerce_single_product_summary', 'woocommerce_template_single_price', 10 );
+
+	// Remove default excerpt (we output it directly)
+	remove_action( 'woocommerce_single_product_summary', 'woocommerce_template_single_excerpt', 20 );
+
+	// Remove default meta (we output it directly)
+	remove_action( 'woocommerce_single_product_summary', 'woocommerce_template_single_meta', 40 );
+
+	// Remove default sharing (not using)
+	remove_action( 'woocommerce_single_product_summary', 'woocommerce_template_single_sharing', 50 );
+}
+
+/**
  * Override single product template from plugin
  *
  * @param string $template Current template path
@@ -73,5 +106,31 @@ function extrachill_shop_locate_woocommerce_template( $template, $template_name,
 	return $template;
 }
 add_filter( 'woocommerce_locate_template', 'extrachill_shop_locate_woocommerce_template', 10, 3 );
+
+/**
+ * Override WooCommerce template parts
+ *
+ * Handles template parts like content-single-product.php and content-product.php
+ * which use wc_get_template_part() instead of wc_get_template().
+ *
+ * @param string $template Template path
+ * @param string $slug     Template slug
+ * @param string $name     Template name
+ * @return string Modified template path if plugin template exists
+ */
+function extrachill_shop_get_template_part( $template, $slug, $name ) {
+	if ( $name ) {
+		$plugin_template = EXTRACHILL_SHOP_PLUGIN_DIR . 'woocommerce/' . $slug . '-' . $name . '.php';
+	} else {
+		$plugin_template = EXTRACHILL_SHOP_PLUGIN_DIR . 'woocommerce/' . $slug . '.php';
+	}
+
+	if ( file_exists( $plugin_template ) ) {
+		return $plugin_template;
+	}
+
+	return $template;
+}
+add_filter( 'wc_get_template_part', 'extrachill_shop_get_template_part', 10, 3 );
 
 

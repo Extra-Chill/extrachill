@@ -13,6 +13,14 @@
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * Disable all WooCommerce default stylesheets
+ *
+ * We provide our own styling via assets/css/woocommerce.css that integrates
+ * with the Extra Chill theme design system (root.css variables).
+ */
+add_filter( 'woocommerce_enqueue_styles', '__return_empty_array' );
+
 add_action( 'wp_enqueue_scripts', 'extrachill_shop_enqueue_assets' );
 function extrachill_shop_enqueue_assets() {
     $css_file = EXTRACHILL_SHOP_PLUGIN_DIR . 'assets/css/woocommerce.css';
@@ -27,24 +35,21 @@ function extrachill_shop_enqueue_assets() {
     }
 }
 
-add_action( 'wp_enqueue_scripts', 'extrachill_shop_enqueue_artist_dashboard_assets' );
-function extrachill_shop_enqueue_artist_dashboard_assets() {
-    if ( ! is_account_page() ) {
+add_action( 'wp_enqueue_scripts', 'extrachill_shop_enqueue_product_gallery' );
+function extrachill_shop_enqueue_product_gallery() {
+    if ( ! is_product() ) {
         return;
     }
 
-    if ( ! function_exists( 'extrachill_shop_user_is_artist' ) || ! extrachill_shop_user_is_artist() ) {
-        return;
-    }
+    $js_file = EXTRACHILL_SHOP_PLUGIN_DIR . 'assets/js/product-gallery.js';
 
-    $css_file = EXTRACHILL_SHOP_PLUGIN_DIR . 'assets/css/artist-dashboard.css';
-
-    if ( file_exists( $css_file ) ) {
-        wp_enqueue_style(
-            'extrachill-shop-artist-dashboard',
-            EXTRACHILL_SHOP_PLUGIN_URL . 'assets/css/artist-dashboard.css',
+    if ( file_exists( $js_file ) ) {
+        wp_enqueue_script(
+            'extrachill-shop-product-gallery',
+            EXTRACHILL_SHOP_PLUGIN_URL . 'assets/js/product-gallery.js',
             array(),
-            filemtime( $css_file )
+            filemtime( $js_file ),
+            true
         );
     }
 }
