@@ -65,7 +65,7 @@ defined( 'ABSPATH' ) || exit;
 				if ( ! empty( $artist_profile_ids ) ) :
 					// User has artists - show manage button
 					?>
-					<p><a href="<?php echo esc_url( ec_get_site_url( 'artist' ) . '/manage-artist-profiles/' ); ?>" class="button-1 button-medium"><?php esc_html_e( 'Manage Artist Profiles', 'extra-chill-community' ); ?></a></p>
+					<p><a href="<?php echo esc_url( ec_get_site_url( 'artist' ) . '/manage-artist/' ); ?>" class="button-1 button-medium"><?php esc_html_e( 'Manage Artist', 'extra-chill-community' ); ?></a></p>
 				<?php elseif ( function_exists('ec_can_create_artist_profiles') && ec_can_create_artist_profiles( $user_id ) ) : ?>
 					// User has no artists but can create - show create button
 					<p><a href="<?php echo esc_url( ec_get_site_url( 'artist' ) . '/create-artist/' ); ?>" class="button-1 button-medium"><?php esc_html_e( 'Create Artist Profile', 'extra-chill-community' ); ?></a></p>

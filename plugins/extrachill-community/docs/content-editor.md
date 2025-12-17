@@ -1,13 +1,56 @@
 # Content Editor Features
 
-Enhanced content creation tools for bbPress forums including rich text editing, image uploads, and content filtering.
+Enhanced content creation tools for bbPress forums including dual editor support (Gutenberg blocks + TinyMCE), image uploads, and content filtering.
 
-## TinyMCE Editor Customization
+## Editor Architecture
+
+### Dual Editor System
+The community platform supports a dual editor approach with Blocks Everywhere (Gutenberg) as the primary editor and TinyMCE as fallback.
+
+**Primary Editor**: Blocks Everywhere (Gutenberg)
+- Activated when Blocks Everywhere plugin is installed and active
+- Provides modern block-based editing experience for forum content
+- Enabled for both frontend users and admin editing capabilities
+- Automatically replaces TinyMCE on bbPress topic and reply forms
+
+**Fallback Editor**: TinyMCE
+- Activated when Blocks Everywhere plugin is not available
+- Traditional rich text editor with familiar WordPress editing experience
+- Maintains full compatibility with existing forum content
+
+## Blocks Everywhere Integration (Gutenberg)
+
+### Block Editor Features
+Modern Gutenberg block editor integration for bbPress forums with enhanced content creation capabilities.
+
+**Available Block Types**:
+- **Paragraph**: Default text content with full formatting options
+- **Heading**: Content structure with H1-H6 heading levels
+- **Embed**: Media embeds (YouTube, SoundCloud, Twitter, etc.)
+
+**Security Restrictions**:
+- Code blocks are disabled for forum security
+- Block types filtered through WordPress KES for content safety
+- All blocks processed through bbPress content filtering pipeline
+
+**User Experience**:
+- Drag-and-drop block reordering
+- Inline formatting controls
+- Media library integration
+- Real-time preview of embedded content
+- Mobile-responsive editing interface
+
+**Content Processing Pipeline**:
+```
+bbp_get_topic_content() → autoembed() → do_blocks() → wp_kses_post() → output
+```
+
+## TinyMCE Editor Customization (Fallback)
 
 ### Visual Editor Integration
-Full TinyMCE rich text editor integration for bbPress topic and reply forms with custom styling and functionality.
+Traditional TinyMCE rich text editor integration for bbPress topic and reply forms with custom styling and functionality.
 
-**Editor Features:**
+**Editor Features**:
 - **Visual Editing**: WYSIWYG editor with formatting toolbar
 - **Custom Styling**: Integrated CSS from `tinymce-editor.css` for consistent appearance
 - **Paste Cleanup**: Automatic cleanup of pasted content with style removal
@@ -19,32 +62,35 @@ Full TinyMCE rich text editor integration for bbPress topic and reply forms with
 - **Simplified Interface**: Streamlined button set focused on essential formatting
 
 ### Autosave Functionality
-Automatic draft saving with custom autosave plugin integration.
+Automatic draft saving with server-backed storage available for both editor types.
 
-**Autosave Behavior:**
+**Autosave Behavior**:
 - **Trigger Delay**: 1.5 seconds after typing stops
-- **Draft Storage**: Browser-based storage with unique prefixes
+- **Draft Storage**: Server-side storage with unique prefixes
 - **Retention**: 30-day draft retention period
 - **Cleanup**: Automatic draft removal on successful form submission
 
-**Technical Implementation:**
-- Custom autosave plugin loaded from `bbpress/autosave/plugin.min.js`
+**Technical Implementation**:
+- Custom autosave plugin integrated with bbPress draft system
 - Debounced saving to prevent excessive storage operations
 - Error handling for failed save operations
+- Works with both Gutenberg and TinyMCE content types
 
 ### Image Upload Integration
-Seamless image upload functionality within the TinyMCE editor.
+Universal image upload functionality compatible with both editor systems.
 
-**Upload Features:**
+**Upload Features**:
 - **Drag & Drop**: Direct image drag-and-drop into editor
 - **File Browser**: Integration with WordPress media library
 - **Automatic Insertion**: Uploaded images automatically inserted at cursor position
 - **Security**: Nonce-based upload verification
+- **REST API**: Uses unified `/wp-json/extrachill/v1/media` endpoint
 
-**Implementation Details:**
-- AJAX upload handling via `wp_ajax_handle_tinymce_image_upload`
+**Implementation Details**:
+- Universal upload handling works with Gutenberg and TinyMCE
 - File validation and security checks
 - Integration with WordPress media handling functions
+- Responsive image processing and optimization
 
 ## Content Filtering
 
@@ -69,11 +115,12 @@ Display of main site content within community profiles and feeds.
 ## Usage Context
 
 Content editor features enhance the forum posting experience by:
-- Providing professional rich text editing capabilities
-- Ensuring content security through comprehensive filtering
-- Supporting multimedia content with image uploads
-- Maintaining content integrity with automatic saving
+- Providing modern block-based editing through Blocks Everywhere (Gutenberg) with TinyMCE fallback
+- Ensuring content security through comprehensive filtering and block type restrictions
+- Supporting multimedia content with universal image upload system
+- Maintaining content integrity with server-backed autosave functionality
 - Enabling seamless cross-site content integration
+- Offering mobile-responsive editing experiences across all devices
 
-These features work together to create a robust, user-friendly content creation environment that balances functionality with security.</content>
+These features work together to create a robust, user-friendly content creation environment that balances modern editing capabilities with security and performance requirements.</content>
 <parameter name="filePath">docs/content-editor.md

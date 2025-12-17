@@ -1,5 +1,23 @@
 # Changelog
 
+## [1.1.2] - 2025-12-17
+
+### Added
+- New filter bar integration (`inc/core/filter-bar.php`) that provides sorting (Recent, Upvotes, Popular) and search functionality for bbPress topics using the theme's universal filter bar system
+- Integration with theme's `extrachill_filter_bar_items` filter for consistent UI across the platform
+
+### Changed
+- Major refactoring of bbPress topics loop: removed hardcoded sorting/search UI from `bbpress/loop-topics.php` and replaced with theme filter bar integration
+- Removed sorting/search CSS (~140 lines) from `inc/assets/css/topics-loop.css` as functionality moved to theme's filter bar
+- Removed sort select JavaScript handler from `inc/assets/js/bbpress-ui.js` (handled by theme filter bar)
+- Updated artist management URLs from `/manage-artist-profiles/` to `/manage-artist/` in `bbpress/form-user-edit.php` and `bbpress/user-profile.php`
+- Updated button text from "Manage Artist Profiles" to "Manage Artist" for consistency
+- Updated AGENTS.md to reflect Blocks Everywhere as production-ready integration (removed experimental branch documentation)
+- Enhanced `docs/content-editor.md` with comprehensive dual editor system documentation (Blocks Everywhere + TinyMCE fallback)
+
+### Fixed
+- Improved consistency between artist platform URLs and button text across user profile interfaces
+
 ## [1.1.1] - 2025-12-15
 
 ### Added

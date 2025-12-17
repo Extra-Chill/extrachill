@@ -88,39 +88,8 @@ if (!empty($current_search)) {
 }
 
 
-?>
+extrachill_filter_bar();
 
-<!-- Sorting & Search UI (ensure action URL is correct for context) -->
-<div class="sorting-search">
-    <div class="bbp-sorting-form">
-        <form id="sortingForm" method="get" action="<?php echo esc_url(add_query_arg(null, null)); // Submit to current URL with existing query vars ?>">
-            <select name="sort" id="sortSelect">
-                <option value="default" <?php selected($current_sort, 'default'); ?>>Sort by Recent</option>
-                <option value="upvotes" <?php selected($current_sort, 'upvotes'); ?>>Sort by Upvotes</option>
-                <option value="popular" <?php selected($current_sort, 'popular'); ?>>Sort by Popular</option>
-            </select>
-            <?php if (!empty($current_search)): ?>
-                <input type="hidden" name="bbp_search" value="<?php echo esc_attr($current_search); ?>">
-            <?php endif; ?>
-            <?php
-            // If on a custom feed that used specific post_parent__in, that is part of $loop_args.
-            // We don't need to add it as a hidden field for sorting as it's already in the query context.
-            // However, pagination needs to be respected. $base_args['paged'] is already part of $loop_args.
-            ?>
-        </form>
-    </div>
-    <div class="bbp-search-form">
-        <form method="get" action="<?php echo esc_url(add_query_arg(null, null)); ?>">
-            <input type="text" name="bbp_search" placeholder="Search topics..." value="<?php echo esc_attr($current_search); ?>">
-            <input type="hidden" name="sort" value="<?php echo esc_attr($current_sort); ?>">
-            <button type="submit" class="bbp-search-button" aria-label="<?php esc_attr_e('Search', 'extra-chill-community'); ?>">
-                <?php echo function_exists('ec_icon') ? ec_icon('search', 'bbp-search-icon') : esc_html__('Search', 'extra-chill-community'); ?>
-            </button>
-        </form>
-    </div>
-</div>
-
-<?php
 if (bbp_has_topics($loop_args)) :
 ?>
     <div id="bbp-topic-loop-<?php echo esc_attr(bbp_get_forum_id()); ?>" class="bbp-topics-grid">

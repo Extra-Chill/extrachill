@@ -130,7 +130,7 @@ if ( $is_artist || $is_professional ) :
         if ( bbp_get_displayed_user_id() == get_current_user_id() || current_user_can( 'manage_options' ) ) :
             $current_user_id_for_card_buttons = get_current_user_id();
             $artist_count = is_array( $user_artist_ids ) ? count( $user_artist_ids ) : 0;
-            $base_manage_artists_url_card = ec_get_site_url( 'artist' ) . '/manage-artist-profiles/';
+            $base_manage_artists_url_card = ec_get_site_url( 'artist' ) . '/manage-artist/';
 
             echo '<div class="user-artist-management-actions">';
 

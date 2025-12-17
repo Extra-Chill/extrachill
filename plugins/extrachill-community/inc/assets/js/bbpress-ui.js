@@ -14,14 +14,6 @@ document.addEventListener( 'DOMContentLoaded', function () {
 			}
 		} );
 	}
-
-	const sortSelect = document.getElementById( 'sortSelect' );
-	const sortingForm = document.getElementById( 'sortingForm' );
-	if ( sortSelect && sortingForm ) {
-		sortSelect.addEventListener( 'change', function () {
-			sortingForm.submit();
-		} );
-	}
 } );
 
 window.extrachillTinymceSetup = function ( editor ) {

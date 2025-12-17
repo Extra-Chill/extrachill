@@ -10,7 +10,7 @@ This plugin is part of the Extra Chill Platform, a WordPress multisite network s
 
 **Plugin Information:**
 - **Name**: Extra Chill Community
-- **Version**: 1.1.0
+- **Version**: 1.1.2
 - **Text Domain**: `extra-chill-community`
 - **Author**: Chris Huber
 - **Author URI**: https://chubes.net
@@ -89,31 +89,27 @@ When the plugin is activated, it automatically creates required pages and forums
 ### Main Branch
 The `main` branch contains stable, production-ready code. All production builds should be created from this branch.
 
-### Experimental Branches
+### Blocks Everywhere Integration
 
-#### `experimental/blocks-everywhere`
-Experimental integration with the [Blocks Everywhere](https://wordpress.org/plugins/blocks-everywhere/) plugin, which enables Gutenberg block editor for bbPress forums.
+**PRODUCTION-READY**: The Blocks Everywhere integration is fully implemented and active on community.extrachill.com as of version 1.0.17.
 
-**Status**: Experimental - not production-ready. The Blocks Everywhere plugin has compatibility issues with recent WordPress versions.
+**Integration Details**:
+- File: `inc/content/editor/blocks-everywhere.php` - Filter-based integration with Blocks Everywhere plugin
+- Enables Gutenberg block editor for both frontend users and admin editing of bbPress content
+- Automatically disables TinyMCE when Blocks Everywhere is active
+- Conditional asset loading for iframe editor assets
 
-**Changes from main**:
-- Adds `inc/content/editor/blocks-everywhere.php` - Blocks Everywhere filter integration
-- Modifies TinyMCE files to skip loading when Blocks Everywhere is active
-- Adds require_once in main plugin file
+**Allowed Block Types**:
+- `core/paragraph` - Default text content
+- `core/heading` - Headings for content structure
+- `core/embed` - Media embeds (YouTube, SoundCloud, etc.)
+- **Disabled**: `core/code` block for security reasons
 
-**Building for testing**:
-```bash
-git checkout experimental/blocks-everywhere
-./build.sh
-```
-
-**Building for production**:
-```bash
-git checkout main
-./build.sh
-```
-
-**Future**: If Blocks Everywhere becomes stable and compatible, this integration may be merged into main.
+**Technical Implementation**:
+- Uses `blocks_everywhere_bbpress` and `blocks_everywhere_bbpress_admin` filters to enable functionality
+- Filter-based block type restrictions via `blocks_everywhere_allowed_blocks` filter
+- Seamless integration with existing bbPress permissions and security
+- Compatible with email notifications (blocks converted to plain text)
 
 ## Architecture Principles
 
