@@ -7,7 +7,7 @@ This plugin is part of the Extra Chill Platform, a WordPress multisite network s
 ## Plugin Information
 
 - **Name**: ExtraChill Events
-- **Version**: 0.2.4
+- **Version**: 0.2.5
 - **Text Domain**: `extrachill-events`
 - **Author**: Chris Huber
 - **Author URI**: https://chubes.net
