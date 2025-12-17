@@ -15,9 +15,9 @@ extrachill_breadcrumbs();
 ?>
 
 <div class="events-calendar-container full-width-content">
-	<?php if ( is_tax() && class_exists( 'DataMachineEvents\\Core\\Archive_Title' ) ) : ?>
+	<?php if ( is_tax() ) : ?>
 		<header>
-			<h1 class="page-title"><?php echo esc_html( \DataMachineEvents\Core\Archive_Title::get() ); ?></h1>
+			<h1 class="page-title"><?php single_term_title(); ?> Live Music Calendar</h1>
 		</header>
 	<?php endif; ?>
 
