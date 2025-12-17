@@ -3,7 +3,7 @@
  * Plugin Name: Extra Chill Shop
  * Plugin URI: https://extrachill.com
  * Description: WooCommerce integration and e-commerce functionality for the Extra Chill platform. Features cross-domain ad-free license system, custom breadcrumbs, product category navigation, and comprehensive WooCommerce styling.
- * Version: 0.3.0
+ * Version: 0.4.0
  * Author: Chris Huber
  * Author URI: https://chubes.net
  * License: GPL v2 or later
@@ -17,7 +17,7 @@
  */
 
 defined( 'ABSPATH' ) || exit;
-define( 'EXTRACHILL_SHOP_VERSION', '0.3.0' );
+define( 'EXTRACHILL_SHOP_VERSION', '0.4.0' );
 define( 'EXTRACHILL_SHOP_PLUGIN_FILE', __FILE__ );
 define( 'EXTRACHILL_SHOP_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'EXTRACHILL_SHOP_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
@@ -63,6 +63,7 @@ class ExtraChillShop {
         require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/core/assets.php';
         require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/core/nav.php';
         require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/core/filters/button-classes.php';
+        require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/core/shop-filter-bar.php';
 
         // Artist marketplace
         require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/core/artist-taxonomy.php';
@@ -75,6 +76,9 @@ class ExtraChillShop {
         require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/stripe/checkout-handler.php';
         require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/stripe/webhooks.php';
         require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/stripe/payment-integration.php';
+
+        // Artist notifications
+        require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/core/artist-order-notifications.php';
 
         // Templates
         require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/templates/cart-icon.php';

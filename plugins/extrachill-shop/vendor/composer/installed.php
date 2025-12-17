@@ -3,7 +3,7 @@
         'name' => 'extrachill/shop',
         'pretty_version' => 'dev-main',
         'version' => 'dev-main',
-        'reference' => 'b808bda1dc62e1ada6eb596833d55ee08a933094',
+        'reference' => 'daf64db73507f095f31efea6c1614f6d79cb88a7',
         'type' => 'wordpress-plugin',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -22,7 +22,7 @@
         'extrachill/shop' => array(
             'pretty_version' => 'dev-main',
             'version' => 'dev-main',
-            'reference' => 'b808bda1dc62e1ada6eb596833d55ee08a933094',
+            'reference' => 'daf64db73507f095f31efea6c1614f6d79cb88a7',
             'type' => 'wordpress-plugin',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),

@@ -187,7 +187,7 @@
 .woocommerce ul.products li.product,
 .woocommerce-page ul.products li.product {
     width: 100%;
-    background: var(--background-color);
+    background: var(--card-background);
     border: 1px solid var(--border-color);
     border-radius: var(--border-radius-md);
     padding: var(--spacing-lg);
@@ -203,6 +203,20 @@
     box-shadow: var(--card-hover-shadow);
 }
 
+/* Product Card Structure */
+.woocommerce ul.products li.product .product-card-content {
+    text-align: center;
+}
+
+/* Center badges in product cards */
+.woocommerce ul.products li.product .taxonomy-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-sm);
+    justify-content: center;
+    margin: var(--spacing-md) 0;
+}
+
 .woocommerce ul.products li.product .woocommerce-LoopProduct-link {
     display: block;
     text-decoration: none;
@@ -214,7 +228,6 @@
     height: 250px;
     object-fit: cover;
     border-radius: var(--border-radius-sm);
-    margin-bottom: var(--spacing-md);
     transition: opacity 0.3s ease;
 }
 

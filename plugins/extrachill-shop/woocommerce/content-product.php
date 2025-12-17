@@ -1,17 +1,10 @@
 <?php
 /**
- * The template for displaying product content within loops
+ * Product Card Template
  *
- * This template can be overridden by copying it to yourtheme/woocommerce/content-product.php.
+ * Custom product card for Extra Chill shop with artist taxonomy badges.
  *
- * HOWEVER, on occasion WooCommerce will need to update template files and you
- * (the theme developer) will need to copy the new files to your theme to
- * maintain compatibility. We try to do this as little as possible, but it does
- * happen. When this occurs the version of the template file will be bumped and
- * the readme will list any important changes.
- *
- * @see     https://woocommerce.com/document/template-structure/
- * @package WooCommerce\Templates
+ * @package ExtraChillShop
  * @version 3.6.0
  */
 
@@ -19,49 +12,48 @@ defined( 'ABSPATH' ) || exit;
 
 global $product;
 
-// Ensure visibility.
 if ( empty( $product ) || ! $product->is_visible() ) {
 	return;
 }
 ?>
 <li <?php wc_product_class( '', $product ); ?>>
-	<?php
-	/**
-	 * Hook: woocommerce_before_shop_loop_item.
-	 *
-	 * @hooked woocommerce_template_loop_product_link_open - 10
-	 */
-	do_action( 'woocommerce_before_shop_loop_item' );
+	<div class="product-card-image">
+		<a href="<?php echo esc_url( get_permalink() ); ?>">
+			<?php if ( $product->get_image_id() ) : ?>
+				<?php echo $product->get_image( 'woocommerce_thumbnail' ); ?>
+			<?php else : ?>
+				<div class="product-placeholder-image"></div>
+			<?php endif; ?>
+		</a>
+	</div>
 
-	/**
-	 * Hook: woocommerce_before_shop_loop_item_title.
-	 *
-	 * @hooked woocommerce_show_product_loop_sale_flash - 10
-	 * @hooked woocommerce_template_loop_product_thumbnail - 10
-	 */
-	do_action( 'woocommerce_before_shop_loop_item_title' );
+	<div class="product-card-content">
+		<?php
+		$artist_terms = get_the_terms( get_the_ID(), 'artist' );
+		if ( $artist_terms && ! is_wp_error( $artist_terms ) ) :
+		?>
+		<div class="taxonomy-badges">
+			<?php foreach ( $artist_terms as $term ) : ?>
+				<a href="<?php echo esc_url( get_term_link( $term ) ); ?>"
+				   class="taxonomy-badge artist-badge artist-<?php echo esc_attr( $term->slug ); ?>">
+					<?php echo esc_html( $term->name ); ?>
+				</a>
+			<?php endforeach; ?>
+		</div>
+		<?php endif; ?>
 
-	/**
-	 * Hook: woocommerce_shop_loop_item_title.
-	 *
-	 * @hooked woocommerce_template_loop_product_title - 10
-	 */
-	do_action( 'woocommerce_shop_loop_item_title' );
+		<h2 class="woocommerce-loop-product__title">
+			<a href="<?php echo esc_url( get_permalink() ); ?>">
+				<?php echo get_the_title(); ?>
+			</a>
+		</h2>
 
-	/**
-	 * Hook: woocommerce_after_shop_loop_item_title.
-	 *
-	 * @hooked woocommerce_template_loop_rating - 5
-	 * @hooked woocommerce_template_loop_price - 10
-	 */
-	do_action( 'woocommerce_after_shop_loop_item_title' );
+		<?php woocommerce_template_loop_rating(); ?>
 
-	/**
-	 * Hook: woocommerce_after_shop_loop_item.
-	 *
-	 * @hooked woocommerce_template_loop_product_link_close - 5
-	 * @hooked woocommerce_template_loop_add_to_cart - 10
-	 */
-	do_action( 'woocommerce_after_shop_loop_item' );
-	?>
+		<?php if ( $price_html = $product->get_price_html() ) : ?>
+		<span class="price"><?php echo $price_html; ?></span>
+		<?php endif; ?>
+
+		<?php woocommerce_template_loop_add_to_cart(); ?>
+	</div>
 </li>

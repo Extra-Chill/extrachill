@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2025-12-17
+
+### Added
+- **Artist Order Notifications**: Automated email system notifying artists when their products are ordered, with detailed HTML emails including order items, payouts, and shipping information
+- **Shop Filter Bar**: Universal filter integration with artist taxonomy dropdown, sort options (price, popularity, date), and search functionality with preserved pagination parameters
+- **Artist Taxonomy Badges**: Visual artist attribution on product cards with clickable links to artist archives
+
+### Changed
+- **Homepage Template**: Enhanced with filter bar integration and advanced WP_Query support for artist filtering and multiple sort options
+- **WooCommerce Styling**: Complete CSS modernization using theme CSS variables, responsive design improvements, and placeholder image styling
+
 ## [0.3.0] - 2025-12-16
 
 ### Removed
