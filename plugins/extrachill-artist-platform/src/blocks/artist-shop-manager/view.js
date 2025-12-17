@@ -18,7 +18,7 @@ const useConfig = () => {
 	return useMemo(
 		() => ({
 			userArtists: Array.isArray( config.userArtists ) ? config.userArtists : [],
-			selectedId: config.selectedId || 0,
+			selectedId: parseInt( config.selectedId, 10 ) || 0,
 		}),
 		[ config ]
 	);
@@ -39,14 +39,17 @@ const TabNav = ( { tabs, active, onChange } ) => (
 	</div>
 );
 
+const STANDARD_SIZES = [ 'XS', 'S', 'M', 'L', 'XL', 'XXL' ];
+
 const emptyDraft = ( artistId ) => ( {
 	artist_id: artistId || 0,
 	name: '',
 	price: '',
 	sale_price: '',
-	manage_stock: false,
-	stock_quantity: 0,
+	stock_quantity: '',
 	description: '',
+	has_sizes: false,
+	sizes: STANDARD_SIZES.map( ( name ) => ( { name, stock: 0 } ) ),
 } );
 
 const ProductsTab = ( {
@@ -83,14 +86,26 @@ const ProductsTab = ( {
 		setEditingId( product.id );
 		setShowForm( true );
 		setPendingImageFile( null );
+
+		const hasSizes = Array.isArray( product.sizes ) && product.sizes.length > 0;
+		const sizes = hasSizes
+			? STANDARD_SIZES.map( ( name ) => {
+					const existing = product.sizes.find( ( s ) => s.name === name );
+					return { name, stock: existing ? existing.stock : 0 };
+			  } )
+			: STANDARD_SIZES.map( ( name ) => ( { name, stock: 0 } ) );
+
+		const stockValue = product.manage_stock ? String( product.stock_quantity || 0 ) : '';
+
 		setDraft( {
 			artist_id: product.artist_id || artistId,
 			name: product.name || '',
 			price: product.price || '',
 			sale_price: product.sale_price || '',
-			manage_stock: !! product.manage_stock,
-			stock_quantity: product.stock_quantity || 0,
+			stock_quantity: stockValue,
 			description: product.description || '',
+			has_sizes: hasSizes,
+			sizes,
 		} );
 	};
 
@@ -122,15 +137,27 @@ const ProductsTab = ( {
 		setSaving( true );
 		setLocalError( '' );
 		try {
+			const hasStockValue = draft.stock_quantity !== '' && draft.stock_quantity !== null;
 			const payload = {
 				artist_id: artistId,
 				name: draft.name,
 				price: priceNumber,
 				sale_price: draft.sale_price ? parseFloat( draft.sale_price ) : 0,
-				manage_stock: !! draft.manage_stock,
-				stock_quantity: draft.manage_stock ? parseInt( draft.stock_quantity, 10 ) || 0 : 0,
+				manage_stock: draft.has_sizes || hasStockValue,
+				stock_quantity: hasStockValue ? parseInt( draft.stock_quantity, 10 ) || 0 : 0,
 				description: draft.description,
 			};
+
+			if ( draft.has_sizes ) {
+				payload.sizes = draft.sizes
+					.filter( ( s ) => parseInt( s.stock, 10 ) > 0 )
+					.map( ( s ) => ( {
+						name: s.name,
+						stock: parseInt( s.stock, 10 ),
+					} ) );
+			} else {
+				payload.sizes = [];
+			}
 
 			if ( editingId ) {
 				await updateShopProduct( editingId, payload );
@@ -246,8 +273,24 @@ const ProductsTab = ( {
 						<div className="ec-asm__meta">
 							<div className="ec-asm__name">{ product.name }</div>
 							<div className="ec-asm__muted">
-								${ product.sale_price || product.price } { product.status }
+								<span>${ product.sale_price || product.price }</span>
+								<span className={ `ec-asm__status ec-asm__status--${ product.status }` }>
+									{ product.status }
+								</span>
 							</div>
+							{ Array.isArray( product.sizes ) && product.sizes.length > 0 && (
+								<div className="ec-asm__product-sizes">
+									{ product.sizes.map( ( size ) => (
+										<span
+											key={ size.name }
+											className={ `ec-asm__product-size${ size.stock > 0 ? '' : ' is-out' }` }
+											title={ `${ size.name }: ${ size.stock } in stock` }
+										>
+											{ size.name }
+										</span>
+									) ) }
+								</div>
+							) }
 						</div>
 						<div className="ec-asm__actions">
 							<button
@@ -350,43 +393,77 @@ const ProductsTab = ( {
 						</label>
 					</div>
 
-					<label>
-						<input
-							type="checkbox"
-							checked={ !! draft.manage_stock }
-							onChange={ ( e ) =>
-								setDraft( ( prev ) => ( {
-									...prev,
-									manage_stock: e.target.checked,
-								} ) )
-							}
-						/>
-						Manage Stock
-					</label>
-
-					{ draft.manage_stock && (
-						<label className="ec-asm__field">
-							<span>Stock Quantity</span>
-							<input
-								type="number"
-								value={ draft.stock_quantity }
-								onChange={ ( e ) =>
-									setDraft( ( prev ) => ( { ...prev, stock_quantity: e.target.value } ) )
-								}
-							/>
-						</label>
-					) }
-
 					<label className="ec-asm__field">
 						<span>Description</span>
 						<textarea
-							rows={ 6 }
+							rows={ 4 }
 							value={ draft.description }
 							onChange={ ( e ) =>
 								setDraft( ( prev ) => ( { ...prev, description: e.target.value } ) )
 							}
 						/>
 					</label>
+
+					<div className="ec-asm__stock-section">
+						<h4>Stock</h4>
+
+						{ ! draft.has_sizes && (
+							<label className="ec-asm__field">
+								<input
+									type="number"
+									min="0"
+									value={ draft.stock_quantity }
+									onChange={ ( e ) =>
+										setDraft( ( prev ) => ( { ...prev, stock_quantity: e.target.value } ) )
+									}
+									placeholder="Unlimited"
+								/>
+							</label>
+						) }
+
+						<label className="ec-asm__sizes-toggle">
+							<input
+								type="checkbox"
+								checked={ !! draft.has_sizes }
+								onChange={ ( e ) =>
+									setDraft( ( prev ) => ( {
+										...prev,
+										has_sizes: e.target.checked,
+									} ) )
+								}
+							/>
+							This product has sizes
+						</label>
+
+						{ draft.has_sizes && (
+							<>
+								<div className="ec-asm__size-grid">
+									{ draft.sizes.map( ( size, index ) => (
+										<div key={ size.name } className="ec-asm__size-row">
+											<span className="ec-asm__size-name">{ size.name }</span>
+										<input
+											type="number"
+											min="0"
+											value={ size.stock }
+											onChange={ ( e ) => {
+												const newSizes = [ ...draft.sizes ];
+												newSizes[ index ] = { ...size, stock: e.target.value };
+												setDraft( ( prev ) => ( { ...prev, sizes: newSizes } ) );
+											} }
+											placeholder="0"
+										/>
+										</div>
+									) ) }
+								</div>
+								<div className="ec-asm__stock-total">
+									Total: { draft.sizes.reduce( ( sum, s ) => {
+										const val = parseInt( s.stock, 10 );
+										return sum + ( Number.isFinite( val ) ? val : 0 );
+									}, 0 ) }
+								</div>
+							</>
+						) }
+					</div>
 
 					<div className="ec-asm__actions">
 						<button

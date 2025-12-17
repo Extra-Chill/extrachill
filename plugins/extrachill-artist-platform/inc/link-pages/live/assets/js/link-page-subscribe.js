@@ -50,7 +50,6 @@ document.addEventListener('DOMContentLoaded', function() {
         const submitButton = form.querySelector('button[type="submit"]');
         const formMessage = form.querySelector('.extrch-form-message');
         const emailInput = form.querySelector('input[type="email"]');
-        const artistId = form.dataset.artistId;
 
         if (!emailInput || !emailInput.value) {
             if (formMessage) {
@@ -88,7 +87,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                artist_id: parseInt(artistId, 10),
                 email: emailInput.value
             })
         })

@@ -20,22 +20,13 @@
      */
     function checkEditPermission() {
         const body = document.body;
-        const artistId = body && body.dataset ? body.dataset.extrchArtistId : '';
         const apiUrl = body && body.dataset ? body.dataset.extrchPermissionsApiUrl : '';
 
-        if (!artistId || !apiUrl) {
+        if (!apiUrl) {
             return;
         }
 
-        const artistIdInt = parseInt(artistId, 10);
-        if (!Number.isFinite(artistIdInt) || artistIdInt <= 0) {
-            return;
-        }
-
-        const url = new URL(apiUrl);
-        url.searchParams.set('artist_id', String(artistIdInt));
-
-        fetch(url, {
+        fetch(apiUrl, {
             method: 'GET',
             credentials: 'include'
         })

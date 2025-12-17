@@ -26,7 +26,7 @@ $artist_name = isset($artist_name) ? $artist_name : (isset($data['display_title'
     echo esc_html($subscribe_description);
     ?></p>
 
-    <form id="extrch-subscribe-form-inline" class="extrch-subscribe-form" data-artist-id="<?php echo esc_attr($current_artist_id); ?>">
+    <form id="extrch-subscribe-form-inline" class="extrch-subscribe-form">
         <div class="form-group">
             <input type="email" name="subscriber_email" id="subscriber_email_inline" placeholder="<?php esc_attr_e('Your email address', 'extrachill-artist-platform'); ?>" required aria-label="<?php esc_attr_e('Email Address', 'extrachill-artist-platform'); ?>">
         </div>

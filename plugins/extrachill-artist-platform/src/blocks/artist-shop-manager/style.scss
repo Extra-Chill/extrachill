@@ -97,8 +97,36 @@
 }
 
 .ec-asm__muted {
+	display: flex;
+	align-items: center;
+	gap: var(--spacing-sm);
 	color: var(--muted-text);
 	font-size: var(--font-size-sm);
+}
+
+.ec-asm__status {
+	display: inline-block;
+	padding: 2px 8px;
+	border-radius: var(--border-radius-sm);
+	font-size: var(--font-size-xs);
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.025em;
+
+	&--draft {
+		background: var(--muted-text);
+		color: var(--background-color);
+	}
+
+	&--pending {
+		background: #f0ad4e;
+		color: #000;
+	}
+
+	&--publish {
+		background: var(--accent);
+		color: var(--background-color);
+	}
 }
 
 .ec-asm__actions {
@@ -188,6 +216,83 @@
 	gap: var(--spacing-md);
 }
 
+.ec-asm__stock-section {
+	display: grid;
+	gap: var(--spacing-sm);
+	padding: var(--spacing-md);
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius-md);
+	background: var(--background-color);
+
+	h4 {
+		margin: 0;
+		font-size: var(--font-size-base);
+	}
+}
+
+.ec-asm__sizes-toggle {
+	display: flex;
+	align-items: center;
+	gap: var(--spacing-sm);
+}
+
+.ec-asm__stock-total {
+	font-size: var(--font-size-sm);
+	color: var(--muted-text);
+	font-weight: 600;
+}
+
+.ec-asm__size-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+	gap: var(--spacing-sm);
+}
+
+.ec-asm__size-row {
+	display: grid;
+	grid-template-columns: 48px 1fr;
+	gap: var(--spacing-sm);
+	align-items: center;
+	padding: var(--spacing-sm);
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius-sm);
+	background: var(--background-color);
+}
+
+.ec-asm__size-name {
+	font-weight: 600;
+	font-size: var(--font-size-sm);
+	text-align: center;
+}
+
+.ec-asm__size-row input[type="number"] {
+	width: 100%;
+	text-align: center;
+}
+
+.ec-asm__product-sizes {
+	display: flex;
+	gap: 4px;
+	flex-wrap: wrap;
+	margin-top: 4px;
+}
+
+.ec-asm__product-size {
+	display: inline-block;
+	padding: 2px 6px;
+	font-size: var(--font-size-xs);
+	font-weight: 600;
+	background: var(--accent);
+	color: var(--background-color);
+	border-radius: var(--border-radius-sm);
+
+	&.is-out {
+		background: var(--border-color);
+		color: var(--muted-text);
+		text-decoration: line-through;
+	}
+}
+
 @media (max-width: 640px) {
 	.ec-asm__row {
 		grid-template-columns: 1fr;
@@ -195,5 +300,9 @@
 
 	.ec-asm__product {
 		grid-template-columns: 64px 1fr;
+	}
+
+	.ec-asm__size-grid {
+		grid-template-columns: repeat(3, 1fr);
 	}
 }

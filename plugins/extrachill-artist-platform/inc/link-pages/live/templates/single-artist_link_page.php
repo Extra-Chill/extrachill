@@ -81,8 +81,8 @@ $body_bg_style .= 'min-height:100vh;';
     ?>
 </head>
 <?php
-$permissions_api_url = rest_url( 'extrachill/v1/artist/permissions' );
-$subscribe_api_url = rest_url( 'extrachill/v1/artist/subscribe' );
+$permissions_api_url = rest_url( 'extrachill/v1/artists/' . $artist_id . '/permissions' );
+$subscribe_api_url = rest_url( 'extrachill/v1/artists/' . $artist_id . '/subscribe' );
 $tracking_click_url = rest_url( 'extrachill/v1/analytics/link-click' );
 $tracking_view_url = rest_url( 'extrachill/v1/analytics/view' );
 ?>

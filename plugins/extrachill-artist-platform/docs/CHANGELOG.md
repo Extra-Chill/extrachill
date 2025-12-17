@@ -5,32 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.4.1] - 2025-12-15
+## [1.4.2] - 2025-12-16
 
 ### Added
-- **Stripe Connect Integration**: Artist Shop Manager now supports Stripe Connect payment onboarding with status checking and dashboard access
-- **Shop Product Images**: Featured image uploads for shop products with improved media handling
-- **Minimal Head Assets Module**: New centralized asset enqueuing system (`inc/link-pages/live/minimal-head-assets.php`) for public link page assets
+- **Minimal artist cards**: The homepage `Your Artist Profiles` section now renders compact cards with quick actions to view the profile and jump to the management pages (`inc/home/templates/your-artists.php`).
+- **Shop inventory sizes**: Artist Shop Manager tracks per-size stock, shows size badges, and exposes status chips for each product (`src/blocks/artist-shop-manager/view.js`, `style.scss`).
 
 ### Changed
-- **Asset Organization**: Refactored link page asset enqueuing from inline logic in `link-page-head.php` to dedicated `minimal-head-assets.php` module
-- **Shop Products Data**: Removed `short_description` field from shop product data structure (consolidated to `description`)
-- **Analytics Architecture**: Moved public tracking script enqueuing to minimal-head-assets module for better centralization
-- **API Client Extension**: Enhanced `src/blocks/shared/api/client.js` with Stripe Connect status and onboarding endpoints
-
-### Fixed
-- **Asset Enqueuing Order**: Link page styles now properly enqueued via `wp_print_styles()` after `extrch_link_page_minimal_head` hook fires
-- **Shop Product Creation**: Fixed image upload workflow to handle images for both new and existing products
-
-### Removed
-- **Legacy Edit Button Enqueuing**: Deleted `inc/link-pages/live/edit-button.php` (functionality consolidated into minimal-head-assets module)
-- **Public Tracking Enqueuing**: Removed `extrch_enqueue_public_tracking_script()` from analytics.php (now handled by minimal-head-assets)
+- **Shop REST client**: Shared API client now targets `/extrachill/v1/artists/{artistId}/subscribers`, `/export`, and `/permissions`, while Stripe Connect calls route through a configurable `shopRestUrl` helper that includes the nonce (`src/blocks/shared/api/client.js`, `render.php`).
+- **Shop UI**: Shop manager view adds `has_sizes`, per-size totals, optional stock inputs, and toggles that drive new sanity checks before saving (`src/blocks/artist-shop-manager/view.js`).
+- **Link page payloads**: Live link page templates now surface REST URLs for permissions, subscriptions, and tracking via `body` dataset attributes so edit-button and subscription scripts no longer require `data-artist-id` attributes (`single-artist_link_page.php`, templates, and JS files).
+- **Design system tweak**: `assets/css/artist-card.css` now uses `--border-radius-md` for the avatar overlay to stay aligned with the design tokens.
+- **README refresh**: Documentation now focuses on the current architecture (blocks, REST workflows, analytics) instead of legacy checklists.
 
 ### Technical Improvements
-- **Better Separation of Concerns**: Public link page assets now centrally managed in single module
-- **Enhanced Shop Manager**: Improved product creation/update flow with Stripe Connect payment gating
-- **Code Organization**: Cleaner asset management reducing duplication and improving maintainability
-- **Documentation**: Removed out-of-scope community integration documentation (replaced with integration guidance)
+- **Streamlined scripts**: Edit-button and subscribe JS functions rely solely on dataset URLs instead of duplicated artist IDs, simplifying data flow and avoiding redundant attributes.
 
 ## [1.3.1] - 2025-12-12
 

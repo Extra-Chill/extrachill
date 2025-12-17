@@ -93,13 +93,11 @@ export const searchArtistCapableUsers = ( term, excludeArtistId ) => {
 
 // Subscribers
 export const getSubscribers = ( artistId, page = 1, perPage = 20 ) =>
-	get(
-		`extrachill/v1/artist/subscribers?artist_id=${ artistId }&page=${ page }&per_page=${ perPage }`
-	);
+	get( `extrachill/v1/artists/${ artistId }/subscribers?page=${ page }&per_page=${ perPage }` );
 
 export const exportSubscribers = ( artistId, includeExported = false ) => {
-	const flag = includeExported ? '&include_exported=1' : '';
-	return get( `extrachill/v1/artist/subscribers/export?artist_id=${ artistId }${ flag }` );
+	const query = includeExported ? '?include_exported=1' : '';
+	return get( `extrachill/v1/artists/${ artistId }/subscribers/export${ query }` );
 };
 
 // Shop products
@@ -110,17 +108,46 @@ export const updateShopProduct = ( productId, data ) =>
 export const deleteShopProduct = ( productId ) =>
 	del( `extrachill/v1/shop/products/${ productId }` );
 
-// Shop payments (Stripe Connect)
+// Shop payments (Stripe Connect) - calls shop site directly
+const shopFetch = ( path, options = {} ) => {
+	const config = getConfig();
+	const shopRestUrl = config.shopRestUrl || config.restUrl;
+	const url = shopRestUrl + path;
+
+	return fetch( url, {
+		...options,
+		credentials: 'include',
+		headers: {
+			'Content-Type': 'application/json',
+			'X-WP-Nonce': config.nonce,
+			...( options.headers || {} ),
+		},
+	} ).then( ( res ) => {
+		if ( ! res.ok ) {
+			return res.json().then( ( err ) => {
+				throw new Error( err?.message || 'Request failed' );
+			} );
+		}
+		return res.json();
+	} );
+};
+
 export const getStripeConnectStatus = ( artistId ) =>
-	get( `extrachill/v1/shop/stripe-connect/status?artist_id=${ artistId }` );
+	shopFetch( `shop/stripe-connect/status?artist_id=${ artistId }`, { method: 'GET' } );
 export const createStripeConnectOnboardingLink = ( artistId ) =>
-	post( 'extrachill/v1/shop/stripe-connect/onboarding-link', { artist_id: artistId } );
+	shopFetch( 'shop/stripe-connect/onboarding-link', {
+		method: 'POST',
+		body: JSON.stringify( { artist_id: artistId } ),
+	} );
 export const createStripeConnectDashboardLink = ( artistId ) =>
-	post( 'extrachill/v1/shop/stripe-connect/dashboard-link', { artist_id: artistId } );
+	shopFetch( 'shop/stripe-connect/dashboard-link', {
+		method: 'POST',
+		body: JSON.stringify( { artist_id: artistId } ),
+	} );
 
 // Permissions
 export const getArtistPermissions = ( artistId ) =>
-	get( `extrachill/v1/artist/permissions?artist_id=${ artistId }` );
+	get( `extrachill/v1/artists/${ artistId }/permissions` );
 
 export default {
 	getConfig,
