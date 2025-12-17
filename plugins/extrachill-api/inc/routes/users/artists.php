@@ -210,7 +210,7 @@ function extrachill_api_user_artists_post_handler( WP_REST_Request $request ) {
 		);
 	}
 
-	if ( ! function_exists( 'bp_add_artist_membership' ) ) {
+	if ( ! function_exists( 'ec_add_artist_membership' ) ) {
 		return new WP_Error(
 			'dependency_missing',
 			'Artist platform not active.',
@@ -218,7 +218,7 @@ function extrachill_api_user_artists_post_handler( WP_REST_Request $request ) {
 		);
 	}
 
-	$result = bp_add_artist_membership( $user_id, $artist_id );
+	$result = ec_add_artist_membership( $user_id, $artist_id );
 
 	if ( ! $result ) {
 		return new WP_Error(
@@ -243,7 +243,7 @@ function extrachill_api_user_artists_delete_handler( WP_REST_Request $request ) 
 	$user_id   = $request->get_param( 'id' );
 	$artist_id = $request->get_param( 'artist_id' );
 
-	if ( ! function_exists( 'bp_remove_artist_membership' ) ) {
+	if ( ! function_exists( 'ec_remove_artist_membership' ) ) {
 		return new WP_Error(
 			'dependency_missing',
 			'Artist platform not active.',
@@ -251,7 +251,7 @@ function extrachill_api_user_artists_delete_handler( WP_REST_Request $request ) 
 		);
 	}
 
-	$result = bp_remove_artist_membership( $user_id, $artist_id );
+	$result = ec_remove_artist_membership( $user_id, $artist_id );
 
 	if ( ! $result ) {
 		return new WP_Error(

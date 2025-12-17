@@ -2,6 +2,39 @@
 
 All notable changes to the ExtraChill API plugin are documented here. This file is the single source of truth for release history.
 
+## 0.6.1
+
+### Changed
+
+- **Function Name Prefixes**: Updated function names from `bp_` to `ec_` prefixes throughout shop endpoints for consistency with platform naming conventions
+
+- **Shop Products Enhancements**: Enhanced product management with status management, image ordering, and publish validation
+  - Added support for product status transitions (draft, pending, publish)
+  - Implemented image ordering functionality for product galleries
+  - Added publish validation to ensure products meet requirements before going live
+
+- **Stripe Connect Status Handling**: Improved safer status handling for Stripe Connect integration
+  - Enhanced error handling and validation for Stripe account connections
+  - Better status reporting and connection state management
+
+### Added
+
+- **Shop Catalog Endpoint**: New `GET /wp-json/extrachill/v1/shop/catalog` endpoint for retrieving public product catalog data
+
+- **Shop Orders Management**: New comprehensive orders endpoint with list, status update, and refunds capabilities
+  - `GET /wp-json/extrachill/v1/shop/orders` - List orders with filtering and pagination
+  - `PUT /wp-json/extrachill/v1/shop/orders/{id}` - Update order status and tracking
+  - `POST /wp-json/extrachill/v1/shop/orders/{id}/refund` - Process order refunds
+
+- **Shop Product Images Endpoint**: New `GET /wp-json/extrachill/v1/shop/products/{id}/images` endpoint for managing product image galleries
+
+- **Documentation File**: Added new documentation file covering shop API integration and usage patterns
+
+### Technical Notes
+
+- **Backward Compatibility**: All changes are additive with no breaking modifications
+- **Dependencies**: Shop endpoints continue to integrate with WooCommerce and Stripe Connect systems
+
 ## 0.6.0
 
 ### Changed

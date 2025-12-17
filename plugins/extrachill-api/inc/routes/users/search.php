@@ -180,8 +180,8 @@ function extrachill_api_search_artist_capable_users( WP_REST_Request $request ) 
 
 	// Get existing roster member IDs to exclude
 	$exclude_user_ids = array();
-	if ( $exclude_artist_id && function_exists( 'bp_get_linked_members' ) ) {
-		$linked_members = bp_get_linked_members( $exclude_artist_id );
+	if ( $exclude_artist_id && function_exists( 'ec_get_linked_members' ) ) {
+		$linked_members = ec_get_linked_members( $exclude_artist_id );
 		if ( is_array( $linked_members ) ) {
 			foreach ( $linked_members as $member ) {
 				$exclude_user_ids[] = (int) $member->ID;

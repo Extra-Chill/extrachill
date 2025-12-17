@@ -225,8 +225,8 @@ function extrachill_api_artist_post_handler( WP_REST_Request $request ) {
 	restore_current_blog();
 
 	// Link user to artist (runs outside blog context - uses user meta which is network-wide)
-	if ( function_exists( 'bp_add_artist_membership' ) ) {
-		bp_add_artist_membership( $current_user, $artist_id );
+	if ( function_exists( 'ec_add_artist_membership' ) ) {
+		ec_add_artist_membership( $current_user, $artist_id );
 	}
 
 	return rest_ensure_response( extrachill_api_build_artist_response( $artist_id ) );

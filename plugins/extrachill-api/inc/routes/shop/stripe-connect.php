@@ -166,15 +166,26 @@ function extrachill_api_get_stripe_status( $request ) {
 		);
 	}
 
+	$safe_status = isset( $status['status'] ) ? (string) $status['status'] : '';
+	if ( $safe_status ) {
+		switch_to_blog( $artist_blog_id );
+		try {
+			update_post_meta( $artist_id, '_stripe_connect_status', $safe_status );
+			update_post_meta( $artist_id, '_stripe_connect_onboarding_complete', ! empty( $status['details_submitted'] ) ? '1' : '0' );
+		} finally {
+			restore_current_blog();
+		}
+	}
+
 	return rest_ensure_response(
 		array(
 			'connected'            => true,
 			'account_id'           => $account_id,
-			'status'               => $status['status'],
-			'can_receive_payments' => $status['can_receive_payments'],
-			'charges_enabled'      => $status['charges_enabled'],
-			'payouts_enabled'      => $status['payouts_enabled'],
-			'details_submitted'    => $status['details_submitted'],
+			'status'               => $safe_status,
+			'can_receive_payments' => ! empty( $status['can_receive_payments'] ),
+			'charges_enabled'      => ! empty( $status['charges_enabled'] ),
+			'payouts_enabled'      => ! empty( $status['payouts_enabled'] ),
+			'details_submitted'    => ! empty( $status['details_submitted'] ),
 		)
 	);
 }

@@ -164,8 +164,8 @@ function extrachill_api_artist_roster_list_handler( WP_REST_Request $request ) {
 	}
 
 	$members = array();
-	if ( function_exists( 'bp_get_linked_members' ) ) {
-		$linked_members = bp_get_linked_members( $artist_id );
+	if ( function_exists( 'ec_get_linked_members' ) ) {
+		$linked_members = ec_get_linked_members( $artist_id );
 		if ( is_array( $linked_members ) ) {
 			foreach ( $linked_members as $member ) {
 				$user_info = get_userdata( $member->ID );
@@ -184,8 +184,8 @@ function extrachill_api_artist_roster_list_handler( WP_REST_Request $request ) {
 	}
 
 	$invites = array();
-	if ( function_exists( 'bp_get_pending_invitations' ) ) {
-		$pending = bp_get_pending_invitations( $artist_id );
+	if ( function_exists( 'ec_get_pending_invitations' ) ) {
+		$pending = ec_get_pending_invitations( $artist_id );
 		if ( is_array( $pending ) ) {
 			foreach ( $pending as $invite ) {
 				$invited_on = isset( $invite['invited_on'] ) ? (int) $invite['invited_on'] : 0;
@@ -233,7 +233,7 @@ function extrachill_api_artist_roster_remove_member_handler( WP_REST_Request $re
 		);
 	}
 
-	if ( ! function_exists( 'bp_remove_artist_membership' ) ) {
+	if ( ! function_exists( 'ec_remove_artist_membership' ) ) {
 		return new WP_Error(
 			'not_supported',
 			__( 'Roster removal is not available.', 'extrachill-api' ),
@@ -241,7 +241,7 @@ function extrachill_api_artist_roster_remove_member_handler( WP_REST_Request $re
 		);
 	}
 
-	$removed = bp_remove_artist_membership( $user_id, $artist_id );
+	$removed = ec_remove_artist_membership( $user_id, $artist_id );
 
 	if ( ! $removed ) {
 		return new WP_Error(
@@ -284,7 +284,7 @@ function extrachill_api_artist_roster_cancel_invite_handler( WP_REST_Request $re
 		);
 	}
 
-	if ( ! function_exists( 'bp_remove_pending_invitation' ) ) {
+	if ( ! function_exists( 'ec_remove_pending_invitation' ) ) {
 		return new WP_Error(
 			'not_supported',
 			__( 'Invite cancellation is not available.', 'extrachill-api' ),
@@ -292,7 +292,7 @@ function extrachill_api_artist_roster_cancel_invite_handler( WP_REST_Request $re
 		);
 	}
 
-	$removed = bp_remove_pending_invitation( $artist_id, $invite_id );
+	$removed = ec_remove_pending_invitation( $artist_id, $invite_id );
 
 	if ( ! $removed ) {
 		return new WP_Error(
