@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.4.2] - 2025-12-17
+
+### Added
+- Bearer token authentication system with JWT validation via Authorization header
+- `extrachill_users_revoke_refresh_token()` function for token revocation
+- Join flow registration validation requiring artist/professional selection
+
+### Changed
+- Updated avatar menu manage URL from `/manage-artist-profiles/` to `/manage-artist/`
+- Improved admin notification emails to use user meta instead of POST data for artist/professional flags
+
+### Technical
+- Added `inc/auth-tokens/bearer-auth.php` for REST API Bearer authentication
+- Enhanced registration security with user type validation
+- Improved URL maintainability in avatar menu system
+
 ## [0.4.1] - 2025-12-17
 
 ### Added

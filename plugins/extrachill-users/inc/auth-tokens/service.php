@@ -221,6 +221,33 @@ function extrachill_users_refresh_tokens( string $refresh_token, string $device_
 }
 
 /**
+ * Revokes a refresh token for a user/device.
+ *
+ * @param int    $user_id User ID.
+ * @param string $device_id Device ID (UUIDv4).
+ * @return bool True if revoked, false if not found.
+ */
+function extrachill_users_revoke_refresh_token( int $user_id, string $device_id ): bool {
+	global $wpdb;
+
+	$table_name = extrachill_users_refresh_token_table_name();
+	$now        = extrachill_users_mysql_gmt_from_ts( time() );
+
+	$updated = $wpdb->update(
+		$table_name,
+		array( 'revoked_at' => $now ),
+		array(
+			'user_id'   => $user_id,
+			'device_id' => $device_id,
+		),
+		array( '%s' ),
+		array( '%d', '%s' )
+	);
+
+	return false !== $updated && $updated > 0;
+}
+
+/**
  * Login service: authenticates, optionally sets cookies, and returns tokens.
  *
  * @param string $identifier Username or email.

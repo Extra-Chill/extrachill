@@ -20,16 +20,16 @@ function extrachill_notify_admin_new_user($user_id, $registration_page) {
 
     $admin_email = get_option('admin_email');
     $subject = "New User Registration Notification";
-    $artist_flag = isset($_POST['user_is_artist']) ? wp_unslash($_POST['user_is_artist']) : '';
-    $professional_flag = isset($_POST['user_is_professional']) ? wp_unslash($_POST['user_is_professional']) : '';
+    $artist_flag = get_user_meta($user_id, 'user_is_artist', true);
+    $professional_flag = get_user_meta($user_id, 'user_is_professional', true);
 
     $message = "A new user has registered on the Extra Chill platform.\n\n";
     $message .= "Username: " . $username . "\n";
     $message .= "Email: " . $email . "\n";
     $message .= "User ID: " . $user_id . "\n";
     $message .= "Registration Page: " . ($registration_page ? esc_url($registration_page) : 'Unknown') . "\n";
-    $message .= "Artist: " . ($artist_flag === '1' ? 'Yes' : 'No') . "\n";
-    $message .= "Professional: " . ($professional_flag === '1' ? 'Yes' : 'No') . "\n";
+    $message .= "Artist: " . ($artist_flag ? 'Yes' : 'No') . "\n";
+    $message .= "Professional: " . ($professional_flag ? 'Yes' : 'No') . "\n";
     $message .= "\nUser Profile: " . ec_get_user_profile_url($user_id, $email);
 
     wp_mail($admin_email, $subject, $message);

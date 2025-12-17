@@ -253,6 +253,11 @@
                 const inviteArtistId = inviteArtistIdRaw ? parseInt(inviteArtistIdRaw, 10) : 0;
                 const fromJoin = new URL(window.location.href).searchParams.get('from_join') || '';
 
+                if (fromJoin === 'true' && !userIsArtist && !userIsProfessional) {
+                    renderNotice(form.closest('.login-register-form'), 'error', 'To create your extrachill.link page, please select "I am a musician" or "I work in the music industry".');
+                    return;
+                }
+
                 const url = new URL('extrachill/v1/auth/register', getRestRoot());
 
                 fetch(url.toString(), {

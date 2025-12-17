@@ -46,7 +46,7 @@ function extrachill_display_user_avatar_menu() {
                     $user_artist_ids = ec_get_artists_for_user( $current_user_id );
                     $artist_count    = count( $user_artist_ids );
 
-                    $base_manage_url = ec_get_site_url( 'artist' ) . '/manage-artist-profiles/';
+                    $base_manage_url = ec_get_site_url( 'artist' ) . '/manage-artist/';
 
                     if ( $artist_count > 0 ) {
                         $link_page_count = ec_get_link_page_count_for_user( $current_user_id );
