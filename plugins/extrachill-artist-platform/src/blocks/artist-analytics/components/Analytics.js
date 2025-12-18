@@ -11,8 +11,10 @@ import useAnalytics from '../hooks/useAnalytics';
 import ArtistSwitcher from '../../shared/components/ArtistSwitcher';
 
 export default function Analytics() {
-	const { artistId, userArtists, switchArtist } = useAnalyticsContext();
+	const { artistId, userArtists, switchArtist, linkPageBaseUrl } = useAnalyticsContext();
 	const { analytics, dateRange, setDateRange, isLoading, error } = useAnalytics( artistId );
+	const currentArtist = userArtists.find( ( a ) => a.id === artistId );
+	const artistSlug = currentArtist?.slug || '';
 	const chartRef = useRef( null );
 	const chartInstance = useRef( null );
 
@@ -111,15 +113,25 @@ export default function Analytics() {
 						onChange={ switchArtist }
 					/>
 				</div>
-				<select
-					value={ dateRange }
-					onChange={ handleDateRangeChange }
-					className="ec-aa__date-range"
-				>
-					<option value={ 7 }>{ __( 'Last 7 days', 'extrachill-artist-platform' ) }</option>
-					<option value={ 30 }>{ __( 'Last 30 days', 'extrachill-artist-platform' ) }</option>
-					<option value={ 90 }>{ __( 'Last 90 days', 'extrachill-artist-platform' ) }</option>
-				</select>
+				<div className="ec-aa__header-right">
+					{ artistSlug && linkPageBaseUrl && (
+						<a
+							href={ `${ linkPageBaseUrl }/${ artistSlug }` }
+							className="button-3 button-medium"
+						>
+							{ __( 'View Link Page', 'extrachill-artist-platform' ) }
+						</a>
+					) }
+					<select
+						value={ dateRange }
+						onChange={ handleDateRangeChange }
+						className="ec-aa__date-range"
+					>
+						<option value={ 7 }>{ __( 'Last 7 days', 'extrachill-artist-platform' ) }</option>
+						<option value={ 30 }>{ __( 'Last 30 days', 'extrachill-artist-platform' ) }</option>
+						<option value={ 90 }>{ __( 'Last 90 days', 'extrachill-artist-platform' ) }</option>
+					</select>
+				</div>
 			</div>
 
 			<div className="ec-aa__stats">

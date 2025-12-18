@@ -609,8 +609,6 @@ const App = () => {
 					<a
 						href={`${config.artistSiteUrl}/${artist.slug}`}
 						className="button-3 button-medium"
-						target="_blank"
-						rel="noopener noreferrer"
 					>
 						View Profile
 					</a>

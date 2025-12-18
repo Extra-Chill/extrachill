@@ -9,7 +9,7 @@ import { createContext, useContext, useState, useCallback } from '@wordpress/ele
 const AnalyticsContext = createContext( null );
 
 export function AnalyticsProvider( { initialArtistId, children } ) {
-	const config = window.ecLinkPageAnalyticsConfig || {};
+	const config = window.ecArtistAnalyticsConfig || {};
 	const [ artistId, setArtistId ] = useState( initialArtistId || config.artistId );
 
 	const userArtists = config.userArtists || [];
@@ -29,6 +29,7 @@ export function AnalyticsProvider( { initialArtistId, children } ) {
 		switchArtist,
 		restUrl: config.restUrl || '',
 		nonce: config.nonce || '',
+		linkPageBaseUrl: config.linkPageBaseUrl || '',
 	};
 
 	return (

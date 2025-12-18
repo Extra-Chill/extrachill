@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.2] - 2025-12-17
+
+### Enhanced
+- **Artist Profile Routing**: Migrated from custom routing to native WordPress rewrite rules for better performance and SEO
+- **Artist Analytics Block**: Added "View Link Page" button for direct navigation to artist link pages
+- **Artist Shop Manager Block**: Added "View Shop" button and converted action buttons to icon-only design for improved UX
+- **Block Versions**: Updated artist-analytics (0.1.5), artist-manager (0.1.5), and artist-shop-manager (0.1.1) blocks
+
 ## [1.5.1] - 2025-12-17
 
 ### Technical Improvements

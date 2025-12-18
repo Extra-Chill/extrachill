@@ -57,9 +57,14 @@ $shop_rest_url = function_exists( 'ec_get_site_url' )
     ? trailingslashit( ec_get_site_url( 'shop' ) ) . 'wp-json/extrachill/v1/'
     : rest_url( 'extrachill/v1/' );
 
+$shop_site_url = function_exists( 'ec_get_site_url' )
+    ? ec_get_site_url( 'shop' )
+    : '';
+
 $config = array(
     'restUrl'     => rest_url( 'extrachill/v1/' ),
     'shopRestUrl' => $shop_rest_url,
+    'shopSiteUrl' => $shop_site_url,
     'nonce'       => wp_create_nonce( 'wp_rest' ),
     'userArtists' => array_values( $user_artists_data ),
     'selectedId'  => (int) $selected_id,

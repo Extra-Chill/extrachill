@@ -56,6 +56,12 @@
 	}
 }
 
+.ec-aa__header-right {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+}
+
 .ec-aa__date-range {
 	padding: 8px 12px;
 	border-radius: 6px;

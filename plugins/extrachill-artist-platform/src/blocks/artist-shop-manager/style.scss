@@ -27,6 +27,12 @@
 	flex-wrap: wrap;
 }
 
+.ec-asm__header-right {
+	display: flex;
+	align-items: center;
+	gap: var(--spacing-sm);
+}
+
 .ec-asm__tabs {
 	display: inline-flex;
 	gap: var(--spacing-sm);
@@ -154,8 +160,45 @@
 .ec-asm__actions {
 	display: inline-flex;
 	gap: var(--spacing-sm);
-	flex-wrap: wrap;
+	flex-wrap: nowrap;
 	justify-content: flex-end;
+}
+
+.ec-asm__icon-btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 32px;
+	height: 32px;
+	padding: 0;
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius-sm);
+	background: var(--background-color);
+	color: var(--text-color);
+	cursor: pointer;
+	transition: background-color 0.2s, border-color 0.2s, color 0.2s;
+
+	&:hover:not(:disabled) {
+		background: var(--card-background);
+		border-color: var(--accent);
+	}
+
+	&:disabled {
+		opacity: 0.5;
+		cursor: not-allowed;
+	}
+
+	&--danger:hover:not(:disabled) {
+		background: var(--error-color);
+		border-color: var(--error-color);
+		color: var(--background-color);
+	}
+
+	.dashicons {
+		font-size: 16px;
+		width: 16px;
+		height: 16px;
+	}
 }
 
 .ec-asm__file-input {
@@ -622,16 +665,23 @@
 	}
 
 	.ec-asm__product {
-		grid-template-columns: 64px 1fr;
+		grid-template-columns: 48px 1fr auto;
+		gap: var(--spacing-sm);
+	}
+
+	.ec-asm__product-image {
+		width: 48px;
+		height: 48px;
 	}
 
 	.ec-asm__image-item {
-		grid-template-columns: 64px 1fr;
+		grid-template-columns: 48px 1fr auto;
+		gap: var(--spacing-sm);
 	}
 
-	.ec-asm__image-item .button-danger {
-		grid-column: 1 / -1;
-		justify-self: start;
+	.ec-asm__image-item .ec-asm__image-preview {
+		width: 48px;
+		height: 48px;
 	}
 
 	.ec-asm__size-grid {

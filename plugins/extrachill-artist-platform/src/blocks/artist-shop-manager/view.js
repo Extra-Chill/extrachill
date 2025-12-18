@@ -23,6 +23,7 @@ const useConfig = () => {
 		() => ({
 			userArtists: Array.isArray( config.userArtists ) ? config.userArtists : [],
 			selectedId: parseInt( config.selectedId, 10 ) || 0,
+			shopSiteUrl: config.shopSiteUrl || '',
 		}),
 		[ config ]
 	);
@@ -475,19 +476,21 @@ const ProductsTab = ( {
 						<div className="ec-asm__actions">
 							<button
 								type="button"
-								className="button-1 button-small"
+								className="ec-asm__icon-btn"
 								onClick={ () => startEdit( product ) }
 								disabled={ saving }
+								title="Edit"
 							>
-								Edit
+								<span className="dashicons dashicons-edit"></span>
 							</button>
 							<button
 								type="button"
-								className="button-danger button-small"
+								className="ec-asm__icon-btn ec-asm__icon-btn--danger"
 								onClick={ () => trash( product.id ) }
 								disabled={ saving }
+								title="Trash"
 							>
-								Trash
+								<span className="dashicons dashicons-trash"></span>
 							</button>
 						</div>
 					</div>
@@ -597,11 +600,12 @@ const ProductsTab = ( {
 													</div>
 													<button
 														type="button"
-														className="button-danger button-small"
+														className="ec-asm__icon-btn ec-asm__icon-btn--danger"
 														onClick={ () => deleteImage( img.id ) }
 														disabled={ saving }
+														title="Delete"
 													>
-														Delete
+														<span className="dashicons dashicons-trash"></span>
 													</button>
 												</div>
 											) }
@@ -1318,6 +1322,9 @@ const App = () => {
 		}
 	}, [ artistId ] );
 
+	const currentArtist = config.userArtists.find( ( a ) => a.id === artistId );
+	const artistSlug = currentArtist?.slug || '';
+
 	return (
 		<div className="ec-asm">
 			<div className="ec-asm__header">
@@ -1329,8 +1336,19 @@ const App = () => {
 						onChange={ onArtistChange }
 					/>
 				</div>
-				<TabNav tabs={ tabs } active={ activeTab } onChange={ setActiveTab } />
+				<div className="ec-asm__header-right">
+					{ artistSlug && config.shopSiteUrl && (
+						<a
+							href={ `${ config.shopSiteUrl }/artist/${ artistSlug }/` }
+							className="button-3 button-medium"
+						>
+							View Shop
+						</a>
+					) }
+				</div>
 			</div>
+
+			<TabNav tabs={ tabs } active={ activeTab } onChange={ setActiveTab } />
 
 			{ activeTab === 'products' && (
 				<ProductsTab

@@ -110,10 +110,11 @@ if ( ! $link_page_id || get_post_status( $link_page_id ) !== 'publish' ) {
 }
 
 $config = array(
-	'artistId'    => (int) $artist_id,
-	'userArtists' => $user_artists_data,
-	'restUrl'     => rest_url( 'extrachill/v1/' ),
-	'nonce'       => wp_create_nonce( 'wp_rest' ),
+	'artistId'        => (int) $artist_id,
+	'userArtists'     => $user_artists_data,
+	'restUrl'         => rest_url( 'extrachill/v1/' ),
+	'nonce'           => wp_create_nonce( 'wp_rest' ),
+	'linkPageBaseUrl' => 'https://extrachill.link',
 );
 
 // Enqueue the frontend script with localized data
