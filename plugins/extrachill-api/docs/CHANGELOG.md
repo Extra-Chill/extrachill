@@ -2,6 +2,20 @@
 
 All notable changes to the ExtraChill API plugin are documented here. This file is the single source of truth for release history.
 
+## 0.6.4
+
+### Fixed
+
+- **Activity Data Display**: Added HTML entity decoding in activity emitters for proper title and excerpt rendering
+  - Applied `html_entity_decode()` to post titles and excerpts in `extrachill_api_activity_emit_post_events()` and `extrachill_api_activity_emit_comment_event()`
+  - Ensures special characters display correctly in activity feeds and notifications
+  - Prevents HTML entities from appearing as raw text in activity data
+
+### Technical Notes
+
+- **Backward Compatibility**: All changes are fixes with no breaking modifications
+- **Activity System**: Enhanced data accuracy for activity feeds and comment events
+
 ## 0.6.3
 
 ### Fixed
