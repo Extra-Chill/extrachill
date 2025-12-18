@@ -37,7 +37,7 @@ function extrachill_api_activity_emit_post_events( $new_status, $old_status, $po
         $actor_id = (int) $post->post_author;
     }
 
-    $title = get_the_title( $post );
+    $title = html_entity_decode( get_the_title( $post ), ENT_QUOTES | ENT_HTML5, 'UTF-8' );
 
     if ( 'publish' === $old_status ) {
         $type    = 'post_updated';
@@ -49,7 +49,7 @@ function extrachill_api_activity_emit_post_events( $new_status, $old_status, $po
 
     $card = array(
         'title'     => $title,
-        'excerpt'   => get_the_excerpt( $post ),
+        'excerpt'   => html_entity_decode( get_the_excerpt( $post ), ENT_QUOTES | ENT_HTML5, 'UTF-8' ),
         'permalink' => get_permalink( $post ),
     );
 
@@ -105,7 +105,7 @@ function extrachill_api_activity_emit_comment_event( $comment_id, $comment_appro
         $actor_id = get_current_user_id();
     }
 
-    $post_title = get_the_title( $post_id );
+    $post_title = html_entity_decode( get_the_title( $post_id ), ENT_QUOTES | ENT_HTML5, 'UTF-8' );
     $summary    = 'Commented on: ' . $post_title;
 
     $card = array(
