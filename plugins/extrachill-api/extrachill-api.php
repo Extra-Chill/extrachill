@@ -3,7 +3,7 @@
  * Plugin Name: Extra Chill API
  * Plugin URI: https://extrachill.com
  * Description: Central REST API infrastructure for the Extra Chill multisite network.
- * Version: 0.6.2
+ * Version: 0.6.3
  * Author: Extra Chill
  * Author URI: https://extrachill.com
  * Network: true
@@ -80,6 +80,9 @@ final class ExtraChill_API_Plugin {
 			require_once EXTRACHILL_API_PATH . 'inc/activity/storage.php';
 			require_once EXTRACHILL_API_PATH . 'inc/activity/emitter.php';
 			require_once EXTRACHILL_API_PATH . 'inc/activity/emitters.php';
+
+			// Ensure activity table exists (network activation doesn't trigger activation hook)
+			$this->maybe_create_activity_table();
 		}
 
 
@@ -114,6 +117,25 @@ final class ExtraChill_API_Plugin {
      */
     public function register_routes() {
         do_action( 'extrachill_api_register_routes' );
+    }
+
+    /**
+     * Creates activity table if it doesn't exist.
+     * Failsafe for network activation which doesn't trigger activation hooks.
+     */
+    private function maybe_create_activity_table() {
+        global $wpdb;
+
+        $table_name = extrachill_api_activity_get_table_name();
+
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+        $table_exists = $wpdb->get_var(
+            $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_name )
+        );
+
+        if ( $table_exists !== $table_name ) {
+            extrachill_api_activity_install_table();
+        }
     }
 }
 

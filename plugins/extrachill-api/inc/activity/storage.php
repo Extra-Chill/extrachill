@@ -64,7 +64,7 @@ function extrachill_api_activity_insert( $event ) {
 
     return array(
         'id'         => $id,
-        'created_at' => mysql2date( 'c', $normalized['created_at'], false ),
+        'created_at' => gmdate( 'c', strtotime( $normalized['created_at'] . ' UTC' ) ),
         'type'       => $normalized['type'],
         'blog_id'    => $normalized['blog_id'],
         'actor_id'   => $normalized['actor_id'],
@@ -81,6 +81,7 @@ function extrachill_api_activity_insert( $event ) {
             'blog_id'     => $normalized['secondary']['blog_id'],
             'id'          => $normalized['secondary']['id'],
         ) : null,
+        'created_at' => gmdate( 'c', strtotime( $normalized['created_at'] . ' UTC' ) ),
     );
 }
 
@@ -148,7 +149,7 @@ function extrachill_api_activity_query( $args = array() ) {
     $prepared = $wpdb->prepare( $sql, $params );
     $rows = $wpdb->get_results( $prepared, ARRAY_A );
 
-    $items = array();
+        $items = array();
     foreach ( $rows as $row ) {
         $data = null;
         if ( ! empty( $row['data'] ) ) {
@@ -160,7 +161,7 @@ function extrachill_api_activity_query( $args = array() ) {
 
         $items[] = array(
             'id'         => (int) $row['id'],
-            'created_at' => mysql2date( 'c', $row['created_at'], false ),
+            'created_at' => extrachill_api_activity_normalize_created_at( $row['created_at'] ),
             'type'       => $row['type'],
             'blog_id'    => (int) $row['blog_id'],
             'actor_id'   => null !== $row['actor_id'] ? (int) $row['actor_id'] : null,
@@ -189,4 +190,8 @@ function extrachill_api_activity_query( $args = array() ) {
         'items' => $items,
         'next_cursor' => $next_cursor,
     );
+}
+
+function extrachill_api_activity_normalize_created_at( $created_at ) {
+    return gmdate( 'c', strtotime( $created_at . ' UTC' ) );
 }

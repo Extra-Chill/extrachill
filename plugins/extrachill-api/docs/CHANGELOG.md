@@ -2,6 +2,25 @@
 
 All notable changes to the ExtraChill API plugin are documented here. This file is the single source of truth for release history.
 
+## 0.6.3
+
+### Fixed
+
+- **Activity Table Creation**: Added failsafe method to ensure activity table exists on plugin boot
+  - New `maybe_create_activity_table()` method in singleton class
+  - Prevents activity system failures on fresh network activations where activation hooks don't fire
+  - Checks table existence with `SHOW TABLES LIKE` query before attempting creation
+
+- **Activity Date Handling**: Fixed UTC timestamp normalization throughout activity storage
+  - Replaced `mysql2date()` calls with `gmdate()` for consistent UTC handling
+  - Added `extrachill_api_activity_normalize_created_at()` helper function
+  - Prevents timezone-related inconsistencies in activity timestamps
+
+### Technical Notes
+
+- **Backward Compatibility**: All changes are fixes with no breaking modifications
+- **Activity System**: Enhanced reliability for multisite network activations and timestamp accuracy
+
 ## 0.6.2
 
 ### Added
