@@ -23,22 +23,25 @@ Retrieve paginated activity feed with configurable filtering and visibility cont
 **Response** (HTTP 200):
 ```json
 {
-  "activities": [
+  "items": [
     {
       "id": 123,
+      "created_at": "2025-01-15T10:30:00Z",
+      "type": "post_published",
       "blog_id": 1,
       "actor_id": 456,
-      "type": "post_published",
-      "object_type": "post",
-      "object_id": 789,
-      "timestamp": "2025-01-15T10:30:00Z",
+      "summary": "...",
       "visibility": "public",
-      "data": {}
+      "primary_object": {
+        "object_type": "post",
+        "blog_id": 1,
+        "id": "789"
+      },
+      "secondary_object": null,
+      "data": null
     }
   ],
-  "cursor": 124,
-  "has_more": true,
-  "total": 456
+  "next_cursor": 123
 }
 ```
 
@@ -58,6 +61,21 @@ Retrieve paginated activity feed with configurable filtering and visibility cont
 - Supports keyset pagination via `cursor` parameter for efficient large result sets
 - Visibility filtering prevents unauthorized access to private activity
 - Type filtering allows clients to request specific activity categories
+
+## Emitted Activity Types
+
+Current activity emitters generate these `type` values:
+- `post_published`
+- `post_updated`
+- `comment_created`
+
+## Post Types Included
+
+Post-related activity is emitted for any post type that transitions to `publish` (except `attachment`). The post type is available at `item.data.post_type`.
+
+Post types registered in this repository that may appear:
+- Core: `post`, `page`
+- CPTs: `artist_profile`, `artist_link_page`, `newsletter`, `ec_doc`, `festival_wire`, `wook_horoscope`, `ec_chat`
 
 ## Error Responses
 

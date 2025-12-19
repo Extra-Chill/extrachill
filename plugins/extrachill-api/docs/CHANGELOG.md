@@ -2,6 +2,34 @@
 
 All notable changes to the ExtraChill API plugin are documented here. This file is the single source of truth for release history.
 
+## 0.6.5
+
+### Added
+
+- **Artist Access Management API**: Complete REST API system for artist platform access approval and rejection
+  - `GET /wp-json/extrachill/v1/admin/artist-access/{user_id}/approve` - One-click email approval with HMAC token validation
+  - `POST /wp-json/extrachill/v1/admin/artist-access/{user_id}/approve` - Admin tools button approval
+  - `POST /wp-json/extrachill/v1/admin/artist-access/{user_id}/reject` - Admin tools button rejection
+  - Secure HMAC-signed tokens for email approval links (multisite-compatible)
+  - Integration with existing admin tools workflow and email notifications
+
+### Changed
+
+- **Activity Feed Documentation**: Updated API response structure documentation
+  - Renamed `activities` array to `items` for consistency
+  - Added `created_at`, `summary`, `primary_object`, and `secondary_object` fields
+  - Updated pagination documentation to reflect `next_cursor` pattern
+
+- **Authentication Endpoints Documentation**: Enhanced response format documentation
+  - Added `access_expires_at` and `refresh_expires_at` timestamp fields
+  - Added `avatar_url` and `profile_url` to user object in login and refresh responses
+
+### Technical Notes
+
+- **Backward Compatibility**: All changes are additive with no breaking modifications
+- **Security**: New artist access endpoints use HMAC token validation for email-based approvals
+- **Dependencies**: Artist access endpoints integrate with extrachill-admin-tools plugin functions
+
 ## 0.6.4
 
 ### Fixed

@@ -31,15 +31,16 @@ Refresh an expired access token using a valid refresh token. Maintains user sess
 **Response** (HTTP 200):
 ```json
 {
-  "access_token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...",
-  "refresh_token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...",
-  "token_type": "Bearer",
-  "expires_in": 3600,
+  "access_token": "...",
+  "access_expires_at": "2025-01-15T10:30:00Z",
+  "refresh_token": "...",
+  "refresh_expires_at": "2025-02-15T10:30:00Z",
   "user": {
     "id": 123,
     "username": "user",
-    "email": "user@example.com",
-    "display_name": "User Name"
+    "display_name": "User Name",
+    "avatar_url": "https://...",
+    "profile_url": "https://community.extrachill.com/forums/users/user/"
   }
 }
 ```
