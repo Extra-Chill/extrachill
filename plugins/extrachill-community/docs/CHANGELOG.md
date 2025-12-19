@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.1.3] - 2025-12-18
+
+### Changed
+- Improved artist access request approval system to use REST API endpoint instead of admin-ajax.php for better security and modern API patterns
+- Enhanced artist access request authentication with token-based system replacing nonce-based approach
+
 ## [1.1.2] - 2025-12-17
 
 ### Added
