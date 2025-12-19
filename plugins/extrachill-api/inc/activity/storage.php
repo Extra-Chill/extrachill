@@ -141,6 +141,21 @@ function extrachill_api_activity_query( $args = array() ) {
         }
     }
 
+    $taxonomy_filters = isset( $args['taxonomies'] ) && is_array( $args['taxonomies'] ) ? $args['taxonomies'] : array();
+
+    foreach ( $taxonomy_filters as $taxonomy => $term_slug ) {
+        $taxonomy  = sanitize_key( $taxonomy );
+        $term_slug = sanitize_title( $term_slug );
+
+        if ( ! extrachill_api_activity_is_taxonomy_allowed( $taxonomy ) ) {
+            continue;
+        }
+
+        $where[]  = "JSON_SEARCH(data, 'one', %s, NULL, %s) IS NOT NULL";
+        $params[] = $term_slug;
+        $params[] = '$.taxonomies.' . $taxonomy . '[*].slug';
+    }
+
     $where_sql = implode( ' AND ', $where );
 
     $sql = "SELECT * FROM {$table_name} WHERE {$where_sql} ORDER BY id DESC LIMIT %d";

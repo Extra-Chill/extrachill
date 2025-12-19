@@ -49,6 +49,11 @@ function extrachill_api_register_activity_routes() {
 					'type' => 'string',
 				),
 			),
+			'taxonomies' => array(
+				'required' => false,
+				'type'     => 'object',
+				'default'  => array(),
+			),
 		),
 	) );
 }
@@ -82,6 +87,7 @@ function extrachill_api_activity_get_handler( WP_REST_Request $request ) {
 		'actor_id'   => $request->get_param( 'actor_id' ),
 		'visibility' => $request->get_param( 'visibility' ),
 		'types'      => $request->get_param( 'types' ),
+		'taxonomies' => $request->get_param( 'taxonomies' ),
 	);
 
 	$result = extrachill_api_activity_query( $args );

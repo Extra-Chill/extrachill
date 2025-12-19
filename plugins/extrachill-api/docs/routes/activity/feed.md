@@ -19,6 +19,9 @@ Retrieve paginated activity feed with configurable filtering and visibility cont
 - `actor_id` (integer, optional) - Filter by activity actor (user ID)
 - `visibility` (string, optional) - Filter by visibility: `public` (default) or `private` (requires admin)
 - `types` (array, optional) - Array of activity type strings to include
+- `taxonomies` (object, optional) - Filter by taxonomy terms using AND logic. Keys are taxonomy slugs, values are term slugs.
+  - Allowed: `category`, `post_tag`, `festival`, `location`, `venue`, `artist`, `promoter`
+  - Example: `?taxonomies[venue]=the-fillmore&taxonomies[location]=charleston`
 
 **Response** (HTTP 200):
 ```json
@@ -38,7 +41,18 @@ Retrieve paginated activity feed with configurable filtering and visibility cont
         "id": "789"
       },
       "secondary_object": null,
-      "data": null
+      "data": {
+        "post_type": "datamachine_events",
+        "card": {
+          "title": "Event Title",
+          "excerpt": "...",
+          "permalink": "https://..."
+        },
+        "taxonomies": {
+          "venue": [{"id": 123, "slug": "the-fillmore", "name": "The Fillmore"}],
+          "location": [{"id": 42, "slug": "charleston", "name": "Charleston"}]
+        }
+      }
     }
   ],
   "next_cursor": 123
@@ -61,6 +75,34 @@ Retrieve paginated activity feed with configurable filtering and visibility cont
 - Supports keyset pagination via `cursor` parameter for efficient large result sets
 - Visibility filtering prevents unauthorized access to private activity
 - Type filtering allows clients to request specific activity categories
+- Taxonomy filtering uses AND logic across taxonomies (must match all specified)
+
+## Taxonomy Filtering
+
+Filter activity by taxonomy terms. Multiple taxonomies use AND logic.
+
+**Request:**
+```
+GET /activity?taxonomies[venue]=the-fillmore&taxonomies[location]=charleston
+```
+
+**Allowed Taxonomies:**
+
+| Taxonomy | Description |
+|----------|-------------|
+| `category` | Post categories |
+| `post_tag` | Post tags |
+| `festival` | Festival taxonomy |
+| `location` | Geographic location |
+| `venue` | Event venues |
+| `artist` | Artist taxonomy |
+| `promoter` | Event promoters |
+
+Terms are matched by slug. Only activity items with matching terms for ALL specified taxonomies are returned.
+
+## Response Taxonomy Data
+
+Post activity items include taxonomy terms in `data.taxonomies`. Each term includes `id`, `slug`, and `name` for client-side display. Taxonomies with no assigned terms are omitted from the response.
 
 ## Emitted Activity Types
 

@@ -4,6 +4,9 @@
  *
  * POST /wp-json/extrachill/v1/auth/register
  *
+ * Creates user with auto-generated username from email.
+ * User must complete onboarding to set final username and artist/professional flags.
+ *
  * @package ExtraChillAPI
  */
 
@@ -25,11 +28,6 @@ function extrachill_api_register_auth_register_route() {
 			'callback'            => 'extrachill_api_auth_register_handler',
 			'permission_callback' => '__return_true',
 			'args'                => array(
-				'username'             => array(
-					'required'          => true,
-					'type'              => 'string',
-					'sanitize_callback' => 'sanitize_user',
-				),
 				'email'                => array(
 					'required'          => true,
 					'type'              => 'string',
@@ -86,18 +84,10 @@ function extrachill_api_register_auth_register_route() {
 					'required' => false,
 					'type'     => 'integer',
 				),
-				'user_is_artist'       => array(
-					'required' => false,
-					'type'     => 'boolean',
-				),
-				'user_is_professional' => array(
-					'required' => false,
-					'type'     => 'boolean',
-				),
 				'from_join'            => array(
-					'required'          => false,
-					'type'              => 'string',
-					'sanitize_callback' => 'sanitize_text_field',
+					'required' => false,
+					'type'     => 'boolean',
+					'default'  => false,
 				),
 			),
 		)
@@ -137,7 +127,6 @@ function extrachill_api_auth_register_handler( WP_REST_Request $request ) {
 	}
 
 	$payload = array(
-		'username'             => (string) $request->get_param( 'username' ),
 		'email'                => (string) $request->get_param( 'email' ),
 		'password'             => (string) $request->get_param( 'password' ),
 		'password_confirm'     => (string) $request->get_param( 'password_confirm' ),
@@ -146,9 +135,7 @@ function extrachill_api_auth_register_handler( WP_REST_Request $request ) {
 		'device_name'          => (string) $request->get_param( 'device_name' ),
 		'set_cookie'           => rest_sanitize_boolean( $request->get_param( 'set_cookie' ) ),
 		'remember'             => rest_sanitize_boolean( $request->get_param( 'remember' ) ),
-		'user_is_artist'       => rest_sanitize_boolean( $request->get_param( 'user_is_artist' ) ),
-		'user_is_professional' => rest_sanitize_boolean( $request->get_param( 'user_is_professional' ) ),
-		'from_join'            => sanitize_text_field( (string) $request->get_param( 'from_join' ) ),
+		'from_join'            => rest_sanitize_boolean( $request->get_param( 'from_join' ) ),
 		'invite_token'         => sanitize_text_field( (string) $request->get_param( 'invite_token' ) ),
 		'invite_artist_id'     => absint( $request->get_param( 'invite_artist_id' ) ),
 		'registration_page'    => (string) $request->get_param( 'registration_page' ),

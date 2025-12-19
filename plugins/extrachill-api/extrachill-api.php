@@ -3,7 +3,7 @@
  * Plugin Name: Extra Chill API
  * Plugin URI: https://extrachill.com
  * Description: Central REST API infrastructure for the Extra Chill multisite network.
- * Version: 0.6.5
+ * Version: 0.7.0
  * Author: Extra Chill
  * Author URI: https://extrachill.com
  * Network: true
@@ -78,6 +78,8 @@ final class ExtraChill_API_Plugin {
 			require_once EXTRACHILL_API_PATH . 'inc/activity/db.php';
 			require_once EXTRACHILL_API_PATH . 'inc/activity/schema.php';
 			require_once EXTRACHILL_API_PATH . 'inc/activity/storage.php';
+			require_once EXTRACHILL_API_PATH . 'inc/activity/taxonomies.php';
+			require_once EXTRACHILL_API_PATH . 'inc/activity/throttle.php';
 			require_once EXTRACHILL_API_PATH . 'inc/activity/emitter.php';
 			require_once EXTRACHILL_API_PATH . 'inc/activity/emitters.php';
 

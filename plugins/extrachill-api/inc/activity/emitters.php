@@ -65,8 +65,9 @@ function extrachill_api_activity_emit_post_events( $new_status, $old_status, $po
             'id'          => (string) $post->ID,
         ),
         'data' => array(
-            'post_type' => $post->post_type,
-            'card'      => $card,
+            'post_type'  => $post->post_type,
+            'card'       => $card,
+            'taxonomies' => extrachill_api_activity_get_post_taxonomies( $post ),
         ),
     ) );
 }

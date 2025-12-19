@@ -2,6 +2,51 @@
 
 All notable changes to the ExtraChill API plugin are documented here. This file is the single source of truth for release history.
 
+## 0.7.0
+
+### Added
+
+- **Activity Feed Taxonomy Filtering**: Enhanced `/activity` endpoint with taxonomy-based filtering using AND logic
+  - Added `taxonomies` parameter supporting `category`, `post_tag`, `festival`, `location`, `venue`, `artist`, `promoter` taxonomies
+  - Taxonomy terms are stored in activity data and searchable via JSON_SEARCH queries
+  - Example: `?taxonomies[venue]=the-fillmore&taxonomies[location]=charleston`
+
+- **Activity Throttling**: Prevented feed clutter by deduplicating repeated activity events
+  - Added throttling rules for `post_updated` events (1-hour window)
+  - Uses transient-based caching with actor-specific keys
+  - Reduces noise in activity feeds for frequently updated content
+
+- **Google OAuth Authentication**: New social login endpoint for Google account integration
+  - `POST /wp-json/extrachill/v1/auth/google` - Authenticate users via Google ID tokens
+  - Device tracking and token generation support
+  - Integrates with existing JWT token infrastructure
+
+- **User Onboarding Endpoint**: Complete onboarding management system
+  - `GET /wp-json/extrachill/v1/users/onboarding` - Retrieve onboarding status
+  - `POST /wp-json/extrachill/v1/users/onboarding` - Complete onboarding with username and artist/professional flags
+  - Supports user profile finalization workflow
+
+### Changed
+
+- **Authentication Endpoints Refactoring**: Simplified user registration flow
+  - Removed username, artist, and professional parameters from `/auth/register` endpoint
+  - Changed `from_join` parameter from string to boolean
+  - Streamlined registration to focus on email/password with post-registration onboarding
+
+- **Auth Me Endpoint Enhancement**: Added onboarding status to user profile data
+  - New `onboarding_completed` field in `/auth/me` response
+  - Uses `ec_is_onboarding_complete()` function for status determination
+
+- **Activity Feed Documentation**: Updated with taxonomy filtering and throttling details
+  - Added comprehensive examples for taxonomy parameter usage
+  - Documented throttling behavior and cache-based deduplication
+
+### Technical Notes
+
+- **Backward Compatibility**: All changes are additive with no breaking modifications
+- **Performance**: Taxonomy filtering uses efficient JSON_SEARCH queries; throttling prevents database bloat
+- **Dependencies**: Google OAuth endpoint requires extrachill-users plugin; onboarding uses ec_ functions
+
 ## 0.6.5
 
 ### Added
