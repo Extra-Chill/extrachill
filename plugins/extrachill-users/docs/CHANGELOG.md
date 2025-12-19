@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.1] - 2025-12-19
+
+### Changed
+- Refactored onboarding block to use WordPress build system with ES modules instead of legacy inline registration
+- Updated build process to compile onboarding block and generate build assets
+- Added automatic onboarding page creation during plugin activation on community site
+
 ## [0.5.0] - 2025-12-19
 
 ### Added

@@ -17,7 +17,6 @@
 		"multiple": false
 	},
 	"textdomain": "extrachill-users",
-	"editorScript": "file:./index.js",
 	"render": "file:./render.php",
 	"style": "file:./style.css",
 	"viewScript": "file:./view.js"

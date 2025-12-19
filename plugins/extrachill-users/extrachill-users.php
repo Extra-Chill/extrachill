@@ -3,7 +3,7 @@
  * Plugin Name: Extra Chill Users
  * Plugin URI: https://extrachill.com
  * Description: Single source of truth for user management across the ExtraChill Platform network. Handles authentication, user creation, team members, profile URL resolution, custom avatars, avatar menu, online user tracking, and ad-free licenses.
- * Version: 0.5.0
+ * Version: 0.5.1
  * Author: Chris Huber
  * Author URI: https://chubes.net
  * Network: true
@@ -19,7 +19,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'EXTRACHILL_USERS_VERSION', '0.5.0' );
+define( 'EXTRACHILL_USERS_VERSION', '0.5.1' );
 define( 'EXTRACHILL_USERS_PLUGIN_FILE', __FILE__ );
 define( 'EXTRACHILL_USERS_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'EXTRACHILL_USERS_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
@@ -36,7 +36,7 @@ add_action( 'init', 'extrachill_users_register_blocks' );
 function extrachill_users_register_blocks() {
 	register_block_type( __DIR__ . '/build/login-register' );
 	register_block_type( __DIR__ . '/build/password-reset' );
-	register_block_type( __DIR__ . '/blocks/onboarding' );
+	register_block_type( __DIR__ . '/build/onboarding' );
 }
 
 function extrachill_users_enqueue_block_styles() {

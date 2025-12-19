@@ -4,13 +4,14 @@
   "description": "User management system for ExtraChill Platform",
   "scripts": {
     "build": "npm run build:blocks && npm run copy:block-files",
-    "build:blocks": "npm run build:login-register && npm run build:password-reset",
+    "build:blocks": "npm run build:login-register && npm run build:password-reset && npm run build:onboarding",
     "build:login-register": "wp-scripts build blocks/login-register/src/index.js --output-path=build/login-register",
     "build:password-reset": "wp-scripts build blocks/password-reset/src/index.js --output-path=build/password-reset",
-    "copy:block-files": "cp blocks/login-register/block.json blocks/login-register/render.php blocks/login-register/style.css blocks/login-register/view.js build/login-register/ && cp blocks/password-reset/block.json blocks/password-reset/render.php blocks/password-reset/style.css blocks/password-reset/view.js build/password-reset/",
+    "build:onboarding": "wp-scripts build blocks/onboarding/src/index.js --output-path=build/onboarding",
+    "copy:block-files": "cp blocks/login-register/block.json blocks/login-register/render.php blocks/login-register/style.css blocks/login-register/view.js build/login-register/ && cp blocks/password-reset/block.json blocks/password-reset/render.php blocks/password-reset/style.css blocks/password-reset/view.js build/password-reset/ && cp blocks/onboarding/block.json blocks/onboarding/render.php blocks/onboarding/style.css blocks/onboarding/view.js build/onboarding/",
     "start": "wp-scripts start blocks/login-register/src/index.js --output-path=build/login-register"
   },
   "devDependencies": {
-    "@wordpress/scripts": "^27.0.0"
+    "@wordpress/scripts": "^31.1.0"
   }
 }

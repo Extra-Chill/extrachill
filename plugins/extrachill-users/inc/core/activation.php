@@ -82,3 +82,35 @@ function extrachill_users_maybe_create_login_page() {
 	update_option( 'extrachill_users_login_page_created', 1 );
 }
 add_action( 'admin_init', 'extrachill_users_maybe_create_login_page' );
+
+/**
+ * Create onboarding page on community site only.
+ * Runs on admin_init with site option flag to prevent repeated checks.
+ */
+function extrachill_users_maybe_create_onboarding_page() {
+	if ( ! function_exists( 'ec_get_blog_id' ) ) {
+		return;
+	}
+
+	$community_blog_id = ec_get_blog_id( 'community' );
+	if ( get_current_blog_id() !== $community_blog_id ) {
+		return;
+	}
+
+	if ( get_option( 'extrachill_users_onboarding_page_created' ) ) {
+		return;
+	}
+
+	if ( ! get_page_by_path( 'onboarding' ) ) {
+		wp_insert_post( array(
+			'post_type'    => 'page',
+			'post_title'   => 'Onboarding',
+			'post_name'    => 'onboarding',
+			'post_content' => '<!-- wp:extrachill/onboarding /-->',
+			'post_status'  => 'publish',
+		) );
+	}
+
+	update_option( 'extrachill_users_onboarding_page_created', 1 );
+}
+add_action( 'admin_init', 'extrachill_users_maybe_create_onboarding_page' );
