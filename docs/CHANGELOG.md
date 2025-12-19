@@ -27,6 +27,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added `extrachill_archive_above_posts` action hook for filter bar placement
 - Maintained backward compatibility through existing filter hooks and archive functionality
 
+## [1.3.1] - 2025-12-19
+
+### Changed
+- Enhanced archive header layout with flexbox design for better title and action positioning
+- Improved WooCommerce integration by preventing theme filter defaults on shop pages
+- Updated archive functionality documentation to reflect current function names and plugin locations
+
+### Technical
+- Added `extrachill_archive_header_actions` hook for extensible archive header actions
+- Restructured archive header HTML with responsive flex layout supporting WooCommerce taxonomies
+- Added CSS for archive header row and actions with proper theming integration
+- Updated artist profile integration documentation to use `ec_get_artist_profile_by_slug()` function
+
 ## [1.2.14] - 2025-12-15
 
 ### Removed

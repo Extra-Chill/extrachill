@@ -1,9 +1,9 @@
 /*
-  Theme Name: Extra Chill
-  Author: Chubes
-   Version: 1.3.0
-  Text Domain: extrachill
-*/
+   Theme Name: Extra Chill
+   Author: Chubes
+    Version: 1.3.1
+   Text Domain: extrachill
+ */
 
 /*
  * Color variables and dark mode overrides: assets/css/root.css
@@ -85,6 +85,69 @@ h1, h2, h3, h4, h5, h6 {
 
 h1 {
 	font-size: var(--font-size-3xl);
+}
+
+/*
+ * Archive Header Actions Row
+ *
+ * Shared layout for archive titles and right-aligned actions.
+ * Used by theme archives and WooCommerce taxonomy archives.
+ */
+body.archive .archive-header-row,
+body.search .archive-header-row,
+body.woocommerce.archive .archive-header-row,
+body.woocommerce.tax-product_cat .archive-header-row,
+body.woocommerce.tax-artist .archive-header-row,
+body.tax .archive-header-row,
+body.post-type-archive .archive-header-row {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: var(--spacing-sm);
+}
+
+body.archive .archive-header-actions,
+body.search .archive-header-actions,
+body.woocommerce.archive .archive-header-actions,
+body.woocommerce.tax-product_cat .archive-header-actions,
+body.woocommerce.tax-artist .archive-header-actions,
+body.tax .archive-header-actions,
+body.post-type-archive .archive-header-actions {
+	display: flex;
+	gap: var(--spacing-sm);
+	align-items: center;
+}
+
+body.archive .archive-header-actions:empty,
+body.search .archive-header-actions:empty,
+body.woocommerce.archive .archive-header-actions:empty,
+body.woocommerce.tax-product_cat .archive-header-actions:empty,
+body.woocommerce.tax-artist .archive-header-actions:empty,
+body.tax .archive-header-actions:empty,
+body.post-type-archive .archive-header-actions:empty {
+	display: none;
+}
+
+body.archive .archive-header-actions .artist-profile-link-container,
+body.search .archive-header-actions .artist-profile-link-container,
+body.woocommerce.archive .archive-header-actions .artist-profile-link-container,
+body.woocommerce.tax-product_cat .archive-header-actions .artist-profile-link-container,
+body.woocommerce.tax-artist .archive-header-actions .artist-profile-link-container,
+body.tax .archive-header-actions .artist-profile-link-container,
+body.post-type-archive .archive-header-actions .artist-profile-link-container {
+	float: none;
+	margin-left: 0;
+}
+
+body.archive .page-header .page-title,
+body.search .page-header .page-title,
+body.woocommerce.archive .page-header .page-title,
+body.woocommerce.tax-product_cat .page-header .page-title,
+body.woocommerce.tax-artist .page-header .page-title,
+body.tax .page-header .page-title,
+body.post-type-archive .page-header .page-title {
+	margin: 0;
 }
 
 h2 {
@@ -261,12 +324,14 @@ dd {
 --------------------------------------------------------------*/
 
 input[type="text"], input[type="email"], input[type="url"], input[type="password"], input[type="number"] {
+	width: 100%;
 	border: 1px solid var(--border-color);
 	background-color: var(--background-color);
 	border-radius: var(--border-radius-sm);
 	font-size: var(--font-size-base);
 	color: var(--text-color);
 	padding: var(--spacing-sm) var(--spacing-md);
+	box-sizing: border-box;
 }
 
 select {
@@ -661,7 +726,6 @@ body {
 	box-sizing: border-box;
 	display: grid;
 	grid-template-columns: 1fr var(--sidebar-width);
-	gap: var(--spacing-xl);
 }
 
 /* Single column layout when no sidebar */

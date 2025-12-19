@@ -179,14 +179,14 @@ Connects artist taxonomy archives with artist profile pages on artist.extrachill
 
 ### How It Works
 
-1. **Query Function**: `extrachill_get_artist_profile_by_slug( $slug )`
-   - Switches to blog ID 4 (artist.extrachill.com)
-   - Queries for `artist_profile` post type matching artist slug
+1. **Query Function**: `ec_get_artist_profile_by_slug( $slug )`
+   - Defined in the network-activated `extrachill-users` plugin
+   - Switches to the artist site and queries published `artist_profile` by slug
    - Returns array with `id` and `permalink` if found, false otherwise
    - Uses `try/finally` to ensure blog is restored
 
 2. **Display Function**: `extrachill_display_artist_profile_button()`
-   - Hooked to `extrachill_archive_filter_bar` action
+   - Hooked to `extrachill_archive_header_actions` action
    - Only runs on artist taxonomy archives (`is_tax( 'artist' )`)
    - Queries for matching artist profile
    - Displays "View Artist Profile" button if match found
