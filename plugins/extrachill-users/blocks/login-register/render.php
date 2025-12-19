@@ -150,7 +150,7 @@ if ( isset( $_GET['action'] ) && 'ec_accept_invite' === $_GET['action'] && isset
 						</div>
 					<?php endif; ?>
 
-					<p class="login-signup-link"><?php esc_html_e( 'Not a member?', 'extrachill-users' ); ?> <a href="#tab-register" class="js-switch-to-register"><?php esc_html_e( 'Sign up here', 'extrachill-users' ); ?></a></p>
+					
 				</div>
 			</div>
 		</div>

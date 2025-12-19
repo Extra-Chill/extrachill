@@ -7,6 +7,11 @@
  * @package ExtraChillUsers
  */
 
+if ( is_admin() || ( defined( 'REST_REQUEST' ) && REST_REQUEST ) ) {
+	echo '<div class="onboarding-container"><p>' . esc_html__( 'Onboarding form (editor preview)', 'extrachill-users' ) . '</p></div>';
+	return;
+}
+
 wp_enqueue_script( 'extrachill-auth-utils' );
 
 if ( ! is_user_logged_in() ) {

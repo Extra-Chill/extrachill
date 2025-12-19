@@ -23,6 +23,8 @@ function extrachill_users_run_activation() {
 		extrachill_users_install_refresh_token_table();
 	}
 
+	update_site_option( 'extrachill_users_refresh_token_table_created', 1 );
+
 	extrachill_users_create_login_pages_network();
 }
 
@@ -82,6 +84,24 @@ function extrachill_users_maybe_create_login_page() {
 	update_option( 'extrachill_users_login_page_created', 1 );
 }
 add_action( 'admin_init', 'extrachill_users_maybe_create_login_page' );
+
+/**
+ * Ensure refresh token table exists.
+ * Fallback for existing installations where table was added after activation.
+ */
+function extrachill_users_maybe_create_refresh_token_table() {
+	if ( get_site_option( 'extrachill_users_refresh_token_table_created' ) ) {
+		return;
+	}
+
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/auth-tokens/db.php';
+	if ( function_exists( 'extrachill_users_install_refresh_token_table' ) ) {
+		extrachill_users_install_refresh_token_table();
+	}
+
+	update_site_option( 'extrachill_users_refresh_token_table_created', 1 );
+}
+add_action( 'admin_init', 'extrachill_users_maybe_create_refresh_token_table' );
 
 /**
  * Create onboarding page on community site only.

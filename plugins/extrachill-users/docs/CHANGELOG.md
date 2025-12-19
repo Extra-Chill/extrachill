@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.5.2] - 2025-12-19
+
+### Fixed
+- Removed redundant "Sign up here" link from login tab in login/register block
+- Added editor preview check in onboarding block to prevent rendering in admin/REST contexts
+- Corrected Google OAuth API endpoint path in authentication utilities
+- Added fallback refresh token table creation for existing plugin installations
+
 ## [0.5.1] - 2025-12-19
 
 ### Changed

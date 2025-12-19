@@ -111,7 +111,7 @@
 
         setGlobalLoading(true);
 
-        var url = new URL('extrachill/v1/auth/google', config.restUrl || utils.getRestRoot());
+        var url = new URL('auth/google', config.restUrl || utils.getRestRoot());
 
         fetch(url.toString(), {
             method: 'POST',
