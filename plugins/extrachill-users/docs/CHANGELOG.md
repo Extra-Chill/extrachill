@@ -16,6 +16,15 @@
 - Enhanced registration security with user type validation
 - Improved URL maintainability in avatar menu system
 
+## [0.4.3] - 2025-12-18
+
+### Added
+- `ec_get_artist_profile_by_slug()` function for network-wide artist profile lookup by taxonomy term slug
+- Enhanced artist profile resolution with proper multisite blog switching and input validation
+
+### Technical
+- Improved artist profile relationship functions with canonical slug-to-post mapping
+
 ## [0.4.1] - 2025-12-17
 
 ### Added

@@ -13,6 +13,60 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
+ * Get published artist profile by slug.
+ *
+ * Network-wide canonical helper for mapping an `artist` taxonomy term slug (on any site)
+ * to a published `artist_profile` post on the artist site.
+ *
+ * @param string $slug Artist profile slug.
+ * @return array|false Array with `id` and `permalink`, or false.
+ */
+function ec_get_artist_profile_by_slug( $slug ) {
+	$slug = sanitize_title( (string) $slug );
+	if ( empty( $slug ) ) {
+		return false;
+	}
+
+	$artist_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'artist' ) : null;
+	if ( ! $artist_blog_id ) {
+		return false;
+	}
+
+	switch_to_blog( $artist_blog_id );
+	try {
+		$posts = get_posts(
+			array(
+				'post_type'      => 'artist_profile',
+				'post_status'    => 'publish',
+				'name'           => $slug,
+				'posts_per_page' => 1,
+				'fields'         => 'ids',
+				'no_found_rows'  => true,
+			)
+		);
+
+		if ( empty( $posts ) ) {
+			return false;
+		}
+
+		$artist_id  = (int) $posts[0];
+		$permalink  = get_permalink( $artist_id );
+		$permalink  = $permalink ? (string) $permalink : '';
+
+		if ( ! $permalink ) {
+			return false;
+		}
+
+		return array(
+			'id'        => $artist_id,
+			'permalink' => $permalink,
+		);
+	} finally {
+		restore_current_blog();
+	}
+}
+
+/**
  * Get artist profiles for user
  *
  * Single source of truth for user-artist profile relationships across the network.

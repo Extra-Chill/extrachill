@@ -7,7 +7,7 @@ User management functionality was migrated here from extrachill-multisite plugin
 ## Plugin Information
 
 - **Name**: Extra Chill Users
-- **Version**: 0.4.2
+- **Version**: 0.4.3
 - **Text Domain**: `extrachill-users`
 - **Author**: Chris Huber
 - **Author URI**: https://chubes.net
