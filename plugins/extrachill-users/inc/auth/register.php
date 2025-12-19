@@ -4,6 +4,7 @@
  *
  * Handles user registration via admin-post.php with EC_Redirect_Handler.
  * Creates users on community.extrachill.com via extrachill_create_community_user filter.
+ * Redirects to /onboarding for username selection and artist/professional flags.
  *
  * @package ExtraChill\Users
  */
@@ -14,14 +15,14 @@ defined( 'ABSPATH' ) || exit;
  * Handle registration form submission.
  *
  * Creates user on community.extrachill.com via extrachill_create_community_user filter,
- * processes roster invitations, subscribes to newsletter, and auto-logs in user.
+ * processes roster invitations, subscribes to newsletter, auto-logs in user,
+ * and redirects to onboarding.
  */
 function extrachill_handle_registration() {
 	$redirect = EC_Redirect_Handler::from_post( 'ec_registration' );
 
 	$redirect->verify_nonce( 'extrachill_register_nonce_field', 'extrachill_register_nonce' );
 
-	$username         = sanitize_user( wp_unslash( $_POST['extrachill_username'] ) );
 	$email            = sanitize_email( wp_unslash( $_POST['extrachill_email'] ) );
 	$password         = isset( $_POST['extrachill_password'] ) ? $_POST['extrachill_password'] : '';
 	$password_confirm = isset( $_POST['extrachill_password_confirm'] ) ? $_POST['extrachill_password_confirm'] : '';
@@ -40,34 +41,29 @@ function extrachill_handle_registration() {
 		$redirect->error( __( 'Passwords do not match.', 'extrachill-users' ) );
 	}
 
-	if ( username_exists( $username ) || email_exists( $email ) ) {
-		$redirect->error( __( 'An account already exists with this username or email.', 'extrachill-users' ) );
+	if ( email_exists( $email ) ) {
+		$redirect->error( __( 'An account already exists with this email.', 'extrachill-users' ) );
 	}
 
-	// Join flow requires artist or professional selection
-	if ( isset( $_POST['from_join'] ) && $_POST['from_join'] === 'true' ) {
-		if ( ! isset( $_POST['user_is_artist'] ) && ! isset( $_POST['user_is_professional'] ) ) {
-			$redirect->error(
-				__( 'To create your extrachill.link page, please select "I am a musician" or "I work in the music industry".', 'extrachill-artist-platform' )
-			);
-		}
+	$registration_page = isset( $_POST['source_url'] ) ? esc_url_raw( wp_unslash( $_POST['source_url'] ) ) : '';
+
+	if ( empty( $registration_page ) ) {
+		$redirect->error( __( 'Registration source is missing. Please reload and try again.', 'extrachill-users' ) );
 	}
 
-    $registration_page = isset( $_POST['source_url'] ) ? esc_url_raw( wp_unslash( $_POST['source_url'] ) ) : '';
+	$from_join = isset( $_POST['from_join'] ) && 'true' === $_POST['from_join'];
 
-    if ( empty( $registration_page ) ) {
-        $redirect->error( __( 'Registration source is missing. Please reload and try again.', 'extrachill-users' ) );
-    }
+	$username = function_exists( 'ec_generate_username_from_email' )
+		? ec_generate_username_from_email( $email )
+		: 'user' . wp_rand( 10000, 99999 );
 
-    $registration_data = array(
-        'username'             => $username,
-        'password'             => $password,
-        'email'                => $email,
-        'user_is_artist'       => isset( $_POST['user_is_artist'] ),
-        'user_is_professional' => isset( $_POST['user_is_professional'] ),
-        'registration_page'    => $registration_page,
-    );
-
+	$registration_data = array(
+		'username'          => $username,
+		'password'          => $password,
+		'email'             => $email,
+		'registration_page' => $registration_page,
+		'from_join'         => $from_join,
+	);
 
 	$user_id = apply_filters( 'extrachill_create_community_user', false, $registration_data );
 
@@ -94,8 +90,8 @@ function extrachill_handle_registration() {
 	$invite_artist_id_posted    = isset( $_POST['invite_artist_id'] ) ? absint( $_POST['invite_artist_id'] ) : null;
 
 	if ( $invite_token_posted && $invite_artist_id_posted && function_exists( 'ec_get_pending_invitations' ) && function_exists( 'ec_add_artist_membership' ) && function_exists( 'ec_remove_pending_invitation' ) ) {
-		$pending_invitations       = ec_get_pending_invitations( $invite_artist_id_posted );
-		$valid_invite_data         = null;
+		$pending_invitations         = ec_get_pending_invitations( $invite_artist_id_posted );
+		$valid_invite_data           = null;
 		$valid_invite_id_for_removal = null;
 
 		foreach ( $pending_invitations as $invite ) {
@@ -124,12 +120,12 @@ add_action( 'admin_post_nopriv_extrachill_register_user', 'extrachill_handle_reg
 add_action( 'admin_post_extrachill_register_user', 'extrachill_handle_registration' );
 
 /**
- * Auto-login user after registration and redirect to appropriate destination.
+ * Auto-login user after registration and redirect to onboarding.
  *
- * @param int                 $user_id                 User ID
- * @param EC_Redirect_Handler $redirect                Redirect handler instance
- * @param int|null            $processed_invite_artist_id Artist ID if roster invitation was processed
- * @param string              $success_redirect_url    Custom success redirect URL from block attribute
+ * @param int                 $user_id                    User ID.
+ * @param EC_Redirect_Handler $redirect                   Redirect handler instance.
+ * @param int|null            $processed_invite_artist_id Artist ID if roster invitation was processed.
+ * @param string              $success_redirect_url       Custom success redirect URL from block attribute.
  */
 function extrachill_auto_login_new_user( int $user_id, EC_Redirect_Handler $redirect, ?int $processed_invite_artist_id = null, string $success_redirect_url = '' ) {
 	$user = get_user_by( 'id', $user_id );
@@ -142,17 +138,26 @@ function extrachill_auto_login_new_user( int $user_id, EC_Redirect_Handler $redi
 	wp_set_auth_cookie( $user_id, true );
 	do_action( 'wp_login', $user->user_login, $user );
 
+	$final_redirect_url = '';
+
 	if ( $processed_invite_artist_id ) {
 		$artist_post = get_post( $processed_invite_artist_id );
 		if ( $artist_post && 'artist_profile' === $artist_post->post_type ) {
-			$redirect->redirect_to( get_permalink( $artist_post ) );
+			$final_redirect_url = get_permalink( $artist_post );
 		}
 	}
 
-	if ( ! empty( $success_redirect_url ) ) {
-		$redirect->redirect_to( $success_redirect_url );
+	if ( empty( $final_redirect_url ) && ! empty( $success_redirect_url ) ) {
+		$final_redirect_url = $success_redirect_url;
 	}
 
-	$final_url = apply_filters( 'registration_redirect', home_url(), $user_id );
-	$redirect->redirect_to( $final_url );
+	if ( ! empty( $final_redirect_url ) ) {
+		update_user_meta( $user_id, 'onboarding_redirect_url', $final_redirect_url );
+	}
+
+	$onboarding_url = function_exists( 'ec_get_site_url' )
+		? ec_get_site_url( 'community' ) . '/onboarding/'
+		: home_url( '/onboarding/' );
+
+	$redirect->redirect_to( $onboarding_url );
 }

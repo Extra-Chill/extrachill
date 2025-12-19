@@ -31,6 +31,44 @@ if ( function_exists( 'ec_enqueue_turnstile_script' ) ) {
 
 wp_enqueue_style( 'extrachill-shared-tabs' );
 wp_enqueue_script( 'extrachill-shared-tabs' );
+wp_enqueue_script( 'extrachill-auth-utils' );
+
+$google_oauth_enabled = function_exists( 'ec_is_google_oauth_configured' ) && ec_is_google_oauth_configured();
+if ( $google_oauth_enabled ) {
+	wp_enqueue_script(
+		'google-gsi',
+		'https://accounts.google.com/gsi/client',
+		array(),
+		null,
+		true
+	);
+
+	$google_signin_path = EXTRACHILL_USERS_PLUGIN_DIR . 'assets/js/google-signin.js';
+	if ( file_exists( $google_signin_path ) ) {
+		wp_enqueue_script(
+			'extrachill-google-signin',
+			EXTRACHILL_USERS_PLUGIN_URL . 'assets/js/google-signin.js',
+			array( 'google-gsi', 'extrachill-auth-utils' ),
+			filemtime( $google_signin_path ),
+			true
+		);
+
+		wp_localize_script(
+			'extrachill-google-signin',
+			'ecGoogleConfig',
+			array(
+				'clientId' => get_site_option( 'extrachill_google_client_id', '' ),
+				'restUrl'  => rest_url( 'extrachill/v1/' ),
+			)
+		);
+
+		wp_add_inline_script(
+			'extrachill-google-signin',
+			'document.addEventListener("DOMContentLoaded", function() { if (window.ECGoogleSignIn && window.ecGoogleConfig) { ECGoogleSignIn.init(ecGoogleConfig); } });',
+			'after'
+		);
+	}
+}
 
 $current_url = set_url_scheme(
 	( is_ssl() ? 'https://' : 'http://' ) . $_SERVER['HTTP_HOST'] . strtok( $_SERVER['REQUEST_URI'], '?' )
@@ -103,6 +141,15 @@ if ( isset( $_GET['action'] ) && 'ec_accept_invite' === $_GET['action'] && isset
 						<input type="submit" id="wp-submit" class="button-2 button-medium" value="<?php esc_attr_e( 'Log In', 'extrachill-users' ); ?>">
 					</form>
 
+					<?php if ( $google_oauth_enabled ) : ?>
+						<div class="social-login-divider">
+							<span><?php esc_html_e( 'or', 'extrachill-users' ); ?></span>
+						</div>
+						<div class="social-login-buttons">
+							<div class="google-signin-button"></div>
+						</div>
+					<?php endif; ?>
+
 					<p class="login-signup-link"><?php esc_html_e( 'Not a member?', 'extrachill-users' ); ?> <a href="#tab-register" class="js-switch-to-register"><?php esc_html_e( 'Sign up here', 'extrachill-users' ); ?></a></p>
 				</div>
 			</div>
@@ -121,16 +168,11 @@ if ( isset( $_GET['action'] ) && 'ec_accept_invite' === $_GET['action'] && isset
 						<input type="hidden" name="action" value="extrachill_register_user">
 						<?php EC_Redirect_Handler::render_hidden_fields( 'tab-register' ); ?>
 						<?php wp_nonce_field( 'extrachill_register_nonce', 'extrachill_register_nonce_field' ); ?>
-						<?php if ( ! empty( $attributes['redirectUrl'] ) ) : ?>
-							<input type="hidden" name="success_redirect_url" value="<?php echo esc_url( $attributes['redirectUrl'] ); ?>">
-						<?php endif; ?>
+					<input type="hidden" name="success_redirect_url" value="<?php echo esc_url( ! empty( $attributes['redirectUrl'] ) ? $attributes['redirectUrl'] : $current_url ); ?>">
 						<?php if ( $invite_token && $invite_artist_id ) : ?>
 							<input type="hidden" name="invite_token" value="<?php echo esc_attr( $invite_token ); ?>">
 							<input type="hidden" name="invite_artist_id" value="<?php echo esc_attr( $invite_artist_id ); ?>">
 						<?php endif; ?>
-
-						<label for="extrachill_username"><?php esc_html_e( 'Username', 'extrachill-users' ); ?> <small>(<?php esc_html_e( 'required', 'extrachill-users' ); ?>)</small></label>
-						<input type="text" name="extrachill_username" id="extrachill_username" placeholder="<?php esc_attr_e( 'Choose a username', 'extrachill-users' ); ?>" required>
 
 						<label for="extrachill_email"><?php esc_html_e( 'Email', 'extrachill-users' ); ?></label>
 						<input type="email" name="extrachill_email" id="extrachill_email" placeholder="<?php esc_attr_e( 'you@example.com', 'extrachill-users' ); ?>" required value="<?php echo esc_attr( $invited_email ); ?>">
@@ -141,24 +183,21 @@ if ( isset( $_GET['action'] ) && 'ec_accept_invite' === $_GET['action'] && isset
 						<label for="extrachill_password_confirm"><?php esc_html_e( 'Confirm Password', 'extrachill-users' ); ?></label>
 						<input type="password" name="extrachill_password_confirm" id="extrachill_password_confirm" placeholder="<?php esc_attr_e( 'Repeat your password', 'extrachill-users' ); ?>" required>
 
-						<div class="registration-user-types">
-							<label>
-								<input type="checkbox" id="user_is_fan" checked disabled> <?php esc_html_e( 'I love music', 'extrachill-users' ); ?>
-							</label>
-						<label>
-							<input type="checkbox" name="user_is_artist" id="user_is_artist" value="1"> <?php esc_html_e( 'I am a musician', 'extrachill-users' ); ?>
-						</label>
-						<label>
-							<input type="checkbox" name="user_is_professional" id="user_is_professional" value="1"> <?php esc_html_e( 'I work in the music industry', 'extrachill-users' ); ?>
-						</label>
-						</div>
-
 						<div class="registration-submit-section">
 							<input type="submit" name="extrachill_register" class="button-1 button-medium" value="<?php esc_attr_e( 'Join Now', 'extrachill-users' ); ?>">
 						</div>
 
 						<?php echo ec_render_turnstile_widget(); ?>
 					</form>
+
+					<?php if ( $google_oauth_enabled ) : ?>
+						<div class="social-login-divider">
+							<span><?php esc_html_e( 'or', 'extrachill-users' ); ?></span>
+						</div>
+						<div class="social-login-buttons">
+							<div class="google-signin-button"></div>
+						</div>
+					<?php endif; ?>
 				</div>
 			</div>
 		</div>

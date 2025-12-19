@@ -1,0 +1,132 @@
+.onboarding-container {
+	max-width: 480px;
+	margin: 0 auto;
+	padding: 2rem;
+}
+
+.onboarding-header {
+	text-align: center;
+	margin-bottom: 2rem;
+}
+
+.onboarding-header h1 {
+	margin: 0 0 0.5rem 0;
+}
+
+.onboarding-header p {
+	margin: 0;
+	color: var(--text-muted, #666);
+}
+
+#extrachill-onboarding-form {
+	background: var(--surface, #fff);
+	border: 1px solid var(--border, #e0e0e0);
+	border-radius: 8px;
+	padding: 1.5rem;
+}
+
+.onboarding-field {
+	margin-bottom: 1.5rem;
+}
+
+.onboarding-field label {
+	display: block;
+	margin-bottom: 0.5rem;
+	font-weight: 500;
+}
+
+.onboarding-field input[type="text"] {
+	width: 100%;
+	padding: 0.75rem;
+	border: 1px solid var(--border, #e0e0e0);
+	border-radius: 4px;
+	font-size: 1rem;
+}
+
+.onboarding-field input[type="text"]:focus {
+	outline: none;
+	border-color: var(--accent, #0073aa);
+	box-shadow: 0 0 0 2px rgba(0, 115, 170, 0.2);
+}
+
+.onboarding-field-hint {
+	display: block;
+	margin-top: 0.25rem;
+	color: var(--text-muted, #666);
+	font-size: 0.875rem;
+}
+
+.onboarding-checkboxes {
+	display: flex;
+	flex-direction: column;
+	gap: 0.75rem;
+}
+
+.onboarding-checkbox-label {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	cursor: pointer;
+}
+
+.onboarding-checkbox-label input[type="checkbox"] {
+	width: 18px;
+	height: 18px;
+	margin: 0;
+}
+
+.onboarding-checkbox-label input[type="checkbox"]:disabled {
+	cursor: not-allowed;
+}
+
+.onboarding-checkbox-label span {
+	font-weight: normal;
+}
+
+.onboarding-join-notice {
+	margin: 1rem 0;
+	padding: 0.75rem;
+	background: var(--info-bg, #e7f5ff);
+	border-left: 3px solid var(--accent-2, #0073aa);
+	border-radius: 0 4px 4px 0;
+	font-size: 0.875rem;
+}
+
+.onboarding-error {
+	margin: 1rem 0;
+	padding: 0.75rem;
+	background: var(--error-bg, #fee);
+	border-left: 3px solid var(--error, #dc3232);
+	border-radius: 0 4px 4px 0;
+	color: var(--error, #dc3232);
+}
+
+.onboarding-actions {
+	margin-top: 1.5rem;
+}
+
+.onboarding-actions button {
+	width: 100%;
+}
+
+.onboarding-block-preview {
+	padding: 1.5rem;
+	background: #f0f0f0;
+	border: 1px dashed #ccc;
+	border-radius: 4px;
+	text-align: center;
+}
+
+.onboarding-block-preview h3 {
+	margin: 0 0 0.5rem 0;
+}
+
+.onboarding-block-preview p {
+	margin: 0;
+}
+
+.onboarding-block-note {
+	margin-top: 0.5rem;
+	font-size: 0.875rem;
+	color: #666;
+}

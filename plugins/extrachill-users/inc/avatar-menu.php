@@ -75,6 +75,21 @@ function extrachill_display_user_avatar_menu() {
                             esc_url( $link_page_manage_url ),
                             $link_page_label
                         );
+
+                        // Shop Link - ADMIN ONLY during development
+                        if ( current_user_can( 'manage_options' ) && function_exists( 'extrachill_shop_get_product_count_for_user' ) ) {
+                            $product_count   = extrachill_shop_get_product_count_for_user( $current_user_id );
+                            $shop_manage_url = ec_get_site_url( 'artist' ) . '/manage-shop/';
+                            $shop_label      = $product_count === 0
+                                ? esc_html__( 'Create Shop', 'extrachill-users' )
+                                : esc_html__( 'Manage Shop', 'extrachill-users' );
+
+                            printf(
+                                '<li><a href="%s">%s</a></li>',
+                                esc_url( $shop_manage_url ),
+                                $shop_label
+                            );
+                        }
                     } elseif ( function_exists( 'ec_can_create_artist_profiles' ) && ec_can_create_artist_profiles( $current_user_id ) ) {
                         printf(
                             '<li><a href="%s">%s</a></li>',

@@ -324,11 +324,13 @@ function extrachill_users_login_with_tokens( string $identifier, string $passwor
 /**
  * Register service: validates, creates user, optionally sets cookies, and returns tokens.
  *
+ * User is created with auto-generated username and must complete onboarding
+ * to set final username and artist/professional flags.
+ *
  * @param array $payload Registration payload from REST route.
  * @return array|WP_Error
  */
 function extrachill_users_register_with_tokens( array $payload ) {
-	$username         = isset( $payload['username'] ) ? sanitize_user( (string) $payload['username'] ) : '';
 	$email            = isset( $payload['email'] ) ? sanitize_email( (string) $payload['email'] ) : '';
 	$password         = isset( $payload['password'] ) ? (string) $payload['password'] : '';
 	$password_confirm = isset( $payload['password_confirm'] ) ? (string) $payload['password_confirm'] : '';
@@ -338,8 +340,7 @@ function extrachill_users_register_with_tokens( array $payload ) {
 	$device_name          = isset( $payload['device_name'] ) ? (string) $payload['device_name'] : '';
 	$remember             = ! empty( $payload['remember'] );
 	$set_cookie           = ! empty( $payload['set_cookie'] );
-	$user_is_artist       = ! empty( $payload['user_is_artist'] );
-	$user_is_professional = ! empty( $payload['user_is_professional'] );
+	$from_join            = ! empty( $payload['from_join'] );
 	$invite_token         = isset( $payload['invite_token'] ) ? sanitize_text_field( (string) $payload['invite_token'] ) : '';
 	$invite_artist_id     = isset( $payload['invite_artist_id'] ) ? absint( $payload['invite_artist_id'] ) : 0;
 	$registration_page    = isset( $payload['registration_page'] ) ? esc_url_raw( (string) $payload['registration_page'] ) : '';
@@ -369,10 +370,10 @@ function extrachill_users_register_with_tokens( array $payload ) {
 		);
 	}
 
-	if ( empty( $username ) || empty( $email ) || empty( $password ) || empty( $password_confirm ) ) {
+	if ( empty( $email ) || empty( $password ) || empty( $password_confirm ) ) {
 		return new WP_Error(
 			'missing_fields',
-			'username, email, password, and password_confirm are required.',
+			'email, password, and password_confirm are required.',
 			array( 'status' => 400 )
 		);
 	}
@@ -393,20 +394,11 @@ function extrachill_users_register_with_tokens( array $payload ) {
 		);
 	}
 
-	if ( username_exists( $username ) || email_exists( $email ) ) {
+	if ( email_exists( $email ) ) {
 		return new WP_Error(
 			'user_exists',
-			'An account already exists with this username or email.',
+			'An account already exists with this email.',
 			array( 'status' => 409 )
-		);
-	}
-
-	$from_join = isset( $payload['from_join'] ) ? sanitize_text_field( (string) $payload['from_join'] ) : '';
-	if ( 'true' === $from_join && ! $user_is_artist && ! $user_is_professional ) {
-		return new WP_Error(
-			'join_flow_selection_required',
-			'To create your extrachill.link page, please select "I am a musician" or "I work in the music industry".',
-			array( 'status' => 400 )
 		);
 	}
 
@@ -435,12 +427,15 @@ function extrachill_users_register_with_tokens( array $payload ) {
 		);
 	}
 
+	$username = function_exists( 'ec_generate_username_from_email' )
+		? ec_generate_username_from_email( $email )
+		: 'user' . wp_rand( 10000, 99999 );
+
 	$registration_data = array(
-		'username'             => $username,
-		'password'             => $password,
-		'email'                => $email,
-		'user_is_artist'       => $user_is_artist,
-		'user_is_professional' => $user_is_professional,
+		'username'  => $username,
+		'password'  => $password,
+		'email'     => $email,
+		'from_join' => $from_join,
 	);
 
 	if ( ! empty( $registration_page ) ) {
@@ -471,6 +466,10 @@ function extrachill_users_register_with_tokens( array $payload ) {
 
 	update_user_meta( (int) $user_id, 'registration_timestamp', current_time( 'mysql' ) );
 
+	if ( ! empty( $success_redirect_url ) ) {
+		update_user_meta( (int) $user_id, 'onboarding_redirect_url', $success_redirect_url );
+	}
+
 	if ( function_exists( 'extrachill_multisite_subscribe' ) ) {
 		$sync_result = extrachill_multisite_subscribe( $email, 'registration' );
 		if ( isset( $sync_result['success'] ) && ! $sync_result['success'] ) {
@@ -496,6 +495,7 @@ function extrachill_users_register_with_tokens( array $payload ) {
 			if ( ec_add_artist_membership( (int) $user_id, $invite_artist_id ) ) {
 				ec_remove_pending_invitation( $invite_artist_id, $valid_invite_id_for_removal );
 				$processed_invite_artist_id = $invite_artist_id;
+				update_user_meta( (int) $user_id, 'onboarding_redirect_url', get_permalink( $invite_artist_id ) );
 			}
 		}
 	}
@@ -526,12 +526,18 @@ function extrachill_users_register_with_tokens( array $payload ) {
 	$access  = extrachill_users_generate_access_token( (int) $user_id, $device_id );
 	$refresh = extrachill_users_issue_refresh_token( (int) $user_id, $device_id, $device_name );
 
+	$onboarding_url = function_exists( 'ec_get_site_url' )
+		? ec_get_site_url( 'community' ) . '/onboarding/'
+		: home_url( '/onboarding/' );
+
 	$response = array(
-		'access_token'       => $access['token'],
-		'access_expires_at'  => gmdate( 'c', (int) $access['expires_at'] ),
-		'refresh_token'      => $refresh['token'],
-		'refresh_expires_at' => gmdate( 'c', (int) $refresh['expires_at'] ),
-		'user'               => array(
+		'access_token'         => $access['token'],
+		'access_expires_at'    => gmdate( 'c', (int) $access['expires_at'] ),
+		'refresh_token'        => $refresh['token'],
+		'refresh_expires_at'   => gmdate( 'c', (int) $refresh['expires_at'] ),
+		'onboarding_completed' => false,
+		'redirect_url'         => $onboarding_url,
+		'user'                 => array(
 			'id'           => (int) $user->ID,
 			'username'     => $user->user_login,
 			'display_name' => $user->display_name,
@@ -542,10 +548,6 @@ function extrachill_users_register_with_tokens( array $payload ) {
 
 	if ( $processed_invite_artist_id ) {
 		$response['invite_artist_id'] = (int) $processed_invite_artist_id;
-	}
-
-	if ( ! empty( $success_redirect_url ) ) {
-		$response['redirect_url'] = $success_redirect_url;
 	}
 
 	return $response;

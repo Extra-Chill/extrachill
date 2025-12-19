@@ -1,20 +1,27 @@
 # Changelog
 
-## [0.4.2] - 2025-12-17
+## [0.5.0] - 2025-12-19
 
 ### Added
-- Bearer token authentication system with JWT validation via Authorization header
-- `extrachill_users_revoke_refresh_token()` function for token revocation
-- Join flow registration validation requiring artist/professional selection
+- Google OAuth authentication system with Sign-In buttons and JWT verification
+- User onboarding system with post-registration username and artist/professional flag setup
+- Onboarding Gutenberg block for streamlined user setup flow
+- Shared authentication utilities (auth-utils.js) for common auth functions
+- Enhanced avatar menu with artist management, link pages, and shop options
+- OAuth infrastructure with JWT RS256 verification and Google service integration
 
 ### Changed
-- Updated avatar menu manage URL from `/manage-artist-profiles/` to `/manage-artist/`
-- Improved admin notification emails to use user meta instead of POST data for artist/professional flags
+- Simplified registration form to email/password only (username and artist flags moved to onboarding)
+- Registration flow now redirects to onboarding page after account creation
+- Auto-generated usernames from email addresses
+- Updated admin notification emails to reflect onboarding status
 
 ### Technical
-- Added `inc/auth-tokens/bearer-auth.php` for REST API Bearer authentication
-- Enhanced registration security with user type validation
-- Improved URL maintainability in avatar menu system
+- Added `inc/oauth/` directory with Google OAuth services
+- Added `inc/onboarding/` directory with onboarding handlers
+- Added `blocks/onboarding/` Gutenberg block
+- New JavaScript files: `assets/js/auth-utils.js`, `assets/js/google-signin.js`
+- Documentation: `docs/PLAN-onboarding-system.md`
 
 ## [0.4.3] - 2025-12-18
 

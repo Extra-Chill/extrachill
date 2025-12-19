@@ -20,16 +20,15 @@ function extrachill_notify_admin_new_user($user_id, $registration_page) {
 
     $admin_email = get_option('admin_email');
     $subject = "New User Registration Notification";
-    $artist_flag = get_user_meta($user_id, 'user_is_artist', true);
-    $professional_flag = get_user_meta($user_id, 'user_is_professional', true);
+    $from_join = get_user_meta($user_id, 'onboarding_from_join', true) === '1';
 
     $message = "A new user has registered on the Extra Chill platform.\n\n";
-    $message .= "Username: " . $username . "\n";
+    $message .= "Username: " . $username . " (auto-generated)\n";
     $message .= "Email: " . $email . "\n";
     $message .= "User ID: " . $user_id . "\n";
     $message .= "Registration Page: " . ($registration_page ? esc_url($registration_page) : 'Unknown') . "\n";
-    $message .= "Artist: " . ($artist_flag ? 'Yes' : 'No') . "\n";
-    $message .= "Professional: " . ($professional_flag ? 'Yes' : 'No') . "\n";
+    $message .= "Join Flow: " . ($from_join ? 'Yes' : 'No') . "\n";
+    $message .= "Onboarding: Pending\n";
     $message .= "\nUser Profile: " . ec_get_user_profile_url($user_id, $email);
 
     wp_mail($admin_email, $subject, $message);

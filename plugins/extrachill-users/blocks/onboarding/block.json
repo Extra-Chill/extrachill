@@ -1,0 +1,24 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 2,
+	"name": "extrachill/onboarding",
+	"title": "User Onboarding",
+	"category": "widgets",
+	"icon": "admin-users",
+	"description": "User onboarding form for new Extra Chill members",
+	"attributes": {
+		"redirectUrl": {
+			"type": "string",
+			"default": ""
+		}
+	},
+	"supports": {
+		"html": false,
+		"multiple": false
+	},
+	"textdomain": "extrachill-users",
+	"editorScript": "file:./index.js",
+	"render": "file:./render.php",
+	"style": "file:./style.css",
+	"viewScript": "file:./view.js"
+}
