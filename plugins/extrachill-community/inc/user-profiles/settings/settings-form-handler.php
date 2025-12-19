@@ -260,14 +260,14 @@ function extrachill_send_artist_access_request_email($user_id, $user, $access_ty
         ? __('I am a musician', 'extra-chill-community')
         : __('I work in the music industry', 'extra-chill-community');
 
+    $token = extrachill_api_generate_artist_access_token($user_id, $access_type, time());
+
     $approve_url = add_query_arg(
         array(
-            'action'  => 'ec_approve_artist_access_email',
-            'user_id' => $user_id,
-            'type'    => $access_type,
-            'nonce'   => wp_create_nonce('ec_approve_artist_access_' . $user_id),
+            'type'  => $access_type,
+            'token' => $token,
         ),
-        admin_url('admin-ajax.php')
+        rest_url('extrachill/v1/admin/artist-access/' . $user_id . '/approve')
     );
 
     $admin_tools_url = admin_url('tools.php?page=extrachill-admin-tools#artist-access-requests');
