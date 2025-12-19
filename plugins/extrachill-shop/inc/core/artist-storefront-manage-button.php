@@ -8,7 +8,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-add_action( 'woocommerce_archive_description', 'extrachill_shop_maybe_render_manage_shop_button', 15 );
+add_action( 'extrachill_archive_header_actions', 'extrachill_shop_maybe_render_manage_shop_button', 15 );
 
 function extrachill_shop_maybe_render_manage_shop_button() {
 	if ( ! is_tax( 'artist' ) ) {
@@ -32,11 +32,11 @@ function extrachill_shop_maybe_render_manage_shop_button() {
 		return;
 	}
 
-	if ( ! function_exists( 'extrachill_shop_get_artist_profile_by_slug' ) ) {
+	if ( ! function_exists( 'ec_get_artist_profile_by_slug' ) ) {
 		return;
 	}
 
-	$artist_data = extrachill_shop_get_artist_profile_by_slug( $term->slug );
+	$artist_data = ec_get_artist_profile_by_slug( $term->slug );
 	if ( empty( $artist_data['id'] ) ) {
 		return;
 	}
@@ -51,11 +51,7 @@ function extrachill_shop_maybe_render_manage_shop_button() {
 		return;
 	}
 
-	$manage_url = add_query_arg(
-		'artist_id',
-		$artist_id,
-		trailingslashit( $artist_site_url ) . 'manage-shop/'
-	);
+	$manage_url = trailingslashit( $artist_site_url ) . 'manage-shop/';
 
 	echo '<div class="artist-profile-link-container">';
 	echo '<a class="button-1 button-medium" href="' . esc_url( $manage_url ) . '">';

@@ -25,6 +25,9 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 add_action( 'init', 'extrachill_shop_remove_default_product_hooks' );
 function extrachill_shop_remove_default_product_hooks() {
+	// Remove WooCommerce default result count and ordering on archives (we use filter bar instead)
+	remove_action( 'woocommerce_before_shop_loop', 'woocommerce_result_count', 20 );
+	remove_action( 'woocommerce_before_shop_loop', 'woocommerce_catalog_ordering', 30 );
 	// Remove default gallery (we have our own)
 	remove_action( 'woocommerce_before_single_product_summary', 'woocommerce_show_product_images', 20 );
 
@@ -51,12 +54,20 @@ function extrachill_shop_remove_default_product_hooks() {
 }
 
 /**
- * Override single product template from plugin
+ * Override WooCommerce page templates from plugin
  *
  * @param string $template Current template path
- * @return string Modified template path for single product pages
+ * @return string Modified template path
  */
 function extrachill_shop_woocommerce_template_loader( $template ) {
+	// Product taxonomy archives (artist storefronts, product categories, etc.)
+	if ( is_product_taxonomy() ) {
+		$plugin_template = EXTRACHILL_SHOP_PLUGIN_DIR . 'woocommerce/archive-product.php';
+		if ( file_exists( $plugin_template ) ) {
+			return $plugin_template;
+		}
+	}
+
 	// Single product pages
 	if ( is_singular( 'product' ) ) {
 		$plugin_template = EXTRACHILL_SHOP_PLUGIN_DIR . 'woocommerce/single-product.php';

@@ -14,6 +14,22 @@ defined( 'ABSPATH' ) || exit;
 add_filter( 'extrachill_filter_bar_items', 'extrachill_shop_filter_bar_items' );
 
 /**
+ * Display filter bar on product taxonomy archives.
+ *
+ * Hooked to woocommerce_before_shop_loop at priority 5 (before WooCommerce defaults).
+ */
+function extrachill_shop_display_filter_bar() {
+	if ( ! is_product_taxonomy() ) {
+		return;
+	}
+
+	if ( function_exists( 'extrachill_filter_bar' ) ) {
+		extrachill_filter_bar();
+	}
+}
+add_action( 'woocommerce_before_shop_loop', 'extrachill_shop_display_filter_bar', 5 );
+
+/**
  * Register shop filter bar items.
  *
  * @param array $items Existing items.

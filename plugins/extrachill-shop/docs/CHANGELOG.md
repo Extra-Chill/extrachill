@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.1] - 2025-12-18
+
+### Added
+- Custom WooCommerce archive template with filter bar integration for product taxonomy pages
+- Enhanced archive header with actions slot for manage buttons on artist storefronts
+- Filter bar display on product category and taxonomy archive pages
+
+### Changed
+- Refactored artist profile lookup to use centralized `ec_get_artist_profile_by_slug()` function
+- Improved artist storefront manage button integration with theme hooks
+- Removed default WooCommerce result count and ordering on archives (replaced with filter bar)
+- Simplified artist manage URL construction
+
+### Technical Details
+- Added custom `woocommerce/archive-product.php` template
+- Added custom `woocommerce/loop/header.php` for archive headers
+- Enhanced template loader to handle product taxonomy archives
+
 ## [0.4.0] - 2025-12-17
 
 ### Added
