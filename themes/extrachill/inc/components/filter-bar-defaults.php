@@ -22,6 +22,11 @@ add_filter( 'extrachill_filter_bar_items', 'extrachill_filter_bar_archive_items'
  * @return array Modified items.
  */
 function extrachill_filter_bar_archive_items( $items ) {
+	// Don't add theme defaults on WooCommerce pages (shop plugin handles these)
+	if ( function_exists( 'is_woocommerce' ) && is_woocommerce() ) {
+		return $items;
+	}
+
 	if ( ! is_archive() && ! get_query_var( 'extrachill_blog_archive' ) ) {
 		return $items;
 	}
