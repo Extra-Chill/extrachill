@@ -53,6 +53,32 @@ function extrachill_api_activity_emit_post_events( $new_status, $old_status, $po
         'permalink' => get_permalink( $post ),
     );
 
+    if ( $post->post_type === 'datamachine_events' ) {
+        $event_datetime = get_post_meta( $post->ID, '_datamachine_event_datetime', true );
+        if ( $event_datetime ) {
+            $dt = new DateTime( $event_datetime, wp_timezone() );
+            $card['event_date'] = $dt->format( 'Y-m-d' );
+            $card['event_time'] = $dt->format( 'H:i:s' );
+        }
+
+        $venue_terms = get_the_terms( $post->ID, 'venue' );
+        if ( $venue_terms && ! is_wp_error( $venue_terms ) ) {
+            $card['venue_name'] = $venue_terms[0]->name;
+        }
+    }
+
+    if ( $post->post_type === 'reply' && function_exists( 'bbp_get_reply_topic_id' ) ) {
+        $topic_id = bbp_get_reply_topic_id( $post->ID );
+        if ( $topic_id ) {
+            $card['parent_topic_id']    = (int) $topic_id;
+            $card['parent_topic_title'] = html_entity_decode(
+                get_the_title( $topic_id ),
+                ENT_QUOTES | ENT_HTML5,
+                'UTF-8'
+            );
+        }
+    }
+
 		do_action( 'extrachill_activity_emit', array(
 			'type'           => $type,
 			'blog_id'        => $blog_id,

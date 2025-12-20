@@ -2,6 +2,28 @@
 
 All notable changes to the ExtraChill API plugin are documented here. This file is the single source of truth for release history.
 
+## 0.7.2
+
+### Added
+
+- **Event Activity Card Enhancement**: Enhanced activity system to include event-specific metadata for datamachine_events posts
+  - Extracts event date/time from `_datamachine_event_datetime` post meta and adds to activity cards
+  - Parses datetime using WordPress timezone for proper event scheduling context
+  - Includes venue name from taxonomy terms in activity card data
+  - Improves event discovery through activity feeds with complete event context
+
+- **bbPress Reply Activity Context**: Added parent topic context to reply activity emissions
+  - Captures parent topic ID and title when publishing bbPress replies
+  - Uses `bbp_get_reply_topic_id()` for reliable topic association
+  - Properly decodes HTML entities in topic titles for consistent display
+  - Enables better navigation and context awareness in activity feeds for forum discussions
+
+### Technical Notes
+
+- **Backward Compatibility**: All changes are additive with no breaking modifications
+- **Activity System**: Enhanced data structure provides richer context for events and discussions
+- **Dependencies**: No new dependencies added; uses existing WordPress and bbPress functions
+
 ## 0.7.1
 
 ### Changed
