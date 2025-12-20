@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.1.4] - 2025-12-20
+
+### Changed
+- Improved subforum ordering to display most recently active subforums first using `_bbp_last_active_time` meta
+- Enhanced forum activity display to show which subforum contains recent activity when nested
+
+### Fixed
+- Removed duplicate "Settings" page heading in user settings page
+
 ## [1.1.3] - 2025-12-18
 
 ### Changed

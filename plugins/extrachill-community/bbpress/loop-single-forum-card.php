@@ -45,6 +45,14 @@ defined( 'ABSPATH' ) || exit;
         if ($last_active_time && $active_id) {
             $link_url = bbp_is_reply($active_id) ? bbp_get_reply_url($active_id) : bbp_get_topic_permalink($active_id);
             echo '<p class="bbp-forum-last-active-time"><a href="' . esc_url($link_url) . '">' . esc_html($last_active_time) . '</a></p>';
+            
+            $active_forum_id = bbp_is_reply($active_id) 
+                ? bbp_get_reply_forum_id($active_id) 
+                : bbp_get_topic_forum_id($active_id);
+            
+            if ($active_forum_id && $active_forum_id != $forum_id) {
+                echo '<p class="bbp-forum-activity-location">in <a href="' . esc_url(bbp_get_forum_permalink($active_forum_id)) . '">' . esc_html(bbp_get_forum_title($active_forum_id)) . '</a></p>';
+            }
         }
         ?>
         <p class="bbp-topic-meta">

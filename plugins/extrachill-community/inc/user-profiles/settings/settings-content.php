@@ -31,8 +31,6 @@ function extrachill_community_render_settings_content() {
     ?>
 
     <div class="account-settings-page">
-        <h1><?php esc_html_e('Settings', 'extra-chill-community'); ?></h1>
-
         <form method="post" enctype="multipart/form-data" id="user-settings-form">
             <?php wp_nonce_field('update-user-settings_' . $user_id, '_wpnonce_update_user_settings'); ?>
             <input type="hidden" name="user_id" value="<?php echo esc_attr($user_id); ?>">

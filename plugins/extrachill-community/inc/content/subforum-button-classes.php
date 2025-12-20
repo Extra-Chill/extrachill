@@ -29,3 +29,14 @@ function extrachill_hide_subforum_counts( $r ) {
     $r['show_reply_count'] = false;
     return $r;
 }
+
+/**
+ * Order subforums by most recent activity.
+ */
+add_filter( 'bbp_after_forum_get_subforums_parse_args', 'extrachill_order_subforums_by_activity' );
+function extrachill_order_subforums_by_activity( $r ) {
+    $r['orderby']  = 'meta_value';
+    $r['meta_key'] = '_bbp_last_active_time';
+    $r['order']    = 'DESC';
+    return $r;
+}

@@ -10,7 +10,7 @@ This plugin is part of the Extra Chill Platform, a WordPress multisite network s
 
 **Plugin Information:**
 - **Name**: Extra Chill Community
-- **Version**: 1.1.2
+- **Version**: 1.1.4
 - **Text Domain**: `extra-chill-community`
 - **Author**: Chris Huber
 - **Author URI**: https://chubes.net
@@ -127,20 +127,21 @@ The `main` branch contains stable, production-ready code. All production builds 
 ## Critical File Locations
 
 ### Core Plugin Files
-- `extrachill-community.php` - Main plugin file with 33 explicit `require_once` statements in `extrachill_community_init()`
+- `extrachill-community.php` - Main plugin file with explicit `require_once` statements in `extrachill_community_init()`
 - `inc/core/assets.php` - Asset management and enqueuing system
 - `inc/core/bbpress-templates.php` - bbPress template routing system
 - `inc/core/breadcrumb-filter.php` - bbPress breadcrumb customization
 - `inc/core/page-templates.php` - Page template routing
 - `inc/core/bbpress-spam-adjustments.php` - bbPress spam adjustments
 - `inc/core/sidebar.php` - Sidebar functionality
+- `inc/core/filter-bar.php` - Forum filter bar integration with theme's universal filter bar component
 
 ### Forum Features System (inc/ structure)
 
 **Explicit Loading Pattern** - All files loaded via direct `require_once` in `extrachill_community_init()`:
 
-**Core (8 files)**:
-- `inc/core/assets.php`, `bbpress-templates.php`, `breadcrumb-filter.php`, `page-templates.php`, `bbpress-spam-adjustments.php`, `sidebar.php`, `nav.php`, `cache-invalidation.php`
+**Core (9 files)**:
+- `inc/core/assets.php`, `bbpress-templates.php`, `breadcrumb-filter.php`, `page-templates.php`, `bbpress-spam-adjustments.php`, `sidebar.php`, `nav.php`, `cache-invalidation.php`, `filter-bar.php`
 
 **Content (6 files)**:
 - `inc/content/editor/tinymce-customization.php`, `editor/tinymce-image-uploads.php`
