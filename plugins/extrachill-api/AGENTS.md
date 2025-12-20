@@ -34,17 +34,13 @@ ExtraChill_API_Plugin::get_instance();
 extrachill-api/
 ├── extrachill-api.php (Main plugin file with singleton class)
 └── inc/
-    ├── auth/
-    │   ├── extrachill-link-auth.php (Cross-domain authentication)
-    │   ├── login.php (User authentication with JWT tokens)
-    │   ├── refresh.php (Token refresh for continued sessions)
-    │   └── register.php (User registration with token generation)
     └── routes/
         ├── activity/
         │   ├── feed.php (Activity feed with filtering)
         │   └── object.php (Object resolver for posts/comments/artists)
         ├── admin/
         │   ├── ad-free-license.php (Ad-free license management)
+        │   ├── artist-access.php (Artist access approval/rejection)
         │   └── team-members.php (Team member sync and management)
         ├── analytics/
         │   ├── link-click.php (Track link page clicks)
@@ -59,6 +55,13 @@ extrachill-api/
         │   ├── roster.php (Roster invite management)
         │   ├── subscribe.php (Subscription signup)
         │   └── subscribers.php (Subscriber management)
+        ├── auth/
+        │   ├── google.php (Google OAuth authentication)
+        │   ├── login.php (User authentication with JWT tokens)
+        │   ├── logout.php (Device token revocation)
+        │   ├── me.php (Current user data)
+        │   ├── refresh.php (Token refresh for continued sessions)
+        │   └── register.php (User registration with token generation)
         ├── blog/
         │   ├── ai-adventure.php (AI adventure story generation)
         │   ├── band-name.php (Band name generator)
@@ -71,6 +74,8 @@ extrachill-api/
         ├── community/
         │   ├── drafts.php (bbPress draft management)
         │   └── upvote.php (Topic/reply upvotes)
+        ├── config/
+        │   └── oauth.php (OAuth provider configuration)
         ├── contact/
         │   └── submit.php (Contact form submission)
         ├── docs/
@@ -83,6 +88,8 @@ extrachill-api/
         │   ├── campaign.php (Newsletter campaign push to Sendy)
         │   └── subscription.php (Newsletter subscription)
         ├── shop/
+        │   ├── orders.php (Artist order management)
+        │   ├── product-images.php (Product image upload/delete)
         │   ├── products.php (WooCommerce product CRUD)
         │   ├── stripe-connect.php (Stripe Connect management)
         │   └── stripe-webhook.php (Stripe webhook handler)
@@ -92,6 +99,8 @@ extrachill-api/
         │   └── status.php (Stream status endpoint)
         └── users/
             ├── artists.php (User artist relationships)
+            ├── leaderboard.php (User leaderboard)
+            ├── onboarding.php (User onboarding flow)
             ├── search.php (User search endpoint)
             └── users.php (User profile endpoint)
 ```
@@ -1627,9 +1636,340 @@ Foundational REST API for artist data management. Provides comprehensive endpoin
 
 **File**: `inc/routes/auth/register.php`
 
+#### 49. Google OAuth Authentication
+
+**Endpoint**: `POST /wp-json/extrachill/v1/auth/google`
+
+**Purpose**: Authenticate users via Google ID tokens for web and mobile OAuth flows.
+
+**Parameters**:
+- `id_token` (string, required) - Google ID token from OAuth flow
+- `device_id` (string, required) - UUID v4 device identifier
+- `device_name` (string, optional) - Human-readable device name
+
+**Response**: JWT access and refresh tokens with user data
+
+**Permission**: Public
+
+**File**: `inc/routes/auth/google.php`
+
+**Notes**:
+- Creates new user if email not found in system
+- Returns `onboarding_required: true` if username needs to be set
+- Requires Google OAuth to be configured via network settings
+
+#### 50. Current User Data
+
+**Endpoint**: `GET /wp-json/extrachill/v1/auth/me`
+
+**Purpose**: Returns authenticated user data for the current session.
+
+**Response**:
+```json
+{
+  "id": 123,
+  "username": "chris",
+  "email": "chris@example.com",
+  "display_name": "Chris Huber",
+  "avatar_url": "https://...",
+  "profile_url": "https://...",
+  "registered": "2024-01-01 12:00:00",
+  "onboarding_completed": true
+}
+```
+
+**Permission**: Requires logged-in user (bearer token)
+
+**File**: `inc/routes/auth/me.php`
+
+**Notes**: 
+- Extensible via `extrachill_auth_me_response` filter
+- Used by mobile apps to verify authentication state
+
+#### 51. User Logout
+
+**Endpoint**: `POST /wp-json/extrachill/v1/auth/logout`
+
+**Purpose**: Revokes the refresh token for a specific device, logging out that session.
+
+**Parameters**:
+- `device_id` (string, required) - UUID v4 device identifier to revoke
+
+**Response**:
+```json
+{
+  "success": true,
+  "message": "Logged out successfully."
+}
+```
+
+**Permission**: Requires logged-in user
+
+**File**: `inc/routes/auth/logout.php`
+
+**Dependencies**: extrachill-users plugin for token management
+
+### Configuration Endpoints
+
+#### 52. OAuth Configuration
+
+**Endpoint**: `GET /wp-json/extrachill/v1/config/oauth`
+
+**Purpose**: Returns OAuth provider configuration for mobile apps. Client IDs are safe to expose publicly.
+
+**Response**:
+```json
+{
+  "google": {
+    "enabled": true,
+    "web_client_id": "...",
+    "ios_client_id": "...",
+    "android_client_id": "..."
+  },
+  "apple": {
+    "enabled": false
+  }
+}
+```
+
+**Permission**: Public
+
+**File**: `inc/routes/config/oauth.php`
+
+**Notes**: Used by mobile apps to configure OAuth providers dynamically
+
+### User Onboarding Endpoints
+
+#### 53. User Onboarding Status
+
+**Endpoint**: `GET /wp-json/extrachill/v1/users/onboarding`
+
+**Purpose**: Retrieve onboarding completion status for the current user.
+
+**Response**:
+```json
+{
+  "onboarding_completed": false,
+  "username": "",
+  "user_is_artist": false,
+  "user_is_professional": false
+}
+```
+
+**Permission**: Requires logged-in user
+
+**File**: `inc/routes/users/onboarding.php`
+
+#### 54. Complete User Onboarding
+
+**Endpoint**: `POST /wp-json/extrachill/v1/users/onboarding`
+
+**Purpose**: Complete user onboarding by setting username and optional flags.
+
+**Parameters**:
+- `username` (string, required) - Desired username
+- `user_is_artist` (boolean, optional) - Request artist access
+- `user_is_professional` (boolean, optional) - Request professional access
+
+**Response**:
+```json
+{
+  "success": true,
+  "message": "Onboarding completed successfully.",
+  "user": {
+    "id": 123,
+    "username": "chris"
+  }
+}
+```
+
+**Permission**: Requires logged-in user
+
+**File**: `inc/routes/users/onboarding.php`
+
+**Notes**: 
+- Artist/professional flags trigger access request workflow
+- Username must be unique and valid
+
+### Admin Artist Access Endpoints
+
+#### 55. Artist Access Email Approval
+
+**Endpoint**: `GET /wp-json/extrachill/v1/admin/artist-access/{user_id}/approve`
+
+**Purpose**: One-click email approval link for artist access requests.
+
+**Parameters**:
+- `user_id` (int, required) - User ID to approve
+- `type` (string, required) - Access type: `artist` or `professional`
+- `token` (string, required) - HMAC token for security
+
+**Response**: Redirects to admin tools page with status
+
+**Permission**: Requires `manage_options` capability
+
+**File**: `inc/routes/admin/artist-access.php`
+
+#### 56. Artist Access Approval (Admin)
+
+**Endpoint**: `POST /wp-json/extrachill/v1/admin/artist-access/{user_id}/approve`
+
+**Purpose**: Approve artist access request via admin tools interface.
+
+**Parameters**:
+- `user_id` (int, required) - User ID to approve
+- `type` (string, required) - Access type: `artist` or `professional`
+
+**Response**:
+```json
+{
+  "success": true,
+  "message": "User approved successfully"
+}
+```
+
+**Permission**: Requires `manage_options` capability
+
+**File**: `inc/routes/admin/artist-access.php`
+
+#### 57. Artist Access Rejection
+
+**Endpoint**: `POST /wp-json/extrachill/v1/admin/artist-access/{user_id}/reject`
+
+**Purpose**: Reject artist access request.
+
+**Parameters**:
+- `user_id` (int, required) - User ID to reject
+
+**Response**:
+```json
+{
+  "success": true,
+  "message": "Request rejected"
+}
+```
+
+**Permission**: Requires `manage_options` capability
+
+**File**: `inc/routes/admin/artist-access.php`
+
+### Shop Orders Endpoints
+
+#### 58. List Artist Orders
+
+**Endpoint**: `GET /wp-json/extrachill/v1/shop/orders`
+
+**Purpose**: Retrieve paginated list of orders containing the artist's products.
+
+**Parameters**:
+- `artist_id` (int, required) - Artist profile ID
+- `status` (string, optional) - Filter: `all`, `needs_fulfillment`, `completed`
+- `page` (int, optional) - Page number (default: 1)
+- `per_page` (int, optional) - Results per page (default: 20, max: 100)
+
+**Response**:
+```json
+{
+  "orders": [...],
+  "total": 45,
+  "total_pages": 3,
+  "page": 1,
+  "per_page": 20,
+  "needs_fulfillment_count": 5
+}
+```
+
+**Permission**: User must be able to manage the specified artist
+
+**File**: `inc/routes/shop/orders.php`
+
+#### 59. Update Order Status
+
+**Endpoint**: `PUT /wp-json/extrachill/v1/shop/orders/{id}/status`
+
+**Purpose**: Mark order as shipped/completed with optional tracking number.
+
+**Parameters**:
+- `id` (int, required) - Order ID
+- `artist_id` (int, required) - Artist profile ID
+- `status` (string, required) - New status: `completed`
+- `tracking_number` (string, optional) - Shipping tracking number
+
+**Response**: Updated order data
+
+**Permission**: User must be able to manage the artist and order must contain artist's products
+
+**File**: `inc/routes/shop/orders.php`
+
+#### 60. Issue Order Refund
+
+**Endpoint**: `POST /wp-json/extrachill/v1/shop/orders/{id}/refund`
+
+**Purpose**: Issue full refund for artist's portion of an order.
+
+**Parameters**:
+- `id` (int, required) - Order ID
+- `artist_id` (int, required) - Artist profile ID
+
+**Response**:
+```json
+{
+  "success": true,
+  "order_id": 123,
+  "refund_amount": 29.99
+}
+```
+
+**Permission**: User must be able to manage the artist
+
+**File**: `inc/routes/shop/orders.php`
+
+**Dependencies**: Stripe API for refund processing
+
+### Shop Product Images Endpoints
+
+#### 61. Upload Product Images
+
+**Endpoint**: `POST /wp-json/extrachill/v1/shop/products/{id}/images`
+
+**Purpose**: Upload images to a WooCommerce product (max 5 per product).
+
+**Parameters**:
+- `id` (int, required) - Product ID
+- `files` (file[], required) - Image files (JPG, PNG, GIF, WebP; max 5MB each)
+
+**Response**: Updated product data with image URLs
+
+**Permission**: User must be able to manage the product's artist
+
+**File**: `inc/routes/shop/product-images.php`
+
+**Notes**:
+- First image becomes featured image
+- Remaining images added to gallery
+- Maximum 5 images per product
+
+#### 62. Delete Product Image
+
+**Endpoint**: `DELETE /wp-json/extrachill/v1/shop/products/{id}/images/{attachment_id}`
+
+**Purpose**: Remove an image from a product.
+
+**Parameters**:
+- `id` (int, required) - Product ID
+- `attachment_id` (int, required) - Attachment ID to delete
+
+**Response**: Updated product data
+
+**Permission**: User must be able to manage the product's artist
+
+**File**: `inc/routes/shop/product-images.php`
+
+**Notes**: Cannot delete the last remaining image
+
 ### Shop Integration (continued)
 
-#### 49. Stripe Webhook Handler
+#### 63. Stripe Webhook Handler
 
 **Endpoint**: `POST /wp-json/extrachill/v1/shop/stripe-webhook`
 
@@ -1643,9 +1983,9 @@ Foundational REST API for artist data management. Provides comprehensive endpoin
 
 **File**: `inc/routes/shop/stripe-webhook.php`
 
-### Tools (continued)
+### Stream Endpoints
 
-#### 50. Stream Status
+#### 64. Stream Status
 
 **Endpoint**: `GET /wp-json/extrachill/v1/stream/status`
 

@@ -2,6 +2,49 @@
 
 All notable changes to the ExtraChill API plugin are documented here. This file is the single source of truth for release history.
 
+## 0.7.1
+
+### Changed
+
+- **Documentation Reorganization**: Consolidated route documentation structure and reorganized AGENTS.md directory listings
+  - Reorganized `inc/` directory structure in documentation for clarity
+  - Updated feature categories from 18 to 20 (added Configuration and reorganized admin/user sections)
+  - Refreshed endpoint count documentation to reflect 51 total endpoints
+
+- **Authentication Parameter Enhancement**: Made Turnstile verification optional in user registration
+  - Changed `turnstile_response` parameter from required to optional in `POST /auth/register`
+  - Enables registration flows without CAPTCHA verification when appropriate
+  - Maintains backwards compatibility with existing clients sending Turnstile tokens
+
+### Removed
+
+- **Outdated Authentication Documentation**: Removed legacy auth helper documentation files
+  - Deleted `docs/routes/auth/cross-domain-cookie-controls.md`
+  - Deleted `docs/routes/auth/extrachill-link-auth.md`
+  - Cookie handling is managed by `inc/auth/extrachill-link-auth.php` and no longer requires separate documentation
+
+### Added
+
+- **Comprehensive Route Documentation**: Added dedicated markdown documentation files for previously undocumented endpoints
+  - New: `docs/routes/auth/google.md` - Google OAuth authentication endpoint
+  - New: `docs/routes/auth/logout.md` - Device token revocation and logout
+  - New: `docs/routes/auth/me.md` - Current user data retrieval
+  - New: `docs/routes/config/oauth.md` - OAuth provider configuration endpoint
+  - New: `docs/routes/shop/orders.md` - Artist order management and fulfillment
+  - New: `docs/routes/shop/product-images.md` - Product image upload and deletion
+  - New: `docs/routes/users/onboarding.md` - User onboarding flow and status
+
+- **Configuration Endpoints**: New OAuth configuration endpoint routing infrastructure
+  - Added `inc/routes/config/oauth.php` for serving OAuth provider settings to mobile apps
+  - Supports dynamic OAuth provider configuration discovery without hardcoding client IDs
+
+### Technical Notes
+
+- **Backward Compatibility**: All changes are additive with no breaking API modifications
+- **Documentation**: Updated AGENTS.md directory structure and README.md endpoint organization for improved discoverability
+- **Database**: No database schema changes from v0.7.0
+- **Dependencies**: No new dependencies added
+
 ## 0.7.0
 
 ### Added

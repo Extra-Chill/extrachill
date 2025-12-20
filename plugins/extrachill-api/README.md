@@ -17,7 +17,18 @@ The ExtraChill API plugin provides a centralized, versioned REST API infrastruct
 
 ## Current Endpoints
 
-The plugin provides 50 endpoints across 18 feature categories, all under the `extrachill/v1` namespace:
+The plugin provides 51 endpoint files across 20 feature categories, all under the `extrachill/v1` namespace:
+
+### Authentication Endpoints (6)
+- `POST /auth/google` - Google OAuth authentication
+- `POST /auth/login` - User login with JWT tokens
+- `POST /auth/logout` - Logout and token revocation
+- `GET /auth/me` - Get current authenticated user
+- `POST /auth/refresh` - Refresh access tokens
+- `POST /auth/register` - User registration
+
+### Configuration Endpoints (1)
+- `GET /config/oauth` - OAuth provider configuration
 
 ### Analytics Endpoints (3)
 - `POST /analytics/link-click` - Track link page clicks
@@ -36,20 +47,20 @@ The plugin provides 50 endpoints across 18 feature categories, all under the `ex
 - `POST /artists/{id}/subscribe` - Public subscription signup
 
 ### Block Generators (3)
-- `POST /blocks/band-name` - AI band name generation
-- `POST /blocks/rapper-name` - AI rapper name generation
-- `POST /blocks/ai-adventure` - AI adventure story generation
+- `POST /blog/band-name` - AI band name generation
+- `POST /blog/rapper-name` - AI rapper name generation
+- `POST /blog/ai-adventure` - AI adventure story generation
 
 ### Image Voting (2)
-- `GET /blocks/image-voting/vote-count/{post_id}/{instance_id}` - Get vote counts
-- `POST /blocks/image-voting/vote` - Cast a vote
+- `GET /blog/image-voting/vote-count/{post_id}/{instance_id}` - Get vote counts
+- `POST /blog/image-voting/vote` - Cast a vote
 
 ### Chat Endpoints (2)
 - `POST /chat/message` - Send chat message (authenticated)
 - `DELETE /chat/history` - Clear chat history (authenticated)
 
 ### Community Endpoints (3)
-- `GET /users/search` - Search users for @mentions
+- `GET /users/search` - Search users for @mentions and admin
 - `POST /community/upvote` - Upvote topics or replies (authenticated)
 - `GET/POST/DELETE /community/drafts` - Manage bbPress drafts (authenticated)
 
@@ -60,21 +71,24 @@ The plugin provides 50 endpoints across 18 feature categories, all under the `ex
 - `GET /activity` - Activity feed with filtering and pagination (authenticated)
 - `GET /object` - Object resolver for posts, comments, and artists (authenticated)
 
-### Admin Endpoints (4)
+### Admin Endpoints (7)
+- `GET/POST /admin/artist-access/{user_id}/approve` - Approve artist access request
+- `POST /admin/artist-access/{user_id}/reject` - Reject artist access request
 - `POST /admin/ad-free-license/grant` - Grant ad-free license
 - `DELETE /admin/ad-free-license/{user_id}` - Revoke ad-free license
 - `POST /admin/team-members/sync` - Sync team members
 - `PUT /admin/team-members/{user_id}` - Manage team member status
 
-### User Management (4)
+### User Management (5)
 - `GET /users/{id}` - Get user profile
-- `GET /users/search` - Search users (multiple contexts)
+- `GET/POST /users/onboarding` - User onboarding flow
 - `GET /users/leaderboard` - Get user leaderboard with rankings
 - `GET/POST/DELETE /users/{id}/artists` - Manage user-artist relationships
+- `GET /users/search` - Find users (multiple contexts)
 
 ### Documentation (2)
 - `GET /docs-info` - Documentation metadata
-- `POST /sync/doc` - Sync documentation
+- `POST /sync/doc` - Sync documentation (POST /wp-json/extrachill/v1/sync/doc)
 
 ### Event Submissions (1)
 - `POST /event-submissions` - Submit event with optional flyer
@@ -86,15 +100,12 @@ The plugin provides 50 endpoints across 18 feature categories, all under the `ex
 - `POST /newsletter/subscription` - Subscribe to newsletter
 - `POST /newsletter/campaign/push` - Push newsletter to Sendy
 
-### Shop Integration (4)
+### Shop Integration (5)
 - `GET/POST/PUT/DELETE /shop/products` - Product CRUD operations
+- `GET/POST/DELETE /shop/orders` - Artist order management and fulfillment
+- `POST/DELETE /shop/products/{id}/images` - Product image management
 - `GET/POST/DELETE /shop/stripe` - Stripe Connect management
 - `POST /shop/stripe-webhook` - Stripe webhook handler
-
-### Authentication Endpoints (3)
-- `POST /auth/login` - User login with JWT tokens
-- `POST /auth/refresh` - Refresh access tokens
-- `POST /auth/register` - User registration with optional artist creation
 
 ### Stream (1)
 - `GET /stream/status` - Check streaming status and configuration
@@ -196,15 +207,19 @@ extrachill-api/
 ├── AGENTS.md                  # Technical documentation for AI agents
 ├── README.md                  # This file
 └── inc/
-    ├── auth/
-    │   ├── extrachill-link-auth.php    # Cross-domain authentication
-    │   ├── login.php                   # User login with JWT tokens
-    │   ├── refresh.php                 # Token refresh
-    │   └── register.php                # User registration
+     ├── auth/
+     │   ├── extrachill-link-auth.php    # Cross-domain authentication
+     │   ├── google.php                   # Google OAuth authentication
+     │   ├── login.php                    # User login with JWT tokens
+     │   ├── logout.php                   # Logout and token revocation
+     │   ├── me.php                       # Get current authenticated user
+     │   ├── refresh.php                  # Token refresh
+     │   └── register.php                 # User registration
     └── routes/
         ├── admin/                      # Network admin endpoints
-        │   ├── ad-free-license.php
-        │   └── team-members.php
+         │   ├── ad-free-license.php
+         │   ├── artist-access.php
+         │   └── team-members.php
         ├── analytics/                  # Analytics tracking endpoints
         │   ├── link-click.php
         │   ├── link-page.php
@@ -227,16 +242,19 @@ extrachill-api/
         │   ├── image-voting.php
         │   ├── image-voting-vote.php
         │   └── rapper-name.php
-        ├── chat/                       # Chat functionality
-        │   ├── history.php
-        │   └── message.php
-        ├── community/                  # Community features
-        │   ├── upvote.php
-        │   └── drafts.php
-        ├── contact/                    # Contact form
-        │   └── submit.php
-        ├── docs/                       # Documentation endpoints
-        │   └── docs-info.php
+         ├── chat/                       # Chat functionality
+         │   ├── history.php
+         │   └── message.php
+         ├── community/                  # Community features
+         │   ├── upvote.php
+         │   └── drafts.php
+         ├── config/                     # Configuration endpoints
+         │   └── oauth.php
+         ├── contact/                    # Contact form
+         │   └── submit.php
+         ├── docs/                       # Documentation endpoints
+         │   └── docs-info.php
+         ├── docs-sync-routes.php        # Documentation sync route
         ├── events/                     # Event management
         │   └── event-submissions.php
         ├── media/                      # Media upload
@@ -245,17 +263,21 @@ extrachill-api/
         │   ├── subscription.php
         │   └── campaign.php
          ├── shop/                       # WooCommerce integration
+         │   ├── orders.php
+         │   ├── product-images.php
          │   ├── products.php
-        │   ├── stripe-connect.php
-        │   └── stripe-webhook.php
+         │   ├── stripe-connect.php
+         │   └── stripe-webhook.php
         ├── stream/                     # Streaming functionality
         │   └── status.php
         ├── tools/                      # Utilities
         │   └── qr-code.php
-        └── users/                      # User management
-            ├── artists.php
-            ├── search.php
-            └── users.php
+         └── users/                      # User management
+             ├── artists.php
+             ├── leaderboard.php
+             ├── onboarding.php
+             ├── search.php
+             └── users.php
 ```
 
 ## Development

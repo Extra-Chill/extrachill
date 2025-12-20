@@ -42,11 +42,11 @@ function extrachill_api_register_auth_register_route() {
 					'required' => true,
 					'type'     => 'string',
 				),
-				'turnstile_response'   => array(
-					'required'          => true,
-					'type'              => 'string',
-					'sanitize_callback' => 'sanitize_text_field',
-				),
+			'turnstile_response'   => array(
+				'required'          => false,
+				'type'              => 'string',
+				'sanitize_callback' => 'sanitize_text_field',
+			),
 				'device_id'            => array(
 					'required'          => true,
 					'type'              => 'string',
