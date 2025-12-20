@@ -83,7 +83,7 @@ function ec_get_unique_username( $base_username ) {
 
 	while ( username_exists( $username ) ) {
 		$username = $base_username . $counter;
-		$counter++;
+		++$counter;
 
 		if ( $counter > 9999 ) {
 			$username = $base_username . wp_generate_password( 4, false, false );
@@ -230,7 +230,7 @@ function ec_validate_onboarding_username( $username, $user_id ) {
  * Updates username, sets artist/professional flags, and marks onboarding complete.
  *
  * @param int   $user_id User ID.
- * @param array $data    {username: string, user_is_artist: bool, user_is_professional: bool}
+ * @param array $data    {username: string, user_is_artist: bool, user_is_professional: bool}.
  * @return array|WP_Error Success array or error.
  */
 function ec_complete_onboarding( $user_id, $data ) {
@@ -286,6 +286,9 @@ function ec_complete_onboarding( $user_id, $data ) {
 	update_user_meta( $user_id, 'onboarding_completed_at', time() );
 
 	clean_user_cache( $user_id );
+
+	wp_set_current_user( $user_id );
+	wp_set_auth_cookie( $user_id, true );
 
 	do_action( 'ec_onboarding_completed', $user_id, $data );
 

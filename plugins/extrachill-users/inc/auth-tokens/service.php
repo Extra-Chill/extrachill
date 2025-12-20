@@ -346,28 +346,36 @@ function extrachill_users_register_with_tokens( array $payload ) {
 	$registration_page    = isset( $payload['registration_page'] ) ? esc_url_raw( (string) $payload['registration_page'] ) : '';
 	$success_redirect_url = isset( $payload['success_redirect_url'] ) ? esc_url_raw( (string) $payload['success_redirect_url'] ) : '';
 
-	if ( empty( $turnstile_token ) ) {
-		return new WP_Error(
-			'turnstile_required',
-			'Captcha verification required. Please complete the challenge and try again.',
-			array( 'status' => 400 )
-		);
-	}
+	$is_app_client = isset( $_SERVER['HTTP_EXTRACHILL_CLIENT'] )
+		&& 'app' === sanitize_text_field( wp_unslash( $_SERVER['HTTP_EXTRACHILL_CLIENT'] ) );
 
-	if ( ! function_exists( 'ec_verify_turnstile_response' ) ) {
-		return new WP_Error(
-			'extrachill_dependency_missing',
-			'Cloudflare Turnstile verification is required for registration.',
-			array( 'status' => 500 )
-		);
-	}
+	$is_local_environment = defined( 'WP_ENVIRONMENT_TYPE' ) && WP_ENVIRONMENT_TYPE === 'local';
+	$turnstile_bypass     = $is_local_environment || (bool) apply_filters( 'extrachill_bypass_turnstile_verification', false );
 
-	if ( ! ec_verify_turnstile_response( $turnstile_token ) ) {
-		return new WP_Error(
-			'turnstile_failed',
-			'Captcha verification failed. Please try again.',
-			array( 'status' => 400 )
-		);
+	if ( ! $is_app_client && ! $turnstile_bypass ) {
+		if ( empty( $turnstile_token ) ) {
+			return new WP_Error(
+				'turnstile_required',
+				'Captcha verification required. Please complete the challenge and try again.',
+				array( 'status' => 400 )
+			);
+		}
+
+		if ( ! function_exists( 'ec_verify_turnstile_response' ) ) {
+			return new WP_Error(
+				'extrachill_dependency_missing',
+				'Cloudflare Turnstile verification is required for registration.',
+				array( 'status' => 500 )
+			);
+		}
+
+		if ( ! ec_verify_turnstile_response( $turnstile_token ) ) {
+			return new WP_Error(
+				'turnstile_failed',
+				'Captcha verification failed. Please try again.',
+				array( 'status' => 400 )
+			);
+		}
 	}
 
 	if ( empty( $email ) || empty( $password ) || empty( $password_confirm ) ) {
@@ -390,6 +398,14 @@ function extrachill_users_register_with_tokens( array $payload ) {
 		return new WP_Error(
 			'password_mismatch',
 			'Passwords do not match.',
+			array( 'status' => 400 )
+		);
+	}
+
+	if ( strlen( $password ) < 8 ) {
+		return new WP_Error(
+			'password_too_short',
+			'Password must be at least 8 characters.',
 			array( 'status' => 400 )
 		);
 	}

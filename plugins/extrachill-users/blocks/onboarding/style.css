@@ -15,12 +15,12 @@
 
 .onboarding-header p {
 	margin: 0;
-	color: var(--text-muted, #666);
+	color: var(--muted-text);
 }
 
 #extrachill-onboarding-form {
-	background: var(--surface, #fff);
-	border: 1px solid var(--border, #e0e0e0);
+	background: var(--card-background);
+	border: 1px solid var(--border-color);
 	border-radius: 8px;
 	padding: 1.5rem;
 }
@@ -38,21 +38,21 @@
 .onboarding-field input[type="text"] {
 	width: 100%;
 	padding: 0.75rem;
-	border: 1px solid var(--border, #e0e0e0);
+	border: 1px solid var(--border-color);
 	border-radius: 4px;
 	font-size: 1rem;
 }
 
 .onboarding-field input[type="text"]:focus {
 	outline: none;
-	border-color: var(--accent, #0073aa);
-	box-shadow: 0 0 0 2px rgba(0, 115, 170, 0.2);
+	border-color: var(--focus-border-color);
+	box-shadow: var(--focus-box-shadow);
 }
 
 .onboarding-field-hint {
 	display: block;
 	margin-top: 0.25rem;
-	color: var(--text-muted, #666);
+	color: var(--muted-text);
 	font-size: 0.875rem;
 }
 
@@ -86,8 +86,8 @@
 .onboarding-join-notice {
 	margin: 1rem 0;
 	padding: 0.75rem;
-	background: var(--info-bg, #e7f5ff);
-	border-left: 3px solid var(--accent-2, #0073aa);
+	background: var(--notice-bg);
+	border-left: 3px solid var(--notice-border);
 	border-radius: 0 4px 4px 0;
 	font-size: 0.875rem;
 }
@@ -95,10 +95,10 @@
 .onboarding-error {
 	margin: 1rem 0;
 	padding: 0.75rem;
-	background: var(--error-bg, #fee);
-	border-left: 3px solid var(--error, #dc3232);
+	background: var(--notice-bg);
+	border-left: 3px solid var(--error-color);
 	border-radius: 0 4px 4px 0;
-	color: var(--error, #dc3232);
+	color: var(--error-color);
 }
 
 .onboarding-actions {
@@ -111,8 +111,8 @@
 
 .onboarding-block-preview {
 	padding: 1.5rem;
-	background: #f0f0f0;
-	border: 1px dashed #ccc;
+	background: var(--card-background);
+	border: 1px dashed var(--border-color);
 	border-radius: 4px;
 	text-align: center;
 }
@@ -128,5 +128,5 @@
 .onboarding-block-note {
 	margin-top: 0.5rem;
 	font-size: 0.875rem;
-	color: #666;
+	color: var(--muted-text);
 }

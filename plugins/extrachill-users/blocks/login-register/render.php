@@ -178,10 +178,10 @@ if ( isset( $_GET['action'] ) && 'ec_accept_invite' === $_GET['action'] && isset
 						<input type="email" name="extrachill_email" id="extrachill_email" placeholder="<?php esc_attr_e( 'you@example.com', 'extrachill-users' ); ?>" required value="<?php echo esc_attr( $invited_email ); ?>">
 
 						<label for="extrachill_password"><?php esc_html_e( 'Password', 'extrachill-users' ); ?></label>
-						<input type="password" name="extrachill_password" id="extrachill_password" placeholder="<?php esc_attr_e( 'Create a password', 'extrachill-users' ); ?>" required>
+						<input type="password" name="extrachill_password" id="extrachill_password" placeholder="<?php esc_attr_e( 'Create a password', 'extrachill-users' ); ?>" required minlength="8">
 
 						<label for="extrachill_password_confirm"><?php esc_html_e( 'Confirm Password', 'extrachill-users' ); ?></label>
-						<input type="password" name="extrachill_password_confirm" id="extrachill_password_confirm" placeholder="<?php esc_attr_e( 'Repeat your password', 'extrachill-users' ); ?>" required>
+						<input type="password" name="extrachill_password_confirm" id="extrachill_password_confirm" placeholder="<?php esc_attr_e( 'Repeat your password', 'extrachill-users' ); ?>" required minlength="8">
 
 						<div class="registration-submit-section">
 							<input type="submit" name="extrachill_register" class="button-1 button-medium" value="<?php esc_attr_e( 'Join Now', 'extrachill-users' ); ?>">

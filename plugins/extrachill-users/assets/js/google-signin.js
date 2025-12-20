@@ -71,7 +71,7 @@
             text: 'continue_with',
             shape: 'rectangular',
             logo_alignment: 'left',
-            width: container.offsetWidth || 300
+            width: 300
         });
     }
 

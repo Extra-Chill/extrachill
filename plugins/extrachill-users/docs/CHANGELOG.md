@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.5.3] - 2025-12-20
+
+### Added
+- Minimum password length requirement (8 characters) across registration forms
+- Turnstile captcha bypass for mobile app clients and local development environments
+- Auto-login functionality after onboarding completion
+
+### Changed
+- Standardized CSS variable usage in onboarding block styles
+- Refined Google sign-in button styling (fixed width, improved centering)
+
+### Fixed
+- Enhanced turnstile widget validation with existence checks
+- Added minlength attribute to password input fields
+
+### Documentation
+- Updated AGENTS.md with comprehensive Google OAuth and onboarding system documentation
+- Enhanced README.md feature descriptions
+- Updated implementation status and added user management documentation
+
 ## [0.5.2] - 2025-12-19
 
 ### Fixed

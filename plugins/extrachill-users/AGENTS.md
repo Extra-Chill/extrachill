@@ -1,13 +1,13 @@
 # ExtraChill Users
 
-**THE SINGLE SOURCE OF TRUTH FOR USER MANAGEMENT** - Network-activated WordPress plugin providing all user-related functionality for the ExtraChill Platform multisite network. This plugin is the centralized authority for authentication, registration, password reset, cross-site user management, team member system, profile URL resolution, network-wide avatar menu, custom avatars, and online user tracking across all 9 active sites (Blog IDs 1–5, 7–10) with docs at Blog ID 10; horoscope planned for Blog ID 11.
+**THE SINGLE SOURCE OF TRUTH FOR USER MANAGEMENT** - Network-activated WordPress plugin providing all user-related functionality for the ExtraChill Platform multisite network. This plugin is the centralized authority for authentication (including Google OAuth), registration, password reset, user onboarding, cross-site user management, team member system, profile URL resolution, network-wide avatar menu, custom avatars, and online user tracking across all 9 active sites (Blog IDs 1–5, 7–10) with docs at Blog ID 10; horoscope planned for Blog ID 11.
 
 User management functionality was migrated here from extrachill-multisite plugin to follow the single responsibility principle. All user-specific features, authentication flows, and user data operations are consolidated in this plugin.
 
 ## Plugin Information
 
 - **Name**: Extra Chill Users
-- **Version**: 0.5.2
+- **Version**: 0.5.3
 - **Text Domain**: `extrachill-users`
 - **Author**: Chris Huber
 - **Author URI**: https://chubes.net
@@ -32,6 +32,35 @@ User management functionality was migrated here from extrachill-multisite plugin
 - **Modular Organization**: 17 include files organized by functionality domain
 
 ### Core Features
+
+#### Google OAuth Integration (`inc/oauth/`)
+
+**Google Sign-In System**:
+- Server-side Google OAuth integration via `inc/oauth/google-service.php`
+- JWT RS256 token validation via `inc/oauth/jwt-rs256.php`
+- Dedicated Google sign-in button with JavaScript handling via `assets/js/google-signin.js`
+- Network-wide OAuth configuration managed by extrachill-multisite plugin
+- REST API endpoint: `POST /wp-json/extrachill/v1/auth/google`
+
+**OAuth Service Functions**:
+- `ec_google_verify_id_token()` - Validates Google ID tokens using RS256
+- `ec_google_get_or_create_user()` - Creates or retrieves user from Google profile
+- Auto-login after successful Google authentication
+
+**Configuration**: OAuth client ID and settings stored in network options via extrachill-multisite admin page (`admin/network-oauth-settings.php`)
+
+#### User Onboarding System (`inc/onboarding/`, `blocks/onboarding/`)
+
+**Onboarding Flow**:
+- Gutenberg block for new user onboarding at `blocks/onboarding/`
+- Service layer at `inc/onboarding/service.php` for onboarding logic
+- REST API endpoints: `GET/POST /wp-json/extrachill/v1/users/onboarding`
+- Tracks onboarding completion status in user meta
+
+**Onboarding Block**:
+- Registered via `register_block_type()` alongside login-register and password-reset blocks
+- Provides guided first-time user experience
+- Integrates with artist platform for artist onboarding flows
 
 #### Admin Access Control (`inc/admin-access-control.php`)
 
@@ -102,13 +131,23 @@ User management functionality was migrated here from extrachill-multisite plugin
 
 #### Gutenberg Blocks
 
-**Login/Register Block** (`build/login-register/`):
+**Login/Register Block** (`blocks/login-register/`, `build/login-register/`):
 - Provides login/register interface as Gutenberg block
+- Includes Google OAuth sign-in button integration
 - Registered via `register_block_type()` in main plugin file
 - Built with WordPress Scripts
+- Source at `blocks/login-register/`, compiled to `build/login-register/`
 
-**Password Reset Block** (`build/password-reset/`):
+**Password Reset Block** (`blocks/password-reset/`, `build/password-reset/`):
 - Provides password reset interface as Gutenberg block
+- Registered via `register_block_type()` in main plugin file
+- Built with WordPress Scripts
+- Source at `blocks/password-reset/`, compiled to `build/password-reset/`
+
+**Onboarding Block** (`blocks/onboarding/`, `build/onboarding/`):
+- Provides new user onboarding flow as Gutenberg block
+- Guides users through initial profile setup
+- Integrates with artist platform for artist onboarding
 - Registered via `register_block_type()` in main plugin file
 - Built with WordPress Scripts
 
@@ -345,17 +384,32 @@ extrachill-users/
 │   ├── team-members.php           (team member functions)
 │   ├── admin-access-control.php   (admin access restriction)
 │   ├── author-links.php           (profile URL resolution)
-│   ├── user-creation.php          (community user creation filter)
 │   ├── artist-profiles.php        (artist profile functions - network-wide canonical)
 │   ├── auth/
+│   │   ├── class-redirect-handler.php (redirect handler class)
 │   │   ├── login.php              (login handler with `EC_Redirect_Handler`)
 │   │   ├── register.php           (registration handler with newsletter, roster require)
 │   │   ├── logout.php             (custom logout handler)
 │   │   └── password-reset.php     (password reset handler)
+│   ├── auth-tokens/
+│   │   ├── bearer-auth.php        (bearer token authentication)
+│   │   ├── db.php                 (token database operations)
+│   │   ├── service.php            (token service layer)
+│   │   └── tokens.php             (token generation and validation)
+│   ├── badges/
+│   │   └── user-badges.php        (user badge system)
 │   ├── core/
+│   │   ├── activation.php         (plugin activation)
 │   │   ├── online-users.php       (activity tracking)
 │   │   ├── registration-emails.php (welcome email system)
 │   │   └── user-creation.php      (community user creation filter)
+│   ├── oauth/
+│   │   ├── google-service.php     (Google OAuth integration)
+│   │   └── jwt-rs256.php          (JWT RS256 token validation)
+│   ├── onboarding/
+│   │   └── service.php            (user onboarding service)
+│   ├── rank-system/
+│   │   └── rank-tiers.php         (user rank tier system)
 │   ├── avatar-display.php         (custom avatar display - network-wide)
 │   ├── avatar-menu.php            (avatar menu display)
 │   ├── comment-auto-approval.php  (comment auto-approval for logged-in users)
@@ -366,13 +420,20 @@ extrachill-users/
 │   │   ├── avatar-menu.css        (avatar menu styles)
 │   │   └── online-users.css       (online users widget styles)
 │   └── js/
-│       └── avatar-menu.js         (avatar menu JavaScript)
+│       ├── auth-utils.js          (authentication utilities)
+│       ├── avatar-menu.js         (avatar menu JavaScript)
+│       └── google-signin.js       (Google OAuth sign-in handler)
 ├── blocks/
 │   ├── login-register/            (Login/Register Gutenberg block source)
+│   ├── onboarding/                (User Onboarding Gutenberg block source)
 │   └── password-reset/            (Password Reset Gutenberg block source)
 ├── build/
 │   ├── login-register/            (Compiled Login/Register block)
+│   ├── onboarding/                (Compiled Onboarding block)
 │   └── password-reset/            (Compiled Password Reset block)
+├── docs/
+│   ├── CHANGELOG.md               (version history)
+│   └── user-management.md         (user management documentation)
 ├── package.json                   (npm dependencies for blocks)
 ├── composer.json                  (dev dependencies)
 ├── build.sh                       (symlink to ../../.github/build.sh)

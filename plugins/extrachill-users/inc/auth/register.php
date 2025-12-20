@@ -27,18 +27,26 @@ function extrachill_handle_registration() {
 	$password         = isset( $_POST['extrachill_password'] ) ? $_POST['extrachill_password'] : '';
 	$password_confirm = isset( $_POST['extrachill_password_confirm'] ) ? $_POST['extrachill_password_confirm'] : '';
 
+	$is_local_environment = defined( 'WP_ENVIRONMENT_TYPE' ) && WP_ENVIRONMENT_TYPE === 'local';
+	$turnstile_bypass     = $is_local_environment || (bool) apply_filters( 'extrachill_bypass_turnstile_verification', false );
 	$turnstile_response = isset( $_POST['cf-turnstile-response'] ) ? wp_unslash( $_POST['cf-turnstile-response'] ) : '';
 
-	if ( empty( $turnstile_response ) ) {
-		$redirect->error( __( 'Captcha verification required. Please complete the challenge and try again.', 'extrachill-users' ) );
-	}
+	if ( ! $turnstile_bypass ) {
+		if ( empty( $turnstile_response ) ) {
+			$redirect->error( __( 'Captcha verification required. Please complete the challenge and try again.', 'extrachill-users' ) );
+		}
 
-	if ( ! ec_verify_turnstile_response( $turnstile_response ) ) {
-		$redirect->error( __( 'Captcha verification failed. Please try again.', 'extrachill-users' ) );
+		if ( ! ec_verify_turnstile_response( $turnstile_response ) ) {
+			$redirect->error( __( 'Captcha verification failed. Please try again.', 'extrachill-users' ) );
+		}
 	}
 
 	if ( $password !== $password_confirm ) {
 		$redirect->error( __( 'Passwords do not match.', 'extrachill-users' ) );
+	}
+
+	if ( strlen( $password ) < 8 ) {
+		$redirect->error( __( 'Password must be at least 8 characters.', 'extrachill-users' ) );
 	}
 
 	if ( email_exists( $email ) ) {

@@ -770,11 +770,11 @@ Use `expo-auth-session` for Google OAuth:
 |------|---------|--------|
 | `extrachill-api/inc/routes/users/onboarding.php` | Onboarding REST endpoint | ✅ Done |
 | `extrachill-api/inc/routes/auth/google.php` | Google OAuth REST endpoint | ✅ Done |
-| `extrachill-api/inc/routes/auth/apple.php` | Apple OAuth REST endpoint | ⏳ Phase 3 |
+| `extrachill-api/inc/routes/auth/apple.php` | Apple OAuth REST endpoint | ⏳ Pending |
 | `extrachill-users/inc/onboarding/service.php` | Onboarding service functions | ✅ Done |
 | `extrachill-users/inc/oauth/jwt-rs256.php` | RS256 JWT verification | ✅ Done |
 | `extrachill-users/inc/oauth/google-service.php` | Google OAuth service | ✅ Done |
-| `extrachill-users/inc/oauth/apple-service.php` | Apple OAuth service | ⏳ Phase 3 |
+| `extrachill-users/inc/oauth/apple-service.php` | Apple OAuth service | ⏳ Pending |
 | `extrachill-users/assets/js/google-signin.js` | Google Sign-In frontend module | ✅ Done |
 | `extrachill-users/assets/js/auth-utils.js` | Shared auth utilities | ✅ Done |
 | `extrachill-users/blocks/onboarding/` | Onboarding Gutenberg block | ✅ Done |
@@ -825,7 +825,7 @@ Users registered before this system:
 - [ ] Redirects to /onboarding after registration
 - [ ] Welcome email still sends correctly
 
-### Registration (Google OAuth) - Not Yet Implemented
+### Registration (Google OAuth) - Ready to Test
 - [ ] Google button appears on both login and register tabs
 - [ ] Google Identity Services popup works correctly
 - [ ] New user created with username from Google display name
@@ -860,7 +860,7 @@ Users registered before this system:
 - [ ] POST /users/onboarding enforces artist/pro for join flow
 - [ ] POST /users/onboarding updates user correctly
 - [ ] GET /auth/me includes onboarding_completed
-- [ ] POST /auth/google creates/authenticates user (not yet implemented)
+- [ ] POST /auth/google creates/authenticates user
 
 ### Mobile App - Not Yet Implemented
 - [ ] Auth state includes onboardingCompleted

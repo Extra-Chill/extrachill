@@ -128,7 +128,8 @@
                     return;
                 }
 
-                if (!turnstileResponse) {
+                var turnstileWidget = form.querySelector('.cf-turnstile');
+                if (turnstileWidget && !turnstileResponse) {
                     utils.renderNotice(form.closest('.login-register-form'), 'error', 'Captcha verification required. Please complete the challenge and try again.');
                     return;
                 }
