@@ -2,6 +2,32 @@
 
 All notable changes to the ExtraChill API plugin are documented here. This file is the single source of truth for release history.
 
+## 0.8.1
+
+### Added
+
+- **Auth Me Endpoint Enhancement**: Extended `/auth/me` endpoint with comprehensive user context data
+  - Added `artist_ids` array - All artist profile IDs managed by the user
+  - Added `latest_artist_id` - Most recently accessed artist profile ID
+  - Added `link_page_count` - Total number of link pages created by user
+  - Added `can_create_artists` - Boolean permission flag for artist profile creation capability
+  - Added `can_manage_shop` - Boolean permission flag for shop management capability
+  - Added `shop_product_count` - Total number of shop products listed by user
+  - Added `site_urls` object with URLs for community, artist, and shop sections
+  - All new fields are conditional with function existence checks for graceful degradation
+  - Enables mobile/web clients to build comprehensive navigation without additional API calls
+
+- **Avatar Menu Documentation**: Added `docs/routes/users/avatar-menu.md` documenting deprecation
+  - Directs clients to use `/auth/me` endpoint instead
+  - Improves developer understanding of migration path
+
+### Technical Notes
+
+- **Backward Compatibility**: All new fields are additive; existing response contract unchanged
+- **Graceful Degradation**: New fields only included if their respective helper functions exist
+- **Performance**: No database impact; all data derived from existing user metadata and helper functions
+- **Dependencies**: Conditional integration with extrachill-artist-platform and extrachill-shop functions
+
 ## 0.8.0
 
 ### Added
