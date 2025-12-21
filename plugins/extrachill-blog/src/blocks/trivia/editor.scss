@@ -39,6 +39,12 @@
 	line-height: 1.4;
 }
 
+.extrachill-blocks-trivia-editor .components-text-control__input::placeholder,
+.extrachill-blocks-trivia-editor .components-textarea-control__input::placeholder {
+	color: var(--muted-text, #757575);
+	opacity: 1;
+}
+
 .extrachill-blocks-trivia-editor .components-text-control__input:focus,
 .extrachill-blocks-trivia-editor .components-textarea-control__input:focus {
 	border-color: var(--focus-border-color, #0b5394);

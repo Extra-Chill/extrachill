@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.3] - 2025-12-20
+
+### Added
+- Mediavine blocklist rules for blog-specific ad filtering via `extrachill_should_block_ads` filter hook
+- Blocks ads on homepage, pages, and search results; allows ads on archives
+
+### Changed
+- Refactored artist profile link integration to use centralized `ec_get_artist_profile_by_slug()` function for code reuse across sites
+- Updated artist profile button hook from `extrachill_archive_filter_bar` to `extrachill_archive_header_actions` for improved theme integration
+- Improved artist profile link component with enhanced type checking and security
+
+### Fixed
+- Placeholder text styling in trivia block editor using CSS variables for consistent appearance
+
 ## [0.3.2] - 2025-12-16
 
 ### Added

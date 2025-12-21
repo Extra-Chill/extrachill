@@ -1,6 +1,6 @@
 {
   "name": "extrachill-blog",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "description": "Blog-specific functionality for extrachill.com with custom Gutenberg blocks for community engagement including trivia, voting, and music industry generators.",
   "author": "Chris Huber <https://extrachill.com>",
   "license": "GPL-2.0-or-later",
