@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0/).
 
+## [1.3.2] - 2025-12-20
+
+### Removed
+- Mediavine ad blocker settings from `header.php`, `inc/archives/archive.php`, and `inc/home/templates/front-page.php`
+
+### Changed
+- Improved main content grid layout by adding gap spacing via `gap: var(--spacing-lg)` in `style.css` for better visual separation between content and sidebar
+
+### Added
+- New location-savannah taxonomy badge color (`#13B554`) in `assets/css/taxonomy-badges.css`
+- Comprehensive filter bar component documentation in `docs/template-components.md` including parameters, examples, and integration points
+- Enhanced `docs/archive-functionality.md` to document filter bar component system and its reusability across the platform
+
+### Technical
+- Updated `AGENTS.md` to document 12 CSS files (including `filter-bar.css`) and components directory structure
+- Updated `README.md` to reflect filter bar component system in feature overview and file structure
+- Documentation alignment completed for filter bar component system introduced in v1.3.0
+
 ## [1.3.0] - 2025-12-17
 
 ### Added

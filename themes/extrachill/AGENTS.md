@@ -17,9 +17,10 @@ extrachill/
 ├── index.php                    # Emergency fallback template only
 ├── style.css                    # Main theme stylesheet
 ├── assets/
-│   ├── css/                     # 11 modular CSS files
+│   ├── css/                     # 12 modular CSS files
 │   │   ├── root.css             # CSS variables and design tokens
 │   │   ├── archive.css          # Archive page styles
+│   │   ├── filter-bar.css       # Universal filter bar component styles
 │   │   ├── single-post.css      # Single post styles
 │   │   ├── network-dropdown.css # Network site selector
 │   │   ├── search.css           # Search results styles
@@ -36,7 +37,10 @@ extrachill/
 │   │   ├── share.js             # Share button interactions
 │   │   └── view-tracking.js     # Async view counting
 │   └── fonts/                   # Local web fonts
-└── inc/                         # Modular functionality (48 files)
+└── inc/                         # Modular functionality
+    ├── components/              # Reusable UI components
+    │   ├── filter-bar.php       # Universal filter bar component
+    │   └── filter-bar-defaults.php # Filter bar default configurations
     ├── core/                    # Core WordPress features
     │   ├── actions.php          # WordPress action hooks
     │   ├── assets.php           # Asset enqueuing and versioning
@@ -490,6 +494,36 @@ extrachill_enqueue_shared_tabs();
     <div id="tab-1" class="tab-panel">Content 1</div>
 </div>
 ```
+
+#### Universal Filter Bar Component
+
+Reusable filter bar for archives and lists:
+
+**Location**: `inc/components/filter-bar.php`, `inc/components/filter-bar-defaults.php`
+
+**Styles**: `assets/css/filter-bar.css`
+
+**Purpose**: Provides consistent filtering UI across archives, forums, and other list views
+
+**Usage**:
+```php
+// Render filter bar with custom options
+extrachill_render_filter_bar([
+    'sort_options' => [
+        'date_desc' => 'Newest First',
+        'date_asc'  => 'Oldest First',
+        'popular'   => 'Most Popular'
+    ],
+    'current_sort' => 'date_desc',
+    'show_count'   => true,
+    'total_items'  => $total
+]);
+```
+
+**Integration Points**:
+- Used by theme archives via `inc/archives/archive-filter-bar.php`
+- Extended by extrachill-community plugin for forum filtering via `inc/core/filter-bar.php`
+- Customizable via filters for plugin-specific options
 
 ### Grid & Layout Systems
 

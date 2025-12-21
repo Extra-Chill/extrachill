@@ -30,14 +30,18 @@ Displays:
 ### Filter Bar
 
 **Location**: `/inc/archives/archive-filter-bar.php`
+**Component**: `/inc/components/filter-bar.php`, `/inc/components/filter-bar-defaults.php`
+**Styles**: `/assets/css/filter-bar.css`
 **Hook**: `extrachill_archive_above_posts`
 **Function**: `extrachill_archive_filter_bar()`
 
-Provides:
+Uses the universal filter bar component system to provide:
 - **Sort Dropdown**: 4-option sorting (recent, oldest, random, popular by view count)
 - Child term dropdown filtering
 - Artist filtering (category-specific)
 - `extrachill_archive_filter_bar` action hook for plugin integration (buttons appear on right side)
+
+The filter bar component is reusable across the platform - extended by the extrachill-community plugin for forum filtering via `inc/core/filter-bar.php`.
 
 ## Sorting System
 

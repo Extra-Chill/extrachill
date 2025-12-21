@@ -25,13 +25,6 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   <link rel="dns-prefetch" href="//www.googletagmanager.com">
   
   <?php wp_head(); ?>
-  <?php
-  if ( function_exists('is_user_ad_free') && is_user_ad_free() ) {
-      ?>
-      <div id="mediavine-settings" data-blocklist-all="1"></div>
-      <?php
-  }
-  ?>
 </head>
 <body <?php body_class(); ?>>
 <!-- Google Tag Manager (noscript) -->

@@ -481,6 +481,92 @@ extrachill_render_community_activity( array(
 
 Activities cached for 10 minutes using WordPress object cache with key `extrachill_community_activity_all`. Cache contains results from community site.
 
+## Filter Bar Component
+
+**Location**: `/inc/components/filter-bar.php`, `/inc/components/filter-bar-defaults.php`
+**Styles**: `/assets/css/filter-bar.css`
+**Function**: `extrachill_render_filter_bar( $args )`
+
+### Purpose
+
+Universal filter bar component providing consistent sorting and filtering UI across archives, forums, and other list views.
+
+### Parameters
+
+```php
+$args = array(
+    'sort_options'  => array(),     // Associative array of value => label
+    'current_sort'  => '',          // Currently selected sort value
+    'show_count'    => true,        // Display item count
+    'total_items'   => 0,           // Total item count
+    'form_action'   => '',          // Form submission URL
+    'extra_fields'  => array(),     // Additional hidden fields
+    'wrapper_class' => 'filter-bar', // Container CSS class
+);
+```
+
+### Default Sort Options
+
+Provided by `inc/components/filter-bar-defaults.php`:
+```php
+$default_sort_options = array(
+    'date_desc' => 'Newest First',
+    'date_asc'  => 'Oldest First',
+    'title_asc' => 'A-Z',
+    'popular'   => 'Most Popular',
+);
+```
+
+### Usage Examples
+
+```php
+// Basic filter bar
+extrachill_render_filter_bar( array(
+    'sort_options' => array(
+        'newest' => 'Newest',
+        'oldest' => 'Oldest',
+    ),
+    'current_sort' => 'newest',
+    'total_items'  => 156,
+) );
+
+// Forum-specific filter bar (via extrachill-community)
+extrachill_render_filter_bar( array(
+    'sort_options' => array(
+        'freshness' => 'Recently Active',
+        'newest'    => 'Newest Topics',
+        'popular'   => 'Most Replies',
+    ),
+    'current_sort' => 'freshness',
+    'show_count'   => false,
+) );
+```
+
+### Integration Points
+
+- **Theme Archives**: `inc/archives/archive-filter-bar.php` uses filter bar for post archives
+- **Community Forums**: `extrachill-community/inc/core/filter-bar.php` extends for bbPress
+- **Customization**: Override via `extrachill_filter_bar_options` filter
+
+### Output Structure
+
+```html
+<div class="filter-bar">
+    <form method="get" action="">
+        <div class="filter-bar-left">
+            <span class="item-count">156 items</span>
+        </div>
+        <div class="filter-bar-right">
+            <label for="sort">Sort by:</label>
+            <select name="orderby" id="sort">
+                <option value="date_desc" selected>Newest First</option>
+                <option value="date_asc">Oldest First</option>
+            </select>
+        </div>
+    </form>
+</div>
+```
+
 ## Component Integration
 
 All components designed for:

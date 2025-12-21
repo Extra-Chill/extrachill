@@ -1,6 +1,6 @@
 # ExtraChill WordPress Theme
 
-A custom WordPress theme (v1.3.1) powering the Extra Chill Platform multisite network with 9 active interconnected sites (Blog ID 6 unused), featuring hook-based homepage content, community integrations, and multisite-aware navigation. Horoscope site is planned for future Blog ID 11.
+A custom WordPress theme (v1.3.2) powering the Extra Chill Platform multisite network with 9 active interconnected sites (Blog ID 6 unused), featuring hook-based homepage content, community integrations, universal filter bar component system, and multisite-aware navigation. Horoscope site is planned for future Blog ID 11.
 
 > **Platform alignment**: Documentation reflects the live 1.3.1 release in `style.css` and must stay in lockstep with future releases.
 
@@ -30,8 +30,8 @@ ExtraChill is a modern, performance-optimized WordPress theme (v1.3.1) designed 
 - **Notice System**: Centralized user feedback system supporting multiple notices, anonymous user cookies, and action buttons
 
 ### 🚀 Performance Optimizations
-- **Conditional Asset Loading**: CSS/JS load only when their contexts require them (archives, search, sidebar, shared tabs, footer stats, notices, share buttons, etc.)
-- **Modular CSS Architecture**: Eleven page/component-specific stylesheets (`root`, `archive`, `single-post`, `nav`, `taxonomy-badges`, `editor-style`, `search`, `shared-tabs`, `share`, `sidebar`, `notice`)
+- **Conditional Asset Loading**: CSS/JS load only when their contexts require them (archives, search, sidebar, shared tabs, footer stats, notices, share buttons, filter bars, etc.)
+- **Modular CSS Architecture**: Twelve page/component-specific stylesheets (`root`, `archive`, `filter-bar`, `single-post`, `nav`, `taxonomy-badges`, `editor-style`, `search`, `shared-tabs`, `share`, `sidebar`, `notice`)
 - **Image Optimization**: Unused WordPress image sizes removed for leaner uploads
 - **View Tracking**: Async REST-powered view counting with script enqueued only on public singular content
 - **Multisite Optimization**: Direct `switch_to_blog()` access and cached lookups keep network features fast
@@ -137,9 +137,10 @@ For production deployment, use the build script to create clean ZIP packages:
 extrachill/
 ├── index.php                   # Emergency fallback template (minimal functionality)
 ├── assets/                     # Theme assets directory
-│   ├── css/                    # Modular CSS files (11 files)
+│   ├── css/                    # Modular CSS files (12 files)
 │   │   ├── root.css            # CSS custom properties
 │   │   ├── archive.css         # Archive page styles
+│   │   ├── filter-bar.css      # Universal filter bar component
 │   │   ├── single-post.css     # Single post styles
 │   │   ├── nav.css             # Navigation styles
 │   │   ├── taxonomy-badges.css # Taxonomy badge colors
@@ -157,7 +158,10 @@ extrachill/
 │   │   ├── view-tracking.js    # Async REST-powered view tracking
 │   │   └── share.js            # Share button interactions
 │   └── fonts/                  # Local web fonts
-├── inc/                        # Modular PHP functionality (48 files total, 28 directly loaded)
+├── inc/                        # Modular PHP functionality
+│   ├── components/             # Reusable UI components (2 files)
+│   │   ├── filter-bar.php      # Universal filter bar component
+│   │   └── filter-bar-defaults.php # Filter bar default configurations
 │   ├── archives/               # Archive page functionality (8 files)
 │   │   ├── archive.php
 │   │   ├── archive-header.php
@@ -406,6 +410,6 @@ See [docs/CHANGELOG.md](docs/CHANGELOG.md) for full version history.
 
 **Theme**: ExtraChill
 **Author**: Chubes
-**Version**: 1.3.1
+**Version**: 1.3.2
 **WordPress**: 5.0+
 **License**: Proprietary
