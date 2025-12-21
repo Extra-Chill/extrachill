@@ -13,7 +13,6 @@ get_header();
 
 do_action( 'extrachill_before_body_content' );
 ?>
-<div id="mediavine-settings" data-blocklist-all="1"></div>
 <?php
 do_action( 'extrachill_homepage_content' );
 

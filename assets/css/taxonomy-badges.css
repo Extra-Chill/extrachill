@@ -238,6 +238,10 @@
 	background-color: #21468B;
 	color: #fff;
 }
+.taxonomy-badge.location-savannah {
+	background-color: #13B554;
+	color: #ffffff;
+}
 
 /* === Category Badges === */
 .taxonomy-badge.category-festival-news-badge {
