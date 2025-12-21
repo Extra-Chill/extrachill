@@ -62,7 +62,7 @@ defined( 'ABSPATH' ) || exit;
                             </div>
                         </div>
                         <?php bbp_topic_freshness_link($topic_id); ?>
-                        by <?php bbp_author_link( array( 'post_id' => bbp_get_topic_last_active_id($topic_id), 'size' => 14 ) ); ?>
+                        by <?php bbp_author_link( array( 'post_id' => bbp_get_topic_last_active_id($topic_id), 'type' => 'name' ) ); ?>
                         <br>
                         in <a href="<?php echo bbp_get_forum_permalink( bbp_get_topic_forum_id($topic_id) ); ?>">
                             <?php echo bbp_get_forum_title( bbp_get_topic_forum_id($topic_id) ); ?>

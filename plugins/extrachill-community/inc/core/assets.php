@@ -178,7 +178,6 @@ function extrachill_enqueue_scripts() {
     $stylesheet_dir = EXTRACHILL_COMMUNITY_PLUGIN_DIR;
 
     $upvote_script_version = filemtime( $stylesheet_dir . '/inc/assets/js/upvote.js' );
-    $mentions_script_version = filemtime( $stylesheet_dir . '/inc/assets/js/extrachill-mentions.js' );
 
     if ( is_bbpress() || is_page('recent') ) {
         wp_enqueue_script('extrachill-upvote', $stylesheet_dir_uri . '/inc/assets/js/upvote.js', array(), $upvote_script_version, true);
@@ -189,14 +188,20 @@ function extrachill_enqueue_scripts() {
     }
 
     if (is_bbpress()) {
-        wp_enqueue_script('extrachill-mentions', $stylesheet_dir_uri . '/inc/assets/js/extrachill-mentions.js', array(), $mentions_script_version, true);
-
+        // Always load shared bbPress UI (works with both Blocks Everywhere and TinyMCE)
         $bbpress_ui_version = filemtime( $stylesheet_dir . '/inc/assets/js/bbpress-ui.js' );
         wp_enqueue_script('extrachill-bbpress-ui', $stylesheet_dir_uri . '/inc/assets/js/bbpress-ui.js', array(), $bbpress_ui_version, true);
         wp_localize_script('extrachill-bbpress-ui', 'extrachillCommunityEditor', array(
             'restNonce' => wp_create_nonce('wp_rest'),
             'restUrl'   => rest_url(),
         ));
+
+        // Only load TinyMCE-specific script when Blocks Everywhere is inactive
+        include_once ABSPATH . 'wp-admin/includes/plugin.php';
+        if ( ! is_plugin_active( 'blocks-everywhere/blocks-everywhere.php' ) ) {
+            $tinymce_version = filemtime( $stylesheet_dir . '/inc/assets/js/bbpress-tinymce.js' );
+            wp_enqueue_script('extrachill-bbpress-tinymce', $stylesheet_dir_uri . '/inc/assets/js/bbpress-tinymce.js', array(), $tinymce_version, true);
+        }
     }
 }
 add_action('wp_enqueue_scripts', 'extrachill_enqueue_scripts', 20);

@@ -94,13 +94,18 @@ function extrachill_community_bbpress_restore_reply_draft_content( $content ) {
         return $content;
     }
 
+    $reply_to = 0;
+    if ( function_exists( 'bbp_get_form_reply_to' ) ) {
+        $reply_to = (int) bbp_get_form_reply_to();
+    }
+
     $draft = extrachill_api_bbpress_draft_get(
         get_current_user_id(),
         [
             'type'     => 'reply',
             'blog_id'  => (int) get_current_blog_id(),
             'topic_id' => $topic_id,
-            'reply_to' => 0,
+            'reply_to' => $reply_to,
         ]
     );
 
@@ -246,13 +251,18 @@ function extrachill_community_bbpress_clear_reply_drafts_on_new_reply( $reply_id
         return;
     }
 
+    $reply_to = 0;
+    if ( function_exists( 'bbp_get_reply_to' ) ) {
+        $reply_to = (int) bbp_get_reply_to( $reply_id );
+    }
+
     extrachill_api_bbpress_draft_delete(
         $user_id,
         [
             'type'     => 'reply',
             'blog_id'  => (int) get_current_blog_id(),
             'topic_id' => $topic_id,
-            'reply_to' => 0,
+            'reply_to' => $reply_to,
         ]
     );
 }

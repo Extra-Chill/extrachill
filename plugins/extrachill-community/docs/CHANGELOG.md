@@ -1,5 +1,35 @@
 # Changelog
 
+## [1.2.0] - 2025-12-20
+
+### Added
+- Inline reply form system for bbPress topics with smart context-aware form repositioning
+- Reply depth tracking with CSS custom properties for visual indentation of threaded replies
+- New reply shim template (`bbpress/loop-single-reply.php`) for seamless threaded reply support
+- New dedicated TinyMCE functionality file (`inc/assets/js/bbpress-tinymce.js`) consolidating mentions and autosave
+- User @mention display in reply form legend when replying to specific users
+- Cancel button for inline reply form to restore bottom form position
+- Responsive mobile styles for nested replies and inline reply forms
+
+### Changed
+- Major refactoring of `inc/assets/js/bbpress-ui.js`: removed TinyMCE autosave logic, added inline reply system with form repositioning
+- Enhanced `bbpress/form-reply.php` with dynamic reply legend showing `@username` context and reply action wrapper
+- Improved `bbpress/loop-single-reply-card.php` with depth tracking via `data-depth` attribute and CSS custom properties
+- Updated CSS styling in `inc/assets/css/replies-loop.css` with nested reply compression and mobile responsiveness
+- Consolidated reply author display in `bbpress/topic-sidebar.php` (removed explicit avatar size)
+- Enhanced `inc/assets/css/home.css` to include `.bbp-forum-activity-location` selector
+- TinyMCE mentions functionality now in separate `bbpress-tinymce.js` file for better organization
+
+### Removed
+- TinyMCE autosave handler from `bbpress-ui.js` (moved to `bbpress-tinymce.js`)
+- `inc/assets/js/extrachill-mentions.js` (consolidated into `bbpress-tinymce.js`)
+- `.bbp-submit-button` margin style (inline form actions handle spacing)
+
+### Fixed
+- Better visual hierarchy for nested replies using CSS custom property-based depth tracking
+- Improved responsive design for reply cards on mobile devices
+- Cleaner reply form context with @mention legend for targeted replies
+
 ## [1.1.4] - 2025-12-20
 
 ### Changed

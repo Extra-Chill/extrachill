@@ -62,7 +62,8 @@
     border-radius: 8px;
     box-shadow: var(--card-shadow);
     margin-bottom: 1.5rem;
-    width: 100%;
+    /* Compression: reduce width as depth increases, keeping right edge aligned */
+    width: calc(100% - (var(--depth) * 2rem));
     margin-left: calc(var(--depth) * 2rem);
     position: relative;
     transition: box-shadow 0.2s ease-in-out;
@@ -112,6 +113,40 @@ li.bbp-body div.hentry {
     align-items: center;
     gap: 0.75rem;
     width: max-content;
+}
+
+@media (max-width: 768px) {
+    .upvote-date {
+        flex-direction: column;
+        width: auto;
+        gap: 0.5rem;
+        align-items: flex-start;
+    }
+
+    .bbp-reply-post-date {
+        white-space: normal;
+        word-break: break-word;
+    }
+
+    .bbp-reply-footer {
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .bbp-reply-user-actions {
+        width: 100%;
+        margin-left: 0;
+    }
+}
+
+/* Inline Reply Actions - Button Spacing */
+.ec-reply-actions {
+    margin-top: var(--spacing-sm);
+}
+
+.ec-inline-mode .ec-reply-actions {
+    display: flex;
+    gap: 0.5rem;
 }
 
 /* Avatar & Author Details */
@@ -335,10 +370,7 @@ span.bbp-topic-post-date {
     font-weight: bold;
 }
 
-.topic-card-sidebar .bbp-author-avatar {
-    height: 14px;
-    width: 14px;
-}
+/* Avatar removed from sidebar output */
 
 .topic-card-sidebar .bbp-author-link {
     display: inline;
@@ -457,4 +489,58 @@ span.bbp-author-ip {
 
 blockquote p{
     padding: 15px;
+}
+
+/* ==================================================
+   Inline Reply Form Styles
+================================================== */
+
+.ec-inline-reply-form {
+    background: var(--card-background);
+    border-radius: 8px;
+    box-shadow: var(--card-shadow);
+    margin-bottom: 1.5rem;
+    margin-top: 1rem;
+    border: 1px solid var(--border-color);
+    padding: 1rem;
+}
+
+.ec-inline-reply-form .bbp-form {
+    margin: 0;
+    border: none;
+    padding: 0;
+}
+
+.ec-inline-reply-form legend {
+    font-size: 0.9rem;
+    color: var(--muted-text);
+    margin-bottom: 0.75rem;
+    padding: 0;
+    border: none;
+}
+
+.ec-inline-reply-content {
+    margin-bottom: 1rem;
+}
+
+.ec-inline-reply-content .ec-inline-textarea {
+    width: 100%;
+    min-height: 120px;
+}
+
+.ec-inline-reply-actions {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: flex-start;
+}
+
+.ec-inline-reply-cancel {
+    background: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--text-color);
+}
+
+.ec-inline-reply-cancel:hover {
+    background: var(--background-color);
+    border-color: var(--accent);
 }

@@ -183,7 +183,7 @@ ul.recently-active-topic-row {
     list-style: none;
 }
 
-.bbp-forum-last-active-time {
+.bbp-forum-last-active-time, .bbp-forum-activity-location {
     margin: 0;
 }
 

@@ -28,7 +28,23 @@ if ( bbp_is_reply_edit() ) : ?>
 			<?php do_action( 'bbp_theme_before_reply_form' ); ?>
 
 			<fieldset class="bbp-form">
-				<legend><?php printf( esc_html__( 'Reply To: %s', 'bbpress' ), ( bbp_get_form_reply_to() ) ? sprintf( esc_html__( 'Reply #%1$s in %2$s', 'bbpress' ), bbp_get_form_reply_to(), bbp_get_topic_title() ) : bbp_get_topic_title() ); ?></legend>
+				<legend>
+					<?php
+					$reply_to = bbp_get_form_reply_to();
+					if ( $reply_to ) {
+						$reply_author_id = bbp_get_reply_author_id( $reply_to );
+						$reply_author = get_userdata( $reply_author_id );
+						$username = $reply_author ? $reply_author->user_nicename : '';
+						if ( $username ) {
+							printf( esc_html__( 'Reply to @%s', 'bbpress' ), esc_html( $username ) );
+						} else {
+							printf( esc_html__( 'Reply To: %s', 'bbpress' ), bbp_get_topic_title() );
+						}
+					} else {
+						printf( esc_html__( 'Reply To: %s', 'bbpress' ), bbp_get_topic_title() );
+					}
+					?>
+				</legend>
 
 				<?php do_action( 'bbp_theme_before_reply_form_notices' ); ?>
 
@@ -166,15 +182,17 @@ if ( bbp_is_reply_edit() ) : ?>
 
 					<?php endif; ?>
 
-					<?php do_action( 'bbp_theme_before_reply_form_submit_wrapper' ); ?>
+				<?php do_action( 'bbp_theme_before_reply_form_submit_wrapper' ); ?>
 
+				<div class="ec-reply-actions">
 					<?php do_action( 'bbp_theme_before_reply_form_submit_button' ); ?>
 
 					<button type="submit" id="bbp_reply_submit" name="bbp_reply_submit" class="button-1 button-large bbp-submit-button"><?php esc_html_e( 'Submit', 'bbpress' ); ?></button>
 
 					<?php do_action( 'bbp_theme_after_reply_form_submit_button' ); ?>
+				</div>
 
-					<?php do_action( 'bbp_theme_after_reply_form_submit_wrapper' ); ?>
+				<?php do_action( 'bbp_theme_after_reply_form_submit_wrapper' ); ?>
 
 				</div>
 

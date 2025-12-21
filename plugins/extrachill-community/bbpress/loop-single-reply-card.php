@@ -10,9 +10,25 @@
 defined( 'ABSPATH' ) || exit;
 ?>
 
+<?php
+$reply_depth = 0;
+if ( function_exists( 'bbpress' ) && isset( bbpress()->reply_query->reply_depth ) ) {
+    $reply_depth = max( 0, (int) bbpress()->reply_query->reply_depth - 1 );
+}
+
+$bbp_instance   = bbpress();
+$reply_id_check = bbp_get_reply_id();
+$topic_id_check = ! empty( $bbp_instance->current_topic_id ) ? $bbp_instance->current_topic_id : bbp_get_topic_id();
+
+$current_post_type = get_post_type( $reply_id_check );
+$is_lead_topic     = ( $reply_id_check === $topic_id_check ) || ( $current_post_type === bbp_get_topic_post_type() );
+?>
+
 <div id="post-<?php bbp_reply_id(); ?>" 
-     class="bbp-reply-card <?php if ( bbp_get_reply_author_id() == bbp_get_topic_author_id( bbp_get_topic_id() ) ) echo 'is-topic-author'; ?>"
-     data-reply-id="<?php bbp_reply_id(); ?>">
+     class="bbp-reply-card <?php echo $is_lead_topic ? 'is-lead-topic' : ''; ?> <?php if ( bbp_get_reply_author_id() == bbp_get_topic_author_id( bbp_get_topic_id() ) ) echo 'is-topic-author'; ?>"
+     data-reply-id="<?php bbp_reply_id(); ?>"
+     data-depth="<?php echo esc_attr( $reply_depth ); ?>"
+     style="--depth: <?php echo esc_attr( $reply_depth ); ?>">
 
     <?php do_action( 'bbp_template_before_reply_content' ); ?>
 
@@ -46,12 +62,9 @@ defined( 'ABSPATH' ) || exit;
 </a>
 
                     <?php
-$bbp = bbpress();
-$reply_id  = bbp_get_reply_id();
-$topic_id  = ! empty( $bbp->current_topic_id ) ? $bbp->current_topic_id : bbp_get_topic_id();
-$current_post_id = get_the_ID();
-$current_post_type = get_post_type( $current_post_id );
-$is_lead_topic = ( $reply_id === $topic_id ) || ( $current_post_type === bbp_get_topic_post_type() );
+// $is_lead_topic, $reply_id_check, $topic_id_check already defined at top of template
+$reply_id = bbp_get_reply_id();
+$topic_id = $topic_id_check;
 ?>
 
                 </div>

@@ -1,10 +1,14 @@
 /**
  * bbPress UI Handlers
  *
- * Jump-to-latest button, sort select auto-submit, and TinyMCE autosave setup.
+ * Shared logic for bbPress pages:
+ * - Jump to latest button
+ * - Reply link click handling (inline form for reply cards, scroll for lead topic)
+ * - Inline reply: moves the existing Gutenberg editor to inline position (only one editor instance)
  */
 
 document.addEventListener( 'DOMContentLoaded', function () {
+	// Jump to latest reply button
 	const jumpButton = document.querySelector( '#jump-to-latest' );
 	if ( jumpButton ) {
 		jumpButton.addEventListener( 'click', function () {
@@ -14,424 +18,222 @@ document.addEventListener( 'DOMContentLoaded', function () {
 			}
 		} );
 	}
+
+	// Get the bottom form wrapper (contains the Gutenberg editor)
+	const bottomForm = document.getElementById( 'new-post' );
+	const bottomFormWrapper = bottomForm ? bottomForm.closest( '.bbp-reply-form' ) : null;
+	const bottomFormLegend = bottomFormWrapper ? bottomFormWrapper.querySelector( '.bbp-form > legend' ) : null;
+	const originalLegendText = bottomFormLegend ? bottomFormLegend.textContent : null;
+	let originalFormLocation = null;
+	let activeReplyCard = null;
+	let activeReplyId = null;
+
+	// Create a placeholder to mark where the form was
+	const placeholder = document.createElement( 'div' );
+	placeholder.id = 'ec-form-placeholder';
+	placeholder.style.display = 'none';
+
+	// Create cancel button to add when form is moved inline
+	function createCancelButton() {
+		const btn = document.createElement( 'button' );
+		btn.type = 'button';
+		btn.className = 'button-3 button-large ec-inline-reply-cancel';
+		btn.textContent = 'Cancel';
+		btn.addEventListener( 'click', function ( e ) {
+			e.preventDefault();
+			restoreFormToBottom();
+		} );
+		return btn;
+	}
+
+	let cancelButton = null;
+
+	function emitReplyDraftContextChange( previousReplyTo, nextReplyTo ) {
+		if ( ! bottomForm ) {
+			return;
+		}
+
+		const topicIdField = bottomForm.querySelector( 'input[name="bbp_topic_id"]' );
+		const topicId = topicIdField ? parseInt( topicIdField.value, 10 ) : 0;
+		if ( ! topicId ) {
+			return;
+		}
+
+		document.dispatchEvent(
+			new CustomEvent( 'extrachill:bbpressDraftContextChange', {
+				detail: {
+					type: 'reply',
+					topicId,
+					previousReplyTo,
+					nextReplyTo,
+				},
+			} )
+		);
+	}
+
+	function getReplyToFieldValue() {
+		const replyToField = bottomForm ? bottomForm.querySelector( 'input[name="bbp_reply_to"]' ) : null;
+		if ( ! replyToField ) {
+			return 0;
+		}
+
+		const value = parseInt( replyToField.value, 10 );
+		return Number.isFinite( value ) && value >= 0 ? value : 0;
+	}
+
+	function restoreFormToBottom() {
+		if ( ! bottomFormWrapper || ! originalFormLocation ) {
+			return;
+		}
+
+		const previousReplyTo = getReplyToFieldValue();
+
+		if ( bottomFormLegend && originalLegendText ) {
+			bottomFormLegend.textContent = originalLegendText;
+		}
+
+		// Remove cancel button
+		if ( cancelButton && cancelButton.parentNode ) {
+			cancelButton.remove();
+		}
+
+		// Reset the reply_to field to 0 (top-level reply)
+		const replyToField = bottomForm ? bottomForm.querySelector( 'input[name="bbp_reply_to"]' ) : null;
+		if ( replyToField ) {
+			replyToField.value = '0';
+		}
+
+		emitReplyDraftContextChange( previousReplyTo, 0 );
+
+		// Move form back to original location (replace placeholder)
+		placeholder.parentNode.insertBefore( bottomFormWrapper, placeholder );
+		placeholder.remove();
+
+		// Remove inline styling class
+		bottomFormWrapper.classList.remove( 'ec-inline-mode' );
+
+		originalFormLocation = null;
+		activeReplyCard = null;
+		activeReplyId = null;
+	}
+
+	function moveFormInline( replyId, replyCard, replySlug ) {
+		if ( ! bottomFormWrapper || ! bottomForm ) {
+			return;
+		}
+
+		// If already at this reply, just focus the editor
+		if ( activeReplyId === replyId && activeReplyCard === replyCard ) {
+			const editor = bottomFormWrapper.querySelector( '.iso-editor' );
+			if ( editor ) {
+				editor.focus();
+			}
+			return;
+		}
+
+		const previousReplyTo = getReplyToFieldValue();
+
+		// If form is already moved somewhere, restore it first
+		if ( originalFormLocation ) {
+			restoreFormToBottom();
+		}
+
+		// Mark the original location with placeholder
+		bottomFormWrapper.parentNode.insertBefore( placeholder, bottomFormWrapper );
+		originalFormLocation = placeholder;
+
+		// Set the reply_to field to the parent reply ID
+		const replyToField = bottomForm ? bottomForm.querySelector( 'input[name="bbp_reply_to"]' ) : null;
+		if ( replyToField ) {
+			replyToField.value = String( replyId );
+		}
+
+		emitReplyDraftContextChange( previousReplyTo, replyId );
+
+		// Move the form after the reply card
+		replyCard.insertAdjacentElement( 'afterend', bottomFormWrapper );
+
+		// Add inline styling class
+		bottomFormWrapper.classList.add( 'ec-inline-mode' );
+
+		if ( bottomFormLegend && replySlug ) {
+			bottomFormLegend.textContent = `Reply to @${ replySlug }`;
+		}
+
+		// Add cancel button if not already present
+		if ( ! cancelButton ) {
+			cancelButton = createCancelButton();
+		}
+		const submitButton = bottomForm ? bottomForm.querySelector( '.bbp-submit-button' ) : null;
+		const actionsContainer = bottomForm ? bottomForm.querySelector( '.ec-reply-actions' ) : null;
+		if ( submitButton ) {
+			submitButton.classList.add( 'button-large' );
+			if ( actionsContainer && cancelButton && ! actionsContainer.contains( cancelButton ) ) {
+				actionsContainer.appendChild( cancelButton );
+			}
+		}
+
+		// Track state
+		activeReplyCard = replyCard;
+		activeReplyId = replyId;
+
+		// Scroll to the form
+		bottomFormWrapper.scrollIntoView( { behavior: 'smooth', block: 'start' } );
+
+		// Focus the editor
+		setTimeout( function () {
+			const editor = bottomFormWrapper.querySelector( '.iso-editor' );
+			if ( editor ) {
+				editor.focus();
+			}
+		}, 100 );
+	}
+
+	function scrollToBottomForm() {
+		// If form is inline, restore it first
+		if ( originalFormLocation ) {
+			restoreFormToBottom();
+		}
+
+		if ( bottomForm ) {
+			bottomForm.scrollIntoView( { behavior: 'smooth', block: 'start' } );
+
+			// Focus the editor
+			setTimeout( function () {
+				const editor = bottomFormWrapper ? bottomFormWrapper.querySelector( '.iso-editor' ) : null;
+				if ( editor ) {
+					editor.focus();
+				}
+			}, 100 );
+		}
+	}
+
+	// Unified click handler for all reply links
+	document.addEventListener( 'click', function ( e ) {
+		const replyLink = e.target.closest( '.bbp-reply-to-link' );
+		if ( ! replyLink ) {
+			return;
+		}
+
+		e.preventDefault();
+		e.stopPropagation();
+
+		// Check if inside a reply card
+		const replyCard = replyLink.closest( '.bbp-reply-card' );
+
+		// Lead topic has .is-lead-topic class - should use bottom form, not inline
+		if ( replyCard && ! replyCard.classList.contains( 'is-lead-topic' ) ) {
+			// Regular reply card → move form inline
+			const replyIdString = replyCard.getAttribute( 'data-reply-id' );
+			const replyId = replyIdString ? parseInt( replyIdString, 10 ) : 0;
+
+			if ( replyId ) {
+				const replySlug = replyLink.getAttribute( 'data-reply-slug' );
+				moveFormInline( replyId, replyCard, replySlug );
+			}
+		} else {
+			// Lead topic or no card → scroll to bottom form
+			scrollToBottomForm();
+		}
+	} );
 } );
-
-window.extrachillTinymceSetup = function ( editor ) {
-	let debounceTimer;
-	const saveDelay = 800;
-	let isSubmitting = false;
-	const draftRequestControllers = new Set();
-	const form = editor.getElement()
-		? editor.getElement().closest( 'form' )
-		: null;
-	const editorContext = window.extrachillCommunityEditor || {};
-	const restNonce =
-		editorContext.restNonce ||
-		( window.wpApiSettings ? window.wpApiSettings.nonce : null );
-
-	function getForumIdField() {
-		return (
-			document.querySelector( '#bbp_forum_id' ) ||
-			document.querySelector( '[name="bbp_forum_id"]' )
-		);
-	}
-
-	function getCurrentForumId() {
-		const forumField = getForumIdField();
-		if ( ! forumField ) {
-			return null;
-		}
-
-		const forumId = parseInt( forumField.value, 10 );
-		return Number.isFinite( forumId ) && forumId >= 0 ? forumId : 0;
-	}
-
-	function getTopicId() {
-		if ( ! form ) {
-			return null;
-		}
-
-		const topicField = form.querySelector( 'input[name="bbp_topic_id"]' );
-		if ( ! topicField ) {
-			return null;
-		}
-
-		const topicId = parseInt( topicField.value, 10 );
-		return Number.isFinite( topicId ) && topicId > 0 ? topicId : null;
-	}
-
-	function getDraftType() {
-		const element = editor.getElement();
-		const fieldName = element && element.name ? element.name : '';
-		if ( fieldName === 'bbp_topic_content' ) {
-			return 'topic';
-		}
-		if ( fieldName === 'bbp_reply_content' ) {
-			return 'reply';
-		}
-		return null;
-	}
-
-	function buildDraftUrl( params ) {
-		if ( ! editorContext.restUrl ) {
-			throw new Error( 'TinyMCE drafts missing REST root.' );
-		}
-
-		const url = new URL(
-			'extrachill/v1/community/drafts',
-			editorContext.restUrl
-		);
-		Object.keys( params ).forEach( function ( key ) {
-			if ( params[ key ] === undefined || params[ key ] === null ) {
-				return;
-			}
-			url.searchParams.set( key, String( params[ key ] ) );
-		} );
-		return url.toString();
-	}
-
-	function draftFetch( path, options ) {
-		if ( ! restNonce ) {
-			return Promise.resolve( null );
-		}
-
-		const controller = new AbortController();
-		draftRequestControllers.add( controller );
-
-		const mergedOptions = Object.assign(
-			{
-				credentials: 'same-origin',
-				signal: controller.signal,
-				headers: Object.assign(
-					{
-						'X-WP-Nonce': restNonce,
-					},
-					options && options.headers ? options.headers : {}
-				),
-			},
-			options || {}
-		);
-
-		return fetch( path, mergedOptions ).finally( function () {
-			draftRequestControllers.delete( controller );
-		} );
-	}
-
-	function getTopicDraftPayload( forumId ) {
-		const titleField = document.getElementById( 'bbp_topic_title' );
-		const title = titleField ? titleField.value : '';
-		const content = editor.getContent( { format: 'raw' } );
-
-		if ( title.trim() === '' && content.trim() === '' ) {
-			return null;
-		}
-
-		return {
-			type: 'topic',
-			forum_id: forumId,
-			title,
-			content,
-		};
-	}
-
-	function getReplyDraftPayload( topicId ) {
-		const content = editor.getContent( { format: 'raw' } );
-		if ( content.trim() === '' ) {
-			return null;
-		}
-
-		return {
-			type: 'reply',
-			topic_id: topicId,
-			reply_to: 0,
-			content,
-		};
-	}
-
-	function saveDraft() {
-		if ( isSubmitting ) {
-			return;
-		}
-		const type = getDraftType();
-		if ( ! type ) {
-			return;
-		}
-
-		if ( type === 'topic' ) {
-			const forumId = getCurrentForumId();
-			if ( forumId === null ) {
-				return;
-			}
-
-			const payload = getTopicDraftPayload( forumId );
-			if ( ! payload ) {
-				return;
-			}
-
-			draftFetch( buildDraftUrl( {} ), {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json',
-				},
-				body: JSON.stringify( payload ),
-			} ).catch( function () {} );
-			return;
-		}
-
-		const topicId = getTopicId();
-		if ( ! topicId ) {
-			return;
-		}
-
-		const replyPayload = getReplyDraftPayload( topicId );
-		if ( ! replyPayload ) {
-			return;
-		}
-
-		draftFetch( buildDraftUrl( {} ), {
-			method: 'POST',
-			headers: {
-				'Content-Type': 'application/json',
-			},
-			body: JSON.stringify( replyPayload ),
-		} ).catch( function () {} );
-	}
-
-	function deleteTopicDraft( forumId, options ) {
-		return draftFetch(
-			buildDraftUrl( {
-				type: 'topic',
-				forum_id: forumId,
-			} ),
-			Object.assign(
-				{
-					method: 'DELETE',
-				},
-				options || {}
-			)
-		);
-	}
-
-	function shouldAutorestoreDraft( type ) {
-		if ( ! type ) {
-			return false;
-		}
-
-		const content = editor.getContent( { format: 'raw' } );
-		if ( String( content || '' ).trim() !== '' ) {
-			return false;
-		}
-
-		if ( type === 'topic' ) {
-			const titleField = document.getElementById( 'bbp_topic_title' );
-			const titleValue = titleField ? titleField.value : '';
-			return String( titleValue || '' ).trim() === '';
-		}
-
-		return type === 'reply';
-	}
-
-	function maybeRestoreDraft() {
-		const type = getDraftType();
-		if ( ! shouldAutorestoreDraft( type ) ) {
-			return;
-		}
-
-		if ( type === 'topic' ) {
-			const forumId = getCurrentForumId();
-			if ( forumId === null ) {
-				return;
-			}
-
-			draftFetch(
-				buildDraftUrl( {
-					type: 'topic',
-					forum_id: forumId,
-					prefer_unassigned: true,
-				} ),
-				{
-					method: 'GET',
-				}
-			)
-				.then( function ( response ) {
-					if ( ! response || ! response.ok ) {
-						return null;
-					}
-					return response.json();
-				} )
-				.then( function ( payload ) {
-					const draft =
-						payload && payload.draft ? payload.draft : null;
-					if ( ! draft ) {
-						return;
-					}
-
-					const titleField =
-						document.getElementById( 'bbp_topic_title' );
-					if (
-						titleField &&
-						String( titleField.value || '' ).trim() === ''
-					) {
-						titleField.value = String( draft.title || '' );
-					}
-
-					const currentContent = editor.getContent( {
-						format: 'raw',
-					} );
-					if ( String( currentContent || '' ).trim() === '' ) {
-						editor.setContent( String( draft.content || '' ), {
-							format: 'raw',
-						} );
-					}
-				} )
-				.catch( function () {} );
-
-			return;
-		}
-
-		const topicId = getTopicId();
-		if ( ! topicId ) {
-			return;
-		}
-
-		draftFetch(
-			buildDraftUrl( {
-				type: 'reply',
-				topic_id: topicId,
-				reply_to: 0,
-			} ),
-			{
-				method: 'GET',
-			}
-		)
-			.then( function ( response ) {
-				if ( ! response || ! response.ok ) {
-					return null;
-				}
-				return response.json();
-			} )
-			.then( function ( payload ) {
-				const draft = payload && payload.draft ? payload.draft : null;
-				if ( ! draft ) {
-					return;
-				}
-
-				const currentContent = editor.getContent( { format: 'raw' } );
-				if ( String( currentContent || '' ).trim() === '' ) {
-					editor.setContent( String( draft.content || '' ), {
-						format: 'raw',
-					} );
-				}
-			} )
-			.catch( function () {} );
-	}
-
-	function setupForumMoveHandler() {
-		if ( getDraftType() !== 'topic' ) {
-			return;
-		}
-
-		const forumField = getForumIdField();
-		if ( ! forumField ) {
-			return;
-		}
-
-		let lastForumId = getCurrentForumId();
-
-		forumField.addEventListener( 'change', function () {
-			if ( isSubmitting ) {
-				return;
-			}
-			const newForumId = getCurrentForumId();
-			if ( newForumId === null || lastForumId === null ) {
-				return;
-			}
-
-			if ( lastForumId === 0 && newForumId > 0 ) {
-				const payload = getTopicDraftPayload( newForumId );
-				if ( ! payload ) {
-					lastForumId = newForumId;
-					return;
-				}
-
-				draftFetch( buildDraftUrl( {} ), {
-					method: 'POST',
-					headers: {
-						'Content-Type': 'application/json',
-					},
-					body: JSON.stringify( payload ),
-				} )
-					.then( function () {
-						return deleteTopicDraft( 0 );
-					} )
-					.catch( function () {} );
-			}
-
-			lastForumId = newForumId;
-		} );
-	}
-
-	editor.on( 'input keyup', function ( e ) {
-		const nonTriggerKeys = [ 33, 34, 35, 36, 37, 38, 39, 40 ];
-		if ( e && e.keyCode && nonTriggerKeys.includes( e.keyCode ) ) {
-			return;
-		}
-
-		clearTimeout( debounceTimer );
-		debounceTimer = setTimeout( function () {
-			if ( ! editor.removed ) {
-				saveDraft();
-			}
-		}, saveDelay );
-	} );
-
-	const titleField = document.getElementById( 'bbp_topic_title' );
-	if ( titleField && getDraftType() === 'topic' ) {
-		titleField.addEventListener( 'input', function () {
-			clearTimeout( debounceTimer );
-			debounceTimer = setTimeout( function () {
-				if ( ! editor.removed ) {
-					saveDraft();
-				}
-			}, saveDelay );
-		} );
-	}
-
-	editor.on( 'init', function () {
-		if ( ! editor.removed ) {
-			maybeRestoreDraft();
-		}
-	} );
-
-	setupForumMoveHandler();
-
-	if ( form ) {
-		form.addEventListener(
-			'submit',
-			function ( event ) {
-				if ( editor.removed ) {
-					return;
-				}
-
-				if (
-					event &&
-					event.submitter &&
-					event.submitter.closest &&
-					event.submitter.closest(
-						'.tox-tbtn, .tox-button, .mce, .mce-container'
-					)
-				) {
-					return;
-				}
-
-				isSubmitting = true;
-				clearTimeout( debounceTimer );
-
-				draftRequestControllers.forEach( function ( controller ) {
-					controller.abort();
-				} );
-			},
-			false
-		);
-	}
-};

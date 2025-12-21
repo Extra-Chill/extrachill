@@ -196,10 +196,6 @@ span.bbp-admin-links {
     box-shadow: var(--focus-box-shadow);
 }
 
-.bbp-submit-button {
-    margin-top: 10px;
-}
-
 /* Form Layout - bbPress Specific */
 .bbp-form label {
     display: block;

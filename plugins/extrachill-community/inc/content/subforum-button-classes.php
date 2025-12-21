@@ -40,3 +40,16 @@ function extrachill_order_subforums_by_activity( $r ) {
     $r['order']    = 'DESC';
     return $r;
 }
+
+/**
+ * Order subforums by most recent activity on single forum pages.
+ */
+add_filter( 'bbp_after_has_forums_parse_args', 'extrachill_order_has_forums_by_activity' );
+function extrachill_order_has_forums_by_activity( $r ) {
+    if ( isset( $r['post_parent'] ) && $r['post_parent'] !== 0 ) {
+        $r['orderby']  = 'meta_value';
+        $r['meta_key'] = '_bbp_last_active_time';
+        $r['order']    = 'DESC';
+    }
+    return $r;
+}

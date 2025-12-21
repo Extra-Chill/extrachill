@@ -58,7 +58,7 @@ add_filter('mce_buttons', 'bbp_customize_tinymce_buttons', 50);
 
 function bbp_load_mentions_plugin($plugins) {
     if (is_bbpress()) {
-        $plugins['extrachillmentionssocial'] = EXTRACHILL_COMMUNITY_PLUGIN_URL . '/inc/assets/js/extrachill-mentions.js';
+        $plugins['extrachillmentionssocial'] = EXTRACHILL_COMMUNITY_PLUGIN_URL . '/inc/assets/js/bbpress-tinymce.js';
     }
     return $plugins;
 }

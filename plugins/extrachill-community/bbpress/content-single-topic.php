@@ -71,6 +71,8 @@ defined( 'ABSPATH' ) || exit;
 
                 bbp_get_template_part( 'form', 'reply' );
 
+                bbp_get_template_part( 'form', 'reply-inline' );
+
             endif;
 
             bbp_get_template_part( 'alert', 'topic-lock' );
