@@ -7,7 +7,7 @@ This plugin is part of the Extra Chill Platform, a WordPress multisite network s
 ## Plugin Information
 
 - **Name**: ExtraChill Events
-- **Version**: 0.2.5
+- **Version**: 0.2.6
 - **Text Domain**: `extrachill-events`
 - **Author**: Chris Huber
 - **Author URI**: https://chubes.net
@@ -85,10 +85,12 @@ function ec_events_render_homepage() {
 - **Class-Based Structure**: Object-oriented plugin architecture with singleton pattern
 - **Composer Autoloader**: ONLY for development dependencies (PHPUnit, PHPCS)
 - **Manual Includes**: Integration classes loaded via direct `require_once` in main plugin file
+- **Textdomain Loading**: Loaded on 'init' hook with proper path handling via `load_plugin_textdomain('extrachill-events', false, dirname(EXTRACHILL_EVENTS_PLUGIN_BASENAME) . '/languages')`
+- **Handler Initialization**: `init_datamachine_handlers()` public method registered on 'init' hook (priority 20) for conditional weekly roundup handler loading
 
 ### Core Classes
-- **ExtraChillEvents** (`extrachill-events.php`) - Main singleton class managing initialization, template overrides, and SEO redirects
-- **DataMachineEventsIntegration** (`inc/core/datamachine-events-integration.php`) - datamachine-events integration with badge/button styling, CSS enqueuing, and post meta management
+- **ExtraChillEvents** (`extrachill-events.php`) - Main singleton class managing initialization, template overrides, SEO redirects, and handler initialization via public `init_datamachine_handlers()` method
+- **DataMachineEventsIntegration** (`inc/core/datamachine-events-integration.php`) - datamachine-events integration with badge/button styling, CSS enqueuing, post meta management, and dynamic taxonomy registration via `registered_post_type` and `registered_taxonomy` hooks
 
 ## Key Features
 
@@ -121,6 +123,19 @@ function ec_events_render_homepage() {
 - **Submit Event Link**: Added via `extrachill_secondary_header_items` filter
 - **Dynamic Routing**: Links to `/submit/` page for event submissions
 - **Internationalization**: Translatable link text with priority-based ordering
+
+### Weekly Roundup Automation
+**Automated Instagram Carousel Generation**:
+- **Two-Step Pipeline**: Fetch handler generates images, Publish handler creates posts
+- **WeeklyRoundupHandler**: Queries events by date range and location, generates carousel images
+- **RoundupPublishHandler**: Creates WordPress posts with uploaded images and captions
+- **SlideGenerator**: GD-based image rendering (1080x1350px Instagram format)
+- **Configuration**: Week start/end days, location filter, optional title
+- **Image Generation**: Automatic slide distribution, weekday color coding, event grouping
+- **Engine Data Flow**: Images and metadata passed between fetch and publish steps
+- **Post Creation**: Images uploaded to media library, rendered as blocks in post content
+- **Data Machine Integration**: Registered as fetch and publish handlers on plugin initialization
+- **Documentation**: See `/docs/handlers/weekly-roundup.md` for complete handler reference
 
 ### Build Process
 **NPM-Based Compilation**:
@@ -278,7 +293,7 @@ public function add_wrapper_classes($wrapper_classes, $post_id) {
     return $wrapper_classes;
 }
 
-// Add individual badge classes for festival/location styling
+// Add individual badge classes for festival/location/venue styling
 public function add_badge_classes($badge_classes, $taxonomy_slug, $term, $post_id) {
     $badge_classes[] = 'taxonomy-badge';
 
@@ -291,15 +306,19 @@ public function add_badge_classes($badge_classes, $taxonomy_slug, $term, $post_i
             $badge_classes[] = 'location-badge';
             $badge_classes[] = 'location-' . esc_attr($term->slug);
             break;
+        case 'venue':
+            $badge_classes[] = 'venue-badge';
+            $badge_classes[] = 'venue-' . esc_attr($term->slug);
+            break;
     }
 
     return $badge_classes;
 }
 
 // Exclude venue and artist taxonomies from badge display
-public function exclude_venue_taxonomy($excluded) {
-    $excluded[] = 'venue';   // Venue has 9 meta fields displayed separately
-    $excluded[] = 'artist';  // Prevents redundant display with artist metadata
+public function exclude_taxonomies($excluded) {
+    $excluded[] = 'venue';
+    $excluded[] = 'artist';
     return $excluded;
 }
 ```

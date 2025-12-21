@@ -11,6 +11,8 @@
 
 namespace ExtraChillEvents;
 
+use DataMachineEvents\Core\Event_Post_Type;
+
 if (!defined('ABSPATH')) {
     exit;
 }
@@ -30,58 +32,86 @@ class DataMachineEventsIntegration {
         $this->init_hooks();
     }
 
+
     private function init_hooks() {
-        if (class_exists('DataMachineEvents\\Blocks\\Calendar\\Taxonomy_Badges')) {
-            add_filter('datamachine_events_badge_wrapper_classes', array($this, 'add_wrapper_classes'), 10, 2);
-            add_filter('datamachine_events_badge_classes', array($this, 'add_badge_classes'), 10, 4);
-            add_filter('datamachine_events_excluded_taxonomies', array($this, 'exclude_taxonomies'), 10, 2);
+        if ( class_exists( 'DataMachineEvents\\Blocks\\Calendar\\Taxonomy_Badges' ) ) {
+            add_filter( 'datamachine_events_badge_wrapper_classes', array( $this, 'add_wrapper_classes' ), 10, 2 );
+            add_filter( 'datamachine_events_badge_classes', array( $this, 'add_badge_classes' ), 10, 4 );
+            add_filter( 'datamachine_events_excluded_taxonomies', array( $this, 'exclude_taxonomies' ), 10, 2 );
         }
 
-        // Register taxonomies for datamachine_events post type
-        $this->register_event_taxonomies();
+        add_action( 'registered_post_type', array( $this, 'on_registered_post_type' ), 10, 2 );
+        add_action( 'registered_taxonomy', array( $this, 'on_registered_taxonomy' ), 10, 3 );
+        add_action( 'init', array( $this, 'register_event_taxonomies' ), 20 );
+        add_filter( 'datamachine_events_post_type_menu_items', array( $this, 'allow_event_taxonomy_menu_items' ) );
 
-        add_filter('datamachine_events_modal_button_classes', array($this, 'add_modal_button_classes'), 10, 2);
-        add_filter('datamachine_events_ticket_button_classes', array($this, 'add_ticket_button_classes'), 10, 1);
-        add_filter('datamachine_events_more_info_button_classes', array($this, 'add_more_info_button_classes'), 10, 1);
-        add_filter('datamachine_events_archive_title', array($this, 'filter_archive_title'), 10, 2);
+        add_filter( 'datamachine_events_modal_button_classes', array( $this, 'add_modal_button_classes' ), 10, 2 );
+        add_filter( 'datamachine_events_ticket_button_classes', array( $this, 'add_ticket_button_classes' ), 10, 1 );
+        add_filter( 'datamachine_events_more_info_button_classes', array( $this, 'add_more_info_button_classes' ), 10, 1 );
+        add_filter( 'datamachine_events_archive_title', array( $this, 'filter_archive_title' ), 10, 2 );
 
-        add_filter('extrachill_post_meta', array($this, 'hide_post_meta_for_events'), 10, 3);
-        add_filter('extrachill_taxonomy_badges_skip_term', array($this, 'skip_duplicate_promoter'), 10, 4);
+        add_filter( 'extrachill_post_meta', array( $this, 'hide_post_meta_for_events' ), 10, 3 );
+        add_filter( 'extrachill_taxonomy_badges_skip_term', array( $this, 'skip_duplicate_promoter' ), 10, 4 );
 
-        add_action('wp_enqueue_scripts', array($this, 'enqueue_single_post_styles'));
-        add_action('wp_enqueue_scripts', array($this, 'enqueue_calendar_styles'));
+        add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_single_post_styles' ) );
+        add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_calendar_styles' ) );
     }
 
-    /**
-     * Register taxonomies for datamachine_events post type
-     *
-     * Associates existing theme taxonomies with the datamachine_events post type
-     * so they appear in the admin sidebar during post editing.
-     *
-     * @return void
-     */
-    private function register_event_taxonomies() {
-        if (!class_exists('DataMachineEvents\\Core\\Event_Post_Type')) {
+    public function on_registered_post_type( $post_type, $post_type_object ) {
+        if ( ! class_exists( 'DataMachineEvents\\Core\\Event_Post_Type' ) ) {
             return;
         }
 
-        $post_type = \DataMachineEvents\Core\Event_Post_Type::POST_TYPE;
-
-        // Register location taxonomy
-        if (taxonomy_exists('location')) {
-            register_taxonomy_for_object_type('location', $post_type);
+        if ( $post_type !== Event_Post_Type::POST_TYPE ) {
+            return;
         }
 
-        // Register artist taxonomy
-        if (taxonomy_exists('artist')) {
-            register_taxonomy_for_object_type('artist', $post_type);
+        $this->register_event_taxonomies();
+    }
+
+    public function on_registered_taxonomy( $taxonomy, $object_type, $args ) {
+        if ( ! class_exists( 'DataMachineEvents\\Core\\Event_Post_Type' ) ) {
+            return;
         }
 
-        // Register festival taxonomy
-        if (taxonomy_exists('festival')) {
-            register_taxonomy_for_object_type('festival', $post_type);
+        if ( ! in_array( $taxonomy, $this->get_event_taxonomies(), true ) ) {
+            return;
+        }
+
+        $this->register_event_taxonomies();
+    }
+
+    public function register_event_taxonomies() {
+        if ( ! class_exists( 'DataMachineEvents\\Core\\Event_Post_Type' ) ) {
+            return;
+        }
+
+        $post_type = Event_Post_Type::POST_TYPE;
+        if ( ! post_type_exists( $post_type ) ) {
+            return;
+        }
+
+        foreach ( $this->get_event_taxonomies() as $taxonomy ) {
+            if ( ! taxonomy_exists( $taxonomy ) ) {
+                continue;
+            }
+
+            register_taxonomy_for_object_type( $taxonomy, $post_type );
         }
     }
+
+    public function allow_event_taxonomy_menu_items( $allowed_items ) {
+        foreach ( $this->get_event_taxonomies() as $taxonomy ) {
+            $allowed_items[ $taxonomy ] = true;
+        }
+
+        return $allowed_items;
+    }
+
+    private function get_event_taxonomies() {
+        return array( 'location', 'artist', 'festival' );
+    }
+
 
     /**
      * Add theme-compatible wrapper class to badge container
@@ -156,7 +186,7 @@ class DataMachineEventsIntegration {
             return array_values(array_unique($excluded));
         }
 
-        $taxonomies = get_object_taxonomies(\DataMachineEvents\Core\Event_Post_Type::POST_TYPE, 'names');
+        $taxonomies = get_object_taxonomies( Event_Post_Type::POST_TYPE, 'names' );
         if (empty($taxonomies) || is_wp_error($taxonomies)) {
             return array_values(array_unique($excluded));
         }

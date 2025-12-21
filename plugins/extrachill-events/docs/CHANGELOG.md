@@ -5,14 +5,39 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0/).
 
+## [0.2.7] - 2025-12-21
+
+### Added
+- Venue taxonomy support in badge styling system (venue-badge, venue-{slug} classes)
+- Comprehensive weekly roundup handler documentation (`docs/handlers/weekly-roundup.md`)
+- Dynamic taxonomy menu item filtering via `allow_event_taxonomy_menu_items()` filter
+
+### Changed
+- Taxonomy registration refactored from simple initialization to hook-based system with proper timing
+  - `on_registered_post_type()` - Registers taxonomies when datamachine_events post type registers
+  - `on_registered_taxonomy()` - Ensures taxonomies register when event taxonomies initialize
+  - `register_event_taxonomies()` changed from private to public for external use
+  - `get_event_taxonomies()` centralized taxonomy list method (location, artist, festival, venue)
+- Code formatting and namespace improvements for better WordPress standards compliance
+- Documentation expanded across AGENTS.md, README.md, and integration guides
+
 ## [0.2.6] - 2025-12-20
 
 ### Added
-- Taxonomy registration for datamachine_events post type (location, artist, festival) ensuring taxonomies appear in admin sidebar during post editing
+- Taxonomy registration for datamachine_events post type (location, artist, festival, venue) with dynamic hooks (`registered_post_type`, `registered_taxonomy`, `init`)
+- Added EXTRACHILL_EVENTS_PLUGIN_BASENAME constant for proper textdomain path handling
+- Added `init_datamachine_handlers()` public method for flexible handler initialization
 
-### Fixed
-- Fixed plugin dependency slug: `datamachine` → `data-machine` in Requires Plugins header for proper WordPress dependency resolution
-- Fixed text domain: `datamachine-events` → `extrachill-events` in plugin header and block.json for correct translation loading
+### Changed
+- **Textdomain Loading**: Moved from 'plugins_loaded' to 'init' hook with proper path handling via `dirname(EXTRACHILL_EVENTS_PLUGIN_BASENAME)`
+- **Text Domain**: Updated to use 'extrachill-events' (was 'datamachine-events') for proper translation loading
+- **Taxonomy Registration**: Refactored from static registration to dynamic hooks ensuring proper timing and flexibility
+  - Changed from private to public method `register_event_taxonomies()`
+  - Added `on_registered_post_type()` hook handler
+  - Added `on_registered_taxonomy()` hook handler
+  - Added `get_event_taxonomies()` centralized list (location, artist, festival, venue)
+- **Handler Initialization**: Changed from constructor call to public `init_datamachine_handlers()` method on 'init' hook (priority 20) for conditional loading
+- **Badge Classes**: Added venue taxonomy support (venue-badge, venue-{slug}) for venue-specific styling
 
 ## [0.2.5] - 2025-12-17
 

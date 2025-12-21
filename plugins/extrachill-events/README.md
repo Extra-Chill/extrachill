@@ -8,6 +8,7 @@
 - **Archive Template Override**: Unified archive template for all taxonomy and post type archives on events.extrachill.com
 - **Event Submission Block**: Frontend form for collecting event submissions routed to Data Machine flows
 - **Navigation Integration**: "Submit Event" link in secondary header navigation
+- **Weekly Roundup Automation**: Automated Instagram carousel generation from events with Data Machine fetch and publish handlers
 - **DM Events Integration**: Complete integration with badge styling, taxonomy exclusion, button styling, share button rendering, breadcrumb override, related events display, and theme hook bridging
 - **Breadcrumb Integration**: Custom breadcrumb system with "Extra Chill → Events Calendar" root for events.extrachill.com
 - **CSS Integration**: Automatic enqueuing of theme and plugin styles (single-post.css, sidebar.css, single-event.css) for single events and calendar pages
@@ -99,12 +100,6 @@
 - **Validation**: Client and server-side validation
 - **Responsive**: Mobile-friendly grid layout
 
-### Archive Template (`inc/templates/archive.php`)
-- Unified template for all archive pages on events.extrachill.com
-- Displays datamachine-events calendar block with automatic taxonomy filtering
-- Used for taxonomy archives (/festival/bonnaroo/, /venue/ryman/), post type archives, and date archives
-- Includes breadcrumb display and full-width container
-
 ## Breadcrumb System
 
 ### Custom Breadcrumb Integration (`inc/core/breadcrumb-integration.php`)
@@ -112,6 +107,29 @@
 - **Homepage Trail**: Shows "Events" on homepage, full trail on other pages
 - **Archive Trails**: Context-aware breadcrumbs for taxonomy and post type archives
 - **Back-to-Home Label**: Customizes back-to-home link text on event pages ("Back to Events" instead of "Back to Extra Chill")
+
+## Weekly Roundup Handlers
+
+### Automated Carousel Generation
+The plugin includes Data Machine fetch and publish handlers for automated Instagram carousel creation:
+
+- **Weekly Roundup Fetch Handler** (`WeeklyRoundupHandler`): Queries events by configurable date range and location, generates carousel images
+- **Roundup Publish Handler** (`RoundupPublishHandler`): Creates WordPress posts with generated images and captions
+- **Slide Generator** (`SlideGenerator`): GD-based image rendering (1080x1350px Instagram format)
+
+### Configuration
+- Week start/end days (Monday-Sunday)
+- Location filtering (optional)
+- Roundup title (displayed on first slide)
+- Post status (draft, published, pending review)
+
+### Features
+- Automatic slide distribution based on available height
+- Weekday color coding (Sunday-Saturday)
+- Event grouping by date with time sorting
+- Theme font integration with fallbacks
+- Media library uploads with automatic metadata
+- Complete documentation: See `/docs/handlers/weekly-roundup.md`
 
 ## Requirements
 
@@ -154,11 +172,6 @@ npm run build  # Production build of blocks
 - **Class-Based Structure**: Object-oriented plugin architecture with singleton pattern
 - **Composer Autoloader**: ONLY for development dependencies (PHPUnit, PHPCS)
 - **Block Compilation**: NPM-based build system using @wordpress/scripts for event-submission block
-
-### Core Classes
-- **ExtraChillEvents**: Main plugin class managing initialization, template overrides, and SEO redirects
-- **DataMachineEventsIntegration**: Complete datamachine-events integration with badge/button styling, share button, breadcrumb override, related events, and theme hook bridging
-- **Breadcrumb Integration**: Five-function breadcrumb system with custom root and trail overrides
 
 ### CSS Assets
 - **Asset Directory**: `assets/css/`

@@ -3,7 +3,7 @@
  * Plugin Name: Extra Chill Events
  * Plugin URI: https://extrachill.com
  * Description: Calendar integration with template overrides, datamachine-events badge/button styling, breadcrumb system, and related events for events.extrachill.com.
- * Version: 0.2.6
+ * Version: 0.2.7
  * Author: Chris Huber
  * Author URI: https://chubes.net
  * Requires Plugins: data-machine, datamachine-events
@@ -23,10 +23,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'EXTRACHILL_EVENTS_VERSION', '0.2.6' );
+define( 'EXTRACHILL_EVENTS_VERSION', '0.2.7' );
 define( 'EXTRACHILL_EVENTS_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'EXTRACHILL_EVENTS_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'EXTRACHILL_EVENTS_PLUGIN_FILE', __FILE__ );
+define( 'EXTRACHILL_EVENTS_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
 
 /**
  * ExtraChillEvents
@@ -61,13 +62,18 @@ class ExtraChillEvents {
 	}
 
 	private function init_hooks() {
-		add_action( 'plugins_loaded', array( $this, 'load_textdomain' ) );
+		add_action( 'init', array( $this, 'load_textdomain' ) );
+		add_action( 'init', array( $this, 'init_datamachine_handlers' ), 20 );
 		register_activation_hook( __FILE__, array( $this, 'activate' ) );
 		register_deactivation_hook( __FILE__, array( $this, 'deactivate' ) );
 	}
 
 	public function load_textdomain() {
-		load_plugin_textdomain( 'datamachine-events' );
+		load_plugin_textdomain(
+			'extrachill-events',
+			false,
+			dirname( EXTRACHILL_EVENTS_PLUGIN_BASENAME ) . '/languages'
+		);
 	}
 
 	/**
@@ -88,13 +94,9 @@ class ExtraChillEvents {
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/single-event/related-events.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/single-event/share-button.php';
 
-		$this->load_datamachine_handlers();
 	}
 
-	/**
-	 * Load Data Machine handlers if datamachine plugin is active
-	 */
-	private function load_datamachine_handlers() {
+	public function init_datamachine_handlers() {
 		if ( ! class_exists( 'DataMachine\Core\Steps\Fetch\Handlers\FetchHandler' ) ) {
 			return;
 		}

@@ -73,7 +73,8 @@ $plugin = ExtraChillEvents::get_instance();
 **Purpose:** Register WordPress plugin hooks
 
 **Hooks Registered:**
-- `plugins_loaded` → `load_textdomain()`
+- `init` → `load_textdomain()`
+- `init` → `init_datamachine_handlers()` (priority 20)
 - `register_activation_hook()` → `activate()`
 - `register_deactivation_hook()` → `deactivate()`
 
@@ -84,7 +85,11 @@ $plugin = ExtraChillEvents::get_instance();
 
 **Purpose:** Load plugin translation files
 
-**Text Domain:** `datamachine-events`
+**Text Domain:** `extrachill-events`
+
+**Hook:** `init`
+
+**Implementation:** Uses `load_plugin_textdomain()` with proper path handling via `dirname(EXTRACHILL_EVENTS_PLUGIN_BASENAME)`
 
 ---
 
@@ -102,6 +107,29 @@ $plugin = ExtraChillEvents::get_instance();
 6. `inc/single-event/share-button.php`
 
 **Note:** Composer autoloader exists for development dependencies only (PHPUnit, PHPCS). All plugin code uses direct `require_once` includes.
+
+---
+
+#### init_datamachine_handlers()
+**Visibility:** public
+
+**Purpose:** Initialize Data Machine event handlers conditionally
+
+**Hook:** `init` (priority 20)
+
+**Condition:** Only initializes if `DataMachine\Core\Steps\Fetch\Handlers\FetchHandler` class exists
+
+**Actions:**
+1. Requires `SlideGenerator.php`
+2. Requires `WeeklyRoundupSettings.php`
+3. Requires `WeeklyRoundupHandler.php`
+4. Requires `RoundupPublishSettings.php`
+5. Requires `RoundupPublishHandler.php`
+6. Instantiates `WeeklyRoundupHandler` and `RoundupPublishHandler`
+
+**Usage:** Called during WordPress initialization to set up weekly roundup handlers when Data Machine is active
+
+**Extensibility:** Can be called from external code to manually trigger handler initialization
 
 ---
 
@@ -190,6 +218,7 @@ if (isset($integrations['datamachine_events'])) {
 - Breadcrumb filter (require `DataMachineEvents\Core\Breadcrumbs`)
 
 **Always Registered:**
+- Taxonomy registration hooks
 - Button filters
 - Related posts filters
 - Share button action
@@ -198,7 +227,75 @@ if (isset($integrations['datamachine_events'])) {
 
 ---
 
-#### add_wrapper_classes()
+#### on_registered_post_type()
+**Visibility:** public
+
+**Hook:** `registered_post_type`
+
+**Parameters:**
+- `$post_type` (string)
+- `$post_type_object` (WP_Post_Type)
+
+**Purpose:** Trigger taxonomy registration when datamachine_events post type registers
+
+**Condition:** Only acts if `DataMachineEvents\Core\Event_Post_Type` class exists and matches the registered post type
+
+**Actions:**
+- Calls `register_event_taxonomies()` to register all event taxonomies for the post type
+
+---
+
+#### on_registered_taxonomy()
+**Visibility:** public
+
+**Hook:** `registered_taxonomy`
+
+**Parameters:**
+- `$taxonomy` (string)
+- `$object_type` (string)
+- `$args` (array)
+
+**Purpose:** Trigger taxonomy registration when event taxonomies register
+
+**Condition:** Only acts if `DataMachineEvents\Core\Event_Post_Type` class exists and the registered taxonomy is in the event taxonomies list
+
+**Actions:**
+- Calls `register_event_taxonomies()` to ensure all taxonomies are properly connected
+
+---
+
+#### register_event_taxonomies()
+**Visibility:** public
+
+**Hook:** `init` (priority 20)
+
+**Purpose:** Dynamically register all event taxonomies for datamachine_events post type
+
+**Taxonomy List:** location, artist, festival, venue
+
+**Actions:**
+1. Checks that datamachine_events post type exists
+2. Iterates through each taxonomy
+3. Registers each taxonomy for the post type via `register_taxonomy_for_object_type()`
+
+**Flexibility:** Called from multiple hooks to ensure proper registration timing and handle late plugin loading
+
+---
+
+#### get_event_taxonomies()
+**Visibility:** private
+
+**Return Value:** array of taxonomy slugs
+
+**Purpose:** Centralized list of event taxonomies managed by this integration
+
+**Taxonomies:**
+- `location`
+- `artist`
+- `festival`
+- `venue`
+
+---
 **Visibility:** public
 
 **Hook:** `datamachine_events_badge_wrapper_classes`

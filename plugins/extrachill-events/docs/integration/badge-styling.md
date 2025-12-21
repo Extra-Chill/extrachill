@@ -43,8 +43,23 @@ Location taxonomy badges receive:
 
 The `location-charleston` class enables custom Charleston colors in theme's `badge-colors.css`.
 
+### Venue Badges
+Venue taxonomy badges receive:
+```css
+.taxonomy-badge.venue-badge.venue-{slug}
+```
+
+**Example: Ryman**
+```html
+<span class="datamachine-taxonomy-badge taxonomy-badge venue-badge venue-ryman">
+    Ryman
+</span>
+```
+
+The `venue-ryman` class enables custom venue styling in theme's `badge-colors.css`.
+
 ### Other Taxonomies
-Taxonomies other than festival and location receive base class only:
+Taxonomies other than festival, location, and venue receive base class only:
 ```css
 .taxonomy-badge
 ```
@@ -104,6 +119,11 @@ public function add_badge_classes($badge_classes, $taxonomy_slug, $term, $post_i
         case 'location':
             $badge_classes[] = 'location-badge';
             $badge_classes[] = 'location-' . esc_attr($term->slug);
+            break;
+            
+        case 'venue':
+            $badge_classes[] = 'venue-badge';
+            $badge_classes[] = 'venue-' . esc_attr($term->slug);
             break;
     }
     
@@ -182,6 +202,14 @@ The ExtraChill theme must include `badge-colors.css` with:
 }
 ```
 
+**Venue Styles:**
+```css
+.venue-badge.venue-ryman {
+    background: /* custom color */;
+    color: /* custom color */;
+}
+```
+
 ### Base Classes
 The theme must include base classes:
 ```css
@@ -229,6 +257,9 @@ The theme must include base classes:
     </span>
     <span class="datamachine-taxonomy-badge taxonomy-badge location-badge location-indio">
         Indio
+    </span>
+    <span class="datamachine-taxonomy-badge taxonomy-badge venue-badge venue-polo-fields">
+        Polo Fields
     </span>
 </div>
 ```

@@ -4,13 +4,13 @@ WordPress constants defined by the ExtraChill Events plugin.
 
 ## EXTRACHILL_EVENTS_VERSION
 
-**Value:** `0.1.7`
+**Value:** `0.2.6`
 
 **Purpose:** Plugin version number for cache busting and compatibility checks
 
 **Usage:**
 ```php
-define('EXTRACHILL_EVENTS_VERSION', '0.1.7');
+define('EXTRACHILL_EVENTS_VERSION', '0.2.6');
 ```
 
 **Example:**
@@ -80,6 +80,64 @@ wp_enqueue_style(
 ```
 
 ---
+
+## EXTRACHILL_EVENTS_PLUGIN_FILE
+
+**Value:** Plugin main file absolute path
+
+**Purpose:** Reference plugin file for activation/deactivation hooks and plugin metadata
+
+**Usage:**
+```php
+define('EXTRACHILL_EVENTS_PLUGIN_FILE', __FILE__);
+```
+
+**Example Path:**
+```
+/var/www/html/wp-content/plugins/extrachill-events/extrachill-events.php
+```
+
+**Example Usage:**
+```php
+register_activation_hook(EXTRACHILL_EVENTS_PLUGIN_FILE, array($this, 'activate'));
+register_deactivation_hook(EXTRACHILL_EVENTS_PLUGIN_FILE, array($this, 'deactivate'));
+
+// Get plugin metadata
+$plugin_data = get_plugin_data(EXTRACHILL_EVENTS_PLUGIN_FILE);
+```
+
+## EXTRACHILL_EVENTS_PLUGIN_BASENAME
+
+**Value:** Plugin basename (plugin directory and file name relative to plugins directory)
+
+**Purpose:** Reference plugin basename for textdomain loading and plugin identification
+
+**Usage:**
+```php
+define('EXTRACHILL_EVENTS_PLUGIN_BASENAME', plugin_basename(__FILE__));
+```
+
+**Example Value:**
+```
+extrachill-events/extrachill-events.php
+```
+
+**Example Usage:**
+```php
+// Textdomain loading with proper path
+load_plugin_textdomain(
+    'extrachill-events',
+    false,
+    dirname(EXTRACHILL_EVENTS_PLUGIN_BASENAME) . '/languages'
+);
+
+// Plugin directory extraction
+$plugin_dir = dirname(EXTRACHILL_EVENTS_PLUGIN_BASENAME);
+// Returns: extrachill-events
+
+// Full plugin URL construction
+$plugin_url = WP_PLUGIN_URL . '/' . EXTRACHILL_EVENTS_PLUGIN_BASENAME;
+```
 
 ## EXTRACHILL_EVENTS_PLUGIN_FILE
 
