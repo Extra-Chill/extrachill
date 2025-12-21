@@ -39,8 +39,11 @@ function extrachill_api_handle_event_submission( WP_REST_Request $request ) {
 		return new WP_Error( 'turnstile_missing', __( 'Security verification unavailable.', 'extrachill-api' ), array( 'status' => 500 ) );
 	}
 
+	$is_local_environment = defined( 'WP_ENVIRONMENT_TYPE' ) && WP_ENVIRONMENT_TYPE === 'local';
+	$turnstile_bypass     = $is_local_environment || (bool) apply_filters( 'extrachill_bypass_turnstile_verification', false );
+
 	$turnstile_response = $request->get_param( 'turnstile_response' );
-	if ( empty( $turnstile_response ) || ! ec_verify_turnstile_response( $turnstile_response ) ) {
+	if ( ! $turnstile_bypass && ( empty( $turnstile_response ) || ! ec_verify_turnstile_response( $turnstile_response ) ) ) {
 		return new WP_Error( 'turnstile_failed', __( 'Security verification failed. Please try again.', 'extrachill-api' ), array( 'status' => 403 ) );
 	}
 

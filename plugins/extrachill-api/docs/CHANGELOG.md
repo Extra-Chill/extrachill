@@ -2,6 +2,55 @@
 
 All notable changes to the ExtraChill API plugin are documented here. This file is the single source of truth for release history.
 
+## 0.8.0
+
+### Added
+
+- **Shop Shipping Address Management**: New REST endpoints for artists to configure their return/from-address for label printing
+  - `GET /wp-json/extrachill/v1/shop/shipping-address?artist_id=X` - Retrieve artist shipping address with validation status
+  - `PUT /wp-json/extrachill/v1/shop/shipping-address` - Update artist shipping address with full address fields (name, street1, street2, city, state, zip, country)
+  - Stores address data in post meta `_shipping_address` on artist profile
+  - Includes helper functions: `extrachill_api_get_artist_shipping_address()`, `extrachill_api_save_artist_shipping_address()`, `extrachill_api_artist_has_shipping_address()`
+  - Permission checks ensure only artist managers can access/modify shipping addresses
+  - Gracefully handles missing artist blog ID with fallback to blog ID 4
+
+- **Shop Shipping Labels Integration**: New endpoints for purchasing and managing Shippo shipping labels
+  - `POST /wp-json/extrachill/v1/shop/shipping-labels` - Purchase shipping label with automatic cheapest USPS rate selection
+  - `GET /wp-json/extrachill/v1/shop/shipping-labels/{order_id}` - Retrieve existing label and tracking information
+  - Validates artist has configured shipping address before allowing label purchase
+  - Integrates with `extrachill_shop_shippo_create_label()` for label generation
+  - Stores label metadata on order: `_artist_label_*`, `_artist_tracking_*`, `_artist_label_data_*`
+  - Automatically updates order status to 'completed' with tracking note
+  - Sends email confirmation to user who purchased label with tracking number and label URL
+  - Supports reprint of existing labels without re-charging
+
+- **Development Turnstile Bypass**: Enhanced security verification for local development
+  - Added automatic bypass for Turnstile verification in local environments (`WP_ENVIRONMENT_TYPE === 'local'`)
+  - Added `extrachill_bypass_turnstile_verification` filter hook for fine-grained control
+  - Applied to both contact form (`POST /contact/submit`) and event submissions (`POST /event-submissions`) endpoints
+  - Enables testing and development workflows without requiring valid CAPTCHA tokens
+  - Maintains full security in production environments
+
+### Changed
+
+- **Contact Submit Endpoint Enhancement**: Improved Turnstile verification with development bypass
+  - Now checks local environment before requiring valid Turnstile token
+  - Allows filter-based bypass for testing scenarios
+  - Maintains backward compatibility with existing production behavior
+
+- **Event Submissions Endpoint Enhancement**: Improved Turnstile verification with development bypass
+  - Now checks local environment before requiring valid Turnstile token
+  - Allows filter-based bypass for testing scenarios
+  - Maintains backward compatibility with existing production behavior
+
+### Technical Notes
+
+- **Backward Compatibility**: All changes are additive with no breaking modifications
+- **New Dependencies**: Shipping labels endpoint depends on Shippo integration via `extrachill_shop_shippo_create_label()` function
+- **Database**: New post meta keys added (`_shipping_address`, `_artist_label_*`, `_artist_tracking_*`, `_artist_label_data_*`)
+- **Permissions**: All shipping endpoints use `extrachill_api_shop_user_can_manage_artist()` for access control
+- **Email**: Shipping label purchase now triggers email confirmation via `wp_mail()` with order and label details
+
 ## 0.7.2
 
 ### Added
