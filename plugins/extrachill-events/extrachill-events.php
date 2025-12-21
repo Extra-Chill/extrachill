@@ -3,13 +3,13 @@
  * Plugin Name: Extra Chill Events
  * Plugin URI: https://extrachill.com
  * Description: Calendar integration with template overrides, datamachine-events badge/button styling, breadcrumb system, and related events for events.extrachill.com.
- * Version: 0.2.5
+ * Version: 0.2.6
  * Author: Chris Huber
  * Author URI: https://chubes.net
- * Requires Plugins: datamachine, datamachine-events
+ * Requires Plugins: data-machine, datamachine-events
  * License: GPL v2 or later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
- * Text Domain: datamachine-events
+ * Text Domain: extrachill-events
  * Requires at least: 5.0
  * Tested up to: 6.4
  * Requires PHP: 7.4
@@ -23,7 +23,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'EXTRACHILL_EVENTS_VERSION', '0.2.5' );
+define( 'EXTRACHILL_EVENTS_VERSION', '0.2.6' );
 define( 'EXTRACHILL_EVENTS_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'EXTRACHILL_EVENTS_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'EXTRACHILL_EVENTS_PLUGIN_FILE', __FILE__ );

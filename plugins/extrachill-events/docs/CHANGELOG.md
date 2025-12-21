@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0/).
 
+## [0.2.6] - 2025-12-20
+
+### Added
+- Taxonomy registration for datamachine_events post type (location, artist, festival) ensuring taxonomies appear in admin sidebar during post editing
+
+### Fixed
+- Fixed plugin dependency slug: `datamachine` → `data-machine` in Requires Plugins header for proper WordPress dependency resolution
+- Fixed text domain: `datamachine-events` → `extrachill-events` in plugin header and block.json for correct translation loading
+
 ## [0.2.5] - 2025-12-17
 
 ### Changed

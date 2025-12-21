@@ -2,13 +2,13 @@
 	"$schema": "https://schemas.wp.org/trunk/block.json",
 	"apiVersion": 2,
 	"name": "extrachill/event-submission",
-  "version": "0.2.5",
+  "version": "0.2.6",
 	"title": "Event Submission Form",
 	"category": "widgets",
 	"icon": "calendar-alt",
 	"description": "Frontend form that routes event details into a Data Machine flow.",
 	"keywords": ["events", "calendar", "submission"],
-	"textdomain": "datamachine-events",
+	"textdomain": "extrachill-events",
 	"attributes": {
 		"headline": {
 			"type": "string",

@@ -37,6 +37,9 @@ class DataMachineEventsIntegration {
             add_filter('datamachine_events_excluded_taxonomies', array($this, 'exclude_taxonomies'), 10, 2);
         }
 
+        // Register taxonomies for datamachine_events post type
+        $this->register_event_taxonomies();
+
         add_filter('datamachine_events_modal_button_classes', array($this, 'add_modal_button_classes'), 10, 2);
         add_filter('datamachine_events_ticket_button_classes', array($this, 'add_ticket_button_classes'), 10, 1);
         add_filter('datamachine_events_more_info_button_classes', array($this, 'add_more_info_button_classes'), 10, 1);
@@ -47,6 +50,37 @@ class DataMachineEventsIntegration {
 
         add_action('wp_enqueue_scripts', array($this, 'enqueue_single_post_styles'));
         add_action('wp_enqueue_scripts', array($this, 'enqueue_calendar_styles'));
+    }
+
+    /**
+     * Register taxonomies for datamachine_events post type
+     *
+     * Associates existing theme taxonomies with the datamachine_events post type
+     * so they appear in the admin sidebar during post editing.
+     *
+     * @return void
+     */
+    private function register_event_taxonomies() {
+        if (!class_exists('DataMachineEvents\\Core\\Event_Post_Type')) {
+            return;
+        }
+
+        $post_type = \DataMachineEvents\Core\Event_Post_Type::POST_TYPE;
+
+        // Register location taxonomy
+        if (taxonomy_exists('location')) {
+            register_taxonomy_for_object_type('location', $post_type);
+        }
+
+        // Register artist taxonomy
+        if (taxonomy_exists('artist')) {
+            register_taxonomy_for_object_type('artist', $post_type);
+        }
+
+        // Register festival taxonomy
+        if (taxonomy_exists('festival')) {
+            register_taxonomy_for_object_type('festival', $post_type);
+        }
     }
 
     /**
