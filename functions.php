@@ -56,7 +56,7 @@ add_action('init', 'extrachill_unregister_image_sizes', 99);
 
 define('EXTRACHILL_PARENT_DIR', get_template_directory());
 
-define('EXTRACHILL_THEME_VERSION', '1.3.1');
+define('EXTRACHILL_THEME_VERSION', '1.3.3');
 
 define('EXTRACHILL_INCLUDES_DIR', EXTRACHILL_PARENT_DIR . '/inc');
 require_once(EXTRACHILL_INCLUDES_DIR . '/core/templates/post-meta.php');
@@ -78,7 +78,7 @@ require_once(EXTRACHILL_INCLUDES_DIR . '/core/templates/breadcrumbs.php');
 require_once(EXTRACHILL_INCLUDES_DIR . '/core/templates/network-dropdown.php');
 require_once(EXTRACHILL_INCLUDES_DIR . '/header/header-search.php');
 require_once(EXTRACHILL_INCLUDES_DIR . '/core/custom-taxonomies.php');
-require_once(EXTRACHILL_INCLUDES_DIR . '/core/yoast-stuff.php');
+
 
 require_once(EXTRACHILL_INCLUDES_DIR . '/sidebar/recent-posts.php');
 require_once(EXTRACHILL_INCLUDES_DIR . '/sidebar/community-activity.php');
@@ -110,21 +110,6 @@ function extrachill_allow_svg_uploads( $file_types ) {
     return $file_types;
 }
 add_filter( 'upload_mimes', 'extrachill_allow_svg_uploads' );
-
-/**
- * Noindex tags with fewer than 2 posts to avoid thin content indexing
- */
-function extrachill_noindex_sparse_tags( $robots ) {
-    global $wp_query;
-
-    if ( is_tag() && $wp_query->found_posts < 2 ) {
-        $robots['noindex'] = true;
-        $robots['follow']  = true;
-    }
-
-    return $robots;
-}
-add_filter( 'wp_robots', 'extrachill_noindex_sparse_tags' );
 
 
 function extrachill_prevent_admin_styles_on_frontend() {

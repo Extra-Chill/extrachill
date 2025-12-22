@@ -50,7 +50,6 @@ extrachill/
     │   ├── rewrite.php          # Category base rewriting
     │   ├── template-router.php  # Universal template routing
     │   ├── view-counts.php      # Post view tracking system
-    │   ├── yoast-stuff.php      # Yoast SEO integration
     │   ├── templates/           # Reusable template components
     │   │   ├── 404.php
     │   │   ├── breadcrumbs.php

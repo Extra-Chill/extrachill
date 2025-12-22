@@ -23,6 +23,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated `README.md` to reflect filter bar component system in feature overview and file structure
 - Documentation alignment completed for filter bar component system introduced in v1.3.0
 
+## [1.3.3] - 2025-12-22
+
+### Removed
+- Yoast SEO sitemap integration (`inc/core/yoast-stuff.php`)
+- Noindex functionality for tags with fewer than 2 posts
+- Image popup code from single post template
+
+### Changed
+- Enhanced single post template with proper featured image display and captions
+- Synchronized theme version constant in `functions.php` with current version
+- Updated documentation version references
+
+### Technical
+- Removed `yoast-stuff.php` from AGENTS.md file structure documentation
+
 ## [1.3.0] - 2025-12-17
 
 ### Added
