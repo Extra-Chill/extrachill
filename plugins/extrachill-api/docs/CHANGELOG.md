@@ -2,6 +2,44 @@
 
 All notable changes to the ExtraChill API plugin are documented here. This file is the single source of truth for release history.
 
+## 0.8.3
+
+### Added
+
+- **Festival Wire Migration System**: Complete admin tool for migrating festival_wire posts between sites with full attachment handling
+  - `POST /wp-json/extrachill/v1/admin/festival-wire/preflight` - Analyze migration scope and current state
+  - `POST /wp-json/extrachill/v1/admin/festival-wire/migrate` - Execute batch migration with attachment preservation
+  - `POST /wp-json/extrachill/v1/admin/festival-wire/validate` - Mark migration complete and prevent accidental deletion
+  - `POST /wp-json/extrachill/v1/admin/festival-wire/delete` - Remove migrated content from source site
+  - Handles featured images, embedded attachments, and Gutenberg block media references
+  - Maintains migration state and prevents duplicate migrations
+
+- **Taxonomy Synchronization Tool**: Admin endpoint for syncing shared taxonomies across multisite network
+  - `POST /wp-json/extrachill/v1/admin/taxonomies/sync` - Sync taxonomies (location, festival, artist, venue) from main site to target sites
+  - Supports hierarchical taxonomy sync with parent-child relationships preserved
+  - Provides detailed sync reports with created/skipped/failed term counts
+  - Designed for Admin Tools UI integration
+
+- **Authentication Source Tracking**: Enhanced user registration and OAuth flows with source attribution
+  - Added `registration_source` parameter to Google OAuth and user registration endpoints
+  - Added `registration_method` and `registration_page` parameters for better analytics
+  - Enables tracking of registration origins (web app, mobile app, etc.)
+
+### Enhanced
+
+- **Activity System**: Added event card building and taxonomy badge color mapping functionality
+  - Improved activity feed presentation with enhanced metadata handling
+  - Added taxonomy-based visual styling for activity cards
+
+### Technical Notes
+
+- **New Dependencies**: Festival wire migration requires `ec_get_blog_id()` function availability
+- **Admin Permissions**: All new endpoints require `manage_options` capability
+- **Migration Safety**: Festival wire migration includes validation steps and state tracking to prevent data loss
+- **Taxonomy Sync**: Supports selective syncing of specific taxonomies to targeted sites
+- **Backward Compatibility**: All changes are additive with no breaking modifications
+- **Endpoint Count**: Increased from 52 to 57 total endpoints
+
 ## 0.8.2
 
 ### Added

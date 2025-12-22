@@ -10,6 +10,47 @@ if ( ! defined( 'ABSPATH' ) ) {
 add_action( 'transition_post_status', 'extrachill_api_activity_emit_post_events', 10, 3 );
 add_action( 'comment_post', 'extrachill_api_activity_emit_comment_event', 10, 3 );
 
+function extrachill_api_activity_build_event_card( WP_Post $post ) {
+    $card = array();
+
+    if ( class_exists( '\\DataMachineEvents\\Blocks\\Calendar\\Calendar_Query' ) ) {
+        $event_data = \DataMachineEvents\Blocks\Calendar\Calendar_Query::parse_event_data( $post );
+
+        if ( is_array( $event_data ) && ! empty( $event_data['startDate'] ) ) {
+            $card['event_date'] = sanitize_text_field( $event_data['startDate'] );
+
+            if ( ! empty( $event_data['startTime'] ) ) {
+                $time = sanitize_text_field( $event_data['startTime'] );
+                if ( preg_match( '/^\\d{2}:\\d{2}:\\d{2}$/', $time ) ) {
+                    $card['event_time'] = $time;
+                }
+            }
+        }
+    }
+
+    if ( empty( $card['event_date'] ) || empty( $card['event_time'] ) ) {
+        $event_datetime = get_post_meta( $post->ID, '_datamachine_event_datetime', true );
+        if ( $event_datetime ) {
+            $dt = new DateTime( $event_datetime, wp_timezone() );
+
+            if ( empty( $card['event_date'] ) ) {
+                $card['event_date'] = $dt->format( 'Y-m-d' );
+            }
+
+            if ( empty( $card['event_time'] ) ) {
+                $card['event_time'] = $dt->format( 'H:i:s' );
+            }
+        }
+    }
+
+    $venue_terms = get_the_terms( $post->ID, 'venue' );
+    if ( $venue_terms && ! is_wp_error( $venue_terms ) ) {
+        $card['venue_name'] = $venue_terms[0]->name;
+    }
+
+    return $card;
+}
+
 function extrachill_api_activity_emit_post_events( $new_status, $old_status, $post ) {
     if ( ! function_exists( 'extrachill_api_activity_insert' ) ) {
         return;
@@ -54,17 +95,7 @@ function extrachill_api_activity_emit_post_events( $new_status, $old_status, $po
     );
 
     if ( $post->post_type === 'datamachine_events' ) {
-        $event_datetime = get_post_meta( $post->ID, '_datamachine_event_datetime', true );
-        if ( $event_datetime ) {
-            $dt = new DateTime( $event_datetime, wp_timezone() );
-            $card['event_date'] = $dt->format( 'Y-m-d' );
-            $card['event_time'] = $dt->format( 'H:i:s' );
-        }
-
-        $venue_terms = get_the_terms( $post->ID, 'venue' );
-        if ( $venue_terms && ! is_wp_error( $venue_terms ) ) {
-            $card['venue_name'] = $venue_terms[0]->name;
-        }
+        $card = array_merge( $card, extrachill_api_activity_build_event_card( $post ) );
     }
 
     if ( $post->post_type === 'reply' && function_exists( 'bbp_get_reply_topic_id' ) ) {
@@ -79,12 +110,12 @@ function extrachill_api_activity_emit_post_events( $new_status, $old_status, $po
         }
     }
 
-		do_action( 'extrachill_activity_emit', array(
-			'type'           => $type,
-			'blog_id'        => $blog_id,
-			'actor_id'       => $actor_id ? (int) $actor_id : null,
-			'summary'        => $summary,
-			'visibility'     => 'public',
+    do_action( 'extrachill_activity_emit', array(
+        'type'       => $type,
+        'blog_id'    => $blog_id,
+        'actor_id'   => $actor_id ? (int) $actor_id : null,
+        'summary'    => $summary,
+        'visibility' => 'public',
         'primary_object' => array(
             'object_type' => 'post',
             'blog_id'     => $blog_id,
@@ -135,18 +166,13 @@ function extrachill_api_activity_emit_comment_event( $comment_id, $comment_appro
     $post_title = html_entity_decode( get_the_title( $post_id ), ENT_QUOTES | ENT_HTML5, 'UTF-8' );
     $summary    = 'Commented on: ' . $post_title;
 
-    $card = array(
-        'title'     => $post_title,
-        'permalink' => get_permalink( $post_id ),
-    );
-
-	do_action( 'extrachill_activity_emit', array(
-		'type'            => 'comment_created',
-		'blog_id'         => $blog_id,
-		'actor_id'        => $actor_id ? (int) $actor_id : null,
-		'summary'         => $summary,
-		'visibility'      => 'public',
-        'primary_object'  => array(
+    do_action( 'extrachill_activity_emit', array(
+        'type'       => 'comment_created',
+        'blog_id'    => $blog_id,
+        'actor_id'   => $actor_id ? (int) $actor_id : null,
+        'summary'    => $summary,
+        'visibility' => 'public',
+        'primary_object' => array(
             'object_type' => 'comment',
             'blog_id'     => $blog_id,
             'id'          => (string) $comment_id,
@@ -158,7 +184,6 @@ function extrachill_api_activity_emit_comment_event( $comment_id, $comment_appro
         ),
         'data' => array(
             'post_id' => (int) $post_id,
-            'card'    => $card,
         ),
     ) );
 }

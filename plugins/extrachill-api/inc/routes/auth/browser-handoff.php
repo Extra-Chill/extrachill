@@ -66,9 +66,11 @@ function extrachill_api_auth_browser_handoff_handler( WP_REST_Request $request )
 	$token = extrachill_users_create_browser_handoff_token( get_current_user_id(), $redirect_url );
 
 	$handoff_url = add_query_arg(
-		'ec_browser_handoff',
-		$token,
-		home_url( '/' )
+		array(
+			'action'            => 'extrachill_browser_handoff',
+			'ec_browser_handoff' => $token,
+		),
+		esc_url_raw( "https://{$redirect_host}/wp-admin/admin-post.php" )
 	);
 
 	return rest_ensure_response(

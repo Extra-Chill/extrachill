@@ -59,6 +59,21 @@ function extrachill_api_register_auth_google_route() {
 					'type'              => 'string',
 					'sanitize_callback' => 'esc_url_raw',
 				),
+				'registration_page'    => array(
+					'required'          => false,
+					'type'              => 'string',
+					'sanitize_callback' => 'esc_url_raw',
+				),
+				'registration_source'  => array(
+					'required'          => false,
+					'type'              => 'string',
+					'sanitize_callback' => 'sanitize_text_field',
+				),
+				'registration_method'  => array(
+					'required'          => false,
+					'type'              => 'string',
+					'sanitize_callback' => 'sanitize_text_field',
+				),
 			),
 		)
 	);
@@ -112,6 +127,9 @@ function extrachill_api_auth_google_handler( WP_REST_Request $request ) {
 		'set_cookie'           => rest_sanitize_boolean( $request->get_param( 'set_cookie' ) ),
 		'from_join'            => rest_sanitize_boolean( $request->get_param( 'from_join' ) ),
 		'success_redirect_url' => (string) $request->get_param( 'success_redirect_url' ),
+		'registration_page'    => (string) $request->get_param( 'registration_page' ),
+		'registration_source'  => (string) $request->get_param( 'registration_source' ),
+		'registration_method'  => (string) $request->get_param( 'registration_method' ),
 	);
 
 	$result = ec_google_login_with_tokens( $id_token, $device_id, $options );

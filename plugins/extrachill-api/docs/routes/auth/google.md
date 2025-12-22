@@ -20,6 +20,9 @@ Authenticate users with Google OAuth using ID tokens and return JWT access/refre
 - `remember` (boolean, optional) - Whether to extend token expiry (default: true)
 - `set_cookie` (boolean, optional) - Whether to set WordPress authentication cookie (default: false)
 - `success_redirect_url` (string, optional) - URL to redirect to after successful authentication
+- `registration_page` (string, optional) - URL where authentication occurred
+- `registration_source` (string, optional) - Source label (e.g. `web`, `extrachill-app`)
+- `registration_method` (string, optional) - Method label (e.g. `google`)
 
 **Request Example**:
 ```json

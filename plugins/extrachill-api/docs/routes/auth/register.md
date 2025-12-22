@@ -23,6 +23,8 @@ Create a new user account with JWT token authentication. Supports artist profile
 - `set_cookie` (boolean, optional) - Whether to set WordPress authentication cookie
 - `remember` (boolean, optional) - Whether to extend token expiry
 - `registration_page` (string, optional) - URL of the registration page
+- `registration_source` (string, optional) - Source label (e.g. `web`, `extrachill-app`)
+- `registration_method` (string, optional) - Method label (e.g. `standard`, `google`)
 - `success_redirect_url` (string, optional) - URL to redirect after successful registration
 - `invite_token` (string, optional) - Invitation token for roster invites
 - `invite_artist_id` (integer, optional) - Artist ID for roster membership
