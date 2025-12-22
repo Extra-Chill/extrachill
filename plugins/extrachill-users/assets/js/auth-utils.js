@@ -7,12 +7,39 @@
 (function () {
     'use strict';
 
+    function normalizeRestRoot(root) {
+        if (!root) {
+            return '';
+        }
+
+        try {
+            var url = new URL(root, window.location.origin);
+            if (!url.pathname.endsWith('/')) {
+                url.pathname += '/';
+            }
+            return url.toString();
+        } catch (err) {
+            return '';
+        }
+    }
+
     function getRestRoot() {
+        if (window.wpApiSettings && window.wpApiSettings.root) {
+            var normalized = normalizeRestRoot(window.wpApiSettings.root);
+            if (normalized) {
+                return normalized;
+            }
+        }
+
         var link = document.querySelector('link[rel="https://api.w.org/"]');
         if (link && link.href) {
-            return link.href;
+            var linkRoot = normalizeRestRoot(link.href);
+            if (linkRoot) {
+                return linkRoot;
+            }
         }
-        return new URL('/wp-json/', window.location.origin).toString();
+
+        return normalizeRestRoot(new URL('/wp-json/', window.location.origin).toString());
     }
 
     function uuidv4() {

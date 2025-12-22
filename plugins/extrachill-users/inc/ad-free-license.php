@@ -48,6 +48,48 @@ function is_user_ad_free($userDetails = null) {
 }
 
 /**
+ * Output Mediavine blocklist when ads should be blocked.
+ *
+ * Ad-free users are blocked globally, and site-specific plugins can request
+ * ad blocking via the `extrachill_should_block_ads` filter.
+ *
+ * @since 0.1.0
+ */
+function extrachill_users_output_mediavine_blocklist() {
+	if ( is_admin() ) {
+		return;
+	}
+
+	$context = array(
+		'blog_id'        => get_current_blog_id(),
+		'post_type'      => is_singular() ? (string) get_post_type() : '',
+		'is_front_page'  => is_front_page(),
+		'is_home'        => is_home(),
+		'is_page'        => is_page(),
+		'is_search'      => is_search(),
+		'is_archive'     => is_archive(),
+		'is_singular'    => is_singular(),
+		'is_post_type_archive' => is_post_type_archive(),
+	);
+
+	$should_block_ads = false;
+
+	if ( is_user_logged_in() && is_user_ad_free() ) {
+		$should_block_ads = true;
+	} else {
+		$should_block_ads = (bool) apply_filters( 'extrachill_should_block_ads', false, $context );
+	}
+
+	if ( ! $should_block_ads ) {
+		return;
+	}
+
+	echo '<div id="mediavine-settings" data-blocklist-all="1"></div>' . "\n";
+}
+add_action( 'wp_head', 'extrachill_users_output_mediavine_blocklist', 1 );
+
+
+/**
  * Create ad-free license for user
  *
  * Central function for license creation regardless of which site/plugin initiates purchase.

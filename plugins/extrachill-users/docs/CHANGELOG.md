@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.5.4] - 2025-12-21
+
+### Added
+- Avatar menu items builder function `extrachill_users_get_avatar_menu_items()` for centralized menu construction with priority-based sorting
+- Shop permission helpers: `ec_can_manage_shop()` and `ec_get_shop_product_count_for_user()` for unified shop access control
+- Mediavine ad blocklist output with global ad-free checking and site-specific override via `extrachill_should_block_ads` filter
+
+### Changed
+- Refactored avatar menu display to use new canonical menu items builder instead of inline logic
+- Improved REST root URL detection in auth-utils.js with fallback chain and URL normalization for robust multisite support
+- Added REST request detection guards to login handlers to prevent interference with REST API authentication endpoints
+- Simplified admin notification emails by removing obsolete onboarding status tracking fields
+
+### Technical
+- New `inc/avatar-menu-items.php` file with centralized menu item builder logic
+- New `inc/shop-permissions.php` file with shop permission checking functions
+- Enhanced auth-utils.js with `normalizeRestRoot()` helper for proper URL handling across different multisite configurations
+
 ## [0.5.3] - 2025-12-20
 
 ### Added

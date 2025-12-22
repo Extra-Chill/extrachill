@@ -15,6 +15,10 @@ defined( 'ABSPATH' ) || exit;
  * @param string $username Username attempted
  */
 function extrachill_handle_login_failed( $username ) {
+	if ( defined( 'REST_REQUEST' ) && REST_REQUEST ) {
+		return;
+	}
+
 	$referrer = isset( $_SERVER['HTTP_REFERER'] ) ? esc_url_raw( wp_unslash( $_SERVER['HTTP_REFERER'] ) ) : '';
 
 	if ( empty( $referrer ) || false !== strpos( $referrer, 'wp-login' ) || false !== strpos( $referrer, 'wp-admin' ) ) {
@@ -42,6 +46,10 @@ add_action( 'wp_login_failed', 'extrachill_handle_login_failed' );
  * @return WP_User|WP_Error
  */
 function extrachill_intercept_auth_error( $user, $username, $password ) {
+	if ( defined( 'REST_REQUEST' ) && REST_REQUEST ) {
+		return $user;
+	}
+
 	if ( 'POST' !== $_SERVER['REQUEST_METHOD'] ) {
 		return $user;
 	}

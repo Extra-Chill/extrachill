@@ -39,94 +39,26 @@ function extrachill_display_user_avatar_menu() {
         <div class="user-dropdown-menu" role="menu">
             <ul>
                 <?php if ( $is_logged_in && $current_user ) : ?>
-                    <li><a href="<?php echo esc_url( ec_get_site_url( 'community' ) . '/u/' . $current_user->user_login . '/' ); ?>"><?php esc_html_e( 'View Profile', 'extrachill-users' ); ?></a></li>
-                    <li><a href="<?php echo esc_url( ec_get_site_url( 'community' ) . '/u/' . $current_user->user_login . '/edit/' ); ?>">Edit Profile</a></li>
-
                     <?php
-                    $user_artist_ids = ec_get_artists_for_user( $current_user_id );
-                    $artist_count    = count( $user_artist_ids );
+                    $menu_items = function_exists( 'extrachill_users_get_avatar_menu_items' )
+                        ? extrachill_users_get_avatar_menu_items( $current_user_id )
+                        : array();
 
-                    $base_manage_url = ec_get_site_url( 'artist' ) . '/manage-artist/';
-
-                    if ( $artist_count > 0 ) {
-                        $link_page_count = ec_get_link_page_count_for_user( $current_user_id );
-                        $artist_label    = $artist_count === 1
-                            ? esc_html__( 'Manage Artist', 'extrachill-users' )
-                            : esc_html__( 'Manage Artists', 'extrachill-users' );
-
-                        printf(
-                            '<li><a href="%s">%s</a></li>',
-                            esc_url( $base_manage_url ),
-                            $artist_label
-                        );
-
-                        $link_page_manage_url = ec_get_site_url( 'artist' ) . '/manage-link-page/';
-
-                        if ( $link_page_count === 0 ) {
-                            $link_page_label = esc_html__( 'Create Link Page', 'extrachill-users' );
-                        } elseif ( $link_page_count === 1 ) {
-                            $link_page_label = esc_html__( 'Manage Link Page', 'extrachill-users' );
-                        } else {
-                            $link_page_label = esc_html__( 'Manage Link Pages', 'extrachill-users' );
+                    foreach ( $menu_items as $menu_item ) {
+                        if ( empty( $menu_item['label'] ) || empty( $menu_item['url'] ) ) {
+                            continue;
                         }
 
+                        $class = ! empty( $menu_item['danger'] ) ? 'log-out-link' : '';
+
                         printf(
-                            '<li><a href="%s">%s</a></li>',
-                            esc_url( $link_page_manage_url ),
-                            $link_page_label
+                            '<li><a class="%s" href="%s">%s</a></li>',
+                            esc_attr( $class ),
+                            esc_url( $menu_item['url'] ),
+                            esc_html( $menu_item['label'] )
                         );
-
-                        // Shop Link - ADMIN ONLY during development
-                        if ( current_user_can( 'manage_options' ) && function_exists( 'extrachill_shop_get_product_count_for_user' ) ) {
-                            $product_count   = extrachill_shop_get_product_count_for_user( $current_user_id );
-                            $shop_manage_url = ec_get_site_url( 'artist' ) . '/manage-shop/';
-                            $shop_label      = $product_count === 0
-                                ? esc_html__( 'Create Shop', 'extrachill-users' )
-                                : esc_html__( 'Manage Shop', 'extrachill-users' );
-
-                            printf(
-                                '<li><a href="%s">%s</a></li>',
-                                esc_url( $shop_manage_url ),
-                                $shop_label
-                            );
-                        }
-                    } elseif ( function_exists( 'ec_can_create_artist_profiles' ) && ec_can_create_artist_profiles( $current_user_id ) ) {
-                        printf(
-                            '<li><a href="%s">%s</a></li>',
-                            esc_url( ec_get_site_url( 'artist' ) . '/create-artist/' ),
-                            esc_html__( 'Create Artist Profile', 'extrachill-users' )
-                        );
-                    }
-
-                    /**
-                     * Filter for plugins to inject custom menu items with priority sorting.
-                     *
-                     * @param array $custom_menu_items Empty array
-                     * @param int   $current_user_id   Current user ID
-                     */
-                    $custom_menu_items = apply_filters( 'ec_avatar_menu_items', array(), $current_user_id );
-
-                    if ( ! empty( $custom_menu_items ) && is_array( $custom_menu_items ) ) {
-                        usort( $custom_menu_items, function( $a, $b ) {
-                            $priority_a = isset( $a['priority'] ) ? (int) $a['priority'] : 10;
-                            $priority_b = isset( $b['priority'] ) ? (int) $b['priority'] : 10;
-                            return $priority_a <=> $priority_b;
-                        });
-
-                        foreach ( $custom_menu_items as $menu_item ) {
-                            if ( isset( $menu_item['url'] ) && isset( $menu_item['label'] ) ) {
-                                printf(
-                                    '<li><a href="%s">%s</a></li>',
-                                    esc_url( $menu_item['url'] ),
-                                    esc_html( $menu_item['label'] )
-                                );
-                            }
-                        }
                     }
                     ?>
-
-                    <li><a href="<?php echo esc_url( ec_get_site_url( 'community' ) . '/settings/' ); ?>"><?php esc_html_e( 'Settings', 'extrachill-users' ); ?></a></li>
-                    <li><a class="log-out-link" href="<?php echo esc_url( wp_logout_url( home_url() ) ); ?>"><?php esc_html_e( 'Log Out', 'extrachill-users' ); ?></a></li>
                 <?php else : ?>
                     <li><a href="<?php echo esc_url( $login_url ); ?>"><?php esc_html_e( 'Log In', 'extrachill-users' ); ?></a></li>
                     <li><a href="<?php echo esc_url( $register_url ); ?>"><?php esc_html_e( 'Register', 'extrachill-users' ); ?></a></li>
