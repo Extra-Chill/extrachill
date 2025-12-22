@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.1] - 2025-12-22
+
+### Added
+- Media picker UI for default OG image selection in network settings (replaces number input with interactive WordPress media library picker)
+- Support for additional post types in article schema: 'festival_wire' (NewsArticle) and 'ec_doc' (TechArticle) with configurable schema type mapping
+- Search URL handling in breadcrumb schema for proper search result breadcrumbs
+
+### Changed
+- Removed Yoast SEO disable code from main plugin file (no longer needed post-Yoast removal)
+- Updated IndexNow integration: removed key.txt endpoint requirement, added pings on published post updates
+- Refactored schema base URLs to distinguish site-specific URLs (per-domain) from organization URLs (extrachill.com) for accurate cross-site schema references
+- Updated PLAN.md documentation: version bump to 0.3.0, removed Yoast references, streamlined deployment checklist
+
+### Fixed
+- Schema website name now uses site-specific blog name instead of global organization name for better per-site accuracy
+
 ## [0.3.0] - 2025-12-22
 
 ### Added

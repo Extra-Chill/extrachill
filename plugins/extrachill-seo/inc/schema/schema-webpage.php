@@ -21,8 +21,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 add_filter(
 	'extrachill_seo_schema_graph',
 	function ( $graph ) {
-		$base_url    = ec_seo_get_schema_base_url();
-		$current_url = ec_seo_get_current_url();
+		$site_base_url = ec_seo_get_schema_site_base_url();
+		$current_url   = ec_seo_get_current_url();
 
 		// Determine page type
 		$page_type = 'WebPage';
@@ -41,7 +41,7 @@ add_filter(
 			'url'        => $current_url,
 			'name'       => wp_get_document_title(),
 			'isPartOf'   => array(
-				'@id' => $base_url . '/#website',
+				'@id' => $site_base_url . '/#website',
 			),
 			'inLanguage' => 'en-US',
 		);

@@ -194,6 +194,10 @@ function ec_seo_get_breadcrumb_items() {
  * @return string Current URL
  */
 function ec_seo_get_current_url() {
+	if ( is_search() ) {
+		return home_url( '/?s=' . rawurlencode( get_search_query() ) );
+	}
+
 	global $wp;
 	return home_url( add_query_arg( array(), $wp->request ) );
 }

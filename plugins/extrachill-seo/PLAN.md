@@ -2,11 +2,11 @@
 
 ## Overview
 
-A lean, network-activated SEO plugin replacing Yoast SEO. Manages meta tags, structured data, Open Graph, Twitter Cards, and robots directives across all Extra Chill network sites.
+A lean, network-activated SEO plugin replacing traditional SEO plugins. Manages meta tags, structured data, Open Graph, Twitter Cards, and robots directives across all Extra Chill network sites.
 
-**Version**: 0.2.0  
+**Version**: 0.3.0  
 **Network**: true (required)  
-**Replaces**: Yoast SEO
+**Replaces**: Yoast SEO (already removed)
 
 ## Design Principles
 
@@ -27,23 +27,22 @@ Based on analysis of Google's official documentation and major publishers (Pitch
 
 ---
 
-## Phase 1 Scope (Yoast Replacement)
+## Phase 1 Scope (Core SEO Replacement)
 
 ### Current Status
 
-- **IndexNow** support is implemented:
+- **IndexNow** support is implemented (ping-only):
   - Network setting: IndexNow key (site option)
-  - `/{key}.txt` endpoint returns the key
   - URL pings on publish/unpublish/delete
+  - Requirement: host a static `/{key}.txt` file at each domain root
 - **Network admin page** is implemented under the existing `extrachill-multisite` menu (`SEO` submenu).
-- **Default OG image** is implemented as a network setting via attachment ID.
+- **Default OG image** is implemented as a network setting with media picker UI.
 
 ### Next Enhancements
 
-- Convert the Default OG Image field to a proper media picker UI.
-- Add a lightweight “Test IndexNow” button (ping a single URL) for quick validation.
 - Add optional batching / queueing for bulk updates.
 - Future enhancement: **dynamic OG image generation** (auto-generated 16:9 social cards).
+- Consider: network sitemap index (links all site sitemaps).
 
 ### Meta Tags
 
@@ -210,11 +209,16 @@ extrachill-plugins/extrachill-seo/
 ├── extrachill-seo.php              # Main plugin file (Network: true)
 ├── inc/
 │   ├── core/
+│   │   ├── settings.php            # Network settings (site options)
+│   │   ├── indexnow.php            # IndexNow pings
 │   │   ├── meta-tags.php           # Title, description output
 │   │   ├── canonical.php           # Canonical URL handling
 │   │   ├── robots.php              # Robots meta logic
 │   │   ├── open-graph.php          # OG tags output
 │   │   └── twitter-cards.php       # Twitter Card output
+│   ├── admin/
+│   │   ├── network-settings.php    # Network settings page
+│   │   └── media-picker.js         # Default OG media picker
 │   └── schema/
 │       ├── schema-output.php       # JSON-LD output handler (@graph)
 │       ├── schema-website.php      # WebSite schema
@@ -247,20 +251,6 @@ extrachill-plugins/extrachill-seo/
 | 10 | `wp_head` | JSON-LD structured data |
 | 10 | `wp_robots` | Robots directive logic |
 
-### Disable Yoast Output
-
-On activation, the plugin must disable Yoast's output if Yoast is still active:
-
-```php
-// Remove Yoast output
-add_action('template_redirect', function() {
-    if (class_exists('WPSEO_Frontend')) {
-        remove_action('wp_head', array(WPSEO_Frontend::get_instance(), 'head'), 1);
-    }
-}, 1);
-```
-
----
 
 ## Site-Specific Title Patterns
 
@@ -323,29 +313,22 @@ add_filter('wp_sitemaps_add_provider', function($provider, $name) {
 }, 10, 2);
 ```
 
-Yoast sitemap (`/sitemap_index.xml`) will be disabled when Yoast is removed.
+Yoast sitemap (`/sitemap_index.xml`) is no longer used.
 
 ---
 
 ## Migration Steps
 
-**Important**: Theme-level Yoast sitemap de-duping has been removed in the codebase. Do not deploy these theme changes while Yoast is still generating sitemaps, unless the featured-image migration is completed or Yoast is removed.
 
-### Pre-Migration
-1. Document any custom Yoast titles/descriptions in use (likely none per discussion)
-2. Note current sitemap URL for Search Console update
-
-### Migration
+### Deployment Checklist
 1. Network-activate extrachill-seo
 2. Verify output on key pages (homepage, single post, archive, author)
-3. Network-deactivate Yoast SEO
-4. Remove Yoast theme remnants (delete `extrachill/inc/core/yoast-stuff.php` and remove theme-level wp_robots sparse-tag filter)
-5. Update Search Console sitemap URL to `/wp-sitemap.xml`
+3. Ensure WordPress native sitemap is accessible at `/wp-sitemap.xml`
+4. Submit `/wp-sitemap.xml` in Search Console (per-domain)
 
-### Post-Migration
+### Post-Deployment
 1. Monitor Search Console for crawl errors
-2. Use Search Console sitelinks demotion if needed
-3. Verify structured data with Google Rich Results Test
+2. Verify structured data with Google Rich Results Test
 
 ---
 

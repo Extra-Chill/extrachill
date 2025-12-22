@@ -42,13 +42,25 @@ add_action(
 );
 
 /**
- * Get base URL for schema IDs
+ * Get schema base URL for the current site.
  *
- * Uses main site URL for consistent cross-site schema references.
+ * This should match the domain the page is actually served from, so Google
+ * (and other consumers) don't see a WebSite entity pointing at a different host.
  *
  * @return string Base URL
  */
-function ec_seo_get_schema_base_url() {
+function ec_seo_get_schema_site_base_url() {
+	return untrailingslashit( home_url() );
+}
+
+/**
+ * Get schema base URL for the global Organization.
+ *
+ * Extra Chill is one brand across all subdomains.
+ *
+ * @return string Base URL
+ */
+function ec_seo_get_schema_organization_base_url() {
 	return 'https://extrachill.com';
 }
 

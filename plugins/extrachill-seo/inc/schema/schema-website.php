@@ -21,23 +21,24 @@ if ( ! defined( 'ABSPATH' ) ) {
 add_filter(
 	'extrachill_seo_schema_graph',
 	function ( $graph ) {
-		$base_url = ec_seo_get_schema_base_url();
-		$org_data = ec_seo_get_organization_data();
+		$site_base_url = ec_seo_get_schema_site_base_url();
+		$org_base_url  = ec_seo_get_schema_organization_base_url();
+		$org_data      = ec_seo_get_organization_data();
 
 		$website = array(
 			'@type'           => 'WebSite',
-			'@id'             => $base_url . '/#website',
-			'url'             => $base_url . '/',
-			'name'            => $org_data['name'],
+			'@id'             => $site_base_url . '/#website',
+			'url'             => $site_base_url . '/',
+			'name'            => get_bloginfo( 'name' ),
 			'description'     => $org_data['description'],
 			'publisher'       => array(
-				'@id' => $base_url . '/#organization',
+				'@id' => $org_base_url . '/#organization',
 			),
 			'potentialAction' => array(
 				'@type'       => 'SearchAction',
 				'target'      => array(
 					'@type'       => 'EntryPoint',
-					'urlTemplate' => $base_url . '/?s={search_term_string}',
+					'urlTemplate' => $site_base_url . '/?s={search_term_string}',
 				),
 				'query-input' => 'required name=search_term_string',
 			),

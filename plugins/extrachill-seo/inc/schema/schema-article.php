@@ -21,19 +21,32 @@ if ( ! defined( 'ABSPATH' ) ) {
 add_filter(
 	'extrachill_seo_schema_graph',
 	function ( $graph ) {
-		if ( ! is_singular( 'post' ) ) {
+		$post_types = array( 'post', 'festival_wire', 'ec_doc' );
+		$post_types = apply_filters( 'extrachill_seo_article_post_types', $post_types );
+
+		if ( ! is_singular( $post_types ) ) {
 			return $graph;
 		}
 
-		$post      = get_queried_object();
-		$base_url  = ec_seo_get_schema_base_url();
-		$permalink = get_permalink( $post->ID );
+		$post          = get_queried_object();
+		$site_base_url = ec_seo_get_schema_site_base_url();
+		$org_base_url  = ec_seo_get_schema_organization_base_url();
+		$permalink     = get_permalink( $post->ID );
+
+		$schema_type_map = array(
+			'post'          => 'Article',
+			'festival_wire' => 'NewsArticle',
+			'ec_doc'        => 'TechArticle',
+		);
+		$schema_type_map = apply_filters( 'extrachill_seo_article_schema_type_map', $schema_type_map );
+
+		$schema_type = isset( $schema_type_map[ $post->post_type ] ) ? $schema_type_map[ $post->post_type ] : 'Article';
 
 		$article = array(
-			'@type'            => 'Article',
+			'@type'            => $schema_type,
 			'@id'              => $permalink . '#article',
 			'isPartOf'         => array(
-				'@id' => $base_url . '/#website',
+				'@id' => $site_base_url . '/#website',
 			),
 			'author'           => ec_seo_get_article_author( $post ),
 			'headline'         => get_the_title( $post->ID ),
@@ -43,7 +56,7 @@ add_filter(
 				'@id' => $permalink . '#webpage',
 			),
 			'publisher'        => array(
-				'@id' => $base_url . '/#organization',
+				'@id' => $org_base_url . '/#organization',
 			),
 			'inLanguage'       => 'en-US',
 		);

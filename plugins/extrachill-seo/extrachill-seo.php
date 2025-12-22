@@ -6,14 +6,14 @@
  * Manages meta tags, structured data, robots directives, and social sharing across the multisite network.
  *
  * @package ExtraChill\SEO
- * @version 0.3.0
+ * @version 0.3.1
  */
 
 /**
  * Plugin Name: Extra Chill SEO
  * Plugin URI: https://extrachill.com
  * Description: Lean SEO plugin replacing Yoast with code-first meta tags, structured data, and robots directives
- * Version: 0.3.0
+ * Version: 0.3.1
  * Author: Extra Chill
  * Author URI: https://extrachill.com
  * Network: true
@@ -33,7 +33,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Define plugin constants.
-define( 'EXTRACHILL_SEO_VERSION', '0.3.0' );
+define( 'EXTRACHILL_SEO_VERSION', '0.3.1' );
 define( 'EXTRACHILL_SEO_PATH', plugin_dir_path( __FILE__ ) );
 define( 'EXTRACHILL_SEO_URL', plugin_dir_url( __FILE__ ) );
 
@@ -61,67 +61,6 @@ register_activation_hook(
 add_action(
 	'wp_loaded',
 	function () {
-		// Disable Yoast frontend output if active.
-		// This allows side-by-side testing before Yoast is deactivated.
-		add_action(
-			'template_redirect',
-			function () {
-				$yoast_frontend_class = \Yoast\WP\SEO\Integrations\Front_End_Integration::class;
-
-				if ( ! class_exists( $yoast_frontend_class ) ) {
-					return;
-				}
-
-				global $wp_filter;
-
-				// Remove Yoast wp_head output.
-				if ( isset( $wp_filter['wp_head'] ) && $wp_filter['wp_head'] instanceof \WP_Hook ) {
-					foreach ( $wp_filter['wp_head']->callbacks as $priority => $callbacks ) {
-						foreach ( $callbacks as $cb ) {
-							if ( ! isset( $cb['function'] ) || ! is_array( $cb['function'] ) ) {
-								continue;
-							}
-
-							$fn_object = $cb['function'][0] ?? null;
-							$fn_method = $cb['function'][1] ?? null;
-
-							if ( is_object( $fn_object ) && $fn_object instanceof $yoast_frontend_class && 'call_wpseo_head' === $fn_method ) {
-								remove_action( 'wp_head', array( $fn_object, $fn_method ), $priority );
-							}
-						}
-					}
-				}
-
-				// Remove Yoast title filtering.
-				if ( isset( $wp_filter['pre_get_document_title'] ) && $wp_filter['pre_get_document_title'] instanceof \WP_Hook ) {
-					foreach ( $wp_filter['pre_get_document_title']->callbacks as $priority => $callbacks ) {
-						foreach ( $callbacks as $cb ) {
-							if ( ! isset( $cb['function'] ) || ! is_array( $cb['function'] ) ) {
-								continue;
-							}
-
-							$fn_object = $cb['function'][0] ?? null;
-							$fn_method = $cb['function'][1] ?? null;
-
-							if ( is_object( $fn_object ) && $fn_object instanceof $yoast_frontend_class && 'filter_title' === $fn_method ) {
-								remove_filter( 'pre_get_document_title', array( $fn_object, $fn_method ), $priority );
-							}
-						}
-					}
-				}
-
-				// Yoast removes core title/canonical output. Restore them.
-				if ( ! has_action( 'wp_head', 'rel_canonical' ) ) {
-					add_action( 'wp_head', 'rel_canonical' );
-				}
-
-				if ( ! has_action( 'wp_head', '_wp_render_title_tag' ) ) {
-					add_action( 'wp_head', '_wp_render_title_tag', 1 );
-				}
-			},
-			1
-		);
-
 		require_once EXTRACHILL_SEO_PATH . 'inc/core/settings.php';
 		require_once EXTRACHILL_SEO_PATH . 'inc/core/indexnow.php';
 
