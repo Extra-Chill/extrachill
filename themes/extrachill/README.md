@@ -2,7 +2,7 @@
 
 A custom WordPress theme (v1.3.2) powering the Extra Chill Platform multisite network with 9 active interconnected sites (Blog ID 6 unused), featuring hook-based homepage content, community integrations, universal filter bar component system, and multisite-aware navigation. Horoscope site is planned for future Blog ID 11.
 
-> **Platform alignment**: Documentation reflects the live 1.3.1 release in `style.css` and must stay in lockstep with future releases.
+> **Platform alignment**: Documentation reflects the live 1.3.2 release in `style.css` and must stay in lockstep with future releases.
 
 ## Overview
 
@@ -410,6 +410,6 @@ See [docs/CHANGELOG.md](docs/CHANGELOG.md) for full version history.
 
 **Theme**: ExtraChill
 **Author**: Chubes
-**Version**: 1.3.2
+**Version**: 1.3.3
 **WordPress**: 5.0+
 **License**: Proprietary

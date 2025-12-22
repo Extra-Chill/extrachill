@@ -18,11 +18,6 @@ get_header(); ?>
 <div class="single-post-card">
 <article id="post-<?php the_ID(); ?>">
     <?php do_action('extrachill_before_post_content'); ?>
-    <?php
-    $image_popup_id = get_post_thumbnail_id();
-    $image_popup_url = wp_get_attachment_url($image_popup_id);
-    ?>
-
 
     <header id="postvote">
         <?php do_action( 'extrachill_above_post_title' ); ?>
@@ -31,6 +26,19 @@ get_header(); ?>
         </h1>
     </header>
     <?php extrachill_entry_meta(); ?>
+
+    <?php if (has_post_thumbnail()) : ?>
+        <?php $featured_image_id = get_post_thumbnail_id(); ?>
+        <figure class="wp-block-image size-large">
+            <?php the_post_thumbnail('large'); ?>
+            <?php
+            $featured_image_caption = wp_get_attachment_caption($featured_image_id);
+            if (!empty($featured_image_caption)) {
+                echo '<figcaption class="wp-element-caption">' . wp_kses_post($featured_image_caption) . '</figcaption>';
+            }
+            ?>
+        </figure>
+    <?php endif; ?>
 
     <div class="entry-content">
         <?php the_content(); ?>
