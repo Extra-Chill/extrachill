@@ -28,57 +28,60 @@ add_filter('document_title_separator', function () {
  * Modifies the site name suffix based on current blog context
  * and improves archive/pagination title context.
  */
-add_filter('document_title_parts', function ($title_parts) {
-    $blog_id = get_current_blog_id();
+add_filter( 'document_title_parts', function ( $title_parts ) {
+    if ( ! function_exists( 'ec_get_blog_slug_by_id' ) ) {
+        return $title_parts;
+    }
 
-    // Site-specific suffixes
+    $blog_id = (int) get_current_blog_id();
+    $site_slug = ec_get_blog_slug_by_id( $blog_id );
+
     $site_suffixes = [
-        1  => 'Extra Chill',
-        2  => 'Extra Chill Community',
-        3  => 'Extra Chill Shop',
-        4  => 'Extra Chill Artists',
-        5  => 'Extra Chill Chat',
-        7  => 'Extra Chill Events',
-        8  => 'Extra Chill Stream',
-        9  => 'Extra Chill Newsletter',
-        10 => 'Extra Chill Docs',
-        11 => 'Extra Chill Horoscope',
+        'main'       => 'Extra Chill',
+        'community'  => 'Extra Chill Community',
+        'shop'       => 'Extra Chill Shop',
+        'artist'     => 'Extra Chill Artist Platform',
+        'chat'       => 'Extra Chill Chat',
+        'events'     => 'Extra Chill Events',
+        'stream'     => 'Extra Chill Stream',
+        'newsletter' => 'Extra Chill Newsletter',
+        'docs'       => 'Extra Chill Docs',
+        'horoscope'  => 'Extra Chill Horoscope',
     ];
 
-    // Set site name suffix
-    if (isset($site_suffixes[$blog_id])) {
-        $title_parts['site'] = $site_suffixes[$blog_id];
+    if ( $site_slug && isset( $site_suffixes[ $site_slug ] ) ) {
+        $title_parts['site'] = $site_suffixes[ $site_slug ];
     }
 
-    // Improve pagination context for blog archive
-    if (is_home() && is_paged()) {
-        $page_num = get_query_var('paged');
-        $title_parts['title'] = sprintf('Blog - Page %d', $page_num);
+    if ( ( is_front_page() || is_home() ) && ! is_paged() ) {
+        unset( $title_parts['title'] );
     }
 
-    // Improve category pagination context
-    if (is_category() && is_paged()) {
-        $page_num = get_query_var('paged');
-        $cat_name = single_cat_title('', false);
-        $title_parts['title'] = sprintf('%s - Page %d', $cat_name, $page_num);
+    if ( is_home() && is_paged() ) {
+        $page_num = (int) get_query_var( 'paged' );
+        $title_parts['title'] = sprintf( 'Blog - Page %d', $page_num );
     }
 
-    // Improve tag pagination context
-    if (is_tag() && is_paged()) {
-        $page_num = get_query_var('paged');
-        $tag_name = single_tag_title('', false);
-        $title_parts['title'] = sprintf('%s - Page %d', $tag_name, $page_num);
+    if ( is_category() && is_paged() ) {
+        $page_num = (int) get_query_var( 'paged' );
+        $cat_name = single_cat_title( '', false );
+        $title_parts['title'] = sprintf( '%s - Page %d', $cat_name, $page_num );
     }
 
-    // Improve author pagination context
-    if (is_author() && is_paged()) {
-        $page_num = get_query_var('paged');
+    if ( is_tag() && is_paged() ) {
+        $page_num = (int) get_query_var( 'paged' );
+        $tag_name = single_tag_title( '', false );
+        $title_parts['title'] = sprintf( '%s - Page %d', $tag_name, $page_num );
+    }
+
+    if ( is_author() && is_paged() ) {
+        $page_num = (int) get_query_var( 'paged' );
         $author_name = get_the_author();
-        $title_parts['title'] = sprintf('Posts by %s - Page %d', $author_name, $page_num);
+        $title_parts['title'] = sprintf( 'Posts by %s - Page %d', $author_name, $page_num );
     }
 
     return $title_parts;
-});
+} );
 
 /**
  * Output meta description tag

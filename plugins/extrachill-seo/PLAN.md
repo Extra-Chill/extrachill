@@ -4,7 +4,7 @@
 
 A lean, network-activated SEO plugin replacing Yoast SEO. Manages meta tags, structured data, Open Graph, Twitter Cards, and robots directives across all Extra Chill network sites.
 
-**Version**: 0.1.0  
+**Version**: 0.2.0  
 **Network**: true (required)  
 **Replaces**: Yoast SEO
 
