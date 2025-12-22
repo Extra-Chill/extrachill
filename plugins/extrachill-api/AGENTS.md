@@ -1709,9 +1709,35 @@ Foundational REST API for artist data management. Provides comprehensive endpoin
 
 **Dependencies**: extrachill-users plugin for token management
 
+#### 52. Browser Handoff Authentication
+
+**Endpoint**: `POST /wp-json/extrachill/v1/auth/browser-handoff`
+
+**Purpose**: Generate one-time URLs for authenticated users to set WordPress auth cookies in real browsers and redirect to specified destinations.
+
+**Parameters**:
+- `redirect_url` (string, required) - Absolute URL to redirect to after setting auth cookies
+
+**Response**:
+```json
+{
+  "handoff_url": "https://example.com/?ec_browser_handoff=token123..."
+}
+```
+
+**Permission**: Requires logged-in user
+
+**File**: `inc/routes/auth/browser-handoff.php`
+
+**Notes**:
+- Validates redirect URLs to ensure they target extrachill.com domains only
+- Prevents extrachill.link domain usage for security
+- Requires absolute URLs with proper host validation
+- Integrates with extrachill-users plugin for token generation
+
 ### Configuration Endpoints
 
-#### 52. OAuth Configuration
+#### 53. OAuth Configuration
 
 **Endpoint**: `GET /wp-json/extrachill/v1/config/oauth`
 
@@ -1740,7 +1766,7 @@ Foundational REST API for artist data management. Provides comprehensive endpoin
 
 ### User Onboarding Endpoints
 
-#### 53. User Onboarding Status
+#### 54. User Onboarding Status
 
 **Endpoint**: `GET /wp-json/extrachill/v1/users/onboarding`
 
@@ -1760,7 +1786,7 @@ Foundational REST API for artist data management. Provides comprehensive endpoin
 
 **File**: `inc/routes/users/onboarding.php`
 
-#### 54. Complete User Onboarding
+#### 55. Complete User Onboarding
 
 **Endpoint**: `POST /wp-json/extrachill/v1/users/onboarding`
 
@@ -1793,7 +1819,7 @@ Foundational REST API for artist data management. Provides comprehensive endpoin
 
 ### Admin Artist Access Endpoints
 
-#### 55. Artist Access Email Approval
+#### 56. Artist Access Email Approval
 
 **Endpoint**: `GET /wp-json/extrachill/v1/admin/artist-access/{user_id}/approve`
 
@@ -1810,7 +1836,7 @@ Foundational REST API for artist data management. Provides comprehensive endpoin
 
 **File**: `inc/routes/admin/artist-access.php`
 
-#### 56. Artist Access Approval (Admin)
+#### 57. Artist Access Approval (Admin)
 
 **Endpoint**: `POST /wp-json/extrachill/v1/admin/artist-access/{user_id}/approve`
 
@@ -1832,7 +1858,7 @@ Foundational REST API for artist data management. Provides comprehensive endpoin
 
 **File**: `inc/routes/admin/artist-access.php`
 
-#### 57. Artist Access Rejection
+#### 58. Artist Access Rejection
 
 **Endpoint**: `POST /wp-json/extrachill/v1/admin/artist-access/{user_id}/reject`
 
@@ -1855,7 +1881,7 @@ Foundational REST API for artist data management. Provides comprehensive endpoin
 
 ### Shop Orders Endpoints
 
-#### 58. List Artist Orders
+#### 59. List Artist Orders
 
 **Endpoint**: `GET /wp-json/extrachill/v1/shop/orders`
 
@@ -1883,7 +1909,7 @@ Foundational REST API for artist data management. Provides comprehensive endpoin
 
 **File**: `inc/routes/shop/orders.php`
 
-#### 59. Update Order Status
+#### 60. Update Order Status
 
 **Endpoint**: `PUT /wp-json/extrachill/v1/shop/orders/{id}/status`
 
@@ -1901,7 +1927,7 @@ Foundational REST API for artist data management. Provides comprehensive endpoin
 
 **File**: `inc/routes/shop/orders.php`
 
-#### 60. Issue Order Refund
+#### 61. Issue Order Refund
 
 **Endpoint**: `POST /wp-json/extrachill/v1/shop/orders/{id}/refund`
 
@@ -1928,7 +1954,7 @@ Foundational REST API for artist data management. Provides comprehensive endpoin
 
 ### Shop Product Images Endpoints
 
-#### 61. Upload Product Images
+#### 62. Upload Product Images
 
 **Endpoint**: `POST /wp-json/extrachill/v1/shop/products/{id}/images`
 
@@ -1949,7 +1975,7 @@ Foundational REST API for artist data management. Provides comprehensive endpoin
 - Remaining images added to gallery
 - Maximum 5 images per product
 
-#### 62. Delete Product Image
+#### 63. Delete Product Image
 
 **Endpoint**: `DELETE /wp-json/extrachill/v1/shop/products/{id}/images/{attachment_id}`
 
@@ -1969,7 +1995,7 @@ Foundational REST API for artist data management. Provides comprehensive endpoin
 
 ### Shop Integration (continued)
 
-#### 63. Stripe Webhook Handler
+#### 64. Stripe Webhook Handler
 
 **Endpoint**: `POST /wp-json/extrachill/v1/shop/stripe-webhook`
 
@@ -1985,7 +2011,7 @@ Foundational REST API for artist data management. Provides comprehensive endpoin
 
 ### Stream Endpoints
 
-#### 64. Stream Status
+#### 65. Stream Status
 
 **Endpoint**: `GET /wp-json/extrachill/v1/stream/status`
 

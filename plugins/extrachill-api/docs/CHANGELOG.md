@@ -2,6 +2,25 @@
 
 All notable changes to the ExtraChill API plugin are documented here. This file is the single source of truth for release history.
 
+## 0.8.2
+
+### Added
+
+- **Browser Handoff Authentication**: New `POST /wp-json/extrachill/v1/auth/browser-handoff` endpoint for cross-platform authentication flow
+  - Generates one-time URLs that set WordPress auth cookies in real browsers and redirect to specified destinations
+  - Validates redirect URLs to ensure they target extrachill.com domains only
+  - Prevents extrachill.link domain usage for security
+  - Requires logged-in user and integrates with extrachill-users plugin token management
+  - Includes comprehensive input validation and error handling for redirect URLs
+  - Supports absolute URL requirements with proper host validation
+
+### Technical Notes
+
+- **Backward Compatibility**: All existing endpoints maintain current behavior
+- **Dependencies**: Requires extrachill-users plugin for `extrachill_users_create_browser_handoff_token()` function
+- **Security**: Domain validation prevents unauthorized redirects; token-based one-time URL generation
+- **Endpoint Count**: Increased from 51 to 52 total endpoints
+
 ## 0.8.1
 
 ### Added
