@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.5.5] - 2025-12-22
+
+### Added
+- Browser handoff token system for mobile app authentication integration
+- Single-use tokens with 60-second expiration for secure cookie bootstrapping
+- Browser handoff handler with URL validation and automatic redirect
+
+### Changed
+- Updated site references in documentation: Blog ID 11 now designated as "wire", horoscope planned for Blog ID 12
+
 ## [0.5.4] - 2025-12-21
 
 ### Added
@@ -202,7 +212,7 @@
 - Refactored avatar menu from link-based to button-based toggle with proper semantic markup
 - Removed redundant headings and descriptions from login/register block forms
 - Reduced form container margins for better spacing (30px → 10px)
-- Updated AGENTS.md to reflect 9 active sites (Blog IDs 1–5, 7–10) with docs at Blog ID 10
+- Updated AGENTS.md to reflect 9 active sites (Blog IDs 1–5, 7–11) with docs at Blog ID 10
 
 ### Accessibility
 - Added aria-expanded attribute to avatar menu toggle button
@@ -326,7 +336,7 @@
 
 ### Fixed
 - Removed jQuery dependency from avatar upload JavaScript
-- Updated site count references to 9 active sites (docs at Blog ID 10; horoscope planned for Blog ID 11) in documentation
+- Updated site count references to 9 active sites (docs at Blog ID 10; wire at Blog ID 11; horoscope planned for Blog ID 12) in documentation
 
 ### Dependencies
 - Added extrachill-api as required plugin
