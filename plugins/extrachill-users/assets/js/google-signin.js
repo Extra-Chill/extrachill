@@ -126,7 +126,10 @@
                 from_join: fromJoin,
                 set_cookie: true,
                 remember: true,
-                success_redirect_url: successRedirectUrl
+                success_redirect_url: successRedirectUrl,
+                registration_page: window.location.href,
+                registration_source: 'web',
+                registration_method: 'google'
             })
         })
             .then(function (res) {

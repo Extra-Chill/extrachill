@@ -12,19 +12,17 @@
 
 defined( 'ABSPATH' ) || exit;
 
-add_action( 'init', 'extrachill_users_handle_browser_handoff' );
+add_action( 'admin_post_nopriv_extrachill_browser_handoff', 'extrachill_users_handle_browser_handoff' );
+add_action( 'admin_post_extrachill_browser_handoff', 'extrachill_users_handle_browser_handoff' );
 
 /**
  * Handle browser handoff requests.
  */
 function extrachill_users_handle_browser_handoff() {
-	if ( is_admin() || wp_doing_ajax() || ( defined( 'REST_REQUEST' ) && REST_REQUEST ) ) {
-		return;
-	}
-
-	$token = isset( $_GET['ec_browser_handoff'] ) ? sanitize_text_field( wp_unslash( $_GET['ec_browser_handoff'] ) ) : '';
+	$token = isset( $_REQUEST['ec_browser_handoff'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['ec_browser_handoff'] ) ) : '';
 	if ( '' === $token ) {
-		return;
+		status_header( 400 );
+		exit;
 	}
 
 	if ( ! function_exists( 'extrachill_users_consume_browser_handoff_token' ) ) {
@@ -74,6 +72,16 @@ function extrachill_users_handle_browser_handoff() {
 	wp_set_current_user( $user_id, $user->user_login );
 	wp_set_auth_cookie( $user_id, false );
 	do_action( 'wp_login', $user->user_login, $user );
+
+	add_filter(
+		'allowed_redirect_hosts',
+		function( array $hosts ) use ( $redirect_host ): array {
+			if ( ! in_array( $redirect_host, $hosts, true ) ) {
+				$hosts[] = $redirect_host;
+			}
+			return $hosts;
+		}
+	);
 
 	wp_safe_redirect( $redirect_url );
 	exit;

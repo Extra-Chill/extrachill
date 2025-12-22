@@ -164,6 +164,8 @@
                         set_cookie: true,
                         remember: true,
                         registration_page: registrationPage,
+                        registration_source: 'web',
+                        registration_method: 'standard',
                         success_redirect_url: successRedirectUrl,
                         invite_token: inviteToken,
                         invite_artist_id: inviteArtistId,

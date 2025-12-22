@@ -344,6 +344,8 @@ function extrachill_users_register_with_tokens( array $payload ) {
 	$invite_token         = isset( $payload['invite_token'] ) ? sanitize_text_field( (string) $payload['invite_token'] ) : '';
 	$invite_artist_id     = isset( $payload['invite_artist_id'] ) ? absint( $payload['invite_artist_id'] ) : 0;
 	$registration_page    = isset( $payload['registration_page'] ) ? esc_url_raw( (string) $payload['registration_page'] ) : '';
+	$registration_source  = isset( $payload['registration_source'] ) ? sanitize_text_field( (string) $payload['registration_source'] ) : '';
+	$registration_method  = isset( $payload['registration_method'] ) ? sanitize_text_field( (string) $payload['registration_method'] ) : '';
 	$success_redirect_url = isset( $payload['success_redirect_url'] ) ? esc_url_raw( (string) $payload['success_redirect_url'] ) : '';
 
 	$is_app_client = isset( $_SERVER['HTTP_EXTRACHILL_CLIENT'] )
@@ -448,14 +450,26 @@ function extrachill_users_register_with_tokens( array $payload ) {
 		: 'user' . wp_rand( 10000, 99999 );
 
 	$registration_data = array(
-		'username'  => $username,
-		'password'  => $password,
-		'email'     => $email,
-		'from_join' => $from_join,
+		'username'              => $username,
+		'password'              => $password,
+		'email'                 => $email,
+		'from_join'             => $from_join,
+		'registration_source'   => $registration_source,
+		'registration_method'   => $registration_method,
 	);
 
 	if ( ! empty( $registration_page ) ) {
 		$registration_data['registration_page'] = $registration_page;
+	}
+
+	if ( $is_app_client ) {
+		if ( empty( $registration_data['registration_source'] ) ) {
+			$registration_data['registration_source'] = 'extrachill-app';
+		}
+
+		if ( empty( $registration_data['registration_method'] ) ) {
+			$registration_data['registration_method'] = 'standard';
+		}
 	}
 
 	$user_id = apply_filters( 'extrachill_create_community_user', false, $registration_data );

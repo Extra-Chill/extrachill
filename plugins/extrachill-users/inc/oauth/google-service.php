@@ -70,7 +70,7 @@ function ec_verify_google_token( $id_token ) {
  * @param bool  $from_join   Whether user came from /join flow.
  * @return array|WP_Error {user_id: int, is_new: bool, user: WP_User}
  */
-function ec_oauth_google_user( $google_user, $from_join = false ) {
+function ec_oauth_google_user( $google_user, $from_join = false, $registration_data = array() ) {
 	$google_id = isset( $google_user['google_id'] ) ? sanitize_text_field( $google_user['google_id'] ) : '';
 	$email     = isset( $google_user['email'] ) ? sanitize_email( $google_user['email'] ) : '';
 	$name      = isset( $google_user['name'] ) ? sanitize_text_field( $google_user['name'] ) : '';
@@ -108,11 +108,14 @@ function ec_oauth_google_user( $google_user, $from_join = false ) {
 			? ec_generate_username_from_email( $email )
 			: 'user' . wp_rand( 10000, 99999 ) );
 
-	$registration_data = array(
-		'username'  => $username,
-		'password'  => wp_generate_password( 24, true, true ),
-		'email'     => $email,
-		'from_join' => $from_join,
+	$registration_data = array_merge(
+		array(
+			'username'  => $username,
+			'password'  => wp_generate_password( 24, true, true ),
+			'email'     => $email,
+			'from_join' => $from_join,
+		),
+		array_filter( $registration_data )
 	);
 
 	$user_id = apply_filters( 'extrachill_create_community_user', false, $registration_data );
@@ -215,6 +218,17 @@ function ec_google_login_with_tokens( $id_token, $device_id, $options = array() 
 	$set_cookie           = ! empty( $options['set_cookie'] );
 	$from_join            = ! empty( $options['from_join'] );
 	$success_redirect_url = isset( $options['success_redirect_url'] ) ? (string) $options['success_redirect_url'] : '';
+	$registration_source  = isset( $options['registration_source'] ) ? sanitize_text_field( (string) $options['registration_source'] ) : '';
+
+	if ( empty( $registration_source ) ) {
+		$registration_source = 'web';
+	}
+
+	if ( empty( $options['registration_method'] ) ) {
+		$options['registration_method'] = 'google';
+	}
+
+	$options['registration_method'] = sanitize_text_field( (string) $options['registration_method'] );
 
 	// Validate device_id.
 	if ( empty( $device_id ) || ! extrachill_users_is_uuid_v4( $device_id ) ) {
@@ -232,7 +246,13 @@ function ec_google_login_with_tokens( $id_token, $device_id, $options = array() 
 	}
 
 	// Find or create user.
-	$result = ec_oauth_google_user( $google_user, $from_join );
+	$registration_data = array(
+		'registration_page'   => isset( $options['registration_page'] ) ? esc_url_raw( (string) $options['registration_page'] ) : '',
+		'registration_source' => $registration_source,
+		'registration_method' => sanitize_text_field( (string) $options['registration_method'] ),
+	);
+
+	$result = ec_oauth_google_user( $google_user, $from_join, $registration_data );
 	if ( is_wp_error( $result ) ) {
 		return $result;
 	}

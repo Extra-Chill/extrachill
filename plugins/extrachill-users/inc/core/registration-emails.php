@@ -10,10 +10,12 @@
 /**
  * Send admin notification on new user registration.
  *
- * @param int    $user_id          User ID
- * @param string $registration_page The page where registration occurred
+ * @param int    $user_id              User ID
+ * @param string $registration_page     URL where registration occurred.
+ * @param string $registration_source   Source label (e.g. web, extrachill-app).
+ * @param string $registration_method   Method label (e.g. standard, google).
  */
-function extrachill_notify_admin_new_user($user_id, $registration_page) {
+function extrachill_notify_admin_new_user($user_id, $registration_page, $registration_source, $registration_method) {
     $user_data = get_userdata($user_id);
     $username = $user_data->user_login;
     $email = $user_data->user_email;
@@ -25,13 +27,17 @@ function extrachill_notify_admin_new_user($user_id, $registration_page) {
     $message .= "Username: " . $username . " (auto-generated)\n";
     $message .= "Email: " . $email . "\n";
     $message .= "User ID: " . $user_id . "\n";
+    $source_label = $registration_source ? sanitize_text_field( (string) $registration_source ) : 'Unknown';
+    $method_label = $registration_method ? sanitize_text_field( (string) $registration_method ) : 'Unknown';
+
+    $message .= "Registration Source: {$source_label} ({$method_label})\n";
     $message .= "Registration Page: " . ($registration_page ? esc_url($registration_page) : 'Unknown') . "\n";
     $message .= "\nUser Profile: " . ec_get_user_profile_url($user_id, $email);
 
     wp_mail($admin_email, $subject, $message);
 }
 
-add_action( 'extrachill_new_user_registered', 'extrachill_notify_admin_new_user', 10, 2 );
+add_action( 'extrachill_new_user_registered', 'extrachill_notify_admin_new_user', 10, 4 );
 
 /**
  * Send welcome email to new user.

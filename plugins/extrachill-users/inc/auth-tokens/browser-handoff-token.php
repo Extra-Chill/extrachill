@@ -21,7 +21,7 @@ function extrachill_users_create_browser_handoff_token( int $user_id, string $re
 	$token = wp_generate_password( 64, false, false );
 	$key   = 'ec_browser_handoff_' . $token;
 
-	set_transient(
+	set_site_transient(
 		$key,
 		array(
 			'user_id'       => $user_id,
@@ -47,8 +47,8 @@ function extrachill_users_consume_browser_handoff_token( string $token ) {
 	}
 
 	$key     = 'ec_browser_handoff_' . $token;
-	$payload = get_transient( $key );
-	delete_transient( $key );
+	$payload = get_site_transient( $key );
+	delete_site_transient( $key );
 
 	if ( ! is_array( $payload ) || empty( $payload['user_id'] ) || empty( $payload['redirect_url'] ) ) {
 		return new WP_Error( 'invalid_handoff_token', 'Invalid or expired handoff token.', array( 'status' => 400 ) );

@@ -21,11 +21,13 @@ add_filter( 'extrachill_create_community_user', 'ec_multisite_create_community_u
  * @return int|WP_Error User ID on success, WP_Error on failure.
  */
 function ec_multisite_create_community_user( $user_id, $registration_data ) {
-	$username          = isset( $registration_data['username'] ) ? $registration_data['username'] : '';
-	$password          = isset( $registration_data['password'] ) ? $registration_data['password'] : '';
-	$email             = isset( $registration_data['email'] ) ? $registration_data['email'] : '';
-	$from_join         = isset( $registration_data['from_join'] ) ? (bool) $registration_data['from_join'] : false;
-	$registration_page = isset( $registration_data['registration_page'] ) ? $registration_data['registration_page'] : '';
+	$username              = isset( $registration_data['username'] ) ? $registration_data['username'] : '';
+	$password              = isset( $registration_data['password'] ) ? $registration_data['password'] : '';
+	$email                 = isset( $registration_data['email'] ) ? $registration_data['email'] : '';
+	$from_join             = isset( $registration_data['from_join'] ) ? (bool) $registration_data['from_join'] : false;
+	$registration_page     = isset( $registration_data['registration_page'] ) ? $registration_data['registration_page'] : '';
+	$registration_source   = isset( $registration_data['registration_source'] ) ? $registration_data['registration_source'] : '';
+	$registration_method   = isset( $registration_data['registration_method'] ) ? $registration_data['registration_method'] : '';
 
 	if ( empty( $username ) || empty( $password ) || empty( $email ) ) {
 		return new WP_Error( 'missing_fields', 'Username, password, and email are required.' );
@@ -44,7 +46,15 @@ function ec_multisite_create_community_user( $user_id, $registration_data ) {
 
 	if ( ! is_wp_error( $user_id ) ) {
 		if ( ! empty( $registration_page ) ) {
-			update_user_meta( $user_id, 'registration_page', $registration_page );
+			update_user_meta( $user_id, 'registration_page', esc_url_raw( (string) $registration_page ) );
+		}
+
+		if ( ! empty( $registration_source ) ) {
+			update_user_meta( $user_id, 'registration_source', sanitize_text_field( (string) $registration_source ) );
+		}
+
+		if ( ! empty( $registration_method ) ) {
+			update_user_meta( $user_id, 'registration_method', sanitize_text_field( (string) $registration_method ) );
 		}
 
 		if ( function_exists( 'ec_mark_user_for_onboarding' ) ) {
@@ -60,7 +70,7 @@ function ec_multisite_create_community_user( $user_id, $registration_data ) {
 	}
 
 	if ( ! is_wp_error( $user_id ) ) {
-		do_action( 'extrachill_new_user_registered', $user_id, $registration_page );
+		do_action( 'extrachill_new_user_registered', $user_id, $registration_page, $registration_source, $registration_method );
 	}
 
 	return $user_id;

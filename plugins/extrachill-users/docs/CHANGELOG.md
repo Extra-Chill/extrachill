@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.5.6] - 2025-12-22
+
+### Added
+- Registration source and method tracking across all authentication flows (standard, Google OAuth)
+- User meta storage for `registration_source` (web, extrachill-app) and `registration_method` (standard, google)
+- Enhanced admin notification emails to include registration source and method details
+
+### Changed
+- Browser handoff system now uses site transients for network-wide compatibility
+- Browser handoff handler updated to use admin_post hooks with proper redirect security
+- Registration data processing enhanced with new metadata fields and app client defaults
+
+### Technical
+- Added `registration_source` and `registration_method` parameters to user creation workflow
+- Improved browser handoff token security with allowed_redirect_hosts filtering
+- Enhanced payload validation and sanitization for registration metadata
+
 ## [0.5.5] - 2025-12-22
 
 ### Added
