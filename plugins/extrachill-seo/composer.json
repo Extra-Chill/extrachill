@@ -1,0 +1,31 @@
+{
+    "name": "extrachill/extrachill-seo",
+    "description": "Lean SEO plugin replacing Yoast with code-first meta tags, structured data, and robots directives",
+    "type": "wordpress-plugin",
+    "license": "GPL-2.0-or-later",
+    "authors": [
+        {
+            "name": "Chris Huber",
+            "email": "chris@extrachill.com"
+        }
+    ],
+    "require": {
+        "php": ">=8.1"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^10.0",
+        "squizlabs/php_codesniffer": "^3.7",
+        "wp-coding-standards/wpcs": "^3.0",
+        "phpcompatibility/phpcompatibility-wp": "^2.1"
+    },
+    "config": {
+        "allow-plugins": {
+            "dealerdirect/phpcodesniffer-composer-installer": true
+        }
+    },
+    "scripts": {
+        "lint:php": "vendor/bin/phpcs --standard=WordPress-Extra --extensions=php .",
+        "lint:fix": "vendor/bin/phpcbf --standard=WordPress-Extra --extensions=php .",
+        "test": "vendor/bin/phpunit"
+    }
+}
