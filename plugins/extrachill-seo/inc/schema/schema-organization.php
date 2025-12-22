@@ -11,43 +11,46 @@
 namespace ExtraChill\SEO\Schema;
 
 // Prevent direct access.
-if (!defined('ABSPATH')) {
-    exit;
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
 }
 
 /**
  * Add Organization schema to graph
  */
-add_filter('extrachill_seo_schema_graph', function ($graph) {
-    $base_url = ec_seo_get_schema_base_url();
-    $org_data = ec_seo_get_organization_data();
+add_filter(
+	'extrachill_seo_schema_graph',
+	function ( $graph ) {
+		$base_url = ec_seo_get_schema_base_url();
+		$org_data = ec_seo_get_organization_data();
 
-    $organization = [
-        '@type'        => 'Organization',
-        '@id'          => $base_url . '/#organization',
-        'name'         => $org_data['name'],
-        'url'          => $org_data['url'],
-        'logo'         => [
-            '@type'      => 'ImageObject',
-            '@id'        => $base_url . '/#logo',
-            'url'        => $org_data['logo'],
-            'contentUrl' => $org_data['logo'],
-            'caption'    => $org_data['name'],
-            'inLanguage' => 'en-US',
-        ],
-        'image'        => [
-            '@id' => $base_url . '/#logo',
-        ],
-        'description'  => $org_data['description'],
-        'foundingDate' => $org_data['founding_date'],
-        'founder'      => [
-            '@type' => 'Person',
-            'name'  => $org_data['founder'],
-        ],
-        'sameAs'       => $org_data['same_as'],
-    ];
+		$organization = array(
+			'@type'        => 'Organization',
+			'@id'          => $base_url . '/#organization',
+			'name'         => $org_data['name'],
+			'url'          => $org_data['url'],
+			'logo'         => array(
+				'@type'      => 'ImageObject',
+				'@id'        => $base_url . '/#logo',
+				'url'        => $org_data['logo'],
+				'contentUrl' => $org_data['logo'],
+				'caption'    => $org_data['name'],
+				'inLanguage' => 'en-US',
+			),
+			'image'        => array(
+				'@id' => $base_url . '/#logo',
+			),
+			'description'  => $org_data['description'],
+			'foundingDate' => $org_data['founding_date'],
+			'founder'      => array(
+				'@type' => 'Person',
+				'name'  => $org_data['founder'],
+			),
+			'sameAs'       => $org_data['same_as'],
+		);
 
-    $graph[] = $organization;
+		$graph[] = $organization;
 
-    return $graph;
-});
+		return $graph;
+	}
+);

@@ -11,33 +11,35 @@
 namespace ExtraChill\SEO\Schema;
 
 // Prevent direct access.
-if (!defined('ABSPATH')) {
-    exit;
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
 }
 
 /**
  * Output consolidated JSON-LD schema
  */
-add_action('wp_head', function () {
-    $graph = [];
+add_action(
+	'wp_head',
+	function () {
+		$graph = array();
 
-    // Collect schema from all registered types via filter
-    $graph = apply_filters('extrachill_seo_schema_graph', $graph);
+		// Collect schema from all registered types via filter
+		$graph = apply_filters( 'extrachill_seo_schema_graph', $graph );
 
-    if (empty($graph)) {
-        return;
-    }
+		if ( empty( $graph ) ) {
+			return;
+		}
 
-    $schema = [
-        '@context' => 'https://schema.org',
-        '@graph'   => $graph,
-    ];
+		$schema = array(
+			'@context' => 'https://schema.org',
+			'@graph'   => $graph,
+		);
 
-    $json = wp_json_encode($schema, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
-
-    echo "\n<!-- Schema.org JSON-LD -->\n";
-    printf('<script type="application/ld+json">%s</script>' . "\n", $json);
-}, 10);
+		echo "\n<!-- Schema.org JSON-LD -->\n";
+		echo '<script type="application/ld+json">' . wp_json_encode( $schema, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE ) . '</script>' . "\n";
+	},
+	10
+);
 
 /**
  * Get base URL for schema IDs
@@ -47,7 +49,7 @@ add_action('wp_head', function () {
  * @return string Base URL
  */
 function ec_seo_get_schema_base_url() {
-    return 'https://extrachill.com';
+	return 'https://extrachill.com';
 }
 
 /**
@@ -58,20 +60,20 @@ function ec_seo_get_schema_base_url() {
  * @return array Organization data
  */
 function ec_seo_get_organization_data() {
-    return [
-        'name'          => 'Extra Chill',
-        'url'           => 'https://extrachill.com',
-        'logo'          => 'https://extrachill.com/wp-content/uploads/2024/07/cropped-bigger-logo-black-1-400x400.jpeg',
-        'description'   => 'Online Music Scene',
-        'founding_date' => '2011',
-        'founder'       => 'Chris Huber',
-        'same_as'       => [
-            'https://facebook.com/extrachill',
-            'https://twitter.com/extra_chill',
-            'https://instagram.com/extrachill',
-            'https://youtube.com/@extra-chill',
-            'https://pinterest.com/extrachill',
-            'https://github.com/Extra-Chill',
-        ],
-    ];
+	return array(
+		'name'          => 'Extra Chill',
+		'url'           => 'https://extrachill.com',
+		'logo'          => 'https://extrachill.com/wp-content/uploads/2024/07/cropped-bigger-logo-black-1-400x400.jpeg',
+		'description'   => 'Online Music Scene',
+		'founding_date' => '2011',
+		'founder'       => 'Chris Huber',
+		'same_as'       => array(
+			'https://facebook.com/extrachill',
+			'https://twitter.com/extra_chill',
+			'https://instagram.com/extrachill',
+			'https://youtube.com/@extra-chill',
+			'https://pinterest.com/extrachill',
+			'https://github.com/Extra-Chill',
+		),
+	);
 }

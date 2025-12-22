@@ -12,27 +12,31 @@
 namespace ExtraChill\SEO\Core;
 
 // Prevent direct access.
-if (!defined('ABSPATH')) {
-    exit;
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
 }
 
 /**
  * Output canonical link tag
  */
-add_action('wp_head', function () {
-    // Avoid duplicate canonical on singular content (WordPress core outputs this).
-    if (is_singular()) {
-        return;
-    }
+add_action(
+	'wp_head',
+	function () {
+		// Avoid duplicate canonical on singular content (WordPress core outputs this).
+		if ( is_singular() ) {
+			return;
+		}
 
-    $canonical = ec_seo_get_canonical_url();
+		$canonical = ec_seo_get_canonical_url();
 
-    if (empty($canonical)) {
-        return;
-    }
+		if ( empty( $canonical ) ) {
+			return;
+		}
 
-    printf(
-        '<link rel="canonical" href="%s" />' . "\n",
-        esc_url($canonical)
-    );
-}, 5);
+		printf(
+			'<link rel="canonical" href="%s" />' . "\n",
+			esc_url( $canonical )
+		);
+	},
+	5
+);

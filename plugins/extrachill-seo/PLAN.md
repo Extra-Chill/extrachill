@@ -29,12 +29,21 @@ Based on analysis of Google's official documentation and major publishers (Pitch
 
 ## Phase 1 Scope (Yoast Replacement)
 
-### Current Decision Point (Next)
+### Current Status
 
-- Add **IndexNow** submission support (Bing/Yandex) on publish/update.
-- Add a **single network admin page** under the existing `extrachill-multisite` menu for `extrachill-seo` settings.
-- Admin page should support a **media picker** for setting a network-wide **default OG image**.
-- Future enhancement: **dynamic OG image generation** (auto-generated 16:9 social cards) — not part of current scope.
+- **IndexNow** support is implemented:
+  - Network setting: IndexNow key (site option)
+  - `/{key}.txt` endpoint returns the key
+  - URL pings on publish/unpublish/delete
+- **Network admin page** is implemented under the existing `extrachill-multisite` menu (`SEO` submenu).
+- **Default OG image** is implemented as a network setting via attachment ID.
+
+### Next Enhancements
+
+- Convert the Default OG Image field to a proper media picker UI.
+- Add a lightweight “Test IndexNow” button (ping a single URL) for quick validation.
+- Add optional batching / queueing for bulk updates.
+- Future enhancement: **dynamic OG image generation** (auto-generated 16:9 social cards).
 
 ### Meta Tags
 

@@ -10,9 +10,11 @@ Manages meta tags, structured data, robots directives, and social sharing across
 
 ### Core Components (`inc/core/`)
 
+- **settings.php** - Network settings stored via site options (IndexNow key, default OG image)
+- **indexnow.php** - IndexNow key endpoint and publish/trash URL pings
 - **meta-tags.php** - Title tag modification via `document_title_parts` filter, meta description generation from excerpt/content
 - **robots.php** - Robots directives via `wp_robots` filter (noindex: search, date archives, sparse taxonomy terms)
-- **open-graph.php** - OG tags for Facebook/LinkedIn sharing
+- **open-graph.php** - OG tags for Facebook/LinkedIn sharing (uses network default OG image)
 - **twitter-cards.php** - Twitter Card tags (summary_large_image)
 
 ### Schema Components (`inc/schema/`)
@@ -28,19 +30,20 @@ All schemas output as single JSON-LD `@graph` via `extrachill_seo_schema_graph` 
 
 ## Site-Specific Title Patterns
 
-Titles use site-specific suffixes based on `get_current_blog_id()`:
+Titles use site-specific suffixes based on the canonical multisite helpers (via `ec_get_blog_slug_by_id()`):
 
-| Blog ID | Suffix |
+| Site Slug | Suffix |
 |---------|--------|
-| 1 | Extra Chill |
-| 2 | Extra Chill Community |
-| 3 | Extra Chill Shop |
-| 4 | Extra Chill Artists |
-| 5 | Extra Chill Chat |
-| 7 | Extra Chill Events |
-| 8 | Extra Chill Stream |
-| 9 | Extra Chill Newsletter |
-| 10 | Extra Chill Docs |
+| main | Extra Chill |
+| community | Extra Chill Community |
+| shop | Extra Chill Shop |
+| artist | Extra Chill Artist Platform |
+| chat | Extra Chill Chat |
+| events | Extra Chill Events |
+| stream | Extra Chill Stream |
+| newsletter | Extra Chill Newsletter |
+| docs | Extra Chill Docs |
+| horoscope | Extra Chill Horoscope |
 
 ## Robots Logic
 
@@ -80,5 +83,4 @@ Override `ec_seo_get_meta_description()` behavior by filtering earlier or using 
 
 ## Replaces
 
-- Yoast SEO (network deactivation required)
-- Yoast SEO (plugin replacement)
+- Yoast SEO
