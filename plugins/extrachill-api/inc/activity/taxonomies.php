@@ -55,7 +55,7 @@ function extrachill_api_activity_get_taxonomy_badge_color_map() {
 			continue;
 		}
 
-		if ( ! preg_match( '/\bcolor\s*:\s*([^;]+);/i', $body, $color_match ) ) {
+		if ( ! preg_match( '/(?<!background-)color\s*:\s*([^;]+);/i', $body, $color_match ) ) {
 			continue;
 		}
 

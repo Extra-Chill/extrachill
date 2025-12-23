@@ -2,6 +2,17 @@
 
 All notable changes to the ExtraChill API plugin are documented here. This file is the single source of truth for release history.
 
+## 0.9.1
+
+### Fixed
+
+- **Activity Taxonomy Badge Color Extraction**: Fixed regex pattern in `extrachill_api_activity_get_taxonomy_badge_color_map()` to avoid matching "background-color" properties by using negative lookbehind `(?<!background-)color\s*:\s*([^;]+);i`
+
+### Technical Notes
+
+- **Backward Compatibility**: All changes are fixes with no breaking modifications
+- **Activity System**: Improved accuracy of taxonomy badge color extraction for activity cards
+
 ## 0.9.0
 
 ### Added
