@@ -113,7 +113,7 @@ The plugin provides 52 endpoint files across 20 feature categories, all under th
 ### Tools (1)
 - `POST /tools/qr-code` - Generate QR codes
 
-See [AGENTS.md](AGENTS.md) for complete endpoint documentation with request/response examples.
+See [AGENTS.md](AGENTS.md) for architectural patterns and [docs/routes/](docs/routes/) for complete endpoint documentation.
 
 ## Installation
 

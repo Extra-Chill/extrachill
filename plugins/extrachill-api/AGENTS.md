@@ -1,12 +1,6 @@
-# ExtraChill API Plugin
+# ExtraChill API Plugin - Architectural Documentation
 
 Network-activated REST API infrastructure for the Extra Chill Platform multisite network. Provides centralized endpoint management under the `extrachill/v1` namespace for web, mobile, and AI clients.
-
-## Current Status
-
-**Network Activation**: Required - All endpoints available on every site in the multisite network.
-
-**Production Status**: Active and serving endpoints for extrachill-blog plugin.
 
 ## Architecture
 
@@ -28,2294 +22,308 @@ ExtraChill_API_Plugin::get_instance();
 - `extrachill_api_bootstrap` - Fires during `plugins_loaded` for initialization
 - `extrachill_api_register_routes` - Fires during `rest_api_init` for route registration
 
-### Directory Structure
+## Directory Structure
 
 ```
 extrachill-api/
 ├── extrachill-api.php (Main plugin file with singleton class)
-└── inc/
-    └── routes/
-        ├── activity/
-        │   ├── feed.php (Activity feed with filtering)
-        │   └── object.php (Object resolver for posts/comments/artists)
-        ├── admin/
-        │   ├── ad-free-license.php (Ad-free license management)
-        │   ├── artist-access.php (Artist access approval/rejection)
-        │   └── team-members.php (Team member sync and management)
-        ├── analytics/
-        │   ├── link-click.php (Track link page clicks)
-        │   ├── link-page.php (Track link page views)
-        │   └── view-count.php (Track content views)
-        ├── artists/
-        │   ├── analytics.php (Artist link page analytics)
-        │   ├── artist.php (Core artist data CRUD)
-        │   ├── links.php (Link page data management)
-        │   ├── socials.php (Social links management)
-        │   ├── permissions.php (Permission check)
-        │   ├── roster.php (Roster invite management)
-        │   ├── subscribe.php (Subscription signup)
-        │   └── subscribers.php (Subscriber management)
-        ├── auth/
-        │   ├── google.php (Google OAuth authentication)
-        │   ├── login.php (User authentication with JWT tokens)
-        │   ├── logout.php (Device token revocation)
-        │   ├── me.php (Current user data)
-        │   ├── refresh.php (Token refresh for continued sessions)
-        │   └── register.php (User registration with token generation)
-        ├── blog/
-        │   ├── ai-adventure.php (AI adventure story generation)
-        │   ├── band-name.php (Band name generator)
-        │   ├── image-voting.php (Image voting vote counts)
-        │   ├── image-voting-vote.php (Vote on images)
-        │   └── rapper-name.php (Rapper name generator)
-        ├── chat/
-        │   ├── history.php (Clear chat history)
-        │   └── message.php (Send/receive chat messages)
-        ├── community/
-        │   ├── drafts.php (bbPress draft management)
-        │   └── upvote.php (Topic/reply upvotes)
-        ├── config/
-        │   └── oauth.php (OAuth provider configuration)
-        ├── contact/
-        │   └── submit.php (Contact form submission)
-        ├── docs/
-        │   └── docs-info.php (Documentation endpoint info)
-        ├── events/
-        │   └── event-submissions.php (Event submission proxy)
-        ├── media/
-        │   └── upload.php (Unified media upload)
-        ├── newsletter/
-        │   ├── campaign.php (Newsletter campaign push to Sendy)
-        │   └── subscription.php (Newsletter subscription)
-        ├── shop/
-        │   ├── orders.php (Artist order management)
-        │   ├── product-images.php (Product image upload/delete)
-        │   ├── products.php (WooCommerce product CRUD)
-        │   ├── stripe-connect.php (Stripe Connect management)
-        │   └── stripe-webhook.php (Stripe webhook handler)
-        ├── tools/
-        │   └── qr-code.php (QR code generator)
-        ├── stream/
-        │   └── status.php (Stream status endpoint)
-        └── users/
-            ├── artists.php (User artist relationships)
-            ├── leaderboard.php (User leaderboard)
-            ├── onboarding.php (User onboarding flow)
-            ├── search.php (User search endpoint)
-            └── users.php (User profile endpoint)
+├── inc/
+│   └── routes/
+│       ├── activity/
+│       │   ├── feed.php (Activity feed with filtering)
+│       │   └── object.php (Object resolver for posts/comments/artists)
+│       ├── admin/
+│       │   ├── ad-free-license.php (Ad-free license management)
+│       │   ├── artist-access.php (Artist access approval/rejection)
+│       │   └── team-members.php (Team member sync and management)
+│       ├── analytics/
+│       │   ├── link-click.php (Track link page clicks)
+│       │   ├── link-page.php (Track link page views)
+│       │   └── view-count.php (Track content views)
+│       ├── artists/
+│       │   ├── analytics.php (Artist link page analytics)
+│       │   ├── artist.php (Core artist data CRUD)
+│       │   ├── links.php (Link page data management)
+│       │   ├── socials.php (Social links management)
+│       │   ├── permissions.php (Permission check)
+│       │   ├── roster.php (Roster invite management)
+│       │   ├── subscribe.php (Subscription signup)
+│       │   └── subscribers.php (Subscriber management)
+│       ├── auth/
+│       │   ├── google.php (Google OAuth authentication)
+│       │   ├── login.php (User authentication with JWT tokens)
+│       │   ├── logout.php (Device token revocation)
+│       │   ├── me.php (Current user data)
+│       │   ├── refresh.php (Token refresh for continued sessions)
+│       │   └── register.php (User registration with token generation)
+│       ├── blog/
+│       │   ├── ai-adventure.php (AI adventure story generation)
+│       │   ├── band-name.php (Band name generator)
+│       │   ├── image-voting.php (Image voting vote counts)
+│       │   ├── image-voting-vote.php (Vote on images)
+│       │   └── rapper-name.php (Rapper name generator)
+│       ├── chat/
+│       │   ├── history.php (Clear chat history)
+│       │   └── message.php (Send/receive chat messages)
+│       ├── community/
+│       │   ├── drafts.php (bbPress draft management)
+│       │   └── upvote.php (Topic/reply upvotes)
+│       ├── config/
+│       │   └── oauth.php (OAuth provider configuration)
+│       ├── contact/
+│       │   └── submit.php (Contact form submission)
+│       ├── docs/
+│       │   └── docs-info.php (Documentation endpoint info)
+│       ├── events/
+│       │   └── event-submissions.php (Event submission proxy)
+│       ├── media/
+│       │   └── upload.php (Unified media upload)
+│       ├── newsletter/
+│       │   ├── campaign.php (Newsletter campaign push to Sendy)
+│       │   └── subscription.php (Newsletter subscription)
+│       ├── shop/
+│       │   ├── orders.php (Artist order management)
+│       │   ├── product-images.php (Product image upload/delete)
+│       │   ├── products.php (WooCommerce product CRUD)
+│       │   ├── stripe-connect.php (Stripe Connect management)
+│       │   └── stripe-webhook.php (Stripe webhook handler)
+│       ├── tools/
+│       │   └── qr-code.php (QR code generator)
+│       ├── stream/
+│       │   └── status.php (Stream status endpoint)
+│       └── users/
+│           ├── artists.php (User artist relationships)
+│           ├── leaderboard.php (User leaderboard)
+│           ├── onboarding.php (User onboarding flow)
+│           ├── search.php (User search endpoint)
+│           └── users.php (User profile endpoint)
 ```
 
-## Current Endpoints
+## Endpoint Categories
 
 All endpoints are under the `extrachill/v1` namespace.
 
-### Analytics Endpoints
+### Authentication Endpoints (6)
+- `POST /auth/login` - User login with JWT tokens
+- `POST /auth/refresh` - Token refresh for continued sessions
+- `GET /auth/me` - Current authenticated user
+- `POST /auth/logout` - Logout and token revocation
+- `POST /auth/register` - User registration
+- `POST /auth/google` - Google OAuth authentication
 
-#### 1. Link Click Tracking
+**Documentation**: [docs/routes/auth/](../extrachill-plugins/extrachill-api/docs/routes/auth/)
 
-**Endpoint**: `POST /wp-json/extrachill/v1/analytics/link-click`
+### Configuration Endpoints (1)
+- `GET /config/oauth` - OAuth provider configuration
 
-**Purpose**: Track clicks on artist link pages with URL normalization and context.
+**Documentation**: [docs/routes/config/oauth.md](../extrachill-plugins/extrachill-api/docs/routes/config/oauth.md)
 
-**Parameters**:
-- `link_url` (string, required) - The URL that was clicked
-- `source_page` (string, optional) - The link page slug that hosted the click
+### Analytics Endpoints (3)
+- `POST /analytics/link-click` - Track link page clicks
+- `POST /analytics/link-page` - Track link page views (authenticated)
+- `POST /analytics/view-count` - Track content views
 
-**Response**: `{ "tracked": true }`
+**Documentation**: [docs/routes/analytics/](../extrachill-plugins/extrachill-api/docs/routes/analytics/)
 
-**File**: `inc/routes/analytics/link-click.php`
+### Artist API (9)
+- `GET/PUT /artists/{id}` - Core artist profile data
+- `GET/PUT /artists/{id}/socials` - Social media links
+- `GET/PUT /artists/{id}/links` - Link page data
+- `GET /artists/{id}/analytics` - Link page analytics
+- `GET /artists/{id}/permissions` - Check artist permissions
+- `GET/POST/DELETE /artists/{id}/roster` - Roster member management
+- `GET /artists/{id}/subscribers` - List subscribers with pagination
+- `GET /artists/{id}/subscribers/export` - Export subscribers as CSV
+- `POST /artists/{id}/subscribe` - Public subscription signup
 
-**Used By**: extrachill-blocks plugin (Link Page block analytics)
+**Documentation**: [docs/routes/artists/](../extrachill-plugins/extrachill-api/docs/routes/artists/)
 
-#### 2. Link Page View Tracking
+### Block Generators (3)
+- `POST /blog/band-name` - AI band name generation
+- `POST /blog/rapper-name` - AI rapper name generation
+- `POST /blog/ai-adventure` - AI adventure story generation
 
-**Endpoint**: `POST /wp-json/extrachill/v1/analytics/link-page`
+**Documentation**: [docs/routes/blog/](../extrachill-plugins/extrachill-api/docs/routes/blog/)
 
-**Purpose**: Track page views for artist link pages with authentication.
+### Image Voting (2)
+- `GET /blog/image-voting/vote-count/{post_id}/{instance_id}` - Get vote counts
+- `POST /blog/image-voting/vote` - Cast a vote
 
-**Parameters**:
-- `artist_id` (int, required) - The artist whose link page was viewed
-- `referrer` (string, optional) - HTTP referrer
+**Documentation**: [docs/routes/blog/image-voting-vote.md](../extrachill-plugins/extrachill-api/docs/routes/blog/image-voting-vote.md)
 
-**Response**: `{ "recorded": true }`
+### Chat Endpoints (2)
+- `POST /chat/message` - Send chat message (authenticated)
+- `DELETE /chat/history` - Clear chat history (authenticated)
 
-**Permission**: Requires logged-in user
+**Documentation**: [docs/routes/chat/](../extrachill-plugins/extrachill-api/docs/routes/chat/)
 
-**File**: `inc/routes/analytics/link-page.php`
+### Community Endpoints (3)
+- `GET /users/search` - Search users for @mentions and admin
+- `POST /community/upvote` - Upvote topics or replies (authenticated)
+- `GET/POST/DELETE /community/drafts` - Manage bbPress drafts (authenticated)
 
-**Used By**: extrachill-blocks plugin (Link Page analytics)
+**Documentation**: [docs/routes/community/](../extrachill-plugins/extrachill-api/docs/routes/community/)
 
-#### 3. Content View Tracking
+### Contact (1)
+- `POST /contact/submit` - Submit contact form with Turnstile verification
 
-**Endpoint**: `POST /wp-json/extrachill/v1/analytics/view-count`
+**Documentation**: [docs/routes/contact/submit.md](../extrachill-plugins/extrachill-api/docs/routes/contact/submit.md)
 
-**Purpose**: Track views for any content type across the platform.
+### Activity Endpoints (2)
+- `GET /activity` - Activity feed with filtering and pagination (authenticated)
+- `GET /object` - Object resolver for posts, comments, and artists (authenticated)
 
-**Parameters**:
-- `post_id` (int, required) - The post being viewed
-- `view_type` (string, optional) - Category of view (e.g., 'embed', 'preview')
+**Documentation**: [docs/routes/activity/](../extrachill-plugins/extrachill-api/docs/routes/activity/)
 
-**Response**: `{ "recorded": true }`
+### Admin Endpoints (7)
+- `GET/POST /admin/artist-access/{user_id}/approve` - Approve artist access request
+- `POST /admin/artist-access/{user_id}/reject` - Reject artist access request
+- `POST /admin/ad-free-license/grant` - Grant ad-free license
+- `DELETE /admin/ad-free-license/{user_id}` - Revoke ad-free license
+- `POST /admin/team-members/sync` - Sync team members
+- `PUT /admin/team-members/{user_id}` - Manage team member status
 
-**File**: `inc/routes/analytics/view-count.php`
+**Documentation**: [docs/routes/admin/](../extrachill-plugins/extrachill-api/docs/routes/admin/)
 
-**Used By**: Various platform plugins for content tracking
+### User Management (5)
+- `GET /users/{id}` - Get user profile
+- `GET/POST /users/onboarding` - User onboarding flow
+- `GET /users/leaderboard` - Get user leaderboard with rankings
+- `GET/POST/DELETE /users/{id}/artists` - Manage user-artist relationships
+- `GET /users/search` - Find users (multiple contexts)
 
-### Artist API
+**Documentation**: [docs/routes/users/](../extrachill-plugins/extrachill-api/docs/routes/users/)
 
-Foundational REST API for artist data management. Provides comprehensive endpoints for profile, links, socials, analytics, and business operations.
+### Documentation (2)
+- `GET /docs-info` - Documentation metadata
+- `POST /sync/doc` - Sync documentation
 
-#### 4. Artist Core Data
+**Documentation**: [docs/routes/docs/](../extrachill-plugins/extrachill-api/docs/routes/docs/)
 
-**Endpoint**: `GET/PUT /wp-json/extrachill/v1/artists/{id}`
+### Event Submissions (1)
+- `POST /event-submissions` - Submit event with optional flyer
 
-**Purpose**: Retrieve and update core artist profile data.
+**Documentation**: [docs/routes/events/event-submissions.md](../extrachill-plugins/extrachill-api/docs/routes/events/event-submissions.md)
 
-**GET Response**:
-```json
-{
-  "id": 123,
-  "name": "Artist Name",
-  "slug": "artist-slug",
-  "bio": "Artist bio text",
-  "profile_image_id": 456,
-  "profile_image_url": "https://...",
-  "header_image_id": 789,
-  "header_image_url": "https://...",
-  "link_page_id": 101
-}
-```
+### Media Management (1)
+- `POST/DELETE /media` - Upload and manage images
 
-**PUT Request** (partial updates supported):
-```json
-{
-  "name": "New Artist Name",
-  "bio": "Updated bio"
-}
-```
+**Documentation**: [docs/routes/media/upload.md](../extrachill-plugins/extrachill-api/docs/routes/media/upload.md)
 
-**PUT Response**: Returns updated artist data (same structure as GET)
+### Newsletter (2)
+- `POST /newsletter/subscription` - Subscribe to newsletter
+- `POST /newsletter/campaign/push` - Push newsletter to Sendy
 
-**Permission**: `ec_can_manage_artist()` - user must be artist owner or admin
+**Documentation**: [docs/routes/newsletter/](../extrachill-plugins/extrachill-api/docs/routes/newsletter/)
 
-**File**: `inc/routes/artists/artist.php`
+### Shop Integration (5)
+- `GET/POST/PUT/DELETE /shop/products` - Product CRUD operations
+- `GET/POST/DELETE /shop/orders` - Artist order management and fulfillment
+- `POST/DELETE /shop/products/{id}/images` - Product image management
+- `GET/POST/DELETE /shop/stripe` - Stripe Connect management
+- `POST /shop/stripe-webhook` - Stripe webhook handler
 
-**Notes**:
-- Images managed via `/media` endpoint with `artist_profile` or `artist_header` context
-- `link_page_id` is read-only
+**Documentation**: [docs/routes/shop/](../extrachill-plugins/extrachill-api/docs/routes/shop/)
 
-#### 5. Artist Social Links
+### Stream (1)
+- `GET /stream/status` - Check streaming status and configuration
 
-**Endpoint**: `GET/PUT /wp-json/extrachill/v1/artists/{id}/socials`
+**Documentation**: [docs/routes/stream/status.md](../extrachill-plugins/extrachill-api/docs/routes/stream/status.md)
 
-**Purpose**: Retrieve and update social icon links (Instagram, Spotify, etc.).
+### Tools (1)
+- `POST /tools/qr-code` - Generate QR codes
 
-**GET Response**:
-```json
-{
-  "social_links": [
-    {"type": "instagram", "url": "https://instagram.com/artist"},
-    {"type": "spotify", "url": "https://open.spotify.com/artist/..."}
-  ]
-}
-```
-
-**PUT Request** (full replacement):
-```json
-{
-  "social_links": [
-    {"type": "instagram", "url": "https://instagram.com/artist"},
-    {"type": "tiktok", "url": "https://tiktok.com/@artist"}
-  ]
-}
-```
-
-**PUT Response**: Returns updated social links (same structure as GET)
-
-**Permission**: `ec_can_manage_artist()`
-
-**File**: `inc/routes/artists/socials.php`
-
-**Notes**:
-- Uses `extrachill_artist_platform_social_links()` manager
-- PUT is full replacement (sending `[]` clears all socials)
-- Social links stored on artist profile, displayed on link page
-
-#### 6. Artist Link Page Data
-
-**Endpoint**: `GET/PUT /wp-json/extrachill/v1/artists/{id}/links`
-
-**Purpose**: Retrieve and update link page presentation data (button links, styling, settings).
-
-**GET Response**:
-```json
-{
-  "id": 101,
-  "links": [
-    {
-      "section_title": "Music",
-      "links": [
-        {"id": "link_123", "link_text": "Spotify", "link_url": "https://..."}
-      ]
-    }
-  ],
-  "css_vars": {
-    "--link-page-button-bg-color": "#ffffff",
-    "--link-page-text-color": "#000000"
-  },
-  "settings": {
-    "link_expiration_enabled": false,
-    "redirect_enabled": false,
-    "redirect_target_url": "",
-    "youtube_embed_enabled": true,
-    "meta_pixel_id": "",
-    "google_tag_id": "",
-    "subscribe_display_mode": "icon_modal",
-    "subscribe_description": "",
-    "social_icons_position": "above"
-  },
-  "background_image_id": 202,
-  "background_image_url": "https://..."
-}
-```
-
-**PUT Request** (partial updates supported):
-```json
-{
-  "links": [...],
-  "css_vars": {"--link-page-button-bg-color": "#ff0000"},
-  "settings": {"youtube_embed_enabled": false}
-}
-```
-
-**PUT Response**: Returns updated link page data (same structure as GET)
-
-**Permission**: `ec_can_manage_artist()`
-
-**File**: `inc/routes/artists/links.php`
-
-**Update Behavior**:
-- `links`: Full replacement (sending `[]` clears all sections)
-- `css_vars`: Merged with existing values
-- `settings`: Merged with existing values (only provided fields updated)
-
-**Notes**:
-- Returns 404 if artist has no link page
-- Background image managed via `/media` endpoint with `link_page_background` context
-- Uses `ec_handle_link_page_save()` for write operations
-
-#### 7. Artist Analytics
-
-**Endpoint**: `GET /wp-json/extrachill/v1/artists/{id}/analytics`
-
-**Purpose**: Retrieve link page performance analytics with configurable date range.
-
-**Parameters**:
-- `date_range` (int, optional) - Number of days to analyze (default: 30)
-
-**Response**:
-```json
-{
-  "artist_id": 123,
-  "date_range": 30,
-  "total_views": 1250,
-  "total_clicks": 342,
-  "top_links": [
-    {"url": "https://spotify.com/...", "clicks": 156},
-    {"url": "https://instagram.com/...", "clicks": 98}
-  ]
-}
-```
-
-**Permission**: `ec_can_manage_artist()`
-
-**File**: `inc/routes/artists/analytics.php`
-
-**Notes**:
-- Replaces legacy `/analytics/link-page` endpoint with artist-centric routing
-- Uses filter hook `extrachill_get_link_page_analytics` for analytics data retrieval
-
-#### 8. Artist Permissions Check
-
-**Endpoint**: `GET /wp-json/extrachill/v1/artists/{id}/permissions`
-
-**Purpose**: Check if current user can manage an artist profile.
-
-**Parameters**:
-- `id` (int, required) - Artist profile ID (in URL path)
-
-**Response**:
-```json
-{
-  "can_edit": true,
-  "manage_url": "https://...",
-  "user_id": 123
-}
-```
-
-**File**: `inc/routes/artists/permissions.php`
-
-**Notes**:
-- Returns boolean `can_edit` property and management URL
-- Accessible to any user (returns user permission status)
-
-#### 9. Artist Roster Management
-
-**Endpoints**:
-- `GET /wp-json/extrachill/v1/artists/{id}/roster` - List roster members and pending invites
-- `POST /wp-json/extrachill/v1/artists/{id}/roster` - Invite member by email
-- `DELETE /wp-json/extrachill/v1/artists/{id}/roster/{user_id}` - Remove roster member
-- `DELETE /wp-json/extrachill/v1/artists/{id}/roster/invites/{invite_id}` - Cancel pending invite
+**Documentation**: [docs/routes/tools/qr-code.md](../extrachill-plugins/extrachill-api/docs/routes/tools/qr-code.md)
 
-**Purpose**: Manage artist roster for collaborative profile management.
+## Plugin Integration Patterns
 
-**POST Parameters**:
-- `id` (int, required) - Artist profile ID (in URL path)
-- `email` (string, required) - Email of person to invite
+### Current Consumers
 
-**GET Response**:
-```json
-{
-  "members": [
-    {"id": 1, "display_name": "...", "username": "...", "email": "...", "avatar_url": "..."}
-  ],
-  "invites": [
-    {"id": "...", "email": "...", "status": "pending", "invited_on": 1234567890}
-  ]
-}
-```
+**extrachill-blocks**:
+- Image voting vote counts and voting
+- AI Adventure story generation
+- Band/Rapper name generators
 
-**Permission**: User must be able to manage artist (`ec_can_manage_artist()`)
+**extrachill-community**:
+- User search for @mentions
+- Community upvoting
+- Draft management for topics and replies
 
-**File**: `inc/routes/artists/roster.php`
+**extrachill-events**:
+- Event submission block posts to the `/event-submissions` route
 
-**Notes**:
-- Fires `extrachill_artist_invite_member` filter for invitation handling
+**extrachill-users**:
+- Avatar upload via media endpoint
+- User profile and search functionality
 
-#### 10. Artist Subscribers List
+**extrachill-shop**:
+- Product CRUD operations
+- Stripe Connect management
 
-**Endpoint**: `GET /wp-json/extrachill/v1/artists/{id}/subscribers`
+**extrachill-newsletter**:
+- Newsletter subscription endpoint
+- Campaign push to Sendy
 
-**Purpose**: Retrieve paginated list of artist subscribers.
+**extrachill-app** (Mobile):
+- Authentication endpoints (login, refresh, logout, me)
+- Activity feed endpoint
 
-**Parameters**:
-- `id` (int, required) - Artist profile ID (in URL path)
-- `page` (int, optional) - Page number (default: 1)
-- `per_page` (int, optional) - Results per page (default: 20)
+### Cross-Plugin Communication
 
-**Response**:
-```json
-{
-  "subscribers": [
-    {"id": 1, "email": "fan@example.com", "subscribed_date": "2025-01-15"},
-    {"id": 2, "email": "another@example.com", "subscribed_date": "2025-01-14"}
-  ],
-  "total": 45,
-  "page": 1,
-  "per_page": 20
-}
-```
-
-**Permission**: User must be able to manage artist (`ec_can_manage_artist()`)
-
-**File**: `inc/routes/artists/subscribers.php`
-
-#### 11. Artist Subscribers Export
-
-**Endpoint**: `GET /wp-json/extrachill/v1/artists/{id}/subscribers/export`
-
-**Purpose**: Export subscriber list as CSV for email marketing integration.
-
-**Parameters**:
-- `id` (int, required) - Artist profile ID (in URL path)
-- `include_exported` (bool, optional) - Include previously exported subscribers
-
-**Response**: Subscriber data for CSV generation
-
-**Permission**: User must be able to manage artist (`ec_can_manage_artist()`)
-
-**File**: `inc/routes/artists/subscribers.php`
-
-#### 12. Artist Subscribe (Public)
-
-**Endpoint**: `POST /wp-json/extrachill/v1/artists/{id}/subscribe`
-
-**Purpose**: Allow fans to subscribe to artist updates from public link pages.
-
-**Parameters**:
-- `id` (int, required) - Artist profile ID (in URL path)
-- `email` (string, required) - Subscriber email address
-
-**Response**:
-```json
-{
-  "message": "Thank you for subscribing!"
-}
-```
-
-**Permission**: Public (no authentication required)
-
-**File**: `inc/routes/artists/subscribe.php`
-
-**Notes**:
-- Fires `extrachill_artist_subscribe` filter for consuming plugins to handle storage
-
-### Block Generators (AI)
-
-#### 13. Band Name Generator
-
-**Endpoint**: `POST /wp-json/extrachill/v1/blocks/band-name`
-
-**Purpose**: Generate band name suggestions using AI.
-
-**Parameters**:
-- `input` (string, required) - Prompt or seed text for name generation
-- `genre` (string, optional) - Music genre for context-aware generation
-- `number_of_words` (int, optional) - Word count preference
-
-**Response**: AI-generated band names
-
-**Permission**: Public
-
-**File**: `inc/routes/blog/band-name.php`
-
-**Used By**: extrachill-blog plugin (Band Name Generator block)
-
-#### 14. Rapper Name Generator
-
-**Endpoint**: `POST /wp-json/extrachill/v1/blog/rapper-name`
-
-**Purpose**: Generate rapper name suggestions using AI.
-
-**Parameters**:
-- `input` (string, required) - Prompt or seed text
-- `gender` (string, optional) - Gender for name style
-- `style` (string, optional) - Rap style preference
-
-**Response**: AI-generated rapper names
-
-**Permission**: Public
-
-**File**: `inc/routes/blog/rapper-name.php`
-
-**Used By**: extrachill-blog plugin (Rapper Name Generator block)
-
-#### 15. AI Adventure Story Generation
-
-**Endpoint**: `POST /wp-json/extrachill/v1/blog/ai-adventure`
-
-**Purpose**: Generate AI-powered adventure story segments with branching narratives.
-
-**Parameters**:
-- `isIntroduction` (boolean, optional) - Whether to trigger introduction flow
-- `characterName` (string, optional) - Player character name
-- `adventureTitle` (string, optional) - Story title
-- `playerInput` (string, optional) - Latest user choice/action
-- `storyProgression` (array, optional) - Prior narrative segments
-- `conversationHistory` (array, optional) - Dialogue history
-- Additional context parameters for story state management
-
-**Response**:
-```json
-{
-  "narrative": "Story prose or empty when progressing to next step",
-  "nextStepId": "trigger destination id or null"
-}
-```
-
-**Permission**: Public
-
-**File**: `inc/routes/blog/ai-adventure.php`
-
-**Used By**: extrachill-blog plugin (AI Adventure block)
-
-**Dependencies**: extrachill-ai-client (network-activated)
-
-### Image Voting Block
-
-#### 16. Get Image Voting Results
-
-**Endpoint**: `GET /wp-json/extrachill/v1/blog/image-voting/vote-count/{post_id}/{instance_id}`
-
-**Purpose**: Retrieve vote counts for image voting block instances.
-
-**Parameters**:
-- `post_id` (int, required) - WordPress post ID containing the block
-- `instance_id` (string, required) - Unique block instance identifier
-
-**Response**: Vote counts per image option
-
-**File**: `inc/routes/blog/image-voting.php`
-
-**Used By**: extrachill-blog plugin (Image Voting block)
-
-#### 17. Vote on Images
-
-**Endpoint**: `POST /wp-json/extrachill/v1/blog/image-voting/vote`
-
-**Purpose**: Cast a vote in an image voting block instance.
-
-**Parameters**:
-- `post_id` (int, required) - Post containing the block
-- `instance_id` (string, required) - Block instance ID
-- `image_id` (string, required) - Image option being voted for
-
-**Response**: Updated vote totals for that instance
-
-**Permission**: Public (anonymous voting supported)
-
-**File**: `inc/routes/blog/image-voting-vote.php`
-
-**Used By**: extrachill-blog plugin (Image Voting block)
-
-### Chat Endpoints
-
-#### 18. Send Chat Message
-
-**Endpoint**: `POST /wp-json/extrachill/v1/chat/message`
-
-**Purpose**: Send a message to the AI chat and receive a response.
-
-**Parameters**:
-- `message` (string, required) - User message content
-
-**Response**:
-```json
-{
-  "response": "AI response text",
-  "conversation_id": "abc123"
-}
-```
-
-**Permission**: Requires logged-in user
-
-**File**: `inc/routes/chat/message.php`
-
-**Used By**: extrachill-chat plugin for AI chat functionality
-
-#### 19. Clear Chat History
-
-**Endpoint**: `DELETE /wp-json/extrachill/v1/chat/history`
-
-**Purpose**: Clear conversation history for the current user.
-
-**Parameters**: None
-
-**Response**:
-```json
-{
-  "cleared": true,
-  "message": "Chat history cleared"
-}
-```
-
-**Permission**: Requires logged-in user
-
-**File**: `inc/routes/chat/history.php`
-
-**Used By**: extrachill-chat plugin (Chat settings)
-
-### Community Endpoints
-
-#### 20. User Search
-
-**Endpoint**: `GET /wp-json/extrachill/v1/users/search`
-
-**Purpose**: Find users by search term for mentions, autocomplete, or admin relationship management.
-
-**Parameters**:
-- `term` (string, required) - Search query term
-- `context` (string, optional) - Search context: `mentions` (default), `admin`, or `artist-capable`
-- `exclude_artist_id` (int, optional) - Exclude existing roster members (artist-capable context only)
-
-**Response - Mentions Context** (HTTP 200):
-```json
-[
-  {"username": "chris", "slug": "chris"},
-  {"username": "chrissy", "slug": "chrissy"}
-]
-```
-
-**Response - Admin Context** (HTTP 200):
-```json
-[
-  {
-    "id": 1,
-    "display_name": "Chris Huber",
-    "username": "chris",
-    "email": "chris@example.com",
-    "avatar_url": "https://..."
-  }
-]
-```
-
-**Response - Artist-Capable Context** (HTTP 200):
-```json
-[
-  {
-    "id": 1,
-    "display_name": "Chris Huber",
-    "username": "chris",
-    "email": "chris@example.com",
-    "avatar_url": "https://...",
-    "profile_url": "https://..."
-  }
-]
-```
-
-**Permission**: Varies by context
-
-**File**: `inc/routes/users/search.php`
-
-**Used By**: extrachill-community plugin for @mention functionality
-
-#### 21. Community Upvote
-
-**Endpoint**: `POST /wp-json/extrachill/v1/community/upvote`
-
-**Purpose**: Upvote community forum topics or replies.
-
-**Parameters**:
-- `post_id` (int, required) - Topic or reply post ID
-- `type` (string, required) - One of: 'topic', 'reply'
-
-**Response**:
-```json
-{
-  "message": "Thanks for voting!",
-  "new_count": 42,
-  "upvoted": true
-}
-```
-
-**Permission**: Requires logged-in user
-
-**File**: `inc/routes/community/upvote.php`
-
-**Used By**: extrachill-community plugin (voting system)
-
-### Contact Form Submission
-
-#### 22. Contact Form Submission
-
-**Endpoint**: `POST /wp-json/extrachill/v1/contact/submit`
-
-**Purpose**: Process contact form submissions with Cloudflare Turnstile verification, send notification emails, and manage newsletter subscriptions.
-
-**Parameters**:
-- `name` (string, required) - Contact's full name
-- `email` (string, required) - Contact's email address (validated)
-- `subject` (string, required) - Email subject line
-- `message` (string, required) - Contact message content
-- `turnstile_response` (string, required) - Cloudflare Turnstile token
-
-**Response** (HTTP 200):
-```json
-{
-  "success": true,
-  "message": "Your message has been sent successfully. We'll get back to you soon."
-}
-```
-
-**Permission**: Public (no authentication required)
-
-**File**: `inc/routes/contact/submit.php`
-
-**Notes**:
-- Validates Turnstile token using `ec_verify_turnstile_response()`
-- Sends admin notification via `ec_contact_send_admin_email()`
-- Sends user confirmation via `ec_contact_send_user_confirmation()`
-- Syncs email to newsletter via `ec_contact_sync_to_sendy()`
-
-### Activity Endpoints
-
-#### 23. Activity Feed
-
-**Endpoint**: `GET /wp-json/extrachill/v1/activity`
-
-**Purpose**: Retrieve paginated activity feed with configurable filtering and visibility controls.
-
-**Parameters**:
-- `cursor` (integer, optional) - Pagination cursor for keyset pagination
-- `limit` (integer, optional) - Number of items to return
-- `blog_id` (integer, optional) - Filter by specific blog
-- `actor_id` (integer, optional) - Filter by activity actor (user ID)
-- `visibility` (string, optional) - Filter by visibility: `public` (default) or `private` (requires admin)
-- `types` (array, optional) - Array of activity type strings to include
-
-**Response**:
-```json
-{
-  "activities": [
-    {
-      "id": 123,
-      "blog_id": 1,
-      "actor_id": 456,
-      "type": "post_published",
-      "object_type": "post",
-      "object_id": 789,
-      "timestamp": "2025-01-15T10:30:00Z",
-      "visibility": "public",
-      "data": {}
-    }
-  ],
-  "cursor": 124,
-  "has_more": true
-}
-```
-
-**Permission**: Requires logged-in user; private visibility requires `manage_options` capability
-
-**File**: `inc/routes/activity/feed.php`
-
-**Notes**:
-- Uses `extrachill_api_activity_query()` for retrieval
-- Supports keyset pagination via `cursor` parameter
-- Visibility filtering prevents unauthorized access to private activity
-
-#### 24. Object Resolver
-
-**Endpoint**: `GET /wp-json/extrachill/v1/object`
-
-**Purpose**: Resolve and retrieve data for different object types (posts, comments, artists) with context-aware permission checks.
-
-**Parameters**:
-- `object_type` (string, required) - Object type: `post`, `comment`, or `artist`
-- `blog_id` (integer, required) - Blog ID containing the object
-- `id` (string, required) - Object identifier (post ID, comment ID, or artist ID)
-
-**Response - Post**:
-```json
-{
-  "object_type": "post",
-  "blog_id": 1,
-  "id": 789,
-  "post_type": "post",
-  "status": "publish",
-  "title": "Post Title",
-  "excerpt": "Post excerpt text",
-  "content": "<p>Full HTML content</p>",
-  "author_id": 456,
-  "permalink": "https://example.com/post-title/",
-  "date_gmt": "2025-01-15T10:30:00+00:00"
-}
-```
-
-**Response - Comment**:
-```json
-{
-  "object_type": "comment",
-  "blog_id": 1,
-  "id": 456,
-  "post_id": 789,
-  "author_id": 123,
-  "content": "Comment text",
-  "date_gmt": "2025-01-15T10:30:00+00:00"
-}
-```
-
-**Response - Artist**:
-```json
-{
-  "object_type": "artist",
-  "blog_id": 1,
-  "id": 101,
-  "artist": {
-    "id": 101,
-    "name": "Artist Name",
-    "slug": "artist-slug",
-    "bio": "Artist biography",
-    "profile_image_url": "https://..."
-  }
-}
-```
-
-**Permission**: Requires logged-in user
-
-**File**: `inc/routes/activity/object.php`
-
-**Permission Model**:
-- Post: Requires `edit_post` capability OR post must be published
-- Comment: Requires `edit_comment` capability OR comment must be approved OR user must be comment author
-- Artist: Requires `ec_can_manage_artist()`
-
-**Notes**:
-- Automatically switches to specified blog context before resolving objects
-- Restores original blog context after resolution via try/finally
-
-### Community Drafts
-
-#### 25. Community Drafts
-
-**Endpoint**: `GET/POST/DELETE /wp-json/extrachill/v1/community/drafts`
-
-**Purpose**: Manage bbPress topic and reply drafts with context-aware storage and retrieval.
-
-**GET Parameters**:
-- `type` (string, required) - Draft type: `topic` or `reply`
-- `forum_id` (integer, optional) - Forum ID for topic drafts
-- `topic_id` (integer, optional) - Topic ID for reply drafts
-- `reply_to` (integer, optional) - Reply-to comment ID
-- `prefer_unassigned` (boolean, optional) - For topics, fallback to unassigned forum draft
-
-**GET Response**:
-```json
-{
-  "draft": {
-    "type": "topic",
-    "blog_id": 1,
-    "forum_id": 5,
-    "topic_id": 0,
-    "title": "Draft topic title",
-    "content": "Draft content in progress"
-  }
-}
-```
-
-**POST Parameters**:
-- `type` (string, required) - Draft type: `topic` or `reply`
-- `forum_id` (integer, optional) - Forum ID for topic drafts
-- `topic_id` (integer, optional) - Topic ID for reply drafts
-- `reply_to` (integer, optional) - Reply-to comment ID
-- `title` (string, optional) - Draft title
-- `content` (string, optional) - Draft content
-
-**POST Response**:
-```json
-{
-  "saved": true,
-  "draft": {
-    "type": "topic",
-    "blog_id": 1,
-    "forum_id": 5,
-    "title": "New Discussion Topic",
-    "content": "<p>Starting a new discussion...</p>"
-  }
-}
-```
-
-**DELETE Response**:
-```json
-{
-  "deleted": true
-}
-```
-
-**Permission**: Requires logged-in user
-
-**File**: `inc/routes/community/drafts.php`
-
-**Notes**:
-- Uses `extrachill_api_bbpress_draft_get()` for retrieval
-- Uses `extrachill_api_bbpress_draft_upsert()` for save/update
-- Uses `extrachill_api_bbpress_draft_delete()` for deletion
-- Topic drafts require `forum_id`; reply drafts require `topic_id`
-
-### Admin Endpoints
-
-#### 26. Ad-Free License Grant
-
-**Endpoint**: `POST /wp-json/extrachill/v1/admin/ad-free-license/grant`
-
-**Purpose**: Grant an ad-free license to a user by username or email address.
-
-**Permission**: Requires `manage_options` capability (network administrators only)
-
-**Parameters**:
-- `user_identifier` (string, required) - Username or email address of the user to grant license to
-
-**Response** (HTTP 200):
-```json
-{
-  "message": "Ad-free license granted to artist_name",
-  "user_id": 123,
-  "username": "artist_name",
-  "email": "artist@example.com"
-}
-```
-
-**Error Responses**:
-- `400` - Missing identifier or invalid request
-- `404` - User not found
-- `409` - User already has an ad-free license
-- `403` - Permission denied (not a network administrator)
-
-**File**: `inc/routes/admin/ad-free-license.php`
-
-**Notes**:
-- Accepts either username or email as identifier
-- Stores license data as `extrachill_ad_free_purchased` user meta
-
-#### 27. Ad-Free License Revoke
-
-**Endpoint**: `DELETE /wp-json/extrachill/v1/admin/ad-free-license/{user_id}`
-
-**Purpose**: Revoke an ad-free license from a user.
-
-**Permission**: Requires `manage_options` capability (network administrators only)
-
-**Parameters**:
-- `user_id` (integer, required) - The user ID to revoke license from
-
-**Response** (HTTP 200):
-```json
-{
-  "message": "Ad-free license revoked for artist_name",
-  "user_id": 123,
-  "username": "artist_name"
-}
-```
-
-**Error Responses**:
-- `400` - Missing user ID
-- `404` - User not found or user doesn't have an ad-free license
-- `403` - Permission denied (not a network administrator)
-
-**File**: `inc/routes/admin/ad-free-license.php`
-
-#### 28. Team Members Sync
-
-**Endpoint**: `POST /wp-json/extrachill/v1/admin/team-members/sync`
-
-**Purpose**: Synchronize team member status for all network users based on main site account presence.
-
-**Permission**: Requires `manage_options` capability (network administrators only)
-
-**Parameters**: None
-
-**Response** (HTTP 200):
-```json
-{
-  "total_users": 45,
-  "users_updated": 12,
-  "users_skipped_override": 3,
-  "users_with_main_site_account": 15
-}
-```
-
-**File**: `inc/routes/admin/team-members.php`
-
-**Notes**:
-- Automatically detects users with main site accounts
-- Respects manual override status
-- Updates `extrachill_team` meta
-
-#### 29. Manage Team Member Status
-
-**Endpoint**: `PUT /wp-json/extrachill/v1/admin/team-members/{user_id}`
-
-**Purpose**: Manually manage team member status for a specific user.
-
-**Permission**: Requires `manage_options` capability (network administrators only)
-
-**Parameters**:
-- `user_id` (integer, required) - The user ID to manage
-- `action` (string, required) - One of: `force_add`, `force_remove`, `reset_auto`
-
-**Response** (HTTP 200):
-```json
-{
-  "message": "User forced to team member.",
-  "user_id": 123,
-  "is_team_member": true,
-  "source": "Manual: Add"
-}
-```
-
-**File**: `inc/routes/admin/team-members.php`
-
-**Notes**:
-- `force_add`: User set as team member with manual override
-- `force_remove`: User set as non-team member with manual override
-- `reset_auto`: User status determined by automatic sync logic
-
-### User Management Endpoints
-
-#### 30. User Profile
-
-**Endpoint**: `GET /wp-json/extrachill/v1/users/{id}`
-
-**Purpose**: Retrieve comprehensive user profile data with permission-based field visibility.
-
-**Permission**: User must be logged in. Can view own profile or another user's limited public profile.
-
-**Parameters**:
-- `id` (integer, required) - The user ID to retrieve
-
-**Response** (HTTP 200):
-```json
-{
-  "id": 123,
-  "display_name": "Chris Huber",
-  "username": "chris",
-  "slug": "chris",
-  "avatar_url": "https://...",
-  "profile_url": "https://...",
-  "is_team_member": true,
-  "last_active": 1704067200,
-  "email": "chris@example.com",
-  "has_ad_free_license": true,
-  "is_artist": true,
-  "is_professional": false,
-  "can_create_artists": true,
-  "artist_count": 5,
-  "registered": "2024-01-01T12:00:00+00:00"
-}
-```
-
-**File**: `inc/routes/users/users.php`
-
-**Notes**:
-- Full data (email, license status, artist count) only for own profile or admins
-- Public fields (name, avatar, profile URL) visible to all logged-in users
-
-#### 31. User Search
-
-**Endpoint**: `GET /wp-json/extrachill/v1/users/search`
-
-**Purpose**: Find users by search term for mentions, autocomplete, or admin relationship management.
-
-**Permission**:
-- `mentions` context: Public access
-- `admin` context: Requires `manage_options` capability
-- `artist-capable` context: Requires logged-in user who can create artist profiles
-
-**Parameters**:
-- `term` (string, required) - Search query term
-- `context` (string, optional) - Search context: `mentions` (default) or `admin`
-
-**Response - Mentions Context** (HTTP 200):
-```json
-[
-  {
-    "id": 1,
-    "username": "chris",
-    "slug": "chris"
-  }
-]
-```
-
-**Response - Admin Context** (HTTP 200):
-```json
-[
-  {
-    "id": 1,
-    "display_name": "Chris Huber",
-    "username": "chris",
-    "email": "chris@example.com",
-    "avatar_url": "https://..."
-  }
-]
-```
-
-**Response - Artist-Capable Context** (HTTP 200):
-```json
-[
-  {
-    "id": 1,
-    "display_name": "Chris Huber",
-    "username": "chris",
-    "email": "chris@example.com",
-    "avatar_url": "https://...",
-    "profile_url": "https://..."
-  }
-]
-```
-
-**File**: `inc/routes/users/search.php`
-
-**Notes**:
-- Mentions context: Lightweight response for @mention autocomplete
-- Admin context: Full user data for relationship management
-
-#### 32. User Search (Admin/Mentions Context)
-
-**Endpoint**: `GET /wp-json/extrachill/v1/users/search`
-
-**Purpose**: Find users by search term with context-aware filtering for mentions or admin relationship management.
-
-**Parameters**:
-- `term` (string, required) - Search query term
-- `context` (string, optional) - Search context: `mentions` (default), `admin`, or `artist-capable`
-- `exclude_artist_id` (int, optional) - Exclude existing roster members (artist-capable context only)
-
-**Response - Mentions Context** (HTTP 200):
-```json
-[
-  {
-    "id": 1,
-    "username": "chris",
-    "slug": "chris"
-  }
-]
-```
-
-**Response - Admin Context** (HTTP 200):
-```json
-[
-  {
-    "id": 1,
-    "display_name": "Chris Huber",
-    "username": "chris",
-    "email": "chris@example.com",
-    "avatar_url": "https://..."
-  }
-]
-```
-
-**Response - Artist-Capable Context** (HTTP 200):
-```json
-[
-  {
-    "id": 1,
-    "display_name": "Chris Huber",
-    "username": "chris",
-    "email": "chris@example.com",
-    "avatar_url": "https://...",
-    "profile_url": "https://..."
-  }
-]
-```
-
-**Permission**: Varies by context
-
-**File**: `inc/routes/users/search.php`
-
-**Used By**: extrachill-community plugin for @mention functionality
-
-**Notes**: This endpoint moved from community namespace to users namespace in v0.1.9 with enhanced context support
-
-#### 33. User Leaderboard
-
-**Endpoint**: `GET /wp-json/extrachill/v1/users/leaderboard`
-
-**Purpose**: Retrieve paginated leaderboard of top users ranked by total points with badges and rank information.
-
-**Parameters**:
-- `page` (int, optional) - Page number (default: 1)
-- `per_page` (int, optional) - Results per page (default: 25, max: 100)
-
-**Response** (HTTP 200):
-```json
-{
-  "items": [
-    {
-      "id": 123,
-      "display_name": "Chris Huber",
-      "username": "chris",
-      "slug": "chris",
-      "avatar_url": "https://...",
-      "profile_url": "https://...",
-      "registered": "2024-01-01T12:00:00+00:00",
-      "points": 1250,
-      "rank": "Gold Member",
-      "badges": ["verified", "contributor"],
-      "position": 1
-    }
-  ],
-  "pagination": {
-    "page": 1,
-    "per_page": 25,
-    "total": 156,
-    "total_pages": 7
-  }
-}
-```
-
-**Permission**: Public (no authentication required)
-
-**File**: `inc/routes/users/leaderboard.php`
-
-**Dependencies**: 
-- `ec_get_rank_for_points()` - Ranks users by points (optional, fallback to empty string)
-- `ec_get_user_badges()` - Retrieves user badges array (optional, fallback to empty array)
-- `ec_get_user_profile_url()` - Generates profile URLs (optional, fallback to author archive)
-
-**Data Source**: Queries users by `extrachill_total_points` user meta in descending order
-
-**Notes**: 
-- Useful for community engagement leaderboards, rankings, and gamification
-- Supports optional integration with badge and rank systems
-- Gracefully degrades if rank/badge functions not available
-
-#### 34. User Artists
-
-**Endpoint**: `GET/POST/DELETE /wp-json/extrachill/v1/users/{id}/artists`
-
-**Purpose**: Manage the relationship between users and artist profiles they manage.
-
-**GET Response** (HTTP 200):
-```json
-[
-  {
-    "id": 456,
-    "name": "The Cool Band",
-    "slug": "cool-band",
-    "profile_image_url": "https://..."
-  }
-]
-```
-
-**POST Parameters** (admin only):
-- `artist_id` (integer, required) - The artist profile post ID to add
-
-**POST Response** (HTTP 200):
-```json
-{
-  "success": true,
-  "message": "Artist relationship added.",
-  "user_id": 123,
-  "artist_id": 456
-}
-```
-
-**DELETE Endpoint**: `/wp-json/extrachill/v1/users/{id}/artists/{artist_id}`
-
-**Permission**: 
-- GET: User can view own artists or admin can view any user's artists
-- POST/DELETE: Admin only
-
-**File**: `inc/routes/users/artists.php`
-
-### Documentation Endpoints
-
-#### 35. Documentation Info
-
-**Endpoint**: `GET /wp-json/extrachill/v1/docs-info`
-
-**Purpose**: Retrieve metadata about platform features for documentation generation and feature discovery.
-
-**Permission**: Public access (no authentication required)
-
-**Parameters**:
-- `feature` (string, optional) - Limit response to specific feature key (e.g., 'events')
-
-**Response** (HTTP 200):
-```json
-{
-  "features": {
-    "events": {
-      "site": {
-        "blog_id": 7,
-        "domain": "events.extrachill.com",
-        "path": "/"
-      },
-      "post_type": "datamachine_events",
-      "taxonomies": [...]
-    }
-  },
-  "generated_at": "2024-01-15T12:00:00+00:00"
-}
-```
-
-**File**: `inc/routes/docs/docs-info.php`
-
-**Notes**:
-- Returns all available features if no specific feature requested
-- Provides dynamic taxonomy counts and structure
-- Used by documentation agents for auto-generation
-
-#### 36. Documentation Sync
-
-**Endpoint**: `POST /wp-json/extrachill/v1/sync/doc`
-
-**Purpose**: Sync documentation from source .md files to documentation platform.
-
-**Permission**: Requires `edit_posts` capability
-
-**Parameters**:
-- `source_file` (string, required) - Source file path
-- `title` (string, required) - Documentation title
-- `content` (string, required) - Documentation content
-- `platform_slug` (string, required) - Platform identifier
-- `slug` (string, required) - Documentation page slug
-- `excerpt` (string, optional) - Short description
-- `filesize` (integer, required) - Source file size
-- `timestamp` (string, required) - File timestamp
-- `force` (boolean, optional) - Force update if already exists
-
-**File**: `inc/routes/docs-sync-routes.php`
-
-**Notes**:
-- Handled by docs-sync controller
-- Supports force syncing for updates
-
-### Event Submissions
-
-#### 37. Event Submission Flow Proxy
-
-**Endpoint**: `POST /wp-json/extrachill/v1/event-submissions`
-
-**Purpose**: Accept public event submissions, validate Cloudflare Turnstile tokens, store flyers via Data Machine file storage, create a Data Machine job, and queue the configured flow.
-
-**Parameters**:
-- `flow_id` (int, required) – Target Data Machine flow ID (defined in block attributes)
-- `contact_name`, `contact_email`, `event_title`, `event_date` (required strings)
-- Optional context fields (`event_time`, `venue_name`, `event_city`, `event_lineup`, `event_link`, `notes`)
-- `flyer` (file, optional) – Uploaded flyer image stored via Data Machine repository helpers
-- `turnstile_response` (string, required) – Cloudflare Turnstile token validated through extrachill-multisite helpers
-
-**Security & Flow**:
-1. Validates Turnstile token using `ec_verify_turnstile_response()` from extrachill-multisite
-2. Sanitizes submission payload and (optionally) stores the flyer in Data Machine's `FileStorage`
-3. Creates a Data Machine job + merges submission metadata via `datamachine_merge_engine_data()`
-4. Queues `datamachine_run_flow_now` through Action Scheduler
-5. Fires `extrachill_event_submission` action with submission + job context for downstream automation
-
-**File**: `inc/routes/events/event-submissions.php`
-
-**Used By**: `extrachill-events` plugin's Event Submission block + front-end form handlers
-
-### Media Management
-
-#### 38. Unified Media Upload
-
-**Endpoint**: `POST/DELETE /wp-json/extrachill/v1/media`
-
-**Purpose**: Centralized image upload and management for all platform contexts. Handles upload, assignment, old image cleanup, and deletion.
-
-**Methods**:
-- `POST` - Upload and assign image (automatically deletes old image when replaced)
-- `DELETE` - Remove assignment AND delete attachment from media library
-
-**Parameters**:
-- `context` (string, required) - Upload context determining storage location
-- `target_id` (int, required for most contexts) - Target entity ID
-- `file` (file, POST only) - Image file (JPG, PNG, GIF, WebP; max 5MB)
-
-**Supported Contexts**:
-
-| Context | target_id | Storage Location |
-|---------|-----------|------------------|
-| `user_avatar` | user_id | `custom_avatar_id` user meta |
-| `artist_profile` | artist_id | Artist post thumbnail |
-| `artist_header` | artist_id | `_artist_profile_header_image_id` meta |
-| `link_page_profile` | artist_id | Artist thumbnail + `_link_page_profile_image_id` on link page |
-| `link_page_background` | artist_id | `_link_page_background_image_id` on link page |
-| `product_image` | product_id | WooCommerce product image (uploads to shop site) |
-| `content_embed` | optional post_id | Attachment only (no meta assignment) |
-
-**Permission Logic**:
-- `user_avatar`: Current user must match `target_id`
-- Artist contexts: Uses `ec_can_manage_artist()` from extrachill-artist-platform
-- `content_embed`: Any logged-in user
-
-**POST Response**:
-```json
-{
-    "attachment_id": 123,
-    "url": "https://example.com/wp-content/uploads/image.jpg",
-    "context": "user_avatar",
-    "target_id": 1
-}
-```
-
-**DELETE Response**:
-```json
-{
-    "deleted": true,
-    "context": "user_avatar",
-    "target_id": 1
-}
-```
-
-**File**: `inc/routes/media/upload.php`
-
-**Used By**:
-- extrachill-users (avatar upload on bbPress profile edit)
-- extrachill-community (TinyMCE image embed)
-- Future: React-based Link Page Editor
-
-**Dependencies**: extrachill-artist-platform (for artist context permission checks)
-
-### Newsletter
-
-#### 39. Newsletter Subscription
-
-**Endpoint**: `POST /wp-json/extrachill/v1/newsletter/subscription`
-
-**Purpose**: Subscribe users to newsletter mailing list.
-
-**Parameters**:
-- `email` (string, required) - Subscriber email address
-
-**Response**:
-```json
-{
-  "subscribed": true,
-  "message": "Thank you for subscribing to our newsletter!"
-}
-```
-
-**Permission**: Public
-
-**File**: `inc/routes/newsletter/subscription.php`
-
-**Used By**: extrachill-newsletter plugin
-
-#### 40. Newsletter Campaign Push
-
-**Endpoint**: `POST /wp-json/extrachill/v1/newsletter/campaign/push`
-
-**Purpose**: Push newsletter posts to Sendy email service for campaign distribution.
-
-**Parameters**:
-- `post_id` (integer, required) - Newsletter post ID to push
-
-**Response** (HTTP 200):
-```json
-{
-  "message": "Successfully pushed to Sendy!",
-  "campaign_id": "c1234567890abc"
-}
-```
-
-**Permission**: Requires `edit_posts` capability
-
-**File**: `inc/routes/newsletter/campaign.php`
-
-**Notes**:
-- Prepares email content using `prepare_newsletter_email_content()`
-- Pushes campaign via `send_newsletter_campaign_to_sendy()`
-- Stores campaign ID on post for tracking
-
-### Shop (WooCommerce)
-
-#### 41. Shop Products CRUD
-
-**Endpoint**: 
-- `GET /wp-json/extrachill/v1/shop/products` - List user's artist products
-- `POST /wp-json/extrachill/v1/shop/products` - Create product
-- `GET /wp-json/extrachill/v1/shop/products/{id}` - Get single product
-- `PUT /wp-json/extrachill/v1/shop/products/{id}` - Update product
-- `DELETE /wp-json/extrachill/v1/shop/products/{id}` - Delete product (trash)
-
-**Purpose**: Complete WooCommerce product CRUD operations for artists.
-
-**GET Collection Response**:
-```json
-{
-  "products": [
-    {
-      "id": 456,
-      "name": "Album Name",
-      "price": "9.99",
-      "stock": 100,
-      "image_id": 789,
-      "artist_id": 123
-    }
-  ],
-  "total": 5,
-  "page": 1
-}
-```
-
-**Permission**: User must have artist status to create/update/delete
-
-**File**: `inc/routes/shop/products.php`
-
-**Notes**:
-- Products created on Blog ID 3 (shop.extrachill.com)
-- Linked to artist profiles via `_artist_profile_id` meta
-- Comprehensive image and gallery management support
-- Stock quantity and sale price support
-
-#### 42. Stripe Connect Management
-
-**Endpoint**:
-- `GET /wp-json/extrachill/v1/shop/stripe` - Get Stripe connection status
-- `POST /wp-json/extrachill/v1/shop/stripe/connect` - Connect Stripe account
-- `DELETE /wp-json/extrachill/v1/shop/stripe/disconnect` - Disconnect Stripe account
-- `POST /wp-json/extrachill/v1/shop/stripe/webhook` - Handle Stripe webhooks
-
-**Purpose**: Manage Stripe Connect authentication and payment processing for artist shops.
-
-**Response**:
-```json
-{
-  "connected": true,
-  "account_id": "acct_...",
-  "email": "artist@example.com"
-}
-```
-
-**Permission**: Varies by operation
-
-**File**: `inc/routes/shop/stripe-connect.php`
-
-**Used By**: extrachill-shop plugin for payment processing
-
-### Tools
-
-#### 43. QR Code Generator
-
-**Endpoint**: `POST /wp-json/extrachill/v1/tools/qr-code`
-
-**Purpose**: Generate high-resolution print-ready QR codes for any URL.
-
-**Parameters**:
-- `url` (string, required) - The URL to encode in the QR code
-- `size` (int, optional) - QR code size in pixels (default: 1000, max: 2000)
-
-**Response**:
-```json
-{
-    "image_url": "data:image/png;base64,...",
-    "url": "https://example.com",
-    "size": 1000
-}
-```
-
-**Permission**: Public (no authentication required)
-
-**File**: `inc/routes/tools/qr-code.php`
-
-**Used By**: extrachill-admin-tools plugin (QR Code Generator tool)
-
-**Dependencies**: Endroid QR Code library (Composer dependency)
-
-### Authentication Endpoints
-
-#### 46. User Login
-
-**Endpoint**: `POST /wp-json/extrachill/v1/auth/login`
-
-**Purpose**: Authenticate user credentials and generate JWT tokens for API access.
-
-**Parameters**:
-- `identifier` (string, required) - Username or email address
-- `password` (string, required) - User password
-- `device_id` (string, required) - UUID v4 device identifier
-- `device_name` (string, optional) - Human-readable device name
-- `remember` (boolean, optional) - Extend token expiry
-- `set_cookie` (boolean, optional) - Set WordPress authentication cookie
-
-**Response**: JWT access and refresh tokens with user data
-
-**Permission**: Public
-
-**File**: `inc/routes/auth/login.php`
-
-#### 47. Token Refresh
-
-**Endpoint**: `POST /wp-json/extrachill/v1/auth/refresh`
-
-**Purpose**: Generate new access token using a valid refresh token.
-
-**Parameters**:
-- `refresh_token` (string, required) - Valid refresh token
-- `device_id` (string, required) - UUID v4 device identifier
-- `remember` (boolean, optional) - Extend token expiry
-- `set_cookie` (boolean, optional) - Set WordPress authentication cookie
-
-**Response**: New JWT access and refresh tokens
-
-**Permission**: Public
-
-**File**: `inc/routes/auth/refresh.php`
-
-#### 48. User Registration
-
-**Endpoint**: `POST /wp-json/extrachill/v1/auth/register`
-
-**Purpose**: Register a new user account with optional artist profile creation.
-
-**Parameters**:
-- `username` (string, required) - Desired username
-- `email` (string, required) - Valid email address
-- `password` (string, required) - User password
-- `password_confirm` (string, required) - Password confirmation
-- `turnstile_response` (string, required) - Cloudflare Turnstile token
-- `device_id` (string, required) - UUID v4 device identifier
-- `user_is_artist` (boolean, optional) - Create artist profile
-- Additional optional parameters for device tracking and redirects
-
-**Response**: JWT tokens and user data
-
-**Permission**: Public
-
-**File**: `inc/routes/auth/register.php`
-
-#### 49. Google OAuth Authentication
-
-**Endpoint**: `POST /wp-json/extrachill/v1/auth/google`
-
-**Purpose**: Authenticate users via Google ID tokens for web and mobile OAuth flows.
-
-**Parameters**:
-- `id_token` (string, required) - Google ID token from OAuth flow
-- `device_id` (string, required) - UUID v4 device identifier
-- `device_name` (string, optional) - Human-readable device name
-
-**Response**: JWT access and refresh tokens with user data
-
-**Permission**: Public
-
-**File**: `inc/routes/auth/google.php`
-
-**Notes**:
-- Creates new user if email not found in system
-- Returns `onboarding_required: true` if username needs to be set
-- Requires Google OAuth to be configured via network settings
-
-#### 50. Current User Data
-
-**Endpoint**: `GET /wp-json/extrachill/v1/auth/me`
-
-**Purpose**: Returns authenticated user data for the current session.
-
-**Response**:
-```json
-{
-  "id": 123,
-  "username": "chris",
-  "email": "chris@example.com",
-  "display_name": "Chris Huber",
-  "avatar_url": "https://...",
-  "profile_url": "https://...",
-  "registered": "2024-01-01 12:00:00",
-  "onboarding_completed": true
-}
-```
-
-**Permission**: Requires logged-in user (bearer token)
-
-**File**: `inc/routes/auth/me.php`
-
-**Notes**: 
-- Extensible via `extrachill_auth_me_response` filter
-- Used by mobile apps to verify authentication state
-
-#### 51. User Logout
-
-**Endpoint**: `POST /wp-json/extrachill/v1/auth/logout`
-
-**Purpose**: Revokes the refresh token for a specific device, logging out that session.
-
-**Parameters**:
-- `device_id` (string, required) - UUID v4 device identifier to revoke
-
-**Response**:
-```json
-{
-  "success": true,
-  "message": "Logged out successfully."
-}
-```
-
-**Permission**: Requires logged-in user
-
-**File**: `inc/routes/auth/logout.php`
-
-**Dependencies**: extrachill-users plugin for token management
-
-#### 52. Browser Handoff Authentication
-
-**Endpoint**: `POST /wp-json/extrachill/v1/auth/browser-handoff`
-
-**Purpose**: Generate one-time URLs for authenticated users to set WordPress auth cookies in real browsers and redirect to specified destinations.
-
-**Parameters**:
-- `redirect_url` (string, required) - Absolute URL to redirect to after setting auth cookies
-
-**Response**:
-```json
-{
-  "handoff_url": "https://example.com/?ec_browser_handoff=token123..."
-}
-```
-
-**Permission**: Requires logged-in user
-
-**File**: `inc/routes/auth/browser-handoff.php`
-
-**Notes**:
-- Validates redirect URLs to ensure they target extrachill.com domains only
-- Prevents extrachill.link domain usage for security
-- Requires absolute URLs with proper host validation
-- Integrates with extrachill-users plugin for token generation
-
-### Configuration Endpoints
-
-#### 53. OAuth Configuration
-
-**Endpoint**: `GET /wp-json/extrachill/v1/config/oauth`
-
-**Purpose**: Returns OAuth provider configuration for mobile apps. Client IDs are safe to expose publicly.
-
-**Response**:
-```json
-{
-  "google": {
-    "enabled": true,
-    "web_client_id": "...",
-    "ios_client_id": "...",
-    "android_client_id": "..."
-  },
-  "apple": {
-    "enabled": false
-  }
-}
-```
-
-**Permission**: Public
-
-**File**: `inc/routes/config/oauth.php`
-
-**Notes**: Used by mobile apps to configure OAuth providers dynamically
-
-### User Onboarding Endpoints
-
-#### 54. User Onboarding Status
-
-**Endpoint**: `GET /wp-json/extrachill/v1/users/onboarding`
-
-**Purpose**: Retrieve onboarding completion status for the current user.
-
-**Response**:
-```json
-{
-  "onboarding_completed": false,
-  "username": "",
-  "user_is_artist": false,
-  "user_is_professional": false
-}
-```
-
-**Permission**: Requires logged-in user
-
-**File**: `inc/routes/users/onboarding.php`
-
-#### 55. Complete User Onboarding
-
-**Endpoint**: `POST /wp-json/extrachill/v1/users/onboarding`
-
-**Purpose**: Complete user onboarding by setting username and optional flags.
-
-**Parameters**:
-- `username` (string, required) - Desired username
-- `user_is_artist` (boolean, optional) - Request artist access
-- `user_is_professional` (boolean, optional) - Request professional access
-
-**Response**:
-```json
-{
-  "success": true,
-  "message": "Onboarding completed successfully.",
-  "user": {
-    "id": 123,
-    "username": "chris"
-  }
-}
-```
-
-**Permission**: Requires logged-in user
-
-**File**: `inc/routes/users/onboarding.php`
-
-**Notes**: 
-- Artist/professional flags trigger access request workflow
-- Username must be unique and valid
-
-### Admin Artist Access Endpoints
-
-#### 56. Artist Access Email Approval
-
-**Endpoint**: `GET /wp-json/extrachill/v1/admin/artist-access/{user_id}/approve`
-
-**Purpose**: One-click email approval link for artist access requests.
-
-**Parameters**:
-- `user_id` (int, required) - User ID to approve
-- `type` (string, required) - Access type: `artist` or `professional`
-- `token` (string, required) - HMAC token for security
-
-**Response**: Redirects to admin tools page with status
-
-**Permission**: Requires `manage_options` capability
-
-**File**: `inc/routes/admin/artist-access.php`
-
-#### 57. Artist Access Approval (Admin)
-
-**Endpoint**: `POST /wp-json/extrachill/v1/admin/artist-access/{user_id}/approve`
-
-**Purpose**: Approve artist access request via admin tools interface.
-
-**Parameters**:
-- `user_id` (int, required) - User ID to approve
-- `type` (string, required) - Access type: `artist` or `professional`
-
-**Response**:
-```json
-{
-  "success": true,
-  "message": "User approved successfully"
-}
-```
-
-**Permission**: Requires `manage_options` capability
-
-**File**: `inc/routes/admin/artist-access.php`
-
-#### 58. Artist Access Rejection
-
-**Endpoint**: `POST /wp-json/extrachill/v1/admin/artist-access/{user_id}/reject`
-
-**Purpose**: Reject artist access request.
-
-**Parameters**:
-- `user_id` (int, required) - User ID to reject
-
-**Response**:
-```json
-{
-  "success": true,
-  "message": "Request rejected"
-}
-```
-
-**Permission**: Requires `manage_options` capability
-
-**File**: `inc/routes/admin/artist-access.php`
-
-### Shop Orders Endpoints
-
-#### 59. List Artist Orders
-
-**Endpoint**: `GET /wp-json/extrachill/v1/shop/orders`
-
-**Purpose**: Retrieve paginated list of orders containing the artist's products.
-
-**Parameters**:
-- `artist_id` (int, required) - Artist profile ID
-- `status` (string, optional) - Filter: `all`, `needs_fulfillment`, `completed`
-- `page` (int, optional) - Page number (default: 1)
-- `per_page` (int, optional) - Results per page (default: 20, max: 100)
-
-**Response**:
-```json
-{
-  "orders": [...],
-  "total": 45,
-  "total_pages": 3,
-  "page": 1,
-  "per_page": 20,
-  "needs_fulfillment_count": 5
-}
-```
-
-**Permission**: User must be able to manage the specified artist
-
-**File**: `inc/routes/shop/orders.php`
-
-#### 60. Update Order Status
-
-**Endpoint**: `PUT /wp-json/extrachill/v1/shop/orders/{id}/status`
-
-**Purpose**: Mark order as shipped/completed with optional tracking number.
-
-**Parameters**:
-- `id` (int, required) - Order ID
-- `artist_id` (int, required) - Artist profile ID
-- `status` (string, required) - New status: `completed`
-- `tracking_number` (string, optional) - Shipping tracking number
-
-**Response**: Updated order data
-
-**Permission**: User must be able to manage the artist and order must contain artist's products
-
-**File**: `inc/routes/shop/orders.php`
-
-#### 61. Issue Order Refund
-
-**Endpoint**: `POST /wp-json/extrachill/v1/shop/orders/{id}/refund`
-
-**Purpose**: Issue full refund for artist's portion of an order.
-
-**Parameters**:
-- `id` (int, required) - Order ID
-- `artist_id` (int, required) - Artist profile ID
-
-**Response**:
-```json
-{
-  "success": true,
-  "order_id": 123,
-  "refund_amount": 29.99
-}
-```
-
-**Permission**: User must be able to manage the artist
-
-**File**: `inc/routes/shop/orders.php`
-
-**Dependencies**: Stripe API for refund processing
-
-### Shop Product Images Endpoints
-
-#### 62. Upload Product Images
-
-**Endpoint**: `POST /wp-json/extrachill/v1/shop/products/{id}/images`
-
-**Purpose**: Upload images to a WooCommerce product (max 5 per product).
-
-**Parameters**:
-- `id` (int, required) - Product ID
-- `files` (file[], required) - Image files (JPG, PNG, GIF, WebP; max 5MB each)
-
-**Response**: Updated product data with image URLs
-
-**Permission**: User must be able to manage the product's artist
-
-**File**: `inc/routes/shop/product-images.php`
-
-**Notes**:
-- First image becomes featured image
-- Remaining images added to gallery
-- Maximum 5 images per product
-
-#### 63. Delete Product Image
-
-**Endpoint**: `DELETE /wp-json/extrachill/v1/shop/products/{id}/images/{attachment_id}`
-
-**Purpose**: Remove an image from a product.
-
-**Parameters**:
-- `id` (int, required) - Product ID
-- `attachment_id` (int, required) - Attachment ID to delete
-
-**Response**: Updated product data
-
-**Permission**: User must be able to manage the product's artist
-
-**File**: `inc/routes/shop/product-images.php`
-
-**Notes**: Cannot delete the last remaining image
-
-### Shop Integration (continued)
-
-#### 64. Stripe Webhook Handler
-
-**Endpoint**: `POST /wp-json/extrachill/v1/shop/stripe-webhook`
-
-**Purpose**: Receive and process Stripe webhook notifications.
-
-**Parameters**: Webhook payload from Stripe
-
-**Response**: Webhook processing confirmation
-
-**Permission**: Public (Stripe signature verification)
-
-**File**: `inc/routes/shop/stripe-webhook.php`
-
-### Stream Endpoints
-
-#### 65. Stream Status
-
-**Endpoint**: `GET /wp-json/extrachill/v1/stream/status`
-
-**Purpose**: Retrieve current streaming status and configuration.
-
-**Parameters**: None
-
-**Response**: Stream status, viewer count, and configuration data
-
-**Permission**: Requires logged-in user with stream access
-
-**File**: `inc/routes/stream/status.php`
-
-## Response Contract
-
-All endpoints follow a standardized response format:
-
-### Success Responses (HTTP 200)
-
-Return data directly without wrappers:
-
+**Function Existence Checks**:
 ```php
-return rest_ensure_response( array(
-    'message' => 'Operation completed',
-    'url'     => $url,
-    // ... other data properties
-) );
+if (function_exists('ec_get_user_profile_url')) {
+    $profile_url = ec_get_user_profile_url($user_id);
+}
 ```
 
-**Fire-and-forget endpoints** use semantic keys:
-- `analytics/link-click`: `{ "tracked": true }`
-- `analytics/view`: `{ "recorded": true }`
-
-### Error Responses (HTTP 4xx/5xx)
-
-Use `WP_Error` with appropriate status codes:
-
+**Filter-Based Registration**:
 ```php
-return new WP_Error(
-    'error_code',
-    'Human-readable error message',
-    array( 'status' => 400 )
-);
-```
-
-**Standard status codes**:
-- `400` - Bad Request (validation errors, invalid input)
-- `403` - Forbidden (permission denied, security check failed)
-- `404` - Not Found (resource doesn't exist)
-- `500` - Server Error (missing dependencies, failed operations)
-
-### JavaScript Consumption Pattern
-
-```javascript
-fetch(endpoint, options)
-    .then(response => {
-        if (!response.ok) {
-            return response.json().then(err => Promise.reject(err));
-        }
-        return response.json();
-    })
-    .then(data => {
-        // Access data directly: data.url, data.message, etc.
-    })
-    .catch(error => {
-        // error.message contains error text
-    });
-```
-
-**Key principle**: No `success` key in responses. HTTP status codes determine success/failure. Data properties are accessed directly.
-
-## Integration Patterns
-
-### For Plugin Developers
-**Event Submission Hook**:
-
-```php
-add_action( 'extrachill_event_submission', function( array $submission, array $context ) {
-    // $submission contains sanitized fields + optional flyer metadata
-    // $context includes flow_id, job_id, action_id, flow_name
-} );
-```
-
-Triggered after a submission is queued so platform plugins (notifications, analytics, moderation) can react without duplicating REST logic.
-
-**Adding New Endpoints**:
-
-1. Create route file in `inc/routes/` (or subdirectory)
-2. Register endpoint using WordPress REST API conventions
-3. Plugin automatically discovers and loads on activation
-
-Example route file structure:
-
-```php
-<?php
-/**
- * Example endpoint registration
- */
-
-add_action('extrachill_api_register_routes', function() {
-    register_rest_route('extrachill/v1', '/my-endpoint', [
-        'methods' => 'GET',
-        'callback' => 'my_endpoint_callback',
-        'permission_callback' => 'my_permission_check',
-        'args' => [
-            'param' => [
-                'required' => true,
-                'validate_callback' => 'my_validation',
-            ],
-        ],
-    ]);
+// Plugins register activity types
+add_filter('extrachill_activity_types', function($types) {
+    $types[] = 'post_published';
+    return $types;
 });
-
-function my_endpoint_callback($request) {
-    // Implementation
-    return rest_ensure_response(['data' => 'value']);
-}
-
-function my_permission_check($request) {
-    // Permission logic
-    return current_user_can('read');
-}
 ```
 
-### For Client Developers
+## Security Patterns
 
-**Accessing Endpoints**:
+All endpoints implement WordPress REST API security standards:
+- **Nonce Verification**: WordPress REST API nonce system
+- **Permission Callbacks**: User capability checks
+- **Input Validation**: Parameter validation callbacks
+- **Sanitization**: All user input sanitized
+- **Output Escaping**: Responses via `rest_ensure_response()`
 
-JavaScript example:
-```javascript
-fetch('/wp-json/extrachill/v1/users/search?search=username', {
-    method: 'GET',
-    headers: {
-        'X-WP-Nonce': wpApiSettings.nonce
-    }
-})
-.then(response => response.json())
-.then(data => console.log(data));
-```
+## Performance Patterns
 
-PHP example:
-```php
-$response = wp_remote_get(
-    rest_url('extrachill/v1/users/search'),
-    [
-        'body' => ['search' => 'username'],
-        'headers' => [
-            'X-WP-Nonce' => wp_create_nonce('wp_rest')
-        ]
-    ]
-);
-```
+- **Caching**: Endpoints return fresh data by default
+- **Query Optimization**: Prepared statements and pagination
+- **Network-Wide**: Single plugin serves all sites efficiently
+- **Automatic Discovery**: Minimal overhead with RecursiveIteratorIterator
 
-## Migration Strategy
+## Mobile App Integration
 
-**Goal**: Replace legacy admin-ajax.php handlers across the platform with versioned REST endpoints.
+The mobile app (extrachill-app) consumes the following endpoints:
 
-**Priority Targets**:
-1. Community plugin AJAX handlers (voting, notifications, mentions)
-2. Newsletter plugin subscription handlers
-3. Artist platform analytics tracking
-4. Admin tools background operations
+**Authentication**:
+- `POST /auth/login` - Initial authentication with device tracking
+- `POST /auth/refresh` - Token rotation for continued sessions
+- `GET /auth/me` - Verify authentication state and get user data
+- `POST /auth/logout` - Revoke device session
 
-**Benefits of Migration**:
-- **Versioning**: `extrachill/v1` namespace allows API evolution
-- **Standards Compliance**: WordPress REST API conventions
-- **Authentication**: Built-in authentication and permission callbacks
-- **Documentation**: Self-documenting via REST API schema
-- **Testing**: Easier endpoint testing and validation
-- **Mobile Support**: Native REST API compatibility for future mobile app
+**Activity**:
+- `GET /activity` - Paginated activity feed with filtering
 
-## Security Implementation
+**Mobile-Specific Considerations**:
+- All auth endpoints require `device_id` (UUID v4) parameter
+- JWT tokens stored securely using Expo SecureStore
+- Automatic token refresh when access token expires
+- Device tracking supports multi-device session management
 
-**All endpoints implement**:
-1. **Nonce Verification**: WordPress REST API nonce system
-2. **Permission Callbacks**: User capability checks
-3. **Input Validation**: Parameter validation callbacks
-4. **Sanitization**: `sanitize_text_field()`, `absint()`, etc.
-5. **Output Escaping**: `rest_ensure_response()` with sanitized data
+## Documentation References
 
-**Security Best Practices**:
-- Never expose sensitive data without authentication
-- Always validate and sanitize user input
-- Use WordPress core functions for security checks
-- Implement rate limiting for resource-intensive endpoints
-- Log security-relevant events for auditing
-
-## Performance Considerations
-
-**Caching Strategy**:
-- Endpoints return fresh data by default
-- Consider implementing transient caching for expensive queries
-- Use WordPress object cache for frequently accessed data
-- Leverage browser caching via HTTP headers
-
-**Query Optimization**:
-- Use prepared statements for database queries
-- Limit query results with pagination
-- Avoid N+1 query patterns
-- Index database tables for search performance
-
-## Development Workflow
-
-**Local Development**:
-```bash
-cd extrachill-plugins/extrachill-api
-
-# Install dependencies
-composer install
-
-# Run tests
-composer test
-
-# PHP linting
-composer run lint:php
-
-# Create production build
-./build.sh
-```
-
-**Adding New Route**:
-1. Create PHP file in `inc/routes/` (or appropriate subdirectory)
-2. Use `extrachill_api_register_routes` action hook
-3. Follow WordPress REST API conventions
-4. Add tests for new endpoint
-5. Update this documentation
-
-**Testing Endpoints**:
-```bash
-# Using WP-CLI
-wp rest list
-
-# Using curl
-curl -X GET "http://site.local/wp-json/extrachill/v1/users/search?search=test" \
-  -H "X-WP-Nonce: nonce_value"
-```
-
-## Dependencies
-
-**Required**:
-- WordPress 5.0+ (REST API support)
-- PHP 7.4+
-
-**Network Dependencies**:
-- **extrachill-multisite**: Network-activated foundation (recommended)
-- **extrachill-ai-client**: Required for AI Adventure endpoint only
-- **extrachill-users**: Required for authentication endpoints (login, register, refresh) and token management
-
-**Optional Integration**:
-- **extrachill-blocks**: Primary consumer of AI generation and voting endpoints
-- **extrachill-community**: Uses user search endpoint and community drafts
-- **extrachill-artist-platform**: Provides artist management functions and permission checks
-- **extrachill-shop**: Product and order management endpoints integration
-- **extrachill-events**: Event submission endpoint integration
-- **extrachill-newsletter**: Newsletter endpoints integration
-- **extrachill-chat**: Chat message endpoints integration
-
-**Endpoint-Specific Dependencies**:
-- **Authentication Endpoints (login, register, refresh)**: Requires extrachill-users plugin for token infrastructure
-- **AI Adventure Endpoint**: Requires extrachill-ai-client for AI provider integration
-- **Artist Endpoints**: Requires extrachill-artist-platform for artist data and permission management
-- **Media Upload**: Requires extrachill-artist-platform for artist context validation
-- **Shop Endpoints**: Requires WooCommerce and extrachill-shop plugin
-- **Event Submissions**: Requires Data Machine plugin and extrachill-multisite for Turnstile
-- **Activity Feed**: Optional integration with badge/rank systems if functions exist
-
-## Future Roadmap
-
-**Planned Endpoints**:
-1. Artist shop data (`/artists/{id}/shop`) - WooCommerce integration
-2. Newsletter subscription management
-3. Community voting and reactions
-4. Admin tools background operations
-5. Mobile app authentication
-
-**Infrastructure Improvements**:
-1. Centralized authentication helpers
-2. Shared permission callback library
-3. Response formatting standards
-4. Error handling middleware
-5. Rate limiting implementation
-6. API documentation generator
-
-## Cross-References
-
-**Platform Documentation**:
-- [Root AGENTS.md - Architectural Patterns](../../AGENTS.md#architectural-patterns)
-- [extrachill-blocks AGENTS.md](../extrachill-blocks/AGENTS.md) - Endpoint consumers
-- [extrachill-community AGENTS.md](../extrachill-community/AGENTS.md) - User search integration
-- [extrachill-ai-client AGENTS.md](../extrachill-ai-client/AGENTS.md) - AI provider integration
-
-**Related Files**:
-- `/.github/build.sh` - Shared build script (symlinked)
-- `composer.json` - Dependencies and scripts
-- `.buildignore` - Production build exclusions
-
-## Architectural Notes
-
-**Why Singleton Pattern**: Ensures single instance manages route discovery and prevents duplicate registrations.
-
-**Why Automatic Discovery**: Allows modular endpoint organization without manual registration in main plugin file.
-
-**Why `extrachill/v1` Namespace**: Enables API versioning for future breaking changes while maintaining backwards compatibility.
-
-**Why Network Activation**: Ensures consistent API surface across all sites in multisite network.
-
-**Cross-Plugin Communication**: Follows platform pattern of function existence checks and filter-based integration.
+- **[README.md](README.md)** - GitHub standard format overview
+- **[docs/routes/](docs/routes/)** - Detailed endpoint specifications
+- **[Root AGENTS.md](../../AGENTS.md)** - Platform-wide architectural patterns
+- **[WordPress REST API Handbook](https://developer.wordpress.org/rest-api/)** - Official REST API documentation
