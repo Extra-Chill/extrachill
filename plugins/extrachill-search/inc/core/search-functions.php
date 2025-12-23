@@ -133,21 +133,23 @@ function extrachill_resolve_site_urls( $site_urls ) {
 /**
  * Return post type allowances for each site ID.
  *
- * Centralizes post type mapping for search queries and fallbacks.
+ * Centralizes post type mapping for search queries, SEO audits, and fallbacks.
+ * Blog ID 6 is unused. Blog ID 12 (horoscope) not yet provisioned.
  *
  * @return array<int, array<int, string>>
  */
 function extrachill_get_site_post_types() {
 	$site_post_types = array(
-		1 => array( 'post', 'page', 'festival_wire', 'newsletter' ),
-		2 => array( 'topic', 'reply', 'forum' ),
-		3 => array( 'product', 'page' ),
-		4 => array( 'artist_profile', 'topic', 'reply' ),
-		5 => array( 'page' ),
-		6 => array( 'page' ),
-		7 => array( 'dm_events', 'page' ),
-		8 => array( 'page' ),
-		9 => array( 'newsletter' ),
+		1  => array( 'post', 'page' ),                         // extrachill.com (main blog)
+		2  => array( 'topic', 'reply', 'forum' ),              // community.extrachill.com (bbPress)
+		3  => array( 'product', 'page' ),                      // shop.extrachill.com (WooCommerce)
+		4  => array( 'artist_profile', 'topic', 'reply' ),     // artist.extrachill.com
+		5  => array( 'page' ),                                 // chat.extrachill.com
+		7  => array( 'datamachine_events', 'page' ),           // events.extrachill.com (Data Machine)
+		8  => array( 'page' ),                                 // stream.extrachill.com
+		9  => array( 'newsletter' ),                           // newsletter.extrachill.com
+		10 => array( 'ec_doc', 'page' ),                       // docs.extrachill.com
+		11 => array( 'festival_wire', 'page' ),                // wire.extrachill.com
 	);
 
 	return apply_filters( 'extrachill_search_site_post_types_map', $site_post_types );

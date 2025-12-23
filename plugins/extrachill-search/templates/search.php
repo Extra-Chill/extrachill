@@ -10,8 +10,6 @@
 
 get_header(); ?>
 
-<div id="mediavine-settings" data-blocklist-all="1"></div>
-
 <?php do_action('extrachill_before_body_content'); ?>
 
 <?php

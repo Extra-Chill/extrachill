@@ -196,7 +196,7 @@ extrachill-search/
 # Create production ZIP file
 ./build.sh
 
-# Output: Only /build/extrachill-search.zip file (unzip when directory access needed)
+# Output: Only /build/extrachill-search.zip file
 ```
 
 ### Development Commands

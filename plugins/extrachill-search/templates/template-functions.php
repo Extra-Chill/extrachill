@@ -33,13 +33,6 @@ function extrachill_get_search_results() {
     return array( 'results' => $search_results, 'total' => $total_results );
 }
 
-/**
- * Create mock WP_Query for theme pagination compatibility.
- *
- * @param int $total_results Total number of search results
- * @param int $posts_per_page Number of results per page
- * @return WP_Query Mock query object with pagination data
- */
 function extrachill_create_search_query_object( $total_results, $posts_per_page ) {
     $current_page = max( 1, get_query_var( 'paged' ) );
 

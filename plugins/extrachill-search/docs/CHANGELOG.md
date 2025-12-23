@@ -3,7 +3,22 @@
 All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0).
+
+## [0.2.0] - 2025-12-23
+
+### Added
+- WordPress 6.9+ Abilities API integration for AI agent discoverability (data-retrieval category)
+- Wire.extrachill.com (Blog ID 11) to network search coverage
+
+### Changed
+- WordPress requirement bumped to 6.9 minimum and tested up to 6.9
+- Moved site-badge.php and template-functions.php from inc/templates/ to templates/
+- Updated build documentation to reflect ZIP-only production builds
+- Refined post type mapping with improved formatting and clarity
+
+### Removed
+- Mediavine ad network integration from search template
 
 ## [0.1.2] - 2025-12-10
 

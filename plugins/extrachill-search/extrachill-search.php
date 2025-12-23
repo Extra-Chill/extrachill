@@ -3,12 +3,12 @@
  * Plugin Name: ExtraChill Search
  * Plugin URI: https://extrachill.com
  * Description: Network-wide search across all nine sites using domain-based resolution
- * Version: 0.1.2
+ * Version: 0.2.0
  * Author: Chris Huber
  * Author URI: https://chubes.net
  * Network: true
- * Requires at least: 5.0
- * Tested up to: 6.4
+ * Requires at least: 6.9
+ * Tested up to: 6.9
  * Requires PHP: 7.4
  * Text Domain: extrachill-search
  * Domain Path: /languages
@@ -23,7 +23,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class ExtraChill_Search_Plugin {
 
-    const VERSION = '0.1.2';
+    const VERSION = '0.2.0';
 
     private static $instance = null;
 
@@ -50,12 +50,18 @@ class ExtraChill_Search_Plugin {
 
     private function includes() {
         $includes_dir = plugin_dir_path( __FILE__ ) . 'inc/';
+        $templates_dir = plugin_dir_path( __FILE__ ) . 'templates/';
 
         require_once $includes_dir . 'core/search-functions.php';
         require_once $includes_dir . 'core/search-algorithm.php';
         require_once $includes_dir . 'core/taxonomy-functions.php';
-        require_once $includes_dir . 'templates/template-functions.php';
-        require_once $includes_dir . 'templates/site-badge.php';
+
+        if ( version_compare( get_bloginfo( 'version' ), '6.9', '>=' ) ) {
+            require_once $includes_dir . 'core/abilities.php';
+        }
+
+        require_once $templates_dir . 'template-functions.php';
+        require_once $templates_dir . 'site-badge.php';
     }
 
     public function activate() {
