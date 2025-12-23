@@ -2,6 +2,23 @@
 
 All notable changes to the ExtraChill API plugin are documented here. This file is the single source of truth for release history.
 
+## 0.8.4
+
+### Enhanced
+
+- **Festival Wire Migration Inline Uploads**: Enhanced migration system to handle inline uploads within post content
+  - Extracts and migrates images embedded directly in HTML content (not just Gutenberg blocks)
+  - Supports srcset attributes and various URL formats for comprehensive image migration
+  - Automatically sets post thumbnail from first inline image when no featured image exists
+  - Improved duplicate detection with title/date-based fallback queries
+  - Enhanced attachment URL normalization for multisite compatibility
+
+### Technical Notes
+
+- **Backward Compatibility**: All changes are additive with no breaking modifications
+- **Migration Safety**: Enhanced duplicate detection prevents data loss during re-migrations
+- **Performance**: Efficient URL extraction and attachment ID resolution
+
 ## 0.8.3
 
 ### Added

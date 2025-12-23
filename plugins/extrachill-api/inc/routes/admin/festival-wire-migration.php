@@ -318,6 +318,32 @@ function extrachill_api_festival_wire_migrate_single( $blog_ids, WP_Post $source
 
         if ( ! empty( $existing ) ) {
             $existing_target_post_id = absint( $existing[0] );
+        } else {
+            global $wpdb;
+
+            $existing_target_post_id = (int) $wpdb->get_var(
+                $wpdb->prepare(
+                    "SELECT ID FROM {$wpdb->posts} WHERE post_type = %s AND post_title = %s AND post_date_gmt = %s LIMIT 1",
+                    'festival_wire',
+                    $source_post->post_title,
+                    $source_post->post_date_gmt
+                )
+            );
+
+            if ( ! $existing_target_post_id ) {
+                $existing_target_post_id = (int) $wpdb->get_var(
+                    $wpdb->prepare(
+                        "SELECT ID FROM {$wpdb->posts} WHERE post_type = %s AND post_title = %s LIMIT 1",
+                        'festival_wire',
+                        $source_post->post_title
+                    )
+                );
+            }
+
+            if ( $existing_target_post_id > 0 ) {
+                update_post_meta( $existing_target_post_id, '_ec_migrated_from_blog', $blog_ids['source'] );
+                update_post_meta( $existing_target_post_id, '_ec_migrated_from_post_id', $source_post_id );
+            }
         }
     } finally {
         restore_current_blog();
@@ -325,9 +351,9 @@ function extrachill_api_festival_wire_migrate_single( $blog_ids, WP_Post $source
 
     if ( $existing_target_post_id ) {
         return array(
-            'source_post_id'     => $source_post_id,
-            'target_post_id'     => $existing_target_post_id,
-            'already_migrated'   => true,
+            'source_post_id'   => $source_post_id,
+            'target_post_id'   => $existing_target_post_id,
+            'already_migrated' => true,
         );
     }
 
@@ -404,9 +430,16 @@ function extrachill_api_festival_wire_migrate_single( $blog_ids, WP_Post $source
             $attachment_id_map[ $source_thumbnail_id ] = $new_thumb_id;
         }
 
-        $content_with_ids = extrachill_api_festival_wire_migrate_content_attachments( $blog_ids, $source_post->post_content, $target_post_id, $attachment_id_map, $attachment_url_map );
-        if ( is_wp_error( $content_with_ids ) ) {
-            return $content_with_ids;
+        $content_result = extrachill_api_festival_wire_migrate_content_attachments( $blog_ids, $source_post->post_content, $target_post_id, $attachment_id_map, $attachment_url_map );
+        if ( is_wp_error( $content_result ) ) {
+            return $content_result;
+        }
+
+        $content_with_ids                  = $content_result['content'];
+        $first_inline_target_attachment_id = absint( $content_result['first_inline_target_attachment_id'] );
+
+        if ( ! $source_thumbnail_id && $first_inline_target_attachment_id ) {
+            set_post_thumbnail( $target_post_id, $first_inline_target_attachment_id );
         }
 
         if ( $content_with_ids !== $source_post->post_content ) {
@@ -429,6 +462,21 @@ function extrachill_api_festival_wire_migrate_single( $blog_ids, WP_Post $source
 }
 
 function extrachill_api_festival_wire_migrate_content_attachments( $blog_ids, $content, $target_post_id, &$attachment_id_map, &$attachment_url_map ) {
+    $first_inline_target_attachment_id = 0;
+
+    $content = extrachill_api_festival_wire_migrate_inline_uploads_in_html(
+        $blog_ids,
+        $content,
+        $target_post_id,
+        $attachment_id_map,
+        $attachment_url_map,
+        $first_inline_target_attachment_id
+    );
+
+    if ( is_wp_error( $content ) ) {
+        return $content;
+    }
+
     $blocks = parse_blocks( $content );
 
     $blocks = extrachill_api_festival_wire_update_blocks_attachment_ids( $blog_ids, $blocks, $target_post_id, $attachment_id_map, $attachment_url_map );
@@ -446,7 +494,159 @@ function extrachill_api_festival_wire_migrate_content_attachments( $blog_ids, $c
         $new_content = str_replace( $old_url, $new_url, $new_content );
     }
 
-    return $new_content;
+    return array(
+        'content'                          => $new_content,
+        'first_inline_target_attachment_id' => (int) $first_inline_target_attachment_id,
+    );
+}
+
+function extrachill_api_festival_wire_extract_upload_urls_from_content( $content ) {
+    $urls = array();
+
+    if ( preg_match_all( '#https?://[^\s"\']+/wp-content/uploads/[^\s"\'>]+#i', $content, $matches ) ) {
+        $urls = array_merge( $urls, $matches[0] );
+    }
+
+    if ( preg_match_all( '#/wp-content/uploads/[^\s"\'>]+#i', $content, $matches ) ) {
+        $urls = array_merge( $urls, $matches[0] );
+    }
+
+    if ( preg_match_all( '#srcset\s*=\s*"([^"]+)"#i', $content, $matches ) ) {
+        foreach ( $matches[1] as $srcset ) {
+            $candidates = explode( ',', $srcset );
+            foreach ( $candidates as $candidate ) {
+                $candidate = trim( $candidate );
+                if ( '' === $candidate ) {
+                    continue;
+                }
+
+                $parts = preg_split( '/\s+/', $candidate );
+                if ( ! empty( $parts[0] ) ) {
+                    $urls[] = $parts[0];
+                }
+            }
+        }
+    }
+
+    $urls = array_values( array_unique( array_filter( array_map( 'trim', $urls ) ) ) );
+
+    return $urls;
+}
+
+function extrachill_api_festival_wire_normalize_upload_url_for_blog( $url, $uploads_baseurl ) {
+        if ( strpos( $url, '/wp-content/uploads/' ) === false ) {
+            return $url;
+        }
+
+        if ( str_starts_with( $url, '/' ) ) {
+            $url = 'https://example.invalid' . $url;
+        }
+
+    $parts = explode( '/wp-content/uploads/', $url, 2 );
+    if ( empty( $parts[1] ) ) {
+        return $url;
+    }
+
+    $relative = ltrim( $parts[1], '/' );
+
+    return trailingslashit( untrailingslashit( $uploads_baseurl ) ) . $relative;
+}
+
+function extrachill_api_festival_wire_attachment_id_from_upload_url( $url ) {
+    $attachment_id = absint( attachment_url_to_postid( $url ) );
+    if ( $attachment_id ) {
+        return $attachment_id;
+    }
+
+    $url_parts = wp_parse_url( $url );
+    if ( empty( $url_parts['path'] ) ) {
+        return 0;
+    }
+
+    $path = $url_parts['path'];
+    $path = preg_replace( '#-\d+x\d+(\.[a-zA-Z0-9]+)$#', '$1', $path );
+
+    $rebuilt = $url;
+    if ( isset( $url_parts['scheme'], $url_parts['host'] ) ) {
+        $rebuilt = $url_parts['scheme'] . '://' . $url_parts['host'] . $path;
+        if ( ! empty( $url_parts['query'] ) ) {
+            $rebuilt .= '?' . $url_parts['query'];
+        }
+    }
+
+    return absint( attachment_url_to_postid( $rebuilt ) );
+}
+
+function extrachill_api_festival_wire_migrate_inline_uploads_in_html( $blog_ids, $content, $target_post_id, &$attachment_id_map, &$attachment_url_map, &$first_inline_target_attachment_id ) {
+    $urls = extrachill_api_festival_wire_extract_upload_urls_from_content( $content );
+    if ( empty( $urls ) ) {
+        return $content;
+    }
+
+    $source_uploads_baseurl = '';
+
+    try {
+        switch_to_blog( $blog_ids['source'] );
+        $source_uploads = wp_upload_dir();
+        $source_uploads_baseurl = isset( $source_uploads['baseurl'] ) ? (string) $source_uploads['baseurl'] : '';
+    } finally {
+        restore_current_blog();
+    }
+
+    foreach ( $urls as $url ) {
+        $normalized = $url;
+
+        if ( $source_uploads_baseurl ) {
+            $normalized = extrachill_api_festival_wire_normalize_upload_url_for_blog( $url, $source_uploads_baseurl );
+        }
+
+        $source_attachment_id = 0;
+
+        try {
+            switch_to_blog( $blog_ids['source'] );
+            $source_attachment_id = extrachill_api_festival_wire_attachment_id_from_upload_url( $normalized );
+        } finally {
+            restore_current_blog();
+        }
+
+        if ( ! $source_attachment_id ) {
+            continue;
+        }
+
+        if ( isset( $attachment_id_map[ $source_attachment_id ] ) ) {
+            continue;
+        }
+
+        $new_id = extrachill_api_festival_wire_migrate_attachment( $blog_ids, $source_attachment_id, $target_post_id, $attachment_url_map );
+        if ( is_wp_error( $new_id ) ) {
+            return $new_id;
+        }
+
+        $attachment_id_map[ $source_attachment_id ] = $new_id;
+
+        $target_url = '';
+
+        try {
+            switch_to_blog( $blog_ids['target'] );
+            $target_url = (string) wp_get_attachment_url( $new_id );
+        } finally {
+            restore_current_blog();
+        }
+
+        if ( $target_url ) {
+            $attachment_url_map[ $url ] = $target_url;
+
+            if ( $normalized && $normalized !== $url ) {
+                $attachment_url_map[ $normalized ] = $target_url;
+            }
+        }
+
+        if ( ! $first_inline_target_attachment_id ) {
+            $first_inline_target_attachment_id = (int) $new_id;
+        }
+    }
+
+    return $content;
 }
 
 function extrachill_api_festival_wire_update_blocks_attachment_ids( $blog_ids, $blocks, $target_post_id, &$attachment_id_map, &$attachment_url_map ) {
@@ -689,6 +889,25 @@ function extrachill_api_festival_wire_delete_batch( WP_REST_Request $request ) {
 
             $blocks = parse_blocks( $post->post_content );
             $attachment_ids = array_merge( $attachment_ids, extrachill_api_festival_wire_collect_attachment_ids_from_blocks( $blocks ) );
+
+            $urls = extrachill_api_festival_wire_extract_upload_urls_from_content( $post->post_content );
+            if ( ! empty( $urls ) ) {
+                $uploads = wp_upload_dir();
+                $baseurl = isset( $uploads['baseurl'] ) ? (string) $uploads['baseurl'] : '';
+
+                foreach ( $urls as $url ) {
+                    $normalized = $url;
+
+                    if ( $baseurl ) {
+                        $normalized = extrachill_api_festival_wire_normalize_upload_url_for_blog( $url, $baseurl );
+                    }
+
+                    $maybe_id = extrachill_api_festival_wire_attachment_id_from_upload_url( $normalized );
+                    if ( $maybe_id ) {
+                        $attachment_ids[] = $maybe_id;
+                    }
+                }
+            }
 
             $attachment_ids = array_values( array_unique( array_filter( array_map( 'absint', $attachment_ids ) ) ) );
 
