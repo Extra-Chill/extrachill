@@ -6,14 +6,14 @@
  * Manages meta tags, structured data, robots directives, and social sharing across the multisite network.
  *
  * @package ExtraChill\SEO
- * @version 0.3.2
+ * @version 0.4.0
  */
 
 /**
  * Plugin Name: Extra Chill SEO
  * Plugin URI: https://extrachill.com
  * Description: Lean SEO plugin replacing Yoast with code-first meta tags, structured data, and robots directives
- * Version: 0.3.2
+ * Version: 0.4.0
  * Author: Extra Chill
  * Author URI: https://extrachill.com
  * Network: true
@@ -33,7 +33,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Define plugin constants.
-define( 'EXTRACHILL_SEO_VERSION', '0.3.2' );
+define( 'EXTRACHILL_SEO_VERSION', '0.4.0' );
 define( 'EXTRACHILL_SEO_PATH', plugin_dir_path( __FILE__ ) );
 define( 'EXTRACHILL_SEO_URL', plugin_dir_url( __FILE__ ) );
 
@@ -63,6 +63,17 @@ add_action(
 	function () {
 		require_once EXTRACHILL_SEO_PATH . 'inc/core/settings.php';
 		require_once EXTRACHILL_SEO_PATH . 'inc/core/indexnow.php';
+
+		// Load audit components (required for REST API endpoints)
+		require_once EXTRACHILL_SEO_PATH . 'inc/audit/audit-storage.php';
+		require_once EXTRACHILL_SEO_PATH . 'inc/audit/audit-helpers.php';
+		require_once EXTRACHILL_SEO_PATH . 'inc/audit/checks/check-excerpts.php';
+		require_once EXTRACHILL_SEO_PATH . 'inc/audit/checks/check-alt-text.php';
+		require_once EXTRACHILL_SEO_PATH . 'inc/audit/checks/check-featured.php';
+		require_once EXTRACHILL_SEO_PATH . 'inc/audit/checks/check-broken-images.php';
+		require_once EXTRACHILL_SEO_PATH . 'inc/audit/checks/check-broken-links.php';
+		require_once EXTRACHILL_SEO_PATH . 'inc/audit/audit-runner.php';
+		require_once EXTRACHILL_SEO_PATH . 'inc/audit/audit-global.php';
 
 		if ( is_admin() && is_network_admin() ) {
 			require_once EXTRACHILL_SEO_PATH . 'inc/admin/network-settings.php';

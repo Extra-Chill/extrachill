@@ -3,7 +3,38 @@
 All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0).
+
+## [0.4.0] - 2025-12-23
+
+### Added
+- Complete SEO audit system with REST API endpoints for running audits across the multisite network
+- Tabbed network admin interface with Audit and Config tabs
+- Six SEO health checks:
+  - Posts missing excerpts (poor meta descriptions)
+  - Images missing alt text
+  - Posts without featured images
+  - Broken images (missing featured attachments + 404 URLs in content)
+  - Broken internal links (within network domains)
+  - Broken external links (outside network domains)
+- Full audit mode: synchronous audit of all sites (may timeout on large networks)
+- Batch audit mode: progressive processing with real-time progress tracking for HTTP-based checks
+- Continue audit functionality: resume long-running batch audits from where they left off
+- Real-time dashboard cards with per-site breakdowns and severity color coding
+- REST API endpoints:
+  - `POST /extrachill/v1/seo/audit` - Start full or batch audit
+  - `GET /extrachill/v1/seo/audit/status` - Get current audit status
+  - `POST /extrachill/v1/seo/audit/continue` - Continue batch audit
+- Audit results storage via network site options with status tracking
+- Per-site post type support via `extrachill_get_site_post_types()` integration
+- JavaScript admin interface for REST API communication with loading states and progress indicators
+- Styling for audit dashboard cards, progress bar, and tabbed interface
+
+### Changed
+- Restructured network admin settings page with tabbed navigation
+- Network admin menu item renamed from "SEO Settings" to "SEO"
+- IndexNow error logging removed (cleanup)
+- Audit components loaded unconditionally for REST API endpoint availability
 
 ## [0.3.2] - 2025-12-23
 
