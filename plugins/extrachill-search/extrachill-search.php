@@ -14,7 +14,7 @@
  * Domain Path: /languages
  *
  * @package ExtraChill\Search
- * @version 0.1.2
+ * @version 0.2.0
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
