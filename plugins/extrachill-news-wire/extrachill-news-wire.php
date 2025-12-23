@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Extra Chill News Wire
  * Description: Festival Wire custom post type and functionality for music festival coverage with fast-loading archives and template overrides.
- * Version: 0.2.1
+ * Version: 0.3.0
  * Author: Chris Huber
  * Text Domain: extrachill
  * Domain Path: /languages
@@ -25,8 +25,10 @@ require_once FESTIVAL_WIRE_INCLUDE_DIR . 'festival-wire-query-filters.php';
 function enqueue_festival_wire_assets() {
 	global $wp_query;
 
+	$wire_site_url = function_exists( 'ec_get_site_url' ) ? ec_get_site_url( 'wire' ) : null;
+
 	// Archive pages: Load CSS and JS
-	if ( is_post_type_archive( 'festival_wire' ) ) {
+	if ( is_post_type_archive( 'festival_wire' ) || ( $wire_site_url && ( is_front_page() || is_home() ) && untrailingslashit( home_url() ) === untrailingslashit( $wire_site_url ) ) ) {
 
 		// Main Festival Wire CSS
 		$css_file_path = plugin_dir_path(__FILE__) . 'assets/festival-wire.css';
@@ -70,6 +72,7 @@ add_action( 'wp_enqueue_scripts', 'enqueue_festival_wire_assets' );
 
 add_filter( 'extrachill_template_archive', 'ec_news_wire_override_archive_template' );
 add_filter( 'extrachill_template_single_post', 'ec_news_wire_override_single_template' );
+add_action( 'extrachill_homepage_content', 'ec_news_wire_render_wire_hub_homepage' );
 
 /**
  * Override archive template for festival_wire post type
@@ -95,6 +98,31 @@ function ec_news_wire_override_single_template( $template ) {
 		return FESTIVAL_WIRE_TEMPLATE_DIR . 'single-festival_wire.php';
 	}
 	return $template;
+}
+
+function ec_news_wire_render_wire_hub_homepage() {
+	if ( ! is_front_page() && ! is_home() ) {
+		return;
+	}
+
+	if ( is_admin() ) {
+		return;
+	}
+
+	if ( ! function_exists( 'ec_get_site_url' ) ) {
+		return;
+	}
+
+	$wire_site_url = ec_get_site_url( 'wire' );
+	if ( ! $wire_site_url ) {
+		return;
+	}
+
+	if ( untrailingslashit( home_url() ) !== untrailingslashit( $wire_site_url ) ) {
+		return;
+	}
+
+	require FESTIVAL_WIRE_TEMPLATE_DIR . 'home-wire.php';
 }
 
 

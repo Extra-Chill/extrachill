@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.3.0] - 2025-12-22
+
+### Added
+- Wire hub homepage functionality with dedicated template (`templates/home-wire.php`)
+- Homepage content rendering for wire site with festival wire post grid display
+- Conditional asset loading for wire site homepage integration
+
+### Changed
+- Replaced hardcoded `1rem` font sizes with CSS variable `var(--font-size-base)` in festival-wire.css (7 instances)
+- Updated `.related-wire-title` font-size to use `var(--font-size-xl)` variable
+- Modified forum CTA in archive template: updated title to "Join our Community!", revised description, changed link to use `ec_get_site_url('community')` dynamic URL
+- Enhanced asset enqueue logic to support wire site homepage detection
+
+### Fixed
+- Improved CSS variable usage for consistent font sizing across components
+
+### Note
+- Corresponds to wire transfer from main blog site to dedicated domain (wire.extrachill.com)
+
 ## [0.2.1] - 2025-12-05
 
 ### Changed

@@ -126,9 +126,9 @@ get_header(); ?>
 
 				<!-- Music Festivals Forum CTA -->
 				<div class="forum-cta-container">
-					<h2 class="forum-cta-title">Join the Discussion!</h2>
-					<p class="forum-cta-description">Chat with fellow festival fans, share your experiences, and get real-time updates in our Music Festivals forum.</p>
-					<a href="<?php echo esc_url('https://community.extrachill.com/r/music-discussion/music-festivals'); ?>" class="forum-cta-link button" target="_blank" rel="noopener noreferrer">Visit the Forum</a>
+					<h2 class="forum-cta-title">Join our Community!</h2>
+					<p class="forum-cta-description">Discuss with fellow festival fans and share your experiences in our community forum.</p>
+					<a href="<?php echo esc_url( ec_get_site_url( 'community' ) . '/r/music-discussion' ); ?>" class="forum-cta-link button" target="_blank" rel="noopener noreferrer">Visit the Forum</a>
 				</div>
 
 				<!-- Festival Wire FAQ Section -->
