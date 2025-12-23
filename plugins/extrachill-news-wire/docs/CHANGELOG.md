@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.3.3] - 2025-12-23
+
+### Fixed
+- Added `global $post;` declaration in `templates/home-wire.php` before foreach loop to ensure proper `setup_postdata()` function usage and prevent potential post data issues
+
 ## [0.3.2] - 2025-12-22
 
 ### Changed
