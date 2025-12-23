@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.2.1] - 2025-12-22
+
+### Changed
+- Updated AGENTS.md documentation to clarify build system creates only ZIP file, not directory
+- Changed artist access tab button classes from `button` to `button-1 button-medium` for theme consistency
+
 ## [1.2.0] - 2025-12-20
 
 ### Added

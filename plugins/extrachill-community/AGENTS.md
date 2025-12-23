@@ -79,7 +79,7 @@ When the plugin is activated, it automatically creates required pages and forums
 ### Build System
 - **Universal Build Script**: Symlinked to shared build script at `../../.github/build.sh`
 - **Auto-Detection**: Script auto-detects plugin from `Plugin Name:` header
-- **Production Build**: Creates `/build/extrachill-community/` directory and `/build/extrachill-community.zip` file (non-versioned)
+- **Production Build**: Creates `/build/extrachill-community.zip` file (non-versioned; unzip when directory access is needed)
 - **No Asset Compilation Required**: Plugin uses direct file inclusion (run `./build.sh` directly)
 - **File Exclusion**: `.buildignore` rsync patterns exclude development files
 - **Composer Integration**: Uses `composer install --no-dev` for production, restores dev dependencies after
