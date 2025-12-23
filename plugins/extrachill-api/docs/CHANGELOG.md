@@ -2,6 +2,25 @@
 
 All notable changes to the ExtraChill API plugin are documented here. This file is the single source of truth for release history.
 
+## 0.9.0
+
+### Added
+
+- **SEO Audit Endpoints**: Complete multisite SEO auditing system under `/seo/audit/` namespace
+  - `POST /wp-json/extrachill/v1/seo/audit` - Start new SEO audit in full or batch mode
+  - `POST /wp-json/extrachill/v1/seo/audit/continue` - Continue batch audit processing
+  - `GET /wp-json/extrachill/v1/seo/audit/status` - Get current audit progress and results
+  - Tracks missing excerpts, alt text, featured images, broken images, and broken internal/external links
+  - Batch processing for large networks with progress tracking
+  - Super admin permissions required (`manage_network_options`)
+  - Integrates with `extrachill-seo` plugin for audit functionality
+
+### Technical Notes
+
+- **New Dependencies**: Requires `extrachill-seo` plugin for audit functions (`ec_seo_*` functions)
+- **Endpoint Count**: Increased from 53 to 56 total endpoints
+- **Backward Compatibility**: All changes are additive with no breaking modifications
+
 ## 0.8.6
 
 ### Changed
