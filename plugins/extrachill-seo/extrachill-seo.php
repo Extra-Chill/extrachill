@@ -6,14 +6,14 @@
  * Manages meta tags, structured data, robots directives, and social sharing across the multisite network.
  *
  * @package ExtraChill\SEO
- * @version 0.3.1
+ * @version 0.3.2
  */
 
 /**
  * Plugin Name: Extra Chill SEO
  * Plugin URI: https://extrachill.com
  * Description: Lean SEO plugin replacing Yoast with code-first meta tags, structured data, and robots directives
- * Version: 0.3.1
+ * Version: 0.3.2
  * Author: Extra Chill
  * Author URI: https://extrachill.com
  * Network: true
@@ -33,7 +33,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Define plugin constants.
-define( 'EXTRACHILL_SEO_VERSION', '0.3.1' );
+define( 'EXTRACHILL_SEO_VERSION', '0.3.2' );
 define( 'EXTRACHILL_SEO_PATH', plugin_dir_path( __FILE__ ) );
 define( 'EXTRACHILL_SEO_URL', plugin_dir_url( __FILE__ ) );
 

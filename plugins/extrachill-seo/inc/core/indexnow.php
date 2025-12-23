@@ -31,13 +31,16 @@ function ec_seo_indexnow_on_status_transition( $new_status, $old_status, $post )
 	}
 
 	if ( 'publish' === $new_status && 'publish' !== $old_status ) {
-		ec_seo_indexnow_submit_urls( array( get_permalink( $post_id ) ) );
+		$permalink = get_permalink( $post_id );
+		error_log( sprintf( '[IndexNow] Status transition: %s -> %s | Post ID: %d | Type: %s | URL: %s', $old_status, $new_status, $post_id, $post->post_type, $permalink ) );
+		ec_seo_indexnow_submit_urls( array( $permalink ) );
 		return;
 	}
 
 	if ( 'publish' === $old_status && 'publish' !== $new_status ) {
 		$permalink = get_permalink( $post_id );
 		if ( $permalink ) {
+			error_log( sprintf( '[IndexNow] Unpublish: %s -> %s | Post ID: %d | Type: %s | URL: %s', $old_status, $new_status, $post_id, $post->post_type, $permalink ) );
 			ec_seo_indexnow_submit_urls( array( $permalink ) );
 		}
 	}
@@ -82,6 +85,7 @@ function ec_seo_indexnow_on_post_updated( $post_id, $post_after, $post_before ) 
 function ec_seo_indexnow_submit_urls( $urls ) {
 	$indexnow_key = ec_seo_get_indexnow_key();
 	if ( empty( $indexnow_key ) ) {
+		error_log( '[IndexNow] ERROR: No IndexNow key configured' );
 		return;
 	}
 
@@ -89,17 +93,22 @@ function ec_seo_indexnow_submit_urls( $urls ) {
 	$urls = array_values( array_unique( $urls ) );
 
 	if ( empty( $urls ) ) {
+		error_log( '[IndexNow] ERROR: No valid URLs to submit' );
 		return;
 	}
 
+	$host = wp_parse_url( home_url(), PHP_URL_HOST );
+
 	$payload = array(
-		'host'        => wp_parse_url( home_url(), PHP_URL_HOST ),
+		'host'        => $host,
 		'key'         => $indexnow_key,
 		'keyLocation' => home_url( '/' . rawurlencode( $indexnow_key ) . '.txt' ),
 		'urlList'     => $urls,
 	);
 
-	wp_remote_post(
+	error_log( sprintf( '[IndexNow] Submitting to API | Host: %s | URLs: %s', $host, implode( ', ', $urls ) ) );
+
+	$response = wp_remote_post(
 		'https://api.indexnow.org/indexnow',
 		array(
 			'timeout' => 5,
@@ -107,4 +116,14 @@ function ec_seo_indexnow_submit_urls( $urls ) {
 			'body'    => wp_json_encode( $payload ),
 		)
 	);
+
+	if ( is_wp_error( $response ) ) {
+		error_log( sprintf( '[IndexNow] ERROR: Request failed - %s', $response->get_error_message() ) );
+		return;
+	}
+
+	$status_code = wp_remote_retrieve_response_code( $response );
+	$body        = wp_remote_retrieve_body( $response );
+
+	error_log( sprintf( '[IndexNow] Response: HTTP %d | Body: %s', $status_code, $body ) );
 }

@@ -27,7 +27,14 @@ Lean SEO plugin for the Extra Chill Platform, replacing Yoast SEO with code-firs
 
 ## Configuration
 
-No configuration required. All SEO rules are code-defined based on WordPress page context.
+SEO rules are code-defined (based on WordPress page context) with a small set of network settings for required integrations.
+
+### Network Settings
+
+In Network Admin, open the SEO settings page under the existing Extra Chill multisite menu:
+
+- **Default OG Image**: Fallback `og:image` when a post has no featured image
+- **IndexNow Key**: When set, the plugin pings IndexNow on publish/unpublish/delete and on published post updates. You must also host `/{key}.txt` as a static file at the domain root.
 
 ## License
 

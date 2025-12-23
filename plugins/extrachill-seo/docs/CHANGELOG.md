@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.2] - 2025-12-23
+
+### Added
+- Comprehensive error logging for IndexNow API submissions (status transitions, configuration errors, request/response details)
+- Configuration section in README documenting network settings for Default OG Image and IndexNow Key
+
+### Changed
+- Clarified IndexNow documentation to explicitly state static key file requirement at domain root
+
 ## [0.3.1] - 2025-12-22
 
 ### Added
@@ -14,7 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Removed Yoast SEO disable code from main plugin file (no longer needed post-Yoast removal)
-- Updated IndexNow integration: removed key.txt endpoint requirement, added pings on published post updates
+- Updated IndexNow integration: removed the dynamic key file endpoint (still requires hosting static `/{key}.txt` at the domain root) and added pings on published post updates
 - Refactored schema base URLs to distinguish site-specific URLs (per-domain) from organization URLs (extrachill.com) for accurate cross-site schema references
 - Updated PLAN.md documentation: version bump to 0.3.0, removed Yoast references, streamlined deployment checklist
 
