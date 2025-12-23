@@ -7,7 +7,7 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-add_action( 'transition_post_status', 'extrachill_api_activity_emit_post_events', 10, 3 );
+add_action( 'save_post', 'extrachill_api_activity_emit_post_events', 20, 3 );
 add_action( 'comment_post', 'extrachill_api_activity_emit_comment_event', 10, 3 );
 
 function extrachill_api_activity_build_event_card( WP_Post $post ) {
@@ -51,7 +51,7 @@ function extrachill_api_activity_build_event_card( WP_Post $post ) {
     return $card;
 }
 
-function extrachill_api_activity_emit_post_events( $new_status, $old_status, $post ) {
+function extrachill_api_activity_emit_post_events( $post_id, $post, $update ) {
     if ( ! function_exists( 'extrachill_api_activity_insert' ) ) {
         return;
     }
@@ -60,7 +60,7 @@ function extrachill_api_activity_emit_post_events( $new_status, $old_status, $po
         return;
     }
 
-    if ( wp_is_post_revision( $post->ID ) || wp_is_post_autosave( $post->ID ) ) {
+    if ( wp_is_post_revision( $post_id ) || wp_is_post_autosave( $post_id ) ) {
         return;
     }
 
@@ -68,7 +68,7 @@ function extrachill_api_activity_emit_post_events( $new_status, $old_status, $po
         return;
     }
 
-    if ( 'publish' !== $new_status ) {
+    if ( 'publish' !== $post->post_status ) {
         return;
     }
 
@@ -80,7 +80,7 @@ function extrachill_api_activity_emit_post_events( $new_status, $old_status, $po
 
     $title = html_entity_decode( get_the_title( $post ), ENT_QUOTES | ENT_HTML5, 'UTF-8' );
 
-    if ( 'publish' === $old_status ) {
+    if ( $update ) {
         $type    = 'post_updated';
         $summary = 'Updated: ' . $title;
     } else {

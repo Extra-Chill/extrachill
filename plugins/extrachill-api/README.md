@@ -17,7 +17,7 @@ The ExtraChill API plugin provides a centralized, versioned REST API infrastruct
 
 ## Current Endpoints
 
-The plugin provides 52 endpoint files across 20 feature categories, all under the `extrachill/v1` namespace:
+The plugin provides 53 endpoint files across 20 feature categories, all under the `extrachill/v1` namespace:
 
 ### Authentication Endpoints (6)
 - `POST /auth/google` - Google OAuth authentication

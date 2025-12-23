@@ -2,6 +2,18 @@
 
 All notable changes to the ExtraChill API plugin are documented here. This file is the single source of truth for release history.
 
+## 0.8.6
+
+### Changed
+
+- **Documentation Cleanup**: Streamlined AGENTS.md by removing detailed endpoint documentation and reorganizing into summarized endpoint categories for improved maintainability.
+- **Activity Emitters Refactor**: Updated post event emission to use `save_post` hook instead of `transition_post_status` for more reliable activity tracking, with corresponding parameter and logic adjustments.
+
+### Technical Notes
+
+- **Backward Compatibility**: All changes are additive with no breaking modifications.
+- **Activity System**: Improved reliability of post activity emission through hook change and parameter updates.
+
 ## 0.8.5
 
 ### Removed
