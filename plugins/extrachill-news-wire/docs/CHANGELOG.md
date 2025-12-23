@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.4] - 2025-12-23
+
+### Added
+- Post meta filtering to hide author name from Festival Wire post type display
+- New `includes/core/post-meta.php` module with `festival_wire_hide_author_from_meta` filter
+- Filters `extrachill_post_meta_parts` hook to remove 'author' element for festival_wire posts
+
 ## [0.3.3] - 2025-12-23
 
 ### Fixed

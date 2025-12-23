@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Extra Chill News Wire
  * Description: Festival Wire custom post type and functionality for music festival coverage with fast-loading archives and template overrides.
- * Version: 0.3.3
+ * Version: 0.3.4
  * Author: Chris Huber
  * Text Domain: extrachill
  * Domain Path: /languages
@@ -22,6 +22,7 @@ define( 'FESTIVAL_WIRE_TEMPLATE_DIR', FESTIVAL_WIRE_PLUGIN_DIR . 'templates/' );
 require_once FESTIVAL_WIRE_INCLUDE_DIR . 'festival-wire-post-type.php';
 require_once FESTIVAL_WIRE_INCLUDE_DIR . 'festival-wire-query-filters.php';
 require_once FESTIVAL_WIRE_INCLUDE_DIR . 'core/breadcrumbs.php';
+require_once FESTIVAL_WIRE_INCLUDE_DIR . 'core/post-meta.php';
 
 function enqueue_festival_wire_assets() {
 	global $wp_query;
