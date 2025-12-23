@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.2] - 2025-12-22
+
+### Changed
+- Refactored `templates/home-wire.php` to use WordPress template patterns
+- Removed redundant wrapper divs (main-content, site-main) duplicating theme structure
+- Replaced multiple echo statements with direct HTML/PHP mixture for improved readability
+- Added final newline for file compliance
+
 ## [0.3.1] - 2025-12-22
 
 ### Added
