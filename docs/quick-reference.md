@@ -342,8 +342,8 @@ if ( is_plugin_active( 'co-authors-plus/co-authors-plus.php' ) ) {
 ```php
 // Archive sorting
 /category-slug/?sort=oldest
-/category-slug/?sort=recent
-/category-slug/?randomize
+/category-slug/?sort=recent (default)
+/category-slug/?sort=random
 
 // Artist filtering
 /song-meanings/?artist=artist-slug

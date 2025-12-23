@@ -53,7 +53,7 @@ Viewing posts 1-10 of 156 total
 
 **Standard Posts**:
 - Publication date
-- Author (with Co-Authors Plus support)
+- Author (filterable via `extrachill_post_meta_author`)
 - Last updated date (if modified)
 
 **Forum Posts** (multisite):
@@ -79,9 +79,15 @@ add_filter( 'extrachill_post_meta', function( $meta, $post_id, $post_type ) {
 }, 10, 3 );
 ```
 
-### Co-Authors Plus Integration
+### Author Output Override
 
-Automatically uses `coauthors_posts_links()` when plugin active, falls back to `the_author_posts_link()`.
+Use the author override filter if you need to customize the author HTML:
+
+```php
+add_filter( 'extrachill_post_meta_author', function( $author_html, $post_id ) {
+    return $author_html;
+}, 10, 2 );
+```
 
 ### Update Detection
 
@@ -485,86 +491,54 @@ Activities cached for 10 minutes using WordPress object cache with key `extrachi
 
 **Location**: `/inc/components/filter-bar.php`, `/inc/components/filter-bar-defaults.php`
 **Styles**: `/assets/css/filter-bar.css`
-**Function**: `extrachill_render_filter_bar( $args )`
+**Function**: `extrachill_filter_bar()`
 
 ### Purpose
 
 Universal filter bar component providing consistent sorting and filtering UI across archives, forums, and other list views.
 
-### Parameters
+### API (filters/actions)
 
-```php
-$args = array(
-    'sort_options'  => array(),     // Associative array of value => label
-    'current_sort'  => '',          // Currently selected sort value
-    'show_count'    => true,        // Display item count
-    'total_items'   => 0,           // Total item count
-    'form_action'   => '',          // Form submission URL
-    'extra_fields'  => array(),     // Additional hidden fields
-    'wrapper_class' => 'filter-bar', // Container CSS class
-);
-```
+`extrachill_filter_bar()` does not accept arguments. Items are registered via filters.
 
-### Default Sort Options
+- **Register items**: `extrachill_filter_bar_items` (filter)
+  - Each item is an associative array with `type` (`dropdown` or `search`) and the configuration consumed by the renderer.
+- **Override output**: `extrachill_filter_bar_override` (filter)
+  - Return non-empty HTML to short-circuit the default rendering.
+- **Inline extension points**:
+  - `extrachill_filter_bar_start` (action)
+  - `extrachill_filter_bar_end` (action)
 
-Provided by `inc/components/filter-bar-defaults.php`:
-```php
-$default_sort_options = array(
-    'date_desc' => 'Newest First',
-    'date_asc'  => 'Oldest First',
-    'title_asc' => 'A-Z',
-    'popular'   => 'Most Popular',
-);
-```
+### Theme default items
 
-### Usage Examples
+The theme registers archive defaults in `inc/components/filter-bar-defaults.php` (via `extrachill_filter_bar_items`):
+- Category dropdown (blog archive)
+- Child term dropdown (category + `location` taxonomy)
+- Artist dropdown (specific categories)
+- Sort dropdown (`sort=recent|oldest|random|popular`)
+- Search input (`s`)
 
-```php
-// Basic filter bar
-extrachill_render_filter_bar( array(
-    'sort_options' => array(
-        'newest' => 'Newest',
-        'oldest' => 'Oldest',
-    ),
-    'current_sort' => 'newest',
-    'total_items'  => 156,
-) );
-
-// Forum-specific filter bar (via extrachill-community)
-extrachill_render_filter_bar( array(
-    'sort_options' => array(
-        'freshness' => 'Recently Active',
-        'newest'    => 'Newest Topics',
-        'popular'   => 'Most Replies',
-    ),
-    'current_sort' => 'freshness',
-    'show_count'   => false,
-) );
-```
+Sort option labels are filterable via `extrachill_filter_bar_sort_options`.
 
 ### Integration Points
 
-- **Theme Archives**: `inc/archives/archive-filter-bar.php` uses filter bar for post archives
-- **Community Forums**: `extrachill-community/inc/core/filter-bar.php` extends for bbPress
-- **Customization**: Override via `extrachill_filter_bar_options` filter
+- **Theme Archives**: the theme outputs the bar via `extrachill_archive_above_posts`.
+- **Community Forums**: extrachill-community registers additional items for bbPress via `extrachill_filter_bar_items`.
 
 ### Output Structure
 
 ```html
-<div class="filter-bar">
-    <form method="get" action="">
-        <div class="filter-bar-left">
-            <span class="item-count">156 items</span>
-        </div>
-        <div class="filter-bar-right">
-            <label for="sort">Sort by:</label>
-            <select name="orderby" id="sort">
-                <option value="date_desc" selected>Newest First</option>
-                <option value="date_asc">Oldest First</option>
-            </select>
-        </div>
-    </form>
-</div>
+<form method="get" action="/current/path" class="extrachill-filter-bar">
+    <div class="filter-bar-dropdowns">
+        <select name="sort">...</select>
+        <!-- other dropdowns ... -->
+    </div>
+
+    <div class="filter-bar-search">
+        <input type="text" name="s" value="...">
+        <button type="submit">...</button>
+    </div>
+</form>
 ```
 
 ## Component Integration

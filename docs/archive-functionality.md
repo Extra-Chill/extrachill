@@ -29,17 +29,16 @@ Displays:
 
 ### Filter Bar
 
-**Location**: `/inc/archives/archive-filter-bar.php`
 **Component**: `/inc/components/filter-bar.php`, `/inc/components/filter-bar-defaults.php`
 **Styles**: `/assets/css/filter-bar.css`
 **Hook**: `extrachill_archive_above_posts`
-**Function**: `extrachill_archive_filter_bar()`
+**Function**: `extrachill_filter_bar()`
 
 Uses the universal filter bar component system to provide:
 - **Sort Dropdown**: 4-option sorting (recent, oldest, random, popular by view count)
-- Child term dropdown filtering
-- Artist filtering (category-specific)
-- `extrachill_archive_filter_bar` action hook for plugin integration (buttons appear on right side)
+- Child term dropdown filtering (categories with children + location children)
+- Artist filtering (Song Meanings + Music History categories)
+- Search input (`s`)
 
 The filter bar component is reusable across the platform - extended by the extrachill-community plugin for forum filtering via `inc/core/filter-bar.php`.
 
@@ -121,99 +120,20 @@ add_action( 'pre_get_posts', 'extrachill_sort_posts' );
 
 ### Artist Filter Dropdown
 
-```php
-function extrachill_artist_filter_dropdown() {
-    $current_artist = get_query_var( 'artist' );
-    $category_id    = get_queried_object_id();
-    $archive_link   = get_category_link( $category_id );
+**Implemented in**: `/inc/components/filter-bar-defaults.php` (via `extrachill_filter_bar_items`)
 
-    $artists = get_terms( array(
-        'taxonomy'   => 'artist',
-        'orderby'    => 'name',
-        'order'      => 'ASC',
-        'hide_empty' => true,
-        'object_ids' => get_posts( array(
-            'post_type'   => 'post',
-            'post_status' => 'publish',
-            'category'    => $category_id,
-            'numberposts' => -1,
-            'fields'      => 'ids',
-        ) ),
-    ) );
-
-    if ( empty( $artists ) || is_wp_error( $artists ) ) {
-        return;
-    }
-
-    echo '<div id="artist-filters">';
-    echo '<select id="artist-filter-dropdown" onchange="window.location.href=this.value;">';
-
-    $selected = empty( $current_artist ) ? ' selected' : '';
-    echo '<option value="' . esc_url( $archive_link ) . '"' . $selected . '>All Artists</option>';
-
-    foreach ( $artists as $artist ) {
-        $artist_url = add_query_arg( 'artist', $artist->slug, $archive_link );
-        $selected   = ( $artist->slug === $current_artist ) ? ' selected' : '';
-        echo '<option value="' . esc_url( $artist_url ) . '"' . $selected . '>' . esc_html( $artist->name ) . '</option>';
-    }
-
-    echo '</select></div>';
-}
-```
-
-**Display Logic**:
-```php
-if ( is_category( 'song-meanings' ) || is_category( 'music-history' ) ) {
-    extrachill_artist_filter_dropdown();
-}
-```
+- Dropdown `name`: `artist`
+- Query var: `artist`
+- Only added on `is_category( 'song-meanings' )` and `is_category( 'music-history' )`
+- Options constrained to artist terms attached to posts in the current category
 
 ## Child Terms Dropdown
 
-**Location**: `/inc/archives/archive-child-terms-dropdown.php`
-**Function**: `extrachill_child_terms_dropdown_html()`
+**Implemented in**: `/inc/components/filter-bar-defaults.php` (via `extrachill_filter_bar_items`)
 
-Displays child categories/terms for hierarchical taxonomies.
-
-## Artist Profile Integration
-
-**Location**: `/inc/archives/artist-profile-link.php`
-
-Connects artist taxonomy archives with artist profile pages on artist.extrachill.com.
-
-### How It Works
-
-1. **Query Function**: `ec_get_artist_profile_by_slug( $slug )`
-   - Defined in the network-activated `extrachill-users` plugin
-   - Switches to the artist site and queries published `artist_profile` by slug
-   - Returns array with `id` and `permalink` if found, false otherwise
-   - Uses `try/finally` to ensure blog is restored
-
-2. **Display Function**: `extrachill_display_artist_profile_button()`
-   - Hooked to `extrachill_archive_header_actions` action
-   - Only runs on artist taxonomy archives (`is_tax( 'artist' )`)
-   - Queries for matching artist profile
-   - Displays "View Artist Profile" button if match found
-   - Button styled with `button-2 button-medium` classes
-   - Floats right in filter bar with `float: right` styling
-
-### Example Output
-
-```html
-<div class="artist-profile-link-container" style="float: right; margin-left: 1em;">
-    <a href="https://artist.extrachill.com/artist-profile/slug/"
-       class="button-2 button-medium"
-       rel="noopener">
-        View Artist Profile
-    </a>
-</div>
-```
-
-### Integration Requirements
-
-- Artist taxonomy term must exist on main site
-- Matching artist profile must be published on artist.extrachill.com (blog ID 4)
-- Artist profile slug must match artist taxonomy slug exactly
+Displays child categories/terms for hierarchical taxonomies:
+- Category archives: child categories
+- Location taxonomy archives: child locations
 
 ## URL Preservation
 
@@ -280,14 +200,9 @@ Template: Archive template via router
 ## Filter Bar Hooks
 
 ```php
-// Before filter bar
-do_action( 'extrachill_archive_before_filter_bar' );
-
 // Filter bar displays automatically via extrachill_archive_above_posts
-extrachill_archive_filter_bar();
-
-// After filter bar
-do_action( 'extrachill_archive_after_filter_bar' );
+// (theme hooks extrachill_filter_bar() to this action)
+do_action( 'extrachill_archive_above_posts' );
 ```
 
 ## Pagination
@@ -311,7 +226,7 @@ extrachill_pagination();
 /category-slug/?sort=oldest
 /category-slug/?sort=random
 /category-slug/?sort=popular
-/artist/artist-name/?sort=recent
+/artist/artist-name/?sort=recent (default)
 ```
 
 **Filter by Artist**:
@@ -328,12 +243,12 @@ extrachill_pagination();
 ## Plugin Integration
 
 ```php
-// Add custom navigation button to filter bar
-add_action( 'extrachill_archive_filter_bar', function() {
+// Add custom markup inside the filter bar
+add_action( 'extrachill_filter_bar_end', function() {
     if ( is_tax( 'venue' ) ) {
         $term = get_queried_object();
-        echo '<div class="venue-nav" style="float: right; margin-left: 1em;">';
-        echo '<a href="/venues/' . $term->slug . '/events/" class="button-2">View Events</a>';
+        echo '<div class="venue-nav">';
+        echo '<a href="/venues/' . esc_attr( $term->slug ) . '/events/" class="button-2">View Events</a>';
         echo '</div>';
     }
 } );
@@ -341,7 +256,6 @@ add_action( 'extrachill_archive_filter_bar', function() {
 // Add content after author bio
 add_action( 'extrachill_after_author_bio', function( $author_id ) {
     echo '<div class="author-social-links">';
-    // Display author social media links
     echo '</div>';
 }, 10, 1 );
 

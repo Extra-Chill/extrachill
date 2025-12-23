@@ -62,20 +62,16 @@ extrachill/
     │   │   ├── social-links.php
     │   │   ├── taxonomy-badges.php
     │   │   └── network-dropdown.php
-    │   └── editor/              # Custom embed handlers
-    │       ├── bandcamp-embeds.php
-    │       ├── instagram-embeds.php
-    │       └── spotify-embeds.php
-    ├── archives/                # Archive page functionality
-    │   ├── archive.php
-    │   ├── archive-child-terms-dropdown.php
-    │   ├── archive-custom-sorting.php
-    │   ├── archive-filter-bar.php
-    │   ├── archive-header.php
-    │   ├── artist-profile-link.php
-    │   ├── post-card.php
-    │   └── search/
-    │       └── search-header.php
+│   └── editor/              # Custom embed handlers
+│       ├── bandcamp-embeds.php
+│       └── instagram-embeds.php
+├── archives/                # Archive page functionality
+│   ├── archive.php
+│   ├── archive-custom-sorting.php
+│   ├── archive-header.php
+│   ├── post-card.php
+│   └── search/
+│       └── search-header.php
     ├── footer/                  # Footer functionality
     │   ├── back-to-home-link.php
     │   ├── footer-main-menu.php
@@ -506,21 +502,12 @@ Reusable filter bar for archives and lists:
 
 **Usage**:
 ```php
-// Render filter bar with custom options
-extrachill_render_filter_bar([
-    'sort_options' => [
-        'date_desc' => 'Newest First',
-        'date_asc'  => 'Oldest First',
-        'popular'   => 'Most Popular'
-    ],
-    'current_sort' => 'date_desc',
-    'show_count'   => true,
-    'total_items'  => $total
-]);
+// Render filter bar (items registered via filters)
+extrachill_filter_bar();
 ```
 
 **Integration Points**:
-- Used by theme archives via `inc/archives/archive-filter-bar.php`
+- Rendered on archives via `extrachill_archive_above_posts`
 - Extended by extrachill-community plugin for forum filtering via `inc/core/filter-bar.php`
 - Customizable via filters for plugin-specific options
 

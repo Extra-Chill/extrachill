@@ -4,7 +4,7 @@ Integration with WordPress multisite network and the extrachill-multisite plugin
 
 ## Network Overview
 
-ExtraChill theme serves **all 9 active sites** in the WordPress multisite network (Blog ID 6 unused; docs.extrachill.com at Blog ID 10; horoscope.extrachill.com planned for future Blog ID 11):
+ExtraChill theme serves **all 9 active sites** in the WordPress multisite network (Blog ID 6 unused; docs.extrachill.com at Blog ID 10; wire.extrachill.com at Blog ID 11; horoscope.extrachill.com planned for future Blog ID 12):
 
 1. **extrachill.com** - Main music journalism and content site (Blog ID 1)
 2. **community.extrachill.com** - Community forums and user hub (Blog ID 2)

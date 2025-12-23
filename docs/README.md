@@ -11,9 +11,9 @@ Comprehensive user-facing documentation for the ExtraChill WordPress theme.
 
 ## Overview
 
-ExtraChill is a custom WordPress theme serving a music community ecosystem across a multisite network. The theme powers all 9 active sites (Blog IDs 1–5, 7–10) in the Extra Chill Platform network, with docs.extrachill.com at Blog ID 10.
+ExtraChill is a custom WordPress theme serving a music community ecosystem across a multisite network. The theme powers all 9 active sites (Blog IDs 1–5, 7–11) in the Extra Chill Platform network, with docs.extrachill.com at Blog ID 10.
 
-**Version**: 1.3.2
+**Version**: 1.3.4
 **Author**: Chubes
 **Text Domain**: extrachill
 
@@ -42,10 +42,9 @@ extrachill/
 │   │   ├── custom-taxonomies.php # Custom taxonomy registration
 │   │   ├── view-counts.php      # Post view tracking
 │   │   ├── rewrite.php          # URL rewrite rules
-│   │   ├── yoast-stuff.php      # Yoast SEO integration
 │   │   ├── notices.php          # Notice system
 │   │   ├── templates/           # Shared template components
-│   │   └── editor/              # Custom embeds (Bandcamp, Spotify, Instagram)
+│   │   └── editor/              # Custom embeds (Bandcamp, Instagram)
 │   ├── header/                   # Navigation system
 │   ├── footer/                   # Footer menus
 │   ├── home/                     # Homepage components
@@ -130,7 +129,7 @@ extrachill_breadcrumbs();
 ### Assets and Performance
 
 - **Asset Loading System** - Conditional CSS/JS loading with cache busting
-- **Custom Embeds** - Bandcamp, Spotify, Instagram embed support
+- **Custom Embeds** - Bandcamp and Instagram embed support
 
 ### Template Components
 
@@ -170,7 +169,7 @@ All taxonomies include REST API support and block editor integration.
 ### Archive Features
 
 - Post sorting (recent/oldest/popular)
-- Randomization button
+- Sort dropdown includes `random` option
 - Artist filtering (category-specific)
 - Child term dropdowns
 - URL parameter preservation
@@ -196,7 +195,7 @@ All taxonomies include REST API support and block editor integration.
 ### Embed Support
 
 - Bandcamp album/track embeds
-- Spotify embed customization
+- (Spotify embed customization removed in 1.2.14)
 - Instagram integration
 - YouTube (WordPress core)
 - SoundCloud (WordPress core)
@@ -223,18 +222,11 @@ All taxonomies include REST API support and block editor integration.
 
 ### Optional Integration
 
-**Co-Authors Plus**:
-- Multiple post authors
-- REST API author data
-- Post meta author display
-
-**Yoast SEO**:
-- Sitemap image deduplication
-- Enhanced SEO features
+Theme integrations are intentionally minimal. Most advanced behavior (SEO, forums, e-commerce, etc.) is owned by plugins.
 
 ## Multisite Network
 
-Theme serves all 9 active sites in the Extra Chill Platform network (Blog ID 6 unused; docs.extrachill.com at Blog ID 10; horoscope.extrachill.com planned for future Blog ID 11):
+Theme serves all 9 active sites in the Extra Chill Platform network (Blog ID 6 unused; docs.extrachill.com at Blog ID 10; wire.extrachill.com at Blog ID 11; horoscope.extrachill.com planned for future Blog ID 12):
 
 1. **extrachill.com** - Main music journalism and content site (Blog ID 1)
 2. **community.extrachill.com** - Community forums and user hub (Blog ID 2)
@@ -283,19 +275,9 @@ Each site uses the same theme with different plugin integrations and template ov
 - Notice system with cookie-based dismissal
 - Share button interactions with clipboard API
 
-## Security Features
-
-- Password-protected post hiding
-- Input sanitization throughout
-- Output escaping via WordPress functions
-- Nonce verification (plugin integration)
-- Capability checks (plugin integration)
-
 ## SEO Features
 
 - Clean category URLs (no /category/ prefix)
-- Noindex for low-content tag pages (<2 posts)
-- Yoast sitemap image deduplication
 - Semantic HTML structure
 - Breadcrumb navigation
 - Schema-ready markup
