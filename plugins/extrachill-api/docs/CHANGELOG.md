@@ -2,6 +2,22 @@
 
 All notable changes to the ExtraChill API plugin are documented here. This file is the single source of truth for release history.
 
+## 0.8.5
+
+### Removed
+
+- **Festival Wire Migration Endpoints**: Removed one-time admin migration tooling after migration completion
+  - Deleted `inc/routes/admin/festival-wire-migration.php` (974 lines)
+  - Removed all festival wire migration endpoints from the API
+  - This temporary admin tool was only needed for one-time content migration between sites
+  - Migration has been completed successfully and tooling is no longer required
+
+### Technical Notes
+
+- **Code Cleanup**: Removal of 974 lines of temporary migration code
+- **Breaking Change**: Festival wire migration endpoints are no longer available (not intended for long-term use)
+- **Endpoint Count**: Reduced from 57 to 53 total endpoints
+
 ## 0.8.4
 
 ### Enhanced
