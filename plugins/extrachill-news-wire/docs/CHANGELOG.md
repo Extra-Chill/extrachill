@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.3.5] - 2025-12-23
+
+### Changed
+- Added `<div class="festival-wire-page">` wrapper to wire hub homepage template for improved container structure and CSS targeting
+
 ## [0.3.4] - 2025-12-23
 
 ### Added

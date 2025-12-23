@@ -24,29 +24,31 @@ $latest_posts = get_posts(
 );
 ?>
 
-<header class="page-header">
-	<h1 class="page-title">Extra Chill News Wire</h1>
-	<div class="archive-description">Automated news feeds across the Extra Chill network.</div>
-</header>
+<div class="festival-wire-page">
+	<header class="page-header">
+		<h1 class="page-title">Extra Chill News Wire</h1>
+		<div class="archive-description">Automated news feeds across the Extra Chill network.</div>
+	</header>
 
-<section class="ec-wire-hub-card">
-	<h2>Festival Wire</h2>
-	<p>Music festival announcements, Reddit chatter, schedule drops, and lineup news.</p>
+	<section class="ec-wire-hub-card">
+		<h2>Festival Wire</h2>
+		<p>Music festival announcements, Reddit chatter, schedule drops, and lineup news.</p>
 
-	<?php if ( $festival_wire_archive_url ) : ?>
-		<p><a class="button" href="<?php echo esc_url( $festival_wire_archive_url ); ?>">View all Festival Wire</a></p>
-	<?php endif; ?>
+		<?php if ( $festival_wire_archive_url ) : ?>
+			<p><a class="button" href="<?php echo esc_url( $festival_wire_archive_url ); ?>">View all Festival Wire</a></p>
+		<?php endif; ?>
 
-	<div class="festival-wire-grid-container">
-		<div class="festival-wire-grid">
-			<?php
-			global $post;
-			foreach ( $latest_posts as $post ) {
-				setup_postdata( $post );
-				require __DIR__ . '/content-card.php';
-			}
-			wp_reset_postdata();
-			?>
+		<div class="festival-wire-grid-container">
+			<div class="festival-wire-grid">
+				<?php
+				global $post;
+				foreach ( $latest_posts as $post ) {
+					setup_postdata( $post );
+					require __DIR__ . '/content-card.php';
+				}
+				wp_reset_postdata();
+				?>
+			</div>
 		</div>
-	</div>
-</section>
+	</section>
+</div>
