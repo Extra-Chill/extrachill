@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0/).
 
+## [1.3.4] - 2025-12-23
+
+### Added
+- News Wire link to network dropdown navigation for wire.extrachill.com access
+
+### Changed
+- Major documentation cleanup removing references to deprecated features (Spotify embeds, artist profile link, archive filter bar file)
+- Consolidated filter bar component documentation to reflect current component-based architecture
+- Removed Co-Authors Plus integration references from template components
+- Updated blog ID references across documentation for network accuracy
+
+### Technical
+- Removed 472 lines of outdated documentation across 10 files
+- Updated `docs/archive-functionality.md` to reflect filter bar component architecture
+- Updated `docs/template-components.md` to document current filter bar API
+- Updated `docs/action-hooks.md` to reflect current filter bar hooks
+
 ## [1.3.2] - 2025-12-20
 
 ### Removed

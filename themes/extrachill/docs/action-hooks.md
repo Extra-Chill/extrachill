@@ -145,27 +145,17 @@ add_action( 'extrachill_after_author_bio', function( $author_id ) {
 ### extrachill_archive_above_posts
 Filter bar above archive posts.
 
-**Used By**: `extrachill_archive_filter_bar()` for sorting and filtering UI
+**Used By**: `extrachill_filter_bar()` (hooked by theme)
 
-### extrachill_archive_filter_bar
-Inject navigational buttons/links into archive filter bar.
+### extrachill_filter_bar_start
+Runs at the start of the filter bar form.
 
-**Context**: Fires inside `<div id="extrachill-custom-sorting">` on all archive pages with filter bar
-**Visual Position**: Buttons appear on right side of filter bar (use `float: right` styling)
-**Usage**: Plugins add navigational buttons for archive-specific actions (e.g., view artist profile, browse location)
-**Example Integration**: Theme displays "View Artist Profile" button on artist taxonomy archives
-**Styling**: Plugins handle their own wrapper divs and styling (no automatic container)
+**Used By**: Theme and plugins to inject hidden inputs or extra controls.
 
-```php
-// Example usage
-add_action( 'extrachill_archive_filter_bar', function() {
-    if ( is_tax( 'artist' ) ) {
-        $term = get_queried_object();
-        echo '<div class="custom-nav-button" style="float: right; margin-left: 1em;">';
-        echo '<a href="/artist-profile/' . $term->slug . '" class="button-2">View Profile</a>';
-        echo '</div>';
-    }
-} );
+### extrachill_filter_bar_end
+Runs at the end of the filter bar form.
+
+**Used By**: Theme and plugins to append additional controls.
 
 ### extrachill_search_header
 Search results header.

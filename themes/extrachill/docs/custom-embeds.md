@@ -91,59 +91,21 @@ https://artistname.bandcamp.com/album/album-name
 
 Theme automatically converts to embedded player.
 
-## Spotify Embeds
-
-**Location**: `/inc/core/editor/spotify-embeds.php`
-
-Removes WordPress's default aspect ratio class from Spotify embeds for custom styling.
-
-### Problem Solved
-
-WordPress adds `wp-embed-aspect-21-9` class to Spotify embeds, which may conflict with theme styling.
-
-### Implementation
-
-```php
-function remove_spotify_aspect_ratio_class( $content ) {
-    $spotify_embed_html = '<figure class="wp-block-embed is-type-rich is-provider-spotify wp-block-embed-spotify wp-embed-aspect-21-9 wp-has-aspect-ratio">';
-    $new_embed_html = '<figure class="wp-block-embed is-type-rich is-provider-spotify wp-block-embed-spotify">';
-
-    // Replace all occurrences
-    return str_replace( $spotify_embed_html, $new_embed_html, $content );
-}
-add_filter( 'the_content', 'remove_spotify_aspect_ratio_class' );
-```
-
-### Effect
-
-**Before**:
-```html
-<figure class="wp-block-embed is-type-rich is-provider-spotify wp-block-embed-spotify wp-embed-aspect-21-9 wp-has-aspect-ratio">
-```
-
-**After**:
-```html
-<figure class="wp-block-embed is-type-rich is-provider-spotify wp-block-embed-spotify">
-```
-
-### Usage
-
-Spotify embeds work normally via WordPress oEmbed. Theme automatically removes aspect ratio classes from output.
 
 ## Instagram Embeds
 
 **Location**: `/inc/core/editor/instagram-embeds.php`
 
-Automatic embed support for Instagram posts (enhanced via WordPress core oEmbed).
+Custom embed handlers for Instagram:
+- Post/Reel URLs
+- Profile URLs
 
 ### Usage
 
-Paste Instagram URL in block editor:
+Paste an Instagram URL in block editor:
 ```
 https://www.instagram.com/p/POST_ID/
 ```
-
-WordPress core handles Instagram embeds natively. Theme includes file for future customization.
 
 ## YouTube Embeds
 
@@ -169,7 +131,7 @@ SoundCloud embeds work automatically without theme modification.
 Theme extends WordPress's oEmbed system:
 
 1. **WordPress Core**: Handles standard platforms (YouTube, Twitter, etc.)
-2. **Theme Enhancement**: Adds Bandcamp support, customizes Spotify
+2. **Theme Enhancement**: Adds Bandcamp + Instagram handlers
 3. **Block Editor**: Automatic preview in Gutenberg
 4. **Filter System**: Customize embed output
 
@@ -262,9 +224,5 @@ If embed generation fails:
 **Bandcamp**:
 - Returns empty string
 - User sees original URL
-
-**Spotify**:
-- Class removal filter doesn't affect functionality
-- Embed still displays
 
 **Best Practice**: Always test URLs before publishing.

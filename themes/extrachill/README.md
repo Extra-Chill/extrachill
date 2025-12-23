@@ -1,12 +1,12 @@
 # ExtraChill WordPress Theme
 
-A custom WordPress theme (v1.3.2) powering the Extra Chill Platform multisite network with 9 active interconnected sites (Blog ID 6 unused), featuring hook-based homepage content, community integrations, universal filter bar component system, and multisite-aware navigation. Horoscope site is planned for future Blog ID 11.
+A custom WordPress theme (v1.3.4) powering the Extra Chill Platform multisite network with 9 active interconnected sites (Blog ID 6 unused), featuring hook-based homepage content, community integrations, universal filter bar component system, and multisite-aware navigation. Horoscope site is planned for future Blog ID 12.
 
-> **Platform alignment**: Documentation reflects the live 1.3.2 release in `style.css` and must stay in lockstep with future releases.
+> **Platform alignment**: Documentation reflects the live 1.3.4 release in `style.css` and must stay in lockstep with future releases.
 
 ## Overview
 
-ExtraChill is a modern, performance-optimized WordPress theme (v1.3.1) designed specifically for the Extra Chill Platform multisite network. It serves as the frontend for all 9 active interconnected sites (Blog ID 6 unused) with docs.extrachill.com at Blog ID 10; horoscope.extrachill.com planned for future Blog ID 11:
+ExtraChill is a modern, performance-optimized WordPress theme (v1.3.4) designed specifically for the Extra Chill Platform multisite network. It serves as the frontend for all 9 active interconnected sites (Blog ID 6 unused) with docs.extrachill.com at Blog ID 10; wire.extrachill.com at Blog ID 11; horoscope.extrachill.com planned for future Blog ID 12:
 
 - **extrachill.com** (Blog ID 1): Music journalism, artist features, and industry coverage
 - **community.extrachill.com** (Blog ID 2): Community forums with bbPress integration
@@ -44,7 +44,7 @@ ExtraChill is a modern, performance-optimized WordPress theme (v1.3.1) designed 
 - **Icon System**: QR code and download icons added to SVG sprite system
 
 ### 🤝 Community Integration
-- **WordPress Multisite**: Theme powers 8 active network sites with shared routing and navigation patterns
+- **WordPress Multisite**: Theme powers all 9 active network sites with shared routing and navigation patterns
 - **Shared Community Activity Helper**: Centralized library (`inc/core/templates/community-activity.php`) exposes `extrachill_get_community_activity_items()` and `extrachill_render_community_activity()`
 - **Community Data Source**: Queries community.extrachill.com (Blog ID 2) for bbPress topics/replies with 10-minute caching and renders default sidebar/homepage widgets
 - **Activity Feeds**: Sidebar widget plus plugin-provided homepage blocks consume the same helper for consistent markup
@@ -121,7 +121,7 @@ For production deployment, use the build script to create clean ZIP packages:
 ./build.sh
 
 # Output will be in build/ directory:
-# - build/extrachill.zip (deployable ZIP file only - unzip when directory access needed)
+# - build/extrachill.zip (deployable ZIP file only)
 ```
 
 #### Build Process Features
@@ -159,21 +159,18 @@ extrachill/
 │   │   └── share.js            # Share button interactions
 │   └── fonts/                  # Local web fonts
 ├── inc/                        # Modular PHP functionality
-│   ├── components/             # Reusable UI components (2 files)
+│   ├── components/             # Reusable UI components
 │   │   ├── filter-bar.php      # Universal filter bar component
-│   │   └── filter-bar-defaults.php # Filter bar default configurations
-│   ├── archives/               # Archive page functionality (8 files)
+│   │   └── filter-bar-defaults.php # Filter bar defaults via filters
+│   ├── archives/               # Archive page functionality
 │   │   ├── archive.php
 │   │   ├── archive-header.php
-│   │   ├── archive-filter-bar.php
-│   │   ├── archive-child-terms-dropdown.php
 │   │   ├── archive-custom-sorting.php
-│   │   ├── artist-profile-link.php  # Artist profile integration linking to artist.extrachill.com
 │   │   ├── post-card.php
-│   │   └── search/             # Search integration (1 file)
+│   │   └── search/             # Search integration
 │   │       └── search-header.php  # Search header (via extrachill_search_header hook)
-│   ├── core/                   # Core WordPress features (7 files + 2 subdirectories)
-│   │   ├── templates/          # Shared template components (10 files)
+│   ├── core/                   # Core WordPress features
+│   │   ├── templates/          # Shared template components
 │   │   │   ├── post-meta.php
 │   │   │   ├── pagination.php
 │   │   │   ├── no-results.php
@@ -183,18 +180,19 @@ extrachill/
 │   │   │   ├── breadcrumbs.php
 │   │   │   ├── searchform.php
 │   │   │   ├── 404.php
+│   │   │   ├── network-dropdown.php
 │   │   │   └── community-activity.php  # Shared community activity helper library
-│   │   ├── editor/             # Custom embeds (3 files)
+│   │   ├── editor/             # Custom embed handlers
 │   │   │   ├── bandcamp-embeds.php
-│   │   │   ├── instagram-embeds.php
-│   │   │   └── spotify-embeds.php
+│   │   │   └── instagram-embeds.php
 │   │   ├── actions.php         # Centralized WordPress action hooks
 │   │   ├── assets.php          # Asset management
 │   │   ├── custom-taxonomies.php
-│   │   ├── yoast-stuff.php
-│   │   ├── view-counts.php     # Universal post view tracking
+│   │   ├── icons.php
+│   │   ├── notices.php
 │   │   ├── rewrite.php         # Category base rewriting
-│   │   └── template-router.php # WordPress native template routing
+│   │   ├── template-router.php # WordPress native template routing
+│   │   └── view-counts.php     # Universal post view tracking
 │   ├── footer/                 # Footer navigation functionality (3 files)
 │   │   ├── footer-bottom-menu.php
 │   │   ├── footer-main-menu.php
@@ -257,7 +255,7 @@ The theme follows a modular architecture with clear separation of concerns:
 
 - **Core WordPress functionality** in `/inc/core/` (8 core files + 2 subdirectories = 21 total files)
 - **Shared template components** in `/inc/core/templates/` (11 reusable templates including 404.php, community-activity.php, and notices.php)
-- **Custom embeds** in `/inc/core/editor/` (3 embed types: Bandcamp, Spotify, Instagram)
+- **Custom embeds** in `/inc/core/editor/` (2 embed types: Bandcamp, Instagram)
 - **Archive functionality** in `/inc/archives/` (7 core files + search subdirectory with 1 file = 8 total files)
 - **Search integration** in `/inc/archives/search/` (1 file: search-header.php used via extrachill_search_header hook by extrachill-search plugin)
 - **Footer navigation** in `/inc/footer/` (4 footer files: main menu, bottom menu, back-to-home navigation, online users stats)

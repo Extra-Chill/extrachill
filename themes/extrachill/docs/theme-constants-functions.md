@@ -129,41 +129,7 @@ add_action('upload_mimes', 'add_file_types_to_uploads');
 
 **Enables**: SVG file uploads in media library
 
-## Security Features
-
-### Password Protection Filter
-
-```php
-function wpb_password_post_filter( $where = '' ) {
-    if (!is_single() && !is_admin()) {
-        $where .= " AND post_password = ''";
-    }
-    return $where;
-}
-add_filter( 'posts_where', 'wpb_password_post_filter' );
-```
-
-**Effect**: Hides password-protected posts from archives and listings
-
 ## Performance Optimizations
-
-### Dashicons Removal (Non-logged-in Users)
-
-```php
-function wpshapere_remove_dashicons_wordpress() {
-  if ( ! is_user_logged_in() ) {
-    wp_dequeue_style('dashicons');
-    wp_deregister_style( 'dashicons' );
-  }
-}
-add_action( 'wp_enqueue_scripts', 'wpshapere_remove_dashicons_wordpress' );
-```
-
-**Benefit**: Reduces CSS load for non-admin users
-
-### Notice System Performance
-
-Notice dismissal uses efficient cookie-based tracking with minimal JavaScript overhead. Notices are only loaded when displayed, preventing unnecessary asset loading.
 
 ### Admin Styles Prevention
 
@@ -173,71 +139,16 @@ function extrachill_prevent_admin_styles_on_frontend() {
         return;
     }
 
-    // Dequeue admin bar styles for non-logged-in users
     if ( ! is_user_logged_in() || ! is_admin_bar_showing() ) {
         wp_dequeue_style( 'admin-bar' );
-        wp_dequeue_style( 'dashicons' );
     }
 
-    // Dequeue plugin admin styles
     wp_dequeue_style( 'imagify-admin-bar' );
 
-    // Conditionally dequeue Co-Authors Plus
-    if ( ! is_single() || ! is_plugin_active('co-authors-plus/co-authors-plus.php') ) {
-        wp_dequeue_style( 'co-authors-plus-coauthors-style' );
-        // ... more Co-Authors styles
-    }
+    wp_dequeue_style( 'wp-block-library-theme' );
 }
 add_action( 'wp_enqueue_scripts', 'extrachill_prevent_admin_styles_on_frontend', 100 );
 ```
-
-## SEO Features
-
-### Noindex Low-Content Tags
-
-```php
-function wpse_cleantags_add_noindex( $robots ) {
-    global $wp_query;
-
-    if ( is_tag() && $wp_query->found_posts < 2 ) {
-        $robots['noindex'] = true;
-        $robots['follow']  = true;
-    }
-
-    return $robots;
-}
-add_filter( 'wp_robots', 'wpse_cleantags_add_noindex' );
-```
-
-**Effect**: Tag pages with less than 2 posts get `noindex` meta tag
-
-### Yoast Sitemap Integration
-
-**Location**: `/inc/core/yoast-stuff.php`
-
-Removes duplicate images from Yoast sitemap:
-
-```php
-function filter_yoast_sitemap_images($images, $post_id) {
-    $featured_image_url = get_the_post_thumbnail_url($post_id);
-    $post_content = get_post_field('post_content', $post_id);
-
-    // Remove featured image from sitemap if already in content
-    if (strpos($post_content, $featured_image_url) !== false) {
-        foreach ($images as $key => $image) {
-            if ($image['src'] === $featured_image_url) {
-                unset($images[$key]);
-                break;
-            }
-        }
-    }
-
-    return $images;
-}
-add_filter('wpseo_sitemap_urlimages', 'filter_yoast_sitemap_images', 10, 2);
-```
-
-## Content Cleanup
 
 ## Sticky Header Control
 
@@ -268,75 +179,6 @@ add_filter( 'extrachill_enable_sticky_header', function( $enabled ) {
 } );
 ```
 
-## Favicon Support
-
-```php
-function add_custom_favicon() {
-    if ( is_admin() ) {
-        return;
-    }
-
-    $favicon_url = get_site_url() . '/favicon.ico';
-    echo '<link rel="icon" href="' . esc_url($favicon_url) . '" type="image/x-icon" />';
-}
-add_action('wp_head', 'add_custom_favicon');
-```
-
-**Location**: Root `favicon.ico`
-
-## Auto-Update Control
-
-```php
-add_filter('auto_update_theme', '__return_false');
-```
-
-**Effect**: Prevents automatic theme updates
-
-## Co-Authors Plus Integration
-
-### REST API Support
-
-```php
-if ( is_plugin_active('co-authors-plus/co-authors-plus.php') ) {
-    add_action( 'rest_api_init', 'custom_register_coauthors' );
-
-    function custom_register_coauthors() {
-        register_rest_field( 'post', 'coauthors', array(
-            'get_callback' => 'custom_get_coauthors',
-            'schema'       => null,
-        ));
-    }
-
-    function custom_get_coauthors( $object, $field_name, $request ) {
-        $coauthors = get_coauthors($object['id']);
-
-        $authors = array();
-        foreach ($coauthors as $author) {
-            $authors[] = array(
-                'display_name'  => $author->display_name,
-                'user_nicename' => $author->user_nicename
-            );
-        }
-
-        return $authors;
-    }
-}
-```
-
-**Exposes**: Co-author data via REST API
-
-### Admin Notice
-
-```php
-else {
-    add_action('admin_notices', 'extrachill_coauthors_notice');
-    function extrachill_coauthors_notice() {
-        echo '<div class="notice notice-warning is-dismissible"><p>Co-Authors Plus plugin is not active. Some author-related features may use fallbacks.</p></div>';
-    }
-}
-```
-
-**Shows**: Warning when Co-Authors Plus not active
 
 ## Theme Textdomain
 

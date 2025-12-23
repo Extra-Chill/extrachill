@@ -51,6 +51,10 @@ function extrachill_get_dropdown_network_sites() {
 			'label' => 'Documentation',
 			'url'   => ec_get_site_url( 'docs' ),
 		),
+		array(
+			'label' => 'News Wire',
+			'url'   => ec_get_site_url( 'wire' ),
+		),
 	);
 
 	return $sites;
