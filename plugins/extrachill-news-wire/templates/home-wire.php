@@ -9,6 +9,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+extrachill_breadcrumbs();
+
 $festival_wire_archive_url = get_post_type_archive_link( 'festival_wire' );
 
 $latest_posts = get_posts(
@@ -25,7 +27,7 @@ echo '<div class="main-content festival-wire-page">';
 echo '<main id="main" class="site-main" role="main">';
 
 echo '<header class="page-header">';
-echo '<h1 class="page-title">Extra Chill Wire</h1>';
+echo '<h1 class="page-title">Extra Chill News Wire</h1>';
 echo '<div class="archive-description">Automated news feeds across the Extra Chill network.</div>';
 echo '</header>';
 

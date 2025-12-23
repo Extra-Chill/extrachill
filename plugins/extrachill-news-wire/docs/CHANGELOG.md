@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.3.1] - 2025-12-22
+
+### Added
+- Breadcrumb customization for wire site (blog ID 11) with dedicated overrides
+- Homepage breadcrumb trail showing "News Wire"
+- Archive and taxonomy breadcrumb trails with proper wire context
+- Single post breadcrumb trails using post titles
+- Modified back-to-home link label to "← Back to News Wire" on non-homepage pages
+- Breadcrumb rendering in wire hub homepage template
+
 ## [0.3.0] - 2025-12-22
 
 ### Added
