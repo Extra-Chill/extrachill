@@ -33,7 +33,7 @@ Complete React-based component for Gutenberg block editor providing link page ed
 
 #### 2. Link Page Analytics Block
 
-**Location**: `src/blocks/link-page-analytics/`
+**Location**: `src/blocks/artist-analytics/`
 
 Separate analytics dashboard block providing comprehensive performance metrics for link pages.
 
@@ -52,9 +52,9 @@ Separate analytics dashboard block providing comprehensive performance metrics f
 - **Custom Hooks**: useAnalytics for analytics data
 - **REST API Integration**: API client for analytics data endpoints
 
-#### 3. Artist Profile Manager Block
+#### 3. Artist Manager Block
 
-**Location**: `src/blocks/artist-profile-manager/`
+**Location**: `src/blocks/artist-manager/`
 
 Complete artist profile management interface providing profile editing, roster management, and subscriber administration.
 
@@ -84,7 +84,7 @@ Complete artist profile management interface providing profile editing, roster m
 
 ### Artist Profile Management
 
-Artist profile management is handled exclusively via the Artist Profile Manager block (`src/blocks/artist-profile-manager/`).
+Artist profile management is handled exclusively via the Artist Manager block (`src/blocks/artist-manager/`).
 
 **Location**: `inc/artist-profiles/assets/js/`
 - `artist-members-admin.js` - Backend member administration

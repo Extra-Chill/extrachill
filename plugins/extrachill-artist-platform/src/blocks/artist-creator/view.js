@@ -11,6 +11,7 @@ const useConfig = () => {
 			prefill: config.prefill || {},
 			manageArtistUrl: config.manageArtistUrl || '/manage-artist/',
 			createLinkPageUrl: config.createLinkPageUrl || '/manage-link-page/',
+			createShopUrl: config.createShopUrl || '',
 		} ),
 		[ config ]
 	);
@@ -25,19 +26,20 @@ const App = () => {
 		name: config.prefill?.artist_name || '',
 		profileImage: config.prefill?.avatar_thumb || '',
 		profileImageId: config.prefill?.avatar_id || null,
+		profileImageFile: null,
 	} );
 
-	const handleFileUpload = async ( file ) => {
-		try {
-			const response = await uploadMedia( 'artist_profile', 0, file );
-			setFormState( ( prev ) => ( {
-				...prev,
-				profileImage: response?.url || '',
-				profileImageId: response?.attachment_id || null,
-			} ) );
-		} catch ( err ) {
-			setError( 'Failed to upload image.' );
+	const handleFileSelect = ( file ) => {
+		if ( ! file ) {
+			return;
 		}
+
+		setFormState( ( prev ) => ( {
+			...prev,
+			profileImage: URL.createObjectURL( file ),
+			profileImageId: null,
+			profileImageFile: file,
+		} ) );
 	};
 
 	const handleRemoveImage = () => {
@@ -45,6 +47,7 @@ const App = () => {
 			...prev,
 			profileImage: '',
 			profileImageId: null,
+			profileImageFile: null,
 		} ) );
 	};
 
@@ -59,13 +62,28 @@ const App = () => {
 		setSaving( true );
 		setError( '' );
 
-		const payload = {
-			name: formState.name,
-			profile_image_id: formState.profileImageId,
-		};
-
 		try {
-			const created = await createArtist( payload );
+			const created = await createArtist( { name: formState.name } );
+
+			if ( created?.id && formState.profileImageFile ) {
+				try {
+					const uploadResponse = await uploadMedia(
+						'artist_profile',
+						created.id,
+						formState.profileImageFile
+					);
+
+					setFormState( ( prev ) => ( {
+						...prev,
+						profileImage: uploadResponse?.url || prev.profileImage,
+						profileImageId: uploadResponse?.attachment_id || null,
+						profileImageFile: null,
+					} ) );
+				} catch ( err ) {
+					setError( 'Artist created, but image upload failed.' );
+				}
+			}
+
 			if ( created?.id ) {
 				setCreatedArtist( created );
 			}
@@ -78,28 +96,46 @@ const App = () => {
 
 	if ( createdArtist ) {
 		return (
-			<div className="notice notice-success">
-				<p>
-					<strong>
-						Your artist profile "{ createdArtist.name }" has been created!
-					</strong>
-				</p>
-				<p>What would you like to do next?</p>
-				<div className="ec-artist-creator__actions">
-					<a
-						href={ config.manageArtistUrl }
-						className="button-2 button-medium"
-					>
-						Manage Artist Profile
-					</a>
-					<a
-						href={ config.createLinkPageUrl }
-						className="button-1 button-medium"
-					>
-						Create Link Page
-					</a>
+			<>
+				<div className="notice notice-success">
+					<p>
+						<strong>
+							Your artist profile "{ createdArtist.name }" has been created!
+						</strong>
+					</p>
+					<p>What would you like to do next?</p>
+					<div className="ec-artist-creator__actions">
+						<a
+							href={ config.manageArtistUrl }
+							className="button-2 button-medium"
+						>
+							Manage Artist Profile
+						</a>
+						<a
+							href={ config.createLinkPageUrl }
+							className="button-1 button-medium"
+						>
+							Create Link Page
+						</a>
+						{ config.createShopUrl && (
+							<a
+								href={ config.createShopUrl }
+								className="button-1 button-medium"
+							>
+								Create Shop
+							</a>
+						) }
+					</div>
 				</div>
-			</div>
+
+				{ error && (
+					<div className="notice notice-error">
+						<p>
+							<strong>Error:</strong> { error }
+						</p>
+					</div>
+				) }
+			</>
 		);
 	}
 
@@ -151,12 +187,7 @@ const App = () => {
 						id="ec-artist-profile-image"
 						type="file"
 						accept="image/*"
-						onChange={ ( e ) => {
-							const file = e.target.files?.[ 0 ];
-							if ( file ) {
-								handleFileUpload( file );
-							}
-						} }
+						onChange={ ( e ) => handleFileSelect( e.target.files?.[ 0 ] ) }
 					/>
 				</div>
 

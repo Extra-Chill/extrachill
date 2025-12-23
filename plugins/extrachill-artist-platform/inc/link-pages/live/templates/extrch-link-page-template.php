@@ -198,7 +198,7 @@ $body_bg_style = '';
 
         <?php if ($data['powered_by']): ?>
         <div class="extrch-link-page-powered" style="margin-top:auto; padding-top:1em; padding-bottom:1em;">
-            <a href="https://extrachill.link" rel="noopener">Powered by Extra Chill</a>
+            <a href="https://extrachill.com" rel="noopener">Powered by Extra Chill</a>
         </div>
         <?php endif; ?>
     </div>

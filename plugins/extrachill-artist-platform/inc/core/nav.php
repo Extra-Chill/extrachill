@@ -66,14 +66,31 @@ function ec_artist_platform_secondary_header_items( $items ) {
 			'priority' => 20,
 		);
 
-		// Analytics Link (priority 30) - only if user has link pages
+		// Analytics Link (priority 40) - only if user has link pages
 		if ( $link_page_count > 0 ) {
 			$items[] = array(
 				'url'      => home_url( '/analytics/' ),
 				'label'    => __( 'Analytics', 'extrachill-artist-platform' ),
-				'priority' => 30,
+				'priority' => 40,
 			);
 		}
+
+	}
+
+	// Shop Link (priority 30).
+	$can_manage_shop = function_exists( 'ec_can_manage_shop' ) ? ec_can_manage_shop( $user_id ) : false;
+	if ( $can_manage_shop ) {
+		$product_count = function_exists( 'ec_get_shop_product_count_for_user' )
+			? ec_get_shop_product_count_for_user( $user_id )
+			: 0;
+
+		$items[] = array(
+			'url'      => home_url( '/manage-shop/' ),
+			'label'    => $product_count > 0
+				? __( 'Manage Shop', 'extrachill-artist-platform' )
+				: __( 'Create Shop', 'extrachill-artist-platform' ),
+			'priority' => 30,
+		);
 	}
 
 	return $items;

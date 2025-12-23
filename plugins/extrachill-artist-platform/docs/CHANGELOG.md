@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.0] - 2025-12-22
+
+### Added
+- **Artist Shop Manager Enhancements**: Complete e-commerce system with Stripe Connect integration, order management, shipping label purchasing ($5 flat rate USPS), inventory tracking with size variants (XS-XXL), product CRUD operations with up to 5 images, and payment processing capabilities
+- **Shop Navigation**: Integrated shop management links in artist platform navigation with conditional display based on permissions and product count
+- **Shared Components**: New `TabNav.js` component for consistent tab navigation across Gutenberg blocks
+- **Artist Creator Shop Access**: Added shop creation workflow integration in artist profile creation flow
+
+### Changed
+- **Block Renaming**: Renamed `link-page-analytics` block to `artist-analytics` and `artist-profile-manager` block to `artist-manager` for naming consistency
+- **Shop Manager Architecture**: Refactored `artist-shop-manager` block to use modular tab components (ProductsTab, OrdersTab, PaymentsTab, ShippingTab) instead of inline code
+- **Navigation Priorities**: Adjusted secondary header navigation priorities (shop: 30, analytics: 40)
+- **Security Improvements**: Added "ugc" attribute to link `rel` attributes across all public templates for enhanced security
+- **Documentation Updates**: Updated all documentation references to reflect block renaming and expanded shop manager features
+
+### Technical Improvements
+- **Component Modularization**: Extracted tab components from inline code to reusable modules in `src/blocks/artist-shop-manager/components/tabs/`
+- **URL Standardization**: Updated "Powered by Extra Chill" footer link to use extrachill.com domain
+- **Code Cleanup**: Removed redundant imports and standardized on WordPress element imports in shop manager components
+
 ## [1.5.2] - 2025-12-17
 
 ### Enhanced

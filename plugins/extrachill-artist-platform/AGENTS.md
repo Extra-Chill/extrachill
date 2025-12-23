@@ -83,9 +83,9 @@ The plugin provides comprehensive integration with the extrachill.link domain fo
     - **React Components**: Tab-based interface with TabInfo, TabLinks, TabCustomize, TabAdvanced, TabSocials
     - **Build Process**: Webpack compilation via `npm run build` with wp-scripts
     - **API Client**: REST API integration via `src/blocks/shared/api/client.js`
-  - **Analytics Dashboard**: Separate dedicated block `src/blocks/link-page-analytics/`
-    - **Block Registration**: Registered in main plugin init via `register_block_type( __DIR__ . '/build/blocks/link-page-analytics' )`
-    - **Features**: Chart.js-powered analytics, daily aggregation, link click tracking
+   - **Analytics Dashboard**: Separate dedicated block `src/blocks/artist-analytics/`
+     - **Block Registration**: Registered in main plugin init via `register_block_type( __DIR__ . '/build/blocks/artist-analytics' )`
+     - **Features**: Chart.js-powered analytics, daily aggregation, link click tracking
 - **Advanced Features**: `inc/link-pages/management/advanced-tab/` - Tracking, redirects, link expiration, YouTube embeds
 - **Component Templates**: `inc/link-pages/management/templates/components/` - Modular UI components
 - **Subscription Templates**: `inc/link-pages/live/templates/` - Email collection forms and modals
@@ -111,7 +111,7 @@ The plugin provides comprehensive integration with the extrachill.link domain fo
 - **Action Hooks**: `extrachill_link_page_view_recorded`, `extrachill_link_click_recorded` for handling tracking writes
 - **Data Tables**: Daily views and link clicks stored in `{prefix}_extrch_link_page_daily_views` and `{prefix}_extrch_link_page_daily_link_clicks` tables
 - **Data Retention**: Automatic 90-day pruning of daily analytics tables
-- **Dashboard**: Chart.js-powered analytics block `src/blocks/link-page-analytics/` with daily breakdown charts (v1.1.11+)
+- **Dashboard**: Chart.js-powered analytics block `src/blocks/artist-analytics/` with daily breakdown charts (v1.1.11+)
 
 #### Roster Management System
 **Location**: `inc/artist-profiles/roster/`
@@ -218,7 +218,7 @@ Complete React-based Gutenberg block for link page editing with live preview:
 - `useMediaUpload.js`: Hook for media upload handling
 - `useSocials.js`: Hook for social platform management
 
-**2. Link Page Analytics Block** (`src/blocks/link-page-analytics/`)
+**2. Link Page Analytics Block** (`src/blocks/artist-analytics/`)
 
 Dedicated Gutenberg block providing comprehensive analytics interface:
 
@@ -235,7 +235,7 @@ Dedicated Gutenberg block providing comprehensive analytics interface:
 - **AnalyticsContext.js**: Context for analytics data management
 - **Custom Hooks**: useAnalytics for analytics queries
 
-**3. Artist Profile Manager Block** (`src/blocks/artist-profile-manager/`)
+**3. Artist Manager Block** (`src/blocks/artist-manager/`)
 
 Complete artist profile management interface:
 
@@ -265,21 +265,106 @@ Dedicated Gutenberg block for artist profile creation:
 
 **5. Artist Shop Manager Block** (`src/blocks/artist-shop-manager/`)
 
-Comprehensive shop product management interface:
+Comprehensive shop product management with Stripe integration:
+
+**Location**: `src/blocks/artist-shop-manager/`
 
 **Features**:
-- Shop product CRUD operations (create, read, update, delete)
-- Product media uploads and management
-- Shop configuration and display settings
-- Inventory tracking and management
-- REST API integration for all shop operations
+- Complete shop product CRUD operations (create, read, update, delete)
+- Product media uploads and management (up to 5 images per product)
+- Inventory tracking and management with size variants
+- Order management with fulfillment tracking
+- Stripe Connect integration for payment processing
+- Shipping configuration and label purchasing
+- Product status management (draft/published)
+- Sale price and pricing management
+
+**Component Structure**:
+
+**ProductsTab** (`components/tabs/ProductsTab.js`):
+- Product creation and editing form
+- Drag-and-drop image reordering
+- Size variant support via STANDARD_SIZES array (XS, S, M, L, XL, XXL)
+- Individual size stock tracking
+- Product name, price, sale price, and description editing
+- Product publishing with Stripe validation (requires Stripe Connect for public products)
+- Draft/published status selection
+- Stripe connection status checking with helpful messaging
+- Image upload with preview generation and cleanup
+- Product listing display with status indicators and quick actions
+- Drag-and-drop image management (up to 5 images)
+- Image deletion and reordering via REST API
+- Size display on product cards with out-of-stock indicators
+
+**OrdersTab** (`components/tabs/OrdersTab.js`):
+- Order list with filtering (All, Needs Fulfillment, Completed)
+- Order detail view with customer and shipping information
+- Shipping label purchasing ($5 flat rate USPS)
+- Tracking number management and entry
+- Order status management and updates
+- Refund processing with confirmation
+- Customer information display (name, email, shipping address)
+- Item-level order details with quantities and totals
+- Artist payout calculation and display
+- Shipping label reprinting capability
+
+**PaymentsTab** (`components/tabs/PaymentsTab.js`):
+- Stripe Connect status display
+- Connection flow with OAuth redirect
+- Account details verification status
+- Charges and payouts enablement status
+- Stripe dashboard access for account management
+- Payment capability status checking
+- Note display for pending/restricted accounts
+- Status refresh functionality
+
+**ShippingTab** (`components/ShippingTab.js`):
+- Shipping address form (required for order fulfillment)
+- Full name, street address (primary and secondary), city, state, ZIP code, country
+- US state dropdown selection
+- Form validation and error handling
+- Address persistence via REST API
+- Success feedback after save
+
+**REST API Integration**:
+- `createShopProduct()`: Create new product with status
+- `updateShopProduct()`: Update product and publish
+- `deleteShopProduct()`: Move product to trash
+- `uploadShopProductImages()`: Upload product images with preview generation
+- `deleteShopProductImage()`: Delete specific product image
+- `purchaseShippingLabel()`: Purchase USPS shipping label
+- `getArtistShippingAddress()`: Fetch configured shipping address
+- `updateArtistShippingAddress()`: Save/update shipping address
+
+**Validation & Constraints**:
+- Product name required
+- Price must be greater than zero
+- At least one image required for published products
+- Stripe Connect required for publishing (can_receive_payments)
+- Size variant management with auto-total calculation
+- Maximum 5 images per product
+- Inventory tracking toggles based on size usage or manual stock entry
+
+**Stripe Integration**:
+- **Connection Status**: Checks `can_receive_payments`, `charges_enabled`, `payouts_enabled`
+- **Account Status**: Displays `connected`, `pending`, `restricted` states
+- **Details Verification**: Shows `details_submitted` status
+- **Automatic Validation**: Prevents product publishing until Stripe is fully set up
+- **Error Messaging**: Clear guidance on Stripe setup requirements before publishing
+
+**Size Variants**:
+- Fixed size set: XS, S, M, L, XL, XXL
+- Per-size inventory tracking
+- Toggle to enable/disable size variant tracking
+- Auto-calculation of total inventory across sizes
+- Size display on product cards in storefront
 
 **REST API Integration** (All Blocks):
 - `client.js`: Unified API client for all block requests located at `src/blocks/shared/api/client.js`
 - Single source of truth for REST API calls across all blocks
 - Handles image uploads, saves, and data fetching
 - Automatic nonce handling and error management
-- Used by link-page-editor, link-page-analytics, and artist-profile-manager blocks
+- Used by link-page-editor, artist-analytics, artist-manager, artist-creator, and artist-shop-manager blocks
 
 **Build Configuration**:
 - **Webpack**: `webpack.config.js` - Compiles React and SCSS for all blocks
@@ -293,8 +378,8 @@ Comprehensive shop product management interface:
 // Registered in extrachill-artist-platform.php
 function extrachill_artist_platform_register_blocks() {
     register_block_type( __DIR__ . '/build/blocks/link-page-editor' );
-    register_block_type( __DIR__ . '/build/blocks/link-page-analytics' );
-    register_block_type( __DIR__ . '/build/blocks/artist-profile-manager' );
+    register_block_type( __DIR__ . '/build/blocks/artist-analytics' );
+    register_block_type( __DIR__ . '/build/blocks/artist-manager' );
     register_block_type( __DIR__ . '/build/blocks/artist-creator' );
     register_block_type( __DIR__ . '/build/blocks/artist-shop-manager' );
 }
@@ -305,13 +390,13 @@ add_action( 'init', 'extrachill_artist_platform_register_blocks' );
 - **Gutenberg Block Editor**: Modern React-based interface for WordPress block editor (primary)
 - **Management Pages**: The plugin auto-creates standard pages that mount blocks (see `extrachill_artist_platform_create_pages()` in `extrachill-artist-platform.php`):
   - `/create-artist/` (artist-creator)
-  - `/manage-artist-profiles/` (artist-profile-manager)
+  - `/manage-artist-profiles/` (artist-manager)
   - `/manage-link-page/` (link-page-editor)
   - `/manage-shop/` (artist-shop-manager)
 - **Post Type Editing Context**:
-  - Artist profiles: `artist_profile` post type (managed via artist-profile-manager)
+  - Artist profiles: `artist_profile` post type (managed via artist-manager)
   - Link pages: `artist_link_page` post type (managed via link-page-editor)
-- **Analytics**: Separate `link-page-analytics` block for analytics dashboards
+- **Analytics**: Separate `artist-analytics` block for analytics dashboards
 - **REST API**: All management operations via REST API, not traditional AJAX
 - **Unified Data**: Blocks use centralized data functions (ec_get_link_page_data, ec_get_artist_profile_data)
 
@@ -582,7 +667,7 @@ add_action( 'extrachill_below_login_register_form', 'ec_render_join_flow_modal' 
   - `single-artist_profile.php` - Artist profile single page
   - `artist-directory.php` - Artist directory archive
   - `artist-card.php` - Reusable artist card component (renamed from artist-profile-card.php)
-  - `manage-artist-profile-tabs/` - Legacy tab templates (replaced by artist-profile-manager block)
+   - `manage-artist-profile-tabs/` - Legacy tab templates (replaced by artist-manager block)
 - **Homepage Templates**: `inc/home/templates/`
   - `homepage.php` - Main homepage template override
   - `hero.php` - Hero section with user-state-aware messaging

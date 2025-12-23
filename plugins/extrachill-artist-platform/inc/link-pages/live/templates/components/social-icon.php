@@ -40,7 +40,7 @@ if ( empty( $icon_class ) ) {
 <a href="<?php echo esc_url( $social_data['url'] ); ?>"
    class="extrch-social-icon"
    target="_blank"
-   rel="noopener noreferrer"
+   rel="ugc noopener noreferrer"
    title="<?php echo esc_attr( $label ); ?>"
    aria-label="<?php echo esc_attr( $label ); ?>">
     <i class="<?php echo esc_attr( $icon_class ); ?>"></i>

@@ -93,6 +93,12 @@
   display: block;
 }
 
+.post-type-archive-artist_profile .artist-profile-image-overlay img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
 /* Artist Info Overlay */
 .artist-info-overlay {
   flex: 1;

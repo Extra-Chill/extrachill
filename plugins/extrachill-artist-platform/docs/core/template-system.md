@@ -126,12 +126,12 @@ echo $css_block;
 
 ## Live Preview Integration
 
-The Gutenberg block editors in `src/blocks/` (link-page-editor, artist-profile-manager, link-page-analytics) provide live preview of changes through React components. Each block's Preview or Analytics component displays real-time updates as artists make changes.
+The Gutenberg block editors in `src/blocks/` (link-page-editor, artist-manager, artist-analytics) provide live preview of changes through React components. Each block's Preview or Analytics component displays real-time updates as artists make changes.
 
 **Block-Based Management**:
-- **Artist Profiles**: Managed via `src/blocks/artist-profile-manager/` React block with tab-based interface
+- **Artist Profiles**: Managed via `src/blocks/artist-manager/` React block with tab-based interface
 - **Link Pages**: Edited via `src/blocks/link-page-editor/` React block with live preview
-- **Analytics**: Viewed via `src/blocks/link-page-analytics/` dedicated analytics block
+- **Analytics**: Viewed via `src/blocks/artist-analytics/` dedicated analytics block
 
 ```php
 // Preview data uses same function as templates

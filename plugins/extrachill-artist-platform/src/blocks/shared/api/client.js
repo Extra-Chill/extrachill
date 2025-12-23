@@ -187,6 +187,25 @@ export const refundShopOrder = ( orderId, artistId ) =>
 		body: JSON.stringify( { artist_id: artistId } ),
 	} );
 
+// Shipping
+export const getArtistShippingAddress = ( artistId ) =>
+	get( `extrachill/v1/shop/shipping-address?artist_id=${ artistId }` );
+
+export const updateArtistShippingAddress = ( artistId, address ) =>
+	put( 'extrachill/v1/shop/shipping-address', {
+		artist_id: artistId,
+		...address,
+	} );
+
+export const purchaseShippingLabel = ( orderId, artistId ) =>
+	post( 'extrachill/v1/shop/shipping-labels', {
+		order_id: orderId,
+		artist_id: artistId,
+	} );
+
+export const getShippingLabel = ( orderId, artistId ) =>
+	get( `extrachill/v1/shop/shipping-labels/${ orderId }?artist_id=${ artistId }` );
+
 // Permissions
 export const getArtistPermissions = ( artistId ) =>
 	get( `extrachill/v1/artists/${ artistId }/permissions` );
@@ -222,5 +241,9 @@ export default {
 	listShopOrders,
 	updateShopOrderStatus,
 	refundShopOrder,
+	getArtistShippingAddress,
+	updateArtistShippingAddress,
+	purchaseShippingLabel,
+	getShippingLabel,
 	getArtistPermissions,
 };

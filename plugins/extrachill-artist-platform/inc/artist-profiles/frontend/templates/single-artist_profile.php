@@ -136,7 +136,7 @@ get_header(); ?>
                                             $public_url_display_text = preg_replace( '#^https?://#', '', $public_url_href );
 
                                             echo '<div class="artist-public-link-display">';
-                                            echo '<a href="' . esc_url( $public_url_href ) . '" class="button-3 button-medium" rel="noopener">' . esc_html( $public_url_display_text ) . '</a>';
+                                            echo '<a href="' . esc_url( $public_url_href ) . '" class="button-3 button-medium" rel="ugc noopener">' . esc_html( $public_url_display_text ) . '</a>';
                                             echo '</div>';
                                         }
                                     }

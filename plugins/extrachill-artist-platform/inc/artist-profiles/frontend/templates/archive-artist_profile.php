@@ -21,7 +21,7 @@ get_header();
 </header>
 
 <div class="taxonomy-description">
-    <p><?php esc_html_e( 'Discover amazing artists, connect with them, and join their community discussions.', 'extrachill-artist-platform' ); ?></p>
+    <p><?php esc_html_e( 'These are all the artists who are part of the Extra Chill Artist Platform. Explore and get to know them below.', 'extrachill-artist-platform' ); ?></p>
 </div>
 
 

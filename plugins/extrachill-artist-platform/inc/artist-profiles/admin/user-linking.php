@@ -19,41 +19,56 @@ defined( 'ABSPATH' ) || exit;
  * @return bool True on success, false on failure or if already a member.
  */
 function ec_add_artist_membership( $user_id, $artist_id ) {
-    $user_id = absint( $user_id );
+    $user_id  = absint( $user_id );
     $artist_id = absint( $artist_id );
 
-    if ( ! $user_id || ! $artist_id || get_post_type( $artist_id ) !== 'artist_profile' ) {
+    if ( ! $user_id || ! $artist_id ) {
         return false;
     }
 
-    // Step 1: Update User Meta (_artist_profile_ids on user)
+    $artist_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'artist' ) : null;
+
+    // Step 1: Verify artist exists (artist site)
+    try {
+        if ( $artist_blog_id ) {
+            switch_to_blog( $artist_blog_id );
+        }
+
+        if ( get_post_type( $artist_id ) !== 'artist_profile' ) {
+            return false;
+        }
+
+        // Step 2: Update Artist Profile Post Meta (_artist_member_ids on artist_profile post)
+        $current_member_ids_on_artist = get_post_meta( $artist_id, '_artist_member_ids', true );
+        if ( ! is_array( $current_member_ids_on_artist ) ) {
+            $current_member_ids_on_artist = [];
+        }
+
+        if ( ! in_array( $user_id, $current_member_ids_on_artist, true ) ) {
+            $current_member_ids_on_artist[] = $user_id;
+            $current_member_ids_on_artist   = array_unique( array_map( 'absint', $current_member_ids_on_artist ) );
+            $current_member_ids_on_artist   = array_values( array_filter( $current_member_ids_on_artist ) );
+            update_post_meta( $artist_id, '_artist_member_ids', $current_member_ids_on_artist );
+        }
+    } finally {
+        if ( $artist_blog_id ) {
+            restore_current_blog();
+        }
+    }
+
+    // Step 3: Update User Meta (_artist_profile_ids on user)
     $current_artist_ids_on_user = get_user_meta( $user_id, '_artist_profile_ids', true );
     if ( ! is_array( $current_artist_ids_on_user ) ) {
         $current_artist_ids_on_user = [];
     }
 
-    $already_member_on_user_meta = in_array( $artist_id, $current_artist_ids_on_user );
-
-    if ( ! $already_member_on_user_meta ) {
+    if ( ! in_array( $artist_id, $current_artist_ids_on_user, true ) ) {
         $current_artist_ids_on_user[] = $artist_id;
-        $current_artist_ids_on_user = array_unique( $current_artist_ids_on_user );
+        $current_artist_ids_on_user   = array_unique( array_map( 'absint', $current_artist_ids_on_user ) );
+        $current_artist_ids_on_user   = array_values( array_filter( $current_artist_ids_on_user ) );
+
         if ( ! update_user_meta( $user_id, '_artist_profile_ids', $current_artist_ids_on_user ) ) {
             return false;
-        }
-    }
-
-    // Step 2: Update Artist Profile Post Meta (_artist_member_ids on artist_profile post)
-    $current_member_ids_on_artist = get_post_meta( $artist_id, '_artist_member_ids', true );
-    if ( ! is_array( $current_member_ids_on_artist ) ) {
-        $current_member_ids_on_artist = [];
-    }
-
-    if ( ! in_array( $user_id, $current_member_ids_on_artist ) ) {
-        $current_member_ids_on_artist[] = $user_id;
-        $current_member_ids_on_artist = array_unique( array_map( 'absint', $current_member_ids_on_artist ) );
-        $current_member_ids_on_artist = array_filter( $current_member_ids_on_artist, function($id) { return $id > 0; } );
-        if ( ! update_post_meta( $artist_id, '_artist_member_ids', $current_member_ids_on_artist ) ) {
-            // User meta is correct even if this fails
         }
     }
 
@@ -69,46 +84,56 @@ function ec_add_artist_membership( $user_id, $artist_id ) {
  * @return bool True on success, false on failure.
  */
 function ec_remove_artist_membership( $user_id, $artist_id ) {
-    $user_id = absint( $user_id );
-    $artist_id = absint( $artist_id );
-
-    if ( ! $user_id || ! $artist_id ) {
-        return false;
-    }
-
-    // Step 1: Update User Meta (_artist_profile_ids on user)
-    $current_artist_ids_on_user = get_user_meta( $user_id, '_artist_profile_ids', true );
-    $user_meta_updated_successfully = true;
-
-    if ( is_array( $current_artist_ids_on_user ) && ! empty( $current_artist_ids_on_user ) ) {
-        $key_on_user_meta = array_search( $artist_id, $current_artist_ids_on_user );
-        if ( $key_on_user_meta !== false ) {
-            unset( $current_artist_ids_on_user[$key_on_user_meta] );
-            $current_artist_ids_on_user = array_values($current_artist_ids_on_user);
-            if ( ! update_user_meta( $user_id, '_artist_profile_ids', $current_artist_ids_on_user ) ) {
-                $user_meta_updated_successfully = false;
-            }
-        }
-    }
-
-    // Step 2: Update Artist Profile Post Meta (_artist_member_ids on artist_profile post)
-    $current_member_ids_on_artist = get_post_meta( $artist_id, '_artist_member_ids', true );
-    if ( ! is_array( $current_member_ids_on_artist ) ) {
-        $current_member_ids_on_artist = [];
-    }
-
-    $key_on_artist_meta = array_search( $user_id, $current_member_ids_on_artist );
-    if ( $key_on_artist_meta !== false ) {
-        unset( $current_member_ids_on_artist[$key_on_artist_meta] );
-        $current_member_ids_on_artist = array_values( array_unique( array_map( 'absint', $current_member_ids_on_artist ) ) );
-        $current_member_ids_on_artist = array_filter( $current_member_ids_on_artist, function($id) { return $id > 0; } );
-        if ( ! update_post_meta( $artist_id, '_artist_member_ids', $current_member_ids_on_artist ) ){
-            return $user_meta_updated_successfully ? false : false;
-        }
-    }
-
-    return $user_meta_updated_successfully;
-}
+     $user_id  = absint( $user_id );
+     $artist_id = absint( $artist_id );
+ 
+     if ( ! $user_id || ! $artist_id ) {
+         return false;
+     }
+ 
+     // Step 1: Update User Meta (_artist_profile_ids on user)
+     $current_artist_ids_on_user      = get_user_meta( $user_id, '_artist_profile_ids', true );
+     $user_meta_updated_successfully = true;
+ 
+     if ( is_array( $current_artist_ids_on_user ) && ! empty( $current_artist_ids_on_user ) ) {
+         $key_on_user_meta = array_search( $artist_id, $current_artist_ids_on_user, true );
+         if ( $key_on_user_meta !== false ) {
+             unset( $current_artist_ids_on_user[ $key_on_user_meta ] );
+             $current_artist_ids_on_user = array_values( $current_artist_ids_on_user );
+             if ( ! update_user_meta( $user_id, '_artist_profile_ids', $current_artist_ids_on_user ) ) {
+                 $user_meta_updated_successfully = false;
+             }
+         }
+     }
+ 
+     $artist_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'artist' ) : null;
+ 
+     // Step 2: Update Artist Profile Post Meta (_artist_member_ids on artist_profile post)
+     try {
+         if ( $artist_blog_id ) {
+             switch_to_blog( $artist_blog_id );
+         }
+ 
+         $current_member_ids_on_artist = get_post_meta( $artist_id, '_artist_member_ids', true );
+         if ( ! is_array( $current_member_ids_on_artist ) ) {
+             $current_member_ids_on_artist = [];
+         }
+ 
+         $key_on_artist_meta = array_search( $user_id, $current_member_ids_on_artist, true );
+         if ( $key_on_artist_meta !== false ) {
+             unset( $current_member_ids_on_artist[ $key_on_artist_meta ] );
+             $current_member_ids_on_artist = array_unique( array_map( 'absint', $current_member_ids_on_artist ) );
+             $current_member_ids_on_artist = array_values( array_filter( $current_member_ids_on_artist ) );
+             update_post_meta( $artist_id, '_artist_member_ids', $current_member_ids_on_artist );
+         }
+     } finally {
+         if ( $artist_blog_id ) {
+             restore_current_blog();
+         }
+     }
+ 
+     return $user_meta_updated_successfully;
+ }
 
 /**
  * Gets users linked to a specific artist profile.

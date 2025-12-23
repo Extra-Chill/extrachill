@@ -76,6 +76,8 @@ $config = array(
     'prefill'           => $prefill,
     'manageArtistUrl'   => home_url( '/manage-artist/' ),
     'createLinkPageUrl' => home_url( '/manage-link-page/' ),
+    // Admin-only during development
+    'createShopUrl'     => current_user_can( 'manage_options' ) ? home_url( '/manage-shop/' ) : '',
 );
 
 // Enqueue frontend script and styles

@@ -1,14 +1,89 @@
-# Gutenberg Block Editor for Link Pages
+## Gutenberg Block Editor System
+
+The Extra Chill Artist Platform provides comprehensive management through five specialized Gutenberg blocks:
+
+### 1. Link Page Editor Block (`src/blocks/link-page-editor/`)
 
 Complete React-based Gutenberg block providing modern interface for link page editing.
-
-## Overview
-
-The Gutenberg block editor provides a streamlined, intuitive interface for artists to create and customize their link pages directly within the WordPress block editor.
 
 **Location**: `src/blocks/link-page-editor/`
 
 **Block Registration**: Automatically registered on `artist_link_page` post type via `register_block_type( __DIR__ . '/build/blocks/link-page-editor' )`
+
+### 2. Artist Analytics Block (`src/blocks/artist-analytics/`)
+
+Dedicated Gutenberg block for viewing comprehensive link page analytics.
+
+**Location**: `src/blocks/artist-analytics/`
+
+**Block Registration**: Automatically registered for analytics dashboard
+
+**Features**:
+- Chart.js-powered analytics dashboard
+- Daily page view aggregation
+- Link click tracking and breakdown
+- Date range filtering
+- Artist context switching for multi-artist management
+
+---
+
+### 3. Artist Manager Block (`src/blocks/artist-manager/`)
+
+Complete artist profile management interface.
+
+**Location**: `src/blocks/artist-manager/`
+
+**Block Registration**: Automatically registered on `artist_profile` post type
+
+**Features**:
+- Artist information and biography editing
+- Profile image upload and management
+- Social link management (integrated with social platform system)
+- Roster/member management with team invitations
+- Subscriber list management and export
+
+---
+
+### 4. Artist Creator Block (`src/blocks/artist-creator/`)
+
+Dedicated Gutenberg block for artist profile creation.
+
+**Location**: `src/blocks/artist-creator/`
+
+**Features**:
+- Guided artist profile creation with user permission checks
+- Profile metadata initialization (name, biography, images)
+- User prefill from authenticated context
+- Automatic link page creation for new profiles
+- REST API integration for save operations
+
+---
+
+### 5. Artist Shop Manager Block (`src/blocks/artist-shop-manager/`)
+
+Comprehensive shop product management with Stripe integration.
+
+**Location**: `src/blocks/artist-shop-manager/`
+
+**Block Registration**: Automatically registered for shop management
+
+**Features**:
+- Complete shop product CRUD operations (create, read, update, delete)
+- Product media uploads and management (up to 5 images per product)
+- Inventory tracking and management with size variants
+- Order management with fulfillment tracking
+- Stripe Connect integration for payment processing
+- Shipping configuration and label purchasing
+- Product status management (draft/published)
+- Sale price and pricing management
+
+**For comprehensive documentation**, see [Artist Shop Manager Block Documentation](../shop-manager/shop-manager-block.md)
+
+---
+
+## Link Page Editor Block Details
+
+Complete React-based Gutenberg block providing modern interface for link page editing.
 
 ## Block Features
 
@@ -94,7 +169,7 @@ Each tab component handles specific functionality:
 - **TabAdvanced.js**: Advanced settings and tracking
 - **TabSocials.js**: Social media integration
 
-**Note**: Analytics dashboard moved to separate **Link Page Analytics Block** (`src/blocks/link-page-analytics/`) starting in v1.1.11. This provides a dedicated, standalone analytics interface outside the main editor.
+**Note**: Analytics dashboard moved to separate **Link Page Analytics Block** (`src/blocks/artist-analytics/`) starting in v1.1.11. This provides a dedicated, standalone analytics interface outside the main editor.
 
 ### Shared Components
 

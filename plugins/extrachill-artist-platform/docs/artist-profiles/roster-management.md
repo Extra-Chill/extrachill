@@ -17,9 +17,9 @@ The roster management system enables:
 
 Artist roster management is now handled via the Gutenberg block editor:
 
-**Location**: `src/blocks/artist-profile-manager/`
+**Location**: `src/blocks/artist-manager/`
 
-The artist profile manager block includes a **TabMembers** component providing:
+The artist manager block includes a **TabMembers** component providing:
 - Unified roster list showing linked members and pending invitations
 - Add member form with email validation
 - Member action buttons (remove, role management)
@@ -182,7 +182,7 @@ function ec_remove_member_from_artist($user_id, $artist_id) {
 
 **Block-Based Interface** (Primary)
 
-Location: `src/blocks/artist-profile-manager/` - React components handle all REST API communication
+Location: `src/blocks/artist-manager/` - React components handle all REST API communication
 
 ```javascript
 // Block REST API operations

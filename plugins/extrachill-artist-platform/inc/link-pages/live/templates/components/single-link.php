@@ -31,7 +31,7 @@ if ( $youtube_embed ) {
     $link_classes .= ' extrch-youtube-embed-link';
 }
 ?>
-<a href="<?php echo esc_url( $display_url ); ?>" class="<?php echo esc_attr( $link_classes ); ?>" rel="noopener">
+<a href="<?php echo esc_url( $display_url ); ?>" class="<?php echo esc_attr( $link_classes ); ?>" rel="ugc noopener">
     <span class="extrch-link-page-link-text"><?php echo esc_html( $display_text ); ?></span>
     <span class="extrch-link-page-link-icon">
         <button class="extrch-share-trigger extrch-share-item-trigger"

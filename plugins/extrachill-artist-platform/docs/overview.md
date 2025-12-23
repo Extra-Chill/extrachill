@@ -37,10 +37,10 @@ The platform consists of two primary custom post types:
 ### Advanced Features
 - **Five Gutenberg Blocks**: Modern React-based blocks for complete platform management
   - `link-page-editor`: Full link page editing with all features
-  - `artist-profile-manager`: Artist profile management and metadata
-  - `link-page-analytics`: Analytics dashboard with Chart.js visualization
+  - `artist-analytics`: Analytics dashboard with Chart.js visualization
+  - `artist-manager`: Artist profile management and metadata
   - `artist-creator`: Artist profile creation
-  - `artist-shop-manager`: Shop product management
+  - `artist-shop-manager`: Shop product management, orders, and Stripe Connect integration
 - **Cross-Domain Authentication**: WordPress multisite authentication across `.extrachill.com` subdomains and `extrachill.link`
 - **Link Expiration**: Time-based link scheduling and lifecycle management
 - **Asset Management**: Context-aware loading with file existence checks and timestamp cache busting
@@ -69,16 +69,20 @@ Five React-based Gutenberg blocks providing complete platform management:
   - Live preview with Context API state management
   - REST API integration for all data operations
 
-- **link-page-analytics**: Dedicated analytics dashboard
+- **artist-analytics**: Dedicated analytics dashboard
   - Chart.js-powered visualization
   - Daily page views and link click tracking
 
-- **artist-profile-manager**: Artist profile management
+- **artist-manager**: Artist profile management
   - Profile editing, roster management, subscribers
 
 - **artist-creator**: Artist profile creation flow
 
 - **artist-shop-manager**: Shop product management
+  - Product CRUD operations with image uploads
+  - Order management with shipping label integration
+  - Stripe Connect payment processing
+  - Inventory tracking with size variants
 
 **Build Process**:
 ```bash

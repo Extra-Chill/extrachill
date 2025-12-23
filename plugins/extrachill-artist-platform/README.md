@@ -13,10 +13,10 @@ Extra Chill Artist Platform is a WordPress plugin that powers artist profiles, m
 ## Gutenberg Blocks
 
 - **Link Page Editor** (`src/blocks/link-page-editor/`): Tabbed interface (Info, Links, Customize, Advanced, Socials) with dnd-kit reordering, live preview via PreviewContext, CSS custom properties, QR code generation, and advanced settings for tracking, redirects, and expiration.
-- **Link Page Analytics** (`src/blocks/link-page-analytics/`): Chart.js dashboard, artist switcher, date filtering, and REST-driven data powered by `inc/database/link-page-analytics-db.php` and `inc/link-pages/live/analytics.php` handlers.
-- **Artist Profile Manager** (`src/blocks/artist-profile-manager/`): Profile info, socials, roster members, and subscriber exports with REST API hooks for member invitations and removals.
+- **Link Page Analytics** (`src/blocks/artist-analytics/`): Chart.js dashboard, artist switcher, date filtering, and REST-driven data powered by `inc/database/link-page-analytics-db.php` and `inc/link-pages/live/analytics.php` handlers.
+- **Artist Manager** (`src/blocks/artist-manager/`): Profile info, socials, roster members, and subscriber exports with REST API hooks for member invitations and removals.
 - **Artist Creator** (`src/blocks/artist-creator/`): Guided profile creation that spins up an `artist_profile` post and companion link page for new artists when routed from the join flow.
-- **Artist Shop Manager** (`src/blocks/artist-shop-manager/`): Full shop CRUD interface with media uploads, inventory tracking, and REST integration for artist storefronts.
+- **Artist Shop Manager** (`src/blocks/artist-shop-manager/`): Full shop CRUD interface with product management, image uploads, inventory tracking, order fulfillment, shipping label purchasing, and Stripe Connect payment integration.
 
 ## Architecture & Data
 

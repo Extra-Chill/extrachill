@@ -30,19 +30,19 @@ if ( ! defined( 'ABSPATH' ) ) exit;
             </button>
 
             <!-- Fallback social links (hidden when native share is available) -->
-            <a class="extrch-share-option-button button-2 button-medium extrch-share-option-facebook extrch-share-option-visible" href="#" target="_blank" rel="noopener">
+            <a class="extrch-share-option-button button-2 button-medium extrch-share-option-facebook extrch-share-option-visible" href="#" target="_blank" rel="ugc noopener">
                 <span class="extrch-share-option-icon"><i class="fab fa-facebook"></i></span>
                 <span class="extrch-share-option-label">Facebook</span>
             </a>
-            <a class="extrch-share-option-button button-2 button-medium extrch-share-option-twitter extrch-share-option-visible" href="#" target="_blank" rel="noopener">
+            <a class="extrch-share-option-button button-2 button-medium extrch-share-option-twitter extrch-share-option-visible" href="#" target="_blank" rel="ugc noopener">
                 <span class="extrch-share-option-icon"><i class="fab fa-x-twitter"></i></span>
                 <span class="extrch-share-option-label">X</span>
             </a>
-            <a class="extrch-share-option-button button-2 button-medium extrch-share-option-linkedin extrch-share-option-visible" href="#" target="_blank" rel="noopener">
+            <a class="extrch-share-option-button button-2 button-medium extrch-share-option-linkedin extrch-share-option-visible" href="#" target="_blank" rel="ugc noopener">
                 <span class="extrch-share-option-icon"><i class="fab fa-linkedin"></i></span>
                 <span class="extrch-share-option-label">LinkedIn</span>
             </a>
-            <a class="extrch-share-option-button button-2 button-medium extrch-share-option-email extrch-share-option-visible" href="#" target="_blank" rel="noopener">
+            <a class="extrch-share-option-button button-2 button-medium extrch-share-option-email extrch-share-option-visible" href="#" target="_blank" rel="ugc noopener">
                 <span class="extrch-share-option-icon"><i class="fas fa-envelope"></i></span>
                 <span class="extrch-share-option-label"><?php esc_html_e('Email', 'extrachill-artist-platform'); ?></span>
             </a>

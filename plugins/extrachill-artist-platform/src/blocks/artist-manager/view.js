@@ -14,6 +14,7 @@ import {
 	deleteMedia,
 } from '../shared/api/client';
 import ArtistSwitcher from '../shared/components/ArtistSwitcher';
+import TabNav from '../shared/components/TabNav';
 
 const isValidEmail = (email) => {
 	return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -50,20 +51,7 @@ const useConfig = () => {
 	);
 };
 
-const TabNav = ({ tabs, active, onChange }) => (
-	<div className="ec-am__tabs">
-		{tabs.map((tab) => (
-			<button
-				key={tab.id}
-				type="button"
-				className={`ec-am__tab${active === tab.id ? ' is-active' : ''}`}
-				onClick={() => onChange(tab.id)}
-			>
-				{tab.label}
-			</button>
-		))}
-	</div>
-);
+
 
 
 
@@ -626,7 +614,7 @@ const App = () => {
 
 			{loading && <p>Loading artist…</p>}
 
-			<TabNav tabs={tabs} active={activeTab} onChange={setActiveTab} />
+			<TabNav tabs={tabs} active={activeTab} onChange={setActiveTab} classPrefix="ec-am" />
 
 			{activeTab === 'info' && (
 				<InfoTab
@@ -636,9 +624,9 @@ const App = () => {
 				/>
 			)}
 
-			{selectedId && activeTab === 'managers' && <ManagersTab artistId={selectedId} />}
-			{selectedId && activeTab === 'subscribers' && <SubscribersTab artistId={selectedId} />}
-		</div>
+		{selectedId && activeTab === 'managers' && <ManagersTab artistId={selectedId} />}
+		{selectedId && activeTab === 'subscribers' && <SubscribersTab artistId={selectedId} />}
+	</div>
 	);
 };
 

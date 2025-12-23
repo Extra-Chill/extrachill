@@ -503,7 +503,7 @@ class ExtraChillArtistPlatform_SocialLinks {
             'icon_class' => 'extrch-social-icon',
             'show_labels' => false,
             'target' => '_blank',
-            'rel' => 'noopener noreferrer',
+            'rel' => 'ugc noopener noreferrer',
             'before' => '',
             'after' => ''
         );

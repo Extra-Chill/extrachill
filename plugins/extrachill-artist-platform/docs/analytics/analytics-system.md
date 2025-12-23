@@ -183,7 +183,7 @@ function extrachill_handle_link_click_db_write( $link_page_id, $link_url ) {
 
 ### Link Page Analytics Block
 
-**Location**: `src/blocks/link-page-analytics/`
+**Location**: `src/blocks/artist-analytics/`
 
 Dedicated Gutenberg block providing comprehensive analytics interface for link page performance tracking and analysis.
 
@@ -206,7 +206,7 @@ Dedicated Gutenberg block providing comprehensive analytics interface for link p
 **Block Registration**:
 ```php
 // Registered separately from link-page-editor block
-register_block_type( __DIR__ . '/build/blocks/link-page-analytics' );
+register_block_type( __DIR__ . '/build/blocks/artist-analytics' );
 ```
 
 **Version History**:
@@ -217,7 +217,7 @@ register_block_type( __DIR__ . '/build/blocks/link-page-analytics' );
 
 Analytics displayed via REST API in dedicated Gutenberg analytics block with `Analytics` component:
 
-Location: `src/blocks/link-page-analytics/components/Analytics.js`
+Location: `src/blocks/artist-analytics/components/Analytics.js`
 
 ### Data Queries
 

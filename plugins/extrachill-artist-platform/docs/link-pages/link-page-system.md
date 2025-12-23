@@ -86,7 +86,7 @@ The editor provides a tabbed interface with five sections:
 4. **TabAdvanced** (`components/tabs/TabAdvanced.js`): Advanced features (expiration, redirects, tracking codes)
 5. **TabSocials** (`components/tabs/TabSocials.js`): Social platform link management (15+ platforms)
 
-Analytics are provided by the separate `link-page-analytics` Gutenberg block.
+Analytics are provided by the separate `artist-analytics` Gutenberg block.
 
 ### Block Architecture
 

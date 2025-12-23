@@ -69,7 +69,7 @@ update_user_meta($user_id, '_artist_profile_ids', $user_artist_ids);
 
 ### Gutenberg Block Editor
 
-**Location**: `src/blocks/artist-profile-manager/`
+**Location**: `src/blocks/artist-manager/`
 
 Modern React-based Gutenberg block providing complete artist profile management interface with tab-based organization.
 
@@ -88,7 +88,7 @@ Modern React-based Gutenberg block providing complete artist profile management 
 4. **TabSubscribers**: Email subscriber list management and export
 
 **Architecture**:
-- **Block Registration**: Registered on `artist_profile` post type via `register_block_type( __DIR__ . '/build/blocks/artist-profile-manager' )`
+- **Block Registration**: Registered on `artist_profile` post type via `register_block_type( __DIR__ . '/build/blocks/artist-manager' )`
 - **REST API Integration**: All management operations via REST API with centralized permission validation
 - **React Components**: Tab-based interface with reusable shared components
 - **Build Process**: Webpack compilation via `npm run build`

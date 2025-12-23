@@ -164,7 +164,7 @@ Artist profile and link page editing is handled via Gutenberg block editor:
 
 ```php
 // Block-based management (primary interface)
-// Location: src/blocks/artist-profile-manager/
+// Location: src/blocks/artist-manager/
 // Location: src/blocks/link-page-editor/
 // Block provides tab-based interface for:
 // - Profile information editing

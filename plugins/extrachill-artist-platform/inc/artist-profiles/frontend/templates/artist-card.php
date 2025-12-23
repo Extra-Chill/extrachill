@@ -29,10 +29,24 @@ $artist_name = $artist_post->post_title;
 $artist_url  = get_permalink( $artist_id );
 $artist_bio  = $artist_post->post_content;
 
-$profile_image_id  = get_post_thumbnail_id( $artist_id );
-$profile_image_url = $profile_image_id ? wp_get_attachment_image_url( $profile_image_id, 'thumbnail' ) : '';
-$header_image_id   = get_post_meta( $artist_id, '_artist_profile_header_image_id', true );
-$header_image_url  = $header_image_id ? wp_get_attachment_image_url( absint( $header_image_id ), 'large' ) : '';
+$profile_image_id = get_post_thumbnail_id( $artist_id );
+$profile_image     = '';
+if ( $profile_image_id ) {
+    $profile_image = wp_get_attachment_image(
+        $profile_image_id,
+        'thumbnail',
+        false,
+        array(
+            'alt'      => wp_strip_all_tags( $artist_name ),
+            'loading'  => 'lazy',
+            'decoding' => 'async',
+            'sizes'    => '(max-width: 480px) 50px, 60px',
+        )
+    );
+}
+
+$header_image_id  = get_post_meta( $artist_id, '_artist_profile_header_image_id', true );
+$header_image_url = $header_image_id ? wp_get_attachment_image_url( absint( $header_image_id ), 'large' ) : '';
 
 $genre      = get_post_meta( $artist_id, '_genre', true );
 $local_city = get_post_meta( $artist_id, '_local_city', true );
@@ -44,9 +58,9 @@ $hero_style = $header_image_url ? 'background-image: url(' . esc_url( $header_im
     <div class="artist-hero-section" <?php if ($hero_style) echo 'style="' . esc_attr($hero_style) . '"'; ?>>
         <div class="artist-hero-overlay"></div>
         <div class="artist-hero-content">
-            <?php if ($profile_image_url) : ?>
+            <?php if ( $profile_image ) : ?>
                 <div class="artist-profile-image-overlay">
-                    <img src="<?php echo esc_url($profile_image_url); ?>" alt="<?php echo esc_attr($artist_name); ?>" />
+                    <?php echo wp_kses_post( $profile_image ); ?>
                 </div>
             <?php endif; ?>
 
