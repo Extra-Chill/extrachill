@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0).
 
+## [0.4.1] - 2025-12-24
+
+### Added
+- Custom title format for datamachine_events post type archive: "Live Music Calendar"
+- Custom title format for event-related taxonomies (location, festival, venue, promoter, artist): "{Term Name} Live Music Calendar"
+
 ## [0.4.0] - 2025-12-23
 
 ### Added

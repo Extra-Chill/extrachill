@@ -101,6 +101,22 @@ add_filter(
 			$title_parts['title'] = sprintf( 'Posts by %s - Page %d', $author_name, $page_num );
 		}
 
+		// Event archive titles: "Live Music Calendar" or "{Term} Live Music Calendar"
+		if ( is_post_type_archive( 'datamachine_events' ) ) {
+			$title_parts['title'] = 'Live Music Calendar';
+		}
+
+		if ( is_tax() ) {
+			$term     = get_queried_object();
+			$taxonomy = $term->taxonomy ?? '';
+
+			$event_taxonomies = array( 'location', 'festival', 'venue', 'promoter', 'artist' );
+			if ( in_array( $taxonomy, $event_taxonomies, true ) ) {
+				$term_name            = single_term_title( '', false );
+				$title_parts['title'] = sprintf( '%s Live Music Calendar', $term_name );
+			}
+		}
+
 		return $title_parts;
 	}
 );
