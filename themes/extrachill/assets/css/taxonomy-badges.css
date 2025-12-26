@@ -242,6 +242,14 @@
 	background-color: #13B554;
 	color: #ffffff;
 }
+.taxonomy-badge.location-athens {
+	background-color: #BA0C2F;
+	color: #ffffff;
+}
+.taxonomy-badge.location-greenville {
+	background-color: #2E5A3C;
+	color: #ffffff;
+}
 
 /* === Category Badges === */
 .taxonomy-badge.category-festival-news-badge {

@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0/).
 
+## [1.3.5] - 2025-12-26
+
+### Added
+- Athens location badge color (#BA0C2F) for Georgia taxonomy support
+- Greenville location badge color (#2E5A3C) for South Carolina taxonomy support
+
+### Removed
+- Reading progress bar functionality (JavaScript, CSS, and enqueuing function)
+- Notice system backward compatibility code for old singular transients and cookies
+
+### Changed
+- Simplified notice retrieval to only support plural system (extrachill_notices_)
+
+### Technical
+- Removed assets/js/reading-progress.js
+- Removed extrachill_enqueue_reading_progress() from inc/core/assets.php
+- Removed reading progress CSS from style.css
+- Refactored extrachill_get_notices() to remove backward compatibility code
+- Updated documentation to reflect removed functionality
+- Fixed EXTRACHILL_THEME_VERSION sync in functions.php
+
 ## [1.3.4] - 2025-12-23
 
 ### Added
@@ -288,7 +309,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Complete search overlay system with modal, close button, and accessibility features
-- Site masthead with sticky header and reading progress indicator
+- Site masthead with sticky header
 - Secondary header navigation component with responsive design
 - Enhanced breadcrumb styling and network dropdown integration
 - Footer newsletter repositioned below menu columns

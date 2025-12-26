@@ -51,7 +51,7 @@ Catch-all for unexpected request types; defaults to `inc/core/templates/404.php`
 ## Layout & Navigation Filters
 
 ### `extrachill_enable_sticky_header`
-Controls the presence of the `sticky-header` body class and the reading progress script. Toggled in `functions.php` and checked before enqueueing `assets/js/reading-progress.js` in `inc/core/assets.php`.
+Controls the presence of the `sticky-header` body class. Toggled in `functions.php` and adds the class via `body_class` filter.
 
 **Parameters**: `$enabled` (bool) – Default `true`.
 **Returns**: Boolean.
