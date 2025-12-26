@@ -24,7 +24,6 @@ Conditional CSS/JS loading with `filemtime()` cache busting comes from `/inc/cor
 |--------|---------|-------------|
 | `assets/js/nav-menu.js` | Navigation flyout toggle and search focus | `extrachill_enqueue_navigation_assets()`
 | `assets/js/chill-custom.js` | Archive-specific interactions | `extrachill_enqueue_archive_scripts()` when `is_archive()`
-| `assets/js/reading-progress.js` | Reading progress indicator | `extrachill_enqueue_reading_progress()` (skips when `extrachill_enable_sticky_header` filter returns false)
 | `assets/js/shared-tabs.js` | Shared tab components with desktop/mobile logic | Registered alongside `shared-tabs.css` in `extrachill_register_shared_tabs()`
 | `assets/js/view-tracking.js` | View tracking beacon for singular public posts | `extrachill_enqueue_view_tracking()` (only for public, non-preview singulars; skips users who can edit others’ posts)
 
@@ -148,21 +147,6 @@ function extrachill_enqueue_archive_scripts() {
 **File**: `chill-custom.js`
 **Context**: Archive pages only
 
-### Reading Progress Script
-
-```php
-function extrachill_enqueue_reading_progress() {
-    if ( ! apply_filters( 'extrachill_enable_sticky_header', true ) ) {
-        return;
-    }
-    wp_enqueue_script( 'reading-progress-script', ... );
-}
-```
-
-**File**: `reading-progress.js`
-**Context**: All pages (unless sticky header disabled)
-**Filter**: `extrachill_enable_sticky_header`
-
 ## Admin/Editor Styles
 
 ```php
@@ -205,7 +189,7 @@ if ( file_exists( $css_path ) ) {
 
 ## Disabling Sticky Header
 
-Affects reading progress script loading:
+The sticky header can be disabled via filter:
 
 ```php
 // Disable sticky header
@@ -231,7 +215,6 @@ assets/
     editor-style.css      # Block editor styles
   /js/
     nav-menu.js           # Navigation functionality
-    reading-progress.js   # Sticky header progress
     chill-custom.js       # Archive interactions
     shared-tabs.js        # Tab interface logic
     share.js              # Share button interactions

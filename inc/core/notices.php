@@ -81,38 +81,19 @@ function extrachill_get_notices() {
 	$notices = array();
 
 	if ( $user_id ) {
-		// Check new plural transient first
 		$stored = get_transient( 'extrachill_notices_' . $user_id );
 		if ( is_array( $stored ) && ! empty( $stored ) ) {
 			$notices = $stored;
 			delete_transient( 'extrachill_notices_' . $user_id );
-		} else {
-			// Backward compat: check old singular transient
-			$old_notice = get_transient( 'extrachill_notice_' . $user_id );
-			if ( $old_notice && isset( $old_notice['message'], $old_notice['type'] ) ) {
-				$notices = array( $old_notice );
-				delete_transient( 'extrachill_notice_' . $user_id );
-			}
 		}
 	}
 
-	// Check cookies (for anonymous users or logged-in without transient)
-	if ( empty( $notices ) ) {
-		// Check new plural cookie first
-		if ( isset( $_COOKIE['extrachill_notices'] ) ) {
-			$stored = json_decode( wp_unslash( $_COOKIE['extrachill_notices'] ), true );
-			if ( is_array( $stored ) && ! empty( $stored ) ) {
-				$notices = $stored;
-			}
-			setcookie( 'extrachill_notices', '', time() - 3600, COOKIEPATH, COOKIE_DOMAIN );
-		} elseif ( isset( $_COOKIE['extrachill_notice'] ) ) {
-			// Backward compat: check old singular cookie
-			$old_notice = json_decode( wp_unslash( $_COOKIE['extrachill_notice'] ), true );
-			if ( is_array( $old_notice ) && isset( $old_notice['message'], $old_notice['type'] ) ) {
-				$notices = array( $old_notice );
-			}
-			setcookie( 'extrachill_notice', '', time() - 3600, COOKIEPATH, COOKIE_DOMAIN );
+	if ( empty( $notices ) && isset( $_COOKIE['extrachill_notices'] ) ) {
+		$stored = json_decode( wp_unslash( $_COOKIE['extrachill_notices'] ), true );
+		if ( is_array( $stored ) && ! empty( $stored ) ) {
+			$notices = $stored;
 		}
+		setcookie( 'extrachill_notices', '', time() - 3600, COOKIEPATH, COOKIE_DOMAIN );
 	}
 
 	return $notices;
