@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0/).
 
+## [1.3.6] - 2025-12-26
+
+### Removed
+- chill-custom.js (unused archive filtering functionality)
+- extrachill_enqueue_archive_scripts() from asset loading
+
+### Changed
+- Updated documentation to reflect 4 JavaScript files (down from 5)
+
+### Technical
+- Removed assets/js/chill-custom.js (archive filtering code no longer needed)
+- Removed archive script enqueuing function from inc/core/assets.php
+- Updated AGENTS.md, README.md, and docs/asset-loading.md to reflect removed functionality
+
 ## [1.3.5] - 2025-12-26
 
 ### Added

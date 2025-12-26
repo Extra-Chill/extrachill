@@ -23,7 +23,6 @@ Conditional CSS/JS loading with `filemtime()` cache busting comes from `/inc/cor
 | Script | Context | Entry Point |
 |--------|---------|-------------|
 | `assets/js/nav-menu.js` | Navigation flyout toggle and search focus | `extrachill_enqueue_navigation_assets()`
-| `assets/js/chill-custom.js` | Archive-specific interactions | `extrachill_enqueue_archive_scripts()` when `is_archive()`
 | `assets/js/shared-tabs.js` | Shared tab components with desktop/mobile logic | Registered alongside `shared-tabs.css` in `extrachill_register_shared_tabs()`
 | `assets/js/view-tracking.js` | View tracking beacon for singular public posts | `extrachill_enqueue_view_tracking()` (only for public, non-preview singulars; skips users who can edit others’ posts)
 
@@ -134,19 +133,6 @@ function extrachill_enqueue_navigation_assets() {
 **Context**: All pages
 **Load Position**: Footer (`true` parameter)
 
-### Archive Scripts
-
-```php
-function extrachill_enqueue_archive_scripts() {
-    if ( is_archive() ) {
-        wp_enqueue_script( 'wp-innovator-custom-script', ... );
-    }
-}
-```
-
-**File**: `chill-custom.js`
-**Context**: Archive pages only
-
 ## Admin/Editor Styles
 
 ```php
@@ -215,7 +201,6 @@ assets/
     editor-style.css      # Block editor styles
   /js/
     nav-menu.js           # Navigation functionality
-    chill-custom.js       # Archive interactions
     shared-tabs.js        # Tab interface logic
     share.js              # Share button interactions
   /fonts/

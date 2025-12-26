@@ -25,15 +25,7 @@ add_action('wp_enqueue_scripts', 'extrachill_enqueue_navigation_assets');
 
 
 
-function extrachill_enqueue_archive_scripts() {
-    if (is_archive()) {
-        $js_path = get_template_directory() . '/assets/js/chill-custom.js';
-        $js_url = get_template_directory_uri() . '/assets/js/chill-custom.js';
-        $js_version = file_exists($js_path) ? filemtime($js_path) : '1.0.0';
-        wp_enqueue_script('wp-innovator-custom-script', $js_url, array(), $js_version, true);
-    }
-}
-add_action('wp_enqueue_scripts', 'extrachill_enqueue_archive_scripts');
+
 
 
 
