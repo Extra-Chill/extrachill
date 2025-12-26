@@ -29,8 +29,7 @@ extrachill/
 │   │   ├── shared-tabs.css      # Tab/accordion interface styles
 │   │   ├── sidebar.css          # Sidebar widget styles
 │   │   └── taxonomy-badges.css  # Taxonomy badge styles
-│   ├── js/                      # 5 JavaScript files
-│   │   ├── chill-custom.js      # Theme customizations
+│   ├── js/                      # 4 JavaScript files
 │   │   ├── nav-menu.js          # Navigation menu functionality
 │   │   ├── network-dropdown.js  # Network site dropdown
 │   │   ├── share.js             # Share button interactions
