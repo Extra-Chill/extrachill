@@ -5,7 +5,7 @@ Frontend block for collecting event submissions that route into Data Machine flo
 ## Block Details
 
 - **Name**: `extrachill/event-submission`
-- **Version**: 0.2.6
+- **Version**: 0.2.8
 - **Category**: widgets
 - **Icon**: calendar-alt
 

@@ -162,7 +162,7 @@ npm run build  # Production build of blocks
 # Build production package
 ./build.sh
 
-# Output: Only /build/extrachill-events.zip file (unzip when directory access needed)
+# Output: Only /build/extrachill-events.zip file
 ```
 
 ## Architecture

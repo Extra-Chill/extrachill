@@ -5,7 +5,7 @@ NPM-based build system for compiling blocks and creating production packages.
 ## Package Structure
 
 ### package.json
-- **Version**: 0.2.6
+- **Version**: 0.2.8
 - **Build Tool**: `@wordpress/scripts` v27.1.0
 - **Scripts**:
   - `build` - Complete production build

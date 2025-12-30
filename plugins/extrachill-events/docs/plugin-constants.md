@@ -4,13 +4,13 @@ WordPress constants defined by the ExtraChill Events plugin.
 
 ## EXTRACHILL_EVENTS_VERSION
 
-**Value:** `0.2.6`
+**Value:** `0.2.8`
 
 **Purpose:** Plugin version number for cache busting and compatibility checks
 
 **Usage:**
 ```php
-define('EXTRACHILL_EVENTS_VERSION', '0.2.6');
+define('EXTRACHILL_EVENTS_VERSION', '0.2.8');
 ```
 
 **Example:**

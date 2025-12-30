@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0/).
 
+## [0.2.8] - 2025-12-30
+
+### Fixed
+- Fixed character encoding in breadcrumb back-to-home label ("← Back to Events Calendar")
+
+### Changed
+- Refined documentation in AGENTS.md and README.md regarding build process output and production ZIP structure
+- Updated version information across documentation files to reflect 0.2.8
+
 ## [0.2.7] - 2025-12-21
 
 ### Added

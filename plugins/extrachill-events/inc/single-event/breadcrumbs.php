@@ -147,7 +147,7 @@ function ec_events_back_to_home_label( $label, $url ) {
 		return $label;
 	}
 
-	return '�0 Back to Events Calendar';
+	return '← Back to Events Calendar';
 }
 add_filter( 'extrachill_back_to_home_label', 'ec_events_back_to_home_label', 10, 2 );
 

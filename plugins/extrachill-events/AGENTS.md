@@ -7,7 +7,7 @@ This plugin is part of the Extra Chill Platform, a WordPress multisite network s
 ## Plugin Information
 
 - **Name**: ExtraChill Events
-- **Version**: 0.2.6
+- **Version**: 0.2.8
 - **Text Domain**: `extrachill-events`
 - **Author**: Chris Huber
 - **Author URI**: https://chubes.net
@@ -401,7 +401,7 @@ public function hide_post_meta_for_events($default_meta, $post_id, $post_type) {
 ### Build System
 - **Universal Build Script**: Symlinked to shared build script at `../../.github/build.sh`
 - **Auto-Detection**: Script auto-detects plugin type from `Plugin Name:` header
-- **Production Build**: Creates `/build/extrachill-events/` directory and `/build/extrachill-events.zip` file (non-versioned)
+- **Production Build**: Creates `/build/extrachill-events.zip` file (non-versioned; unzip when directory access is needed)
 - **Version Extraction**: Automatically reads version from plugin header for validation
 - **File Exclusion**: `.buildignore` rsync patterns exclude development files
 - **Composer Integration**: Production builds use `composer install --no-dev`, restores dev dependencies after
@@ -445,7 +445,7 @@ composer run test
 ```
 
 ### Build Output
-- **Production Package**: `/build/extrachill-events/` directory and `/build/extrachill-events.zip` file
+- **Production Package**: `/build/extrachill-events.zip` file (unzip when directory access is needed)
 - **File Exclusions**: Development files, vendor/, .git/, build tools
 - **Structure Validation**: Ensures plugin integrity before packaging
 
