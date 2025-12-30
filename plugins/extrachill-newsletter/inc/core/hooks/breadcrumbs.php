@@ -82,7 +82,7 @@ function newsletter_customize_breadcrumbs( $custom_trail ) {
 		return $custom_trail;
 	}
 
-	return '';
+	return '<span class="breadcrumb-title">' . get_the_title() . '</span>';
 }
 add_filter( 'extrachill_breadcrumbs_override_trail', 'newsletter_customize_breadcrumbs' );
 

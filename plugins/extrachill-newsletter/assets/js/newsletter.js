@@ -11,7 +11,7 @@
 (function() {
     'use strict';
 
-    if (!window.newsletterParams || !newsletterParams.restNonce) {
+    if (!window.newsletterParams || !newsletterParams.restNonce || !newsletterParams.restUrl) {
         console.error('extrachill-newsletter: newsletterParams missing, aborting form handler.');
         return;
     }
@@ -34,7 +34,9 @@
         submitButton.textContent = 'Subscribing...';
         if (feedback) feedback.style.display = 'none';
 
-        fetch('/wp-json/extrachill/v1/newsletter/subscribe', {
+        const endpoint = new URL('extrachill/v1/newsletter/subscribe', newsletterParams.restUrl);
+
+        fetch(endpoint.toString(), {
             method: 'POST',
             credentials: 'same-origin',
             headers: {

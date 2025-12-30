@@ -15,6 +15,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Removed duplicate array keys in newsletter context presets that were causing configuration conflicts
 
+## [0.2.0] - 2025-12-30
+
+### Added
+- Added 'contact' integration context for newsletter subscriptions via contact forms
+
+### Changed
+- Major overhaul of HTML email template with modern responsive design, dark mode support, and preheader text
+- Replaced admin-ajax with REST API for "Push to Sendy" campaign management
+- Refactored post meta integration to use `extrachill_post_meta_parts` and `extrachill_post_meta_published_prefix` filters for cleaner theme integration
+- Updated breadcrumb customization to include the post title for newsletter posts
+- Improved frontend asset loading by including `restUrl` in localized `newsletterParams`
+- Refined newsletter inline form max-width on tablet/desktop displays
+- Optimized YouTube thumbnail conversion in email templates with escaped URLs and improved regex
+
+### Fixed
+- Cleaned up redundant `newsletter_customize_post_meta` function from main plugin file
+- Removed unused AJAX handling logic in favor of REST API endpoints
+- Improved error handling and feedback in "Push to Sendy" admin interface
+
 ## [0.1.9] - 2025-12-10
 
 ### Changed

@@ -112,8 +112,8 @@ The plugin provides subscription functionality via REST API (endpoint registered
   - Parameters: `email` (required), `context` (required)
   - Delegates to `extrachill_multisite_subscribe()` for Sendy integration
 
-Admin functionality:
-- `push_newsletter_to_sendy_ajax` - Admin campaign management (AJAX)
+Admin functionality (endpoint registered in `extrachill-api` plugin):
+- `POST /wp-json/extrachill/v1/newsletter/campaign/push` - Push a newsletter post to Sendy as a campaign (requires `edit_posts`)
 
 ## Hooks and Filters
 
@@ -140,7 +140,7 @@ Admin functionality:
 # Create production ZIP
 ./build.sh
 
-# Output: Only /build/extrachill-newsletter.zip file (unzip when directory access needed)
+# Output: Only /build/extrachill-newsletter.zip file
 ```
 
 ### File Structure
@@ -183,7 +183,7 @@ extrachill-newsletter/
 
 The plugin follows WordPress best practices:
 
-- **Organized Directory Structure**: Functionality organized into `/core/`, `/ajax/`, `/hooks/`, and `/templates/` directories
+- **Organized Directory Structure**: Functionality organized into `/core/`, `/hooks/`, and `/templates/` directories
 - **Modular Structure**: Functionality split into focused include files with single responsibility
 - **Centralized Asset Management**: All asset loading handled in `inc/core/assets.php`
 - **Template Override System**: Plugin templates with theme override capability

@@ -70,6 +70,7 @@ function newsletter_enqueue_frontend_assets() {
 			'newsletterParams',
 			array(
 				'restNonce' => wp_create_nonce( 'wp_rest' ),
+				'restUrl'   => rest_url(),
 			)
 		);
 	}

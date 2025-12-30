@@ -14,68 +14,127 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Convert WordPress post to Sendy-compatible HTML email
+ * Convert WordPress post to Sendy-compatible HTML email.
  *
  * Responsive styling, image optimization, YouTube thumbnail conversion.
  */
-function prepare_newsletter_email_content($post) {
-	$content = apply_filters('the_content', $post->post_content);
+function prepare_newsletter_email_content( $post ) {
+	$content = apply_filters( 'the_content', $post->post_content );
 
-	// Ensure images are responsive and add necessary styles
-	$content = preg_replace('/<img(.+?)src="(.*?)"(.*?)>/i', '<img$1src="$2"$3 style="height: auto; max-width:100%; object-fit:contain;">', $content);
+	// Ensure images are responsive.
+	$content = preg_replace( '/<img(.+?)src="(.*?)"(.*?)>/i', '<img$1src="$2"$3 style="height: auto; max-width: 100%;">', $content );
 
-	// Replace YouTube iframe embeds with clickable thumbnails
+	// Replace YouTube iframe embeds with clickable thumbnails.
 	$content = preg_replace_callback(
 		'/<figure[^>]*>\s*<div class="wp-block-embed__wrapper">\s*<iframe[^>]+src="https:\/\/www\.youtube\.com\/embed\/([a-zA-Z0-9_\-]+)[^"]*"[^>]*><\/iframe>\s*<\/div>\s*<\/figure>/s',
-		function($matches) {
-			$videoId = $matches[1];
-			$videoUrl = "https://www.youtube.com/watch?v=$videoId";
-			$thumbnailUrl = "https://img.youtube.com/vi/$videoId/maxresdefault.jpg";
-			return '<a href="' . $videoUrl . '" target="_blank"><img src="' . $thumbnailUrl . '" alt="Watch our video" style="height: auto; max-width: 100%; display: block; margin: 0 auto;"></a>';
+		function( $matches ) {
+			$video_id = $matches[1];
+			$video_url = "https://www.youtube.com/watch?v={$video_id}";
+			$thumbnail_url = "https://img.youtube.com/vi/{$video_id}/maxresdefault.jpg";
+			return '<a href="' . esc_url( $video_url ) . '" target="_blank"><img src="' . esc_url( $thumbnail_url ) . '" alt="Watch our video" style="height: auto; max-width: 100%; display: block; margin: 0 auto;"></a>';
 		},
 		$content
 	);
 
-	// Apply responsive email styling
-	$content = preg_replace('/<figure([^>]*)>/i', '<figure$1 style="text-align: center; margin: auto;">', $content);
-	$content = preg_replace('/<figcaption([^>]*)>/i', '<figcaption$1 style="text-align: center;font-size: 15px;padding:5px;">', $content);
-	$content = preg_replace('/<p([^>]*)>/i', '<p$1 style="font-size: 16px; line-height:1.75em;">', $content);
-	$content = preg_replace('/<h2([^>]*)>/i', '<h2$1 style="text-align: center;">', $content);
-	$content = preg_replace('/<(ol|ul)([^>]*)>/i', '<$1$2 style="font-size: 16px; line-height:1.75em;padding-inline-start:20px;">', $content);
-	$content = preg_replace('/<li([^>]*)>/i', '<li$1 style="margin: 10px 0;">', $content);
+	// Apply email styling.
+	$content = preg_replace( '/<figure([^>]*)>/i', '<figure$1 style="text-align: center; margin: 0 auto;">', $content );
+	$content = preg_replace( '/<figcaption([^>]*)>/i', '<figcaption$1 style="text-align: center; font-size: 15px; padding: 5px;">', $content );
+	$content = preg_replace( '/<p([^>]*)>/i', '<p$1 style="font-size: 16px; line-height: 1.75em;">', $content );
+	$content = preg_replace( '/<h2([^>]*)>/i', '<h2$1 style="text-align: center;">', $content );
+	$content = preg_replace( '/<(ol|ul)([^>]*)>/i', '<$1$2 style="font-size: 16px; line-height: 1.75em; padding-left: 20px;">', $content );
+	$content = preg_replace( '/<li([^>]*)>/i', '<li$1 style="margin: 10px 0;">', $content );
 
-	// Add Extra Chill logo header
 	$main_site_url = ec_get_site_url( 'main' );
-	$logo = '<a href="' . esc_url( $main_site_url ) . '" style="text-align: center; display: block; margin: 20px auto;border-bottom:2px solid #53940b;"><img src="' . esc_url( $main_site_url ) . '/wp-content/uploads/2023/09/extra-chill-logo-no-bg-1.png" alt="Extra Chill Logo" style="padding-bottom:10px;max-width: 60px; height: auto; display: block; margin: 0 auto;"></a>';
+	$subject = $post->post_title;
+	$read_on_web_url = get_permalink( $post->ID );
+	$newsletter_site_url = ec_get_site_url( 'newsletter' );
+
+	$navbar_links = array(
+		__( 'Main', 'extrachill-newsletter' ) => $main_site_url,
+		__( 'Community', 'extrachill-newsletter' ) => ec_get_site_url( 'community' ),
+		__( 'Events', 'extrachill-newsletter' ) => ec_get_site_url( 'events' ),
+		__( 'Shop', 'extrachill-newsletter' ) => ec_get_site_url( 'shop' ),
+		__( 'Artist Platform', 'extrachill-newsletter' ) => ec_get_site_url( 'artist' ),
+		__( 'Documentation', 'extrachill-newsletter' ) => ec_get_site_url( 'docs' ),
+		__( 'Newsletters', 'extrachill-newsletter' ) => $newsletter_site_url,
+	);
+
+	$navbar_links = apply_filters( 'extrachill_newsletter_email_footer_links', $navbar_links, $post );
+
+	$logo = '<a href="' . esc_url( $main_site_url ) . '" style="text-align: center; display: block; margin: 20px auto; border-bottom: 2px solid #53940b;"><img src="' . esc_url( $main_site_url ) . '/wp-content/uploads/2023/09/extra-chill-logo-no-bg-1.png" alt="Extra Chill" width="60" style="padding-bottom: 10px; max-width: 60px; height: auto; display: block; margin: 0 auto; border: 0;"></a>';
 	$content = $logo . $content;
 
-	$subject = $post->post_title;
-	$unsubscribe_link = '<p style="text-align: center; margin-top: 20px; font-size: 16px;"><unsubscribe style="color: #666666; text-decoration: none;">Unsubscribe here</unsubscribe></p>';
+	$unsubscribe_link = '<p style="text-align: center; margin: 18px 0 0; font-size: 14px; line-height: 1.5em;"><unsubscribe style="color: #6b7280; text-decoration: none;">Unsubscribe</unsubscribe></p>';
 
-	// Generate complete HTML email template using template below
-	$html_template = generate_email_html_template($subject, $content, $unsubscribe_link);
+	$html_template = generate_email_html_template( $subject, $content, $unsubscribe_link, $read_on_web_url, $navbar_links );
 
 	return array(
 		'subject' => $subject,
 		'html_template' => $html_template,
-		'plain_text' => wp_strip_all_tags($content)
+		'plain_text' => wp_strip_all_tags( $content ),
 	);
 }
-function generate_email_html_template($subject, $content, $unsubscribe_link) {
+
+function generate_email_html_template( $subject, $content, $unsubscribe_link, $read_on_web_url, $navbar_links ) {
+	$preheader_text = wp_strip_all_tags( $subject );
+
+	$footer_links_html = '';
+	$footer_separator = ' &nbsp;|&nbsp; ';
+	foreach ( $navbar_links as $label => $url ) {
+		if ( empty( $url ) ) {
+			continue;
+		}
+
+		$link = '<a href="' . esc_url( $url ) . '" style="color: #0b5394; text-decoration: none;">' . esc_html( $label ) . '</a>';
+		$footer_links_html = $footer_links_html ? $footer_links_html . $footer_separator . $link : $link;
+	}
+
+	$read_on_web_url = esc_url( $read_on_web_url );
+
 	$html_template = <<<HTML
 <html>
 <head>
-    <title>{$subject}</title>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="color-scheme" content="light dark">
+	<meta name="supported-color-schemes" content="light dark">
+	<title>{$subject}</title>
+	<style>
+		a { color: #0b5394; }
+		@media (prefers-color-scheme: dark) {
+			body { background: #1a1a1a; color: #e5e5e5; }
+			.email-container { background: #2a2a2a; border-color: #555; }
+			a { color: #53940b; }
+			.muted { color: #b0b0b0; }
+		}
+	</style>
 </head>
-<body style="background: #d8d8d8; font-family: Helvetica, sans-serif; padding: 0; margin: 0; width: 100%; display: flex; justify-content: center; align-items: center;">
-    <div style="background: #fff; border: 1px solid #000; max-width: 600px; margin: 20px auto; padding: 0 20px; box-sizing: border-box;">
-        {$content}
-        <footer style="text-align: center; padding-top: 20px; font-size: 16px; line-height: 1.5em;">
-            <p>Read this newsletter & all others on the web at <a href="<?php echo esc_url( ec_get_site_url( 'newsletter' ) ); ?>"><?php echo esc_html( ec_get_site_url( 'newsletter' ) ); ?></a></p>
-            <p>You received this email because you've connected with Extra Chill in some way over the years. Thanks for supporting independent music.</p>
-            {$unsubscribe_link}
-        </footer>
-    </div>
+<body style="margin: 0; padding: 0; background: #f1f5f9; font-family: Helvetica, Arial, sans-serif; color: #000;">
+	<div style="display: none; font-size: 1px; line-height: 1px; max-height: 0; max-width: 0; opacity: 0; overflow: hidden;">
+		{$preheader_text}
+	</div>
+	<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background: #f1f5f9; padding: 20px 0;">
+		<tr>
+			<td align="center" style="padding: 0 12px;">
+				<table role="presentation" width="600" cellspacing="0" cellpadding="0" border="0" class="email-container" style="width: 100%; max-width: 600px; background: #ffffff; border: 1px solid #ddd;">
+					<tr>
+						<td style="padding: 0 20px;">
+							{$content}
+							<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-top: 20px; border-top: 1px solid #ddd;">
+								<tr>
+									<td style="padding-top: 16px; text-align: center; font-size: 14px; line-height: 1.5em;">
+										<p style="margin: 0 0 10px;"><a href="{$read_on_web_url}" style="color: #0b5394; text-decoration: none;">Read this newsletter on the web</a></p>
+										<p style="margin: 0 0 10px;" class="muted">{$footer_links_html}</p>
+										{$unsubscribe_link}
+									</td>
+								</tr>
+							</table>
+						</td>
+					</tr>
+				</table>
+			</td>
+		</tr>
+	</table>
 </body>
 </html>
 HTML;

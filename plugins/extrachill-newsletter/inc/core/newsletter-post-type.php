@@ -85,48 +85,38 @@ function newsletter_sendy_meta_box_html($post) {
 		var button = this;
 		var originalText = button.textContent;
 
-		// Disable button and show loading state
 		button.disabled = true;
 		button.textContent = '<?php echo esc_js(__('Pushing...', 'extrachill-newsletter')); ?>';
 
 		var postId = <?php echo json_encode($post->ID); ?>;
-		var ajaxUrl = <?php echo json_encode(admin_url('admin-ajax.php')); ?>;
-		var data = new URLSearchParams({
-			action: 'push_newsletter_to_sendy_ajax',
-			post_id: postId,
-			nonce: <?php echo json_encode(wp_create_nonce('push_newsletter_to_sendy_nonce')); ?>
-		});
+		var apiUrl = <?php echo json_encode( rest_url( 'extrachill/v1/newsletter/campaign/push' ) ); ?>;
 
-		fetch(ajaxUrl, {
+		fetch(apiUrl, {
 			method: 'POST',
 			credentials: 'same-origin',
 			headers: {
-				'Content-Type': 'application/x-www-form-urlencoded',
+				'Content-Type': 'application/json',
+				'X-WP-Nonce': <?php echo json_encode(wp_create_nonce('wp_rest')); ?>
 			},
-			body: data
+			body: JSON.stringify({ post_id: postId })
 		})
-		.then(response => response.json())
+		.then(response => {
+			if (!response.ok) {
+				return response.json().then(err => Promise.reject(err));
+			}
+			return response.json();
+		})
 		.then(data => {
-			// Reset button state
 			button.disabled = false;
 			button.textContent = originalText;
-
-			if (data.success) {
-				alert('<?php echo esc_js(__('Successfully pushed to Sendy!', 'extrachill-newsletter')); ?>');
-
-				// Reload the page to show updated campaign ID
-				window.location.reload();
-			} else {
-				alert('<?php echo esc_js(__('Error:', 'extrachill-newsletter')); ?> ' + (data.data || '<?php echo esc_js(__('An undefined error occurred', 'extrachill-newsletter')); ?>'));
-			}
+			alert(data.message);
+			window.location.reload();
 		})
 		.catch(error => {
-			// Reset button state
 			button.disabled = false;
 			button.textContent = originalText;
-
-			console.error('Fetch error:', error);
-			alert('<?php echo esc_js(__('Network error:', 'extrachill-newsletter')); ?> ' + error.message);
+			console.error('Push to Sendy failed:', error);
+			alert('<?php echo esc_js(__('Error:', 'extrachill-newsletter')); ?> ' + (error.message || '<?php echo esc_js(__('An error occurred', 'extrachill-newsletter')); ?>'));
 		});
 	});
 	</script>

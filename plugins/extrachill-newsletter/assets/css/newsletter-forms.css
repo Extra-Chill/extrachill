@@ -266,6 +266,12 @@
     }
 
 
+@media (min-width: 601px) {
+    .newsletter-form.newsletter-inline-form {
+        max-width: 400px;
+    }
+}
+
 @media (max-width: 600px) {
     .newsletter-content-section,
     .newsletter-footer-section,
@@ -273,6 +279,10 @@
         padding: var(--spacing-lg) var(--spacing-md);
         margin: var(--spacing-lg) 0;
     }
+
+
+
+}
 
 
 

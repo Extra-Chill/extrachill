@@ -2,21 +2,21 @@
 /**
  * Plugin Name: Extra Chill Newsletter
  * Description: Complete newsletter system with Sendy integration for email campaigns and subscriptions. Provides custom newsletter post type, multiple subscription forms, email template generation, and admin management tools.
- * Version: 0.1.9
+ * Version: 0.2.0
  * Author: Chris Huber
  * Network: true
  * Text Domain: extrachill-newsletter
  * Domain Path: /languages
  *
  * @package ExtraChillNewsletter
- * @since 0.1.9
+ * @since 0.2.0
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'EXTRACHILL_NEWSLETTER_VERSION', '0.1.9' );
+define( 'EXTRACHILL_NEWSLETTER_VERSION', '0.2.0' );
 define( 'EXTRACHILL_NEWSLETTER_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'EXTRACHILL_NEWSLETTER_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'EXTRACHILL_NEWSLETTER_INC_DIR', EXTRACHILL_NEWSLETTER_PLUGIN_DIR . 'inc/' );
@@ -59,38 +59,6 @@ add_action( 'plugins_loaded', function() {
 		}
 	}
 }, 20 );
-
-function newsletter_customize_post_meta( $default_meta, $post_id, $post_type ) {
-	if ( $post_type !== 'newsletter' ) {
-		return $default_meta;
-	}
-
-	$date = get_the_date();
-	$author_id = get_post_field( 'post_author', $post_id );
-	$author_name = get_the_author_meta( 'display_name', $author_id );
-	$author_url = function_exists( 'ec_get_user_profile_url' )
-		? ec_get_user_profile_url( $author_id )
-		: get_author_posts_url( $author_id );
-
-	$meta_html = '<div class="below-entry-meta">';
-	$meta_html .= '<div class="below-entry-meta-left">';
-	$meta_html .= '<div class="meta-top-row">';
-	$meta_html .= sprintf(
-		__( 'Sent on <time class="entry-date published newsletter-date" datetime="%s">%s</time> by <a href="%s">%s</a>', 'extrachill-newsletter' ),
-		esc_attr( get_the_date( 'c', $post_id ) ),
-		esc_html( $date ),
-		esc_url( $author_url ),
-		esc_html( $author_name )
-	);
-	$meta_html .= '</div>';
-	$meta_html .= '</div>';
-	$meta_html .= '</div>';
-
-	return $meta_html;
-}
-add_filter( 'extrachill_post_meta', 'newsletter_customize_post_meta', 10, 3 );
-
-
 
 /**
  * Get newsletter form context presets
@@ -241,6 +209,12 @@ function newsletter_register_default_integrations( $integrations ) {
 		'label'       => __( 'Content Form', 'extrachill-newsletter' ),
 		'description' => __( 'Newsletter form after post content', 'extrachill-newsletter' ),
 		'list_id_key' => 'content_list_id',
+	);
+
+	$integrations['contact'] = array(
+		'label'       => __( 'Contact Form', 'extrachill-newsletter' ),
+		'description' => __( 'Newsletter subscription via contact forms', 'extrachill-newsletter' ),
+		'list_id_key' => 'contact_list_id',
 	);
 
 	return $integrations;
