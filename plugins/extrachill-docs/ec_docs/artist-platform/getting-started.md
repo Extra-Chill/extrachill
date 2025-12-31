@@ -6,8 +6,10 @@ The Extra Chill Artist Platform helps musicians create professional online prese
 
 To get started with the Artist Platform:
 
-1. **Visit the Join Page**: Go to [extrachill.link/join](https://extrachill.link/join)
-2. **Choose Account Type**: Select whether to create a new Extra Chill account or use an existing one
+1. **Access the Join Flow**: Visit [extrachill.link/join](https://extrachill.link/join) to open the join modal
+2. **Sign In**: Choose "Sign in with Google" or "Create new account"
+   - **Google Sign-In**: Select your Google account - if you have an existing Extra Chill account with the same email, you'll be signed in automatically
+   - **New Account**: Provide email and password to create a new account
 3. **Complete Your Profile**: Fill in your artist information including name, biography, and profile image
 4. **Automatic Setup**: Your artist profile and link page are created automatically
 

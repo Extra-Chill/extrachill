@@ -1,3 +1,21 @@
+# 0.3.2 - Dec 31, 2025
+
+### Added
+- Artist platform documentation: artist access requirements, creating artist merch store, managing roster, managing artist profile
+- Community documentation: getting started guide, notifications system
+- Events calendar documentation: submitting an event, using calendar filters
+
+### Changed
+- Post meta filter now uses `extrachill_post_meta_parts` hook returning `['published', 'updated']` instead of hiding all metadata
+- Improved documentation formatting: removed YAML frontmatter, expanded content with better structure
+- Updated ec_docs/README.md with clearer file format guidelines and platform directory reference
+- Enhanced artist platform docs with detailed join flow, Google sign-in, and editor instructions
+- Expanded community docs with block editor features, social platform list, and sharing guidelines
+
+### Maintenance
+- Standardized documentation structure across all platform guides
+- Added support sections with forum and contact links to all docs
+
 # 0.3.1 - Dec 9, 2025
 
 ### Changed

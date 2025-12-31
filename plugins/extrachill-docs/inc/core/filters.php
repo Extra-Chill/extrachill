@@ -13,14 +13,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-// Hide author meta for documentation posts.
 add_filter(
-	'extrachill_post_meta',
-	function( $meta_html, $post_id, $post_type ) {
+	'extrachill_post_meta_parts',
+	function( $parts, $post_id, $post_type ) {
 		if ( $post_type === 'ec_doc' ) {
-			return ''; // Return empty string to hide all meta.
+			return array( 'published', 'updated' );
 		}
-		return $meta_html;
+		return $parts;
 	},
 	10,
 	3

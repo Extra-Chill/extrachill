@@ -1,4 +1,4 @@
-# Using the ExtraChill AI Chat
+# Using the Extra Chill AI Chat
 
 Chat with our AI assistant to get help with music, events, and the Extra Chill community.
 
@@ -25,11 +25,12 @@ The AI chat uses advanced language models to provide helpful responses about:
 
 ### Tool Integration
 
-The AI can use various tools to provide better answers:
+The AI can use specific tools to provide better answers:
 
-- Search the Extra Chill network for content
-- Access event calendars and artist information
+- Search the Extra Chill network for content and artist information
+- Access event calendars and artist platform features like adding links
 - Provide up-to-date information from the web
+- Enable multi-turn conversations using multiple tools in sequence
 
 ### Multi-Turn Conversations
 

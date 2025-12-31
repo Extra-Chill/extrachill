@@ -5,8 +5,8 @@ Customize your extrachill.link page to showcase your music and connect with fans
 ## Accessing the Editor
 
 1. Log in to [artist.extrachill.com](https://artist.extrachill.com)
-2. Navigate to your link page management
-3. Use the visual editor to make changes
+2. Go to your link page management (e.g., /manage-link-page/)
+3. Use the link page editor to make changes
 
 ## Adding and Organizing Links
 

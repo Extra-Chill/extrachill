@@ -1,10 +1,3 @@
----
-title: Using Calendar Filters
-slug: using-calendar-filters
-platform: events-calendar
-order: 1
----
-
 # Using Calendar Filters
 
 The Extra Chill Events Calendar at events.extrachill.com helps you discover live music events in Charleston and Austin. Use the filter system to find events by location, artist, venue, or festival.
@@ -21,6 +14,16 @@ The calendar displays all upcoming events by default. Apply one or more filters 
 4. The calendar updates automatically to show matching events
 
 You can combine multiple filters to get more specific results.
+
+## Automatic Filtering on Archive Pages
+
+When browsing specific festival, venue, or location pages, the calendar automatically filters to show only relevant events:
+
+- **Festival Archives**: Visiting a festival page (like /festival/bonnaroo) shows only events for that festival
+- **Venue Archives**: Venue pages display events happening at that specific location
+- **Location Archives**: Location pages filter events to that city or region
+
+The calendar block detects the archive context and applies these filters automatically, making it easy to explore events by category.
 
 ## Filter Categories
 

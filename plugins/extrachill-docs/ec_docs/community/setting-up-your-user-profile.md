@@ -21,7 +21,7 @@ Write a short description about yourself, your music interests, or your backgrou
 Enter your city or region to connect with people in your area.
 
 ### Your Links
-Add links to your website, social media profiles, or music streaming platforms. Supported platforms include website, Facebook, Instagram, Twitter, YouTube, TikTok, Spotify, SoundCloud, Bandcamp, and GitHub. You can add multiple links and reorder them as needed.
+Add links to your website, social media profiles, or music streaming platforms. Supported platforms include website, Apple Music, Bandcamp, Bluesky, Facebook, GitHub, Instagram, Patreon, Pinterest, SoundCloud, Spotify, Substack, TikTok, Twitch, Twitter/X, YouTube, and more. You can add multiple links and reorder them as needed.
 
 ## Managing Artist Profiles
 

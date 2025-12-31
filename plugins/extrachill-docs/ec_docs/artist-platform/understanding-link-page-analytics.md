@@ -8,10 +8,9 @@ Analytics are available directly in your link page editor, where you can view de
 
 ## Accessing Your Analytics
 
-1. Go to your link page management interface on the artist platform
-2. Open your link page for editing
-3. Look for the **Analytics** section or tab in your editor
-4. Your analytics dashboard will display with charts and metrics
+1. Log in to your artist platform account at [artist.extrachill.com](https://artist.extrachill.com)
+2. Navigate to the **Analytics** page in your dashboard menu
+3. Your analytics dashboard will display with charts and metrics
 
 ## Key Metrics
 

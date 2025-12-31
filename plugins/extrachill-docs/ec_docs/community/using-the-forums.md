@@ -12,8 +12,13 @@ The forums on Extra Chill Community are where members discuss music, share exper
 ## Creating a New Topic
 
 1. From the homepage, click the "New Topic" button.
-2. Fill in the topic title and content using the rich text editor.
-3. You can upload images directly in the editor.
+2. Fill in the topic title and content using the modern block editor.
+3. **Block Editor Features**:
+   - Add different content blocks like paragraphs, headings, and embeds
+   - Drag and drop blocks to reorder your content
+   - Embed videos, audio, and social media content directly
+   - Upload images directly into the editor
+   - Format text with inline controls
 4. Select appropriate tags if available.
 5. Click "Submit" to post your topic.
 
@@ -21,7 +26,11 @@ The forums on Extra Chill Community are where members discuss music, share exper
 
 1. Open a topic you want to reply to.
 2. Scroll to the bottom and use the reply form.
-3. Use the editor to format your response.
+3. **Reply Editor Features**:
+   - Use the block editor to structure your response
+   - Add formatted text, headings, and embedded content
+   - Upload images to illustrate your points
+   - Include embedded videos, music, or social media posts
 4. Mention other users by typing @username.
 5. Submit your reply.
 

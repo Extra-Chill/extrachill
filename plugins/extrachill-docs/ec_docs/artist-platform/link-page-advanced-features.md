@@ -1,6 +1,6 @@
 # Advanced Link Page Features
 
-Your link page at extrachill.link includes powerful tools for control, customization, and performance tracking. Access these features by editing your link page and navigating to the Advanced, Customize, Socials, or Analytics tabs.
+Your link page at extrachill.link includes powerful tools for control, customization, and performance tracking. Access these features by editing your link page and navigating to the Advanced, Customize, or Socials tabs.
 
 ## Link Expiration
 
