@@ -6,11 +6,8 @@ Theme filters for customizing functionality, layout, and embeds while keeping th
 
 All routing filters receive the default template path (often defined in `inc/core/template-router.php`) and must return a fully qualified template path. Filters bypassed for custom page templates, WooCommerce, and bbPress templates.
 
-### `extrachill_template_homepage`
-Override the front-page template that normally loads `inc/home/templates/front-page.php`.
-
-**Parameters**: `$template` (string) – Default path to the front-page template.
-**Returns**: Template file path.
+### Homepage Template (No Filter Available)
+The front-page template (`inc/home/templates/front-page.php`) loads directly without a filter. Plugins inject content via the `extrachill_homepage_content` action hook rather than replacing the entire template. See [action-hooks.md](action-hooks.md#extrachill_homepage_content) for details.
 
 ### `extrachill_template_single_post`
 Provide a replacement for the single post template (`inc/single/single-post.php`).

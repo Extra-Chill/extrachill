@@ -1,58 +1,96 @@
 /**
- * Share Button Component
+ * Share Button - Copy Link Handler
  *
- * Handles toggle, click-outside-close, and clipboard copy for share buttons.
- * Supports multiple share button instances on a single page via event delegation.
+ * Handles clipboard copy for share button copy-link functionality.
+ * Dropdown behavior provided by mini-dropdown.js.
  *
  * @package ExtraChill
- * @since 1.0.0
  */
 (function() {
     'use strict';
 
-    document.addEventListener('click', function(event) {
-        var button = event.target.closest('.share-button');
-        var container = event.target.closest('.share-button-container');
-
-        if (button && container) {
-            var options = container.querySelector('.share-options');
-            if (options) {
-                options.style.display = options.style.display === 'block' ? 'none' : 'block';
-            }
-            return;
+    function ecCopyToClipboard(text, linkEl, promptLabel) {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            return navigator.clipboard.writeText(text)
+                .then(function() {
+                    var originalText = linkEl.textContent;
+                    linkEl.textContent = 'Copied!';
+                    setTimeout(function() {
+                        linkEl.textContent = originalText;
+                    }, 2000);
+                })
+                .catch(function() {
+                    window.prompt(promptLabel, text);
+                });
         }
 
-        document.querySelectorAll('.share-options').forEach(function(options) {
-            options.style.display = 'none';
-        });
-    });
+        window.prompt(promptLabel, text);
+        return Promise.resolve();
+    }
+
+    function ecFetchMarkdownExport(postId, blogId) {
+        var url = '/wp-json/extrachill/v1/tools/markdown-export?post_id=' + encodeURIComponent(postId);
+        if (blogId) {
+            url += '&blog_id=' + encodeURIComponent(blogId);
+        }
+
+        return window.fetch(url, { credentials: 'same-origin' })
+            .then(function(response) {
+                if (!response.ok) {
+                    throw new Error('Request failed');
+                }
+                return response.json();
+            })
+            .then(function(json) {
+                if (!json || !json.markdown) {
+                    throw new Error('Invalid response');
+                }
+                return json.markdown;
+            });
+    }
 
     document.addEventListener('click', function(event) {
         var copyLink = event.target.closest('.copy-link a');
-        if (!copyLink) {
+        var copyMarkdown = event.target.closest('.copy-markdown a');
+
+        if (!copyLink && !copyMarkdown) {
             return;
         }
 
         event.preventDefault();
-        var url = copyLink.getAttribute('data-share-url');
-        if (!url) {
+
+        if (copyLink) {
+            var url = copyLink.getAttribute('data-share-url');
+            if (!url) {
+                return;
+            }
+
+            ecCopyToClipboard(url, copyLink, 'Copy this link:');
             return;
         }
 
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-            navigator.clipboard.writeText(url)
-                .then(function() {
-                    var originalText = copyLink.textContent;
-                    copyLink.textContent = 'Copied!';
-                    setTimeout(function() {
-                        copyLink.textContent = originalText;
-                    }, 2000);
-                })
-                .catch(function() {
-                    window.prompt('Copy this link:', url);
-                });
-        } else {
-            window.prompt('Copy this link:', url);
+        var dropdown = event.target.closest('.share-dropdown');
+        if (!dropdown) {
+            return;
         }
+
+        var postId = dropdown.getAttribute('data-post-id');
+        if (!postId) {
+            return;
+        }
+
+        var blogId = dropdown.getAttribute('data-blog-id');
+
+        copyMarkdown.textContent = 'Loading...';
+        ecFetchMarkdownExport(postId, blogId)
+            .then(function(markdown) {
+                return ecCopyToClipboard(markdown, copyMarkdown, 'Copy this markdown:');
+            })
+            .catch(function() {
+                window.prompt('Copy this markdown:', '');
+            })
+            .finally(function() {
+                copyMarkdown.textContent = 'Copy Markdown';
+            });
     });
 })();

@@ -1,17 +1,11 @@
 /**
- * Network Dropdown Styles
+ * Network Dropdown Toggle Styles
  *
- * Styles for the network site-switcher dropdown in homepage breadcrumbs.
- * Follows the same patterns as share.css for consistency.
+ * Toggle button styling for the network site-switcher dropdown.
+ * Menu styling provided by ec-mini-dropdown component in root.css.
  *
  * @package ExtraChill
- * @since 1.1.8
  */
-
-.network-dropdown {
-	position: relative;
-	display: inline-block;
-}
 
 .network-dropdown-toggle {
 	display: inline-flex;
@@ -40,43 +34,6 @@
 	transition: transform 0.2s ease;
 }
 
-.network-dropdown[aria-expanded="true"] .network-dropdown-toggle .ec-icon {
+.ec-mini-dropdown[aria-expanded="true"] .network-dropdown-toggle .ec-icon {
 	transform: rotate(180deg);
-}
-
-.network-dropdown-menu {
-	display: none;
-	position: absolute;
-	top: 100%;
-	left: 0;
-	background-color: var(--card-background);
-	border: 1px solid var(--border-color);
-	border-radius: var(--border-radius-sm);
-	box-shadow: 2px 2px 5px var(--card-shadow);
-	z-index: 9999;
-	min-width: 140px;
-	list-style: none;
-}
-
-.network-dropdown-menu[aria-hidden="false"] {
-	display: block;
-}
-
-.network-dropdown-menu li {
-	margin: 0;
-	padding: 0;
-}
-
-.network-dropdown-menu li a {
-	display: block;
-	padding: var(--spacing-sm) var(--spacing-md);
-	color: var(--text-color);
-	text-decoration: none;
-	white-space: nowrap;
-}
-
-.network-dropdown-menu li a:hover,
-.network-dropdown-menu li a:focus {
-	background-color: var(--accent-2);
-	color: var(--button-text-color);
 }

@@ -37,11 +37,17 @@
                 printf( __( 'Month: %s', 'extrachill' ), get_the_date( 'F Y' ) );
             } elseif ( is_year() ) {
                 printf( __( 'Year: %s', 'extrachill' ), get_the_date( 'Y' ) );
-            } elseif ( get_query_var( 'extrachill_blog_archive' ) ) {
-                esc_html_e( 'The Latest', 'extrachill' );
-            } else {
-                esc_html_e( 'Archives', 'extrachill' );
-            }
+			} elseif ( get_query_var( 'extrachill_blog_archive' ) ) {
+				esc_html_e( 'The Latest', 'extrachill' );
+			} elseif ( is_search() ) {
+				printf(
+					/* translators: %s: search query */
+					__( 'Search Results for: %s', 'extrachill' ),
+					'<span class="search-query">' . esc_html( get_search_query() ) . '</span>'
+				);
+			} else {
+				esc_html_e( 'Archives', 'extrachill' );
+			}
             ?>
         </h1>
 

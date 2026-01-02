@@ -27,7 +27,20 @@ function extrachill_filter_bar_archive_items( $items ) {
 		return $items;
 	}
 
-	if ( ! is_archive() && ! get_query_var( 'extrachill_blog_archive' ) ) {
+	if ( ! is_archive() && ! is_search() && ! get_query_var( 'extrachill_blog_archive' ) ) {
+		return $items;
+	}
+
+	// Search results: sort dropdown + search input only (no category/artist filters)
+	if ( is_search() ) {
+		$items[] = extrachill_build_sort_dropdown();
+		$items[] = array(
+			'type'        => 'search',
+			'id'          => 'filter-bar-search',
+			'name'        => 's',
+			'placeholder' => __( 'Search...', 'extrachill' ),
+			'current'     => get_search_query(),
+		);
 		return $items;
 	}
 
