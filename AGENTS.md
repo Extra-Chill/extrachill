@@ -1,6 +1,6 @@
 # Extra Chill Theme - Architecture & Development Guide
 
-WordPress theme serving the Extra Chill Platform multisite network across 9 active sites (Blog IDs 1-5, 7-10). This document provides architectural guidance for theme development and integration with the platform ecosystem.
+WordPress theme serving the Extra Chill Platform multisite network across 10 active sites (Blog IDs 1-5, 7-11). This document provides architectural guidance for theme development and integration with the platform ecosystem.
 
 ## Theme Architecture & Organization
 
@@ -67,9 +67,7 @@ extrachill/
 │   ├── archive.php
 │   ├── archive-custom-sorting.php
 │   ├── archive-header.php
-│   ├── post-card.php
-│   └── search/
-│       └── search-header.php
+│   └── post-card.php
     ├── footer/                  # Footer functionality
     │   ├── back-to-home-link.php
     │   ├── footer-main-menu.php
@@ -120,16 +118,15 @@ The theme implements complete WordPress template hierarchy via `/inc/core/templa
 
 ### Template Routing & Plugin Overrides
 
-The `template_include` filter in `template-router.php` supports:
+The `template_include` filter in `template-router.php` supports override filters for most page types:
 
 ```php
-// Plugins can override any template completely
-add_filter('extrachill_template_homepage', function($template) {
-    return plugin_dir_path(__FILE__) . 'my-homepage.php';
+// Plugins can override non-homepage templates via filters
+add_filter('extrachill_template_single_post', function($template) {
+    return plugin_dir_path(__FILE__) . 'my-single.php';
 });
 
-// Available override hooks:
-// - extrachill_template_homepage
+// Available template override filters:
 // - extrachill_template_single_post
 // - extrachill_template_page (only when no custom template)
 // - extrachill_template_archive
@@ -140,13 +137,16 @@ add_filter('extrachill_template_homepage', function($template) {
 
 **Key Points**:
 - All templates have access to global WordPress variables (`$post`, `$wp_query`, etc.)
-- Plugin templates override theme templates via filters
+- Plugin templates override theme templates via filters (except homepage)
 - Template routing respects WordPress conditional tags (`is_home()`, `is_singular()`, etc.)
 - Maintains compatibility with bbPress, WooCommerce, and specialized plugins
 
+**Search Template Integration**:
+The `extrachill_template_search` filter defaults to `archive.php` but is overridden by the `extrachill-search` plugin to provide multisite search functionality. The search plugin's template (`templates/search.php`) fires `extrachill_search_header` action which renders `archive-header.php` (contains `is_search()` case for "Search Results for:" title). The filter bar renders via `extrachill_archive_above_posts` hook with search-specific items (sort dropdown + search input only).
+
 ### Homepage Template Architecture
 
-Homepage uses single hook container pattern (`inc/home/templates/front-page.php`):
+Homepage uses action hook pattern - plugins inject content rather than replacing the template (`inc/home/templates/front-page.php`):
 
 ```php
 // Primary homepage content (plugins hook here)
@@ -156,7 +156,7 @@ do_action('extrachill_homepage_content');
 do_action('extrachill_after_homepage_content');
 ```
 
-Plugins use these hooks to add homepage content blocks without template modifications.
+Plugins use these hooks to add homepage content blocks. Unlike other page types, the homepage template cannot be replaced via filter - content is injected via action hooks.
 
 ## root.css CSS Variable System
 
@@ -380,6 +380,7 @@ Same CSS/layout system works across all sites:
 - stream.extrachill.com (Blog 8): Live streaming
 - newsletter.extrachill.com (Blog 9): Newsletter
 - docs.extrachill.com (Blog 10): Documentation
+- wire.extrachill.com (Blog 11): News wire
 
 ### Site-Specific Template Variations
 
@@ -509,6 +510,11 @@ extrachill_filter_bar();
 - Extended by extrachill-community plugin for forum filtering via `inc/core/filter-bar.php`
 - Customizable via filters for plugin-specific options
 
+**Search Results Behavior**:
+- Filter bar shows on search results with sort dropdown + search input only (no category/artist filters)
+- Form action uses `home_url('/')` on search pages for global search behavior (vs archive path on category pages)
+- Search input pre-fills with current search query via `get_search_query()`
+
 ### Grid & Layout Systems
 
 #### Container Widths
@@ -594,8 +600,7 @@ add_action('extrachill_after_body_content', 'my_footer_banner');
 Plugins modify theme behavior via filters:
 
 ```php
-// Template overrides
-add_filter('extrachill_template_homepage', 'my_custom_homepage');
+// Template overrides (homepage uses action hook instead - see extrachill_homepage_content)
 add_filter('extrachill_template_single_post', 'my_custom_single');
 add_filter('extrachill_template_page', 'my_custom_page');
 add_filter('extrachill_template_archive', 'my_custom_archive');

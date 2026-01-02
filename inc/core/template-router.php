@@ -63,7 +63,7 @@ function extrachill_route_templates( $template ) {
 
 	} elseif ( is_search() ) {
 		$template = apply_filters( 'extrachill_template_search',
-			get_template_directory() . '/inc/archives/search/search.php'
+			get_template_directory() . '/inc/archives/archive.php'
 		);
 
 	} elseif ( is_404() ) {

@@ -49,7 +49,7 @@ function extrachill_filter_bar() {
 		return;
 	}
 
-	$form_action = strtok( $_SERVER['REQUEST_URI'], '?' );
+	$form_action = is_search() ? home_url( '/' ) : strtok( $_SERVER['REQUEST_URI'], '?' );
 
 	echo '<form method="get" action="' . esc_url( $form_action ) . '" class="extrachill-filter-bar">';
 

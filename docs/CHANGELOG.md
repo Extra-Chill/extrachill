@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0/).
 
+## [1.3.7] - 2026-01-01
+
+### Added
+- `mini-dropdown.js` shared component for consistent dropdown and flyout behavior across the platform
+
+### Changed
+- Refactored search templates to utilize universal `archive.php` and `archive-header.php` for better consistency and reduced code duplication
+- Updated share button JavaScript to depend on shared `mini-dropdown.js` component
+- Improved filter bar form action to correctly target `home_url('/')` when on search results pages
+
+### Removed
+- Redundant `inc/archives/search/` directory and `network-dropdown.js` (functionality consolidated into shared components)
+
+### Technical
+- Enqueued and localized `extrachill-mini-dropdown` script in `inc/core/assets.php`
+- Updated `template-router.php` to map search results to the primary archive template
+- Synchronized theme version constant and documentation references to v1.3.7
+
 ## [1.3.6] - 2025-12-26
 
 ### Removed
