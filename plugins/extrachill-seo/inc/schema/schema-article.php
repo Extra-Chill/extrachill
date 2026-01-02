@@ -82,6 +82,27 @@ add_filter(
 			$article['wordCount'] = $word_count;
 		}
 
+		// Add description from excerpt for all article types
+		if ( ! empty( $post->post_excerpt ) ) {
+			$article['description'] = wp_strip_all_tags( $post->post_excerpt );
+		}
+
+		// Festival Wire specific enhancements
+		if ( 'festival_wire' === $post->post_type ) {
+			$festivals = get_the_terms( $post->ID, 'festival' );
+
+			if ( $festivals && ! is_wp_error( $festivals ) ) {
+				// First term as articleSection
+				$article['articleSection'] = $festivals[0]->name;
+
+				// All terms as keywords
+				$keywords = wp_list_pluck( $festivals, 'name' );
+				if ( ! empty( $keywords ) ) {
+					$article['keywords'] = $keywords;
+				}
+			}
+		}
+
 		$graph[] = $article;
 
 		return $graph;

@@ -142,11 +142,20 @@ add_action(
 /**
  * Generate meta description for current page
  *
- * Priority: Post excerpt > Auto-generated from content > Site tagline (homepage)
+ * Priority: Auth pages > Post excerpt > Auto-generated from content > Site tagline (homepage)
  *
  * @return string Meta description (max 160 chars)
  */
 function ec_seo_get_meta_description() {
+	// Auth page descriptions (login exists on all sites, reset-password on community only).
+	if ( is_page( 'login' ) ) {
+		return 'Sign in to Extra Chill to access your profile, join community discussions, and connect with independent music fans.';
+	}
+
+	if ( is_page( 'reset-password' ) ) {
+		return 'Reset your Extra Chill account password to regain access to your profile and community features.';
+	}
+
 	if ( is_singular() ) {
 		$post = get_queried_object();
 

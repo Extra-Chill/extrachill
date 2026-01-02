@@ -160,10 +160,6 @@ function ec_seo_get_breadcrumb_items() {
 	if ( is_author() ) {
 		$author  = get_queried_object();
 		$items[] = array(
-			'name' => 'Authors',
-			'url'  => '',
-		);
-		$items[] = array(
 			'name' => $author->display_name,
 			'url'  => '',
 		);

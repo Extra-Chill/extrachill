@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0).
 
+## [0.5.0] - 2026-01-02
+
+### Added
+- `MusicGroup` schema for Artist Profiles (`artist_profile`) including bio, genre, and social links.
+- `ProfilePage` schema for Artist Link Pages (`artist_link_page`) referencing the associated `MusicGroup`.
+- `subOrganization` support to Organization schema, listing all network sites derived from canonical blog-ids.php.
+- Network-wide canonical and meta descriptions for login and password reset pages (canonicalized to community site).
+- Article schema enhancements: description from excerpt and custom fields (`articleSection`, `keywords`) for `festival_wire` posts.
+
+### Changed
+- Simplified author breadcrumbs by removing the redundant "Authors" parent item.
+
 ## [0.4.1] - 2025-12-24
 
 ### Added

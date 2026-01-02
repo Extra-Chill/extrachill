@@ -22,6 +22,18 @@ if ( ! defined( 'ABSPATH' ) ) {
 add_action(
 	'wp_head',
 	function () {
+		// Login pages across the network canonicalize to community site.
+		if ( is_page( 'login' ) ) {
+			$canonical = ec_seo_get_login_canonical_url();
+			if ( $canonical ) {
+				printf(
+					'<link rel="canonical" href="%s" />' . "\n",
+					esc_url( $canonical )
+				);
+				return;
+			}
+		}
+
 		// Avoid duplicate canonical on singular content (WordPress core outputs this).
 		if ( is_singular() ) {
 			return;
@@ -40,3 +52,21 @@ add_action(
 	},
 	5
 );
+
+/**
+ * Get canonical URL for login page (community site is canonical).
+ *
+ * @return string|null Canonical login URL or null if helper unavailable.
+ */
+function ec_seo_get_login_canonical_url() {
+	if ( ! function_exists( 'ec_get_site_url' ) ) {
+		return null;
+	}
+
+	$community_url = ec_get_site_url( 'community' );
+	if ( ! $community_url ) {
+		return null;
+	}
+
+	return trailingslashit( $community_url ) . 'login/';
+}
