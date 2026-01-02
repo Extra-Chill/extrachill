@@ -22,10 +22,14 @@ function extrachill_blog_render_homepage() {
 	include EXTRACHILL_BLOG_PLUGIN_DIR . 'inc/home/templates/hero.php';
 	include EXTRACHILL_BLOG_PLUGIN_DIR . 'inc/home/templates/section-3x3-grid.php';
 	?>
-	<div class="home-final">
+	<div class="home-network-grid">
 		<?php
+		include EXTRACHILL_BLOG_PLUGIN_DIR . 'inc/home/templates/section-artist-platform.php';
+		include EXTRACHILL_BLOG_PLUGIN_DIR . 'inc/home/templates/section-community.php';
+		include EXTRACHILL_BLOG_PLUGIN_DIR . 'inc/home/templates/section-events.php';
+		include EXTRACHILL_BLOG_PLUGIN_DIR . 'inc/home/templates/section-wire.php';
+		include EXTRACHILL_BLOG_PLUGIN_DIR . 'inc/home/templates/section-docs.php';
 		include EXTRACHILL_BLOG_PLUGIN_DIR . 'inc/home/templates/section-about.php';
-		include EXTRACHILL_BLOG_PLUGIN_DIR . 'inc/home/templates/section-extrachill-link.php';
 		?>
 	</div>
 	<?php

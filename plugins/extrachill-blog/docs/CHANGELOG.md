@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.5] - 2026-01-02
+
+### Added
+- New homepage content sections: Artist Platform, Community, Events, Wire, and Docs
+- Mobile-first CSS Grid layout for the homepage network section (`home-network-grid`)
+- Unified card styling for homepage network components with hover effects and improved accessibility
+
+### Changed
+- Refactored homepage layout from flexbox to CSS Grid for better responsiveness and scalability
+- Retired the legacy Extra Chill Link promo section in favor of the new Artist Platform component
+- Updated About section styling and structure to align with the new grid system
+- Updated all Gutenberg blocks to version 1.1.1
+
 ## [0.3.4] - 2026-01-02
 
 ### Added
