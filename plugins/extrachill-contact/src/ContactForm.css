@@ -98,31 +98,7 @@
   cursor: not-allowed;
 }
 
-/* Notice styles - matches theme .notice pattern */
-.ec-contact-form__feedback {
-  padding: var(--spacing-md, 1rem) var(--spacing-lg, 1.5rem);
-  margin-bottom: var(--spacing-lg, 1.5rem);
-  border-radius: var(--border-radius-sm, 5px);
-  border-left: 4px solid;
-  background-color: var(--card-background, #f1f5f9);
-}
 
-.ec-contact-form__feedback--error {
-  border-left-color: var(--error-color, #dc3232);
-}
-
-.ec-contact-form__feedback--success {
-  border-left-color: var(--accent, #53940b);
-}
-
-.ec-contact-form__feedback p {
-  margin: 0 0 var(--spacing-md, 1rem) 0;
-  color: var(--text-color, #000);
-}
-
-.ec-contact-form__feedback p:last-child {
-  margin-bottom: 0;
-}
 
 /* Success state action button */
 .ec-contact-form__action {

@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## v2.0.2
+- **UI Refinement**: Replaced custom feedback styling with standard WordPress notice patterns for consistent user experience
+- **Backend Consolidation**: Removed local REST API implementation in favor of centralized platform API
+- **Integration Cleanup**: Simplified newsletter subscription logic and removed redundant integration filters
+- **Documentation Overhaul**: Updated README and AGENTS.md to fully reflect Gutenberg block architecture and remove legacy shortcode references
+- **Asset Updates**: Refreshed compiled production assets
+
 ## v2.0.1
 - **React Frontend Implementation**: Added complete TypeScript/React frontend with ContactForm component
 - **Build System**: Implemented Vite-based build pipeline for compiling React components to IIFE bundles

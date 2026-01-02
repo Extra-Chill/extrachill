@@ -55,16 +55,16 @@ cd extrachill-plugins/extrachill-contact
 ## Usage
 
 ### Basic Contact Form
-Add the contact form to any page or post using the shortcode:
+Add the contact form to any page or post using the Gutenberg block:
 
-```
-[ec_custom_contact_form]
-```
+1. Edit a page or post in the WordPress block editor
+2. Search for "Contact Form" in the block inserter
+3. Insert the block and configure the settings
 
 ### Contact Page Setup
 1. Create a page with slug `contact-us`
-2. Add the shortcode `[ec_custom_contact_form]` to the page content
-3. The plugin will automatically load additional assets on this page
+2. Add the Contact Form block to the page via the block editor
+3. The plugin will automatically load assets on pages with the block
 
 ### Form Fields
 - **Name** (required)
@@ -125,7 +125,7 @@ CSS is conditionally loaded only on pages containing the contact form.
 # Create production ZIP package
 ./build.sh
 
-# Output: Only /build/extrachill-contact.zip file (unzip when directory access needed)
+# Output: Only /build/extrachill-contact.zip file
 ```
 
 ### File Structure
@@ -133,19 +133,26 @@ CSS is conditionally loaded only on pages containing the contact form.
 extrachill-contact/
 ├── extrachill-contact.php          # Main plugin file
 ├── includes/
-│   └── contact-form-core.php       # Core functionality
-├── assets/
-│   └── contact-form.css           # Styling
-├── build.sh                       # Build script
-├── .buildignore                   # Build exclusions
-├── AGENTS.md                      # AI agent documentation
-└── README.md                      # This file
+│   └── email-functions.php         # Email handling functions
+├── blocks/
+│   └── contact-form/
+│       ├── block.json              # Block registration
+│       └── render.php              # Frontend rendering
+├── src/                            # TypeScript/React source
+│   ├── ContactForm.tsx             # Main React component
+│   └── ContactForm.css             # Component styles
+├── assets/                         # Built output (from Vite)
+│   ├── contact-form.css            # Compiled styles
+│   └── contact-form.iife.js        # Compiled React component
+├── build.sh                        # Build script
+├── .buildignore                    # Build exclusions
+├── AGENTS.md                       # AI agent documentation
+└── README.md                       # This file
 ```
 
 ### WordPress Hooks
-- `wp_enqueue_scripts`: Conditional asset loading
-- `admin_post_ec_contact_form_action`: Form processing
-- `admin_post_nopriv_ec_contact_form_action`: Non-authenticated form processing
+- `init`: Block registration via `register_block_type()`
+- REST API endpoint for form submission via extrachill-api
 
 ## Requirements
 

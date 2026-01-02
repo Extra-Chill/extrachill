@@ -134,7 +134,7 @@ export function ContactForm({
   if (status === 'success') {
     return (
       <div className={`ec-contact-form ${className || ''}`}>
-        <div className="ec-contact-form__feedback ec-contact-form__feedback--success">
+        <div className="notice notice-success">
           <p>{successMessage}</p>
           {successAction && (
             <p>
@@ -151,7 +151,7 @@ export function ContactForm({
   return (
     <div className={`ec-contact-form ${className || ''}`}>
       {status === 'error' && errorMessage && (
-        <div className="ec-contact-form__feedback ec-contact-form__feedback--error">
+        <div className="notice notice-error">
           <p>{errorMessage}</p>
         </div>
       )}

@@ -103,10 +103,6 @@ HTML;
  */
 function ec_contact_sync_to_sendy( $email ) {
 	if ( function_exists( 'extrachill_multisite_subscribe' ) ) {
-		try {
-			extrachill_multisite_subscribe( $email, 'contact' );
-		} catch ( Exception $e ) {
-			error_log( 'Contact form Sendy sync failed: ' . $e->getMessage() );
-		}
+		extrachill_multisite_subscribe( $email, 'contact' );
 	}
 }

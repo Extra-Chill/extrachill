@@ -116,14 +116,9 @@ extrachill-contact/
 ## Asset Management
 
 ### Conditional Loading
-```php
-add_action('wp_enqueue_scripts', function() {
-    global $post;
-    if (has_shortcode($post->post_content, 'ec_custom_contact_form')) {
-        wp_enqueue_style('contact-form', plugin_dir_url(__FILE__) . 'assets/contact-form.css');
-    }
-});
-```
+Assets are loaded conditionally by the Gutenberg block system:
+- Block CSS/JS only enqueued on pages containing the contact form block
+- Uses WordPress block asset management via `register_block_type()`
 
 ### CSS Architecture
 - Responsive design with mobile optimization
