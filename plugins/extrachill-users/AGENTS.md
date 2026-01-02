@@ -1,6 +1,6 @@
 # ExtraChill Users
 
-**THE SINGLE SOURCE OF TRUTH FOR USER MANAGEMENT** - Network-activated WordPress plugin providing all user-related functionality for the ExtraChill Platform multisite network. This plugin is the centralized authority for authentication (including Google OAuth), registration, password reset, user onboarding, cross-site user management, team member system, profile URL resolution, network-wide avatar menu, custom avatars, and online user tracking across all 9 active sites (Blog IDs 1–5, 7–11) with docs at Blog ID 10; horoscope planned for Blog ID 12.
+**THE SINGLE SOURCE OF TRUTH FOR USER MANAGEMENT** - Network-activated WordPress plugin providing all user-related functionality for the ExtraChill Platform multisite network. This plugin is the centralized authority for authentication (including Google OAuth), registration, password reset, user onboarding, cross-site user management, team member system, profile URL resolution, network-wide avatar menu, custom avatars, and online user tracking across all 10 active sites (Blog IDs 1–5, 7–11) with docs at Blog ID 10; horoscope planned for Blog ID 12.
 
 User management functionality was migrated here from extrachill-multisite plugin to follow the single responsibility principle. All user-specific features, authentication flows, and user data operations are consolidated in this plugin.
 
@@ -37,7 +37,7 @@ User management functionality was migrated here from extrachill-multisite plugin
 
 **Google Sign-In System**:
 - Server-side Google OAuth integration via `inc/oauth/google-service.php`
-- JWT RS256 token validation via `inc/oauth/jwt-rs256.php`
+- RS256 ID token verification via `inc/oauth/jwt-rs256.php`
 - Dedicated Google sign-in button with JavaScript handling via `assets/js/google-signin.js`
 - Network-wide OAuth configuration managed by extrachill-multisite plugin
 - REST API endpoint: `POST /wp-json/extrachill/v1/auth/google`
@@ -85,7 +85,7 @@ User management functionality was migrated here from extrachill-multisite plugin
 - `inc/auth/logout.php` filters logout URLs and processes custom logout requests with nonce verification so redirects stay consistent.
 
 **Business Logic (`inc/core/`)**:
-- `inc/core/user-creation.php` remains the single source of truth for community-extrachill.com user creation and artist/professional metadata.
+- `inc/core/user-creation.php` remains the single source of truth for community.extrachill.com user creation and registration metadata (`registration_page`, `registration_source`, `registration_method`) plus onboarding flags.
 - `inc/core/registration-emails.php` sends branded HTML welcome messages immediately after registration.
 - `inc/core/online-users.php` records network-wide activity for online status, notices, and dashboard widgets.
 
@@ -96,7 +96,7 @@ User management functionality was migrated here from extrachill-multisite plugin
 #### Online Users Tracking (`inc/core/online-users.php`)
 
 **Network-Wide Activity Tracking**:
-- Records user activity across all 9 active sites in the multisite network (Blog IDs 1–5, 7–11)
+- Records user activity across all 10 active sites in the multisite network (Blog IDs 1–5, 7–11)
 - Centralized data storage on community.extrachill.com as the single source of truth
 - 15-minute activity window for "online" status determination
 - Updates `last_active` user meta via the `wp` action hook on all sites
@@ -181,17 +181,20 @@ User management functionality was migrated here from extrachill-multisite plugin
 - `username` - Required username
 - `password` - Required password
 - `email` - Required email address
-- `user_is_artist` - Boolean for artist status
-- `user_is_professional` - Boolean for professional status
+- `from_join` - Boolean: whether registration starts from the join flow
+- `registration_page` - Optional URL for where registration happens
+- `registration_source` - Optional string (e.g. `web`, `extrachill-app`)
+- `registration_method` - Optional string (e.g. `standard`, `google`)
 
 **Workflow**:
 1. Validate required fields (username, password, email)
-2. Use direct blog ID number (2) for community site
+2. Resolve community blog ID via `ec_get_blog_id( 'community' )`
 3. Switch to community site if not already there
 4. Create user with `wp_create_user()`
-5. Set `user_is_artist` and `user_is_professional` meta
+5. Persist registration metadata (when present) and set onboarding flags
 6. Restore original blog context
-7. Return user_id or WP_Error
+7. Fire `extrachill_new_user_registered` action (on success)
+8. Return user_id or WP_Error
 
 **Used By**: Registration handler (`inc/auth/register.php`) for network-wide user creation
 
@@ -405,7 +408,7 @@ extrachill-users/
 │   │   └── user-creation.php      (community user creation filter)
 │   ├── oauth/
 │   │   ├── google-service.php     (Google OAuth integration)
-│   │   └── jwt-rs256.php          (JWT RS256 token validation)
+│   │   └── jwt-rs256.php          (RS256 ID token verification)
 │   ├── onboarding/
 │   │   └── service.php            (user onboarding service)
 │   ├── rank-system/
@@ -506,7 +509,7 @@ try {
 ### Build System
 - **Universal Build Script**: Symlinked to shared build script at `../../.github/build.sh`
 - **Auto-Detection**: Script auto-detects network plugin from `Network: true` header
-- **Production Build**: Creates `/build/extrachill-users.zip` file only (unzip when directory access needed)
+- **Production Build**: Creates `/build/extrachill-users.zip` file only.
 - **Composer Integration**: Production builds use `composer install --no-dev`, restores dev dependencies after
 - **File Exclusion**: `.buildignore` rsync patterns exclude development files
 - **Structure Validation**: Ensures network plugin integrity before packaging
@@ -596,7 +599,7 @@ try {
 **Purpose**: Network-wide activity tracking and online user statistics
 
 **Key Features**:
-- Tracks user activity across all 9 active sites in the multisite network (Blog IDs 1–5, 7–11)
+- Tracks user activity across all 10 active sites in the multisite network (Blog IDs 1–5, 7–11)
 - Centralized storage on community.extrachill.com
 - Transient caching for performance optimization
 - "Most ever online" tracking with date
@@ -638,7 +641,7 @@ composer run test
 ```
 
 ### Build Output
-- **Production Package**: `/build/extrachill-users.zip` file only (unzip when directory access needed)
+- **Production Package**: `/build/extrachill-users.zip` file only.
 - **Network Plugin**: Must be installed in network plugins directory
 - **File Exclusions**: Development files, vendor/, .git/, build tools excluded
 

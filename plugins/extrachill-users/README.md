@@ -5,7 +5,7 @@ Network-activated user management system for the ExtraChill Platform. Handles us
 ## Features
 
 - User registration and login with Turnstile captcha via EC_Redirect_Handler orchestration
-- **Google OAuth** integration with dedicated sign-in button and JWT RS256 validation
+- **Google OAuth** integration with dedicated sign-in button and RS256 ID token verification
 - **User onboarding system** with guided first-time user experience via Gutenberg block
 - Password reset functionality with email-based flow rendered by Gutenberg blocks
 - **Bearer token authentication** for REST API access
@@ -18,9 +18,10 @@ Network-activated user management system for the ExtraChill Platform. Handles us
 - Network-wide avatar menu with plugin extensibility via filter
 - Ad-free license validation system
 - Comment auto-approval for logged-in users
+- Admin access control (wp-admin restriction for non-admins)
+- Browser handoff token system for app-to-browser login
 - Gutenberg blocks for login/register, password reset, and user onboarding
 - Newsletter subscription integration during registration
-- Admin access control (wp-admin restriction for non-admins)
 
 ## Requirements
 
@@ -29,11 +30,9 @@ Network-activated user management system for the ExtraChill Platform. Handles us
 - PHP 7.4+
 - WordPress 5.0+
 
-## Installation
+## Notes
 
-1. Upload the plugin to your WordPress multisite network
-2. Network activate the plugin
-3. Configure settings as needed
+This repo is a network plugin used inside the Extra Chill Platform multisite network.
 
 ## API Integration
 

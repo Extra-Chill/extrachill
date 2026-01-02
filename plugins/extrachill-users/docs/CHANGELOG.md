@@ -83,12 +83,12 @@
 ## [0.5.0] - 2025-12-19
 
 ### Added
-- Google OAuth authentication system with Sign-In buttons and JWT verification
+- Google OAuth authentication system with Sign-In buttons and RS256 ID token verification
 - User onboarding system with post-registration username and artist/professional flag setup
 - Onboarding Gutenberg block for streamlined user setup flow
 - Shared authentication utilities (auth-utils.js) for common auth functions
 - Enhanced avatar menu with artist management, link pages, and shop options
-- OAuth infrastructure with JWT RS256 verification and Google service integration
+- OAuth infrastructure with RS256 ID token verification and Google service integration
 
 ### Changed
 - Simplified registration form to email/password only (username and artist flags moved to onboarding)
@@ -131,7 +131,7 @@
 ## [0.4.0] - 2025-12-16
 
 ### Added
-- Auth token system with JWT access tokens (15min TTL) and refresh tokens (30 days TTL)
+- Auth token system with access tokens (15min TTL) and refresh tokens (30 days TTL)
 - Device-based authentication with UUID v4 device tracking
 - Network-wide refresh token storage in dedicated database table
 - User badges system for artists, professionals, and team members

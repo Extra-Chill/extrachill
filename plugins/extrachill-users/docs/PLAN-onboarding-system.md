@@ -1,8 +1,8 @@
 # Unified Registration + Onboarding + Social Login
 
-**Status**: Phase 1 Complete, Phase 2 Complete (Google OAuth), Phase 3 Pending (Apple OAuth + Mobile App)  
-**Goal**: All users (email/password AND social login) go through the same onboarding flow to set username and preferences
+**Status**: Google OAuth + onboarding implementation exists; Apple OAuth and mobile-app phases are not implemented in this plugin.
 
+This document describes a proposed unified onboarding plan. Only the Google OAuth and onboarding portions reflect current implementation.
 ## Implementation Status
 
 ### Completed (Phase 1 - Core Onboarding)
