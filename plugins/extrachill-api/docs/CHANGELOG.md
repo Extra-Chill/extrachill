@@ -2,6 +2,29 @@
 
 All notable changes to the ExtraChill API plugin are documented here. This file is the single source of truth for release history.
 
+## 0.9.2
+
+### Added
+
+- **Browser Handoff Authentication**: New `POST /wp-json/extrachill/v1/auth/browser-handoff` for cross-platform authentication flows
+- **Taxonomy Synchronization**: Added `POST /wp-json/extrachill/v1/admin/taxonomies/sync` for network-wide taxonomy term management
+- **Shop Shipping Management**: Comprehensive fulfillment tools for artist managers
+  - `GET/PUT /wp-json/extrachill/v1/shop/shipping-address` - Artist return address configuration
+  - `GET/POST /wp-json/extrachill/v1/shop/shipping-labels` - Shippo-powered label purchase and tracking
+- **SEO Audit System**: Complete multisite auditing endpoints under `/seo/audit/` namespace
+- **Comprehensive Documentation**: Added detailed markdown documentation for all new endpoints in `docs/routes/`
+
+### Improved
+
+- **Artist Data Validation**: Added strict name length validation and trimming in `POST /artists/{id}` handler
+- **Blog Resolution**: Removed redundant checks and hardcoded fallbacks in shipping routes for more reliable blog context switching
+- **Documentation Alignment**: Updated README.md and AGENTS.md with new endpoint categories and directory structure
+
+### Technical Notes
+
+- **Backward Compatibility**: All changes are additive or corrective with no breaking modifications to existing data contracts
+- **Dependencies**: New features integrate with `extrachill-users`, `extrachill-shop`, and `extrachill-seo` plugins
+
 ## 0.9.1
 
 ### Fixed

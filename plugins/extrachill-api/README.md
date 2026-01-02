@@ -17,9 +17,10 @@ The ExtraChill API plugin provides a centralized, versioned REST API infrastruct
 
 ## Current Endpoints
 
-The plugin provides 56 endpoint files across 21 feature categories, all under the `extrachill/v1` namespace:
+The plugin provides 58 endpoint files across 17 feature categories, all under the `extrachill/v1` namespace:
 
-### Authentication Endpoints (6)
+### Authentication Endpoints (7)
+- `POST /auth/browser-handoff` - Browser handoff for cross-device auth
 - `POST /auth/google` - Google OAuth authentication
 - `POST /auth/login` - User login with JWT tokens
 - `POST /auth/logout` - Logout and token revocation
@@ -71,13 +72,14 @@ The plugin provides 56 endpoint files across 21 feature categories, all under th
 - `GET /activity` - Activity feed with filtering and pagination (authenticated)
 - `GET /object` - Object resolver for posts, comments, and artists (authenticated)
 
-### Admin Endpoints (7)
+### Admin Endpoints (8)
 - `GET/POST /admin/artist-access/{user_id}/approve` - Approve artist access request
 - `POST /admin/artist-access/{user_id}/reject` - Reject artist access request
 - `POST /admin/ad-free-license/grant` - Grant ad-free license
 - `DELETE /admin/ad-free-license/{user_id}` - Revoke ad-free license
 - `POST /admin/team-members/sync` - Sync team members
 - `PUT /admin/team-members/{user_id}` - Manage team member status
+- `POST /admin/taxonomies/sync` - Sync shared taxonomies across sites
 
 ### User Management (5)
 - `GET /users/{id}` - Get user profile
@@ -100,18 +102,22 @@ The plugin provides 56 endpoint files across 21 feature categories, all under th
 - `POST /newsletter/subscription` - Subscribe to newsletter
 - `POST /newsletter/campaign/push` - Push newsletter to Sendy
 
-### Shop Integration (5)
+### Shop Integration (7)
 - `GET/POST/PUT/DELETE /shop/products` - Product CRUD operations
 - `GET/POST/DELETE /shop/orders` - Artist order management and fulfillment
 - `POST/DELETE /shop/products/{id}/images` - Product image management
 - `GET/POST/DELETE /shop/stripe` - Stripe Connect management
 - `POST /shop/stripe-webhook` - Stripe webhook handler
+- `GET/PUT /shop/shipping-address` - Artist shipping from-address management
+- `GET/POST /shop/shipping-labels` - Purchase and retrieve shipping labels
 
 ### Stream (1)
 - `GET /stream/status` - Check streaming status and configuration
 
-### Tools (1)
-- `POST /tools/qr-code` - Generate QR codes
+### SEO Endpoints (3)
+- `POST /seo/audit` - Start multisite SEO audit (full or batch mode)
+- `POST /seo/audit/continue` - Continue paused batch audit
+- `GET /seo/audit/status` - Check audit status and results
 
 See [AGENTS.md](AGENTS.md) for architectural patterns and [docs/routes/](docs/routes/) for complete endpoint documentation.
 
@@ -207,24 +213,35 @@ extrachill-api/
 ├── AGENTS.md                  # Technical documentation for AI agents
 ├── README.md                  # This file
 └── inc/
-     ├── auth/
-     │   ├── extrachill-link-auth.php    # Cross-domain authentication
-     │   ├── google.php                   # Google OAuth authentication
-     │   ├── login.php                    # User login with JWT tokens
-     │   ├── logout.php                   # Logout and token revocation
-     │   ├── me.php                       # Get current authenticated user
-     │   ├── refresh.php                  # Token refresh
-     │   └── register.php                 # User registration
+    ├── auth/
+    │   └── extrachill-link-auth.php    # Cross-domain authentication helper
+    ├── activity/                        # Activity system components
+    │   ├── db.php
+    │   ├── emitter.php
+    │   ├── emitters.php
+    │   ├── schema.php
+    │   ├── storage.php
+    │   ├── taxonomies.php
+    │   └── throttle.php
+    ├── controllers/
+    │   └── class-docs-sync-controller.php
+    ├── utils/
+    │   ├── bbpress-drafts.php
+    │   └── id-generator.php
     └── routes/
-        ├── admin/                      # Network admin endpoints
-         │   ├── ad-free-license.php
-         │   ├── artist-access.php
-         │   └── team-members.php
-        ├── analytics/                  # Analytics tracking endpoints
+        ├── admin/
+        │   ├── ad-free-license.php
+        │   ├── artist-access.php
+        │   ├── taxonomy-sync.php
+        │   └── team-members.php
+        ├── activity/
+        │   ├── feed.php
+        │   └── object.php
+        ├── analytics/
         │   ├── link-click.php
         │   ├── link-page.php
         │   └── view-count.php
-        ├── artists/                    # Artist API endpoints
+        ├── artists/
         │   ├── analytics.php
         │   ├── artist.php
         │   ├── links.php
@@ -233,51 +250,62 @@ extrachill-api/
         │   ├── socials.php
         │   ├── subscribe.php
         │   └── subscribers.php
-        ├── activity/                   # Activity feed and object resolver
-        │   ├── feed.php
-        │   └── object.php
-        ├── blog/                       # AI block generators
+        ├── auth/
+        │   ├── browser-handoff.php
+        │   ├── google.php
+        │   ├── login.php
+        │   ├── logout.php
+        │   ├── me.php
+        │   ├── refresh.php
+        │   └── register.php
+        ├── blog/
         │   ├── ai-adventure.php
         │   ├── band-name.php
         │   ├── image-voting.php
         │   ├── image-voting-vote.php
         │   └── rapper-name.php
-         ├── chat/                       # Chat functionality
-         │   ├── history.php
-         │   └── message.php
-         ├── community/                  # Community features
-         │   ├── upvote.php
-         │   └── drafts.php
-         ├── config/                     # Configuration endpoints
-         │   └── oauth.php
-         ├── contact/                    # Contact form
-         │   └── submit.php
-         ├── docs/                       # Documentation endpoints
-         │   └── docs-info.php
-         ├── docs-sync-routes.php        # Documentation sync route
-        ├── events/                     # Event management
+        ├── chat/
+        │   ├── history.php
+        │   └── message.php
+        ├── community/
+        │   ├── drafts.php
+        │   └── upvote.php
+        ├── config/
+        │   └── oauth.php
+        ├── contact/
+        │   └── submit.php
+        ├── docs/
+        │   └── docs-info.php
+        ├── docs-sync-routes.php
+        ├── events/
         │   └── event-submissions.php
-        ├── media/                      # Media upload
+        ├── media/
         │   └── upload.php
-        ├── newsletter/                 # Newsletter
-        │   ├── subscription.php
-        │   └── campaign.php
-         ├── shop/                       # WooCommerce integration
-         │   ├── orders.php
-         │   ├── product-images.php
-         │   ├── products.php
-         │   ├── stripe-connect.php
-         │   └── stripe-webhook.php
-        ├── stream/                     # Streaming functionality
+        ├── newsletter/
+        │   ├── campaign.php
+        │   └── subscription.php
+        ├── seo/
+        │   ├── audit.php
+        │   ├── continue.php
         │   └── status.php
-        ├── tools/                      # Utilities
+        ├── shop/
+        │   ├── orders.php
+        │   ├── product-images.php
+        │   ├── products.php
+        │   ├── shipping-address.php
+        │   ├── shipping-labels.php
+        │   ├── stripe-connect.php
+        │   └── stripe-webhook.php
+        ├── stream/
+        │   └── status.php
+        ├── tools/
         │   └── qr-code.php
-         └── users/                      # User management
-             ├── artists.php
-             ├── leaderboard.php
-             ├── onboarding.php
-             ├── search.php
-             └── users.php
+        └── users/
+            ├── artists.php
+            ├── leaderboard.php
+            ├── onboarding.php
+            ├── search.php
+            └── users.php
 ```
 
 ## Development
@@ -317,7 +345,7 @@ curl -X GET "http://site.local/wp-json/extrachill/v1/users/search?search=test"
 
 ### Current Plugin Integrations
 
-**extrachill-blocks**:
+**extrachill-blog**:
 - Image voting vote counts and voting
 - AI Adventure story generation
 - Band/Rapper name generators
@@ -341,14 +369,6 @@ curl -X GET "http://site.local/wp-json/extrachill/v1/users/search?search=test"
 **extrachill-newsletter**:
 - Newsletter subscription endpoint
 - Campaign push to Sendy
-
-### Planned Migrations
-
-Future endpoints to replace admin-ajax.php handlers:
-1. Artist platform analytics tracking
-2. Newsletter subscription management
-3. Community voting and reactions
-4. Admin tools background operations
 
 ## Security
 
@@ -377,7 +397,7 @@ All endpoints implement WordPress REST API security standards:
 
 **Optional**:
 - extrachill-ai-client (for AI Adventure endpoint)
-- extrachill-blocks (primary endpoint consumer)
+- extrachill-blog (primary endpoint consumer)
 - extrachill-community (user search consumer)
 - extrachill-events (event submission consumer)
 - extrachill-multisite (Turnstile helpers for event submissions)

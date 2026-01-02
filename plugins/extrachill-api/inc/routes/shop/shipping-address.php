@@ -186,7 +186,7 @@ function extrachill_api_shipping_address_update_handler( WP_REST_Request $reques
  * @return array Address data.
  */
 function extrachill_api_get_artist_shipping_address( $artist_id ) {
-	$artist_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'artist' ) : 4;
+	$artist_blog_id = ec_get_blog_id( 'artist' );
 
 	$default = array(
 		'name'    => '',
@@ -218,7 +218,7 @@ function extrachill_api_get_artist_shipping_address( $artist_id ) {
  * @return bool True on success.
  */
 function extrachill_api_save_artist_shipping_address( $artist_id, $address ) {
-	$artist_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'artist' ) : 4;
+	$artist_blog_id = ec_get_blog_id( 'artist' );
 
 	switch_to_blog( $artist_blog_id );
 	try {

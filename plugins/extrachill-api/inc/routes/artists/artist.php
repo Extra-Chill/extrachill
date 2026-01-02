@@ -178,6 +178,16 @@ function extrachill_api_artist_post_handler( WP_REST_Request $request ) {
 	$local_city   = $request->get_param( 'local_city' );
 	$genre        = $request->get_param( 'genre' );
 
+	$name = trim( $name );
+	if ( strlen( $name ) < 1 ) {
+		restore_current_blog();
+		return new WP_Error(
+			'invalid_artist_name',
+			'Artist name is required.',
+			array( 'status' => 400 )
+		);
+	}
+
 	$artist_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'artist' ) : null;
 	if ( ! $artist_blog_id ) {
 		return new WP_Error(
@@ -190,7 +200,7 @@ function extrachill_api_artist_post_handler( WP_REST_Request $request ) {
 	switch_to_blog( $artist_blog_id );
 
 	$post_data = array(
-		'post_title'   => sanitize_text_field( wp_unslash( $name ) ),
+		'post_title'   => $name,
 		'post_content' => $bio ? wp_kses_post( wp_unslash( $bio ) ) : '',
 		'post_type'    => 'artist_profile',
 		'post_status'  => 'publish',

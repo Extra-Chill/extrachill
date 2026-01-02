@@ -35,6 +35,7 @@ extrachill-api/
 │       ├── admin/
 │       │   ├── ad-free-license.php (Ad-free license management)
 │       │   ├── artist-access.php (Artist access approval/rejection)
+│       │   ├── taxonomy-sync.php (Taxonomy sync across sites)
 │       │   └── team-members.php (Team member sync and management)
 │       ├── analytics/
 │       │   ├── link-click.php (Track link page clicks)
@@ -50,6 +51,7 @@ extrachill-api/
 │       │   ├── subscribe.php (Subscription signup)
 │       │   └── subscribers.php (Subscriber management)
 │       ├── auth/
+│       │   ├── browser-handoff.php (Browser handoff for cross-device auth)
 │       │   ├── google.php (Google OAuth authentication)
 │       │   ├── login.php (User authentication with JWT tokens)
 │       │   ├── logout.php (Device token revocation)
@@ -81,10 +83,16 @@ extrachill-api/
 │       ├── newsletter/
 │       │   ├── campaign.php (Newsletter campaign push to Sendy)
 │       │   └── subscription.php (Newsletter subscription)
+│       ├── seo/
+│       │   ├── audit.php (Start multisite SEO audit)
+│       │   ├── continue.php (Continue paused audit)
+│       │   └── status.php (Audit status check)
 │       ├── shop/
 │       │   ├── orders.php (Artist order management)
 │       │   ├── product-images.php (Product image upload/delete)
 │       │   ├── products.php (WooCommerce product CRUD)
+│       │   ├── shipping-address.php (Artist shipping from-address)
+│       │   ├── shipping-labels.php (Shippo label purchase)
 │       │   ├── stripe-connect.php (Stripe Connect management)
 │       │   └── stripe-webhook.php (Stripe webhook handler)
 │       ├── tools/
@@ -103,13 +111,14 @@ extrachill-api/
 
 All endpoints are under the `extrachill/v1` namespace.
 
-### Authentication Endpoints (6)
+### Authentication Endpoints (7)
 - `POST /auth/login` - User login with JWT tokens
 - `POST /auth/refresh` - Token refresh for continued sessions
 - `GET /auth/me` - Current authenticated user
 - `POST /auth/logout` - Logout and token revocation
 - `POST /auth/register` - User registration
 - `POST /auth/google` - Google OAuth authentication
+- `POST /auth/browser-handoff` - Browser handoff for cross-device auth
 
 **Documentation**: [docs/routes/auth/](../extrachill-plugins/extrachill-api/docs/routes/auth/)
 
@@ -175,13 +184,14 @@ All endpoints are under the `extrachill/v1` namespace.
 
 **Documentation**: [docs/routes/activity/](../extrachill-plugins/extrachill-api/docs/routes/activity/)
 
-### Admin Endpoints (7)
+### Admin Endpoints (8)
 - `GET/POST /admin/artist-access/{user_id}/approve` - Approve artist access request
 - `POST /admin/artist-access/{user_id}/reject` - Reject artist access request
 - `POST /admin/ad-free-license/grant` - Grant ad-free license
 - `DELETE /admin/ad-free-license/{user_id}` - Revoke ad-free license
 - `POST /admin/team-members/sync` - Sync team members
 - `PUT /admin/team-members/{user_id}` - Manage team member status
+- `POST /admin/taxonomies/sync` - Sync shared taxonomies across sites
 
 **Documentation**: [docs/routes/admin/](../extrachill-plugins/extrachill-api/docs/routes/admin/)
 
@@ -216,12 +226,14 @@ All endpoints are under the `extrachill/v1` namespace.
 
 **Documentation**: [docs/routes/newsletter/](../extrachill-plugins/extrachill-api/docs/routes/newsletter/)
 
-### Shop Integration (5)
+### Shop Integration (7)
 - `GET/POST/PUT/DELETE /shop/products` - Product CRUD operations
 - `GET/POST/DELETE /shop/orders` - Artist order management and fulfillment
 - `POST/DELETE /shop/products/{id}/images` - Product image management
 - `GET/POST/DELETE /shop/stripe` - Stripe Connect management
 - `POST /shop/stripe-webhook` - Stripe webhook handler
+- `GET/PUT /shop/shipping-address` - Artist shipping from-address management
+- `GET/POST /shop/shipping-labels` - Purchase and retrieve shipping labels
 
 **Documentation**: [docs/routes/shop/](../extrachill-plugins/extrachill-api/docs/routes/shop/)
 
@@ -235,11 +247,18 @@ All endpoints are under the `extrachill/v1` namespace.
 
 **Documentation**: [docs/routes/tools/qr-code.md](../extrachill-plugins/extrachill-api/docs/routes/tools/qr-code.md)
 
+### SEO Endpoints (3)
+- `POST /seo/audit` - Start multisite SEO audit (full or batch mode)
+- `POST /seo/audit/continue` - Continue paused batch audit
+- `GET /seo/audit/status` - Check audit status and results
+
+**Documentation**: [docs/routes/seo/](../extrachill-plugins/extrachill-api/docs/routes/seo/)
+
 ## Plugin Integration Patterns
 
 ### Current Consumers
 
-**extrachill-blocks**:
+**extrachill-blog**:
 - Image voting vote counts and voting
 - AI Adventure story generation
 - Band/Rapper name generators
@@ -265,8 +284,9 @@ All endpoints are under the `extrachill/v1` namespace.
 - Campaign push to Sendy
 
 **extrachill-app** (Mobile):
-- Authentication endpoints (login, refresh, logout, me)
+- Authentication endpoints (login, refresh, logout, me, browser-handoff)
 - Activity feed endpoint
+- Browser handoff for seamless mobile-to-browser transitions
 
 ### Cross-Plugin Communication
 
