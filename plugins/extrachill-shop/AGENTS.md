@@ -1,52 +1,227 @@
 # Extra Chill Shop - Agent Development Guide
 
 ## Overview
-WooCommerce integration with ad-free license system for shop.extrachill.com (Blog ID 3). Provides e-commerce functionality with cross-domain license validation and custom product features.
 
-## WooCommerce Integration
-- Homepage override using `extrachill_template_homepage` filter
+WordPress plugin providing comprehensive e-commerce functionality for shop.extrachill.com (Blog ID 3). Integrates WooCommerce with artist marketplace features, Stripe Connect payouts, and cross-domain ad-free license validation.
+
+## Plugin Information
+
+- **Name**: Extra Chill Shop
+- **Version**: 0.5.0
+- **Text Domain**: `extrachill-shop`
+- **Author**: Chris Huber
+- **License**: GPL v2 or later
+- **Requires at least**: 5.0
+- **Tested up to**: 6.4
+- **Requires PHP**: 7.4
+
+## Architecture
+
+### Core Features
+
+#### WooCommerce Integration
+- Homepage override using `extrachill_homepage_content` action hook
 - Template system combining theme filters with WooCommerce template overrides
 - Comprehensive WooCommerce styling with responsive design
-- Cart icon integration in site header
+- Cart icon integration in site header via `inc/templates/cart-icon.php`
 - Breadcrumb customization using theme's breadcrumb system
+- Filter bar integration via `inc/core/shop-filter-bar.php`
 
-## Ad-Free License Validation
-- Cross-domain license system using user meta storage
+#### Artist Marketplace
+- Artist taxonomy for product attribution (`inc/core/artist-taxonomy.php`)
+- Artist product meta management (`inc/core/artist-product-meta.php`)
+- Artist storefront management buttons (`inc/core/artist-storefront-manage-button.php`)
+- Commission settings for platform fees (`inc/core/commission-settings.php`)
+- Order notifications to artists for their products (`inc/core/artist-order-notifications.php`)
+
+#### Stripe Connect Integration
+- Artist onboarding via Stripe Connect OAuth (`inc/stripe/stripe-connect.php`)
+- Payment integration with WooCommerce (`inc/stripe/payment-integration.php`)
+- Checkout handler for Stripe payments (`inc/stripe/checkout-handler.php`)
+- Webhook processing for payment events (`inc/stripe/webhooks.php`)
+
+#### Shipping System
+- Shippo API integration for shipping labels (`inc/shipping/shippo-client.php`)
+- Shipping settings management (`inc/shipping/shipping-settings.php`)
+- Checkout shipping integration (`inc/shipping/checkout-shipping.php`)
+
+#### Ad-Free License System
+- Cross-domain license validation using user meta storage
 - Ad-free product auto-provisioned via SKU (`ec-ad-free-license`)
-- Purchase processing via WooCommerce order completion hooks
-- Username validation throughout checkout flow
-- Auto-completion for ad-free license orders
+- Product type definition (`inc/products/ad-free-license-product.php`)
+- Purchase processing via WooCommerce order completion hooks (`inc/products/ad-free-license.php`)
 - Integration with `is_user_ad_free()` function from extrachill-users plugin
 
-## E-commerce Features
-- Raffle product system with progress counters and stock visualization
-- Product category navigation and grid layouts
-- Custom product fields for community usernames
-- Cart validation and checkout customization
-- Network-wide license availability
+#### Raffle System
+- Raffle product type with admin fields (`inc/products/raffle/admin-fields.php`)
+- Frontend progress counters and stock visualization (`inc/products/raffle/frontend-counter.php`)
 
-## File Organization
+### File Organization
+
 ```
 extrachill-shop/
-├── extrachill-shop.php          # Main plugin file
+├── extrachill-shop.php              # Main plugin file (singleton pattern)
 ├── inc/
 │   ├── core/
-│   │   ├── assets.php           # Asset management
+│   │   ├── assets.php               # Asset enqueuing (CSS/JS)
 │   │   ├── breadcrumb-integration.php # Breadcrumb customization
-│   │   └── woocommerce-templates.php # Template filters
+│   │   ├── woocommerce-templates.php  # WooCommerce template filters
+│   │   ├── nav.php                  # Navigation integration
+│   │   ├── shop-filter-bar.php      # Filter bar integration
+│   │   ├── artist-taxonomy.php      # Artist taxonomy registration
+│   │   ├── artist-product-meta.php  # Artist product attribution
+│   │   ├── artist-storefront-manage-button.php # Storefront management
+│   │   ├── artist-order-notifications.php # Order email notifications
+│   │   ├── commission-settings.php  # Platform commission configuration
+│   │   └── filters/
+│   │       └── button-classes.php   # WooCommerce button styling
 │   ├── products/
-│   │   ├── ad-free-license.php  # License system
-│   │   └── raffle/              # Raffle features
+│   │   ├── ad-free-license-product.php # Ad-free product type
+│   │   ├── ad-free-license.php      # License system and WooCommerce hooks
+│   │   └── raffle/
+│   │       ├── admin-fields.php     # Raffle admin configuration
+│   │       └── frontend-counter.php # Raffle progress display
+│   ├── stripe/
+│   │   ├── stripe-connect.php       # Stripe Connect OAuth
+│   │   ├── payment-integration.php  # WooCommerce payment integration
+│   │   ├── checkout-handler.php     # Checkout processing
+│   │   └── webhooks.php             # Stripe webhook handlers
+│   ├── shipping/
+│   │   ├── shipping-settings.php    # Shipping configuration
+│   │   ├── shippo-client.php        # Shippo API client
+│   │   └── checkout-shipping.php    # Checkout shipping integration
 │   └── templates/
-│       ├── shop-homepage.php    # Homepage template
-│       └── cart-icon.php        # Header cart icon
-├── woocommerce/                 # WooCommerce template overrides
-├── assets/                      # CSS/JS assets
-└── docs/                        # Documentation
+│       ├── shop-homepage.php        # Homepage template
+│       └── cart-icon.php            # Header cart icon
+├── woocommerce/                     # WooCommerce template overrides
+│   ├── archive-product.php          # Product archive
+│   ├── content-product.php          # Product card in loops
+│   ├── content-single-product.php   # Single product content
+│   ├── single-product.php           # Single product wrapper
+│   ├── checkout.php                 # Checkout page
+│   ├── cart.php                     # Cart page
+│   ├── loop/
+│   │   └── header.php               # Archive header
+│   ├── cart/
+│   │   ├── cart.php                 # Cart contents
+│   │   └── proceed-to-checkout-button.php # Checkout button
+│   └── single-product/
+│       ├── add-to-cart/
+│       │   └── simple.php           # Simple product add to cart
+│       └── tabs/
+│           └── tabs.php             # Product tabs
+├── assets/                          # CSS/JS assets
+├── docs/
+│   └── CHANGELOG.md                 # Version history
+└── build.sh                         # Symlink to /.github/build.sh
+```
+
+### Loading Pattern
+
+The plugin uses a singleton pattern with OOP architecture:
+
+```php
+class ExtraChillShop {
+    private static $instance = null;
+
+    public static function instance() {
+        if ( null === self::$instance ) {
+            self::$instance = new self();
+        }
+        return self::$instance;
+    }
+
+    private function __construct() {
+        $this->init_hooks();
+    }
+
+    private function init_hooks() {
+        add_action( 'plugins_loaded', [ $this, 'init' ] );
+    }
+
+    public function init() {
+        $this->load_includes();
+    }
+}
+```
+
+**Include Categories**:
+1. Product customizations (ad-free license, raffle)
+2. Core functionality (templates, breadcrumbs, assets, nav, filters)
+3. Artist marketplace (taxonomy, product meta, commission, notifications)
+4. Stripe Connect integration (connect, checkout, webhooks, payment)
+5. Shipping integration (settings, Shippo client, checkout)
+6. Templates (cart icon)
+
+### REST API Integration
+
+The shop plugin consumes endpoints from the centralized extrachill-api plugin:
+
+**Shop Endpoints Used:**
+- `GET/POST/PUT/DELETE /shop/products` - Product CRUD operations
+- `GET/POST/DELETE /shop/orders` - Artist order management
+- `POST/DELETE /shop/products/{id}/images` - Product image management
+- `GET/POST/DELETE /shop/stripe` - Stripe Connect management
+- `POST /shop/stripe-webhook` - Stripe webhook handler
+- `GET/PUT /shop/shipping-address` - Artist shipping address
+- `GET/POST /shop/shipping-labels` - Shipping label purchase
+
+### Cross-Plugin Integration
+
+**extrachill-users Plugin:**
+- `is_user_ad_free()` - License validation function
+- User meta storage for ad-free license status
+
+**extrachill-api Plugin:**
+- All REST API endpoints for shop operations
+- Stripe webhook processing
+
+**extrachill-artist-platform Plugin:**
+- Artist profile data for product attribution
+- Artist permission validation
+- Stripe Connect account association
+
+**extrachill theme:**
+- `extrachill_homepage_content` action for homepage override
+- Breadcrumb system integration
+- Filter bar component integration
+
+## Homepage Integration
+
+The shop homepage is rendered via the theme's action hook system:
+
+```php
+function extrachill_shop_render_homepage() {
+    include EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/templates/shop-homepage.php';
+}
+add_action( 'extrachill_homepage_content', 'extrachill_shop_render_homepage', 10 );
 ```
 
 ## Dependencies
-- WooCommerce plugin
-- extrachill theme (for template integration)
-- extrachill-users plugin (for license validation)
-- WordPress multisite network
+
+**Required:**
+- **WooCommerce** - E-commerce platform (declared in plugin header)
+- **extrachill theme** - Template integration and hooks
+- **WordPress**: 5.0+
+- **PHP**: 7.4+
+
+**Optional:**
+- **extrachill-users plugin** - License validation functions
+- **extrachill-api plugin** - REST API infrastructure
+- **extrachill-artist-platform plugin** - Artist data integration
+- **Stripe** - Payment processing
+- **Shippo** - Shipping label API
+
+## Build System
+
+**Build Script**: Symlinked to `/.github/build.sh`
+
+**Build Output**: `/build/extrachill-shop.zip` file only
+
+**Process**:
+1. Clean previous builds
+2. Install production dependencies: `composer install --no-dev`
+3. Copy essential files to temporary build directory
+4. Create ZIP archive
+5. Remove temporary directory
+6. Restore development dependencies

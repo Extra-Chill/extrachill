@@ -2,9 +2,9 @@
 /**
  * Stripe Checkout Handler
  *
- * Handles WooCommerce checkout integration with Stripe Connect for multi-artist
- * destination charges. Groups cart items by artist and processes separate charges
- * for each artist with unified customer UX.
+ * Handles WooCommerce checkout integration with Stripe Connect using the
+ * "Separate Charges and Transfers" pattern. Groups cart items by artist and
+ * transfers artist portions to connected accounts after WooCommerce payment.
  *
  * @package ExtraChillShop
  * @since 0.2.0
@@ -25,8 +25,8 @@ function extrachill_shop_group_cart_by_artist( $cart_items ) {
 		$product_id = $cart_item['product_id'];
 		$artist_id  = extrachill_shop_get_product_artist_id( $product_id );
 
-		// Non-artist products go to platform group (artist_id = 0).
-		if ( ! $artist_id ) {
+		// Non-artist and platform artist products go to platform group (artist_id = 0).
+		if ( ! $artist_id || ( defined( 'EC_PLATFORM_ARTIST_ID' ) && $artist_id === EC_PLATFORM_ARTIST_ID ) ) {
 			$artist_id = 0;
 		}
 
@@ -159,13 +159,18 @@ function extrachill_shop_calculate_artist_charges( $grouped_items ) {
 }
 
 /**
- * Process destination charges for a multi-artist order.
+ * Process artist transfers after WooCommerce payment completes.
  *
- * @param WC_Order $order            WooCommerce order.
- * @param string   $payment_method_id Stripe payment method ID.
- * @return array{success: bool, charges?: array, error?: string}
+ * Uses Stripe's "Separate Charges and Transfers" pattern:
+ * - WooCommerce Stripe Gateway charges customer once for full amount
+ * - This function creates Transfer objects to move artist portions to connected accounts
+ * - Platform keeps commission by simply not transferring it
+ *
+ * @param WC_Order $order     WooCommerce order.
+ * @param string   $charge_id Stripe charge ID from WooCommerce payment.
+ * @return array{success: bool, transfers?: array, error?: string}
  */
-function extrachill_shop_process_destination_charges( $order, $payment_method_id ) {
+function extrachill_shop_process_artist_transfers( $order, $charge_id ) {
 	if ( ! extrachill_shop_stripe_init() ) {
 		return array(
 			'success' => false,
@@ -173,7 +178,7 @@ function extrachill_shop_process_destination_charges( $order, $payment_method_id
 		);
 	}
 
-	$cart_items    = array();
+	$cart_items = array();
 	foreach ( $order->get_items() as $item ) {
 		$cart_items[] = array(
 			'product_id' => $item->get_product_id(),
@@ -185,75 +190,57 @@ function extrachill_shop_process_destination_charges( $order, $payment_method_id
 	$grouped = extrachill_shop_group_cart_by_artist( $cart_items );
 	$charges = extrachill_shop_calculate_artist_charges( $grouped );
 
-	$successful_charges = array();
-	$customer_email     = $order->get_billing_email();
+	$successful_transfers = array();
+	$transfer_group       = 'ORDER_' . $order->get_id();
 
 	try {
-		// Create or retrieve Stripe customer.
-		$customer = extrachill_shop_get_or_create_stripe_customer( $order );
-
 		foreach ( $charges as $artist_id => $charge_data ) {
 			if ( ! $charge_data['stripe_account'] ) {
 				throw new \Exception( 'Artist ' . $artist_id . ' does not have a connected Stripe account.' );
 			}
 
-			// Amount in cents.
-			$amount_cents = intval( $charge_data['total'] * 100 );
-			$fee_cents    = intval( $charge_data['application_fee'] * 100 );
+			// Transfer artist payout (total minus commission) in cents.
+			$transfer_amount_cents = intval( $charge_data['artist_payout'] * 100 );
 
-			$payment_intent = \Stripe\PaymentIntent::create(
+			$transfer = \Stripe\Transfer::create(
 				array(
-					'amount'                 => $amount_cents,
-					'currency'               => strtolower( get_woocommerce_currency() ),
-					'customer'               => $customer->id,
-					'payment_method'         => $payment_method_id,
-					'off_session'            => true,
-					'confirm'                => true,
-					'application_fee_amount' => $fee_cents,
-					'transfer_data'          => array(
-						'destination' => $charge_data['stripe_account'],
+					'amount'             => $transfer_amount_cents,
+					'currency'           => strtolower( get_woocommerce_currency() ),
+					'destination'        => $charge_data['stripe_account'],
+					'source_transaction' => $charge_id,
+					'transfer_group'     => $transfer_group,
+					'metadata'           => array(
+						'order_id'        => $order->get_id(),
+						'artist_id'       => $artist_id,
+						'platform'        => 'extrachill',
+						'commission_rate' => extrachill_shop_get_default_commission_rate(),
 					),
-					'metadata'               => array(
-						'order_id'   => $order->get_id(),
-						'artist_id'  => $artist_id,
-						'platform'   => 'extrachill',
-					),
-					'statement_descriptor_suffix' => substr( 'Artist ' . $artist_id, 0, 22 ),
 				)
 			);
 
-			$successful_charges[ $artist_id ] = array(
-				'payment_intent_id' => $payment_intent->id,
-				'amount'            => $charge_data['total'],
-				'application_fee'   => $charge_data['application_fee'],
-				'status'            => $payment_intent->status,
+			$successful_transfers[ $artist_id ] = array(
+				'transfer_id'     => $transfer->id,
+				'amount'          => $charge_data['artist_payout'],
+				'application_fee' => $charge_data['application_fee'],
+				'status'          => 'transferred',
 			);
 		}
 
-		// Store charge data on order.
-		$order->update_meta_data( '_stripe_charges', $successful_charges );
+		// Store transfer data on order.
+		$order->update_meta_data( '_stripe_transfers', $successful_transfers );
 		$order->update_meta_data( '_artist_payouts', $charges );
+		$order->update_meta_data( '_stripe_transfer_group', $transfer_group );
 		$order->save();
 
 		return array(
-			'success' => true,
-			'charges' => $successful_charges,
+			'success'   => true,
+			'transfers' => $successful_transfers,
 		);
 
 	} catch ( \Exception $e ) {
-		// Rollback: refund any successful charges.
-		foreach ( $successful_charges as $artist_id => $charge ) {
-			try {
-				\Stripe\Refund::create(
-					array(
-						'payment_intent' => $charge['payment_intent_id'],
-					)
-				);
-			} catch ( \Exception $refund_error ) {
-				// Log refund failure but continue.
-				error_log( 'Failed to refund charge for artist ' . $artist_id . ': ' . $refund_error->getMessage() );
-			}
-		}
+		// Transfers can be reversed if needed, but typically we'd investigate manually.
+		// Log the error and failed state for admin review.
+		error_log( 'Stripe transfer failed for order ' . $order->get_id() . ': ' . $e->getMessage() );
 
 		return array(
 			'success' => false,
@@ -349,7 +336,8 @@ function extrachill_shop_handle_charge_failure( $successful_charges, $failed_art
 function extrachill_shop_order_is_platform_only( $order ) {
 	foreach ( $order->get_items() as $item ) {
 		$artist_id = extrachill_shop_get_product_artist_id( $item->get_product_id() );
-		if ( $artist_id ) {
+		// Platform artist products are treated as platform products.
+		if ( $artist_id && ( ! defined( 'EC_PLATFORM_ARTIST_ID' ) || $artist_id !== EC_PLATFORM_ARTIST_ID ) ) {
 			return false;
 		}
 	}

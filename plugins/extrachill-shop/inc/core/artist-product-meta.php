@@ -265,7 +265,7 @@ function extrachill_shop_save_artist_meta_box( $post_id ) {
 		return;
 	}
 
-	if ( isset( $_POST['extrachill_artist_profile_id'] ) ) {
+	if ( isset( $_POST['extrachill_artist_profile_id'] ) && '' !== $_POST['extrachill_artist_profile_id'] ) {
 		$artist_id = absint( $_POST['extrachill_artist_profile_id'] );
 		if ( $artist_id > 0 ) {
 			extrachill_shop_set_product_artist( $post_id, $artist_id );
@@ -275,6 +275,51 @@ function extrachill_shop_save_artist_meta_box( $post_id ) {
 	}
 }
 add_action( 'save_post_product', 'extrachill_shop_save_artist_meta_box' );
+
+/**
+ * Get total product count for all artists owned by a user.
+ *
+ * Cross-site query: gets user's artist IDs (network-wide user meta),
+ * then counts products on Blog ID 3 (shop) for those artists.
+ *
+ * @param int|null $user_id User ID (defaults to current user).
+ * @return int Total product count across all user's artists.
+ */
+function extrachill_shop_get_product_count_for_user( $user_id = null ) {
+	if ( ! $user_id ) {
+		$user_id = get_current_user_id();
+	}
+
+	if ( ! $user_id || ! function_exists( 'ec_get_artists_for_user' ) ) {
+		return 0;
+	}
+
+	$user_artists = ec_get_artists_for_user( $user_id );
+	if ( empty( $user_artists ) ) {
+		return 0;
+	}
+
+	$shop_blog_id   = ec_get_blog_id( 'shop' );
+	$current_blog   = get_current_blog_id();
+	$needs_switch   = $current_blog !== $shop_blog_id;
+	$total_count    = 0;
+
+	if ( $needs_switch ) {
+		switch_to_blog( $shop_blog_id );
+	}
+
+	try {
+		foreach ( $user_artists as $artist_id ) {
+			$total_count += extrachill_shop_get_artist_product_count( $artist_id );
+		}
+	} finally {
+		if ( $needs_switch ) {
+			restore_current_blog();
+		}
+	}
+
+	return $total_count;
+}
 
 /**
  * Get artist profile data by artist profile ID.

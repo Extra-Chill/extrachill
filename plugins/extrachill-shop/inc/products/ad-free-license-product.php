@@ -106,5 +106,10 @@ function extrachill_shop_ensure_ad_free_license_product() {
 
 	update_option( extrachill_shop_get_ad_free_license_product_option_key(), $saved_product_id );
 
+	// Link product to platform artist for shop manager visibility.
+	if ( defined( 'EC_PLATFORM_ARTIST_ID' ) && function_exists( 'extrachill_shop_set_product_artist' ) ) {
+		extrachill_shop_set_product_artist( $saved_product_id, EC_PLATFORM_ARTIST_ID );
+	}
+
 	return $saved_product_id;
 }

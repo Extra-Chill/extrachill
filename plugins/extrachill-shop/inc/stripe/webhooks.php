@@ -6,8 +6,7 @@
  * account status updates. Verifies webhook signatures and routes events to
  * appropriate handlers.
  *
- * Required wp-config.php constant:
- * - STRIPE_WEBHOOK_SECRET: Webhook signing secret from Stripe dashboard
+ * Webhook secret is configured via Network Admin > Extra Chill Multisite > Payments.
  *
  * @package ExtraChillShop
  * @since 0.2.0
@@ -36,7 +35,7 @@ function extrachill_shop_handle_webhook( $request ) {
 
 	$webhook_secret = apply_filters(
 		'extrachill_stripe_webhook_secret',
-		defined( 'STRIPE_WEBHOOK_SECRET' ) ? STRIPE_WEBHOOK_SECRET : ''
+		get_site_option( 'extrachill_stripe_webhook_secret', '' )
 	);
 
 	if ( empty( $webhook_secret ) ) {

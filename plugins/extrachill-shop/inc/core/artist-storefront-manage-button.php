@@ -11,6 +11,11 @@ defined( 'ABSPATH' ) || exit;
 add_action( 'extrachill_archive_header_actions', 'extrachill_shop_maybe_render_manage_shop_button', 15 );
 
 function extrachill_shop_maybe_render_manage_shop_button() {
+	// Admin-only during development
+	if ( ! current_user_can( 'manage_options' ) ) {
+		return;
+	}
+
 	if ( ! is_tax( 'artist' ) ) {
 		return;
 	}

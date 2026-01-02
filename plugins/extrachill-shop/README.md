@@ -116,7 +116,7 @@ composer run lint:fix           # Fix code style issues
 ```
 
 ### Build Output
-- **Production Package**: `/build/extrachill-shop.zip` file only (unzip when directory access needed)
+- **Production Package**: `/build/extrachill-shop.zip` file only
 - **Non-Versioned**: Follows platform standard (no version numbers in filenames)
 - **File Exclusion**: Development files excluded via `.buildignore`
 

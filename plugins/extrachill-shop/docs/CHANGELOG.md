@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2026-01-02
+
+### Added
+- Shipping system integration (settings, Shippo client, and checkout shipping flow)
+- Cross-site helper `extrachill_shop_get_product_count_for_user()` for aggregating product counts across a user’s artists
+
+### Changed
+- Stripe Connect payout flow refactored to use Stripe “Separate Charges and Transfers” (creates Transfers post-payment instead of separate PaymentIntents)
+- Stripe key + webhook secret sourcing updated to use Network Admin (site options) and filters for overrides
+- Artist storefront “Manage Shop” button restricted to admins (development-only gate)
+- Ad-free license product auto-provisioning now links the product to the platform artist for shop manager visibility
+- Artist product meta save: ignore empty artist profile selections to avoid accidental overwrites
+
 ## [0.4.1] - 2025-12-18
 
 ### Added

@@ -5,10 +5,8 @@
  * Handles Stripe API initialization, Express account creation, and account management
  * for the artist marketplace. Uses Stripe Connect destination charges for payouts.
  *
- * Required wp-config.php constants:
- * - STRIPE_SECRET_KEY: Stripe secret API key
- * - STRIPE_PUBLISHABLE_KEY: Stripe publishable API key
- * - STRIPE_WEBHOOK_SECRET: Webhook signing secret
+ * API keys are configured via Network Admin > Extra Chill Multisite > Payments.
+ * Keys can be overridden via filters (used by extrachill-dev for local testing).
  *
  * @package ExtraChillShop
  * @since 0.2.0
@@ -32,7 +30,7 @@ function extrachill_shop_stripe_init() {
 
 	$secret_key = apply_filters(
 		'extrachill_stripe_secret_key',
-		defined( 'STRIPE_SECRET_KEY' ) ? STRIPE_SECRET_KEY : ''
+		get_site_option( 'extrachill_stripe_secret_key', '' )
 	);
 
 	if ( empty( $secret_key ) ) {
@@ -62,11 +60,11 @@ function extrachill_shop_stripe_init() {
 function extrachill_shop_stripe_is_configured() {
 	$secret_key = apply_filters(
 		'extrachill_stripe_secret_key',
-		defined( 'STRIPE_SECRET_KEY' ) ? STRIPE_SECRET_KEY : ''
+		get_site_option( 'extrachill_stripe_secret_key', '' )
 	);
 	$publishable_key = apply_filters(
 		'extrachill_stripe_publishable_key',
-		defined( 'STRIPE_PUBLISHABLE_KEY' ) ? STRIPE_PUBLISHABLE_KEY : ''
+		get_site_option( 'extrachill_stripe_publishable_key', '' )
 	);
 
 	return ! empty( $secret_key ) && ! empty( $publishable_key );
@@ -80,7 +78,7 @@ function extrachill_shop_stripe_is_configured() {
 function extrachill_shop_get_stripe_publishable_key() {
 	$publishable_key = apply_filters(
 		'extrachill_stripe_publishable_key',
-		defined( 'STRIPE_PUBLISHABLE_KEY' ) ? STRIPE_PUBLISHABLE_KEY : ''
+		get_site_option( 'extrachill_stripe_publishable_key', '' )
 	);
 
 	return ! empty( $publishable_key ) ? $publishable_key : false;
