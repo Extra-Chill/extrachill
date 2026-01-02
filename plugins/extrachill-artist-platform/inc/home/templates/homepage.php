@@ -25,10 +25,30 @@ extrachill_breadcrumbs();
 				<div class="artist-platform-welcome">
 					<?php do_action( 'extrachill_artist_home_hero', $current_user, $is_logged_in, $can_create_artists, $user_artist_ids ); ?>
 
-				<div class="platform-features">
-					<div class="feature-highlight">
-						<h4><?php esc_html_e( 'Your Link Page at extrachill.link', 'extrachill-artist-platform' ); ?></h4>
-						<p><?php esc_html_e( 'Get a beautiful, customizable link page to share your music, socials, and merch in one place.', 'extrachill-artist-platform' ); ?></p>
+				<div class="platform-onboarding-cards">
+					<div class="onboarding-card">
+						<div class="onboarding-card-icon">
+							<span class="dashicons dashicons-admin-links"></span>
+						</div>
+						<h4><?php esc_html_e( 'Link Page', 'extrachill-artist-platform' ); ?></h4>
+						<p><?php esc_html_e( 'Get a beautiful, customizable link page at extrachill.link to share your music, socials, and merch.', 'extrachill-artist-platform' ); ?></p>
+					</div>
+
+					<div class="onboarding-card">
+						<div class="onboarding-card-icon">
+							<span class="dashicons dashicons-cart"></span>
+						</div>
+						<h4><?php esc_html_e( 'Artist Shop', 'extrachill-artist-platform' ); ?></h4>
+						<p><?php esc_html_e( 'Sell your merchandise directly to fans with a dedicated artist shop and integrated payments.', 'extrachill-artist-platform' ); ?></p>
+						<span class="coming-soon-badge"><?php esc_html_e( 'Coming Soon', 'extrachill-artist-platform' ); ?></span>
+					</div>
+
+					<div class="onboarding-card">
+						<div class="onboarding-card-icon">
+							<span class="dashicons dashicons-chart-bar"></span>
+						</div>
+						<h4><?php esc_html_e( 'Analytics', 'extrachill-artist-platform' ); ?></h4>
+						<p><?php esc_html_e( 'Track visits, link clicks, and fan engagement across your profile with real-time insights.', 'extrachill-artist-platform' ); ?></p>
 					</div>
 				</div>
 

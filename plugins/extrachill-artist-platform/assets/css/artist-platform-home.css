@@ -241,18 +241,80 @@
   margin-top: var(--spacing-xl);
 }
 
-/* Platform Features Section */
-.platform-features {
-  text-align: center;
+/* Platform Onboarding Cards */
+.platform-onboarding-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--spacing-md);
   margin-bottom: var(--spacing-xl);
+  margin-top: var(--spacing-lg);
 }
 
-.feature-highlight h4 {
+.onboarding-card {
+  background: var(--card-background);
+  padding: var(--spacing-lg);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--card-shadow);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.onboarding-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--card-hover-shadow);
+}
+
+.onboarding-card-icon {
+  background: var(--accent-transparent);
+  color: var(--accent);
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: var(--spacing-md);
+}
+
+.onboarding-card-icon .dashicons {
+  font-size: 24px;
+  width: 24px;
+  height: 24px;
+}
+
+.onboarding-card h4 {
   margin: 0 0 var(--spacing-sm) 0;
+  font-size: 1.25rem;
 }
 
-.feature-highlight p {
-  margin: 0 auto;
+.onboarding-card p {
+  margin: 0;
+  font-size: 0.95rem;
   color: var(--muted-text);
-  max-width: 600px;
+  line-height: 1.5;
+}
+
+.coming-soon-badge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: var(--accent-2);
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+@media (max-width: 768px) {
+  .platform-onboarding-cards {
+    grid-template-columns: 1fr;
+    gap: var(--spacing-md);
+  }
 }

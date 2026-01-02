@@ -69,6 +69,7 @@ class ExtraChillArtistPlatform_Assets {
         }
 
         if ( $this->should_load_hero_card_styles() ) {
+            wp_enqueue_style( 'dashicons' );
             wp_enqueue_style(
                 'extrachill-artist-card',
                 $plugin_url . 'assets/css/artist-card.css',

@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.2] - 2026-01-02
+
+### Changed
+- **Homepage UI Refresh**: Replaced legacy feature highlights with a modern, card-based onboarding system for Link Pages, Artist Shops, and Analytics on the artist platform home.
+- **Asset Dependencies**: Added Dashicons dependency to ensure onboarding card icons render correctly across all themes.
+- **Responsive Design**: Implemented a mobile-friendly grid layout for platform onboarding cards with hover effects and "Coming Soon" badge for shop features.
+
 ## [1.6.1] - 2026-01-02
 
 ### Changed
