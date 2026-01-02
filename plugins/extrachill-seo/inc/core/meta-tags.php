@@ -102,18 +102,22 @@ add_filter(
 		}
 
 		// Event archive titles: "Live Music Calendar" or "{Term} Live Music Calendar"
-		if ( is_post_type_archive( 'datamachine_events' ) ) {
-			$title_parts['title'] = 'Live Music Calendar';
-		}
+		// Only apply on events.extrachill.com
+		$events_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'events' ) : 7;
+		if ( $blog_id === $events_blog_id ) {
+			if ( is_post_type_archive( 'datamachine_events' ) ) {
+				$title_parts['title'] = 'Live Music Calendar';
+			}
 
-		if ( is_tax() ) {
-			$term     = get_queried_object();
-			$taxonomy = $term->taxonomy ?? '';
+			if ( is_tax() ) {
+				$term     = get_queried_object();
+				$taxonomy = $term->taxonomy ?? '';
 
-			$event_taxonomies = array( 'location', 'festival', 'venue', 'promoter', 'artist' );
-			if ( in_array( $taxonomy, $event_taxonomies, true ) ) {
-				$term_name            = single_term_title( '', false );
-				$title_parts['title'] = sprintf( '%s Live Music Calendar', $term_name );
+				$event_taxonomies = array( 'location', 'festival', 'venue', 'promoter', 'artist' );
+				if ( in_array( $taxonomy, $event_taxonomies, true ) ) {
+					$term_name            = single_term_title( '', false );
+					$title_parts['title'] = sprintf( '%s Live Music Calendar', $term_name );
+				}
 			}
 		}
 
