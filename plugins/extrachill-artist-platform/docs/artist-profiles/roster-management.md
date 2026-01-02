@@ -7,7 +7,6 @@ Comprehensive band member invitation and management system allowing artists to a
 The roster management system enables:
 - Email-based member invitations
 - Token-based invitation acceptance
-- Role assignment and management  
 - Pending invitation tracking
 - Member removal and permissions
 
@@ -71,74 +70,39 @@ function send_artist_invitation_email($email, $artist_id, $invitation_data) {
 
 ### Token-Based Acceptance
 
-Invitations use secure tokens for acceptance:
+Invitations use a randomly generated token stored with the pending invitation data:
 
 ```php
-// Generate invitation token
-$token = wp_hash($email . $artist_id . time() . wp_salt());
+$token = ec_generate_invite_token();
 
-// Store invitation data
-$invitation_data = [
-    'email' => $email,
-    'artist_id' => $artist_id,
-    'token' => $token,
-    'invited_on' => time(),
-    'status' => 'pending'
-];
+$new_invite_entry = array(
+    'id'         => 'inv_' . wp_generate_password( 12, false ),
+    'email'      => sanitize_email( $email ),
+    'token'      => $token,
+    'status'     => 'invited_existing_artist' /* or invited_new_user */,
+    'invited_on' => current_time( 'timestamp', true ),
+);
 ```
+
+Pending invitations are stored in post meta on the artist profile (`_pending_invitations`).
 
 ### Invitation States
 
-1. **pending**: Initial invitation sent
-2. **accepted**: User accepted invitation
-3. **expired**: Invitation expired (configurable timeout)
-4. **revoked**: Invitation manually cancelled
+Pending invitations store a `status` string in `_pending_invitations`. The current implementation sets one of:
+
+1. **invited_existing_artist**
+2. **invited_new_user**
+
+Acceptance/expiry messaging is handled during token validation (see `inc/artist-profiles/roster/artist-invitation-emails.php`).
 
 ## Member Management
 
-### Adding Members
+Roster operations are handled via REST endpoints on the `extrachill-api` plugin. This plugin provides:
+- data helpers (`inc/artist-profiles/roster/roster-data-functions.php`)
+- filter handlers wired to the API layer (`inc/artist-profiles/roster/roster-filter-handlers.php`)
+- email + acceptance UI (`inc/artist-profiles/roster/artist-invitation-emails.php`)
 
-```php
-// Block REST API handler for adding members
-function handle_add_member_request($request) {
-    // Verify permissions
-    $artist_id = (int) $request->get_param('artist_id');
-    if (!ec_can_manage_artist(get_current_user_id(), $artist_id)) {
-        return rest_ensure_response(['error' => 'Insufficient permissions'], 403);
-    }
-
-    $email = sanitize_email($request->get_param('member_email'));
-    
-    // Check if user exists
-    $user = get_user_by('email', $email);
-
-    if ($user) {
-        // Link existing user to artist
-        ec_link_user_to_artist($user->ID, $artist_id);
-    } else {
-        // Send invitation email
-        ec_send_artist_invitation_email($email, $artist_id, []);
-    }
-
-    return rest_ensure_response(['success' => true]);
-}
-```
-
-### Removing Members
-
-```php
-// Remove member from artist
-function ec_remove_member_from_artist($user_id, $artist_id) {
-    // Get current artist IDs for user
-    $artist_ids = get_user_meta($user_id, '_artist_profile_ids', true);
-
-    if (is_array($artist_ids)) {
-        // Remove artist ID from user's list
-        $artist_ids = array_diff($artist_ids, [$artist_id]);
-        update_user_meta($user_id, '_artist_profile_ids', $artist_ids);
-    }
-}
-```
+UI lives in the `artist-manager` block (TabMembers), which calls the API client functions in `src/blocks/shared/api/client.js` (`inviteRosterMember`, `removeRosterMember`, `deleteRosterInvite`, `getRoster`).
 
 ## UI Components
 

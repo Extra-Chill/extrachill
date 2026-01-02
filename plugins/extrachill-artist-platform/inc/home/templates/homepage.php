@@ -21,11 +21,18 @@ extrachill_breadcrumbs();
 			$user_artist_ids  = ec_get_artists_for_user( $current_user->ID );
 			?>
 
-				<?php if ( ! $is_logged_in ) : ?>
-					<div class="artist-platform-welcome">
-						<?php do_action( 'extrachill_artist_home_hero', $current_user, $is_logged_in, $can_create_artists, $user_artist_ids ); ?>
+			<?php if ( ! $is_logged_in ) : ?>
+				<div class="artist-platform-welcome">
+					<?php do_action( 'extrachill_artist_home_hero', $current_user, $is_logged_in, $can_create_artists, $user_artist_ids ); ?>
 
-					<div class="featured-artists-section">
+				<div class="platform-features">
+					<div class="feature-highlight">
+						<h4><?php esc_html_e( 'Your Link Page at extrachill.link', 'extrachill-artist-platform' ); ?></h4>
+						<p><?php esc_html_e( 'Get a beautiful, customizable link page to share your music, socials, and merch in one place.', 'extrachill-artist-platform' ); ?></p>
+					</div>
+				</div>
+
+				<div class="featured-artists-section">
 						<h3><?php esc_html_e( 'Active Artists', 'extrachill-artist-platform' ); ?></h3>
 						<?php ec_display_artist_cards_grid( 12, false, false ); ?>
 						<div class="browse-all-artists">

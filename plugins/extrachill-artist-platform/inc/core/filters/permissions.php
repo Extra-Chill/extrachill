@@ -61,38 +61,6 @@ function ec_get_permission_can_create_artists( $data ) {
     return ec_can_create_artist_profiles( get_current_user_id() );
 }
 
-// Legacy aliases for backward compatibility (deprecated, use new function names)
-function ec_ajax_can_manage_artist( $post_data ) {
-    $artist_id = isset( $post_data['artist_id'] ) ? (int) $post_data['artist_id'] : 0;
-    if ( ! $artist_id ) {
-        return false;
-    }
-
-    return ec_can_manage_artist( get_current_user_id(), $artist_id );
-}
-
-function ec_ajax_can_manage_link_page( $post_data ) {
-    $link_page_id = isset( $post_data['link_page_id'] ) ? (int) $post_data['link_page_id'] : 0;
-    if ( ! $link_page_id ) {
-        return false;
-    }
-
-    $artist_id = apply_filters('ec_get_artist_id', $link_page_id);
-    if ( ! $artist_id ) {
-        return false;
-    }
-
-    return ec_can_manage_artist( get_current_user_id(), $artist_id );
-}
-
-function ec_ajax_is_admin( $post_data ) {
-    return current_user_can( 'manage_options' );
-}
-
-function ec_ajax_can_create_artists( $post_data ) {
-    return ec_can_create_artist_profiles( get_current_user_id() );
-}
-
 /**
  * WordPress capability filtering for artist permissions
  */

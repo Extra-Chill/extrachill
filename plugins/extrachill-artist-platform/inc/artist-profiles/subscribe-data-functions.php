@@ -72,58 +72,6 @@ function extrch_get_artist_subscribers( $artist_id, $args = array() ) {
 }
 
 /**
- * REST API handler to fetch subscriber data for an artist.
- * Note: This function is legacy and not actively used. REST API handlers are implemented via filter hooks.
- */
-function extrch_fetch_artist_subscribers_ajax() {
-    // Check for required parameters
-    if ( ! isset( $_POST['artist_id'], $_POST['_ajax_nonce'] ) ) {
-        wp_send_json_error( array( 'message' => __( 'Missing required parameters.', 'extrachill-artist-platform' ) ) );
-    }
-
-    $artist_id = apply_filters('ec_get_artist_id', $_POST);
-    $nonce = sanitize_text_field( $_POST['_ajax_nonce'] );
-
-    // Verify nonce
-    if ( ! wp_verify_nonce( $nonce, 'extrch_fetch_subscribers_nonce' ) ) { // Use a new nonce action for fetching
-        wp_send_json_error( array( 'message' => __( 'Security check failed.', 'extrachill-artist-platform' ) ) );
-    }
-
-    // Basic permission check: Does the current user have the capability to manage this artist's members?
-    if ( ! ec_can_manage_artist( get_current_user_id(), $artist_id ) ) {
-         wp_send_json_error( array( 'message' => __( 'You do not have permission to view subscribers for this artist.', 'extrachill-artist-platform' ) ) );
-    }
-
-    // Pagination support
-    $per_page = isset($_POST['per_page']) ? max(1, absint($_POST['per_page'])) : 20;
-    $page = isset($_POST['page']) ? max(1, absint($_POST['page'])) : 1;
-    $offset = ($page - 1) * $per_page;
-
-    // Fetch paginated subscribers
-    $subscribers = extrch_get_artist_subscribers( $artist_id, array(
-        'limit' => $per_page,
-        'offset' => $offset,
-    ) );
-
-    // Get total count for pagination
-    global $wpdb;
-    $table_name = $wpdb->prefix . 'artist_subscribers';
-    $total = $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM $table_name WHERE artist_profile_id = %d", $artist_id ) );
-
-    if ( $subscribers !== false ) {
-        wp_send_json_success( array(
-            'subscribers' => $subscribers,
-            'total' => intval($total),
-            'per_page' => $per_page,
-            'page' => $page,
-        ) );
-    }
-
-        wp_send_json_error( array( 'message' => __( 'Could not fetch subscriber data.', 'extrachill-artist-platform' ) ) );
-    wp_die(); // wp_die() ensures proper response termination
-}
-
-/**
  * Handles the CSV export of artist subscriber data.
  * Hooked to admin_post and admin_post_nopriv.
  */

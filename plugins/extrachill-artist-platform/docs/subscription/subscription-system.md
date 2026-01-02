@@ -89,7 +89,7 @@ Location: `inc/link-pages/live/templates/subscribe-modal.php`
 Modal popup triggered by button or icon:
 
 ```php
-<div id="subscribe-modal" class="subscribe-modal" style="display: none;">
+<div id="extrch-subscribe-modal" class="extrch-subscribe-modal extrch-modal extrch-modal-hidden" role="dialog" aria-modal="true" aria-labelledby="extrch-subscribe-modal-title">
     <div class="modal-content">
         <span class="close-modal">&times;</span>
         <h3>Subscribe to <?php echo esc_html($artist_name); ?></h3>
@@ -116,7 +116,7 @@ Subscription icon that opens modal:
 
 ```php
 <?php if ($subscribe_display_mode === 'icon_modal'): ?>
-    <a href="#" class="subscribe-trigger-icon" data-artist-id="<?php echo esc_attr($artist_id); ?>">
+    <button type="button" class="extrch-subscribe-trigger">
         <i class="fas fa-envelope"></i>
         <span>Subscribe</span>
     </a>
@@ -423,38 +423,17 @@ The system tracks subscription sources:
 
 ```php
 // Get subscribers by source
-$modal_subscribers = get_artist_subscribers($artist_id, ['source' => 'modal_form']);
-$inline_subscribers = get_artist_subscribers($artist_id, ['source' => 'inline_form']);
+$modal_subscribers = extrch_get_artist_subscribers( $artist_id, array( 'source' => 'modal_form' ) );
+$inline_subscribers = extrch_get_artist_subscribers( $artist_id, array( 'source' => 'inline_form' ) );
 ```
 
 ## Integration Points
 
 ### Email Service Integration
 
-Subscription system supports integration with email services:
+This plugin stores subscribers and exposes them via the REST API (`extrachill/v1/artists/{artistId}/subscribers`). It does not ship built-in integrations for external email providers.
 
-```php
-/**
- * Add subscriber to external email service
- */
-function sync_to_email_service($subscriber_id, $email, $artist_id, $source) {
-    $artist_name = get_the_title($artist_id);
-    
-    // Example: Mailchimp integration
-    if (function_exists('mailchimp_add_subscriber')) {
-        mailchimp_add_subscriber($email, [
-            'ARTIST' => $artist_name,
-            'SOURCE' => $source
-        ]);
-    }
-    
-    // Example: ConvertKit integration
-    if (function_exists('convertkit_add_subscriber')) {
-        convertkit_add_subscriber($email, ['artist_id' => $artist_id]);
-    }
-}
-add_action('extrch_subscriber_added', 'sync_to_email_service', 10, 4);
-```
+If another plugin wants to sync subscribers to an ESP, implement that in the integrating plugin by calling the subscriber creation helpers from this plugin (see `inc/database/subscriber-db.php`) and/or listening to events in the consuming layer (the Extra Chill Platform typically centralizes these kinds of integrations in other plugins).
 
 ### WordPress User Integration
 

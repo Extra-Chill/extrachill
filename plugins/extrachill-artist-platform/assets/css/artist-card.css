@@ -16,14 +16,14 @@
 .artist-cards-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 1.5em;
+  gap: var(--spacing-lg);
 }
 
 /* Hero Style Artist Profile Cards */
 .artist-profile-card {
   background: var(--card-background);
   border: 1px solid var(--border-color);
-  border-radius: 12px;
+  border-radius: var(--border-radius-lg);
   overflow: hidden;
   box-shadow: var(--card-shadow);
   transition: transform 0.2s ease, box-shadow 0.3s ease;
@@ -69,8 +69,8 @@
   z-index: 2;
   display: flex;
   align-items: flex-end;
-  gap: 1em;
-  padding: 1em 1.2em;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md);
   width: 100%;
 }
 
@@ -106,7 +106,8 @@
 }
 
 .artist-info-overlay .artist-name {
-  margin: 0 0 0.2em 0;
+  margin: 0;
+  font-size: var(--font-size-base);
 }
 
 .artist-info-overlay .artist-name a {
@@ -122,10 +123,12 @@
 .artist-info-overlay .artist-meta {
   display: flex;
   align-items: center;
-  gap: 0.5em;
+  row-gap: 0;
+  column-gap: var(--spacing-sm);
   color: rgba(255,255,255,0.9);
   text-shadow: 0 1px 2px rgba(0,0,0,0.4);
   flex-wrap: wrap;
+  font-size: var(--font-size-sm);
 }
 
 .artist-info-overlay .meta-separator {
@@ -134,15 +137,16 @@
 
 /* Card Content Section (below hero) */
 .artist-card-content {
-  padding: 1.2em;
+  padding: var(--spacing-md);
 }
 
 .artist-card-bio {
-  margin-bottom: 1em;
+  margin-bottom: var(--spacing-md);
 }
 
 .artist-card-bio p {
   margin: 0;
+  font-size: var(--font-size-sm);
   line-height: 1.5;
   color: var(--text-color);
   opacity: 0.9;
@@ -150,26 +154,26 @@
 
 .artist-card-actions {
   display: flex;
-  gap: 0.8em;
+  gap: var(--spacing-sm);
   flex-wrap: wrap;
 }
 
 .artist-card-actions .button {
-  padding: 0.6em 1em;
+  padding: var(--spacing-sm) var(--spacing-md);
 }
 
 /* Responsive Design */
 @media (max-width: 1024px) {
   .artist-cards-grid {
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 1.25em;
+    gap: var(--spacing-md);
   }
 }
 
 @media (max-width: 768px) {
   .artist-cards-grid {
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 1em;
+    gap: var(--spacing-md);
   }
 
   .artist-card-actions {
@@ -184,7 +188,7 @@
 
 @media (max-width: 480px) {
   .artist-card-content {
-    padding: 1em;
+    padding: var(--spacing-md);
   }
 
   /* Hero card mobile adjustments */
@@ -198,12 +202,10 @@
   }
 
   .artist-hero-content {
-    padding: 0.8em 1em;
+    padding: var(--spacing-sm) var(--spacing-md);
   }
 
   .artist-info-overlay .artist-name {
-    font-size: 1em;
+    font-size: var(--font-size-sm);
   }
-
-
 }

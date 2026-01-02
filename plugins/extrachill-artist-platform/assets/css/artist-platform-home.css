@@ -18,29 +18,29 @@
 
 .welcome-actions {
   display: flex;
-  gap: 1em;
+  gap: var(--spacing-md);
   justify-content: center;
   flex-wrap: wrap;
 }
 
 /* Featured Artists Section */
 .featured-artists-section {
-  margin-top: 3em;
+  margin-top: var(--spacing-xl);
 }
 
 .featured-artists-section h3 {
   text-align: center;
-  margin-bottom: 2em;
+  margin-bottom: var(--spacing-xl);
   color: var(--text-color);
 }
 
 .view-all-artists {
   text-align: center;
-  margin-top: 2em;
+  margin-top: var(--spacing-xl);
 }
 
 .bbpress-wrapper.artist-directory-wrapper {
-  margin-bottom: 2em;
+  margin-bottom: var(--spacing-xl);
 }
 
 /* Public Artist Card Styles */
@@ -52,12 +52,12 @@
 .public-artist-card .artist-meta {
   display: flex;
   align-items: center;
-  gap: 0.5em;
-  font-size: 0.9em;
+  gap: var(--spacing-sm);
+  font-size: var(--font-size-sm);
   color: var(--text-color);
   opacity: 0.8;
   flex-wrap: wrap;
-  margin-top: 0.3em;
+  margin-top: var(--spacing-xs);
 }
 
 .public-artist-card .meta-separator {
@@ -65,12 +65,12 @@
 }
 
 .public-artist-card .artist-card-bio {
-  margin: 1em 0;
+  margin: var(--spacing-md) 0;
 }
 
 .public-artist-card .artist-card-bio p {
   margin: 0;
-  font-size: 0.95em;
+  font-size: var(--font-size-sm);
   line-height: 1.5;
   color: var(--text-color);
   opacity: 0.9;
@@ -78,7 +78,7 @@
 
 .no-artists-found {
   text-align: center;
-  padding: 3em 1em;
+  padding: var(--spacing-xl) var(--spacing-md);
   color: var(--text-color);
 }
 
@@ -92,14 +92,14 @@
 .getting-started-actions {
   display: flex;
   justify-content: center;
-  margin-bottom: 3em;
+  margin-bottom: var(--spacing-xl);
 }
 
 .primary-action-card {
   background: var(--card-background);
   border: 1px solid var(--border-color);
-  border-radius: 10px;
-  padding: 2.5em 2em;
+  border-radius: var(--border-radius-lg);
+  padding: var(--spacing-xl);
   text-align: center;
   box-shadow: var(--card-shadow);
   max-width: 400px;
@@ -107,12 +107,12 @@
 }
 
 .primary-action-card h3 {
-  margin-bottom: 1em;
+  margin-bottom: var(--spacing-md);
   color: var(--text-color);
 }
 
 .primary-action-card p {
-  margin-bottom: 2em;
+  margin-bottom: var(--spacing-xl);
   line-height: 1.5;
   color: var(--text-color);
 }
@@ -128,7 +128,7 @@
 .discover-actions {
   display: flex;
   justify-content: center;
-  gap: 1em;
+  gap: var(--spacing-md);
   flex-wrap: wrap;
 }
 
@@ -139,7 +139,7 @@
 
 /* Artist Profiles Section */
 .artist-profiles-section {
-  margin-bottom: 2em;
+  margin-bottom: var(--spacing-xl);
 }
 
 .artist-profiles-section h3 {
@@ -196,20 +196,16 @@
   flex-wrap: wrap;
 }
 
-/* Button Styles */
-.button-large {
-  font-size: 1.1em;
-  padding: 0.8em 2em;
-}
+
 
 /* Responsive Design */
 @media (max-width: 768px) {
   .welcome-hero h2 {
-    font-size: 1.8em;
+    font-size: var(--font-size-2xl);
   }
 
   .dashboard-welcome h2 {
-    font-size: 1.6em;
+    font-size: var(--font-size-xl);
   }
 
   .welcome-actions,
@@ -230,10 +226,8 @@
 
 @media (max-width: 480px) {
   .primary-action-card {
-    padding: 1.2em;
+    padding: var(--spacing-md);
   }
-
-
 }
 
 /* Loading state for artist grid */
@@ -244,5 +238,21 @@
 /* Browse All Artists link */
 .browse-all-artists {
   text-align: center;
-  margin-top: 2em;
+  margin-top: var(--spacing-xl);
+}
+
+/* Platform Features Section */
+.platform-features {
+  text-align: center;
+  margin-bottom: var(--spacing-xl);
+}
+
+.feature-highlight h4 {
+  margin: 0 0 var(--spacing-sm) 0;
+}
+
+.feature-highlight p {
+  margin: 0 auto;
+  color: var(--muted-text);
+  max-width: 600px;
 }

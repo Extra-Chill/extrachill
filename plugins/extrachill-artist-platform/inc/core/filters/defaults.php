@@ -46,8 +46,7 @@ function ec_get_link_page_defaults() {
             '--link-page-title-font-family'             => 'Loft Sans',
             '--link-page-title-font-size'               => '2.1em',
             '--link-page-body-font-family'              => 'Helvetica',
-            // Body font size removed - uses theme default font size
-            
+
             // Button styling
             '--link-page-button-radius'                 => '8px',
             '--link-page-button-border-width'           => '0px',

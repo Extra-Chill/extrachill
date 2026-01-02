@@ -186,12 +186,12 @@ fetch('/wp-json/extrachill/v1/artist/123', {
 });
 ```
 
-### JWT Token (Optional)
+### Bearer Access Token (Optional)
 
-For external applications, use JWT tokens:
+For external applications, use a Bearer access token:
 
 ```javascript
-const token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...';
+const token = '...';
 
 fetch('/wp-json/extrachill/v1/artist/123', {
   headers: {

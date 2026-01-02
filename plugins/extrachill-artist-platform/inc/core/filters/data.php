@@ -57,37 +57,6 @@ function ec_get_user_artist_profiles( $user_id = null ) {
     ) );
 }
 
-function ec_get_artist_subscribers( $artist_id, $args = array() ) {
-    global $wpdb;
-
-    if ( ! $artist_id ) {
-        return array();
-    }
-
-    $defaults = array(
-        'per_page' => 20,
-        'page' => 1,
-        'include_exported' => false
-    );
-    $args = wp_parse_args( $args, $defaults );
-
-    $table_name = $wpdb->prefix . 'artist_subscribers';
-    $offset = ( $args['page'] - 1 ) * $args['per_page'];
-
-    $where_clause = $wpdb->prepare( "WHERE artist_profile_id = %d", $artist_id );
-    if ( ! $args['include_exported'] ) {
-        $where_clause .= " AND (exported = 0 OR exported IS NULL)";
-    }
-
-	$sql = $wpdb->prepare(
-		"SELECT * FROM {$table_name} {$where_clause} ORDER BY subscribed_at DESC LIMIT %d OFFSET %d",
-		$args['per_page'],
-		$offset
-	);
-
-    return $wpdb->get_results( $sql );
-}
-
 /**
  * Single source of truth for link page data (CSS vars, links, socials, settings).
  * Supports live preview overrides and comprehensive data validation.

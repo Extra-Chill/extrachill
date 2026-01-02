@@ -2,7 +2,7 @@
 
 WordPress plugin providing comprehensive artist platform functionality for the Extra Chill community. Enables artists to create profiles, link pages, and manage subscribers.
 
-This plugin is part of the Extra Chill Platform, a WordPress multisite network serving music communities across 9 active sites.
+This plugin is part of the Extra Chill Platform, a WordPress multisite network serving music communities across 10 active sites.
 
 ## Architecture
 
@@ -35,7 +35,7 @@ The plugin provides comprehensive integration with the extrachill.link domain fo
 **Domain Mapping Architecture**:
 - **Backend Mapping**: extrachill.link maps to artist.extrachill.com (blog ID 4) via .github/sunrise.php
 - **Frontend URLs**: All link page URLs display as extrachill.link/{artist-slug} while operating on artist.extrachill.com backend
-- **Cross-Domain Auth**: WordPress authentication cookies configured with SameSite=None; Secure attributes by extrachill-users plugin
+- **Cross-Domain Auth**: WordPress authentication cookie attributes adjusted by **extrachill-users** (`extrachill-users/inc/auth/extrachill-link-auth.php`) to support authenticated REST calls from extrachill.link
 - **URL Preservation**: sunrise.php `home_url` filter replaces artist.extrachill.com with extrachill.link in frontend output
 
 **Link Page URL Structure**:
@@ -45,7 +45,7 @@ The plugin provides comprehensive integration with the extrachill.link domain fo
 
 **Rewrite Rules & Routing** (`inc/core/artist-platform-rewrite-rules.php`):
 - **Domain-Aware Rewrite Rules**: Top-level rewrite rules only active on extrachill.link domain
-- **Dynamic Exclusions**: Automatically excludes WordPress pages and critical paths (manage-artist-profiles, manage-link-page, join, wp-login, wp-admin)
+- **Dynamic Exclusions**: Automatically excludes WordPress pages and critical paths (manage-artist, manage-link-page, join, wp-login, wp-admin)
 - **Template Routing**: `extrachill_handle_link_domain_routing()` handles all extrachill.link routing via `template_include` filter
 - **Root Domain Handling**: extrachill.link root serves "extra-chill" default link page
 - **Canonical Redirect Prevention**: Disables WordPress canonical redirects on extrachill.link domain
@@ -390,7 +390,7 @@ add_action( 'init', 'extrachill_artist_platform_register_blocks' );
 - **Gutenberg Block Editor**: Modern React-based interface for WordPress block editor (primary)
 - **Management Pages**: The plugin auto-creates standard pages that mount blocks (see `extrachill_artist_platform_create_pages()` in `extrachill-artist-platform.php`):
   - `/create-artist/` (artist-creator)
-  - `/manage-artist-profiles/` (artist-manager)
+  - `/manage-artist/` (artist-manager)
   - `/manage-link-page/` (link-page-editor)
   - `/manage-shop/` (artist-shop-manager)
 - **Post Type Editing Context**:
@@ -549,8 +549,8 @@ add_action( 'extrachill_below_login_register_form', 'ec_render_join_flow_modal' 
 ### Dependencies
 - **WordPress**: 5.0+ (tested up to 6.4)
 - **PHP**: 7.4+
-- **Plugin Dependencies**: extrachill-users plugin
-- **External**: Font Awesome, Google Fonts
+- **Plugin Dependencies**: extrachill-users
+- **External**: Font Awesome (icons).
 
 ### Additional Features
 
@@ -702,7 +702,7 @@ add_action( 'extrachill_below_login_register_form', 'ec_render_join_flow_modal' 
 - **Production Dependencies**: Runs `composer install --no-dev` before build, restores dev dependencies after
 - **Vendor Inclusion**: WordPress plugins include `vendor/` directory with production dependencies (end users don't have Composer access)
 - **Structure Validation**: Validates plugin integrity before packaging (ensures main file exists)
-- **Output Location**: Creates both `/build/extrachill-artist-platform/` clean directory AND `/build/extrachill-artist-platform.zip` non-versioned file
+- **Output Location**: Creates `/build/extrachill-artist-platform.zip` non-versioned file only. The intermediate `/build/extrachill-artist-platform/` directory is temporary and removed during the build.
 
 **Build Features**:
 - **Clean Builds**: Automatic cleanup of previous `/build` artifacts (removes legacy `/dist` if exists)

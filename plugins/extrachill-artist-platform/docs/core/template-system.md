@@ -19,7 +19,7 @@ The system integrates with WordPress template hierarchy:
 
 - **Artist Profiles**: `archive-artist_profile.php`, `single-artist_profile.php`
 - **Link Pages**: `single-artist_link_page.php` via custom routing
-- **Management Pages**: Custom template loading for admin interfaces
+- **Management Pages**: WordPress pages that mount Gutenberg blocks (see `extrachill_artist_platform_create_pages()` in `extrachill-artist-platform.php`).
 
 ### Template Locations
 
@@ -30,12 +30,6 @@ inc/artist-profiles/frontend/templates/
 ├── archive-artist_profile.php
 ├── single-artist_profile.php
 ├── artist-card.php
-└── manage-artist-profile-tabs/
-    ├── tab-info.php
-    ├── tab-members.php
-    ├── tab-subscribers.php
-    ├── tab-social-links.php
-    └── manage-artist-profile-modal.php
 
 inc/link-pages/live/templates/
 ├── single-artist_link_page.php
@@ -194,7 +188,7 @@ echo ec_generate_css_variables_style_block($css_vars);
 
 ## Template Customization
 
-Templates support WordPress filters for customization:
+Templates support WordPress filters for customization (see `inc/core/filters/templates.php` for the template registry and override filters):
 
 ```php
 // Filter template output

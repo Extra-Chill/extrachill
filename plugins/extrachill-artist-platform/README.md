@@ -23,7 +23,7 @@ Extra Chill Artist Platform is a WordPress plugin that powers artist profiles, m
 - **Plugin Core**: `ExtraChillArtistPlatform` bootstraps the plugin, `ExtraChillArtistPlatform_PageTemplates` manages template routing, and `ExtraChillArtistPlatform_Assets` enqueues CSS/JS based on context (`inc/core/artist-platform-assets.php`).
 - **Data Systems**: `ec_get_link_page_data()` and `ec_get_artist_profile_data()` deliver unified data structures (links, CSS vars, socials, advanced settings). Filters like `extrch_get_link_page_data` and `extrch_get_link_page_analytics` let other plugins inject or read structured content.
 - **Templates**: Public templates live under `inc/link-pages/live/templates/`, while artist templates and reusable components live under `inc/artist-profiles/frontend/templates/`, `inc/home/templates/`, and `inc/core/templates/`. Component rendering relies on `ec_render_template()` for modular sections.
-- **REST API & Permissions**: Gutenberg blocks call `/wp-json/extrch/v1/*` endpoints with nonces, while server-side permission helpers (`ec_can_manage_artist()`, `ec_can_create_artist_profiles()`) gate access across UI and API surfaces.
+- **REST API & Permissions**: Gutenberg blocks call `/wp-json/extrachill/v1/*` endpoints with nonces, while server-side permission helpers (`ec_can_manage_artist()`, `ec_can_create_artist_profiles()`) gate access across UI and API surfaces.
 
 ## Requirements
 

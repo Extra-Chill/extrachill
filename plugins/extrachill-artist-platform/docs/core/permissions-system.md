@@ -16,15 +16,12 @@ Primary permission check for artist management capabilities.
  * @param int $artist_id Artist profile ID
  * @return bool True if user can manage artist
  */
-$can_manage = ec_can_manage_artist($user_id, $artist_id);
+$can_manage = ec_can_manage_artist( $user_id, $artist_id );
 ```
 
-**Permission Logic** (`inc/core/filters/permissions.php`):
+**Permission Logic** (`ec_can_manage_artist()` / `ec_can_create_artist_profiles()` live in the network-activated `extrachill-users` plugin; `inc/core/filters/permissions.php` adds request helpers and WordPress capability filtering):
 
-1. **Administrator Override**: Users with `manage_options` capability can manage all artists
-2. **Post Author**: Post author of the artist profile
-3. **Roster Membership**: Users linked to artist profile via `_artist_profile_ids` user meta
-4. **Security Validation**: All checks validate user and artist ID existence
+See `extrachill-users` for the canonical permission logic (administrator override, author/roster membership, etc.). This plugin treats those helpers as the source of truth and uses them via `function_exists()` checks where relevant.
 
 ## REST API Permission Helpers
 
@@ -330,16 +327,3 @@ echo esc_html($title);
 echo esc_url($link_url);
 echo esc_attr($css_class);
 ```
-
-## Legacy AJAX Functions (Deprecated)
-
-The following functions are provided for backward compatibility but are deprecated. Use the new REST API functions instead:
-
-```php
-function ec_ajax_can_manage_artist( $post_data ) { /* ... */ }
-function ec_ajax_can_manage_link_page( $post_data ) { /* ... */ }
-function ec_ajax_is_admin( $post_data ) { /* ... */ }
-function ec_ajax_can_create_artists( $post_data ) { /* ... */ }
-```
-
-**Note**: These are for backward compatibility only. All new code should use the REST API permission helpers and core permission functions.

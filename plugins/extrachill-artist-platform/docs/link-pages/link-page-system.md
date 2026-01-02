@@ -83,7 +83,7 @@ The editor provides a tabbed interface with five sections:
 1. **TabInfo** (`components/tabs/TabInfo.js`): Basic information and biography editing
 2. **TabLinks** (`components/tabs/TabLinks.js`): Link management with drag-and-drop reordering
 3. **TabCustomize** (`components/tabs/TabCustomize.js`): Styling and appearance options (fonts, colors)
-4. **TabAdvanced** (`components/tabs/TabAdvanced.js`): Advanced features (expiration, redirects, tracking codes)
+4. **TabAdvanced** (`components/tabs/TabAdvanced.js`): Advanced features (expiration, temporary redirects, and tracking settings used by public templates)
 5. **TabSocials** (`components/tabs/TabSocials.js`): Social platform link management (15+ platforms)
 
 Analytics are provided by the separate `artist-analytics` Gutenberg block.

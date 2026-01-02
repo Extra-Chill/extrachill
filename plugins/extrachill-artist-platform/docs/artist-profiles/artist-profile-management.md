@@ -21,9 +21,9 @@ Modern React-based Gutenberg block providing guided artist profile creation inte
 **Integration Points**:
 - Accessible at `/create-artist/` management page
 - Automatically triggered by join flow for new/unpermissioned users
-- Uses centralized save system via `ec_handle_artist_profile_save()`
+- Uses REST API endpoints provided by the network-activated `extrachill-api` plugin.
 
-**Block Registration**: Registered on `artist_profile` post type via `register_block_type( __DIR__ . '/build/blocks/artist-creator' )`
+**Block Registration**: Registered on `init` via `extrachill_artist_platform_register_blocks()` (see `extrachill-artist-platform.php`).
 
 ### Profile Data Structure
 
@@ -56,13 +56,8 @@ $artist_id = wp_insert_post([
     'post_status' => 'publish'
 ]);
 
-// Link creator to profile
-$user_artist_ids = get_user_meta($user_id, '_artist_profile_ids', true);
-if (!is_array($user_artist_ids)) {
-    $user_artist_ids = [];
-}
-$user_artist_ids[] = $artist_id;
-update_user_meta($user_id, '_artist_profile_ids', $user_artist_ids);
+// Link creator to the artist roster.
+// User ↔ artist relationship helpers live in the network-activated extrachill-users plugin.
 ```
 
 ## Management Interface
@@ -88,8 +83,8 @@ Modern React-based Gutenberg block providing complete artist profile management 
 4. **TabSubscribers**: Email subscriber list management and export
 
 **Architecture**:
-- **Block Registration**: Registered on `artist_profile` post type via `register_block_type( __DIR__ . '/build/blocks/artist-manager' )`
-- **REST API Integration**: All management operations via REST API with centralized permission validation
+- **Block Registration**: Registered on `init` via `extrachill_artist_platform_register_blocks()` (see `extrachill-artist-platform.php`).
+- **REST API Integration**: All management operations run through REST endpoints (namespace `extrachill/v1`) provided by the network-activated `extrachill-api` plugin, gated by `ec_can_manage_artist()` (from `extrachill-users`).
 - **React Components**: Tab-based interface with reusable shared components
 - **Build Process**: Webpack compilation via `npm run build`
 - **Asset Enqueuing**: Auto-detected via block.json manifest

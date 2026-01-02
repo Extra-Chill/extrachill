@@ -25,8 +25,8 @@ The platform consists of two primary custom post types:
 ### Management Systems
 - **Join Flow**: Login/register UX integration via `from_join` parameter with post-auth routing
 - **Link Page Editor Block**: Gutenberg block editor (React-based) for link page management
-- **Artist Profile Manager Block**: Gutenberg block editor (React-based) for artist profile management
-- **Link Page Analytics Block**: Dedicated analytics dashboard via Gutenberg block
+- **Artist Manager Block**: Gutenberg block editor (React-based) for artist profile management
+- **Artist Analytics Block**: Dedicated analytics dashboard via Gutenberg block
 - **Artist Creator Block**: Guided artist profile creation flow
 - **Artist Shop Manager Block**: Shop product management interface
 - **Roster Management**: Band member invitation and role assignment system
@@ -63,7 +63,7 @@ Dual template architecture:
 
 **Location**: `src/blocks/`
 
-Five React-based Gutenberg blocks providing complete platform management:
+Five React-based Gutenberg blocks providing complete platform management (registered by `extrachill_artist_platform_register_blocks()`):
 - **link-page-editor**: Link page editing interface
   - Includes TabInfo, TabLinks, TabCustomize, TabAdvanced, TabSocials
   - Live preview with Context API state management

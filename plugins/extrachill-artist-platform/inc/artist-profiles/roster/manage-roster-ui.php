@@ -22,10 +22,8 @@ function ec_display_manage_members_section( $artist_id, $current_user_id ) {
         return;
     }
 
-    // Fetch all member types
-    $linked_members_raw = ec_get_linked_members( $artist_id ); // This function is from user-linking.php
-    // Plaintext members functionality has been removed
-    $pending_invitations_raw = ec_get_pending_invitations( $artist_id ); // This function is now from roster-data-functions.php
+    $linked_members_raw = ec_get_linked_members( $artist_id );
+    $pending_invitations_raw = ec_get_pending_invitations( $artist_id );
 
     $linked_user_ids = [];
     $processed_emails = []; 
