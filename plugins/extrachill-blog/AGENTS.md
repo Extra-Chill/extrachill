@@ -5,7 +5,7 @@ WordPress plugin providing blog-specific functionality for extrachill.com (Blog 
 ## Overview
 
 **Plugin Name**: Extra Chill Blog
-**Version**: 0.3.2
+**Version**: 0.3.4
 **Network**: false (site-activated on Blog ID 1 only)
 **Purpose**: Blog-specific homepage, navigation, and archive functionality for the main Extra Chill content site
 
@@ -108,7 +108,7 @@ The build process uses the local `build.sh` script which:
 Blocks use separate source and build directories:
 - **Source**: `src/blocks/` - Contains block.json, JS, SCSS, and PHP files
 - **Build**: `build/blocks/` - Contains compiled CSS/JS and copied PHP files (created by `npm run build`)
-- **Registration**: Blocks are registered from `build/blocks/` in production, `src/blocks/` in development
+- **Registration**: Blocks are registered from `build/blocks/`
 
 ### Development Workflow
 ```bash

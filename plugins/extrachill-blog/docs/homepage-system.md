@@ -126,13 +126,12 @@ Breadcrumbs integrate with multisite network dropdown (when extrachill-search pl
 
 ## Archive Filter Bar
 
-**Component**: `archive-filter-bar.php`
+**Component** (theme-owned): `extrachill/inc/components/filter-bar.php`
 
-Provides taxonomies and sorting options on archive pages:
-- Category dropdown (for tag archives)
-- Festival/Venue filters (custom taxonomies)
-- Sort by: Newest, Oldest, Most Viewed
-- Search within archive results
+Provides taxonomies and sorting options on archive pages via the theme’s universal filter bar:
+- Dropdown items registered via `extrachill_filter_bar_items`
+- Search input items registered via `extrachill_filter_bar_items`
+- Theme renders the bar on archives via `extrachill_archive_above_posts`
 
 ## Post Card Template
 
