@@ -70,5 +70,5 @@ Requires authenticated user (WordPress login).
 
 ## Related Endpoints
 
-- [POST /auth/login](login.md) - User login with JWT tokens
+- [POST /auth/login](login.md) - User login returning access + refresh tokens
 - [GET /auth/me](me.md) - Get current authenticated user

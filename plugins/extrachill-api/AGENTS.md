@@ -53,7 +53,7 @@ extrachill-api/
 │       ├── auth/
 │       │   ├── browser-handoff.php (Browser handoff for cross-device auth)
 │       │   ├── google.php (Google OAuth authentication)
-│       │   ├── login.php (User authentication with JWT tokens)
+│       │   ├── login.php (User authentication returning access + refresh tokens)
 │       │   ├── logout.php (Device token revocation)
 │       │   ├── me.php (Current user data)
 │       │   ├── refresh.php (Token refresh for continued sessions)
@@ -112,7 +112,7 @@ extrachill-api/
 All endpoints are under the `extrachill/v1` namespace.
 
 ### Authentication Endpoints (7)
-- `POST /auth/login` - User login with JWT tokens
+- `POST /auth/login` - User login returning access + refresh tokens
 - `POST /auth/refresh` - Token refresh for continued sessions
 - `GET /auth/me` - Current authenticated user
 - `POST /auth/logout` - Logout and token revocation
@@ -337,7 +337,7 @@ The mobile app (extrachill-app) consumes the following endpoints:
 
 **Mobile-Specific Considerations**:
 - All auth endpoints require `device_id` (UUID v4) parameter
-- JWT tokens stored securely using Expo SecureStore
+- Tokens stored securely using Expo SecureStore
 - Automatic token refresh when access token expires
 - Device tracking supports multi-device session management
 

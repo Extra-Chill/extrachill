@@ -6,7 +6,8 @@
 	"require": {
 		"php": ">=7.4",
 		"endroid/qr-code": "^6.0",
-		"erusev/parsedown": "^1.7"
+		"erusev/parsedown": "^1.7",
+		"league/html-to-markdown": "^5.1"
 	},
 	"require-dev": {
 		"squizlabs/php_codesniffer": "^3.7",

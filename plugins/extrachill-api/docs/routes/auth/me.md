@@ -1,6 +1,6 @@
 # Auth Me
 
-Retrieve current authenticated user data including account status and onboarding completion.
+Retrieve current authenticated user data including onboarding completion.
 
 ## Endpoints
 
@@ -130,7 +130,7 @@ function useCurrentUser() {
 ## Usage Notes
 
 **Authentication Verification**:
-- Use this endpoint to verify JWT token validity
+- Use this endpoint to verify access token validity (Bearer auth)
 - Catches expired or invalid tokens early
 - Returns 401 if token is invalid or missing
 

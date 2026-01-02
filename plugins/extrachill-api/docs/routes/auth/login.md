@@ -1,6 +1,6 @@
 # Auth Login
 
-Authenticate a user and return JWT access/refresh tokens for API access. Supports device tracking for session management and optional cookie setting.
+Authenticate a user and return access + refresh tokens for API access. Supports device tracking for session management and optional cookie setting.
 
 ## Endpoints
 
@@ -8,7 +8,7 @@ Authenticate a user and return JWT access/refresh tokens for API access. Support
 
 **Endpoint**: `POST /wp-json/extrachill/v1/auth/login`
 
-**Purpose**: Authenticate user credentials and generate JWT tokens for API access.
+**Purpose**: Authenticate user credentials and generate access + refresh tokens for API access.
 
 **Permission**: Public (no authentication required)
 

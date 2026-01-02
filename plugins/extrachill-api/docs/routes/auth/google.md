@@ -1,6 +1,6 @@
 # Google OAuth Authentication
 
-Authenticate users with Google OAuth using ID tokens and return JWT access/refresh tokens for API access.
+Authenticate users with Google OAuth using ID tokens and return access + refresh tokens for API access.
 
 ## Endpoints
 
@@ -8,7 +8,7 @@ Authenticate users with Google OAuth using ID tokens and return JWT access/refre
 
 **Endpoint**: `POST /wp-json/extrachill/v1/auth/google`
 
-**Purpose**: Authenticate user via Google ID token and generate JWT tokens for API access.
+**Purpose**: Authenticate user via Google ID token and generate access + refresh tokens for API access.
 
 **Permission**: Public (no authentication required)
 

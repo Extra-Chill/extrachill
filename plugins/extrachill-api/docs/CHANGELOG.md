@@ -2,6 +2,26 @@
 
 All notable changes to the ExtraChill API plugin are documented here. This file is the single source of truth for release history.
 
+## 0.9.3
+
+### Added
+
+- **Markdown Export Endpoint**: New `GET /wp-json/extrachill/v1/tools/markdown-export` for exporting content as markdown
+  - Supports standard posts, bbPress topics (with replies), and events
+  - Useful for content sharing and AI agent context feeding
+  - Requires `league/html-to-markdown` dependency
+
+### Improved
+
+- **Artist Profile Security**: Added trim and empty check validation for artist names in `POST /artists/{id}` handler
+- **Multisite Reliability**: Replaced hardcoded blog ID fallbacks with direct `ec_get_blog_id()` calls in shop shipping routes for more robust site resolution
+
+### Technical Notes
+
+- **Dependencies**: Added `league/html-to-markdown: ^5.1` for markdown conversion
+- **Backward Compatibility**: All changes are additive with no breaking modifications to existing data contracts
+- **Auth Documentation**: Standardized authentication terminology across all route documentation for consistency with actual token-based implementation
+
 ## 0.9.2
 
 ### Added

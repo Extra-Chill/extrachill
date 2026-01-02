@@ -22,7 +22,7 @@ The plugin provides 58 endpoint files across 17 feature categories, all under th
 ### Authentication Endpoints (7)
 - `POST /auth/browser-handoff` - Browser handoff for cross-device auth
 - `POST /auth/google` - Google OAuth authentication
-- `POST /auth/login` - User login with JWT tokens
+- `POST /auth/login` - User login returning access + refresh tokens
 - `POST /auth/logout` - Logout and token revocation
 - `GET /auth/me` - Get current authenticated user
 - `POST /auth/refresh` - Refresh access tokens
