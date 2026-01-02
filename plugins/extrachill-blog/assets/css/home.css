@@ -380,6 +380,65 @@
     }
 }
 
+/* ==========================================================================
+   Homepage Network Search
+   ========================================================================== */
+
+.home-network-search {
+    max-width: 800px;
+    margin: 4em auto;
+    text-align: center;
+    padding: 0 1em;
+}
+
+.home-network-search-header {
+    font-family: 'Loft Sans', sans-serif;
+    font-size: 1.8em;
+    font-weight: 800;
+    color: var(--accent);
+    margin-bottom: 0.5em;
+    margin-top: 0;
+}
+
+.home-network-search-description {
+    color: var(--muted-text);
+    margin-bottom: 1.5em;
+}
+
+.home-network-search .search-form {
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.home-network-search .search-wrap {
+    display: flex;
+    gap: 0.5em;
+}
+
+.home-network-search .search-wrap .s {
+    flex: 1;
+    padding: 1em 1.2em;
+    font-size: 1.1em;
+    border: 2px solid var(--border-color);
+    border-radius: 12px;
+    background: var(--card-background);
+}
+
+.home-network-search .search-wrap .s:focus {
+    border-color: var(--accent);
+    outline: none;
+}
+
+@media (max-width: 600px) {
+    .home-network-search .search-wrap {
+        flex-direction: column;
+    }
+
+    .home-network-search .search-wrap button {
+        width: 100%;
+    }
+}
+
 .home-header {
 	display: flex;
 	justify-content: space-between;

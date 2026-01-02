@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.6] - 2026-01-02
+
+### Added
+- Homepage search section (`section-search.php`) with network-wide search functionality
+- CSS styling for homepage search section in `assets/css/home.css`
+
+### Changed
+- Integrated search section into the homepage render hook after the grid layout
+
 ## [0.3.5] - 2026-01-02
 
 ### Added
