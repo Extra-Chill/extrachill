@@ -9,7 +9,7 @@ Enhanced bbPress template loading with plugin-provided templates.
 
 **Template Registration:**
 - Hook: `bbp_register_theme_packages` registers custom template stack
-- Location: `bbpress/` directory with 30+ custom template files
+- Location: `bbpress/` directory with 70+ custom template files
 - Priority: Enables bbPress to find plugin templates over theme defaults
 
 **Template Categories:**
@@ -21,13 +21,13 @@ Enhanced bbPress template loading with plugin-provided templates.
 - **User Templates**: Enhanced profile and details templates
 - **Additional Templates**: Archive views, search results, topic tags, forum management
 
-### Homepage Override
-Blog-specific homepage template routing for community site.
+### Homepage Content
+Blog-specific homepage content injection for community site.
 
 **Implementation:**
-- Filter: `extrachill_template_homepage` (blog ID 2 only)
-- Purpose: Forces community homepage template on community.extrachill.com
-- Integration: Works with extrachill theme homepage routing
+- Action: `extrachill_homepage_content` (blog ID 2 only)
+- Purpose: Renders the forum homepage content on community.extrachill.com inside the theme's front-page container
+- Integration: Works with the extrachill theme front page template (`inc/home/templates/front-page.php`)
 
 ### Statistics Suppression
 Forum statistics filtering for cleaner presentation.
@@ -61,14 +61,16 @@ Modular script loading with conditional enqueuing.
 
 **Script Categories:**
 - **upvote.js**: Content voting system
-- **extrachill-mentions.js**: User mention autocomplete with reply button handler
+- **bbpress-ui.js**: Forum UI interactions, including inline reply handling
+- **bbpress-tinymce.js**: TinyMCE integration for bbPress contexts
+- **tinymce-image-upload.js**: TinyMCE image upload helper
 - **content-expand.js**: Dynamic content expansion
 - **manage-user-profile-links.js**: Profile link management
 - **avatar-upload.js**: Avatar upload via REST API
 
 **Loading Strategy:**
-- 3 scripts loaded via centralized `assets.php`
-- 2 scripts loaded independently by feature modules
+- Scripts enqueue conditionally via `inc/core/assets.php`
+- Some scripts enqueue from feature modules (profile links, avatar upload)
 - Cache busting via `filemtime()` versioning
 
 ### Default Stylesheet Dequeuing
@@ -130,5 +132,4 @@ Core features provide the technical foundation enabling:
 - Cross-platform compatibility with WordPress multisite architecture
 - Extensible architecture supporting additional community features
 
-These core systems ensure reliable, performant operation of all community functionality while maintaining clean integration with the extrachill theme.</content>
-<parameter name="filePath">docs/core-features.md
+These core systems ensure reliable, performant operation of all community functionality while maintaining clean integration with the extrachill theme.

@@ -1,8 +1,8 @@
 # Extra Chill Community Plugin
 
-A WordPress plugin for the Extra Chill community platform providing forum enhancements, cross-domain authentication, and bbPress integration. Works with the extrachill theme to provide community functionality for community.extrachill.com.
+A WordPress plugin for the Extra Chill community platform providing forum enhancements and bbPress integration. Works with the extrachill theme to provide community functionality for community.extrachill.com.
 
-**Version**: 1.2.1
+ **Version**: 1.2.2
 
 ## Overview
 
@@ -10,19 +10,10 @@ A WordPress plugin for the Extra Chill community platform providing forum enhanc
 - `community.extrachill.com` - Main community platform (WordPress/bbPress) **[Uses extrachill theme + this plugin]**
 - `extrachill.com` - Main website **[Uses extrachill theme + cross-domain integration]**
 
-## Quick Start
-
-### Installation
+## Plugin Basics
 
 ```bash
-# Navigate to plugin directory
-cd wp-content/plugins/extrachill-community
-
-# Install PHP dependencies (minimal composer.json)
 composer install
-
-# Activate plugin in WordPress admin
-# Plugin integrates with extrachill theme
 ```
 
 ### Automatic Setup
@@ -124,18 +115,9 @@ if (bbp_is_forum_archive() || is_front_page() || bbp_is_single_forum()) {
 }
 ```
 
-### 2. Cross-Domain Authentication
+### 2. Homepage Integration
 
-**WordPress Multisite Native Authentication**:
-```php
-// WordPress multisite provides native cross-domain authentication
-// No custom session tokens needed - WordPress handles this automatically
-if (is_user_logged_in()) {
-    // User authenticated across all .extrachill.com subdomains automatically
-}
-```
-
-**Migration Complete**: The plugin now uses WordPress multisite native authentication exclusively. All custom session token functionality has been removed.
+Community homepage content is rendered on `community.extrachill.com` via the theme action hook `extrachill_homepage_content`.
 
 ### 3. User Management & Notifications
 
@@ -156,12 +138,10 @@ $unread_count = count(array_filter($notifications, function($n) { return !$n['re
 // User avatar dropdown menu extensible via ec_avatar_menu_items filter (provided by extrachill-users plugin)
 ```
 
-### 4. Cross-Domain Integration
+### 4. Cross-Site Integration
 
-**WordPress Multisite Native**:
-- Native WordPress multisite authentication across all Extra Chill domains
-- Automatic cross-domain user sessions (no custom tokens)
-- Performance optimization through native WordPress functions
+- Cross-site aggregation for profile stats uses `switch_to_blog()` / `restore_current_blog()` (e.g., main-site post/comment counts)
+- Interactive features use REST routes registered by the network-activated `extrachill-api` plugin
 
 ## Development
 
@@ -188,7 +168,9 @@ function modular_bbpress_styles() {
 ```php
 // Loaded via assets.php (3 files):
 // - upvote.js (bbPress and recent page)
-// - extrachill-mentions.js (bbPress only, includes reply button handler)
+// - bbpress-ui.js (bbPress only)
+// - bbpress-tinymce.js (bbPress editor contexts only)
+// - tinymce-image-upload.js (TinyMCE image upload helper)
 // - content-expand.js (recent page, blog comments feed)
 
 // Loaded independently by feature modules (2 files):
@@ -197,7 +179,6 @@ function modular_bbpress_styles() {
 
 // Removed files:
 // - custom-avatar.js (moved to extrachill-users plugin)
-// - utilities.js, tinymce-image-upload.js (deleted from codebase)
 ```
 
 ### Database Schema
@@ -316,19 +297,15 @@ function extrachill_dequeue_bbpress_default_styles() {
 add_action('wp_enqueue_scripts', 'extrachill_dequeue_bbpress_default_styles', 15);
 ```
 
-## AJAX Handlers
+## REST Endpoints (used by frontend JS)
 
-```javascript
-// Plugin AJAX handlers
-wp_ajax_follow_user                    // User following system
-wp_ajax_upvote_content                 // Content upvoting
-wp_ajax_clear_most_active_users_cache  // Cache management
-wp_ajax_save_user_profile_links        // Dynamic social links
-wp_ajax_handle_tinymce_image_upload    // TinyMCE image uploads
+Certain interactive features use REST routes registered by the network-activated `extrachill-api` plugin.
 
-// Moved to extrachill-api plugin: User mention autocomplete (REST endpoint)
-// Moved to extrachill-users plugin: wp_ajax_custom_avatar_upload
-```
+- `POST /wp-json/extrachill/v1/community/upvote`
+  - Used by `inc/assets/js/upvote.js`
+  - Delegates into `extrachill_process_upvote()` (in this plugin)
+
+(User mention autocomplete is also provided via `extrachill-api`.)
 
 ## Testing
 
@@ -336,7 +313,7 @@ wp_ajax_handle_tinymce_image_upload    // TinyMCE image uploads
 # Testing Areas:
 # 1. Plugin Loading: Verify all 36 files load via explicit require_once in extrachill_community_init()
 # 2. Forum Features: Core (8), content (6), social (11), user-profiles (7), home (4)
-# 3. Cross-Domain Integration: WordPress multisite authentication
+# 3. Multisite Integration: WordPress authentication
 # 4. bbPress Integration: Custom templates, breadcrumb filter, stylesheet conflicts, functionality
 # 5. JavaScript Components: 3 via assets.php, 2 independent loaders
 # 6. User Management: Profiles, settings, verification, notifications
@@ -353,7 +330,7 @@ wp_ajax_handle_tinymce_image_upload    // TinyMCE image uploads
 2. Activate extrachill theme
 3. Activate bbPress plugin (required)
 4. Activate extrachill-community plugin
-5. Configure cross-domain cookies (`.extrachill.com`)
+5. Ensure multisite cookies are configured
 6. Run `composer install` for PHP dependencies
 
 **Domain Configuration**:
@@ -361,6 +338,8 @@ wp_ajax_handle_tinymce_image_upload    // TinyMCE image uploads
 // wp-config.php additions for cross-domain
 define('COOKIE_DOMAIN', '.extrachill.com');
 define('EXTRACHILL_API_URL', 'https://community.extrachill.com');
+
+// Note: cookie and auth behavior is configured at the network level (WordPress multisite + network plugins).
 ```
 
 ## Architecture Notes

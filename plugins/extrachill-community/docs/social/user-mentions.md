@@ -11,7 +11,7 @@ Type `@` followed by username characters in TinyMCE editor to trigger autocomple
 Select user from dropdown to insert mention into content. Mention appears as `@username`.
 
 ### Search Criteria
-Autocomplete searches both username (`user_login`) and display name (`user_nicename`) fields.
+Autocomplete searches both username (`user_login`) and profile slug (`user_nicename`) fields.
 
 ### Result Limit
 Autocomplete displays maximum 10 matching users per search.
@@ -37,15 +37,20 @@ Notifications include mention author, content context, and direct link to mentio
 ### Response Format
 ```json
 [
-  {"username": "user_login", "slug": "user_nicename"},
-  {"username": "another_user", "slug": "another-user"}
+  {
+    "id": 123,
+    "username": "user_login",
+    "slug": "user_nicename",
+    "avatar_url": "https://...",
+    "profile_url": "https://community.extrachill.com/users/user_nicename"
+  }
 ]
 ```
 
 ## Security
 
-### Public Endpoint
-User search endpoint publicly accessible to support autocomplete functionality. Endpoint provided by extrachill-api plugin.
+### Permission
+For mentions autocomplete (default `context=mentions`), the endpoint requires a logged-in user.
 
 ### Input Sanitization
 Search terms sanitized with `sanitize_text_field()` before database query.

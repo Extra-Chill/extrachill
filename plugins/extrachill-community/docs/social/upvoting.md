@@ -1,6 +1,6 @@
 # Upvoting System
 
-AJAX-based voting system allowing users to upvote forum topics and replies with real-time feedback.
+REST-based voting system allowing users to upvote forum topics and replies with real-time feedback.
 
 ## User Actions
 
@@ -19,7 +19,7 @@ Your upvote state persists across sessions. Upvoted content displays with active
 Each topic and reply displays total upvote count from all users.
 
 ### User Vote History
-View all content you've upvoted in your profile's upvoted content section.
+Upvoted post IDs are stored in user meta (`upvoted_posts`) and can be listed in profile views.
 
 ## Point System Integration
 
@@ -32,13 +32,13 @@ Points update in real-time when upvotes are added or removed.
 ## REST API Endpoints
 
 ### Handle Upvote
-- **Endpoint**: `wp-admin/admin-ajax.php?action=handle_upvote`
-- **Method**: POST
-- **Parameters**:
+- **Endpoint**: `POST /wp-json/extrachill/v1/community/upvote`
+- **Permission**: Logged-in users only
+- **Headers**: `X-WP-Nonce`
+- **Body (JSON)**:
   - `post_id` (int): Topic or reply post ID
-  - `type` (string): "topic" or "reply"
-  - `nonce` (string): Security nonce
-- **Response**: JSON with new vote count and upvoted state
+  - `type` (string): `topic` or `reply`
+- **Response**: JSON with `message`, `new_count`, and `upvoted`
 
 ## Security
 
@@ -54,7 +54,7 @@ Single user can only upvote content once. Duplicate votes prevented.
 ## Data Storage
 
 ### User Meta
-Upvoted post IDs stored in `upvoted_posts` user meta as array.
+Upvoted post IDs stored in `upvoted_posts` user meta as an array.
 
 ### Post Meta
 Vote count stored in `upvote_count` post meta for each topic/reply.

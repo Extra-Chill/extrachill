@@ -4,13 +4,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a **WordPress plugin** called "Extra Chill Community" for the **Extra Chill** community platform - a music community with comprehensive forum enhancements and cross-domain authentication. The plugin provides community and forum functionality that integrates with the extrachill theme.
+This is a **WordPress plugin** called "Extra Chill Community" for the **Extra Chill** community platform — a music community with comprehensive forum enhancements and bbPress integration. The plugin provides community and forum functionality that integrates with the extrachill theme.
 
-This plugin is part of the Extra Chill Platform, a WordPress multisite network serving music communities across 9 active sites.
+This plugin is part of the Extra Chill Platform, a WordPress multisite network serving music communities across 11 active sites.
 
 **Plugin Information:**
 - **Name**: Extra Chill Community
-- **Version**: 1.1.4
+- **Version**: 1.2.2
 - **Text Domain**: `extra-chill-community`
 - **Author**: Chris Huber
 - **Author URI**: https://chubes.net
@@ -19,9 +19,9 @@ This plugin is part of the Extra Chill Platform, a WordPress multisite network s
 - **Requires at least**: 5.0
 - **Tested up to**: 6.4
 
-## KNOWN ISSUES
+## Notes
 
-**PSR-4 Implementation**: No PSR-4 autoloading configured in composer.json. The plugin uses procedural patterns with direct `require_once` loading.
+**PSR-4 Implementation**: The plugin does not use PSR-4 autoloading. It uses procedural patterns with direct `require_once` loading.
 
 **File Migration**: Avatar functionality (custom-avatar.php, upload-custom-avatar.php, custom-avatar.js, online-users-count.php) moved to extrachill-users plugin for network-wide availability. Utilities.js deleted from codebase.
 
@@ -33,22 +33,16 @@ This plugin is part of the Extra Chill Platform, a WordPress multisite network s
 ## Core Features
 
 1. **Forum Features** - Comprehensive bbPress extensions with organized feature architecture
-2. **Cross-Domain Authentication** - WordPress multisite native authentication system for seamless cross-domain user sessions  
-3. **Social Features** - User interactions, following system, upvoting, notifications, and rank system
-4. **User Management** - Custom profiles, settings, email verification, and notification system
-5. **Community Templates** - Custom bbPress templates and specialized page templates
+2. **Social Features** - User interactions, upvoting, notifications, and rank system
+3. **User Profiles** - Custom profiles, settings, verification, and notification UI
+4. **Community Templates** - Custom bbPress templates and specialized page templates
+5. **Homepage Integration** - Renders homepage content via the `extrachill_homepage_content` action on community.extrachill.com
 
 ## Development Setup
 
 ### Dependencies Installation
 ```bash
-# Navigate to plugin directory
-cd /Users/chubes/Developer/Extra\ Chill\ Platform/extrachill-plugins/extrachill-community
-
-# Install PHP dependencies (minimal - only composer structure exists)
 composer install
-
-# Note: No npm build system - uses direct file inclusion
 ```
 
 ### Automatic Setup on Activation
@@ -73,7 +67,7 @@ When the plugin is activated, it automatically creates required pages and forums
 - No deletion on deactivation - pages remain for user content
 
 ### Development Notes
-- **No Asset Compilation** - Direct file inclusion without npm/webpack compilation
+- **No Asset Compilation** - Direct file inclusion without a build step for plugin assets
 - **bbPress Integration** - Default stylesheet dequeuing, custom templates, enhanced functionality
 
 ### Build System
@@ -106,6 +100,22 @@ The `main` branch contains stable, production-ready code. All production builds 
 - **Disabled**: `core/code` block for security reasons
 
 **Technical Implementation**:
+
+### Inline Reply System (v1.2.0+)
+
+**Feature**: Direct reply functionality within topic view without page reload
+
+**Implementation**:
+- Inline reply form appears below replies
+- TinyMCE editor integration for rich text
+- REST API submission for new replies
+- Real-time reply addition to thread
+
+**Files**:
+- `inc/content/editor/tinymce-customization.php` - Editor configuration
+- JavaScript handling in bbPress UI assets
+
+**Technical Implementation**:
 - Uses `blocks_everywhere_bbpress` and `blocks_everywhere_bbpress_admin` filters to enable functionality
 - Filter-based block type restrictions via `blocks_everywhere_allowed_blocks` filter
 - Seamless integration with existing bbPress permissions and security
@@ -120,9 +130,9 @@ The `main` branch contains stable, production-ready code. All production builds 
 - **Template System**: Provides custom bbPress templates and specialized page templates
 - **Hook-Based Components**: Homepage and settings use action hooks instead of monolithic templates
 
-### 2. Cross-Domain Session Management
-- **WordPress Multisite**: Native WordPress multisite provides unified authentication across all Extra Chill domains
-- **Cookie Domain**: WordPress multisite handles cross-domain authentication via `.extrachill.com` subdomain coverage
+### 2. Session Context
+- **WordPress Multisite**: Authentication is handled by WordPress multisite (this plugin does not implement auth)
+- **Community Site Scope**: Most plugin behavior is scoped to `community.extrachill.com` (blog ID `ec_get_blog_id('community')`)
 
 ## Critical File Locations
 
@@ -169,7 +179,7 @@ The `main` branch contains stable, production-ready code. All production builds 
 
 **Avatar Upload UI**: `inc/user-profiles/edit/avatar-upload.php` and `inc/assets/js/avatar-upload.js` provide the bbPress profile edit integration for avatar uploads. Uses centralized REST API (`/wp-json/extrachill/v1/media`) from extrachill-api plugin.
 
-**Deleted files**: inc/core/nav.php, inc/assets/js/utilities.js
+**Deleted files**: inc/assets/js/utilities.js
 
 ### Integration Files
 
@@ -201,7 +211,9 @@ The `main` branch contains stable, production-ready code. All production builds 
 
 **Loaded via assets.php (4 files)**:
 - `upvote.js` - Content upvoting system (bbPress and recent page)
-- `extrachill-mentions.js` - User mention system with reply button handler (bbPress only)
+- `bbpress-ui.js` - Forum UI interactions (bbPress only)
+- `bbpress-tinymce.js` - TinyMCE integration for bbPress editor contexts
+- `tinymce-image-upload.js` - TinyMCE image upload helper
 - `bbpress-ui.js` - Forum UI interactions: jump-to-latest, sort auto-submit, TinyMCE autosave (bbPress only)
 - `content-expand.js` - Content expansion functionality (recent page, blog comments feed)
 
@@ -242,7 +254,7 @@ Custom templates in `bbpress/` directory provide enhanced forum functionality:
 3. **Plugin Initialization** - Uses plugin initialization hooks for proper setup
 4. **Modular Asset Loading** - Context-aware CSS/JS enqueuing with bbPress integration
 5. **bbPress Enhancement** - Extends bbPress functionality with custom features
-6. **Cross-Domain Integration** - Provides multisite authentication and data sharing
+6. **Network Integration** - Uses multisite authentication and shared APIs provided elsewhere
 7. **Performance Optimization** - Conditional loading and selective script enqueuing
 
 ### Forum Features Architecture
@@ -329,7 +341,7 @@ The plugin provides comprehensive bbPress enhancements through multiple integrat
 - Hook: `bbp_register_theme_packages` registers custom template stack
 - Custom templates location: `bbpress/` directory (70+ template files)
 - Template discovery: `bbp_register_template_stack()` enables bbPress to find plugin templates
-- Homepage override: Blog ID 2 (community.extrachill.com) only via `extrachill_template_homepage` filter
+- Homepage content: Blog ID 2 (community.extrachill.com) only via `extrachill_homepage_content` action
 - Statistics suppression: `bbp_get_single_forum_description` filter returns empty string
 
 **Asset Loading Integration**:
@@ -399,7 +411,7 @@ ec_can_create_artist_profiles($user_id) // Returns boolean for artist creation p
 
 **Cross-Site User Data**:
 - File: `inc/user-profiles/custom-user-profile.php`
-- Uses `switch_to_blog(1)` to access main site (extrachill.com) data
+- Uses `switch_to_blog( ec_get_blog_id( 'main' ) )` to access main site (extrachill.com) data
 - Aggregates user post count from blog ID 1
 - Aggregates user comments from blog ID 1
 - Always uses `restore_current_blog()` in try/finally pattern
@@ -419,12 +431,6 @@ The plugin operates as a production WordPress plugin serving the Extra Chill com
 
 **Plugin Integration**: Other plugins can use the `ec_avatar_menu_items` filter (provided by extrachill-users plugin) to add custom menu items to the user avatar dropdown, maintaining seamless navigation between community and plugin-specific functions.
 
-## Cross-Domain Authentication Flow
+## Session Notes
 
-### WordPress Multisite Native Authentication
-1. User logs in on any Extra Chill domain
-2. WordPress multisite automatically provides authentication across all `.extrachill.com` subdomains
-3. Native WordPress user sessions handle cross-domain authentication
-4. Users remain logged in across all Extra Chill properties without additional validation
-
-**Migration Complete**: The plugin now uses WordPress multisite native authentication exclusively. All custom session token functionality has been removed. Cross-domain integration relies entirely on WordPress core multisite capabilities for authentication.
+Authentication and cross-domain cookie behavior are handled by network-level plugins and WordPress multisite. This plugin focuses on community/forum behavior and integrates into the theme using hooks.

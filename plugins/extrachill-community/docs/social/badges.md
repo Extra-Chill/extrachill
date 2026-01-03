@@ -4,23 +4,8 @@ Visual badge system displaying user roles and verification status throughout for
 
 ## Badge Types
 
-### Team Member Badge
-Displays for Extra Chill team members detected via `ec_is_team_member()` function from extrachill-users plugin (supports manual admin overrides).
-- **Visual**: Team member icon
-- **Tooltip**: "Extra Chill Team Member"
-- **Eligibility**: Determined by extrachill-users plugin logic
-
-### Artist Badge
-Displays for verified musicians and performers.
-- **Visual**: Artist icon
-- **Tooltip**: "Artist"
-- **Eligibility**: Set via user profile verification system (`user_is_artist` meta)
-
-### Industry Professional Badge
-Displays for verified music industry professionals.
-- **Visual**: Professional icon
-- **Tooltip**: "Music Industry Professional"
-- **Eligibility**: Set via user profile verification system (`user_is_professional` meta)
+### Badge Source
+Badges are returned by `ec_get_user_badges( $user_id )` (from `extrachill-users`). This plugin only renders the returned badges.
 
 ## Badge Display Locations
 
@@ -35,11 +20,8 @@ Badges appear in user profile menu items via `bbp_template_after_user_details_me
 
 ## Badge Management
 
-### Administrator Control
-Only administrators can assign team member, artist, and professional status via user profile editor.
-
-### User Profile Fields
-Verification checkboxes available in WordPress user profile editor under "Extra User Information" section.
+### Notes
+Badge assignment rules live in `extrachill-users` (including whether any role/meta is admin-controlled).
 
 ### Persistent Status
 Badge eligibility persists across all forum areas and survives session changes.

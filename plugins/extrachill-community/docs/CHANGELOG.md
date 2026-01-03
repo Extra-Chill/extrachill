@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.2.2] - 2026-01-02
+
+### Added
+- New `tinymce-page.css` file for TinyMCE toolbar and UI styling, ensuring dark mode consistency when Blocks Everywhere is inactive.
+
+### Changed
+- Improved asset loading logic in `inc/core/assets.php` to conditionally enqueue `tinymce-page.css` only when Blocks Everywhere is inactive.
+- Refactored `inc/assets/css/bbpress.css` by moving TinyMCE-specific toolbar and UI styles to the new `tinymce-page.css` for better modularity.
+- Updated documentation (README.md, AGENTS.md, docs/core-features.md) to reflect the latest file structure, JavaScript architecture, and integration patterns.
+- Synchronized documentation regarding cross-site data aggregation and homepage content injection hooks.
+
+### Fixed
+- Corrected various documentation inaccuracies regarding script loading counts and integration methods.
+
 ## [1.2.1] - 2025-12-22
 
 ### Changed

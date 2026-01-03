@@ -39,7 +39,7 @@ Each notification includes:
 - Timestamp of notification creation
 
 ### Read Status
-Binary read/unread flag determines badge count and visual highlighting.
+Unread count is derived from `extrachill_notifications` entries where `read` is false.
 
 ## Notification Management
 
@@ -55,7 +55,7 @@ Mentioned users automatically notified when content containing @mentions is publ
 Old notifications automatically pruned via scheduled cleanup process.
 
 ### Read State
-Notifications marked as read when user views notification page or clicks notification.
+Notifications are marked as read when the user loads the `/notifications` page.
 
 ## Data Storage
 
