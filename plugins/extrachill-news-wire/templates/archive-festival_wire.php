@@ -110,17 +110,7 @@ get_header(); ?>
 					?>
 					</div><!-- #festival-wire-posts-container.festival-wire-grid -->
 
-					<?php
-					// Pagination removed
-					/*
-					if (function_exists('wp_pagenavi')) {
-						wp_pagenavi();
-					} else {
-						the_posts_navigation();
-					}
-					*/
-					?>
-				</div><!-- .festival-wire-grid-container -->
+					</div><!-- .festival-wire-grid-container -->
 
                 <?php extrachill_pagination( null, 'festival-wire', 'post' ); ?>
 
@@ -213,8 +203,4 @@ get_header(); ?>
 		</main><!-- #main -->
 	</div><!-- .main-content -->
 
-<?php 
-// Sidebar removed as per requirements
-// get_sidebar(); 
-?>
 <?php get_footer(); ?>

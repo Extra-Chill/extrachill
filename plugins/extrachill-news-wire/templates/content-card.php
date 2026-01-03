@@ -67,7 +67,6 @@
 			    );
 			}
 			?>
-            <?php // Meta details like author/location removed as per archive structure ?>
 		</div><!-- .entry-meta -->
 
 		<div class="entry-summary">

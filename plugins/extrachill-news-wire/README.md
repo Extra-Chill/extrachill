@@ -103,8 +103,15 @@ extrachill-news-wire/
 │   └── festival-wire.js        # Filter and FAQ accordion functionality
 ├── includes/                    # Core functionality
 │   ├── festival-wire-post-type.php    # Custom post type registration
-│   └── festival-wire-query-filters.php # Query modifications
+│   ├── festival-wire-query-filters.php # Query modifications
+│   └── core/
+│       ├── breadcrumbs.php             # Breadcrumb integration
+│       └── post-meta.php               # Post meta handling
 ├── templates/                   # Template files
+│   ├── archive-festival_wire.php       # Archive template
+│   ├── single-festival_wire.php        # Single post template
+│   ├── home-wire.php                   # Wire hub homepage
+│   └── content-card.php                # Content card component
 ├── build.sh                     # Production build script
 └── extrachill-news-wire.php     # Main plugin file
 ```
@@ -148,7 +155,7 @@ cd extrachill-plugins/extrachill-news-wire
 - **WordPress**: 5.0+
 - **PHP**: 7.4+
 - **Tested up to**: WordPress 6.4
-- **Stable tag**: 0.3.4
+- **Stable tag**: 0.3.6
 
 ## Support
 

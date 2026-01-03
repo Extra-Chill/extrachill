@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.3.6] - 2026-01-02
+
+### Changed
+- Improved container structure on wire hub homepage by adding `<div class="festival-wire-page">` wrapper for better CSS targeting and consistent layout
+- Enhanced "View all Festival Wire" button on homepage hub with `button-1 button-medium` classes to match theme design system
+- Cleaned up archive template by removing redundant sidebar and commented-out pagination code
+- Simplified content card meta display by removing unnecessary author/location placeholder comments
+
+### Fixed
+- Fixed layout nesting in `archive-festival_wire.php` by properly closing the grid container div before pagination
+- Corrected breadcrumb and template paths in README.md file structure documentation
+
 ## [0.3.5] - 2025-12-23
 
 ### Changed

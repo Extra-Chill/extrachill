@@ -35,7 +35,7 @@ $latest_posts = get_posts(
 		<p>Music festival announcements, Reddit chatter, schedule drops, and lineup news.</p>
 
 		<?php if ( $festival_wire_archive_url ) : ?>
-			<p><a class="button" href="<?php echo esc_url( $festival_wire_archive_url ); ?>">View all Festival Wire</a></p>
+			<p><a class="button-1 button-medium" href="<?php echo esc_url( $festival_wire_archive_url ); ?>">View all Festival Wire</a></p>
 		<?php endif; ?>
 
 		<div class="festival-wire-grid-container">
