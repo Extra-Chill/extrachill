@@ -56,7 +56,7 @@ add_action('init', 'extrachill_unregister_image_sizes', 99);
 
 define('EXTRACHILL_PARENT_DIR', get_template_directory());
 
-define('EXTRACHILL_THEME_VERSION', '1.3.7');
+define('EXTRACHILL_THEME_VERSION', '1.3.8');
 
 define('EXTRACHILL_INCLUDES_DIR', EXTRACHILL_PARENT_DIR . '/inc');
 require_once(EXTRACHILL_INCLUDES_DIR . '/core/templates/post-meta.php');
@@ -68,6 +68,7 @@ require_once(EXTRACHILL_INCLUDES_DIR . '/core/templates/community-activity.php')
 require_once(EXTRACHILL_INCLUDES_DIR . '/core/templates/taxonomy-badges.php');
 
 require_once(EXTRACHILL_INCLUDES_DIR . '/core/actions.php');
+require_once(EXTRACHILL_INCLUDES_DIR . '/core/analytics.php');
 require_once(EXTRACHILL_INCLUDES_DIR . '/core/assets.php');
 require_once(EXTRACHILL_INCLUDES_DIR . '/core/icons.php');
 require_once(EXTRACHILL_INCLUDES_DIR . '/core/notices.php');

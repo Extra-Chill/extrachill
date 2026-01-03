@@ -63,6 +63,11 @@
     --sidebar-width: 380px;
     --form-width: 500px;
 
+    /* Line Heights */
+    --line-height-tight: 1.2;
+    --line-height-base: 1.5;
+    --line-height-relaxed: 1.8;
+
     /* Spacing Scale */
     --spacing-xs: 0.25rem;
     --spacing-sm: 0.5rem;
