@@ -30,7 +30,7 @@ Override the archive template (`inc/archives/archive.php`).
 ### `extrachill_template_search`
 Swap in a custom search results template while still allowing the `extrachill-search` network plugin to control the search structure.
 
-**Parameters**: `$template` (string) – Default `inc/archives/search/search.php` path.
+**Parameters**: `$template` (string) – Default `inc/archives/archive.php` path.
 **Returns**: Template file path.
 
 ### `extrachill_template_404`

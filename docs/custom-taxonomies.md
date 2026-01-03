@@ -4,12 +4,12 @@ The theme registers four music-focused custom taxonomies with REST API support f
 
 ## Taxonomy Overview
 
-| Taxonomy | Type | Hierarchical | Slug | REST API | Applies To |
-|----------|------|--------------|------|----------|------------|
-| Location | Custom | Yes | `/location/` | Yes | Posts |
-| Festival | Custom | No | `/festival/` | Yes | Posts |
-| Artist | Custom | No | `/artist/` | Yes | Posts |
-| Venue | Custom | No | `/venue/` | Yes | Posts |
+| Taxonomy | Hierarchical | Slug | REST API | Applies To |
+|----------|--------------|------|----------|------------|
+| Location | Yes | `/location/` | Yes | `post` |
+| Festival | No | `/festival/` | Yes | `post`, `festival_wire` |
+| Artist | No | `/artist/` | Yes | `post` |
+| Venue | No | `/venue/` | Yes | `post` |
 
 ## Location Taxonomy
 
@@ -34,7 +34,7 @@ Hierarchical taxonomy for geographical organization.
 
 Non-hierarchical taxonomy for festival tags.
 
-**Applies To**: Posts only
+**Applies To**: `post`, `festival_wire`
 
 **URL Structure**:
 ```
@@ -45,22 +45,9 @@ Non-hierarchical taxonomy for festival tags.
 
 Non-hierarchical taxonomy for music artist tags.
 
-**Features**:
-- Used in archive filtering (Song Meanings, Music History categories)
-- Query parameter support: `?artist=artist-slug`
-- Integrated with archive filter dropdowns
-
 **URL Structure**:
 ```
 /artist/artist-name/
-```
-
-**Archive Filtering**:
-```php
-// Artist filter appears on specific categories
-if ( is_category( 'song-meanings' ) || is_category( 'music-history' ) ) {
-    // Artist dropdown filter displayed
-}
 ```
 
 ## Venue Taxonomy
@@ -123,14 +110,9 @@ Each taxonomy generates archive pages automatically:
 
 ## Taxonomy Badge Display
 
-All taxonomies automatically display as badges via `extrachill_display_taxonomy_badges()`:
+All taxonomies automatically display as badges via `extrachill_display_taxonomy_badges()` (hooked on `extrachill_above_post_title` by `inc/core/actions.php`).
 
-```php
-// Automatic display above post titles
-do_action( 'extrachill_above_post_title' );
-```
-
-**Styling**: Badges use `badge-colors.css` for category-specific colors
+**Styling**: `assets/css/taxonomy-badges.css`
 
 ## REST API Endpoints
 

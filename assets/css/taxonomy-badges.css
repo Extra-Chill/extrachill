@@ -250,6 +250,10 @@
 	background-color: #2E5A3C;
 	color: #ffffff;
 }
+.taxonomy-badge.location-denver {
+	background-color: #002244;
+	color: #FB4F14;
+}
 
 /* === Category Badges === */
 .taxonomy-badge.category-festival-news-badge {

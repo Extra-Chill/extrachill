@@ -1,45 +1,34 @@
 # Navigation System
 
-Hook-based navigation architecture with hardcoded menu performance and plugin extensibility.
+Minimal header + hook-driven footer navigation.
 
-## Architecture Overview
+## Header Search Overlay
 
-The theme uses action hooks for menu content, eliminating WordPress menu database queries while maintaining extensibility.
+The theme header is intentionally minimal:
 
-**Core File**: `inc/header/header-search.php`
+- `header.php` renders branding + `do_action( 'extrachill_header_top_right' )`
+- `inc/header/header-search.php` hooks into `extrachill_header_top_right` and renders the search icon + overlay panel
+- `assets/js/nav-menu.js` controls open/close behavior for the search overlay
 
-## Components
+**Relevant files**:
+- `header.php`
+- `inc/header/header-search.php`
+- `assets/js/nav-menu.js`
 
-### 1. Container Structure
+## Search Form
 
-Provides flyout menu HTML with hooks for content injection; secondary header renders separately when plugins supply items. Network dropdown integrated for multisite navigation.
+The search form comes from `extrachill_search_form()`.
 
-```php
-<nav id="site-navigation" class="main-navigation">
-    <button class="menu-toggle-container">...</button>
-    <div id="primary-menu" class="flyout-menu">
-        <div class="search-section">
-            <?php extrachill_search_form(); ?>
-        </div>
-        <ul class="menu-items">
-            <?php do_action('extrachill_navigation_main_menu'); ?>
-            <?php do_action('extrachill_navigation_before_social_links'); ?>
-            <li class="menu-social-links">
-                <?php do_action( 'extrachill_social_links' ); ?>
-            </li>
-            <?php do_action('extrachill_navigation_bottom_menu'); ?>
-        </ul>
-    </div>
-</nav>
-```
+- **Function**: `extrachill_search_form()`
+- **Location**: `inc/core/templates/searchform.php`
 
-### 2. Secondary Header Navigation
+## Secondary Header Navigation
 
-**Filter**: `extrachill_secondary_header_items`
-**Template**: `/inc/header/secondary-header.php`
-**Location**: Renders below main header when items are provided
+Renders below the main header only when a plugin supplies items.
 
-**Usage**: Plugins can add secondary navigation items. Network dropdown provides seamless site switching:
+- **Action**: `extrachill_after_header`
+- **Template**: `inc/header/secondary-header.php`
+- **Filter**: `extrachill_secondary_header_items`
 
 ```php
 add_filter( 'extrachill_secondary_header_items', function( $items ) {
@@ -48,194 +37,51 @@ add_filter( 'extrachill_secondary_header_items', function( $items ) {
         'label'    => 'Announcements',
         'priority' => 5,
     );
+
     return $items;
 } );
 ```
 
-### 5. Footer Navigation
+## Footer Navigation
 
-**Main Footer Hook**: `extrachill_footer_main_content`
-**Template**: `/inc/footer/footer-main-menu.php`
-**Structure**: Hierarchical footer menu with submenus
+Footer menus are hardcoded template includes registered via theme actions.
 
-**Bottom Footer Hook**: `extrachill_below_copyright`
-**Template**: `/inc/footer/footer-bottom-menu.php`
-**Content**: Legal/policy links filtered via `extrachill_footer_bottom_menu_items`
+- **Main footer action**: `extrachill_footer_main_content`
+  - Default handler: `extrachill_default_footer_main_content()` in `inc/core/actions.php`
+  - Template include: `inc/footer/footer-main-menu.php`
 
-### 6. Universal Back-to-Home Navigation
+- **Below-menu action**: `extrachill_footer_below_menu`
+  - Default handler: registered inside `inc/footer/footer-main-menu.php`
+  - Purpose: renders `do_action( 'extrachill_render_newsletter_form', 'navigation' )`
 
-**Hook**: `extrachill_above_footer`
-**Template**: `/inc/footer/back-to-home-link.php`
-**Priority**: 20
+- **Bottom footer action**: `extrachill_below_copyright`
+  - Default handler: `extrachill_default_below_copyright()` in `inc/core/actions.php`
+  - Template include: `inc/footer/footer-bottom-menu.php`
 
-**Smart Logic**:
-- **Main Homepage** (extrachill.com front page): No button displayed
-- **Subsite Homepages** (e.g., shop.extrachill.com, community.extrachill.com): Links to main site (https://extrachill.com) with "← Back to Main Site" label
-- **All Other Pages**: Links to current site homepage with "← Back to Home" label
+### Universal Back-to-Home Navigation
 
-**Implementation**:
-```php
-function extrachill_display_back_to_home_link() {
-    // No button on main site homepage
-    if ( is_main_site() && is_front_page() ) {
-        return;
-    }
+- **Action**: `extrachill_above_footer`
+- **Template**: `inc/footer/back-to-home-link.php`
 
-    // Determine URL and label based on context
-    if ( ! is_main_site() && is_front_page() ) {
-        // Subsite homepages link to main site
-        $url   = 'https://extrachill.com';
-        $label = '← Back to Main Site';
-    } else {
-        // All other pages link to current site homepage
-        $url   = home_url();
-        $label = '← Back to Home';
-    }
+## Social Links
 
-    echo '<div class="back-to-home-container">';
-    echo '<a href="' . esc_url( $url ) . '" class="button-1 button-large">' . esc_html( $label ) . '</a>';
-    echo '</div>';
-}
-add_action( 'extrachill_above_footer', 'extrachill_display_back_to_home_link', 20 );
-```
+- **Action**: `extrachill_social_links`
+- **Template helper**: `inc/core/templates/social-links.php`
 
-**Styling**: Uses `button-1 button-large` classes for consistent button appearance
+## Admin Menu Management
 
-## Search Integration
+WordPress menu UI is intentionally hidden by the theme:
 
-Search form integrated into navigation flyout:
+- **Function**: `extrachill_remove_menu_admin_pages()`
+- **Location**: `functions.php`
+- **Hook**: `admin_menu` (priority 999)
 
-```php
-<div class="search-section">
-    <?php extrachill_search_form(); ?>
-</div>
-```
+## Assets
 
-**Function**: `extrachill_search_form()`
-**Location**: `/inc/core/templates/searchform.php`
+- **Search overlay script**: `assets/js/nav-menu.js` (enqueued by `extrachill_enqueue_navigation_assets()` in `inc/core/assets.php`)
+- **No `nav.css` in theme**: navigation/search overlay styles live in `style.css` (plus other modular CSS files)
 
-## Secondary Header Filter
+## Extensibility
 
-**Filter**: `extrachill_secondary_header_items`
-**Location**: `/inc/header/secondary-header.php`
-**Usage**: Return an array of associative arrays with `url`, `label`, and optional `priority`. Items render when the array is non-empty, allowing plugins to surface context-specific CTAs without editing templates.
-
-## Social Links Integration
-
-Social media icons appear in navigation menu:
-
-```
-<li class="menu-social-links">
-    <?php do_action( 'extrachill_social_links' ); ?>
-</li>
-```
-
-**Function**: `extrachill_social_links()`
-**Location**: `/inc/core/templates/social-links.php`
-**Icons**: Facebook, Twitter/X, Instagram, YouTube, Pinterest, GitHub (extensible via hook)
-
-
-## Hamburger Toggle
-
-Animated three-line menu toggle:
-
-```php
-<button class="menu-toggle-container" role="button" aria-expanded="false">
-    <span class="menu-line top"></span>
-    <span class="menu-line middle"></span>
-    <span class="menu-line bottom"></span>
-</button>
-```
-
-**JavaScript**: `/assets/js/nav-menu.js`
-**Styling**: `/assets/css/nav.css`
-
-## Search Icon
-
-Magnifying glass icon triggers search:
-
-```php
-<div class="search-icon">
-    <?php echo ec_icon('search', 'search-top'); ?>
-</div>
-```
-
-**Icon Source**: `ec_icon()` helper with extrachill.svg sprite
-
-## Plugin Extension
-
-Plugins can add menu items via hooks:
-
-```php
-// Add custom menu item to main menu
-add_action( 'extrachill_navigation_main_menu', function() {
-    echo '<li><a href="/custom">Custom Link</a></li>';
-}, 15 );
-
-// Insert divider before social links
-add_action( 'extrachill_navigation_before_social_links', function() {
-    echo '<li class="divider"></li>';
-} );
-
-// Append footer menu section
-add_action( 'extrachill_footer_main_content', function() {
-    echo '<div class="custom-footer-section">...</div>';
-}, 20 );
-```
-
-## Menu Management Removed
-
-WordPress menu management interface is hidden:
-
-```php
-function extrachill_remove_menu_admin_pages() {
-    remove_submenu_page('themes.php', 'nav-menus.php');
-}
-add_action('admin_menu', 'extrachill_remove_menu_admin_pages', 999);
-
-function extrachill_remove_customizer_menus($wp_customize) {
-    $wp_customize->remove_panel('nav_menus');
-}
-add_action('customize_register', 'extrachill_remove_customizer_menus', 20);
-```
-
-**Reason**: Hardcoded menus eliminate database queries for better performance
-
-## Modifying Menu Content
-
-Edit menu items directly in template files:
-
-**Footer Main**: `/inc/footer/footer-main-menu.php`
-**Footer Bottom**: `/inc/footer/footer-bottom-menu.php`
-**Back-to-Home**: `/inc/footer/back-to-home-link.php`
-
-## Navigation Assets
-
-**CSS**: `/assets/css/nav.css`
-**JavaScript**: `/assets/js/nav-menu.js`
-**Loading**: All pages via `extrachill_enqueue_navigation_assets()`
-**Additional**: Network dropdown styles integrated into navigation system
-
-## Benefits
-
-**Performance**: No database queries for menu generation
-**Extensibility**: Plugins hook in without modifying templates
-**Maintainability**: Menu content in focused, logical files
-**Control**: Direct HTML control for complex menu structures
-**Simplicity**: No WordPress menu configuration needed
-
-## Accessibility
-
-- ARIA labels on navigation elements
-- `role="navigation"` on nav container
-- `aria-expanded` state on toggle button
-- Keyboard navigation support
-- Screen reader friendly structure
-
-## Mobile Responsiveness
-
-Navigation adapts to mobile via CSS:
-- Hamburger menu on small screens
-- Full menu on desktop
-- Touch-friendly tap targets
-- Slide-in/out animation
+- Prefer hooking into the existing theme actions/filters rather than replacing templates.
+- Footer sections can be extended by adding handlers to `extrachill_footer_main_content`, `extrachill_footer_below_menu`, or `extrachill_below_copyright`.

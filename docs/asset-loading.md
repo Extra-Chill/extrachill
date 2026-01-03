@@ -13,22 +13,20 @@ Conditional CSS/JS loading with `filemtime()` cache busting comes from `/inc/cor
 | `assets/css/archive.css` | Archive, search, and blog archive (`/all`) | `extrachill_enqueue_archive_styles()` (priority 20)
 | `assets/css/search.css` | Search results | `extrachill_enqueue_search_styles()` (priority 20)
 | `assets/css/sidebar.css` | Sidebar-enabled singular/post templates, 404 pages | `extrachill_enqueue_sidebar_styles()` (priority 20; only when `extrachill_sidebar_content` filter returns `false`)|
-| `assets/css/notice.css` | Notice system pages | `extrachill_enqueue_notice_styles()` (priority 20)
 | `assets/css/shared-tabs.css` | Shared tab components | Registered via `extrachill_register_shared_tabs()` (priority 5)
-| `assets/css/nav.css` | Navigation flyout | `extrachill_enqueue_navigation_assets()`
 | `assets/css/editor-style.css` | Block editor | `extrachill_enqueue_admin_styles()` (via `admin_enqueue_scripts` when editing posts)
 
 ## JavaScript Architecture
 
 | Script | Context | Entry Point |
 |--------|---------|-------------|
-| `assets/js/nav-menu.js` | Navigation flyout toggle and search focus | `extrachill_enqueue_navigation_assets()`
+| `assets/js/nav-menu.js` | Header search overlay open/close | `extrachill_enqueue_navigation_assets()`
 | `assets/js/shared-tabs.js` | Shared tab components with desktop/mobile logic | Registered alongside `shared-tabs.css` in `extrachill_register_shared_tabs()`
 | `assets/js/view-tracking.js` | View tracking beacon for singular public posts | `extrachill_enqueue_view_tracking()` (only for public, non-preview singulars; skips users who can edit others’ posts)
 
-### Navigation Assets
+### Header Search Overlay Assets
 
-`extrachill_enqueue_navigation_assets()` loads `nav.css`/`nav-menu.js` on every page and relies on `filemtime()` for versions so deployment changes flush caches without touching `functions.php`.
+`extrachill_enqueue_navigation_assets()` loads `nav-menu.js` on every page and relies on `filemtime()` for versions so deployment changes flush caches without touching `functions.php`.
 
 ### Shared Tabs & Sidebar Assets
 
@@ -38,15 +36,12 @@ Sidebar assets (including `sidebar.css`) load via `extrachill_enqueue_sidebar_st
 
 ### View Tracking
 
-`extrachill_enqueue_view_tracking()` bundles `view-tracking.js` and localizes the `ecViewTracking` object with the current `postId` and `rest_url('extrachill/v1/analytics/view')`. The script is skipped for previewing content and logged-in editors to avoid skewing analytics.
+`extrachill_enqueue_view_tracking()` enqueues `view-tracking.js` and localizes `ecViewTracking` with the current `postId` and `rest_url( 'extrachill/v1/analytics/view' )`. The only exclusions are non-singular views and previews.
 
-### Share Scripts
+### Share Assets
 
-`extrachill_enqueue_share_scripts()` loads `share.js` for share button functionality, including clipboard copy with fallback support and social sharing interactions.
+`inc/core/assets.php` registers `assets/css/share.css` and `assets/js/share.js` (via `extrachill_register_share_assets()`), so templates/plugins can enqueue `extrachill-share` when needed.
 
-### Notice Styles
-
-`extrachill_enqueue_notice_styles()` loads `notice.css` when notices are displayed, providing styling for multiple notice types with cookie-based dismissal.
 
 ## Admin/Editor Styles
 
@@ -129,7 +124,7 @@ function extrachill_enqueue_navigation_assets() {
 }
 ```
 
-**Files**: `nav.css`, `nav-menu.js`
+**Files**: `nav-menu.js`
 **Context**: All pages
 **Load Position**: Footer (`true` parameter)
 
@@ -190,18 +185,19 @@ assets/
     root.css              # CSS variables, theme colors
     style.css             # Main stylesheet (loaded via get_stylesheet_uri)
     taxonomy-badges.css   # Taxonomy badge colors
-    nav.css               # Navigation styles
     single-post.css       # Single post styles
     archive.css           # Archive page styles
     search.css            # Search result styles
     shared-tabs.css       # Tab interface styles
     share.css             # Social share buttons
     sidebar.css           # Sidebar component styles
-    notice.css            # Notice system styles
     editor-style.css      # Block editor styles
+    embed.css             # Embed iframe styles
+    network-dropdown.css  # Network dropdown styles
   /js/
-    nav-menu.js           # Navigation functionality
+    nav-menu.js           # Header search overlay
     shared-tabs.js        # Tab interface logic
+    mini-dropdown.js      # Small dropdown helper (dependency for share)
     share.js              # Share button interactions
   /fonts/
     extrachill.svg        # Icon sprite with QR/download icons

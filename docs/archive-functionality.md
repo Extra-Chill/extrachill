@@ -23,10 +23,10 @@ Handles all archive types:
 
 Displays:
 - Archive title (plain text, not wrapped in links)
-- Archive description (taxonomy descriptions)
-- Author bio (on author archives, first page only)
-- `extrachill_after_author_bio` action hook (passes $author_id parameter)
-
+- Optional archive actions area: `do_action( 'extrachill_archive_header_actions' )`
+- Taxonomy description (first page only)
+- Author bio (author archives, first page only)
+- `extrachill_after_author_bio` action hook (passes `$author_id`)
 ### Filter Bar
 
 **Component**: `/inc/components/filter-bar.php`, `/inc/components/filter-bar-defaults.php`
@@ -34,37 +34,55 @@ Displays:
 **Hook**: `extrachill_archive_above_posts`
 **Function**: `extrachill_filter_bar()`
 
-Uses the universal filter bar component system to provide:
-- **Sort Dropdown**: 4-option sorting (recent, oldest, random, popular by view count)
-- Child term dropdown filtering (categories with children + location children)
-- Artist filtering (Song Meanings + Music History categories)
-- Search input (`s`)
+The theme uses a universal filter bar component for archives and search results.
 
-The filter bar component is reusable across the platform - extended by the extrachill-community plugin for forum filtering via `inc/core/filter-bar.php`.
+**Item registration**:
+- Core list: `apply_filters( 'extrachill_filter_bar_items', [] )`
+- Override output: `apply_filters( 'extrachill_filter_bar_override', '' )`
+- Extensibility: `do_action( 'extrachill_filter_bar_start' )`, `do_action( 'extrachill_filter_bar_end' )`
+
+**Item types**:
+- `dropdown`: renders a `<select>` and submits the form, or redirects when `redirect => true`
+- `search`: renders the text input + submit button
+
+**Default theme behavior** (see `/inc/components/filter-bar-defaults.php`):
+- **Search results**: sort dropdown + search input only
+- **Blog archive** (`extrachill_blog_archive` query var): category dropdown (redirect URLs)
+- **Hierarchical terms**:
+  - Category archives with children: child category dropdown (redirect URLs)
+  - `location` taxonomy archives with children: child location dropdown (redirect URLs)
+- **Artist dropdown**: only on categories `song-meanings` and `music-history`
+- **Sort dropdown**: always present on archives
+- **Search input**: always present and rendered last/right on archives
 
 ## Sorting System
 
 **Location**: `/inc/archives/archive-custom-sorting.php`
 
+Sorting is applied via `pre_get_posts` for the main query when:
+- Not in admin
+- `is_archive()` OR `get_query_var( 'extrachill_blog_archive' )`
+
+Note: `/inc/archives/archive-custom-sorting.php` does not run for `is_search()`, even though search results use the same archive template.
+
 ### URL Parameters
 
 | Parameter | Values | Effect |
 |-----------|--------|--------|
-| `sort` | `recent`, `oldest`, `random`, `popular` | Sort order |
-| `artist` | artist-slug | Filter by artist taxonomy (Song Meanings + Music History)
-
+| `sort` | `recent`, `oldest`, `random`, `popular` | Sort order for archives / blog archive |
+| `artist` | artist-slug | Sets the `artist` query var (only matters where WordPress recognizes it) |
 ### Sort Dropdown
 
+The theme default sort dropdown is registered by `extrachill_build_sort_dropdown()` (`/inc/components/filter-bar-defaults.php`):
+
 ```html
-<select id="post-sorting" name="post_sorting">
+<select id="filter-bar-sort" name="sort">
     <option value="recent">Sort by Recent</option>
     <option value="oldest">Sort by Oldest</option>
     <option value="random">Sort by Random</option>
-    <option value="popular">Sort by Most Popular</option>
+    <option value="popular">Sort by Popular</option>
 </select>
 ```
-
-**Persistence**: Selected value persists via JavaScript reading URL parameters
 
 ### Sort Options
 
@@ -77,43 +95,15 @@ All four options available in a single dropdown for unified user experience:
 
 ### Query Modification
 
-```php
-function extrachill_sort_posts( $query ) {
-    if ( is_admin() || ! $query->is_main_query() ) {
-        return;
-    }
+`/inc/archives/archive-custom-sorting.php` hooks `pre_get_posts` and adjusts the main query according to `$_GET['sort']`.
 
-    if ( ! is_archive() && ! get_query_var( 'extrachill_blog_archive' ) ) {
-        return;
-    }
+- `oldest`: `orderby=date`, `order=ASC`
+- `random`: `orderby=rand`
+- `popular`: `meta_key=ec_post_views`, `orderby=meta_value_num`, `order=DESC`
 
-    $sort = isset( $_GET['sort'] ) ? sanitize_key( $_GET['sort'] ) : '';
+It also reads `get_query_var( 'artist' )` and calls `$query->set( 'artist', $artist )` when present.
 
-    switch ( $sort ) {
-        case 'oldest':
-            $query->set( 'orderby', 'date' );
-            $query->set( 'order', 'ASC' );
-            break;
-        case 'random':
-            $query->set( 'orderby', 'rand' );
-            break;
-        case 'popular':
-            $query->set( 'meta_key', 'ec_post_views' );
-            $query->set( 'orderby', 'meta_value_num' );
-            $query->set( 'order', 'DESC' );
-            break;
-        default:
-            break;
-    }
-
-    $artist = get_query_var( 'artist' );
-    if ( ! empty( $artist ) ) {
-        $query->set( 'artist', $artist );
-    }
-}
-add_action( 'pre_get_posts', 'extrachill_sort_posts' );
-```
-
+`artist` is a registered custom taxonomy (`/inc/core/custom-taxonomies.php`) with `query_var => true` and `rewrite => [ 'slug' => 'artist' ]`.
 ## Artist Filtering
 
 **Categories**: Song Meanings, Music History
@@ -137,16 +127,10 @@ Displays child categories/terms for hierarchical taxonomies:
 
 ## URL Preservation
 
-Sorting and filtering preserve existing URL parameters:
+- The filter bar uses a `GET` form, so selected values are naturally preserved in the URL.
+- Redirect-mode dropdowns navigate directly to a term URL (and do not preserve query args unless the option URL includes them).
 
-```php
-$links_html = paginate_links(array(
-    'base' => $base_url,
-    'format' => $format,
-    'add_args' => $_GET  // Preserve query parameters
-));
-```
-
+Pagination query-arg preservation depends on the pagination implementation (see `extrachill_pagination()`).
 ## Blog Archive Functionality
 
 **Query Var**: `extrachill_blog_archive`
@@ -175,6 +159,10 @@ URLs:
 - `/festival/festival-slug/`
 - `/artist/artist-slug/`
 - `/venue/venue-slug/`
+
+Notes:
+- `artist` is a taxonomy archive (`/artist/{slug}/`).
+- The filter-bar `?artist={slug}` dropdown is only shown on the `song-meanings` and `music-history` category archives.
 
 Breadcrumb: Home › Taxonomy Name › Current Term
 
@@ -216,7 +204,7 @@ extrachill_pagination();
 **Features**:
 - Post count display
 - Previous/Next navigation
-- URL parameter preservation
+- URL parameter preservation (depends on `extrachill_pagination()`)
 - Page number links
 
 ## Using Archive Features
@@ -229,42 +217,45 @@ extrachill_pagination();
 /artist/artist-name/?sort=recent (default)
 ```
 
-**Filter by Artist**:
+**Artist taxonomy archives**:
+```
+/artist/artist-slug/
+```
+
+**Filter by Artist (only where the theme shows the dropdown)**:
 ```
 /song-meanings/?artist=artist-slug
+/music-history/?artist=artist-slug
 ```
 
-**Combine Parameters**:
+**Combine Parameters (same constraint)**:
 ```
-/category-slug/?artist=artist-slug&sort=popular
-/song-meanings/?artist=artist-slug&sort=oldest
+/song-meanings/?artist=artist-slug&sort=popular
+/music-history/?artist=artist-slug&sort=oldest
 ```
 
-## Plugin Integration
+## Extending Archive UI
 
 ```php
 // Add custom markup inside the filter bar
-add_action( 'extrachill_filter_bar_end', function() {
-    if ( is_tax( 'venue' ) ) {
-        $term = get_queried_object();
-        echo '<div class="venue-nav">';
-        echo '<a href="/venues/' . esc_attr( $term->slug ) . '/events/" class="button-2">View Events</a>';
-        echo '</div>';
-    }
+add_action( 'extrachill_filter_bar_end', function () {
+	if ( is_tax( 'venue' ) ) {
+		$term = get_queried_object();
+		echo '<div class="venue-nav">';
+		echo '<a href="/venues/' . esc_attr( $term->slug ) . '/events/" class="button-2">View Events</a>';
+		echo '</div>';
+	}
 } );
 
-// Add content after author bio
-add_action( 'extrachill_after_author_bio', function( $author_id ) {
-    echo '<div class="author-social-links">';
-    echo '</div>';
+// Add custom actions next to the archive title
+add_action( 'extrachill_archive_header_actions', function () {
+	// Output buttons/links/etc.
+} );
+
+// Add content after author bio (author archives, first page only)
+add_action( 'extrachill_after_author_bio', function ( $author_id ) {
+	// Output author-specific UI.
 }, 10, 1 );
-
-// Modify query
-add_action( 'pre_get_posts', function( $query ) {
-    if ( $query->is_main_query() && is_category( 'special' ) ) {
-        $query->set( 'posts_per_page', 20 );
-    }
-} );
 ```
 
 
@@ -273,6 +264,5 @@ add_action( 'pre_get_posts', function( $query ) {
 - Artist filtering queries only posts in current category
 - `hide_empty` prevents displaying empty terms
 - Query modifications run via `pre_get_posts` (WordPress best practice)
-- URL parameters preserved for pagination/filtering compatibility
-- Popular sorting uses `ec_post_views` meta key with `meta_value_num` orderby
-- Artist profile queries use `switch_to_blog()` with proper restoration in `try/finally` block
+- URL parameters preserved for pagination/filtering compatibility (depends on pagination implementation)
+- Popular sorting uses the `ec_post_views` post meta key (`meta_value_num`)

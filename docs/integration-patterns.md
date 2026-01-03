@@ -5,7 +5,6 @@ The platform uses WordPress filters and actions for cross-plugin communication a
 
 ## Filter Patterns
 - `extrachill_ai_tools` - Register AI tools across plugins
-- `extrachill_template_homepage` - Override homepage templates
 - `extrachill_breadcrumbs_*` - Customize breadcrumb navigation
 - `newsletter_form_integrations` - Register newsletter contexts
 

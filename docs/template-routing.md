@@ -12,7 +12,7 @@ The `extrachill_route_templates()` function routes all page types to modular tem
 
 | Page Type | Default Template | Override Mechanism | Notes |
 |-----------|-----------------|-------------|-------|
-| Homepage/Front Page | `/inc/home/templates/front-page.php` | `extrachill_homepage_content` action | Plugins inject content via action hook |
+| Homepage/Front Page | `/inc/home/templates/front-page.php` | `extrachill_homepage_content` action | No template filter; plugins inject content via action hook |
 | Single Post | `/inc/single/single-post.php` | `extrachill_template_single_post` filter | |
 | Page | `/inc/single/single-page.php` | `extrachill_template_page` filter | Only when no custom template assigned |
 | Archives | `/inc/archives/archive.php` | `extrachill_template_archive` filter | |

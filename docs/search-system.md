@@ -4,9 +4,11 @@ Multisite search functionality with cross-site result integration.
 
 ## Search Architecture
 
-**Main Search Template**: Provided by extrachill-search plugin via `extrachill_template_search` filter
-**Search Header Template**: `/inc/archives/search/search-header.php` (provided by theme)
-**Search Styling**: `/assets/css/search.css` (provided by theme)
+**Theme search template**: `inc/archives/archive.php` (search routes here by default via `extrachill_template_search`)
+**Search header**: `inc/archives/archive-header.php` (the same template used for archives; includes an `is_search()` title case)
+**Search styling**: `assets/css/search.css` (loaded when `is_search()` is true)
+
+The `extrachill-search` plugin can override the template by returning its own path from `extrachill_template_search`.
 
 ## Search Components
 
@@ -16,21 +18,19 @@ Multisite search functionality with cross-site result integration.
 **Function**: `extrachill_search_form()`
 
 Used in:
-- Navigation flyout menu
+- Header search overlay (`inc/header/header-search.php`)
 - Search pages
-- No results pages (404, empty archives)
+- No results templates
 
 ### Search Header
 
-**Location**: `/inc/archives/search/search-header.php`
+**Location**: `inc/archives/archive-header.php`
 **Hook**: `extrachill_search_header`
-**Function**: `extrachill_default_search_header()`
+**Default handler**: `extrachill_default_search_header()` in `inc/core/actions.php` (includes `archive-header.php`)
 
 Displays:
-- Search query
-- Result counts
-- Search form
-- Optional filter slot via `extrachill_search_header` action priorities >10
+- Search query (via the `is_search()` title case)
+- Optional actions area via `extrachill_archive_header_actions`
 
 ### Site Badges
 
@@ -38,59 +38,20 @@ Rendered by the extrachill-search plugin when multisite results are available to
 
 ## Multisite Search
 
-**Required Plugin**: extrachill-search (network-activated)
+Multisite search behavior is owned by the `extrachill-search` plugin.
 
-### Cross-Site Search Function
-
-```php
-extrachill_multisite_search( $search_query )
-```
-
-**Parameters**:
-- `$search_query` (string) - Search term
-
-**Returns**: Array of search results from all network sites or specified sites
-
-**Sites Searched**:
-- extrachill.com (main site posts)
-- community.extrachill.com (forum topics and replies)
-- Additional network sites as configured
-
-**Features**:
-- Searches all public post types automatically
-- Meta query support for advanced filtering (e.g., bbPress metadata)
-- Cross-site date sorting and pagination
-- Contextual excerpt generation
-- Site identification for result badges
+- The theme exposes `extrachill_template_search` so the plugin can swap in its own template.
+- The theme will also render cross-site taxonomies correctly for results that include an `_origin_site_id` property (see `inc/core/templates/taxonomy-badges.php`).
 
 ## Search Result Display
 
-### Main Site Results
+Search uses the archive template loop (`inc/archives/archive.php`) and renders:
 
-Standard WordPress post loop:
+- `do_action( 'extrachill_search_header' )` (defaults to `archive-header.php`)
+- `do_action( 'extrachill_archive_above_posts' )` (filter bar hooks typically live here)
+- `get_template_part( 'inc/archives/post-card' )` to render each result
 
-```php
-if ( have_posts() ) :
-    while ( have_posts() ) : the_post();
-        // Display post card
-    endwhile;
-else :
-    // No results message
-endif;
-```
-
-### Forum Results
-
-Forum posts returned from extrachill-search plugin with metadata for display.
-
-**Post Properties**:
-- Standard WordPress post object
-- Excerpt for contextual snippets
-- Author information
-- Post date
-- Permalink for topic/reply links
-
-**Display Integration**: Theme formats forum results alongside main site results with site badges for identification
+Multisite/forum results formatting is primarily handled by the `extrachill-search` plugin (the theme just renders the post objects it is given).
 
 ## Search URL Structure
 
@@ -102,73 +63,20 @@ Forum posts returned from extrachill-search plugin with metadata for display.
 
 ## Search Assets
 
-**CSS**: `/assets/css/search.css`
-**Loading**: `extrachill_enqueue_search_styles()`
+**CSS**: `assets/css/search.css`
+**Loading**: `extrachill_enqueue_search_styles()` in `inc/core/assets.php`
 **Condition**: `is_search()`
 
-## Using Search
+## Theme Responsibilities
 
-### Basic Search
-
-```php
-// Get search query
-$search_query = get_search_query();
-
-// Check if search page
-if ( is_search() ) {
-    // Search-specific code
-}
-```
-
-### Custom Search Query
-
-```php
-$args = array(
-    's' => 'search term',
-    'post_type' => 'post',
-    'posts_per_page' => 20,
-);
-$search_query = new WP_Query( $args );
-```
-
-### Search Form Display
-
-```php
-// In templates
-extrachill_search_form();
-
-// Or use WordPress function
-get_search_form();
-```
+The theme:
+- provides the archive/search header UI (`inc/archives/archive-header.php` via `extrachill_search_header`)
+- provides base templates and hooks (`extrachill_template_search`, `extrachill_archive_header_actions`)
+- renders the post objects it receives (local WP query or plugin-provided results)
 
 ## Multisite Search Details
 
-### How It Works
-
-1. User submits search on any network site
-2. Theme calls `extrachill_multisite_search()` from extrachill-search plugin
-3. Plugin uses `switch_to_blog()` to search each network site
-4. Searches all public post types on each site (posts, bbPress topics/replies, etc.)
-5. Results merged with cross-site date sorting
-6. Plugin generates contextual excerpts
-7. Theme displays combined results with site badges
-
-### Site Badge Display
-
-```php
-// Display site identification badge
-extrachill_search_site_badge( 'Community Forums' );
-```
-
-Used to identify which site results came from in multisite search.
-
-### Performance
-
-**Plugin-Level Optimization**:
-- Direct database queries via `switch_to_blog()`
-- WordPress native blog-id-cache for site resolution
-- Efficient cross-site query patterns
-- Automatic post type discovery
+Implementation details for cross-site searching live in `extrachill-search`. This theme intentionally does not duplicate that logic.
 
 ## Search Result Metadata
 
@@ -197,8 +105,7 @@ Used to identify which site results came from in multisite search.
 
 Displays when search returns zero results:
 - "No results found" message
-- Search form for new search
-- Suggestions for better results
+- Search form for a new search
 
 ## Search Pagination
 
@@ -245,32 +152,19 @@ add_action( 'extrachill_search_header', function() {
 
 ## Graceful Degradation
 
-Theme functions with graceful fallback when extrachill-search plugin not active:
+Theme search works normally without `extrachill-search`.
 
-```php
-if ( function_exists( 'extrachill_multisite_search' ) ) {
-    $multisite_results = extrachill_multisite_search( $search_query );
-} else {
-    // Falls back to standard WordPress single-site search
-}
-```
-
-**Without Plugin**: Single-site WordPress search works normally
-**With Plugin**: Cross-site multisite search across all network sites
+- Without plugin: WordPress main query provides local search results.
+- With plugin: plugin can override `extrachill_template_search` (and/or populate the main query) to provide multisite results.
 
 ## Search Form Accessibility
 
-- ARIA labels on search input
-- Proper form semantics
-- Keyboard navigation support
-- Screen reader friendly
-- Clear submit button
-
+Search form markup uses standard WordPress form semantics with explicit labels/ARIA attributes.
 ## Performance
 
 - Plugin-level optimization via extrachill-search
 - Direct database queries with `switch_to_blog()`
-- WordPress native blog-id-cache for site resolution
+- WordPress core multisite caching (blog ID mapping is centralized via `ec_get_blog_id()`)
 - Efficient cross-site query patterns
 - Pagination limits result sets
 - Conditional asset loading (`search.css` only on search pages)
