@@ -97,7 +97,7 @@ Shows "Last Updated" date only when:
 
 ## Taxonomy Badges Component
 
-**Location**: `/inc/core/templates/taxonomy-badges.php`
+**Location**: `inc/core/templates/taxonomy-badges.php`
 **Function**: `extrachill_display_taxonomy_badges( $post_id, $args )`
 
 ### Parameters
@@ -109,79 +109,61 @@ Shows "Last Updated" date only when:
 
 ```php
 $args = array(
-    'wrapper_class' => 'taxonomy-badges',  // Wrapper CSS class
-    'show_wrapper'  => true,                // Show wrapper div
-    'wrapper_style' => '',                  // Inline styles
+    'wrapper_class' => 'taxonomy-badges',
+    'show_wrapper'  => true,
+    'wrapper_style' => '',
 );
 ```
 
 ### Displays Badges For
 
-- Categories
-- Tags
-- Custom taxonomies (location, festival, artist, venue)
-- Any registered taxonomy (except 'author')
+- Any taxonomy attached to the post type
+- Skips the `author` taxonomy
+- Limits to 3 terms per taxonomy (highest `count`, then alphabetical)
+- Supports cross-site search results by switching to the origin blog when needed
 
 ### Usage
 
 ```php
-// Display all taxonomy badges
 extrachill_display_taxonomy_badges();
-
-// Display for specific post
 extrachill_display_taxonomy_badges( 123 );
 
-// Custom wrapper
 extrachill_display_taxonomy_badges( null, array(
     'wrapper_class' => 'custom-badges',
     'wrapper_style' => 'margin-bottom: 20px;'
 ) );
 
-// No wrapper
 extrachill_display_taxonomy_badges( null, array(
-    'show_wrapper' => false
+    'show_wrapper' => false,
 ) );
 ```
 
 ### Badge Styling
 
-Badges use CSS classes for styling:
-- `.taxonomy-badge` - Base class
-- `.category-badge` - Category badges
-- `.artist-badge` - Artist badges
-- `.festival-badge` - Festival badges
-- `.location-badge` - Location badges
-- `.venue-badge` - Venue badges
+Badges use predictable CSS classes:
 
-**Category-specific**:
-- `.category-{slug}-badge` - Per-category colors
+- `.taxonomy-badge` (base)
+- `.{taxonomy}-badge` and `.{taxonomy}-{term-slug}`
+- Categories also get `.category-{slug}-badge` for legacy compatibility
 
-**Styling File**: `/assets/css/badge-colors.css`
+**Styling file**: `assets/css/taxonomy-badges.css`
 
 ## Breadcrumb Component
 
-**Location**: `/inc/core/templates/breadcrumbs.php`
+**Location**: `inc/core/templates/breadcrumbs.php`
 **Function**: `extrachill_breadcrumbs()`
 
-### Displays For
+### Extension Points
 
-- Single posts (with category and tag hierarchy)
-- Pages (with parent hierarchy)
-- Archives (category, tag, taxonomy, author, date)
-- Custom post types
+Breadcrumbs are designed for plugin overrides (bbPress/WooCommerce/etc.):
 
-### Features
-
-- Hierarchical navigation
-- Parent term/category support
-- Custom taxonomy integration
-- WooCommerce exclusion (handled by shop plugin)
-- Override capability via `override_display_breadcrumbs()`
+- **Root override**: `extrachill_breadcrumbs_root`
+- **Trail override**: `extrachill_breadcrumbs_override_trail`
+- **Append extra items**: `extrachill_breadcrumbs_append`
 
 ### Usage
 
 ```php
-// Display breadcrumbs
 extrachill_breadcrumbs();
 ```
 

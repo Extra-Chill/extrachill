@@ -7,13 +7,13 @@ This directory contains technical deep-dive documentation for the ExtraChill the
 
 ---
 
-Comprehensive user-facing documentation for the ExtraChill WordPress theme.
+Technical documentation for developers working on the ExtraChill WordPress theme.
 
 ## Overview
 
-ExtraChill is a custom WordPress theme serving a music community ecosystem across a multisite network. The theme powers all 10 active sites (Blog IDs 1–5, 7–11) in the Extra Chill Platform network, with docs.extrachill.com at Blog ID 10 and wire.extrachill.com at Blog ID 11.
+ExtraChill is a custom WordPress theme serving a music community ecosystem across a multisite network. The theme powers the active sites (Blog IDs 1–5, 7–11) in the Extra Chill Platform network, with docs.extrachill.com at Blog ID 10 and wire.extrachill.com at Blog ID 11.
 
-**Version**: 1.3.4
+**Version**: 1.3.7
 **Author**: Chubes
 **Text Domain**: extrachill
 
@@ -24,7 +24,7 @@ ExtraChill is a custom WordPress theme serving a music community ecosystem acros
 - **WordPress Native Routing**: Uses `template_include` filter for proper WordPress integration with custom page template support
 - **Hook-Based Extensibility**: Action and filter hooks throughout for plugin integration
 - **Modular Organization**: 48 modular PHP files in `/inc` directory (28 directly loaded in functions.php)
-- **Performance Focused**: Conditional asset loading, hardcoded menus, cache busting, notice system, share buttons
+- **Performance Focused**: Conditional asset loading, hardcoded menus, `filemtime()` cache busting, notice system, share buttons
 - **Multisite Integration**: Seamless integration with WordPress multisite network including network dropdown
 
 ### File Structure
@@ -58,7 +58,7 @@ extrachill/
     └── fonts/                    # FontAwesome SVG sprite with QR/download icons
 ```
 
-## Quick Start
+## Developer Quick Reference
 
 ### Essential Hooks
 
@@ -71,9 +71,9 @@ add_filter( 'extrachill_template_archive', function( $template ) {
 
 **Add Navigation Item**:
 ```php
-add_action( 'extrachill_navigation_main_menu', function() {
-    echo '<li><a href="/custom">Custom Link</a></li>';
-}, 15 );
+add_action( 'extrachill_header_top_right', function() {
+    echo '<a class="header-right-icon" href="/custom">Custom</a>';
+}, 20 );
 ```
 
 **Customize Post Meta**:
@@ -195,7 +195,7 @@ All taxonomies include REST API support and block editor integration.
 ### Embed Support
 
 - Bandcamp album/track embeds
-- (Spotify embed customization removed in 1.2.14)
+- Spotify embeds use WordPress core behavior
 - Instagram integration
 - YouTube (WordPress core)
 - SoundCloud (WordPress core)
@@ -226,7 +226,7 @@ Theme integrations are intentionally minimal. Most advanced behavior (SEO, forum
 
 ## Multisite Network
 
-Theme serves all 10 active sites in the Extra Chill Platform network (Blog ID 6 unused; horoscope.extrachill.com planned for future Blog ID 12):
+Theme serves the active sites in the Extra Chill Platform network (Blog ID 6 unused; horoscope.extrachill.com planned for future Blog ID 12):
 
 1. **extrachill.com** - Main music journalism and content site (Blog ID 1)
 2. **community.extrachill.com** - Community forums and user hub (Blog ID 2)
@@ -288,7 +288,6 @@ Each site uses the same theme with different plugin integrations and template ov
 - Modern browsers (Chrome, Firefox, Safari, Edge)
 - Mobile responsive design
 - Progressive enhancement
-- Graceful degradation
 
 ## Translation Ready
 
@@ -299,13 +298,7 @@ Each site uses the same theme with different plugin integrations and template ov
 
 ## Getting Help
 
-For issues or questions:
-
-1. Check relevant documentation section
-2. Review code comments in theme files
-3. Test with Twenty Twenty-Three theme to isolate theme vs plugin issues
-4. Check browser console for JavaScript errors
-5. Enable WordPress debug mode for PHP errors
+See the platform-level [AGENTS.md](../AGENTS.md) for workflow and debugging expectations.
 
 ## Contributing
 

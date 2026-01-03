@@ -4,7 +4,7 @@ Integration with WordPress multisite network and the extrachill-multisite plugin
 
 ## Network Overview
 
-ExtraChill theme serves **all 10 active sites** in the WordPress multisite network (Blog ID 6 unused; horoscope.extrachill.com planned for future Blog ID 12):
+ExtraChill theme serves the active sites in the WordPress multisite network (Blog ID 6 unused; horoscope.extrachill.com planned for future Blog ID 12):
 
 1. **extrachill.com** - Main music journalism and content site (Blog ID 1)
 2. **community.extrachill.com** - Community forums and user hub (Blog ID 2)
@@ -58,7 +58,7 @@ if ( function_exists( 'extrachill_multisite_search' ) ) {
 
 **Architecture**:
 - **Centralized Helper**: `extrachill_get_community_activity_items()` and `extrachill_render_community_activity()` functions provide reusable library
-- **Community Queries**: Queries community.extrachill.com (blog ID 2) for bbPress topics/replies (artist site queries removed in 1.1.1)
+- **Community Queries**: Queries community.extrachill.com for bbPress topics/replies.
 - **Activity Display**: Displays community activities with 10-minute caching
 - Direct `WP_Query` for bbPress topics and replies
 - Uses `switch_to_blog()` and `restore_current_blog()` for cross-site access
@@ -67,13 +67,17 @@ if ( function_exists( 'extrachill_multisite_search' ) ) {
 - 10-minute WordPress object cache (`wp_cache_get()` / `wp_cache_set()`)
 
 **Blog ID Resolution**:
-```
-// Hardcoded blog IDs for performance
-$community_blog_id = 2; // community.extrachill.com
+```php
+$community_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'community' ) : null;
 
-switch_to_blog( $community_blog_id );
-// Query bbPress data
-restore_current_blog();
+if ( $community_blog_id ) {
+    try {
+        switch_to_blog( $community_blog_id );
+        // Query bbPress data
+    } finally {
+        restore_current_blog();
+    }
+}
 ```
 
 
@@ -166,26 +170,30 @@ Theme does not handle authentication. WordPress native multisite authentication 
 
 Used in search results to identify which site results came from.
 
-## Blog ID Resolution
+## Blog/Domain Resolution
 
-**Theme Pattern**: Theme uses **hardcoded blog ID numbers** for optimal performance
+**Theme Pattern**: Theme uses canonical helper functions for blog/domain resolution.
+
+- Runtime blog/domain mapping uses `ec_get_blog_id()` / `ec_get_domain_map()` from `extrachill-multisite/inc/core/blog-ids.php`.
+- Numeric mapping is permitted only in `.github/sunrise.php` (executes before WordPress loads).
 
 **Implementation**:
 ```php
-// Direct blog ID numbers for community and artist sites
-$community_blog_id = 2; // community.extrachill.com
-$artist_blog_id = 4;    // artist.extrachill.com
+$community_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'community' ) : null;
 
-switch_to_blog($community_blog_id);
-// Cross-site operations
-restore_current_blog();
+if ( $community_blog_id ) {
+    try {
+        switch_to_blog( $community_blog_id );
+        // Cross-site operations
+    } finally {
+        restore_current_blog();
+    }
+}
 ```
-
-**Performance**: Direct blog ID usage eliminates lookup overhead and provides maximum performance
 
 ## Network-Wide Features
 
-Provided by extrachill-multisite plugin:
+Provided by the `extrachill-multisite` plugin:
 
 - **Cross-Site Data Access**: Native WordPress `switch_to_blog()` and `restore_current_blog()`
 - **Real-Time Search**: Direct database queries eliminate REST API overhead
@@ -217,70 +225,46 @@ Provided by extrachill-multisite plugin:
 Theme **directly accesses** bbPress data from community.extrachill.com for activity widgets using WordPress multisite functions:
 
 **Multi-Site Pattern**:
-```
-// Direct blog switching with hardcoded blog IDs
-$community_blog_id = 2; // community.extrachill.com
+```php
+$community_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'community' ) : null;
 
-switch_to_blog( $community_blog_id );
+if ( $community_blog_id ) {
+    try {
+        switch_to_blog( $community_blog_id );
 
-// Direct WP_Query for bbPress data
-$query = new WP_Query(array(
-    'post_type' => array('topic', 'reply'),
-    // ... query args
-));
+        // Direct WP_Query for bbPress data
+        $query = new WP_Query(
+            array(
+                'post_type' => array( 'topic', 'reply' ),
+                // ... query args
+            )
+        );
 
-// Collect activities
-// ...
+        // Collect activities
+        // ...
+    } finally {
+        restore_current_blog();
+    }
 
-restore_current_blog();
-
-// Manual URL construction
-$forum_url = 'https://community.extrachill.com/r/' . get_post_field('post_name', $forum_id);
+    // Manual URL construction
+    $forum_url = 'https://community.extrachill.com/r/' . get_post_field( 'post_name', $forum_id );
+}
 ```
 
 
 ## Graceful Degradation
 
-Theme functions without network plugins:
-
-**Without extrachill-search**:
-- Search works (single-site only)
-- No cross-site forum results
-
-**Without extrachill-users**:
-- User profile URLs fall back to standard author URLs
-- Avatar menu not available
-
-**Without community.extrachill.com or artist.extrachill.com**:
-- Community activity widgets show partial or no results
-- Missing site activities gracefully excluded from display
-- No forum integration from missing sites
-
-**With All Plugins**:
-- Cross-site search via extrachill-search
-- Intelligent profile URL routing via extrachill-users
-- Community activity widgets display forum activity
-- Enhanced multisite features
+The theme assumes network plugins are active in production and uses function-existence checks before calling into other plugins. If a dependency is inactive, the integration point simply does not render.
 
 ## Performance Considerations
 
 **Caching**:
-- Community activity: 10-minute WordPress object cache
-- Hardcoded blog IDs: No lookup overhead (direct integer usage)
-- Search results: Plugin-managed caching
+- Community activity uses a 10-minute WordPress object cache.
+- Search caching is owned by the `extrachill-search` plugin.
 
 **Efficiency**:
-- **Single-Site Query**: Cached result contains activities from community.extrachill.com (blog 2)
-- Direct WP_Query for bbPress data (no plugin abstraction layer)
-- Hardcoded blog ID numbers (maximum performance, no lookup overhead)
-- WordPress object cache for merged query results
-- Manual URL construction (no bbPress function overhead)
-
-**Architecture Benefits**:
-- Direct database access eliminates REST API overhead
-- Hardcoded blog IDs provide optimal performance
-- WordPress object caching reduces query load
-- Conditional loading prevents unnecessary queries
+- Cross-site reads use `switch_to_blog()` with `try/finally`.
+- Blog resolution uses `ec_get_blog_id()` (single source of truth) and avoids ad-hoc numeric fallbacks.
 
 ## Why This Architecture
 
@@ -288,7 +272,7 @@ Theme functions without network plugins:
 **Centralized Helper Library**: Reusable functions eliminate code duplication across widgets
 **Direct Database Access**: Theme directly queries bbPress data for optimal performance
 **WordPress Native Functions**: Uses core multisite functions (no abstraction overhead)
-**Hardcoded Blog IDs**: Direct integer usage eliminates lookup overhead
+**Blog ID helpers**: Runtime code uses `ec_get_blog_id()` for clarity and centralized mapping (numeric mapping is reserved for `.github/sunrise.php`).
 **Manual URL Construction**: Avoids bbPress function calls for forum URLs
 **Plugin Integration**: Leverages extrachill-users for intelligent profile routing
 **Caching Strategy**: WordPress object cache provides 10-minute cached results

@@ -21,7 +21,7 @@ ExtraChill is a modern, performance-optimized WordPress theme (v1.3.7) designed 
 
 ## Key Features
 
-### 🎵 Music-Focused Content Management
+### Music-Focused Content Management
 - **Custom Taxonomies**: Artist, Venue, Festival, and Location organization with REST API support
 - **Festival Wire Output**: ExtraChill News Wire plugin renders ticker/feed blocks through theme hooks; core theme only supplies shared CSS tokens
 - **Homepage Content Delivery**: Front page is one container powered by `extrachill_homepage_content` (primary content) and `extrachill_after_homepage_content` (footer/CTA slot)
@@ -29,7 +29,7 @@ ExtraChill is a modern, performance-optimized WordPress theme (v1.3.7) designed 
 - **Share System**: Integrated share buttons with clipboard copy and social sharing functionality
 - **Notice System**: Centralized user feedback system supporting multiple notices, anonymous user cookies, and action buttons
 
-### 🚀 Performance Optimizations
+### Performance Optimizations
 - **Conditional Asset Loading**: CSS/JS load only when their contexts require them (archives, search, sidebar, shared tabs, footer stats, notices, share buttons, filter bars, etc.)
 - **Modular CSS Architecture**: Twelve page/component-specific stylesheets (`root`, `archive`, `filter-bar`, `single-post`, `nav`, `taxonomy-badges`, `editor-style`, `search`, `shared-tabs`, `share`, `sidebar`, `notice`)
 - **Image Optimization**: Unused WordPress image sizes removed for leaner uploads
@@ -37,13 +37,13 @@ ExtraChill is a modern, performance-optimized WordPress theme (v1.3.7) designed 
 - **Multisite Optimization**: Direct `switch_to_blog()` access and cached lookups keep network features fast
 - **Enhanced Pagination**: Array-based pagination support for custom queries with dynamic item labels
 
-### 🎨 Modern Design System
+### Modern Design System
 - **CSS Variables**: Global design tokens in `assets/css/root.css`
 - **Component Styles**: Dedicated files for navigation, badges, search, shared tabs, share buttons, sidebar widgets, notices, and editor styles (all depend on the root handle)
 - **Responsive Design**: Mobile-first layouts, sticky header toggle, secondary header filter, network dropdown, and accessible navigation/flyout controls
 - **Icon System**: QR code and download icons added to SVG sprite system
 
-### 🤝 Community Integration
+### Community Integration
 - **WordPress Multisite**: Theme powers all 9 active network sites with shared routing and navigation patterns
 - **Shared Community Activity Helper**: Centralized library (`inc/core/templates/community-activity.php`) exposes `extrachill_get_community_activity_items()` and `extrachill_render_community_activity()`
 - **Community Data Source**: Queries community.extrachill.com (Blog ID 2) for bbPress topics/replies with 10-minute caching and renders default sidebar/homepage widgets
@@ -54,7 +54,7 @@ ExtraChill is a modern, performance-optimized WordPress theme (v1.3.7) designed 
 - **Network Dropdown**: Integrated network site navigation dropdown
 - **Graceful Degradation**: Hooks and function_exists checks keep templates stable if network plugins are inactive
 
-## Installation
+## Development Notes
 
 ### Requirements
 - WordPress 5.0 or higher
@@ -243,7 +243,7 @@ The theme implements template routing via WordPress's native `template_include` 
 - **Router File**: All routing logic centralized in `inc/core/template-router.php`
 - **Emergency Fallback**: `index.php` serves as minimal emergency fallback only
 - **Plugin Override Support**: Filter hooks allow plugins to completely override template files at routing level
-- **Supported Routes**: `extrachill_template_homepage`, `extrachill_template_single_post`, `extrachill_template_page` (only when no custom template assigned), `extrachill_template_archive`, `extrachill_template_search`, `extrachill_template_404`, `extrachill_template_fallback`
+- **Supported Routes**: `extrachill_template_single_post`, `extrachill_template_page` (only when no custom template assigned), `extrachill_template_archive`, `extrachill_template_search`, `extrachill_template_404`, `extrachill_template_fallback` (homepage is action-driven)
 - **Performance Benefits**: Efficient routing while maintaining WordPress compatibility
 - **Extensibility**: Filter system allows complete template customization
 
@@ -263,16 +263,13 @@ The theme follows a modular architecture with clear separation of concerns:
 - **Single post/page features** in `/inc/single/` (4 single files)
 - **Total**: 48 PHP files in `/inc/` directory with 28 directly loaded in functions.php
 
-### Hook-Based Menu System
+### Hook-Based Header/Footer
 
-The theme features a sophisticated hook-based menu system that replaces WordPress's native menu management:
+The theme intentionally avoids the WordPress menu system:
 
-- **Performance**: Hardcoded menus eliminate database queries for menu generation
-- **Extensibility**: Plugins can hook into `extrachill_navigation_main_menu` and `extrachill_footer_main_content` to add menu items
-- **Maintainability**: Menu content separated into focused template files (`footer-main-menu.php`)
-- **Admin Cleanup**: WordPress menu management interface removed via `extrachill_remove_menu_admin_pages()`
-
-The system uses action hooks registered in `inc/core/actions.php` to load hardcoded menu templates, allowing both performance optimization and plugin extensibility without the overhead of WordPress's menu system.
+- **Header**: `header.php` stays minimal and exposes `extrachill_header_top_right` for small UI additions (search icon is the default handler via `inc/header/header-search.php`).
+- **Footer**: hardcoded menu templates are registered via actions in `inc/core/actions.php` (main menu, bottom menu) and can be extended by adding additional handlers.
+- **Admin Cleanup**: WordPress menu management interface removed via `extrachill_remove_menu_admin_pages()` in `functions.php`.
 
 ### Performance Features
 
@@ -348,7 +345,7 @@ extrachill_share_button(array(
 ));
 ```
 
-## Troubleshooting
+## Notes
 
 ### Common Issues
 
@@ -389,7 +386,7 @@ define('SCRIPT_DEBUG', true);
 ### Contributing
 
 1. Follow WordPress coding standards
-2. Use PSR-4 namespacing where applicable
+2. Use direct `require_once` includes for theme internals (no PSR-4 autoloading)
 3. Include comprehensive inline documentation
 4. Test all changes thoroughly
 5. Maintain modular architecture

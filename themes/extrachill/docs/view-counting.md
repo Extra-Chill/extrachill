@@ -8,18 +8,17 @@ Universal post view tracking for all singular post types using WordPress post me
 
 ### ec_track_post_views( $post_id )
 
-Tracks post views via REST API endpoint.
+Increments the view counter for a post.
 
 **Parameters**:
 - `$post_id` (int) - Post ID to track
 
 **Exclusions**:
 - Preview requests (`is_preview()`)
-- Users who can edit posts (`current_user_can('edit_posts')`) - Note: This exclusion was removed in v1.1.6 to enable view counting for all user roles
 
 **Storage**: Post meta key `ec_post_views`
 
-**Auto-Trigger**: Called by REST API endpoint `extrachill/v1/analytics/view`
+**Trigger**: Intended to be called by the REST endpoint `extrachill/v1/analytics/view` (endpoint is provided by the API plugin).
 
 ### ec_get_post_views( $post_id )
 
@@ -65,42 +64,20 @@ View tracking runs asynchronously via client-side JavaScript:
 **Endpoint**: `extrachill/v1/analytics/view`
 **Method**: Async beacon with fallback to fetch
 **Triggers On**:
-- Single posts
-- Pages
-- Custom post types (any singular page)
+- Any singular view (any post type) that is not a preview
 
 **Does NOT Track**:
-- Archive pages
-- Search results
-- Homepage
-- Admin users (editors and admins excluded)
-- Post editors
 - Preview requests
+- Non-singular templates (archives, search, homepage)
 
-**Note**: View tracking now applies uniformly across all user roles for more accurate metrics collection (changed in v1.1.6)
-
-**Client-Side Implementation**:
-```javascript
-// Uses navigator.sendBeacon() with fetch() fallback
-if (navigator.sendBeacon) {
-    navigator.sendBeacon(endpoint, data);
-} else {
-    fetch(endpoint, {
-        method: 'POST',
-        body: data,
-        headers: {'Content-Type': 'application/json'},
-        keepalive: true
-    });
-}
-```
+**Client-Side Implementation** (see `assets/js/view-tracking.js`):
+- uses `navigator.sendBeacon()` when available
+- falls back to `fetch()` with `keepalive: true`
 
 ## Using in Templates
 
-**Display in Post Meta**:
 ```php
-<div class="post-views">
-    <?php ec_the_post_views(); ?>
-</div>
+echo esc_html( ec_the_post_views( get_the_ID(), false ) );
 ```
 
 **Conditional Display**:
@@ -143,11 +120,9 @@ $views = get_post_meta( $post_id, 'ec_post_views', true );
 
 ## Incrementing Logic
 
-Each view increments by 1:
-
 ```php
-$views = (int) get_post_meta($post_id, 'ec_post_views', true);
-update_post_meta($post_id, 'ec_post_views', $views + 1);
+$views = (int) get_post_meta( $post_id, 'ec_post_views', true );
+update_post_meta( $post_id, 'ec_post_views', $views + 1 );
 ```
 
 ## Why View Counting

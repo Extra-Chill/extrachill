@@ -5,16 +5,11 @@ The theme provides action hooks for plugin integration and customization through
 ## Navigation Hooks
 
 ### extrachill_header_top_right
-Populates the header area with the hamburger/navigation template, search icon, and related flyout markup.
+Populates the top-right header area.
 
-**Location**: `inc/header/header-search.php`
-**Default Handler**: Anonymous function loaded at priority 10
-**Outputs**: `<nav id="site-navigation" ...>...</nav>` plus the search icon, so plugins can replace the entire navigation block by unhooking this action.
-
-### extrachill_navigation_before_social_links
-Hook before social links in navigation.
-
-**Usage**: Add custom elements before social media icons (e.g., login toggles, dividers). Use priorities ≥15 to append after default menu items.
+**Location**: `header.php` (`do_action( 'extrachill_header_top_right' )`)
+**Default Handler**: `inc/header/header-search.php`
+**Outputs**: Search icon + search overlay panel.
 
 
 ## Footer + System Hooks
@@ -50,6 +45,12 @@ Main footer menu with hierarchical structure.
 **Default Handler**: `extrachill_default_footer_main_content()`
 **Default Template**: `/inc/footer/footer-main-menu.php`
 **Priority**: 10
+
+### extrachill_footer_below_menu
+Renders content below the footer menus.
+
+**Default Handler**: Inline handler in `/inc/footer/footer-main-menu.php`
+**Default Output**: Renders `do_action( 'extrachill_render_newsletter_form', 'navigation' )` in a centered wrapper
 
 ### extrachill_below_copyright
 Legal/policy links below copyright.
@@ -161,7 +162,7 @@ Runs at the end of the filter bar form.
 Search results header.
 
 **Default Handler**: `extrachill_default_search_header()`
-**Default Template**: `/inc/archives/search/search-header.php`
+**Default Template**: `/inc/archives/archive-header.php`
 **Priority**: 10 (plugins can append additional controls at >10)
 
 ## Social Links Hook

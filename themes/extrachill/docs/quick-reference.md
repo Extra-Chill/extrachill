@@ -111,11 +111,6 @@ extrachill_render_community_activity( array(
 ## Template Override Filters
 
 ```php
-// Override homepage template
-add_filter( 'extrachill_template_homepage', function( $template ) {
-    return MY_PLUGIN_DIR . '/custom-homepage.php';
-} );
-
 // Override single post template
 add_filter( 'extrachill_template_single_post', function( $template ) {
     return MY_PLUGIN_DIR . '/custom-single.php';
@@ -137,25 +132,15 @@ add_filter( 'extrachill_template_search', function( $template ) {
 } );
 ```
 
-## Navigation Hooks
+## Header + Footer Hooks
 
 ```php
-// Add main navigation item (after default network links)
-add_action( 'extrachill_navigation_main_menu', function() {
-    echo '<li><a href="/custom">Custom Link</a></li>';
-}, 15 );
+// Add a header icon/button (top right)
+add_action( 'extrachill_header_top_right', function() {
+    echo '<a class="header-right-icon" href="/custom">Custom</a>';
+}, 20 );
 
-// Add bottom navigation item
-add_action( 'extrachill_navigation_bottom_menu', function() {
-    echo '<li><a href="/about">About</a></li>';
-}, 15 );
-
-// Add content before social links
-add_action( 'extrachill_navigation_before_social_links', function() {
-    echo '<li class="divider"></li>';
-}, 15 );
-
-// Add footer content
+// Replace/extend main footer content
 add_action( 'extrachill_footer_main_content', function() {
     echo '<div>Custom footer content</div>';
 }, 20 );
@@ -390,13 +375,13 @@ update_post_meta( $post_id, 'ec_post_views', $views + 1 );
 
 ## Common Patterns
 
-### Adding Plugin Menu Items
+### Adding a Header Action
 ```php
-add_action( 'extrachill_navigation_main_menu', function() {
+add_action( 'extrachill_header_top_right', function() {
     if ( is_user_logged_in() ) {
-        echo '<li><a href="/dashboard">Dashboard</a></li>';
+        echo '<a class="header-right-icon" href="/dashboard">Dashboard</a>';
     }
-}, 15 );
+}, 20 );
 ```
 
 ### Custom Archive Filtering
