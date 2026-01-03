@@ -4,6 +4,23 @@ All notable changes to this project will be documented in this file.
 
 This file records notable changes in this theme.
 
+## [1.3.8] - 2026-01-02
+
+### Added
+- Created `inc/core/analytics.php` to handle Google Tag Manager integration via `wp_head` and `wp_body_open` hooks
+- Added support for `location-denver` taxonomy badge styling in `assets/css/taxonomy-badges.css`
+- Added typography variables for line heights (`--line-height-tight`, `--line-height-base`, `--line-height-relaxed`) in `assets/css/root.css`
+
+### Changed
+- Moved GTM script and noscript snippet from `header.php` to `inc/core/analytics.php` for better modularity
+- Updated `functions.php` to include `inc/core/analytics.php`
+- Cleaned up `header.php` by removing inline GTM scripts and unnecessary dns-prefetch tags
+- Refactored `README.md` to remove legacy "Troubleshooting" and "Installation" headers in favor of platform-aligned "Notes" and "Development Notes"
+- Improved documentation clarity across `AGENTS.md`, `README.md`, and several files in `/docs` to reflect current multisite architecture (11 active sites)
+
+### Fixed
+- Corrected documentation regarding homepage template architecture and menu system behavior
+
 ## [1.3.7] - 2026-01-01
 
 ### Added
