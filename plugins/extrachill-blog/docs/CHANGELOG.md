@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.8] - 2026-01-02
+
+### Changed
+- Refactored homepage CSS for improved maintainability and adherence to theme standards
+- Cleaned up redundant search and newsletter form styles in `assets/css/home.css`
+- Standardized typography and spacing for 3x3 grid headers using theme variables
+- Optimized homepage thumbnail hover effects and card transitions
+
 ## [0.3.7] - 2026-01-02
 
 ### Changed
