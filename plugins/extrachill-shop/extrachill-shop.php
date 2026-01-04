@@ -2,8 +2,8 @@
 /**
  * Plugin Name: Extra Chill Shop
  * Plugin URI: https://extrachill.com
- * Description: WooCommerce integration and e-commerce functionality for the Extra Chill platform. Features cross-domain ad-free license system, custom breadcrumbs, product category navigation, and comprehensive WooCommerce styling.
- * Version: 0.5.0
+ * Description: WooCommerce integration and e-commerce functionality for the Extra Chill platform. Features cross-domain lifetime membership system, custom breadcrumbs, product category navigation, and comprehensive WooCommerce styling.
+ * Version: 0.5.1
  * Author: Chris Huber
  * Author URI: https://chubes.net
  * License: GPL v2 or later
@@ -17,7 +17,7 @@
  */
 
 defined( 'ABSPATH' ) || exit;
-define( 'EXTRACHILL_SHOP_VERSION', '0.5.0' );
+define( 'EXTRACHILL_SHOP_VERSION', '0.5.1' );
 define( 'EXTRACHILL_SHOP_PLUGIN_FILE', __FILE__ );
 define( 'EXTRACHILL_SHOP_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'EXTRACHILL_SHOP_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
@@ -52,8 +52,8 @@ class ExtraChillShop {
 
     private function load_includes() {
         // Product customizations
-        require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/products/ad-free-license-product.php';
-        require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/products/ad-free-license.php';
+        require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/products/lifetime-membership-product.php';
+        require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/products/lifetime-membership.php';
         require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/products/raffle/admin-fields.php';
         require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/products/raffle/frontend-counter.php';
 
@@ -99,7 +99,7 @@ class ExtraChillShop {
 
     public function activate() {
         update_option( 'extrachill_shop_activated', true );
-        update_option( 'extrachill_shop_needs_ad_free_product_sync', 1 );
+        update_option( 'extrachill_shop_needs_lifetime_membership_product_sync', 1 );
         flush_rewrite_rules();
     }
 

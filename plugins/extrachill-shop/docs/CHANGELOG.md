@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.1] - 2026-01-03
+
+### Changed
+- **Renamed Ad-Free License System to Lifetime Extra Chill Membership**: Updated all internal terminology, file names, and logic to reflect the new membership branding (ad-free remains the core benefit).
+- **Documentation Refinement**: Comprehensive updates to README and AGENTS.md detailing the Stripe Connect payout pattern and Shippo shipping label integration.
+
 ## [0.5.0] - 2026-01-02
 
 ### Added
@@ -15,7 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Stripe Connect payout flow refactored to use Stripe “Separate Charges and Transfers” (creates Transfers post-payment instead of separate PaymentIntents)
 - Stripe key + webhook secret sourcing updated to use Network Admin (site options) and filters for overrides
 - Artist storefront “Manage Shop” button restricted to admins (development-only gate)
-- Ad-free license product auto-provisioning now links the product to the platform artist for shop manager visibility
+- Lifetime membership product auto-provisioning now links the product to the platform artist for shop manager visibility
 - Artist product meta save: ignore empty artist profile selections to avoid accidental overwrites
 
 ## [0.4.1] - 2025-12-18
@@ -57,7 +63,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Stripe Connect Payment Integration**: Automatic destination charges for artist payouts with commission handling
 - **Product Gallery JavaScript**: Interactive image gallery with thumbnail navigation on single product pages
 - **Artist Storefront Manage Button**: "Manage Shop" CTA for artists on their storefront archives
-- **Ad-Free License Auto-Provisioning**: Automatic maintenance of license product using SKU `ec-ad-free-license`
+- **Lifetime Extra Chill Membership Auto-Provisioning**: Automatic maintenance of membership product using SKU `ec-lifetime-membership` (ad-free)
 - **WooCommerce Template Overrides**: Custom cart and add-to-cart templates with enhanced styling
 - **Button Classes Filter**: Consistent button styling across WooCommerce elements
 - **E-commerce Integration Documentation**: Comprehensive docs for payment and license systems
@@ -102,7 +108,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.1.0] - 2025-12-01
 
 ### Added
-- **Cross-Domain Ad-Free License System**: Complete WooCommerce integration for ad-free license purchases with username validation, cart/checkout flow, and auto-completion
+- **Cross-Domain Lifetime Extra Chill Membership System**: Complete WooCommerce integration for membership purchases with username validation, cart/checkout flow, and auto-completion (ad-free)
 - **Raffle Product System**: Tag-based activation with admin fields for max tickets, frontend progress counter with color-coded states, and conditional asset loading
 - **Breadcrumb Integration**: Theme-integrated breadcrumbs with "Extra Chill › Merch Store" structure and context-aware trails
 - **Cart Icon**: Header cart icon integration with FontAwesome SVG

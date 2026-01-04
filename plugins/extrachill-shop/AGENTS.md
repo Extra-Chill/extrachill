@@ -35,22 +35,24 @@ WordPress plugin providing comprehensive e-commerce functionality for shop.extra
 - Order notifications to artists for their products (`inc/core/artist-order-notifications.php`)
 
 #### Stripe Connect Integration
-- Artist onboarding via Stripe Connect OAuth (`inc/stripe/stripe-connect.php`)
-- Payment integration with WooCommerce (`inc/stripe/payment-integration.php`)
-- Checkout handler for Stripe payments (`inc/stripe/checkout-handler.php`)
-- Webhook processing for payment events (`inc/stripe/webhooks.php`)
+- Artist onboarding via Stripe Connect Express accounts (`inc/stripe/stripe-connect.php`)
+- Payment integration with WooCommerce using "Separate Charges and Transfers" pattern (`inc/stripe/payment-integration.php`)
+- Payouts handled via destination charges to connected artist accounts
+- Webhook processing for account updates and payout events (`inc/stripe/webhooks.php`)
 
 #### Shipping System
-- Shippo API integration for shipping labels (`inc/shipping/shippo-client.php`)
-- Shipping settings management (`inc/shipping/shipping-settings.php`)
-- Checkout shipping integration (`inc/shipping/checkout-shipping.php`)
+- Shippo API integration for automated shipping labels (`inc/shipping/shippo-client.php`)
+- Artist-managed shipping addresses stored on artist profiles
+- Automated cheapest USPS rate selection for domestic shipments
+- Flat-rate shipping charge ($5.00) integrated into checkout
+- Label reprinting and tracking synchronization with WooCommerce orders
 
-#### Ad-Free License System
-- Cross-domain license validation using user meta storage
-- Ad-free product auto-provisioned via SKU (`ec-ad-free-license`)
-- Product type definition (`inc/products/ad-free-license-product.php`)
-- Purchase processing via WooCommerce order completion hooks (`inc/products/ad-free-license.php`)
-- Integration with `is_user_ad_free()` function from extrachill-users plugin
+#### Lifetime Extra Chill Membership System
+- Cross-domain membership validation using user meta storage (provides ad-free benefit)
+- Membership product auto-provisioned via SKU (`ec-lifetime-membership`)
+- Product type definition (`inc/products/lifetime-membership-product.php`)
+- Purchase processing via WooCommerce order completion hooks (`inc/products/lifetime-membership.php`)
+- Integration with `is_user_lifetime_member()` function from extrachill-users plugin
 
 #### Raffle System
 - Raffle product type with admin fields (`inc/products/raffle/admin-fields.php`)
@@ -76,8 +78,8 @@ extrachill-shop/
 │   │   └── filters/
 │   │       └── button-classes.php   # WooCommerce button styling
 │   ├── products/
-│   │   ├── ad-free-license-product.php # Ad-free product type
-│   │   ├── ad-free-license.php      # License system and WooCommerce hooks
+│   │   ├── lifetime-membership-product.php # Lifetime Membership product type (ad-free)
+│   │   ├── lifetime-membership.php      # Membership system and WooCommerce hooks
 │   │   └── raffle/
 │   │       ├── admin-fields.php     # Raffle admin configuration
 │   │       └── frontend-counter.php # Raffle progress display
@@ -146,7 +148,7 @@ class ExtraChillShop {
 ```
 
 **Include Categories**:
-1. Product customizations (ad-free license, raffle)
+1. Product customizations (lifetime membership, raffle)
 2. Core functionality (templates, breadcrumbs, assets, nav, filters)
 3. Artist marketplace (taxonomy, product meta, commission, notifications)
 4. Stripe Connect integration (connect, checkout, webhooks, payment)
@@ -169,8 +171,8 @@ The shop plugin consumes endpoints from the centralized extrachill-api plugin:
 ### Cross-Plugin Integration
 
 **extrachill-users Plugin:**
-- `is_user_ad_free()` - License validation function
-- User meta storage for ad-free license status
+- `is_user_lifetime_member()` - Membership validation function
+- User meta storage for membership status (ad-free)
 
 **extrachill-api Plugin:**
 - All REST API endpoints for shop operations
