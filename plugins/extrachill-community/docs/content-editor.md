@@ -4,21 +4,29 @@ Enhanced content creation tools for bbPress forums including dual editor support
 
 ## Editor Architecture
 
-### Dual Editor System
-The community platform supports a dual editor approach with Blocks Everywhere (Gutenberg) as the primary editor and TinyMCE as fallback.
+### Gutenberg-Anywhere Standard
+The community platform standardizes on a "Gutenberg-anywhere" architecture, utilizing the Blocks Everywhere integration as the primary content creation tool. This replaces the legacy TinyMCE editor for all modern forum interactions.
 
 **Primary Editor**: Blocks Everywhere (Gutenberg)
-- Activated when Blocks Everywhere plugin is installed and active
-- Provides modern block-based editing experience for forum content
-- Enabled for both frontend users and admin editing capabilities
-- Automatically replaces TinyMCE on bbPress topic and reply forms
+- **Status**: Required platform standard.
+- **Integration**: Enabled via `inc/content/editor/blocks-everywhere.php`.
+- **Visual Accuracy**: Theme and plugin styles are enqueued into the editor iframe via the `blocks_everywhere_enqueue_iframe_assets` hook, providing a true WYSIWYG experience.
+- **Contexts**: Active for bbPress topics, replies, and the inline reply system.
 
 **Fallback Editor**: TinyMCE
-- Activated when Blocks Everywhere plugin is not available
-- Traditional rich text editor with familiar WordPress editing experience
-- Maintains full compatibility with existing forum content
+- **Status**: Legacy fallback only.
+- **Guard**: Automatically disabled when Blocks Everywhere is active.
+- **Purpose**: Maintained strictly for environments where the modern block editor cannot load.
 
 ## Blocks Everywhere Integration (Gutenberg)
+
+### Editor Integration Details
+The integration is deeply hooked into the platform's asset and filtering systems:
+
+1. **Theme Styling**: The extrachill theme enqueues `root.css` and `style.css` into the editor iframe.
+2. **Community Styling**: The community plugin enqueues `bbpress.css` into the iframe to ensure forum elements are styled correctly within the editor.
+3. **Block Control**: Block types are filtered to include Paragraphs, Headings, and Embeds while explicitly disabling security-sensitive blocks like Code.
+4. **Inline Replies**: The block editor is integrated into the AJAX-powered inline reply system for a seamless conversational experience.
 
 ### Block Editor Features
 Modern Gutenberg block editor integration for bbPress forums with enhanced content creation capabilities.

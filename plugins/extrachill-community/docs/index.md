@@ -25,6 +25,7 @@ This plugin provides comprehensive community features organized by functionality
 
 ### Content Features
 - [Content Editor](content-editor.md) - TinyMCE customization, image uploads, content filtering
+- [Comment System](comment-system.md) - Cross-site aggregation, auto-approval, and author routing
 
 ### User Profile Features
 - [User Profiles](user-profiles.md) - Cross-site data, verification status, profile customization

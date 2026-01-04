@@ -85,41 +85,44 @@ The `main` branch contains stable, production-ready code. All production builds 
 
 ### Blocks Everywhere Integration
 
-**PRODUCTION-READY**: The Blocks Everywhere integration is fully implemented and active on community.extrachill.com as of version 1.0.17.
+**PRODUCTION-READY**: The Blocks Everywhere integration is fully implemented and active on community.extrachill.com. It is the platform standard for forum content creation, replacing TinyMCE as the primary editor.
 
 **Integration Details**:
-- File: `inc/content/editor/blocks-everywhere.php` - Filter-based integration with Blocks Everywhere plugin
-- Enables Gutenberg block editor for both frontend users and admin editing of bbPress content
-- Automatically disables TinyMCE when Blocks Everywhere is active
-- Conditional asset loading for iframe editor assets
+- File: `inc/content/editor/blocks-everywhere.php` - Primary integration module that enables Gutenberg for bbPress.
+- Enables Gutenberg block editor for both frontend users and admin editing of bbPress content.
+- Uses `blocks_everywhere_bbpress` and `blocks_everywhere_bbpress_admin` filters to enable the editor.
+- Automatically disables TinyMCE when Blocks Everywhere is active (see `inc/content/editor/tinymce-customization.php`).
+- **Iframe Asset Enqueuing**: Uses the `blocks_everywhere_enqueue_iframe_assets` hook in `inc/core/assets.php` to enqueue bbPress-specific styles (`bbpress.css`) into the Gutenberg editor iframe, ensuring visual consistency between the editor and the frontend.
 
 **Allowed Block Types**:
 - `core/paragraph` - Default text content
 - `core/heading` - Headings for content structure
 - `core/embed` - Media embeds (YouTube, SoundCloud, etc.)
 - **Disabled**: `core/code` block for security reasons
+- Restricted via `blocks_everywhere_allowed_blocks` filter in `inc/content/editor/blocks-everywhere.php`.
 
 **Technical Implementation**:
+- Seamless integration with existing bbPress permissions and security.
+- Compatible with email notifications (blocks converted to plain text by Blocks Everywhere).
+- Leverages forked `blocks-everywhere` and `isolated-block-editor` dependencies.
 
 ### Inline Reply System (v1.2.0+)
 
-**Feature**: Direct reply functionality within topic view without page reload
-
+**Feature**: Direct reply functionality within topic view without page reload.
 **Implementation**:
-- Inline reply form appears below replies
-- TinyMCE editor integration for rich text
-- REST API submission for new replies
-- Real-time reply addition to thread
+- Inline reply form appears below replies.
+- Blocks Everywhere integration for the rich text editor experience.
+- REST API submission for new replies.
+- Real-time reply addition to thread.
 
 **Files**:
-- `inc/content/editor/tinymce-customization.php` - Editor configuration
-- JavaScript handling in bbPress UI assets
+- `inc/content/editor/blocks-everywhere.php` - Editor enablement.
+- JavaScript handling in `bbpress-ui.js` assets.
 
-**Technical Implementation**:
-- Uses `blocks_everywhere_bbpress` and `blocks_everywhere_bbpress_admin` filters to enable functionality
-- Filter-based block type restrictions via `blocks_everywhere_allowed_blocks` filter
-- Seamless integration with existing bbPress permissions and security
-- Compatible with email notifications (blocks converted to plain text)
+**TinyMCE Fallback**:
+- TinyMCE is maintained strictly as a fallback system for environments where Blocks Everywhere is inactive.
+- Configuration resides in `inc/content/editor/tinymce-customization.php` and `inc/content/editor/tinymce-image-uploads.php`.
+- Both files contain active guards that `return` immediately if Blocks Everywhere is active.
 
 ## Architecture Principles
 

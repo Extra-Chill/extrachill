@@ -10,7 +10,7 @@ User profiles display aggregated data from both community and main site (extrach
 **Data Sources:**
 - **Main Site Posts**: Article count from blog ID 1 with author archive link
 - **Community Activity**: Forum topics, replies, and rank information
-- **Cross-Site Comments**: Blog comment aggregation from main site
+- **Cross-Site Comments**: Aggregates approved comments from the main site (Blog ID 1) via `display_main_site_comments_for_user()` for display on profiles and the `/blog-comments` feed.
 - **Profile Links**: Custom social media and music platform links
 
 **Display Sections:**
