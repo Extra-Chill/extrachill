@@ -4,6 +4,39 @@ Manage team member status synchronization across the multisite network. Control 
 
 ## Endpoints
 
+### List Team Members
+
+**Endpoint**: `GET /wp-json/extrachill/v1/admin/team-members`
+
+**Purpose**: Retrieve a paginated list of team members with search capabilities.
+
+**Permission**: Requires `manage_options` capability (network administrators only)
+
+**Parameters**:
+- `search` (string, optional) - Search term for username, email, or display name
+- `page` (integer, optional) - Page number (default: 1)
+
+**Response** (HTTP 200):
+```json
+{
+  "users": [
+    {
+      "ID": 123,
+      "user_login": "username",
+      "user_email": "user@example.com",
+      "is_team_member": true,
+      "source": "Auto"
+    }
+  ],
+  "total": 45,
+  "total_pages": 3
+}
+```
+
+**File**: `inc/routes/admin/team-members.php`
+
+---
+
 ### Sync Team Members
 
 **Endpoint**: `POST /wp-json/extrachill/v1/admin/team-members/sync`

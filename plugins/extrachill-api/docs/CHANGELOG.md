@@ -1,6 +1,51 @@
 # Changelog
 
-All notable changes to the ExtraChill API plugin are documented here. This file is the single source of truth for release history.
+This file records notable changes in the ExtraChill API plugin.
+
+## [0.10.0] - 2026-01-04
+
+### Added
+
+- **Admin Data Listing Endpoints**: New `GET` routes for administrative data management:
+  - `GET /wp-json/extrachill/v1/admin/team-members` - List network team members with pagination and search
+  - `GET /wp-json/extrachill/v1/admin/artist-access` - List pending/processed artist access requests
+  - `GET /wp-json/extrachill/v1/admin/lifetime-membership` - List users with active lifetime memberships
+  - `GET /wp-json/extrachill/v1/admin/forum-topics` - List and manage bbPress topics across network
+  - `GET /wp-json/extrachill/v1/admin/tags` - Manage and migrate tags network-wide
+- **Analytics Expansion**: New tracking endpoints for enhanced platform insights:
+  - `POST /wp-json/extrachill/v1/analytics/events` - General event tracking for platform actions
+  - `POST /wp-json/extrachill/v1/analytics/share` - Track content sharing events
+- **Utility Routes**:
+  - `GET /wp-json/extrachill/v1/admin/404-logger` - Log and monitor 404 errors for SEO management
+  - `GET /wp-json/extrachill/v1/admin/artist-relationships` - Inspect and manage user-artist links
+- **Standardized Pagination**: Admin list endpoints now consistently support `per_page` and `page` parameters with `X-WP-Total` and `X-WP-TotalPages` headers.
+
+### Changed
+
+- **Membership Refactor**: Standardized "Ad-Free License" terminology to "Lifetime Membership" throughout the codebase and documentation.
+- **User Search Enhancements**:
+  - Added `artist-capable` context for finding users eligible for artist profile management.
+  - Added `exclude_artist_id` support to prevent duplicates in roster management.
+- **Endpoint Count**: Total endpoints increased to 68 across all feature categories.
+- **Documentation**: Updated AGENTS.md and README.md to reflect the new administrative and analytics infrastructure.
+
+## [0.9.5] - 2026-01-04
+
+### Added
+
+- **Admin Data Listing Endpoints**: Initial implementation of administrative data management routes.
+- **Standardized Pagination**: New admin list endpoints support standard `per_page` and `page` parameters.
+
+### Changed
+
+- **Endpoint Count**: Total endpoints increased to 63 across all categories.
+
+## [0.9.4] - 2026-01-02
+
+### Changed
+
+- **Standardized Site Counts**: Updated network documentation to reflect 11 active sites (IDs 1-5, 7-12) across all documentation files.
+- **Blog ID Abstraction**: Replaced remaining hardcoded blog ID references in documentation with the mandatory `ec_get_blog_id()` pattern.
 
 ## 0.9.3
 
@@ -19,8 +64,8 @@ All notable changes to the ExtraChill API plugin are documented here. This file 
 ### Technical Notes
 
 - **Dependencies**: Added `league/html-to-markdown: ^5.1` for markdown conversion
-- **Backward Compatibility**: All changes are additive with no breaking modifications to existing data contracts
-- **Auth Documentation**: Standardized authentication terminology across all route documentation for consistency with actual token-based implementation
+- **Auth Documentation**: Standardized authentication terminology across route documentation
+- Changes are additive with no breaking modifications to existing data contracts
 
 ## 0.9.2
 
@@ -42,7 +87,7 @@ All notable changes to the ExtraChill API plugin are documented here. This file 
 
 ### Technical Notes
 
-- **Backward Compatibility**: All changes are additive or corrective with no breaking modifications to existing data contracts
+- Changes are additive or corrective with no breaking modifications to existing data contracts
 - **Dependencies**: New features integrate with `extrachill-users`, `extrachill-shop`, and `extrachill-seo` plugins
 
 ## 0.9.1
@@ -84,7 +129,7 @@ All notable changes to the ExtraChill API plugin are documented here. This file 
 
 ### Technical Notes
 
-- **Backward Compatibility**: All changes are additive with no breaking modifications.
+- All changes are additive with no breaking modifications.
 - **Activity System**: Improved reliability of post activity emission through hook change and parameter updates.
 
 ## 0.8.5
@@ -334,7 +379,7 @@ All notable changes to the ExtraChill API plugin are documented here. This file 
 - **Google OAuth Authentication**: New social login endpoint for Google account integration
   - `POST /wp-json/extrachill/v1/auth/google` - Authenticate users via Google ID tokens
   - Device tracking and token generation support
-  - Integrates with existing JWT token infrastructure
+  - Integrates with existing token infrastructure
 
 - **User Onboarding Endpoint**: Complete onboarding management system
   - `GET /wp-json/extrachill/v1/users/onboarding` - Retrieve onboarding status
@@ -919,8 +964,8 @@ All notable changes to the ExtraChill API plugin are documented here. This file 
   - `GET/POST/DELETE /wp-json/extrachill/v1/users/{id}/artists` - User-artist relationship management
   - Enhanced `GET /wp-json/extrachill/v1/users/search` with admin and mentions contexts
 - **Admin Management APIs**: Administrative tools for platform management
-  - `POST /wp-json/extrachill/v1/admin/ad-free-license/grant` - Grant ad-free licenses by username/email
-  - `DELETE /wp-json/extrachill/v1/admin/ad-free-license/{user_id}` - Revoke ad-free licenses
+- `POST /wp-json/extrachill/v1/admin/lifetime-membership/grant` - Grant Lifetime Extra Chill Membership (ad-free) by username/email
+- `DELETE /wp-json/extrachill/v1/admin/lifetime-membership/{user_id}` - Revoke Lifetime Extra Chill Membership
   - `POST /wp-json/extrachill/v1/admin/team-members/sync` - Sync team member status across network
   - `PUT /wp-json/extrachill/v1/admin/team-members/{user_id}` - Manual team member status management
 - **Route Reorganization**: Moved user search from community to users namespace with enhancements

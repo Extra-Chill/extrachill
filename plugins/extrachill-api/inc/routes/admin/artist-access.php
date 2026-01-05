@@ -20,6 +20,17 @@ add_action( 'extrachill_api_register_routes', 'extrachill_api_register_artist_ac
  * Registers artist access management endpoints.
  */
 function extrachill_api_register_artist_access_routes() {
+	// GET: List all pending requests
+	register_rest_route(
+		'extrachill/v1',
+		'/admin/artist-access',
+		array(
+			'methods'             => WP_REST_Server::READABLE,
+			'callback'            => 'extrachill_api_get_artist_access_requests',
+			'permission_callback' => 'extrachill_api_artist_access_admin_check',
+		)
+	);
+
 	// GET: One-click email approval (redirects to admin tools)
 	register_rest_route(
 		'extrachill/v1',
@@ -99,7 +110,7 @@ function extrachill_api_register_artist_access_routes() {
  * @return bool|WP_Error True if authorized, WP_Error otherwise.
  */
 function extrachill_api_artist_access_admin_check() {
-	if ( ! current_user_can( 'manage_options' ) ) {
+	if ( ! current_user_can( 'manage_network_options' ) ) {
 		return new WP_Error(
 			'rest_forbidden',
 			'You must be logged in as an administrator.',
@@ -107,6 +118,47 @@ function extrachill_api_artist_access_admin_check() {
 		);
 	}
 	return true;
+}
+
+/**
+ * Gets all pending artist access requests.
+ *
+ * @param WP_REST_Request $request The REST request object.
+ * @return WP_REST_Response|WP_Error Response with request list or error.
+ */
+function extrachill_api_get_artist_access_requests( $request ) {
+	$args = array(
+		'blog_id'    => 0, // Network-wide
+		'meta_key'   => 'artist_access_request',
+		'fields'     => 'all',
+		'orderby'    => 'registered',
+		'order'      => 'DESC',
+	);
+
+	$user_query = new WP_User_Query( $args );
+	$users      = $user_query->get_results();
+
+	$requests = array();
+	foreach ( $users as $user ) {
+		$request_data = get_user_meta( $user->ID, 'artist_access_request', true );
+		if ( empty( $request_data ) || ! is_array( $request_data ) ) {
+			continue;
+		}
+
+		$requests[] = array(
+			'user_id'      => $user->ID,
+			'user_login'   => $user->user_login,
+			'user_email'   => $user->user_email,
+			'type'         => isset( $request_data['type'] ) ? $request_data['type'] : 'artist',
+			'requested_at' => isset( $request_data['timestamp'] ) ? $request_data['timestamp'] : 0,
+		);
+	}
+
+	return rest_ensure_response(
+		array(
+			'requests' => $requests,
+		)
+	);
 }
 
 /**

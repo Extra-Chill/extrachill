@@ -60,6 +60,7 @@ Stripe-Signature: t=1234567890,v1=signature...
 **Implementation Details**:
 - Requires extrachill-shop plugin for webhook processing
 - Calls `extrachill_shop_handle_webhook()` function
+- Processes **destination charges** for artist marketplace payouts
 - Webhook signature verification handled by shop plugin
 - Supports all Stripe webhook event types
 - Returns success immediately after queuing for processing
@@ -90,13 +91,13 @@ function extrachill_shop_handle_webhook($request) {
 
   switch ($payload['type']) {
     case 'payment_intent.succeeded':
-      // Process successful payment
+      // Process successful payment and initiate transfer to artist
       break;
-    case 'customer.subscription.created':
-      // Handle new subscription
+    case 'account.updated':
+      // Sync artist Stripe account status with artist_profile meta
       break;
-    case 'invoice.payment_failed':
-      // Handle failed payment
+    case 'payout.created':
+      // Log payout event for artist dashboard
       break;
   }
 

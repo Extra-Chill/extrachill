@@ -72,14 +72,18 @@ The plugin provides 58 endpoint files across 17 feature categories, all under th
 - `GET /activity` - Activity feed with filtering and pagination (authenticated)
 - `GET /object` - Object resolver for posts, comments, and artists (authenticated)
 
-### Admin Endpoints (8)
+### Admin Endpoints (11)
+- `GET /admin/artist-access` - List pending artist access requests
 - `GET/POST /admin/artist-access/{user_id}/approve` - Approve artist access request
 - `POST /admin/artist-access/{user_id}/reject` - Reject artist access request
-- `POST /admin/ad-free-license/grant` - Grant ad-free license
-- `DELETE /admin/ad-free-license/{user_id}` - Revoke ad-free license
+- `GET /admin/lifetime-membership` - List all lifetime memberships
+- `POST /admin/lifetime-membership/grant` - Grant Lifetime Extra Chill Membership (ad-free)
+- `DELETE /admin/lifetime-membership/{user_id}` - Revoke Lifetime Extra Chill Membership
+- `GET /admin/team-members` - List all team members with search/pagination
 - `POST /admin/team-members/sync` - Sync team members
 - `PUT /admin/team-members/{user_id}` - Manage team member status
 - `POST /admin/taxonomies/sync` - Sync shared taxonomies across sites
+- `GET /admin/tag-migration` - List tags for migration searching
 
 ### User Management (5)
 - `GET /users/{id}` - Get user profile
@@ -230,7 +234,7 @@ extrachill-api/
     │   └── id-generator.php
     └── routes/
         ├── admin/
-        │   ├── ad-free-license.php
+        │   ├── lifetime-membership.php
         │   ├── artist-access.php
         │   ├── taxonomy-sync.php
         │   └── team-members.php

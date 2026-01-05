@@ -14,3 +14,12 @@
 ## Cross-Domain Auth Helper
 - `inc/auth/extrachill-link-auth.php` adds `SameSite=None; Secure` to WordPress auth cookies so extrachill.link can make authenticated REST calls.
 - Uses `header_register_callback()` to intercept every `Set-Cookie` header before they leave WordPress, ensuring compatibility without touching core auth logic.
+
+## Shop Operations
+Centralized endpoints for the artist marketplace on `shop.extrachill.com`.
+- `products`: CRUD operations for artist merch.
+- `orders`: Artist-scoped order management and fulfillment.
+- `stripe-connect`: Onboarding and status for marketplace payouts using **destination charges**.
+- `shipping-labels`: USPS label purchase via Shippo ($5.00 flat rate domestic).
+- `shipping-address`: Artist fulfillment address management stored on `artist_profile`.
+- `stripe-webhook`: Platform-level processing for Stripe payout and account events.

@@ -11,8 +11,9 @@ Search for users by username, email, or display name with context-aware response
 **Purpose**: Find users by search term for mentions, autocomplete, or admin relationship management.
 
 **Permission**: 
-- `mentions` context: Public access (no authentication required)
+- `mentions` context: Requires logged-in user
 - `admin` context: Requires `manage_options` capability
+- `artist-capable` context: Requires logged-in user who can create artist profiles
 
 **Parameters**:
 - `term` (string, required) - Search query term (minimum 1 character for mentions, 2 for admin/artist-capable)
@@ -37,12 +38,9 @@ GET /wp-json/extrachill/v1/users/search?term=chris@example.com&context=admin
   {
     "id": 1,
     "username": "chris",
-    "slug": "chris"
-  },
-  {
-    "id": 2,
-    "username": "chrissy",
-    "slug": "chrissy"
+    "slug": "chris",
+    "avatar_url": "https://example.com/avatar.jpg",
+    "profile_url": "https://community.extrachill.com/users/chris"
   }
 ]
 ```
@@ -86,9 +84,9 @@ GET /wp-json/extrachill/v1/users/search?term=chris@example.com&context=admin
 | Aspect | Mentions | Admin | Artist-Capable |
 |--------|----------|-------|---------------|
 | Min characters | 1 | 2 | 2 |
-| Max results | 10 | 20 | 10 |
+| Max results | 10 | 20 | 10 (from up to 50 queried) |
 | Search columns | user_login, user_nicename | user_login, user_email, display_name | user_login, user_email, display_name |
-| Response fields | id, username, slug | id, display_name, username, email, avatar_url | id, display_name, username, email, avatar_url, profile_url |
+| Response fields | id, username, slug, avatar_url, profile_url | id, display_name, username, email, avatar_url | id, display_name, username, email, avatar_url, profile_url |
 | Sorting | By display_name ASC | By display_name ASC | By display_name ASC |
 
 **Error Responses**:
@@ -97,10 +95,11 @@ GET /wp-json/extrachill/v1/users/search?term=chris@example.com&context=admin
 - `500` - Search query failed
 
 **Implementation Details**:
-- Uses WordPress `WP_User_Query` for searching
+- Uses WordPress `WP_User_Query`
 - Wildcards applied: `*term*` for flexible matching
-- Lightweight response for mentions (minimal data transfer)
-- Full user data available for admin relationship management
+- Mentions returns a lightweight response
+- Admin returns email and display name
+- Artist-capable filters to users with `user_is_artist` / `user_is_professional` meta or team member status, and can exclude existing roster members via `exclude_artist_id`
 
 **File**: `inc/routes/users/search.php`
 
@@ -158,9 +157,9 @@ $users = json_decode( wp_remote_retrieve_body( $response ), true );
 
 **Mentions Context**:
 - Designed for @mention autocomplete in community posts
-- Public access - no authentication needed
-- Returns minimal data to reduce payload size
-- Useful for username-based lookups
+- Requires a logged-in user
+- Returns lightweight user data for autocomplete (includes avatar + profile URL)
+- Useful for username/slug-based lookups
 
 **Admin Context**:
 - Designed for user relationship management

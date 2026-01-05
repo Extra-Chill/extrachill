@@ -27,7 +27,7 @@ Retrieve detailed user profile information including account status, permissions
   "is_team_member": true,
   "last_active": 1704067200,
   "email": "chris@example.com",
-  "has_ad_free_license": true,
+  "is_lifetime_member": true,
   "is_artist": true,
   "is_professional": false,
   "can_create_artists": true,
@@ -63,7 +63,7 @@ Retrieve detailed user profile information including account status, permissions
 | `is_team_member` | Public | Whether user is a team member |
 | `last_active` | Public | Last activity timestamp |
 | `email` | Private | User email address |
-| `has_ad_free_license` | Private | Ad-free license status |
+| `is_lifetime_member` | Private | Lifetime membership status (ad-free) |
 | `is_artist` | Private | Artist status flag |
 | `is_professional` | Private | Professional status flag |
 | `can_create_artists` | Private | Permission to create artist profiles |
@@ -103,7 +103,7 @@ fetch(`/wp-json/extrachill/v1/users/${userId}`, {
 .then(response => response.json())
 .then(user => {
   console.log(`Email: ${user.email}`);
-  console.log(`Ad-free: ${user.has_ad_free_license}`);
+  console.log(`Lifetime Member: ${user.is_lifetime_member}`);
   console.log(`Manages ${user.artist_count} artists`);
 });
 ```
@@ -136,8 +136,8 @@ $response = wp_remote_get(
 $user = json_decode( wp_remote_retrieve_body( $response ), true );
 
 // Full data available to admins
-if ( $user['has_ad_free_license'] ) {
-  // User has premium status
+if ( $user['is_lifetime_member'] ) {
+  // User has premium status (ad-free)
 }
 ```
 
@@ -154,7 +154,7 @@ if ( $user['has_ad_free_license'] ) {
 **User Metadata**:
 - `user_is_artist` - Flag indicating artist status
 - `user_is_professional` - Flag indicating professional status
-- `extrachill_ad_free_purchased` - Ad-free license data
+- `extrachill_lifetime_membership` - Lifetime membership data (ad-free)
 - `extrachill_team` - Team member status (0 or 1)
 - `last_active` - Last activity timestamp
 
@@ -168,5 +168,5 @@ $response = extrachill_api_build_user_response( $user, $is_full_data );
 **Related Endpoints**:
 - [User Search](search.md) - Find users by username or email
 - [User Artists](artists.md) - Manage artist profiles for a user
-- [Ad-Free Licenses](../admin/ad-free-license.md) - Grant/revoke ad-free status
+- [Lifetime Membership](../admin/lifetime-membership.md) - Grant/revoke membership status
 - [Team Members](../admin/team-members.md) - Manage team member status

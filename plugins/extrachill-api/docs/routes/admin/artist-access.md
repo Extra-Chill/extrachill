@@ -4,6 +4,33 @@ Handles artist platform access approval and rejection requests.
 
 ## Endpoints
 
+### List Pending Requests
+
+**Endpoint**: `GET /wp-json/extrachill/v1/admin/artist-access`
+
+**Purpose**: Retrieve all pending artist and professional access requests.
+
+**Permission**: Requires `manage_options` capability (network administrators only)
+
+**Response** (HTTP 200):
+```json
+{
+  "requests": [
+    {
+      "user_id": 123,
+      "user_login": "username",
+      "user_email": "user@example.com",
+      "type": "artist",
+      "requested_at": 1700000000
+    }
+  ]
+}
+```
+
+**File**: `inc/routes/admin/artist-access.php`
+
+---
+
 ### GET /extrachill/v1/admin/artist-access/{user_id}/approve
 
 One-click email approval. Redirects to admin tools page after processing.

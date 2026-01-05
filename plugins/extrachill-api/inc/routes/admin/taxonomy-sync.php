@@ -39,7 +39,7 @@ function extrachill_api_register_taxonomy_sync_routes() {
 }
 
 function extrachill_api_taxonomy_sync_permission_check() {
-    if ( ! current_user_can( 'manage_options' ) ) {
+    if ( ! current_user_can( 'manage_network_options' ) ) {
         return new WP_Error(
             'rest_forbidden',
             'You do not have permission to sync taxonomies.',

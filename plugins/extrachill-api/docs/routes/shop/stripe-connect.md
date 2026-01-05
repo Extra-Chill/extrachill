@@ -13,6 +13,7 @@ Stripe Connect is scoped to an `artist_profile` post (artist site). These endpoi
 - User must be able to manage the artist: `ec_can_manage_artist( get_current_user_id(), artist_id )`.
 
 ## GET status
+Returns the current Stripe connection status and account capabilities.
 
 ### Request
 ```bash
@@ -44,7 +45,7 @@ If the artist has no connected account:
 ```
 
 ## POST onboarding link
-Creates the Stripe Express account if needed (artist-scoped) and returns an onboarding link.
+Creates a Stripe Express account for the artist if one doesn't exist and returns an onboarding URL.
 
 ### Request
 ```bash
@@ -65,7 +66,7 @@ curl -X POST "http://site.local/wp-json/extrachill/v1/shop/stripe-connect/onboar
 ```
 
 ## POST dashboard link
-Returns a login link to the Stripe Express dashboard for the connected account.
+Generates a single-use login link for the artist's Stripe Express dashboard.
 
 ### Request
 ```bash

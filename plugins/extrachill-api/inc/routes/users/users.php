@@ -113,9 +113,9 @@ function extrachill_api_build_user_response( $user, $full_data = false ) {
 
 	// Extended fields (own profile or admin only)
 	if ( $full_data ) {
-		// Ad-free license
-		$ad_free_data        = get_user_meta( $user_id, 'extrachill_ad_free_purchased', true );
-		$has_ad_free_license = ! empty( $ad_free_data );
+		// Lifetime membership
+		$membership_data       = get_user_meta( $user_id, 'extrachill_lifetime_membership', true );
+		$is_lifetime_member    = ! empty( $membership_data );
 
 		// Artist/professional status
 		$is_artist       = get_user_meta( $user_id, 'user_is_artist', true ) === '1';
@@ -134,7 +134,7 @@ function extrachill_api_build_user_response( $user, $full_data = false ) {
 		}
 
 		$response['email']               = $user->user_email;
-		$response['has_ad_free_license'] = $has_ad_free_license;
+		$response['is_lifetime_member']  = $is_lifetime_member;
 		$response['is_artist']           = $is_artist;
 		$response['is_professional']     = $is_professional;
 		$response['can_create_artists']  = $can_create_artists;

@@ -29,13 +29,19 @@ function extrachill_api_register_newsletter_subscription_route() {
 				'type'              => 'string',
 				'sanitize_callback' => 'sanitize_text_field',
 			),
+			'source_url' => array(
+				'required'          => false,
+				'type'              => 'string',
+				'sanitize_callback' => 'esc_url_raw',
+			),
 		),
 	));
 }
 
 function extrachill_api_newsletter_subscribe_handler($request) {
-	$email = $request->get_param('email');
-	$context = $request->get_param('context');
+	$email      = $request->get_param('email');
+	$context    = $request->get_param('context');
+	$source_url = $request->get_param('source_url') ?: '';
 
 	if (!function_exists('extrachill_multisite_subscribe')) {
 		return new WP_Error(
@@ -45,7 +51,7 @@ function extrachill_api_newsletter_subscribe_handler($request) {
 		);
 	}
 
-	$result = extrachill_multisite_subscribe($email, $context);
+	$result = extrachill_multisite_subscribe($email, $context, $source_url);
 
 	if ( $result['success'] ) {
 		return rest_ensure_response( array(

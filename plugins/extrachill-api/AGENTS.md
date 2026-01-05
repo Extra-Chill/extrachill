@@ -33,7 +33,7 @@ extrachill-api/
 │       │   ├── feed.php (Activity feed with filtering)
 │       │   └── object.php (Object resolver for posts/comments/artists)
 │       ├── admin/
-│       │   ├── ad-free-license.php (Ad-free license management)
+│       │   ├── lifetime-membership.php (Lifetime Extra Chill Membership management)
 │       │   ├── artist-access.php (Artist access approval/rejection)
 │       │   ├── taxonomy-sync.php (Taxonomy sync across sites)
 │       │   └── team-members.php (Team member sync and management)
@@ -184,11 +184,14 @@ All endpoints are under the `extrachill/v1` namespace.
 
 **Documentation**: [docs/routes/activity/](../extrachill-plugins/extrachill-api/docs/routes/activity/)
 
-### Admin Endpoints (8)
+### Admin Endpoints (11)
+- `GET /admin/artist-access` - List all pending requests
 - `GET/POST /admin/artist-access/{user_id}/approve` - Approve artist access request
 - `POST /admin/artist-access/{user_id}/reject` - Reject artist access request
-- `POST /admin/ad-free-license/grant` - Grant ad-free license
-- `DELETE /admin/ad-free-license/{user_id}` - Revoke ad-free license
+- `GET /admin/lifetime-membership` - List all lifetime memberships
+- `POST /admin/lifetime-membership/grant` - Grant Lifetime Extra Chill Membership (ad-free benefit)
+- `DELETE /admin/lifetime-membership/{user_id}` - Revoke Lifetime Extra Chill Membership
+- `GET /admin/team-members` - List all team members with search/pagination
 - `POST /admin/team-members/sync` - Sync team members
 - `PUT /admin/team-members/{user_id}` - Manage team member status
 - `POST /admin/taxonomies/sync` - Sync shared taxonomies across sites

@@ -24,7 +24,7 @@ Manage bbPress topic and reply drafts with context-aware storage and retrieval.
 {
   "draft": {
     "type": "topic",
-    "blog_id": 1,
+    "blog_id": 2,
     "forum_id": 5,
     "topic_id": 0,
     "title": "Draft topic title",
@@ -69,7 +69,7 @@ Manage bbPress topic and reply drafts with context-aware storage and retrieval.
   "saved": true,
   "draft": {
     "type": "topic",
-    "blog_id": 1,
+    "blog_id": 2,
     "forum_id": 5,
     "title": "New Discussion Topic",
     "content": "<p>Starting a new discussion...</p>"
@@ -156,6 +156,7 @@ Manage bbPress topic and reply drafts with context-aware storage and retrieval.
 - Uses `extrachill_api_bbpress_draft_upsert()` for save/update
 - Uses `extrachill_api_bbpress_draft_delete()` for deletion
 - Content handled via `wp_unslash()` to preserve user input
+- Draft `blog_id` is always the current blog ID (no cross-blog draft storage)
 - Fallback logic for unassigned forum topics when `prefer_unassigned` flag set
 
 ## Dependencies
