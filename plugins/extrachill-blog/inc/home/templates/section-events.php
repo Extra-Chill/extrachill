@@ -11,7 +11,7 @@ $location_counts = extrachill_blog_get_location_event_counts();
 <div class="home-network-card" aria-labelledby="events-header">
 	<h2 class="home-network-card-header" id="events-header">Events Calendar</h2>
 	<p class="home-network-card-description">
-		Discover concerts, festivals, and music events. Submit your own events to share with the Extra Chill community.
+		Discover concerts, festivals, and music events in your city. Organized by location, you can easily find events near you. For DIY artists, also submit your own events to share with the Extra Chill network.
 	</p>
 	<?php if ( ! empty( $location_counts ) ) : ?>
 		<div class="taxonomy-badges" style="justify-content: center;">
