@@ -69,14 +69,17 @@ add_filter(
 /**
  * Generate breadcrumb items based on current page context
  *
+ * Site-specific plugins can override via the extrachill_seo_breadcrumb_items filter
+ * to align schema breadcrumbs with visual breadcrumbs.
+ *
  * @return array Breadcrumb items with name and optional url
  */
 function ec_seo_get_breadcrumb_items() {
 	$items = array();
 
-	// Always start with Home
+	// Always start with Extra Chill (matches visual breadcrumbs)
 	$items[] = array(
-		'name' => 'Home',
+		'name' => 'Extra Chill',
 		'url'  => home_url( '/' ),
 	);
 
@@ -181,7 +184,15 @@ function ec_seo_get_breadcrumb_items() {
 		);
 	}
 
-	return $items;
+	/**
+	 * Filter breadcrumb items for schema output
+	 *
+	 * Allows site-specific plugins to override breadcrumb items
+	 * to align schema breadcrumbs with visual breadcrumbs.
+	 *
+	 * @param array $items Breadcrumb items with 'name' and 'url' keys
+	 */
+	return apply_filters( 'extrachill_seo_breadcrumb_items', $items );
 }
 
 /**

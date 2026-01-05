@@ -1,6 +1,6 @@
 # Extra Chill SEO
 
-## Version 0.3.1
+## Version 0.5.2
 
 Lean SEO plugin for the Extra Chill Platform, replacing Yoast SEO with code-first meta tags, structured data, and robots directives.
 
