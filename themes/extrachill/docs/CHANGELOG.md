@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 This file records notable changes in this theme.
 
+## [1.3.10] - 2026-01-04
+
+### Changed
+- Integrated share tracking into the social sharing system (`assets/js/share.js`). All social shares and clipboard copy actions are now tracked via the `/wp-json/extrachill/v1/analytics/share` REST API endpoint.
+
+### Fixed
+- Improved social sharing analytics by capturing share destination and source URL for all share actions.
+
 ## [1.3.9] - 2026-01-04
 
 ### Added
