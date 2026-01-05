@@ -130,11 +130,7 @@ The plugin provides comprehensive integration with the extrachill.link domain fo
 - Artist profile trail: "Artist Name" with proper hierarchy
 
 #### Blog Coverage Integration
-**File**: `inc/artist-profiles/blog-coverage.php`
-- Links artist profiles to main site (blog ID 1) taxonomy archives
-- `extrachill_artist_get_taxonomy_by_slug()` - Queries main site for matching artist taxonomy
-- `extrachill_artist_display_blog_coverage_button()` - Renders "View Blog Coverage" button
-- Cross-site blog switching with try/finally pattern for safe multisite operations
+Cross-site linking to blog taxonomy archives is provided by `extrachill-multisite/inc/cross-site-links/`. The artist profile template calls `ec_render_cross_site_artist_profile_links()` directly.
 
 #### Edit Icon System
 **Location**: `inc/link-pages/live/ajax/`, `inc/link-pages/live/assets/js/`, `assets/css/`

@@ -174,14 +174,13 @@ get_header(); ?>
                             }
                             echo '</div>'; // .artist-bio-section
 
-                            // --- Display Blog Coverage Button ---
-                            if ( function_exists( 'extrachill_artist_display_blog_coverage_button' ) ) {
+                            // Cross-site link to blog coverage (provided by extrachill-multisite)
+                            if ( function_exists( 'ec_render_cross_site_artist_profile_links' ) ) {
                                 global $post;
                                 if ( isset( $post ) && $post->post_type === 'artist_profile' && ! empty( $post->post_name ) ) {
-                                    extrachill_artist_display_blog_coverage_button( $post->post_name );
+                                    ec_render_cross_site_artist_profile_links( $post->post_name );
                                 }
                             }
-                            // --- End Blog Coverage Button ---
                             ?>
                         </div><!-- .entry-content -->
 
