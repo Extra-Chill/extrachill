@@ -2,6 +2,23 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.10.1] - 2026-01-05
+
+### Added
+
+- **SEO Audit Details Endpoint**: New `GET /wp-json/extrachill/v1/seo/audit/details` endpoint for retrieving paginated audit results by category (missing excerpts, alt text, broken links, etc.). Supports CSV export via `export=true` parameter.
+- **Admin Management Expansion**: 
+  - `GET /wp-json/extrachill/v1/admin/forum-topics` - List and manage bbPress topics across network.
+  - `GET /wp-json/extrachill/v1/admin/404-logger` - Monitor 404 errors for SEO management.
+  - `GET /wp-json/extrachill/v1/admin/artist-relationships` - Manage user-artist links.
+- **Tools Expansion**:
+  - `GET /wp-json/extrachill/v1/tools/markdown-export` - Export posts, topics, and events as markdown for AI context or archiving.
+
+### Changed
+
+- **Endpoint Count**: Total endpoint files increased to 66 across 18 feature categories.
+- **Documentation**: Updated README.md with comprehensive list of current endpoints and feature categories.
+
 ## [0.10.0] - 2026-01-04
 
 ### Added

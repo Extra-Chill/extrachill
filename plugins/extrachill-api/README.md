@@ -17,7 +17,7 @@ The ExtraChill API plugin provides a centralized, versioned REST API infrastruct
 
 ## Current Endpoints
 
-The plugin provides 58 endpoint files across 17 feature categories, all under the `extrachill/v1` namespace:
+The plugin provides 66 endpoint files across 18 feature categories, all under the `extrachill/v1` namespace:
 
 ### Authentication Endpoints (7)
 - `POST /auth/browser-handoff` - Browser handoff for cross-device auth
@@ -31,10 +31,12 @@ The plugin provides 58 endpoint files across 17 feature categories, all under th
 ### Configuration Endpoints (1)
 - `GET /config/oauth` - OAuth provider configuration
 
-### Analytics Endpoints (3)
+### Analytics Endpoints (5)
 - `POST /analytics/link-click` - Track link page clicks
 - `POST /analytics/link-page` - Track link page views (authenticated)
 - `POST /analytics/view-count` - Track content views
+- `POST /analytics/events` - Track platform events
+- `POST /analytics/share` - Track content sharing
 
 ### Artist API (9)
 - `GET/PUT /artists/{id}` - Core artist profile data
@@ -84,6 +86,9 @@ The plugin provides 58 endpoint files across 17 feature categories, all under th
 - `PUT /admin/team-members/{user_id}` - Manage team member status
 - `POST /admin/taxonomies/sync` - Sync shared taxonomies across sites
 - `GET /admin/tag-migration` - List tags for migration searching
+- `GET /admin/forum-topics` - List and manage bbPress topics across network
+- `GET /admin/404-logger` - Monitor 404 errors for SEO management
+- `GET /admin/artist-relationships` - Manage user-artist links
 
 ### User Management (5)
 - `GET /users/{id}` - Get user profile
@@ -118,10 +123,16 @@ The plugin provides 58 endpoint files across 17 feature categories, all under th
 ### Stream (1)
 - `GET /stream/status` - Check streaming status and configuration
 
-### SEO Endpoints (3)
+### Tools (2)
+- `POST /tools/qr-code` - Generate QR codes
+- `GET /tools/markdown-export` - Export content as markdown
+
+### SEO Endpoints (4)
 - `POST /seo/audit` - Start multisite SEO audit (full or batch mode)
 - `POST /seo/audit/continue` - Continue paused batch audit
 - `GET /seo/audit/status` - Check audit status and results
+- `GET /seo/audit/details` - Get detailed audit results by category with pagination
+
 
 See [AGENTS.md](AGENTS.md) for architectural patterns and [docs/routes/](docs/routes/) for complete endpoint documentation.
 
