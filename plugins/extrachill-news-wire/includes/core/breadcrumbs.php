@@ -136,3 +136,98 @@ function ec_wire_back_to_home_label( $label, $url ) {
 	return '← Back to News Wire';
 }
 add_filter( 'extrachill_back_to_home_label', 'ec_wire_back_to_home_label', 10, 2 );
+
+/**
+ * Override schema breadcrumb items for news wire site
+ *
+ * Aligns schema breadcrumbs with visual breadcrumbs for wire.extrachill.com.
+ * Only applies on blog ID 11 (wire.extrachill.com).
+ *
+ * Output patterns:
+ * - Homepage: [Extra Chill, News Wire]
+ * - Single post: [Extra Chill, News Wire, Post Title]
+ * - Taxonomy archive: [Extra Chill, News Wire, Term Name]
+ * - Post type archive: [Extra Chill, News Wire]
+ *
+ * @hook extrachill_seo_breadcrumb_items
+ * @param array $items Default breadcrumb items from SEO plugin
+ * @return array Modified breadcrumb items for news wire context
+ * @since 0.2.0
+ */
+function ec_wire_schema_breadcrumb_items( $items ) {
+	if ( get_current_blog_id() !== EC_BLOG_ID_WIRE ) {
+		return $items;
+	}
+
+	$main_site_url = function_exists( 'ec_get_site_url' ) ? ec_get_site_url( 'main' ) : 'https://extrachill.com';
+
+	// Homepage: Extra Chill → News Wire
+	if ( is_front_page() ) {
+		return array(
+			array(
+				'name' => 'Extra Chill',
+				'url'  => $main_site_url,
+			),
+			array(
+				'name' => 'News Wire',
+				'url'  => '',
+			),
+		);
+	}
+
+	// Single festival wire post: Extra Chill → News Wire → Post Title
+	if ( is_singular( 'festival_wire' ) ) {
+		return array(
+			array(
+				'name' => 'Extra Chill',
+				'url'  => $main_site_url,
+			),
+			array(
+				'name' => 'News Wire',
+				'url'  => home_url( '/' ),
+			),
+			array(
+				'name' => get_the_title(),
+				'url'  => '',
+			),
+		);
+	}
+
+	// Taxonomy archive: Extra Chill → News Wire → Term Name
+	if ( is_tax() ) {
+		$term = get_queried_object();
+		if ( $term && isset( $term->name ) ) {
+			return array(
+				array(
+					'name' => 'Extra Chill',
+					'url'  => $main_site_url,
+				),
+				array(
+					'name' => 'News Wire',
+					'url'  => home_url( '/' ),
+				),
+				array(
+					'name' => $term->name,
+					'url'  => '',
+				),
+			);
+		}
+	}
+
+	// Post type archive: Extra Chill → News Wire
+	if ( is_post_type_archive( 'festival_wire' ) ) {
+		return array(
+			array(
+				'name' => 'Extra Chill',
+				'url'  => $main_site_url,
+			),
+			array(
+				'name' => 'News Wire',
+				'url'  => '',
+			),
+		);
+	}
+
+	return $items;
+}
+add_filter( 'extrachill_seo_breadcrumb_items', 'ec_wire_schema_breadcrumb_items' );

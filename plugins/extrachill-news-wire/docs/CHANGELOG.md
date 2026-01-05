@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.3.7] - 2026-01-04
+
+### Added
+- Implemented `ec_wire_schema_breadcrumb_items` filter to align SEO schema breadcrumbs with visual breadcrumbs on wire.extrachill.com (Blog ID 11)
+- Added specific schema breadcrumb support for News Wire homepage, single festival wire posts, taxonomy archives, and post type archives
+
+### Changed
+- Refined `README.md` overview to specify plugin's role for wire.extrachill.com and isolated automated news feeds
+- Removed legacy "Tip Submission System" mention from `README.md` features list
+- Updated developer website link to `wire.extrachill.com` in `README.md`
+
 ## [0.3.6] - 2026-01-02
 
 ### Changed

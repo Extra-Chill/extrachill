@@ -9,14 +9,13 @@ WordPress plugin providing festival and music news wire functionality with custo
 
 ## Overview
 
-ExtraChill News Wire is a standalone WordPress plugin extracted from the ExtraChill theme. It provides comprehensive festival news coverage functionality including custom post types, native WordPress pagination, content tip submission forms, and administrative migration tools.
+ExtraChill News Wire is a standalone WordPress plugin providing comprehensive festival news coverage functionality for wire.extrachill.com (Blog ID 11). It includes custom post types, native WordPress pagination, and administrative migration tools. It was extracted from the ExtraChill theme to isolate automated news feeds from the main editorial site.
 
 ## Features
 
 ### Core Functionality
 - **Festival Wire Custom Post Type**: Dedicated content management for festival news and coverage
 - **Native Pagination**: Standard WordPress pagination using the theme's `extrachill_pagination()` function
-- **Tip Submission System**: Community-driven content submission with Turnstile verification
 - **Custom Taxonomies**: Festival, category, and data source taxonomy support
 - **Template System**: Complete template hierarchy for archive and single post display
 
@@ -155,14 +154,14 @@ cd extrachill-plugins/extrachill-news-wire
 - **WordPress**: 5.0+
 - **PHP**: 7.4+
 - **Tested up to**: WordPress 6.4
-- **Stable tag**: 0.3.6
+- **Stable tag**: 0.3.7
 
 ## Support
 
 This plugin was developed for the ExtraChill music publication platform. For support:
 
 - **Developer**: Chris Huber
-- **Website**: [extrachill.com](https://extrachill.com)
+- **Website**: [wire.extrachill.com](https://wire.extrachill.com)
 - **Development**: Part of the Extra Chill Platform ecosystem
 
 ## License
