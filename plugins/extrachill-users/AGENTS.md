@@ -1,6 +1,6 @@
 # ExtraChill Users
 
-**THE SINGLE SOURCE OF TRUTH FOR USER MANAGEMENT** - Network-activated WordPress plugin providing all user-related functionality for the ExtraChill Platform multisite network. This plugin is the centralized authority for authentication (including Google OAuth), registration, password reset, user onboarding, cross-site user management, team member system, profile URL resolution, network-wide avatar menu, custom avatars, and online user tracking across all 10 active sites (Blog IDs 1–5, 7–11) with docs at Blog ID 10; horoscope planned for Blog ID 12.
+**THE SINGLE SOURCE OF TRUTH FOR USER MANAGEMENT** - Network-activated WordPress plugin providing all user-related functionality for the ExtraChill Platform multisite network. This plugin is the centralized authority for authentication (including Google OAuth), registration, password reset, user onboarding, cross-site user management, team member system, profile URL resolution, network-wide avatar menu, custom avatars, and online user tracking across all 11 active sites (Blog IDs 1–5, 7–12) with docs at Blog ID 10.
 
 User management functionality was migrated here from extrachill-multisite plugin to follow the single responsibility principle. All user-specific features, authentication flows, and user data operations are consolidated in this plugin.
 
@@ -96,7 +96,7 @@ User management functionality was migrated here from extrachill-multisite plugin
 #### Online Users Tracking (`inc/core/online-users.php`)
 
 **Network-Wide Activity Tracking**:
-- Records user activity across all 10 active sites in the multisite network (Blog IDs 1–5, 7–11)
+- Records user activity across all 11 active sites in the multisite network (Blog IDs 1–5, 7–12)
 - Centralized data storage on community.extrachill.com as the single source of truth
 - 15-minute activity window for "online" status determination
 - Updates `last_active` user meta via the `wp` action hook on all sites
@@ -226,6 +226,11 @@ User management functionality was migrated here from extrachill-multisite plugin
    - User meta flags: `user_is_artist` OR `user_is_professional`
    - Permission-aware logic
 
+**Artist Marketplace Metadata**:
+- **Stripe Account ID**: Stored as `_stripe_account_id` on the `artist_profile` post (Blog ID 4)
+- **Shipping Address**: Stored as `_shipping_address` array on the `artist_profile` post
+- **Fulfillment**: Managed via the Shop Manager block using these identifiers
+
 **Multisite Architecture**:
 - All functions handle blog switching to artist.extrachill.com automatically
 - Dynamic site discovery with automatic WordPress blog-id-cache for performance
@@ -243,10 +248,13 @@ User management functionality was migrated here from extrachill-multisite plugin
 #### Author Profile URL Resolution (`inc/author-links.php`)
 **Functions**:
 - `ec_get_user_profile_url( $user_id, $user_email = '' )` - Centralized user profile URL logic
-- `ec_get_comment_author_link_multisite( $comment )` - Generate comment author link HTML
+- `ec_get_comment_author_link_multisite( $comment )` - Generate comment author link HTML that routes to community profiles
 - `ec_should_use_multisite_comment_links( $comment )` - Check if comment should use multisite linking (after Feb 9, 2024)
 - `ec_display_author_community_link( $author_id )` - Display "View Community Profile" button on author archives
 - `ec_customize_comment_form_logged_in( $defaults )` - Fix wp-admin profile links to route to community bbPress profile
+
+**Multisite Routing**:
+`ec_get_comment_author_link_multisite` ensures that comment authors are linked to their `community.extrachill.com` profiles rather than local site archives, maintaining identity consistency across the network.
 
 **Resolution Logic**:
 1. Try email lookup on community site → return bbPress profile URL
@@ -341,22 +349,24 @@ function my_plugin_avatar_menu( $menu_items, $user_id ) {
 
 **Implementation**:
 - Checks if user is logged in via `is_user_logged_in()`
-- Returns approval status `1` for logged-in users
+- Returns approval status `1` for logged-in users, effectively auto-approving their contributions.
 - Returns default approval status for non-logged-in users
 
 **Purpose**: Improve user experience by immediately approving comments from authenticated users while maintaining moderation for anonymous comments
 
-#### Ad-Free License System (`inc/ad-free-license.php`)
-**License Management**:
-- `is_user_ad_free( $userDetails = null )` - Validate if user has ad-free license (reads user meta)
-- `ec_create_ad_free_license( $username, $order_data )` - Create ad-free license for user (writes user meta)
+#### Lifetime Extra Chill Membership System (`inc/lifetime-membership.php`)
+**Membership Management**:
+- `is_user_lifetime_member( $userDetails = null )` - Validate if user has Lifetime Extra Chill Membership (reads user meta; primary benefit is ad-free experience)
+- `ec_create_lifetime_membership( $username, $order_data )` - Create Lifetime Extra Chill Membership for user (writes user meta)
 - WordPress-native user meta storage (no custom tables, no blog switching)
-- Meta key: `extrachill_ad_free_purchased`
+- Meta key: `extrachill_lifetime_membership`
 - Works network-wide (user meta accessible from all multisite sites)
+
+**Note**: Management UI provided by the 'Lifetime Memberships' tool in `extrachill-admin-tools` (React-based tool consuming `/admin/lifetime-membership` REST endpoints).
 
 **User Meta Structure**:
 ```php
-// Meta key: extrachill_ad_free_purchased
+// Meta key: extrachill_lifetime_membership
 // Meta value (array):
 array(
   'purchased' => '2024-10-27 14:30:00',  // MySQL datetime
@@ -366,9 +376,9 @@ array(
 ```
 
 **Integration Points**:
-- **Theme**: Calls `is_user_ad_free()` in `header.php` to block Mediavine ads
-- **Shop Plugin**: Calls `ec_create_ad_free_license()` when WooCommerce orders complete
-- **User Meta**: Stores purchase data in `extrachill_ad_free_purchased` meta key
+- **Theme**: Calls `is_user_lifetime_member()` in `header.php` to block Mediavine ads
+- **Shop Plugin**: Calls `ec_create_lifetime_membership()` when WooCommerce orders complete
+- **User Meta**: Stores purchase data in `extrachill_lifetime_membership` meta key
 
 **Architecture**:
 - **WordPress-Native Storage**: Uses user meta (KISS principle, no custom tables)
@@ -416,7 +426,7 @@ extrachill-users/
 │   ├── avatar-display.php         (custom avatar display - network-wide)
 │   ├── avatar-menu.php            (avatar menu display)
 │   ├── comment-auto-approval.php  (comment auto-approval for logged-in users)
-│   ├── ad-free-license.php        (ad-free license validation)
+│   ├── lifetime-membership.php    (membership validation)
 │   └── assets.php                 (asset enqueuing)
 ├── assets/
 │   ├── css/
@@ -449,13 +459,14 @@ extrachill-users/
 ### WordPress Multisite Patterns
 **Blog Switching Architecture**:
 ```php
-// Standard pattern used throughout plugin
-switch_to_blog( 2 );
-try {
-    // Cross-site database operations
-    $user = get_userdata( $user_id );
-} finally {
-    restore_current_blog();
+if ( $blog_id = ec_get_blog_id( 'community' ) ) {
+    try {
+        switch_to_blog( $blog_id );
+        // Cross-site database operations
+        $user = get_userdata( $user_id );
+    } finally {
+        restore_current_blog();
+    }
 }
 ```
 
@@ -493,7 +504,7 @@ try {
 14. `inc/avatar-display.php` - Avatar display (loads network-wide)
 15. `inc/avatar-menu.php` - Avatar menu (loads network-wide)
 16. `inc/comment-auto-approval.php` - Comment auto-approval system
-17. `inc/ad-free-license.php` - Ad-free license validation
+17. `inc/lifetime-membership.php` - Lifetime membership validation
 
 **Note**: Avatar upload UI moved to extrachill-community plugin for bbPress integration
 
@@ -599,7 +610,7 @@ try {
 **Purpose**: Network-wide activity tracking and online user statistics
 
 **Key Features**:
-- Tracks user activity across all 10 active sites in the multisite network (Blog IDs 1–5, 7–11)
+- Tracks user activity across all 11 active sites in the multisite network (Blog IDs 1–5, 7–12)
 - Centralized storage on community.extrachill.com
 - Transient caching for performance optimization
 - "Most ever online" tracking with date

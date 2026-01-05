@@ -1,6 +1,7 @@
 {
 	"name": "extrachill/extrachill-users",
 	"description": "Cross-site user management for the ExtraChill Platform multisite network",
+	"version": "0.5.7",
 	"type": "wordpress-plugin",
 	"license": "GPL-2.0-or-later",
 	"require": {

@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.5.7] - 2026-01-04
+
+### Changed
+- **Decommissioned Legacy Membership UI**: Removed the legacy `network-memberships.php` administrative interface.
+- **Admin Tools Migration**: Lifetime Membership management is now handled exclusively by the `extrachill-admin-tools` plugin's React-based interface via REST API.
+
 ## [0.5.6] - 2025-12-22
 
 ### Added

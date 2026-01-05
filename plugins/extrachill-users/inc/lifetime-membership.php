@@ -1,24 +1,25 @@
 <?php
 /**
- * Ad-Free License Management
+ * Lifetime Membership Management
  *
- * Network-wide license validation and creation via user meta.
+ * Network-wide membership validation and creation via user meta.
+ * Lifetime Extra Chill Members enjoy ad-free access across the entire network.
  *
  * @package ExtraChill\Users
  * @since 0.1.0
  */
 
 /**
- * Check if user has ad-free license
+ * Check if user is a Lifetime Extra Chill Member
  *
- * Checks user meta for ad-free license purchase.
+ * Checks user meta for lifetime membership purchase.
  * Works with logged-in users or username lookup.
  *
  * @since 0.1.0
  * @param array|null $userDetails Optional user details with 'username' key
- * @return bool True if user has ad-free license
+ * @return bool True if user is a lifetime member
  */
-function is_user_ad_free($userDetails = null) {
+function is_user_lifetime_member($userDetails = null) {
     if (!$userDetails && !is_user_logged_in()) {
         return false;
     }
@@ -41,16 +42,16 @@ function is_user_ad_free($userDetails = null) {
         $user_id = $user->ID;
     }
 
-    // Check user meta for ad-free license
-    $license_data = get_user_meta($user_id, 'extrachill_ad_free_purchased', true);
+    // Check user meta for lifetime membership
+    $membership_data = get_user_meta($user_id, 'extrachill_lifetime_membership', true);
 
-    return !empty($license_data);
+    return !empty($membership_data);
 }
 
 /**
  * Output Mediavine blocklist when ads should be blocked.
  *
- * Ad-free users are blocked globally, and site-specific plugins can request
+ * Lifetime members are blocked globally, and site-specific plugins can request
  * ad blocking via the `extrachill_should_block_ads` filter.
  *
  * @since 0.1.0
@@ -74,7 +75,7 @@ function extrachill_users_output_mediavine_blocklist() {
 
 	$should_block_ads = false;
 
-	if ( is_user_logged_in() && is_user_ad_free() ) {
+	if ( is_user_logged_in() && is_user_lifetime_member() ) {
 		$should_block_ads = true;
 	} else {
 		$should_block_ads = (bool) apply_filters( 'extrachill_should_block_ads', false, $context );
@@ -90,17 +91,17 @@ add_action( 'wp_head', 'extrachill_users_output_mediavine_blocklist', 1 );
 
 
 /**
- * Create ad-free license for user
+ * Create lifetime membership for user
  *
- * Central function for license creation regardless of which site/plugin initiates purchase.
- * Stores license in user meta for network-wide availability.
+ * Central function for membership creation regardless of which site/plugin initiates purchase.
+ * Stores membership in user meta for network-wide availability.
  *
  * @since 0.1.0
  * @param string $username Community username
  * @param array $order_data Order details array with 'order_id' and optional 'timestamp'
  * @return bool|WP_Error True on success, WP_Error on failure
  */
-function ec_create_ad_free_license($username, $order_data = array()) {
+function ec_create_lifetime_membership($username, $order_data = array()) {
     // Validate username
     if (empty($username)) {
         return new WP_Error('empty_username', 'Username is required');
@@ -115,15 +116,15 @@ function ec_create_ad_free_license($username, $order_data = array()) {
         return new WP_Error('user_not_found', "User not found for username: {$username}");
     }
 
-    // Prepare license data
-    $license_data = array(
+    // Prepare membership data
+    $membership_data = array(
         'purchased' => isset($order_data['timestamp']) ? $order_data['timestamp'] : current_time('mysql'),
         'order_id' => isset($order_data['order_id']) ? intval($order_data['order_id']) : 0,
         'username' => $username
     );
 
-    // Store ad-free license in user meta
-    $result = update_user_meta($user->ID, 'extrachill_ad_free_purchased', $license_data);
+    // Store lifetime membership in user meta
+    $result = update_user_meta($user->ID, 'extrachill_lifetime_membership', $membership_data);
 
     if (!$result) {
         return new WP_Error('meta_update_failed', 'Failed to update user meta');
