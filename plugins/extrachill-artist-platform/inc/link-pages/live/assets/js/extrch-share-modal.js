@@ -5,6 +5,32 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
 
+    /**
+     * Track share click via analytics endpoint.
+     *
+     * @param {string} destination - Share destination (facebook, twitter, etc.)
+     * @param {string} shareUrl - URL being shared
+     */
+    function trackShare(destination, shareUrl) {
+        const endpoint = '/wp-json/extrachill/v1/analytics/share';
+        const data = {
+            destination: destination,
+            source_url: window.location.href,
+            share_url: shareUrl || window.location.href
+        };
+
+        if (navigator.sendBeacon) {
+            navigator.sendBeacon(endpoint, new Blob([JSON.stringify(data)], { type: 'application/json' }));
+        } else {
+            fetch(endpoint, {
+                method: 'POST',
+                body: JSON.stringify(data),
+                headers: { 'Content-Type': 'application/json' },
+                keepalive: true
+            }).catch(() => {});
+        }
+    }
+
     const overlay = modal.querySelector('.extrch-share-modal-overlay');
     const closeButton = modal.querySelector('.extrch-share-modal-close');
     const copyLinkButton = modal.querySelector('.extrch-share-option-copy-link');
@@ -145,6 +171,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
+            trackShare('copy_link', currentShareUrl);
             navigator.clipboard.writeText(currentShareUrl)
                 .then(() => {
                     const originalIconClass = icon.className;
@@ -172,6 +199,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (nativeShareOptionButton && navigator.share) {
         nativeShareOptionButton.addEventListener('click', async () => {
             try {
+                trackShare('native', currentShareUrl);
                 await navigator.share({
                     title: currentShareTitle,
                     url: currentShareUrl,
@@ -184,6 +212,20 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
+
+    // Track social media link clicks (these open in new tabs)
+    [facebookLink, twitterLink, linkedinLink, emailLink].forEach(link => {
+        if (link) {
+            link.addEventListener('click', () => {
+                let destination = 'unknown';
+                if (link === facebookLink) destination = 'facebook';
+                else if (link === twitterLink) destination = 'twitter';
+                else if (link === linkedinLink) destination = 'linkedin';
+                else if (link === emailLink) destination = 'email';
+                trackShare(destination, currentShareUrl);
+            });
+        }
+    });
 
     // Close modal with Escape key
     document.addEventListener('keydown', (event) => {

@@ -103,3 +103,81 @@ function ec_artist_platform_back_to_home_label( $label, $url ) {
     return '← Back to Artist Platform';
 }
 add_filter( 'extrachill_back_to_home_label', 'ec_artist_platform_back_to_home_label', 10, 2 );
+
+/**
+ * Override schema breadcrumb items for artist platform site
+ *
+ * Aligns schema breadcrumbs with visual breadcrumbs for artist.extrachill.com.
+ * Only applies on blog ID 4 (artist.extrachill.com).
+ *
+ * Output patterns:
+ * - Homepage: [Extra Chill, Artist Platform]
+ * - Artist archive: [Extra Chill, Artist Platform, Artists]
+ * - Single artist: [Extra Chill, Artist Platform, Artist Name]
+ *
+ * @hook extrachill_seo_breadcrumb_items
+ * @param array $items Default breadcrumb items from SEO plugin
+ * @return array Modified breadcrumb items for artist platform context
+ * @since 1.1.0
+ */
+function ec_artist_platform_schema_breadcrumb_items( $items ) {
+	$artist_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'artist' ) : null;
+	if ( ! $artist_blog_id || get_current_blog_id() !== $artist_blog_id ) {
+		return $items;
+	}
+
+	$main_site_url = function_exists( 'ec_get_site_url' ) ? ec_get_site_url( 'main' ) : 'https://extrachill.com';
+
+	// Homepage: Extra Chill → Artist Platform
+	if ( is_front_page() ) {
+		return array(
+			array(
+				'name' => 'Extra Chill',
+				'url'  => $main_site_url,
+			),
+			array(
+				'name' => 'Artist Platform',
+				'url'  => '',
+			),
+		);
+	}
+
+	// Artist archive: Extra Chill → Artist Platform → Artists
+	if ( is_post_type_archive( 'artist_profile' ) ) {
+		return array(
+			array(
+				'name' => 'Extra Chill',
+				'url'  => $main_site_url,
+			),
+			array(
+				'name' => 'Artist Platform',
+				'url'  => home_url( '/' ),
+			),
+			array(
+				'name' => 'Artists',
+				'url'  => '',
+			),
+		);
+	}
+
+	// Single artist profile: Extra Chill → Artist Platform → Artist Name
+	if ( is_singular( 'artist_profile' ) ) {
+		return array(
+			array(
+				'name' => 'Extra Chill',
+				'url'  => $main_site_url,
+			),
+			array(
+				'name' => 'Artist Platform',
+				'url'  => home_url( '/' ),
+			),
+			array(
+				'name' => get_the_title(),
+				'url'  => '',
+			),
+		);
+	}
+
+	return $items;
+}
+add_filter( 'extrachill_seo_breadcrumb_items', 'ec_artist_platform_schema_breadcrumb_items' );

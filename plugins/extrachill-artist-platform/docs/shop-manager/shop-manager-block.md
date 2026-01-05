@@ -187,9 +187,18 @@ Order management interface for viewing, fulfilling, and processing customer orde
 **Shipping Label Integration**:
 ```javascript
 // Purchase shipping label
+// Endpoint: POST /extrachill/v1/shop/shipping-labels
 const result = await purchaseShippingLabel(orderId, artistId);
-// Returns: { tracking_number, label_url }
+// Returns: { tracking_number, label_url, tracking_url, carrier, service, cost }
 ```
+
+**Label Fulfillment Flow**:
+1. Artist verifies customer shipping address in **OrdersTab**
+2. Artist clicks "Purchase Shipping Label" ($5.00 flat rate charged to platform)
+3. API selects cheapest USPS rate via Shippo
+4. Tracking number is automatically added to order
+5. Order status updates to "Completed"
+6. Label PDF opens in new tab for printing
 
 **Status Management**:
 - Mark as Shipped action (available for processing orders)

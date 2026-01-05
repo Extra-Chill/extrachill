@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.3] - 2026-01-04
+
+### Added
+- **Schema Breadcrumb Integration**: Implemented `ec_artist_platform_schema_breadcrumb_items` to align JSON-LD schema breadcrumbs with the visual breadcrumb trail on artist.extrachill.com.
+- **Share Analytics Tracking**: Added `trackShare` functionality to the link page share modal to record share events (copy link, native share, social platforms) via the analytics REST API.
+
+### Changed
+- **Shop Documentation**: Updated `shop-manager-block.md` with detailed label fulfillment flow and expanded shipping label API response properties (tracking URL, cost, etc.).
+- **Platform Scale**: Updated `AGENTS.md` to reflect the growth of the Extra Chill Platform to 11 active sites.
+- **Architectural Cleanup**: Standardized block component documentation and improved blog ID detection logic references in `AGENTS.md`.
+
 ## [1.6.2] - 2026-01-02
 
 ### Changed

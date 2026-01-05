@@ -2,7 +2,7 @@
 
 WordPress plugin providing comprehensive artist platform functionality for the Extra Chill community. Enables artists to create profiles, link pages, and manage subscribers.
 
-This plugin is part of the Extra Chill Platform, a WordPress multisite network serving music communities across 10 active sites.
+This plugin is part of the Extra Chill Platform, a WordPress multisite network serving music communities across 11 active sites.
 
 ## Architecture
 
@@ -33,7 +33,7 @@ This plugin is part of the Extra Chill Platform, a WordPress multisite network s
 The plugin provides comprehensive integration with the extrachill.link domain for artist link pages:
 
 **Domain Mapping Architecture**:
-- **Backend Mapping**: extrachill.link maps to artist.extrachill.com (blog ID 4) via .github/sunrise.php
+- **Backend Mapping**: `extrachill.link` (and `www.extrachill.link`) → Blog ID 4 (artist.extrachill.com) via `.github/sunrise.php` (executes before WordPress loads)
 - **Frontend URLs**: All link page URLs display as extrachill.link/{artist-slug} while operating on artist.extrachill.com backend
 - **Cross-Domain Auth**: WordPress authentication cookie attributes adjusted by **extrachill-users** (`extrachill-users/inc/auth/extrachill-link-auth.php`) to support authenticated REST calls from extrachill.link
 - **URL Preservation**: sunrise.php `home_url` filter replaces artist.extrachill.com with extrachill.link in frontend output
@@ -263,21 +263,22 @@ Dedicated Gutenberg block for artist profile creation:
 - Automatic link page creation for new profiles
 - REST API integration for save operations
 
-**5. Artist Shop Manager Block** (`src/blocks/artist-shop-manager/`)
+**3. Artist Shop Manager Block** (`src/blocks/artist-shop-manager/`)
 
-Comprehensive shop product management with Stripe integration:
+Comprehensive shop product management with Stripe and Shippo integration:
 
 **Location**: `src/blocks/artist-shop-manager/`
 
 **Features**:
 - Complete shop product CRUD operations (create, read, update, delete)
 - Product media uploads and management (up to 5 images per product)
-- Inventory tracking and management with size variants
-- Order management with fulfillment tracking
-- Stripe Connect integration for payment processing
-- Shipping configuration and label purchasing
-- Product status management (draft/published)
+- Inventory tracking and management with size variants (XS-XXL)
+- Order management with fulfillment tracking and filtering
+- Stripe Connect Express integration for marketplace payouts
+- Shipping configuration and automated USPS label purchasing via Shippo
+- Product status management (draft/published) with Stripe capability validation
 - Sale price and pricing management
+- Artist-managed shipping addresses stored on artist profiles
 
 **Component Structure**:
 
@@ -500,7 +501,7 @@ Centralized hook registrations for artist platform homepage functionality using 
 
 **Template Override**:
 - Filter: `extrachill_template_homepage` (provided by theme's template-router.php)
-- Blog ID detection: Only overrides on artist.extrachill.com (blog ID 4)
+- Blog ID detection: Only overrides on artist.extrachill.com using `ec_get_blog_id('artist')`
 - Template path: `inc/home/templates/homepage.php`
 
 **Action Hooks**:
