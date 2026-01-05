@@ -14,7 +14,8 @@
 	<p class="home-network-card-description">
 		The home for independent music on Extra Chill. Create your profile, build a custom link page, and track your growth with real-time analytics.
 	</p>
-	<div class="home-network-card-cta">
+	<div class="home-network-card-cta" style="display: flex; gap: var(--spacing-sm); flex-wrap: wrap; justify-content: center;">
 		<a href="https://extrachill.link/join" class="button-1 button-medium" target="_blank" rel="noopener">Join the Platform</a>
+		<a href="https://artist.extrachill.com/artists/" class="button-3 button-medium">Browse Artists</a>
 	</div>
 </div>

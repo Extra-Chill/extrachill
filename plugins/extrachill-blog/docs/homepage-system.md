@@ -16,8 +16,11 @@ inc/home/
     ├── hero.php                 # Hero section with imagery
     ├── section-about.php        # About section (platform overview)
     ├── section-3x3-grid.php     # Featured posts 3x3 grid
-    ├── section-extrachill-link.php # Artist link pages promo
-    └── section-more-recent-posts.php # Blog roll / recent posts
+    ├── section-events.php       # Events with dynamic location counts
+    ├── section-wire.php         # News Wire with festival post counts
+    ├── section-community.php    # Community CTA with recent activity link
+    ├── section-artist-platform.php # Artist Platform CTA with dual buttons
+    └── section-search.php       # Network-wide search section
 ```
 
 ## Template Hierarchy
@@ -27,10 +30,24 @@ The homepage is built from discrete template sections that can be independently 
 1. **Hero Section** - Large featured image and headline
 2. **About Section** - Platform mission/overview
 3. **3x3 Grid** - Featured content display
-4. **extrachill.link Promo** - Call-to-action for artist link pages
-5. **Recent Posts** - Blog chronological listing
+4. **Network Discovery Grid** - Dynamic cards linking to network sites:
+   - **Events** - Location-based event discovery
+   - **Festival Wire** - Automated festival news
+   - **Community** - Forum engagement
+   - **Artist Platform** - Artist profile/link page marketing
+5. **Search Section** - Universal search entry point
 
 Each section is a separate template file loaded via the hook system.
+
+## Data Fetching (Dynamic Discovery)
+
+The homepage uses specialized functions in `homepage-queries.php` to fetch real-time data from other sites in the multisite network:
+
+### `extrachill_blog_get_location_event_counts()`
+Queries Blog ID 7 (events.extrachill.com) for the top 8 locations with upcoming events. Uses `switch_to_blog()` and `WP_Query` with `meta_query` for date filtering.
+
+### `extrachill_blog_get_wire_festival_counts()`
+Queries Blog ID 11 (wire.extrachill.com) for the top 8 festival taxonomy terms by post count. Uses `switch_to_blog()` and `get_terms()`.
 
 ## Hook System
 

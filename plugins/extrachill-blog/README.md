@@ -5,6 +5,7 @@ Blog-specific functionality for the Extra Chill Platform's main site (extrachill
 ## Features
 
 - Custom homepage templates with multiple content sections
+- **Dynamic Network Discovery**: Real-time content counts from Events and News Wire sites to drive user engagement and SEO
 - Secondary header navigation
 - Blog archive system and template routing
 - Integration with extrachill.link marketing

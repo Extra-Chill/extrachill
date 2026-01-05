@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.9] - 2026-01-04
+
+### Added
+- Dynamic data-driven discovery components for the homepage network grid
+- `extrachill_blog_get_location_event_counts()` function to fetch upcoming event counts from events.extrachill.com (Blog ID 7)
+- `extrachill_blog_get_wire_festival_counts()` function to fetch festival wire post counts from wire.extrachill.com (Blog ID 11)
+- Taxonomy badges with post counts for `section-events.php` and `section-wire.php`
+- Dual-button CTA layouts with flexbox styling for `section-community.php` and `section-artist-platform.php`
+
+### Changed
+- Updated homepage architecture from static promotional cards to dynamic network discovery components
+- Aligned documentation (AGENTS.md, README.md, homepage-system.md) with new dynamic functionality
+
 ## [0.3.8] - 2026-01-02
 
 ### Changed

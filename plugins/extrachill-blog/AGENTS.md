@@ -5,7 +5,7 @@ WordPress plugin providing blog-specific functionality for extrachill.com (Blog 
 ## Overview
 
 **Plugin Name**: Extra Chill Blog
-**Version**: 0.3.8
+**Version**: 0.3.9
 **Network**: false (site-activated on Blog ID 1 only)
 **Purpose**: Blog-specific homepage, navigation, and archive functionality for the main Extra Chill content site
 
@@ -16,7 +16,10 @@ WordPress plugin providing blog-specific functionality for extrachill.com (Blog 
 - Hero section with featured imagery
 - Recent posts display
 - About section integration
-- Extra Chill Link promo section (marketing for artist link pages at extrachill.link)
+- **Network Discovery System**: Dynamic, data-driven components for cross-network content discovery
+  - Events section with dynamic location event counts from events.extrachill.com
+  - Festival Wire section with festival-specific post counts from wire.extrachill.com
+  - Community and Artist Platform sections with dual-button CTA layouts
 - 3x3 content grid for featured posts
 
 ### Gutenberg Blocks
