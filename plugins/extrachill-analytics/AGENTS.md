@@ -102,13 +102,23 @@ if ('extrachill-multisite_page_extrachill-analytics' !== $hook) {
 **Pattern**: WordPress Gutenberg-style React app using wp-element and wp-api-fetch.
 
 **Dependencies**:
-- `wp-element` - React-like DOM library
+- `wp-element` - React-like DOM library (React 18)
 - `wp-i18n` - Internationalization
 - `wp-api-fetch` - REST API client
 
 **Container**: `#extrachill-analytics-app` with loading state
 
 **File**: `assets/js/admin-analytics.js`
+
+**React 18 Initialization Pattern**:
+- Wrap initialization in `DOMContentLoaded` event listener
+- Use `wp.element.createRoot()` (React 18 API) not `wp.element.render()` (React 17)
+- Add `window.wp` availability check before accessing dependencies
+- Wrap in try/catch for error handling with console logging
+
+**Why DOM Ready Check?** WordPress loads dependencies asynchronously; script may execute before `window.wp` is available.
+
+**Why React 18 API?** Modern WordPress uses React 18; legacy `render()` deprecated and less performant.
 
 **Note**: Currently v0.1.0 placeholder; dashboard displays welcome message pending data integration.
 

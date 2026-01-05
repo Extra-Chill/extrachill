@@ -43,7 +43,7 @@ function extrachill_analytics_render_admin_page() {
  */
 function extrachill_analytics_enqueue_admin_assets( $hook ) {
 	// Only load on our specific submenu page
-	if ( 'extrachill-multisite_page_extrachill-analytics' !== $hook ) {
+	if ( 'extra-chill-multisite_page_extrachill-analytics' !== $hook ) {
 		return;
 	}
 
