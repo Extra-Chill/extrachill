@@ -1,0 +1,10 @@
+/**
+ * Extra Chill Analytics Admin Styles
+ */
+.extrachill-analytics-dashboard {
+    background: #fff;
+    border: 1px solid #ccd0d4;
+    padding: 20px;
+    margin-top: 20px;
+    box-shadow: 0 1px 1px rgba(0,0,0,.04);
+}
