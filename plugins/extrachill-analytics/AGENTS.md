@@ -2,7 +2,7 @@
 
 ## Architectural Overview
 
-The ExtraChill Analytics plugin provides network-wide analytics tracking and reporting using a REST API-driven architecture with WordPress post meta storage.
+The ExtraChill Analytics plugin provides network-wide analytics tracking and reporting using a unified event tracking system. It tracks key business metrics (newsletter signups, user registrations, page views) via action hook listeners and stores events in a centralized database table for querying and dashboard display.
 
 ## Core Patterns
 
@@ -210,7 +210,121 @@ if (function_exists('ec_the_post_views')) {
 $views = ec_get_post_views($post_id);
 ```
 
+## Event Tracking System
+
+### 6. Unified Event Storage
+
+**Pattern**: Network-wide custom table for storing all analytics events with flexible JSON payload.
+
+**Table**: `{base_prefix}_ec_events` (shared across multisite network)
+
+**Schema**:
+- `id` - Auto-increment primary key
+- `event_type` - Event identifier (e.g., 'newsletter_signup', 'user_registration')
+- `event_data` - JSON payload with event-specific data
+- `source_url` - Page URL where event occurred
+- `blog_id` - Multisite blog context
+- `user_id` - User ID if logged in (nullable)
+- `created_at` - Timestamp
+
+**File**: `inc/database/events-db.php`
+
+### 7. Event Tracking Functions
+
+**File**: `inc/core/events.php`
+
+**Core Functions**:
+```php
+// Track an event
+ec_track_event( 'newsletter_signup', array(
+    'context' => 'homepage',
+    'list_id' => 'abc123',
+), 'https://extrachill.com/festivals/' );
+
+// Query events
+$events = ec_get_events( array(
+    'event_type' => 'newsletter_signup',
+    'date_from'  => '2025-01-01',
+    'limit'      => 50,
+) );
+
+// Get aggregated stats
+$stats = ec_get_event_stats( 'newsletter_signup', 30 ); // Last 30 days
+```
+
+### 8. Event Listeners
+
+**Pattern**: Loosely-coupled listeners that hook into events fired by other plugins.
+
+**Newsletter Signups** (`inc/listeners/newsletter.php`):
+- Listens to: `extrachill_newsletter_subscribed`
+- Tracks: context, list_id, source_url
+
+**User Registrations** (`inc/listeners/registration.php`):
+- Listens to: `extrachill_new_user_registered`
+- Tracks: user_id, registration_source, registration_method, registration_page
+
+### 9. REST API Endpoints
+
+**Provided by extrachill-api plugin**:
+
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| `/analytics/events` | GET | Query events with filters |
+| `/analytics/events/summary` | GET | Aggregated stats by event type |
+
+**Query Parameters** (`/analytics/events`):
+- `event_type` - Filter by event type
+- `blog_id` - Filter by blog
+- `date_from` / `date_to` - Date range
+- `limit` / `offset` - Pagination
+
+**Summary Parameters** (`/analytics/events/summary`):
+- `event_type` (required) - Event type to aggregate
+- `days` - Lookback period (default 30, 0 for all time)
+- `blog_id` - Optional blog filter
+
+## Event Data Flow
+
+### Newsletter Signup Flow
+```
+User submits form on /festivals/bonnaroo-2025/
+↓
+newsletter.js POSTs to /extrachill/v1/newsletter/subscribe
+with { email, context: 'content', source_url }
+↓
+REST endpoint calls extrachill_multisite_subscribe($email, $context, $source_url)
+↓
+Sendy API returns success
+↓
+do_action('extrachill_newsletter_subscribed', $context, $list_id, $source_url)
+↓
+Analytics listener calls ec_track_event('newsletter_signup', {...}, $source_url)
+↓
+Event stored in {base_prefix}_ec_events table
+```
+
+### User Registration Flow
+```
+User registers via form or Google OAuth
+↓
+extrachill-users creates user
+↓
+do_action('extrachill_new_user_registered', $user_id, $page, $source, $method)
+↓
+Analytics listener calls ec_track_event('user_registration', {...}, $page)
+↓
+Event stored in {base_prefix}_ec_events table
+```
+
 ## Version History
+
+### 0.2.0 (Event Tracking)
+- Unified event tracking system with custom table
+- Newsletter signup tracking with source URL
+- User registration tracking
+- REST API endpoints for querying events
+- Event listeners for cross-plugin integration
 
 ### 0.1.0 (Initial)
 - Basic view tracking via REST API
@@ -225,4 +339,4 @@ $views = ec_get_post_views($post_id);
 - Popular posts reporting
 - Date range filtering in dashboard
 - Export functionality
-- Link click tracking endpoint integration
+- Additional event types (contact form, purchases, etc.)

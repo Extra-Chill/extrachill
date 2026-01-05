@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Extra Chill Analytics
  * Description: Network-wide analytics tracking and reporting for the Extra Chill Platform.
- * Version: 0.1.0
+ * Version: 0.2.0
  * Author: Chris Huber
  * Network: true
  * Text Domain: extrachill-analytics
@@ -15,15 +15,24 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'EXTRACHILL_ANALYTICS_VERSION', '0.1.0' );
+define( 'EXTRACHILL_ANALYTICS_VERSION', '0.2.0' );
 define( 'EXTRACHILL_ANALYTICS_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'EXTRACHILL_ANALYTICS_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 
-// Core functionality (network-wide)
+// Database table management.
+require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/database/events-db.php';
+
+// Core functionality (network-wide).
+require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/events.php';
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/view-counts.php';
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/assets.php';
 
-// Admin functionality
+// Event listeners.
+require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/listeners/newsletter.php';
+require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/listeners/registration.php';
+require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/listeners/search.php';
+
+// Admin functionality.
 if ( is_admin() ) {
 	require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/admin/network-menu.php';
 }

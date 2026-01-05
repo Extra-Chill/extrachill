@@ -8,6 +8,7 @@ The ExtraChill Analytics plugin provides comprehensive view tracking and analyti
 
 ## Features
 
+- **Unified Event Tracking**: Network-wide custom table for tracking newsletters, registrations, and more
 - **Network-Wide Activation**: Plugin activated across all sites in the multisite network
 - **Async View Tracking**: Uses `navigator.sendBeacon` and `fetch` with `keepalive` for non-blocking tracking
 - **REST API Integration**: Tracks views via extrachill-api endpoint at `/extrachill/v1/analytics/view`
