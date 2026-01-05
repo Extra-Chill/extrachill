@@ -12,7 +12,7 @@ The forums on Extra Chill Community are where members discuss music, share exper
 ## Creating a New Topic
 
 1. From the homepage, click the "New Topic" button.
-2. Fill in the topic title and content using the modern block editor.
+2. Fill in the topic title and content using the **Gutenberg block editor** (the platform standard).
 3. **Block Editor Features**:
    - Add different content blocks like paragraphs, headings, and embeds
    - Drag and drop blocks to reorder your content
@@ -25,7 +25,7 @@ The forums on Extra Chill Community are where members discuss music, share exper
 ## Replying to Topics
 
 1. Open a topic you want to reply to.
-2. Scroll to the bottom and use the reply form.
+2. Scroll to the bottom and use the reply form, or use the **Inline Reply** button for a faster response.
 3. **Reply Editor Features**:
    - Use the block editor to structure your response
    - Add formatted text, headings, and embedded content

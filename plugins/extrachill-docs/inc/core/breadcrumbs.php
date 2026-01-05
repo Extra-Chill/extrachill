@@ -128,3 +128,97 @@ function extrachill_docs_breadcrumb_trail_platform( $custom_trail ) {
 	return '<span>' . esc_html( $term->name ) . '</span>';
 }
 add_filter( 'extrachill_breadcrumbs_override_trail', 'extrachill_docs_breadcrumb_trail_platform', 10 );
+
+/**
+ * Override schema breadcrumb items for docs site
+ *
+ * Aligns schema breadcrumbs with visual breadcrumbs for docs.extrachill.com.
+ * Only applies on blog ID 10 (docs.extrachill.com).
+ *
+ * Output patterns:
+ * - Homepage: [Extra Chill, Documentation]
+ * - Platform taxonomy: [Extra Chill, Documentation, Platform Name]
+ * - Single doc: [Extra Chill, Documentation, Platform Name, Doc Title]
+ * - Single doc (no platform): [Extra Chill, Documentation, Doc Title]
+ *
+ * @hook extrachill_seo_breadcrumb_items
+ * @param array $items Default breadcrumb items from SEO plugin.
+ * @return array Modified breadcrumb items for docs context.
+ * @since 0.3.0
+ */
+function extrachill_docs_schema_breadcrumb_items( $items ) {
+	$docs_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'docs' ) : null;
+	if ( ! $docs_blog_id || get_current_blog_id() !== $docs_blog_id ) {
+		return $items;
+	}
+
+	$main_site_url = function_exists( 'ec_get_site_url' ) ? ec_get_site_url( 'main' ) : 'https://extrachill.com';
+
+	// Homepage: Extra Chill → Documentation
+	if ( is_front_page() ) {
+		return array(
+			array(
+				'name' => 'Extra Chill',
+				'url'  => $main_site_url,
+			),
+			array(
+				'name' => 'Documentation',
+				'url'  => '',
+			),
+		);
+	}
+
+	// Platform taxonomy archive: Extra Chill → Documentation → Platform Name
+	if ( is_tax( 'ec_doc_platform' ) ) {
+		$term = get_queried_object();
+		return array(
+			array(
+				'name' => 'Extra Chill',
+				'url'  => $main_site_url,
+			),
+			array(
+				'name' => 'Documentation',
+				'url'  => home_url( '/' ),
+			),
+			array(
+				'name' => $term->name,
+				'url'  => '',
+			),
+		);
+	}
+
+	// Single doc: Extra Chill → Documentation → Platform Name → Doc Title
+	if ( is_singular( 'ec_doc' ) ) {
+		$breadcrumbs = array(
+			array(
+				'name' => 'Extra Chill',
+				'url'  => $main_site_url,
+			),
+			array(
+				'name' => 'Documentation',
+				'url'  => home_url( '/' ),
+			),
+		);
+
+		$post  = get_queried_object();
+		$terms = get_the_terms( $post->ID, 'ec_doc_platform' );
+
+		if ( $terms && ! is_wp_error( $terms ) ) {
+			$platform = reset( $terms );
+			$breadcrumbs[] = array(
+				'name' => $platform->name,
+				'url'  => get_term_link( $platform ),
+			);
+		}
+
+		$breadcrumbs[] = array(
+			'name' => get_the_title(),
+			'url'  => '',
+		);
+
+		return $breadcrumbs;
+	}
+
+	return $items;
+}
+add_filter( 'extrachill_seo_breadcrumb_items', 'extrachill_docs_schema_breadcrumb_items' );

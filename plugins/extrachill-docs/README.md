@@ -352,7 +352,7 @@ GPL v2 or later - Part of the Extra Chill Platform ecosystem.
 
 **Plugin**: Extra Chill Docs
 **Author**: Chris Huber
-**Version**: 0.3.2
+**Version**: 0.3.3
 **WordPress**: 5.0+
 **License**: GPL v2+
 **Network**: Site-activated (Blog ID 10 only)

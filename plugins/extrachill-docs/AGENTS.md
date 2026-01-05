@@ -1,5 +1,9 @@
 # Extra Chill Docs - Agent Development Guide
 
+## Plugin Information
+- **Version**: 0.3.3
+- **Network**: false (site-activated on docs.extrachill.com, Blog ID 10)
+
 ## Overview
 User-facing documentation platform for the Extra Chill network. Deployed on docs.extrachill.com (Blog ID 10). Uses `ec_doc` custom post type with `ec_doc_platform` taxonomy for clean `/platform-slug/doc-slug/` URLs. Homepage displays dynamic platform cards for documentation navigation.
 

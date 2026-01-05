@@ -1,3 +1,20 @@
+# 0.3.3 - Jan 04, 2026
+
+### Added
+- Comprehensive breadcrumb schema support for SEO, aligning visual and search engine breadcrumbs
+- New user documentation: Artist Merch Store management, Artist Roster management, and User Profile setup
+- Community documentation: detailed guides for sharing music, notifications, and upvoting system
+- Events calendar documentation: guide for submitting events and using calendar filters
+
+### Changed
+- Refined community forum documentation with updated terminology (Gutenberg block editor) and inline reply features
+- Updated AI Chat documentation to reflect multi-turn conversation capabilities and sequence-based tool usage
+- Expanded Artist Platform "Getting Started" guide with detailed sign-in flow and Google integration steps
+
+### Maintenance
+- Updated AGENTS.md and README.md with current version and architectural details
+- Standardized documentation formatting across all new platform guides
+
 # 0.3.2 - Dec 31, 2025
 
 ### Added
