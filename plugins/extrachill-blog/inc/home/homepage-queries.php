@@ -50,6 +50,7 @@ function extrachill_blog_get_location_event_counts() {
 			array(
 				'taxonomy'   => 'location',
 				'hide_empty' => true,
+				'childless'  => true,
 			)
 		);
 
