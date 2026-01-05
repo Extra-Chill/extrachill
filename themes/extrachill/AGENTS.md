@@ -563,6 +563,15 @@ Mobile-first breakpoints using CSS media queries:
 }
 ```
 
+### Blocks Everywhere Integration
+
+The theme supports the "Gutenberg-anywhere" architecture via the `blocks-everywhere` plugin.
+
+**Iframe Asset Enqueuing**:
+- **Hook**: `blocks_everywhere_enqueue_iframe_assets` (in `inc/core/assets.php`)
+- **Purpose**: Enqueues essential theme styles (`root.css` and `style.css`) into the Gutenberg editor iframe used by Blocks Everywhere. This ensures that the editor accurately reflects the theme's design tokens and global styles.
+- **Implementation**: Registers and enqueues `extrachill-root` and `extrachill-style` specifically for the editor iframe context.
+
 ## Hooks System for Plugins
 
 ### Action Hooks (One-Way Functionality)

@@ -266,30 +266,3 @@ function extrachill_enqueue_network_dropdown_assets() {
     }
 }
 add_action( 'wp_enqueue_scripts', 'extrachill_enqueue_network_dropdown_assets', 10 );
-
-
-
-function extrachill_enqueue_view_tracking() {
-    if (!is_singular() || is_preview()) {
-        return;
-    }
-
-    $js_path = get_template_directory() . '/assets/js/view-tracking.js';
-    if (!file_exists($js_path)) {
-        return;
-    }
-
-    wp_enqueue_script(
-        'extrachill-view-tracking',
-        get_template_directory_uri() . '/assets/js/view-tracking.js',
-        array(),
-        filemtime($js_path),
-        true
-    );
-
-    wp_localize_script('extrachill-view-tracking', 'ecViewTracking', array(
-        'postId'   => get_the_ID(),
-        'endpoint' => rest_url('extrachill/v1/analytics/view'),
-    ));
-}
-add_action('wp_enqueue_scripts', 'extrachill_enqueue_view_tracking');

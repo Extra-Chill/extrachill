@@ -56,7 +56,7 @@ add_action('init', 'extrachill_unregister_image_sizes', 99);
 
 define('EXTRACHILL_PARENT_DIR', get_template_directory());
 
-define('EXTRACHILL_THEME_VERSION', '1.3.8');
+define('EXTRACHILL_THEME_VERSION', '1.3.9');
 
 define('EXTRACHILL_INCLUDES_DIR', EXTRACHILL_PARENT_DIR . '/inc');
 require_once(EXTRACHILL_INCLUDES_DIR . '/core/templates/post-meta.php');
@@ -72,7 +72,6 @@ require_once(EXTRACHILL_INCLUDES_DIR . '/core/analytics.php');
 require_once(EXTRACHILL_INCLUDES_DIR . '/core/assets.php');
 require_once(EXTRACHILL_INCLUDES_DIR . '/core/icons.php');
 require_once(EXTRACHILL_INCLUDES_DIR . '/core/notices.php');
-require_once(EXTRACHILL_INCLUDES_DIR . '/core/view-counts.php');
 require_once(EXTRACHILL_INCLUDES_DIR . '/core/rewrite.php');
 require_once(EXTRACHILL_INCLUDES_DIR . '/core/template-router.php');
 require_once(EXTRACHILL_INCLUDES_DIR . '/core/templates/breadcrumbs.php');
