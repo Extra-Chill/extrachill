@@ -1,12 +1,12 @@
 # ExtraChill WordPress Theme
 
-A custom WordPress theme (v1.3.9) powering the Extra Chill Platform multisite network with 11 active interconnected sites (Blog ID 6 unused), featuring hook-based homepage content, community integrations, universal filter bar component system, and multisite-aware navigation. Horoscope site is planned for future Blog ID 12.
+A custom WordPress theme (v1.3.10) powering the Extra Chill Platform multisite network with 11 active interconnected sites (Blog ID 6 unused), featuring hook-based homepage content, community integrations, universal filter bar component system, and multisite-aware navigation. Horoscope site is planned for future Blog ID 12.
 
-> **Platform alignment**: Documentation reflects the live 1.3.9 release in `style.css` and must stay in lockstep with future releases.
+> **Platform alignment**: Documentation reflects the live 1.3.10 release in `style.css` and must stay in lockstep with future releases.
 
 ## Overview
 
-ExtraChill is a modern, performance-optimized WordPress theme (v1.3.9) designed specifically for the Extra Chill Platform multisite network. It serves as the frontend for all 11 active interconnected sites (Blog ID 6 unused) with docs.extrachill.com at Blog ID 10; wire.extrachill.com at Blog ID 11; horoscope.extrachill.com planned for future Blog ID 12:
+ExtraChill is a modern, performance-optimized WordPress theme (v1.3.10) designed specifically for the Extra Chill Platform multisite network. It serves as the frontend for all 11 active interconnected sites (Blog ID 6 unused) with docs.extrachill.com at Blog ID 10; wire.extrachill.com at Blog ID 11; horoscope.extrachill.com planned for future Blog ID 12:
 
 - **extrachill.com** (Blog ID 1): Music journalism, artist features, and industry coverage
 - **community.extrachill.com** (Blog ID 2): Community forums with bbPress integration
@@ -404,6 +404,6 @@ See [docs/CHANGELOG.md](docs/CHANGELOG.md) for full version history.
 
 **Theme**: ExtraChill
 **Author**: Chubes
-**Version**: 1.3.9
+**Version**: 1.3.10
 **WordPress**: 5.0+
 **License**: Proprietary
