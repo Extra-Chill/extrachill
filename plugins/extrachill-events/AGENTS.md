@@ -2,7 +2,7 @@
 
 WordPress plugin providing seamless integration between Extra Chill and Data Machine Events. 
 
-This plugin is part of the Extra Chill Platform, a WordPress multisite network serving music communities across 9 active sites.
+This plugin is part of the Extra Chill Platform, a WordPress multisite network serving music communities across 11 active sites.
 
 ## Plugin Information
 

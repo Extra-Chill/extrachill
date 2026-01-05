@@ -151,3 +151,93 @@ function ec_events_back_to_home_label( $label, $url ) {
 }
 add_filter( 'extrachill_back_to_home_label', 'ec_events_back_to_home_label', 10, 2 );
 
+/**
+ * Override schema breadcrumb items for events site
+ *
+ * Aligns schema breadcrumbs with visual breadcrumbs for events.extrachill.com.
+ * Only applies on blog ID 7 (events.extrachill.com).
+ *
+ * Output patterns:
+ * - Homepage: [Extra Chill, Events Calendar]
+ * - Single event: [Extra Chill, Events Calendar, Event Title]
+ * - Taxonomy archive: [Extra Chill, Events Calendar, Term Name]
+ * - Post type archive: [Extra Chill, Events Calendar]
+ *
+ * @hook extrachill_seo_breadcrumb_items
+ * @param array $items Default breadcrumb items from SEO plugin
+ * @return array Modified breadcrumb items for events context
+ * @since 0.2.0
+ */
+function ec_events_schema_breadcrumb_items( $items ) {
+	$main_site_url = function_exists( 'ec_get_site_url' ) ? ec_get_site_url( 'main' ) : 'https://extrachill.com';
+
+	// Homepage: Extra Chill → Events Calendar
+	if ( is_front_page() ) {
+		return array(
+			array(
+				'name' => 'Extra Chill',
+				'url'  => $main_site_url,
+			),
+			array(
+				'name' => 'Events Calendar',
+				'url'  => '',
+			),
+		);
+	}
+
+	// Single event: Extra Chill → Events Calendar → Event Title
+	if ( is_singular( 'datamachine_events' ) ) {
+		return array(
+			array(
+				'name' => 'Extra Chill',
+				'url'  => $main_site_url,
+			),
+			array(
+				'name' => 'Events Calendar',
+				'url'  => home_url( '/' ),
+			),
+			array(
+				'name' => get_the_title(),
+				'url'  => '',
+			),
+		);
+	}
+
+	// Taxonomy archive: Extra Chill → Events Calendar → Term Name
+	if ( is_tax() ) {
+		$term = get_queried_object();
+		if ( $term && isset( $term->name ) ) {
+			return array(
+				array(
+					'name' => 'Extra Chill',
+					'url'  => $main_site_url,
+				),
+				array(
+					'name' => 'Events Calendar',
+					'url'  => home_url( '/' ),
+				),
+				array(
+					'name' => $term->name,
+					'url'  => '',
+				),
+			);
+		}
+	}
+
+	// Post type archive: Extra Chill → Events Calendar
+	if ( is_post_type_archive( 'datamachine_events' ) ) {
+		return array(
+			array(
+				'name' => 'Extra Chill',
+				'url'  => $main_site_url,
+			),
+			array(
+				'name' => 'Events Calendar',
+				'url'  => '',
+			),
+		);
+	}
+
+	return $items;
+}
+add_filter( 'extrachill_seo_breadcrumb_items', 'ec_events_schema_breadcrumb_items' );

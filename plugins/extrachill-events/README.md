@@ -104,6 +104,7 @@
 
 ### Custom Breadcrumb Integration (`inc/core/breadcrumb-integration.php`)
 - **Root Breadcrumb**: "Extra Chill → Events" for events.extrachill.com (blog ID 7)
+- **11-Site Network**: Part of the 11-site Extra Chill Platform network.
 - **Homepage Trail**: Shows "Events" on homepage, full trail on other pages
 - **Archive Trails**: Context-aware breadcrumbs for taxonomy and post type archives
 - **Back-to-Home Label**: Customizes back-to-home link text on event pages ("Back to Events" instead of "Back to Extra Chill")

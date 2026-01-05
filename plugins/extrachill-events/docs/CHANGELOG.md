@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0/).
 
+## [0.2.9] - 2026-01-04
+
+### Added
+- Schema breadcrumb integration (`ec_events_schema_breadcrumb_items`) to align SEO metadata with visual breadcrumbs on events.extrachill.com
+
+### Changed
+- Updated network scale documentation to reflect 11 active sites in the Extra Chill Platform
+- Improved "Back to Events Calendar" label consistency across visual and schema breadcrumbs
+
 ## [0.2.8] - 2025-12-30
 
 ### Fixed
