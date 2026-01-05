@@ -4,6 +4,21 @@ All notable changes to this project will be documented in this file.
 
 This file records notable changes in this theme.
 
+## [1.3.9] - 2026-01-04
+
+### Added
+- Blocks Everywhere integration documentation in `AGENTS.md` with iframe asset enqueuing details for Gutenberg editor theming
+
+### Removed
+- View tracking system (`assets/js/view-tracking.js`, `inc/core/view-counts.php`)
+- View tracking asset enqueuing from `inc/core/assets.php`
+- View tracking include from `functions.php`
+
+### Technical
+- Removed `extrachill_enqueue_view_tracking()` function and related view tracking JavaScript localization
+- Eliminated REST API endpoint dependency for async view counting
+- Updated documentation to reflect 3 JavaScript files (down from 4)
+
 ## [1.3.8] - 2026-01-02
 
 ### Added

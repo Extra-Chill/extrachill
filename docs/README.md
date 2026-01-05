@@ -13,7 +13,7 @@ Technical documentation for developers working on the ExtraChill WordPress theme
 
 ExtraChill is a custom WordPress theme serving a music community ecosystem across a multisite network. The theme powers the active sites (Blog IDs 1–5, 7–11) in the Extra Chill Platform network, with docs.extrachill.com at Blog ID 10 and wire.extrachill.com at Blog ID 11.
 
-**Version**: 1.3.8
+**Version**: 1.3.9
 **Author**: Chubes
 **Text Domain**: extrachill
 
