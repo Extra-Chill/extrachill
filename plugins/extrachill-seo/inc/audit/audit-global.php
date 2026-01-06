@@ -46,3 +46,69 @@ function ec_seo_continue_batch_audit() {
 function ec_seo_get_audit_results() {
 	return \ExtraChill\SEO\Audit\ec_seo_get_audit_results();
 }
+
+/**
+ * Gets posts missing excerpts with pagination.
+ *
+ * @param int $limit  Number of items to return.
+ * @param int $offset Offset for pagination.
+ * @return array Array with 'total' count and 'items' array.
+ */
+function ec_seo_get_missing_excerpts( $limit = 50, $offset = 0 ) {
+	return \ExtraChill\SEO\Audit\Checks\ec_seo_get_missing_excerpts( $limit, $offset );
+}
+
+/**
+ * Gets images missing alt text with pagination.
+ *
+ * @param int $limit  Number of items to return.
+ * @param int $offset Offset for pagination.
+ * @return array Array with 'total' count and 'items' array.
+ */
+function ec_seo_get_missing_alt_text( $limit = 50, $offset = 0 ) {
+	return \ExtraChill\SEO\Audit\Checks\ec_seo_get_missing_alt_text( $limit, $offset );
+}
+
+/**
+ * Gets posts missing featured images with pagination.
+ *
+ * @param int $limit  Number of items to return.
+ * @param int $offset Offset for pagination.
+ * @return array Array with 'total' count and 'items' array.
+ */
+function ec_seo_get_missing_featured( $limit = 50, $offset = 0 ) {
+	return \ExtraChill\SEO\Audit\Checks\ec_seo_get_missing_featured( $limit, $offset );
+}
+
+/**
+ * Gets broken images with pagination.
+ *
+ * @param int $limit  Number of items to return.
+ * @param int $offset Offset for pagination.
+ * @return array Array with 'total' count and 'items' array.
+ */
+function ec_seo_get_broken_images( $limit = 50, $offset = 0 ) {
+	return \ExtraChill\SEO\Audit\Checks\ec_seo_get_broken_images( $limit, $offset );
+}
+
+/**
+ * Gets broken internal links with pagination.
+ *
+ * @param int $limit  Number of items to return.
+ * @param int $offset Offset for pagination.
+ * @return array Array with 'total' count and 'items' array.
+ */
+function ec_seo_get_broken_internal_links( $limit = 50, $offset = 0 ) {
+	return \ExtraChill\SEO\Audit\Checks\ec_seo_get_broken_links( 'internal', $limit, $offset );
+}
+
+/**
+ * Gets broken external links with pagination.
+ *
+ * @param int $limit  Number of items to return.
+ * @param int $offset Offset for pagination.
+ * @return array Array with 'total' count and 'items' array.
+ */
+function ec_seo_get_broken_external_links( $limit = 50, $offset = 0 ) {
+	return \ExtraChill\SEO\Audit\Checks\ec_seo_get_broken_links( 'external', $limit, $offset );
+}

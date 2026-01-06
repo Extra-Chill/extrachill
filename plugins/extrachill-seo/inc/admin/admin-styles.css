@@ -153,3 +153,82 @@
 	font-size: 12px;
 	margin-top: 8px;
 }
+
+/* View Details button on cards */
+.extrachill-seo-card .ec-seo-view-details {
+	margin-top: 12px;
+}
+
+/* Details section */
+.extrachill-seo-details {
+	background: #fff;
+	border: 1px solid #c3c4c7;
+	border-radius: 4px;
+	padding: 20px;
+	margin-top: 24px;
+}
+
+.extrachill-seo-details-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin-bottom: 16px;
+	padding-bottom: 12px;
+	border-bottom: 1px solid #c3c4c7;
+}
+
+.extrachill-seo-details-header h3 {
+	margin: 0;
+	font-size: 14px;
+	font-weight: 600;
+	color: #1d2327;
+}
+
+.extrachill-seo-details-loading {
+	text-align: center;
+	padding: 40px 20px;
+	color: #50575e;
+}
+
+/* Details table */
+.extrachill-seo-details table {
+	width: 100%;
+	border-collapse: collapse;
+}
+
+.extrachill-seo-details table th {
+	text-align: left;
+	font-weight: 600;
+	padding: 8px 10px;
+	background: #f6f7f7;
+}
+
+.extrachill-seo-details table td {
+	padding: 8px 10px;
+	vertical-align: top;
+	word-break: break-word;
+}
+
+.extrachill-seo-details table td a {
+	text-decoration: none;
+}
+
+.extrachill-seo-details table td a:hover {
+	text-decoration: underline;
+}
+
+/* Pagination */
+.extrachill-seo-details-pagination {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	gap: 12px;
+	margin-top: 16px;
+	padding-top: 16px;
+	border-top: 1px solid #c3c4c7;
+}
+
+#ec-seo-page-info {
+	font-size: 13px;
+	color: #50575e;
+}

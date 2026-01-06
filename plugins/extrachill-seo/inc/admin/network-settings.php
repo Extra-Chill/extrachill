@@ -51,7 +51,7 @@ function ec_seo_enqueue_network_assets( $hook_suffix ) {
 		return;
 	}
 
-	if ( 'extrachill-multisite_page_extrachill-seo' !== $hook_suffix ) {
+	if ( 'extra-chill-multisite_page_extrachill-seo' !== $hook_suffix ) {
 		return;
 	}
 
@@ -217,6 +217,31 @@ function ec_seo_render_audit_tab() {
 			</div>
 			<div id="ec-seo-cards" class="extrachill-seo-cards" style="display:none;"></div>
 		<?php endif; ?>
+
+		<div id="ec-seo-details" class="extrachill-seo-details" style="display:none;">
+			<div class="extrachill-seo-details-header">
+				<h3 id="ec-seo-details-title"></h3>
+				<button type="button" id="ec-seo-export" class="button">
+					<?php esc_html_e( 'Export JSON', 'extrachill-seo' ); ?>
+				</button>
+			</div>
+			<div id="ec-seo-details-loading" class="extrachill-seo-details-loading" style="display:none;">
+				<?php esc_html_e( 'Loading...', 'extrachill-seo' ); ?>
+			</div>
+			<table id="ec-seo-details-table" class="widefat striped">
+				<thead id="ec-seo-details-thead"></thead>
+				<tbody id="ec-seo-details-tbody"></tbody>
+			</table>
+			<div id="ec-seo-details-pagination" class="extrachill-seo-details-pagination">
+				<button type="button" id="ec-seo-prev" class="button" disabled>
+					<?php esc_html_e( 'Previous', 'extrachill-seo' ); ?>
+				</button>
+				<span id="ec-seo-page-info"></span>
+				<button type="button" id="ec-seo-next" class="button">
+					<?php esc_html_e( 'Next', 'extrachill-seo' ); ?>
+				</button>
+			</div>
+		</div>
 	</div>
 	<?php
 }
@@ -245,7 +270,7 @@ function ec_seo_render_dashboard_cards( $results ) {
 		$sites        = $metric['by_site'] ?? array();
 		$nonzero_sites = array_filter( $sites, fn( $s ) => $s['count'] > 0 );
 		?>
-		<div class="extrachill-seo-card">
+		<div class="extrachill-seo-card" data-category="<?php echo esc_attr( $key ); ?>">
 			<div class="extrachill-seo-card-count <?php echo esc_attr( $count_class ); ?>">
 				<?php echo esc_html( number_format_i18n( $metric['total'] ) ); ?>
 			</div>
@@ -263,6 +288,11 @@ function ec_seo_render_dashboard_cards( $results ) {
 						<?php endforeach; ?>
 					</ul>
 				</details>
+			<?php endif; ?>
+			<?php if ( $metric['total'] > 0 ) : ?>
+				<button type="button" class="button button-small ec-seo-view-details" data-category="<?php echo esc_attr( $key ); ?>">
+					<?php esc_html_e( 'View Details', 'extrachill-seo' ); ?>
+				</button>
 			<?php endif; ?>
 		</div>
 		<?php
