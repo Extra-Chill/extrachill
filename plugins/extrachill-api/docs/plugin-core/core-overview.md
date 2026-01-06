@@ -12,8 +12,8 @@
 - Constants `EXTRACHILL_API_PATH` and `EXTRACHILL_API_URL` allow other modules to resolve assets relative to the plugin location.
 
 ## Cross-Domain Auth Helper
-- `inc/auth/extrachill-link-auth.php` adds `SameSite=None; Secure` to WordPress auth cookies so extrachill.link can make authenticated REST calls.
-- Uses `header_register_callback()` to intercept every `Set-Cookie` header before they leave WordPress, ensuring compatibility without touching core auth logic.
+- `inc/auth/extrachill-link-auth.php` appends `SameSite=None; Secure` to WordPress auth cookies so `extrachill.link` can make authenticated REST calls.
+- Uses `header_register_callback()` to intercept outgoing `Set-Cookie` headers and patch WordPress auth cookies without changing core auth logic.
 
 ## Shop Operations
 Centralized endpoints for the artist marketplace on `shop.extrachill.com`.

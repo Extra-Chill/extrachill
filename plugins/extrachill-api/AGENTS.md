@@ -6,7 +6,7 @@ Network-activated REST API infrastructure for the Extra Chill Platform multisite
 
 ### Singleton Pattern with Automatic Route Discovery
 
-The plugin uses a singleton class that automatically discovers and loads route files from `inc/routes/` directory using PHP's RecursiveIteratorIterator:
+The plugin uses a singleton class that automatically discovers and loads route files from the `inc/routes/` directory using PHP's `RecursiveIteratorIterator`: 
 
 ```php
 ExtraChill_API_Plugin::get_instance();
@@ -132,10 +132,11 @@ All endpoints are under the `extrachill/v1` namespace.
 
 **Documentation**: [docs/routes/config/oauth.md](../extrachill-plugins/extrachill-api/docs/routes/config/oauth.md)
 
-### Analytics Endpoints (3)
+### Analytics Endpoints (4)
 - `POST /analytics/click` - Unified click tracking (shares, link page clicks)
 - `POST /analytics/link-page` - Track link page views (authenticated)
 - `POST /analytics/view` - Track content views
+- `GET /analytics/meta` - Analytics filter metadata (admin-only)
 
 **Documentation**: [docs/routes/analytics/](../extrachill-plugins/extrachill-api/docs/routes/analytics/)
 
@@ -158,7 +159,7 @@ All endpoints are under the `extrachill/v1` namespace.
 - `POST /blog/ai-adventure` - AI adventure story generation
 - `GET /blog/image-voting/vote-count/{post_id}/{instance_id}` - Get vote counts
 - `POST /blog/image-voting/vote` - Cast a vote
-- `GET /blog/taxonomy-counts` - Get blog post counts by taxonomy term (artist, location, venue, festival)
+- `GET /blog/taxonomy-counts` - Get blog post counts by taxonomy term
 
 **Documentation**: [docs/routes/blog/](../extrachill-plugins/extrachill-api/docs/routes/blog/)
 
@@ -217,7 +218,7 @@ All endpoints are under the `extrachill/v1` namespace.
 
 ### Events (2)
 - `POST /event-submissions` - Submit event with optional flyer
-- `GET /events/upcoming-counts` - Get upcoming event counts by taxonomy term (venue, location, artist, festival)
+- `GET /events/upcoming-counts` - Get upcoming event counts by taxonomy term
 
 **Documentation**: [docs/routes/events/](../extrachill-plugins/extrachill-api/docs/routes/events/)
 
@@ -245,7 +246,7 @@ All endpoints are under the `extrachill/v1` namespace.
 **Documentation**: [docs/routes/shop/](../extrachill-plugins/extrachill-api/docs/routes/shop/)
 
 ### Wire (1)
-- `GET /wire/taxonomy-counts` - Get post counts by taxonomy term (festival, location, etc.)
+- `GET /wire/taxonomy-counts` - Get wire post counts by taxonomy term
 
 **Documentation**: [docs/routes/wire/](../extrachill-plugins/extrachill-api/docs/routes/wire/)
 

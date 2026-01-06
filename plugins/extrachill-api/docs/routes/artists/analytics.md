@@ -62,7 +62,7 @@ Artist ID is extracted from the URL path. Optional date range parameter controls
 - `GET /artists/{id}` - Get core artist data
 - `GET/PUT /artists/{id}/links` - Manage link page presentation
 - `POST /analytics/click` - Track clicks including link page links (called by frontend)
-- `POST /analytics/view` - Track link page views (called by frontend)
+- `POST /analytics/view` - Track views (used by extrachill-analytics for post views; link-page view tracking depends on the requesting surface)
 
 ## Usage Examples
 

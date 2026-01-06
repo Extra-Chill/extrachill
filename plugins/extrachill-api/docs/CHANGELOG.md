@@ -2,6 +2,23 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.10.4] - 2026-01-06
+
+### Added
+
+- **Analytics Meta Endpoint**: Added an admin-only metadata endpoint used to populate analytics filters.
+  - `GET /wp-json/extrachill/v1/analytics/meta`
+
+### Changed
+
+- **Newsletter Subscription Contract**: Updated the subscription endpoint to support bulk subscription and admin-driven list targeting.
+  - `POST /wp-json/extrachill/v1/newsletter/subscribe` now accepts an `emails` array (each entry supports `email` and optional `name`).
+  - Supports `list_id` admin mode (requires `manage_options`) and `context` public mode.
+  - Response now includes `subscribed`, `already_subscribed`, `failed`, and `errors` counts for batch processing.
+- **Analytics Events Pagination**: Enhanced events listing to support search and pagination totals.
+  - `GET /wp-json/extrachill/v1/analytics/events` now supports `search`.
+  - Response now includes `total` (uses `ec_count_events()` when available).
+
 ## [0.10.3] - 2026-01-05
 
 ### Added

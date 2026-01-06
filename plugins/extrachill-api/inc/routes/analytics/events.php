@@ -49,6 +49,11 @@ function extrachill_api_register_analytics_events_routes() {
 					'type'              => 'string',
 					'sanitize_callback' => 'sanitize_text_field',
 				),
+				'search'     => array(
+					'required'          => false,
+					'type'              => 'string',
+					'sanitize_callback' => 'sanitize_text_field',
+				),
 				'limit'      => array(
 					'required' => false,
 					'type'     => 'integer',
@@ -114,16 +119,22 @@ function extrachill_api_analytics_events_handler( WP_REST_Request $request ) {
 		'blog_id'    => $request->get_param( 'blog_id' ),
 		'date_from'  => $request->get_param( 'date_from' ),
 		'date_to'    => $request->get_param( 'date_to' ),
+		'search'     => $request->get_param( 'search' ),
 		'limit'      => $request->get_param( 'limit' ),
 		'offset'     => $request->get_param( 'offset' ),
 	);
 
 	$events = ec_get_events( $args );
 
+	// Get total count for pagination (uses same filters, excludes limit/offset).
+	$count_args = array_diff_key( $args, array_flip( array( 'limit', 'offset' ) ) );
+	$total      = function_exists( 'ec_count_events' ) ? ec_count_events( $count_args ) : count( $events );
+
 	return rest_ensure_response(
 		array(
 			'events' => $events,
 			'count'  => count( $events ),
+			'total'  => $total,
 		)
 	);
 }

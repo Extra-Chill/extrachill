@@ -10,7 +10,7 @@ POST /wp-json/extrachill/v1/admin/taxonomies/sync
 
 ## Authentication
 
-Requires `manage_options` capability (administrators only).
+Requires `manage_network_options` capability.
 
 ## Request Parameters
 
