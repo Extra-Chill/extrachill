@@ -1,9 +1,49 @@
 /**
- * Calendar Page Enhancements
+ * Calendar Page Styles
  *
- * Placeholder for future datamachine-events calendar block styling enhancements
- * on events.extrachill.com homepage. Currently minimal structure.
+ * Styles for datamachine-events calendar block on events.extrachill.com
+ * homepage and taxonomy archive pages (venue, promoter).
  *
  * @package ExtraChillEvents
  * @since 0.1.0
  */
+
+/* Taxonomy Archive Headers (Venue, Promoter) */
+.taxonomy-archive-header {
+    margin-bottom: var(--spacing-xl);
+}
+
+.taxonomy-archive-header .page-title {
+    margin-bottom: var(--spacing-sm);
+}
+
+.taxonomy-description {
+    color: var(--muted-text);
+    font-size: var(--font-size-body);
+    line-height: var(--line-height-relaxed);
+    margin-bottom: var(--spacing-md);
+}
+
+.taxonomy-description p:last-child {
+    margin-bottom: 0;
+}
+
+.taxonomy-meta {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+    font-size: var(--font-size-sm);
+    color: var(--muted-text);
+}
+
+.taxonomy-meta .venue-address {
+    display: block;
+}
+
+.taxonomy-meta .taxonomy-website {
+    color: var(--link-color);
+}
+
+.taxonomy-meta .taxonomy-website:hover {
+    color: var(--link-hover-color);
+}

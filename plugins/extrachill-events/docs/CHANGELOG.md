@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0/).
 
+## [0.3.0] - 2026-01-05
+
+### Added
+- Enhanced Venue and Promoter taxonomy archive headers with dynamic metadata (address, website URL)
+- Custom styling for taxonomy archive headers in `calendar.css`
+
+### Changed
+- Refactored archive template to support detailed venue and promoter metadata display
+- Expanded `calendar.css` with structured layout for taxonomy headers, descriptions, and meta information
+- Updated calendar style enqueuing to include taxonomy archive pages on the events site
+
 ## [0.2.9] - 2026-01-04
 
 ### Added
