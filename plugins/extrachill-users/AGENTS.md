@@ -245,6 +245,11 @@ User management functionality was migrated here from extrachill-multisite plugin
 - extrachill-community: Artist platform buttons
 - Any plugin needing user-artist profile relationships
 
+#### Cross-Site Artist Linking (`inc/artist-profiles.php`)
+**Canonical Linking**:
+- `ec_get_artist_profile_by_slug()` and `ec_render_cross_site_artist_profile_links()` have been migrated to the `extrachill-multisite` plugin (`inc/cross-site-links/`) to provide unified linking across the 11-site network.
+- This plugin now consumes these centralized functions for all user-artist profile link resolution.
+
 #### Author Profile URL Resolution (`inc/author-links.php`)
 **Functions**:
 - `ec_get_user_profile_url( $user_id, $user_email = '' )` - Centralized user profile URL logic

@@ -15,6 +15,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Returns whether the user can manage the shop.
  *
+ * Admin-only until shop system is ready for public use.
+ *
  * @param int|null $user_id User ID (defaults to current).
  * @return bool
  */
@@ -22,6 +24,10 @@ function ec_can_manage_shop( $user_id = null ) {
 	$user_id = null === $user_id ? get_current_user_id() : (int) $user_id;
 
 	if ( $user_id <= 0 ) {
+		return false;
+	}
+
+	if ( ! user_can( $user_id, 'manage_options' ) ) {
 		return false;
 	}
 
@@ -38,8 +44,8 @@ function ec_can_manage_shop( $user_id = null ) {
 /**
  * Returns the total number of shop products for the user.
  *
- * Existence is defined by having at least one WooCommerce product tied to any
- * artist the user can manage.
+ * Performs cross-site query to shop blog (Blog ID 3) to count products
+ * associated with the user's artist profiles via _artist_profile_id meta.
  *
  * @param int|null $user_id User ID (defaults to current).
  * @return int
@@ -51,9 +57,56 @@ function ec_get_shop_product_count_for_user( $user_id = null ) {
 		return 0;
 	}
 
-	if ( ! function_exists( 'extrachill_shop_get_product_count_for_user' ) ) {
+	if ( ! function_exists( 'ec_get_artists_for_user' ) ) {
 		return 0;
 	}
 
-	return (int) extrachill_shop_get_product_count_for_user( $user_id );
+	$user_artists = ec_get_artists_for_user( $user_id );
+	if ( empty( $user_artists ) ) {
+		return 0;
+	}
+
+	if ( ! function_exists( 'ec_get_blog_id' ) ) {
+		return 0;
+	}
+
+	$shop_blog_id = ec_get_blog_id( 'shop' );
+	if ( ! $shop_blog_id ) {
+		return 0;
+	}
+
+	$current_blog = get_current_blog_id();
+	$needs_switch = $current_blog !== $shop_blog_id;
+	$total_count  = 0;
+
+	if ( $needs_switch ) {
+		switch_to_blog( $shop_blog_id );
+	}
+
+	try {
+		$query = new WP_Query(
+			array(
+				'post_type'      => 'product',
+				'post_status'    => 'publish',
+				'posts_per_page' => 1,
+				'fields'         => 'ids',
+				'meta_query'     => array(
+					array(
+						'key'     => '_artist_profile_id',
+						'value'   => array_map( 'absint', $user_artists ),
+						'compare' => 'IN',
+						'type'    => 'NUMERIC',
+					),
+				),
+			)
+		);
+
+		$total_count = $query->found_posts;
+	} finally {
+		if ( $needs_switch ) {
+			restore_current_blog();
+		}
+	}
+
+	return $total_count;
 }

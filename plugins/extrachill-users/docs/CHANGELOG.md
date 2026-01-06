@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.5.9] - 2026-01-06
+
+### Changed
+- **Shop Management Permissions**: Restricted `ec_can_manage_shop()` to users with `manage_options` capability until public release.
+- **Shop Product Count**: Replaced dummy count with a native cross-site `WP_Query` to the shop blog (Blog ID 3) for accurate user-artist product tracking.
+
+### Documentation
+- Updated `AGENTS.md` with current cross-site artist linking architecture details.
+
 ## [0.5.8] - 2026-01-05
 
 ### Changed

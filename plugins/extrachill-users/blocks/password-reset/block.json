@@ -7,7 +7,7 @@
 	"icon": "lock",
 	"description": "Custom password reset form for users who forgot their password",
 	"textdomain": "extrachill-users",
-	"version": "0.5.8",
+	"version": "0.5.9",
 	"editorScript": "file:./index.js",
 	"render": "file:./render.php",
 	"style": "file:./style.css"
