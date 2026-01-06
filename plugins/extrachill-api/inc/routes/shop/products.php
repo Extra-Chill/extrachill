@@ -244,6 +244,12 @@ function extrachill_api_shop_products_create_args() {
 				}, $value );
 			},
 		),
+		'ships_free'         => array(
+			'required'          => false,
+			'type'              => 'boolean',
+			'sanitize_callback' => 'rest_sanitize_boolean',
+			'default'           => false,
+		),
 	);
 }
 
@@ -364,6 +370,11 @@ function extrachill_api_shop_products_update_args() {
 					);
 				}, $value );
 			},
+		),
+		'ships_free'        => array(
+			'required'          => false,
+			'type'              => 'boolean',
+			'sanitize_callback' => 'rest_sanitize_boolean',
 		),
 	);
 }
@@ -584,6 +595,9 @@ function extrachill_api_shop_products_create_handler( WP_REST_Request $request )
 
 		extrachill_api_shop_sync_artist_taxonomy( $product_id, $artist_id );
 
+		$ships_free = $request->get_param( 'ships_free' );
+		update_post_meta( $product_id, '_ships_free', $ships_free ? '1' : '0' );
+
 		$response = extrachill_api_shop_products_build_response( $product_id );
 		return is_wp_error( $response ) ? $response : rest_ensure_response( $response );
 	} finally {
@@ -729,6 +743,11 @@ function extrachill_api_shop_products_update_handler( WP_REST_Request $request )
 			}
 		}
 
+		$ships_free = $request->get_param( 'ships_free' );
+		if ( $ships_free !== null ) {
+			update_post_meta( $product_id, '_ships_free', $ships_free ? '1' : '0' );
+		}
+
 		$response = extrachill_api_shop_products_build_response( $product_id );
 		return is_wp_error( $response ) ? $response : rest_ensure_response( $response );
 	} finally {
@@ -849,6 +868,7 @@ function extrachill_api_shop_products_build_response( $product_id ) {
 		'gallery'           => $gallery_urls,
 		'images'            => $images,
 		'sizes'             => $sizes,
+		'ships_free'        => '1' === get_post_meta( $product_id, '_ships_free', true ),
 	);
 }
 

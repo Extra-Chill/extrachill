@@ -406,6 +406,31 @@ function extrachill_api_shop_orders_refund_handler( WP_REST_Request $request ) {
 }
 
 /**
+ * Check if all items in an artist's portion of an order ship free.
+ *
+ * @param array $artist_payout Artist payout data from order.
+ * @return bool True if all items ship free.
+ */
+function extrachill_api_shop_order_ships_free_only( $artist_payout ) {
+	if ( empty( $artist_payout['items'] ) || ! is_array( $artist_payout['items'] ) ) {
+		return false;
+	}
+
+	foreach ( $artist_payout['items'] as $item_data ) {
+		$product_id = $item_data['product_id'] ?? 0;
+		if ( ! $product_id ) {
+			continue;
+		}
+
+		if ( '1' !== get_post_meta( $product_id, '_ships_free', true ) ) {
+			return false;
+		}
+	}
+
+	return true;
+}
+
+/**
  * Build order response for artist.
  *
  * @param WC_Order $order     WooCommerce order.
@@ -458,5 +483,6 @@ function extrachill_api_shop_orders_build_response( $order, $artist_id ) {
 		'artist_payout'   => floatval( $artist_payout['artist_payout'] ?? 0 ),
 		'order_total'     => floatval( $artist_payout['total'] ?? 0 ),
 		'tracking_number' => $tracking_number,
+		'ships_free_only' => extrachill_api_shop_order_ships_free_only( $artist_payout ),
 	);
 }

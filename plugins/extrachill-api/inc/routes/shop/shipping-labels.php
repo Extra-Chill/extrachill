@@ -220,6 +220,18 @@ function extrachill_api_shipping_labels_create_handler( WP_REST_Request $request
 			);
 		}
 
+		// Check if order contains only ships-free products for this artist
+		if ( function_exists( 'extrachill_api_shop_order_ships_free_only' ) ) {
+			$artist_payout = $payouts[ $artist_id ] ?? array();
+			if ( extrachill_api_shop_order_ships_free_only( $artist_payout ) ) {
+				return new WP_Error(
+					'ships_free_order',
+					'This order contains only "Ships Free" items. No shipping label is needed—ship these items yourself.',
+					array( 'status' => 400 )
+				);
+			}
+		}
+
 		$existing_label = $order->get_meta( '_artist_label_' . $artist_id );
 		if ( ! empty( $existing_label ) ) {
 			$tracking = $order->get_meta( '_artist_tracking_' . $artist_id ) ?: '';

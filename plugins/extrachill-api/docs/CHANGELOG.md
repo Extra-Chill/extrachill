@@ -2,6 +2,24 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.10.2] - 2026-01-05
+
+### Added
+
+- **Cross-Site Taxonomy Counts**: New endpoints for retrieving post and product counts across the multisite network:
+  - `GET /wp-json/extrachill/v1/blog/taxonomy-counts` - Blog post counts by artist, venue, location, etc.
+  - `GET /wp-json/extrachill/v1/events/upcoming-counts` - Upcoming event counts by venue, location, artist, or festival.
+  - `GET /wp-json/extrachill/v1/shop/taxonomy-counts` - Product counts by artist.
+  - `GET /wp-json/extrachill/v1/wire/taxonomy-counts` - Wire post counts by taxonomy.
+- **Shop Enhancements**:
+  - Added `ships_free` boolean field to product CRUD and responses.
+  - Added `ships_free_only` flag to artist order responses.
+  - Implemented automatic blockage of shipping label purchases for orders containing only free-shipping items.
+
+### Changed
+
+- **Documentation**: Updated AGENTS.md and README.md with new taxonomy count endpoints and reorganized feature categories.
+
 ## [0.10.1] - 2026-01-05
 
 ### Added

@@ -63,7 +63,8 @@ extrachill-api/
 │       │   ├── band-name.php (Band name generator)
 │       │   ├── image-voting.php (Image voting vote counts)
 │       │   ├── image-voting-vote.php (Vote on images)
-│       │   └── rapper-name.php (Rapper name generator)
+│       │   ├── rapper-name.php (Rapper name generator)
+│       │   └── taxonomy-counts.php (Blog post counts by taxonomy)
 │       ├── chat/
 │       │   ├── history.php (Clear chat history)
 │       │   └── message.php (Send/receive chat messages)
@@ -77,7 +78,8 @@ extrachill-api/
 │       ├── docs/
 │       │   └── docs-info.php (Documentation endpoint info)
 │       ├── events/
-│       │   └── event-submissions.php (Event submission proxy)
+│       │   ├── event-submissions.php (Event submission proxy)
+│       │   └── upcoming-counts.php (Upcoming event counts by taxonomy)
 │       ├── media/
 │       │   └── upload.php (Unified media upload)
 │       ├── newsletter/
@@ -94,11 +96,14 @@ extrachill-api/
 │       │   ├── shipping-address.php (Artist shipping from-address)
 │       │   ├── shipping-labels.php (Shippo label purchase)
 │       │   ├── stripe-connect.php (Stripe Connect management)
-│       │   └── stripe-webhook.php (Stripe webhook handler)
+│       │   ├── stripe-webhook.php (Stripe webhook handler)
+│       │   └── taxonomy-counts.php (Product counts by taxonomy)
 │       ├── tools/
 │       │   └── qr-code.php (QR code generator)
 │       ├── stream/
 │       │   └── status.php (Stream status endpoint)
+│       ├── wire/
+│       │   └── taxonomy-counts.php (Wire post counts by taxonomy)
 │       └── users/
 │           ├── artists.php (User artist relationships)
 │           ├── leaderboard.php (User leaderboard)
@@ -147,18 +152,15 @@ All endpoints are under the `extrachill/v1` namespace.
 
 **Documentation**: [docs/routes/artists/](../extrachill-plugins/extrachill-api/docs/routes/artists/)
 
-### Block Generators (3)
+### Blog Endpoints (6)
 - `POST /blog/band-name` - AI band name generation
 - `POST /blog/rapper-name` - AI rapper name generation
 - `POST /blog/ai-adventure` - AI adventure story generation
-
-**Documentation**: [docs/routes/blog/](../extrachill-plugins/extrachill-api/docs/routes/blog/)
-
-### Image Voting (2)
 - `GET /blog/image-voting/vote-count/{post_id}/{instance_id}` - Get vote counts
 - `POST /blog/image-voting/vote` - Cast a vote
+- `GET /blog/taxonomy-counts` - Get blog post counts by taxonomy term (artist, location, venue, festival)
 
-**Documentation**: [docs/routes/blog/image-voting-vote.md](../extrachill-plugins/extrachill-api/docs/routes/blog/image-voting-vote.md)
+**Documentation**: [docs/routes/blog/](../extrachill-plugins/extrachill-api/docs/routes/blog/)
 
 ### Chat Endpoints (2)
 - `POST /chat/message` - Send chat message (authenticated)
@@ -213,10 +215,11 @@ All endpoints are under the `extrachill/v1` namespace.
 
 **Documentation**: [docs/routes/docs/](../extrachill-plugins/extrachill-api/docs/routes/docs/)
 
-### Event Submissions (1)
+### Events (2)
 - `POST /event-submissions` - Submit event with optional flyer
+- `GET /events/upcoming-counts` - Get upcoming event counts by taxonomy term (venue, location, artist, festival)
 
-**Documentation**: [docs/routes/events/event-submissions.md](../extrachill-plugins/extrachill-api/docs/routes/events/event-submissions.md)
+**Documentation**: [docs/routes/events/](../extrachill-plugins/extrachill-api/docs/routes/events/)
 
 ### Media Management (1)
 - `POST/DELETE /media` - Upload and manage images
@@ -229,7 +232,7 @@ All endpoints are under the `extrachill/v1` namespace.
 
 **Documentation**: [docs/routes/newsletter/](../extrachill-plugins/extrachill-api/docs/routes/newsletter/)
 
-### Shop Integration (7)
+### Shop Integration (8)
 - `GET/POST/PUT/DELETE /shop/products` - Product CRUD operations
 - `GET/POST/DELETE /shop/orders` - Artist order management and fulfillment
 - `POST/DELETE /shop/products/{id}/images` - Product image management
@@ -237,8 +240,14 @@ All endpoints are under the `extrachill/v1` namespace.
 - `POST /shop/stripe-webhook` - Stripe webhook handler
 - `GET/PUT /shop/shipping-address` - Artist shipping from-address management
 - `GET/POST /shop/shipping-labels` - Purchase and retrieve shipping labels
+- `GET /shop/taxonomy-counts` - Get product counts by taxonomy term (artist)
 
 **Documentation**: [docs/routes/shop/](../extrachill-plugins/extrachill-api/docs/routes/shop/)
+
+### Wire (1)
+- `GET /wire/taxonomy-counts` - Get post counts by taxonomy term (festival, location, etc.)
+
+**Documentation**: [docs/routes/wire/](../extrachill-plugins/extrachill-api/docs/routes/wire/)
 
 ### Stream (1)
 - `GET /stream/status` - Check streaming status and configuration

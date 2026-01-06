@@ -19,7 +19,10 @@
 Centralized endpoints for the artist marketplace on `shop.extrachill.com`.
 - `products`: CRUD operations for artist merch.
 - `orders`: Artist-scoped order management and fulfillment.
-- `stripe-connect`: Onboarding and status for marketplace payouts using **destination charges**.
+- `stripe-connect`: Onboarding and status for marketplace payouts using the **Separate Charges and Transfers** pattern.
 - `shipping-labels`: USPS label purchase via Shippo ($5.00 flat rate domestic).
 - `shipping-address`: Artist fulfillment address management stored on `artist_profile`.
 - `stripe-webhook`: Platform-level processing for Stripe payout and account events.
+- `seo`: Multisite SEO audit endpoints (`/seo/audit`, `/seo/status`, `/seo/continue`).
+- `admin`: Administrative lists and management (`/admin/list`, `/admin/team-members`, `/admin/lifetime-membership`).
+- `tools`: QR code generation and markdown exports (`/tools/qr-code`, `/tools/export-markdown`).
