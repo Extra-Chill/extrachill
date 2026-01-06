@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.5.8] - 2026-01-05
+
+### Changed
+- **Decommissioned Profile URL Resolution**: Removed the `inc/author-links.php` logic as profile resolution has been migrated to the `extrachill-multisite` plugin for better architectural consolidation.
+- **Artist Profile Lookup**: Migrated `ec_get_artist_profile_by_slug()` to `extrachill-multisite` plugin; added a pointer comment in `inc/artist-profiles.php`.
+
 ## [0.5.7] - 2026-01-04
 
 ### Changed
