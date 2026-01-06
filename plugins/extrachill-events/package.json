@@ -1,6 +1,6 @@
 {
 	"name": "extrachill-events",
-	"version": "0.3.0",
+	"version": "0.3.1",
 	"description": "ExtraChill Events block tooling",
 	"private": true,
 	"scripts": {

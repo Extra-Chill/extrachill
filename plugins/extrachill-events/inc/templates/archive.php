@@ -69,6 +69,8 @@ extrachill_breadcrumbs();
 		</header>
 	<?php endif; ?>
 
+	<?php do_action( 'extrachill_archive_below_description' ); ?>
+
 	<?php echo do_blocks( '<!-- wp:datamachine-events/calendar /-->' ); ?>
 </div>
 
