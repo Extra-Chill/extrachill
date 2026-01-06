@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.13] - 2026-01-05
+
+### Changed
+- Refactored `extrachill_blog_get_location_event_counts()` and `extrachill_blog_get_wire_festival_counts()` to use internal REST API requests instead of direct multisite blog switching for better performance and reliability.
+
 ## [0.3.12] - 2026-01-05
 
 ### Changed
