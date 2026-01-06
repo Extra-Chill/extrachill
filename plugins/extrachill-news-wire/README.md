@@ -154,7 +154,7 @@ cd extrachill-plugins/extrachill-news-wire
 - **WordPress**: 5.0+
 - **PHP**: 7.4+
 - **Tested up to**: WordPress 6.4
-- **Stable tag**: 0.3.7
+- **Stable tag**: 0.3.8
 
 ## Support
 

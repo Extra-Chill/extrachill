@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.3.8] - 2026-01-06
+
+### Fixed
+- Festival Wire posts now remain excluded from location taxonomy archives (reverted unintended inclusion)
+
 ## [0.3.7] - 2026-01-04
 
 ### Added

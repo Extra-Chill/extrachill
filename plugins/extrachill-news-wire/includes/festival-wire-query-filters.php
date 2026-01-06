@@ -154,32 +154,16 @@ function festival_wire_include_in_archives( $query ) {
 
 	// Include Festival Wire in author archives only
 	elseif ( $query->is_author() && $query->is_main_query() ) {
-
-
         $post_types = $query->get( 'post_type' );
 
 		if ( empty( $post_types ) || $post_types === 'any' ) {
 			$query->set( 'post_type', array( 'post', 'festival_wire' ) );
 		} elseif ( is_string( $post_types ) && $post_types === 'post' ) {
 			$query->set( 'post_type', array( 'post', 'festival_wire' ) );
-
         } elseif ( is_array($post_types) && ! in_array( 'festival_wire', $post_types ) ) {
             $post_types[] = 'festival_wire';
             $query->set( 'post_type', $post_types );
         }
     }
-
-    // Exclude Festival Wire from location taxonomy archives
-	elseif ( is_tax( 'location' ) && $query->is_main_query() ) {
-		$post_types = $query->get( 'post_type' );
-
-		// Force post type to 'post' only for location archives
-		if ( empty( $post_types ) || ( is_array( $post_types ) && in_array( 'festival_wire', $post_types, true ) ) ) {
-			$query->set( 'post_type', 'post' );
-		} elseif ( is_string( $post_types ) && $post_types === 'festival_wire' ) {
-			$query->set( 'post_type', 'post' );
-		}
-	}
-
 }
 add_action( 'pre_get_posts', 'festival_wire_include_in_archives' ); 
