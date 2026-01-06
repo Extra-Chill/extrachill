@@ -1,1 +1,1 @@
-../../.github/build.sh
+../../../.github/build.sh
