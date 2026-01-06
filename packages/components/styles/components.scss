@@ -1,0 +1,106 @@
+/**
+ * Shared Component Styles
+ *
+ * Styles for extrachill-components shared across plugins.
+ */
+
+// Data Table
+.ec-data-table {
+	&__loading,
+	&__empty {
+		padding: 40px;
+		text-align: center;
+		background: #f9f9f9;
+		border: 1px solid #ddd;
+		border-radius: 4px;
+
+		.components-spinner {
+			margin-right: 10px;
+		}
+	}
+
+	&__check-column {
+		width: 40px;
+		padding: 8px !important;
+	}
+
+	// Override WP table styles
+	&.wp-list-table {
+		margin-top: 15px;
+
+		th,
+		td {
+			vertical-align: middle;
+		}
+	}
+}
+
+// Pagination
+.ec-pagination {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin-top: 15px;
+	padding-top: 15px;
+	border-top: 1px solid #eee;
+
+	&__info {
+		color: #646970;
+		font-size: 13px;
+	}
+
+	&__buttons {
+		display: flex;
+		gap: 8px;
+	}
+}
+
+// Search Box
+.ec-search-box {
+	display: flex;
+	gap: 8px;
+	align-items: flex-end;
+	margin-bottom: 15px;
+
+	.components-text-control {
+		min-width: 300px;
+	}
+}
+
+// Modal overrides
+.ec-modal {
+	.components-modal__content {
+		min-width: 500px;
+	}
+}
+
+// Badges (commonly used with tables)
+.ec-badge {
+	display: inline-block;
+	padding: 3px 8px;
+	border-radius: 3px;
+	font-size: 12px;
+	font-weight: 500;
+
+	&--yes,
+	&--success {
+		background: #d4edda;
+		color: #155724;
+	}
+
+	&--no,
+	&--error {
+		background: #f8d7da;
+		color: #721c24;
+	}
+
+	&--info {
+		background: #cce5ff;
+		color: #004085;
+	}
+
+	&--warning {
+		background: #fff3cd;
+		color: #856404;
+	}
+}
