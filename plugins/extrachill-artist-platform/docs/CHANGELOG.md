@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.5] - 2026-01-06
+
+### Added
+- **Platform Artist Provisioning**: Implemented an automated provisioning system (`inc/core/platform-artist-provisioning.php`) that ensures the "Extra Chill" platform artist profile exists and is linked to the super admin. Includes network-wide state tracking and automatic shop product synchronization triggers.
+
+### Changed
+- **Shop Manager**: Improved `OrdersTab` with "Ships Free Only" detection for orders containing only free-shipping items and added label reprinting capability. Refined `ProductsTab` with better Stripe connection status messaging and product status validation.
+- **Link Pages**: Updated `extrch-share-modal.js` and `link-page-public-tracking.js` for improved analytics consistency and more robust tracking of share events and page views.
+- **Documentation**: Comprehensive updates to `AGENTS.md` and `README.md` to reflect the current 11-site multisite scale, standardized block naming conventions (`artist-manager`, `artist-analytics`, etc.), and detailed shop manager capabilities.
+- **Architecture**: Finalized the migration of blog coverage logic to the `extrachill-multisite` plugin, removing legacy code paths and ensuring consistent cross-site linking.
+
 ## [1.6.4] - 2026-01-05
 
 ### Changed

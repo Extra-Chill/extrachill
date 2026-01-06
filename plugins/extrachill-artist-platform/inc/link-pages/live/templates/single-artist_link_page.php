@@ -84,7 +84,7 @@ $body_bg_style .= 'min-height:100vh;';
 $api_base = ec_get_site_url( 'artist' ) . '/wp-json/extrachill/v1';
 $permissions_api_url = $api_base . '/artists/' . $artist_id . '/permissions';
 $subscribe_api_url = $api_base . '/artists/' . $artist_id . '/subscribe';
-$tracking_click_url = $api_base . '/analytics/link-click';
+$tracking_click_url = $api_base . '/analytics/click';
 $tracking_view_url = $api_base . '/analytics/view';
 ?>
 <body class="extrch-link-page"<?php if ($body_bg_style) echo ' style="' . esc_attr( $body_bg_style ) . '"'; ?> data-extrch-artist-id="<?php echo esc_attr( (string) absint( $artist_id ) ); ?>" data-extrch-link-page-id="<?php echo esc_attr( (string) absint( $link_page_id ) ); ?>" data-extrch-permissions-api-url="<?php echo esc_url( $permissions_api_url ); ?>" data-extrch-subscribe-api-url="<?php echo esc_url( $subscribe_api_url ); ?>" data-extrch-tracking-click-url="<?php echo esc_url( $tracking_click_url ); ?>" data-extrch-tracking-view-url="<?php echo esc_url( $tracking_view_url ); ?>">

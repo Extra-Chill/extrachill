@@ -24,6 +24,7 @@ const emptyDraft = ( artistId ) => ( {
 	description: '',
 	has_sizes: false,
 	sizes: STANDARD_SIZES.map( ( name ) => ( { name, stock: 0 } ) ),
+	ships_free: false,
 } );
 
 const ProductsTab = ( {
@@ -97,6 +98,7 @@ const ProductsTab = ( {
 			description: product.description || '',
 			has_sizes: hasSizes,
 			sizes,
+			ships_free: product.ships_free || false,
 		} );
 	};
 
@@ -171,6 +173,7 @@ const ProductsTab = ( {
 				manage_stock: draft.has_sizes || hasStockValue,
 				stock_quantity: hasStockValue ? parseInt( draft.stock_quantity, 10 ) || 0 : 0,
 				description: draft.description,
+				ships_free: draft.ships_free,
 			};
 
 			if ( draft.has_sizes ) {
@@ -682,6 +685,23 @@ const ProductsTab = ( {
 								</div>
 							</>
 						) }
+					</div>
+
+					<div className="ec-asm__shipping-section">
+						<h4>Shipping</h4>
+						<label className="ec-asm__ships-free-toggle">
+							<input
+								type="checkbox"
+								checked={ !! draft.ships_free }
+								onChange={ ( e ) =>
+									setDraft( ( prev ) => ( { ...prev, ships_free: e.target.checked } ) )
+								}
+							/>
+							Ships free
+						</label>
+						<p className="ec-asm__muted">
+							For small items you'll ship yourself without a label (stickers, patches, etc.)
+						</p>
 					</div>
 
 					<div className="ec-asm__actions">

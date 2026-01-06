@@ -33,6 +33,7 @@ Complete product management interface for creating, editing, and deleting shop p
 - Product name (required)
 - Price field with decimal support (required, must be > 0)
 - Sale price field for discounted pricing
+- Ships Free toggle for small items (stickers, patches, etc.)
 - Product description textarea
 - Status selector (Draft or Published)
 - Automated validation with helpful error messages
@@ -176,6 +177,7 @@ Order management interface for viewing, fulfilling, and processing customer orde
 
 **Shipping & Fulfillment**:
 - Shipping label purchasing (USPS, $5 flat rate)
+- "Ships Free" handling: Orders containing only free-shipping items do not require platform labels.
 - Tracking number entry field
 - Status-dependent display:
   - Processing/On-Hold: Show label purchase button
@@ -194,8 +196,9 @@ const result = await purchaseShippingLabel(orderId, artistId);
 
 **Label Fulfillment Flow**:
 1. Artist verifies customer shipping address in **OrdersTab**
-2. Artist clicks "Purchase Shipping Label" ($5.00 flat rate charged to platform)
-3. API selects cheapest USPS rate via Shippo
+2. Artist checks if order is "Ships Free Only" (manual fulfillment required)
+3. Artist clicks "Purchase Shipping Label" ($5.00 flat rate charged to platform) if a label is required
+4. API selects cheapest USPS rate via Shippo
 4. Tracking number is automatically added to order
 5. Order status updates to "Completed"
 6. Label PDF opens in new tab for printing

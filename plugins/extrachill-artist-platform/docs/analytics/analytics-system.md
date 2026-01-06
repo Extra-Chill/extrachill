@@ -44,7 +44,7 @@ CREATE TABLE wp_extrch_link_page_daily_link_clicks (
 
 ### Database Management
 
-Location: `inc/database/link-page-analytics-db.php`
+Location: `inc/database/artist-analytics-db.php`
 
 Creates and maintains analytics tables with WordPress dbDelta.
 
@@ -63,7 +63,18 @@ The tracking flow follows this pattern:
 
 Location: `inc/link-pages/live/assets/js/link-page-public-tracking.js`
 
-Tracks page views and link clicks using sendBeacon API for reliable delivery with Fetch API fallback
+Tracks page views and link clicks using sendBeacon API for reliable delivery with Fetch API fallback.
+
+**Click Tracking Payload**:
+```javascript
+{
+    click_type: 'link_page_link',
+    link_page_id: linkPageId,
+    source_url: window.location.href,
+    destination_url: linkElement.href,
+    element_text: linkText
+}
+```
 
 ### Server-Side Data Provider
 
@@ -122,13 +133,10 @@ The following Google Analytics cross-domain linking parameters are removed:
 
 ### Implementation
 
-**Client-side** (`inc/link-pages/live/assets/js/link-page-public-tracking.js`):
-- `normalizeTrackedUrl()` strips parameters before sending the beacon request
+**Server-side** (`extrachill-api/inc/routes/analytics/click.php`):
+- `extrachill_api_normalize_tracked_url()` strips parameters before firing the action hook
 
-**Server-side** (`inc/link-pages/live/analytics.php`):
-- `extrch_normalize_tracked_url()` provides redundant sanitization before database insert
-
-Both implementations preserve all other query parameters (affiliate IDs, custom campaign params, etc.).
+URL normalization is handled centrally in the unified click endpoint, preserving all other query parameters (affiliate IDs, custom campaign params, etc.).
 
 ## Data Recording
 
@@ -181,7 +189,7 @@ function extrachill_handle_link_click_db_write( $link_page_id, $link_url ) {
 
 ## Analytics Dashboard
 
-### Link Page Analytics Block
+### Artist Analytics Block
 
 **Location**: `src/blocks/artist-analytics/`
 
@@ -275,7 +283,7 @@ Charts are rendered directly in the Gutenberg block editor via React components
 
 Analytics system includes automatic data pruning via scheduled cron job:
 
-Location: `inc/database/link-page-analytics-db.php`
+Location: `inc/database/artist-analytics-db.php`
 
 The pruning cron runs monthly to maintain database performance by removing data older than the configured retention period (default: 90 days)
 

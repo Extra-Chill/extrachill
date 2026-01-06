@@ -3,7 +3,7 @@
  * Plugin Name: Extra Chill Artist Platform
  * Plugin URI: https://extrachill.com
  * Description: Artist platform for musicians with profiles, link pages, analytics, and subscriber management.
- * Version: 1.6.4
+ * Version: 1.6.5
  * Author: Chris Huber
  * Author URI: https://chubes.net
  * License: GPL v2 or later
@@ -12,7 +12,7 @@
  */
 
 defined( 'ABSPATH' ) || exit;
-define( 'EXTRACHILL_ARTIST_PLATFORM_VERSION', '1.6.4' );
+define( 'EXTRACHILL_ARTIST_PLATFORM_VERSION', '1.6.5' );
 define( 'EXTRACHILL_ARTIST_PLATFORM_PLUGIN_FILE', __FILE__ );
 define( 'EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'EXTRACHILL_ARTIST_PLATFORM_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
@@ -108,6 +108,7 @@ class ExtraChillArtistPlatform {
         
         require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/core/filters/data.php';
         require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/core/nav.php';
+        require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/core/platform-artist-provisioning.php';
 
         ExtraChillArtistPlatform_PageTemplates::instance();
         ExtraChillArtistPlatform_Assets::instance();
@@ -122,6 +123,12 @@ class ExtraChillArtistPlatform {
         extrch_create_or_update_analytics_table();
         flush_rewrite_rules();
         update_option( 'extrachill_artist_platform_activated', true );
+
+        // Provision platform artist profile (suspenders).
+        require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/core/platform-artist-provisioning.php';
+        if ( function_exists( 'ec_activate_provision_platform_artist' ) ) {
+            ec_activate_provision_platform_artist();
+        }
     }
 
     public static function deactivate() {

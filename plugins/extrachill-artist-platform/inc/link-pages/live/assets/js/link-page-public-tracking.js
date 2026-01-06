@@ -50,9 +50,11 @@
                     const linkText = linkTextEl ? linkTextEl.textContent.trim() : '';
 
                     sendBeacon(clickRestUrl, {
+                        click_type: 'link_page_link',
                         link_page_id: linkPageId,
-                        link_url: linkElement.href,
-                        link_text: linkText
+                        source_url: window.location.href,
+                        destination_url: linkElement.href,
+                        element_text: linkText
                     });
                 }
             });

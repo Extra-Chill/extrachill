@@ -83,9 +83,11 @@ The plugin provides comprehensive integration with the extrachill.link domain fo
     - **React Components**: Tab-based interface with TabInfo, TabLinks, TabCustomize, TabAdvanced, TabSocials
     - **Build Process**: Webpack compilation via `npm run build` with wp-scripts
     - **API Client**: REST API integration via `src/blocks/shared/api/client.js`
-   - **Analytics Dashboard**: Separate dedicated block `src/blocks/artist-analytics/`
-     - **Block Registration**: Registered in main plugin init via `register_block_type( __DIR__ . '/build/blocks/artist-analytics' )`
-     - **Features**: Chart.js-powered analytics, daily aggregation, link click tracking
+    - **Artist Analytics Block**: Separate dedicated block `src/blocks/artist-analytics/`
+      - **Block Registration**: Registered in main plugin init via `register_block_type( __DIR__ . '/build/blocks/artist-analytics' )`
+      - **Features**: Chart.js-powered analytics, daily aggregation, link click tracking
+ - **Artist Manager Block**: Separate dedicated block `src/blocks/artist-manager/`
+      - **Block Registration**: Registered in main plugin init via `register_block_type( __DIR__ . '/build/blocks/artist-manager' )`
 - **Advanced Features**: `inc/link-pages/management/advanced-tab/` - Tracking, redirects, link expiration, YouTube embeds
 - **Component Templates**: `inc/link-pages/management/templates/components/` - Modular UI components
 - **Subscription Templates**: `inc/link-pages/live/templates/` - Email collection forms and modals
@@ -103,7 +105,7 @@ The plugin provides comprehensive integration with the extrachill.link domain fo
 - Export tracking and management capabilities
 
 #### Analytics System
-**Files**: `inc/database/link-page-analytics-db.php`, `inc/link-pages/live/analytics.php`
+**Files**: `inc/database/artist-analytics-db.php`, `inc/link-pages/live/analytics.php`
 - **Architecture**: REST API endpoints in extrachill-api plugin; this plugin provides data via filter and handles database writes
 - **Page View Tracking**: JavaScript beacon on public link pages → extrachill-api REST endpoint → action hook → database write
 - **Link Click Tracking**: JavaScript beacon with link URL → extrachill-api REST endpoint → action hook → database write
@@ -130,7 +132,7 @@ The plugin provides comprehensive integration with the extrachill.link domain fo
 - Artist profile trail: "Artist Name" with proper hierarchy
 
 #### Blog Coverage Integration
-Cross-site linking to blog taxonomy archives is provided by `extrachill-multisite/inc/cross-site-links/`. The artist profile template calls `ec_render_cross_site_artist_profile_links()` directly.
+Cross-site linking to blog taxonomy archives is provided by `extrachill-multisite/inc/cross-site-links/`. The artist profile template calls `ec_render_cross_site_artist_profile_links()` and uses `ec_get_artist_profile_by_slug()` for site-aware resolution. Both functions are now centrally managed by the multisite plugin to ensure consistency across all 11 active sites.
 
 #### Edit Icon System
 **Location**: `inc/link-pages/live/ajax/`, `inc/link-pages/live/assets/js/`, `assets/css/`
@@ -214,7 +216,7 @@ Complete React-based Gutenberg block for link page editing with live preview:
 - `useMediaUpload.js`: Hook for media upload handling
 - `useSocials.js`: Hook for social platform management
 
-**2. Link Page Analytics Block** (`src/blocks/artist-analytics/`)
+**2. Artist Analytics Block** (`src/blocks/artist-analytics/`)
 
 Dedicated Gutenberg block providing comprehensive analytics interface:
 
@@ -280,6 +282,7 @@ Comprehensive shop product management with Stripe and Shippo integration:
 
 **ProductsTab** (`components/tabs/ProductsTab.js`):
 - Product creation and editing form
+- "Ships Free" toggle for bypassing flat-rate shipping on small items
 - Drag-and-drop image reordering
 - Size variant support via STANDARD_SIZES array (XS, S, M, L, XL, XXL)
 - Individual size stock tracking
@@ -297,7 +300,8 @@ Comprehensive shop product management with Stripe and Shippo integration:
 - Order list with filtering (All, Needs Fulfillment, Completed)
 - Order detail view with customer and shipping information
 - Shipping label purchasing ($5 flat rate USPS)
-- Tracking number management and entry
+- "Ships Free Only" detection for orders containing only free-shipping items
+- Tracking number management and entry for manual fulfillment
 - Order status management and updates
 - Refund processing with confirmation
 - Customer information display (name, email, shipping address)

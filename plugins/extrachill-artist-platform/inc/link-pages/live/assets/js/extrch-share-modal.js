@@ -12,11 +12,12 @@ document.addEventListener('DOMContentLoaded', () => {
      * @param {string} shareUrl - URL being shared
      */
     function trackShare(destination, shareUrl) {
-        const endpoint = '/wp-json/extrachill/v1/analytics/share';
+        const endpoint = '/wp-json/extrachill/v1/analytics/click';
         const data = {
-            destination: destination,
+            click_type: 'share',
+            share_destination: destination,
             source_url: window.location.href,
-            share_url: shareUrl || window.location.href
+            destination_url: shareUrl || window.location.href
         };
 
         if (navigator.sendBeacon) {

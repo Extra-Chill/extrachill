@@ -260,15 +260,28 @@ const OrdersTab = ( {
 								{ /* Shipping Label Section */ }
 								{ ! selectedOrder.tracking_number && ! labelSuccess && (
 									<div className="ec-asm__label-section">
-										<button
-											type="button"
-											className="button-1 button-medium"
-											onClick={ handlePrintLabel }
-											disabled={ labelPurchasing || actionLoading }
-										>
-											{ labelPurchasing ? 'Purchasing Label...' : 'Print Shipping Label' }
-										</button>
-										<p className="ec-asm__muted">$5 flat rate USPS label</p>
+										{ selectedOrder.ships_free_only ? (
+											<>
+												<p className="ec-asm__ships-free-notice">
+													<strong>Ships Free Order</strong>
+												</p>
+												<p className="ec-asm__muted">
+													This order contains only "Ships Free" items. Ship these yourself without a label.
+												</p>
+											</>
+										) : (
+											<>
+												<button
+													type="button"
+													className="button-1 button-medium"
+													onClick={ handlePrintLabel }
+													disabled={ labelPurchasing || actionLoading }
+												>
+													{ labelPurchasing ? 'Purchasing Label...' : 'Print Shipping Label' }
+												</button>
+												<p className="ec-asm__muted">$5 flat rate USPS label</p>
+											</>
+										) }
 									</div>
 								) }
 
