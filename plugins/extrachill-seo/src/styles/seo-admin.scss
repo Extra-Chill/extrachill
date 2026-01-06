@@ -1,0 +1,186 @@
+/**
+ * SEO Admin Styles
+ */
+
+.extrachill-seo-audit {
+	h2 {
+		margin-top: 0;
+	}
+}
+
+.extrachill-seo-audit-actions {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin-bottom: 16px;
+
+	.button {
+		margin: 0;
+	}
+}
+
+.extrachill-seo-audit-status {
+	margin-left: 16px;
+	color: #50575e;
+	font-size: 13px;
+
+	&.loading {
+		color: #2271b1;
+	}
+
+	&.error {
+		color: #d63638;
+	}
+}
+
+// Progress indicator
+.extrachill-seo-progress {
+	background: #f0f6fc;
+	border: 1px solid #c3c4c7;
+	border-radius: 4px;
+	padding: 12px 16px;
+	margin-bottom: 20px;
+}
+
+.extrachill-seo-progress-text {
+	font-size: 13px;
+	color: #1d2327;
+	margin-bottom: 8px;
+}
+
+.extrachill-seo-progress-bar {
+	height: 8px;
+	background: #c3c4c7;
+	border-radius: 4px;
+	overflow: hidden;
+}
+
+.extrachill-seo-progress-bar-fill {
+	height: 100%;
+	background: #2271b1;
+	border-radius: 4px;
+	transition: width 0.3s ease;
+}
+
+// Dashboard cards grid
+.extrachill-seo-cards {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+	gap: 16px;
+	margin: 24px 0;
+}
+
+.extrachill-seo-card {
+	background: #fff;
+	border: 1px solid #c3c4c7;
+	border-radius: 4px;
+	padding: 20px;
+	text-align: center;
+
+	.button {
+		margin-top: 12px;
+	}
+}
+
+.extrachill-seo-card-count {
+	font-size: 36px;
+	font-weight: 600;
+	color: #1d2327;
+	line-height: 1;
+
+	&.zero {
+		color: #00a32a;
+	}
+
+	&.warning {
+		color: #dba617;
+	}
+
+	&.error {
+		color: #d63638;
+	}
+}
+
+.extrachill-seo-card-label {
+	font-size: 13px;
+	color: #50575e;
+	margin-top: 8px;
+}
+
+.extrachill-seo-card-breakdown {
+	margin-top: 16px;
+	text-align: left;
+	font-size: 12px;
+	color: #646970;
+
+	summary {
+		cursor: pointer;
+		color: #2271b1;
+		font-weight: 500;
+
+		&:hover {
+			color: #135e96;
+		}
+	}
+
+	ul {
+		margin: 8px 0 0 20px;
+		list-style: disc;
+	}
+
+	li {
+		margin: 4px 0;
+	}
+}
+
+// Timestamp
+.extrachill-seo-timestamp {
+	color: #646970;
+	font-size: 12px;
+	margin-top: 8px;
+}
+
+// Empty state
+.extrachill-seo-empty {
+	background: #f6f7f7;
+	border: 1px solid #c3c4c7;
+	border-radius: 4px;
+	padding: 40px 20px;
+	text-align: center;
+	color: #50575e;
+
+	p {
+		margin: 0;
+		font-size: 14px;
+	}
+}
+
+// Details section
+.extrachill-seo-details {
+	background: #fff;
+	border: 1px solid #c3c4c7;
+	border-radius: 4px;
+	padding: 20px;
+	margin-top: 24px;
+}
+
+.extrachill-seo-details-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin-bottom: 16px;
+	padding-bottom: 12px;
+	border-bottom: 1px solid #c3c4c7;
+
+	h3 {
+		margin: 0;
+		font-size: 14px;
+		font-weight: 600;
+		color: #1d2327;
+	}
+}
+
+.extrachill-seo-details-actions {
+	display: flex;
+	gap: 8px;
+}

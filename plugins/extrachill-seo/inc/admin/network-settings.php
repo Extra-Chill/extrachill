@@ -57,13 +57,7 @@ function ec_seo_enqueue_network_assets( $hook_suffix ) {
 
 	wp_enqueue_media();
 
-	wp_enqueue_style(
-		'extrachill-seo-admin',
-		EXTRACHILL_SEO_URL . 'inc/admin/admin-styles.css',
-		array(),
-		filemtime( EXTRACHILL_SEO_PATH . 'inc/admin/admin-styles.css' )
-	);
-
+	// Media picker for config tab.
 	wp_enqueue_script(
 		'extrachill-seo-media-picker',
 		EXTRACHILL_SEO_URL . 'inc/admin/media-picker.js',
@@ -72,21 +66,73 @@ function ec_seo_enqueue_network_assets( $hook_suffix ) {
 		true
 	);
 
-	wp_enqueue_script(
-		'extrachill-seo-admin',
-		EXTRACHILL_SEO_URL . 'inc/admin/admin-scripts.js',
-		array(),
-		filemtime( EXTRACHILL_SEO_PATH . 'inc/admin/admin-scripts.js' ),
-		true
-	);
+	// Config tab styles (keep minimal CSS for non-React parts).
+	$css_path = EXTRACHILL_SEO_PATH . 'inc/admin/admin-styles.css';
+	if ( file_exists( $css_path ) ) {
+		wp_enqueue_style(
+			'extrachill-seo-config',
+			EXTRACHILL_SEO_URL . 'inc/admin/admin-styles.css',
+			array(),
+			filemtime( $css_path )
+		);
+	}
 
-	wp_localize_script(
-		'extrachill-seo-admin',
-		'ecSeoAdmin',
-		array(
-			'restUrl' => rest_url( 'extrachill/v1/' ),
-			'nonce'   => wp_create_nonce( 'wp_rest' ),
-		)
+	// React app for audit tab.
+	$current_tab = isset( $_GET['tab'] ) ? sanitize_key( $_GET['tab'] ) : 'audit';
+	if ( 'audit' === $current_tab ) {
+		$asset_file = EXTRACHILL_SEO_PATH . 'build/seo-admin.asset.php';
+		if ( file_exists( $asset_file ) ) {
+			$asset = require $asset_file;
+
+			wp_enqueue_script(
+				'extrachill-seo-admin',
+				EXTRACHILL_SEO_URL . 'build/seo-admin.js',
+				$asset['dependencies'],
+				$asset['version'],
+				true
+			);
+
+			wp_localize_script(
+				'extrachill-seo-admin',
+				'ecSeoAdmin',
+				array(
+					'restUrl'   => rest_url( 'extrachill/v1/' ),
+					'nonce'     => wp_create_nonce( 'wp_rest' ),
+					'auditData' => ec_seo_get_audit_data_for_js(),
+				)
+			);
+
+			$css_path = EXTRACHILL_SEO_PATH . 'build/seo-admin.css';
+			if ( file_exists( $css_path ) ) {
+				wp_enqueue_style(
+					'extrachill-seo-admin',
+					EXTRACHILL_SEO_URL . 'build/seo-admin.css',
+					array( 'wp-components' ),
+					filemtime( $css_path )
+				);
+			}
+		}
+	}
+}
+
+/**
+ * Gets audit data formatted for JavaScript.
+ *
+ * @return array Audit data with status, results, and timestamp.
+ */
+function ec_seo_get_audit_data_for_js() {
+	$audit_data = function_exists( 'ExtraChill\\SEO\\Audit\\ec_seo_get_audit_results' )
+		? ec_seo_get_audit_results()
+		: array(
+			'status'    => 'none',
+			'timestamp' => 0,
+			'results'   => array(),
+		);
+
+	return array(
+		'status'    => $audit_data['status'] ?? 'none',
+		'timestamp' => $audit_data['timestamp'] ?? 0,
+		'results'   => $audit_data['results'] ?? array(),
 	);
 }
 
@@ -154,168 +200,11 @@ function ec_seo_render_settings_page() {
  * Renders the Audit tab content.
  */
 function ec_seo_render_audit_tab() {
-	$audit_data = function_exists( 'ExtraChill\\SEO\\Audit\\ec_seo_get_audit_results' )
-		? ec_seo_get_audit_results()
-		: array(
-			'status'    => 'none',
-			'timestamp' => 0,
-			'results'   => array(),
-		);
-
-	$has_results   = 'none' !== $audit_data['status'];
-	$is_in_progress = 'in_progress' === $audit_data['status'];
 	?>
-	<div class="extrachill-seo-audit">
-		<h2><?php esc_html_e( 'SEO Health Dashboard', 'extrachill-seo' ); ?></h2>
-		<p class="description">
-			<?php esc_html_e( 'Audit your network for SEO issues including missing meta descriptions, alt text, and broken links.', 'extrachill-seo' ); ?>
-		</p>
-
-		<div class="extrachill-seo-audit-actions">
-			<button type="button" id="ec-seo-full-audit" class="button button-primary">
-				<?php esc_html_e( 'Run Full Audit', 'extrachill-seo' ); ?>
-			</button>
-			<button type="button" id="ec-seo-batch-audit" class="button">
-				<?php esc_html_e( 'Run Batch Audit', 'extrachill-seo' ); ?>
-			</button>
-			<button type="button" id="ec-seo-continue-audit" class="button" style="<?php echo $is_in_progress ? '' : 'display:none;'; ?>">
-				<?php esc_html_e( 'Continue Audit', 'extrachill-seo' ); ?>
-			</button>
-			<span id="ec-seo-status-text" class="extrachill-seo-audit-status"></span>
-		</div>
-
-		<div id="ec-seo-progress" class="extrachill-seo-progress" style="display:none;">
-			<div id="ec-seo-progress-text" class="extrachill-seo-progress-text"></div>
-			<div class="extrachill-seo-progress-bar">
-				<div id="ec-seo-progress-bar-fill" class="extrachill-seo-progress-bar-fill" style="width:0%;"></div>
-			</div>
-		</div>
-
-		<?php if ( $has_results ) : ?>
-			<div id="ec-seo-timestamp" class="extrachill-seo-timestamp">
-				<?php
-				if ( $audit_data['timestamp'] ) {
-					printf(
-						/* translators: %s: Date and time of last audit */
-						esc_html__( 'Last audit: %s', 'extrachill-seo' ),
-						esc_html( wp_date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $audit_data['timestamp'] ) )
-					);
-					if ( $is_in_progress ) {
-						echo ' <strong>(' . esc_html__( 'In Progress', 'extrachill-seo' ) . ')</strong>';
-					}
-				}
-				?>
-			</div>
-
-			<div id="ec-seo-cards" class="extrachill-seo-cards">
-				<?php ec_seo_render_dashboard_cards( $audit_data['results'] ); ?>
-			</div>
-		<?php else : ?>
-			<div id="ec-seo-timestamp" class="extrachill-seo-timestamp" style="display:none;"></div>
-			<div id="ec-seo-empty" class="extrachill-seo-empty">
-				<p><?php esc_html_e( 'No audit data available. Run an audit to see SEO health metrics.', 'extrachill-seo' ); ?></p>
-			</div>
-			<div id="ec-seo-cards" class="extrachill-seo-cards" style="display:none;"></div>
-		<?php endif; ?>
-
-		<div id="ec-seo-details" class="extrachill-seo-details" style="display:none;">
-			<div class="extrachill-seo-details-header">
-				<h3 id="ec-seo-details-title"></h3>
-				<button type="button" id="ec-seo-export" class="button">
-					<?php esc_html_e( 'Export JSON', 'extrachill-seo' ); ?>
-				</button>
-			</div>
-			<div id="ec-seo-details-loading" class="extrachill-seo-details-loading" style="display:none;">
-				<?php esc_html_e( 'Loading...', 'extrachill-seo' ); ?>
-			</div>
-			<table id="ec-seo-details-table" class="widefat striped">
-				<thead id="ec-seo-details-thead"></thead>
-				<tbody id="ec-seo-details-tbody"></tbody>
-			</table>
-			<div id="ec-seo-details-pagination" class="extrachill-seo-details-pagination">
-				<button type="button" id="ec-seo-prev" class="button" disabled>
-					<?php esc_html_e( 'Previous', 'extrachill-seo' ); ?>
-				</button>
-				<span id="ec-seo-page-info"></span>
-				<button type="button" id="ec-seo-next" class="button">
-					<?php esc_html_e( 'Next', 'extrachill-seo' ); ?>
-				</button>
-			</div>
-		</div>
+	<div id="extrachill-seo-audit-app">
+		<p class="description"><?php esc_html_e( 'Loading SEO audit dashboard...', 'extrachill-seo' ); ?></p>
 	</div>
 	<?php
-}
-
-/**
- * Renders dashboard metric cards.
- *
- * @param array $results Audit results array.
- */
-function ec_seo_render_dashboard_cards( $results ) {
-	$metrics = array(
-		'missing_excerpts'       => __( 'Posts Missing Excerpts', 'extrachill-seo' ),
-		'missing_alt_text'       => __( 'Images Missing Alt Text', 'extrachill-seo' ),
-		'missing_featured'       => __( 'Posts Without Featured Images', 'extrachill-seo' ),
-		'broken_images'          => __( 'Broken Images', 'extrachill-seo' ),
-		'broken_internal_links'  => __( 'Broken Internal Links', 'extrachill-seo' ),
-		'broken_external_links'  => __( 'Broken External Links', 'extrachill-seo' ),
-	);
-
-	foreach ( $metrics as $key => $label ) :
-		$metric       = $results[ $key ] ?? array(
-			'total'   => 0,
-			'by_site' => array(),
-		);
-		$count_class  = ec_seo_get_count_class( $metric['total'] );
-		$sites        = $metric['by_site'] ?? array();
-		$nonzero_sites = array_filter( $sites, fn( $s ) => $s['count'] > 0 );
-		?>
-		<div class="extrachill-seo-card" data-category="<?php echo esc_attr( $key ); ?>">
-			<div class="extrachill-seo-card-count <?php echo esc_attr( $count_class ); ?>">
-				<?php echo esc_html( number_format_i18n( $metric['total'] ) ); ?>
-			</div>
-			<div class="extrachill-seo-card-label">
-				<?php echo esc_html( $label ); ?>
-			</div>
-			<?php if ( ! empty( $nonzero_sites ) ) : ?>
-				<details class="extrachill-seo-card-breakdown">
-					<summary><?php esc_html_e( 'Per-site breakdown', 'extrachill-seo' ); ?></summary>
-					<ul>
-						<?php foreach ( $nonzero_sites as $site ) : ?>
-							<li>
-								<?php echo esc_html( $site['label'] . ': ' . number_format_i18n( $site['count'] ) ); ?>
-							</li>
-						<?php endforeach; ?>
-					</ul>
-				</details>
-			<?php endif; ?>
-			<?php if ( $metric['total'] > 0 ) : ?>
-				<button type="button" class="button button-small ec-seo-view-details" data-category="<?php echo esc_attr( $key ); ?>">
-					<?php esc_html_e( 'View Details', 'extrachill-seo' ); ?>
-				</button>
-			<?php endif; ?>
-		</div>
-		<?php
-	endforeach;
-}
-
-/**
- * Gets CSS class for count value styling.
- *
- * @param int $count The count value.
- * @return string CSS class name.
- */
-function ec_seo_get_count_class( $count ) {
-	if ( 0 === $count ) {
-		return 'zero';
-	}
-	if ( $count > 50 ) {
-		return 'error';
-	}
-	if ( $count > 10 ) {
-		return 'warning';
-	}
-	return '';
 }
 
 /**

@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0).
 
+## [0.6.0] - 2026-01-07
+
+### Added
+- React-based SEO Audit dashboard (built to `build/seo-admin.js`) using shared `@extrachill/components` styles.
+- Initial audit-state hydration for the admin app via localized `auditData` passed to `ecSeoAdmin`.
+- Cross-site canonical authority support for taxonomy archives in canonical link output, Open Graph canonical URL, and WebPage schema URL/`@id` via `ec_get_canonical_authority_url()`.
+
+### Changed
+- Replaced the legacy PHP-rendered + vanilla JS Audit tab UI (`inc/admin/admin-scripts.js`) with a React mount point (`#extrachill-seo-audit-app`) and build asset enqueueing using `build/seo-admin.asset.php`.
+
 ## [0.5.3] - 2026-01-06
 
 ### Added

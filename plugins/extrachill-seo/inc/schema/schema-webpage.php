@@ -23,6 +23,16 @@ add_filter(
 	function ( $graph ) {
 		$site_base_url = ec_seo_get_schema_site_base_url();
 		$current_url   = ec_seo_get_current_url();
+		$page_url      = $current_url; // Preserve current page URL for breadcrumb reference.
+
+		// Use canonical authority URL for taxonomy archives with cross-site authority.
+		if ( is_tax() && function_exists( 'ec_get_canonical_authority_url' ) ) {
+			$term          = get_queried_object();
+			$authority_url = ec_get_canonical_authority_url( $term, $term->taxonomy );
+			if ( $authority_url ) {
+				$page_url = $authority_url;
+			}
+		}
 
 		// Determine page type
 		$page_type = 'WebPage';
@@ -37,8 +47,8 @@ add_filter(
 
 		$webpage = array(
 			'@type'      => $page_type,
-			'@id'        => $current_url . '#webpage',
-			'url'        => $current_url,
+			'@id'        => $page_url . '#webpage',
+			'url'        => $page_url,
 			'name'       => wp_get_document_title(),
 			'isPartOf'   => array(
 				'@id' => $site_base_url . '/#website',
@@ -46,7 +56,8 @@ add_filter(
 			'inLanguage' => 'en-US',
 		);
 
-		// Add breadcrumb reference for non-homepage
+		// Add breadcrumb reference for non-homepage.
+		// Uses current site URL (not canonical authority) since breadcrumbs are site-specific navigation.
 		if ( ! is_front_page() ) {
 			$webpage['breadcrumb'] = array(
 				'@id' => $current_url . '#breadcrumb',

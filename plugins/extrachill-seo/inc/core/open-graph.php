@@ -133,7 +133,17 @@ function ec_seo_get_canonical_url() {
 
 	if ( is_category() || is_tag() || is_tax() ) {
 		$term = get_queried_object();
-		$url  = get_term_link( $term );
+
+		// Check for cross-site canonical authority on custom taxonomies.
+		if ( is_tax() && function_exists( 'ec_get_canonical_authority_url' ) ) {
+			$authority_url = ec_get_canonical_authority_url( $term, $term->taxonomy );
+			if ( $authority_url ) {
+				// Cross-site canonical doesn't use pagination from current site.
+				return $authority_url;
+			}
+		}
+
+		$url = get_term_link( $term );
 
 		// Add pagination
 		$paged = get_query_var( 'paged' );
