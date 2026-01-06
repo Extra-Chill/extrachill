@@ -36,16 +36,18 @@ function get_sendy_config() {
 }
 
 /**
- * Subscribe email address via Sendy API
+ * Subscribe email address via Sendy API using integration context
  *
  * Validates integration context exists and list ID is configured,
- * then makes subscription request to Sendy.
+ * then delegates to extrachill_subscribe_to_list().
  *
- * @param string $email   Email address to subscribe.
- * @param string $context Form context (homepage, navigation, content, archive).
+ * @param string $email      Email address to subscribe.
+ * @param string $context    Form context (homepage, navigation, content, archive).
+ * @param string $source_url Optional URL of the page where the form was submitted.
+ * @param string $name       Optional subscriber name.
  * @return array Success status and message.
  */
-function extrachill_multisite_subscribe( $email, $context ) {
+function extrachill_multisite_subscribe( $email, $context, $source_url = '', $name = '' ) {
 	$integrations = get_newsletter_integrations();
 
 	if ( ! isset( $integrations[ $context ] ) ) {
@@ -56,8 +58,8 @@ function extrachill_multisite_subscribe( $email, $context ) {
 	}
 
 	$integration = $integrations[ $context ];
-	$settings = get_site_option( 'extrachill_newsletter_settings', array() );
-	$list_id = isset( $settings[ $integration['list_id_key'] ] ) ? $settings[ $integration['list_id_key'] ] : '';
+	$settings    = get_site_option( 'extrachill_newsletter_settings', array() );
+	$list_id     = isset( $settings[ $integration['list_id_key'] ] ) ? $settings[ $integration['list_id_key'] ] : '';
 
 	if ( empty( $list_id ) ) {
 		return array(
@@ -66,21 +68,51 @@ function extrachill_multisite_subscribe( $email, $context ) {
 		);
 	}
 
+	return extrachill_subscribe_to_list( $list_id, $email, $name, $context, $source_url );
+}
+
+/**
+ * Subscribe email address directly to a Sendy list
+ *
+ * Low-level subscription function that sends directly to Sendy API.
+ * Used by extrachill_multisite_subscribe() and admin bulk operations.
+ *
+ * @param string $list_id    Sendy list ID.
+ * @param string $email      Email address to subscribe.
+ * @param string $name       Optional subscriber name.
+ * @param string $source     Optional source identifier for tracking (e.g., 'homepage', 'bandcamp-scraper').
+ * @param string $source_url Optional URL of the page where the form was submitted.
+ * @return array Success status, message, and status code for bulk processing.
+ */
+function extrachill_subscribe_to_list( $list_id, $email, $name = '', $source = '', $source_url = '' ) {
 	$config = get_sendy_config();
 
 	if ( ! is_email( $email ) ) {
 		return array(
 			'success' => false,
 			'message' => __( 'Invalid email address', 'extrachill-newsletter' ),
+			'status'  => 'invalid',
+		);
+	}
+
+	if ( empty( $list_id ) ) {
+		return array(
+			'success' => false,
+			'message' => __( 'List ID is required', 'extrachill-newsletter' ),
+			'status'  => 'error',
 		);
 	}
 
 	$subscription_data = array(
-		'email' => $email,
-		'list' => $list_id,
+		'email'   => $email,
+		'list'    => $list_id,
 		'boolean' => 'true',
 		'api_key' => $config['api_key'],
 	);
+
+	if ( ! empty( $name ) ) {
+		$subscription_data['name'] = sanitize_text_field( $name );
+	}
 
 	$response = wp_remote_post(
 		$config['sendy_url'] . '/subscribe',
@@ -88,46 +120,62 @@ function extrachill_multisite_subscribe( $email, $context ) {
 			'headers' => array(
 				'Content-Type' => 'application/x-www-form-urlencoded',
 			),
-			'body' => $subscription_data,
+			'body'    => $subscription_data,
 			'timeout' => 30,
 		)
 	);
 
 	if ( is_wp_error( $response ) ) {
-		error_log( 'Newsletter integration subscription failed: ' . $response->get_error_message() );
+		error_log( 'Newsletter subscription failed: ' . $response->get_error_message() );
 		return array(
 			'success' => false,
 			'message' => __( 'Subscription service unavailable', 'extrachill-newsletter' ),
+			'status'  => 'error',
 		);
 	}
 
 	$response_body = wp_remote_retrieve_body( $response );
 
 	if ( $response_body === '1' || strpos( $response_body, 'Success' ) !== false ) {
+		/**
+		 * Fires when a newsletter subscription is successful.
+		 *
+		 * @param string $source     Source identifier (context or custom source like 'bandcamp-scraper').
+		 * @param string $list_id    Sendy list ID.
+		 * @param string $source_url URL of the page where the form was submitted.
+		 */
+		do_action( 'extrachill_newsletter_subscribed', $source, $list_id, $source_url );
+
 		return array(
 			'success' => true,
 			'message' => __( 'Successfully subscribed to newsletter', 'extrachill-newsletter' ),
+			'status'  => 'subscribed',
 		);
-	} else {
-		error_log( sprintf( 'Newsletter integration subscription failed for %s via %s: %s', $email, $context, $response_body ) );
-
-		if ( strpos( $response_body, 'Already subscribed' ) !== false ) {
-			return array(
-				'success' => false,
-				'message' => __( 'Email already subscribed', 'extrachill-newsletter' ),
-			);
-		} elseif ( strpos( $response_body, 'Invalid' ) !== false ) {
-			return array(
-				'success' => false,
-				'message' => __( 'Invalid email address', 'extrachill-newsletter' ),
-			);
-		} else {
-			return array(
-				'success' => false,
-				'message' => __( 'Subscription failed, please try again', 'extrachill-newsletter' ),
-			);
-		}
 	}
+
+	error_log( sprintf( 'Newsletter subscription failed for %s via %s: %s', $email, $source ?: 'direct', $response_body ) );
+
+	if ( strpos( $response_body, 'Already subscribed' ) !== false ) {
+		return array(
+			'success' => false,
+			'message' => __( 'Email already subscribed', 'extrachill-newsletter' ),
+			'status'  => 'already_subscribed',
+		);
+	}
+
+	if ( strpos( $response_body, 'Invalid' ) !== false ) {
+		return array(
+			'success' => false,
+			'message' => __( 'Invalid email address', 'extrachill-newsletter' ),
+			'status'  => 'invalid',
+		);
+	}
+
+	return array(
+		'success' => false,
+		'message' => __( 'Subscription failed, please try again', 'extrachill-newsletter' ),
+		'status'  => 'failed',
+	);
 }
 
 /**

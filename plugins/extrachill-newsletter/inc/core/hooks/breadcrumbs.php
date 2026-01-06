@@ -112,3 +112,62 @@ function newsletter_back_to_home_label( $label, $url ) {
 	return '← Back to Newsletter';
 }
 add_filter( 'extrachill_back_to_home_label', 'newsletter_back_to_home_label', 10, 2 );
+
+/**
+ * Override schema breadcrumb items for newsletter site
+ *
+ * Aligns schema breadcrumbs with visual breadcrumbs for newsletter.extrachill.com.
+ * Only applies on blog ID 9 (newsletter.extrachill.com).
+ *
+ * Output patterns:
+ * - Homepage: [Extra Chill, Newsletter]
+ * - Single newsletter: [Extra Chill, Newsletter, Newsletter Title]
+ *
+ * @hook extrachill_seo_breadcrumb_items
+ * @param array $items Default breadcrumb items from SEO plugin
+ * @return array Modified breadcrumb items for newsletter context
+ * @since 0.2.0
+ */
+function newsletter_schema_breadcrumb_items( $items ) {
+	$newsletter_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'newsletter' ) : null;
+	if ( ! $newsletter_blog_id || get_current_blog_id() !== $newsletter_blog_id ) {
+		return $items;
+	}
+
+	$main_site_url = function_exists( 'ec_get_site_url' ) ? ec_get_site_url( 'main' ) : 'https://extrachill.com';
+
+	// Homepage: Extra Chill → Newsletter
+	if ( is_front_page() ) {
+		return array(
+			array(
+				'name' => 'Extra Chill',
+				'url'  => $main_site_url,
+			),
+			array(
+				'name' => 'Newsletter',
+				'url'  => '',
+			),
+		);
+	}
+
+	// Single newsletter: Extra Chill → Newsletter → Newsletter Title
+	if ( is_singular( 'newsletter' ) ) {
+		return array(
+			array(
+				'name' => 'Extra Chill',
+				'url'  => $main_site_url,
+			),
+			array(
+				'name' => 'Newsletter',
+				'url'  => home_url( '/' ),
+			),
+			array(
+				'name' => get_the_title(),
+				'url'  => '',
+			),
+		);
+	}
+
+	return $items;
+}
+add_filter( 'extrachill_seo_breadcrumb_items', 'newsletter_schema_breadcrumb_items' );

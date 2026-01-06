@@ -44,8 +44,9 @@
                 'X-WP-Nonce': newsletterParams.restNonce
             },
             body: JSON.stringify({
-                email: emailInput.value,
-                context: context
+                emails: [{ email: emailInput.value, name: '' }],
+                context: context,
+                source_url: window.location.href
             })
         })
         .then(response => {

@@ -5,15 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.1.8] - 2025-12-10
+## [0.2.1] - 2026-01-06
+
+### Added
+- Added `extrachill_subscribe_to_list()` low-level Sendy subscription helper that supports optional subscriber name and source tracking.
+- Added `extrachill_newsletter_subscribed` action to support subscription tracking integrations.
 
 ### Changed
-- Refactored newsletter forms CSS to use design system variables for consistent spacing and styling
-- Updated JavaScript feedback messages to use WordPress admin notice classes for better integration
-- Cleaned up generic form template by removing unused form group logic
+- Updated subscription workflow to accept optional subscriber name and source URL.
+- Updated newsletter form REST payload to support batch-style `emails` array and send `source_url`.
+- Updated newsletter schema breadcrumb items on the newsletter site to match the visible breadcrumb trail.
 
 ### Fixed
-- Removed duplicate array keys in newsletter context presets that were causing configuration conflicts
+- Improved Sendy subscription result handling by returning explicit status codes for invalid, already subscribed, and general failure states.
 
 ## [0.2.0] - 2025-12-30
 

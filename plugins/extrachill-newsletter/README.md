@@ -61,6 +61,9 @@ The plugin supports multiple subscription contexts through a declarative registr
 - **Homepage**: Main homepage subscription form (called by blog plugin)
 - **Archive**: Newsletter archive page subscription (newsletter site only)
 - **Content**: Newsletter form after post content (called by theme)
+- **Contact**: Subscription checkbox in contact forms (called by contact plugin)
+
+For detailed information on adding new contexts, see [docs/integrations.md](docs/integrations.md).
 
 ### Theme Integration
 
@@ -82,7 +85,7 @@ Context presets are defined in `extrachill_get_newsletter_context_presets()` and
 2. Write your newsletter content using the WordPress editor
 3. Add a featured image if desired
 4. Publish the newsletter
-5. Use the "Push to Sendy" button in the Sendy Integration meta box to send the campaign
+5. Use the "Push to Sendy" button in the Sendy Integration meta box to send the campaign (calls REST API endpoint)
 
 ### Subscription Forms
 
@@ -93,9 +96,7 @@ The plugin uses a decoupled architecture where forms are rendered via the `extra
 - **Homepage**: Called by blog plugin via `do_action('extrachill_render_newsletter_form', 'homepage')`
 - **Content**: Called by theme via `do_action('extrachill_render_newsletter_form', 'content')`
 
-All forms use the generic template (`generic-form.php`) with context-specific presets for heading, description, layout, and styling.
-
-
+All forms use the generic template (`generic-form.php`) with context-specific presets for heading, description, layout, and styling. Forms are submitted via the REST API for a seamless user experience.
 
 ### Template Customization
 
@@ -104,16 +105,12 @@ The plugin uses a single generic form template (`generic-form.php`) with context
 1. Use the `extrachill_newsletter_form_args` filter to modify preset values
 2. Override CSS styles in your theme targeting `.newsletter-form-wrapper` classes
 
-## REST API Endpoint
+## REST API Documentation
 
-The plugin provides subscription functionality via REST API (endpoint registered in `extrachill-api` plugin):
+The plugin provides subscription and campaign functionality via REST API (endpoints registered in `extrachill-api` plugin). Detailed documentation is available in [docs/api-reference.md](docs/api-reference.md).
 
-- `POST /wp-json/extrachill/v1/newsletter/subscribe` - Newsletter subscription
-  - Parameters: `email` (required), `context` (required)
-  - Delegates to `extrachill_multisite_subscribe()` for Sendy integration
-
-Admin functionality (endpoint registered in `extrachill-api` plugin):
-- `POST /wp-json/extrachill/v1/newsletter/campaign/push` - Push a newsletter post to Sendy as a campaign (requires `edit_posts`)
+- `POST /wp-json/extrachill/v1/newsletter/subscribe` - Public newsletter subscription
+- `POST /wp-json/extrachill/v1/newsletter/campaign/push` - Admin campaign push to Sendy
 
 ## Hooks and Filters
 
