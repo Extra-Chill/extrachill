@@ -31,12 +31,10 @@ The plugin provides 66 endpoint files across 18 feature categories, all under th
 ### Configuration Endpoints (1)
 - `GET /config/oauth` - OAuth provider configuration
 
-### Analytics Endpoints (5)
-- `POST /analytics/link-click` - Track link page clicks
+### Analytics Endpoints (3)
+- `POST /analytics/click` - Unified click tracking (shares, link page clicks)
 - `POST /analytics/link-page` - Track link page views (authenticated)
-- `POST /analytics/view-count` - Track content views
-- `POST /analytics/events` - Track platform events
-- `POST /analytics/share` - Track content sharing
+- `POST /analytics/view` - Track content views
 
 ### Artist API (9)
 - `GET/PUT /artists/{id}` - Core artist profile data
@@ -253,7 +251,7 @@ extrachill-api/
         │   ├── feed.php
         │   └── object.php
         ├── analytics/
-        │   ├── link-click.php
+        │   ├── click.php
         │   ├── link-page.php
         │   └── view-count.php
         ├── artists/

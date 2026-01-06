@@ -77,6 +77,7 @@ If a label already exists for the order, it returns the existing label:
 
 - Automatically selects cheapest USPS rate for domestic shipments
 - Flat-rate shipping ($5.00) configured at platform level
+- Bypasses label purchase for "Ships Free" orders (returns `ships_free_order` error)
 - Updates order status to "completed" upon label purchase
 - Syncs tracking number to WooCommerce order metadata (`_tracking_number`)
 - Supports label reprints (returns existing label if already purchased)
@@ -120,6 +121,16 @@ Requires authenticated user with artist management permissions.
 {
     "code": "international_not_supported",
     "message": "International shipping is not currently supported.",
+    "data": { "status": 400 }
+}
+```
+
+### 400 Ships Free Order
+
+```json
+{
+    "code": "ships_free_order",
+    "message": "This order only contains items that ship for free. No shipping label is required.",
     "data": { "status": 400 }
 }
 ```

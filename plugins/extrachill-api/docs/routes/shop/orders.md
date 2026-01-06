@@ -49,6 +49,7 @@ Manage artist shop orders, track fulfillment, and issue refunds for sold product
       ],
       "artist_payout": 7.50,
       "order_total": 14.99,
+      "ships_free_only": false,
       "tracking_number": ""
     }
   ],

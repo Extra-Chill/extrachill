@@ -38,7 +38,7 @@ extrachill-api/
 │       │   ├── taxonomy-sync.php (Taxonomy sync across sites)
 │       │   └── team-members.php (Team member sync and management)
 │       ├── analytics/
-│       │   ├── link-click.php (Track link page clicks)
+│       │   ├── click.php (Unified click tracking - shares, link page clicks)
 │       │   ├── link-page.php (Track link page views)
 │       │   └── view-count.php (Track content views)
 │       ├── artists/
@@ -133,9 +133,9 @@ All endpoints are under the `extrachill/v1` namespace.
 **Documentation**: [docs/routes/config/oauth.md](../extrachill-plugins/extrachill-api/docs/routes/config/oauth.md)
 
 ### Analytics Endpoints (3)
-- `POST /analytics/link-click` - Track link page clicks
+- `POST /analytics/click` - Unified click tracking (shares, link page clicks)
 - `POST /analytics/link-page` - Track link page views (authenticated)
-- `POST /analytics/view-count` - Track content views
+- `POST /analytics/view` - Track content views
 
 **Documentation**: [docs/routes/analytics/](../extrachill-plugins/extrachill-api/docs/routes/analytics/)
 

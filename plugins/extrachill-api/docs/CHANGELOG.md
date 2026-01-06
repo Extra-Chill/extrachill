@@ -2,6 +2,24 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.10.3] - 2026-01-05
+
+### Added
+
+- **Unified Click Tracking**: Consolidated multiple individual tracking routes into a single high-performance endpoint:
+  - `POST /wp-json/extrachill/v1/analytics/click` - Now handles `share` clicks and `link_page_link` clicks via a unified `click_type` parameter.
+  - Improved URL normalization for all tracked clicks, stripping Google Analytics query parameters while preserving affiliate tags.
+  - Centralized error handling for missing tracking functions or invalid destinations.
+
+### Changed
+
+- **Analytics Refactor**:
+  - Removed deprecated `link-click.php` and `share.php` route files.
+  - Updated `README.md` and `AGENTS.md` to reflect the streamlined 3-endpoint analytics architecture.
+- **Documentation Alignment**: 
+  - Updated artist analytics documentation to reference the new unified `click` endpoint.
+  - Refined shop documentation to include error response structures for the "Ships Free" label bypass logic.
+
 ## [0.10.2] - 2026-01-05
 
 ### Added

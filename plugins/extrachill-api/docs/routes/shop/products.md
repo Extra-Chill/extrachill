@@ -31,6 +31,7 @@ Returned by list, get, create, and update.
   "status": "pending",
   "permalink": "https://shop.extrachill.com/product/album-name/",
   "artist_id": 123,
+  "ships_free": false,
   "image": {
     "id": 789,
     "url": "https://shop.extrachill.com/wp-content/uploads/.../cover.jpg"
@@ -97,6 +98,7 @@ Returns a single product object.
   "short_description": "<p>Short description</p>",
   "manage_stock": true,
   "stock_quantity": 50,
+  "ships_free": true,
   "image_id": 789,
   "gallery_ids": [790, 791]
 }
@@ -123,6 +125,7 @@ All fields are optional. Fields omitted are not changed.
   "sale_price": 10.99,
   "manage_stock": true,
   "stock_quantity": 75,
+  "ships_free": false,
   "image_id": 0,
   "gallery_ids": []
 }

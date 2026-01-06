@@ -61,8 +61,8 @@ Artist ID is extracted from the URL path. Optional date range parameter controls
 ## Related Endpoints
 - `GET /artists/{id}` - Get core artist data
 - `GET/PUT /artists/{id}/links` - Manage link page presentation
-- `POST /analytics/link-click` - Track individual link clicks (called by frontend)
-- `POST /analytics/link-page` - Track link page views (called by frontend)
+- `POST /analytics/click` - Track clicks including link page links (called by frontend)
+- `POST /analytics/view` - Track link page views (called by frontend)
 
 ## Usage Examples
 
@@ -82,7 +82,7 @@ curl -X GET "http://site.local/wp-json/extrachill/v1/artists/123/analytics?date_
 ```
 
 ## Data Flow
-1. Frontend link page calls `POST /analytics/link-page` when page loads
-2. Frontend calls `POST /analytics/link-click` when visitor clicks a link
+1. Frontend link page calls `POST /analytics/view` when page loads
+2. Frontend calls `POST /analytics/click` with `click_type: 'link_page_link'` when visitor clicks a link
 3. Artist dashboard calls this endpoint to display analytics
 4. Data aggregation is handled by the analytics provider via the filter hook
