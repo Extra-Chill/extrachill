@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.2.3] - 2026-01-06
+
+### Added
+- Added `extrachill_seo_breadcrumb_items` handler for community pages to align schema breadcrumbs with the theme breadcrumb UI, including bbPress forum/topic/reply/user contexts.
+
 ## [1.2.2] - 2026-01-02
 
 ### Added

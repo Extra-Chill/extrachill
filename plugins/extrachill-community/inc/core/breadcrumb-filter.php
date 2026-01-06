@@ -231,3 +231,150 @@ function extrachill_community_back_to_home_label( $label, $url ) {
 	return '← Back to Community';
 }
 add_filter( 'extrachill_back_to_home_label', 'extrachill_community_back_to_home_label', 10, 2 );
+
+/**
+ * Override schema breadcrumb items for community site
+ *
+ * Aligns schema breadcrumbs with visual breadcrumbs for community.extrachill.com.
+ * Only applies on blog ID 2 (community.extrachill.com).
+ *
+ * Output patterns:
+ * - Homepage: [Extra Chill, Community]
+ * - Single forum: [Extra Chill, Community, ...Parent Forums, Forum Name]
+ * - Single topic: [Extra Chill, Community, ...Parent Forums, Forum Name, Topic Title]
+ * - User profile: [Extra Chill, Community, Username]
+ *
+ * @hook extrachill_seo_breadcrumb_items
+ * @param array $items Default breadcrumb items from SEO plugin
+ * @return array Modified breadcrumb items for community context
+ * @since 1.1.0
+ */
+function extrachill_community_schema_breadcrumb_items( $items ) {
+	$community_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'community' ) : null;
+	if ( ! $community_blog_id || get_current_blog_id() !== $community_blog_id ) {
+		return $items;
+	}
+
+	$main_site_url = function_exists( 'ec_get_site_url' ) ? ec_get_site_url( 'main' ) : 'https://extrachill.com';
+
+	// Homepage: Extra Chill → Community
+	if ( is_front_page() ) {
+		return array(
+			array(
+				'name' => 'Extra Chill',
+				'url'  => $main_site_url,
+			),
+			array(
+				'name' => 'Community',
+				'url'  => '',
+			),
+		);
+	}
+
+	// Ensure bbPress functions exist
+	if ( ! function_exists( 'bbp_is_single_forum' ) ) {
+		return $items;
+	}
+
+	// Single topic (including topic edit and single reply which display same topic trail)
+	if ( bbp_is_single_topic() || bbp_is_topic_edit() || bbp_is_single_reply() ) {
+		$topic_id = bbp_is_single_reply() ? bbp_get_reply_topic_id( bbp_get_reply_id() ) : bbp_get_topic_id();
+		$forum_id = bbp_get_topic_forum_id( $topic_id );
+
+		$breadcrumbs = array(
+			array(
+				'name' => 'Extra Chill',
+				'url'  => $main_site_url,
+			),
+			array(
+				'name' => 'Community',
+				'url'  => home_url( '/' ),
+			),
+		);
+
+		if ( $forum_id ) {
+			// Add parent forums
+			$ancestors = bbp_get_forum_ancestors( $forum_id );
+			if ( ! empty( $ancestors ) ) {
+				$ancestors = array_reverse( $ancestors );
+				foreach ( $ancestors as $ancestor_id ) {
+					$breadcrumbs[] = array(
+						'name' => bbp_get_forum_title( $ancestor_id ),
+						'url'  => bbp_get_forum_permalink( $ancestor_id ),
+					);
+				}
+			}
+
+			// Add forum
+			$breadcrumbs[] = array(
+				'name' => bbp_get_forum_title( $forum_id ),
+				'url'  => bbp_get_forum_permalink( $forum_id ),
+			);
+		}
+
+		// Add topic (no URL for last item)
+		$breadcrumbs[] = array(
+			'name' => bbp_get_topic_title( $topic_id ),
+			'url'  => '',
+		);
+
+		return $breadcrumbs;
+	}
+
+	// Single forum
+	if ( bbp_is_single_forum() ) {
+		$forum_id = bbp_get_forum_id();
+
+		$breadcrumbs = array(
+			array(
+				'name' => 'Extra Chill',
+				'url'  => $main_site_url,
+			),
+			array(
+				'name' => 'Community',
+				'url'  => home_url( '/' ),
+			),
+		);
+
+		// Add parent forums
+		$ancestors = bbp_get_forum_ancestors( $forum_id );
+		if ( ! empty( $ancestors ) ) {
+			$ancestors = array_reverse( $ancestors );
+			foreach ( $ancestors as $ancestor_id ) {
+				$breadcrumbs[] = array(
+					'name' => bbp_get_forum_title( $ancestor_id ),
+					'url'  => bbp_get_forum_permalink( $ancestor_id ),
+				);
+			}
+		}
+
+		// Current forum (no URL for last item)
+		$breadcrumbs[] = array(
+			'name' => bbp_get_forum_title( $forum_id ),
+			'url'  => '',
+		);
+
+		return $breadcrumbs;
+	}
+
+	// User profile
+	if ( bbp_is_single_user() ) {
+		return array(
+			array(
+				'name' => 'Extra Chill',
+				'url'  => $main_site_url,
+			),
+			array(
+				'name' => 'Community',
+				'url'  => home_url( '/' ),
+			),
+			array(
+				'name' => bbp_get_displayed_user_field( 'display_name' ),
+				'url'  => '',
+			),
+		);
+	}
+
+	return $items;
+}
+add_filter( 'extrachill_seo_breadcrumb_items', 'extrachill_community_schema_breadcrumb_items' );

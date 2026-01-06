@@ -10,7 +10,7 @@ This plugin is part of the Extra Chill Platform, a WordPress multisite network s
 
 **Plugin Information:**
 - **Name**: Extra Chill Community
-- **Version**: 1.2.2
+- **Version**: 1.2.3
 - **Text Domain**: `extra-chill-community`
 - **Author**: Chris Huber
 - **Author URI**: https://chubes.net

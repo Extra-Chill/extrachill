@@ -2,7 +2,7 @@
 
 A WordPress plugin for the Extra Chill community platform providing forum enhancements and bbPress integration. Works with the extrachill theme to provide community functionality for community.extrachill.com.
 
- **Version**: 1.2.2
+ **Version**: 1.2.3
 
 ## Overview
 
