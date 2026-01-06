@@ -203,3 +203,185 @@ function extrachill_shop_back_to_home_label( $label, $url ) {
 	return '← Back to Shop';
 }
 add_filter( 'extrachill_back_to_home_label', 'extrachill_shop_back_to_home_label', 10, 2 );
+
+/**
+ * Override schema breadcrumb items for shop site
+ *
+ * Aligns schema breadcrumbs with visual breadcrumbs for shop.extrachill.com.
+ * Only applies on blog ID 3 (shop.extrachill.com).
+ *
+ * Output patterns:
+ * - Homepage: [Extra Chill, Shop]
+ * - Product category: [Extra Chill, Shop, ...Parent Categories, Category Name]
+ * - Single product: [Extra Chill, Shop, ...Categories, Product Title]
+ * - Cart/Checkout/Account: [Extra Chill, Shop, Page Name]
+ *
+ * @hook extrachill_seo_breadcrumb_items
+ * @param array $items Default breadcrumb items from SEO plugin
+ * @return array Modified breadcrumb items for shop context
+ * @since 0.3.0
+ */
+function extrachill_shop_schema_breadcrumb_items( $items ) {
+	$shop_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'shop' ) : null;
+	if ( ! $shop_blog_id || get_current_blog_id() !== $shop_blog_id ) {
+		return $items;
+	}
+
+	$main_site_url = function_exists( 'ec_get_site_url' ) ? ec_get_site_url( 'main' ) : 'https://extrachill.com';
+
+	// Homepage: Extra Chill → Shop
+	if ( is_front_page() ) {
+		return array(
+			array(
+				'name' => 'Extra Chill',
+				'url'  => $main_site_url,
+			),
+			array(
+				'name' => 'Shop',
+				'url'  => '',
+			),
+		);
+	}
+
+	// Ensure WooCommerce functions exist
+	if ( ! function_exists( 'is_woocommerce' ) ) {
+		return $items;
+	}
+
+	// Product category pages
+	if ( is_product_category() ) {
+		$breadcrumbs = array(
+			array(
+				'name' => 'Extra Chill',
+				'url'  => $main_site_url,
+			),
+			array(
+				'name' => 'Shop',
+				'url'  => home_url( '/' ),
+			),
+		);
+
+		$term = get_queried_object();
+		if ( $term ) {
+			// Add parent categories
+			$ancestors = get_ancestors( $term->term_id, 'product_cat' );
+			$ancestors = array_reverse( $ancestors );
+			foreach ( $ancestors as $ancestor_id ) {
+				$ancestor = get_term( $ancestor_id, 'product_cat' );
+				if ( $ancestor && ! is_wp_error( $ancestor ) ) {
+					$breadcrumbs[] = array(
+						'name' => $ancestor->name,
+						'url'  => get_term_link( $ancestor ),
+					);
+				}
+			}
+			// Current category (no URL for last item)
+			$breadcrumbs[] = array(
+				'name' => $term->name,
+				'url'  => '',
+			);
+		}
+
+		return $breadcrumbs;
+	}
+
+	// Single product
+	if ( is_product() ) {
+		$breadcrumbs = array(
+			array(
+				'name' => 'Extra Chill',
+				'url'  => $main_site_url,
+			),
+			array(
+				'name' => 'Shop',
+				'url'  => home_url( '/' ),
+			),
+		);
+
+		$product_cats = get_the_terms( get_the_ID(), 'product_cat' );
+		if ( $product_cats && ! is_wp_error( $product_cats ) ) {
+			$product_cat = array_shift( $product_cats );
+			// Add parent categories
+			$ancestors = get_ancestors( $product_cat->term_id, 'product_cat' );
+			$ancestors = array_reverse( $ancestors );
+			foreach ( $ancestors as $ancestor_id ) {
+				$ancestor = get_term( $ancestor_id, 'product_cat' );
+				if ( $ancestor && ! is_wp_error( $ancestor ) ) {
+					$breadcrumbs[] = array(
+						'name' => $ancestor->name,
+						'url'  => get_term_link( $ancestor ),
+					);
+				}
+			}
+			$breadcrumbs[] = array(
+				'name' => $product_cat->name,
+				'url'  => get_term_link( $product_cat ),
+			);
+		}
+
+		// Product title (no URL for last item)
+		$breadcrumbs[] = array(
+			'name' => get_the_title(),
+			'url'  => '',
+		);
+
+		return $breadcrumbs;
+	}
+
+	// Cart
+	if ( is_cart() ) {
+		return array(
+			array(
+				'name' => 'Extra Chill',
+				'url'  => $main_site_url,
+			),
+			array(
+				'name' => 'Shop',
+				'url'  => home_url( '/' ),
+			),
+			array(
+				'name' => 'Cart',
+				'url'  => '',
+			),
+		);
+	}
+
+	// Checkout
+	if ( is_checkout() ) {
+		return array(
+			array(
+				'name' => 'Extra Chill',
+				'url'  => $main_site_url,
+			),
+			array(
+				'name' => 'Shop',
+				'url'  => home_url( '/' ),
+			),
+			array(
+				'name' => 'Checkout',
+				'url'  => '',
+			),
+		);
+	}
+
+	// My Account
+	if ( is_account_page() ) {
+		return array(
+			array(
+				'name' => 'Extra Chill',
+				'url'  => $main_site_url,
+			),
+			array(
+				'name' => 'Shop',
+				'url'  => home_url( '/' ),
+			),
+			array(
+				'name' => 'My Account',
+				'url'  => '',
+			),
+		);
+	}
+
+	return $items;
+}
+add_filter( 'extrachill_seo_breadcrumb_items', 'extrachill_shop_schema_breadcrumb_items' );

@@ -97,6 +97,12 @@ if ( function_exists( 'extrachill_breadcrumbs' ) ) {
 	<div class="product-summary">
 		<h1 class="product_title"><?php the_title(); ?></h1>
 
+		<?php
+		if ( function_exists( 'extrachill_display_taxonomy_badges' ) ) {
+			extrachill_display_taxonomy_badges( $product_id );
+		}
+		?>
+
 		<p class="price"><?php echo $product->get_price_html(); ?></p>
 
 		<?php woocommerce_template_single_rating(); ?>

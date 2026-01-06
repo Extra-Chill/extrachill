@@ -370,6 +370,10 @@
     line-height: 1.3;
 }
 
+.product-summary .taxonomy-badges {
+    margin-bottom: var(--spacing-md);
+}
+
 .product-summary .price {
     font-size: var(--font-size-xl);
     font-weight: 700;

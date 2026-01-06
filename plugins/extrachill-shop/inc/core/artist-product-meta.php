@@ -235,6 +235,13 @@ function extrachill_shop_render_artist_meta_box( $post ) {
 	echo '</p>';
 	echo '<p class="description">' . esc_html__( 'Enter the artist profile post ID from artist.extrachill.com.', 'extrachill-shop' ) . '</p>';
 
+	if ( defined( 'EC_PLATFORM_ARTIST_ID' ) ) {
+		echo '<p class="description"><strong>' . esc_html__( 'Tip:', 'extrachill-shop' ) . '</strong> ';
+		/* translators: %d is the platform artist ID */
+		echo sprintf( esc_html__( 'Use %d for Extra Chill platform products.', 'extrachill-shop' ), EC_PLATFORM_ARTIST_ID );
+		echo '</p>';
+	}
+
 	if ( $artist_id ) {
 		$artist_data = extrachill_shop_get_artist_profile_by_slug_via_id( $artist_id );
 		if ( $artist_data ) {

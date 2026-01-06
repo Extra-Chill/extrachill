@@ -45,6 +45,7 @@ WordPress plugin providing comprehensive e-commerce functionality for shop.extra
 - Artist-managed shipping addresses stored on artist profiles
 - Automated cheapest USPS rate selection for domestic shipments
 - Flat-rate shipping charge ($5.00) integrated into checkout
+- "Ships Free" logic for small items (e.g., stickers) that bypasses flat-rate shipping when the entire artist portion of the cart consists of free-shipping items
 - Label reprinting and tracking synchronization with WooCommerce orders
 
 #### Lifetime Extra Chill Membership System

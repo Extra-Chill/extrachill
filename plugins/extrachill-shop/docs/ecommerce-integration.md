@@ -25,7 +25,7 @@ The platform uses Stripe Connect Express to handle artist payouts for marketplac
 - Uses Stripe's **Separate Charges and Transfers** pattern
 - Payments are collected by the platform on `shop.extrachill.com`
 - Upon payment completion (`woocommerce_payment_complete`), the system calculates the artist portion
-- Transfers are initiated from the platform account to the connected artist account
+- Transfers are initiated from the platform account to the connected artist account via Stripe's "Separate Charges and Transfers" payout pattern, ensuring funds are distributed only after successful platform collection.
 
 ### 3. API Endpoints
 - `GET /shop/stripe-connect/status`: Checks account status and capabilities
@@ -39,12 +39,14 @@ Automated shipping fulfillment using Shippo API for domestic USPS shipments.
 ### 1. Artist Shipping Settings
 - Artists must configure their shipping address in the **Shop Manager**
 - Address is stored as meta on the `artist_profile` post
-- Fixed domestic flat rate of **$5.00** applied at checkout
+- Fixed domestic flat rate of **$5.00** applied at checkout, except for orders containing only "Ships Free" items.
+- "Ships Free" flag on products allows small items (stickers, patches) to bypass the $5 flat-rate shipping when they are the only items in the artist portion of the cart.
 
 ### 2. Label Fulfillment Flow
 - When an order is "Processing", artists can purchase labels in the **Shop Manager**
 - System fetches the artist's address (From) and customer's address (To)
-- Automatically selects the **cheapest USPS rate** available
+- Automatically selects the **cheapest USPS rate** available via Shippo integration ($5 flat-rate label model)
+- **Ships Free Exception**: If an order consists only of "Ships Free" items, the system blocks platform label purchases. Artists must ship these manually (e.g., via stamped envelope) and mark the order as shipped.
 - Purchases label and retrieves tracking number + PDF URL
 - Updates WooCommerce order status to "Completed" and adds tracking info
 

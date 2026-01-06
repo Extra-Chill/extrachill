@@ -64,9 +64,21 @@ function extrachill_shop_shipping_method_init() {
 		}
 
 		public function calculate_shipping( $package = array() ) {
-			$artist_count = extrachill_shop_get_cart_artist_count();
+			// If all products ship free, no charge
+			if ( extrachill_shop_cart_ships_free() ) {
+				$this->add_rate( array(
+					'id'       => $this->get_rate_id(),
+					'label'    => __( 'Free Shipping', 'extrachill-shop' ),
+					'cost'     => 0,
+					'calc_tax' => 'per_order',
+				) );
+				return;
+			}
+
+			// Standard calculation for orders with shippable products
+			$artist_count    = extrachill_shop_get_cart_artist_count();
 			$rate_per_artist = extrachill_shop_get_flat_rate_per_artist();
-			$total_cost = $artist_count * $rate_per_artist;
+			$total_cost      = $artist_count * $rate_per_artist;
 
 			if ( $artist_count > 1 ) {
 				$label = sprintf(
@@ -78,16 +90,43 @@ function extrachill_shop_shipping_method_init() {
 				$label = __( 'Shipping', 'extrachill-shop' );
 			}
 
-			$rate = array(
+			$this->add_rate( array(
 				'id'       => $this->get_rate_id(),
 				'label'    => $label,
 				'cost'     => $total_cost,
 				'calc_tax' => 'per_order',
-			);
-
-			$this->add_rate( $rate );
+			) );
 		}
 	}
+}
+
+/**
+ * Check if cart contains only "ships free" products.
+ *
+ * @return bool True if all cart products have ships_free meta.
+ */
+function extrachill_shop_cart_ships_free() {
+	if ( ! function_exists( 'WC' ) || ! WC()->cart ) {
+		return false;
+	}
+
+	$cart_contents = WC()->cart->get_cart();
+	if ( empty( $cart_contents ) ) {
+		return false;
+	}
+
+	foreach ( $cart_contents as $cart_item ) {
+		$product_id = $cart_item['product_id'] ?? 0;
+		if ( ! $product_id ) {
+			continue;
+		}
+
+		if ( '1' !== get_post_meta( $product_id, '_ships_free', true ) ) {
+			return false;
+		}
+	}
+
+	return true;
 }
 
 /**
