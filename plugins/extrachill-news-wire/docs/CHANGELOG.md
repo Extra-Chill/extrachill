@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.3.9] - 2026-01-06
+
+### Changed
+- Simplified `ec_news_wire_render_wire_hub_homepage()` by removing redundant site URL and admin checks, relying on the `extrachill_homepage_content` hook context for execution
+
+
 ## [0.3.8] - 2026-01-06
 
 ### Fixed
