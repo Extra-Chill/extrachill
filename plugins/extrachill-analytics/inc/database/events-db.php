@@ -1,6 +1,6 @@
 <?php
 /**
- * Events Database Table Management
+ * Analytics Events Database Table Management
  *
  * Creates and manages the network-wide events table for analytics tracking.
  *
@@ -10,24 +10,24 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'EC_EVENTS_DB_VERSION', '1.0' );
-define( 'EC_EVENTS_DB_VERSION_OPTION', 'ec_events_db_version' );
+define( 'EXTRACHILL_ANALYTICS_EVENTS_DB_VERSION', '1.1' );
+define( 'EXTRACHILL_ANALYTICS_EVENTS_DB_VERSION_OPTION', 'extrachill_analytics_events_db_version' );
 
 /**
- * Creates or updates the events table when database version changes.
+ * Creates or updates the analytics events table when database version changes.
  *
  * Uses base_prefix for network-wide table shared across all sites.
  */
-function ec_events_create_table() {
-	$current_db_version = get_site_option( EC_EVENTS_DB_VERSION_OPTION );
+function extrachill_analytics_events_create_table() {
+	$current_db_version = get_site_option( EXTRACHILL_ANALYTICS_EVENTS_DB_VERSION_OPTION );
 
-	if ( $current_db_version === EC_EVENTS_DB_VERSION ) {
+	if ( $current_db_version === EXTRACHILL_ANALYTICS_EVENTS_DB_VERSION ) {
 		return;
 	}
 
 	global $wpdb;
 	$charset_collate = $wpdb->get_charset_collate();
-	$table_name      = $wpdb->base_prefix . 'ec_events';
+	$table_name      = $wpdb->base_prefix . 'extrachill_analytics_events';
 
 	require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 
@@ -49,17 +49,17 @@ function ec_events_create_table() {
 
 	dbDelta( $sql );
 
-	update_site_option( EC_EVENTS_DB_VERSION_OPTION, EC_EVENTS_DB_VERSION );
+	update_site_option( EXTRACHILL_ANALYTICS_EVENTS_DB_VERSION_OPTION, EXTRACHILL_ANALYTICS_EVENTS_DB_VERSION );
 }
 
-add_action( 'admin_init', 'ec_events_create_table' );
+add_action( 'admin_init', 'extrachill_analytics_events_create_table' );
 
 /**
- * Get the events table name.
+ * Get the analytics events table name.
  *
  * @return string Table name with prefix.
  */
-function ec_events_get_table_name() {
+function extrachill_analytics_events_table() {
 	global $wpdb;
-	return $wpdb->base_prefix . 'ec_events';
+	return $wpdb->base_prefix . 'extrachill_analytics_events';
 }

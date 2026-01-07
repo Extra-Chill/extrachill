@@ -216,7 +216,7 @@ $views = ec_get_post_views($post_id);
 
 **Pattern**: Network-wide custom table for storing all analytics events with flexible JSON payload.
 
-**Table**: `{base_prefix}_ec_events` (shared across multisite network)
+**Table**: `{base_prefix}_extrachill_analytics_events` (shared across multisite network)
 
 **Schema**:
 - `id` - Auto-increment primary key
@@ -301,7 +301,7 @@ do_action('extrachill_newsletter_subscribed', $context, $list_id, $source_url)
 ↓
 Analytics listener calls ec_track_event('newsletter_signup', {...}, $source_url)
 ↓
-Event stored in {base_prefix}_ec_events table
+Event stored in {base_prefix}_extrachill_analytics_events table
 ```
 
 ### User Registration Flow
@@ -314,7 +314,7 @@ do_action('extrachill_new_user_registered', $user_id, $page, $source, $method)
 ↓
 Analytics listener calls ec_track_event('user_registration', {...}, $page)
 ↓
-Event stored in {base_prefix}_ec_events table
+Event stored in {base_prefix}_extrachill_analytics_events table
 ```
 
 ## Version Notes

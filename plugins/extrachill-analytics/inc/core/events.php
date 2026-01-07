@@ -1,6 +1,6 @@
 <?php
 /**
- * Event Tracking Functions
+ * Analytics Event Tracking Functions
  *
  * Core functions for tracking and querying analytics events.
  *
@@ -18,14 +18,14 @@ defined( 'ABSPATH' ) || exit;
  * @param string $source_url URL of the page where the event occurred.
  * @return int|false Event ID on success, false on failure.
  */
-function ec_track_event( $event_type, $event_data = array(), $source_url = '' ) {
+function extrachill_track_analytics_event( $event_type, $event_data = array(), $source_url = '' ) {
 	global $wpdb;
 
 	if ( empty( $event_type ) ) {
 		return false;
 	}
 
-	$table_name = ec_events_get_table_name();
+	$table_name = extrachill_analytics_events_table();
 
 	$result = $wpdb->insert(
 		$table_name,
@@ -41,7 +41,7 @@ function ec_track_event( $event_type, $event_data = array(), $source_url = '' ) 
 	);
 
 	if ( false === $result ) {
-		error_log( sprintf( 'ec_track_event failed: %s', $wpdb->last_error ) );
+		error_log( sprintf( 'extrachill_track_analytics_event failed: %s', $wpdb->last_error ) );
 		return false;
 	}
 
@@ -64,7 +64,7 @@ function ec_track_event( $event_type, $event_data = array(), $source_url = '' ) 
  *                    - order (string): ASC or DESC (default 'DESC').
  * @return array Array of event objects.
  */
-function ec_get_events( $args = array() ) {
+function extrachill_get_analytics_events( $args = array() ) {
 	global $wpdb;
 
 	$defaults = array(
@@ -81,7 +81,7 @@ function ec_get_events( $args = array() ) {
 	);
 
 	$args       = wp_parse_args( $args, $defaults );
-	$table_name = ec_events_get_table_name();
+	$table_name = extrachill_analytics_events_table();
 	$where      = array( '1=1' );
 	$values     = array();
 
@@ -153,10 +153,10 @@ function ec_get_events( $args = array() ) {
 /**
  * Count analytics events matching criteria.
  *
- * @param array $args Query arguments (same as ec_get_events, excluding limit/offset).
+ * @param array $args Query arguments (same as extrachill_get_analytics_events, excluding limit/offset).
  * @return int Total count of matching events.
  */
-function ec_count_events( $args = array() ) {
+function extrachill_count_analytics_events( $args = array() ) {
 	global $wpdb;
 
 	$defaults = array(
@@ -169,7 +169,7 @@ function ec_count_events( $args = array() ) {
 	);
 
 	$args       = wp_parse_args( $args, $defaults );
-	$table_name = ec_events_get_table_name();
+	$table_name = extrachill_analytics_events_table();
 	$where      = array( '1=1' );
 	$values     = array();
 
@@ -223,17 +223,17 @@ function ec_count_events( $args = array() ) {
 }
 
 /**
- * Get aggregated event statistics.
+ * Get aggregated analytics event statistics.
  *
  * @param string $event_type Event type to aggregate.
  * @param int    $days       Number of days to look back (0 for all time).
  * @param int    $blog_id    Optional blog ID filter (0 for all blogs).
  * @return array Statistics array with total, by_date, by_source, by_context.
  */
-function ec_get_event_stats( $event_type, $days = 30, $blog_id = 0 ) {
+function extrachill_get_analytics_event_stats( $event_type, $days = 30, $blog_id = 0 ) {
 	global $wpdb;
 
-	$table_name = ec_events_get_table_name();
+	$table_name = extrachill_analytics_events_table();
 	$where      = array( 'event_type = %s' );
 	$values     = array( sanitize_key( $event_type ) );
 
