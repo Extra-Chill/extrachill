@@ -11,9 +11,9 @@ Technical documentation for developers working on the ExtraChill WordPress theme
 
 ## Overview
 
-ExtraChill is a custom WordPress theme serving a music community ecosystem across a multisite network. The theme powers the active sites (Blog IDs 1–5, 7–11) in the Extra Chill Platform network, with docs.extrachill.com at Blog ID 10 and wire.extrachill.com at Blog ID 11.
+ExtraChill is a custom WordPress theme serving a music community ecosystem across a multisite network. The theme powers the active sites (Blog IDs 1–5, 7–12) in the Extra Chill Platform network, with docs.extrachill.com at Blog ID 10, wire.extrachill.com at Blog ID 11, and horoscope.extrachill.com at Blog ID 12.
 
-**Version**: 1.3.10
+**Version**: 1.3.11
 **Author**: Chubes
 **Text Domain**: extrachill
 
@@ -40,7 +40,7 @@ extrachill/
 │   │   ├── actions.php          # Action hook registration
 │   │   ├── assets.php           # Asset loading system
 │   │   ├── custom-taxonomies.php # Custom taxonomy registration
-│   │   ├── view-counts.php      # Post view tracking
+│   │   ├── view-counts.php      # View-count display helpers (meta is set by extrachill-analytics)
 │   │   ├── rewrite.php          # URL rewrite rules
 │   │   ├── notices.php          # Notice system
 │   │   ├── templates/           # Shared template components
@@ -87,7 +87,9 @@ add_filter( 'extrachill_post_meta', function( $meta, $post_id, $post_type ) {
 
 **Display Post Views**:
 ```php
-ec_the_post_views(); // Outputs: 1,234 views
+if ( function_exists( 'ec_the_post_views' ) ) {
+	ec_the_post_views();
+}
 ```
 
 **Display Taxonomy Badges**:
@@ -117,7 +119,7 @@ extrachill_breadcrumbs();
 ### Taxonomies and Content
 
 - **Custom Taxonomies** - Location, Festival, Artist, Venue taxonomies
-- **View Counting System** - Universal post view tracking
+- **View Counting System** - Archive sorting uses `ec_post_views` (tracked by `extrachill-analytics`)
 - **Category Rewrite System** - Clean category URLs without /category/ prefix
 
 ### Navigation and Menus
@@ -226,7 +228,7 @@ Theme integrations are intentionally minimal. Most advanced behavior (SEO, forum
 
 ## Multisite Network
 
-Theme serves the active sites in the Extra Chill Platform network (Blog ID 6 unused; horoscope.extrachill.com planned for future Blog ID 12):
+Theme serves the active sites in the Extra Chill Platform network (Blog ID 6 unused):
 
 1. **extrachill.com** - Main music journalism and content site (Blog ID 1)
 2. **community.extrachill.com** - Community forums and user hub (Blog ID 2)
@@ -272,7 +274,7 @@ Each site uses the same theme with different plugin integrations and template ov
 - Dashicons removal for non-logged-in users
 - Admin style prevention on frontend
 - Image size optimization
-- View count tracking with editor exclusion
+- View count sorting via `ec_post_views` meta (tracking owned by `extrachill-analytics`)
 - Notice system with cookie-based dismissal
 - Share button interactions with clipboard API
 

@@ -22,18 +22,17 @@ extrachill/
 │   │   ├── archive.css          # Archive page styles
 │   │   ├── filter-bar.css       # Universal filter bar component styles
 │   │   ├── single-post.css      # Single post styles
-│   │   ├── network-dropdown.css # Network site selector
 │   │   ├── search.css           # Search results styles
 │   │   ├── editor-style.css     # Block editor styles
 │   │   ├── share.css            # Share button styles
 │   │   ├── shared-tabs.css      # Tab/accordion interface styles
 │   │   ├── sidebar.css          # Sidebar widget styles
 │   │   └── taxonomy-badges.css  # Taxonomy badge styles
-│   ├── js/                      # 4 JavaScript files
+│   ├── js/                      # JavaScript files
 │   │   ├── nav-menu.js          # Navigation menu functionality
-│   │   ├── network-dropdown.js  # Network site dropdown
-│   │   ├── share.js             # Share button interactions
-│   │   └── view-tracking.js     # Async view counting
+│   │   ├── shared-tabs.js       # Shared tabs/accordion behavior
+│   │   ├── mini-dropdown.js     # Lightweight dropdown UI helper
+│   │   └── share.js             # Share button interactions
 │   └── fonts/                   # Local web fonts
 └── inc/                         # Modular functionality
     ├── components/              # Reusable UI components
@@ -47,7 +46,6 @@ extrachill/
     │   ├── notices.php          # Unified notice system
     │   ├── rewrite.php          # Category base rewriting
     │   ├── template-router.php  # Universal template routing
-    │   ├── view-counts.php      # Post view tracking system
     │   ├── templates/           # Reusable template components
     │   │   ├── 404.php
     │   │   ├── breadcrumbs.php
@@ -352,7 +350,7 @@ if (is_singular()) {
 
 ### Blog Context Awareness
 
-The theme operates across 9 sites with aware context switching:
+The theme operates across 11 sites with aware context switching:
 
 ```php
 // Get current blog ID
@@ -381,6 +379,7 @@ Same CSS/layout system works across all sites:
 - newsletter.extrachill.com (Blog 9): Newsletter
 - docs.extrachill.com (Blog 10): Documentation
 - wire.extrachill.com (Blog 11): News wire
+- horoscope.extrachill.com (Blog 12): Horoscope
 
 ### Site-Specific Template Variations
 

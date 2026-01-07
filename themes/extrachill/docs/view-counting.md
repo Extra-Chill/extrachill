@@ -1,97 +1,19 @@
 # View Counting System
 
-Universal post view tracking for all singular post types using WordPress post meta.
+Archive-facing view count storage and sorting using WordPress post meta (`ec_post_views`).
 
-## Core Functions
+## Current Implementation
 
-**Location**: `inc/core/view-counts.php`
+The theme relies on the `ec_post_views` post meta key for archive sorting (see `inc/archives/archive-custom-sorting.php`).
 
-### ec_track_post_views( $post_id )
-
-Increments the view counter for a post.
-
-**Parameters**:
-- `$post_id` (int) - Post ID to track
-
-**Exclusions**:
-- Preview requests (`is_preview()`)
-
-**Storage**: Post meta key `ec_post_views`
-
-**Trigger**: Intended to be called by the REST endpoint `extrachill/v1/analytics/view` (endpoint is provided by the API plugin).
-
-### ec_get_post_views( $post_id )
-
-Retrieve view count for any post.
-
-**Parameters**:
-- `$post_id` (int|null) - Post ID (defaults to current post)
-
-**Returns**: (int) View count
-
-**Example**:
-```php
-$views = ec_get_post_views( 123 );
-echo $views; // 1234
-```
-
-### ec_the_post_views( $post_id, $echo )
-
-Display formatted view count.
-
-**Parameters**:
-- `$post_id` (int|null) - Post ID (defaults to current post)
-- `$echo` (bool) - Echo output or return (default: `true`)
-
-**Returns**: (string|void) Formatted view count or echoes output
-
-**Output Format**: `"1,234 views"`
-
-**Example**:
-```php
-// Echo view count
-ec_the_post_views(); // Outputs: 1,234 views
-
-// Get view count string
-$view_text = ec_the_post_views( null, false );
-```
-
-## Automatic Tracking
-
-View tracking runs asynchronously via client-side JavaScript:
-
-**Location**: `assets/js/view-tracking.js`
-**Endpoint**: `extrachill/v1/analytics/view`
-**Method**: Async beacon with fallback to fetch
-**Triggers On**:
-- Any singular view (any post type) that is not a preview
-
-**Does NOT Track**:
-- Preview requests
-- Non-singular templates (archives, search, homepage)
-
-**Client-Side Implementation** (see `assets/js/view-tracking.js`):
-- uses `navigator.sendBeacon()` when available
-- falls back to `fetch()` with `keepalive: true`
+The `ec_post_views` value is written by the network analytics system (the `extrachill-analytics` plugin), which tracks views asynchronously via the `extrachill-api` endpoint `POST /wp-json/extrachill/v1/analytics/view`.
 
 ## Using in Templates
 
-```php
-echo esc_html( ec_the_post_views( get_the_ID(), false ) );
-```
+The theme treats view counts as read-only display data. When needed, templates can read the stored meta directly:
 
-**Conditional Display**:
 ```php
-$views = ec_get_post_views();
-if ( $views > 1000 ) {
-    echo '<span class="popular">' . number_format( $views ) . ' views</span>';
-}
-```
-
-**Custom Formatting**:
-```php
-$views = ec_get_post_views();
-echo sprintf( 'Read by %s people', number_format( $views ) );
+$views = (int) get_post_meta( get_the_ID(), 'ec_post_views', true );
 ```
 
 ## Query Posts by Views
@@ -118,12 +40,6 @@ $query = new WP_Query( array(
 $views = get_post_meta( $post_id, 'ec_post_views', true );
 ```
 
-## Incrementing Logic
-
-```php
-$views = (int) get_post_meta( $post_id, 'ec_post_views', true );
-update_post_meta( $post_id, 'ec_post_views', $views + 1 );
-```
 
 ## Why View Counting
 
