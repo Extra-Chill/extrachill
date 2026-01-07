@@ -7,7 +7,6 @@
 import { createRoot } from '@wordpress/element';
 import { AnalyticsProvider } from './context/AnalyticsContext';
 import App from './App';
-import '@extrachill/components/styles/components.scss';
 import './styles/analytics.scss';
 
 document.addEventListener( 'DOMContentLoaded', () => {

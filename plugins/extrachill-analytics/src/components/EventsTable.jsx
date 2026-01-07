@@ -5,8 +5,7 @@
  */
 
 import { useState } from '@wordpress/element';
-import { Button } from '@wordpress/components';
-import { DataTable, Pagination } from '@extrachill/components';
+import { Button, Spinner } from '@wordpress/components';
 import EventDetail from './EventDetail';
 
 export default function EventsTable( {
@@ -49,77 +48,61 @@ export default function EventsTable( {
 		}
 	};
 
-	const columns = [
-		{
-			key: 'id',
-			label: 'ID',
-			width: '60px',
-		},
-		{
-			key: 'event_type',
-			label: 'Event Type',
-			width: '150px',
-			render: ( value ) => (
-				<span className={ getEventTypeBadgeClass( value ) }>
-					{ value.replace( /_/g, ' ' ) }
-				</span>
-			),
-		},
-		{
-			key: 'source_url',
-			label: 'Source URL',
-			render: ( value ) => (
-				<span title={ value }>{ truncateUrl( value ) }</span>
-			),
-		},
-		{
-			key: 'blog_id',
-			label: 'Blog',
-			width: '60px',
-		},
-		{
-			key: 'user_id',
-			label: 'User',
-			width: '60px',
-			render: ( value ) => value || 'Anon',
-		},
-		{
-			key: 'created_at',
-			label: 'Date',
-			width: '180px',
-			render: ( value ) => formatDate( value ),
-		},
-		{
-			key: 'actions',
-			label: '',
-			width: '80px',
-			render: ( _, row ) => (
-				<Button
-					variant="tertiary"
-					onClick={ () => toggleExpand( row.id ) }
-					className="ec-analytics__expand-btn"
-				>
-					{ expandedEventId === row.id ? 'Hide' : 'View' }
-				</Button>
-			),
-		},
-	];
-
-	// Transform data to add actions column (DataTable expects column keys to exist)
-	const tableData = events.map( ( event ) => ( {
-		...event,
-		actions: null, // Placeholder, rendered by custom render function
-	} ) );
-
 	return (
 		<div className="ec-analytics__table-container">
-			<DataTable
-				columns={ columns }
-				data={ tableData }
-				isLoading={ isLoading }
-				emptyMessage="No events found. Try adjusting your filters."
-				rowKey="id"
-			/>
+			{ isLoading ? (
+				<div className="ec-analytics__loading">
+					<Spinner />
+					<span>Loading events...</span>
+				</div>
+			) : events.length === 0 ? (
+				<p className="ec-analytics__empty">No events found. Try adjusting your filters.</p>
+			) : (
+				<div className="ec-analytics__table">
+					<table className="widefat striped">
+						<thead>
+							<tr>
+								<th>ID</th>
+								<th>Event Type</th>
+								<th>Source URL</th>
+								<th>Blog</th>
+								<th>User</th>
+								<th>Date</th>
+								<th></th>
+							</tr>
+						</thead>
+						<tbody>
+							{ events.map( ( event ) => (
+								<tr key={ event.id }>
+									<td>{ event.id }</td>
+									<td>
+										<span className={ getEventTypeBadgeClass( event.event_type ) }>
+											{ event.event_type.replace( /_/g, ' ' ) }
+										</span>
+									</td>
+									<td>
+										<span title={ event.source_url }>
+											{ truncateUrl( event.source_url ) }
+										</span>
+									</td>
+									<td>{ event.blog_id }</td>
+									<td>{ event.user_id || 'Anon' }</td>
+									<td>{ formatDate( event.created_at ) }</td>
+									<td>
+										<Button
+											variant="tertiary"
+											onClick={ () => toggleExpand( event.id ) }
+											className="ec-analytics__expand-btn"
+										>
+											{ expandedEventId === event.id ? 'Hide' : 'View' }
+										</Button>
+									</td>
+								</tr>
+							) ) }
+						</tbody>
+					</table>
+				</div>
+			) }
 
 			{ /* Expanded Event Detail */ }
 			{ expandedEventId && (
@@ -130,12 +113,27 @@ export default function EventsTable( {
 			) }
 
 			{ /* Pagination */ }
-			<Pagination
-				currentPage={ currentPage }
-				totalPages={ totalPages }
-				totalItems={ totalItems }
-				onPageChange={ onPageChange }
-			/>
+			{ totalPages > 1 && (
+				<div className="ec-analytics__pagination">
+					<Button
+						variant="secondary"
+						disabled={ currentPage <= 1 }
+						onClick={ () => onPageChange( currentPage - 1 ) }
+					>
+						Previous
+					</Button>
+					<span>
+						Page { currentPage } of { totalPages } ({ totalItems } total)
+					</span>
+					<Button
+						variant="secondary"
+						disabled={ currentPage >= totalPages }
+						onClick={ () => onPageChange( currentPage + 1 ) }
+					>
+						Next
+					</Button>
+				</div>
+			) }
 		</div>
 	);
 }

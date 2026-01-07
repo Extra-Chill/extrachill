@@ -5,8 +5,7 @@
  */
 
 import { useState } from '@wordpress/element';
-import { SelectControl, Button, DatePicker, Popover } from '@wordpress/components';
-import { SearchBox } from '@extrachill/components';
+import { SelectControl, Button, DatePicker, Popover, TextControl } from '@wordpress/components';
 
 export default function EventFilters( {
 	filters,
@@ -130,10 +129,12 @@ export default function EventFilters( {
 
 			<div className="ec-analytics__filters-row">
 				{ /* Search */ }
-				<SearchBox
+				<TextControl
+					label="Search"
 					value={ filters.search }
-					onSearch={ handleSearch }
+					onChange={ ( value ) => handleSearch( value ) }
 					placeholder="Search event data..."
+					__nextHasNoMarginBottom
 				/>
 
 				{ /* Clear Filters */ }
