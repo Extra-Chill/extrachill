@@ -11,7 +11,7 @@ The ExtraChill Analytics plugin provides comprehensive view tracking and analyti
 - **Unified Event Tracking**: Network-wide custom table for tracking newsletters, registrations, and more
 - **Network-Wide Activation**: Plugin activated across all sites in the multisite network
 - **Async View Tracking**: Uses `navigator.sendBeacon` and `fetch` with `keepalive` for non-blocking tracking
-- **REST API Integration**: Tracks views via extrachill-api endpoint at `/extrachill/v1/analytics/view`
+- **REST API Integration**: Tracks views via extrachill-api endpoint at `/wp-json/extrachill/v1/analytics/view`
 - **Preview Exclusion**: Automatically excludes preview mode from view counting
 - **Post Meta Storage**: Stores view counts in WordPress post meta (`ec_post_views`)
 - **Network Admin Dashboard**: React-powered analytics dashboard under Extra Chill Multisite menu
@@ -25,19 +25,18 @@ The ExtraChill Analytics plugin provides comprehensive view tracking and analyti
 - WordPress 5.0+
 - **Requires Plugin**: extrachill-api (REST API infrastructure for analytics endpoint)
 
-## Installation
+## Notes
 
-1. Upload `extrachill-analytics` directory to `wp-content/plugins/`
-2. Network activate via "Extra Chill Multisite" → "Plugins" in network admin
-3. Access analytics dashboard via "Extra Chill Multisite" → "Analytics" in network admin
+This plugin is a network plugin used inside the Extra Chill Platform multisite network.
+
 
 ## API Integration
 
 This plugin integrates with the ExtraChill API (`extrachill-api`) plugin for the analytics tracking endpoint:
 
-- **Track View** - `POST /wp-json/extrachill/v1/analytics/view` - Increment post view count
+- **Track View** - `POST /wp-json/extrachill/v1/analytics/view` - Records a view for a post ID
   - Request body: `{"post_id": 123}`
-  - Automatically excludes preview mode
+  - Handler lives in `extrachill-api`; the counter is incremented by `extrachill-analytics` (`ec_track_post_views()`)
   - Stores count in `ec_post_views` post meta
 
 ## Development

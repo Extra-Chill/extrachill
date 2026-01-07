@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.1] - 2026-01-07
+
+### Added
+- Added `search` filtering to `ec_get_events()` to allow substring matching against `event_data` JSON.
+- Added `ec_count_events()` to return total event counts for filtered queries.
+- Added React admin dashboard source build pipeline (`src/`, `webpack.config.js`) that outputs script/style assets to `build/`.
+
+### Changed
+- Updated network admin asset loading to enqueue `build/analytics.js` with dependency/version data from `build/analytics.asset.php`.
+- Updated admin styles to load from `build/analytics.css`.
+
 ## [0.2.0] - 2026-01-04
 
 ### Added

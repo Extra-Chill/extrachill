@@ -42,28 +42,40 @@ function extrachill_analytics_render_admin_page() {
  * Enqueue admin assets for the analytics page.
  */
 function extrachill_analytics_enqueue_admin_assets( $hook ) {
-	// Only load on our specific submenu page
 	if ( 'extra-chill-multisite_page_extrachill-analytics' !== $hook ) {
 		return;
 	}
 
-	$js_path = EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'assets/js/admin-analytics.js';
-	if ( file_exists( $js_path ) ) {
-		wp_enqueue_script(
-			'extrachill-analytics-admin',
-			EXTRACHILL_ANALYTICS_PLUGIN_URL . 'assets/js/admin-analytics.js',
-			array( 'wp-element', 'wp-i18n', 'wp-api-fetch' ),
-			filemtime( $js_path ),
-			true
-		);
+	$asset_file = EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'build/analytics.asset.php';
+	if ( ! file_exists( $asset_file ) ) {
+		return;
 	}
 
-	$css_path = EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'assets/css/admin-analytics.css';
+	$asset = require $asset_file;
+
+	wp_enqueue_script(
+		'extrachill-analytics-admin',
+		EXTRACHILL_ANALYTICS_PLUGIN_URL . 'build/analytics.js',
+		$asset['dependencies'],
+		$asset['version'],
+		true
+	);
+
+	wp_localize_script(
+		'extrachill-analytics-admin',
+		'extraChillAnalytics',
+		array(
+			'restUrl' => rest_url( 'extrachill/v1/' ),
+			'nonce'   => wp_create_nonce( 'wp_rest' ),
+		)
+	);
+
+	$css_path = EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'build/analytics.css';
 	if ( file_exists( $css_path ) ) {
 		wp_enqueue_style(
 			'extrachill-analytics-admin',
-			EXTRACHILL_ANALYTICS_PLUGIN_URL . 'assets/css/admin-analytics.css',
-			array(),
+			EXTRACHILL_ANALYTICS_PLUGIN_URL . 'build/analytics.css',
+			array( 'wp-components' ),
 			filemtime( $css_path )
 		);
 	}

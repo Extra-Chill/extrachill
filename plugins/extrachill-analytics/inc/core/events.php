@@ -57,6 +57,7 @@ function ec_track_event( $event_type, $event_data = array(), $source_url = '' ) 
  *                    - user_id (int): Filter by user ID.
  *                    - date_from (string): Start date (Y-m-d format).
  *                    - date_to (string): End date (Y-m-d format).
+ *                    - search (string): Search within event_data JSON.
  *                    - limit (int): Number of results (default 100).
  *                    - offset (int): Offset for pagination.
  *                    - orderby (string): Column to order by (default 'created_at').
@@ -72,6 +73,7 @@ function ec_get_events( $args = array() ) {
 		'user_id'    => 0,
 		'date_from'  => '',
 		'date_to'    => '',
+		'search'     => '',
 		'limit'      => 100,
 		'offset'     => 0,
 		'orderby'    => 'created_at',
@@ -114,6 +116,11 @@ function ec_get_events( $args = array() ) {
 		$values[] = sanitize_text_field( $args['date_to'] ) . ' 23:59:59';
 	}
 
+	if ( ! empty( $args['search'] ) ) {
+		$where[]  = 'event_data LIKE %s';
+		$values[] = '%' . $wpdb->esc_like( sanitize_text_field( $args['search'] ) ) . '%';
+	}
+
 	$where_clause = implode( ' AND ', $where );
 
 	$allowed_orderby = array( 'id', 'event_type', 'blog_id', 'user_id', 'created_at' );
@@ -141,6 +148,78 @@ function ec_get_events( $args = array() ) {
 	}
 
 	return $results;
+}
+
+/**
+ * Count analytics events matching criteria.
+ *
+ * @param array $args Query arguments (same as ec_get_events, excluding limit/offset).
+ * @return int Total count of matching events.
+ */
+function ec_count_events( $args = array() ) {
+	global $wpdb;
+
+	$defaults = array(
+		'event_type' => '',
+		'blog_id'    => 0,
+		'user_id'    => 0,
+		'date_from'  => '',
+		'date_to'    => '',
+		'search'     => '',
+	);
+
+	$args       = wp_parse_args( $args, $defaults );
+	$table_name = ec_events_get_table_name();
+	$where      = array( '1=1' );
+	$values     = array();
+
+	if ( ! empty( $args['event_type'] ) ) {
+		if ( is_array( $args['event_type'] ) ) {
+			$placeholders = implode( ', ', array_fill( 0, count( $args['event_type'] ), '%s' ) );
+			$where[]      = "event_type IN ({$placeholders})";
+			$values       = array_merge( $values, array_map( 'sanitize_key', $args['event_type'] ) );
+		} else {
+			$where[]  = 'event_type = %s';
+			$values[] = sanitize_key( $args['event_type'] );
+		}
+	}
+
+	if ( ! empty( $args['blog_id'] ) ) {
+		$where[]  = 'blog_id = %d';
+		$values[] = absint( $args['blog_id'] );
+	}
+
+	if ( ! empty( $args['user_id'] ) ) {
+		$where[]  = 'user_id = %d';
+		$values[] = absint( $args['user_id'] );
+	}
+
+	if ( ! empty( $args['date_from'] ) ) {
+		$where[]  = 'created_at >= %s';
+		$values[] = sanitize_text_field( $args['date_from'] ) . ' 00:00:00';
+	}
+
+	if ( ! empty( $args['date_to'] ) ) {
+		$where[]  = 'created_at <= %s';
+		$values[] = sanitize_text_field( $args['date_to'] ) . ' 23:59:59';
+	}
+
+	if ( ! empty( $args['search'] ) ) {
+		$where[]  = 'event_data LIKE %s';
+		$values[] = '%' . $wpdb->esc_like( sanitize_text_field( $args['search'] ) ) . '%';
+	}
+
+	$where_clause = implode( ' AND ', $where );
+
+	$sql = "SELECT COUNT(*) FROM {$table_name} WHERE {$where_clause}";
+
+	if ( ! empty( $values ) ) {
+		$count = $wpdb->get_var( $wpdb->prepare( $sql, $values ) );
+	} else {
+		$count = $wpdb->get_var( $sql );
+	}
+
+	return (int) $count;
 }
 
 /**

@@ -1,0 +1,158 @@
+/**
+ * Analytics Dashboard Styles
+ */
+
+.ec-analytics {
+	max-width: 1400px;
+
+	// Notices
+	&__notices {
+		margin-bottom: 20px;
+	}
+
+	// Filters
+	&__filters {
+		background: #fff;
+		border: 1px solid #ccd0d4;
+		border-radius: 4px;
+		padding: 20px;
+		margin-bottom: 20px;
+	}
+
+	&__filters-row {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 15px;
+		align-items: flex-end;
+		margin-bottom: 15px;
+
+		&:last-child {
+			margin-bottom: 0;
+		}
+
+		.components-select-control {
+			min-width: 180px;
+		}
+	}
+
+	&__date-filter {
+		display: flex;
+		flex-direction: column;
+		gap: 5px;
+
+		label {
+			font-size: 11px;
+			font-weight: 500;
+			text-transform: uppercase;
+			color: #1e1e1e;
+		}
+	}
+
+	&__clear-filters {
+		color: #cc1818;
+
+		&:hover {
+			color: #a00;
+		}
+	}
+
+	// Table container
+	&__table-container {
+		background: #fff;
+		border: 1px solid #ccd0d4;
+		border-radius: 4px;
+		padding: 20px;
+	}
+
+	&__expand-btn {
+		font-size: 12px;
+	}
+}
+
+// Event Detail
+.ec-event-detail {
+	margin-top: 20px;
+	padding: 20px;
+	background: #f7f7f7;
+	border: 1px solid #ddd;
+	border-radius: 4px;
+	border-left: 4px solid #2271b1;
+
+	&__header {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		margin-bottom: 15px;
+		padding-bottom: 15px;
+		border-bottom: 1px solid #ddd;
+
+		h3 {
+			margin: 0;
+		}
+	}
+
+	&__content {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 30px;
+
+		@media (max-width: 900px) {
+			grid-template-columns: 1fr;
+		}
+	}
+
+	&__meta,
+	&__data {
+		h4 {
+			margin: 0 0 10px;
+			font-size: 14px;
+			color: #1e1e1e;
+		}
+	}
+
+	&__parsed,
+	&__meta dl {
+		display: grid;
+		grid-template-columns: 120px 1fr;
+		gap: 8px 15px;
+		margin: 0;
+
+		dt {
+			font-weight: 600;
+			color: #646970;
+			font-size: 12px;
+			text-transform: uppercase;
+		}
+
+		dd {
+			margin: 0;
+			word-break: break-all;
+
+			a {
+				color: #2271b1;
+				text-decoration: none;
+
+				&:hover {
+					text-decoration: underline;
+				}
+			}
+		}
+	}
+
+	&__raw {
+		background: #fff;
+		padding: 15px;
+		border: 1px solid #ddd;
+		border-radius: 4px;
+		overflow: auto;
+		max-height: 200px;
+		font-size: 12px;
+		margin: 0;
+	}
+
+	&__no-data {
+		color: #646970;
+		font-style: italic;
+		margin: 0;
+	}
+}

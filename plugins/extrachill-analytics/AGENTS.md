@@ -120,7 +120,7 @@ if ('extrachill-multisite_page_extrachill-analytics' !== $hook) {
 
 **Why React 18 API?** Modern WordPress uses React 18; legacy `render()` deprecated and less performant.
 
-**Note**: Currently v0.1.0 placeholder; dashboard displays welcome message pending data integration.
+**Note**: The admin dashboard is a scaffold and currently renders a basic placeholder view.
 
 ## Loading Patterns
 
@@ -317,7 +317,9 @@ Analytics listener calls ec_track_event('user_registration', {...}, $page)
 Event stored in {base_prefix}_ec_events table
 ```
 
-## Version History
+## Version Notes
+
+The sections below describe implemented milestones; they are not a changelog.
 
 ### 0.2.0 (Event Tracking)
 - Unified event tracking system with custom table
@@ -332,11 +334,6 @@ Event stored in {base_prefix}_ec_events table
 - Network admin dashboard scaffold
 - Asset versioning with filemtime()
 
-## Future Enhancements (Planned)
+## Notes
 
-- Dashboard analytics data integration
-- Network-wide view count aggregation
-- Popular posts reporting
-- Date range filtering in dashboard
-- Export functionality
-- Additional event types (contact form, purchases, etc.)
+- The admin dashboard is a scaffold; most analytics reporting surfaces are driven by the REST API endpoints and event table.
