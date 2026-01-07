@@ -4,7 +4,7 @@ Integration with WordPress multisite network and the extrachill-multisite plugin
 
 ## Network Overview
 
-ExtraChill theme serves the active sites in the WordPress multisite network (Blog ID 6 unused; horoscope.extrachill.com planned for future Blog ID 12):
+ExtraChill theme serves the active sites in the WordPress multisite network (Blog ID 6 unused):
 
 1. **extrachill.com** - Main music journalism and content site (Blog ID 1)
 2. **community.extrachill.com** - Community forums and user hub (Blog ID 2)
@@ -16,6 +16,7 @@ ExtraChill theme serves the active sites in the WordPress multisite network (Blo
 8. **newsletter.extrachill.com** - Newsletter management and archive hub (Blog ID 9)
 9. **docs.extrachill.com** - Documentation hub (Blog ID 10)
 10. **wire.extrachill.com** - Automated news feeds directory (Blog ID 11)
+11. **horoscope.extrachill.com** - Horoscope functionality (Blog ID 12)
 
 ## Plugin Dependency
 
@@ -54,7 +55,7 @@ if ( function_exists( 'extrachill_multisite_search' ) ) {
 **Locations**:
 - `/inc/core/templates/community-activity.php` - Shared helper library with reusable data and render functions
 - `/inc/sidebar/community-activity.php` - Sidebar wrapper calling shared helper with sidebar-specific styling
-- `/inc/home/templates/section-3x3-grid.php` - Homepage 3x3 grid calling shared helper with grid styling
+- Homepage grids are plugin-owned via `extrachill_homepage_content` (theme keeps the shared helper + sidebar wrapper)
 
 **Architecture**:
 - **Centralized Helper**: `extrachill_get_community_activity_items()` and `extrachill_render_community_activity()` functions provide reusable library

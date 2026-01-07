@@ -80,25 +80,7 @@ Implementation details for cross-site searching live in `extrachill-search`. Thi
 
 ## Search Result Metadata
 
-### Standard Post Results
-
-- Title
-- Excerpt
-- Author
-- Date
-- Categories/Tags
-- Featured image
-- View count
-
-### Forum Post Results
-
-- Topic/reply title
-- Author (standard author metadata)
-- Post date
-- Contextual excerpt
-- Permalink
-- Site badge (identifies as community result)
-
+Search results render the post objects they are given (either the WordPress main query, or plugin-provided results).
 ## No Results Handling
 
 **Template**: `/inc/core/templates/no-results.php`
@@ -109,18 +91,11 @@ Displays when search returns zero results:
 
 ## Search Pagination
 
-Search results use standard pagination:
+Search results use standard theme pagination:
 
 ```php
 extrachill_pagination();
 ```
-
-**Features**:
-- Result count: "Viewing results 1-10 of 156"
-- Previous/Next navigation
-- Page numbers
-- Search query preservation in URLs
-
 ## Plugin Integration
 
 ### Override Search Template
@@ -131,18 +106,11 @@ add_filter( 'extrachill_template_search', function( $template ) {
 } );
 ```
 
-### Modify Search Query
+### Modify Search Behavior
 
-```php
-add_action( 'pre_get_posts', function( $query ) {
-    if ( $query->is_search() && $query->is_main_query() ) {
-        $query->set( 'posts_per_page', 20 );
-        $query->set( 'post_type', array( 'post', 'page' ) );
-    }
-} );
-```
+When `extrachill-search` is active, it owns multisite searching and result composition. Theme-side `pre_get_posts` customization only applies when the WordPress main query is responsible for results.
 
-### Add Search Filter
+### Add Search Header Content
 
 ```php
 add_action( 'extrachill_search_header', function() {
@@ -152,10 +120,10 @@ add_action( 'extrachill_search_header', function() {
 
 ## Graceful Degradation
 
-Theme search works normally without `extrachill-search`.
+Theme search works without `extrachill-search`:
 
-- Without plugin: WordPress main query provides local search results.
-- With plugin: plugin can override `extrachill_template_search` (and/or populate the main query) to provide multisite results.
+- Without plugin: the WordPress main query provides local search results.
+- With plugin: the plugin can override `extrachill_template_search` (and/or populate the main query) to provide multisite results.
 
 ## Search Form Accessibility
 
