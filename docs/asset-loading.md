@@ -22,7 +22,7 @@ Conditional CSS/JS loading with `filemtime()` cache busting comes from `/inc/cor
 |--------|---------|-------------|
 | `assets/js/nav-menu.js` | Header search overlay open/close | `extrachill_enqueue_navigation_assets()`
 | `assets/js/shared-tabs.js` | Shared tab components with desktop/mobile logic | Registered alongside `shared-tabs.css` in `extrachill_register_shared_tabs()`
-| `assets/js/view-tracking.js` | View tracking beacon for singular public posts | `extrachill_enqueue_view_tracking()` (only for public, non-preview singulars; skips users who can edit others’ posts)
+| (none) | View tracking | Not present in current theme assets; the theme does not enqueue a view-tracking script. |
 
 ### Header Search Overlay Assets
 
@@ -36,7 +36,7 @@ Sidebar assets (including `sidebar.css`) load via `extrachill_enqueue_sidebar_st
 
 ### View Tracking
 
-`extrachill_enqueue_view_tracking()` enqueues `view-tracking.js` and localizes `ecViewTracking` with the current `postId` and `rest_url( 'extrachill/v1/analytics/view' )`. The only exclusions are non-singular views and previews.
+The theme does not enqueue a dedicated view-tracking script. View-count storage (`ec_post_views`) exists for archive sorting, but event capture is handled outside the theme.
 
 ### Share Assets
 
@@ -57,7 +57,7 @@ Every style and script uses `filemtime()` on the source file for the version arg
 - **Dependency Safety**: Root variables come first, ensuring derived styles inherit the correct custom properties
 - **Cache Busting**: Files emit new version numbers whenever their modification time changes
 - **Minimal Overhead**: Each enqueue guards file existence to avoid 404s
-- **Shared Components**: Shared tabs and view tracking scripts are registered centrally so downstream templates can opt in while keeping their behaviors consistent
+- **Shared Components**: Shared tabs CSS/JS are registered centrally so downstream templates can opt in while keeping their behaviors consistent
 
 
 **Benefit**: Browser cache automatically invalidates when files change.

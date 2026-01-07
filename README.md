@@ -1,12 +1,12 @@
 # ExtraChill WordPress Theme
 
-A custom WordPress theme (v1.3.10) powering the Extra Chill Platform multisite network with 11 active interconnected sites (Blog ID 6 unused), featuring hook-based homepage content, community integrations, universal filter bar component system, and multisite-aware navigation. Horoscope site is planned for future Blog ID 12.
+A custom WordPress theme (v1.3.11) powering the Extra Chill Platform multisite network with 11 active interconnected sites (Blog ID 6 unused), featuring hook-based homepage content, community integrations, universal filter bar component system, and multisite-aware navigation.
 
-> **Platform alignment**: Documentation reflects the live 1.3.10 release in `style.css` and must stay in lockstep with future releases.
+> **Platform alignment**: Documentation reflects the live 1.3.11 release in `style.css` and must stay in lockstep with future releases.
 
 ## Overview
 
-ExtraChill is a modern, performance-optimized WordPress theme (v1.3.10) designed specifically for the Extra Chill Platform multisite network. It serves as the frontend for all 11 active interconnected sites (Blog ID 6 unused) with docs.extrachill.com at Blog ID 10; wire.extrachill.com at Blog ID 11; horoscope.extrachill.com planned for future Blog ID 12:
+ExtraChill is a modern, performance-optimized WordPress theme (v1.3.11) designed specifically for the Extra Chill Platform multisite network. It serves as the frontend for all 11 active interconnected sites (Blog ID 6 unused) with docs.extrachill.com at Blog ID 10; wire.extrachill.com at Blog ID 11; horoscope.extrachill.com at Blog ID 12:
 
 - **extrachill.com** (Blog ID 1): Music journalism, artist features, and industry coverage
 - **community.extrachill.com** (Blog ID 2): Community forums with bbPress integration
@@ -34,7 +34,7 @@ ExtraChill is a modern, performance-optimized WordPress theme (v1.3.10) designed
 - **Conditional Asset Loading**: CSS/JS load only when their contexts require them (archives, search, sidebar, shared tabs, footer stats, notices, share buttons, filter bars, etc.)
 - **Modular CSS Architecture**: Twelve page/component-specific stylesheets (`root`, `archive`, `filter-bar`, `single-post`, `nav`, `taxonomy-badges`, `editor-style`, `search`, `shared-tabs`, `share`, `sidebar`, `notice`)
 - **Image Optimization**: Unused WordPress image sizes removed for leaner uploads
-- **View Tracking**: Async REST-powered view counting with script enqueued only on public singular content
+- **Popularity Sorting**: Archive sorting supports `popular` ordering via the `ec_post_views` post meta key
 - **Multisite Optimization**: Direct `switch_to_blog()` access and cached lookups keep network features fast
 - **Enhanced Pagination**: Array-based pagination support for custom queries with dynamic item labels
 
@@ -62,31 +62,9 @@ ExtraChill is a modern, performance-optimized WordPress theme (v1.3.10) designed
 - PHP 7.4 or higher
 - MySQL 5.6 or higher
 
-### Setup Instructions
+### Plugin Expectations
 
-1. **Download the theme**:
-   ```bash
-   git clone [repository-url] extrachill
-   ```
-
-2. **Install in WordPress**:
-   - Upload the theme folder to `/wp-content/themes/`
-   - Activate through WordPress admin
-
-3. **Configure recommended plugins**:
-    - **ExtraChill Multisite** (network-activated - core multisite functionality, cross-domain authentication)
-    - **ExtraChill Search** (network-activated - cross-site search with site badges)
-    - **ExtraChill Users** (network-activated - user profile URL resolution, avatar menu, team member management)
-    - **ExtraChill News Wire** (Festival Wire functionality and ticker/feed blocks)
-    - **ExtraChill Newsletter** (newsletter management and archive functionality)
-    - **ExtraChill Contact** (contact form functionality)
-    - **ExtraChill Events** (event calendar and management functionality)
-
-4. **Initial setup**:
-   ```bash
-   wp rewrite flush
-   wp theme mod set custom_logo [logo-id]
-   ```
+This theme is part of the Extra Chill Platform multisite network and assumes network plugins provide core cross-site behavior (auth, users, analytics, REST API). The theme stays display-focused, and plugins own data/side effects.
 
 ## Development Workflow
 
@@ -100,7 +78,7 @@ cd wp-content/themes/extrachill
 
 # Edit files directly
 # CSS files are in /assets/css/ (11 CSS files: root.css, archive.css, single-post.css, nav.css, taxonomy-badges.css, editor-style.css, search.css, shared-tabs.css, share.css, sidebar.css, notice.css)
-# JavaScript files are in /assets/js/ (4 files: nav-menu.js, shared-tabs.js, view-tracking.js, share.js)
+# JavaScript files are in /assets/js/ (4 files: nav-menu.js, shared-tabs.js, mini-dropdown.js, share.js)
 # PHP files use modular include structure in /inc/ directory (48 total files, 28 directly loaded in functions.php)
 
 # Check for syntax errors
@@ -154,7 +132,7 @@ extrachill/
 │   ├── js/                     # JavaScript files (4 files)
 │   │   ├── nav-menu.js         # Navigation menu functionality
 │   │   ├── shared-tabs.js      # Shared tab interface
-│   │   ├── view-tracking.js    # Async REST-powered view tracking
+│   │   ├── mini-dropdown.js    # Lightweight dropdown UI helper
 │   │   └── share.js            # Share button interactions
 │   └── fonts/                  # Local web fonts
 ├── inc/                        # Modular PHP functionality
@@ -282,14 +260,14 @@ The theme intentionally avoids the WordPress menu system:
   - **Asset optimization**: SVG support, emoji script removal, unnecessary image size removal
   - **Conditional loading**: WooCommerce styles, admin styles, and plugin styles loaded only when needed
   - **Shared tab components**: `shared-tabs.css`/`shared-tabs.js` registered centrally to keep accordion/tabs consistent across templates while letting plugins enqueue via filters
-  - **View count tracking**: Universal post view counting system with editor/admin exclusion in `inc/core/view-counts.php`
+  - **Popularity sorting**: Archive sorting supports a `popular` option using `ec_post_views` post meta
   - **Permalink optimization**: Category base rewriting for consistent multisite URLs in `inc/core/rewrite.php`
   - **Notice system**: Efficient user feedback with cookie-based dismissal tracking
  
   ### Shared UI Components
 
   - **Shared tabs**: `inc/core/assets.php` registers `shared-tabs.css` and `shared-tabs.js`; templates can enqueue them via `extrachill_enqueue_shared_tabs()` or through plugin overrides while the JavaScript manages desktop/mobile layouts, hash updates, and custom event dispatching (`sharedTabActivated`)
-  - **View tracking script**: `inc/core/assets.php` enqueues `view-tracking.js` only for public singular content, skipping editors and previewers, and localizes `ecViewTracking` with `postId` and the `extrachill/v1/analytics/view` REST endpoint for downstream analytics consumption
+  - **Share buttons**: `inc/core/assets.php` registers `assets/css/share.css` and `assets/js/share.js`, and templates opt in by enqueuing `extrachill-share`
   - **Sidebar extension**: `sidebar.php` supports `extrachill_sidebar_content` filter for full replacements and `extrachill_sidebar_top/middle/bottom` actions for hook-based widgets like recent posts and community activity; `inc/core/assets.php` conditions `sidebar.css` only when those hooks render post-related content
   - **Share buttons**: `inc/core/templates/share.php` provides social sharing with clipboard copy and fallback support
   - **Notice system**: `inc/core/notices.php` enables multiple notices with cookie-based dismissal and action buttons
@@ -404,6 +382,6 @@ See [docs/CHANGELOG.md](docs/CHANGELOG.md) for full version history.
 
 **Theme**: ExtraChill
 **Author**: Chubes
-**Version**: 1.3.10
+**Version**: 1.3.11
 **WordPress**: 5.0+
 **License**: Proprietary

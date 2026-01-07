@@ -17,11 +17,12 @@
      * @param {string} shareUrl - URL being shared
      */
     function ecTrackShare(destination, shareUrl) {
-        var endpoint = '/wp-json/extrachill/v1/analytics/share';
+        var endpoint = '/wp-json/extrachill/v1/analytics/click';
         var data = {
-            destination: destination,
+            click_type: 'share',
+            share_destination: destination,
             source_url: window.location.href,
-            share_url: shareUrl || window.location.href
+            destination_url: shareUrl || window.location.href
         };
 
         if (navigator.sendBeacon) {

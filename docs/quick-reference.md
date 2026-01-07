@@ -6,14 +6,20 @@ Essential functions, hooks, and patterns for ExtraChill theme development.
 
 ### View Counting
 ```php
-// Display view count
-ec_the_post_views();                    // Outputs: 1,234 views
+// Display view count (provided by extrachill-analytics)
+if ( function_exists( 'ec_the_post_views' ) ) {
+    ec_the_post_views(); // Outputs: "1,234 views"
+}
 
 // Get view count
-$views = ec_get_post_views();           // Returns: 1234
+if ( function_exists( 'ec_get_post_views' ) ) {
+    $views = ec_get_post_views(); // Returns: 1234
+}
 
 // Get formatted string
-$text = ec_the_post_views( null, false ); // Returns: "1,234 views"
+if ( function_exists( 'ec_the_post_views' ) ) {
+    $text = ec_the_post_views( null, false ); // Returns: "1,234 views"
+}
 ```
 
 ### Pagination
@@ -366,11 +372,11 @@ extrachill_render_community_activity( array(
 ## Custom Post Meta
 
 ```php
-// Get post views
-$views = get_post_meta( $post_id, 'ec_post_views', true );
+// Read post views (meta key used for popularity sorting)
+$views = (int) get_post_meta( $post_id, 'ec_post_views', true );
 
-// Update post views
-update_post_meta( $post_id, 'ec_post_views', $views + 1 );
+// Updating view counts is handled by the analytics tracking system.
+// Do not increment this meta directly from templates.
 ```
 
 ## Common Patterns

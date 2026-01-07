@@ -4,6 +4,20 @@ All notable changes to this project will be documented in this file.
 
 This file records notable changes in this theme.
 
+## [1.3.11] - 2026-01-06
+
+### Added
+- Integrated the new `horoscope.extrachill.com` (Blog ID 12) into the multisite network documentation and blog context awareness systems.
+
+### Changed
+- Updated the social sharing system (`assets/js/share.js`) to use a more generic click tracking endpoint (`/wp-json/extrachill/v1/analytics/click`) and unified the data contract for share events.
+- Refined the "Popularity" sorting mechanism to rely on `ec_post_views` meta keys managed by the `extrachill-analytics` plugin, removing the legacy theme-side async tracking script.
+- Improved documentation throughout the codebase (README.md, AGENTS.md, docs/) to reflect the current platform architecture and remove legacy references to internal view tracking.
+
+### Removed
+- Legacy view-tracking script (`assets/js/view-tracking.js`) and theme-side tracking logic (`inc/core/view-counts.php`).
+- Removed `network-dropdown.js` and consolidated lightweight dropdown behavior into `mini-dropdown.js`.
+
 ## [1.3.10] - 2026-01-04
 
 ### Changed
@@ -638,19 +652,12 @@ This file records notable changes in this theme.
 ## [1.0.6] - 2025-11-30
 
 ### Added
-- Async view tracking system using REST API with navigator.sendBeacon() and fetch keepalive for reliable client-side analytics
 - Charleston Tin Roof venue badge color support
 - Smooth hover transitions and subtle lift animation for taxonomy badges
 
 ### Changed
-- Enhanced view counting system documentation to reflect async implementation
 - Updated multisite network documentation with comprehensive site details
 - Improved taxonomy badge user experience with CSS transitions
-
-### Technical
-- Added assets/js/view-tracking.js for client-side view tracking
-- Modified inc/core/assets.php to conditionally load view tracking script
-- Updated inc/core/view-counts.php to remove wp_head hook in favor of async tracking
 
 ## [1.0.5] - 2025-11-29
 
