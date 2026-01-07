@@ -6,7 +6,7 @@ Archive-facing view count storage and sorting using WordPress post meta (`ec_pos
 
 The theme relies on the `ec_post_views` post meta key for archive sorting (see `inc/archives/archive-custom-sorting.php`).
 
-The `ec_post_views` value is written by the network analytics system (the `extrachill-analytics` plugin), which tracks views asynchronously via the `extrachill-api` endpoint `POST /wp-json/extrachill/v1/analytics/view`.
+The `ec_post_views` value is written by the network analytics system (the `extrachill-analytics` plugin). The theme treats this meta as read-only.
 
 ## Using in Templates
 
@@ -41,10 +41,6 @@ $views = get_post_meta( $post_id, 'ec_post_views', true );
 ```
 
 
-## Why View Counting
+## Notes
 
-- **Content Analytics**: Identify popular content
-- **Editorial Decisions**: Focus on topics that resonate
-- **User Engagement**: Display popularity indicators
-- **Archive Sorting**: Sort by popularity
-- **Performance Tracking**: Monitor content performance over time
+The write path for view counts lives outside the theme; this doc only covers how the theme reads and sorts by `ec_post_views`.

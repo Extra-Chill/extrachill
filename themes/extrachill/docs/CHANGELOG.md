@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 This file records notable changes in this theme.
 
+## [1.3.12] - 2026-01-06
+
+### Changed
+- Refined taxonomy badge system (`inc/core/templates/taxonomy-badges.php`) to explicitly exclude internal/system taxonomies (WooCommerce product types, visibility, and shipping classes).
+- Updated documentation across the codebase (README.md, docs/) to reflect the current platform architecture, including the addition of `horoscope.extrachill.com` (Blog ID 12).
+- Simplified search and view-counting documentation to focus on the theme's role in the larger multisite ecosystem.
+- Synchronized theme version constant and documentation references to v1.3.12.
+
 ## [1.3.11] - 2026-01-06
 
 ### Added

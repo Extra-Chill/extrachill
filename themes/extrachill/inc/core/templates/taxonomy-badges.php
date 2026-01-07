@@ -69,10 +69,17 @@ function extrachill_display_taxonomy_badges( $post_id = null, $args = array() ) 
         return $order_a - $order_b;
     } );
 
+     // Exclude internal/system taxonomies from badge system
+     $excluded_taxonomies = array(
+         'author',
+         'product_type',           // WooCommerce: simple, variable, grouped, external
+         'product_visibility',     // WooCommerce: featured, rated-1, rated-2, etc.
+         'product_shipping_class', // WooCommerce: shipping classes
+     );
+
      // Process each taxonomy dynamically
      foreach ( $taxonomies as $taxonomy ) {
-         // Exclude author taxonomy from badge system
-         if ( $taxonomy === 'author' ) {
+         if ( in_array( $taxonomy, $excluded_taxonomies, true ) ) {
              continue;
          }
 

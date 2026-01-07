@@ -13,7 +13,7 @@ Technical documentation for developers working on the ExtraChill WordPress theme
 
 ExtraChill is a custom WordPress theme serving a music community ecosystem across a multisite network. The theme powers the active sites (Blog IDs 1–5, 7–12) in the Extra Chill Platform network, with docs.extrachill.com at Blog ID 10, wire.extrachill.com at Blog ID 11, and horoscope.extrachill.com at Blog ID 12.
 
-**Version**: 1.3.11
+**Version**: 1.3.12
 **Author**: Chubes
 **Text Domain**: extrachill
 
@@ -23,9 +23,9 @@ ExtraChill is a custom WordPress theme serving a music community ecosystem acros
 
 - **WordPress Native Routing**: Uses `template_include` filter for proper WordPress integration with custom page template support
 - **Hook-Based Extensibility**: Action and filter hooks throughout for plugin integration
-- **Modular Organization**: 48 modular PHP files in `/inc` directory (28 directly loaded in functions.php)
-- **Performance Focused**: Conditional asset loading, hardcoded menus, `filemtime()` cache busting, notice system, share buttons
-- **Multisite Integration**: Seamless integration with WordPress multisite network including network dropdown
+- **Modular Organization**: Modular PHP files under `/inc` loaded via direct `require_once` includes in `functions.php`
+- **Performance Focused**: Conditional asset loading, hardcoded menus, `filemtime()` cache busting
+- **Multisite Integration**: Integration with the WordPress multisite network (site navigation dropdown, cross-site URL helpers)
 
 ### File Structure
 
@@ -40,8 +40,8 @@ extrachill/
 │   │   ├── actions.php          # Action hook registration
 │   │   ├── assets.php           # Asset loading system
 │   │   ├── custom-taxonomies.php # Custom taxonomy registration
-│   │   ├── view-counts.php      # View-count display helpers (meta is set by extrachill-analytics)
-│   │   ├── rewrite.php          # URL rewrite rules
+│   │   ├── view-counts.php      # View-count display helpers (reads `ec_post_views` meta)
+│   │   ├── rewrite.php          # URL rewrite rules (category base removal)
 │   │   ├── notices.php          # Notice system
 │   │   ├── templates/           # Shared template components
 │   │   └── editor/              # Custom embeds (Bandcamp, Instagram)
@@ -50,7 +50,7 @@ extrachill/
 │   ├── home/                     # Homepage components
 │   ├── single/                   # Single post/page templates
 │   ├── archives/                 # Archive functionality
-│   │   └── search/              # Search header template (main template provided by extrachill-search plugin)
+│   │   └── search/              # (legacy; header/search templates live under core/templates)
 │   └── sidebar/                  # Sidebar widgets
 └── assets/                       # CSS, JavaScript, fonts
     ├── css/                      # 11 modular CSS files
@@ -141,7 +141,7 @@ extrachill_breadcrumbs();
 
 - **Multisite Integration** - WordPress multisite network integration
 
-## Key Features
+## Notes
 
 ### Template System
 
@@ -240,8 +240,9 @@ Theme serves the active sites in the Extra Chill Platform network (Blog ID 6 unu
 8. **newsletter.extrachill.com** - Newsletter management and archive hub (Blog ID 9)
 9. **docs.extrachill.com** - Documentation hub (Blog ID 10)
 10. **wire.extrachill.com** - Automated news feeds directory (Blog ID 11)
+11. **horoscope.extrachill.com** - Horoscope functionality (Blog ID 12)
 
-Each site uses the same theme with different plugin integrations and template overrides via `extrachill_template_*` filters. Cross-site features handled by network-activated plugins (extrachill-multisite, extrachill-search, extrachill-users). Theme directly queries bbPress data for community activity with graceful fallback. Network dropdown provides seamless site navigation.
+Each site uses the same theme with different plugin integrations and template overrides via `extrachill_template_*` filters. Cross-site features are handled by network-activated plugins (extrachill-multisite, extrachill-search, extrachill-users). The theme directly queries bbPress data for community activity with graceful fallback. The header includes a network navigation dropdown.
 
 ## Theme Support
 
@@ -298,11 +299,11 @@ Each site uses the same theme with different plugin integrations and template ov
 - All strings properly internationalized
 - WordPress translation functions throughout
 
-## Getting Help
+## Support
 
 See the platform-level [AGENTS.md](../AGENTS.md) for workflow and debugging expectations.
 
-## Contributing
+## Development Notes
 
 When extending the theme:
 
