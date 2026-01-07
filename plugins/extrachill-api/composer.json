@@ -1,7 +1,7 @@
 {
 	"name": "extrachill/extrachill-api",
 	"description": "REST API infrastructure for the ExtraChill Platform multisite network",
-	"version": "0.10.5",
+	"version": "0.10.6",
 	"type": "wordpress-plugin",
 	"license": "GPL-2.0-or-later",
 	"require": {

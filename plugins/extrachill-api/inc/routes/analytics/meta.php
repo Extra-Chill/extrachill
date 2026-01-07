@@ -38,7 +38,7 @@ function extrachill_api_register_analytics_meta_routes() {
 function extrachill_api_analytics_meta_handler() {
 	global $wpdb;
 
-	$table_name = ec_events_get_table_name();
+	$table_name = extrachill_analytics_events_table();
 
 	// Get distinct event types.
 	$event_types = $wpdb->get_col(

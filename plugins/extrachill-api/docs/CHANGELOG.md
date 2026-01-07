@@ -2,6 +2,20 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.10.6] - 2026-01-07
+
+### Added
+
+- **SEO Config Endpoint**: Added `inc/routes/seo/config.php` to expose network-level SEO settings via REST.
+  - `GET /wp-json/extrachill/v1/seo/config` returns `default_og_image_id`, `default_og_image_url`, and `indexnow_key`.
+  - `PUT /wp-json/extrachill/v1/seo/config` updates `default_og_image_id` and/or `indexnow_key` (both optional).
+  - Permission enforced via `manage_network_options`.
+
+### Changed
+
+- **Analytics Meta Endpoint**: Updated `inc/routes/analytics/meta.php` to avoid placeholder blog names.
+  - Replaced `"Blog {id}"` fallback with the actual multisite `blogname` via `get_blog_option( $blog_id, 'blogname' )`.
+
 ## [0.10.5] - 2026-01-07
 
 ### Changed
