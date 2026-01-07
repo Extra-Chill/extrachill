@@ -15,24 +15,31 @@ const METRICS = [
 ];
 
 const getCountClass = ( count ) => {
-	if ( count === 0 ) return 'zero';
-	if ( count > 50 ) return 'error';
-	if ( count > 10 ) return 'warning';
-	return '';
+	if ( count === 0 ) {
+		return 'extrachill-seo-card-count zero';
+	}
+	if ( count > 50 ) {
+		return 'extrachill-seo-card-count high';
+	}
+	if ( count > 10 ) {
+		return 'extrachill-seo-card-count warning';
+	}
+	return 'extrachill-seo-card-count';
 };
 
 const AuditCard = ( { metricKey, label, data, onViewDetails } ) => {
-	const total = data?.total || 0;
-	const sites = Object.values( data?.by_site || {} );
+	const total = data?.total ?? 0;
+	const bySite = data?.by_site ?? {};
+	const sites = Object.values( bySite );
 	const nonZeroSites = sites.filter( ( s ) => s.count > 0 );
-	const countClass = getCountClass( total );
+	const countClassName = getCountClass( total );
 
 	return (
 		<div className="extrachill-seo-card">
-			<div className={ `extrachill-seo-card-count ${ countClass }` }>
+			<span className={ countClassName }>
 				{ total.toLocaleString() }
-			</div>
-			<div className="extrachill-seo-card-label">{ label }</div>
+			</span>
+			<span className="extrachill-seo-card-label">{ label }</span>
 
 			{ nonZeroSites.length > 0 && (
 				<details className="extrachill-seo-card-breakdown">
@@ -65,12 +72,12 @@ const AuditCards = () => {
 
 	return (
 		<div className="extrachill-seo-cards">
-			{ METRICS.map( ( { key, label } ) => (
+			{ METRICS.map( ( metric ) => (
 				<AuditCard
-					key={ key }
-					metricKey={ key }
-					label={ label }
-					data={ results[ key ] }
+					key={ metric.key }
+					metricKey={ metric.key }
+					label={ metric.label }
+					data={ results[ metric.key ] }
 					onViewDetails={ loadDetails }
 				/>
 			) ) }

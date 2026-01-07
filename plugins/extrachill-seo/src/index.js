@@ -7,7 +7,7 @@ import App from './App';
 import '@extrachill/components/styles/components.scss';
 import './styles/seo-admin.scss';
 
-const container = document.getElementById( 'extrachill-seo-audit-app' );
+const container = document.getElementById( 'extrachill-seo-admin-app' );
 
 if ( container ) {
 	const root = createRoot( container );

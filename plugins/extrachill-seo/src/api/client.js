@@ -20,6 +20,7 @@ export { getConfig };
 
 const get = ( path ) => apiFetch( { path, method: 'GET' } );
 const post = ( path, data ) => apiFetch( { path, method: 'POST', data } );
+const put = ( path, data ) => apiFetch( { path, method: 'PUT', data } );
 
 /**
  * Start an audit in the specified mode.
@@ -60,6 +61,15 @@ export const exportAuditDetails = ( category ) => {
 	return get( `extrachill/v1/seo/audit/details?${ params }` );
 };
 
+/**
+ * Save SEO config settings.
+ *
+ * @param {Object} data - Config data
+ * @param {number} data.default_og_image_id - Default OG image attachment ID
+ * @param {string} data.indexnow_key - IndexNow API key
+ */
+export const saveConfig = ( data ) => put( 'extrachill/v1/seo/config', data );
+
 export default {
 	getConfig,
 	runAudit,
@@ -67,4 +77,5 @@ export default {
 	continueAudit,
 	getAuditDetails,
 	exportAuditDetails,
+	saveConfig,
 };

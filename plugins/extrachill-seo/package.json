@@ -1,6 +1,6 @@
 {
   "name": "extrachill-seo",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "description": "SEO functionality for Extra Chill Platform",
   "scripts": {
     "build": "wp-scripts build",

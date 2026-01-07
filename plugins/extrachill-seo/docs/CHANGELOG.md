@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0).
 
+## [0.6.1] - 2026-01-07
+
+### Added
+- Network SEO config saving via REST: `PUT /extrachill/v1/seo/config` (updates Default OG image + IndexNow key stored as site options).
+- React Config panel for network settings (media picker for Default OG image + IndexNow key input), rendered alongside the Audit dashboard.
+
+### Changed
+- Consolidated the network admin page into a single React app mount (`#extrachill-seo-admin-app`) and localized both `auditData` and `configData`.
+- Removed the legacy config form + vanilla JS media picker assets after migrating config editing into React.
+- Updated audit dashboard card severity styling and markup (`error` → `high`, className normalization).
+
 ## [0.6.0] - 2026-01-07
 
 ### Added
