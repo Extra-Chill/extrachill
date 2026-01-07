@@ -82,7 +82,7 @@ curl -X GET "http://site.local/wp-json/extrachill/v1/artists/123/analytics?date_
 ```
 
 ## Data Flow
-1. Frontend link page calls `POST /analytics/view` when page loads
-2. Frontend calls `POST /analytics/click` with `click_type: 'link_page_link'` when visitor clicks a link
+1. A requesting surface records views (commonly via `POST /analytics/view`) when appropriate
+2. A requesting surface records clicks via `POST /analytics/click` (e.g. `click_type: 'link_page_link'`)
 3. Artist dashboard calls this endpoint to display analytics
 4. Data aggregation is handled by the analytics provider via the filter hook

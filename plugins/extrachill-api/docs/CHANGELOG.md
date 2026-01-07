@@ -2,6 +2,13 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.10.5] - 2026-01-07
+
+### Changed
+
+- **Admin Forum Topic Moves (bbPress Independence)**: Updated `inc/routes/admin/forum-topics.php` to update `_bbp_topic_count`, `_bbp_reply_count`, and `_bbp_last_active_time` using direct `WP_Query`/`get_posts()` logic rather than relying on bbPress helper functions.
+- **Newsletter Admin Mode Permission**: Updated `inc/routes/newsletter/subscription.php` admin-mode permission check to allow either multisite `is_super_admin()` or single-site `manage_options`.
+
 ## [0.10.4] - 2026-01-06
 
 ### Added

@@ -83,8 +83,8 @@ function extrachill_api_newsletter_subscribe_handler( $request ) {
 	$is_admin_mode = ! empty( $list_id );
 
 	if ( $is_admin_mode ) {
-		// Admin mode: requires manage_options capability
-		if ( ! current_user_can( 'manage_options' ) ) {
+		// Admin mode: requires super admin (multisite) or manage_options (single site)
+		if ( ! is_super_admin() && ! current_user_can( 'manage_options' ) ) {
 			return new WP_Error(
 				'unauthorized',
 				'Admin capability required for direct list subscription',

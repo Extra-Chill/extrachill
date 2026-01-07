@@ -100,11 +100,6 @@ function extrachill_api_get_forums() {
 
 	switch_to_blog( $community_blog_id );
 
-	if ( ! function_exists( 'bbp_get_forum_post_type' ) ) {
-		restore_current_blog();
-		return new WP_Error( 'bbpress_not_active', 'bbPress is not active.', array( 'status' => 400 ) );
-	}
-
 	$all_forums = get_posts(
 		array(
 			'post_type'      => 'forum',
@@ -247,11 +242,6 @@ function extrachill_api_move_forum_topics( $request ) {
 
 	switch_to_blog( $community_blog_id );
 
-	if ( ! function_exists( 'bbp_update_forum_topic_count' ) ) {
-		restore_current_blog();
-		return new WP_Error( 'bbpress_not_active', 'bbPress is not active.', array( 'status' => 400 ) );
-	}
-
 	$dest_forum = get_post( $destination_forum_id );
 	if ( ! $dest_forum || 'forum' !== $dest_forum->post_type ) {
 		restore_current_blog();
@@ -317,19 +307,11 @@ function extrachill_api_move_forum_topics( $request ) {
 
 		// Update forum counts for source forum.
 		if ( $source_forum_id ) {
-			bbp_update_forum_topic_count( $source_forum_id );
-			bbp_update_forum_reply_count( $source_forum_id );
-			if ( function_exists( 'bbp_update_forum_last_active_time' ) ) {
-				bbp_update_forum_last_active_time( $source_forum_id );
-			}
+			extrachill_api_update_forum_counts( $source_forum_id );
 		}
 
 		// Update forum counts for destination forum.
-		bbp_update_forum_topic_count( $destination_forum_id );
-		bbp_update_forum_reply_count( $destination_forum_id );
-		if ( function_exists( 'bbp_update_forum_last_active_time' ) ) {
-			bbp_update_forum_last_active_time( $destination_forum_id );
-		}
+		extrachill_api_update_forum_counts( $destination_forum_id );
 
 		$moved[] = array(
 			'topic_id'     => $topic_id,
@@ -353,4 +335,117 @@ function extrachill_api_move_forum_topics( $request ) {
 			),
 		)
 	);
+}
+
+/**
+ * Update forum topic count, reply count, and last active time.
+ *
+ * Replaces bbPress functions with direct WordPress queries for use in network admin context.
+ *
+ * @param int $forum_id The forum ID to update.
+ */
+function extrachill_api_update_forum_counts( $forum_id ) {
+	if ( ! $forum_id ) {
+		return;
+	}
+
+	// Count topics in this forum.
+	$topic_count = (int) ( new WP_Query(
+		array(
+			'post_type'      => 'topic',
+			'post_parent'    => $forum_id,
+			'post_status'    => 'publish',
+			'posts_per_page' => -1,
+			'fields'         => 'ids',
+		)
+	) )->found_posts;
+
+	update_post_meta( $forum_id, '_bbp_topic_count', $topic_count );
+
+	// Count replies across all topics in this forum.
+	$reply_count = 0;
+	$topics      = get_posts(
+		array(
+			'post_type'      => 'topic',
+			'post_parent'    => $forum_id,
+			'post_status'    => 'publish',
+			'posts_per_page' => -1,
+			'fields'         => 'ids',
+		)
+	);
+
+	foreach ( $topics as $topic_id ) {
+		$reply_count += (int) ( new WP_Query(
+			array(
+				'post_type'      => 'reply',
+				'post_parent'    => $topic_id,
+				'post_status'    => 'publish',
+				'posts_per_page' => -1,
+				'fields'         => 'ids',
+			)
+		) )->found_posts;
+	}
+
+	update_post_meta( $forum_id, '_bbp_reply_count', $reply_count );
+
+	// Update last active time from most recent topic or reply.
+	$last_active = extrachill_api_get_forum_last_active_time( $forum_id );
+	if ( $last_active ) {
+		update_post_meta( $forum_id, '_bbp_last_active_time', $last_active );
+	}
+}
+
+/**
+ * Get the most recent activity time for a forum.
+ *
+ * @param int $forum_id The forum ID.
+ * @return string|null MySQL datetime string or null if no activity.
+ */
+function extrachill_api_get_forum_last_active_time( $forum_id ) {
+	// Get most recent topic.
+	$latest_topic = get_posts(
+		array(
+			'post_type'      => 'topic',
+			'post_parent'    => $forum_id,
+			'post_status'    => 'publish',
+			'posts_per_page' => 1,
+			'orderby'        => 'modified',
+			'order'          => 'DESC',
+		)
+	);
+
+	$latest_topic_time = $latest_topic ? strtotime( $latest_topic[0]->post_modified ) : 0;
+
+	// Get most recent reply across all topics in this forum.
+	$latest_reply_time = 0;
+	$topics            = get_posts(
+		array(
+			'post_type'      => 'topic',
+			'post_parent'    => $forum_id,
+			'post_status'    => 'publish',
+			'posts_per_page' => -1,
+			'fields'         => 'ids',
+		)
+	);
+
+	if ( ! empty( $topics ) ) {
+		$latest_reply = get_posts(
+			array(
+				'post_type'      => 'reply',
+				'post_parent__in' => $topics,
+				'post_status'    => 'publish',
+				'posts_per_page' => 1,
+				'orderby'        => 'date',
+				'order'          => 'DESC',
+			)
+		);
+
+		if ( $latest_reply ) {
+			$latest_reply_time = strtotime( $latest_reply[0]->post_date );
+		}
+	}
+
+	$latest_time = max( $latest_topic_time, $latest_reply_time );
+
+	return $latest_time ? gmdate( 'Y-m-d H:i:s', $latest_time ) : null;
 }
