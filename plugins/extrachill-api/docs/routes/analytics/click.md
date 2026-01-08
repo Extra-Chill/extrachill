@@ -30,8 +30,8 @@ Unified click tracking endpoint that routes to appropriate storage based on clic
 
 | Click Type | Storage | Via |
 | --- | --- | --- |
-| `share` | `wp_ec_events` table | `ec_track_event('share_click', ...)` |
-| `link_page_link` | `wp_extrch_link_page_daily_link_clicks` table | `do_action('extrachill_link_click_recorded', ...)` |
+| `share` | `{base_prefix}extrachill_analytics_events` table | `extrachill_track_analytics_event('share_click', ...)` |
+| `link_page_link` | `{prefix}extrch_link_page_daily_link_clicks` table | `do_action('extrachill_link_click_recorded', ...)` |
 
 ## URL Normalization
 
@@ -137,4 +137,6 @@ The endpoint is designed to support additional click types:
 - `cta` - Clicks on call-to-action buttons
 - `navigation` - Clicks on navigation elements
 
-These will route to `wp_ec_events` for admin-level analytics.
+These route to the network events table (`{base_prefix}extrachill_analytics_events`) for admin-level analytics.
+
+Note: `{prefix}` indicates the current site’s `$wpdb->prefix` (per-site table), while `{base_prefix}` indicates the network `$wpdb->base_prefix` (shared across all sites).

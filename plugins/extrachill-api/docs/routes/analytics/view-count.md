@@ -14,9 +14,9 @@ Captures post view events asynchronously. Useful for blocks and templates that w
 ## Processing Steps
 1. Validates the payload via REST schema.
 2. Confirms `ec_track_post_views()` exists (provided by the `extrachill-analytics` plugin). Returns `500 function_missing` if unavailable.
+3. Calls `ec_track_post_views( $post_id )` to increment counters.
 
-**Note**: This endpoint is public (`permission_callback` is `__return_true`).
-3. Calls `ec_track_post_views( $post_id )` to increment counters and, for link pages, fires `extrachill_link_page_view_recorded`.
+**Note**: This endpoint is public (`permission_callback` is `__return_true`). If the post type is `artist_link_page`, it also fires `extrachill_link_page_view_recorded`.
 
 ## Response
 ```

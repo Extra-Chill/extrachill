@@ -106,7 +106,7 @@ function extrachill_api_register_analytics_events_routes() {
  * @return WP_REST_Response|WP_Error
  */
 function extrachill_api_analytics_events_handler( WP_REST_Request $request ) {
-	if ( ! function_exists( 'ec_get_events' ) ) {
+	if ( ! function_exists( 'extrachill_get_analytics_events' ) ) {
 		return new WP_Error(
 			'function_missing',
 			'Analytics events function not available.',
@@ -124,11 +124,11 @@ function extrachill_api_analytics_events_handler( WP_REST_Request $request ) {
 		'offset'     => $request->get_param( 'offset' ),
 	);
 
-	$events = ec_get_events( $args );
+	$events = extrachill_get_analytics_events( $args );
 
 	// Get total count for pagination (uses same filters, excludes limit/offset).
 	$count_args = array_diff_key( $args, array_flip( array( 'limit', 'offset' ) ) );
-	$total      = function_exists( 'ec_count_events' ) ? ec_count_events( $count_args ) : count( $events );
+	$total      = function_exists( 'extrachill_count_analytics_events' ) ? extrachill_count_analytics_events( $count_args ) : count( $events );
 
 	return rest_ensure_response(
 		array(
@@ -146,7 +146,7 @@ function extrachill_api_analytics_events_handler( WP_REST_Request $request ) {
  * @return WP_REST_Response|WP_Error
  */
 function extrachill_api_analytics_events_summary_handler( WP_REST_Request $request ) {
-	if ( ! function_exists( 'ec_get_event_stats' ) ) {
+	if ( ! function_exists( 'extrachill_get_analytics_event_stats' ) ) {
 		return new WP_Error(
 			'function_missing',
 			'Analytics stats function not available.',
@@ -158,7 +158,7 @@ function extrachill_api_analytics_events_summary_handler( WP_REST_Request $reque
 	$days       = $request->get_param( 'days' );
 	$blog_id    = $request->get_param( 'blog_id' );
 
-	$stats = ec_get_event_stats( $event_type, $days, $blog_id );
+	$stats = extrachill_get_analytics_event_stats( $event_type, $days, $blog_id );
 
 	return rest_ensure_response( $stats );
 }

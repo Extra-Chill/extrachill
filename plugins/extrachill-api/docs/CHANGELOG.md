@@ -2,6 +2,15 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.10.7] - 2026-01-08
+
+### Changed
+
+- **Analytics Events + Summary Endpoints**: Updated `inc/routes/analytics/events.php` to use the renamed analytics-provider functions.
+  - Requires `extrachill_get_analytics_events()` instead of `ec_get_events()`.
+  - Uses `extrachill_count_analytics_events()` when available for pagination totals.
+  - Requires `extrachill_get_analytics_event_stats()` instead of `ec_get_event_stats()`.
+
 ## [0.10.6] - 2026-01-07
 
 ### Added
@@ -38,7 +47,7 @@ This file records notable changes in the ExtraChill API plugin.
   - Response now includes `subscribed`, `already_subscribed`, `failed`, and `errors` counts for batch processing.
 - **Analytics Events Pagination**: Enhanced events listing to support search and pagination totals.
   - `GET /wp-json/extrachill/v1/analytics/events` now supports `search`.
-  - Response now includes `total` (uses `ec_count_events()` when available).
+  - Response now includes `total` (uses `extrachill_count_analytics_events()` when available).
 
 ## [0.10.3] - 2026-01-05
 
@@ -104,8 +113,7 @@ This file records notable changes in the ExtraChill API plugin.
   - `GET /wp-json/extrachill/v1/admin/forum-topics` - List and manage bbPress topics across network
   - `GET /wp-json/extrachill/v1/admin/tags` - Manage and migrate tags network-wide
 - **Analytics Expansion**: New tracking endpoints for enhanced platform insights:
-  - `POST /wp-json/extrachill/v1/analytics/events` - General event tracking for platform actions
-  - `POST /wp-json/extrachill/v1/analytics/share` - Track content sharing events
+  - `POST /wp-json/extrachill/v1/analytics/click` - Unified click tracking (`share`, `link_page_link`)
 - **Utility Routes**:
   - `GET /wp-json/extrachill/v1/admin/404-logger` - Log and monitor 404 errors for SEO management
   - `GET /wp-json/extrachill/v1/admin/artist-relationships` - Inspect and manage user-artist links
@@ -803,7 +811,7 @@ This file records notable changes in the ExtraChill API plugin.
 
 ### Technical Notes
 
-- **Database**: Activity system creates `{wp_prefix}extrachill_activity` table with proper indexes on blog_id, actor_id, timestamp, visibility
+- **Database**: Activity system creates `{base_prefix}extrachill_activity` table with proper indexes (created_at, type/id, blog_id/id, actor_id/id)
 - **Activation**: Plugin now requires activation to initialize database. Install via WordPress admin or `wp plugin activate extrachill-api --network`
 - **Extensibility**: Activity emitters provide filter hooks for consuming plugins to emit custom activity events
 - **Performance**: Activity feed uses keyset pagination (cursor-based) for efficient handling of large datasets

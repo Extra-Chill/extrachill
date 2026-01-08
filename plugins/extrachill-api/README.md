@@ -6,9 +6,12 @@ Network-activated REST API infrastructure for the Extra Chill Platform WordPress
 
 The ExtraChill API plugin provides a centralized, versioned REST API infrastructure that replaces legacy admin-ajax.php handlers with modern WordPress REST API endpoints. It uses automatic route discovery to modularly organize endpoints by feature area while maintaining a consistent API surface across the entire multisite network.
 
+The plugin also owns the network-wide activity storage table (`{base_prefix}extrachill_activity`) used by the activity feed endpoints.
+
 ## Features
 
 - **Network-Wide Activation**: All endpoints available on every site in the multisite network
+- **Activity Storage**: Maintains the network-wide `{base_prefix}extrachill_activity` table used by the activity feed endpoints
 - **Automatic Route Discovery**: Recursively loads route files from `inc/routes/` directory
 - **Versioned Namespace**: All endpoints under `extrachill/v1` for future API evolution
 - **Modular Organization**: Routes organized by feature (`blocks/`, `community/`, etc.)
@@ -31,10 +34,13 @@ The plugin provides 66 endpoint files across 18 feature categories, all under th
 ### Configuration Endpoints (1)
 - `GET /config/oauth` - OAuth provider configuration
 
-### Analytics Endpoints (3)
-- `POST /analytics/click` - Unified click tracking (shares, link page clicks)
-- `POST /analytics/link-page` - Track link page views (authenticated)
-- `POST /analytics/view` - Track content views
+### Analytics Endpoints (6)
+- `POST /analytics/view` - Async view tracking (increments `ec_post_views`; fires link page view hook for `artist_link_page`)
+- `POST /analytics/click` - Unified click tracking (`share`, `link_page_link`)
+- `GET /analytics/link-page` - Fetch link page analytics (provider-driven via `extrachill_get_link_page_analytics`)
+- `GET /analytics/events` - Query network analytics events (requires `manage_network_options`)
+- `GET /analytics/events/summary` - Aggregate network event stats (requires `manage_network_options`)
+- `GET /analytics/meta` - Analytics filter metadata (requires `manage_network_options`)
 
 ### Artist API (9)
 - `GET/PUT /artists/{id}` - Core artist profile data

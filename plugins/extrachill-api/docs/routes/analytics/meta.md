@@ -26,5 +26,5 @@ Requires the current user to have the `manage_network_options` capability.
   - `name` (string) - Value of the `blogname` option for the blog ID.
 
 ## Notes
-- Data comes from the same storage used by analytics events (`ec_events_get_table_name()`).
+- Data comes from the network events table (`extrachill_analytics_events_table()`).
 - Blog names come from `get_blog_option( $blog_id, 'blogname' )`.

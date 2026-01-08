@@ -18,17 +18,25 @@ Returns aggregated performance metrics for a single artist link page so roster m
 - The handler resolves the owning artist ID via `apply_filters( 'ec_get_artist_id', $link_page_id )` before capability checks.
 
 ## Response Contract
-When analytics data is available, the endpoint returns whatever payload the `extrachill_get_link_page_analytics` filter supplies. Typical properties include:
+When analytics data is available, the endpoint returns whatever payload the `extrachill_get_link_page_analytics` filter supplies.
+
+The current provider (artist platform) returns an object with:
+- `summary.total_views` and `summary.total_clicks`
+- `chart_data.labels` and `chart_data.datasets` (views + clicks series)
+- `top_links[]` entries with `text`, `identifier` (URL), and `clicks`
+
 ```json
 {
-  "views": 1240,
-  "clicks": 312,
+  "summary": { "total_views": 1240, "total_clicks": 312 },
+  "chart_data": {
+    "labels": ["2026-01-01", "2026-01-02"],
+    "datasets": [
+      { "label": "Page Views", "data": [120, 98] },
+      { "label": "Link Clicks", "data": [32, 21] }
+    ]
+  },
   "top_links": [
-    { "label": "Instagram", "clicks": 140 },
-    { "label": "YouTube", "clicks": 95 }
-  ],
-  "timeseries": [
-    { "date": "2025-01-01", "views": 120, "clicks": 32 }
+    { "text": "Listen on Spotify", "identifier": "https://open.spotify.com/...", "clicks": 140 }
   ]
 }
 ```

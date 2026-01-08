@@ -132,10 +132,12 @@ All endpoints are under the `extrachill/v1` namespace.
 
 **Documentation**: [docs/routes/config/oauth.md](../extrachill-plugins/extrachill-api/docs/routes/config/oauth.md)
 
-### Analytics Endpoints (4)
-- `POST /analytics/click` - Unified click tracking (shares, link page clicks)
-- `POST /analytics/link-page` - Track link page views (authenticated)
-- `POST /analytics/view` - Track content views
+### Analytics Endpoints (6)
+- `POST /analytics/view` - Async view tracking (increments `ec_post_views`; fires link page view hook for `artist_link_page`)
+- `POST /analytics/click` - Unified click tracking (`share`, `link_page_link`)
+- `GET /analytics/link-page` - Fetch link page analytics (authenticated, provider-driven)
+- `GET /analytics/events` - Query network analytics events (admin-only)
+- `GET /analytics/events/summary` - Aggregate network event stats (admin-only)
 - `GET /analytics/meta` - Analytics filter metadata (admin-only)
 
 **Documentation**: [docs/routes/analytics/](../extrachill-plugins/extrachill-api/docs/routes/analytics/)
