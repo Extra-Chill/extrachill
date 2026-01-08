@@ -10,6 +10,7 @@
 
 namespace ExtraChillEvents\Handlers\WeeklyRoundup;
 
+use DataMachine\Core\ExecutionContext;
 use DataMachine\Core\Steps\Fetch\Handlers\FetchHandler;
 use DataMachine\Core\Steps\HandlerRegistrationTrait;
 use DataMachineEvents\Blocks\Calendar\Calendar_Query;
@@ -38,13 +39,13 @@ class WeeklyRoundupHandler extends FetchHandler {
 		);
 	}
 
-	protected function executeFetch( int $pipeline_id, array $config, ?string $flow_step_id, int $flow_id, ?string $job_id ): array {
-		$this->log(
+	protected function executeFetch( array $config, ExecutionContext $context ): array {
+		$context->log(
 			'info',
 			'Starting Weekly Roundup generation',
 			array(
-				'pipeline_id' => $pipeline_id,
-				'job_id'      => $job_id,
+				'pipeline_id' => $context->getPipelineId(),
+				'job_id'      => $context->getJobId(),
 				'config'      => $config,
 			)
 		);
@@ -54,7 +55,7 @@ class WeeklyRoundupHandler extends FetchHandler {
 		$location_term_id = $config['location_term_id'] ?? 0;
 
 		if ( empty( $week_start_day ) || empty( $week_end_day ) ) {
-			$this->log( 'error', 'Weekly Roundup requires week_start_day and week_end_day' );
+			$context->log( 'error', 'Weekly Roundup requires week_start_day and week_end_day' );
 			return [];
 		}
 
@@ -65,7 +66,7 @@ class WeeklyRoundupHandler extends FetchHandler {
 		$day_groups = $this->query_events( $date_start, $date_end, $location_term_id );
 
 		if ( empty( $day_groups ) ) {
-			$this->log(
+			$context->log(
 				'info',
 				'No events found for date range',
 				array(
@@ -78,7 +79,7 @@ class WeeklyRoundupHandler extends FetchHandler {
 		}
 
 		$total_events = $this->count_events( $day_groups );
-		$this->log(
+		$context->log(
 			'info',
 			'Found events for roundup',
 			array(
@@ -88,24 +89,39 @@ class WeeklyRoundupHandler extends FetchHandler {
 		);
 
 		$generator       = new \ExtraChillEvents\Handlers\WeeklyRoundup\SlideGenerator();
-		$storage_context = array(
-			'pipeline_id' => $pipeline_id,
-			'flow_id'     => $flow_id,
-		);
+		$storage_context = $context->getFileContext();
 		$title           = $config['title'] ?? '';
 		$image_paths     = $generator->generate_slides( $day_groups, $storage_context, $title );
 
 		if ( empty( $image_paths ) ) {
-			$this->log( 'error', 'Failed to generate carousel images' );
+			$context->log( 'error', 'Failed to generate carousel images' );
 			return [];
 		}
 
 		$event_summary = $generator->build_event_summary( $day_groups );
 		$location_name = $this->get_location_name( $location_term_id );
 
-		$this->store_engine_data( $job_id, $image_paths, $event_summary, $location_name, $date_start, $date_end, $total_events, count( $image_paths ) );
+		$context->storeEngineData(
+			array(
+				'image_file_paths' => $image_paths,
+				'event_summary'    => $event_summary,
+				'location_name'    => $location_name,
+				'date_range'       => $this->format_date_range( $date_start, $date_end ),
+				'date_start'       => $date_start,
+				'date_end'         => $date_end,
+				'total_events'     => $total_events,
+				'total_slides'     => count( $image_paths ),
+				'roundup_context'  => array(
+					'location'    => $location_name,
+					'start_date'  => $date_start,
+					'end_date'    => $date_end,
+					'day_count'   => ( new \DateTime( $date_end ) )->diff( new \DateTime( $date_start ) )->days + 1,
+					'event_count' => $total_events,
+				),
+			)
+		);
 
-		$this->log(
+		$context->log(
 			'info',
 			'Weekly Roundup complete',
 			[
@@ -207,38 +223,4 @@ class WeeklyRoundupHandler extends FetchHandler {
 		return $start_obj->format( 'M j' ) . ' - ' . $end_obj->format( 'M j, Y' );
 	}
 
-	/**
-	 * Store roundup data to engine data for downstream steps.
-	 */
-	private function store_engine_data(
-		string $job_id,
-		array $image_paths,
-		string $event_summary,
-		string $location_name,
-		string $date_start,
-		string $date_end,
-		int $total_events,
-		int $total_slides
-	): void {
-		\datamachine_merge_engine_data(
-			$job_id,
-			array(
-				'image_file_paths' => $image_paths,
-				'event_summary'    => $event_summary,
-				'location_name'    => $location_name,
-				'date_range'       => $this->format_date_range( $date_start, $date_end ),
-				'date_start'       => $date_start,
-				'date_end'         => $date_end,
-				'total_events'     => $total_events,
-				'total_slides'     => $total_slides,
-				'roundup_context'  => array(
-					'location'    => $location_name,
-					'start_date'  => $date_start,
-					'end_date'    => $date_end,
-					'day_count'   => ( new \DateTime( $date_end ) )->diff( new \DateTime( $date_start ) )->days + 1,
-					'event_count' => $total_events,
-				),
-			)
-		);
-	}
 }

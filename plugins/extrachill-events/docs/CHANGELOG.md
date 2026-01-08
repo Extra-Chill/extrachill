@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0/).
 
+## [0.3.2] - 2026-01-08
+
+### Added
+- Homepage location badges system (`inc/home/actions.php`, `inc/home/location-badges.php`) displaying location taxonomy badges with upcoming event counts above the calendar
+- `extrachill_events_home_before_calendar` action hook in homepage template for flexible content injection before the calendar block
+- Hook-based homepage component registration via `extrachill_events_location_badges()` callback
+
+### Changed
+- WeeklyRoundupHandler refactored to ExecutionContext API pattern:
+  - `executeFetch()` method signature updated from `(int $pipeline_id, array $config, ?string $flow_step_id, int $flow_id, ?string $job_id)` to `(array $config, ExecutionContext $context)`
+  - Replaced `$this->log()` calls with `$context->log()`
+  - Replaced manual storage context building with `$context->getFileContext()`
+  - Replaced `$this->store_engine_data()` with `$context->storeEngineData()`
+
+### Removed
+- Private `store_engine_data()` method from WeeklyRoundupHandler (replaced by ExecutionContext API)
+
 ## [0.3.1] - 2026-01-06
 
 ### Added

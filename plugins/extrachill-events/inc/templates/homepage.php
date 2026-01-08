@@ -23,6 +23,7 @@ extrachill_breadcrumbs();
 		</header>
 
 		<div class="entry-content" itemprop="text">
+			<?php do_action( 'extrachill_events_home_before_calendar' ); ?>
 			<div class="events-calendar-container full-width-content">
 				<?php
 				$homepage_id = get_option( 'page_on_front' );
