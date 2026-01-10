@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 This file records notable changes in this theme.
 
+## [1.3.13] - 2026-01-10
+
+### Removed
+- Theme-owned Google Tag Manager integration. GTM is now managed by the `extrachill-analytics` network plugin (and the `extrachill_gtm_container_id` network option).
+
 ## [1.3.12] - 2026-01-06
 
 ### Changed
