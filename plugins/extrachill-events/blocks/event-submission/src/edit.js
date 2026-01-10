@@ -8,25 +8,18 @@ import {
 	PanelBody,
 	TextControl,
 	TextareaControl,
-	Notice,
 } from '@wordpress/components';
 
 const sanitizeFlowId = (value = '') => value.replace(/[^0-9]/g, '');
 
 export default function Edit({ attributes, setAttributes }) {
-	const { headline, description, flowId, successMessage, buttonLabel } = attributes;
+	const { headline, description, flowId, successMessage, buttonLabel, systemPrompt } = attributes;
 	const blockProps = useBlockProps({ className: 'ec-event-submission-editor' });
 
 	return (
 		<>
 			<InspectorControls>
 				<PanelBody title={ __('Submission Settings', 'datamachine-events') } initialOpen>
-					<TextControl
-						label={ __('Flow ID', 'datamachine-events') }
-						value={ flowId }
-						onChange={(value) => setAttributes({ flowId: sanitizeFlowId(value) })}
-						help={ __('Copy the ID from Data Machine → Pipelines → Flow header.', 'datamachine-events') }
-					/>
 					<TextareaControl
 						label={ __('Success Message', 'datamachine-events') }
 						value={ successMessage }
@@ -39,14 +32,26 @@ export default function Edit({ attributes, setAttributes }) {
 						onChange={(value) => setAttributes({ buttonLabel: value })}
 					/>
 				</PanelBody>
+				<PanelBody title={ __('AI Processing', 'datamachine-events') } initialOpen={ false }>
+					<TextareaControl
+						label={ __('System Prompt', 'datamachine-events') }
+						value={ systemPrompt }
+						onChange={(value) => setAttributes({ systemPrompt: value })}
+						help={ __('Instructions for the AI when processing event submissions and flyer images.', 'datamachine-events') }
+						rows={ 6 }
+					/>
+				</PanelBody>
+				<PanelBody title={ __('Advanced', 'datamachine-events') } initialOpen={ false }>
+					<TextControl
+						label={ __('Flow ID (Optional)', 'datamachine-events') }
+						value={ flowId }
+						onChange={(value) => setAttributes({ flowId: sanitizeFlowId(value) })}
+						help={ __('Override default processing with a specific Data Machine flow. Leave empty to use built-in workflow.', 'datamachine-events') }
+					/>
+				</PanelBody>
 			</InspectorControls>
 
 			<div {...blockProps}>
-				{!flowId && (
-					<Notice status="warning" isDismissible={false}>
-						{__( 'Add a Flow ID before publishing so submissions can be routed.', 'datamachine-events' )}
-					</Notice>
-				)}
 
 				<RichText
 					tagName="h3"

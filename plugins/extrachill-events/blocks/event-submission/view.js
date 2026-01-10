@@ -40,6 +40,7 @@
 		const statusEl = form.querySelector('.ec-event-submission__status');
 		const endpoint = container.dataset.endpoint;
 		const flowId = container.dataset.flowId;
+		const systemPrompt = container.dataset.systemPrompt;
 		const successMessage = container.dataset.successMessage || 'Thanks for sending this in!';
 
 		if (!endpoint) {
@@ -47,10 +48,6 @@
 			return;
 		}
 
-		if (!flowId) {
-			setStatus(statusEl, 'Flow ID missing. Update the block settings.', true);
-			return;
-		}
 
 		const turnstileInput = form.querySelector('input[name="cf-turnstile-response"]');
 		const turnstileResponse = turnstileInput ? turnstileInput.value.trim() : '';
@@ -64,7 +61,12 @@
 		setStatus(statusEl, 'Sending…');
 
 		const formData = new FormData(form);
-		formData.set('flow_id', flowId);
+		if (flowId) {
+			formData.set('flow_id', flowId);
+		}
+		if (systemPrompt) {
+			formData.set('system_prompt', systemPrompt);
+		}
 		formData.set('turnstile_response', turnstileResponse);
 
 		try {

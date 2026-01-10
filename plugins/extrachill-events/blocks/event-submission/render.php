@@ -15,6 +15,7 @@ $defaults   = array(
 	'flowId'         => '',
 	'successMessage' => '',
 	'buttonLabel'    => '',
+	'systemPrompt'   => '',
 );
 $attributes = wp_parse_args( $attributes, $defaults );
 
@@ -23,6 +24,7 @@ $headline        = $attributes['headline'] ?? '';
 $description     = $attributes['description'] ?? '';
 $success_message = $attributes['successMessage'] ?? '';
 $button_label    = $attributes['buttonLabel'] ?: __( 'Send Submission', 'datamachine-events' );
+$system_prompt   = $attributes['systemPrompt'] ?? '';
 $endpoint        = esc_url( rest_url( 'extrachill/v1/event-submissions' ) );
 $form_id         = function_exists( 'wp_unique_id' ) ? wp_unique_id( 'ec-event-form-' ) : 'ec-event-form-' . uniqid();
 
@@ -38,6 +40,7 @@ $success_attr = esc_attr( $success_message ? wp_strip_all_tags( $success_message
 	data-endpoint="<?php echo esc_url( $endpoint ); ?>"
 	data-flow-id="<?php echo esc_attr( $flow_id ); ?>"
 	data-success-message="<?php echo $success_attr; ?>"
+	data-system-prompt="<?php echo esc_attr( $system_prompt ); ?>"
 >
 	<div class="ec-event-submission__inner">
 		<?php if ( $headline ) : ?>
@@ -48,9 +51,6 @@ $success_attr = esc_attr( $success_message ? wp_strip_all_tags( $success_message
 			<div class="ec-event-submission__description"><?php echo wp_kses_post( wpautop( $description ) ); ?></div>
 		<?php endif; ?>
 
-		<?php if ( empty( $flow_id ) ) : ?>
-			<?php extrachill_set_notice( __( 'Flow ID missing. Update the block settings so submissions can be processed.', 'datamachine-events' ), 'error' ); ?>
-		<?php endif; ?>
 
 		<form
 			id="<?php echo esc_attr( $form_id ); ?>"

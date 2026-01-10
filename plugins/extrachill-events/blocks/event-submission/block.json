@@ -2,11 +2,11 @@
 	"$schema": "https://schemas.wp.org/trunk/block.json",
 	"apiVersion": 2,
 	"name": "extrachill/event-submission",
-  "version": "0.3.2",
+	"version": "0.3.3",
 	"title": "Event Submission Form",
 	"category": "widgets",
 	"icon": "calendar-alt",
-	"description": "Frontend form that routes event details into a Data Machine flow.",
+	"description": "Self-contained event submission form with AI-powered flyer processing.",
 	"keywords": ["events", "calendar", "submission"],
 	"textdomain": "extrachill-events",
 	"attributes": {
@@ -29,6 +29,10 @@
 		"buttonLabel": {
 			"type": "string",
 			"default": "Send Submission"
+		},
+		"systemPrompt": {
+			"type": "string",
+			"default": "You are processing an event submission. Extract event details from the uploaded flyer image. Fill in any missing information like venue address, exact times, ticket prices, and performer details. Use the upsert_event tool to create the event."
 		}
 	},
 	"supports": {

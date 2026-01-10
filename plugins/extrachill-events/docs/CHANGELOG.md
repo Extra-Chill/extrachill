@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0/).
 
+## [0.3.3] - 2026-01-10
+
+### Added
+- Event submission block `systemPrompt` attribute with editor UI, server `data-system-prompt` output, and frontend submission wiring (`blocks/event-submission/block.json`, `blocks/event-submission/src/edit.js`, `blocks/event-submission/render.php`, `blocks/event-submission/view.js`)
+
+### Changed
+- Event submission block no longer requires a Flow ID to submit; `flow_id` is only sent when configured (`blocks/event-submission/render.php`, `blocks/event-submission/src/edit.js`, `blocks/event-submission/view.js`)
+- Reorganized block inspector controls into dedicated panels (Submission Settings, AI Processing, Advanced) and removed missing Flow ID warnings (`blocks/event-submission/src/edit.js`, `blocks/event-submission/render.php`, `blocks/event-submission/view.js`)
+
 ## [0.3.2] - 2026-01-08
 
 ### Added
@@ -53,7 +62,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed character encoding in breadcrumb back-to-home label ("← Back to Events Calendar")
 
 ### Changed
-- Refined documentation in AGENTS.md and README.md regarding build process output and production ZIP structure
+- Refined documentation in CLAUDE.md and README.md regarding build process output and production ZIP structure
 - Updated version information across documentation files to reflect 0.2.8
 
 ## [0.2.7] - 2025-12-21
@@ -70,7 +79,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `register_event_taxonomies()` changed from private to public for external use
   - `get_event_taxonomies()` centralized taxonomy list method (location, artist, festival, venue)
 - Code formatting and namespace improvements for better WordPress standards compliance
-- Documentation expanded across AGENTS.md, README.md, and integration guides
+- Documentation expanded across CLAUDE.md, README.md, and integration guides
 
 ## [0.2.6] - 2025-12-20
 
@@ -143,14 +152,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Weekly roundup automation handlers for Data Machine integration (SlideGenerator, WeeklyRoundupHandler, RoundupPublishHandler, RoundupPublishSettings) - enables automated post generation with carousel images
-- Comprehensive AGENTS.md documentation file with plugin architecture, features, and integration details
+- Comprehensive CLAUDE.md documentation file with plugin architecture, features, and integration details
 - API documentation for REST endpoints (`docs/api/rest-endpoints.md`)
 - Event submission block documentation (`docs/blocks/event-submission.md`)
 
 ### Changed
 - Updated README.md with improved feature descriptions, build commands, and development workflow
 - Enhanced documentation for build process, plugin classes, functions, and constants
-- Updated .gitignore to remove CLAUDE.md, AGENTS.md, build.sh, docs/.docs-sync.json
+- Updated .gitignore to remove CLAUDE.md, CLAUDE.md, build.sh, docs/.docs-sync.json
 
 ## [0.1.7] - 2025-12-11
 
