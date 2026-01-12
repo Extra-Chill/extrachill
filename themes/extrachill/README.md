@@ -13,7 +13,7 @@ ExtraChill is a modern, performance-optimized WordPress theme (v1.3.12) designed
 - **shop.extrachill.com** (Blog ID 3): E-commerce with WooCommerce integration
 - **artist.extrachill.com** (Blog ID 4): Artist platform and profiles
 - **chat.extrachill.com** (Blog ID 5): AI chatbot interface
-- **events.extrachill.com** (Blog ID 7): Event calendar hub
+- **events.extrachill.com** (Blog ID 7): Event calendar hub (calendar engine: external Data Machine + datamachine-events plugins)
 - **stream.extrachill.com** (Blog ID 8): Live streaming platform
 - **newsletter.extrachill.com** (Blog ID 9): Newsletter management and archive
 - **docs.extrachill.com** (Blog ID 10): Documentation hub
@@ -70,45 +70,17 @@ This theme is part of the Extra Chill Platform multisite network and assumes net
 
 ### Local Development
 
-The theme supports direct file editing for development with no build step required:
+This theme supports direct file editing for development with no build step required.
 
-```bash
-# Navigate to theme directory
-cd wp-content/themes/extrachill
+### Build + Deployment (Homeboy)
 
-# Edit files directly
-# CSS files are in /assets/css/ (11 CSS files: root.css, archive.css, single-post.css, nav.css, taxonomy-badges.css, editor-style.css, search.css, shared-tabs.css, share.css, sidebar.css, notice.css)
-# JavaScript files are in /assets/js/ (4 files: nav-menu.js, shared-tabs.js, mini-dropdown.js, share.js)
-# PHP files use modular include structure in /inc/ directory (48 total files, 28 directly loaded in functions.php)
+Production deployments use **Homeboy** to:
+- build a clean ZIP artifact via `./build.sh` (symlinked to `/.github/build.sh`)
+- deploy that ZIP to the configured server/component
 
-# Check for syntax errors
-php -l functions.php
+The build script output is `build/extrachill.zip` (ZIP only; the staging directory is removed after zipping).
 
-# Enable WordPress debugging
-# Add to wp-config.php:
-define('WP_DEBUG', true);
-define('WP_DEBUG_LOG', true);
-define('SCRIPT_DEBUG', true);
-```
-
-### Production Deployment
-
-For production deployment, use the build script to create clean ZIP packages:
-
-```bash
-# Create production-ready ZIP file
-./build.sh
-
-# Output will be in build/ directory:
-# - build/extrachill.zip (deployable ZIP file only)
-```
-
-#### Build Process Features
-- **File Exclusion**: Uses `.buildignore` to exclude development files
-- **Production Dependencies**: Installs production-only Composer dependencies
-- **Structure Validation**: Verifies all essential theme files are present
-- **Clean Packaging**: Creates optimized ZIP file for WordPress deployment
-- **Development Restoration**: Automatically restores dev dependencies after build
+Canonical Homeboy docs live under [`homeboy/`](../homeboy/README.md) (and `homeboy docs` in the CLI).
 
 ### File Structure
 
@@ -195,8 +167,8 @@ extrachill/
 1. **Create modular files** in appropriate `/inc/` subdirectory
 2. **Include in functions.php** with proper dependencies
 3. **Add styles** in dedicated CSS file with conditional loading
-4. **Test thoroughly** with WordPress debugging enabled
-5. **For production**: Run `./build.sh` to create deployable package
+4. **Test thoroughly**
+5. **For production**: build via `./build.sh` and deploy via Homeboy
 
 ### CSS Development
 
@@ -326,40 +298,14 @@ extrachill_share_button(array(
 
 ## Notes
 
-### Common Issues
-
-**Festival Wire not displaying**:
-- Ensure ExtraChill News Wire plugin is installed and activated
-- Check that Festival Wire posts exist in WordPress admin
-- Verify plugin hook integration with theme
-
-**Community activity not displaying**:
-- Ensure both community.extrachill.com (blog ID 2) and artist.extrachill.com (blog ID 4) sites exist in network
-- Check that bbPress plugin is installed on both community and artist sites
-- Verify shared helper library exists at `inc/core/templates/community-activity.php`
-- Verify extrachill-users plugin is network-activated (for `ec_get_user_profile_url()`)
-- Check WordPress object cache is working (10-minute cache)
-- Review error logs for blog switching issues
-
-### Debug Mode
-
-Enable debugging for development:
-
-```php
-// wp-config.php
-define('WP_DEBUG', true);
-define('WP_DEBUG_LOG', true);
-define('SCRIPT_DEBUG', true);
-```
-
-
+- Community activity widgets query the community site via multisite blog switching; blog IDs come from `ec_get_blog_id()` (single source of truth).
 
 ## Support and Contributing
 
 ### Getting Help
 
 - Check the [AGENTS.md](AGENTS.md) file for detailed technical information
-- Review error logs in `/wp-content/debug.log`
+- Review error logs in `wp-content/debug.log`
 - Inspect browser console for JavaScript errors
 
 ### Contributing

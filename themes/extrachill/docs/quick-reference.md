@@ -360,7 +360,7 @@ if ( function_exists( 'ec_get_user_author_archive_url' ) ) {
     $author_archive_url = ec_get_user_author_archive_url( $user_id );
 }
 
-// Shared community activity helper (queries both blog ID 2 and 4)
+// Shared community activity helper (queries community via the canonical blog ID map)
 $items = extrachill_get_community_activity_items( 5 );
 extrachill_render_community_activity( array(
     'items'          => $items,
