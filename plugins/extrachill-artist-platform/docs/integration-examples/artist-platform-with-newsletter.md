@@ -296,4 +296,4 @@ if (is_wp_error($response)) {
 See:
 - [Roster Invitation Flow](../flows/roster-invitation-flow.md) - How roster invitations trigger emails
 - [Artist Platform Integration Patterns](../integration-patterns.md) - All integration points
-- [extrachill-newsletter Plugin](../../extrachill-newsletter/AGENTS.md) - Newsletter plugin architecture
+- [extrachill-newsletter Plugin](../../extrachill-newsletter/CLAUDE.md) - Newsletter plugin architecture

@@ -89,6 +89,6 @@ IF link page creation fails
 
 ## Related Documentation
 
-- [Artist Platform AGENTS.md](../AGENTS.md) - Complete architecture
-- [Join Flow System](../AGENTS.md#join-flow-system) - Technical details
+- [Artist Platform CLAUDE.md](../CLAUDE.md) - Complete architecture
+- [Join Flow System](../CLAUDE.md#join-flow-system) - Technical details
 - [Artist Creator Block](../artist-profiles/artist-profile-management.md) - Profile creation workflow

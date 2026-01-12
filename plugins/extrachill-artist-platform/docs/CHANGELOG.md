@@ -13,14 +13,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - **Shop Manager**: Improved `OrdersTab` with "Ships Free Only" detection for orders containing only free-shipping items and added label reprinting capability. Refined `ProductsTab` with better Stripe connection status messaging and product status validation.
 - **Link Pages**: Updated `extrch-share-modal.js` and `link-page-public-tracking.js` for improved analytics consistency and more robust tracking of share events and page views.
-- **Documentation**: Comprehensive updates to `AGENTS.md` and `README.md` to reflect the current 11-site multisite scale, standardized block naming conventions (`artist-manager`, `artist-analytics`, etc.), and detailed shop manager capabilities.
+- **Documentation**: Comprehensive updates to `CLAUDE.md` and `README.md` to reflect the current 11-site multisite scale, standardized block naming conventions (`artist-manager`, `artist-analytics`, etc.), and detailed shop manager capabilities.
 - **Architecture**: Finalized the migration of blog coverage logic to the `extrachill-multisite` plugin, removing legacy code paths and ensuring consistent cross-site linking.
 
 ## [1.6.4] - 2026-01-05
 
 ### Changed
 - **Architectural Refactoring**: Migrated blog coverage logic to `extrachill-multisite`. Removed legacy `inc/artist-profiles/blog-coverage.php` and updated `ExtraChillArtistPlatform` class and single artist profile templates to use `ec_render_cross_site_artist_profile_links()` from the multisite plugin.
-- **Documentation Updates**: Updated `AGENTS.md` to reflect the migration of blog coverage integration to the `extrachill-multisite` plugin.
+- **Documentation Updates**: Updated `CLAUDE.md` to reflect the migration of blog coverage integration to the `extrachill-multisite` plugin.
 
 ## [1.6.3] - 2026-01-04
 
@@ -30,8 +30,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - **Shop Documentation**: Updated `shop-manager-block.md` with detailed label fulfillment flow and expanded shipping label API response properties (tracking URL, cost, etc.).
-- **Platform Scale**: Updated `AGENTS.md` to reflect the growth of the Extra Chill Platform to 11 active sites.
-- **Architectural Cleanup**: Standardized block component documentation and improved blog ID detection logic references in `AGENTS.md`.
+- **Platform Scale**: Updated `CLAUDE.md` to reflect the growth of the Extra Chill Platform to 11 active sites.
+- **Architectural Cleanup**: Standardized block component documentation and improved blog ID detection logic references in `CLAUDE.md`.
 
 ## [1.6.2] - 2026-01-02
 
@@ -332,7 +332,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Enhanced template system with improved component organization
 
 ### Documentation
-- Updated AGENTS.md to clarify API client consolidation and shared implementation pattern
+- Updated CLAUDE.md to clarify API client consolidation and shared implementation pattern
 - Enhanced architecture documentation to reflect unified API client approach across all blocks
 - Clarified REST API integration patterns in block documentation
 
@@ -668,10 +668,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Forum notification system and notification cards
 - Forum-related permissions and UI components
 - Forum section overrides in artist profiles
-- CLAUDE.md documentation file (consolidated with AGENTS.md)
+- CLAUDE.md documentation file (consolidated with CLAUDE.md)
 
 ### Changed
-- Updated documentation references to use AGENTS.md
+- Updated documentation references to use CLAUDE.md
 - Changed support forum link to community.extrachill.com/r/tech-support
 - Removed forum-related fields from artist profile management
 - Simplified artist profile templates by removing forum sections
@@ -680,7 +680,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Eliminated bbPress plugin dependency requirement
 - Reduced plugin complexity and maintenance overhead
 - Streamlined codebase by removing unused forum integration code
-- Updated build configuration to reference AGENTS.md instead of CLAUDE.md
+- Updated build configuration to reference CLAUDE.md instead of CLAUDE.md
 
 ## [1.0.2] - 2025-12-04
 

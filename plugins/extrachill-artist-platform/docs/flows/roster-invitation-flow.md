@@ -221,7 +221,7 @@ IF forum sync fails
 
 ## Related Documentation
 
-- [Artist Platform AGENTS.md](../AGENTS.md) - Complete architecture
-- [Roster Management System](../AGENTS.md#roster-management-system) - Technical details
+- [Artist Platform CLAUDE.md](../CLAUDE.md) - Complete architecture
+- [Roster Management System](../CLAUDE.md#roster-management-system) - Technical details
 - [Newsletter Integration](./artist-platform-with-newsletter.md) - Notify on roster changes
 - [Community Integration](./artist-platform-with-community.md) - Forum integration

@@ -66,6 +66,5 @@ build/
 
 # Additional build and development files
 .claude/
-CLAUDE.md
 .buildignore
 build.sh

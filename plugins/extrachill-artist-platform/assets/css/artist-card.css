@@ -205,7 +205,4 @@
     padding: var(--spacing-sm) var(--spacing-md);
   }
 
-  .artist-info-overlay .artist-name {
-    font-size: var(--font-size-sm);
-  }
 }

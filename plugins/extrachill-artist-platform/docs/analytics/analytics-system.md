@@ -16,11 +16,11 @@ Analytics tracking follows a three-stage pattern:
 
 ### Analytics Tables
 
-Two primary tables handle analytics data:
+Two primary tables handle analytics data (per-site tables using `$wpdb->prefix`):
 
 ```sql
 -- Daily page view aggregation
-CREATE TABLE wp_extrch_link_page_daily_views (
+CREATE TABLE {prefix}extrch_link_page_daily_views (
     view_id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
     link_page_id bigint(20) unsigned NOT NULL,
     stat_date date NOT NULL,
@@ -30,11 +30,12 @@ CREATE TABLE wp_extrch_link_page_daily_views (
 );
 
 -- Daily link click aggregation  
-CREATE TABLE wp_extrch_link_page_daily_link_clicks (
+CREATE TABLE {prefix}extrch_link_page_daily_link_clicks (
     click_id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
     link_page_id bigint(20) unsigned NOT NULL,
     stat_date date NOT NULL,
     link_url varchar(2083) NOT NULL,
+    link_text text,
     click_count bigint(20) unsigned NOT NULL DEFAULT 0,
     PRIMARY KEY (click_id),
     UNIQUE KEY unique_daily_link_click (link_page_id, stat_date, link_url(191)),
@@ -44,9 +45,9 @@ CREATE TABLE wp_extrch_link_page_daily_link_clicks (
 
 ### Database Management
 
-Location: `inc/database/artist-analytics-db.php`
+Location: `inc/database/link-page-analytics-db.php`
 
-Creates and maintains analytics tables with WordPress dbDelta.
+Creates and maintains the link page analytics tables with WordPress `dbDelta()`.
 
 ## Public Tracking
 
@@ -84,7 +85,7 @@ This file provides two key functions:
 
 1. **Action handlers** - Hook into tracking events fired by extrachill-api:
    - `extrachill_link_page_view_recorded` - Writes page views to database
-   - `extrachill_link_click_recorded` - Writes link clicks to database
+   - `extrachill_link_click_recorded` - Writes link clicks to database (includes `link_url` and `link_text`)
 
 2. **Data provider filter** - `extrachill_get_link_page_analytics` filter supplies analytics data to the API:
 
@@ -115,7 +116,7 @@ The plugin handles the actual database writes:
 add_action( 'extrachill_link_page_view_recorded', 'extrachill_handle_link_page_view_db_write', 10, 1 );
 
 // Called when link click is recorded
-add_action( 'extrachill_link_click_recorded', 'extrachill_handle_link_click_db_write', 10, 2 );
+add_action( 'extrachill_link_click_recorded', 'extrachill_handle_link_click_db_write', 10, 3 );
 ```
 
 These action hooks are fired by the extrachill-api plugin when it receives tracking data from the client.
@@ -169,19 +170,19 @@ function extrachill_handle_link_page_view_db_write( $link_page_id ) {
 Link clicks are recorded when the `extrachill_link_click_recorded` action is fired by extrachill-api:
 
 ```php
-add_action( 'extrachill_link_click_recorded', 'extrachill_handle_link_click_db_write', 10, 2 );
+add_action( 'extrachill_link_click_recorded', 'extrachill_handle_link_click_db_write', 10, 3 );
 
-function extrachill_handle_link_click_db_write( $link_page_id, $link_url ) {
+function extrachill_handle_link_click_db_write( $link_page_id, $link_url, $link_text = '' ) {
     global $wpdb;
     
     $table_name = $wpdb->prefix . 'extrch_link_page_daily_link_clicks';
     $today = current_time('Y-m-d');
     
     $sql = $wpdb->prepare("
-        INSERT INTO {$table_name} (link_page_id, stat_date, link_url, click_count) 
-        VALUES (%d, %s, %s, 1)
+        INSERT INTO {$table_name} (link_page_id, stat_date, link_url, link_text, click_count)
+        VALUES (%d, %s, %s, %s, 1)
         ON DUPLICATE KEY UPDATE click_count = click_count + 1
-    ", $link_page_id, $today, $link_url);
+    ", $link_page_id, $today, $link_url, $link_text);
     
     $wpdb->query($sql);
 }
@@ -283,9 +284,9 @@ Charts are rendered directly in the Gutenberg block editor via React components
 
 Analytics system includes automatic data pruning via scheduled cron job:
 
-Location: `inc/database/artist-analytics-db.php`
+Location: `inc/link-pages/live/analytics.php`
 
-The pruning cron runs monthly to maintain database performance by removing data older than the configured retention period (default: 90 days)
+A daily cron event (`extrch_daily_analytics_prune_event`) prunes link page daily view/click rows older than 90 days.
 
 ## Performance Optimization
 
