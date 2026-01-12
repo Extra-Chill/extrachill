@@ -11,7 +11,7 @@ ExtraChill theme serves the active sites in the WordPress multisite network (Blo
 3. **shop.extrachill.com** - E-commerce platform with WooCommerce (Blog ID 3)
 4. **artist.extrachill.com** - Artist platform and profiles (Blog ID 4)
 5. **chat.extrachill.com** - AI chatbot system (Blog ID 5)
-6. **events.extrachill.com** - Event calendar hub (Blog ID 7)
+6. **events.extrachill.com** - Event calendar hub (Blog ID 7; calendar engine comes from external Data Machine + datamachine-events plugins)
 7. **stream.extrachill.com** - Live streaming platform (Phase 1 UI) (Blog ID 8)
 8. **newsletter.extrachill.com** - Newsletter management and archive hub (Blog ID 9)
 9. **docs.extrachill.com** - Documentation hub (Blog ID 10)
