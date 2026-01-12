@@ -304,6 +304,6 @@ add_filter('extrachill_homepage_featured_posts_query', function($args) {
 
 ## Related Documentation
 
-- **AGENTS.md**: Architecture and development patterns
+- **CLAUDE.md**: Architecture and development patterns
 - **Gutenberg Blocks**: See blocks documentation for interactive blocks
 - **Theme Integration**: See extrachill theme documentation

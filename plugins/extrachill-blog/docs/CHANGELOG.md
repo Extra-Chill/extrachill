@@ -36,7 +36,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Updated homepage architecture from static promotional cards to dynamic network discovery components
-- Aligned documentation (AGENTS.md, README.md, homepage-system.md) with new dynamic functionality
+- Aligned documentation (CLAUDE.md, README.md, homepage-system.md) with new dynamic functionality
 
 ## [0.3.8] - 2026-01-02
 
@@ -125,7 +125,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Migrated all blocks from `index.php` to `render.php` for proper WordPress server-side rendering
-- Enhanced AGENTS.md with detailed block descriptions and build process documentation
+- Enhanced CLAUDE.md with detailed block descriptions and build process documentation
 - Updated README.md to highlight Gutenberg blocks functionality
 - Simplified webpack configuration by removing unnecessary copy operations
 - Removed legacy assets directories and old block structure files
@@ -152,7 +152,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Updated plugin description to include Gutenberg blocks functionality
 - Enhanced .gitignore to exclude node_modules/, vendor/, and build/ directories
-- Updated AGENTS.md with comprehensive block documentation
+- Updated CLAUDE.md with comprehensive block documentation
 
 ## [0.2.3] - 2025-12-10
 
@@ -177,7 +177,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Updated blog archive URL from /all to /blog across navigation and templates
-- Updated AGENTS.md version to 0.2.2
+- Updated CLAUDE.md version to 0.2.2
 
 ### Fixed
 - Proper global $post handling in homepage template loops (section-3x3-grid.php, section-more-recent-posts.php)

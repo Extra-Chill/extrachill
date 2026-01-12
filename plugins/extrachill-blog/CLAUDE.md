@@ -124,6 +124,6 @@ npm run build
 
 ## Related Documentation
 
-- **Root AGENTS.md**: Platform-wide architectural patterns
-- **extrachill-plugins/AGENTS.md**: Plugin directory overview
-- **extrachill/AGENTS.md**: Theme architecture and integration
+- **Root CLAUDE.md**: Platform-wide architectural patterns
+- **extrachill-plugins/CLAUDE.md**: Plugin directory overview
+- **extrachill/CLAUDE.md**: Theme architecture and integration
