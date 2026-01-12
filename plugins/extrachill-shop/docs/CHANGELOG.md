@@ -20,7 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - **Renamed Ad-Free License System to Lifetime Extra Chill Membership**: Updated all internal terminology, file names, and logic to reflect the new membership branding (ad-free remains the core benefit).
-- **Documentation Refinement**: Comprehensive updates to README and AGENTS.md detailing the Stripe Connect payout pattern and Shippo shipping label integration.
+- **Documentation Refinement**: Comprehensive updates to README and CLAUDE.md detailing the Stripe Connect payout pattern and Shippo shipping label integration.
 
 ## [0.5.0] - 2026-01-02
 
@@ -80,7 +80,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **E-commerce Integration Documentation**: Comprehensive docs for payment and license systems
 
 ### Changed
-- **AGENTS.md**: Simplified documentation structure and updated feature overview
+- **CLAUDE.md**: Simplified documentation structure and updated feature overview
 - **README.md**: Updated setup instructions for auto-provisioned license product
 - **WooCommerce CSS**: Complete overhaul using theme CSS variables, responsive design, and dark mode support
 - **Raffle CSS**: Updated font sizes to use theme CSS variables for consistency

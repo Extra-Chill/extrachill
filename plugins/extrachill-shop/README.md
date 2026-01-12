@@ -1,26 +1,21 @@
 # Extra Chill Shop
 
-WordPress plugin providing WooCommerce integration and e-commerce functionality for the Extra Chill platform. Features cross-domain Lifetime Extra Chill Membership system (ad-free benefit), custom breadcrumbs, product category navigation, and comprehensive WooCommerce styling.
+WordPress plugin providing WooCommerce integration and e-commerce functionality for the Extra Chill platform. Includes a cross-domain Lifetime Extra Chill Membership product (ad-free benefit), breadcrumb integration, product navigation helpers, and WooCommerce styling.
 
-## 🛒 Overview
+## Overview
 
-The Extra Chill Shop plugin extends WooCommerce with ExtraChill-specific functionality, including a unique cross-domain Lifetime Extra Chill Membership system that allows purchases on `shop.extrachill.com` to provide an ad-free experience on `extrachill.com`.
+The plugin extends WooCommerce with Extra Chill-specific functionality, including a cross-domain Lifetime Extra Chill Membership system that allows purchases on `shop.extrachill.com` to grant an ad-free benefit on `extrachill.com`.
 
-## Development Status
+## Key Features
 
-- **Active Development**: The shop plugin is still evolving, especially around cross-domain membership and raffle workflows. Expect interface adjustments, layout refinements, and configuration tweaks before the next production-ready release.
-- **Deployment Guidance**: Use staging sites for verification; ongoing work includes deeper shop-theme integration, performance tuning, and documentation of new helper hooks.
-
-## ✨ Key Features
-
-### 🔐 Cross-Domain Lifetime Extra Chill Membership System
+### Cross-Domain Lifetime Extra Chill Membership System
 - **Multi-Domain Integration**: Purchases on shop site affect ad display on main site (membership provides ad-free benefit)
 - **WordPress Multisite**: Native multisite authentication for seamless cross-domain user sessions
 - **Membership Management**: Automated membership activation and validation via user meta
 - **Community Integration**: Links purchases to community usernames
 - **Clean Architecture**: Shop plugin handles WooCommerce UI, users plugin manages membership data
 
-### 🎟️ Raffle Product System
+### Raffle Product System
 - **Tag-Based Activation**: Features only activate when product has "raffle" tag
 - **Admin Field**: Conditional "Max Raffle Tickets" field on WooCommerce inventory tab
 - **Frontend Progress Bar**: Visual countdown showing remaining tickets on product pages
@@ -29,13 +24,13 @@ The Extra Chill Shop plugin extends WooCommerce with ExtraChill-specific functio
 - **Dark Mode Support**: Full dark mode styling with responsive design
 - **MutationObserver**: Real-time field visibility based on tag presence
 
-### 💳 Stripe Connect Integration (v0.5.0)
+### Stripe Connect Integration
 - **Artist Payouts**: Integrated Stripe Connect Express for automated marketplace payouts
 - **Onboarding Flow**: Streamlined artist onboarding via Stripe-hosted Express dashboard
 - **Payment Pattern**: Uses "Separate Charges and Transfers" for secure platform processing
 - **Account Management**: Artist-specific Stripe dashboards accessible via shop manager
 
-### 📦 Shipping Label System
+### Shipping Label System
 - **Shippo Integration**: Automated USPS shipping label generation via Shippo API
 - **Artist Fulfillment**: Artists purchase and print labels directly from shop manager
 - **Tracking Sync**: Automatic tracking number updates and customer notifications
@@ -44,14 +39,14 @@ The Extra Chill Shop plugin extends WooCommerce with ExtraChill-specific functio
 - **Cart Icon Integration**: Header cart icon linking to shop
 - **Comprehensive Styling**: 492 lines of WooCommerce CSS with responsive design (matched to current asset)
 
-### ⚡ WooCommerce Styling
+### WooCommerce Styling
 - **Product Grid**: CSS Grid layout with responsive breakpoints
 - **Theme Integration**: Uses theme's standard button colors (#0b5394 primary, #083b6c hover)
 - **Dark Mode Support**: CSS custom properties from theme
 - **Mobile Optimized**: Breakpoints at 768px, 600px, 480px
 - **Complete Coverage**: Shop, product, cart, checkout, breadcrumbs, buttons
 
-## 🏗️ Architecture
+## Architecture
 
 ### Plugin Structure
 ```
@@ -85,7 +80,7 @@ extrachill-shop/
 - **Modular Design**: Single responsibility principle throughout
 - **WordPress Standards**: Full compliance with WordPress coding standards
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 - **WordPress**: 5.0+ multisite network
@@ -93,12 +88,13 @@ extrachill-shop/
 - **WooCommerce**: Required for e-commerce functionality
 - **ExtraChill Theme**: For optimal integration
 
-### Installation
-1. Upload plugin files to `/wp-content/plugins/extrachill-shop/`
-2. Activate plugin on shop.extrachill.com
-3. Configure WooCommerce settings as needed
-4. Membership product is auto-created/maintained (SKU: `ec-lifetime-membership`, price: $20)
-5. Set shop page as homepage: Settings → Reading → "A static page" → Homepage: "Shop"
+### Deployment
+
+This plugin is deployed as part of the Extra Chill Platform and is activated on `shop.extrachill.com`.
+
+- WooCommerce is required.
+- The Lifetime Membership product is auto-created/maintained using SKU `ec-lifetime-membership`.
+- Deployments and remote operations run through **Homeboy** (`homeboy/` in this repo).
 
 ### Development Setup
 ```bash
@@ -112,7 +108,7 @@ composer install
 composer run lint:php
 ```
 
-## 🔧 Development
+## Development
 
 ### Build Commands
 ```bash
@@ -130,14 +126,14 @@ composer run lint:fix           # Fix code style issues
 - **Non-Versioned**: Follows platform standard (no version numbers in filenames)
 - **File Exclusion**: Development files excluded via `.buildignore`
 
-## 🛡️ Security Features
+## Security Features
 
 - **Input Sanitization**: All user input properly sanitized
 - **Output Escaping**: XSS protection for all output
 - **Capability Checks**: Proper permission validation
 - **Prepared Statements**: SQL injection prevention
 
-## 💳 Lifetime Extra Chill Membership System
+## Lifetime Extra Chill Membership System
 
 ### User Meta Storage
 The plugin uses WordPress-native user meta for membership storage (KISS principle, no custom tables; provides ad-free benefit):
@@ -170,7 +166,7 @@ array(
 - **Purchase Handler**: Calls extrachill-users creation function after order completion
 - **Clean Separation**: Users plugin owns data operations, shop plugin owns WooCommerce UI only
 
-## 🎟️ Raffle Product System
+## Raffle Product System
 
 ### Tag-Based Activation
 Raffle features only activate when a product has the "raffle" tag:
