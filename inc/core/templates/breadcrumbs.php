@@ -20,29 +20,20 @@ if (!function_exists('extrachill_breadcrumbs')) {
         echo '<nav class="breadcrumbs" itemprop="breadcrumb">';
 
         // Allow plugins to override the root breadcrumb link
-        $root_link = apply_filters( 'extrachill_breadcrumbs_root', '<a href="' . home_url() . '">Extra Chill</a>' );
+        $root_link = apply_filters( 'extrachill_breadcrumbs_root', '<a href="' . home_url() . '">' . esc_html( extrachill_get_site_title() ) . '</a>' );
         echo $root_link . ' › ';
 
         // Allow plugins to override the default breadcrumb trail
         $custom_trail = apply_filters('extrachill_breadcrumbs_override_trail', '');
         if (!empty($custom_trail)) {
-            // Only wrap spans with explicit network-dropdown-target class
-            if ( preg_match( '/^<span class="network-dropdown-target">(.+)<\/span>$/', $custom_trail, $matches ) ) {
-                echo extrachill_network_dropdown( $matches[1] );
-            } else {
-                echo $custom_trail;
-            }
+            echo apply_filters( 'extrachill_breadcrumbs_trail_output', $custom_trail );
         } else {
             // Original breadcrumb logic
             if (is_single() && is_singular('post')) {
             global $post;
 
             $categories = get_the_category($post->ID);
-            $filtered_categories = array_filter($categories, function($cat) {
-                return $cat->term_id != 714;
-            });
-
-            $category = !empty($filtered_categories) ? reset($filtered_categories) : (count($categories) === 1 ? reset($categories) : null);
+            $category = !empty($categories) ? reset($categories) : null;
 
             $tags = get_the_tags($post->ID);
             $top_tag = null;
