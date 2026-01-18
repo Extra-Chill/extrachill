@@ -26,9 +26,9 @@
 <header id="masthead" class="site-header" role="banner">
     <div class="site-branding">
         <?php if (is_front_page()): ?>
-            <h1 class="site-title"><a href="<?php echo esc_url(home_url('/')); ?>" rel="home">Extra Chill</a></h1>
+            <h1 class="site-title"><a href="<?php echo esc_url(home_url('/')); ?>" rel="home"><?php echo esc_html( extrachill_get_site_title() ); ?></a></h1>
         <?php else: ?>
-            <p class="site-title"><a href="<?php echo esc_url(home_url('/')); ?>" rel="home">Extra Chill</a></p>
+            <p class="site-title"><a href="<?php echo esc_url(home_url('/')); ?>" rel="home"><?php echo esc_html( extrachill_get_site_title() ); ?></a></p>
         <?php endif; ?>
     </div><!-- .site-branding -->
 

@@ -72,9 +72,9 @@ require_once(EXTRACHILL_INCLUDES_DIR . '/core/assets.php');
 require_once(EXTRACHILL_INCLUDES_DIR . '/core/icons.php');
 require_once(EXTRACHILL_INCLUDES_DIR . '/core/notices.php');
 require_once(EXTRACHILL_INCLUDES_DIR . '/core/rewrite.php');
+require_once(EXTRACHILL_INCLUDES_DIR . '/core/site-title.php');
 require_once(EXTRACHILL_INCLUDES_DIR . '/core/template-router.php');
 require_once(EXTRACHILL_INCLUDES_DIR . '/core/templates/breadcrumbs.php');
-require_once(EXTRACHILL_INCLUDES_DIR . '/core/templates/network-dropdown.php');
 require_once(EXTRACHILL_INCLUDES_DIR . '/header/header-search.php');
 require_once(EXTRACHILL_INCLUDES_DIR . '/core/custom-taxonomies.php');
 

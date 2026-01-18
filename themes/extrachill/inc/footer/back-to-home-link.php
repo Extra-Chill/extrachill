@@ -21,12 +21,14 @@ function extrachill_display_back_to_home_link() {
 		return;
 	}
 
+	$site_title = extrachill_get_site_title();
+
 	if ( ! is_main_site() && is_front_page() ) {
-		$url   = function_exists( 'ec_get_site_url' ) ? ec_get_site_url( 'main' ) : 'https://extrachill.com';
-		$label = '← Back to Extra Chill';
+		$url   = function_exists( 'ec_get_site_url' ) ? ec_get_site_url( 'main' ) : home_url();
+		$label = '← Back to ' . $site_title;
 	} else {
 		$url   = home_url();
-		$label = '← Back to Extra Chill';
+		$label = '← Back to ' . $site_title;
 	}
 
 	// Allow plugins to override the label (e.g., "Back to Community", "Back to Merch Store")

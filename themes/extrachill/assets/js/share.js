@@ -37,22 +37,22 @@
         }
     }
 
-    function ecCopyToClipboard(text, linkEl, promptLabel) {
+    function ecCopyToClipboard(text, linkEl) {
+        var originalText = linkEl.textContent;
+
         if (navigator.clipboard && navigator.clipboard.writeText) {
             return navigator.clipboard.writeText(text)
                 .then(function() {
-                    var originalText = linkEl.textContent;
                     linkEl.textContent = 'Copied!';
                     setTimeout(function() {
                         linkEl.textContent = originalText;
                     }, 2000);
                 })
                 .catch(function() {
-                    window.prompt(promptLabel, text);
+                    // Silent failure
                 });
         }
 
-        window.prompt(promptLabel, text);
         return Promise.resolve();
     }
 
@@ -127,7 +127,7 @@
             }
 
             ecTrackShare('copy_link', url);
-            ecCopyToClipboard(url, copyLink, 'Copy this link:');
+            ecCopyToClipboard(url, copyLink);
             return;
         }
 
@@ -147,10 +147,10 @@
         ecTrackShare('copy_markdown', window.location.href);
         ecFetchMarkdownExport(postId, blogId)
             .then(function(markdown) {
-                return ecCopyToClipboard(markdown, copyMarkdown, 'Copy this markdown:');
+                return ecCopyToClipboard(markdown, copyMarkdown);
             })
             .catch(function() {
-                window.prompt('Copy this markdown:', '');
+                // Silent failure
             })
             .finally(function() {
                 copyMarkdown.textContent = 'Copy Markdown';

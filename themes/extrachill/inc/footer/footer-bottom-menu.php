@@ -9,7 +9,7 @@
  * @since 1.0.0
  */
 
-$main_site_url = function_exists( 'ec_get_site_url' ) ? ec_get_site_url( 'main' ) : 'https://extrachill.com';
+$main_site_url = function_exists( 'ec_get_site_url' ) ? ec_get_site_url( 'main' ) : home_url();
 
 $default_items = array(
 	array(

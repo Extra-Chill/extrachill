@@ -52,19 +52,6 @@ if (!function_exists('extrachill_get_community_activity_items')) {
                 'posts_per_page' => $query_limit,
                 'orderby'        => 'date',
                 'order'          => 'DESC',
-                'meta_query'     => array(
-                    'relation' => 'AND',
-                    array(
-                        'key'     => '_bbp_forum_id',
-                        'value'   => array(),
-                        'compare' => 'NOT IN',
-                    ),
-                    array(
-                        'key'     => '_bbp_forum_id',
-                        'value'   => '1494',
-                        'compare' => '!=',
-                    ),
-                ),
             );
 
             $query = new WP_Query($args);

@@ -9,11 +9,6 @@
  * @since 1.0.0
  */
 
-function extrachill_default_footer_main_content() {
-    include get_template_directory() . '/inc/footer/footer-main-menu.php';
-}
-add_action( 'extrachill_footer_main_content', 'extrachill_default_footer_main_content', 10 );
-
 function extrachill_default_below_copyright() {
     include get_template_directory() . '/inc/footer/footer-bottom-menu.php';
 }
