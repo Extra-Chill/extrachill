@@ -8,35 +8,41 @@
 
 get_header(); ?>
 
-<?php do_action('extrachill_before_body_content'); ?>
+<?php do_action( 'extrachill_before_body_content' ); ?>
 
-<?php if (have_posts()) : ?>
-    <?php extrachill_breadcrumbs(); ?>
+<?php if ( have_posts() ) : ?>
+	<?php extrachill_breadcrumbs(); ?>
 
-    <?php do_action('extrachill_archive_header'); ?>
+	<?php do_action( 'extrachill_archive_header' ); ?>
 
-    <?php
-    do_action('extrachill_archive_below_description');
+	<?php
+	do_action( 'extrachill_archive_below_description' );
 
-    do_action('extrachill_archive_above_posts');
-    ?>
-    <div class="full-width-breakout">
-        <div class="article-container">
-            <?php global $post_i; $post_i = 1; ?>
-            <?php while (have_posts()) : the_post(); ?>
-                <?php get_template_part('inc/archives/post-card'); ?>
-            <?php endwhile; ?>
-        </div><!-- .article-container -->
+	do_action( 'extrachill_archive_above_posts' );
+	?>
+	<div class="full-width-breakout">
+		<div class="article-container">
+			<?php
+			global $post_i;
+			$post_i = 1;
+			?>
+			<?php
+			while ( have_posts() ) :
+				the_post();
+				?>
+				<?php get_template_part( 'inc/archives/post-card' ); ?>
+			<?php endwhile; ?>
+		</div><!-- .article-container -->
 
-        <?php extrachill_pagination(null, 'archive'); ?>
-    </div><!-- .full-width-breakout -->
+		<?php extrachill_pagination( null, 'archive' ); ?>
+	</div><!-- .full-width-breakout -->
 
 
 <?php else : ?>
-    <?php extrachill_no_results(); ?>
+	<?php extrachill_no_results(); ?>
 <?php endif; ?>
 
-<?php do_action('extrachill_after_body_content'); ?>
+<?php do_action( 'extrachill_after_body_content' ); ?>
 
 
 <?php get_footer(); ?>

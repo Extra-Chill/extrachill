@@ -13,26 +13,29 @@
 $secondary_header_items = apply_filters( 'extrachill_secondary_header_items', array() );
 
 if ( empty( $secondary_header_items ) || ! is_array( $secondary_header_items ) ) {
-    return;
+	return;
 }
 
-usort( $secondary_header_items, function( $a, $b ) {
-    $priority_a = isset( $a['priority'] ) ? (int) $a['priority'] : 10;
-    $priority_b = isset( $b['priority'] ) ? (int) $b['priority'] : 10;
-    return $priority_a <=> $priority_b;
-});
+usort(
+	$secondary_header_items,
+	function ( $a, $b ) {
+		$priority_a = isset( $a['priority'] ) ? (int) $a['priority'] : 10;
+		$priority_b = isset( $b['priority'] ) ? (int) $b['priority'] : 10;
+		return $priority_a <=> $priority_b;
+	}
+);
 ?>
 
 <nav class="secondary-header" role="navigation" aria-label="<?php esc_attr_e( 'Secondary Navigation', 'extrachill' ); ?>">
-    <?php
-    foreach ( $secondary_header_items as $item ) {
-        if ( isset( $item['url'] ) && isset( $item['label'] ) ) {
-            printf(
-                '<a href="%s">%s</a>',
-                esc_url( $item['url'] ),
-                esc_html( $item['label'] )
-            );
-        }
-    }
-    ?>
+	<?php
+	foreach ( $secondary_header_items as $item ) {
+		if ( isset( $item['url'] ) && isset( $item['label'] ) ) {
+			printf(
+				'<a href="%s">%s</a>',
+				esc_url( $item['url'] ),
+				esc_html( $item['label'] )
+			);
+		}
+	}
+	?>
 </nav>

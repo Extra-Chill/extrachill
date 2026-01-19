@@ -57,7 +57,7 @@ function extrachill_filter_bar() {
 
 	// Separate dropdowns (left) from search (right)
 	$dropdowns = array();
-	$searches = array();
+	$searches  = array();
 
 	foreach ( $items as $item ) {
 		$type = $item['type'] ?? '';

@@ -574,19 +574,7 @@ a.author.url.fn, .forum-meta a {
 
 .main-content ol, .main-content ul{
 	margin: 0 var(--spacing-lg);
-}
-
-.error-404 {
-	padding-bottom: var(--spacing-lg);
-}
-
-.error-404 .page-content {
-	max-width: var(--form-width);
-	margin: 0 auto;
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-}
+	}
 
 .error-404 .search-wrap {
 	display: flex;
