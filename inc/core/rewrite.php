@@ -9,7 +9,7 @@
  */
 
 function extrachill_force_category_base() {
-    return '';
+	return '';
 }
 add_filter( 'pre_option_category_base', 'extrachill_force_category_base' );
 add_filter( 'pre_update_option_category_base', 'extrachill_force_category_base' );

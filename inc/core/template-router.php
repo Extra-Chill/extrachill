@@ -41,7 +41,8 @@ function extrachill_route_templates( $template ) {
 		$template = get_template_directory() . '/inc/home/templates/front-page.php';
 
 	} elseif ( is_single() ) {
-		$template = apply_filters( 'extrachill_template_single_post',
+		$template = apply_filters(
+			'extrachill_template_single_post',
 			get_template_directory() . '/inc/single/single-post.php'
 		);
 
@@ -52,27 +53,32 @@ function extrachill_route_templates( $template ) {
 			return $template;
 		}
 
-		$template = apply_filters( 'extrachill_template_page',
+		$template = apply_filters(
+			'extrachill_template_page',
 			get_template_directory() . '/inc/single/single-page.php'
 		);
 
 	} elseif ( is_archive() || is_category() || is_tag() || is_author() || is_date() ) {
-		$template = apply_filters( 'extrachill_template_archive',
+		$template = apply_filters(
+			'extrachill_template_archive',
 			get_template_directory() . '/inc/archives/archive.php'
 		);
 
 	} elseif ( is_search() ) {
-		$template = apply_filters( 'extrachill_template_search',
+		$template = apply_filters(
+			'extrachill_template_search',
 			get_template_directory() . '/inc/archives/archive.php'
 		);
 
 	} elseif ( is_404() ) {
-		$template = apply_filters( 'extrachill_template_404',
+		$template = apply_filters(
+			'extrachill_template_404',
 			get_template_directory() . '/inc/core/templates/404.php'
 		);
 
 	} else {
-		$template = apply_filters( 'extrachill_template_fallback',
+		$template = apply_filters(
+			'extrachill_template_fallback',
 			get_template_directory() . '/inc/core/templates/404.php'
 		);
 	}

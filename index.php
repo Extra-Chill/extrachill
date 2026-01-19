@@ -18,12 +18,12 @@ get_header();
 		<section class="error-404 not-found">
 			<div class="page-content">
 				<header class="page-header">
-					<h1 class="page-title"><?php esc_html_e( 'Yeah, something is royally f*cked.', 'extrachill' ); ?></h1>
+					<h1 class="page-title"><?php echo esc_html( apply_filters( 'extrachill_fallback_error_heading', __( 'Something went wrong.', 'extrachill' ) ) ); ?></h1>
 				</header>
 				<p><?php esc_html_e( 'This is the last resort fallback template. You should not be seeing this.', 'extrachill' ); ?></p>
 				<p><strong><?php esc_html_e( 'You were trying to reach:', 'extrachill' ); ?></strong> <code><?php echo esc_html( home_url( $_SERVER['REQUEST_URI'] ) ); ?></code></p>
 				<p><?php esc_html_e( 'Help us fix this by telling us how you got here.', 'extrachill' ); ?></p>
-				<p><a href="<?php echo esc_url( home_url( '/contact-us/' ) ); ?>" class="button-2 button-medium"><?php esc_html_e( 'Contact Us', 'extrachill' ); ?></a></p>
+				<p><?php do_action( 'extrachill_fallback_below_cta' ); ?></p>
 			</div><!-- .page-content -->
 		</section><!-- .error-404 -->
 	</section><!-- .main-content -->

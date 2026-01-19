@@ -31,23 +31,26 @@ if ( empty( $footer_bottom_items ) || ! is_array( $footer_bottom_items ) ) {
 	return;
 }
 
-usort( $footer_bottom_items, function( $a, $b ) {
-	$priority_a = isset( $a['priority'] ) ? (int) $a['priority'] : 10;
-	$priority_b = isset( $b['priority'] ) ? (int) $b['priority'] : 10;
-	return $priority_a <=> $priority_b;
-});
+usort(
+	$footer_bottom_items,
+	function ( $a, $b ) {
+		$priority_a = isset( $a['priority'] ) ? (int) $a['priority'] : 10;
+		$priority_b = isset( $b['priority'] ) ? (int) $b['priority'] : 10;
+		return $priority_a <=> $priority_b;
+	}
+);
 ?>
 
 <div class="footer-extra-menu">
-    <div class="menu-footer-bottom-container">
-        <ul class="menu">
-            <?php foreach ( $footer_bottom_items as $item ) : ?>
-                <?php if ( isset( $item['url'] ) && isset( $item['label'] ) ) : ?>
-                    <li class="menu-item<?php echo isset( $item['rel'] ) && 'privacy-policy' === $item['rel'] ? ' menu-item-privacy-policy' : ''; ?>">
-                        <a href="<?php echo esc_url( $item['url'] ); ?>"<?php echo isset( $item['rel'] ) ? ' rel="' . esc_attr( $item['rel'] ) . '"' : ''; ?>><?php echo esc_html( $item['label'] ); ?></a>
-                    </li>
-                <?php endif; ?>
-            <?php endforeach; ?>
-        </ul>
-    </div>
+	<div class="menu-footer-bottom-container">
+		<ul class="menu">
+			<?php foreach ( $footer_bottom_items as $item ) : ?>
+				<?php if ( isset( $item['url'] ) && isset( $item['label'] ) ) : ?>
+					<li class="menu-item<?php echo isset( $item['rel'] ) && 'privacy-policy' === $item['rel'] ? ' menu-item-privacy-policy' : ''; ?>">
+						<a href="<?php echo esc_url( $item['url'] ); ?>"<?php echo isset( $item['rel'] ) ? ' rel="' . esc_attr( $item['rel'] ) . '"' : ''; ?>><?php echo esc_html( $item['label'] ); ?></a>
+					</li>
+				<?php endif; ?>
+			<?php endforeach; ?>
+		</ul>
+	</div>
 </div>

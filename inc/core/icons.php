@@ -15,22 +15,22 @@
  * @return string SVG markup.
  */
 function ec_icon( $icon_id, $class = '' ) {
-    static $sprite_url = null;
+	static $sprite_url = null;
 
-    if ( $sprite_url === null ) {
-        $sprite_url = get_template_directory_uri() . '/assets/fonts/extrachill.svg';
+	if ( null === $sprite_url ) {
+		$sprite_url = get_template_directory_uri() . '/assets/fonts/extrachill.svg';
 
-        if ( defined( 'EXTRACHILL_THEME_VERSION' ) && EXTRACHILL_THEME_VERSION ) {
-            $sprite_url .= '?v=' . urlencode( EXTRACHILL_THEME_VERSION );
-        }
-    }
+		if ( defined( 'EXTRACHILL_THEME_VERSION' ) && EXTRACHILL_THEME_VERSION ) {
+			$sprite_url .= '?v=' . urlencode( EXTRACHILL_THEME_VERSION );
+		}
+	}
 
-    $use_href = esc_url( $sprite_url ) . '#' . esc_attr( $icon_id );
-    $classes  = 'ec-icon' . ( $class ? ' ' . esc_attr( $class ) : '' );
+	$use_href = esc_url( $sprite_url ) . '#' . esc_attr( $icon_id );
+	$classes  = 'ec-icon' . ( $class ? ' ' . esc_attr( $class ) : '' );
 
-    return sprintf(
-        '<svg class="%s"><use href="%s"></use></svg>',
-        $classes,
-        $use_href
-    );
+	return sprintf(
+		'<svg class="%s"><use href="%s"></use></svg>',
+		$classes,
+		$use_href
+	);
 }
