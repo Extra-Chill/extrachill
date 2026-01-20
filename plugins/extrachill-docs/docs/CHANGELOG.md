@@ -12,7 +12,7 @@
 - Expanded Artist Platform "Getting Started" guide with detailed sign-in flow and Google integration steps
 
 ### Maintenance
-- Updated AGENTS.md and README.md with current version and architectural details
+- Updated CLAUDE.md and README.md with current version and architectural details
 - Standardized documentation formatting across all new platform guides
 
 # 0.3.2 - Dec 31, 2025
@@ -104,7 +104,7 @@
 ### Changed
 - Reorganized homepage rendering code from `inc/home/` to `inc/core/homepage.php` for better file structure
 - Updated 'events' platform taxonomy slug to 'events-calendar' for improved URL clarity
-- Updated AGENTS.md with REST API endpoint documentation
+- Updated CLAUDE.md with REST API endpoint documentation
 
 ### Maintenance
 - Updated Composer dependencies
@@ -116,7 +116,7 @@
 - Theme filter hooks for custom breadcrumb trails on homepage
 
 ### Changed
-- Updated AGENTS.md with current architecture and file structure documentation
+- Updated CLAUDE.md with current architecture and file structure documentation
 - Removed outdated artist platform documentation files
 - Minor formatting updates to main plugin file
 
@@ -129,7 +129,7 @@
 - Simplified platform seeding by removing descriptions and unused platforms (Getting Started, Your Account)
 - Updated homepage to only display platforms with published documentation for cleaner navigation
 - Added .gitignore to exclude build/, vendor/, and .env files
-- Updated AGENTS.md documentation to reflect platform changes
+- Updated CLAUDE.md documentation to reflect platform changes
 
 # 0.2.0 - Dec 7, 2025
 

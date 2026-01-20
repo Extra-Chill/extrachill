@@ -12,54 +12,27 @@ Extra Chill Docs powers the documentation hub at **docs.extrachill.com** with:
 
 ## Features
 
-### 📚 Documentation Organization
+### Documentation Organization
 - **Custom Post Type** (`ec_doc`) - Documentation articles with hierarchical support
 - **Platform Taxonomy** (`ec_doc_platform`) - Organize docs by network site/feature
 - **Homepage Cards** - Visual platform navigation showing available documentation
 - **Archive Pages** - Browse all docs for a specific platform
 
-### 🔍 Discovery & Search
+### Discovery & Search
 - **Platform Navigation** - Browse docs by feature or product
-- **REST API Endpoint** - `GET /wp-json/extrachill/v1/docs-info` returns metadata + platform list
+- **REST API Endpoint** - The docs metadata endpoint is exposed via the `extrachill-api` plugin
 - **Network Search Integration** - Integrated with extrachill-search for multisite discovery
 - **Breadcrumb Navigation** - Clear navigation path with network dropdown
 
-### 🎨 Design System
+### Design System
 - **Theme Integration** - Uses extrachill theme CSS variables and design system
 - **Responsive Cards** - Mobile-friendly platform cards with grid layout
 - **Conditional Display** - Platforms without docs don't appear on homepage
 - **Theme Templates** - Archive and single templates handled by extrachill theme
 
-## Installation
+## Deployment
 
-### Requirements
-- WordPress 5.0+
-- PHP 7.4+
-- Extra Chill Theme (for styling and templates)
-- Activated on docs.extrachill.com site (Blog ID 10)
-
-### Setup
-
-1. **Upload the plugin**:
-   ```bash
-   # Extract build/extrachill-docs.zip to wp-content/plugins/
-   unzip build/extrachill-docs.zip -d wp-content/plugins/
-   ```
-
-2. **Activate on Blog ID 10 only**:
-   - Go to Network Admin → Sites → docs.extrachill.com
-   - Click "Plugins"
-   - Activate "Extra Chill Docs"
-
-3. **Verify platform seeding**:
-   - Go to Documentation → Platforms
-   - Should see 8 default platforms (Artist Platform, Community, Events, Stream, Newsletter, Shop, Chat, Horoscopes)
-
-4. **Add documentation**:
-   - Go to Documentation → Add New
-   - Write content targeting non-technical users
-   - Assign to relevant Platform taxonomy
-   - Publish
+This plugin is deployed as part of the Extra Chill Platform and is activated on docs.extrachill.com. Deployments and remote operations run through **Homeboy** (`homeboy/` in this repo).
 
 ## Usage
 
@@ -84,11 +57,7 @@ Extra Chill Docs powers the documentation hub at **docs.extrachill.com** with:
 
 ### Homepage Display
 
-The homepage displays platform cards for all platforms that have published documentation. Each card shows:
-- **Platform Icon/Name** - Visual platform identifier
-- **Description** - Platform purpose
-- **Doc Count** - Number of published docs
-- **Link** - Navigate to platform archive
+The homepage displays platform cards for platform terms that have published documentation.
 
 ### Platform Archive
 
@@ -100,35 +69,7 @@ Each platform archive (`/artist-platform/`, `/community/`, etc.) displays all do
 
 ## REST API
 
-### Documentation Info Endpoint
-
-**Endpoint**: `GET /wp-json/extrachill/v1/docs-info`
-
-**Response**:
-```json
-{
-  "platforms": [
-    {
-      "id": 1,
-      "name": "Artist Platform",
-      "slug": "artist-platform",
-      "description": "Artist profiles, link pages, analytics...",
-      "doc_count": 5
-    }
-  ],
-  "about": {
-    "title": "About Extra Chill",
-    "content": "HTML content from main site About page",
-    "url": "https://extrachill.com/about/"
-  }
-}
-```
-
-**Details**:
-- Returns all platforms with published documentation
-- Includes main site About page content (Blog 1)
-- Public endpoint - no authentication required
-- Useful for web/mobile apps and external integrations
+The docs metadata endpoint is implemented in the `extrachill-api` plugin (Docs route group). This plugin provides the `ec_doc` content model and frontend rendering.
 
 ## Development
 
@@ -138,7 +79,7 @@ Each platform archive (`/artist-platform/`, `/community/`, etc.) displays all do
 extrachill-docs/
 ├── extrachill-docs.php              # Main plugin file
 ├── README.md                         # This file
-├── AGENTS.md                         # Technical documentation
+├── CLAUDE.md                         # Technical documentation
 ├── inc/
 │   ├── core/
 │   │   ├── post-types.php           # ec_doc registration
@@ -171,11 +112,9 @@ extrachill_docs_seed_platforms();
 add_action('extrachill_homepage_content', 'extrachill_docs_homepage_cards');
 ```
 
-**REST Endpoint** (main file):
-```php
-// Register documentation metadata endpoint
-register_rest_route('extrachill/v1', '/docs-info', [...]
-```
+**REST Endpoint**:
+- Implemented in the `extrachill-api` plugin.
+
 
 ### Conditional Display
 
@@ -261,7 +200,7 @@ add_action('extrachill_homepage_content', function() {
    - Update when features change
    - Remove outdated information
 
-## Troubleshooting
+## Notes
 
 ### Platforms Not Showing on Homepage
 
@@ -318,31 +257,30 @@ add_action('extrachill_homepage_content', function() {
 
 ### Deployment Process
 
-1. Run build script to create ZIP
-2. Download `build/extrachill-docs.zip`
-3. Upload via WordPress plugin installer
-4. Network activate (or activate on Blog ID 10)
-5. Verify platforms seeded in admin
+1. Run build script to create ZIP (`./build.sh`)
+2. Deploy `build/extrachill-docs.zip` via Homeboy (or your preferred deploy pipeline)
+3. Activate on docs.extrachill.com (Blog ID 10)
+4. Verify platforms seeded in admin
 
-## Support & Contributing
+## Contributing
 
 ### Getting Help
 
-- Check [AGENTS.md](AGENTS.md) for technical details
-- Review error logs in `/wp-content/debug.log`
+- Check [CLAUDE.md](CLAUDE.md) for technical details
+- Review error logs in `wp-content/debug.log`
 - Inspect browser console for frontend errors
 
 ### Contributing
 
 1. Follow WordPress coding standards
 2. Test changes on local dev environment
-3. Update AGENTS.md with technical changes
+3. Update CLAUDE.md with technical changes
 4. Create documentation for new features
 5. Submit for code review
 
 ## Version History
 
-See [docs/CHANGELOG.md](docs/CHANGELOG.md) for full version history.
+See [docs/CHANGELOG.md](docs/CHANGELOG.md).
 
 ## License
 

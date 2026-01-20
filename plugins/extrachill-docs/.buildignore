@@ -10,4 +10,5 @@ package-lock.json
 phpunit.xml.dist
 .phpcs.xml.dist
 AGENTS.md
+CLAUDE.md
 README.md
