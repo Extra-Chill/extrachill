@@ -31,11 +31,11 @@ if ( empty( $product ) || ! $product->is_visible() ) {
 		<?php
 		$artist_terms = get_the_terms( get_the_ID(), 'artist' );
 		if ( $artist_terms && ! is_wp_error( $artist_terms ) ) :
-		?>
+			?>
 		<div class="taxonomy-badges">
 			<?php foreach ( $artist_terms as $term ) : ?>
 				<a href="<?php echo esc_url( get_term_link( $term ) ); ?>"
-				   class="taxonomy-badge artist-badge artist-<?php echo esc_attr( $term->slug ); ?>">
+					class="taxonomy-badge artist-badge artist-<?php echo esc_attr( $term->slug ); ?>">
 					<?php echo esc_html( $term->name ); ?>
 				</a>
 			<?php endforeach; ?>

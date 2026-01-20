@@ -238,7 +238,7 @@ function extrachill_shop_render_artist_meta_box( $post ) {
 	if ( defined( 'EC_PLATFORM_ARTIST_ID' ) ) {
 		echo '<p class="description"><strong>' . esc_html__( 'Tip:', 'extrachill-shop' ) . '</strong> ';
 		/* translators: %d is the platform artist ID */
-		echo sprintf( esc_html__( 'Use %d for Extra Chill platform products.', 'extrachill-shop' ), EC_PLATFORM_ARTIST_ID );
+		printf( esc_html__( 'Use %d for Extra Chill platform products.', 'extrachill-shop' ), EC_PLATFORM_ARTIST_ID );
 		echo '</p>';
 	}
 
@@ -306,10 +306,10 @@ function extrachill_shop_get_product_count_for_user( $user_id = null ) {
 		return 0;
 	}
 
-	$shop_blog_id   = ec_get_blog_id( 'shop' );
-	$current_blog   = get_current_blog_id();
-	$needs_switch   = $current_blog !== $shop_blog_id;
-	$total_count    = 0;
+	$shop_blog_id = ec_get_blog_id( 'shop' );
+	$current_blog = get_current_blog_id();
+	$needs_switch = $current_blog !== $shop_blog_id;
+	$total_count  = 0;
 
 	if ( $needs_switch ) {
 		switch_to_blog( $shop_blog_id );

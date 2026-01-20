@@ -116,7 +116,7 @@ extrachill-shop/
 ├── assets/                          # CSS/JS assets
 ├── docs/
 │   └── CHANGELOG.md                 # Version history
-└── build.sh                         # Symlink to /.github/build.sh
+└── .buildignore                     # Build exclusion patterns
 ```
 
 ### Loading Pattern
@@ -217,7 +217,7 @@ add_action( 'extrachill_homepage_content', 'extrachill_shop_render_homepage', 10
 
 ## Build System
 
-**Build Script**: Symlinked to `/.github/build.sh`
+**Build System**: Use `homeboy build extrachill-shop` for production builds
 
 **Build Output**: `/build/extrachill-shop.zip` file only
 

@@ -66,12 +66,14 @@ function extrachill_shop_shipping_method_init() {
 		public function calculate_shipping( $package = array() ) {
 			// If all products ship free, no charge
 			if ( extrachill_shop_cart_ships_free() ) {
-				$this->add_rate( array(
-					'id'       => $this->get_rate_id(),
-					'label'    => __( 'Free Shipping', 'extrachill-shop' ),
-					'cost'     => 0,
-					'calc_tax' => 'per_order',
-				) );
+				$this->add_rate(
+					array(
+						'id'       => $this->get_rate_id(),
+						'label'    => __( 'Free Shipping', 'extrachill-shop' ),
+						'cost'     => 0,
+						'calc_tax' => 'per_order',
+					)
+				);
 				return;
 			}
 
@@ -82,7 +84,7 @@ function extrachill_shop_shipping_method_init() {
 
 			if ( $artist_count > 1 ) {
 				$label = sprintf(
-					__( 'Shipping ($%s × %d artists)', 'extrachill-shop' ),
+					__( 'Shipping ($%1$s × %2$d artists)', 'extrachill-shop' ),
 					number_format( $rate_per_artist, 0 ),
 					$artist_count
 				);
@@ -90,12 +92,14 @@ function extrachill_shop_shipping_method_init() {
 				$label = __( 'Shipping', 'extrachill-shop' );
 			}
 
-			$this->add_rate( array(
-				'id'       => $this->get_rate_id(),
-				'label'    => $label,
-				'cost'     => $total_cost,
-				'calc_tax' => 'per_order',
-			) );
+			$this->add_rate(
+				array(
+					'id'       => $this->get_rate_id(),
+					'label'    => $label,
+					'cost'     => $total_cost,
+					'calc_tax' => 'per_order',
+				)
+			);
 		}
 	}
 }

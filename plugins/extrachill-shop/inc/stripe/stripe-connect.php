@@ -58,7 +58,7 @@ function extrachill_shop_stripe_init() {
  * @return bool True if Stripe keys are configured.
  */
 function extrachill_shop_stripe_is_configured() {
-	$secret_key = apply_filters(
+	$secret_key      = apply_filters(
 		'extrachill_stripe_secret_key',
 		get_site_option( 'extrachill_stripe_secret_key', '' )
 	);
@@ -169,17 +169,17 @@ function extrachill_shop_create_stripe_account( $artist_profile_id ) {
 	try {
 		$account = \Stripe\Account::create(
 			array(
-				'type'         => 'express',
-				'email'        => $owner_email,
-				'capabilities' => array(
+				'type'          => 'express',
+				'email'         => $owner_email,
+				'capabilities'  => array(
 					'card_payments' => array( 'requested' => true ),
 					'transfers'     => array( 'requested' => true ),
 				),
 				'business_type' => 'individual',
 				'metadata'      => array(
-					'wordpress_user_id'     => $owner_user_id,
-					'artist_profile_id'     => $artist_profile_id,
-					'platform'              => 'extrachill',
+					'wordpress_user_id' => $owner_user_id,
+					'artist_profile_id' => $artist_profile_id,
+					'platform'          => 'extrachill',
 				),
 			)
 		);

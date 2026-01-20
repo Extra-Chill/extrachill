@@ -70,7 +70,7 @@ function extrachill_shop_validate_cart_artists() {
 		if ( ! $stripe_account ) {
 			// Artist has no Stripe account connected.
 			foreach ( $group['items'] as $cart_item ) {
-				$product              = wc_get_product( $cart_item['product_id'] );
+				$product            = wc_get_product( $cart_item['product_id'] );
 				$invalid_products[] = array(
 					'product_id'   => $cart_item['product_id'],
 					'product_name' => $product ? $product->get_name() : 'Unknown',
@@ -83,7 +83,7 @@ function extrachill_shop_validate_cart_artists() {
 		// Check if account can receive payments.
 		if ( ! extrachill_shop_account_can_receive_payments( $stripe_account ) ) {
 			foreach ( $group['items'] as $cart_item ) {
-				$product              = wc_get_product( $cart_item['product_id'] );
+				$product            = wc_get_product( $cart_item['product_id'] );
 				$invalid_products[] = array(
 					'product_id'   => $cart_item['product_id'],
 					'product_name' => $product ? $product->get_name() : 'Unknown',
@@ -256,9 +256,9 @@ function extrachill_shop_process_artist_transfers( $order, $charge_id ) {
  * @return \Stripe\Customer Stripe customer object.
  */
 function extrachill_shop_get_or_create_stripe_customer( $order ) {
-	$user_id         = $order->get_user_id();
-	$customer_id     = '';
-	$billing_email   = $order->get_billing_email();
+	$user_id       = $order->get_user_id();
+	$customer_id   = '';
+	$billing_email = $order->get_billing_email();
 
 	// Check for existing customer ID.
 	if ( $user_id ) {

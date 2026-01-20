@@ -143,5 +143,3 @@ function extrachill_shop_get_template_part( $template, $slug, $name ) {
 	return $template;
 }
 add_filter( 'wc_get_template_part', 'extrachill_shop_get_template_part', 10, 3 );
-
-

@@ -51,7 +51,7 @@ function extrachill_shop_send_artist_order_notification( $order, $artist_id, $pa
 		return;
 	}
 
-	$artist_name = extrachill_shop_get_artist_name( $artist_id );
+	$artist_name  = extrachill_shop_get_artist_name( $artist_id );
 	$order_number = $order->get_order_number();
 
 	$subject = sprintf( 'New Order #%s - %s', $order_number, $artist_name );
@@ -137,9 +137,9 @@ function extrachill_shop_get_artist_name( $artist_id ) {
  * @return string HTML email content.
  */
 function extrachill_shop_build_order_notification_email( $order, $artist_id, $artist_name, $payout_data ) {
-	$order_number   = $order->get_order_number();
-	$customer_name  = trim( $order->get_billing_first_name() . ' ' . $order->get_billing_last_name() );
-	$artist_payout  = number_format( floatval( $payout_data['artist_payout'] ?? 0 ), 2 );
+	$order_number     = $order->get_order_number();
+	$customer_name    = trim( $order->get_billing_first_name() . ' ' . $order->get_billing_last_name() );
+	$artist_payout    = number_format( floatval( $payout_data['artist_payout'] ?? 0 ), 2 );
 	$shop_manager_url = extrachill_shop_get_shop_manager_url();
 
 	$shipping = $order->get_address( 'shipping' );
@@ -164,13 +164,15 @@ function extrachill_shop_build_order_notification_email( $order, $artist_id, $ar
 		}
 	}
 
-	$address_lines = array_filter( array(
-		$address['address_1'] ?? '',
-		$address['address_2'] ?? '',
-		trim( ( $address['city'] ?? '' ) . ', ' . ( $address['state'] ?? '' ) . ' ' . ( $address['postcode'] ?? '' ) ),
-		$address['country'] ?? '',
-	) );
-	$address_html = implode( '<br>', array_map( 'esc_html', $address_lines ) );
+	$address_lines = array_filter(
+		array(
+			$address['address_1'] ?? '',
+			$address['address_2'] ?? '',
+			trim( ( $address['city'] ?? '' ) . ', ' . ( $address['state'] ?? '' ) . ' ' . ( $address['postcode'] ?? '' ) ),
+			$address['country'] ?? '',
+		)
+	);
+	$address_html  = implode( '<br>', array_map( 'esc_html', $address_lines ) );
 
 	$html = '<html><body style="font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, sans-serif; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">';
 

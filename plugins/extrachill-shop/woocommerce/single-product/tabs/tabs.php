@@ -24,9 +24,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 $product_tabs = apply_filters( 'woocommerce_product_tabs', array() );
 
 if ( ! empty( $product_tabs ) ) :
-	// Enqueue shared-tabs assets (registered by theme)
-	wp_enqueue_style( 'extrachill-shared-tabs' );
-	wp_enqueue_script( 'extrachill-shared-tabs' );
 	$is_first = true;
 	?>
 

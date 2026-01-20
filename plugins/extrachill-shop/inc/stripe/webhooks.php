@@ -26,7 +26,7 @@ function extrachill_shop_handle_webhook( $request ) {
 		return new WP_Error( 'stripe_not_configured', 'Stripe is not configured.', array( 'status' => 500 ) );
 	}
 
-	$payload   = $request->get_body();
+	$payload    = $request->get_body();
 	$sig_header = isset( $_SERVER['HTTP_STRIPE_SIGNATURE'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_STRIPE_SIGNATURE'] ) ) : '';
 
 	if ( empty( $sig_header ) ) {
