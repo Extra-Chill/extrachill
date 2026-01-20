@@ -1,4 +1,4 @@
-# AGENTS.md
+# CLAUDE.md
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
@@ -71,10 +71,9 @@ When the plugin is activated, it automatically creates required pages and forums
 - **bbPress Integration** - Default stylesheet dequeuing, custom templates, enhanced functionality
 
 ### Build System
-- **Universal Build Script**: Symlinked to shared build script at `../../.github/build.sh`
-- **Auto-Detection**: Script auto-detects plugin from `Plugin Name:` header
+- **Build System**: Use `homeboy build extrachill-community` for production builds
 - **Production Build**: Creates `/build/extrachill-community.zip` file (non-versioned; unzip when directory access is needed)
-- **No Asset Compilation Required**: Plugin uses direct file inclusion (run `./build.sh` directly)
+- **No Asset Compilation Required**: Plugin uses direct file inclusion
 - **File Exclusion**: `.buildignore` rsync patterns exclude development files
 - **Composer Integration**: Uses `composer install --no-dev` for production, restores dev dependencies after
 

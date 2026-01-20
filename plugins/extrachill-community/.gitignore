@@ -4,7 +4,6 @@
 composer.lock
 package-lock.json
 .claude/
-CLAUDE.md
 .buildignore
 build.sh
 docs/.docs-sync.json

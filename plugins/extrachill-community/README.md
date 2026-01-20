@@ -18,20 +18,18 @@ composer install
 
 ### Automatic Setup
 
-When you activate the plugin, it automatically creates all required pages and forums for you:
+On activation, the plugin runs an activation routine that creates (or updates) a small set of required community pages and seed forums. It checks for existing slugs to avoid duplicates.
 
-**Pages Created** (5 total):
-- **Settings** (`/settings`) - Account settings, email, password, subscriptions
-- **Notifications** (`/notifications`) - User notification display
-- **Recent Activity** (`/recent`) - Community activity feed
-- **Leaderboard** (`/leaderboard`) - User rankings and points
-- **Blog Comments** (`/blog-comments`) - Main blog comments aggregation
+**Pages**:
+- **Settings** (`/settings`)
+- **Notifications** (`/notifications`)
+- **Recent Activity** (`/recent`) - Uses a custom page template
+- **Leaderboard** (`/leaderboard`) - Inserts the `extrachill/leaderboard` block
+- **Blog Comments** (`/blog-comments`) - Uses a custom page template
 
-**Forums Created** (2 total):
-- **Local Scenes** (`/r/local-scenes`) - Discuss local music scenes
-- **Music Discussion** (`/r/music-discussion`) - General music discussion
-
-No manual page creation needed - everything is ready to use immediately after activation!
+**Forums**:
+- **Local Scenes** (`/r/local-scenes`)
+- **Music Discussion** (`/r/music-discussion`)
 
 ### Plugin Structure
 

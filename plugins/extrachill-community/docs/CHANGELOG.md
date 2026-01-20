@@ -13,7 +13,7 @@
 ### Changed
 - Improved asset loading logic in `inc/core/assets.php` to conditionally enqueue `tinymce-page.css` only when Blocks Everywhere is inactive.
 - Refactored `inc/assets/css/bbpress.css` by moving TinyMCE-specific toolbar and UI styles to the new `tinymce-page.css` for better modularity.
-- Updated documentation (README.md, AGENTS.md, docs/core-features.md) to reflect the latest file structure, JavaScript architecture, and integration patterns.
+- Updated documentation (README.md, CLAUDE.md, docs/core-features.md) to reflect the latest file structure, JavaScript architecture, and integration patterns.
 - Synchronized documentation regarding cross-site data aggregation and homepage content injection hooks.
 
 ### Fixed
@@ -22,7 +22,7 @@
 ## [1.2.1] - 2025-12-22
 
 ### Changed
-- Updated AGENTS.md documentation to clarify build system creates only ZIP file, not directory
+- Updated CLAUDE.md documentation to clarify build system creates only ZIP file, not directory
 - Changed artist access tab button classes from `button` to `button-1 button-medium` for theme consistency
 
 ## [1.2.0] - 2025-12-20
@@ -82,7 +82,7 @@
 - Removed sort select JavaScript handler from `inc/assets/js/bbpress-ui.js` (handled by theme filter bar)
 - Updated artist management URLs from `/manage-artist-profiles/` to `/manage-artist/` in `bbpress/form-user-edit.php` and `bbpress/user-profile.php`
 - Updated button text from "Manage Artist Profiles" to "Manage Artist" for consistency
-- Updated AGENTS.md to reflect Blocks Everywhere as production-ready integration (removed experimental branch documentation)
+- Updated CLAUDE.md to reflect Blocks Everywhere as production-ready integration (removed experimental branch documentation)
 - Enhanced `docs/content-editor.md` with comprehensive dual editor system documentation (Blocks Everywhere + TinyMCE fallback)
 
 ### Fixed
@@ -314,10 +314,10 @@
 - Major refactoring of recent feed system to use single-blog queries instead of multisite cross-blog queries
 - Improved search button styling in topics loop with theme-consistent button classes
 - Updated homepage rendering to use action hooks for better extensibility
-- Updated documentation references from CLAUDE.md to AGENTS.md
+- Updated documentation references from CLAUDE.md to CLAUDE.md
 
 ### Removed
-- CLAUDE.md documentation file (superseded by AGENTS.md)
+- CLAUDE.md documentation file (superseded by CLAUDE.md)
 - Redundant CSS styling for search buttons and sticky topic icons
 
 ## [1.0.2] - 2025-12-01

@@ -2,7 +2,7 @@
 
 This directory contains technical deep-dive documentation for the Community plugin.
 
-**For architectural patterns and development guidelines**, see [../AGENTS.md](../AGENTS.md)
+**For architectural patterns and development guidelines**, see [../CLAUDE.md](../CLAUDE.md)
 **For a quick overview**, see [../README.md](../README.md)
 
 ---
