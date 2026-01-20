@@ -1,9 +1,19 @@
 # Changelog
 
-## Unreleased
+## [0.5.10] - 2026-01-19
 
 ### Added
 - Added user badge CSS with color variables (--artist-badge-color, --team-badge-color, --professional-badge-color)
+- Added user badges CSS with color variables (--artist-badge-color, --team-badge-color, --professional-badge-color)
+- Added online users stats footer component
+- Added PHPUnit test suite with bearer auth, user creation, password validation, tokens, and username generation tests
+- Improved rank tier system with expanded level structure
+- Refactored avatar display, menu items, and menu rendering
+- Improved auth token service and bearer authentication
+- Enhanced Google OAuth integration and JWT RS256 handling
+- Improved admin access control and shop permissions
+- Refactored registration emails and comment auto-approval
+- Replaced AGENTS.md with CLAUDE.md documentation
 
 ## [0.5.9] - 2026-01-06
 
