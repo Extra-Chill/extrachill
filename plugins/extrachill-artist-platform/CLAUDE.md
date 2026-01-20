@@ -499,10 +499,10 @@ CREATE TABLE {prefix}_artist_subscribers (
 
 Centralized hook registrations for artist platform homepage functionality using theme's universal routing system.
 
-**Template Override**:
-- Filter: `extrachill_template_homepage` (provided by theme's template-router.php)
-- Blog ID detection: Only overrides on artist.extrachill.com using `ec_get_blog_id('artist')`
-- Template path: `inc/home/templates/homepage.php`
+**Homepage Integration**:
+- Action: `extrachill_homepage_content`
+- Blog context: artist.extrachill.com
+- Template: `inc/home/templates/homepage.php`
 
 **Action Hooks**:
 - `extrachill_artist_home_hero` - Renders hero section with user-state-aware welcome messages
@@ -693,13 +693,11 @@ add_action( 'extrachill_below_login_register_form', 'ec_render_join_flow_modal' 
 - **Dynamic Color Inheritance**: Icons automatically adapt to theme colors
 
 ### Build System
-**Core Files**: `build.sh -> ../../.github/build.sh`, `package.json`, `webpack.config.js`, `.buildignore`
+**Core Files**: `package.json`, `webpack.config.js`, `.buildignore`
 
-**Universal Build Script**: Symlinked to shared build script at `../../.github/build.sh`
-- **Automated Build Process**: Universal script auto-detects plugin type and creates production packages
-- **Version Extraction**: Automatically extracts version from `Plugin Name:` header in main plugin file
+**Build System**: Use `homeboy build extrachill-artist-platform` for production builds
+- **Automated Build Process**: Homeboy auto-detects plugin type and creates production packages
 - **File Filtering**: `.buildignore` provides rsync exclusion patterns for development files
-- **Dependency Validation**: Checks for required tools (rsync, zip, composer)
 - **Production Dependencies**: Runs `composer install --no-dev` before build, restores dev dependencies after
 - **Vendor Inclusion**: WordPress plugins include `vendor/` directory with production dependencies (end users don't have Composer access)
 - **Structure Validation**: Validates plugin integrity before packaging (ensures main file exists)
@@ -711,7 +709,6 @@ add_action( 'extrachill_below_login_register_form', 'ec_render_join_flow_modal' 
 - **Integrity Checks**: Plugin structure validation during build process
 - **Progress Reporting**: Colored console output with success/error reporting
 - **Archive Summary**: Total file count and ZIP size after successful build
-- **Single Source of Truth**: Updates to `/.github/build.sh` automatically apply to all plugins/themes
 
 **NPM Integration**: `package.json` provides build scripts and development tooling
 
