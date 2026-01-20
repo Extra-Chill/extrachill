@@ -4,6 +4,21 @@ All notable changes to this project will be documented in this file.
 
 This file records notable changes in this theme.
 
+## [2.0.0] - 2026-01-19
+
+### Changed
+- Removed EC-specific taxonomy badge colors (moved to extrachill-multisite)
+- Removed user badge CSS variables and classes (moved to extrachill-users)
+- Removed festival_wire taxonomy registration (moved to extrachill-news-wire)
+- Added extrachill_single_post_style_post_types filter for single post styling
+- Added extrachill_sidebar_style_post_types filter for sidebar styling
+- Added extrachill_sidebar_recent_posts_content filter for sidebar customization
+- Added extrachill_filter_bar_category_items filter for filter bar customization
+- Changed footer bottom menu default to empty array
+- Changed related posts default taxonomies to category and post_tag
+- Added function existence checks for graceful plugin degradation
+- Updated README for standalone theme usage
+
 ## [1.3.13] - 2026-01-10
 
 ### Removed
