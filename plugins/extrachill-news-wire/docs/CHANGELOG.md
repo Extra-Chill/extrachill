@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.3.10] - 2026-01-19
+
+### Added
+- Added theme integration for festival_wire taxonomy registration
+- Added festival hub header component
+- Added festival term meta functionality
+- Added festival metadata system
+- Updated festival wire query filters
+- Added CLAUDE.md documentation
+
 ## [0.3.9] - 2026-01-06
 
 ### Changed
