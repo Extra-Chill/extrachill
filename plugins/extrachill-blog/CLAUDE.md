@@ -96,12 +96,12 @@ require_once plugin_dir_path(__FILE__) . 'inc/archive/breadcrumbs.php';
 
 ```bash
 # Build production package
-./build.sh
+homeboy build extrachill-blog
 
 # Output: build/extrachill-blog.zip
 ```
 
-The build process uses the local `build.sh` script which:
+The build process:
 1. Installs production Composer dependencies (`composer install --no-dev`)
 2. Compiles Gutenberg blocks using `@wordpress/scripts` (`npm run build`)
 3. Creates compiled assets in `build/blocks/` directory
