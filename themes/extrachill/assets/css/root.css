@@ -26,11 +26,6 @@
     --post-title-link-color: var(--text-color);
     --post-title-link-hover-color: var(--text-color);
 
-    /* User Badge Colors */
-    --artist-badge-color: #E21FC5;
-    --team-badge-color: #1fc5e2;
-    --professional-badge-color: #9D1FE2;
-
     /* Font Families */
     --font-family-heading: "Loft Sans", sans-serif;
     --font-family-body: 'Helvetica', 'Open Sans', serif;
@@ -101,11 +96,6 @@
         --focus-box-shadow: 0 0 0 3px rgba(138, 166, 191, 0.2);
         --post-title-link-color: var(--text-color);
         --post-title-link-hover-color: var(--text-color);
-
-        /* User Badge Colors */
-        --artist-badge-color: #E21FC5;
-        --team-badge-color: #1fc5e2;
-        --professional-badge-color: #9D1FE2;
     }
 }
 

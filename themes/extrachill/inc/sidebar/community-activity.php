@@ -10,6 +10,12 @@
 
 if ( ! function_exists( 'extrachill_sidebar_community_activity' ) ) :
 	function extrachill_sidebar_community_activity() {
+		if ( ! function_exists( 'extrachill_get_community_activity_items' ) ||
+			 ! function_exists( 'extrachill_render_community_activity' ) ||
+			 ! function_exists( 'ec_get_site_url' ) ) {
+			return;
+		}
+
 		$activities = extrachill_get_community_activity_items( 5 );
 
 		if ( empty( $activities ) ) {

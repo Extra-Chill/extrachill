@@ -9,23 +9,7 @@
  * @since 1.0.0
  */
 
-$main_site_url = function_exists( 'ec_get_site_url' ) ? ec_get_site_url( 'main' ) : home_url();
-
-$default_items = array(
-	array(
-		'url'      => $main_site_url . '/affiliate-disclosure/',
-		'label'    => 'Affiliate Disclosure',
-		'priority' => 10,
-	),
-	array(
-		'url'      => $main_site_url . '/privacy-policy/',
-		'label'    => 'Privacy Policy',
-		'rel'      => 'privacy-policy',
-		'priority' => 20,
-	),
-);
-
-$footer_bottom_items = apply_filters( 'extrachill_footer_bottom_menu_items', $default_items );
+$footer_bottom_items = apply_filters( 'extrachill_footer_bottom_menu_items', array() );
 
 if ( empty( $footer_bottom_items ) || ! is_array( $footer_bottom_items ) ) {
 	return;
