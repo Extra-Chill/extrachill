@@ -58,13 +58,8 @@ function extrachill_filter_bar_archive_items( $items ) {
 		$items[] = $child_item;
 	}
 
-	// Artist filter (song-meanings/music-history categories).
-	if ( is_category( 'song-meanings' ) || is_category( 'music-history' ) ) {
-		$artist_item = extrachill_build_artist_dropdown();
-		if ( $artist_item ) {
-			$items[] = $artist_item;
-		}
-	}
+	// Allow plugins to add custom dropdowns for specific categories.
+	$items = apply_filters( 'extrachill_filter_bar_category_items', $items );
 
 	// Sort dropdown (always present on archives).
 	$items[] = extrachill_build_sort_dropdown();

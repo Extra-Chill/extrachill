@@ -1,333 +1,170 @@
 # ExtraChill WordPress Theme
 
-A custom WordPress theme (v1.3.12) powering the Extra Chill Platform multisite network with 11 active interconnected sites (Blog ID 6 unused), featuring hook-based homepage content, community integrations, universal filter bar component system, and multisite-aware navigation.
-
-> **Platform alignment**: Documentation reflects the live 1.3.12 release in `style.css` and must stay in lockstep with future releases.
+A flexible, hook-based WordPress theme designed for music-focused websites. Features CSS variable customization, modular asset loading, and extensive filter/action hooks for plugin-based customization.
 
 ## Overview
 
-ExtraChill is a modern, performance-optimized WordPress theme (v1.3.12) designed specifically for the Extra Chill Platform multisite network. It serves as the frontend for all 11 active interconnected sites (Blog ID 6 unused) with docs.extrachill.com at Blog ID 10; wire.extrachill.com at Blog ID 11; horoscope.extrachill.com at Blog ID 12:
-
-- **extrachill.com** (Blog ID 1): Music journalism, artist features, and industry coverage
-- **community.extrachill.com** (Blog ID 2): Community forums with bbPress integration
-- **shop.extrachill.com** (Blog ID 3): E-commerce with WooCommerce integration
-- **artist.extrachill.com** (Blog ID 4): Artist platform and profiles
-- **chat.extrachill.com** (Blog ID 5): AI chatbot interface
-- **events.extrachill.com** (Blog ID 7): Event calendar hub (calendar engine: external Data Machine + datamachine-events plugins)
-- **stream.extrachill.com** (Blog ID 8): Live streaming platform
-- **newsletter.extrachill.com** (Blog ID 9): Newsletter management and archive
-- **docs.extrachill.com** (Blog ID 10): Documentation hub
-- **wire.extrachill.com** (Blog ID 11): News wire service
-- **extrachill.link**: Artist link pages (domain-mapped to artist.extrachill.com)
+ExtraChill is a modern, performance-optimized WordPress theme designed for music journalism, artist features, and creative content. It works as a standalone single-site theme or as part of a WordPress multisite network.
 
 ## Key Features
 
 ### Music-Focused Content Management
 - **Custom Taxonomies**: Artist, Venue, Festival, and Location organization with REST API support
-- **Festival Wire Output**: ExtraChill News Wire plugin renders ticker/feed blocks through theme hooks; core theme only supplies shared CSS tokens
-- **Homepage Content Delivery**: Front page is one container powered by `extrachill_homepage_content` (primary content) and `extrachill_after_homepage_content` (footer/CTA slot)
-- **Search Integration**: Theme ships the search header template and CSS while the extrachill-search plugin owns the multisite loop, result badges, and aggregation logic
-- **Share System**: Integrated share buttons with clipboard copy and social sharing functionality
-- **Notice System**: Centralized user feedback system supporting multiple notices, anonymous user cookies, and action buttons
+- **Homepage Content Delivery**: Hook-based front page powered by `extrachill_homepage_content` action
+- **Share System**: Integrated share buttons with clipboard copy and social sharing
+- **Notice System**: User feedback system supporting multiple notices with cookie-based dismissal
 
 ### Performance Optimizations
-- **Conditional Asset Loading**: CSS/JS load only when their contexts require them (archives, search, sidebar, shared tabs, footer stats, notices, share buttons, filter bars, etc.)
-- **Modular CSS Architecture**: Twelve page/component-specific stylesheets (`root`, `archive`, `filter-bar`, `single-post`, `nav`, `taxonomy-badges`, `editor-style`, `search`, `shared-tabs`, `share`, `sidebar`, `notice`)
-- **Image Optimization**: Unused WordPress image sizes removed for leaner uploads
-- **Popularity Sorting**: Archive sorting supports `popular` ordering via the `ec_post_views` post meta key
-- **Multisite Optimization**: Direct `switch_to_blog()` access and cached lookups keep network features fast
-- **Enhanced Pagination**: Array-based pagination support for custom queries with dynamic item labels
+- **Conditional Asset Loading**: CSS/JS load only when needed based on page context
+- **Modular CSS Architecture**: Page/component-specific stylesheets loaded conditionally
+- **filemtime() Versioning**: Automatic cache busting for all assets
+- **Minimal Dependencies**: No build step required for development
 
 ### Modern Design System
-- **CSS Variables**: Global design tokens in `assets/css/root.css`
-- **Component Styles**: Dedicated files for navigation, badges, search, shared tabs, share buttons, sidebar widgets, notices, and editor styles (all depend on the root handle)
-- **Responsive Design**: Mobile-first layouts, sticky header toggle, secondary header filter, network dropdown, and accessible navigation/flyout controls
-- **Icon System**: QR code and download icons added to SVG sprite system
+- **CSS Variables**: Global design tokens in `assets/css/root.css` - fully overridable via filter
+- **Dark Mode Support**: Automatic dark mode via `prefers-color-scheme`
+- **Responsive Design**: Mobile-first layouts with accessible navigation
+- **Icon System**: SVG sprite system for consistent iconography
 
-### Community Integration
-- **WordPress Multisite**: Theme powers the network sites with shared routing and navigation patterns
-- **Shared Community Activity Helper**: Centralized library (`inc/core/templates/community-activity.php`) exposes `extrachill_get_community_activity_items()` and `extrachill_render_community_activity()`
-- **Community Data Source**: Queries community.extrachill.com (Blog ID 2) for bbPress topics/replies with 10-minute caching and renders default sidebar/homepage widgets
-- **Activity Feeds**: Sidebar widget plus plugin-provided homepage blocks consume the same helper for consistent markup
-- **Multisite Search**: Cross-site search via extrachill-search plugin with `extrachill_multisite_search()`
-- **Profile URL Resolution**: extrachill-users plugin supplies `ec_get_user_profile_url()` (community-first) and `ec_get_user_author_archive_url()` for main-site bylines
-- **Online Users Widget**: `extrachill_before_footer` renders online/total counts from extrachill-users data
-- **Network Dropdown**: Integrated network site navigation dropdown
-- **Graceful Degradation**: Hooks and function_exists checks keep templates stable if network plugins are inactive
+### Extensibility
+- **67 Hooks**: Filters and actions for complete customization via plugins
+- **Template Override System**: Plugins can override any template via filters
+- **Graceful Degradation**: Works standalone or with companion plugins
 
-## Development Notes
+## Requirements
 
-### Requirements
 - WordPress 5.0 or higher
 - PHP 7.4 or higher
-- MySQL 5.6 or higher
 
-### Plugin Expectations
+## Standalone Usage
 
-This theme is part of the Extra Chill Platform multisite network and assumes network plugins provide core cross-site behavior (auth, users, analytics, REST API). The theme stays display-focused, and plugins own data/side effects.
+This theme works as a standalone WordPress theme for any music-focused site. When used without companion plugins, it gracefully degrades with sensible defaults.
 
-## Development Workflow
+### Recommended Customization Approach
+
+**Use a plugin, not a child theme.** This theme is designed with 67 hooks (filters and actions) that allow complete customization via plugins. A lightweight companion plugin provides cleaner separation of concerns and easier updates.
+
+### Extension Points
+
+Override theme styling without modifying theme files:
+
+**CSS Variable Override** (`extrachill_css_variables`):
+```php
+add_filter( 'extrachill_css_variables', function( $vars ) {
+    return array(
+        '--accent'              => '#your-brand-color',
+        '--accent-2'            => '#secondary-color',
+        '--font-family-heading' => '"Your Font", sans-serif',
+    );
+} );
+```
+
+**DNS Prefetch Domains** (`extrachill_dns_prefetch_domains`):
+```php
+add_filter( 'extrachill_dns_prefetch_domains', function( $domains ) {
+    $domains[] = '//your-cdn.com';
+    return $domains;
+} );
+```
+
+**Homepage Content** (`extrachill_homepage_content`):
+```php
+add_action( 'extrachill_homepage_content', function() {
+    echo '<div class="my-homepage-content">Your content here</div>';
+}, 10 );
+```
+
+**Template Overrides**:
+```php
+add_filter( 'extrachill_template_single_post', function( $template ) {
+    return MY_PLUGIN_DIR . '/templates/custom-single.php';
+} );
+```
+
+See `/docs/filter-hooks.md` and `/docs/action-hooks.md` for the complete list of hooks.
+
+## Development
 
 ### Local Development
 
-This theme supports direct file editing for development with no build step required.
+Direct file editing with no build step required.
 
-### Build + Deployment (Homeboy)
+### Build + Deployment
 
-Production deployments use **Homeboy** to:
-- build a clean ZIP artifact via `./build.sh` (symlinked to `/.github/build.sh`)
-- deploy that ZIP to the configured server/component
+Production builds use `./build.sh` (symlinked to `/.github/build.sh`).
 
-The build script output is `build/extrachill.zip` (ZIP only; the staging directory is removed after zipping).
-
-Canonical Homeboy docs live under [`homeboy/`](../homeboy/README.md) (and `homeboy docs` in the CLI).
+Build artifact: `build/extrachill.zip`
 
 ### File Structure
 
 ```
 extrachill/
-├── index.php                   # Emergency fallback template (minimal functionality)
-├── assets/                     # Theme assets directory
-│   ├── css/                    # Modular CSS files (12 files)
+├── assets/
+│   ├── css/                    # Modular CSS files
 │   │   ├── root.css            # CSS custom properties
 │   │   ├── archive.css         # Archive page styles
-│   │   ├── filter-bar.css      # Universal filter bar component
 │   │   ├── single-post.css     # Single post styles
-│   │   ├── nav.css             # Navigation styles
-│   │   ├── taxonomy-badges.css # Taxonomy badge colors
-│   │   ├── editor-style.css    # Block editor styles
-│   │   ├── search.css          # Search results styles
-│   │   ├── shared-tabs.css     # Shared tab interface styles
-│   │   ├── share.css           # Social share buttons
-│   │   ├── sidebar.css         # Sidebar components
-│   │   └── notice.css          # Notice system styles
-│   ├── js/                     # JavaScript files (4 files)
-│   │   ├── nav-menu.js         # Navigation menu functionality
-│   │   ├── shared-tabs.js      # Shared tab interface
-│   │   ├── mini-dropdown.js    # Lightweight dropdown UI helper
-│   │   └── share.js            # Share button interactions
+│   │   ├── taxonomy-badges.css # Base taxonomy badge styles
+│   │   └── ...                 # Additional component styles
+│   ├── js/                     # JavaScript files
 │   └── fonts/                  # Local web fonts
-├── inc/                        # Modular PHP functionality
+├── inc/
 │   ├── components/             # Reusable UI components
-│   │   ├── filter-bar.php      # Universal filter bar component
-│   │   └── filter-bar-defaults.php # Filter bar defaults via filters
 │   ├── archives/               # Archive page functionality
-│   │   ├── archive.php
-│   │   ├── archive-header.php
-│   │   ├── archive-custom-sorting.php
-│   │   ├── post-card.php
-│   │   └── search/             # Search integration
-│   │       └── search-header.php  # Search header (via extrachill_search_header hook)
 │   ├── core/                   # Core WordPress features
 │   │   ├── templates/          # Shared template components
-│   │   │   ├── post-meta.php
-│   │   │   ├── pagination.php
-│   │   │   ├── no-results.php
-│   │   │   ├── share.php
-│   │   │   ├── social-links.php
-│   │   │   ├── taxonomy-badges.php
-│   │   │   ├── breadcrumbs.php
-│   │   │   ├── searchform.php
-│   │   │   ├── 404.php
-│   │   │   ├── network-dropdown.php
-│   │   │   └── community-activity.php  # Shared community activity helper library
 │   │   ├── editor/             # Custom embed handlers
-│   │   │   ├── bandcamp-embeds.php
-│   │   │   └── instagram-embeds.php
-│   │   ├── actions.php         # Centralized WordPress action hooks
 │   │   ├── assets.php          # Asset management
-│   │   ├── custom-taxonomies.php
-│   │   ├── icons.php
-│   │   ├── notices.php
-│   │   ├── rewrite.php         # Category base rewriting
-│   │   ├── template-router.php # WordPress native template routing
-│   │   └── view-counts.php     # Universal post view tracking
-│   ├── footer/                 # Footer navigation functionality (3 files)
-│   │   ├── footer-bottom-menu.php
-│   │   ├── footer-main-menu.php
-│   │   └── back-to-home-link.php  # Universal back-to-home navigation with smart logic
-│   ├── header/                 # Header functionality (2 files)
-│   │   ├── header-search.php
-│   │   └── secondary-header.php
-│   ├── home/                   # Homepage components (8 files: 1 + 7 templates)
-│   │   └── templates/
-│   │       └── front-page.php   # Single hook container
-│   ├── sidebar/                # Sidebar functionality (2 files)
-│   │   ├── recent-posts.php
-│   │   └── community-activity.php
-│   └── single/                 # Single post/page functionality (4 files)
-│       ├── comments.php
-│       ├── related-posts.php
-│       ├── single-post.php
-│       └── single-page.php
+│   │   ├── custom-taxonomies.php # Music taxonomies
+│   │   └── template-router.php # Template routing
+│   ├── footer/                 # Footer functionality
+│   ├── header/                 # Header functionality
+│   ├── home/                   # Homepage components
+│   ├── sidebar/                # Sidebar functionality
+│   └── single/                 # Single post/page features
+└── style.css                   # Theme header + base styles
 ```
 
-### Adding New Features
+### Architecture
 
-1. **Create modular files** in appropriate `/inc/` subdirectory
-2. **Include in functions.php** with proper dependencies
-3. **Add styles** in dedicated CSS file with conditional loading
-4. **Test thoroughly**
-5. **For production**: build via `./build.sh` and deploy via Homeboy
+**Template Routing**: WordPress native `template_include` filter via `inc/core/template-router.php`
 
-### CSS Development
+**Hook-Based Layout**: Header and footer use action hooks rather than WordPress menus
 
-- **Root variables** go in `assets/css/root.css`
-- **Page-specific styles** in separate CSS files
-- **Component styles** in dedicated files
-- **Use WordPress enqueuing** with `filemtime()` versioning
+**Modular Assets**: CSS/JS loaded conditionally based on page context
 
-### JavaScript Development
+**Security**: Output escaping, input sanitization, nonce verification throughout
 
-- **Conditional loading** based on page context
-- **WordPress localization** for AJAX URLs and nonces
-- **Error handling** and fallbacks
-- **Cache busting** with dynamic versioning
+## Custom Taxonomies
 
-## Architecture
+The theme registers four music-focused taxonomies:
 
-### Universal Template Routing System
+- **Artist** (non-hierarchical) - Musical artists
+- **Venue** (non-hierarchical) - Performance venues
+- **Festival** (non-hierarchical) - Music festivals
+- **Location** (hierarchical) - Geographic locations
 
-The theme implements template routing via WordPress's native `template_include` filter through `/inc/core/template-router.php`:
+All taxonomies have REST API support for block editor integration.
 
-- **WordPress Native Integration**: Uses `template_include` filter for proper integration with WordPress core
-- **Router File**: All routing logic centralized in `inc/core/template-router.php`
-- **Emergency Fallback**: `index.php` serves as minimal emergency fallback only
-- **Plugin Override Support**: Filter hooks allow plugins to completely override template files at routing level
-- **Supported Routes**: `extrachill_template_single_post`, `extrachill_template_page` (only when no custom template assigned), `extrachill_template_archive`, `extrachill_template_search`, `extrachill_template_404`, `extrachill_template_fallback` (homepage is action-driven)
-- **Performance Benefits**: Efficient routing while maintaining WordPress compatibility
-- **Extensibility**: Filter system allows complete template customization
+## Filterable Defaults
 
-### Modular Design
+Many theme behaviors can be customized via filters:
 
-The theme follows a modular architecture with clear separation of concerns:
-
-- **Core WordPress functionality** in `/inc/core/` (8 core files + 2 subdirectories = 21 total files)
-- **Shared template components** in `/inc/core/templates/` (11 reusable templates including 404.php, community-activity.php, and notices.php)
-- **Custom embeds** in `/inc/core/editor/` (2 embed types: Bandcamp, Instagram)
-- **Archive functionality** in `/inc/archives/` (7 core files + search subdirectory with 1 file = 8 total files)
-- **Search integration** in `/inc/archives/search/` (1 file: search-header.php used via extrachill_search_header hook by extrachill-search plugin)
-- **Footer navigation** in `/inc/footer/` (4 footer files: main menu, bottom menu, back-to-home navigation, online users stats)
-- **Header navigation system** in `/inc/header/` (4 navigation files including secondary header)
-- **Homepage components** in `/inc/home/` (1 homepage file: front-page.php)
-- **Sidebar functionality** in `/inc/sidebar/` (2 sidebar files)
-- **Single post/page features** in `/inc/single/` (4 single files)
-- **Total**: 48 PHP files in `/inc/` directory with 28 directly loaded in functions.php
-
-### Hook-Based Header/Footer
-
-The theme intentionally avoids the WordPress menu system:
-
-- **Header**: `header.php` stays minimal and exposes `extrachill_header_top_right` for small UI additions (search icon is the default handler via `inc/header/header-search.php`).
-- **Footer**: hardcoded menu templates are registered via actions in `inc/core/actions.php` (main menu, bottom menu) and can be extended by adding additional handlers.
-- **Admin Cleanup**: WordPress menu management interface removed via `extrachill_remove_menu_admin_pages()` in `functions.php`.
-
-### Performance Features
-
-  - **WordPress native routing**: Template routing via `template_include` filter in `inc/core/template-router.php`
-  - **Modular asset loading**: CSS/JS loaded only when needed based on page context via `inc/core/assets.php`
-  - **Native pagination system**: Lightweight WordPress pagination in `inc/core/templates/pagination.php` with array-based support
-  - **Memory optimization**: Efficient resource usage tracking and admin style dequeuing
-  - **Query optimization**: Direct database queries for multisite integration
-  - **Asset optimization**: SVG support, emoji script removal, unnecessary image size removal
-  - **Conditional loading**: WooCommerce styles, admin styles, and plugin styles loaded only when needed
-  - **Shared tab components**: `shared-tabs.css`/`shared-tabs.js` registered centrally to keep accordion/tabs consistent across templates while letting plugins enqueue via filters
-  - **Popularity sorting**: Archive sorting supports a `popular` option using `ec_post_views` post meta
-  - **Permalink optimization**: Category base rewriting for consistent multisite URLs in `inc/core/rewrite.php`
-  - **Notice system**: Efficient user feedback with cookie-based dismissal tracking
- 
-  ### Shared UI Components
-
-  - **Shared tabs**: `inc/core/assets.php` registers `shared-tabs.css` and `shared-tabs.js`; templates can enqueue them via `extrachill_enqueue_shared_tabs()` or through plugin overrides while the JavaScript manages desktop/mobile layouts, hash updates, and custom event dispatching (`sharedTabActivated`)
-  - **Share buttons**: `inc/core/assets.php` registers `assets/css/share.css` and `assets/js/share.js`, and templates opt in by enqueuing `extrachill-share`
-  - **Sidebar extension**: `sidebar.php` supports `extrachill_sidebar_content` filter for full replacements and `extrachill_sidebar_top/middle/bottom` actions for hook-based widgets like recent posts and community activity; `inc/core/assets.php` conditions `sidebar.css` only when those hooks render post-related content
-  - **Share buttons**: `inc/core/templates/share.php` provides social sharing with clipboard copy and fallback support
-  - **Notice system**: `inc/core/notices.php` enables multiple notices with cookie-based dismissal and action buttons
- 
- ### Security Implementation
-
-
-- **Output escaping**: All output properly escaped
-- **Input sanitization**: All inputs sanitized
-- **Nonce verification**: AJAX requests protected
-- **Capability checks**: Admin functions secured
-
-## Customization
-
-### Theme Options
-
-Access theme customization through:
-- WordPress Customizer: `Appearance > Customize`
-- Custom admin settings: `ExtraChill > Settings`
-
-### Custom CSS
-
-Add custom styles through:
-1. **Child theme** (recommended for major changes)
-2. **WordPress Customizer** Additional CSS
-3. **Custom CSS files** in `/assets/css/` directory
-
-### Hooks and Filters
-
-The theme provides extensive hooks for customization:
-
-```php
-// Output homepage content via the single hook container
-add_action('extrachill_homepage_content', 'custom_homepage_block', 20);
-
-// Override page template (only when no custom page template assigned)
-add_filter('extrachill_template_page', function($template) {
-    return MY_PLUGIN_DIR . '/custom-page.php';
-});
-
-// Disable sticky header
-add_filter('extrachill_enable_sticky_header', '__return_false');
-
-// Append CTA below homepage content
-add_action('extrachill_after_homepage_content', 'custom_homepage_cta', 15);
-
-// Display notices
-do_action('extrachill_notices');
-
-// Customize share button
-extrachill_share_button(array(
-    'share_url' => 'https://example.com',
-    'share_title' => 'Custom Title'
-));
-```
-
-## Notes
-
-- Community activity widgets query the community site via multisite blog switching; blog IDs come from `ec_get_blog_id()` (single source of truth).
-
-## Support and Contributing
-
-### Getting Help
-
-- Check the [AGENTS.md](AGENTS.md) file for detailed technical information
-- Review error logs in `wp-content/debug.log`
-- Inspect browser console for JavaScript errors
-
-### Contributing
-
-1. Follow WordPress coding standards
-2. Use direct `require_once` includes for theme internals (no PSR-4 autoloading)
-3. Include comprehensive inline documentation
-4. Test all changes thoroughly
-5. Maintain modular architecture
+| Filter | Purpose |
+|--------|---------|
+| `extrachill_single_post_style_post_types` | Post types that load single-post.css |
+| `extrachill_sidebar_style_post_types` | Post types that load sidebar.css |
+| `extrachill_sidebar_recent_posts_content` | Custom sidebar recent posts content |
+| `extrachill_filter_bar_category_items` | Category-specific filter bar dropdowns |
+| `extrachill_related_posts_allowed_taxonomies` | Taxonomies for related posts |
+| `extrachill_footer_bottom_menu_items` | Footer bottom menu links |
 
 ## License
 
-This theme is proprietary software developed for ExtraChill.com. All rights reserved.
-
-## Changelog
-
-See [docs/CHANGELOG.md](docs/CHANGELOG.md) for full version history.
+GNU General Public License v2 or later (GPL-2.0-or-later)
 
 ---
 
-**Theme**: ExtraChill
-**Author**: Chubes
-**Version**: 1.3.12
-**WordPress**: 5.0+
-**License**: Proprietary
+**Theme**: Extra Chill
+**Author**: Chris Huber (https://chubes.net)
+**License**: GPL-2.0-or-later

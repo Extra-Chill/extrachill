@@ -248,6 +248,65 @@ Modify Instagram embeds handled in `inc/core/editor/instagram-embeds.php`.
 - `$rawattr` (string)
 **Returns**: String of embed HTML.
 
+## Theme Customization Filters
+
+### `extrachill_css_variables`
+Override theme CSS variables (colors, fonts, spacing) without modifying theme files. Variables are output as inline styles after stylesheets load.
+
+**Parameters**: `$variables` (array) – Default: empty array.
+**Returns**: Associative array of CSS variable names to values.
+
+**Example**:
+```php
+add_filter( 'extrachill_css_variables', function( $vars ) {
+    return array(
+        '--accent'              => '#ff6600',
+        '--accent-2'            => '#333333',
+        '--font-family-heading' => '"Roboto", sans-serif',
+        '--artist-badge-color'  => '#e91e63',
+    );
+} );
+```
+
+**Available variables** (see `assets/css/root.css` for full list):
+- Brand colors: `--accent`, `--accent-2`, `--accent-3`
+- Badge colors: `--artist-badge-color`, `--team-badge-color`, `--professional-badge-color`
+- Fonts: `--font-family-heading`, `--font-family-body`, `--font-family-brand`, `--font-family-mono`
+- Layout: `--container-width`, `--sidebar-width`, `--form-width`
+
+### `extrachill_dns_prefetch_domains`
+Register domains for DNS prefetching in the document head. Use for third-party resources (CDNs, analytics, etc.).
+
+**Parameters**: `$domains` (array) – Default: empty array.
+**Returns**: Array of domain URLs (protocol-relative recommended).
+
+**Example**:
+```php
+add_filter( 'extrachill_dns_prefetch_domains', function( $domains ) {
+    $domains[] = '//cdn.example.com';
+    $domains[] = '//fonts.googleapis.com';
+    return $domains;
+} );
+```
+
+### `extrachill_preload_fonts`
+Preload custom fonts in the document head for improved performance.
+
+**Parameters**: `$fonts` (array) – Default: empty array.
+**Returns**: Array of font objects with `url`, `as`, and `type` keys.
+
+**Example**:
+```php
+add_filter( 'extrachill_preload_fonts', function( $fonts ) {
+    $fonts[] = array(
+        'url'  => get_template_directory_uri() . '/assets/fonts/custom.woff2',
+        'as'   => 'font',
+        'type' => 'font/woff2',
+    );
+    return $fonts;
+} );
+```
+
 ## Example Usage
 
 Subclass and document filter footprints before shipping any customizations.

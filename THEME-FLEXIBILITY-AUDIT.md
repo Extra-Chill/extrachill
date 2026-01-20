@@ -8,46 +8,62 @@ This document tracks hardcoded values in Extra Chill theme that limit adaptabili
 
 ## Checklist
 
-### 1. Visual Identity
+### 1. Custom Taxonomies (DEFERRED)
 
-- [ ] **assets/css/root.css:7-11** - Brand colors
-  - Current: `--accent: #53940b`, `--accent-2: #36454F`, `--accent-3: #00c8e3`
-  - Impact: Non-Extra Chill sites stuck with lime green/charcoal colors
-  - Solution: Add inline style override via `extrachill_custom_css_variables` filter or integrate with WordPress Customizer
-
-- [ ] **assets/css/root.css:29-32** - User badge colors
-  - Current: Hardcoded artist/team/professional badge colors
-  - Impact: Non-Extra Chill sites can't customize badge colors
-  - Solution: Filter `extrachill_user_badge_colors` returning `['artist' => '#hex', 'team' => '#hex', 'professional' => '#hex']`
-
-- [ ] **assets/css/root.css:34-37** - Font families
-  - Current: Hardcoded font-family declarations
-  - Impact: Non-Extra Chill sites can't change fonts via CSS variables
-  - Solution: Add CSS custom properties for font families with filter override
-
----
-
-### 2. Third-Party Scripts
-
-- [ ] **header.php:17** - Mediavine DNS prefetch
-  - Current: `<link rel="dns-prefetch" href="//scripts.mediavine.com">`
-  - Impact: Extra Chill-specific analytics injected into theme
-  - Solution: Move to `extrachill-multisite` plugin via `extrachill_head_scripts` action, or filter `extrachill_dns_prefetch_domains`
-
----
-
----
-
-## Priority Order
-
-1. **LOW** - Move Mediavine to plugin (header.php)
-2. **LOW** - CSS variable overrides (root.css)
+- [x] **inc/core/custom-taxonomies.php** - Music-specific taxonomies (KEEPING IN THEME)
+  - Current: Theme registers `artist`, `venue`, `festival`, `location` taxonomies
+  - Decision: Keep in theme. The theme is opinionated about being for music sites.
+  - Rationale: Anyone making "their own Extra Chill" would likely want these taxonomies
+  - Status: DEFERRED - can revisit later if needed
 
 ---
 
 ## Completed Items
 
 The following items have been **completed** or **no longer exist**:
+
+### Phase 2 (2.0.0)
+
+- ✅ **Taxonomy Badge Colors** (assets/css/taxonomy-badges.css)
+  - Music-specific colors (festivals, locations, venues, artists) moved to `extrachill-multisite/assets/css/taxonomy-badges.css`
+  - Theme retains only generic `.taxonomy-badge` base styling
+
+- ✅ **User Badge CSS** (style.css, assets/css/root.css)
+  - Badge styling (`.user-is-artist`, `.extrachill-team-member`, `.user-is-professional`) moved to `extrachill-users/assets/css/user-badges.css`
+  - Badge color variables moved to plugin CSS
+
+- ✅ **Filter Bar Music Logic** (inc/components/filter-bar-defaults.php)
+  - Hardcoded category checks removed (`song-meanings`, `music-history`)
+  - Added `extrachill_filter_bar_category_items` filter
+  - EC-specific artist dropdown provided by `extrachill-multisite/inc/theme/filter-bar.php`
+
+- ✅ **Related Posts Defaults** (inc/single/related-posts.php)
+  - Default changed from `array( 'artist', 'venue' )` to `array( 'category', 'post_tag' )`
+  - Filter `extrachill_related_posts_allowed_taxonomies` exists for plugins to override
+
+- ✅ **Footer Link Defaults** (inc/footer/footer-bottom-menu.php)
+  - Default changed to empty array
+  - EC-specific links provided by `extrachill-multisite/inc/theme/footer-links.php`
+
+- ✅ **Community Activity Widget** (inc/sidebar/community-activity.php)
+  - Improved graceful degradation - returns early if EC functions don't exist
+  - Widget renders nothing without EC plugins (no broken markup)
+
+- ✅ **festival_wire Post Type Handling**
+  - Removed from theme taxonomy registration (plugin handles via `register_taxonomy_for_object_type()`)
+  - Asset loading made filterable via `extrachill_single_post_style_post_types` and `extrachill_sidebar_style_post_types`
+  - Sidebar recent posts made filterable via `extrachill_sidebar_recent_posts_content`
+  - All EC-specific logic moved to `extrachill-news-wire/includes/theme-integration.php`
+
+### Phase 1 (2.0.0)
+
+- ✅ **Brand colors** (root.css:7-11) - Now overridable via `extrachill_css_variables` filter
+- ✅ **User badge colors** (root.css:29-32) - Now overridable via `extrachill_css_variables` filter
+- ✅ **Font families** (root.css:34-37) - Now overridable via `extrachill_css_variables` filter
+- ✅ **Mediavine DNS prefetch** (header.php) - Moved to `extrachill_dns_prefetch_domains` filter, Mediavine added via extrachill-multisite plugin
+
+### Prior Completions
+
 - ✅ Blog ID 1 admin menu check (moved to extrachill-multisite plugin)
 - ✅ 404 error messaging (moved to extrachill-multisite plugin via filters)
 - ✅ Fallback error heading (moved to extrachill-multisite plugin via filter)
@@ -63,6 +79,16 @@ The following items have been **completed** or **no longer exist**:
 - ✅ Breadcrumbs filters (already implemented)
 - ✅ Footer bottom menu filter (already implemented)
 - ✅ Community activity null check (properly implemented)
+
+---
+
+## Keeping in Theme (Confirmed OK)
+
+The following were reviewed and confirmed appropriate for a generic theme:
+
+- ✅ **Custom Taxonomies** (inc/core/custom-taxonomies.php) - Theme is music-oriented, taxonomies are appropriate
+- ✅ **Instagram embed handler** (inc/core/editor/instagram-embeds.php) - Generic social media, widely used by bloggers
+- ✅ **Bandcamp embed handler** (inc/core/editor/bandcamp-embeds.php) - Music-related but provides value for music bloggers using any theme
 
 ---
 

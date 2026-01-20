@@ -19,6 +19,12 @@ if ( ! function_exists( 'extrachill_sidebar_recent_posts' ) ) :
 	 * - Other pages: General recent posts
 	 */
 	function extrachill_sidebar_recent_posts() {
+		$custom_content = apply_filters( 'extrachill_sidebar_recent_posts_content', false );
+		if ( false !== $custom_content ) {
+			echo $custom_content;
+			return;
+		}
+
 		$post_id           = get_the_ID();
 		$current_post_type = get_post_type( $post_id );
 		$args              = array();
@@ -53,15 +59,6 @@ if ( ! function_exists( 'extrachill_sidebar_recent_posts' ) ) :
 						'post__not_in'   => array( $post_id ),
 					);
 				}
-			} elseif ( 'festival_wire' === $current_post_type ) {
-				$args  = array(
-					'post_type'      => 'festival_wire',
-					'posts_per_page' => 3,
-					'orderby'        => 'date',
-					'order'          => 'DESC',
-					'post__not_in'   => array( $post_id ),
-				);
-				$title = 'Latest Festival Wire';
 			} else {
 				$args = array(
 					'post_type'      => 'post',

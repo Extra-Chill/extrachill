@@ -139,7 +139,8 @@ function extrachill_enqueue_blocks_everywhere_iframe_assets() {
 add_action( 'blocks_everywhere_enqueue_iframe_assets', 'extrachill_enqueue_blocks_everywhere_iframe_assets' );
 
 function extrachill_enqueue_single_post_styles() {
-	if ( is_singular( array( 'post', 'newsletter', 'festival_wire' ) ) ) {
+	$single_post_types = apply_filters( 'extrachill_single_post_style_post_types', array( 'post' ) );
+	if ( is_singular( $single_post_types ) ) {
 		$css_path = get_stylesheet_directory() . '/assets/css/single-post.css';
 		if ( file_exists( $css_path ) ) {
 			wp_enqueue_style(
@@ -184,7 +185,8 @@ function extrachill_enqueue_search_styles() {
 add_action( 'wp_enqueue_scripts', 'extrachill_enqueue_search_styles', 20 );
 
 function extrachill_enqueue_sidebar_styles() {
-	if ( is_singular( array( 'post', 'newsletter', 'festival_wire' ) ) || is_404() ) {
+	$sidebar_post_types = apply_filters( 'extrachill_sidebar_style_post_types', array( 'post' ) );
+	if ( is_singular( $sidebar_post_types ) || is_404() ) {
 		$sidebar_override = apply_filters( 'extrachill_sidebar_content', false );
 
 		if ( false === $sidebar_override ) {
@@ -266,3 +268,33 @@ function extrachill_enqueue_network_dropdown_assets() {
 	}
 }
 add_action( 'wp_enqueue_scripts', 'extrachill_enqueue_network_dropdown_assets', 10 );
+
+/**
+ * Output custom CSS variables via filter.
+ *
+ * Allows plugins and child themes to override theme CSS variables (colors, fonts, etc.)
+ * without modifying theme files. Filter returns associative array of variable => value pairs.
+ *
+ * @since 2.0.0
+ */
+function extrachill_output_custom_css_variables() {
+	$custom_vars = apply_filters( 'extrachill_css_variables', array() );
+
+	if ( empty( $custom_vars ) || ! is_array( $custom_vars ) ) {
+		return;
+	}
+
+	$css_rules = array();
+	foreach ( $custom_vars as $property => $value ) {
+		if ( strpos( $property, '--' ) === 0 ) {
+			$css_rules[] = esc_attr( $property ) . ': ' . esc_attr( $value );
+		}
+	}
+
+	if ( empty( $css_rules ) ) {
+		return;
+	}
+
+	echo '<style id="extrachill-custom-css-variables">:root { ' . implode( '; ', $css_rules ) . '; }</style>' . "\n";
+}
+add_action( 'wp_head', 'extrachill_output_custom_css_variables', 20 );

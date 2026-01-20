@@ -18,9 +18,14 @@
 	<link rel="preload" href="<?php echo esc_url( $font['url'] ); ?>" as="<?php echo esc_attr( $font['as'] ); ?>" type="<?php echo esc_attr( $font['type'] ); ?>" crossorigin>
 		<?php
 	endforeach;
+
+	$dns_prefetch_domains = apply_filters( 'extrachill_dns_prefetch_domains', array() );
+	foreach ( $dns_prefetch_domains as $domain ) :
+		?>
+	<link rel="dns-prefetch" href="<?php echo esc_url( $domain ); ?>">
+		<?php
+	endforeach;
 	?>
-  
-	<link rel="dns-prefetch" href="//scripts.mediavine.com">
   
 	<?php wp_head(); ?>
 </head>

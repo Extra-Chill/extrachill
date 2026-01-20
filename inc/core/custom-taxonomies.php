@@ -47,7 +47,7 @@ function extra_chill_register_custom_taxonomies() {
 	if ( ! taxonomy_exists( 'festival' ) ) {
 		register_taxonomy(
 			'festival',
-			array( 'post', 'festival_wire' ),
+			array( 'post' ),
 			array(
 				'hierarchical'      => false,
 				'labels'            => array(

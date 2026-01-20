@@ -17,7 +17,7 @@
 function extrachill_display_related_posts( $taxonomy, $post_id ) {
 	static $displayed_posts = array();
 
-	$allowed_taxonomies = apply_filters( 'extrachill_related_posts_allowed_taxonomies', array( 'artist', 'venue' ), get_post_type( $post_id ) );
+	$allowed_taxonomies = apply_filters( 'extrachill_related_posts_allowed_taxonomies', array( 'category', 'post_tag' ), get_post_type( $post_id ) );
 
 	if ( ! in_array( $taxonomy, $allowed_taxonomies, true ) ) {
 		return;
