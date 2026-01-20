@@ -24,12 +24,12 @@ function extrachill_handle_registration() {
 	$redirect->verify_nonce( 'extrachill_register_nonce_field', 'extrachill_register_nonce' );
 
 	$email            = sanitize_email( wp_unslash( $_POST['extrachill_email'] ) );
-	$password         = isset( $_POST['extrachill_password'] ) ? $_POST['extrachill_password'] : '';
-	$password_confirm = isset( $_POST['extrachill_password_confirm'] ) ? $_POST['extrachill_password_confirm'] : '';
+	$password         = isset( $_POST['extrachill_password'] ) ? wp_unslash( $_POST['extrachill_password'] ) : '';
+	$password_confirm = isset( $_POST['extrachill_password_confirm'] ) ? wp_unslash( $_POST['extrachill_password_confirm'] ) : '';
 
 	$is_local_environment = defined( 'WP_ENVIRONMENT_TYPE' ) && WP_ENVIRONMENT_TYPE === 'local';
 	$turnstile_bypass     = $is_local_environment || (bool) apply_filters( 'extrachill_bypass_turnstile_verification', false );
-	$turnstile_response = isset( $_POST['cf-turnstile-response'] ) ? wp_unslash( $_POST['cf-turnstile-response'] ) : '';
+	$turnstile_response   = isset( $_POST['cf-turnstile-response'] ) ? wp_unslash( $_POST['cf-turnstile-response'] ) : '';
 
 	if ( ! $turnstile_bypass ) {
 		if ( empty( $turnstile_response ) ) {
@@ -50,7 +50,8 @@ function extrachill_handle_registration() {
 	}
 
 	if ( email_exists( $email ) ) {
-		$redirect->error( __( 'An account already exists with this email.', 'extrachill-users' ) );
+		// Use generic message to prevent email enumeration.
+		$redirect->error( __( 'Registration could not be completed. Please try again or contact support.', 'extrachill-users' ) );
 	}
 
 	$registration_page = isset( $_POST['source_url'] ) ? esc_url_raw( wp_unslash( $_POST['source_url'] ) ) : '';
@@ -143,7 +144,7 @@ function extrachill_auto_login_new_user( int $user_id, EC_Redirect_Handler $redi
 	}
 
 	wp_set_current_user( $user_id, $user->user_login );
-	wp_set_auth_cookie( $user_id, true );
+	wp_set_auth_cookie( $user_id, false );
 	do_action( 'wp_login', $user->user_login, $user );
 
 	$final_redirect_url = '';

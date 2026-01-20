@@ -9,8 +9,8 @@
  * @since 0.1.0
  */
 
-if (!defined('ABSPATH')) {
-    exit;
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
 }
 
 /**
@@ -20,11 +20,11 @@ if (!defined('ABSPATH')) {
  * @param array $commentdata Comment data array
  * @return int|string|WP_Error Modified approval status
  */
-function ec_auto_approve_logged_in_comments($approved, $commentdata) {
-    if (is_user_logged_in()) {
-        return 1;
-    }
+function ec_auto_approve_logged_in_comments( $approved, $commentdata ) {
+	if ( is_user_logged_in() ) {
+		return 1;
+	}
 
-    return $approved;
+	return $approved;
 }
-add_filter('pre_comment_approved', 'ec_auto_approve_logged_in_comments', 10, 2);
+add_filter( 'pre_comment_approved', 'ec_auto_approve_logged_in_comments', 10, 2 );

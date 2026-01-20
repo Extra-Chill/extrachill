@@ -158,6 +158,7 @@ class EC_Redirect_Handler {
 		<input type="hidden" name="source_url" value="<?php echo esc_url( $current_url ); ?>">
 		<?php if ( ! empty( $fragment ) ) : ?>
 		<input type="hidden" name="source_fragment" value="<?php echo esc_attr( $fragment ); ?>">
-		<?php endif;
+			<?php
+		endif;
 	}
 }

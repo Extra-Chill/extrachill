@@ -29,8 +29,6 @@ if ( function_exists( 'ec_enqueue_turnstile_script' ) ) {
 	ec_enqueue_turnstile_script();
 }
 
-wp_enqueue_style( 'extrachill-shared-tabs' );
-wp_enqueue_script( 'extrachill-shared-tabs' );
 wp_enqueue_script( 'extrachill-auth-utils' );
 
 $google_oauth_enabled = function_exists( 'ec_is_google_oauth_configured' ) && ec_is_google_oauth_configured();
@@ -89,10 +87,10 @@ if ( isset( $_GET['action'] ) && 'ec_accept_invite' === $_GET['action'] && isset
 		$pending_invitations = ec_get_pending_invitations( $artist_id_from_url );
 		foreach ( $pending_invitations as $invite ) {
 			if ( isset( $invite['token'] ) && $invite['token'] === $token_from_url && isset( $invite['status'] ) && 'invited_new_user' === $invite['status'] ) {
-				$invite_token             = $token_from_url;
-				$invite_artist_id         = $artist_id_from_url;
-				$invited_email            = isset( $invite['email'] ) ? sanitize_email( $invite['email'] ) : '';
-				$artist_post_for_invite   = get_post( $invite_artist_id );
+				$invite_token           = $token_from_url;
+				$invite_artist_id       = $artist_id_from_url;
+				$invited_email          = isset( $invite['email'] ) ? sanitize_email( $invite['email'] ) : '';
+				$artist_post_for_invite = get_post( $invite_artist_id );
 				if ( $artist_post_for_invite ) {
 					$artist_name_for_invite_message = $artist_post_for_invite->post_title;
 					// Set centralized notice for invitation

@@ -21,8 +21,8 @@ function extrachill_custom_logout_url( $logout_url, $redirect ) {
 	$current_url = set_url_scheme(
 		( is_ssl() ? 'https://' : 'http://' ) . $_SERVER['HTTP_HOST'] . strtok( $_SERVER['REQUEST_URI'], '?' )
 	);
-	$logout_url = add_query_arg( 'custom_logout', '1', $current_url );
-	$logout_url = wp_nonce_url( $logout_url, 'custom-logout-action', 'logout_nonce' );
+	$logout_url  = add_query_arg( 'custom_logout', '1', $current_url );
+	$logout_url  = wp_nonce_url( $logout_url, 'custom-logout-action', 'logout_nonce' );
 	return $logout_url;
 }
 add_filter( 'logout_url', 'extrachill_custom_logout_url', 10, 2 );

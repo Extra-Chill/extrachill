@@ -62,13 +62,15 @@ function extrachill_users_create_login_page() {
 		return;
 	}
 
-	wp_insert_post( array(
-		'post_type'    => 'page',
-		'post_title'   => 'Login',
-		'post_name'    => 'login',
-		'post_content' => '<!-- wp:extrachill/login-register /-->',
-		'post_status'  => 'publish',
-	) );
+	wp_insert_post(
+		array(
+			'post_type'    => 'page',
+			'post_title'   => 'Login',
+			'post_name'    => 'login',
+			'post_content' => '<!-- wp:extrachill/login-register /-->',
+			'post_status'  => 'publish',
+		)
+	);
 }
 
 /**
@@ -122,13 +124,15 @@ function extrachill_users_maybe_create_onboarding_page() {
 	}
 
 	if ( ! get_page_by_path( 'onboarding' ) ) {
-		wp_insert_post( array(
-			'post_type'    => 'page',
-			'post_title'   => 'Onboarding',
-			'post_name'    => 'onboarding',
-			'post_content' => '<!-- wp:extrachill/onboarding /-->',
-			'post_status'  => 'publish',
-		) );
+		wp_insert_post(
+			array(
+				'post_type'    => 'page',
+				'post_title'   => 'Onboarding',
+				'post_name'    => 'onboarding',
+				'post_content' => '<!-- wp:extrachill/onboarding /-->',
+				'post_status'  => 'publish',
+			)
+		);
 	}
 
 	update_option( 'extrachill_users_onboarding_page_created', 1 );

@@ -19,33 +19,33 @@
  * @param array|null $userDetails Optional user details with 'username' key
  * @return bool True if user is a lifetime member
  */
-function is_user_lifetime_member($userDetails = null) {
-    if (!$userDetails && !is_user_logged_in()) {
-        return false;
-    }
+function is_user_lifetime_member( $userDetails = null ) {
+	if ( ! $userDetails && ! is_user_logged_in() ) {
+		return false;
+	}
 
-    // Get user ID from details or current user
-    if (!$userDetails) {
-        $user_id = get_current_user_id();
-    } else {
-        // Lookup user by username
-        $username = $userDetails['username'] ?? '';
-        if (empty($username)) {
-            return false;
-        }
+	// Get user ID from details or current user
+	if ( ! $userDetails ) {
+		$user_id = get_current_user_id();
+	} else {
+		// Lookup user by username
+		$username = $userDetails['username'] ?? '';
+		if ( empty( $username ) ) {
+			return false;
+		}
 
-        $user = get_user_by('login', sanitize_text_field($username));
-        if (!$user) {
-            return false;
-        }
+		$user = get_user_by( 'login', sanitize_text_field( $username ) );
+		if ( ! $user ) {
+			return false;
+		}
 
-        $user_id = $user->ID;
-    }
+		$user_id = $user->ID;
+	}
 
-    // Check user meta for lifetime membership
-    $membership_data = get_user_meta($user_id, 'extrachill_lifetime_membership', true);
+	// Check user meta for lifetime membership
+	$membership_data = get_user_meta( $user_id, 'extrachill_lifetime_membership', true );
 
-    return !empty($membership_data);
+	return ! empty( $membership_data );
 }
 
 /**
@@ -62,14 +62,14 @@ function extrachill_users_output_mediavine_blocklist() {
 	}
 
 	$context = array(
-		'blog_id'        => get_current_blog_id(),
-		'post_type'      => is_singular() ? (string) get_post_type() : '',
-		'is_front_page'  => is_front_page(),
-		'is_home'        => is_home(),
-		'is_page'        => is_page(),
-		'is_search'      => is_search(),
-		'is_archive'     => is_archive(),
-		'is_singular'    => is_singular(),
+		'blog_id'              => get_current_blog_id(),
+		'post_type'            => is_singular() ? (string) get_post_type() : '',
+		'is_front_page'        => is_front_page(),
+		'is_home'              => is_home(),
+		'is_page'              => is_page(),
+		'is_search'            => is_search(),
+		'is_archive'           => is_archive(),
+		'is_singular'          => is_singular(),
 		'is_post_type_archive' => is_post_type_archive(),
 	);
 
@@ -101,34 +101,34 @@ add_action( 'wp_head', 'extrachill_users_output_mediavine_blocklist', 1 );
  * @param array $order_data Order details array with 'order_id' and optional 'timestamp'
  * @return bool|WP_Error True on success, WP_Error on failure
  */
-function ec_create_lifetime_membership($username, $order_data = array()) {
-    // Validate username
-    if (empty($username)) {
-        return new WP_Error('empty_username', 'Username is required');
-    }
+function ec_create_lifetime_membership( $username, $order_data = array() ) {
+	// Validate username
+	if ( empty( $username ) ) {
+		return new WP_Error( 'empty_username', 'Username is required' );
+	}
 
-    $username = sanitize_text_field($username);
+	$username = sanitize_text_field( $username );
 
-    // Get user by login (bbPress/WordPress username)
-    $user = get_user_by('login', $username);
+	// Get user by login (bbPress/WordPress username)
+	$user = get_user_by( 'login', $username );
 
-    if (!$user) {
-        return new WP_Error('user_not_found', "User not found for username: {$username}");
-    }
+	if ( ! $user ) {
+		return new WP_Error( 'user_not_found', "User not found for username: {$username}" );
+	}
 
-    // Prepare membership data
-    $membership_data = array(
-        'purchased' => isset($order_data['timestamp']) ? $order_data['timestamp'] : current_time('mysql'),
-        'order_id' => isset($order_data['order_id']) ? intval($order_data['order_id']) : 0,
-        'username' => $username
-    );
+	// Prepare membership data
+	$membership_data = array(
+		'purchased' => isset( $order_data['timestamp'] ) ? $order_data['timestamp'] : current_time( 'mysql' ),
+		'order_id'  => isset( $order_data['order_id'] ) ? intval( $order_data['order_id'] ) : 0,
+		'username'  => $username,
+	);
 
-    // Store lifetime membership in user meta
-    $result = update_user_meta($user->ID, 'extrachill_lifetime_membership', $membership_data);
+	// Store lifetime membership in user meta
+	$result = update_user_meta( $user->ID, 'extrachill_lifetime_membership', $membership_data );
 
-    if (!$result) {
-        return new WP_Error('meta_update_failed', 'Failed to update user meta');
-    }
+	if ( ! $result ) {
+		return new WP_Error( 'meta_update_failed', 'Failed to update user meta' );
+	}
 
-    return true;
+	return true;
 }

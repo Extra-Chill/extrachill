@@ -80,10 +80,36 @@ function ec_get_shop_product_count_for_user( $user_id = null ) {
 	$total_count  = 0;
 
 	if ( $needs_switch ) {
-		switch_to_blog( $shop_blog_id );
-	}
+		if ( function_exists( 'switch_to_blog' ) ) {
+			global $current_user;
 
-	try {
+			if ( isset( $current_user ) && $current_user instanceof WP_User ) {
+				switch_to_blog( $shop_blog_id );
+				try {
+					$query = new WP_Query(
+						array(
+							'post_type'      => 'product',
+							'post_status'    => 'publish',
+							'posts_per_page' => 1,
+							'fields'         => 'ids',
+							'meta_query'     => array(
+								array(
+									'key'     => '_artist_profile_id',
+									'value'   => array_map( 'absint', $user_artists ),
+									'compare' => 'IN',
+									'type'    => 'NUMERIC',
+								),
+							),
+						)
+					);
+
+					$total_count = $query->found_posts;
+				} finally {
+					restore_current_blog();
+				}
+			}
+		}
+	} else {
 		$query = new WP_Query(
 			array(
 				'post_type'      => 'product',
@@ -102,10 +128,6 @@ function ec_get_shop_product_count_for_user( $user_id = null ) {
 		);
 
 		$total_count = $query->found_posts;
-	} finally {
-		if ( $needs_switch ) {
-			restore_current_blog();
-		}
 	}
 
 	return $total_count;

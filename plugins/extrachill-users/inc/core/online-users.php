@@ -24,23 +24,25 @@ function ec_record_user_activity() {
 		$current_time            = current_time( 'timestamp' );
 		$user_activity_cache_key = 'user_activity_' . $user_id;
 
-
-		// Throttle updates to every 15 minutes (900 seconds)
-		// Check and set transients on community site for consistency
 		$community_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'community' ) : null;
-		if ( $community_blog_id ) {
-			switch_to_blog( $community_blog_id );
-		}
-		try {
-			$last_update = get_transient( $user_activity_cache_key );
 
-			if ( false === $last_update || ( $current_time - intval( $last_update ) ) > 900 ) {
-				update_user_meta( $user_id, 'last_active', $current_time );
-				delete_transient( 'online_users_count' );
-				set_transient( $user_activity_cache_key, $current_time, 900 );
+		if ( $community_blog_id && function_exists( 'switch_to_blog' ) ) {
+			global $current_user;
+
+			if ( isset( $current_user ) && $current_user instanceof WP_User ) {
+				switch_to_blog( $community_blog_id );
+				try {
+					$last_update = get_transient( $user_activity_cache_key );
+
+					if ( false === $last_update || ( $current_time - intval( $last_update ) ) > 900 ) {
+						update_user_meta( $user_id, 'last_active', $current_time );
+						delete_transient( 'online_users_count' );
+						set_transient( $user_activity_cache_key, $current_time, 900 );
+					}
+				} finally {
+					restore_current_blog();
+				}
 			}
-		} finally {
-			restore_current_blog();
 		}
 	}
 
@@ -62,27 +64,35 @@ function ec_get_online_users_count() {
 	$transient_key     = 'online_users_count';
 	$community_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'community' ) : null;
 
-	if ( $community_blog_id ) {
-		switch_to_blog( $community_blog_id );
-	}
-	try {
-		$online_users_count = get_transient( $transient_key );
+	if ( $community_blog_id && function_exists( 'switch_to_blog' ) ) {
+		global $current_user;
 
-		if ( false === $online_users_count ) {
-			$time_limit     = 15 * MINUTE_IN_SECONDS;
-			$time_threshold = current_time( 'timestamp' ) - $time_limit;
+		if ( isset( $current_user ) && $current_user instanceof WP_User ) {
+			switch_to_blog( $community_blog_id );
+			try {
+				$online_users_count = get_transient( $transient_key );
 
-			$online_users_count = $wpdb->get_var(
-				$wpdb->prepare(
-					"SELECT COUNT(*) FROM $wpdb->usermeta WHERE meta_key = 'last_active' AND meta_value > %d",
-					$time_threshold
-				)
-			);
+				if ( false === $online_users_count ) {
+					$time_limit     = 15 * MINUTE_IN_SECONDS;
+					$time_threshold = current_time( 'timestamp' ) - $time_limit;
 
-			set_transient( $transient_key, intval( $online_users_count ), 5 * MINUTE_IN_SECONDS );
+					$online_users_count = $wpdb->get_var(
+						$wpdb->prepare(
+							"SELECT COUNT(*) FROM $wpdb->usermeta WHERE meta_key = 'last_active' AND meta_value > %d",
+							$time_threshold
+						)
+					);
+
+					set_transient( $transient_key, intval( $online_users_count ), 5 * MINUTE_IN_SECONDS );
+				}
+			} finally {
+				restore_current_blog();
+			}
+		} else {
+			$online_users_count = 0;
 		}
-	} finally {
-		restore_current_blog();
+	} else {
+		$online_users_count = 0;
 	}
 
 	return intval( $online_users_count );

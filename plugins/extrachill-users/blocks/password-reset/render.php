@@ -23,12 +23,12 @@ $action = isset( $_GET['action'] ) ? sanitize_text_field( wp_unslash( $_GET['act
 $key    = isset( $_GET['key'] ) ? sanitize_text_field( wp_unslash( $_GET['key'] ) ) : '';
 $login  = isset( $_GET['login'] ) ? sanitize_text_field( wp_unslash( $_GET['login'] ) ) : '';
 
-if ( $action === 'reset' && ! empty( $key ) && ! empty( $login ) ) {
+if ( 'reset' === $action && ! empty( $key ) && ! empty( $login ) ) {
 	$user = check_password_reset_key( $key, $login );
 
 	if ( is_wp_error( $user ) ) {
 		extrachill_set_notice( __( 'This password reset link is invalid or has expired. Please request a new one.', 'extrachill-users' ), 'error' );
-		wp_redirect( home_url( '/reset-password/' ) );
+		wp_safe_redirect( home_url( '/reset-password/' ) );
 		exit;
 	}
 

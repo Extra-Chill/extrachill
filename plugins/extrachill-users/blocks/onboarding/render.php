@@ -30,12 +30,12 @@ if ( function_exists( 'ec_is_onboarding_complete' ) && ec_is_onboarding_complete
 	exit;
 }
 
-$user_id         = get_current_user_id();
-$stored_redirect = get_user_meta( $user_id, 'onboarding_redirect_url', true );
-$default_url     = function_exists( 'ec_get_site_url' ) ? ec_get_site_url( 'community' ) : home_url();
-$redirect_url    = $stored_redirect ? $stored_redirect : $default_url;
-$from_join       = get_user_meta( $user_id, 'onboarding_from_join', true ) === '1';
-$user            = get_userdata( $user_id );
+$user_id          = get_current_user_id();
+$stored_redirect  = get_user_meta( $user_id, 'onboarding_redirect_url', true );
+$default_url      = function_exists( 'ec_get_site_url' ) ? ec_get_site_url( 'community' ) : home_url();
+$redirect_url     = $stored_redirect ? $stored_redirect : $default_url;
+$from_join        = get_user_meta( $user_id, 'onboarding_from_join', true ) === '1';
+$user             = get_userdata( $user_id );
 $current_username = $user ? $user->user_login : '';
 ?>
 

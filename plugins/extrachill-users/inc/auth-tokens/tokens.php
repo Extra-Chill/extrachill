@@ -5,7 +5,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-const EXTRACHILL_USERS_ACCESS_TOKEN_TTL = 15 * MINUTE_IN_SECONDS;
+const EXTRACHILL_USERS_ACCESS_TOKEN_TTL  = 15 * MINUTE_IN_SECONDS;
 const EXTRACHILL_USERS_REFRESH_TOKEN_TTL = 30 * DAY_IN_SECONDS;
 
 function extrachill_users_base64url_encode( string $data ): string {

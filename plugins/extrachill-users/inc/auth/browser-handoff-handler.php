@@ -58,12 +58,19 @@ function extrachill_users_handle_browser_handoff() {
 	}
 
 	$redirect_host = strtolower( $redirect_host );
-	if ( false !== strpos( $redirect_host, 'extrachill.link' ) ) {
-		status_header( 400 );
-		exit;
+
+	// Strict domain validation - exact match or subdomain only.
+	// Browser handoff only supports extrachill.com domains (not extrachill.link).
+	$allowed_domains = array( 'extrachill.com' );
+	$is_valid_host   = false;
+
+	foreach ( $allowed_domains as $domain ) {
+		if ( $redirect_host === $domain || substr( $redirect_host, -strlen( '.' . $domain ) ) === '.' . $domain ) {
+			$is_valid_host = true;
+			break;
+		}
 	}
 
-	$is_valid_host = ( 'extrachill.com' === $redirect_host || substr( $redirect_host, -strlen( '.extrachill.com' ) ) === '.extrachill.com' );
 	if ( ! $is_valid_host ) {
 		status_header( 400 );
 		exit;
@@ -75,7 +82,7 @@ function extrachill_users_handle_browser_handoff() {
 
 	add_filter(
 		'allowed_redirect_hosts',
-		function( array $hosts ) use ( $redirect_host ): array {
+		function ( array $hosts ) use ( $redirect_host ): array {
 			if ( ! in_array( $redirect_host, $hosts, true ) ) {
 				$hosts[] = $redirect_host;
 			}

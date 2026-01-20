@@ -42,12 +42,14 @@ function ec_get_artists_for_user( $user_id = null, $admin_override = false ) {
 
 		switch_to_blog( $artist_blog_id );
 		try {
-			$artist_posts = get_posts( array(
-				'post_type'   => 'artist_profile',
-				'post_status' => 'publish',
-				'numberposts' => -1,
-				'fields'      => 'ids'
-			) );
+			$artist_posts = get_posts(
+				array(
+					'post_type'   => 'artist_profile',
+					'post_status' => 'publish',
+					'numberposts' => -1,
+					'fields'      => 'ids',
+				)
+			);
 
 			return is_array( $artist_posts ) ? $artist_posts : array();
 		} finally {
@@ -98,8 +100,8 @@ function ec_can_create_artist_profiles( $user_id = null ) {
 	}
 
 	return user_can( $user_id, 'edit_pages' ) ||
-	       get_user_meta( $user_id, 'user_is_artist', true ) === '1' ||
-	       get_user_meta( $user_id, 'user_is_professional', true ) === '1';
+			get_user_meta( $user_id, 'user_is_artist', true ) === '1' ||
+			get_user_meta( $user_id, 'user_is_professional', true ) === '1';
 }
 
 /**
@@ -130,13 +132,15 @@ function ec_get_latest_artist_for_user( $user_id = null ) {
 	switch_to_blog( $artist_blog_id );
 	try {
 		foreach ( $user_artists as $artist_id ) {
-			$link_pages = get_posts( array(
-				'post_type'      => 'artist_link_page',
-				'meta_key'       => '_associated_artist_profile_id',
-				'meta_value'     => (string) $artist_id,
-				'posts_per_page' => 1,
-				'fields'         => 'ids',
-			) );
+			$link_pages = get_posts(
+				array(
+					'post_type'      => 'artist_link_page',
+					'meta_key'       => '_associated_artist_profile_id',
+					'meta_value'     => (string) $artist_id,
+					'posts_per_page' => 1,
+					'fields'         => 'ids',
+				)
+			);
 
 			if ( ! empty( $link_pages ) ) {
 				$link_page_id      = (int) $link_pages[0];
@@ -232,17 +236,19 @@ function ec_get_link_page_count_for_user( $user_id = null ) {
 	switch_to_blog( $artist_blog_id );
 	try {
 		foreach ( $user_artists as $artist_id ) {
-			$link_pages = get_posts( array(
-				'post_type'      => 'artist_link_page',
-				'post_status'    => 'publish',
-				'meta_key'       => '_associated_artist_profile_id',
-				'meta_value'     => (string) $artist_id,
-				'posts_per_page' => 1,
-				'fields'         => 'ids',
-			) );
+			$link_pages = get_posts(
+				array(
+					'post_type'      => 'artist_link_page',
+					'post_status'    => 'publish',
+					'meta_key'       => '_associated_artist_profile_id',
+					'meta_value'     => (string) $artist_id,
+					'posts_per_page' => 1,
+					'fields'         => 'ids',
+				)
+			);
 
 			if ( ! empty( $link_pages ) ) {
-				$link_page_count++;
+				++$link_page_count;
 			}
 		}
 	} finally {

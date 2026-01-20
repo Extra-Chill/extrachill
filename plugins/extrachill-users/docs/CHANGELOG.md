@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+### Added
+- Added user badge CSS with color variables (--artist-badge-color, --team-badge-color, --professional-badge-color)
+
 ## [0.5.9] - 2026-01-06
 
 ### Changed
@@ -7,7 +12,7 @@
 - **Shop Product Count**: Replaced dummy count with a native cross-site `WP_Query` to the shop blog (Blog ID 3) for accurate user-artist product tracking.
 
 ### Documentation
-- Updated `AGENTS.md` with current cross-site artist linking architecture details.
+- Updated `CLAUDE.md` with current cross-site artist linking architecture details.
 
 ## [0.5.8] - 2026-01-05
 
@@ -46,7 +51,7 @@
 - Browser handoff handler with URL validation and automatic redirect
 
 ### Changed
-- Updated site references in documentation: Blog ID 11 now designated as "wire", horoscope planned for Blog ID 12
+- Updated site references in documentation: Blog ID 11 designated as "wire" and Blog ID 12 designated as "horoscope"
 
 ## [0.5.4] - 2025-12-21
 
@@ -82,7 +87,7 @@
 - Added minlength attribute to password input fields
 
 ### Documentation
-- Updated AGENTS.md with comprehensive Google OAuth and onboarding system documentation
+- Updated CLAUDE.md with comprehensive Google OAuth and onboarding system documentation
 - Enhanced README.md feature descriptions
 - Updated implementation status and added user management documentation
 
@@ -250,7 +255,7 @@
 - Refactored avatar menu from link-based to button-based toggle with proper semantic markup
 - Removed redundant headings and descriptions from login/register block forms
 - Reduced form container margins for better spacing (30px → 10px)
-- Updated AGENTS.md to reflect 9 active sites (Blog IDs 1–5, 7–11) with docs at Blog ID 10
+- Updated CLAUDE.md to reflect 9 active sites (Blog IDs 1–5, 7–11) with docs at Blog ID 10
 
 ### Accessibility
 - Added aria-expanded attribute to avatar menu toggle button
@@ -275,7 +280,7 @@
 - Reduced modular organization from 18 to 17 include files
 
 ### Documentation
-- Updated AGENTS.md to reflect consolidated avatar system architecture
+- Updated CLAUDE.md to reflect consolidated avatar system architecture
 - Updated plugin loading order documentation to reflect include file reorganization
 - Clarified that avatar upload interface now lives exclusively in extrachill-community plugin
 - Added note that both plugins use centralized REST API endpoint for upload operations
@@ -304,7 +309,7 @@
 - `ec_get_latest_artist_for_user()` function to determine most recently active artist profile based on link page modification times
 - `ec_get_link_page_count_for_user()` function to count link pages across all user artist profiles
 - Enhanced logged-in user display in login/register block with avatar card and improved action buttons
-- Comprehensive AGENTS.md documentation file consolidating all architectural and development information
+- Comprehensive CLAUDE.md documentation file consolidating all architectural and development information
 - Dynamic avatar menu labels that adapt based on number of artists and link pages
 
 ### Changed
@@ -312,14 +317,14 @@
 - Refactored avatar menu system to leverage new artist utility functions for cleaner code
 - Enhanced EC_Redirect_Handler integration with theme notice system for consistent messaging
 - Simplified registration form by removing redundant explanatory text from checkboxes
-- Updated README.md to reference new AGENTS.md documentation and highlight v0.2.0 features
+- Updated README.md to reference new CLAUDE.md documentation and highlight v0.2.0 features
 
 ### Fixed
 - Removed redundant message displays from password reset forms to prevent duplicate notifications
 - Streamlined login/register block by removing unused notice rendering code
 
 ### Documentation
-- Migrated from CLAUDE.md to comprehensive AGENTS.md with complete plugin architecture documentation
+- Migrated from CLAUDE.md to comprehensive CLAUDE.md with complete plugin architecture documentation
 
 ## [0.2.0] - 2025-12-02
 
@@ -374,7 +379,7 @@
 
 ### Fixed
 - Removed jQuery dependency from avatar upload JavaScript
-- Updated site count references to 9 active sites (docs at Blog ID 10; wire at Blog ID 11; horoscope planned for Blog ID 12) in documentation
+- Updated site count references to the active multisite sites (docs at Blog ID 10; wire at Blog ID 11; horoscope at Blog ID 12) in documentation
 
 ### Dependencies
 - Added extrachill-api as required plugin

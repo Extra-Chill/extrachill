@@ -6,8 +6,8 @@
  * @since 0.1.0
  */
 
-if (!defined('ABSPATH')) {
-    exit;
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
 }
 
 /**
@@ -16,26 +16,26 @@ if (!defined('ABSPATH')) {
  * @param int $user_id User ID (0 = current user).
  * @return bool
  */
-function ec_is_team_member($user_id = 0) {
-    if (!$user_id) {
-        $user_id = get_current_user_id();
-    }
+function ec_is_team_member( $user_id = 0 ) {
+	if ( ! $user_id ) {
+		$user_id = get_current_user_id();
+	}
 
-    if (!$user_id) {
-        return false;
-    }
+	if ( ! $user_id ) {
+		return false;
+	}
 
-    $manual_override = get_user_meta($user_id, 'extrachill_team_manual_override', true);
+	$manual_override = get_user_meta( $user_id, 'extrachill_team_manual_override', true );
 
-    if ($manual_override === 'add') {
-        return true;
-    }
+	if ( 'add' === $manual_override ) {
+		return true;
+	}
 
-    if ($manual_override === 'remove') {
-        return false;
-    }
+	if ( 'remove' === $manual_override ) {
+		return false;
+	}
 
-    return get_user_meta($user_id, 'extrachill_team', true) == 1;
+	return get_user_meta( $user_id, 'extrachill_team', true ) == 1;
 }
 
 /**
@@ -44,25 +44,30 @@ function ec_is_team_member($user_id = 0) {
  * @param int $user_id User ID.
  * @return bool
  */
-function ec_has_main_site_account($user_id) {
-    if (!$user_id) {
-        return false;
-    }
+function ec_has_main_site_account( $user_id ) {
+	if ( ! $user_id ) {
+		return false;
+	}
 
-    $has_account = false;
+	$has_account = false;
 
 	$main_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'main' ) : null;
 	if ( ! $main_blog_id ) {
 		return false;
 	}
 
-	try {
-		switch_to_blog( $main_blog_id );
-		$has_account = is_user_member_of_blog( $user_id, $main_blog_id );
-	} finally {
-		restore_current_blog();
+	if ( function_exists( 'switch_to_blog' ) ) {
+		global $current_user;
+
+		if ( isset( $current_user ) && $current_user instanceof WP_User ) {
+			try {
+				switch_to_blog( $main_blog_id );
+				$has_account = is_user_member_of_blog( $user_id, $main_blog_id );
+			} finally {
+				restore_current_blog();
+			}
+		}
 	}
 
-
-    return $has_account;
+	return $has_account;
 }

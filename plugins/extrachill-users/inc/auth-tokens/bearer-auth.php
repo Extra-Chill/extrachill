@@ -77,7 +77,7 @@ function extrachill_users_validate_access_token( string $token ): ?array {
 
 	list( $header_b64, $payload_b64, $signature_b64 ) = $parts;
 
-	$expected_signature = hash_hmac( 'sha256', "{$header_b64}.{$payload_b64}", wp_salt( 'auth' ), true );
+	$expected_signature     = hash_hmac( 'sha256', "{$header_b64}.{$payload_b64}", wp_salt( 'auth' ), true );
 	$expected_signature_b64 = extrachill_users_base64url_encode( $expected_signature );
 
 	if ( ! hash_equals( $expected_signature_b64, $signature_b64 ) ) {
@@ -85,7 +85,7 @@ function extrachill_users_validate_access_token( string $token ): ?array {
 	}
 
 	$payload_json = extrachill_users_base64url_decode( $payload_b64 );
-	$payload = json_decode( $payload_json, true );
+	$payload      = json_decode( $payload_json, true );
 
 	if ( ! is_array( $payload ) ) {
 		return null;

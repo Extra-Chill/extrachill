@@ -38,7 +38,7 @@ function extrachill_users_issue_refresh_token( int $user_id, string $device_id, 
 	$expires_ts = $now_ts + EXTRACHILL_USERS_REFRESH_TOKEN_TTL;
 	$expires_at = extrachill_users_mysql_gmt_from_ts( $expires_ts );
 
-	$refresh_token = wp_generate_password( 64, false, false );
+	$refresh_token = wp_generate_password( 64, true, true );
 	$token_hash    = extrachill_users_hash_refresh_token( $refresh_token );
 
 	$existing_id = $wpdb->get_var(
@@ -92,6 +92,18 @@ function extrachill_users_issue_refresh_token( int $user_id, string $device_id, 
  */
 function extrachill_users_refresh_tokens( string $refresh_token, string $device_id, array $options = array() ) {
 	global $wpdb;
+
+	// Rate limit token refresh to prevent abuse.
+	$rate_key     = 'ec_token_refresh_' . md5( $device_id );
+	$last_refresh = get_transient( $rate_key );
+	if ( $last_refresh && ( time() - $last_refresh ) < 5 ) {
+		return new WP_Error(
+			'rate_limited',
+			'Please wait before refreshing tokens.',
+			array( 'status' => 429 )
+		);
+	}
+	set_transient( $rate_key, time(), MINUTE_IN_SECONDS );
 
 	$table_name = extrachill_users_refresh_token_table_name();
 	$token_hash = extrachill_users_hash_refresh_token( $refresh_token );
@@ -168,7 +180,7 @@ function extrachill_users_refresh_tokens( string $refresh_token, string $device_
 		);
 	}
 
-	$new_refresh_token = wp_generate_password( 64, false, false );
+	$new_refresh_token = wp_generate_password( 64, true, true );
 	$new_token_hash    = extrachill_users_hash_refresh_token( $new_refresh_token );
 	$new_expires_ts    = $now_ts + EXTRACHILL_USERS_REFRESH_TOKEN_TTL;
 	$new_expires_at    = extrachill_users_mysql_gmt_from_ts( $new_expires_ts );
@@ -413,10 +425,11 @@ function extrachill_users_register_with_tokens( array $payload ) {
 	}
 
 	if ( email_exists( $email ) ) {
+		// Use generic message to prevent email enumeration.
 		return new WP_Error(
-			'user_exists',
-			'An account already exists with this email.',
-			array( 'status' => 409 )
+			'registration_failed',
+			'Registration could not be completed. Please try again or contact support.',
+			array( 'status' => 400 )
 		);
 	}
 
@@ -450,12 +463,12 @@ function extrachill_users_register_with_tokens( array $payload ) {
 		: 'user' . wp_rand( 10000, 99999 );
 
 	$registration_data = array(
-		'username'              => $username,
-		'password'              => $password,
-		'email'                 => $email,
-		'from_join'             => $from_join,
-		'registration_source'   => $registration_source,
-		'registration_method'   => $registration_method,
+		'username'            => $username,
+		'password'            => $password,
+		'email'               => $email,
+		'from_join'           => $from_join,
+		'registration_source' => $registration_source,
+		'registration_method' => $registration_method,
 	);
 
 	if ( ! empty( $registration_page ) ) {
@@ -474,15 +487,12 @@ function extrachill_users_register_with_tokens( array $payload ) {
 
 	$user_id = apply_filters( 'extrachill_create_community_user', false, $registration_data );
 	if ( is_wp_error( $user_id ) ) {
+		// Log detailed error server-side, return generic message to user.
+		error_log( 'User registration failed: ' . $user_id->get_error_code() . ' - ' . implode( ', ', $user_id->get_error_messages() ) );
 		return new WP_Error(
 			'registration_failed',
-			'User registration failed.',
-			array(
-				'status'  => 500,
-				'errors'  => $user_id->get_error_messages(),
-				'reason'  => $user_id->get_error_code(),
-				'details' => $user_id->get_error_data(),
-			)
+			'Registration could not be completed. Please try again or contact support.',
+			array( 'status' => 500 )
 		);
 	}
 

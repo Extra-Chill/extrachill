@@ -28,7 +28,7 @@ function ec_verify_rs256_jwt( $token, $jwks_url, $audience, $issuer ) {
 	list( $header_b64, $payload_b64, $signature_b64 ) = $parts;
 
 	$header = json_decode( ec_base64url_decode( $header_b64 ), true );
-	if ( ! $header || ! isset( $header['alg'] ) || $header['alg'] !== 'RS256' ) {
+	if ( ! $header || ! isset( $header['alg'] ) || 'RS256' !== $header['alg'] ) {
 		return new WP_Error( 'invalid_algorithm', 'Token must use RS256 algorithm.' );
 	}
 
@@ -92,7 +92,7 @@ function ec_verify_rs256_jwt( $token, $jwks_url, $audience, $issuer ) {
 
 	$valid = openssl_verify( $signing_data, $signature, $public_key, OPENSSL_ALGO_SHA256 );
 
-	if ( $valid !== 1 ) {
+	if ( 1 !== $valid ) {
 		return new WP_Error( 'invalid_signature', 'Token signature verification failed.' );
 	}
 
@@ -114,16 +114,19 @@ function ec_fetch_jwks( $jwks_url ) {
 		return $cached;
 	}
 
-	$response = wp_remote_get( $jwks_url, array(
-		'timeout' => 10,
-	) );
+	$response = wp_remote_get(
+		$jwks_url,
+		array(
+			'timeout' => 10,
+		)
+	);
 
 	if ( is_wp_error( $response ) ) {
 		return new WP_Error( 'jwks_fetch_failed', 'Could not fetch JWKS: ' . $response->get_error_message() );
 	}
 
 	$status = wp_remote_retrieve_response_code( $response );
-	if ( $status !== 200 ) {
+	if ( 200 !== $status ) {
 		return new WP_Error( 'jwks_fetch_failed', 'JWKS endpoint returned status ' . $status );
 	}
 
@@ -139,7 +142,7 @@ function ec_fetch_jwks( $jwks_url ) {
 	$ttl           = ec_parse_cache_control_max_age( $cache_control );
 
 	// Default to 1 hour if no max-age found, minimum 5 minutes.
-	$ttl = max( 300, $ttl ?: 3600 );
+	$ttl = max( 300, $ttl ? $ttl : 3600 );
 
 	set_transient( $cache_key, $data['keys'], $ttl );
 
@@ -174,12 +177,12 @@ function ec_parse_cache_control_max_age( $header ) {
 function ec_find_jwk( $keys, $kid ) {
 	foreach ( $keys as $key ) {
 		// Must be RSA key for RS256.
-		if ( ! isset( $key['kty'] ) || $key['kty'] !== 'RSA' ) {
+		if ( ! isset( $key['kty'] ) || 'RSA' !== $key['kty'] ) {
 			continue;
 		}
 
 		// If kid provided, must match.
-		if ( $kid !== null ) {
+		if ( null !== $kid ) {
 			if ( isset( $key['kid'] ) && $key['kid'] === $kid ) {
 				return $key;
 			}
@@ -222,10 +225,10 @@ function ec_jwk_to_pem( $jwk ) {
 		'300d06092a864886f70d0101010500' // RSA OID + NULL
 	);
 
-	$bit_string        = chr( 0x03 ) . ec_asn1_length( strlen( $rsa_public_key ) + 1 ) . chr( 0x00 ) . $rsa_public_key;
+	$bit_string              = chr( 0x03 ) . ec_asn1_length( strlen( $rsa_public_key ) + 1 ) . chr( 0x00 ) . $rsa_public_key;
 	$subject_public_key_info = ec_asn1_sequence( $algorithm_id . $bit_string );
 
-	$pem = "-----BEGIN PUBLIC KEY-----\n";
+	$pem  = "-----BEGIN PUBLIC KEY-----\n";
 	$pem .= chunk_split( base64_encode( $subject_public_key_info ), 64, "\n" );
 	$pem .= "-----END PUBLIC KEY-----\n";
 

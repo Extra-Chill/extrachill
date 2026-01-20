@@ -32,14 +32,6 @@ function extrachill_users_activate() {
 	extrachill_users_run_activation();
 }
 
-add_action( 'init', 'extrachill_users_register_blocks' );
-
-function extrachill_users_register_blocks() {
-	register_block_type( __DIR__ . '/build/login-register' );
-	register_block_type( __DIR__ . '/build/password-reset' );
-	register_block_type( __DIR__ . '/build/onboarding' );
-}
-
 function extrachill_users_enqueue_block_styles() {
 	if ( is_admin() ) {
 		return;
@@ -72,37 +64,58 @@ function extrachill_users_enqueue_block_styles() {
 }
 add_action( 'wp_enqueue_scripts', 'extrachill_users_enqueue_block_styles' );
 
+/**
+ * Register Gutenberg blocks.
+ */
+function extrachill_users_register_blocks() {
+	$blocks_dir = file_exists( EXTRACHILL_USERS_PLUGIN_DIR . 'build/login-register' )
+		? 'build'
+		: 'blocks';
+
+	register_block_type( EXTRACHILL_USERS_PLUGIN_DIR . $blocks_dir . '/login-register' );
+	register_block_type( EXTRACHILL_USERS_PLUGIN_DIR . $blocks_dir . '/password-reset' );
+	register_block_type( EXTRACHILL_USERS_PLUGIN_DIR . $blocks_dir . '/onboarding' );
+}
+add_action( 'init', 'extrachill_users_register_blocks' );
+
 add_action( 'plugins_loaded', 'extrachill_users_init' );
 
 function extrachill_users_init() {
-	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/core/activation.php';
-	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/auth/class-redirect-handler.php';
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/assets.php';
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/admin-access-control.php';
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/core/online-users.php';
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/core/user-creation.php';
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/core/registration-emails.php';
+
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/auth/login.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/auth/register.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/auth/logout.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/auth/password-reset.php';
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/auth/browser-handoff-handler.php';
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/auth/class-redirect-handler.php';
+
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/auth-tokens/tokens.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/auth-tokens/service.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/auth-tokens/bearer-auth.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/auth-tokens/browser-handoff-token.php';
-	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/auth/browser-handoff-handler.php';
-	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/core/online-users.php';
-	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/core/registration-emails.php';
-	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/core/user-creation.php';
-	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/onboarding/service.php';
-	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/oauth/jwt-rs256.php';
+
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/oauth/google-service.php';
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/oauth/jwt-rs256.php';
+
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/avatar-display.php';
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/avatar-menu.php';
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/avatar-menu-items.php';
+
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/artist-profiles.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/team-members.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/badges/user-badges.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/rank-system/rank-tiers.php';
-	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/admin-access-control.php';
-	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/artist-profiles.php';
-	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/shop-permissions.php';
-	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/assets.php';
-	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/avatar-display.php';
-	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/avatar-menu-items.php';
-	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/avatar-menu.php';
-	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/comment-auto-approval.php';
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/onboarding/service.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/lifetime-membership.php';
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/shop-permissions.php';
+
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/comment-auto-approval.php';
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/footer/online-users-stats.php';
 }
 
 add_filter( 'newsletter_form_integrations', 'extrachill_users_newsletter_integration' );

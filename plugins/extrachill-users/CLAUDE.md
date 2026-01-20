@@ -329,12 +329,28 @@ function my_plugin_avatar_menu( $menu_items, $user_id ) {
 **Assets Loaded**:
 - `assets/css/avatar-menu.css` - Avatar dropdown styling
 - `assets/css/online-users.css` - Online users widget styling
+- `assets/css/user-badges.css` - User badge styling (artist, team, professional)
 - `assets/js/avatar-menu.js` - Avatar dropdown functionality
 
 **Loading Pattern**:
-- Avatar menu assets load network-wide
+- Avatar menu and online users assets load network-wide
+- User badges CSS loads network-wide with `extrachill-root` dependency
 - Uses `filemtime()` versioning for cache busting
 - Checks file existence before enqueuing
+
+#### User Badge Styling (`assets/css/user-badges.css`)
+**Purpose**: Provides consistent badge styling for artists, team members, and professionals across the network.
+
+**Badge Classes**:
+- `.user-is-artist` - Artist badge with pink color (`--artist-badge-color`)
+- `.extrachill-team-member` - Team member badge with cyan color (`--team-badge-color`)
+- `.user-is-professional` - Professional badge with purple color (`--professional-badge-color`)
+
+**Features**:
+- CSS custom properties for badge colors (supports light/dark mode)
+- Tooltip display via `data-title` attribute and CSS `::before` pseudo-element
+- Inline-flex display for proper icon alignment
+- Network-wide availability (loaded on all sites)
 
 #### Registration Emails (`inc/registration-emails.php`)
 **Welcome Email System**:
@@ -436,7 +452,8 @@ extrachill-users/
 ├── assets/
 │   ├── css/
 │   │   ├── avatar-menu.css        (avatar menu styles)
-│   │   └── online-users.css       (online users widget styles)
+│   │   ├── online-users.css       (online users widget styles)
+│   │   └── user-badges.css        (user badge styling - artist, team, professional)
 │   └── js/
 │       ├── auth-utils.js          (authentication utilities)
 │       ├── avatar-menu.js         (avatar menu JavaScript)

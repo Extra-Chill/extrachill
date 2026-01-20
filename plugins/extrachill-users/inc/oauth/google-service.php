@@ -35,9 +35,10 @@ function ec_verify_google_token( $id_token ) {
 
 	$payload = ec_verify_rs256_jwt( $id_token, EC_GOOGLE_JWKS_URL, $client_id, EC_GOOGLE_ISSUER );
 	if ( is_wp_error( $payload ) ) {
+		error_log( 'Google token verification failed: ' . $payload->get_error_message() );
 		return new WP_Error(
 			'invalid_google_token',
-			'Google token verification failed: ' . $payload->get_error_message(),
+			'Google sign-in failed. Please try again.',
 			array( 'status' => 401 )
 		);
 	}
@@ -50,7 +51,7 @@ function ec_verify_google_token( $id_token ) {
 		return new WP_Error( 'missing_email', 'Token missing email address.', array( 'status' => 401 ) );
 	}
 
-	if ( empty( $payload['email_verified'] ) || $payload['email_verified'] !== true ) {
+	if ( empty( $payload['email_verified'] ) || true !== $payload['email_verified'] ) {
 		return new WP_Error( 'email_not_verified', 'Google email is not verified.', array( 'status' => 401 ) );
 	}
 
@@ -89,15 +90,14 @@ function ec_oauth_google_user( $google_user, $from_join = false, $registration_d
 		);
 	}
 
-	// Check if user exists with this email (auto-link).
+	// Check if user exists with this email - require password login to link.
 	$existing_by_email = get_user_by( 'email', $email );
 	if ( $existing_by_email ) {
-		ec_link_google_account( $existing_by_email->ID, $google_id );
-
-		return array(
-			'user_id' => $existing_by_email->ID,
-			'is_new'  => false,
-			'user'    => $existing_by_email,
+		// Don't auto-link - require user to authenticate with password first.
+		return new WP_Error(
+			'account_exists_unlinked',
+			'An account with this email already exists. Please log in with your password to link your Google account.',
+			array( 'status' => 409 )
 		);
 	}
 
@@ -143,10 +143,12 @@ function ec_oauth_google_user( $google_user, $from_join = false, $registration_d
 
 	// Update display name from Google.
 	if ( ! empty( $name ) ) {
-		wp_update_user( array(
-			'ID'           => (int) $user_id,
-			'display_name' => $name,
-		) );
+		wp_update_user(
+			array(
+				'ID'           => (int) $user_id,
+				'display_name' => $name,
+			)
+		);
 	}
 
 	$user = get_user_by( 'id', (int) $user_id );
@@ -194,11 +196,13 @@ function ec_get_user_by_google_id( $google_id ) {
 		return false;
 	}
 
-	$users = get_users( array(
-		'meta_key'   => 'google_user_id',
-		'meta_value' => $google_id,
-		'number'     => 1,
-	) );
+	$users = get_users(
+		array(
+			'meta_key'   => 'google_user_id',
+			'meta_value' => $google_id,
+			'number'     => 1,
+		)
+	);
 
 	return ! empty( $users ) ? $users[0] : false;
 }

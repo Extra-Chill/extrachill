@@ -21,13 +21,13 @@ add_filter( 'extrachill_create_community_user', 'ec_multisite_create_community_u
  * @return int|WP_Error User ID on success, WP_Error on failure.
  */
 function ec_multisite_create_community_user( $user_id, $registration_data ) {
-	$username              = isset( $registration_data['username'] ) ? $registration_data['username'] : '';
-	$password              = isset( $registration_data['password'] ) ? $registration_data['password'] : '';
-	$email                 = isset( $registration_data['email'] ) ? $registration_data['email'] : '';
-	$from_join             = isset( $registration_data['from_join'] ) ? (bool) $registration_data['from_join'] : false;
-	$registration_page     = isset( $registration_data['registration_page'] ) ? $registration_data['registration_page'] : '';
-	$registration_source   = isset( $registration_data['registration_source'] ) ? $registration_data['registration_source'] : '';
-	$registration_method   = isset( $registration_data['registration_method'] ) ? $registration_data['registration_method'] : '';
+	$username            = isset( $registration_data['username'] ) ? $registration_data['username'] : '';
+	$password            = isset( $registration_data['password'] ) ? $registration_data['password'] : '';
+	$email               = isset( $registration_data['email'] ) ? $registration_data['email'] : '';
+	$from_join           = isset( $registration_data['from_join'] ) ? (bool) $registration_data['from_join'] : false;
+	$registration_page   = isset( $registration_data['registration_page'] ) ? $registration_data['registration_page'] : '';
+	$registration_source = isset( $registration_data['registration_source'] ) ? $registration_data['registration_source'] : '';
+	$registration_method = isset( $registration_data['registration_method'] ) ? $registration_data['registration_method'] : '';
 
 	if ( empty( $username ) || empty( $password ) || empty( $email ) ) {
 		return new WP_Error( 'missing_fields', 'Username, password, and email are required.' );
