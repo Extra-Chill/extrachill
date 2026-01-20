@@ -30,25 +30,13 @@ ExtraChill News Wire is a standalone WordPress plugin providing comprehensive fe
 - **Content Cards**: Modular content display components
 - **Mobile Responsive**: Fully responsive design with optimized mobile experience
 
-## Installation
+## Build + deployment
 
-### Production Build Installation
-1. Navigate to plugin directory and create production build:
-   ```bash
-   cd extrachill-plugins/extrachill-news-wire
-   ./build.sh
-   ```
-2. Go to WordPress Admin > Plugins > Add New
-3. Click "Upload Plugin" and select the ZIP file from `/build` directory
-4. Activate the plugin
+Build the production ZIP with `./build.sh` (symlinked to `/.github/build.sh`).
 
-### Manual Installation
-1. Copy plugin files to WordPress plugins directory:
-   ```bash
-   cp -r extrachill-plugins/extrachill-news-wire /path/to/wp-content/plugins/
-   ```
-2. Activate the plugin through the WordPress admin
+Deployments and remote operations run through **Homeboy** (`homeboy/` in this repo).
 
+The build artifact is `build/extrachill-news-wire.zip`.
 ### Requirements
 - WordPress 5.0 or higher
 - PHP 7.4 or higher

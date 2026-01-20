@@ -27,8 +27,6 @@ Thumbs.db
 composer.lock
 package-lock.json
 .claude/
-CLAUDE.md
-AGENTS.md
 .buildignore
 build.sh
 docs/.docs-sync.json

@@ -21,8 +21,12 @@ define( 'FESTIVAL_WIRE_TEMPLATE_DIR', FESTIVAL_WIRE_PLUGIN_DIR . 'templates/' );
 
 require_once FESTIVAL_WIRE_INCLUDE_DIR . 'festival-wire-post-type.php';
 require_once FESTIVAL_WIRE_INCLUDE_DIR . 'festival-wire-query-filters.php';
+require_once FESTIVAL_WIRE_INCLUDE_DIR . 'festival-metadata.php';
+require_once FESTIVAL_WIRE_INCLUDE_DIR . 'theme-integration.php';
 require_once FESTIVAL_WIRE_INCLUDE_DIR . 'core/breadcrumbs.php';
 require_once FESTIVAL_WIRE_INCLUDE_DIR . 'core/post-meta.php';
+require_once FESTIVAL_WIRE_INCLUDE_DIR . 'core/festival-term-meta.php';
+require_once FESTIVAL_WIRE_INCLUDE_DIR . 'core/festival-hub-header.php';
 
 function enqueue_festival_wire_assets() {
 	global $wp_query;
