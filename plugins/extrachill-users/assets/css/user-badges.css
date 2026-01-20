@@ -1,0 +1,75 @@
+/*
+ * User Badge Styling
+ *
+ * Badge styling for artists, team members, and professionals.
+ * Used network-wide across forums, leaderboards, and profiles.
+ *
+ * @package ExtraChill\Users
+ * @since 0.6.0
+ */
+
+/* Badge Color Variables */
+:root {
+    --artist-badge-color: #E21FC5;
+    --team-badge-color: #1fc5e2;
+    --professional-badge-color: #9D1FE2;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --artist-badge-color: #E21FC5;
+        --team-badge-color: #1fc5e2;
+        --professional-badge-color: #9D1FE2;
+    }
+}
+
+/* Base Badge Styling */
+.user-is-artist,
+.extrachill-team-member,
+.user-is-professional {
+  margin-right: 5px;
+  position: relative;
+  cursor: help;
+  display: inline-flex;
+}
+
+.user-is-artist .ec-icon {
+  color: var(--artist-badge-color);
+}
+
+.extrachill-team-member .ec-icon {
+  color: var(--team-badge-color);
+}
+
+.user-is-professional .ec-icon {
+  color: var(--professional-badge-color);
+}
+
+/* Tooltip Styling */
+.user-is-artist[data-title]::before,
+.extrachill-team-member[data-title]::before,
+.user-is-professional[data-title]::before {
+  content: attr(data-title);
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-bottom: 5px;
+  padding: 5px 8px;
+  color: var(--header-text-color);
+  background: var(--background-color);
+  border: 1px solid var(--border-color);
+  border-radius: 5px;
+  font-size: var(--font-size-sm);
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease-in-out;
+  z-index: 1000;
+}
+
+.user-is-artist[data-title]:hover::before,
+.extrachill-team-member[data-title]:hover::before,
+.user-is-professional[data-title]:hover::before {
+  opacity: 1;
+}
