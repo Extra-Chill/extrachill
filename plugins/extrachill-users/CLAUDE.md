@@ -6,9 +6,9 @@ User management functionality was migrated here from extrachill-multisite plugin
 
 ## Plugin Information
 
-- **Name**: Extra Chill Users
-- **Version**: 0.5.6
-- **Text Domain**: `extrachill-users`
+ - **Name**: Extra Chill Users
+ - **Version**: 0.5.10
+ - **Text Domain**: `extrachill-users`
 - **Author**: Chris Huber
 - **Author URI**: https://chubes.net
 - **License**: GPL v2 or later
@@ -26,10 +26,10 @@ User management functionality was migrated here from extrachill-multisite plugin
 **Migration History**: User management features were extracted from extrachill-multisite plugin to follow the single responsibility principle. This plugin now handles ALL user-specific logic while extrachill-multisite focuses solely on multisite infrastructure (Cloudflare Turnstile and network admin menu).
 
 ### Plugin Loading Pattern
-- **Procedural WordPress Pattern**: Uses direct `require_once` includes for all plugin functionality
-- **Network Plugin Structure**: Network-activated plugin providing functionality across all multisite installations
-- **Gutenberg Blocks**: Registers login/register and password reset blocks via `register_block_type()`
-- **Modular Organization**: 17 include files organized by functionality domain
+ - **Procedural WordPress Pattern**: Uses direct `require_once` includes for all plugin functionality
+ - **Network Plugin Structure**: Network-activated plugin providing functionality across all multisite installations
+ - **Gutenberg Blocks**: Registers login/register, password reset, and onboarding blocks via `register_block_type()`
+ - **Modular Organization**: Include files organized by functionality domain
 
 ### Core Features
 
@@ -108,9 +108,17 @@ User management functionality was migrated here from extrachill-multisite plugin
 - Total members count cached for 24 hours
 
 **Most Ever Online Tracking**:
-- Tracks highest concurrent user count with recorded date
-- Stored in `most_ever_online` option on community.extrachill.com
-- Format: `array('count' => 123, 'date' => 'm/d/Y')`
+ - Tracks highest concurrent user count with recorded date
+ - Stored in `most_ever_online` option on community.extrachill.com
+ - Format: `array('count' => 123, 'date' => 'm/d/Y')`
+
+**Online Users Stats Footer Component** (`inc/footer/online-users-stats.php`):
+ - Displays network-wide online users count and total members in footer
+ - Hooks into `extrachill_before_footer` action
+ - Uses `ec_get_online_users_count()` for online count (5-minute cache)
+ - Fetches total members from community site with 24-hour cache
+ - Displays customizable labels via `extrachill_users_online_label` and `extrachill_users_members_label` filters
+ - Styled as compact stats card with icons (online indicator circle and users icon)
 
 #### Custom Avatar Display System (`inc/avatar-display.php`)
 
@@ -167,8 +175,32 @@ User management functionality was migrated here from extrachill-multisite plugin
 4. Fallback to `extrachill_team` meta value
 
 **Cross-Site Integration**:
-- Uses `switch_to_blog()` and `restore_current_blog()` for main site account verification
-- Dynamic site discovery with automatic WordPress blog-id-cache for performance
+ - Uses `switch_to_blog()` and `restore_current_blog()` for main site account verification
+ - Dynamic site discovery with automatic WordPress blog-id-cache for performance
+
+#### Shop Permissions System (`inc/shop-permissions.php`)
+
+**Purpose**: Canonical helpers for determining whether a user can manage shop and counting their shop products
+
+**Functions**:
+ - `ec_can_manage_shop( $user_id = null )` - Returns whether user can manage shop (admin-only until public release)
+ - `ec_get_shop_product_count_for_user( $user_id = null )` - Returns total number of shop products for user
+
+**Shop Permission Logic**:
+ - Admin-only access (requires `manage_options` capability) until shop system is ready for public use
+ - Additional check for artist ownership via `ec_get_artists_for_user()`
+ - Returns true if user has at least one published artist profile
+
+**Product Count Logic**:
+ - Performs cross-site query to shop blog (Blog ID 3)
+ - Queries WooCommerce products with `_artist_profile_id` meta matching user's artists
+ - Uses `WP_Query` with proper blog switching and try/finally blocks
+ - Returns count of published products
+
+**Integration Points**:
+ - Used by avatar menu system for displaying shop product counts
+ - Used by shop plugin for access control
+ - Integrates with artist profile relationship system
 
 #### User Creation System (`inc/user-creation.php`)
 **Filter**: `extrachill_create_community_user`
@@ -248,50 +280,9 @@ User management functionality was migrated here from extrachill-multisite plugin
 #### Cross-Site Artist Linking (`inc/artist-profiles.php`)
 **Canonical Linking**:
 - `ec_get_artist_profile_by_slug()` and `ec_render_cross_site_artist_profile_links()` have been migrated to the `extrachill-multisite` plugin (`inc/cross-site-links/`) to provide unified linking across the 11-site network.
-- This plugin now consumes these centralized functions for all user-artist profile link resolution.
+ - This plugin now consumes these centralized functions for all user-artist profile link resolution.
 
-#### Author Profile URL Resolution (`inc/author-links.php`)
-**Functions**:
-- `ec_get_user_profile_url( $user_id, $user_email = '' )` - Centralized user profile URL logic
-- `ec_get_comment_author_link_multisite( $comment )` - Generate comment author link HTML that routes to community profiles
-- `ec_should_use_multisite_comment_links( $comment )` - Check if comment should use multisite linking (after Feb 9, 2024)
-- `ec_display_author_community_link( $author_id )` - Display "View Community Profile" button on author archives
-- `ec_customize_comment_form_logged_in( $defaults )` - Fix wp-admin profile links to route to community bbPress profile
-
-**Multisite Routing**:
-`ec_get_comment_author_link_multisite` ensures that comment authors are linked to their `community.extrachill.com` profiles rather than local site archives, maintaining identity consistency across the network.
-
-**Resolution Logic**:
-1. Try email lookup on community site → return bbPress profile URL
-2. Try user_id lookup on community site → return bbPress profile URL
-3. Fall back to main site author archive URL
-
-**New Helpers**:
-- `ec_get_user_community_profile_url( $user_id, $user_email = '' )` - Explicit community bbPress profile resolver
-- `ec_get_user_author_archive_url( $user_id )` - Explicit main site author archive resolver (always returns a URL when possible)
-
-**Usage Guidance**:
-- Use `ec_get_user_profile_url()` for general-purpose profile links (mentions, avatar menus, “View Profile”) so identity always resolves to the community bbPress profile when possible.
-- Use `ec_get_user_author_archive_url()` for article contexts (post bylines, “More articles by…”) where `/author/{slug}/` is desirable even if the user also has a community profile.
-
-**URL Formats**:
-- Community profiles: `https://community.extrachill.com/u/username/`
-- Main site author archives: `https://extrachill.com/author/username/`
-
-**Bidirectional Profile Linking**:
-The platform provides bidirectional linking between author archives and community profiles:
-
-1. **Community Profile → Author Archive**:
-   - Community profile can show an "Extra Chill Articles" link to the author archive.
-   - Gating (>= 1 published post) is handled in extrachill-community.
-
-2. **Author Archive → Community Profile**:
-   - Function: `ec_display_author_community_link( $author_id )`
-   - Hook: `extrachill_after_author_bio` (priority 10)
-   - URL: `https://community.extrachill.com/u/{user_nicename}/`
-   - Conditional: Only displays if user exists on community.extrachill.com
-
-**Integration**: Used by theme for comment author links, user profile display, and bidirectional profile navigation
+**Note**: Profile URL resolution functionality (including `ec_get_user_profile_url`, `ec_get_comment_author_link_multisite`, `ec_display_author_community_link`, and `ec_get_user_author_archive_url`) has been migrated to the `extrachill-multisite` plugin (`inc/cross-site-links/`) for unified cross-site linking across the 11-site network. This plugin now consumes these centralized functions from extrachill-multisite for all profile URL resolution needs.
 
 #### Avatar Menu System (`inc/avatar-menu.php`)
 **Function**: `extrachill_display_user_avatar_menu()`
@@ -413,42 +404,47 @@ array(
 
 ```
 extrachill-users/
-├── extrachill-users.php           (main plugin file)
-├── inc/
-│   ├── team-members.php           (team member functions)
-│   ├── admin-access-control.php   (admin access restriction)
-│   ├── author-links.php           (profile URL resolution)
-│   ├── artist-profiles.php        (artist profile functions - network-wide canonical)
-│   ├── auth/
-│   │   ├── class-redirect-handler.php (redirect handler class)
-│   │   ├── login.php              (login handler with `EC_Redirect_Handler`)
-│   │   ├── register.php           (registration handler with newsletter, roster require)
-│   │   ├── logout.php             (custom logout handler)
-│   │   └── password-reset.php     (password reset handler)
-│   ├── auth-tokens/
-│   │   ├── bearer-auth.php        (bearer token authentication)
-│   │   ├── db.php                 (token database operations)
-│   │   ├── service.php            (token service layer)
-│   │   └── tokens.php             (token generation and validation)
-│   ├── badges/
-│   │   └── user-badges.php        (user badge system)
-│   ├── core/
-│   │   ├── activation.php         (plugin activation)
-│   │   ├── online-users.php       (activity tracking)
-│   │   ├── registration-emails.php (welcome email system)
-│   │   └── user-creation.php      (community user creation filter)
-│   ├── oauth/
-│   │   ├── google-service.php     (Google OAuth integration)
-│   │   └── jwt-rs256.php          (RS256 ID token verification)
-│   ├── onboarding/
-│   │   └── service.php            (user onboarding service)
-│   ├── rank-system/
-│   │   └── rank-tiers.php         (user rank tier system)
-│   ├── avatar-display.php         (custom avatar display - network-wide)
-│   ├── avatar-menu.php            (avatar menu display)
-│   ├── comment-auto-approval.php  (comment auto-approval for logged-in users)
-│   ├── lifetime-membership.php    (membership validation)
-│   └── assets.php                 (asset enqueuing)
+ ├── extrachill-users.php           (main plugin file)
+ ├── inc/
+ │   ├── auth/
+ │   │   ├── browser-handoff-handler.php (browser handoff for app authentication)
+ │   │   ├── class-redirect-handler.php (redirect handler class)
+ │   │   ├── login.php              (login handler with `EC_Redirect_Handler`)
+ │   │   ├── logout.php             (custom logout handler)
+ │   │   ├── password-reset.php     (password reset handler)
+ │   │   └── register.php           (registration handler with newsletter, roster require)
+ │   ├── auth-tokens/
+ │   │   ├── bearer-auth.php        (bearer token authentication)
+ │   │   ├── browser-handoff-token.php (browser handoff token generation/consumption)
+ │   │   ├── db.php                 (token database operations)
+ │   │   ├── service.php            (token service layer)
+ │   │   └── tokens.php             (token generation and validation)
+ │   ├── badges/
+ │   │   └── user-badges.php        (user badge system)
+ │   ├── core/
+ │   │   ├── activation.php         (plugin activation)
+ │   │   ├── online-users.php       (activity tracking)
+ │   │   ├── registration-emails.php (welcome email system)
+ │   │   └── user-creation.php      (community user creation filter)
+ │   ├── footer/
+ │   │   └── online-users-stats.php (online users footer component)
+ │   ├── oauth/
+ │   │   ├── google-service.php     (Google OAuth integration)
+ │   │   └── jwt-rs256.php          (RS256 ID token verification)
+ │   ├── onboarding/
+ │   │   └── service.php            (user onboarding service)
+ │   ├── rank-system/
+ │   │   └── rank-tiers.php         (user rank tier system)
+ │   ├── admin-access-control.php   (admin access restriction)
+ │   ├── artist-profiles.php        (artist profile functions - network-wide canonical)
+ │   ├── assets.php                 (asset enqueuing)
+ │   ├── avatar-display.php         (custom avatar display - network-wide)
+ │   ├── avatar-menu-items.php      (avatar menu items builder)
+ │   ├── avatar-menu.php            (avatar menu display)
+ │   ├── comment-auto-approval.php  (comment auto-approval for logged-in users)
+ │   ├── lifetime-membership.php    (membership validation)
+ │   ├── shop-permissions.php       (shop management permission helpers)
+ │   └── team-members.php           (team member functions)
 ├── assets/
 │   ├── css/
 │   │   ├── avatar-menu.css        (avatar menu styles)
@@ -466,9 +462,11 @@ extrachill-users/
 │   ├── login-register/            (Compiled Login/Register block)
 │   ├── onboarding/                (Compiled Onboarding block)
 │   └── password-reset/            (Compiled Password Reset block)
-├── docs/
-│   ├── CHANGELOG.md               (version history)
-│   └── user-management.md         (user management documentation)
+ ├── docs/
+ │   ├── CHANGELOG.md               (version history)
+ │   ├── PLAN-onboarding-system.md   (onboarding system plan)
+ │   ├── browser-handoff.md         (browser handoff documentation)
+ │   └── user-management.md         (user management documentation)
 ├── package.json                   (npm dependencies for blocks)
 ├── composer.json                  (dev dependencies)
 ├── .buildignore                   (build exclusions)
@@ -498,36 +496,49 @@ if ( $blog_id = ec_get_blog_id( 'community' ) ) {
 
 ### Plugin Loading Strategy
 **Main Plugin File** (`extrachill-users.php`):
-- Network activation check (requires multisite installation)
-- Defines plugin constants (VERSION, PLUGIN_FILE, PLUGIN_DIR, PLUGIN_URL)
-- Registers Gutenberg blocks via `register_block_type()` in `init` action
-- Loads 18 core includes via `plugins_loaded` action
-- Registers newsletter integration via `newsletter_form_integrations` filter
+ - Network activation check (requires multisite installation)
+ - Defines plugin constants (VERSION, PLUGIN_FILE, PLUGIN_DIR, PLUGIN_URL)
+ - Registers Gutenberg blocks via `register_block_type()` in `init` action
+ - Loads core includes via `plugins_loaded` action
+ - Registers newsletter integration via `newsletter_form_integrations` filter
 
 **Block Registration** (via `extrachill_users_register_blocks()`):
-- `build/login-register` - Login/Register block
-- `build/password-reset` - Password Reset block
+ - `build/login-register` - Login/Register block
+ - `build/password-reset` - Password Reset block
+ - `build/onboarding` - Onboarding block
 
 **Include Loading Order** (via `extrachill_users_init()`):
-1. `inc/auth/class-redirect-handler.php` - Redirect handler class
-2. `inc/auth/login.php` - Login handler (EC_Redirect_Handler)
-3. `inc/auth/register.php` - Registration handler with newsletter and roster invite handling
-4. `inc/auth/logout.php` - Custom logout handler
-5. `inc/auth/password-reset.php` - Password reset handler
-6. `inc/core/online-users.php` - Activity tracking
-7. `inc/core/registration-emails.php` - Welcome email system
-8. `inc/core/user-creation.php` - User creation filter
-9. `inc/team-members.php` - Team member functions
-10. `inc/admin-access-control.php` - Admin access restriction
-11. `inc/author-links.php` - Profile URL resolution
-12. `inc/artist-profiles.php` - Artist profile functions (network-wide canonical)
-13. `inc/assets.php` - Asset management
-14. `inc/avatar-display.php` - Avatar display (loads network-wide)
-15. `inc/avatar-menu.php` - Avatar menu (loads network-wide)
-16. `inc/comment-auto-approval.php` - Comment auto-approval system
-17. `inc/lifetime-membership.php` - Lifetime membership validation
+ 1. `inc/assets.php` - Asset management
+ 2. `inc/admin-access-control.php` - Admin access restriction
+ 3. `inc/core/online-users.php` - Activity tracking
+ 4. `inc/core/user-creation.php` - User creation filter
+ 5. `inc/core/registration-emails.php` - Welcome email system
+ 6. `inc/auth/login.php` - Login handler (EC_Redirect_Handler)
+ 7. `inc/auth/register.php` - Registration handler with newsletter and roster invite handling
+ 8. `inc/auth/logout.php` - Custom logout handler
+ 9. `inc/auth/password-reset.php` - Password reset handler
+ 10. `inc/auth/browser-handoff-handler.php` - Browser handoff handler for app authentication
+ 11. `inc/auth/class-redirect-handler.php` - Redirect handler class
+ 12. `inc/auth-tokens/tokens.php` - Token generation and validation
+ 13. `inc/auth-tokens/service.php` - Token service layer
+ 14. `inc/auth-tokens/bearer-auth.php` - Bearer token authentication
+ 15. `inc/auth-tokens/browser-handoff-token.php` - Browser handoff token generation/consumption
+ 16. `inc/oauth/google-service.php` - Google OAuth integration
+ 17. `inc/oauth/jwt-rs256.php` - RS256 ID token verification
+ 18. `inc/avatar-display.php` - Avatar display (loads network-wide)
+ 19. `inc/avatar-menu.php` - Avatar menu display
+ 20. `inc/avatar-menu-items.php` - Avatar menu items builder
+ 21. `inc/artist-profiles.php` - Artist profile functions (network-wide canonical)
+ 22. `inc/team-members.php` - Team member functions
+ 23. `inc/badges/user-badges.php` - User badge system
+ 24. `inc/rank-system/rank-tiers.php` - User rank tier system
+ 25. `inc/onboarding/service.php` - User onboarding service
+ 26. `inc/lifetime-membership.php` - Lifetime membership validation
+ 27. `inc/shop-permissions.php` - Shop management permission helpers
+ 28. `inc/comment-auto-approval.php` - Comment auto-approval system
+ 29. `inc/footer/online-users-stats.php` - Online users footer component
 
-**Note**: Avatar upload UI moved to extrachill-community plugin for bbPress integration
+**Note**: Profile URL resolution functions (ec_get_user_profile_url, ec_get_comment_author_link_multisite, ec_display_author_community_link, ec_get_user_author_archive_url) are provided by extrachill-multisite plugin. Avatar upload UI is provided by extrachill-community plugin for bbPress integration.
 
 
 ## Development Standards
