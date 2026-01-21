@@ -33,8 +33,12 @@ extrachill-api/
 │       │   ├── feed.php (Activity feed with filtering)
 │       │   └── object.php (Object resolver for posts/comments/artists)
 │       ├── admin/
+│       │   ├── 404-logger.php (404 error monitoring for SEO)
 │       │   ├── lifetime-membership.php (Lifetime Extra Chill Membership management)
 │       │   ├── artist-access.php (Artist access approval/rejection)
+│       │   ├── artist-relationships.php (User-artist relationship management)
+│       │   ├── forum-topics.php (bbPress forum topic management)
+│       │   ├── tags.php (Tag migration management)
 │       │   ├── taxonomy-sync.php (Taxonomy sync across sites)
 │       │   └── team-members.php (Team member sync and management)
 │       ├── analytics/
@@ -64,7 +68,7 @@ extrachill-api/
 │       │   ├── image-voting.php (Image voting vote counts)
 │       │   ├── image-voting-vote.php (Vote on images)
 │       │   ├── rapper-name.php (Rapper name generator)
-│       │   └── taxonomy-counts.php (Blog post counts by taxonomy)
+│       │   └── taxonomy-counts.php (Blog taxonomy counts)
 │       ├── chat/
 │       │   ├── history.php (Clear chat history)
 │       │   └── message.php (Send/receive chat messages)
@@ -88,7 +92,9 @@ extrachill-api/
 │       ├── seo/
 │       │   ├── audit.php (Start multisite SEO audit)
 │       │   ├── continue.php (Continue paused audit)
-│       │   └── status.php (Audit status check)
+│       │   ├── status.php (Audit status check)
+│       │   ├── details.php (Get detailed audit results)
+│       │   └── config.php (SEO audit configuration)
 │       ├── shop/
 │       │   ├── orders.php (Artist order management)
 │       │   ├── product-images.php (Product image upload/delete)
@@ -97,13 +103,14 @@ extrachill-api/
 │       │   ├── shipping-labels.php (Shippo label purchase)
 │       │   ├── stripe-connect.php (Stripe Connect management)
 │       │   ├── stripe-webhook.php (Stripe webhook handler)
-│       │   └── taxonomy-counts.php (Product counts by taxonomy)
+│       │   └── taxonomy-counts.php (Shop taxonomy counts)
 │       ├── tools/
-│       │   └── qr-code.php (QR code generator)
+│       │   ├── qr-code.php (QR code generator)
+│       │   └── markdown-export.php (Markdown content export)
 │       ├── stream/
 │       │   └── status.php (Stream status endpoint)
 │       ├── wire/
-│       │   └── taxonomy-counts.php (Wire post counts by taxonomy)
+│       │   └── taxonomy-counts.php (Wire taxonomy counts)
 │       └── users/
 │           ├── artists.php (User artist relationships)
 │           ├── leaderboard.php (User leaderboard)
@@ -125,22 +132,23 @@ All endpoints are under the `extrachill/v1` namespace.
 - `POST /auth/google` - Google OAuth authentication
 - `POST /auth/browser-handoff` - Browser handoff for cross-device auth
 
-**Documentation**: [docs/routes/auth/](../extrachill-plugins/extrachill-api/docs/routes/auth/)
+**Documentation**: `docs/routes/` (see route category folders)
 
 ### Configuration Endpoints (1)
 - `GET /config/oauth` - OAuth provider configuration
 
-**Documentation**: [docs/routes/config/oauth.md](../extrachill-plugins/extrachill-api/docs/routes/config/oauth.md)
+**Documentation**: `docs/routes/` (see specific route files)
 
-### Analytics Endpoints (6)
-- `POST /analytics/view` - Async view tracking (increments `ec_post_views`; fires link page view hook for `artist_link_page`)
+### Analytics Endpoints (7)
+- `POST /analytics/view` - Async view tracking (increments `ec_post_views`)
 - `POST /analytics/click` - Unified click tracking (`share`, `link_page_link`)
 - `GET /analytics/link-page` - Fetch link page analytics (authenticated, provider-driven)
+- `POST /analytics/link-page` - Track link page view events
 - `GET /analytics/events` - Query network analytics events (admin-only)
 - `GET /analytics/events/summary` - Aggregate network event stats (admin-only)
 - `GET /analytics/meta` - Analytics filter metadata (admin-only)
 
-**Documentation**: [docs/routes/analytics/](../extrachill-plugins/extrachill-api/docs/routes/analytics/)
+**Documentation**: `docs/routes/analytics/`
 
 ### Artist API (9)
 - `GET/PUT /artists/{id}` - Core artist profile data
@@ -189,7 +197,7 @@ All endpoints are under the `extrachill/v1` namespace.
 
 **Documentation**: [docs/routes/activity/](../extrachill-plugins/extrachill-api/docs/routes/activity/)
 
-### Admin Endpoints (11)
+### Admin Endpoints (23)
 - `GET /admin/artist-access` - List all pending requests
 - `GET/POST /admin/artist-access/{user_id}/approve` - Approve artist access request
 - `POST /admin/artist-access/{user_id}/reject` - Reject artist access request
@@ -200,6 +208,19 @@ All endpoints are under the `extrachill/v1` namespace.
 - `POST /admin/team-members/sync` - Sync team members
 - `PUT /admin/team-members/{user_id}` - Manage team member status
 - `POST /admin/taxonomies/sync` - Sync shared taxonomies across sites
+- `GET /admin/tags` - List tags for migration searching
+- `POST /admin/tags/migrate` - Migrate tags between taxonomies
+- `GET /admin/forum-topics/forums` - List all forums with topic counts
+- `GET /admin/forum-topics` - List forum topics with pagination
+- `POST /admin/forum-topics/move` - Move topics to different forum
+- `GET /admin/404-logger/settings` - Get 404 logger settings
+- `POST /admin/404-logger/settings` - Update 404 logger settings
+- `GET /admin/404-logger/stats` - Get 404 logger statistics
+- `GET /admin/artist-relationships` - Manage user-artist links
+- `POST /admin/artist-relationships/link` - Link user to artist
+- `POST /admin/artist-relationships/unlink` - Unlink user from artist
+- `GET /admin/artist-relationships/orphans` - List orphaned user-artist relationships
+- `POST /admin/artist-relationships/cleanup` - Clean up orphaned relationships
 
 **Documentation**: [docs/routes/admin/](../extrachill-plugins/extrachill-api/docs/routes/admin/)
 
@@ -230,7 +251,7 @@ All endpoints are under the `extrachill/v1` namespace.
 **Documentation**: [docs/routes/media/upload.md](../extrachill-plugins/extrachill-api/docs/routes/media/upload.md)
 
 ### Newsletter (2)
-- `POST /newsletter/subscription` - Subscribe to newsletter
+- `POST /newsletter/subscribe` - Subscribe to newsletter
 - `POST /newsletter/campaign/push` - Push newsletter to Sendy
 
 **Documentation**: [docs/routes/newsletter/](../extrachill-plugins/extrachill-api/docs/routes/newsletter/)
@@ -257,15 +278,18 @@ All endpoints are under the `extrachill/v1` namespace.
 
 **Documentation**: [docs/routes/stream/status.md](../extrachill-plugins/extrachill-api/docs/routes/stream/status.md)
 
-### Tools (1)
+### Tools (2)
 - `POST /tools/qr-code` - Generate QR codes
+- `GET /tools/markdown-export` - Export content as markdown
 
-**Documentation**: [docs/routes/tools/qr-code.md](../extrachill-plugins/extrachill-api/docs/routes/tools/qr-code.md)
+**Documentation**: [docs/routes/tools/](../extrachill-plugins/extrachill-api/docs/routes/tools/)
 
-### SEO Endpoints (3)
+### SEO Endpoints (5)
 - `POST /seo/audit` - Start multisite SEO audit (full or batch mode)
 - `POST /seo/audit/continue` - Continue paused batch audit
 - `GET /seo/audit/status` - Check audit status and results
+- `GET /seo/audit/details` - Get detailed audit results by category with pagination
+- `GET /seo/config` - Get SEO audit configuration
 
 **Documentation**: [docs/routes/seo/](../extrachill-plugins/extrachill-api/docs/routes/seo/)
 
@@ -360,5 +384,5 @@ The mobile app (extrachill-app) consumes the following endpoints:
 
 - **[README.md](README.md)** - GitHub standard format overview
 - **[docs/routes/](docs/routes/)** - Detailed endpoint specifications
-- **[Root AGENTS.md](../../AGENTS.md)** - Platform-wide architectural patterns
+- **[Root CLAUDE.md](../../CLAUDE.md)** - Platform-wide architectural patterns
 - **[WordPress REST API Handbook](https://developer.wordpress.org/rest-api/)** - Official REST API documentation

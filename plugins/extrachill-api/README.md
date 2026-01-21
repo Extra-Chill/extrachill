@@ -12,15 +12,15 @@ The plugin also owns the network-wide activity storage table (`{base_prefix}extr
 
 - **Network-Wide Activation**: All endpoints available on every site in the multisite network
 - **Activity Storage**: Maintains the network-wide `{base_prefix}extrachill_activity` table used by the activity feed endpoints
-- **Automatic Route Discovery**: Recursively loads route files from `inc/routes/` directory
-- **Versioned Namespace**: All endpoints under `extrachill/v1` for future API evolution
-- **Modular Organization**: Routes organized by feature (`blocks/`, `community/`, etc.)
-- **WordPress REST API Standards**: Full compliance with WordPress REST API conventions
-- **Security First**: Nonce verification, permission callbacks, input validation on all endpoints
+- **Automatic Route Discovery**: Recursively loads route files from `inc/routes/`
+- **Versioned Namespace**: All endpoints are under `extrachill/v1`
+- **Modular Organization**: Routes are organized by feature (`admin/`, `artists/`, `shop/`, etc.)
+- **Security**: Endpoints use permission callbacks, validation, and sanitization (per-route implementation)
+- **Activity Storage**: Maintains a network-wide `{base_prefix}extrachill_activity` table used by activity endpoints
 
 ## Current Endpoints
 
-The plugin provides 66 endpoint files across 18 feature categories, all under the `extrachill/v1` namespace:
+The plugin ships route files under `inc/routes/` (loaded recursively) and registers endpoints under the `extrachill/v1` namespace:
 
 ### Authentication Endpoints (7)
 - `POST /auth/browser-handoff` - Browser handoff for cross-device auth
@@ -34,13 +34,14 @@ The plugin provides 66 endpoint files across 18 feature categories, all under th
 ### Configuration Endpoints (1)
 - `GET /config/oauth` - OAuth provider configuration
 
-### Analytics Endpoints (6)
-- `POST /analytics/view` - Async view tracking (increments `ec_post_views`; fires link page view hook for `artist_link_page`)
-- `POST /analytics/click` - Unified click tracking (`share`, `link_page_link`)
-- `GET /analytics/link-page` - Fetch link page analytics (provider-driven via `extrachill_get_link_page_analytics`)
+### Analytics Endpoints
+- `POST /analytics/view` - Async view tracking (increments `ec_post_views`)
+- `POST /analytics/click` - Unified click tracking
+- `GET /analytics/link-page` - Fetch link page analytics
 - `GET /analytics/events` - Query network analytics events (requires `manage_network_options`)
 - `GET /analytics/events/summary` - Aggregate network event stats (requires `manage_network_options`)
 - `GET /analytics/meta` - Analytics filter metadata (requires `manage_network_options`)
+- `POST /analytics/link-page` - Track link page view events
 
 ### Artist API (9)
 - `GET/PUT /artists/{id}` - Core artist profile data
@@ -78,7 +79,7 @@ The plugin provides 66 endpoint files across 18 feature categories, all under th
 - `GET /activity` - Activity feed with filtering and pagination (authenticated)
 - `GET /object` - Object resolver for posts, comments, and artists (authenticated)
 
-### Admin Endpoints (11)
+### Admin Endpoints (14)
 - `GET /admin/artist-access` - List pending artist access requests
 - `GET/POST /admin/artist-access/{user_id}/approve` - Approve artist access request
 - `POST /admin/artist-access/{user_id}/reject` - Reject artist access request
@@ -91,6 +92,8 @@ The plugin provides 66 endpoint files across 18 feature categories, all under th
 - `POST /admin/taxonomies/sync` - Sync shared taxonomies across sites
 - `GET /admin/tag-migration` - List tags for migration searching
 - `GET /admin/forum-topics` - List and manage bbPress topics across network
+- `GET /admin/forum-topics/{topic_id}` - Manage a single bbPress topic
+- `PUT /admin/forum-topics/{topic_id}/status` - Update bbPress topic status
 - `GET /admin/404-logger` - Monitor 404 errors for SEO management
 - `GET /admin/artist-relationships` - Manage user-artist links
 
@@ -103,21 +106,23 @@ The plugin provides 66 endpoint files across 18 feature categories, all under th
 
 ### Documentation (2)
 - `GET /docs-info` - Documentation metadata
-- `POST /sync/doc` - Sync documentation (POST /wp-json/extrachill/v1/sync/doc)
+- `POST /sync/doc` - Sync documentation
 
 ### Event Submissions (1)
 - `POST /event-submissions` - Submit event with optional flyer
 
 ### Media Management (1)
-- `POST/DELETE /media` - Upload and manage images
+- `POST /media` - Upload media
 
 ### Newsletter (2)
-- `POST /newsletter/subscription` - Subscribe to newsletter
+- `POST /newsletter/subscribe` - Subscribe to newsletter
 - `POST /newsletter/campaign/push` - Push newsletter to Sendy
 
-### Shop Integration (7)
+### Shop Integration
 - `GET/POST/PUT/DELETE /shop/products` - Product CRUD operations
-- `GET/POST/DELETE /shop/orders` - Artist order management and fulfillment
+- `GET /shop/orders` - List orders (requires WooCommerce on the shop site)
+- `PUT /shop/orders/{id}/status` - Mark shipped (`status=completed`)
+- `POST /shop/orders/{id}/refund` - Issue full refund
 - `POST/DELETE /shop/products/{id}/images` - Product image management
 - `GET/POST/DELETE /shop/stripe` - Stripe Connect management
 - `POST /shop/stripe-webhook` - Stripe webhook handler
@@ -131,26 +136,15 @@ The plugin provides 66 endpoint files across 18 feature categories, all under th
 - `POST /tools/qr-code` - Generate QR codes
 - `GET /tools/markdown-export` - Export content as markdown
 
-### SEO Endpoints (4)
+### SEO Endpoints (5)
 - `POST /seo/audit` - Start multisite SEO audit (full or batch mode)
 - `POST /seo/audit/continue` - Continue paused batch audit
 - `GET /seo/audit/status` - Check audit status and results
 - `GET /seo/audit/details` - Get detailed audit results by category with pagination
+- `GET /seo/config` - Get SEO audit configuration
 
 
-See [AGENTS.md](AGENTS.md) for architectural patterns and [docs/routes/](docs/routes/) for complete endpoint documentation.
-
-## Installation
-
-### Requirements
-- WordPress 5.0+
-- PHP 7.4+
-- Extra Chill Platform multisite network
-
-### Setup
-1. Upload plugin to `/wp-content/plugins/extrachill-api/`
-2. **Network activate** via Network Admin → Plugins
-3. Endpoints immediately available on all network sites
+See [CLAUDE.md](CLAUDE.md) for architectural patterns and [docs/routes/](docs/routes/) for complete endpoint documentation.
 
 ## Usage
 
@@ -229,7 +223,7 @@ extrachill-api/
 ├── build.sh                    # Production build script (symlink)
 ├── composer.json               # Dependencies and scripts
 ├── .buildignore               # Build exclusions
-├── AGENTS.md                  # Technical documentation for AI agents
+├── CLAUDE.md                  # Technical documentation for AI agents
 ├── README.md                  # This file
 └── inc/
     ├── auth/
@@ -249,8 +243,12 @@ extrachill-api/
     │   └── id-generator.php
     └── routes/
         ├── admin/
+        │   ├── 404-logger.php
         │   ├── lifetime-membership.php
         │   ├── artist-access.php
+        │   ├── artist-relationships.php
+        │   ├── forum-topics.php
+        │   ├── tags.php
         │   ├── taxonomy-sync.php
         │   └── team-members.php
         ├── activity/
@@ -306,7 +304,9 @@ extrachill-api/
         ├── seo/
         │   ├── audit.php
         │   ├── continue.php
-        │   └── status.php
+        │   ├── status.php
+        │   ├── details.php
+        │   └── config.php
         ├── shop/
         │   ├── orders.php
         │   ├── product-images.php
@@ -318,7 +318,8 @@ extrachill-api/
         ├── stream/
         │   └── status.php
         ├── tools/
-        │   └── qr-code.php
+        │   ├── qr-code.php
+        │   └── markdown-export.php
         └── users/
             ├── artists.php
             ├── leaderboard.php
@@ -329,35 +330,14 @@ extrachill-api/
 
 ## Development
 
-### Local Setup
-```bash
-cd extrachill-plugins/extrachill-api
-
-# Install dependencies
-composer install
-
-# Run tests
-composer test
-
-# PHP linting
-composer run lint:php
-```
-
 ### Production Build
 ```bash
-# Create optimized production package
 ./build.sh
-
-# Output: build/extrachill-api.zip
 ```
 
 ### Testing Endpoints
 ```bash
-# List all registered routes
 wp rest list
-
-# Test endpoint with curl
-curl -X GET "http://site.local/wp-json/extrachill/v1/users/search?search=test"
 ```
 
 ## Integration
@@ -400,26 +380,18 @@ All endpoints implement WordPress REST API security standards:
 
 ## Performance
 
-- **Caching**: Endpoints return fresh data by default
-- **Query Optimization**: Prepared statements and pagination
-- **Network-Wide**: Single plugin serves all sites efficiently
-- **Automatic Discovery**: Minimal overhead with RecursiveIteratorIterator
+- Route files load once via `require_once` on plugin init
+- Per-endpoint performance depends on the underlying query and site context (some endpoints switch blog context)
 
 ## Dependencies
 
-**Required**:
-- WordPress 5.0+ (REST API support)
-- PHP 7.4+
+**Runtime**:
+- WordPress multisite
 
-**Recommended**:
-- extrachill-multisite (network-activated foundation)
-
-**Optional**:
-- extrachill-ai-client (for AI Adventure endpoint)
-- extrachill-blog (primary endpoint consumer)
-- extrachill-community (user search consumer)
-- extrachill-events (event submission consumer)
-- extrachill-multisite (Turnstile helpers for event submissions)
+**Optional integrations**:
+- WooCommerce (required by some `/shop/*` routes, in the shop site context)
+- `extrachill-multisite` (provides shared multisite helpers used by some routes)
+- `extrachill-ai-client` (used by AI generator routes when enabled)
 
 ## Hooks
 
@@ -438,8 +410,8 @@ Use the hook to notify editors, trigger Slack alerts, or log analytics without r
 
 ## Documentation
 
-- **[AGENTS.md](AGENTS.md)** - Comprehensive technical documentation for AI agents
-- **[Root AGENTS.md](../../AGENTS.md)** - Platform-wide architectural patterns
+- **[CLAUDE.md](CLAUDE.md)** - Comprehensive technical documentation for AI agents
+- **[Root CLAUDE.md](../../CLAUDE.md)** - Platform-wide architectural patterns
 - **[WordPress REST API Handbook](https://developer.wordpress.org/rest-api/)** - Official REST API documentation
 
 ## Support

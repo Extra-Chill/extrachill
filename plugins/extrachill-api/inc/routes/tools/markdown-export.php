@@ -72,16 +72,31 @@ function extrachill_api_validate_markdown_export_post_id( $post_id ) {
  */
 function extrachill_api_build_markdown_header( WP_Post $post, array $meta ) {
 	$title     = html_entity_decode( get_the_title( $post ), ENT_QUOTES | ENT_HTML5, 'UTF-8' );
-	$author    = get_the_author_meta( 'display_name', (int) $post->post_author );
 	$date      = get_the_date( 'F j, Y', $post );
 	$permalink = get_permalink( $post );
+
+	// Get authors - use Co-Authors Plus if available, fallback to post_author.
+	$authors = array();
+	if ( function_exists( 'get_coauthors' ) ) {
+		$coauthors = get_coauthors( $post->ID );
+		foreach ( $coauthors as $coauthor ) {
+			$authors[] = $coauthor->display_name;
+		}
+	}
+	if ( empty( $authors ) ) {
+		$author_name = get_the_author_meta( 'display_name', (int) $post->post_author );
+		if ( $author_name ) {
+			$authors[] = $author_name;
+		}
+	}
 
 	$lines   = array();
 	$lines[] = '# ' . $title;
 	$lines[] = '';
 
-	if ( $author ) {
-		$lines[] = '**Author:** ' . $author . '  ';
+	if ( ! empty( $authors ) ) {
+		$author_label = count( $authors ) > 1 ? 'Authors' : 'Author';
+		$lines[]      = '**' . $author_label . ':** ' . implode( ', ', $authors ) . '  ';
 	}
 
 	if ( $date ) {
@@ -134,6 +149,24 @@ function extrachill_api_convert_html_to_markdown( $html ) {
 }
 
 /**
+ * Pre-process HTML to format figcaptions for markdown conversion.
+ *
+ * Transforms figcaption elements into italic text on a new line
+ * that will convert cleanly to markdown.
+ *
+ * @param string $html HTML content.
+ * @return string Processed HTML.
+ */
+function extrachill_api_preprocess_figcaptions( $html ) {
+	$html = preg_replace(
+		'/<figcaption[^>]*>(.*?)<\/figcaption>/is',
+		'<br><em>$1</em>',
+		$html
+	);
+	return $html;
+}
+
+/**
  * Gets markdown for a post and optional associated replies.
  *
  * @param WP_Post $post Post object.
@@ -141,6 +174,7 @@ function extrachill_api_convert_html_to_markdown( $html ) {
  */
 function extrachill_api_build_markdown_body( WP_Post $post ) {
 	$html = apply_filters( 'the_content', $post->post_content );
+	$html = extrachill_api_preprocess_figcaptions( $html );
 
 	$markdown = extrachill_api_convert_html_to_markdown( $html );
 	if ( is_wp_error( $markdown ) ) {

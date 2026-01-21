@@ -10,9 +10,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'EXTRACHILL_ACTIVITY_THROTTLE_RULES', array(
-	'post_updated' => HOUR_IN_SECONDS,
-) );
+if ( ! defined( 'EXTRACHILL_ACTIVITY_THROTTLE_RULES' ) ) {
+	define( 'EXTRACHILL_ACTIVITY_THROTTLE_RULES', array(
+		'post_updated' => HOUR_IN_SECONDS,
+	) );
+}
 
 /**
  * Check if an activity event should be throttled.

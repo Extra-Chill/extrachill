@@ -42,8 +42,8 @@ class ExtraChill_Docs_Sync_Controller {
 
 		// Convert Markdown to HTML before storing.
 		require_once EXTRACHILL_API_PATH . 'vendor/autoload.php';
-		$parser       = new Parsedown();
-		$html_content = $parser->text( $content );
+		$converter    = new \League\CommonMark\CommonMarkConverter();
+		$html_content = $converter->convert( $content )->getContent();
 
 		// Add IDs to headers for TOC anchor linking.
 		$html_content = self::add_header_ids( $html_content );

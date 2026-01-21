@@ -30,7 +30,7 @@ This file records notable changes in the ExtraChill API plugin.
 ### Changed
 
 - **Admin Forum Topic Moves (bbPress Independence)**: Updated `inc/routes/admin/forum-topics.php` to update `_bbp_topic_count`, `_bbp_reply_count`, and `_bbp_last_active_time` using direct `WP_Query`/`get_posts()` logic rather than relying on bbPress helper functions.
-- **Newsletter Admin Mode Permission**: Updated `inc/routes/newsletter/subscription.php` admin-mode permission check to allow either multisite `is_super_admin()` or single-site `manage_options`.
+- **Newsletter Admin Mode Permission**: Updated `inc/routes/newsletter/subscription.php` (registers `POST /newsletter/subscribe`) admin-mode permission check to allow either multisite `is_super_admin()` or single-site `manage_options`.
 
 ## [0.10.4] - 2026-01-06
 
@@ -62,7 +62,7 @@ This file records notable changes in the ExtraChill API plugin.
 
 - **Analytics Refactor**:
   - Removed deprecated `link-click.php` and `share.php` route files.
-  - Updated `README.md` and `AGENTS.md` to reflect the streamlined 3-endpoint analytics architecture.
+  - Updated `README.md` and `CLAUDE.md` to reflect the streamlined 3-endpoint analytics architecture.
 - **Documentation Alignment**: 
   - Updated artist analytics documentation to reference the new unified `click` endpoint.
   - Refined shop documentation to include error response structures for the "Ships Free" label bypass logic.
@@ -83,7 +83,7 @@ This file records notable changes in the ExtraChill API plugin.
 
 ### Changed
 
-- **Documentation**: Updated AGENTS.md and README.md with new taxonomy count endpoints and reorganized feature categories.
+- **Documentation**: Updated CLAUDE.md and README.md with new taxonomy count endpoints and reorganized feature categories.
 
 ## [0.10.1] - 2026-01-05
 
@@ -126,7 +126,7 @@ This file records notable changes in the ExtraChill API plugin.
   - Added `artist-capable` context for finding users eligible for artist profile management.
   - Added `exclude_artist_id` support to prevent duplicates in roster management.
 - **Endpoint Count**: Total endpoints increased to 68 across all feature categories.
-- **Documentation**: Updated AGENTS.md and README.md to reflect the new administrative and analytics infrastructure.
+- **Documentation**: Updated CLAUDE.md and README.md to reflect the new administrative and analytics infrastructure.
 
 ## [0.9.5] - 2026-01-04
 
@@ -182,7 +182,7 @@ This file records notable changes in the ExtraChill API plugin.
 
 - **Artist Data Validation**: Added strict name length validation and trimming in `POST /artists/{id}` handler
 - **Blog Resolution**: Removed redundant checks and hardcoded fallbacks in shipping routes for more reliable blog context switching
-- **Documentation Alignment**: Updated README.md and AGENTS.md with new endpoint categories and directory structure
+- **Documentation Alignment**: Updated README.md and CLAUDE.md with new endpoint categories and directory structure
 
 ### Technical Notes
 
@@ -223,7 +223,7 @@ This file records notable changes in the ExtraChill API plugin.
 
 ### Changed
 
-- **Documentation Cleanup**: Streamlined AGENTS.md by removing detailed endpoint documentation and reorganizing into summarized endpoint categories for improved maintainability.
+- **Documentation Cleanup**: Streamlined CLAUDE.md by removing detailed endpoint documentation and reorganizing into summarized endpoint categories for improved maintainability.
 - **Activity Emitters Refactor**: Updated post event emission to use `save_post` hook instead of `transition_post_status` for more reliable activity tracking, with corresponding parameter and logic adjustments.
 
 ### Technical Notes
@@ -422,7 +422,7 @@ This file records notable changes in the ExtraChill API plugin.
 
 ### Changed
 
-- **Documentation Reorganization**: Consolidated route documentation structure and reorganized AGENTS.md directory listings
+- **Documentation Reorganization**: Consolidated route documentation structure and reorganized CLAUDE.md directory listings
   - Reorganized `inc/` directory structure in documentation for clarity
   - Updated feature categories from 18 to 20 (added Configuration and reorganized admin/user sections)
   - Refreshed endpoint count documentation to reflect 51 total endpoints
@@ -457,7 +457,7 @@ This file records notable changes in the ExtraChill API plugin.
 ### Technical Notes
 
 - **Backward Compatibility**: All changes are additive with no breaking API modifications
-- **Documentation**: Updated AGENTS.md directory structure and README.md endpoint organization for improved discoverability
+- **Documentation**: Updated CLAUDE.md directory structure and README.md endpoint organization for improved discoverability
 - **Database**: No database schema changes from v0.7.0
 - **Dependencies**: No new dependencies added
 
@@ -686,8 +686,8 @@ This file records notable changes in the ExtraChill API plugin.
 
 ### Updated
 
-- **Endpoint Count**: Updated README.md and AGENTS.md to reflect current endpoint totals
-- **Directory Structure**: Enhanced AGENTS.md with complete route directory organization
+- **Endpoint Count**: Updated README.md and CLAUDE.md to reflect current endpoint totals
+- **Directory Structure**: Enhanced CLAUDE.md with complete route directory organization
 - **Shop Documentation**: Improved documentation for products and Stripe integration endpoints
 
 ### Technical Notes
@@ -1004,7 +1004,7 @@ This file records notable changes in the ExtraChill API plugin.
   - Moved from scattered route markdown files to organized feature-area structure
   - Updated `docs/routes/` with comprehensive endpoint documentation for all 36 endpoints
   - Improved documentation formatting and organization by feature category
-- **AGENTS.md Updates**: Enhanced technical documentation with complete admin, user management, and docs endpoint specifications
+- **CLAUDE.md Updates**: Enhanced technical documentation with complete admin, user management, and docs endpoint specifications
 - **README.md Updates**: Corrected endpoint count (36 total across 13 feature categories) and improved feature descriptions
 
 ### Removed
@@ -1140,7 +1140,7 @@ This file records notable changes in the ExtraChill API plugin.
   - Supports user avatars, artist profiles, link pages, and content embeds
   - Automatic old image cleanup and permission-based access control
   - File validation (JPG, PNG, GIF, WebP; max 5MB)
-- Comprehensive API documentation in AGENTS.md for all new endpoints
+- Comprehensive API documentation in CLAUDE.md for all new endpoints
 
 ### Removed
 - Legacy `inc/routes/community/upload-image.php` endpoint (replaced by unified media endpoint)
@@ -1198,12 +1198,12 @@ To:
 - Community image upload and upvote endpoints
 - User avatar upload endpoint
 - Enhanced event submissions with auto-population for logged-in users and AI vision support
-- Comprehensive AGENTS.md documentation file (renamed from CLAUDE.md)
+- Comprehensive CLAUDE.md documentation file (renamed from CLAUDE.md)
 
 ### Changed
 - Event submissions now auto-populate user data when logged in, reducing form requirements
 - Newsletter subscriptions simplified by removing Turnstile verification requirement
-- Updated README.md documentation links to reference AGENTS.md
+- Updated README.md documentation links to reference CLAUDE.md
 
 ### Dependencies
 - Added `endroid/qr-code: ^6.0` for QR code generation
