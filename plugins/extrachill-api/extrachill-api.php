@@ -7,6 +7,7 @@
  * Author: Extra Chill
  * Author URI: https://extrachill.com
  * Network: true
+ * Text Domain: extrachill-api
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
