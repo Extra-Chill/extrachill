@@ -163,7 +163,7 @@ if (function_exists('extrachill_newsletter_subscribe')) {
 - **Security First**: Input validation and output escaping throughout
 
 ### Build System
-- **Universal Build Script**: Symlinked to `../../.github/build.sh`
+- **Build System**: Use `homeboy build extrachill-contact` for production builds
 - **Vite Build**: TypeScript/React source compiled to IIFE bundle
 - **Production Build**: Creates clean ZIP package (excludes `src/`, build configs)
 - **File Exclusions**: Development files excluded via `.buildignore`
@@ -205,8 +205,8 @@ npm run dev        # Watch mode for development
 ## Cross-References
 
 **Platform Documentation**:
-- [Root AGENTS.md - Contact Forms](../../AGENTS.md#extrachill-contact)
-- [ExtraChill Newsletter AGENTS.md](../extrachill-newsletter/AGENTS.md) - Newsletter integration
+- [Root CLAUDE.md - Contact Forms](../../CLAUDE.md#extrachill-contact)
+- [ExtraChill Newsletter CLAUDE.md](../extrachill-newsletter/CLAUDE.md) - Newsletter integration
 
 **Related Files**:
 - `/.github/build.sh` - Shared build script

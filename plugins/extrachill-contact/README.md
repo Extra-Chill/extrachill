@@ -16,17 +16,13 @@ A WordPress plugin that provides contact form functionality with Sendy newslette
 - **Responsive Design**: Mobile-friendly styling with accessibility features
 - **No Database Dependencies**: Uses WordPress `wp_mail` system exclusively
 
-## Installation
+## Build + deployment
 
-### From Production Build
-1. Navigate to plugin directory and create production build:
-   ```bash
-   cd extrachill-plugins/extrachill-contact
-   ./build.sh
-   ```
-2. Upload the generated ZIP from `/build` directory via WordPress admin: **Plugins > Add New > Upload Plugin**
-3. Activate the plugin
+Build the production ZIP with `./build.sh` (symlinked to `/.github/build.sh`).
 
+Deployments and remote operations run through **Homeboy** (`homeboy/` in this repo).
+
+The build artifact is `build/extrachill-contact.zip`.
 ### Migration from Theme
 If you previously used the ExtraChill theme's built-in contact form, you should manually drop the old database table:
 
@@ -36,20 +32,13 @@ DROP TABLE IF EXISTS wp_contact_submissions;
 
 The plugin uses WordPress `wp_mail` exclusively and does not create or use any database tables.
 
-### Local Development
-1. Copy plugin to your WordPress plugins directory:
-   ```bash
-   cp -r extrachill-plugins/extrachill-contact /path/to/wp-content/plugins/
-   ```
-2. Activate through WordPress admin
+### Local development
 
-### Build from Source
+Local development runs in a WordPress environment with the plugin present (e.g., via a checkout or symlink). This repo’s build system is `./build.sh` and produces a ZIP under `/build/`.
+
 ```bash
-# Navigate to plugin directory and build production package
-cd extrachill-plugins/extrachill-contact
+# Create production ZIP package
 ./build.sh
-
-# Install the generated ZIP from /build directory
 ```
 
 ## Usage
@@ -146,7 +135,7 @@ extrachill-contact/
 │   └── contact-form.iife.js        # Compiled React component
 ├── build.sh                        # Build script
 ├── .buildignore                    # Build exclusions
-├── AGENTS.md                       # AI agent documentation
+├── CLAUDE.md                       # AI agent documentation
 └── README.md                       # This file
 ```
 

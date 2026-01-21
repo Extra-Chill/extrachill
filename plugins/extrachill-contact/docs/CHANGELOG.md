@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **UI Refinement**: Replaced custom feedback styling with standard WordPress notice patterns for consistent user experience
 - **Backend Consolidation**: Removed local REST API implementation in favor of centralized platform API
 - **Integration Cleanup**: Simplified newsletter subscription logic and removed redundant integration filters
-- **Documentation Overhaul**: Updated README and AGENTS.md to fully reflect Gutenberg block architecture and remove legacy shortcode references
+- **Documentation Overhaul**: Updated README and CLAUDE.md to fully reflect Gutenberg block architecture and remove legacy shortcode references
 - **Asset Updates**: Refreshed compiled production assets
 
 ## v2.0.1
