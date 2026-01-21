@@ -21,26 +21,14 @@ Network-activated WordPress plugin providing universal multisite search function
 - **Multisite**: WordPress multisite installation required
 - **Theme**: ExtraChill theme (for template integration)
 
-## Installation
+## Build + deployment
 
-### Via GitHub
-```bash
-# Clone repository
-git clone https://github.com/Extra-Chill/extrachill-search.git
+Build the production ZIP with `./build.sh` (symlinked to `/.github/build.sh`).
 
-# Navigate to plugin directory
-cd extrachill-search
+Deployments and remote operations run through **Homeboy** (`homeboy/` in this repo).
 
-# Build production package
-./build.sh
+The build artifact is `build/extrachill-search.zip`.
 
-# Upload /build/extrachill-search.zip to WordPress Network Admin
-```
-
-### Via WordPress Admin
-1. Download latest release from GitHub
-2. Upload ZIP file to Network Admin → Plugins → Add New
-3. Network activate the plugin
 
 ## Usage
 
@@ -102,15 +90,19 @@ $excerpt = ec_get_contextual_excerpt_multisite( $post_content, $search_term, 300
 ## Architecture
 
 ### Network Sites Covered
-The plugin searches across all sites in your WordPress multisite network. In the Extra Chill Platform, this includes:
+The plugin searches across all sites in your WordPress multisite network. In the Extra Chill Platform, this includes all 11 active sites:
 
-1. extrachill.com - Main site
-2. community.extrachill.com - Forums
-3. shop.extrachill.com - E-commerce
-4. chat.extrachill.com - AI chatbot
-5. artist.extrachill.com - Artist profiles
-6. events.extrachill.com - Events calendar
-7. app.extrachill.com - Mobile API
+1. extrachill.com - Main site (Blog ID 1)
+2. community.extrachill.com - Forums (Blog ID 2)
+3. shop.extrachill.com - E-commerce (Blog ID 3)
+4. artist.extrachill.com - Artist platform (Blog ID 4)
+5. chat.extrachill.com - AI chatbot (Blog ID 5)
+6. events.extrachill.com - Events calendar (Blog ID 7)
+7. stream.extrachill.com - Live streaming (Blog ID 8)
+8. newsletter.extrachill.com - Newsletter (Blog ID 9)
+9. docs.extrachill.com - Documentation (Blog ID 10)
+10. wire.extrachill.com - News wire (Blog ID 11)
+11. horoscope.extrachill.com - Horoscopes (Blog ID 12)
 
 ### Search Result Structure
 ```php
@@ -177,7 +169,7 @@ extrachill-search/
 ├── inc/
 │   ├── core/
 │   │   ├── search-functions.php    # Core multisite search functionality
-│   │   └── taxonomy-functions.php  # Placeholder for future taxonomy features
+│   │   └── taxonomy-functions.php  # Taxonomy helpers
 │   └── templates/
 │       ├── template-functions.php  # Template helper functions
 │       └── site-badge.php          # Site badge display component
@@ -185,7 +177,7 @@ extrachill-search/
 │   └── search.php                  # Search results template
 ├── build.sh                        # Production build script
 ├── .buildignore                    # Build exclusions
-├── AGENTS.md                       # Developer documentation
+├── CLAUDE.md                       # Developer documentation
 └── README.md                       # This file
 ```
 
@@ -211,7 +203,7 @@ wp eval 'print_r(extrachill_multisite_search("test"));'
 ## Support
 
 - **Issues**: [GitHub Issues](https://github.com/Extra-Chill/extrachill-search/issues)
-- **Documentation**: See AGENTS.md for detailed developer documentation
+- **Documentation**: See CLAUDE.md for detailed developer documentation
 - **Website**: [Extra Chill Platform](https://extrachill.com)
 
 ## Author

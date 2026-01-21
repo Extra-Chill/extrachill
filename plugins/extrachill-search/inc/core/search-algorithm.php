@@ -346,6 +346,15 @@ function extrachill_multisite_search( $search_term, $site_urls = array(), $args 
 	$total_results = count( $all_results );
 	$all_results = array_slice( $all_results, $args['offset'], $args['limit'] );
 
+	/**
+	 * Fires after a search is performed.
+	 *
+	 * @param string $search_term   The search query.
+	 * @param int    $total_results Total number of results found.
+	 * @param string $referer       The page user was on before searching.
+	 */
+	do_action( 'extrachill_search_performed', $search_term, $total_results, wp_get_referer() );
+
 	if ( $args['return_count'] ) {
 		return array(
 			'results' => $all_results,

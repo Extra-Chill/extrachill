@@ -3,7 +3,7 @@
  * Plugin Name: ExtraChill Search
  * Plugin URI: https://extrachill.com
  * Description: Network-wide search across all nine sites using domain-based resolution
- * Version: 0.2.0
+ * Version: 0.2.1
  * Author: Chris Huber
  * Author URI: https://chubes.net
  * Network: true
@@ -14,7 +14,7 @@
  * Domain Path: /languages
  *
  * @package ExtraChill\Search
- * @version 0.2.0
+ * @version 0.2.1
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -23,7 +23,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class ExtraChill_Search_Plugin {
 
-    const VERSION = '0.2.0';
+    const VERSION = '0.2.1';
 
     private static $instance = null;
 

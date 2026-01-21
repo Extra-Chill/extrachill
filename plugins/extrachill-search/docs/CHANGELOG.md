@@ -50,5 +50,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added pagination URL filter for multisite search context
 
 ### Changed
-- Renamed claude.md to AGENTS.md for system compatibility
+- Renamed claude.md to CLAUDE.md for system compatibility
 - Updated documentation and code organization

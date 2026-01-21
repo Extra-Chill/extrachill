@@ -1,11 +1,11 @@
 # ExtraChill Search
 
-Network-activated WordPress plugin providing centralized multisite search functionality for the ExtraChill Platform. Searches across all 9 active sites (Blog IDs 1–5, 7–11) in the WordPress multisite network and displays unified results. docs.extrachill.com at Blog ID 10; wire.extrachill.com at Blog ID 11; horoscope site (Blog ID 12) is planned but not yet live.
+Network-activated WordPress plugin providing centralized multisite search functionality for the ExtraChill Platform. Searches across all 11 active sites (Blog IDs 1–5, 7–12) in the WordPress multisite network and displays unified results. docs.extrachill.com at Blog ID 10; wire.extrachill.com at Blog ID 11; horoscope.extrachill.com at Blog ID 12.
 
 ## Plugin Information
 
 - **Name**: ExtraChill Search
-- **Version**: 0.1.2
+- **Version**: 0.2.0
 - **Text Domain**: `extrachill-search`
 - **Author**: Chris Huber
 - **Author URI**: https://chubes.net
@@ -41,7 +41,7 @@ Network-activated WordPress plugin providing centralized multisite search functi
 **404 Override System** (`extrachill-search.php`):
 - **`fix_search_404()` method**: Intercepts 404 errors on paginated search queries
 - **`template_redirect` hook**: Executes at priority 1 before template loading
-- **Network-Wide Fix**: Resolves pagination 404s across all 9 active network sites (previously only worked on extrachill.com)
+- **Network-Wide Fix**: Resolves pagination 404s across all 11 active network sites (previously only worked on extrachill.com)
 - **Intelligent Detection**: Checks for 404 status with search query parameter (`s`), not relying on `is_search()`
 - **Result Verification**: Runs `extrachill_multisite_search()` to verify multisite results exist for current page
 - **Query Override**: Sets `$wp_query->is_404 = false` and `$wp_query->is_search = true` when results found
@@ -91,16 +91,18 @@ WordPress native search only checks the current site for results. When paginatin
 ## WordPress Multisite Integration
 
 ### Network Sites Covered
-The plugin searches across all 9 active sites in the Extra Chill Platform network (Blog IDs 1–5, 7–11). docs.extrachill.com at Blog ID 10; wire.extrachill.com at Blog ID 11; horoscope site (Blog ID 12) is planned but not yet live:
+The plugin searches across all 11 active sites in the Extra Chill Platform network (Blog IDs 1–5, 7–12). docs.extrachill.com at Blog ID 10; wire.extrachill.com at Blog ID 11; horoscope.extrachill.com at Blog ID 12:
 1. **extrachill.com** - Main music journalism site (Blog ID 1)
 2. **community.extrachill.com** - Community forums (bbPress) (Blog ID 2)
 3. **shop.extrachill.com** - E-commerce (WooCommerce) (Blog ID 3)
 4. **artist.extrachill.com** - Artist platform and profiles (Blog ID 4)
 5. **chat.extrachill.com** - AI chatbot interface (Blog ID 5)
-6. **events.extrachill.com** - Event calendar hub (Blog ID 7)
+6. **events.extrachill.com** - Event calendar hub (Blog ID 7; calendar engine comes from external Data Machine + datamachine-events plugins)
 7. **stream.extrachill.com** - Live streaming platform (Phase 1 UI) (Blog ID 8)
 8. **newsletter.extrachill.com** - Newsletter management hub (Blog ID 9)
 9. **docs.extrachill.com** - Documentation hub (Blog ID 10)
+10. **wire.extrachill.com** - News feeds (Blog ID 11)
+11. **horoscope.extrachill.com** - Daily horoscopes (Blog ID 12)
 
 ### Native WordPress Functions Used
 - **`switch_to_blog()`**: Cross-site database access
@@ -131,9 +133,8 @@ The plugin searches across all 9 active sites in the Extra Chill Platform networ
  │       └── site-badge.php          # Site badge component for multisite results
  ├── templates/
  │   └── search.php                  # Search results template
- ├── build.sh                        # Symlink to universal build script
  ├── .buildignore                    # Production build exclusions
- ├── AGENTS.md                       # This documentation file
+ ├── CLAUDE.md                       # This documentation file
  └── README.md                       # GitHub standard format documentation
  ```
 
@@ -150,9 +151,9 @@ The plugin expects the ExtraChill theme to provide:
 **Hooks Used by Plugin**:
 - **`extrachill_before_body_content`**: Before main content area (search.php template)
 - **`extrachill_after_body_content`**: After main content area (search.php template)
-- **`extrachill_search_header`**: Search results header area (search.php template)
+- **`extrachill_search_header`**: Search results header area - theme renders `archive-header.php` which has `is_search()` case for "Search Results for:" title
 - **`extrachill_archive_below_description`**: Below archive description (search.php template)
-- **`extrachill_archive_above_posts`**: Above posts loop (search.php template)
+- **`extrachill_archive_above_posts`**: Above posts loop - theme renders filter bar with search-specific items (sort dropdown + search input)
 
 **Hooks Provided by Plugin**:
 - **`extrachill_archive_above_tax_badges`**: Site badge display hook (used by site-badge.php component)
@@ -250,10 +251,9 @@ The plugin uses a weighted relevance scoring system (via `extrachill_calculate_s
 
 ## Build System
 
-### Universal Build Script
-- **Symlinked to**: `../../.github/build.sh`
-- **Auto-Detection**: Script automatically detects network plugin from `Network: true` header
-- **Production Build**: Creates `/build/extrachill-search.zip` file only.
+### Build System
+- **Build System**: Use `homeboy build extrachill-search` for production builds
+- **Production Build**: Creates `/build/extrachill-search.zip` file only
 - **Composer Integration**: Production builds use `composer install --no-dev`, restores dev dependencies after
 - **File Exclusion**: `.buildignore` rsync patterns exclude development files
 - **Structure Validation**: Ensures network plugin integrity before packaging
@@ -261,7 +261,7 @@ The plugin uses a weighted relevance scoring system (via `extrachill_calculate_s
 ### Build Process
 ```bash
 # Create production build
-./build.sh
+homeboy build extrachill-search
 ```
 
 **Output**:

@@ -3,18 +3,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-add_action( 'wp_abilities_api_categories_init', 'extrachill_register_ability_category' );
-
-function extrachill_register_ability_category() {
-	wp_register_ability_category(
-		'data-retrieval',
-		array(
-			'label'       => __( 'Data Retrieval', 'extrachill-search' ),
-			'description' => __( 'Abilities that retrieve and return data from the WordPress multisite network.', 'extrachill-search' ),
-		)
-	);
-}
-
 add_action( 'wp_abilities_api_init', 'extrachill_register_abilities' );
 
 function extrachill_register_abilities() {
@@ -23,7 +11,6 @@ function extrachill_register_abilities() {
 		array(
 			'label'       => __( 'Multisite Search', 'extrachill-search' ),
 			'description' => __( 'Search across all network sites in the WordPress multisite installation with relevance scoring.', 'extrachill-search' ),
-			'category'    => 'data-retrieval',
 			'input_schema' => array(
 				'type'       => 'object',
 				'properties' => array(
