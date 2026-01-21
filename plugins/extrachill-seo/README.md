@@ -2,6 +2,8 @@
 
 ## Version 0.6.1
 
+Network-activated plugin.
+
 Lean SEO plugin for the Extra Chill Platform, replacing Yoast SEO with code-first meta tags, structured data, and robots directives.
 
 ## Requirements
@@ -12,10 +14,8 @@ Lean SEO plugin for the Extra Chill Platform, replacing Yoast SEO with code-firs
 
 ## Installation
 
-1. Network-activate this plugin
-2. Verify SEO output on key pages
-3. Network-deactivate Yoast SEO
-4. Update Search Console sitemap to `/wp-sitemap.xml`
+- Network-activate this plugin.
+- Verify SEO output on key pages.
 
 ## Features
 

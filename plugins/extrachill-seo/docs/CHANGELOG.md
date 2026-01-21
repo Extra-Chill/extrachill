@@ -134,7 +134,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Improved blog page title handling for better SEO context
 
 ### Changed
-- Updated documentation (AGENTS.md, PLAN.md) to reflect implemented features
+- Updated documentation (CLAUDE.md, PLAN.md) to reflect implemented features
 - Refactored title generation logic in meta-tags.php for consistency
 
 ## [0.2.0] - 2025-12-22

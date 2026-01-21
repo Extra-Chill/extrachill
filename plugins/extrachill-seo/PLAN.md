@@ -229,7 +229,7 @@ extrachill-plugins/extrachill-seo/
 ├── composer.json
 ├── .buildignore
 ├── build.sh -> ../../.github/build.sh
-├── AGENTS.md
+├── CLAUDE.md
 ├── PLAN.md
 └── README.md
 ```

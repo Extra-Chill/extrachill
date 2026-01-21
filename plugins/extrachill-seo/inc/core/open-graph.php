@@ -106,6 +106,14 @@ function ec_seo_get_open_graph_data() {
  * @return string Canonical URL
  */
 function ec_seo_get_canonical_url() {
+	// bbPress user subpages use main profile URL for OG.
+	if ( function_exists( 'ec_seo_get_bbp_user_subpage_canonical' ) ) {
+		$bbp_canonical = ec_seo_get_bbp_user_subpage_canonical();
+		if ( $bbp_canonical ) {
+			return $bbp_canonical;
+		}
+	}
+
 	if ( is_singular() ) {
 		return get_permalink();
 	}

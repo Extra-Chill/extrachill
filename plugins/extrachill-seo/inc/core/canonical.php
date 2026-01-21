@@ -34,15 +34,33 @@ add_action(
 			}
 		}
 
-		// Taxonomy archives may have cross-site canonical authority.
-		if ( is_tax() ) {
-			$canonical = ec_seo_get_taxonomy_canonical_url();
+		// bbPress user subpages canonicalize to main user profile.
+		if ( function_exists( 'is_bbpress' ) && is_bbpress() ) {
+			$canonical = ec_seo_get_bbp_user_subpage_canonical();
 			if ( $canonical ) {
 				printf(
 					'<link rel="canonical" href="%s" />' . "\n",
 					esc_url( $canonical )
 				);
 				return;
+			}
+		}
+
+		// Taxonomy archives may have cross-site canonical authority.
+		if ( is_tax() ) {
+			$term = get_queried_object();
+			if ( $term instanceof \WP_Term && isset( $term->taxonomy ) ) {
+				// Location archives must be indexable on all sites, so keep them self-canonical.
+				if ( 'location' !== $term->taxonomy ) {
+					$canonical = ec_seo_get_taxonomy_canonical_url();
+					if ( $canonical ) {
+						printf(
+							'<link rel="canonical" href="%s" />' . "\n",
+							esc_url( $canonical )
+						);
+						return;
+					}
+				}
 			}
 		}
 
@@ -108,4 +126,44 @@ function ec_seo_get_taxonomy_canonical_url() {
 
 	// No cross-site authority, use standard self-canonical.
 	return ec_seo_get_canonical_url();
+}
+
+/**
+ * Get canonical URL for bbPress user subpages.
+ *
+ * User subpages (replies, topics, favorites, etc.) canonicalize to the
+ * main user profile to consolidate link equity.
+ *
+ * @return string|null Canonical URL or null if not a user subpage.
+ */
+function ec_seo_get_bbp_user_subpage_canonical() {
+	if ( ! function_exists( 'bbp_get_displayed_user_id' ) ) {
+		return null;
+	}
+
+	// Check if we're on a user subpage (not the main profile).
+	$is_user_subpage = (
+		( function_exists( 'bbp_is_single_user_replies' ) && bbp_is_single_user_replies() ) ||
+		( function_exists( 'bbp_is_single_user_topics' ) && bbp_is_single_user_topics() ) ||
+		( function_exists( 'bbp_is_single_user_engagements' ) && bbp_is_single_user_engagements() ) ||
+		( function_exists( 'bbp_is_favorites' ) && bbp_is_favorites() ) ||
+		( function_exists( 'bbp_is_subscriptions' ) && bbp_is_subscriptions() ) ||
+		( function_exists( 'bbp_is_single_user_edit' ) && bbp_is_single_user_edit() )
+	);
+
+	if ( ! $is_user_subpage ) {
+		return null;
+	}
+
+	$user_id = bbp_get_displayed_user_id();
+	if ( ! $user_id ) {
+		return null;
+	}
+
+	// Return main user profile URL.
+	if ( function_exists( 'bbp_get_user_profile_url' ) ) {
+		return bbp_get_user_profile_url( $user_id );
+	}
+
+	return null;
 }

@@ -55,6 +55,10 @@ Titles use site-specific suffixes based on the canonical multisite helpers (via 
 | Search results | noindex, follow |
 | Date archives | noindex, follow |
 | Sparse taxonomy terms (<2 posts) | noindex, follow |
+| bbPress user profile | index, follow |
+| bbPress user subpages (replies, topics, etc.) | noindex, follow |
+
+bbPress user subpages also canonicalize to the main user profile to consolidate link equity.
 
 ## Extension Points
 

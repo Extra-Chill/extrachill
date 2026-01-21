@@ -42,18 +42,17 @@ add_filter(
 		$blog_id   = (int) get_current_blog_id();
 		$site_slug = ec_get_blog_slug_by_id( $blog_id );
 
-		$site_suffixes = array(
-			'main'       => 'Extra Chill',
-			'community'  => 'Extra Chill Community',
-			'shop'       => 'Extra Chill Shop',
-			'artist'     => 'Extra Chill Artist Platform',
-			'chat'       => 'Extra Chill Chat',
-			'events'     => 'Extra Chill Events',
-			'stream'     => 'Extra Chill Stream',
-			'newsletter' => 'Extra Chill Newsletter',
-			'docs'       => 'Extra Chill Docs',
-			'horoscope'  => 'Extra Chill Horoscope',
-		);
+		// Build site suffixes from multisite single source of truth.
+		$site_suffixes = array();
+		if ( function_exists( 'ec_get_site_labels' ) ) {
+			foreach ( ec_get_site_labels() as $slug => $label ) {
+				if ( 'main' === $slug ) {
+					$site_suffixes[ $slug ] = 'Extra Chill';
+				} else {
+					$site_suffixes[ $slug ] = 'Extra Chill ' . $label;
+				}
+			}
+		}
 
 		if ( $site_slug && isset( $site_suffixes[ $site_slug ] ) ) {
 			$title_parts['site'] = $site_suffixes[ $site_slug ];
