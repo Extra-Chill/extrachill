@@ -4,19 +4,15 @@ The homepage template displays static page content from WordPress Settings → R
 
 ## How It Works
 
-The plugin uses the `extrachill_template_homepage` filter to replace the theme's homepage template on events.extrachill.com (blog ID 7).
+The plugin renders the events homepage via the theme action hook `extrachill_homepage_content` on events.extrachill.com (blog ID 7). It does not replace the theme's homepage template via a homepage template filter.
 
 ### Template Path
 ```
 inc/templates/homepage.php
 ```
 
-### Blog ID Check
-Only applies when:
-```php
-get_current_blog_id() === ec_get_blog_id('events')  // events.extrachill.com
-```
-
+### Blog Context
+This docs page refers to the events site (events.extrachill.com, blog ID 7). The plugin itself gates behavior by site context inside its hooks.
 ## Template Structure
 
 ### Elements Rendered
@@ -35,27 +31,9 @@ get_current_blog_id() === ec_get_blog_id('events')  // events.extrachill.com
 <!-- Theme footer -->
 ```
 
-## Setting Up the Homepage
+## Homepage Content Source
 
-### Step 1: Create Static Page
-1. WordPress admin → Pages → Add New
-2. Create page titled "Events Calendar"
-3. Add datamachine-events calendar block via block editor
-4. Publish the page
-
-### Step 2: Set as Static Homepage
-1. WordPress admin → Settings → Reading
-2. "Your homepage displays" → Select "A static page"
-3. "Homepage" → Select "Events Calendar"
-4. Save Changes
-
-### Step 3: Configure Calendar Block
-Add the calendar block to your static page:
-```
-<!-- wp:datamachine-events/calendar /-->
-```
-
-The block handles all filtering, pagination, and event display logic automatically.
+The homepage displays the content of the WordPress "page on front" (`page_on_front`) and runs it through `the_content`, so blocks (including the datamachine-events calendar block) render normally.
 
 ## Content Rendering
 
@@ -79,45 +57,30 @@ This processes all WordPress blocks and shortcodes in the static page content, e
 
 Used for styling the calendar container. The `full-width-content` class removes sidebar constraints.
 
-## Template Override Filter
+## Homepage Rendering Hook
 
-### Filter Name
+### Action Name
 ```
-extrachill_template_homepage
+extrachill_homepage_content
 ```
 
-### Parameters
-- `$template` (string): Default template path from theme
+### Behavior
+When the theme renders the front page container, it calls:
 
-### Return Value
-Plugin template path for blog ID 7, unchanged template path otherwise.
-
-### Implementation
 ```php
-function ec_events_override_homepage_template( $template ) {
-    if ( get_current_blog_id() === ec_get_blog_id('events') ) {
-        return EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/templates/homepage.php';
-    }
-    return $template;
+do_action( 'extrachill_homepage_content' );
+```
+
+This plugin hooks into that action and includes the homepage content file:
+
+```php
+add_action( 'extrachill_homepage_content', 'ec_events_render_homepage' );
+
+function ec_events_render_homepage() {
+	include EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/templates/homepage.php';
 }
-add_filter( 'extrachill_template_homepage', 'ec_events_override_homepage_template' );
 ```
 
 ## Why This Approach
 
-### Flexibility
-Static page approach allows site administrators to:
-- Add calendar block via WordPress editor
-- Include additional content blocks (text, images, headings)
-- Rearrange content without code changes
-- Preview changes before publishing
-
-### Block Support
-Full WordPress block editor support means:
-- Any WordPress block works (core or third-party)
-- Calendar block configuration handled via editor
-- WYSIWYG editing experience
-- No template file modifications needed
-
-### Content Management
-Site administrators manage homepage content through familiar WordPress interface instead of editing template files.
+The homepage content is WordPress-managed (static page content) and the plugin simply wraps it in the theme shell with breadcrumbs and a calendar container. This keeps calendar configuration in the block editor while keeping site-wide layout and navigation consistent.

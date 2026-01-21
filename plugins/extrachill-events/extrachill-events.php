@@ -3,15 +3,15 @@
  * Plugin Name: Extra Chill Events
  * Plugin URI: https://extrachill.com
  * Description: Calendar integration with template overrides, datamachine-events badge/button styling, breadcrumb system, and related events for events.extrachill.com.
- * Version: 0.3.3
+ * Version: 0.4.0
  * Author: Chris Huber
  * Author URI: https://chubes.net
  * Requires Plugins: data-machine, datamachine-events
  * License: GPL v2 or later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain: extrachill-events
- * Requires at least: 5.0
- * Tested up to: 6.4
+ * Requires at least: 6.9
+ * Tested up to: 6.9
  * Requires PHP: 7.4
  * Network: false
  *
@@ -23,7 +23,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'EXTRACHILL_EVENTS_VERSION', '0.3.3' );
+define( 'EXTRACHILL_EVENTS_VERSION', '0.4.0' );
 define( 'EXTRACHILL_EVENTS_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'EXTRACHILL_EVENTS_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'EXTRACHILL_EVENTS_PLUGIN_FILE', __FILE__ );
@@ -64,6 +64,7 @@ class ExtraChillEvents {
 	private function init_hooks() {
 		add_action( 'init', array( $this, 'load_textdomain' ) );
 		add_action( 'init', array( $this, 'init_datamachine_handlers' ), 20 );
+		add_action( 'init', array( $this, 'init_abilities' ), 25 );
 		register_activation_hook( __FILE__, array( $this, 'activate' ) );
 		register_deactivation_hook( __FILE__, array( $this, 'deactivate' ) );
 	}
@@ -90,6 +91,8 @@ class ExtraChillEvents {
 
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/datamachine-events-integration.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/nav.php';
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/priority-venue-ordering.php';
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/admin/priority-venues.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/single-event/breadcrumbs.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/single-event/related-events.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/single-event/share-button.php';
@@ -109,6 +112,21 @@ class ExtraChillEvents {
 
 		new \ExtraChillEvents\Handlers\WeeklyRoundup\WeeklyRoundupHandler();
 		new \ExtraChillEvents\Handlers\WeeklyRoundup\RoundupPublishHandler();
+	}
+
+	public function init_abilities() {
+		if ( ! function_exists( 'wp_register_ability' ) ) {
+			return;
+		}
+
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Abilities/WeeklyRoundupAbilities.php';
+		new \ExtraChillEvents\Abilities\WeeklyRoundupAbilities();
+
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Abilities/LocationEventAbilities.php';
+		new \ExtraChillEvents\Abilities\LocationEventAbilities();
+
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Abilities/PriorityVenueAbilities.php';
+		new \ExtraChillEvents\Abilities\PriorityVenueAbilities();
 	}
 
 	/**

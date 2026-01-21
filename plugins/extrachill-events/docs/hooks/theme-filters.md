@@ -2,32 +2,21 @@
 
 WordPress filters the plugin hooks into from the ExtraChill theme.
 
-## Template Override Filters
+## Template Routing Hooks
 
-### extrachill_template_homepage
+### extrachill_homepage_content
 
-**Purpose:** Override theme's homepage template
+**Purpose:** Render homepage content for the events site
 
-**Parameters:**
-- `$template` (string): Default template path from theme
+**Type:** action
 
-**Return Value:**
-Plugin template path for blog ID 7, unchanged otherwise
-
-**Usage:**
+**Usage (conceptual):**
 ```php
-add_filter('extrachill_template_homepage', 'ec_events_override_homepage_template');
-
-function ec_events_override_homepage_template($template) {
-    if (get_current_blog_id() === ec_get_blog_id('events')) {
-        return EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/templates/homepage.php';
-    }
-    return $template;
-}
+add_action( 'extrachill_homepage_content', 'ec_events_render_homepage' );
 ```
 
 **When Fired:**
-Theme's universal routing system when determining homepage template
+When the theme renders the front page content container.
 
 ---
 
@@ -339,8 +328,8 @@ Theme's related posts function when building tax_query array for location-based 
 
 For all filters to work, the ExtraChill theme must:
 
-1. **Provide template override filters:**
-   - `extrachill_template_homepage`
+1. **Provide template routing hooks:**
+   - `extrachill_homepage_content`
    - `extrachill_template_archive`
 
 2. **Provide breadcrumb filters:**

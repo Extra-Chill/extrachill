@@ -36,7 +36,7 @@ define('EXTRACHILL_EVENTS_PLUGIN_DIR', plugin_dir_path(__FILE__));
 
 **Example Path:**
 ```
-/var/www/html/wp-content/plugins/extrachill-events/
+/path/to/wordpress/wp-content/plugins/extrachill-events/extrachill-events.php
 ```
 
 **Example Usage:**
@@ -66,7 +66,7 @@ define('EXTRACHILL_EVENTS_PLUGIN_URL', plugin_dir_url(__FILE__));
 
 **Example URL:**
 ```
-https://events.extrachill.com/wp-content/plugins/extrachill-events/
+https://example.com/wp-content/plugins/extrachill-events/
 ```
 
 **Example Usage:**
@@ -94,7 +94,7 @@ define('EXTRACHILL_EVENTS_PLUGIN_FILE', __FILE__);
 
 **Example Path:**
 ```
-/var/www/html/wp-content/plugins/extrachill-events/extrachill-events.php
+/path/to/wordpress/wp-content/plugins/extrachill-events/extrachill-events.php
 ```
 
 **Example Usage:**
@@ -152,7 +152,7 @@ define('EXTRACHILL_EVENTS_PLUGIN_FILE', __FILE__);
 
 **Example Path:**
 ```
-/var/www/html/wp-content/plugins/extrachill-events/extrachill-events.php
+/path/to/wordpress/wp-content/plugins/extrachill-events/extrachill-events.php
 ```
 
 **Example Usage:**
@@ -191,7 +191,7 @@ Returns absolute path to plugin directory with trailing slash.
 **Example:**
 ```php
 plugin_dir_path(__FILE__)
-// Returns: /var/www/html/wp-content/plugins/extrachill-events/
+// Returns: /path/to/wordpress/wp-content/plugins/extrachill-events/
 ```
 
 ### plugin_dir_url()
@@ -202,7 +202,7 @@ Returns URL to plugin directory with trailing slash.
 **Example:**
 ```php
 plugin_dir_url(__FILE__)
-// Returns: https://events.extrachill.com/wp-content/plugins/extrachill-events/
+// Returns: https://example.com/wp-content/plugins/extrachill-events/
 ```
 
 ## Common Usage Patterns

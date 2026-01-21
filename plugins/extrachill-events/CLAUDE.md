@@ -1,6 +1,8 @@
 # ExtraChill Events
 
-WordPress plugin providing seamless integration between Extra Chill and Data Machine Events. 
+WordPress plugin providing theme-level integration for events.extrachill.com.
+
+The event calendar system itself (Data Machine + datamachine-events) is external to this repo; this plugin focuses on template routing, styling integration, and event submission/automation glue.
 
 This plugin is part of the Extra Chill Platform, a WordPress multisite network serving music communities across 11 active sites.
 
@@ -20,7 +22,7 @@ This plugin is part of the Extra Chill Platform, a WordPress multisite network s
 
 ## events.extrachill.com Integration
 
-This plugin provides homepage template override for **events.extrachill.com** (site #7 in the multisite network), creating a dedicated calendar-focused event hub powered by Data Machine and datamachine-events.
+This plugin provides homepage template override for **events.extrachill.com** (site #7 in the multisite network). The calendar hub is powered by **external** Data Machine + datamachine-events plugins; this plugin supplies the ExtraChill-side integration.
 
 ### Homepage Content Rendering Architecture
 
@@ -48,10 +50,9 @@ function ec_events_render_homepage() {
 - Full-width container with `get_header()` and `get_footer()` for complete page control
 - DM Events calendar block handles all filtering, pagination, and event display logic
 
-**Setup Process**:
-1. Create a page in WordPress admin (e.g., "Events Calendar")
-2. Add datamachine-events calendar block to the page via block editor
-3. Set as static homepage: Settings → Reading → "A static page" → Front page: "Events Calendar"
+**Homepage setup**:
+- Uses a WordPress static homepage whose content includes the datamachine-events calendar block.
+- This repo does not ship the calendar block; it comes from the external `datamachine-events` plugin.
 
 **Required Plugins** (site-activated on events.extrachill.com):
 - **Data Machine** - Event automation and content pipeline
@@ -185,11 +186,11 @@ function ec_events_render_homepage() {
 7. **Promoter Badge Skipping**: Skips promoter badges when promoter name matches venue name
 
 ### Template Override System
-**Homepage Override** (events.extrachill.com only):
-- **Filter Hook**: `extrachill_template_homepage` (theme's universal routing system)
-- **Blog ID Check**: Only applies to blog ID 7
+**Homepage Rendering** (events.extrachill.com only):
+- **Action Hook**: `extrachill_homepage_content`
+- **Blog Context**: Only applies to events.extrachill.com (blog ID 7)
 - **Content Display**: Renders static page content from Settings → Reading → "A static page"
-- **Implementation**: `ec_events_override_homepage_template()` function
+- **Implementation**: hooked homepage renderer includes the plugin homepage template
 
 **Archive Override** (events.extrachill.com only):
 - **Filter Hook**: `extrachill_template_archive` (all archive types)
@@ -399,10 +400,8 @@ public function hide_post_meta_for_events($default_meta, $post_id, $post_type) {
 - **Security Implementation**: Proper escaping, nonce verification, and input sanitization
 
 ### Build System
-- **Universal Build Script**: Symlinked to shared build script at `../../.github/build.sh`
-- **Auto-Detection**: Script auto-detects plugin type from `Plugin Name:` header
+- **Build System**: Use `homeboy build extrachill-events` for production builds
 - **Production Build**: Creates `/build/extrachill-events.zip` file (non-versioned; unzip when directory access is needed)
-- **Version Extraction**: Automatically reads version from plugin header for validation
 - **File Exclusion**: `.buildignore` rsync patterns exclude development files
 - **Composer Integration**: Production builds use `composer install --no-dev`, restores dev dependencies after
 
@@ -432,16 +431,16 @@ public function hide_post_meta_for_events($default_meta, $post_id, $post_type) {
 composer install
 
 # Create production build
-./build.sh
+homeboy build extrachill-events
 
 # Run PHP linting
-composer run lint:php
+homeboy lint extrachill-events
 
 # Fix PHP coding standards
-composer run lint:fix
+homeboy lint extrachill-events --fix
 
 # Run tests
-composer run test
+homeboy test extrachill-events
 ```
 
 ### Build Output

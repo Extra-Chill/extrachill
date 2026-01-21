@@ -106,47 +106,43 @@ class RoundupPublishHandler extends PublishHandler {
 			)
 		);
 
-		$attachment_ids = array();
+		$images_input = array();
 		foreach ( $image_paths as $index => $image_path ) {
-			$attachment_id = $this->upload_image_to_media_library( $image_path, $title, $index + 1 );
-			if ( $attachment_id ) {
-				$attachment_ids[] = $attachment_id;
-			} else {
-				$this->log(
-					'warning',
-					'Failed to upload image',
-					array(
-						'image_path' => $image_path,
-						'index'      => $index,
-					)
-				);
-			}
-		}
-
-		if ( empty( $attachment_ids ) ) {
-			return $this->errorResponse( 'Failed to upload any images to media library' );
-		}
-
-		$post_content = $this->build_post_content( $attachment_ids, $engine_data, $instagram_caption );
-
-		$post_status = $handler_config['post_status'] ?? 'draft';
-
-		$post_data = array(
-			'post_title'   => \sanitize_text_field( $title ),
-			'post_content' => $post_content,
-			'post_status'  => $post_status,
-			'post_type'    => 'post',
-			'post_author'  => \get_current_user_id() ? \get_current_user_id() : 1,
-		);
-
-		$post_id = \wp_insert_post( $post_data );
-
-		if ( \is_wp_error( $post_id ) ) {
-			return $this->errorResponse(
-				'WordPress post creation failed: ' . $post_id->get_error_message(),
-				array( 'post_data' => $post_data )
+			$images_input[] = array(
+				'source' => $image_path,
+				'title'  => sprintf( '%s - Slide %d', $title, $index + 1 ),
 			);
 		}
+
+		$upload_result = \wp_invoke_ability( 'extrachill/upload-images', array(
+			'images' => $images_input,
+		) );
+
+		if ( ! $upload_result['success'] || empty( $upload_result['attachments'] ) ) {
+			return $this->errorResponse(
+				'Failed to upload any images to media library',
+				array( 'upload_result' => $upload_result )
+			);
+		}
+
+		$attachment_ids = array_column( $upload_result['attachments'], 'id' );
+
+		$post_content = $this->build_post_content_blocks( $upload_result['attachments'], $engine_data, $instagram_caption );
+
+		$post_result = \wp_invoke_ability( 'extrachill/post-create', array(
+			'title'   => $title,
+			'content' => $post_content,
+			'status'  => $handler_config['post_status'] ?? 'draft',
+		) );
+
+		if ( ! $post_result['success'] ) {
+			return $this->errorResponse(
+				'WordPress post creation failed: ' . $post_result['message'],
+				array( 'post_result' => $post_result )
+			);
+		}
+
+		$post_id = $post_result['post_id'];
 
 		if ( ! empty( $attachment_ids[0] ) ) {
 			\set_post_thumbnail( $post_id, $attachment_ids[0] );
@@ -185,75 +181,30 @@ class RoundupPublishHandler extends PublishHandler {
 	}
 
 	/**
-	 * Upload an image file to the WordPress media library.
+	 * Build post content blocks from ability attachments.
 	 *
-	 * @param string $file_path Full path to the image file.
-	 * @param string $title Base title for the attachment.
-	 * @param int    $slide_number Slide number for naming.
-	 * @return int|null Attachment ID on success, null on failure.
-	 */
-	private function upload_image_to_media_library( string $file_path, string $title, int $slide_number ): ?int {
-		if ( ! file_exists( $file_path ) ) {
-			$this->log( 'error', 'Image file not found', array( 'file_path' => $file_path ) );
-			return null;
-		}
-
-		require_once ABSPATH . 'wp-admin/includes/file.php';
-		require_once ABSPATH . 'wp-admin/includes/image.php';
-		require_once ABSPATH . 'wp-admin/includes/media.php';
-
-		$file_array = array(
-			'name'     => sprintf( 'roundup-slide-%d.png', $slide_number ),
-			'tmp_name' => $file_path,
-		);
-
-		$attachment_id = \media_handle_sideload( $file_array, 0, sprintf( '%s - Slide %d', $title, $slide_number ) );
-
-		if ( \is_wp_error( $attachment_id ) ) {
-			$this->log(
-				'error',
-				'Media sideload failed',
-				array(
-					'error' => $attachment_id->get_error_message(),
-				)
-			);
-			return null;
-		}
-
-		return $attachment_id;
-	}
-
-	/**
-	 * Build post content with caption and image blocks.
-	 *
-	 * @param array $attachment_ids Array of attachment IDs.
-	 * @param array $engine_data Engine data with event summary.
+	 * @param array  $attachments Array of attachment objects with id and url from upload-images ability.
+	 * @param array  $engine_data Engine data with event summary.
 	 * @param string $instagram_caption The Instagram caption text.
 	 * @return string Post content with Gutenberg blocks.
 	 */
-	private function build_post_content( array $attachment_ids, array $engine_data, string $instagram_caption ): string {
+	private function build_post_content_blocks( array $attachments, array $engine_data, string $instagram_caption ): string {
 		$blocks = array();
 
-		// Add caption as a paragraph block at the top
 		if ( ! empty( $instagram_caption ) ) {
 			$blocks[] = '<!-- wp:paragraph -->';
 			$blocks[] = '<p>' . \esc_html( $instagram_caption ) . '</p>';
 			$blocks[] = '<!-- /wp:paragraph -->';
 		}
 
-		foreach ( $attachment_ids as $attachment_id ) {
-			$image_url = \wp_get_attachment_url( $attachment_id );
-			if ( ! $image_url ) {
-				continue;
-			}
-
+		foreach ( $attachments as $attachment ) {
 			$blocks[] = sprintf(
 				'<!-- wp:image {"id":%d,"sizeSlug":"full","linkDestination":"none"} -->' .
 				'<figure class="wp-block-image size-full"><img src="%s" alt="" class="wp-image-%d"/></figure>' .
 				'<!-- /wp:image -->',
-				$attachment_id,
-				\esc_url( $image_url ),
-				$attachment_id
+				$attachment['id'],
+				\esc_url( $attachment['url'] ),
+				$attachment['id']
 			);
 		}
 

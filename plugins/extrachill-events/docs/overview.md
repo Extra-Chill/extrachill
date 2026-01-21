@@ -6,7 +6,7 @@ WordPress plugin providing seamless integration between ExtraChill themes and th
 
 ExtraChill Events creates a dedicated event calendar site within the ExtraChill multisite network by:
 
-- **Template Override System**: Replaces homepage and archive templates with calendar-focused layouts
+- **Template Integration**: Renders homepage content via the theme action hook `extrachill_homepage_content` and overrides archive templates via the `extrachill_template_archive` filter.
 - **Visual Integration**: Maps datamachine-events badges and buttons to ExtraChill theme styling
 - **Breadcrumb System**: Provides custom navigation breadcrumbs with "Extra Chill → Events" hierarchy
 - **Related Events**: Displays related events by venue and location taxonomies

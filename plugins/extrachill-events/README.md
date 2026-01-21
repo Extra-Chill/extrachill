@@ -1,6 +1,8 @@
 # ExtraChill Events
 
-<WordPress plugin providing seamless integration between Extra Chill and Data Machine Events.
+WordPress plugin providing ExtraChill-side integration for events.extrachill.com.
+
+The event calendar system itself (Data Machine + datamachine-events) is external to this repo; this plugin focuses on template routing, styling integration, and event submission/automation glue.
 
 ## Features
 
@@ -16,32 +18,13 @@
 - **SEO Optimization**: Redirects /events/ post type archive to homepage for SEO consolidation
 - **Build Process**: NPM-based block compilation with @wordpress/scripts
 
-## Installation
+## Build + deployment
 
-### Multisite Network Setup
-1. Create new site in Network Admin: **Sites → Add New**
-   - Site URL: `events.extrachill.com`
-   - Site Title: "ExtraChill Events"
-2. Activate required plugins on the new site:
-   - **Data Machine** - Event automation and content pipeline
-   - **datamachine-events** - Calendar block and event post type
-   - **extrachill-events** - Homepage and archive template overrides
+Build the production ZIP with `./build.sh` (symlinked to `/.github/build.sh`).
 
-### Plugin Installation
-1. Navigate to plugin directory and create production build:
-    ```bash
-    cd extrachill-plugins/extrachill-events
-    ./build.sh
-    ```
-2. Upload the generated ZIP from `/build` directory via WordPress admin: **Plugins → Add New → Upload Plugin**
-3. Activate the plugin on events.extrachill.com
-4. Plugin automatically detects and integrates with supported event plugins
+Deployments and remote operations run through **Homeboy** (`homeboy/` in this repo).
 
-### Homepage Setup
-1. Create a page in WordPress admin (e.g., "Events Calendar")
-2. Add datamachine-events calendar block to the page via block editor
-3. Set as static homepage: **Settings → Reading → Front page: "Events Calendar"**
-
+This plugin targets **events.extrachill.com** (Blog ID 7) and integrates with **external** Data Machine + datamachine-events plugins.
 ## Supported Plugins
 
 ### DM Events (Complete Integration)
