@@ -18,27 +18,16 @@ A comprehensive WordPress plugin for newsletter management and Sendy integration
 - WordPress 5.0 or higher
 - PHP 7.4 or higher
 - Active Sendy installation for email functionality
-- Write permissions for plugin directory
+- WordPress multisite (network-activated)
 
-## Installation
+## Build + deployment
 
-### Via WordPress Admin (Recommended)
-1. Download the latest release ZIP from the plugin repository
-2. Go to WordPress Admin → Plugins → Add New → Upload Plugin
-3. Choose the ZIP file and click "Install Now"
-4. Activate the plugin
+Build the production ZIP with `./build.sh` (symlinked to `/.github/build.sh`).
 
-### Manual Installation
-1. Extract the plugin files to `wp-content/plugins/extrachill-newsletter/`
-2. Go to WordPress Admin → Plugins and activate "ExtraChill Newsletter"
+Deployments and remote operations run through **Homeboy** (`homeboy/` in this repo).
 
-### Development Installation
-1. Navigate to plugin directory and create production build:
-   ```bash
-   cd extrachill-plugins/extrachill-newsletter
-   ./build.sh
-   ```
-2. Install the generated ZIP file from `/build` directory
+The build artifact is `build/extrachill-newsletter.zip`.
+
 
 ## Configuration
 
@@ -125,7 +114,7 @@ The plugin provides subscription and campaign functionality via REST API (endpoi
 ### Filters
 - `newsletter_form_integrations` - Register newsletter integration contexts
 - `extrachill_newsletter_form_args` - Customize form arguments per context
-- `extrachill_template_homepage` - Homepage template override (newsletter site)
+- `extrachill_homepage_content` - Newsletter homepage content integration (newsletter site)
 - `extrachill_post_meta` - Customize post meta display for newsletters
 - `extrachill_breadcrumbs_override_trail` - Customize breadcrumb trail for newsletters
 
