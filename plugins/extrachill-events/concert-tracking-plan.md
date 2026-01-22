@@ -3,6 +3,21 @@
 **Status**: Planning stage - ready for implementation
 **Last Updated**: 2025-11-09
 
+## Known Issues to Investigate
+
+### Royal American Events Importing as Drafts
+
+**Issue**: Royal American events from the universal web scraper are sometimes being imported as drafts, specifically for events that have already passed.
+
+**Context**: This is a nuanced behavior that needs investigation to understand:
+- Why past events are being imported as drafts instead of being skipped or handled differently
+- Whether this is intentional behavior or a bug in the import process
+- The impact on the events calendar and user experience
+
+**Action Required**: Investigate and handle this nuance appropriately in the import workflow.
+
+---
+
 ## Architecture Overview
 
 Concert attendance tracking system following Extra Chill Platform patterns with clean separation of concerns across three plugins.
