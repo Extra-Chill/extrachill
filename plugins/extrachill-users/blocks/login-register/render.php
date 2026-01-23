@@ -207,3 +207,6 @@ if ( isset( $_GET['action'] ) && 'ec_accept_invite' === $_GET['action'] && isset
 
 <?php
 do_action( 'extrachill_below_login_register_form' );
+
+wp_enqueue_style( 'extrachill-shared-tabs' );
+wp_enqueue_script( 'extrachill-shared-tabs' );

@@ -25,6 +25,16 @@ User management functionality was migrated here from extrachill-multisite plugin
 
 **Migration History**: User management features were extracted from extrachill-multisite plugin to follow the single responsibility principle. This plugin now handles ALL user-specific logic while extrachill-multisite focuses solely on multisite infrastructure (Cloudflare Turnstile and network admin menu).
 
+### Changelog / migrations (authoritative)
+
+- The plugin `CHANGELOG.md` is the definitive record of historical removals, migrations, and deprecated hooks. When other docs reference removed functionality, prefer the changelog entry as the source of truth.
+- Notable migrations:
+  - Avatar upload UI relocated to `extrachill-community` (display logic and avatar menu remain in `extrachill-users`). See `CHANGELOG.md` v0.2.4.
+  - Profile URL resolution helpers moved to `extrachill-multisite` to centralize cross-site linking. See `CHANGELOG.md` v0.5.8.
+  - Legacy hooks and fallback code have been removed over time; consult the changelog for exact hook names and recommended replacements.
+
+If you update docs that reference removed functionality, add a short parenthetical pointing to the plugin changelog and the current replacement location (plugin/file) to avoid confusion.
+
 ### Plugin Loading Pattern
  - **Procedural WordPress Pattern**: Uses direct `require_once` includes for all plugin functionality
  - **Network Plugin Structure**: Network-activated plugin providing functionality across all multisite installations
@@ -92,6 +102,12 @@ User management functionality was migrated here from extrachill-multisite plugin
 **Block Forms**:
 - The compiled `build/login-register` block renders the login/register interfaces (tabs, Turnstile widget, roster invites, `source_url`/`success_redirect_url`, and universal notices) and posts to `admin-post.php` routes handled by the auth handlers.
 - The compiled `build/password-reset` block renders the email request and reset forms inline, posts to the `admin-post.php` endpoints secured by `EC_Redirect_Handler`, and keeps users on the same UI while WordPress resets their password.
+
+### Block build & distribution
+
+- Source: `blocks/` (block source) → Compiled output: `build/` (distribution). Example: `blocks/login-register/` → `build/login-register/`.
+- Build with Homeboy: `homeboy build extrachill-users` performs tests, lints, compiles the block builds, and creates the production ZIP. For local development use the plugin's frontend build scripts described in `package.json`.
+- Docs should reference blocks by registration name (e.g. `extrachill-users/login-register`) and mention the compiled `build/` directory when describing packaging or deployment.
 
 #### Online Users Tracking (`inc/core/online-users.php`)
 

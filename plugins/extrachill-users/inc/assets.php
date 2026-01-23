@@ -77,20 +77,3 @@ function extrachill_users_register_auth_utils_script() {
 	}
 }
 add_action( 'wp_enqueue_scripts', 'extrachill_users_register_auth_utils_script' );
-
-/**
- * Enqueue shared-tabs assets for login-register block.
- */
-function extrachill_users_enqueue_login_register_block_assets() {
-	global $post;
-
-	if ( ! is_singular() || empty( $post->post_content ) ) {
-		return;
-	}
-
-	if ( has_block( 'extrachill/login-register', $post ) ) {
-		wp_enqueue_style( 'extrachill-shared-tabs' );
-		wp_enqueue_script( 'extrachill-shared-tabs' );
-	}
-}
-add_action( 'wp_enqueue_scripts', 'extrachill_users_enqueue_login_register_block_assets' );
