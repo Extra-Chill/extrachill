@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 This file records notable changes in this theme.
 
-## Unreleased
+## [2.0.2] - 2026-01-22
 
 - Fixed mobile layout UX: Added 16px padding to breadcrumbs and card content at ≤400px breakpoint for comfortable reading margins while maintaining Mediavine ad compatibility
 
