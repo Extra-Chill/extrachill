@@ -1184,6 +1184,11 @@ body.search-overlay-open {
 		padding-left: 0;
 		padding-right: 0;
 	}
+	body.single-post .breadcrumbs,
+	body.single-datamachine_events .breadcrumbs {
+		padding-left: var(--spacing-md);
+		padding-right: var(--spacing-md);
+	}
 }
 
 /*--------------------------------------------------------------
