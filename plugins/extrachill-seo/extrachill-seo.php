@@ -63,7 +63,6 @@ add_action(
 	function () {
 		require_once EXTRACHILL_SEO_PATH . 'inc/core/settings.php';
 		require_once EXTRACHILL_SEO_PATH . 'inc/core/indexnow.php';
-		require_once EXTRACHILL_SEO_PATH . 'inc/core/rest-config.php';
 
 		// Load audit components (required for REST API endpoints)
 		require_once EXTRACHILL_SEO_PATH . 'inc/audit/audit-storage.php';
