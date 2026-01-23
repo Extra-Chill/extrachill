@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 This file records notable changes in this theme.
 
+## Unreleased
+
+- Small screens (≤400px) now go edge-to-edge on single posts for Mediavine 300px ad minimum compatibility
+
 ## [2.0.0] - 2026-01-19
 
 ### Changed

@@ -1177,6 +1177,15 @@ body.search-overlay-open {
 	}
 }
 
+/* Small screens - edge-to-edge for single posts (Mediavine 300px ad minimum) */
+@media screen and (max-width: 400px) {
+	body.single-post .extrachill-content,
+	body.single-datamachine_events .extrachill-content {
+		padding-left: 0;
+		padding-right: 0;
+	}
+}
+
 /*--------------------------------------------------------------
 18.0 single post pagination
 --------------------------------------------------------------*/

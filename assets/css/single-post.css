@@ -25,6 +25,19 @@
   }
 }
 
+/* Small screens - edge-to-edge for Mediavine 300px ad minimum */
+@media (max-width: 400px) {
+  .single-post-card {
+    padding: var(--spacing-sm);
+    margin: 0;
+    max-width: 100%;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+    box-shadow: none;
+  }
+}
+
 /* Post Content H2 Styling */
 .entry-content h2 {
 	border-bottom: 2px solid var(--accent);
