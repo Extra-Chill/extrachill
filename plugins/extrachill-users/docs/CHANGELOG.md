@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## [0.5.11] - 2026-01-22
 
 - Fixed shared-tabs assets not loading for login-register block on non-singular pages
 
