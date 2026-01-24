@@ -99,22 +99,3 @@ function extrachill_analytics_ability_track_event( $input ) {
 
 	return $result ? $result : 0;
 }
-
-/**
- * Exclude registration-triggered newsletter subscriptions from analytics.
- *
- * When users register, they are auto-subscribed to a newsletter list.
- * This is not an explicit signup action and should not be tracked as such.
- *
- * @param bool   $should_track Whether to track this event.
- * @param string $event_type   Event type identifier.
- * @param array  $event_data   Event payload data.
- * @return bool
- */
-function extrachill_exclude_registration_newsletter_tracking( $should_track, $event_type, $event_data ) {
-	if ( 'newsletter_signup' === $event_type && isset( $event_data['context'] ) && 'registration' === $event_data['context'] ) {
-		return false;
-	}
-	return $should_track;
-}
-add_filter( 'extrachill_should_track_analytics_event', 'extrachill_exclude_registration_newsletter_tracking', 10, 3 );
