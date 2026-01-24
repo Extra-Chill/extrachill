@@ -10,7 +10,21 @@
 
 defined( 'ABSPATH' ) || exit;
 
+add_action( 'wp_abilities_api_categories_init', 'extrachill_analytics_register_category' );
 add_action( 'wp_abilities_api_init', 'extrachill_analytics_register_abilities' );
+
+/**
+ * Register analytics ability category.
+ */
+function extrachill_analytics_register_category() {
+	wp_register_ability_category(
+		'extrachill-analytics',
+		array(
+			'label'       => __( 'Extra Chill Analytics', 'extrachill-analytics' ),
+			'description' => __( 'Analytics tracking capabilities', 'extrachill-analytics' ),
+		)
+	);
+}
 
 /**
  * Register analytics abilities.
@@ -21,6 +35,7 @@ function extrachill_analytics_register_abilities() {
 		array(
 			'label'       => __( 'Track Analytics Event', 'extrachill-analytics' ),
 			'description' => __( 'Record an analytics event to the network-wide events table.', 'extrachill-analytics' ),
+			'category'    => 'extrachill-analytics',
 			'input_schema' => array(
 				'type'       => 'object',
 				'properties' => array(
