@@ -5,7 +5,7 @@ Network-activated WordPress plugin providing centralized multisite search functi
 ## Plugin Information
 
 - **Name**: ExtraChill Search
-- **Version**: 0.2.0
+- **Version**: 0.2.2
 - **Text Domain**: `extrachill-search`
 - **Author**: Chris Huber
 - **Author URI**: https://chubes.net
@@ -76,11 +76,9 @@ WordPress native search only checks the current site for results. When paginatin
  - Taxonomy archive sharing deferred for future implementation
 
 #### Abilities API Integration (WordPress 6.9+)
- **Ability Registration** (`inc/core/abilities.php`):
- - **`extrachill_register_ability_category()`**: Registers `data-retrieval` category for organizing search capabilities
- - **`extrachill_register_abilities()`**: Registers `extrachill-search/multisite-search` ability
+**Ability Registration** (`inc/core/abilities.php`):
+ - **`extrachill_register_abilities()`**: Registers `extrachill/multisite-search` ability
  - **`extrachill_ability_multisite_search()`**: Execute callback wrapping the core search function
- - **Category**: Uses core `data-retrieval` category for broad discoverability
  - **Permission Level**: Open to all authenticated users (`read` capability)
  - **REST API**: Enabled via `show_in_rest: true` meta
  - **Annotations**: Marked as `readonly`, `idempotent`, non-destructive
