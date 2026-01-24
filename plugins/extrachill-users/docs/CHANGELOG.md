@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## [0.5.13] - 2026-01-23
 
 - Add direct analytics tracking via Abilities API
 
