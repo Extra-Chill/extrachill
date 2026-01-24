@@ -36,6 +36,7 @@ class LocationEventAbilities {
 			array(
 				'label'        => __( 'Get Location Events', 'extrachill-events' ),
 				'description'  => __( 'Query events by Extra Chill location taxonomy.', 'extrachill-events' ),
+				'category'     => 'extrachill-events',
 				'input_schema' => array(
 					'type'       => 'object',
 					'properties' => array(

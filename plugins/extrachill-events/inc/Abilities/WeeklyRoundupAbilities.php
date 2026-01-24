@@ -42,6 +42,7 @@ class WeeklyRoundupAbilities {
 			array(
 				'label'        => __( 'Weekly Roundup Query', 'extrachill-events' ),
 				'description'  => __( 'Query events for weekly roundup by date range and location.', 'extrachill-events' ),
+				'category'     => 'extrachill-events',
 				'input_schema' => array(
 					'type'       => 'object',
 					'properties' => array(
@@ -90,6 +91,7 @@ class WeeklyRoundupAbilities {
 			array(
 				'label'        => __( 'Weekly Roundup Generate', 'extrachill-events' ),
 				'description'  => __( 'Generate Instagram carousel images from event data.', 'extrachill-events' ),
+				'category'     => 'extrachill-events',
 				'input_schema' => array(
 					'type'       => 'object',
 					'properties' => array(
