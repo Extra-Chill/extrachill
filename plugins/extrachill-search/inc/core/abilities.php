@@ -3,14 +3,29 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+add_action( 'wp_abilities_api_categories_init', 'extrachill_search_register_category' );
 add_action( 'wp_abilities_api_init', 'extrachill_register_abilities' );
+
+/**
+ * Register search ability category.
+ */
+function extrachill_search_register_category() {
+	wp_register_ability_category(
+		'extrachill-search',
+		array(
+			'label'       => __( 'Extra Chill Search', 'extrachill-search' ),
+			'description' => __( 'Multisite search capabilities', 'extrachill-search' ),
+		)
+	);
+}
 
 function extrachill_register_abilities() {
 	wp_register_ability(
 		'extrachill/multisite-search',
 		array(
-			'label'       => __( 'Multisite Search', 'extrachill-search' ),
-			'description' => __( 'Search across all network sites in the WordPress multisite installation with relevance scoring.', 'extrachill-search' ),
+			'label'        => __( 'Multisite Search', 'extrachill-search' ),
+			'description'  => __( 'Search across all network sites in the WordPress multisite installation with relevance scoring.', 'extrachill-search' ),
+			'category'     => 'extrachill-search',
 			'input_schema' => array(
 				'type'       => 'object',
 				'properties' => array(
