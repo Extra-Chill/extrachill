@@ -355,6 +355,21 @@ function extrachill_multisite_search( $search_term, $site_urls = array(), $args 
 	 */
 	do_action( 'extrachill_search_performed', $search_term, $total_results, wp_get_referer() );
 
+	// Track analytics.
+	if ( ! empty( trim( $search_term ) ) && function_exists( 'wp_execute_ability' ) ) {
+		wp_execute_ability(
+			'extrachill/track-analytics-event',
+			array(
+				'event_type' => 'search',
+				'event_data' => array(
+					'search_term'  => $search_term,
+					'result_count' => (int) $total_results,
+				),
+				'source_url' => wp_get_referer() ?: '',
+			)
+		);
+	}
+
 	if ( $args['return_count'] ) {
 		return array(
 			'results' => $all_results,
