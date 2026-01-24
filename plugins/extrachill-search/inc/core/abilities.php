@@ -7,7 +7,7 @@ add_action( 'wp_abilities_api_init', 'extrachill_register_abilities' );
 
 function extrachill_register_abilities() {
 	wp_register_ability(
-		'extrachill-search/multisite-search',
+		'extrachill/multisite-search',
 		array(
 			'label'       => __( 'Multisite Search', 'extrachill-search' ),
 			'description' => __( 'Search across all network sites in the WordPress multisite installation with relevance scoring.', 'extrachill-search' ),
