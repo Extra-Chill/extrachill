@@ -17,19 +17,18 @@ defined( 'ABSPATH' ) || exit;
  * @param string $list_id    Sendy list ID.
  * @param string $source_url URL of the page where the form was submitted.
  */
-function ec_analytics_track_newsletter_signup( $context, $list_id, $source_url ) {
-	if ( ! function_exists( 'ec_track_event' ) ) {
-		return;
-	}
-
-	ec_track_event(
-		'newsletter_signup',
+function extrachill_analytics_track_newsletter_signup( $context, $list_id, $source_url ) {
+	wp_execute_ability(
+		'extrachill/track-analytics-event',
 		array(
-			'context' => $context,
-			'list_id' => $list_id,
-		),
-		$source_url
+			'event_type' => 'newsletter_signup',
+			'event_data' => array(
+				'context' => $context,
+				'list_id' => $list_id,
+			),
+			'source_url' => $source_url,
+		)
 	);
 }
 
-add_action( 'extrachill_newsletter_subscribed', 'ec_analytics_track_newsletter_signup', 10, 3 );
+add_action( 'extrachill_newsletter_subscribed', 'extrachill_analytics_track_newsletter_signup', 10, 3 );

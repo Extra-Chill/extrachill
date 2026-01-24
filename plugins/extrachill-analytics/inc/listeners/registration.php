@@ -18,20 +18,19 @@ defined( 'ABSPATH' ) || exit;
  * @param string $registration_source Source identifier (web, extrachill-app, etc.).
  * @param string $registration_method Method used (form, google, etc.).
  */
-function ec_analytics_track_user_registration( $user_id, $registration_page, $registration_source, $registration_method ) {
-	if ( ! function_exists( 'ec_track_event' ) ) {
-		return;
-	}
-
-	ec_track_event(
-		'user_registration',
+function extrachill_analytics_track_user_registration( $user_id, $registration_page, $registration_source, $registration_method ) {
+	wp_execute_ability(
+		'extrachill/track-analytics-event',
 		array(
-			'user_id' => $user_id,
-			'source'  => $registration_source,
-			'method'  => $registration_method,
-		),
-		$registration_page
+			'event_type' => 'user_registration',
+			'event_data' => array(
+				'user_id' => $user_id,
+				'source'  => $registration_source,
+				'method'  => $registration_method,
+			),
+			'source_url' => $registration_page,
+		)
 	);
 }
 
-add_action( 'extrachill_new_user_registered', 'ec_analytics_track_user_registration', 10, 4 );
+add_action( 'extrachill_new_user_registered', 'extrachill_analytics_track_user_registration', 10, 4 );

@@ -17,24 +17,22 @@ defined( 'ABSPATH' ) || exit;
  * @param int    $result_count  Total number of results found.
  * @param string $referer       The page user was on before searching.
  */
-function ec_analytics_track_search( $search_term, $result_count, $referer ) {
-	if ( ! function_exists( 'ec_track_event' ) ) {
-		return;
-	}
-
-	// Skip empty searches
+function extrachill_analytics_track_search( $search_term, $result_count, $referer ) {
 	if ( empty( trim( $search_term ) ) ) {
 		return;
 	}
 
-	ec_track_event(
-		'search',
+	wp_execute_ability(
+		'extrachill/track-analytics-event',
 		array(
-			'search_term'  => $search_term,
-			'result_count' => (int) $result_count,
-		),
-		$referer ?: ''
+			'event_type' => 'search',
+			'event_data' => array(
+				'search_term'  => $search_term,
+				'result_count' => (int) $result_count,
+			),
+			'source_url' => $referer ?: '',
+		)
 	);
 }
 
-add_action( 'extrachill_search_performed', 'ec_analytics_track_search', 10, 3 );
+add_action( 'extrachill_search_performed', 'extrachill_analytics_track_search', 10, 3 );

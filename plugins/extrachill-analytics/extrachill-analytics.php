@@ -27,6 +27,7 @@ require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/events.php';
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/view-counts.php';
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/assets.php';
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/gtm.php';
+require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/abilities.php';
 
 // Event listeners.
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/listeners/newsletter.php';
