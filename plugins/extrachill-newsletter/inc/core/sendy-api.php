@@ -146,6 +146,21 @@ function extrachill_subscribe_to_list( $list_id, $email, $name = '', $source = '
 		 */
 		do_action( 'extrachill_newsletter_subscribed', $source, $list_id, $source_url );
 
+		// Track analytics (skip auto-subscriptions during registration).
+		if ( 'registration' !== $source && function_exists( 'wp_execute_ability' ) ) {
+			wp_execute_ability(
+				'extrachill/track-analytics-event',
+				array(
+					'event_type' => 'newsletter_signup',
+					'event_data' => array(
+						'context' => $source,
+						'list_id' => $list_id,
+					),
+					'source_url' => $source_url,
+				)
+			);
+		}
+
 		return array(
 			'success' => true,
 			'message' => __( 'Successfully subscribed to newsletter', 'extrachill-newsletter' ),
