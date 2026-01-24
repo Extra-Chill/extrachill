@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Extra Chill Analytics
  * Description: Network-wide analytics tracking and reporting for the Extra Chill Platform.
- * Version: 0.4.3
+ * Version: 0.4.4
  * Author: Chris Huber
  * Network: true
  * Text Domain: extrachill-analytics
@@ -15,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'EXTRACHILL_ANALYTICS_VERSION', '0.4.3' );
+define( 'EXTRACHILL_ANALYTICS_VERSION', '0.4.4' );
 define( 'EXTRACHILL_ANALYTICS_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'EXTRACHILL_ANALYTICS_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 
