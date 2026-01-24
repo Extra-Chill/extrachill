@@ -71,6 +71,10 @@ function ec_seo_get_empty_results() {
 			'total'   => 0,
 			'by_site' => array(),
 		),
+		'redirect_links'         => array(
+			'total'   => 0,
+			'by_site' => array(),
+		),
 	);
 }
 
@@ -89,6 +93,7 @@ function ec_seo_get_check_order() {
 		'broken_images',
 		'broken_internal_links',
 		'broken_external_links',
+		'redirect_links',
 	);
 }
 
@@ -103,6 +108,7 @@ function ec_seo_is_slow_check( $check_key ) {
 		'broken_images',
 		'broken_internal_links',
 		'broken_external_links',
+		'redirect_links',
 	);
 
 	return in_array( $check_key, $slow_checks, true );

@@ -17,6 +17,9 @@ use function ExtraChill\SEO\Audit\Checks\ec_seo_count_broken_links;
 use function ExtraChill\SEO\Audit\Checks\ec_seo_get_image_urls_to_check;
 use function ExtraChill\SEO\Audit\Checks\ec_seo_get_link_urls_to_check;
 use function ExtraChill\SEO\Audit\Checks\ec_seo_count_broken_featured_images;
+use function ExtraChill\SEO\Audit\Checks\ec_seo_count_redirect_links;
+use function ExtraChill\SEO\Audit\Checks\ec_seo_get_redirect_urls_to_check;
+use function ExtraChill\SEO\Audit\Checks\ec_seo_url_redirects;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -67,6 +70,11 @@ function ec_seo_run_full_audit() {
 
 			$results['broken_external_links']['by_site'][ $blog_id ] = array(
 				'count' => ec_seo_count_broken_links( 'external' ),
+				'label' => $site_label,
+			);
+
+			$results['redirect_links']['by_site'][ $blog_id ] = array(
+				'count' => ec_seo_count_redirect_links(),
 				'label' => $site_label,
 			);
 		} finally {
@@ -248,6 +256,9 @@ function ec_seo_process_slow_check_batch( &$audit_data, $check_key ) {
 					case 'broken_external_links':
 						$site_urls = ec_seo_get_link_urls_to_check( 'external' );
 						break;
+					case 'redirect_links':
+						$site_urls = ec_seo_get_redirect_urls_to_check();
+						break;
 					default:
 						$site_urls = array();
 				}
@@ -274,7 +285,11 @@ function ec_seo_process_slow_check_batch( &$audit_data, $check_key ) {
 		$url     = $url_data['url'];
 		$blog_id = $url_data['blog_id'];
 
-		if ( ec_seo_url_is_broken( $url ) ) {
+		if ( 'redirect_links' === $check_key ) {
+			if ( ec_seo_url_redirects( $url ) ) {
+				++$results[ $check_key ]['by_site'][ $blog_id ]['count'];
+			}
+		} elseif ( ec_seo_url_is_broken( $url ) ) {
 			++$results[ $check_key ]['by_site'][ $blog_id ]['count'];
 		}
 

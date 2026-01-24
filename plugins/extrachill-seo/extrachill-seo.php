@@ -72,6 +72,7 @@ add_action(
 		require_once EXTRACHILL_SEO_PATH . 'inc/audit/checks/check-featured.php';
 		require_once EXTRACHILL_SEO_PATH . 'inc/audit/checks/check-broken-images.php';
 		require_once EXTRACHILL_SEO_PATH . 'inc/audit/checks/check-broken-links.php';
+		require_once EXTRACHILL_SEO_PATH . 'inc/audit/checks/check-redirect-links.php';
 		require_once EXTRACHILL_SEO_PATH . 'inc/audit/audit-runner.php';
 		require_once EXTRACHILL_SEO_PATH . 'inc/audit/audit-global.php';
 
@@ -111,5 +112,24 @@ add_action(
 			false,
 			dirname( plugin_basename( __FILE__ ) ) . '/languages'
 		);
+	}
+);
+
+/**
+ * Load Abilities API integration (WordPress 6.9+)
+ */
+add_action(
+	'plugins_loaded',
+	function () {
+		if ( ! class_exists( 'WP_Ability' ) ) {
+			return;
+		}
+
+		require_once EXTRACHILL_SEO_PATH . 'inc/abilities/audit-abilities.php';
+		require_once EXTRACHILL_SEO_PATH . 'inc/abilities/config-abilities.php';
+		require_once EXTRACHILL_SEO_PATH . 'inc/abilities/analysis-abilities.php';
+		require_once EXTRACHILL_SEO_PATH . 'inc/abilities/class-seo-abilities.php';
+
+		new \ExtraChill\SEO\Abilities\SEO_Abilities();
 	}
 );

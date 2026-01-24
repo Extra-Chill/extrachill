@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0).
 
+## Unreleased
+
+- Add WordPress 6.9 Abilities API integration with 6 SEO abilities
+- Add redirect link detection audit check for internal 301/302 redirects
+
 ## [0.7.1] - 2026-01-22
 
 - Remove duplicate REST route registration - /seo/config endpoint now solely in extrachill-api
