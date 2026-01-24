@@ -13,7 +13,7 @@
  * Plugin Name: Extra Chill SEO
  * Plugin URI: https://extrachill.com
  * Description: Lean SEO plugin replacing Yoast with code-first meta tags, structured data, and robots directives
- * Version: 0.7.1
+ * Version: 0.8.0
  * Author: Extra Chill
  * Author URI: https://extrachill.com
  * Network: true
