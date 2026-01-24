@@ -13,7 +13,7 @@ defined( 'ABSPATH' ) || exit;
 /**
  * Track newsletter subscription event.
  *
- * @param string $context    Form context (homepage, navigation, content, archive).
+ * @param string $context    Form context (homepage, navigation, content, archive, registration).
  * @param string $list_id    Sendy list ID.
  * @param string $source_url URL of the page where the form was submitted.
  */
