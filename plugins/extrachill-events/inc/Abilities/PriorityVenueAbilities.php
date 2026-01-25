@@ -25,7 +25,18 @@ class PriorityVenueAbilities {
 	}
 
 	private function registerAbilities(): void {
+		add_action( 'wp_abilities_api_categories_init', array( $this, 'registerCategory' ) );
 		add_action( 'wp_abilities_api_init', array( $this, 'register' ) );
+	}
+
+	public function registerCategory(): void {
+		wp_register_ability_category(
+			'extrachill-events',
+			array(
+				'label'       => __( 'Extra Chill Events', 'extrachill-events' ),
+				'description' => __( 'Event management capabilities', 'extrachill-events' ),
+			)
+		);
 	}
 
 	public function register(): void {
@@ -34,6 +45,7 @@ class PriorityVenueAbilities {
 			array(
 				'label'        => __( 'List Priority Venues', 'extrachill-events' ),
 				'description'  => __( 'List all venues marked as priority for calendar sorting.', 'extrachill-events' ),
+				'category'     => 'extrachill-events',
 				'input_schema' => array(
 					'type'       => 'object',
 					'properties' => array(),
@@ -89,6 +101,7 @@ class PriorityVenueAbilities {
 			array(
 				'label'        => __( 'Set Priority Venue', 'extrachill-events' ),
 				'description'  => __( 'Mark or unmark a venue as priority for calendar sorting.', 'extrachill-events' ),
+				'category'     => 'extrachill-events',
 				'input_schema' => array(
 					'type'       => 'object',
 					'properties' => array(
