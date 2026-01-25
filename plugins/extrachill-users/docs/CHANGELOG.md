@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## [0.5.14] - 2026-01-25
 
 ### Fixed
 - Fixed analytics tracking timing issue with Abilities API
