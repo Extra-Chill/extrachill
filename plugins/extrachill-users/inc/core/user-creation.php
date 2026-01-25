@@ -72,21 +72,22 @@ function ec_multisite_create_community_user( $user_id, $registration_data ) {
 	if ( ! is_wp_error( $user_id ) ) {
 		do_action( 'extrachill_new_user_registered', $user_id, $registration_page, $registration_source, $registration_method );
 
-		// Track analytics.
-		if ( function_exists( 'wp_execute_ability' ) ) {
-			wp_execute_ability(
-				'extrachill/track-analytics-event',
-				array(
-					'event_type' => 'user_registration',
-					'event_data' => array(
-						'user_id' => $user_id,
-						'source'  => $registration_source,
-						'method'  => $registration_method,
-					),
-					'source_url' => $registration_page,
-				)
-			);
-		}
+		// Track analytics - delay until Abilities API is ready.
+		$analytics_data = array(
+			'event_type' => 'user_registration',
+			'event_data' => array(
+				'user_id' => $user_id,
+				'source'  => $registration_source,
+				'method'  => $registration_method,
+			),
+			'source_url' => $registration_page,
+		);
+		
+		add_action( 'wp_abilities_api_init', function() use ( $analytics_data ) {
+			if ( function_exists( 'wp_execute_ability' ) ) {
+				wp_execute_ability( 'extrachill/track-analytics-event', $analytics_data );
+			}
+		}, 20 );
 	}
 
 	return $user_id;
