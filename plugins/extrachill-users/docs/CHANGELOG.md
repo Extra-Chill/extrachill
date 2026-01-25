@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## [0.5.15] - 2026-01-25
 
 ### Fixed
 - Fixed analytics tracking with correct WordPress 6.9 Abilities API
