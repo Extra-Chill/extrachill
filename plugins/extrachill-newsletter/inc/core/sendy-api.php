@@ -146,19 +146,22 @@ function extrachill_subscribe_to_list( $list_id, $email, $name = '', $source = '
 		 */
 		do_action( 'extrachill_newsletter_subscribed', $source, $list_id, $source_url );
 
-		// Track analytics (skip auto-subscriptions during registration).
-		if ( 'registration' !== $source && function_exists( 'wp_execute_ability' ) ) {
-			wp_execute_ability(
-				'extrachill/track-analytics-event',
-				array(
-					'event_type' => 'newsletter_signup',
-					'event_data' => array(
-						'context' => $source,
-						'list_id' => $list_id,
-					),
-					'source_url' => $source_url,
-				)
+		// Track analytics (skip auto-subscriptions during registration) - delay until Abilities API is ready.
+		if ( 'registration' !== $source ) {
+			$analytics_data = array(
+				'event_type' => 'newsletter_signup',
+				'event_data' => array(
+					'context' => $source,
+					'list_id' => $list_id,
+				),
+				'source_url' => $source_url,
 			);
+			
+			add_action( 'wp_abilities_api_init', function() use ( $analytics_data ) {
+				if ( function_exists( 'wp_execute_ability' ) ) {
+					wp_execute_ability( 'extrachill/track-analytics-event', $analytics_data );
+				}
+			}, 20 );
 		}
 
 		return array(
