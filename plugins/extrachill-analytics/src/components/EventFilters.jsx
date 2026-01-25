@@ -5,7 +5,13 @@
  */
 
 import { useState } from '@wordpress/element';
-import { SelectControl, Button, DatePicker, Popover, TextControl } from '@wordpress/components';
+import {
+	SelectControl,
+	Button,
+	DatePicker,
+	Popover,
+	TextControl,
+} from '@wordpress/components';
 
 export default function EventFilters( {
 	filters,
@@ -40,15 +46,24 @@ export default function EventFilters( {
 		return dateString;
 	};
 
-	const hasActiveFilters = filters.event_type || filters.blog_id || filters.date_from || filters.date_to || filters.search;
+	const hasActiveFilters =
+		filters.event_type ||
+		filters.blog_id ||
+		filters.date_from ||
+		filters.date_to ||
+		filters.search;
 
 	// Build options arrays
 	const eventTypeOptions = [
 		{ label: 'All Event Types', value: '' },
-		...eventTypes.map( ( type ) => ( {
-			label: type.replace( /_/g, ' ' ).replace( /\b\w/g, ( c ) => c.toUpperCase() ),
-			value: type,
-		} ) ),
+		...eventTypes
+			.filter( ( type ) => type !== null && type !== undefined )
+			.map( ( type ) => ( {
+				label: type
+					.replace( /_/g, ' ' )
+					.replace( /\b\w/g, ( c ) => c.toUpperCase() ),
+				value: type,
+			} ) ),
 	];
 
 	const blogOptions = [
@@ -67,7 +82,9 @@ export default function EventFilters( {
 					label="Event Type"
 					value={ filters.event_type }
 					options={ eventTypeOptions }
-					onChange={ ( value ) => handleChange( 'event_type', value ) }
+					onChange={ ( value ) =>
+						handleChange( 'event_type', value )
+					}
 					disabled={ isLoadingMeta }
 					__nextHasNoMarginBottom
 				/>
@@ -96,7 +113,10 @@ export default function EventFilters( {
 							<DatePicker
 								currentDate={ filters.date_from }
 								onChange={ ( date ) => {
-									handleChange( 'date_from', date ? date.split( 'T' )[ 0 ] : '' );
+									handleChange(
+										'date_from',
+										date ? date.split( 'T' )[ 0 ] : ''
+									);
 									setShowDateFrom( false );
 								} }
 							/>
@@ -118,7 +138,10 @@ export default function EventFilters( {
 							<DatePicker
 								currentDate={ filters.date_to }
 								onChange={ ( date ) => {
-									handleChange( 'date_to', date ? date.split( 'T' )[ 0 ] : '' );
+									handleChange(
+										'date_to',
+										date ? date.split( 'T' )[ 0 ] : ''
+									);
 									setShowDateTo( false );
 								} }
 							/>

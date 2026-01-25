@@ -9,7 +9,7 @@ const path = require( 'path' );
 module.exports = {
 	...defaultConfig,
 	entry: {
-		'analytics': './src/index.js',
+		analytics: './src/index.js',
 	},
 	output: {
 		...defaultConfig.output,

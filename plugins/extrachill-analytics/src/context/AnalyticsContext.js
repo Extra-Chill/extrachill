@@ -4,7 +4,12 @@
  * Provides shared state for the analytics dashboard.
  */
 
-import { createContext, useContext, useState, useCallback } from '@wordpress/element';
+import {
+	createContext,
+	useContext,
+	useState,
+	useCallback,
+} from '@wordpress/element';
 
 const AnalyticsContext = createContext();
 
@@ -14,7 +19,7 @@ export function AnalyticsProvider( { children } ) {
 	const addNotice = useCallback( ( type, message ) => {
 		const id = Date.now();
 		setNotices( ( prev ) => [ ...prev, { id, type, message } ] );
-		
+
 		// Auto-dismiss after 5 seconds
 		setTimeout( () => {
 			setNotices( ( prev ) => prev.filter( ( n ) => n.id !== id ) );
@@ -41,7 +46,9 @@ export function AnalyticsProvider( { children } ) {
 export function useAnalytics() {
 	const context = useContext( AnalyticsContext );
 	if ( ! context ) {
-		throw new Error( 'useAnalytics must be used within an AnalyticsProvider' );
+		throw new Error(
+			'useAnalytics must be used within an AnalyticsProvider'
+		);
 	}
 	return context;
 }

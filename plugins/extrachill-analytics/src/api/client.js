@@ -39,7 +39,7 @@ const get = ( path ) => apiFetch( { path, method: 'GET' } );
  */
 export const getEvents = ( params = {} ) => {
 	const query = new URLSearchParams();
-	
+
 	Object.entries( params ).forEach( ( [ key, value ] ) => {
 		if ( value !== undefined && value !== '' && value !== null ) {
 			query.append( key, value );
@@ -47,7 +47,11 @@ export const getEvents = ( params = {} ) => {
 	} );
 
 	const queryString = query.toString();
-	return get( `extrachill/v1/analytics/events${ queryString ? `?${ queryString }` : '' }` );
+	return get(
+		`extrachill/v1/analytics/events${
+			queryString ? `?${ queryString }` : ''
+		}`
+	);
 };
 
 /**

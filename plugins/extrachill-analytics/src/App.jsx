@@ -51,7 +51,10 @@ export default function App() {
 			const response = await getAnalyticsMeta();
 			setMeta( response );
 		} catch ( error ) {
-			addNotice( 'error', error.message || 'Failed to load filter options.' );
+			addNotice(
+				'error',
+				error.message || 'Failed to load filter options.'
+			);
 		} finally {
 			setIsLoadingMeta( false );
 		}

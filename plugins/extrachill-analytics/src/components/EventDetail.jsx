@@ -9,14 +9,17 @@ import { Button } from '@wordpress/components';
 export default function EventDetail( { event, onClose } ) {
 	if ( ! event ) return null;
 
-	const { event_type, event_data, source_url, blog_id, user_id, created_at } = event;
+	const { event_type, event_data, source_url, blog_id, user_id, created_at } =
+		event;
 
 	/**
 	 * Render parsed event data based on event type.
 	 */
 	const renderEventData = () => {
 		if ( ! event_data ) {
-			return <p className="ec-event-detail__no-data">No additional data.</p>;
+			return (
+				<p className="ec-event-detail__no-data">No additional data.</p>
+			);
 		}
 
 		switch ( event_type ) {
@@ -28,10 +31,16 @@ export default function EventDetail( { event, onClose } ) {
 						<dt>Shared URL</dt>
 						<dd>
 							{ event_data.share_url ? (
-								<a href={ event_data.share_url } target="_blank" rel="noopener noreferrer">
+								<a
+									href={ event_data.share_url }
+									target="_blank"
+									rel="noopener noreferrer"
+								>
 									{ event_data.share_url }
 								</a>
-							) : '-' }
+							) : (
+								'-'
+							) }
 						</dd>
 					</dl>
 				);
@@ -64,7 +73,11 @@ export default function EventDetail( { event, onClose } ) {
 						<dt>Search Term</dt>
 						<dd>{ event_data.search_term || '-' }</dd>
 						<dt>Result Count</dt>
-						<dd>{ event_data.result_count !== undefined ? event_data.result_count : '-' }</dd>
+						<dd>
+							{ event_data.result_count !== undefined
+								? event_data.result_count
+								: '-' }
+						</dd>
 					</dl>
 				);
 
@@ -104,10 +117,16 @@ export default function EventDetail( { event, onClose } ) {
 						<dt>Source URL</dt>
 						<dd>
 							{ source_url ? (
-								<a href={ source_url } target="_blank" rel="noopener noreferrer">
+								<a
+									href={ source_url }
+									target="_blank"
+									rel="noopener noreferrer"
+								>
 									{ source_url }
 								</a>
-							) : '-' }
+							) : (
+								'-'
+							) }
 						</dd>
 						<dt>Blog ID</dt>
 						<dd>{ blog_id }</dd>

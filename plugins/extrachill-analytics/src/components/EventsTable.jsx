@@ -56,7 +56,9 @@ export default function EventsTable( {
 					<span>Loading events...</span>
 				</div>
 			) : events.length === 0 ? (
-				<p className="ec-analytics__empty">No events found. Try adjusting your filters.</p>
+				<p className="ec-analytics__empty">
+					No events found. Try adjusting your filters.
+				</p>
 			) : (
 				<div className="ec-analytics__table">
 					<table className="widefat striped">
@@ -76,8 +78,17 @@ export default function EventsTable( {
 								<tr key={ event.id }>
 									<td>{ event.id }</td>
 									<td>
-										<span className={ getEventTypeBadgeClass( event.event_type ) }>
-											{ event.event_type.replace( /_/g, ' ' ) }
+										<span
+											className={ getEventTypeBadgeClass(
+												event.event_type
+											) }
+										>
+											{ event.event_type
+												? event.event_type.replace(
+														/_/g,
+														' '
+												  )
+												: 'Unknown' }
 										</span>
 									</td>
 									<td>
@@ -91,10 +102,14 @@ export default function EventsTable( {
 									<td>
 										<Button
 											variant="tertiary"
-											onClick={ () => toggleExpand( event.id ) }
+											onClick={ () =>
+												toggleExpand( event.id )
+											}
 											className="ec-analytics__expand-btn"
 										>
-											{ expandedEventId === event.id ? 'Hide' : 'View' }
+											{ expandedEventId === event.id
+												? 'Hide'
+												: 'View' }
 										</Button>
 									</td>
 								</tr>
@@ -123,7 +138,8 @@ export default function EventsTable( {
 						Previous
 					</Button>
 					<span>
-						Page { currentPage } of { totalPages } ({ totalItems } total)
+						Page { currentPage } of { totalPages } ({ totalItems }{ ' ' }
+						total)
 					</span>
 					<Button
 						variant="secondary"
