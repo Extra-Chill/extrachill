@@ -355,7 +355,7 @@ function extrachill_multisite_search( $search_term, $site_urls = array(), $args 
 	 */
 	do_action( 'extrachill_search_performed', $search_term, $total_results, wp_get_referer() );
 
-	// Track analytics - delay until Abilities API is ready.
+	// Track analytics.
 	if ( ! empty( trim( $search_term ) ) ) {
 		$analytics_data = array(
 			'event_type' => 'search',
@@ -366,11 +366,10 @@ function extrachill_multisite_search( $search_term, $site_urls = array(), $args 
 			'source_url' => wp_get_referer() ?: '',
 		);
 		
-		add_action( 'wp_abilities_api_init', function() use ( $analytics_data ) {
-			if ( function_exists( 'wp_execute_ability' ) ) {
-				wp_execute_ability( 'extrachill/track-analytics-event', $analytics_data );
-			}
-		}, 20 );
+		$ability = wp_get_ability( 'extrachill/track-analytics-event' );
+		if ( $ability ) {
+			$ability->execute( $analytics_data );
+		}
 	}
 
 	if ( $args['return_count'] ) {
