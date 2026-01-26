@@ -40,6 +40,7 @@
     color: var(--accent);
     font-style: italic;
     text-decoration: none;
+    font-size: var(--font-size-base);
 }
 
 .datamachine-event-details .event-info-grid .farm-friends-promo a:hover {
