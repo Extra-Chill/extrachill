@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] - 2026-01-26
+
+### Changed
+- Add Event Priority Boost product
+- Version bump to 0.5.3 - Shipping and schema breadcrumbs
+- Remove vendor directory from git tracking
+- Test message 2
+- Version bump to 0.5.2 - Shipping free items + schema breadcrumbs
+- Version bump to 0.5.1 - Rename Ad-Free License to Lifetime Membership
+- Version bump to 0.5.0 - Shipping + Stripe transfer payouts
+- Version bump to 0.4.1 - Enhanced shop integration and refactoring
+- Version bump to 0.4.0 - Artist Order Notifications & Shop Enhancements
+- Version bump to 0.3.0 - Artist Dashboard Removal & Stripe Payout Integration
+- Version bump to 0.2.0 - Artist Marketplace & Stripe Connect
+- Initial release 0.1.0
+- getting this bitch up and running
+- basic integration of woocommerce system
+- Update shop integration and clean build files
+- Update shop plugin templates and functionality
+- Documentation alignment: Fix PSR-4 autoloading claims
+- moved ad free license logic into this plugin out of theme.
+- Initial commit: WordPress plugin conversion from theme
+
 ## [0.5.2] - 2026-01-06
 
 ### Added
