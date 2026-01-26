@@ -60,7 +60,7 @@ function ec_events_filter_related_taxonomies( $taxonomies, $post_id, $post_type 
 add_filter( 'extrachill_related_posts_taxonomies', 'ec_events_filter_related_taxonomies', 10, 3 );
 
 /**
- * Allow location taxonomy in related posts whitelist
+ * Allow venue and location taxonomies in related posts whitelist
  *
  * @hook extrachill_related_posts_allowed_taxonomies
  * @param array  $allowed   Default allowed taxonomies
@@ -70,7 +70,7 @@ add_filter( 'extrachill_related_posts_taxonomies', 'ec_events_filter_related_tax
  */
 function ec_events_allow_related_taxonomies( $allowed, $post_type ) {
 	if ( $post_type === 'datamachine_events' ) {
-		return array_merge( $allowed, array( 'location' ) );
+		return array_merge( $allowed, array( 'venue', 'location' ) );
 	}
 	return $allowed;
 }
