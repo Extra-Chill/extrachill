@@ -48,7 +48,7 @@ function extrachill_events_display_farm_friends_promo( $post_id, $price ) {
 
 	?>
 	<div class="farm-friends-promo">
-		<a href="<?php echo esc_url( $promo_url ); ?>" target="_blank" rel="noopener">
+		<a href="<?php echo esc_url( $promo_url ); ?>" class="taxonomy-badge promo-badge" target="_blank" rel="noopener">
 			<?php esc_html_e( 'Free for Farm Friends', 'extrachill-events' ); ?>
 		</a>
 	</div>
