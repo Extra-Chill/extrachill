@@ -13,9 +13,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Reorder events by venue priority (single-location contexts only)
+ * Reorder events by priority (single-location contexts only)
  *
- * Priority venues appear first ONLY when all events in the day group
+ * 3-tier priority hierarchy:
+ * 1. Priority Events (highest) - individual events marked as priority
+ * 2. Priority Venue Events - events at venues marked as priority
+ * 3. Regular Events (lowest) - all other events
+ *
+ * Priority sorting only applies when all events in the day group
  * share the same location. Multi-location views remain in datetime order.
  *
  * @param array  $events   Events for this day.
@@ -29,8 +34,11 @@ function ec_events_reorder_by_priority( $events, $date_key, $context ) {
 	}
 
 	$priority_venue_ids = ec_get_priority_venue_ids();
+	$priority_event_ids = function_exists( 'extrachill_get_priority_event_ids' )
+		? extrachill_get_priority_event_ids()
+		: array();
 
-	if ( empty( $priority_venue_ids ) ) {
+	if ( empty( $priority_venue_ids ) && empty( $priority_event_ids ) ) {
 		return $events;
 	}
 
@@ -59,18 +67,31 @@ function ec_events_reorder_by_priority( $events, $date_key, $context ) {
 	// Single location - apply priority sorting.
 	usort(
 		$events,
-		function ( $a, $b ) use ( $priority_venue_ids ) {
-			$a_priority = ec_is_priority_venue_event( $a, $priority_venue_ids );
-			$b_priority = ec_is_priority_venue_event( $b, $priority_venue_ids );
+		function ( $a, $b ) use ( $priority_venue_ids, $priority_event_ids ) {
+			$a_event_priority = extrachill_is_priority_event( $a, $priority_event_ids );
+			$b_event_priority = extrachill_is_priority_event( $b, $priority_event_ids );
+			$a_venue_priority = ec_is_priority_venue_event( $a, $priority_venue_ids );
+			$b_venue_priority = ec_is_priority_venue_event( $b, $priority_venue_ids );
 
-			if ( $a_priority && ! $b_priority ) {
+			// Tier 1: Priority events first.
+			if ( $a_event_priority && ! $b_event_priority ) {
 				return -1;
 			}
-			if ( ! $a_priority && $b_priority ) {
+			if ( ! $a_event_priority && $b_event_priority ) {
 				return 1;
 			}
 
-			// Same priority: maintain datetime order.
+			// Tier 2: Priority venue events next (only if neither is priority event).
+			if ( ! $a_event_priority && ! $b_event_priority ) {
+				if ( $a_venue_priority && ! $b_venue_priority ) {
+					return -1;
+				}
+				if ( ! $a_venue_priority && $b_venue_priority ) {
+					return 1;
+				}
+			}
+
+			// Same priority tier: maintain datetime order.
 			$a_time = $a['datetime'] ?? null;
 			$b_time = $b['datetime'] ?? null;
 

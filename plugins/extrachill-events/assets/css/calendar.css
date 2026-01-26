@@ -47,3 +47,18 @@
 .taxonomy-meta .taxonomy-website:hover {
     color: var(--link-hover-color);
 }
+
+/* Priority event indicator */
+.extrachill-priority-event {
+    position: relative;
+}
+
+.extrachill-priority-event::before {
+    content: "\2605";
+    position: absolute;
+    top: 0.25rem;
+    right: 0.25rem;
+    color: var(--accent);
+    font-size: 0.875rem;
+    line-height: 1;
+}
