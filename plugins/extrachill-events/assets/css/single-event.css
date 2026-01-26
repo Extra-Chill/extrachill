@@ -27,6 +27,10 @@
     margin-bottom: 1.5rem;
 }
 
+.datamachine-event-details .event-info-grid .farm-friends-promo {
+line-height: 1.4;
+}
+
 /* Ensure share button container fits in flexbox */
 .datamachine-event-details .event-action-buttons .share-button-container {
     margin: 0;
