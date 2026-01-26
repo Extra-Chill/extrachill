@@ -54,6 +54,8 @@ class ExtraChillShop {
 		// Product customizations
 		require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/products/lifetime-membership-product.php';
 		require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/products/lifetime-membership.php';
+		require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/products/priority-boost-product.php';
+		require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/products/priority-boost.php';
 		require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/products/raffle/admin-fields.php';
 		require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/products/raffle/frontend-counter.php';
 
@@ -100,6 +102,7 @@ class ExtraChillShop {
 	public function activate() {
 		update_option( 'extrachill_shop_activated', true );
 		update_option( 'extrachill_shop_needs_lifetime_membership_product_sync', 1 );
+		update_option( 'extrachill_shop_needs_priority_boost_product_sync', 1 );
 		flush_rewrite_rules();
 	}
 
