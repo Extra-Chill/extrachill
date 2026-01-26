@@ -36,6 +36,29 @@
     margin: 0;
 }
 
+/* Farm Friends Membership Promo */
+.datamachine-event-details .event-info-grid .farm-friends-promo {
+    margin-top: -0.5rem;
+    padding-left: 2rem;
+}
+
+.datamachine-event-details .event-info-grid .farm-friends-promo a {
+    color: var(--accent);
+    font-size: 0.9em;
+    font-style: italic;
+    text-decoration: none;
+}
+
+.datamachine-event-details .event-info-grid .farm-friends-promo a:hover {
+    text-decoration: underline;
+}
+
+/* Strike through price when Farm Friends promo is shown */
+.datamachine-event-details .event-info-grid:has(.farm-friends-promo) .event-price .text {
+    text-decoration: line-through;
+    opacity: 0.7;
+}
+
 @media (max-width: 768px) {
     .datamachine-event-details .event-info-grid {
         padding: 1.2em;

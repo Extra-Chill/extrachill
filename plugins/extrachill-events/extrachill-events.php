@@ -89,7 +89,7 @@ class ExtraChillEvents {
 			require_once $autoload_file;
 		}
 
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/datamachine-events-integration.php';
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/datamachine-events/init.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/nav.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/priority-venue-ordering.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/admin/priority-venues.php';
@@ -132,11 +132,11 @@ class ExtraChillEvents {
 	/**
 	 * Initialize event plugin integrations
 	 *
-	 * Conditionally loads DataMachineEventsIntegration if datamachine-events plugin is active.
+	 * Conditionally initializes datamachine-events integration if plugin is active.
 	 */
 	private function init_integrations() {
 		if ( class_exists( 'DataMachineEvents\Core\Event_Post_Type' ) ) {
-			$this->integrations['datamachine_events'] = new ExtraChillEvents\DataMachineEventsIntegration();
+			extrachill_events_init_datamachine_integration();
 		}
 	}
 
