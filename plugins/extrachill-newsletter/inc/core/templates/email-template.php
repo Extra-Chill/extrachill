@@ -61,7 +61,7 @@ function prepare_newsletter_email_content( $post ) {
 
 	$navbar_links = apply_filters( 'extrachill_newsletter_email_footer_links', $navbar_links, $post );
 
-	$logo = '<a href="' . esc_url( $main_site_url ) . '" style="text-align: center; display: block; margin: 20px auto; border-bottom: 2px solid #53940b;"><img src="' . esc_url( $main_site_url ) . '/wp-content/uploads/2023/09/extra-chill-logo-no-bg-1.png" alt="Extra Chill" width="60" style="padding-bottom: 10px; max-width: 60px; height: auto; display: block; margin: 0 auto; border: 0;"></a>';
+	$logo = '<a href="' . esc_url( $main_site_url ) . '" style="text-align: center; display: block; margin: 20px auto; border-bottom: 2px solid #53940b;"><img src="https://newsletter.extrachill.com/wp-content/uploads/sites/9/2026/01/Extra-Chill-Main-Logo-2026.png" alt="Extra Chill" width="60" style="padding-bottom: 10px; max-width: 60px; height: auto; display: block; margin: 0 auto; border: 0;"></a>';
 	$content = $logo . $content;
 
 	$unsubscribe_link = '<p style="text-align: center; margin: 18px 0 0; font-size: 14px; line-height: 1.5em;"><unsubscribe style="color: #6b7280; text-decoration: none;">Unsubscribe</unsubscribe></p>';
@@ -96,17 +96,9 @@ function generate_email_html_template( $subject, $content, $unsubscribe_link, $r
 <head>
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
-	<meta name="color-scheme" content="light dark">
-	<meta name="supported-color-schemes" content="light dark">
 	<title>{$subject}</title>
 	<style>
 		a { color: #0b5394; }
-		@media (prefers-color-scheme: dark) {
-			body { background: #1a1a1a; color: #e5e5e5; }
-			.email-container { background: #2a2a2a; border-color: #555; }
-			a { color: #53940b; }
-			.muted { color: #b0b0b0; }
-		}
 	</style>
 </head>
 <body style="margin: 0; padding: 0; background: #f1f5f9; font-family: Helvetica, Arial, sans-serif; color: #000;">
