@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.6.0] - 2026-01-27
+
+### Changed
+- Add Abilities API integration for welcome email timing fix
+
 ## [0.5.15] - 2026-01-25
 
 ### Fixed
