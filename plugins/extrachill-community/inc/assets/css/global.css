@@ -24,7 +24,9 @@
 
 .notification-bell-icon {
     position: relative;
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .notification-bell-avatar-wrapper {
