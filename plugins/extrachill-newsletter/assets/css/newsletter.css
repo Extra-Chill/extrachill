@@ -29,15 +29,6 @@
     transform: translateY(-4px) scale(1.01);
 }
 
-/* Newsletter content wrapper */
-.newsletter-content-wrapper {
-    position: relative;
-}
-
-.newsletter-single .newsletter-content-wrapper {
-    max-width: 100%;
-}
-
 .newsletter-subscribe-form {
     background: var(--card-background);
     border: 1px solid var(--border-color);
@@ -183,13 +174,6 @@
    ========================================================================== */
 
 @media (max-width: 900px) {
-    .main-content,
-    .sidebar {
-        float: none;
-        width: 100%;
-        padding-right: 0;
-    }
-
     .newsletter-card {
         padding: 1em 0.7em;
         margin-bottom: 1.2em;

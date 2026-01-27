@@ -257,14 +257,11 @@
 
 
 
-
-
-
-
+@media (max-width: 600px) {
     .menu-newsletter .newsletter-form {
         max-width: 80%;
     }
-
+}
 
 @media (min-width: 601px) {
     .newsletter-form.newsletter-inline-form {
@@ -279,11 +276,6 @@
         padding: var(--spacing-lg) var(--spacing-md);
         margin: var(--spacing-lg) 0;
     }
-
-
-
-}
-
 
 
 
