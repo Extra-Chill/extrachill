@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.10] - 2026-01-27
+
+- Fixed ghost margin on single newsletter posts by removing theme layout override (.main-content, .sidebar) from newsletter.css, removed dead CSS selectors, and fixed CSS syntax errors in newsletter-forms.css
+
 ## [0.2.9] - 2026-01-27
 
 ### Changed
