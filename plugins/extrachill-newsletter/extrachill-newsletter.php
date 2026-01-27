@@ -47,6 +47,19 @@ require_once EXTRACHILL_NEWSLETTER_INC_DIR . 'core/hooks/post-meta.php';
 require_once EXTRACHILL_NEWSLETTER_INC_DIR . 'core/hooks/sidebar.php';
 
 /**
+ * Register newsletter post type with theme's single post style system.
+ *
+ * @param array $post_types Post types that load single-post.css.
+ * @return array Modified post types.
+ * @since 0.2.7
+ */
+function newsletter_single_post_style_types( $post_types ) {
+	$post_types[] = 'newsletter';
+	return $post_types;
+}
+add_filter( 'extrachill_single_post_style_post_types', 'newsletter_single_post_style_types' );
+
+/**
  * Load newsletter-site-only components after multisite dependencies are available.
  * Fires on plugins_loaded priority 20 (after extrachill-multisite loads at priority 10).
  */

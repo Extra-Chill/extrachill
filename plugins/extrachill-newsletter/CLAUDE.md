@@ -6,8 +6,8 @@
 
 **Key Purpose**: Bridge WordPress multisite network to Sendy email marketing platform, providing unified subscription workflows while allowing per-site customization through filters and hooks.
 
-**Version**: 0.2.0  
-**Status**: Production active (v0.2.0 includes email template overhaul and REST API migration)  
+**Version**: 0.2.6  
+**Status**: Production active (v0.2.6 includes email template overhaul, REST API migration, and theme integration fix)  
 **Network-Activated**: Yes  
 **Text Domain**: extrachill-newsletter
 
@@ -351,6 +351,18 @@ add_action( 'extrachill_render_newsletter_form', 'extrachill_render_newsletter_f
 - Endpoint: `POST /wp-json/extrachill/v1/newsletter/subscribe`
 - Campaign push via REST: `POST /wp-json/extrachill/v1/newsletter/campaign/push`
 
+## Recent Updates (v0.2.6)
+
+**Theme Integration Fix**:
+
+- Added theme integration to register newsletter post type with single-post style system
+
+- Single newsletter posts now display theme single-post styles correctly
+
+- Function: newsletter_single_post_style_types() in extrachill-newsletter.php
+
+- Filter: extrachill_single_post_style_post_types
+
 ## REST API Endpoints
 
 The newsletter plugin's frontend UI calls REST endpoints that are registered in the network-activated `extrachill-api` plugin.
@@ -543,6 +555,18 @@ The newsletter plugin does **not** maintain subscriber data in WordPress. All su
 **Pattern**:
 - Member registration may link to newsletter signup
 - Community forum sidebar displays newsletter form
+
+### Theme Integration
+
+**Purpose**: Registers newsletter post type with theme's single post style system to ensure single-post.css is loaded for newsletter posts.
+
+**File**: extrachill-newsletter.php
+
+**Filter**: extrachill_single_post_style_post_types
+
+**Function**: newsletter_single_post_style_types() - Adds 'newsletter' to the array of post types that get single-post styles.
+
+**Why**: Single newsletter posts were not displaying theme single-post styles because the plugin didn't register with the theme's filter, unlike other plugins (e.g., news-wire).
 
 ## Asset Loading Strategy
 
