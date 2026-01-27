@@ -1,5 +1,118 @@
 # Changelog
 
+## [1.2.4] - 2026-01-27
+
+### Added
+- Enhanced reply card UI with footer actions
+
+### Changed
+- Version 1.2.3: Add schema breadcrumbs for community pages
+- Version 1.2.2: Modularize TinyMCE CSS and update documentation
+- Version 1.2.1
+- Version 1.2.0: Inline reply system and TinyMCE refactoring
+- Version 1.1.4: Subforum activity improvements and settings UI refinement
+- Version 1.1.3: Artist access request API modernization
+- Version 1.1.2: Filter bar integration and UI refactoring
+- Version 1.1.1: Gutenberg block addition and JavaScript modernization
+- Version 1.1.0: bbPress drafts and UTF-8 hotfix
+- Version 1.0.17: Activation setup, homepage modal, editor compatibility
+- Merge branch 'experimental/blocks-everywhere'
+- Update AGENTS.md: Add branch strategy and document new topic modal
+- Add Blocks Everywhere integration (experimental)
+- Add new topic modal for homepage topic creation
+- Version 1.0.16: Forum freshness improvements and cache invalidation enhancements
+- Version 1.0.15: UI improvements and form layout enhancements
+- Version 1.0.14: CSS standardization and template fixes
+- Version 1.0.13: CSS standardization, responsive design improvements, and JavaScript enhancements
+- Version 1.0.12: JavaScript architecture refactoring and bbPress UI consolidation
+- Version 1.0.11: Dynamic blog ID resolution and multisite configuration improvements
+- Version 1.0.10: Dynamic blog ID resolution and multisite configuration improvements
+- Version bump to 1.0.9
+- Version 1.0.8: Cache invalidation system, asset refactoring, and performance improvements
+- Version 1.0.7: JavaScript refactoring and script dependency fixes
+- Version 1.0.6: REST API integration for media uploads and avatar upload UI
+- Version 1.0.5: Artist platform access integration and JavaScript improvements
+- Version bump to 1.0.4
+- Version 1.0.3: Navigation integration and recent feed refactoring
+- Version 1.0.2: Enhanced reply card UI with footer actions
+- Version 1.0.1: JavaScript migration, UI improvements, and feature enhancements
+- jquery -> vanilla javascript migration in the system
+- breadcrumbs update
+- back to home link update
+- many updates
+- documentation alignment
+- aligned button classes with theme styles
+- Refactor user profile features, remove custom avatar functionality, and enhance bbpress integration
+- replaced standard logged out reply form with login-register block
+- working on splittling out artist platform from community for cleaner separation of concerns
+- finishing the migration from theme to plugin. just sent it live. final bugfixes underway
+- continued cleanup of community plugin.
+- more cleanup and removal of unneccesary functionality. not quite done yet, but getting closer.
+- removed settings page template, converted to use hook based system
+- pulled out login register and other elements into components
+- Comprehensive code updates and documentation alignment
+- continued cleanup of theme functions and templates, transforming into plugin. still much to do.
+- started migrating this theme to plugin. removed header and footer. that is the point of no return.
+- Remove QR code dependency from composer.json
+- modified recent feed to fix topic starter not showing
+- Reducing bbPress dependency, fixing some bugs and adjusting styles
+- removed most active users. removed hardcoded menu from notification avatar menu in favor of filter system for the artist platform to use
+- Complete artist platform migration: Remove all band/link page functionality
+- total theme reorganization
+- Major wp_surgeon cleanup: Phase 1 - Function prefixes and file organization
+- Update repository for migration 🤖 Generated with [Claude Code](https://claude.ai/code)
+- Priority 1 cleanup: Remove dead code and misleading comments
+- Comprehensive documentation alignment and architectural improvements
+- Update documentation and fix theme architecture references
+- Pre-migration backup: Add CLAUDE.md project documentation
+- added subscribers featture, featured link, and social icon position option
+- refactored live preview, stablized logic, cleaned up and optimized for future expansion. this version is stable as far as i'm aware, just has lots of debug logs
+- working version
+- launched extrachill.link
+- band platform & link page functional
+- added bank link page and more
+- lots of changes, more to come
+- added some css modularity
+- footer matches blog
+- paginated search... more
+- customized search template to mimic bbpress format
+- moved custom forum descriptions to their own file
+- test
+- implemented cross site upvote sync
+- removed topic form from 1494
+- no changes realy
+- cross site login should work seamlessly now
+- quick post feature added
+- notifications to editng
+- made user id available to upvote script
+- bolded username for logged out users
+- made work better on phones
+- deleted - typo file name
+- maxes out at 5 retries now
+- moved to new js file
+- hide if user is not logged in
+- created for non technologically inclined
+- added quick post
+- duplicated, mistake, was messing me up
+- made deshboard more engaging with stats and more detailed content, removed back to previous page link
+- commented out posting tips
+- added more links to welcome email
+- this is my custom generatepress child theme for bbpress.
+
+### Fixed
+- fixed templating and styles to properly align with our new system
+- fixed recent feed template to properly show replies and topic openers
+- fixed homepage bug with collapsable forum
+- fixing all errors related to migrating the artist platform into a plugin. some reorganization, lots more to be done
+- fixed some errors and optimized some queries
+- fixed broken link saves
+- fixed the save once and for all
+- fixed custom avatar uploads
+- fixed instagram oEmbeds
+- fixed follows . unfollows
+- fixed registration to properly log in and set 6 month session token like all logins
+- fixed comment count display for both dashboard and profile
+
 ## [1.2.3] - 2026-01-06
 
 ### Added
