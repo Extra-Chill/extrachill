@@ -26,10 +26,16 @@ define( 'EXTRACHILL_USERS_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'EXTRACHILL_USERS_URL', plugin_dir_url( __FILE__ ) );
 
 register_activation_hook( __FILE__, 'extrachill_users_activate' );
+register_deactivation_hook( __FILE__, 'extrachill_users_deactivate' );
 
 function extrachill_users_activate() {
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/core/activation.php';
 	extrachill_users_run_activation();
+}
+
+function extrachill_users_deactivate() {
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/core/activation.php';
+	extrachill_users_run_deactivation();
 }
 
 function extrachill_users_enqueue_block_styles() {
@@ -83,6 +89,7 @@ add_action( 'plugins_loaded', 'extrachill_users_init' );
 function extrachill_users_init() {
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/assets.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/admin-access-control.php';
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/core/abilities.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/core/online-users.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/core/user-creation.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/core/registration-emails.php';

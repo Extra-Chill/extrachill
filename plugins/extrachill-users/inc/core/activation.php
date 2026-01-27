@@ -26,7 +26,74 @@ function extrachill_users_run_activation() {
 	update_site_option( 'extrachill_users_refresh_token_table_created', 1 );
 
 	extrachill_users_create_login_pages_network();
+
+	if ( ! wp_next_scheduled( 'extrachill_welcome_email_fallback' ) ) {
+		wp_schedule_event( time(), 'hourly', 'extrachill_welcome_email_fallback' );
+	}
 }
+
+/**
+ * Deactivation handler.
+ * Unschedules cron events.
+ */
+function extrachill_users_run_deactivation() {
+	$timestamp = wp_next_scheduled( 'extrachill_welcome_email_fallback' );
+	if ( $timestamp ) {
+		wp_unschedule_event( $timestamp, 'extrachill_welcome_email_fallback' );
+	}
+}
+
+/**
+ * Cron callback for sending welcome emails to users who never completed onboarding.
+ *
+ * Finds users registered over 1 hour ago who haven't completed onboarding
+ * and haven't received a welcome email yet.
+ */
+function extrachill_welcome_email_fallback_callback() {
+	$users = get_users(
+		array(
+			'meta_query' => array(
+				'relation' => 'AND',
+				array(
+					'key'   => 'onboarding_completed',
+					'value' => '0',
+				),
+				array(
+					'relation' => 'OR',
+					array(
+						'key'     => 'welcome_email_sent',
+						'compare' => 'NOT EXISTS',
+					),
+					array(
+						'key'   => 'welcome_email_sent',
+						'value' => '0',
+					),
+				),
+			),
+			'date_query' => array(
+				array(
+					'before' => '1 hour ago',
+				),
+			),
+		)
+	);
+
+	$ability = wp_get_ability( 'extrachill/send-welcome-email' );
+	if ( ! $ability ) {
+		return;
+	}
+
+	foreach ( $users as $user ) {
+		$ability->execute(
+			array(
+				'user_id'    => $user->ID,
+				'email_type' => 'onboarding_incomplete',
+			)
+		);
+	}
+}
+
+add_action( 'extrachill_welcome_email_fallback', 'extrachill_welcome_email_fallback_callback' );
 
 /**
  * Create login page on all network sites.

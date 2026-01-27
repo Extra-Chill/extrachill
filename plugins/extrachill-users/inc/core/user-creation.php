@@ -63,6 +63,8 @@ function ec_multisite_create_community_user( $user_id, $registration_data ) {
 			update_user_meta( $user_id, 'onboarding_completed', '0' );
 			update_user_meta( $user_id, 'onboarding_from_join', $from_join ? '1' : '0' );
 		}
+
+		update_user_meta( $user_id, 'welcome_email_sent', '0' );
 	}
 
 	if ( $switched ) {
