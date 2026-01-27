@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Extra Chill Newsletter
  * Description: Complete newsletter system with Sendy integration for email campaigns and subscriptions. Provides custom newsletter post type, multiple subscription forms, email template generation, and admin management tools.
- * Version: 0.2.7
+  * Version: 0.2.8
  * Author: Chris Huber
  * Network: true
  * Text Domain: extrachill-newsletter
@@ -16,7 +16,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'EXTRACHILL_NEWSLETTER_VERSION', '0.2.7' );
+define( 'EXTRACHILL_NEWSLETTER_VERSION', '0.2.8' );
 define( 'EXTRACHILL_NEWSLETTER_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'EXTRACHILL_NEWSLETTER_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'EXTRACHILL_NEWSLETTER_INC_DIR', EXTRACHILL_NEWSLETTER_PLUGIN_DIR . 'inc/' );
@@ -58,6 +58,19 @@ function newsletter_single_post_style_types( $post_types ) {
 	return $post_types;
 }
 add_filter( 'extrachill_single_post_style_post_types', 'newsletter_single_post_style_types' );
+
+/**
+ * Register newsletter post type with theme's sidebar style system.
+ *
+ * @param array $post_types Post types that load sidebar.css.
+ * @return array Modified post types.
+ * @since 0.2.8
+ */
+function newsletter_sidebar_style_types( $post_types ) {
+    $post_types[] = 'newsletter';
+    return $post_types;
+}
+add_filter( 'extrachill_sidebar_style_post_types', 'newsletter_sidebar_style_types' );
 
 /**
  * Load newsletter-site-only components after multisite dependencies are available.
