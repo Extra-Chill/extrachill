@@ -660,3 +660,26 @@ p.private-forums {
     background-color: var(--card-background);
     border-left-color: var(--error-color);
 }
+
+/* ==========================================================================
+   Responsive Video Embeds
+   ========================================================================== */
+
+/*
+ * Responsive video embeds for bbPress content.
+ * Targets only rendered forum content, not the editor.
+ */
+.bbp-topic-content .wp-block-embed.is-type-video .wp-block-embed__wrapper,
+.bbp-reply-content .wp-block-embed.is-type-video .wp-block-embed__wrapper {
+    position: relative;
+    padding-top: 56.25%; /* 16:9 */
+}
+
+.bbp-topic-content .wp-block-embed.is-type-video .wp-block-embed__wrapper iframe,
+.bbp-reply-content .wp-block-embed.is-type-video .wp-block-embed__wrapper iframe {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
