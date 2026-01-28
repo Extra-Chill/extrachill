@@ -97,7 +97,7 @@ function extrachill_community_render_forum_location_links() {
 
 	foreach ( $links as $link ) {
 		printf(
-			'<a href="%s" class="button-3 button-small">%s %s (%d)</a> ',
+			'<a href="%s" class="button-3 button-small">%s (%d)</a> ',
 			esc_url( $link['url'] ),
 			esc_html( $link['label'] ),
 			intval( $link['count'] )
