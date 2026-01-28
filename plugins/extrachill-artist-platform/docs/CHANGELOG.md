@@ -5,6 +5,81 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+### Changed
+- Bump version to 1.6.4: Refactor blog coverage to multisite plugin and cleanup
+- Bump version to 1.6.3: Add schema breadcrumbs, share analytics, and documentation updates
+- Bump version to 1.6.2: Refresh homepage UI and onboarding experience
+- Bump version to 1.6.1
+- Version 1.6.0: Enhanced shop management with Stripe integration and block architecture improvements
+- Version 1.5.2: Enhanced navigation and UI improvements
+- Version 1.5.1: Enhanced multisite API URL compatibility
+- Version 1.5.0: Major block refactoring and URL structure improvements
+- Version 1.4.4: Artist roster management system with invitation emails, member management UI, pending invitations, and REST API support
+- Version 1.4.3: Minimal artist cards, shop inventory sizes, orders management, and UI enhancements
+- Release v1.4.2
+- Version 1.4.1: Stripe Connect integration, asset refactoring, and shop product enhancements
+- Version 1.4.0: Artist Shop Manager block and documentation enhancements
+- Version 1.3.1: Block name standardization and edit button security improvements
+- Version 1.3.0: Major architectural improvements with separated creation/management workflows
+- Version 1.2.13: Plugin activation fix and drag-and-drop UX improvements
+- Version 1.2.12: Code cleanup and unused function removal
+- Version 1.2.11: Cleanup legacy management interface code
+- Bump version to 1.2.10 - Complete legacy management interface removal
+- Bump version to 1.2.9 - Join flow improvements and artist profile manager refactor
+- Bump version to 1.2.8 - Enhanced analytics tracking and UI consistency
+- Bump version to 1.2.7 - Dynamic site URL integration and code cleanup
+- Bump version to 1.2.6 - Artist profile manager block build support and import cleanup
+- Bump version to 1.2.5
+- Bump version to 1.2.4 - Analytics architecture refactor, action hook migration, documentation cleanup
+- Bump version to 1.2.3 - Complete REST API migration, analytics architecture update, API client consolidation
+- Bump version to 1.2.2 - Consolidate API clients, fix analytics hook, add template components
+- Bump version to 1.2.1 - Add centralized artist profile data function, fix SQL column reference, and enhance data consistency
+- Bump version to 1.2.0 - Complete Gutenberg migration: removed legacy management interface, added artist profile manager block
+- Bump version to 1.1.13 - Enhanced block editor font support and breadcrumb navigation
+- Bump version to 1.1.12 - Enhanced drag-and-drop UX and improved data handling
+- Bump version to 1.1.11 - Add analytics block, refactor editor UI, and enhance mobile responsiveness
+- Bump version to 1.1.10 - Block editor refactoring, analytics view tracking, and icon system improvements
+- Bump version to 1.1.9 - Gutenberg block UI enhancements and weekly email removal
+- Bump version to 1.1.8 - Refactor block registration and add asset safety checks
+- Bump version to 1.1.7 - Add Gutenberg block for link page editing with React UI and enhanced image handling
+- Bump version to 1.1.6 - REST API migration, breadcrumb navigation, and error handling improvements
+- Bump version to 1.1.5 - Artist archive page, mobile navigation, and pagination improvements
+- Bump version to 1.1.4 - REST API migration, artist following removal, and profile managers
+- Bump version to 1.1.3 - REST API migration for subscriptions and analytics
+- Bump version to 1.1.2 - Navigation, QR codes, and analytics improvements
+- Bump version to 1.1.1 - Form processing and UI improvements
+- Bump version to 1.1.0 - Remove bbPress forum integration
+- Bump version to 1.0.2 - JavaScript modernization and code improvements
+- Bump version to 1.0.1
+- finally got the edit icon to show up on the live link page for logged in users who have edit permissions
+- breadcrumb standardization
+- modularized and cleaned up homepage
+- Refactor artist profiles, link pages, and remove deprecated features
+- pagination for artist profile archives. still need to migrate and activate this.... artist platform currently a bit broken
+- preparing for migration to standalone artist platform.
+- cleaned up view count system to use core theme view counts
+- moved join flow from commuity to here
+- removed default admin link page dashboard widget + creation logic as it is already created and working.
+- added qr code dependency, removed it from the theme
+- cleaned some comments
+- updated static exclusions to cover ALL wordpress pages
+- improved error handling for artist profile image uploads, tracking down potential bugs in the system
+- Comprehensive refactor with enhanced social system and documentation
+- artist platform is once again stable with a full refactor, and much more extensible than before.
+- Update documentation to align with current codebase architecture
+- Initial commit: ExtraChill Artist Platform plugin with comprehensive documentation
+
+### Fixed
+- Fix changelog ordering - move 1.1.2 entry to top
+- fixed analytics database
+- fixed artist profile picture uploads
+- Fix add social icon and link section buttons on empty pages
+- Fix background type switching and overlay functionality in live preview
+- Fix save system and clean up color controls
+- Fix drag and drop reordering by adding SortableJS dependency
+
 ## [1.6.5] - 2026-01-06
 
 ### Added

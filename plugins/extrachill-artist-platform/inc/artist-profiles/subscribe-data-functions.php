@@ -15,7 +15,7 @@ defined( 'ABSPATH' ) || exit;
  * @param array $args Optional arguments for querying.
  * @return array List of subscriber objects or empty array.
  */
-function extrch_get_artist_subscribers( $artist_id, $args = array() ) {
+function extrachill_artist_get_artist_subscribers( $artist_id, $args = array() ) {
     global $wpdb;
     $table_name = $wpdb->prefix . 'artist_subscribers';
     $artist_id = absint( $artist_id );
@@ -75,72 +75,72 @@ function extrch_get_artist_subscribers( $artist_id, $args = array() ) {
  * Handles the CSV export of artist subscriber data.
  * Hooked to admin_post and admin_post_nopriv.
  */
-function extrch_export_artist_subscribers_csv() {
-    error_log('extrch_export_artist_subscribers_csv: Function started.');
+function extrachill_artist_export_artist_subscribers_csv() {
+    error_log('extrachill_artist_export_artist_subscribers_csv: Function started.');
 
     // Check for required parameters (artist_id and nonce) - accept GET or POST
     // Using $_REQUEST to get parameters from either GET or POST
     if ( ! isset( $_REQUEST['artist_id'], $_REQUEST['_wpnonce'] ) ) {
-        error_log('extrch_export_artist_subscribers_csv: Missing required parameters (GET/POST).');
+        error_log('extrachill_artist_export_artist_subscribers_csv: Missing required parameters (GET/POST).');
         exit;
     }
-    error_log('extrch_export_artist_subscribers_csv: Required parameters found (GET/POST).');
+    error_log('extrachill_artist_export_artist_subscribers_csv: Required parameters found (GET/POST).');
 
     $artist_id = apply_filters('ec_get_artist_id', $_REQUEST);
     $nonce = sanitize_text_field( $_REQUEST['_wpnonce'] );
-    error_log('extrch_export_artist_subscribers_csv: Artist ID: ' . $artist_id . ', Nonce: ' . $nonce);
+    error_log('extrachill_artist_export_artist_subscribers_csv: Artist ID: ' . $artist_id . ', Nonce: ' . $nonce);
 
     // Verify nonce (using the nonce action defined in the subscribers tab template)
     if ( ! wp_verify_nonce( $nonce, 'export_artist_subscribers_csv_' . $artist_id ) ) {
-        error_log('extrch_export_artist_subscribers_csv: Nonce verification failed.');
+        error_log('extrachill_artist_export_artist_subscribers_csv: Nonce verification failed.');
         exit;
     }
-    error_log('extrch_export_artist_subscribers_csv: Nonce verified.');
+    error_log('extrachill_artist_export_artist_subscribers_csv: Nonce verified.');
 
     // Permission check: Does the current user have the capability to manage this artist's members?
     if ( ! ec_can_manage_artist( get_current_user_id(), $artist_id ) ) {
-         error_log('extrch_export_artist_subscribers_csv: Permission denied for artist ID: ' . $artist_id);
+         error_log('extrachill_artist_export_artist_subscribers_csv: Permission denied for artist ID: ' . $artist_id);
          exit;
     }
-    error_log('extrch_export_artist_subscribers_csv: Permission granted.');
+    error_log('extrachill_artist_export_artist_subscribers_csv: Permission granted.');
 
     // Determine if we should include already exported subscribers - accept GET or POST
     $include_exported = isset($_REQUEST['include_exported']) && $_REQUEST['include_exported'] == '1';
     $exported_filter = $include_exported ? null : 0;
-    error_log('extrch_export_artist_subscribers_csv: Include exported: ' . ($include_exported ? 'Yes' : 'No'));
+    error_log('extrachill_artist_export_artist_subscribers_csv: Include exported: ' . ($include_exported ? 'Yes' : 'No'));
 
     // Fetch subscriber data
-    $subscribers = extrch_get_artist_subscribers( $artist_id, array( 'limit' => -1, 'exported' => $exported_filter ) );
-    error_log('extrch_export_artist_subscribers_csv: Fetched ' . count($subscribers) . ' subscribers.');
+    $subscribers = extrachill_artist_get_artist_subscribers( $artist_id, array( 'limit' => -1, 'exported' => $exported_filter ) );
+    error_log('extrachill_artist_export_artist_subscribers_csv: Fetched ' . count($subscribers) . ' subscribers.');
 
     // Get artist name for filename
     $artist_name = get_the_title( $artist_id );
     $filename = sanitize_title( $artist_name ) . '-subscribers-' . date( 'Y-m-d' ) . '.csv';
-    error_log('extrch_export_artist_subscribers_csv: Filename: ' . $filename);
+    error_log('extrachill_artist_export_artist_subscribers_csv: Filename: ' . $filename);
 
     // Clean any output buffer before setting headers
     if (ob_get_contents()) {
         ob_clean();
     }
-    error_log('extrch_export_artist_subscribers_csv: Output buffer cleaned (if active).');
+    error_log('extrachill_artist_export_artist_subscribers_csv: Output buffer cleaned (if active).');
 
     // Set headers for CSV download
     header( 'Content-Type: text/csv; charset=' . get_option( 'blog_charset' ) );
     header( 'Content-Disposition: attachment; filename="' . $filename . '"');
     header( 'Pragma: no-cache' );
     header( 'Expires: 0' );
-    error_log('extrch_export_artist_subscribers_csv: Headers set.');
+    error_log('extrachill_artist_export_artist_subscribers_csv: Headers set.');
 
     // Output CSV content
     $output = fopen( 'php://output', 'w' );
-    error_log('extrch_export_artist_subscribers_csv: Output stream opened.');
+    error_log('extrachill_artist_export_artist_subscribers_csv: Output stream opened.');
 
     // Add BOM for UTF-8 support in some spreadsheet programs
     fputs( $output, chr(0xEF) . chr(0xBB) . chr(0xBF) );
 
     // Add CSV headers
     fputcsv( $output, array( __( 'Email', 'extrachill-artist-platform' ), __( 'Username', 'extrachill-artist-platform' ), __( 'Subscribed At (UTC)', 'extrachill-artist-platform' ), __( 'Exported', 'extrachill-artist-platform' ) ) );
-    error_log('extrch_export_artist_subscribers_csv: CSV headers written.');
+    error_log('extrachill_artist_export_artist_subscribers_csv: CSV headers written.');
 
     // Add data rows and collect IDs to mark as exported if needed
     $subscriber_ids_to_mark_exported = array();
@@ -157,14 +157,14 @@ function extrch_export_artist_subscribers_csv() {
             $subscriber_ids_to_mark_exported[] = $subscriber->subscriber_id;
         }
     }
-    error_log('extrch_export_artist_subscribers_csv: Data rows written.');
+    error_log('extrachill_artist_export_artist_subscribers_csv: Data rows written.');
 
     fclose( $output );
-    error_log('extrch_export_artist_subscribers_csv: Output stream closed.');
+    error_log('extrachill_artist_export_artist_subscribers_csv: Output stream closed.');
 
     // Mark exported subscribers as exported in the database (only if not including all)
     if ( !$include_exported && ! empty( $subscriber_ids_to_mark_exported ) ) {
-         error_log('extrch_export_artist_subscribers_csv: Marking ' . count($subscriber_ids_to_mark_exported) . ' subscribers as exported.');
+         error_log('extrachill_artist_export_artist_subscribers_csv: Marking ' . count($subscriber_ids_to_mark_exported) . ' subscribers as exported.');
          global $wpdb;
          $table_name = $wpdb->prefix . 'artist_subscribers';
          $ids_string = implode( ', ', array_map( 'absint', $subscriber_ids_to_mark_exported ) );
@@ -259,7 +259,7 @@ function extrachill_handle_get_artist_subscribers( $result, $artist_id, $args ) 
 	$per_page = isset( $args['per_page'] ) ? max( 1, absint( $args['per_page'] ) ) : 20;
 	$offset   = ( $page - 1 ) * $per_page;
 
-	$subscribers = extrch_get_artist_subscribers( $artist_id, array(
+	$subscribers = extrachill_artist_get_artist_subscribers( $artist_id, array(
 		'limit'  => $per_page,
 		'offset' => $offset,
 	) );
@@ -297,7 +297,7 @@ function extrachill_handle_export_artist_subscribers( $result, $artist_id, $incl
 
 	$exported_filter = $include_exported ? null : 0;
 
-	$subscribers = extrch_get_artist_subscribers( $artist_id, array(
+	$subscribers = extrachill_artist_get_artist_subscribers( $artist_id, array(
 		'limit'    => -1,
 		'exported' => $exported_filter,
 	) );

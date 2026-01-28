@@ -10,7 +10,7 @@
  * @param int $artist_id The ID of the associated artist_profile post.
  * @param int $link_page_id The ID of the artist_link_page post.
  */
-function extrch_link_page_custom_head( $artist_id, $link_page_id ) {
+function extrachill_artist_link_page_custom_head( $artist_id, $link_page_id ) {
 
     echo '<meta charset="' . esc_attr( get_bloginfo( 'charset' ) ) . '">';
     echo '<meta name="viewport" content="width=device-width,initial-scale=1">';
@@ -27,7 +27,7 @@ function extrch_link_page_custom_head( $artist_id, $link_page_id ) {
         echo '<link rel="apple-touch-icon" href="' . esc_url( $site_icon_url ) . '">';
     }
 
-    // Link page assets are enqueued via extrch_link_page_minimal_head.
+    // Link page assets are enqueued via extrachill_artist_link_page_minimal_head.
     // These templates bypass wp_head(), so styles are printed below
     // via wp_print_styles() after the enqueue hook fires.
 
@@ -58,7 +58,7 @@ function extrch_link_page_custom_head( $artist_id, $link_page_id ) {
         echo '<style>' . $local_fonts_css . '</style>';
     }
 
-    do_action( 'extrch_link_page_minimal_head', $link_page_id, $artist_id );
+    do_action( 'extrachill_artist_link_page_minimal_head', $link_page_id, $artist_id );
     wp_print_styles();
 
     $meta_pixel_id = $data['settings']['meta_pixel_id'] ?? '';

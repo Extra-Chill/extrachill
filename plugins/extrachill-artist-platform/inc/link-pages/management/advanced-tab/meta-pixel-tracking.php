@@ -17,7 +17,7 @@ defined( 'ABSPATH' ) || exit;
  * @param string $pixel_id The pixel ID to validate
  * @return bool True if valid, false otherwise
  */
-function extrch_validate_meta_pixel_id( $pixel_id ) {
+function extrachill_artist_validate_meta_pixel_id( $pixel_id ) {
     if ( empty( $pixel_id ) ) {
         return true; // Empty is valid (disabled)
     }
@@ -33,7 +33,7 @@ function extrch_validate_meta_pixel_id( $pixel_id ) {
  * @param int $link_page_id The link page ID
  * @return string The Meta Pixel ID or empty string if not set
  */
-function extrch_get_meta_pixel_id( $artist_id, $link_page_id ) {
+function extrachill_artist_get_meta_pixel_id( $artist_id, $link_page_id ) {
     $data = ec_get_link_page_data( $artist_id, $link_page_id );
     return $data['settings']['meta_pixel_id'] ?? '';
 }
@@ -49,9 +49,9 @@ function extrch_get_meta_pixel_id( $artist_id, $link_page_id ) {
  * @param int $link_page_id The link page ID
  * @return bool True if Meta Pixel is enabled, false otherwise
  */
-function extrch_is_meta_pixel_enabled( $link_page_id ) {
-    $pixel_id = extrch_get_meta_pixel_id( $link_page_id );
-    return ! empty( $pixel_id ) && extrch_validate_meta_pixel_id( $pixel_id );
+function extrachill_artist_is_meta_pixel_enabled( $link_page_id ) {
+    $pixel_id = extrachill_artist_get_meta_pixel_id( $link_page_id );
+    return ! empty( $pixel_id ) && extrachill_artist_validate_meta_pixel_id( $pixel_id );
 }
 
 
@@ -61,10 +61,10 @@ function extrch_is_meta_pixel_enabled( $link_page_id ) {
  * @param int $link_page_id The link page ID
  * @return array Array containing Meta Pixel settings
  */
-function extrch_get_meta_pixel_settings( $link_page_id ) {
+function extrachill_artist_get_meta_pixel_settings( $link_page_id ) {
     return array(
-        'pixel_id'    => extrch_get_meta_pixel_id( $link_page_id ),
-        'is_enabled'  => extrch_is_meta_pixel_enabled( $link_page_id ),
-        'is_valid'    => extrch_validate_meta_pixel_id( extrch_get_meta_pixel_id( $link_page_id ) ),
+        'pixel_id'    => extrachill_artist_get_meta_pixel_id( $link_page_id ),
+        'is_enabled'  => extrachill_artist_is_meta_pixel_enabled( $link_page_id ),
+        'is_valid'    => extrachill_artist_validate_meta_pixel_id( extrachill_artist_get_meta_pixel_id( $link_page_id ) ),
     );
 }

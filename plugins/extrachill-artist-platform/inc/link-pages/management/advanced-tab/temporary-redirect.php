@@ -23,7 +23,7 @@ defined( 'ABSPATH' ) || exit;
  * @param int $link_page_id The link page ID
  * @return array Array containing redirect settings
  */
-function extrch_get_temporary_redirect_settings( $artist_id, $link_page_id ) {
+function extrachill_artist_get_temporary_redirect_settings( $artist_id, $link_page_id ) {
     $data = ec_get_link_page_data( $artist_id, $link_page_id );
     return array(
         'enabled' => $data['settings']['redirect_enabled'] ?? false,

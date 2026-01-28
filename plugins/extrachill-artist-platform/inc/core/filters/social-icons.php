@@ -157,7 +157,9 @@ class ExtraChillArtistPlatform_SocialLinks {
         }
 
         $social_links = get_post_meta( $artist_id, self::META_KEY, true );
-        
+        if ( ! is_array( $social_links ) ) {
+            $social_links = maybe_unserialize( $social_links );
+        }
         if ( ! is_array( $social_links ) ) {
             return array();
         }
@@ -216,7 +218,7 @@ class ExtraChillArtistPlatform_SocialLinks {
         $sanitized_links = apply_filters( 'extrachill_artist_platform_save_social_links', $sanitized_links, $artist_id, $social_links );
 
         $result = update_post_meta( $artist_id, self::META_KEY, $sanitized_links );
-        
+
         if ( false === $result ) {
             return new WP_Error( 'save_failed', __( 'Failed to save social links.', 'extrachill-artist-platform' ) );
         }
@@ -251,11 +253,11 @@ class ExtraChillArtistPlatform_SocialLinks {
         }
 
         $result = delete_post_meta( $artist_id, self::META_KEY );
-        
+
         if ( $result ) {
             /**
              * Action fired after social links are successfully deleted
-             * 
+             *
              * @since 1.1.0
              * @param int $artist_id Artist profile post ID
              */

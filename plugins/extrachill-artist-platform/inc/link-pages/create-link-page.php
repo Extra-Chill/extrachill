@@ -17,7 +17,7 @@ defined( 'ABSPATH' ) || exit;
  * @param int     $post_id The ID of the artist_profile post being published.
  * @param WP_Post $post    The artist_profile post object.
  */
-function extrch_create_link_page_for_artist_profile( $post_id, $post ) {
+function extrachill_artist_create_link_page_for_artist_profile( $post_id, $post ) {
     // Only run on actual post publish, not on auto-save or revisions
     if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) {
         return;
@@ -41,7 +41,7 @@ function extrch_create_link_page_for_artist_profile( $post_id, $post ) {
 }
 // Auto-creation of link pages is now handled by the centralized join flow system
 // Only join flow registrations will automatically create link pages
-// add_action( 'publish_artist_profile', 'extrch_create_link_page_for_artist_profile', 10, 2 );
+// add_action( 'publish_artist_profile', 'extrachill_artist_create_link_page_for_artist_profile', 10, 2 );
 
 
 
@@ -52,7 +52,7 @@ function extrch_create_link_page_for_artist_profile( $post_id, $post ) {
  *
  * @param int $post_id The ID of the post being deleted.
  */
-function extrch_clear_artist_profile_link_page_id_on_delete( $post_id ) {
+function extrachill_artist_clear_artist_profile_link_page_id_on_delete( $post_id ) {
     if ( get_post_type( $post_id ) === 'artist_link_page' ) {
         // Get the associated artist_profile_id from the link page's meta
         $associated_artist_profile_id = apply_filters('ec_get_artist_id', $post_id);
@@ -74,7 +74,7 @@ function extrch_clear_artist_profile_link_page_id_on_delete( $post_id ) {
         // If using persistent object cache, you might need more specific cache clearing depending on the implementation.
     }
 }
-add_action( 'before_delete_post', 'extrch_clear_artist_profile_link_page_id_on_delete', 10, 1 );
+add_action( 'before_delete_post', 'extrachill_artist_clear_artist_profile_link_page_id_on_delete', 10, 1 );
 // Note: 'deleted_post' could also be used, but 'before_delete_post' ensures meta is available.
 
 ?>

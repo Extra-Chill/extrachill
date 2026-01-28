@@ -2,14 +2,14 @@
 /**
  * Link Page Minimal Head Assets
  *
- * Enqueues all public link page assets via the extrch_link_page_minimal_head hook.
+ * Enqueues all public link page assets via the extrachill_artist_link_page_minimal_head hook.
  * These templates bypass wp_head(), so link page templates print styles via wp_print_styles()
  * and footer scripts via wp_print_footer_scripts().
  */
 
 defined( 'ABSPATH' ) || exit;
 
-add_action( 'extrch_link_page_minimal_head', 'extrch_enqueue_link_page_minimal_assets', 10, 2 );
+add_action( 'extrachill_artist_link_page_minimal_head', 'extrachill_artist_enqueue_link_page_minimal_assets', 10, 2 );
 
 /**
  * Enqueue link page assets (CSS + JS) for public pages.
@@ -18,7 +18,7 @@ add_action( 'extrch_link_page_minimal_head', 'extrch_enqueue_link_page_minimal_a
  * @param int $artist_id    Artist profile post ID.
  * @return void
  */
-function extrch_enqueue_link_page_minimal_assets( $link_page_id, $artist_id ) {
+function extrachill_artist_enqueue_link_page_minimal_assets( $link_page_id, $artist_id ) {
     $plugin_dir = EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR;
     $plugin_url = EXTRACHILL_ARTIST_PLATFORM_PLUGIN_URL;
 

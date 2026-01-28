@@ -40,7 +40,7 @@ foreach ( $links as $link_item ) {
         $link_classes    = 'extrch-link-page-link';
         $is_youtube_link = false;
 
-        if ( $link_page_id && function_exists( 'extrch_is_youtube_embed_enabled' ) && extrch_is_youtube_embed_enabled( $link_page_id ) ) {
+        if ( $link_page_id && function_exists( 'extrachill_artist_is_youtube_embed_enabled' ) && extrachill_artist_is_youtube_embed_enabled( $link_page_id ) ) {
             $url = $link_item['link_url'];
             if ( strpos( $url, 'youtube.com' ) !== false || strpos( $url, 'youtu.be' ) !== false ) {
                 $link_classes    .= ' extrch-youtube-embed-link';

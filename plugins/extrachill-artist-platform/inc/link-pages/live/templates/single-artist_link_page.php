@@ -69,8 +69,8 @@ $body_bg_style .= 'min-height:100vh;';
 <head>
     <?php
     // Call the custom head function to output minimal, necessary head elements
-    if (function_exists('extrch_link_page_custom_head')) {
-        extrch_link_page_custom_head( $artist_id, $link_page_id );
+    if (function_exists('extrachill_artist_link_page_custom_head')) {
+        extrachill_artist_link_page_custom_head( $artist_id, $link_page_id );
     } else {
         // Fallback basic meta if the function isn't loaded, though it should be.
         echo '<meta charset="' . esc_attr( get_bloginfo( 'charset' ) ) . '">';

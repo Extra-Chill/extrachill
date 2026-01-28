@@ -15,7 +15,7 @@ define('EXTRCH_ANALYTICS_DB_VERSION_OPTION', 'extrch_analytics_db_version');
 /**
  * Creates or updates analytics tables when database version changes
  */
-function extrch_create_or_update_analytics_table() {
+function extrachill_artist_create_or_update_analytics_table() {
     $current_db_version = get_option(EXTRCH_ANALYTICS_DB_VERSION_OPTION);
 
     if ($current_db_version === EXTRCH_ANALYTICS_DB_VERSION) {
@@ -57,6 +57,6 @@ function extrch_create_or_update_analytics_table() {
 
 }
 
-add_action('admin_init', 'extrch_create_or_update_analytics_table');
+add_action('admin_init', 'extrachill_artist_create_or_update_analytics_table');
 
 ?> 

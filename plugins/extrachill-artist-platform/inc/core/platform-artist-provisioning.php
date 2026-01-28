@@ -36,7 +36,10 @@ function ec_get_super_admin_user_id() {
 function ec_provision_platform_artist() {
 	$existing_id = get_site_option( 'ec_platform_artist_id' );
 
-	$artist_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'artist' ) : 4;
+	if ( ! function_exists( 'ec_get_blog_id' ) ) {
+		return false;
+	}
+	$artist_blog_id = ec_get_blog_id( 'artist' );
 	if ( ! $artist_blog_id ) {
 		return false;
 	}
@@ -90,7 +93,7 @@ function ec_provision_platform_artist() {
 		update_site_option( 'ec_platform_artist_id', $artist_id );
 
 		// Trigger shop to re-sync lifetime membership product with new platform artist.
-		$shop_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'shop' ) : 3;
+		$shop_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'shop' ) : null;
 		if ( $shop_blog_id ) {
 			switch_to_blog( $shop_blog_id );
 			update_option( 'extrachill_shop_needs_lifetime_membership_product_sync', 1 );

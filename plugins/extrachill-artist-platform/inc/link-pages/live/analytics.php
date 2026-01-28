@@ -186,7 +186,7 @@ function extrachill_handle_link_click_db_write( $link_page_id, $link_url, $link_
  *
  * Removes old records from both daily views and link clicks tables.
  */
-function extrch_prune_old_analytics_data() {
+function extrachill_artist_prune_old_analytics_data() {
     global $wpdb;
 
     $ninety_days_ago = date('Y-m-d', strtotime('-90 days', current_time('timestamp')));
@@ -219,15 +219,15 @@ function extrch_prune_old_analytics_data() {
         error_log("[EXTRCH Analytics Pruning] Pruned {$result_clicks} rows from {$table_clicks_name}.");
     }
 }
-add_action('extrch_daily_analytics_prune_event', 'extrch_prune_old_analytics_data');
+add_action('extrachill_artist_daily_analytics_prune_event', 'extrachill_artist_prune_old_analytics_data');
 
-function extrch_schedule_analytics_pruning_cron() {
-    if (!wp_next_scheduled('extrch_daily_analytics_prune_event')) {
-        wp_schedule_event(time(), 'daily', 'extrch_daily_analytics_prune_event');
+function extrachill_artist_schedule_analytics_pruning_cron() {
+    if (!wp_next_scheduled('extrachill_artist_daily_analytics_prune_event')) {
+        wp_schedule_event(time(), 'daily', 'extrachill_artist_daily_analytics_prune_event');
     }
 }
-add_action('init', 'extrch_schedule_analytics_pruning_cron');
+add_action('init', 'extrachill_artist_schedule_analytics_pruning_cron');
 
-function extrch_unschedule_analytics_pruning_cron() {
-    wp_clear_scheduled_hook('extrch_daily_analytics_prune_event');
+function extrachill_artist_unschedule_analytics_pruning_cron() {
+    wp_clear_scheduled_hook('extrachill_artist_daily_analytics_prune_event');
 }

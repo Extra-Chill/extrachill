@@ -132,13 +132,6 @@ function ec_get_link_page_data( $artist_id, $link_page_id = null, $overrides = a
     }
 
     $artist_social_links = get_post_meta( $artist_id, '_artist_profile_social_links', true );
-    $artist_social_links = maybe_unserialize( $artist_social_links );
-    if ( ! is_array( $artist_social_links ) || empty( $artist_social_links ) ) {
-        $social_json = get_post_meta( $artist_id, '_artist_social_links_json', true );
-        if ( ! empty( $social_json ) ) {
-            $artist_social_links = json_decode( $social_json, true );
-        }
-    }
     if ( is_array( $artist_social_links ) ) {
         $data['socials'] = $artist_social_links;
     }
@@ -205,7 +198,7 @@ function ec_get_link_page_data( $artist_id, $link_page_id = null, $overrides = a
         $display_data['css_vars'] = is_array($overrides['css_vars']) ? $overrides['css_vars'] : array();
     }
 
-    return apply_filters( 'extrch_get_link_page_data', $display_data, $artist_id, $link_page_id, $overrides );
+    return apply_filters( 'extrachill_artist_get_link_page_data', $display_data, $artist_id, $link_page_id, $overrides );
 }
 
 /**
@@ -221,14 +214,8 @@ function ec_get_artist_profile_data( $artist_id, $overrides = array() ) {
 
     $social_links = $meta['_artist_profile_social_links'][0] ?? array();
     $social_links = maybe_unserialize( $social_links );
-    if ( ! is_array( $social_links ) || empty( $social_links ) ) {
-        $social_json = $meta['_artist_social_links_json'][0] ?? '';
-        $decoded = $social_json ? json_decode( $social_json, true ) : array();
-        if ( is_array( $decoded ) ) {
-            $social_links = $decoded;
-        } else {
-            $social_links = array();
-        }
+    if ( ! is_array( $social_links ) ) {
+        $social_links = array();
     }
 
     $header_image_id = $meta['_artist_profile_header_image_id'][0] ?? '';

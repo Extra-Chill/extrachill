@@ -115,12 +115,12 @@ class ExtraChillArtistPlatform {
         ExtraChillArtistPlatform_SocialLinks::instance();
         ExtraChillArtistPlatform_Fonts::instance();
 
-        add_action('after_switch_theme', 'extrch_create_subscribers_table');
+        add_action('after_switch_theme', 'extrachill_artist_create_subscribers_table');
     }
 
     public static function activate() {
         require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/database/link-page-analytics-db.php';
-        extrch_create_or_update_analytics_table();
+        extrachill_artist_create_or_update_analytics_table();
         flush_rewrite_rules();
         update_option( 'extrachill_artist_platform_activated', true );
 
@@ -136,8 +136,8 @@ class ExtraChillArtistPlatform {
         delete_option( 'extrachill_artist_platform_activated' );
 
         // Unschedule analytics pruning cron
-        if (function_exists('extrch_unschedule_analytics_pruning_cron')) {
-            extrch_unschedule_analytics_pruning_cron();
+        if (function_exists('extrachill_artist_unschedule_analytics_pruning_cron')) {
+            extrachill_artist_unschedule_analytics_pruning_cron();
         }
     }
 

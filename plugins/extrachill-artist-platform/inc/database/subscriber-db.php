@@ -8,7 +8,7 @@ defined( 'ABSPATH' ) || exit;
 /**
  * Creates artist_subscribers table with indexes and constraints.
  */
-function extrch_create_subscribers_table() {
+function extrachill_artist_create_subscribers_table() {
     global $wpdb;
     require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
 

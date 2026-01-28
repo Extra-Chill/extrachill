@@ -2,7 +2,7 @@
 /**
  * Link Expiration Cron Cleanup for extrch.link Link Pages
  */
-add_action('extrch_cleanup_expired_links_event', function() {
+add_action('extrachill_artist_cleanup_expired_links_event', function() {
     $args = array(
         'post_type'      => 'artist_link_page',
         'post_status'    => 'any',
@@ -54,6 +54,6 @@ add_action('extrch_cleanup_expired_links_event', function() {
         }
     }
 });
-if (!wp_next_scheduled('extrch_cleanup_expired_links_event')) {
-    wp_schedule_event(time(), 'hourly', 'extrch_cleanup_expired_links_event');
+if (!wp_next_scheduled('extrachill_artist_cleanup_expired_links_event')) {
+    wp_schedule_event(time(), 'hourly', 'extrachill_artist_cleanup_expired_links_event');
 }

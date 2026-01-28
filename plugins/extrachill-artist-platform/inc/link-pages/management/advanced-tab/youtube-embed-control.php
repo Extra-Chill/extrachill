@@ -16,7 +16,7 @@ defined( 'ABSPATH' ) || exit;
  * @param int $link_page_id The link page ID
  * @return bool True if YouTube inline embed is enabled, false otherwise
  */
-function extrch_is_youtube_inline_embed_enabled( $link_page_id ) {
+function extrachill_artist_is_youtube_inline_embed_enabled( $link_page_id ) {
     if ( empty( $link_page_id ) ) {
         return true; // Default to enabled
     }
@@ -37,7 +37,7 @@ function extrch_is_youtube_inline_embed_enabled( $link_page_id ) {
  * @param int $link_page_id The link page ID
  * @return array Array containing YouTube embed settings
  */
-function extrch_get_youtube_embed_settings( $link_page_id ) {
+function extrachill_artist_get_youtube_embed_settings( $link_page_id ) {
     if ( empty( $link_page_id ) ) {
         return array(
             'inline_enabled' => true,
@@ -45,7 +45,7 @@ function extrch_get_youtube_embed_settings( $link_page_id ) {
         );
     }
 
-    $is_enabled = extrch_is_youtube_inline_embed_enabled( $link_page_id );
+    $is_enabled = extrachill_artist_is_youtube_inline_embed_enabled( $link_page_id );
     
     return array(
         'inline_enabled' => $is_enabled,
