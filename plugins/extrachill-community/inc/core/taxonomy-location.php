@@ -94,13 +94,11 @@ function extrachill_community_render_forum_location_links() {
 	}
 
 	echo '<div class="ec-cross-site-links ec-forum-location-links">';
-	echo '<span class="cross-site-links-label">' . esc_html( $term->name ) . ' on Extra Chill:</span> ';
 
 	foreach ( $links as $link ) {
 		printf(
 			'<a href="%s" class="button-3 button-small">%s %s (%d)</a> ',
 			esc_url( $link['url'] ),
-			esc_html( $link['term_name'] ),
 			esc_html( $link['label'] ),
 			intval( $link['count'] )
 		);
