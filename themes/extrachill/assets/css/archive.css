@@ -1,4 +1,72 @@
 /*
+ * Archive Header Layout
+ *
+ * Shared layout for archive titles and right-aligned actions.
+ * Used by theme archives and WooCommerce taxonomy archives.
+ */
+body.archive .archive-header-row,
+body.search .archive-header-row,
+body.woocommerce.archive .archive-header-row,
+body.woocommerce.tax-product_cat .archive-header-row,
+body.woocommerce.tax-artist .archive-header-row,
+body.tax .archive-header-row,
+body.post-type-archive .archive-header-row {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: var(--spacing-sm);
+}
+
+body.archive .archive-header-actions,
+body.search .archive-header-actions,
+body.woocommerce.archive .archive-header-actions,
+body.woocommerce.tax-product_cat .archive-header-actions,
+body.woocommerce.tax-artist .archive-header-actions,
+body.tax .archive-header-actions,
+body.post-type-archive .archive-header-actions {
+	display: flex;
+	gap: var(--spacing-sm);
+	align-items: center;
+}
+
+body.archive .archive-header-actions:empty,
+body.search .archive-header-actions:empty,
+body.woocommerce.archive .archive-header-actions:empty,
+body.woocommerce.tax-product_cat .archive-header-actions:empty,
+body.woocommerce.tax-artist .archive-header-actions:empty,
+body.tax .archive-header-actions:empty,
+body.post-type-archive .archive-header-actions:empty {
+	display: none;
+}
+
+body.archive .archive-header-actions .artist-profile-link-container,
+body.search .archive-header-actions .artist-profile-link-container,
+body.woocommerce.archive .archive-header-actions .artist-profile-link-container,
+body.woocommerce.tax-product_cat .archive-header-actions .artist-profile-link-container,
+body.woocommerce.tax-artist .archive-header-actions .artist-profile-link-container,
+body.tax .archive-header-actions .artist-profile-link-container,
+body.post-type-archive .archive-header-actions .artist-profile-link-container {
+	float: none;
+	margin-left: 0;
+}
+
+body.archive .page-header .page-title,
+body.search .page-header .page-title,
+body.woocommerce.archive .page-header .page-title,
+body.woocommerce.tax-product_cat .page-header .page-title,
+body.woocommerce.tax-artist .page-header .page-title,
+body.tax .page-header .page-title,
+body.post-type-archive .page-header .page-title {
+	margin: 0;
+}
+
+/* Cross-Site Links Container */
+.ec-cross-site-links {
+	margin-top: var(--spacing-md);
+}
+
+/*
  * Archive Card Layout
  * Unified with single post card, but slightly smaller for grid/list display.
  * Subtle or no box-shadow, open spacing, and responsive.
