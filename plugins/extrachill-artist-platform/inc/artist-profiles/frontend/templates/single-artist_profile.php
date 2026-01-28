@@ -33,7 +33,6 @@ get_header(); ?>
                 $apple_music_url = get_post_meta( $artist_profile_id, '_apple_music_url', true );
                 $bandcamp_url = get_post_meta( $artist_profile_id, '_bandcamp_url', true );
 
-                // --- Get Social Links --- 
                 $artist_profile_social_links = get_post_meta( $artist_profile_id, '_artist_profile_social_links', true );
                 if ( ! is_array( $artist_profile_social_links ) ) {
                     $artist_profile_social_links = array();
@@ -175,10 +174,10 @@ get_header(); ?>
                             echo '</div>'; // .artist-bio-section
 
                             // Cross-site link to blog coverage (provided by extrachill-multisite)
-                            if ( function_exists( 'ec_render_cross_site_artist_profile_links' ) ) {
+                            if ( function_exists( 'extrachill_render_cross_site_artist_profile_links' ) ) {
                                 global $post;
                                 if ( isset( $post ) && $post->post_type === 'artist_profile' && ! empty( $post->post_name ) ) {
-                                    ec_render_cross_site_artist_profile_links( $post->post_name );
+                                    extrachill_render_cross_site_artist_profile_links( $post->post_name );
                                 }
                             }
                             ?>
