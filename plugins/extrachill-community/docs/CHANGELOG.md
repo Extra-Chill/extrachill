@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.3.3] - 2026-01-28
+
+### Changed
+- Standardize forum cross-site links with centralized renderer
+
 ## [1.3.2] - 2026-01-28
 
 ### Fixed
