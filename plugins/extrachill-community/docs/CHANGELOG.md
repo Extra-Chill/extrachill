@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.2.5] - 2026-01-27
+
+### Changed
+- Remove redundant link styling that blocked theme hover states
+
 ## [1.2.4] - 2026-01-27
 
 ### Added
