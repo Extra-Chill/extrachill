@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 This file records notable changes in this theme.
 
+## [2.0.6] - 2026-01-28
+
+### Fixed
+- Fix edge-to-edge layout for small screens
+
 ## [2.0.5] - 2026-01-27
 
 ### Changed
