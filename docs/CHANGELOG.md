@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 This file records notable changes in this theme.
 
-## Unreleased
+## [2.0.5] - 2026-01-27
 
 ### Changed
 - Add changelog entry for 2.0.4
