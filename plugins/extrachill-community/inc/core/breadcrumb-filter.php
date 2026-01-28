@@ -255,7 +255,10 @@ function extrachill_community_schema_breadcrumb_items( $items ) {
 		return $items;
 	}
 
-	$main_site_url = function_exists( 'ec_get_site_url' ) ? ec_get_site_url( 'main' ) : 'https://extrachill.com';
+	if ( ! function_exists( 'ec_get_site_url' ) ) {
+		return $items;
+	}
+	$main_site_url = ec_get_site_url( 'main' );
 
 	// Homepage: Extra Chill → Community
 	if ( is_front_page() ) {
