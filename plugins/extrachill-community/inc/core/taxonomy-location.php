@@ -64,46 +64,46 @@ function extrachill_community_redirect_location_to_forum() {
 add_action( 'template_redirect', 'extrachill_community_redirect_location_to_forum' );
 
 /**
- * Render cross-site links on forum pages (outbound linking)
+ * Append cross-site links to forum description
  *
  * When viewing a forum with a location term, show links to
- * location content on blog, events, and wire sites.
+ * location content on blog, events, and wire sites AFTER the description.
+ *
+ * @param string $description Forum description HTML.
+ * @return string Description with cross-site links appended.
  */
-function extrachill_community_render_forum_location_links() {
+function extrachill_community_append_location_links_to_description( $description ) {
 	if ( ! function_exists( 'bbp_is_single_forum' ) || ! bbp_is_single_forum() ) {
-		return;
+		return $description;
 	}
 
 	$forum_id       = bbp_get_forum_id();
 	$location_terms = get_the_terms( $forum_id, 'location' );
 
 	if ( empty( $location_terms ) || is_wp_error( $location_terms ) ) {
-		return;
+		return $description;
 	}
 
 	$term = $location_terms[0];
 
-	if ( ! function_exists( 'ec_get_cross_site_term_links' ) ) {
-		return;
+	if ( ! function_exists( 'extrachill_get_cross_site_term_links' ) ) {
+		return $description;
 	}
 
-	$links = ec_get_cross_site_term_links( $term, 'location' );
+	$links = extrachill_get_cross_site_term_links( $term, 'location' );
 
 	if ( empty( $links ) ) {
-		return;
+		return $description;
 	}
 
+	ob_start();
 	echo '<div class="ec-cross-site-links ec-forum-location-links">';
-
 	foreach ( $links as $link ) {
-		printf(
-			'<a href="%s" class="button-3 button-small">%s (%d)</a> ',
-			esc_url( $link['url'] ),
-			esc_html( $link['label'] ),
-			intval( $link['count'] )
-		);
+		extrachill_cross_site_link_button( $link );
 	}
-
 	echo '</div>';
+	$links_html = ob_get_clean();
+
+	return $description . $links_html;
 }
-add_action( 'bbp_template_before_single_forum', 'extrachill_community_render_forum_location_links' );
+add_filter( 'bbp_get_single_forum_description', 'extrachill_community_append_location_links_to_description' );
