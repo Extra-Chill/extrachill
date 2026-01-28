@@ -133,18 +133,6 @@ ul.recently-active-topic-row {
     display: inline;
 }
 
-/* =========================================
-   4) Link styling
-   ========================================= */
-.recently-active-topic-row .topic-card-row a {
-    color: var(--link-color);
-}
-.recently-active-topic-row .topic-card-row h3 a {
-    text-decoration: underline;
-    color: var(--link-color);
-}
-/* Link hover handled by theme */
-
 .card-meta a {
     padding: auto;
     text-decoration: none;
@@ -311,18 +299,12 @@ ul.recently-active-topic-row {
 }
 
 .artist-homepage-latest-topic .latest-topic-link {
-    color: var(--link-color);
     text-decoration: none;
     font-weight: 500;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
     flex: 1;
-}
-
-.artist-homepage-latest-topic .latest-topic-link:hover {
-    text-decoration: underline;
-    color: #083b6c;
 }
 
 .artist-platform-homepage-footer {
