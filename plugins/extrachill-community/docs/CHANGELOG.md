@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.3.0] - 2026-01-28
+
+### Changed
+- Remove hardcoded URL fallback in schema breadcrumbs
+- Add location taxonomy support for bbPress forums
+
 ## [1.2.5] - 2026-01-27
 
 ### Changed
