@@ -36,6 +36,20 @@ h2.recent-title {
 	}
 }
 
+/* Small screens - edge-to-edge */
+@media (max-width: 400px) {
+	.sidebar-card {
+		padding: var(--spacing-md);
+		margin-left: 0;
+		margin-right: 0;
+		max-width: 100%;
+		border-radius: 0;
+		border-left: none;
+		border-right: none;
+		box-shadow: none;
+	}
+}
+
 /* Sidebar Recent Posts Title Margin for Desktop */
 @media (min-width: 900px) {
 	.sidebar {
