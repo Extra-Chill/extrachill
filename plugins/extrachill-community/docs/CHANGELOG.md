@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.3.2] - 2026-01-28
+
+### Fixed
+- Fix printf argument count mismatch in forum location links
+
 ## [1.3.1] - 2026-01-28
 
 ### Changed
