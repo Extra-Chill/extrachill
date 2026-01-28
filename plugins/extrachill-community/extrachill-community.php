@@ -31,6 +31,7 @@ require_once plugin_dir_path( __FILE__ ) . 'inc/core/bbpress-utf8-hotfix.php';
 function extrachill_community_init() {
 	require_once plugin_dir_path( __FILE__ ) . 'inc/core/assets.php';
 	require_once plugin_dir_path( __FILE__ ) . 'inc/core/bbpress-templates.php';
+	require_once plugin_dir_path( __FILE__ ) . 'inc/core/taxonomy-location.php';
 	require_once plugin_dir_path( __FILE__ ) . 'inc/core/breadcrumb-filter.php';
 	require_once plugin_dir_path( __FILE__ ) . 'inc/core/page-templates.php';
 	require_once plugin_dir_path( __FILE__ ) . 'inc/core/bbpress-spam-adjustments.php';
