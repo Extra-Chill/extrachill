@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.3.1] - 2026-01-28
+
+### Changed
+- Remove redundant label from forum location cross-site links
+
 ## [1.3.0] - 2026-01-28
 
 ### Changed
