@@ -1117,12 +1117,15 @@ body.search-overlay-open {
 /* Small screens - edge-to-edge for single posts (Mediavine 300px ad minimum) */
 @media screen and (max-width: 400px) {
 	body.single-post .extrachill-content,
-	body.single-datamachine_events .extrachill-content {
+	body.single-datamachine_events .extrachill-content,
+	body.single-newsletter .extrachill-content {
 		padding-left: 0;
 		padding-right: 0;
 	}
-	body.single-post .breadcrumbs,
-	body.single-datamachine_events .breadcrumbs {
+	/* Padding for everything except the post card */
+	body.single-post .main-content > :not(.single-post-card),
+	body.single-datamachine_events .main-content > :not(.single-post-card),
+	body.single-newsletter .main-content > :not(.single-post-card) {
 		padding-left: var(--spacing-md);
 		padding-right: var(--spacing-md);
 	}
