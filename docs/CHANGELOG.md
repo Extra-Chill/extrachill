@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 This file records notable changes in this theme.
 
+## Unreleased
+
+### Changed
+- Add changelog entry for 2.0.4
+- Consolidate archive header styles from style.css to archive.css for conditional loading
+
 ## [2.0.3] - 2026-01-27
 
 ### Changed
