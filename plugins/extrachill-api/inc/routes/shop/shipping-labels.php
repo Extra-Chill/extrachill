@@ -116,7 +116,14 @@ function extrachill_api_shipping_labels_get_handler( WP_REST_Request $request ) 
 
 	$shop_blog_id = function_exists( 'extrachill_api_shop_get_blog_id' )
 		? extrachill_api_shop_get_blog_id()
-		: ( function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'shop' ) : 3 );
+		: ( function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'shop' ) : null );
+	if ( ! $shop_blog_id ) {
+		return new WP_Error(
+			'blog_id_missing',
+			'Shop blog ID helper not available.',
+			array( 'status' => 500 )
+		);
+	}
 
 	switch_to_blog( $shop_blog_id );
 	try {
@@ -190,7 +197,14 @@ function extrachill_api_shipping_labels_create_handler( WP_REST_Request $request
 
 	$shop_blog_id = function_exists( 'extrachill_api_shop_get_blog_id' )
 		? extrachill_api_shop_get_blog_id()
-		: ( function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'shop' ) : 3 );
+		: ( function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'shop' ) : null );
+	if ( ! $shop_blog_id ) {
+		return new WP_Error(
+			'blog_id_missing',
+			'Shop blog ID helper not available.',
+			array( 'status' => 500 )
+		);
+	}
 
 	switch_to_blog( $shop_blog_id );
 	try {
