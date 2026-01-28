@@ -2,6 +2,62 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.10.9] - 2026-01-28
+
+### Changed
+- Remove hardcoded blog ID fallback in shipping labels endpoint
+- Add community taxonomy counts endpoint for cross-site linking
+- added text domain
+- Version bump to 0.10.8 - Dependency updates and route improvements
+- Bump version to 0.9.2 - New auth, shop, and SEO endpoints
+- Bump version to 0.9.1 - Activity taxonomy badge color fix
+- Bump version to 0.9.0 - SEO audit endpoints
+- Bump version to 0.8.6 - Documentation cleanup and activity emitters refactor
+- Bump version to 0.8.5 - Festival wire migration tool cleanup
+- Bump version to 0.8.4 - Festival wire inline upload migration
+- Bump version to 0.8.3 - Festival wire migration and taxonomy sync tools
+- Bump version to 0.8.2 - Browser handoff authentication endpoint
+- Bump version to 0.8.1 - Enhanced auth/me endpoint with user context data
+- Bump version to 0.8.0 - Shop shipping management and Turnstile enhancements
+- Bump version to 0.7.2 - Activity enhancements for events and bbPress replies
+- Bump version to 0.7.1 - Documentation reorganization and auth parameter enhancement
+- Bump version to 0.7.0 - Activity enhancements, Google OAuth, and onboarding system
+- Bump version to 0.6.5 - Artist access management API
+- Bump version to 0.6.4 - Activity data display fixes
+- Bump version to 0.6.3 - Activity system fixes
+- Bump version to 0.6.2 - Auth endpoints, catalog cleanup
+- Bump version to 0.6.1 - Shop enhancements, new endpoints, and prefix updates
+- Bump version to 0.6.0 - Refactor artist endpoints to /artists/{id}/ API structure
+- Bump version to 0.5.2 - Remove incorrect WooCommerce hack and orders endpoint
+- Bump version to 0.5.1 - Users leaderboard endpoint and WooCommerce utility
+- Bump version to 0.5.0 - Authentication system, Stripe webhooks, and stream status
+- Bump version to 0.4.0 - Activity system, community drafts, and newsletter campaigns
+- Bump version to 0.3.1 - Add contact form submission endpoint
+- Bump version to 0.3.0 - Blocks to Blog refactoring and new shop APIs
+- Bump version to 0.2.8 - Dynamic blog ID handling and new orders API
+- Bump version to 0.2.7 - Remove excerpt support from docs sync
+- Bump version to 0.2.6 - Internal link resolution for documentation
+- Bump version to 0.2.5 - Pages collection and header ID fixes
+- Bump version to 0.2.4 - Dynamic blog IDs and enhanced link tracking
+- Bump version to 0.2.3 - Bug fixes and docs info enhancement
+- Bump version to 0.2.2 - Documentation reorganization and enhancement
+- Bump version to 0.2.1 - Add artist creation and roster management
+- Bump version to 0.2.0 - Add documentation sync and ID generation
+- Bump version to 0.1.9 - Add user management and admin APIs
+- Bump version to 0.1.8 - Reorganize block endpoints under /blocks/ namespace and enhance link page tracking
+- Bump version to 0.1.7 - Add Stripe Connect endpoints and comprehensive route documentation
+- Bump version to 0.1.6 - Add artist analytics and shop products endpoints
+- Bump version to 0.1.5 - Add Artist API and unified media endpoints
+- Bump version to 0.1.4 - Add artist roster, chat, and analytics endpoints
+- Bump version to 0.1.3 - Add analytics and artist subscription endpoints
+- Add analytics link-click tracking and artist subscribe endpoints
+- Bump version to 0.1.2 - Add QR code generator, analytics, community features, and enhanced event submissions
+- Bump version to 0.1.1
+- Initial commit: Scaffold ExtraChill API infrastructure
+
+### Fixed
+- Fix activity data display - decode HTML entities in titles and excerpts
+
 ## [0.10.7] - 2026-01-08
 
 ### Changed
