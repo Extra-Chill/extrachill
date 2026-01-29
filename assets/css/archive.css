@@ -61,11 +61,6 @@ body.post-type-archive .page-header .page-title {
 	margin: 0;
 }
 
-/* Cross-Site Links Container */
-.ec-cross-site-links {
-	margin-top: var(--spacing-md);
-}
-
 /*
  * Archive Card Layout
  * Unified with single post card, but slightly smaller for grid/list display.
