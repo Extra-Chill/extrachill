@@ -2,6 +2,11 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.10.10] - 2026-01-28
+
+### Fixed
+- Fix taxonomy counts to use direct WP_Query for reliability
+
 ## [0.10.9] - 2026-01-28
 
 ### Changed
