@@ -197,11 +197,9 @@ function extrachill_api_get_bulk_wire_counts( $taxonomy, $wire_blog_id, $limit )
  * @return int Count of published posts.
  */
 function extrachill_api_count_wire_posts_for_term( $term_id, $taxonomy ) {
-	$post_types = get_taxonomy( $taxonomy )->object_type;
-
 	$query = new WP_Query(
 		array(
-			'post_type'      => $post_types,
+			'post_type'      => 'festival_wire',
 			'post_status'    => 'publish',
 			'posts_per_page' => 1,
 			'fields'         => 'ids',

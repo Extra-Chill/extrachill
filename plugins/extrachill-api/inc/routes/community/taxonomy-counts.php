@@ -96,10 +96,21 @@ function extrachill_api_community_taxonomy_counts_handler( WP_REST_Request $requ
 			return rest_ensure_response( null );
 		}
 
-		$forum       = $forums[0];
-		$topic_count = function_exists( 'bbp_get_forum_topic_count' )
-			? bbp_get_forum_topic_count( $forum->ID )
-			: 0;
+		$forum = $forums[0];
+
+		// Count topics directly since bbPress functions may not be loaded
+		// when called via internal REST request from another site.
+		$topic_query = new WP_Query(
+			array(
+				'post_type'      => 'topic',
+				'post_status'    => 'publish',
+				'post_parent'    => $forum->ID,
+				'posts_per_page' => 1,
+				'fields'         => 'ids',
+				'no_found_rows'  => false,
+			)
+		);
+		$topic_count = $topic_query->found_posts;
 
 		return rest_ensure_response(
 			array(
