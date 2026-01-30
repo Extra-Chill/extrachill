@@ -16,10 +16,6 @@ get_header(); ?>
 	<?php do_action( 'extrachill_archive_header' ); ?>
 
 	<?php
-	if ( is_search() ) {
-		do_action( 'extrachill_search_header' );
-	}
-
 	do_action( 'extrachill_archive_below_description' );
 
 	do_action( 'extrachill_archive_above_posts' );
