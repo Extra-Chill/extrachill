@@ -435,9 +435,9 @@ span.bbp-author-ip {
 }
 
 #bbpress-forums div.bbp-reply-content ol,
-#bbpress-forums div.bbp-reply-content ul,
+#bbpress-forums div.bbp-reply-content ul:not(.bbp-reply-revision-log),
 #bbpress-forums div.bbp-topic-content ol,
-#bbpress-forums div.bbp-topic-content ul {
+#bbpress-forums div.bbp-topic-content ul:not(.bbp-topic-revision-log) {
     margin: 0 15px 15px;
     padding: 0;
 }
