@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.3.5] - 2026-01-30
+
+### Fixed
+- Fix revision log spacing override from content list rules
+
 ## [1.3.4] - 2026-01-30
 
 ### Fixed
