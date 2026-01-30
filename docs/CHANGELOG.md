@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 This file records notable changes in this theme.
 
+## [2.0.8] - 2026-01-30
+
+### Fixed
+- Fix archive title duplication and add artist name to filtered category titles
+
 ## [2.0.7] - 2026-01-28
 
 ### Changed
