@@ -15,6 +15,13 @@
 		<h1 class="page-title">
 			<?php
 			if ( is_category() ) {
+				$artist_slug = get_query_var( 'artist' );
+				if ( ! empty( $artist_slug ) ) {
+					$artist_term = get_term_by( 'slug', $artist_slug, 'artist' );
+					if ( $artist_term && ! is_wp_error( $artist_term ) ) {
+						echo esc_html( $artist_term->name ) . ' ';
+					}
+				}
 				single_cat_title();
 			} elseif ( is_tag() ) {
 				single_tag_title();
